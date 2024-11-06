@@ -1,0 +1,558 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="classdabfg_1_1_name_space" kind="class" language="C++" prot="public">
+    <compoundname>dabfg::NameSpace</compoundname>
+    <includes refid="name_space_8h" local="no">nameSpace.h</includes>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classdabfg_1_1_name_space_1a691932c65b285509b1c958b40a203893" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>struct</type>
+        <definition>friend struct eastl::hash&lt; NameSpace &gt;</definition>
+        <argsstring></argsstring>
+        <name>eastl::hash&lt; NameSpace &gt;</name>
+        <param>
+          <type>eastl::hash&lt; <ref refid="classdabfg_1_1_name_space" kindref="compound">NameSpace</ref> &gt;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" line="37" column="20" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="friend" id="classdabfg_1_1_name_space_1a8069d5bda88d06acff5dbfeab0b3bed6" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_name_space" kindref="compound">NameSpace</ref></type>
+        <definition>NameSpace root</definition>
+        <argsstring>()</argsstring>
+        <name>root</name>
+        <briefdescription>
+<para>Creates a namespace object for the root frame graph namespace. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>The object representing the root namespace. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" line="37" column="20"/>
+      </memberdef>
+      <memberdef kind="friend" id="classdabfg_1_1_name_space_1a7500b630ad501351eb4ba2432618d48f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool operator==</definition>
+        <argsstring>(const NameSpace &amp;fst, const NameSpace &amp;snd)</argsstring>
+        <name>operator==</name>
+        <param>
+          <type>const <ref refid="classdabfg_1_1_name_space" kindref="compound">NameSpace</ref> &amp;</type>
+          <declname>fst</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classdabfg_1_1_name_space" kindref="compound">NameSpace</ref> &amp;</type>
+          <declname>snd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" line="173" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" bodystart="173" bodyend="173"/>
+      </memberdef>
+      <memberdef kind="friend" id="classdabfg_1_1_name_space_1abcbea3425cd17afda02b280b0f9954fb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool operator&lt;</definition>
+        <argsstring>(const NameSpace &amp;fst, const NameSpace &amp;snd)</argsstring>
+        <name>operator&lt;</name>
+        <param>
+          <type>const <ref refid="classdabfg_1_1_name_space" kindref="compound">NameSpace</ref> &amp;</type>
+          <declname>fst</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classdabfg_1_1_name_space" kindref="compound">NameSpace</ref> &amp;</type>
+          <declname>snd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" line="175" column="10" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" bodystart="175" bodyend="175"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classdabfg_1_1_name_space_1af4434fb168f3631a7544971d13189f4c" prot="private" static="no" mutable="no">
+        <type>NameSpaceNameId</type>
+        <definition>NameSpaceNameId dabfg::NameSpace::nameId</definition>
+        <argsstring></argsstring>
+        <name>nameId</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" line="182" column="19" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" bodystart="182" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classdabfg_1_1_name_space_1ae3430b7bbb3155ce5c8988249e237fbf" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>dabfg::NameSpace::NameSpace</definition>
+        <argsstring>()</argsstring>
+        <name>NameSpace</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" line="40" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_name_space_1ab6cdad87f8c4acc7ba360d6bf781b6e5" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>dabfg::NameSpace::NameSpace</definition>
+        <argsstring>(NameSpaceNameId nid)</argsstring>
+        <name>NameSpace</name>
+        <param>
+          <type>NameSpaceNameId</type>
+          <declname>nid</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" line="41" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_name_space_1a3ea0b4d6db29cee9024479ebabf71944" prot="private" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>auto</type>
+        <definition>auto dabfg::NameSpace::resolveName</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>resolveName</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" line="180" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classdabfg_1_1_name_space_1a5a1e48e12b87a9551e742150e95cc2ea" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_name_space" kindref="compound">NameSpace</ref></type>
+        <definition>NameSpace dabfg::NameSpace::operator/</definition>
+        <argsstring>(const char *child_name) const</argsstring>
+        <name>operator/</name>
+        <param>
+          <type>const char *</type>
+          <declname>child_name</declname>
+        </param>
+        <briefdescription>
+<para>Creates a namespace object for a sub-namespace of this one. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>child_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Name of the sub-namespace. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>An object representing the child namespace. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" line="50" column="13"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_name_space_1a68e8f74c3dce44034700a499f6d863d1" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class F</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdabfg_1_1_node_handle" kindref="compound">NodeHandle</ref></type>
+        <definition>NodeHandle dabfg::NameSpace::registerNode</definition>
+        <argsstring>(const char *name, const char *source_location, F &amp;&amp;declaration_callback) const</argsstring>
+        <name>registerNode</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>source_location</declname>
+        </param>
+        <param>
+          <type>F &amp;&amp;</type>
+          <declname>declaration_callback</declname>
+        </param>
+        <briefdescription>
+<para>Either registers a new node inside the frame graph, or re-registers an already existing one. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name that uniquely identifies the node in the current name space. If the function is called twice with the same node name and name space, the second call will overwrite the node resulting from the previous one. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>source_location</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Should always be the DABFG_PP_NODE_SRC macro </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>declaration_callback</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Should be a callback taking a <ref refid="classdabfg_1_1_registry" kindref="compound">Registry</ref> instance by value and returning an execution callback, which in turn may accept a <ref refid="structdabfg_1_1multiplexing_1_1_index" kindref="compound">dabfg::multiplexing::Index</ref> object (or may accept nothing). Basically, a function with signature <ref refid="classdabfg_1_1_registry" kindref="compound">Registry</ref> -&gt; (Index -&gt; ()). Note: the declaration and execution callbacks might be called an arbitrary number of times, but only while the resulting node is registered. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A handle that represents the lifetime of the new node. The node will be unregistered when the handle is destroyed. Note that it is safe to call this function even without destroying all previous handles up to a couple hundred of times. The intended use case is doing <computeroutput>classField = register_node(...)</computeroutput> at arbitrary times, without passing these handles anywhere. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" line="76" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" bodystart="76" bodyend="100"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_name_space_1a30c2d1edbf639aca312324def0b92dc9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void dabfg::NameSpace::setResolution</definition>
+        <argsstring>(const char *type_name, T value)</argsstring>
+        <name>setResolution</name>
+        <param>
+          <type>const char *</type>
+          <declname>type_name</declname>
+        </param>
+        <param>
+          <type>T</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+<para>Updates an auto-resolution of a particular type. Note that this causes a complete resource rescheduling, invalidating all history. It also resets dynamic resolution. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>point type, either IPoint2 or IPoint3. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>type_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the auto-res type, looked up in this namespace. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>value</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The new resolution value. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" line="112" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_name_space_1a9bef09e9a9c7e6cfe92a5bdf415b36d9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void dabfg::NameSpace::setDynamicResolution</definition>
+        <argsstring>(const char *type_name, T value)</argsstring>
+        <name>setDynamicResolution</name>
+        <param>
+          <type>const char *</type>
+          <declname>type_name</declname>
+        </param>
+        <param>
+          <type>T</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+<para>Updates an auto-resolution of a particular type without causing a resource rescheduling, hence preserving history. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="note"><para>This is only available on platforms that support heaps.</para>
+</simplesect>
+<parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>P</parametername>
+</parameternamelist>
+<parameterdescription>
+<para><ndash/> point type, either IPoint2 or IPoint3. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>type_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the auto-res type, looked up in this namespace. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>value</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The new dynamic resolution value. Must be smaller than the initial resolution for this type. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" line="125" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_name_space_1af40421f3dcdf24bc3590c847470abb00" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dabfg::NameSpace::fillSlot</definition>
+        <argsstring>(NamedSlot slot, NameSpace res_name_space, const char *res_name)</argsstring>
+        <name>fillSlot</name>
+        <param>
+          <type><ref refid="structdabfg_1_1_named_slot" kindref="compound">NamedSlot</ref></type>
+          <declname>slot</declname>
+        </param>
+        <param>
+          <type><ref refid="classdabfg_1_1_name_space" kindref="compound">NameSpace</ref></type>
+          <declname>res_name_space</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>res_name</declname>
+        </param>
+        <briefdescription>
+<para>Sets a value to a named slot. Named slots are basically links that allow for an indirection when looking up a resource name. As an example, volumetric fog is an intrusive feature that requires a bunch of different rendering nodes to read some kind of a downsampled depth resource for tracing the fog, but this depth might be different depending on the current settings. In this situation, it makes sense to introduce a fog_depth slot and fill it in with different resources, allowing one to avoid settings-dependent ifs in node declarations. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>slot</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Name of the slot, looked up in this namespace. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>res_name_space</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Name space to look up res_name in. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>res_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Name of the resource to fill this slot with, looked up in <computeroutput>res_name_space</computeroutput>. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" line="141" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_name_space_1ac0f5ec1992c02944aabe42d4f98e4037" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dabfg::NameSpace::updateExternallyConsumedResourceSet</definition>
+        <argsstring>(eastl::span&lt; const char *const &gt; res_names)</argsstring>
+        <name>updateExternallyConsumedResourceSet</name>
+        <param>
+          <type>eastl::span&lt; const char *const &gt;</type>
+          <declname>res_names</declname>
+        </param>
+        <briefdescription>
+<para>Sets the set of resources which are considered to be somehow externally consumed and hence will never be optimized (pruned) out. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>res_names</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A list of resource names to assign, looked up in this namespace. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" line="149" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_name_space_1a4bb81c8d326ae0a26c8520c672bfb6d0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void dabfg::NameSpace::updateExternallyConsumedResourceSet</definition>
+        <argsstring>(std::initializer_list&lt; const char * &gt; res_names)</argsstring>
+        <name>updateExternallyConsumedResourceSet</name>
+        <param>
+          <type>std::initializer_list&lt; const char * &gt;</type>
+          <declname>res_names</declname>
+        </param>
+        <briefdescription>
+<para>Sets the set of resources which are considered to be somehow externally consumed and hence will never be optimized (pruned) out. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>res_names</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A list of resource names to assign, looked up in this namespace. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" line="152" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" bodystart="152" bodyend="155"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_name_space_1a63af0a1f40bc168fc57c9e6324a5ab94" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dabfg::NameSpace::markResourceExternallyConsumed</definition>
+        <argsstring>(const char *res_name)</argsstring>
+        <name>markResourceExternallyConsumed</name>
+        <param>
+          <type>const char *</type>
+          <declname>res_name</declname>
+        </param>
+        <briefdescription>
+<para>Marks a single resource as being externally consumed. See dabfg::updateExternallyConsumedResourceSet(eastl::span&lt;const char *const&gt; res_names) </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>res_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Name of the resource to mark, looked up in this namespace. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" line="163" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_name_space_1a98f8ccc110e786cd31675eb2718e40d0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dabfg::NameSpace::unmarkResourceExternallyConsumed</definition>
+        <argsstring>(const char *res_name)</argsstring>
+        <name>unmarkResourceExternallyConsumed</name>
+        <param>
+          <type>const char *</type>
+          <declname>res_name</declname>
+        </param>
+        <briefdescription>
+<para>Unmarks a single resource as being externally consumed. See dabfg::updateExternallyConsumedResourceSet(eastl::span&lt;const char *const&gt; res_names) </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>res_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Name of the resource to unmark, looked up in this namespace. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" line="171" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classdabfg_1_1_name_space_1adbdd6cc820109592eae0723997f68f6f" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_name_space" kindref="compound">NameSpace</ref></type>
+        <definition>static NameSpace dabfg::NameSpace::_make_namespace</definition>
+        <argsstring>(dabfg::NameSpaceNameId nid)</argsstring>
+        <name>_make_namespace</name>
+        <param>
+          <type>dabfg::NameSpaceNameId</type>
+          <declname>nid</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" line="177" column="27" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" bodystart="177" bodyend="177"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>A type representing some namespace in the frame graph. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" line="35" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" bodystart="36" bodyend="183"/>
+    <listofallmembers>
+      <member refid="classdabfg_1_1_name_space_1adbdd6cc820109592eae0723997f68f6f" prot="public" virt="non-virtual"><scope>dabfg::NameSpace</scope><name>_make_namespace</name></member>
+      <member refid="classdabfg_1_1_name_space_1a691932c65b285509b1c958b40a203893" prot="public" virt="non-virtual"><scope>dabfg::NameSpace</scope><name>eastl::hash&lt; NameSpace &gt;</name></member>
+      <member refid="classdabfg_1_1_name_space_1af40421f3dcdf24bc3590c847470abb00" prot="public" virt="non-virtual"><scope>dabfg::NameSpace</scope><name>fillSlot</name></member>
+      <member refid="classdabfg_1_1_name_space_1a63af0a1f40bc168fc57c9e6324a5ab94" prot="public" virt="non-virtual"><scope>dabfg::NameSpace</scope><name>markResourceExternallyConsumed</name></member>
+      <member refid="classdabfg_1_1_name_space_1af4434fb168f3631a7544971d13189f4c" prot="private" virt="non-virtual"><scope>dabfg::NameSpace</scope><name>nameId</name></member>
+      <member refid="classdabfg_1_1_name_space_1ae3430b7bbb3155ce5c8988249e237fbf" prot="private" virt="non-virtual"><scope>dabfg::NameSpace</scope><name>NameSpace</name></member>
+      <member refid="classdabfg_1_1_name_space_1ab6cdad87f8c4acc7ba360d6bf781b6e5" prot="private" virt="non-virtual"><scope>dabfg::NameSpace</scope><name>NameSpace</name></member>
+      <member refid="classdabfg_1_1_name_space_1a5a1e48e12b87a9551e742150e95cc2ea" prot="public" virt="non-virtual"><scope>dabfg::NameSpace</scope><name>operator/</name></member>
+      <member refid="classdabfg_1_1_name_space_1abcbea3425cd17afda02b280b0f9954fb" prot="public" virt="non-virtual"><scope>dabfg::NameSpace</scope><name>operator&lt;</name></member>
+      <member refid="classdabfg_1_1_name_space_1a7500b630ad501351eb4ba2432618d48f" prot="public" virt="non-virtual"><scope>dabfg::NameSpace</scope><name>operator==</name></member>
+      <member refid="classdabfg_1_1_name_space_1a68e8f74c3dce44034700a499f6d863d1" prot="public" virt="non-virtual"><scope>dabfg::NameSpace</scope><name>registerNode</name></member>
+      <member refid="classdabfg_1_1_name_space_1a3ea0b4d6db29cee9024479ebabf71944" prot="private" virt="non-virtual"><scope>dabfg::NameSpace</scope><name>resolveName</name></member>
+      <member refid="classdabfg_1_1_name_space_1a8069d5bda88d06acff5dbfeab0b3bed6" prot="private" virt="non-virtual"><scope>dabfg::NameSpace</scope><name>root</name></member>
+      <member refid="classdabfg_1_1_name_space_1a9bef09e9a9c7e6cfe92a5bdf415b36d9" prot="public" virt="non-virtual"><scope>dabfg::NameSpace</scope><name>setDynamicResolution</name></member>
+      <member refid="classdabfg_1_1_name_space_1a30c2d1edbf639aca312324def0b92dc9" prot="public" virt="non-virtual"><scope>dabfg::NameSpace</scope><name>setResolution</name></member>
+      <member refid="classdabfg_1_1_name_space_1a98f8ccc110e786cd31675eb2718e40d0" prot="public" virt="non-virtual"><scope>dabfg::NameSpace</scope><name>unmarkResourceExternallyConsumed</name></member>
+      <member refid="classdabfg_1_1_name_space_1ac0f5ec1992c02944aabe42d4f98e4037" prot="public" virt="non-virtual"><scope>dabfg::NameSpace</scope><name>updateExternallyConsumedResourceSet</name></member>
+      <member refid="classdabfg_1_1_name_space_1a4bb81c8d326ae0a26c8520c672bfb6d0" prot="public" virt="non-virtual"><scope>dabfg::NameSpace</scope><name>updateExternallyConsumedResourceSet</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

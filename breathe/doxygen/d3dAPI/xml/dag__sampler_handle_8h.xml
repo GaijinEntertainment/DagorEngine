@@ -1,0 +1,123 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="dag__sampler_handle_8h" kind="file" language="C++">
+    <compoundname>dag_samplerHandle.h</compoundname>
+    <includes local="no">util/dag_stdint.h</includes>
+    <includedby refid="dag__interface__table_8h" local="no">/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_interface_table.h</includedby>
+    <includedby refid="dag__sampler_8h" local="no">/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h</includedby>
+    <incdepgraph>
+      <node id="2">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_samplerHandle.h</label>
+        <link refid="dag__sampler_handle_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="12">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_ps.h</label>
+        <link refid="dag__platform__ps_8h_source"/>
+      </node>
+      <node id="11">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_pc.h</label>
+        <link refid="dag__platform__pc_8h_source"/>
+      </node>
+      <node id="13">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_texture.h</label>
+        <link refid="dag__texture_8h_source"/>
+      </node>
+      <node id="5">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h</label>
+        <link refid="dag__tex3d_8h_source"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driver.h</label>
+        <link refid="dag__driver_8h_source"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_bindless.h</label>
+        <link refid="dag__bindless_8h_source"/>
+      </node>
+      <node id="2">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_interface_table.h</label>
+        <link refid="dag__interface__table_8h_source"/>
+      </node>
+      <node id="10">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_lock.h</label>
+        <link refid="dag__lock_8h_source"/>
+      </node>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_samplerHandle.h</label>
+        <link refid="dag__sampler_handle_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h</label>
+        <link refid="dag__sampler_8h_source"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_async_pipeline.h</label>
+        <link refid="dag__async__pipeline_8h_source"/>
+      </node>
+      <node id="9">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_drv3d_multi.h</label>
+        <link refid="dag__drv3d__multi_8h_source"/>
+      </node>
+      <node id="6">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h</label>
+        <link refid="dag__buffers_8h"/>
+      </node>
+    </invincdepgraph>
+    <innernamespace refid="namespaced3d">d3d</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_stdint.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">d3d</highlight></codeline>
+<codeline lineno="10"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Have<sp/>always<sp/>64bits<sp/>-<sp/>this<sp/>allows<sp/>the<sp/>drivers<sp/>to<sp/>use<sp/>pointers,<sp/>packed<sp/>data<sp/>structures<sp/>of<sp/>API<sp/>objects<sp/>to<sp/>be<sp/>returned</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/>SamplerHandle<sp/>:<sp/>uint64_t</highlight></codeline>
+<codeline lineno="13"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/>Invalid<sp/>=<sp/>0x0,</highlight></codeline>
+<codeline lineno="15"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>SamplerHandle<sp/>INVALID_SAMPLER_HANDLE<sp/>=<sp/>SamplerHandle::Invalid;</highlight></codeline>
+<codeline lineno="17"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_samplerHandle.h"/>
+  </compounddef>
+</doxygen>

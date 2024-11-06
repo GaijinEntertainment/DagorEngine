@@ -1,0 +1,85 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structd3d_1_1drivercode_1_1matcher_1_1_const" kind="struct" language="C++" prot="public">
+    <compoundname>d3d::drivercode::matcher::Const</compoundname>
+    <derivedcompoundref refid="structd3d_1_1drivercode_1_1matcher_1_1_const_i_d" prot="public" virt="non-virtual">d3d::drivercode::matcher::ConstID&lt; Ident, Constant &gt;</derivedcompoundref>
+    <includes refid="dag__driver_code_8h" local="no">dag_driverCode.h</includes>
+    <templateparamlist>
+      <param>
+        <type>bool</type>
+        <declname>Constant</declname>
+        <defname>Constant</defname>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structd3d_1_1drivercode_1_1matcher_1_1_const_1a7c89bfcabbcb314c49256f153f0c9e04" prot="public" static="yes" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>static constexpr bool d3d::drivercode::matcher::Const&lt; Constant &gt;::is</definition>
+        <argsstring>(int)</argsstring>
+        <name>is</name>
+        <param>
+          <type>int</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Matches always <computeroutput>Constant</computeroutput>. <simplesect kind="return"><para>Always <computeroutput>Constant</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="129" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="129" bodyend="129"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structd3d_1_1drivercode_1_1matcher_1_1_const_1aa710143073fa0e5730483f4e1b9b7c13" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_const" kindref="compound">Const</ref>&lt;!Constant &gt;</type>
+        <definition>constexpr Const&lt;!Constant&gt; d3d::drivercode::matcher::Const&lt; Constant &gt;::operator!</definition>
+        <argsstring>() const</argsstring>
+        <name>operator!</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Creates the inverted matcher of this matcher, will always yield the opposite of <computeroutput>Constant</computeroutput>. <simplesect kind="return"><para><ref refid="structd3d_1_1drivercode_1_1matcher_1_1_inverted" kindref="compound">Inverted</ref> matcher of this matcher. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="132" column="19" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="132" bodyend="132"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>A constant matcher, which will always yield the value of <computeroutput>Constant</computeroutput>. <parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>Constant</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The value the matcher should yield during matching. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>d3d::drivercode::matcher::ConstID&lt; Ident, Constant &gt;</label>
+        <link refid="structd3d_1_1drivercode_1_1matcher_1_1_const_i_d"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>d3d::drivercode::matcher::Const&lt; Constant &gt;</label>
+        <link refid="structd3d_1_1drivercode_1_1matcher_1_1_const"/>
+      </node>
+    </inheritancegraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="125" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="126" bodyend="133"/>
+    <listofallmembers>
+      <member refid="structd3d_1_1drivercode_1_1matcher_1_1_const_1a7c89bfcabbcb314c49256f153f0c9e04" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Const</scope><name>is</name></member>
+      <member refid="structd3d_1_1drivercode_1_1matcher_1_1_const_1aa710143073fa0e5730483f4e1b9b7c13" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Const</scope><name>operator!</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

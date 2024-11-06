@@ -1,0 +1,205 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_d3d_reset_queue" kind="struct" language="C++" prot="public">
+    <compoundname>D3dResetQueue</compoundname>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="struct_d3d_reset_queue_1a48cfa05c7d701c484455fb41f8836700" prot="public" static="no">
+        <type>void(*</type>
+        <definition>typedef void(* D3dResetQueue::reset_func) (bool full_reset)</definition>
+        <argsstring>)(bool full_reset)</argsstring>
+        <name>reset_func</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="56" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_d3d_reset_queue_1ad647f4724203f07214d7e9ecac8100d5" prot="public" static="no" mutable="no">
+        <type>const <ref refid="struct_d3d_reset_queue" kindref="compound">D3dResetQueue</ref> *</type>
+        <definition>const D3dResetQueue* D3dResetQueue::next</definition>
+        <argsstring></argsstring>
+        <name>next</name>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="58" column="23" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_d3d_reset_queue_1ae99ff95428a963a6d352da0888ccc70b" prot="public" static="no" mutable="no">
+        <type>reset_func</type>
+        <definition>reset_func D3dResetQueue::func</definition>
+        <argsstring></argsstring>
+        <name>func</name>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="59" column="14" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_d3d_reset_queue_1a3ec7ea657951b15ba842ec45f2bdb98e" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* D3dResetQueue::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="60" column="14" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="struct_d3d_reset_queue_1a9378b6fc1b1d6a5b972ff40c23c1c6b9" prot="public" static="yes" mutable="no">
+        <type><ref refid="struct_d3d_reset_queue" kindref="compound">D3dResetQueue</ref> *</type>
+        <definition>D3dResetQueue* D3dResetQueue::tailBeforeReset</definition>
+        <argsstring></argsstring>
+        <name>tailBeforeReset</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="76" column="24" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" bodystart="76" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_d3d_reset_queue_1a7074638e7ab429950ea34c7bcc26334c" prot="public" static="yes" mutable="no">
+        <type><ref refid="struct_d3d_reset_queue" kindref="compound">D3dResetQueue</ref> *</type>
+        <definition>D3dResetQueue * D3dResetQueue::tailAfterReset</definition>
+        <argsstring></argsstring>
+        <name>tailAfterReset</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="76" column="40" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" bodystart="76" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="struct_d3d_reset_queue_1a9c246125ae59b409b448871a5d06d204" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>D3dResetQueue::D3dResetQueue</definition>
+        <argsstring>(const char *n, reset_func f, bool add_to_after_reset)</argsstring>
+        <name>D3dResetQueue</name>
+        <param>
+          <type>const char *</type>
+          <declname>n</declname>
+        </param>
+        <param>
+          <type>reset_func</type>
+          <declname>f</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>add_to_after_reset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="62" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" bodystart="62" bodyend="74"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="struct_d3d_reset_queue_1aaf9594cb3c0308a779f513f5bfd16dd7" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void D3dResetQueue::perform_reset_queue</definition>
+        <argsstring>(const D3dResetQueue *q, bool full_reset)</argsstring>
+        <name>perform_reset_queue</name>
+        <param>
+          <type>const <ref refid="struct_d3d_reset_queue" kindref="compound">D3dResetQueue</ref> *</type>
+          <declname>q</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>full_reset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="77" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_d3d_reset_queue_1a1e3f5e2667277718c013fda08c79cbd3" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void D3dResetQueue::perform_before_reset</definition>
+        <argsstring>(bool full_reset)</argsstring>
+        <name>perform_before_reset</name>
+        <param>
+          <type>bool</type>
+          <declname>full_reset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="78" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" bodystart="78" bodyend="78"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_d3d_reset_queue_1a484832fb2f9290c67063a49e155e78b8" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void D3dResetQueue::perform_after_reset</definition>
+        <argsstring>(bool full_reset)</argsstring>
+        <name>perform_after_reset</name>
+        <param>
+          <type>bool</type>
+          <declname>full_reset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="79" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" bodystart="79" bodyend="79"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>D3dResetQueue</label>
+        <link refid="struct_d3d_reset_queue"/>
+        <childnode refid="1" relation="usage">
+          <edgelabel>next</edgelabel>
+          <edgelabel>tailAfterReset</edgelabel>
+          <edgelabel>tailBeforeReset</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="54" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" bodystart="55" bodyend="80"/>
+    <listofallmembers>
+      <member refid="struct_d3d_reset_queue_1a9c246125ae59b409b448871a5d06d204" prot="public" virt="non-virtual"><scope>D3dResetQueue</scope><name>D3dResetQueue</name></member>
+      <member refid="struct_d3d_reset_queue_1ae99ff95428a963a6d352da0888ccc70b" prot="public" virt="non-virtual"><scope>D3dResetQueue</scope><name>func</name></member>
+      <member refid="struct_d3d_reset_queue_1a3ec7ea657951b15ba842ec45f2bdb98e" prot="public" virt="non-virtual"><scope>D3dResetQueue</scope><name>name</name></member>
+      <member refid="struct_d3d_reset_queue_1ad647f4724203f07214d7e9ecac8100d5" prot="public" virt="non-virtual"><scope>D3dResetQueue</scope><name>next</name></member>
+      <member refid="struct_d3d_reset_queue_1a484832fb2f9290c67063a49e155e78b8" prot="public" virt="non-virtual"><scope>D3dResetQueue</scope><name>perform_after_reset</name></member>
+      <member refid="struct_d3d_reset_queue_1a1e3f5e2667277718c013fda08c79cbd3" prot="public" virt="non-virtual"><scope>D3dResetQueue</scope><name>perform_before_reset</name></member>
+      <member refid="struct_d3d_reset_queue_1aaf9594cb3c0308a779f513f5bfd16dd7" prot="public" virt="non-virtual"><scope>D3dResetQueue</scope><name>perform_reset_queue</name></member>
+      <member refid="struct_d3d_reset_queue_1a48cfa05c7d701c484455fb41f8836700" prot="public" virt="non-virtual"><scope>D3dResetQueue</scope><name>reset_func</name></member>
+      <member refid="struct_d3d_reset_queue_1a7074638e7ab429950ea34c7bcc26334c" prot="public" virt="non-virtual"><scope>D3dResetQueue</scope><name>tailAfterReset</name></member>
+      <member refid="struct_d3d_reset_queue_1a9378b6fc1b1d6a5b972ff40c23c1c6b9" prot="public" virt="non-virtual"><scope>D3dResetQueue</scope><name>tailBeforeReset</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,117 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structd3d_1_1drivercode_1_1matcher_1_1_i_d" kind="struct" language="C++" prot="public">
+    <compoundname>d3d::drivercode::matcher::ID</compoundname>
+    <includes refid="dag__driver_code_8h" local="no">dag_driverCode.h</includes>
+    <templateparamlist>
+      <param>
+        <type>int</type>
+        <declname>Ident</declname>
+        <defname>Ident</defname>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="structd3d_1_1drivercode_1_1matcher_1_1_i_d_1a82ba87a3810f5dfcbcca191aa94462d4" prot="public" static="no">
+        <type><ref refid="structd3d_1_1drivercode_1_1matcher_1_1_i_d" kindref="compound">ID</ref>&lt; Ident &gt;</type>
+        <definition>using d3d::drivercode::matcher::ID&lt; Ident &gt;::ThisType =  ID&lt;Ident&gt;</definition>
+        <argsstring></argsstring>
+        <name>ThisType</name>
+        <briefdescription>
+<para>Shorthand for this type. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="111" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="111" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structd3d_1_1drivercode_1_1matcher_1_1_i_d_1a58113d126c82898c8787d37e46f53e74" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int d3d::drivercode::matcher::ID&lt; Ident &gt;::value</definition>
+        <argsstring></argsstring>
+        <name>value</name>
+        <initializer>= <ref refid="namespaced3d_1_1drivercode_1_1matcher_1accb02aa76d69abfb6d1905a0347a2ff6" kindref="member">make_foucc</ref>(Ident)</initializer>
+        <briefdescription>
+<para>The value of <computeroutput>Ident</computeroutput>. This value is used by <ref refid="class_driver_code_1a057476827ef16ba3ff1d810a64b9e8e9" kindref="member">DriverCode::make</ref> to initialize the driver code state. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="113" column="24" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="113" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structd3d_1_1drivercode_1_1matcher_1_1_i_d_1a3fbcd83b0e2cd40811e09e3d9091bec4" prot="public" static="yes" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>static constexpr bool d3d::drivercode::matcher::ID&lt; Ident &gt;::is</definition>
+        <argsstring>(int cmp)</argsstring>
+        <name>is</name>
+        <param>
+          <type>int</type>
+          <declname>cmp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Matches true when the driver code values is equal to <computeroutput>Ident</computeroutput> <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>cmp</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Is the driver code state that should be compared to <computeroutput>Ident</computeroutput>. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Returns true when the driver code state is equal to <computeroutput>Ident</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="117" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="117" bodyend="117"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structd3d_1_1drivercode_1_1matcher_1_1_i_d_1aca0d507f59031c48229dfea954da17f8" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_inverted" kindref="compound">Inverted</ref>&lt; <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_i_d_1a82ba87a3810f5dfcbcca191aa94462d4" kindref="member">ThisType</ref> &gt;</type>
+        <definition>constexpr Inverted&lt;ThisType&gt; d3d::drivercode::matcher::ID&lt; Ident &gt;::operator!</definition>
+        <argsstring>() const</argsstring>
+        <name>operator!</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Creates the inverted matcher of this matcher. <simplesect kind="return"><para><ref refid="structd3d_1_1drivercode_1_1matcher_1_1_inverted" kindref="compound">Inverted</ref> matcher of this matcher. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="120" column="22" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="120" bodyend="120"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Matcher that matches a given <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_i_d" kindref="compound">ID</ref>. This matcher can be used by <ref refid="class_driver_code_1a057476827ef16ba3ff1d810a64b9e8e9" kindref="member">DriverCode::make</ref>. <parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>The</parametername>
+</parameternamelist>
+<parameterdescription>
+<para><ref refid="structd3d_1_1drivercode_1_1matcher_1_1_i_d" kindref="compound">ID</ref> value the matcher should match to true. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="108" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="109" bodyend="121"/>
+    <listofallmembers>
+      <member refid="structd3d_1_1drivercode_1_1matcher_1_1_i_d_1a3fbcd83b0e2cd40811e09e3d9091bec4" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::ID</scope><name>is</name></member>
+      <member refid="structd3d_1_1drivercode_1_1matcher_1_1_i_d_1aca0d507f59031c48229dfea954da17f8" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::ID</scope><name>operator!</name></member>
+      <member refid="structd3d_1_1drivercode_1_1matcher_1_1_i_d_1a82ba87a3810f5dfcbcca191aa94462d4" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::ID</scope><name>ThisType</name></member>
+      <member refid="structd3d_1_1drivercode_1_1matcher_1_1_i_d_1a58113d126c82898c8787d37e46f53e74" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::ID</scope><name>value</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

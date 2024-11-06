@@ -1,0 +1,385 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="classdabfg_1_1_virtual_resource_creation_semi_request" kind="class" language="C++" prot="public">
+    <compoundname>dabfg::VirtualResourceCreationSemiRequest</compoundname>
+    <includes refid="virtual_resource_creation_semi_request_8h" local="no">virtualResourceCreationSemiRequest.h</includes>
+      <sectiondef kind="user-defined">
+      <header>Buffer methods</header>
+      <description><para>The buffer naming convention repeats the one in the d3d driver interface, see functions in namespace<verbatim>embed:rst:inline :cpp:type:`d3d::buffers` </verbatim> </para>
+</description>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_resource_creation_semi_request_1aa7fb42afbc7453e7896a0112a9c39199" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest</ref>&lt; Sbuffer, RRP::None &gt;</type>
+        <definition>VirtualResourceRequest&lt;Sbuffer, RRP::None&gt; dabfg::VirtualResourceCreationSemiRequest::byteAddressBufferUaSr</definition>
+        <argsstring>(uint32_t size_in_dwords) &amp;&amp;</argsstring>
+        <name>byteAddressBufferUaSr</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>size_in_dwords</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h" line="76" column="26" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h" bodystart="76" bodyend="81"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_resource_creation_semi_request_1a598f4678cb2b8cf98851c4179559667d" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest</ref>&lt; Sbuffer, RRP::None &gt;</type>
+        <definition>VirtualResourceRequest&lt;Sbuffer, RRP::None&gt; dabfg::VirtualResourceCreationSemiRequest::byteAddressBufferUa</definition>
+        <argsstring>(uint32_t size_in_dwords) &amp;&amp;</argsstring>
+        <name>byteAddressBufferUa</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>size_in_dwords</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h" line="83" column="26" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h" bodystart="83" bodyend="88"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_resource_creation_semi_request_1ae5556358e387e8d8d15f610ee7bfc6d2" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest</ref>&lt; Sbuffer, RRP::None &gt;</type>
+        <definition>VirtualResourceRequest&lt;Sbuffer, RRP::None&gt; dabfg::VirtualResourceCreationSemiRequest::structuredBufferUaSr</definition>
+        <argsstring>(uint32_t element_count) &amp;&amp;</argsstring>
+        <name>structuredBufferUaSr</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>element_count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h" line="91" column="26" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h" bodystart="91" bodyend="96"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_resource_creation_semi_request_1adfcfb76ed1f6580aeac2b4098e68e194" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest</ref>&lt; Sbuffer, RRP::None &gt;</type>
+        <definition>VirtualResourceRequest&lt;Sbuffer, RRP::None&gt; dabfg::VirtualResourceCreationSemiRequest::structuredBufferUa</definition>
+        <argsstring>(uint32_t element_count) &amp;&amp;</argsstring>
+        <name>structuredBufferUa</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>element_count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h" line="99" column="26" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h" bodystart="99" bodyend="104"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_resource_creation_semi_request_1a3a00fcad97e666e58c7d7b7632d9e1d2" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest</ref>&lt; Sbuffer, RRP::None &gt;</type>
+        <definition>VirtualResourceRequest&lt;Sbuffer, RRP::None&gt; dabfg::VirtualResourceCreationSemiRequest::indirectBufferUa</definition>
+        <argsstring>(d3d::buffers::Indirect indirect_type, uint32_t call_count) &amp;&amp;</argsstring>
+        <name>indirectBufferUa</name>
+        <param>
+          <type>d3d::buffers::Indirect</type>
+          <declname>indirect_type</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>call_count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h" line="106" column="26" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h" bodystart="106" bodyend="112"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_resource_creation_semi_request_1a73429939ae9f604b55e47e56b76b8d76" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest</ref>&lt; Sbuffer, RRP::None &gt;</type>
+        <definition>VirtualResourceRequest&lt;Sbuffer, RRP::None&gt; dabfg::VirtualResourceCreationSemiRequest::indirectBuffer</definition>
+        <argsstring>(d3d::buffers::Indirect indirect_type, uint32_t call_count) &amp;&amp;</argsstring>
+        <name>indirectBuffer</name>
+        <param>
+          <type>d3d::buffers::Indirect</type>
+          <declname>indirect_type</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>call_count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h" line="114" column="26" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h" bodystart="114" bodyend="119"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-type">
+      <memberdef kind="typedef" id="classdabfg_1_1_virtual_resource_creation_semi_request_1a771c42a6d79f23a833854645e4456228" prot="private" static="no">
+        <type>detail::VirtualResourceRequestBase</type>
+        <definition>using dabfg::VirtualResourceCreationSemiRequest::Base =  detail::VirtualResourceRequestBase</definition>
+        <argsstring></argsstring>
+        <name>Base</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h" line="26" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classdabfg_1_1_virtual_resource_creation_semi_request_1af111ebf6bd53bdfb903d6e59df6df334" prot="private" static="no">
+        <type>detail::ResourceRequestPolicy</type>
+        <definition>using dabfg::VirtualResourceCreationSemiRequest::RRP =  detail::ResourceRequestPolicy</definition>
+        <argsstring></argsstring>
+        <name>RRP</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h" line="27" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classdabfg_1_1_virtual_resource_creation_semi_request_1ac7b716e6d41ff508ad2d8e5dad655d72" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class Registry</definition>
+        <argsstring></argsstring>
+        <name>Registry</name>
+        <param>
+          <type><ref refid="classdabfg_1_1_registry" kindref="compound">Registry</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h" line="29" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classdabfg_1_1_virtual_resource_creation_semi_request_1a9a302b4c0388b9b127cf1cf5e000f978" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>dabfg::VirtualResourceCreationSemiRequest::VirtualResourceCreationSemiRequest</definition>
+        <argsstring>(detail::ResUid resId, NodeNameId node, InternalRegistry *reg)</argsstring>
+        <name>VirtualResourceCreationSemiRequest</name>
+        <param>
+          <type>detail::ResUid</type>
+          <declname>resId</declname>
+        </param>
+        <param>
+          <type>NodeNameId</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>InternalRegistry *</type>
+          <declname>reg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h" line="30" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h" bodystart="30" bodyend="30"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classdabfg_1_1_virtual_resource_creation_semi_request_1acbfc44540682addd184f4fd1638e1eee" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest</ref>&lt; BaseTexture, RRP::None &gt;</type>
+        <definition>VirtualResourceRequest&lt;BaseTexture, RRP::None&gt; dabfg::VirtualResourceCreationSemiRequest::texture</definition>
+        <argsstring>(const Texture2dCreateInfo &amp;info) &amp;&amp;</argsstring>
+        <name>texture</name>
+        <param>
+          <type>const <ref refid="structdabfg_1_1_texture2d_create_info" kindref="compound">Texture2dCreateInfo</ref> &amp;</type>
+          <declname>info</declname>
+        </param>
+        <briefdescription>
+<para>Specifies the request to be a 2D texture creation one. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>info</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The 2D texture creation info. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h" line="38" column="26" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h" bodystart="38" bodyend="42"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_resource_creation_semi_request_1aa44676a4480476025296ed1a6d9fe05b" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest</ref>&lt; BaseTexture, RRP::None &gt;</type>
+        <definition>VirtualResourceRequest&lt;BaseTexture, RRP::None&gt; dabfg::VirtualResourceCreationSemiRequest::texture</definition>
+        <argsstring>(const Texture3dCreateInfo &amp;info) &amp;&amp;</argsstring>
+        <name>texture</name>
+        <param>
+          <type>const <ref refid="structdabfg_1_1_texture3d_create_info" kindref="compound">Texture3dCreateInfo</ref> &amp;</type>
+          <declname>info</declname>
+        </param>
+        <briefdescription>
+<para>Specifies the request to be a 3D texture creation one. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>info</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The 3D texture creation info. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h" line="49" column="26" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h" bodystart="49" bodyend="53"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_resource_creation_semi_request_1aebd64d7f186beecbc86b3b9df2be2d5a" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest</ref>&lt; Sbuffer, RRP::None &gt;</type>
+        <definition>VirtualResourceRequest&lt;Sbuffer, RRP::None&gt; dabfg::VirtualResourceCreationSemiRequest::buffer</definition>
+        <argsstring>(const BufferCreateInfo &amp;info) &amp;&amp;</argsstring>
+        <name>buffer</name>
+        <param>
+          <type>const <ref refid="structdabfg_1_1_buffer_create_info" kindref="compound">BufferCreateInfo</ref> &amp;</type>
+          <declname>info</declname>
+        </param>
+        <briefdescription>
+<para>Specifies the request to be a buffer creation one. Note that this is a legacy method that is error-prone and hard to use correctly. Avoid this in favor of one of the methods below if possible. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>info</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The buffer creation info. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h" line="62" column="26" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h" bodystart="62" bodyend="66"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_resource_creation_semi_request_1adb401fba5d0aa5c78dd5748edc9bad06" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest</ref>&lt; T, RRP::None &gt;</type>
+        <definition>VirtualResourceRequest&lt;T, RRP::None&gt; dabfg::VirtualResourceCreationSemiRequest::blob</definition>
+        <argsstring>() &amp;&amp;</argsstring>
+        <name>blob</name>
+        <briefdescription>
+<para>Specifies the request to be a blob creation one. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h" line="129" column="26" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h" bodystart="129" bodyend="148"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_resource_creation_semi_request_1ab3d530a0907a636fe00f95adfa7da939" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest</ref>&lt; T, RRP::None &gt;</type>
+        <definition>VirtualResourceRequest&lt;T, RRP::None&gt; dabfg::VirtualResourceCreationSemiRequest::blob</definition>
+        <argsstring>(const T defaultValue) &amp;&amp;</argsstring>
+        <name>blob</name>
+        <param>
+          <type>const T</type>
+          <declname>defaultValue</declname>
+        </param>
+        <briefdescription>
+<para>Specifies the request to be a blob creation one. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the CPU data blob</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>defaultValue</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The default value to initialize the blob with. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h" line="158" column="26" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h" bodystart="158" bodyend="175"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>A builder object for an incomplete resource creation request: we want to create something, but don&apos;t know what yet. Note that all methods of this class return a new request object which should be used for further specification. Never re-use objects of this type for several requests. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h" line="21" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceCreationSemiRequest.h" bodystart="25" bodyend="176"/>
+    <listofallmembers>
+      <member refid="classdabfg_1_1_virtual_resource_creation_semi_request_1a771c42a6d79f23a833854645e4456228" prot="private" virt="non-virtual"><scope>dabfg::VirtualResourceCreationSemiRequest</scope><name>Base</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_creation_semi_request_1adb401fba5d0aa5c78dd5748edc9bad06" prot="public" virt="non-virtual"><scope>dabfg::VirtualResourceCreationSemiRequest</scope><name>blob</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_creation_semi_request_1ab3d530a0907a636fe00f95adfa7da939" prot="public" virt="non-virtual"><scope>dabfg::VirtualResourceCreationSemiRequest</scope><name>blob</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_creation_semi_request_1aebd64d7f186beecbc86b3b9df2be2d5a" prot="public" virt="non-virtual"><scope>dabfg::VirtualResourceCreationSemiRequest</scope><name>buffer</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_creation_semi_request_1a598f4678cb2b8cf98851c4179559667d" prot="public" virt="non-virtual"><scope>dabfg::VirtualResourceCreationSemiRequest</scope><name>byteAddressBufferUa</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_creation_semi_request_1aa7fb42afbc7453e7896a0112a9c39199" prot="public" virt="non-virtual"><scope>dabfg::VirtualResourceCreationSemiRequest</scope><name>byteAddressBufferUaSr</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_creation_semi_request_1a73429939ae9f604b55e47e56b76b8d76" prot="public" virt="non-virtual"><scope>dabfg::VirtualResourceCreationSemiRequest</scope><name>indirectBuffer</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_creation_semi_request_1a3a00fcad97e666e58c7d7b7632d9e1d2" prot="public" virt="non-virtual"><scope>dabfg::VirtualResourceCreationSemiRequest</scope><name>indirectBufferUa</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_creation_semi_request_1ac7b716e6d41ff508ad2d8e5dad655d72" prot="private" virt="non-virtual"><scope>dabfg::VirtualResourceCreationSemiRequest</scope><name>Registry</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_creation_semi_request_1af111ebf6bd53bdfb903d6e59df6df334" prot="private" virt="non-virtual"><scope>dabfg::VirtualResourceCreationSemiRequest</scope><name>RRP</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_creation_semi_request_1adfcfb76ed1f6580aeac2b4098e68e194" prot="public" virt="non-virtual"><scope>dabfg::VirtualResourceCreationSemiRequest</scope><name>structuredBufferUa</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_creation_semi_request_1ae5556358e387e8d8d15f610ee7bfc6d2" prot="public" virt="non-virtual"><scope>dabfg::VirtualResourceCreationSemiRequest</scope><name>structuredBufferUaSr</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_creation_semi_request_1acbfc44540682addd184f4fd1638e1eee" prot="public" virt="non-virtual"><scope>dabfg::VirtualResourceCreationSemiRequest</scope><name>texture</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_creation_semi_request_1aa44676a4480476025296ed1a6d9fe05b" prot="public" virt="non-virtual"><scope>dabfg::VirtualResourceCreationSemiRequest</scope><name>texture</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_creation_semi_request_1a9a302b4c0388b9b127cf1cf5e000f978" prot="private" virt="non-virtual"><scope>dabfg::VirtualResourceCreationSemiRequest</scope><name>VirtualResourceCreationSemiRequest</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

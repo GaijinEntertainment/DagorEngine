@@ -1,0 +1,34 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structd3d_1_1drivercode_1_1matcher_1_1_enable_if_3_01true_00_01_t_01_4" kind="struct" language="C++" prot="public">
+    <compoundname>d3d::drivercode::matcher::EnableIf&lt; true, T &gt;</compoundname>
+    <templateparamlist>
+      <param>
+        <type>typename T</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="structd3d_1_1drivercode_1_1matcher_1_1_enable_if_3_01true_00_01_t_01_4_1ab648cd03bfa6601bf292bff5cf157103" prot="public" static="no">
+        <type>T</type>
+        <definition>using d3d::drivercode::matcher::EnableIf&lt; true, T &gt;::Type =  T</definition>
+        <argsstring></argsstring>
+        <name>Type</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="20" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="18" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="19" bodyend="21"/>
+    <listofallmembers>
+      <member refid="structd3d_1_1drivercode_1_1matcher_1_1_enable_if_3_01true_00_01_t_01_4_1ab648cd03bfa6601bf292bff5cf157103" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::EnableIf&lt; true, T &gt;</scope><name>Type</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

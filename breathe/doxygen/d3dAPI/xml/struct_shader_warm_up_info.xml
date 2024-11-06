@@ -1,0 +1,416 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_shader_warm_up_info" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderWarmUpInfo</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_shader_warm_up_info_1a4ecc56247c0a2491a19e4e5a82e4c460" prot="public" static="no" mutable="no">
+        <type>int32_t</type>
+        <definition>int32_t ShaderWarmUpInfo::shaderProgram</definition>
+        <argsstring></argsstring>
+        <name>shaderProgram</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="231" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="231" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_shader_warm_up_info_1a33e4a942c200db10e280c828941eadb0" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderWarmUpInfo::colorFormats[Driver3dRenderTarget::MAX_SIMRT]</definition>
+        <argsstring>[Driver3dRenderTarget::MAX_SIMRT]</argsstring>
+        <name>colorFormats</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="232" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="232" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_shader_warm_up_info_1a5a38e068a2eb7003762681727bf343ca" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderWarmUpInfo::depthStencilFormat</definition>
+        <argsstring></argsstring>
+        <name>depthStencilFormat</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="233" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="233" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_shader_warm_up_info_1ac23d1282e6164c7bc38c6ff62316276b" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderWarmUpInfo::validColorTargetAndDepthStencilMask</definition>
+        <argsstring></argsstring>
+        <name>validColorTargetAndDepthStencilMask</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="235" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="235" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_shader_warm_up_info_1a8c5473202edcaf630d38d14e9214e111" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderWarmUpInfo::colorWriteMask</definition>
+        <argsstring></argsstring>
+        <name>colorWriteMask</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="236" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="236" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_shader_warm_up_info_1a22ef386c3bb2c696ae7be8d6af58a90b" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderWarmUpInfo::vertexInputStreamStrides[4]</definition>
+        <argsstring>[4]</argsstring>
+        <name>vertexInputStreamStrides</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="238" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="238" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_shader_warm_up_info_1a0737eb764455f63a5f7d64a6f8b42a66" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ShaderWarmUpInfo::primitiveTopologyMask</definition>
+        <argsstring></argsstring>
+        <name>primitiveTopologyMask</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="242" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="242" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_shader_warm_up_info_1add5e47caa4bd742bd6533cd3ce3c8a8e" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ShaderWarmUpInfo::cullMode</definition>
+        <argsstring></argsstring>
+        <name>cullMode</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="243" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="243" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_shader_warm_up_info_1a7b1f2411886514c086c1d1cf222c6e2c" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ShaderWarmUpInfo::depthTestFunction</definition>
+        <argsstring></argsstring>
+        <name>depthTestFunction</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="244" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="244" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_shader_warm_up_info_1a6be7e00ac564ce931d36b23c13a5314d" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ShaderWarmUpInfo::stencilTestFunction</definition>
+        <argsstring></argsstring>
+        <name>stencilTestFunction</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="245" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="245" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_shader_warm_up_info_1a15d8023b7fe4f2162c7d5417dff1d303" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ShaderWarmUpInfo::stencilOnStencilFail</definition>
+        <argsstring></argsstring>
+        <name>stencilOnStencilFail</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="246" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="246" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_shader_warm_up_info_1a2da4e5a58fe93b68a57f1ce133ba98de" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ShaderWarmUpInfo::stencilOnDepthFail</definition>
+        <argsstring></argsstring>
+        <name>stencilOnDepthFail</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="247" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="247" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_shader_warm_up_info_1ad791befd7aa4c01021774b2a1efee79c" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ShaderWarmUpInfo::stencilOnAllPass</definition>
+        <argsstring></argsstring>
+        <name>stencilOnAllPass</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="248" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="248" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_shader_warm_up_info_1a4b14e5dd4fa14efcea6e95f8a1802b09" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ShaderWarmUpInfo::blendOpRGB</definition>
+        <argsstring></argsstring>
+        <name>blendOpRGB</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="249" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="249" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_shader_warm_up_info_1a98f41c1a970ec7b5015aeeeefc118907" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ShaderWarmUpInfo::blendOpAlpha</definition>
+        <argsstring></argsstring>
+        <name>blendOpAlpha</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="250" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="250" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_shader_warm_up_info_1a187bb15f703afad37afc1ca6a5b166fd" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ShaderWarmUpInfo::blendSrcFactorRGB</definition>
+        <argsstring></argsstring>
+        <name>blendSrcFactorRGB</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="251" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="251" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_shader_warm_up_info_1a0b556032a06007d6d6f63ec3a015cf15" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ShaderWarmUpInfo::blendSrcFactorAlpha</definition>
+        <argsstring></argsstring>
+        <name>blendSrcFactorAlpha</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="252" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="252" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_shader_warm_up_info_1ad28b08fc8798a3b992d6f26c0c87d5fa" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ShaderWarmUpInfo::blendDstFactorRGB</definition>
+        <argsstring></argsstring>
+        <name>blendDstFactorRGB</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="253" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="253" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_shader_warm_up_info_1aabb38ed90f6727bc0d487e553efa0b10" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ShaderWarmUpInfo::blendDstFactorAlpha</definition>
+        <argsstring></argsstring>
+        <name>blendDstFactorAlpha</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="254" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="254" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_shader_warm_up_info_1a11ebb4edbf04d5525e20d81d65deabf3" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderWarmUpInfo::polyLineEnable</definition>
+        <argsstring></argsstring>
+        <name>polyLineEnable</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="256" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="256" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_shader_warm_up_info_1a0faab35352616b22697960640fbbfda2" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderWarmUpInfo::flipCullEnable</definition>
+        <argsstring></argsstring>
+        <name>flipCullEnable</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="257" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="257" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_shader_warm_up_info_1a88a62c14a6d18d65f1f5af21071302b7" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderWarmUpInfo::depthTestEnable</definition>
+        <argsstring></argsstring>
+        <name>depthTestEnable</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="258" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="258" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_shader_warm_up_info_1ac994586b1b1509a422c21318cbac78d0" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderWarmUpInfo::depthWriteEnable</definition>
+        <argsstring></argsstring>
+        <name>depthWriteEnable</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="259" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="259" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_shader_warm_up_info_1a1a90f5e3acff276f2624db736dc4c795" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderWarmUpInfo::depthBoundsEnable</definition>
+        <argsstring></argsstring>
+        <name>depthBoundsEnable</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="260" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="260" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_shader_warm_up_info_1a23f0921a7c24607d58bbf78178e9ced9" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderWarmUpInfo::depthClipEnable</definition>
+        <argsstring></argsstring>
+        <name>depthClipEnable</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="261" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="261" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_shader_warm_up_info_1a518bbd848bc318bf9eef8cb029c22fb0" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderWarmUpInfo::stencilTestEnable</definition>
+        <argsstring></argsstring>
+        <name>stencilTestEnable</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="262" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="262" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_shader_warm_up_info_1a4fc3c69f6e4241daeb5203cf9ec7bc8b" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderWarmUpInfo::blendEnable</definition>
+        <argsstring></argsstring>
+        <name>blendEnable</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="263" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="263" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_shader_warm_up_info_1adb02c9e0245763b3238b438e1c549454" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderWarmUpInfo::separateBlendEnable</definition>
+        <argsstring></argsstring>
+        <name>separateBlendEnable</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="264" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="264" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="229" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="230" bodyend="265"/>
+    <listofallmembers>
+      <member refid="struct_shader_warm_up_info_1aabb38ed90f6727bc0d487e553efa0b10" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>blendDstFactorAlpha</name></member>
+      <member refid="struct_shader_warm_up_info_1ad28b08fc8798a3b992d6f26c0c87d5fa" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>blendDstFactorRGB</name></member>
+      <member refid="struct_shader_warm_up_info_1a4fc3c69f6e4241daeb5203cf9ec7bc8b" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>blendEnable</name></member>
+      <member refid="struct_shader_warm_up_info_1a98f41c1a970ec7b5015aeeeefc118907" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>blendOpAlpha</name></member>
+      <member refid="struct_shader_warm_up_info_1a4b14e5dd4fa14efcea6e95f8a1802b09" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>blendOpRGB</name></member>
+      <member refid="struct_shader_warm_up_info_1a0b556032a06007d6d6f63ec3a015cf15" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>blendSrcFactorAlpha</name></member>
+      <member refid="struct_shader_warm_up_info_1a187bb15f703afad37afc1ca6a5b166fd" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>blendSrcFactorRGB</name></member>
+      <member refid="struct_shader_warm_up_info_1a33e4a942c200db10e280c828941eadb0" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>colorFormats</name></member>
+      <member refid="struct_shader_warm_up_info_1a8c5473202edcaf630d38d14e9214e111" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>colorWriteMask</name></member>
+      <member refid="struct_shader_warm_up_info_1add5e47caa4bd742bd6533cd3ce3c8a8e" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>cullMode</name></member>
+      <member refid="struct_shader_warm_up_info_1a1a90f5e3acff276f2624db736dc4c795" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>depthBoundsEnable</name></member>
+      <member refid="struct_shader_warm_up_info_1a23f0921a7c24607d58bbf78178e9ced9" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>depthClipEnable</name></member>
+      <member refid="struct_shader_warm_up_info_1a5a38e068a2eb7003762681727bf343ca" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>depthStencilFormat</name></member>
+      <member refid="struct_shader_warm_up_info_1a88a62c14a6d18d65f1f5af21071302b7" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>depthTestEnable</name></member>
+      <member refid="struct_shader_warm_up_info_1a7b1f2411886514c086c1d1cf222c6e2c" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>depthTestFunction</name></member>
+      <member refid="struct_shader_warm_up_info_1ac994586b1b1509a422c21318cbac78d0" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>depthWriteEnable</name></member>
+      <member refid="struct_shader_warm_up_info_1a0faab35352616b22697960640fbbfda2" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>flipCullEnable</name></member>
+      <member refid="struct_shader_warm_up_info_1a11ebb4edbf04d5525e20d81d65deabf3" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>polyLineEnable</name></member>
+      <member refid="struct_shader_warm_up_info_1a0737eb764455f63a5f7d64a6f8b42a66" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>primitiveTopologyMask</name></member>
+      <member refid="struct_shader_warm_up_info_1adb02c9e0245763b3238b438e1c549454" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>separateBlendEnable</name></member>
+      <member refid="struct_shader_warm_up_info_1a4ecc56247c0a2491a19e4e5a82e4c460" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>shaderProgram</name></member>
+      <member refid="struct_shader_warm_up_info_1ad791befd7aa4c01021774b2a1efee79c" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>stencilOnAllPass</name></member>
+      <member refid="struct_shader_warm_up_info_1a2da4e5a58fe93b68a57f1ce133ba98de" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>stencilOnDepthFail</name></member>
+      <member refid="struct_shader_warm_up_info_1a15d8023b7fe4f2162c7d5417dff1d303" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>stencilOnStencilFail</name></member>
+      <member refid="struct_shader_warm_up_info_1a518bbd848bc318bf9eef8cb029c22fb0" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>stencilTestEnable</name></member>
+      <member refid="struct_shader_warm_up_info_1a6be7e00ac564ce931d36b23c13a5314d" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>stencilTestFunction</name></member>
+      <member refid="struct_shader_warm_up_info_1ac23d1282e6164c7bc38c6ff62316276b" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>validColorTargetAndDepthStencilMask</name></member>
+      <member refid="struct_shader_warm_up_info_1a22ef386c3bb2c696ae7be8d6af58a90b" prot="public" virt="non-virtual"><scope>ShaderWarmUpInfo</scope><name>vertexInputStreamStrides</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

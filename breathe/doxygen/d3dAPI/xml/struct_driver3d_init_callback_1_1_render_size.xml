@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_driver3d_init_callback_1_1_render_size" kind="struct" language="C++" prot="public">
+    <compoundname>Driver3dInitCallback::RenderSize</compoundname>
+    <includes refid="dag__info_8h" local="no">dag_info.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_driver3d_init_callback_1_1_render_size_1a56e85ce940d574ce8a6eb781589270a2" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Driver3dInitCallback::RenderSize::width</definition>
+        <argsstring></argsstring>
+        <name>width</name>
+        <briefdescription>
+<para>The width of the render area. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" line="36" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_driver3d_init_callback_1_1_render_size_1a2a826ae26910f509edc9cecc4b923ed0" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Driver3dInitCallback::RenderSize::height</definition>
+        <argsstring></argsstring>
+        <name>height</name>
+        <briefdescription>
+<para>The height of the render area. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" line="37" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Struct representing the size of the render area. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" line="34" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" bodystart="35" bodyend="38"/>
+    <listofallmembers>
+      <member refid="struct_driver3d_init_callback_1_1_render_size_1a2a826ae26910f509edc9cecc4b923ed0" prot="public" virt="non-virtual"><scope>Driver3dInitCallback::RenderSize</scope><name>height</name></member>
+      <member refid="struct_driver3d_init_callback_1_1_render_size_1a56e85ce940d574ce8a6eb781589270a2" prot="public" virt="non-virtual"><scope>Driver3dInitCallback::RenderSize</scope><name>width</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

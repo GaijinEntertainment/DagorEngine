@@ -1,0 +1,57 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structd3d_1_1drivercode_1_1matcher_1_1_undefined" kind="struct" language="C++" prot="public">
+    <compoundname>d3d::drivercode::matcher::Undefined</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">NotAnyDriver</basecompoundref>
+    <includes refid="dag__driver_code_8h" local="no">dag_driverCode.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structd3d_1_1drivercode_1_1matcher_1_1_undefined_1ad457b0ee259489032c5eed57d6ca6989" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int d3d::drivercode::matcher::Undefined::value</definition>
+        <argsstring></argsstring>
+        <name>value</name>
+        <initializer>= ~0L</initializer>
+        <briefdescription>
+<para>Value of undefined driver state, matchers that are not constant matchers have to match false to this value. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="1128" column="24" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="1128" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>The undefined matcher is special, compared to other composed matchers. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>This matcher matches against all known drivers, and when none of those matchers evaluate to true, it will return true, otherwise to false. The difference to a normal inverted matcher of all known drivers, is that it has a value that can be used for initialization of the driver code state value. </para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>d3d::drivercode::matcher::Undefined</label>
+        <link refid="structd3d_1_1drivercode_1_1matcher_1_1_undefined"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>NotAnyDriver</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>d3d::drivercode::matcher::Undefined</label>
+        <link refid="structd3d_1_1drivercode_1_1matcher_1_1_undefined"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>NotAnyDriver</label>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="1125" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="1126" bodyend="1129"/>
+    <listofallmembers>
+      <member refid="structd3d_1_1drivercode_1_1matcher_1_1_undefined_1ad457b0ee259489032c5eed57d6ca6989" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Undefined</scope><name>value</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

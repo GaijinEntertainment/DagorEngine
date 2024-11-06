@@ -1,0 +1,950 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map" kind="class" language="C++" prot="public">
+    <compoundname>d3d::shadermodel::matcher::BasicMap</compoundname>
+    <basecompoundref refid="structd3d_1_1shadermodel_1_1matcher_1_1_equal_compare" prot="protected" virt="non-virtual">d3d::shadermodel::matcher::EqualCompare&lt; V &gt;</basecompoundref>
+    <includes refid="dag__shader_model_version_8h" local="no">dag_shaderModelVersion.h</includes>
+    <templateparamlist>
+      <param>
+        <type>typename V</type>
+      </param>
+      <param>
+        <type>typename T</type>
+      </param>
+      <param>
+        <type>typename FinalMapType</type>
+      </param>
+      <param>
+        <type>typename Cmp</type>
+        <defval><ref refid="structd3d_1_1shadermodel_1_1matcher_1_1_equal_compare" kindref="compound">EqualCompare</ref>&lt;V&gt;</defval>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1af38b571c1a26088eeb33a3871dbf4542" prot="private" static="no" mutable="no">
+        <type>V</type>
+        <definition>V d3d::shadermodel::matcher::BasicMap&lt; V, T, FinalMapType, Cmp &gt;::value</definition>
+        <argsstring></argsstring>
+        <name>value</name>
+        <initializer>{}</initializer>
+        <briefdescription>
+<para>Value to compare to determine if a match was found or not. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="42" column="5" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a9d81a49bb668af619e0f157b272634e0" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool d3d::shadermodel::matcher::BasicMap&lt; V, T, FinalMapType, Cmp &gt;::wasMatched</definition>
+        <argsstring></argsstring>
+        <name>wasMatched</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Keeps track if anything was matched. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="44" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a86faa6b8f6ccc7c25a67f31616e8edb3" prot="private" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char d3d::shadermodel::matcher::BasicMap&lt; V, T, FinalMapType, Cmp &gt;::memory[sizeof(T)]</definition>
+        <argsstring>[sizeof(T)]</argsstring>
+        <name>memory</name>
+        <briefdescription>
+<para>Raw bytes to store T. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="46" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a0b8d1910f968cff055f1f132517c6874" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>T &amp;</type>
+        <definition>T&amp; d3d::shadermodel::matcher::BasicMap&lt; V, T, FinalMapType, Cmp &gt;::object</definition>
+        <argsstring>()</argsstring>
+        <name>object</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Helper to retrieve the stored instance of <computeroutput>T</computeroutput>. <simplesect kind="return"><para>Reference to the store instance of <computeroutput>T</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="51" column="5" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="51" bodyend="51"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1ac149d285cc2e036761834d3c5dfdffab" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d::shadermodel::matcher::BasicMap&lt; V, T, FinalMapType, Cmp &gt;::cMove</definition>
+        <argsstring>(bool should_construct, T &amp;&amp;v)</argsstring>
+        <name>cMove</name>
+        <param>
+          <type>bool</type>
+          <declname>should_construct</declname>
+        </param>
+        <param>
+          <type>T &amp;&amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+<para>Conditional move constructor helper. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>A new instance of <computeroutput>T</computeroutput> is going to be instantiated when <computeroutput>should_construct</computeroutput> is true and the internal state indicates that there is no instance stored yet. In this case <computeroutput>v</computeroutput> will be moved into the parameter of the move constructor of <computeroutput>T</computeroutput> for the new instance. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>should_construct</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Indicates if a instance of <computeroutput>T</computeroutput> should be instantiated or not. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>v</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>May be used as a input for the move constructor of <computeroutput>T</computeroutput>. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="60" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="60" bodyend="68"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a4615fa17672614fe9f0984ed9159d237" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename C</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void d3d::shadermodel::matcher::BasicMap&lt; V, T, FinalMapType, Cmp &gt;::cContruct</definition>
+        <argsstring>(bool should_construct, C &amp;&amp;generator)</argsstring>
+        <name>cContruct</name>
+        <param>
+          <type>bool</type>
+          <declname>should_construct</declname>
+        </param>
+        <param>
+          <type>C &amp;&amp;</type>
+          <declname>generator</declname>
+        </param>
+        <briefdescription>
+<para>Conditional constructor helper. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>A new instance of <computeroutput>T</computeroutput> is going to be instantiated when <computeroutput>should_construct</computeroutput> is true and the internal state indicates that there is no instance stored yet. In this case <computeroutput>generator</computeroutput> will be invoked to generate the input of the constructor of <computeroutput>T</computeroutput> for the new instance. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>should_construct</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Indicates if a instance of <computeroutput>T</computeroutput> should be instantiated or not. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>generator</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>When invoked it should generate valid input for the constructor of <computeroutput>T</computeroutput>. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="78" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="78" bodyend="86"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a38172f9fa204d185c5d5afd5610cc7c9" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename...</type>
+            <declname>Vs</declname>
+            <defname>Vs</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void d3d::shadermodel::matcher::BasicMap&lt; V, T, FinalMapType, Cmp &gt;::cEmplace</definition>
+        <argsstring>(bool should_construct, Vs &amp;&amp;...vs)</argsstring>
+        <name>cEmplace</name>
+        <param>
+          <type>bool</type>
+          <declname>should_construct</declname>
+        </param>
+        <param>
+          <type>Vs &amp;&amp;...</type>
+          <declname>vs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Conditional emplace constructor helper.</para>
+<para>A new instance of <computeroutput>T</computeroutput> is going to be instantiated when <computeroutput>should_construct</computeroutput> is true and the internal state indicates that there is no instance stored yet. In this case <computeroutput>vs</computeroutput> will be moved into the parameter of the constructor of <computeroutput>T</computeroutput> for the new instance. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>should_construct</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Indicates if a instance of <computeroutput>T</computeroutput> should be instantiated or not. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>vs</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>May be used as a input for the constructor of <computeroutput>T</computeroutput>. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="96" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="96" bodyend="104"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1ab42764e25257bb37854a0c19016cf719" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>d3d::shadermodel::matcher::BasicMap&lt; V, T, FinalMapType, Cmp &gt;::BasicMap</definition>
+        <argsstring>()=default</argsstring>
+        <name>BasicMap</name>
+        <briefdescription>
+<para>Basic default constructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="108" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a27f93ff706e9de570afcea49823cc365" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>d3d::shadermodel::matcher::BasicMap&lt; V, T, FinalMapType, Cmp &gt;::BasicMap</definition>
+        <argsstring>(const BasicMap &amp;)=delete</argsstring>
+        <name>BasicMap</name>
+        <param>
+          <type>const <ref refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map" kindref="compound">BasicMap</ref> &amp;</type>
+        </param>
+        <briefdescription>
+<para>Copy is not allowed as we don&apos;t want users to copy maps around. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="110" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1af39bd3e4fd1285f3d0b605f061d69876" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>d3d::shadermodel::matcher::BasicMap&lt; V, T, FinalMapType, Cmp &gt;::BasicMap</definition>
+        <argsstring>(BasicMap &amp;&amp;other)</argsstring>
+        <name>BasicMap</name>
+        <param>
+          <type><ref refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map" kindref="compound">BasicMap</ref> &amp;&amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Basic move constructor that moves internal state from <computeroutput>other</computeroutput> to this. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>other</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Other instance that is used to initialize this, should a value be stored, it is moved to this. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="113" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="113" bodyend="119"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a94c18b5b52a423a1d4cdb43b43122f1e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map" kindref="compound">BasicMap</ref> &amp;</type>
+        <definition>BasicMap&amp; d3d::shadermodel::matcher::BasicMap&lt; V, T, FinalMapType, Cmp &gt;::operator=</definition>
+        <argsstring>(const BasicMap &amp;)=delete</argsstring>
+        <name>operator=</name>
+        <param>
+          <type>const <ref refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map" kindref="compound">BasicMap</ref> &amp;</type>
+        </param>
+        <briefdescription>
+<para>Copy is not allowed as we don&apos;t want users to copy maps around. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="121" column="12"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a1e1780fd9e30bec0acedce71572c65bf" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map" kindref="compound">BasicMap</ref> &amp;</type>
+        <definition>BasicMap&amp; d3d::shadermodel::matcher::BasicMap&lt; V, T, FinalMapType, Cmp &gt;::operator=</definition>
+        <argsstring>(BasicMap &amp;&amp;)=delete</argsstring>
+        <name>operator=</name>
+        <param>
+          <type><ref refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map" kindref="compound">BasicMap</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+<para>Move is not allowed as we don&apos;t want users to move maps around. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="123" column="12"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a695c688d1028b856ccf319a642ba613a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>d3d::shadermodel::matcher::BasicMap&lt; V, T, FinalMapType, Cmp &gt;::BasicMap</definition>
+        <argsstring>(const V &amp;v)</argsstring>
+        <name>BasicMap</name>
+        <param>
+          <type>const V &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Constructor that initializes the compare value state. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>v</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Value that should be used with matchers. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="126" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="126" bodyend="126"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1affcfd76e036e5c4f36baf8359fb71923" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename OV</type>
+          </param>
+        </templateparamlist>
+        <type></type>
+        <definition>d3d::shadermodel::matcher::BasicMap&lt; V, T, FinalMapType, Cmp &gt;::BasicMap</definition>
+        <argsstring>(const V &amp;v, const OV &amp;cmp, T &amp;&amp;t)</argsstring>
+        <name>BasicMap</name>
+        <param>
+          <type>const V &amp;</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>const OV &amp;</type>
+          <declname>cmp</declname>
+        </param>
+        <param>
+          <type>T &amp;&amp;</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Constructor that initializes the compare value state and does one map operation. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>v</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Value that should be used with matchers. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>cmp</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Matcher that should be compared to the compare value. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>t</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Value that is stored should the compare of the matcher to the value yield true. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="132" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="132" bodyend="135"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1ae063849510082b955f476dfe1e91743e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename OV</type>
+          </param>
+          <param>
+            <type>typename C</type>
+          </param>
+        </templateparamlist>
+        <type></type>
+        <definition>d3d::shadermodel::matcher::BasicMap&lt; V, T, FinalMapType, Cmp &gt;::BasicMap</definition>
+        <argsstring>(const V &amp;v, const OV &amp;cmp, C &amp;&amp;c)</argsstring>
+        <name>BasicMap</name>
+        <param>
+          <type>const V &amp;</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>const OV &amp;</type>
+          <declname>cmp</declname>
+        </param>
+        <param>
+          <type>C &amp;&amp;</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Constructor that initializes the compare value state and does one map operation. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>v</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Value that should be used with matchers. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>cmp</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Matcher that should be compared to the compare value. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>c</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A generator that is used to generate input to the constructor of <computeroutput>T</computeroutput> should the compare of the matcher to the value yield true. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="142" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="142" bodyend="145"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a36961fbec341cbeb3791f8b5af19ddc2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename OV</type>
+          </param>
+          <param>
+            <type>typename...</type>
+            <declname>Vs</declname>
+            <defname>Vs</defname>
+          </param>
+        </templateparamlist>
+        <type></type>
+        <definition>d3d::shadermodel::matcher::BasicMap&lt; V, T, FinalMapType, Cmp &gt;::BasicMap</definition>
+        <argsstring>(const V &amp;v, const OV &amp;cmp, Vs &amp;&amp;...vs)</argsstring>
+        <name>BasicMap</name>
+        <param>
+          <type>const V &amp;</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>const OV &amp;</type>
+          <declname>cmp</declname>
+        </param>
+        <param>
+          <type>Vs &amp;&amp;...</type>
+          <declname>vs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Constructor that initializes the compare value state and does one map operation. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>v</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Value that should be used with matchers. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>cmp</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Matcher that should be compared to the compare value. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>vs</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Values that should be passed to the constructor of <computeroutput>T</computeroutput> should the compare of the matcher to the value yield true. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="151" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="151" bodyend="154"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a8d079345b370de5515a6d3b1d1b1cc46" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename OV</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map" kindref="compound">BasicMap</ref> &amp;</type>
+        <definition>BasicMap&amp; d3d::shadermodel::matcher::BasicMap&lt; V, T, FinalMapType, Cmp &gt;::map</definition>
+        <argsstring>(const OV &amp;cmp, T &amp;&amp;t)</argsstring>
+        <name>map</name>
+        <param>
+          <type>const OV &amp;</type>
+          <declname>cmp</declname>
+        </param>
+        <param>
+          <type>T &amp;&amp;</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Maps a matcher to a value. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>cmp</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Value matcher. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>t</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Value that is stored in this if no value is stored in stored. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Reference to this. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="160" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="160" bodyend="164"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a32ecb6c33d7679b102a9e9cdb641b35d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename OV</type>
+          </param>
+          <param>
+            <type>typename C</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map" kindref="compound">BasicMap</ref> &amp;</type>
+        <definition>BasicMap&amp; d3d::shadermodel::matcher::BasicMap&lt; V, T, FinalMapType, Cmp &gt;::map</definition>
+        <argsstring>(const OV &amp;cmp, C &amp;&amp;c)</argsstring>
+        <name>map</name>
+        <param>
+          <type>const OV &amp;</type>
+          <declname>cmp</declname>
+        </param>
+        <param>
+          <type>C &amp;&amp;</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Maps a matcher to a value. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>cmp</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Value matcher. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>c</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Generator that generates input passed to the constructor of <computeroutput>T</computeroutput> should no value be stored in this. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Reference to this. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="170" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="170" bodyend="174"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1ae4f88585f2a40ce6e83a56d0d134379d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename OV</type>
+          </param>
+          <param>
+            <type>typename...</type>
+            <declname>Vs</declname>
+            <defname>Vs</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map" kindref="compound">BasicMap</ref> &amp;</type>
+        <definition>BasicMap&amp; d3d::shadermodel::matcher::BasicMap&lt; V, T, FinalMapType, Cmp &gt;::map</definition>
+        <argsstring>(const OV &amp;cmp, Vs &amp;&amp;...vs)</argsstring>
+        <name>map</name>
+        <param>
+          <type>const OV &amp;</type>
+          <declname>cmp</declname>
+        </param>
+        <param>
+          <type>Vs &amp;&amp;...</type>
+          <declname>vs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Maps a matcher to a value. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>cmp</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Value matcher. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>vs</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Parameters passed to the constructor of <computeroutput>T</computeroutput> should no value be stored in this. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Reference to this. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="180" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="180" bodyend="184"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1ae8abcfa6c8373319e566d2a27ab7fc28" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>T &amp;&amp;</type>
+        <definition>T&amp;&amp; d3d::shadermodel::matcher::BasicMap&lt; V, T, FinalMapType, Cmp &gt;::map</definition>
+        <argsstring>(const FinalMapType &amp;cmp, T &amp;&amp;t)</argsstring>
+        <name>map</name>
+        <param>
+          <type>const FinalMapType &amp;</type>
+          <declname>cmp</declname>
+        </param>
+        <param>
+          <type>T &amp;&amp;</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Maps final type to a value. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>cmp</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Final value matcher. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>t</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Value that is stored in this if no value is stored in stored. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Stored valued of <computeroutput>T</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="189" column="5" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="189" bodyend="197"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a435606c3e1ceb1e9612ea9a3986d1d3c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename C</type>
+          </param>
+        </templateparamlist>
+        <type>T &amp;&amp;</type>
+        <definition>T&amp;&amp; d3d::shadermodel::matcher::BasicMap&lt; V, T, FinalMapType, Cmp &gt;::map</definition>
+        <argsstring>(const FinalMapType &amp;cmp, C &amp;&amp;c)</argsstring>
+        <name>map</name>
+        <param>
+          <type>const FinalMapType &amp;</type>
+          <declname>cmp</declname>
+        </param>
+        <param>
+          <type>C &amp;&amp;</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Maps final type to a value. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>cmp</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Final value matcher. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>c</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Generator that generates input passed to the constructor of <computeroutput>T</computeroutput> should no value be stored in this. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Stored valued of <computeroutput>T</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="203" column="5" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="203" bodyend="208"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a1b120327a15d3de4ca6f34f15310d80b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename...</type>
+            <declname>Vs</declname>
+            <defname>Vs</defname>
+          </param>
+        </templateparamlist>
+        <type>T &amp;&amp;</type>
+        <definition>T&amp;&amp; d3d::shadermodel::matcher::BasicMap&lt; V, T, FinalMapType, Cmp &gt;::map</definition>
+        <argsstring>(const FinalMapType &amp;cmp, Vs &amp;&amp;...vs)</argsstring>
+        <name>map</name>
+        <param>
+          <type>const FinalMapType &amp;</type>
+          <declname>cmp</declname>
+        </param>
+        <param>
+          <type>Vs &amp;&amp;...</type>
+          <declname>vs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Maps final type to a value. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>cmp</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Final value matcher. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>vs</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Parameters passed to the constructor of <computeroutput>T</computeroutput> should no value be stored in this. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Stored valued of <computeroutput>T</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="214" column="5" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="214" bodyend="219"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a37f4959e559afb6b0545e919d94daedc" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool d3d::shadermodel::matcher::BasicMap&lt; V, T, FinalMapType, Cmp &gt;::get</definition>
+        <argsstring>(T &amp;o)</argsstring>
+        <name>get</name>
+        <param>
+          <type>T &amp;</type>
+          <declname>o</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Gets the stored value. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>c</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Receiver of the value, should any value be stored in this. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Returns true if a value was stored in this and this value was moved into <computeroutput>o</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="223" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="223" bodyend="230"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a072b44eac309c5073c48f0b9f3a9c8b9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename C</type>
+          </param>
+        </templateparamlist>
+        <type>bool</type>
+        <definition>bool d3d::shadermodel::matcher::BasicMap&lt; V, T, FinalMapType, Cmp &gt;::get</definition>
+        <argsstring>(C &amp;&amp;c)</argsstring>
+        <name>get</name>
+        <param>
+          <type>C &amp;&amp;</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Gets the stored value. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>c</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Receiver of the value, should any value be stored in this. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Returns true if a value was stored in this and <computeroutput>c</computeroutput> was called. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="235" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="235" bodyend="242"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Basic map type, that allows mapping of matchers to values. <parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>V</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Type of the value that is matched with the input matchers on each matching attempt. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Type of the stored value. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>finalMapType</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Type of the terminating mapping. This acts as a default and returns the value instead of a map. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>Cmp</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Comparison type that should be used to determine if anything was matched. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>d3d::shadermodel::matcher::BasicMap&lt; V, T, FinalMapType, Cmp &gt;</label>
+        <link refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map"/>
+        <childnode refid="2" relation="protected-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>d3d::shadermodel::matcher::EqualCompare&lt; V &gt;</label>
+        <link refid="structd3d_1_1shadermodel_1_1matcher_1_1_equal_compare"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>d3d::shadermodel::matcher::BasicMap&lt; V, T, FinalMapType, Cmp &gt;</label>
+        <link refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map"/>
+        <childnode refid="2" relation="protected-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>d3d::shadermodel::matcher::EqualCompare&lt; V &gt;</label>
+        <link refid="structd3d_1_1shadermodel_1_1matcher_1_1_equal_compare"/>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="39" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="40" bodyend="243"/>
+    <listofallmembers>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1ab42764e25257bb37854a0c19016cf719" prot="public" virt="non-virtual"><scope>d3d::shadermodel::matcher::BasicMap</scope><name>BasicMap</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a27f93ff706e9de570afcea49823cc365" prot="public" virt="non-virtual"><scope>d3d::shadermodel::matcher::BasicMap</scope><name>BasicMap</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1af39bd3e4fd1285f3d0b605f061d69876" prot="public" virt="non-virtual"><scope>d3d::shadermodel::matcher::BasicMap</scope><name>BasicMap</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a695c688d1028b856ccf319a642ba613a" prot="public" virt="non-virtual"><scope>d3d::shadermodel::matcher::BasicMap</scope><name>BasicMap</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1affcfd76e036e5c4f36baf8359fb71923" prot="public" virt="non-virtual"><scope>d3d::shadermodel::matcher::BasicMap</scope><name>BasicMap</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1ae063849510082b955f476dfe1e91743e" prot="public" virt="non-virtual"><scope>d3d::shadermodel::matcher::BasicMap</scope><name>BasicMap</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a36961fbec341cbeb3791f8b5af19ddc2" prot="public" virt="non-virtual"><scope>d3d::shadermodel::matcher::BasicMap</scope><name>BasicMap</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a4615fa17672614fe9f0984ed9159d237" prot="private" virt="non-virtual"><scope>d3d::shadermodel::matcher::BasicMap</scope><name>cContruct</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a38172f9fa204d185c5d5afd5610cc7c9" prot="private" virt="non-virtual"><scope>d3d::shadermodel::matcher::BasicMap</scope><name>cEmplace</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1ac149d285cc2e036761834d3c5dfdffab" prot="private" virt="non-virtual"><scope>d3d::shadermodel::matcher::BasicMap</scope><name>cMove</name></member>
+      <member refid="structd3d_1_1shadermodel_1_1matcher_1_1_equal_compare_1ab2fc6902a2991e84a40babd7bd33885a" prot="protected" virt="non-virtual"><scope>d3d::shadermodel::matcher::BasicMap</scope><name>compare</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a37f4959e559afb6b0545e919d94daedc" prot="public" virt="non-virtual"><scope>d3d::shadermodel::matcher::BasicMap</scope><name>get</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a072b44eac309c5073c48f0b9f3a9c8b9" prot="public" virt="non-virtual"><scope>d3d::shadermodel::matcher::BasicMap</scope><name>get</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a8d079345b370de5515a6d3b1d1b1cc46" prot="public" virt="non-virtual"><scope>d3d::shadermodel::matcher::BasicMap</scope><name>map</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a32ecb6c33d7679b102a9e9cdb641b35d" prot="public" virt="non-virtual"><scope>d3d::shadermodel::matcher::BasicMap</scope><name>map</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1ae4f88585f2a40ce6e83a56d0d134379d" prot="public" virt="non-virtual"><scope>d3d::shadermodel::matcher::BasicMap</scope><name>map</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1ae8abcfa6c8373319e566d2a27ab7fc28" prot="public" virt="non-virtual"><scope>d3d::shadermodel::matcher::BasicMap</scope><name>map</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a435606c3e1ceb1e9612ea9a3986d1d3c" prot="public" virt="non-virtual"><scope>d3d::shadermodel::matcher::BasicMap</scope><name>map</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a1b120327a15d3de4ca6f34f15310d80b" prot="public" virt="non-virtual"><scope>d3d::shadermodel::matcher::BasicMap</scope><name>map</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a86faa6b8f6ccc7c25a67f31616e8edb3" prot="private" virt="non-virtual"><scope>d3d::shadermodel::matcher::BasicMap</scope><name>memory</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a0b8d1910f968cff055f1f132517c6874" prot="private" virt="non-virtual"><scope>d3d::shadermodel::matcher::BasicMap</scope><name>object</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a94c18b5b52a423a1d4cdb43b43122f1e" prot="public" virt="non-virtual"><scope>d3d::shadermodel::matcher::BasicMap</scope><name>operator=</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a1e1780fd9e30bec0acedce71572c65bf" prot="public" virt="non-virtual"><scope>d3d::shadermodel::matcher::BasicMap</scope><name>operator=</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1af38b571c1a26088eeb33a3871dbf4542" prot="private" virt="non-virtual"><scope>d3d::shadermodel::matcher::BasicMap</scope><name>value</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a9d81a49bb668af619e0f157b272634e0" prot="private" virt="non-virtual"><scope>d3d::shadermodel::matcher::BasicMap</scope><name>wasMatched</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

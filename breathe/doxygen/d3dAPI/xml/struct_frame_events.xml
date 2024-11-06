@@ -1,0 +1,57 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_frame_events" kind="struct" language="C++" prot="public" abstract="yes">
+    <compoundname>FrameEvents</compoundname>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="struct_frame_events_1ac6f10abc84bee3679bb4601a9f8bec03" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type></type>
+        <definition>virtual FrameEvents::~FrameEvents</definition>
+        <argsstring>()=default</argsstring>
+        <name>~FrameEvents</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" line="11" column="11"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_frame_events_1a6dd845e4632067c2646dd265143bb612" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void FrameEvents::beginFrameEvent</definition>
+        <argsstring>()=0</argsstring>
+        <name>beginFrameEvent</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" line="13" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_frame_events_1ae8dab585659d9fbbb33efcf14742375b" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void FrameEvents::endFrameEvent</definition>
+        <argsstring>()=0</argsstring>
+        <name>endFrameEvent</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" line="14" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" line="9" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" bodystart="10" bodyend="15"/>
+    <listofallmembers>
+      <member refid="struct_frame_events_1a6dd845e4632067c2646dd265143bb612" prot="public" virt="pure-virtual"><scope>FrameEvents</scope><name>beginFrameEvent</name></member>
+      <member refid="struct_frame_events_1ae8dab585659d9fbbb33efcf14742375b" prot="public" virt="pure-virtual"><scope>FrameEvents</scope><name>endFrameEvent</name></member>
+      <member refid="struct_frame_events_1ac6f10abc84bee3679bb4601a9f8bec03" prot="public" virt="virtual"><scope>FrameEvents</scope><name>~FrameEvents</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

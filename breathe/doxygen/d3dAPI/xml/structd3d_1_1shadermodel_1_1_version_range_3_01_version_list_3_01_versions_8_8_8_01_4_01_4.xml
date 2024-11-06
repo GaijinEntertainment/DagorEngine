@@ -1,0 +1,150 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structd3d_1_1shadermodel_1_1_version_range_3_01_version_list_3_01_versions_8_8_8_01_4_01_4" kind="struct" language="C++" prot="public">
+    <compoundname>d3d::shadermodel::VersionRange&lt; VersionList&lt; Versions... &gt; &gt;</compoundname>
+    <includes refid="dag__shader_model_version_8h" local="no">dag_shaderModelVersion.h</includes>
+    <templateparamlist>
+      <param>
+        <type>typename...</type>
+        <declname>Versions</declname>
+        <defname>Versions</defname>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="structd3d_1_1shadermodel_1_1_version_range_3_01_version_list_3_01_versions_8_8_8_01_4_01_4_1a92cfa92095ac63d3a102009ac9338dfa" prot="public" static="no">
+        <type><ref refid="structd3d_1_1shadermodel_1_1_version_list" kindref="compound">VersionList</ref>&lt; Versions... &gt;</type>
+        <definition>using d3d::shadermodel::VersionRange&lt; VersionList&lt; Versions... &gt; &gt;::ListOfVersions =  VersionList&lt;Versions...&gt;</definition>
+        <argsstring></argsstring>
+        <name>ListOfVersions</name>
+        <briefdescription>
+<para>Helper type to cut down repeat code. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="711" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="711" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="structd3d_1_1shadermodel_1_1_version_range_3_01_version_list_3_01_versions_8_8_8_01_4_01_4_1a993edd70cab12fa56c6001d63a4c9613" prot="public" static="no">
+        <type><ref refid="classd3d_1_1shadermodel_1_1_version_range_iterator" kindref="compound">VersionRangeIterator</ref>&lt; <ref refid="structd3d_1_1shadermodel_1_1_version_with_name" kindref="compound">VersionWithName</ref>, <ref refid="structd3d_1_1shadermodel_1_1_version_list" kindref="compound">VersionList</ref>&lt; Versions... &gt; &gt;</type>
+        <definition>using d3d::shadermodel::VersionRange&lt; VersionList&lt; Versions... &gt; &gt;::Iterator =  VersionRangeIterator&lt;VersionWithName, VersionList&lt;Versions...&gt; &gt;</definition>
+        <argsstring></argsstring>
+        <name>Iterator</name>
+        <briefdescription>
+<para>Iterator type of this range. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="713" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="713" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structd3d_1_1shadermodel_1_1_version_range_3_01_version_list_3_01_versions_8_8_8_01_4_01_4_1a21462f9ccf5990e29ff5bc71b99abf9a" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structd3d_1_1shadermodel_1_1_version_range_3_01_version_list_3_01_versions_8_8_8_01_4_01_4_1a993edd70cab12fa56c6001d63a4c9613" kindref="member">Iterator</ref></type>
+        <definition>Iterator d3d::shadermodel::VersionRange&lt; VersionList&lt; Versions... &gt; &gt;::begin</definition>
+        <argsstring>() const</argsstring>
+        <name>begin</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Returns the beginning of the version range, as in the most recent version. <simplesect kind="return"><para>Iterator representing the most recent version of this range. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="716" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="716" bodyend="716"/>
+      </memberdef>
+      <memberdef kind="function" id="structd3d_1_1shadermodel_1_1_version_range_3_01_version_list_3_01_versions_8_8_8_01_4_01_4_1aa6b5ee8966bf767fb2592f035a8a5e08" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structd3d_1_1shadermodel_1_1_version_range_3_01_version_list_3_01_versions_8_8_8_01_4_01_4_1a993edd70cab12fa56c6001d63a4c9613" kindref="member">Iterator</ref></type>
+        <definition>Iterator d3d::shadermodel::VersionRange&lt; VersionList&lt; Versions... &gt; &gt;::cbegin</definition>
+        <argsstring>() const</argsstring>
+        <name>cbegin</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Returns the beginning of the version range, as in the most recent version. <simplesect kind="return"><para>Iterator representing the most recent version of this range. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="719" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="719" bodyend="719"/>
+      </memberdef>
+      <memberdef kind="function" id="structd3d_1_1shadermodel_1_1_version_range_3_01_version_list_3_01_versions_8_8_8_01_4_01_4_1ae83acee655570e35922f299fea948c02" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structd3d_1_1shadermodel_1_1_version_range_3_01_version_list_3_01_versions_8_8_8_01_4_01_4_1a993edd70cab12fa56c6001d63a4c9613" kindref="member">Iterator</ref></type>
+        <definition>Iterator d3d::shadermodel::VersionRange&lt; VersionList&lt; Versions... &gt; &gt;::end</definition>
+        <argsstring>() const</argsstring>
+        <name>end</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Returns a iterator past the last (oldest) version of this range. <simplesect kind="return"><para>Iterator past the last (oldest) version of this range. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="722" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="722" bodyend="722"/>
+      </memberdef>
+      <memberdef kind="function" id="structd3d_1_1shadermodel_1_1_version_range_3_01_version_list_3_01_versions_8_8_8_01_4_01_4_1ac5a5446140e1eb77a227238b0609e2c6" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structd3d_1_1shadermodel_1_1_version_range_3_01_version_list_3_01_versions_8_8_8_01_4_01_4_1a993edd70cab12fa56c6001d63a4c9613" kindref="member">Iterator</ref></type>
+        <definition>Iterator d3d::shadermodel::VersionRange&lt; VersionList&lt; Versions... &gt; &gt;::cend</definition>
+        <argsstring>() const</argsstring>
+        <name>cend</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Returns a iterator past the last (oldest) version of this range. <simplesect kind="return"><para>Iterator past the last (oldest) version of this range. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="725" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="725" bodyend="725"/>
+      </memberdef>
+      <memberdef kind="function" id="structd3d_1_1shadermodel_1_1_version_range_3_01_version_list_3_01_versions_8_8_8_01_4_01_4_1a2fe6780ca02da97360d92e1d3f369494" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>auto</type>
+        <definition>auto d3d::shadermodel::VersionRange&lt; VersionList&lt; Versions... &gt; &gt;::size</definition>
+        <argsstring>() const</argsstring>
+        <name>size</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Returns the number of versions in this range. <simplesect kind="return"><para>Number of versions of this range. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="728" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="728" bodyend="728"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Represents a range of shader model versions that can be iterated over. <parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>Versions</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The list of versions to iterate over. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="708" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="709" bodyend="729"/>
+    <listofallmembers>
+      <member refid="structd3d_1_1shadermodel_1_1_version_range_3_01_version_list_3_01_versions_8_8_8_01_4_01_4_1a21462f9ccf5990e29ff5bc71b99abf9a" prot="public" virt="non-virtual"><scope>d3d::shadermodel::VersionRange&lt; VersionList&lt; Versions... &gt; &gt;</scope><name>begin</name></member>
+      <member refid="structd3d_1_1shadermodel_1_1_version_range_3_01_version_list_3_01_versions_8_8_8_01_4_01_4_1aa6b5ee8966bf767fb2592f035a8a5e08" prot="public" virt="non-virtual"><scope>d3d::shadermodel::VersionRange&lt; VersionList&lt; Versions... &gt; &gt;</scope><name>cbegin</name></member>
+      <member refid="structd3d_1_1shadermodel_1_1_version_range_3_01_version_list_3_01_versions_8_8_8_01_4_01_4_1ac5a5446140e1eb77a227238b0609e2c6" prot="public" virt="non-virtual"><scope>d3d::shadermodel::VersionRange&lt; VersionList&lt; Versions... &gt; &gt;</scope><name>cend</name></member>
+      <member refid="structd3d_1_1shadermodel_1_1_version_range_3_01_version_list_3_01_versions_8_8_8_01_4_01_4_1ae83acee655570e35922f299fea948c02" prot="public" virt="non-virtual"><scope>d3d::shadermodel::VersionRange&lt; VersionList&lt; Versions... &gt; &gt;</scope><name>end</name></member>
+      <member refid="structd3d_1_1shadermodel_1_1_version_range_3_01_version_list_3_01_versions_8_8_8_01_4_01_4_1a993edd70cab12fa56c6001d63a4c9613" prot="public" virt="non-virtual"><scope>d3d::shadermodel::VersionRange&lt; VersionList&lt; Versions... &gt; &gt;</scope><name>Iterator</name></member>
+      <member refid="structd3d_1_1shadermodel_1_1_version_range_3_01_version_list_3_01_versions_8_8_8_01_4_01_4_1a92cfa92095ac63d3a102009ac9338dfa" prot="public" virt="non-virtual"><scope>d3d::shadermodel::VersionRange&lt; VersionList&lt; Versions... &gt; &gt;</scope><name>ListOfVersions</name></member>
+      <member refid="structd3d_1_1shadermodel_1_1_version_range_3_01_version_list_3_01_versions_8_8_8_01_4_01_4_1a2fe6780ca02da97360d92e1d3f369494" prot="public" virt="non-virtual"><scope>d3d::shadermodel::VersionRange&lt; VersionList&lt; Versions... &gt; &gt;</scope><name>size</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

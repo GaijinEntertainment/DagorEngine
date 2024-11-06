@@ -1,0 +1,203 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="group___render_pass_d3_d" kind="group">
+    <compoundname>RenderPassD3D</compoundname>
+    <title>RenderPassD3D</title>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="group___render_pass_d3_d_1ga4d90bfe31385c2f6a059b20a2035b02e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>RenderPass *</type>
+        <definition>RenderPass* d3d::create_render_pass</definition>
+        <argsstring>(const RenderPassDesc &amp;rp_desc)</argsstring>
+        <name>create_render_pass</name>
+        <param>
+          <type>const <ref refid="struct_render_pass_desc" kindref="compound">RenderPassDesc</ref> &amp;</type>
+          <declname>rp_desc</declname>
+        </param>
+        <briefdescription>
+<para>Creates render pass object. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Render pass objects are intended to be created once (and ahead of time), used many times <simplesect kind="note"><para>No external sync required </para>
+</simplesect>
+<simplesect kind="warning"><para>Do not run per frame/realtime! </para>
+</simplesect>
+<simplesect kind="warning"><para>Avoid using at time sensitive places! </para>
+</simplesect>
+<simplesect kind="warning"><para>Will assert-fail if rp_desc.bindCount is 0 </para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>rp_desc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Description of render pass to be created </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Pointer to opaque RenderPass object, may be nullptr if description is invalid </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" line="106" column="12" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" declline="106" declcolumn="12"/>
+      </memberdef>
+      <memberdef kind="function" id="group___render_pass_d3_d_1ga7d9a33d5eb0008a70925a63a0e6c8f9c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d::delete_render_pass</definition>
+        <argsstring>(RenderPass *rp)</argsstring>
+        <name>delete_render_pass</name>
+        <param>
+          <type>RenderPass *</type>
+          <declname>rp</declname>
+        </param>
+        <briefdescription>
+<para>Deletes render pass object. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="note"><para>Sync with usage is required (must not delete object that is in use in current CPU frame) </para>
+</simplesect>
+<simplesect kind="warning"><para>All usage to object becomes invalid right after method call </para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>rp</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Object to be deleted </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" line="111" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" declline="111" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="group___render_pass_d3_d_1gaa4a6f280d5f8c0652a81bde072acd524" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d::begin_render_pass</definition>
+        <argsstring>(RenderPass *rp, const RenderPassArea area, const RenderPassTarget *targets)</argsstring>
+        <name>begin_render_pass</name>
+        <param>
+          <type>RenderPass *</type>
+          <declname>rp</declname>
+        </param>
+        <param>
+          <type>const <ref refid="struct_render_pass_area" kindref="compound">RenderPassArea</ref></type>
+          <declname>area</declname>
+        </param>
+        <param>
+          <type>const <ref refid="struct_render_pass_target" kindref="compound">RenderPassTarget</ref> *</type>
+          <declname>targets</declname>
+        </param>
+        <briefdescription>
+<para>Begins render pass rendering. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>After this command, viewport is reset to area supplied and subpass 0, described in render pass object, is started <simplesect kind="note"><para>Must be external synced (GPU lock required) </para>
+</simplesect>
+<simplesect kind="warning"><para>When inside pass, all other GPU execution methods aside of Draw* are prohibited! </para>
+</simplesect>
+<simplesect kind="warning"><para>Avoid writes/reads outside area, it is UB in general </para>
+</simplesect>
+<simplesect kind="warning"><para>Will assert-fail if other render pass is already in process </para>
+</simplesect>
+<simplesect kind="warning"><para>Backbuffer can&apos;t be used as target </para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>rp</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Render pass resource to begin with </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>area</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Rendering area restriction </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>targets</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Array of targets that will be used in rendering </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" line="124" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" declline="124" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="group___render_pass_d3_d_1ga377ea5974efb7d1c02250abc4b64e400" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d::next_subpass</definition>
+        <argsstring>()</argsstring>
+        <name>next_subpass</name>
+        <briefdescription>
+<para>Advances to next subpass. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Increases subpass number and executes necessary synchronization as well as binding, described for this subpass</para>
+<para><ref refid="struct_viewport" kindref="compound">Viewport</ref> is reset to render area on every call <simplesect kind="note"><para>Must be external synced (GPU lock required) </para>
+</simplesect>
+<simplesect kind="warning"><para>Will assert-fail if there is no subpass to advance to </para>
+</simplesect>
+<simplesect kind="warning"><para>Will assert-fail if called outside of render pass </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" line="132" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" declline="132" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="group___render_pass_d3_d_1ga053cea528c68defea3886ff83e537f83" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d::end_render_pass</definition>
+        <argsstring>()</argsstring>
+        <name>end_render_pass</name>
+        <briefdescription>
+<para>Ends render pass. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Processes store&amp;sync operations described in render pass</para>
+<para>After this call, any non Draw operations are allowed and render targets are reset to backbuffer <simplesect kind="note"><para>Must be external synced (GPU lock required) </para>
+</simplesect>
+<simplesect kind="warning"><para>Will assert-fail if subpass is not final </para>
+</simplesect>
+<simplesect kind="warning"><para>Will assert-fail if called outside of render pass </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" line="139" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" declline="139" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="group___render_pass_d3_d_1ga80a581f2c8f7194358104dcabeb2eaae" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d::allow_render_pass_target_load</definition>
+        <argsstring>()</argsstring>
+        <name>allow_render_pass_target_load</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>When renderpass splits validation is enabled in Vulkan this command tells that we actually want to load previous contents of attached color targets or depth to render on top of it. Otherwise loading previous contents treated as renderpass split and the validation fails (we want to avoid RP splits cause of performance impact on TBDR). If it&apos;s known that the render target will be just fully redrawn (like in most postfx), it&apos;s better to use d3d::clearview(CLEAR_DISCARD, ...) instead of this command. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" line="150" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" bodystart="150" bodyend="150"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+  </compounddef>
+</doxygen>

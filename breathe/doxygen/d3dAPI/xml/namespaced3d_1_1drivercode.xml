@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="namespaced3d_1_1drivercode" kind="namespace" language="C++">
+    <compoundname>d3d::drivercode</compoundname>
+    <innernamespace refid="namespaced3d_1_1drivercode_1_1matcher">d3d::drivercode::matcher</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="12" column="1"/>
+  </compounddef>
+</doxygen>

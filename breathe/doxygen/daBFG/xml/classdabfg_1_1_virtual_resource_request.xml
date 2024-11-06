@@ -1,0 +1,556 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="classdabfg_1_1_virtual_resource_request" kind="class" language="C++" prot="public">
+    <compoundname>dabfg::VirtualResourceRequest</compoundname>
+    <includes refid="virtual_resource_request_8h" local="no">virtualResourceRequest.h</includes>
+    <templateparamlist>
+      <param>
+        <type>class Res</type>
+      </param>
+      <param>
+        <type>detail::ResourceRequestPolicy</type>
+        <declname>policy</declname>
+        <defname>policy</defname>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="private-type">
+      <memberdef kind="typedef" id="classdabfg_1_1_virtual_resource_request_1a78ccca301355b8a24d5bbb267d8a94d5" prot="private" static="no">
+        <type>detail::VirtualResourceRequestBase</type>
+        <definition>using dabfg::VirtualResourceRequest&lt; Res, policy &gt;::Base =  detail::VirtualResourceRequestBase</definition>
+        <argsstring></argsstring>
+        <name>Base</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" line="61" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classdabfg_1_1_virtual_resource_request_1a433c65fae5de4bc27225ce758c81c1af" prot="private" static="no">
+        <type>detail::ResourceRequestPolicy</type>
+        <definition>using dabfg::VirtualResourceRequest&lt; Res, policy &gt;::RRP =  detail::ResourceRequestPolicy</definition>
+        <argsstring></argsstring>
+        <name>RRP</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" line="76" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" bodystart="76" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classdabfg_1_1_virtual_resource_request_1a1a097ccf835c5aff80fa8a1bad3e6f4f" prot="private" static="no">
+        <type><ref refid="classdabfg_1_1_virtual_resource_handle" kindref="compound">VirtualResourceHandle</ref>&lt; eastl::conditional_t&lt; hasPolicy(RRP::Readonly), const Res, Res &gt;, is_gpu, hasPolicy(RRP::Optional)&gt;</type>
+        <definition>using dabfg::VirtualResourceRequest&lt; Res, policy &gt;::HandleType =  VirtualResourceHandle&lt;eastl::conditional_t&lt;hasPolicy(RRP::Readonly), const Res, Res&gt;, is_gpu, hasPolicy(RRP::Optional)&gt;</definition>
+        <argsstring></argsstring>
+        <name>HandleType</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" line="84" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" bodystart="85" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-static-attrib">
+      <memberdef kind="variable" id="classdabfg_1_1_virtual_resource_request_1a44159bfe756373e529b0ca05a6482686" prot="private" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool dabfg::VirtualResourceRequest&lt; Res, policy &gt;::is_gpu</definition>
+        <argsstring></argsstring>
+        <name>is_gpu</name>
+        <initializer>= eastl::is_base_of_v&lt;D3dResource, Res&gt;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" line="59" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classdabfg_1_1_virtual_resource_request_1a5c118345dcb7ac9fd630e1eb927b31e5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>detail::ResourceRequestPolicy</type>
+          </param>
+          <param>
+            <type>detail::ResourceRequestPolicy</type>
+          </param>
+        </templateparamlist>
+        <type>class</type>
+        <definition>friend class detail::VirtualAttachmentRequest</definition>
+        <argsstring></argsstring>
+        <name>detail::VirtualAttachmentRequest</name>
+        <param>
+          <type><ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">detail::VirtualAttachmentRequest</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" line="64" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" bodystart="64" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="friend" id="classdabfg_1_1_virtual_resource_request_1a89ee6a63e927cac45492ffd867edb640" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class</type>
+          </param>
+          <param>
+            <type>detail::ResourceRequestPolicy</type>
+          </param>
+        </templateparamlist>
+        <type>class</type>
+        <definition>friend class VirtualResourceRequest</definition>
+        <argsstring></argsstring>
+        <name>VirtualResourceRequest</name>
+        <param>
+          <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" line="67" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" bodystart="67" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="friend" id="classdabfg_1_1_virtual_resource_request_1aa0692960a5b78ac80ae656ee82d0503b" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class VirtualResourceCreationSemiRequest</definition>
+        <argsstring></argsstring>
+        <name>VirtualResourceCreationSemiRequest</name>
+        <param>
+          <type><ref refid="classdabfg_1_1_virtual_resource_creation_semi_request" kindref="compound">VirtualResourceCreationSemiRequest</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" line="69" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" bodystart="69" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="friend" id="classdabfg_1_1_virtual_resource_request_1a6046590c8b81f8d2f9cadc1a48f867c2" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>detail::ResourceRequestPolicy</type>
+          </param>
+        </templateparamlist>
+        <type>class</type>
+        <definition>friend class VirtualResourceSemiRequest</definition>
+        <argsstring></argsstring>
+        <name>VirtualResourceSemiRequest</name>
+        <param>
+          <type><ref refid="classdabfg_1_1_virtual_resource_semi_request" kindref="compound">VirtualResourceSemiRequest</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" line="72" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" bodystart="72" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="friend" id="classdabfg_1_1_virtual_resource_request_1ac7b716e6d41ff508ad2d8e5dad655d72" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class Registry</definition>
+        <argsstring></argsstring>
+        <name>Registry</name>
+        <param>
+          <type><ref refid="classdabfg_1_1_registry" kindref="compound">Registry</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" line="73" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" bodystart="73" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classdabfg_1_1_virtual_resource_request_1a97422ebdb289d25b50ecd0497ac77d78" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>dabfg::VirtualResourceRequest&lt; Res, policy &gt;::VirtualResourceRequest</definition>
+        <argsstring>(detail::ResUid resId, NodeNameId node, InternalRegistry *reg)</argsstring>
+        <name>VirtualResourceRequest</name>
+        <param>
+          <type>detail::ResUid</type>
+          <declname>resId</declname>
+        </param>
+        <param>
+          <type>NodeNameId</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>InternalRegistry *</type>
+          <declname>reg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" line="74" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" bodystart="74" bodyend="74"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-static-func">
+      <memberdef kind="function" id="classdabfg_1_1_virtual_resource_request_1a9c25cd7708a9ecc4237780bd11ec73ca" prot="private" static="yes" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>static constexpr bool dabfg::VirtualResourceRequest&lt; Res, policy &gt;::hasPolicy</definition>
+        <argsstring>(RRP p)</argsstring>
+        <name>hasPolicy</name>
+        <param>
+          <type>RRP</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" line="78" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" bodystart="78" bodyend="78"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_resource_request_1a36667afab58780866d073b74d739c3bc" prot="private" static="yes" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>static constexpr bool dabfg::VirtualResourceRequest&lt; Res, policy &gt;::hasPolicy</definition>
+        <argsstring>(RRP p, const char *)</argsstring>
+        <name>hasPolicy</name>
+        <param>
+          <type>RRP</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" line="80" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" bodystart="80" bodyend="80"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_resource_request_1a69d7a7c8d1bff43b8f390e35a5d66dfd" prot="private" static="yes" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr RRP</type>
+        <definition>static constexpr RRP dabfg::VirtualResourceRequest&lt; Res, policy &gt;::flipPolicy</definition>
+        <argsstring>(RRP p)</argsstring>
+        <name>flipPolicy</name>
+        <param>
+          <type>RRP</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" line="82" column="24" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" bodystart="82" bodyend="82"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classdabfg_1_1_virtual_resource_request_1a4b29ac1b8580332c35ce859d1b220757" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest</ref>&lt; Res, flipPolicy(RRP::Optional)&gt;</type>
+        <definition>VirtualResourceRequest&lt;Res, flipPolicy(RRP::Optional)&gt; dabfg::VirtualResourceRequest&lt; Res, policy &gt;::optional</definition>
+        <argsstring>() &amp;&amp;</argsstring>
+        <name>optional</name>
+        <briefdescription>
+<para>Makes this request optional. The node will not get disabled if the resource is missing, the handle will return an empty value. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" line="93" column="26" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" bodystart="93" bodyend="97"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_resource_request_1a9892cf4d13755c68e3032b0e8032c4b3" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest</ref>&lt; Res, flipPolicy(RRP::HasUsageType)&gt;</type>
+        <definition>VirtualResourceRequest&lt;Res, flipPolicy(RRP::HasUsageType)&gt; dabfg::VirtualResourceRequest&lt; Res, policy &gt;::bindToShaderVar</definition>
+        <argsstring>(const char *shader_var_name=nullptr) &amp;&amp;</argsstring>
+        <name>bindToShaderVar</name>
+        <param>
+          <type>const char *</type>
+          <declname>shader_var_name</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+<para>Requests for this resource to be bound to a shader variable with the specified name. The usage stage MUST have been set beforehand and MUST include all shader stages that this shader var will be accessed from within this node. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>shader_var_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the shader variable to bind. If not specified, the name of the resource will be used. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" line="111" column="26" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" bodystart="111" bodyend="115"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_resource_request_1adc01c10c6ba07144a8664bf1b6c212ec" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+          <param>
+            <type>class</type>
+            <defval>void</defval>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest</ref>&lt; Res, policy &gt;</type>
+        <definition>VirtualResourceRequest&lt;Res, policy&gt; dabfg::VirtualResourceRequest&lt; Res, policy &gt;::bindToShaderVar</definition>
+        <argsstring>(const char *shader_var_name=nullptr) &amp;&amp;</argsstring>
+        <name>bindToShaderVar</name>
+        <param>
+          <type>const char *</type>
+          <declname>shader_var_name</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+<para>Requests for a sub-object of a blob to be bound to a shader variable with the specified name. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>projector</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A function to extract the value to bind from the blob. Can be a pointer-to-member, i.e. <computeroutput>&amp;BlobType::field</computeroutput> or a (pure) function pointer. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>shader_var_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the shader variable to bind. If not specified, the name of the resource will be used. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" line="128" column="26" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" bodystart="128" bodyend="133"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_resource_request_1a9a3f6609c1a313d69d7229c8736abd58" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest</ref>&lt; Res, policy &gt;</type>
+        <definition>VirtualResourceRequest&lt;Res, policy&gt; dabfg::VirtualResourceRequest&lt; Res, policy &gt;::bindAsView</definition>
+        <argsstring>() &amp;&amp;</argsstring>
+        <name>bindAsView</name>
+        <briefdescription>
+<para>Requests for a matrix-like blob to be bound as the current view matrix. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" line="140" column="26" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" bodystart="140" bodyend="144"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_resource_request_1a6cb064c4af1a86ae199672f82869908c" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+          <param>
+            <type>class</type>
+            <defval>void</defval>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest</ref>&lt; Res, policy &gt;</type>
+        <definition>VirtualResourceRequest&lt;Res, policy&gt; dabfg::VirtualResourceRequest&lt; Res, policy &gt;::bindAsView</definition>
+        <argsstring>() &amp;&amp;</argsstring>
+        <name>bindAsView</name>
+        <briefdescription>
+<para>Requests for a matrix-like sub-object of a blob to be bound as the current view matrix. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>projector</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A function to extract the value to bind from the blob. Can be a pointer-to-member, i.e. <computeroutput>&amp;BlobType::field</computeroutput> or a (pure) function pointer. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" line="155" column="26" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" bodystart="155" bodyend="160"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_resource_request_1a36651db34508f904e077664a80860fd6" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest</ref>&lt; Res, policy &gt;</type>
+        <definition>VirtualResourceRequest&lt;Res, policy&gt; dabfg::VirtualResourceRequest&lt; Res, policy &gt;::bindAsProj</definition>
+        <argsstring>() &amp;&amp;</argsstring>
+        <name>bindAsProj</name>
+        <briefdescription>
+<para>Requests for a matrix-like blob to be bound as the current projection matrix. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" line="167" column="26" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" bodystart="167" bodyend="171"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_resource_request_1af198454e7591a2ee8bc4aac86bc0afc7" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+          <param>
+            <type>class</type>
+            <defval>void</defval>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest</ref>&lt; Res, policy &gt;</type>
+        <definition>VirtualResourceRequest&lt;Res, policy&gt; dabfg::VirtualResourceRequest&lt; Res, policy &gt;::bindAsProj</definition>
+        <argsstring>() &amp;&amp;</argsstring>
+        <name>bindAsProj</name>
+        <briefdescription>
+<para>Requests for a matrix-like sub-object of a blob to be bound as the current projection matrix. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>projector</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A function to extract the value to bind from the blob. Can be a pointer-to-member, i.e. <computeroutput>&amp;BlobType::field</computeroutput> or a (pure) function pointer. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" line="182" column="26" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" bodystart="182" bodyend="187"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_resource_request_1a1d3cf29c11b317192e063855c3af1f2f" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest</ref>&lt; Res, flipPolicy(RRP::HasUsageStage)&gt;</type>
+        <definition>VirtualResourceRequest&lt;Res, flipPolicy(RRP::HasUsageStage)&gt; dabfg::VirtualResourceRequest&lt; Res, policy &gt;::atStage</definition>
+        <argsstring>(Stage stage) &amp;&amp;</argsstring>
+        <name>atStage</name>
+        <param>
+          <type>Stage</type>
+          <declname>stage</declname>
+        </param>
+        <briefdescription>
+<para>Must be used when the resource is manually accessed through the handle or bound to a shader var to specify what shader stage this resource will be used at. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" line="195" column="26" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" bodystart="195" bodyend="199"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_resource_request_1a01389cfe2c71ca4dbf476c24271fc6fb" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest</ref>&lt; Res, flipPolicy(RRP::HasUsageType)&gt;</type>
+        <definition>VirtualResourceRequest&lt;Res, flipPolicy(RRP::HasUsageType)&gt; dabfg::VirtualResourceRequest&lt; Res, policy &gt;::useAs</definition>
+        <argsstring>(Usage type) &amp;&amp;</argsstring>
+        <name>useAs</name>
+        <param>
+          <type>Usage</type>
+          <declname>type</declname>
+        </param>
+        <briefdescription>
+<para>Must be used when the resource is manually accessed through the handle to specify how exactly the resource will be used. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" line="206" column="26" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" bodystart="206" bodyend="210"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_resource_request_1a6e36414f30cae5187b4dba176252702f" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_resource_handle" kindref="compound">HandleType</ref></type>
+        <definition>HandleType dabfg::VirtualResourceRequest&lt; Res, policy &gt;::handle</definition>
+        <argsstring>() &amp;&amp;</argsstring>
+        <name>handle</name>
+        <briefdescription>
+<para>Returns a handle that can be used to access the physical resource underlying this virtual one during execution time. Note that the physical resource will change throughout executions and should never be cached by reference. See <ref refid="classdabfg_1_1_virtual_resource_handle" kindref="compound">dabfg::VirtualResourceHandle</ref> for further details. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" line="221" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" bodystart="221" bodyend="221"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Request for a virtual resource known to BFG. Should be used to further configure the properties of the request. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>The intended usage is <verbatim>auto myTexHandle = registry.readTexture(&quot;my_tex&quot;)
+  .optional()
+  ...
+  .handle();
+</verbatim> Hence methods are only rvalue-callable. Don&apos;t try to get smart with these request classes. Don&apos;t cache them, don&apos;t pass them around a bunch of functions, KISS.</para>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>Res</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The C++ type representing this resource. BaseTex/Sbuffer for GPU resources, any C++ type for CPU resources. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>policy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Static data about this request&apos;s structure used for erroring out at compile time if this class is used incorrectly. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" line="54" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceRequest.h" bodystart="58" bodyend="222"/>
+    <listofallmembers>
+      <member refid="classdabfg_1_1_virtual_resource_request_1a1d3cf29c11b317192e063855c3af1f2f" prot="public" virt="non-virtual"><scope>dabfg::VirtualResourceRequest</scope><name>atStage</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_request_1a78ccca301355b8a24d5bbb267d8a94d5" prot="private" virt="non-virtual"><scope>dabfg::VirtualResourceRequest</scope><name>Base</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_request_1a36651db34508f904e077664a80860fd6" prot="public" virt="non-virtual"><scope>dabfg::VirtualResourceRequest</scope><name>bindAsProj</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_request_1af198454e7591a2ee8bc4aac86bc0afc7" prot="public" virt="non-virtual"><scope>dabfg::VirtualResourceRequest</scope><name>bindAsProj</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_request_1a9a3f6609c1a313d69d7229c8736abd58" prot="public" virt="non-virtual"><scope>dabfg::VirtualResourceRequest</scope><name>bindAsView</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_request_1a6cb064c4af1a86ae199672f82869908c" prot="public" virt="non-virtual"><scope>dabfg::VirtualResourceRequest</scope><name>bindAsView</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_request_1a9892cf4d13755c68e3032b0e8032c4b3" prot="public" virt="non-virtual"><scope>dabfg::VirtualResourceRequest</scope><name>bindToShaderVar</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_request_1adc01c10c6ba07144a8664bf1b6c212ec" prot="public" virt="non-virtual"><scope>dabfg::VirtualResourceRequest</scope><name>bindToShaderVar</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_request_1a5c118345dcb7ac9fd630e1eb927b31e5" prot="public" virt="non-virtual"><scope>dabfg::VirtualResourceRequest</scope><name>detail::VirtualAttachmentRequest</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_request_1a69d7a7c8d1bff43b8f390e35a5d66dfd" prot="private" virt="non-virtual"><scope>dabfg::VirtualResourceRequest</scope><name>flipPolicy</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_request_1a6e36414f30cae5187b4dba176252702f" prot="public" virt="non-virtual"><scope>dabfg::VirtualResourceRequest</scope><name>handle</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_request_1a1a097ccf835c5aff80fa8a1bad3e6f4f" prot="private" virt="non-virtual"><scope>dabfg::VirtualResourceRequest</scope><name>HandleType</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_request_1a9c25cd7708a9ecc4237780bd11ec73ca" prot="private" virt="non-virtual"><scope>dabfg::VirtualResourceRequest</scope><name>hasPolicy</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_request_1a36667afab58780866d073b74d739c3bc" prot="private" virt="non-virtual"><scope>dabfg::VirtualResourceRequest</scope><name>hasPolicy</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_request_1a44159bfe756373e529b0ca05a6482686" prot="private" virt="non-virtual"><scope>dabfg::VirtualResourceRequest</scope><name>is_gpu</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_request_1a4b29ac1b8580332c35ce859d1b220757" prot="public" virt="non-virtual"><scope>dabfg::VirtualResourceRequest</scope><name>optional</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_request_1ac7b716e6d41ff508ad2d8e5dad655d72" prot="private" virt="non-virtual"><scope>dabfg::VirtualResourceRequest</scope><name>Registry</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_request_1a433c65fae5de4bc27225ce758c81c1af" prot="private" virt="non-virtual"><scope>dabfg::VirtualResourceRequest</scope><name>RRP</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_request_1a01389cfe2c71ca4dbf476c24271fc6fb" prot="public" virt="non-virtual"><scope>dabfg::VirtualResourceRequest</scope><name>useAs</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_request_1aa0692960a5b78ac80ae656ee82d0503b" prot="private" virt="non-virtual"><scope>dabfg::VirtualResourceRequest</scope><name>VirtualResourceCreationSemiRequest</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_request_1a89ee6a63e927cac45492ffd867edb640" prot="private" virt="non-virtual"><scope>dabfg::VirtualResourceRequest</scope><name>VirtualResourceRequest</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_request_1a97422ebdb289d25b50ecd0497ac77d78" prot="private" virt="non-virtual"><scope>dabfg::VirtualResourceRequest</scope><name>VirtualResourceRequest</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_request_1a6046590c8b81f8d2f9cadc1a48f867c2" prot="private" virt="non-virtual"><scope>dabfg::VirtualResourceRequest</scope><name>VirtualResourceSemiRequest</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

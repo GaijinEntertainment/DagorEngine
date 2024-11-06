@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structd3d_1_1_loading_auto_lock" kind="struct" language="C++" prot="public">
+    <compoundname>d3d::LoadingAutoLock</compoundname>
+    <includes refid="dag__lock_8h" local="no">dag_lock.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structd3d_1_1_loading_auto_lock_1af2c27200635998a6341ebe514c223952" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>d3d::LoadingAutoLock::LoadingAutoLock</definition>
+        <argsstring>()</argsstring>
+        <name>LoadingAutoLock</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_lock.h" line="29" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_lock.h" bodystart="29" bodyend="29"/>
+      </memberdef>
+      <memberdef kind="function" id="structd3d_1_1_loading_auto_lock_1a1480917b5c665de140c90a7f8d4d5caa" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>d3d::LoadingAutoLock::~LoadingAutoLock</definition>
+        <argsstring>()</argsstring>
+        <name>~LoadingAutoLock</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_lock.h" line="30" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_lock.h" bodystart="30" bodyend="30"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>The <ref refid="structd3d_1_1_loading_auto_lock" kindref="compound">LoadingAutoLock</ref> struct is a non-exclusive lock that protects a thread from GPU reset. It is used to ensure that the GPU is not reset while a thread is performing loading operations. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_lock.h" line="27" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_lock.h" bodystart="28" bodyend="31"/>
+    <listofallmembers>
+      <member refid="structd3d_1_1_loading_auto_lock_1af2c27200635998a6341ebe514c223952" prot="public" virt="non-virtual"><scope>d3d::LoadingAutoLock</scope><name>LoadingAutoLock</name></member>
+      <member refid="structd3d_1_1_loading_auto_lock_1a1480917b5c665de140c90a7f8d4d5caa" prot="public" virt="non-virtual"><scope>d3d::LoadingAutoLock</scope><name>~LoadingAutoLock</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

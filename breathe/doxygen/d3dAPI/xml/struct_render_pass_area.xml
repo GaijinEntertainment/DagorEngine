@@ -1,0 +1,101 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_render_pass_area" kind="struct" language="C++" prot="public">
+    <compoundname>RenderPassArea</compoundname>
+    <includes refid="dag__render_pass_8h" local="no">dag_renderPass.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_render_pass_area_1a4bfe3e341ef71c24448815f6591ed5f9" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RenderPassArea::left</definition>
+        <argsstring></argsstring>
+        <name>left</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" line="80" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" bodystart="80" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_render_pass_area_1a65f6b5e565b6eccd112b0d118271dfea" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RenderPassArea::top</definition>
+        <argsstring></argsstring>
+        <name>top</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" line="81" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" bodystart="81" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_render_pass_area_1a001ba81710b05b74778bd55b3f59b212" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RenderPassArea::width</definition>
+        <argsstring></argsstring>
+        <name>width</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" line="82" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" bodystart="82" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_render_pass_area_1a8d59e3209bdde6d3bf8526d2b00fc375" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RenderPassArea::height</definition>
+        <argsstring></argsstring>
+        <name>height</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" line="83" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" bodystart="83" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_render_pass_area_1a38cbb7866385a05c6f506c15cadd5c82" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float RenderPassArea::minZ</definition>
+        <argsstring></argsstring>
+        <name>minZ</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" line="84" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" bodystart="84" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_render_pass_area_1abff776eaafb82f749b2277e593f214ba" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float RenderPassArea::maxZ</definition>
+        <argsstring></argsstring>
+        <name>maxZ</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" line="85" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" bodystart="85" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Area of render target where rendering will happen inside render pass. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" line="78" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" bodystart="79" bodyend="86"/>
+    <listofallmembers>
+      <member refid="struct_render_pass_area_1a8d59e3209bdde6d3bf8526d2b00fc375" prot="public" virt="non-virtual"><scope>RenderPassArea</scope><name>height</name></member>
+      <member refid="struct_render_pass_area_1a4bfe3e341ef71c24448815f6591ed5f9" prot="public" virt="non-virtual"><scope>RenderPassArea</scope><name>left</name></member>
+      <member refid="struct_render_pass_area_1abff776eaafb82f749b2277e593f214ba" prot="public" virt="non-virtual"><scope>RenderPassArea</scope><name>maxZ</name></member>
+      <member refid="struct_render_pass_area_1a38cbb7866385a05c6f506c15cadd5c82" prot="public" virt="non-virtual"><scope>RenderPassArea</scope><name>minZ</name></member>
+      <member refid="struct_render_pass_area_1a65f6b5e565b6eccd112b0d118271dfea" prot="public" virt="non-virtual"><scope>RenderPassArea</scope><name>top</name></member>
+      <member refid="struct_render_pass_area_1a001ba81710b05b74778bd55b3f59b212" prot="public" virt="non-virtual"><scope>RenderPassArea</scope><name>width</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

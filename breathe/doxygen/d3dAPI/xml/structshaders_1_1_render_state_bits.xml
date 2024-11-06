@@ -1,0 +1,311 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structshaders_1_1_render_state_bits" kind="struct" language="C++" prot="public">
+    <compoundname>shaders::RenderStateBits</compoundname>
+    <derivedcompoundref refid="structshaders_1_1_render_state" prot="public" virt="non-virtual">shaders::RenderState</derivedcompoundref>
+    <includes refid="dag__render_states_8h" local="no">dag_renderStates.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structshaders_1_1_render_state_bits_1a9baf0b1367e6cfc9971ace5b020bdf9c" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t shaders::RenderStateBits::zwrite</definition>
+        <argsstring></argsstring>
+        <name>zwrite</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+<para>Enable depth write. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" line="22" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1_render_state_bits_1a6286e8d640191c8d002bfed7a469e5c3" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t shaders::RenderStateBits::ztest</definition>
+        <argsstring></argsstring>
+        <name>ztest</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+<para>Enable depth test. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" line="23" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1_render_state_bits_1a7d28bc1d7f2086fef5651e36c4fa9c3d" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t shaders::RenderStateBits::zFunc</definition>
+        <argsstring></argsstring>
+        <name>zFunc</name>
+        <bitfield> 4</bitfield>
+        <briefdescription>
+<para>Relationship operation #CMPF used for depth test (less, greater, equal and etc.). </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" line="24" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1_render_state_bits_1a5f69dc3af6288832070853bf5c78e71d" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t shaders::RenderStateBits::stencilRef</definition>
+        <argsstring></argsstring>
+        <name>stencilRef</name>
+        <bitfield> 8</bitfield>
+        <briefdescription>
+<para>Reference value to perform against when doing a stencil test. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" line="25" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1_render_state_bits_1abd2b3881859cac60dd8463335f98c5c1" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t shaders::RenderStateBits::cull</definition>
+        <argsstring></argsstring>
+        <name>cull</name>
+        <bitfield> 2</bitfield>
+        <briefdescription>
+<para>Specifies triangle face culling #CULL_TYPE. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" line="26" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1_render_state_bits_1a0514fd670606fb307ffba3a2145dd4e7" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t shaders::RenderStateBits::depthBoundsEnable</definition>
+        <argsstring></argsstring>
+        <name>depthBoundsEnable</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Enable depth-bounds testing. Samples outside the range are discarded. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" line="27" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1_render_state_bits_1a02fd720d83c068ed936052f8ef1ef676" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t shaders::RenderStateBits::forcedSampleCount</definition>
+        <argsstring></argsstring>
+        <name>forcedSampleCount</name>
+        <bitfield> 4</bitfield>
+        <briefdescription>
+<para>The sample count that is forced while UAV rendering or rasterizing. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="warning"><para>Requires caps.hasForcedSamplerCount (DX 11.1). </para>
+</simplesect>
+<simplesect kind="warning"><para>Depth test must be disabled. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" line="31" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1_render_state_bits_1ac7eed855dd4645947ef475403171f980" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t shaders::RenderStateBits::conservativeRaster</definition>
+        <argsstring></argsstring>
+        <name>conservativeRaster</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+<para>Identifies whether conservative rasterization is on or off. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="warning"><para>Requires caps.hasConservativeRassterization (DX 11.3). </para>
+</simplesect>
+<simplesect kind="warning"><para>Only triangle topology is allowed (DX 12). </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" line="35" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1_render_state_bits_1a93d38a2114add3541716035cfec779b3" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t shaders::RenderStateBits::zClip</definition>
+        <argsstring></argsstring>
+        <name>zClip</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+<para>Enable depth clipping based on distance. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" line="36" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1_render_state_bits_1aa3471748aeacdd914dd8867837ba7c86" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t shaders::RenderStateBits::scissorEnabled</definition>
+        <argsstring></argsstring>
+        <name>scissorEnabled</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+<para>Enable scissor-rectangle culling. All pixels outside an active scissor rectangle are culled. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" line="37" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1_render_state_bits_1a72955f98d8689819e3e06efd34c87262" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t shaders::RenderStateBits::independentBlendEnabled</definition>
+        <argsstring></argsstring>
+        <name>independentBlendEnabled</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+<para>Enable independent blending in simultaneous render targets. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" line="38" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1_render_state_bits_1abf9ecd74a66b231601ef4abb39f2cefc" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t shaders::RenderStateBits::alphaToCoverage</definition>
+        <argsstring></argsstring>
+        <name>alphaToCoverage</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+<para>Specifies whether to use alpha-to-coverage. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" line="39" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" bodystart="39" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1_render_state_bits_1ac4bc0a1392ddd3c80fb1123f15624745" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t shaders::RenderStateBits::viewInstanceCount</definition>
+        <argsstring></argsstring>
+        <name>viewInstanceCount</name>
+        <bitfield> 2</bitfield>
+        <briefdescription>
+<para>Specifies the number of used views. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" line="40" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1_render_state_bits_1ad0c3d02cefc012f3ec8761b81dad48da" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t shaders::RenderStateBits::colorWr</definition>
+        <argsstring></argsstring>
+        <name>colorWr</name>
+        <initializer>= 0xFFFFFFFF</initializer>
+        <briefdescription>
+<para>Specifies mask which is used for color write. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" line="41" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1_render_state_bits_1a6ca4c01e718744ad9052aaf9e0bc02c3" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float shaders::RenderStateBits::zBias</definition>
+        <argsstring></argsstring>
+        <name>zBias</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Specifies depth value added to a given pixel. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" line="42" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1_render_state_bits_1a2baef0b95f441cba7f14eb55bb3c69ce" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float shaders::RenderStateBits::slopeZBias</definition>
+        <argsstring></argsstring>
+        <name>slopeZBias</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Specifies scalar on a given pixel&apos;s slope. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" line="43" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1_render_state_bits_1ad87cb62ad2a9c365362b33a5e7bd0e08" prot="public" static="no" mutable="no">
+        <type>StencilState</type>
+        <definition>StencilState shaders::RenderStateBits::stencil</definition>
+        <argsstring></argsstring>
+        <name>stencil</name>
+        <briefdescription>
+<para>Specifies stencil state. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" line="44" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Description of render state. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>shaders::RenderState</label>
+        <link refid="structshaders_1_1_render_state"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>shaders::RenderStateBits</label>
+        <link refid="structshaders_1_1_render_state_bits"/>
+      </node>
+    </inheritancegraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" line="20" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" bodystart="21" bodyend="45"/>
+    <listofallmembers>
+      <member refid="structshaders_1_1_render_state_bits_1abf9ecd74a66b231601ef4abb39f2cefc" prot="public" virt="non-virtual"><scope>shaders::RenderStateBits</scope><name>alphaToCoverage</name></member>
+      <member refid="structshaders_1_1_render_state_bits_1ad0c3d02cefc012f3ec8761b81dad48da" prot="public" virt="non-virtual"><scope>shaders::RenderStateBits</scope><name>colorWr</name></member>
+      <member refid="structshaders_1_1_render_state_bits_1ac7eed855dd4645947ef475403171f980" prot="public" virt="non-virtual"><scope>shaders::RenderStateBits</scope><name>conservativeRaster</name></member>
+      <member refid="structshaders_1_1_render_state_bits_1abd2b3881859cac60dd8463335f98c5c1" prot="public" virt="non-virtual"><scope>shaders::RenderStateBits</scope><name>cull</name></member>
+      <member refid="structshaders_1_1_render_state_bits_1a0514fd670606fb307ffba3a2145dd4e7" prot="public" virt="non-virtual"><scope>shaders::RenderStateBits</scope><name>depthBoundsEnable</name></member>
+      <member refid="structshaders_1_1_render_state_bits_1a02fd720d83c068ed936052f8ef1ef676" prot="public" virt="non-virtual"><scope>shaders::RenderStateBits</scope><name>forcedSampleCount</name></member>
+      <member refid="structshaders_1_1_render_state_bits_1a72955f98d8689819e3e06efd34c87262" prot="public" virt="non-virtual"><scope>shaders::RenderStateBits</scope><name>independentBlendEnabled</name></member>
+      <member refid="structshaders_1_1_render_state_bits_1aa3471748aeacdd914dd8867837ba7c86" prot="public" virt="non-virtual"><scope>shaders::RenderStateBits</scope><name>scissorEnabled</name></member>
+      <member refid="structshaders_1_1_render_state_bits_1a2baef0b95f441cba7f14eb55bb3c69ce" prot="public" virt="non-virtual"><scope>shaders::RenderStateBits</scope><name>slopeZBias</name></member>
+      <member refid="structshaders_1_1_render_state_bits_1ad87cb62ad2a9c365362b33a5e7bd0e08" prot="public" virt="non-virtual"><scope>shaders::RenderStateBits</scope><name>stencil</name></member>
+      <member refid="structshaders_1_1_render_state_bits_1a5f69dc3af6288832070853bf5c78e71d" prot="public" virt="non-virtual"><scope>shaders::RenderStateBits</scope><name>stencilRef</name></member>
+      <member refid="structshaders_1_1_render_state_bits_1ac4bc0a1392ddd3c80fb1123f15624745" prot="public" virt="non-virtual"><scope>shaders::RenderStateBits</scope><name>viewInstanceCount</name></member>
+      <member refid="structshaders_1_1_render_state_bits_1a6ca4c01e718744ad9052aaf9e0bc02c3" prot="public" virt="non-virtual"><scope>shaders::RenderStateBits</scope><name>zBias</name></member>
+      <member refid="structshaders_1_1_render_state_bits_1a93d38a2114add3541716035cfec779b3" prot="public" virt="non-virtual"><scope>shaders::RenderStateBits</scope><name>zClip</name></member>
+      <member refid="structshaders_1_1_render_state_bits_1a7d28bc1d7f2086fef5651e36c4fa9c3d" prot="public" virt="non-virtual"><scope>shaders::RenderStateBits</scope><name>zFunc</name></member>
+      <member refid="structshaders_1_1_render_state_bits_1a6286e8d640191c8d002bfed7a469e5c3" prot="public" virt="non-virtual"><scope>shaders::RenderStateBits</scope><name>ztest</name></member>
+      <member refid="structshaders_1_1_render_state_bits_1a9baf0b1367e6cfc9971ace5b020bdf9c" prot="public" virt="non-virtual"><scope>shaders::RenderStateBits</scope><name>zwrite</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

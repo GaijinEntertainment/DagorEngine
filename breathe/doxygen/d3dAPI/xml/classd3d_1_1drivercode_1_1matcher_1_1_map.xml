@@ -1,0 +1,1349 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="classd3d_1_1drivercode_1_1matcher_1_1_map" kind="class" language="C++" prot="public">
+    <compoundname>d3d::drivercode::matcher::Map</compoundname>
+    <includes refid="dag__driver_code_8h" local="no">dag_driverCode.h</includes>
+    <templateparamlist>
+      <param>
+        <type>typename T</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1a22ace3e82ebf889de2fa24b92c22fac8" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int d3d::drivercode::matcher::Map&lt; T &gt;::value</definition>
+        <argsstring></argsstring>
+        <name>value</name>
+        <briefdescription>
+<para>Driver code value, stored as a int to break up dependency to the <ref refid="class_driver_code" kindref="compound">DriverCode</ref> type. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="283" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="283" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1a1f1d7910c5e01369393506d4575eda2e" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool d3d::drivercode::matcher::Map&lt; T &gt;::wasMatched</definition>
+        <argsstring></argsstring>
+        <name>wasMatched</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Keeps track if anything was matched. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="285" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="285" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1a93a7b3dcb3644c254ad4392bd16ea80c" prot="private" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char d3d::drivercode::matcher::Map&lt; T &gt;::memory[sizeof(T)]</definition>
+        <argsstring>[sizeof(T)]</argsstring>
+        <name>memory</name>
+        <briefdescription>
+<para>Raw bytes to store T. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="287" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="287" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1a327c1ae9501f52738ebd7173723334f7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class ::DriverCode</definition>
+        <argsstring></argsstring>
+        <name>::DriverCode</name>
+        <param>
+          <type>::<ref refid="class_driver_code" kindref="compound">DriverCode</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="358" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="358" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1a204573f554dccac2e8c4029ee1b6f081" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>T &amp;</type>
+        <definition>T&amp; d3d::drivercode::matcher::Map&lt; T &gt;::object</definition>
+        <argsstring>()</argsstring>
+        <name>object</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Helper to retrieve the stored instance of <computeroutput>T</computeroutput>. <simplesect kind="return"><para>Reference to the store instance of <computeroutput>T</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="292" column="5" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="292" bodyend="292"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1ad667fdb516abf74a2e331724315b7509" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d::drivercode::matcher::Map&lt; T &gt;::cMove</definition>
+        <argsstring>(bool should_construct, T &amp;&amp;v)</argsstring>
+        <name>cMove</name>
+        <param>
+          <type>bool</type>
+          <declname>should_construct</declname>
+        </param>
+        <param>
+          <type>T &amp;&amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+<para>Conditional move constructor helper. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>A new instance of <computeroutput>T</computeroutput> is going to be instantiated when <computeroutput>should_construct</computeroutput> is true and the internal state indicates that there is no instance stored yet. In this case <computeroutput>v</computeroutput> will be moved into the parameter of the move constructor of <computeroutput>T</computeroutput> for the new instance. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>should_construct</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Indicates if a instance of <computeroutput>T</computeroutput> should be instantiated or not. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>v</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>May be used as a input for the move constructor of <computeroutput>T</computeroutput>. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="301" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="301" bodyend="309"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1ae5e2ab155dbfbe8676074606970e9eb9" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename C</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void d3d::drivercode::matcher::Map&lt; T &gt;::cContruct</definition>
+        <argsstring>(bool should_construct, C &amp;&amp;generator)</argsstring>
+        <name>cContruct</name>
+        <param>
+          <type>bool</type>
+          <declname>should_construct</declname>
+        </param>
+        <param>
+          <type>C &amp;&amp;</type>
+          <declname>generator</declname>
+        </param>
+        <briefdescription>
+<para>Conditional constructor helper. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>A new instance of <computeroutput>T</computeroutput> is going to be instantiated when <computeroutput>should_construct</computeroutput> is true and the internal state indicates that there is no instance stored yet. In this case <computeroutput>generator</computeroutput> will be invoked to generate the input of the constructor of <computeroutput>T</computeroutput> for the new instance. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>should_construct</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Indicates if a instance of <computeroutput>T</computeroutput> should be instantiated or not. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>generator</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>When invoked it should generate valid input for the constructor of <computeroutput>T</computeroutput>. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="319" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="319" bodyend="327"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1ada985e13f4916089608102ce3689c942" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename...</type>
+            <declname>Vs</declname>
+            <defname>Vs</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void d3d::drivercode::matcher::Map&lt; T &gt;::cEmplace</definition>
+        <argsstring>(bool should_construct, Vs &amp;&amp;...vs)</argsstring>
+        <name>cEmplace</name>
+        <param>
+          <type>bool</type>
+          <declname>should_construct</declname>
+        </param>
+        <param>
+          <type>Vs &amp;&amp;...</type>
+          <declname>vs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Conditional emplace constructor helper.</para>
+<para>A new instance of <computeroutput>T</computeroutput> is going to be instantiated when <computeroutput>should_construct</computeroutput> is true and the internal state indicates that there is no instance stored yet. In this case <computeroutput>vs</computeroutput> will be moved into the parameter of the constructor of <computeroutput>T</computeroutput> for the new instance. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>should_construct</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Indicates if a instance of <computeroutput>T</computeroutput> should be instantiated or not. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>vs</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>May be used as a input for the constructor of <computeroutput>T</computeroutput>. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="337" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="337" bodyend="345"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1a2ad120bfa6a5b6788337a96bf7e7f351" prot="private" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename D</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr bool</type>
+        <definition>constexpr bool d3d::drivercode::matcher::Map&lt; T &gt;::is</definition>
+        <argsstring>(D d) const</argsstring>
+        <name>is</name>
+        <param>
+          <type>D</type>
+          <declname>d</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Helper to shorten matcher invocation. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>d</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Matcher to invoke with the driver code state value. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The value returned by the matchers <computeroutput>d</computeroutput> <computeroutput>is</computeroutput> method. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="352" column="18" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="352" bodyend="355"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1a23b7d663f98def6b9342f8d24763b0ee" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>d3d::drivercode::matcher::Map&lt; T &gt;::Map</definition>
+        <argsstring>(int v)</argsstring>
+        <name>Map</name>
+        <param>
+          <type>int</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Create a new object with a stored driver code value. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>v</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Driver code value that is used on the matchers. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="363" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="363" bodyend="364"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1aca77a426c10bb91ed53b5727b7ea88c6" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename D</type>
+          </param>
+        </templateparamlist>
+        <type></type>
+        <definition>d3d::drivercode::matcher::Map&lt; T &gt;::Map</definition>
+        <argsstring>(int v, D d, T &amp;&amp;val)</argsstring>
+        <name>Map</name>
+        <param>
+          <type>int</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>D</type>
+          <declname>d</declname>
+        </param>
+        <param>
+          <type>T &amp;&amp;</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="366" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="366" bodyend="369"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1a2dff1d6afbf2f2c1fe402aae932b8973" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename D</type>
+          </param>
+        </templateparamlist>
+        <type></type>
+        <definition>d3d::drivercode::matcher::Map&lt; T &gt;::Map</definition>
+        <argsstring>(int v, D d, const T &amp;val)</argsstring>
+        <name>Map</name>
+        <param>
+          <type>int</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>D</type>
+          <declname>d</declname>
+        </param>
+        <param>
+          <type>const T &amp;</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="371" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="371" bodyend="374"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1a2440afcc21f5a55e4c0fcf098672e43c" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename D</type>
+          </param>
+          <param>
+            <type>typename C</type>
+          </param>
+        </templateparamlist>
+        <type></type>
+        <definition>d3d::drivercode::matcher::Map&lt; T &gt;::Map</definition>
+        <argsstring>(int v, D d, C &amp;&amp;callable)</argsstring>
+        <name>Map</name>
+        <param>
+          <type>int</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>D</type>
+          <declname>d</declname>
+        </param>
+        <param>
+          <type>C &amp;&amp;</type>
+          <declname>callable</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="376" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="376" bodyend="379"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1ac526f73cdf0d31266ae4447dbb8a2a34" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename D</type>
+          </param>
+          <param>
+            <type>typename...</type>
+            <declname>Vs</declname>
+            <defname>Vs</defname>
+          </param>
+        </templateparamlist>
+        <type></type>
+        <definition>d3d::drivercode::matcher::Map&lt; T &gt;::Map</definition>
+        <argsstring>(int v, D d, Vs &amp;&amp;...vs)</argsstring>
+        <name>Map</name>
+        <param>
+          <type>int</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>D</type>
+          <declname>d</declname>
+        </param>
+        <param>
+          <type>Vs &amp;&amp;...</type>
+          <declname>vs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="381" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="381" bodyend="384"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1a359403442283fc9b67f5cfbcc5ae073c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>d3d::drivercode::matcher::Map&lt; T &gt;::Map</definition>
+        <argsstring>()=delete</argsstring>
+        <name>Map</name>
+        <briefdescription>
+<para>Default construction is not allowed. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="388" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1abe9d8d5d0e3c42f4dff5f33bc124bd2a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>d3d::drivercode::matcher::Map&lt; T &gt;::Map</definition>
+        <argsstring>(const Map &amp;)=delete</argsstring>
+        <name>Map</name>
+        <param>
+          <type>const <ref refid="classd3d_1_1drivercode_1_1matcher_1_1_map" kindref="compound">Map</ref> &amp;</type>
+        </param>
+        <briefdescription>
+<para>Disallow copying. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="390" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1a59ebc286e8e2afc397f6c17ecd5997aa" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>d3d::drivercode::matcher::Map&lt; T &gt;::Map</definition>
+        <argsstring>(Map &amp;&amp;other)</argsstring>
+        <name>Map</name>
+        <param>
+          <type><ref refid="classd3d_1_1drivercode_1_1matcher_1_1_map" kindref="compound">Map</ref> &amp;&amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+<para>Move constructor, will move internally stored object when needed. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="392" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="392" bodyend="398"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1a6be1a44d914e27f1746d09a018a9b806" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classd3d_1_1drivercode_1_1matcher_1_1_map" kindref="compound">Map</ref> &amp;</type>
+        <definition>Map&amp; d3d::drivercode::matcher::Map&lt; T &gt;::operator=</definition>
+        <argsstring>(const Map &amp;)=delete</argsstring>
+        <name>operator=</name>
+        <param>
+          <type>const <ref refid="classd3d_1_1drivercode_1_1matcher_1_1_map" kindref="compound">Map</ref> &amp;</type>
+        </param>
+        <briefdescription>
+<para>Disallow copy assignment. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="400" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1abf16d957561c45083620659908cb31ae" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classd3d_1_1drivercode_1_1matcher_1_1_map" kindref="compound">Map</ref> &amp;</type>
+        <definition>Map&amp; d3d::drivercode::matcher::Map&lt; T &gt;::operator=</definition>
+        <argsstring>(Map &amp;&amp;)=delete</argsstring>
+        <name>operator=</name>
+        <param>
+          <type><ref refid="classd3d_1_1drivercode_1_1matcher_1_1_map" kindref="compound">Map</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+<para>Disallow move assignment. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="402" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1a176e6d0fd572d56261f558ee53fdb37a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>d3d::drivercode::matcher::Map&lt; T &gt;::~Map</definition>
+        <argsstring>()</argsstring>
+        <name>~Map</name>
+        <briefdescription>
+<para>Destructor will invoke the destructor of the stored object when any was constructed. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="404" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="404" bodyend="410"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1abfc24305937489a67d781bc9b486473c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename D</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classd3d_1_1drivercode_1_1matcher_1_1_map" kindref="compound">Map</ref> &amp;</type>
+        <definition>Map&amp; d3d::drivercode::matcher::Map&lt; T &gt;::operator()</definition>
+        <argsstring>(D d, T &amp;&amp;v)</argsstring>
+        <name>operator()</name>
+        <param>
+          <type>D</type>
+          <declname>d</declname>
+        </param>
+        <param>
+          <type>T &amp;&amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Maps a matcher to a value. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>d</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The matcher that should match the driver code value against. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>v</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The value that should be stored should the matcher indicate a match. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A reference to this, so that multiple matches can be chained. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="418" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="418" bodyend="422"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1a5f6c1a6b824c3361b17b52fba639cda8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename D</type>
+          </param>
+          <param>
+            <type>typename C</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="structd3d_1_1drivercode_1_1matcher_1_1_enable_if" kindref="compound">EnableIf</ref>&lt;!<ref refid="structd3d_1_1drivercode_1_1matcher_1_1_same_as" kindref="compound">SameAs</ref>&lt; T, C &gt;::value, <ref refid="classd3d_1_1drivercode_1_1matcher_1_1_map" kindref="compound">Map</ref> &amp; &gt;::Type</type>
+        <definition>EnableIf&lt;!SameAs&lt;T, C&gt;::value, Map &amp;&gt;::Type d3d::drivercode::matcher::Map&lt; T &gt;::operator()</definition>
+        <argsstring>(D d, C &amp;&amp;callable)</argsstring>
+        <name>operator()</name>
+        <param>
+          <type>D</type>
+          <declname>d</declname>
+        </param>
+        <param>
+          <type>C &amp;&amp;</type>
+          <declname>callable</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Maps a matcher to a generator. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>d</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The matcher that should match the driver code value against. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>callable</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invoked to generate a input parameter for the constructor of <computeroutput>T</computeroutput> in case when a new instance of <computeroutput>T</computeroutput> is instantiated. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A reference to this, so that multiple matches can be chained. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="430" column="29" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="430" bodyend="434"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1a816001826ebfbf6d7e6caaae615e49a2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename D</type>
+          </param>
+          <param>
+            <type>typename...</type>
+            <declname>Vs</declname>
+            <defname>Vs</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classd3d_1_1drivercode_1_1matcher_1_1_map" kindref="compound">Map</ref> &amp;</type>
+        <definition>Map&amp; d3d::drivercode::matcher::Map&lt; T &gt;::operator()</definition>
+        <argsstring>(D d, Vs &amp;&amp;...vs)</argsstring>
+        <name>operator()</name>
+        <param>
+          <type>D</type>
+          <declname>d</declname>
+        </param>
+        <param>
+          <type>Vs &amp;&amp;...</type>
+          <declname>vs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Maps a matcher to a set of parameters for the constructor of <computeroutput>T</computeroutput>. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>d</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The matcher that should match the driver code value against. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>vs</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Values passed to the constructor of <computeroutput>T</computeroutput> in case when a new instance of <computeroutput>T</computeroutput> is instantiated. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A reference to this, so that multiple matches can be chained. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="442" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="442" bodyend="446"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1aaf98185167827008df2b32a61fcefdec" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>T &amp;&amp;</type>
+        <definition>T&amp;&amp; d3d::drivercode::matcher::Map&lt; T &gt;::operator()</definition>
+        <argsstring>(Any, T &amp;&amp;v)</argsstring>
+        <name>operator()</name>
+        <param>
+          <type><ref refid="structd3d_1_1drivercode_1_1matcher_1_1_any" kindref="compound">Any</ref></type>
+        </param>
+        <param>
+          <type>T &amp;&amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Maps the <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_any" kindref="compound">drivercode::matcher::Any</ref> matcher to a value. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>v</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A alternative value that may be used when no value of <computeroutput>T</computeroutput> is stored in this map. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Either the lvalue reference to the maps stored object or the parameter <computeroutput>v</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="452" column="5" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="452" bodyend="459"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1a28f1461da2826a713515b3c27354e985" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>T &amp;&amp;</type>
+        <definition>T&amp;&amp; d3d::drivercode::matcher::Map&lt; T &gt;::operator()</definition>
+        <argsstring>(Any, const T &amp;v)</argsstring>
+        <name>operator()</name>
+        <param>
+          <type><ref refid="structd3d_1_1drivercode_1_1matcher_1_1_any" kindref="compound">Any</ref></type>
+        </param>
+        <param>
+          <type>const T &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Maps the <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_any" kindref="compound">drivercode::matcher::Any</ref> matcher to a value. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>v</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A alternative value that may be used when no value of <computeroutput>T</computeroutput> is stored in this map. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A lvalue reference to the maps stored object. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="465" column="5" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="465" bodyend="469"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1a2ab1406f49e867152dfef15742dcdaca" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename C</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="structd3d_1_1drivercode_1_1matcher_1_1_enable_if" kindref="compound">EnableIf</ref>&lt;!<ref refid="structd3d_1_1drivercode_1_1matcher_1_1_same_as" kindref="compound">SameAs</ref>&lt; T, C &gt;::value, T &amp;&amp; &gt;::Type</type>
+        <definition>EnableIf&lt;!SameAs&lt;T, C&gt;::value, T &amp;&amp;&gt;::Type d3d::drivercode::matcher::Map&lt; T &gt;::operator()</definition>
+        <argsstring>(Any, C &amp;&amp;callable)</argsstring>
+        <name>operator()</name>
+        <param>
+          <type><ref refid="structd3d_1_1drivercode_1_1matcher_1_1_any" kindref="compound">Any</ref></type>
+        </param>
+        <param>
+          <type>C &amp;&amp;</type>
+          <declname>callable</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Maps the <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_any" kindref="compound">drivercode::matcher::Any</ref> matcher to a generator. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>callable</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invoked to generate a input parameter for the constructor of <computeroutput>T</computeroutput> in case when a new instance of <computeroutput>T</computeroutput> is instantiated. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A lvalue reference to the maps stored object. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="477" column="29" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="477" bodyend="481"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1a52848be0e334577b0713c8784afc5f15" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename...</type>
+            <declname>Vs</declname>
+            <defname>Vs</defname>
+          </param>
+        </templateparamlist>
+        <type>T &amp;&amp;</type>
+        <definition>T&amp;&amp; d3d::drivercode::matcher::Map&lt; T &gt;::operator()</definition>
+        <argsstring>(Any, Vs &amp;&amp;...vs)</argsstring>
+        <name>operator()</name>
+        <param>
+          <type><ref refid="structd3d_1_1drivercode_1_1matcher_1_1_any" kindref="compound">Any</ref></type>
+        </param>
+        <param>
+          <type>Vs &amp;&amp;...</type>
+          <declname>vs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Maps the <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_any" kindref="compound">drivercode::matcher::Any</ref> matcher to a set of parameters for the constructor of <computeroutput>T</computeroutput>. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>vs</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Values passed to the constructor of <computeroutput>T</computeroutput> in case when a new instance of <computeroutput>T</computeroutput> is instantiated. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A lvalue reference to the maps stored object. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="488" column="5" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="488" bodyend="492"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1a60ffa24a4aeb17c7e171fdfb0ad6561f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename D</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classd3d_1_1drivercode_1_1matcher_1_1_map" kindref="compound">Map</ref> &amp;</type>
+        <definition>Map&amp; d3d::drivercode::matcher::Map&lt; T &gt;::map</definition>
+        <argsstring>(D d, T &amp;&amp;v)</argsstring>
+        <name>map</name>
+        <param>
+          <type>D</type>
+          <declname>d</declname>
+        </param>
+        <param>
+          <type>T &amp;&amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Maps a matcher to a value. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>d</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The matcher that should match the driver code value against. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>v</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The value that should be stored should the matcher indicate a match. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A reference to this, so that multiple matches can be chained. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="500" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="500" bodyend="504"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1ac13e3baacdaa56423d1482da1e9d34bd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename D</type>
+          </param>
+          <param>
+            <type>typename C</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="structd3d_1_1drivercode_1_1matcher_1_1_enable_if" kindref="compound">EnableIf</ref>&lt;!<ref refid="structd3d_1_1drivercode_1_1matcher_1_1_same_as" kindref="compound">SameAs</ref>&lt; T, C &gt;::value, <ref refid="classd3d_1_1drivercode_1_1matcher_1_1_map" kindref="compound">Map</ref> &amp; &gt;::Type</type>
+        <definition>EnableIf&lt;!SameAs&lt;T, C&gt;::value, Map &amp;&gt;::Type d3d::drivercode::matcher::Map&lt; T &gt;::map</definition>
+        <argsstring>(D d, C &amp;&amp;callable)</argsstring>
+        <name>map</name>
+        <param>
+          <type>D</type>
+          <declname>d</declname>
+        </param>
+        <param>
+          <type>C &amp;&amp;</type>
+          <declname>callable</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Maps a matcher to a generator. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>d</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The matcher that should match the driver code value against. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>callable</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invoked to generate a input parameter for the constructor of <computeroutput>T</computeroutput> in case when a new instance of <computeroutput>T</computeroutput> is instantiated. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A reference to this, so that multiple matches can be chained. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="513" column="29" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="513" bodyend="517"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1ac395fe8afcc57419bdc67a8d1bf13b42" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename D</type>
+          </param>
+          <param>
+            <type>typename...</type>
+            <declname>Vs</declname>
+            <defname>Vs</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classd3d_1_1drivercode_1_1matcher_1_1_map" kindref="compound">Map</ref> &amp;</type>
+        <definition>Map&amp; d3d::drivercode::matcher::Map&lt; T &gt;::map</definition>
+        <argsstring>(D d, Vs &amp;&amp;...vs)</argsstring>
+        <name>map</name>
+        <param>
+          <type>D</type>
+          <declname>d</declname>
+        </param>
+        <param>
+          <type>Vs &amp;&amp;...</type>
+          <declname>vs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Maps a matcher to a set of parameters for the constructor of <computeroutput>T</computeroutput>. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>d</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The matcher that should match the driver code value against. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>vs</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Values passed to the constructor of <computeroutput>T</computeroutput> in case when a new instance of <computeroutput>T</computeroutput> is instantiated. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A reference to this, so that multiple matches can be chained. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="525" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="525" bodyend="529"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1ad65c0795ef39de16d295d01ab23b3b1c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>T &amp;&amp;</type>
+        <definition>T&amp;&amp; d3d::drivercode::matcher::Map&lt; T &gt;::map</definition>
+        <argsstring>(Any, T &amp;&amp;v)</argsstring>
+        <name>map</name>
+        <param>
+          <type><ref refid="structd3d_1_1drivercode_1_1matcher_1_1_any" kindref="compound">Any</ref></type>
+        </param>
+        <param>
+          <type>T &amp;&amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Maps the <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_any" kindref="compound">drivercode::matcher::Any</ref> matcher to the driver code. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>v</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A alternative value that may be used when no value of <computeroutput>T</computeroutput> is stored in this map. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Either the lvalue reference to the maps stored object or the parameter <computeroutput>v</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="535" column="5" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="535" bodyend="542"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1a561d3da4f47ee877644e5f5f9bf2f1c2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>T &amp;&amp;</type>
+        <definition>T&amp;&amp; d3d::drivercode::matcher::Map&lt; T &gt;::map</definition>
+        <argsstring>(Any, const T &amp;v)</argsstring>
+        <name>map</name>
+        <param>
+          <type><ref refid="structd3d_1_1drivercode_1_1matcher_1_1_any" kindref="compound">Any</ref></type>
+        </param>
+        <param>
+          <type>const T &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Maps the <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_any" kindref="compound">drivercode::matcher::Any</ref> matcher to a value. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>v</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A alternative value that may be used when no value of <computeroutput>T</computeroutput> is stored in this map. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A lvalue reference to the maps stored object. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="548" column="5" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="548" bodyend="552"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1a558095cf8e3a2b82208c79c0213daa58" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename C</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="structd3d_1_1drivercode_1_1matcher_1_1_enable_if" kindref="compound">EnableIf</ref>&lt;!<ref refid="structd3d_1_1drivercode_1_1matcher_1_1_same_as" kindref="compound">SameAs</ref>&lt; T, C &gt;::value, T &amp;&amp; &gt;::Type</type>
+        <definition>EnableIf&lt;!SameAs&lt;T, C&gt;::value, T &amp;&amp;&gt;::Type d3d::drivercode::matcher::Map&lt; T &gt;::map</definition>
+        <argsstring>(Any, C &amp;&amp;callable)</argsstring>
+        <name>map</name>
+        <param>
+          <type><ref refid="structd3d_1_1drivercode_1_1matcher_1_1_any" kindref="compound">Any</ref></type>
+        </param>
+        <param>
+          <type>C &amp;&amp;</type>
+          <declname>callable</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Maps the <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_any" kindref="compound">drivercode::matcher::Any</ref> matcher to a generator. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>callable</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invoked to generate a input parameter for the constructor of <computeroutput>T</computeroutput> in case when a new instance of <computeroutput>T</computeroutput> is instantiated. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A lvalue reference to the maps stored object. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="560" column="29" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="560" bodyend="564"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1ac120686beb9908d29b5c0e3421cd62c5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename...</type>
+            <declname>Vs</declname>
+            <defname>Vs</defname>
+          </param>
+        </templateparamlist>
+        <type>T &amp;&amp;</type>
+        <definition>T&amp;&amp; d3d::drivercode::matcher::Map&lt; T &gt;::map</definition>
+        <argsstring>(matcher::Any, Vs &amp;&amp;...vs)</argsstring>
+        <name>map</name>
+        <param>
+          <type><ref refid="structd3d_1_1drivercode_1_1matcher_1_1_any" kindref="compound">matcher::Any</ref></type>
+        </param>
+        <param>
+          <type>Vs &amp;&amp;...</type>
+          <declname>vs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Maps the <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_any" kindref="compound">drivercode::matcher::Any</ref> matcher to a set of parameters for the constructor of <computeroutput>T</computeroutput>. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>vs</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Values passed to the constructor of <computeroutput>T</computeroutput> in case when a new instance of <computeroutput>T</computeroutput> is instantiated. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A lvalue reference to the maps stored object. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="571" column="5" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="571" bodyend="575"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1a41124ea331413062359da18294446a1b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename R</type>
+          </param>
+        </templateparamlist>
+        <type>bool</type>
+        <definition>bool d3d::drivercode::matcher::Map&lt; T &gt;::get</definition>
+        <argsstring>(R &amp;&amp;receiver)</argsstring>
+        <name>get</name>
+        <param>
+          <type>R &amp;&amp;</type>
+          <declname>receiver</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>When a value was generated by any match, <computeroutput>receiver</computeroutput> will be invoked and the value will be moved into its input parameter. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>receiver</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A callable that will be invoked when a value was generated by any match, otherwise it will not be invoked. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>When <computeroutput>receiver</computeroutput> was invoked true, otherwise false. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="582" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="582" bodyend="590"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1a7962912c2dcfd3ca813f65adfe4ed77d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename A</type>
+          </param>
+        </templateparamlist>
+        <type>bool</type>
+        <definition>bool d3d::drivercode::matcher::Map&lt; T &gt;::get</definition>
+        <argsstring>(A &amp;target)</argsstring>
+        <name>get</name>
+        <param>
+          <type>A &amp;</type>
+          <declname>target</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>When a value was generated by any match, this will move the value into <computeroutput>target</computeroutput> and return true. Otherwise nothing will be done to <computeroutput>target</computeroutput> and false will be returned. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>target</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>When a value was generated by any match, the value will move the value into this parameter. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>When a value was moved to <computeroutput>target</computeroutput> true, otherwise false. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="598" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="598" bodyend="606"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1a4a33eac0165187fa26febb033425ea71" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename R</type>
+          </param>
+        </templateparamlist>
+        <type>bool</type>
+        <definition>bool d3d::drivercode::matcher::Map&lt; T &gt;::operator&gt;&gt;</definition>
+        <argsstring>(R &amp;&amp;receiver)</argsstring>
+        <name>operator&gt;&gt;</name>
+        <param>
+          <type>R &amp;&amp;</type>
+          <declname>receiver</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>When a value was generated by any match, <computeroutput>receiver</computeroutput> will be invoked and the value will be moved into its input parameter. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>receiver</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A callable that will be invoked when a value was generated by any match, otherwise it will not be invoked. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>When <computeroutput>receiver</computeroutput> was invoked true, otherwise false. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="613" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="613" bodyend="621"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1a90dc57c1b94203f9c950b8cc4fc7a83c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename A</type>
+          </param>
+        </templateparamlist>
+        <type>bool</type>
+        <definition>bool d3d::drivercode::matcher::Map&lt; T &gt;::operator&gt;&gt;</definition>
+        <argsstring>(A &amp;target)</argsstring>
+        <name>operator&gt;&gt;</name>
+        <param>
+          <type>A &amp;</type>
+          <declname>target</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>When a value was generated by any match, this will move the value into <computeroutput>target</computeroutput> and return true. Otherwise nothing will be done to <computeroutput>target</computeroutput> and false will be returned. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>target</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>When a value was generated by any match, the value will move the value into this parameter. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>When a value was moved to <computeroutput>target</computeroutput> true, otherwise false. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="629" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="629" bodyend="637"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1a16780e4e4ea2a18d6b5a6c28e076bc21" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename R</type>
+          </param>
+        </templateparamlist>
+        <type>bool</type>
+        <definition>bool d3d::drivercode::matcher::Map&lt; T &gt;::operator()</definition>
+        <argsstring>(R &amp;&amp;receiver)</argsstring>
+        <name>operator()</name>
+        <param>
+          <type>R &amp;&amp;</type>
+          <declname>receiver</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>When a value was generated by any match, <computeroutput>receiver</computeroutput> will be invoked and the value will be moved into its input parameter. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>receiver</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A callable that will be invoked when a value was generated by any match, otherwise it will not be invoked. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>When <computeroutput>receiver</computeroutput> was invoked true, otherwise false. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="644" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="644" bodyend="647"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_map_1a9a7bc2915376ac70e75f4922717aebbb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename A</type>
+          </param>
+        </templateparamlist>
+        <type>bool</type>
+        <definition>bool d3d::drivercode::matcher::Map&lt; T &gt;::operator()</definition>
+        <argsstring>(A &amp;target)</argsstring>
+        <name>operator()</name>
+        <param>
+          <type>A &amp;</type>
+          <declname>target</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>When a value was generated by any match, this will move the value into <computeroutput>target</computeroutput> and return true. Otherwise nothing will be done to <computeroutput>target</computeroutput> and false will be returned. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>target</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>When a value was generated by any match, the value will move the value into this parameter. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>When a value was moved to <computeroutput>target</computeroutput> true, otherwise false. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="655" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="655" bodyend="658"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>This type allows easy mappings of driver matchers to a value of the given type <computeroutput>T</computeroutput>.</para>
+<para>The map maps the first mapping, not the most accurate mapping. So order the mapping accordingly. Mappings can either be values directly, emplacement constructor parameters or generators (lambda). <parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Is the type of the value the map should store. Must be move or copyable and either be able to be constructed by copy, move or emplace. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="280" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="281" bodyend="659"/>
+    <listofallmembers>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1a327c1ae9501f52738ebd7173723334f7" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>::DriverCode</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1ae5e2ab155dbfbe8676074606970e9eb9" prot="private" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>cContruct</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1ada985e13f4916089608102ce3689c942" prot="private" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>cEmplace</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1ad667fdb516abf74a2e331724315b7509" prot="private" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>cMove</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1a41124ea331413062359da18294446a1b" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>get</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1a7962912c2dcfd3ca813f65adfe4ed77d" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>get</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1a2ad120bfa6a5b6788337a96bf7e7f351" prot="private" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>is</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1a23b7d663f98def6b9342f8d24763b0ee" prot="protected" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>Map</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1aca77a426c10bb91ed53b5727b7ea88c6" prot="protected" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>Map</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1a2dff1d6afbf2f2c1fe402aae932b8973" prot="protected" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>Map</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1a2440afcc21f5a55e4c0fcf098672e43c" prot="protected" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>Map</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1ac526f73cdf0d31266ae4447dbb8a2a34" prot="protected" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>Map</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1a359403442283fc9b67f5cfbcc5ae073c" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>Map</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1abe9d8d5d0e3c42f4dff5f33bc124bd2a" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>Map</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1a59ebc286e8e2afc397f6c17ecd5997aa" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>Map</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1a60ffa24a4aeb17c7e171fdfb0ad6561f" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>map</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1ac13e3baacdaa56423d1482da1e9d34bd" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>map</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1ac395fe8afcc57419bdc67a8d1bf13b42" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>map</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1ad65c0795ef39de16d295d01ab23b3b1c" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>map</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1a561d3da4f47ee877644e5f5f9bf2f1c2" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>map</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1a558095cf8e3a2b82208c79c0213daa58" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>map</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1ac120686beb9908d29b5c0e3421cd62c5" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>map</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1a93a7b3dcb3644c254ad4392bd16ea80c" prot="private" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>memory</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1a204573f554dccac2e8c4029ee1b6f081" prot="private" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>object</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1abfc24305937489a67d781bc9b486473c" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>operator()</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1a5f6c1a6b824c3361b17b52fba639cda8" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>operator()</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1a816001826ebfbf6d7e6caaae615e49a2" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>operator()</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1aaf98185167827008df2b32a61fcefdec" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>operator()</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1a28f1461da2826a713515b3c27354e985" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>operator()</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1a2ab1406f49e867152dfef15742dcdaca" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>operator()</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1a52848be0e334577b0713c8784afc5f15" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>operator()</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1a16780e4e4ea2a18d6b5a6c28e076bc21" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>operator()</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1a9a7bc2915376ac70e75f4922717aebbb" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>operator()</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1a6be1a44d914e27f1746d09a018a9b806" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>operator=</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1abf16d957561c45083620659908cb31ae" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>operator=</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1a4a33eac0165187fa26febb033425ea71" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>operator&gt;&gt;</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1a90dc57c1b94203f9c950b8cc4fc7a83c" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>operator&gt;&gt;</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1a22ace3e82ebf889de2fa24b92c22fac8" prot="private" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>value</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1a1f1d7910c5e01369393506d4575eda2e" prot="private" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>wasMatched</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_map_1a176e6d0fd572d56261f558ee53fdb37a" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Map</scope><name>~Map</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

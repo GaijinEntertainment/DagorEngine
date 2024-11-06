@@ -1,0 +1,143 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="classd3d_1_1_auto_pipeline_async_compile_feedback" kind="class" language="C++" prot="public">
+    <compoundname>d3d::AutoPipelineAsyncCompileFeedback</compoundname>
+    <includes refid="dag__async__pipeline_8h" local="no">dag_async_pipeline.h</includes>
+    <templateparamlist>
+      <param>
+        <type>bool</type>
+        <declname>allow_compute_pipelines</declname>
+        <defname>allow_compute_pipelines</defname>
+        <defval>true</defval>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classd3d_1_1_auto_pipeline_async_compile_feedback_1a622163cbccf3ac5043f4ecce35987204" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool d3d::AutoPipelineAsyncCompileFeedback&lt; allow_compute_pipelines &gt;::needRetry</definition>
+        <argsstring></argsstring>
+        <name>needRetry</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_async_pipeline.h" line="39" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_async_pipeline.h" bodystart="39" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classd3d_1_1_auto_pipeline_async_compile_feedback_1aa8929c052ae081472c9b7cfe0d8b011a" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool d3d::AutoPipelineAsyncCompileFeedback&lt; allow_compute_pipelines &gt;::supported</definition>
+        <argsstring></argsstring>
+        <name>supported</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_async_pipeline.h" line="40" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_async_pipeline.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classd3d_1_1_auto_pipeline_async_compile_feedback_1ac3aef60c85df3e5fe3ef5195046d011c" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool d3d::AutoPipelineAsyncCompileFeedback&lt; allow_compute_pipelines &gt;::externalNeedRetry</definition>
+        <argsstring></argsstring>
+        <name>externalNeedRetry</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_async_pipeline.h" line="41" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_async_pipeline.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classd3d_1_1_auto_pipeline_async_compile_feedback_1a220f49aae33441cd155858f902c7847d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool d3d::AutoPipelineAsyncCompileFeedback&lt; allow_compute_pipelines &gt;::isRetryNeeded</definition>
+        <argsstring>() const</argsstring>
+        <name>isRetryNeeded</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_async_pipeline.h" line="44" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_async_pipeline.h" bodystart="44" bodyend="44"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1_auto_pipeline_async_compile_feedback_1add7b5b0c1e6e514d60f6dcf74bfeae3a" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool d3d::AutoPipelineAsyncCompileFeedback&lt; allow_compute_pipelines &gt;::isExternalRetryNeeded</definition>
+        <argsstring>() const</argsstring>
+        <name>isExternalRetryNeeded</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_async_pipeline.h" line="45" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_async_pipeline.h" bodystart="45" bodyend="45"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1_auto_pipeline_async_compile_feedback_1a0a6b2ad104f589e6b9af1733ce87fe56" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool d3d::AutoPipelineAsyncCompileFeedback&lt; allow_compute_pipelines &gt;::isSupported</definition>
+        <argsstring>() const</argsstring>
+        <name>isSupported</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_async_pipeline.h" line="46" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_async_pipeline.h" bodystart="46" bodyend="46"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1_auto_pipeline_async_compile_feedback_1a6ddedb76704fb2fc3666df605514f527" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>d3d::AutoPipelineAsyncCompileFeedback&lt; allow_compute_pipelines &gt;::AutoPipelineAsyncCompileFeedback</definition>
+        <argsstring>(uint32_t *feedback_ptr)</argsstring>
+        <name>AutoPipelineAsyncCompileFeedback</name>
+        <param>
+          <type>uint32_t *</type>
+          <declname>feedback_ptr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_async_pipeline.h" line="47" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_async_pipeline.h" bodystart="47" bodyend="64"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1_auto_pipeline_async_compile_feedback_1afffb8a9fdaba5b7c181577a3943ffbcf" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>d3d::AutoPipelineAsyncCompileFeedback&lt; allow_compute_pipelines &gt;::~AutoPipelineAsyncCompileFeedback</definition>
+        <argsstring>()</argsstring>
+        <name>~AutoPipelineAsyncCompileFeedback</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_async_pipeline.h" line="65" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_async_pipeline.h" bodystart="65" bodyend="71"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>When feedback supported, enables async pipeline compilation and captures async compilation skip count into feedback_ptr in its scope needRetry field will be set if any pipeline was skipped in previous frames externalNeedRetry field will be set if any other (external) AsyncCompileFeedback in frame has needRetry set when feedback not supported, does nothing when allow_compute_pipelines is false, only graphics pipelines are async compiled (compute compiled as is) </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_async_pipeline.h" line="37" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_async_pipeline.h" bodystart="38" bodyend="72"/>
+    <listofallmembers>
+      <member refid="classd3d_1_1_auto_pipeline_async_compile_feedback_1a6ddedb76704fb2fc3666df605514f527" prot="public" virt="non-virtual"><scope>d3d::AutoPipelineAsyncCompileFeedback</scope><name>AutoPipelineAsyncCompileFeedback</name></member>
+      <member refid="classd3d_1_1_auto_pipeline_async_compile_feedback_1ac3aef60c85df3e5fe3ef5195046d011c" prot="private" virt="non-virtual"><scope>d3d::AutoPipelineAsyncCompileFeedback</scope><name>externalNeedRetry</name></member>
+      <member refid="classd3d_1_1_auto_pipeline_async_compile_feedback_1add7b5b0c1e6e514d60f6dcf74bfeae3a" prot="public" virt="non-virtual"><scope>d3d::AutoPipelineAsyncCompileFeedback</scope><name>isExternalRetryNeeded</name></member>
+      <member refid="classd3d_1_1_auto_pipeline_async_compile_feedback_1a220f49aae33441cd155858f902c7847d" prot="public" virt="non-virtual"><scope>d3d::AutoPipelineAsyncCompileFeedback</scope><name>isRetryNeeded</name></member>
+      <member refid="classd3d_1_1_auto_pipeline_async_compile_feedback_1a0a6b2ad104f589e6b9af1733ce87fe56" prot="public" virt="non-virtual"><scope>d3d::AutoPipelineAsyncCompileFeedback</scope><name>isSupported</name></member>
+      <member refid="classd3d_1_1_auto_pipeline_async_compile_feedback_1a622163cbccf3ac5043f4ecce35987204" prot="private" virt="non-virtual"><scope>d3d::AutoPipelineAsyncCompileFeedback</scope><name>needRetry</name></member>
+      <member refid="classd3d_1_1_auto_pipeline_async_compile_feedback_1aa8929c052ae081472c9b7cfe0d8b011a" prot="private" virt="non-virtual"><scope>d3d::AutoPipelineAsyncCompileFeedback</scope><name>supported</name></member>
+      <member refid="classd3d_1_1_auto_pipeline_async_compile_feedback_1afffb8a9fdaba5b7c181577a3943ffbcf" prot="public" virt="non-virtual"><scope>d3d::AutoPipelineAsyncCompileFeedback</scope><name>~AutoPipelineAsyncCompileFeedback</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

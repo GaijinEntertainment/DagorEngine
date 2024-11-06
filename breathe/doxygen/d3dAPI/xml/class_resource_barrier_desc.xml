@@ -1,0 +1,1731 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="class_resource_barrier_desc" kind="class" language="C++" prot="public">
+    <compoundname>ResourceBarrierDesc</compoundname>
+    <includes refid="dag__barrier_8h" local="no">dag_barrier.h</includes>
+      <sectiondef kind="private-static-attrib">
+      <memberdef kind="variable" id="class_resource_barrier_desc_1ac770e91098b1433339f241cc7fedc843" prot="private" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr unsigned</type>
+        <definition>constexpr unsigned ResourceBarrierDesc::single_element_count</definition>
+        <argsstring></argsstring>
+        <name>single_element_count</name>
+        <initializer>= ~0u</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="27" column="29" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="class_resource_barrier_desc_1a9d7bd2035f63521bab11366c1c4309a7" prot="public" static="no" mutable="no">
+        <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* ResourceBarrierDesc::buffer</definition>
+        <argsstring></argsstring>
+        <name>buffer</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="30" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="class_resource_barrier_desc_1a4e5b1078c5c35822f088ceefcb79c68f" prot="public" static="no" mutable="no">
+        <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *const  *</type>
+        <definition>Sbuffer* const* ResourceBarrierDesc::buffers</definition>
+        <argsstring></argsstring>
+        <name>buffers</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="31" column="19" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="class_resource_barrier_desc_1a3172bad3616a3dc9379b3588906a4ee7" prot="public" static="no" mutable="no">
+        <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* ResourceBarrierDesc::texture</definition>
+        <argsstring></argsstring>
+        <name>texture</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="35" column="17" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="class_resource_barrier_desc_1a92e7435cb0cbfc3cf4687de68dee151b" prot="public" static="no" mutable="no">
+        <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *const  *</type>
+        <definition>BaseTexture* const* ResourceBarrierDesc::textures</definition>
+        <argsstring></argsstring>
+        <name>textures</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="36" column="23" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="class_resource_barrier_desc_1aafafc6df3051dfb4bcb31b95c9307790" prot="public" static="no" mutable="no">
+        <type>RaytraceBottomAccelerationStructure *</type>
+        <definition>RaytraceBottomAccelerationStructure* ResourceBarrierDesc::blas</definition>
+        <argsstring></argsstring>
+        <name>blas</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="40" column="41" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="class_resource_barrier_desc_1a964eb1022d7e0cd9eb468ea8b5ac0fe6" prot="public" static="no" mutable="no">
+        <type>RaytraceBottomAccelerationStructure *const  *</type>
+        <definition>RaytraceBottomAccelerationStructure* const* ResourceBarrierDesc::blases</definition>
+        <argsstring></argsstring>
+        <name>blases</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="41" column="47" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="class_resource_barrier_desc_1a282602367087769d26307cd4ab8a5468" prot="public" static="no" mutable="no">
+        <type>ResourceBarrier</type>
+        <definition>ResourceBarrier ResourceBarrierDesc::bufferState</definition>
+        <argsstring></argsstring>
+        <name>bufferState</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="45" column="21" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="class_resource_barrier_desc_1a68065401a0450ac3533e5832f10014d7" prot="public" static="no" mutable="no">
+        <type>const ResourceBarrier *</type>
+        <definition>const ResourceBarrier* ResourceBarrierDesc::bufferStates</definition>
+        <argsstring></argsstring>
+        <name>bufferStates</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="46" column="27" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="class_resource_barrier_desc_1a62a5e66fde8d79c450b74efc54eaff00" prot="public" static="no" mutable="no">
+        <type>ResourceBarrier</type>
+        <definition>ResourceBarrier ResourceBarrierDesc::textureState</definition>
+        <argsstring></argsstring>
+        <name>textureState</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="50" column="21" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="class_resource_barrier_desc_1a096207dc0f33ad25607cb611e5a11302" prot="public" static="no" mutable="no">
+        <type>const ResourceBarrier *</type>
+        <definition>const ResourceBarrier* ResourceBarrierDesc::textureStates</definition>
+        <argsstring></argsstring>
+        <name>textureStates</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="51" column="27" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="class_resource_barrier_desc_1a05baf1671929e37c081d73b2d1955b95" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ResourceBarrierDesc::textureSubResIndex</definition>
+        <argsstring></argsstring>
+        <name>textureSubResIndex</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="55" column="14" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="class_resource_barrier_desc_1a4868b0427b9977b022ef75dc2d432f84" prot="public" static="no" mutable="no">
+        <type>const unsigned *</type>
+        <definition>const unsigned* ResourceBarrierDesc::textureSubResIndices</definition>
+        <argsstring></argsstring>
+        <name>textureSubResIndices</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="56" column="20" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="class_resource_barrier_desc_1a1be01dd323fc55ae0e88167bcda6a016" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ResourceBarrierDesc::textureSubResRange</definition>
+        <argsstring></argsstring>
+        <name>textureSubResRange</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="60" column="14" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="class_resource_barrier_desc_1a04987f614559121f9dd96d1ed1b54a28" prot="public" static="no" mutable="no">
+        <type>const unsigned *</type>
+        <definition>const unsigned* ResourceBarrierDesc::textureSubResRanges</definition>
+        <argsstring></argsstring>
+        <name>textureSubResRanges</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="61" column="20" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="class_resource_barrier_desc_1a562fe8d9a2ee7920e5eaff451ccbf2e5" prot="private" static="no" mutable="no">
+        <type>union ResourceBarrierDesc::@3</type>
+        <definition>union ResourceBarrierDesc::@3 ResourceBarrierDesc::@4</definition>
+        <argsstring></argsstring>
+        <name>@4</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="32" column="3"/>
+      </memberdef>
+      <memberdef kind="variable" id="class_resource_barrier_desc_1a40d1ba3ebde5c0aa63d33349275e0414" prot="private" static="no" mutable="no">
+        <type>union ResourceBarrierDesc::@5</type>
+        <definition>union ResourceBarrierDesc::@5 ResourceBarrierDesc::@6</definition>
+        <argsstring></argsstring>
+        <name>@6</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="37" column="3"/>
+      </memberdef>
+      <memberdef kind="variable" id="class_resource_barrier_desc_1a37a5bfbce7fd13a18dcaca72d076d21f" prot="private" static="no" mutable="no">
+        <type>union ResourceBarrierDesc::@7</type>
+        <definition>union ResourceBarrierDesc::@7 ResourceBarrierDesc::@8</definition>
+        <argsstring></argsstring>
+        <name>@8</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="42" column="3"/>
+      </memberdef>
+      <memberdef kind="variable" id="class_resource_barrier_desc_1a7ad7ec363abeccec64315b317a7e3667" prot="private" static="no" mutable="no">
+        <type>union ResourceBarrierDesc::@9</type>
+        <definition>union ResourceBarrierDesc::@9 ResourceBarrierDesc::@10</definition>
+        <argsstring></argsstring>
+        <name>@10</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="47" column="3"/>
+      </memberdef>
+      <memberdef kind="variable" id="class_resource_barrier_desc_1af2cffe15b7f47f75ac8ccbd28708e7a1" prot="private" static="no" mutable="no">
+        <type>union ResourceBarrierDesc::@11</type>
+        <definition>union ResourceBarrierDesc::@11 ResourceBarrierDesc::@12</definition>
+        <argsstring></argsstring>
+        <name>@12</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="52" column="3"/>
+      </memberdef>
+      <memberdef kind="variable" id="class_resource_barrier_desc_1a065c1fa8528be5a1c5d6f4a4fe324226" prot="private" static="no" mutable="no">
+        <type>union ResourceBarrierDesc::@13</type>
+        <definition>union ResourceBarrierDesc::@13 ResourceBarrierDesc::@14</definition>
+        <argsstring></argsstring>
+        <name>@14</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="57" column="3"/>
+      </memberdef>
+      <memberdef kind="variable" id="class_resource_barrier_desc_1ab7e13a76554d4c91464c8ae2e0d098d7" prot="private" static="no" mutable="no">
+        <type>union ResourceBarrierDesc::@15</type>
+        <definition>union ResourceBarrierDesc::@15 ResourceBarrierDesc::@16</definition>
+        <argsstring></argsstring>
+        <name>@16</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="62" column="3"/>
+      </memberdef>
+      <memberdef kind="variable" id="class_resource_barrier_desc_1a8daa06e7c10d152c419075c82fcb8e97" prot="private" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ResourceBarrierDesc::bufferCount</definition>
+        <argsstring></argsstring>
+        <name>bufferCount</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="63" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="class_resource_barrier_desc_1a9e627f4744237ed9e4a3259f819fba5a" prot="private" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ResourceBarrierDesc::textureCount</definition>
+        <argsstring></argsstring>
+        <name>textureCount</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="64" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="64" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="class_resource_barrier_desc_1a5230b182c983456ce515aca43b544bb4" prot="private" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ResourceBarrierDesc::blasCount</definition>
+        <argsstring></argsstring>
+        <name>blasCount</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="65" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="65" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="class_resource_barrier_desc_1af8afe46ecf1a383e44c061b34358f64b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ResourceBarrierDesc::ResourceBarrierDesc</definition>
+        <argsstring>()</argsstring>
+        <name>ResourceBarrierDesc</name>
+        <briefdescription>
+<para>Default constructor for <ref refid="class_resource_barrier_desc" kindref="compound">ResourceBarrierDesc</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="71" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="71" bodyend="79"/>
+      </memberdef>
+      <memberdef kind="function" id="class_resource_barrier_desc_1a7fffa6d712cb0ad171c7a4977a5d3ed4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ResourceBarrierDesc::ResourceBarrierDesc</definition>
+        <argsstring>(const ResourceBarrierDesc &amp;)=default</argsstring>
+        <name>ResourceBarrierDesc</name>
+        <param>
+          <type>const <ref refid="class_resource_barrier_desc" kindref="compound">ResourceBarrierDesc</ref> &amp;</type>
+        </param>
+        <briefdescription>
+<para>Copy constructor for <ref refid="class_resource_barrier_desc" kindref="compound">ResourceBarrierDesc</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>desc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The <ref refid="class_resource_barrier_desc" kindref="compound">ResourceBarrierDesc</ref> object to be copied. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="85" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="class_resource_barrier_desc_1aa1f7fee616161297146cb5309c69235a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ResourceBarrierDesc::ResourceBarrierDesc</definition>
+        <argsstring>(Sbuffer *buf, ResourceBarrier rb)</argsstring>
+        <name>ResourceBarrierDesc</name>
+        <param>
+          <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *</type>
+          <declname>buf</declname>
+        </param>
+        <param>
+          <type>ResourceBarrier</type>
+          <declname>rb</declname>
+        </param>
+        <briefdescription>
+<para>Constructor for <ref refid="class_resource_barrier_desc" kindref="compound">ResourceBarrierDesc</ref> with a single buffer and resource barrier. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>buf</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The buffer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>rb</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The resource barrier. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="92" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="92" bodyend="92"/>
+      </memberdef>
+      <memberdef kind="function" id="class_resource_barrier_desc_1ab2529b2f1ca8baea96953a0129e8ccef" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ResourceBarrierDesc::ResourceBarrierDesc</definition>
+        <argsstring>(Sbuffer *const *bufs, const ResourceBarrier *rb, unsigned count)</argsstring>
+        <name>ResourceBarrierDesc</name>
+        <param>
+          <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *const *</type>
+          <declname>bufs</declname>
+        </param>
+        <param>
+          <type>const ResourceBarrier *</type>
+          <declname>rb</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>count</declname>
+        </param>
+        <briefdescription>
+<para>Constructor for <ref refid="class_resource_barrier_desc" kindref="compound">ResourceBarrierDesc</ref> with an array of buffers and resource barriers. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>bufs</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The array of buffers. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>rb</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The array of resource barriers. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>count</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The number of buffers and resource barriers. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="100" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="100" bodyend="102"/>
+      </memberdef>
+      <memberdef kind="function" id="class_resource_barrier_desc_1a8cdf5e936887acbdbd05d983e8b54961" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>unsigned</type>
+            <declname>N</declname>
+            <defname>N</defname>
+          </param>
+        </templateparamlist>
+        <type></type>
+        <definition>ResourceBarrierDesc::ResourceBarrierDesc</definition>
+        <argsstring>(Sbuffer *(&amp;bufs)[N], ResourceBarrier(&amp;rb)[N])</argsstring>
+        <name>ResourceBarrierDesc</name>
+        <param>
+          <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *(&amp;)</type>
+          <declname>bufs</declname>
+          <array>[N]</array>
+        </param>
+        <param>
+          <type>ResourceBarrier(&amp;)</type>
+          <declname>rb</declname>
+          <array>[N]</array>
+        </param>
+        <briefdescription>
+<para>Constructor for <ref refid="class_resource_barrier_desc" kindref="compound">ResourceBarrierDesc</ref> with a fixed-size array of buffers and resource barriers. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>N</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The size of the fixed-size array. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>bufs</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The fixed-size array of buffers. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>rb</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The fixed-size array of resource barriers. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="111" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="111" bodyend="112"/>
+      </memberdef>
+      <memberdef kind="function" id="class_resource_barrier_desc_1a86e6bffa9fcfe7fa7f6043f47bd40db5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ResourceBarrierDesc::ResourceBarrierDesc</definition>
+        <argsstring>(std::initializer_list&lt; Sbuffer * &gt; bufs, std::initializer_list&lt; ResourceBarrier &gt; rb)</argsstring>
+        <name>ResourceBarrierDesc</name>
+        <param>
+          <type>std::initializer_list&lt; <ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> * &gt;</type>
+          <declname>bufs</declname>
+        </param>
+        <param>
+          <type>std::initializer_list&lt; ResourceBarrier &gt;</type>
+          <declname>rb</declname>
+        </param>
+        <briefdescription>
+<para>Constructor for <ref refid="class_resource_barrier_desc" kindref="compound">ResourceBarrierDesc</ref> with initializer lists of buffers and resource barriers. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>bufs</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The initializer list of buffers. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>rb</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The initializer list of resource barriers. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="119" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="119" bodyend="123"/>
+      </memberdef>
+      <memberdef kind="function" id="class_resource_barrier_desc_1a6cc56a943815b4a15f5bbdbc111a8674" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ResourceBarrierDesc::ResourceBarrierDesc</definition>
+        <argsstring>(BaseTexture *tex, ResourceBarrier rb, unsigned sub_res_index, unsigned sub_res_range)</argsstring>
+        <name>ResourceBarrierDesc</name>
+        <param>
+          <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *</type>
+          <declname>tex</declname>
+        </param>
+        <param>
+          <type>ResourceBarrier</type>
+          <declname>rb</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>sub_res_index</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>sub_res_range</declname>
+        </param>
+        <briefdescription>
+<para>Constructor for <ref refid="class_resource_barrier_desc" kindref="compound">ResourceBarrierDesc</ref> with a single texture, resource barrier, and sub-resource index and range. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>tex</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The texture. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>rb</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The resource barrier. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sub_res_index</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The sub-resource index. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sub_res_range</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The sub-resource range. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="132" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="132" bodyend="138"/>
+      </memberdef>
+      <memberdef kind="function" id="class_resource_barrier_desc_1a3ed55fc8b83d5b8ed79db2688eacd221" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ResourceBarrierDesc::ResourceBarrierDesc</definition>
+        <argsstring>(BaseTexture *const *texs, const ResourceBarrier *rb, const unsigned *sub_res_index, const unsigned *sub_res_range, unsigned count)</argsstring>
+        <name>ResourceBarrierDesc</name>
+        <param>
+          <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *const *</type>
+          <declname>texs</declname>
+        </param>
+        <param>
+          <type>const ResourceBarrier *</type>
+          <declname>rb</declname>
+        </param>
+        <param>
+          <type>const unsigned *</type>
+          <declname>sub_res_index</declname>
+        </param>
+        <param>
+          <type>const unsigned *</type>
+          <declname>sub_res_range</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>count</declname>
+        </param>
+        <briefdescription>
+<para>Constructor for <ref refid="class_resource_barrier_desc" kindref="compound">ResourceBarrierDesc</ref> with an array of textures, resource barriers, sub-resource indices, and sub-resource ranges. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>texs</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The array of textures. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>rb</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The array of resource barriers. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sub_res_index</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The array of sub-resource indices. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sub_res_range</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The array of sub-resource ranges. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>count</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The number of textures, resource barriers, sub-resource indices, and sub-resource ranges. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="149" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="149" bodyend="152"/>
+      </memberdef>
+      <memberdef kind="function" id="class_resource_barrier_desc_1a49d71c3b1abd9c986452d8b708e03b0d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>unsigned</type>
+            <declname>N</declname>
+            <defname>N</defname>
+          </param>
+        </templateparamlist>
+        <type></type>
+        <definition>ResourceBarrierDesc::ResourceBarrierDesc</definition>
+        <argsstring>(BaseTexture *(&amp;texs)[N], ResourceBarrier(&amp;rb)[N], unsigned(&amp;sub_res_index)[N], unsigned(&amp;sub_res_range)[N])</argsstring>
+        <name>ResourceBarrierDesc</name>
+        <param>
+          <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *(&amp;)</type>
+          <declname>texs</declname>
+          <array>[N]</array>
+        </param>
+        <param>
+          <type>ResourceBarrier(&amp;)</type>
+          <declname>rb</declname>
+          <array>[N]</array>
+        </param>
+        <param>
+          <type>unsigned(&amp;)</type>
+          <declname>sub_res_index</declname>
+          <array>[N]</array>
+        </param>
+        <param>
+          <type>unsigned(&amp;)</type>
+          <declname>sub_res_range</declname>
+          <array>[N]</array>
+        </param>
+        <briefdescription>
+<para>Constructor for <ref refid="class_resource_barrier_desc" kindref="compound">ResourceBarrierDesc</ref> with a fixed-size array of textures, resource barriers, sub-resource indices, and sub-resource ranges. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>N</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The size of the fixed-size array. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>texs</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The fixed-size array of textures. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>rb</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The fixed-size array of resource barriers. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sub_res_index</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The fixed-size array of sub-resource indices. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sub_res_range</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The fixed-size array of sub-resource ranges. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="164" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="164" bodyend="166"/>
+      </memberdef>
+      <memberdef kind="function" id="class_resource_barrier_desc_1a62c2860d3467cf9452830af308f71840" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ResourceBarrierDesc::ResourceBarrierDesc</definition>
+        <argsstring>(std::initializer_list&lt; BaseTexture * &gt; texs, std::initializer_list&lt; ResourceBarrier &gt; rb, std::initializer_list&lt; unsigned &gt; sub_res_index, std::initializer_list&lt; unsigned &gt; sub_res_range)</argsstring>
+        <name>ResourceBarrierDesc</name>
+        <param>
+          <type>std::initializer_list&lt; <ref refid="class_base_texture" kindref="compound">BaseTexture</ref> * &gt;</type>
+          <declname>texs</declname>
+        </param>
+        <param>
+          <type>std::initializer_list&lt; ResourceBarrier &gt;</type>
+          <declname>rb</declname>
+        </param>
+        <param>
+          <type>std::initializer_list&lt; unsigned &gt;</type>
+          <declname>sub_res_index</declname>
+        </param>
+        <param>
+          <type>std::initializer_list&lt; unsigned &gt;</type>
+          <declname>sub_res_range</declname>
+        </param>
+        <briefdescription>
+<para>Constructor for <ref refid="class_resource_barrier_desc" kindref="compound">ResourceBarrierDesc</ref> with initializer lists of textures, resource barriers, sub-resource indices, and sub-resource ranges. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>texs</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The initializer list of textures. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>rb</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The initializer list of resource barriers. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sub_res_index</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The initializer list of sub-resource indices. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sub_res_range</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The initializer list of sub-resource ranges. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="176" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="176" bodyend="187"/>
+      </memberdef>
+      <memberdef kind="function" id="class_resource_barrier_desc_1a3a131650698e43eb12c0dbbc7db5ed79" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ResourceBarrierDesc::ResourceBarrierDesc</definition>
+        <argsstring>(RaytraceBottomAccelerationStructure *blas)</argsstring>
+        <name>ResourceBarrierDesc</name>
+        <param>
+          <type>RaytraceBottomAccelerationStructure *</type>
+          <declname>blas</declname>
+        </param>
+        <briefdescription>
+<para>Constructor for <ref refid="class_resource_barrier_desc" kindref="compound">ResourceBarrierDesc</ref> with a single bottom level acceleration structure. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blas</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The bottom level acceleration structure. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="193" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="193" bodyend="193"/>
+      </memberdef>
+      <memberdef kind="function" id="class_resource_barrier_desc_1a8b4fcb61616bfb24388c0e58c4f43551" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ResourceBarrierDesc::ResourceBarrierDesc</definition>
+        <argsstring>(RaytraceBottomAccelerationStructure *const *blases, unsigned count)</argsstring>
+        <name>ResourceBarrierDesc</name>
+        <param>
+          <type>RaytraceBottomAccelerationStructure *const *</type>
+          <declname>blases</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>count</declname>
+        </param>
+        <briefdescription>
+<para>Constructor for <ref refid="class_resource_barrier_desc" kindref="compound">ResourceBarrierDesc</ref> with an array of bottom level acceleration structures. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blases</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The array of bottom level acceleration structures. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>count</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The number of bottom level acceleration structures. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="200" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="200" bodyend="200"/>
+      </memberdef>
+      <memberdef kind="function" id="class_resource_barrier_desc_1ad5a6e273bf45a9e1bb679b60d5ab3b59" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>unsigned</type>
+            <declname>N</declname>
+            <defname>N</defname>
+          </param>
+        </templateparamlist>
+        <type></type>
+        <definition>ResourceBarrierDesc::ResourceBarrierDesc</definition>
+        <argsstring>(RaytraceBottomAccelerationStructure *(&amp;blases)[N])</argsstring>
+        <name>ResourceBarrierDesc</name>
+        <param>
+          <type>RaytraceBottomAccelerationStructure *(&amp;)</type>
+          <declname>blases</declname>
+          <array>[N]</array>
+        </param>
+        <briefdescription>
+<para>Constructor for <ref refid="class_resource_barrier_desc" kindref="compound">ResourceBarrierDesc</ref> with a fixed-size array of bottom level acceleration structures. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>N</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The size of the fixed-size array. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blases</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The fixed-size array of bottom level acceleration structures. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="208" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="208" bodyend="209"/>
+      </memberdef>
+      <memberdef kind="function" id="class_resource_barrier_desc_1ab8c8b3ca0ba937164e0a1a19e4882734" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ResourceBarrierDesc::ResourceBarrierDesc</definition>
+        <argsstring>(std::initializer_list&lt; RaytraceBottomAccelerationStructure * &gt; blases)</argsstring>
+        <name>ResourceBarrierDesc</name>
+        <param>
+          <type>std::initializer_list&lt; RaytraceBottomAccelerationStructure * &gt;</type>
+          <declname>blases</declname>
+        </param>
+        <briefdescription>
+<para>Constructor for <ref refid="class_resource_barrier_desc" kindref="compound">ResourceBarrierDesc</ref> with initializer lists of bottom level acceleration structures. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>blases</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The initializer list of bottom level acceleration structures. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="215" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="215" bodyend="217"/>
+      </memberdef>
+      <memberdef kind="function" id="class_resource_barrier_desc_1a894f3641c648b78025ca5604c4b236fc" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ResourceBarrierDesc::ResourceBarrierDesc</definition>
+        <argsstring>(Sbuffer *const *bufs, const ResourceBarrier *b_rb, unsigned b_count, BaseTexture *const *texs, const ResourceBarrier *t_rb, const unsigned *t_sub_res_index, const unsigned *t_sub_res_range, unsigned t_count)</argsstring>
+        <name>ResourceBarrierDesc</name>
+        <param>
+          <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *const *</type>
+          <declname>bufs</declname>
+        </param>
+        <param>
+          <type>const ResourceBarrier *</type>
+          <declname>b_rb</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>b_count</declname>
+        </param>
+        <param>
+          <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *const *</type>
+          <declname>texs</declname>
+        </param>
+        <param>
+          <type>const ResourceBarrier *</type>
+          <declname>t_rb</declname>
+        </param>
+        <param>
+          <type>const unsigned *</type>
+          <declname>t_sub_res_index</declname>
+        </param>
+        <param>
+          <type>const unsigned *</type>
+          <declname>t_sub_res_range</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>t_count</declname>
+        </param>
+        <briefdescription>
+<para>Constructor for <ref refid="class_resource_barrier_desc" kindref="compound">ResourceBarrierDesc</ref> with arrays of buffers, resource barriers, textures, resource barriers, sub-resource indices, and sub-resource ranges. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>bufs</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The array of buffers. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>b_rb</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The array of resource barriers for buffers. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>b_count</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The number of buffers and resource barriers for buffers. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>texs</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The array of textures. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>t_rb</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The array of resource barriers for textures. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>t_sub_res_index</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The array of sub-resource indices for textures. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>t_sub_res_range</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The array of sub-resource ranges for textures. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>t_count</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The number of textures, resource barriers for textures, sub-resource indices for textures, and sub-resource ranges for textures. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="232" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="232" bodyend="242"/>
+      </memberdef>
+      <memberdef kind="function" id="class_resource_barrier_desc_1af0f0332910ada35d5abce3ee5ba86448" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ResourceBarrierDesc::ResourceBarrierDesc</definition>
+        <argsstring>(Sbuffer *buf, ResourceBarrier b_rb, BaseTexture *const *texs, const ResourceBarrier *t_rb, const unsigned *t_sub_res_index, const unsigned *t_sub_res_range, unsigned t_count)</argsstring>
+        <name>ResourceBarrierDesc</name>
+        <param>
+          <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *</type>
+          <declname>buf</declname>
+        </param>
+        <param>
+          <type>ResourceBarrier</type>
+          <declname>b_rb</declname>
+        </param>
+        <param>
+          <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *const *</type>
+          <declname>texs</declname>
+        </param>
+        <param>
+          <type>const ResourceBarrier *</type>
+          <declname>t_rb</declname>
+        </param>
+        <param>
+          <type>const unsigned *</type>
+          <declname>t_sub_res_index</declname>
+        </param>
+        <param>
+          <type>const unsigned *</type>
+          <declname>t_sub_res_range</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>t_count</declname>
+        </param>
+        <briefdescription>
+<para>Constructor for <ref refid="class_resource_barrier_desc" kindref="compound">ResourceBarrierDesc</ref> with a single buffer, resource barrier, array of textures, resource barriers, sub-resource indices, and sub-resource ranges. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>buf</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The buffer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>b_rb</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The resource barrier for the buffer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>texs</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The array of textures. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>t_rb</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The array of resource barriers for textures. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>t_sub_res_index</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The array of sub-resource indices for textures. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>t_sub_res_range</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The array of sub-resource ranges for textures. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>t_count</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The number of textures, resource barriers for textures, sub-resource indices for textures, and sub-resource ranges for textures. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="256" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="256" bodyend="266"/>
+      </memberdef>
+      <memberdef kind="function" id="class_resource_barrier_desc_1a882d12d266860849cedeacd0dc8af669" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ResourceBarrierDesc::ResourceBarrierDesc</definition>
+        <argsstring>(Sbuffer *const *bufs, const ResourceBarrier *b_rb, unsigned b_count, BaseTexture *tex, ResourceBarrier t_rb, unsigned t_sub_res_index, unsigned t_sub_res_range)</argsstring>
+        <name>ResourceBarrierDesc</name>
+        <param>
+          <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *const *</type>
+          <declname>bufs</declname>
+        </param>
+        <param>
+          <type>const ResourceBarrier *</type>
+          <declname>b_rb</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>b_count</declname>
+        </param>
+        <param>
+          <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *</type>
+          <declname>tex</declname>
+        </param>
+        <param>
+          <type>ResourceBarrier</type>
+          <declname>t_rb</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>t_sub_res_index</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>t_sub_res_range</declname>
+        </param>
+        <briefdescription>
+<para>Constructor for <ref refid="class_resource_barrier_desc" kindref="compound">ResourceBarrierDesc</ref> with arrays of buffers, resource barriers, a single texture, resource barrier, sub-resource index, and sub-resource range. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>bufs</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The array of buffers. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>b_rb</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The array of resource barriers for buffers. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>b_count</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The number of buffers and resource barriers for buffers. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>tex</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The texture. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>t_rb</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The resource barrier for the texture. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>t_sub_res_index</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The sub-resource index for the texture. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>t_sub_res_range</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The sub-resource range for the texture. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="279" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="279" bodyend="289"/>
+      </memberdef>
+      <memberdef kind="function" id="class_resource_barrier_desc_1a03195b1629bb46358fc5fb6a6d189e65" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ResourceBarrierDesc::ResourceBarrierDesc</definition>
+        <argsstring>(Sbuffer *buf, ResourceBarrier b_rb, BaseTexture *tex, ResourceBarrier t_rb, unsigned t_sub_res_index, unsigned t_sub_res_range)</argsstring>
+        <name>ResourceBarrierDesc</name>
+        <param>
+          <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *</type>
+          <declname>buf</declname>
+        </param>
+        <param>
+          <type>ResourceBarrier</type>
+          <declname>b_rb</declname>
+        </param>
+        <param>
+          <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *</type>
+          <declname>tex</declname>
+        </param>
+        <param>
+          <type>ResourceBarrier</type>
+          <declname>t_rb</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>t_sub_res_index</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>t_sub_res_range</declname>
+        </param>
+        <briefdescription>
+<para>Constructor for <ref refid="class_resource_barrier_desc" kindref="compound">ResourceBarrierDesc</ref> with a single buffer, resource barrier, a single texture, resource barrier, sub-resource index, and sub-resource range. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>buf</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The buffer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>b_rb</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The resource barrier for the buffer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>tex</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The texture. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>t_rb</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The resource barrier for the texture. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>t_sub_res_index</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The sub-resource index for the texture. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>t_sub_res_range</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The sub-resource range for the texture. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="301" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="301" bodyend="311"/>
+      </memberdef>
+      <memberdef kind="function" id="class_resource_barrier_desc_1a93e5bbca274e53c53ae14fe03e46ef03" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ResourceBarrierDesc::ResourceBarrierDesc</definition>
+        <argsstring>(std::initializer_list&lt; Sbuffer * &gt; bufs, std::initializer_list&lt; ResourceBarrier &gt; buf_rb, std::initializer_list&lt; BaseTexture * &gt; texs, std::initializer_list&lt; ResourceBarrier &gt; tex_rb, std::initializer_list&lt; unsigned &gt; sub_res_index, std::initializer_list&lt; unsigned &gt; sub_res_range)</argsstring>
+        <name>ResourceBarrierDesc</name>
+        <param>
+          <type>std::initializer_list&lt; <ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> * &gt;</type>
+          <declname>bufs</declname>
+        </param>
+        <param>
+          <type>std::initializer_list&lt; ResourceBarrier &gt;</type>
+          <declname>buf_rb</declname>
+        </param>
+        <param>
+          <type>std::initializer_list&lt; <ref refid="class_base_texture" kindref="compound">BaseTexture</ref> * &gt;</type>
+          <declname>texs</declname>
+        </param>
+        <param>
+          <type>std::initializer_list&lt; ResourceBarrier &gt;</type>
+          <declname>tex_rb</declname>
+        </param>
+        <param>
+          <type>std::initializer_list&lt; unsigned &gt;</type>
+          <declname>sub_res_index</declname>
+        </param>
+        <param>
+          <type>std::initializer_list&lt; unsigned &gt;</type>
+          <declname>sub_res_range</declname>
+        </param>
+        <briefdescription>
+<para>Constructor for <ref refid="class_resource_barrier_desc" kindref="compound">ResourceBarrierDesc</ref> with initializer lists of buffers, resource barriers, textures, resource barriers, sub-resource indices, and sub-resource ranges. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>bufs</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The initializer list of buffers. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>buf_rb</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The initializer list of resource barriers for buffers. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>texs</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The initializer list of textures. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>tex_rb</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The initializer list of resource barriers for textures. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sub_res_index</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The initializer list of sub-resource indices for textures. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sub_res_range</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The initializer list of sub-resource ranges for textures. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="323" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="323" bodyend="339"/>
+      </memberdef>
+      <memberdef kind="function" id="class_resource_barrier_desc_1a2a045790f285c68504b450498ddef488" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ResourceBarrierDesc::ResourceBarrierDesc</definition>
+        <argsstring>(ResourceBarrier rb)</argsstring>
+        <name>ResourceBarrierDesc</name>
+        <param>
+          <type>ResourceBarrier</type>
+          <declname>rb</declname>
+        </param>
+        <briefdescription>
+<para>Constructor for <ref refid="class_resource_barrier_desc" kindref="compound">ResourceBarrierDesc</ref> with a single resource barrier. The expected use case is that &apos;rb&apos; has the RB_FLUSH_UAV flag set for all pending UAV access. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>rb</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The resource barrier. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="346" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="346" bodyend="346"/>
+      </memberdef>
+      <memberdef kind="function" id="class_resource_barrier_desc_1ada7b7b43367ebf257d7f8b705f2c3756" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ResourceBarrierDesc::enumerateBufferBarriers</definition>
+        <argsstring>(T clb)</argsstring>
+        <name>enumerateBufferBarriers</name>
+        <param>
+          <type>T</type>
+          <declname>clb</declname>
+        </param>
+        <briefdescription>
+<para>Enumerates the buffer barriers and calls the provided callback function for each buffer barrier. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the callback function. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>clb</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The callback function that takes a buffer and a resource barrier as arguments. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="354" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="354" bodyend="367"/>
+      </memberdef>
+      <memberdef kind="function" id="class_resource_barrier_desc_1a1b0648da000684345b7ff5b43c4ef631" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ResourceBarrierDesc::enumerateTextureBarriers</definition>
+        <argsstring>(T clb)</argsstring>
+        <name>enumerateTextureBarriers</name>
+        <param>
+          <type>T</type>
+          <declname>clb</declname>
+        </param>
+        <briefdescription>
+<para>Enumerates the texture barriers and calls the provided callback function for each texture barrier. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the callback function. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>clb</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The callback function that takes a texture, a resource barrier, a sub-resource index, and a sub-resource range as arguments. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="376" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="376" bodyend="389"/>
+      </memberdef>
+      <memberdef kind="function" id="class_resource_barrier_desc_1ae5b84be5cbe8d7410ded5ecd0151a78b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ResourceBarrierDesc::enumerateBlasBarriers</definition>
+        <argsstring>(T clb)</argsstring>
+        <name>enumerateBlasBarriers</name>
+        <param>
+          <type>T</type>
+          <declname>clb</declname>
+        </param>
+        <briefdescription>
+<para>Enumerates the bottom level acceleration structure barriers and calls the provided callback function for each bottom level acceleration structure barrier. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the callback function. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>clb</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The callback function that takes a bottom level acceleration structure as argument. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="398" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="398" bodyend="411"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>The <ref refid="class_resource_barrier_desc" kindref="compound">ResourceBarrierDesc</ref> class represents the input type for &apos;d3d::resource_barrier&apos;. It allows one function to handle multiple input data layouts. Inputs can be simple single values, arrays of values, pointers to values, and initializer lists of values. To interpret the stored values, use the provided enumerate functions to get the buffer and texture barriers. For more details on resource barriers, see <ulink url="https://info.gaijin.lan/display/DE4/Resource+and+Execution+Barriers">https://info.gaijin.lan/display/DE4/Resource+and+Execution+Barriers</ulink>. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="3">
+        <label>D3dResource</label>
+        <link refid="class_d3d_resource"/>
+      </node>
+      <node id="1">
+        <label>ResourceBarrierDesc</label>
+        <link refid="class_resource_barrier_desc"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>buffer</edgelabel>
+          <edgelabel>buffers</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>texture</edgelabel>
+          <edgelabel>textures</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>Sbuffer</label>
+        <link refid="class_sbuffer"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>ResourceChecker</label>
+        <link refid="struct_resource_checker"/>
+      </node>
+      <node id="5">
+        <label>BaseTexture</label>
+        <link refid="class_base_texture"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" line="24" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h" bodystart="25" bodyend="412"/>
+    <listofallmembers>
+      <member refid="class_resource_barrier_desc_1aafafc6df3051dfb4bcb31b95c9307790" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>blas</name></member>
+      <member refid="class_resource_barrier_desc_1a5230b182c983456ce515aca43b544bb4" prot="private" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>blasCount</name></member>
+      <member refid="class_resource_barrier_desc_1a964eb1022d7e0cd9eb468ea8b5ac0fe6" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>blases</name></member>
+      <member refid="class_resource_barrier_desc_1a9d7bd2035f63521bab11366c1c4309a7" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>buffer</name></member>
+      <member refid="class_resource_barrier_desc_1a8daa06e7c10d152c419075c82fcb8e97" prot="private" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>bufferCount</name></member>
+      <member refid="class_resource_barrier_desc_1a4e5b1078c5c35822f088ceefcb79c68f" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>buffers</name></member>
+      <member refid="class_resource_barrier_desc_1a282602367087769d26307cd4ab8a5468" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>bufferState</name></member>
+      <member refid="class_resource_barrier_desc_1a68065401a0450ac3533e5832f10014d7" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>bufferStates</name></member>
+      <member refid="class_resource_barrier_desc_1ae5b84be5cbe8d7410ded5ecd0151a78b" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>enumerateBlasBarriers</name></member>
+      <member refid="class_resource_barrier_desc_1ada7b7b43367ebf257d7f8b705f2c3756" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>enumerateBufferBarriers</name></member>
+      <member refid="class_resource_barrier_desc_1a1b0648da000684345b7ff5b43c4ef631" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>enumerateTextureBarriers</name></member>
+      <member refid="class_resource_barrier_desc_1af8afe46ecf1a383e44c061b34358f64b" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>ResourceBarrierDesc</name></member>
+      <member refid="class_resource_barrier_desc_1a7fffa6d712cb0ad171c7a4977a5d3ed4" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>ResourceBarrierDesc</name></member>
+      <member refid="class_resource_barrier_desc_1aa1f7fee616161297146cb5309c69235a" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>ResourceBarrierDesc</name></member>
+      <member refid="class_resource_barrier_desc_1ab2529b2f1ca8baea96953a0129e8ccef" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>ResourceBarrierDesc</name></member>
+      <member refid="class_resource_barrier_desc_1a8cdf5e936887acbdbd05d983e8b54961" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>ResourceBarrierDesc</name></member>
+      <member refid="class_resource_barrier_desc_1a86e6bffa9fcfe7fa7f6043f47bd40db5" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>ResourceBarrierDesc</name></member>
+      <member refid="class_resource_barrier_desc_1a6cc56a943815b4a15f5bbdbc111a8674" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>ResourceBarrierDesc</name></member>
+      <member refid="class_resource_barrier_desc_1a3ed55fc8b83d5b8ed79db2688eacd221" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>ResourceBarrierDesc</name></member>
+      <member refid="class_resource_barrier_desc_1a49d71c3b1abd9c986452d8b708e03b0d" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>ResourceBarrierDesc</name></member>
+      <member refid="class_resource_barrier_desc_1a62c2860d3467cf9452830af308f71840" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>ResourceBarrierDesc</name></member>
+      <member refid="class_resource_barrier_desc_1a3a131650698e43eb12c0dbbc7db5ed79" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>ResourceBarrierDesc</name></member>
+      <member refid="class_resource_barrier_desc_1a8b4fcb61616bfb24388c0e58c4f43551" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>ResourceBarrierDesc</name></member>
+      <member refid="class_resource_barrier_desc_1ad5a6e273bf45a9e1bb679b60d5ab3b59" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>ResourceBarrierDesc</name></member>
+      <member refid="class_resource_barrier_desc_1ab8c8b3ca0ba937164e0a1a19e4882734" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>ResourceBarrierDesc</name></member>
+      <member refid="class_resource_barrier_desc_1a894f3641c648b78025ca5604c4b236fc" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>ResourceBarrierDesc</name></member>
+      <member refid="class_resource_barrier_desc_1af0f0332910ada35d5abce3ee5ba86448" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>ResourceBarrierDesc</name></member>
+      <member refid="class_resource_barrier_desc_1a882d12d266860849cedeacd0dc8af669" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>ResourceBarrierDesc</name></member>
+      <member refid="class_resource_barrier_desc_1a03195b1629bb46358fc5fb6a6d189e65" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>ResourceBarrierDesc</name></member>
+      <member refid="class_resource_barrier_desc_1a93e5bbca274e53c53ae14fe03e46ef03" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>ResourceBarrierDesc</name></member>
+      <member refid="class_resource_barrier_desc_1a2a045790f285c68504b450498ddef488" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>ResourceBarrierDesc</name></member>
+      <member refid="class_resource_barrier_desc_1ac770e91098b1433339f241cc7fedc843" prot="private" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>single_element_count</name></member>
+      <member refid="class_resource_barrier_desc_1a3172bad3616a3dc9379b3588906a4ee7" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>texture</name></member>
+      <member refid="class_resource_barrier_desc_1a9e627f4744237ed9e4a3259f819fba5a" prot="private" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>textureCount</name></member>
+      <member refid="class_resource_barrier_desc_1a92e7435cb0cbfc3cf4687de68dee151b" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>textures</name></member>
+      <member refid="class_resource_barrier_desc_1a62a5e66fde8d79c450b74efc54eaff00" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>textureState</name></member>
+      <member refid="class_resource_barrier_desc_1a096207dc0f33ad25607cb611e5a11302" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>textureStates</name></member>
+      <member refid="class_resource_barrier_desc_1a05baf1671929e37c081d73b2d1955b95" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>textureSubResIndex</name></member>
+      <member refid="class_resource_barrier_desc_1a4868b0427b9977b022ef75dc2d432f84" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>textureSubResIndices</name></member>
+      <member refid="class_resource_barrier_desc_1a1be01dd323fc55ae0e88167bcda6a016" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>textureSubResRange</name></member>
+      <member refid="class_resource_barrier_desc_1a04987f614559121f9dd96d1ed1b54a28" prot="public" virt="non-virtual"><scope>ResourceBarrierDesc</scope><name>textureSubResRanges</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

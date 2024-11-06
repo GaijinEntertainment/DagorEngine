@@ -1,0 +1,49 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structd3d_1_1shadermodel_1_1_version_list" kind="struct" language="C++" prot="public">
+    <compoundname>d3d::shadermodel::VersionList</compoundname>
+    <includes refid="dag__shader_model_version_8h" local="no">dag_shaderModelVersion.h</includes>
+    <templateparamlist>
+      <param>
+        <type>typename...</type>
+        <declname>Versions</declname>
+        <defname>Versions</defname>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structd3d_1_1shadermodel_1_1_version_list_1a95530757abd290eee82d84fc0480fa10" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr auto</type>
+        <definition>constexpr auto d3d::shadermodel::VersionList&lt; Versions &gt;::size</definition>
+        <argsstring></argsstring>
+        <name>size</name>
+        <initializer>= sizeof...(Versions)</initializer>
+        <briefdescription>
+<para>Number of elements in the <computeroutput>Versions</computeroutput> list. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="549" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="549" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>A list type of a set of versions. <parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>List</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>of versions. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="546" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="547" bodyend="550"/>
+    <listofallmembers>
+      <member refid="structd3d_1_1shadermodel_1_1_version_list_1a95530757abd290eee82d84fc0480fa10" prot="public" virt="non-virtual"><scope>d3d::shadermodel::VersionList</scope><name>size</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,87 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structdabfg_1_1multiplexing_1_1_index" kind="struct" language="C++" prot="public">
+    <compoundname>dabfg::multiplexing::Index</compoundname>
+    <includes refid="multiplexing_8h" local="no">multiplexing.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structdabfg_1_1multiplexing_1_1_index_1ac50164260303017684f2a23aad4eebcf" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t dabfg::multiplexing::Index::superSample</definition>
+        <argsstring></argsstring>
+        <name>superSample</name>
+        <initializer>{0}</initializer>
+        <briefdescription>
+<para><ref refid="structdabfg_1_1multiplexing_1_1_index" kindref="compound">Index</ref> of the super-sample. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/multiplexing.h" line="49" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/multiplexing.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdabfg_1_1multiplexing_1_1_index_1ae8770c971a7d97e32663b2fc3bf6c748" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t dabfg::multiplexing::Index::subSample</definition>
+        <argsstring></argsstring>
+        <name>subSample</name>
+        <initializer>{0}</initializer>
+        <briefdescription>
+<para><ref refid="structdabfg_1_1multiplexing_1_1_index" kindref="compound">Index</ref> of the sub-sample. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/multiplexing.h" line="50" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/multiplexing.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdabfg_1_1multiplexing_1_1_index_1a7667a07f2e16672b782a7049d7235c2d" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t dabfg::multiplexing::Index::viewport</definition>
+        <argsstring></argsstring>
+        <name>viewport</name>
+        <initializer>{0}</initializer>
+        <briefdescription>
+<para><ref refid="structdabfg_1_1multiplexing_1_1_index" kindref="compound">Index</ref> of the viewport. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/multiplexing.h" line="51" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/multiplexing.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structdabfg_1_1multiplexing_1_1_index_1ad98aa1d9c324cdc58041724dc21180fe" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool dabfg::multiplexing::Index::operator==</definition>
+        <argsstring>(const Index &amp;other)</argsstring>
+        <name>operator==</name>
+        <param>
+          <type>const <ref refid="structdabfg_1_1multiplexing_1_1_index" kindref="compound">Index</ref> &amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+<para>Equality comparison operator. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/multiplexing.h" line="54" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/multiplexing.h" bodystart="54" bodyend="57"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Identifies a concrete iteration of multiplexing. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>Can be accessed from an execution callback by simply adding an argument of this type to it. It is then possible to achieve different behavior for different eyes or sub/super samples. </para>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/multiplexing.h" line="47" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/multiplexing.h" bodystart="48" bodyend="58"/>
+    <listofallmembers>
+      <member refid="structdabfg_1_1multiplexing_1_1_index_1ad98aa1d9c324cdc58041724dc21180fe" prot="public" virt="non-virtual"><scope>dabfg::multiplexing::Index</scope><name>operator==</name></member>
+      <member refid="structdabfg_1_1multiplexing_1_1_index_1ae8770c971a7d97e32663b2fc3bf6c748" prot="public" virt="non-virtual"><scope>dabfg::multiplexing::Index</scope><name>subSample</name></member>
+      <member refid="structdabfg_1_1multiplexing_1_1_index_1ac50164260303017684f2a23aad4eebcf" prot="public" virt="non-virtual"><scope>dabfg::multiplexing::Index</scope><name>superSample</name></member>
+      <member refid="structdabfg_1_1multiplexing_1_1_index_1a7667a07f2e16672b782a7049d7235c2d" prot="public" virt="non-virtual"><scope>dabfg::multiplexing::Index</scope><name>viewport</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

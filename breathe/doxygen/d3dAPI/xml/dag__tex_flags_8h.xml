@@ -1,0 +1,1028 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="dag__tex_flags_8h" kind="file" language="C++">
+    <compoundname>dag_texFlags.h</compoundname>
+    <includes local="no">math/dag_adjpow2.h</includes>
+    <includedby refid="dag__tex3d_8h" local="no">/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h</includedby>
+    <incdepgraph>
+      <node id="2">
+        <label>math/dag_adjpow2.h</label>
+      </node>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_texFlags.h</label>
+        <link refid="dag__tex_flags_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="9">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_ps.h</label>
+        <link refid="dag__platform__ps_8h_source"/>
+      </node>
+      <node id="8">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_pc.h</label>
+        <link refid="dag__platform__pc_8h_source"/>
+      </node>
+      <node id="10">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_texture.h</label>
+        <link refid="dag__texture_8h_source"/>
+      </node>
+      <node id="2">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h</label>
+        <link refid="dag__tex3d_8h_source"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driver.h</label>
+        <link refid="dag__driver_8h_source"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_lock.h</label>
+        <link refid="dag__lock_8h_source"/>
+      </node>
+      <node id="5">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_async_pipeline.h</label>
+        <link refid="dag__async__pipeline_8h_source"/>
+      </node>
+      <node id="6">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_drv3d_multi.h</label>
+        <link refid="dag__drv3d__multi_8h_source"/>
+      </node>
+      <node id="3">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h</label>
+        <link refid="dag__buffers_8h"/>
+      </node>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_texFlags.h</label>
+        <link refid="dag__tex_flags_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55b" prot="public" static="no" strong="no">
+        <type></type>
+        <name>@0</name>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55bac092c3c5b8c300cc7dc9f13bf8fba888" prot="public">
+          <name>TEXCF_RGB</name>
+          <initializer>= 0x00000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55babb413bc1f79510c091c4235ba2a2ceef" prot="public">
+          <name>TEXCF_RTARGET</name>
+          <initializer>= 0x00000001U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55bafea97b37594e406a7b2032784696207a" prot="public">
+          <name>TEXCF_TYPEMASK</name>
+          <initializer>= 0x00000001U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55bac01d2827c13e59681e1e99dee84c3b46" prot="public">
+          <name>TEXCF_BEST</name>
+          <initializer>= 0x00000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55bab6dbe3b34a2eb3b6ba53d9a4e4384653" prot="public">
+          <name>TEXCF_ABEST</name>
+          <initializer>= 0x00000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba5ee35bd1bd2a4b850c8bbbbfeba98f34" prot="public">
+          <name>TEXCF_UNORDERED</name>
+          <initializer>= 0x00000002U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55badb62c55fde410d57a56a397f79bd46a9" prot="public">
+          <name>TEXCF_VARIABLE_RATE</name>
+          <initializer>= 0x00000004U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55badcf0adad05c6fa71556f53020ec77b42" prot="public">
+          <name>TEXCF_UPDATE_DESTINATION</name>
+          <initializer>= 0x00004000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55baaeaba4b6f78f3fd61493ab41049b99e7" prot="public">
+          <name>TEXCF_SYSTEXCOPY</name>
+          <initializer>= 0x00000010U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55baed33abf81cf417818fdad71d2cfb5a32" prot="public">
+          <name>TEXCF_DYNAMIC</name>
+          <initializer>= 0x00000100U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55bad939a28ef73bfd295768fabb8b6ff76d" prot="public">
+          <name>TEXCF_READABLE</name>
+          <initializer>= 0x00000200U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55baff840f03314a93dea9e4f344e60eb6c0" prot="public">
+          <name>TEXCF_READONLY</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55bad582d438cb651fc02627e5bb2fc40c86" prot="public">
+          <name>TEXCF_WRITEONLY</name>
+          <initializer>= 0x00000008U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55bae95b5416048afffaf5a1a1753ed1aa16" prot="public">
+          <name>TEXCF_LOADONCE</name>
+          <initializer>= 0x00000400U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55baee81958dff50ebdd6402550d8733ea4f" prot="public">
+          <name>TEXCF_MAYBELOST</name>
+          <initializer>= 0x00000800U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55baa578eb41f159be351d7468967069d88f" prot="public">
+          <name>TEXCF_STREAMING</name>
+          <initializer>= 0x00000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba9f1d695e44f134dbed45a08b8d4fda48" prot="public">
+          <name>TEXCF_SYSMEM</name>
+          <initializer>= 0x00010000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba37d351e9fffae04b82ea393d4dfd2698" prot="public">
+          <name>TEXCF_SAMPLECOUNT_2</name>
+          <initializer>= 0x00020000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba32517bd25686a3cb9602c57c84832a5e" prot="public">
+          <name>TEXCF_SAMPLECOUNT_4</name>
+          <initializer>= 0x00040000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55bac51c6b29a73f9b32dccf4fd15d2dfb44" prot="public">
+          <name>TEXCF_SAMPLECOUNT_8</name>
+          <initializer>= 0x00060000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba05e52e8849928bc6978c17bfb598696a" prot="public">
+          <name>TEXCF_SAMPLECOUNT_MAX</name>
+          <initializer>= TEXCF_SAMPLECOUNT_8</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba904884a930efda03fe7fcc451cc6857a" prot="public">
+          <name>TEXCF_SAMPLECOUNT_MASK</name>
+          <initializer>= 0x00060000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55bae6e215d884dca911626b894067a63bc3" prot="public">
+          <name>TEXCF_SAMPLECOUNT_OFFSET</name>
+          <initializer>= 17</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba22b39ff45767713e76c0862bd6c7c1f8" prot="public">
+          <name>TEXCF_CPU_CACHED_MEMORY</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55baba850ed6ca9c9942f3262fcb38655641" prot="public">
+          <name>TEXCF_LINEAR_LAYOUT</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55babaa34403570dd60a7180b9690f8b404c" prot="public">
+          <name>TEXCF_ESRAM_ONLY</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba74590d759fefdb3d249de98c4213f10b" prot="public">
+          <name>TEXCF_MOVABLE_ESRAM</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba6714085b34ddb2a1c7480d7ffe5417a0" prot="public">
+          <name>TEXCF_TC_COMPATIBLE</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba1291a63ca1c78994085f262db11c5ff4" prot="public">
+          <name>TEXCF_RT_COMPRESSED</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55bab51328a65b485cb0096f2cb993f75aea" prot="public">
+          <name>TEXCF_SIMULTANEOUS_MULTI_QUEUE_USE</name>
+          <initializer>= 0x00080000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba5a306bf535f3577f1e37ea973e780dae" prot="public">
+          <name>TEXCF_SRGBWRITE</name>
+          <initializer>= 0x00200000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba7a86b546266e0977800cb6f6a74c6c5f" prot="public">
+          <name>TEXCF_SRGBREAD</name>
+          <initializer>= 0x00400000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba1864d69dbc754a8e794ca41757e88968" prot="public">
+          <name>TEXCF_GENERATEMIPS</name>
+          <initializer>= 0x00800000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba07e1aa467cd53cb5e99eee80c969b226" prot="public">
+          <name>TEXCF_CLEAR_ON_CREATE</name>
+          <initializer>= 0X00002000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55bae1e2e35412b07628d87cc542f47245ba" prot="public">
+          <name>TEXCF_TILED_RESOURCE</name>
+          <initializer>= 0x00000080U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55baebd277acf0e770b0d95839cbbc68adf0" prot="public">
+          <name>TEXCF_TRANSIENT</name>
+          <initializer>= 0x00001000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba9d82991e3e8be3c06e4b8ca25f539749" prot="public">
+          <name>TEXFMT_DEFAULT</name>
+          <initializer>= 0U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba0057930ec74d1e0c0a0bfeec3ed4cf42" prot="public">
+          <name>TEXFMT_A8R8G8B8</name>
+          <initializer>= 0x00000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55bab0b6ae6c54a41b41767ba2b5a0b4c3da" prot="public">
+          <name>TEXFMT_A2R10G10B10</name>
+          <initializer>= 0x01000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba3b9c8c2500c553b39b50a17188728cd5" prot="public">
+          <name>TEXFMT_A2B10G10R10</name>
+          <initializer>= 0x02000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba12daa9a68c75944033859f55e261a815" prot="public">
+          <name>TEXFMT_A16B16G16R16</name>
+          <initializer>= 0x03000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55bafe2b050c42e1d48be49f880bf63b15ec" prot="public">
+          <name>TEXFMT_A16B16G16R16F</name>
+          <initializer>= 0x04000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55baa17e3c1a1208cfbf046f20d1c7262f23" prot="public">
+          <name>TEXFMT_A32B32G32R32F</name>
+          <initializer>= 0x05000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55baa47a405f74885ba2055673a8af7f3be2" prot="public">
+          <name>TEXFMT_G16R16</name>
+          <initializer>= 0x06000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55bac78a7df4e5a4bc1a45b1601543fd68c8" prot="public">
+          <name>TEXFMT_G16R16F</name>
+          <initializer>= 0x07000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55babb4ae2e747ba8f0037a8f6a3ac6fe3c9" prot="public">
+          <name>TEXFMT_G32R32F</name>
+          <initializer>= 0x08000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba798e94894a47efe051da6a92402b463c" prot="public">
+          <name>TEXFMT_R16F</name>
+          <initializer>= 0x09000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba59abf321b696379dedd7c331e62351b2" prot="public">
+          <name>TEXFMT_R32F</name>
+          <initializer>= 0x0A000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba2a99142552447e3505267d6383706cca" prot="public">
+          <name>TEXFMT_DXT1</name>
+          <initializer>= 0x0B000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55baea2dbffdfe92f96fb66a044073735ee4" prot="public">
+          <name>TEXFMT_DXT3</name>
+          <initializer>= 0x0C000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55baaf34b2512c896133d8c954736e348fd7" prot="public">
+          <name>TEXFMT_DXT5</name>
+          <initializer>= 0x0D000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba7f4c094d93dabe90391de5ddad758de2" prot="public">
+          <name>TEXFMT_R32G32UI</name>
+          <initializer>= 0x0E000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba2efa7b601cedca01d9b7fcf9eee5cc98" prot="public">
+          <name>TEXFMT_L16</name>
+          <initializer>= 0x10000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55baf6f80f45e92a46ae8f4e8b382f404d3f" prot="public">
+          <name>TEXFMT_A8</name>
+          <initializer>= 0x11000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba4f2ad611332e6032b7e35ad914e3ed53" prot="public">
+          <name>TEXFMT_R8</name>
+          <initializer>= 0x12000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55bac0877c2d4d1d06a81ce523b418934af8" prot="public">
+          <name>TEXFMT_L8</name>
+          <initializer>= TEXFMT_R8</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55baf24298a75e78b2fb1985dd5f4f899309" prot="public">
+          <name>TEXFMT_A1R5G5B5</name>
+          <initializer>= 0x13000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55bab591fcfc0c3f73693b7174f0ee82fe8a" prot="public">
+          <name>TEXFMT_A4R4G4B4</name>
+          <initializer>= 0x14000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55baf1ec86e4fd51ebb132256b8eaae6da3f" prot="public">
+          <name>TEXFMT_R5G6B5</name>
+          <initializer>= 0x15000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba048b80efa69f314a8db37b6956944002" prot="public">
+          <name>TEXFMT_A8L8</name>
+          <initializer>= 0x16000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba9af333c8c6edc178f986e01337050f74" prot="public">
+          <name>TEXFMT_A16B16G16R16S</name>
+          <initializer>= 0x17000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba63ce6bb19060f335af36e99a70366a9d" prot="public">
+          <name>TEXFMT_A16B16G16R16UI</name>
+          <initializer>= 0x18000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba7e4a3a3983f2e7093f2120c39a9b5938" prot="public">
+          <name>TEXFMT_A32B32G32R32UI</name>
+          <initializer>= 0x19000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba694617ecb800fcbe06c83e7a657151d4" prot="public">
+          <name>TEXFMT_ATI1N</name>
+          <initializer>= 0x1A000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55baaaaf15f266dc29542fb442f71de471e8" prot="public">
+          <name>TEXFMT_ATI2N</name>
+          <initializer>= 0x1B000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba8f18360377352e2005c3a0b6e8d69a20" prot="public">
+          <name>TEXFMT_R8G8B8A8</name>
+          <initializer>= 0x1C000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55baa96ee14c9cc9b2b731e9fc64c1b5863b" prot="public">
+          <name>TEXFMT_R32UI</name>
+          <initializer>= 0x1D000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba2c8c787230405486df64133a495e88ab" prot="public">
+          <name>TEXFMT_R32SI</name>
+          <initializer>= 0x1E000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba46d4df71fa4c7f602350d0bad5495533" prot="public">
+          <name>TEXFMT_R11G11B10F</name>
+          <initializer>= 0x1F000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba4c095d411761d6598184187b23a71c33" prot="public">
+          <name>TEXFMT_R9G9B9E5</name>
+          <initializer>= 0x20000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba9c4ee079457567be539c4b3e1a1befb5" prot="public">
+          <name>TEXFMT_R8G8</name>
+          <initializer>= 0x21000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55bac91233a524d9eaa113c70876c30b1411" prot="public">
+          <name>TEXFMT_R8G8S</name>
+          <initializer>= 0x22000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba3334a7eb4d5dc28964c1d7c15473cbce" prot="public">
+          <name>TEXFMT_BC6H</name>
+          <initializer>= 0x23000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55bacc739937c8378ea25b6525ba35f081b3" prot="public">
+          <name>TEXFMT_BC7</name>
+          <initializer>= 0x24000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55bae08724ff4ccc55d326be963d46ff9736" prot="public">
+          <name>TEXFMT_R8UI</name>
+          <initializer>= 0x25000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba2878591491d5da7b659c75cf5f62da05" prot="public">
+          <name>TEXFMT_R16UI</name>
+          <initializer>= 0x26000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba45d4fc6c730eefa51523fa92fa00647d" prot="public">
+          <name>TEXFMT_DEPTH24</name>
+          <initializer>= 0x27000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba0a823ca3c2211be40c6ebec1d55ed10b" prot="public">
+          <name>TEXFMT_DEPTH16</name>
+          <initializer>= 0x28000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba1c52b04f6c772d4d2fd2a015ff4b4698" prot="public">
+          <name>TEXFMT_DEPTH32</name>
+          <initializer>= 0x29000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55babdf5d08a8bee4e79b7c1b300144dd62a" prot="public">
+          <name>TEXFMT_DEPTH32_S8</name>
+          <initializer>= 0x2A000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55baf3b123b113a3655d439d1aa91ef6015f" prot="public">
+          <name>TEXFMT_ASTC4</name>
+          <initializer>= 0x2E000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba6058ef4da6f2e6f6894b83d306447d74" prot="public">
+          <name>TEXFMT_ASTC8</name>
+          <initializer>= 0x2F000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55bafbb907c10384682bab2aa1d691e59b82" prot="public">
+          <name>TEXFMT_ASTC12</name>
+          <initializer>= 0x30000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55baa07299743211b8bb40f0c05da83937d5" prot="public">
+          <name>TEXFMT_ETC2_RG</name>
+          <initializer>= 0x31000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba6d8e6bc7c2c00980d62b1b559496e4d5" prot="public">
+          <name>TEXFMT_ETC2_RGBA</name>
+          <initializer>= 0x32000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55baac0da0ff097ac55b103d6b288c259d12" prot="public">
+          <name>TEXFMT_PSSR_TARGET</name>
+          <initializer>= 0x33000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba5b4263e5c1967eb5003c80a8769214df" prot="public">
+          <name>TEXFMT_FIRST_DEPTH</name>
+          <initializer>= TEXFMT_DEPTH24</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba6fa5db26e73d6c5453d5e7ca73e8380e" prot="public">
+          <name>TEXFMT_LAST_DEPTH</name>
+          <initializer>= TEXFMT_DEPTH32_S8</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex_flags_8h_1a06fc87d81c62e9abb8790b6e5713c55ba81cf0b1ae2e9f5097d672ad417da31a6" prot="public">
+          <name>TEXFMT_MASK</name>
+          <initializer>= 0xFF000000U</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_texFlags.h" line="10" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_texFlags.h" bodystart="11" bodyend="174"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__tex_flags_8h_1a454d562bc02d302bf9a939122e425a01" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int get_sample_count</definition>
+        <argsstring>(int flags)</argsstring>
+        <name>get_sample_count</name>
+        <param>
+          <type>int</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_texFlags.h" line="176" column="6" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_texFlags.h" bodystart="176" bodyend="176"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_flags_8h_1ab6136b347ed094c652d58766cc7f29c1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int make_sample_count_flag</definition>
+        <argsstring>(int sample_count)</argsstring>
+        <name>make_sample_count_flag</name>
+        <param>
+          <type>int</type>
+          <declname>sample_count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_texFlags.h" line="178" column="6" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_texFlags.h" bodystart="178" bodyend="181"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_adjpow2.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="comment">//<sp/>texture<sp/>creation<sp/>flags</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>type<sp/>of<sp/>texture<sp/>-<sp/>exactly<sp/>one<sp/>must<sp/>be<sp/>specified:</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/>TEXCF_RGB<sp/>=<sp/>0x00000000U,<sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>same<sp/>as<sp/>TEXFMT_A8R8G8B8</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/>TEXCF_RTARGET<sp/>=<sp/>0x00000001U,<sp/></highlight><highlight class="comment">//<sp/>render<sp/>target<sp/>format</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/>TEXCF_TYPEMASK<sp/>=<sp/>0x00000001U,</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>size/quality<sp/>hints<sp/>for<sp/>type<sp/>-<sp/>no<sp/>more<sp/>than<sp/>one<sp/>must<sp/>be<sp/>specified:</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/>TEXCF_BEST<sp/>=<sp/>0x00000000U,<sp/><sp/></highlight><highlight class="comment">//<sp/>obsolete</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/>TEXCF_ABEST<sp/>=<sp/>0x00000000U,<sp/></highlight><highlight class="comment">//<sp/>obsolete</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>https://msdn.microsoft.com/en-us/library/windows/desktop/ff476335(v=vs.85).aspx#Unordered_Access</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/>TEXCF_UNORDERED<sp/>=<sp/>0x00000002U,<sp/></highlight><highlight class="comment">//<sp/>for<sp/>compute<sp/>shaders</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Indicates<sp/>usage<sp/>as<sp/>VRS<sp/>texture,<sp/>enforces<sp/>the<sp/>following<sp/>rules:</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>-<sp/>Format<sp/>must<sp/>be<sp/>TEXFMT_R8UI</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>-<sp/>2D<sp/>Texture<sp/>only</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>-<sp/>no<sp/>arrayed<sp/>texture</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>-<sp/>no<sp/>mipmaps</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>-<sp/>no<sp/>multisampling</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>-<sp/>no<sp/>usage<sp/>as<sp/>render<sp/>target<sp/>(use<sp/>UAV<sp/>instead)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Rate<sp/>to<sp/>per<sp/>pixel<sp/>value<sp/>is<sp/>as<sp/>follows:</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>rate<sp/>1<sp/>=<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>rate<sp/>2<sp/>=<sp/>1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>rate<sp/>4<sp/>=<sp/>2</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>combined<sp/>rate:<sp/>rate<sp/>x<sp/>&lt;&lt;<sp/>2<sp/>|<sp/>rate<sp/>y</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Which<sp/>maps<sp/>to</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>1x1<sp/>=<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>1x2<sp/>=<sp/>1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>2x1<sp/>=<sp/>4</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>2x2<sp/>=<sp/>5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>2x4<sp/>=<sp/>6</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>4x2<sp/>=<sp/>9</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>4x4<sp/>=<sp/>10</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/>TEXCF_VARIABLE_RATE<sp/>=<sp/>0x00000004U,</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Uses<sp/>of<sp/>the<sp/>texture<sp/>methods<sp/>updateSubRegion<sp/>and<sp/>update<sp/>require<sp/>this,<sp/>TEXCF_RTARGET<sp/>or</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>TEXCF_UNORDERED<sp/>usage<sp/>flag<sp/>to<sp/>be<sp/>set.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/>TEXCF_UPDATE_DESTINATION<sp/>=<sp/>0x00004000U,</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>TEXCF_SYSTEXCOPY<sp/>=<sp/>0x00000010U,<sp/></highlight><highlight class="comment">//<sp/>make<sp/>copy<sp/>in<sp/>system<sp/>memory</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>creation<sp/>options</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/>TEXCF_DYNAMIC<sp/>=<sp/>0x00000100U,<sp/><sp/></highlight><highlight class="comment">//<sp/>changes<sp/>frequently<sp/>//D3DUSAGE_CPU_CACHED_MEMORY,<sp/>XALLOC_MEMPROTECT_READWRITE</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/>TEXCF_READABLE<sp/>=<sp/>0x00000200U,<sp/></highlight><highlight class="comment">//<sp/>can<sp/>only<sp/>be<sp/>read,<sp/>D3DLOCK_READONLY</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/>TEXCF_READONLY<sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/>TEXCF_WRITEONLY<sp/>=<sp/>0x00000008U,<sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>cpu<sp/>can<sp/>write<sp/>(TEXLOCK_WRITE)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/>TEXCF_LOADONCE<sp/>=<sp/>0x00000400U,<sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>texture<sp/>will<sp/>be<sp/>loaded<sp/>only<sp/>once<sp/>-<sp/>don&apos;t<sp/>use<sp/>with<sp/>dynamic</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/>TEXCF_MAYBELOST<sp/>=<sp/>0x00000800U,<sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>contents<sp/>of<sp/>the<sp/>texture<sp/>may<sp/>be<sp/>safely<sp/>lost<sp/>-<sp/>they<sp/>will<sp/>be<sp/>regenerated<sp/>before<sp/>using<sp/>it</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/>TEXCF_STREAMING<sp/>=<sp/>0x00000000U,<sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>should<sp/>be<sp/>deleted<sp/>shortly,<sp/>obsolete</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/>TEXCF_SYSMEM<sp/>=<sp/>0x00010000U,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>texture<sp/>is<sp/>allocated<sp/>in<sp/>system<sp/>memory<sp/>and<sp/>used<sp/>only<sp/>as<sp/>staging<sp/>texture</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>TEXCF_SYSMEM|TEXCF_WRITEONLY<sp/>is<sp/>allocated<sp/>in<sp/>WC<sp/>memory<sp/>on<sp/>PS4</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/>TEXCF_SAMPLECOUNT_2<sp/>=<sp/>0x00020000U,<sp/></highlight><highlight class="comment">//<sp/><sp/>=</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/>TEXCF_SAMPLECOUNT_4<sp/>=<sp/>0x00040000U,<sp/></highlight><highlight class="comment">//<sp/><sp/>|<sp/>multisampled<sp/>render<sp/>target<sp/>formats</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/>TEXCF_SAMPLECOUNT_8<sp/>=<sp/>0x00060000U,<sp/></highlight><highlight class="comment">//<sp/><sp/>=</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/>TEXCF_SAMPLECOUNT_MAX<sp/>=<sp/>TEXCF_SAMPLECOUNT_8,</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/>TEXCF_SAMPLECOUNT_MASK<sp/>=<sp/>0x00060000U,</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/>TEXCF_SAMPLECOUNT_OFFSET<sp/>=<sp/>17,</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_C1<sp/>|<sp/>_TARGET_C2</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight><highlight class="preprocessor">#elif<sp/>_TARGET_XBOX</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/>TEXCF_CPU_CACHED_MEMORY<sp/>=<sp/>0x00008000U,<sp/></highlight><highlight class="comment">//<sp/>todo:<sp/>implement<sp/>allocation<sp/>in<sp/>onion<sp/>instead<sp/>of<sp/>garlic<sp/>mem</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/>TEXCF_LINEAR_LAYOUT<sp/>=<sp/>0x00100000U,<sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>todo:<sp/>implement<sp/>without<sp/>tiling</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/>TEXCF_ESRAM_ONLY<sp/>=<sp/>0x00000020U,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>always<sp/>reside<sp/>in<sp/>ESRAM</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/>TEXCF_MOVABLE_ESRAM<sp/>=<sp/>0x00000040U,<sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Create<sp/>copy<sp/>in<sp/>DDR</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/>TEXCF_TC_COMPATIBLE<sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/>TEXCF_RT_COMPRESSED<sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/>TEXCF_CPU_CACHED_MEMORY<sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/>TEXCF_LINEAR_LAYOUT<sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/>TEXCF_ESRAM_ONLY<sp/>=<sp/>0,<sp/></highlight><highlight class="comment">//<sp/>make<sp/>copy<sp/>in<sp/>system<sp/>memory</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/>TEXCF_MOVABLE_ESRAM<sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/>TEXCF_TC_COMPATIBLE<sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/>TEXCF_RT_COMPRESSED<sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="91"><highlight class="normal"></highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Indicates<sp/>that<sp/>a<sp/>color<sp/>render<sp/>target<sp/>or<sp/>uav<sp/>texture<sp/>may<sp/>be<sp/>used<sp/>by<sp/>the<sp/>3d<sp/>and<sp/>async<sp/>compute<sp/>queue<sp/>at<sp/>the<sp/>same<sp/>time.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>This<sp/>directly<sp/>maps<sp/>to<sp/>DX12&apos;s<sp/>D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS<sp/>flag<sp/>and<sp/>on<sp/>Vulkan<sp/>this<sp/>maps<sp/>directly</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>to<sp/>VK_SHARING_MODE_CONCURRENT<sp/>for<sp/>all<sp/>device<sp/>queues<sp/>used.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>This<sp/>flag<sp/>removes<sp/>the<sp/>need<sp/>to<sp/>transfer<sp/>ownership<sp/>of<sp/>the<sp/>resources<sp/>between<sp/>execution<sp/>queues</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>(eg.<sp/>RB_FLAG_MOVE_PIPELINE_OWNERSHIP<sp/>between<sp/>different<sp/>GpuPipeline).</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Required<sp/>to<sp/>be<sp/>paired<sp/>with<sp/>TEXCF_RTARGET<sp/>and/or<sp/>TEXCF_UNORDERED.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>It<sp/>is<sp/>invalid<sp/>to<sp/>apply<sp/>this<sp/>flag<sp/>to<sp/>resources<sp/>with<sp/>depth/stencil<sp/>formats.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/>TEXCF_SIMULTANEOUS_MULTI_QUEUE_USE<sp/>=<sp/>0x00080000U,</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/>TEXCF_SRGBWRITE<sp/>=<sp/>0x00200000U,<sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>perform<sp/>srgb<sp/>conversion<sp/>when<sp/>render<sp/>to<sp/>this<sp/>texture.<sp/>Works<sp/>only<sp/>on<sp/>8<sp/>bit<sp/>4<sp/>components<sp/>textures</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/>TEXCF_SRGBREAD<sp/>=<sp/>0x00400000U,<sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>perform<sp/>srgb<sp/>conversion<sp/>when<sp/>sample<sp/>from<sp/>texture</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/>TEXCF_GENERATEMIPS<sp/>=<sp/>0x00800000U,<sp/></highlight><highlight class="comment">//<sp/>generateMips<sp/>will<sp/>be<sp/>called</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/>TEXCF_CLEAR_ON_CREATE<sp/>=<sp/>0X00002000U,<sp/></highlight><highlight class="comment">//<sp/>will<sp/>fill<sp/>texture<sp/>with<sp/>zeroes</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/>TEXCF_TILED_RESOURCE<sp/>=<sp/>0x00000080U,<sp/></highlight><highlight class="comment">//<sp/>The<sp/>texture<sp/>is<sp/>not<sp/>backed<sp/>by<sp/>GPU<sp/>memory.<sp/>It<sp/>needs<sp/>to<sp/>be<sp/>backed<sp/>manually<sp/>by<sp/>heaps.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Transient<sp/>texture:<sp/>content<sp/>and<sp/>access<sp/>is<sp/>valid<sp/>only<sp/>inside<sp/>render<sp/>pass</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>uses<sp/>lazy<sp/>memory<sp/>allocation<sp/>if<sp/>possible<sp/>(TBDR<sp/>framebuffer/tile<sp/>memory<sp/>backing)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/>TEXCF_TRANSIENT<sp/>=<sp/>0x00001000U,</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"></highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>exact<sp/>texture<sp/>format</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/>TEXFMT_DEFAULT<sp/>=<sp/>0U,<sp/></highlight><highlight class="comment">//<sp/>argb8!</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/>TEXFMT_A8R8G8B8<sp/>=<sp/>0x00000000U,</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/>TEXFMT_A2R10G10B10<sp/>=<sp/>0x01000000U,</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/>TEXFMT_A2B10G10R10<sp/>=<sp/>0x02000000U,</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/>TEXFMT_A16B16G16R16<sp/>=<sp/>0x03000000U,<sp/></highlight><highlight class="comment">//<sp/>unsigned</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/>TEXFMT_A16B16G16R16F<sp/>=<sp/>0x04000000U,</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/>TEXFMT_A32B32G32R32F<sp/>=<sp/>0x05000000U,</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/>TEXFMT_G16R16<sp/>=<sp/>0x06000000U,</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/>TEXFMT_G16R16F<sp/>=<sp/>0x07000000U,</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/>TEXFMT_G32R32F<sp/>=<sp/>0x08000000U,</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/>TEXFMT_R16F<sp/>=<sp/>0x09000000U,</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/>TEXFMT_R32F<sp/>=<sp/>0x0A000000U,</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/>TEXFMT_DXT1<sp/>=<sp/>0x0B000000U,</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/>TEXFMT_DXT3<sp/>=<sp/>0x0C000000U,</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/>TEXFMT_DXT5<sp/>=<sp/>0x0D000000U,</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/>TEXFMT_R32G32UI<sp/>=<sp/>0x0E000000U,</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/>TEXFMT_L16<sp/>=<sp/>0x10000000U,</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/>TEXFMT_A8<sp/>=<sp/>0x11000000U,</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/>TEXFMT_R8<sp/>=<sp/>0x12000000U,</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/>TEXFMT_L8<sp/>=<sp/>TEXFMT_R8,<sp/></highlight><highlight class="comment">//<sp/>legacy,<sp/>to<sp/>be<sp/>removed</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/>TEXFMT_A1R5G5B5<sp/>=<sp/>0x13000000U,</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/>TEXFMT_A4R4G4B4<sp/>=<sp/>0x14000000U,</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/>TEXFMT_R5G6B5<sp/>=<sp/>0x15000000U,</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/>TEXFMT_A8L8<sp/>=<sp/>0x16000000U,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>dx9,<sp/>PS4</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/>TEXFMT_A16B16G16R16S<sp/>=<sp/>0x17000000U,<sp/><sp/></highlight><highlight class="comment">//<sp/>signed,<sp/>d3d11</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/>TEXFMT_A16B16G16R16UI<sp/>=<sp/>0x18000000U,<sp/></highlight><highlight class="comment">//<sp/>unsigned,<sp/>unorm</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/>TEXFMT_A32B32G32R32UI<sp/>=<sp/>0x19000000U,<sp/></highlight><highlight class="comment">//<sp/>unsigned,<sp/>unorm</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/>TEXFMT_ATI1N<sp/>=<sp/>0x1A000000U,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>BC4<sp/>in<sp/>dx10</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/>TEXFMT_ATI2N<sp/>=<sp/>0x1B000000U,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>BC5<sp/>in<sp/>dx10</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/>TEXFMT_R8G8B8A8<sp/>=<sp/>0x1C000000U,<sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>unorm</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/>TEXFMT_R32UI<sp/>=<sp/>0x1D000000U,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>unsigned<sp/>int</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/>TEXFMT_R32SI<sp/>=<sp/>0x1E000000U,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>signed<sp/>int</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/>TEXFMT_R11G11B10F<sp/>=<sp/>0x1F000000U,<sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>float</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/>TEXFMT_R9G9B9E5<sp/>=<sp/>0x20000000U,</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/>TEXFMT_R8G8<sp/>=<sp/>0x21000000U,<sp/><sp/></highlight><highlight class="comment">//<sp/>unorm,<sp/>dx10+,<sp/>OGL+</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/>TEXFMT_R8G8S<sp/>=<sp/>0x22000000U,<sp/></highlight><highlight class="comment">//<sp/>snorm,<sp/>dx10+,<sp/>OGL+</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/>TEXFMT_BC6H<sp/>=<sp/>0x23000000U,</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/>TEXFMT_BC7<sp/>=<sp/>0x24000000U,</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/>TEXFMT_R8UI<sp/>=<sp/>0x25000000U,</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/>TEXFMT_R16UI<sp/>=<sp/>0x26000000U,</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"></highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>should<sp/>go<sp/>in<sp/>a<sp/>row</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/>TEXFMT_DEPTH24<sp/>=<sp/>0x27000000U,</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/>TEXFMT_DEPTH16<sp/>=<sp/>0x28000000U,</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/>TEXFMT_DEPTH32<sp/>=<sp/>0x29000000U,</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/>TEXFMT_DEPTH32_S8<sp/>=<sp/>0x2A000000U,</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"></highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>mobile<sp/>formats:</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/>TEXFMT_ASTC4<sp/>=<sp/>0x2E000000U,</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/>TEXFMT_ASTC8<sp/>=<sp/>0x2F000000U,</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/>TEXFMT_ASTC12<sp/>=<sp/>0x30000000U,</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"></highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/>TEXFMT_ETC2_RG<sp/>=<sp/>0x31000000U,</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/>TEXFMT_ETC2_RGBA<sp/>=<sp/>0x32000000U,</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"></highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/>TEXFMT_PSSR_TARGET<sp/>=<sp/>0x33000000U,<sp/></highlight><highlight class="comment">//<sp/>PS5<sp/>only</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="169"><highlight class="normal"></highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/>TEXFMT_FIRST_DEPTH<sp/>=<sp/>TEXFMT_DEPTH24,</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/>TEXFMT_LAST_DEPTH<sp/>=<sp/>TEXFMT_DEPTH32_S8,</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"></highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/>TEXFMT_MASK<sp/>=<sp/>0xFF000000U,<sp/></highlight><highlight class="comment">//<sp/>TEXFMT_<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=0x__000000,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="174"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"></highlight></codeline>
+<codeline lineno="176"><highlight class="normal">__forceinline<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>get_sample_count(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>1<sp/>&lt;&lt;<sp/>((flags<sp/>&amp;<sp/>TEXCF_SAMPLECOUNT_MASK)<sp/>&gt;&gt;<sp/>TEXCF_SAMPLECOUNT_OFFSET);<sp/>}</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"></highlight></codeline>
+<codeline lineno="178"><highlight class="normal">__forceinline<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>make_sample_count_flag(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>sample_count)</highlight></codeline>
+<codeline lineno="179"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(get_log2i(sample_count)<sp/>&lt;&lt;<sp/>TEXCF_SAMPLECOUNT_OFFSET)<sp/>&amp;<sp/>TEXCF_SAMPLECOUNT_MASK;</highlight></codeline>
+<codeline lineno="181"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_texFlags.h"/>
+  </compounddef>
+</doxygen>

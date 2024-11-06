@@ -1,0 +1,109 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_texture_resource_description" kind="struct" language="C++" prot="public">
+    <compoundname>TextureResourceDescription</compoundname>
+    <basecompoundref refid="struct_basic_texture_resource_description" prot="public" virt="non-virtual">BasicTextureResourceDescription</basecompoundref>
+    <derivedcompoundref refid="struct_array_texture_resource_description" prot="public" virt="non-virtual">ArrayTextureResourceDescription</derivedcompoundref>
+    <derivedcompoundref refid="struct_vol_texture_resource_description" prot="public" virt="non-virtual">VolTextureResourceDescription</derivedcompoundref>
+    <includes refid="dag__heap_8h" local="no">dag_heap.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_texture_resource_description_1a057b0f0d80db47717ee6f4458c39d2c5" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t TextureResourceDescription::width</definition>
+        <argsstring></argsstring>
+        <name>width</name>
+        <briefdescription>
+<para>The width of the texture. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="69" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="69" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_texture_resource_description_1a4b005d017af5e735faaceef9cee6653d" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t TextureResourceDescription::height</definition>
+        <argsstring></argsstring>
+        <name>height</name>
+        <briefdescription>
+<para>The height of the texture. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="70" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Texture resource description that contains fields specific to 2D textures. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>BasicTextureResourceDescription</label>
+        <link refid="struct_basic_texture_resource_description"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>BasicResourceDescription</label>
+        <link refid="struct_basic_resource_description"/>
+      </node>
+      <node id="5">
+        <label>VolTextureResourceDescription</label>
+        <link refid="struct_vol_texture_resource_description"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>TextureResourceDescription</label>
+        <link refid="struct_texture_resource_description"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>ArrayTextureResourceDescription</label>
+        <link refid="struct_array_texture_resource_description"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>BasicTextureResourceDescription</label>
+        <link refid="struct_basic_texture_resource_description"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>BasicResourceDescription</label>
+        <link refid="struct_basic_resource_description"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>clearValue</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>TextureResourceDescription</label>
+        <link refid="struct_texture_resource_description"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>ResourceClearValue</label>
+        <link refid="union_resource_clear_value"/>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="67" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="68" bodyend="71"/>
+    <listofallmembers>
+      <member refid="struct_basic_resource_description_1a460a3547f57649aab846fc67831faa57" prot="public" virt="non-virtual"><scope>TextureResourceDescription</scope><name>activation</name></member>
+      <member refid="struct_basic_resource_description_1ac416c65293ae56fc2adf988de4821bf4" prot="public" virt="non-virtual"><scope>TextureResourceDescription</scope><name>cFlags</name></member>
+      <member refid="struct_basic_resource_description_1a1c14be0b1256d4dbd82e5ce464419c35" prot="public" virt="non-virtual"><scope>TextureResourceDescription</scope><name>clearValue</name></member>
+      <member refid="struct_texture_resource_description_1a4b005d017af5e735faaceef9cee6653d" prot="public" virt="non-virtual"><scope>TextureResourceDescription</scope><name>height</name></member>
+      <member refid="struct_basic_texture_resource_description_1ae3b058fec55e414dd58b914b934103d2" prot="public" virt="non-virtual"><scope>TextureResourceDescription</scope><name>mipLevels</name></member>
+      <member refid="struct_texture_resource_description_1a057b0f0d80db47717ee6f4458c39d2c5" prot="public" virt="non-virtual"><scope>TextureResourceDescription</scope><name>width</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

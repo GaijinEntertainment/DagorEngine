@@ -1,0 +1,253 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="dag__platform__ps_8h" kind="file" language="C++">
+    <compoundname>dag_platform_ps.h</compoundname>
+    <includes refid="dag__driver_8h" local="no">drv/3d/dag_driver.h</includes>
+    <incdepgraph>
+      <node id="16">
+        <label>drv/3d/dag_resource.h</label>
+        <link refid="dag__resource_8h_source"/>
+      </node>
+      <node id="20">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="22">
+        <label>drv/3d/dag_d3dResource.h</label>
+        <link refid="dag__d3d_resource_8h_source"/>
+        <childnode refid="23" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>drv/3d/dag_consts_base.h</label>
+        <link refid="dag__consts__base_8h_source"/>
+      </node>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_ps.h</label>
+        <link refid="dag__platform__ps_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="29">
+        <label>vecmath/dag_vecMathDecl.h</label>
+      </node>
+      <node id="4">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="9">
+        <label>drv/3d/dag_barrier.h</label>
+        <link refid="dag__barrier_8h_source"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>math/dag_TMatrix4.h</label>
+      </node>
+      <node id="6">
+        <label>math/dag_TMatrix.h</label>
+      </node>
+      <node id="10">
+        <label>EASTL/initializer_list.h</label>
+      </node>
+      <node id="26">
+        <label>math/dag_adjpow2.h</label>
+      </node>
+      <node id="17">
+        <label>drv/3d/dag_tex3d.h</label>
+        <link refid="dag__tex3d_8h_source"/>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="23">
+        <label>util/dag_string.h</label>
+      </node>
+      <node id="11">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="31">
+        <label>rayTrace/dag_drvRayTrace.h</label>
+      </node>
+      <node id="2">
+        <label>drv/3d/dag_driver.h</label>
+        <link refid="dag__driver_8h_source"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>math/dag_lsbVisitor.h</label>
+      </node>
+      <node id="5">
+        <label>util/dag_preprocessor.h</label>
+      </node>
+      <node id="3">
+        <label>drv/3d/dag_decl.h</label>
+        <link refid="dag__decl_8h_source"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="28">
+        <label>string.h</label>
+      </node>
+      <node id="32">
+        <label>rayTrace/rayTracedrv3d.inl.h</label>
+      </node>
+      <node id="24">
+        <label>drv/3d/dag_resId.h</label>
+        <link refid="dag__res_id_8h_source"/>
+      </node>
+      <node id="13">
+        <label>drv/3d/dag_driverCode.h</label>
+        <link refid="dag__driver_code_8h_source"/>
+      </node>
+      <node id="19">
+        <label>drv/3d/dag_samplerHandle.h</label>
+        <link refid="dag__sampler_handle_8h_source"/>
+        <childnode refid="20" relation="include">
+        </childnode>
+      </node>
+      <node id="30">
+        <label>drv/3d/dag_hangHandler.h</label>
+        <link refid="dag__hang_handler_8h_source"/>
+      </node>
+      <node id="18">
+        <label>drv/3d/dag_sampler.h</label>
+        <link refid="dag__sampler_8h_source"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>drv/3d/dag_consts.h</label>
+        <link refid="dag__consts_8h_source"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>drv/3d/dag_shaderModelVersion.h</label>
+        <link refid="dag__shader_model_version_8h_source"/>
+      </node>
+      <node id="27">
+        <label>memory/dag_mem.h</label>
+      </node>
+      <node id="21">
+        <label>math/dag_color.h</label>
+      </node>
+      <node id="25">
+        <label>drv/3d/dag_texFlags.h</label>
+        <link refid="dag__tex_flags_8h_source"/>
+        <childnode refid="26" relation="include">
+        </childnode>
+      </node>
+    </incdepgraph>
+    <innernamespace refid="namespaced3d">d3d</innernamespace>
+    <innernamespace refid="namespaced3d_1_1ps">d3d::ps</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>!(_TARGET_C1<sp/>|<sp/>_TARGET_C2<sp/>|<sp/>RIPPER)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#error<sp/>:<sp/>must<sp/>not<sp/>be<sp/>included<sp/>for<sp/>non-PS4<sp/>and<sp/>non-PS5<sp/>target!</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_driver.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">SceHmdFieldOfView;</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">SceHmdReprojectionTrackerState;</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">d3d</highlight></codeline>
+<codeline lineno="17"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="18"><highlight class="normal">VDECL<sp/>get_program_vdecl(PROGRAM);</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>get_vsync_enabled();</highlight></codeline>
+<codeline lineno="23"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>enable_vsync(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>enable);</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">ps</highlight></codeline>
+<codeline lineno="26"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Texture<sp/>creation</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><ref refid="class_base_texture" kindref="compound">Texture</ref><sp/>*create_raw_tex();</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>update_raw_tex(<ref refid="class_base_texture" kindref="compound">Texture</ref><sp/>*tex,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*gnm_texture,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*gnm_sampler<sp/>=<sp/>NULL);</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="comment">//<sp/>direct<sp/>access<sp/>to<sp/>gpu<sp/>heaps</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*alloc_mem_block(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>onion,<sp/>uint32_t<sp/>size,<sp/>uint32_t<sp/>alignment);</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>free_mem_block(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*addr);</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Debug:</highlight></codeline>
+<codeline lineno="37"><highlight class="comment"></highlight><highlight class="comment">//-1=stop<sp/><sp/>0=query<sp/>state<sp/>&gt;0=count<sp/><sp/>returns<sp/>true<sp/>if<sp/>in<sp/>progress</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>record_frame(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>control);</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight><highlight class="comment">//<sp/>to<sp/>catch<sp/>specific<sp/>point<sp/>of<sp/>frame<sp/>in<sp/>debugger.<sp/>id<sp/>is<sp/>an<sp/>arbitrary<sp/>value</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>debug_point(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>=<sp/>0);</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set_verbose_mode(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>ena);<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>enable<sp/>verbose<sp/>debug<sp/>messages<sp/>(auto-disabled<sp/>on<sp/>any<sp/>submit)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>submit_and_stall(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>locked_state);<sp/></highlight><highlight class="comment">//<sp/>force<sp/>gpu<sp/>pipeline<sp/>flush</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>submit_background();</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>freeze_frame();<sp/></highlight><highlight class="comment">//<sp/>repeat<sp/>current<sp/>frame<sp/>on<sp/>present</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight><highlight class="comment">//<sp/>returns<sp/>Gnm::Texture<sp/>pointer</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*get_raw_texture_descriptor(<ref refid="class_base_texture" kindref="compound">Texture</ref><sp/>*tex);</highlight></codeline>
+<codeline lineno="49"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>ps</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal">};<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_ps.h"/>
+  </compounddef>
+</doxygen>

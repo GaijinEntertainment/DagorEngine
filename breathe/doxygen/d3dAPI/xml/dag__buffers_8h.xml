@@ -1,0 +1,487 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="dag__buffers_8h" kind="file" language="C++">
+    <compoundname>dag_buffers.h</compoundname>
+    <includes local="no">util/dag_globDef.h</includes>
+    <includes refid="dag__d3d_resource_8h" local="no">drv/3d/dag_d3dResource.h</includes>
+    <includes refid="dag__consts_8h" local="no">drv/3d/dag_consts.h</includes>
+    <includes refid="dag__decl_8h" local="no">drv/3d/dag_decl.h</includes>
+    <includes refid="dag__tex3d_8h" local="no">drv/3d/dag_tex3d.h</includes>
+    <includes refid="dag__resource_checker_8h" local="no">drv/3d/dag_resourceChecker.h</includes>
+    <incdepgraph>
+      <node id="17">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="3">
+        <label>drv/3d/dag_d3dResource.h</label>
+        <link refid="dag__d3d_resource_8h_source"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>drv/3d/dag_consts_base.h</label>
+        <link refid="dag__consts__base_8h_source"/>
+      </node>
+      <node id="2">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="12">
+        <label>math/dag_TMatrix4.h</label>
+      </node>
+      <node id="11">
+        <label>math/dag_TMatrix.h</label>
+      </node>
+      <node id="21">
+        <label>math/dag_adjpow2.h</label>
+      </node>
+      <node id="14">
+        <label>drv/3d/dag_tex3d.h</label>
+        <link refid="dag__tex3d_8h_source"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>util/dag_string.h</label>
+      </node>
+      <node id="13">
+        <label>math/dag_lsbVisitor.h</label>
+      </node>
+      <node id="10">
+        <label>util/dag_preprocessor.h</label>
+      </node>
+      <node id="9">
+        <label>drv/3d/dag_decl.h</label>
+        <link refid="dag__decl_8h_source"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="23">
+        <label>string.h</label>
+      </node>
+      <node id="19">
+        <label>drv/3d/dag_resId.h</label>
+        <link refid="dag__res_id_8h_source"/>
+      </node>
+      <node id="6">
+        <label>drv/3d/dag_driverCode.h</label>
+        <link refid="dag__driver_code_8h_source"/>
+      </node>
+      <node id="16">
+        <label>drv/3d/dag_samplerHandle.h</label>
+        <link refid="dag__sampler_handle_8h_source"/>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>drv/3d/dag_sampler.h</label>
+        <link refid="dag__sampler_8h_source"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>drv/3d/dag_consts.h</label>
+        <link refid="dag__consts_8h_source"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="25">
+        <label>osApiWrappers/dag_atomic.h</label>
+      </node>
+      <node id="7">
+        <label>drv/3d/dag_shaderModelVersion.h</label>
+        <link refid="dag__shader_model_version_8h_source"/>
+      </node>
+      <node id="22">
+        <label>memory/dag_mem.h</label>
+      </node>
+      <node id="24">
+        <label>drv/3d/dag_resourceChecker.h</label>
+        <link refid="dag__resource_checker_8h_source"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="18">
+        <label>math/dag_color.h</label>
+      </node>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h</label>
+        <link refid="dag__buffers_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+      </node>
+      <node id="20">
+        <label>drv/3d/dag_texFlags.h</label>
+        <link refid="dag__tex_flags_8h_source"/>
+        <childnode refid="21" relation="include">
+        </childnode>
+      </node>
+    </incdepgraph>
+    <innerclass refid="class_sbuffer" prot="public">Sbuffer</innerclass>
+    <innerclass refid="struct_sbuffer_1_1_i_reload_data" prot="public">Sbuffer::IReloadData</innerclass>
+    <innernamespace refid="namespaced3d">d3d</innernamespace>
+    <innernamespace refid="namespaced3d_1_1buffers">d3d::buffers</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para><itemizedlist>
+<listitem><para>_ua_ -&gt; allows UAV access (default is formatted/sampled view)</para>
+</listitem><listitem><para>_sr_ -&gt; allows SRV access (default is formatted/sampled view)</para>
+</listitem><listitem><para>_cb -&gt; allows const buffer access</para>
+</listitem><listitem><para>_one_frame_ -&gt; for cb to indicate this buffer contents is only valid this frame after a discard write</para>
+</listitem><listitem><para>_persistent_ -&gt; for cb counter part to _one_frame_, buffer holds its contents until changed</para>
+</listitem><listitem><para>_byte_address -&gt; for ua and sr to indicate byte address view</para>
+</listitem><listitem><para>_structured -&gt; for ua and sr to indicate structured view</para>
+</listitem><listitem><para>_readback -&gt; buffer is used for read back</para>
+</listitem><listitem><para>_indirect -&gt; buffer can be an indirect argument</para>
+</listitem><listitem><para>_staging -&gt; staging buffer </para>
+</listitem></itemizedlist>
+</para>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_globDef.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_d3dResource.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_consts.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_decl.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_tex3d.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_resourceChecker.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21" refid="class_sbuffer" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="class_d3d_resource" kindref="compound">D3dResource</ref>,<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="struct_resource_checker" kindref="compound">ResourceChecker</ref></highlight></codeline>
+<codeline lineno="22"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/>DAG_DECLARE_NEW(midmem)</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/></highlight></codeline>
+<codeline lineno="29" refid="struct_sbuffer_1_1_i_reload_data" refkind="compound"><highlight class="normal"><sp/><sp/>struct<sp/><ref refid="struct_sbuffer_1_1_i_reload_data" kindref="compound">IReloadData</ref></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/>~<ref refid="struct_sbuffer_1_1_i_reload_data" kindref="compound">IReloadData</ref>()<sp/>{}</highlight></codeline>
+<codeline lineno="37" refid="struct_sbuffer_1_1_i_reload_data_1a145726c0eb268dae987354f306393d44" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="struct_sbuffer_1_1_i_reload_data_1a145726c0eb268dae987354f306393d44" kindref="member">reloadD3dRes</ref>(<ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*sb)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="41" refid="struct_sbuffer_1_1_i_reload_data_1af3e0e88aa47556474857d194360d37fb" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="struct_sbuffer_1_1_i_reload_data_1af3e0e88aa47556474857d194360d37fb" kindref="member">destroySelf</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="48" refid="class_sbuffer_1aaaa64c1cddc34a101e09ab67dd7be0f3" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer_1aaaa64c1cddc34a101e09ab67dd7be0f3" kindref="member">setReloadCallback</ref>(<ref refid="struct_sbuffer_1_1_i_reload_data" kindref="compound">IReloadData</ref><sp/>*)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56" refid="class_sbuffer_1aa8d2a4883a2061c777f301b46664a24f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer_1aa8d2a4883a2061c777f301b46664a24f" kindref="member">restype</ref>()<sp/>const<sp/>override<sp/>final<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>RES3D_SBUF;<sp/>}</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="69" refid="class_sbuffer_1a5db17ff4984b33762e3f977c800054f1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer_1a5db17ff4984b33762e3f977c800054f1" kindref="member">lock</ref>(uint32_t<sp/>ofs_bytes,<sp/>uint32_t<sp/>size_bytes,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>**p,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="76" refid="class_sbuffer_1adeb26fce00357095237e09285b45690a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer_1adeb26fce00357095237e09285b45690a" kindref="member">unlock</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="82" refid="class_sbuffer_1a4b68173afcbea69b2842ad1f3289591d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer_1a4b68173afcbea69b2842ad1f3289591d" kindref="member">getFlags</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="88" refid="class_sbuffer_1a65407b468b9b1b51ef73f96b782e307b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="class_sbuffer_1a65407b468b9b1b51ef73f96b782e307b" kindref="member">getBufName</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>getResName();<sp/>}</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight></codeline>
+<codeline lineno="97" refid="class_sbuffer_1a1597ce988ddef66fd056c3aa4fa29de7" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer_1a1597ce988ddef66fd056c3aa4fa29de7" kindref="member">getElementSize</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="105" refid="class_sbuffer_1a3410267f2b833071f1900ffb44537fb1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer_1a3410267f2b833071f1900ffb44537fb1" kindref="member">getNumElements</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;<sp/>};</highlight></codeline>
+<codeline lineno="112" refid="class_sbuffer_1ac9d711eddc70289ee3474283cb7486f9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer_1ac9d711eddc70289ee3474283cb7486f9" kindref="member">copyTo</ref>(<ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*dest)</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/>G_UNUSED(dest);</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="126" refid="class_sbuffer_1a9c440cde819bc62f01e24c558ad8616c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer_1a9c440cde819bc62f01e24c558ad8616c" kindref="member">copyTo</ref>(<ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*dest,<sp/>uint32_t<sp/>dst_ofs_bytes,<sp/>uint32_t<sp/>src_ofs_bytes,<sp/>uint32_t<sp/>size_bytes)</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/>G_UNUSED(dest);</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><sp/><sp/>G_UNUSED(dst_ofs_bytes);</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/><sp/><sp/>G_UNUSED(src_ofs_bytes);</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/><sp/><sp/>G_UNUSED(size_bytes);</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"></highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="148" refid="class_sbuffer_1ad158a17e7a243262cfb3c6c3c5c7e509" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer_1ad158a17e7a243262cfb3c6c3c5c7e509" kindref="member">lockEx</ref>(uint32_t<sp/>ofs_bytes,<sp/>uint32_t<sp/>size_bytes,<sp/>T<sp/>**p,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags)</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*vp;</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!<ref refid="class_sbuffer_1a5db17ff4984b33762e3f977c800054f1" kindref="member">lock</ref>(ofs_bytes,<sp/>size_bytes,<sp/>&amp;vp,<sp/>flags))</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>*p<sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/><sp/><sp/>*p<sp/>=<sp/>(T<sp/>*)vp;</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>1;</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"></highlight></codeline>
+<codeline lineno="169" refid="class_sbuffer_1a847dccde4430c12c1737e15c69a2c9b1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer_1a847dccde4430c12c1737e15c69a2c9b1" kindref="member">updateDataWithLock</ref>(uint32_t<sp/>ofs_bytes,<sp/>uint32_t<sp/>size_bytes,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*__restrict<sp/>src,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>lockFlags)</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT_RETURN(size_bytes,<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*data<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="class_sbuffer_1a5db17ff4984b33762e3f977c800054f1" kindref="member">lock</ref>(ofs_bytes,<sp/>size_bytes,<sp/>&amp;data,<sp/>lockFlags<sp/>|<sp/>VBLOCK_WRITEONLY))</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(data)</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>memcpy(data,<sp/>src,<sp/>size_bytes);</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="class_sbuffer_1adeb26fce00357095237e09285b45690a" kindref="member">unlock</ref>();</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"></highlight></codeline>
+<codeline lineno="192" refid="class_sbuffer_1a54c4d28edee841bda8ccee85ee8233a6" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer_1a54c4d28edee841bda8ccee85ee8233a6" kindref="member">updateData</ref>(uint32_t<sp/>ofs_bytes,<sp/>uint32_t<sp/>size_bytes,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*__restrict<sp/>src,<sp/>uint32_t<sp/>lockFlags)</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT_RETURN(size_bytes,<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer_1a847dccde4430c12c1737e15c69a2c9b1" kindref="member">updateDataWithLock</ref>(ofs_bytes,<sp/>size_bytes,<sp/>src,<sp/>lockFlags);</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"></highlight></codeline>
+<codeline lineno="207" refid="class_sbuffer_1a99727061a6ed4d537debb99300d5a19f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer_1a99727061a6ed4d537debb99300d5a19f" kindref="member">lock</ref>(uint32_t<sp/>ofs_bytes,<sp/>uint32_t<sp/>size_bytes,<sp/>uint16_t<sp/>**p,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags)</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(!(<ref refid="class_sbuffer_1a4b68173afcbea69b2842ad1f3289591d" kindref="member">getFlags</ref>()<sp/>&amp;<sp/>SBCF_INDEX32));</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer_1ad158a17e7a243262cfb3c6c3c5c7e509" kindref="member">lockEx</ref>(ofs_bytes,<sp/>size_bytes,<sp/>p,<sp/>flags);</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="221" refid="class_sbuffer_1ad205a97b6c5938a5aa634d2edc2bd87c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer_1ad205a97b6c5938a5aa634d2edc2bd87c" kindref="member">lock32</ref>(uint32_t<sp/>ofs_bytes,<sp/>uint32_t<sp/>size_bytes,<sp/>uint32_t<sp/>**p,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>flags)</highlight></codeline>
+<codeline lineno="222"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT((<ref refid="class_sbuffer_1a4b68173afcbea69b2842ad1f3289591d" kindref="member">getFlags</ref>()<sp/>&amp;<sp/>SBCF_INDEX32));</highlight></codeline>
+<codeline lineno="224"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer_1ad158a17e7a243262cfb3c6c3c5c7e509" kindref="member">lockEx</ref>(ofs_bytes,<sp/>size_bytes,<sp/>p,<sp/>flags);</highlight></codeline>
+<codeline lineno="225"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="226"><highlight class="normal"></highlight></codeline>
+<codeline lineno="227"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><sp/><sp/>~<ref refid="class_sbuffer" kindref="compound">Sbuffer</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="229"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"></highlight></codeline>
+<codeline lineno="231"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">d3d</highlight></codeline>
+<codeline lineno="232"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="247" refid="dag__buffers_8h_1a1ab1f32e68a6f76ba3257e79387fbf58" refkind="member"><highlight class="normal"><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="dag__buffers_8h_1a1ab1f32e68a6f76ba3257e79387fbf58" kindref="member">create_sbuffer</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>struct_size,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>elements,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>flags,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>texfmt,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name);</highlight></codeline>
+<codeline lineno="248"><highlight class="normal"></highlight></codeline>
+<codeline lineno="257" refid="dag__buffers_8h_1a108d8b24d96675f8f4edb6bebcfdac8b" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__buffers_8h_1a108d8b24d96675f8f4edb6bebcfdac8b" kindref="member">set_buffer</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>shader_stage,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>slot,<sp/><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*buffer);</highlight></codeline>
+<codeline lineno="258"><highlight class="normal"></highlight></codeline>
+<codeline lineno="267" refid="dag__buffers_8h_1add60a36c80b8e756c8a6f8b0eb266a65" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__buffers_8h_1add60a36c80b8e756c8a6f8b0eb266a65" kindref="member">set_rwbuffer</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>shader_stage,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>slot,<sp/><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*buffer);</highlight></codeline>
+<codeline lineno="268"><highlight class="normal"></highlight></codeline>
+<codeline lineno="269"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="270"><highlight class="normal"></highlight></codeline>
+<codeline lineno="286"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">d3d::buffers</highlight></codeline>
+<codeline lineno="287"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="291" refid="dag__buffers_8h_1a7289ebd6e955087eeb533762bac0b98f" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="dag__buffers_8h_1a7289ebd6e955087eeb533762bac0b98f" kindref="member">Init</ref><sp/>:<sp/>uint32_t</highlight></codeline>
+<codeline lineno="292"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="293"><highlight class="normal"><sp/><sp/><ref refid="dag__buffers_8h_1a7289ebd6e955087eeb533762bac0b98fabafd7322c6e97d25b6299b5d6fe8920b" kindref="member">No</ref>,<sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="294"><highlight class="normal"><sp/><sp/><ref refid="dag__buffers_8h_1a7289ebd6e955087eeb533762bac0b98fad7ed4ee1df437474d005188535f74875" kindref="member">Zero</ref>,<sp/></highlight></codeline>
+<codeline lineno="295"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="296"><highlight class="normal"></highlight></codeline>
+<codeline lineno="297"><highlight class="normal"></highlight></codeline>
+<codeline lineno="301" refid="dag__buffers_8h_1a696757538a427695f6e00683069bd4ca" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="dag__buffers_8h_1a696757538a427695f6e00683069bd4ca" kindref="member">Indirect</ref><sp/>:<sp/>uint32_t</highlight></codeline>
+<codeline lineno="302"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="303"><highlight class="normal"><sp/><sp/>Dispatch,</highlight></codeline>
+<codeline lineno="304"><highlight class="normal"><sp/><sp/>Draw,</highlight></codeline>
+<codeline lineno="305"><highlight class="normal"><sp/><sp/>DrawIndexed,</highlight></codeline>
+<codeline lineno="306"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="307"><highlight class="normal"></highlight></codeline>
+<codeline lineno="308"><highlight class="normal"></highlight></codeline>
+<codeline lineno="313" refid="dag__buffers_8h_1ab085b535f5176b793b3e3dd0799779db" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>constexpr<sp/>uint32_t<sp/><ref refid="dag__buffers_8h_1ab085b535f5176b793b3e3dd0799779db" kindref="member">CBUFFER_REGISTER_SIZE</ref><sp/>=<sp/>16;</highlight></codeline>
+<codeline lineno="314"><highlight class="normal"></highlight></codeline>
+<codeline lineno="318" refid="dag__buffers_8h_1a421822f58870275c63b259526196379b" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>constexpr<sp/>uint32_t<sp/><ref refid="dag__buffers_8h_1a421822f58870275c63b259526196379b" kindref="member">BYTE_ADDRESS_ELEMENT_SIZE</ref><sp/>=<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(uint32_t);</highlight></codeline>
+<codeline lineno="319"><highlight class="normal"></highlight></codeline>
+<codeline lineno="320"><highlight class="normal"></highlight></codeline>
+<codeline lineno="329"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="330" refid="dag__buffers_8h_1ae9041fa33b354aab1fd1e6934fa6277d" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="dag__buffers_8h_1ae9041fa33b354aab1fd1e6934fa6277d" kindref="member">cb_array_reg_count</ref>(uint32_t<sp/>array_size)</highlight></codeline>
+<codeline lineno="331"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="332"><highlight class="normal"><sp/><sp/>static_assert(</highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(T)<sp/>%<sp/><ref refid="dag__buffers_8h_1ab085b535f5176b793b3e3dd0799779db" kindref="member">CBUFFER_REGISTER_SIZE</ref><sp/>==<sp/>0,</highlight></codeline>
+<codeline lineno="333"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;Structure<sp/>should<sp/>be<sp/>aligned<sp/>as<sp/>float4<sp/>to<sp/>not<sp/>have<sp/>problems<sp/>with<sp/>alignment<sp/>in<sp/>cbuffer&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="334"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(T)<sp/>/<sp/><ref refid="dag__buffers_8h_1ab085b535f5176b793b3e3dd0799779db" kindref="member">CBUFFER_REGISTER_SIZE</ref><sp/>*<sp/>array_size;</highlight></codeline>
+<codeline lineno="335"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="336"><highlight class="normal"></highlight></codeline>
+<codeline lineno="337"><highlight class="normal"></highlight></codeline>
+<codeline lineno="345"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="346" refid="dag__buffers_8h_1a9aa525de1d641fdeabaf43b9198398d3" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="dag__buffers_8h_1a9aa525de1d641fdeabaf43b9198398d3" kindref="member">cb_struct_reg_count</ref>()</highlight></codeline>
+<codeline lineno="347"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="348"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>cb_array_reg_count&lt;T&gt;(1);</highlight></codeline>
+<codeline lineno="349"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="350"><highlight class="normal"></highlight></codeline>
+<codeline lineno="351"><highlight class="normal"></highlight></codeline>
+<codeline lineno="364" refid="dag__buffers_8h_1a2bd85ad3ee64191c0b4966d57c437d4a" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="dag__buffers_8h_1a2bd85ad3ee64191c0b4966d57c437d4a" kindref="member">create_persistent_cb</ref>(uint32_t<sp/>registers_count,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)</highlight></codeline>
+<codeline lineno="365"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="366"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__buffers_8h_1a1ab1f32e68a6f76ba3257e79387fbf58" kindref="member">d3d::create_sbuffer</ref>(<ref refid="dag__buffers_8h_1ab085b535f5176b793b3e3dd0799779db" kindref="member">CBUFFER_REGISTER_SIZE</ref>,<sp/>registers_count,<sp/>SBCF_CB_PERSISTENT,<sp/>0,<sp/>name);</highlight></codeline>
+<codeline lineno="367"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="368"><highlight class="normal"></highlight></codeline>
+<codeline lineno="381" refid="dag__buffers_8h_1aa13ffc144e8cfd8283a32e5eab8d30f0" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="dag__buffers_8h_1aa13ffc144e8cfd8283a32e5eab8d30f0" kindref="member">create_one_frame_cb</ref>(uint32_t<sp/>registers_count,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)</highlight></codeline>
+<codeline lineno="382"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="383"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__buffers_8h_1a1ab1f32e68a6f76ba3257e79387fbf58" kindref="member">d3d::create_sbuffer</ref>(<ref refid="dag__buffers_8h_1ab085b535f5176b793b3e3dd0799779db" kindref="member">CBUFFER_REGISTER_SIZE</ref>,<sp/>registers_count,<sp/>SBCF_CB_ONE_FRAME,<sp/>0,<sp/>name);</highlight></codeline>
+<codeline lineno="384"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="385"><highlight class="normal"></highlight></codeline>
+<codeline lineno="397" refid="dag__buffers_8h_1adaf527a53632f46d7887eed1fbd5665b" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="dag__buffers_8h_1adaf527a53632f46d7887eed1fbd5665b" kindref="member">create_ua_sr_byte_address</ref>(uint32_t<sp/>size_in_dwords,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/><ref refid="dag__buffers_8h_1a7289ebd6e955087eeb533762bac0b98f" kindref="member">Init</ref><sp/>buffer_init<sp/>=<sp/>Init::No)</highlight></codeline>
+<codeline lineno="398"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="399"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__buffers_8h_1a1ab1f32e68a6f76ba3257e79387fbf58" kindref="member">d3d::create_sbuffer</ref>(<ref refid="dag__buffers_8h_1a421822f58870275c63b259526196379b" kindref="member">BYTE_ADDRESS_ELEMENT_SIZE</ref>,<sp/>size_in_dwords,</highlight></codeline>
+<codeline lineno="400"><highlight class="normal"><sp/><sp/><sp/><sp/>SBCF_UA_SR_BYTE_ADDRESS<sp/>|<sp/>(buffer_init<sp/>==<sp/>Init::Zero<sp/>?<sp/>SBCF_ZEROMEM<sp/>:<sp/>0),<sp/>0,<sp/>name);</highlight></codeline>
+<codeline lineno="401"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="402"><highlight class="normal"></highlight></codeline>
+<codeline lineno="415" refid="dag__buffers_8h_1a3556aff8b72f76ef3776d88e3d72b4cb" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="dag__buffers_8h_1a3556aff8b72f76ef3776d88e3d72b4cb" kindref="member">create_ua_sr_structured</ref>(uint32_t<sp/>structure_size,<sp/>uint32_t<sp/>elements_count,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,</highlight></codeline>
+<codeline lineno="416"><highlight class="normal"><sp/><sp/><ref refid="dag__buffers_8h_1a7289ebd6e955087eeb533762bac0b98f" kindref="member">Init</ref><sp/>buffer_init<sp/>=<sp/>Init::No)</highlight></codeline>
+<codeline lineno="417"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="418"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__buffers_8h_1a1ab1f32e68a6f76ba3257e79387fbf58" kindref="member">d3d::create_sbuffer</ref>(structure_size,<sp/>elements_count,<sp/>SBCF_UA_SR_STRUCTURED<sp/>|<sp/>(buffer_init<sp/>==<sp/>Init::Zero<sp/>?<sp/>SBCF_ZEROMEM<sp/>:<sp/>0),<sp/>0,</highlight></codeline>
+<codeline lineno="419"><highlight class="normal"><sp/><sp/><sp/><sp/>name);</highlight></codeline>
+<codeline lineno="420"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="421"><highlight class="normal"></highlight></codeline>
+<codeline lineno="422"><highlight class="normal"></highlight></codeline>
+<codeline lineno="433" refid="dag__buffers_8h_1a57d6e15ac4e84021c42ca3ff0294f252" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="dag__buffers_8h_1a57d6e15ac4e84021c42ca3ff0294f252" kindref="member">create_ua_byte_address</ref>(uint32_t<sp/>size_in_dwords,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)</highlight></codeline>
+<codeline lineno="434"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="435"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__buffers_8h_1a1ab1f32e68a6f76ba3257e79387fbf58" kindref="member">d3d::create_sbuffer</ref>(<ref refid="dag__buffers_8h_1a421822f58870275c63b259526196379b" kindref="member">BYTE_ADDRESS_ELEMENT_SIZE</ref>,<sp/>size_in_dwords,<sp/>SBCF_UA_BYTE_ADDRESS,<sp/>0,<sp/>name);</highlight></codeline>
+<codeline lineno="436"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="437"><highlight class="normal"></highlight></codeline>
+<codeline lineno="447" refid="dag__buffers_8h_1a20d26ab1fd8b35e5b90ee71befb8ebf4" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="dag__buffers_8h_1a20d26ab1fd8b35e5b90ee71befb8ebf4" kindref="member">create_ua_structured</ref>(uint32_t<sp/>structure_size,<sp/>uint32_t<sp/>elements_count,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)</highlight></codeline>
+<codeline lineno="448"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="449"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__buffers_8h_1a1ab1f32e68a6f76ba3257e79387fbf58" kindref="member">d3d::create_sbuffer</ref>(structure_size,<sp/>elements_count,<sp/>SBCF_UA_STRUCTURED,<sp/>0,<sp/>name);</highlight></codeline>
+<codeline lineno="450"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="451"><highlight class="normal"></highlight></codeline>
+<codeline lineno="462" refid="dag__buffers_8h_1a47fd8b1352f7d4914f1ac38019e2e3e0" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="dag__buffers_8h_1a47fd8b1352f7d4914f1ac38019e2e3e0" kindref="member">create_ua_byte_address_readback</ref>(uint32_t<sp/>size_in_dwords,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/><ref refid="dag__buffers_8h_1a7289ebd6e955087eeb533762bac0b98f" kindref="member">Init</ref><sp/>buffer_init<sp/>=<sp/>Init::No)</highlight></codeline>
+<codeline lineno="463"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="464"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__buffers_8h_1a1ab1f32e68a6f76ba3257e79387fbf58" kindref="member">d3d::create_sbuffer</ref>(<ref refid="dag__buffers_8h_1a421822f58870275c63b259526196379b" kindref="member">BYTE_ADDRESS_ELEMENT_SIZE</ref>,<sp/>size_in_dwords,</highlight></codeline>
+<codeline lineno="465"><highlight class="normal"><sp/><sp/><sp/><sp/>SBCF_UA_BYTE_ADDRESS_READBACK<sp/>|<sp/>(buffer_init<sp/>==<sp/>Init::Zero<sp/>?<sp/>SBCF_ZEROMEM<sp/>:<sp/>0),<sp/>0,<sp/>name);</highlight></codeline>
+<codeline lineno="466"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="467"><highlight class="normal"></highlight></codeline>
+<codeline lineno="468"><highlight class="normal"></highlight></codeline>
+<codeline lineno="478" refid="dag__buffers_8h_1a34388e1d08d327fa689075e967df069f" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="dag__buffers_8h_1a34388e1d08d327fa689075e967df069f" kindref="member">create_ua_structured_readback</ref>(uint32_t<sp/>structure_size,<sp/>uint32_t<sp/>elements_count,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,</highlight></codeline>
+<codeline lineno="479"><highlight class="normal"><sp/><sp/><ref refid="dag__buffers_8h_1a7289ebd6e955087eeb533762bac0b98f" kindref="member">Init</ref><sp/>buffer_init<sp/>=<sp/>Init::No)</highlight></codeline>
+<codeline lineno="480"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="481"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__buffers_8h_1a1ab1f32e68a6f76ba3257e79387fbf58" kindref="member">d3d::create_sbuffer</ref>(structure_size,<sp/>elements_count,</highlight></codeline>
+<codeline lineno="482"><highlight class="normal"><sp/><sp/><sp/><sp/>SBCF_UA_STRUCTURED_READBACK<sp/>|<sp/>(buffer_init<sp/>==<sp/>Init::Zero<sp/>?<sp/>SBCF_ZEROMEM<sp/>:<sp/>0),<sp/>0,<sp/>name);</highlight></codeline>
+<codeline lineno="483"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="484"><highlight class="normal"></highlight></codeline>
+<codeline lineno="485"><highlight class="normal"></highlight></codeline>
+<codeline lineno="493" refid="dag__buffers_8h_1a35f6b002b758ba351f194da46b93a5de" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="dag__buffers_8h_1a35f6b002b758ba351f194da46b93a5de" kindref="member">dword_count_per_call</ref>(<ref refid="dag__buffers_8h_1a696757538a427695f6e00683069bd4ca" kindref="member">Indirect</ref><sp/>indirect_type)</highlight></codeline>
+<codeline lineno="494"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="495"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(indirect_type)</highlight></codeline>
+<codeline lineno="496"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="497"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>Indirect::Dispatch:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>DISPATCH_INDIRECT_NUM_ARGS;</highlight></codeline>
+<codeline lineno="498"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>Indirect::Draw:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>DRAW_INDIRECT_NUM_ARGS;</highlight></codeline>
+<codeline lineno="499"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>Indirect::DrawIndexed:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>DRAW_INDEXED_INDIRECT_NUM_ARGS;</highlight></codeline>
+<codeline lineno="500"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="501"><highlight class="normal"><sp/><sp/>G_ASSERT(</highlight><highlight class="keyword">false</highlight><highlight class="normal">);<sp/></highlight><highlight class="comment">//<sp/>impossible<sp/>situation</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="502"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;</highlight></codeline>
+<codeline lineno="503"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="504"><highlight class="normal"></highlight></codeline>
+<codeline lineno="513" refid="dag__buffers_8h_1a2e0d3b4eac07bbe0600fec0158faf3af" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="dag__buffers_8h_1a2e0d3b4eac07bbe0600fec0158faf3af" kindref="member">create_ua_indirect</ref>(<ref refid="dag__buffers_8h_1a696757538a427695f6e00683069bd4ca" kindref="member">Indirect</ref><sp/>indirect_type,<sp/>uint32_t<sp/>records_count,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)</highlight></codeline>
+<codeline lineno="514"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="515"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>dwordsCount<sp/>=<sp/>records_count<sp/>*<sp/><ref refid="dag__buffers_8h_1a35f6b002b758ba351f194da46b93a5de" kindref="member">dword_count_per_call</ref>(indirect_type);</highlight></codeline>
+<codeline lineno="516"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__buffers_8h_1a1ab1f32e68a6f76ba3257e79387fbf58" kindref="member">d3d::create_sbuffer</ref>(<ref refid="dag__buffers_8h_1a421822f58870275c63b259526196379b" kindref="member">BYTE_ADDRESS_ELEMENT_SIZE</ref>,<sp/>dwordsCount,<sp/>SBCF_UA_INDIRECT,<sp/>0,<sp/>name);</highlight></codeline>
+<codeline lineno="517"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="518"><highlight class="normal"></highlight></codeline>
+<codeline lineno="519"><highlight class="normal"></highlight></codeline>
+<codeline lineno="528" refid="dag__buffers_8h_1afc9cdde851a643e508bb94ceff500ff7" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="dag__buffers_8h_1afc9cdde851a643e508bb94ceff500ff7" kindref="member">create_indirect</ref>(<ref refid="dag__buffers_8h_1a696757538a427695f6e00683069bd4ca" kindref="member">Indirect</ref><sp/>indirect_type,<sp/>uint32_t<sp/>records_count,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)</highlight></codeline>
+<codeline lineno="529"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="530"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>dwordsCount<sp/>=<sp/>records_count<sp/>*<sp/><ref refid="dag__buffers_8h_1a35f6b002b758ba351f194da46b93a5de" kindref="member">dword_count_per_call</ref>(indirect_type);</highlight></codeline>
+<codeline lineno="531"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__buffers_8h_1a1ab1f32e68a6f76ba3257e79387fbf58" kindref="member">d3d::create_sbuffer</ref>(<ref refid="dag__buffers_8h_1a421822f58870275c63b259526196379b" kindref="member">BYTE_ADDRESS_ELEMENT_SIZE</ref>,<sp/>dwordsCount,<sp/>SBCF_INDIRECT,<sp/>0,<sp/>name);</highlight></codeline>
+<codeline lineno="532"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="533"><highlight class="normal"></highlight></codeline>
+<codeline lineno="534"><highlight class="normal"></highlight></codeline>
+<codeline lineno="542" refid="dag__buffers_8h_1a133e8e3c2d5608e2394dde7a9a966c52" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="dag__buffers_8h_1a133e8e3c2d5608e2394dde7a9a966c52" kindref="member">create_staging</ref>(uint32_t<sp/>size_in_bytes,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)</highlight></codeline>
+<codeline lineno="543"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="544"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__buffers_8h_1a1ab1f32e68a6f76ba3257e79387fbf58" kindref="member">d3d::create_sbuffer</ref>(1,<sp/>size_in_bytes,<sp/>SBCF_STAGING_BUFFER,<sp/>0,<sp/>name);</highlight></codeline>
+<codeline lineno="545"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="546"><highlight class="normal"></highlight></codeline>
+<codeline lineno="547"><highlight class="normal"></highlight></codeline>
+<codeline lineno="564" refid="dag__buffers_8h_1a16e7d6612d10a40a7368d2e894d84628" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="dag__buffers_8h_1a16e7d6612d10a40a7368d2e894d84628" kindref="member">create_persistent_sr_tbuf</ref>(uint32_t<sp/>elements_count,<sp/>uint32_t<sp/>format,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/><ref refid="dag__buffers_8h_1a7289ebd6e955087eeb533762bac0b98f" kindref="member">Init</ref><sp/>buffer_init<sp/>=<sp/>Init::No)</highlight></codeline>
+<codeline lineno="565"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="566"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__buffers_8h_1a1ab1f32e68a6f76ba3257e79387fbf58" kindref="member">d3d::create_sbuffer</ref>(get_tex_format_desc(format).bytesPerElement,<sp/>elements_count,</highlight></codeline>
+<codeline lineno="567"><highlight class="normal"><sp/><sp/><sp/><sp/>SBCF_BIND_SHADER_RES<sp/>|<sp/>SBCF_CPU_ACCESS_WRITE<sp/>|<sp/>(buffer_init<sp/>==<sp/>Init::Zero<sp/>?<sp/>SBCF_ZEROMEM<sp/>:<sp/>0),<sp/>format,<sp/>name);</highlight></codeline>
+<codeline lineno="568"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="569"><highlight class="normal"></highlight></codeline>
+<codeline lineno="570"><highlight class="normal"></highlight></codeline>
+<codeline lineno="582" refid="dag__buffers_8h_1aeb5fb7c16ecfde06564197497b3645fa" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="dag__buffers_8h_1aeb5fb7c16ecfde06564197497b3645fa" kindref="member">create_persistent_sr_byte_address</ref>(uint32_t<sp/>size_in_dwords,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/><ref refid="dag__buffers_8h_1a7289ebd6e955087eeb533762bac0b98f" kindref="member">Init</ref><sp/>buffer_init<sp/>=<sp/>Init::No)</highlight></codeline>
+<codeline lineno="583"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="584"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__buffers_8h_1a1ab1f32e68a6f76ba3257e79387fbf58" kindref="member">d3d::create_sbuffer</ref>(<ref refid="dag__buffers_8h_1a421822f58870275c63b259526196379b" kindref="member">BYTE_ADDRESS_ELEMENT_SIZE</ref>,<sp/>size_in_dwords,</highlight></codeline>
+<codeline lineno="585"><highlight class="normal"><sp/><sp/><sp/><sp/>SBCF_BIND_SHADER_RES<sp/>|<sp/>SBCF_CPU_ACCESS_WRITE<sp/>|<sp/>SBCF_MISC_ALLOW_RAW<sp/>|<sp/>(buffer_init<sp/>==<sp/>Init::Zero<sp/>?<sp/>SBCF_ZEROMEM<sp/>:<sp/>0),<sp/>0,<sp/>name);</highlight></codeline>
+<codeline lineno="586"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="587"><highlight class="normal"></highlight></codeline>
+<codeline lineno="588"><highlight class="normal"></highlight></codeline>
+<codeline lineno="603" refid="dag__buffers_8h_1a4629d042dc17c0e33129339c01c121ed" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="dag__buffers_8h_1a4629d042dc17c0e33129339c01c121ed" kindref="member">create_persistent_sr_structured</ref>(uint32_t<sp/>structure_size,<sp/>uint32_t<sp/>elements_count,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,</highlight></codeline>
+<codeline lineno="604"><highlight class="normal"><sp/><sp/><ref refid="dag__buffers_8h_1a7289ebd6e955087eeb533762bac0b98f" kindref="member">Init</ref><sp/>buffer_init<sp/>=<sp/>Init::No)</highlight></codeline>
+<codeline lineno="605"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="606"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__buffers_8h_1a1ab1f32e68a6f76ba3257e79387fbf58" kindref="member">d3d::create_sbuffer</ref>(structure_size,<sp/>elements_count,</highlight></codeline>
+<codeline lineno="607"><highlight class="normal"><sp/><sp/><sp/><sp/>SBCF_BIND_SHADER_RES<sp/>|<sp/>SBCF_CPU_ACCESS_WRITE<sp/>|<sp/>SBCF_MISC_STRUCTURED<sp/>|<sp/>(buffer_init<sp/>==<sp/>Init::Zero<sp/>?<sp/>SBCF_ZEROMEM<sp/>:<sp/>0),<sp/>0,<sp/>name);</highlight></codeline>
+<codeline lineno="608"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="609"><highlight class="normal"></highlight></codeline>
+<codeline lineno="610"><highlight class="normal"></highlight></codeline>
+<codeline lineno="626" refid="dag__buffers_8h_1a21e72d5a4431dc57f7110ed5b2a872af" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="dag__buffers_8h_1a21e72d5a4431dc57f7110ed5b2a872af" kindref="member">create_one_frame_sr_tbuf</ref>(uint32_t<sp/>elements_count,<sp/>uint32_t<sp/>format,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)</highlight></codeline>
+<codeline lineno="627"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="628"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__buffers_8h_1a1ab1f32e68a6f76ba3257e79387fbf58" kindref="member">d3d::create_sbuffer</ref>(get_tex_format_desc(format).bytesPerElement,<sp/>elements_count,</highlight></codeline>
+<codeline lineno="629"><highlight class="normal"><sp/><sp/><sp/><sp/>SBCF_BIND_SHADER_RES<sp/>|<sp/>SBCF_CPU_ACCESS_WRITE<sp/>|<sp/>SBCF_DYNAMIC<sp/>|<sp/>SBCF_FRAMEMEM,<sp/>format,<sp/>name);</highlight></codeline>
+<codeline lineno="630"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="631"><highlight class="normal"></highlight></codeline>
+<codeline lineno="632"><highlight class="normal"></highlight></codeline>
+<codeline lineno="644" refid="dag__buffers_8h_1a86b55100d094b0f671a7b090e8e45f14" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="dag__buffers_8h_1a86b55100d094b0f671a7b090e8e45f14" kindref="member">create_one_frame_sr_byte_address</ref>(uint32_t<sp/>size_in_dwords,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)</highlight></codeline>
+<codeline lineno="645"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="646"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__buffers_8h_1a1ab1f32e68a6f76ba3257e79387fbf58" kindref="member">d3d::create_sbuffer</ref>(<ref refid="dag__buffers_8h_1a421822f58870275c63b259526196379b" kindref="member">BYTE_ADDRESS_ELEMENT_SIZE</ref>,<sp/>size_in_dwords,</highlight></codeline>
+<codeline lineno="647"><highlight class="normal"><sp/><sp/><sp/><sp/>SBCF_BIND_SHADER_RES<sp/>|<sp/>SBCF_CPU_ACCESS_WRITE<sp/>|<sp/>SBCF_MISC_ALLOW_RAW<sp/>|<sp/>SBCF_DYNAMIC<sp/>|<sp/>SBCF_FRAMEMEM,<sp/>0,<sp/>name);</highlight></codeline>
+<codeline lineno="648"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="649"><highlight class="normal"></highlight></codeline>
+<codeline lineno="650"><highlight class="normal"></highlight></codeline>
+<codeline lineno="665" refid="dag__buffers_8h_1a28b722e9af82f34b1b8d80933b5b4961" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="dag__buffers_8h_1a28b722e9af82f34b1b8d80933b5b4961" kindref="member">create_one_frame_sr_structured</ref>(uint32_t<sp/>structure_size,<sp/>uint32_t<sp/>elements_count,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)</highlight></codeline>
+<codeline lineno="666"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="667"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__buffers_8h_1a1ab1f32e68a6f76ba3257e79387fbf58" kindref="member">d3d::create_sbuffer</ref>(structure_size,<sp/>elements_count,</highlight></codeline>
+<codeline lineno="668"><highlight class="normal"><sp/><sp/><sp/><sp/>SBCF_BIND_SHADER_RES<sp/>|<sp/>SBCF_CPU_ACCESS_WRITE<sp/>|<sp/>SBCF_MISC_STRUCTURED<sp/>|<sp/>SBCF_DYNAMIC<sp/>|<sp/>SBCF_FRAMEMEM,<sp/>0,<sp/>name);</highlight></codeline>
+<codeline lineno="669"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="670"><highlight class="normal"></highlight></codeline>
+<codeline lineno="687" refid="dag__buffers_8h_1a09ba4ba4eeaf87bf7bc0710c0b4e6672" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="dag__buffers_8h_1a09ba4ba4eeaf87bf7bc0710c0b4e6672" kindref="member">create_raytrace_scratch_buffer</ref>(uint32_t<sp/>size_in_bytes,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)</highlight></codeline>
+<codeline lineno="688"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="689"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__buffers_8h_1a1ab1f32e68a6f76ba3257e79387fbf58" kindref="member">d3d::create_sbuffer</ref>(1,<sp/>size_in_bytes,<sp/>SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE,<sp/>0,<sp/>name);</highlight></codeline>
+<codeline lineno="690"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="691"><highlight class="normal"></highlight></codeline>
+<codeline lineno="692"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d::buffers</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="693"><highlight class="normal"></highlight></codeline>
+<codeline lineno="694"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_D3D_MULTI</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="695"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_interface_table.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="696"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">d3d</highlight></codeline>
+<codeline lineno="697"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="698"><highlight class="normal"></highlight></codeline>
+<codeline lineno="699"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*create_sbuffer(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>struct_size,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>elements,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>flags,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>texfmt,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)</highlight></codeline>
+<codeline lineno="700"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="701"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>d3di.create_sbuffer(struct_size,<sp/>elements,<sp/>flags,<sp/>texfmt,<sp/>name);</highlight></codeline>
+<codeline lineno="702"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="703"><highlight class="normal"></highlight></codeline>
+<codeline lineno="704"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__buffers_8h_1a108d8b24d96675f8f4edb6bebcfdac8b" kindref="member">set_buffer</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>shader_stage,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>slot,<sp/><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*buffer)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>d3di.set_buffer(shader_stage,<sp/>slot,<sp/>buffer);<sp/>}</highlight></codeline>
+<codeline lineno="705"><highlight class="normal"></highlight></codeline>
+<codeline lineno="706"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__buffers_8h_1add60a36c80b8e756c8a6f8b0eb266a65" kindref="member">set_rwbuffer</ref>(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>shader_stage,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>slot,<sp/><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*buffer)</highlight></codeline>
+<codeline lineno="707"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="708"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>d3di.set_rwbuffer(shader_stage,<sp/>slot,<sp/>buffer);</highlight></codeline>
+<codeline lineno="709"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="710"><highlight class="normal"></highlight></codeline>
+<codeline lineno="711"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="712"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h"/>
+  </compounddef>
+</doxygen>

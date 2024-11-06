@@ -1,0 +1,370 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="classdabfg_1_1detail_1_1_virtual_attachment_request" kind="class" language="C++" prot="public">
+    <compoundname>dabfg::detail::VirtualAttachmentRequest</compoundname>
+    <includes refid="virtual_pass_request_8h" local="no">virtualPassRequest.h</includes>
+    <templateparamlist>
+      <param>
+        <type>detail::ResourceRequestPolicy</type>
+        <declname>disallowPolicies</declname>
+        <defname>disallowPolicies</defname>
+      </param>
+      <param>
+        <type>detail::ResourceRequestPolicy</type>
+        <declname>requirePolicies</declname>
+        <defname>requirePolicies</defname>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="private-type">
+      <memberdef kind="typedef" id="classdabfg_1_1detail_1_1_virtual_attachment_request_1ac014f0f268279a83d50d85e48c6817b7" prot="private" static="no">
+        <type>detail::ResourceRequestPolicy</type>
+        <definition>using dabfg::detail::VirtualAttachmentRequest&lt; disallowPolicies, requirePolicies &gt;::RRP =  detail::ResourceRequestPolicy</definition>
+        <argsstring></argsstring>
+        <name>RRP</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="43" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classdabfg_1_1detail_1_1_virtual_attachment_request_1a31edc00d335413bb753711825ba8cff9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class dabfg::VirtualPassRequest</definition>
+        <argsstring></argsstring>
+        <name>dabfg::VirtualPassRequest</name>
+        <param>
+          <type><ref refid="classdabfg_1_1_virtual_pass_request" kindref="compound">dabfg::VirtualPassRequest</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="53" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classdabfg_1_1detail_1_1_virtual_attachment_request_1a013f5608eb3fc200b95bb956863daa86" prot="private" static="no" mutable="no">
+        <type>eastl::variant&lt; ResUid, const char * &gt;</type>
+        <definition>eastl::variant&lt;ResUid, const char *&gt; dabfg::detail::VirtualAttachmentRequest&lt; disallowPolicies, requirePolicies &gt;::image</definition>
+        <argsstring></argsstring>
+        <name>image</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="114" column="18" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" bodystart="114" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classdabfg_1_1detail_1_1_virtual_attachment_request_1afd6a37d17d18317192a6e27ad02d7c74" prot="private" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t dabfg::detail::VirtualAttachmentRequest&lt; disallowPolicies, requirePolicies &gt;::mipLevel</definition>
+        <argsstring></argsstring>
+        <name>mipLevel</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="115" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" bodystart="115" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classdabfg_1_1detail_1_1_virtual_attachment_request_1a09e85bfc81ffde93d5208003029a11a3" prot="private" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t dabfg::detail::VirtualAttachmentRequest&lt; disallowPolicies, requirePolicies &gt;::layer</definition>
+        <argsstring></argsstring>
+        <name>layer</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="116" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" bodystart="116" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-static-func">
+      <memberdef kind="function" id="classdabfg_1_1detail_1_1_virtual_attachment_request_1af5031d4155c6f1828d5dec8768d50780" prot="private" static="yes" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>static constexpr bool dabfg::detail::VirtualAttachmentRequest&lt; disallowPolicies, requirePolicies &gt;::policyAllowed</definition>
+        <argsstring>(RRP policy)</argsstring>
+        <name>policyAllowed</name>
+        <param>
+          <type>RRP</type>
+          <declname>policy</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="45" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" bodystart="45" bodyend="48"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1detail_1_1_virtual_attachment_request_1a7273916a2b856cd6292a61bdd1202380" prot="private" static="yes" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>static constexpr bool dabfg::detail::VirtualAttachmentRequest&lt; disallowPolicies, requirePolicies &gt;::policyAllowed</definition>
+        <argsstring>(RRP policy, const char *)</argsstring>
+        <name>policyAllowed</name>
+        <param>
+          <type>RRP</type>
+          <declname>policy</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="51" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" bodystart="51" bodyend="51"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classdabfg_1_1detail_1_1_virtual_attachment_request_1aae095c83f2608d5ad5d16e6ace3bafc9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+          <param>
+            <type>class</type>
+            <defval>void</defval>
+          </param>
+        </templateparamlist>
+        <type></type>
+        <definition>dabfg::detail::VirtualAttachmentRequest&lt; disallowPolicies, requirePolicies &gt;::VirtualAttachmentRequest</definition>
+        <argsstring>(VirtualResourceRequest&lt; BaseTexture, policy &gt; res)</argsstring>
+        <name>VirtualAttachmentRequest</name>
+        <param>
+          <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest</ref>&lt; BaseTexture, policy &gt;</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+<para>Implicit conversion from a resource request. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>res</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Resource request of an appropriate type. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="69" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" bodystart="69" bodyend="70"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1detail_1_1_virtual_attachment_request_1a5ead040fa1dfaab05fe365145af530a8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+          <param>
+            <type>class</type>
+            <defval>void</defval>
+          </param>
+        </templateparamlist>
+        <type></type>
+        <definition>dabfg::detail::VirtualAttachmentRequest&lt; disallowPolicies, requirePolicies &gt;::VirtualAttachmentRequest</definition>
+        <argsstring>(VirtualResourceRequest&lt; BaseTexture, policy &gt; res, uint32_t mip_level, uint32_t layer)</argsstring>
+        <name>VirtualAttachmentRequest</name>
+        <param>
+          <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest</ref>&lt; BaseTexture, policy &gt;</type>
+          <declname>res</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>mip_level</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>layer</declname>
+        </param>
+        <briefdescription>
+<para>Implicit conversion from an init list specifying a request, a mip level and a layer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>res</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Resource request of an appropriate type. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>mip_level</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Mip level of the texture to use as an attachment. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>layer</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Layer of an array texture to use as an attachment. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="82" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" bodystart="82" bodyend="84"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1detail_1_1_virtual_attachment_request_1a942c9f985d817a4f2f0d10e0431c16af" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class</type>
+            <defval>void</defval>
+          </param>
+        </templateparamlist>
+        <type></type>
+        <definition>dabfg::detail::VirtualAttachmentRequest&lt; disallowPolicies, requirePolicies &gt;::VirtualAttachmentRequest</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>VirtualAttachmentRequest</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Implicit conversion from a string name of a resource. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Automatically requests this resource for modification and marks appropriate usage type and stage for it.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>String name of a resource. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="94" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" bodystart="94" bodyend="95"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1detail_1_1_virtual_attachment_request_1a7ae0539e2a969ba281684c262921ef7a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class</type>
+            <defval>void</defval>
+          </param>
+        </templateparamlist>
+        <type></type>
+        <definition>dabfg::detail::VirtualAttachmentRequest&lt; disallowPolicies, requirePolicies &gt;::VirtualAttachmentRequest</definition>
+        <argsstring>(const char *name, uint32_t mip_level, uint32_t layer)</argsstring>
+        <name>VirtualAttachmentRequest</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>mip_level</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>layer</declname>
+        </param>
+        <briefdescription>
+<para>Implicit conversion from an init list specifying a string name of a resource, a mip level and a layer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Automatically requests this resource for modification and marks appropriate usage type and stage for it.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>String name of a resource. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>mip_level</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Mip level of the texture to use as an attachment. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>layer</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Level of an array texture to use as an attachment. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="108" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" bodystart="108" bodyend="109"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>A helper class to make calling .color() and .depth() convenient. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>This class wraps around either a request or a string name of a resource, validating that the request is appropriate in the first case and automatically selecting sensible request defaults in the second case. Generally speaking, we can use certain mips/layers as attachments, so an attachment request can specify them too.</para>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>disallowPolicies</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Bitmask of request policies that are not allowed for this attachment type. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>requirePolicies</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Bitmask of request policies that are required for this attachment type. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="41" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" bodystart="42" bodyend="117"/>
+    <listofallmembers>
+      <member refid="classdabfg_1_1detail_1_1_virtual_attachment_request_1a31edc00d335413bb753711825ba8cff9" prot="public" virt="non-virtual"><scope>dabfg::detail::VirtualAttachmentRequest</scope><name>dabfg::VirtualPassRequest</name></member>
+      <member refid="classdabfg_1_1detail_1_1_virtual_attachment_request_1a013f5608eb3fc200b95bb956863daa86" prot="private" virt="non-virtual"><scope>dabfg::detail::VirtualAttachmentRequest</scope><name>image</name></member>
+      <member refid="classdabfg_1_1detail_1_1_virtual_attachment_request_1a09e85bfc81ffde93d5208003029a11a3" prot="private" virt="non-virtual"><scope>dabfg::detail::VirtualAttachmentRequest</scope><name>layer</name></member>
+      <member refid="classdabfg_1_1detail_1_1_virtual_attachment_request_1afd6a37d17d18317192a6e27ad02d7c74" prot="private" virt="non-virtual"><scope>dabfg::detail::VirtualAttachmentRequest</scope><name>mipLevel</name></member>
+      <member refid="classdabfg_1_1detail_1_1_virtual_attachment_request_1af5031d4155c6f1828d5dec8768d50780" prot="private" virt="non-virtual"><scope>dabfg::detail::VirtualAttachmentRequest</scope><name>policyAllowed</name></member>
+      <member refid="classdabfg_1_1detail_1_1_virtual_attachment_request_1a7273916a2b856cd6292a61bdd1202380" prot="private" virt="non-virtual"><scope>dabfg::detail::VirtualAttachmentRequest</scope><name>policyAllowed</name></member>
+      <member refid="classdabfg_1_1detail_1_1_virtual_attachment_request_1ac014f0f268279a83d50d85e48c6817b7" prot="private" virt="non-virtual"><scope>dabfg::detail::VirtualAttachmentRequest</scope><name>RRP</name></member>
+      <member refid="classdabfg_1_1detail_1_1_virtual_attachment_request_1aae095c83f2608d5ad5d16e6ace3bafc9" prot="public" virt="non-virtual"><scope>dabfg::detail::VirtualAttachmentRequest</scope><name>VirtualAttachmentRequest</name></member>
+      <member refid="classdabfg_1_1detail_1_1_virtual_attachment_request_1a5ead040fa1dfaab05fe365145af530a8" prot="public" virt="non-virtual"><scope>dabfg::detail::VirtualAttachmentRequest</scope><name>VirtualAttachmentRequest</name></member>
+      <member refid="classdabfg_1_1detail_1_1_virtual_attachment_request_1a942c9f985d817a4f2f0d10e0431c16af" prot="public" virt="non-virtual"><scope>dabfg::detail::VirtualAttachmentRequest</scope><name>VirtualAttachmentRequest</name></member>
+      <member refid="classdabfg_1_1detail_1_1_virtual_attachment_request_1a7ae0539e2a969ba281684c262921ef7a" prot="public" virt="non-virtual"><scope>dabfg::detail::VirtualAttachmentRequest</scope><name>VirtualAttachmentRequest</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,64 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_device_driver_raytrace_properties" kind="struct" language="C++" prot="public">
+    <compoundname>DeviceDriverRaytraceProperties</compoundname>
+    <includes refid="dag__consts_8h" local="no">dag_consts.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_device_driver_raytrace_properties_1a0309a008b8d9c9c25c313202319f00c1" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned DeviceDriverRaytraceProperties::topAccelerationStructureInstanceElementSize</definition>
+        <argsstring></argsstring>
+        <name>topAccelerationStructureInstanceElementSize</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts.h" line="2133" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts.h" bodystart="2133" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_raytrace_properties_1a80b38dc25922fd0291cf186be25b9510" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned DeviceDriverRaytraceProperties::accelerationStructureBuildScratchBufferOffetAlignment</definition>
+        <argsstring></argsstring>
+        <name>accelerationStructureBuildScratchBufferOffetAlignment</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Offsets for scratch buffers for acceleration structures builds have to be aligned to this value. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts.h" line="2135" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts.h" bodystart="2135" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_device_driver_raytrace_properties_1a64065a4bac706df032418ae0ae3a2bcf" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned DeviceDriverRaytraceProperties::maxRecursionDepth</definition>
+        <argsstring></argsstring>
+        <name>maxRecursionDepth</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Describes how many &quot;recursions&quot; ray dispatching supports. This describes how many rays can be cast without returning. A value of 1 would mean that only the ray gen shader can shoot the initial ray and no other shader invoked by the rays miss or hit shader. A value of 2 means that the ray gen shader shoots the first ray and the invoked hit or miss shader may also shoot one ray. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts.h" line="2141" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts.h" bodystart="2141" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Holds the device and driver specific ray tracing related properties. NOTE some platforms may override these with fixed values. </para>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts.h" line="2129" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts.h" bodystart="2130" bodyend="2142"/>
+    <listofallmembers>
+      <member refid="struct_device_driver_raytrace_properties_1a80b38dc25922fd0291cf186be25b9510" prot="public" virt="non-virtual"><scope>DeviceDriverRaytraceProperties</scope><name>accelerationStructureBuildScratchBufferOffetAlignment</name></member>
+      <member refid="struct_device_driver_raytrace_properties_1a64065a4bac706df032418ae0ae3a2bcf" prot="public" virt="non-virtual"><scope>DeviceDriverRaytraceProperties</scope><name>maxRecursionDepth</name></member>
+      <member refid="struct_device_driver_raytrace_properties_1a0309a008b8d9c9c25c313202319f00c1" prot="public" virt="non-virtual"><scope>DeviceDriverRaytraceProperties</scope><name>topAccelerationStructureInstanceElementSize</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

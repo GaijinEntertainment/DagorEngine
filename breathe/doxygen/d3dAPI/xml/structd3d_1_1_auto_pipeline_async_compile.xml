@@ -1,0 +1,53 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structd3d_1_1_auto_pipeline_async_compile" kind="struct" language="C++" prot="public">
+    <compoundname>d3d::AutoPipelineAsyncCompile</compoundname>
+    <includes refid="dag__async__pipeline_8h" local="no">dag_async_pipeline.h</includes>
+    <templateparamlist>
+      <param>
+        <type>bool</type>
+        <declname>allow_compute_pipelines</declname>
+        <defname>allow_compute_pipelines</defname>
+        <defval>true</defval>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structd3d_1_1_auto_pipeline_async_compile_1a1d672141fec814d046209b02aae8639e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>d3d::AutoPipelineAsyncCompile&lt; allow_compute_pipelines &gt;::AutoPipelineAsyncCompile</definition>
+        <argsstring>()</argsstring>
+        <name>AutoPipelineAsyncCompile</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_async_pipeline.h" line="20" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_async_pipeline.h" bodystart="20" bodyend="24"/>
+      </memberdef>
+      <memberdef kind="function" id="structd3d_1_1_auto_pipeline_async_compile_1a52b056018338ce02213e60e4ae1fc256" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>d3d::AutoPipelineAsyncCompile&lt; allow_compute_pipelines &gt;::~AutoPipelineAsyncCompile</definition>
+        <argsstring>()</argsstring>
+        <name>~AutoPipelineAsyncCompile</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_async_pipeline.h" line="25" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_async_pipeline.h" bodystart="25" bodyend="25"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Enables async pipeline compilation in its scope when allow_compute_pipelines is false, only graphics pipelines are async compiled (compute compiled as is) </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_async_pipeline.h" line="18" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_async_pipeline.h" bodystart="19" bodyend="26"/>
+    <listofallmembers>
+      <member refid="structd3d_1_1_auto_pipeline_async_compile_1a1d672141fec814d046209b02aae8639e" prot="public" virt="non-virtual"><scope>d3d::AutoPipelineAsyncCompile</scope><name>AutoPipelineAsyncCompile</name></member>
+      <member refid="structd3d_1_1_auto_pipeline_async_compile_1a52b056018338ce02213e60e4ae1fc256" prot="public" virt="non-virtual"><scope>d3d::AutoPipelineAsyncCompile</scope><name>~AutoPipelineAsyncCompile</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

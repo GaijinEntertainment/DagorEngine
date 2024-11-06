@@ -1,0 +1,67 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structdabfg_1_1_texture2d_create_info" kind="struct" language="C++" prot="public">
+    <compoundname>dabfg::Texture2dCreateInfo</compoundname>
+    <includes refid="resource_creation_8h" local="no">resourceCreation.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structdabfg_1_1_texture2d_create_info_1a66ef867330b3c175cd4feaf25633c10d" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t dabfg::Texture2dCreateInfo::creationFlags</definition>
+        <argsstring></argsstring>
+        <name>creationFlags</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Use TEXCF_ prefixed flags. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" line="46" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdabfg_1_1_texture2d_create_info_1a942a882973125dc998cda01f937fb933" prot="public" static="no" mutable="no">
+        <type>eastl::variant&lt; IPoint2, <ref refid="classdabfg_1_1_auto_resolution_request" kindref="compound">AutoResolutionRequest</ref>&lt; 2 &gt; &gt;</type>
+        <definition>eastl::variant&lt;IPoint2, AutoResolutionRequest&lt;2&gt; &gt; dabfg::Texture2dCreateInfo::resolution</definition>
+        <argsstring></argsstring>
+        <name>resolution</name>
+        <briefdescription>
+<para>Resolution for this texture. May either be hard-coded or automatic, see <ref refid="classdabfg_1_1_auto_resolution_request" kindref="compound">AutoResolutionRequest</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" line="48" column="18" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdabfg_1_1_texture2d_create_info_1aacbec16fa75333b3b2c83d96c2121509" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t dabfg::Texture2dCreateInfo::mipLevels</definition>
+        <argsstring></argsstring>
+        <name>mipLevels</name>
+        <initializer>= 1</initializer>
+        <briefdescription>
+<para>Use 0 for automatic mip levels. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" line="50" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Specifies the creation parameters for a 2D texture. </para>
+    </briefdescription>
+    <detaileddescription>
+<para><simplesect kind="note"><para>Resources will ALWAYS contain garbage right after they&apos;ve been created. Use virtual passes to clear them if you need to, or write explicit clears. </para>
+</simplesect>
+</para>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" line="43" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" bodystart="44" bodyend="51"/>
+    <listofallmembers>
+      <member refid="structdabfg_1_1_texture2d_create_info_1a66ef867330b3c175cd4feaf25633c10d" prot="public" virt="non-virtual"><scope>dabfg::Texture2dCreateInfo</scope><name>creationFlags</name></member>
+      <member refid="structdabfg_1_1_texture2d_create_info_1aacbec16fa75333b3b2c83d96c2121509" prot="public" virt="non-virtual"><scope>dabfg::Texture2dCreateInfo</scope><name>mipLevels</name></member>
+      <member refid="structdabfg_1_1_texture2d_create_info_1a942a882973125dc998cda01f937fb933" prot="public" virt="non-virtual"><scope>dabfg::Texture2dCreateInfo</scope><name>resolution</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

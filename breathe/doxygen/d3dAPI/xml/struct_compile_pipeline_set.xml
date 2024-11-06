@@ -1,0 +1,212 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_compile_pipeline_set" kind="struct" language="C++" prot="public">
+    <compoundname>CompilePipelineSet</compoundname>
+    <includes refid="dag__commands_8h" local="no">dag_commands.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_compile_pipeline_set_1a138b146df3b7dc68dec186fb3a5fcfb3" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* CompilePipelineSet::defaultFormat</definition>
+        <argsstring></argsstring>
+        <name>defaultFormat</name>
+        <briefdescription>
+<para>V1 and V2 value. When not specified, the driver assumes its driver specific format (if supported) and otherwise engine. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" line="440" column="14" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" bodystart="440" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_compile_pipeline_set_1ae2f3592ce9ffac9ed36af64bac5f2779" prot="public" static="no" mutable="no">
+        <type>const DataBlock *</type>
+        <definition>const DataBlock* CompilePipelineSet::featureSet</definition>
+        <argsstring></argsstring>
+        <name>featureSet</name>
+        <briefdescription>
+<para>V1 and V2 block. A block with a set of feature sets referenced by pipelines in the pipeline sets to indicate required features. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" line="442" column="19" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" bodystart="442" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_compile_pipeline_set_1a6268f16795380926d5f71dc99e6deab9" prot="public" static="no" mutable="no">
+        <type>const DataBlock *</type>
+        <definition>const DataBlock* CompilePipelineSet::inputLayoutSet</definition>
+        <argsstring></argsstring>
+        <name>inputLayoutSet</name>
+        <briefdescription>
+<para>V1 and V2 block. A block with a set of blocks describing input layouts. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" line="444" column="19" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" bodystart="444" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_compile_pipeline_set_1a3b779ff7d839bcbe442f762697ef3a74" prot="public" static="no" mutable="no">
+        <type>const DataBlock *</type>
+        <definition>const DataBlock* CompilePipelineSet::renderStateSet</definition>
+        <argsstring></argsstring>
+        <name>renderStateSet</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>V1 and V2 block. A block with a set of blocks describing render states. The driver will ignore render states that are incompatible with the system. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" line="447" column="19" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" bodystart="447" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_compile_pipeline_set_1a3db5f29bf38520f35445b27c165c861e" prot="public" static="no" mutable="no">
+        <type>const DataBlock *</type>
+        <definition>const DataBlock* CompilePipelineSet::outputFormatSet</definition>
+        <argsstring></argsstring>
+        <name>outputFormatSet</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>V1 and V2 block. A block with a set of blocks describing output format states. The driver will ignore output format states that are incompatible wit the system. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" line="450" column="19" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" bodystart="450" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_compile_pipeline_set_1a7a05fd61c46997a9212bff92ee8fc37e" prot="public" static="no" mutable="no">
+        <type>const DataBlock *</type>
+        <definition>const DataBlock* CompilePipelineSet::graphicsPipelineSet</definition>
+        <argsstring></argsstring>
+        <name>graphicsPipelineSet</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>V1 block. A block with a set of blocks describing graphics pipelines. The driver will ignore pipelines using unsupported input layouts, render states or output formats. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" line="453" column="19" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" bodystart="453" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_compile_pipeline_set_1ae7ef38d4e772b6b7139df0304fa5e982" prot="public" static="no" mutable="no">
+        <type>const DataBlock *</type>
+        <definition>const DataBlock* CompilePipelineSet::meshPipelineSet</definition>
+        <argsstring></argsstring>
+        <name>meshPipelineSet</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>V1 block. A block with a set of blocks describing mesh pipelines. The driver will ignore pipelines using unsupported render states or output formats. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" line="456" column="19" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" bodystart="456" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_compile_pipeline_set_1a8570c5937f2f5fe605f987fcba1db7cf" prot="public" static="no" mutable="no">
+        <type>const DataBlock *</type>
+        <definition>const DataBlock* CompilePipelineSet::computePipelineSet</definition>
+        <argsstring></argsstring>
+        <name>computePipelineSet</name>
+        <briefdescription>
+<para>V1 block. A block with a set of blocks describing compute pipelines. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" line="458" column="19" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" bodystart="458" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_compile_pipeline_set_1aa838a4c49c42d0709bead9506eecc2a6" prot="public" static="no" mutable="no">
+        <type>const DataBlock *</type>
+        <definition>const DataBlock* CompilePipelineSet::signature</definition>
+        <argsstring></argsstring>
+        <name>signature</name>
+        <briefdescription>
+<para>V2 block, this block stores shader class signatures, this ensures we try not to load incompatible shader class uses. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" line="460" column="19" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" bodystart="460" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_compile_pipeline_set_1a789caa81ad84dd7a372d85e2d15c6883" prot="public" static="no" mutable="no">
+        <type>const DataBlock *</type>
+        <definition>const DataBlock* CompilePipelineSet::computeSet</definition>
+        <argsstring></argsstring>
+        <name>computeSet</name>
+        <briefdescription>
+<para>V2 block, new compute use set, uses shader class names and codes. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" line="462" column="19" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" bodystart="462" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_compile_pipeline_set_1ac96d748b13688d100054a2bb4a902878" prot="public" static="no" mutable="no">
+        <type>const DataBlock *</type>
+        <definition>const DataBlock* CompilePipelineSet::graphicsSet</definition>
+        <argsstring></argsstring>
+        <name>graphicsSet</name>
+        <briefdescription>
+<para>V2 block, new graphics use set, uses shader class names and codes. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" line="464" column="19" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" bodystart="464" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_compile_pipeline_set_1acada38ffc277563c94105b8c5b3f8da5" prot="public" static="no" mutable="no">
+        <type>const DataBlock *</type>
+        <definition>const DataBlock* CompilePipelineSet::graphicsNullPixelOverrideSet</definition>
+        <argsstring></argsstring>
+        <name>graphicsNullPixelOverrideSet</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>V2 block, new graphics use set, uses shader class names and codes. This set has pipelines where the paired pixel shader is replaced by the null pixel shader. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" line="467" column="19" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" bodystart="467" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_compile_pipeline_set_1a75beef7bd11a818cc4781bb4e5cfd217" prot="public" static="no" mutable="no">
+        <type>const DataBlock *</type>
+        <definition>const DataBlock* CompilePipelineSet::graphicsPixelOverrideSet</definition>
+        <argsstring></argsstring>
+        <name>graphicsPixelOverrideSet</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>V2 block, new graphics use set, uses shader class names and codes. This set has pipelines where the paired pixel shader uses a differen shader class name and codes than the vertex shader. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" line="470" column="19" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" bodystart="470" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>All values are optional, but graphics and mesh pipelines can not be created without output and render state sets. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" line="437" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" bodystart="438" bodyend="471"/>
+    <listofallmembers>
+      <member refid="struct_compile_pipeline_set_1a8570c5937f2f5fe605f987fcba1db7cf" prot="public" virt="non-virtual"><scope>CompilePipelineSet</scope><name>computePipelineSet</name></member>
+      <member refid="struct_compile_pipeline_set_1a789caa81ad84dd7a372d85e2d15c6883" prot="public" virt="non-virtual"><scope>CompilePipelineSet</scope><name>computeSet</name></member>
+      <member refid="struct_compile_pipeline_set_1a138b146df3b7dc68dec186fb3a5fcfb3" prot="public" virt="non-virtual"><scope>CompilePipelineSet</scope><name>defaultFormat</name></member>
+      <member refid="struct_compile_pipeline_set_1ae2f3592ce9ffac9ed36af64bac5f2779" prot="public" virt="non-virtual"><scope>CompilePipelineSet</scope><name>featureSet</name></member>
+      <member refid="struct_compile_pipeline_set_1acada38ffc277563c94105b8c5b3f8da5" prot="public" virt="non-virtual"><scope>CompilePipelineSet</scope><name>graphicsNullPixelOverrideSet</name></member>
+      <member refid="struct_compile_pipeline_set_1a7a05fd61c46997a9212bff92ee8fc37e" prot="public" virt="non-virtual"><scope>CompilePipelineSet</scope><name>graphicsPipelineSet</name></member>
+      <member refid="struct_compile_pipeline_set_1a75beef7bd11a818cc4781bb4e5cfd217" prot="public" virt="non-virtual"><scope>CompilePipelineSet</scope><name>graphicsPixelOverrideSet</name></member>
+      <member refid="struct_compile_pipeline_set_1ac96d748b13688d100054a2bb4a902878" prot="public" virt="non-virtual"><scope>CompilePipelineSet</scope><name>graphicsSet</name></member>
+      <member refid="struct_compile_pipeline_set_1a6268f16795380926d5f71dc99e6deab9" prot="public" virt="non-virtual"><scope>CompilePipelineSet</scope><name>inputLayoutSet</name></member>
+      <member refid="struct_compile_pipeline_set_1ae7ef38d4e772b6b7139df0304fa5e982" prot="public" virt="non-virtual"><scope>CompilePipelineSet</scope><name>meshPipelineSet</name></member>
+      <member refid="struct_compile_pipeline_set_1a3db5f29bf38520f35445b27c165c861e" prot="public" virt="non-virtual"><scope>CompilePipelineSet</scope><name>outputFormatSet</name></member>
+      <member refid="struct_compile_pipeline_set_1a3b779ff7d839bcbe442f762697ef3a74" prot="public" virt="non-virtual"><scope>CompilePipelineSet</scope><name>renderStateSet</name></member>
+      <member refid="struct_compile_pipeline_set_1aa838a4c49c42d0709bead9506eecc2a6" prot="public" virt="non-virtual"><scope>CompilePipelineSet</scope><name>signature</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

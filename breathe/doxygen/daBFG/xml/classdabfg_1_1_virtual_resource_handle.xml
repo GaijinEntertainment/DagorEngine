@@ -1,0 +1,227 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="classdabfg_1_1_virtual_resource_handle" kind="class" language="C++" prot="public">
+    <compoundname>dabfg::VirtualResourceHandle</compoundname>
+    <includes refid="virtual_resource_handle_8h" local="no">virtualResourceHandle.h</includes>
+    <templateparamlist>
+      <param>
+        <type>class Res</type>
+      </param>
+      <param>
+        <type>bool</type>
+        <declname>gpu</declname>
+        <defname>gpu</defname>
+      </param>
+      <param>
+        <type>bool</type>
+        <declname>optional</declname>
+        <defname>optional</defname>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="private-type">
+      <memberdef kind="typedef" id="classdabfg_1_1_virtual_resource_handle_1ac6509af88fdf96b27366c517393b0ed9" prot="private" static="no">
+        <type>detail::VirtualResourceHandleBase</type>
+        <definition>using dabfg::VirtualResourceHandle&lt; Res, gpu, optional &gt;::Base =  detail::VirtualResourceHandleBase</definition>
+        <argsstring></argsstring>
+        <name>Base</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceHandle.h" line="50" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceHandle.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classdabfg_1_1_virtual_resource_handle_1aaac4eb668e700fa59144284ff909c3ea" prot="private" static="no">
+        <type>eastl::remove_cvref_t&lt; Res &gt;</type>
+        <definition>using dabfg::VirtualResourceHandle&lt; Res, gpu, optional &gt;::ResNoConst =  eastl::remove_cvref_t&lt;Res&gt;</definition>
+        <argsstring></argsstring>
+        <name>ResNoConst</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceHandle.h" line="52" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceHandle.h" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classdabfg_1_1_virtual_resource_handle_1a9cb87f8de1b9ef58eef48f32db2e0aee" prot="private" static="no">
+        <type>eastl::conditional_t&lt; gpu, ManagedResView&lt; ManagedRes&lt; ResNoConst &gt; &gt;, BlobView &gt;</type>
+        <definition>using dabfg::VirtualResourceHandle&lt; Res, gpu, optional &gt;::View =  eastl::conditional_t&lt;gpu, ManagedResView&lt;ManagedRes&lt;ResNoConst&gt; &gt;, BlobView&gt;</definition>
+        <argsstring></argsstring>
+        <name>View</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceHandle.h" line="53" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceHandle.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classdabfg_1_1_virtual_resource_handle_1a89ee6a63e927cac45492ffd867edb640" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class</type>
+          </param>
+          <param>
+            <type>detail::ResourceRequestPolicy</type>
+          </param>
+        </templateparamlist>
+        <type>class</type>
+        <definition>friend class VirtualResourceRequest</definition>
+        <argsstring></argsstring>
+        <name>VirtualResourceRequest</name>
+        <param>
+          <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceHandle.h" line="48" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceHandle.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classdabfg_1_1_virtual_resource_handle_1a8ba243c4efdba7fcd4a43fdcd3b33ed1" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>dabfg::VirtualResourceHandle&lt; Res, gpu, optional &gt;::VirtualResourceHandle</definition>
+        <argsstring>(detail::ResUid resId, const ResourceProvider *prov)</argsstring>
+        <name>VirtualResourceHandle</name>
+        <param>
+          <type>detail::ResUid</type>
+          <declname>resId</declname>
+        </param>
+        <param>
+          <type>const ResourceProvider *</type>
+          <declname>prov</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceHandle.h" line="55" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceHandle.h" bodystart="55" bodyend="55"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classdabfg_1_1_virtual_resource_handle_1af572df7b3d6b663acbbd533cc380da7c" prot="public" static="no" const="yes" explicit="no" inline="yes" refqual="lvalue" virt="non-virtual">
+        <type>Res &amp;</type>
+        <definition>Res&amp; dabfg::VirtualResourceHandle&lt; Res, gpu, optional &gt;::ref</definition>
+        <argsstring>() const &amp;</argsstring>
+        <name>ref</name>
+        <briefdescription>
+<para>Returns a reference to the provided resource. Only defined for mandatory handles. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>For read requests, this always returns a const reference. Due to unfortunate coupling of textures with samplers, sometimes this constness needs to be violated. Use <computeroutput>.<ref refid="classdabfg_1_1_virtual_resource_handle_1ab58d99f1b323d19887e18dff48e3986b" kindref="member">view()</ref></computeroutput> for that.</para>
+<para><simplesect kind="return"><para>A non-nullable reference to the resource. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceHandle.h" line="68" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceHandle.h" bodystart="68" bodyend="68"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_resource_handle_1ac2798193d43e5a92040ae99e2cc219bf" prot="public" static="no" const="yes" explicit="no" inline="yes" refqual="lvalue" virt="non-virtual">
+        <type>Res *</type>
+        <definition>Res* dabfg::VirtualResourceHandle&lt; Res, gpu, optional &gt;::get</definition>
+        <argsstring>() const &amp;</argsstring>
+        <name>get</name>
+        <briefdescription>
+<para>Returns a pointer to the provided resource, or nullptr for missing optional resources. Always check for null when using this! </para>
+        </briefdescription>
+        <detaileddescription>
+<para>For read requests, this always returns a const reference. Due to unfortunate coupling of textures with samplers, sometimes this constness needs to be violated. Use <computeroutput>.<ref refid="classdabfg_1_1_virtual_resource_handle_1ab58d99f1b323d19887e18dff48e3986b" kindref="member">view()</ref></computeroutput> for that.</para>
+<para><simplesect kind="return"><para>A pointer to the resource that may be nullptr for optional requests. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceHandle.h" line="80" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceHandle.h" bodystart="80" bodyend="93"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_resource_handle_1ab58d99f1b323d19887e18dff48e3986b" prot="public" static="no" const="yes" explicit="no" inline="yes" refqual="lvalue" virt="non-virtual">
+        <type>View</type>
+        <definition>View dabfg::VirtualResourceHandle&lt; Res, gpu, optional &gt;::view</definition>
+        <argsstring>() const &amp;</argsstring>
+        <name>view</name>
+        <briefdescription>
+<para>Returns a managed view to a provided GPU resource, or an empty view for missing optional resources. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>A ManagedResView to the GPU resource that may be empty for optional requests. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceHandle.h" line="103" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceHandle.h" bodystart="103" bodyend="103"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_resource_handle_1a15ce79575f77ea40923f807efbc83dfb" prot="public" static="no" const="yes" explicit="no" inline="yes" refqual="lvalue" virt="non-virtual">
+        <type>D3DRESID</type>
+        <definition>D3DRESID dabfg::VirtualResourceHandle&lt; Res, gpu, optional &gt;::d3dResId</definition>
+        <argsstring>() const &amp;</argsstring>
+        <name>d3dResId</name>
+        <briefdescription>
+<para>Returns the engine resource manager ID for a provided GPU resource, or a BAD_RESID for a missing optional resource. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>A D3DRESID to the GPU resource that may be BAD_RESID for optional requests. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceHandle.h" line="113" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceHandle.h" bodystart="113" bodyend="123"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Handle to a virtual resource managed by BFG. Does not actually represent a physical GPU or CPU resource until the execution callback gets called. The physical resource will also change between calls to the execution callback, so the dereferenced value of this handle should NEVER be cached anywhere. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>All methods are const &amp; as this is supposed to be called from within the node execution callback. <parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>Res</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>BaseTexture or Sbuffer when <computeroutput>gpu</computeroutput> == true, otherwise arbitrary CPU data type. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>gpu</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>True iff this handle represents a GPU resource. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>optional</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>True iff this handle can refer to a missing resource. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceHandle.h" line="42" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualResourceHandle.h" bodystart="46" bodyend="124"/>
+    <listofallmembers>
+      <member refid="classdabfg_1_1_virtual_resource_handle_1ac6509af88fdf96b27366c517393b0ed9" prot="private" virt="non-virtual"><scope>dabfg::VirtualResourceHandle</scope><name>Base</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_handle_1a15ce79575f77ea40923f807efbc83dfb" prot="public" virt="non-virtual"><scope>dabfg::VirtualResourceHandle</scope><name>d3dResId</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_handle_1ac2798193d43e5a92040ae99e2cc219bf" prot="public" virt="non-virtual"><scope>dabfg::VirtualResourceHandle</scope><name>get</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_handle_1af572df7b3d6b663acbbd533cc380da7c" prot="public" virt="non-virtual"><scope>dabfg::VirtualResourceHandle</scope><name>ref</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_handle_1aaac4eb668e700fa59144284ff909c3ea" prot="private" virt="non-virtual"><scope>dabfg::VirtualResourceHandle</scope><name>ResNoConst</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_handle_1a9cb87f8de1b9ef58eef48f32db2e0aee" prot="private" virt="non-virtual"><scope>dabfg::VirtualResourceHandle</scope><name>View</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_handle_1ab58d99f1b323d19887e18dff48e3986b" prot="public" virt="non-virtual"><scope>dabfg::VirtualResourceHandle</scope><name>view</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_handle_1a8ba243c4efdba7fcd4a43fdcd3b33ed1" prot="private" virt="non-virtual"><scope>dabfg::VirtualResourceHandle</scope><name>VirtualResourceHandle</name></member>
+      <member refid="classdabfg_1_1_virtual_resource_handle_1a89ee6a63e927cac45492ffd867edb640" prot="private" virt="non-virtual"><scope>dabfg::VirtualResourceHandle</scope><name>VirtualResourceRequest</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

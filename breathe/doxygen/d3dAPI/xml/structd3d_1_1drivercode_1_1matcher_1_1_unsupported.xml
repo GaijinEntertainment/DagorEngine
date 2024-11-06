@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structd3d_1_1drivercode_1_1matcher_1_1_unsupported" kind="struct" language="C++" prot="public">
+    <compoundname>d3d::drivercode::matcher::Unsupported</compoundname>
+    <includes refid="dag__driver_code_8h" local="no">dag_driverCode.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structd3d_1_1drivercode_1_1matcher_1_1_unsupported_1a86d26b1988f0b36dea64a2dcbc565a5c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>d3d::drivercode::matcher::Unsupported::Unsupported</definition>
+        <argsstring>()=delete</argsstring>
+        <name>Unsupported</name>
+        <briefdescription>
+<para>No one should be able to instance this type, it is supposed to fail the build. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="166" column="3"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>This matcher type is just to result in compilation errors on not yet supported platforms and help doxygen. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>So when the compiler is yelling at you about this type, then you may want to add a new set of matchers for that _TARGET_* you want to build. Use a existing target as a template and alter they types of the matchers to model the behavior of that target. </para>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="163" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="164" bodyend="167"/>
+    <listofallmembers>
+      <member refid="structd3d_1_1drivercode_1_1matcher_1_1_unsupported_1a86d26b1988f0b36dea64a2dcbc565a5c" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Unsupported</scope><name>Unsupported</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

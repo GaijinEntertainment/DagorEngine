@@ -1,0 +1,357 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="class_driver3d_init_callback" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>Driver3dInitCallback</compoundname>
+    <includes refid="dag__info_8h" local="no">dag_info.h</includes>
+    <innerclass refid="struct_driver3d_init_callback_1_1_render_size" prot="public">Driver3dInitCallback::RenderSize</innerclass>
+    <innerclass refid="struct_driver3d_init_callback_1_1_version_range" prot="public">Driver3dInitCallback::VersionRange</innerclass>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="class_driver3d_init_callback_1a50e534eb871e9d46ccd905245f50f623" prot="public" static="no">
+        <type>bool(*)()</type>
+        <definition>using Driver3dInitCallback::NeedStereoRenderFunc =  bool (*)()</definition>
+        <argsstring></argsstring>
+        <name>NeedStereoRenderFunc</name>
+        <briefdescription>
+<para>Function pointer type for checking if stereo rendering is needed. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" line="40" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="class_driver3d_init_callback_1a5b4417a63e5158253cc04a076a2d8835" prot="public" static="no">
+        <type>int(*)()</type>
+        <definition>using Driver3dInitCallback::StereoRenderDimensionFunc =  int (*)()</definition>
+        <argsstring></argsstring>
+        <name>StereoRenderDimensionFunc</name>
+        <briefdescription>
+<para>Function pointer type for getting the dimension of stereo rendering. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" line="41" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="class_driver3d_init_callback_1a16d1f90ca9e461c5272c3df6e073739e" prot="public" static="no">
+        <type>const char *(*)()</type>
+        <definition>using Driver3dInitCallback::StereoRenderExtensionsFunc =  const char *(*)()</definition>
+        <argsstring></argsstring>
+        <name>StereoRenderExtensionsFunc</name>
+        <briefdescription>
+<para>Function pointer type for getting the extensions for stereo rendering. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" line="42" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="class_driver3d_init_callback_1a808702219d8677ec25a3450f90681226" prot="public" static="no">
+        <type><ref refid="struct_driver3d_init_callback_1_1_version_range" kindref="compound">VersionRange</ref>(*)()</type>
+        <definition>using Driver3dInitCallback::StereoRenderVersionsFunc =  VersionRange (*)()</definition>
+        <argsstring></argsstring>
+        <name>StereoRenderVersionsFunc</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Function pointer type for getting the supported versions for stereo rendering </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" line="43" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="class_driver3d_init_callback_1aabaeb84dc61ae04d98df5bb00d018f4e" prot="public" static="no">
+        <type>int64_t(*)()</type>
+        <definition>using Driver3dInitCallback::StereoRenderAdapterFunc =  int64_t (*)()</definition>
+        <argsstring></argsstring>
+        <name>StereoRenderAdapterFunc</name>
+        <briefdescription>
+<para>Function pointer type for getting the adapter for stereo rendering. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" line="45" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="class_driver3d_init_callback_1a2e5d34c5e7366950f7a8caa1966193db" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void Driver3dInitCallback::verifyResolutionSettings</definition>
+        <argsstring>(int &amp;ref_scr_wdt, int &amp;ref_scr_hgt, int base_scr_wdt, int base_scr_hgt, bool window_mode) const</argsstring>
+        <name>verifyResolutionSettings</name>
+        <param>
+          <type>int &amp;</type>
+          <declname>ref_scr_wdt</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>ref_scr_hgt</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>base_scr_wdt</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>base_scr_hgt</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>window_mode</declname>
+        </param>
+        <briefdescription>
+<para>Verifies the resolution settings. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ref_scr_wdt</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The reference screen width </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>ref_scr_hgt</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The reference screen height </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>base_scr_wdt</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The base screen width </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>base_scr_hgt</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The base screen height </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>window_mode</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Flag indicating if the window mode is enabled </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" line="55" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" bodystart="55" bodyend="62"/>
+      </memberdef>
+      <memberdef kind="function" id="class_driver3d_init_callback_1a1b92d98c1d83a6256a52b0111626f9cd" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int Driver3dInitCallback::validateDesc</definition>
+        <argsstring>(Driver3dDesc &amp;desc) const =0</argsstring>
+        <name>validateDesc</name>
+        <param>
+          <type><ref refid="struct_driver3d_desc" kindref="compound">Driver3dDesc</ref> &amp;</type>
+          <declname>desc</declname>
+        </param>
+        <briefdescription>
+<para>Validates the driver description. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>desc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The driver description to validate </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>something </para>
+</simplesect>
+<xrefsect id="todo_1_todo000012"><xreftitle>Todo</xreftitle><xrefdescription><para>This fucntion is not used anywhere. Remove it? </para>
+</xrefdescription></xrefsect></para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" line="70" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="class_driver3d_init_callback_1a91d3767e5a09998a39df239c2a1c10a7" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int Driver3dInitCallback::compareDesc</definition>
+        <argsstring>(Driver3dDesc &amp;A, Driver3dDesc &amp;B) const =0</argsstring>
+        <name>compareDesc</name>
+        <param>
+          <type><ref refid="struct_driver3d_desc" kindref="compound">Driver3dDesc</ref> &amp;</type>
+          <declname>A</declname>
+        </param>
+        <param>
+          <type><ref refid="struct_driver3d_desc" kindref="compound">Driver3dDesc</ref> &amp;</type>
+          <declname>B</declname>
+        </param>
+        <briefdescription>
+<para>Compares two driver descriptions. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>A</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The first driver description </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>B</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The second driver description </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>something </para>
+</simplesect>
+<xrefsect id="todo_1_todo000013"><xreftitle>Todo</xreftitle><xrefdescription><para>This fucntion is not used anywhere. Remove it? </para>
+</xrefdescription></xrefsect></para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" line="79" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="class_driver3d_init_callback_1a8606db2ff329b00fc9b9ac9e222c04ad" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool Driver3dInitCallback::desiredStereoRender</definition>
+        <argsstring>() const</argsstring>
+        <name>desiredStereoRender</name>
+        <briefdescription>
+<para>Checks if stereo rendering is desired. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>True if stereo rendering is desired, false otherwise </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" line="85" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" bodystart="85" bodyend="85"/>
+      </memberdef>
+      <memberdef kind="function" id="class_driver3d_init_callback_1aca402b6c7c233a0aa0829972751f820d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>int64_t</type>
+        <definition>virtual int64_t Driver3dInitCallback::desiredAdapter</definition>
+        <argsstring>() const</argsstring>
+        <name>desiredAdapter</name>
+        <briefdescription>
+<para>Gets the desired adapter. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>The desired adapter ID </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" line="91" column="19" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" bodystart="91" bodyend="91"/>
+      </memberdef>
+      <memberdef kind="function" id="class_driver3d_init_callback_1a52a81bfd69ccafa9d2142975f6a66cb7" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type><ref refid="struct_driver3d_init_callback_1_1_render_size" kindref="compound">RenderSize</ref></type>
+        <definition>virtual RenderSize Driver3dInitCallback::desiredRendererSize</definition>
+        <argsstring>() const</argsstring>
+        <name>desiredRendererSize</name>
+        <briefdescription>
+<para>Gets the desired size of the renderer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>The desired size of the renderer </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" line="97" column="22" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" bodystart="97" bodyend="97"/>
+      </memberdef>
+      <memberdef kind="function" id="class_driver3d_init_callback_1a87b83fceeaa6f728ccf676cc0af494e6" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>const char *</type>
+        <definition>virtual const char* Driver3dInitCallback::desiredRendererDeviceExtensions</definition>
+        <argsstring>() const</argsstring>
+        <name>desiredRendererDeviceExtensions</name>
+        <briefdescription>
+<para>Gets the desired device extensions for the renderer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>The desired device extensions for the renderer </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" line="103" column="22" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" bodystart="103" bodyend="103"/>
+      </memberdef>
+      <memberdef kind="function" id="class_driver3d_init_callback_1a5916cfafb61c52cbb68d4c169c5c102f" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>const char *</type>
+        <definition>virtual const char* Driver3dInitCallback::desiredRendererInstanceExtensions</definition>
+        <argsstring>() const</argsstring>
+        <name>desiredRendererInstanceExtensions</name>
+        <briefdescription>
+<para>Gets the desired instance extensions for the renderer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>The desired instance extensions for the renderer </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" line="109" column="22" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" bodystart="109" bodyend="109"/>
+      </memberdef>
+      <memberdef kind="function" id="class_driver3d_init_callback_1a13a56405168898a0170c4fcfc40e7c1d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type><ref refid="struct_driver3d_init_callback_1_1_version_range" kindref="compound">VersionRange</ref></type>
+        <definition>virtual VersionRange Driver3dInitCallback::desiredRendererVersionRange</definition>
+        <argsstring>() const</argsstring>
+        <name>desiredRendererVersionRange</name>
+        <briefdescription>
+<para>Gets the desired version range for the renderer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>The desired version range for the renderer </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" line="115" column="24" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" bodystart="115" bodyend="115"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Callback class for initializing the 3D driver. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" line="19" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_info.h" bodystart="20" bodyend="116"/>
+    <listofallmembers>
+      <member refid="class_driver3d_init_callback_1a91d3767e5a09998a39df239c2a1c10a7" prot="public" virt="pure-virtual"><scope>Driver3dInitCallback</scope><name>compareDesc</name></member>
+      <member refid="class_driver3d_init_callback_1aca402b6c7c233a0aa0829972751f820d" prot="public" virt="virtual"><scope>Driver3dInitCallback</scope><name>desiredAdapter</name></member>
+      <member refid="class_driver3d_init_callback_1a87b83fceeaa6f728ccf676cc0af494e6" prot="public" virt="virtual"><scope>Driver3dInitCallback</scope><name>desiredRendererDeviceExtensions</name></member>
+      <member refid="class_driver3d_init_callback_1a5916cfafb61c52cbb68d4c169c5c102f" prot="public" virt="virtual"><scope>Driver3dInitCallback</scope><name>desiredRendererInstanceExtensions</name></member>
+      <member refid="class_driver3d_init_callback_1a52a81bfd69ccafa9d2142975f6a66cb7" prot="public" virt="virtual"><scope>Driver3dInitCallback</scope><name>desiredRendererSize</name></member>
+      <member refid="class_driver3d_init_callback_1a13a56405168898a0170c4fcfc40e7c1d" prot="public" virt="virtual"><scope>Driver3dInitCallback</scope><name>desiredRendererVersionRange</name></member>
+      <member refid="class_driver3d_init_callback_1a8606db2ff329b00fc9b9ac9e222c04ad" prot="public" virt="virtual"><scope>Driver3dInitCallback</scope><name>desiredStereoRender</name></member>
+      <member refid="class_driver3d_init_callback_1a50e534eb871e9d46ccd905245f50f623" prot="public" virt="non-virtual"><scope>Driver3dInitCallback</scope><name>NeedStereoRenderFunc</name></member>
+      <member refid="class_driver3d_init_callback_1aabaeb84dc61ae04d98df5bb00d018f4e" prot="public" virt="non-virtual"><scope>Driver3dInitCallback</scope><name>StereoRenderAdapterFunc</name></member>
+      <member refid="class_driver3d_init_callback_1a5b4417a63e5158253cc04a076a2d8835" prot="public" virt="non-virtual"><scope>Driver3dInitCallback</scope><name>StereoRenderDimensionFunc</name></member>
+      <member refid="class_driver3d_init_callback_1a16d1f90ca9e461c5272c3df6e073739e" prot="public" virt="non-virtual"><scope>Driver3dInitCallback</scope><name>StereoRenderExtensionsFunc</name></member>
+      <member refid="class_driver3d_init_callback_1a808702219d8677ec25a3450f90681226" prot="public" virt="non-virtual"><scope>Driver3dInitCallback</scope><name>StereoRenderVersionsFunc</name></member>
+      <member refid="class_driver3d_init_callback_1a1b92d98c1d83a6256a52b0111626f9cd" prot="public" virt="pure-virtual"><scope>Driver3dInitCallback</scope><name>validateDesc</name></member>
+      <member refid="class_driver3d_init_callback_1a2e5d34c5e7366950f7a8caa1966193db" prot="public" virt="virtual"><scope>Driver3dInitCallback</scope><name>verifyResolutionSettings</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

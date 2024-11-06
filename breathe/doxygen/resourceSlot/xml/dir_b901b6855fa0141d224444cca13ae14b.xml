@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="dir_b901b6855fa0141d224444cca13ae14b" kind="dir">
+    <compoundname>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot</compoundname>
+    <innerfile refid="actions_8h">actions.h</innerfile>
+    <innerfile refid="node_handle_with_slots_access_8h">nodeHandleWithSlotsAccess.h</innerfile>
+    <innerfile refid="node_handle_with_slots_access_vector_8h">nodeHandleWithSlotsAccessVector.h</innerfile>
+    <innerfile refid="register_access_8h">registerAccess.h</innerfile>
+    <innerfile refid="resolve_access_8h">resolveAccess.h</innerfile>
+    <innerfile refid="state_8h">state.h</innerfile>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/"/>
+  </compounddef>
+</doxygen>

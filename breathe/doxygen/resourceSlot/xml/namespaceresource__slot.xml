@@ -1,0 +1,214 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="namespaceresource__slot" kind="namespace" language="C++">
+    <compoundname>resource_slot</compoundname>
+    <innerclass refid="structresource__slot_1_1_create" prot="public">resource_slot::Create</innerclass>
+    <innerclass refid="structresource__slot_1_1_update" prot="public">resource_slot::Update</innerclass>
+    <innerclass refid="structresource__slot_1_1_read" prot="public">resource_slot::Read</innerclass>
+    <innerclass refid="structresource__slot_1_1_state" prot="public">resource_slot::State</innerclass>
+    <innerclass refid="structresource__slot_1_1_node_handle_with_slots_access" prot="public">resource_slot::NodeHandleWithSlotsAccess</innerclass>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="node_handle_with_slots_access_vector_8h_1a35fcae9b16cfbf8a92e1ae28da92d52f" prot="public" static="no">
+        <type>dag::Vector&lt; <ref refid="structresource__slot_1_1_node_handle_with_slots_access" kindref="compound">NodeHandleWithSlotsAccess</ref> &gt;</type>
+        <definition>using resource_slot::NodeHandleWithSlotsAccessVector = typedef dag::Vector&lt;NodeHandleWithSlotsAccess&gt;</definition>
+        <argsstring></argsstring>
+        <name>NodeHandleWithSlotsAccessVector</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/nodeHandleWithSlotsAccessVector.h" line="14" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/nodeHandleWithSlotsAccessVector.h" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="register_access_8h_1a20107bff9d0ee7004d84c6456c767373" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class F</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="structresource__slot_1_1_node_handle_with_slots_access" kindref="compound">resource_slot::NodeHandleWithSlotsAccess</ref></type>
+        <definition>resource_slot::NodeHandleWithSlotsAccess resource_slot::register_access</definition>
+        <argsstring>(dabfg::NameSpace ns, const char *name, const char *source_location, resource_slot::detail::ActionList &amp;&amp;action_list, F &amp;&amp;declaration_callback)</argsstring>
+        <name>register_access</name>
+        <param>
+          <type>dabfg::NameSpace</type>
+          <declname>ns</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>source_location</declname>
+        </param>
+        <param>
+          <type>resource_slot::detail::ActionList &amp;&amp;</type>
+          <declname>action_list</declname>
+        </param>
+        <param>
+          <type>F &amp;&amp;</type>
+          <declname>declaration_callback</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Register access to resource slot state</para>
+<para>Enhanced version of dabfg::register_node()</para>
+<para>Usage:</para>
+<para><programlisting filename=".cpp"><codeline><highlight class="normal"><ref refid="structresource__slot_1_1_node_handle_with_slots_access" kindref="compound">resource_slot::NodeHandleWithSlotsAccess</ref><sp/>handle<sp/>=<sp/>resource_slot::register_access(</highlight><highlight class="stringliteral">&quot;node_name&quot;</highlight><highlight class="normal">,<sp/>DABFG_PP_NODE_SRC,{</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><ref refid="structresource__slot_1_1_read" kindref="compound">resource_slot::Read</ref>{</highlight><highlight class="stringliteral">&quot;slot1&quot;</highlight><highlight class="normal">},</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>node<sp/>CAN<sp/>read<sp/>slot1<sp/>from<sp/>slotsState</highlight><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><ref refid="structresource__slot_1_1_create" kindref="compound">resource_slot::Create</ref>{</highlight><highlight class="stringliteral">&quot;slot2&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;tex2&quot;</highlight><highlight class="normal">},</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>node<sp/>MUST<sp/>create<sp/>tex2,<sp/>that<sp/>will<sp/>be<sp/>saved<sp/>into<sp/>slot2<sp/>after<sp/>the<sp/>node</highlight><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><ref refid="structresource__slot_1_1_update" kindref="compound">resource_slot::Update</ref>{</highlight><highlight class="stringliteral">&quot;slot3&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;tex3_updated_variant&quot;</highlight><highlight class="normal">,<sp/>priority=200}</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>node<sp/>CAN<sp/>read<sp/>slot3<sp/>from<sp/>slotsState</highlight><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>node<sp/>MUST<sp/>create<sp/>tex3_updated_variant,<sp/>that<sp/>will<sp/>be<sp/>saved<sp/>into<sp/>slot3<sp/>after<sp/>the<sp/>node</highlight><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>nodes<sp/>with<sp/>HIGHER<sp/>priority<sp/>will<sp/>be<sp/>updated<sp/>AFTER<sp/>nodes<sp/>with<sp/>LOWER<sp/>priority:</highlight><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>first<sp/>priority=100,<sp/>then<sp/>priority=200</highlight><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>dependency<sp/>cycle<sp/>in<sp/>slots<sp/>and<sp/>priorities<sp/>is<sp/>programming<sp/>error</highlight><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal">},<sp/>[](<ref refid="structresource__slot_1_1_state" kindref="compound">resource_slot::State</ref><sp/>slotsState,<sp/>dabfg::Registry<sp/>registry)</highlight></codeline>
+<codeline><highlight class="normal">{</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>registry.readTexture(slotsState.<ref refid="structresource__slot_1_1_state_1a0d3c4e7b5713266f01b2bcda8ef03e10" kindref="member">resourceToReadFrom</ref>(</highlight><highlight class="stringliteral">&quot;slot1&quot;</highlight><highlight class="normal">)).atStage(...).bindToShaderVar(...);</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>read<sp/>final<sp/>state<sp/>of<sp/>slot1<sp/>after<sp/>all<sp/>updates<sp/>by<sp/>other<sp/>nodes</highlight><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>registry.createTexture2d(slotsState.<ref refid="structresource__slot_1_1_state_1a01ef17c1c8309c738449b095787769e5" kindref="member">resourceToCreateFor</ref>(</highlight><highlight class="stringliteral">&quot;slot2&quot;</highlight><highlight class="normal">),<sp/>...);</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>will<sp/>be<sp/>saved<sp/>to<sp/>slot2<sp/>after<sp/>this<sp/>node</highlight><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>registry.readTexture(slotsState.<ref refid="structresource__slot_1_1_state_1a0d3c4e7b5713266f01b2bcda8ef03e10" kindref="member">resourceToReadFrom</ref>(</highlight><highlight class="stringliteral">&quot;slot3&quot;</highlight><highlight class="normal">)).atStage(...).bindToShaderVar(...);</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>read<sp/>previous<sp/>resource<sp/>in<sp/>slot3,<sp/>for<sp/>example<sp/>&quot;tex3&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>registry.createTexture2d(slotsState.<ref refid="structresource__slot_1_1_state_1a01ef17c1c8309c738449b095787769e5" kindref="member">resourceToCreateFor</ref>(</highlight><highlight class="stringliteral">&quot;slot3&quot;</highlight><highlight class="normal">),<sp/>...);</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>will<sp/>be<sp/>saved<sp/>to<sp/>slot3<sp/>after<sp/>this<sp/>node</highlight><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>[]<sp/>{</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/>shader.render();<sp/></highlight><highlight class="comment">//<sp/>render<sp/>code<sp/>here</highlight><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline><highlight class="normal">});</highlight></codeline>
+</programlisting></para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ns</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>name space where the slot, the node, and all of the resources will be looked up in </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>node name </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>source_location</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>SHOULD be DABFG_PP_NODE_SRC </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>action_list</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>list of slots, that will be created, updated or read by the node </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>declaration_callback</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>node declaration; gets <ref refid="structresource__slot_1_1_state" kindref="compound">State</ref> as first argument </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>storage_id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>RESERVED for future use</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>handle for access to storage </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/registerAccess.h" line="62" column="43" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/registerAccess.h" bodystart="62" bodyend="70"/>
+      </memberdef>
+      <memberdef kind="function" id="register_access_8h_1acf4a05b313288aa0c6d737cf3c542cde" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class F</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="structresource__slot_1_1_node_handle_with_slots_access" kindref="compound">resource_slot::NodeHandleWithSlotsAccess</ref></type>
+        <definition>resource_slot::NodeHandleWithSlotsAccess resource_slot::register_access</definition>
+        <argsstring>(const char *name, const char *source_location, resource_slot::detail::ActionList &amp;&amp;action_list, F &amp;&amp;declaration_callback)</argsstring>
+        <name>register_access</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>source_location</declname>
+        </param>
+        <param>
+          <type>resource_slot::detail::ActionList &amp;&amp;</type>
+          <declname>action_list</declname>
+        </param>
+        <param>
+          <type>F &amp;&amp;</type>
+          <declname>declaration_callback</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/registerAccess.h" line="73" column="43" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/registerAccess.h" bodystart="73" bodyend="78"/>
+      </memberdef>
+      <memberdef kind="function" id="resolve_access_8h_1afff154ac3725f493ecee9557ec582f9c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void resource_slot::resolve_access</definition>
+        <argsstring>()</argsstring>
+        <name>resolve_access</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Perform all registered access and set NodeHandles.</para>
+<para>MUST be executed in every frame before dabfg::run_nodes()</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>storage_id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>RESERVED for future use </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/resolveAccess.h" line="15" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/resolveAccess.h" declline="15" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/actions.h" line="10" column="1"/>
+  </compounddef>
+</doxygen>

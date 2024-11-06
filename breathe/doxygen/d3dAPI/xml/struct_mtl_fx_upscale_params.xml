@@ -1,0 +1,77 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_mtl_fx_upscale_params" kind="struct" language="C++" prot="public">
+    <compoundname>MtlFxUpscaleParams</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_mtl_fx_upscale_params_1a53d5460f92c0256928831ec85c43ebf2" prot="public" static="no" mutable="no">
+        <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* MtlFxUpscaleParams::color</definition>
+        <argsstring></argsstring>
+        <name>color</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="330" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="330" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_mtl_fx_upscale_params_1a1c611f40767e4ae32334e35e33af52ff" prot="public" static="no" mutable="no">
+        <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* MtlFxUpscaleParams::output</definition>
+        <argsstring></argsstring>
+        <name>output</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="331" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="331" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_mtl_fx_upscale_params_1ab260e426fb3dcd58cc6e8318c702c69d" prot="public" static="no" mutable="no">
+        <type>MtlfxColorMode</type>
+        <definition>MtlfxColorMode MtlFxUpscaleParams::colorMode</definition>
+        <argsstring></argsstring>
+        <name>colorMode</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="332" column="18" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="332" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="3">
+        <label>D3dResource</label>
+        <link refid="class_d3d_resource"/>
+      </node>
+      <node id="2">
+        <label>BaseTexture</label>
+        <link refid="class_base_texture"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>MtlFxUpscaleParams</label>
+        <link refid="struct_mtl_fx_upscale_params"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>color</edgelabel>
+          <edgelabel>output</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="328" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="329" bodyend="333"/>
+    <listofallmembers>
+      <member refid="struct_mtl_fx_upscale_params_1a53d5460f92c0256928831ec85c43ebf2" prot="public" virt="non-virtual"><scope>MtlFxUpscaleParams</scope><name>color</name></member>
+      <member refid="struct_mtl_fx_upscale_params_1ab260e426fb3dcd58cc6e8318c702c69d" prot="public" virt="non-virtual"><scope>MtlFxUpscaleParams</scope><name>colorMode</name></member>
+      <member refid="struct_mtl_fx_upscale_params_1a1c611f40767e4ae32334e35e33af52ff" prot="public" virt="non-virtual"><scope>MtlFxUpscaleParams</scope><name>output</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

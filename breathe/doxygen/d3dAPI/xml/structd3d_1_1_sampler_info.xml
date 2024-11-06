@@ -1,0 +1,214 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structd3d_1_1_sampler_info" kind="struct" language="C++" prot="public">
+    <compoundname>d3d::SamplerInfo</compoundname>
+    <includes refid="dag__sampler_8h" local="no">dag_sampler.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structd3d_1_1_sampler_info_1a26e8e5b65a3575fde6ab343ada5ef599" prot="public" static="no" mutable="no">
+        <type>MipMapMode</type>
+        <definition>MipMapMode d3d::SamplerInfo::mip_map_mode</definition>
+        <argsstring></argsstring>
+        <name>mip_map_mode</name>
+        <initializer>= MipMapMode::Default</initializer>
+        <briefdescription>
+<para>MipMapMode. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" line="93" column="14" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" bodystart="93" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structd3d_1_1_sampler_info_1acbe701f4402ce9494f2a67aabc154e37" prot="public" static="no" mutable="no">
+        <type>FilterMode</type>
+        <definition>FilterMode d3d::SamplerInfo::filter_mode</definition>
+        <argsstring></argsstring>
+        <name>filter_mode</name>
+        <initializer>= FilterMode::Default</initializer>
+        <briefdescription>
+<para>FilterMode. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" line="94" column="14" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" bodystart="94" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structd3d_1_1_sampler_info_1ad56ca2145d10af60add0c2702508e807" prot="public" static="no" mutable="no">
+        <type>AddressMode</type>
+        <definition>AddressMode d3d::SamplerInfo::address_mode_u</definition>
+        <argsstring></argsstring>
+        <name>address_mode_u</name>
+        <initializer>= AddressMode::Wrap</initializer>
+        <briefdescription>
+<para>AddressMode for U coordinate. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" line="95" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" bodystart="95" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structd3d_1_1_sampler_info_1a2ac0af9e9b248fdbad8790c9f724b08a" prot="public" static="no" mutable="no">
+        <type>AddressMode</type>
+        <definition>AddressMode d3d::SamplerInfo::address_mode_v</definition>
+        <argsstring></argsstring>
+        <name>address_mode_v</name>
+        <initializer>= AddressMode::Wrap</initializer>
+        <briefdescription>
+<para>AddressMode for V coordinate. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" line="96" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" bodystart="96" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structd3d_1_1_sampler_info_1a4813fc992b79bf424b6f94938335dd29" prot="public" static="no" mutable="no">
+        <type>AddressMode</type>
+        <definition>AddressMode d3d::SamplerInfo::address_mode_w</definition>
+        <argsstring></argsstring>
+        <name>address_mode_w</name>
+        <initializer>= AddressMode::Wrap</initializer>
+        <briefdescription>
+<para>AddressMode for W coordinate. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" line="97" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" bodystart="97" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structd3d_1_1_sampler_info_1a4b28c754ed57009aafd34c5455b1f3dd" prot="public" static="no" mutable="no">
+        <type><ref refid="structd3d_1_1_border_color" kindref="compound">BorderColor</ref></type>
+        <definition>BorderColor d3d::SamplerInfo::border_color</definition>
+        <argsstring></argsstring>
+        <name>border_color</name>
+        <briefdescription>
+<para>Border color. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" line="98" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" bodystart="98" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structd3d_1_1_sampler_info_1aa6995e09239865420f627faf61797c6d" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float d3d::SamplerInfo::anisotropic_max</definition>
+        <argsstring></argsstring>
+        <name>anisotropic_max</name>
+        <initializer>= 1.f</initializer>
+        <briefdescription>
+<para>Max anisotropic value. Only positive power of two values &lt;= 16 are valid. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" line="99" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" bodystart="99" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structd3d_1_1_sampler_info_1abb55a1469a05358397ca59173528b7f0" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float d3d::SamplerInfo::mip_map_bias</definition>
+        <argsstring></argsstring>
+        <name>mip_map_bias</name>
+        <initializer>= 0.f</initializer>
+        <briefdescription>
+<para>MipMap bias. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" line="100" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" bodystart="100" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structd3d_1_1_sampler_info_1a6edfec03c7088ec5e393fce87220b767" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool d3d::SamplerInfo::operator==</definition>
+        <argsstring>(const SamplerInfo &amp;rhs) const</argsstring>
+        <name>operator==</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1_sampler_info" kindref="compound">SamplerInfo</ref> &amp;</type>
+          <declname>rhs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" line="116" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" bodystart="116" bodyend="116"/>
+      </memberdef>
+      <memberdef kind="function" id="structd3d_1_1_sampler_info_1a5dce46d89d11228f7ebf2dedbaf500cc" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool d3d::SamplerInfo::operator!=</definition>
+        <argsstring>(const SamplerInfo &amp;rhs) const</argsstring>
+        <name>operator!=</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1_sampler_info" kindref="compound">SamplerInfo</ref> &amp;</type>
+          <declname>rhs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" line="117" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" bodystart="117" bodyend="117"/>
+      </memberdef>
+      <memberdef kind="function" id="structd3d_1_1_sampler_info_1a6602fd48eacc0babfdfff2d079dc6802" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool d3d::SamplerInfo::operator&lt;</definition>
+        <argsstring>(const SamplerInfo &amp;rhs) const</argsstring>
+        <name>operator&lt;</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1_sampler_info" kindref="compound">SamplerInfo</ref> &amp;</type>
+          <declname>rhs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" line="118" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" bodystart="118" bodyend="118"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para><ref refid="structd3d_1_1_sampler_info" kindref="compound">SamplerInfo</ref> struct. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>This struct contains the information needed to create a sampler </para>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>d3d::SamplerInfo</label>
+        <link refid="structd3d_1_1_sampler_info"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>border_color</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>d3d::BorderColor</label>
+        <link refid="structd3d_1_1_border_color"/>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" line="91" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" bodystart="92" bodyend="125"/>
+    <listofallmembers>
+      <member refid="structd3d_1_1_sampler_info_1ad56ca2145d10af60add0c2702508e807" prot="public" virt="non-virtual"><scope>d3d::SamplerInfo</scope><name>address_mode_u</name></member>
+      <member refid="structd3d_1_1_sampler_info_1a2ac0af9e9b248fdbad8790c9f724b08a" prot="public" virt="non-virtual"><scope>d3d::SamplerInfo</scope><name>address_mode_v</name></member>
+      <member refid="structd3d_1_1_sampler_info_1a4813fc992b79bf424b6f94938335dd29" prot="public" virt="non-virtual"><scope>d3d::SamplerInfo</scope><name>address_mode_w</name></member>
+      <member refid="structd3d_1_1_sampler_info_1aa6995e09239865420f627faf61797c6d" prot="public" virt="non-virtual"><scope>d3d::SamplerInfo</scope><name>anisotropic_max</name></member>
+      <member refid="structd3d_1_1_sampler_info_1a4b28c754ed57009aafd34c5455b1f3dd" prot="public" virt="non-virtual"><scope>d3d::SamplerInfo</scope><name>border_color</name></member>
+      <member refid="structd3d_1_1_sampler_info_1acbe701f4402ce9494f2a67aabc154e37" prot="public" virt="non-virtual"><scope>d3d::SamplerInfo</scope><name>filter_mode</name></member>
+      <member refid="structd3d_1_1_sampler_info_1abb55a1469a05358397ca59173528b7f0" prot="public" virt="non-virtual"><scope>d3d::SamplerInfo</scope><name>mip_map_bias</name></member>
+      <member refid="structd3d_1_1_sampler_info_1a26e8e5b65a3575fde6ab343ada5ef599" prot="public" virt="non-virtual"><scope>d3d::SamplerInfo</scope><name>mip_map_mode</name></member>
+      <member refid="structd3d_1_1_sampler_info_1a5dce46d89d11228f7ebf2dedbaf500cc" prot="public" virt="non-virtual"><scope>d3d::SamplerInfo</scope><name>operator!=</name></member>
+      <member refid="structd3d_1_1_sampler_info_1a6602fd48eacc0babfdfff2d079dc6802" prot="public" virt="non-virtual"><scope>d3d::SamplerInfo</scope><name>operator&lt;</name></member>
+      <member refid="structd3d_1_1_sampler_info_1a6edfec03c7088ec5e393fce87220b767" prot="public" virt="non-virtual"><scope>d3d::SamplerInfo</scope><name>operator==</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

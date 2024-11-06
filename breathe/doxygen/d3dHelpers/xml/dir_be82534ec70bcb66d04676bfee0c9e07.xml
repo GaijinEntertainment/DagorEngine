@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="dir_be82534ec70bcb66d04676bfee0c9e07" kind="dir">
+    <compoundname>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d</compoundname>
+    <innerfile refid="dag__multidraw_context_8h">dag_multidrawContext.h</innerfile>
+    <innerfile refid="dag__res_mgr_8h">dag_resMgr.h</innerfile>
+    <innerfile refid="dag__tex_mgr_8h">dag_texMgr.h</innerfile>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,85 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_texture_channel_format_desc" kind="struct" language="C++" prot="public">
+    <compoundname>TextureChannelFormatDesc</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_texture_channel_format_desc_1adb5b2dfde890739ebbf29ab12567b490" prot="public" static="no" mutable="no">
+        <type>int8_t</type>
+        <definition>int8_t TextureChannelFormatDesc::bits</definition>
+        <argsstring></argsstring>
+        <name>bits</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="30" column="10" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_texture_channel_format_desc_1ad29f3d0ec6834e8ddf2adec12ff9d567" prot="public" static="no" mutable="no">
+        <type>int8_t</type>
+        <definition>int8_t TextureChannelFormatDesc::offset</definition>
+        <argsstring></argsstring>
+        <name>offset</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="31" column="10" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_texture_channel_format_desc_1a67a359ea16b5d05d3c8fdfd1e1380652" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool TextureChannelFormatDesc::isFloatPoint</definition>
+        <argsstring></argsstring>
+        <name>isFloatPoint</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="32" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_texture_channel_format_desc_1a748a849b6d0ca8d2bd9683d6a2f4fd9e" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool TextureChannelFormatDesc::isSigned</definition>
+        <argsstring></argsstring>
+        <name>isSigned</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="33" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_texture_channel_format_desc_1a7f047f5fd88fd62f22b95a2b932fb20c" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool TextureChannelFormatDesc::isNormalized</definition>
+        <argsstring></argsstring>
+        <name>isNormalized</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="34" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="28" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="29" bodyend="35"/>
+    <listofallmembers>
+      <member refid="struct_texture_channel_format_desc_1adb5b2dfde890739ebbf29ab12567b490" prot="public" virt="non-virtual"><scope>TextureChannelFormatDesc</scope><name>bits</name></member>
+      <member refid="struct_texture_channel_format_desc_1a67a359ea16b5d05d3c8fdfd1e1380652" prot="public" virt="non-virtual"><scope>TextureChannelFormatDesc</scope><name>isFloatPoint</name></member>
+      <member refid="struct_texture_channel_format_desc_1a7f047f5fd88fd62f22b95a2b932fb20c" prot="public" virt="non-virtual"><scope>TextureChannelFormatDesc</scope><name>isNormalized</name></member>
+      <member refid="struct_texture_channel_format_desc_1a748a849b6d0ca8d2bd9683d6a2f4fd9e" prot="public" virt="non-virtual"><scope>TextureChannelFormatDesc</scope><name>isSigned</name></member>
+      <member refid="struct_texture_channel_format_desc_1ad29f3d0ec6834e8ddf2adec12ff9d567" prot="public" virt="non-virtual"><scope>TextureChannelFormatDesc</scope><name>offset</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

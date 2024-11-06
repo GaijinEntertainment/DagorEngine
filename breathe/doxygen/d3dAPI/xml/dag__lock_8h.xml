@@ -1,0 +1,259 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="dag__lock_8h" kind="file" language="C++">
+    <compoundname>dag_lock.h</compoundname>
+    <includes refid="dag__driver_8h" local="no">drv/3d/dag_driver.h</includes>
+    <includes refid="dag__commands_8h" local="no">drv/3d/dag_commands.h</includes>
+    <incdepgraph>
+      <node id="16">
+        <label>drv/3d/dag_resource.h</label>
+        <link refid="dag__resource_8h_source"/>
+      </node>
+      <node id="20">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="22">
+        <label>drv/3d/dag_d3dResource.h</label>
+        <link refid="dag__d3d_resource_8h_source"/>
+        <childnode refid="23" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>drv/3d/dag_consts_base.h</label>
+        <link refid="dag__consts__base_8h_source"/>
+      </node>
+      <node id="29">
+        <label>vecmath/dag_vecMathDecl.h</label>
+      </node>
+      <node id="4">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="9">
+        <label>drv/3d/dag_barrier.h</label>
+        <link refid="dag__barrier_8h_source"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>math/dag_TMatrix4.h</label>
+      </node>
+      <node id="6">
+        <label>math/dag_TMatrix.h</label>
+      </node>
+      <node id="10">
+        <label>EASTL/initializer_list.h</label>
+      </node>
+      <node id="26">
+        <label>math/dag_adjpow2.h</label>
+      </node>
+      <node id="17">
+        <label>drv/3d/dag_tex3d.h</label>
+        <link refid="dag__tex3d_8h_source"/>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="23">
+        <label>util/dag_string.h</label>
+      </node>
+      <node id="11">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="31">
+        <label>rayTrace/dag_drvRayTrace.h</label>
+      </node>
+      <node id="2">
+        <label>drv/3d/dag_driver.h</label>
+        <link refid="dag__driver_8h_source"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>math/dag_lsbVisitor.h</label>
+      </node>
+      <node id="33">
+        <label>drv/3d/dag_commands.h</label>
+        <link refid="dag__commands_8h_source"/>
+      </node>
+      <node id="5">
+        <label>util/dag_preprocessor.h</label>
+      </node>
+      <node id="3">
+        <label>drv/3d/dag_decl.h</label>
+        <link refid="dag__decl_8h_source"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="28">
+        <label>string.h</label>
+      </node>
+      <node id="32">
+        <label>rayTrace/rayTracedrv3d.inl.h</label>
+      </node>
+      <node id="24">
+        <label>drv/3d/dag_resId.h</label>
+        <link refid="dag__res_id_8h_source"/>
+      </node>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_lock.h</label>
+        <link refid="dag__lock_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>drv/3d/dag_driverCode.h</label>
+        <link refid="dag__driver_code_8h_source"/>
+      </node>
+      <node id="19">
+        <label>drv/3d/dag_samplerHandle.h</label>
+        <link refid="dag__sampler_handle_8h_source"/>
+        <childnode refid="20" relation="include">
+        </childnode>
+      </node>
+      <node id="30">
+        <label>drv/3d/dag_hangHandler.h</label>
+        <link refid="dag__hang_handler_8h_source"/>
+      </node>
+      <node id="18">
+        <label>drv/3d/dag_sampler.h</label>
+        <link refid="dag__sampler_8h_source"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>drv/3d/dag_consts.h</label>
+        <link refid="dag__consts_8h_source"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>drv/3d/dag_shaderModelVersion.h</label>
+        <link refid="dag__shader_model_version_8h_source"/>
+      </node>
+      <node id="27">
+        <label>memory/dag_mem.h</label>
+      </node>
+      <node id="21">
+        <label>math/dag_color.h</label>
+      </node>
+      <node id="25">
+        <label>drv/3d/dag_texFlags.h</label>
+        <link refid="dag__tex_flags_8h_source"/>
+        <childnode refid="26" relation="include">
+        </childnode>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structd3d_1_1_gpu_auto_lock" prot="public">d3d::GpuAutoLock</innerclass>
+    <innerclass refid="structd3d_1_1_loading_auto_lock" prot="public">d3d::LoadingAutoLock</innerclass>
+    <innerclass refid="structd3d_1_1_g_p_u_workload_split" prot="public">d3d::GPUWorkloadSplit</innerclass>
+    <innernamespace refid="namespaced3d">d3d</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_driver.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_commands.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">d3d</highlight></codeline>
+<codeline lineno="11"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17" refid="structd3d_1_1_gpu_auto_lock" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structd3d_1_1_gpu_auto_lock" kindref="compound">GpuAutoLock</ref></highlight></codeline>
+<codeline lineno="18"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/><ref refid="structd3d_1_1_gpu_auto_lock" kindref="compound">GpuAutoLock</ref>();</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/>~<ref refid="structd3d_1_1_gpu_auto_lock" kindref="compound">GpuAutoLock</ref>();</highlight></codeline>
+<codeline lineno="21"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27" refid="structd3d_1_1_loading_auto_lock" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structd3d_1_1_loading_auto_lock" kindref="compound">LoadingAutoLock</ref></highlight></codeline>
+<codeline lineno="28"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><ref refid="structd3d_1_1_loading_auto_lock" kindref="compound">LoadingAutoLock</ref>()<sp/>{<sp/>driver_command(Drv3dCommand::ACQUIRE_LOADING);<sp/>}</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/>~<ref refid="structd3d_1_1_loading_auto_lock" kindref="compound">LoadingAutoLock</ref>()<sp/>{<sp/>driver_command(Drv3dCommand::RELEASE_LOADING);<sp/>}</highlight></codeline>
+<codeline lineno="31"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37" refid="structd3d_1_1_g_p_u_workload_split" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structd3d_1_1_g_p_u_workload_split" kindref="compound">GPUWorkloadSplit</ref></highlight></codeline>
+<codeline lineno="38"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="39" refid="structd3d_1_1_g_p_u_workload_split_1a150860e92edb4f4acc47e6bac682be76" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structd3d_1_1_g_p_u_workload_split_1a150860e92edb4f4acc47e6bac682be76" kindref="member">needSplitAtEnd</ref>;<sp/></highlight></codeline>
+<codeline lineno="47" refid="structd3d_1_1_g_p_u_workload_split_1a16b6b481de842325f54c3eb6315002a3" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structd3d_1_1_g_p_u_workload_split_1a16b6b481de842325f54c3eb6315002a3" kindref="member">GPUWorkloadSplit</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>do_split,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>split_at_end,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*marker)<sp/>:<sp/><ref refid="structd3d_1_1_g_p_u_workload_split_1a150860e92edb4f4acc47e6bac682be76" kindref="member">needSplitAtEnd</ref>(do_split<sp/>&amp;&amp;<sp/>split_at_end)</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!do_split)</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/>d3d::driver_command(Drv3dCommand::D3D_FLUSH,<sp/>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*)marker,<sp/>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*)0);</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight></codeline>
+<codeline lineno="58" refid="structd3d_1_1_g_p_u_workload_split_1aabf8f33b291bc88a957da461c4ce7859" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structd3d_1_1_g_p_u_workload_split_1aabf8f33b291bc88a957da461c4ce7859" kindref="member">~GPUWorkloadSplit</ref>()</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!<ref refid="structd3d_1_1_g_p_u_workload_split_1a150860e92edb4f4acc47e6bac682be76" kindref="member">needSplitAtEnd</ref>)</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/>d3d::driver_command(Drv3dCommand::D3D_FLUSH,<sp/>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*)</highlight><highlight class="stringliteral">&quot;split_end&quot;</highlight><highlight class="normal">,<sp/>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*)1);</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="65"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight></codeline>
+<codeline lineno="67"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_lock.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,81 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_render_target" kind="struct" language="C++" prot="public">
+    <compoundname>RenderTarget</compoundname>
+    <includes refid="dag__render_target_8h" local="no">dag_renderTarget.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_render_target_1a4a161583287ebfadccf0d054d6ee0b0d" prot="public" static="no" mutable="no">
+        <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* RenderTarget::tex</definition>
+        <argsstring></argsstring>
+        <name>tex</name>
+        <briefdescription>
+<para>Texture to set as render target. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderTarget.h" line="40" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderTarget.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_render_target_1af5a772cc1ad472fc0dc44d737c6bd197" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RenderTarget::mip_level</definition>
+        <argsstring></argsstring>
+        <name>mip_level</name>
+        <briefdescription>
+<para>Mip level to set as render target. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderTarget.h" line="41" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderTarget.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_render_target_1abbc128112606626b4a390dd23398eee3" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RenderTarget::layer</definition>
+        <argsstring></argsstring>
+        <name>layer</name>
+        <briefdescription>
+<para>Layer to set as render target. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderTarget.h" line="42" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderTarget.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Represents a render target to set it into slot. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="3">
+        <label>D3dResource</label>
+        <link refid="class_d3d_resource"/>
+      </node>
+      <node id="2">
+        <label>BaseTexture</label>
+        <link refid="class_base_texture"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>RenderTarget</label>
+        <link refid="struct_render_target"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>tex</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderTarget.h" line="38" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderTarget.h" bodystart="39" bodyend="43"/>
+    <listofallmembers>
+      <member refid="struct_render_target_1abbc128112606626b4a390dd23398eee3" prot="public" virt="non-virtual"><scope>RenderTarget</scope><name>layer</name></member>
+      <member refid="struct_render_target_1af5a772cc1ad472fc0dc44d737c6bd197" prot="public" virt="non-virtual"><scope>RenderTarget</scope><name>mip_level</name></member>
+      <member refid="struct_render_target_1a4a161583287ebfadccf0d054d6ee0b0d" prot="public" virt="non-virtual"><scope>RenderTarget</scope><name>tex</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

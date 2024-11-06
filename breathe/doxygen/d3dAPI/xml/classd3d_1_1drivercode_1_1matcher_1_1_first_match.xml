@@ -1,0 +1,461 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="classd3d_1_1drivercode_1_1matcher_1_1_first_match" kind="class" language="C++" prot="public">
+    <compoundname>d3d::drivercode::matcher::FirstMatch</compoundname>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classd3d_1_1drivercode_1_1matcher_1_1_first_match_1a2446ae2296c9df1e0956b5ecca5a9a4f" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int d3d::drivercode::matcher::FirstMatch::value</definition>
+        <argsstring></argsstring>
+        <name>value</name>
+        <briefdescription>
+<para>Driver code value, stored as a int to break up dependency to the <ref refid="class_driver_code" kindref="compound">DriverCode</ref> type. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="665" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="665" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classd3d_1_1drivercode_1_1matcher_1_1_first_match_1abf72c277ec4a5c8614ce4b7318ebccf9" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool d3d::drivercode::matcher::FirstMatch::wasMatched</definition>
+        <argsstring></argsstring>
+        <name>wasMatched</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Keeps track if anything was matched. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="667" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="667" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classd3d_1_1drivercode_1_1matcher_1_1_first_match_1a327c1ae9501f52738ebd7173723334f7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class ::DriverCode</definition>
+        <argsstring></argsstring>
+        <name>::DriverCode</name>
+        <param>
+          <type>::<ref refid="class_driver_code" kindref="compound">DriverCode</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="697" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="697" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_first_match_1a1846f476774edd8719cf2aa89a933b5a" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void d3d::drivercode::matcher::FirstMatch::onMatch</definition>
+        <argsstring>(bool did_match, T &amp;&amp;callable)</argsstring>
+        <name>onMatch</name>
+        <param>
+          <type>bool</type>
+          <declname>did_match</declname>
+        </param>
+        <param>
+          <type>T &amp;&amp;</type>
+          <declname>callable</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Match execution handler, will update internal state and call <computeroutput>callable</computeroutput> when <computeroutput>did_match</computeroutput> is true and its internal state indicated that no matcher did match in previous match attempts. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>did_match</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Indicator if a match was found. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>callable</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Is called when <computeroutput>did_match</computeroutput> is true and the internal state indicated that no matcher did match in previous match attempts. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="676" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="676" bodyend="684"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_first_match_1ab942482f7d3fd4e2cf5a9e93860c2a06" prot="private" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename D</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr bool</type>
+        <definition>constexpr bool d3d::drivercode::matcher::FirstMatch::is</definition>
+        <argsstring>(D d) const</argsstring>
+        <name>is</name>
+        <param>
+          <type>D</type>
+          <declname>d</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Helper to shorten matcher invocation. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>d</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Matcher to invoke with the driver code state value. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The value returned by the matchers <computeroutput>d</computeroutput> <computeroutput>is</computeroutput> method. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="691" column="18" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="691" bodyend="694"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_first_match_1ab310f991b566c937c0052da1abe554f1" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>d3d::drivercode::matcher::FirstMatch::FirstMatch</definition>
+        <argsstring>(int v)</argsstring>
+        <name>FirstMatch</name>
+        <param>
+          <type>int</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Create a new object with a stored driver code value. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>v</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Driver code value that is used on the matchers. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="702" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="702" bodyend="702"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_first_match_1a827be2bae1a0d5839614da61c5ab1446" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename D</type>
+          </param>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type></type>
+        <definition>d3d::drivercode::matcher::FirstMatch::FirstMatch</definition>
+        <argsstring>(int v, D d, T &amp;&amp;callable)</argsstring>
+        <name>FirstMatch</name>
+        <param>
+          <type>int</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>D</type>
+          <declname>d</declname>
+        </param>
+        <param>
+          <type>T &amp;&amp;</type>
+          <declname>callable</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Create a new object with a stored driver code value and a initial match call. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>v</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Driver code value that is used on the matchers. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>d</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The matcher that should be immediately be matched on <computeroutput>v</computeroutput>. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>callable</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The callable that should be executed when the matcher <computeroutput>d</computeroutput> matches the driver code value <computeroutput>v</computeroutput>. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="710" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="710" bodyend="713"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_first_match_1a9ccb0f09c2f960b961c4c13d6f44d3dd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>d3d::drivercode::matcher::FirstMatch::FirstMatch</definition>
+        <argsstring>()=delete</argsstring>
+        <name>FirstMatch</name>
+        <briefdescription>
+<para>Default construction is not allowed. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="717" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_first_match_1aeaaf26c8106b4e0356159daafa4dff1b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>d3d::drivercode::matcher::FirstMatch::FirstMatch</definition>
+        <argsstring>(const FirstMatch &amp;)=delete</argsstring>
+        <name>FirstMatch</name>
+        <param>
+          <type>const <ref refid="classd3d_1_1drivercode_1_1matcher_1_1_first_match" kindref="compound">FirstMatch</ref> &amp;</type>
+        </param>
+        <briefdescription>
+<para>Disallow copying. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="719" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_first_match_1aabb92683a733e6aba3232e5075c20e81" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>d3d::drivercode::matcher::FirstMatch::FirstMatch</definition>
+        <argsstring>(FirstMatch &amp;&amp;other)=default</argsstring>
+        <name>FirstMatch</name>
+        <param>
+          <type><ref refid="classd3d_1_1drivercode_1_1matcher_1_1_first_match" kindref="compound">FirstMatch</ref> &amp;&amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+<para>Allow moving. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="721" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_first_match_1a80b453914de4ec6f58f3d4ccfcc0aa64" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classd3d_1_1drivercode_1_1matcher_1_1_first_match" kindref="compound">FirstMatch</ref> &amp;</type>
+        <definition>FirstMatch&amp; d3d::drivercode::matcher::FirstMatch::operator=</definition>
+        <argsstring>(const FirstMatch &amp;)=delete</argsstring>
+        <name>operator=</name>
+        <param>
+          <type>const <ref refid="classd3d_1_1drivercode_1_1matcher_1_1_first_match" kindref="compound">FirstMatch</ref> &amp;</type>
+        </param>
+        <briefdescription>
+<para>Disallow copy assignment. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="723" column="14"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_first_match_1a6fd0f6bc93bd37f2b024764b6ac84e6d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classd3d_1_1drivercode_1_1matcher_1_1_first_match" kindref="compound">FirstMatch</ref> &amp;</type>
+        <definition>FirstMatch&amp; d3d::drivercode::matcher::FirstMatch::operator=</definition>
+        <argsstring>(FirstMatch &amp;&amp;)=delete</argsstring>
+        <name>operator=</name>
+        <param>
+          <type><ref refid="classd3d_1_1drivercode_1_1matcher_1_1_first_match" kindref="compound">FirstMatch</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+<para>Disallow move assignment. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="725" column="14"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_first_match_1a12c5514a01da0809d339bf700d5302e3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename D</type>
+          </param>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classd3d_1_1drivercode_1_1matcher_1_1_first_match" kindref="compound">FirstMatch</ref> &amp;</type>
+        <definition>FirstMatch&amp; d3d::drivercode::matcher::FirstMatch::operator()</definition>
+        <argsstring>(D d, T &amp;&amp;callable)</argsstring>
+        <name>operator()</name>
+        <param>
+          <type>D</type>
+          <declname>d</declname>
+        </param>
+        <param>
+          <type>T &amp;&amp;</type>
+          <declname>callable</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Executes the matcher of <computeroutput>d</computeroutput> with the driver code state and if it yields a match and there was no previous match it will execute the callable of <computeroutput>callable</computeroutput>. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>d</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The matcher that should match the driver code value against. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>callable</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The callable that is called should the matcher of <computeroutput>d</computeroutput> return true and no matcher was found in previous matches. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A reference to this, so that multiple matches can be chained. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="728" column="14" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="728" bodyend="732"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_first_match_1ae05dbf598de4fb5e8c929d90ac5f2b92" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename D</type>
+          </param>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classd3d_1_1drivercode_1_1matcher_1_1_first_match" kindref="compound">FirstMatch</ref> &amp;</type>
+        <definition>FirstMatch&amp; d3d::drivercode::matcher::FirstMatch::match</definition>
+        <argsstring>(D d, T &amp;&amp;callable)</argsstring>
+        <name>match</name>
+        <param>
+          <type>D</type>
+          <declname>d</declname>
+        </param>
+        <param>
+          <type>T &amp;&amp;</type>
+          <declname>callable</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Executes the matcher of <computeroutput>d</computeroutput> with the driver code state and if it yields a match and there was no previous match it will execute the callable of <computeroutput>callable</computeroutput>. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>d</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The matcher that should match the driver code value against. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>callable</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The callable that is called should the matcher of <computeroutput>d</computeroutput> return true and no matcher was found in previous matches. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A reference to this, so that multiple matches can be chained. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="741" column="14" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="741" bodyend="745"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_first_match_1ac69ebe5b4c0e24309a98e4fbd307dcfe" prot="public" static="no" const="yes" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>d3d::drivercode::matcher::FirstMatch::operator bool</definition>
+        <argsstring>() const</argsstring>
+        <name>operator bool</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Explicit bool operator allows easy checking if a matcher was matched and a callable was executed. <simplesect kind="return"><para>True when a matcher was matched and a callable was called. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="748" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="748" bodyend="748"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_first_match_1a4917f70733ad95d746256e3ad1fa17bd" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool d3d::drivercode::matcher::FirstMatch::operator!</definition>
+        <argsstring>() const</argsstring>
+        <name>operator!</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Not operator overload allows easy checking if no matcher was matched and no callable was executed. <simplesect kind="return"><para>True when no matcher was matched and no callable was called. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="751" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="751" bodyend="751"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="662" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="663" bodyend="752"/>
+    <listofallmembers>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_first_match_1a327c1ae9501f52738ebd7173723334f7" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::FirstMatch</scope><name>::DriverCode</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_first_match_1ab310f991b566c937c0052da1abe554f1" prot="protected" virt="non-virtual"><scope>d3d::drivercode::matcher::FirstMatch</scope><name>FirstMatch</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_first_match_1a827be2bae1a0d5839614da61c5ab1446" prot="protected" virt="non-virtual"><scope>d3d::drivercode::matcher::FirstMatch</scope><name>FirstMatch</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_first_match_1a9ccb0f09c2f960b961c4c13d6f44d3dd" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::FirstMatch</scope><name>FirstMatch</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_first_match_1aeaaf26c8106b4e0356159daafa4dff1b" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::FirstMatch</scope><name>FirstMatch</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_first_match_1aabb92683a733e6aba3232e5075c20e81" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::FirstMatch</scope><name>FirstMatch</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_first_match_1ab942482f7d3fd4e2cf5a9e93860c2a06" prot="private" virt="non-virtual"><scope>d3d::drivercode::matcher::FirstMatch</scope><name>is</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_first_match_1ae05dbf598de4fb5e8c929d90ac5f2b92" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::FirstMatch</scope><name>match</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_first_match_1a1846f476774edd8719cf2aa89a933b5a" prot="private" virt="non-virtual"><scope>d3d::drivercode::matcher::FirstMatch</scope><name>onMatch</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_first_match_1ac69ebe5b4c0e24309a98e4fbd307dcfe" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::FirstMatch</scope><name>operator bool</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_first_match_1a4917f70733ad95d746256e3ad1fa17bd" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::FirstMatch</scope><name>operator!</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_first_match_1a12c5514a01da0809d339bf700d5302e3" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::FirstMatch</scope><name>operator()</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_first_match_1a80b453914de4ec6f58f3d4ccfcc0aa64" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::FirstMatch</scope><name>operator=</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_first_match_1a6fd0f6bc93bd37f2b024764b6ac84e6d" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::FirstMatch</scope><name>operator=</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_first_match_1a2446ae2296c9df1e0956b5ecca5a9a4f" prot="private" virt="non-virtual"><scope>d3d::drivercode::matcher::FirstMatch</scope><name>value</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_first_match_1abf72c277ec4a5c8614ce4b7318ebccf9" prot="private" virt="non-virtual"><scope>d3d::drivercode::matcher::FirstMatch</scope><name>wasMatched</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

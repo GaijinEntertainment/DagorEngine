@@ -1,0 +1,79 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="namespaced3dhang" kind="namespace" language="C++">
+    <compoundname>d3dhang</compoundname>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="dag__hang_handler_8h_1a8de17824a89c4678eca22383d5c724d1" prot="public" static="no">
+        <type>void(*)()</type>
+        <definition>using d3dhang::GPUHanger = typedef void (*)()</definition>
+        <argsstring></argsstring>
+        <name>GPUHanger</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_hangHandler.h" line="10" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_hangHandler.h" bodystart="10" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__hang_handler_8h_1a0e6f90eab858a2632e9f0f652ddb6e05" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3dhang::register_gpu_hanger</definition>
+        <argsstring>(GPUHanger newHanger)</argsstring>
+        <name>register_gpu_hanger</name>
+        <param>
+          <type>GPUHanger</type>
+          <declname>newHanger</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_hangHandler.h" line="12" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_hangHandler.h" declline="12" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__hang_handler_8h_1a9838e627e9863d35dd00bce2f132ff05" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3dhang::hang_gpu_on</definition>
+        <argsstring>(const char *event)</argsstring>
+        <name>hang_gpu_on</name>
+        <param>
+          <type>const char *</type>
+          <declname>event</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_hangHandler.h" line="13" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_hangHandler.h" declline="13" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__hang_handler_8h_1aec8a65188ce7dbb9c934531e53c0743c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3dhang::hang_if_requested</definition>
+        <argsstring>(const char *event)</argsstring>
+        <name>hang_if_requested</name>
+        <param>
+          <type>const char *</type>
+          <declname>event</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_hangHandler.h" line="14" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_hangHandler.h" declline="14" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_hangHandler.h" line="7" column="1"/>
+  </compounddef>
+</doxygen>

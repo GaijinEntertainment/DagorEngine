@@ -1,0 +1,1198 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="namespaced3d_1_1buffers" kind="namespace" language="C++">
+    <compoundname>d3d::buffers</compoundname>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="dag__buffers_8h_1a7289ebd6e955087eeb533762bac0b98f" prot="public" static="no" strong="yes">
+        <type>uint32_t</type>
+        <name>Init</name>
+        <enumvalue id="dag__buffers_8h_1a7289ebd6e955087eeb533762bac0b98fabafd7322c6e97d25b6299b5d6fe8920b" prot="public">
+          <name>No</name>
+          <briefdescription>
+<para>We don&apos;t know anything about buffer content on creation. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__buffers_8h_1a7289ebd6e955087eeb533762bac0b98fad7ed4ee1df437474d005188535f74875" prot="public">
+          <name>Zero</name>
+          <briefdescription>
+<para>A resource guaranteed to be zeroed on the first usage. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>Enumeration for buffer initialization options. Not all buffer types currently support it. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="291" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="292" bodyend="295"/>
+      </memberdef>
+      <memberdef kind="enum" id="dag__buffers_8h_1a696757538a427695f6e00683069bd4ca" prot="public" static="no" strong="yes">
+        <type>uint32_t</type>
+        <name>Indirect</name>
+        <enumvalue id="dag__buffers_8h_1a696757538a427695f6e00683069bd4caa5a628d4cc7426c31799aa35e0fbcf45e" prot="public">
+          <name>Dispatch</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__buffers_8h_1a696757538a427695f6e00683069bd4caa2d03c2d5a7ec65ef4619e0582c272ec2" prot="public">
+          <name>Draw</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__buffers_8h_1a696757538a427695f6e00683069bd4caafe1132393be2697e9023d6f9e1ea4c83" prot="public">
+          <name>DrawIndexed</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>The Indirect enum represents different GPU indirect buffer types. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="301" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="302" bodyend="306"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="dag__buffers_8h_1ab085b535f5176b793b3e3dd0799779db" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t d3d::buffers::CBUFFER_REGISTER_SIZE</definition>
+        <argsstring></argsstring>
+        <name>CBUFFER_REGISTER_SIZE</name>
+        <initializer>= 16</initializer>
+        <briefdescription>
+<para>The size of the cbuffer register. It should have a size divisible by sizeof(float4), because the cbuffer is a set of float4 registers. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="313" column="27" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="313" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__buffers_8h_1a421822f58870275c63b259526196379b" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t d3d::buffers::BYTE_ADDRESS_ELEMENT_SIZE</definition>
+        <argsstring></argsstring>
+        <name>BYTE_ADDRESS_ELEMENT_SIZE</name>
+        <initializer>= sizeof(uint32_t)</initializer>
+        <briefdescription>
+<para>The size of an element of a byte address buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="318" column="27" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="318" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__buffers_8h_1ae9041fa33b354aab1fd1e6934fa6277d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>uint32_t</type>
+        <definition>uint32_t d3d::buffers::cb_array_reg_count</definition>
+        <argsstring>(uint32_t array_size)</argsstring>
+        <name>cb_array_reg_count</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>array_size</declname>
+        </param>
+        <briefdescription>
+<para>Calculate the number of register (in const buffer term) count for a given array size of type T. Structure must be aligned as float4 to not have problems with alignment in cbuffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the array elements. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>array_size</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The size of the array. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The registers count. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="330" column="17" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="330" bodyend="335"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__buffers_8h_1a9aa525de1d641fdeabaf43b9198398d3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>uint32_t</type>
+        <definition>uint32_t d3d::buffers::cb_struct_reg_count</definition>
+        <argsstring>()</argsstring>
+        <name>cb_struct_reg_count</name>
+        <briefdescription>
+<para>Calculate the number of register (in const buffer term) count for a single instance of a type T. Structure must be aligned as float4 to not have problems with alignment in cbuffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the structure. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The registers count. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="346" column="17" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="346" bodyend="349"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__buffers_8h_1a2bd85ad3ee64191c0b4966d57c437d4a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* d3d::buffers::create_persistent_cb</definition>
+        <argsstring>(uint32_t registers_count, const char *name)</argsstring>
+        <name>create_persistent_cb</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>registers_count</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Create a persistent constant buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Such buffers could be updated from time to time. It is recommended to use cb_array_reg_count and cb_struct_reg_count methods to calculate registers_count.</para>
+<para><simplesect kind="warning"><para>This buffer will not be restored after device reset!</para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>registers_count</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The number of registers in the buffer. Must be not bigger than 4096. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Created persistent constant buffer. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="364" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="364" bodyend="367"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__buffers_8h_1aa13ffc144e8cfd8283a32e5eab8d30f0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* d3d::buffers::create_one_frame_cb</definition>
+        <argsstring>(uint32_t registers_count, const char *name)</argsstring>
+        <name>create_one_frame_cb</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>registers_count</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Create an one frame constant buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Such buffers must be updated every frame (you can skip update if the buffer is not used this frame). Because of that we don&apos;t care about its content on device reset. It is recommended to use cb_array_reg_count and cb_struct_reg_count methods to calculate registers_count.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>registers_count</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The number of registers. Must be not bigger than 4096. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>buffer_init</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The initialization option for the buffer. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A pointer to the created buffer. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="381" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="381" bodyend="384"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__buffers_8h_1adaf527a53632f46d7887eed1fbd5665b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* d3d::buffers::create_ua_sr_byte_address</definition>
+        <argsstring>(uint32_t size_in_dwords, const char *name, Init buffer_init=Init::No)</argsstring>
+        <name>create_ua_sr_byte_address</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>size_in_dwords</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type><ref refid="dag__buffers_8h_1a7289ebd6e955087eeb533762bac0b98f" kindref="member">Init</ref></type>
+          <declname>buffer_init</declname>
+          <defval><ref refid="dag__buffers_8h_1a7289ebd6e955087eeb533762bac0b98fabafd7322c6e97d25b6299b5d6fe8920b" kindref="member">Init::No</ref></defval>
+        </param>
+        <briefdescription>
+<para>Create a byte address buffer, which can be used thorugh an unordered access view or through a shader resource view in shaders. In a shader you can declare the buffer using (RW)ByteAddressBuffer. Such a buffer is always 16-byte aligned. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><xrefsect id="todo_1_todo000006"><xreftitle>Todo</xreftitle><xrefdescription><para>Use registers instead of dwords for size because of alignment. </para>
+</xrefdescription></xrefsect><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>size_in_dwords</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The size of the buffer in dwords. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>buffer_init</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The initialization option for the buffer. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A pointer to the created buffer. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="397" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="397" bodyend="401"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__buffers_8h_1a3556aff8b72f76ef3776d88e3d72b4cb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* d3d::buffers::create_ua_sr_structured</definition>
+        <argsstring>(uint32_t structure_size, uint32_t elements_count, const char *name, Init buffer_init=Init::No)</argsstring>
+        <name>create_ua_sr_structured</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>structure_size</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>elements_count</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type><ref refid="dag__buffers_8h_1a7289ebd6e955087eeb533762bac0b98f" kindref="member">Init</ref></type>
+          <declname>buffer_init</declname>
+          <defval><ref refid="dag__buffers_8h_1a7289ebd6e955087eeb533762bac0b98fabafd7322c6e97d25b6299b5d6fe8920b" kindref="member">Init::No</ref></defval>
+        </param>
+        <briefdescription>
+<para>Create a structured buffer, which can be used thorugh an unordered access view or through a shader resource view in shaders. In a shader you can declare the buffer using (RW)StructuredBuffer&lt;StructureType&gt;. StructureType is a kind of template parameter here. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>structure_size</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The size of the structure of the buffer elements. Usually it is a sizeof(StructureType). </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>elements_count</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The number of elements in the buffer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>buffer_init</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The initialization option for the buffer.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A pointer to the created buffer. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="415" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="415" bodyend="420"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__buffers_8h_1a57d6e15ac4e84021c42ca3ff0294f252" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* d3d::buffers::create_ua_byte_address</definition>
+        <argsstring>(uint32_t size_in_dwords, const char *name)</argsstring>
+        <name>create_ua_byte_address</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>size_in_dwords</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Create a byte address buffer, which can be used thorugh an unordered access view in shaders. In a shader you can declare the buffer using RWByteAddressBuffer. Such a buffer is always 16-byte aligned. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><xrefsect id="todo_1_todo000007"><xreftitle>Todo</xreftitle><xrefdescription><para>Use registers instead of dwords for size because of alignment. </para>
+</xrefdescription></xrefsect><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>size_in_dwords</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The size of the buffer in dwords. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A pointer to the created buffer. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="433" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="433" bodyend="436"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__buffers_8h_1a20d26ab1fd8b35e5b90ee71befb8ebf4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* d3d::buffers::create_ua_structured</definition>
+        <argsstring>(uint32_t structure_size, uint32_t elements_count, const char *name)</argsstring>
+        <name>create_ua_structured</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>structure_size</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>elements_count</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Create a structured buffer, which can be used thorugh an unordered access view in shaders. In a shader you can declare the buffer using RWStructuredBuffer&lt;StructureType&gt;. StructureType is a kind of template parameter here. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>structure_size</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The size of the structure of the buffer elements. Usually it is a sizeof(StructureType). </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>elements_count</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The number of elements in the buffer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A pointer to the created buffer. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="447" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="447" bodyend="450"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__buffers_8h_1a47fd8b1352f7d4914f1ac38019e2e3e0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* d3d::buffers::create_ua_byte_address_readback</definition>
+        <argsstring>(uint32_t size_in_dwords, const char *name, Init buffer_init=Init::No)</argsstring>
+        <name>create_ua_byte_address_readback</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>size_in_dwords</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type><ref refid="dag__buffers_8h_1a7289ebd6e955087eeb533762bac0b98f" kindref="member">Init</ref></type>
+          <declname>buffer_init</declname>
+          <defval><ref refid="dag__buffers_8h_1a7289ebd6e955087eeb533762bac0b98fabafd7322c6e97d25b6299b5d6fe8920b" kindref="member">Init::No</ref></defval>
+        </param>
+        <briefdescription>
+<para>The same as create_ua_byte_address but its content can be read on CPU. Such a buffer is always 16-byte aligned. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><xrefsect id="todo_1_todo000008"><xreftitle>Todo</xreftitle><xrefdescription><para>Use registers instead of dwords for size because of alignment. </para>
+</xrefdescription></xrefsect><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>size_in_dwords</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The size of the buffer in dwords. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>buffer_init</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The initialization option for the buffer. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A pointer to the created buffer. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="462" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="462" bodyend="466"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__buffers_8h_1a34388e1d08d327fa689075e967df069f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* d3d::buffers::create_ua_structured_readback</definition>
+        <argsstring>(uint32_t structure_size, uint32_t elements_count, const char *name, Init buffer_init=Init::No)</argsstring>
+        <name>create_ua_structured_readback</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>structure_size</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>elements_count</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type><ref refid="dag__buffers_8h_1a7289ebd6e955087eeb533762bac0b98f" kindref="member">Init</ref></type>
+          <declname>buffer_init</declname>
+          <defval><ref refid="dag__buffers_8h_1a7289ebd6e955087eeb533762bac0b98fabafd7322c6e97d25b6299b5d6fe8920b" kindref="member">Init::No</ref></defval>
+        </param>
+        <briefdescription>
+<para>The same as create_ua_structured but its content can be read on CPU. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>structure_size</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The size of the structure of the buffer elements. Usually it is a sizeof(StructureType). </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>elements_count</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The number of elements in the buffer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>buffer_init</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The initialization option for the buffer. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A pointer to the created buffer. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="478" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="478" bodyend="483"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__buffers_8h_1a35f6b002b758ba351f194da46b93a5de" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t d3d::buffers::dword_count_per_call</definition>
+        <argsstring>(Indirect indirect_type)</argsstring>
+        <name>dword_count_per_call</name>
+        <param>
+          <type><ref refid="dag__buffers_8h_1a696757538a427695f6e00683069bd4ca" kindref="member">Indirect</ref></type>
+          <declname>indirect_type</declname>
+        </param>
+        <briefdescription>
+<para>Returns the amount of dwords per indirect command parameters based on the given indirect buffer type. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>indirect_type</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of indirect operation (Dispatch, Draw, or DrawIndexed).</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The amount of dwords per indirect command parameters. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="493" column="17" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="493" bodyend="503"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__buffers_8h_1a2e0d3b4eac07bbe0600fec0158faf3af" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* d3d::buffers::create_ua_indirect</definition>
+        <argsstring>(Indirect indirect_type, uint32_t records_count, const char *name)</argsstring>
+        <name>create_ua_indirect</name>
+        <param>
+          <type><ref refid="dag__buffers_8h_1a696757538a427695f6e00683069bd4ca" kindref="member">Indirect</ref></type>
+          <declname>indirect_type</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>records_count</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Creates an indirect buffer filled by the GPU. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>indirect_type</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the indirect commands stored in the buffer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>records_count</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The number of indirect records in the buffer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A pointer to the created buffer. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="513" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="513" bodyend="517"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__buffers_8h_1afc9cdde851a643e508bb94ceff500ff7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* d3d::buffers::create_indirect</definition>
+        <argsstring>(Indirect indirect_type, uint32_t records_count, const char *name)</argsstring>
+        <name>create_indirect</name>
+        <param>
+          <type><ref refid="dag__buffers_8h_1a696757538a427695f6e00683069bd4ca" kindref="member">Indirect</ref></type>
+          <declname>indirect_type</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>records_count</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Creates an indirect buffer filled by the CPU. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>indirect_type</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the indirect commands stored in the buffer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>records_count</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The number of indirect records in the buffer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A pointer to the created buffer. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="528" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="528" bodyend="532"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__buffers_8h_1a133e8e3c2d5608e2394dde7a9a966c52" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* d3d::buffers::create_staging</definition>
+        <argsstring>(uint32_t size_in_bytes, const char *name)</argsstring>
+        <name>create_staging</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>size_in_bytes</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Creates a buffer for data transfer from CPU to GPU. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>size_in_bytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The size of the buffer in bytes. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A pointer to the created buffer. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="542" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="542" bodyend="545"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__buffers_8h_1a16e7d6612d10a40a7368d2e894d84628" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* d3d::buffers::create_persistent_sr_tbuf</definition>
+        <argsstring>(uint32_t elements_count, uint32_t format, const char *name, Init buffer_init=Init::No)</argsstring>
+        <name>create_persistent_sr_tbuf</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>elements_count</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>format</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type><ref refid="dag__buffers_8h_1a7289ebd6e955087eeb533762bac0b98f" kindref="member">Init</ref></type>
+          <declname>buffer_init</declname>
+          <defval><ref refid="dag__buffers_8h_1a7289ebd6e955087eeb533762bac0b98fabafd7322c6e97d25b6299b5d6fe8920b" kindref="member">Init::No</ref></defval>
+        </param>
+        <briefdescription>
+<para>Create a t-buffer, which can be used through a shader resource view in shaders. In a shader you can declare the buffer using Buffer&lt;BufferFormat&gt;. BufferFormat is a kind of template parameter here. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="warning"><para>The buffer type can be used only for the code which will be used for DX10 compatible hardware.</para>
+</simplesect>
+The total size of the buffer is sizeof(format) * elements_count.</para>
+<para>It is a persistent buffer, so you can update it with VBLOCK_WRITEONLY flag. Locked part of the buffer content will be overwritten.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>elements_count</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The number of elements in the buffer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>format</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The format of each element in the buffer. It must be a valid texture format. Not all texture formats are allowed. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>buffer_init</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The initialization option for the buffer. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A pointer to the created buffer. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="564" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="564" bodyend="568"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__buffers_8h_1aeb5fb7c16ecfde06564197497b3645fa" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* d3d::buffers::create_persistent_sr_byte_address</definition>
+        <argsstring>(uint32_t size_in_dwords, const char *name, Init buffer_init=Init::No)</argsstring>
+        <name>create_persistent_sr_byte_address</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>size_in_dwords</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type><ref refid="dag__buffers_8h_1a7289ebd6e955087eeb533762bac0b98f" kindref="member">Init</ref></type>
+          <declname>buffer_init</declname>
+          <defval><ref refid="dag__buffers_8h_1a7289ebd6e955087eeb533762bac0b98fabafd7322c6e97d25b6299b5d6fe8920b" kindref="member">Init::No</ref></defval>
+        </param>
+        <briefdescription>
+<para>Create a byte address buffer, which can be used through a shader resource view in shaders. In a shader you can declare the buffer using ByteAddressBuffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>It is a persistent buffer, so you can update it with VBLOCK_WRITEONLY flag. Locked part of the buffer content will be overwritten.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>size_in_dwords</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The size of the buffer in dwords. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>buffer_init</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The initialization option for the buffer. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A pointer to the created buffer. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="582" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="582" bodyend="586"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__buffers_8h_1a4629d042dc17c0e33129339c01c121ed" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* d3d::buffers::create_persistent_sr_structured</definition>
+        <argsstring>(uint32_t structure_size, uint32_t elements_count, const char *name, Init buffer_init=Init::No)</argsstring>
+        <name>create_persistent_sr_structured</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>structure_size</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>elements_count</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type><ref refid="dag__buffers_8h_1a7289ebd6e955087eeb533762bac0b98f" kindref="member">Init</ref></type>
+          <declname>buffer_init</declname>
+          <defval><ref refid="dag__buffers_8h_1a7289ebd6e955087eeb533762bac0b98fabafd7322c6e97d25b6299b5d6fe8920b" kindref="member">Init::No</ref></defval>
+        </param>
+        <briefdescription>
+<para>Create a structured buffer, which can be used through a shader resource view in shaders. In a shader you can declare the buffer using StructuredBuffer&lt;StructureType&gt;. StructureType is a kind of template parameter here. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>It is a persistent buffer, so you can update it with VBLOCK_WRITEONLY flag. Locked part of the buffer content will be overwritten.</para>
+<para>Declare StructureType in *.hlsli file and include it both in C++ and shader code.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>structure_size</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The size of the structure of the buffer elements. Usually it is a sizeof(StructureType). </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>elements_count</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The number of elements in the buffer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>buffer_init</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The initialization option for the buffer. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A pointer to the created buffer. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="603" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="603" bodyend="608"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__buffers_8h_1a21e72d5a4431dc57f7110ed5b2a872af" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* d3d::buffers::create_one_frame_sr_tbuf</definition>
+        <argsstring>(uint32_t elements_count, uint32_t format, const char *name)</argsstring>
+        <name>create_one_frame_sr_tbuf</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>elements_count</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>format</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Create a t-buffer, which can be used through a shader resource view in shaders. In a shader you can declare the buffer using Buffer&lt;BufferFormat&gt;. BufferFormat is a kind of template parameter here. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="warning"><para>The buffer type can be used only for the code which will be used for DX10 compatible hardware.</para>
+</simplesect>
+The total size of the buffer is sizeof(format) * elements_count. To use the buffer, lock it with VBLOCK_DISCARD flag (and with VBLOCK_NOOVERWRITE during the frame) and fill it on CPU. On the next frame data in the buffer could be invalid, so don&apos;t read from it until you fill it with lock again.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>elements_count</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The number of elements in the buffer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>format</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The format of each element in the buffer. It must be a valid texture format. Not all texture formats are allowed. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A pointer to the created buffer. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="626" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="626" bodyend="630"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__buffers_8h_1a86b55100d094b0f671a7b090e8e45f14" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* d3d::buffers::create_one_frame_sr_byte_address</definition>
+        <argsstring>(uint32_t size_in_dwords, const char *name)</argsstring>
+        <name>create_one_frame_sr_byte_address</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>size_in_dwords</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Create a byte address buffer, which can be used through a shader resource view in shaders. In a shader you can declare the buffer using ByteAddressBuffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>To use the buffer, lock it with VBLOCK_DISCARD flag (and with VBLOCK_NOOVERWRITE during the frame) and fill it on CPU. On the next frame data in the buffer could be invalid, so don&apos;t read from it until you fill it with lock again.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>size_in_dwords</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The size of the buffer in dwords. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A pointer to the created buffer. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="644" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="644" bodyend="648"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__buffers_8h_1a28b722e9af82f34b1b8d80933b5b4961" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* d3d::buffers::create_one_frame_sr_structured</definition>
+        <argsstring>(uint32_t structure_size, uint32_t elements_count, const char *name)</argsstring>
+        <name>create_one_frame_sr_structured</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>structure_size</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>elements_count</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Create a structured buffer, which can be used through a shader resource view in shaders. In a shader you can declare the buffer using StructuredBuffer&lt;StructureType&gt;. StructureType is a kind of template parameter here. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>To use the buffer, lock it with VBLOCK_DISCARD flag (and with VBLOCK_NOOVERWRITE during the frame) and fill it on CPU. On the next frame data in the buffer could be invalid, so don&apos;t read from it until you fill it with lock again.</para>
+<para>Declare StructureType in *.hlsli file and include it both in C++ and shader code.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>structure_size</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The size of the structure of the buffer elements. Usually it is a sizeof(StructureType). </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>elements_count</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The number of elements in the buffer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A pointer to the created buffer. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="665" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="665" bodyend="669"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__buffers_8h_1a09ba4ba4eeaf87bf7bc0710c0b4e6672" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* d3d::buffers::create_raytrace_scratch_buffer</definition>
+        <argsstring>(uint32_t size_in_bytes, const char *name)</argsstring>
+        <name>create_raytrace_scratch_buffer</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>size_in_bytes</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Creates a buffer to be used as scratch space for bottom acceleration structure builds and updates. This buffer is used as input for ::raytrace::BottomAccelerationStructureBuildInfo::scratchSpaceBuffer which is used by d3d::build_bottom_acceleration_structure. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This buffer is not meant to be accessed in any other way than to be used as a this scratch buffer, as it is used as temporary storage for the on GPU build and update process of bottom acceleration structure and its contents is highly device and device driver specific and can&apos;t be used for anything else anyway.</para>
+<para>Sizes needed are provided by the d3d::create_raytrace_bottom_acceleration_structure function.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>size_in_bytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The size in bytes of the scratch buffer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the buffer, used for debugging purposes, like showing in in statistcs, and frame debuggers like PIX. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A pointer to the created buffer. Returns nullptr on failure. Possible failures are device lost state or out of memory. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="687" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="687" bodyend="690"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="286" column="1"/>
+  </compounddef>
+</doxygen>

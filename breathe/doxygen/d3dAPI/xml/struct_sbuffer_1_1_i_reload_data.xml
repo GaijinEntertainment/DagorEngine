@@ -1,0 +1,75 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_sbuffer_1_1_i_reload_data" kind="struct" language="C++" prot="public" abstract="yes">
+    <compoundname>Sbuffer::IReloadData</compoundname>
+    <includes refid="dag__buffers_8h" local="no">dag_buffers.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="struct_sbuffer_1_1_i_reload_data_1aecd663c2526f5e520d955a2d1f3a9814" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type></type>
+        <definition>virtual Sbuffer::IReloadData::~IReloadData</definition>
+        <argsstring>()</argsstring>
+        <name>~IReloadData</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="31" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="31" bodyend="31"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_sbuffer_1_1_i_reload_data_1a145726c0eb268dae987354f306393d44" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void Sbuffer::IReloadData::reloadD3dRes</definition>
+        <argsstring>(Sbuffer *sb)=0</argsstring>
+        <name>reloadD3dRes</name>
+        <param>
+          <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *</type>
+          <declname>sb</declname>
+        </param>
+        <briefdescription>
+<para>Reloads content of the buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>sb</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The buffer to fill. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="37" column="18"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_sbuffer_1_1_i_reload_data_1af3e0e88aa47556474857d194360d37fb" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void Sbuffer::IReloadData::destroySelf</definition>
+        <argsstring>()=0</argsstring>
+        <name>destroySelf</name>
+        <briefdescription>
+<para>Destroys the callback object. Will be called on a buffer destruction. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="41" column="18"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Interface for a callback that is called when the buffer is restored after device reset. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="29" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="30" bodyend="42"/>
+    <listofallmembers>
+      <member refid="struct_sbuffer_1_1_i_reload_data_1af3e0e88aa47556474857d194360d37fb" prot="public" virt="pure-virtual"><scope>Sbuffer::IReloadData</scope><name>destroySelf</name></member>
+      <member refid="struct_sbuffer_1_1_i_reload_data_1a145726c0eb268dae987354f306393d44" prot="public" virt="pure-virtual"><scope>Sbuffer::IReloadData</scope><name>reloadD3dRes</name></member>
+      <member refid="struct_sbuffer_1_1_i_reload_data_1aecd663c2526f5e520d955a2d1f3a9814" prot="public" virt="virtual"><scope>Sbuffer::IReloadData</scope><name>~IReloadData</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

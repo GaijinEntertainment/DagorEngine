@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_base_texture_1_1_i_reload_data" kind="struct" language="C++" prot="public" abstract="yes">
+    <compoundname>BaseTexture::IReloadData</compoundname>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="struct_base_texture_1_1_i_reload_data_1a27265b2427473e2e025d35723611c163" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type></type>
+        <definition>virtual BaseTexture::IReloadData::~IReloadData</definition>
+        <argsstring>()</argsstring>
+        <name>~IReloadData</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="159" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="159" bodyend="159"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_base_texture_1_1_i_reload_data_1a118c145d10ab3bbc119b1601240c6e36" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void BaseTexture::IReloadData::reloadD3dRes</definition>
+        <argsstring>(BaseTexture *t)=0</argsstring>
+        <name>reloadD3dRes</name>
+        <param>
+          <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="160" column="18"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_base_texture_1_1_i_reload_data_1a8e6ab1aaeb013836a15e777d6e2f323b" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void BaseTexture::IReloadData::destroySelf</definition>
+        <argsstring>()=0</argsstring>
+        <name>destroySelf</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="161" column="18"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="157" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="158" bodyend="162"/>
+    <listofallmembers>
+      <member refid="struct_base_texture_1_1_i_reload_data_1a8e6ab1aaeb013836a15e777d6e2f323b" prot="public" virt="pure-virtual"><scope>BaseTexture::IReloadData</scope><name>destroySelf</name></member>
+      <member refid="struct_base_texture_1_1_i_reload_data_1a118c145d10ab3bbc119b1601240c6e36" prot="public" virt="pure-virtual"><scope>BaseTexture::IReloadData</scope><name>reloadD3dRes</name></member>
+      <member refid="struct_base_texture_1_1_i_reload_data_1a27265b2427473e2e025d35723611c163" prot="public" virt="virtual"><scope>BaseTexture::IReloadData</scope><name>~IReloadData</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

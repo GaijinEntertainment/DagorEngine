@@ -1,0 +1,84 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_scissor_rect" kind="struct" language="C++" prot="public">
+    <compoundname>ScissorRect</compoundname>
+    <derivedcompoundref refid="struct_viewport" prot="public" virt="non-virtual">Viewport</derivedcompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_scissor_rect_1a38db7c44e036cd42e9c3b78dc00c1788" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ScissorRect::x</definition>
+        <argsstring></argsstring>
+        <name>x</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="36" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_scissor_rect_1a95c201a5488845c44efcd6a891400321" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ScissorRect::y</definition>
+        <argsstring></argsstring>
+        <name>y</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="36" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_scissor_rect_1aacf989169d266599415092950de58313" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ScissorRect::w</definition>
+        <argsstring></argsstring>
+        <name>w</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="36" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_scissor_rect_1a0661f3c187af01759b974591b964baf4" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ScissorRect::h</definition>
+        <argsstring></argsstring>
+        <name>h</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="36" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>ScissorRect</label>
+        <link refid="struct_scissor_rect"/>
+      </node>
+      <node id="2">
+        <label>Viewport</label>
+        <link refid="struct_viewport"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="34" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="35" bodyend="37"/>
+    <listofallmembers>
+      <member refid="struct_scissor_rect_1a0661f3c187af01759b974591b964baf4" prot="public" virt="non-virtual"><scope>ScissorRect</scope><name>h</name></member>
+      <member refid="struct_scissor_rect_1aacf989169d266599415092950de58313" prot="public" virt="non-virtual"><scope>ScissorRect</scope><name>w</name></member>
+      <member refid="struct_scissor_rect_1a38db7c44e036cd42e9c3b78dc00c1788" prot="public" virt="non-virtual"><scope>ScissorRect</scope><name>x</name></member>
+      <member refid="struct_scissor_rect_1a95c201a5488845c44efcd6a891400321" prot="public" virt="non-virtual"><scope>ScissorRect</scope><name>y</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

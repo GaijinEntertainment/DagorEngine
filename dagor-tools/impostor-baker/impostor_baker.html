@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Overview &mdash; Dagor Documentation  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css" />
+
+  
+    <link rel="shortcut icon" href="../../_static/gaijin.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+        <script src="../../_static/js/hoverxref.js"></script>
+        <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+        <script src="../../_static/js/micromodal.min.js"></script>
+        <script src="../../_static/js/versionwarning.js"></script>
+        <script src="../../_static/clipboard.min.js"></script>
+        <script src="../../_static/copybutton.js"></script>
+        <script src="../../_static/design-tabs.js"></script>
+        <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="levels.deps" href="../levels-deps/index.html" />
+    <link rel="prev" title="Impostor Baker" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/gaijin_round_blur.png" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                0.1.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api-references/index.html">API References and Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../samples/index.html">Samples</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../blk/index.html">.blk Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../asset-viewer/index.html">Asset Viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../daeditor/index.html">daEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dag2rires/index.html">dag2riRes</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Impostor Baker</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#local-workflow">Local Workflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#local-workflow-quick-start">Local Workflow - Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#how-to-access-the-tool">How to Access the Tool</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#impostor-texture-resolution">Impostor Texture Resolution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#how-to-use-the-tool">How to Use the Tool</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#how-to-enable-the-impostor-texture-generation-of-an-asset">How to Enable the Impostor Texture Generation of an Asset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#how-to-enable-baked-impostors-in-a-new-game">How to Enable Baked Impostors in a New Game</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#how-to-use-impostornormalmip-for-smoothness-hack">How to Use ImpostorNormalMip for Smoothness Hack</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../levels-deps/index.html">levels.deps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../resource-building/index.html">Resource Building</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../substance-designer/index.html">Substance Designer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../addons/index.html">Add-ons for Blender and 3ds Max</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../danetgame-framework/index.html">DaNetGame Framework</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Impostor Baker</a></li>
+      <li class="breadcrumb-item active">Overview</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/dagor-tools/impostor-baker/impostor_baker.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="overview">
+<h1>Overview<a class="headerlink" href="#overview" title="Permalink to this heading"></a></h1>
+<p>The purpose of this tool is to generate impostor textures of rendInst models to
+be exported to game resource packages.</p>
+</section>
+<section class="tex2jax_ignore mathjax_ignore" id="local-workflow">
+<h1>Local Workflow<a class="headerlink" href="#local-workflow" title="Permalink to this heading"></a></h1>
+<ul class="simple">
+<li><p>The tool is a separate executable. The existing daBuild is console
+application, thus it does not support rendering assets.</p></li>
+<li><p>The generation of the impostor textures takes place before the building of the
+assets, so the generated textures get exported as well</p></li>
+</ul>
+<ol class="arabic simple">
+<li><p>Generate the impostor textures.</p></li>
+<li><p>Build the resources with dabuild (to test them locally).</p></li>
+<li><p>Commit changes:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code>, which is used for the trees,</p></li>
+<li><p>the generated textures (there are 3 per rendinst),</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">riImpostors.bin</span></code> files, which are modified (found in
+&lt;content_folder&gt;/&lt;package_folder&gt;/res/).</p></li>
+</ul>
+</li>
+</ol>
+</section>
+<section class="tex2jax_ignore mathjax_ignore" id="local-workflow-quick-start">
+<h1>Local Workflow - Quick Start<a class="headerlink" href="#local-workflow-quick-start" title="Permalink to this heading"></a></h1>
+<ol class="arabic">
+<li><p>Enable baked impostors in <code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code> files</p>
+<p>1.1. In the <code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code> that exports trees, look for such virtual assets:</p>
+<p><code class="docutils literal notranslate"><span class="pre">virtual_res_blk{</span> <span class="pre">find:t=&quot;^(.*bush.*)\.lod00\.dag$&quot;...</span></code></p>
+<p>1.2. Replace this line:</p>
+<p><code class="docutils literal notranslate"><span class="pre">lod</span> <span class="pre">{</span> <span class="pre">range:r=1000;</span> <span class="pre">fname:t=&quot;../dynamic_imposter.lod01.dag&quot;;}</span></code></p>
+<p>to</p>
+<p><code class="docutils literal notranslate"><span class="pre">lod</span> <span class="pre">{</span> <span class="pre">range:r=1000;</span> <span class="pre">fname:t=&quot;../billboard_octagon_impostor.lod01.dag&quot;;}</span></code></p>
+<p>1.3. Add impostor block: <code class="docutils literal notranslate"><span class="pre">impostor</span> <span class="pre">{}</span></code> (check the end of the page for more
+details on this).</p>
+</li>
+<li><p>Run <code class="docutils literal notranslate"><span class="pre">daImpostor.cmd</span></code> in <code class="docutils literal notranslate"><span class="pre">&lt;game_folder&gt;/develop/</span></code></p></li>
+<li><p>Run <em>dabuild</em>. Necessary packages (or just build everything):</p>
+<p>3.1. <code class="docutils literal notranslate"><span class="pre">vegetation.grp</span></code> (or wherever the affected trees are exported to)</p>
+<p>3.2. <code class="docutils literal notranslate"><span class="pre">&lt;trees_foldername&gt;_impostors.dxp</span></code> (there could be more if there are
+trees in different folders)</p>
+<p>3.3. <code class="docutils literal notranslate"><span class="pre">.grp</span></code> for the <code class="docutils literal notranslate"><span class="pre">impostor_data.impostorData.blk</span></code> file. The location is specified in <code class="docutils literal notranslate"><span class="pre">application.blk</span></code>: <code class="docutils literal notranslate"><span class="pre">assets/impostor_data_folder:t=...</span></code></p>
+</li>
+<li><p>(optional) Export level binaries. The game runs without this, but the
+rotation palettes won’t be available. Without this step, there will be a
+logerr when a level is loaded. It is not dangerous, safe to ignore, but the
+level will look slightly different after level binary export.</p></li>
+<li><p>When uploading stuff to cvs, it has to include all the generated
+textures+.folder.blk in the generated impostors folder
+(&lt;trees_folder&gt;/impostors/); and the impostor_data.impostorData.blk file, and
+of course modified the .folder.blk.</p></li>
+</ol>
+</section>
+<section class="tex2jax_ignore mathjax_ignore" id="how-to-access-the-tool">
+<h1>How to Access the Tool<a class="headerlink" href="#how-to-access-the-tool" title="Permalink to this heading"></a></h1>
+<p>Here will be description about how to access the tool.</p>
+</section>
+<section class="tex2jax_ignore mathjax_ignore" id="impostor-texture-resolution">
+<h1>Impostor Texture Resolution<a class="headerlink" href="#impostor-texture-resolution" title="Permalink to this heading"></a></h1>
+<p>The texture sizes can be specified in <code class="docutils literal notranslate"><span class="pre">application.blk</span></code> or in <code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code> per
+asset.</p>
+<p>In <code class="docutils literal notranslate"><span class="pre">application.blk</span></code>:</p>
+<p>The texture height can be specified either globally or based on world space tree
+height, using quality levels. The width of the texture will be calculated based
+on world space height/width ratio of the tree. Wide trees will have a wide
+texture. For configuration, check the end of this page.</p>
+<p>In <code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code>:</p>
+<p>Here the exact resolution can be specified. If only height is specified, width
+will be calculated based on world space height/width ratio of the tree. The
+impostor block options for <em>textureWidth</em> and <em>textureHeight</em> correspond to the
+resolution of the entire generated texture, not per-slice. The generated
+textures will contain 9 views in a row, but they are compacted.</p>
+<p>Keep in mind that the option for texture resolutions will apply to the highest,
+<em>hq</em> texture config. These resolutions should be the ones that the current game
+is supposed to use with the highest quality options. Mip offsets are applied for
+mq, and lq and optionally applied for mobile distribution too.</p>
+<p>If you want to specify texture quality for specific platforms, the
+<code class="docutils literal notranslate"><span class="pre">impostors/.folder.blk</span></code> has to be changed. The generated textures are created
+for all platforms. <code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code> can be used to export them with mip offsets.
+Until there is no project specific option here, it’s better to update
+<code class="docutils literal notranslate"><span class="pre">impostorBaker.cpp</span></code> to generate a different default <code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code>.</p>
+</section>
+<section class="tex2jax_ignore mathjax_ignore" id="how-to-use-the-tool">
+<h1>How to Use the Tool<a class="headerlink" href="#how-to-use-the-tool" title="Permalink to this heading"></a></h1>
+<ol class="arabic simple">
+<li><p>Using the separate tool:</p></li>
+</ol>
+<p>The tool needs to be executed from the develop folder in order to work. It needs
+two mandatory arguments: the path to the <code class="docutils literal notranslate"><span class="pre">application.blk</span></code> and the path to the
+root dir:</p>
+<p><code class="docutils literal notranslate"><span class="pre">&gt;</span> <span class="pre">G:/dagor2/tools/dagor3_cdk/bin64/impostorBaker-dev.exe</span> <span class="pre">../application.blk</span> <span class="pre">-rootdir:G:/dagor2/enlisted/develop</span> <span class="pre">[options...]</span></code></p>
+<p>The options are:</p>
+<ul class="simple">
+<li><p><strong>debug:<value></strong> either <code class="docutils literal notranslate"><span class="pre">classic</span></code> or <code class="docutils literal notranslate"><span class="pre">default</span></code>. This sets the debugging mode.</p></li>
+<li><p><strong>assets:&lt;assest_name1;asset_name2…&gt;</strong> Asset names can be listed here (of
+type rendinst), separated with <code class="docutils literal notranslate"><span class="pre">;</span></code>. The tool will export these assets.</p></li>
+<li><p><strong>packs:&lt;pack_name1;pack_name2…&gt;</strong> Assets from these packs, which have an
+impostor will be exported.</p></li>
+<li><p><strong>clean:&lt;yes|no&gt;</strong> Can be used to remove all textures that belong to assets
+that no longer exist. Default value is <code class="docutils literal notranslate"><span class="pre">no</span></code>. -
+<strong>folderblk:&lt;disabled|dont_replace|replace&gt;</strong> This option specifies what to do
+with the <code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code> files found inside the impostor directories:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">disabled</span></code>: never generate or modify these files;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dont_replace</span></code>: generate <code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code> if it doesn’t exist;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">replace</span></code> (default): always generate/replace existing.</p></li>
+</ul>
+</li>
+</ul>
+<p>If the assets or packs options are set, only those assets will be generated.
+Otherwise all supported assets (rendinst which have an <em>impostor</em> block). If
+invalid arguments are detected the application will print out a help menu with
+all these arguments.</p>
+<p>The tool will generate a folder in every folder containing rendinst which
+support impostors. The textures and a <code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code> (depending on the settings)
+will be placed in this folder upon generation.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Don’t put anything else in that folder, because it’s content is
+handled automatically. If the clean option is enabled, it will parse all
+impostor folders, and all file names inside these folders. It will keep all
+files which belong to an existing asset, that supports impostors; it will delete
+all textures which match the impostor texture name format, which don’t belong to
+any such asset; <code class="docutils literal notranslate"><span class="pre">.folder.blk</span></code> files are ignored at this step; if any other file
+is found, then the cleaning operation will abort to prevent accidentally
+deleting necessary files.</p>
+</div>
+<ol class="arabic simple" start="2">
+<li><p>Using the <em>Asset Viewer</em>:</p></li>
+</ol>
+<p>Let the image do the talking:</p>
+<p><img alt="Asset Viewer" src="../../_images/imp_baker_asset_viewer.png" /></p>
+<p>Note that the impostor textures only appear if they exist when the av starts. If
+the impostor textures are generated from the av, then they will only appear in
+the assets after a restart.</p>
+</section>
+<section class="tex2jax_ignore mathjax_ignore" id="how-to-enable-the-impostor-texture-generation-of-an-asset">
+<h1>How to Enable the Impostor Texture Generation of an Asset<a class="headerlink" href="#how-to-enable-the-impostor-texture-generation-of-an-asset" title="Permalink to this heading"></a></h1>
+<p>First of all, the asset has to be of type rendinst, otherwise the tool will just
+skip it.</p>
+<p>Add an <em>impostor</em> block to the content of the virtual asset. The impostor block
+<strong>must be directly inside of the content block</strong>, not inside of a third block.
+At the moment baked/runtime impostor duality is not supported. It’s not possible
+to set up different impostor types for different build configurations, eg.
+different platforms. This is a doable feature, but it is not done.</p>
+<p><strong>Example</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">virtual_res_blk</span><span class="p">{</span>
+  <span class="n">find</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;^(.*tree_tropic_large_.*)\.lod00\.dag$&quot;</span>
+  <span class="n">className</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;rendInst&quot;</span>
+  <span class="n">contents</span><span class="p">{</span>
+    <span class="n">impostor</span><span class="p">{</span>
+      <span class="n">textureWidth</span><span class="p">:</span><span class="n">i</span><span class="o">=</span><span class="mi">4096</span>
+      <span class="n">textureHeight</span><span class="p">:</span><span class="n">i</span><span class="o">=</span><span class="mi">0</span> <span class="o">//</span> <span class="n">automatically</span> <span class="n">adjust</span> <span class="n">to</span> <span class="n">width</span><span class="p">,</span> <span class="n">based</span> <span class="n">on</span> <span class="n">asset</span> <span class="n">height</span> <span class="p">(</span><span class="k">for</span> <span class="n">trees</span><span class="o">/</span><span class="n">bushes</span><span class="p">)</span>
+      <span class="n">rotationPaletteSize</span><span class="p">:</span><span class="n">i</span><span class="o">=</span><span class="mi">3</span>
+      <span class="n">mipCount</span><span class="p">:</span><span class="n">i</span><span class="o">=</span><span class="mi">0</span> <span class="o">//</span> <span class="mi">0</span> <span class="n">means</span> <span class="n">generate</span> <span class="nb">all</span> <span class="n">until</span> <span class="n">specified</span> <span class="n">smallest</span> <span class="n">mip</span> <span class="n">size</span> <span class="p">(</span><span class="n">application</span><span class="o">.</span><span class="n">blk</span><span class="p">)</span>
+    <span class="p">}</span>
+    <span class="o">//...</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>or just simply</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">virtual_res_blk</span><span class="p">{</span>
+  <span class="n">find</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;^(.*tree_tropic_large_.*)\.lod00\.dag$&quot;</span>
+  <span class="n">className</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;rendInst&quot;</span>
+  <span class="n">contents</span><span class="p">{</span>
+    <span class="n">impostor</span><span class="p">{}</span> <span class="o">//</span> <span class="n">autodetect</span> <span class="n">impostor</span> <span class="nb">type</span><span class="p">;</span> <span class="n">use</span> <span class="n">default</span> <span class="n">settings</span>
+    <span class="o">//...</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Any of the parameters inside the impostor block can be left out to use the
+default values. The block can also be empty. The tool will generate a texture,
+that is composed of slices, which correspond to different viewing angles of the
+asset.</p>
+<ul>
+<li><p><strong>textureWidth:</strong> X resolution of the entire texture containing 9 slices,</p></li>
+<li><p><strong>textureHeight:</strong> Y resolution of the generated texture = height of a single
+slice,</p></li>
+<li><p><strong>mipCount:</strong> by default (value=0) it will generate all mips based on
+<code class="docutils literal notranslate"><span class="pre">application.blk</span></code> settings. Any different value will manually override it. It
+means the total number of mip levels including the base texture.</p></li>
+<li><p><strong>rotationPaletteSize:</strong> The tree will be able to rotate around Y, but only a
+few discrete angles are allowed. For rotationPaletteSize=3, possible rotations
+will be 0, 120, 240 degrees.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>There will be a shadow texture created for every possible
+rotation for every tree!</p>
+</div>
+</li>
+<li><p><strong>preshadowsEnabled:</strong> Disable preshadows for this asset,</p></li>
+<li><p><strong>crownCenterOffset1:</strong> Point3 offset of transmittance ellipsoid center in
+meters,</p></li>
+<li><p><strong>crownRadOffset1:</strong> Point3 offset of transmittance ellipsoid radius in
+meters,</p></li>
+<li><p><strong>crownCenter2:</strong> Point3 secondary transmittance ellipsoid center in meters,</p></li>
+<li><p><strong>crownRad2:</strong> Point3 secondary transmittance ellipsoid radius in meters,</p></li>
+<li><p><strong>mipOffsets_hq_mq_lq:ip3=0,1,2:</strong> These mip offsets will be exported directly
+to the <code class="docutils literal notranslate"><span class="pre">.tex.blk</span></code> files. These options only affect dabuild.</p></li>
+<li><p><strong>mobileMipOffsets_hq_mq_lq:ip3=0,1,2:</strong> Same as mipOffsets_hq_mq_lq, except
+it’s for mobile platforms. If the project is not built for mobile, then no
+need to specify it.</p></li>
+<li><p><strong>impostorNormalMip:i=5:</strong> There is a way to tell baker which mip will be used
+for baking the normals for this asset. By default it’s 0.</p></li>
+</ul>
+<p>The default values can be found in:
+<code class="docutils literal notranslate"><span class="pre">prog\gameLibs\publicInclude\rendInst\impostorTextureMgr.h</span></code></p>
+</section>
+<section class="tex2jax_ignore mathjax_ignore" id="how-to-enable-baked-impostors-in-a-new-game">
+<h1>How to Enable Baked Impostors in a New Game<a class="headerlink" href="#how-to-enable-baked-impostors-in-a-new-game" title="Permalink to this heading"></a></h1>
+<ol class="arabic simple">
+<li><p>Add copy the current <code class="docutils literal notranslate"><span class="pre">billboard_octagon_impostor.lod01.dag</span></code> file to every
+location, where there is a <code class="docutils literal notranslate"><span class="pre">dynamic_imposter.lod01.dag</span></code> file in the assets
+folder. If there is already one, check if it’s the same.</p></li>
+<li><p>Enable <code class="docutils literal notranslate"><span class="pre">impostorData</span></code> asset type in <code class="docutils literal notranslate"><span class="pre">application.blk</span></code>:</p>
+<ul class="simple">
+<li><p>assets/types/ type:t=“impostorData”</p></li>
+<li><p>assets/export/types/ type:t=“impostorData”</p></li>
+</ul>
+</li>
+<li><p>Add <code class="docutils literal notranslate"><span class="pre">assets/impostor</span></code> block to the <code class="docutils literal notranslate"><span class="pre">application.blk</span></code></p>
+<ul class="simple">
+<li><p><strong>data_folder:t</strong> – mandatory, pick a location that is exported for the
+game always (not level dependent or something similar); The corresponding
+grp cannot contain any assets that use baked impostors!!!</p></li>
+<li><p><strong>splitAt:i</strong> – optional, splitAt value generated for impostor textures. It
+will be used to export all impostor textures within the project.</p></li>
+<li><p><strong>defaultTextureHeight:i</strong> – optional, default texture height for generated
+impostor textures. It can be overwritten in the virtual asset blk.</p></li>
+<li><p><strong>textureQualityLevels { qualityLevel { minHeight:r=; textureHeight:i= }</strong>
+– list of texture heights based on world space tree height. <em>textureHeight</em>
+will be applied for trees that are at least <em>minHeight</em> tall. Multiple
+qualityLevel blocks can be specified. <strong>Only one of defaultTextureHeight
+and textureQualityLevels can be specified at a time.</strong></p></li>
+<li><p><strong>mobileMipOffset:i</strong> – optional, if the mobile version of the game
+requires smaller resolution textures than the PC, a mip offset can be
+applied to them using this option. Texture can be generated in PC
+resolution and the mobile will use them with the given mip offset.</p></li>
+<li><p><strong>normalMipOffset:i</strong> – normal_translucency texture will have a lower
+resolution than the diffuse texture when using this.</p></li>
+<li><p><strong>aoSmoothnessMipOffset:i</strong> – same as the above, but for ao_smoothness
+texture,</p></li>
+<li><p><strong>aoBrightness:r</strong> - brightness of impostor AO effect default: 0.7</p></li>
+<li><p><strong>aoFalloffStart:r</strong> -  lower means darker center of impostor AO effect
+(0…1) default: 0.25</p></li>
+<li><p><strong>aoFalloffStop:r</strong> - lower means darker edge of impostor AO effect (0…1)
+default: 1.0</p></li>
+<li><p><strong>preshadowsEnabled:b</strong> - enable or disable preshadows by default for this
+project. It can be overwritten per-asset. Preshadows usually improve
+quality at the cost of performance, although they don’t work for every
+asset. default: yes</p></li>
+</ul>
+</li>
+</ol>
+<p><strong>Example</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">impostor</span><span class="p">{</span>
+  <span class="n">data_folder</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;develop/assets/gameres/gameObjects&quot;</span>
+  <span class="n">preshadowsEnabled</span><span class="p">:</span><span class="n">b</span><span class="o">=</span><span class="n">yes</span>
+  <span class="n">splitAt</span><span class="p">:</span><span class="n">i</span><span class="o">=</span><span class="mi">256</span>
+  <span class="n">mobileMipOffset</span><span class="p">:</span><span class="n">i</span><span class="o">=</span><span class="mi">1</span>
+  <span class="n">normalMipOffset</span><span class="p">:</span><span class="n">i</span><span class="o">=</span><span class="mi">1</span>
+  <span class="n">aoSmoothnessMipOffset</span><span class="p">:</span><span class="n">i</span><span class="o">=</span><span class="mi">1</span>
+  <span class="n">textureQualityLevels</span><span class="p">{</span>
+    <span class="n">qualityLevel</span><span class="p">{</span>
+      <span class="n">minHeight</span><span class="p">:</span><span class="n">r</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">textureHeight</span><span class="p">:</span><span class="n">i</span><span class="o">=</span><span class="mi">32</span>
+    <span class="p">}</span>
+    <span class="n">qualityLevel</span><span class="p">{</span>
+      <span class="n">minHeight</span><span class="p">:</span><span class="n">r</span><span class="o">=</span><span class="mi">4</span><span class="p">;</span> <span class="n">textureHeight</span><span class="p">:</span><span class="n">i</span><span class="o">=</span><span class="mi">64</span>
+    <span class="p">}</span>
+    <span class="n">qualityLevel</span><span class="p">{</span>
+      <span class="n">minHeight</span><span class="p">:</span><span class="n">r</span><span class="o">=</span><span class="mi">8</span><span class="p">;</span> <span class="n">textureHeight</span><span class="p">:</span><span class="n">i</span><span class="o">=</span><span class="mi">128</span>
+    <span class="p">}</span>
+    <span class="n">qualityLevel</span><span class="p">{</span>
+      <span class="n">minHeight</span><span class="p">:</span><span class="n">r</span><span class="o">=</span><span class="mi">16</span><span class="p">;</span> <span class="n">textureHeight</span><span class="p">:</span><span class="n">i</span><span class="o">=</span><span class="mi">256</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<ol class="arabic" start="4">
+<li><p>Check the corresponding <code class="docutils literal notranslate"><span class="pre">gameParams.blk</span></code></p>
+<p>4.1. Remove this line (if exists):</p>
+<p><code class="docutils literal notranslate"><span class="pre">enableImpostorTextureManager:b=false (default=yes)</span></code></p>
+<p>4.2. Optionally add this line to disable preshadow compression:</p>
+<p><code class="docutils literal notranslate"><span class="pre">enableImpostorPreshadowCompression:b</span> <span class="pre">=</span> <span class="pre">&lt;yes/no&gt;</span> <span class="pre">(default=yes)</span></code></p>
+<p>4.3. Parameters for transmittance approximation for outside of cascade0:</p>
+</li>
+</ol>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">treeCrownTransmittance</span><span class="p">{</span>
+  <span class="n">brightness</span><span class="p">:</span><span class="n">r</span> <span class="o">//</span> <span class="n">default</span> <span class="o">-</span> <span class="mf">0.5</span>
+  <span class="n">falloffStart</span><span class="p">:</span><span class="n">r</span> <span class="o">//</span> <span class="n">default</span> <span class="o">-</span> <span class="mf">0.01</span>
+  <span class="n">falloffStop</span><span class="p">:</span><span class="n">r</span> <span class="o">//</span> <span class="n">default</span> <span class="o">-</span> <span class="mf">1.</span>
+  <span class="n">enabled</span><span class="p">:</span><span class="n">b</span> <span class="o">//</span> <span class="n">default</span> <span class="o">-</span> <span class="n">no</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section class="tex2jax_ignore mathjax_ignore" id="how-to-use-impostornormalmip-for-smoothness-hack">
+<h1>How to Use ImpostorNormalMip for Smoothness Hack<a class="headerlink" href="#how-to-use-impostornormalmip-for-smoothness-hack" title="Permalink to this heading"></a></h1>
+<p>The idea of hack. At some mip of branches normal texture place a the same
+texture, but with fade smoothness channel. After that bake the impostor with
+this texture, and as a result we saw in game impostor with less whitish stuff on
+the edge.</p>
+<ol class="arabic">
+<li><p>Set up a mipFade feature for normal texture of branches for vegetation, for
+example you set a 4 mip as faded</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>You should specify mipFade according to swizzling.</p>
+</div>
+<p>As shows the example below, here we want mip fade for smoothness channel,
+which stored in alpha channel. But according to swizzling Alpha channel goes
+to Red channel. So we apply mip fade to red channel.</p>
+<p><strong>Example</strong></p>
+<p>Customized mipmap lit color for A channel(smoothness) only for branches
+exclude palms, olives, glossy foliage etc.</p>
+</li>
+</ol>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>virtual_res_blk{
+  find:t=&quot;^(.*branch.*_n?)\.tif$&quot;
+  //exclude glossy foliage here!
+  className:t=&quot;tex&quot;
+  contents{
+    hqMip:i=1; mqMip:i=2; lqMip:i=3
+    convert:b=yes; fmt:t=&quot;BC7&quot;
+    rebuild_bc67:b=yes
+    gamma:r=1
+    stubTexTag:t=&quot;smooth0_nx_metal0_ny&quot;
+    mipFilter:t=&quot;filterKaiser&quot;; mipFilterAlpha:r=42; mipFilterStretch:r=2 
+    addrU:t=&quot;wrap&quot;; addrV:t=&quot;wrap&quot;
+    hqMip:i=0; mqMip:i=1; lqMip:i=2
+    swizzleARGB:t=&quot;RAGB&quot;
+    mipFade{
+      mipFadeColor:p4=1.0,-1,-1,-1
+      mipFadeStart:c=0,0,0,0
+      mipFadeEnd:c=4,4,4,4
+    }
+  }
+}
+</pre></div>
+</div>
+<ol class="arabic" start="2">
+<li><p>Make a export of this export, to apply changes of mipFade feature.</p></li>
+<li><p>Set up a mip which will be used for sampling, per asset for tree.</p>
+<p><strong>Example</strong></p>
+</li>
+</ol>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">virtual_res_blk</span><span class="p">{</span>
+  <span class="n">find</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;^(tree_autumn_.*)\.lod00\.dag$&quot;</span>
+  <span class="n">className</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;rendInst&quot;</span>
+  <span class="n">contents</span><span class="p">{</span>
+    <span class="n">lod</span><span class="p">{</span>
+      <span class="nb">range</span><span class="p">:</span><span class="n">r</span><span class="o">=</span><span class="mi">80</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="n">lod</span><span class="p">{</span>
+      <span class="nb">range</span><span class="p">:</span><span class="n">r</span><span class="o">=</span><span class="mi">160</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="n">lod</span><span class="p">{</span>
+      <span class="nb">range</span><span class="p">:</span><span class="n">r</span><span class="o">=</span><span class="mi">1500</span><span class="p">;</span> <span class="n">fname</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;../billboard_octagon_impostor.lod01.dag&quot;</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="n">transition_lod</span><span class="p">{</span>
+      <span class="o">...</span>
+    <span class="p">}</span>
+    <span class="n">impostor</span><span class="p">{</span>
+      <span class="n">impostorNormalMip</span><span class="p">:</span><span class="n">i</span><span class="o">=</span><span class="mi">5</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="n">allowProxyMat</span><span class="p">:</span><span class="n">b</span><span class="o">=</span><span class="n">yes</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="4">
+<li><p>Run <em>ImpostorBaker</em>, to bake the impostors.</p></li>
+<li><p>Export whole data to the game.</p></li>
+</ol>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Impostor Baker" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../levels-deps/index.html" class="btn btn-neutral float-right" title="levels.deps" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2024.
+      <span class="lastupdated">Last updated on Nov 06, 2024.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+ <script type="text/javascript">
+    $(document).ready(function() {
+        $(".toggle > *").hide();
+        $(".toggle .header").show();
+        $(".toggle .header").click(function() {
+            $(this).parent().children().not(".header").toggle(400);
+            $(this).parent().children(".header").toggleClass("open");
+        })
+    });
+</script>
+
+
+</body>
+</html>

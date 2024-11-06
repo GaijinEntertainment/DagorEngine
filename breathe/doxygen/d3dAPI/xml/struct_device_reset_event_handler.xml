@@ -1,0 +1,57 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_device_reset_event_handler" kind="struct" language="C++" prot="public" abstract="yes">
+    <compoundname>DeviceResetEventHandler</compoundname>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="struct_device_reset_event_handler_1add0140ff1dff04abd095e903a2579a2f" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type></type>
+        <definition>virtual DeviceResetEventHandler::~DeviceResetEventHandler</definition>
+        <argsstring>()=default</argsstring>
+        <name>~DeviceResetEventHandler</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" line="19" column="11"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_device_reset_event_handler_1af116368cd7c062fa6174f1cf93be7a21" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void DeviceResetEventHandler::preRecovery</definition>
+        <argsstring>()=0</argsstring>
+        <name>preRecovery</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" line="21" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_device_reset_event_handler_1af4924f33375774e2e0d9cc68add1c684" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void DeviceResetEventHandler::recovery</definition>
+        <argsstring>()=0</argsstring>
+        <name>recovery</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" line="22" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" line="17" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_commands.h" bodystart="18" bodyend="23"/>
+    <listofallmembers>
+      <member refid="struct_device_reset_event_handler_1af116368cd7c062fa6174f1cf93be7a21" prot="public" virt="pure-virtual"><scope>DeviceResetEventHandler</scope><name>preRecovery</name></member>
+      <member refid="struct_device_reset_event_handler_1af4924f33375774e2e0d9cc68add1c684" prot="public" virt="pure-virtual"><scope>DeviceResetEventHandler</scope><name>recovery</name></member>
+      <member refid="struct_device_reset_event_handler_1add0140ff1dff04abd095e903a2579a2f" prot="public" virt="virtual"><scope>DeviceResetEventHandler</scope><name>~DeviceResetEventHandler</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

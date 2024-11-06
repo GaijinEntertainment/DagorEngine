@@ -1,0 +1,59 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structd3d_1_1drivercode_1_1matcher_1_1_any" kind="struct" language="C++" prot="public">
+    <compoundname>d3d::drivercode::matcher::Any</compoundname>
+    <basecompoundref refid="structd3d_1_1drivercode_1_1matcher_1_1_const" prot="public" virt="non-virtual">d3d::drivercode::matcher::Const&lt; true &gt;</basecompoundref>
+    <includes refid="dag__driver_code_8h" local="no">dag_driverCode.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structd3d_1_1drivercode_1_1matcher_1_1_any_1a4138da8b53b1e4b15b72bcedd8c5c717" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_inverted" kindref="compound">Inverted</ref>&lt; <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_any" kindref="compound">Any</ref> &gt;</type>
+        <definition>constexpr Inverted&lt;Any&gt; d3d::drivercode::matcher::Any::operator!</definition>
+        <argsstring>() const =delete</argsstring>
+        <name>operator!</name>
+        <briefdescription>
+<para>Disallow operations with any, any should only be used on its own. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="155" column="22"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>The any matcher behaves like a constant true matcher, matching always to true. </para>
+    </briefdescription>
+    <detaileddescription>
+<para><ref refid="structd3d_1_1drivercode_1_1matcher_1_1_any" kindref="compound">Any</ref> has some special meaning in some context (like map), where it result in different type / code-gen. </para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>d3d::drivercode::matcher::Const&lt; true &gt;</label>
+        <link refid="structd3d_1_1drivercode_1_1matcher_1_1_const"/>
+      </node>
+      <node id="1">
+        <label>d3d::drivercode::matcher::Any</label>
+        <link refid="structd3d_1_1drivercode_1_1matcher_1_1_any"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>d3d::drivercode::matcher::Const&lt; true &gt;</label>
+        <link refid="structd3d_1_1drivercode_1_1matcher_1_1_const"/>
+      </node>
+      <node id="1">
+        <label>d3d::drivercode::matcher::Any</label>
+        <link refid="structd3d_1_1drivercode_1_1matcher_1_1_any"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="152" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="153" bodyend="156"/>
+    <listofallmembers>
+      <member refid="structd3d_1_1drivercode_1_1matcher_1_1_const_1a7c89bfcabbcb314c49256f153f0c9e04" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Any</scope><name>is</name></member>
+      <member refid="structd3d_1_1drivercode_1_1matcher_1_1_any_1a4138da8b53b1e4b15b72bcedd8c5c717" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::Any</scope><name>operator!</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

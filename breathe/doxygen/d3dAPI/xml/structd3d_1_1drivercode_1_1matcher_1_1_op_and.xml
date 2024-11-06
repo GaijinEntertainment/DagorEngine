@@ -1,0 +1,59 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structd3d_1_1drivercode_1_1matcher_1_1_op_and" kind="struct" language="C++" prot="public">
+    <compoundname>d3d::drivercode::matcher::OpAnd</compoundname>
+    <includes refid="dag__driver_code_8h" local="no">dag_driverCode.h</includes>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structd3d_1_1drivercode_1_1matcher_1_1_op_and_1a0203c0f796662cce2d705f98fa3ba9a1" prot="public" static="yes" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>static constexpr bool d3d::drivercode::matcher::OpAnd::invoke</definition>
+        <argsstring>(bool a, bool b)</argsstring>
+        <name>invoke</name>
+        <param>
+          <type>bool</type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Combines two matcher results with a logical and. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>a</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Result of the first matcher. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>b</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Result of the second matcher. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The logical and of both <emphasis>and</emphasis> <bold></bold>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="45" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="45" bodyend="45"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>A binary operator that implements the logical and operator to combine the result of two matchers. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="39" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="40" bodyend="46"/>
+    <listofallmembers>
+      <member refid="structd3d_1_1drivercode_1_1matcher_1_1_op_and_1a0203c0f796662cce2d705f98fa3ba9a1" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::OpAnd</scope><name>invoke</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

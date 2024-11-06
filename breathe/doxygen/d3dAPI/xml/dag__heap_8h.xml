@@ -1,0 +1,515 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="dag__heap_8h" kind="file" language="C++">
+    <compoundname>dag_heap.h</compoundname>
+    <includes local="no">util/dag_inttypes.h</includes>
+    <includes refid="dag__consts_8h" local="no">drv/3d/dag_consts.h</includes>
+    <includes refid="dag__resource_8h" local="no">drv/3d/dag_resource.h</includes>
+    <includes refid="dag__d3d_resource_8h" local="no">drv/3d/dag_d3dResource.h</includes>
+    <incdepgraph>
+      <node id="7">
+        <label>drv/3d/dag_resource.h</label>
+        <link refid="dag__resource_8h_source"/>
+      </node>
+      <node id="8">
+        <label>drv/3d/dag_d3dResource.h</label>
+        <link refid="dag__d3d_resource_8h_source"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>drv/3d/dag_consts_base.h</label>
+        <link refid="dag__consts__base_8h_source"/>
+      </node>
+      <node id="9">
+        <label>util/dag_string.h</label>
+      </node>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h</label>
+        <link refid="dag__heap_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>drv/3d/dag_driverCode.h</label>
+        <link refid="dag__driver_code_8h_source"/>
+      </node>
+      <node id="3">
+        <label>drv/3d/dag_consts.h</label>
+        <link refid="dag__consts_8h_source"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>util/dag_inttypes.h</label>
+      </node>
+      <node id="5">
+        <label>drv/3d/dag_shaderModelVersion.h</label>
+        <link refid="dag__shader_model_version_8h_source"/>
+      </node>
+    </incdepgraph>
+    <innerclass refid="struct_basic_resource_description" prot="public">BasicResourceDescription</innerclass>
+    <innerclass refid="struct_buffer_resource_description" prot="public">BufferResourceDescription</innerclass>
+    <innerclass refid="struct_basic_texture_resource_description" prot="public">BasicTextureResourceDescription</innerclass>
+    <innerclass refid="struct_texture_resource_description" prot="public">TextureResourceDescription</innerclass>
+    <innerclass refid="struct_vol_texture_resource_description" prot="public">VolTextureResourceDescription</innerclass>
+    <innerclass refid="struct_array_texture_resource_description" prot="public">ArrayTextureResourceDescription</innerclass>
+    <innerclass refid="struct_cube_texture_resource_description" prot="public">CubeTextureResourceDescription</innerclass>
+    <innerclass refid="struct_array_cube_texture_resource_description" prot="public">ArrayCubeTextureResourceDescription</innerclass>
+    <innerclass refid="struct_resource_description" prot="public">ResourceDescription</innerclass>
+    <innerclass refid="classeastl_1_1hash_3_01_resource_description_01_4" prot="public">eastl::hash&lt; ResourceDescription &gt;</innerclass>
+    <innerclass refid="struct_resource_heap_group_properties" prot="public">ResourceHeapGroupProperties</innerclass>
+    <innerclass refid="struct_resource_allocation_properties" prot="public">ResourceAllocationProperties</innerclass>
+    <innernamespace refid="namespaceeastl">eastl</innernamespace>
+    <innernamespace refid="namespaced3d">d3d</innernamespace>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="dag__heap_8h_1ab3a72a8644849607f5e3650a6364ad55" prot="public" static="no">
+        <name>FIELD_MATCHES</name>
+        <param><defname>field</defname></param>
+        <initializer>(this-&gt;field == r.field)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="154" column="9"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="dag__heap_8h_1aba5fc2fabcfb5f2a44d199d6ba3c2b4e" prot="public" static="no" strong="yes">
+        <type>unsigned</type>
+        <name>ResourceActivationAction</name>
+        <enumvalue id="dag__heap_8h_1aba5fc2fabcfb5f2a44d199d6ba3c2b4ea12558b5590fbf86eeaf1595f13555770" prot="public">
+          <name>REWRITE_AS_COPY_DESTINATION</name>
+          <briefdescription>
+<para>Rewrite the resource as a copy destination. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__heap_8h_1aba5fc2fabcfb5f2a44d199d6ba3c2b4eae87ac6e24c8a3bbc6815dc6302de00bf" prot="public">
+          <name>REWRITE_AS_UAV</name>
+          <briefdescription>
+<para>Rewrite the resource as an unordered access view. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__heap_8h_1aba5fc2fabcfb5f2a44d199d6ba3c2b4ea0b231d542c5830363a9ae08011d63a96" prot="public">
+          <name>REWRITE_AS_RTV_DSV</name>
+          <briefdescription>
+<para>Rewrite the resource as a render target or depth-stencil view. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__heap_8h_1aba5fc2fabcfb5f2a44d199d6ba3c2b4eac4e7e9bc30c5bdc80204dfd9d4a4ede0" prot="public">
+          <name>CLEAR_F_AS_UAV</name>
+          <briefdescription>
+<para>Clear the resource as a floating-point unordered access view. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__heap_8h_1aba5fc2fabcfb5f2a44d199d6ba3c2b4eacf564f4df92c20de3d4549ddf9dc7f64" prot="public">
+          <name>CLEAR_I_AS_UAV</name>
+          <briefdescription>
+<para>Clear the resource as an integer unordered access view. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__heap_8h_1aba5fc2fabcfb5f2a44d199d6ba3c2b4ea5ec8c2bf649052e8013c4dae533d9d4e" prot="public">
+          <name>CLEAR_AS_RTV_DSV</name>
+          <briefdescription>
+<para>Clear the resource as a render target or depth-stencil view. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__heap_8h_1aba5fc2fabcfb5f2a44d199d6ba3c2b4ea93e01488d6c4fb04fdcbfd89807723bd" prot="public">
+          <name>DISCARD_AS_UAV</name>
+          <briefdescription>
+<para>Discard the resource as an unordered access view. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__heap_8h_1aba5fc2fabcfb5f2a44d199d6ba3c2b4ea1e3dcb1b334addafafa130b9ce77c266" prot="public">
+          <name>DISCARD_AS_RTV_DSV</name>
+          <briefdescription>
+<para>Discard the resource as a render target or depth-stencil view. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>Enumeration representing different resource activation actions. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="24" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="25" bodyend="34"/>
+      </memberdef>
+      <memberdef kind="enum" id="dag__heap_8h_1a10c4580765b252a0590421a0e1e02154" prot="public" static="no" strong="no">
+        <type></type>
+        <name>ResourceHeapCreateFlag</name>
+        <enumvalue id="dag__heap_8h_1a10c4580765b252a0590421a0e1e02154a3b52b0db90f6f3232ddfff48e581778a" prot="public">
+          <name>RHCF_NONE</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>By default the drivers are allowed to use already reserved memory of internal heaps, to source the needed memory. Drivers are also allowed to allocate larger memory heaps and use the excess memory for their internal resource and memory management. </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__heap_8h_1a10c4580765b252a0590421a0e1e02154a1e0e082c1bebadea76c4be9e2c1e717d" prot="public">
+          <name>RHCF_REQUIRES_DEDICATED_HEAP</name>
+          <initializer>= 1u &lt;&lt; 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Resource heaps created with this flag, will use their own dedicate memory heap to supply the memory for resources. When this flag is not used to create a resource heap, the driver is allowed to source the need memory from existing driver managed heaps, or create a larger underlying memory heap and use the excess memory for its internal resource and memory management. This flag should be used only when really necessary, as it restricts the drivers option to use already reserved memory for this heap and increase the memory pressure on the system.</para>
+<para><simplesect kind="note"><para>That on certain system configurations, for example GDK with predefined memory heap allocations, this flag may be ignored by the driver, as it would otherwise not be able to satisfy heap creation request. </para>
+</simplesect>
+</para>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>A set of flags that steer the behavior of the driver during creation of resource heaps. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="323" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="324" bodyend="339"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="dag__heap_8h_1aa235e00b883f2888202630b9c47ab9ec" prot="public" static="no">
+        <type>uint32_t</type>
+        <definition>using ResourceHeapCreateFlags =  uint32_t</definition>
+        <argsstring></argsstring>
+        <name>ResourceHeapCreateFlags</name>
+        <briefdescription>
+<para>Definition of ResourceHeapCreateFlags type. See ResourceHeapCreateFlag for valid values. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="19" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_inttypes.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_consts.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_resource.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_d3dResource.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref>;</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="class_base_texture" kindref="compound">BaseTexture</ref>;</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keyword">using</highlight><highlight class="normal"><sp/>ResourceHeapCreateFlags<sp/>=<sp/>uint32_t;</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/>ResourceActivationAction<sp/>:<sp/>unsigned</highlight></codeline>
+<codeline lineno="25"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/>REWRITE_AS_COPY_DESTINATION,<sp/></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/>REWRITE_AS_UAV,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/>REWRITE_AS_RTV_DSV,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/>CLEAR_F_AS_UAV,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/>CLEAR_I_AS_UAV,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/>CLEAR_AS_RTV_DSV,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/>DISCARD_AS_UAV,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/>DISCARD_AS_RTV_DSV,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="34"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39" refid="struct_basic_resource_description" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="struct_basic_resource_description" kindref="compound">BasicResourceDescription</ref></highlight></codeline>
+<codeline lineno="40"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="41" refid="struct_basic_resource_description_1ac416c65293ae56fc2adf988de4821bf4" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="struct_basic_resource_description_1ac416c65293ae56fc2adf988de4821bf4" kindref="member">cFlags</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="42" refid="struct_basic_resource_description_1a460a3547f57649aab846fc67831faa57" refkind="member"><highlight class="normal"><sp/><sp/>ResourceActivationAction<sp/><ref refid="struct_basic_resource_description_1a460a3547f57649aab846fc67831faa57" kindref="member">activation</ref>;<sp/></highlight></codeline>
+<codeline lineno="43" refid="struct_basic_resource_description_1a1c14be0b1256d4dbd82e5ce464419c35" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="union_resource_clear_value" kindref="compound">ResourceClearValue</ref><sp/><ref refid="struct_basic_resource_description_1a1c14be0b1256d4dbd82e5ce464419c35" kindref="member">clearValue</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="44"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight></codeline>
+<codeline lineno="49" refid="struct_buffer_resource_description" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="struct_buffer_resource_description" kindref="compound">BufferResourceDescription</ref><sp/>:<sp/><ref refid="struct_basic_resource_description" kindref="compound">BasicResourceDescription</ref></highlight></codeline>
+<codeline lineno="50"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="51" refid="struct_buffer_resource_description_1a9b4cb8150be20ce458a2810b9326052c" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="struct_buffer_resource_description_1a9b4cb8150be20ce458a2810b9326052c" kindref="member">elementSizeInBytes</ref>;<sp/></highlight></codeline>
+<codeline lineno="52" refid="struct_buffer_resource_description_1ad14ec655e3480e17423dc6ddb546c6b8" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="struct_buffer_resource_description_1ad14ec655e3480e17423dc6ddb546c6b8" kindref="member">elementCount</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="53" refid="struct_buffer_resource_description_1a6829853b5db7726955b2789728997aca" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="struct_buffer_resource_description_1a6829853b5db7726955b2789728997aca" kindref="member">viewFormat</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="54"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight></codeline>
+<codeline lineno="59" refid="struct_basic_texture_resource_description" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="struct_basic_texture_resource_description" kindref="compound">BasicTextureResourceDescription</ref><sp/>:<sp/><ref refid="struct_basic_resource_description" kindref="compound">BasicResourceDescription</ref></highlight></codeline>
+<codeline lineno="60"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="61" refid="struct_basic_texture_resource_description_1ae3b058fec55e414dd58b914b934103d2" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="struct_basic_texture_resource_description_1ae3b058fec55e414dd58b914b934103d2" kindref="member">mipLevels</ref>;<sp/></highlight></codeline>
+<codeline lineno="62"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight></codeline>
+<codeline lineno="67" refid="struct_texture_resource_description" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="struct_texture_resource_description" kindref="compound">TextureResourceDescription</ref><sp/>:<sp/><ref refid="struct_basic_texture_resource_description" kindref="compound">BasicTextureResourceDescription</ref></highlight></codeline>
+<codeline lineno="68"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="69" refid="struct_texture_resource_description_1a057b0f0d80db47717ee6f4458c39d2c5" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="struct_texture_resource_description_1a057b0f0d80db47717ee6f4458c39d2c5" kindref="member">width</ref>;<sp/><sp/></highlight></codeline>
+<codeline lineno="70" refid="struct_texture_resource_description_1a4b005d017af5e735faaceef9cee6653d" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="struct_texture_resource_description_1a4b005d017af5e735faaceef9cee6653d" kindref="member">height</ref>;<sp/></highlight></codeline>
+<codeline lineno="71"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight></codeline>
+<codeline lineno="76" refid="struct_vol_texture_resource_description" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="struct_vol_texture_resource_description" kindref="compound">VolTextureResourceDescription</ref><sp/>:<sp/><ref refid="struct_texture_resource_description" kindref="compound">TextureResourceDescription</ref></highlight></codeline>
+<codeline lineno="77"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="78" refid="struct_vol_texture_resource_description_1aeb637e63869eb810650a27b64dbb7a3a" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="struct_vol_texture_resource_description_1aeb637e63869eb810650a27b64dbb7a3a" kindref="member">depth</ref>;<sp/></highlight></codeline>
+<codeline lineno="79"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight></codeline>
+<codeline lineno="84" refid="struct_array_texture_resource_description" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="struct_array_texture_resource_description" kindref="compound">ArrayTextureResourceDescription</ref><sp/>:<sp/><ref refid="struct_texture_resource_description" kindref="compound">TextureResourceDescription</ref></highlight></codeline>
+<codeline lineno="85"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="86" refid="struct_array_texture_resource_description_1a5da22276ea8191b7e6a6308c13b20af4" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="struct_array_texture_resource_description_1a5da22276ea8191b7e6a6308c13b20af4" kindref="member">arrayLayers</ref>;<sp/></highlight></codeline>
+<codeline lineno="87"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"></highlight></codeline>
+<codeline lineno="92" refid="struct_cube_texture_resource_description" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="struct_cube_texture_resource_description" kindref="compound">CubeTextureResourceDescription</ref><sp/>:<sp/><ref refid="struct_basic_texture_resource_description" kindref="compound">BasicTextureResourceDescription</ref></highlight></codeline>
+<codeline lineno="93"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="94" refid="struct_cube_texture_resource_description_1a2fc45f27ab444342c52d6a06e25be455" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="struct_cube_texture_resource_description_1a2fc45f27ab444342c52d6a06e25be455" kindref="member">extent</ref>;<sp/></highlight></codeline>
+<codeline lineno="95"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"></highlight></codeline>
+<codeline lineno="100" refid="struct_array_cube_texture_resource_description" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="struct_array_cube_texture_resource_description" kindref="compound">ArrayCubeTextureResourceDescription</ref><sp/>:<sp/><ref refid="struct_cube_texture_resource_description" kindref="compound">CubeTextureResourceDescription</ref></highlight></codeline>
+<codeline lineno="101"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="102" refid="struct_array_cube_texture_resource_description_1a54b7e025233c2490669c40146a996653" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="struct_array_cube_texture_resource_description_1a54b7e025233c2490669c40146a996653" kindref="member">cubes</ref>;<sp/></highlight></codeline>
+<codeline lineno="103"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"></highlight></codeline>
+<codeline lineno="108" refid="struct_resource_description" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="struct_resource_description" kindref="compound">ResourceDescription</ref></highlight></codeline>
+<codeline lineno="109"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="110" refid="struct_resource_description_1aaadf78e3fda1e8c737effffea34d678b" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="struct_resource_description_1aaadf78e3fda1e8c737effffea34d678b" kindref="member">resType</ref>;<sp/></highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">union</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="113" refid="struct_resource_description_1a0a64b467ca88a31a8b8c4cee7eae9e66" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="struct_basic_resource_description" kindref="compound">BasicResourceDescription</ref><sp/><ref refid="struct_resource_description_1a0a64b467ca88a31a8b8c4cee7eae9e66" kindref="member">asBasicRes</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="114" refid="struct_resource_description_1ab5da39999823280f1ac92e33601b756d" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="struct_buffer_resource_description" kindref="compound">BufferResourceDescription</ref><sp/><ref refid="struct_resource_description_1ab5da39999823280f1ac92e33601b756d" kindref="member">asBufferRes</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="115" refid="struct_resource_description_1aee7bb2447921999d747f31bfac8ce556" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="struct_basic_texture_resource_description" kindref="compound">BasicTextureResourceDescription</ref><sp/><ref refid="struct_resource_description_1aee7bb2447921999d747f31bfac8ce556" kindref="member">asBasicTexRes</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="116" refid="struct_resource_description_1a17b585a0cfc7dd5f4406e203fa6c9419" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="struct_texture_resource_description" kindref="compound">TextureResourceDescription</ref><sp/><ref refid="struct_resource_description_1a17b585a0cfc7dd5f4406e203fa6c9419" kindref="member">asTexRes</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="117" refid="struct_resource_description_1a99aa546f306654f399609a5028667e55" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="struct_vol_texture_resource_description" kindref="compound">VolTextureResourceDescription</ref><sp/><ref refid="struct_resource_description_1a99aa546f306654f399609a5028667e55" kindref="member">asVolTexRes</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="118" refid="struct_resource_description_1a43a084814e7a3a71691ae2448c8d03f0" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="struct_array_texture_resource_description" kindref="compound">ArrayTextureResourceDescription</ref><sp/><ref refid="struct_resource_description_1a43a084814e7a3a71691ae2448c8d03f0" kindref="member">asArrayTexRes</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="119" refid="struct_resource_description_1a2e7ffe18d52fc4001c266a2eef9c2083" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="struct_cube_texture_resource_description" kindref="compound">CubeTextureResourceDescription</ref><sp/><ref refid="struct_resource_description_1a2e7ffe18d52fc4001c266a2eef9c2083" kindref="member">asCubeTexRes</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="120" refid="struct_resource_description_1a89a7fde21d59eb27197578e1e2fa1c12" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="struct_array_cube_texture_resource_description" kindref="compound">ArrayCubeTextureResourceDescription</ref><sp/><ref refid="struct_resource_description_1a89a7fde21d59eb27197578e1e2fa1c12" kindref="member">asArrayCubeTexRes</ref>;<sp/></highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"></highlight></codeline>
+<codeline lineno="123" refid="struct_resource_description_1a8439dcc8f79f109f2228d61a6aa4b1fe" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="struct_resource_description_1a8439dcc8f79f109f2228d61a6aa4b1fe" kindref="member">ResourceDescription</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="124" refid="struct_resource_description_1a5a4d6f01a755359ab56198196ec34a59" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="struct_resource_description_1a5a4d6f01a755359ab56198196ec34a59" kindref="member">ResourceDescription</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_resource_description" kindref="compound">ResourceDescription</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="125" refid="struct_resource_description_1a52e72d2e10ca1174a5182d9fd203d670" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="struct_resource_description" kindref="compound">ResourceDescription</ref><sp/>&amp;<ref refid="struct_resource_description_1a52e72d2e10ca1174a5182d9fd203d670" kindref="member">operator=</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_resource_description" kindref="compound">ResourceDescription</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;<sp/></highlight></codeline>
+<codeline lineno="126"><highlight class="normal"></highlight></codeline>
+<codeline lineno="127" refid="struct_resource_description_1a1a36da8a75b95e09429e765dbb6b1414" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="struct_resource_description_1a1a36da8a75b95e09429e765dbb6b1414" kindref="member">ResourceDescription</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_buffer_resource_description" kindref="compound">BufferResourceDescription</ref><sp/>&amp;buf)<sp/>:</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="struct_resource_description_1aaadf78e3fda1e8c737effffea34d678b" kindref="member">resType</ref>{RES3D_SBUF},<sp/><ref refid="struct_resource_description_1ab5da39999823280f1ac92e33601b756d" kindref="member">asBufferRes</ref>{buf}<sp/>{}<sp/></highlight></codeline>
+<codeline lineno="129"><highlight class="normal"></highlight></codeline>
+<codeline lineno="130" refid="struct_resource_description_1ac71dcb55a03fad8a78b40cad86fa1d47" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="struct_resource_description_1ac71dcb55a03fad8a78b40cad86fa1d47" kindref="member">ResourceDescription</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_texture_resource_description" kindref="compound">TextureResourceDescription</ref><sp/>&amp;tex)<sp/>:<sp/><ref refid="struct_resource_description_1aaadf78e3fda1e8c737effffea34d678b" kindref="member">resType</ref>{RES3D_TEX},<sp/><ref refid="struct_resource_description_1a17b585a0cfc7dd5f4406e203fa6c9419" kindref="member">asTexRes</ref>{tex}<sp/>{}<sp/></highlight></codeline>
+<codeline lineno="131"><highlight class="normal"></highlight></codeline>
+<codeline lineno="132" refid="struct_resource_description_1acc966203f96ad9fe1555762f3881ab57" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="struct_resource_description_1acc966203f96ad9fe1555762f3881ab57" kindref="member">ResourceDescription</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_vol_texture_resource_description" kindref="compound">VolTextureResourceDescription</ref><sp/>&amp;tex)<sp/>:</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="struct_resource_description_1aaadf78e3fda1e8c737effffea34d678b" kindref="member">resType</ref>{RES3D_VOLTEX},<sp/><ref refid="struct_resource_description_1a99aa546f306654f399609a5028667e55" kindref="member">asVolTexRes</ref>{tex}<sp/>{}<sp/></highlight></codeline>
+<codeline lineno="134"><highlight class="normal"></highlight></codeline>
+<codeline lineno="135" refid="struct_resource_description_1ae5f5d6660f98179fc115c9e9549258cd" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="struct_resource_description_1ae5f5d6660f98179fc115c9e9549258cd" kindref="member">ResourceDescription</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_array_texture_resource_description" kindref="compound">ArrayTextureResourceDescription</ref><sp/>&amp;tex)<sp/>:</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="struct_resource_description_1aaadf78e3fda1e8c737effffea34d678b" kindref="member">resType</ref>{RES3D_ARRTEX},<sp/><ref refid="struct_resource_description_1a43a084814e7a3a71691ae2448c8d03f0" kindref="member">asArrayTexRes</ref>{tex}<sp/>{}<sp/></highlight></codeline>
+<codeline lineno="137"><highlight class="normal"></highlight></codeline>
+<codeline lineno="138" refid="struct_resource_description_1ad6b6e032d585cb8e9c95f403a0677837" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="struct_resource_description_1ad6b6e032d585cb8e9c95f403a0677837" kindref="member">ResourceDescription</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_cube_texture_resource_description" kindref="compound">CubeTextureResourceDescription</ref><sp/>&amp;tex)<sp/>:</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="struct_resource_description_1aaadf78e3fda1e8c737effffea34d678b" kindref="member">resType</ref>{RES3D_CUBETEX},<sp/><ref refid="struct_resource_description_1a2e7ffe18d52fc4001c266a2eef9c2083" kindref="member">asCubeTexRes</ref>{tex}<sp/>{}<sp/></highlight></codeline>
+<codeline lineno="140"><highlight class="normal"></highlight></codeline>
+<codeline lineno="141" refid="struct_resource_description_1a5643c02fb0539406def61fa4a8872f72" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="struct_resource_description_1a5643c02fb0539406def61fa4a8872f72" kindref="member">ResourceDescription</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_array_cube_texture_resource_description" kindref="compound">ArrayCubeTextureResourceDescription</ref><sp/>&amp;tex)<sp/>:</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="struct_resource_description_1aaadf78e3fda1e8c737effffea34d678b" kindref="member">resType</ref>{RES3D_CUBEARRTEX},<sp/><ref refid="struct_resource_description_1a89a7fde21d59eb27197578e1e2fa1c12" kindref="member">asArrayCubeTexRes</ref>{tex}<sp/>{}<sp/></highlight></codeline>
+<codeline lineno="143"><highlight class="normal"></highlight></codeline>
+<codeline lineno="152" refid="struct_resource_description_1ae91e518e673816f6e9ff51329a216c5f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="struct_resource_description_1ae91e518e673816f6e9ff51329a216c5f" kindref="member">operator==</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_resource_description" kindref="compound">ResourceDescription</ref><sp/>&amp;r)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="153"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>FIELD_MATCHES(field)<sp/>(this-&gt;field<sp/>==<sp/>r.field)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!FIELD_MATCHES(<ref refid="struct_resource_description_1aaadf78e3fda1e8c737effffea34d678b" kindref="member">resType</ref>)<sp/>||<sp/>!FIELD_MATCHES(<ref refid="struct_resource_description_1a0a64b467ca88a31a8b8c4cee7eae9e66" kindref="member">asBasicRes</ref>.<ref refid="struct_basic_resource_description_1ac416c65293ae56fc2adf988de4821bf4" kindref="member">cFlags</ref>))</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="struct_resource_description_1aaadf78e3fda1e8c737effffea34d678b" kindref="member">resType</ref><sp/>==<sp/>RES3D_SBUF)</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>FIELD_MATCHES(<ref refid="struct_resource_description_1ab5da39999823280f1ac92e33601b756d" kindref="member">asBufferRes</ref>.<ref refid="struct_buffer_resource_description_1ad14ec655e3480e17423dc6ddb546c6b8" kindref="member">elementCount</ref>)<sp/>&amp;&amp;<sp/>FIELD_MATCHES(<ref refid="struct_resource_description_1ab5da39999823280f1ac92e33601b756d" kindref="member">asBufferRes</ref>.<ref refid="struct_buffer_resource_description_1a9b4cb8150be20ce458a2810b9326052c" kindref="member">elementSizeInBytes</ref>)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>FIELD_MATCHES(<ref refid="struct_resource_description_1ab5da39999823280f1ac92e33601b756d" kindref="member">asBufferRes</ref>.<ref refid="struct_buffer_resource_description_1a6829853b5db7726955b2789728997aca" kindref="member">viewFormat</ref>);</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!FIELD_MATCHES(<ref refid="struct_resource_description_1aee7bb2447921999d747f31bfac8ce556" kindref="member">asBasicTexRes</ref>.<ref refid="struct_basic_texture_resource_description_1ae3b058fec55e414dd58b914b934103d2" kindref="member">mipLevels</ref>))</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="struct_resource_description_1aaadf78e3fda1e8c737effffea34d678b" kindref="member">resType</ref><sp/>==<sp/>RES3D_CUBETEX<sp/>||<sp/><ref refid="struct_resource_description_1aaadf78e3fda1e8c737effffea34d678b" kindref="member">resType</ref><sp/>==<sp/>RES3D_CUBEARRTEX)</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!FIELD_MATCHES(<ref refid="struct_resource_description_1a2e7ffe18d52fc4001c266a2eef9c2083" kindref="member">asCubeTexRes</ref>.<ref refid="struct_cube_texture_resource_description_1a2fc45f27ab444342c52d6a06e25be455" kindref="member">extent</ref>))</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="struct_resource_description_1aaadf78e3fda1e8c737effffea34d678b" kindref="member">resType</ref><sp/>==<sp/>RES3D_CUBEARRTEX)</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>FIELD_MATCHES(<ref refid="struct_resource_description_1a89a7fde21d59eb27197578e1e2fa1c12" kindref="member">asArrayCubeTexRes</ref>.<ref refid="struct_array_cube_texture_resource_description_1a54b7e025233c2490669c40146a996653" kindref="member">cubes</ref>);</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!FIELD_MATCHES(<ref refid="struct_resource_description_1a17b585a0cfc7dd5f4406e203fa6c9419" kindref="member">asTexRes</ref>.<ref refid="struct_texture_resource_description_1a057b0f0d80db47717ee6f4458c39d2c5" kindref="member">width</ref>)<sp/>||<sp/>!FIELD_MATCHES(<ref refid="struct_resource_description_1a17b585a0cfc7dd5f4406e203fa6c9419" kindref="member">asTexRes</ref>.<ref refid="struct_texture_resource_description_1a4b005d017af5e735faaceef9cee6653d" kindref="member">height</ref>))</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="struct_resource_description_1aaadf78e3fda1e8c737effffea34d678b" kindref="member">resType</ref><sp/>==<sp/>RES3D_VOLTEX)</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>FIELD_MATCHES(<ref refid="struct_resource_description_1a99aa546f306654f399609a5028667e55" kindref="member">asVolTexRes</ref>.<ref refid="struct_vol_texture_resource_description_1aeb637e63869eb810650a27b64dbb7a3a" kindref="member">depth</ref>);</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="struct_resource_description_1aaadf78e3fda1e8c737effffea34d678b" kindref="member">resType</ref><sp/>==<sp/>RES3D_ARRTEX)</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>FIELD_MATCHES(<ref refid="struct_resource_description_1a43a084814e7a3a71691ae2448c8d03f0" kindref="member">asArrayTexRes</ref>.<ref refid="struct_array_texture_resource_description_1a5da22276ea8191b7e6a6308c13b20af4" kindref="member">arrayLayers</ref>);</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"></highlight><highlight class="preprocessor">#undef<sp/>FIELD_MATCHES</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"></highlight></codeline>
+<codeline lineno="179" refid="struct_resource_description_1ab0bd9db5a7647488becf257da246345c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using</highlight><highlight class="normal"><sp/><ref refid="struct_resource_description_1ab0bd9db5a7647488becf257da246345c" kindref="member">HashT</ref><sp/>=<sp/>size_t;<sp/></highlight></codeline>
+<codeline lineno="180"><highlight class="normal"></highlight></codeline>
+<codeline lineno="186" refid="struct_resource_description_1ad809a6e59153ca10566286abeb8a36ac" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="struct_resource_description_1ab0bd9db5a7647488becf257da246345c" kindref="member">HashT</ref><sp/><ref refid="struct_resource_description_1ad809a6e59153ca10566286abeb8a36ac" kindref="member">hash</ref>()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="187"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="struct_resource_description_1ab0bd9db5a7647488becf257da246345c" kindref="member">HashT</ref><sp/>hashValue<sp/>=<sp/><ref refid="struct_resource_description_1aaadf78e3fda1e8c737effffea34d678b" kindref="member">resType</ref>;</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(<ref refid="struct_resource_description_1aaadf78e3fda1e8c737effffea34d678b" kindref="member">resType</ref>)</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>RES3D_SBUF:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>hashPack(hashValue,<sp/><ref refid="struct_resource_description_1ab5da39999823280f1ac92e33601b756d" kindref="member">asBufferRes</ref>.<ref refid="struct_buffer_resource_description_1ad14ec655e3480e17423dc6ddb546c6b8" kindref="member">elementCount</ref>,<sp/><ref refid="struct_resource_description_1ab5da39999823280f1ac92e33601b756d" kindref="member">asBufferRes</ref>.<ref refid="struct_buffer_resource_description_1a9b4cb8150be20ce458a2810b9326052c" kindref="member">elementSizeInBytes</ref>,<sp/><ref refid="struct_resource_description_1ab5da39999823280f1ac92e33601b756d" kindref="member">asBufferRes</ref>.<ref refid="struct_buffer_resource_description_1a6829853b5db7726955b2789728997aca" kindref="member">viewFormat</ref>);</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>RES3D_TEX:</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>hashPack(hashValue,<sp/>eastl::to_underlying(<ref refid="struct_resource_description_1a17b585a0cfc7dd5f4406e203fa6c9419" kindref="member">asTexRes</ref>.<ref refid="struct_basic_resource_description_1a460a3547f57649aab846fc67831faa57" kindref="member">activation</ref>),<sp/><ref refid="struct_resource_description_1a17b585a0cfc7dd5f4406e203fa6c9419" kindref="member">asTexRes</ref>.<ref refid="struct_basic_resource_description_1ac416c65293ae56fc2adf988de4821bf4" kindref="member">cFlags</ref>,<sp/><ref refid="struct_resource_description_1a17b585a0cfc7dd5f4406e203fa6c9419" kindref="member">asTexRes</ref>.<ref refid="struct_basic_texture_resource_description_1ae3b058fec55e414dd58b914b934103d2" kindref="member">mipLevels</ref>,<sp/><ref refid="struct_resource_description_1a17b585a0cfc7dd5f4406e203fa6c9419" kindref="member">asTexRes</ref>.<ref refid="struct_texture_resource_description_1a4b005d017af5e735faaceef9cee6653d" kindref="member">height</ref>,</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="struct_resource_description_1a17b585a0cfc7dd5f4406e203fa6c9419" kindref="member">asTexRes</ref>.<ref refid="struct_texture_resource_description_1a057b0f0d80db47717ee6f4458c39d2c5" kindref="member">width</ref>,<sp/><ref refid="struct_resource_description_1a17b585a0cfc7dd5f4406e203fa6c9419" kindref="member">asTexRes</ref>.<ref refid="struct_basic_resource_description_1a1c14be0b1256d4dbd82e5ce464419c35" kindref="member">clearValue</ref>.asUint[0],<sp/><ref refid="struct_resource_description_1a17b585a0cfc7dd5f4406e203fa6c9419" kindref="member">asTexRes</ref>.<ref refid="struct_basic_resource_description_1a1c14be0b1256d4dbd82e5ce464419c35" kindref="member">clearValue</ref>.asUint[1],<sp/><ref refid="struct_resource_description_1a17b585a0cfc7dd5f4406e203fa6c9419" kindref="member">asTexRes</ref>.<ref refid="struct_basic_resource_description_1a1c14be0b1256d4dbd82e5ce464419c35" kindref="member">clearValue</ref>.asUint[2],</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="struct_resource_description_1a17b585a0cfc7dd5f4406e203fa6c9419" kindref="member">asTexRes</ref>.<ref refid="struct_basic_resource_description_1a1c14be0b1256d4dbd82e5ce464419c35" kindref="member">clearValue</ref>.asUint[3]);</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>RES3D_VOLTEX:</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>hashPack(hashValue,<sp/>eastl::to_underlying(<ref refid="struct_resource_description_1a99aa546f306654f399609a5028667e55" kindref="member">asVolTexRes</ref>.<ref refid="struct_basic_resource_description_1a460a3547f57649aab846fc67831faa57" kindref="member">activation</ref>),<sp/><ref refid="struct_resource_description_1a99aa546f306654f399609a5028667e55" kindref="member">asVolTexRes</ref>.<ref refid="struct_basic_resource_description_1ac416c65293ae56fc2adf988de4821bf4" kindref="member">cFlags</ref>,<sp/><ref refid="struct_resource_description_1a99aa546f306654f399609a5028667e55" kindref="member">asVolTexRes</ref>.<ref refid="struct_basic_texture_resource_description_1ae3b058fec55e414dd58b914b934103d2" kindref="member">mipLevels</ref>,</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="struct_resource_description_1a99aa546f306654f399609a5028667e55" kindref="member">asVolTexRes</ref>.<ref refid="struct_texture_resource_description_1a4b005d017af5e735faaceef9cee6653d" kindref="member">height</ref>,<sp/><ref refid="struct_resource_description_1a99aa546f306654f399609a5028667e55" kindref="member">asVolTexRes</ref>.<ref refid="struct_texture_resource_description_1a057b0f0d80db47717ee6f4458c39d2c5" kindref="member">width</ref>,<sp/><ref refid="struct_resource_description_1a99aa546f306654f399609a5028667e55" kindref="member">asVolTexRes</ref>.<ref refid="struct_vol_texture_resource_description_1aeb637e63869eb810650a27b64dbb7a3a" kindref="member">depth</ref>,<sp/><ref refid="struct_resource_description_1a99aa546f306654f399609a5028667e55" kindref="member">asVolTexRes</ref>.<ref refid="struct_basic_resource_description_1a1c14be0b1256d4dbd82e5ce464419c35" kindref="member">clearValue</ref>.asUint[0],<sp/><ref refid="struct_resource_description_1a99aa546f306654f399609a5028667e55" kindref="member">asVolTexRes</ref>.<ref refid="struct_basic_resource_description_1a1c14be0b1256d4dbd82e5ce464419c35" kindref="member">clearValue</ref>.asUint[1],</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="struct_resource_description_1a99aa546f306654f399609a5028667e55" kindref="member">asVolTexRes</ref>.<ref refid="struct_basic_resource_description_1a1c14be0b1256d4dbd82e5ce464419c35" kindref="member">clearValue</ref>.asUint[2],<sp/><ref refid="struct_resource_description_1a99aa546f306654f399609a5028667e55" kindref="member">asVolTexRes</ref>.<ref refid="struct_basic_resource_description_1a1c14be0b1256d4dbd82e5ce464419c35" kindref="member">clearValue</ref>.asUint[3]);</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>RES3D_ARRTEX:</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>hashPack(hashValue,<sp/>eastl::to_underlying(<ref refid="struct_resource_description_1a43a084814e7a3a71691ae2448c8d03f0" kindref="member">asArrayTexRes</ref>.<ref refid="struct_basic_resource_description_1a460a3547f57649aab846fc67831faa57" kindref="member">activation</ref>),<sp/><ref refid="struct_resource_description_1a43a084814e7a3a71691ae2448c8d03f0" kindref="member">asArrayTexRes</ref>.<ref refid="struct_array_texture_resource_description_1a5da22276ea8191b7e6a6308c13b20af4" kindref="member">arrayLayers</ref>,<sp/><ref refid="struct_resource_description_1a43a084814e7a3a71691ae2448c8d03f0" kindref="member">asArrayTexRes</ref>.<ref refid="struct_basic_resource_description_1ac416c65293ae56fc2adf988de4821bf4" kindref="member">cFlags</ref>,</highlight></codeline>
+<codeline lineno="202"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="struct_resource_description_1a43a084814e7a3a71691ae2448c8d03f0" kindref="member">asArrayTexRes</ref>.<ref refid="struct_texture_resource_description_1a4b005d017af5e735faaceef9cee6653d" kindref="member">height</ref>,<sp/><ref refid="struct_resource_description_1a43a084814e7a3a71691ae2448c8d03f0" kindref="member">asArrayTexRes</ref>.<ref refid="struct_basic_texture_resource_description_1ae3b058fec55e414dd58b914b934103d2" kindref="member">mipLevels</ref>,<sp/><ref refid="struct_resource_description_1a43a084814e7a3a71691ae2448c8d03f0" kindref="member">asArrayTexRes</ref>.<ref refid="struct_texture_resource_description_1a4b005d017af5e735faaceef9cee6653d" kindref="member">height</ref>,<sp/><ref refid="struct_resource_description_1a43a084814e7a3a71691ae2448c8d03f0" kindref="member">asArrayTexRes</ref>.<ref refid="struct_texture_resource_description_1a057b0f0d80db47717ee6f4458c39d2c5" kindref="member">width</ref>,<sp/><ref refid="struct_resource_description_1a43a084814e7a3a71691ae2448c8d03f0" kindref="member">asArrayTexRes</ref>.<ref refid="struct_basic_resource_description_1a1c14be0b1256d4dbd82e5ce464419c35" kindref="member">clearValue</ref>.asUint[0],</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="struct_resource_description_1a43a084814e7a3a71691ae2448c8d03f0" kindref="member">asArrayTexRes</ref>.<ref refid="struct_basic_resource_description_1a1c14be0b1256d4dbd82e5ce464419c35" kindref="member">clearValue</ref>.asUint[1],<sp/><ref refid="struct_resource_description_1a43a084814e7a3a71691ae2448c8d03f0" kindref="member">asArrayTexRes</ref>.<ref refid="struct_basic_resource_description_1a1c14be0b1256d4dbd82e5ce464419c35" kindref="member">clearValue</ref>.asUint[2],<sp/><ref refid="struct_resource_description_1a43a084814e7a3a71691ae2448c8d03f0" kindref="member">asArrayTexRes</ref>.<ref refid="struct_basic_resource_description_1a1c14be0b1256d4dbd82e5ce464419c35" kindref="member">clearValue</ref>.asUint[3]);</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>RES3D_CUBETEX:</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>hashPack(hashValue,<sp/>eastl::to_underlying(<ref refid="struct_resource_description_1a2e7ffe18d52fc4001c266a2eef9c2083" kindref="member">asCubeTexRes</ref>.<ref refid="struct_basic_resource_description_1a460a3547f57649aab846fc67831faa57" kindref="member">activation</ref>),<sp/><ref refid="struct_resource_description_1a2e7ffe18d52fc4001c266a2eef9c2083" kindref="member">asCubeTexRes</ref>.<ref refid="struct_basic_resource_description_1ac416c65293ae56fc2adf988de4821bf4" kindref="member">cFlags</ref>,<sp/><ref refid="struct_resource_description_1a2e7ffe18d52fc4001c266a2eef9c2083" kindref="member">asCubeTexRes</ref>.<ref refid="struct_cube_texture_resource_description_1a2fc45f27ab444342c52d6a06e25be455" kindref="member">extent</ref>,</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="struct_resource_description_1a2e7ffe18d52fc4001c266a2eef9c2083" kindref="member">asCubeTexRes</ref>.<ref refid="struct_basic_texture_resource_description_1ae3b058fec55e414dd58b914b934103d2" kindref="member">mipLevels</ref>,<sp/><ref refid="struct_resource_description_1a2e7ffe18d52fc4001c266a2eef9c2083" kindref="member">asCubeTexRes</ref>.<ref refid="struct_basic_resource_description_1a1c14be0b1256d4dbd82e5ce464419c35" kindref="member">clearValue</ref>.asUint[0],<sp/><ref refid="struct_resource_description_1a2e7ffe18d52fc4001c266a2eef9c2083" kindref="member">asCubeTexRes</ref>.<ref refid="struct_basic_resource_description_1a1c14be0b1256d4dbd82e5ce464419c35" kindref="member">clearValue</ref>.asUint[1],</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="struct_resource_description_1a2e7ffe18d52fc4001c266a2eef9c2083" kindref="member">asCubeTexRes</ref>.<ref refid="struct_basic_resource_description_1a1c14be0b1256d4dbd82e5ce464419c35" kindref="member">clearValue</ref>.asUint[2],<sp/><ref refid="struct_resource_description_1a2e7ffe18d52fc4001c266a2eef9c2083" kindref="member">asCubeTexRes</ref>.<ref refid="struct_basic_resource_description_1a1c14be0b1256d4dbd82e5ce464419c35" kindref="member">clearValue</ref>.asUint[3]);</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>RES3D_CUBEARRTEX:</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>hashPack(hashValue,<sp/>eastl::to_underlying(<ref refid="struct_resource_description_1a89a7fde21d59eb27197578e1e2fa1c12" kindref="member">asArrayCubeTexRes</ref>.<ref refid="struct_basic_resource_description_1a460a3547f57649aab846fc67831faa57" kindref="member">activation</ref>),<sp/><ref refid="struct_resource_description_1a89a7fde21d59eb27197578e1e2fa1c12" kindref="member">asArrayCubeTexRes</ref>.<ref refid="struct_basic_resource_description_1ac416c65293ae56fc2adf988de4821bf4" kindref="member">cFlags</ref>,</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="struct_resource_description_1a89a7fde21d59eb27197578e1e2fa1c12" kindref="member">asArrayCubeTexRes</ref>.<ref refid="struct_basic_texture_resource_description_1ae3b058fec55e414dd58b914b934103d2" kindref="member">mipLevels</ref>,<sp/><ref refid="struct_resource_description_1a89a7fde21d59eb27197578e1e2fa1c12" kindref="member">asArrayCubeTexRes</ref>.<ref refid="struct_array_cube_texture_resource_description_1a54b7e025233c2490669c40146a996653" kindref="member">cubes</ref>,<sp/><ref refid="struct_resource_description_1a89a7fde21d59eb27197578e1e2fa1c12" kindref="member">asArrayCubeTexRes</ref>.<ref refid="struct_cube_texture_resource_description_1a2fc45f27ab444342c52d6a06e25be455" kindref="member">extent</ref>,<sp/><ref refid="struct_resource_description_1a89a7fde21d59eb27197578e1e2fa1c12" kindref="member">asArrayCubeTexRes</ref>.<ref refid="struct_basic_resource_description_1a1c14be0b1256d4dbd82e5ce464419c35" kindref="member">clearValue</ref>.asUint[0],</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="struct_resource_description_1a89a7fde21d59eb27197578e1e2fa1c12" kindref="member">asArrayCubeTexRes</ref>.<ref refid="struct_basic_resource_description_1a1c14be0b1256d4dbd82e5ce464419c35" kindref="member">clearValue</ref>.asUint[1],<sp/><ref refid="struct_resource_description_1a89a7fde21d59eb27197578e1e2fa1c12" kindref="member">asArrayCubeTexRes</ref>.<ref refid="struct_basic_resource_description_1a1c14be0b1256d4dbd82e5ce464419c35" kindref="member">clearValue</ref>.asUint[2],<sp/><ref refid="struct_resource_description_1a89a7fde21d59eb27197578e1e2fa1c12" kindref="member">asArrayCubeTexRes</ref>.<ref refid="struct_basic_resource_description_1a1c14be0b1256d4dbd82e5ce464419c35" kindref="member">clearValue</ref>.asUint[3]);</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>hashValue;</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="215"><highlight class="normal"></highlight></codeline>
+<codeline lineno="216"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="222"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="struct_resource_description_1ab0bd9db5a7647488becf257da246345c" kindref="member">HashT</ref><sp/>hashPack()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="232"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>T,<sp/></highlight><highlight class="keyword">typename</highlight><highlight class="normal">...<sp/>Ts&gt;</highlight></codeline>
+<codeline lineno="233"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="struct_resource_description_1ab0bd9db5a7647488becf257da246345c" kindref="member">HashT</ref><sp/>hashPack(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>T<sp/>&amp;first,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Ts<sp/>&amp;...other)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="234"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="235"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="struct_resource_description_1ab0bd9db5a7647488becf257da246345c" kindref="member">HashT</ref><sp/>hashVal<sp/>=<sp/>hashPack(other...);</highlight></codeline>
+<codeline lineno="236"><highlight class="normal"><sp/><sp/><sp/><sp/>hashVal<sp/>^=<sp/>first<sp/>+<sp/>0x9e3779b9<sp/>+<sp/>(hashVal<sp/>&lt;&lt;<sp/>6)<sp/>+<sp/>(hashVal<sp/>&gt;&gt;<sp/>2);</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>hashVal;</highlight></codeline>
+<codeline lineno="238"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="239"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="240"><highlight class="normal"></highlight></codeline>
+<codeline lineno="241"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">eastl</highlight></codeline>
+<codeline lineno="242"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="246"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;&gt;</highlight></codeline>
+<codeline lineno="247" refid="classeastl_1_1hash_3_01_resource_description_01_4" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">hash&lt;<ref refid="struct_resource_description" kindref="compound">ResourceDescription</ref>&gt;</highlight></codeline>
+<codeline lineno="248"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="249"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="256" refid="classeastl_1_1hash_3_01_resource_description_01_4_1a7cbee9fd12f38cec296cdb11a901b868" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/><ref refid="classeastl_1_1hash_3_01_resource_description_01_4_1a7cbee9fd12f38cec296cdb11a901b868" kindref="member">operator()</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_resource_description" kindref="compound">ResourceDescription</ref><sp/>&amp;desc)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>desc.<ref refid="struct_resource_description_1ad809a6e59153ca10566286abeb8a36ac" kindref="member">hash</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="257"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="258"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>eastl</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="259"><highlight class="normal"></highlight></codeline>
+<codeline lineno="260"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">ResourceHeapGroup;</highlight></codeline>
+<codeline lineno="261"><highlight class="normal"></highlight></codeline>
+<codeline lineno="276" refid="struct_resource_heap_group_properties" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="struct_resource_heap_group_properties" kindref="compound">ResourceHeapGroupProperties</ref></highlight></codeline>
+<codeline lineno="277"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="278"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">union</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="279"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="280" refid="struct_resource_heap_group_properties_1a188f2f6b002b1d74a368b08919d8707d" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="struct_resource_heap_group_properties_1a188f2f6b002b1d74a368b08919d8707d" kindref="member">flags</ref>;<sp/></highlight></codeline>
+<codeline lineno="281"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="282"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="286" refid="struct_resource_heap_group_properties_1a4a19a9d780667c6df1b4412636dcbcbe" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="struct_resource_heap_group_properties_1a4a19a9d780667c6df1b4412636dcbcbe" kindref="member">isCPUVisible</ref><sp/>:<sp/>1;</highlight></codeline>
+<codeline lineno="291" refid="struct_resource_heap_group_properties_1a2a8dfde8145b597d570b2a1cb1d48667" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="struct_resource_heap_group_properties_1a2a8dfde8145b597d570b2a1cb1d48667" kindref="member">isGPULocal</ref><sp/>:<sp/>1;</highlight></codeline>
+<codeline lineno="293" refid="struct_resource_heap_group_properties_1a3a536dcabdfbac90b0f5ab7936f9d252" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="struct_resource_heap_group_properties_1a3a536dcabdfbac90b0f5ab7936f9d252" kindref="member">isOnChip</ref><sp/>:<sp/>1;</highlight></codeline>
+<codeline lineno="294"><highlight class="normal"><sp/><sp/><sp/><sp/>};</highlight></codeline>
+<codeline lineno="295"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="297" refid="struct_resource_heap_group_properties_1a9011fd2273a88332d26679255b308860" refkind="member"><highlight class="normal"><sp/><sp/>uint64_t<sp/><ref refid="struct_resource_heap_group_properties_1a9011fd2273a88332d26679255b308860" kindref="member">maxResourceSize</ref>;</highlight></codeline>
+<codeline lineno="300" refid="struct_resource_heap_group_properties_1a3c6625f815c0e0e39e9f87f48fbf9562" refkind="member"><highlight class="normal"><sp/><sp/>uint64_t<sp/><ref refid="struct_resource_heap_group_properties_1a3c6625f815c0e0e39e9f87f48fbf9562" kindref="member">maxHeapSize</ref>;</highlight></codeline>
+<codeline lineno="311" refid="struct_resource_heap_group_properties_1af670b82f1185edeb424e091784c59aca" refkind="member"><highlight class="normal"><sp/><sp/>uint64_t<sp/><ref refid="struct_resource_heap_group_properties_1af670b82f1185edeb424e091784c59aca" kindref="member">optimalMaxHeapSize</ref>;</highlight></codeline>
+<codeline lineno="312"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="313"><highlight class="normal"></highlight></codeline>
+<codeline lineno="315" refid="struct_resource_allocation_properties" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="struct_resource_allocation_properties" kindref="compound">ResourceAllocationProperties</ref></highlight></codeline>
+<codeline lineno="316"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="317" refid="struct_resource_allocation_properties_1a3b74c437cd5d2d69e142716aced8722c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/><ref refid="struct_resource_allocation_properties_1a3b74c437cd5d2d69e142716aced8722c" kindref="member">sizeInBytes</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="318" refid="struct_resource_allocation_properties_1a04ab5b6356d85fb503e6850243ede40f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/><ref refid="struct_resource_allocation_properties_1a04ab5b6356d85fb503e6850243ede40f" kindref="member">offsetAlignment</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="319" refid="struct_resource_allocation_properties_1ad44697aab8e294bc9318abd4c8ea407b" refkind="member"><highlight class="normal"><sp/><sp/>ResourceHeapGroup<sp/>*<ref refid="struct_resource_allocation_properties_1ad44697aab8e294bc9318abd4c8ea407b" kindref="member">heapGroup</ref>;<sp/></highlight></codeline>
+<codeline lineno="320"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="321"><highlight class="normal"></highlight></codeline>
+<codeline lineno="323"><highlight class="keyword">enum</highlight><highlight class="normal"><sp/>ResourceHeapCreateFlag</highlight></codeline>
+<codeline lineno="324"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="328"><highlight class="normal"><sp/><sp/>RHCF_NONE<sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="338"><highlight class="normal"><sp/><sp/>RHCF_REQUIRES_DEDICATED_HEAP<sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>0,</highlight></codeline>
+<codeline lineno="339"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="340"><highlight class="normal"></highlight></codeline>
+<codeline lineno="342"><highlight class="keyword">struct<sp/></highlight><highlight class="normal">ResourceHeap;</highlight></codeline>
+<codeline lineno="343"><highlight class="normal"></highlight></codeline>
+<codeline lineno="344"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">d3d</highlight></codeline>
+<codeline lineno="345"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="357" refid="group___heap_d3_d_1ga74eda8748fd36b24aef174a817852158" refkind="member"><highlight class="normal"><ref refid="struct_resource_allocation_properties" kindref="compound">ResourceAllocationProperties</ref><sp/><ref refid="group___heap_d3_d_1ga74eda8748fd36b24aef174a817852158" kindref="member">get_resource_allocation_properties</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_resource_description" kindref="compound">ResourceDescription</ref><sp/>&amp;desc);</highlight></codeline>
+<codeline lineno="358"><highlight class="normal"></highlight></codeline>
+<codeline lineno="368" refid="group___heap_d3_d_1gac36619884aaa62ab903c24930d4baf86" refkind="member"><highlight class="normal">ResourceHeap<sp/>*<ref refid="group___heap_d3_d_1gac36619884aaa62ab903c24930d4baf86" kindref="member">create_resource_heap</ref>(ResourceHeapGroup<sp/>*heap_group,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>size,<sp/>ResourceHeapCreateFlags<sp/>flags);</highlight></codeline>
+<codeline lineno="369"><highlight class="normal"></highlight></codeline>
+<codeline lineno="375" refid="group___heap_d3_d_1ga3f17897004713db3b260104f811fac38" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___heap_d3_d_1ga3f17897004713db3b260104f811fac38" kindref="member">destroy_resource_heap</ref>(ResourceHeap<sp/>*heap);</highlight></codeline>
+<codeline lineno="376"><highlight class="normal"></highlight></codeline>
+<codeline lineno="390" refid="group___heap_d3_d_1gad8a9b4cd184af239aea4f8f94d0fe74d" refkind="member"><highlight class="normal"><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="group___heap_d3_d_1gad8a9b4cd184af239aea4f8f94d0fe74d" kindref="member">place_buffer_in_resource_heap</ref>(ResourceHeap<sp/>*heap,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_resource_description" kindref="compound">ResourceDescription</ref><sp/>&amp;desc,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>offset,</highlight></codeline>
+<codeline lineno="391"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_resource_allocation_properties" kindref="compound">ResourceAllocationProperties</ref><sp/>&amp;alloc_info,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name);</highlight></codeline>
+<codeline lineno="392"><highlight class="normal"></highlight></codeline>
+<codeline lineno="406" refid="group___heap_d3_d_1ga386cc0aaee632b39d1575cffcc8a56dc" refkind="member"><highlight class="normal"><ref refid="class_base_texture" kindref="compound">BaseTexture</ref><sp/>*<ref refid="group___heap_d3_d_1ga386cc0aaee632b39d1575cffcc8a56dc" kindref="member">place_texture_in_resource_heap</ref>(ResourceHeap<sp/>*heap,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_resource_description" kindref="compound">ResourceDescription</ref><sp/>&amp;desc,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>offset,</highlight></codeline>
+<codeline lineno="407"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_resource_allocation_properties" kindref="compound">ResourceAllocationProperties</ref><sp/>&amp;alloc_info,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name);</highlight></codeline>
+<codeline lineno="408"><highlight class="normal"></highlight></codeline>
+<codeline lineno="420" refid="group___heap_d3_d_1gaf0ae51e5486b049c6204482c7ec3d0f3" refkind="member"><highlight class="normal"><ref refid="struct_resource_heap_group_properties" kindref="compound">ResourceHeapGroupProperties</ref><sp/><ref refid="group___heap_d3_d_1gaf0ae51e5486b049c6204482c7ec3d0f3" kindref="member">get_resource_heap_group_properties</ref>(ResourceHeapGroup<sp/>*heap_group);</highlight></codeline>
+<codeline lineno="421"><highlight class="normal"></highlight></codeline>
+<codeline lineno="433" refid="group___heap_d3_d_1ga128fdcfd86da452ab1b569991b3bb5e8" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___heap_d3_d_1ga128fdcfd86da452ab1b569991b3bb5e8" kindref="member">activate_buffer</ref>(<ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*buf,<sp/>ResourceActivationAction<sp/>action,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="union_resource_clear_value" kindref="compound">ResourceClearValue</ref><sp/>&amp;value<sp/>=<sp/>{},</highlight></codeline>
+<codeline lineno="434"><highlight class="normal"><sp/><sp/>GpuPipeline<sp/>gpu_pipeline<sp/>=<sp/>GpuPipeline::GRAPHICS);</highlight></codeline>
+<codeline lineno="435"><highlight class="normal"></highlight></codeline>
+<codeline lineno="447" refid="group___heap_d3_d_1gaaab49f2901a3be5d400072524fb899ad" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___heap_d3_d_1gaaab49f2901a3be5d400072524fb899ad" kindref="member">activate_texture</ref>(<ref refid="class_base_texture" kindref="compound">BaseTexture</ref><sp/>*tex,<sp/>ResourceActivationAction<sp/>action,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="union_resource_clear_value" kindref="compound">ResourceClearValue</ref><sp/>&amp;value<sp/>=<sp/>{},</highlight></codeline>
+<codeline lineno="448"><highlight class="normal"><sp/><sp/>GpuPipeline<sp/>gpu_pipeline<sp/>=<sp/>GpuPipeline::GRAPHICS);</highlight></codeline>
+<codeline lineno="449"><highlight class="normal"></highlight></codeline>
+<codeline lineno="460" refid="group___heap_d3_d_1ga091d80364b236ac72510a8dc9a55509d" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___heap_d3_d_1ga091d80364b236ac72510a8dc9a55509d" kindref="member">deactivate_buffer</ref>(<ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*buf,<sp/>GpuPipeline<sp/>gpu_pipeline<sp/>=<sp/>GpuPipeline::GRAPHICS);</highlight></codeline>
+<codeline lineno="461"><highlight class="normal"></highlight></codeline>
+<codeline lineno="472" refid="group___heap_d3_d_1ga75e759cf1d8dbc483d3162580be929c7" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___heap_d3_d_1ga75e759cf1d8dbc483d3162580be929c7" kindref="member">deactivate_texture</ref>(<ref refid="class_base_texture" kindref="compound">BaseTexture</ref><sp/>*tex,<sp/>GpuPipeline<sp/>gpu_pipeline<sp/>=<sp/>GpuPipeline::GRAPHICS);</highlight></codeline>
+<codeline lineno="473"><highlight class="normal"></highlight></codeline>
+<codeline lineno="475"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="476"><highlight class="normal"></highlight></codeline>
+<codeline lineno="477"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_D3D_MULTI</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="478"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_interface_table.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="479"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">d3d</highlight></codeline>
+<codeline lineno="480"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="481"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="struct_resource_allocation_properties" kindref="compound">ResourceAllocationProperties</ref><sp/><ref refid="group___heap_d3_d_1ga74eda8748fd36b24aef174a817852158" kindref="member">get_resource_allocation_properties</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_resource_description" kindref="compound">ResourceDescription</ref><sp/>&amp;desc)</highlight></codeline>
+<codeline lineno="482"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="483"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>d3di.get_resource_allocation_properties(desc);</highlight></codeline>
+<codeline lineno="484"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="485"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>ResourceHeap<sp/>*<ref refid="group___heap_d3_d_1gac36619884aaa62ab903c24930d4baf86" kindref="member">create_resource_heap</ref>(ResourceHeapGroup<sp/>*heap_group,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>size,<sp/>ResourceHeapCreateFlags<sp/>flags)</highlight></codeline>
+<codeline lineno="486"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="487"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>d3di.create_resource_heap(heap_group,<sp/>size,<sp/>flags);</highlight></codeline>
+<codeline lineno="488"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="489"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___heap_d3_d_1ga3f17897004713db3b260104f811fac38" kindref="member">destroy_resource_heap</ref>(ResourceHeap<sp/>*heap)<sp/>{<sp/>d3di.destroy_resource_heap(heap);<sp/>}</highlight></codeline>
+<codeline lineno="490"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="group___heap_d3_d_1gad8a9b4cd184af239aea4f8f94d0fe74d" kindref="member">place_buffer_in_resource_heap</ref>(ResourceHeap<sp/>*heap,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_resource_description" kindref="compound">ResourceDescription</ref><sp/>&amp;desc,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>offset,</highlight></codeline>
+<codeline lineno="491"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_resource_allocation_properties" kindref="compound">ResourceAllocationProperties</ref><sp/>&amp;alloc_info,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)</highlight></codeline>
+<codeline lineno="492"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="493"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>d3di.place_buffer_in_resource_heap(heap,<sp/>desc,<sp/>offset,<sp/>alloc_info,<sp/>name);</highlight></codeline>
+<codeline lineno="494"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="495"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="class_base_texture" kindref="compound">BaseTexture</ref><sp/>*<ref refid="group___heap_d3_d_1ga386cc0aaee632b39d1575cffcc8a56dc" kindref="member">place_texture_in_resource_heap</ref>(ResourceHeap<sp/>*heap,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_resource_description" kindref="compound">ResourceDescription</ref><sp/>&amp;desc,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>offset,</highlight></codeline>
+<codeline lineno="496"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_resource_allocation_properties" kindref="compound">ResourceAllocationProperties</ref><sp/>&amp;alloc_info,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)</highlight></codeline>
+<codeline lineno="497"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="498"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>d3di.place_texture_in_resource_heap(heap,<sp/>desc,<sp/>offset,<sp/>alloc_info,<sp/>name);</highlight></codeline>
+<codeline lineno="499"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="500"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="struct_resource_heap_group_properties" kindref="compound">ResourceHeapGroupProperties</ref><sp/><ref refid="group___heap_d3_d_1gaf0ae51e5486b049c6204482c7ec3d0f3" kindref="member">get_resource_heap_group_properties</ref>(ResourceHeapGroup<sp/>*heap_group)</highlight></codeline>
+<codeline lineno="501"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="502"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>d3di.get_resource_heap_group_properties(heap_group);</highlight></codeline>
+<codeline lineno="503"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="504"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___heap_d3_d_1ga128fdcfd86da452ab1b569991b3bb5e8" kindref="member">activate_buffer</ref>(<ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*buf,<sp/>ResourceActivationAction<sp/>action,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="union_resource_clear_value" kindref="compound">ResourceClearValue</ref><sp/>&amp;value,<sp/>GpuPipeline<sp/>gpu_pipeline)</highlight></codeline>
+<codeline lineno="505"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="506"><highlight class="normal"><sp/><sp/>d3di.activate_buffer(buf,<sp/>action,<sp/>value,<sp/>gpu_pipeline);</highlight></codeline>
+<codeline lineno="507"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="508"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___heap_d3_d_1gaaab49f2901a3be5d400072524fb899ad" kindref="member">activate_texture</ref>(<ref refid="class_base_texture" kindref="compound">BaseTexture</ref><sp/>*tex,<sp/>ResourceActivationAction<sp/>action,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="union_resource_clear_value" kindref="compound">ResourceClearValue</ref><sp/>&amp;value,</highlight></codeline>
+<codeline lineno="509"><highlight class="normal"><sp/><sp/>GpuPipeline<sp/>gpu_pipeline)</highlight></codeline>
+<codeline lineno="510"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="511"><highlight class="normal"><sp/><sp/>d3di.activate_texture(tex,<sp/>action,<sp/>value,<sp/>gpu_pipeline);</highlight></codeline>
+<codeline lineno="512"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="513"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___heap_d3_d_1ga091d80364b236ac72510a8dc9a55509d" kindref="member">deactivate_buffer</ref>(<ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*buf,<sp/>GpuPipeline<sp/>gpu_pipeline)<sp/>{<sp/>d3di.deactivate_buffer(buf,<sp/>gpu_pipeline);<sp/>}</highlight></codeline>
+<codeline lineno="514"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___heap_d3_d_1ga75e759cf1d8dbc483d3162580be929c7" kindref="member">deactivate_texture</ref>(<ref refid="class_base_texture" kindref="compound">BaseTexture</ref><sp/>*tex,<sp/>GpuPipeline<sp/>gpu_pipeline)<sp/>{<sp/>d3di.deactivate_texture(tex,<sp/>gpu_pipeline);<sp/>}</highlight></codeline>
+<codeline lineno="515"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="516"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h"/>
+  </compounddef>
+</doxygen>

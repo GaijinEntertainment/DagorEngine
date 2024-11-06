@@ -1,0 +1,777 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="classdabfg_1_1_name_space_request" kind="class" language="C++" prot="public">
+    <compoundname>dabfg::NameSpaceRequest</compoundname>
+    <derivedcompoundref refid="classdabfg_1_1_registry" prot="private" virt="non-virtual">dabfg::Registry</derivedcompoundref>
+    <includes refid="name_space_request_8h" local="no">nameSpaceRequest.h</includes>
+      <sectiondef kind="user-defined">
+      <header>Resource requesting methods</header>
+      <description><para>Every one of these returns a request object that must be used to specify further options for the request. See docs for the relevant request objects for details. <simplesect kind="note"><para>All methods present here look up the resource in this namespace. </para>
+</simplesect>
+</para>
+</description>
+      <memberdef kind="function" id="classdabfg_1_1_name_space_request_1a92ae0b34b30a27bd26e373c5c34759b1" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_resource_semi_request" kindref="compound">VirtualResourceSemiRequest</ref>&lt; NewRoRequestPolicy &gt;</type>
+        <definition>VirtualResourceSemiRequest&lt;NewRoRequestPolicy&gt; dabfg::NameSpaceRequest::read</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>read</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Reads an existing resource at node execution time. Reads always happen after all modifications and before the renaming. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the resource to read. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" line="84" column="30"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_name_space_request_1acf3540d390d461c3c65f20550157da10" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_resource_semi_request" kindref="compound">VirtualResourceSemiRequest</ref>&lt; NewRoRequestPolicy &gt;</type>
+        <definition>VirtualResourceSemiRequest&lt;NewRoRequestPolicy&gt; dabfg::NameSpaceRequest::read</definition>
+        <argsstring>(NamedSlot slot_name) const</argsstring>
+        <name>read</name>
+        <param>
+          <type><ref refid="structdabfg_1_1_named_slot" kindref="compound">NamedSlot</ref></type>
+          <declname>slot_name</declname>
+        </param>
+        <briefdescription>
+<para>Reads an existing resource at node execution time, but indirectly, through a &quot;slot&quot;, which must be specified with dabfg::fill_slot. Reads always happen after all modifications and before the renaming. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>slot_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the slot to be used for this read. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" line="93" column="30"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_name_space_request_1a99b52318e6d033d88911640f1c4011bd" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_resource_semi_request" kindref="compound">VirtualResourceSemiRequest</ref>&lt; NewHistRequestPolicy &gt;</type>
+        <definition>VirtualResourceSemiRequest&lt;NewHistRequestPolicy&gt; dabfg::NameSpaceRequest::historyFor</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>historyFor</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Reads the history of an existing resource at node execution time. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the resource the history of which to read. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" line="100" column="30"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_name_space_request_1a5f895a8f7a3abbed04952e9fbf5c0675" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_resource_semi_request" kindref="compound">VirtualResourceSemiRequest</ref>&lt; NewRwRequestPolicy &gt;</type>
+        <definition>VirtualResourceSemiRequest&lt;NewRwRequestPolicy&gt; dabfg::NameSpaceRequest::modify</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>modify</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Modifies an existing resource at node execution time. Modifications always happen after creation and before all reads. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the resource to modify. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" line="108" column="30"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_name_space_request_1a0eb66abfa0b412d22c56c060f8c22e10" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_resource_semi_request" kindref="compound">VirtualResourceSemiRequest</ref>&lt; NewRwRequestPolicy &gt;</type>
+        <definition>VirtualResourceSemiRequest&lt;NewRwRequestPolicy&gt; dabfg::NameSpaceRequest::modify</definition>
+        <argsstring>(NamedSlot slot_name) const</argsstring>
+        <name>modify</name>
+        <param>
+          <type><ref refid="structdabfg_1_1_named_slot" kindref="compound">NamedSlot</ref></type>
+          <declname>slot_name</declname>
+        </param>
+        <briefdescription>
+<para>Modifies an existing resource at node execution time, but indirectly, through a &quot;slot&quot;, which must be specified with dabfg::fill_slot. Modifications always happen after creation and before all reads. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>slot_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the slot to be used for this modification. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" line="117" column="30"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_name_space_request_1a9efa18b186ed6609b0389328b2c3dd0c" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_resource_semi_request" kindref="compound">VirtualResourceSemiRequest</ref>&lt; NewRwRequestPolicy &gt;</type>
+        <definition>VirtualResourceSemiRequest&lt;NewRwRequestPolicy&gt; dabfg::NameSpaceRequest::rename</definition>
+        <argsstring>(const char *from, const char *to, History history) const</argsstring>
+        <name>rename</name>
+        <param>
+          <type>const char *</type>
+          <declname>from</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>to</declname>
+        </param>
+        <param>
+          <type>History</type>
+          <declname>history</declname>
+        </param>
+        <briefdescription>
+<para>Modifies and renames an existing resource at node execution time. Renaming always happens last among all operations on a resource. The renamed version is considered to be a new virtual resource. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="note"><para>Parameters <computeroutput>from</computeroutput> and <computeroutput>to</computeroutput> are looked up in different namespaces when calling this function on an arbitrary <ref refid="classdabfg_1_1_name_space_request" kindref="compound">NameSpaceRequest</ref> object! Current node&apos;s namespace is used for creating <computeroutput>to</computeroutput>, while <computeroutput>from</computeroutput> is looked up in the current request object&apos;s namespace!</para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>from</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Old resource name. Note that this resource may not have history enabled, as renaming it &quot;consumes&quot; it on the current frame, so it is not possible to read it on the next one. It will be looked up relative to this namespace. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>to</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>New resource name, created inside the current node&apos;s namespace! </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>history</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Whether the new resource needs history enabled, see create for details about history. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" line="136" column="30"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Convenience aliases</header>
+      <memberdef kind="function" id="classdabfg_1_1_name_space_request_1a7e5d09b7ded4237d24eb43aa33cb4fc8" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualTextureRequest</ref>&lt; NewRoRequestPolicy &gt;</type>
+        <definition>VirtualTextureRequest&lt;NewRoRequestPolicy&gt; dabfg::NameSpaceRequest::readTexture</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>readTexture</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Alias. See <ref refid="classdabfg_1_1_name_space_request_1a92ae0b34b30a27bd26e373c5c34759b1" kindref="member">read</ref> functions for details. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" line="144" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" bodystart="144" bodyend="144"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_name_space_request_1a18e84c5cffe48e04e029ed84b5ce37fb" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualTextureRequest</ref>&lt; NewRoRequestPolicy &gt;</type>
+        <definition>VirtualTextureRequest&lt;NewRoRequestPolicy&gt; dabfg::NameSpaceRequest::readTexture</definition>
+        <argsstring>(NamedSlot slot_name) const</argsstring>
+        <name>readTexture</name>
+        <param>
+          <type><ref refid="structdabfg_1_1_named_slot" kindref="compound">NamedSlot</ref></type>
+          <declname>slot_name</declname>
+        </param>
+        <briefdescription>
+<para>Alias. See <ref refid="classdabfg_1_1_name_space_request_1a92ae0b34b30a27bd26e373c5c34759b1" kindref="member">read</ref> functions for details. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" line="147" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" bodystart="147" bodyend="147"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_name_space_request_1ac9d67745b36d212913dbe30997410c29" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualTextureRequest</ref>&lt; NewHistRequestPolicy &gt;</type>
+        <definition>VirtualTextureRequest&lt;NewHistRequestPolicy&gt; dabfg::NameSpaceRequest::readTextureHistory</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>readTextureHistory</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Alias. See <ref refid="classdabfg_1_1_name_space_request_1a99b52318e6d033d88911640f1c4011bd" kindref="member">historyFor</ref> function for details. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" line="150" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" bodystart="150" bodyend="150"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_name_space_request_1ab40433321b2ed9aedfc6ef4936deefe3" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualTextureRequest</ref>&lt; NewRwRequestPolicy &gt;</type>
+        <definition>VirtualTextureRequest&lt;NewRwRequestPolicy&gt; dabfg::NameSpaceRequest::modifyTexture</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>modifyTexture</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Alias. See <ref refid="classdabfg_1_1_name_space_request_1a5f895a8f7a3abbed04952e9fbf5c0675" kindref="member">modify</ref> function for details. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" line="153" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" bodystart="153" bodyend="153"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_name_space_request_1a82141c814111a75cfcee029cae32621e" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualTextureRequest</ref>&lt; NewRwRequestPolicy &gt;</type>
+        <definition>VirtualTextureRequest&lt;NewRwRequestPolicy&gt; dabfg::NameSpaceRequest::modifyTexture</definition>
+        <argsstring>(NamedSlot slot_name) const</argsstring>
+        <name>modifyTexture</name>
+        <param>
+          <type><ref refid="structdabfg_1_1_named_slot" kindref="compound">NamedSlot</ref></type>
+          <declname>slot_name</declname>
+        </param>
+        <briefdescription>
+<para>Alias. See <ref refid="classdabfg_1_1_name_space_request_1a5f895a8f7a3abbed04952e9fbf5c0675" kindref="member">modify</ref> function for details. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" line="156" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" bodystart="156" bodyend="156"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_name_space_request_1a11f8f87fb5fc2193defbf4453f62bad8" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualTextureRequest</ref>&lt; NewRwRequestPolicy &gt;</type>
+        <definition>VirtualTextureRequest&lt;NewRwRequestPolicy&gt; dabfg::NameSpaceRequest::renameTexture</definition>
+        <argsstring>(const char *from, const char *to, History history) const</argsstring>
+        <name>renameTexture</name>
+        <param>
+          <type>const char *</type>
+          <declname>from</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>to</declname>
+        </param>
+        <param>
+          <type>History</type>
+          <declname>history</declname>
+        </param>
+        <briefdescription>
+<para>Alias. See <ref refid="classdabfg_1_1_name_space_request_1a9efa18b186ed6609b0389328b2c3dd0c" kindref="member">rename</ref> function for details. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" line="159" column="25" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" bodystart="159" bodyend="162"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_name_space_request_1a8062bcc0d7f0fc287468f574ae1c87a3" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualBlobRequest</ref>&lt; T, NewRoRequestPolicy &gt;</type>
+        <definition>VirtualBlobRequest&lt;T, NewRoRequestPolicy&gt; dabfg::NameSpaceRequest::readBlob</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>readBlob</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Alias. See <ref refid="classdabfg_1_1_name_space_request_1a92ae0b34b30a27bd26e373c5c34759b1" kindref="member">read</ref> functions for details. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" line="166" column="22" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" bodystart="166" bodyend="169"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_name_space_request_1a7c90e1c128a777a170c3abc440d0ca4f" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualBlobRequest</ref>&lt; T, NewHistRequestPolicy &gt;</type>
+        <definition>VirtualBlobRequest&lt;T, NewHistRequestPolicy&gt; dabfg::NameSpaceRequest::readBlobHistory</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>readBlobHistory</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Alias. See <ref refid="classdabfg_1_1_name_space_request_1a99b52318e6d033d88911640f1c4011bd" kindref="member">historyFor</ref> function for details. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" line="173" column="22" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" bodystart="173" bodyend="176"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_name_space_request_1a738c0ee5ec47c9aaf5d83804c1d03e0e" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualBlobRequest</ref>&lt; T, NewRwRequestPolicy &gt;</type>
+        <definition>VirtualBlobRequest&lt;T, NewRwRequestPolicy&gt; dabfg::NameSpaceRequest::modifyBlob</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>modifyBlob</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Alias. See <ref refid="classdabfg_1_1_name_space_request_1a5f895a8f7a3abbed04952e9fbf5c0675" kindref="member">modify</ref> function for details. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" line="180" column="22" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" bodystart="180" bodyend="183"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_name_space_request_1acd6ce0187d343af0197ab9a1f4f6604c" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualBlobRequest</ref>&lt; T, NewRwRequestPolicy &gt;</type>
+        <definition>VirtualBlobRequest&lt;T, NewRwRequestPolicy&gt; dabfg::NameSpaceRequest::renameBlob</definition>
+        <argsstring>(const char *from, const char *to, History history) const</argsstring>
+        <name>renameBlob</name>
+        <param>
+          <type>const char *</type>
+          <declname>from</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>to</declname>
+        </param>
+        <param>
+          <type>History</type>
+          <declname>history</declname>
+        </param>
+        <briefdescription>
+<para>Alias. See <ref refid="classdabfg_1_1_name_space_request_1a9efa18b186ed6609b0389328b2c3dd0c" kindref="member">rename</ref> function for details. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" line="187" column="22" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" bodystart="187" bodyend="190"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-type">
+      <memberdef kind="typedef" id="classdabfg_1_1_name_space_request_1acbed21c06b171e112a45df6491a8534b" prot="private" static="no">
+        <type>detail::ResourceRequestPolicy</type>
+        <definition>using dabfg::NameSpaceRequest::RRP =  detail::ResourceRequestPolicy</definition>
+        <argsstring></argsstring>
+        <name>RRP</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" line="29" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classdabfg_1_1_name_space_request_1a161b15aba44c06a94a7314dcfaa22d3c" prot="private" static="no">
+        <templateparamlist>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest</ref>&lt; BaseTexture, policy &gt;</type>
+        <definition>using dabfg::NameSpaceRequest::VirtualTextureRequest =  VirtualResourceRequest&lt;BaseTexture, policy&gt;</definition>
+        <argsstring></argsstring>
+        <name>VirtualTextureRequest</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" line="37" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classdabfg_1_1_name_space_request_1ae982e15ee7cf94ce54ac454db0ab2311" prot="private" static="no">
+        <templateparamlist>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest</ref>&lt; Sbuffer, policy &gt;</type>
+        <definition>using dabfg::NameSpaceRequest::VirtualBufferRequest =  VirtualResourceRequest&lt;Sbuffer, policy&gt;</definition>
+        <argsstring></argsstring>
+        <name>VirtualBufferRequest</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" line="40" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classdabfg_1_1_name_space_request_1a74c821e4d1453fc7e97f1944bfb20ae7" prot="private" static="no">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>policy</declname>
+            <defname>policy</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest</ref>&lt; T, policy &gt;</type>
+        <definition>using dabfg::NameSpaceRequest::VirtualBlobRequest =  VirtualResourceRequest&lt;T, policy&gt;</definition>
+        <argsstring></argsstring>
+        <name>VirtualBlobRequest</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" line="43" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classdabfg_1_1_name_space_request_1ac7b716e6d41ff508ad2d8e5dad655d72" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class Registry</definition>
+        <argsstring></argsstring>
+        <name>Registry</name>
+        <param>
+          <type><ref refid="classdabfg_1_1_registry" kindref="compound">Registry</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" line="25" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-static-attrib">
+      <memberdef kind="variable" id="classdabfg_1_1_name_space_request_1a14d46e7001e726b1b56d5685372266bf" prot="private" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr RRP</type>
+        <definition>constexpr RRP dabfg::NameSpaceRequest::NewRwRequestPolicy</definition>
+        <argsstring></argsstring>
+        <name>NewRwRequestPolicy</name>
+        <initializer>= RRP::None</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" line="31" column="24" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classdabfg_1_1_name_space_request_1ad5f31206308185ebbc9912fd040795af" prot="private" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr RRP</type>
+        <definition>constexpr RRP dabfg::NameSpaceRequest::NewRoRequestPolicy</definition>
+        <argsstring></argsstring>
+        <name>NewRoRequestPolicy</name>
+        <initializer>= RRP::Readonly</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" line="32" column="24" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classdabfg_1_1_name_space_request_1a44382a2cfc2af4189a20c9e7bdc2a288" prot="private" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr RRP</type>
+        <definition>constexpr RRP dabfg::NameSpaceRequest::NewHistRequestPolicy</definition>
+        <argsstring></argsstring>
+        <name>NewHistRequestPolicy</name>
+        <initializer>= RRP::Readonly | RRP::History</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" line="33" column="24" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classdabfg_1_1_name_space_request_1a00f2ea392cc5a9fa7801456df7cb60a7" prot="private" static="no" mutable="no">
+        <type>NameSpaceNameId</type>
+        <definition>NameSpaceNameId dabfg::NameSpaceRequest::nameSpaceId</definition>
+        <argsstring></argsstring>
+        <name>nameSpaceId</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" line="195" column="19" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" bodystart="195" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classdabfg_1_1_name_space_request_1ad7603b9ac08ab9577bcbc8cbb3600135" prot="private" static="no" mutable="no">
+        <type>NodeNameId</type>
+        <definition>NodeNameId dabfg::NameSpaceRequest::nodeId</definition>
+        <argsstring></argsstring>
+        <name>nodeId</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" line="196" column="14" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" bodystart="196" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classdabfg_1_1_name_space_request_1a25721aef798a26cc145a85e76985dc48" prot="private" static="no" mutable="no">
+        <type>InternalRegistry *</type>
+        <definition>InternalRegistry* dabfg::NameSpaceRequest::registry</definition>
+        <argsstring></argsstring>
+        <name>registry</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" line="197" column="20" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" bodystart="197" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classdabfg_1_1_name_space_request_1a08bbf33e0efc4f7ffbce71aa97b0b54c" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>dabfg::NameSpaceRequest::NameSpaceRequest</definition>
+        <argsstring>(NameSpaceNameId ns, NodeNameId node, InternalRegistry *reg)</argsstring>
+        <name>NameSpaceRequest</name>
+        <param>
+          <type>NameSpaceNameId</type>
+          <declname>ns</declname>
+        </param>
+        <param>
+          <type>NodeNameId</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>InternalRegistry *</type>
+          <declname>reg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" line="27" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" bodystart="27" bodyend="27"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classdabfg_1_1_name_space_request_1aacd653c65171aed36a53ff86504640b2" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_name_space_request" kindref="compound">NameSpaceRequest</ref></type>
+        <definition>NameSpaceRequest dabfg::NameSpaceRequest::operator/</definition>
+        <argsstring>(const char *child_name) const</argsstring>
+        <name>operator/</name>
+        <param>
+          <type>const char *</type>
+          <declname>child_name</declname>
+        </param>
+        <briefdescription>
+<para>Creates a namespace object for a sub-namespace of this one. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>child_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Name of the sub-namespace. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><ref refid="classdabfg_1_1_name_space" kindref="compound">NameSpace</ref> Object representing the child namespace. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" line="53" column="20"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_name_space_request_1aa64495bc462d343b520c550e43d9c79d" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>int</type>
+            <declname>D</declname>
+            <defname>D</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdabfg_1_1_auto_resolution_request" kindref="compound">AutoResolutionRequest</ref>&lt; D &gt;</type>
+        <definition>AutoResolutionRequest&lt;D&gt; dabfg::NameSpaceRequest::getResolution</definition>
+        <argsstring>(const char *type_name, float multiplier=1.f) const</argsstring>
+        <name>getResolution</name>
+        <param>
+          <type>const char *</type>
+          <declname>type_name</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>multiplier</declname>
+          <defval>1.f</defval>
+        </param>
+        <briefdescription>
+<para>Get a request object for the 2D resolution of a particular type inside of this namespace, which can then be used to create textures or be resolved into an actual number at execution time. The resulting resolution will be the product of what was set with <ref refid="classdabfg_1_1_name_space_1a30c2d1edbf639aca312324def0b92dc9" kindref="member">NameSpace::setResolution</ref> with the <computeroutput>multiplier</computeroutput>. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>D</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Dimensionality of the resolution. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>type_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Auto resolution type name. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>multiplier</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A multiplier for the resolution type. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><ref refid="classdabfg_1_1_auto_resolution_request" kindref="compound">AutoResolutionRequest</ref> Object representing the auto resolution type. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" line="68" column="25"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>An object representing a name space within the node declaration callback. It can be used to request objects from the current namespace or its sub-namespaces. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>dabfg::Registry</label>
+        <link refid="classdabfg_1_1_registry"/>
+        <childnode refid="1" relation="private-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>dabfg::NameSpaceRequest</label>
+        <link refid="classdabfg_1_1_name_space_request"/>
+      </node>
+    </inheritancegraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" line="23" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpaceRequest.h" bodystart="24" bodyend="198"/>
+    <listofallmembers>
+      <member refid="classdabfg_1_1_name_space_request_1aa64495bc462d343b520c550e43d9c79d" prot="public" virt="non-virtual"><scope>dabfg::NameSpaceRequest</scope><name>getResolution</name></member>
+      <member refid="classdabfg_1_1_name_space_request_1a99b52318e6d033d88911640f1c4011bd" prot="public" virt="non-virtual"><scope>dabfg::NameSpaceRequest</scope><name>historyFor</name></member>
+      <member refid="classdabfg_1_1_name_space_request_1a5f895a8f7a3abbed04952e9fbf5c0675" prot="public" virt="non-virtual"><scope>dabfg::NameSpaceRequest</scope><name>modify</name></member>
+      <member refid="classdabfg_1_1_name_space_request_1a0eb66abfa0b412d22c56c060f8c22e10" prot="public" virt="non-virtual"><scope>dabfg::NameSpaceRequest</scope><name>modify</name></member>
+      <member refid="classdabfg_1_1_name_space_request_1a738c0ee5ec47c9aaf5d83804c1d03e0e" prot="public" virt="non-virtual"><scope>dabfg::NameSpaceRequest</scope><name>modifyBlob</name></member>
+      <member refid="classdabfg_1_1_name_space_request_1ab40433321b2ed9aedfc6ef4936deefe3" prot="public" virt="non-virtual"><scope>dabfg::NameSpaceRequest</scope><name>modifyTexture</name></member>
+      <member refid="classdabfg_1_1_name_space_request_1a82141c814111a75cfcee029cae32621e" prot="public" virt="non-virtual"><scope>dabfg::NameSpaceRequest</scope><name>modifyTexture</name></member>
+      <member refid="classdabfg_1_1_name_space_request_1a00f2ea392cc5a9fa7801456df7cb60a7" prot="private" virt="non-virtual"><scope>dabfg::NameSpaceRequest</scope><name>nameSpaceId</name></member>
+      <member refid="classdabfg_1_1_name_space_request_1a08bbf33e0efc4f7ffbce71aa97b0b54c" prot="private" virt="non-virtual"><scope>dabfg::NameSpaceRequest</scope><name>NameSpaceRequest</name></member>
+      <member refid="classdabfg_1_1_name_space_request_1a44382a2cfc2af4189a20c9e7bdc2a288" prot="private" virt="non-virtual"><scope>dabfg::NameSpaceRequest</scope><name>NewHistRequestPolicy</name></member>
+      <member refid="classdabfg_1_1_name_space_request_1ad5f31206308185ebbc9912fd040795af" prot="private" virt="non-virtual"><scope>dabfg::NameSpaceRequest</scope><name>NewRoRequestPolicy</name></member>
+      <member refid="classdabfg_1_1_name_space_request_1a14d46e7001e726b1b56d5685372266bf" prot="private" virt="non-virtual"><scope>dabfg::NameSpaceRequest</scope><name>NewRwRequestPolicy</name></member>
+      <member refid="classdabfg_1_1_name_space_request_1ad7603b9ac08ab9577bcbc8cbb3600135" prot="private" virt="non-virtual"><scope>dabfg::NameSpaceRequest</scope><name>nodeId</name></member>
+      <member refid="classdabfg_1_1_name_space_request_1aacd653c65171aed36a53ff86504640b2" prot="public" virt="non-virtual"><scope>dabfg::NameSpaceRequest</scope><name>operator/</name></member>
+      <member refid="classdabfg_1_1_name_space_request_1a92ae0b34b30a27bd26e373c5c34759b1" prot="public" virt="non-virtual"><scope>dabfg::NameSpaceRequest</scope><name>read</name></member>
+      <member refid="classdabfg_1_1_name_space_request_1acf3540d390d461c3c65f20550157da10" prot="public" virt="non-virtual"><scope>dabfg::NameSpaceRequest</scope><name>read</name></member>
+      <member refid="classdabfg_1_1_name_space_request_1a8062bcc0d7f0fc287468f574ae1c87a3" prot="public" virt="non-virtual"><scope>dabfg::NameSpaceRequest</scope><name>readBlob</name></member>
+      <member refid="classdabfg_1_1_name_space_request_1a7c90e1c128a777a170c3abc440d0ca4f" prot="public" virt="non-virtual"><scope>dabfg::NameSpaceRequest</scope><name>readBlobHistory</name></member>
+      <member refid="classdabfg_1_1_name_space_request_1a7e5d09b7ded4237d24eb43aa33cb4fc8" prot="public" virt="non-virtual"><scope>dabfg::NameSpaceRequest</scope><name>readTexture</name></member>
+      <member refid="classdabfg_1_1_name_space_request_1a18e84c5cffe48e04e029ed84b5ce37fb" prot="public" virt="non-virtual"><scope>dabfg::NameSpaceRequest</scope><name>readTexture</name></member>
+      <member refid="classdabfg_1_1_name_space_request_1ac9d67745b36d212913dbe30997410c29" prot="public" virt="non-virtual"><scope>dabfg::NameSpaceRequest</scope><name>readTextureHistory</name></member>
+      <member refid="classdabfg_1_1_name_space_request_1a25721aef798a26cc145a85e76985dc48" prot="private" virt="non-virtual"><scope>dabfg::NameSpaceRequest</scope><name>registry</name></member>
+      <member refid="classdabfg_1_1_name_space_request_1ac7b716e6d41ff508ad2d8e5dad655d72" prot="private" virt="non-virtual"><scope>dabfg::NameSpaceRequest</scope><name>Registry</name></member>
+      <member refid="classdabfg_1_1_name_space_request_1a9efa18b186ed6609b0389328b2c3dd0c" prot="public" virt="non-virtual"><scope>dabfg::NameSpaceRequest</scope><name>rename</name></member>
+      <member refid="classdabfg_1_1_name_space_request_1acd6ce0187d343af0197ab9a1f4f6604c" prot="public" virt="non-virtual"><scope>dabfg::NameSpaceRequest</scope><name>renameBlob</name></member>
+      <member refid="classdabfg_1_1_name_space_request_1a11f8f87fb5fc2193defbf4453f62bad8" prot="public" virt="non-virtual"><scope>dabfg::NameSpaceRequest</scope><name>renameTexture</name></member>
+      <member refid="classdabfg_1_1_name_space_request_1acbed21c06b171e112a45df6491a8534b" prot="private" virt="non-virtual"><scope>dabfg::NameSpaceRequest</scope><name>RRP</name></member>
+      <member refid="classdabfg_1_1_name_space_request_1a74c821e4d1453fc7e97f1944bfb20ae7" prot="private" virt="non-virtual"><scope>dabfg::NameSpaceRequest</scope><name>VirtualBlobRequest</name></member>
+      <member refid="classdabfg_1_1_name_space_request_1ae982e15ee7cf94ce54ac454db0ab2311" prot="private" virt="non-virtual"><scope>dabfg::NameSpaceRequest</scope><name>VirtualBufferRequest</name></member>
+      <member refid="classdabfg_1_1_name_space_request_1a161b15aba44c06a94a7314dcfaa22d3c" prot="private" virt="non-virtual"><scope>dabfg::NameSpaceRequest</scope><name>VirtualTextureRequest</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

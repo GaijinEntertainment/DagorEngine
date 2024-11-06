@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_debug_converter_3_01d3d_1_1shadermodel_1_1_version_constant_3_01_major_00_01_minor_01_4_01_4" kind="struct" language="C++" prot="public">
+    <compoundname>DebugConverter&lt; d3d::shadermodel::VersionConstant&lt; Major, Minor &gt; &gt;</compoundname>
+    <templateparamlist>
+      <param>
+        <type>unsigned</type>
+        <declname>Major</declname>
+        <defname>Major</defname>
+      </param>
+      <param>
+        <type>unsigned</type>
+        <declname>Minor</declname>
+        <defname>Minor</defname>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="struct_debug_converter_3_01d3d_1_1shadermodel_1_1_version_constant_3_01_major_00_01_minor_01_4_01_4_1a31c32ce519f05755f6261190eb275c4a" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>unsigned int</type>
+        <definition>static unsigned int DebugConverter&lt; d3d::shadermodel::VersionConstant&lt; Major, Minor &gt; &gt;::getDebugType</definition>
+        <argsstring>(const d3d::shadermodel::VersionConstant&lt; Major, Minor &gt; &amp;version)</argsstring>
+        <name>getDebugType</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version_constant" kindref="compound">d3d::shadermodel::VersionConstant</ref>&lt; Major, Minor &gt; &amp;</type>
+          <declname>version</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="837" column="23" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="837" bodyend="840"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="835" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="836" bodyend="841"/>
+    <listofallmembers>
+      <member refid="struct_debug_converter_3_01d3d_1_1shadermodel_1_1_version_constant_3_01_major_00_01_minor_01_4_01_4_1a31c32ce519f05755f6261190eb275c4a" prot="public" virt="non-virtual"><scope>DebugConverter&lt; d3d::shadermodel::VersionConstant&lt; Major, Minor &gt; &gt;</scope><name>getDebugType</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

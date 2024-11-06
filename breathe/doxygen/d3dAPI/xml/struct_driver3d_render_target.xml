@@ -1,0 +1,562 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_driver3d_render_target" kind="struct" language="C++" prot="public">
+    <compoundname>Driver3dRenderTarget</compoundname>
+    <innerclass refid="struct_driver3d_render_target_1_1_r_t_state" prot="public">Driver3dRenderTarget::RTState</innerclass>
+      <sectiondef kind="protected-type">
+      <memberdef kind="enum" id="struct_driver3d_render_target_1a76c17c182430e3ceb9c8329a9c9922e4" prot="protected" static="no" strong="no">
+        <type></type>
+        <name>@18</name>
+        <enumvalue id="struct_driver3d_render_target_1a76c17c182430e3ceb9c8329a9c9922e4a5e0b630029d4440b7bad16995f1de3ab" prot="protected">
+          <name>COLOR0</name>
+          <initializer>= 1 &lt;&lt; 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="struct_driver3d_render_target_1a76c17c182430e3ceb9c8329a9c9922e4a5d9efb0638c45346081a922a078525f4" prot="protected">
+          <name>COLOR1</name>
+          <initializer>= COLOR0 &lt;&lt; 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="struct_driver3d_render_target_1a76c17c182430e3ceb9c8329a9c9922e4a61d53ee536e42b960cffb4c72da3a79b" prot="protected">
+          <name>COLOR2</name>
+          <initializer>= COLOR1 &lt;&lt; 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="struct_driver3d_render_target_1a76c17c182430e3ceb9c8329a9c9922e4a8ae2cde97181d3f311ceb672217005fd" prot="protected">
+          <name>COLOR3</name>
+          <initializer>= COLOR2 &lt;&lt; 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="struct_driver3d_render_target_1a76c17c182430e3ceb9c8329a9c9922e4a27d26b25e81b517abcff8ce6b531be02" prot="protected">
+          <name>COLOR4</name>
+          <initializer>= COLOR3 &lt;&lt; 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="struct_driver3d_render_target_1a76c17c182430e3ceb9c8329a9c9922e4a1d2c0a4996db610e19dd30c90ebd0893" prot="protected">
+          <name>COLOR5</name>
+          <initializer>= COLOR4 &lt;&lt; 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="struct_driver3d_render_target_1a76c17c182430e3ceb9c8329a9c9922e4a6eef19b63ddba0af269aad01ef410262" prot="protected">
+          <name>COLOR6</name>
+          <initializer>= COLOR5 &lt;&lt; 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="struct_driver3d_render_target_1a76c17c182430e3ceb9c8329a9c9922e4a91ddf2e27d489fee454ac0b5fd92cdbf" prot="protected">
+          <name>COLOR7</name>
+          <initializer>= COLOR6 &lt;&lt; 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="struct_driver3d_render_target_1a76c17c182430e3ceb9c8329a9c9922e4a2436fbc625348e72f58f9f220139bdb6" prot="protected">
+          <name>COLOR_MASK</name>
+          <initializer>= (1 &lt;&lt; MAX_SIMRT) - 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="struct_driver3d_render_target_1a76c17c182430e3ceb9c8329a9c9922e4a2587eead9dcd5b2cb1c3254bc1929c4c" prot="protected">
+          <name>DEPTH</name>
+          <initializer>= 1 &lt;&lt; MAX_SIMRT</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="struct_driver3d_render_target_1a76c17c182430e3ceb9c8329a9c9922e4a59b88c670f6efb404a8d4ca1a8f31697" prot="protected">
+          <name>DEPTH_READONLY</name>
+          <initializer>= DEPTH &lt;&lt; 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="struct_driver3d_render_target_1a76c17c182430e3ceb9c8329a9c9922e4aca3d5091645df77274f291e3ec367477" prot="protected">
+          <name>TOTAL_MASK</name>
+          <initializer>= COLOR_MASK | DEPTH</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="88" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="89" bodyend="102"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="struct_driver3d_render_target_1a5ca0e24925f168840d71757b93973af0" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int Driver3dRenderTarget::MAX_SIMRT</definition>
+        <argsstring></argsstring>
+        <name>MAX_SIMRT</name>
+        <initializer>= 8</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="83" column="24" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="83" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="struct_driver3d_render_target_1af1e3fbea28673cb5c4b04020a94fac21" prot="protected" static="no" mutable="no">
+        <type><ref refid="struct_driver3d_render_target_1_1_r_t_state" kindref="compound">RTState</ref></type>
+        <definition>RTState Driver3dRenderTarget::color[MAX_SIMRT]</definition>
+        <argsstring>[MAX_SIMRT]</argsstring>
+        <name>color</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="87" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_driver3d_render_target_1a8670ddc4945dada53bd41410675932e0" prot="protected" static="no" mutable="no">
+        <type><ref refid="struct_driver3d_render_target_1_1_r_t_state" kindref="compound">RTState</ref></type>
+        <definition>RTState Driver3dRenderTarget::depth</definition>
+        <argsstring></argsstring>
+        <name>depth</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="87" column="17" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_driver3d_render_target_1a22be9dc2fd894bc5e2725a97c9298ac1" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t Driver3dRenderTarget::used</definition>
+        <argsstring></argsstring>
+        <name>used</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="103" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="103" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="struct_driver3d_render_target_1aa06efd75d4c6048d52ac7c2776b1673c" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Driver3dRenderTarget::reset</definition>
+        <argsstring>()</argsstring>
+        <name>reset</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="104" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="104" bodyend="104"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_driver3d_render_target_1a767ec4bc26c244a294b11425c52474b9" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Driver3dRenderTarget::setColor</definition>
+        <argsstring>(int index, BaseTexture *t, int lev, int f_l)</argsstring>
+        <name>setColor</name>
+        <param>
+          <type>int</type>
+          <declname>index</declname>
+        </param>
+        <param>
+          <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>lev</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>f_l</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="105" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="105" bodyend="110"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_driver3d_render_target_1a5b187cc11002d31c51857ee936b573d1" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Driver3dRenderTarget::setBackbufColor</definition>
+        <argsstring>()</argsstring>
+        <name>setBackbufColor</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="111" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="111" bodyend="115"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_driver3d_render_target_1ae8da305b9426adc17e5a4f55dc1a8e29" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Driver3dRenderTarget::removeColor</definition>
+        <argsstring>(int index)</argsstring>
+        <name>removeColor</name>
+        <param>
+          <type>int</type>
+          <declname>index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="116" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="116" bodyend="121"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_driver3d_render_target_1a4a5bdd0b358537c2e1587174ca98255f" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Driver3dRenderTarget::setDepth</definition>
+        <argsstring>(BaseTexture *t, bool ro=false)</argsstring>
+        <name>setDepth</name>
+        <param>
+          <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>ro</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="122" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="122" bodyend="127"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_driver3d_render_target_1a5034618443d24534f93e2e8a10d19d0f" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Driver3dRenderTarget::setDepth</definition>
+        <argsstring>(BaseTexture *t, int layer, bool ro=false)</argsstring>
+        <name>setDepth</name>
+        <param>
+          <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>layer</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>ro</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="128" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="128" bodyend="133"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_driver3d_render_target_1a748b3e58a5c8a6e2534b50a6ff54832b" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Driver3dRenderTarget::removeDepth</definition>
+        <argsstring>()</argsstring>
+        <name>removeDepth</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="134" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="134" bodyend="138"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="struct_driver3d_render_target_1a8b06a5b9d9b40076ddd4b3981d2f4d18" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="struct_driver3d_render_target_1_1_r_t_state" kindref="compound">RTState</ref> &amp;</type>
+        <definition>const RTState&amp; Driver3dRenderTarget::getColor</definition>
+        <argsstring>(int index) const</argsstring>
+        <name>getColor</name>
+        <param>
+          <type>int</type>
+          <declname>index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="141" column="17" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="141" bodyend="141"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_driver3d_render_target_1a72b4917c73e975d5c4650bbbf303b531" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="struct_driver3d_render_target_1_1_r_t_state" kindref="compound">RTState</ref> &amp;</type>
+        <definition>const RTState&amp; Driver3dRenderTarget::getDepth</definition>
+        <argsstring>() const</argsstring>
+        <name>getDepth</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="142" column="17" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="142" bodyend="142"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_driver3d_render_target_1a806648ab490827427abda5724b4f8bb0" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool Driver3dRenderTarget::isBackBufferColor</definition>
+        <argsstring>() const</argsstring>
+        <name>isBackBufferColor</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="143" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="143" bodyend="143"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_driver3d_render_target_1ad3e8c54edb84bf9d3abe760f26b373f8" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool Driver3dRenderTarget::isColorUsed</definition>
+        <argsstring>(int index) const</argsstring>
+        <name>isColorUsed</name>
+        <param>
+          <type>int</type>
+          <declname>index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="144" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="144" bodyend="144"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_driver3d_render_target_1addfad34abc94b4e39abdda845f83eb82" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool Driver3dRenderTarget::isDepthUsed</definition>
+        <argsstring>() const</argsstring>
+        <name>isDepthUsed</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="145" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="145" bodyend="145"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_driver3d_render_target_1a259241f00e7c5f70cc0f8088ae05f536" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool Driver3dRenderTarget::isColorUsed</definition>
+        <argsstring>() const</argsstring>
+        <name>isColorUsed</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="146" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="146" bodyend="146"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_driver3d_render_target_1a91857d306d968be841827e9ccc58ce04" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Driver3dRenderTarget::setDepthReadOnly</definition>
+        <argsstring>()</argsstring>
+        <name>setDepthReadOnly</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="147" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="147" bodyend="147"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_driver3d_render_target_1ad42b0672d72bf78f96717b3d1f59f914" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Driver3dRenderTarget::setDepthRW</definition>
+        <argsstring>()</argsstring>
+        <name>setDepthRW</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="148" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="148" bodyend="148"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_driver3d_render_target_1af0f90469abfd9f3363607b883db8a45d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool Driver3dRenderTarget::isDepthReadOnly</definition>
+        <argsstring>() const</argsstring>
+        <name>isDepthReadOnly</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="149" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="149" bodyend="149"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_driver3d_render_target_1a3ce6e5272c8a262ac0c20eff12e8e5d1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Driver3dRenderTarget::Driver3dRenderTarget</definition>
+        <argsstring>()</argsstring>
+        <name>Driver3dRenderTarget</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="150" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="150" bodyend="150"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="struct_driver3d_render_target_1aa861e01c23bd36546d7896019389bde0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool operator==</definition>
+        <argsstring>(const Driver3dRenderTarget &amp;l, const Driver3dRenderTarget &amp;r)</argsstring>
+        <name>operator==</name>
+        <param>
+          <type>const <ref refid="struct_driver3d_render_target" kindref="compound">Driver3dRenderTarget</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="struct_driver3d_render_target" kindref="compound">Driver3dRenderTarget</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="152" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="152" bodyend="165"/>
+      </memberdef>
+      <memberdef kind="friend" id="struct_driver3d_render_target_1a889b1601843aa402b01aba95503035a2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool operator!=</definition>
+        <argsstring>(const Driver3dRenderTarget &amp;l, const Driver3dRenderTarget &amp;r)</argsstring>
+        <name>operator!=</name>
+        <param>
+          <type>const <ref refid="struct_driver3d_render_target" kindref="compound">Driver3dRenderTarget</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="struct_driver3d_render_target" kindref="compound">Driver3dRenderTarget</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="167" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="167" bodyend="167"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>Driver3dRenderTarget::RTState</label>
+        <link refid="struct_driver3d_render_target_1_1_r_t_state"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>tex</edgelabel>
+        </childnode>
+      </node>
+      <node id="4">
+        <label>D3dResource</label>
+        <link refid="class_d3d_resource"/>
+      </node>
+      <node id="3">
+        <label>BaseTexture</label>
+        <link refid="class_base_texture"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>Driver3dRenderTarget</label>
+        <link refid="struct_driver3d_render_target"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>color</edgelabel>
+          <edgelabel>depth</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="59" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="60" bodyend="168"/>
+    <listofallmembers>
+      <member refid="struct_driver3d_render_target_1af1e3fbea28673cb5c4b04020a94fac21" prot="protected" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>color</name></member>
+      <member refid="struct_driver3d_render_target_1a76c17c182430e3ceb9c8329a9c9922e4a5e0b630029d4440b7bad16995f1de3ab" prot="protected" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>COLOR0</name></member>
+      <member refid="struct_driver3d_render_target_1a76c17c182430e3ceb9c8329a9c9922e4a5d9efb0638c45346081a922a078525f4" prot="protected" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>COLOR1</name></member>
+      <member refid="struct_driver3d_render_target_1a76c17c182430e3ceb9c8329a9c9922e4a61d53ee536e42b960cffb4c72da3a79b" prot="protected" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>COLOR2</name></member>
+      <member refid="struct_driver3d_render_target_1a76c17c182430e3ceb9c8329a9c9922e4a8ae2cde97181d3f311ceb672217005fd" prot="protected" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>COLOR3</name></member>
+      <member refid="struct_driver3d_render_target_1a76c17c182430e3ceb9c8329a9c9922e4a27d26b25e81b517abcff8ce6b531be02" prot="protected" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>COLOR4</name></member>
+      <member refid="struct_driver3d_render_target_1a76c17c182430e3ceb9c8329a9c9922e4a1d2c0a4996db610e19dd30c90ebd0893" prot="protected" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>COLOR5</name></member>
+      <member refid="struct_driver3d_render_target_1a76c17c182430e3ceb9c8329a9c9922e4a6eef19b63ddba0af269aad01ef410262" prot="protected" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>COLOR6</name></member>
+      <member refid="struct_driver3d_render_target_1a76c17c182430e3ceb9c8329a9c9922e4a91ddf2e27d489fee454ac0b5fd92cdbf" prot="protected" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>COLOR7</name></member>
+      <member refid="struct_driver3d_render_target_1a76c17c182430e3ceb9c8329a9c9922e4a2436fbc625348e72f58f9f220139bdb6" prot="protected" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>COLOR_MASK</name></member>
+      <member refid="struct_driver3d_render_target_1a8670ddc4945dada53bd41410675932e0" prot="protected" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>depth</name></member>
+      <member refid="struct_driver3d_render_target_1a76c17c182430e3ceb9c8329a9c9922e4a2587eead9dcd5b2cb1c3254bc1929c4c" prot="protected" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>DEPTH</name></member>
+      <member refid="struct_driver3d_render_target_1a76c17c182430e3ceb9c8329a9c9922e4a59b88c670f6efb404a8d4ca1a8f31697" prot="protected" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>DEPTH_READONLY</name></member>
+      <member refid="struct_driver3d_render_target_1a3ce6e5272c8a262ac0c20eff12e8e5d1" prot="public" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>Driver3dRenderTarget</name></member>
+      <member refid="struct_driver3d_render_target_1a8b06a5b9d9b40076ddd4b3981d2f4d18" prot="public" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>getColor</name></member>
+      <member refid="struct_driver3d_render_target_1a72b4917c73e975d5c4650bbbf303b531" prot="public" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>getDepth</name></member>
+      <member refid="struct_driver3d_render_target_1a806648ab490827427abda5724b4f8bb0" prot="public" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>isBackBufferColor</name></member>
+      <member refid="struct_driver3d_render_target_1ad3e8c54edb84bf9d3abe760f26b373f8" prot="public" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>isColorUsed</name></member>
+      <member refid="struct_driver3d_render_target_1a259241f00e7c5f70cc0f8088ae05f536" prot="public" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>isColorUsed</name></member>
+      <member refid="struct_driver3d_render_target_1af0f90469abfd9f3363607b883db8a45d" prot="public" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>isDepthReadOnly</name></member>
+      <member refid="struct_driver3d_render_target_1addfad34abc94b4e39abdda845f83eb82" prot="public" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>isDepthUsed</name></member>
+      <member refid="struct_driver3d_render_target_1a5ca0e24925f168840d71757b93973af0" prot="public" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>MAX_SIMRT</name></member>
+      <member refid="struct_driver3d_render_target_1a889b1601843aa402b01aba95503035a2" prot="public" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>operator!=</name></member>
+      <member refid="struct_driver3d_render_target_1aa861e01c23bd36546d7896019389bde0" prot="public" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>operator==</name></member>
+      <member refid="struct_driver3d_render_target_1ae8da305b9426adc17e5a4f55dc1a8e29" prot="protected" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>removeColor</name></member>
+      <member refid="struct_driver3d_render_target_1a748b3e58a5c8a6e2534b50a6ff54832b" prot="protected" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>removeDepth</name></member>
+      <member refid="struct_driver3d_render_target_1aa06efd75d4c6048d52ac7c2776b1673c" prot="protected" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>reset</name></member>
+      <member refid="struct_driver3d_render_target_1a5b187cc11002d31c51857ee936b573d1" prot="protected" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>setBackbufColor</name></member>
+      <member refid="struct_driver3d_render_target_1a767ec4bc26c244a294b11425c52474b9" prot="protected" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>setColor</name></member>
+      <member refid="struct_driver3d_render_target_1a4a5bdd0b358537c2e1587174ca98255f" prot="protected" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>setDepth</name></member>
+      <member refid="struct_driver3d_render_target_1a5034618443d24534f93e2e8a10d19d0f" prot="protected" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>setDepth</name></member>
+      <member refid="struct_driver3d_render_target_1a91857d306d968be841827e9ccc58ce04" prot="public" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>setDepthReadOnly</name></member>
+      <member refid="struct_driver3d_render_target_1ad42b0672d72bf78f96717b3d1f59f914" prot="public" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>setDepthRW</name></member>
+      <member refid="struct_driver3d_render_target_1a76c17c182430e3ceb9c8329a9c9922e4aca3d5091645df77274f291e3ec367477" prot="protected" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>TOTAL_MASK</name></member>
+      <member refid="struct_driver3d_render_target_1a22be9dc2fd894bc5e2725a97c9298ac1" prot="protected" virt="non-virtual"><scope>Driver3dRenderTarget</scope><name>used</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

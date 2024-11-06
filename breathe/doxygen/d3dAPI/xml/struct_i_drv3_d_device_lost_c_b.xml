@@ -1,0 +1,29 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_i_drv3_d_device_lost_c_b" kind="struct" language="C++" prot="public" abstract="yes">
+    <compoundname>IDrv3DDeviceLostCB</compoundname>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="struct_i_drv3_d_device_lost_c_b_1a8afd5c142375de51cef1a5eddff20ec2" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDrv3DDeviceLostCB::onDeviceLost</definition>
+        <argsstring>()=0</argsstring>
+        <name>onDeviceLost</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="20" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="18" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" bodystart="19" bodyend="21"/>
+    <listofallmembers>
+      <member refid="struct_i_drv3_d_device_lost_c_b_1a8afd5c142375de51cef1a5eddff20ec2" prot="public" virt="pure-virtual"><scope>IDrv3DDeviceLostCB</scope><name>onDeviceLost</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

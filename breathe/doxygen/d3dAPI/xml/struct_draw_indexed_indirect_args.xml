@@ -1,0 +1,85 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_draw_indexed_indirect_args" kind="struct" language="C++" prot="public">
+    <compoundname>DrawIndexedIndirectArgs</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_draw_indexed_indirect_args_1a8b01207a56094c54e00127ddcdeccaa0" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t DrawIndexedIndirectArgs::indexCountPerInstance</definition>
+        <argsstring></argsstring>
+        <name>indexCountPerInstance</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="212" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="212" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_draw_indexed_indirect_args_1a285913c5095296757713bb1ddade71e0" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t DrawIndexedIndirectArgs::instanceCount</definition>
+        <argsstring></argsstring>
+        <name>instanceCount</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="213" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="213" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_draw_indexed_indirect_args_1a81eb5b19603c0cc425fcd31d2275fc11" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t DrawIndexedIndirectArgs::startIndexLocation</definition>
+        <argsstring></argsstring>
+        <name>startIndexLocation</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="214" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="214" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_draw_indexed_indirect_args_1a3a69831c51c2a9d5da9bda70e77c1171" prot="public" static="no" mutable="no">
+        <type>int32_t</type>
+        <definition>int32_t DrawIndexedIndirectArgs::baseVertexLocation</definition>
+        <argsstring></argsstring>
+        <name>baseVertexLocation</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="215" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="215" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_draw_indexed_indirect_args_1a9d4d56220fe132708c94c3e0d954ac95" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t DrawIndexedIndirectArgs::startInstanceLocation</definition>
+        <argsstring></argsstring>
+        <name>startInstanceLocation</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="216" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="216" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="210" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="211" bodyend="217"/>
+    <listofallmembers>
+      <member refid="struct_draw_indexed_indirect_args_1a3a69831c51c2a9d5da9bda70e77c1171" prot="public" virt="non-virtual"><scope>DrawIndexedIndirectArgs</scope><name>baseVertexLocation</name></member>
+      <member refid="struct_draw_indexed_indirect_args_1a8b01207a56094c54e00127ddcdeccaa0" prot="public" virt="non-virtual"><scope>DrawIndexedIndirectArgs</scope><name>indexCountPerInstance</name></member>
+      <member refid="struct_draw_indexed_indirect_args_1a285913c5095296757713bb1ddade71e0" prot="public" virt="non-virtual"><scope>DrawIndexedIndirectArgs</scope><name>instanceCount</name></member>
+      <member refid="struct_draw_indexed_indirect_args_1a81eb5b19603c0cc425fcd31d2275fc11" prot="public" virt="non-virtual"><scope>DrawIndexedIndirectArgs</scope><name>startIndexLocation</name></member>
+      <member refid="struct_draw_indexed_indirect_args_1a9d4d56220fe132708c94c3e0d954ac95" prot="public" virt="non-virtual"><scope>DrawIndexedIndirectArgs</scope><name>startInstanceLocation</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

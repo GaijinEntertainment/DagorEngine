@@ -1,0 +1,93 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_i_drv3_d_reset_c_b" kind="struct" language="C++" prot="public" abstract="yes">
+    <compoundname>IDrv3DResetCB</compoundname>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="struct_i_drv3_d_reset_c_b_1ac780280ada43dee6e51a6e302b5a8f73" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDrv3DResetCB::beforeReset</definition>
+        <argsstring>(bool full_reset)=0</argsstring>
+        <name>beforeReset</name>
+        <param>
+          <type>bool</type>
+          <declname>full_reset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="11" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_i_drv3_d_reset_c_b_1a8aabdad7c830c829208b11049d76cea2" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDrv3DResetCB::afterReset</definition>
+        <argsstring>(bool full_reset)=0</argsstring>
+        <name>afterReset</name>
+        <param>
+          <type>bool</type>
+          <declname>full_reset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="12" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_i_drv3_d_reset_c_b_1a916f797612436f6e7296c8d96dbef91a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void IDrv3DResetCB::resetCounter</definition>
+        <argsstring>()</argsstring>
+        <name>resetCounter</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="13" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" bodystart="13" bodyend="13"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_i_drv3_d_reset_c_b_1a7f197ec2a7b34df87b3881cbeef75d29" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void IDrv3DResetCB::windowResized</definition>
+        <argsstring>()</argsstring>
+        <name>windowResized</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="14" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" bodystart="14" bodyend="14"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_i_drv3_d_reset_c_b_1a7b0cf2d37ad6446a255a814b3bead51f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void IDrv3DResetCB::fullscreenStateRestored</definition>
+        <argsstring>()</argsstring>
+        <name>fullscreenStateRestored</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="15" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" bodystart="15" bodyend="15"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="9" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" bodystart="10" bodyend="16"/>
+    <listofallmembers>
+      <member refid="struct_i_drv3_d_reset_c_b_1a8aabdad7c830c829208b11049d76cea2" prot="public" virt="pure-virtual"><scope>IDrv3DResetCB</scope><name>afterReset</name></member>
+      <member refid="struct_i_drv3_d_reset_c_b_1ac780280ada43dee6e51a6e302b5a8f73" prot="public" virt="pure-virtual"><scope>IDrv3DResetCB</scope><name>beforeReset</name></member>
+      <member refid="struct_i_drv3_d_reset_c_b_1a7b0cf2d37ad6446a255a814b3bead51f" prot="public" virt="virtual"><scope>IDrv3DResetCB</scope><name>fullscreenStateRestored</name></member>
+      <member refid="struct_i_drv3_d_reset_c_b_1a916f797612436f6e7296c8d96dbef91a" prot="public" virt="virtual"><scope>IDrv3DResetCB</scope><name>resetCounter</name></member>
+      <member refid="struct_i_drv3_d_reset_c_b_1a7f197ec2a7b34df87b3881cbeef75d29" prot="public" virt="virtual"><scope>IDrv3DResetCB</scope><name>windowResized</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

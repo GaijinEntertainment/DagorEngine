@@ -1,0 +1,652 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="namespaced3d_1_1drivercode_1_1matcher" kind="namespace" language="C++">
+    <compoundname>d3d::drivercode::matcher</compoundname>
+    <innerclass refid="structd3d_1_1drivercode_1_1matcher_1_1_enable_if" prot="public">d3d::drivercode::matcher::EnableIf</innerclass>
+    <innerclass refid="structd3d_1_1drivercode_1_1matcher_1_1_enable_if_3_01true_00_01_t_01_4" prot="public">d3d::drivercode::matcher::EnableIf&lt; true, T &gt;</innerclass>
+    <innerclass refid="structd3d_1_1drivercode_1_1matcher_1_1_same_as" prot="public">d3d::drivercode::matcher::SameAs</innerclass>
+    <innerclass refid="structd3d_1_1drivercode_1_1matcher_1_1_same_as_3_01_t_00_01_t_01_4" prot="public">d3d::drivercode::matcher::SameAs&lt; T, T &gt;</innerclass>
+    <innerclass refid="structd3d_1_1drivercode_1_1matcher_1_1_binary_op" prot="public">d3d::drivercode::matcher::BinaryOp</innerclass>
+    <innerclass refid="structd3d_1_1drivercode_1_1matcher_1_1_op_and" prot="public">d3d::drivercode::matcher::OpAnd</innerclass>
+    <innerclass refid="structd3d_1_1drivercode_1_1matcher_1_1_op_or" prot="public">d3d::drivercode::matcher::OpOr</innerclass>
+    <innerclass refid="structd3d_1_1drivercode_1_1matcher_1_1_inverted" prot="public">d3d::drivercode::matcher::Inverted</innerclass>
+    <innerclass refid="structd3d_1_1drivercode_1_1matcher_1_1_i_d" prot="public">d3d::drivercode::matcher::ID</innerclass>
+    <innerclass refid="structd3d_1_1drivercode_1_1matcher_1_1_const" prot="public">d3d::drivercode::matcher::Const</innerclass>
+    <innerclass refid="structd3d_1_1drivercode_1_1matcher_1_1_const_i_d" prot="public">d3d::drivercode::matcher::ConstID</innerclass>
+    <innerclass refid="structd3d_1_1drivercode_1_1matcher_1_1_any" prot="public">d3d::drivercode::matcher::Any</innerclass>
+    <innerclass refid="structd3d_1_1drivercode_1_1matcher_1_1_unsupported" prot="public">d3d::drivercode::matcher::Unsupported</innerclass>
+    <innerclass refid="classd3d_1_1drivercode_1_1matcher_1_1_map" prot="public">d3d::drivercode::matcher::Map</innerclass>
+    <innerclass refid="classd3d_1_1drivercode_1_1matcher_1_1_first_match" prot="public">d3d::drivercode::matcher::FirstMatch</innerclass>
+    <innerclass refid="classd3d_1_1drivercode_1_1matcher_1_1_all_match" prot="public">d3d::drivercode::matcher::AllMatch</innerclass>
+    <innerclass refid="structd3d_1_1drivercode_1_1matcher_1_1_undefined" prot="public">d3d::drivercode::matcher::Undefined</innerclass>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="namespaced3d_1_1drivercode_1_1matcher_1a441c3f5ee375922bb64b12b48a340525" prot="public" static="no">
+        <type>decltype(!(d3d::dx11||d3d::dx12||d3d::vulkan||d3d::ps4||d3d::ps5||d3d::metal||d3d::null||d3d::stub))</type>
+        <definition>using d3d::drivercode::matcher::NotAnyDriver = typedef decltype(!(d3d::dx11 || d3d::dx12 || d3d::vulkan || d3d::ps4 || d3d::ps5 || d3d::metal || d3d::null || d3d::stub))</definition>
+        <argsstring></argsstring>
+        <name>NotAnyDriver</name>
+        <briefdescription>
+<para>Helper type for doxygen, do not use! </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="1117" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="1118" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespaced3d_1_1drivercode_1_1matcher_1accb02aa76d69abfb6d1905a0347a2ff6" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr int</type>
+        <definition>constexpr int d3d::drivercode::matcher::make_foucc</definition>
+        <argsstring>(int value)</argsstring>
+        <name>make_foucc</name>
+        <param>
+          <type>int</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Helper to generate the IDs correctly so they can be used as four character codes. This helper is needed as _MAKE4C macro may not be available here. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>value</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>4 character code as integer. \retruns Platform specific encoded 4 character code as integer. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="97" column="22" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="97" bodyend="104"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1drivercode_1_1matcher_1a22e7adbd7eaa5346e2ab82d55a956d84" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>typename T1</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr auto</type>
+        <definition>constexpr auto d3d::drivercode::matcher::operator&amp;&amp;</definition>
+        <argsstring>(const Inverted&lt; T &gt; &amp;l, const T1 &amp;r)</argsstring>
+        <name>operator&amp;&amp;</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_inverted" kindref="compound">Inverted</ref>&lt; T &gt; &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const T1 &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Logical and operator, allows combining multiple matchers. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First matcher to be combined. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second matcher to be combined. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A new <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_binary_op" kindref="compound">BinaryOp</ref> type of this type and <computeroutput>T1</computeroutput> with an operator <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_op_and" kindref="compound">OpAnd</ref>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="173" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="173" bodyend="176"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1drivercode_1_1matcher_1a7def84a8afda49fa6dbfa4ca67310b5c" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>typename T1</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr auto</type>
+        <definition>constexpr auto d3d::drivercode::matcher::operator||</definition>
+        <argsstring>(const Inverted&lt; T &gt; &amp;l, const T1 &amp;r)</argsstring>
+        <name>operator||</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_inverted" kindref="compound">Inverted</ref>&lt; T &gt; &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const T1 &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Logical or operator, allows combining multiple matchers. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First matcher to be combined. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second matcher to be combined. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A new <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_binary_op" kindref="compound">BinaryOp</ref> type of this type and <computeroutput>T1</computeroutput> with an operator <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_op_or" kindref="compound">OpOr</ref>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="182" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="182" bodyend="185"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1drivercode_1_1matcher_1a183fc30dd082bdd5e1e628cb3f34eb87" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T0</type>
+          </param>
+          <param>
+            <type>typename T1</type>
+          </param>
+          <param>
+            <type>typename Operator</type>
+          </param>
+          <param>
+            <type>typename TO</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr auto</type>
+        <definition>constexpr auto d3d::drivercode::matcher::operator&amp;&amp;</definition>
+        <argsstring>(const BinaryOp&lt; T0, T1, Operator &gt; &amp;l, const TO &amp;r)</argsstring>
+        <name>operator&amp;&amp;</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_binary_op" kindref="compound">BinaryOp</ref>&lt; T0, T1, Operator &gt; &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const TO &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Logical and operator, allows combining multiple matchers. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First matcher to be combined. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second matcher to be combined. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A new <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_binary_op" kindref="compound">BinaryOp</ref> type of this type and <computeroutput>T1</computeroutput> with an operator <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_op_and" kindref="compound">OpAnd</ref>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="191" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="191" bodyend="194"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1drivercode_1_1matcher_1a0728dcd37b0a74d84c064b3d2786b33a" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T0</type>
+          </param>
+          <param>
+            <type>typename T1</type>
+          </param>
+          <param>
+            <type>typename Operator</type>
+          </param>
+          <param>
+            <type>typename TO</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr auto</type>
+        <definition>constexpr auto d3d::drivercode::matcher::operator||</definition>
+        <argsstring>(const BinaryOp&lt; T0, T1, Operator &gt; &amp;l, const TO &amp;r)</argsstring>
+        <name>operator||</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_binary_op" kindref="compound">BinaryOp</ref>&lt; T0, T1, Operator &gt; &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const TO &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Logical or operator, allows combining multiple matchers. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First matcher to be combined. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second matcher to be combined. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A new <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_binary_op" kindref="compound">BinaryOp</ref> type of this type and <computeroutput>T1</computeroutput> with an operator <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_op_or" kindref="compound">OpOr</ref>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="200" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="200" bodyend="203"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1drivercode_1_1matcher_1afe150eb71db5d533262b6f31d2e24c1b" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>int</type>
+            <declname>Ident</declname>
+            <defname>Ident</defname>
+          </param>
+          <param>
+            <type>typename T1</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr auto</type>
+        <definition>constexpr auto d3d::drivercode::matcher::operator&amp;&amp;</definition>
+        <argsstring>(const ID&lt; Ident &gt; &amp;l, const T1 &amp;r)</argsstring>
+        <name>operator&amp;&amp;</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_i_d" kindref="compound">ID</ref>&lt; Ident &gt; &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const T1 &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Logical and operator, allows combining multiple matchers. <parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T1</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>is the type of the second operand. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A new <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_binary_op" kindref="compound">BinaryOp</ref> type of this type and <computeroutput>T1</computeroutput> with an operator <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_op_and" kindref="compound">OpAnd</ref>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="208" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="208" bodyend="211"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1drivercode_1_1matcher_1a8c1ab3d96dbb87793a185b095d5afb46" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>int</type>
+            <declname>Ident</declname>
+            <defname>Ident</defname>
+          </param>
+          <param>
+            <type>typename T1</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr auto</type>
+        <definition>constexpr auto d3d::drivercode::matcher::operator||</definition>
+        <argsstring>(const ID&lt; Ident &gt; &amp;l, const T1 &amp;r)</argsstring>
+        <name>operator||</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_i_d" kindref="compound">ID</ref>&lt; Ident &gt; &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const T1 &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Logical or operator, allows combining multiple matchers. <parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T1</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>is the type of the second operand. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A new <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_binary_op" kindref="compound">BinaryOp</ref> type of this type and <computeroutput>T1</computeroutput> with an operator <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_op_or" kindref="compound">OpOr</ref>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="216" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="216" bodyend="219"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1drivercode_1_1matcher_1aef02e9e775570e313b5ea47f76119aca" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T1</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr const T1 &amp;</type>
+        <definition>constexpr const T1&amp; d3d::drivercode::matcher::operator&amp;&amp;</definition>
+        <argsstring>(const Const&lt; true &gt; &amp;l, const T1 &amp;r)</argsstring>
+        <name>operator&amp;&amp;</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_const" kindref="compound">Const</ref>&lt; true &gt; &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const T1 &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Logical and operator, allows combining multiple matchers. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First matcher to be combined. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second matcher to be combined. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The matercher of <computeroutput>r</computeroutput>, as logical and with constant true can be short circuited to just evaluating the second parameter. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="225" column="20" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="225" bodyend="229"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1drivercode_1_1matcher_1a694f474260954a66886be1ffaac21919" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T1</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr const <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_const" kindref="compound">Const</ref>&lt; true &gt; &amp;</type>
+        <definition>constexpr const Const&lt;true&gt;&amp; d3d::drivercode::matcher::operator||</definition>
+        <argsstring>(const Const&lt; true &gt; &amp;l, const T1 &amp;r)</argsstring>
+        <name>operator||</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_const" kindref="compound">Const</ref>&lt; true &gt; &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const T1 &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Logical or operator, allows combining multiple matchers. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First matcher to be combined. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second matcher to be combined. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A true matcher, as logical or with a constant true can be short circuited to just the constant true. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="235" column="23" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="235" bodyend="239"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1drivercode_1_1matcher_1a1f3f4659857e796f094629f01736b4b1" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T1</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr const <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_const" kindref="compound">Const</ref>&lt; false &gt; &amp;</type>
+        <definition>constexpr const Const&lt;false&gt;&amp; d3d::drivercode::matcher::operator&amp;&amp;</definition>
+        <argsstring>(const Const&lt; false &gt; &amp;l, const T1 &amp;r)</argsstring>
+        <name>operator&amp;&amp;</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_const" kindref="compound">Const</ref>&lt; false &gt; &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const T1 &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Logical and operator, allows combining multiple matchers. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First matcher to be combined. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second matcher to be combined. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A constant false matcher, as logical and with a constant false can be short circuited to just the constant false. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="245" column="23" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="245" bodyend="249"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1drivercode_1_1matcher_1a23358a4bed074d7b7143959f6954ec53" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T1</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr const T1 &amp;</type>
+        <definition>constexpr const T1&amp; d3d::drivercode::matcher::operator||</definition>
+        <argsstring>(const Const&lt; false &gt; &amp;l, const T1 &amp;r)</argsstring>
+        <name>operator||</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_const" kindref="compound">Const</ref>&lt; false &gt; &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const T1 &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Logical or operator, allows combining multiple matchers. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First matcher to be combined. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second matcher to be combined. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The matercher of <computeroutput>r</computeroutput>, as logical or with constant false can be short circuited to just evaluating the second parameter. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="255" column="20" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="255" bodyend="259"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1drivercode_1_1matcher_1aab61eacb6c3310182f349a9b0b3e0362" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T1</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr const T1 &amp;</type>
+        <definition>constexpr const T1&amp; d3d::drivercode::matcher::operator&amp;&amp;</definition>
+        <argsstring>(Any, T1)=delete</argsstring>
+        <name>operator&amp;&amp;</name>
+        <param>
+          <type><ref refid="structd3d_1_1drivercode_1_1matcher_1_1_any" kindref="compound">Any</ref></type>
+        </param>
+        <param>
+          <type>T1</type>
+        </param>
+        <briefdescription>
+<para>Disallow operations with any, any should only be used on its own. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="262" column="20" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" declline="262" declcolumn="20"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1drivercode_1_1matcher_1a72ae5c7ca0f2707696f6afa49178f6fe" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T1</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_any" kindref="compound">Any</ref></type>
+        <definition>constexpr Any d3d::drivercode::matcher::operator||</definition>
+        <argsstring>(Any, T1)=delete</argsstring>
+        <name>operator||</name>
+        <param>
+          <type><ref refid="structd3d_1_1drivercode_1_1matcher_1_1_any" kindref="compound">Any</ref></type>
+        </param>
+        <param>
+          <type>T1</type>
+        </param>
+        <briefdescription>
+<para>Disallow operations with any, any should only be used on its own. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="265" column="15" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" declline="265" declcolumn="15"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1drivercode_1_1matcher_1afcbe477d09d12a138ed83a5af3dac5cc" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T1</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr const T1 &amp;</type>
+        <definition>constexpr const T1&amp; d3d::drivercode::matcher::operator&amp;&amp;</definition>
+        <argsstring>(T1, Any)=delete</argsstring>
+        <name>operator&amp;&amp;</name>
+        <param>
+          <type>T1</type>
+        </param>
+        <param>
+          <type><ref refid="structd3d_1_1drivercode_1_1matcher_1_1_any" kindref="compound">Any</ref></type>
+        </param>
+        <briefdescription>
+<para>Disallow operations with any, any should only be used on its own. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="267" column="20" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" declline="267" declcolumn="20"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1drivercode_1_1matcher_1a102a6d8345bb9ce678bd12ff2d6b0bd2" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T1</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr <ref refid="structd3d_1_1drivercode_1_1matcher_1_1_any" kindref="compound">Any</ref></type>
+        <definition>constexpr Any d3d::drivercode::matcher::operator||</definition>
+        <argsstring>(T1, Any)=delete</argsstring>
+        <name>operator||</name>
+        <param>
+          <type>T1</type>
+        </param>
+        <param>
+          <type><ref refid="structd3d_1_1drivercode_1_1matcher_1_1_any" kindref="compound">Any</ref></type>
+        </param>
+        <briefdescription>
+<para>Disallow operations with any, any should only be used on its own. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="270" column="15" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" declline="270" declcolumn="15"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>This namespace holds the matcher types and operations. </para>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="12" column="1"/>
+  </compounddef>
+</doxygen>

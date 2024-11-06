@@ -1,0 +1,227 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="classdabfg_1_1_node_handle" kind="class" language="C++" prot="public">
+    <compoundname>dabfg::NodeHandle</compoundname>
+    <includes refid="node_handle_8h" local="no">nodeHandle.h</includes>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classdabfg_1_1_node_handle_1a7934cf821b23d924a511e1b8b8ead041" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class NameSpace</definition>
+        <argsstring></argsstring>
+        <name>NameSpace</name>
+        <param>
+          <type><ref refid="classdabfg_1_1_name_space" kindref="compound">NameSpace</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nodeHandle.h" line="21" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nodeHandle.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="friend" id="classdabfg_1_1_node_handle_1a5621b733309352592e84817b5af97430" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_node_handle" kindref="compound">NodeHandle</ref></type>
+        <definition>NodeHandle register_external_node</definition>
+        <argsstring>(NodeNameId name_id, uint16_t generation)</argsstring>
+        <name>register_external_node</name>
+        <param>
+          <type>NodeNameId</type>
+          <declname>name_id</declname>
+        </param>
+        <param>
+          <type>uint16_t</type>
+          <declname>generation</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nodeHandle.h" line="22" column="21"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classdabfg_1_1_node_handle_1ac7d131a5624632c30c6f1d8fc0be2ffa" prot="private" static="no" mutable="no">
+        <type>detail::NodeUid</type>
+        <definition>detail::NodeUid dabfg::NodeHandle::uid</definition>
+        <argsstring></argsstring>
+        <name>uid</name>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nodeHandle.h" line="62" column="19" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nodeHandle.h" bodystart="62" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classdabfg_1_1_node_handle_1a62e8556af9e50aa5ccc3d9691c778ec0" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>dabfg::NodeHandle::NodeHandle</definition>
+        <argsstring>(detail::NodeUid id)</argsstring>
+        <name>NodeHandle</name>
+        <param>
+          <type>detail::NodeUid</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nodeHandle.h" line="24" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nodeHandle.h" bodystart="24" bodyend="24"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classdabfg_1_1_node_handle_1ae632bf842cabd40e00ecb83d47f8b9c8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>dabfg::NodeHandle::NodeHandle</definition>
+        <argsstring>()=default</argsstring>
+        <name>NodeHandle</name>
+        <briefdescription>
+<para>Constructs an invalid handle. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nodeHandle.h" line="28" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_node_handle_1a6c2dd94bc4828f1aca6d04a3ecfb4e50" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>dabfg::NodeHandle::NodeHandle</definition>
+        <argsstring>(const NodeHandle &amp;)=delete</argsstring>
+        <name>NodeHandle</name>
+        <param>
+          <type>const <ref refid="classdabfg_1_1_node_handle" kindref="compound">NodeHandle</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nodeHandle.h" line="30" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_node_handle_1a8498d20a0bfbbb0f78fad1f44f181431" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_node_handle" kindref="compound">NodeHandle</ref> &amp;</type>
+        <definition>NodeHandle&amp; dabfg::NodeHandle::operator=</definition>
+        <argsstring>(const NodeHandle &amp;)=delete</argsstring>
+        <name>operator=</name>
+        <param>
+          <type>const <ref refid="classdabfg_1_1_node_handle" kindref="compound">NodeHandle</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nodeHandle.h" line="31" column="14"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_node_handle_1aacda2c5911479d61f883ef6356679014" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>dabfg::NodeHandle::NodeHandle</definition>
+        <argsstring>(NodeHandle &amp;&amp;other)</argsstring>
+        <name>NodeHandle</name>
+        <param>
+          <type><ref refid="classdabfg_1_1_node_handle" kindref="compound">NodeHandle</ref> &amp;&amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+<para>Move constructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nodeHandle.h" line="34" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nodeHandle.h" bodystart="34" bodyend="34"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_node_handle_1af954449a14168010e2d611cc1db4f3ee" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_node_handle" kindref="compound">NodeHandle</ref> &amp;</type>
+        <definition>NodeHandle&amp; dabfg::NodeHandle::operator=</definition>
+        <argsstring>(NodeHandle &amp;&amp;other)</argsstring>
+        <name>operator=</name>
+        <param>
+          <type><ref refid="classdabfg_1_1_node_handle" kindref="compound">NodeHandle</ref> &amp;&amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+<para>Move assignment operator. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nodeHandle.h" line="37" column="14" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nodeHandle.h" bodystart="37" bodyend="48"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_node_handle_1af2cf0221da5943ea63d1348073758d78" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>dabfg::NodeHandle::~NodeHandle</definition>
+        <argsstring>()</argsstring>
+        <name>~NodeHandle</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nodeHandle.h" line="50" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nodeHandle.h" bodystart="50" bodyend="54"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_node_handle_1accbc1716b2f7dc3bc62f05055560de09" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool dabfg::NodeHandle::valid</definition>
+        <argsstring>() const</argsstring>
+        <name>valid</name>
+        <briefdescription>
+<para>Returns true if the handle is valid. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nodeHandle.h" line="57" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nodeHandle.h" bodystart="57" bodyend="57"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_node_handle_1adb192efc391c6ded28439a05209f214b" prot="public" static="no" const="yes" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>dabfg::NodeHandle::operator bool</definition>
+        <argsstring>() const</argsstring>
+        <name>operator bool</name>
+        <briefdescription>
+<para>Returns true if the handle is valid. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nodeHandle.h" line="59" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nodeHandle.h" bodystart="59" bodyend="59"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Holds ownership over a node&apos;s lifetime. As soon as a handle to a node destroyed, the node is unregistered, but only if it was not re-registered since the time that this handle was acquired. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>Note that this is a move-only type. </para>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nodeHandle.h" line="19" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nodeHandle.h" bodystart="20" bodyend="63"/>
+    <listofallmembers>
+      <member refid="classdabfg_1_1_node_handle_1a7934cf821b23d924a511e1b8b8ead041" prot="private" virt="non-virtual"><scope>dabfg::NodeHandle</scope><name>NameSpace</name></member>
+      <member refid="classdabfg_1_1_node_handle_1a62e8556af9e50aa5ccc3d9691c778ec0" prot="private" virt="non-virtual"><scope>dabfg::NodeHandle</scope><name>NodeHandle</name></member>
+      <member refid="classdabfg_1_1_node_handle_1ae632bf842cabd40e00ecb83d47f8b9c8" prot="public" virt="non-virtual"><scope>dabfg::NodeHandle</scope><name>NodeHandle</name></member>
+      <member refid="classdabfg_1_1_node_handle_1a6c2dd94bc4828f1aca6d04a3ecfb4e50" prot="public" virt="non-virtual"><scope>dabfg::NodeHandle</scope><name>NodeHandle</name></member>
+      <member refid="classdabfg_1_1_node_handle_1aacda2c5911479d61f883ef6356679014" prot="public" virt="non-virtual"><scope>dabfg::NodeHandle</scope><name>NodeHandle</name></member>
+      <member refid="classdabfg_1_1_node_handle_1adb192efc391c6ded28439a05209f214b" prot="public" virt="non-virtual"><scope>dabfg::NodeHandle</scope><name>operator bool</name></member>
+      <member refid="classdabfg_1_1_node_handle_1a8498d20a0bfbbb0f78fad1f44f181431" prot="public" virt="non-virtual"><scope>dabfg::NodeHandle</scope><name>operator=</name></member>
+      <member refid="classdabfg_1_1_node_handle_1af954449a14168010e2d611cc1db4f3ee" prot="public" virt="non-virtual"><scope>dabfg::NodeHandle</scope><name>operator=</name></member>
+      <member refid="classdabfg_1_1_node_handle_1a5621b733309352592e84817b5af97430" prot="private" virt="non-virtual"><scope>dabfg::NodeHandle</scope><name>register_external_node</name></member>
+      <member refid="classdabfg_1_1_node_handle_1ac7d131a5624632c30c6f1d8fc0be2ffa" prot="private" virt="non-virtual"><scope>dabfg::NodeHandle</scope><name>uid</name></member>
+      <member refid="classdabfg_1_1_node_handle_1accbc1716b2f7dc3bc62f05055560de09" prot="public" virt="non-virtual"><scope>dabfg::NodeHandle</scope><name>valid</name></member>
+      <member refid="classdabfg_1_1_node_handle_1af2cf0221da5943ea63d1348073758d78" prot="public" virt="non-virtual"><scope>dabfg::NodeHandle</scope><name>~NodeHandle</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,337 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="class_texture_factory" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>TextureFactory</compoundname>
+    <includes refid="dag__tex_mgr_8h" local="no">dag_texMgr.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="class_texture_factory_1a26fdd8185a07623c2900fe60b8dac1ce" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>TextureFactory::TextureFactory</definition>
+        <argsstring>()=default</argsstring>
+        <name>TextureFactory</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="32" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="class_texture_factory_1a84e350ac4634c29602de12b644385e89" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>TextureFactory::TextureFactory</definition>
+        <argsstring>(TextureFactory &amp;&amp;)=default</argsstring>
+        <name>TextureFactory</name>
+        <param>
+          <type><ref refid="class_texture_factory" kindref="compound">TextureFactory</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="33" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="class_texture_factory_1acfa9b00882fc67e60efefa3fc7085385" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="class_texture_factory" kindref="compound">TextureFactory</ref> &amp;</type>
+        <definition>TextureFactory&amp; TextureFactory::operator=</definition>
+        <argsstring>(TextureFactory &amp;&amp;)=default</argsstring>
+        <name>operator=</name>
+        <param>
+          <type><ref refid="class_texture_factory" kindref="compound">TextureFactory</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="34" column="18"/>
+      </memberdef>
+      <memberdef kind="function" id="class_texture_factory_1a1af95fcbad091cab0c7b4d1d94ed5ead" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type></type>
+        <definition>virtual TextureFactory::~TextureFactory</definition>
+        <argsstring>()</argsstring>
+        <name>~TextureFactory</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="35" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" bodystart="35" bodyend="35"/>
+      </memberdef>
+      <memberdef kind="function" id="class_texture_factory_1ae3df6c2cef23d878c4bbaeea4134e094" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>BaseTexture *</type>
+        <definition>virtual BaseTexture* TextureFactory::createTexture</definition>
+        <argsstring>(TEXTUREID id)=0</argsstring>
+        <name>createTexture</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Create texture a with the specified ID. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="warning"><para>Make sure to store the result to release it in <ref refid="class_texture_factory_1aae54b99b3f39bfd9db4ac6db413b2ba5" kindref="member">releaseTexture()</ref> </para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the texture to create </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="40" column="23"/>
+      </memberdef>
+      <memberdef kind="function" id="class_texture_factory_1aae54b99b3f39bfd9db4ac6db413b2ba5" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void TextureFactory::releaseTexture</definition>
+        <argsstring>(BaseTexture *texture, TEXTUREID id)=0</argsstring>
+        <name>releaseTexture</name>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>texture</declname>
+        </param>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Release a texture that was created using createTexture. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>texture</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Texture to release </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the texture to release </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="45" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="class_texture_factory_1a35553694ce8e200f6e184dca44fa548f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void TextureFactory::texFactoryActiveChanged</definition>
+        <argsstring>(bool)</argsstring>
+        <name>texFactoryActiveChanged</name>
+        <param>
+          <type>bool</type>
+        </param>
+        <briefdescription>
+<para>A callback that is called on install/uninstall. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="48" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" bodystart="48" bodyend="48"/>
+      </memberdef>
+      <memberdef kind="function" id="class_texture_factory_1a9a87bde42bc3fa4396e3d7edb5408484" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool TextureFactory::scheduleTexLoading</definition>
+        <argsstring>(TEXTUREID, TexQL)</argsstring>
+        <name>scheduleTexLoading</name>
+        <param>
+          <type>TEXTUREID</type>
+        </param>
+        <param>
+          <type><ref refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eb" kindref="member">TexQL</ref></type>
+        </param>
+        <briefdescription>
+<para>Schedules loading of specified texture (if applicable) </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="note"><para>Thread-safe </para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the texture to load </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>req_ql</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Required quality level </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><computeroutput>true</computeroutput> when loading scheduled successfully </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="55" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" bodystart="55" bodyend="55"/>
+      </memberdef>
+      <memberdef kind="function" id="class_texture_factory_1a1e9079ab0224c130a5c3826521be9560" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool TextureFactory::getTextureDDSx</definition>
+        <argsstring>(TEXTUREID, Tab&lt; char &gt; &amp;)</argsstring>
+        <name>getTextureDDSx</name>
+        <param>
+          <type>TEXTUREID</type>
+        </param>
+        <param>
+          <type>Tab&lt; char &gt; &amp;</type>
+        </param>
+        <briefdescription>
+<para>Loads and returns contents of texture as DDSx data. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="warning"><para>This function is synchronous and should be used with caution </para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the texture to load </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>out_ddsx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Output buffer for DDSx data </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><computeroutput>true</computeroutput> when texture was loaded successfully </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="62" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" bodystart="62" bodyend="62"/>
+      </memberdef>
+      <memberdef kind="function" id="class_texture_factory_1acaecb96963eca51a5c0706eeb195492c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void TextureFactory::onUnregisterTexture</definition>
+        <argsstring>(TEXTUREID)</argsstring>
+        <name>onUnregisterTexture</name>
+        <param>
+          <type>TEXTUREID</type>
+        </param>
+        <briefdescription>
+<para>Callback for notification of texture being unregistered from the manager. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the texture that was unregistered </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="66" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" bodystart="66" bodyend="66"/>
+      </memberdef>
+      <memberdef kind="function" id="class_texture_factory_1a2add0cedfa660000e44b1ea0e0f6e513" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool TextureFactory::isPersistentTexName</definition>
+        <argsstring>(const char *)</argsstring>
+        <name>isPersistentTexName</name>
+        <param>
+          <type>const char *</type>
+        </param>
+        <briefdescription>
+<para>Determines whether the string <computeroutput>nm</computeroutput> has static lifetime and can be referenced at any time without copying. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>nm</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>String to check </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><computeroutput>true</computeroutput> if the string is persistent </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="71" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" bodystart="71" bodyend="71"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="class_texture_factory_1a2c4ab41edbc450fb91093cf54dc5bb6f" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void TextureFactory::onTexFactoryDeleted</definition>
+        <argsstring>(TextureFactory *f)</argsstring>
+        <name>onTexFactoryDeleted</name>
+        <param>
+          <type><ref refid="class_texture_factory" kindref="compound">TextureFactory</ref> *</type>
+          <declname>f</declname>
+        </param>
+        <briefdescription>
+<para>When a texture factory instance is destroyed at runtime, this function <bold>must</bold> be called to notify the manager about it. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="warning"><para>This should not be called from factories which are static singletons or are destroyed after the manager was already de-initialized. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="76" column="15"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Texture factory provides custom creation mechanism. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="29" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" bodystart="30" bodyend="77"/>
+    <listofallmembers>
+      <member refid="class_texture_factory_1ae3df6c2cef23d878c4bbaeea4134e094" prot="public" virt="pure-virtual"><scope>TextureFactory</scope><name>createTexture</name></member>
+      <member refid="class_texture_factory_1a1e9079ab0224c130a5c3826521be9560" prot="public" virt="virtual"><scope>TextureFactory</scope><name>getTextureDDSx</name></member>
+      <member refid="class_texture_factory_1a2add0cedfa660000e44b1ea0e0f6e513" prot="public" virt="virtual"><scope>TextureFactory</scope><name>isPersistentTexName</name></member>
+      <member refid="class_texture_factory_1a2c4ab41edbc450fb91093cf54dc5bb6f" prot="public" virt="non-virtual"><scope>TextureFactory</scope><name>onTexFactoryDeleted</name></member>
+      <member refid="class_texture_factory_1acaecb96963eca51a5c0706eeb195492c" prot="public" virt="virtual"><scope>TextureFactory</scope><name>onUnregisterTexture</name></member>
+      <member refid="class_texture_factory_1acfa9b00882fc67e60efefa3fc7085385" prot="public" virt="non-virtual"><scope>TextureFactory</scope><name>operator=</name></member>
+      <member refid="class_texture_factory_1aae54b99b3f39bfd9db4ac6db413b2ba5" prot="public" virt="pure-virtual"><scope>TextureFactory</scope><name>releaseTexture</name></member>
+      <member refid="class_texture_factory_1a9a87bde42bc3fa4396e3d7edb5408484" prot="public" virt="virtual"><scope>TextureFactory</scope><name>scheduleTexLoading</name></member>
+      <member refid="class_texture_factory_1a35553694ce8e200f6e184dca44fa548f" prot="public" virt="virtual"><scope>TextureFactory</scope><name>texFactoryActiveChanged</name></member>
+      <member refid="class_texture_factory_1a26fdd8185a07623c2900fe60b8dac1ce" prot="public" virt="non-virtual"><scope>TextureFactory</scope><name>TextureFactory</name></member>
+      <member refid="class_texture_factory_1a84e350ac4634c29602de12b644385e89" prot="public" virt="non-virtual"><scope>TextureFactory</scope><name>TextureFactory</name></member>
+      <member refid="class_texture_factory_1a1af95fcbad091cab0c7b4d1d94ed5ead" prot="public" virt="virtual"><scope>TextureFactory</scope><name>~TextureFactory</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

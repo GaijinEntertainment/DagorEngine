@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dagor 2 Transfer Vertex Position to Vertex Color Tool &mdash; Dagor Documentation  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/gaijin.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/sphinx_highlight.js"></script>
+        <script src="../../../../_static/js/hoverxref.js"></script>
+        <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+        <script src="../../../../_static/js/micromodal.min.js"></script>
+        <script src="../../../../_static/js/versionwarning.js"></script>
+        <script src="../../../../_static/clipboard.min.js"></script>
+        <script src="../../../../_static/copybutton.js"></script>
+        <script src="../../../../_static/design-tabs.js"></script>
+        <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Dagor 2 Check Degenerated Faces Tool" href="check_degenerated_faces_tool.html" />
+    <link rel="prev" title="Dagor Editing Normals Tool" href="editing_normals_tool.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/gaijin_round_blur.png" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                0.1.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api-references/index.html">API References and Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../samples/index.html">Samples</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../../blk/index.html">.blk Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../asset-viewer/index.html">Asset Viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../daeditor/index.html">daEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dag2rires/index.html">dag2riRes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../impostor-baker/index.html">Impostor Baker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../levels-deps/index.html">levels.deps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../resource-building/index.html">Resource Building</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../substance-designer/index.html">Substance Designer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Add-ons for Blender and 3ds Max</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../../blender/index.html">Add-ons for Blender</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../index.html">Add-ons for 3ds Max</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../dagor-max-tools/index.html">Dagor Max Tools</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../dagormat/index.html">DagorMat</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="index.html">Dagor 2 3ds Max Tools</a><ul class="current">
+<li class="toctree-l5"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l5"><a class="reference internal" href="damages_setup_tool.html">Dagor 2 Damages Setup Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="fix_normal_orientation_tool.html">Dagor 2 Fix Normal Orientation Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="fixing_illegal_characters.html">Dagor 2 Fixing Illegal Characters Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="fast_editor_user_properties.html">Dagor 2 Fast Editor User Properties</a></li>
+<li class="toctree-l5"><a class="reference internal" href="lods_and_collisions_generator.html">Dagor 2 LODs and Collisions Generator</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ambient_occlusion_baker.html">Dagor 2 Ambient Occlusion Baker</a></li>
+<li class="toctree-l5"><a class="reference internal" href="pivot_painter_vegetation_tool.html">Dagor 2 Pivot Painter Vegetation Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="custom_groups_export_tool.html">Dagor 2 Custom Groups Export Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="editing_normals_tool.html">Dagor Editing Normals Tool</a></li>
+<li class="toctree-l5 current"><a class="current reference internal" href="#">Dagor 2 Transfer Vertex Position to Vertex Color Tool</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#accessing-the-transfer-vertex-position-to-vertex-color-tool">Accessing the Transfer Vertex Position to Vertex Color Tool</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#using-the-transfer-vertex-position-to-vertex-color-tool">Using the Transfer Vertex Position to Vertex Color Tool</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#use-case-bent-metal-effect">Use Case: Bent Metal Effect</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#encoding-process">Encoding Process</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#script-interface-overview">Script Interface Overview</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#example-workflow">Example Workflow</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#verification">Verification</a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#prototype-car-destruction-in-unreal-engine">Prototype Car Destruction in Unreal Engine</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#nissan-car-damage-example">Nissan Car Damage Example</a><ul>
+<li class="toctree-l8"><a class="reference internal" href="#step-by-step-instructions">Step-by-Step Instructions</a></li>
+</ul>
+</li>
+<li class="toctree-l7"><a class="reference internal" href="#additional-resources">Additional Resources</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="check_degenerated_faces_tool.html">Dagor 2 Check Degenerated Faces Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="simple_cmp_editor.html">Dagor 2 Simple CMP Editor</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../danetgame-framework/index.html">DaNetGame Framework</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Add-ons for Blender and 3ds Max</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Add-ons for 3ds Max</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Dagor 2 3ds Max Tools</a></li>
+      <li class="breadcrumb-item active">Dagor 2 Transfer Vertex Position to Vertex Color Tool</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/dagor-tools/addons/3ds-max/dagor2-3ds-max-tools/transfer_vertex_position_to_vertex_color_tool.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="dagor-2-transfer-vertex-position-to-vertex-color-tool">
+<h1>Dagor 2 Transfer Vertex Position to Vertex Color Tool<a class="headerlink" href="#dagor-2-transfer-vertex-position-to-vertex-color-tool" title="Permalink to this heading"></a></h1>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading"></a></h2>
+<p><a class="reference internal" href="installation.html"><span class="std std-doc">Install the script</span></a> following the provided instructions.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>This script requires <em>3ds Max 2010</em> or newer version to run.</p>
+</div>
+</section>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this heading"></a></h2>
+<p>This tool facilitates the transfer and baking of vertex position changes from
+one object to another using vertex colors, enabling the creation of detailed
+morph effects. The tool captures the positional differences between
+corresponding vertices of two objects and encodes this information into the
+vertex color channels.</p>
+<p>Below is an example of the tool’s output:</p>
+<p><img alt="Transfer Vertex Position to Vertex Color Tool" src="../../../../_images/transfer_vertex_00.gif" /></p>
+</section>
+<section id="accessing-the-transfer-vertex-position-to-vertex-color-tool">
+<h2>Accessing the Transfer Vertex Position to Vertex Color Tool<a class="headerlink" href="#accessing-the-transfer-vertex-position-to-vertex-color-tool" title="Permalink to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p>Navigate to <strong>Gaijin Tools (1)</strong> ▸ <strong>Dagor Vertex Pos to VColor…</strong>. This
+will open the main window of the <em>Dagor Vertex Position to VColor Tool</em>.</p></li>
+<li><p>To verify the version <strong>(3)</strong> of the script, go to <strong>Gaijin Tools (1)</strong> ▸
+<strong>About (2)</strong>. The <strong>About</strong> window will display the current version. It’s
+important to check this regularly to ensure your script is up to date.</p></li>
+</ol>
+<p><img alt="Transfer Vertex Position to Vertex Color Tool" src="../../../../_images/transfer_vertex_01.png" /></p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Make sure that the plugin version is at least <code class="docutils literal notranslate"><span class="pre">1.6</span></code>.</p>
+</div>
+</section>
+<section id="using-the-transfer-vertex-position-to-vertex-color-tool">
+<h2>Using the Transfer Vertex Position to Vertex Color Tool<a class="headerlink" href="#using-the-transfer-vertex-position-to-vertex-color-tool" title="Permalink to this heading"></a></h2>
+<p>To begin, open the tool panel by navigating to <strong>Gaijin Tools</strong> ▸ <strong>Dagor
+Vertex Pos to VColor</strong>.</p>
+<p>Download the following test scene: <a class="reference external" href="https://drive.google.com/file/d/1Pg0i3dlRwNEhajSwK_RiIO-m_TT13-KY/view?usp=drive_link">VColorMorphDemo.max</a>.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>This scene requires <em>3ds Max 2024</em> or a newer version.</p>
+</div>
+<section id="use-case-bent-metal-effect">
+<h3>Use Case: Bent Metal Effect<a class="headerlink" href="#use-case-bent-metal-effect" title="Permalink to this heading"></a></h3>
+<p>The script was originally developed to create a bent metal effect, where a new
+car model gradually morphs into a damaged car model. Storing two full models is
+resource-intensive, so this tool allows us to store the positional changes as
+vertex color data. This approach requires that the vertex count and order in
+both the original and deformed models are identical.</p>
+</section>
+<section id="encoding-process">
+<h3>Encoding Process<a class="headerlink" href="#encoding-process" title="Permalink to this heading"></a></h3>
+<ol class="arabic">
+<li><p><strong>Channel Assignment:</strong></p>
+<ul class="simple">
+<li><p>The <strong>Red</strong> channel stores the X-axis offset.</p></li>
+<li><p>The <strong>Green</strong> channel stores the Y-axis offset.</p></li>
+<li><p>The <strong>Blue</strong> channel stores the Z-axis offset.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The Z-axis is upward in most coordinate systems, but remember that in some
+systems like DirectX, the Y-axis is considered upward.</p>
+</div>
+</li>
+<li><p><strong>Brightness Range:</strong></p>
+<ul class="simple">
+<li><p>The brightness range is split into two intervals: <code class="docutils literal notranslate"><span class="pre">0-127</span></code> and <code class="docutils literal notranslate"><span class="pre">127-255</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">127</span></code> represents zero offset, meaning no positional change between the
+original and deformed model.</p></li>
+<li><p>Values <code class="docutils literal notranslate"><span class="pre">0-126</span></code> represent negative offsets, while <code class="docutils literal notranslate"><span class="pre">128-255</span></code> represent
+positive offsets.</p></li>
+</ul>
+</li>
+<li><p><strong>Normalization:</strong></p>
+<ul class="simple">
+<li><p>To fit the positional offsets within the 128-step brightness range,
+normalization is applied.</p></li>
+<li><p>The script identifies the maximum distance between corresponding vertices
+across both models. For example, if the maximum distance is 256 units, the
+script normalizes all distances using a multiplier of <code class="docutils literal notranslate"><span class="pre">256/128</span> <span class="pre">=</span> <span class="pre">2.0</span></code>. This
+normalization ensures that the offsets are encoded correctly within the
+available brightness range. The multiplier and normalization are
+automatically calculated after the script processes the models, as shown in
+the following example:</p></li>
+</ul>
+<p><img alt="Transfer Vertex Position to Vertex Color Tool" src="../../../../_images/transfer_vertex_02.png" /></p>
+</li>
+</ol>
+</section>
+<section id="script-interface-overview">
+<h3>Script Interface Overview<a class="headerlink" href="#script-interface-overview" title="Permalink to this heading"></a></h3>
+<p>The script interface is divided into three main sections:</p>
+<ol class="arabic simple">
+<li><p><strong>Base Object Selection (Block 1):</strong></p>
+<ul class="simple">
+<li><p>Select the base object, which remains unchanged and serves as the reference
+for positional comparison.</p></li>
+<li><p>Choose the target object where the vertex color (vColor) data will be
+written.</p></li>
+</ul>
+</li>
+<li><p><strong>Calculation and Output (Block 2):</strong></p>
+<ul class="simple">
+<li><p>Initiate the calculation and output of the positional differences.</p></li>
+</ul>
+</li>
+<li><p><strong>Inverse Transformation (Block 3):</strong></p>
+<ul class="simple">
+<li><p>Optionally, verify the accuracy of the process by performing an inverse
+transformation, converting the vertex color data back into vertex positions
+to check for consistency.</p></li>
+</ul>
+</li>
+</ol>
+<p><img alt="Transfer Vertex Position to Vertex Color Tool" src="../../../../_images/transfer_vertex_03.png" /></p>
+</section>
+<section id="example-workflow">
+<h3>Example Workflow<a class="headerlink" href="#example-workflow" title="Permalink to this heading"></a></h3>
+<p>To illustrate, let’s transfer the vertex position differences from an object
+named <code class="docutils literal notranslate"><span class="pre">StartMorph</span></code> to another named <code class="docutils literal notranslate"><span class="pre">EndMorph</span></code>. As <code class="docutils literal notranslate"><span class="pre">EndMorph</span></code> has a point offset
+along the X-axis, the Red channel will reflect this shift – positive values on
+one side and negative values on the other. A gray color <code class="docutils literal notranslate"><span class="pre">(127,</span> <span class="pre">127,</span> <span class="pre">127)</span></code>
+indicates no positional change.</p>
+<ol class="arabic simple">
+<li><p><strong>Select the Source Object:</strong></p>
+<ul class="simple">
+<li><p>Choose <code class="docutils literal notranslate"><span class="pre">StartMorph</span></code> using the <strong>Source Object (1)</strong> button.</p></li>
+</ul>
+</li>
+<li><p><strong>Select the Target Object:</strong></p>
+<ul class="simple">
+<li><p>Select <code class="docutils literal notranslate"><span class="pre">EndMorph</span></code> <strong>(3)</strong>, the object to which vColor data will be applied.</p></li>
+</ul>
+</li>
+<li><p><strong>Display the Result:</strong></p>
+<ul class="simple">
+<li><p>Check the <strong>Show VColor Result (4)</strong> option to display the vColor in the
+Viewport.</p></li>
+<li><p>If needed, specify a different channel <strong>(5)</strong> for the output, such as
+channel 8 (used for Ambient Occlusion in <em>Dagor Engine</em>).</p></li>
+</ul>
+</li>
+<li><p><strong>Start the Process:</strong></p>
+<ul class="simple">
+<li><p>Click the <strong>Transfer Vertex Position to VColor (6)</strong> button to begin the
+transfer. The resulting vColor will illustrate the deformation, as shown by
+the color changes in the sphere, examples <strong>(9)</strong> and <strong>(10)</strong>.</p></li>
+</ul>
+</li>
+</ol>
+<p><img alt="Transfer Vertex Position to Vertex Color Tool" src="../../../../_images/transfer_vertex_04.png" /></p>
+<p>This is an illustrative example when deformation of an object where the vColor
+has changed. In a real task, we need to transfer the position the other way
+around from the deformed object to the undeformed object. The selection will be
+inverted.</p>
+</section>
+<section id="verification">
+<h3>Verification<a class="headerlink" href="#verification" title="Permalink to this heading"></a></h3>
+<p>To verify the accuracy of the transformation:</p>
+<p><strong>Inverse Transformation:</strong></p>
+<ol class="arabic simple">
+<li><p>Set the <strong>Global Distance Multiplier (11)</strong> to the value calculated during
+the initial process.</p></li>
+<li><p>Select the model with the generated vColor.</p></li>
+<li><p>Click <strong>Restore VertexPos to Start Pos (12)</strong> button to revert the vColor
+back into vertex positions.</p></li>
+</ol>
+<p>The process may introduce minor distortions due to the limited precision
+available within the 128-step brightness range.</p>
+</section>
+</section>
+<section id="prototype-car-destruction-in-unreal-engine">
+<h2>Prototype Car Destruction in Unreal Engine<a class="headerlink" href="#prototype-car-destruction-in-unreal-engine" title="Permalink to this heading"></a></h2>
+<p>This section demonstrates a practical application of the script for simulating
+car damage in <em>Unreal Engine</em>. You can download the <em>Unreal Engine</em> project from
+the following link:</p>
+<p><a class="reference external" href="https://cloud.gaijin.team/s/qsRsGFY82CTBpQt">Download Unreal Project</a></p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The minimum supported version for this project is <em>Unreal Engine</em> <code class="docutils literal notranslate"><span class="pre">4.27</span></code>.</p>
+</div>
+<p>To view the results directly, you can run the executable file
+<code class="docutils literal notranslate"><span class="pre">CarDeformExampleWin64x\CarDeformExample.exe</span></code>, example: <a class="reference external" href="https://drive.google.com/file/d/1e1t_BrkvtiZP7vddbPzxufcjcVDA54Gn/view?usp=drive_link">transfer_vertex_05.gif</a>.</p>
+<section id="nissan-car-damage-example">
+<h3>Nissan Car Damage Example<a class="headerlink" href="#nissan-car-damage-example" title="Permalink to this heading"></a></h3>
+<p>For a hands-on example, you can download the scene files for a damaged Nissan
+car from the links below:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://drive.google.com/file/d/1zJKHehTbUvyEKfMqLyOYai9GRZdThFrP/view?usp=drive_link">Scene 1: NewDestrCarTest.zip.001</a></p></li>
+<li><p><a class="reference external" href="https://drive.google.com/file/d/1AxNpfBGYRhsc0FfyY9aX8jO9hEDU8KFP/view?usp=drive_link">Scene 2: NewDestrCarTest.zip.002</a></p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The minimum supported version for this scene is <em>3ds Max 2024</em>.</p>
+</div>
+<section id="step-by-step-instructions">
+<h4>Step-by-Step Instructions<a class="headerlink" href="#step-by-step-instructions" title="Permalink to this heading"></a></h4>
+<ol class="arabic simple">
+<li><p><strong>Open the Scene in 3ds Max:</strong></p>
+<ul class="simple">
+<li><p>The scene contains two versions of the car: a dented version <strong>(2)</strong> and an
+undamaged version <strong>(1)</strong>.</p></li>
+</ul>
+</li>
+</ol>
+<p><img alt="Transfer Vertex Position to Vertex Color Tool" src="../../../../_images/transfer_vertex_06.png" /></p>
+<ol class="arabic" start="2">
+<li><p><strong>Select the Undamaged Car:</strong></p>
+<ul class="simple">
+<li><p>Begin by selecting the undamaged car model <strong>(1)</strong>.</p></li>
+</ul>
+</li>
+<li><p><strong>Specify the Dented Car as the Target:</strong></p>
+<ul class="simple">
+<li><p>With the undamaged car still selected, press the selection button <strong>(3)</strong>
+to specify the dented car as the target for the transformation.</p></li>
+</ul>
+</li>
+<li><p><strong>Run the Script:</strong></p>
+<ul class="simple">
+<li><p>Press the execute button <strong>(4)</strong> and wait for the script to complete its
+process.</p></li>
+</ul>
+<p>The car should now display a vertex color indicative of the deformation
+process, similar to the example shown below:</p>
+<p><img alt="Transfer Vertex Position to Vertex Color Tool" src="../../../../_images/transfer_vertex_07.png" /></p>
+</li>
+<li><p><strong>Verify the Results:</strong></p>
+<ul class="simple">
+<li><p>To verify the process, make a copy of the undamaged car <strong>(1)</strong> and press
+the button <strong>(2)</strong> to apply the vertex color transformation.</p></li>
+</ul>
+<p>The result should closely resemble the dented car model, as illustrated here:</p>
+<p><img alt="Transfer Vertex Position to Vertex Color Tool" src="../../../../_images/transfer_vertex_09.png" /></p>
+</li>
+<li><p><strong>Inspect for Artifacts:</strong></p>
+<ul class="simple">
+<li><p>Upon closer inspection, particularly around the steering wheel, you may
+notice minor artifacts. These artifacts are a result of compressing vertex
+positions into the vertex color space, as shown below:</p></li>
+</ul>
+<p><img alt="Transfer Vertex Position to Vertex Color Tool" src="../../../../_images/transfer_vertex_10.png" /></p>
+<p>Unfortunately, these artifacts are inherent to the technology used for
+encoding vertex positions in the vertex color channels. However, they are
+generally inconspicuous during gameplay, blending naturally with the car’s
+damaged appearance.</p>
+</li>
+</ol>
+</section>
+</section>
+<section id="additional-resources">
+<h3>Additional Resources<a class="headerlink" href="#additional-resources" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Documentation:</strong> Button <strong>Visit to Learning Web Site (7)</strong> will open this
+article.</p></li>
+<li><p><strong>Contact Information:</strong> Button <strong>Contact with Developer (8)</strong> provides the
+developer’s contacts.</p></li>
+</ul>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="editing_normals_tool.html" class="btn btn-neutral float-left" title="Dagor Editing Normals Tool" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="check_degenerated_faces_tool.html" class="btn btn-neutral float-right" title="Dagor 2 Check Degenerated Faces Tool" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2024.
+      <span class="lastupdated">Last updated on Nov 06, 2024.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+ <script type="text/javascript">
+    $(document).ready(function() {
+        $(".toggle > *").hide();
+        $(".toggle .header").show();
+        $(".toggle .header").click(function() {
+            $(this).parent().children().not(".header").toggle(400);
+            $(this).parent().children(".header").toggleClass("open");
+        })
+    });
+</script>
+
+
+</body>
+</html>

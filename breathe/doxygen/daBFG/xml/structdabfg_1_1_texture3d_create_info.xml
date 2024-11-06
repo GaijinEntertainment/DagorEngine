@@ -1,0 +1,64 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structdabfg_1_1_texture3d_create_info" kind="struct" language="C++" prot="public">
+    <compoundname>dabfg::Texture3dCreateInfo</compoundname>
+    <includes refid="resource_creation_8h" local="no">resourceCreation.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structdabfg_1_1_texture3d_create_info_1a8fa28b84d1176a18482ae120c4e962b1" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t dabfg::Texture3dCreateInfo::creationFlags</definition>
+        <argsstring></argsstring>
+        <name>creationFlags</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Use TEXCF_ prefixed flags. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" line="59" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdabfg_1_1_texture3d_create_info_1a9e6316cb961312fe66f96db3ab835871" prot="public" static="no" mutable="no">
+        <type>eastl::variant&lt; IPoint3, <ref refid="classdabfg_1_1_auto_resolution_request" kindref="compound">AutoResolutionRequest</ref>&lt; 3 &gt; &gt;</type>
+        <definition>eastl::variant&lt;IPoint3, AutoResolutionRequest&lt;3&gt; &gt; dabfg::Texture3dCreateInfo::resolution</definition>
+        <argsstring></argsstring>
+        <name>resolution</name>
+        <briefdescription>
+<para>Resolution for this texture. May either be hard-coded or automatic, see <ref refid="classdabfg_1_1_auto_resolution_request" kindref="compound">AutoResolutionRequest</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" line="61" column="18" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdabfg_1_1_texture3d_create_info_1a4152f7f201589eeb4b1b595246a17d3f" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t dabfg::Texture3dCreateInfo::mipLevels</definition>
+        <argsstring></argsstring>
+        <name>mipLevels</name>
+        <initializer>= 1</initializer>
+        <briefdescription>
+<para>Use 0 for automatic mip levels. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" line="63" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Specifies the creation parameters for a 3D volumetric texture. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" line="56" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" bodystart="57" bodyend="64"/>
+    <listofallmembers>
+      <member refid="structdabfg_1_1_texture3d_create_info_1a8fa28b84d1176a18482ae120c4e962b1" prot="public" virt="non-virtual"><scope>dabfg::Texture3dCreateInfo</scope><name>creationFlags</name></member>
+      <member refid="structdabfg_1_1_texture3d_create_info_1a4152f7f201589eeb4b1b595246a17d3f" prot="public" virt="non-virtual"><scope>dabfg::Texture3dCreateInfo</scope><name>mipLevels</name></member>
+      <member refid="structdabfg_1_1_texture3d_create_info_1a9e6316cb961312fe66f96db3ab835871" prot="public" virt="non-virtual"><scope>dabfg::Texture3dCreateInfo</scope><name>resolution</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

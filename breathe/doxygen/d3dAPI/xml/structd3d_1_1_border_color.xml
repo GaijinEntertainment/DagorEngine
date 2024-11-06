@@ -1,0 +1,135 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structd3d_1_1_border_color" kind="struct" language="C++" prot="public">
+    <compoundname>d3d::BorderColor</compoundname>
+    <includes refid="dag__sampler_8h" local="no">dag_sampler.h</includes>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="structd3d_1_1_border_color_1a834dbf1ab4dcb80d21374d7911ea3953" prot="public" static="no" strong="yes">
+        <type>UnderlyingT</type>
+        <name>Color</name>
+        <enumvalue id="structd3d_1_1_border_color_1a834dbf1ab4dcb80d21374d7911ea3953a890d9049f815b10b66e84123cd7f5c54" prot="public">
+          <name>TransparentBlack</name>
+          <initializer>= 0x00000000</initializer>
+          <briefdescription>
+<para>Transparent black color. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structd3d_1_1_border_color_1a834dbf1ab4dcb80d21374d7911ea3953ae264fa6d4bbd78199f1533e4e2a9d261" prot="public">
+          <name>OpaqueBlack</name>
+          <initializer>= 0xFF000000</initializer>
+          <briefdescription>
+<para>Opaque black color. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structd3d_1_1_border_color_1a834dbf1ab4dcb80d21374d7911ea3953ab5acb7ca0dd0bfffaae1b3e6c784f993" prot="public">
+          <name>OpaqueWhite</name>
+          <initializer>= 0xFFFFFFFF</initializer>
+          <briefdescription>
+<para>Opaque white color. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" line="75" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" bodystart="76" bodyend="80"/>
+      </memberdef>
+      <memberdef kind="typedef" id="structd3d_1_1_border_color_1a657d624a08e8a4a04501533e273563ea" prot="public" static="no">
+        <type>uint32_t</type>
+        <definition>using d3d::BorderColor::UnderlyingT =  uint32_t</definition>
+        <argsstring></argsstring>
+        <name>UnderlyingT</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" line="74" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" bodystart="74" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structd3d_1_1_border_color_1a3e18d0b553486fbf21a1de4cc33ff159" prot="public" static="no" mutable="no">
+        <type>enum <ref refid="structd3d_1_1_border_color_1a834dbf1ab4dcb80d21374d7911ea3953" kindref="member">d3d::BorderColor::Color</ref></type>
+        <definition>enum d3d::BorderColor::Color d3d::BorderColor::color</definition>
+        <argsstring></argsstring>
+        <name>color</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" line="80" column="9"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structd3d_1_1_border_color_1a2e49caa60c6d1885a2b3bc8d0e4c0161" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>d3d::BorderColor::BorderColor</definition>
+        <argsstring>(Color color=Color::TransparentBlack)</argsstring>
+        <name>BorderColor</name>
+        <param>
+          <type><ref refid="structd3d_1_1_border_color_1a834dbf1ab4dcb80d21374d7911ea3953" kindref="member">Color</ref></type>
+          <declname>color</declname>
+          <defval><ref refid="structd3d_1_1_border_color_1a834dbf1ab4dcb80d21374d7911ea3953a890d9049f815b10b66e84123cd7f5c54" kindref="member">Color::TransparentBlack</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" line="81" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" bodystart="81" bodyend="81"/>
+      </memberdef>
+      <memberdef kind="function" id="structd3d_1_1_border_color_1a3fd439a8f8c3f12b19c894da2d3b6d16" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>d3d::BorderColor::operator E3DCOLOR</definition>
+        <argsstring>() const</argsstring>
+        <name>operator E3DCOLOR</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" line="82" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" bodystart="82" bodyend="82"/>
+      </memberdef>
+      <memberdef kind="function" id="structd3d_1_1_border_color_1ac45cbcb6b447b0643e9ffa91be991bfb" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>d3d::BorderColor::operator UnderlyingT</definition>
+        <argsstring>() const</argsstring>
+        <name>operator UnderlyingT</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" line="83" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" bodystart="83" bodyend="83"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para><ref refid="structd3d_1_1_border_color" kindref="compound">BorderColor</ref> struct. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" line="72" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h" bodystart="73" bodyend="84"/>
+    <listofallmembers>
+      <member refid="structd3d_1_1_border_color_1a2e49caa60c6d1885a2b3bc8d0e4c0161" prot="public" virt="non-virtual"><scope>d3d::BorderColor</scope><name>BorderColor</name></member>
+      <member refid="structd3d_1_1_border_color_1a834dbf1ab4dcb80d21374d7911ea3953" prot="public" virt="non-virtual"><scope>d3d::BorderColor</scope><name>Color</name></member>
+      <member refid="structd3d_1_1_border_color_1a3e18d0b553486fbf21a1de4cc33ff159" prot="public" virt="non-virtual"><scope>d3d::BorderColor</scope><name>color</name></member>
+      <member refid="structd3d_1_1_border_color_1a3fd439a8f8c3f12b19c894da2d3b6d16" prot="public" virt="non-virtual"><scope>d3d::BorderColor</scope><name>operator E3DCOLOR</name></member>
+      <member refid="structd3d_1_1_border_color_1ac45cbcb6b447b0643e9ffa91be991bfb" prot="public" virt="non-virtual"><scope>d3d::BorderColor</scope><name>operator UnderlyingT</name></member>
+      <member refid="structd3d_1_1_border_color_1a657d624a08e8a4a04501533e273563ea" prot="public" virt="non-virtual"><scope>d3d::BorderColor</scope><name>UnderlyingT</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

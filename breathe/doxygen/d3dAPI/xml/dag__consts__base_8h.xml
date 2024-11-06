@@ -1,0 +1,1744 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="dag__consts__base_8h" kind="file" language="C++">
+    <compoundname>dag_consts_base.h</compoundname>
+    <includedby refid="dag__interface__table_8h" local="no">/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_interface_table.h</includedby>
+    <includedby refid="dag__tex3d_8h" local="no">/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h</includedby>
+    <includedby refid="dag__consts_8h" local="no">/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts.h</includedby>
+    <includedby refid="dag__sampler_8h" local="no">/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h</includedby>
+    <includedby refid="dag__render_states_8h" local="no">/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h</includedby>
+    <invincdepgraph>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h</label>
+        <link refid="dag__consts__base_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+      </node>
+      <node id="21">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shader.h</label>
+        <link refid="dag__shader_8h_source"/>
+      </node>
+      <node id="10">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_ps.h</label>
+        <link refid="dag__platform__ps_8h_source"/>
+      </node>
+      <node id="16">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_barrier.h</label>
+        <link refid="dag__barrier_8h_source"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_pc.h</label>
+        <link refid="dag__platform__pc_8h_source"/>
+      </node>
+      <node id="11">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_texture.h</label>
+        <link refid="dag__texture_8h_source"/>
+      </node>
+      <node id="3">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h</label>
+        <link refid="dag__tex3d_8h_source"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="18">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_dispatch.h</label>
+        <link refid="dag__dispatch_8h_source"/>
+      </node>
+      <node id="17">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h</label>
+        <link refid="dag__heap_8h_source"/>
+      </node>
+      <node id="5">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driver.h</label>
+        <link refid="dag__driver_8h_source"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_vertexIndexBuffer.h</label>
+        <link refid="dag__vertex_index_buffer_8h_source"/>
+      </node>
+      <node id="23">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_bindless.h</label>
+        <link refid="dag__bindless_8h_source"/>
+      </node>
+      <node id="24">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h</label>
+        <link refid="dag__render_states_8h_source"/>
+      </node>
+      <node id="14">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderConstants.h</label>
+        <link refid="dag__shader_constants_8h_source"/>
+      </node>
+      <node id="2">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_interface_table.h</label>
+        <link refid="dag__interface__table_8h_source"/>
+      </node>
+      <node id="8">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_lock.h</label>
+        <link refid="dag__lock_8h_source"/>
+      </node>
+      <node id="22">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_sampler.h</label>
+        <link refid="dag__sampler_8h_source"/>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts.h</label>
+        <link refid="dag__consts_8h_source"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+      </node>
+      <node id="19">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_variableRateShading.h</label>
+        <link refid="dag__variable_rate_shading_8h_source"/>
+      </node>
+      <node id="6">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_async_pipeline.h</label>
+        <link refid="dag__async__pipeline_8h_source"/>
+      </node>
+      <node id="7">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_drv3d_multi.h</label>
+        <link refid="dag__drv3d__multi_8h_source"/>
+      </node>
+      <node id="20">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h</label>
+        <link refid="dag__render_pass_8h_source"/>
+      </node>
+      <node id="15">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resourceChecker.h</label>
+        <link refid="dag__resource_checker_8h_source"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h</label>
+        <link refid="dag__buffers_8h"/>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="dag__consts__base_8h_1a0bc6801a7b2f5f0e77de4363099a521d" prot="public" static="no">
+        <name>VSD_STREAM</name>
+        <param><defname>n</defname></param>
+        <initializer>(VSDOP_STREAM | (n) | ((n) == 0 ? 0 : VSDS_PER_INSTANCE_DATA))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="9" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="9" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1a03caca4a9f627ed2e6281098f75442d0" prot="public" static="no">
+        <name>VSD_STREAM_PER_VERTEX_DATA</name>
+        <param><defname>n</defname></param>
+        <initializer>(VSDOP_STREAM | (n))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="10" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="10" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1a31d1e5ab39bd8b7c8002fa94c92449c4" prot="public" static="no">
+        <name>VSD_STREAM_PER_INSTANCE_DATA</name>
+        <param><defname>n</defname></param>
+        <initializer>(VSDOP_STREAM | (n) | VSDS_PER_INSTANCE_DATA)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="11" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="11" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1ad896b74fe91b99dc5ece4ce10f091571" prot="public" static="no">
+        <name>VSD_REG</name>
+        <param><defname>n</defname></param>
+        <param><defname>t</defname></param>
+        <initializer>(VSDOP_INPUT | (t) | (n))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="15" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1aa9aff36c86a9e738fe1733a4934e5297" prot="public" static="no">
+        <name>VSD_SKIP</name>
+        <param><defname>n</defname></param>
+        <initializer>(VSDOP_INPUT | VSD_SKIPFLG | ((n) &lt;&lt; 16))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="18" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1a34d8b39f81e5bac0d2cb9d545bc08770" prot="public" static="no">
+        <name>VSDT_FLOAT1</name>
+        <initializer>(0x00 &lt;&lt; 16)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="23" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1a8294ae4364f2905150e6025f9c76abc4" prot="public" static="no">
+        <name>VSDT_FLOAT2</name>
+        <initializer>(0x01 &lt;&lt; 16)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="25" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1a44255cfe20ce103db1ef28184608ac06" prot="public" static="no">
+        <name>VSDT_FLOAT3</name>
+        <initializer>(0x02 &lt;&lt; 16)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="27" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1aef8167422824ce66c1bc15d004cd2108" prot="public" static="no">
+        <name>VSDT_FLOAT4</name>
+        <initializer>(0x03 &lt;&lt; 16)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="29" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1a9e44c2a30005531c2bf70ee4fe5371de" prot="public" static="no">
+        <name>VSDT_E3DCOLOR</name>
+        <initializer>(0x04 &lt;&lt; 16)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="31" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1ab8a2f12c8d66f726e7338d9f156f0567" prot="public" static="no">
+        <name>VSDT_UBYTE4</name>
+        <initializer>(0x05 &lt;&lt; 16)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="33" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1a93413ec8cb5e3ee7898b9c99c24c9d50" prot="public" static="no">
+        <name>VSDT_SHORT2</name>
+        <initializer>(0x06 &lt;&lt; 16)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="35" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1ac9b64fede4284f0cc085fd18f4925f7b" prot="public" static="no">
+        <name>VSDT_SHORT4</name>
+        <initializer>(0x07 &lt;&lt; 16)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="37" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1ad2af001f8ea893e7e803fa9dc2261c9b" prot="public" static="no">
+        <name>VSDT_SHORT2N</name>
+        <initializer>(9 &lt;&lt; 16)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="40" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1ac21be70a99b205f6e3e7e74f42a117f5" prot="public" static="no">
+        <name>VSDT_SHORT4N</name>
+        <initializer>(10 &lt;&lt; 16)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="42" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1ac2a26c1da07906d22fa6426e4f720a48" prot="public" static="no">
+        <name>VSDT_USHORT2N</name>
+        <initializer>(11 &lt;&lt; 16)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="44" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1aea46e04e97099e170fe3509a32d92a10" prot="public" static="no">
+        <name>VSDT_USHORT4N</name>
+        <initializer>(12 &lt;&lt; 16)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="46" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1a0143767d8a89b10f3e58a0a3621ecda0" prot="public" static="no">
+        <name>VSDT_UDEC3</name>
+        <initializer>(13 &lt;&lt; 16)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="49" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1a333bbfe0ed0b5c86b0743ab3b91b5c46" prot="public" static="no">
+        <name>VSDT_DEC3N</name>
+        <initializer>(14 &lt;&lt; 16)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="51" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1a96dcce07e9ec1210abd8aafd0207efaf" prot="public" static="no">
+        <name>VSDT_HALF2</name>
+        <initializer>(15 &lt;&lt; 16)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="54" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1acb1365fba54045c6fd944ed4cce2bd75" prot="public" static="no">
+        <name>VSDT_HALF4</name>
+        <initializer>(16 &lt;&lt; 16)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="56" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1a6525d368cb3ffd5e989f46312203b1ba" prot="public" static="no">
+        <name>VSDT_INT1</name>
+        <initializer>(17 &lt;&lt; 16)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="58" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1ac8c5a031ffd3ed880bc58bd3abce2120" prot="public" static="no">
+        <name>VSDT_INT2</name>
+        <initializer>(18 &lt;&lt; 16)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="59" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1ae566ced62e8a398daf2e5001fff3f0ab" prot="public" static="no">
+        <name>VSDT_INT3</name>
+        <initializer>(19 &lt;&lt; 16)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="60" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1a1809204512becd5cebbf5ae0d9e06fe2" prot="public" static="no">
+        <name>VSDT_INT4</name>
+        <initializer>(20 &lt;&lt; 16)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="61" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1a8aa9e2d3f696b3a0f2dd28467ad5ec92" prot="public" static="no">
+        <name>VSDT_UINT1</name>
+        <initializer>(21 &lt;&lt; 16)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="63" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1aec78d79b50e689e6869fb66683409066" prot="public" static="no">
+        <name>VSDT_UINT2</name>
+        <initializer>(22 &lt;&lt; 16)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="64" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="64" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1a2943e83ad9fee544225de37458e126fb" prot="public" static="no">
+        <name>VSDT_UINT3</name>
+        <initializer>(23 &lt;&lt; 16)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="65" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="65" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1aaf6d0bdcc8a4a6add70eada545dfb8bc" prot="public" static="no">
+        <name>VSDT_UINT4</name>
+        <initializer>(24 &lt;&lt; 16)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="66" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="66" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1a8beae8469a2cf7dcb6e6f705a805e834" prot="public" static="no">
+        <name>VSDR_POS</name>
+        <initializer>0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="69" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="69" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1a0d42e9f82e08b218b09c15ccf258f3f3" prot="public" static="no">
+        <name>VSDR_BLENDW</name>
+        <initializer>1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="70" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1a55834f9c2534433198f459a7a2338fc8" prot="public" static="no">
+        <name>VSDR_BLENDIND</name>
+        <initializer>2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="71" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="71" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1af104fd5dc5e90fe6a34a7d67e7d9d71b" prot="public" static="no">
+        <name>VSDR_NORM</name>
+        <initializer>3</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="72" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="72" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1a0b382dda3cdfe9721ef82648de1425e2" prot="public" static="no">
+        <name>VSDR_PSIZE</name>
+        <initializer>4</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="73" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="73" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1aacde6e2b99a59eae2c79ed41666e7795" prot="public" static="no">
+        <name>VSDR_DIFF</name>
+        <initializer>5</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="74" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="74" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1a47970fb526ef569d24f5d08504883d40" prot="public" static="no">
+        <name>VSDR_SPEC</name>
+        <initializer>6</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="75" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="75" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1a8cd29b85f0ed2ed0a4effed53020048d" prot="public" static="no">
+        <name>VSDR_TEXC0</name>
+        <initializer>7</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="76" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="76" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1af7660de6d9d68f0e0346c249a92e59d8" prot="public" static="no">
+        <name>VSDR_TEXC1</name>
+        <initializer>8</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="77" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="77" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1abff3da7e630648c0d8f7a81e7d317654" prot="public" static="no">
+        <name>VSDR_TEXC2</name>
+        <initializer>9</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="78" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="78" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1a2347808572507a20a39de29ed82087ae" prot="public" static="no">
+        <name>VSDR_TEXC3</name>
+        <initializer>10</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="79" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1af37e8bd2e8d100139a27c067d14a7d1d" prot="public" static="no">
+        <name>VSDR_TEXC4</name>
+        <initializer>11</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="80" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="80" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1a86693154963fdc0c33b3459347bd96df" prot="public" static="no">
+        <name>VSDR_TEXC5</name>
+        <initializer>12</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="81" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="81" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1aa412becd5895ff842400072503dfe01b" prot="public" static="no">
+        <name>VSDR_TEXC6</name>
+        <initializer>13</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="82" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="82" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1ad18a3723a3976c9aa23adddbfd93937c" prot="public" static="no">
+        <name>VSDR_TEXC7</name>
+        <initializer>14</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="83" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="83" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1a1442e930d053cb2dc19378eeb2ce427f" prot="public" static="no">
+        <name>VSDR_POS2</name>
+        <initializer>15</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="84" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="84" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1a842ba45ed84e46b34bd652479896ff36" prot="public" static="no">
+        <name>VSDR_NORM2</name>
+        <initializer>16</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="85" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="85" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1a617bd73cd35f0e2045f702f1c90589e4" prot="public" static="no">
+        <name>VSDR_TEXC15</name>
+        <initializer>17</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="86" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1a3b9b61f916ef3fd697532319a3df8f42" prot="public" static="no">
+        <name>VSDR_TEXC8</name>
+        <initializer>18</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="87" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1a5c86de801913a20690b04e197dc8c807" prot="public" static="no">
+        <name>VSDR_TEXC9</name>
+        <initializer>19</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="88" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="88" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1a944dec80e0ba780ec782c12a57f7e032" prot="public" static="no">
+        <name>VSDR_TEXC10</name>
+        <initializer>20</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="89" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="89" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1a832244df7c8a7c6c39dace95b796799e" prot="public" static="no">
+        <name>VSDR_TEXC11</name>
+        <initializer>21</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="90" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="90" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1af6d30d58466fdf79ed93ac52d96b7a23" prot="public" static="no">
+        <name>VSDR_TEXC12</name>
+        <initializer>22</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="91" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="91" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1a9d0a6c07bb59cfd1d474b593553f574c" prot="public" static="no">
+        <name>VSDR_TEXC13</name>
+        <initializer>23</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="92" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="92" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__consts__base_8h_1a9b8292ee8aebe6f70494d72b9659819c" prot="public" static="no">
+        <name>VSDR_TEXC14</name>
+        <initializer>24</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="93" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="93" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="dag__consts__base_8h_1ae8a3b6a5d0d3244ed73924ab2421a0d0" prot="public" static="no" strong="no">
+        <type></type>
+        <name>@48</name>
+        <enumvalue id="dag__consts__base_8h_1ae8a3b6a5d0d3244ed73924ab2421a0d0af804b3a3b2e75c1b9f18d59e395064ca" prot="public">
+          <name>VBLOCK_READONLY</name>
+          <initializer>= 0x02</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1ae8a3b6a5d0d3244ed73924ab2421a0d0af8aa6f3bd10940f4b3f00bed55d73844" prot="public">
+          <name>VBLOCK_WRITEONLY</name>
+          <initializer>= 0x04</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1ae8a3b6a5d0d3244ed73924ab2421a0d0a2e78bd744e92d8665225df8321f06bae" prot="public">
+          <name>VBLOCK_NOSYSLOCK</name>
+          <initializer>= 0x08</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1ae8a3b6a5d0d3244ed73924ab2421a0d0a88510d5c5e697ce31c1e19b65f60e069" prot="public">
+          <name>VBLOCK_DISCARD</name>
+          <initializer>= 0x10</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1ae8a3b6a5d0d3244ed73924ab2421a0d0a81ce88ca8535bc2fd1b0b86b07bbe487" prot="public">
+          <name>VBLOCK_NOOVERWRITE</name>
+          <initializer>= 0x20</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="95" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="96" bodyend="102"/>
+      </memberdef>
+      <memberdef kind="enum" id="dag__consts__base_8h_1af715e26dfffd1f8de1c18449e2770cff" prot="public" static="no" strong="no">
+        <type></type>
+        <name>@49</name>
+        <enumvalue id="dag__consts__base_8h_1af715e26dfffd1f8de1c18449e2770cffa267bf9da1ae01915455e80125fb9ed2f" prot="public">
+          <name>PRIM_POINTLIST</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1af715e26dfffd1f8de1c18449e2770cffaa1eabd5e05bc14e3ca352e397a07e8c4" prot="public">
+          <name>PRIM_LINELIST</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1af715e26dfffd1f8de1c18449e2770cffac19bbadbd3ea857dfd6c3f601bf890cd" prot="public">
+          <name>PRIM_LINESTRIP</name>
+          <initializer>= 3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1af715e26dfffd1f8de1c18449e2770cffa293eaf2a607ca957677e2fd549c06a18" prot="public">
+          <name>PRIM_TRILIST</name>
+          <initializer>= 4</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1af715e26dfffd1f8de1c18449e2770cffa78371bbbd623922f345457a0a2fbed93" prot="public">
+          <name>PRIM_TRISTRIP</name>
+          <initializer>= 5</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1af715e26dfffd1f8de1c18449e2770cffae9aff7db6208413f4e68250442dfb36e" prot="public">
+          <name>PRIM_TRIFAN</name>
+          <initializer>= 6</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1af715e26dfffd1f8de1c18449e2770cffafa07abee0a7f6a3262896d2e7200e292" prot="public">
+          <name>PRIM_4_CONTROL_POINTS</name>
+          <initializer>= 8</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1af715e26dfffd1f8de1c18449e2770cffa0a7729acda42b88bc02df9c9ede9a9a6" prot="public">
+          <name>PRIM_COUNT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="104" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="105" bodyend="117"/>
+      </memberdef>
+      <memberdef kind="enum" id="dag__consts__base_8h_1afb730582952b7ceec73d7dc9bf7bef39" prot="public" static="no" strong="no">
+        <type></type>
+        <name>@50</name>
+        <enumvalue id="dag__consts__base_8h_1afb730582952b7ceec73d7dc9bf7bef39a468cdb344f9a950102f41f14e9386ae0" prot="public">
+          <name>TM_WORLD</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1afb730582952b7ceec73d7dc9bf7bef39a5535d17dfe9f207dc2e023866a85fa7b" prot="public">
+          <name>TM_VIEW</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1afb730582952b7ceec73d7dc9bf7bef39a2e205b2bb01128ca1d128ee0c1f294a1" prot="public">
+          <name>TM_PROJ</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1afb730582952b7ceec73d7dc9bf7bef39afad39e83e04e54a75fb5a91d6a57bf8a" prot="public">
+          <name>TM_LOCAL2VIEW</name>
+          <initializer>= 3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1afb730582952b7ceec73d7dc9bf7bef39aca470d71ac3cde708b2f0973896bb0fa" prot="public">
+          <name>TM_VIEW2LOCAL</name>
+          <initializer>= 4</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1afb730582952b7ceec73d7dc9bf7bef39a7878f1f38f6b909d6ce5c57f1dc50bbb" prot="public">
+          <name>TM_GLOBAL</name>
+          <initializer>= 5</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1afb730582952b7ceec73d7dc9bf7bef39af28eb9bf58bd7a2acbbf39ee77925f76" prot="public">
+          <name>TM__NUM</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="120" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="121" bodyend="130"/>
+      </memberdef>
+      <memberdef kind="enum" id="dag__consts__base_8h_1afccd240f973cf154952fb917c9209719" prot="public" static="no" strong="no">
+        <type></type>
+        <name>@51</name>
+        <enumvalue id="dag__consts__base_8h_1afccd240f973cf154952fb917c9209719af2c130eb624c7d6736d9691a0a6df469" prot="public">
+          <name>CLEAR_TARGET</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1afccd240f973cf154952fb917c9209719a2ad1f5b5bb094d0eab7fca5b9cdfe621" prot="public">
+          <name>CLEAR_ZBUFFER</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1afccd240f973cf154952fb917c9209719a6543de8aaac9caa571e4e6770ead4048" prot="public">
+          <name>CLEAR_STENCIL</name>
+          <initializer>= 4</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1afccd240f973cf154952fb917c9209719a39b8f3426011c3991bff6729feb6a7f2" prot="public">
+          <name>CLEAR_DISCARD_TARGET</name>
+          <initializer>= 8</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1afccd240f973cf154952fb917c9209719ab8568d513d0c2da4e97f07973b0aa50b" prot="public">
+          <name>CLEAR_DISCARD_ZBUFFER</name>
+          <initializer>= 16</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1afccd240f973cf154952fb917c9209719a31c3075e3bce97259b38cb9b21febe33" prot="public">
+          <name>CLEAR_DISCARD_STENCIL</name>
+          <initializer>= 32</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1afccd240f973cf154952fb917c9209719a1feda8884eb922e6af3c88e65bd0f65a" prot="public">
+          <name>CLEAR_DISCARD</name>
+          <initializer>= CLEAR_DISCARD_TARGET | CLEAR_DISCARD_ZBUFFER | CLEAR_DISCARD_STENCIL</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="132" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="133" bodyend="142"/>
+      </memberdef>
+      <memberdef kind="enum" id="dag__consts__base_8h_1af2c62ed6d27ddeb150f95b656dcba629" prot="public" static="no" strong="no">
+        <type></type>
+        <name>BLEND_FACTOR</name>
+        <enumvalue id="dag__consts__base_8h_1af2c62ed6d27ddeb150f95b656dcba629ad49d82c55a64fb1274150899476ef6bd" prot="public">
+          <name>BLEND_ZERO</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1af2c62ed6d27ddeb150f95b656dcba629a9a77f5d6184215da271144fc975d4c78" prot="public">
+          <name>BLEND_ONE</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1af2c62ed6d27ddeb150f95b656dcba629ac6e28bfe1355a4aafd893900adb39a73" prot="public">
+          <name>BLEND_SRCCOLOR</name>
+          <initializer>= 3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1af2c62ed6d27ddeb150f95b656dcba629a546acf92b0486a856ef069297aa83a18" prot="public">
+          <name>BLEND_INVSRCCOLOR</name>
+          <initializer>= 4</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1af2c62ed6d27ddeb150f95b656dcba629a527f070498881c72c7871274fb593950" prot="public">
+          <name>BLEND_SRCALPHA</name>
+          <initializer>= 5</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1af2c62ed6d27ddeb150f95b656dcba629a60b328681dfb339ad3282251670b7a26" prot="public">
+          <name>BLEND_INVSRCALPHA</name>
+          <initializer>= 6</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1af2c62ed6d27ddeb150f95b656dcba629ac4023c083642ac25b1fa628fd5234a7f" prot="public">
+          <name>BLEND_DESTALPHA</name>
+          <initializer>= 7</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1af2c62ed6d27ddeb150f95b656dcba629ab456c841ec49876c4c8ee15d967971d2" prot="public">
+          <name>BLEND_INVDESTALPHA</name>
+          <initializer>= 8</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1af2c62ed6d27ddeb150f95b656dcba629a2086daec3bd0627870113826d404efc5" prot="public">
+          <name>BLEND_DESTCOLOR</name>
+          <initializer>= 9</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1af2c62ed6d27ddeb150f95b656dcba629a39b090a403cbf1db96895a58ffe7c5ee" prot="public">
+          <name>BLEND_INVDESTCOLOR</name>
+          <initializer>= 10</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1af2c62ed6d27ddeb150f95b656dcba629a1c23e103943da2e5d5fe3896328b8a3d" prot="public">
+          <name>BLEND_SRCALPHASAT</name>
+          <initializer>= 11</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1af2c62ed6d27ddeb150f95b656dcba629a65171b36e61e5155869c414e881eda51" prot="public">
+          <name>BLEND_BOTHINVSRCALPHA</name>
+          <initializer>= 13</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1af2c62ed6d27ddeb150f95b656dcba629aee28df437616004fbc823d472787b45f" prot="public">
+          <name>BLEND_BLENDFACTOR</name>
+          <initializer>= 14</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1af2c62ed6d27ddeb150f95b656dcba629a0681672890fed023027d69f42669d4c2" prot="public">
+          <name>BLEND_INVBLENDFACTOR</name>
+          <initializer>= 15</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="144" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="145" bodyend="160"/>
+      </memberdef>
+      <memberdef kind="enum" id="dag__consts__base_8h_1abff73994f37b5e2dbcf79c2552793653" prot="public" static="no" strong="no">
+        <type></type>
+        <name>BLENDOP</name>
+        <enumvalue id="dag__consts__base_8h_1abff73994f37b5e2dbcf79c2552793653a5a55b5840a63b157c5eeb56ae1504148" prot="public">
+          <name>BLENDOP_ADD</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1abff73994f37b5e2dbcf79c2552793653a612d5800f96f0f0000f357fbad07808f" prot="public">
+          <name>BLENDOP_SUBTRACT</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1abff73994f37b5e2dbcf79c2552793653ac06885dfda18838ece72e752b651fbd6" prot="public">
+          <name>BLENDOP_REVSUBTRACT</name>
+          <initializer>= 3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1abff73994f37b5e2dbcf79c2552793653a65fb3c439c7d0e14fa50c1b4c12523d2" prot="public">
+          <name>BLENDOP_MIN</name>
+          <initializer>= 4</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1abff73994f37b5e2dbcf79c2552793653ad4fa8e94fab60e200d0dcb4ac672ef47" prot="public">
+          <name>BLENDOP_MAX</name>
+          <initializer>= 5</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="162" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="163" bodyend="169"/>
+      </memberdef>
+      <memberdef kind="enum" id="dag__consts__base_8h_1adc44d0ac56a58eff042b1436e64e36f8" prot="public" static="no" strong="no">
+        <type></type>
+        <name>CMPF</name>
+        <enumvalue id="dag__consts__base_8h_1adc44d0ac56a58eff042b1436e64e36f8ae99a4442ec3b2306f6e515e741a3181c" prot="public">
+          <name>CMPF_NEVER</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1adc44d0ac56a58eff042b1436e64e36f8a8ca6d640cfcfc05492aba3f15f643562" prot="public">
+          <name>CMPF_LESS</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1adc44d0ac56a58eff042b1436e64e36f8a4dd9afd7da0ca17bf1a54628ab5df2ad" prot="public">
+          <name>CMPF_EQUAL</name>
+          <initializer>= 3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1adc44d0ac56a58eff042b1436e64e36f8a31df713ce5e5db643e331bd833d7a99f" prot="public">
+          <name>CMPF_LESSEQUAL</name>
+          <initializer>= 4</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1adc44d0ac56a58eff042b1436e64e36f8ae2f3a7949b49ba5fd7370486da1b59f2" prot="public">
+          <name>CMPF_GREATER</name>
+          <initializer>= 5</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1adc44d0ac56a58eff042b1436e64e36f8ad5cbff02c1571540b48d0e66ec38e323" prot="public">
+          <name>CMPF_NOTEQUAL</name>
+          <initializer>= 6</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1adc44d0ac56a58eff042b1436e64e36f8a6fc0d3590da5c345938fda1eb5194570" prot="public">
+          <name>CMPF_GREATEREQUAL</name>
+          <initializer>= 7</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1adc44d0ac56a58eff042b1436e64e36f8a952bef775d7a39c520a566c3b127ed7a" prot="public">
+          <name>CMPF_ALWAYS</name>
+          <initializer>= 8</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="171" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="172" bodyend="181"/>
+      </memberdef>
+      <memberdef kind="enum" id="dag__consts__base_8h_1a3ec788941c4774e74e3d249189685fca" prot="public" static="no" strong="no">
+        <type></type>
+        <name>CULL_TYPE</name>
+        <enumvalue id="dag__consts__base_8h_1a3ec788941c4774e74e3d249189685fcaa9596d0df0a165837ecd253c9b06c45df" prot="public">
+          <name>CULL_NONE</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1a3ec788941c4774e74e3d249189685fcaa9c1136f775d6ebf494b530d2a4f1dc67" prot="public">
+          <name>CULL_CW</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1a3ec788941c4774e74e3d249189685fcaa8ab8dbd7fd012dbe1491a8985a59469e" prot="public">
+          <name>CULL_CCW</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="183" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="184" bodyend="188"/>
+      </memberdef>
+      <memberdef kind="enum" id="dag__consts__base_8h_1a7cc2e4244ca368f68e5746185eda6c4a" prot="public" static="no" strong="no">
+        <type></type>
+        <name>@52</name>
+        <enumvalue id="dag__consts__base_8h_1a7cc2e4244ca368f68e5746185eda6c4aad0d90e892659f35200bd990018a29893" prot="public">
+          <name>STNCLOP_KEEP</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1a7cc2e4244ca368f68e5746185eda6c4aa712bbf87f82ebc2c60793212ea89801d" prot="public">
+          <name>STNCLOP_ZERO</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1a7cc2e4244ca368f68e5746185eda6c4aab339b4b363a0a04e43cb49c3b2b4aa90" prot="public">
+          <name>STNCLOP_REPLACE</name>
+          <initializer>= 3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1a7cc2e4244ca368f68e5746185eda6c4aa18a473ddc2056949914de23334622453" prot="public">
+          <name>STNCLOP_INCRSAT</name>
+          <initializer>= 4</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1a7cc2e4244ca368f68e5746185eda6c4aaca2bf7300724d298d10f8a8b5fb93bcf" prot="public">
+          <name>STNCLOP_DECRSAT</name>
+          <initializer>= 5</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1a7cc2e4244ca368f68e5746185eda6c4aad18b9aa2bcaa6c0764dc0948ec13e373" prot="public">
+          <name>STNCLOP_INVERT</name>
+          <initializer>= 6</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1a7cc2e4244ca368f68e5746185eda6c4aa1eb6806f93e920f2194928308e4ff3ce" prot="public">
+          <name>STNCLOP_INCR</name>
+          <initializer>= 7</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1a7cc2e4244ca368f68e5746185eda6c4aad0ce20d95c5ba00d637a60076ed37627" prot="public">
+          <name>STNCLOP_DECR</name>
+          <initializer>= 8</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="190" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="191" bodyend="200"/>
+      </memberdef>
+      <memberdef kind="enum" id="dag__consts__base_8h_1aedcf2109f459315e1a7f2af73ec9b603" prot="public" static="no" strong="no">
+        <type></type>
+        <name>@53</name>
+        <enumvalue id="dag__consts__base_8h_1aedcf2109f459315e1a7f2af73ec9b603a8e3945832b1c626556ca085f204a4c0d" prot="public">
+          <name>TEXADDR_WRAP</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1aedcf2109f459315e1a7f2af73ec9b603af18d220e9c205e1b835625afbdf8442a" prot="public">
+          <name>TEXADDR_MIRROR</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1aedcf2109f459315e1a7f2af73ec9b603a3e4ab2e2b688884345f95c30e7f512ec" prot="public">
+          <name>TEXADDR_CLAMP</name>
+          <initializer>= 3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1aedcf2109f459315e1a7f2af73ec9b603a4a1975fb01a7af63e2643075fa8985ac" prot="public">
+          <name>TEXADDR_BORDER</name>
+          <initializer>= 4</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1aedcf2109f459315e1a7f2af73ec9b603a20b900180719cc5adad35be15be86517" prot="public">
+          <name>TEXADDR_MIRRORONCE</name>
+          <initializer>= 5</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="202" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="203" bodyend="209"/>
+      </memberdef>
+      <memberdef kind="enum" id="dag__consts__base_8h_1a900dca9b26de42491763226e12dcd47b" prot="public" static="no" strong="no">
+        <type></type>
+        <name>@54</name>
+        <enumvalue id="dag__consts__base_8h_1a900dca9b26de42491763226e12dcd47ba6e0bbc5489078b178f03b9f7f0357a54" prot="public">
+          <name>TEXFILTER_DEFAULT</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1a900dca9b26de42491763226e12dcd47bac4991ed9f86729ea1124c25c677c481e" prot="public">
+          <name>TEXFILTER_POINT</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1a900dca9b26de42491763226e12dcd47ba0313b9eadcf39f0b8fdb26a2336898d2" prot="public">
+          <name>TEXFILTER_LINEAR</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1a900dca9b26de42491763226e12dcd47ba0e003201a50a0b1446c8297ef5c200d1" prot="public">
+          <name>TEXFILTER_BEST</name>
+          <initializer>= 3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1a900dca9b26de42491763226e12dcd47bac08bc2150e592e54c075f61b6ede426f" prot="public">
+          <name>TEXFILTER_COMPARE</name>
+          <initializer>= 4</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__consts__base_8h_1a900dca9b26de42491763226e12dcd47ba6b9d11bc6e5e134c37415f449ecd56d5" prot="public">
+          <name>TEXFILTER_NONE</name>
+          <initializer>= 5</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="211" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="212" bodyend="220"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="dag__consts__base_8h_1ac6e1f20e762d683348e7bf8f95b51f0f" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int MAX_SURVEY_INDEX</definition>
+        <argsstring></argsstring>
+        <name>MAX_SURVEY_INDEX</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" line="221" column="22" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h" bodystart="221" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="comment">//<sp/>stream<sp/>number:<sp/>specify<sp/>ALL<sp/>stream<sp/>regs<sp/>after<sp/>it,<sp/>because<sp/>this<sp/>stream<sp/>number</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="comment">//<sp/>can&apos;t<sp/>be<sp/>used<sp/>again<sp/>in<sp/>this<sp/>declaration</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSD_STREAM(n)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(VSDOP_STREAM<sp/>|<sp/>(n)<sp/>|<sp/>((n)<sp/>==<sp/>0<sp/>?<sp/>0<sp/>:<sp/>VSDS_PER_INSTANCE_DATA))<sp/></highlight><highlight class="comment">//<sp/>For<sp/>compatibility.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSD_STREAM_PER_VERTEX_DATA(n)<sp/><sp/><sp/>(VSDOP_STREAM<sp/>|<sp/>(n))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSD_STREAM_PER_INSTANCE_DATA(n)<sp/>(VSDOP_STREAM<sp/>|<sp/>(n)<sp/>|<sp/>VSDS_PER_INSTANCE_DATA)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="comment">//<sp/>map<sp/>data<sp/>of<sp/>type<sp/>t<sp/>to<sp/>input<sp/>register<sp/>n<sp/>(0..15);<sp/>n<sp/>must<sp/>be<sp/>a<sp/>pre-defined</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="comment">//<sp/>constant<sp/>when<sp/>using<sp/>standard<sp/>vertex<sp/>program<sp/>(see<sp/>below)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSD_REG(n,<sp/>t)<sp/>(VSDOP_INPUT<sp/>|<sp/>(t)<sp/>|<sp/>(n))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="comment">//<sp/>skip<sp/>n<sp/>32-bit<sp/>words<sp/>of<sp/>input<sp/>stream<sp/>data<sp/>(0..15)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSD_SKIP(n)<sp/>(VSDOP_INPUT<sp/>|<sp/>VSD_SKIPFLG<sp/>|<sp/>((n)<sp/>&lt;&lt;<sp/>16))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="comment">//<sp/>types<sp/>of<sp/>input<sp/>data:</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="comment">//<sp/>1d<sp/>float:<sp/>x<sp/>=&gt;<sp/>(x,0,0,1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDT_FLOAT1<sp/><sp/><sp/>(0x00<sp/>&lt;&lt;<sp/>16)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="comment">//<sp/>2d<sp/>float:<sp/>x,y<sp/>=&gt;<sp/>(x,y,0,1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDT_FLOAT2<sp/><sp/><sp/>(0x01<sp/>&lt;&lt;<sp/>16)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="comment">//<sp/>3d<sp/>float:<sp/>x,y,z<sp/>=&gt;<sp/>(x,y,z,1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDT_FLOAT3<sp/><sp/><sp/>(0x02<sp/>&lt;&lt;<sp/>16)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="comment">//<sp/>4d<sp/>float:<sp/>x,y,z,w<sp/>=&gt;<sp/>(x,y,z,w)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDT_FLOAT4<sp/><sp/><sp/>(0x03<sp/>&lt;&lt;<sp/>16)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight><highlight class="comment">//<sp/>4-byte<sp/>B,G,R,A<sp/>color<sp/>(E3DCOLOR<sp/>type)<sp/>=&gt;<sp/>(R,G,B,A)<sp/>(0..1<sp/>range)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDT_E3DCOLOR<sp/>(0x04<sp/>&lt;&lt;<sp/>16)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="comment">//<sp/>4d<sp/>uint8_t<sp/>x,y,z,w<sp/>=&gt;<sp/>(x,y,z,w)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDT_UBYTE4<sp/><sp/><sp/>(0x05<sp/>&lt;&lt;<sp/>16)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="comment">//<sp/>2d<sp/>signed<sp/>short:<sp/>x,y<sp/>=&gt;<sp/>(x,y,0,1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDT_SHORT2<sp/><sp/><sp/>(0x06<sp/>&lt;&lt;<sp/>16)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="comment">//<sp/>4d<sp/>signed<sp/>short:<sp/>x,y,z,w<sp/>=&gt;<sp/>(x,y,z,w)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDT_SHORT4<sp/><sp/><sp/>(0x07<sp/>&lt;&lt;<sp/>16)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight><highlight class="comment">//<sp/>2D<sp/>signed<sp/>short<sp/>normalized<sp/>(v[0]/32767.0,v[1]/32767.0,0,1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDT_SHORT2N<sp/><sp/>(9<sp/>&lt;&lt;<sp/>16)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight><highlight class="comment">//<sp/>4D<sp/>signed<sp/>short<sp/>normalized<sp/>(v[0]/32767.0,v[1]/32767.0,0,1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDT_SHORT4N<sp/><sp/>(10<sp/>&lt;&lt;<sp/>16)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight><highlight class="comment">//<sp/>2D<sp/>unsigned<sp/>short<sp/>normalized<sp/>(v[0]/65535.0,v[1]/65535.0,0,1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDT_USHORT2N<sp/>(11<sp/>&lt;&lt;<sp/>16)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight><highlight class="comment">//<sp/>4D<sp/>unsigned<sp/>short<sp/>normalized<sp/>(v[0]/65535.0,v[1]/65535.0,v[2]/65535.0,v[3]/65535.0)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDT_USHORT4N<sp/>(12<sp/>&lt;&lt;<sp/>16)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight><highlight class="comment">//<sp/>3D<sp/>unsigned<sp/>10<sp/>10<sp/>10<sp/>format<sp/>expanded<sp/>to<sp/>(value,<sp/>value,<sp/>value,<sp/>1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDT_UDEC3<sp/>(13<sp/>&lt;&lt;<sp/>16)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight><highlight class="comment">//<sp/>3D<sp/>signed<sp/>10<sp/>10<sp/>10<sp/>format<sp/>normalized<sp/>and<sp/>expanded<sp/>to<sp/>(v[0]/511.0,<sp/>v[1]/511.0,<sp/>v[2]/511.0,<sp/>1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDT_DEC3N<sp/>(14<sp/>&lt;&lt;<sp/>16)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Two<sp/>16-bit<sp/>floating<sp/>point<sp/>values,<sp/>expanded<sp/>to<sp/>(value,<sp/>value,<sp/>0,<sp/>1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDT_HALF2<sp/>(15<sp/>&lt;&lt;<sp/>16)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Four<sp/>16-bit<sp/>floating<sp/>point<sp/>values</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDT_HALF4<sp/>(16<sp/>&lt;&lt;<sp/>16)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDT_INT1<sp/>(17<sp/>&lt;&lt;<sp/>16)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDT_INT2<sp/>(18<sp/>&lt;&lt;<sp/>16)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDT_INT3<sp/>(19<sp/>&lt;&lt;<sp/>16)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDT_INT4<sp/>(20<sp/>&lt;&lt;<sp/>16)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDT_UINT1<sp/>(21<sp/>&lt;&lt;<sp/>16)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDT_UINT2<sp/>(22<sp/>&lt;&lt;<sp/>16)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDT_UINT3<sp/>(23<sp/>&lt;&lt;<sp/>16)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDT_UINT4<sp/>(24<sp/>&lt;&lt;<sp/>16)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight><highlight class="comment">//<sp/>register<sp/>numbers<sp/>for<sp/>standard<sp/>vertex<sp/>program</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDR_POS<sp/><sp/><sp/><sp/><sp/><sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDR_BLENDW<sp/><sp/><sp/>1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDR_BLENDIND<sp/>2</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDR_NORM<sp/><sp/><sp/><sp/><sp/>3</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDR_PSIZE<sp/><sp/><sp/><sp/>4</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDR_DIFF<sp/><sp/><sp/><sp/><sp/>5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDR_SPEC<sp/><sp/><sp/><sp/><sp/>6</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDR_TEXC0<sp/><sp/><sp/><sp/>7</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDR_TEXC1<sp/><sp/><sp/><sp/>8</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDR_TEXC2<sp/><sp/><sp/><sp/>9</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDR_TEXC3<sp/><sp/><sp/><sp/>10</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDR_TEXC4<sp/><sp/><sp/><sp/>11</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDR_TEXC5<sp/><sp/><sp/><sp/>12</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDR_TEXC6<sp/><sp/><sp/><sp/>13</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDR_TEXC7<sp/><sp/><sp/><sp/>14</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDR_POS2<sp/><sp/><sp/><sp/><sp/>15</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDR_NORM2<sp/><sp/><sp/><sp/>16</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDR_TEXC15<sp/><sp/><sp/>17</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDR_TEXC8<sp/><sp/><sp/><sp/>18</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="88"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDR_TEXC9<sp/><sp/><sp/><sp/>19</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDR_TEXC10<sp/><sp/><sp/>20</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDR_TEXC11<sp/><sp/><sp/>21</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="91"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDR_TEXC12<sp/><sp/><sp/>22</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDR_TEXC13<sp/><sp/><sp/>23</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>VSDR_TEXC14<sp/><sp/><sp/>24</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="96"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/>VBLOCK_READONLY<sp/>=<sp/>0x02,</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/>VBLOCK_WRITEONLY<sp/>=<sp/>0x04,</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/>VBLOCK_NOSYSLOCK<sp/>=<sp/>0x08,<sp/><sp/></highlight><highlight class="comment">//<sp/>for<sp/>debugging</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/>VBLOCK_DISCARD<sp/>=<sp/>0x10,<sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>discard<sp/>buffer<sp/>contents<sp/>-<sp/>they<sp/>won&apos;t<sp/>be<sp/>read</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/>VBLOCK_NOOVERWRITE<sp/>=<sp/>0x20<sp/></highlight><highlight class="comment">//<sp/>no<sp/>drawn<sp/>vertexes<sp/>will<sp/>be<sp/>overwritten</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="102"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"></highlight></codeline>
+<codeline lineno="104"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="105"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/>PRIM_POINTLIST<sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/>PRIM_LINELIST<sp/>=<sp/>2,</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/>PRIM_LINESTRIP<sp/>=<sp/>3,</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/>PRIM_TRILIST<sp/>=<sp/>4,</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/>PRIM_TRISTRIP<sp/>=<sp/>5,</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/>PRIM_TRIFAN<sp/>=<sp/>6,</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_XBOX</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/>PRIM_QUADLIST<sp/>=<sp/>7,<sp/></highlight><highlight class="comment">//<sp/>D3D_PRIMITIVE_TOPOLOGY_QUADLIST<sp/>=<sp/>19,<sp/>Xbox<sp/>extension.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/>PRIM_4_CONTROL_POINTS<sp/>=<sp/>8,<sp/></highlight><highlight class="comment">//<sp/>Quads<sp/>for<sp/>heightmap<sp/>hardware<sp/>tesselation</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/>PRIM_COUNT,</highlight></codeline>
+<codeline lineno="117"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"></highlight></codeline>
+<codeline lineno="119"><highlight class="normal"></highlight></codeline>
+<codeline lineno="120"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="121"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/>TM_WORLD<sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/>TM_VIEW<sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/>TM_PROJ<sp/>=<sp/>2,</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"></highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/>TM_LOCAL2VIEW<sp/>=<sp/>3,</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/>TM_VIEW2LOCAL<sp/>=<sp/>4,</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/>TM_GLOBAL<sp/>=<sp/>5,</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/>TM__NUM</highlight></codeline>
+<codeline lineno="130"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"></highlight></codeline>
+<codeline lineno="132"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="133"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/>CLEAR_TARGET<sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/>CLEAR_ZBUFFER<sp/>=<sp/>2,</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/>CLEAR_STENCIL<sp/>=<sp/>4,</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/>CLEAR_DISCARD_TARGET<sp/>=<sp/>8,<sp/></highlight><highlight class="comment">//<sp/>Indicates<sp/>the<sp/>initial<sp/>RT<sp/>content<sp/>will<sp/>be<sp/>completely<sp/>overwritten<sp/>and<sp/>doesn&apos;t<sp/>matter<sp/>-<sp/>optimization<sp/>in</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>some<sp/>APIs</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/>CLEAR_DISCARD_ZBUFFER<sp/>=<sp/>16,</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/>CLEAR_DISCARD_STENCIL<sp/>=<sp/>32,</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/>CLEAR_DISCARD<sp/>=<sp/>CLEAR_DISCARD_TARGET<sp/>|<sp/>CLEAR_DISCARD_ZBUFFER<sp/>|<sp/>CLEAR_DISCARD_STENCIL</highlight></codeline>
+<codeline lineno="142"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"></highlight></codeline>
+<codeline lineno="144"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/>BLEND_FACTOR</highlight></codeline>
+<codeline lineno="145"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/>BLEND_ZERO<sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/>BLEND_ONE<sp/>=<sp/>2,</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/>BLEND_SRCCOLOR<sp/>=<sp/>3,</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/>BLEND_INVSRCCOLOR<sp/>=<sp/>4,</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/>BLEND_SRCALPHA<sp/>=<sp/>5,</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/>BLEND_INVSRCALPHA<sp/>=<sp/>6,</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/>BLEND_DESTALPHA<sp/>=<sp/>7,</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/>BLEND_INVDESTALPHA<sp/>=<sp/>8,</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/>BLEND_DESTCOLOR<sp/>=<sp/>9,</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/>BLEND_INVDESTCOLOR<sp/>=<sp/>10,</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/>BLEND_SRCALPHASAT<sp/>=<sp/>11,</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/>BLEND_BOTHINVSRCALPHA<sp/>=<sp/>13,</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/>BLEND_BLENDFACTOR<sp/>=<sp/>14,</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/>BLEND_INVBLENDFACTOR<sp/>=<sp/>15</highlight></codeline>
+<codeline lineno="160"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"></highlight></codeline>
+<codeline lineno="162"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/>BLENDOP</highlight></codeline>
+<codeline lineno="163"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/>BLENDOP_ADD<sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/>BLENDOP_SUBTRACT<sp/>=<sp/>2,</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/>BLENDOP_REVSUBTRACT<sp/>=<sp/>3,</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/>BLENDOP_MIN<sp/>=<sp/>4,</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/>BLENDOP_MAX<sp/>=<sp/>5,</highlight></codeline>
+<codeline lineno="169"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"></highlight></codeline>
+<codeline lineno="171"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/>CMPF</highlight></codeline>
+<codeline lineno="172"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/>CMPF_NEVER<sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/>CMPF_LESS<sp/>=<sp/>2,</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/>CMPF_EQUAL<sp/>=<sp/>3,</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/>CMPF_LESSEQUAL<sp/>=<sp/>4,</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/>CMPF_GREATER<sp/>=<sp/>5,</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/>CMPF_NOTEQUAL<sp/>=<sp/>6,</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/>CMPF_GREATEREQUAL<sp/>=<sp/>7,</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/>CMPF_ALWAYS<sp/>=<sp/>8</highlight></codeline>
+<codeline lineno="181"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"></highlight></codeline>
+<codeline lineno="183"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/>CULL_TYPE</highlight></codeline>
+<codeline lineno="184"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/>CULL_NONE<sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"><sp/><sp/>CULL_CW,</highlight></codeline>
+<codeline lineno="187"><highlight class="normal"><sp/><sp/>CULL_CCW</highlight></codeline>
+<codeline lineno="188"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"></highlight></codeline>
+<codeline lineno="190"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="191"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/>STNCLOP_KEEP<sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/>STNCLOP_ZERO<sp/>=<sp/>2,</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/>STNCLOP_REPLACE<sp/>=<sp/>3,</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/>STNCLOP_INCRSAT<sp/>=<sp/>4,</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/>STNCLOP_DECRSAT<sp/>=<sp/>5,</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/>STNCLOP_INVERT<sp/>=<sp/>6,</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/>STNCLOP_INCR<sp/>=<sp/>7,</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/>STNCLOP_DECR<sp/>=<sp/>8</highlight></codeline>
+<codeline lineno="200"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"></highlight></codeline>
+<codeline lineno="202"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="203"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/>TEXADDR_WRAP<sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"><sp/><sp/>TEXADDR_MIRROR<sp/>=<sp/>2,</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/>TEXADDR_CLAMP<sp/>=<sp/>3,</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/>TEXADDR_BORDER<sp/>=<sp/>4,</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"><sp/><sp/>TEXADDR_MIRRORONCE<sp/>=<sp/>5,<sp/></highlight><highlight class="comment">//<sp/>dx9<sp/>extension</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="209"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"></highlight></codeline>
+<codeline lineno="211"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="212"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/>TEXFILTER_DEFAULT<sp/>=<sp/>0,<sp/></highlight><highlight class="comment">//<sp/>driver<sp/>default</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="214"><highlight class="normal"></highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/>TEXFILTER_POINT<sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/>TEXFILTER_LINEAR<sp/>=<sp/>2,<sp/><sp/></highlight><highlight class="comment">//<sp/>bilinear</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="217"><highlight class="normal"><sp/><sp/>TEXFILTER_BEST<sp/>=<sp/>3,<sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>anisotropic<sp/>and<sp/>similar,<sp/>if<sp/>available</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/>TEXFILTER_COMPARE<sp/>=<sp/>4,<sp/></highlight><highlight class="comment">//<sp/>point<sp/>comparasion<sp/>for<sp/>using<sp/>in<sp/>pcf</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="219"><highlight class="normal"><sp/><sp/>TEXFILTER_NONE<sp/>=<sp/>5,</highlight></codeline>
+<codeline lineno="220"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="221"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>constexpr<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>MAX_SURVEY_INDEX<sp/>=<sp/>0;</highlight></codeline>
+    </programlisting>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_consts_base.h"/>
+  </compounddef>
+</doxygen>

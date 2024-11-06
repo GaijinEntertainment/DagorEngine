@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Splines in daEditor &mdash; Dagor Documentation  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css" />
+
+  
+    <link rel="shortcut icon" href="../../_static/gaijin.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+        <script src="../../_static/js/hoverxref.js"></script>
+        <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+        <script src="../../_static/js/micromodal.min.js"></script>
+        <script src="../../_static/js/versionwarning.js"></script>
+        <script src="../../_static/clipboard.min.js"></script>
+        <script src="../../_static/copybutton.js"></script>
+        <script src="../../_static/design-tabs.js"></script>
+        <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Navigation Mesh" href="navmesh/index.html" />
+    <link rel="prev" title="Overview" href="daeditor-console-commands/daeditor_console_commands.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/gaijin_round_blur.png" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                0.1.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api-references/index.html">API References and Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../samples/index.html">Samples</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../blk/index.html">.blk Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../asset-viewer/index.html">Asset Viewer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">daEditor</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="daeditor/index.html">daEditor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="daeditor-console-commands/index.html">daEditor Console Commands</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Splines in daEditor</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#splines-and-render-instances-rendinsts">Splines and Render Instances (Rendinsts)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sorting-order-of-lofts-in-the-clipmap-during-rendering">Sorting Order of Lofts in the Clipmap During Rendering</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#additional-notes">Additional Notes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#asset-orientation-types-in-the-spline-class">Asset Orientation Types in the Spline Class</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#additional-parameter">Additional Parameter</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="navmesh/index.html">Navigation Mesh</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../dag2rires/index.html">dag2riRes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../impostor-baker/index.html">Impostor Baker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../levels-deps/index.html">levels.deps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../resource-building/index.html">Resource Building</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../substance-designer/index.html">Substance Designer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../addons/index.html">Add-ons for Blender and 3ds Max</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../danetgame-framework/index.html">DaNetGame Framework</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="index.html">daEditor</a></li>
+      <li class="breadcrumb-item active">Splines in daEditor</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/dagor-tools/daeditor/splines_in_daeditor.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="splines-in-daeditor">
+<h1>Splines in daEditor<a class="headerlink" href="#splines-in-daeditor" title="Permalink to this heading"></a></h1>
+<p>More detailed information can be found here:
+<a class="reference internal" href="../../assets/all-about-blk/spline_blk.html"><span class="std std-doc">spline.blk</span></a>.</p>
+<section id="splines-and-render-instances-rendinsts">
+<h2>Splines and Render Instances (Rendinsts)<a class="headerlink" href="#splines-and-render-instances-rendinsts" title="Permalink to this heading"></a></h2>
+<ol class="arabic">
+<li><p><strong>Removing Render Instances Along the Spline</strong></p>
+<ul class="simple">
+<li><p>Splines can remove both render instances generated at runtime (from masks
+and scripts) and those saved in the level (generated via splines).</p></li>
+</ul>
+<p>a) To remove render instances generated by masks or scripts, use the
+parameters in the spline class:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">sweepWidth:r=</span></code> - distance from the center of the spline to the end of the
+“cleared area”.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">addFuzzySweepHalfWidth:r=</span></code> - distance from the center of the spline to the
+end of the sparse space, used to create irregular edges.</p></li>
+</ul>
+<p>b) To remove render instances generated along splines, use:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">sweep2Width:r=</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">addFuzzySweep2HalfWidth:r=</span></code></p></li>
+<li><p>Additionally, <code class="docutils literal notranslate"><span class="pre">startPadding:r=</span></code> and <code class="docutils literal notranslate"><span class="pre">endPadding:r=</span></code> define a distance from
+the start and end of the spline where objects are not generated (useful for
+roads that lead into bridges).</p></li>
+</ul>
+<p>To split spline-generated assets into separate entities, use the command
+<strong>Landscape</strong> ▸ <strong>Instantiate gen. objects into separate entities</strong>.</p>
+</li>
+<li><p><strong>Rendering Along a Loft Instead of a Perfect Spline</strong></p>
+<ul class="simple">
+<li><p>To generate instances along a loft, accounting for its curves and twists,
+enable:</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">storeSegsForGen:b=yes</span></code> in the loft generation block.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">useLoftSegs:b=yes</span></code> either in the object generation block (for a specific
+object) or anywhere after the loft definition (for all objects).</p></li>
+</ul>
+</li>
+<li><p><strong>Splines as Modifiers</strong></p>
+<ul class="simple">
+<li><p>Splines can act as modifiers for heightmaps or land meshes (delanoy).</p></li>
+</ul>
+</li>
+</ol>
+</section>
+<section id="sorting-order-of-lofts-in-the-clipmap-during-rendering">
+<h2>Sorting Order of Lofts in the Clipmap During Rendering<a class="headerlink" href="#sorting-order-of-lofts-in-the-clipmap-during-rendering" title="Permalink to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p><strong>Order of Spline Classes</strong></p>
+<ul class="simple">
+<li><p>This order is set in the <a class="reference internal" href="daeditor/daeditor.html"><span class="std std-doc"><em>daEditor</em></span></a>
+(using the <strong>place layer order</strong> switch) or in the <code class="docutils literal notranslate"><span class="pre">splines.blk</span></code> of a
+specific location (via <code class="docutils literal notranslate"><span class="pre">layerOrder:i=</span></code> with values ranging from <code class="docutils literal notranslate"><span class="pre">0</span></code> to
+<code class="docutils literal notranslate"><span class="pre">2</span></code>). The higher the value, the higher the spline sits in the rendering
+layer. This also applies to decals. The priority of splines is higher than
+that of lofts. To place a decal above a spline, add
+<code class="docutils literal notranslate"><span class="pre">script:t=&quot;layerOrder=n&quot;</span></code> to the decal where <strong>n</strong> is the desired layer.</p></li>
+</ul>
+</li>
+<li><p><strong>Order of Loft Rendering</strong></p>
+<ul class="simple">
+<li><p>Each loft within a spline has a rendering order defined by
+<code class="docutils literal notranslate"><span class="pre">loftLayerOrder:i=</span></code>. The higher the number, the higher the loft appears in
+the rendering stack. By default, all lofts are at layer 0.</p></li>
+</ul>
+</li>
+<li><p><strong>Decals Above Splines</strong></p>
+<ul class="simple">
+<li><p>To render decals on top of all splines, check if the box in <strong>Exported
+Parameters</strong> ▸ <strong>Geom: render loft below all</strong> is checked in the
+<em>daEditor</em>.</p></li>
+</ul>
+</li>
+</ol>
+</section>
+<section id="additional-notes">
+<h2>Additional Notes<a class="headerlink" href="#additional-notes" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Straight Segments</strong>: When creating a spline, holding <code class="docutils literal notranslate"><span class="pre">Shift</span></code> forces the
+spline to consist of straight segments instead of curves (each node switches
+to corner mode).</p></li>
+<li><p><strong>Tight Fence Orientation</strong>: To make objects placed along a spline form a
+continuous chain, add:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">tightFenceOrient:b=&quot;yes&quot;</span></code> in the spline class (within the <code class="docutils literal notranslate"><span class="pre">objGenerate{}</span></code>
+block).</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="asset-orientation-types-in-the-spline-class">
+<h2>Asset Orientation Types in the Spline Class<a class="headerlink" href="#asset-orientation-types-in-the-spline-class" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">orientation:t=&quot;fence_normal&quot;</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">orientation:t=&quot;fence&quot;</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">orientation:t=&quot;normal&quot;</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">orientation:t=&quot;spline&quot;</span></code>: assets are aligned parallel to the spline.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">orientation:t=&quot;spline_up&quot;</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">orientation:t=&quot;world&quot;</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">orientation:t=&quot;world_xz&quot;</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">orientation:t=&quot;normal_xz&quot;</span></code></p></li>
+</ul>
+</section>
+<section id="additional-parameter">
+<h2>Additional Parameter<a class="headerlink" href="#additional-parameter" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>zeroOpacityDistAtEnds:r=2</strong>: This parameter sets zero opacity at the
+spline’s end vertices (distance in meters). It is applied at the root of the
+spline.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="daeditor-console-commands/daeditor_console_commands.html" class="btn btn-neutral float-left" title="Overview" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="navmesh/index.html" class="btn btn-neutral float-right" title="Navigation Mesh" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2024.
+      <span class="lastupdated">Last updated on Nov 06, 2024.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+ <script type="text/javascript">
+    $(document).ready(function() {
+        $(".toggle > *").hide();
+        $(".toggle .header").show();
+        $(".toggle .header").click(function() {
+            $(this).parent().children().not(".header").toggle(400);
+            $(this).parent().children(".header").toggleClass("open");
+        })
+    });
+</script>
+
+
+</body>
+</html>

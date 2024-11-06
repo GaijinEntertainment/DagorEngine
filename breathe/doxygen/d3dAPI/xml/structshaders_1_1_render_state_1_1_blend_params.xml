@@ -1,0 +1,125 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structshaders_1_1_render_state_1_1_blend_params" kind="struct" language="C++" prot="public">
+    <compoundname>shaders::RenderState::BlendParams</compoundname>
+    <includes refid="dag__render_states_8h" local="no">dag_renderStates.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structshaders_1_1_render_state_1_1_blend_params_1a3efbf4f5891bccd0264c662d0a9c5bb0" prot="public" static="no" mutable="no">
+        <type><ref refid="structshaders_1_1_render_state_1_1_blend_factors" kindref="compound">BlendFactors</ref></type>
+        <definition>BlendFactors shaders::RenderState::BlendParams::ablendFactors</definition>
+        <argsstring></argsstring>
+        <name>ablendFactors</name>
+        <briefdescription>
+<para>Configures alpha blend factor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" line="68" column="18" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" bodystart="68" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1_render_state_1_1_blend_params_1a120aba4f8967f122a4dd97cd7ba5c90f" prot="public" static="no" mutable="no">
+        <type><ref refid="structshaders_1_1_render_state_1_1_blend_factors" kindref="compound">BlendFactors</ref></type>
+        <definition>BlendFactors shaders::RenderState::BlendParams::sepablendFactors</definition>
+        <argsstring></argsstring>
+        <name>sepablendFactors</name>
+        <briefdescription>
+<para>Configures separate alpha blend factor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" line="69" column="18" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" bodystart="69" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1_render_state_1_1_blend_params_1a9d3f7ddd64ab9809e49a984f13ea0c75" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t shaders::RenderState::BlendParams::blendOp</definition>
+        <argsstring></argsstring>
+        <name>blendOp</name>
+        <bitfield> 3</bitfield>
+        <briefdescription>
+<para>Specifies #BLENDOP operation for alpha blending. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" line="71" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" bodystart="71" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1_render_state_1_1_blend_params_1a20dc3dc1c41c0473d8c4cec4a4807a38" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t shaders::RenderState::BlendParams::sepablendOp</definition>
+        <argsstring></argsstring>
+        <name>sepablendOp</name>
+        <bitfield> 3</bitfield>
+        <briefdescription>
+<para>Specifies #BLENDOP operation for separate alpha blending. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" line="72" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" bodystart="72" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1_render_state_1_1_blend_params_1a77877ef77c58ffcce6347822b8ea600a" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t shaders::RenderState::BlendParams::ablend</definition>
+        <argsstring></argsstring>
+        <name>ablend</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+<para>Enables alpha blending. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" line="73" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" bodystart="73" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1_render_state_1_1_blend_params_1a9228df9d7ccb1ffd396f38f6d61e047c" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t shaders::RenderState::BlendParams::sepablend</definition>
+        <argsstring></argsstring>
+        <name>sepablend</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+<para>Enables separate alpha blending. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" line="74" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" bodystart="74" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Description of blending parameters. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>shaders::RenderState::BlendFactors</label>
+        <link refid="structshaders_1_1_render_state_1_1_blend_factors"/>
+      </node>
+      <node id="1">
+        <label>shaders::RenderState::BlendParams</label>
+        <link refid="structshaders_1_1_render_state_1_1_blend_params"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>ablendFactors</edgelabel>
+          <edgelabel>sepablendFactors</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" line="66" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" bodystart="67" bodyend="75"/>
+    <listofallmembers>
+      <member refid="structshaders_1_1_render_state_1_1_blend_params_1a77877ef77c58ffcce6347822b8ea600a" prot="public" virt="non-virtual"><scope>shaders::RenderState::BlendParams</scope><name>ablend</name></member>
+      <member refid="structshaders_1_1_render_state_1_1_blend_params_1a3efbf4f5891bccd0264c662d0a9c5bb0" prot="public" virt="non-virtual"><scope>shaders::RenderState::BlendParams</scope><name>ablendFactors</name></member>
+      <member refid="structshaders_1_1_render_state_1_1_blend_params_1a9d3f7ddd64ab9809e49a984f13ea0c75" prot="public" virt="non-virtual"><scope>shaders::RenderState::BlendParams</scope><name>blendOp</name></member>
+      <member refid="structshaders_1_1_render_state_1_1_blend_params_1a9228df9d7ccb1ffd396f38f6d61e047c" prot="public" virt="non-virtual"><scope>shaders::RenderState::BlendParams</scope><name>sepablend</name></member>
+      <member refid="structshaders_1_1_render_state_1_1_blend_params_1a120aba4f8967f122a4dd97cd7ba5c90f" prot="public" virt="non-virtual"><scope>shaders::RenderState::BlendParams</scope><name>sepablendFactors</name></member>
+      <member refid="structshaders_1_1_render_state_1_1_blend_params_1a20dc3dc1c41c0473d8c4cec4a4807a38" prot="public" virt="non-virtual"><scope>shaders::RenderState::BlendParams</scope><name>sepablendOp</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

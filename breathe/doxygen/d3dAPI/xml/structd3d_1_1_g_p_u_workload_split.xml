@@ -1,0 +1,102 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structd3d_1_1_g_p_u_workload_split" kind="struct" language="C++" prot="public">
+    <compoundname>d3d::GPUWorkloadSplit</compoundname>
+    <includes refid="dag__lock_8h" local="no">dag_lock.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structd3d_1_1_g_p_u_workload_split_1a150860e92edb4f4acc47e6bac682be76" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool d3d::GPUWorkloadSplit::needSplitAtEnd</definition>
+        <argsstring></argsstring>
+        <name>needSplitAtEnd</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Flag indicating whether a split is needed at the end. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_lock.h" line="39" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_lock.h" bodystart="39" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structd3d_1_1_g_p_u_workload_split_1a16b6b481de842325f54c3eb6315002a3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>d3d::GPUWorkloadSplit::GPUWorkloadSplit</definition>
+        <argsstring>(bool do_split, bool split_at_end, const char *marker)</argsstring>
+        <name>GPUWorkloadSplit</name>
+        <param>
+          <type>bool</type>
+          <declname>do_split</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>split_at_end</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>marker</declname>
+        </param>
+        <briefdescription>
+<para>Constructs a <ref refid="structd3d_1_1_g_p_u_workload_split" kindref="compound">GPUWorkloadSplit</ref> object. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>do_split</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Flag indicating whether to split the GPU workload. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>split_at_end</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Flag indicating whether to split at the end. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>marker</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A marker used for splitting the workload. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_lock.h" line="47" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_lock.h" bodystart="47" bodyend="52"/>
+      </memberdef>
+      <memberdef kind="function" id="structd3d_1_1_g_p_u_workload_split_1aabf8f33b291bc88a957da461c4ce7859" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>d3d::GPUWorkloadSplit::~GPUWorkloadSplit</definition>
+        <argsstring>()</argsstring>
+        <name>~GPUWorkloadSplit</name>
+        <briefdescription>
+<para>Destructs the <ref refid="structd3d_1_1_g_p_u_workload_split" kindref="compound">GPUWorkloadSplit</ref> object. If a split is needed at the end, it performs the split. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_lock.h" line="58" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_lock.h" bodystart="58" bodyend="64"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>The <ref refid="structd3d_1_1_g_p_u_workload_split" kindref="compound">GPUWorkloadSplit</ref> struct is used for scoped conditional GPU workload splitting. It allows splitting the GPU workload based on certain conditions. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_lock.h" line="37" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_lock.h" bodystart="38" bodyend="65"/>
+    <listofallmembers>
+      <member refid="structd3d_1_1_g_p_u_workload_split_1a16b6b481de842325f54c3eb6315002a3" prot="public" virt="non-virtual"><scope>d3d::GPUWorkloadSplit</scope><name>GPUWorkloadSplit</name></member>
+      <member refid="structd3d_1_1_g_p_u_workload_split_1a150860e92edb4f4acc47e6bac682be76" prot="public" virt="non-virtual"><scope>d3d::GPUWorkloadSplit</scope><name>needSplitAtEnd</name></member>
+      <member refid="structd3d_1_1_g_p_u_workload_split_1aabf8f33b291bc88a957da461c4ce7859" prot="public" virt="non-virtual"><scope>d3d::GPUWorkloadSplit</scope><name>~GPUWorkloadSplit</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,250 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structd3d_1_1shadermodel_1_1_version" kind="struct" language="C++" prot="public">
+    <compoundname>d3d::shadermodel::Version</compoundname>
+    <derivedcompoundref refid="structd3d_1_1shadermodel_1_1_version_with_name" prot="public" virt="non-virtual">d3d::shadermodel::VersionWithName</derivedcompoundref>
+    <includes refid="dag__shader_model_version_8h" local="no">dag_shaderModelVersion.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structd3d_1_1shadermodel_1_1_version_1ae5b092bca30e58a7c3f19b50c129bc8b" prot="public" static="no" mutable="no">
+        <type>unsigned int</type>
+        <definition>unsigned int d3d::shadermodel::Version::major</definition>
+        <argsstring></argsstring>
+        <name>major</name>
+        <bitfield> 16</bitfield>
+        <briefdescription>
+<para>Major version of the shader model version. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="266" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="266" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structd3d_1_1shadermodel_1_1_version_1aebac1c2c5aebfcf0adc2056f7becc448" prot="public" static="no" mutable="no">
+        <type>unsigned int</type>
+        <definition>unsigned int d3d::shadermodel::Version::minor</definition>
+        <argsstring></argsstring>
+        <name>minor</name>
+        <bitfield> 16</bitfield>
+        <briefdescription>
+<para>Minor version of the shader model version. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="268" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="268" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structd3d_1_1shadermodel_1_1_version_1ae930110fb5330f2c800c5fb475b2830d" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr</type>
+        <definition>constexpr d3d::shadermodel::Version::Version</definition>
+        <argsstring>()</argsstring>
+        <name>Version</name>
+        <briefdescription>
+<para>Default constructor, sets version values to 0. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="270" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="270" bodyend="270"/>
+      </memberdef>
+      <memberdef kind="function" id="structd3d_1_1shadermodel_1_1_version_1a1e3d39a227e9819e3a14460f1a2dfa19" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr</type>
+        <definition>constexpr d3d::shadermodel::Version::Version</definition>
+        <argsstring>(unsigned int ma, unsigned int mi)</argsstring>
+        <name>Version</name>
+        <param>
+          <type>unsigned int</type>
+          <declname>ma</declname>
+        </param>
+        <param>
+          <type>unsigned int</type>
+          <declname>mi</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Initializes the version with the given values. \ma Major version that should be stored. \mi Minor version that should be stored. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="274" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="274" bodyend="274"/>
+      </memberdef>
+      <memberdef kind="function" id="structd3d_1_1shadermodel_1_1_version_1ae5c1af1d5eab213c6ce56a54e7bed47c" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr</type>
+        <definition>constexpr d3d::shadermodel::Version::Version</definition>
+        <argsstring>(const AnyVersion &amp;v)</argsstring>
+        <name>Version</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_any_version" kindref="compound">AnyVersion</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+<para>Constructor that stores a representation of <ref refid="structd3d_1_1shadermodel_1_1_any_version" kindref="compound">AnyVersion</ref>, which sets major and minor version the max possible value. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="276" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="276" bodyend="276"/>
+      </memberdef>
+      <memberdef kind="function" id="structd3d_1_1shadermodel_1_1_version_1ae02a15819d836ebaaf1ad4365d812278" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classd3d_1_1shadermodel_1_1matcher_1_1_map" kindref="compound">matcher::Map</ref>&lt; T, <ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> &gt;</type>
+        <definition>matcher::Map&lt;T, Version&gt; d3d::shadermodel::Version::map</definition>
+        <argsstring>(const Version &amp;version, T &amp;&amp;value) const</argsstring>
+        <name>map</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> &amp;</type>
+          <declname>version</declname>
+        </param>
+        <param>
+          <type>T &amp;&amp;</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Begins a map from versions over this version to a value. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>version</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The matcher of the first value matcher pair. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>value</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The value that should be stored when <computeroutput>version</computeroutput> should match. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Map to map versions to values. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="282" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="282" bodyend="285"/>
+      </memberdef>
+      <memberdef kind="function" id="structd3d_1_1shadermodel_1_1_version_1a93b8613753ead7b715f33998f1318e90" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>unsigned int</type>
+            <declname>N</declname>
+            <defname>N</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classd3d_1_1shadermodel_1_1matcher_1_1_map" kindref="compound">matcher::Map</ref>&lt; const char *, <ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> &gt;</type>
+        <definition>matcher::Map&lt;const char *, Version&gt; d3d::shadermodel::Version::map</definition>
+        <argsstring>(const Version &amp;version, const char(&amp;str)[N]) const</argsstring>
+        <name>map</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> &amp;</type>
+          <declname>version</declname>
+        </param>
+        <param>
+          <type>const char(&amp;)</type>
+          <declname>str</declname>
+          <array>[N]</array>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Begins a map from versions over this version to a value. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>version</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The matcher of the first value matcher pair. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>value</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The value that should be stored when <computeroutput>version</computeroutput> should match. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Map to map versions to values. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="291" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="291" bodyend="294"/>
+      </memberdef>
+      <memberdef kind="function" id="structd3d_1_1shadermodel_1_1_version_1a561d845c86f984e1ca1f814ffb2d07d6" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>constexpr bool d3d::shadermodel::Version::supports</definition>
+        <argsstring>(Version other) const</argsstring>
+        <name>supports</name>
+        <param>
+          <type><ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref></type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Checks if the given version is supported by this version. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>other</parametername>
+</parameternamelist>
+<parameterdescription>
+<para><ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> to check this version against. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Is true when this version is equal or later than <computeroutput>other</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="298" column="18" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="298" bodyend="298"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Represents a shader model version. <simplesect kind="note"><para>To add new supported shader models, you need to define a constant of the shader model and add this constant to the shader model list. See definition / uses of sm50 as example. It is also important to keep the order of versions in the list of AllVersionsList, otherwise other algorithms may fail to work properly. </para>
+</simplesect>
+</para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>d3d::shadermodel::VersionWithName</label>
+        <link refid="structd3d_1_1shadermodel_1_1_version_with_name"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>d3d::shadermodel::Version</label>
+        <link refid="structd3d_1_1shadermodel_1_1_version"/>
+      </node>
+    </inheritancegraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="263" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="264" bodyend="299"/>
+    <listofallmembers>
+      <member refid="structd3d_1_1shadermodel_1_1_version_1ae5b092bca30e58a7c3f19b50c129bc8b" prot="public" virt="non-virtual"><scope>d3d::shadermodel::Version</scope><name>major</name></member>
+      <member refid="structd3d_1_1shadermodel_1_1_version_1ae02a15819d836ebaaf1ad4365d812278" prot="public" virt="non-virtual"><scope>d3d::shadermodel::Version</scope><name>map</name></member>
+      <member refid="structd3d_1_1shadermodel_1_1_version_1a93b8613753ead7b715f33998f1318e90" prot="public" virt="non-virtual"><scope>d3d::shadermodel::Version</scope><name>map</name></member>
+      <member refid="structd3d_1_1shadermodel_1_1_version_1aebac1c2c5aebfcf0adc2056f7becc448" prot="public" virt="non-virtual"><scope>d3d::shadermodel::Version</scope><name>minor</name></member>
+      <member refid="structd3d_1_1shadermodel_1_1_version_1a561d845c86f984e1ca1f814ffb2d07d6" prot="public" virt="non-virtual"><scope>d3d::shadermodel::Version</scope><name>supports</name></member>
+      <member refid="structd3d_1_1shadermodel_1_1_version_1ae930110fb5330f2c800c5fb475b2830d" prot="public" virt="non-virtual"><scope>d3d::shadermodel::Version</scope><name>Version</name></member>
+      <member refid="structd3d_1_1shadermodel_1_1_version_1a1e3d39a227e9819e3a14460f1a2dfa19" prot="public" virt="non-virtual"><scope>d3d::shadermodel::Version</scope><name>Version</name></member>
+      <member refid="structd3d_1_1shadermodel_1_1_version_1ae5c1af1d5eab213c6ce56a54e7bed47c" prot="public" virt="non-virtual"><scope>d3d::shadermodel::Version</scope><name>Version</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

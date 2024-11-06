@@ -1,0 +1,404 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="dag__reset_device_8h" kind="file" language="C++">
+    <compoundname>dag_resetDevice.h</compoundname>
+    <includes local="no">util/dag_preprocessor.h</includes>
+    <incdepgraph>
+      <node id="2">
+        <label>util/dag_preprocessor.h</label>
+      </node>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h</label>
+        <link refid="dag__reset_device_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </incdepgraph>
+    <innerclass refid="struct_i_drv3_d_reset_c_b" prot="public">IDrv3DResetCB</innerclass>
+    <innerclass refid="struct_i_drv3_d_device_lost_c_b" prot="public">IDrv3DDeviceLostCB</innerclass>
+    <innerclass refid="struct_d3d_reset_queue" prot="public">D3dResetQueue</innerclass>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="dag__reset_device_8h_1a44a3235857ae36ee51eb9dfcdb82fed4" prot="public" static="no">
+        <name>REGISTER_D3D_BEFORE_RESET_FUNC</name>
+        <param><defname>F</defname></param>
+        <initializer>static <ref refid="struct_d3d_reset_queue" kindref="compound">D3dResetQueue</ref> DAG_CONCAT(AutoD3dResetFunc, __LINE__)(#F, &amp;F, false)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="82" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" bodystart="82" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__reset_device_8h_1ab433d8b97f99915a4c0dc5db7346354e" prot="public" static="no">
+        <name>REGISTER_D3D_AFTER_RESET_FUNC</name>
+        <param><defname>F</defname></param>
+        <initializer>static <ref refid="struct_d3d_reset_queue" kindref="compound">D3dResetQueue</ref> DAG_CONCAT(AutoD3dResetFunc, __LINE__)(#F, &amp;F, true)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="83" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" bodystart="83" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="dag__reset_device_8h_1ae54112c870ee710a79e21baee13245d1" prot="public" static="no" mutable="no">
+        <type><ref refid="struct_i_drv3_d_device_lost_c_b" kindref="compound">IDrv3DDeviceLostCB</ref> *</type>
+        <definition>IDrv3DDeviceLostCB* ext_drv3d_device_lost_handler</definition>
+        <argsstring></argsstring>
+        <name>ext_drv3d_device_lost_handler</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="23" column="27" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" declline="23" declcolumn="27"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__reset_device_8h_1a46b6ad6cc2bb500f23b945cb678aa8ff" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool dagor_d3d_force_driver_reset</definition>
+        <argsstring></argsstring>
+        <name>dagor_d3d_force_driver_reset</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="44" column="13" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" declline="44" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__reset_device_8h_1a492bf72bf858666f5f6667ce118a44a8" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool dagor_d3d_force_driver_mode_reset</definition>
+        <argsstring></argsstring>
+        <name>dagor_d3d_force_driver_mode_reset</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="45" column="13" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" declline="45" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__reset_device_8h_1a4df51089aa4acbdea81ba256dc3587c4" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool dagor_d3d_notify_fullscreen_state_restored</definition>
+        <argsstring></argsstring>
+        <name>dagor_d3d_notify_fullscreen_state_restored</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="46" column="13" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" declline="46" declcolumn="13"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__reset_device_8h_1a3c17f4b876a6c90e2abb094a618eb940" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void set_3d_device_reset_callback</definition>
+        <argsstring>(IDrv3DResetCB *handler)</argsstring>
+        <name>set_3d_device_reset_callback</name>
+        <param>
+          <type><ref refid="struct_i_drv3_d_reset_c_b" kindref="compound">IDrv3DResetCB</ref> *</type>
+          <declname>handler</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="25" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" declline="25" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__reset_device_8h_1acfef4c5aefeb27b8de90ec50c3488c05" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void set_3d_device_lost_callback</definition>
+        <argsstring>(IDrv3DDeviceLostCB *handler)</argsstring>
+        <name>set_3d_device_lost_callback</name>
+        <param>
+          <type><ref refid="struct_i_drv3_d_device_lost_c_b" kindref="compound">IDrv3DDeviceLostCB</ref> *</type>
+          <declname>handler</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="26" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" declline="26" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__reset_device_8h_1a1650840a8b5405ef08ff5f884eb6a601" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool check_and_restore_3d_device</definition>
+        <argsstring>()</argsstring>
+        <name>check_and_restore_3d_device</name>
+        <briefdescription>
+<para>returns true if drawing is allowed (device is not lost) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="32" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" bodystart="32" bodyend="32"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__reset_device_8h_1a07a71896f84da0e7e19dbac2bf312221" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void before_reset_3d_device</definition>
+        <argsstring>(bool full_reset)</argsstring>
+        <name>before_reset_3d_device</name>
+        <param>
+          <type>bool</type>
+          <declname>full_reset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="35" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" declline="35" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__reset_device_8h_1afd1dd7023dd78939759c84405884e164" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void after_reset_3d_device</definition>
+        <argsstring>(bool full_reset)</argsstring>
+        <name>after_reset_3d_device</name>
+        <param>
+          <type>bool</type>
+          <declname>full_reset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="36" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" declline="36" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__reset_device_8h_1a045a66e353f6b1d8eb602b741b62c1df" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void change_driver_reset_request</definition>
+        <argsstring>(bool &amp;out_apply_after_reset_device, bool mode_reset=true)</argsstring>
+        <name>change_driver_reset_request</name>
+        <param>
+          <type>bool &amp;</type>
+          <declname>out_apply_after_reset_device</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>mode_reset</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="37" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" declline="37" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__reset_device_8h_1a6113b77d9230381027157c4059df8302" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void zero_reset_3d_device_counter</definition>
+        <argsstring>()</argsstring>
+        <name>zero_reset_3d_device_counter</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="38" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" declline="38" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__reset_device_8h_1acaf36132b42f2a853ff7e1467b1c7732" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void set_window_size_has_been_changed_programmatically</definition>
+        <argsstring>(bool value)</argsstring>
+        <name>set_window_size_has_been_changed_programmatically</name>
+        <param>
+          <type>bool</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="40" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" declline="40" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__reset_device_8h_1ad3a67c1395d01bdf92f1b642925ca858" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool is_window_size_has_been_changed_programmatically</definition>
+        <argsstring>()</argsstring>
+        <name>is_window_size_has_been_changed_programmatically</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="41" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" declline="41" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__reset_device_8h_1a6f508e4dfa704be5bf00b8e5178a2459" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void on_window_resized_change_reset_request</definition>
+        <argsstring>()</argsstring>
+        <name>on_window_resized_change_reset_request</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="42" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" declline="42" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__reset_device_8h_1a3993d6bc71bde71dd965a4f0680d104c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool is_window_resizing_by_mouse</definition>
+        <argsstring>()</argsstring>
+        <name>is_window_resizing_by_mouse</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="48" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" declline="48" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__reset_device_8h_1a0cad0877aa9064e57dcc45013b69b8be" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void set_driver_reset_pending_on_exit_sizing</definition>
+        <argsstring>()</argsstring>
+        <name>set_driver_reset_pending_on_exit_sizing</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="49" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" declline="49" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__reset_device_8h_1a03de16a60ab3d9e083d50102eb784ab6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>unsigned int</type>
+        <definition>unsigned int get_d3d_reset_counter</definition>
+        <argsstring>()</argsstring>
+        <name>get_d3d_reset_counter</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="51" column="14" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" declline="51" declcolumn="14"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__reset_device_8h_1ae2a8970b3ddf6348bd7070bfc127bb4f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>unsigned int</type>
+        <definition>unsigned int get_d3d_full_reset_counter</definition>
+        <argsstring>()</argsstring>
+        <name>get_d3d_full_reset_counter</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" line="52" column="14" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h" declline="52" declcolumn="14"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_preprocessor.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9" refid="struct_i_drv3_d_reset_c_b" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="struct_i_drv3_d_reset_c_b" kindref="compound">IDrv3DResetCB</ref></highlight></codeline>
+<codeline lineno="10"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>beforeReset(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>full_reset)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>afterReset(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>full_reset)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>resetCounter()<sp/>{}</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>windowResized()<sp/>{}</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>fullscreenStateRestored()<sp/>{}</highlight></codeline>
+<codeline lineno="16"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="struct_i_drv3_d_device_lost_c_b" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="struct_i_drv3_d_device_lost_c_b" kindref="compound">IDrv3DDeviceLostCB</ref></highlight></codeline>
+<codeline lineno="19"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>onDeviceLost()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/><ref refid="struct_i_drv3_d_device_lost_c_b" kindref="compound">IDrv3DDeviceLostCB</ref><sp/>*ext_drv3d_device_lost_handler;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set_3d_device_reset_callback(<ref refid="struct_i_drv3_d_reset_c_b" kindref="compound">IDrv3DResetCB</ref><sp/>*handler);</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set_3d_device_lost_callback(<ref refid="struct_i_drv3_d_device_lost_c_b" kindref="compound">IDrv3DDeviceLostCB</ref><sp/>*handler);</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="preprocessor">#if<sp/>_TARGET_PC_WIN<sp/>|<sp/>_TARGET_ANDROID</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>check_and_restore_3d_device();</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>check_and_restore_3d_device()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>before_reset_3d_device(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>full_reset);</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>after_reset_3d_device(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>full_reset);</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>change_driver_reset_request(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>&amp;out_apply_after_reset_device,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>mode_reset<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>zero_reset_3d_device_counter();</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set_window_size_has_been_changed_programmatically(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>value);</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_window_size_has_been_changed_programmatically();</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>on_window_resized_change_reset_request();</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dagor_d3d_force_driver_reset;</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dagor_d3d_force_driver_mode_reset;</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dagor_d3d_notify_fullscreen_state_restored;</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_window_resizing_by_mouse();</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set_driver_reset_pending_on_exit_sizing();</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>get_d3d_reset_counter();<sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>returns<sp/>current<sp/>reset<sp/>generation,<sp/>never<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>get_d3d_full_reset_counter();<sp/></highlight><highlight class="comment">//<sp/>returns<sp/>current<sp/>&apos;full&apos;<sp/>reset<sp/>generation,<sp/>never<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight></codeline>
+<codeline lineno="54" refid="struct_d3d_reset_queue" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="struct_d3d_reset_queue" kindref="compound">D3dResetQueue</ref></highlight></codeline>
+<codeline lineno="55"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>void<sp/>(*reset_func)(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>full_reset);</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_d3d_reset_queue" kindref="compound">D3dResetQueue</ref><sp/>*next<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;<sp/></highlight><highlight class="comment">//<sp/>single-linked<sp/>list</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/>reset_func<sp/>func<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;<sp/></highlight><highlight class="comment">//<sp/>name</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><ref refid="struct_d3d_reset_queue" kindref="compound">D3dResetQueue</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*n,<sp/>reset_func<sp/>f,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>add_to_after_reset)<sp/>:<sp/>name(n),<sp/>func(f)</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(add_to_after_reset)</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>next<sp/>=<sp/>tailAfterReset;</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>tailAfterReset<sp/>=<sp/></highlight><highlight class="keyword">this</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>next<sp/>=<sp/>tailBeforeReset;</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>tailBeforeReset<sp/>=<sp/></highlight><highlight class="keyword">this</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="struct_d3d_reset_queue" kindref="compound">D3dResetQueue</ref><sp/>*tailBeforeReset,<sp/>*tailAfterReset;</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>perform_reset_queue(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_d3d_reset_queue" kindref="compound">D3dResetQueue</ref><sp/>*q,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>full_reset);</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>perform_before_reset(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>full_reset)<sp/>{<sp/>perform_reset_queue(tailBeforeReset,<sp/>full_reset);<sp/>}</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>perform_after_reset(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>full_reset)<sp/>{<sp/>perform_reset_queue(tailAfterReset,<sp/>full_reset);<sp/>}</highlight></codeline>
+<codeline lineno="80"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>REGISTER_D3D_BEFORE_RESET_FUNC(F)<sp/>static<sp/>D3dResetQueue<sp/>DAG_CONCAT(AutoD3dResetFunc,<sp/>__LINE__)(#F,<sp/>&amp;F,<sp/>false)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>REGISTER_D3D_AFTER_RESET_FUNC(F)<sp/><sp/>static<sp/>D3dResetQueue<sp/>DAG_CONCAT(AutoD3dResetFunc,<sp/>__LINE__)(#F,<sp/>&amp;F,<sp/>true)</highlight></codeline>
+    </programlisting>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resetDevice.h"/>
+  </compounddef>
+</doxygen>

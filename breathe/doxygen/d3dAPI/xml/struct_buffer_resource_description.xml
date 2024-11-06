@@ -1,0 +1,97 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_buffer_resource_description" kind="struct" language="C++" prot="public">
+    <compoundname>BufferResourceDescription</compoundname>
+    <basecompoundref refid="struct_basic_resource_description" prot="public" virt="non-virtual">BasicResourceDescription</basecompoundref>
+    <includes refid="dag__heap_8h" local="no">dag_heap.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_buffer_resource_description_1a9b4cb8150be20ce458a2810b9326052c" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t BufferResourceDescription::elementSizeInBytes</definition>
+        <argsstring></argsstring>
+        <name>elementSizeInBytes</name>
+        <briefdescription>
+<para>The size of a single element in bytes. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="51" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_buffer_resource_description_1ad14ec655e3480e17423dc6ddb546c6b8" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t BufferResourceDescription::elementCount</definition>
+        <argsstring></argsstring>
+        <name>elementCount</name>
+        <briefdescription>
+<para>The number of elements in the buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="52" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_buffer_resource_description_1a6829853b5db7726955b2789728997aca" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t BufferResourceDescription::viewFormat</definition>
+        <argsstring></argsstring>
+        <name>viewFormat</name>
+        <briefdescription>
+<para>The view format of the buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="53" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Buffer resource description that contains fields specific to buffer resources. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>BasicResourceDescription</label>
+        <link refid="struct_basic_resource_description"/>
+      </node>
+      <node id="1">
+        <label>BufferResourceDescription</label>
+        <link refid="struct_buffer_resource_description"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>BasicResourceDescription</label>
+        <link refid="struct_basic_resource_description"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>clearValue</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>BufferResourceDescription</label>
+        <link refid="struct_buffer_resource_description"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ResourceClearValue</label>
+        <link refid="union_resource_clear_value"/>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="49" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="50" bodyend="54"/>
+    <listofallmembers>
+      <member refid="struct_basic_resource_description_1a460a3547f57649aab846fc67831faa57" prot="public" virt="non-virtual"><scope>BufferResourceDescription</scope><name>activation</name></member>
+      <member refid="struct_basic_resource_description_1ac416c65293ae56fc2adf988de4821bf4" prot="public" virt="non-virtual"><scope>BufferResourceDescription</scope><name>cFlags</name></member>
+      <member refid="struct_basic_resource_description_1a1c14be0b1256d4dbd82e5ce464419c35" prot="public" virt="non-virtual"><scope>BufferResourceDescription</scope><name>clearValue</name></member>
+      <member refid="struct_buffer_resource_description_1ad14ec655e3480e17423dc6ddb546c6b8" prot="public" virt="non-virtual"><scope>BufferResourceDescription</scope><name>elementCount</name></member>
+      <member refid="struct_buffer_resource_description_1a9b4cb8150be20ce458a2810b9326052c" prot="public" virt="non-virtual"><scope>BufferResourceDescription</scope><name>elementSizeInBytes</name></member>
+      <member refid="struct_buffer_resource_description_1a6829853b5db7726955b2789728997aca" prot="public" virt="non-virtual"><scope>BufferResourceDescription</scope><name>viewFormat</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

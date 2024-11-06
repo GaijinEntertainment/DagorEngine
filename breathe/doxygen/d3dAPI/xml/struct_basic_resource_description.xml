@@ -1,0 +1,125 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_basic_resource_description" kind="struct" language="C++" prot="public">
+    <compoundname>BasicResourceDescription</compoundname>
+    <derivedcompoundref refid="struct_basic_texture_resource_description" prot="public" virt="non-virtual">BasicTextureResourceDescription</derivedcompoundref>
+    <derivedcompoundref refid="struct_buffer_resource_description" prot="public" virt="non-virtual">BufferResourceDescription</derivedcompoundref>
+    <includes refid="dag__heap_8h" local="no">dag_heap.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_basic_resource_description_1ac416c65293ae56fc2adf988de4821bf4" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t BasicResourceDescription::cFlags</definition>
+        <argsstring></argsstring>
+        <name>cFlags</name>
+        <briefdescription>
+<para>The resource creation flags. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="41" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_basic_resource_description_1a460a3547f57649aab846fc67831faa57" prot="public" static="no" mutable="no">
+        <type>ResourceActivationAction</type>
+        <definition>ResourceActivationAction BasicResourceDescription::activation</definition>
+        <argsstring></argsstring>
+        <name>activation</name>
+        <briefdescription>
+<para>The resource activation action. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="42" column="28" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_basic_resource_description_1a1c14be0b1256d4dbd82e5ce464419c35" prot="public" static="no" mutable="no">
+        <type><ref refid="union_resource_clear_value" kindref="compound">ResourceClearValue</ref></type>
+        <definition>ResourceClearValue BasicResourceDescription::clearValue</definition>
+        <argsstring></argsstring>
+        <name>clearValue</name>
+        <briefdescription>
+<para>The clear value. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="43" column="22" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Basic resource description that contains common fields for all GPU resource types. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>BasicTextureResourceDescription</label>
+        <link refid="struct_basic_texture_resource_description"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>BasicResourceDescription</label>
+        <link refid="struct_basic_resource_description"/>
+      </node>
+      <node id="3">
+        <label>CubeTextureResourceDescription</label>
+        <link refid="struct_cube_texture_resource_description"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>ArrayCubeTextureResourceDescription</label>
+        <link refid="struct_array_cube_texture_resource_description"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>VolTextureResourceDescription</label>
+        <link refid="struct_vol_texture_resource_description"/>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>BufferResourceDescription</label>
+        <link refid="struct_buffer_resource_description"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>TextureResourceDescription</label>
+        <link refid="struct_texture_resource_description"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>ArrayTextureResourceDescription</label>
+        <link refid="struct_array_texture_resource_description"/>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>BasicResourceDescription</label>
+        <link refid="struct_basic_resource_description"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>clearValue</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ResourceClearValue</label>
+        <link refid="union_resource_clear_value"/>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="39" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="40" bodyend="44"/>
+    <listofallmembers>
+      <member refid="struct_basic_resource_description_1a460a3547f57649aab846fc67831faa57" prot="public" virt="non-virtual"><scope>BasicResourceDescription</scope><name>activation</name></member>
+      <member refid="struct_basic_resource_description_1ac416c65293ae56fc2adf988de4821bf4" prot="public" virt="non-virtual"><scope>BasicResourceDescription</scope><name>cFlags</name></member>
+      <member refid="struct_basic_resource_description_1a1c14be0b1256d4dbd82e5ce464419c35" prot="public" virt="non-virtual"><scope>BasicResourceDescription</scope><name>clearValue</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

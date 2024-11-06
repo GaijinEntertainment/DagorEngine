@@ -1,0 +1,247 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_fsr2_params" kind="struct" language="C++" prot="public">
+    <compoundname>Fsr2Params</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_fsr2_params_1aa2442fa7f877a3574b8d4343cf0b2321" prot="public" static="no" mutable="no">
+        <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* Fsr2Params::color</definition>
+        <argsstring></argsstring>
+        <name>color</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="305" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="305" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_fsr2_params_1abde74094c13820aee7d7426e46f89417" prot="public" static="no" mutable="no">
+        <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* Fsr2Params::depth</definition>
+        <argsstring></argsstring>
+        <name>depth</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="306" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="306" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_fsr2_params_1aa91a5bfeaab6dd15bfbe7077c4d0d839" prot="public" static="no" mutable="no">
+        <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* Fsr2Params::motionVectors</definition>
+        <argsstring></argsstring>
+        <name>motionVectors</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="307" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="307" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_fsr2_params_1a856a62ea056dd84acf2286d57333d0dc" prot="public" static="no" mutable="no">
+        <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* Fsr2Params::output</definition>
+        <argsstring></argsstring>
+        <name>output</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="308" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="308" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_fsr2_params_1aacc972c82e6d052a7186f7a17baf7690" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Fsr2Params::frameTimeDelta</definition>
+        <argsstring></argsstring>
+        <name>frameTimeDelta</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="309" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="309" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_fsr2_params_1ac1d4735850cbe23d7f4cfe8781fdd982" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Fsr2Params::sharpness</definition>
+        <argsstring></argsstring>
+        <name>sharpness</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="310" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="310" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_fsr2_params_1a7c224db67c735ee857da33bb0c686aca" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Fsr2Params::jitterOffsetX</definition>
+        <argsstring></argsstring>
+        <name>jitterOffsetX</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="311" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="311" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_fsr2_params_1a3c0cc235e55f7bdffc5cbfcc76e93b89" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Fsr2Params::jitterOffsetY</definition>
+        <argsstring></argsstring>
+        <name>jitterOffsetY</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="312" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="312" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_fsr2_params_1ad47087b0f16838060acf75fb8f5b3a15" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Fsr2Params::motionVectorScaleX</definition>
+        <argsstring></argsstring>
+        <name>motionVectorScaleX</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="313" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="313" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_fsr2_params_1a1a987452758e0d536288155ddabb7e69" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Fsr2Params::motionVectorScaleY</definition>
+        <argsstring></argsstring>
+        <name>motionVectorScaleY</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="314" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="314" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_fsr2_params_1aa938ec3e39154db716c7600d0d025925" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Fsr2Params::cameraNear</definition>
+        <argsstring></argsstring>
+        <name>cameraNear</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="315" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="315" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_fsr2_params_1a789236218e7a2fddd65c479ebb9b0e89" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Fsr2Params::cameraFar</definition>
+        <argsstring></argsstring>
+        <name>cameraFar</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="316" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="316" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_fsr2_params_1ae4511b687e7050e87b32f4b906f9bd78" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Fsr2Params::cameraFovAngleVertical</definition>
+        <argsstring></argsstring>
+        <name>cameraFovAngleVertical</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="317" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="317" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_fsr2_params_1a361e8d83e9aa6694e95440621ce933aa" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t Fsr2Params::renderSizeX</definition>
+        <argsstring></argsstring>
+        <name>renderSizeX</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="318" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="318" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_fsr2_params_1aac32e2a428d72268533f71596ce4071d" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t Fsr2Params::renderSizeY</definition>
+        <argsstring></argsstring>
+        <name>renderSizeY</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="319" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="319" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="3">
+        <label>D3dResource</label>
+        <link refid="class_d3d_resource"/>
+      </node>
+      <node id="1">
+        <label>Fsr2Params</label>
+        <link refid="struct_fsr2_params"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>color</edgelabel>
+          <edgelabel>depth</edgelabel>
+          <edgelabel>motionVectors</edgelabel>
+          <edgelabel>output</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>BaseTexture</label>
+        <link refid="class_base_texture"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="303" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="304" bodyend="320"/>
+    <listofallmembers>
+      <member refid="struct_fsr2_params_1a789236218e7a2fddd65c479ebb9b0e89" prot="public" virt="non-virtual"><scope>Fsr2Params</scope><name>cameraFar</name></member>
+      <member refid="struct_fsr2_params_1ae4511b687e7050e87b32f4b906f9bd78" prot="public" virt="non-virtual"><scope>Fsr2Params</scope><name>cameraFovAngleVertical</name></member>
+      <member refid="struct_fsr2_params_1aa938ec3e39154db716c7600d0d025925" prot="public" virt="non-virtual"><scope>Fsr2Params</scope><name>cameraNear</name></member>
+      <member refid="struct_fsr2_params_1aa2442fa7f877a3574b8d4343cf0b2321" prot="public" virt="non-virtual"><scope>Fsr2Params</scope><name>color</name></member>
+      <member refid="struct_fsr2_params_1abde74094c13820aee7d7426e46f89417" prot="public" virt="non-virtual"><scope>Fsr2Params</scope><name>depth</name></member>
+      <member refid="struct_fsr2_params_1aacc972c82e6d052a7186f7a17baf7690" prot="public" virt="non-virtual"><scope>Fsr2Params</scope><name>frameTimeDelta</name></member>
+      <member refid="struct_fsr2_params_1a7c224db67c735ee857da33bb0c686aca" prot="public" virt="non-virtual"><scope>Fsr2Params</scope><name>jitterOffsetX</name></member>
+      <member refid="struct_fsr2_params_1a3c0cc235e55f7bdffc5cbfcc76e93b89" prot="public" virt="non-virtual"><scope>Fsr2Params</scope><name>jitterOffsetY</name></member>
+      <member refid="struct_fsr2_params_1aa91a5bfeaab6dd15bfbe7077c4d0d839" prot="public" virt="non-virtual"><scope>Fsr2Params</scope><name>motionVectors</name></member>
+      <member refid="struct_fsr2_params_1ad47087b0f16838060acf75fb8f5b3a15" prot="public" virt="non-virtual"><scope>Fsr2Params</scope><name>motionVectorScaleX</name></member>
+      <member refid="struct_fsr2_params_1a1a987452758e0d536288155ddabb7e69" prot="public" virt="non-virtual"><scope>Fsr2Params</scope><name>motionVectorScaleY</name></member>
+      <member refid="struct_fsr2_params_1a856a62ea056dd84acf2286d57333d0dc" prot="public" virt="non-virtual"><scope>Fsr2Params</scope><name>output</name></member>
+      <member refid="struct_fsr2_params_1a361e8d83e9aa6694e95440621ce933aa" prot="public" virt="non-virtual"><scope>Fsr2Params</scope><name>renderSizeX</name></member>
+      <member refid="struct_fsr2_params_1aac32e2a428d72268533f71596ce4071d" prot="public" virt="non-virtual"><scope>Fsr2Params</scope><name>renderSizeY</name></member>
+      <member refid="struct_fsr2_params_1ac1d4735850cbe23d7f4cfe8781fdd982" prot="public" virt="non-virtual"><scope>Fsr2Params</scope><name>sharpness</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

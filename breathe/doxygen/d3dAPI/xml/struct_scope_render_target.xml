@@ -1,0 +1,93 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_scope_render_target" kind="struct" language="C++" prot="public">
+    <compoundname>ScopeRenderTarget</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_scope_render_target_1a7087ee5c37e20381f6e5d51093bbc5ec" prot="public" static="no" mutable="no">
+        <type><ref refid="struct_driver3d_render_target" kindref="compound">Driver3dRenderTarget</ref></type>
+        <definition>Driver3dRenderTarget ScopeRenderTarget::prevRT</definition>
+        <argsstring></argsstring>
+        <name>prevRT</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="172" column="24" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="172" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="struct_scope_render_target_1ac560396466836118be9f54954745991b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ScopeRenderTarget::ScopeRenderTarget</definition>
+        <argsstring>()</argsstring>
+        <name>ScopeRenderTarget</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="173" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="173" bodyend="173"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_scope_render_target_1abeb3f763856cd8f83a92c4e441f2e63c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ScopeRenderTarget::~ScopeRenderTarget</definition>
+        <argsstring>()</argsstring>
+        <name>~ScopeRenderTarget</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="174" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="174" bodyend="174"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>ScopeRenderTarget</label>
+        <link refid="struct_scope_render_target"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>prevRT</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>Driver3dRenderTarget::RTState</label>
+        <link refid="struct_driver3d_render_target_1_1_r_t_state"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>tex</edgelabel>
+        </childnode>
+      </node>
+      <node id="5">
+        <label>D3dResource</label>
+        <link refid="class_d3d_resource"/>
+      </node>
+      <node id="4">
+        <label>BaseTexture</label>
+        <link refid="class_base_texture"/>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>Driver3dRenderTarget</label>
+        <link refid="struct_driver3d_render_target"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>color</edgelabel>
+          <edgelabel>depth</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="170" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="171" bodyend="175"/>
+    <listofallmembers>
+      <member refid="struct_scope_render_target_1a7087ee5c37e20381f6e5d51093bbc5ec" prot="public" virt="non-virtual"><scope>ScopeRenderTarget</scope><name>prevRT</name></member>
+      <member refid="struct_scope_render_target_1ac560396466836118be9f54954745991b" prot="public" virt="non-virtual"><scope>ScopeRenderTarget</scope><name>ScopeRenderTarget</name></member>
+      <member refid="struct_scope_render_target_1abeb3f763856cd8f83a92c4e441f2e63c" prot="public" virt="non-virtual"><scope>ScopeRenderTarget</scope><name>~ScopeRenderTarget</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

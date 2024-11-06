@@ -1,0 +1,77 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structdabfg_1_1_buffer_create_info" kind="struct" language="C++" prot="public">
+    <compoundname>dabfg::BufferCreateInfo</compoundname>
+    <includes refid="resource_creation_8h" local="no">resourceCreation.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structdabfg_1_1_buffer_create_info_1a8d6a2754ced6ead8ead19ca90f6aef6d" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t dabfg::BufferCreateInfo::elementSize</definition>
+        <argsstring></argsstring>
+        <name>elementSize</name>
+        <briefdescription>
+<para>Size of a single element in bytes. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" line="75" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" bodystart="75" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdabfg_1_1_buffer_create_info_1a17e8ac47033b41b0d7bc364b76327859" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t dabfg::BufferCreateInfo::elementCount</definition>
+        <argsstring></argsstring>
+        <name>elementCount</name>
+        <briefdescription>
+<para>Amount of elements in this buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" line="77" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" bodystart="77" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdabfg_1_1_buffer_create_info_1a0e83b21a3eeb8f7e8b01de6de7fcad7e" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t dabfg::BufferCreateInfo::flags</definition>
+        <argsstring></argsstring>
+        <name>flags</name>
+        <briefdescription>
+<para>Use SBCF_ flags here. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" line="79" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdabfg_1_1_buffer_create_info_1a79bc1d22a61f0fa4787a1758d21c61cf" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t dabfg::BufferCreateInfo::format</definition>
+        <argsstring></argsstring>
+        <name>format</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>This is for so-called T-buffers, which are basically 1d textures masquerading as buffers. If you are not targeting DX10, don&apos;t use these </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" line="84" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" bodystart="84" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>An effort to create a less error-prone buffers API is currently ongoing, this structure exposes the to-be-deprecated <verbatim>embed:rst:inline :cpp:func:`d3d::create_sbuffer` </verbatim> buffer creation mechanism. You are on your own trying to figure out how to use this. </para>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" line="72" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/resourceCreation.h" bodystart="73" bodyend="85"/>
+    <listofallmembers>
+      <member refid="structdabfg_1_1_buffer_create_info_1a17e8ac47033b41b0d7bc364b76327859" prot="public" virt="non-virtual"><scope>dabfg::BufferCreateInfo</scope><name>elementCount</name></member>
+      <member refid="structdabfg_1_1_buffer_create_info_1a8d6a2754ced6ead8ead19ca90f6aef6d" prot="public" virt="non-virtual"><scope>dabfg::BufferCreateInfo</scope><name>elementSize</name></member>
+      <member refid="structdabfg_1_1_buffer_create_info_1a0e83b21a3eeb8f7e8b01de6de7fcad7e" prot="public" virt="non-virtual"><scope>dabfg::BufferCreateInfo</scope><name>flags</name></member>
+      <member refid="structdabfg_1_1_buffer_create_info_1a79bc1d22a61f0fa4787a1758d21c61cf" prot="public" virt="non-virtual"><scope>dabfg::BufferCreateInfo</scope><name>format</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="namespaceeastl" kind="namespace" language="C++">
+    <compoundname>eastl</compoundname>
+    <innerclass refid="classeastl_1_1hash_3_01_resource_description_01_4" prot="public">eastl::hash&lt; ResourceDescription &gt;</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="241" column="1"/>
+  </compounddef>
+</doxygen>

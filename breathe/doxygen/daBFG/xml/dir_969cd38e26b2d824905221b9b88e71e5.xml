@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="dir_969cd38e26b2d824905221b9b88e71e5" kind="dir">
+    <compoundname>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg</compoundname>
+    <innerfile refid="auto_resolution_request_8h">autoResolutionRequest.h</innerfile>
+    <innerfile refid="bfg_8h">bfg.h</innerfile>
+    <innerfile refid="external_resources_8h">externalResources.h</innerfile>
+    <innerfile refid="external_state_8h">externalState.h</innerfile>
+    <innerfile refid="history_8h">history.h</innerfile>
+    <innerfile refid="multiplexing_8h">multiplexing.h</innerfile>
+    <innerfile refid="name_space_8h">nameSpace.h</innerfile>
+    <innerfile refid="name_space_request_8h">nameSpaceRequest.h</innerfile>
+    <innerfile refid="node_handle_8h">nodeHandle.h</innerfile>
+    <innerfile refid="priority_8h">priority.h</innerfile>
+    <innerfile refid="registry_8h">registry.h</innerfile>
+    <innerfile refid="resource_creation_8h">resourceCreation.h</innerfile>
+    <innerfile refid="side_effects_8h">sideEffects.h</innerfile>
+    <innerfile refid="stage_8h">stage.h</innerfile>
+    <innerfile refid="state_request_8h">stateRequest.h</innerfile>
+    <innerfile refid="usage_8h">usage.h</innerfile>
+    <innerfile refid="variable_rate_shading_8h">variableRateShading.h</innerfile>
+    <innerfile refid="virtual_pass_request_8h">virtualPassRequest.h</innerfile>
+    <innerfile refid="virtual_resource_creation_semi_request_8h">virtualResourceCreationSemiRequest.h</innerfile>
+    <innerfile refid="virtual_resource_handle_8h">virtualResourceHandle.h</innerfile>
+    <innerfile refid="virtual_resource_request_8h">virtualResourceRequest.h</innerfile>
+    <innerfile refid="virtual_resource_semi_request_8h">virtualResourceSemiRequest.h</innerfile>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/"/>
+  </compounddef>
+</doxygen>

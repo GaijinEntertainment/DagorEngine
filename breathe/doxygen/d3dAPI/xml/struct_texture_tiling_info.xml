@@ -1,0 +1,213 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_texture_tiling_info" kind="struct" language="C++" prot="public">
+    <compoundname>TextureTilingInfo</compoundname>
+    <includes refid="dag__tiled_resource_8h" local="no">dag_tiledResource.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_texture_tiling_info_1af3a0ed727d94774f26032df5ad24594c" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t TextureTilingInfo::totalNumberOfTiles</definition>
+        <argsstring></argsstring>
+        <name>totalNumberOfTiles</name>
+        <briefdescription>
+<para>Total number of tiles in the resource. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" line="37" column="10" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_texture_tiling_info_1a93078262624395204023549c42944fa8" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t TextureTilingInfo::numUnpackedMips</definition>
+        <argsstring></argsstring>
+        <name>numUnpackedMips</name>
+        <briefdescription>
+<para>Number of unpacked mips in the resource. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" line="38" column="10" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_texture_tiling_info_1a96e3f9fd7ba52a06288ca73fae8ee5c5" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t TextureTilingInfo::numPackedMips</definition>
+        <argsstring></argsstring>
+        <name>numPackedMips</name>
+        <briefdescription>
+<para>Number of packed mips in the resource. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" line="39" column="10" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" bodystart="39" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_texture_tiling_info_1aca8d27080c8f9ba7a87e33236c2826c0" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t TextureTilingInfo::numTilesNeededForPackedMips</definition>
+        <argsstring></argsstring>
+        <name>numTilesNeededForPackedMips</name>
+        <briefdescription>
+<para>Number of tiles needed to store the packed mips. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" line="40" column="10" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_texture_tiling_info_1ac88362a24ddd8afc9595649b43790fe4" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t TextureTilingInfo::firstPackedTileIndex</definition>
+        <argsstring></argsstring>
+        <name>firstPackedTileIndex</name>
+        <briefdescription>
+<para>Index of the first tile storing packed mips. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" line="41" column="10" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_texture_tiling_info_1a5a64ab5c9674345890e45bfe2f9e9503" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t TextureTilingInfo::tileWidthInPixels</definition>
+        <argsstring></argsstring>
+        <name>tileWidthInPixels</name>
+        <briefdescription>
+<para>Width of each tile in pixels. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" line="42" column="10" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_texture_tiling_info_1a35eeff6a886c988d3dfd6b6461f512e7" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t TextureTilingInfo::tileHeightInPixels</definition>
+        <argsstring></argsstring>
+        <name>tileHeightInPixels</name>
+        <briefdescription>
+<para>Height of each tile in pixels. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" line="43" column="10" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_texture_tiling_info_1a49d883d9cc74aec5d9a0bf9b78cf3290" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t TextureTilingInfo::tileDepthInPixels</definition>
+        <argsstring></argsstring>
+        <name>tileDepthInPixels</name>
+        <briefdescription>
+<para>Depth of each tile in pixels. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" line="44" column="10" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_texture_tiling_info_1afa33aa464c56829cbb2ccfa4c8af129f" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t TextureTilingInfo::tileMemorySize</definition>
+        <argsstring></argsstring>
+        <name>tileMemorySize</name>
+        <briefdescription>
+<para>Size of each tile in bytes. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" line="45" column="10" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_texture_tiling_info_1a6db40c059ef750237919342c9433e312" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t TextureTilingInfo::subresourceWidthInTiles</definition>
+        <argsstring></argsstring>
+        <name>subresourceWidthInTiles</name>
+        <briefdescription>
+<para>Width of the subresource in tiles. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" line="47" column="10" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_texture_tiling_info_1ad2d9a4df42b30d095dcf012c74cf6e7a" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t TextureTilingInfo::subresourceHeightInTiles</definition>
+        <argsstring></argsstring>
+        <name>subresourceHeightInTiles</name>
+        <briefdescription>
+<para>Height of the subresource in tiles. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" line="48" column="10" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_texture_tiling_info_1a7468ff2e8fc99d3ac477be30655f20c7" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t TextureTilingInfo::subresourceDepthInTiles</definition>
+        <argsstring></argsstring>
+        <name>subresourceDepthInTiles</name>
+        <briefdescription>
+<para>Depth of the subresource in tiles. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" line="49" column="10" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_texture_tiling_info_1adf08a731dcb8870cf06a4000ce9ce88b" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t TextureTilingInfo::subresourceStartTileIndex</definition>
+        <argsstring></argsstring>
+        <name>subresourceStartTileIndex</name>
+        <briefdescription>
+<para>Index of the first tile of the subresource. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" line="50" column="10" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Structure representing the properties of a tiled resource. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>NOTE: even if numPackedMips is zero, numTilesNeededForPackedMips may be greater than zero, which is a special case, and numTilesNeededForPackedMips tiles still need to be assigned at numUnpackedMips. </para>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" line="35" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" bodystart="36" bodyend="51"/>
+    <listofallmembers>
+      <member refid="struct_texture_tiling_info_1ac88362a24ddd8afc9595649b43790fe4" prot="public" virt="non-virtual"><scope>TextureTilingInfo</scope><name>firstPackedTileIndex</name></member>
+      <member refid="struct_texture_tiling_info_1a96e3f9fd7ba52a06288ca73fae8ee5c5" prot="public" virt="non-virtual"><scope>TextureTilingInfo</scope><name>numPackedMips</name></member>
+      <member refid="struct_texture_tiling_info_1aca8d27080c8f9ba7a87e33236c2826c0" prot="public" virt="non-virtual"><scope>TextureTilingInfo</scope><name>numTilesNeededForPackedMips</name></member>
+      <member refid="struct_texture_tiling_info_1a93078262624395204023549c42944fa8" prot="public" virt="non-virtual"><scope>TextureTilingInfo</scope><name>numUnpackedMips</name></member>
+      <member refid="struct_texture_tiling_info_1a7468ff2e8fc99d3ac477be30655f20c7" prot="public" virt="non-virtual"><scope>TextureTilingInfo</scope><name>subresourceDepthInTiles</name></member>
+      <member refid="struct_texture_tiling_info_1ad2d9a4df42b30d095dcf012c74cf6e7a" prot="public" virt="non-virtual"><scope>TextureTilingInfo</scope><name>subresourceHeightInTiles</name></member>
+      <member refid="struct_texture_tiling_info_1adf08a731dcb8870cf06a4000ce9ce88b" prot="public" virt="non-virtual"><scope>TextureTilingInfo</scope><name>subresourceStartTileIndex</name></member>
+      <member refid="struct_texture_tiling_info_1a6db40c059ef750237919342c9433e312" prot="public" virt="non-virtual"><scope>TextureTilingInfo</scope><name>subresourceWidthInTiles</name></member>
+      <member refid="struct_texture_tiling_info_1a49d883d9cc74aec5d9a0bf9b78cf3290" prot="public" virt="non-virtual"><scope>TextureTilingInfo</scope><name>tileDepthInPixels</name></member>
+      <member refid="struct_texture_tiling_info_1a35eeff6a886c988d3dfd6b6461f512e7" prot="public" virt="non-virtual"><scope>TextureTilingInfo</scope><name>tileHeightInPixels</name></member>
+      <member refid="struct_texture_tiling_info_1afa33aa464c56829cbb2ccfa4c8af129f" prot="public" virt="non-virtual"><scope>TextureTilingInfo</scope><name>tileMemorySize</name></member>
+      <member refid="struct_texture_tiling_info_1a5a64ab5c9674345890e45bfe2f9e9503" prot="public" virt="non-virtual"><scope>TextureTilingInfo</scope><name>tileWidthInPixels</name></member>
+      <member refid="struct_texture_tiling_info_1af3a0ed727d94774f26032df5ad24594c" prot="public" virt="non-virtual"><scope>TextureTilingInfo</scope><name>totalNumberOfTiles</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

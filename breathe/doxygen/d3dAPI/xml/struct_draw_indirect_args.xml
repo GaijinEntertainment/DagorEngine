@@ -1,0 +1,71 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_draw_indirect_args" kind="struct" language="C++" prot="public">
+    <compoundname>DrawIndirectArgs</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_draw_indirect_args_1a9250886021fe8650437b1a5db9ef0ff3" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t DrawIndirectArgs::vertexCountPerInstance</definition>
+        <argsstring></argsstring>
+        <name>vertexCountPerInstance</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="204" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="204" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_draw_indirect_args_1a6c4c9e45a922628403027a173ec122ed" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t DrawIndirectArgs::instanceCount</definition>
+        <argsstring></argsstring>
+        <name>instanceCount</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="205" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="205" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_draw_indirect_args_1ab448956bcdcf2943cff87b97f20d8919" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t DrawIndirectArgs::startVertexLocation</definition>
+        <argsstring></argsstring>
+        <name>startVertexLocation</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="206" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="206" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_draw_indirect_args_1a0177383281a588305895af6dbe626893" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t DrawIndirectArgs::startInstanceLocation</definition>
+        <argsstring></argsstring>
+        <name>startInstanceLocation</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="207" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="207" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="202" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="203" bodyend="208"/>
+    <listofallmembers>
+      <member refid="struct_draw_indirect_args_1a6c4c9e45a922628403027a173ec122ed" prot="public" virt="non-virtual"><scope>DrawIndirectArgs</scope><name>instanceCount</name></member>
+      <member refid="struct_draw_indirect_args_1a0177383281a588305895af6dbe626893" prot="public" virt="non-virtual"><scope>DrawIndirectArgs</scope><name>startInstanceLocation</name></member>
+      <member refid="struct_draw_indirect_args_1ab448956bcdcf2943cff87b97f20d8919" prot="public" virt="non-virtual"><scope>DrawIndirectArgs</scope><name>startVertexLocation</name></member>
+      <member refid="struct_draw_indirect_args_1a9250886021fe8650437b1a5db9ef0ff3" prot="public" virt="non-virtual"><scope>DrawIndirectArgs</scope><name>vertexCountPerInstance</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

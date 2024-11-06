@@ -1,0 +1,115 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="class_driver_net_manager" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>DriverNetManager</compoundname>
+    <includes refid="dag__driver_net_manager_8h" local="no">dag_driverNetManager.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="class_driver_net_manager_1a71818c5f1a15f4ca2e6e0ac7050cf55e" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type></type>
+        <definition>virtual DriverNetManager::~DriverNetManager</definition>
+        <argsstring>()=default</argsstring>
+        <name>~DriverNetManager</name>
+        <briefdescription>
+<para>Destructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverNetManager.h" line="26" column="11"/>
+      </memberdef>
+      <memberdef kind="function" id="class_driver_net_manager_1ad5746e5bada006bfffe6f00084443627" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void DriverNetManager::sendPsoCacheBlkSync</definition>
+        <argsstring>(const DataBlock &amp;cache_blk)=0</argsstring>
+        <name>sendPsoCacheBlkSync</name>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>cache_blk</declname>
+        </param>
+        <briefdescription>
+<para>Send a cache block to the server. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This method is used to send a cache block to the server. A call of this method blocks the thread execution until the data is sent or the request is timed out. The blocking behavior is necessarty to ensure that all the data is send and it doesn&apos;t affect the players experience since we are sending data only when the driver shuts down.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>cache_blk</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The cache data block to send </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverNetManager.h" line="37" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="class_driver_net_manager_1ac0469fd0b657c80725d33b34cdcab325" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void DriverNetManager::sendHttpEventLog</definition>
+        <argsstring>(const char *type, const void *data, uint32_t size, Json::Value *meta)=0</argsstring>
+        <name>sendHttpEventLog</name>
+        <param>
+          <type>const char *</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>data</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>size</declname>
+        </param>
+        <param>
+          <type>Json::Value *</type>
+          <declname>meta</declname>
+        </param>
+        <briefdescription>
+<para>Send an event log to the server. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This method is used to send gpu crash dump from DX12 driver, but other event log collections also could be used. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverNetManager.h" line="45" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="class_driver_net_manager_1a2bd9c3558f45cfc9f974ada9d6cd1c91" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void DriverNetManager::addFileToCrashReport</definition>
+        <argsstring>(const char *path)=0</argsstring>
+        <name>addFileToCrashReport</name>
+        <param>
+          <type>const char *</type>
+          <declname>path</declname>
+        </param>
+        <briefdescription>
+<para>Adds a file to the crash report. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>It is used to send GPU crash dumps from DX12 driver. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverNetManager.h" line="52" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>The <ref refid="class_driver_net_manager" kindref="compound">DriverNetManager</ref> interface. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>This class is responsible for providing network related functionality for d3d drivers. Some drivers need to send data from clients for debugging and infrastructure purposes. Methods of the class are very specific currently because we have a very strict set of use cases that we want to cover. </para>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverNetManager.h" line="23" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverNetManager.h" bodystart="24" bodyend="53"/>
+    <listofallmembers>
+      <member refid="class_driver_net_manager_1a2bd9c3558f45cfc9f974ada9d6cd1c91" prot="public" virt="pure-virtual"><scope>DriverNetManager</scope><name>addFileToCrashReport</name></member>
+      <member refid="class_driver_net_manager_1ac0469fd0b657c80725d33b34cdcab325" prot="public" virt="pure-virtual"><scope>DriverNetManager</scope><name>sendHttpEventLog</name></member>
+      <member refid="class_driver_net_manager_1ad5746e5bada006bfffe6f00084443627" prot="public" virt="pure-virtual"><scope>DriverNetManager</scope><name>sendPsoCacheBlkSync</name></member>
+      <member refid="class_driver_net_manager_1a71818c5f1a15f4ca2e6e0ac7050cf55e" prot="public" virt="virtual"><scope>DriverNetManager</scope><name>~DriverNetManager</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

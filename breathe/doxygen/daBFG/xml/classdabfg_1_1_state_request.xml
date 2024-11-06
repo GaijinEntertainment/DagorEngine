@@ -1,0 +1,252 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="classdabfg_1_1_state_request" kind="class" language="C++" prot="public">
+    <compoundname>dabfg::StateRequest</compoundname>
+    <includes refid="state_request_8h" local="no">stateRequest.h</includes>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classdabfg_1_1_state_request_1ac7b716e6d41ff508ad2d8e5dad655d72" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class Registry</definition>
+        <argsstring></argsstring>
+        <name>Registry</name>
+        <param>
+          <type><ref refid="classdabfg_1_1_registry" kindref="compound">Registry</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/stateRequest.h" line="21" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/stateRequest.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classdabfg_1_1_state_request_1af9d7cac843172b666d90b6a26acb2045" prot="private" static="no" mutable="no">
+        <type>NodeNameId</type>
+        <definition>NodeNameId dabfg::StateRequest::id</definition>
+        <argsstring></argsstring>
+        <name>id</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/stateRequest.h" line="81" column="14" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/stateRequest.h" bodystart="81" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classdabfg_1_1_state_request_1af3f4f1cdb4143e352d6329f051f14826" prot="private" static="no" mutable="no">
+        <type>InternalRegistry *</type>
+        <definition>InternalRegistry* dabfg::StateRequest::registry</definition>
+        <argsstring></argsstring>
+        <name>registry</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/stateRequest.h" line="82" column="20" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/stateRequest.h" bodystart="82" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classdabfg_1_1_state_request_1a0c866935327ca4ddfc367b33ea6936cd" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>dabfg::StateRequest::StateRequest</definition>
+        <argsstring>(InternalRegistry *reg, NodeNameId nodeId)</argsstring>
+        <name>StateRequest</name>
+        <param>
+          <type>InternalRegistry *</type>
+          <declname>reg</declname>
+        </param>
+        <param>
+          <type>NodeNameId</type>
+          <declname>nodeId</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/stateRequest.h" line="22" column="3"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classdabfg_1_1_state_request_1a1c787d19a0e522afaf96004837589441" prot="public" static="no" const="no" explicit="no" inline="no" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_state_request" kindref="compound">StateRequest</ref></type>
+        <definition>StateRequest dabfg::StateRequest::setFrameBlock</definition>
+        <argsstring>(const char *block) &amp;&amp;</argsstring>
+        <name>setFrameBlock</name>
+        <param>
+          <type>const char *</type>
+          <declname>block</declname>
+        </param>
+        <briefdescription>
+<para>Requests for a <computeroutput>block</computeroutput> to be set to FRAME layer Values of frame block shader vars are supposed to change once per frame. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>block</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the block to set. Must be present in the shader dump. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/stateRequest.h" line="32" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_state_request_1a1fb4450aa485d1df67f499f37ebf6b8d" prot="public" static="no" const="no" explicit="no" inline="no" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_state_request" kindref="compound">StateRequest</ref></type>
+        <definition>StateRequest dabfg::StateRequest::setSceneBlock</definition>
+        <argsstring>(const char *block) &amp;&amp;</argsstring>
+        <name>setSceneBlock</name>
+        <param>
+          <type>const char *</type>
+          <declname>block</declname>
+        </param>
+        <briefdescription>
+<para>Requests for a <computeroutput>block</computeroutput> to be set to SCENE layer. Values of scene block shader vars are supposed to change when the rendering mode changes. Examples of rendering modes are; depth pre-pass, shadow pass, color pass, voxelization pass, etc. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>block</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the block to set. Must be present in the shader dump. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/stateRequest.h" line="43" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_state_request_1a792887e62a294c8b9f390a0293d0e410" prot="public" static="no" const="no" explicit="no" inline="no" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_state_request" kindref="compound">StateRequest</ref></type>
+        <definition>StateRequest dabfg::StateRequest::setObjectBlock</definition>
+        <argsstring>(const char *block) &amp;&amp;</argsstring>
+        <name>setObjectBlock</name>
+        <param>
+          <type>const char *</type>
+          <declname>block</declname>
+        </param>
+        <briefdescription>
+<para>Requests for a <computeroutput>block</computeroutput> to be set to OBJECT layer. Per-object blocks are evil and should be avoided at all costs. They imply a draw-call-per-object model, which has historically proven itself antagonistic to performance. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>block</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the block to set. Must be present in the shader dump. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/stateRequest.h" line="54" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_state_request_1a2cbacbe33faf7eb180aceb294f6e8592" prot="public" static="no" const="no" explicit="no" inline="no" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_state_request" kindref="compound">StateRequest</ref></type>
+        <definition>StateRequest dabfg::StateRequest::allowWireframe</definition>
+        <argsstring>() &amp;&amp;</argsstring>
+        <name>allowWireframe</name>
+        <briefdescription>
+<para>Requests for the driver wireframe mode to be enabled for this node when the user turns it on for debug purposes. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/stateRequest.h" line="60" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_state_request_1a86e25f06ad8f1ac770ff20931fadada5" prot="public" static="no" const="no" explicit="no" inline="no" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_state_request" kindref="compound">StateRequest</ref></type>
+        <definition>StateRequest dabfg::StateRequest::vrs</definition>
+        <argsstring>(VrsSettings vrs) &amp;&amp;</argsstring>
+        <name>vrs</name>
+        <param>
+          <type><ref refid="structdabfg_1_1_vrs_settings" kindref="compound">VrsSettings</ref></type>
+          <declname>vrs</declname>
+        </param>
+        <briefdescription>
+<para>Configures VRS settings for this node. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The default settings correspond to no VRS. <simplesect kind="note"><para>VRS will only work if it is supported and enabled through dabfg::update_external_state.</para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>vrs</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The VRS settings to use. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/stateRequest.h" line="70" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_state_request_1a7062632f30213423573b47c0308cd694" prot="public" static="no" const="no" explicit="no" inline="no" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_state_request" kindref="compound">StateRequest</ref></type>
+        <definition>StateRequest dabfg::StateRequest::enableOverride</definition>
+        <argsstring>(shaders::OverrideState override) &amp;&amp;</argsstring>
+        <name>enableOverride</name>
+        <param>
+          <type>shaders::OverrideState</type>
+          <declname>override</declname>
+        </param>
+        <briefdescription>
+<para>Requests a shader pipeline state override to be active while this node is executing. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>override</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The override to use. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/stateRequest.h" line="78" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Represents a request for a certain global state to be set during the node&apos;s execution. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/stateRequest.h" line="19" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/stateRequest.h" bodystart="20" bodyend="83"/>
+    <listofallmembers>
+      <member refid="classdabfg_1_1_state_request_1a2cbacbe33faf7eb180aceb294f6e8592" prot="public" virt="non-virtual"><scope>dabfg::StateRequest</scope><name>allowWireframe</name></member>
+      <member refid="classdabfg_1_1_state_request_1a7062632f30213423573b47c0308cd694" prot="public" virt="non-virtual"><scope>dabfg::StateRequest</scope><name>enableOverride</name></member>
+      <member refid="classdabfg_1_1_state_request_1af9d7cac843172b666d90b6a26acb2045" prot="private" virt="non-virtual"><scope>dabfg::StateRequest</scope><name>id</name></member>
+      <member refid="classdabfg_1_1_state_request_1ac7b716e6d41ff508ad2d8e5dad655d72" prot="private" virt="non-virtual"><scope>dabfg::StateRequest</scope><name>Registry</name></member>
+      <member refid="classdabfg_1_1_state_request_1af3f4f1cdb4143e352d6329f051f14826" prot="private" virt="non-virtual"><scope>dabfg::StateRequest</scope><name>registry</name></member>
+      <member refid="classdabfg_1_1_state_request_1a1c787d19a0e522afaf96004837589441" prot="public" virt="non-virtual"><scope>dabfg::StateRequest</scope><name>setFrameBlock</name></member>
+      <member refid="classdabfg_1_1_state_request_1a792887e62a294c8b9f390a0293d0e410" prot="public" virt="non-virtual"><scope>dabfg::StateRequest</scope><name>setObjectBlock</name></member>
+      <member refid="classdabfg_1_1_state_request_1a1fb4450aa485d1df67f499f37ebf6b8d" prot="public" virt="non-virtual"><scope>dabfg::StateRequest</scope><name>setSceneBlock</name></member>
+      <member refid="classdabfg_1_1_state_request_1a0c866935327ca4ddfc367b33ea6936cd" prot="private" virt="non-virtual"><scope>dabfg::StateRequest</scope><name>StateRequest</name></member>
+      <member refid="classdabfg_1_1_state_request_1a86e25f06ad8f1ac770ff20931fadada5" prot="public" virt="non-virtual"><scope>dabfg::StateRequest</scope><name>vrs</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

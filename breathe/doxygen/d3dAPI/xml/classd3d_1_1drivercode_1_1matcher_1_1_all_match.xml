@@ -1,0 +1,461 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="classd3d_1_1drivercode_1_1matcher_1_1_all_match" kind="class" language="C++" prot="public">
+    <compoundname>d3d::drivercode::matcher::AllMatch</compoundname>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classd3d_1_1drivercode_1_1matcher_1_1_all_match_1abc6a89cc69298e5326d1401e71346209" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int d3d::drivercode::matcher::AllMatch::value</definition>
+        <argsstring></argsstring>
+        <name>value</name>
+        <briefdescription>
+<para>Driver code value, stored as a int to break up dependency to the <ref refid="class_driver_code" kindref="compound">DriverCode</ref> type. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="758" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="758" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classd3d_1_1drivercode_1_1matcher_1_1_all_match_1a2adbf5249b5b57e19d214c6a84ebcde6" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool d3d::drivercode::matcher::AllMatch::wasMatched</definition>
+        <argsstring></argsstring>
+        <name>wasMatched</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Keeps track if anything was matched. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="760" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="760" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classd3d_1_1drivercode_1_1matcher_1_1_all_match_1a327c1ae9501f52738ebd7173723334f7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class ::DriverCode</definition>
+        <argsstring></argsstring>
+        <name>::DriverCode</name>
+        <param>
+          <type>::<ref refid="class_driver_code" kindref="compound">DriverCode</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="787" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="787" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_all_match_1a0ca5c33162a95fea5151ce1d10c84e44" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void d3d::drivercode::matcher::AllMatch::onMatch</definition>
+        <argsstring>(bool did_match, T &amp;&amp;callable)</argsstring>
+        <name>onMatch</name>
+        <param>
+          <type>bool</type>
+          <declname>did_match</declname>
+        </param>
+        <param>
+          <type>T &amp;&amp;</type>
+          <declname>callable</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Match execution handler, will update internal state and call <computeroutput>callable</computeroutput> when <computeroutput>did_match</computeroutput> is true. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>did_match</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Indicator if a match was found, when true <computeroutput>callable</computeroutput> will be called and the internal state is updated to indicate that there was a match. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>callable</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Is called when <computeroutput>did_match</computeroutput> is true. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="768" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="768" bodyend="774"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_all_match_1a308d7ef01cae40b31d9bfe6e79bb6672" prot="private" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename D</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr bool</type>
+        <definition>constexpr bool d3d::drivercode::matcher::AllMatch::is</definition>
+        <argsstring>(D d) const</argsstring>
+        <name>is</name>
+        <param>
+          <type>D</type>
+          <declname>d</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Helper to shorten matcher invocation. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>d</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Matcher to invoke with the driver code state value. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The value returned by the matchers <computeroutput>d</computeroutput> <computeroutput>is</computeroutput> method. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="781" column="18" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="781" bodyend="784"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_all_match_1a6df797f21cde83e66c53e4dffe3f9b18" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>d3d::drivercode::matcher::AllMatch::AllMatch</definition>
+        <argsstring>(int v)</argsstring>
+        <name>AllMatch</name>
+        <param>
+          <type>int</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Create a new object with a stored driver code value. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>v</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Driver code value that is used on the matchers. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="792" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="792" bodyend="792"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_all_match_1ac274c745d4b7ec038051dc6ac415d5ba" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename D</type>
+          </param>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type></type>
+        <definition>d3d::drivercode::matcher::AllMatch::AllMatch</definition>
+        <argsstring>(int v, D d, T &amp;&amp;callable)</argsstring>
+        <name>AllMatch</name>
+        <param>
+          <type>int</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>D</type>
+          <declname>d</declname>
+        </param>
+        <param>
+          <type>T &amp;&amp;</type>
+          <declname>callable</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Create a new object with a stored driver code value and a initial match call. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>v</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Driver code value that is used on the matchers. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>d</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The matcher that should be immediately be matched on <computeroutput>v</computeroutput>. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>callable</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The callable that should be executed when the matcher <computeroutput>d</computeroutput> matches the driver code value <computeroutput>v</computeroutput>. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="800" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="800" bodyend="803"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_all_match_1af7c7ff2e25dcbbd42b9dbb744e62fd71" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>d3d::drivercode::matcher::AllMatch::AllMatch</definition>
+        <argsstring>()=delete</argsstring>
+        <name>AllMatch</name>
+        <briefdescription>
+<para>Default construction is not allowed. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="807" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_all_match_1a2acce2cfc7ffd83f44bc396b44fae4e8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>d3d::drivercode::matcher::AllMatch::AllMatch</definition>
+        <argsstring>(const AllMatch &amp;)=delete</argsstring>
+        <name>AllMatch</name>
+        <param>
+          <type>const <ref refid="classd3d_1_1drivercode_1_1matcher_1_1_all_match" kindref="compound">AllMatch</ref> &amp;</type>
+        </param>
+        <briefdescription>
+<para>Disallow copying. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="809" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_all_match_1a5b67c09e85bcb58fc3961ce6e3bf4035" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>d3d::drivercode::matcher::AllMatch::AllMatch</definition>
+        <argsstring>(AllMatch &amp;&amp;other)=default</argsstring>
+        <name>AllMatch</name>
+        <param>
+          <type><ref refid="classd3d_1_1drivercode_1_1matcher_1_1_all_match" kindref="compound">AllMatch</ref> &amp;&amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+<para>Allow moving. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="811" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_all_match_1a7b565ccc59360d3ac7fd5cffd986fdee" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classd3d_1_1drivercode_1_1matcher_1_1_all_match" kindref="compound">AllMatch</ref> &amp;</type>
+        <definition>AllMatch&amp; d3d::drivercode::matcher::AllMatch::operator=</definition>
+        <argsstring>(const AllMatch &amp;)=delete</argsstring>
+        <name>operator=</name>
+        <param>
+          <type>const <ref refid="classd3d_1_1drivercode_1_1matcher_1_1_all_match" kindref="compound">AllMatch</ref> &amp;</type>
+        </param>
+        <briefdescription>
+<para>Disallow copy assignment. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="813" column="12"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_all_match_1ace028a458da131074d590da81058cb2a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classd3d_1_1drivercode_1_1matcher_1_1_all_match" kindref="compound">AllMatch</ref> &amp;</type>
+        <definition>AllMatch&amp; d3d::drivercode::matcher::AllMatch::operator=</definition>
+        <argsstring>(AllMatch &amp;&amp;)=delete</argsstring>
+        <name>operator=</name>
+        <param>
+          <type><ref refid="classd3d_1_1drivercode_1_1matcher_1_1_all_match" kindref="compound">AllMatch</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+<para>Disallow move assignment. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="815" column="12"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_all_match_1aa7ba02803fbdeed993b5ef31107a315b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename D</type>
+          </param>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classd3d_1_1drivercode_1_1matcher_1_1_all_match" kindref="compound">AllMatch</ref> &amp;</type>
+        <definition>AllMatch&amp; d3d::drivercode::matcher::AllMatch::operator()</definition>
+        <argsstring>(D d, T &amp;&amp;callable)</argsstring>
+        <name>operator()</name>
+        <param>
+          <type>D</type>
+          <declname>d</declname>
+        </param>
+        <param>
+          <type>T &amp;&amp;</type>
+          <declname>callable</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Executes the matcher of <computeroutput>d</computeroutput> with the driver code state and if it yields a match it will execute the callable of <computeroutput>callable</computeroutput>. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>d</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The matcher that should match the driver code value against. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>callable</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The callable that is called should the matcher of <computeroutput>d</computeroutput> return true. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A reference to this, so that multiple matches can be chained. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="818" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="818" bodyend="822"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_all_match_1ab934cfe944451749bfa86c27247844a2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename D</type>
+          </param>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classd3d_1_1drivercode_1_1matcher_1_1_all_match" kindref="compound">AllMatch</ref> &amp;</type>
+        <definition>AllMatch&amp; d3d::drivercode::matcher::AllMatch::match</definition>
+        <argsstring>(D d, T &amp;&amp;callable)</argsstring>
+        <name>match</name>
+        <param>
+          <type>D</type>
+          <declname>d</declname>
+        </param>
+        <param>
+          <type>T &amp;&amp;</type>
+          <declname>callable</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Executes the matcher of <computeroutput>d</computeroutput> with the driver code state and if it yields a match it will execute the callable of <computeroutput>callable</computeroutput>. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>d</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The matcher that should match the driver code value against. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>callable</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The callable that is called should the matcher of <computeroutput>d</computeroutput> return true. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A reference to this, so that multiple matches can be chained. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="830" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="830" bodyend="834"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_all_match_1a7bd7ee15fd7bd4667948a66715d3725d" prot="public" static="no" const="yes" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>d3d::drivercode::matcher::AllMatch::operator bool</definition>
+        <argsstring>() const</argsstring>
+        <name>operator bool</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Explicit bool operator allows easy checking if any matcher was matched and any callable was executed. <simplesect kind="return"><para>True when any matcher was matched and any callable was called. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="837" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="837" bodyend="837"/>
+      </memberdef>
+      <memberdef kind="function" id="classd3d_1_1drivercode_1_1matcher_1_1_all_match_1aa7090a7404a7fa29b66acb53afc41cd3" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool d3d::drivercode::matcher::AllMatch::operator!</definition>
+        <argsstring>() const</argsstring>
+        <name>operator!</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Not operator overload allows easy checking if no matcher was matched and no callable was executed. <simplesect kind="return"><para>True when no matcher was matched and no callable was called. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="840" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="840" bodyend="840"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" line="755" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driverCode.h" bodystart="756" bodyend="841"/>
+    <listofallmembers>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_all_match_1a327c1ae9501f52738ebd7173723334f7" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::AllMatch</scope><name>::DriverCode</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_all_match_1a6df797f21cde83e66c53e4dffe3f9b18" prot="protected" virt="non-virtual"><scope>d3d::drivercode::matcher::AllMatch</scope><name>AllMatch</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_all_match_1ac274c745d4b7ec038051dc6ac415d5ba" prot="protected" virt="non-virtual"><scope>d3d::drivercode::matcher::AllMatch</scope><name>AllMatch</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_all_match_1af7c7ff2e25dcbbd42b9dbb744e62fd71" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::AllMatch</scope><name>AllMatch</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_all_match_1a2acce2cfc7ffd83f44bc396b44fae4e8" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::AllMatch</scope><name>AllMatch</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_all_match_1a5b67c09e85bcb58fc3961ce6e3bf4035" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::AllMatch</scope><name>AllMatch</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_all_match_1a308d7ef01cae40b31d9bfe6e79bb6672" prot="private" virt="non-virtual"><scope>d3d::drivercode::matcher::AllMatch</scope><name>is</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_all_match_1ab934cfe944451749bfa86c27247844a2" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::AllMatch</scope><name>match</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_all_match_1a0ca5c33162a95fea5151ce1d10c84e44" prot="private" virt="non-virtual"><scope>d3d::drivercode::matcher::AllMatch</scope><name>onMatch</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_all_match_1a7bd7ee15fd7bd4667948a66715d3725d" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::AllMatch</scope><name>operator bool</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_all_match_1aa7090a7404a7fa29b66acb53afc41cd3" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::AllMatch</scope><name>operator!</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_all_match_1aa7ba02803fbdeed993b5ef31107a315b" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::AllMatch</scope><name>operator()</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_all_match_1a7b565ccc59360d3ac7fd5cffd986fdee" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::AllMatch</scope><name>operator=</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_all_match_1ace028a458da131074d590da81058cb2a" prot="public" virt="non-virtual"><scope>d3d::drivercode::matcher::AllMatch</scope><name>operator=</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_all_match_1abc6a89cc69298e5326d1401e71346209" prot="private" virt="non-virtual"><scope>d3d::drivercode::matcher::AllMatch</scope><name>value</name></member>
+      <member refid="classd3d_1_1drivercode_1_1matcher_1_1_all_match_1a2adbf5249b5b57e19d214c6a84ebcde6" prot="private" virt="non-virtual"><scope>d3d::drivercode::matcher::AllMatch</scope><name>wasMatched</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

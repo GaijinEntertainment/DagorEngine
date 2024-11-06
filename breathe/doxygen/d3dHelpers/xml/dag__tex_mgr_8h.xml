@@ -1,0 +1,1731 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="dag__tex_mgr_8h" kind="file" language="C++">
+    <compoundname>dag_texMgr.h</compoundname>
+    <includes local="no">util/dag_texMetaData.h</includes>
+    <includes local="no">drv/3d/dag_samplerHandle.h</includes>
+    <includes local="no">drv/3d/dag_sampler.h</includes>
+    <includes refid="dag__res_mgr_8h" local="no">3d/dag_resMgr.h</includes>
+    <includes local="no">generic/dag_tabFwd.h</includes>
+    <incdepgraph>
+      <node id="9">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="4">
+        <label>drv/3d/dag_sampler.h</label>
+      </node>
+      <node id="7">
+        <label>drv/3d/dag_resId.h</label>
+      </node>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h</label>
+        <link refid="dag__tex_mgr_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>drv/3d/dag_d3dResource.h</label>
+      </node>
+      <node id="11">
+        <label>generic/dag_tabFwd.h</label>
+      </node>
+      <node id="3">
+        <label>drv/3d/dag_samplerHandle.h</label>
+      </node>
+      <node id="10">
+        <label>startup/dag_globalSettings.h</label>
+      </node>
+      <node id="2">
+        <label>util/dag_texMetaData.h</label>
+      </node>
+      <node id="5">
+        <label>3d/dag_resMgr.h</label>
+        <link refid="dag__res_mgr_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>osApiWrappers/dag_atomic.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="class_texture_factory" prot="public">TextureFactory</innerclass>
+    <innerclass refid="struct_l_o_d_bias_rule" prot="public">LODBiasRule</innerclass>
+      <sectiondef kind="user-defined">
+      <header>Helper wrappers</header>
+      <description><para>See iterate_all_managed_textures(). Use as follows:</para>
+<para><programlisting><codeline><highlight class="normal">for<sp/>(TEXTUREID<sp/>id<sp/>=<sp/>first_managed_texture();<sp/>id<sp/>!=<sp/>BAD_TEXTUREID;<sp/>id<sp/>=<sp/>next_managed_texture(id))<sp/></highlight></codeline>
+</programlisting></para>
+<para>Get the first managed texture ID for iteration <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>min_rc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Minimum reference count filter </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>First managed texture ID with refCount &gt;= <computeroutput>min_rc</computeroutput> </para>
+</simplesect>
+</para>
+</description>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1a95ecbb03ea3d1d7410b4f9bdfdee4abe" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID first_managed_texture</definition>
+        <argsstring>(int min_rc=0)</argsstring>
+        <name>first_managed_texture</name>
+        <param>
+          <type>int</type>
+          <declname>min_rc</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="257" column="18" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" bodystart="257" bodyend="257"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1ac0538e03a92a3538de029e3ebb80dfdb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID next_managed_texture</definition>
+        <argsstring>(TEXTUREID prev_id, int min_rc=0)</argsstring>
+        <name>next_managed_texture</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>prev_id</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>min_rc</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+<para>Get the next managed texture ID for iteration. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>prev_id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the previous texture </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>min_rc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Minimum reference count filter </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Next managed texture ID after <computeroutput>prev_id</computeroutput> with refCount &gt;= <computeroutput>min_rc</computeroutput> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="263" column="18" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" bodystart="263" bodyend="263"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="dag__tex_mgr_8h_1aafc40eb17cdae4ab37108bb7f468db00" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int dgs_tex_quality</definition>
+        <argsstring></argsstring>
+        <name>dgs_tex_quality</name>
+        <briefdescription>
+<para>Read-only access to the current texture quality level. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="warning"><para>This is READ-ONLY, do not modify this value </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="280" column="12" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="280" declcolumn="12"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__tex_mgr_8h_1abbbeb59eb49ea77e3f246b093b8121b7" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int dgs_tex_anisotropy</definition>
+        <argsstring></argsstring>
+        <name>dgs_tex_anisotropy</name>
+        <briefdescription>
+<para>Read-only access to the current texture anisotropy. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="warning"><para>This is READ-ONLY, do not modify this value </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="284" column="12" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="284" declcolumn="12"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__tex_mgr_8h_1a330118e2ff774cf30e8d7f358164f1b3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>D3DRESID</type>
+        <definition>D3DRESID register_managed_tex</definition>
+        <argsstring>(const char *name, BaseTexture *res)</argsstring>
+        <name>register_managed_tex</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+<para>Registers external D3D resource with the specified <computeroutput>name</computeroutput> as managed and returns the D3DRESID for it. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Specified resource becomes owned by the manager, no factory is assigned to it. RefCount is set to 1 and when it eventually reaches 0, the resource is automatically destroyed and the name is evicted. Use <ref refid="dag__res_mgr_8h_1ab8d423d447df4e5459d92230a91e2609" kindref="member">release_managed_res()</ref> or <ref refid="dag__res_mgr_8h_1a21ccc1c9589538a79ae900f963820c44" kindref="member">release_managed_res_verified()</ref> to del ref and finally destroy. <simplesect kind="warning"><para>Resource name is case-insensitive and must be unique. </para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the name to register the resource under </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>res</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the resource to register </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the D3DRESID for the registered resource </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="14" column="10" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="14" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1a929f255b55d4a2048438b355b6f63b64" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool is_managed_tex_factory_set</definition>
+        <argsstring>(D3DRESID id)</argsstring>
+        <name>is_managed_tex_factory_set</name>
+        <param>
+          <type>D3DRESID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Checks whether creation/release factory is set for D3DRESID. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>E.g. for an ID that was acquired from <ref refid="dag__res_mgr_8h_1a7256c5226f06bf195aec1bdc24a73fd2" kindref="member">register_managed_res()</ref>, it will return false. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the D3DRESID to check </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>true if a factory was specified for the D3DRESID </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="18" column="20" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" bodystart="18" bodyend="18"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1a00633d544385990ddfa550849b85756c" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>static const char* get_managed_texture_name</definition>
+        <argsstring>(D3DRESID id)</argsstring>
+        <name>get_managed_texture_name</name>
+        <param>
+          <type>D3DRESID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Gets the name for a managed resource by ID, or nullptr if ID is invalid. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the D3DRESID to get the name for </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the name of the managed resource with ID <computeroutput>id</computeroutput> or nullptr </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="20" column="26" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" bodystart="20" bodyend="20"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1a19a0cfba901ef57c2dafd0a61e4488bf" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>D3DRESID</type>
+        <definition>static D3DRESID get_managed_texture_id</definition>
+        <argsstring>(const char *res_name)</argsstring>
+        <name>get_managed_texture_id</name>
+        <param>
+          <type>const char *</type>
+          <declname>res_name</declname>
+        </param>
+        <briefdescription>
+<para>Gets managed resource ID by its name, or BAD_D3DRESID if name is invalid. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>res_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the name of the resource to get the ID for </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the managed resource ID that corresponds to <computeroutput>res_name</computeroutput> or BAD_D3DRESID if the name is invalid </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="22" column="24" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" bodystart="22" bodyend="22"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1a43681067205198b0f0464d7759345c1b" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>static int get_managed_texture_refcount</definition>
+        <argsstring>(D3DRESID id)</argsstring>
+        <name>get_managed_texture_refcount</name>
+        <param>
+          <type>D3DRESID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Gets the reference count for a managed resource by ID. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the ID to get the reference count for </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the reference count for the D3DRESID resource or a negative value if the resource is missing </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="24" column="19" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" bodystart="24" bodyend="24"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1aa219feda667fa251848b1d845dc266a0" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void enable_tex_mgr_mt</definition>
+        <argsstring>(bool enable, int max_res_entry_count)</argsstring>
+        <name>enable_tex_mgr_mt</name>
+        <param>
+          <type>bool</type>
+          <declname>enable</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>max_res_entry_count</declname>
+        </param>
+        <briefdescription>
+<para>Enables or disables multithreading support for resource manager and preallocates internal structures to handle upto <computeroutput>max_res_entry_count</computeroutput> resource entries without reallocations. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>enable_res_mgr_mt(false, -1) will disable multithreading support and shrink entries array to used size <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>enable</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>whether to enable multithreading support </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>max_res_entry_count</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the maximum number of resource entries to preallocate or -1 to shrink to fit </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="26" column="20" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" bodystart="26" bodyend="26"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1a1b9eb75cd75e27f30c2ce4b60959456d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID add_managed_texture</definition>
+        <argsstring>(const char *name, TextureFactory *factory=nullptr)</argsstring>
+        <name>add_managed_texture</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type><ref refid="class_texture_factory" kindref="compound">TextureFactory</ref> *</type>
+          <declname>factory</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+<para>Adds entry for managed texture name and returns TEXTUREID for it. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>When entry for &apos;name&apos; already exists, it just returns TEXTUREID. For new entry &apos;factory&apos; is set as creator, for existing entry &apos;factory&apos; must be nullptr. <simplesect kind="warning"><para>Texture name is case-insensitive and must be unique. </para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Name that uniquely identifies the texture </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>factory</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Custom texture creation mechanism, must be nullptr for existing textures </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Managed ID of the texture </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="86" column="11" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="86" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1aee0bb1833034da3342fb8aa4da6b2673" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID add_managed_array_texture</definition>
+        <argsstring>(const char *name, dag::ConstSpan&lt; const char * &gt; tex_slice_nm)</argsstring>
+        <name>add_managed_array_texture</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; const char * &gt;</type>
+          <declname>tex_slice_nm</declname>
+        </param>
+        <briefdescription>
+<para>Adds or updates entry for managed array texture name, stores creation properties and returns TEXTUREID for it. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Array texture will be composed of slices with texture names <computeroutput>tex_slice_nm</computeroutput>. <simplesect kind="warning"><para>Textures in slices must have the same format and size, and furthermore, some restrictions of DDSx flags apply. </para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Name that uniquely identifies the new array texture </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>tex_slice_nm</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Array of texture names to use as slices </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Managed ID of the texture </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="94" column="11" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="94" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1a9b00ae85619f5137cfabf976c5e8bcbb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID update_managed_array_texture</definition>
+        <argsstring>(const char *name, dag::ConstSpan&lt; const char * &gt; tex_slice_nm)</argsstring>
+        <name>update_managed_array_texture</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; const char * &gt;</type>
+          <declname>tex_slice_nm</declname>
+        </param>
+        <briefdescription>
+<para>Updates an existing array texture entry with new slices. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="warning"><para>The number of slices must match the original array texture. </para>
+</simplesect>
+<simplesect kind="note"><para>Simply calls add_managed_texture() under the hood, this function exists purely for readability purposes. </para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Name of the array texture to update </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>tex_slice_nm</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Array of new texture names to use as slices </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Managed ID of the array texture that was updated </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="102" column="11" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="102" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1a0829b33f955def877a14670103f5b9eb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>unsigned</type>
+        <definition>unsigned reload_managed_array_textures_for_changed_slice</definition>
+        <argsstring>(const char *slice_tex_name)</argsstring>
+        <name>reload_managed_array_textures_for_changed_slice</name>
+        <param>
+          <type>const char *</type>
+          <declname>slice_tex_name</declname>
+        </param>
+        <briefdescription>
+<para>Checks all registered array textures and reloads those referencing specified slice. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>slice_tex_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Name of changed texture that can be used as slice in some array texture </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Number of reloaded array textures (or 0 if no array texture reference that slice) </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="107" column="10" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="107" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1aa748cb1de7974cc6bd4d20d8eeac9f5e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool evict_managed_tex_id</definition>
+        <argsstring>(TEXTUREID &amp;id)</argsstring>
+        <name>evict_managed_tex_id</name>
+        <param>
+          <type>TEXTUREID &amp;</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Schedules removal of the managed entry for the specified <computeroutput>id</computeroutput> and sets <computeroutput>id</computeroutput> to BAD_TEXTUREID (unconditionally, even if the operation fails or is deferred). </para>
+        </briefdescription>
+        <detaileddescription>
+<para>When refCount = 0, removal is performed immediately, otherwise it is deferred. Can be used to remove entries created with register_managed_tex(), add_managed_texture(), add_managed_array_texture() <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the texture to remove </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><computeroutput>true</computeroutput> if the texture was removed immediately, <computeroutput>false</computeroutput> otherwise, including if the operation was invalid. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="115" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="115" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1afeb9d76ee7bad92b475ee48dc31c9592" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool check_managed_texture_loaded</definition>
+        <argsstring>(TEXTUREID id, bool fq_loaded=false)</argsstring>
+        <name>check_managed_texture_loaded</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>fq_loaded</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+<para>Checks whether contents of managed texture was loaded. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the texture to check </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>fq_loaded</parametername>
+</parameternamelist>
+<parameterdescription>
+<para><computeroutput>true</computeroutput> to check for full quality, <computeroutput>false</computeroutput> for any quality </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><computeroutput>true</computeroutput> if the texture is loaded, <computeroutput>false</computeroutput> otherwise </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="121" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="121" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1a3b3339e11930913031968cb5bea718c0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool check_all_managed_textures_loaded</definition>
+        <argsstring>(dag::ConstSpan&lt; TEXTUREID &gt; id, bool fq_loaded=false, bool ignore_unref_tex=true)</argsstring>
+        <name>check_all_managed_textures_loaded</name>
+        <param>
+          <type>dag::ConstSpan&lt; TEXTUREID &gt;</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>fq_loaded</declname>
+          <defval>false</defval>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>ignore_unref_tex</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+<para>Checks whether contents of all managed textures in list was loaded, analogous to calling check_managed_texture_loaded() multiple times. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="note"><para>Skips checks for textures with refcount=0 by default. </para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>List of texture IDs to check. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>fq_loaded</parametername>
+</parameternamelist>
+<parameterdescription>
+<para><computeroutput>true</computeroutput> to check for full quality, <computeroutput>false</computeroutput> for any quality </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>ignore_unref_tex</parametername>
+</parameternamelist>
+<parameterdescription>
+<para><computeroutput>true</computeroutput> to skip textures with refcount=0 </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><computeroutput>true</computeroutput> if all textures (excluding those with refcount=0 if <computeroutput>ignore_unref_tex</computeroutput> is true) are loaded, <computeroutput>false</computeroutput> otherwise. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="130" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="130" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1a65e77b79df17550d7ff4ccf5f8ffab6c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool change_managed_texture</definition>
+        <argsstring>(TEXTUREID id, BaseTexture *new_texture, TextureFactory *factory=NULL)</argsstring>
+        <name>change_managed_texture</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>new_texture</declname>
+        </param>
+        <param>
+          <type><ref refid="class_texture_factory" kindref="compound">TextureFactory</ref> *</type>
+          <declname>factory</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+<para>Replaces the texture for managed id <computeroutput>id</computeroutput>. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the texture to replace </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>new_texture</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>New driver texture to use for this <computeroutput>id</computeroutput> </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>factory</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Custom texture creation mechanism </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><computeroutput>true</computeroutput> if the texture was replaced successfully, <computeroutput>false</computeroutput> otherwise </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="137" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="137" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1ae1a61ba348eea968816bcdea95b57135" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void discard_unused_managed_texture</definition>
+        <argsstring>(TEXTUREID id)</argsstring>
+        <name>discard_unused_managed_texture</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Discards unused texture: unloads texture when refCount=0, does nothing otherwise. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the texture to discard </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="141" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="141" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1ac93ca63f360b15217f24bab008b10e61" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void discard_unused_managed_textures</definition>
+        <argsstring>()</argsstring>
+        <name>discard_unused_managed_textures</name>
+        <briefdescription>
+<para>Iterate all managed textures and unload those with refCount=0. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="144" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="144" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1a5e8fee654c9a3f97e448f25980720546" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mark_managed_tex_lfu</definition>
+        <argsstring>(TEXTUREID id, unsigned req_lev=15)</argsstring>
+        <name>mark_managed_tex_lfu</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>req_lev</declname>
+          <defval>15</defval>
+        </param>
+        <briefdescription>
+<para>Set current frame as &apos;last frame used&apos; for texture. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the texture to mark </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>req_lev</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Quality level that was used on this frame </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="149" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" bodystart="149" bodyend="149"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1abcc9d9a46307732985116d329c400d15" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool prefetch_managed_texture</definition>
+        <argsstring>(TEXTUREID id)</argsstring>
+        <name>prefetch_managed_texture</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Request texture content load. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the texture to load </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>true when texture already loaded, false otherwise </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="154" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="154" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1abf11ffaec3de1c20ba78014887415835" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool prefetch_managed_textures</definition>
+        <argsstring>(dag::ConstSpan&lt; TEXTUREID &gt; id)</argsstring>
+        <name>prefetch_managed_textures</name>
+        <param>
+          <type>dag::ConstSpan&lt; TEXTUREID &gt;</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Requests texture content load for a list of textures, the same as calling prefetch_managed_texture() multiple times. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>List of texture IDs to load </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><computeroutput>true</computeroutput> when all textures are already loaded </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="159" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="159" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1ae7839b10b79d6c70018b8b16cd7569f8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool prefetch_managed_textures_by_textag</definition>
+        <argsstring>(int textag)</argsstring>
+        <name>prefetch_managed_textures_by_textag</name>
+        <param>
+          <type>int</type>
+          <declname>textag</declname>
+        </param>
+        <briefdescription>
+<para>Requests texture content load for list of textures by TEXTAG. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>textag</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The tag to load textures for </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><computeroutput>true</computeroutput> when all textures with the tag are already loaded </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="164" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="164" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1a2acb20162c92c8cbbd542c643893ba48" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void mark_managed_textures_important</definition>
+        <argsstring>(dag::ConstSpan&lt; TEXTUREID &gt; id, unsigned add_importance=1, int min_lev_for_dyn_decrease=16)</argsstring>
+        <name>mark_managed_textures_important</name>
+        <param>
+          <type>dag::ConstSpan&lt; TEXTUREID &gt;</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>add_importance</declname>
+          <defval>1</defval>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>min_lev_for_dyn_decrease</declname>
+          <defval>16</defval>
+        </param>
+        <briefdescription>
+<para>Marks list of textures as important (to force loading content upto requested quality level as soon as possible) </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>List of texture IDs to mark </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>add_importance</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Additional importance to add to the textures </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>min_lev_for_dyn_decrease</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>important textures with more levels min can be downgraded 1 mip when dyn decrease used </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="170" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="170" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1a97119628076528951d0a1f485e8785b7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void reset_managed_textures_streaming_state</definition>
+        <argsstring>()</argsstring>
+        <name>reset_managed_textures_streaming_state</name>
+        <briefdescription>
+<para>Resets streaming state of textures so that they can be reloaded respecting the global tex quality settings changes. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="173" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="173" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1aaa1f138f4a6ba9e9522ed2f56386cdc0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void set_default_tex_factory</definition>
+        <argsstring>(TextureFactory *tf)</argsstring>
+        <name>set_default_tex_factory</name>
+        <param>
+          <type><ref refid="class_texture_factory" kindref="compound">TextureFactory</ref> *</type>
+          <declname>tf</declname>
+        </param>
+        <briefdescription>
+<para>Sets the default texture factory to use for managed textures. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="176" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="176" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1ade3504e5d4426bd3581ed55e8933c070" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="class_texture_factory" kindref="compound">TextureFactory</ref> *</type>
+        <definition>TextureFactory* get_default_tex_factory</definition>
+        <argsstring>()</argsstring>
+        <name>get_default_tex_factory</name>
+        <briefdescription>
+<para>Gets the default texture factory. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="178" column="16" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="178" declcolumn="16"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1a52fd0d7b61b8348b6461f9d191499676" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="class_texture_factory" kindref="compound">TextureFactory</ref> *</type>
+        <definition>TextureFactory* get_symbolic_tex_factory</definition>
+        <argsstring>()</argsstring>
+        <name>get_symbolic_tex_factory</name>
+        <briefdescription>
+<para>Gets the symbolic texture factory which always produces nulls for texture creation. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="181" column="16" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="181" declcolumn="16"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1a59707edd062d9411ba74a3a6c17f0248" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="class_texture_factory" kindref="compound">TextureFactory</ref> *</type>
+        <definition>TextureFactory* get_stub_tex_factory</definition>
+        <argsstring>()</argsstring>
+        <name>get_stub_tex_factory</name>
+        <briefdescription>
+<para>Gets the stub texture factory which always produces stub 1x1 textures. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="184" column="16" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="184" declcolumn="16"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1a683e84903e54dc7315f3f9b67417dadf" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void init_managed_textures_streaming_support</definition>
+        <argsstring>(int reload_jobmgr_id=-2)</argsstring>
+        <name>init_managed_textures_streaming_support</name>
+        <param>
+          <type>int</type>
+          <declname>reload_jobmgr_id</declname>
+          <defval>-2</defval>
+        </param>
+        <briefdescription>
+<para>Init data and callbacks to support streaming. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Settings are taken from dgs_get_settings()-&gt;getBlockByName(&quot;texStreaming&quot;). <simplesect kind="note"><para>reload_jobmgr_id=-2 means auto creation of jobmanager, reload_jobmgr_id=-1 means no jobmanager </para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>rload_jobmgr_id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Either -1 or -2, controls whether to create a job manager for texture streaming </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="191" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="191" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1a096f66638e2dc26021525fc86342eed2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool is_managed_textures_streaming_active</definition>
+        <argsstring>()</argsstring>
+        <name>is_managed_textures_streaming_active</name>
+        <briefdescription>
+<para>Checks whether texture streaming is inited and active. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para><computeroutput>true</computeroutput> if texture streaming is active, <computeroutput>false</computeroutput> otherwise </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="195" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="195" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1a1423644b5f3047b6f83f0dec18b479a8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool is_managed_textures_streaming_load_on_demand</definition>
+        <argsstring>()</argsstring>
+        <name>is_managed_textures_streaming_load_on_demand</name>
+        <briefdescription>
+<para>Checks whether texture streaming loads textures only when used. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para><computeroutput>true</computeroutput> if texture streaming is load-on-demand, <computeroutput>false</computeroutput> otherwise </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="198" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="198" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1ab69ccc33b0b889a6fa192ffa5805fdf7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool is_managed_texture_incomplete</definition>
+        <argsstring>(TEXTUREID id)</argsstring>
+        <name>is_managed_texture_incomplete</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Checks whether the specified texture is split BQ/HQ with missing HQ part. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the texture to check </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><computeroutput>true</computeroutput> if the texture is missing HQ part, <computeroutput>false</computeroutput> otherwise </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="203" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="203" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1acfcd91bd72cdf0422a8bd29d97b5c04d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void load_anisotropy_from_settings</definition>
+        <argsstring>()</argsstring>
+        <name>load_anisotropy_from_settings</name>
+        <briefdescription>
+<para>Re-loads anisotropy config from settings. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="206" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="206" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1a258007979db02946c29a87c5703ca5c5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void add_anisotropy_exception</definition>
+        <argsstring>(TEXTUREID id)</argsstring>
+        <name>add_anisotropy_exception</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Marks that a texture&apos;s anisotropy should not be changed automatically. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the texture to mark </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="210" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="210" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1a7ccd087454be46df74b63ed70f8ad1ab" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void reset_anisotropy</definition>
+        <argsstring>(const char *tex_name_filter=nullptr)</argsstring>
+        <name>reset_anisotropy</name>
+        <param>
+          <type>const char *</type>
+          <declname>tex_name_filter</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+<para>Resets anisotropy for all textures whose name contains <computeroutput>tex_name_filter</computeroutput> as a substring. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>tex_name_filter</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Substring filter to match texture names </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="215" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="215" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1a14789e775e6e63f0a8a63a72c8c73f8f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool prefetch_and_check_managed_texture_loaded</definition>
+        <argsstring>(TEXTUREID id, bool fq_loaded=false)</argsstring>
+        <name>prefetch_and_check_managed_texture_loaded</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>fq_loaded</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+<para>Attempts to load the texture for usage on the current frame and simply checks for immediate success. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the texture to load and check </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>fq_loaded</parametername>
+</parameternamelist>
+<parameterdescription>
+<para><computeroutput>true</computeroutput> to check for full quality, <computeroutput>false</computeroutput> for any quality </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><computeroutput>true</computeroutput> if the texture is loaded, <computeroutput>false</computeroutput> otherwise </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="221" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" bodystart="221" bodyend="228"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1aaf2198403a15f5c207b4ae3ade24e753" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool prefetch_and_check_managed_textures_loaded</definition>
+        <argsstring>(dag::ConstSpan&lt; TEXTUREID &gt; tex_list, bool fq_loaded=false)</argsstring>
+        <name>prefetch_and_check_managed_textures_loaded</name>
+        <param>
+          <type>dag::ConstSpan&lt; TEXTUREID &gt;</type>
+          <declname>tex_list</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>fq_loaded</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+<para>Attempts to load multiple textures for usage on the current frame and check for immediate success. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>tex_list</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>List of texture IDs to load and check </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>fq_loaded</parametername>
+</parameternamelist>
+<parameterdescription>
+<para><computeroutput>true</computeroutput> to check for full quality, <computeroutput>false</computeroutput> for any quality </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><computeroutput>true</computeroutput> if all textures are loaded, <computeroutput>false</computeroutput> otherwise </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="234" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="234" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1a65a211a88b66af68df09d2c69b02644a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void prefetch_and_wait_managed_textures_loaded</definition>
+        <argsstring>(dag::ConstSpan&lt; TEXTUREID &gt; tex_list, bool fq_loaded=false)</argsstring>
+        <name>prefetch_and_wait_managed_textures_loaded</name>
+        <param>
+          <type>dag::ConstSpan&lt; TEXTUREID &gt;</type>
+          <declname>tex_list</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>fq_loaded</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+<para>Synchronously loads a list of textures, blocking the current thread until all textures are loaded. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>tex_list</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>List of texture IDs to load </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>fq_loaded</parametername>
+</parameternamelist>
+<parameterdescription>
+<para><computeroutput>true</computeroutput> to wait for full quality, <computeroutput>false</computeroutput> for any quality </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="239" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="239" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1a49ce59e321d31694ce44d606598a4b19" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID iterate_all_managed_textures</definition>
+        <argsstring>(TEXTUREID after_tid, int min_ref_count)</argsstring>
+        <name>iterate_all_managed_textures</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>after_tid</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>min_ref_count</declname>
+        </param>
+        <briefdescription>
+<para>Utility for iterating all managed textures. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Managed textures form a linked list, so for an arbitrary ID, this function returns the &quot;next&quot; ID in the list. Hence one is supposed to call this function in a loop until it returns BAD_TEXTUREID. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>after_tid</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the texture to get the next texture for. Use BAD_TEXTUREID to start iteration. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>min_ref_count</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Minimum reference count filter </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Some ID that follows <computeroutput>after_tid</computeroutput> and has refCount &gt;= <computeroutput>min_ref_count</computeroutput> OR BAD_TEXTUREID if the iteration is done. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="247" column="11" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="247" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1a814ec29bfa6374bc3f6c0f5747ce4203" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID get_max_managed_texture_id</definition>
+        <argsstring>()</argsstring>
+        <name>get_max_managed_texture_id</name>
+        <briefdescription>
+<para>Access to the highest valid texture ID for storing properties of managed textures in arrays. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>Highest valid texture ID </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="268" column="11" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="268" declcolumn="11"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1aba5db10640f5e378f0cd517a8ccf3c0e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool is_managed_texture_id_valid</definition>
+        <argsstring>(TEXTUREID tid, bool validate_value)</argsstring>
+        <name>is_managed_texture_id_valid</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>tid</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>validate_value</declname>
+        </param>
+        <briefdescription>
+<para>returns true when tid resembles texture ID and (optionally checked) contains valid value (non-BAD and has proper generation) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="271" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" bodystart="271" bodyend="276"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1af923347e7641cf299572a7c36dd0e5e6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>TextureMetaData</type>
+        <definition>TextureMetaData get_texture_meta_data</definition>
+        <argsstring>(TEXTUREID id)</argsstring>
+        <name>get_texture_meta_data</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Get texture meta data. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the texture to get the meta data for </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="288" column="17" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="288" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1a725d6655c2fe6154e3387b698420290c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>d3d::SamplerInfo</type>
+        <definition>d3d::SamplerInfo get_sampler_info</definition>
+        <argsstring>(const TextureMetaData &amp;texture_meta_data, bool force_addr_from_tmd=true)</argsstring>
+        <name>get_sampler_info</name>
+        <param>
+          <type>const TextureMetaData &amp;</type>
+          <declname>texture_meta_data</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>force_addr_from_tmd</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+<para>Get a sampler info structure from texture meta data. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="291" column="18" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="291" declcolumn="18"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1ad587d87ea78813000789b9a8837dc333" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>d3d::SamplerHandle</type>
+        <definition>d3d::SamplerHandle get_texture_separate_sampler</definition>
+        <argsstring>(TEXTUREID id)</argsstring>
+        <name>get_texture_separate_sampler</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Returns separate sampler for the texture ID. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the texture to get the sampler for </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Sampler handle for the texture. If no separate sampler is set, returns invalid handle </para>
+</simplesect>
+<simplesect kind="note"><para>Returned sampler must not be destroyed </para>
+</simplesect>
+<simplesect kind="note"><para>The function is not thread-safe, and the caller must ensure that there are no concurrent setters for this texture ID </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="298" column="20" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="298" declcolumn="20"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1accbedd67115d72eedce1b8c370cae944" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool set_texture_separate_sampler</definition>
+        <argsstring>(TEXTUREID id, const d3d::SamplerInfo &amp;sampler_info)</argsstring>
+        <name>set_texture_separate_sampler</name>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>const d3d::SamplerInfo &amp;</type>
+          <declname>sampler_info</declname>
+        </param>
+        <briefdescription>
+<para>Sets separate sampler for the texture ID. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the texture to set the sampler for </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sampler_info</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Sampler info for sampler to set </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><computeroutput>true</computeroutput> if the sampler was set successfully, <computeroutput>false</computeroutput> otherwise </para>
+</simplesect>
+<simplesect kind="note"><para>Calling a function for the same texture ID is not thread-safe </para>
+</simplesect>
+<simplesect kind="note"><para>Calling a function for different texture IDs is thread-safe </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="306" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="306" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex_mgr_8h_1acb049d298c8d0b2c1aeeea8e905e9b01" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void set_add_lod_bias_batch</definition>
+        <argsstring>(dag::Span&lt; const LODBiasRule &gt; rules)</argsstring>
+        <name>set_add_lod_bias_batch</name>
+        <param>
+          <type>dag::Span&lt; const <ref refid="struct_l_o_d_bias_rule" kindref="compound">LODBiasRule</ref> &gt;</type>
+          <declname>rules</declname>
+        </param>
+        <briefdescription>
+<para>Sets the LOD bias for a batch of substring-bias pairs. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>rules</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A span of <ref refid="struct_l_o_d_bias_rule" kindref="compound">LODBiasRule</ref> objects containing substring and LOD bias pairs. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="316" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" declline="316" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_texMetaData.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_samplerHandle.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_sampler.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__res_mgr_8h" kindref="compound">3d/dag_resMgr.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_tabFwd.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal">D3DRESID<sp/>register_managed_tex(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/>BaseTexture<sp/>*res);</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_managed_tex_factory_set(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__res_mgr_8h_1a00376763cbffd50bbafa7ffb914f8019" kindref="member">is_managed_res_factory_set</ref>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="20"><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*get_managed_texture_name(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__res_mgr_8h_1a39745bdfe3d074107fb73637658dfab2" kindref="member">get_managed_res_name</ref>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="22"><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>D3DRESID<sp/>get_managed_texture_id(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*res_name)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__res_mgr_8h_1ad6b6c88dd810e84135a270f581fb428d" kindref="member">get_managed_res_id</ref>(res_name);<sp/>}</highlight></codeline>
+<codeline lineno="24"><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>get_managed_texture_refcount(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__res_mgr_8h_1ae30a8b0240bc0b61cd2001469c426869" kindref="member">get_managed_res_refcount</ref>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="26"><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>enable_tex_mgr_mt(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>enable,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>max_res_entry_count)<sp/>{<sp/><ref refid="dag__res_mgr_8h_1ac2afa95673d861e463f1f87e45a4926b" kindref="member">enable_res_mgr_mt</ref>(enable,<sp/>max_res_entry_count);<sp/>}</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29" refid="class_texture_factory" refkind="compound"><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="class_texture_factory" kindref="compound">TextureFactory</ref></highlight></codeline>
+<codeline lineno="30"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><ref refid="class_texture_factory" kindref="compound">TextureFactory</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><ref refid="class_texture_factory" kindref="compound">TextureFactory</ref>(<ref refid="class_texture_factory" kindref="compound">TextureFactory</ref><sp/>&amp;&amp;)<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><ref refid="class_texture_factory" kindref="compound">TextureFactory</ref><sp/>&amp;operator=(<ref refid="class_texture_factory" kindref="compound">TextureFactory</ref><sp/>&amp;&amp;)<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/>~<ref refid="class_texture_factory" kindref="compound">TextureFactory</ref>()<sp/>{}</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40" refid="class_texture_factory_1ae3df6c2cef23d878c4bbaeea4134e094" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/>BaseTexture<sp/>*<ref refid="class_texture_factory_1ae3df6c2cef23d878c4bbaeea4134e094" kindref="member">createTexture</ref>(TEXTUREID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45" refid="class_texture_factory_1aae54b99b3f39bfd9db4ac6db413b2ba5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="class_texture_factory_1aae54b99b3f39bfd9db4ac6db413b2ba5" kindref="member">releaseTexture</ref>(BaseTexture<sp/>*texture,<sp/>TEXTUREID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48" refid="class_texture_factory_1a35553694ce8e200f6e184dca44fa548f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="class_texture_factory_1a35553694ce8e200f6e184dca44fa548f" kindref="member">texFactoryActiveChanged</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/></highlight><highlight class="comment">/*active*/</highlight><highlight class="normal">)<sp/>{}</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55" refid="class_texture_factory_1a9a87bde42bc3fa4396e3d7edb5408484" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="class_texture_factory_1a9a87bde42bc3fa4396e3d7edb5408484" kindref="member">scheduleTexLoading</ref>(TEXTUREID<sp/></highlight><highlight class="comment">/*id*/</highlight><highlight class="normal">,<sp/><ref refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eb" kindref="member">TexQL</ref><sp/></highlight><highlight class="comment">/*req_ql*/</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight></codeline>
+<codeline lineno="62" refid="class_texture_factory_1a1e9079ab0224c130a5c3826521be9560" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="class_texture_factory_1a1e9079ab0224c130a5c3826521be9560" kindref="member">getTextureDDSx</ref>(TEXTUREID<sp/></highlight><highlight class="comment">/*id*/</highlight><highlight class="normal">,<sp/>Tab&lt;char&gt;<sp/>&amp;<sp/></highlight><highlight class="comment">/*out_ddsx*/</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66" refid="class_texture_factory_1acaecb96963eca51a5c0706eeb195492c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="class_texture_factory_1acaecb96963eca51a5c0706eeb195492c" kindref="member">onUnregisterTexture</ref>(TEXTUREID<sp/></highlight><highlight class="comment">/*id*/</highlight><highlight class="normal">)<sp/>{}</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71" refid="class_texture_factory_1a2add0cedfa660000e44b1ea0e0f6e513" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="class_texture_factory_1a2add0cedfa660000e44b1ea0e0f6e513" kindref="member">isPersistentTexName</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<sp/></highlight><highlight class="comment">/*nm*/</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight></codeline>
+<codeline lineno="76" refid="class_texture_factory_1a2c4ab41edbc450fb91093cf54dc5bb6f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="class_texture_factory_1a2c4ab41edbc450fb91093cf54dc5bb6f" kindref="member">onTexFactoryDeleted</ref>(<ref refid="class_texture_factory" kindref="compound">TextureFactory</ref><sp/>*f);</highlight></codeline>
+<codeline lineno="77"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight></codeline>
+<codeline lineno="86"><highlight class="normal">TEXTUREID<sp/>add_managed_texture(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/><ref refid="class_texture_factory" kindref="compound">TextureFactory</ref><sp/>*factory<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal">TEXTUREID<sp/>add_managed_array_texture(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/>dag::ConstSpan&lt;const<sp/>char<sp/>*&gt;<sp/>tex_slice_nm);</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight></codeline>
+<codeline lineno="102"><highlight class="normal">TEXTUREID<sp/>update_managed_array_texture(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/>dag::ConstSpan&lt;const<sp/>char<sp/>*&gt;<sp/>tex_slice_nm);</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>reload_managed_array_textures_for_changed_slice(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*slice_tex_name);</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"></highlight></codeline>
+<codeline lineno="115"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>evict_managed_tex_id(TEXTUREID<sp/>&amp;</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"></highlight></codeline>
+<codeline lineno="121"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>check_managed_texture_loaded(TEXTUREID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>fq_loaded<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"></highlight></codeline>
+<codeline lineno="130"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>check_all_managed_textures_loaded(dag::ConstSpan&lt;TEXTUREID&gt;<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>fq_loaded<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>ignore_unref_tex<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"></highlight></codeline>
+<codeline lineno="137"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>change_managed_texture(TEXTUREID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/>BaseTexture<sp/>*new_texture,<sp/><ref refid="class_texture_factory" kindref="compound">TextureFactory</ref><sp/>*factory<sp/>=<sp/>NULL);</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"></highlight></codeline>
+<codeline lineno="141"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>discard_unused_managed_texture(TEXTUREID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"></highlight></codeline>
+<codeline lineno="144"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>discard_unused_managed_textures();</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"></highlight></codeline>
+<codeline lineno="149"><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>mark_managed_tex_lfu(TEXTUREID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>req_lev<sp/>=<sp/>15)<sp/>{<sp/>D3dResManagerData::markResLFU(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/>req_lev);<sp/>}</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"></highlight></codeline>
+<codeline lineno="154"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>prefetch_managed_texture(TEXTUREID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"></highlight></codeline>
+<codeline lineno="159"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>prefetch_managed_textures(dag::ConstSpan&lt;TEXTUREID&gt;<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"></highlight></codeline>
+<codeline lineno="164"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>prefetch_managed_textures_by_textag(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>textag);</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"></highlight></codeline>
+<codeline lineno="170"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>mark_managed_textures_important(dag::ConstSpan&lt;TEXTUREID&gt;<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>add_importance<sp/>=<sp/>1,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>min_lev_for_dyn_decrease<sp/>=<sp/>16);</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"></highlight></codeline>
+<codeline lineno="173"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>reset_managed_textures_streaming_state();</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"></highlight></codeline>
+<codeline lineno="176"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set_default_tex_factory(<ref refid="class_texture_factory" kindref="compound">TextureFactory</ref><sp/>*tf);</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><ref refid="class_texture_factory" kindref="compound">TextureFactory</ref><sp/>*get_default_tex_factory();</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"></highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><ref refid="class_texture_factory" kindref="compound">TextureFactory</ref><sp/>*get_symbolic_tex_factory();</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"></highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><ref refid="class_texture_factory" kindref="compound">TextureFactory</ref><sp/>*get_stub_tex_factory();</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"></highlight></codeline>
+<codeline lineno="186"><highlight class="normal"></highlight></codeline>
+<codeline lineno="191"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>init_managed_textures_streaming_support(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>reload_jobmgr_id<sp/>=<sp/>-2);</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"></highlight></codeline>
+<codeline lineno="195"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_managed_textures_streaming_active();</highlight></codeline>
+<codeline lineno="198"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_managed_textures_streaming_load_on_demand();</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"></highlight></codeline>
+<codeline lineno="203"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_managed_texture_incomplete(TEXTUREID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"></highlight></codeline>
+<codeline lineno="206"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>load_anisotropy_from_settings();</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"></highlight></codeline>
+<codeline lineno="210"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>add_anisotropy_exception(TEXTUREID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"></highlight></codeline>
+<codeline lineno="215"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>reset_anisotropy(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*tex_name_filter<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"></highlight></codeline>
+<codeline lineno="221"><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>prefetch_and_check_managed_texture_loaded(TEXTUREID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>fq_loaded<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="222"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(check_managed_texture_loaded(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/>fq_loaded))</highlight></codeline>
+<codeline lineno="224"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="225"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>loaded<sp/>=<sp/>is_managed_textures_streaming_load_on_demand()<sp/>?<sp/>prefetch_managed_texture(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>:<sp/>false;</highlight></codeline>
+<codeline lineno="226"><highlight class="normal"><sp/><sp/>mark_managed_tex_lfu(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="227"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(loaded<sp/>&amp;&amp;<sp/>fq_loaded)<sp/>?<sp/>check_managed_texture_loaded(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/>fq_loaded)<sp/>:<sp/>loaded;</highlight></codeline>
+<codeline lineno="228"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"></highlight></codeline>
+<codeline lineno="234"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>prefetch_and_check_managed_textures_loaded(dag::ConstSpan&lt;TEXTUREID&gt;<sp/>tex_list,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>fq_loaded<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="235"><highlight class="normal"></highlight></codeline>
+<codeline lineno="239"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>prefetch_and_wait_managed_textures_loaded(dag::ConstSpan&lt;TEXTUREID&gt;<sp/>tex_list,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>fq_loaded<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="240"><highlight class="normal"></highlight></codeline>
+<codeline lineno="247"><highlight class="normal">TEXTUREID<sp/>iterate_all_managed_textures(TEXTUREID<sp/>after_tid,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>min_ref_count);</highlight></codeline>
+<codeline lineno="248"><highlight class="normal"></highlight></codeline>
+<codeline lineno="249"><highlight class="normal"></highlight></codeline>
+<codeline lineno="257"><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>TEXTUREID<sp/>first_managed_texture(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>min_rc<sp/>=<sp/>0)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>iterate_all_managed_textures(BAD_TEXTUREID,<sp/>min_rc);<sp/>}</highlight></codeline>
+<codeline lineno="258"><highlight class="normal"></highlight></codeline>
+<codeline lineno="263"><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>TEXTUREID<sp/>next_managed_texture(TEXTUREID<sp/>prev_id,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>min_rc<sp/>=<sp/>0)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>iterate_all_managed_textures(prev_id,<sp/>min_rc);<sp/>}</highlight></codeline>
+<codeline lineno="265"></codeline>
+<codeline lineno="268"><highlight class="normal">TEXTUREID<sp/>get_max_managed_texture_id();</highlight></codeline>
+<codeline lineno="269"><highlight class="normal"></highlight></codeline>
+<codeline lineno="271"><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_managed_texture_id_valid(TEXTUREID<sp/>tid,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>validate_value)</highlight></codeline>
+<codeline lineno="272"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="273"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!tid.checkMarkerBit())</highlight></codeline>
+<codeline lineno="274"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="275"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>validate_value<sp/>?<sp/>D3dResManagerData::isValidID(tid,<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">)<sp/>:<sp/>true;</highlight></codeline>
+<codeline lineno="276"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="277"><highlight class="normal"></highlight></codeline>
+<codeline lineno="280"><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>dgs_tex_quality;</highlight></codeline>
+<codeline lineno="281"><highlight class="normal"></highlight></codeline>
+<codeline lineno="284"><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>dgs_tex_anisotropy;</highlight></codeline>
+<codeline lineno="285"><highlight class="normal"></highlight></codeline>
+<codeline lineno="288"><highlight class="normal">TextureMetaData<sp/>get_texture_meta_data(TEXTUREID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="289"><highlight class="normal"></highlight></codeline>
+<codeline lineno="291"><highlight class="normal">d3d::SamplerInfo<sp/>get_sampler_info(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TextureMetaData<sp/>&amp;texture_meta_data,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>force_addr_from_tmd<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="292"><highlight class="normal"></highlight></codeline>
+<codeline lineno="298"><highlight class="normal">d3d::SamplerHandle<sp/>get_texture_separate_sampler(TEXTUREID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="299"><highlight class="normal"></highlight></codeline>
+<codeline lineno="306"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_texture_separate_sampler(TEXTUREID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>d3d::SamplerInfo<sp/>&amp;sampler_info);</highlight></codeline>
+<codeline lineno="307"><highlight class="normal"></highlight></codeline>
+<codeline lineno="308" refid="struct_l_o_d_bias_rule" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="struct_l_o_d_bias_rule" kindref="compound">LODBiasRule</ref></highlight></codeline>
+<codeline lineno="309"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="310"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*substring;</highlight></codeline>
+<codeline lineno="311"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>bias;</highlight></codeline>
+<codeline lineno="312"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="313"><highlight class="normal"></highlight></codeline>
+<codeline lineno="316"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set_add_lod_bias_batch(dag::Span&lt;const<sp/>LODBiasRule&gt;<sp/>rules);</highlight></codeline>
+    </programlisting>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h"/>
+  </compounddef>
+</doxygen>

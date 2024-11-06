@@ -1,0 +1,88 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_resource_checker" kind="struct" language="C++" prot="public">
+    <compoundname>ResourceChecker</compoundname>
+    <derivedcompoundref refid="class_sbuffer" prot="public" virt="non-virtual">Sbuffer</derivedcompoundref>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="struct_resource_checker_1a9971dd4d9a644cf5e4058e7e7449f62e" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ResourceChecker::init</definition>
+        <argsstring>()</argsstring>
+        <name>init</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resourceChecker.h" line="18" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resourceChecker.h" bodystart="18" bodyend="18"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_resource_checker_1abbf9b09586f85ea42cc8ce2aafdf707c" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ResourceChecker::report</definition>
+        <argsstring>()</argsstring>
+        <name>report</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resourceChecker.h" line="19" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resourceChecker.h" bodystart="19" bodyend="19"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="struct_resource_checker_1ad215aec9f64927578acd086814e7c5b8" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ResourceChecker::checkLockParams</definition>
+        <argsstring>(uint32_t offset, uint32_t size, int flags, int bufFlags)</argsstring>
+        <name>checkLockParams</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>offset</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>size</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flags</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>bufFlags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resourceChecker.h" line="22" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resourceChecker.h" bodystart="22" bodyend="46"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>Sbuffer</label>
+        <link refid="class_sbuffer"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ResourceChecker</label>
+        <link refid="struct_resource_checker"/>
+      </node>
+    </inheritancegraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resourceChecker.h" line="11" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_resourceChecker.h" bodystart="12" bodyend="54"/>
+    <listofallmembers>
+      <member refid="struct_resource_checker_1ad215aec9f64927578acd086814e7c5b8" prot="protected" virt="non-virtual"><scope>ResourceChecker</scope><name>checkLockParams</name></member>
+      <member refid="struct_resource_checker_1a9971dd4d9a644cf5e4058e7e7449f62e" prot="public" virt="non-virtual"><scope>ResourceChecker</scope><name>init</name></member>
+      <member refid="struct_resource_checker_1abbf9b09586f85ea42cc8ce2aafdf707c" prot="public" virt="non-virtual"><scope>ResourceChecker</scope><name>report</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

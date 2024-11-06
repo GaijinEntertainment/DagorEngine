@@ -1,0 +1,130 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_view_proj_matrix_container" kind="struct" language="C++" prot="public">
+    <compoundname>ViewProjMatrixContainer</compoundname>
+    <derivedcompoundref refid="struct_scope_view_proj_matrix" prot="public" virt="non-virtual">ScopeViewProjMatrix</derivedcompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_view_proj_matrix_container_1a9250941812279f3ab0353dffcb759dfa" prot="public" static="no" mutable="no">
+        <type>TMatrix</type>
+        <definition>TMatrix ViewProjMatrixContainer::savedView</definition>
+        <argsstring></argsstring>
+        <name>savedView</name>
+        <initializer>= TMatrix::IDENT</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="190" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="190" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_view_proj_matrix_container_1aa17f3b02bbe31d620efe1d245b3077aa" prot="public" static="no" mutable="no">
+        <type>TMatrix4</type>
+        <definition>TMatrix4 ViewProjMatrixContainer::savedProj</definition>
+        <argsstring></argsstring>
+        <name>savedProj</name>
+        <initializer>= TMatrix4::IDENT</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="191" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="191" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_view_proj_matrix_container_1a173f61b8e10c15aa6d16262f4ffd92d8" prot="public" static="no" mutable="no">
+        <type><ref refid="struct_driver3d_perspective" kindref="compound">Driver3dPerspective</ref></type>
+        <definition>Driver3dPerspective ViewProjMatrixContainer::p</definition>
+        <argsstring></argsstring>
+        <name>p</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="192" column="23" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="192" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_view_proj_matrix_container_1a74538f629fde4e2e765ea17450c48f75" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ViewProjMatrixContainer::p_ok</definition>
+        <argsstring></argsstring>
+        <name>p_ok</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="193" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="193" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="struct_view_proj_matrix_container_1a244d272229fd3e1ae31c6727e363bbab" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TMatrix &amp;</type>
+        <definition>const TMatrix&amp; ViewProjMatrixContainer::getViewTm</definition>
+        <argsstring>() const</argsstring>
+        <name>getViewTm</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="187" column="17" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="187" bodyend="187"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_view_proj_matrix_container_1a5e3c134cb746c4dd4f3904dc7a23f196" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TMatrix4 &amp;</type>
+        <definition>const TMatrix4&amp; ViewProjMatrixContainer::getProjTm</definition>
+        <argsstring>() const</argsstring>
+        <name>getProjTm</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="188" column="18" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="188" bodyend="188"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>ViewProjMatrixContainer</label>
+        <link refid="struct_view_proj_matrix_container"/>
+      </node>
+      <node id="2">
+        <label>ScopeViewProjMatrix</label>
+        <link refid="struct_scope_view_proj_matrix"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>Driver3dPerspective</label>
+        <link refid="struct_driver3d_perspective"/>
+      </node>
+      <node id="1">
+        <label>ViewProjMatrixContainer</label>
+        <link refid="struct_view_proj_matrix_container"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>p</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="185" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="186" bodyend="194"/>
+    <listofallmembers>
+      <member refid="struct_view_proj_matrix_container_1a5e3c134cb746c4dd4f3904dc7a23f196" prot="public" virt="non-virtual"><scope>ViewProjMatrixContainer</scope><name>getProjTm</name></member>
+      <member refid="struct_view_proj_matrix_container_1a244d272229fd3e1ae31c6727e363bbab" prot="public" virt="non-virtual"><scope>ViewProjMatrixContainer</scope><name>getViewTm</name></member>
+      <member refid="struct_view_proj_matrix_container_1a173f61b8e10c15aa6d16262f4ffd92d8" prot="public" virt="non-virtual"><scope>ViewProjMatrixContainer</scope><name>p</name></member>
+      <member refid="struct_view_proj_matrix_container_1a74538f629fde4e2e765ea17450c48f75" prot="public" virt="non-virtual"><scope>ViewProjMatrixContainer</scope><name>p_ok</name></member>
+      <member refid="struct_view_proj_matrix_container_1aa17f3b02bbe31d620efe1d245b3077aa" prot="public" virt="non-virtual"><scope>ViewProjMatrixContainer</scope><name>savedProj</name></member>
+      <member refid="struct_view_proj_matrix_container_1a9250941812279f3ab0353dffcb759dfa" prot="public" virt="non-virtual"><scope>ViewProjMatrixContainer</scope><name>savedView</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

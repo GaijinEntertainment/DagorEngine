@@ -1,0 +1,541 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="group___heap_d3_d" kind="group">
+    <compoundname>HeapD3D</compoundname>
+    <title>HeapD3D</title>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="group___heap_d3_d_1ga74eda8748fd36b24aef174a817852158" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="struct_resource_allocation_properties" kindref="compound">ResourceAllocationProperties</ref></type>
+        <definition>ResourceAllocationProperties d3d::get_resource_allocation_properties</definition>
+        <argsstring>(const ResourceDescription &amp;desc)</argsstring>
+        <name>get_resource_allocation_properties</name>
+        <param>
+          <type>const <ref refid="struct_resource_description" kindref="compound">ResourceDescription</ref> &amp;</type>
+          <declname>desc</declname>
+        </param>
+        <briefdescription>
+<para>Retrieves the resource allocation properties for a given resource description. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>desc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The resource description. Resource descriptions that would describe a resource with one or more of its dimensions being 0 will result in an error. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The resource allocation properties. On error sizeInBytes field of the returned value will be 0. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="357" column="30" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" declline="357" declcolumn="30"/>
+      </memberdef>
+      <memberdef kind="function" id="group___heap_d3_d_1gac36619884aaa62ab903c24930d4baf86" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ResourceHeap *</type>
+        <definition>ResourceHeap* d3d::create_resource_heap</definition>
+        <argsstring>(ResourceHeapGroup *heap_group, size_t size, ResourceHeapCreateFlags flags)</argsstring>
+        <name>create_resource_heap</name>
+        <param>
+          <type>ResourceHeapGroup *</type>
+          <declname>heap_group</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>size</declname>
+        </param>
+        <param>
+          <type>ResourceHeapCreateFlags</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+<para>Creates a resource heap with the specified size and flags. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>heap_group</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The resource heap group. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>size</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The size of the resource heap in bytes. A value of 0 is invalid and results in undefined behavior. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>flags</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The flags for creating the resource heap. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A pointer to the created resource heap. May be nullptr on error, like out of memory or invalid inputs. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="368" column="14" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" declline="368" declcolumn="14"/>
+      </memberdef>
+      <memberdef kind="function" id="group___heap_d3_d_1ga3f17897004713db3b260104f811fac38" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d::destroy_resource_heap</definition>
+        <argsstring>(ResourceHeap *heap)</argsstring>
+        <name>destroy_resource_heap</name>
+        <param>
+          <type>ResourceHeap *</type>
+          <declname>heap</declname>
+        </param>
+        <briefdescription>
+<para>Destroys a resource heap. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>heap</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The resource heap to destroy. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="375" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" declline="375" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="group___heap_d3_d_1gad8a9b4cd184af239aea4f8f94d0fe74d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* d3d::place_buffer_in_resource_heap</definition>
+        <argsstring>(ResourceHeap *heap, const ResourceDescription &amp;desc, size_t offset, const ResourceAllocationProperties &amp;alloc_info, const char *name)</argsstring>
+        <name>place_buffer_in_resource_heap</name>
+        <param>
+          <type>ResourceHeap *</type>
+          <declname>heap</declname>
+        </param>
+        <param>
+          <type>const <ref refid="struct_resource_description" kindref="compound">ResourceDescription</ref> &amp;</type>
+          <declname>desc</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>offset</declname>
+        </param>
+        <param>
+          <type>const <ref refid="struct_resource_allocation_properties" kindref="compound">ResourceAllocationProperties</ref> &amp;</type>
+          <declname>alloc_info</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Places a buffer in a resource heap at the specified offset. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The heap group of heap has to match the heap group of alloc_info that was returned by get_resource_allocation_properties.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>heap</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The resource heap. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>desc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The resource description. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>offset</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The offset in the resource heap in bytes. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>alloc_info</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The resource allocation properties. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the buffer. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A pointer to the placed buffer. May be nullptr on error, like invalid inputs. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="390" column="9" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" declline="390" declcolumn="9"/>
+      </memberdef>
+      <memberdef kind="function" id="group___heap_d3_d_1ga386cc0aaee632b39d1575cffcc8a56dc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* d3d::place_texture_in_resource_heap</definition>
+        <argsstring>(ResourceHeap *heap, const ResourceDescription &amp;desc, size_t offset, const ResourceAllocationProperties &amp;alloc_info, const char *name)</argsstring>
+        <name>place_texture_in_resource_heap</name>
+        <param>
+          <type>ResourceHeap *</type>
+          <declname>heap</declname>
+        </param>
+        <param>
+          <type>const <ref refid="struct_resource_description" kindref="compound">ResourceDescription</ref> &amp;</type>
+          <declname>desc</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>offset</declname>
+        </param>
+        <param>
+          <type>const <ref refid="struct_resource_allocation_properties" kindref="compound">ResourceAllocationProperties</ref> &amp;</type>
+          <declname>alloc_info</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Places a texture in a resource heap at the specified offset. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The heap group of heap has to match the heap group of alloc_info that was returned by get_resource_allocation_properties.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>heap</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The resource heap. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>desc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The resource description. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>offset</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The offset in the resource heap in bytes. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>alloc_info</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The resource allocation properties. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the texture. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A pointer to the placed texture. May be nullptr on error, like invalid inputs. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="406" column="13" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" declline="406" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="group___heap_d3_d_1gaf0ae51e5486b049c6204482c7ec3d0f3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="struct_resource_heap_group_properties" kindref="compound">ResourceHeapGroupProperties</ref></type>
+        <definition>ResourceHeapGroupProperties d3d::get_resource_heap_group_properties</definition>
+        <argsstring>(ResourceHeapGroup *heap_group)</argsstring>
+        <name>get_resource_heap_group_properties</name>
+        <param>
+          <type>ResourceHeapGroup *</type>
+          <declname>heap_group</declname>
+        </param>
+        <briefdescription>
+<para>Retrieves the resource heap group properties for a given resource heap group. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="note"><para>Different groups may return identical values, this does not mean that the heap group is identical or can be substituted for each another. Heap groups represent purpose bound memory that may have device specific properties, that limit the use of a heap group for certain resource types.</para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>heap_group</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The resource heap group. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The resource heap group properties. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="420" column="29" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" declline="420" declcolumn="29"/>
+      </memberdef>
+      <memberdef kind="function" id="group___heap_d3_d_1ga128fdcfd86da452ab1b569991b3bb5e8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d::activate_buffer</definition>
+        <argsstring>(Sbuffer *buf, ResourceActivationAction action, const ResourceClearValue &amp;value={}, GpuPipeline gpu_pipeline=GpuPipeline::GRAPHICS)</argsstring>
+        <name>activate_buffer</name>
+        <param>
+          <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *</type>
+          <declname>buf</declname>
+        </param>
+        <param>
+          <type>ResourceActivationAction</type>
+          <declname>action</declname>
+        </param>
+        <param>
+          <type>const <ref refid="union_resource_clear_value" kindref="compound">ResourceClearValue</ref> &amp;</type>
+          <declname>value</declname>
+          <defval>{}</defval>
+        </param>
+        <param>
+          <type>GpuPipeline</type>
+          <declname>gpu_pipeline</declname>
+          <defval>GpuPipeline::GRAPHICS</defval>
+        </param>
+        <briefdescription>
+<para>Activates a buffer with the specified action and optional clear value. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Only activated placed buffer could be safely used. Using the buffer before being activated results in undefined behavior.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>buf</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The buffer to activate. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>action</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The activation action. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>value</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The clear value (optional). </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>gpu_pipeline</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The GPU pipeline to use (optional). </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="warning"><para>gpu_pipeline parameter doesn&apos;t work currently. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="433" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" declline="433" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="group___heap_d3_d_1gaaab49f2901a3be5d400072524fb899ad" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d::activate_texture</definition>
+        <argsstring>(BaseTexture *tex, ResourceActivationAction action, const ResourceClearValue &amp;value={}, GpuPipeline gpu_pipeline=GpuPipeline::GRAPHICS)</argsstring>
+        <name>activate_texture</name>
+        <param>
+          <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *</type>
+          <declname>tex</declname>
+        </param>
+        <param>
+          <type>ResourceActivationAction</type>
+          <declname>action</declname>
+        </param>
+        <param>
+          <type>const <ref refid="union_resource_clear_value" kindref="compound">ResourceClearValue</ref> &amp;</type>
+          <declname>value</declname>
+          <defval>{}</defval>
+        </param>
+        <param>
+          <type>GpuPipeline</type>
+          <declname>gpu_pipeline</declname>
+          <defval>GpuPipeline::GRAPHICS</defval>
+        </param>
+        <briefdescription>
+<para>Activates a texture with the specified action and optional clear value. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Only activated placed textures could be safely used. Using the texture before being activated results in undefined behavior.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>tex</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The texture to activate. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>action</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The activation action. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>value</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The clear value (optional). </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>gpu_pipeline</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The GPU pipeline to use (optional). </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="warning"><para>gpu_pipeline parameter doesn&apos;t work currently. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="447" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" declline="447" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="group___heap_d3_d_1ga091d80364b236ac72510a8dc9a55509d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d::deactivate_buffer</definition>
+        <argsstring>(Sbuffer *buf, GpuPipeline gpu_pipeline=GpuPipeline::GRAPHICS)</argsstring>
+        <name>deactivate_buffer</name>
+        <param>
+          <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *</type>
+          <declname>buf</declname>
+        </param>
+        <param>
+          <type>GpuPipeline</type>
+          <declname>gpu_pipeline</declname>
+          <defval>GpuPipeline::GRAPHICS</defval>
+        </param>
+        <briefdescription>
+<para>Deactivates a buffer with the specified GPU pipeline. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The method call is necessary to have a correct state of the resources on a heap. Using the buffer after being deactivated results in undefined behavior.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>buf</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The placed buffer to deactivate. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>gpu_pipeline</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The GPU pipeline to use (optional). </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="warning"><para>gpu_pipeline parameter doesn&apos;t work currently. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="460" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" declline="460" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="group___heap_d3_d_1ga75e759cf1d8dbc483d3162580be929c7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d::deactivate_texture</definition>
+        <argsstring>(BaseTexture *tex, GpuPipeline gpu_pipeline=GpuPipeline::GRAPHICS)</argsstring>
+        <name>deactivate_texture</name>
+        <param>
+          <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *</type>
+          <declname>tex</declname>
+        </param>
+        <param>
+          <type>GpuPipeline</type>
+          <declname>gpu_pipeline</declname>
+          <defval>GpuPipeline::GRAPHICS</defval>
+        </param>
+        <briefdescription>
+<para>Deactivates a texture with the specified GPU pipeline. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The method call is necessary to have a correct state of the resources on a heap. Using the texture after being deactivated results in undefined behavior.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>tex</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The placed texture to deactivate. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>gpu_pipeline</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The GPU pipeline to use (optional). </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="warning"><para>gpu_pipeline parameter doesn&apos;t work currently. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="472" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" declline="472" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+  </compounddef>
+</doxygen>

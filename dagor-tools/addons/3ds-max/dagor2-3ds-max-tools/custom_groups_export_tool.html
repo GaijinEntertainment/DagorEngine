@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dagor 2 Custom Groups Export Tool &mdash; Dagor Documentation  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/gaijin.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/sphinx_highlight.js"></script>
+        <script src="../../../../_static/js/hoverxref.js"></script>
+        <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+        <script src="../../../../_static/js/micromodal.min.js"></script>
+        <script src="../../../../_static/js/versionwarning.js"></script>
+        <script src="../../../../_static/clipboard.min.js"></script>
+        <script src="../../../../_static/copybutton.js"></script>
+        <script src="../../../../_static/design-tabs.js"></script>
+        <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Dagor Editing Normals Tool" href="editing_normals_tool.html" />
+    <link rel="prev" title="Dagor 2 Pivot Painter Vegetation Tool" href="pivot_painter_vegetation_tool.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/gaijin_round_blur.png" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                0.1.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api-references/index.html">API References and Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../samples/index.html">Samples</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../../blk/index.html">.blk Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../asset-viewer/index.html">Asset Viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../daeditor/index.html">daEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dag2rires/index.html">dag2riRes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../impostor-baker/index.html">Impostor Baker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../levels-deps/index.html">levels.deps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../resource-building/index.html">Resource Building</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../substance-designer/index.html">Substance Designer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Add-ons for Blender and 3ds Max</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../../blender/index.html">Add-ons for Blender</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../index.html">Add-ons for 3ds Max</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../dagor-max-tools/index.html">Dagor Max Tools</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../dagormat/index.html">DagorMat</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="index.html">Dagor 2 3ds Max Tools</a><ul class="current">
+<li class="toctree-l5"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l5"><a class="reference internal" href="damages_setup_tool.html">Dagor 2 Damages Setup Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="fix_normal_orientation_tool.html">Dagor 2 Fix Normal Orientation Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="fixing_illegal_characters.html">Dagor 2 Fixing Illegal Characters Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="fast_editor_user_properties.html">Dagor 2 Fast Editor User Properties</a></li>
+<li class="toctree-l5"><a class="reference internal" href="lods_and_collisions_generator.html">Dagor 2 LODs and Collisions Generator</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ambient_occlusion_baker.html">Dagor 2 Ambient Occlusion Baker</a></li>
+<li class="toctree-l5"><a class="reference internal" href="pivot_painter_vegetation_tool.html">Dagor 2 Pivot Painter Vegetation Tool</a></li>
+<li class="toctree-l5 current"><a class="current reference internal" href="#">Dagor 2 Custom Groups Export Tool</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#using-the-custom-groups-export-tool">Using the Custom Groups Export Tool</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#export-settings">Export Settings</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#naming-conventions">Naming Conventions</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#collision-settings">Collision Settings</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#additional-controls">Additional Controls</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="editing_normals_tool.html">Dagor Editing Normals Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="transfer_vertex_position_to_vertex_color_tool.html">Dagor 2 Transfer Vertex Position to Vertex Color Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="check_degenerated_faces_tool.html">Dagor 2 Check Degenerated Faces Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="simple_cmp_editor.html">Dagor 2 Simple CMP Editor</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../danetgame-framework/index.html">DaNetGame Framework</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Add-ons for Blender and 3ds Max</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Add-ons for 3ds Max</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Dagor 2 3ds Max Tools</a></li>
+      <li class="breadcrumb-item active">Dagor 2 Custom Groups Export Tool</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/dagor-tools/addons/3ds-max/dagor2-3ds-max-tools/custom_groups_export_tool.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="dagor-2-custom-groups-export-tool">
+<h1>Dagor 2 Custom Groups Export Tool<a class="headerlink" href="#dagor-2-custom-groups-export-tool" title="Permalink to this heading"></a></h1>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading"></a></h2>
+<p>The <strong>Dagor 2 Custom Groups Export Tool</strong> is a specialized script designed to
+prepare scenes for export, automating the process of saving multiple groups of
+objects with predefined properties into the <code class="docutils literal notranslate"><span class="pre">.dag</span></code> format. This script is not
+included in the <em>Dagor Tool</em> set, as it is tailored for a specific mode of
+object export.</p>
+<p>To install the script, simply drag and drop the <code class="docutils literal notranslate"><span class="pre">dagor2_export_custom_groups.ms</span></code>
+file located at <code class="docutils literal notranslate"><span class="pre">.../dagor2_toolbox/base</span></code> <strong>(0)</strong> into the active Viewport of
+<em>3ds Max</em> <strong>(1)</strong> (green marks on the picture below). This action will open the
+<em>Dagor Custom Batch Exporter</em> script window.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>This script requires <em>3ds Max 2013</em> or a newer version.</p>
+<p>Ensure that <em>Dagor Plugins</em> are installed before using this script.</p>
+</div>
+<p><img alt="Custom Groups Export Tool" src="../../../../_images/custom_group_exp_01.png" /></p>
+</section>
+<section id="using-the-custom-groups-export-tool">
+<h2>Using the Custom Groups Export Tool<a class="headerlink" href="#using-the-custom-groups-export-tool" title="Permalink to this heading"></a></h2>
+<p>The script provides several configurable settings:</p>
+<ul class="simple">
+<li><p><strong>Move to [0,0,0] (2):</strong> Moves selected objects to the coordinate center
+before export. After export, objects are returned to their original positions.</p></li>
+<li><p><strong>Reset XForm (3):</strong> Automatically resets the <em>XForm</em> on selected objects
+before export.</p></li>
+<li><p><strong>Convert to Editable Mesh (4):</strong> Converts selected objects to <strong>Editable
+Mesh</strong> before export.</p></li>
+<li><p><strong>Merge All Nodes (5):</strong> Merges all selected objects within groups into a
+single object and assigns the group name to this new object. If enabled, the
+log will only display a general summary for the group. If disabled, the log
+will detail which specific objects have degenerate triangles.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>These settings only apply during export. Once the export is complete, the scene
+will revert to its previous state.</p>
+</div>
+<section id="export-settings">
+<h3>Export Settings<a class="headerlink" href="#export-settings" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Format (6):</strong> Select the export format. The script is designed exclusively
+for the <em>Dagor Engine</em>, so only the <code class="docutils literal notranslate"><span class="pre">.dag</span></code> format is available.</p></li>
+<li><p><strong>Path (7):</strong> Displays previously saved export paths. These paths are
+automatically added when you select an export path using button <strong>… Export
+Path (8)</strong>.</p></li>
+<li><p>If checkbox <strong>Export to Max File Location (10)</strong> is enabled, list <strong>(7)</strong> and
+button <strong>(8)</strong> become unavailable. This option allows you to export to the
+directory where the current <code class="docutils literal notranslate"><span class="pre">.max</span></code> scene is saved.</p></li>
+<li><p>Clicking button <strong>Max Folder (9)</strong> opens the directory containing the current
+<code class="docutils literal notranslate"><span class="pre">.max</span></code> scene in <em>Windows Explorer</em>.</p></li>
+<li><p><strong>Show prompt before export (11):</strong> Enables the display of logs after export.
+Any errors or warnings encountered during export will be shown.</p></li>
+</ul>
+</section>
+<section id="naming-conventions">
+<h3>Naming Conventions<a class="headerlink" href="#naming-conventions" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Change Names (12):</strong> Enables the addition of prefixes and suffixes to the
+names of exported objects. You can specify the prefix and suffix in text
+fields <strong>(14)</strong> and <strong>(13)</strong>, respectively. For example, if the object name is
+<code class="docutils literal notranslate"><span class="pre">OBJ_01</span></code>, by default, only the suffix <code class="docutils literal notranslate"><span class="pre">.lod00</span></code> will be applied, resulting in
+the final file name <code class="docutils literal notranslate"><span class="pre">OBJ_01.lod00.dag</span></code>.</p></li>
+</ul>
+</section>
+<section id="collision-settings">
+<h3>Collision Settings<a class="headerlink" href="#collision-settings" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Collision Settings</strong> block allows you to export collision objects based on a
+prefix specified in text field <strong>(16)</strong>. To enable this function, check
+checkbox <strong>(15)</strong>. The script will search for collision objects in the scene
+that match the prefix (default: <code class="docutils literal notranslate"><span class="pre">Cls_</span></code>) specified in field <strong>(16)</strong>. If found,
+these objects will be included in the export. Otherwise, they will be exported
+as normal objects.</p></li>
+</ul>
+</section>
+<section id="additional-controls">
+<h3>Additional Controls<a class="headerlink" href="#additional-controls" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Export Selection (17):</strong> Initiates the export process. Ensure that at least
+one object with triangles is selected in the scene before proceeding.</p></li>
+<li><p><strong>Visit to Learning Web Site (18):</strong> Opens a browser window with this
+documentation.</p></li>
+<li><p><strong>Contact with Developer (19):</strong> Displays the contact information for the
+script developer.</p></li>
+</ul>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="pivot_painter_vegetation_tool.html" class="btn btn-neutral float-left" title="Dagor 2 Pivot Painter Vegetation Tool" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="editing_normals_tool.html" class="btn btn-neutral float-right" title="Dagor Editing Normals Tool" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2024.
+      <span class="lastupdated">Last updated on Nov 06, 2024.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+ <script type="text/javascript">
+    $(document).ready(function() {
+        $(".toggle > *").hide();
+        $(".toggle .header").show();
+        $(".toggle .header").click(function() {
+            $(this).parent().children().not(".header").toggle(400);
+            $(this).parent().children(".header").toggleClass("open");
+        })
+    });
+</script>
+
+
+</body>
+</html>

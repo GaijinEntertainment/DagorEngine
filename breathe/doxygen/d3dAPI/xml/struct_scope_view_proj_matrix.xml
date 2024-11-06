@@ -1,0 +1,81 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_scope_view_proj_matrix" kind="struct" language="C++" prot="public">
+    <compoundname>ScopeViewProjMatrix</compoundname>
+    <basecompoundref refid="struct_view_proj_matrix_container" prot="public" virt="non-virtual">ViewProjMatrixContainer</basecompoundref>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="struct_scope_view_proj_matrix_1ac8ad93932cd609f4eae88fcb73dd55b0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ScopeViewProjMatrix::ScopeViewProjMatrix</definition>
+        <argsstring>()</argsstring>
+        <name>ScopeViewProjMatrix</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="198" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="198" bodyend="198"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_scope_view_proj_matrix_1af4e92bbc054cb0f8e3dc23e6f1af2ddf" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ScopeViewProjMatrix::~ScopeViewProjMatrix</definition>
+        <argsstring>()</argsstring>
+        <name>~ScopeViewProjMatrix</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="199" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="199" bodyend="199"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ViewProjMatrixContainer</label>
+        <link refid="struct_view_proj_matrix_container"/>
+      </node>
+      <node id="1">
+        <label>ScopeViewProjMatrix</label>
+        <link refid="struct_scope_view_proj_matrix"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="3">
+        <label>Driver3dPerspective</label>
+        <link refid="struct_driver3d_perspective"/>
+      </node>
+      <node id="2">
+        <label>ViewProjMatrixContainer</label>
+        <link refid="struct_view_proj_matrix_container"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>p</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ScopeViewProjMatrix</label>
+        <link refid="struct_scope_view_proj_matrix"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="196" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="197" bodyend="200"/>
+    <listofallmembers>
+      <member refid="struct_view_proj_matrix_container_1a5e3c134cb746c4dd4f3904dc7a23f196" prot="public" virt="non-virtual"><scope>ScopeViewProjMatrix</scope><name>getProjTm</name></member>
+      <member refid="struct_view_proj_matrix_container_1a244d272229fd3e1ae31c6727e363bbab" prot="public" virt="non-virtual"><scope>ScopeViewProjMatrix</scope><name>getViewTm</name></member>
+      <member refid="struct_view_proj_matrix_container_1a173f61b8e10c15aa6d16262f4ffd92d8" prot="public" virt="non-virtual"><scope>ScopeViewProjMatrix</scope><name>p</name></member>
+      <member refid="struct_view_proj_matrix_container_1a74538f629fde4e2e765ea17450c48f75" prot="public" virt="non-virtual"><scope>ScopeViewProjMatrix</scope><name>p_ok</name></member>
+      <member refid="struct_view_proj_matrix_container_1aa17f3b02bbe31d620efe1d245b3077aa" prot="public" virt="non-virtual"><scope>ScopeViewProjMatrix</scope><name>savedProj</name></member>
+      <member refid="struct_view_proj_matrix_container_1a9250941812279f3ab0353dffcb759dfa" prot="public" virt="non-virtual"><scope>ScopeViewProjMatrix</scope><name>savedView</name></member>
+      <member refid="struct_scope_view_proj_matrix_1ac8ad93932cd609f4eae88fcb73dd55b0" prot="public" virt="non-virtual"><scope>ScopeViewProjMatrix</scope><name>ScopeViewProjMatrix</name></member>
+      <member refid="struct_scope_view_proj_matrix_1af4e92bbc054cb0f8e3dc23e6f1af2ddf" prot="public" virt="non-virtual"><scope>ScopeViewProjMatrix</scope><name>~ScopeViewProjMatrix</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

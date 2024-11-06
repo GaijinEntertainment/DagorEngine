@@ -1,0 +1,115 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structresource__slot_1_1_update" kind="struct" language="C++" prot="public">
+    <compoundname>resource_slot::Update</compoundname>
+    <includes refid="actions_8h" local="no">actions.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structresource__slot_1_1_update_1ab13e0a43ec440fd7f685d838381de475" prot="public" static="no" mutable="no">
+        <type>::resource_slot::detail::SlotId</type>
+        <definition>::resource_slot::detail::SlotId resource_slot::Update::slot</definition>
+        <argsstring></argsstring>
+        <name>slot</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/actions.h" line="51" column="35" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/actions.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structresource__slot_1_1_update_1a8f622e08f61e11f0b7b2a8d846a6eda6" prot="public" static="no" mutable="no">
+        <type>::resource_slot::detail::ResourceId</type>
+        <definition>::resource_slot::detail::ResourceId resource_slot::Update::resource</definition>
+        <argsstring></argsstring>
+        <name>resource</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/actions.h" line="52" column="39" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/actions.h" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structresource__slot_1_1_update_1ac8641f37acb487c4610aca2f80dbdb7c" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int resource_slot::Update::priority</definition>
+        <argsstring></argsstring>
+        <name>priority</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/actions.h" line="53" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/actions.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structresource__slot_1_1_update_1a912d02a74981cadaefc459b69c2b22ce" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>resource_slot::Update::Update</definition>
+        <argsstring>(const char *slot_name, const char *resource_name, int update_priority)</argsstring>
+        <name>Update</name>
+        <param>
+          <type>const char *</type>
+          <declname>slot_name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>resource_name</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>update_priority</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Constructor</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>slot_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>name of the slot </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>resource_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>name of the resource, that MUST be created in current node and WILL be saved into slot for using after the node </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>update_priority</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>priority of update, nodes with HIGHER priority will be scheduled AFTER nodes with LOWER priority </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/actions.h" line="49" column="3"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para><ref refid="structresource__slot_1_1_update" kindref="compound">Update</ref> request</para>
+<para>Requested slot CAN be read in the node and declared resource MUST be created in the node </para>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/actions.h" line="37" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/actions.h" bodystart="38" bodyend="54"/>
+    <listofallmembers>
+      <member refid="structresource__slot_1_1_update_1ac8641f37acb487c4610aca2f80dbdb7c" prot="public" virt="non-virtual"><scope>resource_slot::Update</scope><name>priority</name></member>
+      <member refid="structresource__slot_1_1_update_1a8f622e08f61e11f0b7b2a8d846a6eda6" prot="public" virt="non-virtual"><scope>resource_slot::Update</scope><name>resource</name></member>
+      <member refid="structresource__slot_1_1_update_1ab13e0a43ec440fd7f685d838381de475" prot="public" virt="non-virtual"><scope>resource_slot::Update</scope><name>slot</name></member>
+      <member refid="structresource__slot_1_1_update_1a912d02a74981cadaefc459b69c2b22ce" prot="public" virt="non-virtual"><scope>resource_slot::Update</scope><name>Update</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

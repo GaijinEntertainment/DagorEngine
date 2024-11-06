@@ -1,0 +1,572 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_resource_description" kind="struct" language="C++" prot="public">
+    <compoundname>ResourceDescription</compoundname>
+    <includes refid="dag__heap_8h" local="no">dag_heap.h</includes>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="struct_resource_description_1ab0bd9db5a7647488becf257da246345c" prot="public" static="no">
+        <type>size_t</type>
+        <definition>using ResourceDescription::HashT =  size_t</definition>
+        <argsstring></argsstring>
+        <name>HashT</name>
+        <briefdescription>
+<para>The type of the hash value. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="179" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="179" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_resource_description_1aaadf78e3fda1e8c737effffea34d678b" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ResourceDescription::resType</definition>
+        <argsstring></argsstring>
+        <name>resType</name>
+        <briefdescription>
+<para>The type of the resource. One of the RES3D_* constants. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="110" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="110" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_resource_description_1a0a64b467ca88a31a8b8c4cee7eae9e66" prot="public" static="no" mutable="no">
+        <type><ref refid="struct_basic_resource_description" kindref="compound">BasicResourceDescription</ref></type>
+        <definition>BasicResourceDescription ResourceDescription::asBasicRes</definition>
+        <argsstring></argsstring>
+        <name>asBasicRes</name>
+        <briefdescription>
+<para>The basic resource description. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="113" column="30" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="113" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_resource_description_1ab5da39999823280f1ac92e33601b756d" prot="public" static="no" mutable="no">
+        <type><ref refid="struct_buffer_resource_description" kindref="compound">BufferResourceDescription</ref></type>
+        <definition>BufferResourceDescription ResourceDescription::asBufferRes</definition>
+        <argsstring></argsstring>
+        <name>asBufferRes</name>
+        <briefdescription>
+<para>The buffer resource description. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="114" column="31" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="114" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_resource_description_1aee7bb2447921999d747f31bfac8ce556" prot="public" static="no" mutable="no">
+        <type><ref refid="struct_basic_texture_resource_description" kindref="compound">BasicTextureResourceDescription</ref></type>
+        <definition>BasicTextureResourceDescription ResourceDescription::asBasicTexRes</definition>
+        <argsstring></argsstring>
+        <name>asBasicTexRes</name>
+        <briefdescription>
+<para>The basic texture resource description. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="115" column="37" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="115" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_resource_description_1a17b585a0cfc7dd5f4406e203fa6c9419" prot="public" static="no" mutable="no">
+        <type><ref refid="struct_texture_resource_description" kindref="compound">TextureResourceDescription</ref></type>
+        <definition>TextureResourceDescription ResourceDescription::asTexRes</definition>
+        <argsstring></argsstring>
+        <name>asTexRes</name>
+        <briefdescription>
+<para>The 2D texture resource description. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="116" column="32" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="116" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_resource_description_1a99aa546f306654f399609a5028667e55" prot="public" static="no" mutable="no">
+        <type><ref refid="struct_vol_texture_resource_description" kindref="compound">VolTextureResourceDescription</ref></type>
+        <definition>VolTextureResourceDescription ResourceDescription::asVolTexRes</definition>
+        <argsstring></argsstring>
+        <name>asVolTexRes</name>
+        <briefdescription>
+<para>The volume texture resource description. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="117" column="35" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="117" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_resource_description_1a43a084814e7a3a71691ae2448c8d03f0" prot="public" static="no" mutable="no">
+        <type><ref refid="struct_array_texture_resource_description" kindref="compound">ArrayTextureResourceDescription</ref></type>
+        <definition>ArrayTextureResourceDescription ResourceDescription::asArrayTexRes</definition>
+        <argsstring></argsstring>
+        <name>asArrayTexRes</name>
+        <briefdescription>
+<para>The array texture resource description. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="118" column="37" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="118" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_resource_description_1a2e7ffe18d52fc4001c266a2eef9c2083" prot="public" static="no" mutable="no">
+        <type><ref refid="struct_cube_texture_resource_description" kindref="compound">CubeTextureResourceDescription</ref></type>
+        <definition>CubeTextureResourceDescription ResourceDescription::asCubeTexRes</definition>
+        <argsstring></argsstring>
+        <name>asCubeTexRes</name>
+        <briefdescription>
+<para>The cube texture resource description. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="119" column="36" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="119" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_resource_description_1a89a7fde21d59eb27197578e1e2fa1c12" prot="public" static="no" mutable="no">
+        <type><ref refid="struct_array_cube_texture_resource_description" kindref="compound">ArrayCubeTextureResourceDescription</ref></type>
+        <definition>ArrayCubeTextureResourceDescription ResourceDescription::asArrayCubeTexRes</definition>
+        <argsstring></argsstring>
+        <name>asArrayCubeTexRes</name>
+        <briefdescription>
+<para>The array cube texture resource description. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="120" column="41" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="120" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_resource_description_1aac88fbbff01a439df30d0a5a6d7d2a80" prot="public" static="no" mutable="no">
+        <type>union ResourceDescription::@21</type>
+        <definition>union ResourceDescription::@21 ResourceDescription::@22</definition>
+        <argsstring></argsstring>
+        <name>@22</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="121" column="3"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="struct_resource_description_1a8439dcc8f79f109f2228d61a6aa4b1fe" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ResourceDescription::ResourceDescription</definition>
+        <argsstring>()=default</argsstring>
+        <name>ResourceDescription</name>
+        <briefdescription>
+<para>Default constructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="123" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_resource_description_1a5a4d6f01a755359ab56198196ec34a59" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ResourceDescription::ResourceDescription</definition>
+        <argsstring>(const ResourceDescription &amp;)=default</argsstring>
+        <name>ResourceDescription</name>
+        <param>
+          <type>const <ref refid="struct_resource_description" kindref="compound">ResourceDescription</ref> &amp;</type>
+        </param>
+        <briefdescription>
+<para>Copy constructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="124" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_resource_description_1a52e72d2e10ca1174a5182d9fd203d670" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="struct_resource_description" kindref="compound">ResourceDescription</ref> &amp;</type>
+        <definition>ResourceDescription&amp; ResourceDescription::operator=</definition>
+        <argsstring>(const ResourceDescription &amp;)=default</argsstring>
+        <name>operator=</name>
+        <param>
+          <type>const <ref refid="struct_resource_description" kindref="compound">ResourceDescription</ref> &amp;</type>
+        </param>
+        <briefdescription>
+<para>Copy assignment operator. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="125" column="23"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_resource_description_1a1a36da8a75b95e09429e765dbb6b1414" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ResourceDescription::ResourceDescription</definition>
+        <argsstring>(const BufferResourceDescription &amp;buf)</argsstring>
+        <name>ResourceDescription</name>
+        <param>
+          <type>const <ref refid="struct_buffer_resource_description" kindref="compound">BufferResourceDescription</ref> &amp;</type>
+          <declname>buf</declname>
+        </param>
+        <briefdescription>
+<para>Constructor for buffer resources. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="127" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="127" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_resource_description_1ac71dcb55a03fad8a78b40cad86fa1d47" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ResourceDescription::ResourceDescription</definition>
+        <argsstring>(const TextureResourceDescription &amp;tex)</argsstring>
+        <name>ResourceDescription</name>
+        <param>
+          <type>const <ref refid="struct_texture_resource_description" kindref="compound">TextureResourceDescription</ref> &amp;</type>
+          <declname>tex</declname>
+        </param>
+        <briefdescription>
+<para>Constructor for 2D textures. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="130" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="130" bodyend="128"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_resource_description_1acc966203f96ad9fe1555762f3881ab57" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ResourceDescription::ResourceDescription</definition>
+        <argsstring>(const VolTextureResourceDescription &amp;tex)</argsstring>
+        <name>ResourceDescription</name>
+        <param>
+          <type>const <ref refid="struct_vol_texture_resource_description" kindref="compound">VolTextureResourceDescription</ref> &amp;</type>
+          <declname>tex</declname>
+        </param>
+        <briefdescription>
+<para>Constructor for volume textures. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="132" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="132" bodyend="130"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_resource_description_1ae5f5d6660f98179fc115c9e9549258cd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ResourceDescription::ResourceDescription</definition>
+        <argsstring>(const ArrayTextureResourceDescription &amp;tex)</argsstring>
+        <name>ResourceDescription</name>
+        <param>
+          <type>const <ref refid="struct_array_texture_resource_description" kindref="compound">ArrayTextureResourceDescription</ref> &amp;</type>
+          <declname>tex</declname>
+        </param>
+        <briefdescription>
+<para>Constructor for array textures. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="135" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="135" bodyend="133"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_resource_description_1ad6b6e032d585cb8e9c95f403a0677837" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ResourceDescription::ResourceDescription</definition>
+        <argsstring>(const CubeTextureResourceDescription &amp;tex)</argsstring>
+        <name>ResourceDescription</name>
+        <param>
+          <type>const <ref refid="struct_cube_texture_resource_description" kindref="compound">CubeTextureResourceDescription</ref> &amp;</type>
+          <declname>tex</declname>
+        </param>
+        <briefdescription>
+<para>Constructor for cube textures. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="138" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="138" bodyend="136"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_resource_description_1a5643c02fb0539406def61fa4a8872f72" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ResourceDescription::ResourceDescription</definition>
+        <argsstring>(const ArrayCubeTextureResourceDescription &amp;tex)</argsstring>
+        <name>ResourceDescription</name>
+        <param>
+          <type>const <ref refid="struct_array_cube_texture_resource_description" kindref="compound">ArrayCubeTextureResourceDescription</ref> &amp;</type>
+          <declname>tex</declname>
+        </param>
+        <briefdescription>
+<para>Constructor for array cube textures. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="141" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="141" bodyend="139"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_resource_description_1ae91e518e673816f6e9ff51329a216c5f" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ResourceDescription::operator==</definition>
+        <argsstring>(const ResourceDescription &amp;r) const</argsstring>
+        <name>operator==</name>
+        <param>
+          <type>const <ref refid="struct_resource_description" kindref="compound">ResourceDescription</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+<para>Equality operator for resource descriptions. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The operator compares all necessary fields of the resource descriptions for equality.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The resource description to compare with. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>True if the resource descriptions are equal, false otherwise. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="152" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="152" bodyend="177"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_resource_description_1ad809a6e59153ca10566286abeb8a36ac" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="struct_resource_description_1ab0bd9db5a7647488becf257da246345c" kindref="member">HashT</ref></type>
+        <definition>HashT ResourceDescription::hash</definition>
+        <argsstring>() const</argsstring>
+        <name>hash</name>
+        <briefdescription>
+<para>Computes the hash value of the resource description. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>The hash value of the resource description. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="186" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="186" bodyend="214"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="struct_resource_description_1aa065b65126e6934c2d056cbad06d5ca4" prot="private" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="struct_resource_description_1ab0bd9db5a7647488becf257da246345c" kindref="member">HashT</ref></type>
+        <definition>HashT ResourceDescription::hashPack</definition>
+        <argsstring>() const</argsstring>
+        <name>hashPack</name>
+        <briefdescription>
+<para>Hashes an empty tuple of values. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>HashT the hash value of the tuple. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="222" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="222" bodyend="222"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_resource_description_1a892d1f78ac32849e5f1b11ac874fe494" prot="private" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>typename...</type>
+            <declname>Ts</declname>
+            <defname>Ts</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="struct_resource_description_1ab0bd9db5a7647488becf257da246345c" kindref="member">HashT</ref></type>
+        <definition>HashT ResourceDescription::hashPack</definition>
+        <argsstring>(const T &amp;first, const Ts &amp;...other) const</argsstring>
+        <name>hashPack</name>
+        <param>
+          <type>const T &amp;</type>
+          <declname>first</declname>
+        </param>
+        <param>
+          <type>const Ts &amp;...</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+<para>Hashes a tuple of values. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>type of the first value. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>Ts</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>types of the other values. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>first</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the first value. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>other</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the other values. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>HashT the hash value of the tuple. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="233" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="233" bodyend="238"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>A common type for a resource description that can be used to describe any type of GPU resource. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>ResourceDescription</label>
+        <link refid="struct_resource_description"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>asArrayTexRes</edgelabel>
+        </childnode>
+        <childnode refid="7" relation="usage">
+          <edgelabel>asBufferRes</edgelabel>
+        </childnode>
+        <childnode refid="8" relation="usage">
+          <edgelabel>asCubeTexRes</edgelabel>
+        </childnode>
+        <childnode refid="9" relation="usage">
+          <edgelabel>asVolTexRes</edgelabel>
+        </childnode>
+        <childnode refid="10" relation="usage">
+          <edgelabel>asArrayCubeTexRes</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>asBasicRes</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>asTexRes</edgelabel>
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>asBasicTexRes</edgelabel>
+        </childnode>
+      </node>
+      <node id="4">
+        <label>BasicTextureResourceDescription</label>
+        <link refid="struct_basic_texture_resource_description"/>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>BasicResourceDescription</label>
+        <link refid="struct_basic_resource_description"/>
+        <childnode refid="6" relation="usage">
+          <edgelabel>clearValue</edgelabel>
+        </childnode>
+      </node>
+      <node id="8">
+        <label>CubeTextureResourceDescription</label>
+        <link refid="struct_cube_texture_resource_description"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>ArrayCubeTextureResourceDescription</label>
+        <link refid="struct_array_cube_texture_resource_description"/>
+        <childnode refid="8" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>VolTextureResourceDescription</label>
+        <link refid="struct_vol_texture_resource_description"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>BufferResourceDescription</label>
+        <link refid="struct_buffer_resource_description"/>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>TextureResourceDescription</label>
+        <link refid="struct_texture_resource_description"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ArrayTextureResourceDescription</label>
+        <link refid="struct_array_texture_resource_description"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>ResourceClearValue</label>
+        <link refid="union_resource_clear_value"/>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="108" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="109" bodyend="239"/>
+    <listofallmembers>
+      <member refid="struct_resource_description_1a89a7fde21d59eb27197578e1e2fa1c12" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>asArrayCubeTexRes</name></member>
+      <member refid="struct_resource_description_1a43a084814e7a3a71691ae2448c8d03f0" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>asArrayTexRes</name></member>
+      <member refid="struct_resource_description_1a0a64b467ca88a31a8b8c4cee7eae9e66" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>asBasicRes</name></member>
+      <member refid="struct_resource_description_1aee7bb2447921999d747f31bfac8ce556" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>asBasicTexRes</name></member>
+      <member refid="struct_resource_description_1ab5da39999823280f1ac92e33601b756d" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>asBufferRes</name></member>
+      <member refid="struct_resource_description_1a2e7ffe18d52fc4001c266a2eef9c2083" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>asCubeTexRes</name></member>
+      <member refid="struct_resource_description_1a17b585a0cfc7dd5f4406e203fa6c9419" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>asTexRes</name></member>
+      <member refid="struct_resource_description_1a99aa546f306654f399609a5028667e55" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>asVolTexRes</name></member>
+      <member refid="struct_resource_description_1ad809a6e59153ca10566286abeb8a36ac" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>hash</name></member>
+      <member refid="struct_resource_description_1aa065b65126e6934c2d056cbad06d5ca4" prot="private" virt="non-virtual"><scope>ResourceDescription</scope><name>hashPack</name></member>
+      <member refid="struct_resource_description_1a892d1f78ac32849e5f1b11ac874fe494" prot="private" virt="non-virtual"><scope>ResourceDescription</scope><name>hashPack</name></member>
+      <member refid="struct_resource_description_1ab0bd9db5a7647488becf257da246345c" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>HashT</name></member>
+      <member refid="struct_resource_description_1a52e72d2e10ca1174a5182d9fd203d670" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>operator=</name></member>
+      <member refid="struct_resource_description_1ae91e518e673816f6e9ff51329a216c5f" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>operator==</name></member>
+      <member refid="struct_resource_description_1a8439dcc8f79f109f2228d61a6aa4b1fe" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>ResourceDescription</name></member>
+      <member refid="struct_resource_description_1a5a4d6f01a755359ab56198196ec34a59" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>ResourceDescription</name></member>
+      <member refid="struct_resource_description_1a1a36da8a75b95e09429e765dbb6b1414" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>ResourceDescription</name></member>
+      <member refid="struct_resource_description_1ac71dcb55a03fad8a78b40cad86fa1d47" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>ResourceDescription</name></member>
+      <member refid="struct_resource_description_1acc966203f96ad9fe1555762f3881ab57" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>ResourceDescription</name></member>
+      <member refid="struct_resource_description_1ae5f5d6660f98179fc115c9e9549258cd" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>ResourceDescription</name></member>
+      <member refid="struct_resource_description_1ad6b6e032d585cb8e9c95f403a0677837" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>ResourceDescription</name></member>
+      <member refid="struct_resource_description_1a5643c02fb0539406def61fa4a8872f72" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>ResourceDescription</name></member>
+      <member refid="struct_resource_description_1aaadf78e3fda1e8c737effffea34d678b" prot="public" virt="non-virtual"><scope>ResourceDescription</scope><name>resType</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

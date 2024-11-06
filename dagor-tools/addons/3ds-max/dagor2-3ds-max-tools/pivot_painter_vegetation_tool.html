@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dagor 2 Pivot Painter Vegetation Tool &mdash; Dagor Documentation  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/gaijin.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/sphinx_highlight.js"></script>
+        <script src="../../../../_static/js/hoverxref.js"></script>
+        <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+        <script src="../../../../_static/js/micromodal.min.js"></script>
+        <script src="../../../../_static/js/versionwarning.js"></script>
+        <script src="../../../../_static/clipboard.min.js"></script>
+        <script src="../../../../_static/copybutton.js"></script>
+        <script src="../../../../_static/design-tabs.js"></script>
+        <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Dagor 2 Custom Groups Export Tool" href="custom_groups_export_tool.html" />
+    <link rel="prev" title="Dagor 2 Ambient Occlusion Baker" href="ambient_occlusion_baker.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/gaijin_round_blur.png" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                0.1.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api-references/index.html">API References and Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../samples/index.html">Samples</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../../blk/index.html">.blk Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../asset-viewer/index.html">Asset Viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../daeditor/index.html">daEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dag2rires/index.html">dag2riRes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../impostor-baker/index.html">Impostor Baker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../levels-deps/index.html">levels.deps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../resource-building/index.html">Resource Building</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../substance-designer/index.html">Substance Designer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Add-ons for Blender and 3ds Max</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../../blender/index.html">Add-ons for Blender</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../index.html">Add-ons for 3ds Max</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../dagor-max-tools/index.html">Dagor Max Tools</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../dagormat/index.html">DagorMat</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="index.html">Dagor 2 3ds Max Tools</a><ul class="current">
+<li class="toctree-l5"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l5"><a class="reference internal" href="damages_setup_tool.html">Dagor 2 Damages Setup Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="fix_normal_orientation_tool.html">Dagor 2 Fix Normal Orientation Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="fixing_illegal_characters.html">Dagor 2 Fixing Illegal Characters Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="fast_editor_user_properties.html">Dagor 2 Fast Editor User Properties</a></li>
+<li class="toctree-l5"><a class="reference internal" href="lods_and_collisions_generator.html">Dagor 2 LODs and Collisions Generator</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ambient_occlusion_baker.html">Dagor 2 Ambient Occlusion Baker</a></li>
+<li class="toctree-l5 current"><a class="current reference internal" href="#">Dagor 2 Pivot Painter Vegetation Tool</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#accessing-the-pivot-painter-vegetation-tool">Accessing the Pivot Painter Vegetation Tool</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#using-the-pivot-painter-vegetation-tool">Using the Pivot Painter Vegetation Tool</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#key-features-and-controls">Key Features and Controls</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#workflow-example">Workflow Example</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="custom_groups_export_tool.html">Dagor 2 Custom Groups Export Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="editing_normals_tool.html">Dagor Editing Normals Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="transfer_vertex_position_to_vertex_color_tool.html">Dagor 2 Transfer Vertex Position to Vertex Color Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="check_degenerated_faces_tool.html">Dagor 2 Check Degenerated Faces Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="simple_cmp_editor.html">Dagor 2 Simple CMP Editor</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../danetgame-framework/index.html">DaNetGame Framework</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Add-ons for Blender and 3ds Max</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Add-ons for 3ds Max</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Dagor 2 3ds Max Tools</a></li>
+      <li class="breadcrumb-item active">Dagor 2 Pivot Painter Vegetation Tool</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/dagor-tools/addons/3ds-max/dagor2-3ds-max-tools/pivot_painter_vegetation_tool.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="dagor-2-pivot-painter-vegetation-tool">
+<h1>Dagor 2 Pivot Painter Vegetation Tool<a class="headerlink" href="#dagor-2-pivot-painter-vegetation-tool" title="Permalink to this heading"></a></h1>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading"></a></h2>
+<p><a class="reference internal" href="installation.html"><span class="std std-doc">Install the script</span></a> following the provided instructions.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>This script requires <em>3ds Max 2015</em> or newer version to run.</p>
+</div>
+</section>
+<section id="accessing-the-pivot-painter-vegetation-tool">
+<h2>Accessing the Pivot Painter Vegetation Tool<a class="headerlink" href="#accessing-the-pivot-painter-vegetation-tool" title="Permalink to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p>Navigate to <strong>Gaijin Tools</strong> ▸ <strong>Pivot Painter Vegetation Tool</strong>. This will
+open the main window of the <strong>Dagor 2 Pivot Painter Tool</strong>.</p></li>
+<li><p>To verify the version <strong>(3)</strong> of the script, go to <strong>Gaijin Tools (1)</strong> ▸
+<strong>About (2)</strong>. The <strong>About</strong> window will display the current version. It’s
+important to check this regularly to ensure your script is up to date.</p></li>
+</ol>
+<p><img alt="Pivot Painter Vegetation Tool" src="../../../../_images/pivot_painter_01.png" /></p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Make sure that the plugin version is at least <code class="docutils literal notranslate"><span class="pre">1.4</span></code>.</p>
+</div>
+</section>
+<section id="using-the-pivot-painter-vegetation-tool">
+<h2>Using the Pivot Painter Vegetation Tool<a class="headerlink" href="#using-the-pivot-painter-vegetation-tool" title="Permalink to this heading"></a></h2>
+<p>To begin, open the <strong>Pivot Painter Vegetation Tool</strong> by navigating to <strong>Gaijin
+Tools</strong> ▸ <strong>Pivot Painter Vegetation Tool</strong>.</p>
+<p>Download the following test scene: <a class="reference external" href="https://drive.google.com/file/d/1-emRZYAaXEJ09EgGQnMjzUxQkfmLEu-h/view?usp=drive_link">tree_oak_test_2021.max</a>.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>This scene requires <em>3ds Max 2021</em> or a newer version.</p>
+<p>Be sure to have installed <em>GrowFX</em> no lower than version <code class="docutils literal notranslate"><span class="pre">2.0.1</span></code>.</p>
+</div>
+<p>The tool window will appear as shown below:</p>
+<p><img alt="Pivot Painter Vegetation Tool" src="../../../../_images/pivot_painter_02.png" /></p>
+<section id="key-features-and-controls">
+<h3>Key Features and Controls<a class="headerlink" href="#key-features-and-controls" title="Permalink to this heading"></a></h3>
+<ol class="arabic simple">
+<li><p><strong>Pick (1):</strong> Choose the <em>GrowFX</em> object that will serve as the parent for
+all other elements of the tree.</p></li>
+<li><p><strong>Texture Save Path (2):</strong> Select the directory where the generated position
+and rotation textures will be saved. For more information about these
+textures and their purpose, refer to the article: <a class="reference internal" href="#../../../../tutorials/pivot_painter_wind.md"><span class="xref myst">Pivot Painter Wind on
+Vegetation for daNetGame-based
+Projects</span></a>.</p></li>
+<li><p><strong>Final Object Name (3):</strong> Specify a custom name for the resulting object. By
+default, the tool assigns the name of the selected object.</p></li>
+<li><p><strong>Start Creation (4):</strong> Initiates the tool’s operation.</p></li>
+<li><p><strong>Visit to Learning Web Site (5):</strong> Provides access to this article.</p></li>
+<li><p><strong>Contact with Developer (6):</strong> Opens a link to contact the tool’s author.</p></li>
+</ol>
+</section>
+<section id="workflow-example">
+<h3>Workflow Example<a class="headerlink" href="#workflow-example" title="Permalink to this heading"></a></h3>
+<ol class="arabic">
+<li><p>Select <code class="docutils literal notranslate"><span class="pre">tree_oak_large_a</span></code> and navigate to the <strong>Modify</strong> panel. Locate the
+<strong>Create Hierarchy of Meshes</strong> button. Ensure the <strong>Group by Path Color</strong>
+checkbox is unchecked before clicking the button.</p></li>
+<li><p>The script will generate a large number of hierarchically connected objects
+within the layer:</p>
+<p><img alt="Pivot Painter Vegetation Tool" src="../../../../_images/pivot_painter_03.png" /></p>
+</li>
+<li><p>Select all the contents of this layer and assign the material previously
+applied to <code class="docutils literal notranslate"><span class="pre">tree_oak_large_a</span></code>. The tool is now ready to work.</p></li>
+<li><p>Select the parent object using button <strong>(1)</strong> at the beginning of the
+hierarchy. This object is the root of all branches in the tree:</p>
+<p><img alt="Pivot Painter Vegetation Tool" src="../../../../_images/pivot_painter_04.png" /></p>
+</li>
+<li><p>Use button <strong>(2)</strong> to specify the output path for the resulting <code class="docutils literal notranslate"><span class="pre">.dds</span></code>
+textures. Press button <strong>(4)</strong> to generate the textures <code class="docutils literal notranslate"><span class="pre">pivot_pos.dds</span></code> and
+<code class="docutils literal notranslate"><span class="pre">pivot_dir.dds</span></code>, along with a new <strong>WIND</strong> layer containing the completed
+object with the assigned name.</p>
+<p><img alt="Pivot Painter Vegetation Tool" src="../../../../_images/pivot_painter_05.png" /></p>
+</li>
+<li><p>After generating the textures, follow the instructions in the document:
+<a class="reference internal" href="#../../../../tutorials/pivot_painter_wind.md"><span class="xref myst">Pivot Painter Wind on Vegetation for daNetGame-based
+Projects</span></a>.</p></li>
+</ol>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<ul class="simple">
+<li><p><strong>Script Limitations:</strong> Unlike the <em>Houdini</em> graph version, this script is
+limited to a maximum of 4 hierarchy levels within <em>GrowFX</em>. Consequently, the
+number of allowed links is restricted to 4x. In <em>Houdini</em>, any levels beyond
+the 4th will be merged into the last one, while this script will discard and
+not display them.</p></li>
+<li><p><strong>Object Limitations:</strong> Both this script and <em>Houdini</em> impose a limit of 2048
+objects, derived from the maximum allowed texture size. Any objects exceeding
+this limit will be ignored by the script, and <em>Houdini</em> will also disregard
+them.</p></li>
+</ul>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ambient_occlusion_baker.html" class="btn btn-neutral float-left" title="Dagor 2 Ambient Occlusion Baker" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="custom_groups_export_tool.html" class="btn btn-neutral float-right" title="Dagor 2 Custom Groups Export Tool" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2024.
+      <span class="lastupdated">Last updated on Nov 06, 2024.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+ <script type="text/javascript">
+    $(document).ready(function() {
+        $(".toggle > *").hide();
+        $(".toggle .header").show();
+        $(".toggle .header").click(function() {
+            $(this).parent().children().not(".header").toggle(400);
+            $(this).parent().children(".header").toggleClass("open");
+        })
+    });
+</script>
+
+
+</body>
+</html>

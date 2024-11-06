@@ -1,0 +1,1421 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="namespaced3d_1_1shadermodel" kind="namespace" language="C++">
+    <compoundname>d3d::shadermodel</compoundname>
+    <innerclass refid="structd3d_1_1shadermodel_1_1_any_version" prot="public">d3d::shadermodel::AnyVersion</innerclass>
+    <innerclass refid="structd3d_1_1shadermodel_1_1_version" prot="public">d3d::shadermodel::Version</innerclass>
+    <innerclass refid="structd3d_1_1shadermodel_1_1_version_with_name" prot="public">d3d::shadermodel::VersionWithName</innerclass>
+    <innerclass refid="structd3d_1_1shadermodel_1_1_version_constant" prot="public">d3d::shadermodel::VersionConstant</innerclass>
+    <innerclass refid="structd3d_1_1shadermodel_1_1_version_list" prot="public">d3d::shadermodel::VersionList</innerclass>
+    <innerclass refid="classd3d_1_1shadermodel_1_1_version_range_iterator" prot="public">d3d::shadermodel::VersionRangeIterator</innerclass>
+    <innerclass refid="structd3d_1_1shadermodel_1_1_version_range" prot="public">d3d::shadermodel::VersionRange</innerclass>
+    <innerclass refid="structd3d_1_1shadermodel_1_1_version_range_3_01_version_list_3_01_versions_8_8_8_01_4_01_4" prot="public">d3d::shadermodel::VersionRange&lt; VersionList&lt; Versions... &gt; &gt;</innerclass>
+    <innernamespace refid="namespaced3d_1_1shadermodel_1_1matcher">d3d::shadermodel::matcher</innernamespace>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="namespaced3d_1_1shadermodel_1af7c6b8e9847f1caff846139429a3b0cc" prot="public" static="no">
+        <type><ref refid="structd3d_1_1shadermodel_1_1_version_list" kindref="compound">VersionList</ref>&lt; decltype(sm40), decltype(sm41), decltype(sm50), decltype(sm60), decltype(sm66)&gt;</type>
+        <definition>using d3d::shadermodel::AllVersionsList = typedef VersionList&lt;decltype(sm40), decltype(sm41), decltype(sm50), decltype(sm60), decltype(sm66)&gt;</definition>
+        <argsstring></argsstring>
+        <name>AllVersionsList</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>This type list consists of all supported shader model versions. <simplesect kind="warning"><para>Listing has to be from earliest to latest, otherwise dependent algorithms may not work properly. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="749" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="749" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespaced3d_1_1shadermodel_1ae76e5eb2d110f6c659b8d6237194903d" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>constexpr bool d3d::shadermodel::operator==</definition>
+        <argsstring>(const Version &amp;l, const Version &amp;r)</argsstring>
+        <name>operator==</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Compares two version numbers and returns true when the first one equal to the second one. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First value to compare. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second value to compare. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>True when \l equal to <computeroutput>r</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="356" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="356" bodyend="356"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1shadermodel_1a08c998a3130e425de312b18a989833d9" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>constexpr bool d3d::shadermodel::operator!=</definition>
+        <argsstring>(const Version &amp;l, const Version &amp;r)</argsstring>
+        <name>operator!=</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Compares two version numbers and returns true when the first one not equal to the second one. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First value to compare. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second value to compare. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>True when \l not equal to <computeroutput>r</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="361" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="361" bodyend="361"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1shadermodel_1ab16d196068b268838c1dded462322339" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>constexpr bool d3d::shadermodel::operator&lt;</definition>
+        <argsstring>(const Version &amp;l, const Version &amp;r)</argsstring>
+        <name>operator&lt;</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Compares two version numbers and returns true when the first less than the second one. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First value to compare. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second value to compare. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>True when \l less than <computeroutput>r</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="366" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="366" bodyend="369"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1shadermodel_1a7dc060470815114351b4f37cbd2b07e8" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>constexpr bool d3d::shadermodel::operator&gt;</definition>
+        <argsstring>(const Version &amp;l, const Version &amp;r)</argsstring>
+        <name>operator&gt;</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Compares two version numbers and returns true when the first one greater the second one. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First value to compare. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second value to compare. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>True when \l greater than <computeroutput>r</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="374" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="374" bodyend="374"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1shadermodel_1aed00c3f83a7ffbba13fafb0029be5f50" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>constexpr bool d3d::shadermodel::operator&lt;=</definition>
+        <argsstring>(const Version &amp;l, const Version &amp;r)</argsstring>
+        <name>operator&lt;=</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Compares two version numbers and returns true when the first one less or equal to the second one. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First value to compare. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second value to compare. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>True when \l less or equal to <computeroutput>r</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="379" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="379" bodyend="379"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1shadermodel_1a0324cf4886c93bf197eac367395870b4" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>constexpr bool d3d::shadermodel::operator&gt;=</definition>
+        <argsstring>(const Version &amp;l, const Version &amp;r)</argsstring>
+        <name>operator&gt;=</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Compares two version numbers and returns true when the first greater or equal the second one. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First value to compare. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second value to compare. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>True when \l greater or equal to <computeroutput>r</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="384" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="384" bodyend="384"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1shadermodel_1afd2959a700054a813b21bca3d4b83bc3" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>constexpr bool d3d::shadermodel::operator==</definition>
+        <argsstring>(const AnyVersion &amp;l, const Version &amp;r)</argsstring>
+        <name>operator==</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_any_version" kindref="compound">AnyVersion</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Compares a version to any version. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First value to compare. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second value to compare. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>True. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="389" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="389" bodyend="394"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1shadermodel_1a89f1694e920cd460e850d161bbbbda88" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>constexpr bool d3d::shadermodel::operator==</definition>
+        <argsstring>(const Version &amp;l, const AnyVersion &amp;r)</argsstring>
+        <name>operator==</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_any_version" kindref="compound">AnyVersion</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Compares a version to any version. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First value to compare. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second value to compare. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>true. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="399" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="399" bodyend="404"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1shadermodel_1aa66423b287b148a17d97d27aac100714" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>constexpr bool d3d::shadermodel::operator!=</definition>
+        <argsstring>(const AnyVersion &amp;l, const Version &amp;r)</argsstring>
+        <name>operator!=</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_any_version" kindref="compound">AnyVersion</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Compares a version to any version. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First value to compare. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second value to compare. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>False. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="409" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="409" bodyend="414"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1shadermodel_1a760967af23a64d7ec6d791f0be27970a" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>constexpr bool d3d::shadermodel::operator!=</definition>
+        <argsstring>(const Version &amp;l, const AnyVersion &amp;r)</argsstring>
+        <name>operator!=</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_any_version" kindref="compound">AnyVersion</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Compares a version to any version. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First value to compare. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second value to compare. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>False. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="419" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="419" bodyend="424"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1shadermodel_1a496d9281986683cb03d98a38611bec75" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>constexpr bool d3d::shadermodel::operator&gt;</definition>
+        <argsstring>(const AnyVersion &amp;l, const Version &amp;r)</argsstring>
+        <name>operator&gt;</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_any_version" kindref="compound">AnyVersion</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Compares a version to any version. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First value to compare. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second value to compare. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>True. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="429" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="429" bodyend="434"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1shadermodel_1a8289636b6586b7f47b02fdd136827902" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>constexpr bool d3d::shadermodel::operator&gt;</definition>
+        <argsstring>(const Version &amp;l, const AnyVersion &amp;r)</argsstring>
+        <name>operator&gt;</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_any_version" kindref="compound">AnyVersion</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Compares a version to any version. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First value to compare. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second value to compare. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>False. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="439" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="439" bodyend="444"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1shadermodel_1a4683c16896e97c0764872e707adbc49d" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>constexpr bool d3d::shadermodel::operator&lt;</definition>
+        <argsstring>(const AnyVersion &amp;l, const Version &amp;r)</argsstring>
+        <name>operator&lt;</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_any_version" kindref="compound">AnyVersion</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Compares a version to any version. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First value to compare. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second value to compare. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>False. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="449" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="449" bodyend="454"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1shadermodel_1a1e7d709b7c165868f99c87d160290ce9" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>constexpr bool d3d::shadermodel::operator&lt;</definition>
+        <argsstring>(const Version &amp;l, const AnyVersion &amp;r)</argsstring>
+        <name>operator&lt;</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_any_version" kindref="compound">AnyVersion</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Compares a version to any version. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First value to compare. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second value to compare. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>True. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="459" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="459" bodyend="464"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1shadermodel_1a74a1c44f7b7d8606090d9572c89b2142" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>constexpr bool d3d::shadermodel::operator&gt;=</definition>
+        <argsstring>(const AnyVersion &amp;l, const Version &amp;r)</argsstring>
+        <name>operator&gt;=</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_any_version" kindref="compound">AnyVersion</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Compares a version to any version. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First value to compare. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second value to compare. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>True when \l is larger or equal to <computeroutput>r</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="469" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="469" bodyend="469"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1shadermodel_1acbbf3ba511786da0dfd9446f59109337" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>constexpr bool d3d::shadermodel::operator&gt;=</definition>
+        <argsstring>(const Version &amp;l, const AnyVersion &amp;r)</argsstring>
+        <name>operator&gt;=</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_any_version" kindref="compound">AnyVersion</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Compares a version to any version. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First value to compare. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second value to compare. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>True when \l is larger or equal to <computeroutput>r</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="474" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="474" bodyend="474"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1shadermodel_1a7dabdd00891ab8251d945c44d09618eb" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>constexpr bool d3d::shadermodel::operator&lt;=</definition>
+        <argsstring>(const AnyVersion &amp;l, const Version &amp;r)</argsstring>
+        <name>operator&lt;=</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_any_version" kindref="compound">AnyVersion</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Compares a version to any version. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First value to compare. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second value to compare. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>True when \l is less or equal to <computeroutput>r</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="479" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="479" bodyend="479"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1shadermodel_1a6142133912b7fb3a53e779853d97343c" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>constexpr bool d3d::shadermodel::operator&lt;=</definition>
+        <argsstring>(const Version &amp;l, const AnyVersion &amp;r)</argsstring>
+        <name>operator&lt;=</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_any_version" kindref="compound">AnyVersion</ref> &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Compares a version to any version. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First value to compare. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second value to compare. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>True when \l is less or equal to <computeroutput>r</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="484" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="484" bodyend="484"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1shadermodel_1a14b6efd806985d8dcc9cec83441c3955" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>unsigned int</type>
+            <declname>mj1</declname>
+            <defname>mj1</defname>
+          </param>
+          <param>
+            <type>unsigned int</type>
+            <declname>mi1</declname>
+            <defname>mi1</defname>
+          </param>
+          <param>
+            <type>unsigned int</type>
+            <declname>mj2</declname>
+            <defname>mj2</defname>
+          </param>
+          <param>
+            <type>unsigned int</type>
+            <declname>mi2</declname>
+            <defname>mi2</defname>
+          </param>
+        </templateparamlist>
+        <type>constexpr bool</type>
+        <definition>constexpr bool d3d::shadermodel::operator==</definition>
+        <argsstring>(const VersionConstant&lt; mj1, mi1 &gt; &amp;l, const VersionConstant&lt; mj2, mi2 &gt; &amp;r)</argsstring>
+        <name>operator==</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version_constant" kindref="compound">VersionConstant</ref>&lt; mj1, mi1 &gt; &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version_constant" kindref="compound">VersionConstant</ref>&lt; mj2, mi2 &gt; &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Compares two constant version numbers and returns true when the first one equal to the second one. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First value to compare. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second value to compare. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>True when \l equal to <computeroutput>r</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="490" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="490" bodyend="495"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1shadermodel_1a735353030f8dddf1e248fbe7d80be4f6" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>unsigned int</type>
+            <declname>mj1</declname>
+            <defname>mj1</defname>
+          </param>
+          <param>
+            <type>unsigned int</type>
+            <declname>mi1</declname>
+            <defname>mi1</defname>
+          </param>
+          <param>
+            <type>unsigned int</type>
+            <declname>mj2</declname>
+            <defname>mj2</defname>
+          </param>
+          <param>
+            <type>unsigned int</type>
+            <declname>mi2</declname>
+            <defname>mi2</defname>
+          </param>
+        </templateparamlist>
+        <type>constexpr bool</type>
+        <definition>constexpr bool d3d::shadermodel::operator!=</definition>
+        <argsstring>(const VersionConstant&lt; mj1, mi1 &gt; &amp;l, const VersionConstant&lt; mj2, mi2 &gt; &amp;r)</argsstring>
+        <name>operator!=</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version_constant" kindref="compound">VersionConstant</ref>&lt; mj1, mi1 &gt; &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version_constant" kindref="compound">VersionConstant</ref>&lt; mj2, mi2 &gt; &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Compares two constant version numbers and returns true when the first one not equal to the second one. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First value to compare. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second value to compare. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>True when \l not equal to <computeroutput>r</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="501" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="501" bodyend="504"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1shadermodel_1af0800e24f0a930180f33f07c38fada66" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>unsigned int</type>
+            <declname>mj1</declname>
+            <defname>mj1</defname>
+          </param>
+          <param>
+            <type>unsigned int</type>
+            <declname>mi1</declname>
+            <defname>mi1</defname>
+          </param>
+          <param>
+            <type>unsigned int</type>
+            <declname>mj2</declname>
+            <defname>mj2</defname>
+          </param>
+          <param>
+            <type>unsigned int</type>
+            <declname>mi2</declname>
+            <defname>mi2</defname>
+          </param>
+        </templateparamlist>
+        <type>constexpr bool</type>
+        <definition>constexpr bool d3d::shadermodel::operator&lt;</definition>
+        <argsstring>(const VersionConstant&lt; mj1, mi1 &gt; &amp;l, const VersionConstant&lt; mj2, mi2 &gt; &amp;r)</argsstring>
+        <name>operator&lt;</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version_constant" kindref="compound">VersionConstant</ref>&lt; mj1, mi1 &gt; &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version_constant" kindref="compound">VersionConstant</ref>&lt; mj2, mi2 &gt; &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Compares two constant version numbers and returns true when the first one is smaller than the second one. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First value to compare. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second value to compare. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>True when \l is smaller than <computeroutput>r</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="510" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="510" bodyend="515"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1shadermodel_1a12b55284bf6d57ea944da40d08bb08eb" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>unsigned int</type>
+            <declname>mj1</declname>
+            <defname>mj1</defname>
+          </param>
+          <param>
+            <type>unsigned int</type>
+            <declname>mi1</declname>
+            <defname>mi1</defname>
+          </param>
+          <param>
+            <type>unsigned int</type>
+            <declname>mj2</declname>
+            <defname>mj2</defname>
+          </param>
+          <param>
+            <type>unsigned int</type>
+            <declname>mi2</declname>
+            <defname>mi2</defname>
+          </param>
+        </templateparamlist>
+        <type>constexpr bool</type>
+        <definition>constexpr bool d3d::shadermodel::operator&gt;</definition>
+        <argsstring>(const VersionConstant&lt; mj1, mi1 &gt; &amp;l, const VersionConstant&lt; mj2, mi2 &gt; &amp;r)</argsstring>
+        <name>operator&gt;</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version_constant" kindref="compound">VersionConstant</ref>&lt; mj1, mi1 &gt; &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version_constant" kindref="compound">VersionConstant</ref>&lt; mj2, mi2 &gt; &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Compares two constant version numbers and returns true when the first one is larger than the second one. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First value to compare. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second value to compare. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>True when \l is larger than <computeroutput>r</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="521" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="521" bodyend="524"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1shadermodel_1a78960416ab3270215dfa36eebee8e638" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>unsigned int</type>
+            <declname>mj1</declname>
+            <defname>mj1</defname>
+          </param>
+          <param>
+            <type>unsigned int</type>
+            <declname>mi1</declname>
+            <defname>mi1</defname>
+          </param>
+          <param>
+            <type>unsigned int</type>
+            <declname>mj2</declname>
+            <defname>mj2</defname>
+          </param>
+          <param>
+            <type>unsigned int</type>
+            <declname>mi2</declname>
+            <defname>mi2</defname>
+          </param>
+        </templateparamlist>
+        <type>constexpr bool</type>
+        <definition>constexpr bool d3d::shadermodel::operator&lt;=</definition>
+        <argsstring>(const VersionConstant&lt; mj1, mi1 &gt; &amp;l, const VersionConstant&lt; mj2, mi2 &gt; &amp;r)</argsstring>
+        <name>operator&lt;=</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version_constant" kindref="compound">VersionConstant</ref>&lt; mj1, mi1 &gt; &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version_constant" kindref="compound">VersionConstant</ref>&lt; mj2, mi2 &gt; &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Compares two constant version numbers and returns true when the first one is less or equal to the second one. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First value to compare. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second value to compare. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>True when \l is less or equal to <computeroutput>r</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="530" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="530" bodyend="533"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1shadermodel_1a4661408ce406b9e3c9e903b1b1920ae5" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>unsigned int</type>
+            <declname>mj1</declname>
+            <defname>mj1</defname>
+          </param>
+          <param>
+            <type>unsigned int</type>
+            <declname>mi1</declname>
+            <defname>mi1</defname>
+          </param>
+          <param>
+            <type>unsigned int</type>
+            <declname>mj2</declname>
+            <defname>mj2</defname>
+          </param>
+          <param>
+            <type>unsigned int</type>
+            <declname>mi2</declname>
+            <defname>mi2</defname>
+          </param>
+        </templateparamlist>
+        <type>constexpr bool</type>
+        <definition>constexpr bool d3d::shadermodel::operator&gt;=</definition>
+        <argsstring>(const VersionConstant&lt; mj1, mi1 &gt; &amp;l, const VersionConstant&lt; mj2, mi2 &gt; &amp;r)</argsstring>
+        <name>operator&gt;=</name>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version_constant" kindref="compound">VersionConstant</ref>&lt; mj1, mi1 &gt; &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structd3d_1_1shadermodel_1_1_version_constant" kindref="compound">VersionConstant</ref>&lt; mj2, mi2 &gt; &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Compares two constant version numbers and returns true when the first one is larger or equal to the second one. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First value to compare. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second value to compare. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>True when \l is larger or equal to <computeroutput>r</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="539" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="539" bodyend="542"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1shadermodel_1a783aab3fa12bd69e6146cde764361500" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename A</type>
+          </param>
+          <param>
+            <type>typename B</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr auto</type>
+        <definition>constexpr auto d3d::shadermodel::max</definition>
+        <argsstring>(VersionList&lt; A, B &gt;)</argsstring>
+        <name>max</name>
+        <param>
+          <type><ref refid="structd3d_1_1shadermodel_1_1_version_list" kindref="compound">VersionList</ref>&lt; A, B &gt;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Finds the latest version in the given version list. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para><ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> list to extract the latest version from. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The earlier version of <computeroutput>A</computeroutput> or <computeroutput>B</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="555" column="23" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="555" bodyend="567"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1shadermodel_1a2cf0e0fafebf9fbd1289a0a3ae116253" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename A</type>
+          </param>
+          <param>
+            <type>typename B</type>
+          </param>
+          <param>
+            <type>typename C</type>
+          </param>
+          <param>
+            <type>typename...</type>
+            <declname>Versions</declname>
+            <defname>Versions</defname>
+          </param>
+        </templateparamlist>
+        <type>constexpr auto</type>
+        <definition>constexpr auto d3d::shadermodel::max</definition>
+        <argsstring>(VersionList&lt; A, B, C, Versions... &gt;)</argsstring>
+        <name>max</name>
+        <param>
+          <type><ref refid="structd3d_1_1shadermodel_1_1_version_list" kindref="compound">VersionList</ref>&lt; A, B, C, Versions... &gt;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Finds the latest version in the given version list. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para><ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> list to extract the latest version from. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The latest version (and its exact type) in the given list. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="572" column="23" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="572" bodyend="584"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1shadermodel_1afab12cc0753efc9790c1923c330b1357" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename A</type>
+          </param>
+          <param>
+            <type>typename B</type>
+          </param>
+        </templateparamlist>
+        <type>constexpr auto</type>
+        <definition>constexpr auto d3d::shadermodel::min</definition>
+        <argsstring>(VersionList&lt; A, B &gt; l)</argsstring>
+        <name>min</name>
+        <param>
+          <type><ref refid="structd3d_1_1shadermodel_1_1_version_list" kindref="compound">VersionList</ref>&lt; A, B &gt;</type>
+          <declname>l</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Finds the earliest version in the given version list. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para><ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> list to extract the earliest version from. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The earlier version of <computeroutput>A</computeroutput> or <computeroutput>B</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="589" column="23" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="589" bodyend="602"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1shadermodel_1aa84e3c0a21724cf67a8d550fc478f72f" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename A</type>
+          </param>
+          <param>
+            <type>typename B</type>
+          </param>
+          <param>
+            <type>typename C</type>
+          </param>
+          <param>
+            <type>typename...</type>
+            <declname>Versions</declname>
+            <defname>Versions</defname>
+          </param>
+        </templateparamlist>
+        <type>constexpr auto</type>
+        <definition>constexpr auto d3d::shadermodel::min</definition>
+        <argsstring>(VersionList&lt; A, B, C, Versions... &gt; l)</argsstring>
+        <name>min</name>
+        <param>
+          <type><ref refid="structd3d_1_1shadermodel_1_1_version_list" kindref="compound">VersionList</ref>&lt; A, B, C, Versions... &gt;</type>
+          <declname>l</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Finds the earliest version in the given version list. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para><ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> list to extract the earliest version from. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The earliest version (and its exact type) in the given list. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="607" column="23" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="607" bodyend="620"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1shadermodel_1a36a3c07608a1d404420969dad420c4c3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename VC</type>
+          </param>
+          <param>
+            <type>typename...</type>
+            <declname>Vs</declname>
+            <defname>Vs</defname>
+          </param>
+        </templateparamlist>
+        <type>unsigned int</type>
+        <definition>unsigned int d3d::shadermodel::index_of</definition>
+        <argsstring>(VersionList&lt; Vs... &gt; l, VC current)</argsstring>
+        <name>index_of</name>
+        <param>
+          <type><ref refid="structd3d_1_1shadermodel_1_1_version_list" kindref="compound">VersionList</ref>&lt; Vs... &gt;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>VC</type>
+          <declname>current</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Finds the index of the version of <computeroutput>current</computeroutput> in the version list <computeroutput>l</computeroutput>. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para><ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> list to search the index for. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>current</parametername>
+</parameternamelist>
+<parameterdescription>
+<para><ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> to search of in <computeroutput>l</computeroutput>. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Index into <computeroutput>l</computeroutput> representing <computeroutput>current</computeroutput>, if none can found it will return the size of the version list. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="626" column="21" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="626" bodyend="638"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaced3d_1_1shadermodel_1a723112f1ef9783cecb91488411ee6c24" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename R</type>
+          </param>
+          <param>
+            <type>typename...</type>
+            <declname>Vs</declname>
+            <defname>Vs</defname>
+          </param>
+        </templateparamlist>
+        <type>R</type>
+        <definition>R d3d::shadermodel::at</definition>
+        <argsstring>(VersionList&lt; Vs... &gt; l, int index)</argsstring>
+        <name>at</name>
+        <param>
+          <type><ref refid="structd3d_1_1shadermodel_1_1_version_list" kindref="compound">VersionList</ref>&lt; Vs... &gt;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Returns the <computeroutput>R</computeroutput> representation of the type in <computeroutput>l</computeroutput> at the index <computeroutput>index</computeroutput>. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para><ref refid="structd3d_1_1shadermodel_1_1_version" kindref="compound">Version</ref> list type to index into. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>index</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Index into <computeroutput>l</computeroutput>. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>When index is in range of the version list, then it will return the <computeroutput>R</computeroutput> representation of that type at that index, otherwise t will return the default value of <computeroutput>R</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="645" column="10" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="645" bodyend="650"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>This namespace hold all shader model version related types and utilities. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="10" column="1"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,304 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="virtual_pass_request_8h" kind="file" language="C++">
+    <compoundname>virtualPassRequest.h</compoundname>
+    <includes local="no">EASTL/initializer_list.h</includes>
+    <includes local="no">EASTL/optional.h</includes>
+    <includes local="no">math/integer/dag_IPoint2.h</includes>
+    <includes refid="virtual_resource_request_8h" local="no">render/daBfg/virtualResourceRequest.h</includes>
+    <includes local="no">render/daBfg/detail/access.h</includes>
+    <includes local="no">drv/3d/dag_tex3d.h</includes>
+    <includedby refid="registry_8h" local="no">/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/registry.h</includedby>
+    <incdepgraph>
+      <node id="6">
+        <label>EASTL/type_traits.h</label>
+      </node>
+      <node id="4">
+        <label>math/integer/dag_IPoint2.h</label>
+      </node>
+      <node id="8">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="9">
+        <label>render/daBfg/stage.h</label>
+        <link refid="stage_8h_source"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>render/daBfg/virtualResourceHandle.h</label>
+        <link refid="virtual_resource_handle_8h_source"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h</label>
+        <link refid="virtual_pass_request_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>render/daBfg/detail/resourceRequestPolicy.h</label>
+      </node>
+      <node id="2">
+        <label>EASTL/initializer_list.h</label>
+      </node>
+      <node id="3">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="5">
+        <label>render/daBfg/virtualResourceRequest.h</label>
+        <link refid="virtual_resource_request_8h_source"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="16">
+        <label>render/daBfg/detail/access.h</label>
+      </node>
+      <node id="17">
+        <label>drv/3d/dag_tex3d.h</label>
+      </node>
+      <node id="7">
+        <label>render/daBfg/usage.h</label>
+        <link refid="usage_8h_source"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>render/daBfg/detail/virtualResourceRequestBase.h</label>
+      </node>
+      <node id="13">
+        <label>3d/dag_resPtr.h</label>
+      </node>
+      <node id="10">
+        <label>EASTL/utility.h</label>
+      </node>
+      <node id="12">
+        <label>render/daBfg/detail/virtualResourceHandleBase.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h</label>
+        <link refid="virtual_pass_request_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/registry.h</label>
+        <link refid="registry_8h_source"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/bfg.h</label>
+        <link refid="bfg_8h_source"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classdabfg_1_1detail_1_1_virtual_attachment_request" prot="public">dabfg::detail::VirtualAttachmentRequest</innerclass>
+    <innerclass refid="classdabfg_1_1_virtual_pass_request" prot="public">dabfg::VirtualPassRequest</innerclass>
+    <innernamespace refid="namespacedabfg">dabfg</innernamespace>
+    <innernamespace refid="namespacedabfg_1_1detail">dabfg::detail</innernamespace>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="virtual_pass_request_8h_1aed8b66b2f70668e1a8be179ae908c094" prot="public" static="no">
+        <name>ENABLE_IF</name>
+        <param><defname>...</defname></param>
+        <initializer>class = void</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="59" column="10" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5<sp/>-<sp/>Game<sp/>Libraries</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/initializer_list.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/optional.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/integer/dag_IPoint2.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;render/daBfg/virtualResourceRequest.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;render/daBfg/detail/access.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_tex3d.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">dabfg</highlight></codeline>
+<codeline lineno="18"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">InternalRegistry;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">VirtualPassRequest;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">detail</highlight></codeline>
+<codeline lineno="24"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;detail::ResourceRequestPolicy<sp/>disallowPolicies,<sp/>detail::ResourceRequestPolicy<sp/>requirePolicies&gt;</highlight></codeline>
+<codeline lineno="41" refid="classdabfg_1_1detail_1_1_virtual_attachment_request" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">VirtualAttachmentRequest</ref></highlight></codeline>
+<codeline lineno="42"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using</highlight><highlight class="normal"><sp/>RRP<sp/>=<sp/>detail::ResourceRequestPolicy;</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>constexpr<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>policyAllowed(RRP<sp/>policy)</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(disallowPolicies<sp/>&amp;<sp/>policy)<sp/>==<sp/>RRP::None<sp/>&amp;&amp;<sp/>(requirePolicies<sp/>&amp;<sp/>policy)<sp/>==<sp/>requirePolicies;</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Trick<sp/>for<sp/>making<sp/>clang<sp/>print<sp/>custom<sp/>strings<sp/>in<sp/>error<sp/>messages.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>constexpr<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>policyAllowed(RRP<sp/>policy,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>policyAllowed(policy);<sp/>}</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classdabfg_1_1_virtual_pass_request" kindref="compound">dabfg::VirtualPassRequest</ref>;</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>DOXYGEN</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>ENABLE_IF(...)<sp/>class<sp/>Dummy<sp/>=<sp/>void,<sp/>class<sp/>=<sp/>eastl::enable_if_t&lt;(__VA_ARGS__),<sp/>Dummy&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>ENABLE_IF(...)<sp/>class<sp/>=<sp/>void</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;RRP<sp/>policy,<sp/>ENABLE_IF(policyAllowed(policy,<sp/></highlight><highlight class="stringliteral">&quot;ERROR:<sp/>Invalid<sp/>resource<sp/>request<sp/>for<sp/>this<sp/>type<sp/>of<sp/>attachment!&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;<sp/>See<sp/>the<sp/>docs<sp/>for<sp/>the<sp/>function<sp/>you<sp/>are<sp/>trying<sp/>to<sp/>call!&quot;</highlight><highlight class="normal">))&gt;</highlight></codeline>
+<codeline lineno="69" refid="classdabfg_1_1detail_1_1_virtual_attachment_request_1aae095c83f2608d5ad5d16e6ace3bafc9" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request_1aae095c83f2608d5ad5d16e6ace3bafc9" kindref="member">VirtualAttachmentRequest</ref>(<ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest&lt;BaseTexture, policy&gt;</ref><sp/>res)<sp/>:<sp/>image{res.resUid}</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/>{}</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;RRP<sp/>policy,<sp/>ENABLE_IF(policyAllowed(policy,<sp/></highlight><highlight class="stringliteral">&quot;ERROR:<sp/>Invalid<sp/>resource<sp/>request<sp/>for<sp/>this<sp/>type<sp/>of<sp/>attachment!&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;<sp/>See<sp/>the<sp/>docs<sp/>for<sp/>the<sp/>function<sp/>you<sp/>are<sp/>trying<sp/>to<sp/>call!&quot;</highlight><highlight class="normal">))&gt;</highlight></codeline>
+<codeline lineno="82" refid="classdabfg_1_1detail_1_1_virtual_attachment_request_1a5ead040fa1dfaab05fe365145af530a8" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request_1a5ead040fa1dfaab05fe365145af530a8" kindref="member">VirtualAttachmentRequest</ref>(<ref refid="classdabfg_1_1_virtual_resource_request" kindref="compound">VirtualResourceRequest&lt;BaseTexture, policy&gt;</ref><sp/>res,<sp/>uint32_t<sp/>mip_level,<sp/>uint32_t<sp/>layer)<sp/>:</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/>image{res.resUid},<sp/>mipLevel{mip_level},<sp/>layer{layer}</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/>{}</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;ENABLE_IF(requirePolicies<sp/>==<sp/>RRP::None)&gt;</highlight></codeline>
+<codeline lineno="94" refid="classdabfg_1_1detail_1_1_virtual_attachment_request_1a942c9f985d817a4f2f0d10e0431c16af" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request_1a942c9f985d817a4f2f0d10e0431c16af" kindref="member">VirtualAttachmentRequest</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)<sp/>:<sp/>image{name}</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/>{}</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;ENABLE_IF(requirePolicies<sp/>==<sp/>RRP::None)&gt;</highlight></codeline>
+<codeline lineno="108" refid="classdabfg_1_1detail_1_1_virtual_attachment_request_1a7ae0539e2a969ba281684c262921ef7a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request_1a7ae0539e2a969ba281684c262921ef7a" kindref="member">VirtualAttachmentRequest</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/>uint32_t<sp/>mip_level,<sp/>uint32_t<sp/>layer)<sp/>:<sp/>image{name},<sp/>mipLevel{mip_level},<sp/>layer{layer}</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/>{}</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"></highlight></codeline>
+<codeline lineno="111"><highlight class="normal"></highlight><highlight class="preprocessor">#undef<sp/>ENABLE_IF</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/>eastl::variant&lt;ResUid,<sp/>const<sp/>char<sp/>*&gt;<sp/>image;</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/>uint32_t<sp/>mipLevel<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/>uint32_t<sp/>layer<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="117"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"></highlight></codeline>
+<codeline lineno="119"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>detail</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="120"><highlight class="normal"></highlight></codeline>
+<codeline lineno="134" refid="classdabfg_1_1_virtual_pass_request" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classdabfg_1_1_virtual_pass_request" kindref="compound">VirtualPassRequest</ref></highlight></codeline>
+<codeline lineno="135"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classdabfg_1_1_registry" kindref="compound">Registry</ref>;</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_virtual_pass_request" kindref="compound">VirtualPassRequest</ref>(NodeNameId<sp/>node,<sp/>InternalRegistry<sp/>*reg);</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"></highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using</highlight><highlight class="normal"><sp/>RRP<sp/>=<sp/>detail::ResourceRequestPolicy;</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"></highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="146" refid="classdabfg_1_1_virtual_pass_request_1a70bdb581547fd889f8fbd6ede814b8a5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using</highlight><highlight class="normal"><sp/><ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">RwVirtualAttachmentRequest</ref><sp/>=</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">detail::VirtualAttachmentRequest&lt;RRP::Readonly | RRP::Optional | RRP::History | RRP::HasUsageStage | RRP::HasUsageType, RRP::None&gt;</ref>;</highlight></codeline>
+<codeline lineno="152" refid="classdabfg_1_1_virtual_pass_request_1ad0ea6f26ca95b411c8e53c499cb33d07" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using</highlight><highlight class="normal"><sp/><ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">ColorRwVirtualAttachmentRequest</ref><sp/>=</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">detail::VirtualAttachmentRequest&lt;RRP::Readonly | RRP::History | RRP::HasUsageStage | RRP::HasUsageType, RRP::None&gt;</ref>;</highlight></codeline>
+<codeline lineno="158" refid="classdabfg_1_1_virtual_pass_request_1aaa1a46ab816ccbdbde40efc5bf38ad32" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using</highlight><highlight class="normal"><sp/><ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">DepthRoVirtualAttachmentRequest</ref><sp/>=</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">detail::VirtualAttachmentRequest&lt;RRP::Optional | RRP::HasUsageStage | RRP::HasUsageType, RRP::None&gt;</ref>;</highlight></codeline>
+<codeline lineno="166" refid="classdabfg_1_1_virtual_pass_request_1a6c0f170cd81a1af3bfc5ab9a39f7cb46" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using</highlight><highlight class="normal"><sp/><ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">DepthRoAndSvBindVirtualAttachmentRequest</ref><sp/>=<sp/><ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">detail::VirtualAttachmentRequest&lt;RRP::Optional | RRP::HasUsageType, RRP::None&gt;</ref>;</highlight></codeline>
+<codeline lineno="171" refid="classdabfg_1_1_virtual_pass_request_1a347dc2490174dbd14786b15f784f7e71" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using</highlight><highlight class="normal"><sp/><ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">RoVirtualAttachmentRequest</ref><sp/>=</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">detail::VirtualAttachmentRequest&lt;RRP::History | RRP::HasUsageStage | RRP::HasUsageType, RRP::None&gt;</ref>;</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"></highlight></codeline>
+<codeline lineno="187" refid="classdabfg_1_1_virtual_pass_request_1a706091dbc09d2669e4de0b65079169a6" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_virtual_pass_request" kindref="compound">VirtualPassRequest</ref><sp/><ref refid="classdabfg_1_1_virtual_pass_request_1a706091dbc09d2669e4de0b65079169a6" kindref="member">color</ref>(std::initializer_list&lt;ColorRwVirtualAttachmentRequest&gt;<sp/>attachments)<sp/>&amp;&amp;;</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"></highlight></codeline>
+<codeline lineno="201" refid="classdabfg_1_1_virtual_pass_request_1a62c6487d386c907a3d10d4e9a2bc9012" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_virtual_pass_request" kindref="compound">VirtualPassRequest</ref><sp/><ref refid="classdabfg_1_1_virtual_pass_request_1a62c6487d386c907a3d10d4e9a2bc9012" kindref="member">depthRw</ref>(<ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">RwVirtualAttachmentRequest</ref><sp/>attachment)<sp/>&amp;&amp;;</highlight></codeline>
+<codeline lineno="202"><highlight class="normal"></highlight></codeline>
+<codeline lineno="203"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>DEPRECATED<sp/>AND<sp/>POINTLESS,<sp/>DON&apos;T<sp/>USE</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_virtual_pass_request" kindref="compound">VirtualPassRequest</ref><sp/>depthRo(<ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">DepthRoVirtualAttachmentRequest</ref><sp/>attachment)<sp/>&amp;&amp;;</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"></highlight></codeline>
+<codeline lineno="227" refid="classdabfg_1_1_virtual_pass_request_1a8f68d0f9de7a8ec460bf97cd50f04aca" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_virtual_pass_request" kindref="compound">VirtualPassRequest</ref><sp/><ref refid="classdabfg_1_1_virtual_pass_request_1a8f68d0f9de7a8ec460bf97cd50f04aca" kindref="member">depthRoAndBindToShaderVars</ref>(<ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">DepthRoAndSvBindVirtualAttachmentRequest</ref><sp/>attachment,</highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><sp/><sp/><sp/><sp/>std::initializer_list&lt;const<sp/>char<sp/>*&gt;<sp/>shader_var_names)<sp/>&amp;&amp;;</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"></highlight></codeline>
+<codeline lineno="240" refid="classdabfg_1_1_virtual_pass_request_1a2533ead8658d08cbd016baa6adf8d1d5" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_virtual_pass_request" kindref="compound">VirtualPassRequest</ref><sp/><ref refid="classdabfg_1_1_virtual_pass_request_1a2533ead8658d08cbd016baa6adf8d1d5" kindref="member">clear</ref>(<ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">RwVirtualAttachmentRequest</ref><sp/>attachment,<sp/>ResourceClearValue<sp/><ref refid="classdabfg_1_1_virtual_pass_request_1a706091dbc09d2669e4de0b65079169a6" kindref="member">color</ref>)<sp/>&amp;&amp;;</highlight></codeline>
+<codeline lineno="241"><highlight class="normal"></highlight></codeline>
+<codeline lineno="255" refid="classdabfg_1_1_virtual_pass_request_1a216eae66c47d819c60e54d2763f20eba" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_virtual_pass_request" kindref="compound">VirtualPassRequest</ref><sp/><ref refid="classdabfg_1_1_virtual_pass_request_1a216eae66c47d819c60e54d2763f20eba" kindref="member">clear</ref>(<ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">RwVirtualAttachmentRequest</ref><sp/>attachment,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*color_blob)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="256"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="257"><highlight class="normal"><sp/><sp/><sp/><sp/>blobClearImpl(attachment,<sp/>tag_for&lt;ResourceClearValue&gt;(),<sp/>color_blob,<sp/>detail::identity_projector);</highlight></codeline>
+<codeline lineno="258"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*</highlight><highlight class="keyword">this</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="259"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="260"><highlight class="normal"></highlight></codeline>
+<codeline lineno="277"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;auto<sp/>projector&gt;</highlight></codeline>
+<codeline lineno="278" refid="classdabfg_1_1_virtual_pass_request_1a61491c24dcde22f3cb5822b8a6e85dda" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_virtual_pass_request" kindref="compound">VirtualPassRequest</ref><sp/><ref refid="classdabfg_1_1_virtual_pass_request_1a61491c24dcde22f3cb5822b8a6e85dda" kindref="member">clear</ref>(<ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">RwVirtualAttachmentRequest</ref><sp/>attachment,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*color_blob)<sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="279"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="280"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">using</highlight><highlight class="normal"><sp/>ProjectedType<sp/>=<sp/>detail::ProjectedType&lt;projector&gt;;</highlight></codeline>
+<codeline lineno="281"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">using</highlight><highlight class="normal"><sp/>ProjecteeType<sp/>=<sp/>detail::ProjecteeType&lt;projector&gt;;</highlight></codeline>
+<codeline lineno="282"><highlight class="normal"><sp/><sp/><sp/><sp/>static_assert(eastl::is_same_v&lt;ProjectedType,<sp/>ResourceClearValue&gt;,<sp/></highlight><highlight class="stringliteral">&quot;Expected<sp/>the<sp/>projector<sp/>to<sp/>return<sp/>a<sp/>ResourceClearValue!&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="283"><highlight class="normal"><sp/><sp/><sp/><sp/>blobClearImpl(attachment,<sp/>tag_for&lt;ProjecteeType&gt;(),<sp/>color_blob,<sp/>detail::erase_projector_type&lt;projector,<sp/>ProjecteeType&gt;());</highlight></codeline>
+<codeline lineno="284"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*</highlight><highlight class="keyword">this</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="285"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="286"><highlight class="normal"></highlight></codeline>
+<codeline lineno="296" refid="classdabfg_1_1_virtual_pass_request_1a70fecdfb3519a321034939532b518af4" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_virtual_pass_request" kindref="compound">VirtualPassRequest</ref><sp/><ref refid="classdabfg_1_1_virtual_pass_request_1a70fecdfb3519a321034939532b518af4" kindref="member">resolve</ref>(<ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">RwVirtualAttachmentRequest</ref><sp/>from,<sp/><ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">RwVirtualAttachmentRequest</ref><sp/>to)<sp/>&amp;&amp;;</highlight></codeline>
+<codeline lineno="297"><highlight class="normal"></highlight></codeline>
+<codeline lineno="312" refid="classdabfg_1_1_virtual_pass_request_1aed4b82628bc1679008219bb948773d1a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_virtual_pass_request" kindref="compound">VirtualPassRequest</ref><sp/><ref refid="classdabfg_1_1_virtual_pass_request_1aed4b82628bc1679008219bb948773d1a" kindref="member">vrsRate</ref>(<ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">RoVirtualAttachmentRequest</ref><sp/>attachment)<sp/>&amp;&amp;;</highlight></codeline>
+<codeline lineno="313"><highlight class="normal"></highlight></codeline>
+<codeline lineno="314"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">/*<sp/>NOT<sp/>IMPLEMENTED</highlight></codeline>
+<codeline lineno="315"><highlight class="comment"><sp/><sp/><sp/>*<sp/>\brief<sp/>Sets<sp/>a<sp/>custom<sp/>render<sp/>area<sp/>for<sp/>this<sp/>pass,<sp/>also<sp/>known<sp/>as<sp/>a</highlight></codeline>
+<codeline lineno="316"><highlight class="comment"><sp/><sp/><sp/>*<sp/>scissor<sp/>rect.<sp/>By<sp/>default,<sp/>it<sp/>will<sp/>be<sp/>the<sp/>full<sp/>area<sp/>of<sp/>all<sp/>targets.</highlight></codeline>
+<codeline lineno="317"><highlight class="comment"><sp/><sp/><sp/>*<sp/>If<sp/>the<sp/>resolutions<sp/>of<sp/>targets<sp/>don&apos;t<sp/>match,<sp/>a<sp/>runtime<sp/>error<sp/>will</highlight></codeline>
+<codeline lineno="318"><highlight class="comment"><sp/><sp/><sp/>*<sp/>be<sp/>produced.</highlight></codeline>
+<codeline lineno="319"><highlight class="comment"><sp/><sp/><sp/>*<sp/>\details<sp/>Warning:<sp/>changing<sp/>the<sp/>rending<sp/>are<sp/>breaks<sp/>a<sp/>render<sp/>pass!</highlight></codeline>
+<codeline lineno="320"><highlight class="comment"><sp/><sp/><sp/>*</highlight></codeline>
+<codeline lineno="321"><highlight class="comment"><sp/><sp/><sp/>*<sp/>\param<sp/>from<sp/>The<sp/>top-left<sp/>corner<sp/>of<sp/>the<sp/>area.</highlight></codeline>
+<codeline lineno="322"><highlight class="comment"><sp/><sp/><sp/>*<sp/>\param<sp/>to<sp/>The<sp/>bottom-right<sp/>corner<sp/>of<sp/>the<sp/>area.</highlight></codeline>
+<codeline lineno="323"><highlight class="comment"><sp/><sp/><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="324"><highlight class="normal"><sp/><sp/><ref refid="classdabfg_1_1_virtual_pass_request" kindref="compound">VirtualPassRequest</ref><sp/>area(IPoint2<sp/>from,<sp/>IPoint2<sp/>to)<sp/>&amp;&amp;;</highlight></codeline>
+<codeline lineno="325"><highlight class="normal"></highlight></codeline>
+<codeline lineno="326"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>TODO:<sp/>implement<sp/>this<sp/>stuff<sp/>for<sp/>mobile<sp/>(huge<sp/>task)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="327"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>VirtualPassRequest<sp/>input(std::initializer_list&lt;RoAttachmentRequest&gt;<sp/>attachments)<sp/>&amp;&amp;;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="328"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>VirtualPassRequest<sp/>preserve(std::initializer_list&lt;RoAttachmentRequest&gt;<sp/>attachments)<sp/>&amp;&amp;;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="329"><highlight class="normal"></highlight></codeline>
+<codeline lineno="330"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="331"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;RRP<sp/>disallowPolicies,<sp/>RRP<sp/>requirePolicies&gt;</highlight></codeline>
+<codeline lineno="332"><highlight class="normal"><sp/><sp/>detail::ResUid<sp/>getResUidForAttachment(<ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">detail::VirtualAttachmentRequest&lt;disallowPolicies, requirePolicies&gt;</ref><sp/>attachment);</highlight></codeline>
+<codeline lineno="333"><highlight class="normal"></highlight></codeline>
+<codeline lineno="334"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>blobClearImpl(<ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">RwVirtualAttachmentRequest</ref><sp/>attachment,<sp/>ResourceSubtypeTag<sp/>projectee,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*blob,</highlight></codeline>
+<codeline lineno="335"><highlight class="normal"><sp/><sp/><sp/><sp/>detail::TypeErasedProjector<sp/>projector);</highlight></codeline>
+<codeline lineno="336"><highlight class="normal"></highlight></codeline>
+<codeline lineno="337"><highlight class="normal"><sp/><sp/>NodeNameId<sp/>nodeId;</highlight></codeline>
+<codeline lineno="338"><highlight class="normal"><sp/><sp/>InternalRegistry<sp/>*registry;</highlight></codeline>
+<codeline lineno="339"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="340"><highlight class="normal"></highlight></codeline>
+<codeline lineno="341"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>dabfg</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,1177 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="dag__res_mgr_8h" kind="file" language="C++">
+    <compoundname>dag_resMgr.h</compoundname>
+    <includes local="no">drv/3d/dag_d3dResource.h</includes>
+    <includes local="no">drv/3d/dag_resId.h</includes>
+    <includes local="no">osApiWrappers/dag_atomic.h</includes>
+    <includes local="no">util/dag_stdint.h</includes>
+    <includes local="no">startup/dag_globalSettings.h</includes>
+    <includedby refid="dag__tex_mgr_8h" local="no">/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h</includedby>
+    <incdepgraph>
+      <node id="5">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="3">
+        <label>drv/3d/dag_resId.h</label>
+      </node>
+      <node id="2">
+        <label>drv/3d/dag_d3dResource.h</label>
+      </node>
+      <node id="6">
+        <label>startup/dag_globalSettings.h</label>
+      </node>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h</label>
+        <link refid="dag__res_mgr_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>osApiWrappers/dag_atomic.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h</label>
+        <link refid="dag__tex_mgr_8h_source"/>
+      </node>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h</label>
+        <link refid="dag__res_mgr_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="user-defined">
+      <header>Helper wrappers</header>
+      <description><para>See <ref refid="dag__res_mgr_8h_1a39fe8e9a505b552c8994fcdb09569dfc" kindref="member">iterate_all_managed_d3dres()</ref>. Use as follows:</para>
+<para><programlisting><codeline><highlight class="normal">for<sp/>(D3DRESID<sp/>id<sp/>=<sp/>first_managed_d3dres();<sp/>id<sp/>!=<sp/>BAD_D3DRESID;<sp/>id<sp/>=<sp/>next_managed_d3dres(id))<sp/></highlight></codeline>
+</programlisting></para>
+<para>Get the first managed resource ID for iteration <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>min_rc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Minimum reference count filter </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>First managed resource ID with refCount &gt;= <computeroutput>min_rc</computeroutput> </para>
+</simplesect>
+</para>
+</description>
+      <memberdef kind="function" id="dag__res_mgr_8h_1a0b8cec301feeb91c6742d6822530d5dd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>D3DRESID</type>
+        <definition>D3DRESID first_managed_d3dres</definition>
+        <argsstring>(int min_rc=0)</argsstring>
+        <name>first_managed_d3dres</name>
+        <param>
+          <type>int</type>
+          <declname>min_rc</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" line="350" column="17" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" bodystart="350" bodyend="350"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__res_mgr_8h_1abe988b915fc83a4e61d664a2707c3b85" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>D3DRESID</type>
+        <definition>D3DRESID next_managed_d3dres</definition>
+        <argsstring>(D3DRESID prev_id, int min_rc=0)</argsstring>
+        <name>next_managed_d3dres</name>
+        <param>
+          <type>D3DRESID</type>
+          <declname>prev_id</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>min_rc</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+<para>Get the next managed resource ID for iteration. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>prev_id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the previous resource </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>min_rc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Minimum reference count filter </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Next managed resource ID after <computeroutput>prev_id</computeroutput> with refCount &gt;= <computeroutput>min_rc</computeroutput> </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" line="356" column="17" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" bodystart="356" bodyend="356"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eb" prot="public" static="no" strong="no">
+        <type>unsigned</type>
+        <name>TexQL</name>
+        <enumvalue id="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eba4be09bf3ff76f53d92abfc2009500c38" prot="public">
+          <name>TQL_stub</name>
+          <initializer>= 0xFu</initializer>
+          <briefdescription>
+<para>stub (shared 1x1 placeholder) </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eba8dce478308a12a7a8bd22310113aa3fe" prot="public">
+          <name>TQL_thumb</name>
+          <initializer>= 0u</initializer>
+          <briefdescription>
+<para>thumbnail quality (upto 64x64, total mem size &lt;= 4K) </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405ebaf14a876c736d29a49f6e0be754af1d21" prot="public">
+          <name>TQL_base</name>
+          <briefdescription>
+<para>base quality (low split) </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eba9c1a5f7c219b7772b3d928c286253299" prot="public">
+          <name>TQL_high</name>
+          <briefdescription>
+<para>full quality (HQ) </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eba1b7ec28083986ea3c86173483167cf17" prot="public">
+          <name>TQL_uhq</name>
+          <briefdescription>
+<para>ultra high quality </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405ebadefd87befbadfe5f6ded8e3d25e4eac6" prot="public">
+          <name>TQL__COUNT</name>
+          <briefdescription>
+<para>enum item count </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405ebabf67d196bd929d576dcbfd3181c02e78" prot="public">
+          <name>TQL__FIRST</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405ebade665ae02089f604440b00bb05facecc" prot="public">
+          <name>TQL__LAST</name>
+          <initializer>= TQL__COUNT - 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>Quality levels for textures (QL) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" line="36" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" bodystart="37" bodyend="47"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__res_mgr_8h_1a7256c5226f06bf195aec1bdc24a73fd2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>D3DRESID</type>
+        <definition>D3DRESID register_managed_res</definition>
+        <argsstring>(const char *name, D3dResource *res)</argsstring>
+        <name>register_managed_res</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>D3dResource *</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+<para>Registers external D3D resource with the specified <computeroutput>name</computeroutput> as managed and returns the D3DRESID for it. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Specified resource becomes owned by the manager, no factory is assigned to it. RefCount is set to 1 and when it eventually reaches 0, the resource is automatically destroyed and the name is evicted. Use <ref refid="dag__res_mgr_8h_1ab8d423d447df4e5459d92230a91e2609" kindref="member">release_managed_res()</ref> or <ref refid="dag__res_mgr_8h_1a21ccc1c9589538a79ae900f963820c44" kindref="member">release_managed_res_verified()</ref> to del ref and finally destroy. <simplesect kind="warning"><para>Resource name is case-insensitive and must be unique. </para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the name to register the resource under </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>res</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the resource to register </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the D3DRESID for the registered resource </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" line="230" column="10" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" declline="230" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__res_mgr_8h_1a00376763cbffd50bbafa7ffb914f8019" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool is_managed_res_factory_set</definition>
+        <argsstring>(D3DRESID id)</argsstring>
+        <name>is_managed_res_factory_set</name>
+        <param>
+          <type>D3DRESID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Checks whether creation/release factory is set for D3DRESID. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>E.g. for an ID that was acquired from <ref refid="dag__res_mgr_8h_1a7256c5226f06bf195aec1bdc24a73fd2" kindref="member">register_managed_res()</ref>, it will return false. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the D3DRESID to check </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>true if a factory was specified for the D3DRESID </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" line="236" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" declline="236" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__res_mgr_8h_1a9a595640453aaafc27576f78ef8fe666" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>D3dResource *</type>
+        <definition>D3dResource* acquire_managed_res</definition>
+        <argsstring>(D3DRESID id)</argsstring>
+        <name>acquire_managed_res</name>
+        <param>
+          <type>D3DRESID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Acquires resource object and increments resource reference count. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>If resource was not referenced yet, it is created. If it is unavailable (bad ID), nullptr is returned. Logically paired with <ref refid="dag__res_mgr_8h_1ab8d423d447df4e5459d92230a91e2609" kindref="member">release_managed_res()</ref>. <simplesect kind="note"><para>When factory fails to create texture, <emphasis>missing</emphasis> texture handling may be applied. </para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the managed ID to acquire </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the acquired resource object or nullptr if the ID is invalid </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" line="244" column="13" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" declline="244" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__res_mgr_8h_1ab8d423d447df4e5459d92230a91e2609" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void release_managed_res</definition>
+        <argsstring>(D3DRESID id)</argsstring>
+        <name>release_managed_res</name>
+        <param>
+          <type>D3DRESID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Releases resource object and decrements resource reference count. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>When reference count reaches 0, resource may be released. Logically paired with <ref refid="dag__res_mgr_8h_1a9a595640453aaafc27576f78ef8fe666" kindref="member">acquire_managed_res()</ref> <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the managed ID to release </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" line="250" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" declline="250" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__res_mgr_8h_1a21ccc1c9589538a79ae900f963820c44" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void release_managed_res_verified</definition>
+        <argsstring>(D3DRESID &amp;id, D3dResource *check_res)</argsstring>
+        <name>release_managed_res_verified</name>
+        <param>
+          <type>D3DRESID &amp;</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>D3dResource *</type>
+          <declname>check_res</declname>
+        </param>
+        <briefdescription>
+<para>Releases resource object and decrements resource reference count, but additionally checks that the managed resource is the same as <computeroutput>check_res</computeroutput>. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>When reference count reaches 0, resource may be released. Logically paired with <ref refid="dag__res_mgr_8h_1a9a595640453aaafc27576f78ef8fe666" kindref="member">acquire_managed_res()</ref> On resource destruction (when name is unregistered) id is set to BAD_D3DRESID <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the managed ID to release </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>check_res</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the resource to check against </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" line="259" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" declline="259" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__res_mgr_8h_1a5873d98536f847171770c8b2d7f30895" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BaseTexture *</type>
+        <definition>BaseTexture* acquire_managed_tex</definition>
+        <argsstring>(D3DRESID id)</argsstring>
+        <name>acquire_managed_tex</name>
+        <param>
+          <type>D3DRESID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Acquires resource object and increments resource reference count. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>If resource was not referenced yet, it is created. If it is unavailable (bad ID), nullptr is returned. Logically paired with <ref refid="dag__res_mgr_8h_1ab8d423d447df4e5459d92230a91e2609" kindref="member">release_managed_res()</ref>. <simplesect kind="note"><para>When factory fails to create texture, <emphasis>missing</emphasis> texture handling may be applied. </para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the managed ID to acquire </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the acquired resource object or nullptr if the ID is invalid </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" line="262" column="13" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" declline="262" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__res_mgr_8h_1a0fbd44fb094d60f3a1e4c12dafbd20cc" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void release_managed_tex</definition>
+        <argsstring>(D3DRESID id)</argsstring>
+        <name>release_managed_tex</name>
+        <param>
+          <type>D3DRESID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Releases resource object and decrements resource reference count. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>When reference count reaches 0, resource may be released. Logically paired with <ref refid="dag__res_mgr_8h_1a9a595640453aaafc27576f78ef8fe666" kindref="member">acquire_managed_res()</ref> <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the managed ID to release </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" line="264" column="20" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" bodystart="264" bodyend="264"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__res_mgr_8h_1a89ad87ae23533fe12c52060dd46deff3" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>static void release_managed_tex_verified</definition>
+        <argsstring>(D3DRESID &amp;id, T &amp;tex)</argsstring>
+        <name>release_managed_tex_verified</name>
+        <param>
+          <type>D3DRESID &amp;</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>T &amp;</type>
+          <declname>tex</declname>
+        </param>
+        <briefdescription>
+<para>Releases resource object and decrements resource reference count, but additionally checks that the managed resource is the same as <computeroutput>check_res</computeroutput>. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>When reference count reaches 0, resource may be released. Logically paired with <ref refid="dag__res_mgr_8h_1a9a595640453aaafc27576f78ef8fe666" kindref="member">acquire_managed_res()</ref> On resource destruction (when name is unregistered) id is set to BAD_D3DRESID <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the managed ID to release </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>check_res</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the resource to check against </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" line="267" column="20" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" bodystart="267" bodyend="271"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__res_mgr_8h_1a3f5faf5041c22dc83fb9a4c9c4acf5c6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Sbuffer *</type>
+        <definition>Sbuffer* acquire_managed_buf</definition>
+        <argsstring>(D3DRESID id)</argsstring>
+        <name>acquire_managed_buf</name>
+        <param>
+          <type>D3DRESID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Acquires resource object and increments resource reference count. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>If resource was not referenced yet, it is created. If it is unavailable (bad ID), nullptr is returned. Logically paired with <ref refid="dag__res_mgr_8h_1ab8d423d447df4e5459d92230a91e2609" kindref="member">release_managed_res()</ref>. <simplesect kind="note"><para>When factory fails to create texture, <emphasis>missing</emphasis> texture handling may be applied. </para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the managed ID to acquire </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the acquired resource object or nullptr if the ID is invalid </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" line="274" column="9" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" declline="274" declcolumn="9"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__res_mgr_8h_1a05bd66eded47fa97a426946968990c7f" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void release_managed_buf</definition>
+        <argsstring>(D3DRESID id)</argsstring>
+        <name>release_managed_buf</name>
+        <param>
+          <type>D3DRESID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Releases resource object and decrements resource reference count. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>When reference count reaches 0, resource may be released. Logically paired with <ref refid="dag__res_mgr_8h_1a9a595640453aaafc27576f78ef8fe666" kindref="member">acquire_managed_res()</ref> <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the managed ID to release </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" line="276" column="20" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" bodystart="276" bodyend="276"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__res_mgr_8h_1a839c4712cd105e11a649cba17976904c" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>static void release_managed_buf_verified</definition>
+        <argsstring>(D3DRESID &amp;id, T &amp;buf)</argsstring>
+        <name>release_managed_buf_verified</name>
+        <param>
+          <type>D3DRESID &amp;</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>T &amp;</type>
+          <declname>buf</declname>
+        </param>
+        <briefdescription>
+<para>Releases resource object and decrements resource reference count, but additionally checks that the managed resource is the same as <computeroutput>check_res</computeroutput>. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>When reference count reaches 0, resource may be released. Logically paired with <ref refid="dag__res_mgr_8h_1a9a595640453aaafc27576f78ef8fe666" kindref="member">acquire_managed_res()</ref> On resource destruction (when name is unregistered) id is set to BAD_D3DRESID <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the managed ID to release </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>check_res</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the resource to check against </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" line="279" column="20" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" bodystart="279" bodyend="283"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__res_mgr_8h_1a39745bdfe3d074107fb73637658dfab2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char* get_managed_res_name</definition>
+        <argsstring>(D3DRESID id)</argsstring>
+        <name>get_managed_res_name</name>
+        <param>
+          <type>D3DRESID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Gets the name for a managed resource by ID, or nullptr if ID is invalid. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the D3DRESID to get the name for </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the name of the managed resource with ID <computeroutput>id</computeroutput> or nullptr </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" line="288" column="12" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" declline="288" declcolumn="12"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__res_mgr_8h_1ad6b6c88dd810e84135a270f581fb428d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>D3DRESID</type>
+        <definition>D3DRESID get_managed_res_id</definition>
+        <argsstring>(const char *res_name)</argsstring>
+        <name>get_managed_res_id</name>
+        <param>
+          <type>const char *</type>
+          <declname>res_name</declname>
+        </param>
+        <briefdescription>
+<para>Gets managed resource ID by its name, or BAD_D3DRESID if name is invalid. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>res_name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the name of the resource to get the ID for </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the managed resource ID that corresponds to <computeroutput>res_name</computeroutput> or BAD_D3DRESID if the name is invalid </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" line="293" column="10" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" declline="293" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__res_mgr_8h_1ae30a8b0240bc0b61cd2001469c426869" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int get_managed_res_refcount</definition>
+        <argsstring>(D3DRESID id)</argsstring>
+        <name>get_managed_res_refcount</name>
+        <param>
+          <type>D3DRESID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Gets the reference count for a managed resource by ID. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the ID to get the reference count for </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the reference count for the D3DRESID resource or a negative value if the resource is missing </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" line="300" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" bodystart="300" bodyend="300"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__res_mgr_8h_1acb034a863d5cb1347a81b75153c77894" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>unsigned</type>
+        <definition>unsigned get_managed_res_lfu</definition>
+        <argsstring>(D3DRESID id)</argsstring>
+        <name>get_managed_res_lfu</name>
+        <param>
+          <type>D3DRESID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Gets the last-frame-used (LFU) counter for a managed ID. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the ID to get the LFU counter for </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the last-frame-used counter for the D3DRESID resource or 0 if the resource is missing/unregistered </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" line="305" column="17" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" bodystart="305" bodyend="305"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__res_mgr_8h_1af54ca60a9fb6c96ab9787a1f2fb98150" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eb" kindref="member">TexQL</ref></type>
+        <definition>TexQL get_managed_res_cur_tql</definition>
+        <argsstring>(D3DRESID id)</argsstring>
+        <name>get_managed_res_cur_tql</name>
+        <param>
+          <type>D3DRESID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Gets the current quality level (TQL_*) for a managed ID. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the ID to get the quality level for </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the current quality level for the D3DRESID resource or TQL_stub if the resource is missing/unregistered </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" line="310" column="14" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" bodystart="310" bodyend="310"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__res_mgr_8h_1ac465b8750dbf5930983c81b074c867aa" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eb" kindref="member">TexQL</ref></type>
+        <definition>TexQL get_managed_res_max_tql</definition>
+        <argsstring>(D3DRESID id)</argsstring>
+        <name>get_managed_res_max_tql</name>
+        <param>
+          <type>D3DRESID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Gets the maximum available quality level (TQL_*) for a managed ID. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the D3DRESID to get the quality level for </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the current quality level for the D3DRESID resource or TQL_stub if the resource is missing/unregistered </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" line="315" column="14" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" bodystart="315" bodyend="315"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__res_mgr_8h_1a8c2fa2232792a04589dc9ea429284bf0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>unsigned</type>
+        <definition>unsigned get_managed_res_maxreq_lev</definition>
+        <argsstring>(D3DRESID id)</argsstring>
+        <name>get_managed_res_maxreq_lev</name>
+        <param>
+          <type>D3DRESID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Gets the maximum requested level for a managed ID, i.e. log2(tex.dimension). Do not confuse it with QL! </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the D3DRESID to get the loaded level for </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the current loaded level for <computeroutput>id</computeroutput> or 0 if the resource is missing/unregistered </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" line="320" column="17" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" bodystart="320" bodyend="320"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__res_mgr_8h_1ae35f2263809755bf4f6af99d7900e935" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>unsigned</type>
+        <definition>unsigned get_managed_res_loaded_lev</definition>
+        <argsstring>(D3DRESID id)</argsstring>
+        <name>get_managed_res_loaded_lev</name>
+        <param>
+          <type>D3DRESID</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Gets the current loaded level for a managed ID, i.e. log2(tex.dimension). Do not confuse it with QL! </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the D3DRESID to get the loaded level for </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>the current loaded level for <computeroutput>id</computeroutput> or 0 if the resource is missing/unregistered </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" line="325" column="17" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" bodystart="325" bodyend="325"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__res_mgr_8h_1ac2afa95673d861e463f1f87e45a4926b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void enable_res_mgr_mt</definition>
+        <argsstring>(bool enable, int max_res_entry_count)</argsstring>
+        <name>enable_res_mgr_mt</name>
+        <param>
+          <type>bool</type>
+          <declname>enable</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>max_res_entry_count</declname>
+        </param>
+        <briefdescription>
+<para>Enables or disables multithreading support for resource manager and preallocates internal structures to handle upto <computeroutput>max_res_entry_count</computeroutput> resource entries without reallocations. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>enable_res_mgr_mt(false, -1) will disable multithreading support and shrink entries array to used size <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>enable</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>whether to enable multithreading support </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>max_res_entry_count</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>the maximum number of resource entries to preallocate or -1 to shrink to fit </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" line="332" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" declline="332" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__res_mgr_8h_1a39fe8e9a505b552c8994fcdb09569dfc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>D3DRESID</type>
+        <definition>D3DRESID iterate_all_managed_d3dres</definition>
+        <argsstring>(D3DRESID after_rid, int min_ref_count)</argsstring>
+        <name>iterate_all_managed_d3dres</name>
+        <param>
+          <type>D3DRESID</type>
+          <declname>after_rid</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>min_ref_count</declname>
+        </param>
+        <briefdescription>
+<para>Utility for iterating all managed resources. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Managed resources form a linked list, so for an arbitrary ID, this function returns the &quot;next&quot; ID in the list. Hence one is supposed to call this function in a loop until it returns BAD_D3DRESID. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>after_rid</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>ID of the texture to get the next texture for. Use BAD_D3DRESID to start iteration. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>min_ref_count</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Minimum reference count filter </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Some ID that follows <computeroutput>after_rid</computeroutput> and has refCount &gt;= <computeroutput>min_ref_count</computeroutput> OR BAD_RESID if the iteration is done. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" line="341" column="10" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h" declline="341" declcolumn="10"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Automatic resource manager for D3D resources. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>Glossary:<itemizedlist>
+<listitem><para>level - feature of texture size, computed as <computeroutput>log2(max(tex.dimensions)) = log2(max(tex.w, tex.h, tex.d))</computeroutput>:<orderedlist>
+<listitem><para>level=1 means smallest possing size (2x2x2) and is commonly used to denote smallest quality;</para>
+</listitem><listitem><para>level=15 means maximum possible size (up to 32767x32768, but current GPUs don&apos;t handle such res);</para>
+</listitem><listitem><para>level=2..15 means some non-stub quality. Variables for holding level usually have suffix Lev or _lev</para>
+</listitem></orderedlist>
+</para>
+</listitem><listitem><para>QL - quality level (or TQL - texture quality level), do not confuse it with &apos;level&apos;. Some predefined quality preset of texture (stub, thumbnail, base, high, ultrahigh, etc.) Enumerated later with TexQL enum (TQL_*). Variables for holding quality level usually have suffix QL or _ql.</para>
+</listitem><listitem><para>LFU - last frame used, ordinary rendered frame counter (generally from game start) where texture was referenced last time</para>
+</listitem><listitem><para>levDesc - levels descriptor that maps QL to real levels (e.g. TQL_thumb -&gt; level=6, TQL_base -&gt; level=9) </para>
+</listitem></itemizedlist>
+</para>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_d3dResource.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_resId.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;osApiWrappers/dag_atomic.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_stdint.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;startup/dag_globalSettings.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36" refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eb" refkind="member"><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eb" kindref="member">TexQL</ref><sp/>:<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="38" refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eba4be09bf3ff76f53d92abfc2009500c38" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eba4be09bf3ff76f53d92abfc2009500c38" kindref="member">TQL_stub</ref><sp/>=<sp/>0xFu,<sp/></highlight></codeline>
+<codeline lineno="39" refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eba8dce478308a12a7a8bd22310113aa3fe" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eba8dce478308a12a7a8bd22310113aa3fe" kindref="member">TQL_thumb</ref><sp/>=<sp/>0u,<sp/><sp/></highlight></codeline>
+<codeline lineno="40" refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405ebaf14a876c736d29a49f6e0be754af1d21" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405ebaf14a876c736d29a49f6e0be754af1d21" kindref="member">TQL_base</ref>,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="41" refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eba9c1a5f7c219b7772b3d928c286253299" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eba9c1a5f7c219b7772b3d928c286253299" kindref="member">TQL_high</ref>,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="42" refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eba1b7ec28083986ea3c86173483167cf17" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eba1b7ec28083986ea3c86173483167cf17" kindref="member">TQL_uhq</ref>,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44" refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405ebadefd87befbadfe5f6ded8e3d25e4eac6" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405ebadefd87befbadfe5f6ded8e3d25e4eac6" kindref="member">TQL__COUNT</ref>,<sp/></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/>TQL__FIRST<sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/>TQL__LAST<sp/>=<sp/><ref refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405ebadefd87befbadfe5f6ded8e3d25e4eac6" kindref="member">TQL__COUNT</ref><sp/>-<sp/>1</highlight></codeline>
+<codeline lineno="47"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="keyword">struct<sp/></highlight><highlight class="normal">D3dResManagerData</highlight></codeline>
+<codeline lineno="51"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>__forceinline<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>isValidIndex(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>idx)</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(idx<sp/>&lt;<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal">(interlocked_relaxed_load(indexCount)))</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>idx<sp/>&lt;<sp/>unsigned(interlocked_acquire_load(indexCount));</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>__forceinline<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>isValidIDFast(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>!=<sp/>BAD_D3DRESID<sp/>&amp;&amp;<sp/>isValidIndex(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">.index());<sp/>}</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>__forceinline<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>isValidID(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>(*report_bad_gen)(D3DRESID)<sp/>=<sp/>&amp;report_bad_generation_used)</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(isValidIDFast(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">))</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(getCurGeneration(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">.index())<sp/>==<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">.generation())</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(report_bad_gen)</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>report_bad_gen(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>__forceinline<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>getRefCount(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>idx<sp/>=<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">.index();</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(isValidIDFast(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>&amp;&amp;<sp/>getCurGeneration(idx)<sp/>==<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">.generation())</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>interlocked_acquire_load(refCount[idx]);</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>INVALID_REFCOUNT;</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>__forceinline<sp/>D3dResource<sp/>*getD3dRes(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>getRefCount(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>&gt;<sp/>0<sp/>?<sp/>interlocked_acquire_load_ptr(asVolatile(d3dRes[</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">.index()]))<sp/>:<sp/>nullptr;</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>__forceinline<sp/>BaseTexture<sp/>*getBaseTex(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(BaseTexture<sp/>*)getD3dRes(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>TYPE&gt;</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>__forceinline<sp/>BaseTexture<sp/>*getD3dTex(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/>D3dResource<sp/>*r<sp/>=<sp/>getD3dRes(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(r<sp/>&amp;&amp;<sp/>r-&gt;restype()<sp/>==<sp/>TYPE)<sp/>?<sp/>(BaseTexture<sp/>*)r<sp/>:<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"></highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>__forceinline<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>getResLFU(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>isValidID(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">)<sp/>?<sp/>(unsigned)interlocked_acquire_load(lastFrameUsed[</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">.index()])<sp/>:<sp/>0u;</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>__forceinline<sp/><ref refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eb" kindref="member">TexQL</ref><sp/>getResCurQL(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>isValidID(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">)<sp/>?<sp/>resQS[</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">.index()].getCurQL()<sp/>:<sp/><ref refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eba4be09bf3ff76f53d92abfc2009500c38" kindref="member">TQL_stub</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>__forceinline<sp/><ref refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eb" kindref="member">TexQL</ref><sp/>getResMaxQL(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>isValidID(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">)<sp/>?<sp/>resQS[</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">.index()].getMaxQL()<sp/>:<sp/><ref refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eba4be09bf3ff76f53d92abfc2009500c38" kindref="member">TQL_stub</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"></highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>__forceinline<sp/>uint8_t<sp/>getResLoadedLev(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>isValidID(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">)<sp/>?<sp/>resQS[</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">.index()].getLdLev()<sp/>:<sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>__forceinline<sp/>uint8_t<sp/>getResMaxReqLev(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>isValidID(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">)<sp/>?<sp/>resQS[</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">.index()].getMaxReqLev()<sp/>:<sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"></highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>__forceinline<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>getCurGeneration(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>idx)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>interlocked_acquire_load(generation[idx]);<sp/>}</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"></highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>__forceinline<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>markResLFU(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>req_lev<sp/>=<sp/>15)</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(isValidID(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">)<sp/></highlight><highlight class="comment">/*getRefCount(id)<sp/>&gt;<sp/>0*/</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>idx<sp/>=<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">.index();</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>f<sp/>=<sp/>dagor_frame_no();</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(interlocked_relaxed_load(lastFrameUsed[idx])<sp/>&lt;<sp/>f)<sp/></highlight><highlight class="comment">//<sp/>relaxed<sp/>load<sp/>here<sp/>is<sp/>enough<sp/>for<sp/>monotonically<sp/>increased<sp/>frame<sp/>counter</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>interlocked_release_store(lastFrameUsed[idx],<sp/>f);</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>updateResReqLev(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/>idx,<sp/>req_lev);</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(resQS[idx].getMaxReqLev()<sp/>&lt;<sp/>req_lev)</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>updateResReqLev(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/>idx,<sp/>req_lev);</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"></highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint8_t<sp/>getLevDesc(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>idx,<sp/><ref refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eb" kindref="member">TexQL</ref><sp/>ql)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(levDesc[idx]<sp/>&gt;&gt;<sp/>(ql<sp/>*<sp/>4))<sp/>&amp;<sp/>0xF;<sp/>}</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"></highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>constexpr<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>INVALID_REFCOUNT<sp/>=<sp/>-1073741824;<sp/></highlight><highlight class="comment">//<sp/>0xC0000000<sp/>to<sp/>be<sp/>negative<sp/>and<sp/>sufficiently<sp/>far<sp/>from<sp/>0<sp/>to<sp/>both<sp/>sides</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="143"><highlight class="normal"></highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">ReqQState</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>maxReqLev;<sp/><sp/><sp/><sp/></highlight><highlight class="comment">//&lt;<sp/>max<sp/>requested-level</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>ldLev__rdLev;<sp/></highlight><highlight class="comment">//&lt;<sp/>loaded-level;<sp/><sp/>level<sp/>to<sp/>be<sp/>loaded<sp/>(!=0<sp/>-&gt;<sp/>reading<sp/>in<sp/>progress)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>qLev__maxLev;<sp/></highlight><highlight class="comment">//&lt;<sp/>max<sp/>level<sp/>for<sp/>tex<sp/>quality;<sp/><sp/>current<sp/>max<sp/>level</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>curQL__maxQL;<sp/></highlight><highlight class="comment">//&lt;<sp/>current<sp/>QL;<sp/><sp/>max<sp/>QL</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="150"><highlight class="normal"></highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>getMaxReqLev()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>interlocked_relaxed_load(maxReqLev);<sp/>}<sp/></highlight><highlight class="comment">//<sp/>relaxed<sp/>is<sp/>enough</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setMaxReqLev(uint8_t<sp/>l)<sp/>{<sp/>interlocked_release_store(maxReqLev,<sp/>l);<sp/>}</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"></highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>getLdLev()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>interlocked_acquire_load(ldLev__rdLev)<sp/>&gt;&gt;<sp/>4;<sp/>}</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>getRdLev()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>interlocked_acquire_load(ldLev__rdLev)<sp/>&amp;<sp/>0xF;<sp/>}</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>isReading()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>getRdLev()<sp/>!=<sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setRdLev(uint8_t<sp/>l)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>interlocked_release_store(ldLev__rdLev,<sp/>(getLdLev()<sp/>&lt;&lt;<sp/>4)<sp/>|<sp/>(l<sp/>&amp;<sp/>0xF));<sp/>}</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setLdLev(uint8_t<sp/>l)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>interlocked_release_store(ldLev__rdLev,<sp/>(l<sp/>&lt;&lt;<sp/>4)<sp/>|<sp/>0);<sp/>}</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"></highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>getQLev()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>interlocked_relaxed_load(qLev__maxLev)<sp/>&gt;&gt;<sp/>4;<sp/>}</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>getMaxLev()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>interlocked_acquire_load(qLev__maxLev)<sp/>&amp;<sp/>0xF;<sp/>}</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/>clampLev(uint8_t<sp/>l)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="164"><highlight class="keyword"><sp/><sp/><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>uint8_t<sp/>qlev<sp/>=<sp/>getQLev();</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>l<sp/>&lt;<sp/>qlev<sp/>?<sp/>l<sp/>:<sp/>qlev;</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setQLev(uint8_t<sp/>l)</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>l<sp/>&amp;=<sp/>0xF;</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>interlocked_release_store(qLev__maxLev,<sp/>l<sp/>|<sp/>(l<sp/>&lt;&lt;<sp/>4));</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setMaxLev(uint8_t<sp/>l)</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>uint8_t<sp/>ql<sp/>=<sp/>getQLev();</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>interlocked_release_store(qLev__maxLev,<sp/>(ql<sp/>&lt;&lt;<sp/>4)<sp/>|<sp/>(l<sp/>&lt;<sp/>ql<sp/>?<sp/>l<sp/>:<sp/>ql));</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"></highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eb" kindref="member">TexQL</ref><sp/>getCurQL()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eb" kindref="member">TexQL</ref>(interlocked_acquire_load(curQL__maxQL)<sp/>&gt;&gt;<sp/>4);<sp/>}</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eb" kindref="member">TexQL</ref><sp/>getMaxQL()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eb" kindref="member">TexQL</ref>(interlocked_relaxed_load(curQL__maxQL)<sp/>&amp;<sp/>0xF);<sp/>}</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>isEqualCurAndMaxQL()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="182"><highlight class="keyword"><sp/><sp/><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>uint8_t<sp/>cm<sp/>=<sp/>interlocked_relaxed_load(curQL__maxQL);</highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(cm<sp/>&gt;&gt;<sp/>4)<sp/>==<sp/>(cm<sp/>&amp;<sp/>0xF);</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>isCurQLGreater(<ref refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eb" kindref="member">TexQL</ref><sp/>ql)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="187"><highlight class="keyword"><sp/><sp/><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eb" kindref="member">TexQL</ref><sp/>cur<sp/>=<sp/>getCurQL();</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>cur<sp/>!=<sp/><ref refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eba4be09bf3ff76f53d92abfc2009500c38" kindref="member">TQL_stub</ref><sp/>&amp;&amp;<sp/>cur<sp/>&gt;<sp/>ql;</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setMaxQL(<ref refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eb" kindref="member">TexQL</ref><sp/>max_ql,<sp/>uint8_t<sp/>cur_ql)<sp/>{<sp/>interlocked_release_store(curQL__maxQL,<sp/>((cur_ql<sp/>&amp;<sp/>0xF)<sp/>&lt;&lt;<sp/>4)<sp/>|<sp/>(max_ql<sp/>&amp;<sp/>0xF));<sp/>}</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setCurQL(<ref refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eb" kindref="member">TexQL</ref><sp/>ql)<sp/>{<sp/>setMaxQL(getMaxQL(),<sp/>ql);<sp/>}</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"></highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>indexCount,<sp/>maxTotalIndexCount;</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint16_t<sp/>*__restrict<sp/>generation;</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>*__restrict<sp/>refCount;</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>D3dResource<sp/>*__restrict<sp/>*__restrict<sp/>d3dRes;</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>int32_t<sp/>*__restrict<sp/>lastFrameUsed;</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>ReqQState<sp/>*__restrict<sp/>resQS;</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint16_t<sp/>*__restrict<sp/>levDesc;</highlight></codeline>
+<codeline lineno="202"><highlight class="normal"></highlight></codeline>
+<codeline lineno="203"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>T<sp/>*</highlight><highlight class="keyword">volatile</highlight><highlight class="normal"><sp/>&amp;asVolatile(T<sp/>*__restrict<sp/>&amp;p)</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(T<sp/>*</highlight><highlight class="keyword">volatile</highlight><highlight class="normal"><sp/>&amp;)p;</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>report_bad_generation_used(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>require_tex_load(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>__forceinline<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>updateResReqLev(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>idx,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>reqLev)</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/><sp/><sp/>resQS[idx].setMaxReqLev(reqLev);<sp/></highlight><highlight class="comment">//<sp/>eventually<sp/>consistent</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(resQS[idx].getRdLev()<sp/>||<sp/>resQS[idx].isEqualCurAndMaxQL())</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/><sp/><sp/>reqLev<sp/>=<sp/>resQS[idx].clampLev(reqLev);</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(resQS[idx].getLdLev()<sp/>&lt;<sp/>reqLev)</highlight></codeline>
+<codeline lineno="217"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>require_tex_load(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="219"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="221"></codeline>
+<codeline lineno="230" refid="dag__res_mgr_8h_1a7256c5226f06bf195aec1bdc24a73fd2" refkind="member"><highlight class="normal">D3DRESID<sp/><ref refid="dag__res_mgr_8h_1a7256c5226f06bf195aec1bdc24a73fd2" kindref="member">register_managed_res</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/>D3dResource<sp/>*res);</highlight></codeline>
+<codeline lineno="231"><highlight class="normal"></highlight></codeline>
+<codeline lineno="236" refid="dag__res_mgr_8h_1a00376763cbffd50bbafa7ffb914f8019" refkind="member"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__res_mgr_8h_1a00376763cbffd50bbafa7ffb914f8019" kindref="member">is_managed_res_factory_set</ref>(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"></highlight></codeline>
+<codeline lineno="244" refid="dag__res_mgr_8h_1a9a595640453aaafc27576f78ef8fe666" refkind="member"><highlight class="normal">D3dResource<sp/>*<ref refid="dag__res_mgr_8h_1a9a595640453aaafc27576f78ef8fe666" kindref="member">acquire_managed_res</ref>(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="245"><highlight class="normal"></highlight></codeline>
+<codeline lineno="250" refid="dag__res_mgr_8h_1ab8d423d447df4e5459d92230a91e2609" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__res_mgr_8h_1ab8d423d447df4e5459d92230a91e2609" kindref="member">release_managed_res</ref>(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="251"><highlight class="normal"></highlight></codeline>
+<codeline lineno="259" refid="dag__res_mgr_8h_1a21ccc1c9589538a79ae900f963820c44" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__res_mgr_8h_1a21ccc1c9589538a79ae900f963820c44" kindref="member">release_managed_res_verified</ref>(D3DRESID<sp/>&amp;</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/>D3dResource<sp/>*check_res);</highlight></codeline>
+<codeline lineno="260"><highlight class="normal"></highlight></codeline>
+<codeline lineno="262" refid="dag__res_mgr_8h_1a5873d98536f847171770c8b2d7f30895" refkind="member"><highlight class="normal">BaseTexture<sp/>*<ref refid="dag__res_mgr_8h_1a5873d98536f847171770c8b2d7f30895" kindref="member">acquire_managed_tex</ref>(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="264"><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>release_managed_tex(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/><ref refid="dag__res_mgr_8h_1ab8d423d447df4e5459d92230a91e2609" kindref="member">release_managed_res</ref>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="265"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="267"><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>release_managed_tex_verified(D3DRESID<sp/>&amp;</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/>T<sp/>&amp;tex)</highlight></codeline>
+<codeline lineno="268"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="269"><highlight class="normal"><sp/><sp/><ref refid="dag__res_mgr_8h_1a21ccc1c9589538a79ae900f963820c44" kindref="member">release_managed_res_verified</ref>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">static_cast&lt;</highlight><highlight class="normal">D3dResource<sp/>*</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(tex));</highlight></codeline>
+<codeline lineno="270"><highlight class="normal"><sp/><sp/>tex<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="271"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="272"><highlight class="normal"></highlight></codeline>
+<codeline lineno="274" refid="dag__res_mgr_8h_1a3f5faf5041c22dc83fb9a4c9c4acf5c6" refkind="member"><highlight class="normal">Sbuffer<sp/>*<ref refid="dag__res_mgr_8h_1a3f5faf5041c22dc83fb9a4c9c4acf5c6" kindref="member">acquire_managed_buf</ref>(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="276"><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>release_managed_buf(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/><ref refid="dag__res_mgr_8h_1ab8d423d447df4e5459d92230a91e2609" kindref="member">release_managed_res</ref>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="278"><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="279"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>release_managed_buf_verified(D3DRESID<sp/>&amp;</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/>T<sp/>&amp;buf)</highlight></codeline>
+<codeline lineno="280"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="281"><highlight class="normal"><sp/><sp/><ref refid="dag__res_mgr_8h_1a21ccc1c9589538a79ae900f963820c44" kindref="member">release_managed_res_verified</ref>(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">static_cast&lt;</highlight><highlight class="normal">D3dResource<sp/>*</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(buf));</highlight></codeline>
+<codeline lineno="282"><highlight class="normal"><sp/><sp/>buf<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="283"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="284"><highlight class="normal"></highlight></codeline>
+<codeline lineno="288" refid="dag__res_mgr_8h_1a39745bdfe3d074107fb73637658dfab2" refkind="member"><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="dag__res_mgr_8h_1a39745bdfe3d074107fb73637658dfab2" kindref="member">get_managed_res_name</ref>(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="289"><highlight class="normal"></highlight></codeline>
+<codeline lineno="293" refid="dag__res_mgr_8h_1ad6b6c88dd810e84135a270f581fb428d" refkind="member"><highlight class="normal">D3DRESID<sp/><ref refid="dag__res_mgr_8h_1ad6b6c88dd810e84135a270f581fb428d" kindref="member">get_managed_res_id</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*res_name);</highlight></codeline>
+<codeline lineno="294"><highlight class="normal"></highlight></codeline>
+<codeline lineno="295"><highlight class="normal"></highlight></codeline>
+<codeline lineno="300" refid="dag__res_mgr_8h_1ae30a8b0240bc0b61cd2001469c426869" refkind="member"><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="dag__res_mgr_8h_1ae30a8b0240bc0b61cd2001469c426869" kindref="member">get_managed_res_refcount</ref>(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>D3dResManagerData::getRefCount(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="301"><highlight class="normal"></highlight></codeline>
+<codeline lineno="305" refid="dag__res_mgr_8h_1acb034a863d5cb1347a81b75153c77894" refkind="member"><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="dag__res_mgr_8h_1acb034a863d5cb1347a81b75153c77894" kindref="member">get_managed_res_lfu</ref>(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>D3dResManagerData::getResLFU(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="306"><highlight class="normal"></highlight></codeline>
+<codeline lineno="310" refid="dag__res_mgr_8h_1af54ca60a9fb6c96ab9787a1f2fb98150" refkind="member"><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eb" kindref="member">TexQL</ref><sp/><ref refid="dag__res_mgr_8h_1af54ca60a9fb6c96ab9787a1f2fb98150" kindref="member">get_managed_res_cur_tql</ref>(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>D3dResManagerData::getResCurQL(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="311"><highlight class="normal"></highlight></codeline>
+<codeline lineno="315" refid="dag__res_mgr_8h_1ac465b8750dbf5930983c81b074c867aa" refkind="member"><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="dag__res_mgr_8h_1a8ef2dc03f32aa1e43fc19727622405eb" kindref="member">TexQL</ref><sp/><ref refid="dag__res_mgr_8h_1ac465b8750dbf5930983c81b074c867aa" kindref="member">get_managed_res_max_tql</ref>(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>D3dResManagerData::getResMaxQL(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="316"><highlight class="normal"></highlight></codeline>
+<codeline lineno="320" refid="dag__res_mgr_8h_1a8c2fa2232792a04589dc9ea429284bf0" refkind="member"><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="dag__res_mgr_8h_1a8c2fa2232792a04589dc9ea429284bf0" kindref="member">get_managed_res_maxreq_lev</ref>(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>D3dResManagerData::getResMaxReqLev(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="321"><highlight class="normal"></highlight></codeline>
+<codeline lineno="325" refid="dag__res_mgr_8h_1ae35f2263809755bf4f6af99d7900e935" refkind="member"><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="dag__res_mgr_8h_1ae35f2263809755bf4f6af99d7900e935" kindref="member">get_managed_res_loaded_lev</ref>(D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>D3dResManagerData::getResLoadedLev(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="326"><highlight class="normal"></highlight></codeline>
+<codeline lineno="332" refid="dag__res_mgr_8h_1ac2afa95673d861e463f1f87e45a4926b" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__res_mgr_8h_1ac2afa95673d861e463f1f87e45a4926b" kindref="member">enable_res_mgr_mt</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>enable,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>max_res_entry_count);</highlight></codeline>
+<codeline lineno="333"><highlight class="normal"></highlight></codeline>
+<codeline lineno="334"><highlight class="normal"></highlight></codeline>
+<codeline lineno="341" refid="dag__res_mgr_8h_1a39fe8e9a505b552c8994fcdb09569dfc" refkind="member"><highlight class="normal">D3DRESID<sp/><ref refid="dag__res_mgr_8h_1a39fe8e9a505b552c8994fcdb09569dfc" kindref="member">iterate_all_managed_d3dres</ref>(D3DRESID<sp/>after_rid,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>min_ref_count);</highlight></codeline>
+<codeline lineno="342"><highlight class="normal"></highlight></codeline>
+<codeline lineno="350"><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>D3DRESID<sp/>first_managed_d3dres(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>min_rc<sp/>=<sp/>0)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__res_mgr_8h_1a39fe8e9a505b552c8994fcdb09569dfc" kindref="member">iterate_all_managed_d3dres</ref>(BAD_D3DRESID,<sp/>min_rc);<sp/>}</highlight></codeline>
+<codeline lineno="351"><highlight class="normal"></highlight></codeline>
+<codeline lineno="356" refid="dag__res_mgr_8h_1abe988b915fc83a4e61d664a2707c3b85" refkind="member"><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>D3DRESID<sp/><ref refid="dag__res_mgr_8h_1abe988b915fc83a4e61d664a2707c3b85" kindref="member">next_managed_d3dres</ref>(D3DRESID<sp/>prev_id,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>min_rc<sp/>=<sp/>0)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="dag__res_mgr_8h_1a39fe8e9a505b552c8994fcdb09569dfc" kindref="member">iterate_all_managed_d3dres</ref>(prev_id,<sp/>min_rc);<sp/>}</highlight></codeline>
+    </programlisting>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_resMgr.h"/>
+  </compounddef>
+</doxygen>

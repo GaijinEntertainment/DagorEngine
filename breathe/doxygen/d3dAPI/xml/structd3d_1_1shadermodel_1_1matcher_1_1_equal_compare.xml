@@ -1,0 +1,78 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structd3d_1_1shadermodel_1_1matcher_1_1_equal_compare" kind="struct" language="C++" prot="public">
+    <compoundname>d3d::shadermodel::matcher::EqualCompare</compoundname>
+    <includes refid="dag__shader_model_version_8h" local="no">dag_shaderModelVersion.h</includes>
+    <templateparamlist>
+      <param>
+        <type>typename T</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structd3d_1_1shadermodel_1_1matcher_1_1_equal_compare_1ab2fc6902a2991e84a40babd7bd33885a" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename OT</type>
+          </param>
+        </templateparamlist>
+        <type>bool</type>
+        <definition>static bool d3d::shadermodel::matcher::EqualCompare&lt; T &gt;::compare</definition>
+        <argsstring>(const T &amp;l, const OT &amp;r)</argsstring>
+        <name>compare</name>
+        <param>
+          <type>const T &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>const OT &amp;</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Compares <computeroutput>l</computeroutput> and <computeroutput>r</computeroutput> and returns true when they are equal. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>l</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First value to compare. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second value to compare. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Result of <computeroutput>l</computeroutput> == <computeroutput>r</computeroutput>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="28" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="28" bodyend="31"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Simple equal comparison compare type. <parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Type of the compared type. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="21" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="22" bodyend="32"/>
+    <listofallmembers>
+      <member refid="structd3d_1_1shadermodel_1_1matcher_1_1_equal_compare_1ab2fc6902a2991e84a40babd7bd33885a" prot="public" virt="non-virtual"><scope>d3d::shadermodel::matcher::EqualCompare</scope><name>compare</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

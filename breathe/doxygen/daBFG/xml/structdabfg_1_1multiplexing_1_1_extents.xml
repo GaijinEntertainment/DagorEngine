@@ -1,0 +1,71 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structdabfg_1_1multiplexing_1_1_extents" kind="struct" language="C++" prot="public">
+    <compoundname>dabfg::multiplexing::Extents</compoundname>
+    <includes refid="multiplexing_8h" local="no">multiplexing.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structdabfg_1_1multiplexing_1_1_extents_1ac8f185728186cace0745907328d4d169" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t dabfg::multiplexing::Extents::superSamples</definition>
+        <argsstring></argsstring>
+        <name>superSamples</name>
+        <initializer>{1}</initializer>
+        <briefdescription>
+<para>Number of super-samples. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/multiplexing.h" line="36" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/multiplexing.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdabfg_1_1multiplexing_1_1_extents_1a112bc035108fb52f36d134f09a6ee019" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t dabfg::multiplexing::Extents::subSamples</definition>
+        <argsstring></argsstring>
+        <name>subSamples</name>
+        <initializer>{1}</initializer>
+        <briefdescription>
+<para>Number of sub-samples. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/multiplexing.h" line="37" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/multiplexing.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structdabfg_1_1multiplexing_1_1_extents_1a0579f440ce7462a8091d3324c3799855" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t dabfg::multiplexing::Extents::viewports</definition>
+        <argsstring></argsstring>
+        <name>viewports</name>
+        <initializer>{1}</initializer>
+        <briefdescription>
+<para>Number of viewports. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/multiplexing.h" line="38" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/multiplexing.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>A struct describing the amount of multiplexing that occurs over every dimension. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>The application is free to interpret these dimensions however it pleases, but the intended interpretation is<itemizedlist>
+<listitem><para>superSamples <ndash/> used when rendering the entire scene multiple times to achieve a higher resolution result than the user&apos;s VRAM would allow otherwise, which is useful for screenshots and cinematics;</para>
+</listitem><listitem><para>subSamples <ndash/> used for rendering the entire scene multiple times and then blending the results to achieve SSAA without spending any additional VRAM required;</para>
+</listitem><listitem><para>viewports <ndash/> used for VR/AR. </para>
+</listitem></itemizedlist>
+</para>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/multiplexing.h" line="34" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/multiplexing.h" bodystart="35" bodyend="39"/>
+    <listofallmembers>
+      <member refid="structdabfg_1_1multiplexing_1_1_extents_1a112bc035108fb52f36d134f09a6ee019" prot="public" virt="non-virtual"><scope>dabfg::multiplexing::Extents</scope><name>subSamples</name></member>
+      <member refid="structdabfg_1_1multiplexing_1_1_extents_1ac8f185728186cace0745907328d4d169" prot="public" virt="non-virtual"><scope>dabfg::multiplexing::Extents</scope><name>superSamples</name></member>
+      <member refid="structdabfg_1_1multiplexing_1_1_extents_1a0579f440ce7462a8091d3324c3799855" prot="public" virt="non-virtual"><scope>dabfg::multiplexing::Extents</scope><name>viewports</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

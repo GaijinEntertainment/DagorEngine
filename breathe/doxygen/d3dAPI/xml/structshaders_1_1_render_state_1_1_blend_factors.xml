@@ -1,0 +1,49 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structshaders_1_1_render_state_1_1_blend_factors" kind="struct" language="C++" prot="public">
+    <compoundname>shaders::RenderState::BlendFactors</compoundname>
+    <includes refid="dag__render_states_8h" local="no">dag_renderStates.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structshaders_1_1_render_state_1_1_blend_factors_1a93b4dbd109ed3110afd7fbe115dda3e6" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t shaders::RenderState::BlendFactors::src</definition>
+        <argsstring></argsstring>
+        <name>src</name>
+        <bitfield> 4</bitfield>
+        <briefdescription>
+<para>Configures source alpha #BLEND_FACTOR. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" line="60" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshaders_1_1_render_state_1_1_blend_factors_1ab142254ca70c79442094e1b7fe5a6fde" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t shaders::RenderState::BlendFactors::dst</definition>
+        <argsstring></argsstring>
+        <name>dst</name>
+        <bitfield> 4</bitfield>
+        <briefdescription>
+<para>Configures destination alpha #BLEND_FACTOR. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" line="61" column="13" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Description of blending factors. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" line="58" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h" bodystart="59" bodyend="62"/>
+    <listofallmembers>
+      <member refid="structshaders_1_1_render_state_1_1_blend_factors_1ab142254ca70c79442094e1b7fe5a6fde" prot="public" virt="non-virtual"><scope>shaders::RenderState::BlendFactors</scope><name>dst</name></member>
+      <member refid="structshaders_1_1_render_state_1_1_blend_factors_1a93b4dbd109ed3110afd7fbe115dda3e6" prot="public" virt="non-virtual"><scope>shaders::RenderState::BlendFactors</scope><name>src</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

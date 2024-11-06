@@ -1,0 +1,112 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_tile_mapping" kind="struct" language="C++" prot="public">
+    <compoundname>TileMapping</compoundname>
+    <includes refid="dag__tiled_resource_8h" local="no">dag_tiledResource.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_tile_mapping_1a13593c795d0e8c928898bc7269ffe344" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t TileMapping::texX</definition>
+        <argsstring></argsstring>
+        <name>texX</name>
+        <briefdescription>
+<para>The tile coordinates in tiles, not pixels! </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" line="15" column="10" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_tile_mapping_1a845a5a9b14dd1b083659b01fd68b0dc5" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t TileMapping::texY</definition>
+        <argsstring></argsstring>
+        <name>texY</name>
+        <briefdescription>
+<para>The tile coordinates in tiles, not pixels! </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" line="16" column="10" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_tile_mapping_1a40abeda405c0f9c447f07877210ed293" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t TileMapping::texZ</definition>
+        <argsstring></argsstring>
+        <name>texZ</name>
+        <briefdescription>
+<para>The tile coordinates in tiles, not pixels! </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" line="17" column="10" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_tile_mapping_1a43c34a3cc0d086bc51145bebdeee8721" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t TileMapping::texSubresource</definition>
+        <argsstring></argsstring>
+        <name>texSubresource</name>
+        <briefdescription>
+<para>The index of the subresource. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" line="18" column="10" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_tile_mapping_1a1dce85876906078f09c01ee6dd3eb53f" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t TileMapping::heapTileIndex</definition>
+        <argsstring></argsstring>
+        <name>heapTileIndex</name>
+        <briefdescription>
+<para>The index of the tile in the heap. Not bytes, but tile index! </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" line="19" column="10" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_tile_mapping_1a73c32658efeaa5af4146154a5068b822" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t TileMapping::heapTileSpan</definition>
+        <argsstring></argsstring>
+        <name>heapTileSpan</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>The number of tiles to map. Zero is invalid, and if it is not one, an array of tiles will be mapped, to the specified location. Example usage for this is packed mip tails.<itemizedlist>
+<listitem><para>Map to subresource <ref refid="struct_texture_tiling_info_1a93078262624395204023549c42944fa8" kindref="member">TextureTilingInfo::numUnpackedMips</ref> at 0, 0, 0.</para>
+</listitem><listitem><para>Use a span of <ref refid="struct_texture_tiling_info_1aca8d27080c8f9ba7a87e33236c2826c0" kindref="member">TextureTilingInfo::numTilesNeededForPackedMips</ref> so the whole mip tail can be mapped at once.</para>
+</listitem><listitem><para>From <ref refid="struct_tile_mapping_1a1dce85876906078f09c01ee6dd3eb53f" kindref="member">TileMapping::heapTileIndex</ref> the given number of tiles will be mapped to the packed mip tail. </para>
+</listitem></itemizedlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" line="20" column="10" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Describes a mapping between a tile in a texture and a memory area in a heap. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" line="13" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tiledResource.h" bodystart="14" bodyend="26"/>
+    <listofallmembers>
+      <member refid="struct_tile_mapping_1a1dce85876906078f09c01ee6dd3eb53f" prot="public" virt="non-virtual"><scope>TileMapping</scope><name>heapTileIndex</name></member>
+      <member refid="struct_tile_mapping_1a73c32658efeaa5af4146154a5068b822" prot="public" virt="non-virtual"><scope>TileMapping</scope><name>heapTileSpan</name></member>
+      <member refid="struct_tile_mapping_1a43c34a3cc0d086bc51145bebdeee8721" prot="public" virt="non-virtual"><scope>TileMapping</scope><name>texSubresource</name></member>
+      <member refid="struct_tile_mapping_1a13593c795d0e8c928898bc7269ffe344" prot="public" virt="non-virtual"><scope>TileMapping</scope><name>texX</name></member>
+      <member refid="struct_tile_mapping_1a845a5a9b14dd1b083659b01fd68b0dc5" prot="public" virt="non-virtual"><scope>TileMapping</scope><name>texY</name></member>
+      <member refid="struct_tile_mapping_1a40abeda405c0f9c447f07877210ed293" prot="public" virt="non-virtual"><scope>TileMapping</scope><name>texZ</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,63 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="dir_ecce630f3dbd0506f837a6182ad5b860" kind="dir">
+    <compoundname>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d</compoundname>
+    <innerfile refid="dag__async__pipeline_8h">dag_async_pipeline.h</innerfile>
+    <innerfile refid="dag__barrier_8h">dag_barrier.h</innerfile>
+    <innerfile refid="dag__bindless_8h">dag_bindless.h</innerfile>
+    <innerfile refid="dag__buffers_8h">dag_buffers.h</innerfile>
+    <innerfile refid="dag__capture_8h">dag_capture.h</innerfile>
+    <innerfile refid="dag__commands_8h">dag_commands.h</innerfile>
+    <innerfile refid="dag__consts_8h">dag_consts.h</innerfile>
+    <innerfile refid="dag__consts__base_8h">dag_consts_base.h</innerfile>
+    <innerfile refid="dag__d3d_resource_8h">dag_d3dResource.h</innerfile>
+    <innerfile refid="dag__decl_8h">dag_decl.h</innerfile>
+    <innerfile refid="dag__dispatch_8h">dag_dispatch.h</innerfile>
+    <innerfile refid="dag__dispatch_mesh_8h">dag_dispatchMesh.h</innerfile>
+    <innerfile refid="dag__draw_8h">dag_draw.h</innerfile>
+    <innerfile refid="dag__driver_8h">dag_driver.h</innerfile>
+    <innerfile refid="dag__driver_code_8h">dag_driverCode.h</innerfile>
+    <innerfile refid="dag__driver_net_manager_8h">dag_driverNetManager.h</innerfile>
+    <innerfile refid="dag__drv3d__multi_8h">dag_drv3d_multi.h</innerfile>
+    <innerfile refid="dag__hang_handler_8h">dag_hangHandler.h</innerfile>
+    <innerfile refid="dag__heap_8h">dag_heap.h</innerfile>
+    <innerfile refid="dag__info_8h">dag_info.h</innerfile>
+    <innerfile refid="dag__interface__table_8h">dag_interface_table.h</innerfile>
+    <innerfile refid="dag__lock_8h">dag_lock.h</innerfile>
+    <innerfile refid="dag__matrices_and_perspective_8h">dag_matricesAndPerspective.h</innerfile>
+    <innerfile refid="dag__platform_8h">dag_platform.h</innerfile>
+    <innerfile refid="dag__platform__pc_8h">dag_platform_pc.h</innerfile>
+    <innerfile refid="dag__platform__ps_8h">dag_platform_ps.h</innerfile>
+    <innerfile refid="dag__query_8h">dag_query.h</innerfile>
+    <innerfile refid="dag__render_pass_8h">dag_renderPass.h</innerfile>
+    <innerfile refid="dag__render_state_id_8h">dag_renderStateId.h</innerfile>
+    <innerfile refid="dag__render_states_8h">dag_renderStates.h</innerfile>
+    <innerfile refid="dag__render_target_8h">dag_renderTarget.h</innerfile>
+    <innerfile refid="dag__res_8h">dag_res.h</innerfile>
+    <innerfile refid="dag__reset_device_8h">dag_resetDevice.h</innerfile>
+    <innerfile refid="dag__res_id_8h">dag_resId.h</innerfile>
+    <innerfile refid="dag__resource_8h">dag_resource.h</innerfile>
+    <innerfile refid="dag__resource_checker_8h">dag_resourceChecker.h</innerfile>
+    <innerfile refid="dag__res_update_buffer_8h">dag_resUpdateBuffer.h</innerfile>
+    <innerfile refid="dag__rw_resource_8h">dag_rwResource.h</innerfile>
+    <innerfile refid="dag__sampler_8h">dag_sampler.h</innerfile>
+    <innerfile refid="dag__sampler_handle_8h">dag_samplerHandle.h</innerfile>
+    <innerfile refid="dag__shader_8h">dag_shader.h</innerfile>
+    <innerfile refid="dag__shader_constants_8h">dag_shaderConstants.h</innerfile>
+    <innerfile refid="dag__shader_library_8h">dag_shaderLibrary.h</innerfile>
+    <innerfile refid="dag__shader_library_object_8h">dag_shaderLibraryObject.h</innerfile>
+    <innerfile refid="dag__shader_model_version_8h">dag_shaderModelVersion.h</innerfile>
+    <innerfile refid="dag__tex3d_8h">dag_tex3d.h</innerfile>
+    <innerfile refid="dag__tex_flags_8h">dag_texFlags.h</innerfile>
+    <innerfile refid="dag__texture_8h">dag_texture.h</innerfile>
+    <innerfile refid="dag__tiled_resource_8h">dag_tiledResource.h</innerfile>
+    <innerfile refid="dag__variable_rate_shading_8h">dag_variableRateShading.h</innerfile>
+    <innerfile refid="dag__vertex_index_buffer_8h">dag_vertexIndexBuffer.h</innerfile>
+    <innerfile refid="dag__view_scissor_8h">dag_viewScissor.h</innerfile>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/"/>
+  </compounddef>
+</doxygen>

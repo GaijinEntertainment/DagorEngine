@@ -1,0 +1,35 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structeastl_1_1hash_3_01dabfg_1_1_name_space_01_4" kind="struct" language="C++" prot="public">
+    <compoundname>eastl::hash&lt; dabfg::NameSpace &gt;</compoundname>
+    <templateparamlist>
+    </templateparamlist>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structeastl_1_1hash_3_01dabfg_1_1_name_space_01_4_1a0e379e14355cf37552fbc466a7ac637e" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>size_t</type>
+        <definition>size_t eastl::hash&lt; dabfg::NameSpace &gt;::operator()</definition>
+        <argsstring>(dabfg::NameSpace ns) const</argsstring>
+        <name>operator()</name>
+        <param>
+          <type><ref refid="classdabfg_1_1_name_space" kindref="compound">dabfg::NameSpace</ref></type>
+          <declname>ns</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" line="193" column="10" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" bodystart="193" bodyend="196"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" line="191" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/nameSpace.h" bodystart="192" bodyend="197"/>
+    <listofallmembers>
+      <member refid="structeastl_1_1hash_3_01dabfg_1_1_name_space_01_4_1a0e379e14355cf37552fbc466a7ac637e" prot="public" virt="non-virtual"><scope>eastl::hash&lt; dabfg::NameSpace &gt;</scope><name>operator()</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

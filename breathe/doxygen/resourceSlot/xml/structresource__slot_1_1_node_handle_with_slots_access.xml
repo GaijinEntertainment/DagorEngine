@@ -1,0 +1,261 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structresource__slot_1_1_node_handle_with_slots_access" kind="struct" language="C++" prot="public">
+    <compoundname>resource_slot::NodeHandleWithSlotsAccess</compoundname>
+    <includes refid="node_handle_with_slots_access_8h" local="no">nodeHandleWithSlotsAccess.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="structresource__slot_1_1_node_handle_with_slots_access_1ab965d796225fe1747791be864eb02009" prot="private" static="no" mutable="no">
+        <type>dabfg::NameSpace</type>
+        <definition>dabfg::NameSpace resource_slot::NodeHandleWithSlotsAccess::nameSpace</definition>
+        <argsstring></argsstring>
+        <name>nameSpace</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/nodeHandleWithSlotsAccess.h" line="64" column="20" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/nodeHandleWithSlotsAccess.h" bodystart="64" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structresource__slot_1_1_node_handle_with_slots_access_1a4dd12bb0cf636f28608189a3700fdcc5" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int resource_slot::NodeHandleWithSlotsAccess::id</definition>
+        <argsstring></argsstring>
+        <name>id</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/nodeHandleWithSlotsAccess.h" line="65" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/nodeHandleWithSlotsAccess.h" bodystart="65" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structresource__slot_1_1_node_handle_with_slots_access_1a35bc341e900fbd8a19c03ac442e56a15" prot="private" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned resource_slot::NodeHandleWithSlotsAccess::generation</definition>
+        <argsstring></argsstring>
+        <name>generation</name>
+        <bitfield> 31</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/nodeHandleWithSlotsAccess.h" line="66" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/nodeHandleWithSlotsAccess.h" bodystart="66" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structresource__slot_1_1_node_handle_with_slots_access_1a195ef152122ff32dbe6dd1b5bdbdfa29" prot="private" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned resource_slot::NodeHandleWithSlotsAccess::isValid</definition>
+        <argsstring></argsstring>
+        <name>isValid</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/nodeHandleWithSlotsAccess.h" line="67" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/nodeHandleWithSlotsAccess.h" bodystart="67" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structresource__slot_1_1_node_handle_with_slots_access_1a86e1b6dc24fb16eb88b44b2a95a71b9f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>resource_slot::NodeHandleWithSlotsAccess::NodeHandleWithSlotsAccess</definition>
+        <argsstring>()</argsstring>
+        <name>NodeHandleWithSlotsAccess</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/nodeHandleWithSlotsAccess.h" line="36" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="structresource__slot_1_1_node_handle_with_slots_access_1a551a8feb88750fa46636fa3552c8dc10" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>resource_slot::NodeHandleWithSlotsAccess::NodeHandleWithSlotsAccess</definition>
+        <argsstring>(NodeHandleWithSlotsAccess &amp;&amp;h)</argsstring>
+        <name>NodeHandleWithSlotsAccess</name>
+        <param>
+          <type><ref refid="structresource__slot_1_1_node_handle_with_slots_access" kindref="compound">NodeHandleWithSlotsAccess</ref> &amp;&amp;</type>
+          <declname>h</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/nodeHandleWithSlotsAccess.h" line="37" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="structresource__slot_1_1_node_handle_with_slots_access_1ab4e38189dbd30a3c7ca41426d198d8ea" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structresource__slot_1_1_node_handle_with_slots_access" kindref="compound">NodeHandleWithSlotsAccess</ref> &amp;</type>
+        <definition>NodeHandleWithSlotsAccess&amp; resource_slot::NodeHandleWithSlotsAccess::operator=</definition>
+        <argsstring>(NodeHandleWithSlotsAccess &amp;&amp;h)</argsstring>
+        <name>operator=</name>
+        <param>
+          <type><ref refid="structresource__slot_1_1_node_handle_with_slots_access" kindref="compound">NodeHandleWithSlotsAccess</ref> &amp;&amp;</type>
+          <declname>h</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/nodeHandleWithSlotsAccess.h" line="38" column="29"/>
+      </memberdef>
+      <memberdef kind="function" id="structresource__slot_1_1_node_handle_with_slots_access_1a19f1e1ab8e0a3f21acb218dddbef2544" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>resource_slot::NodeHandleWithSlotsAccess::NodeHandleWithSlotsAccess</definition>
+        <argsstring>(const NodeHandleWithSlotsAccess &amp;)=delete</argsstring>
+        <name>NodeHandleWithSlotsAccess</name>
+        <param>
+          <type>const <ref refid="structresource__slot_1_1_node_handle_with_slots_access" kindref="compound">NodeHandleWithSlotsAccess</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/nodeHandleWithSlotsAccess.h" line="39" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="structresource__slot_1_1_node_handle_with_slots_access_1ae1c6d878f5a6788b568a426b2a0fc0d4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structresource__slot_1_1_node_handle_with_slots_access" kindref="compound">NodeHandleWithSlotsAccess</ref> &amp;</type>
+        <definition>NodeHandleWithSlotsAccess&amp; resource_slot::NodeHandleWithSlotsAccess::operator=</definition>
+        <argsstring>(const NodeHandleWithSlotsAccess &amp;)=delete</argsstring>
+        <name>operator=</name>
+        <param>
+          <type>const <ref refid="structresource__slot_1_1_node_handle_with_slots_access" kindref="compound">NodeHandleWithSlotsAccess</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/nodeHandleWithSlotsAccess.h" line="40" column="29"/>
+      </memberdef>
+      <memberdef kind="function" id="structresource__slot_1_1_node_handle_with_slots_access_1ac64a7b11fdb53aee52bff75ba9ba59b2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void resource_slot::NodeHandleWithSlotsAccess::reset</definition>
+        <argsstring>()</argsstring>
+        <name>reset</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Reset handle if set. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/nodeHandleWithSlotsAccess.h" line="44" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="structresource__slot_1_1_node_handle_with_slots_access_1afdbd3049554d54f4c5bfc4b9ae366398" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool resource_slot::NodeHandleWithSlotsAccess::valid</definition>
+        <argsstring>() const</argsstring>
+        <name>valid</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Check, if handle is valid </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/nodeHandleWithSlotsAccess.h" line="48" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="structresource__slot_1_1_node_handle_with_slots_access_1a0af3b823b0da20fc0ce3f6b0e74ea006" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>resource_slot::NodeHandleWithSlotsAccess::~NodeHandleWithSlotsAccess</definition>
+        <argsstring>()</argsstring>
+        <name>~NodeHandleWithSlotsAccess</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Destructor; calls <ref refid="structresource__slot_1_1_node_handle_with_slots_access_1ac64a7b11fdb53aee52bff75ba9ba59b2" kindref="member">reset()</ref> </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/nodeHandleWithSlotsAccess.h" line="52" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="structresource__slot_1_1_node_handle_with_slots_access_1a5ff017e0fe659dd6b2dc6af016097ddf" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void resource_slot::NodeHandleWithSlotsAccess::_noteContext</definition>
+        <argsstring>(const das::Context *context) const</argsstring>
+        <name>_noteContext</name>
+        <param>
+          <type>const das::Context *</type>
+          <declname>context</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/nodeHandleWithSlotsAccess.h" line="61" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="structresource__slot_1_1_node_handle_with_slots_access_1ae4215a2f7a64891c5cf9c08e7e460875" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>resource_slot::NodeHandleWithSlotsAccess::NodeHandleWithSlotsAccess</definition>
+        <argsstring>(dabfg::NameSpace ns, int handle_id, unsigned generation_number)</argsstring>
+        <name>NodeHandleWithSlotsAccess</name>
+        <param>
+          <type>dabfg::NameSpace</type>
+          <declname>ns</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>handle_id</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>generation_number</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Private constructor</para>
+<para>INTERNAL use only </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/nodeHandleWithSlotsAccess.h" line="59" column="3"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Handle for access to resource slots storage.</para>
+<para>Also it is proxy for dabfg::NodeHandle.</para>
+<para>If use in usual code:</para>
+<para><programlisting filename=".cpp"><codeline><highlight class="preprocessor">#include<sp/>&lt;render/resourceSlot/nodeHandleWithSlotsAccess.h&gt;</highlight></codeline>
+</programlisting></para>
+<para>If use in ecs:</para>
+<para><programlisting filename=".cpp"><codeline><highlight class="preprocessor">#include<sp/>&lt;render/resourceSlot/ecs/nodeHandleWithSlotsAccess.h&gt;</highlight></codeline>
+</programlisting> </para>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/nodeHandleWithSlotsAccess.h" line="34" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot/nodeHandleWithSlotsAccess.h" bodystart="35" bodyend="68"/>
+    <listofallmembers>
+      <member refid="structresource__slot_1_1_node_handle_with_slots_access_1a5ff017e0fe659dd6b2dc6af016097ddf" prot="public" virt="non-virtual"><scope>resource_slot::NodeHandleWithSlotsAccess</scope><name>_noteContext</name></member>
+      <member refid="structresource__slot_1_1_node_handle_with_slots_access_1a35bc341e900fbd8a19c03ac442e56a15" prot="private" virt="non-virtual"><scope>resource_slot::NodeHandleWithSlotsAccess</scope><name>generation</name></member>
+      <member refid="structresource__slot_1_1_node_handle_with_slots_access_1a4dd12bb0cf636f28608189a3700fdcc5" prot="private" virt="non-virtual"><scope>resource_slot::NodeHandleWithSlotsAccess</scope><name>id</name></member>
+      <member refid="structresource__slot_1_1_node_handle_with_slots_access_1a195ef152122ff32dbe6dd1b5bdbdfa29" prot="private" virt="non-virtual"><scope>resource_slot::NodeHandleWithSlotsAccess</scope><name>isValid</name></member>
+      <member refid="structresource__slot_1_1_node_handle_with_slots_access_1ab965d796225fe1747791be864eb02009" prot="private" virt="non-virtual"><scope>resource_slot::NodeHandleWithSlotsAccess</scope><name>nameSpace</name></member>
+      <member refid="structresource__slot_1_1_node_handle_with_slots_access_1a86e1b6dc24fb16eb88b44b2a95a71b9f" prot="public" virt="non-virtual"><scope>resource_slot::NodeHandleWithSlotsAccess</scope><name>NodeHandleWithSlotsAccess</name></member>
+      <member refid="structresource__slot_1_1_node_handle_with_slots_access_1a551a8feb88750fa46636fa3552c8dc10" prot="public" virt="non-virtual"><scope>resource_slot::NodeHandleWithSlotsAccess</scope><name>NodeHandleWithSlotsAccess</name></member>
+      <member refid="structresource__slot_1_1_node_handle_with_slots_access_1a19f1e1ab8e0a3f21acb218dddbef2544" prot="public" virt="non-virtual"><scope>resource_slot::NodeHandleWithSlotsAccess</scope><name>NodeHandleWithSlotsAccess</name></member>
+      <member refid="structresource__slot_1_1_node_handle_with_slots_access_1ae4215a2f7a64891c5cf9c08e7e460875" prot="private" virt="non-virtual"><scope>resource_slot::NodeHandleWithSlotsAccess</scope><name>NodeHandleWithSlotsAccess</name></member>
+      <member refid="structresource__slot_1_1_node_handle_with_slots_access_1ab4e38189dbd30a3c7ca41426d198d8ea" prot="public" virt="non-virtual"><scope>resource_slot::NodeHandleWithSlotsAccess</scope><name>operator=</name></member>
+      <member refid="structresource__slot_1_1_node_handle_with_slots_access_1ae1c6d878f5a6788b568a426b2a0fc0d4" prot="public" virt="non-virtual"><scope>resource_slot::NodeHandleWithSlotsAccess</scope><name>operator=</name></member>
+      <member refid="structresource__slot_1_1_node_handle_with_slots_access_1ac64a7b11fdb53aee52bff75ba9ba59b2" prot="public" virt="non-virtual"><scope>resource_slot::NodeHandleWithSlotsAccess</scope><name>reset</name></member>
+      <member refid="structresource__slot_1_1_node_handle_with_slots_access_1afdbd3049554d54f4c5bfc4b9ae366398" prot="public" virt="non-virtual"><scope>resource_slot::NodeHandleWithSlotsAccess</scope><name>valid</name></member>
+      <member refid="structresource__slot_1_1_node_handle_with_slots_access_1a0af3b823b0da20fc0ce3f6b0e74ea006" prot="public" virt="non-virtual"><scope>resource_slot::NodeHandleWithSlotsAccess</scope><name>~NodeHandleWithSlotsAccess</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

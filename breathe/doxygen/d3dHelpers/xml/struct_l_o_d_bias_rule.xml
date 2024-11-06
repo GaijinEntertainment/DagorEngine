@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_l_o_d_bias_rule" kind="struct" language="C++" prot="public">
+    <compoundname>LODBiasRule</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_l_o_d_bias_rule_1a6fd433a89871a617c3c863acbdc81e50" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* LODBiasRule::substring</definition>
+        <argsstring></argsstring>
+        <name>substring</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="310" column="14" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" bodystart="310" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_l_o_d_bias_rule_1ad4afcb8e93933e46901d539fd945f988" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float LODBiasRule::bias</definition>
+        <argsstring></argsstring>
+        <name>bias</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="311" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" bodystart="311" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" line="308" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/3d/dag_texMgr.h" bodystart="309" bodyend="312"/>
+    <listofallmembers>
+      <member refid="struct_l_o_d_bias_rule_1ad4afcb8e93933e46901d539fd945f988" prot="public" virt="non-virtual"><scope>LODBiasRule</scope><name>bias</name></member>
+      <member refid="struct_l_o_d_bias_rule_1a6fd433a89871a617c3c863acbdc81e50" prot="public" virt="non-virtual"><scope>LODBiasRule</scope><name>substring</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

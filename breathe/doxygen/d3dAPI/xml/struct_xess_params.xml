@@ -1,0 +1,177 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_xess_params" kind="struct" language="C++" prot="public">
+    <compoundname>XessParams</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_xess_params_1a434b49db8d3822599491a9654681cb6f" prot="public" static="no" mutable="no">
+        <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* XessParams::inColor</definition>
+        <argsstring></argsstring>
+        <name>inColor</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="290" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="290" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_xess_params_1a542c7bec9f111509d56c531dc573fc53" prot="public" static="no" mutable="no">
+        <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* XessParams::inDepth</definition>
+        <argsstring></argsstring>
+        <name>inDepth</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="291" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="291" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_xess_params_1ab7b9e2539139172a09d39043303cf422" prot="public" static="no" mutable="no">
+        <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* XessParams::inMotionVectors</definition>
+        <argsstring></argsstring>
+        <name>inMotionVectors</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="292" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="292" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_xess_params_1a2779575a74ba1a1e019146669794801f" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float XessParams::inJitterOffsetX</definition>
+        <argsstring></argsstring>
+        <name>inJitterOffsetX</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="293" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="293" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_xess_params_1a0bce148466951ed94c04bac525de60b1" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float XessParams::inJitterOffsetY</definition>
+        <argsstring></argsstring>
+        <name>inJitterOffsetY</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="294" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="294" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_xess_params_1a79df7a75347563d2e1db85cdf0f361bc" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float XessParams::inInputWidth</definition>
+        <argsstring></argsstring>
+        <name>inInputWidth</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="295" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="295" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_xess_params_1aa54de62f5afceb0571c9f4b1169c3fe4" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float XessParams::inInputHeight</definition>
+        <argsstring></argsstring>
+        <name>inInputHeight</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="296" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="296" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_xess_params_1ab833d07c037603a14330b7d99064a3a9" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int XessParams::inColorDepthOffsetX</definition>
+        <argsstring></argsstring>
+        <name>inColorDepthOffsetX</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="297" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="297" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_xess_params_1a122c28d8ed8004deb7c0887197ead547" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int XessParams::inColorDepthOffsetY</definition>
+        <argsstring></argsstring>
+        <name>inColorDepthOffsetY</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="298" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="298" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_xess_params_1a91d336ff60e4bc4f9ff0bfe9018e5b69" prot="public" static="no" mutable="no">
+        <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* XessParams::outColor</definition>
+        <argsstring></argsstring>
+        <name>outColor</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="300" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="300" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="3">
+        <label>D3dResource</label>
+        <link refid="class_d3d_resource"/>
+      </node>
+      <node id="2">
+        <label>BaseTexture</label>
+        <link refid="class_base_texture"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>XessParams</label>
+        <link refid="struct_xess_params"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>inColor</edgelabel>
+          <edgelabel>inDepth</edgelabel>
+          <edgelabel>inMotionVectors</edgelabel>
+          <edgelabel>outColor</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="288" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="289" bodyend="301"/>
+    <listofallmembers>
+      <member refid="struct_xess_params_1a434b49db8d3822599491a9654681cb6f" prot="public" virt="non-virtual"><scope>XessParams</scope><name>inColor</name></member>
+      <member refid="struct_xess_params_1ab833d07c037603a14330b7d99064a3a9" prot="public" virt="non-virtual"><scope>XessParams</scope><name>inColorDepthOffsetX</name></member>
+      <member refid="struct_xess_params_1a122c28d8ed8004deb7c0887197ead547" prot="public" virt="non-virtual"><scope>XessParams</scope><name>inColorDepthOffsetY</name></member>
+      <member refid="struct_xess_params_1a542c7bec9f111509d56c531dc573fc53" prot="public" virt="non-virtual"><scope>XessParams</scope><name>inDepth</name></member>
+      <member refid="struct_xess_params_1aa54de62f5afceb0571c9f4b1169c3fe4" prot="public" virt="non-virtual"><scope>XessParams</scope><name>inInputHeight</name></member>
+      <member refid="struct_xess_params_1a79df7a75347563d2e1db85cdf0f361bc" prot="public" virt="non-virtual"><scope>XessParams</scope><name>inInputWidth</name></member>
+      <member refid="struct_xess_params_1a2779575a74ba1a1e019146669794801f" prot="public" virt="non-virtual"><scope>XessParams</scope><name>inJitterOffsetX</name></member>
+      <member refid="struct_xess_params_1a0bce148466951ed94c04bac525de60b1" prot="public" virt="non-virtual"><scope>XessParams</scope><name>inJitterOffsetY</name></member>
+      <member refid="struct_xess_params_1ab7b9e2539139172a09d39043303cf422" prot="public" virt="non-virtual"><scope>XessParams</scope><name>inMotionVectors</name></member>
+      <member refid="struct_xess_params_1a91d336ff60e4bc4f9ff0bfe9018e5b69" prot="public" virt="non-virtual"><scope>XessParams</scope><name>outColor</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

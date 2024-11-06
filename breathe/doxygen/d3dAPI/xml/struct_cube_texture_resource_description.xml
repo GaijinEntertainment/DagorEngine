@@ -1,0 +1,87 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_cube_texture_resource_description" kind="struct" language="C++" prot="public">
+    <compoundname>CubeTextureResourceDescription</compoundname>
+    <basecompoundref refid="struct_basic_texture_resource_description" prot="public" virt="non-virtual">BasicTextureResourceDescription</basecompoundref>
+    <derivedcompoundref refid="struct_array_cube_texture_resource_description" prot="public" virt="non-virtual">ArrayCubeTextureResourceDescription</derivedcompoundref>
+    <includes refid="dag__heap_8h" local="no">dag_heap.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_cube_texture_resource_description_1a2fc45f27ab444342c52d6a06e25be455" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t CubeTextureResourceDescription::extent</definition>
+        <argsstring></argsstring>
+        <name>extent</name>
+        <briefdescription>
+<para>The extent of the cube texture. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="94" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="94" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Cube texture resource description that contains fields specific to cube textures. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>BasicTextureResourceDescription</label>
+        <link refid="struct_basic_texture_resource_description"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>BasicResourceDescription</label>
+        <link refid="struct_basic_resource_description"/>
+      </node>
+      <node id="1">
+        <label>CubeTextureResourceDescription</label>
+        <link refid="struct_cube_texture_resource_description"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>ArrayCubeTextureResourceDescription</label>
+        <link refid="struct_array_cube_texture_resource_description"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>BasicTextureResourceDescription</label>
+        <link refid="struct_basic_texture_resource_description"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>BasicResourceDescription</label>
+        <link refid="struct_basic_resource_description"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>clearValue</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>CubeTextureResourceDescription</label>
+        <link refid="struct_cube_texture_resource_description"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>ResourceClearValue</label>
+        <link refid="union_resource_clear_value"/>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" line="92" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_heap.h" bodystart="93" bodyend="95"/>
+    <listofallmembers>
+      <member refid="struct_basic_resource_description_1a460a3547f57649aab846fc67831faa57" prot="public" virt="non-virtual"><scope>CubeTextureResourceDescription</scope><name>activation</name></member>
+      <member refid="struct_basic_resource_description_1ac416c65293ae56fc2adf988de4821bf4" prot="public" virt="non-virtual"><scope>CubeTextureResourceDescription</scope><name>cFlags</name></member>
+      <member refid="struct_basic_resource_description_1a1c14be0b1256d4dbd82e5ce464419c35" prot="public" virt="non-virtual"><scope>CubeTextureResourceDescription</scope><name>clearValue</name></member>
+      <member refid="struct_cube_texture_resource_description_1a2fc45f27ab444342c52d6a06e25be455" prot="public" virt="non-virtual"><scope>CubeTextureResourceDescription</scope><name>extent</name></member>
+      <member refid="struct_basic_texture_resource_description_1ae3b058fec55e414dd58b914b934103d2" prot="public" virt="non-virtual"><scope>CubeTextureResourceDescription</scope><name>mipLevels</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,80 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_render_pass_target" kind="struct" language="C++" prot="public">
+    <compoundname>RenderPassTarget</compoundname>
+    <includes refid="dag__render_pass_8h" local="no">dag_renderPass.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_render_pass_target_1a578000519993e9a70968d322eef26f63" prot="public" static="no" mutable="no">
+        <type><ref refid="struct_render_target" kindref="compound">RenderTarget</ref></type>
+        <definition>RenderTarget RenderPassTarget::resource</definition>
+        <argsstring></argsstring>
+        <name>resource</name>
+        <briefdescription>
+<para>Actual render target subresource reference. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" line="51" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_render_pass_target_1ab90b06c8e28e16fa35cea8c2a800fa51" prot="public" static="no" mutable="no">
+        <type><ref refid="union_resource_clear_value" kindref="compound">ResourceClearValue</ref></type>
+        <definition>ResourceClearValue RenderPassTarget::clearValue</definition>
+        <argsstring></argsstring>
+        <name>clearValue</name>
+        <briefdescription>
+<para>Clear value that is used on clear action. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" line="53" column="22" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Description of target that is used inside render pass. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="4">
+        <label>D3dResource</label>
+        <link refid="class_d3d_resource"/>
+      </node>
+      <node id="3">
+        <label>BaseTexture</label>
+        <link refid="class_base_texture"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>RenderPassTarget</label>
+        <link refid="struct_render_pass_target"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>resource</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>clearValue</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>RenderTarget</label>
+        <link refid="struct_render_target"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>tex</edgelabel>
+        </childnode>
+      </node>
+      <node id="5">
+        <label>ResourceClearValue</label>
+        <link refid="union_resource_clear_value"/>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" line="48" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" bodystart="49" bodyend="54"/>
+    <listofallmembers>
+      <member refid="struct_render_pass_target_1ab90b06c8e28e16fa35cea8c2a800fa51" prot="public" virt="non-virtual"><scope>RenderPassTarget</scope><name>clearValue</name></member>
+      <member refid="struct_render_pass_target_1a578000519993e9a70968d322eef26f63" prot="public" virt="non-virtual"><scope>RenderPassTarget</scope><name>resource</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

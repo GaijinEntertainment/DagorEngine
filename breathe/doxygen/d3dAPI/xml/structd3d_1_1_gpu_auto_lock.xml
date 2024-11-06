@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structd3d_1_1_gpu_auto_lock" kind="struct" language="C++" prot="public">
+    <compoundname>d3d::GpuAutoLock</compoundname>
+    <includes refid="dag__lock_8h" local="no">dag_lock.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structd3d_1_1_gpu_auto_lock_1afdc89738ff0c3547c4b7d168e2db849b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>d3d::GpuAutoLock::GpuAutoLock</definition>
+        <argsstring>()</argsstring>
+        <name>GpuAutoLock</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_lock.h" line="19" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="structd3d_1_1_gpu_auto_lock_1ab49dd5ff31a264b33807333e7d3c19d1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>d3d::GpuAutoLock::~GpuAutoLock</definition>
+        <argsstring>()</argsstring>
+        <name>~GpuAutoLock</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_lock.h" line="20" column="3"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>The <ref refid="structd3d_1_1_gpu_auto_lock" kindref="compound">GpuAutoLock</ref> struct is a lock that automatically acquires and releases a GPU lock. It is used to protect critical sections of code that interact with the GPU. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_lock.h" line="17" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_lock.h" bodystart="18" bodyend="21"/>
+    <listofallmembers>
+      <member refid="structd3d_1_1_gpu_auto_lock_1afdc89738ff0c3547c4b7d168e2db849b" prot="public" virt="non-virtual"><scope>d3d::GpuAutoLock</scope><name>GpuAutoLock</name></member>
+      <member refid="structd3d_1_1_gpu_auto_lock_1ab49dd5ff31a264b33807333e7d3c19d1" prot="public" virt="non-virtual"><scope>d3d::GpuAutoLock</scope><name>~GpuAutoLock</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

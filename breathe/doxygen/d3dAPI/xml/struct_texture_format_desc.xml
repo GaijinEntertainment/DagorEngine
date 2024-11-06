@@ -1,0 +1,273 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_texture_format_desc" kind="struct" language="C++" prot="public">
+    <compoundname>TextureFormatDesc</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_texture_format_desc_1a5d21c88d12a83e19409dc27db796caf6" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t TextureFormatDesc::dagorTextureFormat</definition>
+        <argsstring></argsstring>
+        <name>dagorTextureFormat</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="50" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_texture_format_desc_1a85f5a24286ba727e0a92814cefacd06e" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t TextureFormatDesc::bytesPerElement</definition>
+        <argsstring></argsstring>
+        <name>bytesPerElement</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="51" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_texture_format_desc_1a8c4a9607f19c84b8a66e460d0fb455fa" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool TextureFormatDesc::isBlockFormat</definition>
+        <argsstring></argsstring>
+        <name>isBlockFormat</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="52" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_texture_format_desc_1a427f3d4efddc38a1f1ed393f4d79717e" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t TextureFormatDesc::elementWidth</definition>
+        <argsstring></argsstring>
+        <name>elementWidth</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="53" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_texture_format_desc_1a1e2917378a87cbba7eb58d743ba075c9" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t TextureFormatDesc::elementHeight</definition>
+        <argsstring></argsstring>
+        <name>elementHeight</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="54" column="11" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_texture_format_desc_1ad7ef4d102ed9a33d12d5148e3c09d77f" prot="public" static="no" mutable="no">
+        <type>ChannelDType</type>
+        <definition>ChannelDType TextureFormatDesc::mainChannelsType</definition>
+        <argsstring></argsstring>
+        <name>mainChannelsType</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="56" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_texture_format_desc_1a317630cc2b033af552e9fe3ba1a632b0" prot="public" static="no" mutable="no">
+        <type>ChannelDType</type>
+        <definition>ChannelDType TextureFormatDesc::stencilChannelType</definition>
+        <argsstring></argsstring>
+        <name>stencilChannelType</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="58" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_texture_format_desc_1a9d536f7dcdbb6070aaf88e27df9239f8" prot="public" static="no" mutable="no">
+        <type><ref refid="struct_texture_channel_format_desc" kindref="compound">TextureChannelFormatDesc</ref></type>
+        <definition>TextureChannelFormatDesc TextureFormatDesc::r</definition>
+        <argsstring></argsstring>
+        <name>r</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="59" column="28" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_texture_format_desc_1a333da44ab0fcc842ed8de4b1f19ff87f" prot="public" static="no" mutable="no">
+        <type><ref refid="struct_texture_channel_format_desc" kindref="compound">TextureChannelFormatDesc</ref></type>
+        <definition>TextureChannelFormatDesc TextureFormatDesc::g</definition>
+        <argsstring></argsstring>
+        <name>g</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="60" column="28" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_texture_format_desc_1ab35b54e2f84b0d1ad0002be25decc871" prot="public" static="no" mutable="no">
+        <type><ref refid="struct_texture_channel_format_desc" kindref="compound">TextureChannelFormatDesc</ref></type>
+        <definition>TextureChannelFormatDesc TextureFormatDesc::b</definition>
+        <argsstring></argsstring>
+        <name>b</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="61" column="28" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_texture_format_desc_1a2279d6548d8b2986045a69870b43c1d9" prot="public" static="no" mutable="no">
+        <type><ref refid="struct_texture_channel_format_desc" kindref="compound">TextureChannelFormatDesc</ref></type>
+        <definition>TextureChannelFormatDesc TextureFormatDesc::a</definition>
+        <argsstring></argsstring>
+        <name>a</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="62" column="28" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="62" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_texture_format_desc_1a3242a8d4196b9e1e0c4468243e63f50d" prot="public" static="no" mutable="no">
+        <type><ref refid="struct_texture_channel_format_desc" kindref="compound">TextureChannelFormatDesc</ref></type>
+        <definition>TextureChannelFormatDesc TextureFormatDesc::depth</definition>
+        <argsstring></argsstring>
+        <name>depth</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="63" column="28" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_texture_format_desc_1a1665c4afcc880db350cf6124088bf9fd" prot="public" static="no" mutable="no">
+        <type><ref refid="struct_texture_channel_format_desc" kindref="compound">TextureChannelFormatDesc</ref></type>
+        <definition>TextureChannelFormatDesc TextureFormatDesc::stencil</definition>
+        <argsstring></argsstring>
+        <name>stencil</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="64" column="28" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="64" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="struct_texture_format_desc_1aaa802dc5b805e17d18acd0ace7e5f1ad" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool TextureFormatDesc::hasAlpha</definition>
+        <argsstring>() const</argsstring>
+        <name>hasAlpha</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="66" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="66" bodyend="66"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_texture_format_desc_1a16ff7deb1a12fb37a232acfd6121ba57" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool TextureFormatDesc::isDepth</definition>
+        <argsstring>() const</argsstring>
+        <name>isDepth</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="68" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="68" bodyend="68"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_texture_format_desc_1a03f9dd4504c357872a07b6851273bac1" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int TextureFormatDesc::rgbaChannelsCount</definition>
+        <argsstring>() const</argsstring>
+        <name>rgbaChannelsCount</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="70" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="70" bodyend="70"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_texture_format_desc_1af1d8bfc5eb4d53bed8cd09d7fc801bdc" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int TextureFormatDesc::channelsCount</definition>
+        <argsstring>() const</argsstring>
+        <name>channelsCount</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="72" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="72" bodyend="72"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>TextureFormatDesc</label>
+        <link refid="struct_texture_format_desc"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>a</edgelabel>
+          <edgelabel>b</edgelabel>
+          <edgelabel>depth</edgelabel>
+          <edgelabel>g</edgelabel>
+          <edgelabel>r</edgelabel>
+          <edgelabel>stencil</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>TextureChannelFormatDesc</label>
+        <link refid="struct_texture_channel_format_desc"/>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="48" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="49" bodyend="73"/>
+    <listofallmembers>
+      <member refid="struct_texture_format_desc_1a2279d6548d8b2986045a69870b43c1d9" prot="public" virt="non-virtual"><scope>TextureFormatDesc</scope><name>a</name></member>
+      <member refid="struct_texture_format_desc_1ab35b54e2f84b0d1ad0002be25decc871" prot="public" virt="non-virtual"><scope>TextureFormatDesc</scope><name>b</name></member>
+      <member refid="struct_texture_format_desc_1a85f5a24286ba727e0a92814cefacd06e" prot="public" virt="non-virtual"><scope>TextureFormatDesc</scope><name>bytesPerElement</name></member>
+      <member refid="struct_texture_format_desc_1af1d8bfc5eb4d53bed8cd09d7fc801bdc" prot="public" virt="non-virtual"><scope>TextureFormatDesc</scope><name>channelsCount</name></member>
+      <member refid="struct_texture_format_desc_1a5d21c88d12a83e19409dc27db796caf6" prot="public" virt="non-virtual"><scope>TextureFormatDesc</scope><name>dagorTextureFormat</name></member>
+      <member refid="struct_texture_format_desc_1a3242a8d4196b9e1e0c4468243e63f50d" prot="public" virt="non-virtual"><scope>TextureFormatDesc</scope><name>depth</name></member>
+      <member refid="struct_texture_format_desc_1a1e2917378a87cbba7eb58d743ba075c9" prot="public" virt="non-virtual"><scope>TextureFormatDesc</scope><name>elementHeight</name></member>
+      <member refid="struct_texture_format_desc_1a427f3d4efddc38a1f1ed393f4d79717e" prot="public" virt="non-virtual"><scope>TextureFormatDesc</scope><name>elementWidth</name></member>
+      <member refid="struct_texture_format_desc_1a333da44ab0fcc842ed8de4b1f19ff87f" prot="public" virt="non-virtual"><scope>TextureFormatDesc</scope><name>g</name></member>
+      <member refid="struct_texture_format_desc_1aaa802dc5b805e17d18acd0ace7e5f1ad" prot="public" virt="non-virtual"><scope>TextureFormatDesc</scope><name>hasAlpha</name></member>
+      <member refid="struct_texture_format_desc_1a8c4a9607f19c84b8a66e460d0fb455fa" prot="public" virt="non-virtual"><scope>TextureFormatDesc</scope><name>isBlockFormat</name></member>
+      <member refid="struct_texture_format_desc_1a16ff7deb1a12fb37a232acfd6121ba57" prot="public" virt="non-virtual"><scope>TextureFormatDesc</scope><name>isDepth</name></member>
+      <member refid="struct_texture_format_desc_1ad7ef4d102ed9a33d12d5148e3c09d77f" prot="public" virt="non-virtual"><scope>TextureFormatDesc</scope><name>mainChannelsType</name></member>
+      <member refid="struct_texture_format_desc_1a9d536f7dcdbb6070aaf88e27df9239f8" prot="public" virt="non-virtual"><scope>TextureFormatDesc</scope><name>r</name></member>
+      <member refid="struct_texture_format_desc_1a03f9dd4504c357872a07b6851273bac1" prot="public" virt="non-virtual"><scope>TextureFormatDesc</scope><name>rgbaChannelsCount</name></member>
+      <member refid="struct_texture_format_desc_1a1665c4afcc880db350cf6124088bf9fd" prot="public" virt="non-virtual"><scope>TextureFormatDesc</scope><name>stencil</name></member>
+      <member refid="struct_texture_format_desc_1a317630cc2b033af552e9fe3ba1a632b0" prot="public" virt="non-virtual"><scope>TextureFormatDesc</scope><name>stencilChannelType</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

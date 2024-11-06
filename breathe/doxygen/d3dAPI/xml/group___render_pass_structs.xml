@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="group___render_pass_structs" kind="group">
+    <compoundname>RenderPassStructs</compoundname>
+    <title>RenderPassStructs</title>
+    <innerclass refid="struct_render_pass_bind" prot="public">RenderPassBind</innerclass>
+    <innerclass refid="struct_render_pass_target_desc" prot="public">RenderPassTargetDesc</innerclass>
+    <innerclass refid="struct_render_pass_target" prot="public">RenderPassTarget</innerclass>
+    <innerclass refid="struct_render_pass_desc" prot="public">RenderPassDesc</innerclass>
+    <innerclass refid="struct_render_pass_area" prot="public">RenderPassArea</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+  </compounddef>
+</doxygen>

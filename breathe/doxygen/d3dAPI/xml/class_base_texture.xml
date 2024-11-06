@@ -1,0 +1,1202 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="class_base_texture" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>BaseTexture</compoundname>
+    <basecompoundref refid="class_d3d_resource" prot="public" virt="non-virtual">D3dResource</basecompoundref>
+    <innerclass refid="struct_base_texture_1_1_i_reload_data" prot="public">BaseTexture::IReloadData</innerclass>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="class_base_texture_1ad426eb2f55e6c7eb3d30ca4cb959dd20" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool BaseTexture::samplerEnabled</definition>
+        <argsstring></argsstring>
+        <name>samplerEnabled</name>
+        <initializer>= true</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="354" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="354" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-static-attrib">
+      <memberdef kind="variable" id="class_base_texture_1ae8d686517cc0babc4a0829df1c5e9a25" prot="protected" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int BaseTexture::TEX_COPIED</definition>
+        <argsstring></argsstring>
+        <name>TEX_COPIED</name>
+        <initializer>= 1 &lt;&lt; 30</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="367" column="24" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="367" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="class_base_texture_1a6a85e670c443104a70883f192cb0be93" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool BaseTexture::setReloadCallback</definition>
+        <argsstring>(IReloadData *)</argsstring>
+        <name>setReloadCallback</name>
+        <param>
+          <type><ref refid="struct_base_texture_1_1_i_reload_data" kindref="compound">IReloadData</ref> *</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="163" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="163" bodyend="163"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1a508ff31351ba5c970d533ef14fa85159" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int BaseTexture::generateMips</definition>
+        <argsstring>()=0</argsstring>
+        <name>generateMips</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="165" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1ae66fab8be80dfdf1379ef6c3c3a54d18" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int BaseTexture::update</definition>
+        <argsstring>(BaseTexture *src)=0</argsstring>
+        <name>update</name>
+        <param>
+          <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *</type>
+          <declname>src</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="167" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1ab562f86e581b7f61b63141fdda32fdea" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BaseTexture::calcSubResIdx</definition>
+        <argsstring>(int level, int slice=0) const</argsstring>
+        <name>calcSubResIdx</name>
+        <param>
+          <type>int</type>
+          <declname>level</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>slice</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="170" column="14" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="170" bodyend="170"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1a78250fb6cf2f55d92a38708836317c85" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int BaseTexture::updateSubRegion</definition>
+        <argsstring>(BaseTexture *src, int src_subres_idx, int src_x, int src_y, int src_z, int src_w, int src_h, int src_d, int dest_subres_idx, int dest_x, int dest_y, int dest_z)=0</argsstring>
+        <name>updateSubRegion</name>
+        <param>
+          <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *</type>
+          <declname>src</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>src_subres_idx</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>src_x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>src_y</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>src_z</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>src_w</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>src_h</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>src_d</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>dest_subres_idx</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>dest_x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>dest_y</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>dest_z</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="172" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1a6f7b48f57c9bb0c39ab0b828e87c0404" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>virtual int BaseTexture::updateSubRegionNoOrder</definition>
+        <argsstring>(BaseTexture *src, int src_subres_idx, int src_x, int src_y, int src_z, int src_w, int src_h, int src_d, int dest_subres_idx, int dest_x, int dest_y, int dest_z)</argsstring>
+        <name>updateSubRegionNoOrder</name>
+        <param>
+          <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *</type>
+          <declname>src</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>src_subres_idx</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>src_x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>src_y</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>src_z</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>src_w</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>src_h</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>src_d</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>dest_subres_idx</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>dest_x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>dest_y</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>dest_z</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="174" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="174" bodyend="178"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1aa5f45a64584c9533b7606e99dfd5308f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int BaseTexture::level_count</definition>
+        <argsstring>() const =0</argsstring>
+        <name>level_count</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="179" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1a6d2c47bef8382eb01cb49f6387cf4da8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BaseTexture::texaddr</definition>
+        <argsstring>(int addrmode)</argsstring>
+        <name>texaddr</name>
+        <param>
+          <type>int</type>
+          <declname>addrmode</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="180" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="180" bodyend="184"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1aa48f0070f9c6314d90de1e8e9b2275cd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BaseTexture::texaddru</definition>
+        <argsstring>(int addrmode)</argsstring>
+        <name>texaddru</name>
+        <param>
+          <type>int</type>
+          <declname>addrmode</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="185" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="185" bodyend="189"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1aaac1974d7df540dc7a00d2a4c2906d65" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BaseTexture::texaddrv</definition>
+        <argsstring>(int addrmode)</argsstring>
+        <name>texaddrv</name>
+        <param>
+          <type>int</type>
+          <declname>addrmode</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="190" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="190" bodyend="194"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1ae09d271f5171dd035913f3b09dc478d0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BaseTexture::texaddrw</definition>
+        <argsstring>(int addrmode)</argsstring>
+        <name>texaddrw</name>
+        <param>
+          <type>int</type>
+          <declname>addrmode</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="195" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="195" bodyend="199"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1ac30c083f65f300719aaafaa5fb01a543" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BaseTexture::texbordercolor</definition>
+        <argsstring>(E3DCOLOR color)</argsstring>
+        <name>texbordercolor</name>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>color</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="200" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="200" bodyend="204"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1a97f1d28e660238e95e96eaccba3d5cd6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BaseTexture::texfilter</definition>
+        <argsstring>(int filtermode)</argsstring>
+        <name>texfilter</name>
+        <param>
+          <type>int</type>
+          <declname>filtermode</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="205" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="205" bodyend="209"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1a7ac513e73ca17c7630944b7f44a82d7c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BaseTexture::texmipmap</definition>
+        <argsstring>(int mipmapmode)</argsstring>
+        <name>texmipmap</name>
+        <param>
+          <type>int</type>
+          <declname>mipmapmode</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="210" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="210" bodyend="214"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1a39b7084ca4c2380a850399e28c92fe4b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BaseTexture::texlod</definition>
+        <argsstring>(float mipmaplod)</argsstring>
+        <name>texlod</name>
+        <param>
+          <type>float</type>
+          <declname>mipmaplod</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="215" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="215" bodyend="219"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1aa44a04bffae5758e24bb0bc2ebc9ab2f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BaseTexture::setAnisotropy</definition>
+        <argsstring>(int level)</argsstring>
+        <name>setAnisotropy</name>
+        <param>
+          <type>int</type>
+          <declname>level</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="220" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="220" bodyend="224"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1aca57a09d7c38264f0092b3ae86f099eb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void BaseTexture::disableSampler</definition>
+        <argsstring>()</argsstring>
+        <name>disableSampler</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="225" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="225" bodyend="225"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1a709aac3a56fb876f5aa1ac27bb3ae604" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool BaseTexture::isSamplerEnabled</definition>
+        <argsstring>()</argsstring>
+        <name>isSamplerEnabled</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="226" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="226" bodyend="226"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1a895d85357c93cb61543d560fe798437a" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int BaseTexture::texmiplevel</definition>
+        <argsstring>(int minlevel, int maxlevel)=0</argsstring>
+        <name>texmiplevel</name>
+        <param>
+          <type>int</type>
+          <declname>minlevel</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>maxlevel</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="227" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1a0c4bf5f5d0ae87acbb22092cb164e4e4" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool BaseTexture::isCubeArray</definition>
+        <argsstring>() const</argsstring>
+        <name>isCubeArray</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="228" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="228" bodyend="228"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1a17ddd5e02b9297e0652ec646d8d54b12" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void BaseTexture::setReadStencil</definition>
+        <argsstring>(bool)</argsstring>
+        <name>setReadStencil</name>
+        <param>
+          <type>bool</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="230" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="230" bodyend="230"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1a09b445afa42678f459eee01c85160e61" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void BaseTexture::setTID</definition>
+        <argsstring>(TEXTUREID)</argsstring>
+        <name>setTID</name>
+        <param>
+          <type><ref refid="class_d3_d_r_e_s_i_d" kindref="compound">TEXTUREID</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="231" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="231" bodyend="231"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1a6fa90bc93f3169362b5a9bdf52dd33f2" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type><ref refid="class_d3_d_r_e_s_i_d" kindref="compound">TEXTUREID</ref></type>
+        <definition>virtual TEXTUREID BaseTexture::getTID</definition>
+        <argsstring>() const</argsstring>
+        <name>getTID</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="232" column="21" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="232" bodyend="232"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1a6da0232c172030d75af7ea25402fc61a" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char* BaseTexture::getTexName</definition>
+        <argsstring>() const</argsstring>
+        <name>getTexName</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="233" column="14" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="233" bodyend="233"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1ab7de60341dce70d0ec44fdecb319cb46" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void BaseTexture::setResApiName</definition>
+        <argsstring>(const char *) const</argsstring>
+        <name>setResApiName</name>
+        <reimplements refid="class_d3d_resource_1a7dd4595bd42dae94ec3ae51541666a17">setResApiName</reimplements>
+        <param>
+          <type>const char *</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="234" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="234" bodyend="234"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1a42f033152273c04456761b2b0c34be8a" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int BaseTexture::lockimg</definition>
+        <argsstring>(void **, int &amp;stride_bytes, int level, unsigned flags)=0</argsstring>
+        <name>lockimg</name>
+        <param>
+          <type>void **</type>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>stride_bytes</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>level</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="240" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1a6f933fe1dfb254b85d2e560369b5a0e6" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int BaseTexture::lockimg</definition>
+        <argsstring>(void **, int &amp;stride_bytes, int layer, int level, unsigned flags)=0</argsstring>
+        <name>lockimg</name>
+        <param>
+          <type>void **</type>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>stride_bytes</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>layer</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>level</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="241" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1ab9499abe01802300567ca7374c62de4c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>virtual int BaseTexture::unlockimg</definition>
+        <argsstring>()</argsstring>
+        <name>unlockimg</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="242" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="242" bodyend="242"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1ac9b624d1dc511cd734b9438feb4cd857" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BaseTexture::unlock</definition>
+        <argsstring>()</argsstring>
+        <name>unlock</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="243" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="243" bodyend="243"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1a2b294e235993c086e13d0456d71f809e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>virtual int BaseTexture::lockbox</definition>
+        <argsstring>(void **, int &amp;, int &amp;, int, unsigned)</argsstring>
+        <name>lockbox</name>
+        <param>
+          <type>void **</type>
+        </param>
+        <param>
+          <type>int &amp;</type>
+        </param>
+        <param>
+          <type>int &amp;</type>
+        </param>
+        <param>
+          <type>int</type>
+        </param>
+        <param>
+          <type>unsigned</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="245" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="245" bodyend="245"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1a0cd9f4ffc918991330e9190dd4db51f8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>virtual int BaseTexture::unlockbox</definition>
+        <argsstring>()</argsstring>
+        <name>unlockbox</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="246" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="246" bodyend="246"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1a68cbf22a48be7a1db2cec1ffc49c08b0" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int BaseTexture::getinfo</definition>
+        <argsstring>(TextureInfo &amp;info, int level=0) const =0</argsstring>
+        <name>getinfo</name>
+        <param>
+          <type><ref refid="struct_texture_info" kindref="compound">TextureInfo</ref> &amp;</type>
+          <declname>info</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>level</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="248" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1a2103282b55bcf3ac764d98777f7df4a5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>int</type>
+        <definition>int BaseTexture::lockimgEx</definition>
+        <argsstring>(T **p, int &amp;stride_bytes, int level=0, unsigned flags=TEXLOCK_DEFAULT)</argsstring>
+        <name>lockimgEx</name>
+        <param>
+          <type>T **</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>stride_bytes</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>level</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>flags</declname>
+          <defval>TEXLOCK_DEFAULT</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="251" column="14" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="251" bodyend="261"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1a94a6771de31f516b0b6f6aecba49589d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>virtual BaseTexture* BaseTexture::makeTmpTexResCopy</definition>
+        <argsstring>(int, int, int, int, bool=false)</argsstring>
+        <name>makeTmpTexResCopy</name>
+        <param>
+          <type>int</type>
+        </param>
+        <param>
+          <type>int</type>
+        </param>
+        <param>
+          <type>int</type>
+        </param>
+        <param>
+          <type>int</type>
+        </param>
+        <param>
+          <type>bool</type>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>created temporary <ref refid="class_base_texture" kindref="compound">BaseTexture</ref> with texture res object with given dimensions (texture format and texture subtype is used from original) </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="265" column="23" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="265" bodyend="265"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1ad8a08bbab47a6ab5df6418f78dda49a1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void BaseTexture::replaceTexResObject</definition>
+        <argsstring>(BaseTexture *&amp;new_tex)</argsstring>
+        <name>replaceTexResObject</name>
+        <param>
+          <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *&amp;</type>
+          <declname>new_tex</declname>
+        </param>
+        <briefdescription>
+<para>replaces texture res object with new one of new_tex and then destroys new_tex (destruction may be delayed by driver) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="267" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="267" bodyend="267"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1a072ba682d61c5ec00e27867908a4ab7b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool BaseTexture::allocateTex</definition>
+        <argsstring>()</argsstring>
+        <name>allocateTex</name>
+        <briefdescription>
+<para>forces allocation of texture resource; return true if tex allocated and ready for use </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="270" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="270" bodyend="270"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1a72a607b61e2220156946976bdedc57b2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void BaseTexture::discardTex</definition>
+        <argsstring>()</argsstring>
+        <name>discardTex</name>
+        <briefdescription>
+<para>discards texture and returns it to STUB state </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="272" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="272" bodyend="272"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1ab1ffcf394701e8a613b119c91c7c7d39" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool BaseTexture::downSize</definition>
+        <argsstring>(int width, int height, int depth, int mips, unsigned start_src_level, unsigned level_offset)</argsstring>
+        <name>downSize</name>
+        <param>
+          <type>int</type>
+          <declname>width</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>height</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>depth</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>mips</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>start_src_level</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>level_offset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="286" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="286" bodyend="312"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1a153f19eab98a7ae8371f62d195d43b8c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool BaseTexture::upSize</definition>
+        <argsstring>(int width, int height, int depth, int mips, unsigned start_src_level, unsigned level_offset)</argsstring>
+        <name>upSize</name>
+        <param>
+          <type>int</type>
+          <declname>width</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>height</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>depth</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>mips</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>start_src_level</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>level_offset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="320" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="320" bodyend="346"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1a638453c3d09759543de7b093b8b828b5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>BaseTexture::BaseTexture</definition>
+        <argsstring>()=default</argsstring>
+        <name>BaseTexture</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="348" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1aedadda650c2606fcf727e892b50f3af8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>BaseTexture::BaseTexture</definition>
+        <argsstring>(BaseTexture &amp;&amp;)=default</argsstring>
+        <name>BaseTexture</name>
+        <param>
+          <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="349" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1aea1d59dbf25848bda7ca691a5a93a7a6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> &amp;</type>
+        <definition>BaseTexture&amp; BaseTexture::operator=</definition>
+        <argsstring>(BaseTexture &amp;&amp;)=default</argsstring>
+        <name>operator=</name>
+        <param>
+          <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="350" column="15"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="class_base_texture_1adfed71ba8678e0549c6f6dc01b48f1d5" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>static int BaseTexture::calcSubResIdx</definition>
+        <argsstring>(int level, int slice, int mip_levels)</argsstring>
+        <name>calcSubResIdx</name>
+        <param>
+          <type>int</type>
+          <declname>level</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>slice</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>mip_levels</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="169" column="21" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="169" bodyend="169"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="class_base_texture_1a44c435c54611c614300851ef257dbbcb" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>BaseTexture::~BaseTexture</definition>
+        <argsstring>() override</argsstring>
+        <name>~BaseTexture</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="353" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="353" bodyend="353"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1a86e5bd14b85fb960853d61dac8e3d49e" prot="protected" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int BaseTexture::texaddrImpl</definition>
+        <argsstring>(int addrmode)=0</argsstring>
+        <name>texaddrImpl</name>
+        <param>
+          <type>int</type>
+          <declname>addrmode</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="355" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1a21a2c1713542b18d03af4d17692f6766" prot="protected" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int BaseTexture::texaddruImpl</definition>
+        <argsstring>(int addrmode)=0</argsstring>
+        <name>texaddruImpl</name>
+        <param>
+          <type>int</type>
+          <declname>addrmode</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="356" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1a5988251150a45dd67e1868377478cccd" prot="protected" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int BaseTexture::texaddrvImpl</definition>
+        <argsstring>(int addrmode)=0</argsstring>
+        <name>texaddrvImpl</name>
+        <param>
+          <type>int</type>
+          <declname>addrmode</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="357" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1a72c4f781ea294e9513501ec9a1829eda" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>virtual int BaseTexture::texaddrwImpl</definition>
+        <argsstring>(int)</argsstring>
+        <name>texaddrwImpl</name>
+        <param>
+          <type>int</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="358" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="358" bodyend="358"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1ad9ad2b67199d48b45e437b3ce38a275c" prot="protected" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int BaseTexture::texbordercolorImpl</definition>
+        <argsstring>(E3DCOLOR)=0</argsstring>
+        <name>texbordercolorImpl</name>
+        <param>
+          <type>E3DCOLOR</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="359" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1a68d49cc8a27be9f62ff990fb9a4670cb" prot="protected" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int BaseTexture::texfilterImpl</definition>
+        <argsstring>(int filtermode)=0</argsstring>
+        <name>texfilterImpl</name>
+        <param>
+          <type>int</type>
+          <declname>filtermode</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="360" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1a799401230a3b7b691d2bf17f985e046f" prot="protected" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int BaseTexture::texmipmapImpl</definition>
+        <argsstring>(int mipmapmode)=0</argsstring>
+        <name>texmipmapImpl</name>
+        <param>
+          <type>int</type>
+          <declname>mipmapmode</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="361" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1af41bb6cb7ce68382533feef49e878121" prot="protected" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int BaseTexture::texlodImpl</definition>
+        <argsstring>(float mipmaplod)=0</argsstring>
+        <name>texlodImpl</name>
+        <param>
+          <type>float</type>
+          <declname>mipmaplod</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="362" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="class_base_texture_1acf7ab989e0d520e64fe9727953198fae" prot="protected" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int BaseTexture::setAnisotropyImpl</definition>
+        <argsstring>(int level)=0</argsstring>
+        <name>setAnisotropyImpl</name>
+        <param>
+          <type>int</type>
+          <declname>level</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="363" column="15"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>D3dResource</label>
+        <link refid="class_d3d_resource"/>
+      </node>
+      <node id="1">
+        <label>BaseTexture</label>
+        <link refid="class_base_texture"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>D3dResource</label>
+        <link refid="class_d3d_resource"/>
+      </node>
+      <node id="1">
+        <label>BaseTexture</label>
+        <link refid="class_base_texture"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="154" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="155" bodyend="368"/>
+    <listofallmembers>
+      <member refid="class_base_texture_1a072ba682d61c5ec00e27867908a4ab7b" prot="public" virt="virtual"><scope>BaseTexture</scope><name>allocateTex</name></member>
+      <member refid="class_base_texture_1a638453c3d09759543de7b093b8b828b5" prot="public" virt="non-virtual"><scope>BaseTexture</scope><name>BaseTexture</name></member>
+      <member refid="class_base_texture_1aedadda650c2606fcf727e892b50f3af8" prot="public" virt="non-virtual"><scope>BaseTexture</scope><name>BaseTexture</name></member>
+      <member refid="class_base_texture_1adfed71ba8678e0549c6f6dc01b48f1d5" prot="public" virt="non-virtual"><scope>BaseTexture</scope><name>calcSubResIdx</name></member>
+      <member refid="class_base_texture_1ab562f86e581b7f61b63141fdda32fdea" prot="public" virt="non-virtual"><scope>BaseTexture</scope><name>calcSubResIdx</name></member>
+      <member refid="class_d3d_resource_1adf79387ed8aba74c3b89df96b6a90a4f" prot="public" virt="non-virtual"><scope>BaseTexture</scope><name>D3dResource</name></member>
+      <member refid="class_d3d_resource_1a934c63d0bda6062fc7c9c2dd35bffbe9" prot="public" virt="non-virtual"><scope>BaseTexture</scope><name>D3dResource</name></member>
+      <member refid="class_d3d_resource_1a23997f6bb699d0375bd442092f6fb5e3" prot="public" virt="pure-virtual"><scope>BaseTexture</scope><name>destroy</name></member>
+      <member refid="class_base_texture_1aca57a09d7c38264f0092b3ae86f099eb" prot="public" virt="non-virtual"><scope>BaseTexture</scope><name>disableSampler</name></member>
+      <member refid="class_base_texture_1a72a607b61e2220156946976bdedc57b2" prot="public" virt="virtual"><scope>BaseTexture</scope><name>discardTex</name></member>
+      <member refid="class_base_texture_1ab1ffcf394701e8a613b119c91c7c7d39" prot="public" virt="virtual"><scope>BaseTexture</scope><name>downSize</name></member>
+      <member refid="class_base_texture_1a508ff31351ba5c970d533ef14fa85159" prot="public" virt="pure-virtual"><scope>BaseTexture</scope><name>generateMips</name></member>
+      <member refid="class_base_texture_1a68cbf22a48be7a1db2cec1ffc49c08b0" prot="public" virt="pure-virtual"><scope>BaseTexture</scope><name>getinfo</name></member>
+      <member refid="class_d3d_resource_1a8262208aee3abb3570d0c388ec586230" prot="public" virt="non-virtual"><scope>BaseTexture</scope><name>getResName</name></member>
+      <member refid="class_base_texture_1a6da0232c172030d75af7ea25402fc61a" prot="public" virt="non-virtual"><scope>BaseTexture</scope><name>getTexName</name></member>
+      <member refid="class_base_texture_1a6fa90bc93f3169362b5a9bdf52dd33f2" prot="public" virt="virtual"><scope>BaseTexture</scope><name>getTID</name></member>
+      <member refid="class_base_texture_1a0c4bf5f5d0ae87acbb22092cb164e4e4" prot="public" virt="virtual"><scope>BaseTexture</scope><name>isCubeArray</name></member>
+      <member refid="class_base_texture_1a709aac3a56fb876f5aa1ac27bb3ae604" prot="public" virt="non-virtual"><scope>BaseTexture</scope><name>isSamplerEnabled</name></member>
+      <member refid="class_base_texture_1aa5f45a64584c9533b7606e99dfd5308f" prot="public" virt="pure-virtual"><scope>BaseTexture</scope><name>level_count</name></member>
+      <member refid="class_base_texture_1a2b294e235993c086e13d0456d71f809e" prot="public" virt="virtual"><scope>BaseTexture</scope><name>lockbox</name></member>
+      <member refid="class_base_texture_1a42f033152273c04456761b2b0c34be8a" prot="public" virt="pure-virtual"><scope>BaseTexture</scope><name>lockimg</name></member>
+      <member refid="class_base_texture_1a6f933fe1dfb254b85d2e560369b5a0e6" prot="public" virt="pure-virtual"><scope>BaseTexture</scope><name>lockimg</name></member>
+      <member refid="class_base_texture_1a2103282b55bcf3ac764d98777f7df4a5" prot="public" virt="non-virtual"><scope>BaseTexture</scope><name>lockimgEx</name></member>
+      <member refid="class_base_texture_1a94a6771de31f516b0b6f6aecba49589d" prot="public" virt="virtual"><scope>BaseTexture</scope><name>makeTmpTexResCopy</name></member>
+      <member refid="class_base_texture_1aea1d59dbf25848bda7ca691a5a93a7a6" prot="public" virt="non-virtual"><scope>BaseTexture</scope><name>operator=</name></member>
+      <member refid="class_d3d_resource_1a2fdd9232054fa86c41ecc44011223db9" prot="public" virt="non-virtual" ambiguityscope="D3dResource::"><scope>BaseTexture</scope><name>operator=</name></member>
+      <member refid="class_base_texture_1ad8a08bbab47a6ab5df6418f78dda49a1" prot="public" virt="virtual"><scope>BaseTexture</scope><name>replaceTexResObject</name></member>
+      <member refid="class_d3d_resource_1a0702cfae15c5cd119d96d4db15996aa7" prot="public" virt="pure-virtual"><scope>BaseTexture</scope><name>ressize</name></member>
+      <member refid="class_d3d_resource_1ae13960c0d8e6993322cd97969c37cfe2" prot="public" virt="pure-virtual"><scope>BaseTexture</scope><name>restype</name></member>
+      <member refid="class_base_texture_1ad426eb2f55e6c7eb3d30ca4cb959dd20" prot="protected" virt="non-virtual"><scope>BaseTexture</scope><name>samplerEnabled</name></member>
+      <member refid="class_base_texture_1aa44a04bffae5758e24bb0bc2ebc9ab2f" prot="public" virt="non-virtual"><scope>BaseTexture</scope><name>setAnisotropy</name></member>
+      <member refid="class_base_texture_1acf7ab989e0d520e64fe9727953198fae" prot="protected" virt="pure-virtual"><scope>BaseTexture</scope><name>setAnisotropyImpl</name></member>
+      <member refid="class_base_texture_1a17ddd5e02b9297e0652ec646d8d54b12" prot="public" virt="virtual"><scope>BaseTexture</scope><name>setReadStencil</name></member>
+      <member refid="class_base_texture_1a6a85e670c443104a70883f192cb0be93" prot="public" virt="virtual"><scope>BaseTexture</scope><name>setReloadCallback</name></member>
+      <member refid="class_base_texture_1ab7de60341dce70d0ec44fdecb319cb46" prot="public" virt="virtual"><scope>BaseTexture</scope><name>setResApiName</name></member>
+      <member refid="class_d3d_resource_1aa27c5cdb9b8eb6a248cb765c08a388f0" prot="public" virt="non-virtual"><scope>BaseTexture</scope><name>setResName</name></member>
+      <member refid="class_d3d_resource_1a56ecc38ce2fbec8ded7bd5a07d94e8a6" prot="public" virt="non-virtual"><scope>BaseTexture</scope><name>setResName</name></member>
+      <member refid="class_base_texture_1a09b445afa42678f459eee01c85160e61" prot="public" virt="virtual"><scope>BaseTexture</scope><name>setTID</name></member>
+      <member refid="class_base_texture_1ae8d686517cc0babc4a0829df1c5e9a25" prot="protected" virt="non-virtual"><scope>BaseTexture</scope><name>TEX_COPIED</name></member>
+      <member refid="class_base_texture_1a6d2c47bef8382eb01cb49f6387cf4da8" prot="public" virt="non-virtual"><scope>BaseTexture</scope><name>texaddr</name></member>
+      <member refid="class_base_texture_1a86e5bd14b85fb960853d61dac8e3d49e" prot="protected" virt="pure-virtual"><scope>BaseTexture</scope><name>texaddrImpl</name></member>
+      <member refid="class_base_texture_1aa48f0070f9c6314d90de1e8e9b2275cd" prot="public" virt="non-virtual"><scope>BaseTexture</scope><name>texaddru</name></member>
+      <member refid="class_base_texture_1a21a2c1713542b18d03af4d17692f6766" prot="protected" virt="pure-virtual"><scope>BaseTexture</scope><name>texaddruImpl</name></member>
+      <member refid="class_base_texture_1aaac1974d7df540dc7a00d2a4c2906d65" prot="public" virt="non-virtual"><scope>BaseTexture</scope><name>texaddrv</name></member>
+      <member refid="class_base_texture_1a5988251150a45dd67e1868377478cccd" prot="protected" virt="pure-virtual"><scope>BaseTexture</scope><name>texaddrvImpl</name></member>
+      <member refid="class_base_texture_1ae09d271f5171dd035913f3b09dc478d0" prot="public" virt="non-virtual"><scope>BaseTexture</scope><name>texaddrw</name></member>
+      <member refid="class_base_texture_1a72c4f781ea294e9513501ec9a1829eda" prot="protected" virt="virtual"><scope>BaseTexture</scope><name>texaddrwImpl</name></member>
+      <member refid="class_base_texture_1ac30c083f65f300719aaafaa5fb01a543" prot="public" virt="non-virtual"><scope>BaseTexture</scope><name>texbordercolor</name></member>
+      <member refid="class_base_texture_1ad9ad2b67199d48b45e437b3ce38a275c" prot="protected" virt="pure-virtual"><scope>BaseTexture</scope><name>texbordercolorImpl</name></member>
+      <member refid="class_base_texture_1a97f1d28e660238e95e96eaccba3d5cd6" prot="public" virt="non-virtual"><scope>BaseTexture</scope><name>texfilter</name></member>
+      <member refid="class_base_texture_1a68d49cc8a27be9f62ff990fb9a4670cb" prot="protected" virt="pure-virtual"><scope>BaseTexture</scope><name>texfilterImpl</name></member>
+      <member refid="class_base_texture_1a39b7084ca4c2380a850399e28c92fe4b" prot="public" virt="non-virtual"><scope>BaseTexture</scope><name>texlod</name></member>
+      <member refid="class_base_texture_1af41bb6cb7ce68382533feef49e878121" prot="protected" virt="pure-virtual"><scope>BaseTexture</scope><name>texlodImpl</name></member>
+      <member refid="class_base_texture_1a895d85357c93cb61543d560fe798437a" prot="public" virt="pure-virtual"><scope>BaseTexture</scope><name>texmiplevel</name></member>
+      <member refid="class_base_texture_1a7ac513e73ca17c7630944b7f44a82d7c" prot="public" virt="non-virtual"><scope>BaseTexture</scope><name>texmipmap</name></member>
+      <member refid="class_base_texture_1a799401230a3b7b691d2bf17f985e046f" prot="protected" virt="pure-virtual"><scope>BaseTexture</scope><name>texmipmapImpl</name></member>
+      <member refid="class_base_texture_1ac9b624d1dc511cd734b9438feb4cd857" prot="public" virt="non-virtual"><scope>BaseTexture</scope><name>unlock</name></member>
+      <member refid="class_base_texture_1a0cd9f4ffc918991330e9190dd4db51f8" prot="public" virt="virtual"><scope>BaseTexture</scope><name>unlockbox</name></member>
+      <member refid="class_base_texture_1ab9499abe01802300567ca7374c62de4c" prot="public" virt="virtual"><scope>BaseTexture</scope><name>unlockimg</name></member>
+      <member refid="class_base_texture_1ae66fab8be80dfdf1379ef6c3c3a54d18" prot="public" virt="pure-virtual"><scope>BaseTexture</scope><name>update</name></member>
+      <member refid="class_base_texture_1a78250fb6cf2f55d92a38708836317c85" prot="public" virt="pure-virtual"><scope>BaseTexture</scope><name>updateSubRegion</name></member>
+      <member refid="class_base_texture_1a6f7b48f57c9bb0c39ab0b828e87c0404" prot="public" virt="virtual"><scope>BaseTexture</scope><name>updateSubRegionNoOrder</name></member>
+      <member refid="class_base_texture_1a153f19eab98a7ae8371f62d195d43b8c" prot="public" virt="virtual"><scope>BaseTexture</scope><name>upSize</name></member>
+      <member refid="class_base_texture_1a44c435c54611c614300851ef257dbbcb" prot="protected" virt="non-virtual"><scope>BaseTexture</scope><name>~BaseTexture</name></member>
+      <member refid="class_d3d_resource_1aeed57bcecefe747fac21813560d315ba" prot="protected" virt="virtual"><scope>BaseTexture</scope><name>~D3dResource</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

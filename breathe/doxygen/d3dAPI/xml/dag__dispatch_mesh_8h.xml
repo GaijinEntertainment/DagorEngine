@@ -1,0 +1,65 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="dag__dispatch_mesh_8h" kind="file" language="C++">
+    <compoundname>dag_dispatchMesh.h</compoundname>
+    <includes local="no">util/dag_inttypes.h</includes>
+    <incdepgraph>
+      <node id="2">
+        <label>util/dag_inttypes.h</label>
+      </node>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_dispatchMesh.h</label>
+        <link refid="dag__dispatch_mesh_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </incdepgraph>
+    <innernamespace refid="namespaced3d">d3d</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_inttypes.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref>;</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">d3d</highlight></codeline>
+<codeline lineno="12"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>dispatch_mesh(uint32_t<sp/>thread_group_x,<sp/>uint32_t<sp/>thread_group_y,<sp/>uint32_t<sp/>thread_group_z);</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>dispatch_mesh_indirect(<ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*args,<sp/>uint32_t<sp/>dispatch_count,<sp/>uint32_t<sp/>stride_bytes,<sp/>uint32_t<sp/>byte_offset<sp/>=<sp/>0);</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>dispatch_mesh_indirect_count(<ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*args,<sp/>uint32_t<sp/>args_stride_bytes,<sp/>uint32_t<sp/>args_byte_offset,<sp/><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*count,</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/>uint32_t<sp/>count_byte_offset,<sp/>uint32_t<sp/>max_count);</highlight></codeline>
+<codeline lineno="55"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_D3D_MULTI</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_interface_table.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">d3d</highlight></codeline>
+<codeline lineno="60"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>dispatch_mesh(uint32_t<sp/>thread_group_x,<sp/>uint32_t<sp/>thread_group_y,<sp/>uint32_t<sp/>thread_group_z)</highlight></codeline>
+<codeline lineno="62"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/>d3di.dispatch_mesh(thread_group_x,<sp/>thread_group_y,<sp/>thread_group_z);</highlight></codeline>
+<codeline lineno="64"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>dispatch_mesh_indirect(<ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*args,<sp/>uint32_t<sp/>dispatch_count,<sp/>uint32_t<sp/>stride_bytes,<sp/>uint32_t<sp/>byte_offset)</highlight></codeline>
+<codeline lineno="66"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/>d3di.dispatch_mesh_indirect(args,<sp/>dispatch_count,<sp/>stride_bytes,<sp/>byte_offset);</highlight></codeline>
+<codeline lineno="68"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>dispatch_mesh_indirect_count(<ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*args,<sp/>uint32_t<sp/>args_stride_bytes,<sp/>uint32_t<sp/>args_byte_offset,<sp/><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref><sp/>*count,</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/>uint32_t<sp/>count_byte_offset,<sp/>uint32_t<sp/>max_count)</highlight></codeline>
+<codeline lineno="71"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/>d3di.dispatch_mesh_indirect_count(args,<sp/>args_stride_bytes,<sp/>args_byte_offset,<sp/>count,<sp/>count_byte_offset,<sp/>max_count);</highlight></codeline>
+<codeline lineno="73"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="74"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_dispatchMesh.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,1482 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="dag__tex3d_8h" kind="file" language="C++">
+    <compoundname>dag_tex3d.h</compoundname>
+    <includes refid="dag__sampler_8h" local="no">drv/3d/dag_sampler.h</includes>
+    <includes refid="dag__d3d_resource_8h" local="no">drv/3d/dag_d3dResource.h</includes>
+    <includes refid="dag__res_id_8h" local="no">drv/3d/dag_resId.h</includes>
+    <includes refid="dag__tex_flags_8h" local="no">drv/3d/dag_texFlags.h</includes>
+    <includes local="no">math/dag_color.h</includes>
+    <includes local="no">memory/dag_mem.h</includes>
+    <includes local="no">util/dag_stdint.h</includes>
+    <includes local="no">string.h</includes>
+    <includes refid="dag__consts__base_8h" local="no">drv/3d/dag_consts_base.h</includes>
+    <includedby refid="dag__buffers_8h" local="no">/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h</includedby>
+    <includedby refid="dag__driver_8h" local="no">/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driver.h</includedby>
+    <includedby refid="dag__texture_8h" local="no">/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_texture.h</includedby>
+    <incdepgraph>
+      <node id="5">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="7">
+        <label>drv/3d/dag_d3dResource.h</label>
+        <link refid="dag__d3d_resource_8h_source"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>drv/3d/dag_consts_base.h</label>
+        <link refid="dag__consts__base_8h_source"/>
+      </node>
+      <node id="11">
+        <label>math/dag_adjpow2.h</label>
+      </node>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h</label>
+        <link refid="dag__tex3d_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>util/dag_string.h</label>
+      </node>
+      <node id="13">
+        <label>string.h</label>
+      </node>
+      <node id="9">
+        <label>drv/3d/dag_resId.h</label>
+        <link refid="dag__res_id_8h_source"/>
+      </node>
+      <node id="4">
+        <label>drv/3d/dag_samplerHandle.h</label>
+        <link refid="dag__sampler_handle_8h_source"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>drv/3d/dag_sampler.h</label>
+        <link refid="dag__sampler_8h_source"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>memory/dag_mem.h</label>
+      </node>
+      <node id="6">
+        <label>math/dag_color.h</label>
+      </node>
+      <node id="10">
+        <label>drv/3d/dag_texFlags.h</label>
+        <link refid="dag__tex_flags_8h_source"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="8">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_ps.h</label>
+        <link refid="dag__platform__ps_8h_source"/>
+      </node>
+      <node id="7">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_pc.h</label>
+        <link refid="dag__platform__pc_8h_source"/>
+      </node>
+      <node id="9">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_texture.h</label>
+        <link refid="dag__texture_8h_source"/>
+      </node>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h</label>
+        <link refid="dag__tex3d_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driver.h</label>
+        <link refid="dag__driver_8h_source"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_lock.h</label>
+        <link refid="dag__lock_8h_source"/>
+      </node>
+      <node id="4">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_async_pipeline.h</label>
+        <link refid="dag__async__pipeline_8h_source"/>
+      </node>
+      <node id="5">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_drv3d_multi.h</label>
+        <link refid="dag__drv3d__multi_8h_source"/>
+      </node>
+      <node id="2">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h</label>
+        <link refid="dag__buffers_8h"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="struct_texture_channel_format_desc" prot="public">TextureChannelFormatDesc</innerclass>
+    <innerclass refid="struct_texture_format_desc" prot="public">TextureFormatDesc</innerclass>
+    <innerclass refid="struct_texture_info" prot="public">TextureInfo</innerclass>
+    <innerclass refid="class_base_texture" prot="public">BaseTexture</innerclass>
+    <innerclass refid="struct_base_texture_1_1_i_reload_data" prot="public">BaseTexture::IReloadData</innerclass>
+    <innernamespace refid="namespaceddsx">ddsx</innernamespace>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="dag__tex3d_8h_1a128ec94cdf3504928b930404c0f80499" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>ChannelDType</name>
+        <enumvalue id="dag__tex3d_8h_1a128ec94cdf3504928b930404c0f80499ab50339a10e1de285ac99d4c3990b8693" prot="public">
+          <name>NONE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex3d_8h_1a128ec94cdf3504928b930404c0f80499a5bb95a4e899b4551b04a48066588d0e5" prot="public">
+          <name>UNORM</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex3d_8h_1a128ec94cdf3504928b930404c0f80499a7c1aa912d80cc40ecfa14a37bc458843" prot="public">
+          <name>SNORM</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex3d_8h_1a128ec94cdf3504928b930404c0f80499ae6ac805b2322b9c60967a971fd35167a" prot="public">
+          <name>UFLOAT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex3d_8h_1a128ec94cdf3504928b930404c0f80499a5a58e5d5f599c38d470fdac5da9622b5" prot="public">
+          <name>SFLOAT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex3d_8h_1a128ec94cdf3504928b930404c0f80499a3351504090a741e69da641a42e00da80" prot="public">
+          <name>UINT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex3d_8h_1a128ec94cdf3504928b930404c0f80499a0d6b471a91d4d6f751adbee558004f1f" prot="public">
+          <name>SINT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="37" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="38" bodyend="46"/>
+      </memberdef>
+      <memberdef kind="enum" id="dag__tex3d_8h_1a1f9aebf1de3ebbf4283a4dcf73308562" prot="public" static="no" strong="no">
+        <type></type>
+        <name>@37</name>
+        <enumvalue id="dag__tex3d_8h_1a1f9aebf1de3ebbf4283a4dcf73308562ab97d145a655b3786d211ad15fd0a6633" prot="public">
+          <name>TEXLOCK_DISCARD</name>
+          <initializer>= 0x00002000L</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex3d_8h_1a1f9aebf1de3ebbf4283a4dcf73308562a7024b98eddf689371804e435510ff1ec" prot="public">
+          <name>TEXLOCK_RAWDATA</name>
+          <initializer>= 0x00004000L</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex3d_8h_1a1f9aebf1de3ebbf4283a4dcf73308562a1b5db12765ee2f4ef33b774eef5a7204" prot="public">
+          <name>TEXLOCK_NO_DIRTY_UPDATE</name>
+          <initializer>= 0x00008000L</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex3d_8h_1a1f9aebf1de3ebbf4283a4dcf73308562aaaccf67fe218c8497cd7e166502d6092" prot="public">
+          <name>TEXLOCK_NOSYSLOCK</name>
+          <initializer>= 0x00000800L</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex3d_8h_1a1f9aebf1de3ebbf4283a4dcf73308562ae88cc87bd874de16ef5d7b64d8e5b30c" prot="public">
+          <name>TEXLOCK_READ</name>
+          <initializer>= 0x01</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex3d_8h_1a1f9aebf1de3ebbf4283a4dcf73308562a94a47abff739eb51ef0efd666671c9f8" prot="public">
+          <name>TEXLOCK_WRITE</name>
+          <initializer>= 0x02</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex3d_8h_1a1f9aebf1de3ebbf4283a4dcf73308562a0bd1c21b1e99983a991945e8c7a119ac" prot="public">
+          <name>TEXLOCK_READWRITE</name>
+          <initializer>= TEXLOCK_READ | TEXLOCK_WRITE</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex3d_8h_1a1f9aebf1de3ebbf4283a4dcf73308562a8c8d750a5a6a7caed7316a915612b7bd" prot="public">
+          <name>TEXLOCK_RWMASK</name>
+          <initializer>= TEXLOCK_READWRITE</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex3d_8h_1a1f9aebf1de3ebbf4283a4dcf73308562ad0bea102ba54e765a24097673219020a" prot="public">
+          <name>TEXLOCK_NOOVERWRITE</name>
+          <initializer>= 0x08</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex3d_8h_1a1f9aebf1de3ebbf4283a4dcf73308562ade76e6e5e7af76c460f2e67ed53354ab" prot="public">
+          <name>TEXLOCK_DELSYSMEMCOPY</name>
+          <initializer>= 0x10</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex3d_8h_1a1f9aebf1de3ebbf4283a4dcf73308562a072d6f7b5a381f764c7f57d618d702aa" prot="public">
+          <name>TEXLOCK_SYSTEXLOCK</name>
+          <initializer>= 0x20</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex3d_8h_1a1f9aebf1de3ebbf4283a4dcf73308562a456f478daeb1dc29cfeddf187c21d773" prot="public">
+          <name>TEXLOCK_UPDATEFROMSYSTEX</name>
+          <initializer>= 0x40</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex3d_8h_1a1f9aebf1de3ebbf4283a4dcf73308562a9fa202b6bbdf5e892cad0a91cf989d40" prot="public">
+          <name>TEXLOCK_DONOTUPDATEON9EXBYDEFAULT</name>
+          <initializer>= 0x80</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex3d_8h_1a1f9aebf1de3ebbf4283a4dcf73308562a37e225c5dcdf8d99df8d234d74309246" prot="public">
+          <name>TEXLOCK_COPY_STAGING</name>
+          <initializer>= 0x100</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex3d_8h_1a1f9aebf1de3ebbf4283a4dcf73308562a6d7809c41d9f725ab075c234f2012591" prot="public">
+          <name>TEXLOCK_DEFAULT</name>
+          <initializer>= TEXLOCK_READWRITE</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="99" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="100" bodyend="116"/>
+      </memberdef>
+      <memberdef kind="enum" id="dag__tex3d_8h_1a77867ab4129f63159b37bca3b652a798" prot="public" static="no" strong="no">
+        <type></type>
+        <name>@38</name>
+        <enumvalue id="dag__tex3d_8h_1a77867ab4129f63159b37bca3b652a798ab2ffff905344ae22cbab73adbf4d0e89" prot="public">
+          <name>TEXLF_CALCMIPMAPS</name>
+          <initializer>= 0x0001</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="120" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="121" bodyend="123"/>
+      </memberdef>
+      <memberdef kind="enum" id="dag__tex3d_8h_1a16685eea158879e41b101ca3634de462" prot="public" static="no" strong="no">
+        <type></type>
+        <name>@39</name>
+        <enumvalue id="dag__tex3d_8h_1a16685eea158879e41b101ca3634de462a17b84d8078b80e072c3a06d791b47e8d" prot="public">
+          <name>CUBEFACE_POSX</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex3d_8h_1a16685eea158879e41b101ca3634de462abfa657b61a7bc567a7c3161dc6c03c10" prot="public">
+          <name>CUBEFACE_NEGX</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex3d_8h_1a16685eea158879e41b101ca3634de462af353500273815468c309846677c3b95f" prot="public">
+          <name>CUBEFACE_POSY</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex3d_8h_1a16685eea158879e41b101ca3634de462a0cace3d2d3c1613819a34239fbc3a03c" prot="public">
+          <name>CUBEFACE_NEGY</name>
+          <initializer>= 3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex3d_8h_1a16685eea158879e41b101ca3634de462a53d3b6f3224e33cb407137bf3cf94f0b" prot="public">
+          <name>CUBEFACE_POSZ</name>
+          <initializer>= 4</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex3d_8h_1a16685eea158879e41b101ca3634de462a4b331ccadfa16883c655d4cff60c6c8b" prot="public">
+          <name>CUBEFACE_NEGZ</name>
+          <initializer>= 5</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="125" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="126" bodyend="133"/>
+      </memberdef>
+      <memberdef kind="enum" id="dag__tex3d_8h_1ae2fea7da159d81915baf6bdfe7bba50a" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>TexLoadRes</name>
+        <enumvalue id="dag__tex3d_8h_1ae2fea7da159d81915baf6bdfe7bba50aacd22bad976363fdd1bfbf6759fede482" prot="public">
+          <name>ERR</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex3d_8h_1ae2fea7da159d81915baf6bdfe7bba50aae0aa021e21dddbd6d8cecec71e9cf564" prot="public">
+          <name>OK</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__tex3d_8h_1ae2fea7da159d81915baf6bdfe7bba50aaefd5de22c2ed5c0a7e1dec9443f9d558" prot="public">
+          <name>ERR_RUB</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="147" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="148" bodyend="152"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="dag__tex3d_8h_1a37ee2859ee04a3f5c750a5b5e3684c1d" prot="public" static="no">
+        <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref></type>
+        <definition>typedef BaseTexture Texture</definition>
+        <argsstring></argsstring>
+        <name>Texture</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="370" column="21" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="370" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="dag__tex3d_8h_1a0f1991b83270f80fdb5975f615cc8f98" prot="public" static="no">
+        <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref></type>
+        <definition>typedef BaseTexture CubeTexture</definition>
+        <argsstring></argsstring>
+        <name>CubeTexture</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="371" column="21" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="371" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="dag__tex3d_8h_1a7822f867ab7b3377816832b781b76930" prot="public" static="no">
+        <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref></type>
+        <definition>typedef BaseTexture VolTexture</definition>
+        <argsstring></argsstring>
+        <name>VolTexture</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="372" column="21" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="372" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="dag__tex3d_8h_1af17a5ffc9ee505603d91f627188e8dc7" prot="public" static="no">
+        <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref></type>
+        <definition>typedef BaseTexture ArrayTexture</definition>
+        <argsstring></argsstring>
+        <name>ArrayTexture</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="373" column="21" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="373" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="dag__tex3d_8h_1a493fcb1cda716e3b8ee52f6e8cb2e7ab" prot="public" static="no">
+        <type>void(*</type>
+        <definition>typedef void(* on_tex_slice_loaded_cb_t) ()</definition>
+        <argsstring>)()</argsstring>
+        <name>on_tex_slice_loaded_cb_t</name>
+        <briefdescription>
+<para>load texture content from DDSx stream using DDSx header for previously allocated texture </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="430" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="430" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="dag__tex3d_8h_1ab28bbb4badf3b0de56894aa39d3a328e" prot="public" static="no" mutable="no">
+        <type>TexLoadRes(*</type>
+        <definition>TexLoadRes(* d3d_load_ddsx_tex_contents_impl) (BaseTexture *tex, TEXTUREID tid, TEXTUREID paired_tid, const ddsx::Header &amp;hdr, IGenLoad &amp;crd, int q_id, int start_lev, unsigned tex_ld_lev, on_tex_slice_loaded_cb_t)</definition>
+        <argsstring>)(BaseTexture *tex, TEXTUREID tid, TEXTUREID paired_tid, const ddsx::Header &amp;hdr, IGenLoad &amp;crd, int q_id, int start_lev, unsigned tex_ld_lev, on_tex_slice_loaded_cb_t)</argsstring>
+        <name>d3d_load_ddsx_tex_contents_impl</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="431" column="8" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" declline="431" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__tex3d_8h_1a6b26972b9feebc213e7354920b0a5677" prot="public" static="no" mutable="no">
+        <type>TexLoadRes(*</type>
+        <definition>TexLoadRes(* d3d_load_ddsx_to_slice) (BaseTexture *tex, int slice, const ddsx::Header &amp;hdr, IGenLoad &amp;crd, int q_id, int start_lev, unsigned tex_ld_lev)</definition>
+        <argsstring>)(BaseTexture *tex, int slice, const ddsx::Header &amp;hdr, IGenLoad &amp;crd, int q_id, int start_lev, unsigned tex_ld_lev)</argsstring>
+        <name>d3d_load_ddsx_to_slice</name>
+        <briefdescription>
+<para>load texture content from DDSx stream using DDSx header to specified slice of previously allocated array texture </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="439" column="8" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" declline="439" declcolumn="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__tex3d_8h_1a81716813bf4b7ce7e2bce8958712aba4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool is_alpha_texformat</definition>
+        <argsstring>(unsigned flags)</argsstring>
+        <name>is_alpha_texformat</name>
+        <param>
+          <type>unsigned</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="75" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="75" bodyend="84"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex3d_8h_1a6c7a2a6dc6ed92359185088af8a91cae" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool is_bc_texformat</definition>
+        <argsstring>(unsigned flags)</argsstring>
+        <name>is_bc_texformat</name>
+        <param>
+          <type>unsigned</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="86" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="86" bodyend="96"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex3d_8h_1a43a8448366385e8e7fa5a16cbce33868" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t auto_mip_levels_count</definition>
+        <argsstring>(uint32_t w, uint32_t min_size)</argsstring>
+        <name>auto_mip_levels_count</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>min_size</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="375" column="10" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" declline="375" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex3d_8h_1a36e9ea989dd01bd26fc51e9426e38453" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t auto_mip_levels_count</definition>
+        <argsstring>(uint32_t w, uint32_t h, uint32_t min_size)</argsstring>
+        <name>auto_mip_levels_count</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>h</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>min_size</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="376" column="10" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" declline="376" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex3d_8h_1a3aadba09244402c5aaaaf32b523858e1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t auto_mip_levels_count</definition>
+        <argsstring>(uint32_t w, uint32_t h, uint32_t d, uint32_t min_size)</argsstring>
+        <name>auto_mip_levels_count</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>h</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>d</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>min_size</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="377" column="10" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" declline="377" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex3d_8h_1a4b4dc07fac9c5ae6f0886f4abbcdfbad" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void apply_gen_tex_props</definition>
+        <argsstring>(BaseTexture *t, const struct TextureMetaData &amp;tmd, bool force_addr_from_tmd=true)</argsstring>
+        <name>apply_gen_tex_props</name>
+        <param>
+          <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>const struct TextureMetaData &amp;</type>
+          <declname>tmd</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>force_addr_from_tmd</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="379" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" declline="379" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex3d_8h_1ad34b1b5958851e12b8ef6989ffb5b675" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t parse_tex_format</definition>
+        <argsstring>(const char *name, uint32_t default_fmt)</argsstring>
+        <name>parse_tex_format</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>default_fmt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="381" column="10" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" declline="381" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex3d_8h_1ad85c8be2e87347bf89759fde950dfd82" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const <ref refid="struct_texture_format_desc" kindref="compound">TextureFormatDesc</ref> &amp;</type>
+        <definition>const TextureFormatDesc&amp; get_tex_format_desc</definition>
+        <argsstring>(uint32_t fmt)</argsstring>
+        <name>get_tex_format_desc</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>fmt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="382" column="25" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" declline="382" declcolumn="25"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex3d_8h_1a870f5add085698abceb6689675463079" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char* get_tex_format_name</definition>
+        <argsstring>(uint32_t fmt)</argsstring>
+        <name>get_tex_format_name</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>fmt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="383" column="12" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" declline="383" declcolumn="12"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex3d_8h_1ae0a9184b31faf7f38391040c28035077" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t get_tex_channel_value</definition>
+        <argsstring>(const void *pixel, const TextureChannelFormatDesc &amp;channel)</argsstring>
+        <name>get_tex_channel_value</name>
+        <param>
+          <type>const void *</type>
+          <declname>pixel</declname>
+        </param>
+        <param>
+          <type>const <ref refid="struct_texture_channel_format_desc" kindref="compound">TextureChannelFormatDesc</ref> &amp;</type>
+          <declname>channel</declname>
+        </param>
+        <briefdescription>
+<para>Extracts a the bits from a pixel at memory location <computeroutput>pixel</computeroutput> that correspond to a particular channel in the specified format. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="note"><para>Bits unused by the channel are set to 0, even for signed formats </para>
+</simplesect>
+<simplesect kind="warning"><para>This is extremely slow! </para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>pixel</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Memory location of the pixel </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>channel</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Description of the channel&apos;s format </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A uint32_t whose lowest bits contain the bits of the channel </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="393" column="10" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" declline="393" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex3d_8h_1a22a645bdf8f3b7812ebcc64d925f6792" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void set_tex_channel_value</definition>
+        <argsstring>(void *pixel, const TextureChannelFormatDesc &amp;channel, uint32_t bits)</argsstring>
+        <name>set_tex_channel_value</name>
+        <param>
+          <type>void *</type>
+          <declname>pixel</declname>
+        </param>
+        <param>
+          <type>const <ref refid="struct_texture_channel_format_desc" kindref="compound">TextureChannelFormatDesc</ref> &amp;</type>
+          <declname>channel</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>bits</declname>
+        </param>
+        <briefdescription>
+<para>Sets the bits for a pixel at memory location <computeroutput>pixel</computeroutput> that correspond to a particular channel in the specified format. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="warning"><para>This is extremely slow! </para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>pixel</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Memory location of the pixel </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>channel</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Description of the channel&apos;s format </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>bits</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The bits to assign to the channel (only the lowest bits are used) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="402" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" declline="402" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex3d_8h_1a5e07a7655206640c9c3a9e9483d5b45d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>float</type>
+        <definition>float channel_bits_to_float</definition>
+        <argsstring>(uint32_t bits, ChannelDType type, const TextureChannelFormatDesc &amp;channel)</argsstring>
+        <name>channel_bits_to_float</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>bits</declname>
+        </param>
+        <param>
+          <type>ChannelDType</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>const <ref refid="struct_texture_channel_format_desc" kindref="compound">TextureChannelFormatDesc</ref> &amp;</type>
+          <declname>channel</declname>
+        </param>
+        <briefdescription>
+<para>Converts raw bits of a channel in a certain format into a floating point value that matches the logical value of the channel as closely as possible. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="note"><para>Conversion is done as per section 3.9 of Vulkan API specification </para>
+</simplesect>
+<simplesect kind="warning"><para>This is extremely slow! </para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>bits</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The bits of the channel </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>type</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the value stored in the channel </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>channel</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The description of the channel&apos;s format </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A float that matches the logical value of the channel </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="414" column="7" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" declline="414" declcolumn="7"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex3d_8h_1acfb3ab43dc67cb3802207494050e7e00" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t float_to_channel_bits</definition>
+        <argsstring>(float value, ChannelDType type, const TextureChannelFormatDesc &amp;channel)</argsstring>
+        <name>float_to_channel_bits</name>
+        <param>
+          <type>float</type>
+          <declname>value</declname>
+        </param>
+        <param>
+          <type>ChannelDType</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>const <ref refid="struct_texture_channel_format_desc" kindref="compound">TextureChannelFormatDesc</ref> &amp;</type>
+          <declname>channel</declname>
+        </param>
+        <briefdescription>
+<para>Converts a float into raw bits of a channel in a certain format that match the provided float as closely as possible. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="note"><para>Conversion is done as per section 3.9 of Vulkan API specification </para>
+</simplesect>
+<simplesect kind="note"><para>Bits unused by the channel are set to 0, even for signed formats </para>
+</simplesect>
+<simplesect kind="warning"><para>This is extremely slow! </para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>value</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The floating point value to convert </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>type</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The type of the value stored in the channel </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>channel</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The description of the channel&apos;s format </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A uint32_t that contains the bits of the channel </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="427" column="10" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" declline="427" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex3d_8h_1aecb38d5dde24f7d39130424c8c20bea9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>TexLoadRes</type>
+        <definition>TexLoadRes d3d_load_ddsx_tex_contents</definition>
+        <argsstring>(BaseTexture *tex, TEXTUREID tid, TEXTUREID paired_tid, const ddsx::Header &amp;hdr, IGenLoad &amp;crd, int q_id, int start_lev=0, unsigned tex_ld_lev=0, on_tex_slice_loaded_cb_t on_tex_slice_loaded_cb=nullptr)</argsstring>
+        <name>d3d_load_ddsx_tex_contents</name>
+        <param>
+          <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *</type>
+          <declname>tex</declname>
+        </param>
+        <param>
+          <type><ref refid="class_d3_d_r_e_s_i_d" kindref="compound">TEXTUREID</ref></type>
+          <declname>tid</declname>
+        </param>
+        <param>
+          <type><ref refid="class_d3_d_r_e_s_i_d" kindref="compound">TEXTUREID</ref></type>
+          <declname>paired_tid</declname>
+        </param>
+        <param>
+          <type>const ddsx::Header &amp;</type>
+          <declname>hdr</declname>
+        </param>
+        <param>
+          <type>IGenLoad &amp;</type>
+          <declname>crd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>q_id</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>start_lev</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>tex_ld_lev</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>on_tex_slice_loaded_cb_t</type>
+          <declname>on_tex_slice_loaded_cb</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="433" column="19" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" bodystart="433" bodyend="437"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__tex3d_8h_1ad29a56b9ee851b72cce92770857bd8b9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool convert_image_line</definition>
+        <argsstring>(const void *input, int width, int in_channels, int in_bits_per_channel, bool in_float, void *output, int out_channels, int out_bits_per_channel, bool out_float, bool swap_rb)</argsstring>
+        <name>convert_image_line</name>
+        <param>
+          <type>const void *</type>
+          <declname>input</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>width</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>in_channels</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>in_bits_per_channel</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>in_float</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>output</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>out_channels</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>out_bits_per_channel</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>out_float</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>swap_rb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" line="442" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h" declline="442" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_sampler.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_d3dResource.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_resId.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_texFlags.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_color.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;memory/dag_mem.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_stdint.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="comment">//<sp/>forward<sp/>declarations<sp/>for<sp/>tex<sp/>pixel<sp/>formats</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">TexPixel32;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">TexPixel8a;</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">IGenLoad;</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">ddsx</highlight></codeline>
+<codeline lineno="21"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">Header;</highlight></codeline>
+<codeline lineno="23"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Textures<sp/>for<sp/>Driver3d<sp/>//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28" refid="struct_texture_channel_format_desc" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="struct_texture_channel_format_desc" kindref="compound">TextureChannelFormatDesc</ref></highlight></codeline>
+<codeline lineno="29"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/>int8_t<sp/>bits;</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/>int8_t<sp/>offset;<sp/></highlight><highlight class="comment">//<sp/>in<sp/>bits</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>isFloatPoint;</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>isSigned;</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>isNormalized;</highlight></codeline>
+<codeline lineno="35"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/>ChannelDType</highlight></codeline>
+<codeline lineno="38"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/>NONE,</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/>UNORM,<sp/><sp/></highlight><highlight class="comment">//<sp/>fixed<sp/>point<sp/>real<sp/>\in<sp/>[0,<sp/>1]</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/>SNORM,<sp/><sp/></highlight><highlight class="comment">//<sp/>fixed<sp/>point<sp/>real<sp/>\in<sp/>[0,<sp/>1]</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/>UFLOAT,<sp/></highlight><highlight class="comment">//<sp/>floating<sp/>point<sp/>real<sp/>\in<sp/>[0,<sp/>+\infty]</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/>SFLOAT,<sp/></highlight><highlight class="comment">//<sp/>floating<sp/>point<sp/>real<sp/>\in<sp/>[-\infty,<sp/>+\infty]</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/>UINT,<sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>int<sp/>\in<sp/>[0,<sp/>+\infty]</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/>SINT<sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>int<sp/>\in<sp/>[-\infty,<sp/>+\infty]</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48" refid="struct_texture_format_desc" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="struct_texture_format_desc" kindref="compound">TextureFormatDesc</ref></highlight></codeline>
+<codeline lineno="49"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/>uint32_t<sp/>dagorTextureFormat;</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/>uint16_t<sp/>bytesPerElement;</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>isBlockFormat;</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/>uint8_t<sp/>elementWidth;<sp/><sp/></highlight><highlight class="comment">//<sp/>pixels</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/>uint8_t<sp/>elementHeight;<sp/></highlight><highlight class="comment">//<sp/>pixels</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Type<sp/>for<sp/>rgba<sp/>and<sp/>depth,<sp/>which<sp/>is<sp/>always<sp/>the<sp/>same</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/>ChannelDType<sp/>mainChannelsType;</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Separate<sp/>type<sp/>for<sp/>stencil<sp/>(as<sp/>it<sp/>usually<sp/>is<sp/>different)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/>ChannelDType<sp/>stencilChannelType;</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><ref refid="struct_texture_channel_format_desc" kindref="compound">TextureChannelFormatDesc</ref><sp/>r;</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><ref refid="struct_texture_channel_format_desc" kindref="compound">TextureChannelFormatDesc</ref><sp/>g;</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><ref refid="struct_texture_channel_format_desc" kindref="compound">TextureChannelFormatDesc</ref><sp/>b;</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><ref refid="struct_texture_channel_format_desc" kindref="compound">TextureChannelFormatDesc</ref><sp/>a;</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><ref refid="struct_texture_channel_format_desc" kindref="compound">TextureChannelFormatDesc</ref><sp/>depth;</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><ref refid="struct_texture_channel_format_desc" kindref="compound">TextureChannelFormatDesc</ref><sp/>stencil;</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>hasAlpha()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>a.bits<sp/>&gt;<sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>isDepth()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>depth.bits<sp/>&gt;<sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>rgbaChannelsCount()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(r.bits<sp/>&gt;<sp/>0<sp/>?<sp/>1<sp/>:<sp/>0)<sp/>+<sp/>(g.bits<sp/>&gt;<sp/>0<sp/>?<sp/>1<sp/>:<sp/>0)<sp/>+<sp/>(b.bits<sp/>&gt;<sp/>0<sp/>?<sp/>1<sp/>:<sp/>0)<sp/>+<sp/>(a.bits<sp/>&gt;<sp/>0<sp/>?<sp/>1<sp/>:<sp/>0);<sp/>}</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>channelsCount()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>rgbaChannelsCount()<sp/>+<sp/>(depth.bits<sp/>&gt;<sp/>0<sp/>?<sp/>1<sp/>:<sp/>0)<sp/>+<sp/>(stencil.bits<sp/>&gt;<sp/>0<sp/>?<sp/>1<sp/>:<sp/>0);<sp/>}</highlight></codeline>
+<codeline lineno="73"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>__forceinline<sp/>is_alpha_texformat(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>flags)</highlight></codeline>
+<codeline lineno="76"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/>flags<sp/>&amp;=<sp/>TEXFMT_MASK;</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(flags<sp/>&gt;=<sp/>TEXFMT_A2R10G10B10<sp/>&amp;&amp;<sp/>flags<sp/>&lt;=<sp/>TEXFMT_A32B32G32R32F)</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(flags<sp/>==<sp/>TEXFMT_A8R8G8B8<sp/>||<sp/>flags<sp/>==<sp/>TEXFMT_A8<sp/>||<sp/>flags<sp/>==<sp/>TEXFMT_A1R5G5B5<sp/>||<sp/>flags<sp/>==<sp/>TEXFMT_A4R4G4B4<sp/>||<sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>flags<sp/>==<sp/>TEXFMT_DXT3<sp/>||<sp/>flags<sp/>==<sp/>TEXFMT_DXT5)</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="84"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>__forceinline<sp/>is_bc_texformat(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>flags)</highlight></codeline>
+<codeline lineno="87"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/>flags<sp/>&amp;=<sp/>TEXFMT_MASK;</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(flags<sp/>&gt;=<sp/>TEXFMT_DXT1<sp/>&amp;&amp;<sp/>flags<sp/>&lt;=<sp/>TEXFMT_DXT5)</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(flags<sp/>&gt;=<sp/>TEXFMT_BC6H<sp/>&amp;&amp;<sp/>flags<sp/>&lt;=<sp/>TEXFMT_BC7)</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(flags<sp/>&gt;=<sp/>TEXFMT_ATI1N<sp/>&amp;&amp;<sp/>flags<sp/>&lt;=<sp/>TEXFMT_ATI2N)</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="96"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Lock<sp/>flags.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="99"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="100"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/>TEXLOCK_DISCARD<sp/>=<sp/>0x00002000L,</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/>TEXLOCK_RAWDATA<sp/>=<sp/>0x00004000L,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>PS4.<sp/>Do<sp/>not<sp/>convert<sp/>data</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/>TEXLOCK_NO_DIRTY_UPDATE<sp/>=<sp/>0x00008000L,<sp/></highlight><highlight class="comment">//?</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/>TEXLOCK_NOSYSLOCK<sp/>=<sp/>0x00000800L,</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/>TEXLOCK_READ<sp/>=<sp/>0x01,</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/>TEXLOCK_WRITE<sp/>=<sp/>0x02,</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/>TEXLOCK_READWRITE<sp/>=<sp/>TEXLOCK_READ<sp/>|<sp/>TEXLOCK_WRITE,</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/>TEXLOCK_RWMASK<sp/>=<sp/>TEXLOCK_READWRITE,</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/>TEXLOCK_NOOVERWRITE<sp/>=<sp/>0x08,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>TEXLOCK_WRITE<sp/>only</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/>TEXLOCK_DELSYSMEMCOPY<sp/>=<sp/>0x10,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>delete<sp/>sysmemcopy<sp/>on<sp/>unlock</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/>TEXLOCK_SYSTEXLOCK<sp/>=<sp/>0x20,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>locks<sp/>tex<sp/>copy<sp/>in<sp/>sysTex<sp/>(system<sp/>memory<sp/>texture)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/>TEXLOCK_UPDATEFROMSYSTEX<sp/>=<sp/>0x40,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>makes<sp/>copy<sp/>from<sp/>system<sp/>memory<sp/>to<sp/>video<sp/>on<sp/>unlock</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/>TEXLOCK_DONOTUPDATEON9EXBYDEFAULT<sp/>=<sp/>0x80,<sp/></highlight><highlight class="comment">//<sp/>compatibility!<sp/>not<sp/>makes<sp/>copy<sp/>from<sp/>system<sp/>memory<sp/>to<sp/>video<sp/>on<sp/>unlock<sp/>by<sp/>default,<sp/>if<sp/>9ex</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/>TEXLOCK_COPY_STAGING<sp/>=<sp/>0x100,</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/>TEXLOCK_DEFAULT<sp/>=<sp/>TEXLOCK_READWRITE,</highlight></codeline>
+<codeline lineno="116"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"></highlight></codeline>
+<codeline lineno="118"><highlight class="normal"></highlight></codeline>
+<codeline lineno="119"><highlight class="normal"></highlight><highlight class="comment">//<sp/>texture<sp/>loading<sp/>flags</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="120"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="121"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/>TEXLF_CALCMIPMAPS<sp/>=<sp/>0x0001,</highlight></codeline>
+<codeline lineno="123"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"></highlight></codeline>
+<codeline lineno="125"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="126"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/>CUBEFACE_POSX<sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/>CUBEFACE_NEGX<sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/>CUBEFACE_POSY<sp/>=<sp/>2,</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/>CUBEFACE_NEGY<sp/>=<sp/>3,</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/>CUBEFACE_POSZ<sp/>=<sp/>4,</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/>CUBEFACE_NEGZ<sp/>=<sp/>5,</highlight></codeline>
+<codeline lineno="133"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"></highlight></codeline>
+<codeline lineno="135"><highlight class="normal"></highlight></codeline>
+<codeline lineno="136" refid="struct_texture_info" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="struct_texture_info" kindref="compound">TextureInfo</ref></highlight></codeline>
+<codeline lineno="137"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="139" refid="struct_texture_info_1a1ba6ca4ef264c70097653d51aa3005fd" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">short</highlight><highlight class="normal"><sp/><ref refid="struct_texture_info_1a1ba6ca4ef264c70097653d51aa3005fd" kindref="member">w</ref><sp/>=<sp/>1,<sp/>h<sp/>=<sp/>1,<sp/>d<sp/>=<sp/>1,<sp/>a<sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="141" refid="struct_texture_info_1a6b282c83cbd5bb6ba9853c0912a966fc" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">short</highlight><highlight class="normal"><sp/><ref refid="struct_texture_info_1a6b282c83cbd5bb6ba9853c0912a966fc" kindref="member">mipLevels</ref><sp/>=<sp/>0,<sp/>resType<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="143" refid="struct_texture_info_1a340017c158bc5ce503bfd6a4c41c623e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="struct_texture_info_1a340017c158bc5ce503bfd6a4c41c623e" kindref="member">cflg</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="144"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"></highlight></codeline>
+<codeline lineno="146"><highlight class="normal"></highlight><highlight class="comment">//<sp/>result<sp/>of<sp/>texture<sp/>load<sp/>methods</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="147"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/>TexLoadRes</highlight></codeline>
+<codeline lineno="148"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/>ERR<sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/>OK<sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/>ERR_RUB<sp/>=<sp/>2</highlight></codeline>
+<codeline lineno="152"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"></highlight></codeline>
+<codeline lineno="154" refid="class_base_texture" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="class_base_texture" kindref="compound">BaseTexture</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="class_d3d_resource" kindref="compound">D3dResource</ref></highlight></codeline>
+<codeline lineno="155"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="157" refid="struct_base_texture_1_1_i_reload_data" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="struct_base_texture_1_1_i_reload_data" kindref="compound">IReloadData</ref></highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/>~<ref refid="struct_base_texture_1_1_i_reload_data" kindref="compound">IReloadData</ref>()<sp/>{}</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>reloadD3dRes(<ref refid="class_base_texture" kindref="compound">BaseTexture</ref><sp/>*t)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>destroySelf()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>setReloadCallback(<ref refid="struct_base_texture_1_1_i_reload_data" kindref="compound">IReloadData</ref><sp/>*)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"></highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>generateMips()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Requires<sp/>TEXCF_UPDATE_DESTINATION,<sp/>TEXCF_RTARGET<sp/>or<sp/>TEXCF_UNORDERED<sp/>usage<sp/>for<sp/>this<sp/>texture.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>update(<ref refid="class_base_texture" kindref="compound">BaseTexture</ref><sp/>*src)<sp/>=<sp/>0;<sp/></highlight><highlight class="comment">//<sp/>update<sp/>texture<sp/>from</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="168"><highlight class="normal"></highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>calcSubResIdx(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>level,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>slice,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>mip_levels)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>level<sp/>+<sp/>slice<sp/>*<sp/>mip_levels;<sp/>}</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>calcSubResIdx(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>level,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>slice<sp/>=<sp/>0)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>calcSubResIdx(level,<sp/>slice,<sp/>level_count());<sp/>}</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Requires<sp/>TEXCF_UPDATE_DESTINATION,<sp/>TEXCF_RTARGET<sp/>or<sp/>TEXCF_UNORDERED<sp/>usage<sp/>for<sp/>this<sp/>texture.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>updateSubRegion(<ref refid="class_base_texture" kindref="compound">BaseTexture</ref><sp/>*src,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>src_subres_idx,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>src_x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>src_y,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>src_z,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>src_w,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>src_h,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>src_d,</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>dest_subres_idx,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>dest_x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>dest_y,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>dest_z)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>updateSubRegionNoOrder(<ref refid="class_base_texture" kindref="compound">BaseTexture</ref><sp/>*src,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>src_subres_idx,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>src_x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>src_y,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>src_z,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>src_w,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>src_h,</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>src_d,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>dest_subres_idx,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>dest_x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>dest_y,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>dest_z)</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>updateSubRegion(src,<sp/>src_subres_idx,<sp/>src_x,<sp/>src_y,<sp/>src_z,<sp/>src_w,<sp/>src_h,<sp/>src_d,<sp/>dest_subres_idx,<sp/>dest_x,<sp/>dest_y,<sp/>dest_z);</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>level_count()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;<sp/></highlight><highlight class="comment">//<sp/>number<sp/>of<sp/>mipmap<sp/>levels</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>texaddr(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>addrmode)</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(samplerEnabled);</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>texaddrImpl(addrmode);</highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><sp/><sp/>}<sp/></highlight><highlight class="comment">//<sp/>set<sp/>texaddru,texaddrv,...</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>texaddru(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>addrmode)</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="187"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(samplerEnabled);</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>texaddruImpl(addrmode);</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/>}<sp/></highlight><highlight class="comment">//<sp/>default<sp/>is<sp/>TEXADDR_WRAP</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>texaddrv(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>addrmode)</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(samplerEnabled);</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>texaddrvImpl(addrmode);</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/>}<sp/></highlight><highlight class="comment">//<sp/>default<sp/>is<sp/>TEXADDR_WRAP</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>texaddrw(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>addrmode)</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(samplerEnabled);</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>texaddrwImpl(addrmode);</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/>}<sp/></highlight><highlight class="comment">//<sp/>default<sp/>is<sp/>TEXADDR_WRAP</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="200"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>texbordercolor(E3DCOLOR<sp/>color)</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="202"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(samplerEnabled);</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>texbordercolorImpl(color);</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>texfilter(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>filtermode)</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(samplerEnabled);</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>texfilterImpl(filtermode);</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/>}<sp/></highlight><highlight class="comment">//<sp/>default<sp/>is<sp/>TEXFILTER_DEFAULT</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>texmipmap(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>mipmapmode)</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(samplerEnabled);</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>texmipmapImpl(mipmapmode);</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/>}<sp/></highlight><highlight class="comment">//<sp/>default<sp/>is<sp/>TEXMIPMAP_DEFAULT</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>texlod(</highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>mipmaplod)</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="217"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(samplerEnabled);</highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>texlodImpl(mipmaplod);</highlight></codeline>
+<codeline lineno="219"><highlight class="normal"><sp/><sp/>}<sp/></highlight><highlight class="comment">//<sp/>default<sp/>is<sp/>zero.<sp/>Sets<sp/>texture<sp/>lod<sp/>bias</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="220"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>setAnisotropy(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>level)</highlight></codeline>
+<codeline lineno="221"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="222"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(samplerEnabled);</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>setAnisotropyImpl(level);</highlight></codeline>
+<codeline lineno="224"><highlight class="normal"><sp/><sp/>}<sp/></highlight><highlight class="comment">//<sp/>default<sp/>is<sp/>1.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="225"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>disableSampler()<sp/>{<sp/>samplerEnabled<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="226"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>isSamplerEnabled()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>samplerEnabled;<sp/>}</highlight></codeline>
+<codeline lineno="227"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>texmiplevel(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>minlevel,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>maxlevel)<sp/>=<sp/>0;<sp/></highlight><highlight class="comment">//<sp/>default<sp/>is<sp/>0,<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>isCubeArray()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"></highlight></codeline>
+<codeline lineno="230"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setReadStencil(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal">)<sp/>{}<sp/></highlight><highlight class="comment">//<sp/>for<sp/>depth<sp/>stencil<sp/>textures,<sp/>if<sp/>on<sp/>will<sp/>read<sp/>stencil,<sp/>not<sp/>depth.<sp/>Currently<sp/>either<sp/>of<sp/>two</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="231"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setTID(<ref refid="class_d3_d_r_e_s_i_d" kindref="compound">TEXTUREID</ref><sp/></highlight><highlight class="comment">/*tid*/</highlight><highlight class="normal">)<sp/>{}</highlight></codeline>
+<codeline lineno="232"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/><ref refid="class_d3_d_r_e_s_i_d" kindref="compound">TEXTUREID</ref><sp/>getTID()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>BAD_TEXTUREID;<sp/>}</highlight></codeline>
+<codeline lineno="233"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*getTexName()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>getResName();<sp/>}</highlight></codeline>
+<codeline lineno="234"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setResApiName(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<sp/></highlight><highlight class="comment">/*name*/</highlight><highlight class="normal">)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="235"><highlight class="normal"></highlight></codeline>
+<codeline lineno="236"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>lock<sp/>image<sp/>data<sp/>-<sp/>no<sp/>conversion<sp/>is<sp/>performed</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="237"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>render<sp/>target<sp/>image<sp/>is<sp/>read-only<sp/>by<sp/>default</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="238"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>non-render-target<sp/>image<sp/>is<sp/>read-write<sp/>by<sp/>default</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="239"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>returns<sp/>0<sp/>on<sp/>error</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="240"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>lockimg(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>**,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;stride_bytes,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>level,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>flags)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="241"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>lockimg(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>**,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;stride_bytes,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>layer,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>level,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>flags)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="242"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>unlockimg()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;<sp/>};</highlight></codeline>
+<codeline lineno="243"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>unlock()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>unlockimg();<sp/>};</highlight></codeline>
+<codeline lineno="244"><highlight class="normal"></highlight></codeline>
+<codeline lineno="245"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>lockbox(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>**,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;<sp/>};</highlight></codeline>
+<codeline lineno="246"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>unlockbox()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;<sp/>};</highlight></codeline>
+<codeline lineno="247"><highlight class="normal"></highlight></codeline>
+<codeline lineno="248"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>getinfo(<ref refid="struct_texture_info" kindref="compound">TextureInfo</ref><sp/>&amp;info,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>level<sp/>=<sp/>0)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="249"><highlight class="normal"></highlight></codeline>
+<codeline lineno="250"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="251"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>lockimgEx(T<sp/>**p,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;stride_bytes,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>level<sp/>=<sp/>0,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>flags<sp/>=<sp/>TEXLOCK_DEFAULT)</highlight></codeline>
+<codeline lineno="252"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="253"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*vp;</highlight></codeline>
+<codeline lineno="254"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!lockimg(&amp;vp,<sp/>stride_bytes,<sp/>level,<sp/>flags))</highlight></codeline>
+<codeline lineno="255"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="256"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>*p<sp/>=<sp/>NULL;</highlight></codeline>
+<codeline lineno="257"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;</highlight></codeline>
+<codeline lineno="258"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="259"><highlight class="normal"><sp/><sp/><sp/><sp/>*p<sp/>=<sp/>(T<sp/>*)vp;</highlight></codeline>
+<codeline lineno="260"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>1;</highlight></codeline>
+<codeline lineno="261"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="262"><highlight class="normal"></highlight></codeline>
+<codeline lineno="265" refid="class_base_texture_1a94a6771de31f516b0b6f6aecba49589d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/><ref refid="class_base_texture" kindref="compound">BaseTexture</ref><sp/>*<ref refid="class_base_texture_1a94a6771de31f516b0b6f6aecba49589d" kindref="member">makeTmpTexResCopy</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="comment">/*w*/</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="comment">/*h*/</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="comment">/*d*/</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="comment">/*l*/</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/></highlight><highlight class="comment">/*staging_tex*/</highlight><highlight class="normal"><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="267" refid="class_base_texture_1ad8a08bbab47a6ab5df6418f78dda49a1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="class_base_texture_1ad8a08bbab47a6ab5df6418f78dda49a1" kindref="member">replaceTexResObject</ref>(<ref refid="class_base_texture" kindref="compound">BaseTexture</ref><sp/>*&amp;new_tex)<sp/>{<sp/>del_d3dres(new_tex);<sp/>}</highlight></codeline>
+<codeline lineno="268"><highlight class="normal"></highlight></codeline>
+<codeline lineno="270" refid="class_base_texture_1a072ba682d61c5ec00e27867908a4ab7b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="class_base_texture_1a072ba682d61c5ec00e27867908a4ab7b" kindref="member">allocateTex</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="272" refid="class_base_texture_1a72a607b61e2220156946976bdedc57b2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="class_base_texture_1a72a607b61e2220156946976bdedc57b2" kindref="member">discardTex</ref>()<sp/>{}</highlight></codeline>
+<codeline lineno="273"><highlight class="normal"></highlight></codeline>
+<codeline lineno="274"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>DAGOR_DBGLEVEL<sp/>&gt;<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="275"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Not<sp/>implemented<sp/>for<sp/>all<sp/>platforms,<sp/>only<sp/>for<sp/>shared<sp/>implementation<sp/>BaseTextureImpl<sp/>which<sp/>is<sp/>not<sp/>used<sp/>everywhere<sp/>yet</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="276"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>And<sp/>a<sp/>need<sp/>is<sp/>questionable<sp/>by<sp/>now</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="277"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>getTexfilter()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="278"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="279"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Replaces<sp/>the<sp/>texture<sp/>with<sp/>a<sp/>smaller<sp/>one<sp/>defined<sp/>by<sp/>info,<sp/>overlapping<sp/>mip<sp/>levels<sp/>are<sp/>automatically</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="280"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>migrated<sp/>to<sp/>the<sp/>new<sp/>texture.<sp/>This<sp/>does<sp/>not<sp/>need<sp/>TEXCF_UPDATE_DESTINATION<sp/>to<sp/>work,<sp/>even<sp/>if<sp/>the<sp/>default</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="281"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>implementation<sp/>would<sp/>do<sp/>so.<sp/>Drivers<sp/>that<sp/>can<sp/>not<sp/>executed<sp/>updateSubRegion<sp/>correctly<sp/>without<sp/>the</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="282"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>TEXCF_UPDATE_DESTINATION<sp/>flag<sp/>have<sp/>to<sp/>implement<sp/>this<sp/>in<sp/>a<sp/>way<sp/>so<sp/>it<sp/>will<sp/>work<sp/>correctly.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="283"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="284"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Returns<sp/>true<sp/>on<sp/>success,<sp/>may<sp/>return<sp/>false<sp/>on<sp/>fail.<sp/>Only<sp/>fail<sp/>case<sp/>can<sp/>be<sp/>the<sp/>failure<sp/>to<sp/>allocate<sp/>the</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="285"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>replacement<sp/>texture.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="286"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>downSize(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>width,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>height,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>depth,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>mips,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>start_src_level,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>level_offset)</highlight></codeline>
+<codeline lineno="287"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="288"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>rep<sp/>=<sp/><ref refid="class_base_texture_1a94a6771de31f516b0b6f6aecba49589d" kindref="member">makeTmpTexResCopy</ref>(width,<sp/>height,<sp/>depth,<sp/>mips,<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="289"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!rep)</highlight></codeline>
+<codeline lineno="290"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="291"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="292"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="293"><highlight class="normal"></highlight></codeline>
+<codeline lineno="294"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="struct_texture_info" kindref="compound">TextureInfo</ref><sp/>selfInfo;</highlight></codeline>
+<codeline lineno="295"><highlight class="normal"><sp/><sp/><sp/><sp/>getinfo(selfInfo);</highlight></codeline>
+<codeline lineno="296"><highlight class="normal"></highlight></codeline>
+<codeline lineno="297"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>sourceLevel<sp/>=<sp/>max&lt;unsigned&gt;(level_offset,<sp/>start_src_level);</highlight></codeline>
+<codeline lineno="298"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>sourceLevelEnd<sp/>=<sp/>min&lt;unsigned&gt;(selfInfo.<ref refid="struct_texture_info_1a6b282c83cbd5bb6ba9853c0912a966fc" kindref="member">mipLevels</ref>,<sp/>mips<sp/>+<sp/>level_offset);</highlight></codeline>
+<codeline lineno="299"><highlight class="normal"><sp/><sp/><sp/><sp/>rep-&gt;texmiplevel(sourceLevel<sp/>-<sp/>level_offset,<sp/>sourceLevelEnd<sp/>-<sp/>level_offset<sp/>-<sp/>1);</highlight></codeline>
+<codeline lineno="300"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(;<sp/>sourceLevel<sp/>&lt;<sp/>sourceLevelEnd;<sp/>sourceLevel++)</highlight></codeline>
+<codeline lineno="301"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="302"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>s<sp/>=<sp/>0;<sp/>s<sp/>&lt;<sp/>selfInfo.a;<sp/>s++)</highlight></codeline>
+<codeline lineno="303"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="304"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>rep-&gt;updateSubRegion(</highlight><highlight class="keyword">this</highlight><highlight class="normal">,<sp/>calcSubResIdx(sourceLevel,<sp/>s,<sp/>selfInfo.<ref refid="struct_texture_info_1a6b282c83cbd5bb6ba9853c0912a966fc" kindref="member">mipLevels</ref>),<sp/>0,<sp/>0,<sp/>0,<sp/>max&lt;int&gt;(selfInfo.<ref refid="struct_texture_info_1a1ba6ca4ef264c70097653d51aa3005fd" kindref="member">w</ref><sp/>&gt;&gt;<sp/>sourceLevel,<sp/>1),</highlight></codeline>
+<codeline lineno="305"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>max&lt;int&gt;(selfInfo.h<sp/>&gt;&gt;<sp/>sourceLevel,<sp/>1),<sp/>max&lt;int&gt;(selfInfo.d<sp/>&gt;&gt;<sp/>sourceLevel,<sp/>selfInfo.a),</highlight></codeline>
+<codeline lineno="306"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>calcSubResIdx(sourceLevel<sp/>-<sp/>level_offset,<sp/>s,<sp/>mips),<sp/>0,<sp/>0,<sp/>0);</highlight></codeline>
+<codeline lineno="307"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="308"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="309"><highlight class="normal"></highlight></codeline>
+<codeline lineno="310"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="class_base_texture_1ad8a08bbab47a6ab5df6418f78dda49a1" kindref="member">replaceTexResObject</ref>(rep);</highlight></codeline>
+<codeline lineno="311"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="312"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="313"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Replaces<sp/>the<sp/>texture<sp/>with<sp/>a<sp/>larger<sp/>one<sp/>defined<sp/>by<sp/>info,<sp/>overlapping<sp/>mip<sp/>levels<sp/>are<sp/>automatically</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="314"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>migrated<sp/>to<sp/>the<sp/>new<sp/>texture.<sp/>This<sp/>does<sp/>not<sp/>need<sp/>TEXCF_UPDATE_DESTINATION<sp/>to<sp/>work,<sp/>even<sp/>if<sp/>the<sp/>default</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="315"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>implementation<sp/>would<sp/>do<sp/>so.<sp/>Drivers<sp/>that<sp/>can<sp/>not<sp/>executed<sp/>updateSubRegion<sp/>correctly<sp/>without<sp/>the</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="316"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>TEXCF_UPDATE_DESTINATION<sp/>flag<sp/>have<sp/>to<sp/>implement<sp/>this<sp/>in<sp/>a<sp/>way<sp/>so<sp/>it<sp/>will<sp/>work<sp/>correctly.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="317"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="318"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Returns<sp/>true<sp/>on<sp/>success,<sp/>may<sp/>return<sp/>false<sp/>on<sp/>fail.<sp/>Only<sp/>fail<sp/>case<sp/>can<sp/>be<sp/>the<sp/>failure<sp/>to<sp/>allocate<sp/>the</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="319"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>replacement<sp/>texture.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="320"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>upSize(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>width,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>height,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>depth,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>mips,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>start_src_level,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>level_offset)</highlight></codeline>
+<codeline lineno="321"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="322"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>rep<sp/>=<sp/><ref refid="class_base_texture_1a94a6771de31f516b0b6f6aecba49589d" kindref="member">makeTmpTexResCopy</ref>(width,<sp/>height,<sp/>depth,<sp/>mips,<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="323"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!rep)</highlight></codeline>
+<codeline lineno="324"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="325"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="326"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="327"><highlight class="normal"></highlight></codeline>
+<codeline lineno="328"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="struct_texture_info" kindref="compound">TextureInfo</ref><sp/>selfInfo;</highlight></codeline>
+<codeline lineno="329"><highlight class="normal"><sp/><sp/><sp/><sp/>getinfo(selfInfo);</highlight></codeline>
+<codeline lineno="330"><highlight class="normal"></highlight></codeline>
+<codeline lineno="331"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>destinationLevel<sp/>=<sp/>level_offset<sp/>+<sp/>start_src_level;</highlight></codeline>
+<codeline lineno="332"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>destinationLevelEnd<sp/>=<sp/>min&lt;unsigned&gt;(selfInfo.<ref refid="struct_texture_info_1a6b282c83cbd5bb6ba9853c0912a966fc" kindref="member">mipLevels</ref><sp/>+<sp/>level_offset,<sp/>mips);</highlight></codeline>
+<codeline lineno="333"><highlight class="normal"><sp/><sp/><sp/><sp/>rep-&gt;texmiplevel(destinationLevel,<sp/>destinationLevelEnd<sp/>-<sp/>1);</highlight></codeline>
+<codeline lineno="334"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(;<sp/>destinationLevel<sp/>&lt;<sp/>destinationLevelEnd;<sp/>destinationLevel++)</highlight></codeline>
+<codeline lineno="335"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="336"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>s<sp/>=<sp/>0;<sp/>s<sp/>&lt;<sp/>selfInfo.a;<sp/>s++)</highlight></codeline>
+<codeline lineno="337"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="338"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>rep-&gt;updateSubRegion(</highlight><highlight class="keyword">this</highlight><highlight class="normal">,<sp/>calcSubResIdx(destinationLevel<sp/>-<sp/>level_offset,<sp/>s,<sp/>selfInfo.<ref refid="struct_texture_info_1a6b282c83cbd5bb6ba9853c0912a966fc" kindref="member">mipLevels</ref>),<sp/>0,<sp/>0,<sp/>0,</highlight></codeline>
+<codeline lineno="339"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>max&lt;int&gt;(width<sp/>&gt;&gt;<sp/>destinationLevel,<sp/>1),<sp/>max&lt;int&gt;(height<sp/>&gt;&gt;<sp/>destinationLevel,<sp/>1),</highlight></codeline>
+<codeline lineno="340"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>max&lt;int&gt;(depth<sp/>&gt;&gt;<sp/>destinationLevel,<sp/>selfInfo.a),<sp/>calcSubResIdx(destinationLevel,<sp/>s,<sp/>mips),<sp/>0,<sp/>0,<sp/>0);</highlight></codeline>
+<codeline lineno="341"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="342"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="343"><highlight class="normal"></highlight></codeline>
+<codeline lineno="344"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="class_base_texture_1ad8a08bbab47a6ab5df6418f78dda49a1" kindref="member">replaceTexResObject</ref>(rep);</highlight></codeline>
+<codeline lineno="345"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="346"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="347"><highlight class="normal"></highlight></codeline>
+<codeline lineno="348"><highlight class="normal"><sp/><sp/><ref refid="class_base_texture" kindref="compound">BaseTexture</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="349"><highlight class="normal"><sp/><sp/><ref refid="class_base_texture" kindref="compound">BaseTexture</ref>(<ref refid="class_base_texture" kindref="compound">BaseTexture</ref><sp/>&amp;&amp;)<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="350"><highlight class="normal"><sp/><sp/><ref refid="class_base_texture" kindref="compound">BaseTexture</ref><sp/>&amp;operator=(<ref refid="class_base_texture" kindref="compound">BaseTexture</ref><sp/>&amp;&amp;)<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="351"><highlight class="normal"></highlight></codeline>
+<codeline lineno="352"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="353"><highlight class="normal"><sp/><sp/>~<ref refid="class_base_texture" kindref="compound">BaseTexture</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="354"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>samplerEnabled<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="355"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>texaddrImpl(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>addrmode)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="356"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>texaddruImpl(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>addrmode)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="357"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>texaddrvImpl(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>addrmode)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="358"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>texaddrwImpl(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;<sp/>};</highlight></codeline>
+<codeline lineno="359"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>texbordercolorImpl(E3DCOLOR)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="360"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>texfilterImpl(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>filtermode)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="361"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>texmipmapImpl(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>mipmapmode)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="362"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>texlodImpl(</highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>mipmaplod)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="363"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>setAnisotropyImpl(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>level)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="364"><highlight class="normal"></highlight></codeline>
+<codeline lineno="365"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Flag<sp/>is<sp/>used<sp/>to<sp/>mark<sp/>the<sp/>read<sp/>back<sp/>status<sp/>for<sp/>textures<sp/>to<sp/>prepare<sp/>for<sp/>cpu<sp/>access,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="366"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>It&apos;s<sp/>either<sp/>copy<sp/>to<sp/>staging<sp/>memory<sp/>or<sp/>direct<sp/>access<sp/>in<sp/>case<sp/>of<sp/>consoles.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="367"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>constexpr<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>TEX_COPIED<sp/>=<sp/>1<sp/>&lt;&lt;<sp/>30;</highlight></codeline>
+<codeline lineno="368"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="369"><highlight class="normal"></highlight></codeline>
+<codeline lineno="370"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/><ref refid="class_base_texture" kindref="compound">BaseTexture</ref><sp/><ref refid="class_base_texture" kindref="compound">Texture</ref>;</highlight></codeline>
+<codeline lineno="371"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/><ref refid="class_base_texture" kindref="compound">BaseTexture</ref><sp/><ref refid="class_base_texture" kindref="compound">CubeTexture</ref>;</highlight></codeline>
+<codeline lineno="372"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/><ref refid="class_base_texture" kindref="compound">BaseTexture</ref><sp/><ref refid="class_base_texture" kindref="compound">VolTexture</ref>;</highlight></codeline>
+<codeline lineno="373"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/><ref refid="class_base_texture" kindref="compound">BaseTexture</ref><sp/><ref refid="class_base_texture" kindref="compound">ArrayTexture</ref>;</highlight></codeline>
+<codeline lineno="374"><highlight class="normal"></highlight></codeline>
+<codeline lineno="375"><highlight class="normal">uint32_t<sp/>auto_mip_levels_count(uint32_t<sp/>w,<sp/>uint32_t<sp/>min_size);</highlight></codeline>
+<codeline lineno="376"><highlight class="normal">uint32_t<sp/>auto_mip_levels_count(uint32_t<sp/>w,<sp/>uint32_t<sp/>h,<sp/>uint32_t<sp/>min_size);</highlight></codeline>
+<codeline lineno="377"><highlight class="normal">uint32_t<sp/>auto_mip_levels_count(uint32_t<sp/>w,<sp/>uint32_t<sp/>h,<sp/>uint32_t<sp/>d,<sp/>uint32_t<sp/>min_size);</highlight></codeline>
+<codeline lineno="378"><highlight class="normal"></highlight></codeline>
+<codeline lineno="379"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>apply_gen_tex_props(<ref refid="class_base_texture" kindref="compound">BaseTexture</ref><sp/>*t,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">struct</highlight><highlight class="normal"><sp/>TextureMetaData<sp/>&amp;tmd,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>force_addr_from_tmd<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="380"><highlight class="normal"></highlight></codeline>
+<codeline lineno="381"><highlight class="normal">uint32_t<sp/>parse_tex_format(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/>uint32_t<sp/>default_fmt);</highlight></codeline>
+<codeline lineno="382"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_texture_format_desc" kindref="compound">TextureFormatDesc</ref><sp/>&amp;get_tex_format_desc(uint32_t<sp/>fmt);</highlight></codeline>
+<codeline lineno="383"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*get_tex_format_name(uint32_t<sp/>fmt);</highlight></codeline>
+<codeline lineno="384"><highlight class="normal"></highlight></codeline>
+<codeline lineno="393"><highlight class="normal">uint32_t<sp/>get_tex_channel_value(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*pixel,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_texture_channel_format_desc" kindref="compound">TextureChannelFormatDesc</ref><sp/>&amp;channel);</highlight></codeline>
+<codeline lineno="394"><highlight class="normal"></highlight></codeline>
+<codeline lineno="402"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set_tex_channel_value(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*pixel,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_texture_channel_format_desc" kindref="compound">TextureChannelFormatDesc</ref><sp/>&amp;channel,<sp/>uint32_t<sp/>bits);</highlight></codeline>
+<codeline lineno="403"><highlight class="normal"></highlight></codeline>
+<codeline lineno="414"><highlight class="normal"></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>channel_bits_to_float(uint32_t<sp/>bits,<sp/>ChannelDType<sp/>type,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_texture_channel_format_desc" kindref="compound">TextureChannelFormatDesc</ref><sp/>&amp;channel);</highlight></codeline>
+<codeline lineno="415"><highlight class="normal"></highlight></codeline>
+<codeline lineno="416"><highlight class="normal"></highlight></codeline>
+<codeline lineno="427"><highlight class="normal">uint32_t<sp/>float_to_channel_bits(</highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>value,<sp/>ChannelDType<sp/>type,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_texture_channel_format_desc" kindref="compound">TextureChannelFormatDesc</ref><sp/>&amp;channel);</highlight></codeline>
+<codeline lineno="428"><highlight class="normal"></highlight></codeline>
+<codeline lineno="430"><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>void<sp/>(*on_tex_slice_loaded_cb_t)();</highlight></codeline>
+<codeline lineno="431"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/>TexLoadRes<sp/>(*d3d_load_ddsx_tex_contents_impl)(<ref refid="class_base_texture" kindref="compound">BaseTexture</ref><sp/>*tex,<sp/><ref refid="class_d3_d_r_e_s_i_d" kindref="compound">TEXTUREID</ref><sp/>tid,<sp/><ref refid="class_d3_d_r_e_s_i_d" kindref="compound">TEXTUREID</ref><sp/>paired_tid,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>ddsx::Header<sp/>&amp;hdr,</highlight></codeline>
+<codeline lineno="432"><highlight class="normal"><sp/><sp/>IGenLoad<sp/>&amp;crd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>q_id,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>start_lev,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>tex_ld_lev,<sp/>on_tex_slice_loaded_cb_t);</highlight></codeline>
+<codeline lineno="433"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>TexLoadRes<sp/>d3d_load_ddsx_tex_contents(<ref refid="class_base_texture" kindref="compound">BaseTexture</ref><sp/>*tex,<sp/><ref refid="class_d3_d_r_e_s_i_d" kindref="compound">TEXTUREID</ref><sp/>tid,<sp/><ref refid="class_d3_d_r_e_s_i_d" kindref="compound">TEXTUREID</ref><sp/>paired_tid,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>ddsx::Header<sp/>&amp;hdr,</highlight></codeline>
+<codeline lineno="434"><highlight class="normal"><sp/><sp/>IGenLoad<sp/>&amp;crd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>q_id,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>start_lev<sp/>=<sp/>0,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>tex_ld_lev<sp/>=<sp/>0,<sp/>on_tex_slice_loaded_cb_t<sp/>on_tex_slice_loaded_cb<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="435"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="436"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>d3d_load_ddsx_tex_contents_impl(tex,<sp/>tid,<sp/>paired_tid,<sp/>hdr,<sp/>crd,<sp/>q_id,<sp/>start_lev,<sp/>tex_ld_lev,<sp/>on_tex_slice_loaded_cb);</highlight></codeline>
+<codeline lineno="437"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="439"><highlight class="keyword">extern</highlight><highlight class="normal"><sp/>TexLoadRes<sp/>(*d3d_load_ddsx_to_slice)(<ref refid="class_base_texture" kindref="compound">BaseTexture</ref><sp/>*tex,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>slice,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>ddsx::Header<sp/>&amp;hdr,<sp/>IGenLoad<sp/>&amp;crd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>q_id,</highlight></codeline>
+<codeline lineno="440"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>start_lev,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>tex_ld_lev);</highlight></codeline>
+<codeline lineno="441"><highlight class="normal"></highlight></codeline>
+<codeline lineno="442"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>convert_image_line(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*__restrict<sp/>input,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>width,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>in_channels,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>in_bits_per_channel,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>in_float,</highlight></codeline>
+<codeline lineno="443"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*__restrict<sp/>output,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>out_channels,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>out_bits_per_channel,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>out_float,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>swap_rb);</highlight></codeline>
+<codeline lineno="444"><highlight class="normal"></highlight></codeline>
+<codeline lineno="445"><highlight class="normal"></highlight><highlight class="comment">//---<sp/>include<sp/>defines<sp/>specific<sp/>to<sp/>target<sp/>3d<sp/>-------</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="446"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_consts_base.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_tex3d.h"/>
+  </compounddef>
+</doxygen>

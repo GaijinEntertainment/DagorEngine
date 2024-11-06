@@ -1,0 +1,89 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_viewport" kind="struct" language="C++" prot="public">
+    <compoundname>Viewport</compoundname>
+    <basecompoundref refid="struct_scissor_rect" prot="public" virt="non-virtual">ScissorRect</basecompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_viewport_1a722ece9a43b3ee257b1eabb3f2736e69" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Viewport::minz</definition>
+        <argsstring></argsstring>
+        <name>minz</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="41" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_viewport_1ab752773be6441c7378c42e2333b402de" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Viewport::maxz</definition>
+        <argsstring></argsstring>
+        <name>maxz</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="41" column="14" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="struct_viewport_1a27a11564c61f4e40fbd3184cbdcc5b0f" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t Viewport::MAX_VIEWPORT_COUNT</definition>
+        <argsstring></argsstring>
+        <name>MAX_VIEWPORT_COUNT</name>
+        <initializer>= 16</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="43" column="29" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ScissorRect</label>
+        <link refid="struct_scissor_rect"/>
+      </node>
+      <node id="1">
+        <label>Viewport</label>
+        <link refid="struct_viewport"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ScissorRect</label>
+        <link refid="struct_scissor_rect"/>
+      </node>
+      <node id="1">
+        <label>Viewport</label>
+        <link refid="struct_viewport"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="39" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="40" bodyend="44"/>
+    <listofallmembers>
+      <member refid="struct_scissor_rect_1a0661f3c187af01759b974591b964baf4" prot="public" virt="non-virtual"><scope>Viewport</scope><name>h</name></member>
+      <member refid="struct_viewport_1a27a11564c61f4e40fbd3184cbdcc5b0f" prot="public" virt="non-virtual"><scope>Viewport</scope><name>MAX_VIEWPORT_COUNT</name></member>
+      <member refid="struct_viewport_1ab752773be6441c7378c42e2333b402de" prot="public" virt="non-virtual"><scope>Viewport</scope><name>maxz</name></member>
+      <member refid="struct_viewport_1a722ece9a43b3ee257b1eabb3f2736e69" prot="public" virt="non-virtual"><scope>Viewport</scope><name>minz</name></member>
+      <member refid="struct_scissor_rect_1aacf989169d266599415092950de58313" prot="public" virt="non-virtual"><scope>Viewport</scope><name>w</name></member>
+      <member refid="struct_scissor_rect_1a38db7c44e036cd42e9c3b78dc00c1788" prot="public" virt="non-virtual"><scope>Viewport</scope><name>x</name></member>
+      <member refid="struct_scissor_rect_1a95c201a5488845c44efcd6a891400321" prot="public" virt="non-virtual"><scope>Viewport</scope><name>y</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

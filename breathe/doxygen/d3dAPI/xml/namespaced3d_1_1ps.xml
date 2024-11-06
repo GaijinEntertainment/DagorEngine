@@ -1,0 +1,207 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="namespaced3d_1_1ps" kind="namespace" language="C++">
+    <compoundname>d3d::ps</compoundname>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__platform__ps_8h_1ab35e85417851fe10a299d0dfd2a320b3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="class_base_texture" kindref="compound">Texture</ref> *</type>
+        <definition>Texture* d3d::ps::create_raw_tex</definition>
+        <argsstring>()</argsstring>
+        <name>create_raw_tex</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_ps.h" line="28" column="9" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_ps.h" declline="28" declcolumn="9"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__platform__ps_8h_1abd4cd95fef792af6598b28ef2fa0523e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d::ps::update_raw_tex</definition>
+        <argsstring>(Texture *tex, void *gnm_texture, void *gnm_sampler=NULL)</argsstring>
+        <name>update_raw_tex</name>
+        <param>
+          <type><ref refid="class_base_texture" kindref="compound">Texture</ref> *</type>
+          <declname>tex</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>gnm_texture</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>gnm_sampler</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_ps.h" line="29" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_ps.h" declline="29" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__platform__ps_8h_1a56ad2d9b87fe2be2240a2c2d6726e3cf" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void *</type>
+        <definition>void* d3d::ps::alloc_mem_block</definition>
+        <argsstring>(bool onion, uint32_t size, uint32_t alignment)</argsstring>
+        <name>alloc_mem_block</name>
+        <param>
+          <type>bool</type>
+          <declname>onion</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>size</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>alignment</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_ps.h" line="32" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_ps.h" declline="32" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__platform__ps_8h_1a31d7e346d64548ac792fec73c8369e11" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d::ps::free_mem_block</definition>
+        <argsstring>(void *addr)</argsstring>
+        <name>free_mem_block</name>
+        <param>
+          <type>void *</type>
+          <declname>addr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_ps.h" line="33" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_ps.h" declline="33" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__platform__ps_8h_1a856c221e5d52ab871acb6199082753aa" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool d3d::ps::record_frame</definition>
+        <argsstring>(int control)</argsstring>
+        <name>record_frame</name>
+        <param>
+          <type>int</type>
+          <declname>control</declname>
+        </param>
+        <briefdescription>
+<para>record frame to /hostapp/captured (only for specially compiled driver) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_ps.h" line="38" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_ps.h" declline="38" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__platform__ps_8h_1ac127a0cc9134b41fea26968ca7afccce" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d::ps::debug_point</definition>
+        <argsstring>(int id=0)</argsstring>
+        <name>debug_point</name>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_ps.h" line="41" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_ps.h" declline="41" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__platform__ps_8h_1a45167c2cc7fa3f60d3f8275dbeb09fb4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d::ps::set_verbose_mode</definition>
+        <argsstring>(bool ena)</argsstring>
+        <name>set_verbose_mode</name>
+        <param>
+          <type>bool</type>
+          <declname>ena</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_ps.h" line="42" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_ps.h" declline="42" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__platform__ps_8h_1ae7791c0f9b976b7c369d2510f8ec35b0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d::ps::submit_and_stall</definition>
+        <argsstring>(bool locked_state)</argsstring>
+        <name>submit_and_stall</name>
+        <param>
+          <type>bool</type>
+          <declname>locked_state</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_ps.h" line="43" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_ps.h" declline="43" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__platform__ps_8h_1acbe6144594de29450d578b6904a01308" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d::ps::submit_background</definition>
+        <argsstring>()</argsstring>
+        <name>submit_background</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_ps.h" line="44" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_ps.h" declline="44" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__platform__ps_8h_1a94dba0f578dffea35d34dd079cfa28bc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3d::ps::freeze_frame</definition>
+        <argsstring>()</argsstring>
+        <name>freeze_frame</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_ps.h" line="45" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_ps.h" declline="45" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__platform__ps_8h_1a4322099d558e8419b92b657708d468c8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void *</type>
+        <definition>void* d3d::ps::get_raw_texture_descriptor</definition>
+        <argsstring>(Texture *tex)</argsstring>
+        <name>get_raw_texture_descriptor</name>
+        <param>
+          <type><ref refid="class_base_texture" kindref="compound">Texture</ref> *</type>
+          <declname>tex</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_ps.h" line="48" column="6" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_ps.h" declline="48" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_ps.h" line="25" column="1"/>
+  </compounddef>
+</doxygen>

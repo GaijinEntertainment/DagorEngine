@@ -1,0 +1,200 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="dag__render_states_8h" kind="file" language="C++">
+    <compoundname>dag_renderStates.h</compoundname>
+    <includes local="no">string.h</includes>
+    <includes refid="dag__consts__base_8h" local="no">drv/3d/dag_consts_base.h</includes>
+    <includes refid="dag__render_state_id_8h" local="no">drv/3d/dag_renderStateId.h</includes>
+    <includes local="no">math/dag_e3dColor.h</includes>
+    <includes local="no">shaders/dag_overrideStates.h</includes>
+    <incdepgraph>
+      <node id="7">
+        <label>shaders/dag_overrideStates.h</label>
+      </node>
+      <node id="3">
+        <label>drv/3d/dag_consts_base.h</label>
+        <link refid="dag__consts__base_8h_source"/>
+      </node>
+      <node id="6">
+        <label>math/dag_e3dColor.h</label>
+      </node>
+      <node id="2">
+        <label>string.h</label>
+      </node>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h</label>
+        <link refid="dag__render_states_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>drv/3d/dag_renderStateId.h</label>
+        <link refid="dag__render_state_id_8h_source"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>util/dag_generationRefId.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structshaders_1_1_render_state_bits" prot="public">shaders::RenderStateBits</innerclass>
+    <innerclass refid="structshaders_1_1_render_state" prot="public">shaders::RenderState</innerclass>
+    <innerclass refid="structshaders_1_1_render_state_1_1_blend_factors" prot="public">shaders::RenderState::BlendFactors</innerclass>
+    <innerclass refid="structshaders_1_1_render_state_1_1_blend_params" prot="public">shaders::RenderState::BlendParams</innerclass>
+    <innernamespace refid="namespaceshaders">shaders</innernamespace>
+    <innernamespace refid="namespaced3d">d3d</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_consts_base.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_renderStateId.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_e3dColor.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_overrideStates.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">shaders</highlight></codeline>
+<codeline lineno="15"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="structshaders_1_1_render_state_bits" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structshaders_1_1_render_state_bits" kindref="compound">RenderStateBits</ref><sp/></highlight><highlight class="comment">//-V730</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="22" refid="structshaders_1_1_render_state_bits_1a9baf0b1367e6cfc9971ace5b020bdf9c" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structshaders_1_1_render_state_bits_1a9baf0b1367e6cfc9971ace5b020bdf9c" kindref="member">zwrite</ref><sp/>:<sp/>1;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="23" refid="structshaders_1_1_render_state_bits_1a6286e8d640191c8d002bfed7a469e5c3" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structshaders_1_1_render_state_bits_1a6286e8d640191c8d002bfed7a469e5c3" kindref="member">ztest</ref><sp/>:<sp/>1;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="24" refid="structshaders_1_1_render_state_bits_1a7d28bc1d7f2086fef5651e36c4fa9c3d" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structshaders_1_1_render_state_bits_1a7d28bc1d7f2086fef5651e36c4fa9c3d" kindref="member">zFunc</ref><sp/>:<sp/>4;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="25" refid="structshaders_1_1_render_state_bits_1a5f69dc3af6288832070853bf5c78e71d" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structshaders_1_1_render_state_bits_1a5f69dc3af6288832070853bf5c78e71d" kindref="member">stencilRef</ref><sp/>:<sp/>8;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="26" refid="structshaders_1_1_render_state_bits_1abd2b3881859cac60dd8463335f98c5c1" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structshaders_1_1_render_state_bits_1abd2b3881859cac60dd8463335f98c5c1" kindref="member">cull</ref><sp/>:<sp/>2;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="27" refid="structshaders_1_1_render_state_bits_1a0514fd670606fb307ffba3a2145dd4e7" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structshaders_1_1_render_state_bits_1a0514fd670606fb307ffba3a2145dd4e7" kindref="member">depthBoundsEnable</ref><sp/>:<sp/>1;<sp/></highlight></codeline>
+<codeline lineno="31" refid="structshaders_1_1_render_state_bits_1a02fd720d83c068ed936052f8ef1ef676" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structshaders_1_1_render_state_bits_1a02fd720d83c068ed936052f8ef1ef676" kindref="member">forcedSampleCount</ref><sp/>:<sp/>4;</highlight></codeline>
+<codeline lineno="35" refid="structshaders_1_1_render_state_bits_1ac7eed855dd4645947ef475403171f980" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structshaders_1_1_render_state_bits_1ac7eed855dd4645947ef475403171f980" kindref="member">conservativeRaster</ref><sp/>:<sp/>1;</highlight></codeline>
+<codeline lineno="36" refid="structshaders_1_1_render_state_bits_1a93d38a2114add3541716035cfec779b3" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structshaders_1_1_render_state_bits_1a93d38a2114add3541716035cfec779b3" kindref="member">zClip</ref><sp/>:<sp/>1;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="37" refid="structshaders_1_1_render_state_bits_1aa3471748aeacdd914dd8867837ba7c86" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structshaders_1_1_render_state_bits_1aa3471748aeacdd914dd8867837ba7c86" kindref="member">scissorEnabled</ref><sp/>:<sp/>1;<sp/></highlight></codeline>
+<codeline lineno="38" refid="structshaders_1_1_render_state_bits_1a72955f98d8689819e3e06efd34c87262" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structshaders_1_1_render_state_bits_1a72955f98d8689819e3e06efd34c87262" kindref="member">independentBlendEnabled</ref><sp/>:<sp/>1;<sp/></highlight></codeline>
+<codeline lineno="39" refid="structshaders_1_1_render_state_bits_1abf9ecd74a66b231601ef4abb39f2cefc" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structshaders_1_1_render_state_bits_1abf9ecd74a66b231601ef4abb39f2cefc" kindref="member">alphaToCoverage</ref><sp/>:<sp/>1;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="40" refid="structshaders_1_1_render_state_bits_1ac4bc0a1392ddd3c80fb1123f15624745" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structshaders_1_1_render_state_bits_1ac4bc0a1392ddd3c80fb1123f15624745" kindref="member">viewInstanceCount</ref><sp/>:<sp/>2;<sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="41" refid="structshaders_1_1_render_state_bits_1ad0c3d02cefc012f3ec8761b81dad48da" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structshaders_1_1_render_state_bits_1ad0c3d02cefc012f3ec8761b81dad48da" kindref="member">colorWr</ref><sp/>=<sp/>0xFFFFFFFF;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="42" refid="structshaders_1_1_render_state_bits_1a6ca4c01e718744ad9052aaf9e0bc02c3" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structshaders_1_1_render_state_bits_1a6ca4c01e718744ad9052aaf9e0bc02c3" kindref="member">zBias</ref><sp/>=<sp/>0;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="43" refid="structshaders_1_1_render_state_bits_1a2baef0b95f441cba7f14eb55bb3c69ce" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="structshaders_1_1_render_state_bits_1a2baef0b95f441cba7f14eb55bb3c69ce" kindref="member">slopeZBias</ref><sp/>=<sp/>0;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="44" refid="structshaders_1_1_render_state_bits_1ad87cb62ad2a9c365362b33a5e7bd0e08" refkind="member"><highlight class="normal"><sp/><sp/>StencilState<sp/><ref refid="structshaders_1_1_render_state_bits_1ad87cb62ad2a9c365362b33a5e7bd0e08" kindref="member">stencil</ref>;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="45"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight></codeline>
+<codeline lineno="50" refid="structshaders_1_1_render_state" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structshaders_1_1_render_state" kindref="compound">RenderState</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="structshaders_1_1_render_state_bits" kindref="compound">RenderStateBits</ref></highlight></codeline>
+<codeline lineno="51"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>increase<sp/>if<sp/>more<sp/>independent<sp/>blend<sp/>parameters<sp/>are<sp/>needed</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>constexpr<sp/>uint32_t<sp/>NumIndependentBlendParameters<sp/>=<sp/>4;</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight></codeline>
+<codeline lineno="58" refid="structshaders_1_1_render_state_1_1_blend_factors" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structshaders_1_1_render_state_1_1_blend_factors" kindref="compound">BlendFactors</ref></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="60" refid="structshaders_1_1_render_state_1_1_blend_factors_1a93b4dbd109ed3110afd7fbe115dda3e6" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structshaders_1_1_render_state_1_1_blend_factors_1a93b4dbd109ed3110afd7fbe115dda3e6" kindref="member">src</ref><sp/>:<sp/>4;<sp/></highlight></codeline>
+<codeline lineno="61" refid="structshaders_1_1_render_state_1_1_blend_factors_1ab142254ca70c79442094e1b7fe5a6fde" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structshaders_1_1_render_state_1_1_blend_factors_1ab142254ca70c79442094e1b7fe5a6fde" kindref="member">dst</ref><sp/>:<sp/>4;<sp/></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="66" refid="structshaders_1_1_render_state_1_1_blend_params" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structshaders_1_1_render_state_1_1_blend_params" kindref="compound">BlendParams</ref></highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="68" refid="structshaders_1_1_render_state_1_1_blend_params_1a3efbf4f5891bccd0264c662d0a9c5bb0" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structshaders_1_1_render_state_1_1_blend_factors" kindref="compound">BlendFactors</ref><sp/><ref refid="structshaders_1_1_render_state_1_1_blend_params_1a3efbf4f5891bccd0264c662d0a9c5bb0" kindref="member">ablendFactors</ref>;<sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="69" refid="structshaders_1_1_render_state_1_1_blend_params_1a120aba4f8967f122a4dd97cd7ba5c90f" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structshaders_1_1_render_state_1_1_blend_factors" kindref="compound">BlendFactors</ref><sp/><ref refid="structshaders_1_1_render_state_1_1_blend_params_1a120aba4f8967f122a4dd97cd7ba5c90f" kindref="member">sepablendFactors</ref>;<sp/></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71" refid="structshaders_1_1_render_state_1_1_blend_params_1a9d3f7ddd64ab9809e49a984f13ea0c75" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structshaders_1_1_render_state_1_1_blend_params_1a9d3f7ddd64ab9809e49a984f13ea0c75" kindref="member">blendOp</ref><sp/>:<sp/>3;<sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="72" refid="structshaders_1_1_render_state_1_1_blend_params_1a20dc3dc1c41c0473d8c4cec4a4807a38" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structshaders_1_1_render_state_1_1_blend_params_1a20dc3dc1c41c0473d8c4cec4a4807a38" kindref="member">sepablendOp</ref><sp/>:<sp/>3;<sp/></highlight></codeline>
+<codeline lineno="73" refid="structshaders_1_1_render_state_1_1_blend_params_1a77877ef77c58ffcce6347822b8ea600a" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structshaders_1_1_render_state_1_1_blend_params_1a77877ef77c58ffcce6347822b8ea600a" kindref="member">ablend</ref><sp/>:<sp/>1;<sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="74" refid="structshaders_1_1_render_state_1_1_blend_params_1a9228df9d7ccb1ffd396f38f6d61e047c" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structshaders_1_1_render_state_1_1_blend_params_1a9228df9d7ccb1ffd396f38f6d61e047c" kindref="member">sepablend</ref><sp/>:<sp/>1;<sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><ref refid="structshaders_1_1_render_state_1_1_blend_params" kindref="compound">BlendParams</ref><sp/>blendParams[NumIndependentBlendParameters];</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>ensure<sp/>that<sp/>no<sp/>padding<sp/>occured</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/>static_assert(</highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(<ref refid="structshaders_1_1_render_state_1_1_blend_params" kindref="compound">BlendParams</ref>)<sp/>==<sp/>3);</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/>static_assert(</highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(blendParams)<sp/>==<sp/>NumIndependentBlendParameters<sp/>*<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(<ref refid="structshaders_1_1_render_state_1_1_blend_params" kindref="compound">BlendParams</ref>));</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><ref refid="structshaders_1_1_render_state" kindref="compound">RenderState</ref>()</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/>memset(</highlight><highlight class="keyword">this</highlight><highlight class="normal">,<sp/>0,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(<ref refid="structshaders_1_1_render_state" kindref="compound">RenderState</ref>));</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structshaders_1_1_render_state_bits_1a9baf0b1367e6cfc9971ace5b020bdf9c" kindref="member">zwrite</ref><sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structshaders_1_1_render_state_bits_1a6286e8d640191c8d002bfed7a469e5c3" kindref="member">ztest</ref><sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structshaders_1_1_render_state_bits_1a7d28bc1d7f2086fef5651e36c4fa9c3d" kindref="member">zFunc</ref><sp/>=<sp/>CMPF_GREATEREQUAL;</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structshaders_1_1_render_state_bits_1a5f69dc3af6288832070853bf5c78e71d" kindref="member">stencilRef</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(<ref refid="structshaders_1_1_render_state_1_1_blend_params" kindref="compound">BlendParams</ref><sp/>&amp;blendParam<sp/>:<sp/>blendParams)</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>blendParam.ablendFactors.src<sp/>=<sp/>BLEND_ONE;</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>blendParam.ablendFactors.dst<sp/>=<sp/>BLEND_ZERO;</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>blendParam.sepablendFactors.src<sp/>=<sp/>BLEND_ONE;</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>blendParam.sepablendFactors.dst<sp/>=<sp/>BLEND_ZERO;</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>blendParam.blendOp<sp/>=<sp/>BLENDOP_ADD;</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>blendParam.sepablendOp<sp/>=<sp/>BLENDOP_ADD;</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>done<sp/>by<sp/>memset<sp/>with<sp/>zero</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>blendParam.ablend<sp/>=<sp/>0;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>blendParam.sepablend<sp/>=<sp/>0;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structshaders_1_1_render_state_bits_1abd2b3881859cac60dd8463335f98c5c1" kindref="member">cull</ref><sp/>=<sp/>CULL_NONE;</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structshaders_1_1_render_state_bits_1a0514fd670606fb307ffba3a2145dd4e7" kindref="member">depthBoundsEnable</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structshaders_1_1_render_state_bits_1a02fd720d83c068ed936052f8ef1ef676" kindref="member">forcedSampleCount</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structshaders_1_1_render_state_bits_1ac7eed855dd4645947ef475403171f980" kindref="member">conservativeRaster</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structshaders_1_1_render_state_bits_1ac4bc0a1392ddd3c80fb1123f15624745" kindref="member">viewInstanceCount</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structshaders_1_1_render_state_bits_1ad0c3d02cefc012f3ec8761b81dad48da" kindref="member">colorWr</ref><sp/>=<sp/>0xFFFFFFFF;</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structshaders_1_1_render_state_bits_1a93d38a2114add3541716035cfec779b3" kindref="member">zClip</ref><sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structshaders_1_1_render_state_bits_1abf9ecd74a66b231601ef4abb39f2cefc" kindref="member">alphaToCoverage</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structshaders_1_1_render_state_bits_1a72955f98d8689819e3e06efd34c87262" kindref="member">independentBlendEnabled</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>operator==(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>RenderState<sp/>&amp;s)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="114"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>r<sp/>=<sp/>memcmp(</highlight><highlight class="keyword">static_cast&lt;</highlight><highlight class="keyword">const<sp/></highlight><highlight class="normal">RenderStateBits<sp/>*</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(</highlight><highlight class="keyword">this</highlight><highlight class="normal">),<sp/></highlight><highlight class="keyword">static_cast&lt;</highlight><highlight class="keyword">const<sp/></highlight><highlight class="normal">RenderStateBits<sp/>*</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(&amp;s),<sp/></highlight><highlight class="comment">//-V1014</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(RenderStateBits));</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>r<sp/>!=<sp/>0)</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"></highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>blendParamBytesToCompare<sp/>=<sp/><ref refid="structshaders_1_1_render_state_bits_1a72955f98d8689819e3e06efd34c87262" kindref="member">independentBlendEnabled</ref><sp/>?<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(blendParams)<sp/>:<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(BlendParams);</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>memcmp(blendParams,<sp/>s.blendParams,<sp/>blendParamBytesToCompare)<sp/>==<sp/>0;</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>operator!=(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>RenderState<sp/>&amp;s)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>!(*</highlight><highlight class="keyword">this</highlight><highlight class="normal"><sp/>==<sp/>s);<sp/>}</highlight></codeline>
+<codeline lineno="124"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="125"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>shaders</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="126"><highlight class="normal"></highlight></codeline>
+<codeline lineno="127"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">d3d</highlight></codeline>
+<codeline lineno="128"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_blend_factor(E3DCOLOR<sp/>color);</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"></highlight></codeline>
+<codeline lineno="143"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>setstencil(uint32_t<sp/>ref);</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"></highlight></codeline>
+<codeline lineno="151"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>setwire(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>in);</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"></highlight></codeline>
+<codeline lineno="160"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_depth_bounds(</highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>zmin,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>zmax);</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"></highlight></codeline>
+<codeline lineno="168"><highlight class="normal">shaders::DriverRenderStateId<sp/>create_render_state(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structshaders_1_1_render_state" kindref="compound">shaders::RenderState</ref><sp/>&amp;state);</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"></highlight></codeline>
+<codeline lineno="176"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_render_state(shaders::DriverRenderStateId<sp/>state_id);</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"></highlight></codeline>
+<codeline lineno="181"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>clear_render_states();</highlight></codeline>
+<codeline lineno="182"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="183"><highlight class="normal"></highlight></codeline>
+<codeline lineno="184"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_D3D_MULTI</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="185"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_interface_table.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="186"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">d3d</highlight></codeline>
+<codeline lineno="187"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_blend_factor(E3DCOLOR<sp/>color)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>d3di.set_blend_factor(color);<sp/>}</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>setstencil(uint32_t<sp/>ref)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>d3di.setstencil(ref);<sp/>}</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>setwire(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>in)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>d3di.setwire(in);<sp/>}</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_depth_bounds(</highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>zmin,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>zmax)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>d3di.set_depth_bounds(zmin,<sp/>zmax);<sp/>}</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>shaders::DriverRenderStateId<sp/>create_render_state(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structshaders_1_1_render_state" kindref="compound">shaders::RenderState</ref><sp/>&amp;state)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>d3di.create_render_state(state);<sp/>}</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_render_state(shaders::DriverRenderStateId<sp/>state_id)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>d3di.set_render_state(state_id);<sp/>}</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>clear_render_states()<sp/>{<sp/>d3di.clear_render_states();<sp/>}</highlight></codeline>
+<codeline lineno="195"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="196"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStates.h"/>
+  </compounddef>
+</doxygen>

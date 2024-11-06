@@ -1,0 +1,155 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_driver3d_perspective" kind="struct" language="C++" prot="public">
+    <compoundname>Driver3dPerspective</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_driver3d_perspective_1acf13eff5c76b3187a9e133a010db91a0" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Driver3dPerspective::wk</definition>
+        <argsstring></argsstring>
+        <name>wk</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="54" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_driver3d_perspective_1ab6c27aba41c2a016bccf058e70da1c5a" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Driver3dPerspective::hk</definition>
+        <argsstring></argsstring>
+        <name>hk</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="54" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_driver3d_perspective_1abeb71c4928bac5169e5b9b2e1e84bc33" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Driver3dPerspective::zn</definition>
+        <argsstring></argsstring>
+        <name>zn</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="55" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_driver3d_perspective_1aa72f6ca073131454a88fead2e95f8634" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Driver3dPerspective::zf</definition>
+        <argsstring></argsstring>
+        <name>zf</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="55" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_driver3d_perspective_1a955fe0e7ad497155a445745fe4252b92" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Driver3dPerspective::ox</definition>
+        <argsstring></argsstring>
+        <name>ox</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="56" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_driver3d_perspective_1a01029e267f71658e2707b1ad3a518204" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Driver3dPerspective::oy</definition>
+        <argsstring></argsstring>
+        <name>oy</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="56" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="struct_driver3d_perspective_1a3684a7aeb72573eec77dc3ea9f7d0f75" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Driver3dPerspective::Driver3dPerspective</definition>
+        <argsstring>()</argsstring>
+        <name>Driver3dPerspective</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="48" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="48" bodyend="48"/>
+      </memberdef>
+      <memberdef kind="function" id="struct_driver3d_perspective_1a74786f1b34cc6126e08653f2ee3d3ccd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Driver3dPerspective::Driver3dPerspective</definition>
+        <argsstring>(float wk_, float hk_, float zn_, float zf_, float ox_=0.f, float oy_=0.f)</argsstring>
+        <name>Driver3dPerspective</name>
+        <param>
+          <type>float</type>
+          <declname>wk_</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>hk_</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>zn_</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>zf_</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>ox_</declname>
+          <defval>0.f</defval>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>oy_</declname>
+          <defval>0.f</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="50" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="50" bodyend="52"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" line="46" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_decl.h" bodystart="47" bodyend="57"/>
+    <listofallmembers>
+      <member refid="struct_driver3d_perspective_1a3684a7aeb72573eec77dc3ea9f7d0f75" prot="public" virt="non-virtual"><scope>Driver3dPerspective</scope><name>Driver3dPerspective</name></member>
+      <member refid="struct_driver3d_perspective_1a74786f1b34cc6126e08653f2ee3d3ccd" prot="public" virt="non-virtual"><scope>Driver3dPerspective</scope><name>Driver3dPerspective</name></member>
+      <member refid="struct_driver3d_perspective_1ab6c27aba41c2a016bccf058e70da1c5a" prot="public" virt="non-virtual"><scope>Driver3dPerspective</scope><name>hk</name></member>
+      <member refid="struct_driver3d_perspective_1a955fe0e7ad497155a445745fe4252b92" prot="public" virt="non-virtual"><scope>Driver3dPerspective</scope><name>ox</name></member>
+      <member refid="struct_driver3d_perspective_1a01029e267f71658e2707b1ad3a518204" prot="public" virt="non-virtual"><scope>Driver3dPerspective</scope><name>oy</name></member>
+      <member refid="struct_driver3d_perspective_1acf13eff5c76b3187a9e133a010db91a0" prot="public" virt="non-virtual"><scope>Driver3dPerspective</scope><name>wk</name></member>
+      <member refid="struct_driver3d_perspective_1aa72f6ca073131454a88fead2e95f8634" prot="public" virt="non-virtual"><scope>Driver3dPerspective</scope><name>zf</name></member>
+      <member refid="struct_driver3d_perspective_1abeb71c4928bac5169e5b9b2e1e84bc33" prot="public" virt="non-virtual"><scope>Driver3dPerspective</scope><name>zn</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

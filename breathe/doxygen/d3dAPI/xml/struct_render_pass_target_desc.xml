@@ -1,0 +1,82 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_render_pass_target_desc" kind="struct" language="C++" prot="public">
+    <compoundname>RenderPassTargetDesc</compoundname>
+    <includes refid="dag__render_pass_8h" local="no">dag_renderPass.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_render_pass_target_desc_1a05896be5b9ad0c26353929d1893fd650" prot="public" static="no" mutable="no">
+        <type><ref refid="class_base_texture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* RenderPassTargetDesc::templateResource</definition>
+        <argsstring></argsstring>
+        <name>templateResource</name>
+        <briefdescription>
+<para>Resource from which information is extracted, can be nullptr. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" line="40" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_render_pass_target_desc_1adb0b976b127b7debab3385de095a85de" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned RenderPassTargetDesc::texcf</definition>
+        <argsstring></argsstring>
+        <name>texcf</name>
+        <briefdescription>
+<para>Raw texture create flags, used if template resource is not provided. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" line="42" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_render_pass_target_desc_1aa3e300d8c7ae9f0a96ca5570d63d422c" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool RenderPassTargetDesc::aliased</definition>
+        <argsstring></argsstring>
+        <name>aliased</name>
+        <briefdescription>
+<para>Must be set if template resource is empty and target will use memory aliased inside render pass. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" line="44" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Early description of render target. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>Gives necessary info at render pass creation so render pass is compatible with targets of same type later on </para>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="3">
+        <label>D3dResource</label>
+        <link refid="class_d3d_resource"/>
+      </node>
+      <node id="1">
+        <label>RenderPassTargetDesc</label>
+        <link refid="struct_render_pass_target_desc"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>templateResource</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>BaseTexture</label>
+        <link refid="class_base_texture"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" line="37" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h" bodystart="38" bodyend="45"/>
+    <listofallmembers>
+      <member refid="struct_render_pass_target_desc_1aa3e300d8c7ae9f0a96ca5570d63d422c" prot="public" virt="non-virtual"><scope>RenderPassTargetDesc</scope><name>aliased</name></member>
+      <member refid="struct_render_pass_target_desc_1a05896be5b9ad0c26353929d1893fd650" prot="public" virt="non-virtual"><scope>RenderPassTargetDesc</scope><name>templateResource</name></member>
+      <member refid="struct_render_pass_target_desc_1adb0b976b127b7debab3385de095a85de" prot="public" virt="non-virtual"><scope>RenderPassTargetDesc</scope><name>texcf</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

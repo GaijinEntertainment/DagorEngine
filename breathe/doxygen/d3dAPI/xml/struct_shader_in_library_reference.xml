@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="struct_shader_in_library_reference" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderInLibraryReference</compoundname>
+    <includes refid="dag__shader_library_object_8h" local="no">dag_shaderLibraryObject.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="struct_shader_in_library_reference_1a7776fd0d07a1b12c32bf11cbfccc607e" prot="public" static="no" mutable="no">
+        <type>ShaderLibrary</type>
+        <definition>ShaderLibrary ShaderInLibraryReference::library</definition>
+        <argsstring></argsstring>
+        <name>library</name>
+        <briefdescription>
+<para>Source library. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderLibraryObject.h" line="44" column="17" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderLibraryObject.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="struct_shader_in_library_reference_1aa28549b7bbd8280f2f274d18a249ab94" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderInLibraryReference::index</definition>
+        <argsstring></argsstring>
+        <name>index</name>
+        <briefdescription>
+<para>Index into the library that references the shader. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderLibraryObject.h" line="46" column="12" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderLibraryObject.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>This references a shader in a shader library. A valid reference is when &apos;library&apos; is not InvalidShaderLibrary and is a handle to a alive library object and &apos;index&apos; is a index is a valid index into the shader library, where the value is less than the number of shaders stored in that shader library referenced with the &apos;library&apos; member. A value of InvalidShaderLibrary of the member library indicates a &apos;null reference&apos; (null pointer). Any other combination of values that are not a valid reference or a &apos;null reference&apos; will result in undefined behavior. Drivers may be able to validate any or none of the inputs. </para>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderLibraryObject.h" line="41" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderLibraryObject.h" bodystart="42" bodyend="47"/>
+    <listofallmembers>
+      <member refid="struct_shader_in_library_reference_1aa28549b7bbd8280f2f274d18a249ab94" prot="public" virt="non-virtual"><scope>ShaderInLibraryReference</scope><name>index</name></member>
+      <member refid="struct_shader_in_library_reference_1a7776fd0d07a1b12c32bf11cbfccc607e" prot="public" virt="non-virtual"><scope>ShaderInLibraryReference</scope><name>library</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,608 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="classdabfg_1_1_virtual_pass_request" kind="class" language="C++" prot="public">
+    <compoundname>dabfg::VirtualPassRequest</compoundname>
+    <includes refid="virtual_pass_request_8h" local="no">virtualPassRequest.h</includes>
+      <sectiondef kind="private-type">
+      <memberdef kind="typedef" id="classdabfg_1_1_virtual_pass_request_1a9a747ab09ffe30e84cef38b525c03d14" prot="private" static="no">
+        <type>detail::ResourceRequestPolicy</type>
+        <definition>using dabfg::VirtualPassRequest::RRP =  detail::ResourceRequestPolicy</definition>
+        <argsstring></argsstring>
+        <name>RRP</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="139" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" bodystart="139" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="classdabfg_1_1_virtual_pass_request_1a70bdb581547fd889f8fbd6ede814b8a5" prot="public" static="no">
+        <type><ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">detail::VirtualAttachmentRequest</ref>&lt; RRP::Readonly|RRP::Optional|RRP::History|RRP::HasUsageStage|RRP::HasUsageType, RRP::None &gt;</type>
+        <definition>using dabfg::VirtualPassRequest::RwVirtualAttachmentRequest =  detail::VirtualAttachmentRequest&lt;RRP::Readonly | RRP::Optional | RRP::History | RRP::HasUsageStage | RRP::HasUsageType, RRP::None&gt;</definition>
+        <argsstring></argsstring>
+        <name>RwVirtualAttachmentRequest</name>
+        <briefdescription>
+<para>Resolve and RW depth cannot be readonly, optional or history requests. Usage should not have been specified yet. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="146" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" bodystart="147" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classdabfg_1_1_virtual_pass_request_1ad0ea6f26ca95b411c8e53c499cb33d07" prot="public" static="no">
+        <type><ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">detail::VirtualAttachmentRequest</ref>&lt; RRP::Readonly|RRP::History|RRP::HasUsageStage|RRP::HasUsageType, RRP::None &gt;</type>
+        <definition>using dabfg::VirtualPassRequest::ColorRwVirtualAttachmentRequest =  detail::VirtualAttachmentRequest&lt;RRP::Readonly | RRP::History | RRP::HasUsageStage | RRP::HasUsageType, RRP::None&gt;</definition>
+        <argsstring></argsstring>
+        <name>ColorRwVirtualAttachmentRequest</name>
+        <briefdescription>
+<para>Color requests may be optional, but cannot be readonly or history. Usage is specified later. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="152" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" bodystart="153" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classdabfg_1_1_virtual_pass_request_1aaa1a46ab816ccbdbde40efc5bf38ad32" prot="public" static="no">
+        <type><ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">detail::VirtualAttachmentRequest</ref>&lt; RRP::Optional|RRP::HasUsageStage|RRP::HasUsageType, RRP::None &gt;</type>
+        <definition>using dabfg::VirtualPassRequest::DepthRoVirtualAttachmentRequest =  detail::VirtualAttachmentRequest&lt;RRP::Optional | RRP::HasUsageStage | RRP::HasUsageType, RRP::None&gt;</definition>
+        <argsstring></argsstring>
+        <name>DepthRoVirtualAttachmentRequest</name>
+        <briefdescription>
+<para>RO depth is not allowed to be optional, as it doesn&apos;t seem useful (may be changed later). Usage will be determined by us. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="158" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" bodystart="159" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classdabfg_1_1_virtual_pass_request_1a6c0f170cd81a1af3bfc5ab9a39f7cb46" prot="public" static="no">
+        <type><ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">detail::VirtualAttachmentRequest</ref>&lt; RRP::Optional|RRP::HasUsageType, RRP::None &gt;</type>
+        <definition>using dabfg::VirtualPassRequest::DepthRoAndSvBindVirtualAttachmentRequest =  detail::VirtualAttachmentRequest&lt;RRP::Optional | RRP::HasUsageType, RRP::None&gt;</definition>
+        <argsstring></argsstring>
+        <name>DepthRoAndSvBindVirtualAttachmentRequest</name>
+        <briefdescription>
+<para>For RO depth that is also sampled through a shader var (SV), we also prohibit optional requests and while the usage type is determined by us (simultaneous depth+sampling), stage should be provided separately. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="166" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" bodystart="166" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classdabfg_1_1_virtual_pass_request_1a347dc2490174dbd14786b15f784f7e71" prot="public" static="no">
+        <type><ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">detail::VirtualAttachmentRequest</ref>&lt; RRP::History|RRP::HasUsageStage|RRP::HasUsageType, RRP::None &gt;</type>
+        <definition>using dabfg::VirtualPassRequest::RoVirtualAttachmentRequest =  detail::VirtualAttachmentRequest&lt;RRP::History | RRP::HasUsageStage | RRP::HasUsageType, RRP::None&gt;</definition>
+        <argsstring></argsstring>
+        <name>RoVirtualAttachmentRequest</name>
+        <briefdescription>
+<para>Input attachments are not allowed to be history, as renderpasses cannot span frame boundaries. Usage is determined by us. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="171" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" bodystart="172" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classdabfg_1_1_virtual_pass_request_1ac7b716e6d41ff508ad2d8e5dad655d72" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class Registry</definition>
+        <argsstring></argsstring>
+        <name>Registry</name>
+        <param>
+          <type><ref refid="classdabfg_1_1_registry" kindref="compound">Registry</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="136" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" bodystart="136" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classdabfg_1_1_virtual_pass_request_1af523e2542e289fa69380053214ffefe2" prot="private" static="no" mutable="no">
+        <type>NodeNameId</type>
+        <definition>NodeNameId dabfg::VirtualPassRequest::nodeId</definition>
+        <argsstring></argsstring>
+        <name>nodeId</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="337" column="14" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" bodystart="337" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classdabfg_1_1_virtual_pass_request_1aab269c89744c3ae212838a3ecbfd0938" prot="private" static="no" mutable="no">
+        <type>InternalRegistry *</type>
+        <definition>InternalRegistry* dabfg::VirtualPassRequest::registry</definition>
+        <argsstring></argsstring>
+        <name>registry</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="338" column="20" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" bodystart="338" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classdabfg_1_1_virtual_pass_request_1a0a491fe66abba4b5b66f5dab8f6e4684" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>dabfg::VirtualPassRequest::VirtualPassRequest</definition>
+        <argsstring>(NodeNameId node, InternalRegistry *reg)</argsstring>
+        <name>VirtualPassRequest</name>
+        <param>
+          <type>NodeNameId</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>InternalRegistry *</type>
+          <declname>reg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="137" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_pass_request_1a1f87e67c56dcb85ac32f92712357131b" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>RRP</type>
+            <declname>disallowPolicies</declname>
+            <defname>disallowPolicies</defname>
+          </param>
+          <param>
+            <type>RRP</type>
+            <declname>requirePolicies</declname>
+            <defname>requirePolicies</defname>
+          </param>
+        </templateparamlist>
+        <type>detail::ResUid</type>
+        <definition>detail::ResUid dabfg::VirtualPassRequest::getResUidForAttachment</definition>
+        <argsstring>(detail::VirtualAttachmentRequest&lt; disallowPolicies, requirePolicies &gt; attachment)</argsstring>
+        <name>getResUidForAttachment</name>
+        <param>
+          <type><ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">detail::VirtualAttachmentRequest</ref>&lt; disallowPolicies, requirePolicies &gt;</type>
+          <declname>attachment</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="332" column="18"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_pass_request_1a1955b2a7afc1b1a7e92b4f885e647b25" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void dabfg::VirtualPassRequest::blobClearImpl</definition>
+        <argsstring>(RwVirtualAttachmentRequest attachment, ResourceSubtypeTag projectee, const char *blob, detail::TypeErasedProjector projector)</argsstring>
+        <name>blobClearImpl</name>
+        <param>
+          <type><ref refid="classdabfg_1_1_virtual_pass_request_1a70bdb581547fd889f8fbd6ede814b8a5" kindref="member">RwVirtualAttachmentRequest</ref></type>
+          <declname>attachment</declname>
+        </param>
+        <param>
+          <type>ResourceSubtypeTag</type>
+          <declname>projectee</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>blob</declname>
+        </param>
+        <param>
+          <type>detail::TypeErasedProjector</type>
+          <declname>projector</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="334" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classdabfg_1_1_virtual_pass_request_1a706091dbc09d2669e4de0b65079169a6" prot="public" static="no" const="no" explicit="no" inline="no" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_pass_request" kindref="compound">VirtualPassRequest</ref></type>
+        <definition>VirtualPassRequest dabfg::VirtualPassRequest::color</definition>
+        <argsstring>(std::initializer_list&lt; ColorRwVirtualAttachmentRequest &gt; attachments) &amp;&amp;</argsstring>
+        <name>color</name>
+        <param>
+          <type>std::initializer_list&lt; <ref refid="classdabfg_1_1_virtual_pass_request_1ad0ea6f26ca95b411c8e53c499cb33d07" kindref="member">ColorRwVirtualAttachmentRequest</ref> &gt;</type>
+          <declname>attachments</declname>
+        </param>
+        <briefdescription>
+<para>Specifies color attachments for this virtual pass, which will be bound in the order specified here. A color attachment is a synonym for &quot;render target&quot;. Call this with a braced list of either request objects or resource names, and optionally mip/layer numbers grouped with an object or name using braces. E.g. <computeroutput>{{&quot;cube&quot;, 0, 1}, &quot;normals&quot;, prevFrameMotionRequest}</computeroutput> </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>attachments</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A list of attachments to use as color ones. This method should be usable without understanding the internals of <ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">detail::VirtualAttachmentRequest</ref> most of the time. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="187" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_pass_request_1a62c6487d386c907a3d10d4e9a2bc9012" prot="public" static="no" const="no" explicit="no" inline="no" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_pass_request" kindref="compound">VirtualPassRequest</ref></type>
+        <definition>VirtualPassRequest dabfg::VirtualPassRequest::depthRw</definition>
+        <argsstring>(RwVirtualAttachmentRequest attachment) &amp;&amp;</argsstring>
+        <name>depthRw</name>
+        <param>
+          <type><ref refid="classdabfg_1_1_virtual_pass_request_1a70bdb581547fd889f8fbd6ede814b8a5" kindref="member">RwVirtualAttachmentRequest</ref></type>
+          <declname>attachment</declname>
+        </param>
+        <briefdescription>
+<para>Specifies the depth attachment for this virtual pass and enables depth write. The specified resource request MUST be a modify request. Call this with either a resource request object or an object name. You can also optionally specify mip/layer using braces: <computeroutput>{&quot;cube&quot;, 0, 1}</computeroutput>. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>attachment</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The attachment to use as depth. This method should be usable without understanding the internals of <ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">detail::VirtualAttachmentRequest</ref> most of the time. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="201" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_pass_request_1a87a60b23ead8d19c2b36377ed94c2df7" prot="public" static="no" const="no" explicit="no" inline="no" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_pass_request" kindref="compound">VirtualPassRequest</ref></type>
+        <definition>VirtualPassRequest dabfg::VirtualPassRequest::depthRo</definition>
+        <argsstring>(DepthRoVirtualAttachmentRequest attachment) &amp;&amp;</argsstring>
+        <name>depthRo</name>
+        <param>
+          <type><ref refid="classdabfg_1_1_virtual_pass_request_1aaa1a46ab816ccbdbde40efc5bf38ad32" kindref="member">DepthRoVirtualAttachmentRequest</ref></type>
+          <declname>attachment</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="204" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_pass_request_1a8f68d0f9de7a8ec460bf97cd50f04aca" prot="public" static="no" const="no" explicit="no" inline="no" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_pass_request" kindref="compound">VirtualPassRequest</ref></type>
+        <definition>VirtualPassRequest dabfg::VirtualPassRequest::depthRoAndBindToShaderVars</definition>
+        <argsstring>(DepthRoAndSvBindVirtualAttachmentRequest attachment, std::initializer_list&lt; const char * &gt; shader_var_names) &amp;&amp;</argsstring>
+        <name>depthRoAndBindToShaderVars</name>
+        <param>
+          <type><ref refid="classdabfg_1_1_virtual_pass_request_1a6c0f170cd81a1af3bfc5ab9a39f7cb46" kindref="member">DepthRoAndSvBindVirtualAttachmentRequest</ref></type>
+          <declname>attachment</declname>
+        </param>
+        <param>
+          <type>std::initializer_list&lt; const char * &gt;</type>
+          <declname>shader_var_names</declname>
+        </param>
+        <briefdescription>
+<para>Specifies the depth attachment for this virtual pass, disables depth write and binds it to several shader variable for sampling inside a shader. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This can only be called with a resource request object and not a string name, due to requiring <computeroutput>stage</computeroutput> to be specified as all stages where these shader vars will be used.</para>
+<para>Note however that the resource request may be either read or modify, which will determine the ordering for this node.</para>
+<para>This is is only multi-usage API in daBfg, an exception to the one usage per node guideline.</para>
+<para>Warning: switching between RO and RW depth requires decompression and recompression on AMD hardware, which is expensive.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>attachment</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The resource request for the depth attachment. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>shader_var_names</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A list of shader var names to be bound. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="227" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_pass_request_1a2533ead8658d08cbd016baa6adf8d1d5" prot="public" static="no" const="no" explicit="no" inline="no" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_pass_request" kindref="compound">VirtualPassRequest</ref></type>
+        <definition>VirtualPassRequest dabfg::VirtualPassRequest::clear</definition>
+        <argsstring>(RwVirtualAttachmentRequest attachment, ResourceClearValue color) &amp;&amp;</argsstring>
+        <name>clear</name>
+        <param>
+          <type><ref refid="classdabfg_1_1_virtual_pass_request_1a70bdb581547fd889f8fbd6ede814b8a5" kindref="member">RwVirtualAttachmentRequest</ref></type>
+          <declname>attachment</declname>
+        </param>
+        <param>
+          <type>ResourceClearValue</type>
+          <declname>color</declname>
+        </param>
+        <briefdescription>
+<para>Specifies that the <computeroutput>attachment</computeroutput> should be cleared with <computeroutput>color</computeroutput> at the beginning of this pass. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="warning"><para>This causes a low-level pass break, so should be used sparingly.</para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>attachment</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The attachment to clear. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>color</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The color to clear it with. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="240" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_pass_request_1a216eae66c47d819c60e54d2763f20eba" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_pass_request" kindref="compound">VirtualPassRequest</ref></type>
+        <definition>VirtualPassRequest dabfg::VirtualPassRequest::clear</definition>
+        <argsstring>(RwVirtualAttachmentRequest attachment, const char *color_blob) &amp;&amp;</argsstring>
+        <name>clear</name>
+        <param>
+          <type><ref refid="classdabfg_1_1_virtual_pass_request_1a70bdb581547fd889f8fbd6ede814b8a5" kindref="member">RwVirtualAttachmentRequest</ref></type>
+          <declname>attachment</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>color_blob</declname>
+        </param>
+        <briefdescription>
+<para>Specifies that the <computeroutput>attachment</computeroutput> should be cleared with the color contained in the <computeroutput>color_blob</computeroutput> at the beginning of this pass. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The requested blob&apos;s type is inferred from the projector&apos;s argument type.</para>
+<para><simplesect kind="warning"><para>This causes a low-level pass break, so should be used sparingly.</para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>attachment</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The attachment to clear. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>color</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the blob to grab the color from. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="255" column="22" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" bodystart="255" bodyend="259"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_pass_request_1a61491c24dcde22f3cb5822b8a6e85dda" prot="public" static="no" const="no" explicit="no" inline="yes" refqual="rvalue" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>auto</type>
+            <declname>projector</declname>
+            <defname>projector</defname>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classdabfg_1_1_virtual_pass_request" kindref="compound">VirtualPassRequest</ref></type>
+        <definition>VirtualPassRequest dabfg::VirtualPassRequest::clear</definition>
+        <argsstring>(RwVirtualAttachmentRequest attachment, const char *color_blob) &amp;&amp;</argsstring>
+        <name>clear</name>
+        <param>
+          <type><ref refid="classdabfg_1_1_virtual_pass_request_1a70bdb581547fd889f8fbd6ede814b8a5" kindref="member">RwVirtualAttachmentRequest</ref></type>
+          <declname>attachment</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>color_blob</declname>
+        </param>
+        <briefdescription>
+<para>Specifies that the <computeroutput>attachment</computeroutput> should be cleared with the color contained in the <computeroutput>color_blob</computeroutput> at the beginning of this pass. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The requested blob&apos;s type is inferred from the projector&apos;s argument type.</para>
+<para><simplesect kind="warning"><para>This causes a low-level pass break, so should be used sparingly.</para>
+</simplesect>
+<parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>projector</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A function to extract the color from the blob. Can be a pointer-to-member, i.e. <computeroutput>&amp;BlobType::field</computeroutput> or a (pure) function pointer. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>attachment</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The attachment to clear. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>color</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the blob to grab the color from. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="278" column="22" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" bodystart="278" bodyend="285"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_pass_request_1a70fecdfb3519a321034939532b518af4" prot="public" static="no" const="no" explicit="no" inline="no" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_pass_request" kindref="compound">VirtualPassRequest</ref></type>
+        <definition>VirtualPassRequest dabfg::VirtualPassRequest::resolve</definition>
+        <argsstring>(RwVirtualAttachmentRequest from, RwVirtualAttachmentRequest to) &amp;&amp;</argsstring>
+        <name>resolve</name>
+        <param>
+          <type><ref refid="classdabfg_1_1_virtual_pass_request_1a70bdb581547fd889f8fbd6ede814b8a5" kindref="member">RwVirtualAttachmentRequest</ref></type>
+          <declname>from</declname>
+        </param>
+        <param>
+          <type><ref refid="classdabfg_1_1_virtual_pass_request_1a70bdb581547fd889f8fbd6ede814b8a5" kindref="member">RwVirtualAttachmentRequest</ref></type>
+          <declname>to</declname>
+        </param>
+        <briefdescription>
+<para>Specifies that the attachment <computeroutput>from</computeroutput> is a MSAA texture that should be resolved to the texture <computeroutput>to</computeroutput> at the end of this pass. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="note"><para>The resource <computeroutput>from</computeroutput> must have been previously requested as either a color or a depth attachment.</para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>from</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The attachment to resolve. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>to</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The resource to resolve it to. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="296" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_pass_request_1aed4b82628bc1679008219bb948773d1a" prot="public" static="no" const="no" explicit="no" inline="no" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_pass_request" kindref="compound">VirtualPassRequest</ref></type>
+        <definition>VirtualPassRequest dabfg::VirtualPassRequest::vrsRate</definition>
+        <argsstring>(RoVirtualAttachmentRequest attachment) &amp;&amp;</argsstring>
+        <name>vrsRate</name>
+        <param>
+          <type><ref refid="classdabfg_1_1_virtual_pass_request_1a347dc2490174dbd14786b15f784f7e71" kindref="member">RoVirtualAttachmentRequest</ref></type>
+          <declname>attachment</declname>
+        </param>
+        <briefdescription>
+<para>Specifies the VRS rate texture attachment for this virtual pass. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The specified resource request MUST be a read. See <verbatim>embed:rst:inline :cpp:func:`d3d::set_variable_rate_shading_texture` </verbatim> for further details. Call this with either a resource request object or an object name. You can also optionally specify mip/layer using braces: <computeroutput>{&quot;cube&quot;, 0, 1}</computeroutput>. <simplesect kind="warning"><para>Currently, no driver supports mips/layers for VRS textures.</para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>attachment</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The attachment to use as a VRS rate. This method should be usable without understanding the internals of <ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">detail::VirtualAttachmentRequest</ref> most of the time. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="312" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classdabfg_1_1_virtual_pass_request_1a5e87079f58d7a63add173cb74d573686" prot="public" static="no" const="no" explicit="no" inline="no" refqual="rvalue" virt="non-virtual">
+        <type><ref refid="classdabfg_1_1_virtual_pass_request" kindref="compound">VirtualPassRequest</ref></type>
+        <definition>VirtualPassRequest dabfg::VirtualPassRequest::area</definition>
+        <argsstring>(IPoint2 from, IPoint2 to) &amp;&amp;</argsstring>
+        <name>area</name>
+        <param>
+          <type>IPoint2</type>
+          <declname>from</declname>
+        </param>
+        <param>
+          <type>IPoint2</type>
+          <declname>to</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="324" column="22"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Requests this node to be inside a render pass with specified attachments. It is a virtual pass, as FG will merge these virtual passes into a single physical pass where possible. This class must be used to further specify the details of a virtual pass. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>Attachments is a term that includes both render targets, depth targets and some other mobile-specific stuff. Note that methods that specify attachments take a special helper class, <ref refid="classdabfg_1_1detail_1_1_virtual_attachment_request" kindref="compound">detail::VirtualAttachmentRequest</ref>. It is not necessary to understand how this class works, just call these methods either with a resource request or a string resource name, or even a {request/name, mip, layer} initializer list for tricky cases like cube maps. </para>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" line="134" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/daBfg/virtualPassRequest.h" bodystart="135" bodyend="339"/>
+    <listofallmembers>
+      <member refid="classdabfg_1_1_virtual_pass_request_1a5e87079f58d7a63add173cb74d573686" prot="public" virt="non-virtual"><scope>dabfg::VirtualPassRequest</scope><name>area</name></member>
+      <member refid="classdabfg_1_1_virtual_pass_request_1a1955b2a7afc1b1a7e92b4f885e647b25" prot="private" virt="non-virtual"><scope>dabfg::VirtualPassRequest</scope><name>blobClearImpl</name></member>
+      <member refid="classdabfg_1_1_virtual_pass_request_1a2533ead8658d08cbd016baa6adf8d1d5" prot="public" virt="non-virtual"><scope>dabfg::VirtualPassRequest</scope><name>clear</name></member>
+      <member refid="classdabfg_1_1_virtual_pass_request_1a216eae66c47d819c60e54d2763f20eba" prot="public" virt="non-virtual"><scope>dabfg::VirtualPassRequest</scope><name>clear</name></member>
+      <member refid="classdabfg_1_1_virtual_pass_request_1a61491c24dcde22f3cb5822b8a6e85dda" prot="public" virt="non-virtual"><scope>dabfg::VirtualPassRequest</scope><name>clear</name></member>
+      <member refid="classdabfg_1_1_virtual_pass_request_1a706091dbc09d2669e4de0b65079169a6" prot="public" virt="non-virtual"><scope>dabfg::VirtualPassRequest</scope><name>color</name></member>
+      <member refid="classdabfg_1_1_virtual_pass_request_1ad0ea6f26ca95b411c8e53c499cb33d07" prot="public" virt="non-virtual"><scope>dabfg::VirtualPassRequest</scope><name>ColorRwVirtualAttachmentRequest</name></member>
+      <member refid="classdabfg_1_1_virtual_pass_request_1a87a60b23ead8d19c2b36377ed94c2df7" prot="public" virt="non-virtual"><scope>dabfg::VirtualPassRequest</scope><name>depthRo</name></member>
+      <member refid="classdabfg_1_1_virtual_pass_request_1a8f68d0f9de7a8ec460bf97cd50f04aca" prot="public" virt="non-virtual"><scope>dabfg::VirtualPassRequest</scope><name>depthRoAndBindToShaderVars</name></member>
+      <member refid="classdabfg_1_1_virtual_pass_request_1a6c0f170cd81a1af3bfc5ab9a39f7cb46" prot="public" virt="non-virtual"><scope>dabfg::VirtualPassRequest</scope><name>DepthRoAndSvBindVirtualAttachmentRequest</name></member>
+      <member refid="classdabfg_1_1_virtual_pass_request_1aaa1a46ab816ccbdbde40efc5bf38ad32" prot="public" virt="non-virtual"><scope>dabfg::VirtualPassRequest</scope><name>DepthRoVirtualAttachmentRequest</name></member>
+      <member refid="classdabfg_1_1_virtual_pass_request_1a62c6487d386c907a3d10d4e9a2bc9012" prot="public" virt="non-virtual"><scope>dabfg::VirtualPassRequest</scope><name>depthRw</name></member>
+      <member refid="classdabfg_1_1_virtual_pass_request_1a1f87e67c56dcb85ac32f92712357131b" prot="private" virt="non-virtual"><scope>dabfg::VirtualPassRequest</scope><name>getResUidForAttachment</name></member>
+      <member refid="classdabfg_1_1_virtual_pass_request_1af523e2542e289fa69380053214ffefe2" prot="private" virt="non-virtual"><scope>dabfg::VirtualPassRequest</scope><name>nodeId</name></member>
+      <member refid="classdabfg_1_1_virtual_pass_request_1ac7b716e6d41ff508ad2d8e5dad655d72" prot="private" virt="non-virtual"><scope>dabfg::VirtualPassRequest</scope><name>Registry</name></member>
+      <member refid="classdabfg_1_1_virtual_pass_request_1aab269c89744c3ae212838a3ecbfd0938" prot="private" virt="non-virtual"><scope>dabfg::VirtualPassRequest</scope><name>registry</name></member>
+      <member refid="classdabfg_1_1_virtual_pass_request_1a70fecdfb3519a321034939532b518af4" prot="public" virt="non-virtual"><scope>dabfg::VirtualPassRequest</scope><name>resolve</name></member>
+      <member refid="classdabfg_1_1_virtual_pass_request_1a347dc2490174dbd14786b15f784f7e71" prot="public" virt="non-virtual"><scope>dabfg::VirtualPassRequest</scope><name>RoVirtualAttachmentRequest</name></member>
+      <member refid="classdabfg_1_1_virtual_pass_request_1a9a747ab09ffe30e84cef38b525c03d14" prot="private" virt="non-virtual"><scope>dabfg::VirtualPassRequest</scope><name>RRP</name></member>
+      <member refid="classdabfg_1_1_virtual_pass_request_1a70bdb581547fd889f8fbd6ede814b8a5" prot="public" virt="non-virtual"><scope>dabfg::VirtualPassRequest</scope><name>RwVirtualAttachmentRequest</name></member>
+      <member refid="classdabfg_1_1_virtual_pass_request_1a0a491fe66abba4b5b66f5dab8f6e4684" prot="private" virt="non-virtual"><scope>dabfg::VirtualPassRequest</scope><name>VirtualPassRequest</name></member>
+      <member refid="classdabfg_1_1_virtual_pass_request_1aed4b82628bc1679008219bb948773d1a" prot="public" virt="non-virtual"><scope>dabfg::VirtualPassRequest</scope><name>vrsRate</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

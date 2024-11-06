@@ -1,0 +1,737 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="class_sbuffer" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>Sbuffer</compoundname>
+    <basecompoundref refid="class_d3d_resource" prot="public" virt="non-virtual">D3dResource</basecompoundref>
+    <basecompoundref refid="struct_resource_checker" prot="public" virt="non-virtual">ResourceChecker</basecompoundref>
+    <includes refid="dag__buffers_8h" local="no">dag_buffers.h</includes>
+    <innerclass refid="struct_sbuffer_1_1_i_reload_data" prot="public">Sbuffer::IReloadData</innerclass>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="class_sbuffer_1aaaa64c1cddc34a101e09ab67dd7be0f3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool Sbuffer::setReloadCallback</definition>
+        <argsstring>(IReloadData *)</argsstring>
+        <name>setReloadCallback</name>
+        <param>
+          <type><ref refid="struct_sbuffer_1_1_i_reload_data" kindref="compound">IReloadData</ref> *</type>
+        </param>
+        <briefdescription>
+<para>Set the Reload Callback object for the buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>true if the callback was successfully set, false otherwise </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="48" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="48" bodyend="48"/>
+      </memberdef>
+      <memberdef kind="function" id="class_sbuffer_1aa8d2a4883a2061c777f301b46664a24f" prot="public" static="no" const="yes" explicit="no" inline="yes" final="yes" virt="virtual">
+        <type>int</type>
+        <definition>int Sbuffer::restype</definition>
+        <argsstring>() const override final</argsstring>
+        <name>restype</name>
+        <reimplements refid="class_d3d_resource_1ae13960c0d8e6993322cd97969c37cfe2">restype</reimplements>
+        <briefdescription>
+<para>Returns the type of the <ref refid="class_d3d_resource" kindref="compound">D3dResource</ref>. It is always RES3D_SBUF for <ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> objects. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><xrefsect id="todo_1_todo000005"><xreftitle>Todo</xreftitle><xrefdescription><para>make RES3D_ a enum class. </para>
+</xrefdescription></xrefsect><simplesect kind="return"><para>int RES3D_SBUF. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="56" column="7" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="56" bodyend="56"/>
+      </memberdef>
+      <memberdef kind="function" id="class_sbuffer_1a5db17ff4984b33762e3f977c800054f1" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int Sbuffer::lock</definition>
+        <argsstring>(uint32_t ofs_bytes, uint32_t size_bytes, void **p, int flags)=0</argsstring>
+        <name>lock</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>ofs_bytes</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>size_bytes</declname>
+        </param>
+        <param>
+          <type>void **</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Locks a portion of the buffer for reading or writing.</para>
+<para><simplesect kind="warning"><para>It is better to use lock_sbuffer method for more safety.</para>
+</simplesect>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ofs_bytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The offset in bytes from the beginning of the buffer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>size_bytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The size in bytes of the portion to lock. The whole buffer will be locked if 0. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>p</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A pointer to a void pointer that will receive the locked memory address. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>flags</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Additional flags to control the locking behavior. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>An integer representing the result of the lock operation. 0 if the lock failed, 1 if the lock succeeded. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="69" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="class_sbuffer_1adeb26fce00357095237e09285b45690a" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int Sbuffer::unlock</definition>
+        <argsstring>()=0</argsstring>
+        <name>unlock</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Unlocks the buffer after it has been locked.</para>
+<para><simplesect kind="return"><para>An integer representing the result of the unlock operation. 0 if the unlock failed, 1 if the unlock succeeded. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="76" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="class_sbuffer_1a4b68173afcbea69b2842ad1f3289591d" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int Sbuffer::getFlags</definition>
+        <argsstring>() const =0</argsstring>
+        <name>getFlags</name>
+        <briefdescription>
+<para>Get the Flags object. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>Flags that control the buffer behavior and was set on a buffer creation. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="82" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="class_sbuffer_1a65407b468b9b1b51ef73f96b782e307b" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char* Sbuffer::getBufName</definition>
+        <argsstring>() const</argsstring>
+        <name>getBufName</name>
+        <briefdescription>
+<para>Get the Buffer name. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>The name of the buffer. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="88" column="14" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="88" bodyend="88"/>
+      </memberdef>
+      <memberdef kind="function" id="class_sbuffer_1a1597ce988ddef66fd056c3aa4fa29de7" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>virtual int Sbuffer::getElementSize</definition>
+        <argsstring>() const</argsstring>
+        <name>getElementSize</name>
+        <briefdescription>
+<para>Get the size of the structured buffer element. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This method works only for structured buffers.</para>
+<para><simplesect kind="return"><para>The size of the buffer element. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="97" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="97" bodyend="97"/>
+      </memberdef>
+      <memberdef kind="function" id="class_sbuffer_1a3410267f2b833071f1900ffb44537fb1" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>virtual int Sbuffer::getNumElements</definition>
+        <argsstring>() const</argsstring>
+        <name>getNumElements</name>
+        <briefdescription>
+<para>Get the amount of elements in the structured buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This method works only for structured buffers.</para>
+<para><simplesect kind="return"><para>int amount of elements in the buffer. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="105" column="15" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="105" bodyend="105"/>
+      </memberdef>
+      <memberdef kind="function" id="class_sbuffer_1ac9d711eddc70289ee3474283cb7486f9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool Sbuffer::copyTo</definition>
+        <argsstring>(Sbuffer *dest)</argsstring>
+        <name>copyTo</name>
+        <param>
+          <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *</type>
+          <declname>dest</declname>
+        </param>
+        <briefdescription>
+<para>Copy current buffer to another buffer. The sizes of the buffers should match exactly. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>dest</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The destination buffer. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>true if the buffer was successfully copied, false otherwise. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="112" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="112" bodyend="116"/>
+      </memberdef>
+      <memberdef kind="function" id="class_sbuffer_1a9c440cde819bc62f01e24c558ad8616c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool Sbuffer::copyTo</definition>
+        <argsstring>(Sbuffer *dest, uint32_t dst_ofs_bytes, uint32_t src_ofs_bytes, uint32_t size_bytes)</argsstring>
+        <name>copyTo</name>
+        <param>
+          <type><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> *</type>
+          <declname>dest</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>dst_ofs_bytes</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>src_ofs_bytes</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>size_bytes</declname>
+        </param>
+        <briefdescription>
+<para>Copy a portion of the buffer to another buffer. Both buffers must be large enough for the copied portion offset and size. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>dest</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The destination buffer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>dst_ofs_bytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The offset in bytes from the beginning of the destination buffer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>src_ofs_bytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The offset in bytes from the beginning of the source buffer. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>size_bytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The size in bytes of the portion to copy. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>true if the buffer was successfully copied, false otherwise. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="126" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="126" bodyend="133"/>
+      </memberdef>
+      <memberdef kind="function" id="class_sbuffer_1ad158a17e7a243262cfb3c6c3c5c7e509" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>int</type>
+        <definition>int Sbuffer::lockEx</definition>
+        <argsstring>(uint32_t ofs_bytes, uint32_t size_bytes, T **p, int flags)</argsstring>
+        <name>lockEx</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>ofs_bytes</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>size_bytes</declname>
+        </param>
+        <param>
+          <type>T **</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+<para>Locks a portion of the buffer for reading or writing. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="warning"><para>It is better to use lock_sbuffer method for more safety.</para>
+</simplesect>
+<parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>type of the data to lock </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ofs_bytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>offset in bytes from the beginning of the buffer </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>size_bytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>size in bytes of the portion to lock </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>p</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>pointer to a pointer that will receive the locked memory address </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>flags</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>additional flags to control the locking behavior VBLOCK_* </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>int 0 if the lock failed, 1 if the lock succeeded </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="148" column="14" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="148" bodyend="158"/>
+      </memberdef>
+      <memberdef kind="function" id="class_sbuffer_1a847dccde4430c12c1737e15c69a2c9b1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool Sbuffer::updateDataWithLock</definition>
+        <argsstring>(uint32_t ofs_bytes, uint32_t size_bytes, const void *src, int lockFlags)</argsstring>
+        <name>updateDataWithLock</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>ofs_bytes</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>size_bytes</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>src</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>lockFlags</declname>
+        </param>
+        <briefdescription>
+<para>Updates buffer content with the specified data using lock/memcpy/unlock. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ofs_bytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>offset in bytes from the beginning of the buffer </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>size_bytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>size in bytes of the portion to update. Must be non-zero. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>src</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>pointer to the source data </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>lockFlags</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>additional flags to control the locking behavior VBLOCK_* </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>true if the buffer was successfully updated, false otherwise </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="169" column="8" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="169" bodyend="181"/>
+      </memberdef>
+      <memberdef kind="function" id="class_sbuffer_1a54c4d28edee841bda8ccee85ee8233a6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool Sbuffer::updateData</definition>
+        <argsstring>(uint32_t ofs_bytes, uint32_t size_bytes, const void *src, uint32_t lockFlags)</argsstring>
+        <name>updateData</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>ofs_bytes</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>size_bytes</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>src</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>lockFlags</declname>
+        </param>
+        <briefdescription>
+<para>Updates buffer content with the specified data using lock/memcpy/unlock. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ofs_bytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>offset in bytes from the beginning of the buffer </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>size_bytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>size in bytes of the portion to update. Must be non-zero. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>src</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>pointer to the source data </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>lockFlags</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>additional flags to control the locking behavior VBLOCK_* </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>true if the buffer was successfully updated, false otherwise </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="192" column="16" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="192" bodyend="196"/>
+      </memberdef>
+      <memberdef kind="function" id="class_sbuffer_1a99727061a6ed4d537debb99300d5a19f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int Sbuffer::lock</definition>
+        <argsstring>(uint32_t ofs_bytes, uint32_t size_bytes, uint16_t **p, int flags)</argsstring>
+        <name>lock</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>ofs_bytes</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>size_bytes</declname>
+        </param>
+        <param>
+          <type>uint16_t **</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+<para>Lock method specified for index buffer with 16-bit indices. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ofs_bytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>offset in bytes from the beginning of the buffer </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>size_bytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>size in bytes of the portion to lock </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>p</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>pointer to a pointer that will receive the locked memory address </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>flags</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>additional flags to control the locking behavior VBLOCK_* </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>int 0 if the lock failed, 1 if the lock succeeded </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="207" column="14" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="207" bodyend="211"/>
+      </memberdef>
+      <memberdef kind="function" id="class_sbuffer_1ad205a97b6c5938a5aa634d2edc2bd87c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int Sbuffer::lock32</definition>
+        <argsstring>(uint32_t ofs_bytes, uint32_t size_bytes, uint32_t **p, int flags)</argsstring>
+        <name>lock32</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>ofs_bytes</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>size_bytes</declname>
+        </param>
+        <param>
+          <type>uint32_t **</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flags</declname>
+        </param>
+        <briefdescription>
+<para>Lock method specified for index buffer with 32-bit indices. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ofs_bytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>offset in bytes from the beginning of the buffer </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>size_bytes</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>size in bytes of the portion to lock </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>p</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>pointer to a pointer that will receive the locked memory address </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>flags</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>additional flags to control the locking behavior VBLOCK_* </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>int 0 if the lock failed, 1 if the lock succeeded </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="221" column="14" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="221" bodyend="225"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="class_sbuffer_1afd6ab7e784927c1867f8cade3966d437" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Sbuffer::~Sbuffer</definition>
+        <argsstring>() override</argsstring>
+        <name>~Sbuffer</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="228" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="228" bodyend="228"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>The <ref refid="class_sbuffer" kindref="compound">Sbuffer</ref> class represents a buffer used for 3D rendering. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>This class is derived from the <ref refid="class_d3d_resource" kindref="compound">D3dResource</ref> class and provides functionality for locking and unlocking the buffer, retrieving buffer information, and updating buffer data. It represents all possible buffer types in the engine. </para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>D3dResource</label>
+        <link refid="class_d3d_resource"/>
+      </node>
+      <node id="1">
+        <label>Sbuffer</label>
+        <link refid="class_sbuffer"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ResourceChecker</label>
+        <link refid="struct_resource_checker"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>D3dResource</label>
+        <link refid="class_d3d_resource"/>
+      </node>
+      <node id="1">
+        <label>Sbuffer</label>
+        <link refid="class_sbuffer"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ResourceChecker</label>
+        <link refid="struct_resource_checker"/>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" line="21" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_buffers.h" bodystart="22" bodyend="229"/>
+    <listofallmembers>
+      <member refid="struct_resource_checker_1ad215aec9f64927578acd086814e7c5b8" prot="protected" virt="non-virtual"><scope>Sbuffer</scope><name>checkLockParams</name></member>
+      <member refid="class_sbuffer_1ac9d711eddc70289ee3474283cb7486f9" prot="public" virt="virtual"><scope>Sbuffer</scope><name>copyTo</name></member>
+      <member refid="class_sbuffer_1a9c440cde819bc62f01e24c558ad8616c" prot="public" virt="virtual"><scope>Sbuffer</scope><name>copyTo</name></member>
+      <member refid="class_d3d_resource_1adf79387ed8aba74c3b89df96b6a90a4f" prot="public" virt="non-virtual"><scope>Sbuffer</scope><name>D3dResource</name></member>
+      <member refid="class_d3d_resource_1a934c63d0bda6062fc7c9c2dd35bffbe9" prot="public" virt="non-virtual"><scope>Sbuffer</scope><name>D3dResource</name></member>
+      <member refid="class_d3d_resource_1a23997f6bb699d0375bd442092f6fb5e3" prot="public" virt="pure-virtual"><scope>Sbuffer</scope><name>destroy</name></member>
+      <member refid="class_sbuffer_1a65407b468b9b1b51ef73f96b782e307b" prot="public" virt="non-virtual"><scope>Sbuffer</scope><name>getBufName</name></member>
+      <member refid="class_sbuffer_1a1597ce988ddef66fd056c3aa4fa29de7" prot="public" virt="virtual"><scope>Sbuffer</scope><name>getElementSize</name></member>
+      <member refid="class_sbuffer_1a4b68173afcbea69b2842ad1f3289591d" prot="public" virt="pure-virtual"><scope>Sbuffer</scope><name>getFlags</name></member>
+      <member refid="class_sbuffer_1a3410267f2b833071f1900ffb44537fb1" prot="public" virt="virtual"><scope>Sbuffer</scope><name>getNumElements</name></member>
+      <member refid="class_d3d_resource_1a8262208aee3abb3570d0c388ec586230" prot="public" virt="non-virtual"><scope>Sbuffer</scope><name>getResName</name></member>
+      <member refid="struct_resource_checker_1a9971dd4d9a644cf5e4058e7e7449f62e" prot="public" virt="non-virtual"><scope>Sbuffer</scope><name>init</name></member>
+      <member refid="class_sbuffer_1a5db17ff4984b33762e3f977c800054f1" prot="public" virt="pure-virtual"><scope>Sbuffer</scope><name>lock</name></member>
+      <member refid="class_sbuffer_1a99727061a6ed4d537debb99300d5a19f" prot="public" virt="non-virtual"><scope>Sbuffer</scope><name>lock</name></member>
+      <member refid="class_sbuffer_1ad205a97b6c5938a5aa634d2edc2bd87c" prot="public" virt="non-virtual"><scope>Sbuffer</scope><name>lock32</name></member>
+      <member refid="class_sbuffer_1ad158a17e7a243262cfb3c6c3c5c7e509" prot="public" virt="non-virtual"><scope>Sbuffer</scope><name>lockEx</name></member>
+      <member refid="class_d3d_resource_1a2fdd9232054fa86c41ecc44011223db9" prot="public" virt="non-virtual"><scope>Sbuffer</scope><name>operator=</name></member>
+      <member refid="struct_resource_checker_1abbf9b09586f85ea42cc8ce2aafdf707c" prot="public" virt="non-virtual"><scope>Sbuffer</scope><name>report</name></member>
+      <member refid="class_d3d_resource_1a0702cfae15c5cd119d96d4db15996aa7" prot="public" virt="pure-virtual"><scope>Sbuffer</scope><name>ressize</name></member>
+      <member refid="class_sbuffer_1aa8d2a4883a2061c777f301b46664a24f" prot="public" virt="virtual"><scope>Sbuffer</scope><name>restype</name></member>
+      <member refid="class_sbuffer_1aaaa64c1cddc34a101e09ab67dd7be0f3" prot="public" virt="virtual"><scope>Sbuffer</scope><name>setReloadCallback</name></member>
+      <member refid="class_d3d_resource_1a7dd4595bd42dae94ec3ae51541666a17" prot="public" virt="virtual"><scope>Sbuffer</scope><name>setResApiName</name></member>
+      <member refid="class_d3d_resource_1aa27c5cdb9b8eb6a248cb765c08a388f0" prot="public" virt="non-virtual"><scope>Sbuffer</scope><name>setResName</name></member>
+      <member refid="class_d3d_resource_1a56ecc38ce2fbec8ded7bd5a07d94e8a6" prot="public" virt="non-virtual"><scope>Sbuffer</scope><name>setResName</name></member>
+      <member refid="class_sbuffer_1adeb26fce00357095237e09285b45690a" prot="public" virt="pure-virtual"><scope>Sbuffer</scope><name>unlock</name></member>
+      <member refid="class_sbuffer_1a54c4d28edee841bda8ccee85ee8233a6" prot="public" virt="virtual"><scope>Sbuffer</scope><name>updateData</name></member>
+      <member refid="class_sbuffer_1a847dccde4430c12c1737e15c69a2c9b1" prot="public" virt="non-virtual"><scope>Sbuffer</scope><name>updateDataWithLock</name></member>
+      <member refid="class_d3d_resource_1aeed57bcecefe747fac21813560d315ba" prot="protected" virt="virtual"><scope>Sbuffer</scope><name>~D3dResource</name></member>
+      <member refid="class_sbuffer_1afd6ab7e784927c1867f8cade3966d437" prot="protected" virt="non-virtual"><scope>Sbuffer</scope><name>~Sbuffer</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

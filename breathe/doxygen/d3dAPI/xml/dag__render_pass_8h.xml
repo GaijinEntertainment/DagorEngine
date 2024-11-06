@@ -1,0 +1,213 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="dag__render_pass_8h" kind="file" language="C++">
+    <compoundname>dag_renderPass.h</compoundname>
+    <includes local="no">util/dag_inttypes.h</includes>
+    <includes refid="dag__consts_8h" local="no">drv/3d/dag_consts.h</includes>
+    <includes refid="dag__render_target_8h" local="no">drv/3d/dag_renderTarget.h</includes>
+    <includes refid="dag__resource_8h" local="no">drv/3d/dag_resource.h</includes>
+    <incdepgraph>
+      <node id="9">
+        <label>drv/3d/dag_resource.h</label>
+        <link refid="dag__resource_8h_source"/>
+      </node>
+      <node id="6">
+        <label>drv/3d/dag_consts_base.h</label>
+        <link refid="dag__consts__base_8h_source"/>
+      </node>
+      <node id="16">
+        <label>math/dag_e3dColor.h</label>
+      </node>
+      <node id="11">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="8">
+        <label>generic/dag_span.h</label>
+      </node>
+      <node id="14">
+        <label>math/dag_TMatrix4.h</label>
+      </node>
+      <node id="13">
+        <label>math/dag_TMatrix.h</label>
+      </node>
+      <node id="15">
+        <label>math/dag_lsbVisitor.h</label>
+      </node>
+      <node id="12">
+        <label>util/dag_preprocessor.h</label>
+      </node>
+      <node id="10">
+        <label>drv/3d/dag_decl.h</label>
+        <link refid="dag__decl_8h_source"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>drv/3d/dag_renderTarget.h</label>
+        <link refid="dag__render_target_8h_source"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>drv/3d/dag_driverCode.h</label>
+        <link refid="dag__driver_code_8h_source"/>
+      </node>
+      <node id="3">
+        <label>drv/3d/dag_consts.h</label>
+        <link refid="dag__consts_8h_source"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>util/dag_inttypes.h</label>
+      </node>
+      <node id="5">
+        <label>drv/3d/dag_shaderModelVersion.h</label>
+        <link refid="dag__shader_model_version_8h_source"/>
+      </node>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h</label>
+        <link refid="dag__render_pass_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+    </incdepgraph>
+    <innerclass refid="struct_render_pass_bind" prot="public">RenderPassBind</innerclass>
+    <innerclass refid="struct_render_pass_target_desc" prot="public">RenderPassTargetDesc</innerclass>
+    <innerclass refid="struct_render_pass_target" prot="public">RenderPassTarget</innerclass>
+    <innerclass refid="struct_render_pass_desc" prot="public">RenderPassDesc</innerclass>
+    <innerclass refid="struct_render_pass_area" prot="public">RenderPassArea</innerclass>
+    <innernamespace refid="namespaced3d">d3d</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_inttypes.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_consts.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_renderTarget.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_resource.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="class_base_texture" kindref="compound">BaseTexture</ref>;</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="struct_render_pass_bind" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="struct_render_pass_bind" kindref="compound">RenderPassBind</ref></highlight></codeline>
+<codeline lineno="21"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="23" refid="struct_render_pass_bind_1a76b73abd7c81e03b0767c02a4eba4849" refkind="member"><highlight class="normal"><sp/><sp/>int32_t<sp/><ref refid="struct_render_pass_bind_1a76b73abd7c81e03b0767c02a4eba4849" kindref="member">target</ref>;</highlight></codeline>
+<codeline lineno="25" refid="struct_render_pass_bind_1a491792959dae830d192d1231048825f9" refkind="member"><highlight class="normal"><sp/><sp/>int32_t<sp/><ref refid="struct_render_pass_bind_1a491792959dae830d192d1231048825f9" kindref="member">subpass</ref>;</highlight></codeline>
+<codeline lineno="27" refid="struct_render_pass_bind_1a5a429d7438f860887a5b52ea9aac9788" refkind="member"><highlight class="normal"><sp/><sp/>int32_t<sp/><ref refid="struct_render_pass_bind_1a5a429d7438f860887a5b52ea9aac9788" kindref="member">slot</ref>;</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="30" refid="struct_render_pass_bind_1a21117c567ac252a82203413c56e49ab2" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="group___render_pass_consts_1ga8431b4a076f4044781f7f7189e8d8533" kindref="member">RenderPassTargetAction</ref><sp/><ref refid="struct_render_pass_bind_1a21117c567ac252a82203413c56e49ab2" kindref="member">action</ref>;</highlight></codeline>
+<codeline lineno="32" refid="struct_render_pass_bind_1a9acc0955c7828e84d9bb1aece0a182c4" refkind="member"><highlight class="normal"><sp/><sp/>ResourceBarrier<sp/><ref refid="struct_render_pass_bind_1a9acc0955c7828e84d9bb1aece0a182c4" kindref="member">dependencyBarrier</ref>;</highlight></codeline>
+<codeline lineno="33"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37" refid="struct_render_pass_target_desc" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="struct_render_pass_target_desc" kindref="compound">RenderPassTargetDesc</ref></highlight></codeline>
+<codeline lineno="38"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="40" refid="struct_render_pass_target_desc_1a05896be5b9ad0c26353929d1893fd650" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="class_base_texture" kindref="compound">BaseTexture</ref><sp/>*<ref refid="struct_render_pass_target_desc_1a05896be5b9ad0c26353929d1893fd650" kindref="member">templateResource</ref>;</highlight></codeline>
+<codeline lineno="42" refid="struct_render_pass_target_desc_1adb0b976b127b7debab3385de095a85de" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="struct_render_pass_target_desc_1adb0b976b127b7debab3385de095a85de" kindref="member">texcf</ref>;</highlight></codeline>
+<codeline lineno="44" refid="struct_render_pass_target_desc_1aa3e300d8c7ae9f0a96ca5570d63d422c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="struct_render_pass_target_desc_1aa3e300d8c7ae9f0a96ca5570d63d422c" kindref="member">aliased</ref>;</highlight></codeline>
+<codeline lineno="45"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48" refid="struct_render_pass_target" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="struct_render_pass_target" kindref="compound">RenderPassTarget</ref></highlight></codeline>
+<codeline lineno="49"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="51" refid="struct_render_pass_target_1a578000519993e9a70968d322eef26f63" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="struct_render_target" kindref="compound">RenderTarget</ref><sp/><ref refid="struct_render_pass_target_1a578000519993e9a70968d322eef26f63" kindref="member">resource</ref>;</highlight></codeline>
+<codeline lineno="53" refid="struct_render_pass_target_1ab90b06c8e28e16fa35cea8c2a800fa51" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="union_resource_clear_value" kindref="compound">ResourceClearValue</ref><sp/><ref refid="struct_render_pass_target_1ab90b06c8e28e16fa35cea8c2a800fa51" kindref="member">clearValue</ref>;</highlight></codeline>
+<codeline lineno="54"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight></codeline>
+<codeline lineno="57" refid="struct_render_pass_desc" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="struct_render_pass_desc" kindref="compound">RenderPassDesc</ref></highlight></codeline>
+<codeline lineno="58"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="60" refid="struct_render_pass_desc_1a10c65882d7504de102fa6a26e1c6e2d9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="struct_render_pass_desc_1a10c65882d7504de102fa6a26e1c6e2d9" kindref="member">debugName</ref>;</highlight></codeline>
+<codeline lineno="62" refid="struct_render_pass_desc_1a55264431c437eefc29143cdfa8b15e45" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="struct_render_pass_desc_1a55264431c437eefc29143cdfa8b15e45" kindref="member">targetCount</ref>;</highlight></codeline>
+<codeline lineno="64" refid="struct_render_pass_desc_1ad1bbfe0d049f985f8b738964fccdb758" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="struct_render_pass_desc_1ad1bbfe0d049f985f8b738964fccdb758" kindref="member">bindCount</ref>;</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight></codeline>
+<codeline lineno="67" refid="struct_render_pass_desc_1ae1ea021ad80fc94f89aa6228956624fe" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_render_pass_target_desc" kindref="compound">RenderPassTargetDesc</ref><sp/>*<ref refid="struct_render_pass_desc_1ae1ea021ad80fc94f89aa6228956624fe" kindref="member">targetsDesc</ref>;</highlight></codeline>
+<codeline lineno="69" refid="struct_render_pass_desc_1a83587cfef2f495314d3161324e4bde50" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_render_pass_bind" kindref="compound">RenderPassBind</ref><sp/>*<ref refid="struct_render_pass_desc_1a83587cfef2f495314d3161324e4bde50" kindref="member">binds</ref>;</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="74" refid="struct_render_pass_desc_1a7a6a51bace4c444b02ae4ddf90519141" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="struct_render_pass_desc_1a7a6a51bace4c444b02ae4ddf90519141" kindref="member">subpassBindingOffset</ref>;</highlight></codeline>
+<codeline lineno="75"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight></codeline>
+<codeline lineno="78" refid="struct_render_pass_area" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="struct_render_pass_area" kindref="compound">RenderPassArea</ref></highlight></codeline>
+<codeline lineno="79"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/>uint32_t<sp/>left;</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/>uint32_t<sp/>top;</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/>uint32_t<sp/>width;</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/>uint32_t<sp/>height;</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>minZ;</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>maxZ;</highlight></codeline>
+<codeline lineno="86"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">d3d</highlight></codeline>
+<codeline lineno="91"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="93"><highlight class="keyword">struct<sp/></highlight><highlight class="normal">RenderPass;</highlight></codeline>
+<codeline lineno="106" refid="group___render_pass_d3_d_1ga4d90bfe31385c2f6a059b20a2035b02e" refkind="member"><highlight class="normal">RenderPass<sp/>*<ref refid="group___render_pass_d3_d_1ga4d90bfe31385c2f6a059b20a2035b02e" kindref="member">create_render_pass</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_render_pass_desc" kindref="compound">RenderPassDesc</ref><sp/>&amp;rp_desc);</highlight></codeline>
+<codeline lineno="111" refid="group___render_pass_d3_d_1ga7d9a33d5eb0008a70925a63a0e6c8f9c" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___render_pass_d3_d_1ga7d9a33d5eb0008a70925a63a0e6c8f9c" kindref="member">delete_render_pass</ref>(RenderPass<sp/>*rp);</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight></codeline>
+<codeline lineno="124" refid="group___render_pass_d3_d_1gaa4a6f280d5f8c0652a81bde072acd524" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___render_pass_d3_d_1gaa4a6f280d5f8c0652a81bde072acd524" kindref="member">begin_render_pass</ref>(RenderPass<sp/>*rp,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_render_pass_area" kindref="compound">RenderPassArea</ref><sp/>area,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_render_pass_target" kindref="compound">RenderPassTarget</ref><sp/>*targets);</highlight></codeline>
+<codeline lineno="132" refid="group___render_pass_d3_d_1ga377ea5974efb7d1c02250abc4b64e400" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___render_pass_d3_d_1ga377ea5974efb7d1c02250abc4b64e400" kindref="member">next_subpass</ref>();</highlight></codeline>
+<codeline lineno="139" refid="group___render_pass_d3_d_1ga053cea528c68defea3886ff83e537f83" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___render_pass_d3_d_1ga053cea528c68defea3886ff83e537f83" kindref="member">end_render_pass</ref>();</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"></highlight></codeline>
+<codeline lineno="147"><highlight class="preprocessor">#if<sp/>DAGOR_DBGLEVEL<sp/>&gt;<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="148"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___render_pass_d3_d_1ga80a581f2c8f7194358104dcabeb2eaae" kindref="member">allow_render_pass_target_load</ref>();</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="150" refid="group___render_pass_d3_d_1ga80a581f2c8f7194358104dcabeb2eaae" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___render_pass_d3_d_1ga80a581f2c8f7194358104dcabeb2eaae" kindref="member">allow_render_pass_target_load</ref>()<sp/>{}</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="152"><highlight class="normal"></highlight></codeline>
+<codeline lineno="154"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="155"><highlight class="normal"></highlight></codeline>
+<codeline lineno="156"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_D3D_MULTI</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="157"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_interface_table.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="158"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">d3d</highlight></codeline>
+<codeline lineno="159"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>RenderPass<sp/>*<ref refid="group___render_pass_d3_d_1ga4d90bfe31385c2f6a059b20a2035b02e" kindref="member">create_render_pass</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_render_pass_desc" kindref="compound">RenderPassDesc</ref><sp/>&amp;rp_desc)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>d3di.create_render_pass(rp_desc);<sp/>}</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___render_pass_d3_d_1ga7d9a33d5eb0008a70925a63a0e6c8f9c" kindref="member">delete_render_pass</ref>(RenderPass<sp/>*rp)<sp/>{<sp/>d3di.delete_render_pass(rp);<sp/>}</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___render_pass_d3_d_1gaa4a6f280d5f8c0652a81bde072acd524" kindref="member">begin_render_pass</ref>(RenderPass<sp/>*rp,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_render_pass_area" kindref="compound">RenderPassArea</ref><sp/>area,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="struct_render_pass_target" kindref="compound">RenderPassTarget</ref><sp/>*targets)</highlight></codeline>
+<codeline lineno="163"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/>d3di.begin_render_pass(rp,<sp/>area,<sp/>targets);</highlight></codeline>
+<codeline lineno="165"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___render_pass_d3_d_1ga377ea5974efb7d1c02250abc4b64e400" kindref="member">next_subpass</ref>()<sp/>{<sp/>d3di.next_subpass();<sp/>}</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___render_pass_d3_d_1ga053cea528c68defea3886ff83e537f83" kindref="member">end_render_pass</ref>()<sp/>{<sp/>d3di.end_render_pass();<sp/>}</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"></highlight></codeline>
+<codeline lineno="169"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>DAGOR_DBGLEVEL<sp/>&gt;<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="170"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group___render_pass_d3_d_1ga80a581f2c8f7194358104dcabeb2eaae" kindref="member">allow_render_pass_target_load</ref>()</highlight></codeline>
+<codeline lineno="171"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(d3di.driverCode.<ref refid="class_driver_code_1acf90ede402c72f3c9e8c18d2260856e9" kindref="member">is</ref>(d3d::vulkan))</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/><sp/><sp/>d3di.allow_render_pass_target_load();</highlight></codeline>
+<codeline lineno="174"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="176"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="177"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderPass.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,88 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygenindex xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="index.xsd" version="1.9.1" xml:lang="en-US">
+  <compound refid="structresource__slot_1_1_create" kind="struct"><name>resource_slot::Create</name>
+    <member refid="structresource__slot_1_1_create_1a8dadba2fe39c58de975923929bd719c4" kind="variable"><name>slot</name></member>
+    <member refid="structresource__slot_1_1_create_1a995c99f12e786847eb90890d72c22ab2" kind="variable"><name>resource</name></member>
+    <member refid="structresource__slot_1_1_create_1a4ff02b7a8cad522ef4047cf653b88648" kind="function"><name>Create</name></member>
+  </compound>
+  <compound refid="structresource__slot_1_1_node_handle_with_slots_access" kind="struct"><name>resource_slot::NodeHandleWithSlotsAccess</name>
+    <member refid="structresource__slot_1_1_node_handle_with_slots_access_1ab965d796225fe1747791be864eb02009" kind="variable"><name>nameSpace</name></member>
+    <member refid="structresource__slot_1_1_node_handle_with_slots_access_1a4dd12bb0cf636f28608189a3700fdcc5" kind="variable"><name>id</name></member>
+    <member refid="structresource__slot_1_1_node_handle_with_slots_access_1a35bc341e900fbd8a19c03ac442e56a15" kind="variable"><name>generation</name></member>
+    <member refid="structresource__slot_1_1_node_handle_with_slots_access_1a195ef152122ff32dbe6dd1b5bdbdfa29" kind="variable"><name>isValid</name></member>
+    <member refid="structresource__slot_1_1_node_handle_with_slots_access_1a86e1b6dc24fb16eb88b44b2a95a71b9f" kind="function"><name>NodeHandleWithSlotsAccess</name></member>
+    <member refid="structresource__slot_1_1_node_handle_with_slots_access_1a551a8feb88750fa46636fa3552c8dc10" kind="function"><name>NodeHandleWithSlotsAccess</name></member>
+    <member refid="structresource__slot_1_1_node_handle_with_slots_access_1ab4e38189dbd30a3c7ca41426d198d8ea" kind="function"><name>operator=</name></member>
+    <member refid="structresource__slot_1_1_node_handle_with_slots_access_1a19f1e1ab8e0a3f21acb218dddbef2544" kind="function"><name>NodeHandleWithSlotsAccess</name></member>
+    <member refid="structresource__slot_1_1_node_handle_with_slots_access_1ae1c6d878f5a6788b568a426b2a0fc0d4" kind="function"><name>operator=</name></member>
+    <member refid="structresource__slot_1_1_node_handle_with_slots_access_1ac64a7b11fdb53aee52bff75ba9ba59b2" kind="function"><name>reset</name></member>
+    <member refid="structresource__slot_1_1_node_handle_with_slots_access_1afdbd3049554d54f4c5bfc4b9ae366398" kind="function"><name>valid</name></member>
+    <member refid="structresource__slot_1_1_node_handle_with_slots_access_1a0af3b823b0da20fc0ce3f6b0e74ea006" kind="function"><name>~NodeHandleWithSlotsAccess</name></member>
+    <member refid="structresource__slot_1_1_node_handle_with_slots_access_1a5ff017e0fe659dd6b2dc6af016097ddf" kind="function"><name>_noteContext</name></member>
+    <member refid="structresource__slot_1_1_node_handle_with_slots_access_1ae4215a2f7a64891c5cf9c08e7e460875" kind="function"><name>NodeHandleWithSlotsAccess</name></member>
+  </compound>
+  <compound refid="structresource__slot_1_1_read" kind="struct"><name>resource_slot::Read</name>
+    <member refid="structresource__slot_1_1_read_1a8102424c4d6ea572d754b03d251c3b9f" kind="variable"><name>slot</name></member>
+    <member refid="structresource__slot_1_1_read_1a6c3d4781dbefd4670a2c81f544828b3a" kind="variable"><name>priority</name></member>
+    <member refid="structresource__slot_1_1_read_1a00e917e7262e2f34ac0ef1baaa376c27" kind="variable"><name>DEFAULT_READ_PRIORITY</name></member>
+    <member refid="structresource__slot_1_1_read_1a5b9c7c4d1d8c8b4d02c858b35b33203a" kind="function"><name>Read</name></member>
+  </compound>
+  <compound refid="structresource__slot_1_1_state" kind="struct"><name>resource_slot::State</name>
+    <member refid="structresource__slot_1_1_state_1a6df0f65564951b80a2c1d2991a30ba58" kind="variable"><name>nameSpace</name></member>
+    <member refid="structresource__slot_1_1_state_1a8666edac86e2892232009983fc488a3c" kind="variable"><name>nodeId</name></member>
+    <member refid="structresource__slot_1_1_state_1a276697757ddc2db6a07f1ff587b0c41a" kind="variable"><name>order</name></member>
+    <member refid="structresource__slot_1_1_state_1ab0cb7e93d6023ce963ce83ebf3a844c0" kind="variable"><name>size</name></member>
+    <member refid="structresource__slot_1_1_state_1aba51a73e48df1d0b71ceffa59315387d" kind="function"><name>State</name></member>
+    <member refid="structresource__slot_1_1_state_1a62a5295a923429a71f86456317ca2275" kind="function"><name>State</name></member>
+    <member refid="structresource__slot_1_1_state_1a175732da7fccf8eb448ccd7cd49bbeba" kind="function"><name>operator=</name></member>
+    <member refid="structresource__slot_1_1_state_1ac462e14dd9304f2a400bcfca3135fe29" kind="function"><name>State</name></member>
+    <member refid="structresource__slot_1_1_state_1a4cd441ede3c76d5043cfdf5b7bd2a9d1" kind="function"><name>operator=</name></member>
+    <member refid="structresource__slot_1_1_state_1a7c115a4c18755452173c3c8707ead590" kind="function"><name>~State</name></member>
+    <member refid="structresource__slot_1_1_state_1a0d3c4e7b5713266f01b2bcda8ef03e10" kind="function"><name>resourceToReadFrom</name></member>
+    <member refid="structresource__slot_1_1_state_1a01ef17c1c8309c738449b095787769e5" kind="function"><name>resourceToCreateFor</name></member>
+    <member refid="structresource__slot_1_1_state_1a4694fbe64d47bd4e6c97a64c7b51a652" kind="function"><name>orderInChain</name></member>
+    <member refid="structresource__slot_1_1_state_1a798eedee88dc023e58183e48eef84353" kind="function"><name>sizeOfChain</name></member>
+    <member refid="structresource__slot_1_1_state_1a832e383b2cd0997adcb4e02a31d902f5" kind="function"><name>isNodeLastInChain</name></member>
+    <member refid="structresource__slot_1_1_state_1ab7e9d297aacbdc04bfce39d5b19813c5" kind="function"><name>State</name></member>
+    <member refid="structresource__slot_1_1_state_1ac6326836ea8c7a31367d05b9b3d3eecb" kind="friend"><name>resolve_access</name></member>
+  </compound>
+  <compound refid="structresource__slot_1_1_update" kind="struct"><name>resource_slot::Update</name>
+    <member refid="structresource__slot_1_1_update_1ab13e0a43ec440fd7f685d838381de475" kind="variable"><name>slot</name></member>
+    <member refid="structresource__slot_1_1_update_1a8f622e08f61e11f0b7b2a8d846a6eda6" kind="variable"><name>resource</name></member>
+    <member refid="structresource__slot_1_1_update_1ac8641f37acb487c4610aca2f80dbdb7c" kind="variable"><name>priority</name></member>
+    <member refid="structresource__slot_1_1_update_1a912d02a74981cadaefc459b69c2b22ce" kind="function"><name>Update</name></member>
+  </compound>
+  <compound refid="namespacedabfg" kind="namespace"><name>dabfg</name>
+    <member refid="state_8h_1ab2a08b825a0e112212fb41e1249d682c" kind="function"><name>root</name></member>
+  </compound>
+  <compound refid="namespacedas" kind="namespace"><name>das</name>
+  </compound>
+  <compound refid="namespaceresource__slot" kind="namespace"><name>resource_slot</name>
+    <member refid="node_handle_with_slots_access_vector_8h_1a35fcae9b16cfbf8a92e1ae28da92d52f" kind="typedef"><name>NodeHandleWithSlotsAccessVector</name></member>
+    <member refid="register_access_8h_1a20107bff9d0ee7004d84c6456c767373" kind="function"><name>register_access</name></member>
+    <member refid="register_access_8h_1acf4a05b313288aa0c6d737cf3c542cde" kind="function"><name>register_access</name></member>
+    <member refid="resolve_access_8h_1afff154ac3725f493ecee9557ec582f9c" kind="function"><name>resolve_access</name></member>
+  </compound>
+  <compound refid="actions_8h" kind="file"><name>actions.h</name>
+  </compound>
+  <compound refid="node_handle_with_slots_access_8h" kind="file"><name>nodeHandleWithSlotsAccess.h</name>
+  </compound>
+  <compound refid="node_handle_with_slots_access_vector_8h" kind="file"><name>nodeHandleWithSlotsAccessVector.h</name>
+  </compound>
+  <compound refid="register_access_8h" kind="file"><name>registerAccess.h</name>
+  </compound>
+  <compound refid="resolve_access_8h" kind="file"><name>resolveAccess.h</name>
+  </compound>
+  <compound refid="state_8h" kind="file"><name>state.h</name>
+  </compound>
+  <compound refid="dir_089e0d3966ab15eefa92c1e290379d38" kind="dir"><name>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs</name>
+  </compound>
+  <compound refid="dir_dfe6bed94bcf04987b38a6f8493ab81c" kind="dir"><name>/home/runner/work/DagorEngine/DagorEngine/prog</name>
+  </compound>
+  <compound refid="dir_e2c640b54affa6f86d83d95c201d0b2f" kind="dir"><name>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude</name>
+  </compound>
+  <compound refid="dir_ea1f7663ccf2bdfe1baad716ec70d619" kind="dir"><name>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render</name>
+  </compound>
+  <compound refid="dir_b901b6855fa0141d224444cca13ae14b" kind="dir"><name>/home/runner/work/DagorEngine/DagorEngine/prog/gameLibs/publicInclude/render/resourceSlot</name>
+  </compound>
+</doxygenindex>

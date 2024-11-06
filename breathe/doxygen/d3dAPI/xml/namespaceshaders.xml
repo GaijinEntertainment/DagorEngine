@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="namespaceshaders" kind="namespace" language="C++">
+    <compoundname>shaders</compoundname>
+    <innerclass refid="classshaders_1_1_render_state_id_dummy" prot="public">shaders::RenderStateIdDummy</innerclass>
+    <innerclass refid="classshaders_1_1_driver_render_state_id_dummy" prot="public">shaders::DriverRenderStateIdDummy</innerclass>
+    <innerclass refid="structshaders_1_1_render_state_bits" prot="public">shaders::RenderStateBits</innerclass>
+    <innerclass refid="structshaders_1_1_render_state" prot="public">shaders::RenderState</innerclass>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="dag__render_state_id_8h_1a510cbe82d68ee77d08e1399e88a6f3e9" prot="public" static="no">
+        <type>GenerationRefId&lt; 8, <ref refid="classshaders_1_1_render_state_id_dummy" kindref="compound">RenderStateIdDummy</ref> &gt;</type>
+        <definition>using shaders::RenderStateId = typedef GenerationRefId&lt;8, RenderStateIdDummy&gt;</definition>
+        <argsstring></argsstring>
+        <name>RenderStateId</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStateId.h" line="14" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStateId.h" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="dag__render_state_id_8h_1a18d95bd7603b031ab4919fb4e4ad8022" prot="public" static="no">
+        <type>GenerationRefId&lt; 8, <ref refid="classshaders_1_1_driver_render_state_id_dummy" kindref="compound">DriverRenderStateIdDummy</ref> &gt;</type>
+        <definition>using shaders::DriverRenderStateId = typedef GenerationRefId&lt;8, DriverRenderStateIdDummy&gt;</definition>
+        <argsstring></argsstring>
+        <name>DriverRenderStateId</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStateId.h" line="18" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStateId.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_renderStateId.h" line="9" column="1"/>
+  </compounddef>
+</doxygen>
