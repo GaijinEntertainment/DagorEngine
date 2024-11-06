@@ -497,8 +497,8 @@ enum class DescriptorReservationResult
   NewHeap,
 };
 
-#define DX12_USE_SIMPLER_GPU_DESCRIPTOR_HEAPS       0
-#define DX12_USE_SIMPLE_SEARCH_GPU_DESCRIPTOR_HEAPS 1
+#define DX12_USE_SIMPLER_GPU_DESCRIPTOR_HEAPS       1
+#define DX12_USE_SIMPLE_SEARCH_GPU_DESCRIPTOR_HEAPS 0
 #if DX12_USE_SIMPLER_GPU_DESCRIPTOR_HEAPS
 class ShaderResourceViewDescriptorHeapManager
 {

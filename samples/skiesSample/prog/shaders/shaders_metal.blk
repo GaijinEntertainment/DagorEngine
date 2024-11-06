@@ -6,6 +6,7 @@ source
 {
   includePath:t="./source"
 
+  file:t = "fft_cs.dshl"
   include "../../../../prog/samples/commonShaders/shadersList.blk"
   include fftWaterList.blk
   include shadersList.blk

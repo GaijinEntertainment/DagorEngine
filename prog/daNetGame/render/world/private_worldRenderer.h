@@ -479,7 +479,11 @@ public:
   void removePuddlesInCrater(const Point3 &pos, float radius);
   void delayedInvalidateAfterHeightmapChange(const BBox3 &box);
 
-  virtual void setWorldBBox(const BBox3 &bbox) override { worldBBox = bbox; }
+  virtual void setWorldBBox(const BBox3 &bbox) override
+  {
+    worldBBox = bbox;
+    additionalBBox.setempty();
+  }
 
   bool getLandHeight(const Point2 &p, float &ht, Point3 *normal) const;
 
@@ -1200,6 +1204,7 @@ private:
   DPoint3 oldWorldPos;
 
   BBox3 worldBBox;
+  BBox3 additionalBBox;
 
   SatelliteRenderer satelliteRenderer;
 

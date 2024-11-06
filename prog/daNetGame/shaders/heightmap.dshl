@@ -533,7 +533,11 @@ shader heightmap
 
           GBUFFER_OUTPUT output = encode_gbuffer(result, pointToEye, GET_SCREEN_POS(input.pos));
           ##if lmesh_rendering_mode == rendering_reflection
-            output.color.rgb = apply_fog(output.color.rgb, pointToEye);
+            // note: it won't work on mobile as-is
+            half3 add,loss;
+            get_fog(pointToEye.xyz, loss, add);
+            add = pack_hdr(add);
+            output.color.rgb = output.color.rgb*loss + add;
           ##endif
           return output;
         }

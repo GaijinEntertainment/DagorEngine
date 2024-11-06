@@ -383,6 +383,7 @@ struct RelaxSharedConstants
   uint32_t diffMaterialMask;
   uint32_t specMaterialMask;
   uint32_t resetHistory;
+  uint32_t padding;
 };
 
 static int divide_up(int x, int y) { return (x + y - 1) / y; }
@@ -2040,6 +2041,9 @@ static void denoise_reflection_relax(const ReflectionDenoiser &params)
 
   {
     TIME_D3D_PROFILE(relax::classify_tiles);
+
+    static_assert(sizeof(relaxSharedConstants) % (4 * sizeof(float)) == 0,
+      "RelaxSharedConstants size must be multiple of sizeof(float4) for d3d::set_cb0_data");
 
     d3d::set_cb0_data(STAGE_CS, (const float *)&relaxSharedConstants, divide_up(sizeof(relaxSharedConstants), 16));
     d3d::set_tex(STAGE_CS, 0, viewZ, false);

@@ -1,5 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include "gpu_capture.h"
 #include "device.h"
 
 #if USE_PIX

@@ -42,38 +42,33 @@ bool MotionMatchingController::getPose(AnimV20::AnimBlender::TlsContext &tls, co
     int16_t animId = animMap.animId;
 
 
+    AnimV20::AnimBlender::PrsResult &chPrs = tls.chPrs[animId];
+
     AnimV20::AnimBlender::NodeWeight &wtPos = tls.wtPos[animId];
     wtPos.totalNum = 1;
     wtPos.wTotal = nodeWeight;
-    AnimV20::AnimBlender::WeightedNode<AnimV20::AnimKeyPoint3> &chPos = tls.chPos[animId];
+    AnimV20::AnimBlender::WeightedNode &chPos = tls.chPos[animId];
     chPos.readyFlg = AnimV20::AnimBlender::RM_POS_B;
-    chPos.blendSrc[0].w = nodeWeight;
-    chPos.blendSrc[0].t = 0;
-    const vec3f *pos = geomId == rootId ? &rootPRS.position : &resultAnimation.position[geomId];
-    static_assert(offsetof(AnimV20::AnimKeyPoint3, p) == 0);
-    chPos.blendSrc[0].k = reinterpret_cast<const AnimV20::AnimKeyPoint3 *>(pos);
+    chPos.blendWt[0] = nodeWeight;
+    chPrs.pos = (geomId == rootId ? rootPRS.position : resultAnimation.position[geomId]);
 
     AnimV20::AnimBlender::NodeWeight &wtRot = tls.wtRot[animId];
     wtRot.totalNum = 1;
     wtRot.wTotal = nodeWeight;
-    AnimV20::AnimBlender::WeightedNode<AnimV20::AnimKeyQuat> &chRot = tls.chRot[animId];
+    AnimV20::AnimBlender::WeightedNode &chRot = tls.chRot[animId];
     chRot.readyFlg = AnimV20::AnimBlender::RM_ROT_B;
-    chRot.blendSrc[0].w = nodeWeight;
-    chRot.blendSrc[0].t = 0;
-    const quat4f *rot = geomId == rootId ? &rootPRS.rotation : &resultAnimation.rotation[geomId];
-    static_assert(offsetof(AnimV20::AnimKeyQuat, p) == 0);
-    chRot.blendSrc[0].k = reinterpret_cast<const AnimV20::AnimKeyQuat *>(rot);
+    chRot.blendWt[0] = nodeWeight;
+    chPrs.rot = (geomId == rootId ? rootPRS.rotation : resultAnimation.rotation[geomId]);
 
     if (geomId == rootId)
     {
       AnimV20::AnimBlender::NodeWeight &wtScl = tls.wtScl[animId];
       wtScl.totalNum = 1;
       wtScl.wTotal = nodeWeight;
-      AnimV20::AnimBlender::WeightedNode<AnimV20::AnimKeyPoint3> &chScl = tls.chScl[animId];
+      AnimV20::AnimBlender::WeightedNode &chScl = tls.chScl[animId];
       chScl.readyFlg = AnimV20::AnimBlender::RM_SCL_B;
-      chScl.blendSrc[0].w = nodeWeight;
-      chScl.blendSrc[0].t = 0;
-      chScl.blendSrc[0].k = reinterpret_cast<const AnimV20::AnimKeyPoint3 *>(&rootPRS.scale);
+      chScl.blendWt[0] = nodeWeight;
+      chPrs.scl = rootPRS.scale;
     }
   }
   return true;

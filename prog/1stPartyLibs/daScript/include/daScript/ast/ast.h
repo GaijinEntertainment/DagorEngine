@@ -1394,6 +1394,7 @@ namespace das
         bool        completion = false;                 // this code is being compiled for 'completion' mode
         bool        export_all = false;                 // when user compiles, export all (public?) functions
         bool        serialize_main_module = true;       // if false, then we recompile main module each time
+        bool        keep_alive = false;                 // produce keep-alive noodes
     // error reporting
         int32_t     always_report_candidates_threshold = 6; // always report candidates if there are less than this number
     // infer passes

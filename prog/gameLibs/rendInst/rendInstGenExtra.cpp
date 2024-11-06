@@ -364,7 +364,6 @@ int rendinst::addRIGenExtraResIdx(const char *ri_res_name, int ri_pool_ref, int 
   bool immortal = bool(ri_flags & AddRIFlag::Immortal);
   float combinedRendinstHeight = 0.0f;
   int id = riExtraMap.getNameId(ri_res_name);
-  float ttl = 15.f;
   const DataBlock &paramsBlock = getRiParamsBlockByName(ri_res_name);
 
   if (!immortal)
@@ -457,7 +456,8 @@ int rendinst::addRIGenExtraResIdx(const char *ri_res_name, int ri_pool_ref, int 
   riExtra[id].riPoolRefLayer = ri_pool_ref_layer;
   riExtra[id].useShadow = useShadow;
   riExtra[id].immortal = immortal;
-  riExtra[id].ttl = ttl;
+  riExtra[id].destrTimeToLive = 15.0f;
+  riExtra[id].destrTimeToKinematic = -1.0f;
   riExtra[id].rendinstHeight = combinedRendinstHeight;
   riExtra[id].killsNearEffects = false;
 
@@ -470,6 +470,10 @@ int rendinst::addRIGenExtraResIdx(const char *ri_res_name, int ri_pool_ref, int 
     riExtra[id].damageThreshold = b->getReal("damageThreshold", b->getReal("impulseThreshold", 0));
     riExtra[id].rendinstHeight = b->getReal("combinedRendinstHeight", 0.0f);
     riExtra[id].killsNearEffects = b->getBool("killsNearEffects", false);
+    riExtra[id].destrTimeToLive = b->getReal("destrTimeToLive", riExtra[id].destrTimeToLive);
+    if (b->getBool("destrDynDeform", false))
+      riExtra[id].destrTimeToKinematic = 0.05f;
+    riExtra[id].destrTimeToKinematic = b->getReal("destrTimeToKinematic", riExtra[id].destrTimeToKinematic);
 #if RI_VERBOSE_OUTPUT
     debug("riExtra hp=%.1f damageThres=%.3f regenRate=%.3f", riExtra[id].initialHP, riExtra[id].damageThreshold,
       riExtra[id].regenHpRate);

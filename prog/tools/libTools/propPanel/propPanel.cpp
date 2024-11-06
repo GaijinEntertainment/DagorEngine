@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <propPanel/propPanel.h>
+#include <propPanel/imguiHelper.h>
 #include "imageHelper.h"
 #include "messageQueueInternal.h"
 #include "tooltipHelper.h"
@@ -14,7 +15,11 @@ void release()
   message_queue.release();
 }
 
-void after_new_frame() { tooltip_helper.afterNewFrame(); }
+void after_new_frame()
+{
+  ImguiHelper::afterNewFrame();
+  tooltip_helper.afterNewFrame();
+}
 
 void before_end_frame() { tooltip_helper.beforeEndFrame(); }
 

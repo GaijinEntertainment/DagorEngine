@@ -20,11 +20,13 @@ public:
   {
     tree = new PropPanel::TreeBaseWindow(this, nullptr, 0, 0, hdpi::_pxActual(0), hdpi::_pxActual(0), "",
       /*icons_show = */ true);
+
+    shownTypes.resize(select_asset_dlg.getAssetMgr()->getAssetTypesCount(), false);
   }
 
   void fillTree()
   {
-    dag::ConstSpan<int> allowedTypes = selectAssetDlg.getAllowedTypes();
+    const dag::ConstSpan<int> allowedTypeIndexes = selectAssetDlg.getAllowedTypes();
     const DagorAsset *selectedAsset = getSelectedAsset();
 
     closedFolders.clear();
@@ -37,9 +39,9 @@ public:
     const dag::Vector<String> &favorites = AssetSelectorGlobalState::getFavorites();
     for (const String &assetName : favorites)
     {
-      const DagorAsset *asset = selectAssetDlg.getAssetByName(assetName, allowedTypes);
+      const DagorAsset *asset = selectAssetDlg.getAssetByName(assetName, allowedTypeIndexes);
 
-      if (!asset || eastl::find(allowedTypes.begin(), allowedTypes.end(), asset->getType()) == allowedTypes.end())
+      if (!asset || !shownTypes[asset->getType()])
         continue;
 
       if (!SelectAssetDlg::matchesSearchText(asset->getName(), textToSearch))
@@ -93,6 +95,14 @@ public:
     showHierarchy = show;
     fillTree();
     AssetSelectorGlobalState::setShowHierarchyInFavorites(showHierarchy);
+  }
+
+  void setShownTypes(dag::ConstSpan<bool> new_shown_types)
+  {
+    G_ASSERT(new_shown_types.size() == shownTypes.size());
+
+    for (int i = 0; i < new_shown_types.size(); ++i)
+      shownTypes[i] = new_shown_types[i];
   }
 
   String &getTextToSearch() { return textToSearch; }
@@ -363,6 +373,7 @@ private:
   ska::flat_hash_map<int, FavoriteTreeFolder *> folderIndexToFavoriteTreeFolderMap;
   ska::flat_hash_set<const DagorAssetFolder *> closedFolders;
   FavoriteTreeFolder rootFavoriteTreeFolder;
+  dag::Vector<bool> shownTypes;
   String textToSearch;
   bool showHierarchy = true;
 };

@@ -225,9 +225,9 @@ const DataBlock *AnimV20::AnimationGraph::getDebugBlenderState(AnimV20::AnimDbgC
     b->setInt("frame", wa_key / (TIME_TicksPerSec / 30));
     ord++;
 
-    const AnimDataChan<AnimChanPoint3> &pos = blender.bnl[i]->anim->anim.pos;
-    const AnimDataChan<AnimChanPoint3> &scl = blender.bnl[i]->anim->anim.scl;
-    const AnimDataChan<AnimChanQuat> &rot = blender.bnl[i]->anim->anim.rot;
+    const AnimDataChan &pos = blender.bnl[i]->anim->anim.pos;
+    const AnimDataChan &scl = blender.bnl[i]->anim->anim.scl;
+    const AnimDataChan &rot = blender.bnl[i]->anim->anim.rot;
 
     const AnimBlender::ChannelMap &cm = blender.bnlChan[i];
 

@@ -333,6 +333,14 @@ VULKAN_END_EXTENSION_FUCTION_PACK(SwapchainKHR);
 
 VULKAN_DECLARE_EXTENSION(SwapchainKHR, KHR_SWAPCHAIN);
 
+VULKAN_MAKE_EXTENSION_FUNCTION_DEF(vkCmdPipelineBarrier2KHR)
+
+VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
+VULKAN_EXTENSION_FUNCTION_PACK_ENTRY(vkCmdPipelineBarrier2KHR)
+VULKAN_END_EXTENSION_FUCTION_PACK(Synchronization2KHR);
+
+VULKAN_DECLARE_EXTENSION(Synchronization2KHR, KHR_SYNCHRONIZATION_2);
+
 #if VK_EXT_debug_marker
 VULKAN_MAKE_EXTENSION_FUNCTION_DEF(vkDebugMarkerSetObjectTagEXT)
 VULKAN_MAKE_EXTENSION_FUNCTION_DEF(vkDebugMarkerSetObjectNameEXT)
@@ -806,6 +814,10 @@ class VulkanDevice : public VulkanDeviceCore<SwapchainKHR
 #if VK_KHR_16bit_storage
                        ,
                        SixteenBitStorageKHR
+#endif
+#if VK_KHR_synchronization2
+                       ,
+                       Synchronization2KHR
 #endif
                        >
 {

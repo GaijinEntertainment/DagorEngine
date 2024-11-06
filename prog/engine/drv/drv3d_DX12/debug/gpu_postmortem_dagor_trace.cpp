@@ -1,5 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include "gpu_postmortem_dagor_trace.h"
 #include "device.h"
 
 namespace drv3d_dx12::debug::gpu_postmortem::dagor
@@ -139,7 +140,8 @@ void Trace::drawIndexed(const call_stack::CommandData &debug_info, D3DGraphicsCo
 }
 
 void Trace::drawIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
-  const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline, BufferResourceReferenceAndOffset buffer)
+  const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
+  const BufferResourceReferenceAndOffset &buffer)
 {
   auto &list = commandListTable.getList(cmd);
   auto id = list.traceRecodring.record(cmd);
@@ -148,7 +150,7 @@ void Trace::drawIndirect(const call_stack::CommandData &debug_info, D3DGraphicsC
 
 void Trace::drawIndexedIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
   const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
-  BufferResourceReferenceAndOffset buffer)
+  const BufferResourceReferenceAndOffset &buffer)
 {
   auto &list = commandListTable.getList(cmd);
   auto id = list.traceRecodring.record(cmd);
@@ -156,7 +158,7 @@ void Trace::drawIndexedIndirect(const call_stack::CommandData &debug_info, D3DGr
 }
 
 void Trace::dispatchIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
-  const PipelineStageStateBase &state, ComputePipeline &pipeline, BufferResourceReferenceAndOffset buffer)
+  const PipelineStageStateBase &state, ComputePipeline &pipeline, const BufferResourceReferenceAndOffset &buffer)
 {
   auto &list = commandListTable.getList(cmd);
   auto id = list.traceRecodring.record(cmd);
@@ -181,7 +183,7 @@ void Trace::dispatchMesh(const call_stack::CommandData &debug_info, D3DGraphicsC
 
 void Trace::dispatchMeshIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
   const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
-  BufferResourceReferenceAndOffset args, BufferResourceReferenceAndOffset count, uint32_t max_count)
+  const BufferResourceReferenceAndOffset &args, const BufferResourceReferenceAndOffset &count, uint32_t max_count)
 {
   auto &list = commandListTable.getList(cmd);
   auto id = list.traceRecodring.record(cmd);

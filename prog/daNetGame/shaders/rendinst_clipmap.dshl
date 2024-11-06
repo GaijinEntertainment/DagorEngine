@@ -123,6 +123,7 @@ shader rendinst_clipmap, rendinst_landclass
     static float max_tessellation_quality = 30 no_warnings;
     static float max_dispacement_distance = 30 no_warnings;
     static float min_dispacement_distance = 8 no_warnings;
+    static float tessellation_transition_distance = 1.0 no_warnings;
   }
   else
   {
@@ -131,6 +132,7 @@ shader rendinst_clipmap, rendinst_landclass
     static float max_tessellation_quality = 30 no_warnings;
     static float max_dispacement_distance = 16 no_warnings;
     static float min_dispacement_distance = 0 no_warnings;
+    static float tessellation_transition_distance = 1.0 no_warnings;
   }
 
   bool global_tessellation_enabled = (in_editor_assume == yes && object_tess_factor == object_tess_factor_on) || (in_editor_assume != yes && hmap_object_tess_factor == hmap_object_tess_factor_on);
@@ -624,6 +626,6 @@ shader rendinst_clipmap, rendinst_landclass
       }
     }
 
-    USE_PN_TRIANGULATION(camera_base_offset)
+    USE_PN_TRIANGULATION(camera_base_offset, get_min_displacement_distance(), get_max_dispacement_distance(), get_tessellation_transition_distance())
   }
 }

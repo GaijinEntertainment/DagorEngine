@@ -309,7 +309,7 @@ void init(elem_rules_fn elem_rules_init)
   UniqueBVHBuffer emptyInstances(
     d3d::buffers::create_persistent_sr_structured(sizeof(HWInstance), 1, "empty_tlas_instances", d3d::buffers::Init::Zero));
 
-  tlasEmpty = UniqueTLAS::create(0, RaytraceBuildFlags::NONE);
+  tlasEmpty = UniqueTLAS::create(0, RaytraceBuildFlags::NONE, "empty");
 
   raytrace::TopAccelerationStructureBuildInfo buildInfo = {};
   buildInfo.instanceBuffer = emptyInstances.get();
@@ -1235,11 +1235,11 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
 
   static_assert(sizeof(HWInstance) == 64, "HWInstance size must be 64 bytes. If this changes, adjust the allocation size below.");
 
-  auto round_up = [](int value, int alignment) { return (value + alignment - 1) & ~(alignment - 1); };
+  auto round_up = [](uint32_t value, uint32_t alignment) { return (value + alignment - 1) & ~(alignment - 1); };
 
-  auto uploadSizeMain = round_up(instanceCount + grassBufferSize + gobjBufferSize, 1024);
-  auto uploadSizeTerrain = terrainBlases.size();
-  auto uploadSizeParticles = fxBufferSize;
+  auto uploadSizeMain = max(round_up(instanceCount + grassBufferSize + gobjBufferSize, 1024 << 3), 1U << 17);
+  auto uploadSizeTerrain = round_up(terrainBlases.size() + 1, 64);
+  auto uploadSizeParticles = max(round_up(fxBufferSize, 1024), 1U << 13);
 
   if (context_id->tlasUploadMain && uploadSizeMain > context_id->tlasUploadMain->getNumElements())
     context_id->tlasUploadMain.close();
@@ -1255,20 +1255,23 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
   if (!context_id->tlasUploadMain)
   {
     context_id->tlasUploadMain =
-      dag::buffers::create_ua_sr_structured(sizeof(HWInstance), uploadSizeMain + 1024, ccn(context_id, "bvh_tlas_upload_main"));
+      dag::buffers::create_ua_sr_structured(sizeof(HWInstance), uploadSizeMain, ccn(context_id, "bvh_tlas_upload_main"));
     HANDLE_LOST_DEVICE_STATE(context_id->tlasUploadMain, );
+    logdbg("tlasUploadMain resized to %u", uploadSizeMain);
   }
   if (!context_id->tlasUploadTerrain)
   {
-    context_id->tlasUploadTerrain = dag::buffers::create_ua_sr_structured(sizeof(HWInstance), max(uploadSizeTerrain, 100U),
-      ccn(context_id, "bvh_tlas_upload_terrain"));
+    context_id->tlasUploadTerrain =
+      dag::buffers::create_ua_sr_structured(sizeof(HWInstance), uploadSizeTerrain, ccn(context_id, "bvh_tlas_upload_terrain"));
     HANDLE_LOST_DEVICE_STATE(context_id->tlasUploadTerrain, );
+    logdbg("tlasUploadTerrain resized to %u", uploadSizeTerrain);
   }
   if (!context_id->tlasUploadParticles)
   {
-    context_id->tlasUploadParticles = dag::buffers::create_ua_sr_structured(sizeof(HWInstance), uploadSizeParticles + 1000U,
-      ccn(context_id, "bvh_tlas_upload_particles"));
+    context_id->tlasUploadParticles =
+      dag::buffers::create_ua_sr_structured(sizeof(HWInstance), uploadSizeParticles, ccn(context_id, "bvh_tlas_upload_particles"));
     HANDLE_LOST_DEVICE_STATE(context_id->tlasUploadParticles, );
+    logdbg("tlasUploadParticles resized to %u", uploadSizeParticles);
   }
 
   context_id->animatedInstanceCount = 0;
@@ -1684,7 +1687,7 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
   {
     TIME_D3D_PROFILE(copy_to_tlas_terrain_upload);
     if (auto upload = lock_sbuffer<HWInstance>(context_id->tlasUploadTerrain.getBuf(), 0, 0, VBLOCK_WRITEONLY))
-      memcpy(upload.get(), instanceDescs.data() + terrainDescIndex, uploadSizeTerrain * sizeof(HWInstance));
+      memcpy(upload.get(), instanceDescs.data() + terrainDescIndex, terrainBlases.size() * sizeof(HWInstance));
   }
 
   {
@@ -1704,27 +1707,43 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
 
   if (!context_id->tlasMain && context_id->tlasUploadMain)
   {
-    context_id->tlasMain = UniqueTLAS::create(context_id->tlasUploadMain->getNumElements(), RaytraceBuildFlags::FAST_TRACE);
+    context_id->tlasMain = UniqueTLAS::create(context_id->tlasUploadMain->getNumElements(), RaytraceBuildFlags::FAST_TRACE, "main");
     HANDLE_LOST_DEVICE_STATE(context_id->tlasMain, );
+    HANDLE_LOST_DEVICE_STATE(context_id->tlasMain.getScratchBuffer(), );
+
+    logdbg("Main TLAS creation for %u instances. AS size: %ukb, Scratch size: %ukb.", context_id->tlasUploadMain->getNumElements(),
+      context_id->tlasMain.getASSize() >> 10, context_id->tlasMain.getScratchBuffer()->getNumElements() >> 10);
   }
 
   if (!context_id->tlasTerrain && context_id->tlasUploadTerrain)
   {
-    context_id->tlasTerrain = UniqueTLAS::create(context_id->tlasUploadTerrain->getNumElements(), RaytraceBuildFlags::FAST_TRACE);
+    context_id->tlasTerrain =
+      UniqueTLAS::create(context_id->tlasUploadTerrain->getNumElements(), RaytraceBuildFlags::FAST_TRACE, "terrain");
     HANDLE_LOST_DEVICE_STATE(context_id->tlasTerrain, );
+    HANDLE_LOST_DEVICE_STATE(context_id->tlasTerrain.getScratchBuffer(), );
+
+    logdbg("Terrain TLAS creation for %u instances. AS size: %ukb, Scratch size: %ukb.",
+      context_id->tlasUploadTerrain->getNumElements(), context_id->tlasTerrain.getASSize() >> 10,
+      context_id->tlasTerrain.getScratchBuffer()->getNumElements() >> 10);
   }
 
   if (!context_id->tlasParticles && context_id->tlasUploadParticles)
   {
-    context_id->tlasParticles = UniqueTLAS::create(context_id->tlasUploadParticles->getNumElements(), RaytraceBuildFlags::FAST_TRACE);
+    context_id->tlasParticles =
+      UniqueTLAS::create(context_id->tlasUploadParticles->getNumElements(), RaytraceBuildFlags::FAST_TRACE, "particle");
     HANDLE_LOST_DEVICE_STATE(context_id->tlasParticles, );
+    HANDLE_LOST_DEVICE_STATE(context_id->tlasParticles.getScratchBuffer(), );
+
+    logdbg("Particle TLAS creation for %u instances. AS size: %ukb, Scratch size: %ukb.",
+      context_id->tlasUploadParticles->getNumElements(), context_id->tlasParticles.getASSize() >> 10,
+      context_id->tlasParticles.getScratchBuffer()->getNumElements() >> 10);
   }
 
   TIME_D3D_PROFILE(build_tlas);
 
   context_id->tlasMainValid = context_id->tlasMain && cpuInstanceCount;
-  context_id->tlasTerrainValid = context_id->tlasTerrain && uploadSizeTerrain;
-  context_id->tlasParticlesValid = context_id->tlasParticles && uploadSizeParticles;
+  context_id->tlasTerrainValid = context_id->tlasTerrain && terrainBlases.size();
+  context_id->tlasParticlesValid = context_id->tlasParticles && fxBufferSize;
 
   raytrace::BatchedTopAccelerationStructureBuildInfo tlasUpdate[3];
   int tlasCount = 0;
@@ -1732,12 +1751,16 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
   auto fillTlas = [&](const UniqueTLAS &tlas, const UniqueBuf &instances, uint32_t instance_count) {
     auto &tasbi = tlasUpdate[tlasCount].tasbi;
 
+    G_ASSERT(tlas.get());
+    G_ASSERT(tlas.getScratchBuffer());
+
     tlasUpdate[tlasCount].as = tlas.get();
     tasbi.doUpdate = false;
     tasbi.instanceBuffer = instances.getBuf();
     tasbi.instanceCount = instance_count;
     tasbi.scratchSpaceBufferSizeInBytes = tlas.getBuildScratchSize();
-    tasbi.scratchSpaceBuffer = alloc_scratch_buffer(tasbi.scratchSpaceBufferSizeInBytes, tasbi.scratchSpaceBufferOffsetInBytes);
+    tasbi.scratchSpaceBufferOffsetInBytes = 0;
+    tasbi.scratchSpaceBuffer = tlas.getScratchBuffer();
     tasbi.flags = RaytraceBuildFlags::FAST_TRACE;
     ++tlasCount;
 
@@ -1752,13 +1775,13 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
 
   if (context_id->tlasTerrainValid)
   {
-    fillTlas(context_id->tlasTerrain, context_id->tlasUploadTerrain, uploadSizeTerrain);
+    fillTlas(context_id->tlasTerrain, context_id->tlasUploadTerrain, terrainBlases.size());
     CHECK_LOST_DEVICE_STATE();
   }
 
   if (context_id->tlasParticlesValid)
   {
-    fillTlas(context_id->tlasParticles, context_id->tlasUploadParticles, uploadSizeParticles);
+    fillTlas(context_id->tlasParticles, context_id->tlasUploadParticles, fxBufferSize);
     CHECK_LOST_DEVICE_STATE();
   }
 

@@ -157,9 +157,9 @@ void readback()
           }
         }
 
+        output += '\n';
+        output += stackhlp_get_call_stack_str(g_stacks_on_frames[frame][it->stack_id].data(), MAX_STACK_SIZE);
         logerr(output);
-        String str = stackhlp_get_call_stack_str(g_stacks_on_frames[frame][it->stack_id].data(), MAX_STACK_SIZE);
-        logerr(str.c_str());
       }
     }
     g_stacks_on_frames[frame].clear();

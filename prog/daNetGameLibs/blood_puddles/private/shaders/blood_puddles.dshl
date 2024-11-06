@@ -7,9 +7,9 @@ interval special_vision : special_vision_off<1, thermal_vision;
 
 texture perlin_noise3d;
 float blood_puddle_depth = 0.03;
-float blood_puddle_reflectance = 0.3;
-float blood_puddle_smoothness = 1.0;
-float blood_puddle_smoothness_edge = 0.9;
+float blood_puddle_reflectance = 0.3 always_referenced;
+float blood_puddle_smoothness = 1.0 always_referenced;
+float blood_puddle_smoothness_edge = 0.9 always_referenced;
 float4 blood_puddle_high_intensity_color = (0.157, 0.012, 0.000, 1.000);
 float4 blood_puddle_low_intensity_color = (0.086, 0.024, 0.020, 0.960);
 float4 blood_decals_atlas_size = (1, 1, 0, 0);

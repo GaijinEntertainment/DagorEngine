@@ -14,9 +14,9 @@ public:
 
   bool init(AnimV20::AnimData *a, const char *node_name);
 
-  void calcAnimTm(TMatrix &tm, int t, int d_keys_no_blend = -1);
+  void calcAnimTm(TMatrix &tm, int t);
 
-  bool isValid() const { return anim.get() && (pos || rot || scl); }
+  bool isValid() const { return anim.get() && prs.valid(); }
 
   bool setTargetNode(const char *node_name);
 
@@ -24,7 +24,5 @@ public:
 
 protected:
   Ptr<AnimV20::AnimData> anim;
-  const AnimV20::AnimChanPoint3 *pos;
-  const AnimV20::AnimChanQuat *rot;
-  const AnimV20::AnimChanPoint3 *scl;
+  AnimV20::PrsAnimNodeRef prs;
 };

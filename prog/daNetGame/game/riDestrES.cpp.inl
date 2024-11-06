@@ -38,6 +38,7 @@
 #include "main/gameLoad.h"
 
 #include "render/renderer.h"
+#include "camera/sceneCam.h"
 #include "sound/rendinstSound.h"
 
 namespace ridestr
@@ -350,7 +351,8 @@ void init(bool have_render)
 {
   destructables::init(dgs_get_settings());
   rendinstdestr::init(is_server() ? &on_ridestr_changed_server : nullptr, true, //
-    &rendinstdestr::create_tree_rend_inst_destr, &rendinstdestr::remove_tree_rendinst_destr, &rendinstsound::rendinst_tree_sound_cb);
+    &rendinstdestr::create_tree_rend_inst_destr, &rendinstdestr::remove_tree_rendinst_destr, &rendinstsound::rendinst_tree_sound_cb,
+    have_render ? +[] { return get_cam_itm().getcol(3); } : nullptr);
 
   if (have_render)
   {

@@ -289,18 +289,6 @@ void close_buffers()
   g_inline_index_buffer.destroy();
 }
 
-void recreate_buffers()
-{
-  debug("recreate_buffers: %d", g_buffers.totalUsed());
-  ITERATE_OVER_OBJECT_POOL(g_buffers, i)
-    if (g_buffers[i].obj != NULL)
-    {
-      g_buffers[i].obj->recreateBuf(g_buffers[i].obj);
-      watchdog_kick();
-    }
-  ITERATE_OVER_OBJECT_POOL_RESTORE(g_buffers)
-}
-
 void gather_buffers_to_recreate(FramememResourceSizeInfoCollection &collection)
 {
   debug("gather_buffers_to_recreate: %d", g_buffers.totalUsed());

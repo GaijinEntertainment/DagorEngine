@@ -109,6 +109,11 @@ struct PhysicalDeviceSet
   Tab<VkDisplayPropertiesKHR> displays;
 #endif
 
+#if VK_KHR_synchronization2
+  VkPhysicalDeviceSynchronization2Features synchronization2Features = //
+    {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES, nullptr, false};
+#endif
+
   bool hasDevProps2 = false;
 
   bool hasConditionalRender = false;
@@ -130,6 +135,7 @@ struct PhysicalDeviceSet
   bool hasPageableDeviceLocalMemory = false;
   bool hasPipelineCreationCacheControl = false;
   bool hasSixteenBitStorage = false;
+  bool hasSynchronization2 = false;
   uint32_t maxBindlessTextures = 0;
   uint32_t maxBindlessSamplers = 0;
   uint32_t maxBindlessBuffers = 0;
@@ -358,6 +364,13 @@ struct PhysicalDeviceSet
     if (hasExtension<SixteenBitStorageKHR>())
     {
       chain_structs(target, sixteenBitStorageFeatures);
+    }
+#endif
+
+#if VK_KHR_synchronization2
+    if (hasExtension<Synchronization2KHR>())
+    {
+      chain_structs(target, synchronization2Features);
     }
 #endif
   }
@@ -592,6 +605,16 @@ struct PhysicalDeviceSet
     }
     else
       hasSixteenBitStorage = false;
+#endif
+
+#if VK_KHR_synchronization2
+    if (hasExtension<Synchronization2KHR>())
+    {
+      hasSynchronization2 = synchronization2Features.synchronization2;
+      synchronization2Features.pNext = nullptr;
+    }
+    else
+      hasSynchronization2 = false;
 #endif
   }
 
@@ -1513,6 +1536,7 @@ struct PhysicalDeviceSet
       boolToStr(hasShaderFloat16), boolToStr(hasMemoryPriority), boolToStr(hasPageableDeviceLocalMemory));
     apd("hasPipelineCreationCacheControl: %s", boolToStr(hasPipelineCreationCacheControl));
     apd("hasSixteenBitStorage: %s", boolToStr(hasSixteenBitStorage));
+    apd("hasSynchronization2: %s", boolToStr(hasSynchronization2));
   }
 
   inline void print(uint32_t device_index)

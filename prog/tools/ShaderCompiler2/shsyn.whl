@@ -93,6 +93,7 @@ terminal
          "fsh_4_1" (SHTOK_fsh_4_1),
          "fsh_5_0" (SHTOK_fsh_5_0),
          "fsh_6_0" (SHTOK_fsh_6_0),
+         "fsh_6_2" (SHTOK_fsh_6_2),
          "fsh_6_6" (SHTOK_fsh_6_6),
          "bindless" (SHTOK_bindless),
          "globtm" (SHTOK_globtm),
@@ -402,7 +403,7 @@ equal-op(equal_op) ->
   ("=="|"!="|"<"|"<="|">"|">=")=op;
 
 hardware-support(hardware_support) ->
-  ("metal"|"metaliOS"|"vulkan"|"pc"|"dx11"|"dx12"|"xbox"|"scarlett"|"ps4"|"ps5"|"fsh_4_0"|"fsh_5_0"|"fsh_6_0"|"fsh_6_6"|"mesh"|"bindless")=var;
+  ("metal"|"metaliOS"|"vulkan"|"pc"|"dx11"|"dx12"|"xbox"|"scarlett"|"ps4"|"ps5"|"fsh_4_0"|"fsh_5_0"|"fsh_6_0"|"fsh_6_2"|"fsh_6_6"|"mesh"|"bindless")=var;
 
 bool-value(bool_value) ->
   ("shader"=nothing equal-op=cmpop ident=shader) |

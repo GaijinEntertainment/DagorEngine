@@ -116,7 +116,7 @@ static void initialize()
 {
   if (!is_enabled() || (!settingsFromConfig.externalTextures && renderingResolution == IPoint2(0, 0)))
   {
-    teardown();
+    g_ctx.reset();
     return;
   }
 
@@ -128,7 +128,7 @@ static void initialize()
   if (!g_ctx || !g_ctx->tileMaxCs || !g_ctx->neighborMaxCs || !g_ctx->motionBlurCs)
   {
     logerr("Failed to initialize object motion blur shaders!");
-    teardown();
+    g_ctx.reset();
     return;
   }
 

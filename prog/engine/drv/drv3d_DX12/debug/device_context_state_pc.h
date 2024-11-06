@@ -44,17 +44,19 @@ public:
       first_instance, topology);
   }
   void debugDrawIndirect(DeviceState &dds, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
-    const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline, BufferResourceReferenceAndOffset buffer)
+    const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
+    const BufferResourceReferenceAndOffset &buffer)
   {
     dds.drawIndirect(getCommandData(), cmd, vs, ps, pipeline_base, pipeline, buffer);
   }
   void debugDrawIndexedIndirect(DeviceState &dds, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
-    const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline, BufferResourceReferenceAndOffset buffer)
+    const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
+    const BufferResourceReferenceAndOffset &buffer)
   {
     dds.drawIndexedIndirect(getCommandData(), cmd, vs, ps, pipeline_base, pipeline, buffer);
   }
   void debugDispatchIndirect(DeviceState &dds, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &state,
-    ComputePipeline &pipeline, BufferResourceReferenceAndOffset buffer)
+    ComputePipeline &pipeline, const BufferResourceReferenceAndOffset &buffer)
   {
     dds.dispatchIndirect(getCommandData(), cmd, state, pipeline, buffer);
   }
@@ -71,8 +73,8 @@ public:
   }
 
   void debugDispatchMeshIndirect(DeviceState &dds, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
-    const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline, BufferResourceReferenceAndOffset args,
-    BufferResourceReferenceAndOffset count, uint32_t max_count)
+    const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
+    const BufferResourceReferenceAndOffset &args, const BufferResourceReferenceAndOffset &count, uint32_t max_count)
   {
     dds.dispatchMeshIndirect(getCommandData(), cmd, vs, ps, pipeline_base, pipeline, args, count, max_count);
   }

@@ -1,7 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include "util/value_range.h"
 #include "vulkan_device.h"
 
 #include <drv/3d/dag_d3dResource.h>
@@ -9,6 +8,7 @@
 #include <EASTL/vector.h>
 #include <EASTL/hash_map.h>
 #include <EASTL/array.h>
+#include <value_range.h>
 #include "bindless_common.h"
 #include "image_view_state.h"
 #include "buffer_ref.h"

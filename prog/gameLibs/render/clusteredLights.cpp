@@ -363,7 +363,7 @@ bool ClusteredLights::cullOutOfFrustumLights(mat44f_cref globtm, SpotLightsManag
 
     const uint32_t words = spotWords + omniWords;
     const uint32_t sz4 = (words * OOF_GRID_SIZE + 3) & ~3;
-    if (!outOfFrustumLightsFullGridCB || outOfFrustumLightsFullGridCB.getBuf()->ressize() < sz4)
+    if (!outOfFrustumLightsFullGridCB || outOfFrustumLightsFullGridCB.getBuf()->ressize() < sz4 * 4)
     {
       outOfFrustumLightsFullGridCB.close();
       outOfFrustumLightsFullGridCB =

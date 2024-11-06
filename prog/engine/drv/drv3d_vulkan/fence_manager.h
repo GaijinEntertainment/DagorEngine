@@ -7,6 +7,8 @@
 #include <osApiWrappers/dag_miscApi.h>
 #include <atomic>
 #include <drv_log_defs.h>
+#include "globals.h"
+#include "driver_config.h"
 
 #include "vulkan_device.h"
 
@@ -126,7 +128,14 @@ private:
         // still, use non infinite timeout, as this can be unsafe
         //(blocking core from being used by other threads, sometimes)
 #if DAGOR_DBGLEVEL > 0 && !_TARGET_ANDROID
-        D3D_ERROR("vulkan: timeout waiting for GPU fence, retrying wait");
+        // when debug level above 0, assert on timeout
+        if (Globals::cfg.debugLevel > 0)
+        {
+          generateFaultReport();
+          G_ASSERTF(0, "vulkan: timeout waiting for GPU fence, skip to retry");
+        }
+        else
+          D3D_ERROR("vulkan: timeout waiting for GPU fence, retrying wait");
 #endif
         waitRet = device.vkWaitForFences(device.get(), 1, ptr(fence), VK_TRUE, GENERAL_GPU_TIMEOUT_NS);
       }

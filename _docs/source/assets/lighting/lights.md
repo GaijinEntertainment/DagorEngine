@@ -185,9 +185,12 @@ negatively impact gameplay. Adjust emission to be as subtle as possible.
 
 To add a light source to a composite object, create a gameObject for it and
 place it in `*/develop/assets/common/gameRes/gameObjects` directory. Name the
-file: `template_name.gameObj.blk`. For more information on what a
-[gameObj](../../dagor-tools/gameobj/gameobjects.md) is, refer to the relevant
-documentation.
+file: `template_name.gameObj.blk`.
+
+```{seealso}
+For more information, see
+[gameObjects](../about-assets/gameobjects/gameobjects.md).
+```
 
 If the light source is used with a dynamic model (which cannot be drawn in
 *daEditor*), you can add the following line to the `gameObj` to display the

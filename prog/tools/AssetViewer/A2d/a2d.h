@@ -13,10 +13,6 @@
 
 class SimpleString;
 class ILodController;
-namespace AnimV20
-{
-class AnimV20;
-}
 
 class A2dPlugin : public IGenEditorPlugin, public PropPanel::ControlEventHandler
 {

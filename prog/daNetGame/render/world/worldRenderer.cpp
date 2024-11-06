@@ -793,8 +793,6 @@ void WorldRenderer::onLevelLoaded(const DataBlock &level_blk)
   }
   shadowsManager.shadowsInvalidate(true);
   shadowsManager.staticShadowsAdditionalHeight = level_blk.getReal("staticShadowsAdditionalHeight", 0.f);
-  // TODO figure out how to calculate static shadow box exactly.
-  shadowsManager.staticShadowsAdditionalHeight += 200;
   shadowsManager.staticShadowsSetWorldSize();
 
   updateDistantHeightmap();
@@ -6770,14 +6768,18 @@ void WorldRenderer::closeShoreAndWaterFlowmap()
 
 BBox3 WorldRenderer::getWorldBBox3() const
 {
-  if (!worldBBox.isempty())
-    return worldBBox;
-  BBox3 b;
-  if (!binSceneBbox.isempty())
-    b += binSceneBbox;
-  if (lmeshMgr)
-    b += lmeshMgr->getBBoxWithHMapWBBox();
-  return b;
+  BBox3 result = [this]() {
+    if (!worldBBox.isempty())
+      return worldBBox;
+    BBox3 b;
+    if (!binSceneBbox.isempty())
+      b += binSceneBbox;
+    if (lmeshMgr)
+      b += lmeshMgr->getBBoxWithHMapWBBox();
+    return b;
+  }();
+  result += additionalBBox;
+  return result;
 }
 
 void WorldRenderer::getMinMaxZ(float &minHt, float &maxHt) const
@@ -7671,6 +7673,13 @@ bool WRDispatcher::shouldHideGui()
   // Hide UI for one frame while UI FG nodes are recreated fully, UI asserts if preparing and rendering is not paired.
   auto *wr = static_cast<WorldRenderer *>(get_world_renderer());
   return wr && wr->applySettingsAfterResetDevice && wr->needSeparatedUI();
+}
+
+void WRDispatcher::updateWorldBBox(const BBox3 &additional_bbox)
+{
+  auto *wr = static_cast<WorldRenderer *>(get_world_renderer());
+  G_ASSERTF_RETURN(wr != nullptr, , WR_WAS_NULL_ERR_MSG);
+  wr->additionalBBox += additional_bbox;
 }
 
 ECS_REGISTER_EVENT(AfterRenderWorld)

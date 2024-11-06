@@ -380,6 +380,43 @@ namespace das {
         return true;
     }
 
+    bool detectGen2Syntax ( const char * text, uint32_t length ) {
+        // we search for #gen2#, and return true if its there
+        // we skip /* */ and // comments
+        bool in_single_line_comment = false;
+        bool in_multi_line_comment = false;
+        for (uint32_t i = 0; i < length; ++i) {
+            if (in_single_line_comment) {
+                if (text[i] == '\n') {
+                    in_single_line_comment = false;
+                }
+                continue;
+            }
+            if (in_multi_line_comment) {
+                if (text[i] == '*' && i + 1 < length && text[i + 1] == '/') {
+                    in_multi_line_comment = false;
+                    ++i;
+                }
+                continue;
+            }
+            if (text[i] == '/' && i + 1 < length) {
+                if (text[i + 1] == '/') {
+                    in_single_line_comment = true;
+                    ++i;
+                    continue;
+                } else if (text[i + 1] == '*') {
+                    in_multi_line_comment = true;
+                    ++i;
+                    continue;
+                }
+            }
+            if (text[i] == '#' && i + 5 < length && text[i + 1] == 'g' && text[i + 2] == 'e' && text[i + 3] == 'n' && text[i + 4] == '2' && text[i + 5] == '#') {
+                return true;
+            }
+        }
+        return false;
+    }
+
     ProgramPtr parseDaScript ( const string & fileName,
                                const string & moduleName,
                               const FileAccessPtr & access,
@@ -417,29 +454,37 @@ namespace das {
         parserState.das_def_tab_size = daScriptEnvironment::bound->das_def_tab_size;
         parserState.das_gen2_make_syntax = policies.gen2_make_syntax;
         yyscan_t scanner = nullptr;
-        if ( policies.version_2_syntax ) {
-            das2_yylex_init_extra(&parserState, &scanner);
-        } else {
-            das_yylex_init_extra(&parserState, &scanner);
-        }
         int64_t file_mtime = access->getFileMtime(fileName.c_str());
         if ( auto fi = access->getFileInfo(fileName) ) {
             parserState.g_FileAccessStack.push_back(fi);
             const char * src = nullptr;
             uint32_t len = 0;
             fi->getSourceAndLength(src,len);
-            if (isUtf8Text(src, len)) {
-                if ( policies.version_2_syntax ) {
+            bool gen2 = policies.version_2_syntax || detectGen2Syntax(src, len);
+            if ( gen2 ) {
+                das2_yylex_init_extra(&parserState, &scanner);
+            } else {
+                das_yylex_init_extra(&parserState, &scanner);
+            }
+            if ( isUtf8Text(src, len) ) {
+                if ( gen2 ) {
                     das2_yybegin(src + 3, len-3, scanner);
                 } else {
                     das_yybegin(src + 3, len-3, scanner);
                 }
             } else {
-                if ( policies.version_2_syntax ) {
+                if ( gen2 ) {
                     das2_yybegin(src, len, scanner);
                 } else {
                     das_yybegin(src, len, scanner);
                 }
+            }
+            if ( gen2 ) {
+                err = das2_yyparse(scanner);
+                das2_yylex_destroy(scanner);
+            } else {
+                err = das_yyparse(scanner);
+                das_yylex_destroy(scanner);
             }
             libGroup.foreach([&](Module * mod){
                 if ( mod->commentReader ) {
@@ -453,13 +498,6 @@ namespace das {
             daScriptEnvironment::bound->g_Program.reset();
             daScriptEnvironment::bound->g_compilerLog = nullptr;
             return program;
-        }
-        if ( policies.version_2_syntax ) {
-            err = das2_yyparse(scanner);
-            das2_yylex_destroy(scanner);
-        } else {
-            err = das_yyparse(scanner);
-            das_yylex_destroy(scanner);
         }
         parserState = DasParserState();
         totParse += get_time_usec(time0);

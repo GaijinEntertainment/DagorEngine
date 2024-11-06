@@ -968,7 +968,7 @@ void WaterNVRender::calculateGradients()
         d3d::set_render_target(i, gradient[i].getTex2D(), 0);
     }
 
-    d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0, 0);
+    d3d::clearview(CLEAR_TARGET, 0, 0, 0);
     gradientRenderer.render();
 
     if (hasFoam)

@@ -45,6 +45,6 @@ void debug_render_gbuffer(const class PostFxRenderer &debugRenderer, DeferredRT 
 void debug_render_gbuffer(const class PostFxRenderer &debugRenderer, Texture *depth, int mode = USE_DEBUG_GBUFFER_MODE);
 
 void debug_render_gbuffer_with_vectors(const class DynamicShaderHelper &debugVecShader, DeferredRT &gbuffer,
-  int mode = USE_DEBUG_GBUFFER_MODE);
+  int mode = USE_DEBUG_GBUFFER_MODE, int vec_count = -1, float vec_scale = 0.f);
 void debug_render_gbuffer_with_vectors(const class DynamicShaderHelper &debugVecShader, Texture *depth,
-  int mode = USE_DEBUG_GBUFFER_MODE);
+  int mode = USE_DEBUG_GBUFFER_MODE, int vec_count = -1, float vec_scale = 0.f);

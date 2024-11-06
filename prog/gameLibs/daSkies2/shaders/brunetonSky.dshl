@@ -54,9 +54,11 @@ endmacro
 
 macro BASE_FOG_MATH(code)
   hlsl(code) {
+    #include <fast_shader_trig.hlsl>
     float2 get_panoramic_scattering_tc(float3 view)
     {
-      float theta = atan2( view.x, view.z );
+      float theta = atan2Fast(view.x, view.z);
+      //float theta = atan2( view.x, view.z );
       return float2(theta * (0.5/PI)+0.5, view.y*0.5 + 0.5);
     }
     float3 get_panoramic_scattering_view(float2 texcoord)

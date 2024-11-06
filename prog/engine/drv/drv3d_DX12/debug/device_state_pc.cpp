@@ -1,5 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include "device_state_pc.h"
 #include "device.h"
 
 #if USE_PIX
@@ -146,20 +147,20 @@ void DeviceState::drawIndexed(const call_stack::CommandData &debug_info, D3DGrap
 
 void DeviceState::drawIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
   const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
-  BufferResourceReferenceAndOffset buffer)
+  const BufferResourceReferenceAndOffset &buffer)
 {
   globalState->postmortemTrace().drawIndirect(debug_info, cmd, vs, ps, pipeline_base, pipeline, buffer);
 }
 
 void DeviceState::drawIndexedIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
   const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
-  BufferResourceReferenceAndOffset buffer)
+  const BufferResourceReferenceAndOffset &buffer)
 {
   globalState->postmortemTrace().drawIndexedIndirect(debug_info, cmd, vs, ps, pipeline_base, pipeline, buffer);
 }
 
 void DeviceState::dispatchIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
-  const PipelineStageStateBase &state, ComputePipeline &pipeline, BufferResourceReferenceAndOffset buffer)
+  const PipelineStageStateBase &state, ComputePipeline &pipeline, const BufferResourceReferenceAndOffset &buffer)
 {
   globalState->postmortemTrace().dispatchIndirect(debug_info, cmd, state, pipeline, buffer);
 }
@@ -179,7 +180,7 @@ void DeviceState::dispatchMesh(const call_stack::CommandData &debug_info, D3DGra
 
 void DeviceState::dispatchMeshIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
   const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
-  BufferResourceReferenceAndOffset args, BufferResourceReferenceAndOffset count, uint32_t max_count)
+  const BufferResourceReferenceAndOffset &args, const BufferResourceReferenceAndOffset &count, uint32_t max_count)
 {
   globalState->postmortemTrace().dispatchMeshIndirect(debug_info, cmd, vs, ps, pipeline_base, pipeline, args, count, max_count);
 }

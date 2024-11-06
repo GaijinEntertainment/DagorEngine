@@ -25,6 +25,7 @@
 #include <propPanel/control/container.h>
 
 #include <anim/dag_animChannels.h>
+#include <anim/dag_animKeyInterp.h>
 #include <anim/dag_simpleNodeAnim.h>
 #include <math/dag_mathUtils.h>
 #include <math/dag_capsule.h>
@@ -132,18 +133,19 @@ static A2dNodeStats getNodesParamsFromA2d(AnimV20::AnimData *a2d)
 
   A2dNodeStats s;
 
-  AnimDataChan<AnimChanPoint3> *adcPos = a2d->dumpData.getChanPoint3(CHTYPE_POSITION);
-  AnimDataChan<AnimChanQuat> *adcRot = a2d->dumpData.getChanQuat(CHTYPE_ROTATION);
-  AnimDataChan<AnimChanPoint3> *adcScl = a2d->dumpData.getChanPoint3(CHTYPE_SCALE);
+  AnimDataChan *adcPos = a2d->dumpData.getChanPoint3(CHTYPE_POSITION);
+  AnimDataChan *adcRot = a2d->dumpData.getChanQuat(CHTYPE_ROTATION);
+  AnimDataChan *adcScl = a2d->dumpData.getChanPoint3(CHTYPE_SCALE);
 
   if (adcPos)
   {
     s.pos_cnt = adcPos->nodeNum;
     for (int i = 0; i < adcPos->nodeNum; ++i)
     {
-      if (s.pos_max_keys < adcPos->nodeAnim[i].keyNum)
-        s.pos_max_keys = adcPos->nodeAnim[i].keyNum;
-      s.pos_total_keys += adcPos->nodeAnim[i].keyNum;
+      auto n = adcPos->getNumKeys(dag::Index16(i));
+      if (s.pos_max_keys < n)
+        s.pos_max_keys = n;
+      s.pos_total_keys += n;
     }
   }
   if (adcRot)
@@ -151,9 +153,10 @@ static A2dNodeStats getNodesParamsFromA2d(AnimV20::AnimData *a2d)
     s.rot_cnt = adcRot->nodeNum;
     for (int i = 0; i < adcRot->nodeNum; ++i)
     {
-      if (s.rot_max_keys < adcRot->nodeAnim[i].keyNum)
-        s.rot_max_keys = adcRot->nodeAnim[i].keyNum;
-      s.rot_total_keys += adcRot->nodeAnim[i].keyNum;
+      auto n = adcRot->getNumKeys(dag::Index16(i));
+      if (s.rot_max_keys < n)
+        s.rot_max_keys = n;
+      s.rot_total_keys += n;
     }
   }
   if (adcScl)
@@ -161,9 +164,10 @@ static A2dNodeStats getNodesParamsFromA2d(AnimV20::AnimData *a2d)
     s.scl_cnt = adcScl->nodeNum;
     for (int i = 0; i < adcScl->nodeNum; ++i)
     {
-      if (s.scl_max_keys < adcScl->nodeAnim[i].keyNum)
-        s.scl_max_keys = adcScl->nodeAnim[i].keyNum;
-      s.scl_total_keys += adcScl->nodeAnim[i].keyNum;
+      auto n = adcScl->getNumKeys(dag::Index16(i));
+      if (s.scl_max_keys < n)
+        s.scl_max_keys = n;
+      s.scl_total_keys += n;
     }
   }
 
@@ -174,9 +178,9 @@ static eastl::map<eastl::string, int> getNodesNamesFromA2d(AnimV20::AnimData *a2
 {
   using namespace AnimV20;
 
-  AnimDataChan<AnimChanPoint3> *adcPos = a2d->dumpData.getChanPoint3(CHTYPE_POSITION);
-  AnimDataChan<AnimChanQuat> *adcRot = a2d->dumpData.getChanQuat(CHTYPE_ROTATION);
-  AnimDataChan<AnimChanPoint3> *adcScl = a2d->dumpData.getChanPoint3(CHTYPE_SCALE);
+  AnimDataChan *adcPos = a2d->dumpData.getChanPoint3(CHTYPE_POSITION);
+  AnimDataChan *adcRot = a2d->dumpData.getChanQuat(CHTYPE_ROTATION);
+  AnimDataChan *adcScl = a2d->dumpData.getChanPoint3(CHTYPE_SCALE);
 
   A2dNodeStats s = getNodesParamsFromA2d(a2d);
 

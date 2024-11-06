@@ -50,4 +50,5 @@ struct WRDispatcher
   static eastl::optional<Point4> getHmapDeformRect();
   static void getMinMaxZ(float &min, float &max);
   static bool shouldHideGui();
+  static void updateWorldBBox(const BBox3 &additional_bbox);
 };

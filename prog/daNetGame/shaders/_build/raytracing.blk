@@ -10,6 +10,7 @@ include "../../../../prog/gameLibs/render/rtr/shaders/build.blk"
   file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_process_impostor_vertices.dshl"
   file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_process_bake_texture_to_vertices.dshl"
   file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_process_tree_vertices.dshl"
+  file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_process_flag_vertices.dshl"
 }
 
 "@override:Compile" {

@@ -68,7 +68,7 @@ shader rt_reflection_classify
   (cs) {
     inv_proj_tm@f44 = inv_proj_tm;
     world_view_pos@f3 = world_view_pos;
-    resolution@i2 = rtr_resolutionI.xy;
+    resolution@u2 = rtr_resolutionI.xy;
     tilesResolution@i2 = rtr_resolutionI.zw;
     inv_resolution@f2 = (1.0 / get_dimensions(rtr_target, 0).xy);
     classify_tresholds@f3 = rtr_classify_tresholds;
@@ -134,7 +134,7 @@ shader rt_reflection_classify
           if ( evenFrame == evenLine )
             ++rayIndex.x;
         }
-        float rawDepth = rtr_res_mul > 1  ? half_res_depth_tex[rayIndex].r : loadGbufferDepth(rayIndex);
+        float rawDepth = rtr_res_mul > 1  ? texture2DAt(half_res_depth_tex, rayIndex).r : loadGbufferDepth(rayIndex);
 
         BRANCH
         if (rawDepth > 0)
@@ -149,7 +149,7 @@ shader rt_reflection_classify
           {
             UnpackedGbuffer gbuffer = unpackGbuffer(loadPackedGbuffer(rayIndex * rtr_res_mul));
 
-            float4 surfaceNormal_roughness = NRD_FrontEnd_UnpackNormalAndRoughness(nr_texture[rayIndex]);
+            float4 surfaceNormal_roughness = NRD_FrontEnd_UnpackNormalAndRoughness(texture2DAt(nr_texture, rayIndex));
             half smoothness = 1.0 - surfaceNormal_roughness.w;
             float3 relPos = calc_camera_relative_pos(rayIndex, w, inv_resolution);
             half3 toPoint = (half3)normalize(relPos);
@@ -204,7 +204,7 @@ shader rt_reflection_sample
   (cs) {
     inv_proj_tm@f44 = inv_proj_tm;
     world_view_pos@f3 = world_view_pos;
-    resolution@i2 = rtr_resolutionI;
+    resolution@u2 = rtr_resolutionI;
     tilesResolution@u2 = rtr_resolutionI.zw;
     inv_resolution@f2 = (1.0 / get_dimensions(rtr_target, 0).xy);
     hit_dist_params@f4 = rtr_hit_dist_params;
@@ -288,7 +288,7 @@ shader rt_reflection_sample
           ++rayIndex.x;
       }
 
-      float rawDepth = rtr_res_mul > 1 ? half_res_depth_tex[rayIndex].r : loadGbufferDepth(rayIndex);
+      float rawDepth = rtr_res_mul > 1 ? texture2DAt(half_res_depth_tex, rayIndex).r : loadGbufferDepth(rayIndex);
       if (rawDepth <= 0)
         return;
 
@@ -361,7 +361,7 @@ shader rt_reflection
   (cs) {
     inv_proj_tm@f44 = inv_proj_tm;
     world_view_pos@f3 = world_view_pos;
-    resolution@i2 = rtr_resolutionI;
+    resolution@u2 = rtr_resolutionI;
     tilesResolution@u2 = rtr_resolutionI.zw;
     inv_resolution@f2 = (1.0 / get_dimensions(rtr_target, 0).xy);
     hit_dist_params@f4 = rtr_hit_dist_params;
@@ -475,7 +475,7 @@ shader rt_reflection
           {
             uint2 loc = rayIndex + uint2(x,y);
             if (all(loc < resolution))
-              rawDepth = rtr_res_mul > 1 ? half_res_depth_tex[loc].r : loadGbufferDepth(loc);
+              rawDepth = rtr_res_mul > 1 ? texture2DAt(half_res_depth_tex, loc).r : loadGbufferDepth(loc);
             if (rawDepth > 0)
               rayIndex += uint2(x,y);
           }
@@ -497,7 +497,7 @@ shader rt_reflection
       float3 relPos = calc_camera_relative_pos(rayIndex, w, inv_resolution);
       half3 toPoint = (half3)normalize(relPos);
 
-      float4 surfaceNormal_roughness = NRD_FrontEnd_UnpackNormalAndRoughness(nr_texture[rayIndex]);
+      float4 surfaceNormal_roughness = NRD_FrontEnd_UnpackNormalAndRoughness(texture2DAt(nr_texture, rayIndex));
       half3 normal = (half3)normalize(surfaceNormal_roughness.xyz);
       half roughness = surfaceNormal_roughness.w;
       half3 reflectionVector = reflect(toPoint, normal);
@@ -505,7 +505,7 @@ shader rt_reflection
       half3 sampleDir = get_scattered_reflection_vector(reflectionVector, seed, roughness);
       if (!isGrass)
       {
-        normal = rtr_res_mul > 1 ? calc_geometry_normal_half(rayIndex, inv_resolution) : calc_geometry_normal(rayIndex, inv_resolution);
+        normal = rtr_res_mul > 1 ? calc_geometry_normal_half(rayIndex, inv_resolution, resolution) : calc_geometry_normal(rayIndex, inv_resolution, resolution);
         half SoN = dot(normal, sampleDir);
         // The ray points into the surface, lets mirror it to the surface
         if (SoN < 0)
@@ -567,8 +567,8 @@ shader rt_reflection
           [unroll]
           for (uint x = 0; x < rtr_spacing && outputIndex.x + x < resolution.x; ++x)
           {
-            uint2 depthIndex = clamp(baseRayIndex + (rtr_checkerboard ? uint2(x*2,y) : uint2(x,y)), 0, resolution);
-            float rawDepth = rtr_res_mul > 1 ? half_res_depth_tex[depthIndex].r : loadGbufferDepth(depthIndex);
+            uint2 depthIndex = clamp(baseRayIndex + (rtr_checkerboard ? uint2(x*2,y) : uint2(x,y)), 0, resolution - 1);
+            float rawDepth = rtr_res_mul > 1 ? texture2DAt(half_res_depth_tex, depthIndex).r : loadGbufferDepth(depthIndex);
             float subw = linearize_z(rawDepth, zn_zfar.zw);
             float subdist = reflectionDistance - (subw - w);
 
@@ -597,7 +597,7 @@ shader rt_glass_reflection
 
   (cs) {
     inv_proj_tm@f44 = inv_proj_tm;
-    resolution@i2 = rtr_resolutionI.xy;
+    resolution@u2 = rtr_resolutionI.xy;
     inv_resolution@f2 = (1.0 / get_dimensions(translucent_gbuffer, 0).xy);
     hit_dist_params@f4 = rtr_hit_dist_params;
     rt_glass_gbuffer@uav = translucent_gbuffer hlsl { RWTexture2D<float4> rt_glass_gbuffer@uav; };
@@ -636,16 +636,16 @@ shader rt_glass_reflection
       if (any(dtid >= resolution))
         return;
 
-      float rawDepth = rt_glass_gbuffer_depth[dtid].x;
+      float rawDepth = texture2DAt(rt_glass_gbuffer_depth, dtid).x;
 
       BRANCH
       if (rawDepth <= 0)
       {
-        rt_glass_gbuffer[dtid] = 0;
+        texture2DAt(rt_glass_gbuffer, dtid) = 0;
         return;
       }
 
-      float4 gbuffer = rt_glass_gbuffer[dtid];
+      float4 gbuffer = texture2DAt(rt_glass_gbuffer, dtid);
 
       float w = linearize_z(rawDepth, zn_zfar.zw);
       float3 relPos = calc_camera_relative_pos(dtid, w, inv_resolution);

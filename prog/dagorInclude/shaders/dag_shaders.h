@@ -203,6 +203,9 @@ using ShaderReloadCb = eastl::fixed_function<sizeof(void *), void(bool)>;
 void shaders_register_console(
   bool allow_reload = true, const ShaderReloadCb &after_reload_cb = [](bool) {});
 
+// enable or disable shaders reloading depending on build configuration and settings
+void shaders_set_reload_flags();
+
 // Shaders global time:
 
 float get_shader_global_time();

@@ -1,5 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include "gpu_postmortem_nvidia_aftermath.h"
 #include "device.h"
 
 #include <debug/dag_logSys.h>
@@ -743,15 +744,15 @@ void Aftermath::drawIndexed(const call_stack::CommandData &, D3DGraphicsCommandL
 {}
 
 void Aftermath::drawIndirect(const call_stack::CommandData &, D3DGraphicsCommandList *, const PipelineStageStateBase &,
-  const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, BufferResourceReferenceAndOffset)
+  const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, const BufferResourceReferenceAndOffset &)
 {}
 
 void Aftermath::drawIndexedIndirect(const call_stack::CommandData &, D3DGraphicsCommandList *, const PipelineStageStateBase &,
-  const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, BufferResourceReferenceAndOffset)
+  const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, const BufferResourceReferenceAndOffset &)
 {}
 
 void Aftermath::dispatchIndirect(const call_stack::CommandData &, D3DGraphicsCommandList *, const PipelineStageStateBase &,
-  ComputePipeline &, BufferResourceReferenceAndOffset)
+  ComputePipeline &, const BufferResourceReferenceAndOffset &)
 {}
 
 void Aftermath::dispatch(const call_stack::CommandData &, D3DGraphicsCommandList *, const PipelineStageStateBase &, ComputePipeline &,
@@ -763,8 +764,8 @@ void Aftermath::dispatchMesh(const call_stack::CommandData &, D3DGraphicsCommand
 {}
 
 void Aftermath::dispatchMeshIndirect(const call_stack::CommandData &, D3DGraphicsCommandList *, const PipelineStageStateBase &,
-  const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, BufferResourceReferenceAndOffset,
-  BufferResourceReferenceAndOffset, uint32_t)
+  const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, const BufferResourceReferenceAndOffset &,
+  const BufferResourceReferenceAndOffset &, uint32_t)
 {}
 
 void Aftermath::blit(const call_stack::CommandData &, D3DGraphicsCommandList *) {}

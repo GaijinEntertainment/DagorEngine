@@ -445,7 +445,7 @@ required.
 
 ### GameObjects
 
-[Game Objects](../../dagor-tools/gameobj/gameobjects.md) are essentially
+[*Game Objects*](../about-assets/gameobjects/gameobjects.md) are essentially
 placeholders, containers, or dummies with the same name as the related template.
 They are used to position objects in the environment or to add them to template
 composites. GameObjects provide the matrix information needed to trigger effects

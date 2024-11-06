@@ -1033,7 +1033,6 @@ SIM_NODE_AT_VECTOR(Float, float)
         SimNode_FastCall ( const LineInfo & at ) : SimNode_FastCallAny(at) {}
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
-            DAS_KEEPALIVE_CALL(&context);
             vec4f argValues[argCount ? argCount : 1];
             EvalBlock<argCount>::eval(context, arguments, argValues);
             auto aa = context.abiArg;
@@ -1046,7 +1045,6 @@ SIM_NODE_AT_VECTOR(Float, float)
 #define EVAL_NODE(TYPE,CTYPE)\
         virtual CTYPE eval##TYPE ( Context & context ) override {                               \
                 DAS_PROFILE_NODE \
-                DAS_KEEPALIVE_CALL(&context); \
                 vec4f argValues[argCount ? argCount : 1];                                       \
                 EvalBlock<argCount>::eval(context, arguments, argValues);                       \
                 auto aa = context.abiArg;                                                       \
@@ -1065,7 +1063,6 @@ SIM_NODE_AT_VECTOR(Float, float)
         SimNode_FastCall(const LineInfo& at) : SimNode_FastCallAny(at) {}
         DAS_EVAL_ABI virtual vec4f eval(Context& context) override {
             DAS_PROFILE_NODE
-            DAS_KEEPALIVE_CALL(&context);
             vec4f argValues[DAS_MAX_FUNCTION_ARGUMENTS];
             evalArgs(context, argValues);
             auto aa = context.abiArg;
@@ -1078,7 +1075,6 @@ SIM_NODE_AT_VECTOR(Float, float)
 #define EVAL_NODE(TYPE,CTYPE)\
         virtual CTYPE eval##TYPE ( Context & context ) override { \
                 DAS_PROFILE_NODE \
-                DAS_KEEPALIVE_CALL(&context); \
                 vec4f argValues[DAS_MAX_FUNCTION_ARGUMENTS]; \
                 evalArgs(context, argValues); \
                 auto aa = context.abiArg; \
@@ -1104,7 +1100,6 @@ SIM_NODE_AT_VECTOR(Float, float)
         SimNode_Call ( const LineInfo & at ) : SimNode_CallAny(at) {}
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
-            DAS_KEEPALIVE_CALL(&context);
             vec4f argValues[argCount ? argCount : 1];
             EvalBlock<argCount>::eval(context, arguments, argValues);
             return context.call(fnPtr, argValues, &debugInfo);
@@ -1112,7 +1107,6 @@ SIM_NODE_AT_VECTOR(Float, float)
 #define EVAL_NODE(TYPE,CTYPE)\
         virtual CTYPE eval##TYPE ( Context & context ) override {                               \
                 DAS_PROFILE_NODE \
-                DAS_KEEPALIVE_CALL(&context); \
                 vec4f argValues[argCount ? argCount : 1];                                       \
                 EvalBlock<argCount>::eval(context, arguments, argValues);                       \
                 return cast<CTYPE>::to(context.call(fnPtr, argValues, &debugInfo));             \
@@ -1126,7 +1120,6 @@ SIM_NODE_AT_VECTOR(Float, float)
         SimNode_Call ( const LineInfo & at ) : SimNode_CallAny(at) {}
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
-            DAS_KEEPALIVE_CALL(&context);
             vec4f argValues[DAS_MAX_FUNCTION_ARGUMENTS];
             evalArgs(context, argValues);
             return context.call(fnPtr, argValues, &debugInfo);
@@ -1134,7 +1127,6 @@ SIM_NODE_AT_VECTOR(Float, float)
 #define EVAL_NODE(TYPE,CTYPE) \
         virtual CTYPE eval##TYPE ( Context & context ) override { \
                 DAS_PROFILE_NODE \
-                DAS_KEEPALIVE_CALL(&context); \
                 vec4f argValues[DAS_MAX_FUNCTION_ARGUMENTS]; \
                 evalArgs(context, argValues); \
                 return cast<CTYPE>::to(context.call(fnPtr, argValues, &debugInfo)); \
@@ -1156,7 +1148,6 @@ SIM_NODE_AT_VECTOR(Float, float)
         SimNode_CallAndCopyOrMove ( const LineInfo & at ) : SimNode_CallAndCopyOrMoveAny(at) {}
         __forceinline char * compute ( Context & context ) {
                 DAS_PROFILE_NODE
-                DAS_KEEPALIVE_CALL(&context);
                 auto cmres = cmresEval->evalPtr(context);
                 vec4f argValues[argCount ? argCount : 1];
                 EvalBlock<argCount>::eval(context, arguments, argValues);
@@ -1170,7 +1161,6 @@ SIM_NODE_AT_VECTOR(Float, float)
         SimNode_CallAndCopyOrMove(const LineInfo& at) : SimNode_CallAndCopyOrMoveAny(at) {}
         __forceinline char* compute(Context& context) {
             DAS_PROFILE_NODE
-            DAS_KEEPALIVE_CALL(&context);
             auto cmres = cmresEval->evalPtr(context);
             vec4f argValues[DAS_MAX_FUNCTION_ARGUMENTS];
             evalArgs(context, argValues);
@@ -1191,7 +1181,6 @@ SIM_NODE_AT_VECTOR(Float, float)
             : SimNode_InvokeAny(at) {}
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
-            DAS_KEEPALIVE_CALL(&context);
             vec4f argValues[argCount ? argCount : 1];
             EvalBlock<argCount>::eval(context, arguments, argValues);
             Block * block = cast<Block *>::to(argValues[0]);
@@ -1204,7 +1193,6 @@ SIM_NODE_AT_VECTOR(Float, float)
 #define EVAL_NODE(TYPE,CTYPE)                                                                   \
         virtual CTYPE eval##TYPE ( Context & context ) override {                               \
             DAS_PROFILE_NODE \
-            DAS_KEEPALIVE_CALL(&context); \
             vec4f argValues[argCount ? argCount : 1];                                           \
             EvalBlock<argCount>::eval(context, arguments, argValues);                           \
             Block * block = cast<Block *>::to(argValues[0]);                                    \
@@ -1224,7 +1212,6 @@ SIM_NODE_AT_VECTOR(Float, float)
             : SimNode_InvokeAny(at) {}
         DAS_EVAL_ABI virtual vec4f eval(Context& context) override {
             DAS_PROFILE_NODE
-            DAS_KEEPALIVE_CALL(&context);
             vec4f argValues[DAS_MAX_FUNCTION_ARGUMENTS];
             evalArgs(context, argValues);
             Block* block = cast<Block*>::to(argValues[0]);
@@ -1233,7 +1220,6 @@ SIM_NODE_AT_VECTOR(Float, float)
 #define EVAL_NODE(TYPE,CTYPE) \
         virtual CTYPE eval##TYPE ( Context & context ) override { \
             DAS_PROFILE_NODE \
-            DAS_KEEPALIVE_CALL(&context); \
             vec4f argValues[DAS_MAX_FUNCTION_ARGUMENTS]; \
             evalArgs(context, argValues); \
             Block * block = cast<Block *>::to(argValues[0]); \
@@ -1256,7 +1242,6 @@ SIM_NODE_AT_VECTOR(Float, float)
             : SimNode_InvokeAndCopyOrMoveAny(at) { cmresEval = spCMRES; }
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
-            DAS_KEEPALIVE_CALL(&context);
             auto cmres = cmresEval->evalPtr(context);
             vec4f argValues[argCount ? argCount : 1];
             EvalBlock<argCount>::eval(context, arguments, argValues);
@@ -1270,7 +1255,6 @@ SIM_NODE_AT_VECTOR(Float, float)
 #define EVAL_NODE(TYPE,CTYPE)                                                                   \
         virtual CTYPE eval##TYPE ( Context & context ) override {                               \
             DAS_PROFILE_NODE \
-            DAS_KEEPALIVE_CALL(&context); \
             auto cmres = cmresEval->evalPtr(context);                                           \
             vec4f argValues[argCount ? argCount : 1]; \
             EvalBlock<argCount>::eval(context, arguments, argValues);                           \
@@ -1293,7 +1277,6 @@ SIM_NODE_AT_VECTOR(Float, float)
         }
         DAS_EVAL_ABI virtual vec4f eval(Context& context) override {
             DAS_PROFILE_NODE
-            DAS_KEEPALIVE_CALL(&context);
             auto cmres = cmresEval->evalPtr(context);
             vec4f argValues[DAS_MAX_FUNCTION_ARGUMENTS];
             evalArgs(context, argValues);
@@ -1303,7 +1286,6 @@ SIM_NODE_AT_VECTOR(Float, float)
 #define EVAL_NODE(TYPE,CTYPE) \
         virtual CTYPE eval##TYPE ( Context & context ) override { \
             DAS_PROFILE_NODE \
-            DAS_KEEPALIVE_CALL(&context); \
             auto cmres = cmresEval->evalPtr(context); \
             vec4f argValues[DAS_MAX_FUNCTION_ARGUMENTS]; \
             evalArgs(context, argValues); \
@@ -1326,7 +1308,6 @@ SIM_NODE_AT_VECTOR(Float, float)
         SimNode_InvokeFn ( const LineInfo & at ) : SimNode_InvokeFnAny(at) {}
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
-            DAS_KEEPALIVE_CALL(&context);
             vec4f argValues[argCount ? argCount : 1];
             EvalBlock<argCount>::eval(context, arguments, argValues);
             SimFunction * simFunc = cast<Func>::to(argValues[0]).PTR;
@@ -1340,7 +1321,6 @@ SIM_NODE_AT_VECTOR(Float, float)
 #define EVAL_NODE(TYPE,CTYPE)                                                                   \
         virtual CTYPE eval##TYPE ( Context & context ) override {                               \
             DAS_PROFILE_NODE \
-            DAS_KEEPALIVE_CALL(&context); \
             vec4f argValues[argCount ? argCount : 1]; \
             EvalBlock<argCount>::eval(context, arguments, argValues);                           \
             SimFunction * simFunc = cast<Func>::to(argValues[0]).PTR;                           \
@@ -1360,7 +1340,6 @@ SIM_NODE_AT_VECTOR(Float, float)
         SimNode_InvokeFn(const LineInfo& at) : SimNode_InvokeFnAny(at) {}
         DAS_EVAL_ABI virtual vec4f eval(Context& context) override {
             DAS_PROFILE_NODE
-            DAS_KEEPALIVE_CALL(&context);
             vec4f argValues[DAS_MAX_FUNCTION_ARGUMENTS];
             evalArgs(context, argValues);
             SimFunction* simFunc = cast<Func>::to(argValues[0]).PTR;
@@ -1370,7 +1349,6 @@ SIM_NODE_AT_VECTOR(Float, float)
 #define EVAL_NODE(TYPE,CTYPE) \
         virtual CTYPE eval##TYPE ( Context & context ) override { \
             DAS_PROFILE_NODE \
-            DAS_KEEPALIVE_CALL(&context); \
             vec4f argValues[DAS_MAX_FUNCTION_ARGUMENTS]; \
             evalArgs(context, argValues); \
             SimFunction * simFunc = cast<Func>::to(argValues[0]).PTR; \
@@ -1394,7 +1372,6 @@ SIM_NODE_AT_VECTOR(Float, float)
         SimNode_InvokeMethod ( const LineInfo & at ) : SimNode_InvokeMethodAny(at) {}
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
-            DAS_KEEPALIVE_CALL(&context);
             vec4f argValues[argCount ? argCount : 1];
             EvalBlock<argCount>::eval(context, arguments, argValues);
             char * classPtr = cast<char *>::to(argValues[0]);
@@ -1405,7 +1382,6 @@ SIM_NODE_AT_VECTOR(Float, float)
 #define EVAL_NODE(TYPE,CTYPE)                                                                   \
         virtual CTYPE eval##TYPE ( Context & context ) override {                               \
             DAS_PROFILE_NODE \
-            DAS_KEEPALIVE_CALL(&context); \
             vec4f argValues[argCount ? argCount : 1]; \
             EvalBlock<argCount>::eval(context, arguments, argValues);                           \
             char * classPtr = cast<char *>::to(argValues[0]);                                   \
@@ -1422,7 +1398,6 @@ SIM_NODE_AT_VECTOR(Float, float)
         SimNode_InvokeMethod(const LineInfo& at) : SimNode_InvokeMethodAny(at) {}
         DAS_EVAL_ABI virtual vec4f eval(Context& context) override {
             DAS_PROFILE_NODE
-            DAS_KEEPALIVE_CALL(&context);
             vec4f argValues[DAS_MAX_FUNCTION_ARGUMENTS];
             evalArgs(context, argValues);
             char * classPtr = cast<char *>::to(argValues[0]);
@@ -1433,7 +1408,6 @@ SIM_NODE_AT_VECTOR(Float, float)
 #define EVAL_NODE(TYPE,CTYPE) \
         virtual CTYPE eval##TYPE ( Context & context ) override { \
             DAS_PROFILE_NODE \
-            DAS_KEEPALIVE_CALL(&context); \
             vec4f argValues[DAS_MAX_FUNCTION_ARGUMENTS]; \
             evalArgs(context, argValues); \
             char * classPtr = cast<char *>::to(argValues[0]); \
@@ -1457,7 +1431,6 @@ SIM_NODE_AT_VECTOR(Float, float)
         SimNode_InvokeFnByName ( const LineInfo & at ) : SimNode_InvokeFnByNameAny(at) {}
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
-            DAS_KEEPALIVE_CALL(&context);
             vec4f argValues[argCount ? argCount : 1];
             EvalBlock<argCount>::eval(context, arguments, argValues);
             bool unique = false;
@@ -1477,7 +1450,6 @@ SIM_NODE_AT_VECTOR(Float, float)
 #define EVAL_NODE(TYPE,CTYPE)                                                                   \
         virtual CTYPE eval##TYPE ( Context & context ) override {                               \
             DAS_PROFILE_NODE                                                                    \
-            DAS_KEEPALIVE_CALL(&context); \
             vec4f argValues[argCount ? argCount : 1];                                           \
             EvalBlock<argCount>::eval(context, arguments, argValues);                           \
             bool unique = false; \
@@ -1503,7 +1475,6 @@ SIM_NODE_AT_VECTOR(Float, float)
         SimNode_InvokeFnByName(const LineInfo& at) : SimNode_InvokeFnByNameAny(at) {}
         DAS_EVAL_ABI virtual vec4f eval(Context& context) override {
             DAS_PROFILE_NODE
-            DAS_KEEPALIVE_CALL(&context);
             vec4f argValues[DAS_MAX_FUNCTION_ARGUMENTS];
             evalArgs(context, argValues);
             bool unique = false;
@@ -1519,7 +1490,6 @@ SIM_NODE_AT_VECTOR(Float, float)
 #define EVAL_NODE(TYPE,CTYPE) \
         virtual CTYPE eval##TYPE ( Context & context ) override { \
             DAS_PROFILE_NODE \
-            DAS_KEEPALIVE_CALL(&context); \
             vec4f argValues[DAS_MAX_FUNCTION_ARGUMENTS]; \
             evalArgs(context, argValues); \
             bool unique = false; \
@@ -1549,7 +1519,6 @@ SIM_NODE_AT_VECTOR(Float, float)
         SimNode_InvokeLambda ( const LineInfo & at ) : SimNode_InvokeLambdaAny(at) {}
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
-            DAS_KEEPALIVE_CALL(&context);
             vec4f argValues[argCount ? argCount : 1];
             EvalBlock<argCount>::eval(context, arguments, argValues);
             SimFunction ** funMnh = cast<SimFunction **>::to(argValues[0]);
@@ -1561,7 +1530,6 @@ SIM_NODE_AT_VECTOR(Float, float)
 #define EVAL_NODE(TYPE,CTYPE)                                                                   \
         virtual CTYPE eval##TYPE ( Context & context ) override {                               \
             DAS_PROFILE_NODE \
-            DAS_KEEPALIVE_CALL(&context); \
             vec4f argValues[argCount ? argCount : 1]; \
             EvalBlock<argCount>::eval(context, arguments, argValues);                           \
             SimFunction ** funMnh = cast<SimFunction **>::to(argValues[0]);                           \
@@ -1579,7 +1547,6 @@ SIM_NODE_AT_VECTOR(Float, float)
         SimNode_InvokeLambda(const LineInfo& at) : SimNode_InvokeLambdaAny(at) {}
         DAS_EVAL_ABI virtual vec4f eval(Context& context) override {
             DAS_PROFILE_NODE
-            DAS_KEEPALIVE_CALL(&context);
             vec4f argValues[DAS_MAX_FUNCTION_ARGUMENTS];
             evalArgs(context, argValues);
             SimFunction ** funMnh = cast<SimFunction **>::to(argValues[0]);
@@ -1591,7 +1558,6 @@ SIM_NODE_AT_VECTOR(Float, float)
 #define EVAL_NODE(TYPE,CTYPE) \
         virtual CTYPE eval##TYPE ( Context & context ) override { \
             DAS_PROFILE_NODE \
-            DAS_KEEPALIVE_CALL(&context); \
             vec4f argValues[DAS_MAX_FUNCTION_ARGUMENTS]; \
             evalArgs(context, argValues); \
             SimFunction ** funMnh = cast<SimFunction **>::to(argValues[0]); \
@@ -1618,7 +1584,6 @@ SIM_NODE_AT_VECTOR(Float, float)
             : SimNode_InvokeAndCopyOrMoveFnAny(at) { cmresEval = spEval; }
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
-            DAS_KEEPALIVE_CALL(&context);
             auto cmres = cmresEval->evalPtr(context);
             vec4f argValues[argCount ? argCount : 1];
             EvalBlock<argCount>::eval(context, arguments, argValues);
@@ -1633,7 +1598,6 @@ SIM_NODE_AT_VECTOR(Float, float)
 #define EVAL_NODE(TYPE,CTYPE)                                                                       \
         virtual CTYPE eval##TYPE ( Context & context ) override {                                   \
             DAS_PROFILE_NODE \
-            DAS_KEEPALIVE_CALL(&context); \
             auto cmres = cmresEval->evalPtr(context);                                               \
             vec4f argValues[argCount ? argCount : 1]; \
             EvalBlock<argCount>::eval(context, arguments, argValues);                               \
@@ -1657,7 +1621,6 @@ SIM_NODE_AT_VECTOR(Float, float)
         }
         DAS_EVAL_ABI virtual vec4f eval(Context& context) override {
             DAS_PROFILE_NODE
-            DAS_KEEPALIVE_CALL(&context);
             auto cmres = cmresEval->evalPtr(context);
             vec4f argValues[DAS_MAX_FUNCTION_ARGUMENTS];
             evalArgs(context, argValues);
@@ -1668,7 +1631,6 @@ SIM_NODE_AT_VECTOR(Float, float)
 #define EVAL_NODE(TYPE,CTYPE) \
         virtual CTYPE eval##TYPE ( Context & context ) override { \
             DAS_PROFILE_NODE \
-            DAS_KEEPALIVE_CALL(&context); \
             auto cmres = cmresEval->evalPtr(context); \
             vec4f argValues[DAS_MAX_FUNCTION_ARGUMENTS]; \
             evalArgs(context, argValues); \
@@ -1694,7 +1656,6 @@ SIM_NODE_AT_VECTOR(Float, float)
             : SimNode_InvokeAndCopyOrMoveMethodAny(at) { cmresEval = spEval; }
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
-            DAS_KEEPALIVE_CALL(&context);
             auto cmres = cmresEval->evalPtr(context);
             vec4f argValues[argCount ? argCount : 1];
             EvalBlock<argCount>::eval(context, arguments, argValues);
@@ -1706,7 +1667,6 @@ SIM_NODE_AT_VECTOR(Float, float)
 #define EVAL_NODE(TYPE,CTYPE)                                                                       \
         virtual CTYPE eval##TYPE ( Context & context ) override {                                   \
             DAS_PROFILE_NODE \
-            DAS_KEEPALIVE_CALL(&context); \
             auto cmres = cmresEval->evalPtr(context);                                               \
             vec4f argValues[argCount ? argCount : 1]; \
             EvalBlock<argCount>::eval(context, arguments, argValues);                               \
@@ -1727,7 +1687,6 @@ SIM_NODE_AT_VECTOR(Float, float)
         }
         DAS_EVAL_ABI virtual vec4f eval(Context& context) override {
             DAS_PROFILE_NODE
-            DAS_KEEPALIVE_CALL(&context);
             auto cmres = cmresEval->evalPtr(context);
             vec4f argValues[DAS_MAX_FUNCTION_ARGUMENTS];
             evalArgs(context, argValues);
@@ -1739,7 +1698,6 @@ SIM_NODE_AT_VECTOR(Float, float)
 #define EVAL_NODE(TYPE,CTYPE) \
         virtual CTYPE eval##TYPE ( Context & context ) override { \
             DAS_PROFILE_NODE \
-            DAS_KEEPALIVE_CALL(&context); \
             auto cmres = cmresEval->evalPtr(context); \
             vec4f argValues[DAS_MAX_FUNCTION_ARGUMENTS]; \
             evalArgs(context, argValues); \
@@ -1765,7 +1723,6 @@ SIM_NODE_AT_VECTOR(Float, float)
             : SimNode_InvokeAndCopyOrMoveLambdaAny(at) { cmresEval = spEval; }
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
-            DAS_KEEPALIVE_CALL(&context);
             auto cmres = cmresEval->evalPtr(context);
             vec4f argValues[argCount ? argCount : 1];
             EvalBlock<argCount>::eval(context, arguments, argValues);
@@ -1778,7 +1735,6 @@ SIM_NODE_AT_VECTOR(Float, float)
 #define EVAL_NODE(TYPE,CTYPE)                                                                   \
         virtual CTYPE eval##TYPE ( Context & context ) override {                               \
             DAS_PROFILE_NODE \
-            DAS_KEEPALIVE_CALL(&context); \
             auto cmres = cmresEval->evalPtr(context);                                           \
             vec4f argValues[argCount ? argCount : 1];                                           \
             EvalBlock<argCount>::eval(context, arguments, argValues);                           \
@@ -1800,7 +1756,6 @@ SIM_NODE_AT_VECTOR(Float, float)
         }
         DAS_EVAL_ABI virtual vec4f eval(Context& context) override {
             DAS_PROFILE_NODE
-            DAS_KEEPALIVE_CALL(&context);
             auto cmres = cmresEval->evalPtr(context);
             vec4f argValues[DAS_MAX_FUNCTION_ARGUMENTS];
             evalArgs(context, argValues);
@@ -1813,7 +1768,6 @@ SIM_NODE_AT_VECTOR(Float, float)
 #define EVAL_NODE(TYPE,CTYPE) \
         virtual CTYPE eval##TYPE ( Context & context ) override { \
             DAS_PROFILE_NODE \
-            DAS_KEEPALIVE_CALL(&context); \
             auto cmres = cmresEval->evalPtr(context); \
             vec4f argValues[DAS_MAX_FUNCTION_ARGUMENTS]; \
             evalArgs(context, argValues); \
@@ -3499,6 +3453,12 @@ SIM_NODE_AT_VECTOR(Float, float)
 
 #endif
 
+    struct SimNodeKeepAlive_While : SimNode_While {
+        SimNodeKeepAlive_While ( const LineInfo & at, SimNode * c )
+            : SimNode_While(at,c) {}
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override;
+    };
+
     struct SimNode_ForWithIteratorBase : SimNode_Block {
         SimNode_ForWithIteratorBase ( const LineInfo & at )
             : SimNode_Block(at) { }
@@ -3617,6 +3577,106 @@ SIM_NODE_AT_VECTOR(Float, float)
             return v_zero();
         }
     };
+
+#if DAS_ENABLE_KEEPALIVE
+
+    struct SimNodeKeepAlive_ForWithIteratorBase : SimNode_ForWithIteratorBase {
+        SimNodeKeepAlive_ForWithIteratorBase ( const LineInfo & at )
+            : SimNode_ForWithIteratorBase(at) { }
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override;
+    };
+
+    ////////////////////
+    // FOR WITH ITERATOR
+    ////////////////////
+
+    template <int totalCount>
+    struct SimNodeKeepAlive_ForWithIterator : SimNode_ForWithIterator<totalCount> {
+        SimNodeKeepAlive_ForWithIterator ( const LineInfo & at )
+            : SimNode_ForWithIterator<totalCount>(at) {}
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
+            DAS_PROFILE_NODE
+            char * pi[totalCount];
+            for ( int t=0; t!=totalCount; ++t ) {
+                pi[t] = context.stack.sp() + this->stackTop[t];
+            }
+            Iterator * sources[totalCount] = {};
+            for ( int t=0; t!=totalCount; ++t ) {
+                vec4f ll = this->source_iterators[t]->eval(context);
+                sources[t] = cast<Iterator *>::to(ll);
+            }
+            bool needLoop = true;
+            SimNode ** __restrict tail = this->list + this->total;
+            for ( int t=0; t!=totalCount; ++t ) {
+                sources[t]->isOpen = true;
+                needLoop = sources[t]->first(context, pi[t]) && needLoop;
+                if ( context.stopFlags ) goto loopend;
+            }
+            if ( !needLoop ) goto loopend;
+            while ( !context.stopFlags ) {
+                SimNode ** __restrict body = this->list;
+            loopbegin:;
+                DAS_KEEPALIVE_LOOP(&context);
+                for (; body!=tail; ++body) {
+                    (*body)->eval(context);
+                    DAS_PROCESS_LOOP_FLAGS(break);
+                }
+                for ( int t=0; t!=totalCount; ++t ){
+                    if ( !sources[t]->next(context, pi[t]) ) goto loopend;
+                    if ( context.stopFlags ) goto loopend;
+                }
+            }
+        loopend:
+            this->evalFinal(context);
+            for ( int t=0; t!=totalCount; ++t ) {
+                sources[t]->close(context, pi[t]);
+            }
+            context.stopFlags &= ~EvalFlags::stopForBreak;
+            return v_zero();
+        }
+    };
+
+    template <>
+    struct SimNodeKeepAlive_ForWithIterator<0> : SimNode_ForWithIterator<0> {
+        SimNodeKeepAlive_ForWithIterator ( const LineInfo & at )
+            : SimNode_ForWithIterator<0>(at) {}
+    };
+
+    template <>
+    struct SimNodeKeepAlive_ForWithIterator<1> : SimNode_ForWithIterator<1> {
+        SimNodeKeepAlive_ForWithIterator ( const LineInfo & at )
+            : SimNode_ForWithIterator<1>(at) {}
+        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
+            DAS_PROFILE_NODE
+            char * pi = (context.stack.sp() + stackTop[0]);
+            Iterator * sources;
+            vec4f ll = source_iterators[0]->eval(context);
+            sources = cast<Iterator *>::to(ll);
+            bool needLoop = true;
+            SimNode ** __restrict tail = list + total;
+            sources->isOpen = true;
+            needLoop = sources->first(context, pi) && needLoop;
+            if ( context.stopFlags || !needLoop) goto loopend;
+            while ( !context.stopFlags ) {
+                SimNode ** __restrict body = list;
+            loopbegin:;
+                DAS_KEEPALIVE_LOOP(&context);
+                for (; body!=tail; ++body) {
+                    (*body)->eval(context);
+                    DAS_PROCESS_LOOP_FLAGS(break);
+                }
+                if ( !sources->next(context, pi) ) goto loopend;
+                if ( context.stopFlags ) goto loopend;
+            }
+        loopend:
+            evalFinal(context);
+            sources->close(context, pi);
+            context.stopFlags &= ~EvalFlags::stopForBreak;
+            return v_zero();
+        }
+    };
+
+#endif
 
 #if DAS_DEBUGGER
 

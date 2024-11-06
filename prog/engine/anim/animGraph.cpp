@@ -31,6 +31,25 @@ using namespace AnimV20;
 static constexpr int PROFILE_BLENDING = 0;
 
 
+struct AnimBlender::NodeSamplers
+{
+  struct SamplerParams
+  {
+    dag::Index16 posNode, sclNode, rotNode;
+  };
+
+  union Entry
+  {
+    AnimV20Math::PrsAnimNodeSampler<AnimV20Math::OneShotConfig> sampler;
+    SamplerParams sp;
+  };
+
+  Entry samplers[MAX_ANIMS_IN_NODE];
+  uint8_t totalNum : 8;
+  int32_t lastBnl : 24;
+};
+
+
 namespace perfanimgblend
 {
 PerformanceTimer2 perf_tm;
@@ -708,9 +727,8 @@ void AnimBlender::TlsContext::rebuildNodeList(int bnl_count, int pbc_count, int 
   chPrs = NULL;
 
   int req_sz = +3 * sizeof(NodeWeight) * target_node_count + sizeof(PrsResult) * target_node_count +
-               2 * sizeof(WeightedNode<AnimKeyPoint3>) * target_node_count + sizeof(WeightedNode<AnimKeyQuat>) * target_node_count +
-               elem_size(bnlWt) * bnl_count + elem_size(bnlCT) * bnl_count + elem_size(pbcWt) * pbc_count +
-               elem_size(readyMark) * target_node_count + 8;
+               sizeof(NodeSamplers) * target_node_count + 3 * sizeof(WeightedNode) * target_node_count + elem_size(bnlWt) * bnl_count +
+               elem_size(bnlCT) * bnl_count + elem_size(pbcWt) * pbc_count + elem_size(readyMark) * target_node_count + 8;
   char *base = (char *)dataPtr;
   if (req_sz <= dataPtrSz)
   {
@@ -746,14 +764,17 @@ void AnimBlender::TlsContext::rebuildNodeList(int bnl_count, int pbc_count, int 
   chPrs = (PrsResult *)base;
   base += sizeof(PrsResult) * target_node_count;
 
-  chPos = (WeightedNode<AnimKeyPoint3> *)base;
-  base += sizeof(WeightedNode<AnimKeyPoint3>) * target_node_count;
+  chXfm = (NodeSamplers *)base;
+  base += sizeof(NodeSamplers) * target_node_count;
 
-  chScl = (WeightedNode<AnimKeyPoint3> *)base;
-  base += sizeof(WeightedNode<AnimKeyPoint3>) * target_node_count;
+  chPos = (WeightedNode *)base;
+  base += sizeof(WeightedNode) * target_node_count;
 
-  chRot = (WeightedNode<AnimKeyQuat> *)base;
-  base += sizeof(WeightedNode<AnimKeyQuat>) * target_node_count;
+  chScl = (WeightedNode *)base;
+  base += sizeof(WeightedNode) * target_node_count;
+
+  chRot = (WeightedNode *)base;
+  base += sizeof(WeightedNode) * target_node_count;
 
   // prepare node-wise buffer for blending
   bnlWt.set((real *)base, bnl_count);
@@ -841,8 +862,9 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
   dag::Span<real> pbcWt = tls.pbcWt;
   dag::Span<uint8_t> readyMark = tls.readyMark;
   NodeWeight *wtPos = tls.wtPos, *wtScl = tls.wtScl, *wtRot = tls.wtRot;
-  WeightedNode<AnimKeyPoint3> *chPos = tls.chPos, *chScl = tls.chScl;
-  WeightedNode<AnimKeyQuat> *chRot = tls.chRot;
+  NodeSamplers *chXfm = tls.chXfm;
+  WeightedNode *chPos = tls.chPos, *chScl = tls.chScl;
+  WeightedNode *chRot = tls.chRot;
   PrsResult *chPrs = tls.chPrs;
 
   if (PROFILE_BLENDING)
@@ -888,9 +910,10 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
   // construct blending lists
   enum
   {
-    BMOD_ADDITIVE = 1 << 0,
-    BMOD_CHARDEP = 1 << 1,
-    BMOD_MOTION_MATCHING_POSE = 1 << 2
+    BMOD_INDEX_MASK = (1 << 5) - 1,
+    BMOD_ADDITIVE = 1 << 5,
+    BMOD_CHARDEP = 1 << 6,
+    BMOD_MOTION_MATCHING_POSE = 1 << 7
   };
 
   if (bctx.irq(GIRQT_GetMotionMatchingPose, (intptr_t)&tls, 0, 0) == GIRQR_MotionMatchingPoseApplied)
@@ -904,6 +927,33 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
         chScl[i].blendMod[0] = BMOD_MOTION_MATCHING_POSE;
     }
 
+  for (i = 0; i < nodenum; i++)
+  {
+    chXfm[i].lastBnl = -1;
+    chXfm[i].totalNum = 0;
+  }
+
+  auto add_sampler = [](NodeSamplers &smp, int i, int j, int targetChN, const AnimDataChan &chan) {
+    G_UNUSED(j);
+    G_UNUSED(targetChN);
+    G_UNUSED(chan);
+    if (DAGOR_UNLIKELY(smp.totalNum >= MAX_ANIMS_IN_NODE))
+    {
+#if DAGOR_DBGLEVEL > 0
+      LOGERR_ONCE("xfm: Need to increase max anims for node %d/%s, j=%d, targetChN=%d: %dn", i, chan.nodeName[j].get(), j, targetChN,
+        smp.totalNum);
+#endif
+      return false;
+    }
+    auto &s = smp.samplers[smp.totalNum];
+    s.sp.posNode = dag::Index16();
+    s.sp.sclNode = dag::Index16();
+    s.sp.rotNode = dag::Index16();
+    smp.totalNum++;
+    smp.lastBnl = i;
+    return true;
+  };
+
   for (i = 0; i < bnlNum; i++)
   {
     if (fabsf(bnlWt[i]) <= 1e-6f || !bnl[i] || !bnl.data()[i]->anim)
@@ -912,9 +962,10 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
     real wa_w = bnlWt.data()[i], w;
     bool additive = bnl.data()[i]->additive;
 
-    const AnimDataChan<AnimChanPoint3> &pos = bnl.data()[i]->anim->anim.pos;
-    const AnimDataChan<AnimChanPoint3> &scl = bnl.data()[i]->anim->anim.scl;
-    const AnimDataChan<AnimChanQuat> &rot = bnl.data()[i]->anim->anim.rot;
+    const AnimData *anim = bnl.data()[i]->anim;
+    const AnimDataChan &pos = anim->anim.pos;
+    const AnimDataChan &scl = anim->anim.scl;
+    const AnimDataChan &rot = anim->anim.rot;
 
     const ChannelMap &cm = bnlChan[i];
     int wa_pos = bnlCT[i];
@@ -927,12 +978,11 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
 
       if (targetChN < 0)
         continue;
-      const AnimChanPoint3 &chan = pos.nodeAnim[j];
       w = pos.nodeWt[j] * wa_w;
       NodeWeight &ch_w = wtPos[targetChN];
-      WeightedNode<AnimKeyPoint3> &ch = chPos[targetChN];
+      WeightedNode &ch = chPos[targetChN];
       if (ch_w.totalNum > 0 && ch.blendMod[0] == BMOD_MOTION_MATCHING_POSE && !additive)
-        w *= (1 - ch.blendSrc[0].w);
+        w *= (1 - ch.blendWt[0]);
       if (fabsf(w) <= 1e-6f)
         continue;
 
@@ -946,8 +996,15 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
         continue;
       }
 
-      WeightedNode<AnimKeyPoint3>::BlendSrc &bsrc = ch.blendSrc[ch_w.totalNum];
-      ch.blendMod[ch_w.totalNum] = bmod;
+      NodeSamplers &smp = chXfm[targetChN];
+      // we couldn't have already added animation for this BNL, unless there are nodes with duplicate names
+      if (smp.lastBnl != i)
+        if (!add_sampler(smp, i, j, targetChN, pos))
+          continue;
+      smp.samplers[smp.totalNum - 1].sp.posNode = dag::Index16(j);
+
+      ch.blendWt[ch_w.totalNum] = w;
+      ch.blendMod[ch_w.totalNum] = bmod | (smp.totalNum - 1);
       if (charDep && charDepNodeId != targetChN)
         ch.blendMod[ch_w.totalNum] &= ~BMOD_CHARDEP;
       ch.readyFlg = (ch_w.totalNum ? ch.readyFlg : 0) | (additive ? RM_POS_A : RM_POS_B);
@@ -956,8 +1013,6 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
         ch_w.wTotal += w;
       else if (ch_w.totalNum == 1)
         ch_w.wTotal = 1.0f; //< only additive anims for node, mark wTotal as 'used'
-      bsrc.w = w;
-      bsrc.k = chan.findKey(wa_pos, &bsrc.t);
     }
 
     for (j = 0; j < scl.nodeNum; j++)
@@ -968,35 +1023,37 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
         continue;
       if (charDep && charDepNodeId != targetChN)
         continue;
-      const AnimChanPoint3 &chan = scl.nodeAnim[j];
       w = scl.nodeWt[j] * wa_w;
       NodeWeight &ch_w = wtScl[targetChN];
-      WeightedNode<AnimKeyPoint3> &ch = chScl[targetChN];
+      WeightedNode &ch = chScl[targetChN];
       if (ch_w.totalNum > 0 && ch.blendMod[0] == BMOD_MOTION_MATCHING_POSE && !additive)
-        w *= (1 - ch.blendSrc[0].w);
+        w *= (1 - ch.blendWt[0]);
       if (fabsf(w) <= 1e-6f)
         continue;
-
 
       if (ch_w.totalNum >= MAX_ANIMS_IN_NODE)
       {
 #if DAGOR_DBGLEVEL > 0
-        LOGERR_ONCE("scl: Need to increase max anims for node %d/%s, j=%d, targetChN=%d: %d\n", i, pos.nodeName[j].get(), j, targetChN,
+        LOGERR_ONCE("scl: Need to increase max anims for node %d/%s, j=%d, targetChN=%d: %d\n", i, scl.nodeName[j].get(), j, targetChN,
           ch_w.totalNum);
 #endif
         continue;
       }
 
-      WeightedNode<AnimKeyPoint3>::BlendSrc &bsrc = ch.blendSrc[ch_w.totalNum];
-      ch.blendMod[ch_w.totalNum] = bmod;
+      NodeSamplers &smp = chXfm[targetChN];
+      if (smp.lastBnl != i)
+        if (!add_sampler(smp, i, j, targetChN, scl))
+          continue;
+      smp.samplers[smp.totalNum - 1].sp.sclNode = dag::Index16(j);
+
+      ch.blendWt[ch_w.totalNum] = w;
+      ch.blendMod[ch_w.totalNum] = bmod | (smp.totalNum - 1);
       ch.readyFlg = (ch_w.totalNum ? ch.readyFlg : 0) | (additive ? RM_SCL_A : RM_SCL_B);
       ch_w.totalNum++;
       if (!additive)
         ch_w.wTotal += w;
       else if (ch_w.totalNum == 1)
         ch_w.wTotal = 1.0f; //< only additive anims for node, mark wTotal as 'used'
-      bsrc.w = w;
-      bsrc.k = chan.findKey(wa_pos, &bsrc.t);
     }
 
     for (j = 0; j < rot.nodeNum; j++)
@@ -1005,33 +1062,47 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
 
       if (targetChN < 0)
         continue;
-      const AnimChanQuat &chan = rot.nodeAnim[j];
       w = rot.nodeWt[j] * wa_w;
       NodeWeight &ch_w = wtRot[targetChN];
-      WeightedNode<AnimKeyQuat> &ch = chRot[targetChN];
+      WeightedNode &ch = chRot[targetChN];
       if (ch_w.totalNum > 0 && ch.blendMod[0] == BMOD_MOTION_MATCHING_POSE && !additive)
-        w *= (1 - ch.blendSrc[0].w);
+        w *= (1 - ch.blendWt[0]);
       if (w <= 1e-6f)
         continue;
 
       if (ch_w.totalNum >= MAX_ANIMS_IN_NODE)
       {
 #if DAGOR_DBGLEVEL > 0
-        LOGERR_ONCE("rot: Need to increase max anims for node %d/%s, j=%d, targetChN=%d: %d\n", i, pos.nodeName[j].get(), j, targetChN,
+        LOGERR_ONCE("rot: Need to increase max anims for node %d/%s, j=%d, targetChN=%d: %d\n", i, rot.nodeName[j].get(), j, targetChN,
           ch_w.totalNum);
 #endif
         continue;
       }
-      WeightedNode<AnimKeyQuat>::BlendSrc &bsrc = ch.blendSrc[ch_w.totalNum];
-      ch.blendMod[ch_w.totalNum] = bmod & ~BMOD_CHARDEP;
+
+      NodeSamplers &smp = chXfm[targetChN];
+      if (smp.lastBnl != i)
+        if (!add_sampler(smp, i, j, targetChN, rot))
+          continue;
+      smp.samplers[smp.totalNum - 1].sp.rotNode = dag::Index16(j);
+
+      ch.blendWt[ch_w.totalNum] = w;
+      ch.blendMod[ch_w.totalNum] = (bmod & ~BMOD_CHARDEP) | (smp.totalNum - 1);
       ch.readyFlg = (ch_w.totalNum ? ch.readyFlg : 0) | (additive ? RM_ROT_A : RM_ROT_B);
       ch_w.totalNum++;
       if (!additive)
         ch_w.wTotal += w;
       else if (ch_w.totalNum == 1)
         ch_w.wTotal = 1.0f; //< only additive anims for node, mark wTotal as 'used'
-      bsrc.w = w;
-      bsrc.k = chan.findKey(wa_pos, &bsrc.t);
+    }
+
+    // create added samplers
+    for (j = 0; j < nodenum; j++)
+    {
+      NodeSamplers &smp = chXfm[j];
+      if (smp.lastBnl != i)
+        continue;
+      auto &s = smp.samplers[smp.totalNum - 1];
+      new (&s.sampler, _NEW_INPLACE) decltype(s.sampler)(anim, s.sp.posNode, s.sp.rotNode, s.sp.sclNode, wa_pos);
     }
   }
   if (PROFILE_BLENDING)
@@ -1050,34 +1121,41 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
     if (!bnum || fabsf(ch_w.wTotal) < 1e-6f)
       continue;
 
-    WeightedNode<AnimKeyPoint3> &ch = chPos[i];
+    WeightedNode &ch = chPos[i];
+    NodeSamplers &smp = chXfm[i];
 
-    WeightedNode<AnimKeyPoint3>::BlendSrc *bsrc = ch.blendSrc;
+    real *bwgt = ch.blendWt;
     uint8_t *bmod = ch.blendMod;
-    vec4f t4, w4, v, res = v_zero();
+    vec4f w4, v, res = v_zero();
     bnum--;
     readyMark[i] |= ch.readyFlg;
 
-    t4 = v_splats(bsrc->t);
-    w4 = v_splats(bsrc->w);
+    if (*bmod == BMOD_MOTION_MATCHING_POSE)
+    {
+      if (!bnum) // result is already in chPrs
+        continue;
+      v = chPrs[i].pos;
+    }
+    else
+    {
+      v = smp.samplers[*bmod & BMOD_INDEX_MASK].sampler.samplePos();
+      if (*bmod & BMOD_CHARDEP)
+        v = v_madd(v, cmm_scl, cmm_ofs);
+    }
 
-    v = bsrc->interp() ? AnimV20Math::interp_key(*bsrc->k, t4) : bsrc->k->p;
-    if (*bmod & BMOD_CHARDEP)
-      v = v_madd(v, cmm_scl, cmm_ofs);
-
-    if (!bnum && !(*bmod & BMOD_ADDITIVE) && fabsf(bsrc->w) > 0)
+    if (!bnum && !(*bmod & BMOD_ADDITIVE) && fabsf(*bwgt) > 0)
       chPrs[i].pos = v;
     else
     {
+      w4 = v_splats(*bwgt);
       vec4f inv_total = v_rcp(v_splats(ch_w.wTotal));
       res = v_mul(v, !(*bmod & BMOD_ADDITIVE) ? v_mul(w4, inv_total) : w4);
-      bsrc++;
+      bwgt++;
       bmod++;
-      for (; bnum; bsrc++, bmod++, bnum--)
+      for (; bnum; bwgt++, bmod++, bnum--)
       {
-        t4 = v_splats(bsrc->t);
-        w4 = v_splats(bsrc->w);
-        v = bsrc->interp() ? AnimV20Math::interp_key(*bsrc->k, t4) : bsrc->k->p;
+        w4 = v_splats(*bwgt);
+        v = smp.samplers[*bmod & BMOD_INDEX_MASK].sampler.samplePos();
         if (*bmod & BMOD_CHARDEP)
           v = v_madd(v, cmm_scl, cmm_ofs);
 
@@ -1095,38 +1173,45 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
     if (!bnum || fabsf(ch_w.wTotal) < 1e-6f)
       continue;
 
-    WeightedNode<AnimKeyPoint3> &ch = chScl[i];
+    WeightedNode &ch = chScl[i];
+    NodeSamplers &smp = chXfm[i];
 
-    WeightedNode<AnimKeyPoint3>::BlendSrc *bsrc = ch.blendSrc;
+    real *bwgt = ch.blendWt;
     uint8_t *bmod = ch.blendMod;
-    vec4f t4, w4, v, res = v_zero(), additive_scl = V_C_ONE;
+    vec4f w4, v, res = v_zero(), additive_scl = V_C_ONE;
     bnum--;
     readyMark[i] |= ch.readyFlg;
 
-    t4 = v_splats(bsrc->t);
-    w4 = v_splats(bsrc->w);
+    if (*bmod == BMOD_MOTION_MATCHING_POSE)
+    {
+      if (!bnum) // result is already in chPrs
+        continue;
+      v = chPrs[i].scl;
+    }
+    else
+    {
+      v = smp.samplers[*bmod & BMOD_INDEX_MASK].sampler.sampleScl();
+      if (*bmod & BMOD_CHARDEP)
+        v = v_mul(v, cmm_scl);
+    }
 
-    v = bsrc->interp() ? AnimV20Math::interp_key(*bsrc->k, t4) : bsrc->k->p;
-    if (*bmod & BMOD_CHARDEP)
-      v = v_mul(v, cmm_scl);
-
-    if (!bnum && !(*bmod & BMOD_ADDITIVE) && fabsf(bsrc->w) > 0)
+    if (!bnum && !(*bmod & BMOD_ADDITIVE) && fabsf(*bwgt) > 0)
       chPrs[i].scl = v;
     else
     {
+      w4 = v_splats(*bwgt);
       vec4f inv_total = v_rcp(v_splats(ch_w.wTotal));
       if (!(*bmod & BMOD_ADDITIVE))
         res = v_mul(v, v_mul(w4, inv_total));
       else
         additive_scl = v_lerp_vec4f(w4, V_C_ONE, v);
 
-      bsrc++;
+      bwgt++;
       bmod++;
-      for (; bnum; bsrc++, bmod++, bnum--)
+      for (; bnum; bwgt++, bmod++, bnum--)
       {
-        t4 = v_splats(bsrc->t);
-        w4 = v_splats(bsrc->w);
-        v = bsrc->interp() ? AnimV20Math::interp_key(*bsrc->k, t4) : bsrc->k->p;
+        w4 = v_splats(*bwgt);
+        v = smp.samplers[*bmod & BMOD_INDEX_MASK].sampler.sampleScl();
         if (*bmod & BMOD_CHARDEP)
           v = v_mul(v, cmm_scl);
 
@@ -1152,38 +1237,45 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
     if (!bnum || fabsf(ch_w.wTotal) < 1e-6f)
       continue;
 
-    WeightedNode<AnimKeyQuat> &ch = chRot[i];
+    WeightedNode &ch = chRot[i];
+    NodeSamplers &smp = chXfm[i];
 
-    WeightedNode<AnimKeyQuat>::BlendSrc *bsrc = ch.blendSrc;
+    real *bwgt = ch.blendWt;
     uint8_t *bmod = ch.blendMod;
     vec4f v, additive_rot = V_C_UNIT_0001, res = V_C_UNIT_0001;
     bnum--;
     readyMark[i] |= ch.readyFlg;
 
+    if (*bmod == BMOD_MOTION_MATCHING_POSE)
+    {
+      if (!bnum) // result is already in chPrs
+        continue;
+      v = chPrs[i].rot;
+    }
+    else
+      v = smp.samplers[*bmod & BMOD_INDEX_MASK].sampler.sampleRot();
 
-    v = bsrc->interp() ? AnimV20Math::interp_key(bsrc->k[0], bsrc->k[1], bsrc->t) : bsrc->k->p;
-
-    if (!bnum && !(*bmod & BMOD_ADDITIVE) && fabsf(bsrc->w) > 0)
+    if (!bnum && !(*bmod & BMOD_ADDITIVE) && fabsf(*bwgt) > 0)
       chPrs[i].rot = v;
     else
     {
       float wsum = 0;
       if (!(*bmod & BMOD_ADDITIVE))
-        res = v, wsum = bsrc->w;
+        res = v, wsum = *bwgt;
       else
-        additive_rot = v_quat_lerp(v_splats(bsrc->w), V_C_UNIT_0001, v);
-      bsrc++;
+        additive_rot = v_quat_lerp(v_splats(*bwgt), V_C_UNIT_0001, v);
+      bwgt++;
       bmod++;
-      for (; bnum; bsrc++, bmod++, bnum--)
+      for (; bnum; bwgt++, bmod++, bnum--)
       {
-        v = bsrc->interp() ? AnimV20Math::interp_key(bsrc->k[0], bsrc->k[1], bsrc->t) : bsrc->k->p;
+        v = smp.samplers[*bmod & BMOD_INDEX_MASK].sampler.sampleRot();
         if (!(*bmod & BMOD_ADDITIVE))
         {
-          wsum += bsrc->w;
-          res = (wsum != bsrc->w) ? v_quat_qslerp(safediv(bsrc->w, wsum), res, v) : v;
+          wsum += *bwgt;
+          res = (wsum != *bwgt) ? v_quat_qslerp(safediv(*bwgt, wsum), res, v) : v;
         }
         else
-          additive_rot = v_quat_mul_quat(additive_rot, v_quat_lerp(v_splats(bsrc->w), V_C_UNIT_0001, v));
+          additive_rot = v_quat_mul_quat(additive_rot, v_quat_lerp(v_splats(*bwgt), V_C_UNIT_0001, v));
       }
       if (!(ch.readyFlg & RM_ROT_A))
         chPrs[i].rot = res;
@@ -1280,33 +1372,16 @@ void AnimBlender::blendOriginVel(TlsContext &tls, IPureAnimStateHolder &st, IAni
       pts = v_mul(pts, v_splats(*st.getParamScalarPtr(bnl[i]->timeScaleParamId)));
 
     AnimData::Anim &a = bnl[i]->anim->anim;
-    AnimKeyPoint3 *klv = NULL, *kav = NULL;
-    float tlv = 0, tav = 0;
-
-    if (a.originLinVel.keyNum > 0)
-      klv = a.originLinVel.findKey(wa_pos, &tlv);
-    if (a.originAngVel.keyNum > 0)
-      kav = a.originAngVel.findKey(wa_pos, &tav);
+    using Sampler = AnimV20Math::Float3AnimNodeSampler<AnimV20Math::OneShotConfig>;
+    Sampler linVelSampler(a.originLinVel, wa_pos);
+    Sampler angVelSampler(a.originAngVel, wa_pos);
 
     vec3f vel;
     vec3f addVel = bnl[i]->addOriginVel;
 
-    if (!klv)
-      vel = addVel;
-    else if (*(int *)&tlv)
-      vel = v_madd(AnimV20Math::interp_key(*klv, v_splats(tlv)), ts, addVel);
-    else
-      vel = v_madd(klv->p, ts, addVel);
+    vel = v_madd(linVelSampler.sample(), ts, addVel);
 
-    if (kav)
-    {
-      vec3f ts_pts = v_mul(ts, pts);
-
-      if (!*(int *)&tav)
-        originWVel = v_madd(kav->p, ts_pts, originWVel);
-      else
-        originWVel = v_madd(AnimV20Math::interp_key(*kav, v_splats(tav)), ts_pts, originWVel);
-    }
+    originWVel = v_madd(angVelSampler.sample(), v_mul(ts, pts), originWVel);
 
     originVel = v_madd(vel, pts, originVel);
     has_origin_vel = true;

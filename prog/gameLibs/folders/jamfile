@@ -13,10 +13,12 @@ AddIncludes =
 Sources = folders.cpp ;
 
 if $(Platform) in windows {
-  Sources +=
-    platform/windows.cpp
-    platform/common.cpp
-  ;
+  Sources += platform/common.cpp ;
+  if $(UseGDK) = no {
+    Sources += platform/windows.cpp ;
+  } else {
+    Sources += platform/xbox.cpp ;
+  }
 }
 
 if $(Platform) = linux {

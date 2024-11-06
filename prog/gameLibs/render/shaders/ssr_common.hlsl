@@ -187,14 +187,10 @@ half4 sample_analytic_sphere(float hitDist, float3 cameraToPoint, float3 R, floa
   return result;
 }
 
-bool get_prev_frame_disocclusion_weight_sample(float2 historyUV, float3 cameraToPoint, float lod, inout half3 historySample)
+bool get_prev_frame_disocclusion_weight_sample(float2 historyUV, float prev_linear_depth, float3 cameraToPoint, float lod, inout half3 historySample)
 {
   bool weight = all(abs(historyUV*2-1) < 1);
   #if USE_PREV_DOWNSAMPLED_CLOSE_DEPTH
-    float4 prevClipExactPos = mul(float4(cameraToPoint, 1), prev_globtm_no_ofs_psf);
-    float prevScreenExactZ = prevClipExactPos.w > 1e-6 ? prevClipExactPos.z/prevClipExactPos.w : 0;
-    float prev_linear_depth = max(prev_zn_zfar.x, linearize_z(prevScreenExactZ, prev_zn_zfar.zw));
-
     float4 depths = prev_downsampled_close_depth_tex.GatherRed(prev_downsampled_close_depth_tex_samplerstate, historyUV).wzxy;
     float4 linearDepths = linearize_z4(depths, prev_zn_zfar.zw);
     float4 depthDiff = abs(linearDepths - prev_linear_depth);
@@ -234,31 +230,38 @@ half4 sample_vignetted_color(float3 hit_uv_z, float linear_roughness, float hitD
   half4 result;
   float3 cameraToHitPoint = getViewVecOptimized(hit_uv_z.xy)* hit_uv_z.z;
   #ifdef REPROJECT_TO_PREV_SCREEN
-    float2 oldUv = 0;
-    float2 screenPos = 0;
+
+    float4 prevClipHitPos = mul(float4(cameraToHitPoint, 1), prev_globtm_no_ofs_psf);
+    float3 oldExactUVZ = prevClipHitPos.w > 1e-6 ? prevClipHitPos.xyz/prevClipHitPos.w : float3(2,2,0);
+    oldExactUVZ.z = max(prev_zn_zfar.x, linearize_z(oldExactUVZ.z, prev_zn_zfar.zw));
 
     #if SSR_MOTIONREPROJ == 1
-      float2 motion = tex2Dlod(MOTION_VECTORS_TEXTURE, float4(hit_uv_z.xy, 0, 0)).rg;
-      if (CHECK_VALID_MOTION_VECTOR(motion)) // if we have  motion vectors
-      {
-        oldUv = hit_uv_z.xy + motion;
-        screenPos = oldUv * 2 - 1;
-      }
-      else
-    #endif
-      {
-        #if SSR_MOTIONREPROJ != 1 && PREV_HERO_SPHERE
-          apply_hero_matrix(hit_uv_z.xy, cameraToHitPoint);
-        #endif
-          oldUv = get_reprojected_history_uvz1(cameraToHitPoint, prev_globtm_no_ofs_psf, screenPos).xy;
-      }
-    #define SSR_MIPS 1
+      motion_type surface_motion = tex2Dlod(MOTION_VECTORS_TEXTURE, float4(hit_uv_z.xy,0,0)).motion_attr;
+      #if MOTION_VECTORS_3D
+        float3 surface_3d_motion = surface_motion;
+      #else
+        float3 surface_3d_motion = float3(surface_motion, oldExactUVZ.z - hit_uv_z.z);
+      #endif
+      if (!CHECK_VALID_MOTION_VECTOR(surface_motion))
+        surface_3d_motion = oldExactUVZ - hit_uv_z;
+    #else
+      #if PREV_HERO_SPHERE
+        bool isHero = apply_hero_matrix(hit_uv_z.xy, cameraToHitPoint);
+      #endif
+      float2 screenPos1;
+      float2 oldUv = get_reprojected_history_uvz1(cameraToHitPoint, prev_globtm_no_ofs_psf, screenPos1).xy;
 
-    float2 sampleUV = oldUv.xy;
+      float3 surface_3d_motion = float3(oldUv, isHero ? oldExactUVZ.z : hit_uv_z.z) - hit_uv_z;
+    #endif
+
+    #define SSR_MIPS 1
+    float prevLinearDepth = hit_uv_z.z + surface_3d_motion.z;
+    float2 sampleUV = hit_uv_z.xy + surface_3d_motion.xy;
   #else
-    float2 screenPos = hit_uv_z.xy * 2 - 1;
+    float prevLinearDepth = hit_uv_z.z;
     float2 sampleUV = hit_uv_z.xy;
   #endif
+  float2 screenPos = sampleUV.xy * 2 - 1;
 
   #if SSR_MIPS
     // mip selection
@@ -268,7 +271,7 @@ half4 sample_vignetted_color(float3 hit_uv_z, float linear_roughness, float hitD
     float TXlod = 0;
   #endif
   half3 prevScreenColor = 0;
-  bool hit = get_prev_frame_disocclusion_weight_sample(sampleUV.xy, cameraToHitPoint, TXlod, prevScreenColor);
+  bool hit = get_prev_frame_disocclusion_weight_sample(sampleUV.xy, prevLinearDepth, cameraToHitPoint, TXlod, prevScreenColor);
   result.rgb = prevScreenColor;
   //hit = true;
   //result.rgb = PREV_FRAME_UNPACK(tex2Dlod(prev_frame_tex, float4(sampleUV.xy, 0, TXlod)).rgb);

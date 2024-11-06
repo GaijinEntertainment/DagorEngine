@@ -512,7 +512,9 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
       uint translucency = hasTranslucency ? ((instanceId >> 15) & 0xFF) : 0;
       instanceId = hasTranslucency ? (instanceId & 0x7FFF) : instanceId;
 
-      BVHMeta meta = bvh_meta[ instanceId ];
+      bool hasPerInstanceData = instanceContributionToHitGroupIndex != 0xFFFFFFU;
+
+      BVHMeta meta = structuredBufferAt(bvh_meta, instanceId);
       hitInfo.material = meta.materialType;
       hitInfo.albedoTextureIndex = get_albedo_texture_index(meta, hitInfo.albedoSamplerIndex);
       hitInfo.alphaTextureIndex = get_alpha_texture_index(meta, hitInfo.alphaSamplerIndex);
@@ -525,7 +527,7 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
       hitInfo.isCamo = is_camo(meta.materialType);
       hitInfo.isLayered = is_layered(meta.materialType);
       hitInfo.isGrass = is_grass(meta.materialType);
-      hitInfo.perInstanceData = bvh_per_instance_data[instanceContributionToHitGroupIndex];
+      hitInfo.perInstanceData = hasPerInstanceData ? structuredBufferAt(bvh_per_instance_data, instanceContributionToHitGroupIndex) : 0;
       hitInfo.rawLayerData = meta.layerData;
 
       if (hitInfo.isLayered)
@@ -917,7 +919,7 @@ macro USE_PARTICLE_BVH(stage)
 
       hitInfo.centerWorldPos = to_world._14_24_34 + bvh_origin;
 
-      BVHMeta meta = bvh_meta[ instanceId ];
+      BVHMeta meta = structuredBufferAt(bvh_meta, instanceId);
       hitInfo.material = meta.materialType;
       hitInfo.albedoTextureIndex = get_albedo_texture_index(meta, hitInfo.albedoSamplerIndex);
 
@@ -1259,9 +1261,9 @@ macro USE_CALC_GEOMETRY_NORMAL(stage)
   hlsl (stage) {
     float3 getHalfDepth(uint2 tci)
     {
-      return float3(half_res_depth_tex[tci].r,
-        half_res_depth_tex[tci + int2(1, 0)].r,
-        half_res_depth_tex[tci + uint2(0, 1)].r);
+      return float3(texture2DAt(half_res_depth_tex, tci).r,
+        texture2DAt(half_res_depth_tex, tci + uint2(1, 0)).r,
+        texture2DAt(half_res_depth_tex, tci + uint2(0, 1)).r);
     }
 
     float3 getDepth(uint2 tci)
@@ -1284,13 +1286,15 @@ macro USE_CALC_GEOMETRY_NORMAL(stage)
       return (half3)worldNormal;
     }
 
-    half3 calc_geometry_normal(uint2 tci, float2 inv_resolution)
+    half3 calc_geometry_normal(uint2 tci, float2 inv_resolution, uint2 resolution)
     {
+      tci = min(tci, resolution - 2); // Prevent sampling depth over the edge of the screen.
       return calc_geometry_normal_depth(tci, inv_resolution, getDepth(tci));
     }
 
-    half3 calc_geometry_normal_half(uint2 tci, float2 inv_resolution)
+    half3 calc_geometry_normal_half(uint2 tci, float2 inv_resolution, uint2 resolution)
     {
+      tci = min(tci, resolution - 2); // Prevent sampling depth over the edge of the screen.
       return calc_geometry_normal_depth(tci, inv_resolution, getHalfDepth(tci));
     }
   }

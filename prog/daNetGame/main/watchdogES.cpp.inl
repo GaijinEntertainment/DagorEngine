@@ -21,7 +21,7 @@ namespace watchdog
 {
 
 #if EA_ASAN_ENABLED || defined(__SANITIZE_ADDRESS__)
-static constexpr uint32_t THRESHOLDS_MULTIPLIER = 2;
+static constexpr uint32_t THRESHOLDS_MULTIPLIER = 3;
 #else
 static constexpr uint32_t THRESHOLDS_MULTIPLIER = 1;
 #endif

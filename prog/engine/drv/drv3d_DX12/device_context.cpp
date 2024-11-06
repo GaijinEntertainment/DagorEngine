@@ -4097,7 +4097,8 @@ void DeviceContext::ExecutionContext::buildTopAccelerationStructure(uint32_t bat
   contextState.resourceStates.flushPendingUAVActions(contextState.graphicsCommandListBarrierBatch, device.currentEventPath().data(),
     device.validatesUserBarriers());
 
-  contextState.resourceActivationTracker.flushAll(contextState.graphicsCommandListBarrierBatch);
+  if (batch_index == 0)
+    contextState.resourceActivationTracker.flushAll(contextState.graphicsCommandListBarrierBatch);
 
   contextState.graphicsCommandListBarrierBatch.execute(contextState.cmdBuffer);
 

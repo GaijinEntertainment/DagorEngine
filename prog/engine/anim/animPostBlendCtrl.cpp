@@ -1287,7 +1287,6 @@ void ApbAnimateCtrl::init(IPureAnimStateHolder &st, const GeomNodeTree &tree)
 void ApbAnimateCtrl::process(IPureAnimStateHolder &st, real /*w*/, GeomNodeTree &tree, AnimPostBlendCtrl::Context &)
 {
   NodeId *nodeId = (NodeId *)st.getInlinePtr(varId);
-  float tpos = 0, tscl = 0, trot = 0;
   vec3f p, s;
   quat4f r;
 
@@ -1307,20 +1306,8 @@ void ApbAnimateCtrl::process(IPureAnimStateHolder &st, real /*w*/, GeomNodeTree 
       if (!n_idx)
         continue;
 
-      if (AnimV20::AnimKeyPoint3 *kpos = anim[j].pos ? anim[j].pos->findKey(t, &tpos) : NULL)
-        p = (tpos != 0.f) ? AnimV20Math::interp_key(kpos[0], v_splats(tpos)) : kpos->p;
-      else
-        p = v_zero();
-
-      if (AnimV20::AnimKeyQuat *krot = anim[j].rot ? anim[j].rot->findKey(t, &trot) : NULL)
-        r = (trot != 0.f) ? AnimV20Math::interp_key(krot[0], krot[1], trot) : krot->p;
-      else
-        r = v_zero();
-
-      if (AnimV20::AnimKeyPoint3 *kscl = anim[j].scl ? anim[j].scl->findKey(t, &tscl) : NULL)
-        s = (tscl != 0.f) ? AnimV20Math::interp_key(kscl[0], v_splats(tscl)) : kscl->p;
-      else
-        s = V_C_ONE;
+      AnimV20Math::PrsAnimNodeSampler<AnimV20Math::OneShotConfig> sampler(anim[j].prs, t);
+      sampler.sampleTransform(p, r, s);
 
       v_mat44_compose(tree.getNodeTm(n_idx), p, r, s);
       tree.invalidateWtm(n_idx.preceeding());
@@ -1328,8 +1315,7 @@ void ApbAnimateCtrl::process(IPureAnimStateHolder &st, real /*w*/, GeomNodeTree 
   }
 }
 
-template <class T>
-static void gather_node_names_by_re(Tab<const char *> &filtered_names, AnimDataChan<T> *ad, RegExp &re)
+static void gather_node_names_by_re(Tab<const char *> &filtered_names, AnimDataChan *ad, RegExp &re)
 {
   PatchablePtr<char> *nodeName = ad->nodeName;
   for (int i = 0, ie = ad->nodeNum; i < ie; i++)
@@ -1408,17 +1394,14 @@ void ApbAnimateCtrl::createNode(AnimationGraph &graph, const DataBlock &blk)
         {
           NodeAnim &na = node->anim.push_back();
           na.name = b.getStr(k);
-          na.pos = ad->getPoint3Anim(AnimV20::CHTYPE_POSITION, na.name);
-          na.rot = ad->getQuatAnim(AnimV20::CHTYPE_ROTATION, na.name);
-          na.scl = ad->getPoint3Anim(AnimV20::CHTYPE_SCALE, na.name);
-          if (!na.pos && !na.rot && !na.scl)
+          na.prs = ad->getPrsAnim(na.name);
+          if (!na.prs.valid())
           {
             if (mandatoryNodes)
               G_ASSERT_LOG(0, "failed to find node <%s> in BNL '%s', block %d", na.name, bnl_nm, j);
             node->anim.pop_back();
           }
-          else if (arrayNodesOnly &&
-                   ((!na.pos || na.pos->keyNum <= 1) && (!na.rot || na.rot->keyNum <= 1) && (!na.scl || na.scl->keyNum <= 1)))
+          else if (arrayNodesOnly && !na.prs.hasAnimation())
             node->anim.pop_back();
           else
             for (int m = 0; m < filtered_names.size(); m++)
@@ -1432,17 +1415,14 @@ void ApbAnimateCtrl::createNode(AnimationGraph &graph, const DataBlock &blk)
       {
         NodeAnim &na = node->anim.push_back();
         na.name = filtered_names[k];
-        na.pos = ad->getPoint3Anim(AnimV20::CHTYPE_POSITION, na.name);
-        na.rot = ad->getQuatAnim(AnimV20::CHTYPE_ROTATION, na.name);
-        na.scl = ad->getPoint3Anim(AnimV20::CHTYPE_SCALE, na.name);
-        if (!na.pos && !na.rot && !na.scl)
+        na.prs = ad->getPrsAnim(na.name);
+        if (!na.prs.valid())
         {
           if (mandatoryNodes)
             G_ASSERT_LOG(0, "failed to find node <%s> (re) in BNL '%s', block %d", na.name, bnl_nm, j);
           node->anim.pop_back();
         }
-        else if (
-          arrayNodesOnly && ((!na.pos || na.pos->keyNum <= 1) && (!na.rot || na.rot->keyNum <= 1) && (!na.scl || na.scl->keyNum <= 1)))
+        else if (arrayNodesOnly && !na.prs.hasAnimation())
           node->anim.pop_back();
       }
       clear_and_shrink(filtered_names);

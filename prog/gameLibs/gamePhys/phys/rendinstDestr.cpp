@@ -221,7 +221,8 @@ public:
   rendinst::riex_handle_t restore()
   {
     rendinst::riex_handle_t h = rendinst::restoreRiGenDestr(riDesc, riBuffer);
-    VERBOSE_SYNC("restored ri (likely no sync received) desc:" FMT_DESC_STR, FMT_DESC_V(riDesc));
+    VERBOSE_SYNC("restored ri (likely no sync received) desc:" FMT_DESC_STR " restored:%i", FMT_DESC_V(riDesc),
+      h != rendinst::RIEX_HANDLE_NULL);
     rendinst::delRIGenExtra(generatedHandle);
     destructables::removeDestructableById(destrId);
     if (rem_tree_cb)
@@ -291,7 +292,8 @@ void rendinstdestr::init_ex(rendinstdestr::on_destr_changed_callback on_destr_cb
 }
 
 void rendinstdestr::init(rendinstdestr::on_destr_changed_callback on_destr_cb, bool apply_pending,
-  create_tree_rend_inst_destr_cb create_tree_destr_cb, remove_tree_rendinst_destr_cb rem_tree_destr_cb, ri_tree_sound_cb tree_sound_cb)
+  create_tree_rend_inst_destr_cb create_tree_destr_cb, remove_tree_rendinst_destr_cb rem_tree_destr_cb, ri_tree_sound_cb tree_sound_cb,
+  get_camera_pos get_camera_pos_cb)
 {
   on_changed_destr_cb = on_destr_cb;
   rendinst::enable_apex = false;
@@ -304,6 +306,7 @@ void rendinstdestr::init(rendinstdestr::on_destr_changed_callback on_destr_cb, b
   rem_physx_collision_obj_cb = nullptr;
   create_apex_actors_at_point_cb = nullptr;
   apex_force_remove_actor_cb = nullptr;
+  get_current_camera_pos = get_camera_pos_cb;
 
   debugTreeInstData.branchDestr = get_tree_destr().branchDestr;
 }
@@ -442,6 +445,22 @@ static void findRendinstNeighbors(rendinst::RendInstDesc desc, int destroy_neigh
   rendinst::testObjToRIGenIntersection(localBBox, coll_info->tm, rendinstCallback, rendinst::GatherRiTypeFlag::RiExtraOnly);
 }
 
+
+void rendinstdestr::fill_ri_destructable_params(destructables::DestructableCreationParams &params, const rendinst::RendInstDesc &desc,
+  DynamicPhysObjectData *po_data, const TMatrix &tm)
+{
+  params.physObjData = po_data;
+  params.tm = tm;
+  if (get_current_camera_pos)
+    params.camPos = get_current_camera_pos();
+  const rendinst::riex_handle_t riexHandle = desc.getRiExtraHandle();
+  params.resIdx = desc.pool;
+  params.hashVal = riexHandle != rendinst::RIEX_HANDLE_NULL ? rendinst::get_riextra_instance_seed(riexHandle) : 0;
+  params.timeToLive = riexHandle != rendinst::RIEX_HANDLE_NULL ? rendinst::get_riextra_destr_time_to_live(riexHandle) : 15.0f;
+  params.timeToKinematic =
+    riexHandle != rendinst::RIEX_HANDLE_NULL ? rendinst::get_riextra_destr_time_to_kinematic(riexHandle) : -1.0f;
+}
+
 static rendinst::RendInstDesc destroyRendinstInternal(rendinst::RendInstDesc desc, bool add_restorable, const Point3 &pos,
   const Point3 &impulse, float at_time, const rendinst::CollisionInfo *coll_info, bool create_destr_effects,
   ApexDmgInfo *apex_dmg_info, rendinstdestr::on_destr_callback on_destr_cb, rendinst::DestrOptionFlags flags)
@@ -470,7 +489,6 @@ static rendinst::RendInstDesc destroyRendinstInternal(rendinst::RendInstDesc des
   else
     mainTm = rendinst::getRIGenMatrixDestr(desc);
 
-  const uint32_t instSeed = desc.isRiExtra() ? rendinst::get_riextra_instance_seed(desc.getRiExtraHandle()) : 0;
   rendinst::RendInstBufferData riBuffer;
   DynamicPhysObjectData *poData = NULL;
   rendinst::RendInstDesc offsetedDesc;
@@ -479,6 +497,9 @@ static rendinst::RendInstDesc destroyRendinstInternal(rendinst::RendInstDesc des
     offsetedDesc = rendinst::get_restorable_desc(desc); // Desc with offs set to restorable_desc.offs
     offsetedDesc.idx = desc.idx;
   }
+  const bool canAddRestorable = add_restorable && offsetedDesc.isValid() && (offsetedDesc.isRiExtra() || offsetedDesc.layer == 0) &&
+                                rendinstdestr::get_destr_settings().isNetClient && coll_info;
+
   rendinst::riex_handle_t createdDestroyedRiexHandle = rendinst::RIEX_HANDLE_NULL; // New riex replacing destroyed
   dacoll::invalidate_ri_instance(desc); // do before destring, otherwise in riextra we'll lose unique data and will not be able to
                                         // compare them
@@ -494,11 +515,15 @@ static rendinst::RendInstDesc destroyRendinstInternal(rendinst::RendInstDesc des
     rendinst::onRiExtraDestruction(rendinst::make_handle(desc.pool, desc.idx), true, userData, impulse, pos);
   else if (add_restorable)
   {
+    if (canAddRestorable)
+      call_restorable_rendinst_cb(offsetedDesc, rendinstdestr::RRS_CREATED); // call restored cb BEFORE destroying, so it will be
+                                                                             // called, before handle is invalidated
     const Point3 *collPoint = (pos == ZERO<Point3>()) ? nullptr : &pos;
     poData = rendinst::doRIGenDestr(desc, riBuffer, create_destr_effects ? ri_effect_cb : nullptr, createdDestroyedRiexHandle,
       userData, collPoint, &outRiRemoved, flags, impulse, pos);
-    if (desc.isRiExtra() && rendinstdestr::get_destr_settings().isNetClient && coll_info && offsetedDesc.isValid())
-      call_restorable_rendinst_cb(offsetedDesc, rendinstdestr::RRS_CREATED);
+    if (canAddRestorable && !outRiRemoved)
+      call_restorable_rendinst_cb(offsetedDesc, rendinstdestr::RRS_RESTORED); // not destroyed - call restored cb to rollback previous
+                                                                              // call
   }
   else
     poData = rendinst::doRIGenDestrEx(desc, create_destr_effects ? ri_effect_cb : nullptr, userData);
@@ -542,24 +567,25 @@ static rendinst::RendInstDesc destroyRendinstInternal(rendinst::RendInstDesc des
   destructables::id_t destrId = destructables::INVALID_ID;
   if (!apex_asset_created && poData && create_destr_effects) //-V560
   {
-    gamephys::DestructableObject *destr = NULL;
-    const Point3 &campos = get_current_camera_pos ? get_current_camera_pos() : mainTm.getcol(3);
-    destrId = destructables::addDestructable(&destr, poData, mainTm, phys_world, campos, desc.pool, instSeed);
+    destructables::DestructableCreationParams params;
+    rendinstdestr::fill_ri_destructable_params(params, desc, poData, mainTm);
+    gamephys::DestructableObject *destr = nullptr;
+    destrId = destructables::addDestructable(&destr, params, phys_world);
     if (destr) //-V1051
     {
-      destr->ttl = desc.isRiExtra() ? rendinst::getTtl(desc) : 15.f;
       if (impulse != ZERO<Point3>())
         destr->addImpulse(*phys_world, pos, impulse);
     }
   }
 
-  if (add_restorable && rendinstdestr::get_destr_settings().isNetClient && coll_info && outRiRemoved)
+  if (canAddRestorable && outRiRemoved)
   {
     // At this point coll_info->desc might be invalid, since 'on_destr_cb' can
     // call 'reset' on it, but we need proper coll_info for restorable so that
     // vehicle collisions could be checked against it, so copy proper desc over.
     rendinst::CollisionInfo tmp = *coll_info;
     tmp.desc = desc;
+    VERBOSE_SYNC("added restorable desc:" FMT_DESC_STR, FMT_DESC_V(offsetedDesc));
     restorables.emplace_back(offsetedDesc, riBuffer, destrId, at_time, tmp, createdDestroyedRiexHandle, apex_destructible_id);
   }
   else if (desc.isRiExtra() && offsetedDesc.isValid())
@@ -646,21 +672,16 @@ rendinst::RendInstDesc rendinstdestr::destroyRendinst(rendinst::RendInstDesc des
 void rendinstdestr::destroyRiExtra(rendinst::riex_handle_t riex_handle, const TMatrix &transform, const Point3 &impulse,
   const Point3 &impulse_pos)
 {
-  uint32_t instSeed = rendinst::get_riextra_instance_seed(riex_handle);
   if (DynamicPhysObjectData *poData = rendinst::doRIExGenDestrEx(riex_handle, ri_effect_cb))
   {
-    uint32_t res_idx = rendinst::handle_to_ri_type(riex_handle);
-    const Point3 &campos = get_current_camera_pos ? get_current_camera_pos() : transform.getcol(3);
-    gamephys::DestructableObject *destr = NULL;
-    destructables::addDestructable(&destr, poData, transform, phys_world, campos, res_idx, instSeed);
-    if (destr)
+    destructables::DestructableCreationParams params;
+    fill_ri_destructable_params(params, rendinst::RendInstDesc(riex_handle), poData, transform);
+    gamephys::DestructableObject *destr = nullptr;
+    destructables::addDestructable(&destr, params, phys_world);
+    if (destr && impulse != ZERO<Point3>())
     {
-      destr->ttl = rendinst::get_riextra_ttl(riex_handle);
-      if (impulse != ZERO<Point3>())
-      {
-        G_ASSERTF(lengthSq(impulse) < sqr(MAX_RI_DESTROY_IMPULSE), "Bad destroy rendInst impulse %@", impulse);
-        destr->addImpulse(*phys_world, impulse_pos, impulse);
-      }
+      G_ASSERTF(lengthSq(impulse) < sqr(MAX_RI_DESTROY_IMPULSE), "Bad destroy rendInst impulse %@", impulse);
+      destr->addImpulse(*phys_world, impulse_pos, impulse);
     }
   }
 }

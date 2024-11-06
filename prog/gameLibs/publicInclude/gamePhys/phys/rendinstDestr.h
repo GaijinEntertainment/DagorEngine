@@ -87,7 +87,8 @@ void init_ex(on_destr_changed_callback on_destr_cb, create_tree_rend_inst_destr_
   apex_force_remove_actor_callback apex_remove_actor_cb = NULL);
 // apply_pending - apply destrs received before level load
 void init(on_destr_changed_callback on_destr_cb, bool apply_pending, create_tree_rend_inst_destr_cb create_tree_destr_cb = nullptr,
-  remove_tree_rendinst_destr_cb rem_tree_destr_cb = nullptr, ri_tree_sound_cb tree_sound_cb = nullptr);
+  remove_tree_rendinst_destr_cb rem_tree_destr_cb = nullptr, ri_tree_sound_cb tree_sound_cb = nullptr,
+  get_camera_pos get_camera_pos_cb = nullptr);
 void clear();
 void shutdown();
 
@@ -164,6 +165,8 @@ rendinst::RendInstDesc destroyRendinst(rendinst::RendInstDesc desc, bool add_res
   rendinst::DestrOptionFlags flags = rendinst::DestrOptionFlag::AddDestroyedRi | rendinst::DestrOptionFlag::ForceDestroy);
 void destroyRiExtra(rendinst::riex_handle_t riex_handle, const TMatrix &transform, const Point3 &impulse, const Point3 &impulse_pos);
 void update(float dt, const Frustum *frustum);
+void fill_ri_destructable_params(destructables::DestructableCreationParams &params, const rendinst::RendInstDesc &desc,
+  DynamicPhysObjectData *po_data, const TMatrix &tm);
 
 bool apply_damage_to_riextra(rendinst::riex_handle_t handle, float dmg, const Point3 &pos, const Point3 &impulse, float at_time);
 void apply_damage_to_ri(const rendinst::RendInstDesc &desc, float dmg, float impulse_to_hp, const Point3 &pos, const Point3 &impulse,

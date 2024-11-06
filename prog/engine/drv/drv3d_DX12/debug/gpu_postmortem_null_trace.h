@@ -32,13 +32,13 @@ public:
     D3D12_PRIMITIVE_TOPOLOGY)
   {}
   constexpr void drawIndirect(const call_stack::CommandData &, D3DGraphicsCommandList *, const PipelineStageStateBase &,
-    const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, BufferResourceReferenceAndOffset)
+    const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, const BufferResourceReferenceAndOffset &)
   {}
   constexpr void drawIndexedIndirect(const call_stack::CommandData &, D3DGraphicsCommandList *, const PipelineStageStateBase &,
-    const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, BufferResourceReferenceAndOffset)
+    const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, const BufferResourceReferenceAndOffset &)
   {}
   constexpr void dispatchIndirect(const call_stack::CommandData &, D3DGraphicsCommandList *, const PipelineStageStateBase &,
-    ComputePipeline &, BufferResourceReferenceAndOffset)
+    ComputePipeline &, const BufferResourceReferenceAndOffset &)
   {}
   constexpr void dispatch(const call_stack::CommandData &, D3DGraphicsCommandList *, const PipelineStageStateBase &, ComputePipeline &,
     uint32_t, uint32_t, uint32_t)
@@ -47,8 +47,8 @@ public:
     const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, uint32_t, uint32_t, uint32_t)
   {}
   constexpr void dispatchMeshIndirect(const call_stack::CommandData &, D3DGraphicsCommandList *, const PipelineStageStateBase &,
-    const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, BufferResourceReferenceAndOffset,
-    BufferResourceReferenceAndOffset, uint32_t)
+    const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, const BufferResourceReferenceAndOffset &,
+    const BufferResourceReferenceAndOffset &, uint32_t)
   {}
   constexpr void blit(const call_stack::CommandData &, D3DGraphicsCommandList *) {}
   void onDeviceRemoved(D3DDevice *, HRESULT, call_stack::Reporter &)

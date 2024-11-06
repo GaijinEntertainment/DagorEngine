@@ -15,6 +15,7 @@
 #include <drv/shadersMetaData/dxil/utility.h>
 #include <osApiWrappers/dag_atomic.h>
 #include <shadersBinaryData.h>
+#include <util/dag_watchdog.h>
 
 #include "driver.h"
 #include "shader_program_id.h"
@@ -506,6 +507,8 @@ void inspect_scripted_shader_bin_dump(ScriptedShadersBinDumpOwner *dump, T inspe
       visited.reserve(visited.capacity() + cls.shrefStorage.size());
     for (auto &prog : cls.shrefStorage)
     {
+      ::watchdog_kick(); // REMOVEME: dirty, dirty hack to work around watchdog killing us during pipeline cache loading
+
       if constexpr (VisitOnce)
         if (!visited.insert((uint32_t(prog.vprId) << 16) | prog.fshId).second)
           continue;

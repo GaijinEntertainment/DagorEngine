@@ -699,7 +699,7 @@ bool checkGameResPackUpToDate(dag::ConstSpan<DagorAsset *> assets, AssetExportCa
     // A lot of assets add the asset itself to the list of src data files.
     // checkFileChanged is quite slow and we checked this asset already above.
     // Removing this asset from gather list is faster then calling checkFileChanged one extra time
-    if (a_files.size() > 0 && strcmp(a_files[0].c_str(), assets[i]->getTargetFilePath().c_str()) == 0)
+    if (a.isVirtual() && a_files.size() > 0 && strcmp(a_files[0].c_str(), assets[i]->getTargetFilePath().c_str()) == 0)
       a_files.erase(a_files.begin());
     for (int j = 0; j < a_files.size(); j++)
       if (c4.checkFileChanged(a_files[j]))

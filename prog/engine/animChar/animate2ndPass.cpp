@@ -117,9 +117,8 @@ void Animate2ndPassCtx::Ctrl::initAnimState(const GeomNodeTree &tree)
     am.animId = anim.getGraph().getNodeId(tree.getNodeName(i));
     if (am.animId != -1)
     {
-      if (!anim.getA2D().getPoint3Anim(AnimV20::CHTYPE_POSITION, tree.getNodeName(i)) &&
-          !anim.getA2D().getPoint3Anim(AnimV20::CHTYPE_SCALE, tree.getNodeName(i)) &&
-          !anim.getA2D().getQuatAnim(AnimV20::CHTYPE_ROTATION, tree.getNodeName(i)))
+      if (!anim.getA2D().anim.pos.getNodeId(tree.getNodeName(i)) && !anim.getA2D().anim.scl.getNodeId(tree.getNodeName(i)) &&
+          !anim.getA2D().anim.rot.getNodeId(tree.getNodeName(i)))
         continue; // skip not-animated node
       am.geomId = i;
       animMap.push_back(am);

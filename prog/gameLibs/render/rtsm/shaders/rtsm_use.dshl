@@ -40,7 +40,7 @@ macro USING_RTSM(stage)
 
       half3 getRTSM(uint2 tci)
       {
-        half4 shadowTexel = rt_texture_outputs[rtsm_bindless_slot][tci];
+        half4 shadowTexel = texture2DAt(rt_texture_outputs[rtsm_bindless_slot], tci);
         half4 shadowData = SIGMA_BackEnd_UnpackShadow(shadowTexel);
         return lerp(shadowData.yzw, 1.0, shadowData.x);
       }

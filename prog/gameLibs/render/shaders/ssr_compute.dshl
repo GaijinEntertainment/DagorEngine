@@ -399,6 +399,8 @@ shader tile_ssr_compute
     INIT_ENVI_SPECULAR_BASE(cs)
     GET_ALTERNATE_REFLECTIONS(cs)
     GET_TRANSLUCENT_ALTERNATE_REFLECTIONS(cs)
+    INIT_BRUNETON_FOG(cs)
+    BASE_USE_BRUNETON_FOG(cs)
   }
   SSR_DISOCCLUSION(cs)
   bool manual_denoising = ssr_denoiser_type == manual || ssr_denoiser_type == simple;
@@ -460,6 +462,16 @@ shader tile_ssr_compute
       #define NUM_TEMPORAL_RAYS 16
       return hammersley( ((random.x&3) + 3*(random.y&3))&(NUM_TEMPORAL_RAYS-1), NUM_TEMPORAL_RAYS, random );
     }
+
+    ##if (ssr_alternate_reflections == yes)
+    void applyFogToReflection(float3 view, float dist, inout float3 color)
+    {
+      half3 add,loss;
+      get_bruneton_fog(view, dist, loss, add);
+      color = color*loss + add;
+    }
+    ##endif
+
     #define BLOCK_SIZE_W 8
     #define BLOCK_SIZE_H 8
 
@@ -578,6 +590,11 @@ shader tile_ssr_compute
             {
               get_alternate_reflections(alternateRefl, reflectionDistance, pixelPos, R, cameraToPoint, normal, false, false);
               ssrResultPrecision = exp2(-reflectionDistance/w);
+              if (alternateRefl.a > 0)
+              {
+                float len = length(reflectionDistance*R + cameraToPoint);
+                applyFogToReflection((reflectionDistance*R + cameraToPoint)*rcp(max(1e-6,len)), len, alternateRefl.rgb);
+              }
             }
             if (alternateRefl.a < 1)
             {
@@ -585,7 +602,7 @@ shader tile_ssr_compute
               reflectionDistance = SSR_FP16_MAX;
             }
             newFrame = half4(lerp(alternateRefl.rgb, newFrame.rgb, newFrame.a), 1);
-            #if TEMPORAL_IN_ONE_PASS
+            #if !TEMPORAL_IN_ONE_PASS
             newFrame.a = alternateRefl.a;
             #endif
             //newFrame = alternateRefl.a > 0 ? half4(lerp(alternateRefl.rgb, newFrame.rgb, newFrame.a), alternateRefl.a) : newFrame;

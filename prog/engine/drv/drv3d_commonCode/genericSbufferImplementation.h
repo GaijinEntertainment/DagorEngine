@@ -1,13 +1,14 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <EASTL/unique_ptr.h>
-#include <drv/3d/dag_driver.h>
-#include <drv/3d/dag_buffers.h>
-#include <perfMon/dag_graphStat.h>
-#include <debug/dag_log.h>
-
 #include "drv_returnAddrStore.h"
+
+#include <3d/tql.h>
+#include <debug/dag_log.h>
+#include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_driver.h>
+#include <EASTL/unique_ptr.h>
+#include <perfMon/dag_graphStat.h>
 
 
 template <bool /*ENABLE*/ = true>

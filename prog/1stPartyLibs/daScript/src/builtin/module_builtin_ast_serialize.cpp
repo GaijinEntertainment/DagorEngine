@@ -2103,6 +2103,7 @@ namespace das {
               << value.profiler
               << value.profile_module
               << value.jit
+              << value.keep_alive
               << value.threadlock_context;
         return *this;
     }
@@ -2194,7 +2195,7 @@ namespace das {
     }
 
     uint32_t AstSerializer::getVersion () {
-        static constexpr uint32_t currentVersion = 46;
+        static constexpr uint32_t currentVersion = 48;
         return currentVersion;
     }
 

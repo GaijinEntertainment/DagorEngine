@@ -55,6 +55,7 @@ public:
   inline void showEmptyGroups(bool show = true) { doShowEmptyGroups = show; }
   void setFilterStr(const char *str) { mTreeList->setFilterStr(str); }
   SimpleString getFilterStr() const { return mTreeList->getFilterStr(); }
+  dag::ConstSpan<int> getFilter() const { return filter; }
   dag::ConstSpan<int> getCurFilter() const { return curFilter; }
 
   // ITreeViewEventHandler

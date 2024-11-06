@@ -51,7 +51,7 @@ shader rt_shadows
     inv_proj_tm@f44 = inv_proj_tm;
     world_view_pos@f3 = world_view_pos;
     sun_dir_for_shadows@f3 = (sun_dir_for_shadows.x, sun_dir_for_shadows.y, sun_dir_for_shadows.z);
-    resolution@i2 = rt_shadow_resolutionI;
+    resolution@u2 = rt_shadow_resolutionI;
     inv_resolution@f2 = (1.0 / rt_shadow_resolution.x, 1.0 / rt_shadow_resolution.y);
     frame_index@i1 = rtsm_frame_index;
     sun_angle_multiplier@f1 = rtsm_sun_angle_multiplier;
@@ -145,9 +145,9 @@ shader rt_shadows
       sampleIndex += virtualSampleIndex * spp;
 
       // The algorithm
-      uint3 A = scrambling_ranking_texture[ pixelPos & 127 ] * 255;
+      uint3 A = texture2DAt(scrambling_ranking_texture, pixelPos & 127) * 255;
       uint rankedSampleIndex = sampleIndex ^ A.z;
-      uint4 B = sobol_texture[ uint2( rankedSampleIndex & 255, 0 ) ] * 255;
+      uint4 B = texture2DAt(sobol_texture, uint2( rankedSampleIndex & 255, 0 )) * 255;
       float4 blue = ( float4( B ^ A.xyxy ) + 0.5 ) * ( 1.0 / 256.0 );
 
       // Randomize in [ 0; 1 / 256 ] area to get rid of possible banding
@@ -284,7 +284,7 @@ shader rt_shadows
         bool isTerrain = false;
       #endif
 
-      float3 geometryNormal = calc_geometry_normal(dtid, inv_resolution);
+      float3 geometryNormal = calc_geometry_normal(dtid, inv_resolution, resolution);
 
       BRANCH
       if (!isGrass && !isImpostor && !isTerrain)
@@ -382,7 +382,7 @@ shader rt_direct_lights
     dynamic_lights@uav = rtsm_dynamic_lights hlsl { RWTexture2D<float3> dynamic_lights@uav; };
     ao_affect_on_landmesh@f1 = (ssao_affect_on_landmesh, 0, 0, 0);
     direct_light_has_ao@i1 = rstm_direct_light_has_ao;
-    resolution@i2 = rt_shadow_resolutionI;
+    resolution@u2 = rt_shadow_resolutionI;
     inv_resolution@f2 = (1.0 / rt_shadow_resolution.x, 1.0 / rt_shadow_resolution.y);
 
     big_light_pos_rad_0@f4 = big_light_pos_rad_0;

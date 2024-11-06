@@ -158,3 +158,8 @@ void AnimTreePlugin::linearPolyFindChilds(PropPanel::ContainerPropertyControl *p
 }
 
 const char *linear_poly_get_child_name_by_idx(const DataBlock &settings, int idx) { return settings.getBlock(idx)->getStr("name"); }
+
+String linear_poly_get_child_prefix_name(const DataBlock &settings, int idx)
+{
+  return String(0, "%d: ", settings.getBlock(idx)->getReal("val", 0.f));
+}

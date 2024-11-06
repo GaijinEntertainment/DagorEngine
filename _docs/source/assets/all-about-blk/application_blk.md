@@ -8,13 +8,13 @@ multiple blocks, each dedicated to specific functions and settings.
 
 Below is a description of each block within the `application.blk` file:
 
-## **Root Level Parameters**
+## Root Level Parameters
 
 - **collision**: Specifies the collision detection system to be used.
 - **shaders**: Defines the path to the shaders.
 - **useDynrend**: A boolean flag to enable or disable dynamic rendering.
 
-## **dynamicDeferred{} Block**
+## dynamicDeferred{} Block
 
 This block configures settings for the dynamic deferred rendering system,
 including supported options, default rendering options, debug display options,
@@ -69,7 +69,7 @@ and various rendering formats.
 - **hdrMode, postfx, vsmAllowed, grassTranslucency**: Configures high dynamic
   range mode, post-processing effects, VSM allowance, and grass translucency.
 
-## **clipmap{} Block**
+## clipmap{} Block
 
 Configures settings for clipmap rendering, which is typically used for large
 terrains.
@@ -82,13 +82,13 @@ terrains.
 - **useUAVFeedback, useToroidalHeightmap**: Enables UAV feedback and toroidal
   heightmap usage.
 
-## **hdr_mode{} Block**
+## hdr_mode{} Block
 
 Specifies the high dynamic range mode settings.
 
 - **ps3, real**: Enables specific HDR modes.
 
-## **SDK{} Block**
+## SDK{} Block
 
 Defines settings related to the SDK (Software Development Kit).
 
@@ -102,7 +102,7 @@ Defines settings related to the SDK (Software Development Kit).
   or asset that is included in the level export process.
   - **tag**: Defines a certain tag.
 
-## **game{} Block**
+## game{} Block
 
 Contains game-specific settings and paths.
 
@@ -113,14 +113,14 @@ Contains game-specific settings and paths.
 - **texStreamingFile, texStreamingBlock, navmesh_layers**: Paths and settings
   related to texture streaming and navigation mesh layers.
 
-## **levelsBlkPrefix{} Block**
+## levelsBlkPrefix{} Block
 
 Configures prefix settings for level blocks.
 
 - **useExportBinPath**: Enables the use of export binary path.
 - **try**: Path to try for level export.
 
-## **assets{} Block**
+## assets{} Block
 
 Defines the parameters and settings related to the handling of game assets,
 including their types, base paths, export settings, impostor rendering
@@ -364,7 +364,7 @@ parameters, and build configurations.
   - **writeDdsxTexPackVer**: Sets the version for writing DDS texture packs.
   - **writeGameResPackVer**: Sets the version for writing game resource packs.
 
-## **level_metrics{} Block**
+## level_metrics{} Block
 
 Defines metrics for levels and plugins.
 
@@ -394,25 +394,25 @@ Defines metrics for levels and plugins.
   - **z_ratio_max**: Maximum ratio of the distance between far and near clipping
     planes to the near clipping plane.
 
-## **genObjTypes{} Block**
+## genObjTypes{} Block
 
 Lists general object types.
 
 - **type**: Various object types used by the tools.
 
-## **dagored_visibility_tags{} Block**
+## dagored_visibility_tags{} Block
 
 Configures visibility tags for different plugins.
 
 - **plugin{} Block**: Names of plugins and their associated tags for visibility.
 
-## **dagored_disabled_plugins{} Block**
+## dagored_disabled_plugins{} Block
 
 Lists plugins that are disabled.
 
 - **disable**: Names of plugins that are disabled in the editor.
 
-## **daEditorExportOrder{} Block**
+## daEditorExportOrder{} Block
 
 Defines the order in which various game elements and assets are exported by the
 editor. This ensures that dependencies are resolved and that assets are
@@ -420,7 +420,7 @@ processed in the correct sequence.
 
 - **plugin**: Specifies the plugins used by the editor in a specific sequence.
 
-## **lightmap{} Block**
+## lightmap{} Block
 
 Configures settings for generating lightmaps, which are precomputed lighting
 information used for static objects.
@@ -434,7 +434,7 @@ information used for static objects.
     the resolution of the lightmaps used.
     - **size**: Size of the lightmap texture.
 
-## **projectDefaults{} Block**
+## projectDefaults{} Block
 
 Defines default project-wide settings.
 
@@ -484,7 +484,7 @@ Defines default project-wide settings.
   - **preferZSTD**: Enables a preference for ZSTD compression algorithm.
   - **preferZLIB**: Enables a preference for ZLIB compression algorithm.
 
-## **shader_glob_vars_scheme{} Block**
+## shader_glob_vars_scheme{} Block
 
 Global shader variables configuration.
 
@@ -495,7 +495,7 @@ Global shader variables configuration.
       Viewer*.
     - **show_no_aa**: Controls the display of assets without anti-aliasing.
 
-## **heightMap{} Block**
+## heightMap{} Block
 
 Configures settings for heightmaps, which define terrain elevation and other
 surface details.
@@ -526,20 +526,20 @@ surface details.
   - **gamma**: The gamma correction value.
   - **iOS{} Block**, **and{} Block**: Platform-specific format settings.
 
-## **additional_platforms{} Block**
+## additional_platforms{} Block
 
 Lists additional platforms for which the tools are configured.
 
 - **platform**: Specifies the platform.
 
-## **parameters{} Block**
+## parameters{} Block
 
 Defines general parameters for the tools.
 
 - **maxTraceDistance**: Maximum distance for tracing operations, such as ray
   casting.
 
-## **AssetLight{} Block**
+## AssetLight{} Block
 
 Configures lighting assets, including dynamic cube textures and level of detail
 (LOD) settings.
@@ -548,7 +548,7 @@ Configures lighting assets, including dynamic cube textures and level of detail
 - **blur_lods**: Enables LOD blurring.
 - **bound_with_camera**: Enables binding the lighting to the camera.
 
-## **defProjectLocal{} Block**
+## defProjectLocal{} Block
 
 Defines local project settings, particularly camera control settings for
 different types of camera modes.
@@ -566,7 +566,7 @@ different types of camera modes.
   - **control_multiplier**: The multiplier for camera control, offering more
     fine-grained control compared to the `freeCamera` settings.
 
-## **animCharView{} Block**
+## animCharView{} Block
 
 Defines variables and first-person shooter (FPS) views for character animation.
 

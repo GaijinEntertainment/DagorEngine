@@ -56,12 +56,7 @@ static void register_room_member(Json::Value const &member_info)
 
 static eastl::string find_room_secret()
 {
-  if (const char *secret = dgs_get_argv("room_secret"))
-    if (*secret)
-      return eastl::string(secret);
-  if (room_info.isNull())
-    return eastl::string();
-  return room_info["private"]["room_secret"].asString();
+  return !room_info.isNull() ? room_info["private"]["room_secret"].asString() : eastl::string();
 }
 
 void apply_room_info_on_join(const Json::Value &params)
@@ -275,7 +270,13 @@ int64_t get_player_original_group(matching::UserId uid)
 
 const Json::Value &get_mode_info() { return room_info["public"]; }
 
-const eastl::string &get_room_secret() { return room_secret; }
+const eastl::string &get_room_secret()
+{
+  if (DAGOR_UNLIKELY(room_secret.empty()))
+    if (const char *rsec = dgs_get_argv("room_secret"); rsec && *rsec)
+      room_secret = rsec;
+  return room_secret;
+}
 
 int get_room_members_count() { return room_members.size(); }
 

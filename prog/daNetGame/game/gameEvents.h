@@ -36,7 +36,7 @@ class IGenLoad;
   DECL_GAME_EVENT(EventDoLoadTaggedLocationData, int /*tag*/, IGenLoad * /*crd*/, bool * /*inout_tag_loaded*/)            \
   DECL_GAME_EVENT(EventDoFinishLocationDataLoad)                                                                          \
   DECL_GAME_EVENT(EventHeroChanged, ecs::EntityId /*new_hero*/)                                                           \
-  DECL_GAME_EVENT(EventUserLoggedIn, int64_t /*user_id*/)                                                                 \
+  DECL_GAME_EVENT(EventUserLoggedIn, int64_t /*user_id*/, SimpleString /*user_name*/)                                     \
   DECL_GAME_EVENT(EventUserLoggedOut)                                                                                     \
   DECL_GAME_EVENT(EventUserMMQueueJoined)                                                                                 \
   DECL_GAME_EVENT(EventRendinstDestroyed, rendinst::riex_handle_t /* riex_handle*/, TMatrix /*ri_tm*/, BBox3 /*ri_bbox*/) \

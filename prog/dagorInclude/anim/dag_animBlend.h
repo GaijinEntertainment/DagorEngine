@@ -252,21 +252,14 @@ public:
   static constexpr int MAX_ANIMS_IN_NODE = 16;
 
   // weighted pos and rot channels
-  template <class KEY>
   struct WeightedNode
   {
-    struct BlendSrc
-    {
-      const KEY *k;
-      real t;
-      real w;
-      int interp() const { return *(int *)&t; }
-    };
-
-    BlendSrc blendSrc[MAX_ANIMS_IN_NODE];
-    uint8_t blendMod[((MAX_ANIMS_IN_NODE + 8) & ~7) - 1];
+    real blendWt[MAX_ANIMS_IN_NODE];
+    uint8_t blendMod[((MAX_ANIMS_IN_NODE + 1 + 7) & ~7) - 1];
     uint8_t readyFlg;
   };
+
+  struct NodeSamplers;
 
   struct NodeWeight
   {
@@ -354,8 +347,8 @@ public:
     dag::Span<real> bnlWt;
     dag::Span<int> bnlCT;
 
-    WeightedNode<AnimKeyPoint3> *chPos = NULL, *chScl = NULL;
-    WeightedNode<AnimKeyQuat> *chRot = NULL;
+    NodeSamplers *chXfm = NULL;
+    WeightedNode *chPos = NULL, *chScl = NULL, *chRot = NULL;
     NodeWeight *wtPos = NULL, *wtScl = NULL, *wtRot = NULL;
     PrsResult *chPrs = NULL;
 

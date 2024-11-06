@@ -128,7 +128,10 @@ shader deferred_shadow_classify_tiles
     {
       uint2 tileCoords = Groupid.xy;
       uint2 cornerPixCoords = tileCoords * RESOLVE_GBUFFER_TILE_SIZE + GTid.xy * 2;
-      uint featureBits = get_feature_bits_for_range(tileCoords, get_raw_depth_range_2x2(cornerPixCoords));
+      uint featureBits = 0;
+      BRANCH
+      if (all(cornerPixCoords < uint2(rendering_res.xy)))
+        featureBits = get_feature_bits_for_range(tileCoords, get_raw_depth_range_2x2(cornerPixCoords));
 
       if (GI < 1)
         g_shared_feature_bits = 0;

@@ -641,8 +641,7 @@ class ApbAnimateCtrl : public AnimPostBlendCtrl
 {
   struct NodeAnim
   {
-    const AnimV20::AnimChanPoint3 *pos, *scl;
-    const AnimV20::AnimChanQuat *rot;
+    AnimV20::PrsAnimNodeRef prs;
     SimpleString name;
   };
   struct AnimRec

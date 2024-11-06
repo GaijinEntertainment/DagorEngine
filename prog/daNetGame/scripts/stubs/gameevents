@@ -16,7 +16,9 @@ return {
   CmdSwapEquipSlots = class {name = "CmdSwapEquipSlots"}
   EventRiExtraDestroyed = class {name = "EventRiExtraDestroyed"}
   CmdTeleportTo = class {name = "CmdTeleportTo"}
-  EventUserLoggedIn = class {name = "EventUserLoggedIn"}
+  EventUserLoggedIn = class {name = "EventUserLoggedIn"
+    constructor(...){}
+  }
   EventUserLoggedOut = class {name = "EventUserLoggedOut"}
   EventUserMMQueueJoined = class {name = "EventUserMMQueueJoined"}
 }

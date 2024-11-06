@@ -215,7 +215,10 @@ struct OpsProcessAlgorithm
       ops.arr[i].addToBarrierByTemplateDst(barrier);
 
     // if src ops did not added any stages due to suppresion or full src-less conflicts
-    // do src less barrier as-is
+    // do src less barrier as-is if synchronization2 is available
+    // otherwise do full commands barrier
+    if (!Globals::VK::phy.hasSynchronization2 && barrier.getStagesSrc() == VK_PIPELINE_STAGE_NONE)
+      barrier.addStagesSrc(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
   }
 
   void reduceLoopRanges()

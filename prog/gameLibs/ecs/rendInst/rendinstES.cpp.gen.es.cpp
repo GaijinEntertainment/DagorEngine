@@ -33,29 +33,38 @@ static ecs::EntitySystemDesc rigrid_debug_pos_es_es_desc
   ecs::EventSetBuilder<>::build(),
   (1<<ecs::UpdateStageInfoRenderDebug::STAGE)
 ,"dev,render",nullptr,"*");
-static constexpr ecs::ComponentDesc riextra_spawn_ri_es_event_handler_comps[] =
+static constexpr ecs::ComponentDesc riextra_spawn_ri_es_comps[] =
 {
 //start of 1 rw components at [0]
   {ECS_HASH("ri_extra"), ecs::ComponentTypeInfo<RiExtraComponent>()},
-//start of 1 ro components at [1]
-  {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()}
+//start of 5 ro components at [1]
+  {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
+  {ECS_HASH("ri_extra__handle"), ecs::ComponentTypeInfo<rendinst::riex_handle_t>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("ri_extra__name"), ecs::ComponentTypeInfo<ecs::string>()},
+  {ECS_HASH("ri_extra__sendSpawnEvent"), ecs::ComponentTypeInfo<ecs::Tag>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("levelRiExtra"), ecs::ComponentTypeInfo<ecs::Tag>(), ecs::CDF_OPTIONAL}
 };
-static void riextra_spawn_ri_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+static void riextra_spawn_ri_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
-    riextra_spawn_ri_es_event_handler(evt
-        , ECS_RW_COMP(riextra_spawn_ri_es_event_handler_comps, "ri_extra", RiExtraComponent)
-    , ECS_RO_COMP(riextra_spawn_ri_es_event_handler_comps, "eid", ecs::EntityId)
+    riextra_spawn_ri_es(evt
+        , components.manager()
+    , ECS_RW_COMP(riextra_spawn_ri_es_comps, "ri_extra", RiExtraComponent)
+    , ECS_RO_COMP(riextra_spawn_ri_es_comps, "eid", ecs::EntityId)
+    , ECS_RO_COMP_PTR(riextra_spawn_ri_es_comps, "ri_extra__handle", rendinst::riex_handle_t)
+    , ECS_RO_COMP(riextra_spawn_ri_es_comps, "ri_extra__name", ecs::string)
+    , ECS_RO_COMP_PTR(riextra_spawn_ri_es_comps, "ri_extra__sendSpawnEvent", ecs::Tag)
+    , ECS_RO_COMP_PTR(riextra_spawn_ri_es_comps, "levelRiExtra", ecs::Tag)
     );
   while (++comp != compE);
 }
-static ecs::EntitySystemDesc riextra_spawn_ri_es_event_handler_es_desc
+static ecs::EntitySystemDesc riextra_spawn_ri_es_es_desc
 (
   "riextra_spawn_ri_es",
   "prog/gameLibs/ecs/rendInst/./rendinstES.cpp.inl",
-  ecs::EntitySystemOps(nullptr, riextra_spawn_ri_es_event_handler_all_events),
-  make_span(riextra_spawn_ri_es_event_handler_comps+0, 1)/*rw*/,
-  make_span(riextra_spawn_ri_es_event_handler_comps+1, 1)/*ro*/,
+  ecs::EntitySystemOps(nullptr, riextra_spawn_ri_es_all_events),
+  make_span(riextra_spawn_ri_es_comps+0, 1)/*rw*/,
+  make_span(riextra_spawn_ri_es_comps+1, 5)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<ecs::EventEntityCreated,
@@ -163,7 +172,7 @@ static ecs::EntitySystemDesc rendinst_move_es_event_handler_es_desc
                        ecs::EventEntityCreated,
                        ecs::EventComponentsAppear>::build(),
   0
-);
+,nullptr,nullptr,nullptr,"riextra_spawn_ri_es");
 static constexpr ecs::ComponentDesc rendinst_with_handle_move_es_event_handler_comps[] =
 {
 //start of 2 rw components at [0]

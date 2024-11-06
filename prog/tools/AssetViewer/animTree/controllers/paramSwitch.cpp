@@ -63,6 +63,12 @@ const char *param_switch_get_child_name_by_idx(const DataBlock &settings, int id
   return nodes->getBlock(idx)->getStr("name");
 }
 
+String param_switch_get_child_prefix_name(const DataBlock &settings, int idx)
+{
+  const DataBlock *nodes = settings.getBlockByNameEx("nodes");
+  return String(0, "%s: ", nodes->getBlock(idx)->getBlockName());
+}
+
 static void fill_param_switch_enum_list(PropPanel::ContainerPropertyControl *panel, const DataBlock *nodes)
 {
   Tab<String> nodeNames;

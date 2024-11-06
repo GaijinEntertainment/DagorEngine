@@ -28,6 +28,16 @@ namespace dynrend
 enum class ContextId;
 }
 
+struct SbufferDeleter
+{
+  void operator()(Sbuffer *buf)
+  {
+    if (buf)
+      destroy_d3dres(buf);
+  }
+};
+using UniqueBVHBuffer = eastl::unique_ptr<Sbuffer, SbufferDeleter>;
+
 template <typename ASType>
 struct UniqueAS
 {
@@ -43,7 +53,10 @@ struct UniqueAS
 #if D3D_HAS_RAY_TRACING
     as.as = d3d::create_raytrace_bottom_acceleration_structure(desc, desc_count, flags, as.buildScratchSize, &as.updateScratchSize);
     if (as.as)
+    {
       as.gpuAddress = d3d::get_raytrace_acceleration_structure_gpu_handle(as.as).handle;
+      as.asSize = d3d::get_raytrace_acceleration_structure_size(as.as);
+    }
 #endif
     return as;
   }
@@ -57,14 +70,17 @@ struct UniqueAS
 #if D3D_HAS_RAY_TRACING
     as.as = d3d::create_raytrace_bottom_acceleration_structure(size);
     if (as.as)
+    {
       as.gpuAddress = d3d::get_raytrace_acceleration_structure_gpu_handle(as.as).handle;
+      as.asSize = d3d::get_raytrace_acceleration_structure_size(as.as);
+    }
 #endif
     return as;
   }
 
   template <typename T = ASType>
   static eastl::enable_if_t<eastl::is_same_v<T, RaytraceTopAccelerationStructure>, UniqueAS> create(uint32_t instance_count,
-    RaytraceBuildFlags flags)
+    RaytraceBuildFlags flags, const char *name)
   {
     G_UNUSED(instance_count);
     G_UNUSED(flags);
@@ -73,7 +89,12 @@ struct UniqueAS
 #if D3D_HAS_RAY_TRACING
     as.as = d3d::create_raytrace_top_acceleration_structure(instance_count, flags, as.buildScratchSize, &as.updateScratchSize);
     if (as.as)
+    {
       as.gpuAddress = d3d::get_raytrace_acceleration_structure_gpu_handle(as.as).handle;
+      as.asSize = d3d::get_raytrace_acceleration_structure_size(as.as);
+      as.scratchBuffer.reset(d3d::create_sbuffer(1, as.buildScratchSize, SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE, 0,
+        String(0, "tlas_scratch_%s", name)));
+    }
 #endif
     return as;
   }
@@ -81,10 +102,16 @@ struct UniqueAS
   UniqueAS() = default;
 
   UniqueAS(UniqueAS &&other) :
-    as(other.as), gpuAddress(other.gpuAddress), buildScratchSize(other.buildScratchSize), updateScratchSize(other.updateScratchSize)
+    as(other.as),
+    scratchBuffer(eastl::move(other.scratchBuffer)),
+    gpuAddress(other.gpuAddress),
+    asSize(other.asSize),
+    buildScratchSize(other.buildScratchSize),
+    updateScratchSize(other.updateScratchSize)
   {
     other.as = nullptr;
     other.gpuAddress = 0;
+    other.asSize = 0;
     other.buildScratchSize = 0;
     other.updateScratchSize = 0;
   }
@@ -93,11 +120,14 @@ struct UniqueAS
   {
     reset();
     as = other.as;
+    scratchBuffer.swap(other.scratchBuffer);
     gpuAddress = other.gpuAddress;
+    asSize = other.asSize;
     buildScratchSize = other.buildScratchSize;
     updateScratchSize = other.updateScratchSize;
     other.as = nullptr;
     other.gpuAddress = 0;
+    other.asSize = 0;
     other.buildScratchSize = 0;
     other.updateScratchSize = 0;
     return *this;
@@ -106,7 +136,9 @@ struct UniqueAS
   ~UniqueAS() { reset(); }
 
   ASType *get() const { return as; }
+  Sbuffer *getScratchBuffer() const { return scratchBuffer.get(); }
   uint64_t getGPUAddress() const { return gpuAddress; }
+  uint32_t getASSize() const { return asSize; }
   // This code should be used, but a bug in the D3D12 validation layers always expect the larger build size.
   // So play along with that now.
   // uint32_t getBuildScratchSize() const { return buildScratchSize; }
@@ -126,7 +158,9 @@ struct UniqueAS
     }
 #endif
     as = nullptr;
+    scratchBuffer.reset();
     gpuAddress = 0;
+    asSize = 0;
     buildScratchSize = 0;
     updateScratchSize = 0;
   }
@@ -134,6 +168,8 @@ struct UniqueAS
   void swap(UniqueAS &other)
   {
     eastl::swap(as, other.as);
+    scratchBuffer.swap(other.scratchBuffer);
+    eastl::swap(asSize, other.asSize);
     eastl::swap(gpuAddress, other.gpuAddress);
     eastl::swap(buildScratchSize, other.buildScratchSize);
     eastl::swap(updateScratchSize, other.updateScratchSize);
@@ -147,23 +183,15 @@ struct UniqueAS
 
 private:
   ASType *as = nullptr;
+  UniqueBVHBuffer scratchBuffer;
   uint64_t gpuAddress = 0;
+  uint32_t asSize = 0;
   uint32_t buildScratchSize = 0;
   uint32_t updateScratchSize = 0;
 };
 
 using UniqueBLAS = UniqueAS<RaytraceBottomAccelerationStructure>;
 using UniqueTLAS = UniqueAS<RaytraceTopAccelerationStructure>;
-
-struct SbufferDeleter
-{
-  void operator()(Sbuffer *buf)
-  {
-    if (buf)
-      destroy_d3dres(buf);
-  }
-};
-using UniqueBVHBuffer = eastl::unique_ptr<Sbuffer, SbufferDeleter>;
 
 struct UniqueBVHBufferWithOffset
 {

@@ -198,7 +198,7 @@ public:
   PresentationMode getPresentationMode() const { return presentMode; }
   void changePresentMode(PresentationMode mode) { presentMode = mode; }
 
-  WIN_FUNC bool isVrrSupported() const { return isTearingSupported; }
+  WIN_FUNC bool isVrrSupported() const { return isTearingSupported && !isInExclusiveFullscreenModeEnabled; }
 };
 } // namespace backend
 } // namespace drv3d_dx12

@@ -682,7 +682,6 @@ bool TextureFetchState::Samplers::flush(unsigned shader_stage, bool force, ID3D1
       else
       {
         G_ASSERTF(ss.viewObject == NULL, "slot = %d", i);
-        G_ASSERT(ss.stateObject == NULL);
       }
     }
 #endif

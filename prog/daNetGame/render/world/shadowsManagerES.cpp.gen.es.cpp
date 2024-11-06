@@ -31,6 +31,37 @@ static ecs::EntitySystemDesc shadows_settings_tracking_es_es_desc
   ecs::EventSetBuilder<OnRenderSettingsReady>::build(),
   0
 ,nullptr,"render_settings__combinedShadows,render_settings__forwardRendering,render_settings__ssssQuality,render_settings__waterQuality",nullptr,"ssss_settings_tracking_es");
+static constexpr ecs::ComponentDesc update_world_bbox_es_comps[] =
+{
+//start of 3 ro components at [0]
+  {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
+  {ECS_HASH("ri_extra__bboxMin"), ecs::ComponentTypeInfo<Point3>()},
+  {ECS_HASH("ri_extra__bboxMax"), ecs::ComponentTypeInfo<Point3>()}
+};
+static void update_world_bbox_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    update_world_bbox_es(evt
+        , ECS_RO_COMP(update_world_bbox_es_comps, "transform", TMatrix)
+    , ECS_RO_COMP(update_world_bbox_es_comps, "ri_extra__bboxMin", Point3)
+    , ECS_RO_COMP(update_world_bbox_es_comps, "ri_extra__bboxMax", Point3)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc update_world_bbox_es_es_desc
+(
+  "update_world_bbox_es",
+  "prog/daNetGame/render/world/shadowsManagerES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, update_world_bbox_es_all_events),
+  empty_span(),
+  make_span(update_world_bbox_es_comps+0, 3)/*ro*/,
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<EventRendinstsLoaded,
+                       ecs::EventEntityCreated,
+                       ecs::EventComponentsAppear>::build(),
+  0
+,nullptr,nullptr,nullptr,"rendinst_move_es_event_handler,rendinst_with_handle_move_es_event_handler");
 static constexpr ecs::ComponentDesc use_rgba_fmt_ecs_query_comps[] =
 {
 //start of 1 ro components at [0]

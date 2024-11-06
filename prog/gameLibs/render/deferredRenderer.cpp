@@ -282,11 +282,15 @@ void DeferredRenderTarget::debugRender(int mode)
   if (debugRenderer.getMat() == NULL)
     debugRenderer = PostFxRenderer(DEBUG_RENDER_GBUFFER_SHADER_NAME);
   debug_render_gbuffer(debugRenderer, renderTargets, mode);
+}
+
+void DeferredRenderTarget::debugRenderVectors(int mode, int vec_count, int vec_scale)
+{
   if (debugVecRenderer.material == NULL)
   {
     debugVecRenderer = DynamicShaderHelper();
     debugVecRenderer.init(DEBUG_RENDER_GBUFFER_WITH_VECTORS_SHADER_NAME, nullptr, 0, DEBUG_RENDER_GBUFFER_WITH_VECTORS_SHADER_NAME,
       true);
   }
-  debug_render_gbuffer_with_vectors(debugVecRenderer, renderTargets, mode);
+  debug_render_gbuffer_with_vectors(debugVecRenderer, renderTargets, mode, vec_count, vec_scale);
 }

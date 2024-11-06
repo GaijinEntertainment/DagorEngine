@@ -55,6 +55,10 @@ macro USE_FILM_GRAIN()
       float grain_inv_pitch = film_grain_params.z;
       float grain_phase = film_grain_params.w;
 
+      // Previosly it's was applied on SDR then moved to HDR
+      // So this coeff to presafe same settings
+      grain_strength *= 0.25;
+
       float rg = grain_source(float3(uvs, floor(grain_rate * (grain_phase))),       grain_strength, grain_inv_pitch);
       float gg = grain_source(float3(uvs, floor(grain_rate * (grain_phase + 9.0))), grain_strength, grain_inv_pitch);
       float bg = grain_source(float3(uvs, floor(grain_rate * (grain_phase - 9.0))), grain_strength, grain_inv_pitch);

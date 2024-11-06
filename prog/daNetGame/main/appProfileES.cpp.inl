@@ -30,6 +30,7 @@ static void load_argv(rapidjson::Document &matchingInviteData) // load on first 
   profile.serverSessionId = dgs_get_argv("session_id", "");
   profile.cmdAuthKey = dgs_get_argv("auth_key", "");
   profile.userId = dgs_get_argv("user_id", "");
+  profile.userName = dgs_get_argv("user_name", "{Local Player}");
 
   if (const char *inv_data = (dedicated::is_dedicated() || DAGOR_DBGLEVEL > 0) ? dgs_get_argv("invite_data") : nullptr) //-V560
   {
@@ -67,7 +68,11 @@ ProfileSettings &getRW()
 
 ProfileSettings const &get() { return getRW(); }
 
-static void app_profile_es_event_handler(const EventUserLoggedIn &evt) { getRW().userId = eastl::to_string(evt.get<0>()); }
+static void app_profile_es_event_handler(const EventUserLoggedIn &evt)
+{
+  getRW().userId = eastl::to_string(evt.get<0>());
+  getRW().userName = evt.get<1>();
+}
 
 static void app_profile_es_event_handler(const EventUserLoggedOut &) { getRW().userId = ""; }
 

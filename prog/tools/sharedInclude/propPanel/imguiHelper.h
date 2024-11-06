@@ -35,6 +35,9 @@ public:
     bool isOpen;                 //-V730_NOINIT
   };
 
+  // Internal function for PropPanel.
+  static void afterNewFrame();
+
   // To help with implementing overrides for PropertyControlBase::getTextValue.
   static int getTextValueForString(const String &value, char *buffer, int buflen)
   {
@@ -55,6 +58,10 @@ public:
     return -1;
   }
 
+  // Same as ImGui::Checkbox but supports changing multiple checkboxes at once by dragging the mouse cursor from the
+  // first checkbox while holding the left mouse button.
+  static bool checkboxWithDragSelection(const char *label, bool *value);
+
   // The default ImGui text input control reacts to Enter by making it inactive, or if ConfigInputTextEnterKeepActive
   // is set to true then it keeps active but selects the whole text.
   // We prevent that behaviour by not letting it know about Enter presses...
@@ -66,7 +73,7 @@ public:
   // Feature requests: https://github.com/ocornut/imgui/issues/6170 and https://github.com/ocornut/imgui/issues/1037.
   static bool collapsingHeaderWidth(const char *label, float width, ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_None);
 
-  // Same LabelText but without the text.
+  // Same as LabelText but without the text.
   // (Almost the same as TextUnformatted but this sets the baseline, so it looks correct beside other controls.)
   // use_text_width: if true then the control will be as wide as required by the text
   static void labelOnly(const char *label, const char *label_end = nullptr, bool use_text_width = false);
@@ -182,6 +189,9 @@ public:
 
 private:
   static ImVec2 getImageButtonWithDownArrowSizeInternal(const ImVec2 &image_size, float &default_height, ImVec2 &arrow_half_size);
+
+  static bool checkboxDragSelectionInProgress;
+  static bool checkboxDragSelectionValue;
 };
 
 } // namespace PropPanel

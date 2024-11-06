@@ -4,6 +4,7 @@
 //
 #pragma once
 
+#include <debug/dag_assert.h>
 #include <EASTL/iterator.h>
 #include <EASTL/type_traits.h>
 #include "dag_intrin.h"

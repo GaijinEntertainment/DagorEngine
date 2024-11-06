@@ -77,12 +77,14 @@ static void debug_motion_matching_skeleton_es(const ecs::UpdateStageInfoRenderDe
     animNodesCount = max(animNodesCount, map.animId + 1);
 
   AnimV20::AnimBlender::TlsContext tlsAnimCtx;
-  dag::Vector<AnimV20::AnimBlender::WeightedNode<AnimV20::AnimKeyPoint3>> chPos(animNodesCount), chScl(animNodesCount);
-  dag::Vector<AnimV20::AnimBlender::WeightedNode<AnimV20::AnimKeyQuat>> chRot(animNodesCount);
+  dag::Vector<AnimV20::AnimBlender::WeightedNode> chPos(animNodesCount), chScl(animNodesCount);
+  dag::Vector<AnimV20::AnimBlender::WeightedNode> chRot(animNodesCount);
+  dag::Vector<AnimV20::AnimBlender::PrsResult> chPrs(animNodesCount);
   dag::Vector<AnimV20::AnimBlender::NodeWeight> wtPos(animNodesCount), wtRot(animNodesCount), wtScl(animNodesCount);
   tlsAnimCtx.chPos = chPos.data();
   tlsAnimCtx.chRot = chRot.data();
   tlsAnimCtx.chScl = chScl.data();
+  tlsAnimCtx.chPrs = chPrs.data();
   tlsAnimCtx.wtPos = wtPos.data();
   tlsAnimCtx.wtRot = wtRot.data();
   tlsAnimCtx.wtScl = wtScl.data();
@@ -99,17 +101,17 @@ static void debug_motion_matching_skeleton_es(const ecs::UpdateStageInfoRenderDe
     if (tlsAnimCtx.wtPos[animId].totalNum)
     {
       nodeMask.set(geomId, true);
-      pos = tlsAnimCtx.chPos[animId].blendSrc[0].k->p;
+      pos = tlsAnimCtx.chPrs[animId].pos;
     }
     if (tlsAnimCtx.wtRot[animId].totalNum)
     {
       nodeMask.set(geomId, true);
-      rot = tlsAnimCtx.chRot[animId].blendSrc[0].k->p;
+      rot = tlsAnimCtx.chPrs[animId].rot;
     }
     if (tlsAnimCtx.wtScl[animId].totalNum)
     {
       nodeMask.set(geomId, true);
-      scl = tlsAnimCtx.chScl[animId].blendSrc[0].k->p;
+      scl = tlsAnimCtx.chPrs[animId].scl;
     }
     v_mat44_compose(mmAnimatedTree.getNodeTm(animMap[i].geomId), pos, rot, scl);
   }

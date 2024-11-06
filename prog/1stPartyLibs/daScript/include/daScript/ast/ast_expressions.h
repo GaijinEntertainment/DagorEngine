@@ -381,6 +381,7 @@ namespace das
         virtual ExpressionPtr clone( const ExpressionPtr & expr = nullptr ) const override;
         void autoDereference();
         virtual SimNode * simulate (Context &) const override { return nullptr; }
+        SimNode * keepAlive ( Context &, SimNode * result ) const;
         virtual ExpressionPtr visit(Visitor & vis) override;
         virtual string describe() const;
         virtual bool rtti_isCallLikeExpr() const override { return true; }

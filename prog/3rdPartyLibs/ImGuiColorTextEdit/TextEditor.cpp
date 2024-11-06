@@ -2737,7 +2737,7 @@ void TextEditor::ColorizeRange(int from, int to, bool multiline_tokens)
 
 		int lineLen = min(2000, (int)line.size());
 
-		if (line.size() > buffer.size() + 1)
+		if (line.size() + 1 > buffer.size())
 			buffer.resize(line.size() + 1);
 
 		for (size_t j = 0; j < line.size(); ++j)

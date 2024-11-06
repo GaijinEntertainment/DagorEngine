@@ -18,7 +18,8 @@ class CollisionResource;
 namespace rendinst
 {
 
-float get_riextra_ttl(riex_handle_t);
+float get_riextra_destr_time_to_live(riex_handle_t);
+float get_riextra_destr_time_to_kinematic(riex_handle_t);
 bool get_riextra_immortality(riex_handle_t);
 
 uint32_t get_riextra_instance_seed(riex_handle_t);

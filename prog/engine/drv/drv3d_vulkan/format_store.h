@@ -4,9 +4,9 @@
 #include <util/dag_stdint.h>
 #include <util/dag_globDef.h>
 #include <drv/3d/dag_texFlags.h>
+#include <value_range.h>
 
 #include "util/bits.h"
-#include "util/value_range.h"
 #include "vulkan_api.h"
 
 namespace drv3d_vulkan

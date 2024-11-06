@@ -312,7 +312,7 @@ static bool checkCacheChanged(AssetExportCache &c4, DagorAsset &a, const DataBlo
   // A lot of assets add the asset itself to the list of src data files.
   // checkFileChanged is quite slow and we checked this asset already above.
   // Removing this asset from gather list is faster then calling checkFileChanged one extra time
-  if (a_files.size() > 0 && strcmp(a_files[0].c_str(), a.getTargetFilePath().c_str()) == 0)
+  if (a.isVirtual() && a_files.size() > 0 && strcmp(a_files[0].c_str(), a.getTargetFilePath().c_str()) == 0)
     a_files.erase(a_files.begin());
   int cnt = a_files.size();
   for (int j = 0; j < cnt; j++)

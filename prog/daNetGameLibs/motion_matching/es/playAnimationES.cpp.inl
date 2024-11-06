@@ -33,8 +33,8 @@ ECS_AFTER(after_guns_update_sync, wait_motion_matching_job_es)
 ECS_BEFORE(animchar_es)
 static void mm_calculate_root_offset_es(const ParallelUpdateFrameDelayed &,
   const TMatrix &transform,
-  bool animchar__turnDir,
-  MotionMatchingController &motion_matching__controller)
+  MotionMatchingController &motion_matching__controller,
+  bool animchar__turnDir = false)
 {
   if (!motion_matching__controller.dataBase)
     return;

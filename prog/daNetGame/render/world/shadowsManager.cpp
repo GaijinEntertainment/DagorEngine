@@ -709,6 +709,12 @@ bool ShadowsManager::updateStaticShadowAround(const Point3 &pos, bool update_onl
 
   G_ASSERT(staticShadows->cascadesCount() <= MAX_NUM_STATIC_SHADOWS_CASCADES);
 
+  if (worldBBoxDirty)
+  {
+    staticShadowsSetWorldSize();
+    worldBBoxDirty = false;
+  }
+
   if (always_render_all_cascades)
     update_only_last_cascade = false;
 
@@ -932,6 +938,8 @@ void ShadowsManager::staticShadowsSetWorldSize()
     staticShadows->setMaxHtRange(htRange);                                                 // that is only for skewed matrix
   }
 }
+
+void ShadowsManager::markWorldBBoxDirty() { worldBBoxDirty = true; }
 
 void ShadowsManager::shadowsInvalidate(bool force)
 {

@@ -290,7 +290,11 @@ dabfg::NodeHandle makeResolveGbufferNode(const char *resolve_pshader_name,
       registry.readTexture("ssao_tex").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("ssao_tex").optional();
       registry.read("ssao_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("ssao_tex_samplerstate").optional();
       // for SSAO&SSR
-      registry.read("upscale_sampling_tex").texture().atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("upscale_sampling_tex");
+      registry.read("upscale_sampling_tex")
+        .texture()
+        .atStage(dabfg::Stage::PS_OR_CS)
+        .bindToShaderVar("upscale_sampling_tex")
+        .optional();
 
       auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
       use_current_camera(registry);

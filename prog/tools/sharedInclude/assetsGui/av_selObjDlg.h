@@ -42,7 +42,7 @@ public:
   void setTreeNodesExpand(dag::ConstSpan<bool> exps) { view->setTreeNodesExpand(exps); }
   void setFilterStr(const char *str) { view->setFilterStr(str); }
   SimpleString getFilterStr() const { return view->getFilterStr(); }
-  dag::ConstSpan<int> getAllowedTypes() const { return view->getCurFilter(); }
+  dag::ConstSpan<int> getAllowedTypes() const { return view->getFilter(); }
 
   bool changeFilters(DagorAssetMgr *_mgr, dag::ConstSpan<int> type_filter);
   void addAssetToFavorites(const DagorAsset &asset);
@@ -55,6 +55,8 @@ public:
   void onRecentlyUsedSelectionDoubleClicked(const DagorAsset *asset);
 
   const DagorAsset *getAssetByName(const char *_name, dag::ConstSpan<int> asset_types) const;
+
+  const DagorAssetMgr *getAssetMgr() const { return mgr; }
 
   // IAssetBaseViewClient
 
@@ -83,9 +85,7 @@ private:
   virtual void customControlUpdate(int id) override;
 
   void commonConstructor(dag::ConstSpan<int> filter);
-  void fillFavoritesTree();
   String getSelectedFavorite();
-  void fillRecentlyUsedTree();
   String getSelectedRecentlyUsed();
   String getAssetNameWithTypeIfNeeded(const DagorAsset &asset);
 
@@ -99,9 +99,9 @@ private:
   AssetBaseView *view;
   DagorAssetMgr *mgr;
   eastl::unique_ptr<FavoritesTab> favoritesTab;
-  dag::Vector<int> favoritesTreeAllowedTypes;
   eastl::unique_ptr<RecentlyUsedTab> recentlyUsedTab;
-  dag::Vector<int> recentlyUsedTreeAllowedTypes;
   String selectionBuffer;
   TEXTUREID folderTextureId = BAD_TEXTUREID;
+  bool favoritesTabNeedsRefilling = true;
+  bool recentlyUsedTabNeedsRefilling = true;
 };

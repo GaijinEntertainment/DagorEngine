@@ -18,23 +18,19 @@ void set_identity(NodeTSRFixedArray &nodes, const GeomNodeTree &tree)
 
 void sample_animation(float t, const AnimationClip &clip, NodeTSRFixedArray &nodes)
 {
-  int a2dTime = t * AnimV20::TIME_TicksPerSec;
+  AnimV20Math::PrsAnimSampler<AnimV20Math::OneShotConfig> sampler(clip.animation, t);
 
-  float keyT;
   for (const AnimationClip::Point3Channel &translation : clip.channelTranslation)
   {
-    const AnimV20::AnimKeyPoint3 *key = translation.first->findKey(a2dTime, &keyT);
-    nodes[translation.second.index()].set_translation(keyT > 0 ? AnimV20Math::interp_key(key[0], v_splats(keyT)) : key[0].p);
+    nodes[translation.second.index()].set_translation(sampler.samplePos(translation.first));
   }
   for (const AnimationClip::QuaternionChannel &rotation : clip.channelRotation)
   {
-    const AnimV20::AnimKeyQuat *key = rotation.first->findKey(a2dTime, &keyT);
-    nodes[rotation.second.index()].set_rotation(keyT > 0 ? AnimV20Math::interp_key(key[0], key[1], keyT) : key[0].p);
+    nodes[rotation.second.index()].set_rotation(sampler.sampleRot(rotation.first));
   }
   for (const AnimationClip::Point3Channel &scale : clip.channelScale)
   {
-    const AnimV20::AnimKeyPoint3 *key = scale.first->findKey(a2dTime, &keyT);
-    nodes[scale.second.index()].set_scale(keyT > 0 ? AnimV20Math::interp_key(key[0], v_splats(keyT)) : key[0].p);
+    nodes[scale.second.index()].set_scale(sampler.sampleScl(scale.first));
   }
   if (clip.inPlaceAnimation)
   {

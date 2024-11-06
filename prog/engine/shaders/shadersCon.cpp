@@ -386,10 +386,7 @@ public:
   }
 };
 
-static InitOnDemand<ShadersCmdProcessor> shaders_consoleproc;
-static InitOnDemand<ShadersReloadProcessor> shaders_reload_consoleproc;
-
-void shaders_register_console(bool allow_reload, const ShaderReloadCb &after_reload_cb)
+void shaders_set_reload_flags()
 {
 #if (_TARGET_IOS | _TARGET_TVOS | _TARGET_ANDROID | _TARGET_C3) || DAGOR_DBGLEVEL == 0
   shaders_internal::shader_reload_allowed = false;
@@ -398,8 +395,16 @@ void shaders_register_console(bool allow_reload, const ShaderReloadCb &after_rel
 #endif
   shaders_internal::shader_reload_allowed =
     dgs_get_settings()->getBlockByNameEx("graphics")->getBool("shader_reload_allowed", shaders_internal::shader_reload_allowed);
-  shaders_internal::shader_reload_allowed =
+  shaders_internal::shader_pad_for_reload =
     dgs_get_settings()->getBlockByNameEx("graphics")->getInt("shader_pad_for_reload", shaders_internal::shader_pad_for_reload);
+}
+
+static InitOnDemand<ShadersCmdProcessor> shaders_consoleproc;
+static InitOnDemand<ShadersReloadProcessor> shaders_reload_consoleproc;
+
+void shaders_register_console(bool allow_reload, const ShaderReloadCb &after_reload_cb)
+{
+  shaders_set_reload_flags();
   shaders_consoleproc.demandInit();
   add_con_proc(shaders_consoleproc);
   if (allow_reload)

@@ -85,10 +85,7 @@ void SelectAssetDlg::commonConstructor(dag::ConstSpan<int> filter)
   view = new AssetBaseView(client, this, allTabPage->getWindowHandle(), 0, 0, 0, hdpi::_px(tabPageHeight));
 
   PropPanel::ContainerPropertyControl *favoritesTabPage = tabPanel->createTabPage(AssetsGuiIds::FavoritesPage, "Favorites");
-  favoritesTab.reset(new FavoritesTab(*this));
-
   PropPanel::ContainerPropertyControl *recentlyUsedTabPage = tabPanel->createTabPage(AssetsGuiIds::RecentlyUsedPage, "Recently used");
-  recentlyUsedTab.reset(new RecentlyUsedTab(*this));
 
   G_ASSERT(view);
 
@@ -125,8 +122,10 @@ bool SelectAssetDlg::changeFilters(DagorAssetMgr *_mgr, dag::ConstSpan<int> type
   view->setFilter(type_filter);
   mgr = _mgr;
   view->connectToAssetBase(mgr);
-  fillFavoritesTree();
-  fillRecentlyUsedTree();
+  if (favoritesTab)
+    favoritesTab->onAllowedTypesChanged(type_filter);
+  if (recentlyUsedTab)
+    recentlyUsedTab->onAllowedTypesChanged(type_filter);
   return true;
 }
 
@@ -222,22 +221,38 @@ void SelectAssetDlg::onChange(int pcb_id, PropPanel::ContainerPropertyControl *p
   {
     const int newPage = panel->getInt(pcb_id);
     if (newPage == AssetsGuiIds::FavoritesPage)
-      fillFavoritesTree();
+    {
+      if (!favoritesTab)
+      {
+        favoritesTab.reset(new FavoritesTab(*this, *mgr));
+        favoritesTab->onAllowedTypesChanged(view->getFilter());
+        favoritesTabNeedsRefilling = false;
+      }
+
+      if (favoritesTabNeedsRefilling)
+      {
+        favoritesTabNeedsRefilling = false;
+        favoritesTab->fillTree();
+      }
+    }
     else if (newPage == AssetsGuiIds::RecentlyUsedPage)
-      fillRecentlyUsedTree();
+    {
+      if (!recentlyUsedTab)
+      {
+        recentlyUsedTab.reset(new RecentlyUsedTab(*this));
+        recentlyUsedTab->onAllowedTypesChanged(view->getFilter());
+        recentlyUsedTabNeedsRefilling = false;
+      }
+
+      if (recentlyUsedTabNeedsRefilling)
+      {
+        recentlyUsedTabNeedsRefilling = false;
+        recentlyUsedTab->fillTree();
+      }
+    }
 
     client->onAvSelectAsset(getSelObjName());
   }
-}
-
-void SelectAssetDlg::fillFavoritesTree()
-{
-  dag::ConstSpan<int> allowedTypes = view->getCurFilter();
-  if (allowedTypes.size() == favoritesTreeAllowedTypes.size() && mem_eq(allowedTypes, favoritesTreeAllowedTypes.data()))
-    return;
-
-  favoritesTreeAllowedTypes = allowedTypes;
-  favoritesTab->fillTree();
 }
 
 String SelectAssetDlg::getSelectedFavorite()
@@ -254,22 +269,10 @@ void SelectAssetDlg::getAssetImageName(String &image_name, const DagorAsset *ass
     image_name = "unknown";
 }
 
-void SelectAssetDlg::fillRecentlyUsedTree()
-{
-  dag::ConstSpan<int> allowedTypes = view->getCurFilter();
-  if (allowedTypes.size() == recentlyUsedTreeAllowedTypes.size() && mem_eq(allowedTypes, recentlyUsedTreeAllowedTypes.data()))
-    return;
-
-  recentlyUsedTreeAllowedTypes = allowedTypes;
-  recentlyUsedTab->fillTree();
-}
-
 void SelectAssetDlg::addAssetToFavorites(const DagorAsset &asset)
 {
   AssetSelectorGlobalState::addFavorite(asset.getNameTypified());
-
-  // Mark the favorites tree dirty.
-  favoritesTreeAllowedTypes.clear();
+  favoritesTabNeedsRefilling = true;
 }
 
 void SelectAssetDlg::addAssetToRecentlyUsed(const char *asset_name)
@@ -278,12 +281,11 @@ void SelectAssetDlg::addAssetToRecentlyUsed(const char *asset_name)
   if (!AssetSelectorGlobalState::addRecentlyUsed(assetName))
     return;
 
-  // Mark the recently used tree dirty.
-  recentlyUsedTreeAllowedTypes.clear();
-
   const int currentPage = getPanel()->getInt(AssetsGuiIds::TabPanel);
   if (currentPage == AssetsGuiIds::RecentlyUsedPage)
-    fillRecentlyUsedTree();
+    recentlyUsedTab->fillTree();
+  else
+    recentlyUsedTabNeedsRefilling = true;
 }
 
 void SelectAssetDlg::goToAsset(const DagorAsset &asset)
@@ -380,8 +382,8 @@ void SelectAssetDlg::customControlUpdate(int id)
   const int currentPage = getPanel()->getInt(AssetsGuiIds::TabPanel);
   if (currentPage == AssetsGuiIds::AllPage)
     view->updateImgui(regionAvailableY);
-  else if (currentPage == AssetsGuiIds::FavoritesPage)
+  else if (currentPage == AssetsGuiIds::FavoritesPage && favoritesTab)
     favoritesTab->updateImgui();
-  else if (currentPage == AssetsGuiIds::RecentlyUsedPage)
+  else if (currentPage == AssetsGuiIds::RecentlyUsedPage && recentlyUsedTab)
     recentlyUsedTab->updateImgui();
 }

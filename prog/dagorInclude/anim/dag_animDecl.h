@@ -14,11 +14,7 @@ struct AnimKeyPoint3;
 struct AnimKeyQuat;
 struct AnimKeyReal;
 
-template <class KEY>
 struct AnimChan;
-typedef AnimChan<AnimKeyPoint3> AnimChanPoint3;
-typedef AnimChan<AnimKeyQuat> AnimChanQuat;
-typedef AnimChan<AnimKeyReal> AnimChanReal;
 struct AnimKeyLabel;
 
 // shareable animation (a2d)

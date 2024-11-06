@@ -53,8 +53,8 @@ struct AnimationClip
   bool looped;
   bool inPlaceAnimation;
   const AnimV20::AnimData *animation;
-  using Point3Channel = eastl::pair</*channel pointer*/ const AnimV20::AnimChanPoint3 *, /*node index*/ dag::Index16>;
-  using QuaternionChannel = eastl::pair</*channel pointer*/ const AnimV20::AnimChanQuat *, /*node index*/ dag::Index16>;
+  using Point3Channel = eastl::pair</*animation node id*/ dag::Index16, /*node index*/ dag::Index16>;
+  using QuaternionChannel = eastl::pair</*animation node id*/ dag::Index16, /*node index*/ dag::Index16>;
   dag::Vector<Point3Channel> channelTranslation;
   dag::Vector<QuaternionChannel> channelRotation;
   dag::Vector<Point3Channel> channelScale;

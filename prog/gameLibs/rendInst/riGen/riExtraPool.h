@@ -106,6 +106,8 @@ struct RiExtraPool
   int destrFxType = -1;
   int destrCompositeFxId = -1;
   float destrFxScale = 0;
+  float destrTimeToLive = -1.f;
+  float destrTimeToKinematic = -1.f;
   int dmgFxType = -1;
   float dmgFxScale = 1.f;
   float damageThreshold = 0;
@@ -116,7 +118,6 @@ struct RiExtraPool
   float radiusFadeDrown = 0.f;
   float radiusFade = 0.f;
   unsigned lodLimits = defLodLimits;
-  float ttl = -1.f;
   bool isRendinstClipmap = false;
   bool isPaintFxOnHit = false;
   bool isDynamicRendinst = false;

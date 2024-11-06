@@ -415,8 +415,11 @@ shader postfx
       return c;
     }
 
-    void apply_cinematic_mode_pre_tonemap_effects(inout float3 result, float2 tc)
+    void apply_cinematic_mode_pre_tonemap_effects(inout float3 result, float2 tc, float2 pos)
     {
+      BRANCH
+      if (film_grain_params.x > 0.0)
+        result = apply_film_grain(result, pos);
       ##if cinematic_mode_on == on
         BRANCH
         if (flare_params.x > 0.0 || flare_params.y > 0.0)
@@ -424,11 +427,8 @@ shader postfx
       ##endif
     }
 
-    void apply_cinematic_mode_post_tonemap_effects(inout float3 result, float2 tc, float2 pos)
+    void apply_cinematic_mode_post_tonemap_effects(inout float3 result, float2 tc)
     {
-      BRANCH
-      if (film_grain_params.x > 0.0)
-        result = apply_film_grain(result, pos);
       BRANCH
       if (vignette_strength.x > 0.0)
         result = apply_vignette(result, tc);
@@ -545,13 +545,13 @@ shader postfx
       half3 result = common_postfx(frame, input.tc, get_local_exposure(frame, input.tc));
 
       apply_post_bloom_effects(input.tc, result);
-      apply_cinematic_mode_pre_tonemap_effects(result, input.tc);
+      apply_cinematic_mode_pre_tonemap_effects(result, input.tc, pos.xy);
 
       POSTFX_OUTPUT ret;
 
       ##if (hdr_ps_output_mode != sdr_only)
         float3 hdr_result = performLUTColorGrade(result);
-        apply_cinematic_mode_post_tonemap_effects(hdr_result, input.tc, pos.xy);
+        apply_cinematic_mode_post_tonemap_effects(hdr_result, input.tc);
         apply_postfx_post_tonemap_effects_modifiers(hdr_result, input.tc, pos.xy);
         BRANCH
         if (fsr_on == 1)
@@ -563,7 +563,7 @@ shader postfx
       ##if (hdr_ps_output_mode == sdr_only) || (hdr_ps_output_mode == hdr10_and_sdr)
         float3 sdr_result = performLUTTonemap(result);
         sdr_result = apply_shader_gamma(sdr_result);
-        apply_cinematic_mode_post_tonemap_effects(sdr_result, input.tc, pos.xy);
+        apply_cinematic_mode_post_tonemap_effects(sdr_result, input.tc);
         apply_postfx_post_tonemap_effects_modifiers(sdr_result, input.tc, pos.xy);
         ret.sdr_result = half4(sdr_result, 1);
       ##endif

@@ -54,20 +54,6 @@ void inertialize_pose_update(BoneInertialInfo &result,
   }
 }
 
-static vec3f get_key(const AnimV20::AnimChanPoint3 *channel, int time)
-{
-  float keyT;
-  const AnimV20::AnimKeyPoint3 *key = channel->findKey(time, &keyT);
-  return keyT > 0 ? AnimV20Math::interp_key(key[0], v_splats(keyT)) : key[0].p;
-}
-
-static vec3f get_key(const AnimV20::AnimChanQuat *channel, int time)
-{
-  float keyT;
-  const AnimV20::AnimKeyQuat *key = channel->findKey(time, &keyT);
-  return keyT > 0 ? AnimV20Math::interp_key(key[0], key[1], keyT) : key[0].p;
-}
-
 void apply_root_motion_correction(float t,
   const AnimationClip &clip,
   dag::Index16 root_idx,
@@ -98,17 +84,21 @@ void extract_frame_info(float t,
   eastl::bitvector<framemem_allocator> &position_dirty,
   eastl::bitvector<framemem_allocator> &rotation_dirty)
 {
-  constexpr int TIME_TicksPerSec = AnimV20::TIME_TicksPerSec >> AnimV20::TIME_SubdivExp;
+  constexpr int TIME_FramesPerSec = AnimV20::TIME_TicksPerSec >> AnimV20::TIME_SubdivExp;
 
   int a2dTime1 = t * AnimV20::TIME_TicksPerSec;
-  int a2dTime2 = a2dTime1 + AnimV20::TIME_TicksPerSec / TIME_TicksPerSec;
+  int a2dTime2 = a2dTime1 + AnimV20::TIME_TicksPerSec / TIME_FramesPerSec;
 
-  vec4f dtInv = v_safediv(V_C_ONE, v_splats(TIME_TicksPerSec));
+  vec4f dtInv = v_safediv(V_C_ONE, v_splats(TIME_FramesPerSec));
+
+  AnimV20Math::PrsAnimSampler<AnimV20Math::DefaultConfig> sampler(clip.animation);
 
   for (const AnimationClip::Point3Channel &channel : clip.channelTranslation)
   {
-    vec3f p1 = get_key(channel.first, a2dTime1);
-    vec3f p2 = get_key(channel.first, a2dTime2);
+    sampler.seekTicks(a2dTime1);
+    vec3f p1 = sampler.samplePos(channel.first);
+    sampler.seekTicks(a2dTime2);
+    vec3f p2 = sampler.samplePos(channel.first);
 
     int nodeIdx = channel.second.index();
     info.position[nodeIdx] = p1;
@@ -118,8 +108,10 @@ void extract_frame_info(float t,
 
   for (const AnimationClip::QuaternionChannel &channel : clip.channelRotation)
   {
-    quat4f r1 = get_key(channel.first, a2dTime1);
-    quat4f r2 = get_key(channel.first, a2dTime2);
+    sampler.seekTicks(a2dTime1);
+    vec3f r1 = sampler.sampleRot(channel.first);
+    sampler.seekTicks(a2dTime2);
+    vec3f r2 = sampler.sampleRot(channel.first);
 
     int nodeIdx = channel.second.index();
     info.rotation[nodeIdx] = r1;

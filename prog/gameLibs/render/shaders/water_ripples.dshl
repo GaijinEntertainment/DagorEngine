@@ -293,6 +293,8 @@ shader water_ripples_update
   compile("target_ps", "water_ripples_update_ps");
 }
 
+float water_ripples_resolve_noise_scale = 1.5;
+
 shader water_ripples_resolve
 {
   cull_mode = none;
@@ -304,6 +306,7 @@ shader water_ripples_resolve
     water_ripples_t1@smp2d = water_ripples_t1;
     perlin_tex@smp2d = perlin_tex;
     water_ripples_frame_no@i1 = water_ripples_frame_no;
+    water_ripples_resolve_noise_scale@f2 = (1.0 - water_ripples_resolve_noise_scale, 2 * water_ripples_resolve_noise_scale);
   }
 
 
@@ -350,9 +353,6 @@ shader water_ripples_resolve
         }
       ##endif
 
-      float2 noiseTc = 0.0611f*worldPos.xy; // non-periodic
-      float noiseData = 0.1f + 1.9f*tex2Dlod(perlin_tex, float4(noiseTc, 0, 0)).r;
-
       float deltaXY = origin_size_psize.w * 0.5f;
       float2 dx = float2(deltaXY, 0.0);
       float2 dy = float2(0.0, deltaXY);
@@ -370,7 +370,7 @@ shader water_ripples_resolve
         samples.z = tex2Dlod(water_ripples_t1, float4(tcOffset - dx, 0, 0)).r; \
         samples.w = tex2Dlod(water_ripples_t1, float4(tcOffset - dy, 0, 0)).r; \
         \
-        normal += _w * normalize(float3(-(samples.x - samples.z), -(samples.y - samples.w), deltaXY * wSize * noiseData)).xy;
+        normal += _w * normalize(float3(-(samples.x - samples.z), -(samples.y - samples.w), deltaXY * wSize)).xy;
 
       // use blur for smoother gradients
 
@@ -394,6 +394,15 @@ shader water_ripples_resolve
         float waterBelowBorder = 0.1f;
       ##endif
       center1 = waterBelowUnclamped > waterBelowBorder ? max(center1, -waterBelowUnclamped + waterBelowBorder) : center1;
+
+      BRANCH
+      if (water_ripples_resolve_noise_scale.x < 1.0f)
+      {
+        float2 noiseTc1 = 0.0611f*worldPos.xy + 0.5*normal.xy; // non-periodic
+        float2 noiseTc2 = 0.0599f*worldPos.yx - 0.5*normal.xy; // non-periodic
+        normal.x *= water_ripples_resolve_noise_scale.x + water_ripples_resolve_noise_scale.y*tex2Dlod(perlin_tex, float4(noiseTc1, 0, 0)).r;
+        normal.y *= water_ripples_resolve_noise_scale.x + water_ripples_resolve_noise_scale.y*tex2Dlod(perlin_tex, float4(noiseTc2, 0, 0)).r;
+      }
 
       normal = normal * 0.5 + 0.5;
       return float4(normal.xy, 0.5 + center1*0.5, 1);

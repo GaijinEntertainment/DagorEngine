@@ -34,15 +34,15 @@ public:
   {}
 
   void debugDrawIndirect(DeviceState &, D3DGraphicsCommandList *, const PipelineStageStateBase &, const PipelineStageStateBase &,
-    BasePipeline &, PipelineVariant &, BufferResourceReferenceAndOffset)
+    BasePipeline &, PipelineVariant &, const BufferResourceReferenceAndOffset &)
   {}
 
   void debugDrawIndexedIndirect(DeviceState &, D3DGraphicsCommandList *, const PipelineStageStateBase &,
-    const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, BufferResourceReferenceAndOffset)
+    const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, const BufferResourceReferenceAndOffset &)
   {}
 
   void debugDispatchIndirect(DeviceState &, D3DGraphicsCommandList *, const PipelineStageStateBase &, ComputePipeline &,
-    BufferResourceReferenceAndOffset)
+    const BufferResourceReferenceAndOffset &)
   {}
 
   void debugDispatch(DeviceState &, D3DGraphicsCommandList *, const PipelineStageStateBase &, ComputePipeline &, uint32_t, uint32_t,
@@ -54,8 +54,8 @@ public:
   {}
 
   void debugDispatchMeshIndirect(DeviceState &, D3DGraphicsCommandList *, const PipelineStageStateBase &,
-    const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, BufferResourceReferenceAndOffset,
-    BufferResourceReferenceAndOffset, uint32_t)
+    const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, const BufferResourceReferenceAndOffset &,
+    const BufferResourceReferenceAndOffset &, uint32_t)
   {}
 
   void debugBlit(DeviceState &, D3DGraphicsCommandList *) {}

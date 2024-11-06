@@ -288,7 +288,9 @@ bool GenericBuffer::recreateBuf(Sbuffer *sb)
 {
   bool result = true;
   TEXQL_ON_BUF_ALLOC(this);
-  if (bufFlags & (SBCF_BIND_INDEX | SBCF_BIND_VERTEX))
+  if (!(bufFlags & SBCF_DYNAMIC) && rld)
+    ; // delayed recreation, don't alloc buffer here
+  else if (bufFlags & (SBCF_BIND_INDEX | SBCF_BIND_VERTEX))
   {
     result |= createBuf();
   }

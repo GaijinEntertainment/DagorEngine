@@ -189,7 +189,7 @@ macro USE_WATER_RIPPLES()
         // ofc on very large puddles it can look weird, because new pseudo-waves are not physical, but on small ones it looks good
         #define RIPPLE_PUDDLE_SCALE_HACK  400.0f
         rippleNormalPacked.rgb = rippleNormalPacked.rgb*2 - 1;
-        rippleNormalPacked.rg *= cos(rippleNormalPacked.b * RIPPLE_PUDDLE_SCALE_HACK);
+        rippleNormalPacked.rg *= 2.0f * cos(rippleNormalPacked.b * RIPPLE_PUDDLE_SCALE_HACK);
         rippleNormalPacked.rg = 0.5f + rippleNormalPacked.rg * 0.5f;
       ##endif
       rippleNormalPacked.rg = lerp(rippleNormalPacked.rg, float2(0.5, 0.5), max(borderFade.x, borderFade.y));

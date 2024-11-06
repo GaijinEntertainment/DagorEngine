@@ -24,7 +24,7 @@ interval denoiser_spec_confidence_half_res: no < 1, yes;
 shader denoiser_prepare
 {
   (cs) {
-    resolution@i2 = denoiser_resolution.xy;
+    resolution@u2 = denoiser_resolution.xy;
 
     nrTexture@uav = denoiser_nr hlsl { RWTexture2D<float4> nrTexture@uav; };
     viewZTexture@uav = denoiser_view_z hlsl { RWTexture2D<float> viewZTexture@uav; };

@@ -111,7 +111,8 @@ destructables::DestrRendData *destructables::init_rend_data(DynamicPhysObjectCla
                                         : NULL;
   }
 
-  rdata->deformationId = deform_create_instance_cb ? deform_create_instance_cb(rdata) : -1;
+  // TODO: pass true to a sec arg if it needs to be fully deformed (i.e. - by explosion)
+  rdata->deformationId = deform_create_instance_cb ? deform_create_instance_cb(rdata, false) : -1;
   return rdata;
 }
 

@@ -1,5 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include "gpu_postmortem_microsoft_dred.h"
 #include "device.h"
 
 namespace
@@ -189,20 +190,20 @@ void DeviceRemovedExtendedData::drawIndexed(const call_stack::CommandData &debug
 
 void DeviceRemovedExtendedData::drawIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
   const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
-  BufferResourceReferenceAndOffset buffer)
+  const BufferResourceReferenceAndOffset &buffer)
 {
   commandListTable.getList(cmd).drawIndirect({}, debug_info, vs, ps, pipeline_base, pipeline, buffer);
 }
 
 void DeviceRemovedExtendedData::drawIndexedIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
   const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
-  BufferResourceReferenceAndOffset buffer)
+  const BufferResourceReferenceAndOffset &buffer)
 {
   commandListTable.getList(cmd).drawIndexedIndirect({}, debug_info, vs, ps, pipeline_base, pipeline, buffer);
 }
 
 void DeviceRemovedExtendedData::dispatchIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
-  const PipelineStageStateBase &state, ComputePipeline &pipeline, BufferResourceReferenceAndOffset buffer)
+  const PipelineStageStateBase &state, ComputePipeline &pipeline, const BufferResourceReferenceAndOffset &buffer)
 {
   commandListTable.getList(cmd).dispatchIndirect({}, debug_info, state, pipeline, buffer);
 }
@@ -222,7 +223,7 @@ void DeviceRemovedExtendedData::dispatchMesh(const call_stack::CommandData &debu
 
 void DeviceRemovedExtendedData::dispatchMeshIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
   const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
-  BufferResourceReferenceAndOffset args, BufferResourceReferenceAndOffset count, uint32_t max_count)
+  const BufferResourceReferenceAndOffset &args, const BufferResourceReferenceAndOffset &count, uint32_t max_count)
 {
   commandListTable.getList(cmd).dispatchMeshIndirect({}, debug_info, vs, ps, pipeline_base, pipeline, args, count, max_count);
 }

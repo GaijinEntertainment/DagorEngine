@@ -168,6 +168,7 @@ string      <MAIN> ==> string;
 'fsh_4_0' <MAIN> => fsh_4_0;
 'fsh_5_0' <MAIN> => fsh_5_0;
 'fsh_6_0' <MAIN> => fsh_6_0;
+'fsh_6_2' <MAIN> => fsh_6_2;
 'fsh_6_6' <MAIN> => fsh_6_6;
 'bindless' <MAIN> => bindless;
 'globtm' <MAIN> => globtm;
@@ -305,6 +306,7 @@ keyword ->
   'fsh_4_0' |
   'fsh_5_0' |
   'fsh_6_0' |
+  'fsh_6_2' |
   'fsh_6_6' |
   'bindless' |
   'globtm' |

@@ -94,6 +94,7 @@ public:
   void setVar() { renderTargets.setVar(); }
   void changeResolution(const int w, const int h) { renderTargets.changeResolution(w, h); }
   void debugRender(int show_gbuffer = USE_DEBUG_GBUFFER_MODE);
+  void debugRenderVectors(int show_gbuffer = USE_DEBUG_GBUFFER_MODE, int vec_count = -1, int vec_scale = 0.f);
   // returns true if 32 bit depth buffer was created
   uint32_t recreateDepth(uint32_t fmt) { return renderTargets.recreateDepth(fmt); }
   int getWidth() const { return renderTargets.getWidth(); }

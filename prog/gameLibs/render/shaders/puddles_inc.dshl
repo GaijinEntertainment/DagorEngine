@@ -98,8 +98,13 @@ macro USE_LAND_WETNESS()
       float porosity = wetness_blend_porosity_params.w;
       float wetnessAO = ClampRange(wetMaterial, 0.45, 0.95);
       float3 albedoSqr = 0.8*g_buf.albedo.rgb * g_buf.albedo.rgb;
+
+      // we overriding real normal by vertical normal, so we lose all microdetails on puddle bottom. fake them by sundot
+      float preshadow = saturate(dot(g_buf.normal, sunDir));
+
       g_buf.normal = lerp(g_buf.normal, vertical_norm, wetnessAO);
       g_buf.albedo.rgb = lerp(g_buf.albedo.rgb, albedoSqr, ClampRange(totalWetness, 0.0, 0.35) * porosity);
+      g_buf.albedo.rgb *= lerp(1, preshadow, 0.8 * wetnessAO);
       g_buf.albedo.rgb = lerp(g_buf.albedo.rgb,
                               heightmap_mud_color.rgb,
                               saturate(heightmap_mud_color.w*landThickness*ClampRange(wetness.y, 0.55, 1)));
@@ -164,8 +169,13 @@ macro USE_LANDMESH_PUDDLES(code)
       float wetMaterial = get_wet_material(wetness, water_border);
       float wetnessAO = ClampRange(wetMaterial, 0.45, 0.95);
       float3 albedoSqr = 0.8*g_buf.albedo.rgb * g_buf.albedo.rgb;
+
+      // we overriding real normal by vertical normal, so we lose all microdetails on puddle bottom. fake them by sundot
+      float preshadow = saturate(dot(g_buf.normal, sunDir));
+
       g_buf.normal = lerp(g_buf.normal, vertical_norm, wetnessAO);
       g_buf.albedo.rgb = lerp(g_buf.albedo.rgb, albedoSqr, ClampRange(wetness, 0.0, 0.35) * porosity);
+      g_buf.albedo.rgb *= lerp(1, preshadow, 0.8 * wetnessAO);
       g_buf.albedo.rgb = lerp(g_buf.albedo.rgb, float3(0.015, 0.015, 0.015), fresnelterm*pow2(wetness));
       g_buf.ao = lerp(g_buf.ao, 1.0, wetnessAO);
       g_buf.shadow = lerp(g_buf.shadow, 1.0, wetnessAO);

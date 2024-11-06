@@ -70,6 +70,7 @@ void das_accept_cpp_comment ( vector<CommentReader *> & crdi, yyscan_t scanner, 
 
 %%
 
+<indent,normal>\#gen2\# { /* skipping #gen2# text, which indicates type of syntax */ }
 <normal>\#[0-9]+,[0-9]+,\"[^\"]+\"\# {
     string txt = yytext;
     int lRow, lCol;

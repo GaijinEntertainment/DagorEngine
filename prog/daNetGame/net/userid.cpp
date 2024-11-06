@@ -60,11 +60,7 @@ matching::UserId get_user_id()
   return cachedUserId;
 }
 
-const char *get_user_name()
-{
-  const char *username = dgs_get_argv("user_name");
-  return username ? username : "{Local Player}";
-}
+const char *get_user_name() { return app_profile::get().userName.c_str(); }
 
 matching::SessionId get_session_id()
 {

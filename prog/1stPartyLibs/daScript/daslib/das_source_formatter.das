@@ -702,6 +702,11 @@ def need_spaces_around(ctx: FormatterCtx; index: int): bool
         return false
     if t.isInType && (t.str == ":" || t.str == "<" || t.str == ">" || t.str == ">>" || t.str == ">>>" || empty(t.str))
         return false
+    if index < length(ctx.tokens) - 1
+        assume next = ctx.tokens[index + 1]
+        if t.str == "@" && next.tokenType == TokenType KEYWORD_OR_IDENTIFIER
+            return false
+
     return true
 
 

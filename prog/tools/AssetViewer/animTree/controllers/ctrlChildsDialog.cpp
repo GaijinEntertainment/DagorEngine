@@ -3,6 +3,7 @@
 #include "ctrlChildsDialog.h"
 #include "../animTreeUtils.h"
 #include "../animTreeIcons.h"
+#include "../animTreePanelPids.h"
 #include "../blendNodes/blendNodeType.h"
 
 #include "hub.h"
@@ -11,6 +12,7 @@
 #include "linearPoly.h"
 
 #include <imgui/imgui.h>
+#include <propPanel/control/menu.h>
 #include <propPanel/control/container.h>
 #include <ioSys/dag_dataBlock.h>
 #include <assets/asset.h>
@@ -19,6 +21,14 @@ enum
 {
   PID_CHILDS_TREE
 };
+
+namespace ContextMenu
+{
+enum
+{
+  EDIT = 0,
+};
+}
 
 CtrlChildsDialog::CtrlChildsDialog(dag::Vector<AnimCtrlData> &controllers, dag::Vector<BlendNodeData> &nodes,
   dag::Vector<String> &paths) :
@@ -30,6 +40,32 @@ CtrlChildsDialog::CtrlChildsDialog(dag::Vector<AnimCtrlData> &controllers, dag::
   setManualModalSizingEnabled();
   DialogWindow::showButtonPanel(false);
   initPanel();
+}
+
+bool CtrlChildsDialog::onTreeContextMenu(PropPanel::ContainerPropertyControl &tree, int pcb_id,
+  PropPanel::ITreeInterface &tree_interface)
+{
+  if (pcb_id == PID_CHILDS_TREE)
+  {
+    String name = tree.getCaption(tree.getSelLeaf());
+    if (strstr(name.c_str(), "not found"))
+      return false;
+
+    PropPanel::IMenu &menu = tree_interface.createContextMenu();
+    menu.addItem(ROOT_MENU_ITEM, ContextMenu::EDIT, "Edit");
+    menu.setEventHandler(this);
+    return true;
+  }
+  return false;
+}
+
+int CtrlChildsDialog::onMenuItemClick(unsigned id)
+{
+  switch (id)
+  {
+    case ContextMenu::EDIT: editSelectedNode(); break;
+  }
+  return 0;
 }
 
 void CtrlChildsDialog::initPanel()
@@ -45,14 +81,18 @@ void CtrlChildsDialog::clear()
   tree->clear();
   ctrlsTree = nullptr;
   nodesTree = nullptr;
+  pluginPanel = nullptr;
+  pluginEventHandler = nullptr;
   asset = nullptr;
 }
 
-void CtrlChildsDialog::setTreePanels(PropPanel::ContainerPropertyControl *ctrls_tree, PropPanel::ContainerPropertyControl *nodes_tree,
-  DagorAsset *cur_asset)
+void CtrlChildsDialog::setTreePanels(PropPanel::ContainerPropertyControl *panel, DagorAsset *cur_asset,
+  PropPanel::ControlEventHandler *event_handler)
 {
-  ctrlsTree = ctrls_tree;
-  nodesTree = nodes_tree;
+  pluginPanel = panel;
+  pluginEventHandler = event_handler;
+  ctrlsTree = panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
+  nodesTree = panel->getById(PID_ANIM_BLEND_NODES_TREE)->getContainer();
   asset = cur_asset;
 }
 
@@ -61,9 +101,10 @@ void CtrlChildsDialog::fillChildsTree(PropPanel::TLeafHandle leaf)
   PropPanel::ContainerPropertyControl *panel = getPanel();
   PropPanel::ContainerPropertyControl *tree = panel->getById(PID_CHILDS_TREE)->getContainer();
   tree->clear();
+  tree->setTreeEventHandler(this);
   AnimCtrlData *leafData = find_data_by_handle(controllers, leaf);
   if (leafData != controllers.end())
-    fillChilds(tree, nullptr, *leafData);
+    fillChilds(tree, nullptr, *leafData, String(""));
 }
 
 static bool check_leaf_not_looping(PropPanel::ContainerPropertyControl *tree, PropPanel::TLeafHandle parent, const char *name)
@@ -87,9 +128,28 @@ static bool check_leaf_not_looping(PropPanel::ContainerPropertyControl *tree, Pr
   return true;
 }
 
-void CtrlChildsDialog::fillChilds(PropPanel::ContainerPropertyControl *tree, PropPanel::TLeafHandle parent, AnimCtrlData &leaf_data)
+String CtrlChildsDialog::getImportantParamPrefixName(const DataBlock &settings, int child_idx, CtrlType type)
 {
-  String name = ctrlsTree->getCaption(leaf_data.handle);
+  String out;
+  switch (type)
+  {
+    case ctrl_type_randomSwitch: return random_switch_get_child_prefix_name(settings, child_idx);
+    case ctrl_type_paramSwitch: return param_switch_get_child_prefix_name(settings, child_idx);
+    case ctrl_type_linearPoly: return linear_poly_get_child_prefix_name(settings, child_idx);
+  }
+
+  return out;
+}
+
+static bool is_contain_important_param(CtrlType type)
+{
+  return type == ctrl_type_randomSwitch || type == ctrl_type_paramSwitch || type == ctrl_type_linearPoly;
+}
+
+void CtrlChildsDialog::fillChilds(PropPanel::ContainerPropertyControl *tree, PropPanel::TLeafHandle parent, AnimCtrlData &leaf_data,
+  const String &prefix_name)
+{
+  String name = String(0, "%s%s", prefix_name, ctrlsTree->getCaption(leaf_data.handle));
   PropPanel::TLeafHandle leaf = tree->createTreeLeaf(parent, name, get_ctrl_icon_name(leaf_data.type));
   if (!check_leaf_not_looping(tree, parent, name))
   {
@@ -100,46 +160,53 @@ void CtrlChildsDialog::fillChilds(PropPanel::ContainerPropertyControl *tree, Pro
     return;
   }
 
+  PropPanel::TLeafHandle includeLeaf = ctrlsTree->getParentLeaf(leaf_data.handle);
+  DataBlock props;
+  DataBlock *settings = nullptr;
+  if (is_contain_important_param(leaf_data.type))
+  {
+    String fullPath;
+    props = get_props_from_include_leaf(paths, *asset, ctrlsTree, includeLeaf, fullPath, /*only_includes*/ true);
+    DataBlock *ctrlProps = get_props_from_include_leaf_ctrl_node(controllers, paths, *asset, props, ctrlsTree, includeLeaf);
+    settings = find_block_by_name(ctrlProps, ctrlsTree->getCaption(leaf_data.handle));
+  }
   tree->setBool(leaf, /*open*/ true);
   for (int i = 0; i < leaf_data.childs.size(); ++i)
   {
+    String prefixChildName;
+    if (settings)
+      prefixChildName = getImportantParamPrefixName(*settings, i, leaf_data.type);
     const int idx = leaf_data.childs[i];
     AnimCtrlData *ctrlChild =
       eastl::find_if(controllers.begin(), controllers.end(), [idx](const AnimCtrlData &data) { return idx == data.id; });
     if (ctrlChild != controllers.end())
-      fillChilds(tree, leaf, *ctrlChild);
+      fillChilds(tree, leaf, *ctrlChild, prefixChildName);
     else
     {
       BlendNodeData *nodeChild =
         eastl::find_if(nodes.begin(), nodes.end(), [idx](const BlendNodeData &data) { return idx == data.id; });
       if (nodeChild != nodes.end())
-        tree->createTreeLeaf(leaf, nodesTree->getCaption(nodeChild->handle), get_blend_node_icon_name(nodes[idx].type));
+        tree->createTreeLeaf(leaf, String(0, "%s%s", prefixChildName, nodesTree->getCaption(nodeChild->handle)),
+          get_blend_node_icon_name(nodeChild->type));
       else
       {
-        PropPanel::TLeafHandle includeLeaf = ctrlsTree->getParentLeaf(leaf_data.handle);
-        String fullPath;
-        DataBlock props = get_props_from_include_leaf(paths, *asset, ctrlsTree, includeLeaf, fullPath, /*only_includes*/ true);
-        if (DataBlock *ctrlProps = get_props_from_include_leaf_ctrl_node(controllers, paths, *asset, props, ctrlsTree, includeLeaf))
+        if (!settings)
         {
-          if (DataBlock *settings = find_block_by_name(ctrlProps, ctrlsTree->getCaption(leaf_data.handle)))
-          {
-            const char *childName = getChildNameFromSettings(*settings, leaf_data.type, i);
-            CtrlChildSearchResult result =
-              find_ctrl_child_idx_and_icon_by_name(ctrlsTree, nodesTree, leaf_data, controllers, nodes, childName);
-            if (result.id != -1)
-            {
-              tree->createTreeLeaf(leaf, childName, result.iconName);
-              leaf_data.childs[i] = result.id;
-            }
-            else
-            {
-              String leafName(0, "(not found) %s", childName);
-              tree->createTreeLeaf(leaf, leafName.c_str(), nullptr);
-            }
-          }
-          else
-            tree->createTreeLeaf(leaf, "not found", nullptr);
+          String fullPath;
+          props = get_props_from_include_leaf(paths, *asset, ctrlsTree, includeLeaf, fullPath, /*only_includes*/ true);
+          DataBlock *ctrlProps = get_props_from_include_leaf_ctrl_node(controllers, paths, *asset, props, ctrlsTree, includeLeaf);
+          settings = find_block_by_name(ctrlProps, ctrlsTree->getCaption(leaf_data.handle));
         }
+        const char *childName = getChildNameFromSettings(*settings, leaf_data.type, i);
+        CtrlChildSearchResult result =
+          find_ctrl_child_idx_and_icon_by_name(ctrlsTree, nodesTree, leaf_data, controllers, nodes, childName);
+        if (result.id != -1)
+        {
+          tree->createTreeLeaf(leaf, String(0, "%s%s", prefixChildName, childName), result.iconName);
+          leaf_data.childs[i] = result.id;
+        }
+        else
+          tree->createTreeLeaf(leaf, String(0, "(not found) %s%s", prefixChildName, childName), nullptr);
       }
     }
   }
@@ -165,4 +232,41 @@ void CtrlChildsDialog::updateImguiDialog()
   tree->setHeight(hdpi::Px(treeHeight));
 
   DialogWindow::updateImguiDialog();
+}
+
+void CtrlChildsDialog::editSelectedNode()
+{
+  PropPanel::ContainerPropertyControl *tree = DialogWindow::getPanel()->getById(PID_CHILDS_TREE)->getContainer();
+  String leafName = tree->getCaption(tree->getSelLeaf());
+  const char *name = strstr(leafName.c_str(), ": ");
+  if (name)
+    name += 2; // Skip ": " part
+  else
+    name = leafName.c_str();
+
+  AnimCtrlData *ctrlData = eastl::find_if(controllers.begin(), controllers.end(),
+    [ctrlsTree = ctrlsTree, name](const AnimCtrlData &data) { return ctrlsTree->getCaption(data.handle) == name; });
+  if (ctrlData != controllers.end())
+  {
+    // Check if group minimized and open it
+    if (pluginPanel->getBool(PID_ANIM_BLEND_CTRLS_GROUP))
+      pluginPanel->setBool(PID_ANIM_BLEND_CTRLS_GROUP, false);
+    ctrlsTree->setSelLeaf(ctrlData->handle);
+    PropPanel::focus_helper.requestFocus(pluginPanel->getById(PID_ANIM_BLEND_CTRLS_GROUP)->getContainer());
+    pluginEventHandler->onChange(PID_ANIM_BLEND_CTRLS_TREE, pluginPanel);
+  }
+  else
+  {
+    BlendNodeData *nodeData = eastl::find_if(nodes.begin(), nodes.end(),
+      [nodesTree = nodesTree, name](const BlendNodeData &data) { return nodesTree->getCaption(data.handle) == name; });
+    if (nodeData != nodes.end())
+    {
+      // Check if group minimized and open it
+      if (pluginPanel->getBool(PID_ANIM_BLEND_NODES_GROUP))
+        pluginPanel->setBool(PID_ANIM_BLEND_NODES_GROUP, false);
+      nodesTree->setSelLeaf(nodeData->handle);
+      PropPanel::focus_helper.requestFocus(pluginPanel->getById(PID_ANIM_BLEND_NODES_GROUP)->getContainer());
+      pluginEventHandler->onChange(PID_ANIM_BLEND_NODES_TREE, pluginPanel);
+    }
+  }
 }

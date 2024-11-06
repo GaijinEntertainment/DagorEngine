@@ -41,7 +41,7 @@ static constexpr ecs::ComponentDesc mm_calculate_root_offset_es_comps[] =
   {ECS_HASH("motion_matching__controller"), ecs::ComponentTypeInfo<MotionMatchingController>()},
 //start of 2 ro components at [1]
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
-  {ECS_HASH("animchar__turnDir"), ecs::ComponentTypeInfo<bool>()}
+  {ECS_HASH("animchar__turnDir"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL}
 };
 static void mm_calculate_root_offset_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -49,8 +49,8 @@ static void mm_calculate_root_offset_es_all_events(const ecs::Event &__restrict 
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     mm_calculate_root_offset_es(static_cast<const ParallelUpdateFrameDelayed&>(evt)
         , ECS_RO_COMP(mm_calculate_root_offset_es_comps, "transform", TMatrix)
-    , ECS_RO_COMP(mm_calculate_root_offset_es_comps, "animchar__turnDir", bool)
     , ECS_RW_COMP(mm_calculate_root_offset_es_comps, "motion_matching__controller", MotionMatchingController)
+    , ECS_RO_COMP_OR(mm_calculate_root_offset_es_comps, "animchar__turnDir", bool(false))
     );
   while (++comp != compE);
 }

@@ -125,8 +125,9 @@ bool DasScripts<TLoadedScript, TContext>::loadScriptInternal(const das::string &
   if (enableSerialization && serializationReading)
   {
     program = das::make_smart<das::Program>();
-    initDeserializer->thisModuleGroup = dummyLibGroup.get();
-    if (initDeserializer->serializeScript(program))
+    if (initDeserializer)
+      initDeserializer->thisModuleGroup = dummyLibGroup.get();
+    if (initDeserializer && initDeserializer->serializeScript(program))
     {
       access->getFileInfo(fname); // add script file to openedFiles to support hot reload
                                   // (other openedFiles are added later in getPrerequisites function,
@@ -184,7 +185,7 @@ bool DasScripts<TLoadedScript, TContext>::loadScriptInternal(const das::string &
     }
 
     // Do not write out anything when loading is in progress (in serveral threads)
-    if (enableSerialization && !serializationReading && !suppressSerialization)
+    if (enableSerialization && !serializationReading && !suppressSerialization && initSerializer)
       program->serialize(*initSerializer);
 
     das::shared_ptr<TContext> ctx = das::make_shared<TContext>(program->unsafe ? program->getContextStackSize() : 0);

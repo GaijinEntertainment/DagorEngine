@@ -8,4 +8,5 @@ namespace texdebug
 {
 void init();
 void teardown();
+void select_texture(const char *name);
 } // namespace texdebug

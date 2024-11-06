@@ -643,9 +643,9 @@ DynamicPhysObjectData *rendinst::doRIGenDestr(const RendInstDesc &desc, RendInst
                                                                                                            // system says that we
                                                                                                            // should do it.
     {
+      out_buffer.tm = tm;
       if (rgl)
       {
-        out_buffer.tm = tm;
         if (effect_cb)
           play_destroy_effect(rgl->rtData, riExtra[desc.pool].riPoolRef, tm, effect_cb, false, coll_point);
       }
@@ -875,8 +875,6 @@ rendinst::riex_handle_t rendinst::restoreRiGenDestr(const RendInstDesc &desc, co
 {
   riex_handle_t h = RIEX_HANDLE_NULL;
   RendInstGenData *rgl = RendInstGenData::getGenDataByLayer(desc);
-  if (!rgl)
-    return RIEX_HANDLE_NULL;
 
   if (desc.isRiExtra())
   {
@@ -891,6 +889,8 @@ rendinst::riex_handle_t rendinst::restoreRiGenDestr(const RendInstDesc &desc, co
   }
   else
   {
+    if (!rgl)
+      return RIEX_HANDLE_NULL;
     RendInstGenData::Cell *cell = nullptr;
     int16_t *data = riutil::get_data_by_desc_no_subcell(desc, cell);
     if (!data)
@@ -912,6 +912,9 @@ rendinst::riex_handle_t rendinst::restoreRiGenDestr(const RendInstDesc &desc, co
   debug("restoreRiGenDestr cell (%d) pool (%d) offs (%d)", desc.cellIdx, desc.pool, desc.offs);
   print_debug_destr_data();
 #endif
+
+  if (!rgl)
+    return h;
 
   ScopedLockWrite lock(rgl->rtData->riRwCs);
   for (int i = 0; i < rgl->rtData->riDestrCellData.size(); ++i)

@@ -9,12 +9,21 @@
 // 7. Additional parameters can be calculated freely in proxy_struct_fields and fields_barycentric_values (like pointToEye after tesselation)
 // 8. After all of this, include USE_PN_TRIANGULATION()
 
+include "shader_global.dshl"
+
+int debug_enable_old_tessellation_factors = 0;
+interval debug_enable_old_tessellation_factors:off<1, on;
+assume debug_enable_old_tessellation_factors = off;
 
 macro INIT_PN_TRIANGULATION(smoothing)
 hlsl {
   //Workarond for hlslcc bug
   ##if hardware.vulkan
     #pragma spir-v compiler dxc
+  ##endif
+
+  ##if debug_enable_old_tessellation_factors == on
+    #define USING_OLD_TESSELLATION_FACTORS
   ##endif
 
   #define PN_TESSELATION 1
@@ -27,6 +36,7 @@ hlsl {
 
   #define FIELD_BARYCENTRIC_VALUE(field_name) \
     output.field_name = GET_INTERPOLATED_INPUT_VALUE(field_name)
+
 
   #define PROXY_FIELD_VALUE(field_name) \
     output.field_name = input.field_name
@@ -56,25 +66,33 @@ hlsl {
 }
 endmacro
 
-macro INIT_AND_USE_EDGE_LENGTH_BASED_TESS_FACTORS(max_tessellation_factor)
+macro INIT_AND_USE_EDGE_LENGTH_BASED_TESS_FACTORS(max_tessellation_factor, tessellation_max_edge_length)
   hlsl(hs)
   {
-    float edgeLod(float3 pos1, float3 pos2)
-    {
-      return max_tessellation_factor / length(world_view_pos - (pos1 + pos2) * 0.5);
-    }
+    #ifndef USING_OLD_TESSELLATION_FACTORS
+      #define USING_EDGE_LENGTH_TESS_FACTOR
 
-    float calc_tess_factor(inout HsPatchData patch, OutputPatch<HsControlPoint, 3> controlPoints, uint tid)
-    {
-      int next = (1U << tid) & 3; // (tid + 1) % 3
-      next = (1U << next) & 3;
+      float3 calc_edge_length_tess_factors(float3 lengths, float3 distances) {
+        return clamp(lengths / distances / tessellation_max_edge_length, 1.0, max_tessellation_factor);
+      }
+    #else
+      float edgeLod(float3 pos1, float3 pos2)
+      {
+        return max_tessellation_factor / length(world_view_pos - (pos1 + pos2) * 0.5);
+      }
 
-      return max(1, min(edgeLod(controlPoints[tid].pos1, controlPoints[next].pos1),max_tessellation_factor));
-    }
+      float calc_tess_factor(inout HsPatchData patch, OutputPatch<HsControlPoint, 3> controlPoints, uint tid)
+      {
+        int next = (1U << tid) & 3; // (tid + 1) % 3
+        next = (1U << next) & 3;
+
+        return max(1, min(edgeLod(controlPoints[tid].pos1, controlPoints[next].pos1),max_tessellation_factor));
+      }
+    #endif
   }
 endmacro
 
-macro USE_PN_TRIANGULATION(world_pos_offset_param)
+macro USE_PN_TRIANGULATION(world_pos_offset_param, min_tessellation_distance, max_tessellation_distance, tessellation_transition_distance)
 hlsl(hs) {
   //patch constant data
   HsPatchData HullShaderPatchConstant(OutputPatch<HsControlPoint, 3> controlPoints)
@@ -83,16 +101,59 @@ hlsl(hs) {
       DRAW_CALL_ID = GET_DRAW_CALL_ID_TRIANGULATION(controlPoints[0]);
     #endif
     HsPatchData patch = (HsPatchData)0;
-    //calculate Tessellation factors
-    patch.edges[0] = calc_tess_factor(patch, controlPoints, 0);
-    patch.edges[1] = calc_tess_factor(patch, controlPoints, 1);
-    patch.edges[2] = calc_tess_factor(patch, controlPoints, 2);
-    patch.inside = max(max(patch.edges[0], patch.edges[1]), patch.edges[2]);
+
     //calculate center
     float3 center = (controlPoints[0].pos2 + controlPoints[0].pos3) * 0.5 - controlPoints[0].pos1 +
       (controlPoints[1].pos2 + controlPoints[1].pos3) * 0.5 - controlPoints[1].pos1 +
       (controlPoints[2].pos2 + controlPoints[2].pos3) * 0.5 - controlPoints[2].pos1;
     patch.center = center;
+
+    #if !defined(USING_OLD_TESSELLATION_FACTORS) && defined(USING_EDGE_LENGTH_TESS_FACTOR)
+      float3 pos1 = controlPoints[0].pos1;
+      float3 pos2 = controlPoints[1].pos1;
+      float3 pos3 = controlPoints[2].pos1;
+
+      float3 distances = max(sqrt(float3(
+        lengthSq(pos1 - world_view_pos),
+        lengthSq(pos2 - world_view_pos),
+        lengthSq(pos3 - world_view_pos)
+      )), min_tessellation_distance);
+
+      float tessellationFadeOutEnd = max_tessellation_distance + tessellation_transition_distance;
+      bool3 requiresTessellation = distances < tessellationFadeOutEnd;
+
+      if (!any(requiresTessellation)) {
+        patch.edges[0] = 1.0;
+        patch.edges[1] = 1.0;
+        patch.edges[2] = 1.0;
+        patch.inside = 1.0;
+        return patch;
+      }
+
+      float3 edgeLengths = sqrt(float3(
+        lengthSq(pos1 - pos3),
+        lengthSq(pos2 - pos1),
+        lengthSq(pos3 - pos2)
+      ));
+
+      float3 factors = lerp(
+        calc_edge_length_tess_factors(edgeLengths, distances),
+        1.0,
+        smoothstep(max_tessellation_distance, tessellationFadeOutEnd, distances)
+      );
+      patch.edges[0] = factors.x;
+      patch.edges[1] = factors.y;
+      patch.edges[2] = factors.z;
+
+      patch.inside = dot(factors, 1.0 / 3.0);
+    #else
+      patch.edges[0] = calc_tess_factor(patch, controlPoints, 0);
+      patch.edges[1] = calc_tess_factor(patch, controlPoints, 1);
+      patch.edges[2] = calc_tess_factor(patch, controlPoints, 2);
+
+      patch.inside = max(max(patch.edges[0], patch.edges[1]), patch.edges[2]);
+    #endif
+
     return patch;
   }
 
@@ -169,7 +230,7 @@ hlsl(ds) {
 compile("ds_5_0", "pn_triangulation_ds");
 endmacro
 
-macro USE_PN_TRIANGULATION_WITH_EDGE_LENGTH_BASED_TESS_FACTORS(world_pos_offset_param, max_tessellation_factor)
-  INIT_AND_USE_EDGE_LENGTH_BASED_TESS_FACTORS(max_tessellation_factor)
-  USE_PN_TRIANGULATION(world_pos_offset_param)
+macro USE_PN_TRIANGULATION_WITH_EDGE_LENGTH_BASED_TESS_FACTORS(world_pos_offset_param, max_tessellation_factor, tessellation_max_edge_length, min_tessellation_distance, max_tessellation_distance, tessellation_transition_distance)
+  INIT_AND_USE_EDGE_LENGTH_BASED_TESS_FACTORS(max_tessellation_factor, tessellation_max_edge_length)
+  USE_PN_TRIANGULATION(world_pos_offset_param, min_tessellation_distance, max_tessellation_distance, tessellation_transition_distance)
 endmacro

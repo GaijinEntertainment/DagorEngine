@@ -1,8 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <EASTL/iterator.h>
+#include "value_range.h"
 #include <EASTL/algorithm.h>
+#include <EASTL/iterator.h>
 #include <util/dag_globDef.h>
 
 

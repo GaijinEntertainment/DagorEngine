@@ -890,7 +890,7 @@ void AnimTreePlugin::fillTreePanels(PropPanel::ContainerPropertyControl *panel)
 
   DataBlock::parseIncludesAsParams = curParseIncludesAsParams;
 
-  ctrlChildsDialog.setTreePanels(ctrlsTree, nodesTree, curAsset);
+  ctrlChildsDialog.setTreePanels(panel, curAsset, this);
   masksTree->setBool(masksRoot, /*open*/ true);
   nodesTree->setBool(nodesRoot, /*open*/ true);
   ctrlsTree->setBool(ctrlsRoot, /*open*/ true);

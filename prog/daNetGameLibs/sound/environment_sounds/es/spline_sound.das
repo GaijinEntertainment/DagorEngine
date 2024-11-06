@@ -187,7 +187,7 @@ def game_object_spline_sound_generator(evt : Event;
             points |> push(float4(0., 0., 0., -1.)) // separator for a new spline
           isFirstPointInSpline = false
           let pos = tm[3]
-          let radius = length(tm[0]) * 0.5 * game_object_spline_sound_generator__pointRadiusMul
+          let radius = length(tm[0]) * game_object_spline_sound_generator__pointRadiusMul
           points |> push(float4(pos.x, pos.y, pos.z, radius))
           return false
     return true

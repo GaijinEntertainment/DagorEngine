@@ -219,7 +219,7 @@ function tostring_any(input, tostringfunc=null, compact=true) {
   else if (typ == "string"){
     if (input=="")
       return "\"\""
-    return compact ? input : $"\"{input}\""
+    return $"\"{input}\""
   }
   else if (typ == "null"){
     return "null"
@@ -229,7 +229,7 @@ function tostring_any(input, tostringfunc=null, compact=true) {
     return r.contains(".") || r.contains("e") ? r : $"{r}.0"
   }
   else if (typ=="instance"){
-    return input.tostring()
+    return $"\"{input.tostring()}\""
   }
   else if (typ == "userdata"){
     return "#USERDATA#"

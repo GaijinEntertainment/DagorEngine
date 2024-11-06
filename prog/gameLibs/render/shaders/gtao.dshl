@@ -57,7 +57,7 @@ macro GTAO_MAIN_CORE(code)
     local_view_y@f3 = local_view_y;
     local_view_z@f3 = local_view_z;
 
-    shadow_params@f3 = (temporal_shadow_frame.x, contact_shadow_len, contact_shadow_min_len, 0);
+    shadow_params@f4 = (temporal_shadow_frame.x, contact_shadow_len, contact_shadow_min_len, contact_shadow_step_offset);
 
     viewProjectionMatrixNoOfs@f44 = { globtm_no_ofs_psf_0, globtm_no_ofs_psf_1, globtm_no_ofs_psf_2, globtm_no_ofs_psf_3 };
 
@@ -72,6 +72,7 @@ macro GTAO_MAIN_CORE(code)
     #define shadow_frame shadow_params.x
     #define contact_shadow_len shadow_params.y
     #define contact_shadow_min_len shadow_params.z
+    #define contact_shadow_step_offset shadow_params.w
   }
 
   CONTACT_SHADOWS_BASE(code)
@@ -265,7 +266,8 @@ macro GTAO_MAIN_CORE(code)
             half_res_close_depth, half_res_close_depth_samplerstate,
             cameraToPoint, -from_sun_direction,
             max(w * contact_shadow_len, min(contact_shadow_min_len, w)),
-            shadow_steps, dither-0.5, projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV, float2(100, 99)
+            shadow_steps, dither + contact_shadow_step_offset * saturate(pow2(dot(wsNormal, -from_sun_direction))),
+            projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV, float2(100, 99)
           );
 
           gtao_value.CONTACT_SHADOWS_ATTR = lerp (1, gtao_value.CONTACT_SHADOWS_ATTR, shadow_strength);

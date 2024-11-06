@@ -143,10 +143,11 @@ void debug_render_gbuffer(const PostFxRenderer &debugRenderer, DeferredRT &gbuff
   debug_render_gbuffer(debugRenderer, gbuffer.getDepth(), mode);
 }
 
-void debug_render_gbuffer_with_vectors(const DynamicShaderHelper &debugVecShader, DeferredRT &gbuffer, int mode)
+void debug_render_gbuffer_with_vectors(const DynamicShaderHelper &debugVecShader, DeferredRT &gbuffer, int mode, int vec_count,
+  float vec_scale)
 {
   gbuffer.setVar();
-  debug_render_gbuffer_with_vectors(debugVecShader, gbuffer.getDepth(), mode);
+  debug_render_gbuffer_with_vectors(debugVecShader, gbuffer.getDepth(), mode, vec_count, vec_scale);
 }
 
 void debug_render_gbuffer(const PostFxRenderer &debugRenderer, Texture *depth, int mode)
@@ -165,19 +166,24 @@ void debug_render_gbuffer(const PostFxRenderer &debugRenderer, Texture *depth, i
   }
 }
 
-void debug_render_gbuffer_with_vectors(const DynamicShaderHelper &debugVecShader, Texture *depth, int mode)
+void debug_render_gbuffer_with_vectors(const DynamicShaderHelper &debugVecShader, Texture *depth, int mode, int vec_count,
+  float vec_scale)
 {
   if (!debugVecShader.shader)
     return;
   if (mode == USE_DEBUG_GBUFFER_MODE)
     mode = (int)show_gbuffer_with_vectors;
+  if (vec_count < 0)
+    vec_count = debug_vectors_count;
+  if (abs(vec_scale) < FLT_EPSILON)
+    vec_scale = debug_vectors_scale;
 
   if (mode >= 0)
   {
     static int vec_countVarId = get_shader_variable_id("gbuffer_debug_vec_count");
-    ShaderGlobal::set_real(vec_countVarId, float(debug_vectors_count));
+    ShaderGlobal::set_real(vec_countVarId, float(vec_count));
     static int vec_scaleVarId = get_shader_variable_id("gbuffer_debug_vec_scale");
-    ShaderGlobal::set_real(vec_scaleVarId, debug_vectors_scale);
+    ShaderGlobal::set_real(vec_scaleVarId, vec_scale);
     ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
 
     DebugGbufferRenderScope scope(depth);

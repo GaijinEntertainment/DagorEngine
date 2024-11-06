@@ -102,6 +102,8 @@ static UniqueTex unlockImage;
 
 static TMatrix cubeViewMatrix;
 
+static bool selectableNeedsFocus = false;
+
 static void save_pinned_list()
 {
 #if _TARGET_PC | _TARGET_XBOX
@@ -434,6 +436,7 @@ static void render_selected_texture()
   auto &formatDesc = get_tex_format_desc(entry->cflg);
   auto formatName = get_tex_format_name(entry->cflg);
 
+  ImGui::Text("Name: %s", selectedTextureName.c_str());
   ImGui::Text("Type: %s", get_tex_type_name(entry->resType));
   ImGui::SameLine();
   ImGui::Text("Format: %s", formatName);
@@ -889,7 +892,16 @@ static void imguiWindow()
       auto entry = textures.find(name);
       if (entry == textures.end())
         continue;
-      if (!entry->first.empty() && ImGui::Selectable(entry->first.data(), entry->first == selectedTextureName))
+
+      bool selected = entry->first == selectedTextureName;
+
+      if (selected && selectableNeedsFocus)
+      {
+        ImGui::SetScrollHereY();
+        selectableNeedsFocus = false;
+      }
+
+      if (!entry->first.empty() && ImGui::Selectable(entry->first.data(), selected))
       {
         selectedTextureName = entry->first;
         reset_view();
@@ -994,6 +1006,21 @@ void teardown()
   processTextureShader.destroy();
   lockImage.close();
   unlockImage.close();
+}
+
+void select_texture(const char *name)
+{
+  if (strcmp(name, "") == 0)
+  {
+    imgui_window_set_visible("Render", "Texture debug", false);
+    return;
+  }
+
+  imgui_window_set_visible("Render", "Texture debug", true);
+  refresh_textures();
+  update_filtered_textures();
+  selectedTextureName = name;
+  selectableNeedsFocus = true;
 }
 
 } // namespace texdebug

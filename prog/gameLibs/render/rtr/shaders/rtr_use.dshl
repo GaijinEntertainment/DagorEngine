@@ -36,7 +36,8 @@ macro USING_RTR(stage)
     (stage) {
       rtr_output_type@i1 = rtr_output_type;
       inv_output_resolution_rt@f2 = (1.0 / (rtr_resolutionI.x * rtr_res_mul), 1.0 / (rtr_resolutionI.y * rtr_res_mul));
-      resolutionI_rt@i2 = rtr_resolutionI.xy;
+      resolutionF_rt@f2 = rtr_resolutionI.xy;
+      resolutionI_rt@u2 = rtr_resolutionI.xy;
     }
 
     hlsl (stage) {
@@ -53,24 +54,24 @@ macro USING_RTR(stage)
       float3 getRTR(uint2 tci)
       {
         float2 uv = (tci.xy + 0.5) * inv_output_resolution_rt;
-        float2 texelPos = frac(uv * resolutionI_rt);
-        uint2 crd = uint2(uv * resolutionI_rt);
+        float2 texelPos = frac(uv * resolutionF_rt);
+        uint2 crd = uint2(uv * resolutionF_rt);
 
         float3 tl, tr, bl, br;
         BRANCH
         if (rtr_output_type == RTR_REBLUR)
         {
-          tl = REBLUR_BackEnd_UnpackRadianceAndNormHitDist(rt_texture_outputs[rtr_bindless_slot][crd]).rgb;
-          tr = REBLUR_BackEnd_UnpackRadianceAndNormHitDist(rt_texture_outputs[rtr_bindless_slot][crd + uint2(1, 0)]).rgb;
-          bl = REBLUR_BackEnd_UnpackRadianceAndNormHitDist(rt_texture_outputs[rtr_bindless_slot][crd + uint2(0, 1)]).rgb;
-          br = REBLUR_BackEnd_UnpackRadianceAndNormHitDist(rt_texture_outputs[rtr_bindless_slot][crd + uint2(1, 1)]).rgb;
+          tl = REBLUR_BackEnd_UnpackRadianceAndNormHitDist(texture2DAt(rt_texture_outputs[rtr_bindless_slot], crd)).rgb;
+          tr = REBLUR_BackEnd_UnpackRadianceAndNormHitDist(texture2DAt(rt_texture_outputs[rtr_bindless_slot], min(crd + uint2(1, 0), resolutionI_rt - 1))).rgb;
+          bl = REBLUR_BackEnd_UnpackRadianceAndNormHitDist(texture2DAt(rt_texture_outputs[rtr_bindless_slot], min(crd + uint2(0, 1), resolutionI_rt - 1))).rgb;
+          br = REBLUR_BackEnd_UnpackRadianceAndNormHitDist(texture2DAt(rt_texture_outputs[rtr_bindless_slot], min(crd + uint2(1, 1), resolutionI_rt - 1))).rgb;
         }
         else
         {
-          tl = RELAX_BackEnd_UnpackRadiance(rt_texture_outputs[rtr_bindless_slot][crd]).rgb;
-          tr = RELAX_BackEnd_UnpackRadiance(rt_texture_outputs[rtr_bindless_slot][crd + uint2(1, 0)]).rgb;
-          bl = RELAX_BackEnd_UnpackRadiance(rt_texture_outputs[rtr_bindless_slot][crd + uint2(0, 1)]).rgb;
-          br = RELAX_BackEnd_UnpackRadiance(rt_texture_outputs[rtr_bindless_slot][crd + uint2(1, 1)]).rgb;
+          tl = RELAX_BackEnd_UnpackRadiance(texture2DAt(rt_texture_outputs[rtr_bindless_slot], crd)).rgb;
+          tr = RELAX_BackEnd_UnpackRadiance(texture2DAt(rt_texture_outputs[rtr_bindless_slot], min(crd + uint2(1, 0), resolutionI_rt - 1))).rgb;
+          bl = RELAX_BackEnd_UnpackRadiance(texture2DAt(rt_texture_outputs[rtr_bindless_slot], min(crd + uint2(0, 1), resolutionI_rt - 1))).rgb;
+          br = RELAX_BackEnd_UnpackRadiance(texture2DAt(rt_texture_outputs[rtr_bindless_slot], min(crd + uint2(1, 1), resolutionI_rt - 1))).rgb;
         }
 
         float3 top = lerp(tl, tr, texelPos.x);

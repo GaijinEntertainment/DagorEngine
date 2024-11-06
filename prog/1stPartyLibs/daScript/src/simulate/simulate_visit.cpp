@@ -71,6 +71,17 @@ namespace das {
         V_END();
     }
 
+#if DAS_ENABLE_KEEPALIVE
+
+    SimNode * SimNode_KeepAlive::visit ( SimVisitor & vis ) {
+        V_BEGIN();
+        V_OP(KeepAlive);
+        V_SUB(value);
+        V_END();
+    }
+
+#endif
+
     void SimVisitor::sub ( SimNode ** nodes, uint32_t count, const char * ) {
         for ( uint32_t t=0; t!=count; ++t ) {
             nodes[t] = nodes[t]->visit(*this);

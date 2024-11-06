@@ -103,8 +103,10 @@ article](../shaders/dng-shaders/rendinst_emissive.md).
 
 ## GameObj
 
-For more information on gameObj, see the
-[GameObj](../../dagor-tools/gameobj/gameobjects.md) article.
+```{seealso}
+For more information, see
+[gameObjects](../about-assets/gameobjects/gameobjects.md).
+```
 
 Create a gameObj for both the light source and the dynamic visual model. In
 *daNetGame*-based projects, for example, they are located here:

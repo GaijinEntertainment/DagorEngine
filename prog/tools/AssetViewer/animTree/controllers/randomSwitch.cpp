@@ -131,3 +131,15 @@ const char *random_switch_get_child_name_by_idx(const DataBlock &settings, int i
 {
   return settings.getBlockByNameEx("weight")->getParamName(idx);
 }
+
+String random_switch_get_child_prefix_name(const DataBlock &settings, int idx)
+{
+  const DataBlock *weights = settings.getBlockByNameEx("weight");
+  float sum = 0.f;
+  for (int i = 0; i < weights->paramCount(); ++i)
+    sum += weights->getReal(i);
+
+  const float value = safediv(weights->getReal(idx), sum) * 100.f;
+
+  return String(0, "%d%: ", value);
+}

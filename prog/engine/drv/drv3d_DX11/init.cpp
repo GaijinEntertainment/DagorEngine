@@ -284,8 +284,6 @@ bool gamma_control_valid = false;
 
 extern eastl::vector<DeviceResetEventHandler *> deviceResetEventHandlers;
 
-extern void recreate_textures();
-extern void recreate_buffers();
 extern void save_predicates();
 extern void recreate_predicates();
 extern void gather_textures_to_recreate(FramememResourceSizeInfoCollection &);
@@ -2355,14 +2353,18 @@ static void recreate_gpu_resources()
   gather_textures_to_recreate(resourcesToRecreate);
   gather_buffers_to_recreate(resourcesToRecreate);
   uint32_t reloadCallbacksCount = 0;
+  uint32_t tex_to_reload = 0, buf_to_reload = 0;
   for (int i = resourcesToRecreate.size() - 1; i >= 0; --i)
   {
     if (resourcesToRecreate[i].hasRecreationCallback)
     {
+      (resourcesToRecreate[i].isTex ? tex_to_reload : buf_to_reload)++;
       eastl::swap(resourcesToRecreate[i], resourcesToRecreate[resourcesToRecreate.size() - 1 - reloadCallbacksCount]);
       reloadCallbacksCount++;
     }
   }
+  debug("recreate_gpu_resources: %d tex + %d buf (%d recreatable of %d total)", tex_to_reload, buf_to_reload,
+    tex_to_reload + buf_to_reload, resourcesToRecreate.size());
   stlsort::sort(resourcesToRecreate.begin(), resourcesToRecreate.end() - reloadCallbacksCount,
     [](const ResourceSizeInfo &a, const ResourceSizeInfo &b) { return a.sizeInBytes > b.sizeInBytes; });
   for (const ResourceSizeInfo &res : resourcesToRecreate)

@@ -16,6 +16,15 @@ using namespace ImGui;
 namespace PropPanel
 {
 
+bool ImguiHelper::checkboxDragSelectionInProgress = false;
+bool ImguiHelper::checkboxDragSelectionValue = false;
+
+void ImguiHelper::afterNewFrame()
+{
+  if (checkboxDragSelectionInProgress && !ImGui::IsMouseDown(ImGuiMouseButton_Left))
+    checkboxDragSelectionInProgress = false;
+}
+
 float ImguiHelper::getDefaultRightSideEditWidth()
 {
   return hdpi::_pxS(DEFAULT_CONTROL_WIDTH) + SpinEditControlStandalone::getSpaceBeforeSpinButtons() +
@@ -66,6 +75,33 @@ static bool IsRootOfOpenMenuSet()
 
 static float getMenuCheckmarkSize(const ImGuiContext &context) { return context.FontSize * 0.866f; }
 static float getMenuCheckmarkPadding(const ImGuiContext &context) { return context.FontSize * 0.40f; }
+
+bool ImguiHelper::checkboxWithDragSelection(const char *label, bool *value)
+{
+  if (ImGui::GetCurrentWindow()->SkipItems)
+    return false;
+
+  const bool oldValue = *value;
+  bool changed = ImGui::Checkbox(label, value);
+
+  if (!checkboxDragSelectionInProgress && ImGui::IsItemActivated() && ImGui::IsItemClicked(ImGuiMouseButton_Left))
+  {
+    checkboxDragSelectionInProgress = true;
+    checkboxDragSelectionValue = !oldValue;
+
+    // Prevent double checking with drag selection. Without this dragging from checkbox A to B, and then back to A would
+    // toggle A twice (first by the drag selection, then by ImGui::Checkbox on mouse release).
+    ImGui::ClearActiveID();
+  }
+
+  if (checkboxDragSelectionInProgress && checkboxDragSelectionValue != *value && ImGui::IsItemHovered())
+  {
+    *value = checkboxDragSelectionValue;
+    changed = true;
+  }
+
+  return changed;
+}
 
 bool ImguiHelper::inputTextWithEnterWorkaround(const char *label, String *str, bool focused, ImGuiInputTextFlags flags,
   ImGuiInputTextCallback callback, void *user_data)

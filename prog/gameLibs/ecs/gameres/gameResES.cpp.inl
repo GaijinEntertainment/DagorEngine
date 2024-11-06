@@ -84,11 +84,11 @@ void place_gameres_request(eastl::vector<ecs::EntityId> &&eids, gameres_list_t &
   job->entities = eastl::move(eids);
   job->reslist = eastl::move(requests);
   int loadingJobMgrId = get_common_loading_job_mgr();
-#if DAECS_EXTENSIVE_CHECKS
-  if (loadingJobMgrId == cpujobs::COREID_IMMEDIATE)
-    logerr("ECS common loading job mgr id isn't set - resources will be loaded synchronously.\n"
-           "ecs::set_common_loading_job_mgr() wasn't called?");
-#endif
+  if (DAGOR_UNLIKELY(loadingJobMgrId == cpujobs::COREID_IMMEDIATE))
+    // Assume that's okay for dedicated (which lacks "render" tag) to load game resources synchronously
+    if (g_entity_mgr->getTemplateDB().info().filterTags.count(ECS_HASH("render").hash))
+      logerr("ECS common loading job mgr id isn't set - resources will be loaded synchronously.\n"
+             "ecs::set_common_loading_job_mgr() wasn't called?");
   G_VERIFY(cpujobs::add_job(loadingJobMgrId, job));
 }
 

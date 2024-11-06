@@ -171,6 +171,26 @@ inline void gpu_object_placer_select_closest_distance_emitter_ecs_query(T b);
 template <class T>
 inline void gpu_object_placer_remove_ecs_query(T b);
 
+
+static void adjust_transform_to_border_offset(const Point2 *offset, int axis_index, TMatrix &transform)
+{
+  if (offset == nullptr)
+    return;
+
+  const Point2 &offsetV = *offset;
+  Point3 axis = transform.getcol(axis_index);
+  float axisLength = axis.length();
+  float adjustedLength = axisLength - offsetV.x - offsetV.y;
+  if (adjustedLength <= 0.0f)
+  {
+    LOGERR_ONCE("GPUObjectsPlacer: box borders are too big for the object. Axis=%@, offset=%@", axis_index, offsetV);
+    return;
+  }
+  transform.setcol(axis_index, axis * (adjustedLength / axisLength));
+  float axisTranslation = offsetV.y - offsetV.x;
+  transform.setcol(3, transform.getcol(3) + axis * (axisTranslation / axisLength * 0.5f));
+}
+
 void VolumePlacer::performPlacing(const Point3 &camera_pos)
 {
   TIME_D3D_PROFILE(VolumePlacer_performPlacing)
@@ -193,8 +213,12 @@ void VolumePlacer::performPlacing(const Point3 &camera_pos)
       float gpu_object_placer__distance_to_rotation_to, const Point3 &gpu_object_placer__distance_to_scale_pow,
       float gpu_object_placer__distance_to_rotation_pow, bool gpu_object_placer__use_distance_emitter,
       bool gpu_object_placer__distance_affect_decals, bool gpu_object_placer__distance_out_of_range,
-      riex_handles &gpu_object_placer__surface_riex_handles, const TMatrix &transform ECS_REQUIRE(ecs::Tag box_zone)) {
+      riex_handles &gpu_object_placer__surface_riex_handles, TMatrix transform, const Point2 *gpu_object_placer__boxBorderX,
+      const Point2 *gpu_object_placer__boxBorderY, const Point2 *gpu_object_placer__boxBorderZ ECS_REQUIRE(ecs::Tag box_zone)) {
       G_ASSERT(!(gpu_object_placer__filled && gpu_object_placer__buffer_offset == -1));
+      adjust_transform_to_border_offset(gpu_object_placer__boxBorderX, 0, transform);
+      adjust_transform_to_border_offset(gpu_object_placer__boxBorderY, 1, transform);
+      adjust_transform_to_border_offset(gpu_object_placer__boxBorderZ, 2, transform);
 
       float currentDistanceSq = lengthSq(transform.getcol(3) - camera_pos);
       gpu_object_placer__current_distance_squared = currentDistanceSq;
@@ -1008,7 +1032,8 @@ ECS_TRACK(ri_gpu_object__name, gpu_object_placer__place_on_geometry, gpu_object_
   gpu_object_placer__distance_to_scale_from, gpu_object_placer__distance_to_scale_to)
 ECS_TRACK(gpu_object_placer__distance_to_rotation_from, gpu_object_placer__distance_to_rotation_to,
   gpu_object_placer__distance_to_scale_pow, gpu_object_placer__distance_to_rotation_pow, gpu_object_placer__use_distance_emitter,
-  gpu_object_placer__distance_out_of_range, gpu_object_placer__distance_affect_decals)
+  gpu_object_placer__distance_out_of_range, gpu_object_placer__distance_affect_decals, gpu_object_placer__boxBorderX,
+  gpu_object_placer__boxBorderY, gpu_object_placer__boxBorderZ)
 ECS_REQUIRE(bool gpu_object_placer__place_on_geometry, int gpu_object_placer__object_max_count,
   float gpu_object_placer__object_density, float gpu_object_placer__min_gathered_triangle_size,
   Point2 gpu_object_placer__object_scale_range, Point2 gpu_object_placer__distance_based_scale,
@@ -1019,7 +1044,8 @@ ECS_REQUIRE(bool gpu_object_placer__place_on_geometry, int gpu_object_placer__ob
 ECS_REQUIRE(float gpu_object_placer__distance_to_rotation_from, float gpu_object_placer__distance_to_rotation_to,
   Point3 gpu_object_placer__distance_to_scale_pow, float gpu_object_placer__distance_to_rotation_pow,
   bool gpu_object_placer__use_distance_emitter, bool gpu_object_placer__distance_out_of_range,
-  bool gpu_object_placer__distance_affect_decals)
+  bool gpu_object_placer__distance_affect_decals, Point2 gpu_object_placer__boxBorderX, Point2 gpu_object_placer__boxBorderY,
+  Point2 gpu_object_placer__boxBorderZ)
 static __forceinline void gpu_object_placer_changed_es_event_handler(const ecs::Event &, const ecs::string &ri_gpu_object__name,
   int &gpu_object_placer__ri_asset_idx, bool &gpu_object_placer__filled, int &gpu_object_placer__buffer_offset,
   int &gpu_object_placer__distance_emitter_decal_buffer_size, int &gpu_object_placer__distance_emitter_buffer_size,

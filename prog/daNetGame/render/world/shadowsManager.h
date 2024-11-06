@@ -87,6 +87,7 @@ public:
   void combineShadows();
 
   void staticShadowsSetWorldSize();
+  void markWorldBBoxDirty();
   void restoreShadowSampler();
 
   void initVisibilityNode();
@@ -204,6 +205,7 @@ private:
 
   float staticShadowMaxUpdateAmount = 0.1;
   bool staticShadowUniformUpdate = false;
+  bool worldBBoxDirty = false;
   eastl::unique_ptr<ToroidalStaticShadows> staticShadows;
   dabfg::NodeHandle staticShadowRenderNode;
   bool staticShadowsSetShaderVars = false;

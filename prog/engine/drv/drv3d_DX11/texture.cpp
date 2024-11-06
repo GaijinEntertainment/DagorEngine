@@ -191,47 +191,6 @@ void close_textures()
     numLeakedTextures);
 }
 
-void recreate_textures()
-{
-  debug("recreate_textures: %d", g_textures.totalUsed());
-  // re-create textures from thumb
-  // acquireD3dOwnership();
-  ITERATE_OVER_OBJECT_POOL(g_textures, i)
-    if (BaseTex *t = g_textures[i].obj)
-    {
-      bool upd_samplers = t->releaseTex(true);
-      if (t->rld)
-      {
-        int addrU = t->addrU, addrV = t->addrV, addrW = t->addrW;
-        t->delayedCreate = true;
-        t->rld->reloadD3dRes(t);
-        t->texaddru(addrU);
-        t->texaddrv(addrV);
-        t->texaddrw(addrW);
-      }
-      else if ((t->cflg & TEXCF_SYSTEXCOPY) && data_size(t->texCopy))
-      {
-        ddsx::Header &hdr = *(ddsx::Header *)t->texCopy.data();
-        int8_t sysCopyQualityId = hdr.hqPartLevels;
-        unsigned flg = hdr.flags & ~(hdr.FLG_ADDRU_MASK | hdr.FLG_ADDRV_MASK);
-        hdr.flags = flg | (t->addrU & hdr.FLG_ADDRU_MASK) | ((t->addrV << 4) & hdr.FLG_ADDRV_MASK);
-
-        InPlaceMemLoadCB mcrd(t->texCopy.data() + sizeof(hdr), data_size(t->texCopy) - (int)sizeof(hdr));
-        t->delayedCreate = true;
-        VERBOSE_DEBUG("%s <%s> recreate %dx%dx%d (%s)", t->strLabel(), t->getResName(), hdr.w, hdr.h, hdr.depth, "TEXCF_SYSTEXCOPY");
-        d3d::load_ddsx_tex_contents(t, hdr, mcrd, sysCopyQualityId);
-      }
-      else
-        t->recreate();
-      watchdog_kick();
-    }
-    g_render_state.modified = true;
-    for (int i = 0; i < g_render_state.texFetchState.resources.size(); ++i)
-      g_render_state.texFetchState.resources[i].modifiedMask = 0xFFFFFFFF;
-  ITERATE_OVER_OBJECT_POOL_RESTORE(g_textures)
-  // releaseD3dOwnership();
-}
-
 void gather_textures_to_recreate(FramememResourceSizeInfoCollection &collection)
 {
   debug("gather_textures_to_recreate: %d", g_textures.totalUsed());

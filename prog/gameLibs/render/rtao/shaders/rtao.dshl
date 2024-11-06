@@ -23,7 +23,7 @@ shader rt_ao
   (cs) {
     inv_proj_tm@f44 = inv_proj_tm;
     world_view_pos@f3 = world_view_pos;
-    resolution@i2 = rtao_resolutionI.xy;
+    resolution@u2 = rtao_resolutionI.xy;
     inv_resolution@f2 = (1.0 / rtao_resolution.x, 1.0 / rtao_resolution.y);
     hit_dist_params@f4 = rtao_hit_dist_params;
     frame_index@i1 = rtao_frame_index;
@@ -97,7 +97,7 @@ shader rt_ao
 
       ##if rtao_res_mul == on
         UnpackedGbuffer gbuffer = unpackGbuffer(loadPackedGbuffer(rayIndex * 2));
-        float rawDepth = half_res_depth_tex[rayIndex].r;
+        float rawDepth = texture2DAt(half_res_depth_tex, rayIndex).r;
       ##else
         UnpackedGbuffer gbuffer = unpackGbuffer(loadPackedGbuffer(rayIndex));
         float rawDepth = loadGbufferDepth(rayIndex);
@@ -130,9 +130,9 @@ shader rt_ao
       if (!isGrass)
       {
         ##if rtao_res_mul == on
-          normal = calc_geometry_normal_half(rayIndex, inv_resolution);
+          normal = calc_geometry_normal_half(rayIndex, inv_resolution, resolution);
         ##else
-          normal = calc_geometry_normal(rayIndex, inv_resolution);
+          normal = calc_geometry_normal(rayIndex, inv_resolution, resolution);
         ##endif
       }
       float3 sampleDir = cosine_sample_hemisphere(normal, seed);

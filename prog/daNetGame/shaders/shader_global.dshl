@@ -545,6 +545,8 @@ macro USE_COMPAT_HDR_WRITE_BASE(code, exposure_name)
     #if !HAS_HDR_DEFINED
       #define HAS_HDR_DEFINED 1
       half get_exposure_mul() {return exposure_name;}
+
+      half3 pack_hdr(half3 a) {return a * get_exposure_mul();}
     #endif
   }
 endmacro

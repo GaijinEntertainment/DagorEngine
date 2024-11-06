@@ -1842,7 +1842,7 @@ static bool load_scripts_from_serialized_data()
 {
   uint64_t size = 0;
   das::vector<das::string> filenames;
-  bool ok = initDeserializer->trySerialize([&](das::AstSerializer &ser) {
+  bool ok = initDeserializer && initDeserializer->trySerialize([&](das::AstSerializer &ser) {
     ser << size;
     for (size_t i = 0; i < size; i++)
     {
@@ -1870,7 +1870,8 @@ static bool load_scripts_from_serialized_data()
       script.moduleGroup->reset();
   }
   // collect created file infos that no module owns
-  initDeserializer->collectFileInfo(scripts.orphanFileInfos);
+  if (initDeserializer)
+    initDeserializer->collectFileInfo(scripts.orphanFileInfos);
   enableSerialization = false;
   loadingQueue.clear(); // clear the queue
 #if DAGOR_DBGLEVEL > 0
@@ -1933,7 +1934,7 @@ bool stop_loading_queue(TInitDas init)
     ok = jobs[i].success && ok;
   }
 
-  if (enableSerialization && !serializationReading)
+  if (enableSerialization && !serializationReading && initSerializer)
   {
     uint64_t filesCount = 0;
     for (auto &fname : queue)
@@ -2089,6 +2090,8 @@ static auto get_serialization_scripts_version() -> das::vector<int64_t>
 
 static bool compare_loading_queues()
 {
+  if (!initDeserializer)
+    return false;
   das::vector<das::string> savedQueue;
   if (!bind_dascript::initDeserializer->trySerialize([&](das::AstSerializer &ser) { ser << savedQueue; }))
   {
@@ -2115,6 +2118,8 @@ static bool compare_loading_queues()
 
 static void write_serializer_version()
 {
+  if (!bind_dascript::initSerializer)
+    return;
   uint32_t ptrsize = sizeof(void *), protocolVersion = bind_dascript::initSerializer->getVersion();
   debug("das: serialize: Versions differ: init from text files, writeback the result. Game version: %lu, protocol version: %lu, "
         "ptrsize: %@",
@@ -2151,9 +2156,15 @@ bool load_entry_script_with_serialization(const char *entry_point_name, TInitDas
   {
     set_up_serializer_versions(serialized_version);
     if (serializationReading)
-      initDeserializer->getCompiledModules();
+    {
+      if (initDeserializer)
+        initDeserializer->getCompiledModules();
+    }
     else
-      initSerializer->getCompiledModules();
+    {
+      if (initSerializer)
+        initSerializer->getCompiledModules();
+    }
     enableSerialization = true;
     res = stop_loading_queue(init);
     enableSerialization = false;

@@ -744,7 +744,7 @@ is_public_module
     ;
 
 expect_declaration
-    :   DAS_EXPECT expect_list
+    :   DAS_EXPECT expect_list ';'
     ;
 
 expect_list

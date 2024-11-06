@@ -1,11 +1,11 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "call_stack.h"
 #include <EASTL/algorithm.h>
 #include <EASTL/string.h>
 #include <EASTL/string_view.h>
 #include <EASTL/vector.h>
-#include "call_stack.h"
 
 
 namespace drv3d_dx12::debug::break_point

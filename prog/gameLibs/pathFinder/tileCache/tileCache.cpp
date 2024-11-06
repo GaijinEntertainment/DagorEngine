@@ -299,7 +299,7 @@ obstacle_handle_t tilecache_obstacle_add(const Point3 &c, const Point3 &ext, flo
       int ntouched = 0;
       tileCache->queryTiles(bmin, bmax, ob->touched, &ntouched, DT_MAX_TOUCHED_TILES);
       if (ntouched == DT_MAX_TOUCHED_TILES)
-        logerr("Maximum number of touched tiles has been reached? pos(%f %f %f) ext(%f %f %f)", c.x, c.y, c.z, ext.x, ext.y, ext.z);
+        logerr("Maximum number of touched tiles (%d) has been reached? pos(%@) ext(%@)", DT_MAX_TOUCHED_TILES, c, ext);
       ob->ntouched = (unsigned char)ntouched;
     }
     else

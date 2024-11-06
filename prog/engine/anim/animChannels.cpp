@@ -2,6 +2,7 @@
 
 #include <util/dag_globDef.h>
 #include <anim/dag_animChannels.h>
+#include <anim/dag_animKeyInterp.h>
 #include <gameRes/dag_gameResources.h>
 #include <ioSys/dag_fileIo.h>
 #include <generic/dag_tab.h>
@@ -36,9 +37,7 @@ static inline void *regAlloc(int sz, char *&base, int align = 8)
   return p;
 }
 
-template <class ANIM_CHAN>
-static void cloneAnimDataChan(AnimDataChan<ANIM_CHAN> &d, const NameMap &nodes, const AnimDataChan<ANIM_CHAN> &s, char *&allocPtr,
-  Tab<int> &remap_storage)
+static void cloneAnimDataChan(AnimDataChan &d, const NameMap &nodes, const AnimDataChan &s, char *&allocPtr, Tab<int> &remap_storage)
 {
 #if DAGOR_DBGLEVEL > 0
   remap_storage.resize(nodes.nameCount());
@@ -65,7 +64,7 @@ static void cloneAnimDataChan(AnimDataChan<ANIM_CHAN> &d, const NameMap &nodes, 
     return;
   }
 
-  d.nodeAnim.setPtr(regAlloc(remap_count * sizeof(d.nodeAnim[0]), allocPtr, 8));
+  d.nodeAnim.setPtr(regAlloc(remap_count * sizeof(AnimV20Math::AnimChanPoint3), allocPtr, 8));
   d.nodeName.setPtr(regAlloc(remap_count * sizeof(d.nodeName[0]), allocPtr, 8));
   d.nodeWt.setPtr(regAlloc(remap_count * sizeof(d.nodeWt[0]), allocPtr, 4));
   d.nodeNum = remap_count;
@@ -73,7 +72,7 @@ static void cloneAnimDataChan(AnimDataChan<ANIM_CHAN> &d, const NameMap &nodes, 
 
   for (int i = 0; i < remap_count; i++)
   {
-    d.nodeAnim[i] = s.nodeAnim[remap_storage[i]];
+    ((AnimV20Math::AnimChanPoint3 *)d.nodeAnim.get())[i] = ((AnimV20Math::AnimChanPoint3 *)s.nodeAnim.get())[remap_storage[i]];
     d.nodeName[i] = s.nodeName[remap_storage[i]];
     d.nodeWt[i] = s.nodeWt[remap_storage[i]];
   }
@@ -95,17 +94,17 @@ AnimData::AnimData(AnimData *src_anim, const NameMap &node_list, IMemAlloc *ma) 
   for (int i = 0; i < d.chanPoint3.size(); i++)
   {
     int remapped_nodes = count_remapped_nodes(d.chanPoint3[i].nodeName, d.chanPoint3[i].nodeNum, node_list);
-    dataSize += (remapped_nodes * (add_per_node + sizeof(d.chanPoint3[i].nodeAnim[0])) + 7) & ~7;
+    dataSize += (remapped_nodes * (add_per_node + sizeof(AnimV20Math::AnimChanPoint3)) + 7) & ~7;
   }
   for (int i = 0; i < d.chanQuat.size(); i++)
   {
     int remapped_nodes = count_remapped_nodes(d.chanQuat[i].nodeName, d.chanQuat[i].nodeNum, node_list);
-    dataSize += (remapped_nodes * (add_per_node + sizeof(d.chanQuat[i].nodeAnim[0])) + 7) & ~7;
+    dataSize += (remapped_nodes * (add_per_node + sizeof(AnimV20Math::AnimChanQuat)) + 7) & ~7;
   }
   for (int i = 0; i < d.chanReal.size(); i++)
   {
     int remapped_nodes = count_remapped_nodes(d.chanReal[i].nodeName, d.chanReal[i].nodeNum, node_list);
-    dataSize += (remapped_nodes * (add_per_node + sizeof(d.chanReal[i].nodeAnim[0])) + 7) & ~7;
+    dataSize += (remapped_nodes * (add_per_node + sizeof(AnimV20Math::AnimChanReal)) + 7) & ~7;
   }
 
   extraData = ma->alloc(dataSize);
@@ -154,6 +153,20 @@ AnimData::~AnimData()
   memset(&dumpData, 0, sizeof(dumpData));
 }
 
+void AnimDataChan::patchData(void *base)
+{
+  nodeAnim.patch(base);
+  nodeName.patch(base);
+  nodeWt.patch(base);
+  auto anim = (AnimV20Math::AnimChanPoint3 *)nodeAnim.get();
+  for (int i = 0; i < nodeNum; i++)
+  {
+    nodeName[i].patch(base);
+    anim[i].key.patch(base);
+    anim[i].keyTime16.patch(base);
+  }
+}
+
 void AnimData::DumpData::patchData(void *base)
 {
   chanPoint3.patch(base);
@@ -170,7 +183,7 @@ void AnimData::DumpData::patchData(void *base)
     noteTrack[i].patchData(base);
 }
 
-AnimDataChan<AnimChanPoint3> *AnimData::DumpData::getChanPoint3(unsigned channel_type)
+AnimDataChan *AnimData::DumpData::getChanPoint3(unsigned channel_type)
 {
   for (int i = 0; i < chanPoint3.size(); i++)
     if (chanPoint3[i].channelType == channel_type)
@@ -178,7 +191,7 @@ AnimDataChan<AnimChanPoint3> *AnimData::DumpData::getChanPoint3(unsigned channel
   return NULL;
 }
 
-AnimDataChan<AnimChanQuat> *AnimData::DumpData::getChanQuat(unsigned channel_type)
+AnimDataChan *AnimData::DumpData::getChanQuat(unsigned channel_type)
 {
   for (int i = 0; i < chanQuat.size(); i++)
     if (chanQuat[i].channelType == channel_type)
@@ -186,7 +199,7 @@ AnimDataChan<AnimChanQuat> *AnimData::DumpData::getChanQuat(unsigned channel_typ
   return NULL;
 }
 
-AnimDataChan<AnimChanReal> *AnimData::DumpData::getChanReal(unsigned channel_type)
+AnimDataChan *AnimData::DumpData::getChanReal(unsigned channel_type)
 {
   for (int i = 0; i < chanReal.size(); i++)
     if (chanReal[i].channelType == channel_type)
@@ -195,40 +208,14 @@ AnimDataChan<AnimChanReal> *AnimData::DumpData::getChanReal(unsigned channel_typ
 }
 
 
-const AnimChanPoint3 *AnimData::getPoint3Anim(unsigned channel_type, const char *node_name)
+PrsAnimNodeRef AnimData::getPrsAnim(const char *node_name)
 {
-  AnimDataChan<AnimChanPoint3> *animDataChan = dumpData.getChanPoint3(channel_type);
-  if (animDataChan)
-  {
-    int animId = animDataChan->getNodeId(node_name);
-    if (animId != -1)
-      return &animDataChan->nodeAnim[animId];
-  }
-  return NULL;
-}
-
-const AnimChanQuat *AnimData::getQuatAnim(unsigned channel_type, const char *node_name)
-{
-  AnimDataChan<AnimChanQuat> *animDataChan = dumpData.getChanQuat(channel_type);
-  if (animDataChan)
-  {
-    int animId = animDataChan->getNodeId(node_name);
-    if (animId != -1)
-      return &animDataChan->nodeAnim[animId];
-  }
-  return NULL;
-}
-
-const AnimChanReal *AnimData::getRealAnim(unsigned channel_type, const char *node_name)
-{
-  AnimDataChan<AnimChanReal> *animDataChan = dumpData.getChanReal(channel_type);
-  if (animDataChan)
-  {
-    int animId = animDataChan->getNodeId(node_name);
-    if (animId != -1)
-      return &animDataChan->nodeAnim[animId];
-  }
-  return NULL;
+  PrsAnimNodeRef prs;
+  prs.anim = &anim;
+  prs.posId = anim.pos.getNodeId(node_name);
+  prs.rotId = anim.rot.getNodeId(node_name);
+  prs.sclId = anim.scl.getNodeId(node_name);
+  return prs;
 }
 
 int AnimData::getLabelTime(const char *name, bool fatal_err)
@@ -284,33 +271,31 @@ bool AnimData::load(IGenLoad &crd, class IMemAlloc *ma)
 
 void AnimData::Anim::setup(DumpData &d)
 {
-  AnimDataChan<AnimChanPoint3> *p3;
-  AnimDataChan<AnimChanQuat> *quat;
+  AnimDataChan *ch;
 
-  p3 = d.getChanPoint3(CHTYPE_POSITION);
-  if (p3)
-    memcpy(&pos, p3, sizeof(pos));
+  ch = d.getChanPoint3(CHTYPE_POSITION);
+  if (ch)
+    memcpy(&pos, ch, sizeof(pos));
 
-  p3 = d.getChanPoint3(CHTYPE_SCALE);
-  if (p3)
-    memcpy(&scl, p3, sizeof(scl));
+  ch = d.getChanPoint3(CHTYPE_SCALE);
+  if (ch)
+    memcpy(&scl, ch, sizeof(scl));
 
-  quat = d.getChanQuat(CHTYPE_ROTATION);
-  if (quat)
-    memcpy(&rot, quat, sizeof(rot));
+  ch = d.getChanQuat(CHTYPE_ROTATION);
+  if (ch)
+    memcpy(&rot, ch, sizeof(rot));
 
-
-  p3 = d.getChanPoint3(CHTYPE_ORIGIN_LINVEL);
-  if (p3)
+  ch = d.getChanPoint3(CHTYPE_ORIGIN_LINVEL);
+  if (ch)
   {
-    G_ASSERT(p3->nodeNum == 1);
-    memcpy(&originLinVel, &p3->nodeAnim[0], sizeof(originLinVel));
+    G_ASSERT(ch->nodeNum == 1);
+    memcpy(&originLinVel, ch, sizeof(originLinVel));
   }
 
-  p3 = d.getChanPoint3(CHTYPE_ORIGIN_ANGVEL);
-  if (p3)
+  ch = d.getChanPoint3(CHTYPE_ORIGIN_ANGVEL);
+  if (ch)
   {
-    G_ASSERT(p3->nodeNum == 1);
-    memcpy(&originAngVel, &p3->nodeAnim[0], sizeof(originAngVel));
+    G_ASSERT(ch->nodeNum == 1);
+    memcpy(&originAngVel, ch, sizeof(originAngVel));
   }
 }

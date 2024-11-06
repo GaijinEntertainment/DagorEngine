@@ -40,6 +40,10 @@ macro INIT_COMMON_RENDINST_TESSELLATION()
   static float4 rendinst_displacement_lod = (0, 0, 0, 0) no_warnings;
   static float4 rendinst_displacement_mod = (1, 1, 0.75, 0.25) no_warnings; // 4 packed multipliers .x - trunc, .yzw - branches
   static float max_tessellation_factor = 10 no_warnings;
+  static float min_tessellation_distance = 2.0 no_warnings;
+  static float max_tessellation_distance = 2.0 no_warnings;
+  static float tessellation_transition_distance = 1.0 no_warnings;
+  static float tessellation_max_edge_length = 0.024 no_warnings;
 
   bool pn_triangulation_enabled =
       (object_tess_factor == object_tess_factor_on && material_pn_triangulation != off &&
@@ -57,6 +61,10 @@ macro INIT_COMMON_RENDINST_TESSELLATION()
     {
       max_tessellation_factor@f1 = max_tessellation_factor;
       material_pn_triangulation@i1 = material_pn_triangulation;
+      min_tessellation_distance@f1 = min_tessellation_distance;
+      max_tessellation_distance@f1 = max_tessellation_distance;
+      tessellation_transition_distance@f1 = tessellation_transition_distance;
+      tessellation_max_edge_length@f1 = tessellation_max_edge_length;
     }
     hlsl(ds)
     {
@@ -164,7 +172,7 @@ endmacro
 macro USE_COMMON_RENDINST_TESSELLATION()
   if (pn_triangulation_enabled)
   {
-    USE_PN_TRIANGULATION_WITH_EDGE_LENGTH_BASED_TESS_FACTORS(camera_base_offset, get_max_tessellation_factor())
+    USE_PN_TRIANGULATION_WITH_EDGE_LENGTH_BASED_TESS_FACTORS(camera_base_offset, get_max_tessellation_factor(), get_tessellation_max_edge_length(), get_min_tessellation_distance(), get_max_tessellation_distance(), get_tessellation_transition_distance())
   }
 endmacro
 

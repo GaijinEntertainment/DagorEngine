@@ -18,6 +18,7 @@ struct ProfileSettings
   eastl::string serverSessionId;
   eastl::string cmdAuthKey;
   eastl::string userId;
+  eastl::string userName;
   int appId = 0;
   rapidjson::Document matchingInviteData; // not null on dedicated only or in offline mode
 

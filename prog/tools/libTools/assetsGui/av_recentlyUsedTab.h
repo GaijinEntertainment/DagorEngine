@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "av_assetTypeFilterControl.h"
 #include <propPanel/commonWindow/treeviewPanel.h>
 #include <propPanel/focusHelper.h>
 #include <propPanel/imguiHelper.h>
@@ -16,11 +17,31 @@ public:
   {
     closeIcon = (ImTextureID)((unsigned)PropPanel::load_icon("close_editor"));
     searchIcon = (ImTextureID)((unsigned)PropPanel::load_icon("search"));
+    settingsIcon = (ImTextureID)((unsigned)PropPanel::load_icon("filter_default"));
+    settingsOpenIcon = (ImTextureID)((unsigned)PropPanel::load_icon("filter_active"));
+  }
+
+  void onAllowedTypesChanged(dag::ConstSpan<int> allowed_type_indexes)
+  {
+    const int assetTypeCount = selectAssetDlg.getAssetMgr()->getAssetTypesCount();
+
+    allowedTypes.clear();
+    shownTypes.clear();
+    allowedTypes.resize(assetTypeCount);
+    shownTypes.resize(assetTypeCount);
+
+    for (int i = 0; i < assetTypeCount; ++i)
+    {
+      const bool allowed = eastl::find(allowed_type_indexes.begin(), allowed_type_indexes.end(), i) != allowed_type_indexes.end();
+      allowedTypes[i] = shownTypes[i] = allowed;
+    }
+
+    onShownTypeFilterChanged();
   }
 
   void fillTree()
   {
-    dag::ConstSpan<int> allowedTypes = selectAssetDlg.getAllowedTypes();
+    const dag::ConstSpan<int> allowedTypeIndexes = selectAssetDlg.getAllowedTypes();
     const DagorAsset *selectedAsset = getSelectedAsset();
     PropPanel::TLeafHandle itemToSelect = nullptr;
 
@@ -31,9 +52,9 @@ public:
     for (int i = recentlyUsedList.size() - 1; i >= 0; --i)
     {
       const String &assetName = recentlyUsedList[i];
-      const DagorAsset *asset = selectAssetDlg.getAssetByName(assetName, allowedTypes);
+      const DagorAsset *asset = selectAssetDlg.getAssetByName(assetName, allowedTypeIndexes);
 
-      if (!asset || eastl::find(allowedTypes.begin(), allowedTypes.end(), asset->getType()) == allowedTypes.end())
+      if (!asset || !shownTypes[asset->getType()])
         continue;
 
       if (!SelectAssetDlg::matchesSearchText(asset->getName(), textToSearch))
@@ -64,11 +85,30 @@ public:
 
   void updateImgui()
   {
-    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+    const ImVec2 fontSizedIconSize = PropPanel::ImguiHelper::getFontSizedIconSize();
+    const ImVec2 settingsButtonSize = PropPanel::ImguiHelper::getImageButtonWithDownArrowSize(fontSizedIconSize);
+
+    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - (ImGui::GetStyle().ItemSpacing.x + settingsButtonSize.x));
     if (PropPanel::ImguiHelper::searchInput(&searchInputFocusId, "##searchInput", "Search", textToSearch, searchIcon, closeIcon))
       fillTree();
+    ImGui::SameLine();
 
-    if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_F))
+    const char *popupId = "settingsPopup";
+    const ImTextureID settingsButtonIcon = settingsPanelOpen ? settingsOpenIcon : settingsIcon;
+    const bool settingsButtonPressed =
+      PropPanel::ImguiHelper::imageButtonWithArrow("settingsButton", settingsButtonIcon, fontSizedIconSize, settingsPanelOpen);
+    PropPanel::set_previous_imgui_control_tooltip((const void *)ImGui::GetItemID(), "Settings");
+
+    if (settingsButtonPressed)
+    {
+      ImGui::OpenPopup(popupId);
+      settingsPanelOpen = true;
+    }
+
+    if (settingsPanelOpen)
+      showSettingsPanel(popupId);
+
+    if (!settingsPanelOpen && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_F))
       PropPanel::focus_helper.requestFocus(&searchInputFocusId);
 
     recentlyUsedTree.updateImgui();
@@ -138,10 +178,38 @@ private:
     return false;
   }
 
+  void onShownTypeFilterChanged() { fillTree(); }
+
+  void showSettingsPanel(const char *popup_id)
+  {
+    ImGui::PushStyleColor(ImGuiCol_PopupBg, ImGui::GetStyleColorVec4(ImGuiCol_WindowBg));
+    const bool popupIsOpen = ImGui::BeginPopup(popup_id, ImGuiWindowFlags_NoMove);
+    ImGui::PopStyleColor();
+
+    if (!popupIsOpen)
+    {
+      settingsPanelOpen = false;
+      return;
+    }
+
+    ImGui::TextUnformatted("Select filter");
+
+    if (assetTypeFilterControl.updateImgui(*selectAssetDlg.getAssetMgr(), make_span(allowedTypes), make_span(shownTypes)))
+      onShownTypeFilterChanged();
+
+    ImGui::EndPopup();
+  }
+
   SelectAssetDlg &selectAssetDlg;
   PropPanel::TreeBaseWindow recentlyUsedTree;
+  AssetTypeFilterControl assetTypeFilterControl;
+  dag::Vector<bool> allowedTypes;
+  dag::Vector<bool> shownTypes;
   String textToSearch;
   ImTextureID closeIcon = nullptr;
   ImTextureID searchIcon = nullptr;
+  ImTextureID settingsIcon = nullptr;
+  ImTextureID settingsOpenIcon = nullptr;
   const bool searchInputFocusId = false; // Only the address of this member is used.
+  bool settingsPanelOpen = false;
 };

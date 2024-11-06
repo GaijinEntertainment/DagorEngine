@@ -3,6 +3,7 @@
 
 #include "amdFsr.h"
 
+#include <osApiWrappers/dag_unicode.h>
 #include <ffx_api/ffx_upscale.hpp>
 
 namespace amd

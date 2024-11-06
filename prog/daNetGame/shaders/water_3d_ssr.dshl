@@ -41,6 +41,11 @@ shader water_ssr_nv2, water_ssr_nv2_heightmap
   INIT_READ_GBUFFER_MATERIAL_DYNAMIC()
   USE_READ_GBUFFER_MATERIAL_DYNAMIC()
 
+  USE_BRUNETON_FOG()
+
+  INIT_HDR(ps)
+  USE_HDR(ps)
+
   local float4 water_reflection_tex_dimensions = get_dimensions(water_reflection_tex, 0);
   if (shader == water_ssr_nv2 && water_planar_reflection_terrain != NULL)
   {
@@ -361,6 +366,22 @@ shader water_ssr_nv2, water_ssr_nv2_heightmap
               float fade = w / zn_zfar.y;
               objectReflection = float4(planarColor, 1-fade);
             }
+            else // use padding on the edges of non-zero reflections to avoid upscaling artefacts in later stages
+            {
+              float3 maxColor = 0;
+              UNROLL for (int y = -1; y <= 1; ++y)
+                UNROLL for (int x = -1; x <= 1; ++x)
+                {
+                  if (x == 0 && y == 0) // center has zero color and depth
+                    continue;
+                  float2 tc = reflectionTC + float2(x, y) * water_reflection_tex_res.zw;
+                  float3 planarColor = tex2Dlod(water_planar_reflection_terrain, float4(tc + reflDistortionVector, 0, 0)).rgb;
+                  // technically, the color with the closest depth should be used, but this is a good approximation (color is 0 if depth is 0)
+                  maxColor = max(maxColor, planarColor);
+                }
+              FLATTEN if (any(maxColor > 0))
+                objectReflection = float4(maxColor, 0);
+            }
           }
         ##endif
       }
@@ -372,6 +393,15 @@ shader water_ssr_nv2, water_ssr_nv2_heightmap
       float3 color : SV_Target0;
       float2 alpha__strength : SV_Target1;
     };
+
+    void applyFogToReflection(float2 screen_tc, float dist, inout float3 color)
+    {
+      half3 add,loss;
+      float3 view = normalize(getViewVecOptimized(screen_tc));
+      get_bruneton_fog(view, dist, loss, add);
+      add = pack_hdr(add);
+      color = color*loss + add;
+    }
 
     WaterOutput water_nv_ps(PS_INPUT In HW_USE_SCREEN_POS INPUT_VFACE)
     {
@@ -457,6 +487,7 @@ shader water_ssr_nv2, water_ssr_nv2_heightmap
       {
         float rayHitDist = 0;
         get_alternate_reflections(newTarget, rayHitDist, screenpos.xy, reflect(-pointToEye, worldNormal), cameraToPoint, worldNormal, false, false);
+        applyFogToReflection(refractionTC, rayHitDist, newTarget.rgb);
       }
 
       bool discardHistory = offscreen || (isGbufferDynamic(oldUv) && (prevScreen.z < sample_close_depth_tex(oldUv, 0))) || force_ignore_history > 0;

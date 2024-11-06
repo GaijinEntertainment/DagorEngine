@@ -15,6 +15,8 @@
 #include <math/dag_mathUtils.h>
 #include <3d/dag_render.h>
 #include <memory/dag_fixedBlockAllocator.h>
+#include <gameRes/dag_resourceNameResolve.h>
+#include <shaders/dag_dynSceneRes.h>
 
 #include <gamePhys/collision/collisionLib.h>
 #include <gamePhys/collision/physLayers.h>
@@ -28,27 +30,28 @@ static int default_fgroup = dacoll::EPL_DEFAULT;
 static constexpr int default_fmask = dacoll::EPL_ALL;
 } // namespace destructables
 
-DestructableObject::DestructableObject(DynamicPhysObjectData *po_data, float scale_dt, const TMatrix &tm, PhysWorld *phys_world,
-  int res_idx, uint32_t hash_val, const DataBlock *blk) :
+DestructableObject::DestructableObject(const destructables::DestructableCreationParams &params, PhysWorld *phys_world,
+  float scale_dt) :
   scaleDt(scale_dt),
-  physObj(DynamicPhysObject::create(po_data, phys_world, tm, destructables::default_fgroup, destructables::default_fmask)),
-  resIdx(res_idx)
+  physObj(
+    DynamicPhysObject::create(params.physObjData, phys_world, params.tm, destructables::default_fgroup, destructables::default_fmask)),
+  resIdx(params.resIdx)
 {
   mat44f tm44;
-  v_mat44_make_from_43cu_unsafe(tm44, tm.array);
+  v_mat44_make_from_43cu_unsafe(tm44, params.tm.array);
   mat43f m43;
   v_mat44_transpose_to_mat43(m43, tm44);
   v_stu(&intialTmAndHash[0].x, m43.row0);
   v_stu(&intialTmAndHash[1].x, m43.row1);
   v_stu(&intialTmAndHash[2].x, m43.row2);
-  memcpy(&intialTmAndHash[3].x, &hash_val, sizeof(hash_val));
+  memcpy(&intialTmAndHash[3].x, &params.hashVal, sizeof(params.hashVal));
 
-  if (blk)
-  {
-    ttl = blk->getReal("timeToLive", ttl);
-    defaultTimeToLive = blk->getReal("timeForBodies", defaultTimeToLive);
-    timeToKinematic = blk->getReal("timeToKinematic", timeToKinematic);
-  }
+  if (params.timeToLive >= 0.0f)
+    ttl = params.timeToLive;
+  if (params.defaultTimeToLive >= 0.0f)
+    defaultTimeToLive = params.defaultTimeToLive;
+  if (params.timeToKinematic >= 0.0f)
+    timeToKinematic = params.timeToKinematic;
   clear_and_resize(ttlBodies, physObj->getPhysSys()->getBodyCount());
   for (int i = 0; i < ttlBodies.size(); ++i)
     ttlBodies[i] = defaultTimeToLive;
@@ -236,6 +239,7 @@ static float distForScaleDtSq;
 static float maxScaleDt;
 float minDestrRadiusSq;
 static float overflowReportTimeout = 0.0f;
+static bool errorOnBodiesOverflow = true;
 
 void init(const DataBlock *blk, int fgroup)
 {
@@ -245,32 +249,55 @@ void init(const DataBlock *blk, int fgroup)
   distForScaleDtSq = sqr(destrBlk->getReal("distForScaleDt", 100.f));
   maxScaleDt = destrBlk->getReal("maxScaleDt", 3.f);
   minDestrRadiusSq = sqr(destrBlk->getReal("minDestrRadius", 40.f));
+  errorOnBodiesOverflow = destrBlk->getBool("errorOnBodiesOverflow", true);
   default_fgroup = fgroup;
   if (!destructablesListAllocator.isInited())
     destructablesListAllocator.init(sizeof(DestructableObject), (4096 * 2 - 16) / sizeof(DestructableObject));
 }
 
-destructables::id_t addDestructable(gamephys::DestructableObject **out_destr, DynamicPhysObjectData *po_data, const TMatrix &tm,
-  PhysWorld *phys_world, const Point3 &cam_pos, int res_idx, uint32_t hash_val, const DataBlock *blk)
+destructables::id_t addDestructable(gamephys::DestructableObject **out_destr, const DestructableCreationParams &params,
+  PhysWorld *phys_world)
 {
-  float scaleDt = 1.f;
-  if (distForScaleDtSq > 0.f)
+  G_ASSERT_RETURN(params.physObjData, nullptr);
+
+  float scaleDt = params.scaleDt >= 0.0f ? params.scaleDt : 1.f;
+  if (params.scaleDt < 0.0f && distForScaleDtSq > 0.f) //-V1051
   {
-    float distSq = (cam_pos - tm.getcol(3)).lengthSq();
+    float distSq = (params.camPos - params.tm.getcol(3)).lengthSq();
     if (distSq > distForScaleDtSq)
       scaleDt = clamp(sqrtf(distSq / distForScaleDtSq), 1.f, maxScaleDt);
   }
+
   void *mem = destructablesListAllocator.allocateOneBlock();
   DestructableObject *obj = nullptr;
   {
     TIME_PROFILE(addDestructable__DestructableObject_ctor);
-    obj = new (mem, _NEW_INPLACE) DestructableObject(po_data, scaleDt, tm, phys_world, res_idx, hash_val, blk);
+    obj = new (mem, _NEW_INPLACE) DestructableObject(params, phys_world, scaleDt);
   }
   destructablesList.emplace_back(obj);
   if (out_destr)
     *out_destr = obj;
   return obj; // To consider: we can use high 16 bit of pointer for storing generation (for safety)
 }
+
+id_t addDestructable(gamephys::DestructableObject **out_destr, DynamicPhysObjectData *po_data, const TMatrix &tm,
+  PhysWorld *phys_world, const Point3 &cam_pos, int res_idx, uint32_t hash_val, const DataBlock *blk)
+{
+  DestructableCreationParams params;
+  params.physObjData = po_data;
+  params.tm = tm;
+  params.camPos = cam_pos;
+  params.resIdx = res_idx;
+  params.hashVal = hash_val;
+  if (blk)
+  {
+    params.timeToLive = blk->getReal("timeToLive", -1.0f);
+    params.defaultTimeToLive = blk->getReal("timeForBodies", -1.0f);
+    params.timeToKinematic = blk->getReal("timeToKinematic", -1.0f);
+  }
+  return addDestructable(out_destr, params, phys_world);
+}
+
 
 void clear()
 {
@@ -283,6 +310,47 @@ void removeDestructableById(id_t id)
   if (id != INVALID_ID && eastl::find(destructablesList.begin(), destructablesList.end(), id,
                             [](auto &rec, id_t id) { return rec.get() == id; }) != destructablesList.end())
     static_cast<DestructableObject *>(id)->markForDelete();
+}
+
+void overflowHandler()
+{
+  String msg(framemem_ptr());
+  msg.printf(0, "destructables::update: too many destructable bodies %d, max - %d", numActiveBodies, maxNumberOfDestructableBodies);
+
+#if DAGOR_DBGLEVEL > 0
+  const bool forceErrorOnOverflow = errorOnBodiesOverflow;
+#else
+  const bool forceErrorOnOverflow = false;
+#endif
+
+  if (!forceErrorOnOverflow)
+  {
+    logwarn(msg.c_str());
+    return;
+  }
+
+#if DAGOR_DBGLEVEL > 0
+  String fullMsg(framemem_ptr());
+  fullMsg.append(msg);
+  for (const auto &i : destructablesList)
+  {
+    const auto *physObj = i->getPhysObj();
+    G_ASSERT_CONTINUE(physObj);
+
+    for (int n = 0; n < physObj->getModelCount(); ++n)
+    {
+      DynamicRenderableSceneInstance *inst = physObj->getModel(n);
+      DynamicRenderableSceneLodsResource *lods = inst->getLodsResource();
+
+      String name;
+      String resMsg(framemem_ptr());
+      resolve_game_resource_name(name, lods);
+      resMsg.printf(0, "\n  res: %s, active bodies: %d", name.c_str(), i->getNumActiveBodies());
+      fullMsg.append(resMsg);
+    }
+  }
+  logerr(fullMsg.c_str());
+#endif
 }
 
 void update(float dt)
@@ -314,12 +382,7 @@ void update(float dt)
     if (overflowReportTimeout <= 0.0f)
     {
       overflowReportTimeout = 1.0f;
-#if DAGOR_DBGLEVEL > 0
-      logerr(
-#else
-      logwarn(
-#endif
-        "destructables::update: too many destructable bodies %d, max - %d", numActiveBodies, maxNumberOfDestructableBodies);
+      overflowHandler();
     }
 
     // Cleanup first those bodies that are falling through, then all old ones

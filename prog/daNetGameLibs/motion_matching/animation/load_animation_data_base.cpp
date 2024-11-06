@@ -35,31 +35,27 @@ static Tags get_tags(const OAHashNameMap<false> &tagsMap, const char *tags)
   return tagMask;
 }
 
-template <typename T>
-static int max_time_chan(const AnimV20::AnimChan<T> &chan)
-{
-  return chan.keyNum ? chan.keyTimeLast() : 0;
-}
 static int anim_max_time(const AnimV20::AnimData::Anim &anim)
 {
-  int time = max(max_time_chan(anim.originLinVel), max_time_chan(anim.originAngVel));
-  for (int j = 0, k = anim.pos.nodeNum; j < k; j++)
-    time = max(time, max_time_chan(anim.pos.nodeAnim[j]));
-  for (int j = 0, k = anim.rot.nodeNum; j < k; j++)
-    time = max(time, max_time_chan(anim.rot.nodeAnim[j]));
-  for (int j = 0, k = anim.scl.nodeNum; j < k; j++)
-    time = max(time, max_time_chan(anim.scl.nodeAnim[j]));
+  int time = max(anim.originLinVel.keyTimeLast(), anim.originAngVel.keyTimeLast());
+  time = max(time, anim.pos.keyTimeLast());
+  time = max(time, anim.rot.keyTimeLast());
+  time = max(time, anim.scl.keyTimeLast());
   return time;
 }
 
 
-template <typename T>
-static const T *find_anim_channel(const eastl::string &channel_name, const AnimV20::AnimDataChan<T> &chan)
+static dag::Index16 find_anim_channel(const eastl::string &channel_name, const AnimV20::AnimDataChan &chan)
 {
   for (int i = 0, n = chan.nodeNum; i < n; i++)
     if (!strcmp(chan.nodeName[i].get(), channel_name.c_str()))
-      return &chan.nodeAnim[i];
-  return nullptr;
+    {
+      auto id = dag::Index16(i);
+      if (!chan.hasKeys(id))
+        return dag::Index16();
+      return id;
+    }
+  return dag::Index16();
 }
 
 constexpr int a2dtimeConversion = 2 * 256;
@@ -81,18 +77,18 @@ static void copy_animation(const AnimV20::AnimData &anim_data, AnimationClip &cl
     if (weight <= 0.f)
       continue;
     clip.nodeMask[nodeIdx.index()] = weight;
-    const auto *pos = find_anim_channel(name, anim_data.anim.pos);
-    if (pos && pos->keyNum > 0)
+    auto pos = find_anim_channel(name, anim_data.anim.pos);
+    if (pos)
     {
       clip.channelTranslation.push_back({pos, nodeIdx});
     }
-    const auto *rot = find_anim_channel(name, anim_data.anim.rot);
-    if (rot && rot->keyNum > 0)
+    auto rot = find_anim_channel(name, anim_data.anim.rot);
+    if (rot)
     {
       clip.channelRotation.push_back({rot, nodeIdx});
     }
-    const auto *scl = find_anim_channel(name, anim_data.anim.scl);
-    if (scl && scl->keyNum > 0)
+    auto scl = find_anim_channel(name, anim_data.anim.scl);
+    if (scl)
     {
       clip.channelScale.push_back({scl, nodeIdx});
     }
@@ -103,18 +99,19 @@ static void load_and_validate_root_scale(AnimationClip &clip, dag::Index16 root_
 {
   clip.rootScale = V_C_UNIT_1110;
   bool valid = true;
+  AnimV20Math::PrsAnimSampler<AnimV20Math::DefaultConfig> sampler(clip.animation);
   for (const AnimationClip::Point3Channel &nodeScale : clip.channelScale)
   {
-    vec3f scale = nodeScale.first->key[0].p;
+    sampler.seekTicks(0);
+    vec3f scale = sampler.sampleScl(nodeScale.first);
     if (nodeScale.second == root_node)
       clip.rootScale = scale;
     else
       valid &= v_extract_x(v_length3_sq_x(v_sub(scale, V_C_ONE))) < 0.001;
-    for (int i = 1, ie = nodeScale.first->keyNum; i < ie; ++i)
-    {
-      vec3f scale2 = nodeScale.first->key[i].p;
+    sampler.forEachSclKey(nodeScale.first, [&valid, &sampler, &nodeScale, scale] {
+      vec3f scale2 = sampler.sampleScl(nodeScale.first);
       valid &= v_extract_x(v_length3_sq_x(v_sub(scale, scale2))) < 0.001;
-    }
+    });
   }
   if (!valid)
     logerr("animation <%s> has variable scale and won't work correctly with inertial blending", clip.name);
@@ -221,8 +218,8 @@ static bool load_root_motion_from_a2d_node(AnimationClip &clip, const eastl::str
 {
   if (a2d_node_name.empty())
     return false;
-  const AnimV20::AnimChanPoint3 *rootMotionPos = find_anim_channel(a2d_node_name, clip.animation->anim.pos);
-  const AnimV20::AnimChanQuat *rootMotionRot = find_anim_channel(a2d_node_name, clip.animation->anim.rot);
+  auto rootMotionPos = find_anim_channel(a2d_node_name, clip.animation->anim.pos);
+  auto rootMotionRot = find_anim_channel(a2d_node_name, clip.animation->anim.rot);
   if (!rootMotionPos || !rootMotionRot)
   {
     if (rootMotionPos)
@@ -238,15 +235,11 @@ static bool load_root_motion_from_a2d_node(AnimationClip &clip, const eastl::str
     return false;
   }
 
+  AnimV20Math::PrsAnimNodeSampler<AnimV20Math::DefaultConfig> sampler(clip.animation, rootMotionPos, rootMotionRot, dag::Index16());
   for (int tick = 0; tick <= clip.tickDuration; tick++)
   {
-    int a2dTime = (clip.duration * tick / clip.tickDuration) * AnimV20::TIME_TicksPerSec;
-    float keyT;
-    const AnimV20::AnimKeyPoint3 *keyPos = rootMotionPos->findKey(a2dTime, &keyT);
-    vec3f pos = keyT > 0 ? AnimV20Math::interp_key(keyPos[0], v_splats(keyT)) : keyPos[0].p;
-    const AnimV20::AnimKeyQuat *keyRot = rootMotionRot->findKey(a2dTime, &keyT);
-    quat4f rot = keyT > 0 ? AnimV20Math::interp_key(keyRot[0], keyRot[1], keyT) : keyRot[0].p;
-    clip.rootMotion[tick] = {pos, rot};
+    sampler.seek(clip.duration * tick / clip.tickDuration);
+    clip.rootMotion[tick] = {sampler.samplePos(), sampler.sampleRot()};
   }
   return true;
 }

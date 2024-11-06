@@ -16,7 +16,16 @@ static const int LOGMESSAGE_LEVEL = LOGLEVEL_ERR;
 static const int LOGMESSAGE_LEVEL = LOGLEVEL_WARN;
 #endif
 
-float rendinst::get_riextra_ttl(rendinst::riex_handle_t handle) { return rendinst::riExtra[rendinst::handle_to_ri_type(handle)].ttl; }
+float rendinst::get_riextra_destr_time_to_live(rendinst::riex_handle_t handle)
+{
+  G_ASSERT_RETURN(handle != RIEX_HANDLE_NULL, -1.0f);
+  return rendinst::riExtra[rendinst::handle_to_ri_type(handle)].destrTimeToLive;
+}
+float rendinst::get_riextra_destr_time_to_kinematic(rendinst::riex_handle_t handle)
+{
+  G_ASSERT_RETURN(handle != RIEX_HANDLE_NULL, -1.0f);
+  return rendinst::riExtra[rendinst::handle_to_ri_type(handle)].destrTimeToKinematic;
+}
 
 bool rendinst::get_riextra_immortality(rendinst::riex_handle_t handle)
 {

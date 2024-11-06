@@ -23,9 +23,12 @@ local currencySymbols = {
 
 local langsByPluralFormsCount = [
   /* 0 */ [],
-  /* 1 */ [ "Chinese", "Japanese", "Vietnamese", "Korean", "TChinese", "HChinese" ],
+  /* 1 */ [ "Chinese", "Japanese", "Vietnamese", "Korean", "TChinese", "HChinese", "Thai", "Indonesian" ],
   /* 2 */ [ "English", "French", "Italian", "German", "Spanish", "Turkish", "Portuguese", "Hungarian", "Georgian", "Greek" ],
   /* 3 */ [ "Russian", "Polish", "Czech", "Ukrainian", "Serbian", "Belarusian", "Romanian", "Croatian" ],
+  /* 4 */ [],
+  /* 5 */ [],
+  /* 6 */ [ "Arabic" ],
 ]
 
 local totalRowsChecked = 0

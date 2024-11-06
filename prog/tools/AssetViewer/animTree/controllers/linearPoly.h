@@ -3,6 +3,7 @@
 
 #include <dag/dag_vector.h>
 #include <generic/dag_span.h>
+#include <util/dag_string.h>
 
 namespace PropPanel
 {
@@ -20,3 +21,4 @@ void linear_poly_init_block_settings(PropPanel::ContainerPropertyControl *panel,
 void linear_poly_set_selected_node_list_settings(PropPanel::ContainerPropertyControl *panel, const DataBlock *settings);
 void linear_poly_remove_node_from_list(PropPanel::ContainerPropertyControl *panel, DataBlock *settings);
 const char *linear_poly_get_child_name_by_idx(const DataBlock &settings, int idx);
+String linear_poly_get_child_prefix_name(const DataBlock &settings, int idx);

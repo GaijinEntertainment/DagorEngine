@@ -34,7 +34,8 @@ macro USING_RTAO(stage, rtao_tex_space)
   {
     (stage) {
       inv_output_resolution@f2 = (1.0 / (rtao_resolutionI.x * rtao_res_mul), 1.0 / (rtao_resolutionI.y * rtao_res_mul));
-      resolutionI@i2 = rtao_resolutionI.xy;
+      output_resolutionF@f2 = rtao_resolutionI.xy;
+      output_resolutionI@u2 = rtao_resolutionI.xy;
     }
 
     hlsl (stage) {
@@ -45,13 +46,13 @@ macro USING_RTAO(stage, rtao_tex_space)
       float getRTAO(uint2 tci)
       {
         float2 uv = (tci.xy + 0.5) * inv_output_resolution;
-        float2 texelPos = frac(uv * resolutionI);
-        uint2 crd = uint2(uv * resolutionI);
+        float2 texelPos = frac(uv * output_resolutionF);
+        uint2 crd = uint2(uv * output_resolutionF);
 
-        float tl = rt_texture_outputs[rtao_bindless_slot][crd].r;
-        float tr = rt_texture_outputs[rtao_bindless_slot][crd + uint2(1, 0)].r;
-        float bl = rt_texture_outputs[rtao_bindless_slot][crd + uint2(0, 1)].r;
-        float br = rt_texture_outputs[rtao_bindless_slot][crd + uint2(1, 1)].r;
+        float tl = texture2DAt(rt_texture_outputs[rtao_bindless_slot], crd).r;
+        float tr = texture2DAt(rt_texture_outputs[rtao_bindless_slot], min(crd + uint2(1, 0), output_resolutionI - 1)).r;
+        float bl = texture2DAt(rt_texture_outputs[rtao_bindless_slot], min(crd + uint2(0, 1), output_resolutionI - 1)).r;
+        float br = texture2DAt(rt_texture_outputs[rtao_bindless_slot], min(crd + uint2(1, 1), output_resolutionI - 1)).r;
 
         float top = lerp(tl, tr, texelPos.x);
         float bottom = lerp(bl, br, texelPos.x);

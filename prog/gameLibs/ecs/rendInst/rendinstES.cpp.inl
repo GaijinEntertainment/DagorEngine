@@ -262,29 +262,29 @@ struct DelayedSpawnRiExtra final : public DelayedAction, public eastl::intrusive
     int resIdx = rendinst::getRIGenExtraResIdx(name);
     const rendinst::riex_handle_t handle = spawn_ri_extra(mgr, eid, resIdx, name);
     mgr.getRW<RiExtraComponent>(eid, ECS_HASH("ri_extra")).handle = handle;
-    if (nullptr != mgr.getNullable<ecs::Tag>(eid, ECS_HASH("ri_extra__sendSpawnEvent")))
+    if (mgr.getNullable<ecs::Tag>(eid, ECS_HASH("ri_extra__sendSpawnEvent")))
       g_entity_mgr->sendEventImmediate(eid, EventRendinstSpawned());
-    if (nullptr != mgr.getNullable<ecs::Tag>(eid, ECS_HASH("levelRiExtra")))
+    if (mgr.getNullable<ecs::Tag>(eid, ECS_HASH("levelRiExtra")))
       g_entity_mgr->broadcastEventImmediate(EventRendinstInitForLevel(handle));
   }
 };
 
 ECS_ON_EVENT(on_appear)
-static void riextra_spawn_ri_es_event_handler(const ecs::Event &, RiExtraComponent &ri_extra, ecs::EntityId eid)
+static void riextra_spawn_ri_es(const ecs::Event &, ecs::EntityManager &manager, RiExtraComponent &ri_extra, ecs::EntityId eid,
+  const rendinst::riex_handle_t *ri_extra__handle, const ecs::string &ri_extra__name, const ecs::Tag *ri_extra__sendSpawnEvent,
+  const ecs::Tag *levelRiExtra)
 {
-  const ecs::EntityManager &mgr = *g_entity_mgr;
-  if (mgr.getOr<rendinst::riex_handle_t>(eid, ECS_HASH("ri_extra__handle"), rendinst::RIEX_HANDLE_NULL) != rendinst::RIEX_HANDLE_NULL)
+  if (ri_extra__handle && *ri_extra__handle != rendinst::RIEX_HANDLE_NULL)
     return;
-  const char *name = mgr.get<ecs::string>(eid, ECS_HASH("ri_extra__name")).c_str();
   if (rendinst::isRiExtraLoaded() && DelayedSpawnRiExtra::dyn_riex_creation_queue.empty())
   {
-    ri_extra.handle = spawn_ri_extra(mgr, eid, rendinst::getRIGenExtraResIdx(name), name);
+    ri_extra.handle = spawn_ri_extra(manager, eid, rendinst::getRIGenExtraResIdx(ri_extra__name.c_str()), ri_extra__name.c_str());
     // this event is required for WT, so this tag is used purely to avoid sending extra events in DNG,
     // if you ever need this event, remove this check entirely
-    if (nullptr != mgr.getNullable<ecs::Tag>(eid, ECS_HASH("ri_extra__sendSpawnEvent")))
-      g_entity_mgr->sendEventImmediate(eid, EventRendinstSpawned());
-    if (nullptr != mgr.getNullable<ecs::Tag>(eid, ECS_HASH("levelRiExtra")))
-      g_entity_mgr->broadcastEventImmediate(EventRendinstInitForLevel(ri_extra.handle));
+    if (ri_extra__sendSpawnEvent)
+      manager.sendEventImmediate(eid, EventRendinstSpawned());
+    if (levelRiExtra)
+      manager.broadcastEventImmediate(EventRendinstInitForLevel(ri_extra.handle));
   }
   else
   {
@@ -443,6 +443,7 @@ static __forceinline void rendinst_track_move_es_event_handler(const ecs::Event 
 }
 
 ECS_ON_EVENT(on_appear, EventRendinstsLoaded)
+ECS_AFTER(riextra_spawn_ri_es)
 static __forceinline void rendinst_move_es_event_handler(const ecs::Event &, RiExtraComponent &ri_extra, const TMatrix &transform,
   Point3 *ri_extra__bboxMin, Point3 *ri_extra__bboxMax)
 {

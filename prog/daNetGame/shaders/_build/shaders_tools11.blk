@@ -17,6 +17,7 @@ source
   file:t = "../no_postfx_resolve.dshl"
   file:t = "pack_impostor_texture.dshl"
   file:t = "../../../prog/gameLibs/vr/shaders/vrGuiSurface.dshl"
+  file:t = "ssr_ps.dshl"
   include shadersList.blk
 }
 common_valid_variants {

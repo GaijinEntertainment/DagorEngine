@@ -2524,7 +2524,6 @@ struct DDSxArrayTextureFactory final : public TextureFactory
       if (r.slice[s].hqPack && target_lev > base_lev)
       {
         RMGR.startReading(r.tid.index(), RMGR.getLevDesc(r.tid.index(), TQL_high));
-        start_lev = 0;
         TRACE_ARRTEX("arrTex: %s %p.load[%d]: HQ %s, ofs=0x%X", texname, t, s, r.slice[s].hqPack->file->packName,
           r.slice[s].hqPack->texRec[r.slice[s].hqIdx].ofs);
         FullFileLoadCB crd(r.slice[s].hqPack->file->packName);
@@ -2540,7 +2539,7 @@ struct DDSxArrayTextureFactory final : public TextureFactory
           crd.seekto(r.slice[s].hqPack->texRec[r.slice[s].hqIdx].ofs);
 
           TexLoadRes ldRet =
-            d3d_load_ddsx_to_slice(t, s, r.slice[s].hqPack->texHdr[r.slice[s].hqIdx], crd, r.quality, start_lev, resQS.getLdLev());
+            d3d_load_ddsx_to_slice(t, s, r.slice[s].hqPack->texHdr[r.slice[s].hqIdx], crd, r.quality, 0, resQS.getLdLev());
 
           if (ldRet != TexLoadRes::OK)
           {
@@ -2574,6 +2573,34 @@ struct DDSxArrayTextureFactory final : public TextureFactory
           return false;
         }
       }
+      else if (r.slice[s].viaFactory && target_lev > base_lev)
+      {
+        TEXTUREID tid = get_managed_texture_id(r.slice[s].ddsxFn);
+        TRACE_ARRTEX("arrTex: %s %p.load[%d]: HQ factory(%s)=%d", texname, t, s, r.slice[s].ddsxFn, tid);
+        int id = RMGR.toIndex(tid);
+        Tab<char> ddsx_data;
+
+        if (RMGR.getFactory(id) && RMGR.getFactory(id)->getTextureDDSx(tid, ddsx_data))
+        {
+          InPlaceMemLoadCB crd(ddsx_data.data(), data_size(ddsx_data));
+          ddsx::Header hdr;
+          crd.read(&hdr, sizeof(hdr));
+
+          TexLoadRes ldRet = d3d_load_ddsx_to_slice(t, s, hdr, crd, r.quality, 0, resQS.getLdLev());
+          if (ldRet != TexLoadRes::OK)
+          {
+            if (ldRet == TexLoadRes::ERR)
+              FATALERR("add_managed_array_texture(%s): d3d_load_ddsx_to_slice(%d) failed", texname, s);
+            return false;
+          }
+        }
+        else
+        {
+          FATALERR("add_managed_array_texture(%s): getTextureDDSx(%d) failed", texname, s);
+          return false;
+        }
+      }
+
     if (resQS.isReading())
     {
       t->texmiplevel(0, t->level_count() - 1);
@@ -2843,17 +2870,29 @@ struct DDSxArrayTextureFactory final : public TextureFactory
     desc.dim.h = r.hdr.h;
     desc.dim.d = r.hdr.depth;
     desc.dim.l = r.hdr.levels;
-    if (!r.slice[0].hqPack)
-      RMGR.setLevDesc(idx, TQL_base, desc.dim.maxLev = get_log2i(max(r.hdr.w, r.hdr.h)));
-    else
-    {
-      auto &bhdr = r.slice[0].bqPack->texHdr[r.slice[0].bqIdx];
-      RMGR.setLevDesc(idx, TQL_base, get_log2i(max(bhdr.w, bhdr.h)));
-      RMGR.setLevDesc(idx, TQL_high, desc.dim.maxLev = get_log2i(max(r.hdr.w, r.hdr.h)));
-    }
+    desc.dim.maxLev = get_log2i(max(r.hdr.w, r.hdr.h));
+    unsigned bq_mip = 0;
+    RMGR.setLevDesc(idx, TQL_high, desc.dim.maxLev);
+    for (const auto &s : r.slice)
+      if (s.hqPack)
+      {
+        const auto &bhdr = s.bqPack->texHdr[s.bqIdx];
+        if (!bq_mip)
+        {
+          RMGR.setLevDesc(idx, TQL_base, bq_mip = get_log2i(max(bhdr.w, bhdr.h)));
+          RMGR.setLevDesc(idx, TQL_high, desc.dim.maxLev);
+        }
+        else
+          G_ASSERTF(bq_mip == get_log2i(max(bhdr.w, bhdr.h)),
+            "arrtex(%s) bqMip=%d (%dx%d,L%d) in slice[%d] differs from used bqMip=%d", RMGR.getName(idx),
+            get_log2i(max(bhdr.w, bhdr.h)), bhdr.w, bhdr.h, bhdr.levels, &s - r.slice.data(), bq_mip);
+      }
+    if (!bq_mip)
+      RMGR.setLevDesc(idx, TQL_base, desc.dim.maxLev);
     auto &resQS = RMGR.resQS[r.tid.index()];
     resQS.setQLev(desc.dim.maxLev);
     resQS.setMaxQL(RMGR.calcMaxQL(idx), RMGR.calcCurQL(idx, resQS.getLdLev()));
+    // RMGR.dumpTexState(idx);
   }
 
   void term_load_queue() { loadQueue.freeQueue(); }
@@ -2937,7 +2976,7 @@ unsigned reload_managed_array_textures_for_changed_slice(const char *slice_tex_n
   slice_tex_name = TextureMetaData::decodeFileName(slice_tex_name, &tmp_stor1);
   for (auto &texRec : arr_tex_factory.rec)
   {
-    bool contains_tex = false;
+    int tex_slice_idx = -1;
     slicesNames.clear();
     {
       OSSpinlockScopedLock autolock(texRec.spinlock);
@@ -2945,15 +2984,15 @@ unsigned reload_managed_array_textures_for_changed_slice(const char *slice_tex_n
       {
         slicesNames.push_back() = TextureMetaData::decodeFileName(
           slice.bqPack ? slice.bqPack->getTextureNameById(slice.bqIdx) : slice.ddsxFn.c_str(), &tmp_stor2);
-        if (!contains_tex && slicesNames.back() == slice_tex_name)
-          contains_tex = true;
+        if (tex_slice_idx < 0 && slicesNames.back() == slice_tex_name)
+          tex_slice_idx = &slice - texRec.slice.data();
       }
     }
 
-    if (contains_tex)
+    if (tex_slice_idx >= 0)
     {
       const char *arrtex_name = get_managed_texture_name(texRec.tid);
-      debug("reloading arrtex: %s (slice %s changed)", arrtex_name, slice_tex_name);
+      debug("reloading arrtex: %s (slice[%d] %s changed)", arrtex_name, tex_slice_idx, slice_tex_name);
       // this make_span is legal since 'SimpleString' matches layout of 'char*'
       update_managed_array_texture(arrtex_name, make_span((const char **)slicesNames.data(), slicesNames.size()));
       changed_arrtex++;

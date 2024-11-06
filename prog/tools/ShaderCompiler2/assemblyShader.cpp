@@ -2348,6 +2348,7 @@ bool AssembleShaderEvalCB::compareHWToken(int hw_token, const ShHardwareOptions 
     case SHADER_TOKENS::SHTOK_fsh_4_1: return opt.fshVersion >= 4.1_sm;
     case SHADER_TOKENS::SHTOK_fsh_5_0: return opt.fshVersion >= 5.0_sm;
     case SHADER_TOKENS::SHTOK_fsh_6_0: return opt.fshVersion >= 6.0_sm;
+    case SHADER_TOKENS::SHTOK_fsh_6_2: return opt.fshVersion >= 6.2_sm;
     case SHADER_TOKENS::SHTOK_fsh_6_6: return opt.fshVersion >= 6.6_sm;
 
     case SHADER_TOKENS::SHTOK_pc: // backward comp
@@ -2458,6 +2459,7 @@ void AssembleShaderEvalCB::buildHwDefines(const ShHardwareOptions &opt)
   ADD_HW_MACRO(fsh_4_1);
   ADD_HW_MACRO(fsh_5_0);
   ADD_HW_MACRO(fsh_6_0);
+  ADD_HW_MACRO(fsh_6_2);
   ADD_HW_MACRO(fsh_6_6);
 #undef ADD_HW_MACRO
 }

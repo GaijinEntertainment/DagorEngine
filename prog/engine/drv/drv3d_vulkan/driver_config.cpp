@@ -219,8 +219,8 @@ void DriverConfig::configurePerDeviceDriverFeatures()
       bits.enableDeviceExecutionTracker = true;
       logwarn("vulkan: enabled device execution tracker due to GPU fault on last run");
     }
-    executionTrackerBreakpoint =
-      (uint64_t)execTrackerProp->getInt("breakpointHI", 0) << 32ULL | (uint64_t)execTrackerProp->getInt("breakpointLO", 0);
+    executionTrackerBreakpoint = ((uint64_t)execTrackerProp->getInt("breakpointHI", 0) << 32ULL) |
+                                 ((uint64_t)execTrackerProp->getInt("breakpointLO", 0) & 0xFFFFFFFF);
     if (executionTrackerBreakpoint)
       debug("vulkan: will break on execution hash %016llX", executionTrackerBreakpoint);
   }

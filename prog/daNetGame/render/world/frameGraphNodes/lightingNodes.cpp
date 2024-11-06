@@ -57,6 +57,7 @@ eastl::array<dabfg::NodeHandle, 2> makeSceneShadowPassNodes()
     auto volumesHndl =
       registry.createBlob<dynamic_shadow_render::VolumesVector>("scene_shadow_volumes_to_render", dabfg::History::No).handle();
     auto updatesHndl = registry.createBlob<dynamic_shadow_render::FrameUpdates>("scene_shadow_updates", dabfg::History::No).handle();
+    registry.readBlob<OrderingToken>("volfog_token");
 
     return [cameraHndl, volumesHndl, updatesHndl] {
       auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
