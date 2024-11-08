@@ -10,6 +10,8 @@
 /outerSpace/fmod_project
 /outerSpace/application.blk
 /_output/
+/devtools/
+/.vs/
 /prog/platform.jam
 *.pyc
 *.das.inl
