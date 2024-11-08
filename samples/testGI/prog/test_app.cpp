@@ -3031,7 +3031,7 @@ void game_demo_init()
   df_close(file);*/
 
   debug("[DEMO] registering factories");
-  ::enable_tex_mgr_mt(true, 1024);
+  ::enable_tex_mgr_mt(true, 16384);
   ::set_gameres_sys_ver(2);
   ::register_dynmodel_gameres_factory();
   ::register_geom_node_tree_gameres_factory();

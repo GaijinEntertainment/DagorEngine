@@ -8,6 +8,7 @@ if errorlevel 1 (
   echo failed to build CDK, stop!
   exit /b 1
 )
+pause
 popd
 
 pushd prog\tools\dargbox
