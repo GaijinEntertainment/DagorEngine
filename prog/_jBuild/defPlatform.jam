@@ -21,7 +21,7 @@ switch $(OS) {
   case MACOSX : Platform  ?= macOS ;
   case LINUX  : Platform  ?= linux ;
 }
-PlatformArch_windows ?= x86_64 ;
+PlatformArch_windows ?= x86 ;
 PlatformArch_linux ?= x86_64 ;
 PlatformArch_macOS ?= x86_64 ;
 PlatformArch_iOS ?= arm64 ;

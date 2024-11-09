@@ -6,11 +6,7 @@ Root    ?= ../../.. ;
 Location = samples/skiesSample/prog ;
 UseD3DMulti ?= yes ;
 
-#PlatformArch_windows ?= x86_64 ;
-PlatformArch_windows ?= arm64 ;
-#PlatformSpec_windows ?= clang ;
-PlatformSpec_windows_x86_64 ?= clang ;
-PlatformSpec_windows_arm64 ?= vc17 ;
+PlatformArch_windows ?= x86_64 ;
 PlatformSpec_windows ?= clang ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;

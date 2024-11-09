@@ -1,9 +1,6 @@
 #Platform ?= macOS ;
-#PlatformArch_windows ?= x86_64 ;
-PlatformArch_windows ?= arm64 ;
-#PlatformSpec_windows ?= clang ;
-+PlatformSpec_windows_x86_64 ?= clang ;
-+PlatformSpec_windows_arm64 ?= vc17 ;
+PlatformArch_windows ?= x86_64 ;
+PlatformSpec_windows ?= clang ;
 
 Root    ?= ../../.. ;
 Location = samples/testGI/prog ;
@@ -19,7 +16,7 @@ if $(UseWholeOpt) != yes {
   UseLLDLink ?= yes ;
 }
 
-if $(Platform)-$(PlatformArch) in windows-x86_64 windows-arm64 linux-x86_64 || $(Platform) in ps5 {
+if $(Platform)-$(PlatformArch) in windows-x86_64 linux-x86_64 || $(Platform) in ps5 {
   BVHSupport = yes ;
   BVHRi = no ;
   BVHRandomGrass = no ;
@@ -28,8 +25,6 @@ if $(Platform)-$(PlatformArch) in windows-x86_64 windows-arm64 linux-x86_64 || $
   BVHFx = no ;
   BVHCables = no ;
 }
-
-
 
 OutDir = $(Root)/$(Location)/../game ;
 

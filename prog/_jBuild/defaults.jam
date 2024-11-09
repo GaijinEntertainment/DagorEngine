@@ -9,7 +9,7 @@ if ! $(__DEFAULTS_INCLUDED) {
   include $(Root)/prog/_jBuild/defPlatform.jam ;
 
   PlatformSpec_$(Platform) ?= $(PlatformSpec_$(Platform)_$(PlatformArch)) ;
-  PlatformSpec_windows ?= vc17 ;
+  PlatformSpec_windows ?= vc16 ;
   PlatformSpec_xboxOne ?= clang ;
   PlatformSpec_scarlett ?= clang ;
   PlatformSpec_ps4 ?= clang ;
