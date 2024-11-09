@@ -3,5 +3,7 @@ if $(OS) != MACOSX { SSEVersion = 2 ; }
 VCMathOption = -fp:precise ;
 ReproducibleExeBuild = yes ;
 PhysName ?= Bullet ;
-PlatformArch_windows ?= x86_64 ;
+PlatformArch_windows ?= arm64 ;
+PlatformSpec_windows_x86_64 ?= clang ;
+PlatformSpec_windows_arm64 ?= vc17 ; 
 include $(Root)/prog/_jBuild/defPlatform.jam ; # $(Platform) is defined after this line

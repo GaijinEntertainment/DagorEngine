@@ -1,5 +1,8 @@
 Root    ?= ../../.. ;
 Location = prog/tools/ShaderCompiler2 ;
+PlatformArch_windows ?= arm64 ;
+PlatformSpec_windows_x86_64 ?= clang ;
+PlatformSpec_windows_arm64 ?= vc17 ; 
 if $(OS) = NT {
   include $(Root)/$(Location)/jamfile-hlsl11 ;
 } else if $(OS) = MACOSX {

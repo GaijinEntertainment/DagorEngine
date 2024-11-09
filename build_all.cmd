@@ -6,6 +6,7 @@ if errorlevel 1 (
 )
 if errorlevel 1 (
   echo failed to build CDK, stop!
+ pause
   exit /b 1
 )
 pause
