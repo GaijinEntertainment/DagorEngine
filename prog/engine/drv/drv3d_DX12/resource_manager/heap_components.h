@@ -1,23 +1,21 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "descriptor_components.h"
+#include <device_memory_class.h>
+#include <driver.h>
+#include <pipeline.h>
+#include <resource_memory.h>
+#include <typed_bit_set.h>
+
+#include <debug/dag_log.h>
+#include <drv/3d/dag_heap.h>
 #include <EASTL/bitset.h>
+#include <EASTL/numeric.h>
 #include <EASTL/variant.h>
 #include <EASTL/vector.h>
-#include <EASTL/numeric.h>
-#include <debug/dag_log.h>
-
-#include <drv/3d/dag_heap.h>
-
-#include "driver.h"
-#include "typed_bit_set.h"
-#include "pipeline.h"
-#include "resource_memory.h"
-#include "device_memory_class.h"
-#include "value_range.h"
-#include "free_list_utils.h"
-
-#include "resource_manager/descriptor_components.h"
+#include <free_list_utils.h>
+#include <value_range.h>
 
 
 namespace drv3d_dx12

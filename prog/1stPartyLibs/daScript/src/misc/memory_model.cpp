@@ -14,6 +14,50 @@ namespace das {
     }
 #endif
 
+#if DAS_TRACK_INSANE_POINTERS
+
+    void * das_insane_pointer = nullptr;
+    das_hash_map<void *,void *> g_insane_pointers;  // pointer -> who allocated it
+    mutex g_insane_mutex;
+
+    void das_track_insane_pointer ( void * ptr ) {
+        lock_guard<mutex> lock(g_insane_mutex);
+        das_insane_pointer = ptr;
+    }
+
+    void inscribeInsanePointer ( void * ptr, void * who ) {
+        lock_guard<mutex> lock(g_insane_mutex);
+        if ( ptr == das_insane_pointer ) {
+            os_debug_break();
+        }
+        auto it = g_insane_pointers.find(ptr);
+        if ( it == g_insane_pointers.end() ) {
+            g_insane_pointers[ptr] = who;
+        } else {
+            DAS_FATAL_ERROR("insane pointer %p, already allocated by %p (and not by %p)", ptr, it->second, who);
+        }
+    }
+
+    void freeInsanePointer ( void * ptr ) {
+        lock_guard<mutex> lock(g_insane_mutex);
+        auto it = g_insane_pointers.find(ptr);
+        if ( it != g_insane_pointers.end() ) {
+            g_insane_pointers.erase(it);
+        } else {
+            DAS_FATAL_ERROR("freeing insane pointer %p, which was not allocated", ptr);
+        }
+    }
+
+    #define INSCRIBE_INSANE_POINTER(ptr,model) inscribeInsanePointer(ptr,model)
+    #define FREE_INSANE_POINTER(ptr) freeInsanePointer(ptr)
+
+#else
+
+    #define INSCRIBE_INSANE_POINTER(ptr,model)
+    #define FREE_INSANE_POINTER(ptr)
+
+#endif
+
     MemoryModel::MemoryModel () {
         alignMask = 15;
         totalAllocated = 0;
@@ -23,11 +67,13 @@ namespace das {
     MemoryModel::~MemoryModel() {
         shoe.clear();
         for ( auto & itb : bigStuff ) {
+            FREE_INSANE_POINTER(itb.first);
             das_aligned_free16(itb.first);
         }
         bigStuff.clear();
 #if DAS_SANITIZER
         for ( auto & itb : deletedBigStuff ) {
+            FREE_INSANE_POINTER(itb.first);
             das_aligned_free16(itb.first);
         }
         deletedBigStuff.clear();
@@ -66,6 +112,7 @@ namespace das {
             char * ptr = (char *) das_aligned_alloc16(size);
             bigStuff[ptr] = size;
 #if DAS_TRACK_ALLOCATIONS
+            INSCRIBE_INSANE_POINTER(ptr, this);
             if ( g_tracker==g_breakpoint ) os_debug_break();
             bigStuffId[ptr] = g_tracker ++;
 #endif
@@ -109,8 +156,10 @@ namespace das {
         if ( itb!=bigStuff.end() ) {
             DAS_ASSERTF(itb->second==size, "free size mismatch, %u allocated vs %u freed", itb->second, size );
 #if DAS_SANITIZER
+            memset(ptr, 0xcd, size);
             deletedBigStuff[itb->first] = itb->second;
 #else
+            FREE_INSANE_POINTER(itb->first);
             das_aligned_free16(itb->first);
 #endif
             bigStuff.erase(itb);
@@ -150,8 +199,10 @@ namespace das {
     void MemoryModel::reset() {
         for ( auto & itb : bigStuff ) {
 #if DAS_SANITIZER
+            memset(itb.first, 0xcd, itb.second);
             deletedBigStuff[itb.first] = itb.second;
 #else
+            FREE_INSANE_POINTER(itb.first);
             das_aligned_free16(itb.first);
 #endif
         }
@@ -202,8 +253,11 @@ namespace das {
             } else {
 #if DAS_SANITIZER
                 memset ( it->first, 0xcd, it->second );
-#endif
+                deletedBigStuff[it->first] = it->second;
+#else
+                FREE_INSANE_POINTER(it->first);
                 das_aligned_free16(it->first);
+#endif
                 it = bigStuff.erase(it);
             }
         }

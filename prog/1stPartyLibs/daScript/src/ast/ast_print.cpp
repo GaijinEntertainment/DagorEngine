@@ -82,6 +82,7 @@ namespace das {
                 printCStyle = program->options.getBoolOption("print_c_style");
                 printAliases= program->options.getBoolOption("log_aliasing");
                 printFuncUse= program->options.getBoolOption("print_func_use");
+                gen2 = program->policies.version_2_syntax;
             }
         }
         string str() const { return ss.str(); };
@@ -90,6 +91,7 @@ namespace das {
         bool printCStyle = false;
         bool printAliases = false;
         bool printFuncUse = false;
+        bool gen2 = false;
     protected:
         void newLine () {
             auto nlPos = ss.tellp();
@@ -1140,13 +1142,39 @@ namespace das {
     // make structure
         virtual void preVisit ( ExprMakeStruct * expr ) override {
             Visitor::preVisit(expr);
-            ss << "[[";
-            if ( expr->type ) {
-                ss << expr->type->describe();
-                if ( expr->useInitializer ) {
-                    ss << "()";
+            if ( gen2 ) {
+                if ( expr->structs.empty() ) {
+                    ss << "default<";
+                    if ( expr->type ) {
+                        ss << expr->type->describe();
+                    } else {
+                        ss << "/* undefined */";
+                    }
+                    ss << ">";
+                    if ( !expr->useInitializer && !expr->constructor ) {
+                        ss << " uninitialized";
+                    }
+                } else {
+                    ss << "struct<";
+                    if ( expr->type ) {
+                        ss << expr->type->describe();
+                    } else {
+                        ss << "/* undefined */";
+                    }
+                    ss << ">(";
+                    if ( !expr->useInitializer && !expr->constructor ) {
+                        ss << "uninitialized ";
+                    }
                 }
-                ss << " ";
+            } else {
+                ss << "[[";
+                if ( expr->type ) {
+                    ss << expr->type->describe();
+                    if ( expr->useInitializer || expr->constructor ) {
+                        ss << "()";
+                    }
+                    ss << " ";
+                }
             }
         }
         virtual void preVisitMakeStructureField ( ExprMakeStruct * expr, int index, MakeFieldDecl * decl, bool last ) override {
@@ -1165,26 +1193,46 @@ namespace das {
             ss << " where ";
         }
         virtual ExpressionPtr visit ( ExprMakeStruct * expr ) override {
-            ss << "]]";
+            if ( gen2 ) {
+                if ( !expr->structs.empty() ) {
+                    ss << ")";
+                }
+            } else {
+                ss << "]]";
+            }
             return Visitor::visit(expr);
         }
     // make tuple
         virtual void preVisit ( ExprMakeTuple * expr ) override {
             Visitor::preVisit(expr);
-            ss << "[[";
-            if ( expr->type ) {
-                ss << expr->type->describe();
+            if ( gen2 ) {
+                ss << "tuple";
+                if ( expr->type ) {
+                    ss << "<" << expr->type->describe() << ">";
+                } else {
+                    ss << "</* undefined */>";
+                }
+                ss << "(";
             } else {
-                ss << "/* undefined */";
+                ss << "[[";
+                if ( expr->type ) {
+                    ss << expr->type->describe();
+                } else {
+                    ss << "/* undefined */";
+                }
+                ss << " ";
             }
-            ss << " ";
         }
         virtual ExpressionPtr visitMakeTupleIndex ( ExprMakeTuple * expr, int index, Expression * init, bool lastField ) override {
             if ( !lastField ) ss << ",";
             return Visitor::visitMakeTupleIndex(expr, index, init, lastField);
         }
         virtual ExpressionPtr visit ( ExprMakeTuple * expr ) override {
-            ss << "]]";
+            if ( gen2 ) {
+                ss << ")";
+            } else {
+                ss << "]]";
+            }
             return Visitor::visit(expr);
         }
     // make array

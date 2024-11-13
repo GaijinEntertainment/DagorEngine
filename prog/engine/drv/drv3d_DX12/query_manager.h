@@ -1,11 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "driver.h"
+#include "pipeline.h"
+
 #include <atomic>
 #include <generic/dag_objectPool.h>
 
-#include "driver.h"
-#include "pipeline.h"
 
 namespace drv3d_dx12
 {

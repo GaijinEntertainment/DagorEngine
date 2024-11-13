@@ -55,7 +55,7 @@ macro COMMON_POSTFX()
       apply_bloom(tc, frame);
 
       ##if (in_editor_assume == yes)
-        frame *= getPrevExposureRatio();
+        frame *= getExposureScale();
       ##else
         frame *= exposure;
       ##endif

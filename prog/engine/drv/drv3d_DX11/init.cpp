@@ -1913,31 +1913,7 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
 
   g_driver_state.createSurfaces(screen_wdt, screen_hgt);
 
-  DXGI_FORMAT msaaFormats[] = {
-    DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_FORMAT_R10G10B10A2_UNORM, DXGI_FORMAT_D24_UNORM_S8_UINT, DXGI_FORMAT_D32_FLOAT_S8X24_UINT,
-    DXGI_FORMAT_R24G8_TYPELESS // MSAA support should be the same as for the DXGI_FORMAT_D24_UNORM_S8_UINT
-  };
-
   nvlowlatency::init();
-
-  /*
-  d3d::setview(0, 0, screen_wdt, screen_hgt, 0.0, 1.0);
-  d3d::setpersp(1.3, 1.3*screen_wdt/screen_hgt, 0.1, 100.0);
-  bool hasAtoC = ((dir3d->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0,
-    D3DRTYPE_SURFACE, (D3DFORMAT)MAKEFOURCC('A', 'T', 'O', 'C'))) == S_OK);
-  bool hasSsaa = ((dir3d->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0,
-    D3DRTYPE_SURFACE, (D3DFORMAT)MAKEFOURCC('S', 'S', 'A', 'A'))) == S_OK);
-  if (hasAtoC)
-  {
-    debug("has atoc");
-    d3dd->SetRenderState(D3DRS_ADAPTIVETESS_Y, (D3DFORMAT)MAKEFOURCC('A', 'T', 'O', 'C'));
-  }
-  if (hasSsaa)
-  {
-    debug("has ssaa");
-    //d3dd->SetRenderState(D3DRS_ADAPTIVETESS_Y, (D3DFORMAT)MAKEFOURCC('S', 'S', 'A', 'A'));
-  }
-  */
 
   _in_win_started = inWin;
 

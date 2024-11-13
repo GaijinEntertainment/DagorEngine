@@ -32,7 +32,7 @@ void WrapperRendinstContactResultCB::addSingleResult(contact_data_t &cp, obj_use
     if (!forceTreeBehaviour && (isSecondLayer || isSmallTree || forceBushBehaviour) && processTreeBehaviour)
     {
       rendinstdestr::create_tree_rend_inst_destr(userInfo->desc, true, Point3(0.f, 0.f, 0.f), Point3(0.f, 0.f, 0.f), false, false, 0.f,
-        0.f, NULL, true);
+        0.f, NULL, true, false);
     }
     else
     {

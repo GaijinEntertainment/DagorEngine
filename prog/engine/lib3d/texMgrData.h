@@ -566,6 +566,8 @@ public:
   static void setupQLev(int idx, int q_id, const ddsx::Header &hdr)
   {
     resQS[idx].setQLev(max<unsigned>(texDesc[idx].dim.maxLev - hdr.getSkipLevelsFromQ(q_id), texDesc[idx].getMinLev()));
+    unsigned ld_lev = resQS[idx].getLdLev();
+    resQS[idx].setCurQL(ld_lev < resQS[idx].getQLev() ? calcCurQL(idx, ld_lev) : resQS[idx].getMaxQL());
   }
 
   //! verbose dump of current texture entry state

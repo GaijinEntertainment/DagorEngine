@@ -162,6 +162,6 @@ static __forceinline void destructables_render_trans_es(const UpdateStageInfoRen
   d3d::settm(TM_VIEW, stg.viewTm);
 }
 
-destructables::DestrRendData *destructables::init_rend_data(DynamicPhysObjectClass<PhysWorld> *) { return nullptr; }
+destructables::DestrRendData *destructables::init_rend_data(DynamicPhysObjectClass<PhysWorld> *, bool) { return nullptr; }
 void destructables::clear_rend_data(destructables::DestrRendData *) {}
 void destructables::DestrRendDataDeleter::operator()(destructables::DestrRendData *) {}

@@ -180,7 +180,8 @@ struct RendInstGenData
     float canopyTopPart;
     float canopyWidthPart;
     float canopyOpacity;
-    rendinstdestr::TreeDestr::BranchDestr treeBranchDestr;
+    rendinstdestr::TreeDestr::BranchDestr treeBranchDestrFromDamage;
+    rendinstdestr::TreeDestr::BranchDestr treeBranchDestrOther;
   };
 
   struct ElemMask

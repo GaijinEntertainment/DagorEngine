@@ -47,6 +47,7 @@
   file:t = "../water_3d_depth.dshl"
   file:t = "../water_3d_distant.dshl"
   file:t = "../water_3d_ssr.dshl"
+  file:t = "../distortion_postfx.dshl"
   file:t = "../postfx.dshl"
   file:t = "../static_upsample.dshl"
   file:t = "../screenshot_composer.dshl"

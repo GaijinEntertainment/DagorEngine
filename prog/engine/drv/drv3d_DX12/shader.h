@@ -1,29 +1,29 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <EASTL/array.h>
-#include <EASTL/sort.h>
-#include <EASTL/variant.h>
-#include <EASTL/unordered_set.h>
-#include <generic/dag_bitset.h>
-#include <dag/dag_vectorSet.h>
-#include <osApiWrappers/dag_critSec.h>
-#include <osApiWrappers/dag_rwLock.h>
-#include <memory/dag_framemem.h>
-#include <util/dag_hashedKeyMap.h>
-#include <drv/shadersMetaData/dxil/compiled_shader_header.h>
-#include <drv/shadersMetaData/dxil/utility.h>
-#include <osApiWrappers/dag_atomic.h>
-#include <shadersBinaryData.h>
-#include <util/dag_watchdog.h>
-
+#include "bitfield.h"
+#include "byte_units.h"
 #include "driver.h"
+#include "dynamic_array.h"
+#include "render_state.h"
 #include "shader_program_id.h"
 #include "tagged_handles.h"
-#include "dynamic_array.h"
-#include "byte_units.h"
-#include "bitfield.h"
-#include "render_state.h"
+
+#include <dag/dag_vectorSet.h>
+#include <drv/shadersMetaData/dxil/compiled_shader_header.h>
+#include <drv/shadersMetaData/dxil/utility.h>
+#include <EASTL/array.h>
+#include <EASTL/sort.h>
+#include <EASTL/unordered_set.h>
+#include <EASTL/variant.h>
+#include <generic/dag_bitset.h>
+#include <memory/dag_framemem.h>
+#include <osApiWrappers/dag_atomic.h>
+#include <osApiWrappers/dag_critSec.h>
+#include <osApiWrappers/dag_rwLock.h>
+#include <shadersBinaryData.h>
+#include <util/dag_hashedKeyMap.h>
+#include <util/dag_watchdog.h>
 
 
 inline constexpr uint32_t MAX_VERTEX_ATTRIBUTES = 16;

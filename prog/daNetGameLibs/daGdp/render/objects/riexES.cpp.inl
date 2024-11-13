@@ -25,7 +25,7 @@ template <typename Callable>
 static inline void riex_object_group_ecs_query(Callable);
 
 ECS_NO_ORDER
-static inline void riex_object_group_process_es(const EventObjectGroupProcess &evt, RiexManager &dagdp__riex_manager)
+static inline void riex_object_group_process_es(const dagdp::EventObjectGroupProcess &evt, dagdp::RiexManager &dagdp__riex_manager)
 {
   auto &rulesBuilder = *evt.get<0>();
   auto &builder = dagdp__riex_manager.currentBuilder;
@@ -202,7 +202,7 @@ static inline void riex_object_group_process_es(const EventObjectGroupProcess &e
 }
 
 ECS_NO_ORDER
-static inline void riex_view_finalize_es(const EventViewFinalize &evt, RiexManager &dagdp__riex_manager)
+static inline void riex_view_finalize_es(const dagdp::EventViewFinalize &evt, dagdp::RiexManager &dagdp__riex_manager)
 {
   const auto &viewInfo = evt.get<0>();
   const auto &viewBuilder = evt.get<1>();
@@ -211,9 +211,12 @@ static inline void riex_view_finalize_es(const EventViewFinalize &evt, RiexManag
 }
 
 ECS_NO_ORDER
-static inline void riex_finalize_es(const EventFinalize &, RiexManager &dagdp__riex_manager) { riex_finalize(dagdp__riex_manager); }
+static inline void riex_finalize_es(const dagdp::EventFinalize &, dagdp::RiexManager &dagdp__riex_manager)
+{
+  riex_finalize(dagdp__riex_manager);
+}
 
-ECS_NO_ORDER static inline void riex_invalidate_views_es(const EventInvalidateViews &, RiexManager &dagdp__riex_manager)
+ECS_NO_ORDER static inline void riex_invalidate_views_es(const dagdp::EventInvalidateViews &, dagdp::RiexManager &dagdp__riex_manager)
 {
   dagdp__riex_manager.shadowExtensionHandle = {};
 }

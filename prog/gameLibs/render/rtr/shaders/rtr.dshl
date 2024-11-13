@@ -111,6 +111,8 @@ shader rt_reflection_classify
 
     groupshared uint maxSampleCount;
 
+    SamplerState rtsm_linear_sampler : register(s5);
+
     [numthreads(8, 8, 1)]
     void rt_reflection_classify(uint2 dtid : SV_DispatchThreadID, uint2 gtid : SV_GroupThreadID, uint2 gid : SV_GroupID)
     {
@@ -156,7 +158,7 @@ shader rt_reflection_classify
             half3 surfaceNormal = (half3)normalize(surfaceNormal_roughness.xyz);
 
             if (rtr_res_mul > 1)
-              gbuffer.albedo = tex2Dlod(albedo_gbuf_read, float4((float2(resolution * 2) + .5f) * inv_resolution * .5f, 0, 0)).rgb;
+              gbuffer.albedo = albedo_gbuf_read.SampleLevel(rtsm_linear_sampler, (rayIndex + .5f) * inv_resolution, 0).rgb;
 
             float3 worldPos = calc_world_pos(dtid, w, inv_resolution, world_view_pos);
             apply_env_wetness(worldPos, surfaceNormal, -toPoint, gbuffer.material, gbuffer.albedo, smoothness, surfaceNormal, gbuffer.reflectance);

@@ -101,7 +101,6 @@ protected:
   void resetDistantFog();
   void initVolfogShadow();
   void resetVolfogShadow();
-  void initExperimentalFeatures();
 
   int getBlendedSliceCnt() const;
   float calcBlendedStartDepth(int blended_slice_cnt) const;
@@ -182,6 +181,4 @@ protected:
 
   bool enableVolfogShadows = false;
   bool enableDistantFog = false;
-
-  bool useExperimentalOffscreenReprojection = false;
 };

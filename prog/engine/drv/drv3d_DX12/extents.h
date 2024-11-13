@@ -1,12 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <util/dag_inttypes.h>
-#include <util/dag_globDef.h>
-#include <math/dag_mathBase.h>
-
 #include "driver.h"
 #include "util.h"
+
+#include <math/dag_mathBase.h>
+#include <util/dag_globDef.h>
+#include <util/dag_inttypes.h>
 
 
 struct Extent2D

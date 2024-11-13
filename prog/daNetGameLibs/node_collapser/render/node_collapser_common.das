@@ -29,6 +29,8 @@ def collapser(position : float3;
     return
 
   assume scene = animchar_render.sceneInstance
+
+  *scene |> scene_instance_clearNodeCollapser()
   var zeroTm = float3x4();
   var from = 0
   for node in animchar_node_collapser
@@ -48,5 +50,6 @@ def collapser(position : float3;
                    rootPos)
       for childIdx in range(from, from + node.animchar_node_collapser__childrenCount)
         let child = uint(animchar_node_collapser__children[childIdx])
-        *scene |> scene_instance_setNodeWtm(child, zeroTm)
+        *scene |> scene_instance_markNodeCollapserNode(child)
+
     from += node.animchar_node_collapser__childrenCount

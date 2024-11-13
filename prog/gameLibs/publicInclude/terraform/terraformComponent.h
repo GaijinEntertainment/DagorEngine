@@ -55,8 +55,9 @@ public:
   float getHmapHeightOrigValAtPos(const Point2 &pos) const;
 
 protected:
-  virtual void allocPatch(int patch_no);
-  virtual void storePatchAlt(const Pcd &pcd, uint8_t alt);
+  // Terraform::Listener
+  virtual void allocPatch(int patch_no) override;
+  virtual void storePatchAlt(const Pcd &pcd, uint8_t alt) override;
 
   void changeTForm(Terraform *in_tform);
   void changeGen() { ++gen; }

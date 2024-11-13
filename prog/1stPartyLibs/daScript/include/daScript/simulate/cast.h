@@ -3,6 +3,7 @@
 #include "daScript/misc/vectypes.h"
 #include "daScript/misc/arraytype.h"
 #include "daScript/misc/rangetype.h"
+#include <limits.h> // ULLONG_MAX
 
 namespace das
 {
@@ -275,7 +276,7 @@ namespace das
         static __forceinline vec4f from ( uint64_t x )         { return v_cast_vec4f(v_ldui_half(&x)); }
     };
 
-#if defined(__linux__) || defined __HAIKU__ || defined(_TARGET_C1) || defined(_TARGET_C2)
+#if !defined(_MSC_VER) && !defined(__APPLE__) && defined(ULLONG_MAX) && ULLONG_MAX == 0xffffffffffffffffULL
     template <>
     struct cast <long long int> {
         static __forceinline long long int to ( vec4f x )            { return v_extract_xi64(v_cast_vec4i(x)); }

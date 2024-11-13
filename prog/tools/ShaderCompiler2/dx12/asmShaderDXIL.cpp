@@ -13,6 +13,9 @@
 
 #include <ioSys/dag_zstdIo.h>
 
+#include <osApiWrappers/dag_direct.h>
+#include <osApiWrappers/dag_unicode.h>
+
 #include <supp/dag_comPtr.h>
 #include <D3Dcompiler.h>
 
@@ -972,6 +975,10 @@ ShaderCompileResult compileShader(dag::ConstSpan<char> source, const char *profi
   else if (debug_level == DebugLevel::BASIC)
     compileConfig.pdbMode = ::dxil::PDBMode::SMALL;
   compileConfig.saveHlslToBlob = debug_level == DebugLevel::FULL_DEBUG_INFO || embed_source;
+
+  Tab<char> utf8_buf;
+  if (compileConfig.pdbMode != ::dxil::PDBMode::NONE && !compileConfig.PDBBasePath.empty())
+    dd_mkdir(convert_to_utf8(utf8_buf, compileConfig.PDBBasePath.data(), compileConfig.PDBBasePath.size()));
 
   // on xbox we have to compile shaders in two phases:
   // 1) without root signature to be able to query shader header to later generate root signature

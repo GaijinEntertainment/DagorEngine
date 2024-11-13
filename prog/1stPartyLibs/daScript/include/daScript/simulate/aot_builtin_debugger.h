@@ -36,4 +36,6 @@ namespace das {
     bool clear_hw_breakpoint ( int32_t bpi );
 
     void break_on_free ( Context & ctx, void * ptr, uint32_t size );
+
+    void track_insane_pointer ( void * ptr, Context * ctx );
 }

@@ -61,6 +61,10 @@ shader upscale_sampling
   UPSCALE_SAMPLING_CORE(ps)
 
   hlsl(ps) {
+  ##if hardware.ps4 || hardware.ps5
+    #pragma PSSL_target_output_format (default FMT_32_R)  // compatible with uint targets
+  ##endif
+
     uint upscale_sampling_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
     {
       return upscale_sampling(GET_SCREEN_POS(input.pos).xy);

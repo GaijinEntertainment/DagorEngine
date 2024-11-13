@@ -1,18 +1,16 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include "descriptor_heap.h"
-#include "pipeline.h"
-#include "format_store.h"
+#include "object_components.h"
+#include <descriptor_heap.h>
+#include <format_store.h>
+#include <pipeline.h>
 
-#include "resource_manager/object_components.h"
+#include <EASTL/span.h>
 
 
-namespace drv3d_dx12
+namespace drv3d_dx12::resource_manager
 {
-namespace resource_manager
-{
-
 // Allocs and frees do not take a lock as for textures, view create and free is always already guarded
 // by the context lock.
 class TextureDescriptorProvider : public ImageObjectProvider
@@ -129,10 +127,10 @@ protected:
   {
     auto descriptors = eastl::make_unique<D3D12_CPU_DESCRIPTOR_HANDLE[]>(count);
     auto srvHeapAccess = srvHeap.access();
-    for (uint32_t i = 0; i < count; ++i)
+    for (auto &descriptor : eastl::span{descriptors.get(), count})
     {
-      descriptors[i] = srvHeapAccess->allocate(device);
-      device->CreateShaderResourceView(buffer, &desc, descriptors[i]);
+      descriptor = srvHeapAccess->allocate(device);
+      device->CreateShaderResourceView(buffer, &desc, descriptor);
       desc.Buffer.FirstElement += desc.Buffer.NumElements;
     }
     return descriptors;
@@ -143,10 +141,10 @@ protected:
   {
     auto descriptors = eastl::make_unique<D3D12_CPU_DESCRIPTOR_HANDLE[]>(count);
     auto srvHeapAccess = srvHeap.access();
-    for (uint32_t i = 0; i < count; ++i)
+    for (auto &descriptor : eastl::span{descriptors.get(), count})
     {
-      descriptors[i] = srvHeapAccess->allocate(device);
-      device->CreateUnorderedAccessView(buffer, nullptr, &desc, descriptors[i]);
+      descriptor = srvHeapAccess->allocate(device);
+      device->CreateUnorderedAccessView(buffer, nullptr, &desc, descriptor);
       desc.Buffer.FirstElement += desc.Buffer.NumElements;
     }
     return descriptors;
@@ -183,7 +181,6 @@ public:
   {
     G_ASSERTF(0 == (buffer.offset % struct_size), "DX12: Offset %u has to be multiples of element size %u", buffer.offset,
       struct_size);
-    auto srvs = eastl::make_unique<D3D12_CPU_DESCRIPTOR_HANDLE[]>(buffer.discardCount);
     D3D12_SHADER_RESOURCE_VIEW_DESC desc;
     desc.Format = DXGI_FORMAT_UNKNOWN;
     desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
@@ -204,7 +201,6 @@ public:
       G_ASSERTF(0 == (buffer.size % 16), "DX12: Buffer size %u has to be multiples of 16", buffer.size);
     }
     G_ASSERTF(0 == (buffer.offset % 16), "DX12: Offset %u has to be multiples of 16", buffer.offset);
-    auto srvs = eastl::make_unique<D3D12_CPU_DESCRIPTOR_HANDLE[]>(buffer.discardCount);
     D3D12_SHADER_RESOURCE_VIEW_DESC desc;
     desc.Format = DXGI_FORMAT_R32_TYPELESS;
     desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
@@ -275,6 +271,4 @@ public:
     buffer.uavs = createBufferUAVs(device, buffer.buffer, buffer.discardCount, desc);
   }
 };
-
-} // namespace resource_manager
-} // namespace drv3d_dx12
+} // namespace drv3d_dx12::resource_manager

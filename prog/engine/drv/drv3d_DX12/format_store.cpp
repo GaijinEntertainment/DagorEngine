@@ -1,8 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include "device.h"
-
+#include "format_store.h"
 #include "format_traits.h"
+
 
 using namespace drv3d_dx12;
 
@@ -164,6 +164,8 @@ enum class ColorSpace : uint8_t
 #else
 #define CONST_TABLE const
 #endif
+
+const char *dxgi_format_name(DXGI_FORMAT fmt);
 
 template <typename... Formats>
 struct FormatInfoTable

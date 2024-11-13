@@ -10,7 +10,6 @@ namespace matching
   typedef uint64_t  SessionId;
   typedef uint16_t  MemberId;
   typedef uint32_t  SquadId;
-  typedef uint64_t  GroupId;
 
   typedef int32_t   RequestId;
 
@@ -19,5 +18,4 @@ namespace matching
   const MemberId  INVALID_MEMBER_ID = MemberId(-1);
   const UserId    INVALID_USER_ID   = UserId(-1);
   const SquadId   INVALID_SQUAD_ID  = 0;
-  const GroupId   INVALID_GROUP_ID  = 0;
 }

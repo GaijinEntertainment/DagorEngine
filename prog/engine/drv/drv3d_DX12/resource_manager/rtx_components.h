@@ -1,28 +1,25 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <generic/dag_bitset.h>
-#include <ska_hash_map/flat_hash_map2.hpp>
-#include <dag/dag_vector.h>
 #include <drv/3d/rayTrace/dag_drvRayTrace.h>
-#include <osApiWrappers/dag_spinlock.h>
-#include <generic/dag_objectPool.h>
-
-#include "driver.h"
-#include "container_mutex_wrapper.h"
-
-#include "resource_manager/raytrace_acceleration_structure.h"
-#include "resource_manager/buffer_components.h"
-
-
-namespace drv3d_dx12
-{
-
-namespace resource_manager
-{
+#include "buffer_components.h"
 
 #if D3D_HAS_RAY_TRACING
 
+#include "buffer_components.h"
+#include "raytrace_acceleration_structure.h"
+#include <container_mutex_wrapper.h>
+#include <driver.h>
+
+#include <dag/dag_vector.h>
+#include <generic/dag_bitset.h>
+#include <generic/dag_objectPool.h>
+#include <osApiWrappers/dag_spinlock.h>
+#include <ska_hash_map/flat_hash_map2.hpp>
+
+
+namespace drv3d_dx12::resource_manager
+{
 static constexpr uint32_t RAYTRACE_HEAP_ALIGNMENT = 65536;
 static constexpr uint32_t RAYTRACE_AS_ALIGNMENT = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT;
 static_assert(0 == (RAYTRACE_AS_ALIGNMENT & (RAYTRACE_AS_ALIGNMENT - 1)), "AS_ALIGNMENT must be power of 2");
@@ -127,9 +124,10 @@ public:
       [=](auto &data) { data.deletedBottomAccelerationStructure.push_back(ras); });
   }
 };
+} // namespace drv3d_dx12::resource_manager
 #else
+namespace drv3d_dx12::resource_manager
+{
 using RaytraceAccelerationStructureObjectProvider = BufferHeap;
+} // namespace drv3d_dx12::resource_manager
 #endif
-
-} // namespace resource_manager
-} // namespace drv3d_dx12

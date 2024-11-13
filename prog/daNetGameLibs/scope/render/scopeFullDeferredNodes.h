@@ -10,6 +10,7 @@ dabfg::NodeHandle makeScopeVrsMaskNode();
 dabfg::NodeHandle makeScopeCutDepthNode();
 dabfg::NodeHandle makeScopeTargetRenameNode();
 
+dabfg::NodeHandle makeRenderOpticsPrepassNode();
 dabfg::NodeHandle makeRenderLensFrameNode();
 dabfg::NodeHandle makeRenderLensOpticsNode();
 dabfg::NodeHandle makeRenderCrosshairNode();

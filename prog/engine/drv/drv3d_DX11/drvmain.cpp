@@ -1061,49 +1061,6 @@ bool d3d::update_screen(bool app_active)
   if (::dgs_on_swap_callback)
     ::dgs_on_swap_callback();
 
-  // Restore fullscreen state in case it was lost independently of app focus.
-
-  if (dgs_get_window_mode() == WindowMode::FULLSCREEN_EXCLUSIVE && ::dgs_app_active && SUCCEEDED(presentHr))
-  {
-    static bool logErrors = true;
-    BOOL currentFullscreen = true;
-
-    HRESULT hr;
-    {
-      ContextAutoLock contextLock;
-      hr = swap_chain->GetFullscreenState(&currentFullscreen, NULL);
-    }
-
-    if (SUCCEEDED(hr) && !currentFullscreen)
-    {
-      HRESULT hrSet = drv3d_dx11::set_fullscreen_state(true);
-
-      HRESULT hrGet;
-      {
-        ContextAutoLock contextLock;
-        hrGet = swap_chain->GetFullscreenState(&currentFullscreen, NULL);
-      }
-
-      if (SUCCEEDED(hrGet) && currentFullscreen)
-      {
-        logErrors = true;
-        debug("DX11 Present: SetFullscreenState(1)");
-      }
-      else if (logErrors)
-      {
-        logErrors = false;
-        if (hrSet == DXGI_ERROR_NOT_CURRENTLY_AVAILABLE) // It is OK, probably caused by slow monitor mode switching when screen
-                                                         // parameters differ. Will retry on the next frame.
-          debug("DX11 Present: SetFullscreenState(1), state=%d, hrSet=0x%08X, hrGet=0x%08X", (int)currentFullscreen, hrSet, hrGet);
-        else
-          D3D_ERROR("DX11 Present: SetFullscreenState(1), state=%d, hrSet=0x%08X, hrGet=0x%08X", (int)currentFullscreen, hrSet, hrGet);
-      }
-    }
-    else
-      logErrors = true;
-  }
-
-
   static bool useFrameStatistics = use_gpu_dt;
   static int failCount = 0;
   gpu_frame_time = -1.f;

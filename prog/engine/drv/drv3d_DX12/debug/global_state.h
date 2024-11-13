@@ -1,10 +1,13 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <dxgidebug.h>
-
 #include "gpu_capture.h"
 #include "gpu_postmortem.h"
+#include <driver.h>
+
+#include <dxgidebug.h>
+#include <supp/dag_comPtr.h>
+
 
 typedef HRESULT(WINAPI *PFN_DXGI_GET_DEBUG_INTERFACE1)(UINT Flags, REFIID riid, void **ppFactory);
 

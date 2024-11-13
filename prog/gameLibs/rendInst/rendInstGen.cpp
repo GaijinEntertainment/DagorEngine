@@ -2417,7 +2417,7 @@ void rendinst::setLoadingState(bool is_loading)
         rendinst::gpuobjects::flush_pending();
     }
   };
-  execute_delayed_action_on_main_thread(new ChangeLoadingState(is_loading), true);
+  execute_delayed_action_on_main_thread(new ChangeLoadingState(is_loading));
 }
 
 bool rendinst::isRiExtraLoaded() { return !RendInstGenData::isLoading && !riExtra.empty(); }

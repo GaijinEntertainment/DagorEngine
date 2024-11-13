@@ -953,6 +953,7 @@ void show_environment_settings(void *handle, AssetLightData *ald)
   SkyLightProps skyProps = sky;
 
   EnvSetDlg envSetDlg(handle, defSun, ald);
+  envSetDlg.autoSize();
 
   // ImGui scrolls to the focused item, which in this case is at the bottom and requires scrolling. Prevent that.
   envSetDlg.setInitialFocus(PropPanel::DIALOG_ID_NONE);

@@ -982,6 +982,9 @@ bool RenderAnimCharIcon::renderInternal(Texture *to, int x, int y, int dstw, int
 
     const char *animation = info.getStr("animation", "");
     const bool recalcAnimation = info.getBool("recalcAnimation", false);
+    if (recalcAnimation)
+      for (size_t i = 1; i < iconAnimchar.size(); ++i)
+        iconAnimchar[0].animchar->setAttachedChar(iconAnimchar[i].slotId, 0, &iconAnimchar[i].animchar->baseComp(), false);
     if (strcmp(animation, "") != 0)
     {
       int stateIdx = iconAnimchar[0].animchar->getAnimGraph()->getStateIdx(animation);

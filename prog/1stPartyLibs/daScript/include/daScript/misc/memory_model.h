@@ -271,20 +271,25 @@ namespace das {
         bool free ( char * ptr, uint32_t size );
         char * reallocate ( char * ptr, uint32_t size, uint32_t nsize );
         __forceinline int depth() const { return shoe.depth(); }
-        __forceinline bool isOwnPtr( char * ptr, uint32_t size ) const {
 #if !DAS_TRACK_ALLOCATIONS
+        __forceinline bool isOwnPtr( char * ptr, uint32_t size ) const {
             if ( size<=DAS_MAX_SHOE_ALLOCATION )
                 return shoe.isOwnPtr(ptr,size);
-#endif
             return (bigStuff.find(ptr)!=bigStuff.end());
         }
         __forceinline bool isAllocatedPtr( char * ptr, uint32_t size ) const {
-#if !DAS_TRACK_ALLOCATIONS
             if ( size<=DAS_MAX_SHOE_ALLOCATION )
                 return shoe.isAllocatedPtr(ptr,size);
-#endif
             return (bigStuff.find(ptr)!=bigStuff.end());
         }
+#else
+        __forceinline bool isOwnPtr( char * ptr, uint32_t ) const {
+            return (bigStuff.find(ptr)!=bigStuff.end());
+        }
+        __forceinline bool isAllocatedPtr( char * ptr, uint32_t ) const {
+            return (bigStuff.find(ptr)!=bigStuff.end());
+        }
+#endif
         uint32_t bytesAllocated() const { return totalAllocated; }
         uint32_t maxBytesAllocated() const { return maxAllocated; }
         uint64_t totalAlignedMemoryAllocated() const;
@@ -300,7 +305,7 @@ namespace das {
 #endif
 #if DAS_TRACK_ALLOCATIONS
         das_hash_map<void *,uint64_t> bigStuffId;
-        das_hash_map<void *,LineInfo *> bigStuffAt;
+        das_hash_map<void *,const LineInfo *> bigStuffAt;
         das_hash_map<void *,const char *> bigStuffComment;
         __forceinline void mark_location ( void * ptr, const LineInfo * at ) { bigStuffAt[ptr] = at; }
         __forceinline void mark_comment ( void * ptr, const char * what ) { bigStuffComment[ptr] = what; }

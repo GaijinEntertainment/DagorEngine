@@ -35,8 +35,9 @@ BVH_INLINE bool need_winding_flip(const Mesh &mesh, mat43f_cref transform)
 }
 
 BVH_INLINE void add_instance(ContextId context_id, Context::InstanceMap &instanceMap, uint64_t mesh_id, mat43f_cref transform,
-  const Point4 *per_instance_data, MeshSkinningInfo *skinning_info, MeshHeliRotorInfo *heli_rotor_info, TreeInfo *tree_info,
-  LeavesInfo *leaves_info, FlagInfo *flag_info, DeformedInfo *deformed_info, MeshMetaAllocator::AllocId meta_alloc_id)
+  const Point4 *per_instance_data, bool no_shadow, MeshSkinningInfo *skinning_info, MeshHeliRotorInfo *heli_rotor_info,
+  TreeInfo *tree_info, LeavesInfo *leaves_info, FlagInfo *flag_info, DeformedInfo *deformed_info,
+  MeshMetaAllocator::AllocId meta_alloc_id)
 {
   auto meshIter = context_id->meshes.find(mesh_id);
 
@@ -52,6 +53,7 @@ BVH_INLINE void add_instance(ContextId context_id, Context::InstanceMap &instanc
   instance.transform = transform;
   instance.meshId = mesh_id;
   instance.uniqueIsRecycled = false;
+  instance.noShadow = no_shadow;
   if (per_instance_data)
     instance.perInstanceData = *per_instance_data;
   if (skinning_info)
@@ -113,22 +115,22 @@ BVH_INLINE void add_instance(ContextId context_id, Context::InstanceMap &instanc
 
 BVH_INLINE void add_riGen_instance(ContextId context_id, uint64_t mesh_id, mat43f_cref transform, int thread_ix)
 {
-  add_instance(context_id, context_id->riGenInstances[thread_ix], mesh_id, transform, nullptr, nullptr, nullptr, nullptr, nullptr,
-    nullptr, nullptr, -1);
+  add_instance(context_id, context_id->riGenInstances[thread_ix], mesh_id, transform, nullptr, false, nullptr, nullptr, nullptr,
+    nullptr, nullptr, nullptr, -1);
 }
 
 BVH_INLINE void add_riGen_instance(ContextId context_id, uint64_t mesh_id, mat43f_cref transform, TreeInfo *tree_info,
   MeshMetaAllocator::AllocId meta_alloc_id, int thread_ix)
 {
-  add_instance(context_id, context_id->riGenInstances[thread_ix], mesh_id, transform, nullptr, nullptr, nullptr, tree_info, nullptr,
-    nullptr, nullptr, meta_alloc_id);
+  add_instance(context_id, context_id->riGenInstances[thread_ix], mesh_id, transform, nullptr, false, nullptr, nullptr, tree_info,
+    nullptr, nullptr, nullptr, meta_alloc_id);
 }
 
 BVH_INLINE void add_riGen_instance(ContextId context_id, uint64_t mesh_id, mat43f_cref transform, LeavesInfo *leaves_info,
   MeshMetaAllocator::AllocId meta_alloc_id, int thread_ix)
 {
-  add_instance(context_id, context_id->riGenInstances[thread_ix], mesh_id, transform, nullptr, nullptr, nullptr, nullptr, leaves_info,
-    nullptr, nullptr, meta_alloc_id);
+  add_instance(context_id, context_id->riGenInstances[thread_ix], mesh_id, transform, nullptr, false, nullptr, nullptr, nullptr,
+    leaves_info, nullptr, nullptr, meta_alloc_id);
 }
 
 BVH_INLINE void VECTORCALL add_riExtra_instance(mat43f transform, vec4f pX, vec4f pY, vec4f pZ, ContextId context_id, uint64_t mesh_id,
@@ -173,43 +175,46 @@ BVH_INLINE void VECTORCALL add_riExtra_instance(mat43f transform, vec4f pX, vec4
 BVH_INLINE void add_riExtra_instance(ContextId context_id, uint64_t mesh_id, mat43f_cref transform, TreeInfo *tree_info,
   MeshMetaAllocator::AllocId meta_alloc_id, int thread_ix)
 {
-  add_instance(context_id, context_id->riExtraTreeInstances[thread_ix], mesh_id, transform, nullptr, nullptr, nullptr, tree_info,
-    nullptr, nullptr, nullptr, meta_alloc_id);
+  add_instance(context_id, context_id->riExtraTreeInstances[thread_ix], mesh_id, transform, nullptr, false, nullptr, nullptr,
+    tree_info, nullptr, nullptr, nullptr, meta_alloc_id);
 }
 
 BVH_INLINE void add_riExtra_instance(ContextId context_id, uint64_t mesh_id, mat43f_cref transform, FlagInfo *flag_info,
   MeshMetaAllocator::AllocId meta_alloc_id, int thread_ix)
 {
-  add_instance(context_id, context_id->riExtraTreeInstances[thread_ix], mesh_id, transform, nullptr, nullptr, nullptr, nullptr,
+  add_instance(context_id, context_id->riExtraTreeInstances[thread_ix], mesh_id, transform, nullptr, false, nullptr, nullptr, nullptr,
     nullptr, flag_info, nullptr, meta_alloc_id);
 }
 
 BVH_INLINE void add_dynrend_instance(ContextId context_id, dynrend::ContextId dynrend_context_id, uint64_t mesh_id,
-  mat43f_cref transform, const Point4 *per_instance_data)
+  mat43f_cref transform, const Point4 *per_instance_data, bool no_shadow)
 {
-  add_instance(context_id, context_id->dynrendInstances[dynrend_context_id], mesh_id, transform, per_instance_data, nullptr, nullptr,
-    nullptr, nullptr, nullptr, nullptr, -1);
+  add_instance(context_id, context_id->dynrendInstances[dynrend_context_id], mesh_id, transform, per_instance_data, no_shadow, nullptr,
+    nullptr, nullptr, nullptr, nullptr, nullptr, -1);
 }
 
 BVH_INLINE void add_dynrend_instance(ContextId context_id, dynrend::ContextId dynrend_context_id, uint64_t mesh_id,
-  mat43f_cref transform, const Point4 *per_instance_data, MeshSkinningInfo &skinning_info, MeshMetaAllocator::AllocId meta_alloc_id)
+  mat43f_cref transform, const Point4 *per_instance_data, bool no_shadow, MeshSkinningInfo &skinning_info,
+  MeshMetaAllocator::AllocId meta_alloc_id)
 {
-  add_instance(context_id, context_id->dynrendInstances[dynrend_context_id], mesh_id, transform, per_instance_data, &skinning_info,
-    nullptr, nullptr, nullptr, nullptr, nullptr, meta_alloc_id);
+  add_instance(context_id, context_id->dynrendInstances[dynrend_context_id], mesh_id, transform, per_instance_data, no_shadow,
+    &skinning_info, nullptr, nullptr, nullptr, nullptr, nullptr, meta_alloc_id);
 }
 
 BVH_INLINE void add_dynrend_instance(ContextId context_id, dynrend::ContextId dynrend_context_id, uint64_t mesh_id,
-  mat43f_cref transform, const Point4 *per_instance_data, MeshHeliRotorInfo &heli_rotor_info, MeshMetaAllocator::AllocId meta_alloc_id)
+  mat43f_cref transform, const Point4 *per_instance_data, bool no_shadow, MeshHeliRotorInfo &heli_rotor_info,
+  MeshMetaAllocator::AllocId meta_alloc_id)
 {
-  add_instance(context_id, context_id->dynrendInstances[dynrend_context_id], mesh_id, transform, per_instance_data, nullptr,
+  add_instance(context_id, context_id->dynrendInstances[dynrend_context_id], mesh_id, transform, per_instance_data, no_shadow, nullptr,
     &heli_rotor_info, nullptr, nullptr, nullptr, nullptr, meta_alloc_id);
 }
 
 BVH_INLINE void add_dynrend_instance(ContextId context_id, dynrend::ContextId dynrend_context_id, uint64_t mesh_id,
-  mat43f_cref transform, const Point4 *per_instance_data, DeformedInfo &deformed_info, MeshMetaAllocator::AllocId meta_alloc_id)
+  mat43f_cref transform, const Point4 *per_instance_data, bool no_shadow, DeformedInfo &deformed_info,
+  MeshMetaAllocator::AllocId meta_alloc_id)
 {
-  add_instance(context_id, context_id->dynrendInstances[dynrend_context_id], mesh_id, transform, per_instance_data, nullptr, nullptr,
-    nullptr, nullptr, nullptr, &deformed_info, meta_alloc_id);
+  add_instance(context_id, context_id->dynrendInstances[dynrend_context_id], mesh_id, transform, per_instance_data, no_shadow, nullptr,
+    nullptr, nullptr, nullptr, nullptr, &deformed_info, meta_alloc_id);
 }
 
 BVH_INLINE void add_impostor_instance(ContextId context_id, uint64_t mesh_id, mat43f_cref transform, uint32_t color, int thread_ix,

@@ -56,7 +56,8 @@ static inline float scaleByAspect(float aspect, int width)
 
 static ShaderVariableInfo maskMatrixLine0VarId("mask_matrix_line_0", true), maskMatrixLine1VarId("mask_matrix_line_1", true),
   textureVarId("tex", true), maskTexVarId("mask_tex", true), guiTextDepthVarId("gui_text_depth", true),
-  writeToZVarId("gui_write_to_z", true), testDepthVarId("gui_test_depth", true), blueToAlphaVarId("blue_to_alpha_mul", true);
+  texSamplerVarId("tex_samplerstate", true), maskSamplerVarId("mask_tex_samplerstate", true), writeToZVarId("gui_write_to_z", true),
+  testDepthVarId("gui_test_depth", true), blueToAlphaVarId("blue_to_alpha_mul", true);
 
 static int renderModeVarId = -1;
 static int guiAcesObjectBlockId = -1;
@@ -88,6 +89,8 @@ void HudShader::cleanup()
     return;
   ShaderGlobal::set_texture(textureVarId, BAD_TEXTUREID);
   ShaderGlobal::set_texture(maskTexVarId, BAD_TEXTUREID);
+  texSamplerVarId.set_sampler(d3d::INVALID_SAMPLER_HANDLE);
+  maskSamplerVarId.set_sampler(d3d::INVALID_SAMPLER_HANDLE);
 }
 
 void HudShader::setStates(const float viewport[5], const GuiState &guiState, const ExtState *extState, bool viewport_changed,
@@ -106,6 +109,7 @@ void HudShader::setStates(const float viewport[5], const GuiState &guiState, con
   if (st.maskEnable)
   {
     ShaderGlobal::set_texture(maskTexVarId, st.maskTexId);
+    maskSamplerVarId.set_sampler(st.maskSampler);
 
     ShaderGlobal::set_color4(maskMatrixLine0VarId, st.maskMatrix0.x, st.maskMatrix0.y, st.maskMatrix0.z, 0.f);
 
@@ -114,12 +118,14 @@ void HudShader::setStates(const float viewport[5], const GuiState &guiState, con
   else
   {
     ShaderGlobal::set_texture(maskTexVarId, BAD_TEXTUREID);
+    maskSamplerVarId.set_sampler(d3d::INVALID_SAMPLER_HANDLE);
   }
 
   ShaderGlobal::set_int(writeToZVarId, fontAttr.writeToZ);
   ShaderGlobal::set_int(testDepthVarId, fontAttr.testDepth);
 
   ShaderGlobal::set_texture(textureVarId, st.currentTexture);
+  texSamplerVarId.set_sampler(st.currentSampler);
   ShaderGlobal::set_color4(blueToAlphaVarId, st.currentBlueToAlpha);
 
   mat->set_int_param(renderModeVarId, st.renderMode);
@@ -221,6 +227,7 @@ void HudPrimitives::loadFromBlk(const DataBlock *blk)
 E3DCOLOR *HudPrimitives::getColorForModify(int color_id) { return safe_at(colorCodes, color_id); }
 TEXTUREID HudPrimitives::getWhiteTexId() { return get_white_on_demand().getTexId(); }
 Texture *HudPrimitives::getWhiteTex() { return get_white_on_demand().getTex2D(); }
+d3d::SamplerHandle HudPrimitives::getWhiteSampler() const { return get_white_sampler_on_demand(); }
 
 void HudPrimitives::saveViewport()
 {
@@ -340,6 +347,7 @@ void HudPrimitives::beginRender()
   updateViewFromContext();
   guiContext->start_raw_layer();
   state().currentTexture = BAD_TEXTUREID;
+  state().currentSampler = d3d::INVALID_SAMPLER_HANDLE;
   state().currentBlueToAlpha = Color4(0.f, 0.f, 0.f, 1.f);
   setState();
   guiContext->setBuffer(1);
@@ -400,17 +408,21 @@ void HudPrimitives::setStencil(int stencil_ref_value)
   }
 }
 
-void HudPrimitives::updateState(TEXTUREID texture_id)
+void HudPrimitives::updateState(TEXTUREID texture_id, d3d::SamplerHandle smp_id)
 {
   if (texture_id != state().currentTexture)
   {
     if (texture_id == BAD_TEXTUREID)
+    {
       texture_id = getWhiteTexId();
+      smp_id = getWhiteSampler();
+    }
 
     if (texture_id != state().currentTexture)
       state().currentBlueToAlpha = Color4(0.f, 0.f, 0.f, 1.f);
 
     state().currentTexture = texture_id;
+    state().currentSampler = smp_id;
     setState();
   }
 }
@@ -458,13 +470,13 @@ void HudPrimitives::updateProjectedQuadVB(HudVertex *data, const E3DCOLOR &color
 #undef SET_GUI_VTX
 }
 
-void HudPrimitives::renderQuadScreenSpaceDeprecated(TEXTUREID texture_id, E3DCOLOR color, const Point4 &p0, const Point4 &p1,
-  const Point4 &p2, const Point4 &p3, const Point2 &tc0, const Point2 &tc1, const Point2 &tc2, const Point2 &tc3,
+void HudPrimitives::renderQuadScreenSpaceDeprecated(TEXTUREID texture_id, d3d::SamplerHandle smp, E3DCOLOR color, const Point4 &p0,
+  const Point4 &p1, const Point4 &p2, const Point4 &p3, const Point2 &tc0, const Point2 &tc1, const Point2 &tc2, const Point2 &tc3,
   const E3DCOLOR *vertex_colors)
 {
   G_ASSERT(isInHudRender);
 
-  updateState(texture_id);
+  updateState(texture_id, smp);
   HudVertex *vtx = guiContext->qCacheAllocT<HudVertex>(1);
 
 #define FILL_GUIVTX42(data, idx, p, t, stereo_depth, cc) FILL_GUIVTX(data, idx, p.x, p.y, p.z, p.w, t.x, t.y, stereo_depth, cc)
@@ -481,7 +493,7 @@ void HudPrimitives::renderQuadScreenSpace3d(TEXTUREID texture_id, E3DCOLOR color
 {
   G_ASSERT(isInHudRender);
 
-  updateState(texture_id);
+  updateState(texture_id, d3d::INVALID_SAMPLER_HANDLE); // TODO: Use actual sampler IDs
   HudVertex *vtx = guiContext->qCacheAllocT<HudVertex>(1);
 
 #define FILL_GUIVTX42(data, idx, p, t, cc)                          \
@@ -505,7 +517,7 @@ void HudPrimitives::renderQuad(const HudTexElem &elem, const E3DCOLOR color, dag
   const Coords coords, const float depth_2d)
 {
   G_ASSERT(isInHudRender);
-  updateState(elem.skinTex);
+  updateState(elem.skinTex, elem.smp);
   HudVertex *vtx = guiContext->qCacheAllocT<HudVertex>(1);
 
   Point4 p[4];
@@ -651,7 +663,7 @@ void HudPrimitives::renderPoly(TEXTUREID texture_id, E3DCOLOR color, dag::ConstS
   G_ASSERT(isInHudRender);
   G_ASSERT(p.size() == tc.size());
 
-  updateState(texture_id);
+  updateState(texture_id, d3d::INVALID_SAMPLER_HANDLE); // TODO: Use actual sampler IDs
   flush();
 
   Tab<HudPrimitives::HudVertex> vtx(framemem_ptr());
@@ -675,13 +687,14 @@ void HudPrimitives::renderPoly(TEXTUREID texture_id, E3DCOLOR color, dag::ConstS
   guiContext->draw_faces(&vtx[0], p.size(), &ind[0], ind.size() / 3);
 }
 
-void HudPrimitives::renderTriFan(TEXTUREID texture_id, E3DCOLOR color, dag::ConstSpan<Point4> p, dag::ConstSpan<Point2> tc)
+void HudPrimitives::renderTriFan(TEXTUREID texture_id, d3d::SamplerHandle smp, E3DCOLOR color, dag::ConstSpan<Point4> p,
+  dag::ConstSpan<Point2> tc)
 {
   G_ASSERT(isInHudRender);
   G_ASSERT(p.size() == tc.size());
   G_ASSERTF(p.size() >= 3, "Trifan is built of at least three vertices");
 
-  updateState(texture_id);
+  updateState(texture_id, smp);
   flush();
 
   int numTris = p.size() - 2;
@@ -875,6 +888,7 @@ void HudPrimitives::renderText(int x, int y, int font_no, E3DCOLOR color, const 
     if (texture_id != state().currentTexture)
     {
       state().currentTexture = texture_id;
+      state().currentSampler = d3d::INVALID_SAMPLER_HANDLE; // TODO: Use actual sampler IDs
       state().currentBlueToAlpha = Color4(1.f, 0.f, 0.f, 0.f);
       setState();
     }
@@ -1034,6 +1048,7 @@ void HudPrimitives::setMask(TEXTUREID texture_id, const Point3 &matrix_line_0, c
   const Point2 &tc1)
 {
   state().maskTexId = texture_id;
+  state().maskSampler = d3d::INVALID_SAMPLER_HANDLE; // TODO: Use actual sampler IDs
 
   Point3 matrixLine0 = matrix_line_0 * (tc1.x - tc0.x);
   Point3 matrixLine1 = matrix_line_1 * (tc1.y - tc0.y);
@@ -1050,6 +1065,7 @@ void HudPrimitives::setMask(TEXTUREID texture_id, const Point2 &center_pos, floa
   const Point2 &tc1)
 {
   state().maskTexId = texture_id;
+  state().maskSampler = d3d::INVALID_SAMPLER_HANDLE; // TODO: Use actual sampler IDs
 
   Point2 centerPos((center_pos.x - viewX) * viewWidthRcp2 - 1.f, 1.f - (center_pos.y - viewY) * viewHeightRcp2);
 
@@ -1139,8 +1155,8 @@ void HudPrimitives::renderLine(E3DCOLOR color, const Point2 &p0, const Point2 &p
   ofs.normalize();
   ofs *= width;
 
-  renderQuad(HudTexElem(getWhiteTexId()), color, Point2(p0.x - ofs.x, p0.y - ofs.y), Point2(p1.x - ofs.x, p1.y - ofs.y),
-    Point2(p1.x + ofs.x, p1.y + ofs.y), Point2(p0.x + ofs.x, p0.y + ofs.y));
+  renderQuad(HudTexElem(getWhiteTexId(), getWhiteSampler()), color, Point2(p0.x - ofs.x, p0.y - ofs.y),
+    Point2(p1.x - ofs.x, p1.y - ofs.y), Point2(p1.x + ofs.x, p1.y + ofs.y), Point2(p0.x + ofs.x, p0.y + ofs.y));
 }
 
 bool HudPrimitives::getScreenPos(const Point3 &world_pos, IPoint2 &screen_pos) const

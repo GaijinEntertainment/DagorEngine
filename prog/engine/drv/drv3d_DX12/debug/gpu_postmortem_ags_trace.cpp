@@ -2,6 +2,7 @@
 
 #include "gpu_postmortem_ags_trace.h"
 
+
 namespace drv3d_dx12::debug::gpu_postmortem::ags
 {
 AgsTrace::~AgsTrace()

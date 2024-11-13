@@ -19,8 +19,8 @@ static inline void spot_lights_ecs_query(Callable);
 template <typename Callable>
 static inline void omni_lights_ecs_query(Callable);
 
-ECS_NO_ORDER static inline void dyn_shadows_recreate_views_es(const EventRecreateViews &evt,
-  DynShadowsManager &dagdp__dyn_shadows_manager)
+ECS_NO_ORDER static inline void dyn_shadows_recreate_views_es(const dagdp::EventRecreateViews &evt,
+  dagdp::DynShadowsManager &dagdp__dyn_shadows_manager)
 {
   FRAMEMEM_REGION;
   G_UNUSED(dagdp__dyn_shadows_manager);

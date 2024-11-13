@@ -1,10 +1,10 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "driver.h"
+
 #include <EASTL/algorithm.h>
 #include <util/dag_globDef.h>
-
-#include "driver.h"
 
 
 namespace drv3d_dx12

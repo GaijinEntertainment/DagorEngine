@@ -16,8 +16,6 @@
 #define WaveAllMin_U32 __XB_WaveMin_U32
 
 #define NOP
-#define _HARDWARE_XBOX 1
-#define _HARDWARE_SCARLETT 1
 
 struct TextureSampler
 {

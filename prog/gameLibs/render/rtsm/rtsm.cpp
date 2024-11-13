@@ -96,8 +96,10 @@ void initialize(int width, int height, RenderMode rm, bool dynamic_light_shadows
       break;
   }
 
-  shadowValueMap = eastl::move(shadowValueMapCreate);
-  shadowTranslucencyMap = eastl::move(shadowTranslucencyMapCreate);
+  if (shadowValueMapCreate)
+    shadowValueMap = eastl::move(shadowValueMapCreate);
+  if (shadowTranslucencyMapCreate)
+    shadowTranslucencyMap = eastl::move(shadowTranslucencyMapCreate);
 
   dynamicLightingTexture.setVar();
   shadowValueMap.setVar();
@@ -153,7 +155,8 @@ void teardown()
   ShaderGlobal::set_int(rtsm_bindless_slotVarId, -1);
 }
 
-void render(bvh::ContextId context_id, const Point3 &view_pos, const TMatrix4 &proj_tm, bool has_nuke, bool has_dynamic_lights)
+void render(bvh::ContextId context_id, const Point3 &view_pos, const TMatrix4 &proj_tm, bool has_nuke, bool has_dynamic_lights,
+  Texture *csm_texture)
 {
   G_ASSERT(trace);
   G_ASSERT(finalShadowMap);
@@ -186,6 +189,7 @@ void render(bvh::ContextId context_id, const Point3 &view_pos, const TMatrix4 &p
   params.denoisedShadowMap = finalShadowMap.getTex2D();
   params.shadowValue = shadowValueMap.getTex2D();
   params.shadowTranslucency = render_mode == RenderMode::DenoisedTranslucent ? shadowTranslucencyMap.getTex2D() : nullptr;
+  params.csmTexture = csm_texture;
 
   denoiser::denoise_shadow(params);
 }

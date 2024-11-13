@@ -68,7 +68,8 @@ enum class DestrOptionFlag : uint32_t
 {
   ForceDestroy = 1 << 0,
   AddDestroyedRi = 1 << 1,
-  UseFullBbox = 1 << 2
+  UseFullBbox = 1 << 2,
+  DestroyedByExplosion = 1 << 3
 };
 using DestrOptionFlags = BitFlagsMask<DestrOptionFlag>;
 BITMASK_DECLARE_FLAGS_OPERATORS(DestrOptionFlag);

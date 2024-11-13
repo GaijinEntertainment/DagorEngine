@@ -43,6 +43,7 @@ Sources =
   sh_stat.cpp
   shCompiler.cpp
   debugSpitfile.cpp
+  globalConfig.cpp
 
   shCode.cpp
   cppStcode.cpp
@@ -71,6 +72,8 @@ Sources =
   shadervarGenerator.cpp
   parser/bparser.cpp
   gitRunner.cpp
+
+  processes.cpp
 ;
 
 if $(Platform) = windows {

@@ -57,6 +57,7 @@ namespace das {
             noUnsafeUninitializedStructs = prog->options.getBoolOption("no_unsafe_uninitialized_structures", prog->policies.no_unsafe_uninitialized_structures);
             strictProperties = prog->options.getBoolOption("strict_properties", prog->policies.strict_properties);
             alwaysExportInitializer = prog->options.getBoolOption("always_export_initializer", false);
+            relaxedAssign = prog->options.getBoolOption("relaxed_assign", prog->policies.relaxed_assign);
         }
         bool finished() const { return !needRestart; }
         bool verbose = true;
@@ -96,6 +97,7 @@ namespace das {
         bool                    noUnsafeUninitializedStructs = false;
         bool                    strictProperties = false;
         bool                    alwaysExportInitializer = false;
+        bool                    relaxedAssign = false;
     public:
         vector<FunctionPtr>     extraFunctions;
     protected:
@@ -149,7 +151,7 @@ namespace das {
             return verbose ? fun->describe() : "";
         }
     protected:
-        void verifyType ( const TypeDeclPtr & decl, bool allowExplicit = false ) const {
+        void verifyType ( const TypeDeclPtr & decl, bool allowExplicit = false, bool classMethod = false ) const {
             // TODO: enable and cleanup
             if ( decl->isExplicit && !allowExplicit ) {
                 /*
@@ -283,7 +285,7 @@ namespace das {
                     verifyType(resultType);
                 }
                 for ( auto & argType : decl->argTypes ) {
-                    if ( argType->ref && argType->isRefType() ) {
+                    if ( !classMethod && (argType->ref && argType->isRefType()) ) {
                         error("can't pass a boxed type by a reference: '" + describeType(argType) + "'", "", "",
                               argType->at,CompilationError::invalid_argument_type);
                     }
@@ -1865,6 +1867,10 @@ namespace das {
                     } else if ( !decl.type->canCopy() && !decl.moveSemantics ) {
                         error("field " + decl.name + " can't be copied, use <- instead; " + describeType(decl.type), "", "",
                               decl.init->at, CompilationError::invalid_initialization_type );
+                        if ( canRelaxAssign(decl.init.get()) ) {
+                            reportAstChanged();
+                            decl.moveSemantics = true;
+                        }
                     } else if ( !decl.init->type->canCopy() && !decl.init->type->canMove() ) {
                         error("field " + decl.name + "can't be initialized at all; " + describeType(decl.init->type),  "", "",
                             decl.at,CompilationError::invalid_initialization_type);
@@ -1901,7 +1907,7 @@ namespace das {
                 decl.offset = int(fieldOffset);
                 fieldOffset += decl.type->getSizeOf64();
             }
-            verifyType(decl.type);
+            verifyType(decl.type, false, decl.classMethod);
         }
         FunctionPtr getOrCreateDummy ( Module * mod ) {
             auto dummy = make_smart<Function>();
@@ -2007,6 +2013,10 @@ namespace das {
             } else if ( !(var->init_via_move || var->init_via_clone) && !var->init->type->canCopy() ) {
                 error("global variable '" + var->name + "' can't be copied",  "", "",
                     var->at, CompilationError::cant_copy);
+                if ( canRelaxAssign(var->init.get()) ) {
+                    reportAstChanged();
+                    var->init_via_move = true;
+                }
             } else if ( var->init_via_move && !var->init->type->canMove() ) {
                 error("global variable '" + var->name + "' can't be moved",  "", "",
                     var->at, CompilationError::cant_move);
@@ -2636,8 +2646,9 @@ namespace das {
                       + describeType(dvT),  "", "",
                     expr->at, CompilationError::cant_dereference);
             } else {
-                expr->type = make_smart<TypeDecl>(*dvT);
-                expr->type->constant |= expr->subexpr->type->constant;
+                expr->type = make_smart<TypeDecl>(*seT->firstType);
+                expr->type->constant |= expr->subexpr->type->constant | dvT->constant;
+                expr->type->ref = dvT->ref; // only ref if default value is ref
                 propagateTempType(expr->subexpr->type, expr->type); // t?# ?? def = #t
                 propagateAlwaysSafe(expr->subexpr);
             }
@@ -3084,13 +3095,14 @@ namespace das {
                             }
                             if ( allOtherInferred ) {
                                 // we build _::{field.name} ( field, arg1, arg2, ... )
-                                auto newCall = make_smart<ExprCall>(expr->at, "__::" + eField->name);
+                                auto callName = "_::" + eField->name;
+                                auto newCall = make_smart<ExprCall>(expr->at, callName);
                                 newCall->arguments.push_back(eField->value->clone());
                                 for ( size_t i=2; i!=expr->arguments.size(); ++i ) {
                                     newCall->arguments.push_back(expr->arguments[i]->clone());
                                 }
                                 auto fcall = inferFunctionCall(newCall.get(), InferCallError::tryOperator);  // we infer it
-                                if ( fcall != nullptr ) {
+                                if ( fcall != nullptr || newCall->name != callName ) {
                                     reportAstChanged();
                                     return newCall;
                                 }
@@ -6041,6 +6053,10 @@ namespace das {
             if ( !expr->left->type->canCopy() ) {
                 error("this type can't be copied"+copyErrorInfo(expr),
                     "", "use move (<-) or clone (:=) instead", expr->at, CompilationError::cant_copy);
+                if ( canRelaxAssign(expr->right.get()) ) {
+                    reportAstChanged();
+                    return make_smart<ExprMove>(expr->at, expr->left->clone(), expr->right->clone());
+                }
             }
             expr->type = make_smart<TypeDecl>();  // we return nothing
             return Visitor::visit(expr);
@@ -6327,6 +6343,10 @@ namespace das {
                 if ( block->moveOnReturn && !expr->moveSemantics ) {
                     error("this type can't be copied; " + describeType(block->type),"","use return <- instead",
                           expr->at, CompilationError::invalid_return_semantics );
+                    if ( canRelaxAssign(expr->subexpr.get()) ) {
+                        reportAstChanged();
+                        expr->moveSemantics = true;
+                    }
                 }
                 if ( block->returnType && block->returnType->ref && !safeExpression(expr) ) {
                     error("returning reference requires unsafe", "", "",
@@ -6358,6 +6378,10 @@ namespace das {
                 if ( func->moveOnReturn && !expr->moveSemantics ) {
                     error("this type can't be copied; " + describeType(func->result),"","use return <- instead",
                           expr->at, CompilationError::invalid_return_semantics );
+                    if ( canRelaxAssign(expr->subexpr.get()) ) {
+                        reportAstChanged();
+                        expr->moveSemantics = true;
+                    }
                 }
                 if ( func->result->ref && !safeExpression(expr) ) {
                     error("returning reference requires unsafe", "", "",
@@ -7007,6 +7031,18 @@ namespace das {
             c2m->arguments.push_back(var->init);
             return c2m;
         }
+        bool canRelaxAssign ( Expression * init ) const {
+            if ( !relaxedAssign ) return false;
+            if ( !init->type || !init->type->canMove() ) return false;  // only if it can be moved
+            if ( init->rtti_isMakeLocal() ) return true;    // a = [[...]] is always ok to transform to a <- [[...]]
+            if ( init->rtti_isCallFunc() ) {
+                auto call = static_cast<ExprCallFunc *>(init);
+                if ( call->func && call->func->result && !call->func->result->ref ) {
+                    return true;    // a = f() is ok to transform to a <- f(), if its not a function which returns reference
+                }
+            }
+            return false;
+        }
         virtual ExpressionPtr visitLetInit ( ExprLet * expr, const VariablePtr & var, Expression * init ) override {
             local.push_back(var);
             if ( !var->init->type ) {
@@ -7042,7 +7078,6 @@ namespace das {
                 error("local variable " + var->name + " initialization type mismatch. const matters, "
                       + describeType(var->type) + " = " + describeType(var->init->type), "", "",
                     var->at, CompilationError::invalid_initialization_type);
-
             } else if ( !var->type->ref && var->type->isGoodBlockType() ) {
                 if ( !var->init->rtti_isMakeBlock() ) {
                     error("local variable " + var->name + " can only be initialized with make block expression", "", "",
@@ -7064,6 +7099,10 @@ namespace das {
                        && var->init->type->canMove() && !(var->init_via_move || var->init_via_clone) ) {
                 error("local variable " + var->name + " can only be move-initialized","","use <- for that",
                     var->at, CompilationError::invalid_initialization_type);
+                if ( canRelaxAssign(var->init.get()) ) {
+                    reportAstChanged();
+                    var->init_via_move = true;
+                }
             } else if ( var->init_via_move && var->init->type->isConst() ) {
                 error("local variable " + var->name + " can't init (move) from a constant value. " + describeType(var->init->type), "", "",
                     var->at, CompilationError::cant_move);
@@ -8160,13 +8199,19 @@ namespace das {
             if ( !expr->func ) {
                 auto aliasT = findAlias(expr->name);
                 if ( aliasT && aliasT->isTuple() ) {
-                    auto mkt = make_smart<ExprMakeTuple>(expr->at);
-                    mkt->type = make_smart<TypeDecl>(*aliasT);
-                    for ( auto & arg : expr->arguments ) {
-                        mkt->values.push_back(arg->clone());
-                    }
                     reportAstChanged();
-                    return mkt;
+                    if ( expr->arguments.size() ) {
+                        auto mkt = make_smart<ExprMakeTuple>(expr->at);
+                        mkt->recordType = make_smart<TypeDecl>(*aliasT);
+                        for ( auto & arg : expr->arguments ) {
+                            mkt->values.push_back(arg->clone());
+                        }
+                        return mkt;
+                    } else {
+                        auto mks = make_smart<ExprMakeStruct>(expr->at);
+                        mks->makeType = make_smart<TypeDecl>(*aliasT);
+                        return mks;
+                    }
                 }
             }
             if ( func && !expr->func && func->isClassMethod && func->arguments.size()>=1 ) {
@@ -8298,6 +8343,10 @@ namespace das {
                 if (!fieldType->canCopy() && !decl->moveSemantics) {
                     error("field " + decl->name + " can't be copied; " + describeType(fieldType),"","use <- instead",
                         decl->at, CompilationError::invalid_type);
+                    if ( canRelaxAssign(decl->value.get()) ) {
+                        reportAstChanged();
+                        decl->moveSemantics = true;
+                    }
                 } else if (decl->moveSemantics && decl->value->type->isConst()) {
                     error("can't move from a constant value " + describeType(decl->value->type), "", "",
                         decl->value->at, CompilationError::cant_move);
@@ -8408,6 +8457,10 @@ namespace das {
                     if( !field->type->canCopy() && !decl->moveSemantics ) {
                         error("field " + decl->name + " can't be copied; " + describeType(field->type),"","use <- instead",
                               decl->at, CompilationError::invalid_type );
+                        if ( canRelaxAssign(decl->value.get()) ) {
+                            reportAstChanged();
+                            decl->moveSemantics = true;
+                        }
                     } else if (decl->moveSemantics && decl->value->type->isConst()) {
                         error("can't move from a constant value " + describeType(decl->value->type), "", "",
                             decl->value->at, CompilationError::cant_move);
@@ -8453,6 +8506,10 @@ namespace das {
                     if( !fldt->canCopy() && !decl->moveSemantics ) {
                         error("field " + decl->name + " can't be copied; " + describeType(fldt),"","use <- instead",
                               decl->at, CompilationError::invalid_type );
+                        if ( canRelaxAssign(decl->value.get()) ) {
+                            reportAstChanged();
+                            decl->moveSemantics = true;
+                        }
                     } else if (decl->moveSemantics && decl->value->type->isConst()) {
                         error("can't move from a constant value " + describeType(decl->value->type), "", "",
                             decl->value->at, CompilationError::cant_move);
@@ -9091,7 +9148,7 @@ namespace das {
                     error("unknown value type", "", "",
                         expr->at, CompilationError::invalid_type);
                     return Visitor::visit(expr);
-                } else if ( !expr->recordType->isSameType(*(eval->type),RefMatters::no,ConstMatters::no,TemporaryMatters::no,AllowSubstitute::no) ) {
+                } else if ( !expr->recordType->isSameType(*(eval->type),RefMatters::no,ConstMatters::no,TemporaryMatters::no,AllowSubstitute::yes) ) {
                     error("incompatible value type. expecting " + describeType(expr->recordType) + " vs " + describeType(eval->type), "", "",
                         eval->at, CompilationError::invalid_type);
                     return Visitor::visit(expr);
@@ -9102,6 +9159,11 @@ namespace das {
                         auto mkt = static_pointer_cast<ExprMakeTuple>(resExpr);
                         mkt->recordType = make_smart<TypeDecl>(*expr->recordType);
                         mkt->makeType.reset();
+                    }
+                    if ( !expr->recordType->isSameType(*(eval->type),RefMatters::no,ConstMatters::no,TemporaryMatters::no,AllowSubstitute::no) ) { // disable substitue
+                        // we need a cast
+                        auto cast = make_smart<ExprCast>(expr->at, resExpr, make_smart<TypeDecl>(*expr->recordType));
+                        resExpr = cast;
                     }
                     return resExpr;
                 }

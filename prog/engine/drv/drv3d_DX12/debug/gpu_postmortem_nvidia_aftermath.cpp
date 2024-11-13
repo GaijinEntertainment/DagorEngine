@@ -1,12 +1,13 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "gpu_postmortem_nvidia_aftermath.h"
-#include "device.h"
+#include <device.h>
+#include <platform.h>
 
 #include <debug/dag_logSys.h>
+#include <generic/dag_enumerate.h>
 #include <json/json.h>
 #include <util/dag_watchdog.h>
-#include <generic/dag_enumerate.h>
 
 namespace
 {

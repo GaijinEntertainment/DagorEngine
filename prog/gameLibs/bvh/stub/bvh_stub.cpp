@@ -28,7 +28,7 @@ void set_ri_extra_range(ContextId, float) {}
 
 void prepare_ri_extra_instances() {}
 
-void update_instances(ContextId, const Point3 &, const Frustum &, dynrend::ContextId *, RiGenVisibility *) {}
+void update_instances(ContextId, const Point3 &, const Frustum &, dynrend::ContextId *, dynrend::ContextId *, RiGenVisibility *) {}
 
 void add_mesh(ContextId, uint64_t, const MeshInfo &) {}
 
@@ -63,6 +63,8 @@ void start_async_atmosphere_update(ContextId, const Point3 &, atmosphere_callbac
 void finalize_async_atmosphere_update(ContextId) {}
 
 bool is_building(ContextId) { return false; }
+
+void set_grass_range(ContextId, float) {}
 
 void ChannelParser::enum_shader_channel(int, int, int, int, int, ChannelModifier, int) {}
 

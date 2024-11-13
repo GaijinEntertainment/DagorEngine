@@ -201,6 +201,11 @@ shader rendinst_clipmap, rendinst_landclass
   if (shader == rendinst_landclass)
   {
     static float4 texcoord_scale_offset = (1.0, 1.0, 0.0, 0.0);
+
+    // Default value is set to -1
+    // (As -1 meter is the clear puddle depth in `puddle_make.dshl`)
+    // (Note: puddle height can vary from -2 meters to 1 meter above ground)
+    static float landclass_water_level = -1;
   }
 
   channel float3 pos = pos;
@@ -281,7 +286,6 @@ shader rendinst_clipmap, rendinst_landclass
       #endif
       #if NEED_TC_WORLDPOS
         VOXEL_CENTROID float4 tcWorldPos                 : TEXCOORD1;
-        float heightForPuddle                            : TEXCOORD4;
       #endif
       #if NEED_NORMAL
         float3 normal                     : TEXCOORD3;
@@ -318,6 +322,7 @@ shader rendinst_clipmap, rendinst_landclass
     (vs)
     {
       texcoord_scale_offset@f4 = (texcoord_scale_offset.x, texcoord_scale_offset.y, texcoord_scale_offset.z, texcoord_scale_offset.w);
+      landclass_water_level@f1 = landclass_water_level;
 
       ri_landscape_tc_to_world@f4 = (
         rendinst_landscape_area_left_top_right_bottom.z - rendinst_landscape_area_left_top_right_bottom.x,
@@ -604,11 +609,6 @@ shader rendinst_clipmap, rendinst_landclass
         }
 ##endif
 
-        float heightForPuddle = worldPos.y;
-        float deformAmount = 0;
-        float puddle, worldPosYPuddleOffset, puddleHeight;
-        getPuddleData(worldPos.y, worldPos, heightForPuddle, puddle, worldPosYPuddleOffset, puddleHeight);
-
         output.pos.xyz = worldPos;
 
         #if NEED_POINT_TO_EYE
@@ -617,7 +617,6 @@ shader rendinst_clipmap, rendinst_landclass
 
         #if NEED_TC_WORLDPOS
           output.tcWorldPos.w = worldPos.y;
-          output.heightForPuddle = heightForPuddle;
         #endif
 
         #if DRAW_ID_USES_INSTANCE_OFFSET_ID

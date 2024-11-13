@@ -1,0 +1,38 @@
+include "shader_global.dshl"
+include "postfx_inc.dshl"
+
+int4 trees2d_clear_regions_arr[16];
+
+shader trees2d_clear
+{
+  supports none;
+  supports global_frame;
+
+  z_test = false;
+  z_write = true;
+  cull_mode = none;
+  POSTFX_VS(0)
+
+  (ps) {
+    trees2d_clear_regions_arr@i4[] = trees2d_clear_regions_arr;
+  }
+
+  hlsl(ps) {
+    float4 trees2d_clear_regions(VsOutput input HW_USE_SCREEN_POS):SV_Target0
+    {
+      int2 pos = int2(GET_SCREEN_POS(input.pos).xy);
+      bool inside = false;
+      UNROLL
+      for(int i = 0; i < 16; i++)
+      {
+        int2 rmin = trees2d_clear_regions_arr[i].xy;
+        int2 rmax = trees2d_clear_regions_arr[i].zw;
+        inside = inside || all(pos >= rmin && pos <= rmax);
+      }
+      if (!inside) discard;
+      return 0;
+    }
+  }
+
+  compile("target_ps", "trees2d_clear_regions");
+}

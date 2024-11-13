@@ -5,6 +5,7 @@
 #include <ioSys/dag_dataBlock.h>
 #include <startup/dag_globalSettings.h>
 
+
 namespace drv3d_dx12::debug
 {
 union Configuration
@@ -59,7 +60,7 @@ union Configuration
     loadPIXCapturer = !gfx->getBool("enableBVH", false) && stricmp(gfx->getStr("bvhMode", "off"), "off") == 0;
     enableAftermath = true;
     enableAgsTrace = false;
-    enableDagorGPUTrace = true;
+    enableDagorGPUTrace = false;
     trackPageFaults = true;
     enableShaderErrorReporting = false;
     enableDRED = true;

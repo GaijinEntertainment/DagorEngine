@@ -394,10 +394,9 @@ shader water_ssr_nv2, water_ssr_nv2_heightmap
       float2 alpha__strength : SV_Target1;
     };
 
-    void applyFogToReflection(float2 screen_tc, float dist, inout float3 color)
+    void applyFogToReflection(float3 view, float dist, inout float3 color)
     {
       half3 add,loss;
-      float3 view = normalize(getViewVecOptimized(screen_tc));
       get_bruneton_fog(view, dist, loss, add);
       add = pack_hdr(add);
       color = color*loss + add;
@@ -486,8 +485,14 @@ shader water_ssr_nv2, water_ssr_nv2_heightmap
       if (water_quality == water_quality_high && !hitSky && newTarget.a == 0)
       {
         float rayHitDist = 0;
-        get_alternate_reflections(newTarget, rayHitDist, screenpos.xy, reflect(-pointToEye, worldNormal), cameraToPoint, worldNormal, false, false);
-        applyFogToReflection(refractionTC, rayHitDist, newTarget.rgb);
+        float3 R = reflect(-pointToEye, worldNormal);
+        get_alternate_reflections(newTarget, rayHitDist, screenpos.xy, R, cameraToPoint, worldNormal, false, false);
+        if (newTarget.a > 0)
+        {
+          float3 cameraToReflection = (rayHitDist*R + cameraToPoint);
+          float cameraToReflectionLen = length(cameraToReflection);
+          applyFogToReflection(cameraToReflection*rcp(max(1e-6,cameraToReflectionLen)), cameraToReflectionLen, newTarget.rgb);
+        }
       }
 
       bool discardHistory = offscreen || (isGbufferDynamic(oldUv) && (prevScreen.z < sample_close_depth_tex(oldUv, 0))) || force_ignore_history > 0;

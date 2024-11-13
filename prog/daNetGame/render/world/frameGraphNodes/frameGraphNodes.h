@@ -163,7 +163,11 @@ dabfg::NodeHandle makeStaticUpsampleNode(const char *source_name);
 
 dabfg::NodeHandle makeAfterPostFxEcsEventNode();
 
+resource_slot::NodeHandleWithSlotsAccess makePostFxInputSlotProviderNode();
+
 resource_slot::NodeHandleWithSlotsAccess makePreparePostFxNode();
+
+dabfg::NodeHandle makeDistortionFxNode();
 
 dabfg::NodeHandle makeRenameDepthNode();
 
@@ -177,7 +181,7 @@ eastl::array<dabfg::NodeHandle, 2> makeExternalFinalFrameControlNodes(bool requi
 
 dabfg::NodeHandle makePostfxTargetProducerNode(bool requires_multisampling);
 
-resource_slot::NodeHandleWithSlotsAccess makePrepareForPostfxNoAANode();
+dabfg::NodeHandle makePrepareForPostfxNoAANode();
 
 dabfg::NodeHandle makeAfterWorldRenderNode();
 

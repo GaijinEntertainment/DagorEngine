@@ -339,12 +339,16 @@ void TextEditor::Redo(bool group)
 	if (!CanRedo())
 		return;
 
-	mUndoBuffer[mUndoIndex++].Redo(this);
+	int redoLen = 1;
 	if (group)
 	{
-		while (CanRedo() && mUndoBuffer[mUndoIndex].isSimilarTo(mUndoBuffer[mUndoIndex + 1]))
-			mUndoBuffer[mUndoIndex++].Redo(this);
+		for (; mUndoIndex + redoLen < (int)mUndoBuffer.size(); redoLen++)
+			if (!mUndoBuffer[mUndoIndex].isSimilarTo(mUndoBuffer[mUndoIndex + redoLen]))
+				break;
 	}
+
+	while (redoLen--)
+		mUndoBuffer[mUndoIndex++].Redo(this);
 }
 
 void TextEditor::SetText(const eastl::string& aText)

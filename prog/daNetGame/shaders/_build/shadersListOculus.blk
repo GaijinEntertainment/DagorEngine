@@ -80,6 +80,7 @@
   file:t = "find_max_depth_2d.dshl"
 
   file:t = "giHelpers/trees_above_process.dshl"
+  file:t = "giHelpers/trees_above_clear.dshl"
   file:t = "hudprim/gui_aces.dshl"
   file:t = "../rendinst_clipmap.dshl"
   file:t = "../heightmap_patches.dshl"

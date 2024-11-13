@@ -4,6 +4,7 @@
 #include <shaders/shUtils.h>
 #include <ioSys/dag_fileIo.h>
 #include <osApiWrappers/dag_files.h>
+#include <osApiWrappers/dag_direct.h>
 #include <debug/dag_debug.h>
 #include <debug/dag_logSys.h>
 #include <perfMon/dag_cpuFreq.h>
@@ -14,12 +15,14 @@
 #include <EASTL/vector_set.h>
 #include <EASTL/vector.h>
 #include <generic/dag_span.h>
+#include <util/dag_strUtil.h>
+#define USE_SHA1_HASH 0
 
 static void showUsage()
 {
-  printf("\nUsage:\n  shaderInfo-dev.exe <in_shdump.bin> [out] [-asm] [-variants] [-stcode] [-shader:<name>]\n");
+  printf("\nUsage:\n  shaderInfo-dev.exe <in_shdump.bin> [out] [-asm] [-shaders:<DIR>] [-variants] [-stcode] [-shader:<name>]\n");
 }
-static void dumpCurrentShaders(bool dump_asm, bool dump_variants, bool dump_stcode, const char *single_shader);
+static void dumpCurrentShaders(bool dump_asm, bool dump_variants, bool dump_stcode, const char *single_shader, const char *sh_dir);
 
 int DagorWinMain(bool debugmode)
 {
@@ -33,12 +36,15 @@ int DagorWinMain(bool debugmode)
   }
   const char *output_log_fn = "shader_dump";
   bool out_asm = false;
+  const char *out_shaders = nullptr;
   bool out_variants = false;
   bool out_stcode = false;
   const char *single_shader = nullptr;
   for (int i = 2; i < __argc; i++)
     if (strcmp(__argv[i], "-asm") == 0)
       out_asm = true;
+    else if (strncmp(__argv[i], "-shaders:", 9) == 0)
+      out_shaders = __argv[i] + 9;
     else if (strcmp(__argv[i], "-variants") == 0)
       out_variants = true;
     else if (strcmp(__argv[i], "-stcode") == 0)
@@ -70,17 +76,19 @@ int DagorWinMain(bool debugmode)
   printf("loaded binary dump %s (memSize=%uK), dumping contents to: \"%s\" [VARS SHADERS %s %s %s], %d shaders, %d globvars\n",
     __argv[1], (uint32_t)(shBinDumpOwner().getDumpSize() >> 10), output_log_fn, out_variants ? "VARIANT_TABLES" : "",
     out_asm ? "ASM" : "", out_stcode ? "STCODE" : "", (int)shBinDump().classes.size(), shBinDump().globVars.v.size());
+  if (out_shaders)
+    printf("(dumping shaders with content-like names to folder: %s/ )\n", out_shaders);
   if (single_shader)
     printf("(dumping only contents of <%s> shader)\n", single_shader);
 
   int t0 = get_time_msec();
-  dumpCurrentShaders(out_asm, out_variants, out_stcode, single_shader);
+  dumpCurrentShaders(out_asm, out_variants, out_stcode, single_shader, out_shaders);
   printf("\ndumped for %.1f seconds\n", (get_time_msec() - t0) / 1000.0f);
   return 0;
 }
 
 #include <d3dcompiler.h>
-static void disassembleShader(dag::ConstSpan<uint32_t> native_code)
+static void disassembleShader(dag::ConstSpan<uint32_t> native_code, const char *out_fn = nullptr)
 {
   if (native_code.empty())
     return;
@@ -103,8 +111,16 @@ static void disassembleShader(dag::ConstSpan<uint32_t> native_code)
   }
 
   if (hr == S_OK && disassembly && disassembly->GetBufferPointer() && *(char *)disassembly->GetBufferPointer())
-    debug("%s", disassembly->GetBufferPointer());
-  else
+  {
+    if (out_fn)
+    {
+      FullFileSaveCB cwr(out_fn);
+      cwr.write(disassembly->GetBufferPointer(), disassembly->GetBufferSize());
+    }
+    else
+      debug("%s", disassembly->GetBufferPointer());
+  }
+  else if (!out_fn)
   {
     String dump_str(native_code.size() * 3 + 64, "  [%d words]\n", native_code.size());
     for (const uint32_t *c = native_code.data(), *c_e = c + native_code.size(); c < c_e; c += 16)
@@ -125,7 +141,53 @@ static void disassembleShader(dag::ConstSpan<uint32_t> native_code)
     disassembly->Release();
 }
 
-static void dumpCurrentShaders(bool dump_asm, bool dump_variants, bool dump_stcode, const char *single_shader)
+static String mk_str_cat3(const char *s1, const char *s2, const char *s3)
+{
+  String s;
+  s.setStrCat3(s1, s2, s3);
+  return s;
+}
+
+static String mk_str_cat4(const char *s1, const char *s2, const char *s3, const char *s4)
+{
+  String s;
+  s.setStrCat4(s1, s2, s3, s4);
+  return s;
+}
+
+#if USE_SHA1_HASH
+#include <hash/sha1.h>
+#define HASH_SIZE    20
+#define HASH_CONTEXT sha1_context
+#define HASH_UPDATE  sha1_update
+#define HASH_INIT    sha1_starts
+#define HASH_FINISH  sha1_finish
+
+#else
+#include <hash/BLAKE3/blake3.h>
+
+#define HASH_SIZE    32
+inline void blake3_finalize_32(const blake3_hasher *h, unsigned char *hash) { blake3_hasher_finalize(h, hash, HASH_SIZE); }
+#define HASH_CONTEXT blake3_hasher
+#define HASH_UPDATE  blake3_hasher_update
+#define HASH_INIT    blake3_hasher_init
+#define HASH_FINISH  blake3_finalize_32
+#endif
+static String calc_sha1(dag::ConstSpan<uint32_t> native_code)
+{
+  HASH_CONTEXT sha1;
+  unsigned char srcSha1[HASH_SIZE];
+
+  HASH_INIT(&sha1);
+  HASH_UPDATE(&sha1, (const unsigned char *)native_code.data(), data_size(native_code));
+  HASH_FINISH(&sha1, srcSha1);
+
+  String s;
+  data_to_str_hex(s, srcSha1, sizeof(srcSha1));
+  return s;
+}
+
+static void dumpCurrentShaders(bool dump_asm, bool dump_variants, bool dump_stcode, const char *single_shader, const char *sh_dir)
 {
   if (single_shader)
   {
@@ -166,8 +228,34 @@ static void dumpCurrentShaders(bool dump_asm, bool dump_variants, bool dump_stco
 
   debug("\nmaxreg count = %d\n", shBinDump().maxRegSize);
 
-  if (!dump_asm)
+  if (!dump_asm && !sh_dir)
     debug("\n******* %d vertex shaders\n******* %d pixel shaders", shBinDump().vprId.size(), shBinDump().fshId.size());
+  else if (sh_dir)
+  {
+    ShaderBytecode tmpbuf;
+    debug("");
+    dd_mkdir(String::mk_str_cat(sh_dir, "/vs"));
+    for (int i = 0; i < shBinDump().vprId.size(); i++)
+    {
+      String sha1 = calc_sha1(shBinDumpOwner().getCode(i, ShaderCodeType::VERTEX, tmpbuf));
+      debug("Vertex shader --v%d-- %s/vs/%s (%d bytes)", i, sh_dir, sha1, data_size(tmpbuf));
+      FullFileSaveCB cwr(mk_str_cat3(sh_dir, "/vs/", sha1));
+      cwr.write(tmpbuf.data(), data_size(tmpbuf));
+      if (dump_asm)
+        disassembleShader(tmpbuf, mk_str_cat4(sh_dir, "/vs/", sha1, ".asm"));
+    }
+
+    dd_mkdir(String::mk_str_cat(sh_dir, "/ps"));
+    for (int i = 0; i < shBinDump().fshId.size(); i++)
+    {
+      String sha1 = calc_sha1(shBinDumpOwner().getCode(i, ShaderCodeType::PIXEL, tmpbuf));
+      debug("Pixel shader --p%d-- %s/ps/%s (%d bytes)", i, sh_dir, sha1, data_size(tmpbuf));
+      FullFileSaveCB cwr(mk_str_cat3(sh_dir, "/ps/", sha1));
+      cwr.write(tmpbuf.data(), data_size(tmpbuf));
+      if (dump_asm)
+        disassembleShader(tmpbuf, mk_str_cat4(sh_dir, "/ps/", sha1, ".asm"));
+    }
+  }
   else
   {
     ShaderBytecode tmpbuf;

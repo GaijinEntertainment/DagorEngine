@@ -17,7 +17,6 @@ public:
     das::addConstant(*this, "INVALID_MEMBER_ID", matching::INVALID_MEMBER_ID);
     das::addConstant(*this, "INVALID_USER_ID", matching::INVALID_USER_ID);
     das::addConstant(*this, "INVALID_SQUAD_ID", matching::INVALID_SQUAD_ID);
-    das::addConstant(*this, "INVALID_GROUP_ID", matching::INVALID_GROUP_ID);
     verifyAotReady();
   }
   das::ModuleAotType aotRequire(das::TextWriter &tw) const override

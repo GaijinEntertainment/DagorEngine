@@ -3,8 +3,8 @@
 
 #include <EASTL/bitset.h>
 #include <EASTL/span.h>
-
 #include <math/dag_bits.h>
+#include <util/dag_globDef.h>
 
 
 template <size_t N>

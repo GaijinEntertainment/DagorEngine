@@ -67,6 +67,7 @@ static int csmShadowFadeOutVarId = -1, shadowCascadeDepthRangeVarId = -1, deferr
   VAR(csm_uv_minmax_cascade_0)      \
   VAR(csm_uv_minmax_cascade_1)      \
   VAR(csm_uv_minmax_cascade_2)      \
+  VAR(shadow_cascade_data)          \
   VAR(shadow_cascade_tm_transp)     \
   VAR(shadow_cascade_tc_mul_offset) \
   VAR(csm_culling_near_planes)
@@ -84,7 +85,8 @@ GLOBAL_CONST_LIST
 class CascadeShadowsPrivate
 {
 public:
-  CascadeShadowsPrivate(ICascadeShadowsClient *in_client, const CascadeShadows::Settings &in_settings);
+  String resPostfix;
+  CascadeShadowsPrivate(ICascadeShadowsClient *in_client, const CascadeShadows::Settings &in_settings, String &&res_postfix);
 
   ~CascadeShadowsPrivate();
 
@@ -120,6 +122,7 @@ public:
   void setNearCullingNearPlaneToShader();
   void disable() { numCascadesToRender = 0; }
   bool isEnabled() const { return numCascadesToRender != 0; }
+  void uploadCSMBuffer(const Color4 *tm, const Color4 *off);
   void invalidate()
   {
     for (unsigned int cascadeNo = 0; cascadeNo < shadowSplits.size(); cascadeNo++)
@@ -227,7 +230,7 @@ private:
     const TMatrix4 &projtm, float z_near, float z_far, float next_z_far, const Point3 &anchor, float anchor_radius,
     ShadowSplit &split);
 
-  UniqueBufHolder csmBuffer;
+  UniqueBuf csmBuffer;
   bool needSsss = false;
   int maxCascadesPossible = CascadeShadows::MAX_CASCADES;
 };
@@ -259,8 +262,9 @@ void CascadeShadowsPrivate::createOverrides()
 }
 
 
-CascadeShadowsPrivate::CascadeShadowsPrivate(ICascadeShadowsClient *in_client, const CascadeShadows::Settings &in_settings) :
-  client(in_client), settings(in_settings), dbgModeSettings(false), mobileAreaUpdateRP(nullptr)
+CascadeShadowsPrivate::CascadeShadowsPrivate(ICascadeShadowsClient *in_client, const CascadeShadows::Settings &in_settings,
+  String &&res_postfix) :
+  client(in_client), settings(in_settings), dbgModeSettings(false), mobileAreaUpdateRP(nullptr), resPostfix(std::move(res_postfix))
 {
   G_ASSERT(client);
 
@@ -341,6 +345,10 @@ void CascadeShadowsPrivate::createDepthShadow(int splits_w, int splits_h, int wi
         "shadow_cascade_depth_tex");
     createMobileRP(format, rtFmt);
   }
+
+  if (shadow_cascade_dataVarId != -1)
+    csmBuffer = dag::buffers::create_one_frame_cb(CascadeShadows::MAX_CASCADES * 4 + CascadeShadows::MAX_CASCADES,
+      String(0, "shadow_cascade_data%s", resPostfix.c_str()).c_str());
 }
 
 
@@ -355,6 +363,7 @@ void CascadeShadowsPrivate::closeDepthShadow()
 {
   internalCascades.close();
   shadowCascadesFakeRT.close();
+  csmBuffer.close();
 
   if (mobileAreaUpdateRP)
   {
@@ -995,6 +1004,23 @@ carray<Color4, CascadeShadows::MAX_CASCADES * 4> CascadeShadowsPrivate::getTrans
   return transposed;
 }
 
+void CascadeShadowsPrivate::uploadCSMBuffer(const Color4 *tm, const Color4 *off)
+{
+  if (csmBuffer)
+  {
+    Color4 uploadData[CascadeShadows::MAX_CASCADES * 4 + CascadeShadows::MAX_CASCADES];
+    memcpy(uploadData, tm, sizeof(Color4) * CascadeShadows::MAX_CASCADES * 4);
+    memcpy(uploadData + CascadeShadows::MAX_CASCADES * 4, off, sizeof(Color4) * CascadeShadows::MAX_CASCADES);
+
+    G_ASSERT_RETURN(csmBuffer, );
+    csmBuffer->updateData(0, sizeof(uploadData), uploadData, VBLOCK_DISCARD);
+    ShaderGlobal::set_buffer(shadow_cascade_dataVarId, csmBuffer.getBufId());
+  }
+
+  ShaderGlobal::set_color4_array(shadow_cascade_tm_transpVarId, tm, maxCascadesPossible * 4);
+  ShaderGlobal::set_color4_array(shadow_cascade_tc_mul_offsetVarId, off, maxCascadesPossible);
+}
+
 void CascadeShadowsPrivate::setSamplingBiasToShader(float value)
 {
   carray<Color4, CascadeShadows::MAX_CASCADES * 4> transposed = getTransposedCSMTm();
@@ -1003,7 +1029,7 @@ void CascadeShadowsPrivate::setSamplingBiasToShader(float value)
     // z component of 4-th column of every matrix is resposible for cmp value
     transposed[i * 4 + 3].b += value;
   }
-  ShaderGlobal::set_color4_array(shadow_cascade_tm_transpVarId, transposed.data(), maxCascadesPossible * 4);
+  uploadCSMBuffer(transposed.data(), shadowCascadeTcMulOffset.data());
 }
 
 void CascadeShadowsPrivate::setCascadesToShader()
@@ -1012,8 +1038,7 @@ void CascadeShadowsPrivate::setCascadesToShader()
 
   const carray<Color4, CascadeShadows::MAX_CASCADES * 4> transposed = getTransposedCSMTm();
 
-  ShaderGlobal::set_color4_array(shadow_cascade_tm_transpVarId, transposed.data(), maxCascadesPossible * 4);
-  ShaderGlobal::set_color4_array(shadow_cascade_tc_mul_offsetVarId, shadowCascadeTcMulOffset.data(), maxCascadesPossible);
+  uploadCSMBuffer(transposed.data(), shadowCascadeTcMulOffset.data());
   ShaderGlobal::set_color4(csm_world_view_posVarId, P3D(shadowSplits[0].viewPos), 0);
 }
 
@@ -1063,12 +1088,13 @@ CascadeShadows::ModeSettings::ModeSettings()
 }
 
 /*static*/
-CascadeShadows *CascadeShadows::make(ICascadeShadowsClient *in_client, const Settings &in_settings)
+CascadeShadows *CascadeShadows::make(ICascadeShadowsClient *in_client, const Settings &in_settings, String &&res_postfix)
 {
   int cspalign = max((int)alignof(CascadeShadowsPrivate) - (int)sizeof(CascadeShadows), 0);
   char *m = (char *)memalloc(sizeof(CascadeShadows) + cspalign + sizeof(CascadeShadowsPrivate));
   auto pSelf = (CascadeShadows *)m;
-  pSelf->d = new ((char *)(pSelf + 1) + cspalign, _NEW_INPLACE) CascadeShadowsPrivate(in_client, in_settings);
+  pSelf->d =
+    new ((char *)(pSelf + 1) + cspalign, _NEW_INPLACE) CascadeShadowsPrivate(in_client, in_settings, eastl::move(res_postfix));
   return pSelf;
 }
 

@@ -40,6 +40,7 @@ enum NavMeshID
 class CustomNav;
 
 using tile_check_cb_t = eastl::fixed_function<2 * sizeof(void *), bool(const BBox3 &)>;
+using tile_remove_cb_t = eastl::fixed_function<4 * sizeof(void *), void(uint32_t tile_id, int tx, int ty, int tlayer)>;
 using ri_obstacle_cb_t =
   eastl::fixed_function<4 * sizeof(void *), void(rendinst::riex_handle_t ri_handle, const TMatrix &tm, const BBox3 &oobb)>;
 
@@ -284,6 +285,9 @@ bool tilecache_is_inside(const BBox3 &box);
 void tilecache_sync();
 void tilecache_update(float dt);
 void tilecache_stop();
+
+void tilecache_disable_tile_remove_cb();
+void tilecache_set_tile_remove_cb(tile_remove_cb_t tile_remove_cb = nullptr);
 
 void tilecache_disable_dynamic_jump_links();
 void tilecache_disable_dynamic_ladder_links();

@@ -11,7 +11,7 @@ require environment_sounds.modules.sound_field_common
 
 let MAX_RANGE = 500.
 
-let BIOME_COLORS = [[ uint[] 0x00ffff00; 0x000000ff; 0x00ff0040; 0x0040ffff ]]
+let BIOME_COLORS = [[uint[] 0x00ffff00; 0x000000ff; 0x00ff0040; 0x0040ffff]]
 
 
 def biome_color(idx : uint)

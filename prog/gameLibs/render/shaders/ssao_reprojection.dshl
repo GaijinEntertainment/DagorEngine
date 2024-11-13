@@ -13,7 +13,7 @@ float4 prev_view_vecLT;
 float4 prev_view_vecRT;
 float4 prev_view_vecLB;
 float4 prev_view_vecRB;
-float4 prev_zn_zfar;
+float4 prev_zn_zfar = (1, 10, 0, 0);
 
 texture downsampled_motion_vectors_tex;
 texture prev_downsampled_motion_vectors_tex;
@@ -107,36 +107,40 @@ hlsl(stage) {
   void get_ssao_disocclusion_weight(float2 historyUV, float prev_linear_depth, inout SSAO_TYPE historySample, inout float newFrameWeight)
   {
 #if FIX_DISCONTINUTIES
-    float4 depths = prev_downsampled_close_depth_tex.GatherRed(prev_downsampled_close_depth_tex_samplerstate, historyUV).wzxy;
+    float2 historyCrdf = historyUV * prev_downsampled_close_depth_tex_target_size.xy - 0.5;
+    float2 floorCrd = floor(historyCrdf);
+    float2 gatherUV = (floorCrd + 1.0) * prev_downsampled_close_depth_tex_target_size.zw;
+    float2 fractCrd = historyCrdf - floorCrd;
+    float4 depths = prev_downsampled_close_depth_tex.GatherRed(prev_downsampled_close_depth_tex_samplerstate, gatherUV).wzxy;
     float4 linearDepths = linearize_z4(depths, prev_zn_zfar.zw);
     float4 depthDiff = abs(linearDepths - prev_linear_depth);
     float threshold = 0.05*prev_linear_depth;
-    float4 weights = depthDiff < threshold;
-    float2 historyCrdf = historyUV*prev_downsampled_close_depth_tex_target_size.xy - 0.5;
-    float2 fractCrd = frac(historyCrdf);
-    if (all(weights)) // valid
-    {
-      historySample = tex2Dlod(ssao_prev_tex, float4(historyUV, 0, 0)).SSAO_ATTRS;
-    } else
-    {
-      float4 bil = float4(fractCrd, 1-fractCrd);
-      weights *= float4(bil.zx*bil.w, bil.zx*bil.y) + 1e-4;
-      float sumW = dot(weights, 1);
-      newFrameWeight = sumW > 0.00001 ? newFrameWeight : 1;
-      weights *= rcp(max(1e-6, sumW));
-      //float2 uv = (floor(historyCrdf) + 0.5)*prev_downsampled_close_depth_tex_target_size.zw;//todo: one madd
-      //we need to use same sampler and same uv, otherwise they can diverge
-      float2 uv = historyUV;
-      historySample.x = dot(ssao_prev_tex.GatherRed(prev_downsampled_close_depth_tex_samplerstate, uv).wzxy, weights);
+    bool4 mask = depthDiff < threshold;
 
-      #if SSAO_HAS_GREEN
-      historySample.y = dot(ssao_prev_tex.GatherGreen(prev_downsampled_close_depth_tex_samplerstate, uv).wzxy, weights);
-      #endif
-
-      #if SSAO_HAS_BLUE
-      historySample.z = dot(ssao_prev_tex.GatherBlue(prev_downsampled_close_depth_tex_samplerstate, uv).wzxy, weights);
-      #endif
+    if (!any(mask))
+    {
+      newFrameWeight = 1;
+      return;
     }
+
+    float4 bil = float4(fractCrd, 1 - fractCrd);
+    float4 upsampleWeights = float4(bil.zx * bil.w, bil.zx * bil.y);
+    float4 spatialWeights = exp(-depthDiff * (5.0 / threshold));
+    float4 weights = (spatialWeights * upsampleWeights + 1e-4) * float4(mask);
+    weights /= dot(weights, 1.0);
+
+    //float2 uv = (floor(historyCrdf) + 0.5)*prev_downsampled_close_depth_tex_target_size.zw;//todo: one madd
+    //we need to use same sampler and same uv, otherwise they can diverge
+    float2 uv = gatherUV;
+    historySample.x = dot(ssao_prev_tex.GatherRed(prev_downsampled_close_depth_tex_samplerstate, uv).wzxy, weights);
+
+    #if SSAO_HAS_GREEN
+    historySample.y = dot(ssao_prev_tex.GatherGreen(prev_downsampled_close_depth_tex_samplerstate, uv).wzxy, weights);
+    #endif
+
+    #if SSAO_HAS_BLUE
+    historySample.z = dot(ssao_prev_tex.GatherBlue(prev_downsampled_close_depth_tex_samplerstate, uv).wzxy, weights);
+    #endif
 #else
     historySample = tex2Dlod(ssao_prev_tex, float4(historyUV, 0, 0)).SSAO_ATTRS;
 #endif

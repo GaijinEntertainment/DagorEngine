@@ -3,6 +3,7 @@
 
 #include <generic/dag_tab.h>
 #include <util/dag_string.h>
+#include <shaders/dag_shaders.h>
 
 struct ShHardwareOptions
 {

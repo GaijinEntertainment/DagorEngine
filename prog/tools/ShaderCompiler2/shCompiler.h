@@ -73,7 +73,6 @@ String search_include_with_pathes(const char *fn);
 void setOutputUpdbPath(const char *path);
 const char *getOutputUpdbPath();
 
-const char *getSrcRootFolder();
 
 struct Job : cpujobs::IJob
 {
@@ -100,7 +99,4 @@ bool is_multithreaded();
 bool is_in_worker();
 void await_all_jobs(void (*on_released_cb)() = nullptr);
 void add_job(Job *job, JobMgrChoiceStrategy mgr_choice_strat);
-
-extern bool relinkOnly;
-extern bool use_threadpool;
 } // namespace shc

@@ -1,15 +1,14 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "call_stack.h"
+#include "command_list_storage.h"
+#include "configuration.h"
+#include <driver.h>
+
 #include <EASTL/span.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <winapi_helpers.h>
-
-#include "driver.h"
-#include "pipeline.h"
-#include "command_list_storage.h"
-#include "call_stack.h"
-#include "configuration.h"
 
 // These headers are not self-contained and need to be included after driver.h
 #include <GFSDK_Aftermath.h>
@@ -19,7 +18,12 @@
 
 namespace drv3d_dx12
 {
+class BasePipeline;
+class ComputePipeline;
+class PipelineVariant;
+struct BufferResourceReferenceAndOffset;
 struct Direct3D12Enviroment;
+struct PipelineStageStateBase;
 
 namespace debug::gpu_postmortem::nvidia
 {

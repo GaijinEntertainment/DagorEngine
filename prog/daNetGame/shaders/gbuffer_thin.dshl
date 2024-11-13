@@ -19,8 +19,6 @@ macro WRITE_GBUFFER_THIN()
 
     GBUFFER_OUTPUT apply_gbuffer_hdr(GBUFFER_OUTPUT ret)
     {
-      ret.sunLight.rgb *= get_exposure_mul();
-      ret.ambientLight.rgb *= get_exposure_mul();
       #if BLEND_GBUFFER
       ret.sunLight.a = 0;
       ret.ambientLight.a = 0;
@@ -63,7 +61,7 @@ macro WRITE_GBUFFER_THIN()
       #if SPECULAR_DISABLED && BRDF_DIFFUSE == DIFFUSE_LAMBERT
         half backlight = 0.0f;
         #if USE_SSS_THIN
-          if (isSubSurfaceShader(gbuffer.material) && isSubSurfaceProfileValid(gbuffer.sss_profile))
+          if (isSubSurfaceShader(gbuffer.material) && isTranslucentProfileValid(gbuffer.sss_profile))
             backlight += foliageSSSfast(NoL) * gbuffer.translucency;
         #endif
         sunLight = diffuseLambert( gbuffer.diffuseColor ) * (saturate(NoL) + backlight) * shadow;
@@ -111,7 +109,8 @@ macro WRITE_GBUFFER_THIN()
       half3 ambientLight = enviAO * environmentAmbientUnoccludedLighting * gbuffer.diffuseColor;
 
       #if USE_SSS_THIN
-        if (isSubSurfaceShader(gbuffer.material) && isSubSurfaceProfileValid(gbuffer.sss_profile))
+        // @TODO: unlock
+        if (isSubSurfaceShader(gbuffer.material) && isTranslucentProfileValid(gbuffer.sss_profile))
           ambientLight *= (1.0f + gbuffer.translucency);
       #endif
 
@@ -120,8 +119,7 @@ macro WRITE_GBUFFER_THIN()
 
       //envi-
       ambientLight += gbuffer.emissionColor + environmentAmbientReflection;
-      ambientLight *= exposure;//hdr
-      ret.sunLight.rgb = sunLight*exposure;//hdr
+      ret.sunLight.rgb = sunLight;//hdr
       ret.ambientLight.rgb = ambientLight;//hdr
 
       ret.sunLight.a = 0;

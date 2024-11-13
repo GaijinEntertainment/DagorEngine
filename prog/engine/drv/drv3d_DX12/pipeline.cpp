@@ -1,10 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include "pipeline.h"
 #include "device.h"
-#include "EASTL/functional.h"
+#include "render_target_mask_util.h"
+
+#include <EASTL/functional.h>
 #include <ioSys/dag_memIo.h>
 
-#include "render_target_mask_util.h"
 
 using namespace drv3d_dx12;
 
@@ -341,7 +343,7 @@ bool PipelineVariant::create(ID3D12Device2 *device, backend::ShaderModuleManager
     auto result = DX12_CHECK_RESULT(xbox_create_graphics_pipeline(device, desc, !static_state.enableDepthBounds, pipeline));
 #endif
     // Special handling as on PC we may have to retry if cache blob reload failed
-    if (FAILED(drv3d_dx12::dx12_check_result(result, "CreatePipelineState", __FILE__, __LINE__)))
+    if (FAILED(DX12_CHECK_RESULTF(result, "CreatePipelineState")))
     {
       if (is_recoverable_error(result))
       {
@@ -551,7 +553,7 @@ bool PipelineVariant::createMesh(ID3D12Device2 *device, backend::ShaderModuleMan
     }
 #endif
     // Special handling as on PC we may have to retry if cache blob reload failed
-    if (FAILED(drv3d_dx12::dx12_check_result(result, "CreatePipelineState", __FILE__, __LINE__)))
+    if (FAILED(DX12_CHECK_RESULTF(result, "CreatePipelineState")))
     {
       if (is_recoverable_error(result))
       {
@@ -2696,129 +2698,130 @@ void PipelineManager::writeBlkCache(FramebufferLayoutManager &fblm, uint32_t gro
 void PipelineStageStateBase::setSRVTexture(uint32_t unit, Image *image, ImageViewState view_state, bool as_const_ds,
   D3D12_CPU_DESCRIPTOR_HANDLE view)
 {
-  if ((tRegisters[unit].image != image) || (tRegisters[unit].imageView != view_state) || (tRegisters[unit].view != view) ||
-      isConstDepthStencil.test(unit) != as_const_ds)
-  {
-    isConstDepthStencil.set(unit, as_const_ds);
+  if ((tRegisters[unit].image == image) && (tRegisters[unit].imageView == view_state) && (tRegisters[unit].view == view) &&
+      isConstDepthStencil.test(unit) == as_const_ds)
+    return;
+
+  isConstDepthStencil.set(unit, as_const_ds);
 
 #if D3D_HAS_RAY_TRACING
-    tRegisters[unit].as = nullptr;
+  tRegisters[unit].as = nullptr;
 #endif
-    tRegisters[unit].buffer = BufferReference{};
+  tRegisters[unit].buffer = BufferReference{};
 
-    tRegisters[unit].image = image;
-    tRegisters[unit].imageView = view_state;
-    tRegisters[unit].view = view;
+  tRegisters[unit].image = image;
+  tRegisters[unit].imageView = view_state;
+  tRegisters[unit].view = view;
 
-    tRegisterValidMask &= ~(1 << unit);
-    if (image && image->hasTrackedState())
-    {
-      tRegisterStateDirtyMask |= 1u << unit;
-    }
+  tRegisterValidMask &= ~(1 << unit);
+  if (image && image->hasTrackedState())
+  {
+    tRegisterStateDirtyMask |= 1u << unit;
   }
+
+  if (image)
+    image->dbgValidateImageViewStateCompatibility(view_state);
 }
 
 void PipelineStageStateBase::setSampler(uint32_t unit, D3D12_CPU_DESCRIPTOR_HANDLE sampler)
 {
-  if (sRegisters[unit] != sampler)
-  {
-    sRegisterValidMask &= ~(1 << unit);
-    sRegisters[unit] = sampler;
-  }
+  if (sRegisters[unit] == sampler)
+    return;
+
+  sRegisterValidMask &= ~(1 << unit);
+  sRegisters[unit] = sampler;
 }
 
 void PipelineStageStateBase::setUAVTexture(uint32_t unit, Image *image, ImageViewState view_state, D3D12_CPU_DESCRIPTOR_HANDLE view)
 {
-  if ((uRegisters[unit].image != image) || (uRegisters[unit].imageView != view_state) || (uRegisters[unit].view != view))
-  {
-    uRegisterValidMask &= ~(1 << unit);
-    uRegisterStateDirtyMask |= 1u << unit;
+  if ((uRegisters[unit].image == image) && (uRegisters[unit].imageView == view_state) && (uRegisters[unit].view == view))
+    return;
 
-    uRegisters[unit].image = image;
-    uRegisters[unit].imageView = view_state;
-    uRegisters[unit].view = view;
+  uRegisterValidMask &= ~(1 << unit);
+  uRegisterStateDirtyMask |= 1u << unit;
 
-    uRegisters[unit].buffer = BufferReference{};
-  }
+  uRegisters[unit].image = image;
+  uRegisters[unit].imageView = view_state;
+  uRegisters[unit].view = view;
+
+  uRegisters[unit].buffer = BufferReference{};
 }
 
 bool PipelineStageStateBase::setSRVBuffer(uint32_t unit, BufferResourceReferenceAndShaderResourceView buffer)
 {
-  if (tRegisters[unit].view != buffer)
-  {
-    tRegisterValidMask &= ~(1 << unit);
-    tRegisterStateDirtyMask |= 1u << unit;
-    // have to ensure that samplers have to be looked up again
-    sRegisterValidMask = 0;
+  if (tRegisters[unit].view == buffer)
+    return false;
+
+  tRegisterValidMask &= ~(1 << unit);
+  tRegisterStateDirtyMask |= 1u << unit;
+  // have to ensure that samplers have to be looked up again
+  sRegisterValidMask = 0;
 
 #if D3D_HAS_RAY_TRACING
-    tRegisters[unit].as = nullptr;
+  tRegisters[unit].as = nullptr;
 #endif
 
-    tRegisters[unit].buffer = buffer;
+  tRegisters[unit].buffer = buffer;
 
-    tRegisters[unit].image = nullptr;
-    tRegisters[unit].imageView = ImageViewState();
-    tRegisters[unit].view = buffer.srv;
+  tRegisters[unit].image = nullptr;
+  tRegisters[unit].imageView = ImageViewState();
+  tRegisters[unit].view = buffer.srv;
 
-    return true;
-  }
-  return false;
+  return true;
 }
 
 bool PipelineStageStateBase::setUAVBuffer(uint32_t unit, BufferResourceReferenceAndUnorderedResourceView buffer)
 {
-  if (uRegisters[unit].view != buffer)
-  {
-    uRegisterValidMask &= ~(1 << unit);
-    uRegisterStateDirtyMask |= 1u << unit;
+  if (uRegisters[unit].view == buffer)
+    return false;
 
-    uRegisters[unit].buffer = buffer;
+  uRegisterValidMask &= ~(1 << unit);
+  uRegisterStateDirtyMask |= 1u << unit;
 
-    uRegisters[unit].image = nullptr;
-    uRegisters[unit].imageView = ImageViewState();
-    uRegisters[unit].view = buffer.uav;
+  uRegisters[unit].buffer = buffer;
 
-    return true;
-  }
-  return false;
+  uRegisters[unit].image = nullptr;
+  uRegisters[unit].imageView = ImageViewState();
+  uRegisters[unit].view = buffer.uav;
+
+  return true;
 }
 
 void PipelineStageStateBase::setConstBuffer(uint32_t unit, const ConstBufferSetupInformation &info)
 {
-  if (bRegisters[unit] != info.buffer)
-  {
-    bRegisterValidMask &= ~(1 << unit);
-    bRegisterStateDirtyMask |= 1u << unit;
+  if (bRegisters[unit] == info.buffer)
+    return;
 
-    bRegisters[unit].BufferLocation = info.buffer.gpuPointer;
-    bRegisters[unit].SizeInBytes = info.buffer.size;
-    bRegisterBuffers[unit] = info;
-  }
+  bRegisterValidMask &= ~(1 << unit);
+  bRegisterStateDirtyMask |= 1u << unit;
+
+  bRegisters[unit].BufferLocation = info.buffer.gpuPointer;
+  bRegisters[unit].SizeInBytes = info.buffer.size;
+  bRegisterBuffers[unit] = info;
 }
 
 #if D3D_HAS_RAY_TRACING
 void PipelineStageStateBase::setRaytraceAccelerationStructureAtT(uint32_t unit, RaytraceAccelerationStructure *as)
 {
-  if (tRegisters[unit].as != as)
+  if (tRegisters[unit].as == as)
+    return;
+
+  tRegisterValidMask &= ~(1 << unit);
+  tRegisterStateDirtyMask |= 1u << unit;
+  // have to ensure that samplers have to be looked up again
+  sRegisterValidMask = 0;
+
+  tRegisters[unit].as = as;
+
+  tRegisters[unit].buffer = BufferReference{};
+
+  tRegisters[unit].image = nullptr;
+  tRegisters[unit].imageView = ImageViewState();
+  tRegisters[unit].view.ptr = 0;
+
+  if (as)
   {
-    tRegisterValidMask &= ~(1 << unit);
-    tRegisterStateDirtyMask |= 1u << unit;
-    // have to ensure that samplers have to be looked up again
-    sRegisterValidMask = 0;
-
-    tRegisters[unit].as = as;
-
-    tRegisters[unit].buffer = BufferReference{};
-
-    tRegisters[unit].image = nullptr;
-    tRegisters[unit].imageView = ImageViewState();
-    tRegisters[unit].view.ptr = 0;
-
-    if (as)
-    {
-      tRegisters[unit].view = as->descriptor;
-    }
+    tRegisters[unit].view = as->descriptor;
   }
 }
 #endif
@@ -2830,39 +2833,39 @@ void PipelineStageStateBase::setSRVNull(uint32_t unit)
 #if D3D_HAS_RAY_TRACING
   hasChanged = hasChanged || nullptr != slot.as;
 #endif
-  if (hasChanged)
-  {
-    tRegisterValidMask &= ~(1 << unit);
-    tRegisterStateDirtyMask |= 1u << unit;
-    sRegisterValidMask = 0;
+  if (!hasChanged)
+    return;
+
+  tRegisterValidMask &= ~(1 << unit);
+  tRegisterStateDirtyMask |= 1u << unit;
+  sRegisterValidMask = 0;
 
 #if D3D_HAS_RAY_TRACING
-    slot.as = nullptr;
+  slot.as = nullptr;
 #endif
 
-    slot.buffer = BufferReference{};
+  slot.buffer = BufferReference{};
 
-    slot.image = nullptr;
-    slot.imageView = ImageViewState{};
+  slot.image = nullptr;
+  slot.imageView = ImageViewState{};
 
-    slot.view = D3D12_CPU_DESCRIPTOR_HANDLE{0};
-  }
+  slot.view = D3D12_CPU_DESCRIPTOR_HANDLE{0};
 }
 
 void PipelineStageStateBase::setUAVNull(uint32_t unit)
 {
   auto &slot = uRegisters[unit];
-  if (D3D12_CPU_DESCRIPTOR_HANDLE{0} != slot.view)
-  {
-    uRegisterValidMask &= ~(1 << unit);
-    uRegisterStateDirtyMask |= 1u << unit;
+  if (D3D12_CPU_DESCRIPTOR_HANDLE{0} == slot.view)
+    return;
 
-    slot.buffer = BufferReference{};
+  uRegisterValidMask &= ~(1 << unit);
+  uRegisterStateDirtyMask |= 1u << unit;
 
-    slot.image = nullptr;
-    slot.imageView = ImageViewState{};
-    slot.view = D3D12_CPU_DESCRIPTOR_HANDLE{0};
-  }
+  slot.buffer = BufferReference{};
+
+  slot.image = nullptr;
+  slot.imageView = ImageViewState{};
+  slot.view = D3D12_CPU_DESCRIPTOR_HANDLE{0};
 }
 
 namespace
@@ -2917,6 +2920,7 @@ void PipelineStageStateBase::flushResourceStates(uint32_t b_register_mask, uint3
   {
     if (tRegisters[i].image)
     {
+      tRegisters[i].image->dbgValidateImageViewStateCompatibility(tRegisters[i].imageView);
       res_usage.useTextureAsSRV(barrier_batcher, split_tracker, stage, tRegisters[i].image, tRegisters[i].imageView,
         isConstDepthStencil.test(i));
     }

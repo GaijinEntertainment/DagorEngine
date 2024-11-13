@@ -9,6 +9,6 @@ void teardown() {}
 void init(ContextId) {}
 void teardown(ContextId) {}
 void on_unload_scene(ContextId) {}
-void update_dynrend_instances(ContextId, dynrend::ContextId, const Point3 &) {}
+void update_dynrend_instances(ContextId, dynrend::ContextId, dynrend::ContextId, const Point3 &) {}
 void set_up_dynrend_context_for_processing(dynrend::ContextId) {}
 } // namespace bvh::dyn

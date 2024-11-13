@@ -28,6 +28,8 @@
 #include "net/net.h"
 #include "net/userid.h"
 #include <daECS/net/netEvents.h>
+#include <ecs/gameres/commonLoadingJobMgr.h>
+#include <osApiWrappers/dag_cpuJobs.h>
 #include "phys/physUtils.h" // phys_get_tickrate
 #include "net/dedicated.h"
 #include "net/time.h"
@@ -55,6 +57,8 @@ DED_SERVER_ECS_EVENTS
 #undef DED_SERVER_ECS_EVENT
 
 extern net::INetworkObserver *get_net_observer();
+extern void init_loading_job_manager();
+
 namespace dedicated
 {
 
@@ -91,10 +95,12 @@ static inline uint16_t try_parse_port(const char *str) // return 0 on error
   return ret;
 }
 
-net::INetDriver *create_net_driver()
+net::INetDriver *create_listen_net_driver()
 {
-  const char *listen = dgs_get_argv("listen");
   net::INetDriver *drv = nullptr;
+  if (dgs_get_argv("nolisten"))
+    return drv;
+  const char *listen = dgs_get_argv("listen");
   if (const char *udp_sock = dgs_get_argv("udp_sock")) // if udp_sock is passed than port should be passed as well
   {
     binded_net_port = listen ? try_parse_port(listen) : 0;
@@ -325,7 +331,6 @@ struct DedicatedNetObserver final : public net::INetworkObserver
     matching::UserId userId = msg->get<1>();
     eastl::string userName = dedicated_matching::get_player_name(userId);
     int64_t groupId = dedicated_matching::get_player_group(userId);
-    int64_t origGroupId = dedicated_matching::get_player_original_group(userId);
     int mteam = dedicated_matching::get_player_team(userId); // team assigned by matching
     if (mteam != TEAM_UNASSIGNED)
       mteam += FIRST_GAME_TEAM;
@@ -370,9 +375,8 @@ struct DedicatedNetObserver final : public net::INetworkObserver
       }
     }
     updater::Version ver{msg->get<7>()};
-    debug("Client #%d connected with user{name,id}=<%s>/%lld, groupId=%lld, origGroupId=%lld, mteam=%d, flags=0x%x, ver=%s, pltf=%s",
-      (int)conn.getId(), userName.c_str(), (long long)userId, (long long)groupId, (long long)origGroupId, mteam, (int)msg->get<3>(),
-      ver.to_string(), pltf.c_str());
+    debug("Client #%d connected with user{name,id}=<%s>/%lld, groupId=%lld, mteam=%d, flags=0x%x, ver=%s, pltf=%s", (int)conn.getId(),
+      userName.c_str(), (long long)userId, (long long)groupId, mteam, (int)msg->get<3>(), ver.to_string(), pltf.c_str());
 
     // Try to sync vroms during clien't connection
     const bool vromsAreTheSame = check_client_vroms_and_send_diffs(msg);
@@ -393,8 +397,8 @@ struct DedicatedNetObserver final : public net::INetworkObserver
     int app_id = dedicated_matching::get_player_app_id(userId);
 
     {
-      EventOnClientConnected evt(conn.getId(), userId, eastl::move(userName), groupId, origGroupId, msg->get<3>(), platformUid,
-        eastl::string(pltf), mteam, app_id);
+      EventOnClientConnected evt(conn.getId(), userId, eastl::move(userName), groupId, msg->get<3>(), platformUid, eastl::string(pltf),
+        mteam, app_id);
       if (vromsAreTheSame)
         g_entity_mgr->broadcastEventImmediate(eastl::move(evt));
       else
@@ -412,6 +416,9 @@ struct DedicatedNetObserver final : public net::INetworkObserver
     {
       debug("Client #%d connected, wait for identity message", (int)conn.getId());
       conn.getConnFlagsRW() = net::CF_PENDING;
+
+      if (ecs::get_common_loading_job_mgr() == cpujobs::COREID_IMMEDIATE) // Init MT loading mgr on first connect
+        init_loading_job_manager();
     }
     else // replay connection
     {

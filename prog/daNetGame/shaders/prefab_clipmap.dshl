@@ -47,7 +47,6 @@ shader land_mesh_clipmap // aka prefab_clipmap
       float3 pointToEye : TEXCOORD0;
       float3 normal : TEXCOORD1;
       float4 tcWorldPos : TEXCOORD2;
-      float heightForPuddle : TEXCOORD3;
     };
   }
 

@@ -92,8 +92,6 @@ using BindumpPackingFlags = uint32_t;
 bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filename, bool strip_shaders_and_stcode,
   BindumpPackingFlags packing_flags);
 
-extern bool use_git_timestamps;
-
 #if _CROSS_TARGET_DX12
 struct VertexProgramAndPixelShaderIdents
 {

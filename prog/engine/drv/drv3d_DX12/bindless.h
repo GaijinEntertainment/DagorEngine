@@ -1,14 +1,15 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <drv/3d/dag_driver.h>
-#include <EASTL/variant.h>
-#include <osApiWrappers/dag_critSec.h>
-#include <supp/dag_comPtr.h>
-#include <generic/dag_variantVector.h>
-
 #include "image_view_state.h"
 #include "sampler_state.h"
+
+#include <dag/dag_vector.h>
+#include <drv/3d/dag_driver.h>
+#include <generic/dag_variantVector.h>
+#include <osApiWrappers/dag_critSec.h>
+#include <osApiWrappers/dag_spinlock.h>
+#include <supp/dag_comPtr.h>
 
 
 namespace drv3d_dx12

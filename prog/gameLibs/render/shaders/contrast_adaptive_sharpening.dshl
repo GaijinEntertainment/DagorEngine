@@ -1,6 +1,13 @@
 include "shader_global.dshl"
 
 // this is an implementation of AMD's CAS with some minor tweaks
+float contrast_adaptive_sharpening = -0.125;
+
+macro INIT_CONTRAST_ADAPTIVE_SHARPENING(code)
+  (code) {
+    contrast_adaptive_sharpening@f1 = contrast_adaptive_sharpening;
+  }
+endmacro
 
 macro USE_CONTRAST_ADAPTIVE_SHARPENING(code)
   hlsl(code) {

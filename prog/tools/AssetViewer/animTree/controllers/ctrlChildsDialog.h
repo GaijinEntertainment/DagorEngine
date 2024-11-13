@@ -27,7 +27,6 @@ public:
   String getImportantParamPrefixName(const DataBlock &settings, int child_idx, CtrlType type);
 
 private:
-  virtual void updateImguiDialog() override;
   void editSelectedNode();
 
   static const int DEFAULT_MINIMUM_WIDTH = 250;

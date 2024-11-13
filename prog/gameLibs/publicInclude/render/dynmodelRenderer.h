@@ -27,6 +27,7 @@ class DynamicRenderableSceneResource;
 class BaseTexture;
 class GeomNodeTree;
 class ShaderElement;
+class ShaderMaterial;
 
 #ifndef INVALID_INST_NODE_ID
 #define INVALID_INST_NODE_ID 0
@@ -152,6 +153,14 @@ struct ReplacedShaderScope
   ~ReplacedShaderScope() { replace_shader(nullptr); }
 };
 
+// scoped material filtering
+void set_material_filters_by_name(Tab<const char *> &&material_names);
+struct MaterialFilterScope
+{
+  MaterialFilterScope(Tab<const char *> &&material_names) { set_material_filters_by_name(std::move(material_names)); }
+  ~MaterialFilterScope() { set_material_filters_by_name({}); }
+};
+
 ContextId create_context(const char *name);
 void delete_context(ContextId context_id);
 
@@ -183,6 +192,6 @@ Statistics &get_statistics();
 void reset_statistics();
 
 using InstanceIterator = void(ContextId, const DynamicRenderableSceneResource &, const DynamicRenderableSceneInstance &,
-  const Tab<bool> &, int, float, int, int, int, void *);
+  const dynrend::PerInstanceRenderData &, const Tab<bool> &, int, float, int, int, void *);
 void iterate_instances(dynrend::ContextId context_id, InstanceIterator iter, void *user_data);
 } // namespace dynrend

@@ -1,6 +1,5 @@
 
 #define NOP
-#define _HARDWARE_VULKAN 1
 
 struct TextureSampler
 {

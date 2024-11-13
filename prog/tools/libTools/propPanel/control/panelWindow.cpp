@@ -42,6 +42,8 @@ PanelWindowPropertyControl::PanelWindowPropertyControl(int id, ControlEventHandl
   ContainerPropertyControl(id, event_handler, parent, x, y, w, h), controlCaption(caption)
 {}
 
+PanelWindowPropertyControl::~PanelWindowPropertyControl() {}
+
 int PanelWindowPropertyControl::getScrollPos()
 {
   ImGuiWindow *window = ImGui::FindWindowByName(controlCaption);

@@ -297,19 +297,6 @@ public:
     das::addExtern<DAS_BIND_FUN(pathfinder::rebuildNavMesh_close)>(*this, lib, "rebuildNavMesh_close",
       das::SideEffects::modifyExternal, "pathfinder::rebuildNavMesh_close");
 
-    das::addExtern<DAS_BIND_FUN(walk_removed_tile_cache_tiles)>(*this, lib, "walk_removed_tile_cache_tiles",
-      das::SideEffects::modifyExternal, "bind_dascript::walk_removed_tile_cache_tiles");
-
-    das::addExtern<DAS_BIND_FUN(pathfinder::clear_removed_tile_cache_tiles)>(*this, lib, "clear_removed_tile_cache_tiles",
-      das::SideEffects::modifyExternal, "pathfinder::clear_removed_tile_cache_tiles");
-
-    das::addExtern<DAS_BIND_FUN(walk_removed_rebuild_tile_cache_tiles)>(*this, lib, "walk_removed_rebuild_tile_cache_tiles",
-      das::SideEffects::modifyExternal, "bind_dascript::walk_removed_rebuild_tile_cache_tiles");
-
-    das::addExtern<DAS_BIND_FUN(pathfinder::clear_removed_rebuild_tile_cache_tiles)>(*this, lib,
-      "clear_removed_rebuild_tile_cache_tiles", das::SideEffects::modifyExternal,
-      "pathfinder::clear_removed_rebuild_tile_cache_tiles");
-
     das::addExtern<DAS_BIND_FUN(tilecache_obstacle_move)>(*this, lib, "tilecache_obstacle_move", das::SideEffects::modifyExternal,
       "bind_dascript::tilecache_obstacle_move");
     das::addExtern<DAS_BIND_FUN(tilecache_obstacle_move_with_type)>(*this, lib, "tilecache_obstacle_move",

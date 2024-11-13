@@ -219,7 +219,7 @@ def call_inspector(type_name : string implicit; eid : array<EntityId> implicit; 
 [apply_in_context(ecs_inspectors)]
 def add_editor(prefix : bool; tags : array<string> implicit; var fn : EditorFn; var ctx : Context implicit) : bool
   var tagHashes <- [{ for tag in tags; !empty(tag) ? ecs_hash(tag) : 0u }]
-  editors |> emplace <| [[EditorDesc prefix=prefix, tags <- tagHashes, fn=new ContextEditorFn(fn, ctx) ]]
+  editors |> emplace <| [[EditorDesc prefix=prefix, tags <- tagHashes, fn=new ContextEditorFn(fn, ctx)]]
   return true
 
 

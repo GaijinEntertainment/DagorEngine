@@ -12,9 +12,11 @@
 #include "workCyclePriv.h"
 #include <3d/dag_lowLatency.h>
 
-#if _TARGET_XBOX
+#if _TARGET_GDK
 #include <osApiWrappers/xbox/queues.h>
-#elif _TARGET_PC_WIN
+#endif
+
+#if _TARGET_PC_WIN
 #include <workCycle/threadedWindow.h>
 #endif
 
@@ -78,7 +80,7 @@ void dagor_process_sys_messages(bool input_only)
     ::perform_wnd_proc_components(NULL, 0, 0, 0, result);
   }
 
-#if _TARGET_XBOX
+#if _TARGET_GDK
   xbox::dispatch_queue(xbox::get_default_queue());
 #endif
 

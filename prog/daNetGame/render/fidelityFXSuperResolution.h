@@ -28,6 +28,6 @@ public:
 private:
   eastl::unique_ptr<amd::FSR> fsr;
   int dlss_jitter_offsetVarId = get_shader_glob_var_id("dlss_jitter_offset");
-  resource_slot::NodeHandleWithSlotsAccess applierNode;
+  dabfg::NodeHandle applierNode;
   float deltaTimeMs;
 };

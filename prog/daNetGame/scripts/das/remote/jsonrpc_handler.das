@@ -76,7 +76,7 @@ class JsonRpcMatch : Matcher
 
     if length(requests) == 0
       return <- [[MatchResult invalid = null]]
-    return <- [[MatchResult success = end ]]
+    return <- [[MatchResult success = end]]
 
   def parseReq(str : string) : bool
     var res = false

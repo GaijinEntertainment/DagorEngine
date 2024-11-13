@@ -73,24 +73,25 @@ public:
   virtual int eval_interval_value(const char *ival_name) = 0;
   virtual void decl_bool_alias(const char *name, bool_expr &expr) {}
   virtual int add_message(const char *message, bool file_name) { return 0; }
+  virtual int is_debug_mode_enabled() { return false; }
 };
 
 void eval_shader(shader_decl &sh, ShaderEvalCB &cb);
 
 ShVarBool eval_shader_bool(bool_expr &, ShaderBoolEvalCB &cb);
 
-void add_shader(shader_decl *, ShaderSyntaxParser &);
+void add_shader(shader_decl *, ShaderSyntaxParser &, bool &out_shaderDebugModeEnabled);
 void add_block(block_decl *, ShaderSyntaxParser &);
 
 // add a global bool var
 void add_global_bool(ShaderTerminal::bool_decl &bool_var, ShaderTerminal::ShaderSyntaxParser &parser);
 
-void add_hlsl(hlsl_global_decl_class &, ShaderSyntaxParser &);
+void add_hlsl(hlsl_global_decl_class &, ShaderSyntaxParser &, bool need_file_idx);
 
 void build_bool_expr_string(bool_expr &e, String &out, bool clr_str = true);
 
-void addSourceCode(String &text, SHTOK_hlsl_text *source_text, ShaderSyntaxParser &parser);
-void addSourceCode(String &text, Symbol *term, const char *source_text, ShaderSyntaxParser &parser);
+void addSourceCode(String &text, SHTOK_hlsl_text *source_text, ShaderSyntaxParser &parser, bool need_file_idx);
+void addSourceCode(String &text, Symbol *term, const char *source_text, ShaderSyntaxParser &parser, bool need_file_idx);
 
 bool_expr *parse_condition(const char *cond_str, int cond_str_len, const char *file_name, int line);
 shader_stat *parse_shader_stat(const char *stat_str, int stat_str_len, IMemAlloc *alloc = nullptr);

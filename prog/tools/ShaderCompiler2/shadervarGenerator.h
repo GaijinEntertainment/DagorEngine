@@ -7,7 +7,7 @@
 #include <string>
 #include <map>
 
-enum class ShadervarGeneratorMode
+enum class ShadervarGeneratorMode : uint8_t
 {
   None,
   Remove,

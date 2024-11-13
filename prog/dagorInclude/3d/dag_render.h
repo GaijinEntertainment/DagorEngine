@@ -10,7 +10,6 @@
 extern bool grs_draw_wire;
 
 // compute and set gamma correction
-void set_gamma(float p);
 void set_gamma_shadervar(float p);
 
 // returns current gamma

@@ -1,17 +1,17 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "driver.h"
+
+#include <atomic>
+#include <EASTL/numeric.h>
 #include <EASTL/numeric_limits.h>
 #include <EASTL/optional.h>
 #include <EASTL/span.h>
 #include <EASTL/type_traits.h>
 #include <EASTL/unique_ptr.h>
-#include <EASTL/numeric.h>
-#include <perfMon/dag_statDrv.h>
 #include <osApiWrappers/dag_lockProfiler.h>
-#include <atomic>
-
-#include "driver.h"
+#include <perfMon/dag_statDrv.h>
 
 
 template <typename...>

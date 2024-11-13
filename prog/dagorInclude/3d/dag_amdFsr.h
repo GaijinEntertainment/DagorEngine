@@ -118,6 +118,8 @@ struct FSR
 
   // To be called by the dagor drivers
   virtual bool doApplyUpscaling(const UpscalingPlatformArgs &args, void *command_list) const = 0;
+
+  virtual String getVersionString() const { return String(8, "Unknown"); }
 };
 
 FSR *createFSR();

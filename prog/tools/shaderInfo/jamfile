@@ -29,6 +29,7 @@ UseProgLibs =
   engine/lib3d
   engine/drv/drv3d_null
   3rdPartyLibs/eastl
+  3rdPartyLibs/hash/BLAKE3
   engine/shaders
   engine/perfMon/daProfilerStub
 ;

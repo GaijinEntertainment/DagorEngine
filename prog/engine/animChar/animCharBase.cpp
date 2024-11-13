@@ -637,6 +637,11 @@ int AnimcharBaseComponent::setAttachedChar(int slot_id, attachment_uid_t uid, An
   return idx;
 }
 
+int AnimcharBaseComponent::getAttachmentSlotsCount() const { return attachment.size(); }
+int AnimcharBaseComponent::getAttachmentSlotId(int char_slot_idx) const
+{
+  return char_slot_idx >= 0 && char_slot_idx < attachmentSlotId.size() ? attachmentSlotId[char_slot_idx] : -1;
+}
 AnimcharBaseComponent *AnimcharBaseComponent::getAttachedChar(int slot_id) const
 {
   int idx = slot_id >= 0 ? find_value_idx(attachmentSlotId, slot_id) : -1;

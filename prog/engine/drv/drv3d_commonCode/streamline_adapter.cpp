@@ -37,6 +37,7 @@ SL_FUN_DECL(slSetTag);
 SL_FUN_DECL(slEvaluateFeature);
 SL_FUN_DECL(slAllocateResources);
 SL_FUN_DECL(slFreeResources);
+SL_FUN_DECL(slGetFeatureVersion);
 
 SL_FUN_DECL(slDLSSGetOptimalSettings);
 SL_FUN_DECL(slDLSSGetState);
@@ -69,6 +70,7 @@ void loadInterposer(void *module)
   LOAD_FUNC(slEvaluateFeature);
   LOAD_FUNC(slAllocateResources);
   LOAD_FUNC(slFreeResources);
+  LOAD_FUNC(slGetFeatureVersion);
 #undef LOAD_FUNC
 }
 
@@ -617,6 +619,23 @@ bool StreamlineAdapter::releaseDlssFeature(int viewportId)
     dlssState = State::SUPPORTED;
 
   return ok;
+}
+
+static eastl::string versionToString(const sl::Version &version)
+{
+  return eastl::string(eastl::string::CtorSprintf(), "%d.%d.%d", version.major, version.minor, version.build);
+}
+
+dag::Expected<eastl::string, nv::SupportState> StreamlineAdapter::getDlssVersion() const
+{
+  if (!sl_funcs::slGetFeatureVersion)
+    return dag::Unexpected(nv::SupportState::NotSupported);
+
+  sl::FeatureVersion version;
+  if (SL_FAILED(result, sl_funcs::slGetFeatureVersion(sl::kFeatureDLSS, version)))
+    return dag::Unexpected(toSupportState(result));
+
+  return eastl::string{versionToString(version.versionNGX)};
 }
 
 bool StreamlineAdapter::createDlssGFeature(int viewportId, void *commandBuffer)

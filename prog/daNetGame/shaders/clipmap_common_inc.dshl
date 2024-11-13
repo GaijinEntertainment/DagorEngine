@@ -46,11 +46,9 @@ macro USE_CLIPMAP_VS(VS_INPUT_M, VS_OUTPUT_M, use_worldpos_from_input)
         output.tcWorldPos.w = worldPos.y;
       #endif
       #if !PN_TESSELATION
-        float heightForPuddle = worldPos.y;
         // no displacement without tessellation, it's not accurate at all if the triangle edges are long
         #if NEED_TC_WORLDPOS
           output.tcWorldPos.w = worldPos.y;
-          output.heightForPuddle = heightForPuddle;
         #endif
       #endif
 
@@ -110,7 +108,11 @@ macro USE_CLIPMAP_PS(VS_OUTPUT, use_worldpos_from_input)
         computeSnowSparkle(realWorldPos, world_view_pos, sparkles, result.normal, result.smoothness);
         calculateHeightmapMicrodetails(result, detailNo, tcWorldPos, realWorldPos, verticalNormal, clipNormalXY,
                                         porosity, normalWetness, wetness);
-        half puddle = addPuddles(result, realWorldPos, input.tcWorldPos.w, htTc, porosity, input.heightForPuddle);
+        ##if shader == rendinst_landclass
+          half puddle = addPuddlesWithConstHeight(result, realWorldPos, input.tcWorldPos.w, htTc, porosity, worldPos.y + get_landclass_water_level());
+        ##else
+          half puddle = addPuddles(result, realWorldPos, input.tcWorldPos.w, htTc, porosity, input.tcWorldPos.w);
+        ##endif
       ##else
         result.albedo.rgb = float3(0.5, 0.5, 0.5);
       ##endif

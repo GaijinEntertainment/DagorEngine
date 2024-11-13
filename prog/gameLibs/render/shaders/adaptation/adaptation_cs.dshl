@@ -199,6 +199,9 @@ float4 EyeAdaptationParams_1;
 float4 EyeAdaptationParams_2;
 float4 EyeAdaptationParams_3;
 
+int has_pre_exposure = 1;
+interval has_pre_exposure:no<1, yes;
+
 shader AdaptExposureCS
 {
   (cs) {
@@ -216,6 +219,11 @@ shader AdaptExposureCS
     };
   }
   hlsl(cs) {
+    #if has_pre_exposure == yes
+      #define HAS_PRE_EXPOSURE 1
+    #else
+      #define HAS_PRE_EXPOSURE 0
+    #endif
     #include <adaptation.hlsli>
     #include <exposure/AdaptExposureCS.hlsl>
   }

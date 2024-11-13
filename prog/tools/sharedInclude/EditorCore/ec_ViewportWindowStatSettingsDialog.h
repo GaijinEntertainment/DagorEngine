@@ -38,7 +38,6 @@ private:
   void updateColors();
 
   virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
-  virtual void updateImguiDialog() override;
 
   ViewportWindow &viewport;
 };

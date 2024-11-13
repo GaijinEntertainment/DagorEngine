@@ -527,6 +527,95 @@ eastl::optional<ImGuiKey> map_dagor_key_to_imgui(int humap_key)
   }
 }
 
+int map_imgui_key_to_dagor(int imgui_key)
+{
+  switch (imgui_key)
+  {
+    case ImGuiKey_Tab: return HumanInput::DKEY_TAB;
+    case ImGuiKey_LeftArrow: return HumanInput::DKEY_LEFT;
+    case ImGuiKey_RightArrow: return HumanInput::DKEY_RIGHT;
+    case ImGuiKey_UpArrow: return HumanInput::DKEY_UP;
+    case ImGuiKey_DownArrow: return HumanInput::DKEY_DOWN;
+    case ImGuiKey_PageUp: return HumanInput::DKEY_PRIOR;
+    case ImGuiKey_PageDown: return HumanInput::DKEY_NEXT;
+    case ImGuiKey_Home: return HumanInput::DKEY_HOME;
+    case ImGuiKey_End: return HumanInput::DKEY_END;
+    case ImGuiKey_Insert: return HumanInput::DKEY_INSERT;
+    case ImGuiKey_Delete: return HumanInput::DKEY_DELETE;
+    case ImGuiKey_Backspace: return HumanInput::DKEY_BACK;
+    case ImGuiKey_Space: return HumanInput::DKEY_SPACE;
+    case ImGuiKey_Enter: return HumanInput::DKEY_RETURN;
+    case ImGuiKey_Escape: return HumanInput::DKEY_ESCAPE;
+    case ImGuiKey_KeypadEnter: return HumanInput::DKEY_NUMPADENTER;
+    case ImGuiKey_LeftShift: return HumanInput::DKEY_LSHIFT;
+    case ImGuiKey_LeftCtrl: return HumanInput::DKEY_LCONTROL;
+    case ImGuiKey_LeftAlt: return HumanInput::DKEY_LALT;
+    case ImGuiKey_RightShift: return HumanInput::DKEY_RSHIFT;
+    case ImGuiKey_RightCtrl: return HumanInput::DKEY_RCONTROL;
+    case ImGuiKey_RightAlt: return HumanInput::DKEY_RALT;
+    case ImGuiKey_A: return HumanInput::DKEY_A;
+    case ImGuiKey_B: return HumanInput::DKEY_B;
+    case ImGuiKey_C: return HumanInput::DKEY_C;
+    case ImGuiKey_D: return HumanInput::DKEY_D;
+    case ImGuiKey_E: return HumanInput::DKEY_E;
+    case ImGuiKey_F: return HumanInput::DKEY_F;
+    case ImGuiKey_G: return HumanInput::DKEY_G;
+    case ImGuiKey_H: return HumanInput::DKEY_H;
+    case ImGuiKey_I: return HumanInput::DKEY_I;
+    case ImGuiKey_J: return HumanInput::DKEY_J;
+    case ImGuiKey_K: return HumanInput::DKEY_K;
+    case ImGuiKey_L: return HumanInput::DKEY_L;
+    case ImGuiKey_M: return HumanInput::DKEY_M;
+    case ImGuiKey_N: return HumanInput::DKEY_N;
+    case ImGuiKey_O: return HumanInput::DKEY_O;
+    case ImGuiKey_P: return HumanInput::DKEY_P;
+    case ImGuiKey_Q: return HumanInput::DKEY_Q;
+    case ImGuiKey_R: return HumanInput::DKEY_R;
+    case ImGuiKey_S: return HumanInput::DKEY_S;
+    case ImGuiKey_T: return HumanInput::DKEY_T;
+    case ImGuiKey_U: return HumanInput::DKEY_U;
+    case ImGuiKey_V: return HumanInput::DKEY_V;
+    case ImGuiKey_W: return HumanInput::DKEY_W;
+    case ImGuiKey_X: return HumanInput::DKEY_X;
+    case ImGuiKey_Y: return HumanInput::DKEY_Y;
+    case ImGuiKey_Z: return HumanInput::DKEY_Z;
+    case ImGuiKey_0: return HumanInput::DKEY_0;
+    case ImGuiKey_1: return HumanInput::DKEY_1;
+    case ImGuiKey_2: return HumanInput::DKEY_2;
+    case ImGuiKey_3: return HumanInput::DKEY_3;
+    case ImGuiKey_4: return HumanInput::DKEY_4;
+    case ImGuiKey_5: return HumanInput::DKEY_5;
+    case ImGuiKey_6: return HumanInput::DKEY_6;
+    case ImGuiKey_7: return HumanInput::DKEY_7;
+    case ImGuiKey_8: return HumanInput::DKEY_8;
+    case ImGuiKey_9: return HumanInput::DKEY_9;
+    case ImGuiKey_F1: return HumanInput::DKEY_F1;
+    case ImGuiKey_F2: return HumanInput::DKEY_F2;
+    case ImGuiKey_F3: return HumanInput::DKEY_F3;
+    case ImGuiKey_F4: return HumanInput::DKEY_F4;
+    case ImGuiKey_F5: return HumanInput::DKEY_F5;
+    case ImGuiKey_F6: return HumanInput::DKEY_F6;
+    case ImGuiKey_F7: return HumanInput::DKEY_F7;
+    case ImGuiKey_F8: return HumanInput::DKEY_F8;
+    case ImGuiKey_F9: return HumanInput::DKEY_F9;
+    case ImGuiKey_F10: return HumanInput::DKEY_F10;
+    case ImGuiKey_F11: return HumanInput::DKEY_F11;
+    case ImGuiKey_F12: return HumanInput::DKEY_F12;
+    case ImGuiKey_Keypad0: return HumanInput::DKEY_NUMPAD0;
+    case ImGuiKey_Keypad1: return HumanInput::DKEY_NUMPAD1;
+    case ImGuiKey_Keypad2: return HumanInput::DKEY_NUMPAD2;
+    case ImGuiKey_Keypad3: return HumanInput::DKEY_NUMPAD3;
+    case ImGuiKey_Keypad4: return HumanInput::DKEY_NUMPAD4;
+    case ImGuiKey_Keypad5: return HumanInput::DKEY_NUMPAD5;
+    case ImGuiKey_Keypad6: return HumanInput::DKEY_NUMPAD6;
+    case ImGuiKey_Keypad7: return HumanInput::DKEY_NUMPAD7;
+    case ImGuiKey_Keypad8: return HumanInput::DKEY_NUMPAD8;
+    case ImGuiKey_Keypad9: return HumanInput::DKEY_NUMPAD9;
+
+    default: return -1;
+  }
+}
+
 bool imgui_window_is_visible(const char *, const char *name) { return load_window_opened(name); }
 
 static int menu_bar_height = 0;

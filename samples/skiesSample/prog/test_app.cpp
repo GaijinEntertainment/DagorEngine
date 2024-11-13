@@ -417,6 +417,7 @@ public:
 
     const int reflW = width / 6, reflH = height / 6;
 
+    daSkies.initSky();
     PreparedSkiesParams refl_params;
     // required for each point of view (or the only one if panorama, for panorama center)
     refl_pov_data =
@@ -442,8 +443,6 @@ public:
     if (global_cls_drv_pnt)
       global_cls_drv_pnt->getDevice(0)->setClipRect(0, 0, width, height);
 
-    daSkies.initSky();
-
     createMainPovData();
 
     PreparedSkiesParams cubeParams;
@@ -460,7 +459,9 @@ public:
       waterFoamTexId = ::get_tex_gameres(foamTexName); // mem leak
       G_ASSERTF(waterFoamTexId != BAD_TEXTUREID, "water foam texture '%s' not found.", foamTexName);
       static ShaderVariableInfo foam_tex("foam_tex");
+      static ShaderVariableInfo foam_tex_samplerstate("foam_tex_samplerstate", true);
       foam_tex.set_texture(waterFoamTexId);
+      foam_tex_samplerstate.set_sampler(get_texture_separate_sampler(waterFoamTexId));
     }
 
     {
@@ -468,7 +469,9 @@ public:
       perlinTexId = ::get_tex_gameres(perlinName); // mem leak
       G_ASSERTF(perlinTexId != BAD_TEXTUREID, "water perlin noise texture '%s' not found.", perlinName);
       static ShaderVariableInfo perlin_noise("perlin_noise");
+      static ShaderVariableInfo perlin_noise_samplerstate("perlin_noise_samplerstate", true);
       perlin_noise.set_texture(perlinTexId);
+      perlin_noise_samplerstate.set_sampler(get_texture_separate_sampler(perlinTexId));
     }
 
     {
@@ -1040,6 +1043,7 @@ public:
   }
   HeightmapRenderer heightmapRenderer;
   UniqueTexHolder heightmap;
+  d3d::SamplerHandle heightmapSampler;
 
   float heightmapCellSize = 1.f, heightmapScale = 1.f, heightmapMin = 0.f, hmapMaxHt = 1.f;
 
@@ -1079,7 +1083,11 @@ public:
       return;
     heightmap.setVar();
     static ShaderVariableInfo hmap_ldetail("hmap_ldetail", true);
+    static ShaderVariableInfo hmap_ldetail_samplerstate("hmap_ldetail_samplerstate", true);
+    static ShaderVariableInfo heightmap_samplerstate("heightmap_samplerstate", true);
     hmap_ldetail.set_texture(heightmap.getTexId());
+    hmap_ldetail_samplerstate.set_sampler(heightmapSampler);
+    heightmap_samplerstate.set_sampler(heightmapSampler);
     heightmapRenderer.render(lodGrid, defaultCullData);
   }
 
@@ -1267,8 +1275,11 @@ public:
           .handle();
 
       registry.read("ssr_target").texture().atStage(dabfg::Stage::PS).bindToShaderVar();
+      registry.read("ssr_target_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("ssr_target_samplerstate");
       registry.read("ssao_tex").texture().atStage(dabfg::Stage::PS).bindToShaderVar();
+      registry.read("ssao_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("ssao_tex_samplerstate");
       registry.read("csm").texture().atStage(dabfg::Stage::PS).bindToShaderVar("shadow_cascade_depth_tex");
+      registry.read("csm_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("shadow_cascade_depth_tex_samplerstate");
 
       auto resShading = eastl::make_unique<ShadingResolver>("deferred_shading");
       return [this, depthHandle, resolvedHandle, mainViewRes, camHndl, resolveShading = eastl::move(resShading)]() {
@@ -1344,7 +1355,7 @@ public:
                          .handle();
       auto prevFddHandle = registry.readTextureHistory("far_downsampled_depth")
                              .atStage(dabfg::Stage::PS_OR_CS)
-                             .bindToShaderVar("prev_downsampled_far_depth_tex")
+                             .useAs(dabfg::Usage::SHADER_RESOURCE)
                              .handle();
 
       return [this, camHndl, mainSkiesDataHndl, fddHandle, prevFddHandle]() {
@@ -1360,10 +1371,6 @@ public:
       auto mainSkiesDataHndl = registry.read("main_cam_skies_data").blob<SkiesData *>().handle();
 
       registry.read("far_downsampled_depth").texture().atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("downsampled_far_depth_tex");
-      registry.historyFor("far_downsampled_depth")
-        .texture()
-        .atStage(dabfg::Stage::PS_OR_CS)
-        .bindToShaderVar("prev_downsampled_far_depth_tex");
 
       auto resolvedFrameHndl =
         registry.modify("resolved_frame").texture().atStage(dabfg::Stage::POST_RASTER).useAs(dabfg::Usage::COLOR_ATTACHMENT).handle();
@@ -1377,8 +1384,6 @@ public:
 
         const auto &cam = camHndl.ref();
 
-        depthHndl.view()->texfilter(TEXFILTER_POINT);
-
         daSkies.renderSky(mainSkiesDataHndl.ref(), cam.viewTm, cam.projTm, cam.persp, true, aurora.get());
       };
     });
@@ -1390,10 +1395,6 @@ public:
                          .atStage(dabfg::Stage::PS_OR_CS)
                          .bindToShaderVar("downsampled_far_depth_tex")
                          .handle();
-      auto prevFddHandle = registry.readTextureHistory("far_downsampled_depth")
-                             .atStage(dabfg::Stage::PS_OR_CS)
-                             .bindToShaderVar("prev_downsampled_far_depth_tex")
-                             .handle();
 
       auto mainSkiesDataHndl = registry.read("main_cam_skies_data").blob<SkiesData *>().handle();
 
@@ -1403,18 +1404,11 @@ public:
       auto depthHndl =
         eastl::move(depthReq).atStage(dabfg::Stage::POST_RASTER).useAs(dabfg::Usage::DEPTH_ATTACHMENT_AND_SHADER_RESOURCE).handle();
 
-      return [depthHndl, fddHandle, prevFddHandle, mainSkiesDataHndl, camHndl, this]() {
+      return [depthHndl, fddHandle, mainSkiesDataHndl, camHndl, this]() {
         const auto &cam = camHndl.ref();
-
-        fddHandle.view()->texfilter(TEXFILTER_POINT);
-        prevFddHandle.view()->texfilter(TEXFILTER_LINEAR);
-        prevFddHandle.view()->texaddr(TEXADDR_CLAMP);
-        depthHndl.view()->texfilter(TEXFILTER_POINT);
 
         daSkies.renderClouds(render_panel.infinite_skies, fddHandle.view(), depthHndl.d3dResId(), mainSkiesDataHndl.ref(), cam.viewTm,
           cam.projTm);
-
-        prevFddHandle.view()->texaddr(TEXADDR_BORDER);
       };
     });
 
@@ -1429,14 +1423,7 @@ public:
       bind_camera(registry, "main_camera");
 
       registry.readTexture("downsampled_normals").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar();
-      auto fddHandle = registry.readTexture("far_downsampled_depth")
-                         .atStage(dabfg::Stage::PS_OR_CS)
-                         .bindToShaderVar("downsampled_far_depth_tex")
-                         .handle();
-      auto prevFddHandle = registry.readTextureHistory("far_downsampled_depth")
-                             .atStage(dabfg::Stage::PS_OR_CS)
-                             .bindToShaderVar("prev_downsampled_far_depth_tex")
-                             .handle();
+      registry.readTexture("far_downsampled_depth").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("downsampled_far_depth_tex");
 
       uint32_t fmt = 0;
       SSRQuality tmpQuality = SSRQuality::Low;
@@ -1449,14 +1436,14 @@ public:
                              .atStage(dabfg::Stage::PS_OR_CS)
                              .useAs(dabfg::Usage::COLOR_ATTACHMENT)
                              .handle();
+      registry.create("ssr_target_sampler", dabfg::History::No)
+        .blob(d3d::request_sampler({}))
+        .bindToShaderVar("ssr_target_samplerstate");
       auto ssrTargetHistHndl =
         registry.historyFor("ssr_target").texture().atStage(dabfg::Stage::PS_OR_CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
 
       auto ssr = eastl::make_unique<ScreenSpaceReflections>(width / 2, height / 2, 1, fmt, SSRQuality::Low, SSRFlag::None);
-      return [this, fddHandle, prevFddHandle, ssrTargetHndl, ssrTargetHistHndl, ssr = eastl::move(ssr)]() {
-        fddHandle.view()->texfilter(TEXFILTER_POINT);
-        prevFddHandle.view()->texfilter(TEXFILTER_LINEAR);
-
+      return [this, ssrTargetHndl, ssrTargetHistHndl, ssr = eastl::move(ssr)]() {
         TMatrix itm;
         curCamera->getInvViewMatrix(itm);
         const DPoint3 worldPos = DPoint3(itm.getcol(3));
@@ -1474,14 +1461,11 @@ public:
       bind_camera(registry, "main_camera");
 
       registry.readTexture("downsampled_normals").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar();
+      registry.read("downsampled_normals_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("downsampled_normals_samplerstate");
       auto fddHandle = registry.readTexture("far_downsampled_depth")
                          .atStage(dabfg::Stage::PS_OR_CS)
                          .bindToShaderVar("downsampled_far_depth_tex")
                          .handle();
-      auto prevFddHandle = registry.readTextureHistory("far_downsampled_depth")
-                             .atStage(dabfg::Stage::PS_OR_CS)
-                             .bindToShaderVar("prev_downsampled_far_depth_tex")
-                             .handle();
 
       const auto halfMainViewRes = registry.getResolution<2>("main_view", 0.5f);
       const auto fmt = ssao_detail::creation_flags_to_format(SSAO_NONE);
@@ -1495,17 +1479,24 @@ public:
       auto ssaoHistHndl =
         registry.historyFor("ssao_tex").texture().atStage(dabfg::Stage::PS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
 
+      {
+        d3d::SamplerInfo smpInfo;
+        smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+        smpInfo.border_color = d3d::BorderColor::Color::OpaqueWhite;
+        registry.create("ssao_sampler", dabfg::History::No)
+          .blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo))
+          .bindToShaderVar("ssao_tex_samplerstate")
+          .bindToShaderVar("ssao_prev_tex_samplerstate");
+      }
+
       auto ssaoTmpHndl = registry.create("ssao_tmp_tex", dabfg::History::No)
                            .texture({fmt | TEXCF_RTARGET, halfMainViewRes})
                            .atStage(dabfg::Stage::PS)
                            .useAs(dabfg::Usage::COLOR_ATTACHMENT)
                            .handle();
 
-      auto ssao = eastl::make_unique<SSAORenderer>(width / 2, height / 2, 1, SSAO_NONE, false);
-      return [this, fddHandle, prevFddHandle, ssaoHndl, ssaoHistHndl, ssaoTmpHndl, ssao = eastl::move(ssao)]() {
-        fddHandle.view()->texfilter(TEXFILTER_POINT);
-        prevFddHandle.view()->texfilter(TEXFILTER_LINEAR);
-
+      auto ssao = eastl::make_unique<SSAORenderer>(width / 2, height / 2, 1, SSAO_SKIP_RANDOM_PATTERN_GENERATION, false);
+      return [this, fddHandle, ssaoHndl, ssaoHistHndl, ssaoTmpHndl, ssao = eastl::move(ssao)]() {
         TMatrix itm;
         curCamera->getInvViewMatrix(itm);
         const DPoint3 worldPos = DPoint3(itm.getcol(3));
@@ -1536,6 +1527,12 @@ public:
                        .atStage(dabfg::Stage::POST_RASTER)
                        .useAs(dabfg::Usage::DEPTH_ATTACHMENT)
                        .handle();
+      {
+        d3d::SamplerInfo smpInfo;
+        smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+        smpInfo.filter_mode = d3d::FilterMode::Compare;
+        registry.create("csm_sampler", dabfg::History::No).blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo));
+      }
       return [this, csmHndl]() {
         auto csmView = csmHndl.view();
         csm->renderShadowsCascadesCb(
@@ -1545,8 +1542,7 @@ public:
           },
           csmView);
 
-        csmView->texfilter(TEXFILTER_COMPARE);
-        csmView->texaddr(TEXADDR_CLAMP);
+        csmView->disableSampler();
       };
     });
     return result;
@@ -1586,6 +1582,11 @@ public:
                                         .atStage(dabfg::Stage::POST_RASTER)
                                         .useAs(dabfg::Usage::COLOR_ATTACHMENT)
                                         .handle();
+      {
+        d3d::SamplerInfo smpInfo;
+        smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+        registry.create("downsampled_normals_sampler", dabfg::History::No).blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo));
+      }
 
       // downsampled depth
       uint32_t numMips = min(get_log2w(width / 2), get_log2w(height / 2)) - 1;
@@ -1608,11 +1609,6 @@ public:
 
       return [gbufDepthHandle, farDownsampledDepthHandle, downsampledNormalsHandle, this]() {
         auto farDownsampledDepth = farDownsampledDepthHandle.view();
-
-        // TODO: move this to texture properties
-        farDownsampledDepth.getTex2D()->texaddr(TEXADDR_BORDER);
-        farDownsampledDepth.getTex2D()->texbordercolor(0);
-        farDownsampledDepth.getTex2D()->texfilter(TEXFILTER_POINT);
 
         TIME_D3D_PROFILE(downsample_depth);
 
@@ -1646,6 +1642,7 @@ public:
 
     result.renderPostFx = dabfg::register_node("render_postfx", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
       registry.readTexture("color_for_transparent").atStage(dabfg::Stage::PS).bindToShaderVar("frame_tex");
+      registry.create("frame_sampler", dabfg::History::No).blob(d3d::request_sampler({})).bindToShaderVar("frame_tex_samplerstate");
 
       registry.requestRenderPass().color({"backbuffer"});
 
@@ -1796,6 +1793,9 @@ public:
       registry.requestRenderPass().color({reflTexReq});
 
       registry.readTexture("water_reflection_tex_temp").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar();
+      registry.create("water_reflection_tex_temp_sampler", dabfg::History::No)
+        .blob(d3d::request_sampler({}))
+        .bindToShaderVar("water_reflection_tex_temp_samplerstate");
 
       return [this, clipWaterReflection = PostFxRenderer("clip_water_reflection")]() { clipWaterReflection.render(); };
     });
@@ -1812,10 +1812,19 @@ public:
     result.render = dabfg::register_node("render_water", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
       auto camHndl = bind_camera(registry, "main_camera").handle();
 
-      auto fddHandle =
-        registry.readTexture("far_downsampled_depth").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("depth_tex").handle();
+      registry.readTexture("far_downsampled_depth").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("depth_tex");
+      {
+        d3d::SamplerInfo smpInfo;
+        smpInfo.filter_mode = d3d::FilterMode::Point;
+        registry.create("water_fdd_sampler", dabfg::History::No)
+          .blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo))
+          .bindToShaderVar("depth_tex_samplerstate");
+      }
 
       (registry.root() / "water_refl").readTexture("water_reflection_tex").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar();
+      registry.create("water_reflection_tex_sampler", dabfg::History::No)
+        .blob(d3d::request_sampler({}))
+        .bindToShaderVar("water_reflection_tex_samplerstate");
 
       registry.setPriority(-100);
       registry.requestRenderPass().color({"color_for_transparent"}).depthRo("depth_for_transparent");
@@ -1823,10 +1832,11 @@ public:
       registry.requestState().allowWireframe();
 
       registry.readTextureHistory("prev_frame").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("water_refraction_tex");
+      registry.create("water_refraction_tex_sampler", dabfg::History::No)
+        .blob(d3d::request_sampler({}))
+        .bindToShaderVar("water_refraction_tex_samplerstate");
 
-      return [fddHandle, camHndl, this]() {
-        fddHandle.view()->texfilter(TEXFILTER_POINT);
-
+      return [camHndl, this]() {
         if (!(fftWater && water_panel.enabled))
           return;
 
@@ -2005,7 +2015,9 @@ public:
       }
     }
     static ShaderVariableInfo envi_probe_specular("envi_probe_specular", true);
+    static ShaderVariableInfo envi_probe_specular_samplerstate("envi_probe_specular_samplerstate", true);
     envi_probe_specular.set_texture(light_probe::getManagedTex(enviProbe.get())->getTexId());
+    envi_probe_specular_samplerstate.set_sampler(d3d::request_sampler({}));
   }
 
   IGameCamera *curCamera; // for console made publuc
@@ -2546,6 +2558,11 @@ wind_dep0(S[0].windDependency), wind_dep1(S[1].windDependency), wind_dep2(S[2].w
       };
       virtual void releaseJob() { delete this; }
     };
+    {
+      d3d::SamplerInfo smpInfo;
+      smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+      heightmapSampler = d3d::request_sampler(smpInfo);
+    }
     heightmap.close();
     water_panel.water_level = dgs_get_settings()->getReal("heightmapWaterLevel", water_panel.water_level);
 

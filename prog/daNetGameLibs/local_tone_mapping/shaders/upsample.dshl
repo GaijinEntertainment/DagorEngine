@@ -43,9 +43,12 @@ shader local_tone_mapping_upsample
     ##elif mips_cnt == four
     static const uint WINDOW_SIZE_POW = 3;
     ##endif
+
     static const uint WINDOW_SIZE = 1u << WINDOW_SIZE_POW;
     static const uint GROUP_SIZE_POW = 3u;
     static const uint GROUP_SIZE = 1u << GROUP_SIZE_POW;
+
+    ##if mips_cnt != one
     groupshared float4 cachedMem[GROUP_SIZE][GROUP_SIZE];
 
     float4 get_cached_exposure(uint2 localId)
@@ -58,15 +61,22 @@ shader local_tone_mapping_upsample
       ##assert(all(localId < GROUP_SIZE), "localId (%f, %f) is out of bounds on exposure writing", localId.x, localId.y);
       cachedMem[localId.x][localId.y] = exposure;
     }
+    ##endif
 
     [numthreads(GROUP_SIZE, GROUP_SIZE, 1)]
     void upsample_cs(uint2 dtId : SV_DispatchThreadID, uint2 localId : SV_GroupThreadID, uint2 groupId : SV_GroupID)
     {
+      ##if mips_cnt != one
       uint2 algoBasedLocalId = localId & ((1u << WINDOW_SIZE_POW) - 1);
       uint2 groupDataOffset = (localId >> WINDOW_SIZE_POW) << WINDOW_SIZE_POW;
       uint2 algoBasedGroupId = (groupId << (GROUP_SIZE_POW - WINDOW_SIZE_POW)) | (localId >> WINDOW_SIZE_POW);
       store_cached_exposure(localId, float4(0, 0, 0, 0));
       GroupMemoryBarrierWithGroupSync();
+      ##else
+      uint2 algoBasedLocalId = uint2(0,0);
+      uint2 groupDataOffset = localId;
+      uint2 algoBasedGroupId = (groupId << (GROUP_SIZE_POW - WINDOW_SIZE_POW)) | (localId >> WINDOW_SIZE_POW);
+      ##endif
 
       float accumulated = 0;
       float3 prev_exposure = 0;
@@ -82,6 +92,8 @@ shader local_tone_mapping_upsample
         allowBoostContrast = boostLocalContrast > 0;
       }
       ##endif
+
+      ##if mips_cnt != one
       for (int i = WINDOW_SIZE_POW; i >= 0; --i)
       {
         if (all(algoBasedLocalId < (WINDOW_SIZE >> i)))
@@ -110,6 +122,19 @@ shader local_tone_mapping_upsample
           GroupMemoryBarrierWithGroupSync();
         }
       }
+      ##else
+      uint2 mipSize;
+      uint level;
+      exposures_tex.GetDimensions(base_mip, mipSize.x, mipSize.y, level);
+      uint2 threadTc = clamp(algoBasedGroupId * WINDOW_SIZE + algoBasedLocalId, 0u, mipSize - 1u);
+      float3 exposure = texelFetch(exposures_tex, threadTc, base_mip).xyz;
+      float3 laplacians = exposure - prev_exposure;
+      float3 weights = texelFetch(weights_tex, threadTc, base_mip).xyz * (allowBoostContrast ? abs(laplacians) + 0.00001 : 1.0);
+      weights /= dot(weights, float3(1, 1, 1)) + 0.00001;
+      float laplac = dot(laplacians * weights, float3(1, 1, 1));
+      accumulated += laplac;
+      allowBoostContrast = allowBoostContrast || (boostLocalContrast > 0);
+      ##endif
       if (all(dtId < tex_size.xy))
       {
         ##if needFinalization

@@ -29,11 +29,7 @@ def sound_control_update(evt : Event)
 
   query() <| $ [es(REQUIRE_NOT=disableSoundControl)] (eid : EntityId;
                                                       sound_banks_state__isPresetLoaded : bool;
-
                                                       sound_control__allowSound : bool;
-                                                      sound_control__enabledGroups : uint;
-                                                      sound_control__needGroupsMask : uint;
-
                                                       sound_control__range : float;
                                                       sound_control__subtemplate : string;
                                                       var sound_control__inRange : bool&;
@@ -44,7 +40,7 @@ def sound_control_update(evt : Event)
     sound_control__inRange = is_watched_sound || (sound_control__inRange ? (distance_sq(listener, transform[3]) < square(sound_control__range)) :
                                                                            (distance_sq(listener, transform[3]) < square(sound_control__range * 0.9)))
 
-    sound_enable(sound_control__inRange && sound_banks_state__isPresetLoaded && sound_control__allowSound && ((sound_control__enabledGroups & sound_control__needGroupsMask) == sound_control__needGroupsMask),
+    sound_enable(sound_control__inRange && sound_banks_state__isPresetLoaded && sound_control__allowSound,
                  sound_control__soundEnabled,
                  sound_control__subtemplate,
                  eid)

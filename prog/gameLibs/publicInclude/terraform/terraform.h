@@ -5,6 +5,7 @@
 #pragma once
 
 #include <generic/dag_tab.h>
+#include <generic/dag_relocatableFixedVector.h>
 #include <math/integer/dag_IBBox2.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <generic/dag_carray.h>
@@ -368,7 +369,7 @@ private:
   Tab<int> patchChanges;
 
   Renderer *renderer = NULL;
-  Tab<Listener *> listeners;
+  dag::RelocatableFixedVector<Listener *, 1> listeners;
 };
 
 template <class Func>

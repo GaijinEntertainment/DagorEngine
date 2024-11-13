@@ -18,7 +18,9 @@ struct BufferRef
 {
   Buffer *buffer = nullptr;
   uint32_t offset = 0;
-  VkDeviceSize visibleDataSize = 0;
+  uint32_t visibleDataSize = 0;
+  // for frame mem buffers to uniquely identify them for proper state replace at discard
+  uint32_t frameReference = 0;
   BufferRef() = default;
   ~BufferRef() = default;
   BufferRef(const BufferRef &) = default;
@@ -44,9 +46,13 @@ struct BufferRef
     buffer = nullptr;
     offset = 0;
     visibleDataSize = 0;
+    frameReference = 0;
   }
 
-  friend bool operator==(const BufferRef &l, const BufferRef &r) { return (l.buffer == r.buffer) && (l.offset == r.offset); }
+  friend bool operator==(const BufferRef &l, const BufferRef &r)
+  {
+    return (l.buffer == r.buffer) && (l.offset == r.offset) && (l.frameReference == r.frameReference);
+  }
   friend bool operator!=(const BufferRef &l, const BufferRef &r) { return !(l == r); }
 };
 

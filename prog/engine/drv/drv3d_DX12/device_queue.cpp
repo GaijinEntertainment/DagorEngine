@@ -1,6 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include "device.h"
+#include "device_queue.h"
 
 #include <util/dag_watchdog.h>
 

@@ -213,8 +213,9 @@ void VolumePlacer::performPlacing(const Point3 &camera_pos)
       float gpu_object_placer__distance_to_rotation_to, const Point3 &gpu_object_placer__distance_to_scale_pow,
       float gpu_object_placer__distance_to_rotation_pow, bool gpu_object_placer__use_distance_emitter,
       bool gpu_object_placer__distance_affect_decals, bool gpu_object_placer__distance_out_of_range,
-      riex_handles &gpu_object_placer__surface_riex_handles, TMatrix transform, const Point2 *gpu_object_placer__boxBorderX,
-      const Point2 *gpu_object_placer__boxBorderY, const Point2 *gpu_object_placer__boxBorderZ ECS_REQUIRE(ecs::Tag box_zone)) {
+      gpu_objects::riex_handles &gpu_object_placer__surface_riex_handles, TMatrix transform,
+      const Point2 *gpu_object_placer__boxBorderX, const Point2 *gpu_object_placer__boxBorderY,
+      const Point2 *gpu_object_placer__boxBorderZ ECS_REQUIRE(ecs::Tag box_zone)) {
       G_ASSERT(!(gpu_object_placer__filled && gpu_object_placer__buffer_offset == -1));
       adjust_transform_to_border_offset(gpu_object_placer__boxBorderX, 0, transform);
       adjust_transform_to_border_offset(gpu_object_placer__boxBorderY, 1, transform);

@@ -101,34 +101,34 @@ def private transform_args(var func; is_call; var errors : das_string) : bool
   let processArgsNum = argsNum - (is_call ? 1 : 0)
   for i in range(processArgsNum)
     if true
-      var inscope argi <- new [[ExprCall() at = at, name := "get_arg" ]]
+      var inscope argi <- new [[ExprCall() at = at, name := "get_arg"]]
       argi.arguments |> emplace_new(new [[ExprVar() at = at, name := paramsName]])
-      argi.arguments |> emplace_new(new [[ExprConstInt() at = at, value = i ]])
+      argi.arguments |> emplace_new(new [[ExprConstInt() at = at, value = i]])
 
       assume baseArg = fn.arguments[i]
       assume baseArgType = baseArg._type
       if baseArgType.baseType == Type tInt
-        var inscope toValue <- new [[ExprCall() at = at, name := "as_int" ]]
+        var inscope toValue <- new [[ExprCall() at = at, name := "as_int"]]
         toValue.arguments |> emplace(argi)
         argi |> move() <| toValue
       elif baseArgType.baseType == Type tUInt
-        var inscope toValue <- new [[ExprCall() at = at, name := "as_uint" ]]
+        var inscope toValue <- new [[ExprCall() at = at, name := "as_uint"]]
         toValue.arguments |> emplace(argi)
         argi |> move() <| toValue
       elif baseArgType.baseType == Type tFloat
-        var inscope toValue <- new [[ExprCall() at = at, name := "as_float" ]]
+        var inscope toValue <- new [[ExprCall() at = at, name := "as_float"]]
         toValue.arguments |> emplace(argi)
         argi |> move() <| toValue
       elif baseArgType.baseType == Type tDouble
-        var inscope toValue <- new [[ExprCall() at = at, name := "as_double" ]]
+        var inscope toValue <- new [[ExprCall() at = at, name := "as_double"]]
         toValue.arguments |> emplace(argi)
         argi |> move() <| toValue
       elif baseArgType.baseType == Type tBool
-        var inscope toValue <- new [[ExprCall() at = at, name := "as_bool" ]]
+        var inscope toValue <- new [[ExprCall() at = at, name := "as_bool"]]
         toValue.arguments |> emplace(argi)
         argi |> move() <| toValue
       elif baseArgType.baseType == Type tString
-        var inscope toValue <- new [[ExprCall() at = at, name := "as_string" ]]
+        var inscope toValue <- new [[ExprCall() at = at, name := "as_string"]]
         toValue.arguments |> emplace(argi)
         argi |> move() <| toValue
       elif (baseArgType.baseType == Type tPointer && baseArgType.firstType != null && baseArgType.firstType.baseType == Type tStructure
@@ -138,7 +138,7 @@ def private transform_args(var func; is_call; var errors : das_string) : bool
         errors := "{baseArg.name}: {describe(baseArgType)} - unsupported argument type"
         return false
 
-      var inscope vlet <- new [[ExprLet() at = at, atInit = at ]]
+      var inscope vlet <- new [[ExprLet() at = at, atInit = at]]
       vlet.variables |> emplace_new() <| new [[Variable() at = at,
               name := baseArg.name,
               _type := baseArgType,

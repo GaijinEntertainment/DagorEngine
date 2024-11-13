@@ -10,6 +10,6 @@ within the Dagor Engine.
    :caption: Contents:
 
    dagor_ecs.md
-
+   schemeful_events.md
 
 

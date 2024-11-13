@@ -1,7 +1,10 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "gpu_postmortem_dagor_trace.h"
-#include "device.h"
+#include "configuration.h"
+#include "gpu_postmortem_microsoft_dred.h"
+#include <platform.h>
+
 
 namespace drv3d_dx12::debug::gpu_postmortem::dagor
 {

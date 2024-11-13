@@ -605,7 +605,7 @@ struct ListenServerNetObserver final : public net::INetworkObserver // Warn: no 
         }
 
         {
-          EventOnClientConnected evt(conn.getId(), userId, eastl::move(userName), groupId, groupId, msg->get<3>(), platformUid,
+          EventOnClientConnected evt(conn.getId(), userId, eastl::move(userName), groupId, msg->get<3>(), platformUid,
             eastl::string(pltf), mteam, app_profile::get().appId);
           g_entity_mgr->broadcastEventImmediate(eastl::move(evt));
         }
@@ -658,9 +658,8 @@ static net::INetworkObserver *create_listen_server_net_observer(void *, size_t) 
 
 bool net_init_early()
 {
-  net::INetDriver *drv = dedicated::create_net_driver();
-  bool ded = drv != NULL;
-  if (const char *listen = (!ded && DAGOR_DBGLEVEL > 0) ? dgs_get_argv("listen") : NULL) //-V560
+  net::INetDriver *drv = dedicated::create_listen_net_driver();
+  if (const char *listen = (!dedicated::is_dedicated() && DAGOR_DBGLEVEL > 0) ? dgs_get_argv("listen") : NULL) //-V560
   {
     uint16_t port = 0;
     drv = net::create_net_driver_listen(listen, NET_MAX_PLAYERS, &port);
@@ -673,7 +672,7 @@ bool net_init_early()
     }
   }
   if (drv)
-    net_ctx.demandInit(drv, ded ? &dedicated::create_server_net_observer : &create_listen_server_net_observer);
+    net_ctx.demandInit(drv, dedicated::is_dedicated() ? &dedicated::create_server_net_observer : &create_listen_server_net_observer);
   return true;
 }
 

@@ -45,6 +45,10 @@ shader antialiasing
     z_test=false;
   }
 
+  hlsl(vs) {
+    #pragma spir-v no-base-vertex
+  }
+
   USE_POSTFX_VERTEX_POSITIONS()
   INIT_ZNZFAR()
   INIT_READ_DEPTH_GBUFFER()

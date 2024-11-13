@@ -1,7 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "global_state.h"
-#include "device.h"
+#include <platform.h>
+
 
 namespace drv3d_dx12::debug
 {

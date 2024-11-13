@@ -118,6 +118,10 @@ static int dagor_program_exec(int nCmdShow, int debugmode, WinDeferredStartupLog
   dagor_init_base_path();
   dagor_change_root_directory(::dgs_get_argv("rootdir"));
 
+#if _TARGET_GDK
+  xbox::initialize_runtime();
+#endif
+
 #if defined(__DEBUG_FILEPATH)
   start_classic_debug_system(__DEBUG_FILEPATH);
 #elif defined(__DEBUG_MODERN_PREFIX)

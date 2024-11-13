@@ -22,9 +22,6 @@ bool YuvRenderer::init()
   textureVVarId = VariableMap::getVariableId("texV");
   alphaVarId = get_shader_variable_id("transparent", true);
 
-  if (!shader.init(YuvRenderer::shaderName, false))
-    return false;
-
   return true;
 }
 
@@ -36,11 +33,17 @@ void YuvRenderer::startRender(StdGuiRender::GuiContext &ctx, bool *own_render)
     ctx.resetFrame();
     ctx.start_render();
   }
+  if (currentShader == shadersPool.size())
+    if (!shadersPool.push_back().init(YuvRenderer::shaderName, false))
+      logerr("failed to init yuv renderer shader");
+  G_ASSERTF(currentShader < shadersPool.size(), //
+    "currentShader=%u shadersPool.size()=%u (%d max)", currentShader, shadersPool.size(), shadersPool.capacity());
 }
 
 void YuvRenderer::render(StdGuiRender::GuiContext &ctx, TEXTUREID texIdY, TEXTUREID texIdU, TEXTUREID texIdV, float l, float t,
   float r, float b, const Point2 &tc_lt, const Point2 &tc_rb, E3DCOLOR color, BlendMode blend_mode, float saturate)
 {
+  auto &shader = shadersPool[currentShader];
   shader.material->set_texture_param(textureYVarId, texIdY);
   shader.material->set_texture_param(textureUVarId, texIdU);
   shader.material->set_texture_param(textureVVarId, texIdV);
@@ -61,8 +64,7 @@ void YuvRenderer::endRender(StdGuiRender::GuiContext &ctx, bool own_render)
 {
   if (own_render)
     ctx.end_render();
+  currentShader++;
 }
-
-void YuvRenderer::term() { shader.close(); }
 
 } // namespace darg

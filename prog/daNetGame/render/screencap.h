@@ -28,7 +28,7 @@ void make_screenshot(const ManagedTex &srgb_frame,
   ColorSpace colorspace = ColorSpace::sRGB,
   const char *additional_postfix = nullptr);
 void schedule_screenshot(bool with_gui = false, int sequence_number = -1, const char *name_override = nullptr);
-void start_prending_request();
+void start_pending_request();
 
 bool is_screenshot_scheduled();
 

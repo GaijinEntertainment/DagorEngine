@@ -1,18 +1,22 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <EASTL/span.h>
-
 #include "call_stack.h"
 #include "configuration.h"
-#include "pipeline.h"
+#include <driver.h>
 
 #include <ags_sdk/include/amd_ags.h>
+#include <EASTL/span.h>
 
 
 namespace drv3d_dx12
 {
+class BasePipeline;
+class ComputePipeline;
+class PipelineVariant;
+struct BufferResourceReferenceAndOffset;
 struct Direct3D12Enviroment;
+struct PipelineStageStateBase;
 namespace debug
 {
 union Configuration;
@@ -28,43 +32,43 @@ public:
   ~AgsTrace();
 
   void configure() { logdbg("DX12: ...no GPU postmortem tracer active..."); }
-  void beginCommandBuffer(ID3D12Device3 *, ID3D12GraphicsCommandList *) {}
-  void endCommandBuffer(ID3D12GraphicsCommandList *) {}
+  constexpr void beginCommandBuffer(ID3D12Device3 *, ID3D12GraphicsCommandList *) {}
+  constexpr void endCommandBuffer(ID3D12GraphicsCommandList *) {}
   void beginEvent(ID3D12GraphicsCommandList *, eastl::span<const char>, const eastl::string &);
   void endEvent(ID3D12GraphicsCommandList *, const eastl::string &);
-  void marker(ID3D12GraphicsCommandList *, eastl::span<const char>) {}
-  void draw(const call_stack::CommandData &, ID3D12GraphicsCommandList2 *, const PipelineStageStateBase &,
+  constexpr void marker(ID3D12GraphicsCommandList *, eastl::span<const char>) {}
+  constexpr void draw(const call_stack::CommandData &, ID3D12GraphicsCommandList2 *, const PipelineStageStateBase &,
     const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, uint32_t, uint32_t, uint32_t, uint32_t,
     D3D12_PRIMITIVE_TOPOLOGY)
   {}
-  void drawIndexed(const call_stack::CommandData &, ID3D12GraphicsCommandList2 *, const PipelineStageStateBase &,
+  constexpr void drawIndexed(const call_stack::CommandData &, ID3D12GraphicsCommandList2 *, const PipelineStageStateBase &,
     const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, uint32_t, uint32_t, uint32_t, int32_t, uint32_t,
     D3D12_PRIMITIVE_TOPOLOGY)
   {}
-  void drawIndirect(const call_stack::CommandData &, ID3D12GraphicsCommandList2 *, const PipelineStageStateBase &,
+  constexpr void drawIndirect(const call_stack::CommandData &, ID3D12GraphicsCommandList2 *, const PipelineStageStateBase &,
     const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, const BufferResourceReferenceAndOffset &)
   {}
-  void drawIndexedIndirect(const call_stack::CommandData &, ID3D12GraphicsCommandList2 *, const PipelineStageStateBase &,
+  constexpr void drawIndexedIndirect(const call_stack::CommandData &, ID3D12GraphicsCommandList2 *, const PipelineStageStateBase &,
     const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, const BufferResourceReferenceAndOffset &)
   {}
-  void dispatchIndirect(const call_stack::CommandData &, ID3D12GraphicsCommandList2 *, const PipelineStageStateBase &,
+  constexpr void dispatchIndirect(const call_stack::CommandData &, ID3D12GraphicsCommandList2 *, const PipelineStageStateBase &,
     ComputePipeline &, const BufferResourceReferenceAndOffset &)
   {}
-  void dispatch(const call_stack::CommandData &, ID3D12GraphicsCommandList2 *, const PipelineStageStateBase &, ComputePipeline &,
-    uint32_t, uint32_t, uint32_t)
+  constexpr void dispatch(const call_stack::CommandData &, ID3D12GraphicsCommandList2 *, const PipelineStageStateBase &,
+    ComputePipeline &, uint32_t, uint32_t, uint32_t)
   {}
-  void dispatchMesh(const call_stack::CommandData &, D3DGraphicsCommandList *, const PipelineStageStateBase &,
+  constexpr void dispatchMesh(const call_stack::CommandData &, D3DGraphicsCommandList *, const PipelineStageStateBase &,
     const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, uint32_t, uint32_t, uint32_t)
   {}
-  void dispatchMeshIndirect(const call_stack::CommandData &, D3DGraphicsCommandList *, const PipelineStageStateBase &,
+  constexpr void dispatchMeshIndirect(const call_stack::CommandData &, D3DGraphicsCommandList *, const PipelineStageStateBase &,
     const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, const BufferResourceReferenceAndOffset &,
     const BufferResourceReferenceAndOffset &, uint32_t)
   {}
-  void blit(const call_stack::CommandData &, ID3D12GraphicsCommandList2 *) {}
+  constexpr void blit(const call_stack::CommandData &, ID3D12GraphicsCommandList2 *) {}
   void onDeviceRemoved(D3DDevice *, HRESULT, call_stack::Reporter &);
-  bool sendGPUCrashDump(const char *, const void *, uintptr_t) { return false; }
-  void onDeviceShutdown() {}
-  bool onDeviceSetup(ID3D12Device *, const Configuration &, const Direct3D12Enviroment &) { return true; }
+  constexpr bool sendGPUCrashDump(const char *, const void *, uintptr_t) { return false; }
+  constexpr void onDeviceShutdown() {}
+  constexpr bool onDeviceSetup(ID3D12Device *, const Configuration &, const Direct3D12Enviroment &) { return true; }
 
   template <typename T>
   static bool load(const Configuration &config, const Direct3D12Enviroment &, T &target)

@@ -17,7 +17,6 @@ Sources =
   swapchain.cpp
   format_store.cpp
   device_context.cpp
-  device_context_cmd_log.cpp
   shader.cpp
   texture.cpp
   pipeline.cpp
@@ -29,9 +28,7 @@ Sources =
   resource_manager/rtx_components.cpp
   resource_manager/host_shared_components.cpp
   resource_update_buffer.cpp
-  resource_usage_debugger.cpp
   pipeline/blk_cache.cpp
-  shader_library.cpp
 ;
 
 CPPopt = -DINSIDE_DRIVER ;
@@ -42,7 +39,10 @@ if [ GLOB $(Root)/prog/3rdPartyLibs/nvapi : * ]     { CPPopt += -DHAS_NVAPI ; }
 
 if $(Config) != rel {
   Sources +=
-    debug/debug_types.cpp ;
+    debug/debug_types.cpp
+    debug/frame_command_logger.cpp
+    resource_usage_debugger.cpp
+  ;
 }
 
 if $(Platform) in windows {
@@ -54,6 +54,7 @@ if $(Platform) in windows {
     debug/gpu_postmortem_dagor_trace.cpp
     debug/gpu_postmortem_microsoft_dred.cpp
     debug/pipeline_resource_reporter.cpp
+    shader_library.cpp
   ;
   if $(PlatformArch) in arm64 { CPPopt = [ StripStrings $(CPPopt) : -DHAS_NVAPI ] ; }
   if [ GLOB $(Root)/prog/3rdPartyLibs/aftermath : * ] {
@@ -71,6 +72,7 @@ if $(Platform) in windows {
   if $(Platform) = xboxOne {
     AddLibs += d3d12_x.lib xg_x.lib ;
   } else {
+    Sources += shader_library.cpp ;
     AddLibs += d3d12_xs.lib xg_xs.lib ;
   }
   Sources +=

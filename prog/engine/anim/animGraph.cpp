@@ -45,7 +45,7 @@ struct AnimBlender::NodeSamplers
   };
 
   Entry samplers[MAX_ANIMS_IN_NODE];
-  uint8_t totalNum : 8;
+  uint32_t totalNum : 8;
   int32_t lastBnl : 24;
 };
 

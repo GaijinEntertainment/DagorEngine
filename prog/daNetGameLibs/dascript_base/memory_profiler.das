@@ -54,7 +54,7 @@ struct Event
     childStringHeap : uint64
 
 
-var data : table<uint64/*ctx addr*/; ContextData>
+var data : table<uint64 /*ctx addr*/; ContextData>
 var stack : array<Event>
 
 

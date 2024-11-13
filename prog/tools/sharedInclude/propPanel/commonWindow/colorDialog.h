@@ -69,7 +69,8 @@ private:
 class ColorDialog : public DialogWindow, public ICustomControl
 {
 public:
-  ColorDialog(void *phandle, const char caption[], E3DCOLOR color);
+  ColorDialog(void *phandle, const char caption[], E3DCOLOR color, hdpi::Px w = hdpi::_pxScaled(760),
+    hdpi::Px h = hdpi::_pxScaled(390));
   ~ColorDialog();
 
   // DialogWindow

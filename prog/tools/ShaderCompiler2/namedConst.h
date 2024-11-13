@@ -99,7 +99,8 @@ struct NamedConstBlock
   int getRegForNamedConst(const char *name_buf, NamedConstSpace ns, bool pixel_shader);
   int getRegForNamedConstEx(const char *name_buf, const char *blk_name, NamedConstSpace ns, bool pixel_shader);
 
-  void patchHlsl(String &src, bool pixel_shader, bool compute_shader, const MergedVariablesData &merged_vars, int &max_const_no_used);
+  void patchHlsl(String &src, bool pixel_shader, bool compute_shader, const MergedVariablesData &merged_vars, int &max_const_no_used,
+    const char *hw_defines);
   void patchStcodeIndices(dag::Span<int> stcode, StcodeRoutine &cpp_stcode, bool static_blk);
 
   CryptoHash getDigest(bool ps_const, bool cs_const, const MergedVariablesData &merged_vars) const;

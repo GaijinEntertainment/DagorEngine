@@ -99,7 +99,7 @@ void destructables::render(dynrend::ContextId inst_ctx, const Frustum &frustum, 
   }
 }
 
-destructables::DestrRendData *destructables::init_rend_data(DynamicPhysObjectClass<PhysWorld> *phys_obj)
+destructables::DestrRendData *destructables::init_rend_data(DynamicPhysObjectClass<PhysWorld> *phys_obj, bool is_fully_deformed)
 {
   DestrRendData *rdata = new DestrRendData();
   clear_and_resize(rdata->rendData, phys_obj->getModelCount());
@@ -112,7 +112,7 @@ destructables::DestrRendData *destructables::init_rend_data(DynamicPhysObjectCla
   }
 
   // TODO: pass true to a sec arg if it needs to be fully deformed (i.e. - by explosion)
-  rdata->deformationId = deform_create_instance_cb ? deform_create_instance_cb(rdata, false) : -1;
+  rdata->deformationId = deform_create_instance_cb ? deform_create_instance_cb(rdata, is_fully_deformed) : -1;
   return rdata;
 }
 

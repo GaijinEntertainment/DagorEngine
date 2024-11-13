@@ -181,6 +181,7 @@ namespace das
                 TT->constant = false;
                 TT->temporary = false;
                 TT->ref = false;
+                TT->explicitConst = false;
                 aliases[decl->alias] = TT;
             }
         } else if ( pass->baseType==Type::autoinfer ) {
@@ -191,6 +192,7 @@ namespace das
                 TT->constant = false;
                 TT->temporary = false;
                 TT->ref = false;
+                TT->explicitConst = false;
                 aliases[pass->alias] = TT;
             }
         } else {

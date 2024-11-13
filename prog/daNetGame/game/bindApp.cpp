@@ -93,6 +93,7 @@ static SQInteger switch_scene_sq(HSQUIRRELVM vm)
     if (errorMessage != nullptr)
       return sq_throwerror(vm, errorMessage);
   }
+  debug("SQ switch_scene(%s)", sceneName);
   sceneload::switch_scene(sceneName, eastl::move(imports), eastl::move(ugmCtx));
   return 0;
 }
@@ -101,6 +102,7 @@ static SQInteger switch_scene_and_update_sq(HSQUIRRELVM vm)
 {
   const SQChar *sceneName = nullptr;
   G_VERIFY(SQ_SUCCEEDED(sq_getstring(vm, 2, &sceneName)));
+  debug("SQ switch_scene_and_update(%s)", sceneName);
   sceneload::switch_scene_and_update(sceneName);
   return 0;
 }
@@ -218,6 +220,7 @@ SQ_DEF_AUTO_BINDING_MODULE_EX(bind_app, "app", sq::VM_ALL)
       })
     .Func("replay_get_play_file", []() { return app_profile::get().replay.playFile.c_str(); })
     .Func("exit_game", script_exit_game)
+    .Func("is_app_terminated", dng_is_app_terminated)
     .Func("is_user_game_mod", sceneload::is_user_game_mod)
     .SquirrelFunc("get_circuit_conf", get_circuit_conf, 1)
     .SetValue("circuit_name", circuit::get_name().data())

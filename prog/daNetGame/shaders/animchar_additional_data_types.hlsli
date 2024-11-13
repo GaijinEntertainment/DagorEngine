@@ -9,3 +9,6 @@
 
 //todo: should be splitted into separate parameters. Now there are: burning, projective blood decals, torn wounds
 #define HUMAN_COMBINED_PARAMS 7
+
+// 2 float4 rows for 2*4*32 bits, for masking a maximum of 256 bones
+#define ADDITIONAL_BONE_MTX_OFFSET 2

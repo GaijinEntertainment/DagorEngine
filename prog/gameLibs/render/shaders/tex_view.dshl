@@ -76,7 +76,11 @@ shader tex_view
     {
       ##if text_color_mode == modeRGBA
         float4 res = tex2D(texsmp, v.tc) * v.col;
-        clip_alpha_atest(res.a);
+        if (0 < get_atest_value_ref())
+        {
+          clip_alpha_atest(res.a);
+          res.a = 1.0f;
+        }
         return res;
       ##elif text_color_mode == modeA
         return float4((tex2D(texsmp, v.tc)).aaa, 1);

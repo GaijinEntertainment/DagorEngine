@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "namedConst.h"
+#include "globalConfig.h"
 #include "shsyn.h"
 #include "shLog.h"
 #include "shsem.h"
@@ -21,13 +22,11 @@
 
 #if _CROSS_TARGET_DX12
 #include "dx12/asmShaderDXIL.h"
-extern dx12::dxil::Platform targetPlatform;
 #endif
 
 static constexpr const char *EMPTY_BLOCK_NAME = "__empty_block__";
 
 static String tmpDigest;
-extern bool enableBindless;
 
 const char *NamedConstBlock::nameSpaceToStr(NamedConstSpace name_space)
 {
@@ -584,9 +583,6 @@ struct SamplerState
   SamplerState(const char *tname, int rIdx) : name(tname), regIdx(rIdx) {}
 };
 
-extern int hlsl_maximum_vsf_allowed;
-extern int hlsl_maximum_psf_allowed;
-
 static bool shall_remove_ns(NamedConstSpace ns, bool pixel_shader, bool compute_shader)
 {
   const bool vertex_shader = !compute_shader && !pixel_shader;
@@ -736,7 +732,7 @@ void NamedConstBlock::buildStaticConstBufHlslDecl(String &out_text, const Merged
   const char *bindlessProlog = "";
   const char *bindlessType = "";
 
-  if (enableBindless)
+  if (shc::config().enableBindless)
   {
 #if _CROSS_TARGET_C1 || _CROSS_TARGET_C2
 
@@ -946,30 +942,8 @@ static void process_hardcoded_register_declarations(const char *hlsl_src, TF &&p
 
 #include "transcodeCommon.h"
 
-extern String hlsl_defines;
-// TODO: rename pixel_shader to pixel_or_compute_shader everywhere applicable in this file. Or just pass shader stage instead.
-void NamedConstBlock::patchHlsl(String &src, bool pixel_shader, bool compute_shader, const MergedVariablesData &merged_vars,
-  int &max_const_no_used)
+static void build_predefines_str(String &predefines, String &src, const char *hw_defines)
 {
-  max_const_no_used = -1;
-  static String res, name_buf, blk_name_buf;
-  int name_prefix_len = 0;
-  res.clear();
-  const bool doesShaderGlobalExist = ShaderStateBlock::countBlock(ShaderStateBlock::LEV_GLOBAL_CONST) > 0;
-
-#if _CROSS_TARGET_C2
-
-#else
-  int psrSignaturePos = -1;
-#endif
-  if (psrSignaturePos != -1)
-  {
-    char *pp = &src.data()[psrSignaturePos];
-    memset(pp, 0x20, sizeof("INCLUDE_SONY_PSR_LIB") - 1);
-  }
-
-  if (hlsl_defines.length())
-    src.insert(0, hlsl_defines.c_str());
   // add target-specific predefines
   const char *predefines_str =
 #if _CROSS_TARGET_C1
@@ -977,12 +951,12 @@ void NamedConstBlock::patchHlsl(String &src, bool pixel_shader, bool compute_sha
 #elif _CROSS_TARGET_C2
 
 #elif _CROSS_TARGET_DX12
-    dx12::dxil::Platform::XBOX_ONE == targetPlatform
+    dx12::dxil::Platform::XBOX_ONE == shc::config().targetPlatform
       ?
 #include "predefines_dx12x.hlsl.inl"
-      : dx12::dxil::Platform::XBOX_SCARLETT == targetPlatform ?
+      : dx12::dxil::Platform::XBOX_SCARLETT == shc::config().targetPlatform ?
 #include "predefines_dx12xs.hlsl.inl"
-                                                              :
+                                                                            :
 #include "predefines_dx12.hlsl.inl"
 #elif _CROSS_TARGET_DX11
 #include "predefines_dx11.hlsl.inl"
@@ -994,10 +968,11 @@ void NamedConstBlock::patchHlsl(String &src, bool pixel_shader, bool compute_sha
     nullptr
 #endif
     ;
-  if (predefines_str)
-    src.insert(0, predefines_str);
 
+  const char *predefines_add_str = nullptr;
 #if _CROSS_TARGET_C2
+
+
 
 
 
@@ -1007,6 +982,29 @@ void NamedConstBlock::patchHlsl(String &src, bool pixel_shader, bool compute_sha
 
 #endif
 
+
+  predefines = hw_defines ? hw_defines : "";
+  if (shc::config().hlslDefines.length())
+    predefines += shc::config().hlslDefines;
+  if (predefines_str)
+    predefines += predefines_str;
+  if (predefines_add_str)
+    predefines += predefines_add_str;
+}
+
+// TODO: rename pixel_shader to pixel_or_compute_shader everywhere applicable in this file. Or just pass shader stage instead.
+void NamedConstBlock::patchHlsl(String &src, bool pixel_shader, bool compute_shader, const MergedVariablesData &merged_vars,
+  int &max_const_no_used, const char *hw_defines)
+{
+  max_const_no_used = -1;
+  static String res, name_buf, blk_name_buf;
+  int name_prefix_len = 0;
+  res.clear();
+  const bool doesShaderGlobalExist = ShaderStateBlock::countBlock(ShaderStateBlock::LEV_GLOBAL_CONST) > 0;
+
+  static String predefines;
+  build_predefines_str(predefines, src, hw_defines);
+
   bool hasStaticCbuf = staticCbufType != StaticCbuf::NONE;
   {
     SCFastNameMap added_names;
@@ -1014,12 +1012,10 @@ void NamedConstBlock::patchHlsl(String &src, bool pixel_shader, bool compute_sha
     if (hasStaticCbuf)
       buildStaticConstBufHlslDecl(res, merged_vars);
     buildHlslDeclText(res, pixel_shader, compute_shader, added_names, hasStaticCbuf);
-  }
-  if (const char *p = strstr(src, "#line "))
-    src.insert(p - src.data(), res);
-  else
     src.insert(0, res);
-  clear_and_shrink(res);
+    res.clear();
+  }
+
   const char *text = src, *p, *start = text;
 
   const RegisterProperties NamedConstBlock::*regPropsMember =
@@ -1040,7 +1036,7 @@ void NamedConstBlock::patchHlsl(String &src, bool pixel_shader, bool compute_sha
   //  therefore we have to exclude them from this validation and trust the developers not to mess up with predefines.
   RegistersUsage internalHardcodedRegs, userHardcodedRegs;
 
-  process_hardcoded_register_declarations(predefines_str,
+  process_hardcoded_register_declarations(predefines,
     [&allHardcodedRegs, &internalHardcodedRegs](char regt_sym, int regt_id, eastl::string_view) {
       // @NOTE: this doesn't validate constants that take up >1 regs correctly.
       //        However, this would require us to parse hlsl more seriously.
@@ -1160,7 +1156,7 @@ void NamedConstBlock::patchHlsl(String &src, bool pixel_shader, bool compute_sha
     return eastl::make_pair(cap, max<int>(cap - 1, 0));
   };
 
-  const int maxAllowedConsts = pixel_shader ? hlsl_maximum_psf_allowed : hlsl_maximum_vsf_allowed;
+  const int maxAllowedConsts = pixel_shader ? shc::config().hlslMaximumPsfAllowed : shc::config().hlslMaximumVsfAllowed;
 
   // Since we use this for cbuf size in driver, we have to check against all registers
   const auto [cRegRangeCap, cLastReg] = regRangeCapAndLast(HlslNameSpace::c, allHardcodedRegs);
@@ -1397,10 +1393,7 @@ void NamedConstBlock::patchHlsl(String &src, bool pixel_shader, bool compute_sha
 #endif
       ps4_samplerstates.aprintf(128, "SamplerState %s_samplerstate: register(s%d);\n", samplers[i].name, samplers[i].regIdx);
   }
-  if (predefines_str)
-    src.printf(1024, "%s\n%s\n%s", predefines_str, ps4_samplerstates.str(), res.str() + strlen(predefines_str));
-  else
-    src.printf(1024, "%s%s", ps4_samplerstates.str(), res.str());
+  src.setStrCat4(predefines, "\n", ps4_samplerstates, res);
 }
 
 void NamedConstBlock::patchStcodeIndices(dag::Span<int> stcode, StcodeRoutine &cpp_stcode, bool static_blk)

@@ -8,7 +8,7 @@ namespace rtsm
 void initialize(int, int, RenderMode, bool) {}
 void teardown() {}
 
-void render(bvh::ContextId, const Point3 &, const TMatrix4 &, bool, bool) {}
+void render(bvh::ContextId, const Point3 &, const TMatrix4 &, bool, bool, Texture *) {}
 
 void render_dynamic_light_shadows(bvh::ContextId, const Point3 &, bool) {}
 

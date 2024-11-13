@@ -1,7 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include "platform.h"
 #include "device.h"
 #include <startup/dag_globalSettings.h>
+
 
 using namespace drv3d_dx12;
 

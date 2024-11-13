@@ -23,9 +23,6 @@ class CodeSourceBlocks;
 
 namespace ShaderParser
 {
-
-constexpr char debug_mode_enabled_interval[] = "debug_mode_enabled";
-
 /*********************************
  *
  * class GatherVarShaderEvalCB
@@ -45,11 +42,12 @@ public:
   OAHashNameMap<false> staticVars, dynamicVars;
 
   Terminal *shname_token;
+  bool shaderDebugModeEnabled = false;
 
 
   GatherVarShaderEvalCB(ShaderSyntaxParser &_parser, const ShHardwareOptions &_opt, Terminal *shname, const char *hlsl_vs,
     const char *hlsl_hs, const char *hlsl_ds, const char *hlsl_gs, const char *hlsl_ps, const char *hlsl_cs, const char *hlsl_ms,
-    const char *hlsl_as);
+    const char *hlsl_as, bool &out_shaderDebugModeEnabled);
 
   virtual void eval_interval_decl(interval &interv);
 
@@ -57,6 +55,7 @@ public:
   void eval_bool_decl(bool_decl &) override;
   void decl_bool_alias(const char *name, bool_expr &expr) override;
   int add_message(const char *message, bool file_name) override;
+  int is_debug_mode_enabled() override { return shaderDebugModeEnabled; }
   bool is_filename_message(int id) const { return !nonFilenameMessages.test(id, false); }
   const SCFastNameMap &get_messages() const { return messages; }
 

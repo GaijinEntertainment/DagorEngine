@@ -2,13 +2,17 @@
 #pragma once
 
 #include "call_stack.h"
-#include <pipeline.h>
 #include <EASTL/span.h>
 
 
 namespace drv3d_dx12
 {
+class BasePipeline;
+class ComputePipeline;
+class PipelineVariant;
+struct BufferResourceReferenceAndOffset;
 struct Direct3D12Enviroment;
+struct PipelineStageStateBase;
 namespace debug
 {
 union Configuration;

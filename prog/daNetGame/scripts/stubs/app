@@ -15,6 +15,7 @@ return {
   launch_network_session = @(_params) null
 
   exit_game = @() null
+  is_app_terminated = @() false
   circuit_name = get_arg_value_by_name("circuit")
   set_timespeed = @(_speed) null
   get_timespeed = @() 1.0

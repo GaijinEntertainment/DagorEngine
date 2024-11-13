@@ -426,18 +426,19 @@ void load_res_package(const char *folder, bool optional)
   }
 }
 
-static void init_job_manager()
+void init_loading_job_manager()
 {
-  G_ASSERT(loading_job_mgr_id < 0);
-  int stackSize = (128 + 64) << 10;
+  G_ASSERT(loading_job_mgr_id < 0 || loading_job_mgr_id == cpujobs::COREID_IMMEDIATE);
 #if (_TARGET_C1 || _TARGET_PC_LINUX) && DAGOR_DBGLEVEL > 0
-  stackSize = 512 << 10; // debug mode has huge stack heaps
+  constexpr int stackSize = 512 << 10; // debug mode has huge stack heaps
+#else
+  constexpr int stackSize = (128 + 64) << 10;
 #endif
-
   loading_job_mgr_id = cpujobs::create_virtual_job_manager(stackSize, WORKER_THREADS_AFFINITY_MASK, "LoadingJobMgr");
-  if (loading_job_mgr_id < 0)
+  if (DAGOR_UNLIKELY(loading_job_mgr_id < 0))
     DAG_FATAL("Can't start LoadingJobMgr");
   register_job_manager_requiring_shaders_bindump(loading_job_mgr_id);
+  ecs::set_common_loading_job_mgr(loading_job_mgr_id);
 }
 
 void set_timespeed(float ts) { game_scene::timeSpeed = ts; }
@@ -522,10 +523,19 @@ static void init_main_thread()
 }
 
 
+static bool app_is_post_shutdown_state = false;
+bool dng_is_app_terminated() { return app_is_post_shutdown_state; }
+
 void app_close()
 {
+  app_is_post_shutdown_state = true;
   // should be called before quirrel VMs termination
   sqeventbus::send_event("app.shutdown");
+  // since both overlay_ui and user_ui use sqeventbus::ProcessingMode::MANUAL_PUMP we need to push event
+  if (auto *vm = overlay_ui::get_vm())
+    sqeventbus::process_events(vm);
+  if (auto *vm = user_ui::get_vm())
+    sqeventbus::process_events(vm);
 
   da_profiler::sync_stop_sampling();
   memoryreport::stop_report();
@@ -574,8 +584,11 @@ void app_close()
   dagor_select_game_scene(NULL);
   unmount_all_vroms();
   unregister_all_virtual_vrom();
-  cpujobs::destroy_virtual_job_manager(loading_job_mgr_id, true);
-  ecs::set_common_loading_job_mgr(-1);
+  if (ecs::get_common_loading_job_mgr() != cpujobs::COREID_IMMEDIATE)
+  {
+    cpujobs::destroy_virtual_job_manager(loading_job_mgr_id, true);
+    ecs::set_common_loading_job_mgr(-1);
+  }
   dacoll::term_collision_world();
   threadpool::shutdown();
   propsreg::clear_registry();
@@ -737,8 +750,8 @@ void app_start()
 #endif
     init_da_editor4();
 
-  init_job_manager();
-  ecs::set_common_loading_job_mgr(loading_job_mgr_id);
+  if (!dedicated::is_dedicated())
+    init_loading_job_manager();
 
   game::g_timers_mgr.demandInit();
   if (dedicated::is_dedicated())

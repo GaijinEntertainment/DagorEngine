@@ -20,13 +20,13 @@ namespace dagdp
 static bool g_forceDisable = false;
 
 ECS_TAG(render)
-static void dagdp_update_es(const UpdateStageInfoBeforeRender &, GlobalManager &dagdp__global_manager)
+static void dagdp_update_es(const UpdateStageInfoBeforeRender &, dagdp::GlobalManager &dagdp__global_manager)
 {
   dagdp__global_manager.update();
 }
 
 ECS_TAG(render)
-static void dagdp_after_device_reset_es(const AfterDeviceReset &, GlobalManager &dagdp__global_manager)
+static void dagdp_after_device_reset_es(const AfterDeviceReset &, dagdp::GlobalManager &dagdp__global_manager)
 {
   // Force recreation of all GPU buffers.
   dagdp__global_manager.invalidateViews();
@@ -54,7 +54,7 @@ static GlobalConfig get_current_config()
 }
 
 ECS_TAG(render)
-static void dagdp_on_render_settings_change_es(const OnRenderSettingsReady &, GlobalManager &dagdp__global_manager)
+static void dagdp_on_render_settings_change_es(const OnRenderSettingsReady &, dagdp::GlobalManager &dagdp__global_manager)
 {
   // Note: relying on this event to be broadcast at level load.
 
@@ -62,7 +62,7 @@ static void dagdp_on_render_settings_change_es(const OnRenderSettingsReady &, Gl
 }
 
 ECS_TAG(render)
-static void dagdp_on_render_features_change_es(const ChangeRenderFeatures &, GlobalManager &dagdp__global_manager)
+static void dagdp_on_render_features_change_es(const ChangeRenderFeatures &, dagdp::GlobalManager &dagdp__global_manager)
 {
   // Always reconfigure (which implies invalidation) when render features have changed,
   // because shaders might be reloaded, and so cached data in the nodes may need to be reset.
@@ -71,13 +71,13 @@ static void dagdp_on_render_features_change_es(const ChangeRenderFeatures &, Glo
 }
 
 ECS_TAG(render)
-static void dagdp_on_shader_reload_es(const AfterShaderReload &, GlobalManager &dagdp__global_manager)
+static void dagdp_on_shader_reload_es(const AfterShaderReload &, dagdp::GlobalManager &dagdp__global_manager)
 {
   dagdp__global_manager.reconfigure(get_current_config());
 }
 
 ECS_TAG(render)
-static void dagdp_on_level_unload_es(const UnloadLevel &, GlobalManager &dagdp__global_manager)
+static void dagdp_on_level_unload_es(const UnloadLevel &, dagdp::GlobalManager &dagdp__global_manager)
 {
   GlobalConfig emptyConfig; // Everything disabled by default.
   dagdp__global_manager.reconfigure(emptyConfig);

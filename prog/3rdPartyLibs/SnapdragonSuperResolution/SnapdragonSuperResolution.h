@@ -27,6 +27,7 @@ public:
         viewport[2] = 0.f;
         viewport[3] = 0.f;
         snapdragon_super_resolution_inputVarId = get_shader_variable_id("snapdragon_super_resolution_input");
+        snapdragon_super_resolution_input_samplerstateVarId = get_shader_variable_id("snapdragon_super_resolution_input_samplerstate");
         snapdragon_super_resolution_ViewportInfoVarId = get_shader_variable_id("snapdragon_super_resolution_ViewportInfo");
     }
 
@@ -46,6 +47,7 @@ public:
 
         d3d::set_render_target(output, 0);
         ShaderGlobal::set_texture(snapdragon_super_resolution_inputVarId, input);
+        ShaderGlobal::set_sampler(snapdragon_super_resolution_input_samplerstateVarId, d3d::request_sampler({}));
         ShaderGlobal::set_color4(snapdragon_super_resolution_ViewportInfoVarId, viewportData);
         PostFxRenderer::render();
     }
@@ -55,6 +57,7 @@ public:
         Color4 viewportData = Color4(viewport);
         d3d::set_render_target();
         ShaderGlobal::set_texture(snapdragon_super_resolution_inputVarId, input.getId());
+        ShaderGlobal::set_sampler(snapdragon_super_resolution_input_samplerstateVarId, d3d::request_sampler({}));
         ShaderGlobal::set_color4(snapdragon_super_resolution_ViewportInfoVarId, viewportData);
         PostFxRenderer::render();
     }
@@ -62,4 +65,5 @@ public:
 private:
     float viewport[4];
     int snapdragon_super_resolution_inputVarId, snapdragon_super_resolution_ViewportInfoVarId;
+    int snapdragon_super_resolution_input_samplerstateVarId;
 };

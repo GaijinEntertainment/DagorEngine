@@ -1,32 +1,34 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <generic/dag_objectPool.h>
-
-#include "driver.h"
-#include "platform.h"
-#include "device_queue.h"
-#include "shader.h"
-#include "pipeline_cache.h"
-#include "descriptor_heap.h"
-#include "swapchain.h"
-#include "pipeline.h"
 #include "bindless.h"
+#include "debug/device_state.h"
+#include "descriptor_heap.h"
 #include "device_context.h"
-#include "query_manager.h"
-#include "tagged_handles.h"
+#include "device_features_config.h"
+#include "device_queue.h"
+#include "driver.h"
+#include "pipeline.h"
 #include "pipeline/blk_cache.h"
+#include "pipeline_cache.h"
+#include "platform.h"
+#include "query_manager.h"
 #include "resource_manager/image.h"
+#include "shader.h"
 #include "shader_library.h"
+#include "swapchain.h"
+#include "tagged_handles.h"
 
-#include <debug/dag_debug.h>
 #include <atomic>
-#include <mutex>
-#include <drv/3d/dag_driver.h>
-#include <drv/3d/dag_info.h>
+#include <debug/dag_debug.h>
 #include <drv/3d/dag_commands.h>
-#include <drv_log_defs.h>
+#include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_driverNetManager.h>
+#include <drv/3d/dag_info.h>
+#include <drv_log_defs.h>
+#include <generic/dag_objectPool.h>
+#include <mutex>
+
 
 namespace drv3d_dx12
 {
@@ -1808,6 +1810,10 @@ inline Extent2D DeviceContext::getSwapchainExtent() const { return front.swapcha
 inline bool DeviceContext::isVrrSupported() const { return back.swapchain.isVrrSupported(); }
 
 inline bool DeviceContext::isVsyncOn() const { return front.swapchain.isVsyncOn(); }
+
+inline bool DeviceContext::isHfrSupported() const { return back.swapchain.isHfrSupported(); }
+
+inline bool DeviceContext::isHfrEnabled() const { return back.swapchain.isHfrEnabled(); }
 
 inline FormatStore DeviceContext::getSwapchainColorFormat() const { return front.swapchain.getColorFormat(); }
 

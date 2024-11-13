@@ -7,13 +7,13 @@ endmacro
 
 define_macro_if_not_defined USE_PUDDLE(stage)
   hlsl(stage) {
-    void getPuddleData(float tc_world_pos_w, float3 worldPos, float hmapH, out float puddle, out float worldPosYPuddleOffset, out float puddleHeight)
+    void getPuddleData(float tc_world_pos_w, float3 worldPos, float hmapH, out float puddle, out float worldPosYPuddleOffset, inout float puddleHeight)
     {
       puddle = 0;
       worldPosYPuddleOffset = 0;
       puddleHeight = 0;
     }
-    void getPuddleData(float tc_world_pos_w, float3 worldPos, out float puddle, out float worldPosYPuddleOffset, out float puddleHeight)
+    void getPuddleData(float tc_world_pos_w, float3 worldPos, out float puddle, out float worldPosYPuddleOffset, inout float puddleHeight)
     {
       getPuddleData(tc_world_pos_w, worldPos, tc_world_pos_w, puddle, worldPosYPuddleOffset, puddleHeight);
     }
@@ -29,6 +29,11 @@ define_macro_if_not_defined USE_AND_CALCULATE_PUDDLES()
   USE_PUDDLE(ps)
   hlsl(ps) {
     half addPuddles(inout UnpackedGbuffer result, float3 worldPos, half tc_world_pos_w, float2 htTc, half porosity, float heightForPuddle)
+    {
+      return 0;
+    }
+
+    half addPuddlesWithConstHeight(inout UnpackedGbuffer result, float3 worldPos, half tc_world_pos_w, float2 htTc, half porosity, float puddleHeight)
     {
       return 0;
     }

@@ -328,30 +328,32 @@ rendinst::DestroyedRi *rendinst::doRIGenExternalControl(const rendinst::RendInst
   return ri;
 }
 
-bool rendinst::fillTreeInstData(const RendInstDesc &desc, const Point2 &impact_velocity_xz, TreeInstData &out_data)
+bool rendinst::fillTreeInstData(const RendInstDesc &desc, const Point2 &impact_velocity_xz, bool from_damage, TreeInstData &out_data)
 {
+  RendInstGenData *rgl = nullptr;
+  int pool = -1;
+
   rendinstdestr::TreeDestr::BranchDestr *branchDestr = nullptr;
   if (desc.isRiExtra())
   {
-    const int pool = rendinst::riExtra[desc.pool].riPoolRef;
+    pool = rendinst::riExtra[desc.pool].riPoolRef;
     if (pool < 0)
       return false;
 
-    RendInstGenData *rgl = rendinst::getRgLayer(rendinst::riExtra[desc.pool].riPoolRefLayer);
+    rgl = rendinst::getRgLayer(rendinst::riExtra[desc.pool].riPoolRefLayer);
     G_ASSERT(rgl && pool < rgl->rtData->riProperties.size());
-
-    if (rgl)
-      branchDestr = &rgl->rtData->riProperties[pool].treeBranchDestr;
   }
   else
   {
-    RendInstGenData *rgl = RendInstGenData::getGenDataByLayer(desc);
-    if (rgl)
-      branchDestr = &rgl->rtData->riProperties[desc.pool].treeBranchDestr;
+    rgl = RendInstGenData::getGenDataByLayer(desc);
+    pool = desc.pool;
   }
 
-  if (!branchDestr)
+  if (!rgl)
     return false;
+
+  branchDestr =
+    from_damage ? &rgl->rtData->riProperties[pool].treeBranchDestrFromDamage : &rgl->rtData->riProperties[pool].treeBranchDestrOther;
 
   out_data.rndSeed = _rnd(rendinstTreeRndSeed);
   out_data.impactXZ = impact_velocity_xz;
@@ -365,26 +367,50 @@ void rendinst::updateTreeDestrRenderData(const TMatrix &original_tm, riex_handle
   if (!tree_inst_data.branchDestr.enableBranchDestruction && !tree_inst_debug_data)
     return;
 
-  int timerMs = (int)((tree_inst_data.timer + (tree_inst_debug_data ? tree_inst_debug_data->timer_offset : 0.0f)) * 1000.0);
-  int randSeed = tree_inst_data.rndSeed % (1 << 8);
-  int timer_seed = (timerMs << 8) | randSeed;
+  auto &branch = tree_inst_debug_data
+                   ? (tree_inst_debug_data->last_object_was_from_damage ? tree_inst_debug_data->branchDestrFromDamage
+                                                                        : tree_inst_debug_data->branchDestrOther)
+                   : tree_inst_data.branchDestr;
 
-  auto &branch = tree_inst_debug_data ? tree_inst_debug_data->branchDestr : tree_inst_data.branchDestr;
   Point2 impulseXZ = tree_inst_data.impactXZ * branch.impulseMul;
+  Point4 perInstanceData[5];
 
-  int rotateSpeedMulCoded = clamp((int)(branch.rotateRandomSpeedMulX * 25.0f), 0, 255) << 16 |
-                            clamp((int)(branch.rotateRandomSpeedMulY * 25.0f), 0, 255) << 8 |
-                            clamp((int)(branch.rotateRandomSpeedMulZ * 25.0f), 0, 255);
+  auto fnPack = [](float v, float maxValue, int bits, int offset) -> int {
+    return clamp((int)(v / maxValue * ((1 << bits) - 1)), 0, (1 << bits) - 1) << offset;
+  };
 
-  Point4 perInstanceData[6];
-  perInstanceData[0] = {0.0f, (float &)(timer_seed), impulseXZ.x, impulseXZ.y};
-  perInstanceData[1] = {branch.impulseMaxLength, branch.branchSizeMax, (float &)rotateSpeedMulCoded, branch.rotateRandomAngleSpread};
-  perInstanceData[2] = {branch.branchSizeSlowDown, branch.fallingSpeedMul, branch.fallingSpeedRnd, branch.horizontalSpeedMul};
-  perInstanceData[3] = {original_tm.m[0][0], original_tm.m[0][1], original_tm.m[0][2], original_tm.m[1][0]};
-  perInstanceData[4] = {original_tm.m[1][1], original_tm.m[1][2], original_tm.m[2][0], original_tm.m[2][1]};
-  perInstanceData[5] = {original_tm.m[2][2], original_tm.m[3][0], original_tm.m[3][1], original_tm.m[3][2]};
+  float impulseMagnitude = impulseXZ.length();
+  float branchFallingChance = (impulseMagnitude - branch.impulseMin) / max(0.01f, branch.impulseMax - branch.impulseMin);
+  if (branchFallingChance <= 0.0f)
+    return;
 
-  uint32_t perInstanceDataSize = 6;
+  int randSeed = tree_inst_data.rndSeed % (1 << 8);
+  int randSeed_branchFallingChance = randSeed << 16 | fnPack(branchFallingChance, 1.0f, 16, 0);
+
+  float branchRangeInv = 1.0f / (branch.branchSizeMax - branch.branchSizeMin);
+  int branchSizeData =
+    fnPack(branch.branchSizeSlowDown, 1.0f, 8, 16) | fnPack(branch.branchSizeMin, 100.0f, 8, 8) | fnPack(branchRangeInv, 5.0f, 8, 0);
+
+  perInstanceData[0] = {(float &)randSeed_branchFallingChance, (float &)branchSizeData, impulseXZ.x, impulseXZ.y};
+
+  float timerSec = (tree_inst_data.timer + (tree_inst_debug_data ? tree_inst_debug_data->timer_offset : 0.0f));
+  float disappearTimerSec = tree_inst_data.disappearStartTime < 0.0f ? timerSec : (int)tree_inst_data.disappearStartTime;
+
+  int timersData = fnPack(timerSec, 50.0f, 16, 16) | fnPack(disappearTimerSec, 50.0f, 16, 0);
+
+  int rotationData = fnPack(branch.rotateRandomAngleSpread, 10.0f, 8, 24) | fnPack(branch.rotateRandomSpeedMulX, 10.0f, 8, 16) |
+                     fnPack(branch.rotateRandomSpeedMulY, 10.0f, 8, 8) | fnPack(branch.rotateRandomSpeedMulZ, 10.0f, 8, 0);
+
+  int speedData = fnPack(branch.fallingSpeedMul, 2.0f, 8, 16) | fnPack(branch.fallingSpeedRnd, 1.0f, 8, 8) |
+                  fnPack(branch.horizontalSpeedMul, 20.0f, 8, 0);
+
+  perInstanceData[1] = {(float &)timersData, (float &)speedData, (float &)rotationData, 0.0f};
+
+  perInstanceData[2] = {original_tm.m[0][0], original_tm.m[0][1], original_tm.m[0][2], original_tm.m[1][0]};
+  perInstanceData[3] = {original_tm.m[1][1], original_tm.m[1][2], original_tm.m[2][0], original_tm.m[2][1]};
+  perInstanceData[4] = {original_tm.m[2][2], original_tm.m[3][0], original_tm.m[3][1], original_tm.m[3][2]};
+
+  uint32_t perInstanceDataSize = countof(perInstanceData);
   rendinst::setRiExtraPerInstanceRenderData(ri_handle, perInstanceData, perInstanceDataSize);
 }
 
@@ -1072,8 +1098,12 @@ void RendInstGenData::RtData::initDebris(const DataBlock &ri_blk, int (*get_fx_t
                        objectDmgBlk->paramExists("canopyTriangle") || objectDmgBlk->paramExists("canopyTopOffset");
       riProperties[i].canopyOpacity = objectDmgBlk->getReal("canopyOpacity", useCanopy ? 1.0f : 0.f);
 
-      riProperties[i].treeBranchDestr = treeDestr.branchDestr;
-      rendinstdestr::branch_destr_load_from_blk(riProperties[i].treeBranchDestr, objectDmgBlk->getBlockByNameEx("branchDestr"));
+      riProperties[i].treeBranchDestrFromDamage = treeDestr.branchDestrFromDamage;
+      rendinstdestr::branch_destr_load_from_blk(riProperties[i].treeBranchDestrFromDamage,
+        objectDmgBlk->getBlockByNameEx("branchDestr"));
+      riProperties[i].treeBranchDestrOther = treeDestr.branchDestrOther;
+      rendinstdestr::branch_destr_load_from_blk(riProperties[i].treeBranchDestrOther,
+        objectDmgBlk->getBlockByNameEx("branchDestrOther"));
 
       riDestr[i].destrFxName = objectDmgBlk->getStr("destrFx", "");
       riDestr[i].destrFxTemplate = objectDmgBlk->getStr("destrFxTemplate", nullptr);

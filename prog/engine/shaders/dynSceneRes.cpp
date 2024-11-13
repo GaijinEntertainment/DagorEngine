@@ -1223,6 +1223,7 @@ DynamicRenderableSceneInstance::DynamicRenderableSceneInstance(DynamicRenderable
     wtmToOriginVecPrev()[i].set(0, -100, 0);
     opacity()[i] = 1;
   }
+  clearNodeCollapser();
 }
 
 

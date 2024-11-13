@@ -15,6 +15,7 @@
 #include <EASTL/unique_ptr.h>
 #include <EASTL/optional.h>
 #include <EASTL/fixed_function.h>
+#include <EASTL/array.h>
 #include <shaders/dag_bindposeBufferManager.h>
 
 
@@ -472,6 +473,8 @@ class DynamicRenderableSceneInstance
 public:
   DAG_DECLARE_NEW(midmem)
 
+  using NodeCollapserBits = eastl::array<uint32_t, 4 * 2>;
+
   static float lodDistanceScale;
 
   DynamicRenderableSceneInstance(DynamicRenderableSceneLodsResource *res, bool activate_instance = true);
@@ -507,6 +510,18 @@ public:
   }
 
   void showSkinnedNodesConnectedToBone(int bone_id, bool need_show);
+
+  void clearNodeCollapser() { nodeCollapserBits.fill(0); }
+
+  void markNodeCollapserNode(uint32_t node_index)
+  {
+    int boneId = getBoneForNode(node_index);
+    G_ASSERT_RETURN(boneId < 256, );
+    if (boneId >= 0)
+      nodeCollapserBits[boneId / 32] |= 1 << (boneId % 32);
+  }
+
+  const NodeCollapserBits &getNodeCollapserBits() const { return nodeCollapserBits; }
 
   void setNodeWtm(uint32_t n_id, const TMatrix &wtm)
   {
@@ -700,6 +715,8 @@ protected:
   BBox3 bbox;
 
   uint32_t uniqueId;
+
+  NodeCollapserBits nodeCollapserBits;
 
   enum Offsets
   {

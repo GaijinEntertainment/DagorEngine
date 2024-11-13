@@ -2,6 +2,7 @@
 
 #include <drv/shadersMetaData/dxil/compiled_shader_header.h>
 #include <dxil/compiler.h>
+#include <supp/dag_comPtr.h>
 
 #include <util/dag_string.h>
 
@@ -10,6 +11,8 @@
 #include <dxc/dxcapi.h>
 #include "supplements/auto.h"
 #include <debug/dag_debug.h>
+#include <EASTL/variant.h>
+#include <EASTL/optional.h>
 
 using namespace dxil;
 
@@ -257,6 +260,66 @@ bool is_cbv_type(D3D_SHADER_INPUT_TYPE type) { return D3D_SIT_CBUFFER == type; }
 
 bool is_sampler_type(D3D_SHADER_INPUT_TYPE type) { return D3D_SIT_SAMPLER == type; }
 
+ComPtr<IDxcUtils> load_utilities(void *dxc_lib)
+{
+  ComPtr<IDxcUtils> utilities;
+  if (!dxc_lib)
+  {
+    return utilities;
+  }
+
+  DxcCreateInstanceProc DxcCreateInstance = nullptr;
+  reinterpret_cast<FARPROC &>(DxcCreateInstance) = GetProcAddress(static_cast<HMODULE>(dxc_lib), "DxcCreateInstance");
+
+  if (!DxcCreateInstance)
+  {
+    return utilities;
+  }
+
+  DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&utilities));
+  if (!utilities)
+  {
+    return utilities;
+  }
+  return utilities;
+}
+
+template <typename T>
+ComPtr<T> create_reflection(IDxcUtils *utils, eastl::span<const uint8_t> data)
+{
+  DxcBuffer blob;
+  blob.Encoding = DXC_CP_ACP;
+  blob.Ptr = data.data();
+  blob.Size = data.size();
+
+  ComPtr<T> result;
+  utils->CreateReflection(&blob, IID_PPV_ARGS(&result));
+  return result;
+}
+
+eastl::string get_function_name(const D3D12_FUNCTION_DESC &func)
+{
+  // Name is mangled like it would be c++
+  // convention is ?<name>@@<param and return type encoding>
+  auto mangledName = func.Name;
+  uint32_t start = 0;
+  for (; mangledName[start] != '\0'; ++start)
+  {
+    if (isalpha(mangledName[start]))
+    {
+      break;
+    }
+  }
+  uint32_t stop = mangledName[start] != '\0' ? start + 1 : start;
+  for (; mangledName[stop] != '\0'; ++stop)
+  {
+    if (!isalpha(mangledName[stop]))
+    {
+      break;
+    }
+  }
+  return {mangledName + start, stop - start};
+}
 } // namespace
 
 ShaderHeaderCompileResult dxil::compileHeaderFromReflectionData(ShaderStage stage, const eastl::vector<uint8_t> &reflection,
@@ -265,52 +328,21 @@ ShaderHeaderCompileResult dxil::compileHeaderFromReflectionData(ShaderStage stag
   ShaderHeaderCompileResult result = {};
 #if _TARGET_PC_WIN
 
+  auto utilitiesLoadResult = load_utilities(dxc_lib);
+  if (!utilitiesLoadResult)
+  {
+    return result;
+  }
+
+  auto shaderInfo = create_reflection<ID3D12ShaderReflection>(utilitiesLoadResult /*->*/.Get(), reflection);
+  if (!shaderInfo)
+  {
+    return result;
+  }
+
   result.header.shaderType = static_cast<uint16_t>(stage);
   result.header.maxConstantCount = max_const_count;
   result.header.bonesConstantsUsed = -1; // @TODO: remove
-  if (!dxc_lib)
-  {
-    result.logMessage = "dxil::compileHeaderFromShader: no valid shader compiler library handle "
-                        "provided";
-    result.isOk = false;
-    return result;
-  }
-
-  DxcCreateInstanceProc DxcCreateInstance = nullptr;
-  reinterpret_cast<FARPROC &>(DxcCreateInstance) = GetProcAddress(static_cast<HMODULE>(dxc_lib), "DxcCreateInstance");
-
-  if (!DxcCreateInstance)
-  {
-    result.logMessage = "dxil::compileHeaderFromShader: Missing entry point DxcCreateInstance in "
-                        "dxcompiler.dll";
-    result.isOk = false;
-    return result;
-  }
-
-  IDxcUtils *utilities = nullptr;
-  DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&utilities));
-  if (!utilities)
-  {
-    result.logMessage = "dxil::compileHeaderFromShader: DxcCreateInstance with CLSID_DxcUtils "
-                        "failed";
-    result.isOk = false;
-    return result;
-  }
-
-  DxcBuffer blob;
-  blob.Encoding = DXC_CP_ACP;
-  blob.Ptr = reflection.data();
-  blob.Size = reflection.size();
-
-  ID3D12ShaderReflection *shaderInfo = nullptr;
-  utilities->CreateReflection(&blob, IID_PPV_ARGS(&shaderInfo));
-  if (!shaderInfo)
-  {
-    utilities->Release();
-    result.logMessage = "dxil::compileHeaderFromShader: IDxcUtils::CreateReflection failed";
-    result.isOk = false;
-    return result;
-  }
 
   result.isOk = true;
   D3D12_SHADER_DESC desc = {};
@@ -589,13 +621,365 @@ ShaderHeaderCompileResult dxil::compileHeaderFromReflectionData(ShaderStage stag
 
   if (!result.isOk)
   {
-    result.logMessage += make_bound_resource_table(desc, shaderInfo);
+    result.logMessage += make_bound_resource_table(desc, shaderInfo.Get());
     result.logMessage += "Error while building shader resource usage header.\n";
   }
 
-  shaderInfo->Release();
-  utilities->Release();
-
 #endif
+  return result;
+}
+
+namespace
+{
+enum class ShaderFunctionRelfectionError
+{
+  NoError,
+  NoDesc,
+  InvalidBindlessResourceType,
+  InvalidBindlessBindingPoint,
+  BindlessSamplerSpaceOutOfRange,
+  BindlessResourceSpaceOutOfRange,
+  InvalidSpecialConstantRegister,
+  InvalidRootConstantRegister,
+  InvalidResourceSpace,
+  BRegisterIndexOutOfRange,
+  InvalidSamplerSpaceIndex,
+  SRegisterIndexOutOfRange,
+  TRegisterIndexOufOfRange,
+  UAVHasEmbeddedCounter,
+  URegisterIndexOutOfRange,
+  NotYetImplemented,
+};
+
+template <typename T, typename U>
+ShaderFunctionRelfectionError parse_resource_definition(const D3D12_SHADER_INPUT_BIND_DESC &desc, T &target, U &library_info)
+{
+  if (0 == desc.BindCount)
+  {
+    if (!is_supported_bindless_type(desc.Type))
+    {
+      return ShaderFunctionRelfectionError::InvalidBindlessResourceType;
+    }
+    if (0 != desc.BindPoint)
+    {
+      return ShaderFunctionRelfectionError::InvalidBindlessBindingPoint;
+    }
+    if (is_sampler_type(desc.Type))
+    {
+      if ((desc.Space < dxil::BINDLESS_SAMPLERS_SPACE_OFFSET) ||
+          (desc.Space >= (dxil::BINDLESS_SAMPLERS_SPACE_OFFSET + dxil::BINDLESS_SAMPLERS_SPACE_COUNT)))
+      {
+        return ShaderFunctionRelfectionError::BindlessSamplerSpaceOutOfRange;
+      }
+
+      target.resourceUsageTable.bindlessUsageMask |= 1u << (desc.Space - 1);
+      library_info.resourceUsageTable.bindlessUsageMask |= 1u << (desc.Space - 1);
+    }
+    else
+    {
+      if ((desc.Space < dxil::BINDLESS_RESOURCES_SPACE_OFFSET) ||
+          (desc.Space >= (dxil::BINDLESS_RESOURCES_SPACE_OFFSET + dxil::BINDLESS_RESOURCES_SPACE_COUNT)))
+      {
+        return ShaderFunctionRelfectionError::BindlessResourceSpaceOutOfRange;
+      }
+
+      target.resourceUsageTable.bindlessUsageMask |= 1u << (desc.Space + 1);
+      library_info.resourceUsageTable.bindlessUsageMask |= 1u << (desc.Space + 1);
+    }
+  }
+  else
+  {
+    if (is_cbv_type(desc.Type))
+    {
+      if (desc.Space > 0)
+      {
+        if (desc.BindPoint == dxil::SPECIAL_CONSTANTS_REGISTER_INDEX)
+        {
+          if (desc.Space == dxil::DRAW_ID_REGISTER_SPACE)
+          {
+            target.resourceUsageTable.specialConstantsMask |= dxil::SC_DRAW_ID;
+            library_info.resourceUsageTable.specialConstantsMask |= dxil::SC_DRAW_ID;
+          }
+          else
+          {
+            return ShaderFunctionRelfectionError::InvalidSpecialConstantRegister;
+          }
+        }
+        else if (desc.BindPoint == dxil::ROOT_CONSTANT_BUFFER_REGISTER_INDEX)
+        {
+          if (desc.Space <= dxil::ROOT_CONSTANT_BUFFER_REGISTER_SPACE_OFFSET)
+          {
+            return ShaderFunctionRelfectionError::InvalidRootConstantRegister;
+          }
+
+          target.resourceUsageTable.rootConstantDwords = desc.Space - dxil::ROOT_CONSTANT_BUFFER_REGISTER_SPACE_OFFSET;
+          library_info.resourceUsageTable.rootConstantDwords = desc.Space - dxil::ROOT_CONSTANT_BUFFER_REGISTER_SPACE_OFFSET;
+        }
+        else
+        {
+          return ShaderFunctionRelfectionError::InvalidResourceSpace;
+        }
+      }
+      else
+      {
+        if ((desc.BindPoint >= dxil::MAX_B_REGISTERS))
+        {
+          return ShaderFunctionRelfectionError::BRegisterIndexOutOfRange;
+        }
+
+        target.resourceUsageTable.bRegisterUseMask |= 1ul << desc.BindPoint;
+        library_info.resourceUsageTable.bRegisterUseMask |= 1ul << desc.BindPoint;
+      }
+    }
+    else if (is_sampler_type(desc.Type))
+    {
+      if (desc.Space != dxil::REGULAR_RESOURCES_SPACE_INDEX)
+      {
+        return ShaderFunctionRelfectionError::InvalidSamplerSpaceIndex;
+      }
+      if (desc.BindPoint >= dxil::MAX_T_REGISTERS)
+      {
+        return ShaderFunctionRelfectionError::SRegisterIndexOutOfRange;
+      }
+      target.resourceUsageTable.sRegisterUseMask |= 1ul << desc.BindPoint;
+      library_info.resourceUsageTable.sRegisterUseMask |= 1ul << desc.BindPoint;
+      if (0 != (desc.uFlags & D3D_SIF_COMPARISON_SAMPLER))
+      {
+        library_info.sRegisterCompareUseMask |= 1ul << desc.BindPoint;
+      }
+    }
+    else if (is_srv_type(desc.Type))
+    {
+      if (desc.BindPoint >= dxil::MAX_T_REGISTERS)
+      {
+        return ShaderFunctionRelfectionError::TRegisterIndexOufOfRange;
+      }
+
+      for (UINT i = 0; i < desc.BindCount; ++i)
+      {
+        target.resourceUsageTable.tRegisterUseMask |= 1ul << (desc.BindPoint + i);
+        library_info.resourceUsageTable.tRegisterUseMask |= 1ul << (desc.BindPoint + i);
+        library_info.tRegisterTypes[desc.BindPoint + i] = desc.Type | (desc.Dimension << 4);
+      }
+    }
+    else if (is_uav_type(desc.Type))
+    {
+      if (is_uav_with_counter_type(desc.Type))
+      {
+        return ShaderFunctionRelfectionError::UAVHasEmbeddedCounter;
+      }
+
+      if (desc.BindPoint >= dxil::MAX_U_REGISTERS)
+      {
+        return ShaderFunctionRelfectionError::URegisterIndexOutOfRange;
+      }
+      for (UINT i = 0; i < desc.BindCount; ++i)
+      {
+        target.resourceUsageTable.uRegisterUseMask |= 1ul << (desc.BindPoint + i);
+        library_info.resourceUsageTable.uRegisterUseMask |= 1ul << (desc.BindPoint + i);
+        library_info.uRegisterTypes[desc.BindPoint + i] = desc.Type | (desc.Dimension << 4);
+      }
+    }
+  }
+  return ShaderFunctionRelfectionError::NoError;
+}
+
+uint16_t translate_shader_type(UINT version)
+{
+  dxil::ShaderStage value = dxil::ShaderStage::INVALID_STAGE;
+  switch (version >> 16)
+  {
+    case 16: // explicit invalid case
+    default: break;
+    case 0: value = dxil::ShaderStage::PIXEL; break;
+    case 1: value = dxil::ShaderStage::VERTEX; break;
+    case 2: value = dxil::ShaderStage::GEOMETRY; break;
+    case 3: value = dxil::ShaderStage::HULL; break;
+    case 4: value = dxil::ShaderStage::DOMAIN; break;
+    case 5: value = dxil::ShaderStage::COMPUTE; break;
+    case 6: value = dxil::ShaderStage::LIBRARY; break;
+    case 7: value = dxil::ShaderStage::RAY_GEN; break;
+    case 8: value = dxil::ShaderStage::INTERSECTION; break;
+    case 9: value = dxil::ShaderStage::ANY_HIT; break;
+    case 10: value = dxil::ShaderStage::CLOSEST_HIT; break;
+    case 11: value = dxil::ShaderStage::MISS; break;
+    case 12: value = dxil::ShaderStage::CALLABLE; break;
+    case 13: value = dxil::ShaderStage::MESH; break;
+    case 14: value = dxil::ShaderStage::AMPLIFICATION; break;
+    case 15: value = dxil::ShaderStage::NODE; break;
+  }
+  return static_cast<uint16_t>(value);
+}
+
+uint32_t get_shader_minimum_recursion(dxil::ShaderStage stage)
+{
+  // ray gen shader has to have at least a recursion of 1 to allow to shoot rays
+  return (dxil::ShaderStage::RAY_GEN == stage) ? 1 : 0;
+}
+
+bool is_a_shader_with_recursion(dxil::ShaderStage stage)
+{
+  return (dxil::ShaderStage::RAY_GEN == stage) || (dxil::ShaderStage::CLOSEST_HIT == stage) || (dxil::ShaderStage::ANY_HIT == stage) ||
+         (dxil::ShaderStage::MISS == stage) || (dxil::ShaderStage::CALLABLE == stage);
+}
+
+bool is_a_shader_with_payload(dxil::ShaderStage stage)
+{
+  return (dxil::ShaderStage::RAY_GEN == stage) || (dxil::ShaderStage::CLOSEST_HIT == stage) || (dxil::ShaderStage::ANY_HIT == stage) ||
+         (dxil::ShaderStage::MISS == stage);
+}
+
+bool is_a_shader_with_attributes(dxil::ShaderStage stage)
+{
+  return (dxil::ShaderStage::CLOSEST_HIT == stage) || (dxil::ShaderStage::ANY_HIT == stage) ||
+         (dxil::ShaderStage::INTERSECTION == stage);
+}
+
+ShaderFunctionRelfectionError relfect(uint32_t default_playload_size_in_bytes, const FunctionExtraDataQuery &function_extra_data_query,
+  ID3D12FunctionReflection &function, LibraryResourceInformation &library_info, dxil::LibraryShaderProperties &output)
+{
+  D3D12_FUNCTION_DESC functionDesc{};
+  if (FAILED(function.GetDesc(&functionDesc)))
+  {
+    return ShaderFunctionRelfectionError::NoDesc;
+  }
+
+  auto functionName = get_function_name(functionDesc);
+
+  output.shaderType = translate_shader_type(functionDesc.Version);
+  output.deviceRequirement.shaderFeatureFlagsLow = static_cast<uint32_t>(functionDesc.RequiredFeatureFlags);
+  output.deviceRequirement.shaderFeatureFlagsHigh = static_cast<uint32_t>(functionDesc.RequiredFeatureFlags >> 32);
+  output.deviceRequirement.shaderModel = functionDesc.Version & 0xFF;
+
+  // currently we need to specify this values externally as there is no way to get them, other than decoding the DXIL
+  // container and looking at disassembly strings.
+  uint32_t recursionDepth = get_shader_minimum_recursion(static_cast<dxil::ShaderStage>(output.shaderType));
+  uint32_t maxPayLoadSizeInBytes = default_playload_size_in_bytes;
+  uint32_t maxAttributeSizeInBytes = sizeof(float) * 2;
+  auto functionData = function_extra_data_query(static_cast<dxil::ShaderStage>(output.shaderType), functionName);
+  if (functionData)
+  {
+    recursionDepth = functionData->recursionDepth;
+    maxPayLoadSizeInBytes = functionData->maxPayLoadSizeInBytes;
+    maxAttributeSizeInBytes = functionData->maxAttributeSizeInBytes;
+  }
+  output.maxRecusionDepth = is_a_shader_with_recursion(static_cast<dxil::ShaderStage>(output.shaderType)) ? recursionDepth : 0;
+  output.maxPayloadSizeInBytes =
+    is_a_shader_with_payload(static_cast<dxil::ShaderStage>(output.shaderType)) ? maxPayLoadSizeInBytes : 0;
+  output.maxAttributeSizeInBytes =
+    is_a_shader_with_attributes(static_cast<dxil::ShaderStage>(output.shaderType)) ? maxAttributeSizeInBytes : 0;
+
+  if (functionDesc.BoundResources > 0)
+  {
+    for (UINT bi = 0; bi < functionDesc.BoundResources; ++bi)
+    {
+      D3D12_SHADER_INPUT_BIND_DESC boundResourceInfo{};
+      function.GetResourceBindingDesc(bi, &boundResourceInfo);
+      auto result = parse_resource_definition(boundResourceInfo, output, library_info);
+      if (ShaderFunctionRelfectionError::NoError != result)
+      {
+        return result;
+      }
+    }
+  }
+
+  return ShaderFunctionRelfectionError::NoError;
+}
+
+void append_to_log(eastl::string &log, ShaderFunctionRelfectionError error)
+{
+  switch (error)
+  {
+    case ShaderFunctionRelfectionError::NoError: log += "No error"; break;
+    case ShaderFunctionRelfectionError::NoDesc: log += "Unable to retrieve description"; break;
+    case ShaderFunctionRelfectionError::InvalidBindlessResourceType: log += "Invalid bindless resource type"; break;
+    case ShaderFunctionRelfectionError::InvalidBindlessBindingPoint: log += "Invalid bindless binding point"; break;
+    case ShaderFunctionRelfectionError::BindlessSamplerSpaceOutOfRange: log += "Bindless samplers out of space range"; break;
+    case ShaderFunctionRelfectionError::BindlessResourceSpaceOutOfRange: log += "Bindless resource out of space ranget"; break;
+    case ShaderFunctionRelfectionError::InvalidSpecialConstantRegister: log += "Invalid special const register"; break;
+    case ShaderFunctionRelfectionError::InvalidRootConstantRegister: log += "Invalid root const register"; break;
+    case ShaderFunctionRelfectionError::InvalidResourceSpace: log += "Invalid resource space"; break;
+    case ShaderFunctionRelfectionError::BRegisterIndexOutOfRange: log += "B register index out of range"; break;
+    case ShaderFunctionRelfectionError::InvalidSamplerSpaceIndex: log += "Invalid sampler space index"; break;
+    case ShaderFunctionRelfectionError::SRegisterIndexOutOfRange: log += "S register index out of range"; break;
+    case ShaderFunctionRelfectionError::TRegisterIndexOufOfRange: log += "T register index out of range"; break;
+    case ShaderFunctionRelfectionError::UAVHasEmbeddedCounter: log += "UAV resource has embedded counter"; break;
+    case ShaderFunctionRelfectionError::URegisterIndexOutOfRange: log += "U register index out of range"; break;
+    case ShaderFunctionRelfectionError::NotYetImplemented: log += "Functionality is not implemented yet"; break;
+  }
+}
+} // namespace
+
+dxil::LibraryShaderPropertiesCompileResult dxil::compileLibraryShaderPropertiesFromReflectionData(
+  uint32_t default_playload_size_in_bytes, const FunctionExtraDataQuery &function_extra_data_query,
+  eastl::span<const uint8_t> reflection, void *dxc_lib_handle)
+{
+  LibraryShaderPropertiesCompileResult result;
+
+  if (reflection.empty())
+  {
+    result.isOk = false;
+    result.logMessage = "Reflection blob was empty";
+    return result;
+  }
+
+  if (!dxc_lib_handle)
+  {
+    result.isOk = false;
+    result.logMessage = "DXC lib handle was null";
+    return result;
+  }
+  auto utilitiesLoadResult = load_utilities(dxc_lib_handle);
+  if (!utilitiesLoadResult)
+  {
+    result.isOk = false;
+    result.logMessage = "Failed to create DXC utilities library";
+    return result;
+  }
+
+  auto libInfo = create_reflection<ID3D12LibraryReflection>(utilitiesLoadResult.Get(), reflection);
+  if (!libInfo)
+  {
+    result.isOk = false;
+    result.logMessage = "Unable to create reflection interface from reflection blob";
+    return result;
+  }
+
+  D3D12_LIBRARY_DESC libDesc{};
+  libInfo->GetDesc(&libDesc);
+
+  result.properties.resize(libDesc.FunctionCount);
+  result.names.resize(libDesc.FunctionCount);
+  for (uint32_t i = 0; i < libDesc.FunctionCount; ++i)
+  {
+    auto &target = result.properties[i];
+    auto info = libInfo->GetFunctionByIndex(i);
+
+    D3D12_FUNCTION_DESC functionDesc{};
+    info->GetDesc(&functionDesc);
+
+    auto functionName = get_function_name(functionDesc);
+    if (functionName.empty())
+    {
+      result.logMessage += "Unable to obtain function name from mangled name ";
+      result.logMessage += functionDesc.Name;
+      result.isOk = false;
+      continue;
+    }
+    result.names[i] = functionName;
+
+    auto relfectionResult =
+      relfect(default_playload_size_in_bytes, function_extra_data_query, *info, result.libInfo, result.properties[i]);
+    if (ShaderFunctionRelfectionError::NoError != relfectionResult)
+    {
+      result.isOk = false;
+      result.logMessage += "Error while reflecting function ";
+      result.logMessage += functionDesc.Name;
+      result.logMessage += ": ";
+      append_to_log(result.logMessage, relfectionResult);
+      continue;
+    }
+  }
+
   return result;
 }

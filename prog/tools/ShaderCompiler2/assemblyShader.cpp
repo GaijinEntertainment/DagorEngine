@@ -15,10 +15,12 @@
 #include "shaderTab.h"
 #include "shCompiler.h"
 #include "compileResult.h"
+#include "globalConfig.h"
 #include "hash.h"
 #include "shHardwareOpt.h"
 #include "transcodeShader.h"
 #include "codeBlocks.h"
+#include "defer.h"
 #include <ioSys/dag_fileIo.h>
 #include <osApiWrappers/dag_cpuJobs.h>
 #include <debug/dag_debug.h>
@@ -39,27 +41,7 @@ using namespace ShaderParser;
 // return maximum permitted FSH version
 extern d3d::shadermodel::Version getMaxFSHVersion();
 
-extern DebugLevel hlslDebugLevel;
-extern bool hlslDumpCodeAlways, hlslDumpCodeOnError;
-extern bool validateIdenticalBytecode;
-extern bool hlslSkipValidation;
-extern bool hlslNoDisassembly;
-extern bool hlslShowWarnings;
-extern bool hlslWarningsAsErrors;
-extern bool isDebugModeEnabled;
-extern bool enableBindless;
-#if _CROSS_TARGET_SPIRV
-extern bool compilerHlslCc;
-extern bool compilerDXC;
-#endif
-extern bool autotest_mode;
-
-static bool is_hlsl_debug() { return hlslDebugLevel != DebugLevel::NONE; }
-
-#if _CROSS_TARGET_DX12
-#include "dx12/asmShaderDXIL.h"
-extern dx12::dxil::Platform targetPlatform;
-#endif
+static bool is_hlsl_debug() { return shc::config().hlslDebugLevel != DebugLevel::NONE; }
 
 #if _TARGET_PC_WIN
 #include <windows.h>
@@ -81,12 +63,6 @@ extern dx12::dxil::Platform targetPlatform;
 #elif _CROSS_TARGET_DX11 //_TARGET_PC is also defined
 #include "hlsl11transcode/asmShaders11.h"
 #include <D3Dcompiler.h>
-#endif
-
-#ifdef _CROSS_TARGET_METAL
-extern bool use_ios_token;
-extern bool use_binary_msl;
-extern bool use_metal_glslang;
 #endif
 
 struct CachedShader
@@ -1283,7 +1259,7 @@ void AssembleShaderEvalCB::handle_external_block_stat(state_block_stat &state_bl
     if ((type == VariableType::buf || type == VariableType::cbuf || type == VariableType::tex || type == VariableType::smp) && !hlsl)
       error(String(32, "named const <%s> has type of <%s> and so requires hlsl", var->text, nameSpace->text), nameSpace);
 
-    const bool isBindless = isBindlessType(type) && enableBindless;
+    const bool isBindless = isBindlessType(type) && shc::config().enableBindless;
     String varName(var->text);
     // This is a hacky way to support bindless textures in vertex shaders.
     // Anyway we store all bindless indices and constants for both stages in the same const buffer.
@@ -1720,7 +1696,7 @@ void AssembleShaderEvalCB::handle_external_block_stat(state_block_stat &state_bl
           }
         } null_eval;
 
-        if (!cb.parseSourceCode("", def_hlsl, null_eval))
+        if (!cb.parseSourceCode("", def_hlsl, null_eval, false))
         {
           error(String(32, "bad HLSL decl for named const <%s>:\n%s", var->text, def_hlsl), var);
           return;
@@ -2212,7 +2188,7 @@ void AssembleShaderEvalCB::eval_supports(supports_stat &s)
       if (s.name[i]->text == "__static_multidraw_cbuf"sv)
       {
         // Currently we support multidraw constbuffers only for bindless material version.
-        supportsStaticCbuf = enableBindless ? StaticCbuf::ARRAY : StaticCbuf::SINGLE;
+        supportsStaticCbuf = shc::config().enableBindless ? StaticCbuf::ARRAY : StaticCbuf::SINGLE;
         continue;
       }
       if (s.name[i]->text == "__draw_id"sv)
@@ -2375,7 +2351,7 @@ bool AssembleShaderEvalCB::compareHWToken(int hw_token, const ShHardwareOptions 
 
     case SHADER_TOKENS::SHTOK_metaliOS:
 #if _CROSS_TARGET_METAL
-      return use_ios_token;
+      return shc::config().useIosToken;
 #else
       return false;
 #endif
@@ -2410,7 +2386,7 @@ bool AssembleShaderEvalCB::compareHWToken(int hw_token, const ShHardwareOptions 
     case SHADER_TOKENS::SHTOK_xbox:
 #if _CROSS_TARGET_DX12
       // on dx12 we have different profiles with the same compiler
-      return dx12::dxil::is_xbox_platform(targetPlatform);
+      return dx12::dxil::is_xbox_platform(shc::config().targetPlatform);
 #else
       return false;
 #endif
@@ -2418,7 +2394,7 @@ bool AssembleShaderEvalCB::compareHWToken(int hw_token, const ShHardwareOptions 
     case SHADER_TOKENS::SHTOK_scarlett:
 #if _CROSS_TARGET_DX12
       // on dx12 we have different profiles with the same compiler
-      return dx12::dxil::Platform::XBOX_SCARLETT == targetPlatform;
+      return dx12::dxil::Platform::XBOX_SCARLETT == shc::config().targetPlatform;
 #else
       return false;
 #endif
@@ -2426,12 +2402,12 @@ bool AssembleShaderEvalCB::compareHWToken(int hw_token, const ShHardwareOptions 
     case SHADER_TOKENS::SHTOK_mesh:
 #if _CROSS_TARGET_DX12
       // Not all DX12 targets support mesh shaders, this depends on the target platform
-      return dx12::dxil::platform_has_mesh_support(targetPlatform);
+      return dx12::dxil::platform_has_mesh_support(shc::config().targetPlatform);
 #else
       return false;
 #endif
 
-    case SHADER_TOKENS::SHTOK_bindless: return enableBindless;
+    case SHADER_TOKENS::SHTOK_bindless: return shc::config().enableBindless;
 
     default: G_ASSERT(0);
   }
@@ -2443,7 +2419,8 @@ static String hwDefinesStr;
 void AssembleShaderEvalCB::buildHwDefines(const ShHardwareOptions &opt)
 {
   hwDefinesStr = "";
-#define ADD_HW_MACRO(TOKEN) \
+#define ADD_HW_MACRO(TOKEN)                              \
+  if (compareHWToken(SHADER_TOKENS::SHTOK_##TOKEN, opt)) \
   hwDefinesStr.aprintf(0, "#define _HARDWARE_%s %d\n", String(#TOKEN).toUpper(), compareHWToken(SHADER_TOKENS::SHTOK_##TOKEN, opt))
   ADD_HW_MACRO(pc);
   ADD_HW_MACRO(dx11);
@@ -3122,7 +3099,7 @@ void AssembleShaderEvalCB::eval_hlsl_compile(hlsl_compile_class &hlsl_compile)
     case 'm':
 #if _CROSS_TARGET_DX12
       // Here is the only place where we check that compile for MS is actually a valid thing to do
-      if (dx12::dxil::platform_has_mesh_support(targetPlatform))
+      if (dx12::dxil::platform_has_mesh_support(shc::config().targetPlatform))
 #endif
       {
         hlslXS = &hlslMs;
@@ -3132,7 +3109,7 @@ void AssembleShaderEvalCB::eval_hlsl_compile(hlsl_compile_class &hlsl_compile)
     case 'a':
 #if _CROSS_TARGET_DX12
       // Here is the only place where we check that compile for AS is actually a valid thing to do
-      if (dx12::dxil::platform_has_mesh_support(targetPlatform))
+      if (dx12::dxil::platform_has_mesh_support(shc::config().targetPlatform))
 #endif
       {
         hlslXS = &hlslAs;
@@ -3263,22 +3240,24 @@ public:
     curpass = ascb->curpass;
     parser = &ascb->parser.get_lex_parser();
     shaderName = ascb->shname_token->text;
-    cgArgs = hlslNoDisassembly ? def_cg_args + 1 : def_cg_args;
+    cgArgs = shc::config().hlslNoDisassembly ? def_cg_args + 1 : def_cg_args;
 
     bool compile_ps = (profile[0] == 'p' || profile[0] == 'c');
 
-    CodeSourceBlocks &code = *getSourceBlocks(profile);
-    source.printf(0, "#define _SHADER_STAGE_%cS 1\n", toupper(profile[0]));
-    source += AssembleShaderEvalCB::getBuiltHwDefines();
+    String src_predefines;
+    src_predefines.printf(0, "#define _SHADER_STAGE_%cS 1\n", toupper(profile[0]));
+    src_predefines += AssembleShaderEvalCB::getBuiltHwDefines();
     if (ascb->curpass->enableFp16)
-      source.printf(0, "#define _USE_HALFS 1\n");
+      src_predefines += "#define _USE_HALFS 1\n";
+
+    CodeSourceBlocks &code = *getSourceBlocks(profile);
     dag::ConstSpan<char> main_src = code.buildSourceCode(code_blocks);
-    source.append(main_src.data(), main_src.size());
-    ascb->shConst.patchHlsl(source, compile_ps, profile[0] == 'c', ascb->varMerger, max_constants_no);
+    source.setStr(main_src.data(), main_src.size());
+    ascb->shConst.patchHlsl(source, compile_ps, profile[0] == 'c', ascb->varMerger, max_constants_no, src_predefines);
     int base = append_items(source, 16);
     memset(&source[base], 0, 16);
 
-    if (hlslDumpCodeAlways || validateIdenticalBytecode)
+    if (shc::config().hlslDumpCodeAlways || shc::config().validateIdenticalBytecode)
       compileCtx = sh_get_compile_context();
 
     shader_variant_hash = variant_hash;
@@ -3286,14 +3265,7 @@ public:
 
 protected:
   virtual void doJobBody();
-  virtual void releaseJobBody()
-  {
-    if (!compile_result.bytecode.empty())
-    {
-      addResults();
-    }
-    delete this;
-  }
+  virtual void releaseJobBody();
 
   void addResults();
 
@@ -3438,30 +3410,120 @@ void AssembleShaderEvalCB::hlsl_compile(AssembleShaderEvalCB::HlslCompile &hlsl)
   hlsl.reset();
 }
 
-extern int hlslOptimizationLevel;
-extern bool hlsl2021;
-extern bool hlslEmbedSource;
-
 #include "hashed_cache.h"
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_files.h>
+#include <debug/dag_logSys.h>
 #include "sha1_cache_version.h"
-bool useSha1Cache = true, writeSha1Cache = true;
-extern char *sha1_cache_dir;
 
-static inline void calc_sha1_stripped(HASH_CONTEXT &sha1, const char *src, size_t total_len)
+static const char *find_line_comment(const char *s1, const char *s1_end)
+{
+  const char *p = (const char *)memchr(s1, '/', s1_end - s1);
+  while (p && p + 1 < s1_end)
+  {
+    if (p[1] == '/')
+      return p;
+    p = (const char *)memchr(p + 2, '/', s1_end - p - 2);
+  }
+  return nullptr;
+}
+static const char *get_next_line_trail_to_strip(const char *c_start, bool hold_file_line)
+{
+  const char *next_line = strstr(c_start, "\n#line ");
+  const char *next_line2 = next_line ? find_line_comment(c_start, next_line) : strstr(c_start, "//");
+  if (next_line2 && (!next_line || next_line2 < next_line))
+  {
+    while (next_line2 > c_start && (*(next_line2 - 1) == ' ' || *(next_line2 - 1) == '\t'))
+      next_line2--;
+    if (next_line2 > c_start && *(next_line2 - 1) == '\n')
+      next_line2--;
+    return next_line2;
+  }
+  if (hold_file_line && next_line && strncmp(next_line, "\n#line 1 \"precompiled\"", 22) != 0)
+    next_line = strchr(next_line + 7, ' ');
+  return next_line;
+}
+static inline void calc_sha1_stripped(HASH_CONTEXT &sha1, const char *src, size_t total_len, bool hold_file_line,
+  String *out_stripped = nullptr)
 {
   const char *c_start = src, *next_line = src;
-  while (c_start && (next_line = strstr(c_start, "\n#line ")))
+  if (out_stripped)
+    out_stripped->clear();
+  while (c_start && (next_line = get_next_line_trail_to_strip(c_start, hold_file_line)))
   {
     HASH_UPDATE(&sha1, (const unsigned char *)c_start, (uint32_t)(next_line - c_start));
+    if (out_stripped)
+      out_stripped->append(c_start, (uint32_t)(next_line - c_start));
     c_start = strstr(next_line + 1, "\n");
   };
   size_t at = (c_start - src);
   if (c_start != nullptr && at < total_len)
   {
     HASH_UPDATE(&sha1, (const unsigned char *)c_start, (uint32_t)(size_t(total_len) - at));
+    if (out_stripped)
+      out_stripped->append(c_start, (uint32_t)(size_t(total_len) - at));
   }
+}
+static String make_dump_filepath(const char *shaderName, uint64_t shader_variant_hash, const char *shader_sha1)
+{
+  String filepath;
+  if (const char *log_fn = get_log_filename())
+  {
+    if (const char *ext = dd_get_fname_ext(log_fn))
+      filepath.printf(0, "%.*s/", ext - log_fn, log_fn);
+    else if (const char *p = dd_get_fname(log_fn))
+      filepath.printf(0, "%.*s./dumps/", p - log_fn, log_fn);
+  }
+  filepath.aprintf(0, "%s_%08x_%s", shaderName, shader_variant_hash, shader_sha1);
+  return filepath;
+}
+static void dump_hlsl_src(const char *compileCtx, const char *source, const eastl::vector<uint8_t> &bytecode, //
+  const char *sha1SrcPath, bool reused, const char *shaderName, uint64_t shader_variant_hash)
+{
+  HASH_CONTEXT sha1;
+  unsigned char shader_sha1[HASH_SIZE];
+  String shader_sha1_s, status;
+  HASH_INIT(&sha1);
+  HASH_UPDATE(&sha1, (const unsigned char *)bytecode.data(), bytecode.size());
+  HASH_FINISH(&sha1, shader_sha1);
+  data_to_str_hex(shader_sha1_s, shader_sha1, sizeof(shader_sha1));
+  if (bytecode.empty())
+    status = "failed to compile";
+  else if (reused)
+    status.printf(0, "reused built %s from (%s)", shader_sha1_s, sha1SrcPath);
+  else if (sha1SrcPath && *sha1SrcPath)
+    status.printf(0, "built %s and stored as (%s)", shader_sha1_s, sha1SrcPath);
+  else
+    status.printf(0, "built %s", shader_sha1_s);
+
+  if (shc::config().hlslDumpCodeSeparate)
+  {
+    String fn = make_dump_filepath(shaderName, shader_variant_hash, shader_sha1_s);
+    dd_mkpath(fn);
+    FullFileSaveCB cwr(fn);
+    if (cwr.fileHandle)
+    {
+      const char *prolog_str = "=== compiling code:\n";
+      const char *epilog_str = "\n==> ";
+      cwr.write(prolog_str, strlen(prolog_str));
+      cwr.write(compileCtx, strlen(compileCtx));
+      cwr.write("\n", 1);
+      cwr.write(source, strlen(source));
+      cwr.write(epilog_str, strlen(epilog_str));
+      cwr.write(status, strlen(status));
+      cwr.write("\n", 1);
+      // String src_stripped;
+      // calc_sha1_stripped(sha1, source, strlen(source), false, &src_stripped);
+      // cwr.write(src_stripped, strlen(src_stripped));
+      debug("=== written dump to:%s", fn);
+    }
+    else
+      logwarn("=== cannot write dump to:%s", fn);
+    if (!bytecode.empty()) // when successfl build we don't need to duplicate dump to log
+      return;
+  }
+
+  debug("=== compiling code:\n%s\n%s\n%s", compileCtx, source, status);
 }
 
 void CompileShaderJob::doJobBody()
@@ -3485,37 +3547,52 @@ void CompileShaderJob::doJobBody()
   }
 #endif
 
-  const unsigned sourceLen = i_strlen(source);
-  if (useSha1Cache)
+  bool shaderDebugModeEnabled = shc::config().isDebugModeEnabled;
+  if (!shaderDebugModeEnabled)
   {
+    float value = 0.0f;
+    if (shc::getAssumedValue("debug_mode_enabled", shaderName, true, value))
+      shaderDebugModeEnabled = (value > 0.0f);
+  }
+
+  const unsigned sourceLen = i_strlen(source);
+  if (shc::config().useSha1Cache)
+  {
+    const bool enableBindlessVar = shc::config().enableBindless;
+    const bool isDebugModeEnabledVar = shaderDebugModeEnabled;
+    const bool isAutotestModeVar = shc::config().autotestMode;
+    const int hlslOptimizationLevelVar = shc::config().hlslOptimizationLevel;
+    const bool hlsl2021Var = shc::config().hlsl2021;
+
     HASH_CONTEXT sha1;
     HASH_INIT(&sha1);
     HASH_UPDATE(&sha1, (const unsigned char *)&sha1_cache_version, sizeof(sha1_cache_version));
     // HASH_UPDATE( &sha1, (const unsigned char*)source.c_str(), (uint32_t)sourceLen );
-    calc_sha1_stripped(sha1, source.c_str(), (uint32_t)sourceLen);
+    calc_sha1_stripped(sha1, source.c_str(), (uint32_t)sourceLen, isDebugModeEnabledVar);
     HASH_UPDATE(&sha1, (const unsigned char *)profile.c_str(), (uint32_t)strlen(profile));
     HASH_UPDATE(&sha1, (const unsigned char *)entry.c_str(), (uint32_t)strlen(entry));
-    HASH_UPDATE(&sha1, (const unsigned char *)&hlslOptimizationLevel, (uint32_t)sizeof(hlslOptimizationLevel)); // optimization level
-                                                                                                                // is part of output
-                                                                                                                // dir, but still
-    HASH_UPDATE(&sha1, (const unsigned char *)&hlsl2021, (uint32_t)sizeof(hlsl2021));
+    // optimization level is a part of output dir, but still
+    HASH_UPDATE(&sha1, (const unsigned char *)&hlslOptimizationLevelVar, (uint32_t)sizeof(hlslOptimizationLevelVar));
+    HASH_UPDATE(&sha1, (const unsigned char *)&hlsl2021Var, (uint32_t)sizeof(hlsl2021Var));
     HASH_UPDATE(&sha1, (const unsigned char *)&enableFp16, (uint32_t)sizeof(enableFp16));
-    HASH_UPDATE(&sha1, (const unsigned char *)&enableBindless, (uint32_t)sizeof(enableBindless));
+    HASH_UPDATE(&sha1, (const unsigned char *)&enableBindlessVar, (uint32_t)sizeof(enableBindlessVar));
 #if _CROSS_TARGET_SPIRV
-    auto mode = compilerDXC ? CompilerMode::DXC : compilerHlslCc ? CompilerMode::HLSLCC : CompilerMode::DEFAULT;
+    auto mode =
+      shc::config().compilerDXC ? CompilerMode::DXC : (shc::config().compilerHlslCc ? CompilerMode::HLSLCC : CompilerMode::DEFAULT);
     HASH_UPDATE(&sha1, (const unsigned char *)&mode, (uint32_t)sizeof(mode));
 #elif _CROSS_TARGET_DX12
-    HASH_UPDATE(&sha1, (const unsigned char *)&targetPlatform, (uint32_t)sizeof(targetPlatform));
+    const auto platform = shc::config().targetPlatform;
+    HASH_UPDATE(&sha1, (const unsigned char *)&platform, (uint32_t)sizeof(platform));
     HASH_UPDATE(&sha1, (const unsigned char *)&useScarlettWave32, (uint32_t)sizeof(useScarlettWave32));
 #endif
-    if (isDebugModeEnabled)
-      HASH_UPDATE(&sha1, (const unsigned char *)&isDebugModeEnabled, (uint32_t)sizeof(isDebugModeEnabled));
-    if (autotest_mode)
-      HASH_UPDATE(&sha1, (const unsigned char *)&autotest_mode, (uint32_t)sizeof(autotest_mode));
+    if (isDebugModeEnabledVar)
+      HASH_UPDATE(&sha1, (const unsigned char *)&isDebugModeEnabledVar, (uint32_t)sizeof(isDebugModeEnabledVar));
+    if (isAutotestModeVar)
+      HASH_UPDATE(&sha1, (const unsigned char *)&isAutotestModeVar, (uint32_t)sizeof(isAutotestModeVar));
 
     HASH_FINISH(&sha1, srcSha1);
 
-    SNPRINTF(sha1SrcPath, sizeof(sha1SrcPath), "%s/src/%s/" HASH_LIST_STRING, sha1_cache_dir,
+    SNPRINTF(sha1SrcPath, sizeof(sha1SrcPath), "%s/src/%s/" HASH_LIST_STRING, shc::config().sha1CacheDir,
       profile.c_str(), // sources and binaries lives in different subfolders. that is to reduce risk of collision, while probably not
                        // needed
       HASH_LIST(srcSha1));
@@ -3528,12 +3605,12 @@ void CompileShaderJob::doJobBody()
       if (char *binSha1Read = df_gets((char *)buf, sizeof(buf), sha1LinkFile))
       {
         // sources and binaries lives in different subfolders. that is to reduce risk of collision, while probably not needed
-        SNPRINTF(sha1BinPath, sizeof(sha1BinPath), "%s/bin/%s/%s", sha1_cache_dir, profile.c_str(), binSha1Read);
+        SNPRINTF(sha1BinPath, sizeof(sha1BinPath), "%s/bin/%s/%s", shc::config().sha1CacheDir, profile.c_str(), binSha1Read);
         df_close(sha1LinkFile);
         file_ptr_t sha1BinFile = df_open(sha1BinPath, DF_READ);
         if (!sha1BinFile)
         {
-          sh_debug(SHLOG_NORMAL, "Sha1 link %s in %s is invalid.", sha1BinPath, sha1SrcPath);
+          debug("Sha1 link %s in %s is invalid.", sha1BinPath, sha1SrcPath);
         }
         else
         {
@@ -3541,7 +3618,7 @@ void CompileShaderJob::doJobBody()
           const void *content = df_mmap(sha1BinFile, &sha1FileLen);
           if (!sha1FileLen)
           {
-            sh_debug(SHLOG_NORMAL, "link is broken?");
+            debug("link is broken?");
             df_close(sha1BinFile);
           }
           else
@@ -3551,8 +3628,8 @@ void CompileShaderJob::doJobBody()
             memcpy(&compile_result.computeShaderInfo, end_bytecode, sizeof(ComputeShaderInfo));
             df_unmap(content, sha1FileLen);
             df_close(sha1BinFile);
-            if (hlslDumpCodeAlways)
-              debug("=== compiling code:\n%s\nreused built from %s", compileCtx, sha1SrcPath);
+            if (shc::config().hlslDumpCodeAlways)
+              dump_hlsl_src(compileCtx, source, compile_result.bytecode, sha1SrcPath, true, shaderName, shader_variant_hash);
             ShaderCompilerStat::hlslExternalCacheHitCount++;
             return;
           }
@@ -3560,17 +3637,18 @@ void CompileShaderJob::doJobBody()
       }
       else
       {
-        sh_debug(SHLOG_NORMAL, "Sha1 link in %s is missing.", sha1SrcPath);
+        debug("Sha1 link in %s is missing.", sha1SrcPath);
         df_close(sha1LinkFile);
       }
     }
   }
 
-  auto localHlslOptimizationLevel = (hlslDebugLevel == DebugLevel::FULL_DEBUG_INFO) ? 0 : hlslOptimizationLevel;
+  auto localHlslOptimizationLevel =
+    (shc::config().hlslDebugLevel == DebugLevel::FULL_DEBUG_INFO) ? 0 : shc::config().hlslOptimizationLevel;
   bool full_debug = false, forceDisableWarnings = false;
-  bool embed_source = hlslEmbedSource;
+  bool embed_source = shc::config().hlslEmbedSource;
   bool useWave32 = useScarlettWave32;
-  bool useHlsl2021 = hlsl2021;
+  bool useHlsl2021 = shc::config().hlsl2021;
   for (const char *pragma = strstr(source, "#pragma "); pragma; pragma = strstr(pragma, "#pragma "))
   {
     void *original = (void *)pragma;
@@ -3596,7 +3674,7 @@ void CompileShaderJob::doJobBody()
     else if (PRAGMA("force_min_opt_level "))
     {
       pragma += strlen("force_min_opt_level ");
-      localHlslOptimizationLevel = max(atoi(pragma), hlslOptimizationLevel);
+      localHlslOptimizationLevel = max(atoi(pragma), shc::config().hlslOptimizationLevel);
     }
     else if (PRAGMA("wave"))
     {
@@ -3613,11 +3691,9 @@ void CompileShaderJob::doJobBody()
     // replace #pragma with comment
     memcpy(original, "//     ", 7);
   }
-  // todo: add flags
+
   //  Compile.
 #if _CROSS_TARGET_C1
-
-
 
 
 
@@ -3625,34 +3701,35 @@ void CompileShaderJob::doJobBody()
 
 
 
-
 #elif _CROSS_TARGET_METAL
-  if (use_metal_glslang)
-    compile_result = compileShaderMetalGlslang(source, profile, entry, !hlslNoDisassembly, enableFp16, hlslSkipValidation,
-      localHlslOptimizationLevel ? true : false, max_constants_no, shaderName, use_ios_token, use_binary_msl, shader_variant_hash);
+  if (shc::config().useMetalGlslang)
+    compile_result = compileShaderMetalGlslang(source, profile, entry, !shc::config().hlslNoDisassembly, shc::config().enableFp16,
+      shc::config().hlslSkipValidation, localHlslOptimizationLevel ? true : false, max_constants_no, shaderName,
+      shc::config().useIosToken, shc::config().useBinaryMsl, shader_variant_hash);
   else
-    compile_result = compileShaderMetal(source, profile, entry, !hlslNoDisassembly, enableFp16, hlslSkipValidation,
-      localHlslOptimizationLevel ? true : false, max_constants_no, shaderName, use_ios_token, use_binary_msl, shader_variant_hash);
+    compile_result = compileShaderMetal(source, profile, entry, !shc::config().hlslNoDisassembly, shc::config().enableFp16,
+      shc::config().hlslSkipValidation, localHlslOptimizationLevel ? true : false, max_constants_no, shaderName,
+      shc::config().useIosToken, shc::config().useBinaryMsl, shader_variant_hash);
 #elif _CROSS_TARGET_SPIRV
-  compile_result = compileShaderSpirV(source, profile, entry, !hlslNoDisassembly, enableFp16, hlslSkipValidation,
-    localHlslOptimizationLevel ? true : false, max_constants_no, shaderName,
-    compilerDXC      ? CompilerMode::DXC
-    : compilerHlslCc ? CompilerMode::HLSLCC
-                     : CompilerMode::DEFAULT,
-    shader_variant_hash);
+  compile_result = compileShaderSpirV(source, profile, entry, !shc::config().hlslNoDisassembly, shc::config().enableFp16,
+    shc::config().hlslSkipValidation, localHlslOptimizationLevel ? true : false, max_constants_no, shaderName,
+    shc::config().compilerDXC      ? CompilerMode::DXC
+    : shc::config().compilerHlslCc ? CompilerMode::HLSLCC
+                                   : CompilerMode::DEFAULT,
+    shader_variant_hash, shc::config().enableBindless, shc::config().hlslDebugLevel != DebugLevel::NONE);
 #elif _CROSS_TARGET_EMPTY
   compile_result.bytecode.resize(sizeof(uint64_t));
 #elif _CROSS_TARGET_DX12
-  extern wchar_t *dx12_pdb_cache_dir;
   // NOTE: when we support this kind of switch somehow this can be replaced with actual information
   // of use or not
   compile_result = dx12::dxil::compileShader(make_span_const(source).first(sourceLen), // source length includes trailing zeros
-    profile, entry, !hlslNoDisassembly, useHlsl2021, enableFp16, hlslSkipValidation, localHlslOptimizationLevel ? true : false,
-    is_hlsl_debug(), dx12_pdb_cache_dir, max_constants_no, shaderName, targetPlatform, useWave32,
-    !forceDisableWarnings && hlslWarningsAsErrors, full_debug ? DebugLevel::FULL_DEBUG_INFO : hlslDebugLevel, embed_source);
+    profile, entry, !shc::config().hlslNoDisassembly, useHlsl2021, enableFp16, shc::config().hlslSkipValidation,
+    localHlslOptimizationLevel ? true : false, is_hlsl_debug(), shc::config().dx12PdbCacheDir, max_constants_no, shaderName,
+    shc::config().targetPlatform, useWave32, !forceDisableWarnings && shc::config().hlslWarningsAsErrors,
+    full_debug ? DebugLevel::FULL_DEBUG_INFO : shc::config().hlslDebugLevel, embed_source);
 #else //_CROSS_TARGET_DX11
   unsigned int flags = is_hlsl_debug() ? D3DCOMPILE_DEBUG : 0;
-  flags |= hlslSkipValidation ? D3DCOMPILE_SKIP_VALIDATION : 0;
+  flags |= shc::config().hlslSkipValidation ? D3DCOMPILE_SKIP_VALIDATION : 0;
   flags |= is_hlsl_debug()
              ? D3DCOMPILE_SKIP_OPTIMIZATION
              : (localHlslOptimizationLevel >= 3
@@ -3660,17 +3737,100 @@ void CompileShaderJob::doJobBody()
                    : (localHlslOptimizationLevel >= 2
                          ? D3DCOMPILE_OPTIMIZATION_LEVEL2
                          : (localHlslOptimizationLevel >= 1 ? D3DCOMPILE_OPTIMIZATION_LEVEL0 : D3DCOMPILE_SKIP_OPTIMIZATION)));
-  flags |= hlslWarningsAsErrors ? D3DCOMPILE_WARNINGS_ARE_ERRORS : 0;
-  compile_result = compileShaderDX11(shaderName, source, NULL, profile, entry, !hlslNoDisassembly,
-    full_debug ? DebugLevel::FULL_DEBUG_INFO : hlslDebugLevel, hlslSkipValidation, embed_source, flags, max_constants_no);
+  flags |= shc::config().hlslWarningsAsErrors ? D3DCOMPILE_WARNINGS_ARE_ERRORS : 0;
+  compile_result = compileShaderDX11(shaderName, source, NULL, profile, entry, !shc::config().hlslNoDisassembly,
+    full_debug ? DebugLevel::FULL_DEBUG_INFO : shc::config().hlslDebugLevel, shc::config().hlslSkipValidation, embed_source, flags,
+    max_constants_no);
 #endif
 
-  if (hlslDumpCodeAlways)
-    debug("=== compiling code:\n%s\n%s==== code end", compileCtx, source);
+  if (shc::config().hlslDumpCodeAlways)
+    dump_hlsl_src(compileCtx, source, compile_result.bytecode, sha1SrcPath, false, shaderName, shader_variant_hash);
 
   if (compile_result.bytecode.empty())
   {
-    sh_enter_atomic_debug();
+    debug("Hlsl compilation failed, exiting job...");
+    return;
+  }
+
+  if (shc::config().writeSha1Cache && shc::config().useSha1Cache && !compile_result.bytecode.empty() && dd_mkpath(sha1SrcPath))
+  {
+    unsigned char binSha1[HASH_SIZE];
+    HASH_CONTEXT sha1;
+    HASH_INIT(&sha1);
+    HASH_UPDATE(&sha1, (const unsigned char *)compile_result.bytecode.data(), compile_result.bytecode.size());
+    HASH_UPDATE(&sha1, (const unsigned char *)&compile_result.computeShaderInfo, sizeof(compile_result.computeShaderInfo));
+    HASH_FINISH(&sha1, binSha1);
+    char sha1BinPath[420];
+    sha1BinPath[0] = 0;
+    SNPRINTF(sha1BinPath, sizeof(sha1BinPath), "%s/bin/%s/" HASH_LIST_STRING, shc::config().sha1CacheDir,
+      profile.c_str(), // sources and binaries lives in different subfolders. that is to reduce risk of collision, while probably not
+                       // needed
+      HASH_LIST(binSha1));
+    DagorStat binbuf;
+    if (df_stat(sha1BinPath, &binbuf) != -1 && binbuf.size == compile_result.bytecode.size() + sizeof(ComputeShaderInfo))
+    {
+      // blob is already saved
+    }
+    else
+    {
+      // save blob
+      dd_mkpath(sha1BinPath);
+      char tmpFileName[DAGOR_MAX_PATH];
+      SNPRINTF(tmpFileName, sizeof(tmpFileName),
+        "%s/"
+        "%s_bin_" HASH_TEMP_STRING "XXXXXX",
+        shc::config().sha1CacheDir, profile.c_str(), HASH_LIST(binSha1));
+      file_ptr_t tmpF = df_mkstemp(tmpFileName);
+      int written = df_write(tmpF, compile_result.bytecode.data(), compile_result.bytecode.size());
+      written += df_write(tmpF, &compile_result.computeShaderInfo, sizeof(ComputeShaderInfo));
+      if (written == compile_result.bytecode.size() + sizeof(ComputeShaderInfo))
+      {
+        df_close(tmpF);
+        if (!dd_rename(tmpFileName, sha1BinPath))
+          dd_erase(tmpFileName);
+      }
+      else
+      {
+        df_close(tmpF);
+        dd_erase(tmpFileName);
+        dd_erase(sha1SrcPath);
+        return;
+      }
+    }
+
+    char tmpFileName[DAGOR_MAX_PATH];
+    SNPRINTF(tmpFileName, sizeof(tmpFileName),
+      "%s/"
+      "%s_src_" HASH_TEMP_STRING "XXXXXX",
+      shc::config().sha1CacheDir, profile.c_str(), HASH_LIST(srcSha1));
+    file_ptr_t tmpF = df_mkstemp(tmpFileName);
+    if (tmpF)
+    {
+      char buf[132];
+      SNPRINTF(buf, sizeof(buf), HASH_LIST_STRING, HASH_LIST(binSha1));
+
+      const int bufLen = (int)strlen(buf);
+      if (df_write(tmpF, buf, bufLen) == bufLen)
+      {
+        df_close(tmpF);
+        if (!dd_rename(tmpFileName, sha1SrcPath))
+          dd_erase(tmpFileName);
+      }
+      else
+      {
+        df_close(tmpF);
+        dd_erase(tmpFileName);
+      }
+    }
+  }
+}
+
+void CompileShaderJob::releaseJobBody()
+{
+  DEFER(delete this);
+
+  if (compile_result.bytecode.empty())
+  {
     // Display error message.
     parser->set_error(hlsl_compile_token->file_start, hlsl_compile_token->line_start, hlsl_compile_token->col_start,
       String(256, "compile(%s, %s) failed:", profile.str(), entry.str()));
@@ -3709,19 +3869,13 @@ void CompileShaderJob::doJobBody()
     else
       sh_debug(SHLOG_NORMAL, "  D3DXCompileShader error");
 
-    if (!hlslDumpCodeAlways && hlslDumpCodeOnError)
+    if (!shc::config().hlslDumpCodeAlways && shc::config().hlslDumpCodeOnError)
       debug("=== compiling code:\n%s==== code end", source.str());
 
-    sh_leave_atomic_debug();
-#if _TARGET_PC_WIN
-    Sleep(150);
-#else
-    usleep(150 * 1000);
-#endif
     return;
   }
 
-  if (!compile_result.errors.empty() && hlslShowWarnings)
+  if (!compile_result.errors.empty() && shc::config().hlslShowWarnings)
   {
     parser->set_warning(hlsl_compile_token->file_start, hlsl_compile_token->line_start, hlsl_compile_token->col_start,
       String(256, "compile(%s, %s) finished with warnings:", profile.str(), entry.str()));
@@ -3740,77 +3894,8 @@ void CompileShaderJob::doJobBody()
         break;
       }
   }
-  if (writeSha1Cache && useSha1Cache && !compile_result.bytecode.empty() && dd_mkpath(sha1SrcPath))
-  {
-    unsigned char binSha1[HASH_SIZE];
-    HASH_CONTEXT sha1;
-    HASH_INIT(&sha1);
-    HASH_UPDATE(&sha1, (const unsigned char *)compile_result.bytecode.data(), compile_result.bytecode.size());
-    HASH_UPDATE(&sha1, (const unsigned char *)&compile_result.computeShaderInfo, sizeof(compile_result.computeShaderInfo));
-    HASH_FINISH(&sha1, binSha1);
-    char sha1BinPath[420];
-    sha1BinPath[0] = 0;
-    SNPRINTF(sha1BinPath, sizeof(sha1BinPath), "%s/bin/%s/" HASH_LIST_STRING, sha1_cache_dir,
-      profile.c_str(), // sources and binaries lives in different subfolders. that is to reduce risk of collision, while probably not
-                       // needed
-      HASH_LIST(binSha1));
-    DagorStat binbuf;
-    if (df_stat(sha1BinPath, &binbuf) != -1 && binbuf.size == compile_result.bytecode.size() + sizeof(ComputeShaderInfo))
-    {
-      // blob is already saved
-    }
-    else
-    {
-      // save blob
-      dd_mkpath(sha1BinPath);
-      char tmpFileName[DAGOR_MAX_PATH];
-      SNPRINTF(tmpFileName, sizeof(tmpFileName),
-        "%s/"
-        "%s_bin_" HASH_TEMP_STRING "XXXXXX",
-        sha1_cache_dir, profile.c_str(), HASH_LIST(binSha1));
-      file_ptr_t tmpF = df_mkstemp(tmpFileName);
-      int written = df_write(tmpF, compile_result.bytecode.data(), compile_result.bytecode.size());
-      written += df_write(tmpF, &compile_result.computeShaderInfo, sizeof(ComputeShaderInfo));
-      if (written == compile_result.bytecode.size() + sizeof(ComputeShaderInfo))
-      {
-        df_close(tmpF);
-        if (!dd_rename(tmpFileName, sha1BinPath))
-          dd_erase(tmpFileName);
-      }
-      else
-      {
-        df_close(tmpF);
-        dd_erase(tmpFileName);
-        dd_erase(sha1SrcPath);
-        return;
-      }
-    }
 
-    char tmpFileName[DAGOR_MAX_PATH];
-    SNPRINTF(tmpFileName, sizeof(tmpFileName),
-      "%s/"
-      "%s_src_" HASH_TEMP_STRING "XXXXXX",
-      sha1_cache_dir, profile.c_str(), HASH_LIST(srcSha1));
-    file_ptr_t tmpF = df_mkstemp(tmpFileName);
-    if (tmpF)
-    {
-      char buf[132];
-      SNPRINTF(buf, sizeof(buf), HASH_LIST_STRING, HASH_LIST(binSha1));
-
-      const int bufLen = (int)strlen(buf);
-      if (df_write(tmpF, buf, bufLen) == bufLen)
-      {
-        df_close(tmpF);
-        if (!dd_rename(tmpFileName, sha1SrcPath))
-          dd_erase(tmpFileName);
-      }
-      else
-      {
-        df_close(tmpF);
-        dd_erase(tmpFileName);
-      }
-    }
-  }
+  addResults();
 }
 
 void CompileShaderJob::addResults()
@@ -3824,7 +3909,7 @@ void CompileShaderJob::addResults()
   if (!added_new)
   {
     ShaderCompilerStat::hlslEqResultCount++;
-    if (validateIdenticalBytecode)
+    if (shc::config().validateIdenticalBytecode)
     {
       auto &cache = resolve_cached_shader(c1, c2, c3);
       sh_debug(SHLOG_INFO, "Equal shaders for profile %s were found:\n\nThe first one:\n%s\nThe second one:\n%s\n", profile,
@@ -3835,7 +3920,7 @@ void CompileShaderJob::addResults()
   apply_from_cache(profile[0], c1, c2, c3, *curpass);
 
   // Disassembly for debug.
-  if (!hlslNoDisassembly && !compile_result.bytecode.empty())
+  if (!shc::config().hlslNoDisassembly && !compile_result.bytecode.empty())
   {
     debug("HLSL: profile='%s', entry='%s'", profile, entry);
     if (!compile_result.disassembly.empty())
@@ -4026,7 +4111,7 @@ static bool post_shader_to_cache(int c1, int c2, int c3, const CompileResult &re
 
     cachedShader.relCode.resize(size_in_unsigned + 1);
     cachedShader.codeType = codeType;
-    if (validateIdenticalBytecode)
+    if (shc::config().validateIdenticalBytecode)
       cachedShader.compileCtx = compile_ctx;
     switch (codeType)
     {

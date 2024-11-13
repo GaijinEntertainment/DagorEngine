@@ -348,7 +348,7 @@ namespace drv3d_metal
 
   void Render::ConstBuffer::init()
   {
-    cbuffer = (uint8_t*)malloc(64 * 1024);
+    cbuffer = (uint8_t*)malloc(MAX_CBUFFER_SIZE);
     device_buffer_offset = 0;
     is_binded = nil;
     is_binded_offset = -1;
@@ -357,7 +357,7 @@ namespace drv3d_metal
 
   void Render::ConstBuffer::applyCmd(void* data, int reg_base, int num_regs)
   {
-    G_ASSERT(reg_base + num_regs <= 64 * 1024);
+    G_ASSERT(reg_base + num_regs <= MAX_CBUFFER_SIZE);
 
     memcpy(&cbuffer[reg_base], data, num_regs);
     num_strored = max(num_strored, reg_base + num_regs);
@@ -721,8 +721,8 @@ namespace drv3d_metal
     commandQueue = [device newCommandQueue];
 
     query_buffer = createBuffer(QUERIES_MAX * sizeof(uint64_t), MTLResourceStorageModeShared, "query_buffer");
-    stub_buffer = createBuffer(64*1024, MTLResourceStorageModeShared, "stub_buffer");
-    memset(stub_buffer.contents, 0, 64*1024);
+    stub_buffer = createBuffer(MAX_CBUFFER_SIZE, MTLResourceStorageModeShared, "stub_buffer");
+    memset(stub_buffer.contents, 0, MAX_CBUFFER_SIZE);
 
     used_query = 0;
 
@@ -1297,7 +1297,7 @@ namespace drv3d_metal
   {
     TIME_PROFILE(upload);
 
-    ensureHaveEncoderExceptRender(nullptr, Render::EncoderType::None);
+    ensureHaveEncoderExceptRender(nullptr, Render::EncoderType::None, false);
     if (textures2upload.size() || buffers2copy.size() || regions2copy.size() || textures2clear.size() || buffers2clear.size())
     {
       id<MTLCommandBuffer> cmdBuf = createCommandBuffer(commandQueue, "Command buffer flush");
@@ -1307,7 +1307,7 @@ namespace drv3d_metal
       for (int i = 0; i < buffers2copy.size(); ++i)
       {
         bool need_set = render.computeEncoder == nil;
-        ensureHaveEncoderExceptRender(cmdBuf, Render::EncoderType::Compute);
+        ensureHaveEncoderExceptRender(cmdBuf, Render::EncoderType::Compute, false);
         if (need_set)
           [computeEncoder setComputePipelineState:copy_cs_pipeline];
 
@@ -1331,7 +1331,7 @@ namespace drv3d_metal
 
       bool needBlit = textures2upload.size() || regions2copy.size() || textures2clear.size() || buffers2clear.size();
       if (needBlit)
-        ensureHaveEncoderExceptRender(cmdBuf, Render::EncoderType::Blit);
+        ensureHaveEncoderExceptRender(cmdBuf, Render::EncoderType::Blit, false);
 
       for (int i = 0; i < buffers2clear.size(); ++i)
       {
@@ -1375,7 +1375,7 @@ namespace drv3d_metal
       textures2clear.clear();
       buffers2clear.clear();
 
-      ensureHaveEncoderExceptRender(cmdBuf, Render::EncoderType::None);
+      ensureHaveEncoderExceptRender(cmdBuf, Render::EncoderType::None, false);
       submitCommandBuffer(cmdBuf, false, false);
     }
   }
@@ -2871,9 +2871,7 @@ namespace drv3d_metal
   void Render::releaseOwnerShip()
   {
     G_ASSERT(acquire_depth > 0);
-    acquire_depth--;
-
-    if (acquire_depth == 0)
+    if (acquire_depth == 1)
     {
       cur_thread = main_thread;
       if (commandBuffer)
@@ -2881,6 +2879,7 @@ namespace drv3d_metal
 
       [g_render_pool release];
     }
+    acquire_depth--;
     ::leave_critical_section(acquireSec);
   }
 
@@ -3397,13 +3396,20 @@ namespace drv3d_metal
     debug("[signpost] %llu - %s", signpost + 1, label);
   }
 
-  void Render::wait_for_encoder()
+  id<MTLCommandBuffer> Render::wait_for_encoder()
   {
     if (!use_signposts)
-      return;
+      return commandBuffer;
+
+    checkRenderAcquired();
+
     G_ASSERT(commandBuffer != nil);
     [commandBuffer encodeSignalEvent:signpost_event value:++signpost];
 
+    {
+      std::lock_guard<std::mutex> scopedLock(copy_tex_lock);
+      flushQueuedCommands();
+    }
     submitCommandBuffer(commandBuffer);
 
     debug("[signpost] %llu wait", signpost);
@@ -3420,6 +3426,7 @@ namespace drv3d_metal
     });
 
     commandBuffer = createCommandBuffer(commandQueue, "Command buffer");
+    return commandBuffer;
   }
 #endif
 

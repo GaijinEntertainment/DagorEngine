@@ -315,13 +315,24 @@ static bool has_froxel_fog_experimental_offscreen_reprojection()
   return get_shadervar_interval(var::froxel_fog_use_experimental_offscreen_reprojection) >= 1;
 }
 
+static bool need_froxel_fog_experimental_offscreen_reprojection(VolumeLight::DistantFogQuality df_quality)
+{
+  return df_quality != VolumeLight::DistantFogQuality::DisableDistantFog; // it is tied to DF for now, for lack of better option
+}
+
 void VolumeLight::onSettingsChange(VolfogQuality volfog_quality, VolfogShadowCasting shadow_casting, DistantFogQuality df_quality)
 {
   if (!canUseVolfogShadow())
     shadow_casting = VolfogShadowCasting::No;
 
+  bool needExperimentalVolfogSettings = need_froxel_fog_experimental_offscreen_reprojection(df_quality);
+  bool currentExperimentalVolfogSettings = has_froxel_fog_experimental_offscreen_reprojection();
+  ShaderGlobal::set_int(var::froxel_fog_use_experimental_offscreen_reprojection, needExperimentalVolfogSettings ? 1 : 0);
+  bool hasExperimentalVolfogSettingsChanged =
+    currentExperimentalVolfogSettings != has_froxel_fog_experimental_offscreen_reprojection();
+
   bool bInvalidate = false;
-  if (volfogQuality != volfog_quality)
+  if (volfogQuality != volfog_quality || hasExperimentalVolfogSettingsChanged)
   {
     volfogQuality = volfog_quality;
     froxelResolution = calc_froxel_resolution(froxelOrigResolution, volfogQuality);
@@ -428,19 +439,12 @@ static bool gpuHasUMA()
   return d3d_get_gpu_cfg().integrated; // TODO: use a driver command for UMA instead
 }
 
-void VolumeLight::initExperimentalFeatures()
-{
-  useExperimentalOffscreenReprojection = has_froxel_fog_experimental_offscreen_reprojection();
-  ShaderGlobal::set_int(var::froxel_fog_use_experimental_offscreen_reprojection, useExperimentalOffscreenReprojection);
-}
-
 void VolumeLight::init()
 {
   init_shader_vars();
 
   preferLinearAccumulation = gpuHasUMA(); // can use special optimization for igpus
   close();
-  initExperimentalFeatures();
 
   constexpr uint32_t FROXEL_FOG_DITHERING_SEED = 666 * 666;
   generate_poission_points(froxelFogDitheringSamples, FROXEL_FOG_DITHERING_SEED, VOLFOG_DITHERING_POISSON_SAMPLE_CNT,
@@ -589,7 +593,9 @@ void VolumeLight::initFroxelFog()
     d3d::resource_barrier({volfogOcclusion[i].getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
   }
 
-  if (useExperimentalOffscreenReprojection)
+  for (int i = 0; i < volfogWeight.count; ++i)
+    volfogWeight[i].close();
+  if (has_froxel_fog_experimental_offscreen_reprojection())
   {
     for (int i = 0; i < volfogWeight.count; ++i)
     {

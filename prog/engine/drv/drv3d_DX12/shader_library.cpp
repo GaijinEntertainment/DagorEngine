@@ -1,8 +1,11 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include "device.h"
+#include "shader_library.h"
+#include "d3d12_error_handling.h"
 
-#if !_TARGET_XBOXONE
+#include <perfMon/dag_autoFuncProf.h>
+
+
 namespace
 {
 template <typename T>
@@ -210,4 +213,3 @@ drv3d_dx12::ShaderLibrary *drv3d_dx12::ShaderLibrary::build(ID3D12Device5 *devic
   ShaderLibraryBuilder shaderLibraryBuilder{ci};
   return shaderLibraryBuilder.build(device);
 }
-#endif

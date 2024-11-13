@@ -34,6 +34,15 @@ static TEXTUREID get_diffuse_mipmap_tex(TEXTUREID tex_id);
 static inline TEXTUREID get_diffuse_mipmap_tex(TEXTUREID tex_id) { return tex_id; }
 #endif
 
+const char *get_shader_class_name_by_material_name(const char *mat_name)
+{
+  const shaderbindump::ShaderClass *sc = shBinDumpEx(true).findShaderClass(mat_name);
+  if (!sc)
+    return NULL;
+  return (const char *)sc->name;
+}
+
+
 bool shader_exists(const char *shader_name) { return shBinDump().findShaderClass(shader_name) != nullptr; }
 
 ShaderMaterial *new_shader_material(const MaterialData &m, bool sec_dump_for_exp, bool do_log)

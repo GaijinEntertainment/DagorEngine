@@ -86,6 +86,8 @@ static bool checkerboard = true;
 static bool show_validation = false;
 static bool use_nrd_lib = false;
 
+static d3d::SamplerHandle linear_sampler = d3d::INVALID_SAMPLER_HANDLE;
+
 static PostFxRenderer *validation_renderer;
 
 inline int divide_up(int x, int y) { return (x + y - 1) / y; }
@@ -148,6 +150,13 @@ void initialize(bool half_res, bool checkerboard_)
   validation_texture = dag::create_tex(nullptr, ti.w, ti.h, TEXCF_UNORDERED, 1, "rtr_validation_texture");
 
   is_half_res = half_res;
+
+  d3d::SamplerInfo si;
+  si.mip_map_mode = d3d::MipMapMode::Point;
+  si.filter_mode = d3d::FilterMode::Linear;
+  si.address_mode_u = d3d::AddressMode::Clamp;
+  si.address_mode_v = d3d::AddressMode::Clamp;
+  linear_sampler = d3d::request_sampler(si);
 }
 
 template <typename T>
@@ -239,6 +248,7 @@ void render(bvh::ContextId context_id, const TMatrix4 &proj_tm, bool rt_shadow, 
       TIME_D3D_PROFILE(rtr::classify);
       const uint32_t clear[] = {0, 0, 0, 0};
       d3d::clear_rwtexi(reflection_value.getTex2D(), clear, 0, 0);
+      d3d::set_sampler(STAGE_CS, 5, linear_sampler);
       classify->dispatch(tiTiles.w, tiTiles.h, 1);
     }
     {

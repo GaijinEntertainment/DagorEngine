@@ -21,6 +21,8 @@ extern float bvh_dyn_range;
 namespace bvh::dyn
 {
 
+static ShaderVariableInfo aircraft_damage_decals_setupVarId("aircraft_damage_decals_setup");
+
 static eastl::unordered_set<ContextId> relem_changed_contexts;
 static CallbackToken relem_changed_token;
 
@@ -127,7 +129,11 @@ static void on_relem_changed_all(const DynamicRenderableSceneLodsResource *resou
 
 void init() { relem_changed_token = unitedvdata::dmUnitedVdata.on_mesh_relems_updated.subscribe(on_relem_changed_all); }
 
-void teardown() { relem_changed_token.~CallbackToken(); }
+void teardown()
+{
+  relem_changed_token.~CallbackToken();
+  relem_changed_token = CallbackToken();
+}
 
 void init(ContextId context_id)
 {
@@ -179,6 +185,7 @@ struct IterCtx
 {
   ContextId contextId;
   Point3 viewPosition;
+  bool isPlane;
 };
 
 bool has_camo(ShaderMesh::RElem &elem)
@@ -192,8 +199,8 @@ bool has_camo(ShaderMesh::RElem &elem)
 inline bool is_deformed(ShaderMesh::RElem &elem) { return strcmp(elem.mat->getShaderClassName(), "dynamic_deformed") == 0; }
 
 static void iterate_instances(dynrend::ContextId dynrend_context_id, const DynamicRenderableSceneResource &res,
-  const DynamicRenderableSceneInstance &inst, const Tab<bool> &all_visibility, int visibility_index, float min_elem_radius,
-  int base_offset_render_data, int index_to_per_instance_render_data, int rigid_chunk_size, void *user_data)
+  const DynamicRenderableSceneInstance &inst, const dynrend::PerInstanceRenderData &inst_render_data, const Tab<bool> &all_visibility,
+  int visibility_index, float min_elem_radius, int base_offset_render_data, int rigid_chunk_size, void *user_data)
 {
   IterCtx *ctx = (IterCtx *)user_data;
   ContextId bvh_context_id = ctx->contextId;
@@ -212,53 +219,66 @@ static void iterate_instances(dynrend::ContextId dynrend_context_id, const Dynam
   auto rigidCount = res.getRigidsConst().size();
   auto lodNo = inst.getCurrentLodNo();
 
+  bool isDamaged = false;
+  for (auto &interval : inst_render_data.intervals)
+    if (interval.varId == aircraft_damage_decals_setupVarId.get_var_id())
+      isDamaged = true;
+
   Point4 camoData;
   auto getCamoData = [&](const Mesh &mesh, const ShaderMesh::RElem &elem) -> const Point4 * {
     if (mesh.materialType & MeshMeta::bvhMaterialCamo)
     {
       auto camoTexture = elem.mat->get_texture(1);
-      uint32_t camoTexBindless = 0xFFFFFFFFU;
-      if (camoTexture != BAD_TEXTUREID)
+      auto tql = get_managed_res_cur_tql(camoTexture);
+      if (tql != TQL_stub)
       {
-        auto iter = bvh_context_id->camoTextures.find((uint32_t)camoTexture);
-        if (iter == bvh_context_id->camoTextures.end())
+        uint32_t camoTexBindless = 0xFFFFFFFFU;
+        if (camoTexture != BAD_TEXTUREID)
         {
-          bvh_context_id->holdTexture(camoTexture, camoTexBindless);
-          bvh_context_id->camoTextures.emplace((uint32_t)camoTexture, camoTexBindless);
+          auto iter = bvh_context_id->camoTextures.find((uint32_t)camoTexture);
+          if (iter == bvh_context_id->camoTextures.end())
+          {
+            bvh_context_id->holdTexture(camoTexture, camoTexBindless);
+            bvh_context_id->camoTextures.emplace((uint32_t)camoTexture, camoTexBindless);
+          }
+          else
+            camoTexBindless = iter->second;
         }
-        else
-          camoTexBindless = iter->second;
-      }
 
-      auto data = dynrend::get_per_instance_render_data(dynrend_context_id, index_to_per_instance_render_data);
-      auto pack = (uint32_t)float_to_half(data[1].z) | (float_to_half(data[1].w) << 16);
-      camoData.x = data[0].z;
-      camoData.y = data[0].w;
-      memcpy(&camoData.z, &pack, sizeof(pack));
-      memcpy(&camoData.w, &camoTexBindless, sizeof(camoTexBindless));
-      return &camoData;
+        auto data = inst_render_data.params.data();
+        auto pack = (uint32_t)float_to_half(data[1].z) | (float_to_half(data[1].w) << 16);
+        camoData.x = data[0].z;
+        camoData.y = data[0].w;
+        memcpy(&camoData.z, &pack, sizeof(pack));
+        memcpy(&camoData.w, &camoTexBindless, sizeof(camoTexBindless));
+        return &camoData;
+      }
     }
     else
     {
       auto skinTexture = elem.mat->get_texture(0);
       if (skinTexture != BAD_TEXTUREID && skinTexture != mesh.albedoTextureId)
       {
-        uint32_t skinTexBindless = 0xFFFFFFFFU;
-        auto iter = bvh_context_id->camoTextures.find((uint32_t)skinTexture);
-        if (iter == bvh_context_id->camoTextures.end())
+        auto tql = get_managed_res_cur_tql(skinTexture);
+        if (tql != TQL_stub)
         {
-          bvh_context_id->holdTexture(skinTexture, skinTexBindless);
-          bvh_context_id->camoTextures.emplace((uint32_t)skinTexture, skinTexBindless);
-        }
-        else
-          skinTexBindless = iter->second;
+          uint32_t skinTexBindless = 0xFFFFFFFFU;
+          auto iter = bvh_context_id->camoTextures.find((uint32_t)skinTexture);
+          if (iter == bvh_context_id->camoTextures.end())
+          {
+            bvh_context_id->holdTexture(skinTexture, skinTexBindless);
+            bvh_context_id->camoTextures.emplace((uint32_t)skinTexture, skinTexBindless);
+          }
+          else
+            skinTexBindless = iter->second;
 
-        memcpy(&camoData.x, &skinTexBindless, sizeof(skinTexBindless));
-        // Totally random numbers, indicating that this per instance data is replacing the albedo texture;
-        camoData.y = 80;
-        camoData.z = 7;
-        camoData.w = 14;
-        return &camoData;
+          memcpy(&camoData.x, &skinTexBindless, sizeof(skinTexBindless));
+          // Totally random numbers, indicating that this per instance data is replacing the albedo texture;
+          camoData.y = 80;
+          camoData.z = 7;
+          camoData.w = 14;
+          return &camoData;
+        }
       }
     }
 
@@ -321,7 +341,7 @@ static void iterate_instances(dynrend::ContextId dynrend_context_id, const Dynam
           heliRotorInfo.transformedBlas = &data.blas;
           heliRotorInfo.invWorldTm = TMatrix4(inverse(tm)).transpose();
           heliRotorInfo.getParamsFn = [=](Point4 &params, Point4 &sec_params) {
-            auto allParams = dynrend::get_per_instance_render_data(dynrend_context_id, index_to_per_instance_render_data);
+            auto allParams = inst_render_data.params.data();
             params = allParams[0];
             sec_params = allParams[1];
           };
@@ -329,7 +349,8 @@ static void iterate_instances(dynrend::ContextId dynrend_context_id, const Dynam
           if (data.metaAllocId < 0)
             data.metaAllocId = bvh_context_id->allocateMetaRegion();
 
-          add_dynrend_instance(bvh_context_id, dynrend_context_id, meshId, tm43, camoDataPtr, heliRotorInfo, data.metaAllocId);
+          add_dynrend_instance(bvh_context_id, dynrend_context_id, meshId, tm43, camoDataPtr, isDamaged, heliRotorInfo,
+            data.metaAllocId);
         }
         else if (DAGOR_UNLIKELY(is_deformed(elem)))
         {
@@ -351,7 +372,7 @@ static void iterate_instances(dynrend::ContextId dynrend_context_id, const Dynam
             deformedInfo.simParams.y = 0;
 
           deformedInfo.getParamsFn = [=](float &deform_id, Point2 &sim_params) {
-            auto allParams = dynrend::get_per_instance_render_data(dynrend_context_id, index_to_per_instance_render_data);
+            auto allParams = inst_render_data.params.data();
             deform_id = allParams[2].x;
             sim_params = deformedInfo.simParams;
           };
@@ -359,10 +380,11 @@ static void iterate_instances(dynrend::ContextId dynrend_context_id, const Dynam
           if (data.metaAllocId < 0)
             data.metaAllocId = bvh_context_id->allocateMetaRegion();
 
-          add_dynrend_instance(bvh_context_id, dynrend_context_id, meshId, tm43, camoDataPtr, deformedInfo, data.metaAllocId);
+          add_dynrend_instance(bvh_context_id, dynrend_context_id, meshId, tm43, camoDataPtr, isDamaged, deformedInfo,
+            data.metaAllocId);
         }
         else
-          add_dynrend_instance(bvh_context_id, dynrend_context_id, meshId, tm43, camoDataPtr);
+          add_dynrend_instance(bvh_context_id, dynrend_context_id, meshId, tm43, camoDataPtr, isDamaged);
       }
     },
     [&](const ShaderSkinnedMesh *mesh, int node_id, int skin_no) {
@@ -408,7 +430,8 @@ static void iterate_instances(dynrend::ContextId dynrend_context_id, const Dynam
             data.metaAllocId = bvh_context_id->allocateMetaRegion();
 
           auto camoDataPtr = getCamoData(*bvhMesh, elem);
-          add_dynrend_instance(bvh_context_id, dynrend_context_id, meshId, tm43, camoDataPtr, skinningInfo, data.metaAllocId);
+          add_dynrend_instance(bvh_context_id, dynrend_context_id, meshId, tm43, camoDataPtr, isDamaged, skinningInfo,
+            data.metaAllocId);
         }
       }
 
@@ -416,15 +439,18 @@ static void iterate_instances(dynrend::ContextId dynrend_context_id, const Dynam
     });
 }
 
-void update_dynrend_instances(ContextId bvh_context_id, dynrend::ContextId dynrend_context_id, const Point3 &view_position)
+void update_dynrend_instances(ContextId bvh_context_id, dynrend::ContextId dynrend_context_id,
+  dynrend::ContextId dynrend_plane_context_id, const Point3 &view_position)
 {
   if (!bvh_context_id->has(Features::DynrendRigidBaked | Features::DynrendRigidFull | Features::DynrendSkinnedFull))
     return;
 
   TIME_D3D_PROFILE(bvh::update_dynrend_instances);
 
-  IterCtx ctx = {bvh_context_id, view_position};
+  IterCtx ctx = {bvh_context_id, view_position, false};
   dynrend::iterate_instances(dynrend_context_id, iterate_instances, &ctx);
+  ctx.isPlane = true;
+  dynrend::iterate_instances(dynrend_plane_context_id, iterate_instances, &ctx);
 }
 
 void set_up_dynrend_context_for_processing(dynrend::ContextId dynrend_context_id)

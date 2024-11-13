@@ -1,7 +1,10 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include "bindless.h"
 #include "device.h"
+#include "device_context.h"
 #include "frontend_state.h"
+
 
 using namespace drv3d_dx12;
 
