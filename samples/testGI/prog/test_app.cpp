@@ -202,7 +202,7 @@ bool exit_button_pressed = false;
 
 static bool enable_taa_override = false;
 static bool use_snapdragon_super_resolution = false;
-static float snapdragon_super_resolution_scale = 0.75f;
+static float snapdragon_super_resolution_scale = 0.5f;
 
 static void init_webui(const DataBlock *debug_block)
 {
