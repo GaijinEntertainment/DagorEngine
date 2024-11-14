@@ -225,6 +225,8 @@ macro USE_RT_LIGHTING(stage, use_cockpit_lights)
       else
         return 0;
 
+      albedo *= hitInfo.color;
+
       half3 normalh = (half3)hitInfo.normal;
 
       half linearRoughness = linearSmoothnessToLinearRoughness(smoothness);

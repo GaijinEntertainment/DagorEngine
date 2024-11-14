@@ -290,6 +290,7 @@ struct XessParams
   BaseTexture *inColor;
   BaseTexture *inDepth;
   BaseTexture *inMotionVectors;
+  BaseTexture *inExposure;
   float inJitterOffsetX;
   float inJitterOffsetY;
   float inInputWidth;

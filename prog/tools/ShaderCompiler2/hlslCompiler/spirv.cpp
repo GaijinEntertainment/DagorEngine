@@ -2,19 +2,21 @@
 
 #include "asmShaderSpirV.h"
 #include "defines.h"
+#include "../DebugLevel.h"
 #include <util/dag_string.h>
 #include <drv/3d/dag_platform_pc.h>
 #include <util/dag_strUtil.h>
 
 extern bool enableBindless;
+extern DebugLevel hlslDebugLevel;
 
 DLL_EXPORT bool compile_compute_shader_spirv(const char *hlsl_text, unsigned len, const char *entry, const char *profile,
   Tab<uint32_t> &shader_bin, String &out_err)
 {
   enableBindless = false;
   bool enableFp16 = str_ends_with_c(profile, "_half");
-  CompileResult result =
-    compileShaderSpirV(hlsl_text, profile, entry, false, enableFp16, false, true, 4096, "nodeBasedShader", CompilerMode::DEFAULT, 0);
+  CompileResult result = compileShaderSpirV(hlsl_text, profile, entry, false, enableFp16, false, true, 4096, "nodeBasedShader",
+    CompilerMode::DEFAULT, 0, enableBindless, hlslDebugLevel != DebugLevel::NONE);
   if (result.bytecode.empty())
     return false;
 
@@ -30,8 +32,8 @@ DLL_EXPORT bool compile_compute_shader_spirv_bindless(const char *hlsl_text, uns
 {
   enableBindless = true;
   bool enableFp16 = str_ends_with_c(profile, "_half");
-  CompileResult result =
-    compileShaderSpirV(hlsl_text, profile, entry, false, enableFp16, false, true, 4096, "nodeBasedShader", CompilerMode::DEFAULT, 0);
+  CompileResult result = compileShaderSpirV(hlsl_text, profile, entry, false, enableFp16, false, true, 4096, "nodeBasedShader",
+    CompilerMode::DEFAULT, 0, enableBindless, hlslDebugLevel != DebugLevel::NONE);
   if (result.bytecode.empty())
     return false;
 

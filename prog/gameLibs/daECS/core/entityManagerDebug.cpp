@@ -417,10 +417,10 @@ void ecs::EntityManager::trackComponent(ecs::component_t comp, TrackComponentOp 
 void ecs::EntityManager::trackComponent(const ecs::BaseQueryDesc &desc, const char *details, TrackAccessStack need_stack,
   ecs::EntityId eid) const
 {
-  TrackAccessRecordRAIILock scopeLock(track_mutex);
-
-  if (DAGOR_LIKELY(records_by_component.empty()))
+  if (DAGOR_LIKELY(records_by_component.empty())) // intentionally before lock
     return;
+
+  TrackAccessRecordRAIILock scopeLock(track_mutex);
 
   for (const ecs::ComponentDesc &c : desc.componentsRO)
     trackComponent(c.name, TrackComponentOp::READ, details, need_stack, eid);

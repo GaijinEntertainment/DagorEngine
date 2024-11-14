@@ -87,7 +87,7 @@ macro INIT_TEXTURES(code)
   }
 endmacro
 
-float4 prev_zn_zfar;
+float4 prev_zn_zfar = (1, 10, 0, 0);
 float4 move_world_view_pos;
 float ssr_camera_move_scale_for_miss_reprojection = 200.0;
 float static_pixel_miss_reprojection_weight = 0.5;

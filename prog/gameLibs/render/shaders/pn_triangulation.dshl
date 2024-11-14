@@ -103,20 +103,19 @@ hlsl(hs) {
     HsPatchData patch = (HsPatchData)0;
 
     //calculate center
-    float3 center = (controlPoints[0].pos2 + controlPoints[0].pos3) * 0.5 - controlPoints[0].pos1 +
+    float3 center = (controlPoints[0].pos2 + controlPoints[0].pos3) * 0.5 - 0.0 +
       (controlPoints[1].pos2 + controlPoints[1].pos3) * 0.5 - controlPoints[1].pos1 +
       (controlPoints[2].pos2 + controlPoints[2].pos3) * 0.5 - controlPoints[2].pos1;
     patch.center = center;
 
     #if !defined(USING_OLD_TESSELLATION_FACTORS) && defined(USING_EDGE_LENGTH_TESS_FACTOR)
       float3 pos1 = controlPoints[0].pos1;
-      float3 pos2 = controlPoints[1].pos1;
-      float3 pos3 = controlPoints[2].pos1;
-
+      float3 pos2 = controlPoints[1].pos1 + pos1;
+      float3 pos3 = controlPoints[2].pos1 + pos1;
       float3 distances = max(sqrt(float3(
-        lengthSq(pos1 - world_view_pos),
-        lengthSq(pos2 - world_view_pos),
-        lengthSq(pos3 - world_view_pos)
+        lengthSq((pos1 + pos3) * 0.5 - world_view_pos),
+        lengthSq((pos2 + pos1) * 0.5 - world_view_pos),
+        lengthSq((pos3 + pos2) * 0.5 - world_view_pos)
       )), min_tessellation_distance);
 
       float tessellationFadeOutEnd = max_tessellation_distance + tessellation_transition_distance;
@@ -168,15 +167,19 @@ hlsl(hs) {
       DRAW_CALL_ID = GET_DRAW_CALL_ID_TRIANGULATION(inputPatch[tid]);
     #endif
     int next = (1U << tid) & 3; // (tid + 1) % 3
-    float3 p1 = inputPatch[tid].pos.xyz;
-    float3 p2 = inputPatch[next].pos.xyz;
-    float3 n1 = inputPatch[tid].normal.xyz;
 
+    float3 base = inputPatch[0].pos.xyz;
+    float3 p1 = inputPatch[tid].pos.xyz - base;
+    float3 p2 = inputPatch[next].pos.xyz - base;
+    float3 n1 = inputPatch[tid].normal.xyz;
     float3 n2 = inputPatch[next].normal.xyz;
     HsControlPoint output;
     //control points positions
     const float FIXED_BIAS = 1e-3f;
-    output.pos1 = p1;
+    if (tid == 0)
+      output.pos1 = base;
+    else
+      output.pos1 = p1;
 #if PN_TRIANGULATION_SMOOTHING
     float pos2Bias = max(abs(dot(p2 - p1, n1)), FIXED_BIAS);
     float pos3Bias = max(abs(dot(p1 - p2, n2)), FIXED_BIAS);
@@ -186,6 +189,7 @@ hlsl(hs) {
 #endif
     output.pos2 = 2 * p1 + p2 + pos2Bias * n1;
     output.pos3 = 2 * p2 + p1 + pos3Bias * n2;
+
     //control points normals
     float3 v12 = 4 * dot(p2 - p1, n1 + n2) / dot(p2 - p1, p2 - p1);
     output.normal1 = n1;
@@ -207,17 +211,23 @@ hlsl(ds) {
     float u = uvw.x;
     float v = uvw.y;
     float w = uvw.z;
-    //output position is weighted combination of all 10 position control points
+
+    // PN triangles interpolation, output position is a weighted average of all 10 control points
+    // Since the positions are relative to the first vertex, we don't need to account for it in the calculations
+    // This way we can skip the first element of the calculation, which would normally be `input[0].pos1 * w * w * w`
     float3 pos =
-      input[0].pos1 * w * w * w + input[1].pos1 * u * u * u + input[2].pos1 * v * v * v +
+      input[1].pos1 * u * u * u + input[2].pos1 * v * v * v +
       input[0].pos2 * w * w * u + input[0].pos3 * w * u * u + input[1].pos2 * u * u * v +
       input[1].pos3 * u * v * v + input[2].pos2 * v * v * w + input[2].pos3 * v * w * w +
       patchData.center * u * v * w;
+
+    // input[0].pos1 stores the global origin of the patch, we apply it here to bring the triangle back to global space
+    pos += input[0].pos1;
+
     //output normal is weighted combination of all 6 position control points
     float3 nor =
       input[0].normal1 * w * w + input[1].normal1 * u * u + input[2].normal1 * v * v +
       input[0].normal2 * w * u + input[1].normal2 * u * v + input[2].normal2 * v * w;
-
     //transform and output data
     output.pos = float4(pos, 1);
     output.normal = 0;

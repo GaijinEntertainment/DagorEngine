@@ -20,6 +20,11 @@ using namespace ShaderTerminal;
 #include <osApiWrappers/dag_direct.h>
 #include <memory/dag_regionMemAlloc.h>
 #include "cppStcodeUtils.h"
+#if _TARGET_PC_WIN
+#include <direct.h>
+#elif _TARGET_PC_LINUX | _TARGET_APPLE | _TARGET_C3
+#include <unistd.h>
+#endif
 
 
 IMemAlloc *sh_symbolsmem = NULL;
@@ -28,13 +33,24 @@ static Tab<SimpleString> inc_base(inimem);
 void reset_shaders_inc_base() { inc_base.clear(); }
 void add_shaders_inc_base(const char *base) { inc_base.push_back() = base; }
 
+static char compiler_cwd[DAGOR_MAX_PATH] = {0};
+static const char *get_cwd()
+{
+  if (compiler_cwd[0])
+    return compiler_cwd;
+  if (getcwd(compiler_cwd, DAGOR_MAX_PATH))
+    dd_append_slash_c(compiler_cwd);
+  else
+    memcpy(compiler_cwd, "./", 3);
+  return compiler_cwd;
+}
 
 // parse include statement
 static bool process_include(String &inc_fpath, const char *inc_fn, int inc_fn_len)
 {
   for (int i = 0; i < inc_base.size(); i++)
   {
-    inc_fpath.printf(260, "%s/%.*s", inc_base[i].str(), inc_fn_len, inc_fn);
+    inc_fpath.printf(260, "%s%s/%.*s", get_cwd(), inc_base[i].str(), inc_fn_len, inc_fn);
     if (dd_file_exists(inc_fpath))
       return true;
   }
@@ -53,9 +69,8 @@ static bool parseInclude(ShaderLexParser *_this, bool optional = false)
   const char *inc_fn = _this->get_lexeme() + 1;
   int inc_fn_len = _this->get_lexeme_length() - 2;
   String inc_fpath;
-  process_include(inc_fpath, inc_fn, inc_fn_len);
 
-  if (inc_fpath.empty())
+  if (!process_include(inc_fpath, inc_fn, inc_fn_len))
   {
     char fn[1024];
     ::dd_get_fname_location(fn, _this->__input_stream()->get_filename(_this->get_cur_file()));
@@ -229,16 +244,17 @@ Terminal *ShaderLexParser::get_terminal()
 struct MyShaderSyntaxParser : public ShaderSyntaxParser
 {
   using ShaderSyntaxParser::ShaderSyntaxParser;
+  bool shaderDebugModeEnabled = true;
   // clang-format off
   // clang-format breaks alignment
-  void add_shader(shader_decl *d)           override { ShaderParser::add_shader(d, *this); }
+  void add_shader(shader_decl *d)           override { ShaderParser::add_shader(d, *this, shaderDebugModeEnabled); }
   void add_block(block_decl *d)             override { ShaderParser::add_block(d, *this); }
   void add_global_var(global_var_decl *d)   override { ShaderParser::add_global_var(d, *this); }
   void add_sampler(sampler_decl *d)         override { ShaderParser::add_sampler(d, *this); }
   void add_global_interval(interval &i)     override { ShaderParser::add_global_interval(i, *this); }
   void add_global_assume(assume_stat &a)    override { ShaderParser::add_global_assume(a, *this); }
   void add_global_bool(bool_decl &d)        override { ShaderParser::add_global_bool(d, *this); }
-  void add_hlsl(hlsl_global_decl_class &d)  override { ShaderParser::add_hlsl(d, *this); }
+  void add_hlsl(hlsl_global_decl_class &d)  override { ShaderParser::add_hlsl(d, *this, shaderDebugModeEnabled); }
   // clang-format on
 };
 
@@ -422,8 +438,11 @@ void parse_shader_script(const char *fn, const ShHardwareOptions &opt, Tab<Simpl
   {
     ParserFileInput inp;
     String inc_fpath;
-    if (!process_include(inc_fpath, fn, i_strlen(fn)))
+    if (dd_file_exists(fn))
+      inc_fpath.setStrCat(get_cwd(), fn);
+    else if (!process_include(inc_fpath, fn, i_strlen(fn)))
       inc_fpath = fn;
+
     if (!inp.include_alefile(inc_fpath))
     {
       sh_debug(SHLOG_FATAL, "can't read shader script '%s'", fn);

@@ -122,53 +122,49 @@ TemporalSuperResolution::TemporalSuperResolution(const IPoint2 &output_resolutio
 
   computeRenderer.reset(new_compute_shader("tsr_cs"));
 
-  applierNode = resource_slot::register_access("tsr", DABFG_PP_NODE_SRC,
-    {resource_slot::Create{"postfx_input_slot", "frame_for_postfx"}},
-    [this, output_resolution](resource_slot::State slotsState, dabfg::Registry registry) {
-      auto opaqueFinalTargetHndl = registry.readTexture("final_target_with_motion_blur")
-                                     .atStage(dabfg::Stage::PS_OR_CS)
-                                     .useAs(dabfg::Usage::SHADER_RESOURCE)
-                                     .handle();
-      read_gbuffer(registry, dabfg::Stage::PS_OR_CS);
-      registry.readTexture("motion_vecs_after_transparency").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("motion_gbuf").optional();
-      registry.read("gbuf_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("motion_gbuf_samplerstate").optional();
-      registry.readTexture("depth_after_transparency").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("depth_gbuf");
-      registry.read("gbuf_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("depth_gbuf_samplerstate");
-
-      auto antialiasedHndl =
-        registry
-          .createTexture2d(slotsState.resourceToCreateFor("postfx_input_slot"), dabfg::History::ClearZeroOnFirstFrame,
-            {TEXFMT_A16B16G16R16F | TEXCF_UNORDERED | TEXCF_RTARGET, output_resolution})
-          .atStage(dabfg::Stage::PS_OR_CS)
-          .useAs(dabfg::Usage::SHADER_RESOURCE)
-          .handle();
-
-      auto antialiasedHistHndl = registry.readTextureHistory(slotsState.resourceToCreateFor("postfx_input_slot"))
+  applierNode = dabfg::register_node("tsr", DABFG_PP_NODE_SRC, [this, output_resolution](dabfg::Registry registry) {
+    auto opaqueFinalTargetHndl = registry.readTexture("final_target_with_motion_blur")
                                    .atStage(dabfg::Stage::PS_OR_CS)
                                    .useAs(dabfg::Usage::SHADER_RESOURCE)
                                    .handle();
+    read_gbuffer(registry, dabfg::Stage::PS_OR_CS);
+    registry.readTexture("motion_vecs_after_transparency").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("motion_gbuf").optional();
+    registry.read("gbuf_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("motion_gbuf_samplerstate").optional();
+    registry.readTexture("depth_after_transparency").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("depth_gbuf");
+    registry.read("gbuf_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("depth_gbuf_samplerstate");
 
-      auto confidenceHndl = registry
-                              .createTexture2d("tsr_confidence", dabfg::History::ClearZeroOnFirstFrame,
-                                {TEXFMT_R8 | TEXCF_UNORDERED | TEXCF_RTARGET, output_resolution})
-                              .atStage(dabfg::Stage::PS_OR_CS)
-                              .useAs(dabfg::Usage::SHADER_RESOURCE)
-                              .handle();
+    auto antialiasedHndl = registry
+                             .createTexture2d("frame_after_aa", dabfg::History::ClearZeroOnFirstFrame,
+                               {TEXFMT_A16B16G16R16F | TEXCF_UNORDERED | TEXCF_RTARGET, output_resolution})
+                             .atStage(dabfg::Stage::PS_OR_CS)
+                             .useAs(dabfg::Usage::SHADER_RESOURCE)
+                             .handle();
 
-      auto confidenceHistHndl =
-        registry.readTextureHistory("tsr_confidence").atStage(dabfg::Stage::PS_OR_CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
+    auto antialiasedHistHndl =
+      registry.readTextureHistory("frame_after_aa").atStage(dabfg::Stage::PS_OR_CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
 
-      registry.readTexture("reactive_mask").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("tsr_reactive_mask").optional();
+    auto confidenceHndl = registry
+                            .createTexture2d("tsr_confidence", dabfg::History::ClearZeroOnFirstFrame,
+                              {TEXFMT_R8 | TEXCF_UNORDERED | TEXCF_RTARGET, output_resolution})
+                            .atStage(dabfg::Stage::PS_OR_CS)
+                            .useAs(dabfg::Usage::SHADER_RESOURCE)
+                            .handle();
 
-      auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
+    auto confidenceHistHndl =
+      registry.readTextureHistory("tsr_confidence").atStage(dabfg::Stage::PS_OR_CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
 
-      return [this, opaqueFinalTargetHndl, antialiasedHndl, antialiasedHistHndl, confidenceHndl, confidenceHistHndl, cameraHndl] {
-        set_viewvecs_to_shader(cameraHndl.ref().viewTm, cameraHndl.ref().jitterProjTm);
-        tsr_render(TextureIDPair{opaqueFinalTargetHndl.view().getTex2D(), opaqueFinalTargetHndl.view().getTexId()},
-          antialiasedHndl.view(), antialiasedHistHndl.view(), confidenceHndl.view(), confidenceHistHndl.view(), getDebugRenderTarget(),
-          computeRenderer.get(), outputResolution);
-      };
-    });
+    registry.readTexture("reactive_mask").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("tsr_reactive_mask").optional();
+    registry.readTexture("exposure_tex").atStage(dabfg::Stage::CS).bindToShaderVar("tsr_exposure").optional();
+
+    auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
+
+    return [this, opaqueFinalTargetHndl, antialiasedHndl, antialiasedHistHndl, confidenceHndl, confidenceHistHndl, cameraHndl] {
+      set_viewvecs_to_shader(cameraHndl.ref().viewTm, cameraHndl.ref().jitterProjTm);
+      tsr_render(TextureIDPair{opaqueFinalTargetHndl.view().getTex2D(), opaqueFinalTargetHndl.view().getTexId()},
+        antialiasedHndl.view(), antialiasedHistHndl.view(), confidenceHndl.view(), confidenceHistHndl.view(), getDebugRenderTarget(),
+        computeRenderer.get(), outputResolution);
+    };
+  });
 }
 
 int TemporalSuperResolution::getTemporalFrameCount() const

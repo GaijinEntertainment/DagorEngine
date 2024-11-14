@@ -18,3 +18,6 @@ object_tess_factor:r=0
 gi_quality:i=0
 ssr_alternate_reflections:i=0
 static_shadows_cascades:i=2
+froxel_fog_use_experimental_offscreen_reprojection:i = 0
+froxel_fog_use_self_shadowing:i = 0
+lens_zoom_factor:r=1.0

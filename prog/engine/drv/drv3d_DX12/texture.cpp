@@ -1,17 +1,20 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include "texture.h"
+#include "d3dformat.h"
 #include "device.h"
+#include "device_context.h"
+#include "driver.h"
 #include "frontend_state.h"
 
-#include "d3dformat.h"
-
-#include <ioSys/dag_memIo.h>
-#include <image/dag_texPixel.h>
-#include <drv/3d/dag_texture.h>
-#include <drv/3d/dag_platform_pc.h>
 #include <basetexture.h>
+#include <drv/3d/dag_platform_pc.h>
+#include <drv/3d/dag_texture.h>
+#include <image/dag_texPixel.h>
+#include <ioSys/dag_memIo.h>
 #include <validateUpdateSubRegion.h>
 #include <validation/texture.h>
+
 
 #if 0
 #define VERBOSE_DEBUG debug
@@ -1012,6 +1015,7 @@ bool BaseTex::swapTextureNoLock(Image *expected, Image *replacement)
 
   mark_texture_stages_dirty_no_lock(this, srvBindingStages, uavBindingStages, getRtvBinding(), getDsvBinding());
   image = replacement;
+  updateTexName();
   return true;
 }
 

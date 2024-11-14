@@ -2,9 +2,8 @@
 #pragma once
 
 #include <EASTL/fixed_vector.h>
-
-#include "value_range.h"
-#include "free_list_utils.h"
+#include <free_list_utils.h>
+#include <value_range.h>
 
 #if _TARGET_XBOX
 #define REPORT_HEAP_INFO 1
@@ -23,6 +22,7 @@
 #include "resource_manager/host_shared_components.h"
 #include "resource_manager/buffer_components.h"
 #include "resource_manager/rtx_components.h"
+
 
 struct ResourceDumpInfo;
 

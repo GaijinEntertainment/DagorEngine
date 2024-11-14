@@ -1,32 +1,31 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <dag/dag_vector.h>
-#include <supp/dag_comPtr.h>
-#include <osApiWrappers/dag_spinlock.h>
+#include <constants.h>
+#include <container_mutex_wrapper.h>
+#include <driver.h>
+#include <extents.h>
+#include <image_global_subresource_id.h>
+#include <image_view_state.h>
+#include <resource_memory.h>
+#include <texture_subresource_util.h>
 
-#include "driver.h"
-#include "constants.h"
-#include "extents.h"
-#include "image_view_state.h"
-#include "resource_memory.h"
-#include "container_mutex_wrapper.h"
-#include "image_global_subresource_id.h"
-#include "texture_subresource_util.h"
+#include <dag/dag_vector.h>
+#include <osApiWrappers/dag_spinlock.h>
+#include <supp/dag_comPtr.h>
 
 #if DX12_USE_ESRAM
-#include "resource_manager/esram_resource_xbox.h"
+#include "esram_resource_xbox.h"
 #endif
 
 #if _TARGET_XBOX
-#include "resource_manager/texture_access_computer_xbox.h"
+#include "texture_access_computer_xbox.h"
 #endif
 
+#define DX12_IMAGE_DEBUG_NAMES 1
 
 namespace drv3d_dx12
 {
-
-#define DX12_IMAGE_DEBUG_NAMES 1
 class Image
 {
 public:
@@ -61,6 +60,15 @@ private:
   uint64_t lastFrameAccess = 0;
 
 public:
+  void dbgValidateImageViewStateCompatibility([[maybe_unused]] ImageViewState image_view_state)
+  {
+    G_ASSERTF(image_view_state.getMipBase() + image_view_state.getMipCount() <= mipLevels,
+      "DX12: Image view validation failed, wrong mip range (tex: %s, view.mipBase: %d, view.mipCount: %d, img.mipCount: %d)",
+      *debugName.access(), image_view_state.getMipBase(), image_view_state.getMipCount(), mipLevels.count());
+    G_ASSERTF(image_view_state.getArrayBase() + image_view_state.getArrayCount() <= layerCount,
+      "DX12: Image view validation failed, wrong layers range (tex: %s, view.mipBase: %d, view.mipCount: %d, img.mipCount: %d)",
+      *debugName.access(), image_view_state.getMipBase(), image_view_state.getMipCount(), mipLevels.count());
+  }
   void updateLastFrameAccess(uint64_t index) { lastFrameAccess = index; }
   bool wasAccessedPreviousFrames(uint64_t index) const
   {

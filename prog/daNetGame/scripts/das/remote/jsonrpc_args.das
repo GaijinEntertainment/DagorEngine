@@ -19,7 +19,7 @@ def get_arg_name(params : JsonValue?; name : string) : JsonValue?
   if params == null
     return null
   if params is _object
-    return (params as _object)?[name] ?? [[JsonValue? ]]
+    return (params as _object)?[name] ?? [[JsonValue?]]
   return null
 
 

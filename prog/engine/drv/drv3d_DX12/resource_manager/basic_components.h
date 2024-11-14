@@ -1,35 +1,32 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <EASTL/string.h>
-#include <EASTL/vector.h>
+#include <container_mutex_wrapper.h>
+#include <d3d12_utils.h>
+#include <driver.h>
+#include <extents.h>
+#include <format_store.h>
+#include <free_list_utils.h>
+#include <image_global_subresource_id.h>
+#include <tagged_types.h>
+#include <typed_bit_set.h>
+
+#include <debug/dag_assert.h>
 #include <EASTL/numeric.h>
 #include <EASTL/optional.h>
-#include <debug/dag_assert.h>
-#include <osApiWrappers/dag_spinlock.h>
+#include <EASTL/string.h>
+#include <EASTL/vector.h>
 #include <osApiWrappers/dag_critSec.h>
+#include <osApiWrappers/dag_spinlock.h>
 #include <perfMon/dag_cpuFreq.h>
 
 #include <windows.h>
 #include <psapi.h> // psapi.h is not self-contained, it needs windows.h
 
-#include "driver.h"
-#include "d3d12_utils.h"
-#include "typed_bit_set.h"
-#include "tagged_types.h"
-#include "extents.h"
-#include "format_store.h"
-#include "container_mutex_wrapper.h"
-#include "free_list_utils.h"
-#include "image_global_subresource_id.h"
-
-
-namespace drv3d_dx12
-{
 // We try to work without this
 #define DX12_USE_ACTIVITY_LOCKING 0
 
-namespace resource_manager
+namespace drv3d_dx12::resource_manager
 {
 class ConcurrentAccessControler
 {
@@ -1642,6 +1639,4 @@ public:
     free_list_insert_and_coalesce(stateAccess->freeRanges, range);
   }
 };
-
-} // namespace resource_manager
-} // namespace drv3d_dx12
+} // namespace drv3d_dx12::resource_manager

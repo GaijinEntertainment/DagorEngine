@@ -93,7 +93,7 @@ public:
   }
 
   //! parse source text into code fragments
-  bool parseSourceCode(const char *stage, const char *src, ShaderParser::ShaderBoolEvalCB &cb);
+  bool parseSourceCode(const char *stage, const char *src, ShaderParser::ShaderBoolEvalCB &cb, bool pp_as_comments);
 
   //! returns code unique identifier for specific variant [returns reference to highly temporary storage]
   dag::ConstSpan<Unconditional *> getPreprocessedCode(ShaderParser::ShaderBoolEvalCB &cb);

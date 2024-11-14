@@ -6,8 +6,6 @@
 #include <propPanel/control/container.h>
 #include <imgui/imgui.h>
 
-using hdpi::_pxScaled;
-
 ViewportWindowStatSettingsDialog::ViewportWindowStatSettingsDialog(ViewportWindow &_viewport, bool *_rootEnable, hdpi::Px width,
   hdpi::Px height) :
   DialogWindow(nullptr, width, height, "Viewport stat display settings"),
@@ -23,7 +21,7 @@ PropPanel::TLeafHandle ViewportWindowStatSettingsDialog::addGroup(int group, con
   {
     PropPanel::ContainerPropertyControl *panel = getPanel();
     G_ASSERT(panel);
-    tree = panel->createTreeCheckbox(CM_STATS_SETTINGS_TREE, "", _pxScaled(380), /*new_line*/ false, /*icons_show*/ true);
+    tree = panel->createTreeCheckbox(CM_STATS_SETTINGS_TREE, "", hdpi::Px(0), /*new_line*/ false, /*icons_show*/ true);
     root = tree->createTreeLeaf(nullptr, "Show stats", nullptr);
     tree->setBool(root, true);
     tree->setCheckboxValue(root, *rootEnable);
@@ -214,16 +212,4 @@ void ViewportWindowStatSettingsDialog::onChange(int pcb_id, PropPanel::Container
 
   if (changed)
     updateColors();
-}
-
-void ViewportWindowStatSettingsDialog::updateImguiDialog()
-{
-  const float panelHeight = getButtonPanelHeight();
-  if (panelHeight > 0.0f)
-  {
-    const float treeHeight = ImGui::GetContentRegionAvail().y - panelHeight - ImGui::GetStyle().ItemSpacing.y;
-    tree->setHeight(hdpi::Px(treeHeight));
-  }
-
-  DialogWindow::updateImguiDialog();
 }

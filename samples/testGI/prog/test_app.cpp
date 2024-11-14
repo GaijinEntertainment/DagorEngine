@@ -134,47 +134,57 @@ typedef StrmSceneHolder scene_type_t;
 #define SKY_GUI  1
 #define TEST_GUI 0
 
-#define GLOBAL_VARS_LIST                     \
-  VAR(new_ambient)                           \
-  VAR(new_screen_specular)                   \
-  VAR(prev_ambient_age)                      \
-  VAR(prev_ambient)                          \
-  VAR(prev_screen_specular)                  \
-  VAR(screen_ambient)                        \
-  VAR(ambient_reproject)                     \
-  VAR(prev_gbuffer_depth)                    \
-  VAR(screen_specular)                       \
-  VAR(voxelize_world_to_rasterize_space_mul) \
-  VAR(voxelize_world_to_rasterize_space_add) \
-  VAR(water_level)                           \
-  VAR(dynamic_lights_count)                  \
-  VAR(zn_zfar)                               \
-  VAR(view_vecLT)                            \
-  VAR(view_vecRT)                            \
-  VAR(view_vecLB)                            \
-  VAR(view_vecRB)                            \
-  VAR(world_view_pos)                        \
-  VAR(upscale_half_res_depth_tex)            \
-  VAR(lowres_tex_size)                       \
-  VAR(downsampled_far_depth_tex)             \
-  VAR(prev_downsampled_far_depth_tex)        \
-  VAR(downsampled_close_depth_tex)           \
-  VAR(prev_downsampled_close_depth_tex)      \
-  VAR(downsampled_normals)                   \
-  VAR(prev_downsampled_normals)              \
-  VAR(from_sun_direction)                    \
-  VAR(rasterize_collision_type)              \
-  VAR(downsample_depth_type)                 \
-  VAR(local_light_probe_tex)                 \
-  VAR(envi_probe_specular)
+#define GLOBAL_VARS_LIST                             \
+  VAR(new_ambient)                                   \
+  VAR(new_screen_specular)                           \
+  VAR(prev_ambient_age)                              \
+  VAR(prev_ambient)                                  \
+  VAR(prev_screen_specular)                          \
+  VAR(screen_ambient)                                \
+  VAR(ambient_reproject)                             \
+  VAR(prev_gbuffer_depth)                            \
+  VAR(screen_specular)                               \
+  VAR(voxelize_world_to_rasterize_space_mul)         \
+  VAR(voxelize_world_to_rasterize_space_add)         \
+  VAR(water_level)                                   \
+  VAR(dynamic_lights_count)                          \
+  VAR(zn_zfar)                                       \
+  VAR(view_vecLT)                                    \
+  VAR(view_vecRT)                                    \
+  VAR(view_vecLB)                                    \
+  VAR(view_vecRB)                                    \
+  VAR(world_view_pos)                                \
+  VAR(upscale_half_res_depth_tex)                    \
+  VAR(upscale_half_res_depth_tex_samplerstate)       \
+  VAR(lowres_tex_size)                               \
+  VAR(downsampled_far_depth_tex)                     \
+  VAR(downsampled_far_depth_tex_samplerstate)        \
+  VAR(prev_downsampled_far_depth_tex)                \
+  VAR(prev_downsampled_far_depth_tex_samplerstate)   \
+  VAR(downsampled_close_depth_tex)                   \
+  VAR(downsampled_close_depth_tex_samplerstate)      \
+  VAR(prev_downsampled_close_depth_tex)              \
+  VAR(prev_downsampled_close_depth_tex_samplerstate) \
+  VAR(downsampled_normals)                           \
+  VAR(downsampled_normals_samplerstate)              \
+  VAR(prev_downsampled_normals)                      \
+  VAR(prev_downsampled_normals_samplerstate)         \
+  VAR(from_sun_direction)                            \
+  VAR(rasterize_collision_type)                      \
+  VAR(downsample_depth_type)                         \
+  VAR(local_light_probe_tex)                         \
+  VAR(envi_probe_specular)                           \
+  VAR(local_light_probe_tex_samplerstate)            \
+  VAR(envi_probe_specular_samplerstate)
 
-#define GLOBAL_VARS_OPT_LIST              \
-  VAR(gbuffer_for_treesabove)             \
-  VAR(downsampled_checkerboard_depth_tex) \
-  VAR(sphere_time)                        \
-  VAR(prev_globtm_psf_0)                  \
-  VAR(prev_globtm_psf_1)                  \
-  VAR(prev_globtm_psf_2)                  \
+#define GLOBAL_VARS_OPT_LIST                           \
+  VAR(gbuffer_for_treesabove)                          \
+  VAR(downsampled_checkerboard_depth_tex)              \
+  VAR(downsampled_checkerboard_depth_tex_samplerstate) \
+  VAR(sphere_time)                                     \
+  VAR(prev_globtm_psf_0)                               \
+  VAR(prev_globtm_psf_1)                               \
+  VAR(prev_globtm_psf_2)                               \
   VAR(prev_globtm_psf_3)
 
 #define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
@@ -473,8 +483,6 @@ public:
     ShaderGlobal::set_texture(downsampled_far_depth_texVarId, farDownsampledDepth[currentDownsampledDepth]);
     ShaderGlobal::set_texture(prev_downsampled_far_depth_texVarId, farDownsampledDepth[1 - currentDownsampledDepth]);
 
-    downsampled_close_depth_tex[currentDownsampledDepth]->texaddr(TEXADDR_CLAMP);
-
     ShaderGlobal::set_texture(downsampled_close_depth_texVarId, downsampled_close_depth_tex[currentDownsampledDepth]);
     ShaderGlobal::set_texture(prev_downsampled_close_depth_texVarId, downsampled_close_depth_tex[1 - currentDownsampledDepth]);
     ShaderGlobal::set_texture(downsampled_normalsVarId, downsampledNormals[currentDownsampledDepth]);
@@ -646,8 +654,10 @@ public:
     {
       prevFrame.close();
       prevFrame = dag::create_tex(NULL, frameInfo.w / 2, frameInfo.h / 2, frameInfo.cflg, 1, "prev_frame_tex");
-      prevFrame->texaddr(TEXADDR_CLAMP);
-      // prevFrame.getTex2D()->texfilter(TEXFILTER_POINT);
+      d3d::SamplerInfo smpInfo;
+      smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+      ShaderGlobal::set_sampler(get_shader_variable_id("prev_frame_tex_samplerstate"), d3d::request_sampler(smpInfo));
+      prevFrame->disableSampler();
     }
   }
 
@@ -718,6 +728,7 @@ public:
 
     combined_shadows.close();
     combined_shadows = dag::create_tex(NULL, w, h, TEXFMT_L8 | TEXCF_RTARGET, 1, "combined_shadows");
+    ShaderGlobal::set_sampler(get_shader_variable_id("combined_shadows_samplerstate"), d3d::request_sampler({}));
     debugTexOverlay.setTargetSize(Point2(w, h));
 
     int halfW = w / 2, halfH = h / 2;
@@ -754,21 +765,43 @@ public:
       {
         String name(128, "far_downsampled_depth%d", i);
         farDownsampledDepth[i] = dag::create_tex(NULL, w / 2, h / 2, rfmt | TEXCF_RTARGET, numMips, name);
-        farDownsampledDepth[i]->texaddr(TEXADDR_BORDER);
-        farDownsampledDepth[i]->texbordercolor(0);
-        farDownsampledDepth[i]->texfilter(TEXFILTER_POINT);
-        farDownsampledDepth[i]->texmipmap(TEXMIPMAP_POINT);
+        farDownsampledDepth[i]->disableSampler();
         downsampled_close_depth_tex[i].close();
         name.printf(128, "close_downsampled_depth%d", i);
         downsampled_close_depth_tex[i] = dag::create_tex(NULL, w / 2, h / 2, rfmt | TEXCF_RTARGET, numMips, name);
-        downsampled_close_depth_tex[i]->texaddr(TEXADDR_CLAMP);
-        downsampled_close_depth_tex[i]->texfilter(TEXFILTER_POINT);
-        downsampled_close_depth_tex[i]->texmipmap(TEXMIPMAP_POINT);
+        downsampled_close_depth_tex[i]->disableSampler();
 
         name.printf(128, "close_downsampled_normals%d", i);
         downsampledNormals[i].close();
         downsampledNormals[i] = dag::create_tex(NULL, w / 2, h / 2, TEXCF_RTARGET, 1, name); // TEXFMT_A2B10G10R10 |
-        downsampledNormals[i]->texaddr(TEXADDR_CLAMP);
+        downsampledNormals[i]->disableSampler();
+      }
+      {
+        d3d::SamplerInfo smpInfo;
+        smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Border;
+        smpInfo.border_color = d3d::BorderColor::Color::TransparentBlack;
+        smpInfo.filter_mode = d3d::FilterMode::Point;
+        smpInfo.mip_map_mode = d3d::MipMapMode::Point;
+        d3d::SamplerHandle smp = d3d::request_sampler(smpInfo);
+        ShaderGlobal::set_sampler(downsampled_far_depth_tex_samplerstateVarId, smp);
+        ShaderGlobal::set_sampler(prev_downsampled_far_depth_tex_samplerstateVarId, smp);
+      }
+      {
+        d3d::SamplerInfo smpInfo;
+        smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+        smpInfo.filter_mode = d3d::FilterMode::Point;
+        smpInfo.mip_map_mode = d3d::MipMapMode::Point;
+        d3d::SamplerHandle smp = d3d::request_sampler(smpInfo);
+        ShaderGlobal::set_sampler(downsampled_close_depth_tex_samplerstateVarId, smp);
+        ShaderGlobal::set_sampler(prev_downsampled_close_depth_tex_samplerstateVarId, smp);
+        ShaderGlobal::set_sampler(upscale_half_res_depth_tex_samplerstateVarId, smp);
+      }
+      {
+        d3d::SamplerInfo smpInfo;
+        smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+        d3d::SamplerHandle smp = d3d::request_sampler(smpInfo);
+        ShaderGlobal::set_sampler(downsampled_normals_samplerstateVarId, smp);
+        ShaderGlobal::set_sampler(prev_downsampled_normals_samplerstateVarId, smp);
       }
       upscale_tex.reset();
       upscale_tex.reset(new UpscaleSamplingTex(w, h, "close_"));
@@ -778,6 +811,7 @@ public:
       downsampled_checkerboard_depth_tex =
         dag::create_tex(NULL, w / 2, h / 2, rfmt | TEXCF_RTARGET, 1, "downsampled_checkerboard_depth_tex");
       ShaderGlobal::set_texture(downsampled_checkerboard_depth_texVarId, downsampled_checkerboard_depth_tex.getTexId());
+      ShaderGlobal::set_sampler(downsampled_checkerboard_depth_tex_samplerstateVarId, d3d::request_sampler({}));
     }
     uint32_t rtFmt = TEXFMT_R11G11B10F;
     if (!(d3d::get_texformat_usage(rtFmt) & d3d::USAGE_RTARGET))
@@ -785,8 +819,10 @@ public:
     if (!prevFrame)
     {
       prevFrame = dag::create_tex(NULL, w / 2, h / 2, rtFmt | TEXCF_RTARGET, 1, "prev_frame_tex");
-      prevFrame->texaddr(TEXADDR_CLAMP);
-      // prevFrame.getTex2D()->texfilter(TEXFILTER_POINT);
+      d3d::SamplerInfo smpInfo;
+      smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+      ShaderGlobal::set_sampler(get_shader_variable_id("prev_frame_tex_samplerstate"), d3d::request_sampler(smpInfo));
+      prevFrame->disableSampler();
     }
     frame.close();
     frame = dag::create_tex(NULL, w, h, rtFmt | TEXCF_RTARGET, 1, "frame_tex");
@@ -794,6 +830,8 @@ public:
     taaHistory[1].close();
     taaHistory[0] = dag::create_tex(NULL, w, h, rtFmt | TEXCF_RTARGET, 1, "taa_history_tex");
     taaHistory[1] = dag::create_tex(NULL, w, h, rtFmt | TEXCF_RTARGET, 1, "taa_history_tex2");
+    ShaderGlobal::set_sampler(get_shader_variable_id("taa_history_tex_samplerstate"), d3d::request_sampler({}));
+    ShaderGlobal::set_sampler(get_shader_variable_id("frame_tex_samplerstate"), d3d::request_sampler({}));
     if (use_snapdragon_super_resolution)
     {
       int fw, fh;
@@ -1325,9 +1363,11 @@ public:
     {
       int taaHistoryI = taaFrame & 1;
       d3d::set_render_target(taaHistory[1 - taaHistoryI].getTex2D(), 0);
-      frame->texfilter(TEXFILTER_POINT);
       ShaderGlobal::set_texture(get_shader_variable_id("taa_history_tex"), taaHistory[taaHistoryI]);
       ShaderGlobal::set_texture(get_shader_variable_id("taa_frame_tex"), frame);
+      d3d::SamplerInfo smpInfo;
+      smpInfo.filter_mode = d3d::FilterMode::Point;
+      ShaderGlobal::set_sampler(get_shader_variable_id("taa_frame_tex_samplerstate"), d3d::request_sampler(smpInfo));
       taaRender.render();
       ShaderGlobal::set_texture(frame.getVarId(), taaHistory[1 - taaHistoryI]);
     }
@@ -2044,6 +2084,8 @@ public:
   UniqueTex enviProbe0;
   void initEnviProbe()
   {
+    local_light_probe_tex_samplerstateVarId.set_sampler(d3d::request_sampler({}));
+    envi_probe_specular_samplerstateVarId.set_sampler(d3d::request_sampler({}));
     enviProbe0.close();
     enviProbe0 = dag::create_cubetex(64, TEXCF_RTARGET | TEXFMT_A16B16G16R16F | TEXCF_GENERATEMIPS | TEXCF_CLEAR_ON_CREATE, 1,
       "envi_probe_specular0");
@@ -2399,9 +2441,6 @@ protected:
     TIME_D3D_PROFILE(envi)
     TMatrix itm;
     curCamera->getInvViewMatrix(itm);
-    target->getDepth()->texfilter(TEXFILTER_POINT);
-    farDownsampledDepth[currentDownsampledDepth]->texfilter(TEXFILTER_POINT);
-    farDownsampledDepth[1 - currentDownsampledDepth]->texaddr(TEXADDR_CLAMP);
     TMatrix view;
     d3d::gettm(TM_VIEW, view);
     TMatrix4 projTm;
@@ -2411,7 +2450,6 @@ protected:
     daSkies.renderEnvi(render_panel.infinite_skies, dpoint3(itm.getcol(3)), dpoint3(itm.getcol(2)), 3,
       farDownsampledDepth[currentDownsampledDepth], farDownsampledDepth[1 - currentDownsampledDepth], target->getDepthId(),
       main_pov_data, view, projTm, persp);
-    farDownsampledDepth[1 - currentDownsampledDepth].getTex2D()->texaddr(TEXADDR_BORDER);
   }
   struct FilePanel
   {
@@ -2839,7 +2877,7 @@ protected:
 
     if (bvhLruMeshBase)
     {
-      bvh::update_instances(bvhCtx, Point3::ZERO, Frustum(), nullptr, nullptr);
+      bvh::update_instances(bvhCtx, Point3::ZERO, Frustum(), nullptr, nullptr, nullptr);
 
       auto accept = [](auto) { return LRUCollision::ObjectClass::Accept; };
       auto addInstance = [this](size_t i, mat43f_cref tm, bbox3f_cref, bbox3f_cref) {

@@ -47,7 +47,7 @@ static ecs::EntitySystemDesc reset_blood_es_es_desc
 );
 static constexpr ecs::ComponentDesc update_blood_shader_params_es_comps[] =
 {
-//start of 16 ro components at [0]
+//start of 22 ro components at [0]
   {ECS_HASH("blood_begin_color"), ecs::ComponentTypeInfo<ShaderVar>()},
   {ECS_HASH("blood_begin_color_value"), ecs::ComponentTypeInfo<Point4>()},
   {ECS_HASH("blood_end_color"), ecs::ComponentTypeInfo<ShaderVar>()},
@@ -63,7 +63,13 @@ static constexpr ecs::ComponentDesc update_blood_shader_params_es_comps[] =
   {ECS_HASH("blood_puddle_smoothness"), ecs::ComponentTypeInfo<ShaderVar>()},
   {ECS_HASH("blood_puddle_smoothness_value"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("blood_puddle_smoothness_edge"), ecs::ComponentTypeInfo<ShaderVar>()},
-  {ECS_HASH("blood_puddle_smoothness_edge_value"), ecs::ComponentTypeInfo<float>()}
+  {ECS_HASH("blood_puddle_smoothness_edge_value"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("blood_puddle_landscape_reflectance"), ecs::ComponentTypeInfo<ShaderVar>()},
+  {ECS_HASH("blood_puddle_landscape_reflectance_value"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("blood_puddle_landscape_smoothness_edge"), ecs::ComponentTypeInfo<ShaderVar>()},
+  {ECS_HASH("blood_puddle_landscape_smoothness_edge_value"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("blood_puddle_landscape_albedo_darkening"), ecs::ComponentTypeInfo<ShaderVar>()},
+  {ECS_HASH("blood_puddle_landscape_albedo_darkening_value"), ecs::ComponentTypeInfo<float>()}
 };
 static void update_blood_shader_params_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -85,6 +91,12 @@ static void update_blood_shader_params_es_all_events(const ecs::Event &__restric
     , ECS_RO_COMP(update_blood_shader_params_es_comps, "blood_puddle_smoothness_value", float)
     , ECS_RO_COMP(update_blood_shader_params_es_comps, "blood_puddle_smoothness_edge", ShaderVar)
     , ECS_RO_COMP(update_blood_shader_params_es_comps, "blood_puddle_smoothness_edge_value", float)
+    , ECS_RO_COMP(update_blood_shader_params_es_comps, "blood_puddle_landscape_reflectance", ShaderVar)
+    , ECS_RO_COMP(update_blood_shader_params_es_comps, "blood_puddle_landscape_reflectance_value", float)
+    , ECS_RO_COMP(update_blood_shader_params_es_comps, "blood_puddle_landscape_smoothness_edge", ShaderVar)
+    , ECS_RO_COMP(update_blood_shader_params_es_comps, "blood_puddle_landscape_smoothness_edge_value", float)
+    , ECS_RO_COMP(update_blood_shader_params_es_comps, "blood_puddle_landscape_albedo_darkening", ShaderVar)
+    , ECS_RO_COMP(update_blood_shader_params_es_comps, "blood_puddle_landscape_albedo_darkening_value", float)
     );
   while (++comp != compE);
 }
@@ -94,7 +106,7 @@ static ecs::EntitySystemDesc update_blood_shader_params_es_es_desc
   "prog/daNetGameLibs/blood_puddles/private/render/bloodPuddlesES.cpp.inl",
   ecs::EntitySystemOps(nullptr, update_blood_shader_params_es_all_events),
   empty_span(),
-  make_span(update_blood_shader_params_es_comps+0, 16)/*ro*/,
+  make_span(update_blood_shader_params_es_comps+0, 22)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<>::build(),

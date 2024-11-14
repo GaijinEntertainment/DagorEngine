@@ -239,18 +239,19 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
 
     static const uint bvhMaterialTypeMask = (1 << 16) - 1;
 
-    static const uint bvhGroupTerrain   = 1 << 0;
-    static const uint bvhGroupRiGen     = 1 << 1;
-    static const uint bvhGroupRiExtra   = 1 << 2;
-    static const uint bvhGroupDynrend   = 1 << 3;
-    static const uint bvhGroupGrass     = 1 << 4;
-    static const uint bvhGroupImpostor  = 1 << 5;
+    static const uint bvhGroupTerrain  = 1 << 0;
+    static const uint bvhGroupRiGen    = 1 << 1;
+    static const uint bvhGroupRiExtra  = 1 << 2;
+    static const uint bvhGroupDynrend  = 1 << 3;
+    static const uint bvhGroupGrass    = 1 << 4;
+    static const uint bvhGroupImpostor = 1 << 5;
+    static const uint bvhGroupNoShadow = 1 << 6;
 
     static const uint bvhGroupAll = 0xff;
 
     static const uint bvhGroupRender     = bvhGroupAll;
-    static const uint bvhGroupSoftShadow = bvhGroupAll & ~bvhGroupTerrain;
-    static const uint bvhGroupHardShadow = bvhGroupAll & ~bvhGroupTerrain & ~bvhGroupGrass;
+    static const uint bvhGroupSoftShadow = bvhGroupAll & ~bvhGroupTerrain & ~bvhGroupNoShadow;
+    static const uint bvhGroupHardShadow = bvhGroupAll & ~bvhGroupTerrain & ~bvhGroupGrass & ~bvhGroupNoShadow;
     static const uint bvhGroupAO         = bvhGroupAll;
 
     struct LayerData
@@ -390,6 +391,8 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
 
     struct HitInfo
     {
+      bool dissolved;
+
       float t;
 
       float3 centerWorldPos;
@@ -496,7 +499,7 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
       return bvh_mip_bias + saturate(sqrt(d / bvh_mip_range)) * bvh_mip_scale * (for_atest ? 0.5 : 1);
     }
 
-    HitInfo CalcHitInfo( float3 ray_origin, float3 ray_direction, float ray_t, uint triangleIx, uint instanceId, uint instanceContributionToHitGroupIndex, float2 barycentrics2, float3x4 to_world, bool isFrontFace, half3 defaultColor )
+    HitInfo CalcHitInfo(float3 ray_origin, float3 ray_direction, float ray_t, uint triangleIx, uint instanceId, uint instanceContributionToHitGroupIndex, float2 barycentrics2, float3x4 to_world, bool isFrontFace, half3 defaultColor)
     {
       HitInfo hitInfo = (HitInfo)0;
 
@@ -509,7 +512,23 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
       // The most significant bit tells if the instance has translucency.
       // If it has, the next 8 bits are the translucency value
       bool hasTranslucency = instanceId >> 23;
-      uint translucency = hasTranslucency ? ((instanceId >> 15) & 0xFF) : 0;
+      uint translucencyI = hasTranslucency ? ((instanceId >> 15) & 0xFF) : 0;
+      float translucency = translucencyI / 255.0;
+
+      #if BVH_TRANSLUCENCY_IS_DISSOLVE
+        [branch]
+        if (translucency > 0)
+        {
+          float dissolveAlpha = get_dissolve_value_from_world_position(hitInfo.position + bvh_origin);
+          [branch]
+          if (translucency > dissolveAlpha)
+          {
+            hitInfo.dissolved = true;
+            return hitInfo;
+          }
+        }
+      #endif
+
       instanceId = hasTranslucency ? (instanceId & 0x7FFF) : instanceId;
 
       bool hasPerInstanceData = instanceContributionToHitGroupIndex != 0xFFFFFFU;
@@ -520,7 +539,7 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
       hitInfo.alphaTextureIndex = get_alpha_texture_index(meta, hitInfo.alphaSamplerIndex);
       hitInfo.normalTextureIndex = get_normal_texture_index(meta, hitInfo.normalSamplerIndex);
       hitInfo.extraTextureIndex = get_extra_texture_index(meta, hitInfo.extraSamplerIndex);
-      hitInfo.translucency = half(translucency / 255.0);
+      hitInfo.translucency = half(translucency);
       hitInfo.materialData1 = meta.materialData1;
       hitInfo.materialData2 = meta.materialData2;
       hitInfo.isImpostor = is_impostor(meta.materialType);
@@ -809,6 +828,12 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
         #if handle_translucent
           HitInfo hitInfo = CalcHitInfo(ForwardAHSParams, defaultColor);
 
+          #if BVH_TRANSLUCENCY_IS_DISSOLVE
+            [branch]
+            if (hitInfo.dissolved)
+              return false;
+          #endif
+
           [branch]
           if (need_clip_impostor(hitInfo))
             return false;
@@ -816,13 +841,17 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
           [branch]
           if (IsAlphaGreaterThan(hitInfo, calc_mip_level(primaryT + hitInfo.t, true), 0.5))
           {
-            if (hitInfo.translucency > 0)
-            {
-              translucentT = max(translucentT, ray_t);
-              rayColor = lerp(0, rayColor, hitInfo.translucency);
-            }
-            else
+            #if BVH_TRANSLUCENCY_IS_DISSOLVE
               return true;
+            #else
+              if (hitInfo.translucency > 0)
+              {
+                translucentT = max(translucentT, ray_t);
+                rayColor = lerp(0, rayColor, hitInfo.translucency);
+              }
+              else
+                return true;
+            #endif
           }
         #endif
         return false;
@@ -844,7 +873,11 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
       const uint flags = RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES
                        | (handle_translucent ? RAY_FLAG_NONE : RAY_FLAG_FORCE_OPAQUE)
                        | (first_hit ? RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH : RAY_FLAG_NONE)
-                       | (cull_back_face ? RAY_FLAG_CULL_BACK_FACING_TRIANGLES : RAY_FLAG_NONE);
+                       | (cull_back_face ? RAY_FLAG_CULL_BACK_FACING_TRIANGLES : RAY_FLAG_NONE)
+                       #ifdef TRACE_RAY_EXTRA_FLAGS
+                         | TRACE_RAY_EXTRA_FLAGS
+                       #endif
+                       ;
 
       GenericRayQuery(flags, TraceRayAHSLambda) query;
 

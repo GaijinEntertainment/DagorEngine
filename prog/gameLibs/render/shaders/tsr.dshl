@@ -42,6 +42,7 @@ shader tsr_cs
     historyColorTex@smp2d = tsr_history_color;
     historyConfidenceTex@smp2d = tsr_history_confidence;
     reactiveMask@smp2d = tsr_reactive_mask;
+    exposureTex@tex2d = tsr_exposure;
     jitterOffset@f2 = (tsr_jitter_offset.x, tsr_jitter_offset.y, 0, 0);
     outputResolution@f4 = (tsr_output_resolution.x, tsr_output_resolution.y, 1/tsr_output_resolution.x, 1/tsr_output_resolution.y);
 
@@ -164,12 +165,12 @@ shader tsr_cs
       return cacheParams;
     }
 
-    void prefetchCacheColor(inout CacheParams cache_params, float2 input_texel_coord, float2 sigma_inv)
+    void prefetchCacheColor(inout CacheParams cache_params, float2 input_texel_coord, float2 sigma_inv, float exposure)
     {
       // no branch for texture fetch as it makes it actually slower
-      float4 colorR = inputColorTex.GatherRed(inputColorTex_samplerstate, cache_params.prefetchScreenTc);
-      float4 colorG = inputColorTex.GatherGreen(inputColorTex_samplerstate, cache_params.prefetchScreenTc);
-      float4 colorB = inputColorTex.GatherBlue(inputColorTex_samplerstate, cache_params.prefetchScreenTc);
+      float4 colorR = inputColorTex.GatherRed(inputColorTex_samplerstate, cache_params.prefetchScreenTc) * exposure;
+      float4 colorG = inputColorTex.GatherGreen(inputColorTex_samplerstate, cache_params.prefetchScreenTc) * exposure;
+      float4 colorB = inputColorTex.GatherBlue(inputColorTex_samplerstate, cache_params.prefetchScreenTc) * exposure;
 
       float4 Y, Co, Cg;
       PackToYCoCg(colorR, colorG, colorB, Y, Co, Cg);
@@ -278,7 +279,7 @@ shader tsr_cs
       confidence = (confidenceAndDynamic - is_dynamic * 0.5) * 2.0;
     }
 
-    float4 reconstructHistory(float2 history_tc, out float confidence, out bool is_dynamic)
+    float4 reconstructHistory(float2 history_tc, float exposure, out float confidence, out bool is_dynamic)
     {
     ##if tsr_history_reconstruction == bicubic
       BicubicSharpenWeights weights;
@@ -303,7 +304,7 @@ shader tsr_cs
       // even if there is no movement (resampling is perfect) there has to be some loss
       confidence *= is_dynamic ? processLossDynamic : processLoss;
 
-      return tonemap(PackToYCoCgAlpha(result));
+      return tonemap(PackToYCoCgAlpha(result * exposure));
     }
 
     // calculates rejection based on min/max values with having an exponential decay above the min/max threshold
@@ -370,7 +371,8 @@ shader tsr_cs
       return confidence * lerp(minRejection, maxRejection, reactive * reactive);
     }
 
-    TemporalSuperResolutionOutput calcResult(float4 input_color_depth, float input_confidence, float4 history_color_depth, float history_confidence, float rejection, bool is_dynamic, float reactive)
+    TemporalSuperResolutionOutput calcResult(float4 input_color_depth, float input_confidence, float4 history_color_depth,
+                                             float history_confidence, float rejection, bool is_dynamic, float reactive, float exposure)
     {
       // the update function is s_next = (s_prev * w_prev + s_cur * w_cur) / (w_prev + w_cur)
       // and the weight update is w_next = w_prev + w_cur
@@ -385,7 +387,7 @@ shader tsr_cs
       TemporalSuperResolutionOutput result;
       result.color = max(
         0.0,
-        UnpackFromYCoCgAlpha(tonemap_inv(lerp(history_color_depth, input_color_depth, (c1 / (c1 + c2)) * debugUpdateOverride)))
+        UnpackFromYCoCgAlpha(tonemap_inv(lerp(history_color_depth, input_color_depth, (c1 / (c1 + c2)) * debugUpdateOverride))) * rcp(exposure)
       );
       result.confidence = encodeConfidenceAndDynamicFlag(adjustConfidenceForNextFrame((c1 + c2) / c3, reactive), is_dynamic);
     ##if tsr_debug == on
@@ -436,9 +438,15 @@ shader tsr_cs
         float reactive = 0;
       ##endif
 
+      ##if tsr_exposure != NULL
+        float exposure = exposureTex[uint2(0,0)].x;
+      ##else
+        float exposure = 1;
+      ##endif
+
       float historyConfidence;
       bool historyIsDynamic;
-      float4 historyColorDepth = reconstructHistory(historyUV, historyConfidence, historyIsDynamic);
+      float4 historyColorDepth = reconstructHistory(historyUV, exposure, historyConfidence, historyIsDynamic);
 
       float rejection = calculateDepthVarianceRejection(historyColorDepth.a - motionVector.z, depthStats.farthestDepth, depthStats.closestDepth);
       rejection *= calculateStaticDynamicMismatchRejection(currentIsDynamic, historyIsDynamic);
@@ -446,7 +454,7 @@ shader tsr_cs
 
       validateHistory(historyUV, historyColorDepth, historyConfidence, rejection);
 
-      prefetchCacheColor(cacheParams, jitteredInputTexelCoord, inputFilterSigmaInv);
+      prefetchCacheColor(cacheParams, jitteredInputTexelCoord, inputFilterSigmaInv, exposure);
       GroupMemoryBarrierWithGroupSync();
       if (any(dtId >= uint2(outputResolution.xy)))
         return;
@@ -458,7 +466,8 @@ shader tsr_cs
 
       historyColorDepth.rgb = clipHistory(historyColorDepth.rgb, inputColor, inputMean, inputVariance, length(motionVector.xy), currentIsDynamic, reactive);
 
-      TemporalSuperResolutionOutput result = calcResult(float4(inputColor, depthStats.closestDepth), inputConfidence, historyColorDepth, historyConfidence, rejection, currentIsDynamic, reactive);
+      TemporalSuperResolutionOutput result = calcResult(float4(inputColor, depthStats.closestDepth), inputConfidence, historyColorDepth,
+                                                        historyConfidence, rejection, currentIsDynamic, reactive, exposure);
       outColor[dtId] = result.color;
       outConfidence[dtId] = result.confidence;
     ##if tsr_debug == on

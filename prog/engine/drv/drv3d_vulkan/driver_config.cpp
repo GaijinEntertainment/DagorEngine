@@ -244,8 +244,12 @@ const DataBlock *DriverConfig::getPerDriverPropertyBlock(const char *prop_name)
     bool fitsMin = drvMajor >= entry.getInt("driverMinVer0", 0) && drvMinor >= entry.getInt("driverMinVer1", 0);
     bool fitsMax = drvMajor <= entry.getInt("driverMaxVer0", drvVerMax) && drvMinor <= entry.getInt("driverMaxVer1", drvVerMax);
 
+    bool fitsType = true;
     bool gpuMatch = true;
     bool driverInfoMatch = true;
+    if (entry.paramExists("hwType"))
+      fitsType = Globals::VK::phy.properties.deviceType == entry.getInt("hwType", 0);
+
     if (entry.paramExists("gpu"))
     {
       gpuMatch = false;
@@ -263,7 +267,7 @@ const DataBlock *DriverConfig::getPerDriverPropertyBlock(const char *prop_name)
 #endif
     }
 
-    if (fitsMin && fitsMax && gpuMatch && driverInfoMatch)
+    if (fitsMin && fitsMax && gpuMatch && driverInfoMatch && fitsType)
       ret = entry.getBlockByNameEx("data");
   });
 

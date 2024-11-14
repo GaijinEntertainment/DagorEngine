@@ -11,7 +11,7 @@ hlsl(code)
 {
   float get_local_exposure(float3 frame, float2 tc)
   {
-    float exposure = getPrevExposureRatio();
+    float exposure = getExposureScale();
     #define exposure_tex_samplerstate full_tonemap_lut_samplerstate // Workaround until we don't completely support custom samplers
     return tex2D(exposure_tex, tc).x * exposure;
   }

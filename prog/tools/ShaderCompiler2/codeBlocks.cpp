@@ -2,6 +2,8 @@
 
 #include "codeBlocks.h"
 #include "condParser.h"
+#include "shCompiler.h"
+#include "globalConfig.h"
 #include "shsem.h"
 #include "shLog.h"
 #include "shCompiler.h"
@@ -27,7 +29,6 @@
 #define __iscsym(_c) fast_isalnum_or_(_c)
 #endif
 
-extern SCFastNameMap glob_string_table;
 SCFastNameMap CodeSourceBlocks::incFiles;
 
 typedef CodeSourceBlocks::Unconditional ublock_t;
@@ -244,10 +245,7 @@ static void dump_code(dag::ConstSpan<CodeSourceBlocks::Fragment> prg, int indent
         codeBlocks.getName(prg[i].uncond.codeId), indent, "");
 }
 
-extern bool hlslSavePPAsComments;
-extern bool optionalIntervalsAsBranches;
-
-bool CodeSourceBlocks::parseSourceCode(const char *stage, const char *src, ShaderParser::ShaderBoolEvalCB &cb)
+bool CodeSourceBlocks::parseSourceCode(const char *stage, const char *src, ShaderParser::ShaderBoolEvalCB &cb, bool pp_as_comments)
 {
   tmpSrc = src;
   removeComments(tmpSrc);
@@ -306,23 +304,8 @@ bool CodeSourceBlocks::parseSourceCode(const char *stage, const char *src, Shade
           }
 
           tmpFileName.printf(260, "%.*s", t2 - t - 1, t + 1);
-
-#if _TARGET_PC_MACOSX | _TARGET_PC_LINUX
-          char fullName[4096];
-          if (!realpath(tmpFileName, fullName))
-            strcpy(fullName, tmpFileName);
-#else
-          char fullName[260];
-          GetFullPathName(tmpFileName, 260, fullName, NULL);
-          dd_simplify_fname_c(fullName);
-#endif
-#if _CROSS_TARGET_C1 | _CROSS_TARGET_C2
-
-
-
-#endif
-
-          fname_id = fileNames.addNameId(fullName);
+          dd_simplify_fname_c(tmpFileName);
+          fname_id = fileNames.addNameId(tmpFileName);
         }
         else
           while (t2 < p)
@@ -405,7 +388,7 @@ bool CodeSourceBlocks::parseSourceCode(const char *stage, const char *src, Shade
       if (ppCheckDirective(dtext, ctx))
       {
         // directive approved as part of preprocessor
-        if (hlslSavePPAsComments)
+        if (pp_as_comments)
         {
           while (line_start[0] == '\n')
             line_start++;
@@ -762,7 +745,7 @@ bool CodeSourceBlocks::ppDirective(char *s, int len, char *dtext, int fnameId, i
 
     Tab<CodeSourceBlocks::Fragment> &prg = ctx.topProg();
     G_ASSERT(prg.size() > 0);
-    if (optionalIntervalsAsBranches && pp_is_optional(prg.back(), ctx.evalCb))
+    if (shc::config().optionalIntervalsAsBranches && pp_is_optional(prg.back(), ctx.evalCb))
     {
       eval_optional_to_branching(prg);
       return true;
@@ -889,20 +872,22 @@ bool CodeSourceBlocks::ppDoInclude(const char *incl_fn, Tab<char> &out_text, con
 
   FullFileLoadCB crd(fn);
   if (!crd.fileHandle)
-    crd.open(incl_fn, DF_READ);
+    crd.open(fn = incl_fn, DF_READ);
   if (!crd.fileHandle)
-    if (const char *f = shc::getSrcRootFolder())
-      crd.open(String(0, "%s/%s", f, incl_fn, DF_READ), DF_READ);
+    if (const char *f = shc::config().getShaderSrcRoot())
+      crd.open(fn = String(0, "%s/%s", f, incl_fn, DF_READ), DF_READ);
   if (!crd.fileHandle)
-    crd.open(shc::search_include_with_pathes(incl_fn), DF_READ);
+    crd.open(fn = shc::search_include_with_pathes(incl_fn), DF_READ);
   if (!crd.fileHandle)
     return false;
 
-  String s(0,
-    "\n#undef _FILE_\n"
-    "#define _FILE_ %d\n"
-    "#line 1 \"%s\"\n",
-    ctx.evalCb.add_message(incl_fn, true), incl_fn);
+  String s;
+  if (ctx.evalCb.is_debug_mode_enabled())
+  {
+    s.printf(0, "\n#undef _FILE_\n#define _FILE_ %d", ctx.evalCb.add_message(fn, true));
+    append_items(out_text, s.size() - 1, s.data());
+  }
+  s.printf(0, "\n#line 1 \"%s\"\n", fn);
   append_items(out_text, s.size() - 1, s.data());
 
   Tab<char> fcont;
@@ -932,11 +917,12 @@ bool CodeSourceBlocks::ppDoInclude(const char *incl_fn, Tab<char> &out_text, con
   }
   append_items(out_text, fcont.data() + fcont.size() - 1 - ssp, ssp);
 
-  s.printf(0,
-    "\n#undef _FILE_\n"
-    "#define _FILE_ %d\n"
-    "#line %d \"%s\"\n",
-    ctx.evalCb.add_message(src_fn, true), src_ln, src_fn);
+  if (ctx.evalCb.is_debug_mode_enabled())
+  {
+    s.printf(0, "\n#undef _FILE_\n#define _FILE_ %d", ctx.evalCb.add_message(src_fn, true));
+    append_items(out_text, s.size() - 1, s.data());
+  }
+  s.printf(0, "\n#line %d \"%s\"\n", src_ln, src_fn);
   append_items(out_text, s.size() - 1, s.data());
 
   G_ASSERT(is_main_thread());

@@ -672,6 +672,7 @@ void GuiScene::renderThreadBeforeRender()
   AutoProfileScope profileTotal(profiler, M_BEFORE_RENDER_TOTAL);
 
   G_ASSERT(etree.rebuildFlagsAccum == 0);
+  yuvRenderer.resetOnFrameStart();
 
   int curTime = get_time_msec();
   float dt = (lastRenderTimestamp != 0) ? (curTime - lastRenderTimestamp) * 1e-3f : 0.0f;

@@ -3,8 +3,20 @@
 
 #include "break_point.h"
 #include "device_state.h"
+#include <driver.h>
 
-namespace drv3d_dx12::debug::pc
+#include <EASTL/span.h>
+#include <EASTL/string_view.h>
+
+
+namespace drv3d_dx12
+{
+class BasePipeline;
+class ComputePipeline;
+class PipelineVariant;
+struct BufferResourceReferenceAndOffset;
+struct PipelineStageStateBase;
+namespace debug::pc
 {
 class DeviceContextState : public break_point::Controller
 {
@@ -83,4 +95,5 @@ public:
 
   void debugOnDeviceRemoved(DeviceState &dds, D3DDevice *device, HRESULT remove_reason) { dds.onDeviceRemoved(device, remove_reason); }
 };
-} // namespace drv3d_dx12::debug::pc
+} // namespace debug::pc
+} // namespace drv3d_dx12

@@ -1,10 +1,10 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <debug/dag_assert.h>
-
 #include "tagged_types.h"
-#include "value_range.h"
+
+#include <debug/dag_assert.h>
+#include <value_range.h>
 
 
 namespace drv3d_dx12

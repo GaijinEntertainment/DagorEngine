@@ -15,6 +15,67 @@ namespace dedicated_matching
 {
 using namespace dedicated_matching::state_data;
 
+/*
+Traffic encryption and client authentification
+
+Backend service send hmac_id-sha256 (authKey) and encryption_key (encKey) to client, which are generated using sessionId,
+userId, and room secret.
+Dedicated game server (host) process should be started with -session_id:<session_id>
+and -room_secret:<room_secret> commandline arguments.
+Client send hmac_id and userid on connect (with launch_network_session({authKey, encKey, connect=List<string(ip:port)>})
+from quirrel, or same bindings from daslang.
+Host will accept connection only if everything is correct.
+
+Room info on backend sample:
+{
+  "mode_info": {
+    "gameName":"myGame", //needed for multgames on one matching instance, used for tests
+  }
+  "roomId":"uint64", //as STRING!
+  "sessionId":"uint64", //as string!
+  "public": {
+    "groupSize": 0//max group size for autogroups
+  },
+  "members":[
+    {
+      "userId":"unsigned int63 (only postivies uint64)",
+      "name":"any User Name",
+      "public":{
+        "mteam":0, //any integer. Mteam is matchmaking team, set by matchmaking. Mteam id that was set by match-matching
+        "team":0, // any integer. Team id that was set by matching upon user request (like in lobby)
+        "squadId":0, //squadId, to find groups(parties) of players
+        "appId":0
+      },
+      "private": { //will be send only for user himself
+        "authKey":<hmac_id>,
+        "encKey":<encryption_key>,
+      }
+    }
+  ]
+}
+Most of mulitplayer games use concept of 'team', 'group'.
+Some games can have multiple sessions per room (lobby style).
+Players usually have at least names and some unique id (for performance reason we prefer int64,
+but probably that can be changed in future).
+Game modes can have other options, like session duration, score limit, team sizes, and so on.
+Such settings can be set durion session or in backend (lobby, matchmaking, etc).
+In DNG eash game session has separate dedicated game server process.
+
+Commandline arguments:
+
+  dedicated:
+
+    "-room_secret:<room_secret>" -- required for traffic encryption
+    "-session_id:<session_id>" -- required for traffic encryption
+    "-nomatching" - disable Gaijin mathcing
+    "-nonetenc" - switch off traffic encryption
+    "-nopeerauth" - swithc off client authentification and traffic enryption
+    "-customPublicMatchingCfg:" - undocumented
+
+  client (debug options):
+
+    -force_player_group:int - debug option to for client squad(group)
+*/
 
 static void apply_custom_matching_public_config(const char *encoded_config)
 {
@@ -76,7 +137,6 @@ void apply_room_info_on_join(const Json::Value &params)
       register_room_member(members[i]);
   }
 }
-
 void apply_room_invite(Json::Value const &params, Json::Value &resp)
 {
   if (current_room_id != matching::INVALID_ROOM_ID)
@@ -163,7 +223,7 @@ void apply_room_attr_changed(const Json::Value &params)
 
 void init()
 {
-  if (dgs_get_argv("nomatching"))
+  if (dgs_get_argv("nomatching") || app_profile::get().disableRemoteNetServices)
   {
     debug("matching client disabled");
     if (const char *encodedConfig = dgs_get_argv("customPublicMatchingCfg"))
@@ -193,11 +253,11 @@ int get_player_team(matching::UserId uid)
   const Json::Value &member = get_room_member(uid);
   if (member.isNull())
     return -1;
-  const Json::Value &mteam = member["public"]["mteam"];
+  const Json::Value &mteam = member["public"]["mteam"]; // team set by matchmaking
   if (mteam.isIntegral())
     return mteam.asInt();
 
-  const Json::Value &team = member["public"]["team"];
+  const Json::Value &team = member["public"]["team"]; // team set by user (in Lobby for example)
   if (team.isIntegral())
     return team.asInt();
   return -1;
@@ -247,22 +307,6 @@ int64_t get_player_group(matching::UserId uid)
   if (member.isNull())
     return uid;
   const Json::Value &squadId = member["public"]["squadId"];
-  if (!squadId.isIntegral())
-    return uid;
-  return squadId.asUInt64();
-}
-
-int64_t get_player_original_group(matching::UserId uid)
-{
-  if (const char *player_group = dgs_get_argv("force_player_orig_group"))
-    if (*player_group)
-      return atoi(player_group);
-
-  const Json::Value &member = get_room_member(uid);
-  if (member.isNull())
-    return uid;
-
-  const Json::Value &squadId = member["public"]["origSquadId"];
   if (!squadId.isIntegral())
     return uid;
   return squadId.asUInt64();

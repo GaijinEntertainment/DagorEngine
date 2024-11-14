@@ -5,6 +5,7 @@
 #include <shaders/dag_dynSceneRes.h>
 #include <shaders/dag_renderStateId.h>
 #include <EASTL/hash_map.h>
+#include <EASTL/span.h>
 #include "dynModelRenderer.h"
 #include "global_vars.h"
 #include <render/debugMesh.h>
@@ -12,8 +13,10 @@
 #include <shaders/dag_shStateBlockBindless.h>
 #include <3d/dag_multidrawContext.h>
 #include "shaders/dynModelsPackedMultidrawParams.hlsli"
+#include <shaders/animchar_additional_data_types.hlsli>
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_shaderConstants.h>
+#include <ecs/render/updateStageRender.h>
 
 using namespace dynmodel_renderer;
 
@@ -40,6 +43,16 @@ static struct DynModelRendering
   bool supportNoOverwrite = false;
   MultidrawContext<uint32_t> multidrawContext = {"dynmodel_multidraw"};
 } dynmodel_rendering;
+
+static void fill_node_collapser_data(const DynamicRenderableSceneInstance *scene,
+  const eastl::span<Point4, ADDITIONAL_BONE_MTX_OFFSET> node_collapser_data)
+{
+  const DynamicRenderableSceneInstance::NodeCollapserBits &ncBits = scene->getNodeCollapserBits();
+  node_collapser_data[0] = Point4(bitwise_cast<float>(ncBits[0]), bitwise_cast<float>(ncBits[1]), bitwise_cast<float>(ncBits[2]),
+    bitwise_cast<float>(ncBits[3]));
+  node_collapser_data[1] = Point4(bitwise_cast<float>(ncBits[4]), bitwise_cast<float>(ncBits[5]), bitwise_cast<float>(ncBits[6]),
+    bitwise_cast<float>(ncBits[7]));
+}
 
 void DynModelRenderingState::process_animchar(uint32_t start_stage,
   uint32_t end_stage,
@@ -162,12 +175,21 @@ void DynModelRenderingState::process_animchar(uint32_t start_stage,
     auto skins = lodResource->getSkins();
     const int currentInstanceData = instanceData.size();
     const ShaderSkinnedMesh &skin = *skins[0]->getMesh();
-    instanceData.resize(instanceData.size() + additional_data_size + skin.bonesCount() * matrixStride);
+    instanceData.resize(instanceData.size() + additional_data_size + ADDITIONAL_BONE_MTX_OFFSET + skin.bonesCount() * matrixStride);
     vec4f *__restrict instanceDataPtr = (vec4f *__restrict)&instanceData[currentInstanceData];
+
     if (additional_data_size)
       memcpy(instanceDataPtr, bones_additional_data, sizeof(Point4) * additional_data_size);
     instanceDataPtr += additional_data_size;
+
+    if (render_mask == UpdateStageInfoRender::RenderPass::RENDER_SHADOW)
+      memset(instanceDataPtr, 0, ADDITIONAL_BONE_MTX_OFFSET * sizeof(Point4));
+    else
+      fill_node_collapser_data(scene, eastl::span(reinterpret_cast<Point4 *__restrict>(instanceDataPtr), ADDITIONAL_BONE_MTX_OFFSET));
+    instanceDataPtr += ADDITIONAL_BONE_MTX_OFFSET;
+
     instanceDataPtr += prepare_bones_to(instanceDataPtr, skin, *scene, addPreviousMatrices);
+
     auto skinNodes = lodResource->getSkinNodes();
     for (int i = 0, e = skinNodes.size(); i < e; i++)
       if ((!path_filter && !scene->isNodeHidden(skinNodes[i])) ||

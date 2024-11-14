@@ -13,6 +13,7 @@
 #include <generic/dag_tab.h>
 #include <math/dag_Point3.h>
 #include <osApiWrappers/dag_atomic.h>
+#include <osApiWrappers/dag_direct.h>
 #include <perfMon/dag_perfTimer.h>
 #include <shaders/dag_shaderBlock.h>
 #include <shaders/mapBinarySearch.h>
@@ -37,6 +38,55 @@
 
 namespace
 {
+
+static String cache_UUID_as_str()
+{
+  uint32_t cacheUUID[4] = {};
+  d3d::driver_command(Drv3dCommand::GET_SHADER_CACHE_UUID, &cacheUUID[0]);
+  String cacheUUIDstr("");
+  for (uint32_t i : cacheUUID)
+    cacheUUIDstr += String(4, "%08lX", i);
+  return cacheUUIDstr;
+}
+
+static const char *shader_warmup_status_file = "shader_warmup_status.blk";
+
+static bool cache_already_warmed_up()
+{
+  DataBlock warmupStatus;
+  if (dd_file_exists(shader_warmup_status_file))
+    warmupStatus.load(shader_warmup_status_file);
+
+  const DataBlock *apiBlock = warmupStatus.getBlockByName(d3d::get_driver_name());
+  if (!apiBlock)
+    return false;
+
+  if (strcmp(apiBlock->getStr("UUID", ""), cache_UUID_as_str()) != 0)
+    return false;
+
+  if (apiBlock->getInt("srcSize", 0) != shBinDumpOwner().getDumpSize())
+    return false;
+
+  if (apiBlock->getInt64("srcHash", 0) != shBinDumpOwner().getDumpHash())
+    return false;
+
+  return true;
+}
+
+static void mark_cache_warmed_up()
+{
+  DataBlock warmupStatus;
+  if (dd_file_exists(shader_warmup_status_file))
+    warmupStatus.load(shader_warmup_status_file);
+
+  DataBlock *apiBlock = warmupStatus.addBlock(d3d::get_driver_name());
+  apiBlock->setStr("UUID", cache_UUID_as_str());
+  apiBlock->setInt("srcSize", shBinDumpOwner().getDumpSize());
+  apiBlock->setInt64("srcHash", shBinDumpOwner().getDumpHash());
+
+  warmupStatus.saveToTextFile(shader_warmup_status_file);
+}
+
 struct SMProps : public ShaderMaterialProperties
 {
   Tab<ShaderMatData::VarValue> valStor;
@@ -555,6 +605,14 @@ void shadercache::warmup_shaders(const Tab<const char *> &graphics_shader_names,
   crashlytics::AppState appState("shader_warmup");
 #endif
 
+  shader_warmup_status_file = ::dgs_get_settings()->getBlockByNameEx("shadersWarmup")->getStr("statusBlk", shader_warmup_status_file);
+  debug("shader warmup status file: %s", shader_warmup_status_file);
+  if (cache_already_warmed_up())
+  {
+    debug("shaders cache up to date, skipping warmup");
+    return;
+  }
+
   compileTimeLimit =
     MS(::dgs_get_settings()->getBlockByNameEx("shadersWarmup")->getInt("compileTimeLimitMs", COMPILE_TIME_LIMIT_DEFAULT));
   flushEveryNPipelines = ::dgs_get_settings()->getBlockByNameEx("shadersWarmup")->getInt("flushEveryNPipelines", 250);
@@ -606,6 +664,8 @@ void shadercache::warmup_shaders(const Tab<const char *> &graphics_shader_names,
     TIME_PROFILE(warmup_shaders_save);
     d3d::driver_command(Drv3dCommand::SAVE_PIPELINE_CACHE);
   }
+
+  mark_cache_warmed_up();
 
   time = profile_time_usec(time);
 

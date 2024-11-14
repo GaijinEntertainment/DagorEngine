@@ -20,10 +20,10 @@
 namespace watchdog
 {
 
-#if EA_ASAN_ENABLED || defined(__SANITIZE_ADDRESS__)
-static constexpr uint32_t THRESHOLDS_MULTIPLIER = 3;
+#if EA_ASAN_ENABLED || defined(__SANITIZE_ADDRESS__) // Note: octet per mode
+static constexpr uint32_t THRESHOLDS_MULTIPLIERS = 0x030305;
 #else
-static constexpr uint32_t THRESHOLDS_MULTIPLIER = 1;
+static constexpr uint32_t THRESHOLDS_MULTIPLIERS = 0x010101;
 #endif
 
 #if (DAGOR_DBGLEVEL > 0 || _TARGET_PC) && !DAGOR_THREAD_SANITIZER
@@ -47,7 +47,7 @@ struct Mode
 
 
 static Mode modes[WatchdogMode::COUNT];
-static const char *mode_names[] = {"loading", "game_session", "menu"};
+static const char *mode_names[] = {"loading", "game_session", "lobby"};
 static WatchdogMode current_mode = WatchdogMode::COUNT;
 
 
@@ -68,6 +68,18 @@ static void initialize_watchdog(int sleep, int trigger, int callstacks, bool fat
   }
 }
 
+template <typename F>
+static inline WatchdogMode do_change_mode(WatchdogMode mode, F cb)
+{
+  G_ASSERT_RETURN(mode < WatchdogMode::COUNT, current_mode);
+  const Mode &newMode = modes[mode];
+  const char *curModeName = (current_mode != WatchdogMode::COUNT) ? mode_names[current_mode] : "none";
+  const char *newModeName = mode_names[mode];
+  debug("Watchdog: change mode <%s> -> <%s> { trigger: %u, callstacks: %u, sleep: %u }", curModeName, newModeName, newMode.trigger,
+    newMode.callstacks, newMode.sleep);
+  cb(newMode);
+  return current_mode = mode;
+}
 
 static void enable_from_config(const DataBlock *blk)
 {
@@ -93,30 +105,24 @@ static void enable_from_config(const DataBlock *blk)
     curMode.callstacks = (dice < chance) ? curMode.callstacks : gCallstacksThreshold;
     curMode.sleep = (dice < chance) ? curMode.sleep : gSleepTime;
 
-    curMode.trigger *= THRESHOLDS_MULTIPLIER;
-    curMode.callstacks *= THRESHOLDS_MULTIPLIER;
+    int mult = (THRESHOLDS_MULTIPLIERS >> (i * CHAR_BIT)) & UCHAR_MAX;
+    curMode.trigger *= mult;
+    curMode.callstacks *= mult;
+    curMode.sleep *= mult;
   }
 
-  gTriggerThreshold *= THRESHOLDS_MULTIPLIER;
-  gCallstacksThreshold *= THRESHOLDS_MULTIPLIER;
-
-  initialize_watchdog(gSleepTime, gTriggerThreshold, gCallstacksThreshold, fatalOnTimeout);
+  do_change_mode(WatchdogMode::LOADING,
+    [=](const Mode &newMode) { initialize_watchdog(newMode.sleep, newMode.trigger, newMode.callstacks, fatalOnTimeout); });
 }
 
 
 WatchdogMode change_mode(WatchdogMode mode)
 {
-  G_ASSERT_RETURN(mode < WatchdogMode::COUNT, current_mode);
-  Mode &newMode = modes[mode];
-  const char *curModeName = (current_mode != WatchdogMode::COUNT) ? mode_names[current_mode] : "none";
-  const char *newModeName = mode_names[mode];
-  debug("Watchdog: change mode <%s> -> <%s> { trigger: %u, callstacks: %u, sleep: %u }", curModeName, newModeName, newMode.trigger,
-    newMode.callstacks, newMode.sleep);
-  watchdog_set_option(WATCHDOG_OPTION_TRIG_THRESHOLD, newMode.trigger);
-  watchdog_set_option(WATCHDOG_OPTION_CALLSTACKS_THRESHOLD, newMode.callstacks);
-  watchdog_set_option(WATCHDOG_OPTION_SLEEP, newMode.sleep);
-  eastl::swap(mode, current_mode);
-  return mode;
+  return do_change_mode(mode, [](const Mode &newMode) {
+    watchdog_set_option(WATCHDOG_OPTION_TRIG_THRESHOLD, newMode.trigger);
+    watchdog_set_option(WATCHDOG_OPTION_CALLSTACKS_THRESHOLD, newMode.callstacks);
+    watchdog_set_option(WATCHDOG_OPTION_SLEEP, newMode.sleep);
+  });
 }
 
 
@@ -151,13 +157,13 @@ void shutdown()
 
 static inline void watchdog_es(const ecs::UpdateStageInfoAct &act)
 {
-  static watchdog::WatchdogMode watchdog_mode = watchdog::COUNT;
+  static watchdog::WatchdogMode watchdog_mode = watchdog::LOADING;
   static float watchdog_end_load_time = 0.f;
 
   if (sceneload::is_load_in_progress())
     watchdog_end_load_time = act.curTime + 5.f; // if we are loading
-  const watchdog::WatchdogMode mode =
-    act.curTime < watchdog_end_load_time ? watchdog::LOADING : watchdog::LOBBY /*<<< This is most probably wrong*/;
+  // Note: can we reliably detect LOBBY(menu) state here?
+  const watchdog::WatchdogMode mode = act.curTime < watchdog_end_load_time ? watchdog::LOADING : watchdog::GAME_SESSION;
   if (DAGOR_UNLIKELY(watchdog_mode != mode))
     change_mode(watchdog_mode = mode);
 }

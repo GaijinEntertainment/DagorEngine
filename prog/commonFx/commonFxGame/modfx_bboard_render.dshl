@@ -40,7 +40,7 @@ float haze_scene_depth_tex_lod;
 define_macro_if_not_defined DAFX_USE_CLOUD_SHADOWS()
 endmacro
 
-shader dafx_modfx_bboard_render, dafx_modfx_ribbon_render, dafx_modfx_ribbon_render_side_only, dafx_modfx_bboard_render_atest, dafx_modfx_bboard_distortion, dafx_modfx_ribbon_distortion, dafx_modfx_ribbon_distortion_side_only, dafx_modfx_bboard_thermals, dafx_modfx_bboard_render_fom, dafx_modfx_bboard_rain, dafx_modfx_bboard_rain_distortion, dafx_modfx_volshape_render, dafx_modfx_volshape_thermal, dafx_modfx_volshape_depth, dafx_modfx_volshape_wboit_render, dafx_modfx_bboard_volfog_injection
+shader dafx_modfx_bboard_render, dafx_modfx_ribbon_render, dafx_modfx_ribbon_render_side_only, dafx_modfx_bboard_render_atest, dafx_modfx_bboard_distortion, dafx_modfx_ribbon_distortion, dafx_modfx_ribbon_distortion_side_only, dafx_modfx_bboard_thermals, dafx_modfx_bboard_render_fom, dafx_modfx_bboard_rain, dafx_modfx_bboard_rain_distortion, dafx_modfx_volshape_render, dafx_modfx_volshape_thermal, dafx_modfx_volshape_wboit_render, dafx_modfx_bboard_volfog_injection
 {
   ENABLE_ASSERT(ps)
   if (fx_apply_volfog_per_pixel == yes && !(shader == dafx_modfx_bboard_distortion || shader == dafx_modfx_ribbon_distortion || shader == dafx_modfx_ribbon_distortion_side_only || shader == dafx_modfx_bboard_rain_distortion || shader == dafx_modfx_bboard_render_fom))
@@ -161,17 +161,6 @@ shader dafx_modfx_bboard_render, dafx_modfx_ribbon_render, dafx_modfx_ribbon_ren
       ##if modfx_wboit_enabled == on
         #define MODFX_SHADER_VOLSHAPE_WBOIT_APPLY 1
       ##endif
-    }
-  }
-  else if ( shader == dafx_modfx_volshape_depth )
-  {
-    z_write = true;
-    no_ablend;
-
-    hlsl
-    {
-      #define MODFX_SHADER_VOLSHAPE_DEPTH 1
-      #undef MODFX_USE_DEPTH_MASK
     }
   }
   else if ( shader == dafx_modfx_volshape_wboit_render )

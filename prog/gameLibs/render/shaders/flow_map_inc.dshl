@@ -28,7 +28,7 @@ macro INIT_WATER_FLOWMAP()
   float water_flowmap_debug = 0;
   float water_flowmap_multiplier = 1;
   float water_flowmap_blend = 0;
-  float4 water_fluid_strength = (0.2, 10, 1, 0.1);
+  float4 water_fluid_strength = (0.2, 20, 1, 0.1);
   int water_flowmap_cascades = 0;
 endmacro
 

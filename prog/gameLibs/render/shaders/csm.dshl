@@ -1,15 +1,28 @@
 include "hardware_defines.dshl"
 
-buffer csm_buffer;
+buffer shadow_cascade_data;
 
 float4 shadow_cascade_tm_transp[24];    // max value of num_of_cascades (6) * 4
 float4 shadow_cascade_tc_mul_offset[6];
+
 float4 csm_world_view_pos;
 
 macro INIT_CSM_SHADOW_STCODE(stage)
   (stage) {
     shadow_cascade_tm_transp@f4[] = shadow_cascade_tm_transp;
     shadow_cascade_tc_mul_offset@f4[] = shadow_cascade_tc_mul_offset;
+  }
+endmacro
+
+macro INIT_CSM_SHADOW_STCODE_CBUF(stage)
+  (stage) {
+    shadow_cascade_data@cbuf = shadow_cascade_data hlsl {
+      cbuffer shadow_cascade_data@cbuf
+      {
+        float4 shadow_cascade_tm_transp[24];
+        float4 shadow_cascade_tc_mul_offset[6];
+      };
+    }
   }
 endmacro
 

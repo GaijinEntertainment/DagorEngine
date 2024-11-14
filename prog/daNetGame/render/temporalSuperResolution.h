@@ -39,7 +39,7 @@ private:
 
   eastl::unique_ptr<ComputeShaderElement> computeRenderer;
   UniqueTex debugTex;
-  resource_slot::NodeHandleWithSlotsAccess applierNode;
+  dabfg::NodeHandle applierNode;
   Preset preset;
 };
 

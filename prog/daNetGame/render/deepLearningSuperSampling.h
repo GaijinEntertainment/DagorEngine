@@ -40,7 +40,7 @@ public:
   bool needDepthHistory() const override { return isFrameGenerationEnabled(); }
 
 private:
-  resource_slot::NodeHandleWithSlotsAccess applierNode;
+  dabfg::NodeHandle applierNode;
   dabfg::NodeHandle frameGenerationNode;
   dabfg::NodeHandle lifetimeExtenderNode;
 };

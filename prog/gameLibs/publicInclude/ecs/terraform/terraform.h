@@ -7,7 +7,8 @@
 #include <daECS/core/componentType.h>
 #include <terraform/terraformComponent.h>
 
-ECS_DECLARE_RELOCATABLE_TYPE(TerraformComponent);
+// It's boxed since it's register pointer to itself in terraform (`registerListener()`)
+ECS_DECLARE_BOXED_TYPE(TerraformComponent);
 
 class DataBlock;
 class HeightmapHandler;

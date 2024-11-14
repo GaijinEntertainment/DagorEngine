@@ -1,13 +1,14 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <EASTL/variant.h>
+#include "configuration.h"
+#include <driver.h>
+
 #include <EASTL/span.h>
+#include <EASTL/variant.h>
 #include <supp/dag_comPtr.h>
 #include <winapi_helpers.h>
 
-#include "driver.h"
-#include "configuration.h"
 
 interface DECLSPEC_UUID("9f251514-9d4d-4902-9d60-18988ab7d4b5") DECLSPEC_NOVTABLE IDXGraphicsAnalysis : public IUnknown
 {
@@ -28,13 +29,13 @@ class NoTool
 {
 public:
   void configure() { logdbg("DX12: ...no frame capturing tool is active..."); }
-  void beginCapture(const wchar_t *) {}
-  void endCapture() {}
-  void onPresent() {}
-  void captureFrames(const wchar_t *, int) {}
-  void beginEvent(ID3D12GraphicsCommandList *, eastl::span<const char>) {}
-  void endEvent(ID3D12GraphicsCommandList *) {}
-  void marker(ID3D12GraphicsCommandList *, eastl::span<const char>) {}
+  constexpr void beginCapture(const wchar_t *) {}
+  constexpr void endCapture() {}
+  constexpr void onPresent() {}
+  constexpr void captureFrames(const wchar_t *, int) {}
+  constexpr void beginEvent(ID3D12GraphicsCommandList *, eastl::span<const char>) {}
+  constexpr void endEvent(ID3D12GraphicsCommandList *) {}
+  constexpr void marker(ID3D12GraphicsCommandList *, eastl::span<const char>) {}
 };
 
 class RenderDoc

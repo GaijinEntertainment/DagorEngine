@@ -9,12 +9,6 @@
 
 static real cur_gamma = 1;
 
-void set_gamma(real p)
-{
-  cur_gamma = p;
-  d3d::setgamma(p);
-}
-
 void set_gamma_shadervar(real p)
 {
   cur_gamma = p;

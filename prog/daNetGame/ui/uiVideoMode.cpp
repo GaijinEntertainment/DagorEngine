@@ -419,6 +419,13 @@ static SQInteger is_hdr_available(HSQUIRRELVM vm)
   sq_getstring(vm, SQInteger(2), &displayName);
 
   bool available = d3d::driver_command(Drv3dCommand::IS_HDR_AVAILABLE, (void *)displayName);
+
+  const DataBlock &blk_video = *dgs_get_settings()->getBlockByNameEx("video");
+  const DataBlock *hdrSupport = blk_video.getBlockByNameEx("hdrSupport");
+  bool gameSupportsHDROnDriver = hdrSupport->getBool(d3d::get_driver_name(), true);
+
+  available = available && gameSupportsHDROnDriver;
+
   sq_pushbool(vm, available);
   return 1;
 }
@@ -468,7 +475,7 @@ static SQInteger is_only_low_gi_supported_sq(HSQUIRRELVM vm)
 
 static SQInteger is_hfr_supported(HSQUIRRELVM vm)
 {
-  sq_pushbool(vm, d3d::driver_command(Drv3dCommand::GET_PS5_HFR_SUPPORTED));
+  sq_pushbool(vm, d3d::driver_command(Drv3dCommand::GET_CONSOLE_HFR_SUPPORTED));
   return 1;
 }
 

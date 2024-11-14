@@ -27,7 +27,7 @@ struct DestrRendData
   int deformationId;
 };
 
-DestrRendData *init_rend_data(DynamicPhysObjectClass<PhysWorld> *phys_obj);
+DestrRendData *init_rend_data(DynamicPhysObjectClass<PhysWorld> *phys_obj, bool is_fully_deformed);
 void clear_rend_data(DestrRendData *data);
 
 struct DestrRendDataDeleter

@@ -10,6 +10,7 @@
 
 #include <rendInst/rendInstDesc.h>
 #include <rendInst/constants.h>
+#include <dag/dag_relocatable.h>
 
 
 // This is actually private data, potential leak of abstraction here
@@ -194,3 +195,5 @@ bool checkCachedRiData(const TraceMeshFaces *ri_cache);
 bool initializeCachedRiData(TraceMeshFaces *ri_cache);
 
 } // namespace rendinst
+
+DAG_DECLARE_RELOCATABLE(rendinst::CollisionInfo);

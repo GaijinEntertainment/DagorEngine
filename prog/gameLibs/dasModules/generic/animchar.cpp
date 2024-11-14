@@ -259,6 +259,8 @@ struct AnimFifo3QueueAnnotation : das::ManagedStructureAnnotation<AnimV20::AnimF
   AnimFifo3QueueAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("AnimFifo3Queue", ml)
   {
     cppName = " ::AnimV20::AnimFifo3Queue";
+    addField<DAS_BIND_MANAGED_FIELD(node)>("node");
+    addField<DAS_BIND_MANAGED_FIELD(morphTime)>("morphTime");
     addField<DAS_BIND_MANAGED_FIELD(state)>("state");
     addField<DAS_BIND_MANAGED_FIELD(t0)>("t0");
   }
@@ -486,6 +488,18 @@ public:
     das::addExtern<DAS_CALL_METHOD(method_setNodeWtm)>(*this, lib, "scene_instance_setNodeWtm", das::SideEffects::modifyArgument,
       "das_call_member<void(DynamicRenderableSceneInstance::*)(uint32_t, const TMatrix &), "
       "&::DynamicRenderableSceneInstance::setNodeWtm>::invoke");
+    using method_clearNodeCollapser =
+      das::das_call_member<void (DynamicRenderableSceneInstance::*)(), &::DynamicRenderableSceneInstance::clearNodeCollapser>;
+    das::addExtern<DAS_CALL_METHOD(method_clearNodeCollapser)>(*this, lib, "scene_instance_clearNodeCollapser",
+      das::SideEffects::modifyArgument,
+      "das_call_member<void(DynamicRenderableSceneInstance::*)(), "
+      "&::DynamicRenderableSceneInstance::clearNodeCollapser>::invoke");
+    using method_markNodeCollapserNode = das::das_call_member<void (DynamicRenderableSceneInstance::*)(uint32_t),
+      &::DynamicRenderableSceneInstance::markNodeCollapserNode>;
+    das::addExtern<DAS_CALL_METHOD(method_markNodeCollapserNode)>(*this, lib, "scene_instance_markNodeCollapserNode",
+      das::SideEffects::modifyArgument,
+      "das_call_member<void(DynamicRenderableSceneInstance::*)(uint32_t), "
+      "&::DynamicRenderableSceneInstance::markNodeCollapserNode>::invoke");
     auto sendChangeAnimStateEventExt = das::addExtern<DAS_BIND_FUN(send_change_anim_state_event)>(*this, lib,
       "send_change_anim_state_event", das::SideEffects::modifyExternal, "bind_dascript::send_change_anim_state_event");
     sendChangeAnimStateEventExt->annotations.push_back(
@@ -495,6 +509,8 @@ public:
       "AnimCharV20::getSlotId");
     das::addExtern<DAS_BIND_FUN(AnimCharV20::addSlotId)>(*this, lib, "animchar_addSlotId", das::SideEffects::modifyExternal,
       "AnimCharV20::addSlotId");
+    das::addExtern<DAS_BIND_FUN(AnimCharV20::getSlotName)>(*this, lib, "animchar_getSlotName", das::SideEffects::accessExternal,
+      "AnimCharV20::getSlotName");
 
     using method_setTraceContext = DAS_CALL_MEMBER(::AnimCharV20::AnimcharBaseComponent::setTraceContext);
     das::addExtern<DAS_CALL_METHOD(method_setTraceContext)>(*this, lib, "animchar_setTraceContext", das::SideEffects::modifyArgument,
@@ -648,6 +664,18 @@ public:
     das::addExtern<DAS_CALL_METHOD(method_getAttachmentTm)>(*this, lib, "animchar_getAttachmentTm", das::SideEffects::none,
       DAS_CALL_MEMBER_CPP(::AnimCharV20::AnimcharBaseComponent::getAttachmentTm));
 
+    using method_getAttachmentSlotsCount = DAS_CALL_MEMBER(::AnimCharV20::AnimcharBaseComponent::getAttachmentSlotsCount);
+    das::addExtern<DAS_CALL_METHOD(method_getAttachmentSlotsCount)>(*this, lib, "animchar_getAttachmentSlotsCount",
+      das::SideEffects::none, DAS_CALL_MEMBER_CPP(::AnimCharV20::AnimcharBaseComponent::getAttachmentSlotsCount));
+
+    using method_getAttachmentSlotId = DAS_CALL_MEMBER(::AnimCharV20::AnimcharBaseComponent::getAttachmentSlotId);
+    das::addExtern<DAS_CALL_METHOD(method_getAttachmentSlotId)>(*this, lib, "animchar_getAttachmentSlotId", das::SideEffects::none,
+      DAS_CALL_MEMBER_CPP(::AnimCharV20::AnimcharBaseComponent::getAttachmentSlotId));
+
+    using method_getAttachmentUid = DAS_CALL_MEMBER(::AnimCharV20::AnimcharBaseComponent::getAttachmentUid);
+    das::addExtern<DAS_CALL_METHOD(method_getAttachmentUid)>(*this, lib, "animchar_getAttachmentUid", das::SideEffects::none,
+      DAS_CALL_MEMBER_CPP(::AnimCharV20::AnimcharBaseComponent::getAttachmentUid));
+
     using method_setTmRel = DAS_CALL_MEMBER(::AnimCharV20::AnimcharBaseComponent::setTmRel);
     das::addExtern<DAS_CALL_METHOD(method_setTmRel)>(*this, lib, "animchar_setTmRel", das::SideEffects::modifyArgument,
       DAS_CALL_MEMBER_CPP(::AnimCharV20::AnimcharBaseComponent::setTmRel));
@@ -691,7 +719,13 @@ public:
       using method = das::das_call_member<void *(::AnimV20::IAnimStateHolder::*)(int), &::AnimV20::IAnimStateHolder::getInlinePtr>;
       das::addExtern<DAS_CALL_METHOD(method)>(*this, lib, "anim_state_holder_getInlinePtr", das::SideEffects::modifyArgument,
         "das::das_call_member< void *(::AnimV20::IAnimStateHolder::*)(int), &::AnimV20::IAnimStateHolder::getInlinePtr >::invoke");
+      using const_method =
+        das::das_call_member<const void *(::AnimV20::IAnimStateHolder::*)(int) const, &::AnimV20::IAnimStateHolder::getInlinePtr>;
+      das::addExtern<DAS_CALL_METHOD(const_method)>(*this, lib, "anim_state_holder_getInlinePtrConst", das::SideEffects::none,
+        "das::das_call_member< const void *(::AnimV20::IAnimStateHolder::*)(int) const, "
+        "&::AnimV20::IAnimStateHolder::getInlinePtr >::invoke");
     }
+    DAS_BIND_MEMBER(::AnimV20::IAnimStateHolder::getInlinePtrMaxSz, das::SideEffects::none, "anim_state_holder_getInlinePtrMaxSz")
     DAS_BIND_MEMBER(::AnimV20::IAnimStateHolder::getTimeScaleParamId, das::SideEffects::none, "anim_state_holder_getTimeScaleParamId")
     DAS_BIND_MEMBER(::AnimV20::IAnimStateHolder::getParamEffTimeScale, das::SideEffects::none,
       "anim_state_holder_getParamEffTimeScale")
@@ -702,6 +736,7 @@ public:
     DAS_BIND_MEMBER(::AnimV20::IAnimStateHolder::setTimeScaleParamId, das::SideEffects::modifyArgument,
       "anim_state_holder_setTimeScaleParamId")
     DAS_BIND_MEMBER(::AnimV20::IAnimStateHolder::setParamFlags, das::SideEffects::modifyArgument, "anim_state_holder_setParamFlags")
+    DAS_BIND_MEMBER(::AnimV20::IAnimStateHolder::advance, das::SideEffects::modifyArgument, "anim_state_holder_advance")
 
     DAS_BIND_MEMBER(::AnimV20::AnimBlendCtrl_1axis::getParamId, das::SideEffects::none, "anim_blend_node_getParamId")
     DAS_BIND_MEMBER(::AnimV20::AnimBlendCtrl_Fifo3::getParamId, das::SideEffects::none, "anim_blend_node_getParamId")

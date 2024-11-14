@@ -56,6 +56,7 @@ const char *fill_ugm_context_from_table(const Sqrat::Table &params, sceneload::U
 
 static SQRESULT launch_session(HSQUIRRELVM vm)
 {
+  debug("launch_session()");
   Sqrat::Var<Sqrat::Table> params_var(vm, 2);
   const Sqrat::Table &params = params_var.value;
 

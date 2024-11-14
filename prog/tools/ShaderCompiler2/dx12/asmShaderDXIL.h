@@ -15,8 +15,6 @@ struct ID3DXBuffer;
 struct TmpmemAlloc;
 typedef int VPRTYPE;
 
-extern bool autotest_mode;
-
 namespace dx12
 {
 namespace dxil
@@ -30,7 +28,7 @@ enum class Platform
 inline bool is_xbox_platform(Platform p) { return Platform::XBOX_ONE == p || Platform::XBOX_SCARLETT == p; }
 inline bool platform_has_mesh_support(Platform p) { return Platform::XBOX_ONE != p; }
 
-inline bool use_two_phase_compilation(Platform p) { return is_xbox_platform(p) && !autotest_mode; }
+inline bool use_two_phase_compilation(Platform p) { return is_xbox_platform(p); }
 
 // NOTE: platform has to be the same for each call for the currently running instance
 // otherwise the selected platform is undefined, especially when multiple threads at

@@ -35,12 +35,6 @@ static int big_light_posVarIds[MAX_COUNT] = {-1, -1, -1, -1};
 class BigLightsShadows
 {
 public:
-  TMatrix4 prevGlobTm = TMatrix4::IDENT, prevProjTm = TMatrix4::IDENT;
-  Point4 prevViewVecLT;
-  Point4 prevViewVecRT;
-  Point4 prevViewVecLB;
-  Point4 prevViewVecRB;
-  DPoint3 prevWorldPos;
   unsigned int frame = 0;
   unsigned resetGen = 0;
   carray<UniqueTex, 3> targetTex;
@@ -48,11 +42,10 @@ public:
   int w = 0, h = 0;
   uint32_t maxCnt = 0;
   PostFxRenderer render_big_light_shadows, temporal_big_light_shadows;
-  void render(const DPoint3 *world_pos);
 
   void init(int w, int h, unsigned int max_lights_count, const char *prefix);
   void close();
-  void render(const DPoint3 *world_pos, const Point4 *pos_rad, uint32_t cnt);
+  void render(const Point4 *pos_rad, uint32_t cnt);
   const UniqueTex &get() const;
   void setTex(int reg);
 };
@@ -85,13 +78,6 @@ void BigLightsShadows::init(int w_, int h_, unsigned int maxCnt_, const char *pr
 
   render_big_light_shadows.init("render_big_light_shadows");
   temporal_big_light_shadows.init("temporal_big_light_shadows");
-  prevGlobTm = TMatrix4::IDENT;
-  prevProjTm = TMatrix4::IDENT;
-  prevViewVecLT = Point4(0, 0, 0, 0);
-  prevViewVecRT = Point4(0, 0, 0, 0);
-  prevViewVecLB = Point4(0, 0, 0, 0);
-  prevViewVecRB = Point4(0, 0, 0, 0);
-  prevWorldPos = DPoint3(0, 0, 0);
 }
 
 void BigLightsShadows::close()
@@ -100,7 +86,7 @@ void BigLightsShadows::close()
     i.close();
 }
 
-void BigLightsShadows::render(const DPoint3 *world_pos, const Point4 *pos_rad, uint32_t cnt)
+void BigLightsShadows::render(const Point4 *pos_rad, uint32_t cnt)
 {
   cnt = min(cnt, maxCnt);
   TIME_D3D_PROFILE(big_shadows_total);
@@ -120,12 +106,6 @@ void BigLightsShadows::render(const DPoint3 *world_pos, const Point4 *pos_rad, u
 
   ShaderGlobal::set_int(shadow_frameVarId, frame);
 
-  TMatrix viewTm;
-  TMatrix4 projTm;
-  d3d::gettm(TM_VIEW, viewTm);
-  d3d::gettm(TM_PROJ, &projTm);
-  set_reprojection(viewTm, projTm, prevProjTm, prevWorldPos, prevGlobTm, prevViewVecLT, prevViewVecRT, prevViewVecLB, prevViewVecRB,
-    world_pos);
   if (cnt == 0)
   {
     d3d::set_render_target(targetTex[current].getTex2D(), 0);
@@ -172,10 +152,10 @@ void destroy_big_lights_shadows(BigLightsShadows *&r)
   del_it(r);
 }
 
-void render_big_lights_shadows(BigLightsShadows *r, const Point4 *pos_rad, uint32_t cnt, const DPoint3 *world_pos)
+void render_big_lights_shadows(BigLightsShadows *r, const Point4 *pos_rad, uint32_t cnt)
 {
   if (r)
-    r->render(world_pos, pos_rad, cnt);
+    r->render(pos_rad, cnt);
 }
 
 void set_big_lights_shadows(BigLightsShadows *r, int reg)

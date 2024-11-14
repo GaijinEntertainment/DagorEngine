@@ -1152,10 +1152,12 @@ void RandomGrass::generateGPUGrass(const LandMask &land_mask, const Frustum &fru
   d3d::set_buffer(STAGE_CS, 8, layerDataVS.getBuf());
 
   static int random_grass_use_bvhVarId = ::get_shader_variable_id("random_grass_use_bvh", true);
+  static int random_grass_bvh_rangeVarId = ::get_shader_variable_id("random_grass_bvh_range", true);
   static int random_grass_bvh_max_countVarId = ::get_shader_variable_id("random_grass_bvh_max_count", true);
 
-  bool useBvhConnection = bvhConnection && bvhConnection->isReady();
+  bool useBvhConnection = bvhConnection && bvhConnection->isReady() && bvhConnection->getMaxRange() > 0;
   ShaderGlobal::set_int(random_grass_use_bvhVarId, useBvhConnection ? 1 : 0);
+  ShaderGlobal::set_real(random_grass_bvh_rangeVarId, useBvhConnection ? bvhConnection->getMaxRange() : 0);
 
   if (useBvhConnection && bvhConnection->prepare())
     ShaderGlobal::set_int(random_grass_bvh_max_countVarId,

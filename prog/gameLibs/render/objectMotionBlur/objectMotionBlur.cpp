@@ -24,6 +24,14 @@
 
 namespace objectmotionblur
 {
+struct ResContext
+{
+  UniqueTexHolder tileMaxTex;
+  UniqueTexHolder neightborMaxTex;
+  UniqueTexHolder resultTex;
+  UniqueTexHolder flattenedVelocityTex;
+};
+
 struct Context
 {
   Context();
@@ -56,18 +64,11 @@ struct Context
   bool cancelCameraMotion = false;
 
   const float target_frame_rate = 60.0f;
-};
 
-struct ResContext
-{
-  UniqueTexHolder tileMaxTex;
-  UniqueTexHolder neightborMaxTex;
-  UniqueTexHolder resultTex;
-  UniqueTexHolder flattenedVelocityTex;
+  eastl::unique_ptr<ResContext> resCtx;
 };
 
 static eastl::unique_ptr<Context> g_ctx;
-static eastl::unique_ptr<ResContext> g_resCtx;
 static MotionBlurSettings settingsFromConfig;
 static IPoint2 renderingResolution = IPoint2(0, 0);
 static int targetFormat = 0;
@@ -134,8 +135,8 @@ static void initialize()
 
   if (!settingsFromConfig.externalTextures)
   {
-    if (!g_resCtx)
-      g_resCtx = eastl::make_unique<ResContext>();
+    if (!g_ctx->resCtx)
+      g_ctx->resCtx = eastl::make_unique<ResContext>();
 
     int width = renderingResolution.x;
     int height = renderingResolution.y;
@@ -143,27 +144,36 @@ static void initialize()
     int tileCountX = ceilf((float)width / TILE_SIZE);
     int tileCountY = ceilf((float)height / TILE_SIZE);
 
-    if (g_resCtx->tileMaxTex)
-      g_resCtx->tileMaxTex.close();
+    if (g_ctx->resCtx->tileMaxTex)
+      g_ctx->resCtx->tileMaxTex.close();
 
-    if (g_resCtx->neightborMaxTex)
-      g_resCtx->neightborMaxTex.close();
+    if (g_ctx->resCtx->neightborMaxTex)
+      g_ctx->resCtx->neightborMaxTex.close();
 
-    if (g_resCtx->resultTex)
-      g_resCtx->resultTex.close();
+    if (g_ctx->resCtx->resultTex)
+      g_ctx->resCtx->resultTex.close();
 
-    if (g_resCtx->flattenedVelocityTex)
-      g_resCtx->flattenedVelocityTex.close();
+    if (g_ctx->resCtx->flattenedVelocityTex)
+      g_ctx->resCtx->flattenedVelocityTex.close();
 
-    g_resCtx->tileMaxTex =
+    g_ctx->resCtx->tileMaxTex =
       dag::create_tex(nullptr, tileCountX, tileCountY, TEXCF_UNORDERED | TEXFMT_G16R16F, 1, "object_motion_blur_tile_max_tex");
-    g_resCtx->neightborMaxTex =
+    g_ctx->resCtx->neightborMaxTex =
       dag::create_tex(nullptr, tileCountX, tileCountY, TEXCF_UNORDERED | TEXFMT_G16R16F, 1, "object_motion_blur_neighbor_max");
-    g_resCtx->resultTex = dag::create_tex(nullptr, width, height, TEXCF_UNORDERED | targetFormat, 1, "object_motion_blur_out_tex");
+    g_ctx->resCtx->resultTex =
+      dag::create_tex(nullptr, width, height, TEXCF_UNORDERED | targetFormat, 1, "object_motion_blur_out_tex");
 
-    g_resCtx->flattenedVelocityTex =
+    g_ctx->resCtx->flattenedVelocityTex =
       dag::create_tex(nullptr, width, height, TEXCF_UNORDERED | TEXFMT_R11G11B10F, 1, "object_motion_blur_flattened_vel_tex");
-    g_resCtx->flattenedVelocityTex->texfilter(TEXFILTER_POINT);
+    g_ctx->resCtx->flattenedVelocityTex->texfilter(TEXFILTER_POINT);
+
+    if (!g_ctx->resCtx->tileMaxTex || !g_ctx->resCtx->neightborMaxTex || !g_ctx->resCtx->resultTex ||
+        !g_ctx->resCtx->flattenedVelocityTex)
+    {
+      logerr("Failed to create object motion blur textures!");
+      g_ctx.reset();
+      return;
+    }
   }
 }
 
@@ -218,16 +228,16 @@ void on_render_resolution_changed(const IPoint2 &rendering_resolution, int forma
 
 void apply(Texture *source_tex, TEXTUREID source_id, float current_frame_rate)
 {
-  if (!g_resCtx || !source_tex)
+  if (!g_ctx || !g_ctx->resCtx || !source_tex)
     return;
 
-  if (g_resCtx->resultTex)
+  if (g_ctx->resCtx->resultTex)
   {
     TextureInfo sourceTextureInfo;
     source_tex->getinfo(sourceTextureInfo);
 
     TextureInfo resultTextureInfo;
-    g_resCtx->resultTex->getinfo(resultTextureInfo);
+    g_ctx->resCtx->resultTex->getinfo(resultTextureInfo);
     if (sourceTextureInfo.w != resultTextureInfo.w || sourceTextureInfo.h != resultTextureInfo.h ||
         (sourceTextureInfo.cflg & TEXFMT_MASK) != (resultTextureInfo.cflg & TEXFMT_MASK))
     {
@@ -239,7 +249,7 @@ void apply(Texture *source_tex, TEXTUREID source_id, float current_frame_rate)
     }
   }
 
-  apply(source_tex, source_id, g_resCtx->resultTex, current_frame_rate);
+  apply(source_tex, source_id, g_ctx->resCtx->resultTex, current_frame_rate);
 }
 
 void apply(Texture *source_tex, TEXTUREID source_id, ManagedTexView resultTex, float current_frame_rate)

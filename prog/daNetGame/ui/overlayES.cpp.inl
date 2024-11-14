@@ -60,7 +60,7 @@
 #if _TARGET_C1 | _TARGET_C2
 
 
-#elif _TARGET_XBOX
+#elif _TARGET_GDK
 #include <quirrel/xbox/xbox.h>
 #endif
 #include <quirrel/sqDataCache/datacache.h>
@@ -201,7 +201,7 @@ static void bind_overlay_ui_script_apis(SqModules *moduleMgr, HSQUIRRELVM vm)
 
   watchdog::bind_sq(moduleMgr);
 
-#if _TARGET_XBOX
+#if _TARGET_GDK
   bindquirrel::xbox::bind_sq(moduleMgr);
 #elif _TARGET_C1 | _TARGET_C2
 
@@ -268,7 +268,7 @@ void init_network_services()
 {
   fps_profile::initPerfProfile();
 
-#if _TARGET_XBOX
+#if _TARGET_GDK
   bindquirrel::xbox::init();
 #endif
   g_entity_mgr->broadcastEventImmediate(EventScriptUiInitNetworkServices());
@@ -379,7 +379,7 @@ void shutdown_network_services()
   if (app_profile::get().disableRemoteNetServices)
     return;
   g_entity_mgr->broadcastEventImmediate(EventScriptUiTermNetworkServices());
-#if _TARGET_XBOX
+#if _TARGET_GDK
   bindquirrel::xbox::shutdown();
 #endif
 }

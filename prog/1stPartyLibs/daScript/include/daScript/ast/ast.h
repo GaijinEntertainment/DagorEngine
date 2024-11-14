@@ -219,6 +219,7 @@ namespace das
                     bool            privateField : 1;
                     bool            sealed : 1;
                     bool            implemented : 1;
+                    bool            classMethod : 1;
                 };
                 uint32_t            flags = 0;
             };
@@ -933,6 +934,7 @@ namespace das
                 bool    captureString : 1;
                 bool    callCaptureString : 1;
                 bool    hasStringBuilder : 1;
+                bool    recursive : 1;              // this one is detected by the updateKeepAlive during the simulate, if enabled
             };
             uint32_t moreFlags = 0;
         };
@@ -1417,7 +1419,8 @@ namespace das
         bool rtti = false;                              // create extended RTTI
     // language
         bool version_2_syntax = false;                  // use syntax version 2
-        bool gen2_make_syntax = false;                   // only new make syntax is allowed (no [[...]] or [{...}])
+        bool gen2_make_syntax = false;                  // only new make syntax is allowed (no [[...]] or [{...}])
+        bool relaxed_assign = true;                     // allow = to <- substitution, in certain expressions
         bool no_unsafe = false;
         bool local_ref_is_unsafe = true;                // var a & = ... unsafe. should be
         bool no_global_variables = false;
@@ -1560,6 +1563,7 @@ namespace das
         void allocateStack(TextWriter & logs, bool permanent, bool everything);
         void deriveAliases(TextWriter & logs, bool permanent, bool everything);
         void updateSemanticHash();
+        void updateKeepAliveFlags();
         bool simulate ( Context & context, TextWriter & logs, StackAllocator * sharedStack = nullptr );
         uint64_t getInitSemanticHashWithDep( uint64_t initHash );
         void error ( const string & str, const string & extra, const string & fixme, const LineInfo & at, CompilationError cerr = CompilationError::unspecified );

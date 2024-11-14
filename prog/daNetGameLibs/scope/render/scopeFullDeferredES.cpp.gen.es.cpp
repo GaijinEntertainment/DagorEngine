@@ -4,13 +4,14 @@ ECS_DEF_PULL_VAR(scopeFullDeferred);
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc init_full_deferred_scope_rendering_es_event_handler_comps[] =
 {
-//start of 12 rw components at [0]
+//start of 13 rw components at [0]
   {ECS_HASH("scope__full_deferred__opaque_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
   {ECS_HASH("scope__full_deferred__prepass_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
   {ECS_HASH("scope__full_deferred__lens_mask_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
   {ECS_HASH("scope__full_deferred__vrs_mask_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
   {ECS_HASH("scope__full_deferred__cut_depth_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
   {ECS_HASH("scope__full_deferred__crosshair_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
+  {ECS_HASH("scope__full_deferred__render_lens_optics_prepass"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
   {ECS_HASH("scope__full_deferred__render_lens_frame_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
   {ECS_HASH("scope__full_deferred__render_lens_optics_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
   {ECS_HASH("aim_dof_prepare_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
@@ -28,6 +29,7 @@ static void init_full_deferred_scope_rendering_es_event_handler_all_events(const
     , ECS_RW_COMP(init_full_deferred_scope_rendering_es_event_handler_comps, "scope__full_deferred__vrs_mask_node", dabfg::NodeHandle)
     , ECS_RW_COMP(init_full_deferred_scope_rendering_es_event_handler_comps, "scope__full_deferred__cut_depth_node", dabfg::NodeHandle)
     , ECS_RW_COMP(init_full_deferred_scope_rendering_es_event_handler_comps, "scope__full_deferred__crosshair_node", dabfg::NodeHandle)
+    , ECS_RW_COMP(init_full_deferred_scope_rendering_es_event_handler_comps, "scope__full_deferred__render_lens_optics_prepass", dabfg::NodeHandle)
     , ECS_RW_COMP(init_full_deferred_scope_rendering_es_event_handler_comps, "scope__full_deferred__render_lens_frame_node", dabfg::NodeHandle)
     , ECS_RW_COMP(init_full_deferred_scope_rendering_es_event_handler_comps, "scope__full_deferred__render_lens_optics_node", dabfg::NodeHandle)
     , ECS_RW_COMP(init_full_deferred_scope_rendering_es_event_handler_comps, "aim_dof_prepare_node", dabfg::NodeHandle)
@@ -42,7 +44,7 @@ static ecs::EntitySystemDesc init_full_deferred_scope_rendering_es_event_handler
   "init_full_deferred_scope_rendering_es",
   "prog/daNetGameLibs/scope/render/scopeFullDeferredES.cpp.inl",
   ecs::EntitySystemOps(nullptr, init_full_deferred_scope_rendering_es_event_handler_all_events),
-  make_span(init_full_deferred_scope_rendering_es_event_handler_comps+0, 12)/*rw*/,
+  make_span(init_full_deferred_scope_rendering_es_event_handler_comps+0, 13)/*rw*/,
   empty_span(),
   empty_span(),
   empty_span(),
@@ -51,12 +53,13 @@ static ecs::EntitySystemDesc init_full_deferred_scope_rendering_es_event_handler
 ,"render");
 static constexpr ecs::ComponentDesc full_deferred_scope_render_features_changed_es_event_handler_comps[] =
 {
-//start of 12 rw components at [0]
+//start of 13 rw components at [0]
   {ECS_HASH("scope__full_deferred__opaque_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
   {ECS_HASH("scope__full_deferred__prepass_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
   {ECS_HASH("scope__full_deferred__lens_mask_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
   {ECS_HASH("scope__full_deferred__vrs_mask_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
   {ECS_HASH("scope__full_deferred__cut_depth_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
+  {ECS_HASH("scope__full_deferred__render_lens_optics_prepass"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
   {ECS_HASH("scope__full_deferred__render_lens_frame_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
   {ECS_HASH("scope__full_deferred__render_lens_optics_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
   {ECS_HASH("scope__full_deferred__crosshair_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
@@ -74,6 +77,7 @@ static void full_deferred_scope_render_features_changed_es_event_handler_all_eve
     , ECS_RW_COMP(full_deferred_scope_render_features_changed_es_event_handler_comps, "scope__full_deferred__lens_mask_node", dabfg::NodeHandle)
     , ECS_RW_COMP(full_deferred_scope_render_features_changed_es_event_handler_comps, "scope__full_deferred__vrs_mask_node", dabfg::NodeHandle)
     , ECS_RW_COMP(full_deferred_scope_render_features_changed_es_event_handler_comps, "scope__full_deferred__cut_depth_node", dabfg::NodeHandle)
+    , ECS_RW_COMP(full_deferred_scope_render_features_changed_es_event_handler_comps, "scope__full_deferred__render_lens_optics_prepass", dabfg::NodeHandle)
     , ECS_RW_COMP(full_deferred_scope_render_features_changed_es_event_handler_comps, "scope__full_deferred__render_lens_frame_node", dabfg::NodeHandle)
     , ECS_RW_COMP(full_deferred_scope_render_features_changed_es_event_handler_comps, "scope__full_deferred__render_lens_optics_node", dabfg::NodeHandle)
     , ECS_RW_COMP(full_deferred_scope_render_features_changed_es_event_handler_comps, "scope__full_deferred__crosshair_node", dabfg::NodeHandle)
@@ -89,7 +93,7 @@ static ecs::EntitySystemDesc full_deferred_scope_render_features_changed_es_even
   "full_deferred_scope_render_features_changed_es",
   "prog/daNetGameLibs/scope/render/scopeFullDeferredES.cpp.inl",
   ecs::EntitySystemOps(nullptr, full_deferred_scope_render_features_changed_es_event_handler_all_events),
-  make_span(full_deferred_scope_render_features_changed_es_event_handler_comps+0, 12)/*rw*/,
+  make_span(full_deferred_scope_render_features_changed_es_event_handler_comps+0, 13)/*rw*/,
   empty_span(),
   empty_span(),
   empty_span(),

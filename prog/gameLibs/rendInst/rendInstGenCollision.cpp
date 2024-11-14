@@ -1884,17 +1884,26 @@ CollisionInfo getRiGenDestrInfo(const RendInstDesc &desc)
 struct CallbackAddStrat : public MaterialRayStrat
 {
   rendinst::RendInstCollisionCB *callback;
+  dag::RelocatableFixedVector<eastl::pair<bool, rendinst::CollisionInfo>, TraceMeshFaces::RendinstCache::MAX_ENTRIES> collInfoQueue;
+  bool useQueue;
 
-  CallbackAddStrat(rendinst::RendInstCollisionCB *cb, PhysMat::MatID ray_mat = PHYSMAT_INVALID) :
-    MaterialRayStrat(ray_mat, true), callback(cb)
+  // set use_queue to true if you want unlock ri mutexes before callback processing
+  CallbackAddStrat(rendinst::RendInstCollisionCB *cb, bool use_queue, PhysMat::MatID ray_mat = PHYSMAT_INVALID) :
+    MaterialRayStrat(ray_mat, true), callback(cb), useQueue(use_queue)
   {}
+
+  ~CallbackAddStrat() { processQueue(); }
 
   CheckBoxRIResultFlags executeForPos(RendInstGenData *rgl, const rendinst::RendInstDesc &ri_desc, const TMatrix &tm,
     const BBox3 &bbox)
   {
-    rendinst::CollisionInfo collInfo(ri_desc);
-    fill_collision_info(rgl, ri_desc, tm, bbox, collInfo);
-    callback->addTreeCheck(collInfo);
+    collInfoQueue.emplace_back(eastl::make_pair(false /*is_tm*/, rendinst::CollisionInfo(ri_desc)));
+    fill_collision_info(rgl, ri_desc, tm, bbox, collInfoQueue.back().second);
+    if (!useQueue)
+    {
+      callback->addTreeCheck(collInfoQueue.back().second);
+      collInfoQueue.clear();
+    }
     return {};
   }
 
@@ -1903,9 +1912,13 @@ struct CallbackAddStrat : public MaterialRayStrat
   {
     DECL_ALIGN16(TMatrix, tm);
     v_mat_43ca_from_mat44(&tm[0][0], v_tm);
-    rendinst::CollisionInfo collInfo(ri_desc);
-    fill_collision_info(rgl, ri_desc, tm, bbox, collInfo);
-    callback->addCollisionCheck(collInfo);
+    collInfoQueue.emplace_back(eastl::make_pair(true /*is_tm*/, rendinst::CollisionInfo(ri_desc)));
+    fill_collision_info(rgl, ri_desc, tm, bbox, collInfoQueue.back().second);
+    if (!useQueue)
+    {
+      callback->addCollisionCheck(collInfoQueue.back().second);
+      collInfoQueue.clear();
+    }
     return {};
   }
 
@@ -1915,6 +1928,18 @@ struct CallbackAddStrat : public MaterialRayStrat
     DECL_ALIGN16(TMatrix, tm);
     v_mat_43ca_from_mat44(&tm[0][0], v_tm);
     return executeForPos(rgl, ri_desc, tm, bbox);
+  }
+
+  void processQueue()
+  {
+    for (auto &q : collInfoQueue)
+    {
+      if (q.first)
+        callback->addCollisionCheck(q.second);
+      else
+        callback->addTreeCheck(q.second);
+    }
+    collInfoQueue.clear();
   }
 };
 
@@ -2455,7 +2480,7 @@ void clipCapsuleRI(const ::Capsule &c, Point3 &lpt, Point3 &wpt, real &md, const
   else
   {
     RiClipCapsuleCallback callback(c, lpt, wpt, md, movedirNormalized);
-    CallbackAddStrat strat(&callback, -1);
+    CallbackAddStrat strat(&callback, false /*use_queue*/, -1);
 
     BBox3 wbb = c.getBoundingBoxScalar();
     FOR_EACH_RG_LAYER_DO (rgl)
@@ -2559,9 +2584,9 @@ void testObjToRIGenIntersection(const BBox3 &obj_box, const TMatrix &obj_tm, ren
 
   BBox3 aabb;
   v_stu_bbox3(aabb, objFullBBox);
-  CallbackAddStrat strat(&callback, ray_mat);
+  CallbackAddStrat strat(&callback, unlock_in_cb, ray_mat); // strat callback should be always executed with lock
   FOR_EACH_RG_LAYER_DO (rgl)
-    testObjToRIGenIntersectionNoCache(_layer, obj_box, aabb, obj_tm, ri_types, strat, unlock_in_cb);
+    testObjToRIGenIntersectionNoCache(_layer, obj_box, aabb, obj_tm, ri_types, strat, false /*unlock_in_cb*/);
 }
 
 CheckBoxRIResultFlags checkBoxToRIGenIntersection(const BBox3 &box)

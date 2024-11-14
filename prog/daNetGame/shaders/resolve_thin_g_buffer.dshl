@@ -211,8 +211,7 @@ shader thin_g_resolve, deferred_shadow_bare_minimum
 
       half3 fog_mul, fog_add;
       get_volfog_with_scattering(tc.xy, scatterTc, view, dist, w, fog_mul, fog_add);
-      //apply exposure for additive part, otherwise it will lit up image
-      result = mad(result, fog_mul, fog_add * get_exposure_mul());
+      result = mad(result, fog_mul, fog_add);
 
       return result;
     }
@@ -342,7 +341,7 @@ shader thin_g_resolve, deferred_shadow_bare_minimum
         half3 specularColor = gbuffer.specularColor * gbuffer.extracted_albedo_ao;
         half3 dynamicLight = get_dynamic_lighting(gbuffer, worldPos.xyz, -viewVect, w,
             screenpos.xy, NoV, specularColor, input.texcoord.xy, gbuffer.ao);
-        result += dynamicLight * get_exposure_mul();
+        result += dynamicLight;
       ##endif
 
       #if HAS_SCATTERING

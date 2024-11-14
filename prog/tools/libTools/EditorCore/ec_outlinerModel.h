@@ -750,7 +750,7 @@ public:
 private:
   ska::flat_hash_map<RenderableEditableObject *, ObjectTreeItem *> objectToTreeItemMap;
   OutlinerTreeItem *focusedTreeItem = nullptr; // Use getSelectionHead() instead!
-  int selectionCountPerItemType[OutlinerTreeItem::ItemType::Count];
+  int selectionCountPerItemType[(int)OutlinerTreeItem::ItemType::Count];
   bool showAssetNameUnderObjects = true;
 };
 

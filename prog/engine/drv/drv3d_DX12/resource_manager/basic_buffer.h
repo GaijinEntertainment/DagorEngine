@@ -1,18 +1,16 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "heap_components.h"
+#include <d3d12_error_handling.h>
+#include <driver.h>
+#include <resource_memory.h>
+
 #include <supp/dag_comPtr.h>
-
-#include "driver.h"
-#include "d3d12_error_handling.h"
-#include "resource_memory.h"
-
-#include "resource_manager/heap_components.h"
 
 
 namespace drv3d_dx12::resource_manager
 {
-
 // Basic buffer with some common stuff, like handling differences in memory model between PC and consoles.
 struct BasicBuffer
 {

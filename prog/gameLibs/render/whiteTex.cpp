@@ -18,6 +18,7 @@ public:
 
 static InitOnDemand<WhiteRestartProc> white_base_rproc;
 static UniqueTex white_tex;
+static d3d::SamplerHandle white_sampler = d3d::INVALID_SAMPLER_HANDLE;
 
 static void startup_white_tex()
 {
@@ -43,3 +44,9 @@ const UniqueTex &get_white_on_demand()
 }
 
 BaseTexture *get_white_tex_on_demand() { return get_white_on_demand().getBaseTex(); }
+d3d::SamplerHandle get_white_sampler_on_demand()
+{
+  if (white_sampler == d3d::INVALID_SAMPLER_HANDLE)
+    white_sampler = d3d::request_sampler({});
+  return white_sampler;
+}

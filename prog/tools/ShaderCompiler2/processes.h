@@ -18,7 +18,7 @@ struct ProcessTask
 };
 
 // Can only be called from the main thread
-void init(int max_proc_count);
+void init(int max_proc_count, int should_cancel_on_fail);
 void deinit();
 
 int is_multiproc();

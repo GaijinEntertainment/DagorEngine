@@ -32,7 +32,6 @@
 #include <ioSys/dag_dataBlock.h>
 #include <gameRes/dag_resourceNameResolve.h>
 
-
 namespace dynrend
 {
 struct InstanceData
@@ -128,6 +127,7 @@ const int bigNodeChunkVecs = sizeof(NodeChunk) / sizeof(vec4f);
 const int smallNodeChunkVecs = bigNodeChunkVecs - 3;
 
 static ShaderElement *replacement_shader = nullptr;
+static Tab<const char *> filtered_material_names;
 
 #if _TARGET_C1 | _TARGET_C2
 
@@ -667,6 +667,12 @@ static void instanceToChunks(ContextData &ctx, const InstanceData &instance_data
           if (!elems[elemNo].e) // dont_render
             continue;
 
+          if (filtered_material_names.size() && eastl::find(filtered_material_names.begin(), filtered_material_names.end(),
+                                                  elems[elemNo].mat->getShaderClassName()) == filtered_material_names.end())
+          {
+            continue;
+          }
+
           auto &dipChunks = ctx.dipChunksByStage[shaderMeshStages.front()];
           DipChunk &dipChunk = dipChunks.push_back();
           initDipChunk(dipChunk, node_id, elems[elemNo], shaderMeshStages.front());
@@ -744,6 +750,12 @@ static void instanceToChunks(ContextData &ctx, const InstanceData &instance_data
         {
           if (!elems[elemNo].e) // dont_render
             continue;
+
+          if (filtered_material_names.size() && eastl::find(filtered_material_names.begin(), filtered_material_names.end(),
+                                                  elems[elemNo].mat->getShaderClassName()) == filtered_material_names.end())
+          {
+            continue;
+          }
 
           DipChunk &dipChunk = ctx.dipChunksByStage[shaderMeshStages.front()].push_back();
           initDipChunk(dipChunk, node_id, elems[elemNo], shaderMeshStages.front());
@@ -1232,6 +1244,7 @@ void set_local_offset_hint(const Point3 &hint) { localOffsetHint = hint; }
 void enable_separate_atest_pass(bool enable) { separateAtestPass = enable; }
 
 void replace_shader(ShaderElement *element) { replacement_shader = element; }
+void set_material_filters_by_name(Tab<const char *> &&material_names) { filtered_material_names = std::move(material_names); }
 
 void render_one_instance(const DynamicRenderableSceneInstance *instance, RenderMode mode, TexStreamingContext texCtx,
   const InitialNodes *optional_initial_nodes, const dynrend::PerInstanceRenderData *optional_render_data)
@@ -1332,8 +1345,8 @@ void iterate_instances(dynrend::ContextId context_id, InstanceIterator iter, voi
     auto &instance = *instanceData.instance;
     auto &sceneRes = *instanceData.sceneRes;
     int nodeChunkVecs = instanceData.initialNodes ? bigNodeChunkVecs : smallNodeChunkVecs;
-    iter(context_id, sceneRes, instance, ctx.allNodesVisibility, instanceData.indexToAllNodesVisibility, ctx.minElemRadius,
-      instanceData.baseOffsetRenderData, instanceData.indexToPerInstanceRenderData, nodeChunkVecs, user_data);
+    iter(context_id, sceneRes, instance, ctx.perInstanceRenderData[instanceData.indexToPerInstanceRenderData], ctx.allNodesVisibility,
+      instanceData.indexToAllNodesVisibility, ctx.minElemRadius, instanceData.baseOffsetRenderData, nodeChunkVecs, user_data);
   }
 }
 

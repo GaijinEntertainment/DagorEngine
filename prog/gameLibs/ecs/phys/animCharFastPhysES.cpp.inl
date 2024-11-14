@@ -74,7 +74,7 @@ ECS_AUTO_REGISTER_COMPONENT_DEPS(FastPhysTag, "animchar_fast_phys", nullptr, 0, 
 
 ECS_ON_EVENT(on_appear) // todo: add wind change event, if happen
 ECS_REQUIRE(FastPhysTag animchar_fast_phys)
-static inline void animchar_fast_phys_es_event_handler(const ecs::Event &, AnimcharBaseComponent &animchar)
+static inline void animchar_fast_phys_es_event_handler(const ecs::Event &, AnimV20::AnimcharBaseComponent &animchar)
 {
   if (!animchar.getFastPhysSystem())
     return;
@@ -88,7 +88,7 @@ static inline void animchar_fast_phys_es_event_handler(const ecs::Event &, Animc
 
 ECS_REQUIRE(FastPhysTag animchar_fast_phys)
 ECS_ON_EVENT(on_disappear)
-static void animchar_fast_phys_destroy_es_event_handler(const ecs::Event &, AnimcharBaseComponent &animchar)
+static void animchar_fast_phys_destroy_es_event_handler(const ecs::Event &, AnimV20::AnimcharBaseComponent &animchar)
 {
   if (FastPhysSystem *fastPhys = animchar.getFastPhysSystem())
   {
@@ -172,7 +172,7 @@ static void resetDebugAnimChars()
 ECS_NO_ORDER
 ECS_REQUIRE(FastPhysTag animchar_fast_phys, ecs::Tag animchar_fast_phys_debug_render)
 ECS_TAG(dev, render)
-static void debug_draw_fast_phys_es(const UpdateStageInfoRenderDebug &, AnimcharBaseComponent &animchar)
+static void debug_draw_fast_phys_es(const UpdateStageInfoRenderDebug &, AnimV20::AnimcharBaseComponent &animchar)
 {
   FastPhysSystem *fastPhys = animchar.getFastPhysSystem();
   if (!fastPhys)

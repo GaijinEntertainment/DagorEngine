@@ -742,7 +742,21 @@ def to_array_move(var a:auto(TT)[]) : array<TT -const>
         return <- arr
 
 [skip_lock_check]
-def to_array_move(var a:auto(TT)) : array<TT -const>
+def to_array_move(a:auto(TT) ==const) : array<TT -const>
+    unsafe
+        var arr : array<TT -const>
+        static_if typeinfo(is_smart_ptr a)
+            concept_assert(false,"can't create array from smart pointer by value. did you mean [\{Type[1] value\}] instead of [\{Type value\}]")
+        static_if typeinfo(can_copy a)
+            arr |> push(a)
+        static_elif typeinfo(can_move a)
+            concept_assert(false,"can't move from constant value")
+        else
+            concept_assert(false,"this array can't be copied or moved")
+        return <- arr
+
+[skip_lock_check]
+def to_array_move(var a:auto(TT) ==const) : array<TT -const>
     unsafe
         var arr : array<TT -const>
         static_if typeinfo(is_smart_ptr a)

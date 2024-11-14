@@ -8,6 +8,7 @@
 #include "device_context_state_xbox.h"
 #endif
 
+
 namespace drv3d_dx12::debug
 {
 #if _TARGET_PC_WIN

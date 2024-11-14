@@ -52,10 +52,11 @@ DestructableObject::DestructableObject(const destructables::DestructableCreation
     defaultTimeToLive = params.defaultTimeToLive;
   if (params.timeToKinematic >= 0.0f)
     timeToKinematic = params.timeToKinematic;
+
   clear_and_resize(ttlBodies, physObj->getPhysSys()->getBodyCount());
   for (int i = 0; i < ttlBodies.size(); ++i)
     ttlBodies[i] = defaultTimeToLive;
-  rendData.reset(destructables::init_rend_data(physObj.get()));
+  rendData.reset(destructables::init_rend_data(physObj.get(), params.isDestroyedByExplosion));
 }
 
 int DestructableObject::getNumActiveBodies() const { return ttlBodies.size(); }
@@ -239,7 +240,13 @@ static float distForScaleDtSq;
 static float maxScaleDt;
 float minDestrRadiusSq;
 static float overflowReportTimeout = 0.0f;
-static bool errorOnBodiesOverflow = true;
+#if DAGOR_DBGLEVEL > 0
+static bool errorOnBodiesOverflow = false;
+static unsigned minBodyCountForOverflowError = 10;
+#else
+static constexpr bool errorOnBodiesOverflow = false;
+static constexpr unsigned minBodyCountForOverflowError = ~0u;
+#endif
 
 void init(const DataBlock *blk, int fgroup)
 {
@@ -249,7 +256,10 @@ void init(const DataBlock *blk, int fgroup)
   distForScaleDtSq = sqr(destrBlk->getReal("distForScaleDt", 100.f));
   maxScaleDt = destrBlk->getReal("maxScaleDt", 3.f);
   minDestrRadiusSq = sqr(destrBlk->getReal("minDestrRadius", 40.f));
-  errorOnBodiesOverflow = destrBlk->getBool("errorOnBodiesOverflow", true);
+#if DAGOR_DBGLEVEL > 0
+  errorOnBodiesOverflow = destrBlk->getBool("errorOnBodiesOverflow", false);
+  minBodyCountForOverflowError = destrBlk->getInt("minBodyCountForOverflowError", 10);
+#endif
   default_fgroup = fgroup;
   if (!destructablesListAllocator.isInited())
     destructablesListAllocator.init(sizeof(DestructableObject), (4096 * 2 - 16) / sizeof(DestructableObject));
@@ -312,26 +322,16 @@ void removeDestructableById(id_t id)
     static_cast<DestructableObject *>(id)->markForDelete();
 }
 
-void overflowHandler()
+static void overflow_handler()
 {
-  String msg(framemem_ptr());
-  msg.printf(0, "destructables::update: too many destructable bodies %d, max - %d", numActiveBodies, maxNumberOfDestructableBodies);
-
-#if DAGOR_DBGLEVEL > 0
-  const bool forceErrorOnOverflow = errorOnBodiesOverflow;
-#else
-  const bool forceErrorOnOverflow = false;
-#endif
-
-  if (!forceErrorOnOverflow)
+  if (!errorOnBodiesOverflow || destructablesList.size() > minBodyCountForOverflowError) //-V560
   {
-    logwarn(msg.c_str());
+    logwarn("destructables::update: too many destructable bodies %d, max - %d", numActiveBodies, maxNumberOfDestructableBodies);
     return;
   }
-
 #if DAGOR_DBGLEVEL > 0
-  String fullMsg(framemem_ptr());
-  fullMsg.append(msg);
+  String msg(framemem_ptr());
+  msg.printf(0, "destructables::update: too many destructable bodies %d, max - %d", numActiveBodies, maxNumberOfDestructableBodies);
   for (const auto &i : destructablesList)
   {
     const auto *physObj = i->getPhysObj();
@@ -346,10 +346,10 @@ void overflowHandler()
       String resMsg(framemem_ptr());
       resolve_game_resource_name(name, lods);
       resMsg.printf(0, "\n  res: %s, active bodies: %d", name.c_str(), i->getNumActiveBodies());
-      fullMsg.append(resMsg);
+      msg.append(resMsg);
     }
   }
-  logerr(fullMsg.c_str());
+  logerr("%s", msg.c_str());
 #endif
 }
 
@@ -382,7 +382,7 @@ void update(float dt)
     if (overflowReportTimeout <= 0.0f)
     {
       overflowReportTimeout = 1.0f;
-      overflowHandler();
+      overflow_handler();
     }
 
     // Cleanup first those bodies that are falling through, then all old ones

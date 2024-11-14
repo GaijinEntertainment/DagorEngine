@@ -102,6 +102,8 @@ struct BVHConnection : public bvh::BVHConnection
   dag::Vector<RandomGrassBvhMapping> metainfoMappingsCpu;
 
   BVHConnection(const char *name) : bvh::BVHConnection(name) {}
+
+  float getMaxRange() const override { return contexts.empty() ? 0 : (*contexts.begin())->grassRange; }
 } bvhConnection("grass");
 
 void init()

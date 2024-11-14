@@ -61,13 +61,13 @@ macro USE_BONE_VERTEX_UNPACKING()
   }
 endmacro
 
-macro USE_BONE_MATRIX_BLENDING_GEN(blend_bone_mtx_name_t, fetch_bone_mtx_name_t, bone_mtx_stride, bone_mtx_row_getter)
+macro USE_BONE_MATRIX_BLENDING_GEN(blend_bone_mtx_name_t, fetch_bone_mtx_name_t, bone_mtx_stride, bone_mtx_row_getter, additional_offset)
   hlsl(vs)
   {
     bone_t blend_bone_mtx_name_t(uint offset, uint4 bi, float4 bw)
     {
       bone_t skinnedTm;
-      bi = bi * bone_mtx_stride + offset;
+      bi = bi * bone_mtx_stride + offset + additional_offset;
       skinnedTm.r0 = bone_mtx_row_getter(bi.x+0) * bw.x + bone_mtx_row_getter(bi.y+0) * bw.y + bone_mtx_row_getter(bi.z+0) * bw.z + bone_mtx_row_getter(bi.w+0) * bw.w;
       skinnedTm.r1 = bone_mtx_row_getter(bi.x+1) * bw.x + bone_mtx_row_getter(bi.y+1) * bw.y + bone_mtx_row_getter(bi.z+1) * bw.z + bone_mtx_row_getter(bi.w+1) * bw.w;
       skinnedTm.r2 = bone_mtx_row_getter(bi.x+2) * bw.x + bone_mtx_row_getter(bi.y+2) * bw.y + bone_mtx_row_getter(bi.z+2) * bw.z + bone_mtx_row_getter(bi.w+2) * bw.w;
@@ -76,7 +76,7 @@ macro USE_BONE_MATRIX_BLENDING_GEN(blend_bone_mtx_name_t, fetch_bone_mtx_name_t,
     bone_t fetch_bone_mtx_name_t(uint offset, uint bi)
     {
       bone_t skinnedTm;
-      bi = bi * bone_mtx_stride + offset;
+      bi = bi * bone_mtx_stride + offset + additional_offset;
       skinnedTm.r0 = bone_mtx_row_getter(bi.x+0);
       skinnedTm.r1 = bone_mtx_row_getter(bi.x+1);
       skinnedTm.r2 = bone_mtx_row_getter(bi.x+2);
@@ -183,6 +183,8 @@ if (in_editor_assume == yes)
 
 hlsl(vs)
 {
+#include <animchar_additional_data_types.hlsli>
+
 ##if in_editor_assume == yes
   #define SKINNING_MATRIX_STRIDE 6
   #define SKINNING_BONE_ROW_GETTER(bi) get_bone_row(bi)
@@ -196,7 +198,7 @@ hlsl(vs)
 
 INIT_PER_INSTANCE_DATA(vs)
 USE_BONE_VERTEX_UNPACKING()
-USE_BONE_MATRIX_BLENDING_GEN(blend_skinning_matrix_base, fetch_skinning_matrix_base, SKINNING_MATRIX_STRIDE, SKINNING_BONE_ROW_GETTER)
+USE_BONE_MATRIX_BLENDING_GEN(blend_skinning_matrix_base, fetch_skinning_matrix_base, SKINNING_MATRIX_STRIDE, SKINNING_BONE_ROW_GETTER, ADDITIONAL_BONE_MTX_OFFSET)
 
 hlsl(vs)
 {
@@ -204,10 +206,42 @@ hlsl(vs)
   float3 mul_bone3(float3 p3, bone_t m) { return float3(dot(m.r0.xyz, p3), dot(m.r1.xyz, p3), dot(m.r2.xyz, p3)); }
   float3 mul_bone3m(float3 p3, float3x3 m3) { return mul(m3, p3); }
 
+
+  void get_node_collapser_bits(out uint4 node_collapser_bits[2])
+  {
+    // bone rows start from ADDITIONAL_BONE_MTX_OFFSET, these rows are used for node collapser
+    node_collapser_bits[0] = asuint(SKINNING_BONE_ROW_GETTER(INST_OFFSET_GETTER + 0));
+    node_collapser_bits[1] = asuint(SKINNING_BONE_ROW_GETTER(INST_OFFSET_GETTER + 1));
+  }
+
+  bool checkBoneToCollapse(uint bi, float bw, uint4 node_collapser_bits[2])
+  {
+    uint4 bits = (bi < 128) ? node_collapser_bits[0] : node_collapser_bits[1];
+    return bw == 0 || (bits[bi >> 5] & (1u << (bi & 31))) != 0;
+  }
+
+  bool checkAllBonesToCollapse(uint4 bi, float4 bw)
+  {
+    uint4 nodeCollapserBits[2];
+    get_node_collapser_bits(nodeCollapserBits);
+    return checkBoneToCollapse(bi.x, bw.x, nodeCollapserBits) &&
+           checkBoneToCollapse(bi.y, bw.y, nodeCollapserBits) &&
+           checkBoneToCollapse(bi.z, bw.z, nodeCollapserBits) &&
+           checkBoneToCollapse(bi.w, bw.w, nodeCollapserBits);
+  }
+  bool checkSingleBoneToCollapse(uint bi)
+  {
+    uint4 nodeCollapserBits[2];
+    get_node_collapser_bits(nodeCollapserBits);
+    return checkBoneToCollapse(bi, 1, nodeCollapserBits);
+  }
+
   bone_t blend_skinning_matrix(uint4 bi, float4 bw, uint in_matrix_offset)
   {
   ##if in_editor_assume == no
       in_matrix_offset += INST_OFFSET_GETTER;
+      if (checkAllBonesToCollapse(bi, bw))
+        return (bone_t)0;
   ##endif
     return blend_skinning_matrix_base(in_matrix_offset, bi, bw);
   }
@@ -218,6 +252,8 @@ hlsl(vs)
     uint offset = 0;
   ##else
     uint offset = INST_OFFSET_GETTER;
+    if (checkSingleBoneToCollapse(bi))
+      return (bone_t)0;
   ##endif
     return fetch_skinning_matrix_base(offset, bi);
   }
@@ -397,7 +433,7 @@ macro USE_BINDPOSE_VS()
       #define BINDPOSE_BONE_ROW_GETTER(bi) bind_pose_tr_buffer[bi]
     }
     USE_BONE_VERTEX_UNPACKING()
-    USE_BONE_MATRIX_BLENDING_GEN(blend_bindpose_matrix_base, fetch_bindpose_matrix_base, 3, BINDPOSE_BONE_ROW_GETTER)
+    USE_BONE_MATRIX_BLENDING_GEN(blend_bindpose_matrix_base, fetch_bindpose_matrix_base, 3, BINDPOSE_BONE_ROW_GETTER, 0)
     hlsl(vs)
     {
       bone_t blend_bindpose_matrix(uint4 bi, float4 bw)
@@ -415,7 +451,7 @@ macro USE_BINDPOSE_VS()
       bone_t bindpose_matrix(uint bi)
       {
         uint offset = get_immediate_dword_1();
-        return fetch_skinning_matrix_base(offset, bi);
+        return fetch_bindpose_matrix_base(offset, bi);
       }
 
       bone_t calc_bone_wtm(bone_t skinning_tm, bone_t bindpose_tm)

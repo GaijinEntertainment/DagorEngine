@@ -26,7 +26,7 @@ def ecs_anim_graph2()
     var graph = animchar.animGraph
     if graph != null
       var resetState = false
-      render_anim_graph2(*graph, *animchar.animState, resetState, *paramsFilter)
+      render_anim_graph2(animchar, *graph, *animchar.animState, resetState, *paramsFilter)
       if resetState
         eid |> addSubTemplate("animchar_lock_anim_state_change")
         if animchar__animState != null

@@ -296,7 +296,7 @@ public:
 #endif
 
     shaders::RenderStateId curRstate = shaders::RenderStateId();
-    shaders::TexStateIdx curTstate = shaders::TexStateIdx();
+    uint32_t curState = 0xFFFFFFFF;
     bool currentTessellationState = !list[0].isTessellated;
 
     for (auto &rl : list)
@@ -324,12 +324,12 @@ public:
       bool skipApply = false;
       if (optimizeDepthPass && rl.drawOrder_stage->stage == ShaderMesh::STG_opaque && curRstate == rl.rstate &&
           !(rl.state & RIExRenderRecord::DISABLE_OPTIMIZATION_BIT_STATE) &&
-          (rl.isTessellated == currentTessellationState && (!rl.isTessellated || curTstate == rl.tstate)))
+          (rl.isTessellated == currentTessellationState && (!rl.isTessellated || curState == rl.state)))
       {
         skipApply = true; // we only switch renderstate - zbias,culling, etc
       }
       curRstate = rl.rstate;
-      curTstate = rl.tstate;
+      curState = rl.state;
       currentTessellationState = rl.isTessellated;
 
       RiExtraPool &riPool = riExtra[riResOrder[rl.poolOrder] & RI_RES_ORDER_COUNT_MASK];
@@ -391,7 +391,7 @@ public:
       if (rl.state & RIExRenderRecord::DISABLE_OPTIMIZATION_BIT_STATE)
       {
         curRstate = shaders::RenderStateId();
-        curTstate = shaders::TexStateIdx();
+        curState = 0xFFFFFFFF;
       }
     }
 #if USE_DEPTH_PREPASS_FOR_TREES

@@ -2,9 +2,8 @@
 #pragma once
 
 #include <debug/dag_log.h>
-#include <EASTL/string_view.h>
 #include <drv_returnAddrStore.h>
-
+#include <EASTL/string_view.h>
 
 class DataBlock;
 class String;
@@ -15,6 +14,7 @@ class String;
 #include <EASTL/hash_map.h>
 #include <EASTL/string.h>
 #include <util/dag_string.h>
+
 
 namespace drv3d_dx12::debug::call_stack::return_address
 {

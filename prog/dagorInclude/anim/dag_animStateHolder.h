@@ -96,7 +96,7 @@ public:
     return &val[id].scalarInt;
   }
   const void *getInlinePtr(int id) const { return const_cast<AnimCommonStateHolder *>(this)->getInlinePtr(id); }
-  unsigned getInlinePtrMaxSz(int id) { return getInlinePtrWords(paramTypes, id) * elem_size(val); }
+  unsigned getInlinePtrMaxSz(int id) const { return getInlinePtrWords(paramTypes, id) * elem_size(val); }
 
   float *getParamScalarPtr(int id);
   const float *getParamScalarPtr(int id) const { return const_cast<AnimCommonStateHolder *>(this)->getParamScalarPtr(id); }

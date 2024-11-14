@@ -1,11 +1,11 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <drv/3d/dag_sampler.h>
-
 #include "bitfield.h"
-#include "half_float.h"
 #include "d3d12_d3d_translation.h"
+#include "half_float.h"
+
+#include <drv/3d/dag_sampler.h>
 
 
 namespace drv3d_dx12

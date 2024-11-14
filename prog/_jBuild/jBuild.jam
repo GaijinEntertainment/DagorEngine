@@ -898,12 +898,24 @@ rule ExecuteJam
   execute_jam $(src) ;
 }
 
+rule IncludePch source : target
+{
+  on $(source) if %DISABLE_PCH% in $(opt) { return no ; }
+  if $($(target)__PrecompiledInclude) { Includes $(source) : $($(target)__PrecompiledInclude) ; }
+  return yes ;
+}
+rule StripUnusedPch use_pch : target : opt
+{
+  if $(use_pch) != no { return $(opt) ; }
+  return [ StripStrings $(opt) : /Yu$($(target)__PrecompiledName).h /Fp$($(target)__PrecompiledFile) %DISABLE_PCH% ] ;
+}
+
 # rule how to compile C++ target
 #   params: ( target_pathname : sources : target )
 rule CompileCPP
 {
   Depends $(1) : $(2) ;
-  if $($(3)__PrecompiledInclude) { Includes $(2) : $($(3)__PrecompiledInclude) ; }
+  local use_pch = [ IncludePch $(2) : $(3) ] ;
   MakeDirectory $(1) : $(1:D) ;
   if $(GLOBAL_CacheDryRun) {
     CheckHeadersDry $(1) : $(2) : $($(3)__CPP_OPT) ;
@@ -912,7 +924,7 @@ rule CompileCPP
   }
 
   LOCATE    on $(2) = $(Root) ;
-  cpp_opt   on $(1) = $($(3)__CPP_OPT) $(opt) ;
+  cpp_opt   on $(1) = [ StripUnusedPch $(use_pch) : $(3) : $($(3)__CPP_OPT) $(opt) ] ;
   pre_opt   on $(1) = $(pre_opt) $($(3)__PRE_OPT) ;
   outfile   on $(1) = [ MakePathAbsolute $(JAM_CWD) : $(1) ] ;
 
@@ -926,7 +938,7 @@ rule CompileCPP
 rule CompileC
 {
   Depends $(1) : $(2) ;
-  if $($(3)__PrecompiledInclude) { Includes $(2) : $($(3)__PrecompiledInclude) ; }
+  local use_pch = [ IncludePch $(2) : $(3) ] ;
   MakeDirectory $(1) : $(1:D) ;
   if $(GLOBAL_CacheDryRun) {
     CheckHeadersDry $(1) : $(2) : $($(3)__C_OPT) ;
@@ -935,7 +947,7 @@ rule CompileC
   }
 
   LOCATE    on $(2) = $(Root) ;
-  c_opt     on $(1) = $($(3)__C_OPT) $(opt) ;
+  c_opt     on $(1) = [ StripUnusedPch $(use_pch) : $(3) : $($(3)__C_OPT) $(opt) ] ;
   pre_opt   on $(1) = $(pre_opt) $($(3)__PRE_OPT) ;
   outfile   on $(1) = [ MakePathAbsolute $(JAM_CWD) : $(1) ] ;
 
@@ -949,7 +961,7 @@ rule CompileC
 rule CompileObjC
 {
   Depends $(1) : $(2) ;
-  if $($(3)__PrecompiledInclude) { Includes $(2) : $($(3)__PrecompiledInclude) ; }
+  local use_pch = [ IncludePch $(2) : $(3) ] ;
   MakeDirectory $(1) : $(1:D) ;
   if $(GLOBAL_CacheDryRun) {
     CheckHeadersDry $(1) : $(2) : $($(3)__C_OPT) ;
@@ -958,28 +970,28 @@ rule CompileObjC
   }
 
   LOCATE    on $(2) = $(Root) ;
-  c_opt     on $(1) = $($(3)__C_OPT) $(opt)  ;
+  c_opt     on $(1) = [ StripUnusedPch $(use_pch) : $(3) : $($(3)__C_OPT) $(opt) ] ;
   pre_opt   on $(1) = $($(3)__PRE_OPT) ;
 
   if $(GLOBAL_CacheDryRun) { return ; }
   compile_obj_c $(1) : $(2) ;
 }
 
-# rule how to compile ObjC target
+# rule how to compile ObjC++ target
 #   params: ( target_pathname : sources : target )
 rule CompileObjCPP
 {
   Depends $(1) : $(2) ;
-  if $($(3)__PrecompiledInclude) { Includes $(2) : $($(3)__PrecompiledInclude) ; }
+  local use_pch = [ IncludePch $(2) : $(3) ] ;
   MakeDirectory $(1) : $(1:D) ;
   if $(GLOBAL_CacheDryRun) {
-    CheckHeadersDry $(1) : $(2) : $($(3)__C_OPT) ;
+    CheckHeadersDry $(1) : $(2) : $($(3)__CPP_OPT) ;
   } else {
     CheckHeaders $(<) : $(<:S=.d) ;
   }
 
   LOCATE    on $(2) = $(Root) ;
-  c_opt     on $(1) = $($(3)__C_OPT) $(opt)  ;
+  c_opt     on $(1) = [ StripUnusedPch $(use_pch) : $(3) : $($(3)__CPP_OPT) $(opt) ] ;
   pre_opt   on $(1) = $($(3)__PRE_OPT) ;
 
   if $(GLOBAL_CacheDryRun) { return ; }
@@ -1059,7 +1071,7 @@ rule CompileRC
     local defm = [ MATCH ^[\-\/]D(.*) : $(t) ] ;
     if $(defm) && ! -D$(defm) in $(rc_opt) { rc_opt += -D$(defm) ; }
   }
-  rc_opt    on $(1) = $(rc_opt) ;
+  rc_opt    on $(1) = $(rc_opt) $(opt) ;
   LOCATE    on $(2) = $(Root) ;
 
   if $(GLOBAL_CacheDryRun) { return ; }
@@ -1170,7 +1182,7 @@ rule CompileJamVarCpp
   Depends $(1) : $(dest_cpp) ;
   CheckHeaders $(1) : $(1:S=.d) ;
   LOCATE on $(dest_cpp) = . ;
-  cpp_opt on $(1) = $($(3)__CPP_OPT) ;
+  cpp_opt on $(1) = $($(3)__CPP_OPT) $(opt) ;
   pre_opt on $(1) = $($(3)__PRE_OPT) ;
   compile_cpp $(1) : $(dest_cpp) ;
 }
@@ -1272,7 +1284,7 @@ rule AotCompileBatchedGeneratedDAS
     exec_scripted_command $(dest_cpp) ;
 
     Depends $(dest_obj) : $(dest_cpp) $(batch_list) ;
-    if $($(2)__PrecompiledInclude) { Includes $(dest_cpp) : $($(2)__PrecompiledInclude) ; }
+    local use_pch = [ IncludePch $(dest_cpp) : $(2) ] ;
     MakeDirectory $(dest_obj) : $(dest_obj:D) ;
     if $(GLOBAL_CacheDryRun) {
       CheckHeadersDry $(dest_obj) : $(dest_cpp) : $($(2)__CPP_OPT) ;
@@ -1280,7 +1292,7 @@ rule AotCompileBatchedGeneratedDAS
       CheckHeaders $(dest_obj) : $(dest_cpp:S=.d) ;
     }
 
-    cpp_opt   on $(dest_obj) = $($(2)__CPP_OPT) $(DAS_AOT_CPP_OPT) ;
+    cpp_opt   on $(dest_obj) = [ StripUnusedPch $(use_pch) : $(2) : $($(2)__CPP_OPT) ] $(DAS_AOT_CPP_OPT) ;
     pre_opt   on $(dest_obj) = $($(2)__PRE_OPT) $(DAS_AOT_CPP_PRE_OPT)  ;
 
     compile_cpp $(dest_obj) : $(dest_cpp) ;
@@ -1767,6 +1779,7 @@ rule MarkSourcesChanged # sources : tmp_dir : recompile_list_varname : suffixes
   for src in $(1) {
     if ! $(src:S) in $(4) { continue ; }
     local obj_path = $(2)/$(src:S=$(_OBJ_SUFFIX)) ;
+    if $(src:S) = .rc { obj_path = $(obj_path:S=.res$(_OBJ_SUFFIX)) ; }
     ALWAYS $(obj_path) ;
     if ! $(src) in $($(3)) { $(3) += $(src) ; }
   }
@@ -1942,14 +1955,14 @@ rule ProcessTargetDigest # target : das_src
   if $(digest_gopt) != $(new_gopt) {
     DebugDigestDiff GlobalCPPopt : $(digest_gopt) : $(new_gopt) : $(digest) ;
     recompile_reasons += GlobalCPPopt ;
-    MarkSourcesChanged $(new_src) : $(tmp_dir) : recompile_list : .cpp .cxx .cc .mm .c .m .jamvar ;
+    MarkSourcesChanged $(new_src) : $(tmp_dir) : recompile_list : .cpp .cxx .cc .mm .c .m .jamvar .rc ;
     MarkSourcesChanged $(2) : . : recompile_list : .cpp ;
   }
   if $(digest_optCpp) != $(new_optCpp) || $(digest_CPP) != $(new_CPP) {
     DebugDigestDiff CPPopt : $(digest_optCpp) : $(new_optCpp) : $(digest) ;
     DebugDigestDiff CPP : $(digest_CPP) : $(new_CPP) : $(digest) ;
     recompile_reasons += CPPopt ;
-    MarkSourcesChanged $(new_src) : $(tmp_dir) : recompile_list : .cpp .cxx .cc .mm .jamvar ;
+    MarkSourcesChanged $(new_src) : $(tmp_dir) : recompile_list : .cpp .cxx .cc .mm .jamvar .rc ;
     MarkSourcesChanged $(2) : . : recompile_list : .cpp ;
   }
   if $(digest_optC) != $(new_optC) || $(digest_C) != $(new_C) {
@@ -1970,6 +1983,7 @@ rule ProcessTargetDigest # target : das_src
       if $(l) in $(digest_lopt) { continue ; }
       local src_name = [ MATCH ([^?]+)?.+ : $(l) ] ;
       local obj_path = $(tmp_dir)/$(src_name:S=$(_OBJ_SUFFIX)) ;
+      if $(src_name:S) = .rc { obj_path = $(obj_path:S=.res$(_OBJ_SUFFIX)) ; }
       ALWAYS $(obj_path) ;
       if ! $(src_name) in $(recompile_list) { recompile_list += $(src_name) ; }
     }
@@ -1981,6 +1995,7 @@ rule ProcessTargetDigest # target : das_src
         continue ;
       }
       local obj_path = $(tmp_dir)/$(src_name:S=$(_OBJ_SUFFIX)) ;
+      if $(src_name:S) = .rc { obj_path = $(obj_path:S=.res$(_OBJ_SUFFIX)) ; }
       ALWAYS $(obj_path) ;
       if ! $(src_name) in $(recompile_list) { recompile_list += $(src_name) ; }
     }
@@ -2099,7 +2114,9 @@ for t_lev in 0 1 2 3 4 5 6 7 8 {
       local pch = [ CreatePCH $(obj_path) : $(location)/$(src) : $(target) ] ;
       objs += $($(target)__PrecompiledName:S=$(_OBJ_SUFFIX)) ;
       $(target)__CPP_OPT += /Yu$($(target)__PrecompiledName).h /Fp$(pch) ;
+      $(target)__C_OPT += /Yu$($(target)__PrecompiledName).h /Fp$(pch) ;
       $(target)__PrecompiledInclude = $(location)/$($(target)__PrecompiledName).h ;
+      $(target)__PrecompiledFile = $(pch) ;
       LOCATE    on $($(target)__PrecompiledInclude) = $(Root) ;
     }
 

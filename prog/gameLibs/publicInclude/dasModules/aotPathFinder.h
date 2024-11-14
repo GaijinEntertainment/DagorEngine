@@ -168,32 +168,6 @@ inline bool tilecache_ri_obstacle_remove(rendinst::riex_handle_t ri_handle)
 {
   return pathfinder::tilecache_ri_obstacle_remove(ri_handle);
 }
-inline void walk_removed_tile_cache_tiles(const das::TBlock<void, const das::TTemporary<const das::TArray<uint32_t>>> &block,
-  das::Context *context, das::LineInfoArg *at)
-{
-  const Tab<uint32_t> &removedTiles = pathfinder::get_removed_tile_cache_tiles();
-  das::Array arr;
-  arr.data = (char *)removedTiles.data();
-  arr.size = uint32_t(removedTiles.size());
-  arr.capacity = arr.size;
-  arr.lock = 1;
-  arr.flags = 0;
-  vec4f arg = das::cast<das::Array *>::from(&arr);
-  context->invoke(block, &arg, nullptr, at);
-}
-inline void walk_removed_rebuild_tile_cache_tiles(const das::TBlock<void, const das::TTemporary<const das::TArray<uint32_t>>> &block,
-  das::Context *context, das::LineInfoArg *at)
-{
-  const Tab<uint32_t> &removedTiles = pathfinder::get_removed_rebuild_tile_cache_tiles();
-  das::Array arr;
-  arr.data = (char *)removedTiles.data();
-  arr.size = uint32_t(removedTiles.size());
-  arr.capacity = arr.size;
-  arr.lock = 1;
-  arr.flags = 0;
-  vec4f arg = das::cast<das::Array *>::from(&arr);
-  context->invoke(block, &arg, nullptr, at);
-}
 inline bool query_navmesh_projections(const Point3 &pos, das::float3 extents, int points_num,
   const das::TBlock<void, const das::TTemporary<const das::TArray<das::float3>>> &block, das::Context *context, das::LineInfoArg *at)
 {

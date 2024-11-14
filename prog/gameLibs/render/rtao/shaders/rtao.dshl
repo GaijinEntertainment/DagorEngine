@@ -16,8 +16,15 @@ int rtao_res_mul = 1;
 
 interval rtao_res_mul: off<2, on;
 
+define_macro_if_not_defined USE_EMISSION_DECODE_COLOR_MAP(code)
+endmacro
+
 shader rt_ao
 {
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    dont_render;
+  }
   ENABLE_ASSERT(cs)
 
   (cs) {
@@ -41,6 +48,7 @@ shader rt_ao
   INIT_ZNZFAR_STAGE(cs)
   INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
   USE_LOAD_DEPTH_GBUFFER_BASE(cs)
+  USE_EMISSION_DECODE_COLOR_MAP(cs)
   INIT_LOAD_GBUFFER_BASE(cs)
   INIT_LOAD_BVH_FLAGS_BASE(cs)
   USE_LOAD_GBUFFER_BASE(cs, 1)

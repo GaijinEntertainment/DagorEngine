@@ -1,10 +1,14 @@
 int rtsm_bindless_slot = -1;
+int csm_bindless_slot = -1;
+int csm_sampler_bindless_slot = -1;
 
 macro CHECKING_RTSM(stage)
   if (use_hw_raytracing)
   {
     (stage) {
       rtsm_bindless_slot@i1 = rtsm_bindless_slot;
+      csm_bindless_slot@i1 = csm_bindless_slot;
+      csm_sampler_bindless_slot@i1 = csm_sampler_bindless_slot;
     }
 
     hlsl (stage) {

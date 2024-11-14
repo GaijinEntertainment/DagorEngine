@@ -1,10 +1,13 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "host_shared_components.h"
-#include "device.h"
+#include <device.h>
 
-drv3d_dx12::HostDeviceSharedMemoryRegion drv3d_dx12::resource_manager::FramePushRingMemoryProvider::allocatePushMemory(
-  DXGIAdapter *adapter, Device &device, uint32_t size, uint32_t alignment)
+
+namespace drv3d_dx12::resource_manager
+{
+HostDeviceSharedMemoryRegion FramePushRingMemoryProvider::allocatePushMemory(DXGIAdapter *adapter, Device &device, uint32_t size,
+  uint32_t alignment)
 {
   auto result = pushRing.access()->allocate(this, adapter, device.getDevice(), size, alignment);
   // Here is a dangerous place for emergency defragmentation. We have a lot of push memory allocations from drv internal code (like
@@ -18,8 +21,8 @@ drv3d_dx12::HostDeviceSharedMemoryRegion drv3d_dx12::resource_manager::FramePush
   return result;
 }
 
-drv3d_dx12::HostDeviceSharedMemoryRegion drv3d_dx12::resource_manager::UploadRingMemoryProvider::allocateUploadRingMemory(
-  DXGIAdapter *adapter, Device &device, uint32_t size, uint32_t alignment)
+HostDeviceSharedMemoryRegion UploadRingMemoryProvider::allocateUploadRingMemory(DXGIAdapter *adapter, Device &device, uint32_t size,
+  uint32_t alignment)
 {
   auto result = uploadRing.access()->allocate(this, adapter, device.getDevice(), size, alignment);
   if (!result)
@@ -35,8 +38,8 @@ drv3d_dx12::HostDeviceSharedMemoryRegion drv3d_dx12::resource_manager::UploadRin
   return result;
 }
 
-drv3d_dx12::HostDeviceSharedMemoryRegion drv3d_dx12::resource_manager::TemporaryUploadMemoryProvider::allocateTempUpload(
-  DXGIAdapter *adapter, Device &device, size_t size, size_t alignment, bool &should_flush)
+HostDeviceSharedMemoryRegion TemporaryUploadMemoryProvider::allocateTempUpload(DXGIAdapter *adapter, Device &device, size_t size,
+  size_t alignment, bool &should_flush)
 {
   should_flush = false;
   HRESULT errorCode = S_OK;
@@ -56,8 +59,8 @@ drv3d_dx12::HostDeviceSharedMemoryRegion drv3d_dx12::resource_manager::Temporary
   return result;
 }
 
-drv3d_dx12::HostDeviceSharedMemoryRegion drv3d_dx12::resource_manager::TemporaryUploadMemoryProvider::
-  tryAllocateTempUploadForUploadBuffer(DXGIAdapter *adapter, ID3D12Device *device, size_t size, size_t alignment, HRESULT errorCode)
+HostDeviceSharedMemoryRegion TemporaryUploadMemoryProvider::tryAllocateTempUploadForUploadBuffer(DXGIAdapter *adapter,
+  ID3D12Device *device, size_t size, size_t alignment, HRESULT errorCode)
 {
   HostDeviceSharedMemoryRegion result;
   auto tempBufferAccess = tempBuffer.access();
@@ -82,8 +85,8 @@ drv3d_dx12::HostDeviceSharedMemoryRegion drv3d_dx12::resource_manager::Temporary
   return result;
 }
 
-drv3d_dx12::HostDeviceSharedMemoryRegion drv3d_dx12::resource_manager::TemporaryUploadMemoryProvider::
-  allocateTempUploadForUploadBuffer(DXGIAdapter *adapter, Device &device, size_t size, size_t alignment)
+HostDeviceSharedMemoryRegion TemporaryUploadMemoryProvider::allocateTempUploadForUploadBuffer(DXGIAdapter *adapter, Device &device,
+  size_t size, size_t alignment)
 {
   HRESULT errorCode = S_OK;
   const auto properties = getProperties(D3D12_RESOURCE_FLAG_NONE, TemporaryUploadMemoryImeplementation::memory_class,
@@ -104,8 +107,8 @@ drv3d_dx12::HostDeviceSharedMemoryRegion drv3d_dx12::resource_manager::Temporary
   return result;
 }
 
-drv3d_dx12::HostDeviceSharedMemoryRegion drv3d_dx12::resource_manager::PersistentUploadMemoryProvider::allocatePersistentUploadMemory(
-  DXGIAdapter *adapter, Device &device, size_t size, size_t alignment)
+HostDeviceSharedMemoryRegion PersistentUploadMemoryProvider::allocatePersistentUploadMemory(DXGIAdapter *adapter, Device &device,
+  size_t size, size_t alignment)
 {
   auto result = uploadMemory.access()->allocate(this, adapter, device.getDevice(), size, alignment);
   const auto properties = getProperties(D3D12_RESOURCE_FLAG_NONE, PersistentUploadMemoryImplementation::memory_class,
@@ -123,8 +126,8 @@ drv3d_dx12::HostDeviceSharedMemoryRegion drv3d_dx12::resource_manager::Persisten
   return result;
 }
 
-drv3d_dx12::HostDeviceSharedMemoryRegion drv3d_dx12::resource_manager::PersistentReadBackMemoryProvider::allocatePersistentReadBack(
-  DXGIAdapter *adapter, Device &device, size_t size, size_t alignment)
+HostDeviceSharedMemoryRegion PersistentReadBackMemoryProvider::allocatePersistentReadBack(DXGIAdapter *adapter, Device &device,
+  size_t size, size_t alignment)
 {
   auto result = readBackMemory.access()->allocate(this, adapter, device.getDevice(), size, alignment);
   const auto properties = getProperties(D3D12_RESOURCE_FLAG_NONE, PersistentReadBackMemoryImplementation::memory_class,
@@ -142,8 +145,8 @@ drv3d_dx12::HostDeviceSharedMemoryRegion drv3d_dx12::resource_manager::Persisten
   return result;
 }
 
-drv3d_dx12::HostDeviceSharedMemoryRegion drv3d_dx12::resource_manager::PersistentBidirectionalMemoryProvider::
-  allocatePersistentBidirectional(DXGIAdapter *adapter, Device &device, size_t size, size_t alignment)
+HostDeviceSharedMemoryRegion PersistentBidirectionalMemoryProvider::allocatePersistentBidirectional(DXGIAdapter *adapter,
+  Device &device, size_t size, size_t alignment)
 {
   auto result = bidirectionalMemory.access()->allocate(this, adapter, device.getDevice(), size, alignment);
   const auto properties = getProperties(D3D12_RESOURCE_FLAG_NONE, PersistentBidirectionalMemoryImplementation::memory_class,
@@ -160,3 +163,4 @@ drv3d_dx12::HostDeviceSharedMemoryRegion drv3d_dx12::resource_manager::Persisten
   }
   return result;
 }
+} // namespace drv3d_dx12::resource_manager

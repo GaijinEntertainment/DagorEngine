@@ -2,7 +2,7 @@
 #pragma once
 
 #include "drvCommonConsts.h"
-
+#include <cstdint>
 
 namespace drv3d_dx12
 {

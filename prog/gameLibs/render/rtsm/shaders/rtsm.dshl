@@ -21,6 +21,8 @@ texture denoiser_view_z;
 
 texture rtsm_dynamic_lights;
 
+texture perlin_noise3d;
+
 float rtsm_sun_angle_multiplier = 0.5;
 
 int rtsm_frame_index;
@@ -66,15 +68,25 @@ shader rt_shadows
 
   if (rtsm_render_mode == hard)
   {
+    hlsl(cs) {
+      #define TRACE_RAY_EXTRA_FLAGS RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH
+      #define BVH_TRANSLUCENCY_IS_DISSOLVE 1
+    }
     (cs) {
       combined_shadows@uav = combined_shadows hlsl { RWTexture2D<float4> combined_shadows@uav; };
+      perlin_noise3d@smp3d = perlin_noise3d;
     }
   }
   else if (rtsm_render_mode == denoised)
   {
+    hlsl (cs) {
+      #define TRACE_RAY_EXTRA_FLAGS RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH
+      #define BVH_TRANSLUCENCY_IS_DISSOLVE 1
+    }
     (cs) {
       rtsm_value@uav = rtsm_value hlsl { RWTexture2D<float2> rtsm_value@uav; };
       rtsm_denoised@uav = rtsm_denoised hlsl { RWTexture2D<float4> rtsm_denoised@uav; };
+      perlin_noise3d@smp3d = perlin_noise3d;
     }
   }
   else if (rtsm_render_mode == denoised_translucent)
@@ -88,6 +100,13 @@ shader rt_shadows
 
   hlsl(cs) {
     #define DISABLE_TOONSHADING 1
+
+    #if BVH_TRANSLUCENCY_IS_DISSOLVE
+      float get_dissolve_value_from_world_position(float3 world_pos)
+      {
+        return tex3Dlod(perlin_noise3d, float4(frac(world_pos * 10), 0)).x;
+      }
+    #endif
 
     #include <Include/NRDEncoding.hlsli>
     #include <Include/NRD.hlsli>

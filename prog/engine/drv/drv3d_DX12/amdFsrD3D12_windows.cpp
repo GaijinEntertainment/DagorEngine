@@ -1,18 +1,18 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include "amdFsr.h"
+#include <amdFsr.h>
+#include <amdFsr3Helpers.h>
 
+#include <drv/3d/dag_commands.h>
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_info.h>
-#include <drv/3d/dag_commands.h>
-#include <osApiWrappers/dag_dynLib.h>
-#include <osApiWrappers/dag_unicode.h>
 #include <ioSys/dag_dataBlock.h>
-#include <ffx_api/ffx_upscale.hpp>
+#include <osApiWrappers/dag_dynLib.h>
+#include <memory/dag_framemem.h>
 
 #include <ffx_api/dx12/ffx_api_dx12.hpp>
+#include <ffx_api/ffx_upscale.hpp>
 
-#include "amdFsr3Helpers.h"
 
 namespace amd
 {
@@ -48,7 +48,31 @@ public:
 
     if (isLoaded())
     {
-      logdbg("[AMDFSR] FSRD3D12Win created.");
+      uint64_t versionCount = 0;
+      ffx::QueryDescGetVersions versionsDesc{};
+      versionsDesc.createDescType = FFX_API_CREATE_CONTEXT_DESC_TYPE_UPSCALE;
+      versionsDesc.device = d3d::get_device();
+      versionsDesc.outputCount = &versionCount;
+      if (query(nullptr, &versionsDesc.header) == FFX_API_RETURN_OK)
+      {
+        dag::Vector<uint64_t, framemem_allocator> versionIds;
+        dag::Vector<const char *, framemem_allocator> versionNames;
+        versionIds.resize(versionCount);
+        versionNames.resize(versionCount);
+        versionsDesc.versionIds = versionIds.data();
+        versionsDesc.versionNames = versionNames.data();
+
+        if (versionCount > 0 && query(nullptr, &versionsDesc.header) == FFX_API_RETURN_OK)
+        {
+          for (int verIx = 0; verIx < versionCount; ++verIx)
+            logdbg("[AMDFSR] provider %llu - %s", versionIds[verIx], versionNames[verIx]);
+
+          // The first returned provider is FSR3 upscaling
+          upscalingVersionString = versionNames.front();
+        }
+      }
+
+      logdbg("[AMDFSR] FSRD3D12Win created. Upscaling use %s.", getVersionString().data());
     }
     else
     {
@@ -119,6 +143,8 @@ public:
 
   bool isFrameGenerationSupported() const override { return false; }
 
+  String getVersionString() const override { return upscalingVersionString; }
+
 private:
   eastl::unique_ptr<void, DagorDllCloser> fsrModule;
 
@@ -133,6 +159,8 @@ private:
   UpscalingMode upscalingMode = UpscalingMode::Off;
 
   uint32_t jitterIndex = 0;
+
+  String upscalingVersionString = String(8, "");
 };
 
 FSR *createD3D12Win() { return new FSRD3D12Win; }

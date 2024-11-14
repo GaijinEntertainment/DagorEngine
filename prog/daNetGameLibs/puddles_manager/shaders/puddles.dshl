@@ -59,11 +59,14 @@ macro USE_PUDDLE(stage)
       ##endif
     ##endif
 
-      void getPuddleData(float tc_world_pos_w, float3 worldPos, float hmapH, out float puddle, out float worldPosYPuddleOffset, out float puddleHeight)
+      void getPuddleData_impl(
+        float tc_world_pos_w, float3 worldPos, float hmapH, out float puddle, out float worldPosYPuddleOffset, inout float puddleHeight,
+        bool calculatePuddleHeight /*compile time const*/)
       {
         puddle = 0;
         worldPosYPuddleOffset = 0;
-        puddleHeight = 0;
+        if (calculatePuddleHeight)
+          puddleHeight = 0;
     ##if in_editor_assume != yes
         BRANCH
         if (world_to_puddles_ofs.x > 0)
@@ -72,7 +75,8 @@ macro USE_PUDDLE(stage)
           float2 vignette = saturate( abs(puddleBaseTc*2-1) * PUDDLE_VIGNETTE_MUL - PUDDLE_VIGNETTE_OFS );
           float vignetteEffect = saturate( 1.0 - dot( vignette, vignette ) );
           float2 puddleTc = puddleBaseTc-world_to_puddles_tex_ofs.xy;
-          puddleHeight = getPuddleHeight(hmapH, puddleTc);
+          if (calculatePuddleHeight)
+            puddleHeight = getPuddleHeight(hmapH, puddleTc);
           puddle = saturate(1-(tc_world_pos_w-puddleHeight)*puddle_hardness);
           float waterLevel = puddle_water_level;
           float underWaterEffect = saturate((tc_world_pos_w-waterLevel)*10);
@@ -81,7 +85,11 @@ macro USE_PUDDLE(stage)
         }
     ##endif
       }
-      void getPuddleData(float tc_world_pos_w, float3 worldPos, out float puddle, out float worldPosYPuddleOffset, out float puddleHeight)
+      void getPuddleData(float tc_world_pos_w, float3 worldPos, float hmapH, out float puddle, out float worldPosYPuddleOffset, inout float puddleHeight)
+      {
+        getPuddleData_impl(tc_world_pos_w, worldPos, hmapH, puddle, worldPosYPuddleOffset, puddleHeight, true);
+      }
+      void getPuddleData(float tc_world_pos_w, float3 worldPos, out float puddle, out float worldPosYPuddleOffset, inout float puddleHeight)
       {
         puddle = 0;
         worldPosYPuddleOffset = 0;
@@ -113,10 +121,10 @@ macro USE_AND_CALCULATE_PUDDLES()
   INIT_PUDDLE(ps)
   USE_PUDDLE(ps)
   hlsl (ps) {
-    half addPuddles(inout UnpackedGbuffer result, float3 worldPos, half tc_world_pos_w, float2 htTc, half porosity, float heightForPuddle)
+    half addPuddles_impl(inout UnpackedGbuffer result, float3 worldPos, half tc_world_pos_w, float2 htTc, half porosity, float heightForPuddle, float puddleHeight, bool calcPuddleData)
     {
-      float puddle, worldPosYPuddleOffset, puddleHeight;
-      getPuddleData(tc_world_pos_w, worldPos, heightForPuddle, puddle, worldPosYPuddleOffset, puddleHeight);
+      float puddle, worldPosYPuddleOffset;
+      getPuddleData_impl(tc_world_pos_w, worldPos, heightForPuddle, puddle, worldPosYPuddleOffset, puddleHeight, calcPuddleData);
 
       //todo: combine wetness from puddles with wetness from water
       float waterBorder;
@@ -141,6 +149,17 @@ macro USE_AND_CALCULATE_PUDDLES()
         result.reflectance = lerp(result.reflectance, water_reflectance, clamp_range(wetMaterial, 0.45, 0.95));
       }
       return puddle;
+    }
+
+    half addPuddles(inout UnpackedGbuffer result, float3 worldPos, half tc_world_pos_w, float2 htTc, half porosity, float heightForPuddle)
+    {
+      float puddleHeight = 0;
+      return addPuddles_impl(result, worldPos, tc_world_pos_w, htTc, porosity, heightForPuddle, puddleHeight, true);
+    }
+
+    half addPuddlesWithConstHeight(inout UnpackedGbuffer result, float3 worldPos, half tc_world_pos_w, float2 htTc, half porosity, float puddleHeight)
+    {
+      return addPuddles_impl(result, worldPos, tc_world_pos_w, htTc, porosity, tc_world_pos_w, puddleHeight, false);
     }
   }
 endmacro

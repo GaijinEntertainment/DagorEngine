@@ -5,7 +5,6 @@ include "sky_shader_global.dshl"
 include "contact_shadows.dshl"
 include "clouds_vars.dshl"
 include "tonemapHelpers/use_full_tonemap_lut_inc.dshl"
-include "heatHazeOffset.dshl"
 include "film_grain_inc.dshl"
 include "vignette_inc.dshl"
 include "flare_inc.dshl"
@@ -20,7 +19,6 @@ texture fire_on_screen_tex;
 texture flash_blind_screen_tex;
 texture smoke_blackout_tex;
 
-float4 chromatic_aberration_params = float4(0.01,0.007,1,0);
 float dash_ability_factor = 0;
 
 float confusion_effect_time_start = -1000;
@@ -58,8 +56,6 @@ interval antialiasing_type: dlss < 1, taa < 2, tsr;
 
 int fsr_on = 1;
 
-float contrast_adaptive_sharpening = -0.125;
-
 define_macro_if_not_defined INIT_POSTFX_MODIFIER()
 endmacro
 
@@ -88,7 +84,7 @@ hlsl(code)
 {
 float get_local_exposure(float3 frame, float2 tc)
 {
-  return getPrevExposureRatio();
+  return getExposureScale();
 }
 }
 endmacro
@@ -126,13 +122,11 @@ shader postfx
     fsr_on@i1 = (fsr_on);
     frame_tex@smp2d = frame_tex;
     frame_tex_resolution@f4 = (frame_tex_resolution.xy, 1/frame_tex_resolution.xy);
-    contrast_adaptive_sharpening@f1 = contrast_adaptive_sharpening;
     damage_indicator_color@f4 = (damage_indicator_color.x, damage_indicator_color.y, damage_indicator_color.z, damage_indicator);
     // 0.21 and 0.09 are arbitrary values, which look good with the effect
     damage_indicator_size__blood@f2 = (damage_indicator_size + 0.21 + 0.09*damage_indicator, blood_on_screen, 0, 0);
     blood_texture@smp2d = blood_texture;
     screen_droplets_tex@smp2d = screen_droplets_tex;
-    chromatic_aberration_params@f3 = chromatic_aberration_params;
     confusion_params@f4 = ((time_phase(0, 0) - confusion_effect_time_start) / confusion_effect_duration * confusion_effect_speed * 20,
                            (time_phase(0, 0) - confusion_effect_time_start) / confusion_effect_duration * confusion_effect_speed * 11,
                            (time_phase(0, 0) - confusion_effect_time_start) / confusion_effect_duration * -3.5,
@@ -186,32 +180,16 @@ shader postfx
     #define concussion_offset_time concussion_flash_fire_times.z
   }
 
-  INIT_HEAT_HAZE_OFFSET()
-  USE_HEAT_HAZE_OFFSET()
   COMMON_POSTFX()
   HDR_PS_OUTPUT(POSTFX_OUTPUT, float4)
   ENABLE_ASSERT(ps)
+  INIT_CONTRAST_ADAPTIVE_SHARPENING(ps)
   USE_CONTRAST_ADAPTIVE_SHARPENING(ps)
 
   hlsl(ps) {
     #include <noise/Value2D.hlsl>
     #include <noise/Value1D.hlsl>
     #include <pixelPacking/yCoCgSpace.hlsl>
-
-    float4 blurred_source2(float2 tc, float2 offset, out float4 centerSample){
-      //Can be changed to tex2Dlod with mipmap filter
-      float4 c0 = h4tex2Dlod(frame_tex, half4(tc + float2(-1, -1) * offset, 0.0, 0.0));
-      float4 c1 = h4tex2Dlod(frame_tex, half4(tc + float2(0, -1) * offset, 0.0, 0.0));
-      float4 c2 = h4tex2Dlod(frame_tex, half4(tc + float2(1, -1) * offset, 0.0, 0.0));
-      float4 c3 = h4tex2Dlod(frame_tex, half4(tc + float2(-1, 0) * offset, 0.0, 0.0));
-      float4 c4 = h4tex2Dlod(frame_tex, half4(tc, 0.0, 0.0));
-      float4 c5 = h4tex2Dlod(frame_tex, half4(tc + float2(1, 0) * offset, 0.0, 0.0));
-      float4 c6 = h4tex2Dlod(frame_tex, half4(tc + float2(-1, 1) * offset, 0.0, 0.0));
-      float4 c7 = h4tex2Dlod(frame_tex, half4(tc + float2(0, 1) * offset, 0.0, 0.0));
-      float4 c8 = h4tex2Dlod(frame_tex, half4(tc + float2(1, 1) * offset, 0.0, 0.0));
-      centerSample = c4;
-      return 0.0625f * (c0 + 2 * c1 + c2 + 2 * c3 + 4 * c4 + 2 * c5 + c6 + 2 * c7 + c8);
-    }
 
     float4 sample_quad(float2 tc, float2 offset){
       //Can be changed to tex2Dlod with mipmap filter
@@ -220,11 +198,6 @@ shader postfx
       float4 c01 = h4tex2Dlod(frame_tex, half4(tc + float2(-1, 1) * offset, 0.0, 0.0));
       float4 c11 = h4tex2Dlod(frame_tex, half4(tc + float2(1, 1) * offset, 0.0, 0.0));
       return 0.25f * (c00 + c10 + c01 + c11);
-    }
-
-    float4 blurred_source(float2 tc, float offset){
-      float4 centerSample;
-      return blurred_source2(tc, float2(offset,offset), centerSample);
     }
 
     #if MOBILE_DEVICE
@@ -434,77 +407,38 @@ shader postfx
         result = apply_vignette(result, tc);
     }
 
+    void apply_dof_effect(float2 tc, inout float3 frame)
+    {
+      #if HAS_FAR_DOF
+        #if COMPLICATED_DOF
+          half4 cLayerFar = get_dof_far(tc, dof_rt_size.xy);
+          frame = lerp(frame, cLayerFar.rgb, cLayerFar.a);
+        #endif
+      #endif
+      #if HAS_NEAR_DOF
+        #if !COMPLICATED_DOF
+          half4 cLayerNear = tex2D_bicubic(dof_near_layer, dof_near_layer_samplerstate, tc, dof_rt_size.xy);
+          frame = frame.rgb*cLayerNear.a + cLayerNear.rgb;
+        #else
+          half4 cLayerNear = get_dof_near(tc, dof_rt_size.xy);
+          frame = lerp(frame, cLayerNear.rgb, cLayerNear.a);
+        #endif
+      #endif
+    }
+
     POSTFX_OUTPUT postfx_ps(VsOutput input HW_USE_SCREEN_POS)
     {
       float4 pos = GET_SCREEN_POS(input.pos);
 
-      half2 distortionOffset;
-      half3 distortionOffsetMul;
-      half  distortionBlur;
-      sample_heat_haze_offset_mul_blur(input.tc, distortionOffset, distortionOffsetMul, distortionBlur);
-
-      float2 sceneUV = input.tc + distortionOffset;
+      float2 sceneUV = input.tc;
       half3 frame;
-      #if MOBILE_DEVICE
-        sampleSceneColor(sceneUV, frame);
-      #else
-        BRANCH
-        if (all(distortionOffsetMul == 1))
-        {
-          ##if (haze_offset_tex != NULL)
-            BRANCH
-            if (distortionBlur > distortionBlurThreshold)
-              frame = blurred_source(sceneUV, distortionBlur).rgb;
-            else
-          ##endif
-              frame = sampleSceneColor(sceneUV);
-        }
-        else
-        {
-          ##if (haze_offset_tex != NULL)
-            BRANCH
-            if (distortionBlur > distortionBlurThreshold)
-            {
-              frame.r = blurred_source(input.tc + distortionOffset * distortionOffsetMul.r, distortionBlur).r;
-              frame.g = blurred_source(input.tc + distortionOffset * distortionOffsetMul.g, distortionBlur).g;
-              frame.b = blurred_source(input.tc + distortionOffset * distortionOffsetMul.b, distortionBlur).b;
-            }
-            else
-          ##endif
-            {
-              frame.r = sampleSceneColor(input.tc + distortionOffset * distortionOffsetMul.r).r;
-              frame.g = sampleSceneColor(input.tc + distortionOffset * distortionOffsetMul.g).g;
-              frame.b = sampleSceneColor(input.tc + distortionOffset * distortionOffsetMul.b).b;
-            }
-        }
+    #if MOBILE_DEVICE
+      sampleSceneColor(sceneUV, frame);
+    #else
+      frame = sampleSceneColor(sceneUV);
+    #endif
 
-        BRANCH
-        if (chromatic_aberration_params.z < 1)
-        {
-          float2 screenPosR    = (input.tc + distortionOffset * distortionOffsetMul.r)*2-1;
-          float2 screenPosG    = (input.tc + distortionOffset * distortionOffsetMul.g)*2-1;
-          float4 screenPos     = float4(screenPosR, screenPosG);
-          float2 caRGScale     = chromatic_aberration_params.xy;
-          float  caStartOffset = chromatic_aberration_params.z;
-
-          float4 uvRG;
-          uvRG = screenPos - sign(screenPos) * saturate(abs(screenPos) - caStartOffset) * caRGScale.xxyy;
-          uvRG = uvRG*0.5+0.5;
-          ##if (haze_offset_tex != NULL)
-          BRANCH
-          if (distortionBlur > distortionBlurThreshold)
-          {
-            frame.r = blurred_source(uvRG.xy, distortionBlur).r;
-            frame.g = blurred_source(uvRG.zw, distortionBlur).g;
-          }
-          else
-          ##endif
-          {
-            frame.r = sampleSceneColor(uvRG.xy).r;
-            frame.g = sampleSceneColor(uvRG.zw).g;
-          }
-        }
-      #endif
+      apply_dof_effect(input.tc, frame);
 
       BRANCH
       if (confusion_params.z > -3.5)
@@ -525,22 +459,6 @@ shader postfx
       }
 
       apply_postfx_modifiers(sceneUV, frame);
-
-      #if HAS_FAR_DOF
-        #if COMPLICATED_DOF
-          half4 cLayerFar = get_dof_far(input.tc.xy, dof_rt_size.xy);
-          frame = lerp(frame, cLayerFar.rgb, cLayerFar.a);
-        #endif
-      #endif
-      #if HAS_NEAR_DOF
-        #if !COMPLICATED_DOF
-          half4 cLayerNear = tex2D_bicubic(dof_near_layer, dof_near_layer_samplerstate, input.tc.xy, dof_rt_size.xy);
-          frame = frame.rgb*cLayerNear.a + cLayerNear.rgb;
-        #else
-          half4 cLayerNear = get_dof_near(input.tc.xy, dof_rt_size.xy);
-          frame = lerp(frame, cLayerNear.rgb, cLayerNear.a);
-        #endif
-      #endif
 
       half3 result = common_postfx(frame, input.tc, get_local_exposure(frame, input.tc));
 

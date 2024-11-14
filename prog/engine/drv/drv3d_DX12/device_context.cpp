@@ -1,32 +1,27 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include "device.h"
-
-#include <osApiWrappers/dag_files.h>
-#include <ioSys/dag_dataBlock.h>
-#include <debug/dag_logSys.h>
-#include <perfMon/dag_statDrv.h>
-#include <EASTL/sort.h>
-#include <3d/dag_lowLatency.h>
-#include <3d/dag_gpuConfig.h>
-
-#include <drv_returnAddrStore.h>
-
-#if _TARGET_XBOX
-#include <osApiWrappers/xbox/app.h> // make_thread_time_sensitive
-#endif
-
-#include <util/dag_watchdog.h>
-#include <stereoHelper.h>
-
+#include "device_context.h"
 #include "frontend_state.h"
 #include "render_target_mask_util.h"
 
-#include "amdFsr.h"
+#include <3d/dag_gpuConfig.h>
+#include <3d/dag_lowLatency.h>
+#include <amdFsr.h>
+#include <debug/dag_logSys.h>
+#include <drv_returnAddrStore.h>
+#include <EASTL/sort.h>
+#include <ioSys/dag_dataBlock.h>
+#include <osApiWrappers/dag_files.h>
+#include <perfMon/dag_statDrv.h>
+#include <stereoHelper.h>
+#include <util/dag_watchdog.h>
 
-#if !_TARGET_XBOX
+#if _TARGET_XBOX
+#include <osApiWrappers/xbox/app.h> // make_thread_time_sensitive
+#else
 #include <d3d12video.h>
 #endif
+
 
 #define DX12_LOCK_FRONT() WinAutoLock lock(getFrontGuard())
 
@@ -129,6 +124,204 @@ TextureMipsCopyInfo drv3d_dx12::calculate_texture_mips_copy_info(const Image &te
   return copies;
 }
 
+void FrameInfo::init(ID3D12Device *device)
+{
+  genericCommands.init(device);
+  computeCommands.init(device);
+  earlyUploadCommands.init(device);
+  lateUploadCommands.init(device);
+  readBackCommands.init(device);
+
+  resourceViewHeaps = ShaderResourceViewDescriptorHeapManager //
+    {device, device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)};
+  samplerHeaps = SamplerDescriptorHeapManager //
+    {device, device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)};
+
+  progressEvent.reset(CreateEvent(nullptr, FALSE, FALSE, nullptr));
+}
+void FrameInfo::shutdown(DeviceQueueGroup &queue_group, PipelineManager &pipe_man)
+{
+  // have to check if the queue group was initialized properly to wait on frame progress
+  // also if progress is 0, this frame info was never used
+  if (queue_group.canWaitOnFrameProgress() && progress > 0)
+  {
+    wait_for_frame_progress_with_event(queue_group, progress, progressEvent.get(), "FrameInfo::shutdown");
+  }
+
+  genericCommands.shutdown();
+  computeCommands.shutdown();
+  earlyUploadCommands.shutdown();
+  lateUploadCommands.shutdown();
+  readBackCommands.shutdown();
+
+  for (auto &&prog : deletedPrograms)
+    pipe_man.removeProgram(prog);
+  deletedPrograms.clear();
+
+  for (auto &&prog : deletedGraphicPrograms)
+    pipe_man.removeProgram(prog);
+  deletedGraphicPrograms.clear();
+
+  deletedShaderModules.clear();
+
+  resourceViewHeaps = ShaderResourceViewDescriptorHeapManager{};
+  samplerHeaps = SamplerDescriptorHeapManager{};
+
+  backendQueryManager.shutdown();
+}
+
+int64_t FrameInfo::beginFrame(DeviceQueueGroup &queue_group, PipelineManager &pipe_man, uint32_t frame_idx)
+{
+  auto waitTicks = ref_time_ticks();
+  wait_for_frame_progress_with_event(queue_group, progress, progressEvent.get(), "FrameInfo::beginFrame");
+  waitTicks = ref_time_ticks() - waitTicks;
+
+  frameIndex = frame_idx;
+
+  backendQueryManager.flush();
+
+  genericCommands.frameReset();
+  computeCommands.frameReset();
+  earlyUploadCommands.frameReset();
+  lateUploadCommands.frameReset();
+  readBackCommands.frameReset();
+
+  for (auto &&prog : deletedPrograms)
+    pipe_man.removeProgram(prog);
+  deletedPrograms.clear();
+
+  for (auto &&prog : deletedGraphicPrograms)
+    pipe_man.removeProgram(prog);
+  deletedGraphicPrograms.clear();
+
+  deletedShaderModules.clear();
+
+  // usual ranges are from sub 100 to about 2k on resources and sub 100 to about 300 for samplers
+#if DX12_REPORT_DESCRIPTOR_USES
+  logdbg("DX12: Frame %u used %u resource descriptors", progress, resourceViewHeaps.getTotalUsedDescriptors());
+  logdbg("DX12: Frame %u used %u sampler descriptors", progress, samplerHeaps.getTotalUsedDescriptors());
+#endif
+
+  resourceViewHeaps.clearScratchSegments();
+  samplerHeaps.clearScratchSegment();
+
+  return waitTicks;
+}
+
+void FrameInfo::preRecovery(DeviceQueueGroup &queue_group, PipelineManager &pipe_man)
+{
+  wait_for_frame_progress_with_event(queue_group, progress, progressEvent.get(), "FrameInfo::preRecovery");
+
+  genericCommands.shutdown();
+  computeCommands.shutdown();
+  earlyUploadCommands.shutdown();
+  lateUploadCommands.shutdown();
+  readBackCommands.shutdown();
+
+  for (auto &&prog : deletedPrograms)
+    pipe_man.removeProgram(prog);
+  deletedPrograms.clear();
+
+  for (auto &&prog : deletedGraphicPrograms)
+    pipe_man.removeProgram(prog);
+  deletedGraphicPrograms.clear();
+
+  // handle?
+  // dag::Vector<ProgramID> deletedPrograms;
+  deletedShaderModules.clear();
+  resourceViewHeaps = ShaderResourceViewDescriptorHeapManager{};
+  samplerHeaps = SamplerDescriptorHeapManager{};
+  backendQueryManager.shutdown();
+  progress = 0;
+}
+
+void FrameInfo::recover(ID3D12Device *device)
+{
+#if _TARGET_PC_WIN
+  genericCommands.init(device);
+  computeCommands.init(device);
+  earlyUploadCommands.init(device);
+  lateUploadCommands.init(device);
+  readBackCommands.init(device);
+
+  resourceViewHeaps = ShaderResourceViewDescriptorHeapManager //
+    {device, device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)};
+  samplerHeaps = SamplerDescriptorHeapManager //
+    {device, device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)};
+#else
+  G_UNUSED(device);
+#endif
+}
+
+ID3D12CommandSignature *SignatureStore::getSignatureForStride(ID3D12Device *device, uint32_t stride, D3D12_INDIRECT_ARGUMENT_TYPE type)
+{
+  auto ref = eastl::find_if(begin(signatures), end(signatures),
+    [=](const SignatureInfo &si) { return si.type == type && si.stride == stride; });
+  if (end(signatures) == ref)
+  {
+    D3D12_INDIRECT_ARGUMENT_DESC arg;
+    D3D12_COMMAND_SIGNATURE_DESC desc;
+    desc.NumArgumentDescs = 1;
+    desc.pArgumentDescs = &arg;
+    desc.NodeMask = 0;
+
+    arg.Type = type;
+    desc.ByteStride = stride;
+
+    SignatureInfo info;
+    info.stride = stride;
+    info.type = type;
+    if (!DX12_CHECK_OK(device->CreateCommandSignature(&desc, nullptr, COM_ARGS(&info.signature))))
+    {
+      return nullptr;
+    }
+    ref = signatures.insert(ref, eastl::move(info));
+  }
+  return ref->signature.Get();
+}
+
+ID3D12CommandSignature *SignatureStore::getSignatureForStride(ID3D12Device *device, uint32_t stride, D3D12_INDIRECT_ARGUMENT_TYPE type,
+  GraphicsPipelineSignature &signature)
+{
+  uint8_t mask = signature.def.vertexShaderRegisters.specialConstantsMask | signature.def.pixelShaderRegisters.specialConstantsMask |
+                 signature.def.geometryShaderRegisters.specialConstantsMask | signature.def.hullShaderRegisters.specialConstantsMask |
+                 signature.def.domainShaderRegisters.specialConstantsMask;
+  bool has_draw_id = mask & dxil::SpecialConstantType::SC_DRAW_ID;
+  if (!has_draw_id)
+    return getSignatureForStride(device, stride, type);
+
+  ID3D12RootSignature *root_signature = signature.signature.Get();
+  auto ref = eastl::find_if(begin(signaturesEx), end(signaturesEx),
+    [=](const SignatureInfoEx &si) { return si.type == type && si.stride == stride && si.rootSignature == root_signature; });
+  if (end(signaturesEx) == ref)
+  {
+    D3D12_INDIRECT_ARGUMENT_DESC args[2] = {};
+    D3D12_COMMAND_SIGNATURE_DESC desc;
+    desc.NumArgumentDescs = 2;
+    desc.pArgumentDescs = args;
+    desc.NodeMask = 0;
+
+    args[0].Type = D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT;
+    args[0].Constant.Num32BitValuesToSet = 1;
+    args[0].Constant.RootParameterIndex = 0;
+    args[0].Constant.DestOffsetIn32BitValues = 0;
+    args[1].Type = type;
+    desc.ByteStride = stride;
+
+    SignatureInfoEx info;
+    info.stride = stride;
+    info.type = type;
+    info.rootSignature = root_signature;
+    if (!DX12_CHECK_OK(device->CreateCommandSignature(&desc, root_signature, COM_ARGS(&info.signature))))
+    {
+      return nullptr;
+    }
+    ref = signaturesEx.insert(ref, eastl::move(info));
+  }
+  return ref->signature.Get();
+}
+
+
 void DeviceContext::replayCommands()
 {
   ExecutionContext executionContext //
@@ -215,19 +408,23 @@ void DeviceContext::manageLatchedState(TidyFrameMode tidy_mode)
 {
   for (FrontendFrameLatchedData *nextFrame = nullptr;;)
   {
-    uint64_t gpuProgress = device.queues.checkFrameProgress();
+    uint64_t gpuProgress = device.queues.checkFrameProgress() + 1;
     for (auto &&latchedFrame : front.latchedFrameSet)
     {
-      if (latchedFrame.progress <= gpuProgress)
+      if (latchedFrame.progress < gpuProgress)
       {
         if (latchedFrame.progress)
         {
           tidyFrame(latchedFrame, tidy_mode);
-          gpuProgress = device.queues.checkFrameProgress();
+          gpuProgress = device.queues.checkFrameProgress() + 1;
         }
-        if (!nextFrame)
-          nextFrame = &latchedFrame;
+        nextFrame = &latchedFrame;
       }
+    }
+
+    if (DAGOR_UNLIKELY(gpuProgress == 0))
+    {
+      return;
     }
 
     if (nextFrame)
@@ -775,6 +972,28 @@ void DeviceContext::compilePipelineSet2(DynamicArray<InputLayoutIDWithHash> &&in
   immediateModeExecute();
 }
 
+void DeviceContext::shutdownWorkerThread()
+{
+#if !FIXED_EXECUTION_MODE
+  if (ExecutionMode::CONCURRENT == executionMode)
+#endif
+  {
+    if (worker)
+    {
+      commandStream.pushBack(make_command<CmdTerminate>());
+      // tell the worker to terminate
+      // it will execute all pending commands
+      // and then clean up and shutdown
+      worker->terminate(true);
+      worker.reset();
+    }
+    // switch to immediate mode if something else should come up
+#if !FIXED_EXECUTION_MODE
+    executionMode = ExecutionMode::IMMEDIATE;
+#endif
+  }
+}
+
 void DeviceContext::resizeSwapchain(Extent2D size)
 {
   front.swapchain.prepareForShutdown(device);
@@ -785,6 +1004,7 @@ void DeviceContext::resizeSwapchain(Extent2D size)
   SwapchainProperties props;
   props.resolution = size;
   set_hdr_config(props);
+  set_hfr_config(props);
   back.swapchain.bufferResize(device, props);
   front.swapchain.bufferResize(size);
   makeReadyForFrame(front.frameIndex);
@@ -1094,6 +1314,7 @@ void DeviceContext::setSRVTexture(uint32_t stage, size_t unit, BaseTex *texture,
     return;
   }
 
+  image->dbgValidateImageViewStateCompatibility(view);
   commandStream.pushBack(
     make_command<CmdSetSRVTexture>(stage, static_cast<uint32_t>(unit), image, view, device.getImageView(image, view), as_const_ds),
     false /*wake executor*/);
@@ -2197,13 +2418,16 @@ void DeviceContext::setRaytraceRootConstant(uint32_t offset, uint32_t size)
 #if _TARGET_PC_WIN
 void DeviceContext::preRecovery()
 {
-#if DAGOR_DBGLEVEL > 0
-  dumpCommandLog();
-#endif
+  dumpCommandLog(back.sharedContextState);
 
   mutex.lock();
-  finishInternal();
+
+  auto cmd = make_command<CmdFlushWithFence>(front.recordingWorkItemProgress);
+  commandStream.pushBack(cmd);
+  immediateModeExecute();
   waitForCommandFence();
+
+  closeFrameEndCallbacks();
 
   back.sharedContextState.preRecovery(device.queues, device.pipeMan);
   back.constBufferStreamDescriptors.shutdown();
@@ -2681,6 +2905,7 @@ void DeviceContext::executeXess(const XessParams &params)
   xessParams.inColor = cast_to_texture_base(params.inColor)->getDeviceImage();
   xessParams.inDepth = cast_to_texture_base(params.inDepth)->getDeviceImage();
   xessParams.inMotionVectors = cast_to_texture_base(params.inMotionVectors)->getDeviceImage();
+  xessParams.inExposure = params.inExposure ? cast_to_texture_base(params.inExposure)->getDeviceImage() : nullptr;
   xessParams.inJitterOffsetX = params.inJitterOffsetX;
   xessParams.inJitterOffsetY = params.inJitterOffsetY;
   xessParams.outColor = cast_to_texture_base(params.outColor)->getDeviceImage();
@@ -2953,7 +3178,7 @@ void DeviceContext::updateFenceProgress()
   DX12_LOCK_FRONT();
   for (auto &frame : front.latchedFrameSet)
   {
-    if (frame.progress && frame.progress <= device.queues.checkFrameProgress())
+    if (frame.progress && frame.progress < device.queues.checkFrameProgress() + 1)
     {
       tidyFrame(frame, TidyFrameMode::SyncPoint);
     }
@@ -3362,6 +3587,8 @@ void DeviceContext::ExecutionContext::setSRVTexture(uint32_t stage, uint32_t uni
   as_const_ds = as_const_ds || (image && (image->getFormat().isDepth() || image->getFormat().isDepth()));
 #endif
 
+  if (image)
+    image->dbgValidateImageViewStateCompatibility(view_state);
   contextState.stageState[stage].setSRVTexture(unit, image, view_state, as_const_ds, view);
 }
 
@@ -3603,18 +3830,16 @@ bool DeviceContext::ExecutionContext::checkDrawCallHasOutput(eastl::span<const c
 #endif
 }
 
-void DeviceContext::ExecutionContext::checkCloseCommandListResult(HRESULT result, eastl::string_view debug_name,
-  const CommandListLogger &logger) const
+void DeviceContext::ExecutionContext::checkCloseCommandListResult(HRESULT result, [[maybe_unused]] eastl::string_view debug_name,
+  [[maybe_unused]] const debug::CommandListLogger &logger) const
 {
-  G_UNUSED(debug_name);
-  G_UNUSED(logger);
   DX12_CHECK_RESULT(result);
 #if DAGOR_DBGLEVEL > 0
   if (FAILED(result))
   {
     D3D_ERROR("Command list '%s' close failed", debug_name);
-    self.dumpActiveFrameCommandLog();
-    CommandLogDecoder::dump_commands_to_log(logger.getCommands());
+    self.dumpActiveFrameCommandLog(self.back.sharedContextState);
+    debug::CommandLogDecoder::dump_commands_to_log(logger.getCommands());
   }
 #endif
 }
@@ -4262,9 +4487,7 @@ void DeviceContext::ExecutionContext::finishFrame(uint64_t progress, Drv3dTiming
   }
 
   self.makeReadyForFrame(front_frame + 1, present_on_swapchain);
-#if DAGOR_DBGLEVEL > 0
   self.initNextFrameLog();
-#endif
   device.pipeMan.evictDecompressionCache();
   continuePipelineSetCompilation();
   self.back.previousPresentEndTicks = ref_time_ticks();
@@ -5827,7 +6050,7 @@ void DeviceContext::ExecutionContext::executeXess(const XessParamsDx12 &params)
     return;
   }
 
-  prepareExecuteAA({params.inColor, params.inDepth, params.inMotionVectors}, {params.outColor});
+  prepareExecuteAA({params.inColor, params.inDepth, params.inMotionVectors, params.inExposure}, {params.outColor});
 
   self.xessWrapper.evaluateXess(static_cast<void *>(contextState.cmdBuffer.getHandle()), static_cast<const void *>(&params));
 
@@ -6568,53 +6791,43 @@ void DeviceContext::ExecutionContext::moveBuffer(BufferResourceReferenceAndOffse
 
 void DeviceContext::ExecutionContext::moveTexture(Image *from, Image *to)
 {
-  if (readyReadBackCommandList())
-  {
-    contextState.resourceStates.useTextureAsCopyDestinationForWholeCopyOnReadbackQueue(contextState.readbackBarrierBatch,
-      contextState.graphicsCommandListSplitBarrierTracker, to);
-    contextState.resourceStates.useTextureAsCopySourceForWholeCopyOnReadbackQueue(contextState.readbackBarrierBatch,
-      contextState.graphicsCommandListSplitBarrierTracker, from);
+  if (!readyReadBackCommandList())
+    return;
 
-    // Using multiple copyTextureRegion instead of copyResource is a workaround for an
-    // AMD RX 5700 XT issue, where copyResource for a heavy multidimensional resource may cause device hang.
+  contextState.resourceStates.useTextureAsCopyDestinationForWholeCopyOnReadbackQueue(contextState.readbackBarrierBatch,
+    contextState.graphicsCommandListSplitBarrierTracker, to);
+  contextState.resourceStates.useTextureAsCopySourceForWholeCopyOnReadbackQueue(contextState.readbackBarrierBatch,
+    contextState.graphicsCommandListSplitBarrierTracker, from);
+
+  // Using multiple copyTextureRegion instead of copyResource is a workaround for an
+  // AMD RX 5700 XT issue, where copyResource for a heavy multidimensional resource may cause device hang.
 #if _TARGET_PC_WIN
-    if (d3d_get_gpu_cfg().primaryVendor == D3D_VENDOR_AMD)
-    {
-      for (const auto subres : from->getSubresourceRange())
-      {
-        D3D12_TEXTURE_COPY_LOCATION copySrc{};
-        copySrc.pResource = from->getHandle();
-        copySrc.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-        copySrc.SubresourceIndex = subres.index();
-
-        D3D12_TEXTURE_COPY_LOCATION copyDst{};
-        copyDst.pResource = to->getHandle();
-        copyDst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-        copyDst.SubresourceIndex = subres.index();
-
-        contextState.activeReadBackCommandList.copyTextureRegion(&copyDst, 0, 0, 0, &copySrc, nullptr);
-      }
-    }
-    else
-#endif
-    {
-      contextState.activeReadBackCommandList.copyResource(to->getHandle(), from->getHandle());
-    }
-  }
-  else if (readyCommandList())
+  if (d3d_get_gpu_cfg().primaryVendor == D3D_VENDOR_AMD)
   {
-    contextState.resourceStates.useTextureAsCopySourceForWholeCopy(contextState.graphicsCommandListBarrierBatch,
-      contextState.graphicsCommandListSplitBarrierTracker, from);
-    contextState.resourceStates.useTextureAsCopyDestinationForWholeCopy(contextState.graphicsCommandListBarrierBatch,
-      contextState.graphicsCommandListSplitBarrierTracker, to);
+    for (const auto subres : from->getSubresourceRange())
+    {
+      D3D12_TEXTURE_COPY_LOCATION copySrc{};
+      copySrc.pResource = from->getHandle();
+      copySrc.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+      copySrc.SubresourceIndex = subres.index();
 
-    contextState.graphicsCommandListBarrierBatch.execute(contextState.cmdBuffer);
+      D3D12_TEXTURE_COPY_LOCATION copyDst{};
+      copyDst.pResource = to->getHandle();
+      copyDst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+      copyDst.SubresourceIndex = subres.index();
 
-    contextState.resourceStates.finishUseTextureAsCopyDestinationForWholeCopy(contextState.graphicsCommandListBarrierBatch,
-      contextState.graphicsCommandListSplitBarrierTracker, to);
-
-    contextState.cmdBuffer.copyResource(to->getHandle(), from->getHandle());
+      contextState.activeReadBackCommandList.copyTextureRegion(&copyDst, 0, 0, 0, &copySrc, nullptr);
+    }
   }
+  else
+#endif
+  {
+    contextState.activeReadBackCommandList.copyResource(to->getHandle(), from->getHandle());
+  }
+
+  // `from` is going to be removed, so we can safely update the last frame access for `to` texture only.
+  // This tracking is required to avoid reordering with the next frame early upload commands.
+  to->updateLastFrameAccess(self.back.frameProgress);
 
   dirtyTextureState(to);
   dirtyTextureState(from);

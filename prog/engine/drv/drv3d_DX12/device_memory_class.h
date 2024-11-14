@@ -1,9 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <drv/3d/rayTrace/dag_drvRayTrace.h>
-
 #include "driver.h"
+#include <drv/3d/rayTrace/dag_drvRayTrace.h>
 
 
 namespace drv3d_dx12

@@ -233,35 +233,35 @@ __forceinline void add_key(const Key &key, float time, bool isAdditional, T &tra
   track.insertKey(key, time + (isAdditional ? track.getLastTime() : 0));
 }
 
-inline void key_track_change_anim_es_event_handler(const CmdResetPosAnim &evt, AnimKeyTrackTransform &anim_key_track,
+inline void key_track_change_anim_es_event_handler(const key_track_anim::CmdResetPosAnim &evt, AnimKeyTrackTransform &anim_key_track,
   bool &anim_track_on)
 {
   reset_anim(evt.get<0>(), evt.get<1>(), evt.get<2>(), anim_key_track.pos);
   anim_track_on = true;
 }
 
-inline void key_track_change_anim_es_event_handler(const CmdResetRotAnim &evt, AnimKeyTrackTransform &anim_key_track,
+inline void key_track_change_anim_es_event_handler(const key_track_anim::CmdResetRotAnim &evt, AnimKeyTrackTransform &anim_key_track,
   bool &anim_track_on)
 {
   reset_anim(v_ldu(&evt.get<0>().x), evt.get<1>(), evt.get<2>(), anim_key_track.rot);
   anim_track_on = true;
 }
 
-inline void key_track_change_anim_es_event_handler(const CmdAddPosAnim &evt, AnimKeyTrackTransform &anim_key_track,
+inline void key_track_change_anim_es_event_handler(const key_track_anim::CmdAddPosAnim &evt, AnimKeyTrackTransform &anim_key_track,
   bool &anim_track_on)
 {
   add_key(evt.get<0>(), evt.get<1>(), evt.get<2>(), anim_key_track.pos);
   anim_track_on = true;
 }
 
-inline void key_track_change_anim_es_event_handler(const CmdAddRotAnim &evt, AnimKeyTrackTransform &anim_key_track,
+inline void key_track_change_anim_es_event_handler(const key_track_anim::CmdAddRotAnim &evt, AnimKeyTrackTransform &anim_key_track,
   bool &anim_track_on)
 {
   add_key(v_ldu(&evt.get<0>().x), evt.get<1>(), evt.get<2>(), anim_key_track.rot);
   anim_track_on = true;
 }
 
-inline void key_track_change_anim_es_event_handler(const CmdStopAnim &, bool &anim_track_on) { anim_track_on = false; }
+inline void key_track_change_anim_es_event_handler(const key_track_anim::CmdStopAnim &, bool &anim_track_on) { anim_track_on = false; }
 
 template <class KeyTrack, class Type>
 struct AttrKeyTrack
@@ -300,7 +300,7 @@ static __forceinline void attr_float_track_anim_es(const ecs::UpdateStageInfoAct
   anim_float_attr.animate(info, eid);
 }
 
-inline void attr_float_key_track_change_anim_es_event_handler(const CmdResetAttrFloatAnim &evt, ecs::EntityId eid,
+inline void attr_float_key_track_change_anim_es_event_handler(const key_track_anim::CmdResetAttrFloatAnim &evt, ecs::EntityId eid,
   AttrAnimKeyTrackFloat &anim_float_attr)
 {
   anim_float_attr.setName(evt.get<0>());
@@ -311,7 +311,7 @@ inline void attr_float_key_track_change_anim_es_event_handler(const CmdResetAttr
   }
 }
 
-inline void attr_float_key_track_change_anim_es_event_handler(const CmdAddAttrFloatAnim &evt, ecs::EntityId eid,
+inline void attr_float_key_track_change_anim_es_event_handler(const key_track_anim::CmdAddAttrFloatAnim &evt, ecs::EntityId eid,
   AttrAnimKeyTrackFloat &anim_float_attr)
 {
   if (g_entity_mgr->is<float>(eid, anim_float_attr.getCompName())) // we assume component can be removed. May be better listen for

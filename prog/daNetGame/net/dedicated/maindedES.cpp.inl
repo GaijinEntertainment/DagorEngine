@@ -24,25 +24,17 @@ extern void idle_loop();
 
 namespace dedicated
 {
-static void init()
+
+ECS_AFTER(on_gameapp_started_es)
+static void dedicated_init_on_appstart_es(const EventOnGameAppStarted &)
 {
   set_no_gameres_factory_fatal(false);
-
-  dedicated_matching::init();
-
-#if _TARGET_PC_WIN | _TARGET_PC_MACOSX // On Linux using workcycle::idle_loop() is called automatically from dagor_idle_cycle()
+#if !_TARGET_PC_LINUX // On Linux using workcycle::idle_loop() is called automatically from dagor_idle_cycle()
   // as close to start of new frame as possible (time calculation is relying on that)
   register_regular_action_to_idle_cycle([](void *) { workcycle_internal::idle_loop(); }, nullptr);
 #endif
-
+  dedicated_matching::init();
   g_entity_mgr->broadcastEventImmediate(DedicatedServerEventOnInit{});
-}
-
-
-ECS_AFTER(on_gameapp_started_es)
-static inline void dedicated_init_on_appstart_es_event_handler(const EventOnGameAppStarted &)
-{
-  delayed_call([]() { dedicated::init(); }); // DA to execute this after actual scene load
 }
 
 void update()

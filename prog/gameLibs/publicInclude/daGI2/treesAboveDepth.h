@@ -35,6 +35,6 @@ protected:
   TextureIDHolderWithVar trees2d;
   TextureIDHolderWithVar trees2dDepth, trees2dDepthMin;
   float trees2dDist = 384;
-  PostFxRenderer writeDepthToAlpha;
+  PostFxRenderer writeDepthToAlpha, clearRegions;
   Tab<IBBox2> regionsToClear, regionsToUpdate;
 };

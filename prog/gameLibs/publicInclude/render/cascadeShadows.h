@@ -89,7 +89,7 @@ private:
   CascadeShadows(ICascadeShadowsClient *in_client, const Settings &in_settings);
 
 public:
-  static CascadeShadows *make(ICascadeShadowsClient *in_client, const Settings &in_settings);
+  static CascadeShadows *make(ICascadeShadowsClient *in_client, const Settings &in_settings, String &&res_postfix = String());
   ~CascadeShadows();
 
   void prepareShadowCascades(const CascadeShadows::ModeSettings &mode_settings, const Point3 &dir_to_sun, const TMatrix &view_matrix,

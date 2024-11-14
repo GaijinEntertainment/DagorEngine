@@ -1,16 +1,16 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <EASTL/vector.h>
-#include <EASTL/unique_ptr.h>
-#include <generic/dag_tab.h>
-#include <supp/dag_comPtr.h>
-#include <atomic>
-#include <winapi_helpers.h>
-
+#include "descriptor_heap.h"
 #include "extents.h"
 #include "image_view_state.h"
-#include "descriptor_heap.h"
+
+#include <atomic>
+#include <EASTL/unique_ptr.h>
+#include <EASTL/vector.h>
+#include <generic/dag_tab.h>
+#include <supp/dag_comPtr.h>
+#include <winapi_helpers.h>
 
 
 namespace drv3d_dx12
@@ -33,6 +33,7 @@ struct SwapchainProperties
   bool enableHdr = false;
   WIN_MEMBER bool forceHdr = false;
   XBOX_MEMBER bool autoGameDvr = true;
+  XBOX_MEMBER bool preferHfr = false;
 };
 
 struct SwapchainCreateInfo : SwapchainProperties
@@ -142,9 +143,12 @@ class Swapchain
   XBOX_MEMBER uint32_t userFreqLevel = 1; // index of 60Hz in freqLevels from swapchain.cpp
   XBOX_MEMBER uint32_t systemFreqLevel = 1;
   XBOX_MEMBER uint32_t activeFreqLevel = 1;
+  XBOX_MEMBER bool isVrrSupportedValue = false;
 
   bool isHdrEnabled = false;
   XBOX_MEMBER bool autoGameDvr = true;
+  XBOX_MEMBER bool hfrSupported = false;
+  XBOX_MEMBER bool hfrEnabled = false;
 
   WIN_MEMBER bool isInExclusiveFullscreenModeEnabled = false;
   WIN_MEMBER bool isTearingSupported = false;
@@ -198,7 +202,14 @@ public:
   PresentationMode getPresentationMode() const { return presentMode; }
   void changePresentMode(PresentationMode mode) { presentMode = mode; }
 
-  WIN_FUNC bool isVrrSupported() const { return isTearingSupported && !isInExclusiveFullscreenModeEnabled; }
+  XBOX_FUNC bool isHfrEnabled() const { return hfrEnabled; }
+  XBOX_FUNC bool isHfrSupported() const { return hfrSupported; }
+
+#if _TARGET_XBOX
+  bool isVrrSupported() const { return isVrrSupportedValue; }
+#else
+  bool isVrrSupported() const { return isTearingSupported && !isInExclusiveFullscreenModeEnabled; }
+#endif
 };
 } // namespace backend
 } // namespace drv3d_dx12

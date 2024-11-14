@@ -1048,7 +1048,6 @@ __forceinline void profileNode ( SimNode * node ) {
                 auto RE = context.abiResult();
                 context.stopFlags = 0;
                 for ( uint32_t i=0, is=totalFinal; i!=is; ++i ) {
-                    DAS_KEEPALIVE_LOOP(&context);
                     finalList[i]->eval(context);
                 }
                 context.stopFlags = SF;

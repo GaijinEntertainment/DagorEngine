@@ -1,23 +1,22 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "basic_components.h"
+#include "image.h"
+#include <buffer.h>
+#include <device_memory_class.h>
+#include <extents.h>
+#include <format_store.h>
+#include <image_view_state.h>
+#include <resource_memory.h>
+#include <texture.h>
+#include <texture_subresource_util.h>
+
 #include <dag/dag_vector.h>
-#include <supp/dag_comPtr.h>
-#include <osApiWrappers/dag_spinlock.h>
-#include <math/dag_adjpow2.h>
 #include <generic/dag_objectPool.h>
-
-#include "texture.h"
-#include "extents.h"
-#include "format_store.h"
-#include "device_memory_class.h"
-#include "image_view_state.h"
-#include "buffer.h"
-#include "resource_memory.h"
-#include "texture_subresource_util.h"
-
-#include "resource_manager/basic_components.h"
-#include "resource_manager/image.h"
+#include <math/dag_adjpow2.h>
+#include <osApiWrappers/dag_spinlock.h>
+#include <supp/dag_comPtr.h>
 
 
 namespace drv3d_dx12

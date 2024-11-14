@@ -656,6 +656,8 @@ void AnimcharBaseComponent::calcAnimWtm(bool) { G_ASSERT(0); }
 bool AnimcharBaseComponent::initAttachmentTmAndNodeWtm(int, mat44f &) const { G_ASSERT_RETURN(false, false); }
 const mat44f *AnimcharBaseComponent::getSlotNodeWtm(int) const { G_ASSERT_RETURN(false, nullptr); }
 const mat44f *AnimcharBaseComponent::getAttachmentTm(int) const { G_ASSERT_RETURN(false, nullptr); }
+int AnimcharBaseComponent::getAttachmentSlotsCount() const { G_ASSERT_RETURN(false, 0); }
+int AnimcharBaseComponent::getAttachmentSlotId(const int) const { G_ASSERT_RETURN(false, 0); }
 void AnimcharBaseComponent::resetFastPhysWtmOfs(const vec3f wofs) { G_ASSERT(0); }
 void AnimcharBaseComponent::setFastPhysSystemGravityDirection(const Point3 &) { G_ASSERT(0); }
 void AnimcharBaseComponent::updateFastPhys(const float dt) { G_ASSERT(0); }
@@ -687,6 +689,7 @@ void AnimCommonStateHolder::setParamFlags(int, int, int) { G_ASSERT(0); }
 float AnimCommonStateHolder::getParamEffTimeScale(int) const { G_ASSERT_RETURN(false, 0.f); }
 int AnimCommonStateHolder::getTimeScaleParamId(int) const { G_ASSERT_RETURN(false, 0); }
 void AnimCommonStateHolder::setTimeScaleParamId(int, int) { G_ASSERT(0); }
+void AnimCommonStateHolder::advance(float) { G_ASSERT(0); }
 void AnimCommonStateHolder::term() { G_ASSERT(0); }
 
 void AnimBlender::buildNodeList() { G_ASSERT(0); }
@@ -698,6 +701,7 @@ namespace AnimCharV20
 {
 int getSlotId(const char *) { G_ASSERT_RETURN(false, 0); }
 int addSlotId(const char *) { G_ASSERT_RETURN(false, 0); }
+const char *getSlotName(const int) { G_ASSERT_RETURN(false, nullptr); }
 } // namespace AnimCharV20
 
 bool check_action_precondition(ecs::EntityId, int) { G_ASSERT_RETURN(false, false); }

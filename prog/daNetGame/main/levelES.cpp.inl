@@ -217,7 +217,7 @@ public:
   using BaseStreamingSceneHolder::mainBindump;
 
   ecs::EntityId eid;
-  bool waterHeightmapLoaded;
+  bool waterHeightmapLoaded = false;
   eastl::unique_ptr<RenderScene> rivers;
   eastl::unique_ptr<LandMeshManager> lmeshMgr;
   Tab<levelsplines::Spline> splines;
@@ -724,10 +724,6 @@ private:
 
     if (IRenderWorld *wr = get_world_renderer())
       wr->beforeLoadLevel(*levelBlk, eid);
-    add_load_level_action(this, levelBlk->getStr(LEVEL_BIN_NAME, "undefined"));
-
-    if (!sceneload::is_load_in_progress())
-      stop_animated_splash_screen_in_thread();
   }
 };
 
@@ -971,6 +967,13 @@ struct LocationHolder
     G_ASSERT_RETURN(*blkPath, );
     unload();
     level.reset(new StrmSceneHolder(blkPath, wdt, eid));
+    if (level_status != LEVEL_EMPTY)
+    {
+      add_load_level_action(level.get(), level->levelBlk->getStr(LEVEL_BIN_NAME, "undefined"));
+
+      if (!sceneload::is_load_in_progress())
+        stop_animated_splash_screen_in_thread();
+    }
   }
 
   ~LocationHolder()

@@ -83,7 +83,8 @@ void teardown();
 void init(ContextId context_id);
 void teardown(ContextId context_id);
 void on_unload_scene(ContextId context_id);
-void update_dynrend_instances(ContextId bvh_context_id, dynrend::ContextId dynrend_context_id, const Point3 &view_position);
+void update_dynrend_instances(ContextId bvh_context_id, dynrend::ContextId dynrend_context_id,
+  dynrend::ContextId dynrend_plane_context_id, const Point3 &view_position);
 void set_up_dynrend_context_for_processing(dynrend::ContextId dynrend_context_id);
 } // namespace dyn
 
@@ -411,12 +412,12 @@ void start_frame()
 
 void add_instance(ContextId context_id, uint64_t mesh_id, mat43f_cref transform)
 {
-  add_instance(context_id, context_id->genericInstances, mesh_id, transform, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-    nullptr, -1);
+  add_instance(context_id, context_id->genericInstances, mesh_id, transform, nullptr, false, nullptr, nullptr, nullptr, nullptr,
+    nullptr, nullptr, -1);
 }
 
 void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Frustum &frustum,
-  dynrend::ContextId *dynrend_context_id, RiGenVisibility *ri_gen_visibility)
+  dynrend::ContextId *dynrend_context_id, dynrend::ContextId *dynrend_plane_context_id, RiGenVisibility *ri_gen_visibility)
 {
   bvh_context_id->genericInstances.clear();
   for (auto &instances : bvh_context_id->dynrendInstances)
@@ -441,7 +442,7 @@ void update_instances(ContextId bvh_context_id, const Point3 &view_position, con
     ri::update_ri_extra_instances(bvh_context_id, view_position, frustum);
   }
   if (bvh_context_id->has(Features::DynrendRigidFull | Features::DynrendRigidBaked | Features::DynrendSkinnedFull))
-    dyn::update_dynrend_instances(bvh_context_id, *dynrend_context_id, view_position);
+    dyn::update_dynrend_instances(bvh_context_id, *dynrend_context_id, *dynrend_plane_context_id, view_position);
 }
 
 static __forceinline bool need_winding_flip(const Mesh &mesh, const Context::Instance &instance)
@@ -662,6 +663,8 @@ static void do_add_mesh(ContextId context_id, uint64_t mesh_id, const MeshInfo &
   memcpy(mesh.impostorOffsets, info.impostorOffsets, sizeof(mesh.impostorOffsets));
   if (info.isInterior)
     mesh.materialType = MeshMeta::bvhMaterialInterior;
+  else if (info.isClipmap)
+    mesh.materialType = MeshMeta::bvhMaterialTerrain;
   else
     mesh.materialType = MeshMeta::bvhMaterialRendinst;
 
@@ -1449,7 +1452,7 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
       auto &desc = hwInstances.emplace_back();
       desc.transform = instance.transform;
       desc.instanceID = metaIndex;
-      desc.instanceMask = group_mask;
+      desc.instanceMask = instance.noShadow ? bvhGroupNoShadow : group_mask;
       desc.instanceContributionToHitGroupIndex = perInstanceDataIndex;
       desc.flags = mesh.enableCulling ? (flipWinding ? RaytraceGeometryInstanceDescription::TRIANGLE_CULL_FLIP_WINDING
                                                      : RaytraceGeometryInstanceDescription::NONE)
@@ -1905,8 +1908,8 @@ void bind_resources(ContextId context_id, int render_width)
   static int bvh_atmosphere_texture_distanceVarId = get_shader_variable_id("bvh_atmosphere_texture_distance");
   static int bvh_paint_details_tex_slotVarId = get_shader_variable_id("bvh_paint_details_tex_slot");
   static int bvh_paint_details_smp_slotVarId = get_shader_variable_id("bvh_paint_details_smp_slot");
-  static int bvh_land_color_tex_slotVarId = get_shader_variable_id("bvh_land_color_tex_slot");
-  static int bvh_land_color_smp_slotVarId = get_shader_variable_id("bvh_land_color_smp_slot");
+  static int bvh_land_color_tex_slotVarId = get_shader_variable_id("bvh_land_color_tex_slot", true);
+  static int bvh_land_color_smp_slotVarId = get_shader_variable_id("bvh_land_color_smp_slot", true);
   static int bvh_mip_rangeVarId = get_shader_variable_id("bvh_mip_range");
   static int bvh_mip_scaleVarId = get_shader_variable_id("bvh_mip_scale");
   static int bvh_mip_biasVarId = get_shader_variable_id("bvh_mip_bias");
@@ -2045,6 +2048,8 @@ bool is_building(ContextId context_id)
 {
   return !context_id->halfBakedMeshes.empty() || context_id->hasPendingMeshActions.load(std::memory_order_relaxed);
 }
+
+void set_grass_range(ContextId context_id, float range) { context_id->grassRange = range; }
 
 void start_async_atmosphere_update(ContextId context_id, const Point3 &view_pos, atmosphere_callback callback)
 {

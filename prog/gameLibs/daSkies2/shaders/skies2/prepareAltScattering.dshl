@@ -298,6 +298,7 @@ shader skies_integrate_froxel_scattering_ps
 
 shader skies_integrate_froxel_scattering_cs
 {
+  ENABLE_ASSERT(cs)
   USE_PS5_WAVE32_MODE()
   FROXELS_SCATTERING(cs)
   hlsl(cs) {
@@ -366,7 +367,8 @@ shader skies_integrate_froxel_scattering_cs
       //tMax = min(tMax, prepare_resolution.w/1000);
 
       // Sample count
-      float tMax = prepare_resolution.w/1000/skies_frustum_scattering_last_tz;
+      ##assert(skies_frustum_scattering_last_tz != 0.0);
+      float tMax = prepare_resolution.w/1000/max(skies_frustum_scattering_last_tz, 0.1);
       float prevD = 0;
 
       // Phase functions
@@ -379,7 +381,9 @@ shader skies_integrate_froxel_scattering_cs
       // Ray march the atmosphere to integrate optical depth
       IrradianceSpectrum L = IrradianceSpectrum(0.0f,0.0f,0.0f);
       DimensionlessSpectrum throughput = DimensionlessSpectrum(1.0,1.0,1.0);
-      uint sampleCount = (skies_frustum_scattering_last_tz < 1) ? uint(skies_froxels_resolution.z)-1 : uint(skies_froxels_resolution.z);
+
+      ##assert(all(skies_froxels_resolution != 0.0));
+      uint sampleCount = (skies_frustum_scattering_last_tz < 1) ? max(uint(skies_froxels_resolution.z), 1)-1 : uint(skies_froxels_resolution.z);
       sampleCount <<= DOUBLE_SAMPLING;
 
       for (uint i = 0; i < sampleCount; i++)

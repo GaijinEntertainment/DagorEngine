@@ -1,6 +1,10 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <debug/dag_assert.h>
+#include <osApiWrappers/dag_atomic.h>
+
+
 template <typename H, H NullValue, typename T>
 class TaggedHandle
 {

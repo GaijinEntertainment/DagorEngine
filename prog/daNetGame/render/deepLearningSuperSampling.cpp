@@ -92,43 +92,37 @@ DeepLearningSuperSampling::DeepLearningSuperSampling(const IPoint2 &outputResolu
     dlss->setOptions(0, mode, outputResolution, optimalSettings->sharpness);
   }
 
-  applierNode = resource_slot::register_access("dlss", DABFG_PP_NODE_SRC,
-    {resource_slot::Create{"postfx_input_slot", "frame_for_postfx"}},
-    [this](resource_slot::State slotsState, dabfg::Registry registry) {
-      auto opaqueFinalTargetHndl = registry.readTexture("final_target_with_motion_blur")
-                                     .atStage(dabfg::Stage::PS_OR_CS)
-                                     .useAs(dabfg::Usage::SHADER_RESOURCE)
-                                     .handle();
-      auto depthHndl =
-        registry.readTexture("depth_after_transparency").atStage(dabfg::Stage::PS_OR_CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
-      auto motionVectorsHndl = registry.readTexture("motion_vecs_after_transparency")
-                                 .atStage(dabfg::Stage::PS_OR_CS)
-                                 .useAs(dabfg::Usage::SHADER_RESOURCE)
-                                 .handle();
-      auto exposureNormFactorHndl = registry.readTexture("exposure_normalization_factor")
-                                      .atStage(dabfg::Stage::PS_OR_CS)
-                                      .useAs(dabfg::Usage::SHADER_RESOURCE)
-                                      .handle();
-      auto antialiasedHndl = registry
-                               .createTexture2d(slotsState.resourceToCreateFor("postfx_input_slot"), dabfg::History::No,
-                                 {TEXFMT_A16B16G16R16F | TEXCF_UNORDERED | TEXCF_RTARGET, registry.getResolution<2>("display")})
+  applierNode = dabfg::register_node("dlss", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+    auto opaqueFinalTargetHndl = registry.readTexture("final_target_with_motion_blur")
+                                   .atStage(dabfg::Stage::PS_OR_CS)
+                                   .useAs(dabfg::Usage::SHADER_RESOURCE)
+                                   .handle();
+    auto depthHndl =
+      registry.readTexture("depth_after_transparency").atStage(dabfg::Stage::PS_OR_CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
+    auto motionVectorsHndl = registry.readTexture("motion_vecs_after_transparency")
                                .atStage(dabfg::Stage::PS_OR_CS)
-                               .useAs(dabfg::Usage::COLOR_ATTACHMENT)
+                               .useAs(dabfg::Usage::SHADER_RESOURCE)
                                .handle();
-      auto camera = registry.readBlob<CameraParams>("current_camera").handle();
-      auto cameraHistory = registry.readBlobHistory<CameraParams>("current_camera").handle();
+    auto exposureTexHndl =
+      registry.readTexture("exposure_tex").atStage(dabfg::Stage::PS_OR_CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
+    auto antialiasedHndl = registry
+                             .createTexture2d("frame_after_aa", dabfg::History::No,
+                               {TEXFMT_A16B16G16R16F | TEXCF_UNORDERED | TEXCF_RTARGET, registry.getResolution<2>("display")})
+                             .atStage(dabfg::Stage::PS_OR_CS)
+                             .useAs(dabfg::Usage::COLOR_ATTACHMENT)
+                             .handle();
+    auto camera = registry.readBlob<CameraParams>("current_camera").handle();
+    auto cameraHistory = registry.readBlobHistory<CameraParams>("current_camera").handle();
 
-      return
-        [this, depthHndl, motionVectorsHndl, exposureNormFactorHndl, opaqueFinalTargetHndl, antialiasedHndl, camera, cameraHistory] {
-          OptionalInputParams params;
-          params.depth = depthHndl.view().getTex2D();
-          params.motion = motionVectorsHndl.view().getTex2D();
-          params.exposure = exposureNormFactorHndl.view().getTex2D();
-          dlss_render(opaqueFinalTargetHndl.view().getTex2D(), antialiasedHndl.view().getTex2D(), jitterOffset, params, camera.ref(),
-            cameraHistory.ref());
-        };
-    });
-
+    return [this, depthHndl, motionVectorsHndl, exposureTexHndl, opaqueFinalTargetHndl, antialiasedHndl, camera, cameraHistory] {
+      OptionalInputParams params;
+      params.depth = depthHndl.view().getTex2D();
+      params.motion = motionVectorsHndl.view().getTex2D();
+      params.exposure = exposureTexHndl.view().getTex2D();
+      dlss_render(opaqueFinalTargetHndl.view().getTex2D(), antialiasedHndl.view().getTex2D(), jitterOffset, params, camera.ref(),
+        cameraHistory.ref());
+    };
+  });
   if (dlss->isFrameGenerationSupported())
   {
     if (::dgs_get_settings()->getBlockByNameEx("video")->getBool("dlssFrameGeneration", false))

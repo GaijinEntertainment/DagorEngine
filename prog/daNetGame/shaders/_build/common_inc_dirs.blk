@@ -29,6 +29,7 @@ incDir:t="../../../prog/gameLibs/render/rtsm/shaders"
 //incDir:t="../../../prog/gameLibs/daGI/shaders"
 
 incDir:t="../../../prog/gameLibs/render/rtr/shaders"
+incDir:t="../../../prog/gameLibs/render/rtao/shaders"
 incDir:t="../../../prog/gameLibs/bvh/shaders"
 incDir:t="../../../prog/gameLibs/render/denoiser/shaders/NRD"
 

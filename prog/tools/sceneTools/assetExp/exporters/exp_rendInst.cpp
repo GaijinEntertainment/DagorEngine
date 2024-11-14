@@ -26,7 +26,7 @@ public:
   virtual unsigned __stdcall getGameResClassId() const { return RendInstGameResClassId; }
   virtual unsigned __stdcall getGameResVersion() const
   {
-    const int ord_ver = 3;
+    const int ord_ver = 4;
     const int base_ver = 26 + ord_ver * 6 + (splitMatToDescBin && !shadermeshbuilder_strip_d3dres ? 3 : 0);
     return base_ver + (ShaderMeshData::preferZstdPacking ? (ShaderMeshData::allowOodlePacking ? 2 : 1) : 0);
   }

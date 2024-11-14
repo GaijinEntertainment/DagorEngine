@@ -65,7 +65,7 @@ if (dynamic_lights_count != lights_off)
       #define USE_SUBGROUP_BROADCAST 0
 
       // TODO: move this to shader compiler predefines
-      #if (defined(_HARDWARE_XBOX) || defined(_HARDWARE_PS4) || defined(_HARDWARE_PS5)) && !defined(WaveGetLaneCount)
+      #if !defined(WaveGetLaneCount)
         uint WaveGetLaneCount() { return 64; }
       #endif
 

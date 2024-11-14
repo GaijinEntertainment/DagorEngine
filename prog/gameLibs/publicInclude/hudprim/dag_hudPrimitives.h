@@ -76,18 +76,22 @@ struct BufferedText
 struct HudTexElem
 {
   TEXTUREID skinTex;
+  d3d::SamplerHandle smp;
   // lt, lb, rb, rt
   carray<Point2, 4> tc;
 
-  HudTexElem() : skinTex(BAD_TEXTUREID), tc() {}
+  HudTexElem() : skinTex(BAD_TEXTUREID), smp(d3d::INVALID_SAMPLER_HANDLE), tc() {}
 
-  HudTexElem(TEXTUREID skin_tex, const Point2 &tc_lt = Point2(0.f, 0.f), const Point2 &tc_rb = Point2(1.f, 1.f)) : skinTex(skin_tex)
+  HudTexElem(TEXTUREID skin_tex, d3d::SamplerHandle smp_id, const Point2 &tc_lt = Point2(0.f, 0.f),
+    const Point2 &tc_rb = Point2(1.f, 1.f)) :
+    skinTex(skin_tex), smp(smp_id)
   {
     setTc(tc_lt, tc_rb);
   }
 
-  HudTexElem(TEXTUREID skin_tex, const Point2 &tc_lt, const Point2 &tc_lb, const Point2 &tc_rb, const Point2 &tc_rt) :
-    skinTex(skin_tex)
+  HudTexElem(TEXTUREID skin_tex, d3d::SamplerHandle smp_id, const Point2 &tc_lt, const Point2 &tc_lb, const Point2 &tc_rb,
+    const Point2 &tc_rt) :
+    skinTex(skin_tex), smp(smp_id)
   {
     tc[0] = tc_lt;
     tc[1] = tc_lb;
@@ -115,6 +119,8 @@ struct HudShader : StdGuiRender::GuiShader
 
     TEXTUREID currentTexture;
     TEXTUREID maskTexId;
+    d3d::SamplerHandle currentSampler;
+    d3d::SamplerHandle maskSampler;
 
     Point3 maskMatrix0;
     Point3 maskMatrix1;
@@ -130,6 +136,8 @@ struct HudShader : StdGuiRender::GuiShader
       currentBlueToAlpha = Color4(0, 0, 0, 1);
       currentTexture = BAD_TEXTUREID;
       maskTexId = BAD_TEXTUREID;
+      currentSampler = d3d::INVALID_SAMPLER_HANDLE;
+      maskSampler = d3d::INVALID_SAMPLER_HANDLE;
       maskMatrix0 = Point3(0, 0, 0);
       maskMatrix1 = Point3(0, 0, 0);
 
@@ -140,6 +148,7 @@ struct HudShader : StdGuiRender::GuiShader
       maskEnable = false;
     }
   };
+  static_assert(sizeof(StdGuiRender::ExtState) == sizeof(ExtStateLocal), "ExtState size mismatch");
 
   virtual void channels(const CompiledShaderChannelId *&channels, int &num_channels);
   virtual void link();
@@ -232,6 +241,7 @@ public:
 
   E3DCOLOR *getColorForModify(int color_id);
   TEXTUREID getWhiteTexId();
+  d3d::SamplerHandle getWhiteSampler() const;
   static Texture *getWhiteTex();
   void loadFromBlk(const DataBlock *blk);
 
@@ -278,18 +288,18 @@ public:
   RenderMode setRenderMode(RenderMode mode);
 
   void setStencil(int stencil_ref_value);
-  void updateState(TEXTUREID texture_id);
+  void updateState(TEXTUREID texture_id, d3d::SamplerHandle smp_id);
 
   // Deprected drawing method without clipping, 3d, and stereo support so
   // do not use it anymore
-  void renderQuadScreenSpaceDeprecated(TEXTUREID texture_id, E3DCOLOR color, const Point4 &p0, const Point4 &p1, const Point4 &p2,
-    const Point4 &p3, const Point2 &tc0 = Point2(0.f, 0.f), const Point2 &tc1 = Point2(0.f, 1.f), const Point2 &tc2 = Point2(1.f, 1.f),
-    const Point2 &tc3 = Point2(1.f, 0.f), const E3DCOLOR *vertex_colors = NULL);
+  void renderQuadScreenSpaceDeprecated(TEXTUREID texture_id, d3d::SamplerHandle smp, E3DCOLOR color, const Point4 &p0,
+    const Point4 &p1, const Point4 &p2, const Point4 &p3, const Point2 &tc0 = Point2(0.f, 0.f), const Point2 &tc1 = Point2(0.f, 1.f),
+    const Point2 &tc2 = Point2(1.f, 1.f), const Point2 &tc3 = Point2(1.f, 0.f), const E3DCOLOR *vertex_colors = NULL);
 
   void renderQuadScreenSpaceDeprecated(const HudTexElem &elem, E3DCOLOR color, const Point4 &p0, const Point4 &p1, const Point4 &p2,
     const Point4 &p3, const E3DCOLOR *vertex_colors = NULL)
   {
-    renderQuadScreenSpaceDeprecated(elem.skinTex, color, p0, p1, p2, p3, elem.tc[0], elem.tc[1], elem.tc[2], elem.tc[3],
+    renderQuadScreenSpaceDeprecated(elem.skinTex, elem.smp, color, p0, p1, p2, p3, elem.tc[0], elem.tc[1], elem.tc[2], elem.tc[3],
       vertex_colors);
   }
 
@@ -302,7 +312,7 @@ public:
 
   void renderPoly(TEXTUREID texture_id, E3DCOLOR color, dag::ConstSpan<Point2> p, dag::ConstSpan<Point2> tc);
 
-  void renderTriFan(TEXTUREID texture_id, E3DCOLOR color, dag::ConstSpan<Point4> p, dag::ConstSpan<Point2> tc);
+  void renderTriFan(TEXTUREID texture_id, d3d::SamplerHandle smp, E3DCOLOR color, dag::ConstSpan<Point4> p, dag::ConstSpan<Point2> tc);
 
   void drawPrims(int d3d_prim, int num_prim, const HudVertex *ptr)
   {

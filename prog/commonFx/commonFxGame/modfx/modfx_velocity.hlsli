@@ -30,14 +30,14 @@ bool modfx_scene_collision_sample( float3 wpos, GlobalData_cref gdata, uint flag
   if (!(flags & MODFX_COLLIDE_WITH_DEPTH))
     return false;
 
-  float4 spos = mul( float4( wpos, 1 ), gdata.globtm );
+  float4 spos = mul( float4( wpos, 1 ), gdata.globtm_prev );
   spos.xyz /= spos.w;
 
   o_stc = float2( spos.xy * float2( 0.5, -0.5 ) + float2( 0.5, 0.5 ) );
   if ( o_stc.x < 0 || o_stc.y < 0 || o_stc.x >= 1.f || o_stc.y >= 1 )
     return false;
 
-  o_tci = o_stc.xy * gdata.depth_size.xy;
+  o_tci = o_stc.xy * gdata.depth_size_for_collision.xy;
 
   o_proj_depth = dafx_linearize_z( spos.z, gdata );
   o_scene_depth = dafx_sample_linear_depth( o_tci, gdata );
@@ -153,12 +153,12 @@ bool modfx_collide_with_scene_depth( float3 wpos, GlobalData_cref gdata,
   if (!modfx_collide_with_scene(COLLIDE_TYPE_SCENE_DEPTH, wpos, gdata, MODFX_COLLIDE_WITH_DEPTH, scene_depth, proj_depth, stc, tci, vel, cr, dt, invert_normal, tex_size))
     return false;
 
-  uint2 tci_n0 = uint2( min(tci.x + 1, gdata.depth_size.x), tci.y );
-  uint2 tci_n1 = uint2( tci.x, min(tci.y + 1, gdata.depth_size.y) );
+  uint2 tci_n0 = uint2( min(tci.x + 1, gdata.depth_size_for_collision.x), tci.y );
+  uint2 tci_n1 = uint2( tci.x, min(tci.y + 1, gdata.depth_size_for_collision.y) );
 
   float3 w0 = gdata.world_view_pos + lerp_view_vec( stc ) * scene_depth;
-  float3 w1 = gdata.world_view_pos + lerp_view_vec( stc + float2( gdata.depth_size_rcp.x, 0 ) ) * dafx_sample_linear_depth( tci_n0, gdata );
-  float3 w2 = gdata.world_view_pos + lerp_view_vec( stc + float2( 0, gdata.depth_size_rcp.y ) ) * dafx_sample_linear_depth( tci_n1, gdata );
+  float3 w1 = gdata.world_view_pos + lerp_view_vec( stc + float2( gdata.depth_size_rcp_for_collision.x, 0 ) ) * dafx_sample_linear_depth( tci_n0, gdata );
+  float3 w2 = gdata.world_view_pos + lerp_view_vec( stc + float2( 0, gdata.depth_size_rcp_for_collision.y ) ) * dafx_sample_linear_depth( tci_n1, gdata );
 
   o_scene_normal = normalize( cross( w1 - w0, w2 - w0 ) );
   if ( invert_normal ) // behind the wall

@@ -225,8 +225,8 @@ private:
 CPPalette ColorDialog::palette;
 int ColorDialog::rb_sel = ID_RADIO_H;
 
-ColorDialog::ColorDialog(void *phandle, const char caption[], E3DCOLOR color) :
-  DialogWindow(phandle, _pxScaled(760), _pxScaled(370), caption, false)
+ColorDialog::ColorDialog(void *phandle, const char caption[], E3DCOLOR color, hdpi::Px w, hdpi::Px h) :
+  DialogWindow(phandle, w, h, caption, false)
 {
   setColor(color);
   fillPanel(ColorDialog::getPanel());

@@ -1,14 +1,16 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <supp/dag_comPtr.h>
-#include <EASTL/vector.h>
-#include <EASTL/unique_ptr.h>
-
-#include "driver.h"
 #include "d3d12_error_handling.h"
 #include "d3d12_utils.h"
-#include "value_range.h"
+#include "driver.h"
+
+#include <dag/dag_vector.h>
+#include <EASTL/unique_ptr.h>
+#include <EASTL/vector.h>
+#include <generic/dag_bitset.h>
+#include <supp/dag_comPtr.h>
+#include <value_range.h>
 
 
 namespace drv3d_dx12

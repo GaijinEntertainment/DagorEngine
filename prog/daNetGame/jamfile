@@ -187,6 +187,7 @@ if $(Platform) in windows && $(HaveRenderer) = yes && $(ExportOptimus) = yes {
 if $(HaveRenderer) = yes && ( $(Platform)-$(PlatformArch) = windows-x86_64 ||  $(Platform) in linux scarlett ) {
   BVHSupport = yes ;
   BVHRi = yes ;
+  BVHCables = yes ;
   BVHRandomGrass = no ;
   BVHGpuObjects = no ;
   BVHDynRend = no ;
@@ -341,6 +342,7 @@ UseProgLibs =
   gameLibs/bvh
   gameLibs/render/rtsm
   gameLibs/render/rtr
+  gameLibs/render/rtao
   gameLibs/render/objectMotionBlur
 ;
 

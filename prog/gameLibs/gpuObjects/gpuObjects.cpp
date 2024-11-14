@@ -652,8 +652,29 @@ void GpuObjects::update(const Point3 &origin)
 
   if (!objects.empty())
   {
+    auto bvhConnectionLocal = bvhConnection; // to please the analyzer
+    const bool useBvhConnection = bvhConnectionLocal && bvhConnectionLocal->isReady() && gpu_objects_use_bvhVarId > -1;
+
+    if (useBvhConnection && bvhConnectionLocal->prepare())
+    {
+      ShaderGlobal::set_int(gpu_objects_bvh_max_countVarId,
+        bvhConnectionLocal->getInstancesBuffer() ? bvhConnectionLocal->getInstancesBuffer()->getNumElements() : 0);
+      ShaderGlobal::set_buffer(gpu_objects_bvh_counterVarId, bvhConnectionLocal->getInstanceCounter());
+      ShaderGlobal::set_buffer(gpu_objects_bvh_instancesVarId, bvhConnectionLocal->getInstancesBuffer());
+    }
+
     for (ObjectManager &object : objects)
+    {
+      D3DRESID mappingId;
+      bool useBvh = useBvhConnection ? bvhConnectionLocal->translateObjectId(object.getRiId(), mappingId) : false;
+      ShaderGlobal::set_int(gpu_objects_use_bvhVarId, useBvh ? 1 : 0);
+      ShaderGlobal::set_buffer(gpu_objects_bvh_mappingsVarId, mappingId);
+
       object.update(origin);
+    }
+
+    if (useBvhConnection)
+      bvhConnectionLocal->done();
 
     for (int i = 0; i < countof(gatherBuffersJobs); ++i)
     {

@@ -54,6 +54,8 @@ shader ssr
                                w, cameraToPoint, globtm_no_ofs_psf, 0, worldPos, reflectionDistance);
       #endif
 
+      float ssrResultPrecision = newTarget.a;
+
       float3 prevViewVec = cameraToPoint;
 
       // temporal reprojection first
@@ -96,6 +98,7 @@ shader ssr
           surface_3d_motion.z = 0;
       #endif
 
+      float weightMul = 1.0f;
       bool historyWeight = false;
       half4 prevTarget = 0;
       {
@@ -106,15 +109,17 @@ shader ssr
         {
           useUV = prevUVZ.xy;
           validateNormal = true;
+          weightMul = lerp(1.0f, static_pixel_miss_reprojection_weight.x + static_pixel_miss_reprojection_weight.y * ssrResultPrecision, saturate(scaled_prev_camera_translation/w));
         }
 
         historyWeight = get_ssr_disocclusion_weight_sample(normal, linear_roughness, useUV, currentPosToPrevW, validateNormal, prevTarget);
       }
 
       //rougher surfaces should be more relaxed, to fight noise
-      float weight = historyWeight ? 0.1 - 0.03*linear_roughness : 1;
+      float weight = historyWeight ? 0.9 + 0.03*linear_roughness : 0;
+      weight *= weightMul;
 
-      half4 result = force_ignore_history == 0 ? lerp(prevTarget, newTarget, weight) : newTarget;
+      half4 result = force_ignore_history == 0 ? lerp(newTarget, prevTarget, weight) : newTarget;
       return result;
     }
   }

@@ -855,7 +855,7 @@ static void remove_parameter_from_mat_script(eastl::string &script, const eastl:
     return;
 
   size_t end = script.find("\n", start);
-  script.erase(start, end);
+  script.erase(start, end - start);
 }
 
 bool RenderableInstanceLodsResSrc::addLod(int lod_index, const char *filename, real range, LodsEqualMaterialGather &mat_gather,

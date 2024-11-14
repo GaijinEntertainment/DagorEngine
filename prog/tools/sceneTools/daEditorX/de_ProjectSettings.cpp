@@ -33,7 +33,7 @@
 //==============================================================================
 
 ProjectSettingsDlg::ProjectSettingsDlg(void *phandle, bool &use_dir_light) :
-  DialogWindow(phandle, hdpi::_pxScaled(500), hdpi::_pxScaled(750), "Project settings")
+  DialogWindow(phandle, hdpi::_pxScaled(550), hdpi::_pxScaled(750), "Project settings")
 {
   PropPanel::ContainerPropertyControl *_panel = getPanel();
   G_ASSERT(_panel && "No panel in CamerasConfigDlg");

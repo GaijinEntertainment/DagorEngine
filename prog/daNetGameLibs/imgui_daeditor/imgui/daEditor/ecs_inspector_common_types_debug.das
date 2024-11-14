@@ -261,7 +261,7 @@ def draw_EntityId(eid : array<EntityId> implicit; flags : uint; name : string; r
   var uVal = uint(*val)
   let TEXT_BASE_WIDTH = CalcTextSize("A").x
   SetNextItemWidth(imgui::GetColumnWidth() - TEXT_BASE_WIDTH * 12f)
-  if InputScalar("##{name}", ImGuiDataType U32, safe_addr(uVal), [[int? ]], [[int? ]], "%d", ImGuiInputTextFlags None)
+  if InputScalar("##{name}", ImGuiDataType U32, safe_addr(uVal), [[int?]], [[int?]], "%d", ImGuiInputTextFlags None)
     *val = EntityId(uVal)
     *changed = true
   if !!*val

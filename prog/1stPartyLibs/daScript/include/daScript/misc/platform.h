@@ -349,6 +349,10 @@ inline size_t das_aligned_memsize(void * ptr){
 #define DAS_SANITIZER   0
 #endif
 
+#ifndef DAS_TRACK_INSANE_POINTERS
+#define DAS_TRACK_INSANE_POINTERS 0
+#endif
+
 // when enabled, TypeDecl, Expression, Variable, Structure, Enumeration and Function
 // will be filled with 0xcd when deleted
 #ifndef DAS_MACRO_SANITIZER

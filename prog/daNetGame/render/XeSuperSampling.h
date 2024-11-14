@@ -14,7 +14,7 @@ public:
   static bool is_enabled();
 
 private:
-  resource_slot::NodeHandleWithSlotsAccess applierNode;
+  dabfg::NodeHandle applierNode;
 };
 
 void xess_render(Texture *in_color,

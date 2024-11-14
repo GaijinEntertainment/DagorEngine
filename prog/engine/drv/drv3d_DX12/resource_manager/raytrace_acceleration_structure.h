@@ -3,16 +3,12 @@
 
 #include <drv/3d/rayTrace/dag_drvRayTrace.h>
 
-#include "driver.h"
-#include "resource_memory.h"
+#if D3D_HAS_RAY_TRACING
 
-#include "resource_manager/basic_buffer.h"
-
+#include <driver.h>
 
 namespace drv3d_dx12
 {
-
-#if D3D_HAS_RAY_TRACING
 struct RaytraceAccelerationStructure
 {
   // Warning: ASes are suballocated, this resource may also contain other ASes!
@@ -28,6 +24,7 @@ struct RaytraceAccelerationStructure
   uint16_t slotInAsHeap = {};
   uint16_t asHeapIdx = {};
 };
-#endif
 
 } // namespace drv3d_dx12
+
+#endif

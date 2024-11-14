@@ -1,9 +1,11 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <cstdint>
+
+
 namespace drv3d_dx12
 {
-
 class ShaderID
 {
   union

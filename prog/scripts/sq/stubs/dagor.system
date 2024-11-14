@@ -19,6 +19,7 @@ return {
   function set_app_window_title(a) { }
   MB_BUTTON_1 = 1
   ARCH_BITS = 32
+  SANITIZER = null
   argv = []
   MB_FOREGROUND = 8192
   MB_ICON_INFORMATION = 1024

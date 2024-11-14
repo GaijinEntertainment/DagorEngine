@@ -50,6 +50,7 @@ Sources =
   visibility/extraVisibility.cpp
 
   debug/collisionVisualization.cpp
+  debug/rendinstRulerDebug.cpp
 ;
 
 if $(HaveRenderer) = yes {

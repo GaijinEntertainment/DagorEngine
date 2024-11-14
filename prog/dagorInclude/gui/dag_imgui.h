@@ -57,6 +57,7 @@ void imgui_set_ini_path(const char *path);
 void imgui_set_log_path(const char *path);
 enum ImGuiKey : int;
 eastl::optional<ImGuiKey> map_dagor_key_to_imgui(int humap_key);
+int map_imgui_key_to_dagor(int imgui_key);
 
 typedef eastl::function<void(void)> ImGuiFuncPtr;
 

@@ -29,7 +29,8 @@ extern float water_fade_power;
 namespace bvh::grass
 {
 void get_memory_statistics(int &vb, int &ib, int &blas, int &meta, int &query);
-}
+void get_instances(ContextId context_id, Sbuffer *&instances, Sbuffer *&instance_count);
+} // namespace bvh::grass
 namespace bvh::gobj
 {
 void get_memory_statistics(int &meta, int &query);
@@ -247,6 +248,10 @@ static void imguiWindow()
 
   auto stats = bvh::get_memory_statistics(debugged_context_id);
 
+  Sbuffer *grassInstances = nullptr;
+  Sbuffer *grassInstanceCount = nullptr;
+  bvh::grass::get_instances(debugged_context_id, grassInstances, grassInstanceCount);
+
   ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
   if (ImGui::BeginCombo("##debugged_context_id", debugged_context_id->name.data(), 0))
   {
@@ -291,15 +296,17 @@ static void imguiWindow()
   ImGui::Text("Terrain BLAS: %d MB", mb(stats.terrainBlasSize));
   ImGui::SameLine();
   ImGui::Text("Terrain VB: %d MB", mb(stats.terrainVBSize));
-  ImGui::Text("Grass BLAS: %d MB", mb(stats.grassBlasSize));
+  ImGui::Text("Grass count: %d", grassInstances ? grassInstances->getNumElements() : 0);
   ImGui::SameLine();
-  ImGui::Text("Grass VB: %d MB", mb(stats.grassVBSize));
+  ImGui::Text("BLAS: %d MB", mb(stats.grassBlasSize));
   ImGui::SameLine();
-  ImGui::Text("Grass IB: %d MB", mb(stats.grassIBSize));
+  ImGui::Text("VB: %d MB", mb(stats.grassVBSize));
   ImGui::SameLine();
-  ImGui::Text("Grass meta: %d MB", mb(stats.grassMetaSize));
+  ImGui::Text("IB: %d MB", mb(stats.grassIBSize));
   ImGui::SameLine();
-  ImGui::Text("Grass query: %d MB", mb(stats.grassQuerySize));
+  ImGui::Text("Meta: %d MB", mb(stats.grassMetaSize));
+  ImGui::SameLine();
+  ImGui::Text("Query: %d MB", mb(stats.grassQuerySize));
   ImGui::Text("Cable BLAS: %d MB", mb(stats.cableBLASSize));
   ImGui::SameLine();
   ImGui::Text("Cable VB: %d MB", mb(stats.cableVBSize));

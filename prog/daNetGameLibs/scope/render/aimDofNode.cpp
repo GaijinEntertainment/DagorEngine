@@ -21,7 +21,6 @@ dabfg::NodeHandle makeAimDofPrepareNode()
   // TODO: This is a very ugly hack to fix dof being stuck when taking a screenshot
   static AimDofSettings firstIterationAimData;
   return dabfg::register_node("aim_dof_prepare_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
-    registry.orderMeAfter("render_lens_optics_node");
     registry.orderMeBefore("prepare_post_fx_node");
 
     auto lensDofDepthHndl = registry

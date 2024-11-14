@@ -15,6 +15,7 @@
 #include <EASTL/optional.h>
 #include <imgui/imgui.h>
 #include <gui/dag_imgui.h>
+#include <gui/dag_imguiUtil.h>
 
 namespace rtao
 {
@@ -36,9 +37,9 @@ static int rtao_res_mulVarId = -1;
 static int downsampled_close_depth_texVarId = -1;
 
 static float ray_length = 3;
-static float distance_factor = 0;
-static float scatter_factor = 0.16;
-static float roughness_factor = 0;
+static float distance_factor = 1;
+static float scatter_factor = 20.0;
+static float roughness_factor = -25.0;
 
 void initialize(bool half_res)
 {
@@ -120,10 +121,15 @@ void render(bvh::ContextId context_id, const TMatrix4 &proj_tm, bool performance
 #if DAGOR_DBGLEVEL > 0
 static void imguiWindow()
 {
-  ImGui::SliderFloat("Ray length", &ray_length, 0.01f, 5);
-  ImGui::SliderFloat("Distance factor", &distance_factor, 0, 1);
-  ImGui::SliderFloat("Scatter factor", &scatter_factor, 0, 2);
-  ImGui::SliderFloat("Roughness factor", &roughness_factor, 0, 10);
+  if (!denoised_ao)
+    return;
+
+  ImGui::SliderFloat("Ray length", &ray_length, 0.01f, 10);
+  ImGui::SliderFloat("Distance factor", &distance_factor, 0.01, 5);
+  ImGui::SliderFloat("Scatter factor", &scatter_factor, 0, 50);
+  ImGui::SliderFloat("Roughness factor", &roughness_factor, -50, 0);
+
+  ImGuiDagor::Image(denoised_ao.getTexId(), denoised_ao.getTex2D());
 }
 
 REGISTER_IMGUI_WINDOW("Render", "RTAO", imguiWindow);

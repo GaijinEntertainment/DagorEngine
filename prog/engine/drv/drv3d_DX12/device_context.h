@@ -1,353 +1,65 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <drv_returnAddrStore.h>
-#include "query_manager.h"
-#include <EASTL/optional.h>
-#include <EASTL/variant.h>
-#include <EASTL/fixed_vector.h>
-#include <osApiWrappers/dag_events.h>
-#if !defined(_M_ARM64)
-#include <emmintrin.h>
-#endif
-#include <drv/3d/dag_decl.h>
-#include <3d/dag_nvFeatures.h>
-#include <3d/dag_amdFsr.h>
-#include <osApiWrappers/dag_threads.h>
-#include <drv/3d/dag_consts.h>
-#include <drv/3d/dag_commands.h>
-#include <3d/tql.h>
-#include "events_pool.h"
-#include "variant_vector.h"
-#include "texture.h"
-#include "buffer.h"
-#include "resource_memory_heap.h"
-#include "tagged_handles.h"
 #include "bindless.h"
-#include "device_queue.h"
-#include "swapchain.h"
-#include "streamline_adapter.h"
-#include "xess_wrapper.h"
-#include "fsr2_wrapper.h"
-#include "fsr_args.h"
-
-#include "debug/device_context_state.h"
-// #include "render_graph.h"
-
+#include "buffer.h"
 #include "command_list.h"
-#include "stateful_command_buffer.h"
-#include "resource_state_tracker.h"
-#include "viewport_state.h"
+#include "command_stream_set.h"
 #include "const_register_type.h"
+#include "debug/command_list_logger.h"
+#include "debug/device_context_state.h"
+#include "debug/frame_command_logger.h"
+#include "device_context_cmd.h"
+#include "device_queue.h"
+#include "events_pool.h"
+#include "extra_data_arrays.h"
+#include "frame_buffer.h"
+#include "fsr_args.h"
+#include "fsr2_wrapper.h"
+#include "gpu_engine_state.h"
+#include "info_types.h"
+#include "query_manager.h"
+#include "resource_memory_heap.h"
+#include "resource_state_tracker.h"
+#include "ring_pipes.h"
+#include "stateful_command_buffer.h"
+#include "streamline_adapter.h"
+#include "swapchain.h"
+#include "tagged_handles.h"
+#include "texture.h"
+#include "variant_vector.h"
+#include "viewport_state.h"
+#include "xess_wrapper.h"
 
+#include <dag/dag_vector.h>
+#include <drv/3d/dag_commands.h>
+#include <drv_returnAddrStore.h>
+#include <EASTL/fixed_vector.h>
+#include <EASTL/optional.h>
+#include <EASTL/unique_ptr.h>
+#include <osApiWrappers/dag_events.h>
+#include <osApiWrappers/dag_threads.h>
+
+
+struct FrameEvents;
 
 namespace drv3d_dx12
 {
-enum class ActivePipeline
-{
-  Graphics,
-  Compute
-};
-template <typename T, size_t N>
-class ForwardRing
-{
-  T elements[N]{};
-  T *selectedElement = &elements[0];
-
-  ptrdiff_t getIndex(const T *pos) const { return pos - &elements[0]; }
-
-  T *advancePosition(T *pos) { return &elements[(getIndex(pos) + 1) % N]; }
-
-public:
-  T &get() { return *selectedElement; }
-  const T &get() const { return *selectedElement; }
-  T &operator*() { return *selectedElement; }
-  const T &operator*() const { return *selectedElement; }
-  T *operator->() { return selectedElement; }
-  const T *operator->() const { return selectedElement; }
-
-  constexpr size_t size() const { return N; }
-
-  void advance() { selectedElement = advancePosition(selectedElement); }
-
-  // Iterates all elements of the ring in a unspecified order
-  template <typename T>
-  void iterate(T clb)
-  {
-    for (auto &&v : elements)
-    {
-      clb(v);
-    }
-  }
-
-  // Iterates all elements from last to the current element
-  template <typename T>
-  void walkAll(T clb)
-  {
-    auto at = advancePosition(selectedElement);
-    for (size_t i = 0; i < N; ++i)
-    {
-      clb(*at);
-      at = advancePosition(at);
-    }
-  }
-
-  // Iterates all elements from last to the element before the current element
-  template <typename T>
-  void walkUnitlCurrent(T clb)
-  {
-    auto at = advancePosition(selectedElement);
-    for (size_t i = 0; i < N - 1; ++i)
-    {
-      clb(at);
-      at = advancePosition(at);
-    }
-  }
-};
-// Ring buffer acting as a thread safe, non blocking, single producer, single consumer pipe
-template <typename T, size_t N>
-class ConcurrentRingPipe
-{
-  T pipe[N]{};
-  alignas(64) std::atomic<size_t> readPos{0};
-  alignas(64) std::atomic<size_t> writePos{0};
-
-public:
-  T *tryAcquireRead()
-  {
-    auto rp = readPos.load(std::memory_order_relaxed);
-    if (rp < writePos.load(std::memory_order_acquire))
-    {
-      return &pipe[rp % N];
-    }
-    return nullptr;
-  }
-  void releaseRead() { ++readPos; }
-  T *tryAcquireWrite()
-  {
-    auto wp = writePos.load(std::memory_order_relaxed);
-    if (wp - readPos.load(std::memory_order_acquire) < N)
-      return &pipe[wp % N];
-    return nullptr;
-  }
-  void releaseWrite() { ++writePos; }
-  bool canAcquireWrite() const { return (writePos.load(std::memory_order_relaxed) - readPos.load(std::memory_order_acquire)) < N; }
-};
-
-// Specialization with only one entry, this is used for builds that only support
-// concurrent execution mode and don't need more than one pipe element.
-// No call will block, return null or fail.
-template <typename T>
-class ConcurrentRingPipe<T, 1>
-{
-  T pipe{};
-
-public:
-  T *tryAcquireRead() { return &pipe; }
-  void releaseRead() {}
-  T *tryAcquireWrite() { return &pipe; }
-  void releaseWrite() {}
-  constexpr bool canAcquireWrite() const { return true; }
-};
-
-// Extended ConcurrentRingPipe that implements blocking read/write
-template <typename T, size_t N>
-class WaitableConcurrentRingPipe : private ConcurrentRingPipe<T, N>
-{
-  using BaseType = ConcurrentRingPipe<T, N>;
-
-  os_event_t itemsToRead;
-  os_event_t itemsToWrite;
-
-public:
-  WaitableConcurrentRingPipe()
-  {
-    os_event_create(&itemsToRead, "WCRP:itemsToRead");
-    os_event_create(&itemsToWrite, "WCRP:itemsToWrite");
-  }
-  ~WaitableConcurrentRingPipe()
-  {
-    os_event_destroy(&itemsToRead);
-    os_event_destroy(&itemsToWrite);
-  }
-  using BaseType::tryAcquireRead;
-  void releaseRead()
-  {
-    BaseType::releaseRead();
-    os_event_set(&itemsToWrite);
-  }
-  using BaseType::tryAcquireWrite;
-  void releaseWrite()
-  {
-    BaseType::releaseWrite();
-    os_event_set(&itemsToRead);
-  }
-  T &acquireRead()
-  {
-    T *result = nullptr;
-    try_and_wait_with_os_event(itemsToRead, DEFAULT_WAIT_SPINS,
-      [this, &result]() //
-      {
-        result = tryAcquireRead();
-        return result != nullptr;
-      });
-    return *result;
-  }
-  // repeatedly call clb until it either returns false or a T could be acquired
-  // return value of acquireRead can be nullptr if clb returned false
-  template <typename U>
-  T *acquireRead(U &&clb)
-  {
-    T *result = nullptr;
-    try_and_wait_with_os_event(itemsToRead, DEFAULT_WAIT_SPINS,
-      [this, &result, &clb]() //
-      {
-        if (!clb())
-          return true;
-        result = tryAcquireRead();
-        return result != nullptr;
-      });
-    return result;
-  }
-  T &acquireWrite()
-  {
-    T *result = nullptr;
-    try_and_wait_with_os_event(itemsToWrite, DEFAULT_WAIT_SPINS,
-      [this, &result]() //
-      {
-        result = tryAcquireWrite();
-        return result != nullptr;
-      });
-    return *result;
-  }
-  // repeatedly call clb until it either returns false or a T could be acquired
-  // return value of acquireRead can be nullptr if clb returned false
-  template <typename U>
-  T *acquireWrite(U &&clb)
-  {
-    T *result = nullptr;
-    try_and_wait_with_os_event(itemsToWrite, DEFAULT_WAIT_SPINS,
-      [this, &result, &clb]() //
-      {
-        if (!clb())
-          return true;
-        result = tryAcquireWrite();
-        return result != nullptr;
-      });
-    return result;
-  }
-  using BaseType::canAcquireWrite;
-  void waitForWriteItem()
-  {
-    try_and_wait_with_os_event(itemsToWrite, DEFAULT_WAIT_SPINS, [this]() { return this->canAcquireWrite(); });
-  }
-};
-
-
-// Specialization with only one entry, this is used for builds that only support
-// concurrent execution mode and don't need more than one pipe element.
-// No call will block, return null or fail.
-template <typename T>
-class WaitableConcurrentRingPipe<T, 1> : private ConcurrentRingPipe<T, 1>
-{
-  using BaseType = ConcurrentRingPipe<T, 1>;
-
-public:
-  using BaseType::releaseRead;
-  using BaseType::releaseWrite;
-  using BaseType::tryAcquireRead;
-  using BaseType::tryAcquireWrite;
-  T &acquireRead() { return *tryAcquireRead(); } // -V522
-  // repeatedly call clb until it either returns false or a T could be acquired
-  // return value of acquireRead can be nullptr if clb returned false
-  template <typename U>
-  T *acquireRead(U &&)
-  {
-    return acquireRead();
-  }
-  T &acquireWrite() { return *tryAcquireWrite(); } // -V522
-  // repeatedly call clb until it either returns false or a T could be acquired
-  // return value of acquireRead can be nullptr if clb returned false
-  template <typename U>
-  T *acquireWrite(U &&)
-  {
-    return acquireWrite();
-  }
-  void waitForWriteItem() {}
-  using BaseType::canAcquireWrite;
-};
+class Device;
 #if D3D_HAS_RAY_TRACING
-struct RaytraceGeometryDescriptionBufferResourceReferenceSet
-{
-  BufferResourceReference vertexOrAABBBuffer;
-  BufferResourceReference indexBuffer;
-  BufferResourceReference transformBuffer;
-};
+struct RaytraceAccelerationStructure;
 #endif
 
 constexpr uint32_t timing_history_length = 32;
 
-struct FrontendTimelineTextureUsage
+inline ImageCopy make_whole_resource_copy_info()
 {
-  Image *texture = nullptr;
-  uint32_t subResId = 0;
-  D3D12_RESOURCE_STATES usage = D3D12_RESOURCE_STATE_COMMON;
-  D3D12_RESOURCE_STATES nextUsage = D3D12_RESOURCE_STATE_COMMON;
-  D3D12_RESOURCE_STATES prevUsage = D3D12_RESOURCE_STATE_COMMON;
-  size_t nextIndex = ~size_t(0);
-  size_t prevIndex = ~size_t(0);
-  size_t cmdIndex = 0;
-  // for render/depth-stencil target this is the index to the last draw
-  // command before it transitions into nextUsage.
-  // This information is used to insert split barriers.
-  size_t lastCmdIndex = ~size_t(0);
-};
-struct HostDeviceSharedMemoryImageCopyInfo
-{
-  HostDeviceSharedMemoryRegion cpuMemory;
-  Image *image;
-  uint32_t copyIndex;
-  uint32_t copyCount;
-};
+  ImageCopy result{};
+  result.srcSubresource = SubresourceIndex::make(~uint32_t{0});
+  return result;
+}
 
-struct ImageSubresourceRange
-{
-  MipMapRange mipMapRange;
-  ArrayLayerRange arrayLayerRange;
-};
-struct ClearDepthStencilValue
-{
-  float depth;
-  uint32_t stencil;
-};
-union ClearColorValue
-{
-  float float32[4];
-};
-struct ImageSubresourceLayers
-{
-  MipMapIndex mipLevel;
-  ArrayLayerIndex baseArrayLayer;
-};
-struct ImageBlit
-{
-  ImageSubresourceLayers srcSubresource;
-  Offset3D srcOffsets[2]; // change to 2d have no 3d blitting
-  ImageSubresourceLayers dstSubresource;
-  Offset3D dstOffsets[2]; // change to 2d have no 3d blitting
-};
-struct BufferCopy
-{
-  uint64_t srcOffset;
-  uint64_t dstOffset;
-  uint64_t size;
-};
-struct BufferImageCopy
-{
-  D3D12_PLACED_SUBRESOURCE_FOOTPRINT layout;
-  UINT subresourceIndex;
-  Offset3D imageOffset;
-};
+inline bool is_whole_resource_copy_info(const ImageCopy &copy) { return copy.srcSubresource == SubresourceIndex::make(~uint32_t{0}); }
 
 BufferImageCopy calculate_texture_subresource_copy_info(const Image &texture, uint32_t subresource_index = 0, uint64_t offset = 0);
 
@@ -356,485 +68,6 @@ using TextureMipsCopyInfo = eastl::fixed_vector<BufferImageCopy, MAX_MIPMAPS, fa
 TextureMipsCopyInfo calculate_texture_mips_copy_info(const Image &texture, uint32_t mip_levels, uint32_t array_slice = 0,
   uint32_t array_size = 1, uint64_t initial_offset = 0);
 
-struct ImageCopy
-{
-  SubresourceIndex srcSubresource;
-  SubresourceIndex dstSubresource;
-  Offset3D dstOffset;
-  D3D12_BOX srcBox;
-};
-inline ImageCopy make_whole_resource_copy_info()
-{
-  ImageCopy result{};
-  result.srcSubresource = SubresourceIndex::make(~uint32_t{0});
-  return result;
-}
-inline bool is_whole_resource_copy_info(const ImageCopy &copy) { return copy.srcSubresource == SubresourceIndex::make(~uint32_t{0}); }
-
-union FramebufferMask
-{
-  uint32_t raw = 0;
-  struct
-  {
-    uint32_t hasDepthStencilAttachment : 1;
-    uint32_t isConstantDepthstencilAttachment : 1;
-    uint32_t colorAttachmentMask : Driver3dRenderTarget::MAX_SIMRT;
-  };
-
-  template <typename T>
-  void iterateColorAttachments(T &&u)
-  {
-    for_each_set_bit(colorAttachmentMask, eastl::forward<T>(u));
-  }
-
-  template <typename T>
-  void iterateColorAttachments(uint32_t valid_mask, T &&u)
-  {
-    for_each_set_bit(colorAttachmentMask & valid_mask, eastl::forward<T>(u));
-  }
-
-  void setColorAttachment(uint32_t index) { colorAttachmentMask |= 1u << index; }
-
-  void resetColorAttachment(uint32_t index) { colorAttachmentMask &= ~(1u << index); }
-
-  void setDepthStencilAttachment(bool is_const)
-  {
-    hasDepthStencilAttachment = 1;
-    isConstantDepthstencilAttachment = is_const ? 1u : 0u;
-  }
-
-  void resetDepthStencilAttachment()
-  {
-    hasDepthStencilAttachment = 0;
-    isConstantDepthstencilAttachment = 0;
-  }
-
-  void resetAll() { raw = 0; }
-};
-
-struct FramebufferInfo
-{
-  struct AttachmentInfo
-  {
-    Image *image = nullptr;
-    ImageViewState view = {};
-  };
-  AttachmentInfo colorAttachments[Driver3dRenderTarget::MAX_SIMRT] = {};
-  AttachmentInfo depthStencilAttachment = {};
-  FramebufferMask attachmentMask;
-
-
-  FramebufferMask getMatchingAttachmentMask(Image *texture)
-  {
-    FramebufferMask result;
-    for (uint32_t i = 0; i < countof(colorAttachments); ++i)
-    {
-      result.colorAttachmentMask |= ((colorAttachments[i].image == texture) ? 1u : 0u) << i;
-    }
-    result.isConstantDepthstencilAttachment = attachmentMask.isConstantDepthstencilAttachment;
-    result.hasDepthStencilAttachment = (depthStencilAttachment.image == texture) ? 1u : 0u;
-    return result;
-  }
-
-  void setColorAttachment(uint32_t index, Image *image, ImageViewState view)
-  {
-    auto &target = colorAttachments[index];
-    target.image = image;
-    target.view = view;
-    attachmentMask.setColorAttachment(index);
-  }
-  void clearColorAttachment(uint32_t index)
-  {
-    colorAttachments[index] = AttachmentInfo{};
-    attachmentMask.resetColorAttachment(index);
-  }
-  void setDepthStencilAttachment(Image *image, ImageViewState view, bool read_only)
-  {
-    depthStencilAttachment.image = image;
-    depthStencilAttachment.view = view;
-    attachmentMask.setDepthStencilAttachment(read_only);
-  }
-  void clearDepthStencilAttachment()
-  {
-    depthStencilAttachment = AttachmentInfo{};
-    attachmentMask.resetDepthStencilAttachment();
-  }
-  bool hasConstDepthStencilAttachment() const { return 0 != attachmentMask.isConstantDepthstencilAttachment; }
-  bool hasDepthStencilAttachment() const { return 0 != attachmentMask.hasDepthStencilAttachment; }
-  Extent2D makeDrawArea(Extent2D def = {}) const;
-};
-
-
-struct FramebufferDescription
-{
-  D3D12_CPU_DESCRIPTOR_HANDLE colorAttachments[Driver3dRenderTarget::MAX_SIMRT];
-  D3D12_CPU_DESCRIPTOR_HANDLE depthStencilAttachment;
-
-  void clear(D3D12_CPU_DESCRIPTOR_HANDLE null_color)
-  {
-    eastl::fill(eastl::begin(colorAttachments), eastl::end(colorAttachments), null_color);
-    depthStencilAttachment.ptr = 0;
-  }
-
-  bool contains(D3D12_CPU_DESCRIPTOR_HANDLE view) const
-  {
-    using namespace eastl;
-    return (end(colorAttachments) != find(begin(colorAttachments), end(colorAttachments), view)) || (depthStencilAttachment == view);
-  }
-  friend bool operator==(const FramebufferDescription &l, const FramebufferDescription &r)
-  {
-    return 0 == memcmp(&l, &r, sizeof(FramebufferDescription));
-  }
-  friend bool operator!=(const FramebufferDescription &l, const FramebufferDescription &r) { return !(l == r); }
-};
-
-struct FramebufferState
-{
-  FramebufferInfo frontendFrameBufferInfo = {};
-  FramebufferLayout framebufferLayout = {};
-  FramebufferDescription frameBufferInfo = {};
-  FramebufferMask framebufferDirtyState;
-
-  void dirtyTextureState(Image *texture)
-  {
-    auto state = frontendFrameBufferInfo.getMatchingAttachmentMask(texture);
-    framebufferDirtyState.raw |= state.raw;
-  }
-
-  void dirtyAllTexturesState() { framebufferDirtyState = frontendFrameBufferInfo.attachmentMask; }
-
-  void clear(D3D12_CPU_DESCRIPTOR_HANDLE null_color)
-  {
-    frontendFrameBufferInfo = FramebufferInfo{};
-    framebufferLayout.clear();
-    frameBufferInfo.clear(null_color);
-    framebufferDirtyState.resetAll();
-  }
-
-  void bindColorTarget(uint32_t index, Image *image, ImageViewState ivs, D3D12_CPU_DESCRIPTOR_HANDLE view)
-  {
-    frontendFrameBufferInfo.setColorAttachment(index, image, ivs);
-    framebufferLayout.setColorAttachment(index, image->getMsaaLevel(), ivs.getFormat());
-    frameBufferInfo.colorAttachments[index] = view;
-    framebufferDirtyState.setColorAttachment(index);
-  }
-
-  void clearColorTarget(uint32_t index, D3D12_CPU_DESCRIPTOR_HANDLE null_handle)
-  {
-    frontendFrameBufferInfo.clearColorAttachment(index);
-    framebufferLayout.clearColorAttachment(index);
-    frameBufferInfo.colorAttachments[index] = null_handle;
-    framebufferDirtyState.resetColorAttachment(index);
-  }
-
-  void bindDepthStencilTarget(Image *image, ImageViewState ivs, D3D12_CPU_DESCRIPTOR_HANDLE view, bool read_only)
-  {
-    frontendFrameBufferInfo.setDepthStencilAttachment(image, ivs, read_only);
-    framebufferLayout.setDepthStencilAttachment(image->getMsaaLevel(), ivs.getFormat());
-    frameBufferInfo.depthStencilAttachment = view;
-    framebufferDirtyState.setDepthStencilAttachment(read_only);
-  }
-
-  void clearDepthStencilTarget()
-  {
-    frontendFrameBufferInfo.clearDepthStencilAttachment();
-    framebufferLayout.clearDepthStencilAttachment();
-    frameBufferInfo.depthStencilAttachment.ptr = 0;
-    framebufferDirtyState.resetDepthStencilAttachment();
-  }
-};
-
-struct GraphicsState
-{
-  enum
-  {
-    SCISSOR_RECT_DIRTY,
-    SCISSOR_ENABLED,
-    SCISSOR_ENABLED_DIRTY,
-    VIEWPORT_DIRTY,
-    USE_WIREFRAME,
-
-    INDEX_BUFFER_DIRTY,
-    VERTEX_BUFFER_0_DIRTY,
-    VERTEX_BUFFER_1_DIRTY,
-    VERTEX_BUFFER_2_DIRTY,
-    VERTEX_BUFFER_3_DIRTY,
-    // state
-    INDEX_BUFFER_STATE_DIRTY,
-    VERTEX_BUFFER_STATE_0_DIRTY,
-    VERTEX_BUFFER_STATE_1_DIRTY,
-    VERTEX_BUFFER_STATE_2_DIRTY,
-    VERTEX_BUFFER_STATE_3_DIRTY,
-
-    PREDICATION_BUFFER_STATE_DIRTY,
-
-    COUNT
-  };
-  BasePipeline *basePipeline = nullptr;
-  PipelineVariant *pipeline = nullptr;
-  D3D12_PRIMITIVE_TOPOLOGY_TYPE topology = D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
-
-  InputLayoutID inputLayoutIdent = InputLayoutID::Null();
-  StaticRenderStateID staticRenderStateIdent = StaticRenderStateID::Null();
-  FramebufferLayoutID framebufferLayoutID = FramebufferLayoutID::Null();
-  FramebufferState framebufferState;
-  D3D12_RECT scissorRects[Viewport::MAX_VIEWPORT_COUNT] = {};
-  uint32_t scissorRectCount = 0;
-  D3D12_VIEWPORT viewports[Viewport::MAX_VIEWPORT_COUNT] = {};
-  uint32_t viewportCount = 0;
-  eastl::bitset<COUNT> statusBits{0};
-
-  BufferResourceReferenceAndAddressRange indexBuffer;
-  DXGI_FORMAT indexBufferFormat = DXGI_FORMAT_R16_UINT;
-  BufferResourceReferenceAndAddressRange vertexBuffers[MAX_VERTEX_INPUT_STREAMS];
-  uint32_t vertexBufferStrides[MAX_VERTEX_INPUT_STREAMS] = {};
-  BufferResourceReferenceAndOffset predicationBuffer;
-  BufferResourceReferenceAndOffset activePredicationBuffer;
-
-  void invalidateResourceStates()
-  {
-    statusBits.set(INDEX_BUFFER_STATE_DIRTY);
-    statusBits.set(VERTEX_BUFFER_STATE_0_DIRTY);
-    statusBits.set(VERTEX_BUFFER_STATE_1_DIRTY);
-    statusBits.set(VERTEX_BUFFER_STATE_2_DIRTY);
-    statusBits.set(VERTEX_BUFFER_STATE_3_DIRTY);
-    statusBits.set(PREDICATION_BUFFER_STATE_DIRTY);
-    framebufferState.dirtyAllTexturesState();
-  }
-
-  void dirtyBufferState(BufferGlobalId ident)
-  {
-    if (indexBuffer.resourceId == ident)
-    {
-      statusBits.set(INDEX_BUFFER_STATE_DIRTY);
-    }
-    for (uint32_t i = 0; i < countof(vertexBuffers); ++i)
-    {
-      if (vertexBuffers[i].resourceId == ident)
-      {
-        statusBits.set(VERTEX_BUFFER_STATE_0_DIRTY + i);
-      }
-    }
-    if (predicationBuffer.resourceId == ident)
-    {
-      statusBits.set(PREDICATION_BUFFER_STATE_DIRTY);
-    }
-  }
-
-  void dirtyTextureState(Image *texture) { framebufferState.dirtyTextureState(texture); }
-
-  void onFlush()
-  {
-    G_STATIC_ASSERT(4 == MAX_VERTEX_INPUT_STREAMS);
-    framebufferLayoutID = FramebufferLayoutID::Null();
-    statusBits.set(INDEX_BUFFER_DIRTY);
-    statusBits.set(INDEX_BUFFER_STATE_DIRTY);
-    for (uint32_t i = 0; i < MAX_VERTEX_INPUT_STREAMS; ++i)
-    {
-      statusBits.set(VERTEX_BUFFER_0_DIRTY + i);
-      statusBits.set(VERTEX_BUFFER_STATE_0_DIRTY + i);
-    }
-    statusBits.set(PREDICATION_BUFFER_STATE_DIRTY);
-    activePredicationBuffer = {};
-
-    framebufferState.dirtyAllTexturesState();
-  }
-
-  void onFrameStateInvalidate(D3D12_CPU_DESCRIPTOR_HANDLE null_ct)
-  {
-    pipeline = nullptr;
-
-    statusBits.set(GraphicsState::VIEWPORT_DIRTY);
-    statusBits.set(GraphicsState::SCISSOR_RECT_DIRTY);
-
-    framebufferState.clear(null_ct);
-
-    basePipeline = nullptr;
-    framebufferLayoutID = FramebufferLayoutID::Null();
-
-    indexBuffer = {};
-    statusBits.set(INDEX_BUFFER_DIRTY);
-    statusBits.set(INDEX_BUFFER_STATE_DIRTY);
-
-    for (uint32_t i = 0; i < MAX_VERTEX_INPUT_STREAMS; ++i)
-    {
-      statusBits.set(VERTEX_BUFFER_0_DIRTY + i);
-      statusBits.set(VERTEX_BUFFER_STATE_0_DIRTY + i);
-      vertexBuffers[i] = {};
-    }
-
-    predicationBuffer = {};
-    activePredicationBuffer = {};
-    statusBits.set(PREDICATION_BUFFER_STATE_DIRTY);
-
-    framebufferState.dirtyAllTexturesState();
-  }
-};
-struct ComputeState
-{
-  ComputePipeline *pipeline = nullptr;
-
-  void onFlush() {}
-  void onFrameStateInvalidate() { pipeline = nullptr; }
-};
-
-class Query;
-class Device;
-class DeviceContext;
-struct DeviceResourceData;
-class BackendQueryManager;
-#if D3D_HAS_RAY_TRACING
-struct RaytraceAccelerationStructure;
-#endif
-
-
-struct DeviceFeaturesConfig
-{
-  enum Bits
-  {
-    OPTIMIZE_BUFFER_UPLOADS,
-    USE_THREADED_COMMAND_EXECUTION,
-    PIPELINE_COMPILATION_ERROR_IS_FATAL,
-    ASSERT_ON_PIPELINE_COMPILATION_ERROR,
-    ALLOW_OS_MANAGED_SHADER_CACHE,
-    ENABLE_DEFRAGMENTATION,
-    DISABLE_PIPELINE_LIBRARY_CACHE,
-#if _TARGET_SCARLETT
-    REPORT_WAVE_64,
-#endif
-#if DX12_CONFIGUREABLE_BARRIER_MODE
-    PROCESS_USER_BARRIERS,
-    VALIDATE_USER_BARRIERS,
-    GENERATE_ALL_BARRIERS,
-#endif
-#if DX12_DOES_SET_DEBUG_NAMES
-    NAME_OBJECTS,
-#endif
-    ALLOW_STREAM_BUFFERS,
-    ALLOW_STREAM_CONST_BUFFERS,
-    ALLOW_STREAM_VERTEX_BUFFERS,
-    ALLOW_STREAM_INDEX_BUFFERS,
-    ALLOW_STREAM_INDIRECT_BUFFERS,
-    ALLOW_STREAM_STAGING_BUFFERS,
-#if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
-    ROOT_SIGNATURES_USES_CBV_DESCRIPTOR_RANGES,
-#endif
-    DISABLE_BUFFER_SUBALLOCATION,
-    DISABLE_BINDLESS,
-    IGNORE_PREDICATION,
-    COUNT,
-    INVLID = COUNT
-  };
-  typedef eastl::bitset<COUNT> Type;
-};
-// very simple fifo queue with a fixed amount of slots
-template <typename T, size_t N>
-class FixedFifoQueue
-{
-  T store[N] = {};
-  size_t top = 0;
-  size_t count = 0;
-
-public:
-  FixedFifoQueue() = default;
-  ~FixedFifoQueue() = default;
-  FixedFifoQueue(const FixedFifoQueue &) = default;
-  FixedFifoQueue &operator=(const FixedFifoQueue &) = default;
-  FixedFifoQueue(FixedFifoQueue &&) = default;
-  FixedFifoQueue &operator=(FixedFifoQueue &&) = default;
-
-  template <typename U>
-  void push_back(U &&v)
-  {
-    store[(top + count) % N] = eastl::forward<U>(v);
-    ++count;
-  }
-  void pop_front()
-  {
-    top = (top + 1) % N;
-    --count;
-  }
-  T &front() { return store[top]; }
-  bool empty() const { return 0 == count; }
-  bool full() const { return N == count; }
-
-  template <typename U>
-  size_t enumerate(U &&clb)
-  {
-    for (size_t i = 0; i < count; ++i)
-      clb(i, store[(top + i) % N]);
-    return count;
-  }
-
-  template <typename U>
-  size_t enumerateReverse(U &&clb)
-  {
-    for (size_t i = 0; i < count; ++i)
-      clb(count - i - 1, store[(top + (count - i - 1)) % N]);
-    return count;
-  }
-};
-class Query;
-
-template <typename>
-struct GetSmartPointerOfCommandBufferPointer;
-
-template <typename... As>
-struct GetSmartPointerOfCommandBufferPointer<VersionedPtr<As...>>
-{
-  using Type = VersionedComPtr<As...>;
-};
-
-template <typename CommandListResultType, D3D12_COMMAND_LIST_TYPE CommandListTypeName,
-  typename CommandListStoreType = typename GetSmartPointerOfCommandBufferPointer<CommandListResultType>::Type>
-struct CommandStreamSet
-{
-  ComPtr<ID3D12CommandAllocator> pool;
-  dag::Vector<CommandListStoreType> lists;
-  uint32_t listsInUse = 0;
-
-  void init(ID3D12Device *device) { DX12_CHECK_RESULT(device->CreateCommandAllocator(CommandListTypeName, COM_ARGS(&pool))); }
-  CommandListResultType allocateList(ID3D12Device *device)
-  {
-    CommandListResultType result = {};
-    if (!pool)
-    {
-      return result;
-    }
-    if (listsInUse < lists.size())
-    {
-      result = lists[listsInUse++];
-      result->Reset(pool.Get(), nullptr);
-    }
-    else
-    {
-      CommandListStoreType newList;
-      if (newList.autoQuery([=](auto uuid, auto ptr) //
-            { return DX12_DEBUG_OK(device->CreateCommandList(0, CommandListTypeName, pool.Get(), nullptr, uuid, ptr)); }))
-      {
-        lists.push_back(eastl::move(newList));
-        result = lists[listsInUse++];
-      }
-      else
-      {
-        D3D_ERROR("DX12: Unable to allocate new command list");
-        // can only happen when all CreateCommandList failed and this can only happen when the device was reset.
-      }
-    }
-    return result;
-  }
-  void frameReset()
-  {
-    DX12_CHECK_RESULT(pool->Reset());
-    listsInUse = 0;
-  }
-  void shutdown()
-  {
-    listsInUse = 0;
-    lists.clear();
-    pool.Reset();
-  }
-};
 struct FrameInfo
 {
   CommandStreamSet<AnyCommandListPtr, D3D12_COMMAND_LIST_TYPE_DIRECT> genericCommands;
@@ -860,94 +93,46 @@ struct FrameInfo
   void preRecovery(DeviceQueueGroup &queue_group, PipelineManager &pipe_man);
   void recover(ID3D12Device *device);
 };
-constexpr uint32_t default_event_wait_time = 1;
-// runs until check returns true, after some busy loop tries it starts to check the event state
-template <typename T>
-inline void try_and_wait_with_os_event(os_event_t &event, uint32_t spin_count, T check, uint32_t idle_time = default_event_wait_time)
-{
-  for (uint32_t i = 0; i < spin_count; ++i)
-  {
-    if (check())
-      return;
-#if !defined(_M_ARM64)
-    _mm_pause();
-#endif
-  }
-  for (;;)
-  {
-    if (check())
-      return;
-    os_event_wait(&event, idle_time);
-  }
-}
-// Argument handler will transform this into RangeType
-template <typename T>
-struct ExtraDataArray
-{
-  size_t index = 0;
 
-  ExtraDataArray() = default;
-  ExtraDataArray(size_t i) : index{i} {}
+struct SignatureStore
+{
+  struct SignatureInfo
+  {
+    ComPtr<ID3D12CommandSignature> signature;
+    uint32_t stride;
+    D3D12_INDIRECT_ARGUMENT_TYPE type;
+  };
+  struct SignatureInfoEx : SignatureInfo
+  {
+    ID3D12RootSignature *rootSignature;
+  };
 
-  using RangeType = eastl::span<T>;
+  dag::Vector<SignatureInfo> signatures;
+  dag::Vector<SignatureInfoEx> signaturesEx;
+
+  ID3D12CommandSignature *getSignatureForStride(ID3D12Device *device, uint32_t stride, D3D12_INDIRECT_ARGUMENT_TYPE type);
+  ID3D12CommandSignature *getSignatureForStride(ID3D12Device *device, uint32_t stride, D3D12_INDIRECT_ARGUMENT_TYPE type,
+    GraphicsPipelineSignature &signature);
+
+  void reset()
+  {
+    signatures.clear();
+    signaturesEx.clear();
+  }
 };
 
-using StringIndexRef = ExtraDataArray<const char>;
-using WStringIndexRef = ExtraDataArray<const wchar_t>;
-
-#if D3D_HAS_RAY_TRACING
-using RaytraceGeometryDescriptionBufferResourceReferenceSetListRef =
-  ExtraDataArray<const RaytraceGeometryDescriptionBufferResourceReferenceSet>;
-using D3D12_RAYTRACING_GEOMETRY_DESC_ListRef = ExtraDataArray<const D3D12_RAYTRACING_GEOMETRY_DESC>;
-#endif
-using ImageViewStateListRef = ExtraDataArray<const ImageViewState>;
-using ImagePointerListRef = ExtraDataArray<Image *const>;
-using QueryPointerListRef = ExtraDataArray<Query *const>;
-using D3D12_CPU_DESCRIPTOR_HANDLE_ListRef = ExtraDataArray<const D3D12_CPU_DESCRIPTOR_HANDLE>;
-using BufferImageCopyListRef = ExtraDataArray<const BufferImageCopy>;
-using BufferResourceReferenceAndShaderResourceViewListRef = ExtraDataArray<const BufferResourceReferenceAndShaderResourceView>;
-using ViewportListRef = ExtraDataArray<const ViewportState>;
-using ScissorRectListRef = ExtraDataArray<const D3D12_RECT>;
-
-#define DX12_BEGIN_CONTEXT_COMMAND(name)            \
-  struct Cmd##name : debug::call_stack::CommandData \
-  {
-
-#define DX12_BEGIN_CONTEXT_COMMAND_EXT_1(name, param0Type, param0Name) \
-  struct Cmd##name : debug::call_stack::CommandData                    \
-  {
-
-#define DX12_BEGIN_CONTEXT_COMMAND_EXT_2(name, param0Type, param0Name, param1Type, param1Name) \
-  struct Cmd##name : debug::call_stack::CommandData                                            \
-  {
-
-#define DX12_END_CONTEXT_COMMAND \
-  }                              \
-  ;
-
-#define DX12_CONTEXT_COMMAND_PARAM(type, name)             type name;
-#define DX12_CONTEXT_COMMAND_PARAM_ARRAY(type, name, size) type name[size];
-#include "device_context_cmd.inc.h"
-#undef DX12_BEGIN_CONTEXT_COMMAND
-#undef DX12_BEGIN_CONTEXT_COMMAND_EXT_1
-#undef DX12_BEGIN_CONTEXT_COMMAND_EXT_2
-#undef DX12_END_CONTEXT_COMMAND
-#undef DX12_CONTEXT_COMMAND_PARAM
-#undef DX12_CONTEXT_COMMAND_PARAM_ARRAY
-
-#if _TARGET_XBOX
-#include "device_context_xbox.h"
-#endif
 
 // need to shorten this - some Cmd structs can be combined, but this needs some refactoring in other places
-class DeviceContext : protected ResourceUsageHistoryDataSetDebugger, public debug::call_stack::Generator //-V553
+class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
+                      public debug::call_stack::Generator,
+                      public debug::FrameCommandLogger //-V553
 {
   template <typename T, typename... Args>
   T make_command(Args &&...args)
   {
-    T cmd = T{this->generateCommandData(), eastl::forward<Args>(args)...};
-    return cmd;
+    return T{this->generateCommandData(), eastl::forward<Args>(args)...};
   }
+
   // Warning: intentionally not spinlock, since it has extremely bad behaviour
   // in case of high contention (e.g. during several threads of loading etc...)
   WinCritSec mutex;
@@ -968,142 +153,7 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger, public debu
     IMMEDIATE_FLUSH,
   };
 #endif
-  struct ImageStateRange
-  {
-    Image *image = nullptr;
-    uint32_t stateArrayIndex = 0;
-    ValueRange<uint16_t> arrayRange;
-    ValueRange<uint16_t> mipRange;
-  };
-  struct ImageStateRangeInfo
-  {
-    D3D12_RESOURCE_STATES state;
-    ValueRange<uint32_t> idRange;
-  };
-  struct BufferStateInfo
-  {
-    D3D12_RESOURCE_STATES state;
-    uint32_t id;
-  };
 
-  using AnyCommandPack = TypePack<
-#define DX12_BEGIN_CONTEXT_COMMAND(name)                               Cmd##name,
-#define DX12_BEGIN_CONTEXT_COMMAND_EXT_1(name, param0Type, param0Name) ExtendedVariant<Cmd##name, param0Type>,
-#define DX12_BEGIN_CONTEXT_COMMAND_EXT_2(name, param0Type, param0Name, param1Type, param1Name) \
-  ExtendedVariant2<Cmd##name, param0Type, param1Type>,
-#define DX12_END_CONTEXT_COMMAND
-#define DX12_CONTEXT_COMMAND_PARAM(type, name)
-#define DX12_CONTEXT_COMMAND_PARAM_ARRAY(type, name, size)
-#include "device_context_cmd.inc.h"
-#undef DX12_BEGIN_CONTEXT_COMMAND
-#undef DX12_BEGIN_CONTEXT_COMMAND_EXT_1
-#undef DX12_BEGIN_CONTEXT_COMMAND_EXT_2
-#undef DX12_END_CONTEXT_COMMAND
-#undef DX12_CONTEXT_COMMAND_PARAM
-#undef DX12_CONTEXT_COMMAND_PARAM_ARRAY
-    void>;
-
-  using AnyCommandStore = VariantRingBuffer<AnyCommandPack>;
-
-#if D3D_HAS_RAY_TRACING
-  struct RaytraceState
-  {
-    RaytracePipeline *pipeline = nullptr;
-
-    void onFlush() {}
-
-    void onFrameStateInvalidate() { pipeline = nullptr; }
-  };
-#endif
-
-  struct SignatureStore
-  {
-    struct SignatureInfo
-    {
-      ComPtr<ID3D12CommandSignature> signature;
-      uint32_t stride;
-      D3D12_INDIRECT_ARGUMENT_TYPE type;
-    };
-    struct SignatureInfoEx : SignatureInfo
-    {
-      ID3D12RootSignature *rootSignature;
-    };
-    dag::Vector<SignatureInfo> signatures;
-    dag::Vector<SignatureInfoEx> signaturesEx;
-
-    ID3D12CommandSignature *getSignatureForStride(ID3D12Device *device, uint32_t stride, D3D12_INDIRECT_ARGUMENT_TYPE type)
-    {
-      auto ref = eastl::find_if(begin(signatures), end(signatures),
-        [=](const SignatureInfo &si) { return si.type == type && si.stride == stride; });
-      if (end(signatures) == ref)
-      {
-        D3D12_INDIRECT_ARGUMENT_DESC arg;
-        D3D12_COMMAND_SIGNATURE_DESC desc;
-        desc.NumArgumentDescs = 1;
-        desc.pArgumentDescs = &arg;
-        desc.NodeMask = 0;
-
-        arg.Type = type;
-        desc.ByteStride = stride;
-
-        SignatureInfo info;
-        info.stride = stride;
-        info.type = type;
-        if (!DX12_CHECK_OK(device->CreateCommandSignature(&desc, nullptr, COM_ARGS(&info.signature))))
-        {
-          return nullptr;
-        }
-        ref = signatures.insert(ref, eastl::move(info));
-      }
-      return ref->signature.Get();
-    }
-    ID3D12CommandSignature *getSignatureForStride(ID3D12Device *device, uint32_t stride, D3D12_INDIRECT_ARGUMENT_TYPE type,
-      GraphicsPipelineSignature &signature)
-    {
-      uint8_t mask = signature.def.vertexShaderRegisters.specialConstantsMask |
-                     signature.def.pixelShaderRegisters.specialConstantsMask |
-                     signature.def.geometryShaderRegisters.specialConstantsMask |
-                     signature.def.hullShaderRegisters.specialConstantsMask | signature.def.domainShaderRegisters.specialConstantsMask;
-      bool has_draw_id = mask & dxil::SpecialConstantType::SC_DRAW_ID;
-      if (!has_draw_id)
-        return getSignatureForStride(device, stride, type);
-
-      ID3D12RootSignature *root_signature = signature.signature.Get();
-      auto ref = eastl::find_if(begin(signaturesEx), end(signaturesEx),
-        [=](const SignatureInfoEx &si) { return si.type == type && si.stride == stride && si.rootSignature == root_signature; });
-      if (end(signaturesEx) == ref)
-      {
-        D3D12_INDIRECT_ARGUMENT_DESC args[2] = {};
-        D3D12_COMMAND_SIGNATURE_DESC desc;
-        desc.NumArgumentDescs = 2;
-        desc.pArgumentDescs = args;
-        desc.NodeMask = 0;
-
-        args[0].Type = D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT;
-        args[0].Constant.Num32BitValuesToSet = 1;
-        args[0].Constant.RootParameterIndex = 0;
-        args[0].Constant.DestOffsetIn32BitValues = 0;
-        args[1].Type = type;
-        desc.ByteStride = stride;
-
-        SignatureInfoEx info;
-        info.stride = stride;
-        info.type = type;
-        info.rootSignature = root_signature;
-        if (!DX12_CHECK_OK(device->CreateCommandSignature(&desc, root_signature, COM_ARGS(&info.signature))))
-        {
-          return nullptr;
-        }
-        ref = signaturesEx.insert(ref, eastl::move(info));
-      }
-      return ref->signature.Get();
-    }
-    void reset()
-    {
-      signatures.clear();
-      signaturesEx.clear();
-    }
-  };
 
   // ContextState
   struct ContextState : public debug::DeviceContextState
@@ -1287,7 +337,7 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger, public debu
       return checkDrawCallHasOutput(string_literal_span(sl));
     }
 
-    void checkCloseCommandListResult(HRESULT result, eastl::string_view debug_name, const CommandListLogger &logger) const;
+    void checkCloseCommandListResult(HRESULT result, eastl::string_view debug_name, const debug::CommandListLogger &logger) const;
 
   public:
     ExecutionContext(DeviceContext &ctx, ContextState &css);
@@ -1542,52 +592,6 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger, public debu
     void switchActivePipeline(ActivePipeline pipeline);
   };
 
-#if DAGOR_DBGLEVEL > 0
-  static constexpr size_t NumFrameCommandLogs = 5;
-
-  struct FrameCommandLog
-  {
-    VariantVectorRingBuffer<AnyCommandPack> log;
-    uint32_t frameId = 0;
-  };
-
-  eastl::array<FrameCommandLog, NumFrameCommandLogs> frameLogs;
-  uint32_t activeLogId = 0;
-  uint64_t frameId = 0;
-
-  VariantVectorRingBuffer<AnyCommandPack> &GetActiveFrameLog() { return frameLogs[activeLogId].log; }
-
-  void initNextFrameLog();
-  void dumpCommandLog();
-  void dumpActiveFrameCommandLog();
-
-  void dumpFrameCommandLog(FrameCommandLog &frame_log);
-
-  template <typename T, typename P0, typename P1>
-  void logCommand(const ExtendedVariant2<T, P0, P1> &params)
-  {
-    GetActiveFrameLog().pushBack<T, P0, P1>(params.cmd, params.p0.size(), [&params](auto index, auto first, auto second) {
-      first(params.p0[index]);
-      second(params.p1[index]);
-    });
-  }
-
-  template <typename T, typename P0>
-  void logCommand(const ExtendedVariant<T, P0> &params)
-  {
-    GetActiveFrameLog().pushBack<T, P0>(params.cmd, params.p0.data(), params.p0.size());
-  }
-
-  template <typename T>
-  void logCommand(T cmd)
-  {
-    GetActiveFrameLog().pushBack(cmd);
-  }
-#else
-  template <typename T>
-  void logCommand(T)
-  {}
-#endif
 
   std::atomic<uint32_t> finishedFrameIndex = 0;
 
@@ -1727,27 +731,7 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger, public debu
 #else
   void initMode(ExecutionMode mode);
 #endif
-  void shutdownWorkerThread()
-  {
-#if !FIXED_EXECUTION_MODE
-    if (ExecutionMode::CONCURRENT == executionMode)
-#endif
-    {
-      if (worker)
-      {
-        commandStream.pushBack(make_command<CmdTerminate>());
-        // tell the worker to terminate
-        // it will execute all pending commands
-        // and then clean up and shutdown
-        worker->terminate(true);
-        worker.reset();
-      }
-      // switch to immediate mode if something else should come up
-#if !FIXED_EXECUTION_MODE
-      executionMode = ExecutionMode::IMMEDIATE;
-#endif
-    }
-  }
+  void shutdownWorkerThread();
 
   // assumes frontend and backend are synced and locked so that access to front and back is safe
   void resizeSwapchain(Extent2D size);
@@ -1983,6 +967,7 @@ public:
     return xessWrapper.isXessQualityAvailableAtResolution(target_width, target_height, xess_quality);
   }
   void getXessRenderResolution(int &w, int &h) const { xessWrapper.getXeSSRenderResolution(w, h); }
+  dag::Expected<eastl::string, XessWrapper::ErrorKind> getXessVersion() const { return xessWrapper.getVersion(); }
   void getFsr2RenderResolution(int &width, int &height) { fsr2Wrapper.getFsr2RenderingResolution(width, height); }
   void setXessVelocityScale(float x, float y) { xessWrapper.setVelocityScale(x, y); }
   void createDlssFeature(bool stereo_render, int output_width, int output_height);
@@ -2021,6 +1006,8 @@ public:
   Extent2D getSwapchainExtent() const;
   bool isVrrSupported() const;
   bool isVsyncOn() const;
+  bool isHfrSupported() const;
+  bool isHfrEnabled() const;
   FormatStore getSwapchainColorFormat() const;
   FormatStore getSwapchainSecondaryColorFormat() const;
   // flushes all outstanding work, waits for the backend and GPU to complete it and finish up all

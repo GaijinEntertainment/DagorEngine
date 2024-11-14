@@ -273,7 +273,7 @@ static inline int get_selected_api()
   const bool enableNonAutoDriver = ::dgs_get_settings()->getBlockByNameEx("video")->getBool("enableNonAutoDriver", true);
   if (!enableNonAutoDriver)
   {
-    if (!strcmp(drv, "auto"))
+    if (strcmp(drv, "auto") != 0)
     {
       debug("If it is required for debug purposes add video { enableNonAutoDriver:b=yes; } in settings");
       logerr("Only auto driver is allowed! Got %s instead", drv);

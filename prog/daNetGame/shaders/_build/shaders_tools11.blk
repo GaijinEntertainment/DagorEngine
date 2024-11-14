@@ -82,6 +82,7 @@ Compile
     baked_impostor_multisample:i=1
     fx_apply_volfog_per_pixel:i=1
     fx_has_volfog_injection:i=1
+    froxel_fog_use_experimental_offscreen_reprojection:i = 0
     use_ssss:i=0
     ssss_quality:i=0
     rendinst_use_cell_sbuffer:i=0

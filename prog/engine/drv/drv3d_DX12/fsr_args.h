@@ -3,6 +3,7 @@
 
 #include <3d/dag_amdFsr.h>
 
+
 namespace drv3d_dx12
 {
 class Image;

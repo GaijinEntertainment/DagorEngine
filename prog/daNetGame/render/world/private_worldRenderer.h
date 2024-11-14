@@ -1248,8 +1248,9 @@ private:
   eastl::fixed_vector<dabfg::NodeHandle, 5, false> subSuperSamplingNodes;
   dabfg::NodeHandle frameToPresentProducerNode;
   eastl::array<dabfg::NodeHandle, 2> externalFinalFrameControlNodes;
+  dabfg::NodeHandle distortionFxNode;
   dabfg::NodeHandle postfxTargetProducerNode;
-  resource_slot::NodeHandleWithSlotsAccess prepareForPostfxNoAANode;
+  dabfg::NodeHandle prepareForPostfxNoAANode;
   dabfg::NodeHandle motionBlurAccumulateNode;
   dabfg::NodeHandle motionBlurApplyNode;
   MotionBlurNodeStatus motionBlurStatus = MotionBlurNodeStatus::UNINITIALIZED;

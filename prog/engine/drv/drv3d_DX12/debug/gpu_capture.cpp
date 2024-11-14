@@ -1,21 +1,22 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "gpu_capture.h"
-#include "device.h"
+#include "global_state.h"
+#include <platform.h>
+
+#include <RenderDoc/renderdoc_app.h>
 
 #if USE_PIX
 // PROFILE_BUILD will enable USE_PIX in pix3.h if architecture is supported
 #define PROFILE_BUILD
 #if !defined(__d3d12_h__)
 #define __d3d12_h__
-#include "WinPixEventRuntime/pix3.h"
+#include <WinPixEventRuntime/pix3.h>
 #undef __d3d12_h__
 #else
-#include "WinPixEventRuntime/pix3.h"
+#include <WinPixEventRuntime/pix3.h>
 #endif
 #endif
-
-#include <RenderDoc/renderdoc_app.h>
 
 #if !defined(PIX_EVENT_UNICODE_VERSION)
 #define PIX_EVENT_UNICODE_VERSION 0

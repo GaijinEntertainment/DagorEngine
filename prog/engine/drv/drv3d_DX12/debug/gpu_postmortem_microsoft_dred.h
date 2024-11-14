@@ -5,6 +5,7 @@
 #include "command_list_trace.h"
 #include "command_list_trace_recorder.h"
 
+
 inline const char *to_string(D3D12_DRED_ALLOCATION_TYPE type)
 {
   switch (type)
@@ -113,7 +114,12 @@ inline void report_page_fault(ID3D12DeviceRemovedExtendedData *dred)
 
 namespace drv3d_dx12
 {
+class BasePipeline;
+class ComputePipeline;
+class PipelineVariant;
+struct BufferResourceReferenceAndOffset;
 struct Direct3D12Enviroment;
+struct PipelineStageStateBase;
 namespace debug
 {
 union Configuration;
@@ -146,7 +152,7 @@ public:
   DeviceRemovedExtendedData &operator=(DeviceRemovedExtendedData &&) = delete;
   DeviceRemovedExtendedData() = default;
   ~DeviceRemovedExtendedData() { logdbg("DX12: Shutting down DRED"); }
-  void configure();
+  constexpr void configure() {}
   void beginCommandBuffer(ID3D12Device *device, ID3D12GraphicsCommandList *cmd);
   void endCommandBuffer(ID3D12GraphicsCommandList *);
   void beginEvent(ID3D12GraphicsCommandList *, eastl::span<const char>, const eastl::string &);
@@ -175,11 +181,11 @@ public:
     const BufferResourceReferenceAndOffset &args, const BufferResourceReferenceAndOffset &count, uint32_t max_count);
   void blit(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd);
   void onDeviceRemoved(D3DDevice *device, HRESULT reason, call_stack::Reporter &reporter);
-  bool sendGPUCrashDump(const char *, const void *, uintptr_t);
+  constexpr bool sendGPUCrashDump(const char *, const void *, uintptr_t) { return false; }
   void onDeviceShutdown();
-  bool onDeviceSetup(ID3D12Device *, const Configuration &, const Direct3D12Enviroment &);
+  constexpr bool onDeviceSetup(ID3D12Device *, const Configuration &, const Direct3D12Enviroment &) { return true; }
 
-  bool tryCreateDevice(IUnknown *, D3D_FEATURE_LEVEL, void **) { return false; }
+  constexpr bool tryCreateDevice(IUnknown *, D3D_FEATURE_LEVEL, void **) { return false; }
 
   template <typename T>
   static bool load(const Configuration &config, const Direct3D12Enviroment &d3d_env, T &target)

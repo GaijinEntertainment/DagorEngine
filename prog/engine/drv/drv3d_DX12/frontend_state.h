@@ -1,6 +1,14 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "const_register_type.h"
+#include "device.h"
+#include "device_context.h"
+#include "resource_manager/raytrace_acceleration_structure.h"
+#include "shader.h"
+#include "texture.h"
+#include "viewport_state.h"
+
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
 #include <generic/dag_bitset.h>
@@ -9,14 +17,6 @@
 #include <math/dag_adjpow2.h>
 #include <math/dag_lsbVisitor.h>
 #include <perfMon/dag_graphStat.h>
-
-#include "device.h"
-#include "device_context.h"
-#include "texture.h"
-#include "shader.h"
-#include "const_register_type.h"
-#include "viewport_state.h"
-#include "resource_manager/raytrace_acceleration_structure.h"
 
 
 namespace drv3d_dx12

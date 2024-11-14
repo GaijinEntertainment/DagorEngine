@@ -9,6 +9,9 @@ blood_settings{
   _tracked:t="blood_puddle_reflectance_value"
   _tracked:t="blood_puddle_smoothness_value"
   _tracked:t="blood_puddle_smoothness_edge_value"
+  _tracked:t="blood_puddle_landscape_reflectance_value"
+  _tracked:t="blood_puddle_landscape_smoothness_edge_value"
+  _tracked:t="blood_puddle_landscape_albedo_darkening_value"
 
   "blood_begin_color:ShaderVar"{}
   blood_begin_color_value:p4=0.157, 0.012, 0.000, 1.000
@@ -28,4 +31,11 @@ blood_settings{
   blood_puddle_smoothness_value:r=1.0
   "blood_puddle_smoothness_edge:ShaderVar"{}
   blood_puddle_smoothness_edge_value:r=0.9
+
+  "blood_puddle_landscape_reflectance:ShaderVar"{}
+  blood_puddle_landscape_reflectance_value:r=0.21
+  "blood_puddle_landscape_smoothness_edge:ShaderVar"{}
+  blood_puddle_landscape_smoothness_edge_value:r=0.4
+  "blood_puddle_landscape_albedo_darkening:ShaderVar"{}
+  blood_puddle_landscape_albedo_darkening_value:r=0.5
 }

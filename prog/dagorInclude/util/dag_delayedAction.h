@@ -8,8 +8,9 @@
 #include <supp/dag_define_KRNLIMP.h>
 #include <EASTL/utility.h>
 
+#if DAGOR_DBGLEVEL > 0 || _TARGET_PC
 #define ACTION_DEBUG_NAMES 1
-
+#endif
 
 //! delayed action to be performed on next dagor_work_cycle()
 class DelayedAction
@@ -103,7 +104,7 @@ auto make_delayed_func(F func)
   };
 }
 
-#ifdef ACTION_DEBUG_NAMES
+#if ACTION_DEBUG_NAMES
 #define ACTION_DEBUG_NAMES_S1(x) #x
 #define ACTION_DEBUG_NAMES_S2(x) ACTION_DEBUG_NAMES_S1(x)
 #define ACTION_DEBUG_NAMES_LOC   " @\n\t" __FILE__ "(" ACTION_DEBUG_NAMES_S2(__LINE__) "):"

@@ -33,7 +33,7 @@ texture resolved_motion_vectors;
 float4x4 motion_vec_reproject_tm;
 int resolve_motion_vectors = 0;
 interval resolve_motion_vectors: no < 1, yes;
-float4 prev_zn_zfar;
+float4 prev_zn_zfar = (1, 10, 0, 0);
 
 macro DOWNSAMPLE_DEPTH2X_CORE(code)
   ENABLE_ASSERT(code)

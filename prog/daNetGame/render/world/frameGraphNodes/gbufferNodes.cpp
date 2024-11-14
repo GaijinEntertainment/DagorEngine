@@ -175,7 +175,8 @@ static inline float w_to_depth(float w, const Point2 &zNearFar, float def)
 
 #define RESOLVE_GBUFFER_SHADERVARS \
   VAR(thin_gbuf_resolve, true)     \
-  VAR(frame_tex, false)
+  VAR(frame_tex, false)            \
+  VAR(use_rtr, true)
 
 #define VAR(a, o) static int a##VarId = -1;
 RESOLVE_GBUFFER_SHADERVARS
@@ -247,7 +248,7 @@ dabfg::NodeHandle makeResolveGbufferNode(const char *resolve_pshader_name,
     [resolve_pshader_name, resolve_cshader_name, classify_cshader_name, permutations_desc](dabfg::Registry registry) {
       auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
       registry.orderMeAfter("combine_shadows_node");
-      registry.readBlob<OrderingToken>("rtr_token").optional();
+      auto rtrTokenHndl = registry.readBlob<OrderingToken>("rtr_token").optional().handle();
       registry.read("gi_before_frame_lit_token").blob<OrderingToken>().optional();
 
       auto gbufDepthHndl =
@@ -289,6 +290,7 @@ dabfg::NodeHandle makeResolveGbufferNode(const char *resolve_pshader_name,
       use_volfog(registry, dabfg::Stage::PS_OR_CS);
       registry.readTexture("ssao_tex").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("ssao_tex").optional();
       registry.read("ssao_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("ssao_tex_samplerstate").optional();
+      registry.readBlob<OrderingToken>("rtao_token").optional();
       // for SSAO&SSR
       registry.read("upscale_sampling_tex")
         .texture()
@@ -308,9 +310,11 @@ dabfg::NodeHandle makeResolveGbufferNode(const char *resolve_pshader_name,
       return [enabledDepthBoundsId = shaders::overrides::create(state),
                shadingResolver = eastl::make_unique<ShadingResolver>(resolve_pshader_name, resolve_cshader_name, classify_cshader_name,
                  permutations_desc),
-               gbufDepthHndl, finalTargetHndl, cameraHndl, hasAnyDynamicLightsHndl, waterModeHndl]() {
+               gbufDepthHndl, finalTargetHndl, cameraHndl, hasAnyDynamicLightsHndl, waterModeHndl, rtrTokenHndl]() {
         // Pointer is always non-zero because world renderer contains this node
         auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
+
+        ShaderGlobal::set_int(use_rtrVarId, !!rtrTokenHndl.get());
 
         ManagedTexView finalTarget = finalTargetHndl.view();
         ManagedTexView gbufDepth = gbufDepthHndl.view();

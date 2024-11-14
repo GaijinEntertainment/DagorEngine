@@ -137,13 +137,16 @@ static int denoiser_spec_confidence_half_resVarId = -1;
 
 static int rtao_bindless_slotVarId = -1;
 static int rtsm_bindless_slotVarId = -1;
+static int csm_bindless_slotVarId = -1;
+static int csm_sampler_bindless_slotVarId = -1;
 static int rtr_bindless_slotVarId = -1;
 
 static int bindless_range = -1;
 
 static const int rtao_bindless_index = 0;
 static const int rtsm_bindless_index = 1;
-static const int rtr_bindless_index = 2;
+static const int csm_bindless_index = 2;
+static const int rtr_bindless_index = 3;
 
 struct TransientKey
 {
@@ -383,7 +386,6 @@ struct RelaxSharedConstants
   uint32_t diffMaterialMask;
   uint32_t specMaterialMask;
   uint32_t resetHistory;
-  uint32_t padding;
 };
 
 static int divide_up(int x, int y) { return (x + y - 1) / y; }
@@ -541,11 +543,13 @@ void initialize(int w, int h)
 
   rtao_bindless_slotVarId = get_shader_variable_id("rtao_bindless_slot");
   rtsm_bindless_slotVarId = get_shader_variable_id("rtsm_bindless_slot");
+  csm_bindless_slotVarId = get_shader_variable_id("csm_bindless_slot", true);
+  csm_sampler_bindless_slotVarId = get_shader_variable_id("csm_sampler_bindless_slot", true);
   rtr_bindless_slotVarId = get_shader_variable_id("rtr_bindless_slot");
 
   ShaderGlobal::set_int4(denoiser_resolutionVarId, render_width, render_height, 0, 0);
 
-  bindless_range = d3d::allocate_bindless_resource_range(RES3D_TEX, 3);
+  bindless_range = d3d::allocate_bindless_resource_range(RES3D_TEX, 4);
 }
 
 #if ENABLE_NRD_INTEGRATION_TEST
@@ -845,7 +849,7 @@ void teardown()
 
   if (bindless_range > 0)
   {
-    d3d::free_bindless_resource_range(RES3D_TEX, bindless_range, 1);
+    d3d::free_bindless_resource_range(RES3D_TEX, bindless_range, 4);
     bindless_range = -1;
   }
 
@@ -1148,6 +1152,14 @@ void denoise_shadow(const ShadowDenoiser &params)
   d3d::update_bindless_resource(bindless_range + rtsm_bindless_index, params.denoisedShadowMap);
   d3d::resource_barrier({params.denoisedShadowMap, RB_RO_SRV | RB_STAGE_ALL_SHADERS, 0, 0});
   ShaderGlobal::set_int(rtsm_bindless_slotVarId, bindless_range + rtsm_bindless_index);
+
+  if (params.csmTexture)
+  {
+    d3d::update_bindless_resource(bindless_range + csm_bindless_index, params.csmTexture);
+    ShaderGlobal::set_int(csm_bindless_slotVarId, bindless_range + csm_bindless_index);
+    auto samplerIx = d3d::register_bindless_sampler(params.csmTexture);
+    ShaderGlobal::set_int(csm_sampler_bindless_slotVarId, samplerIx);
+  }
 }
 
 static ReblurSharedConstants make_reblur_shared_constants(const Point4 &hit_dist_params, const Point4 &antilag_settings,
@@ -2042,10 +2054,18 @@ static void denoise_reflection_relax(const ReflectionDenoiser &params)
   {
     TIME_D3D_PROFILE(relax::classify_tiles);
 
-    static_assert(sizeof(relaxSharedConstants) % (4 * sizeof(float)) == 0,
+    struct PassData
+    {
+      RelaxSharedConstants relaxSharedConstants;
+      uint32_t padding;
+    } passData;
+
+    passData.relaxSharedConstants = relaxSharedConstants;
+
+    static_assert(sizeof(passData) % (4 * sizeof(float)) == 0,
       "RelaxSharedConstants size must be multiple of sizeof(float4) for d3d::set_cb0_data");
 
-    d3d::set_cb0_data(STAGE_CS, (const float *)&relaxSharedConstants, divide_up(sizeof(relaxSharedConstants), 16));
+    d3d::set_cb0_data(STAGE_CS, (const float *)&passData, divide_up(sizeof(passData), 16));
     d3d::set_tex(STAGE_CS, 0, viewZ, false);
     d3d::set_rwtex(STAGE_CS, 0, tiles, 0, 0);
 
@@ -2059,6 +2079,7 @@ static void denoise_reflection_relax(const ReflectionDenoiser &params)
     {
       RelaxSharedConstants relaxSharedConstants;
       Point4 rotator;
+      uint32_t padding;
     } passData;
 
     float ca = cos(rndAngle.x);
@@ -2066,6 +2087,9 @@ static void denoise_reflection_relax(const ReflectionDenoiser &params)
 
     passData.relaxSharedConstants = relaxSharedConstants;
     passData.rotator = Point4(ca, sa, -sa, ca) * rndScale.x;
+
+    static_assert(sizeof(passData) % (4 * sizeof(float)) == 0,
+      "RelaxSharedConstants size must be multiple of sizeof(float4) for d3d::set_cb0_data");
 
     d3d::set_sampler(STAGE_CS, 0, samplerNearestClamp);
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
@@ -2083,10 +2107,21 @@ static void denoise_reflection_relax(const ReflectionDenoiser &params)
   {
     TIME_D3D_PROFILE(relax::temporal_accumulation);
 
+    struct PassData
+    {
+      RelaxSharedConstants relaxSharedConstants;
+      uint32_t padding;
+    } passData;
+
+    passData.relaxSharedConstants = relaxSharedConstants;
+
+    static_assert(sizeof(passData) % (4 * sizeof(float)) == 0,
+      "RelaxSharedConstants size must be multiple of sizeof(float4) for d3d::set_cb0_data");
+
     d3d::set_sampler(STAGE_CS, 0, samplerNearestClamp);
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
-    d3d::set_cb0_data(STAGE_CS, (const float *)&relaxSharedConstants, divide_up(sizeof(relaxSharedConstants), 16));
+    d3d::set_cb0_data(STAGE_CS, (const float *)&passData, divide_up(sizeof(passData), 16));
     d3d::set_tex(STAGE_CS, 0, tiles, false);
     d3d::set_tex(STAGE_CS, 1, params.denoisedReflection, false);
     d3d::set_tex(STAGE_CS, 2, motionVectors, false);
@@ -2119,10 +2154,21 @@ static void denoise_reflection_relax(const ReflectionDenoiser &params)
   {
     TIME_D3D_PROFILE(relax::history_fix);
 
+    struct PassData
+    {
+      RelaxSharedConstants relaxSharedConstants;
+      uint32_t padding;
+    } passData;
+
+    passData.relaxSharedConstants = relaxSharedConstants;
+
+    static_assert(sizeof(passData) % (4 * sizeof(float)) == 0,
+      "RelaxSharedConstants size must be multiple of sizeof(float4) for d3d::set_cb0_data");
+
     d3d::set_sampler(STAGE_CS, 0, samplerNearestClamp);
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
-    d3d::set_cb0_data(STAGE_CS, (const float *)&relaxSharedConstants, divide_up(sizeof(relaxSharedConstants), 16));
+    d3d::set_cb0_data(STAGE_CS, (const float *)&passData, divide_up(sizeof(passData), 16));
     d3d::set_tex(STAGE_CS, 0, tiles, false);
     d3d::set_tex(STAGE_CS, 1, specIllumPing, false);
     d3d::set_tex(STAGE_CS, 2, historyLength, false);
@@ -2136,10 +2182,21 @@ static void denoise_reflection_relax(const ReflectionDenoiser &params)
   {
     TIME_D3D_PROFILE(relax::history_clamping);
 
+    struct PassData
+    {
+      RelaxSharedConstants relaxSharedConstants;
+      uint32_t padding;
+    } passData;
+
+    passData.relaxSharedConstants = relaxSharedConstants;
+
+    static_assert(sizeof(passData) % (4 * sizeof(float)) == 0,
+      "RelaxSharedConstants size must be multiple of sizeof(float4) for d3d::set_cb0_data");
+
     d3d::set_sampler(STAGE_CS, 0, samplerNearestClamp);
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
-    d3d::set_cb0_data(STAGE_CS, (const float *)&relaxSharedConstants, divide_up(sizeof(relaxSharedConstants), 16));
+    d3d::set_cb0_data(STAGE_CS, (const float *)&passData, divide_up(sizeof(passData), 16));
     d3d::set_tex(STAGE_CS, 0, tiles, false);
     d3d::set_tex(STAGE_CS, 1, params.denoisedReflection, false);
     d3d::set_tex(STAGE_CS, 2, specIllumPing, false);
@@ -2157,12 +2214,15 @@ static void denoise_reflection_relax(const ReflectionDenoiser &params)
     RelaxSharedConstants relaxSharedConstants;
     uint32_t stepSize;
     uint32_t isLastPass;
-    uint32_t padding[2];
+    uint32_t padding[3];
   } atorusData;
 
   atorusData.relaxSharedConstants = relaxSharedConstants;
   atorusData.stepSize = 1;
   atorusData.isLastPass = 0;
+
+  static_assert(sizeof(atorusData) % (4 * sizeof(float)) == 0,
+    "RelaxSharedConstants size must be multiple of sizeof(float4) for d3d::set_cb0_data");
 
   for (int iter = 0; iter < 5; ++iter)
   {
@@ -2216,7 +2276,18 @@ static void denoise_reflection_relax(const ReflectionDenoiser &params)
   {
     TIME_D3D_PROFILE(relax::validation);
 
-    d3d::set_cb0_data(STAGE_CS, (const float *)&relaxSharedConstants, divide_up(sizeof(relaxSharedConstants), 16));
+    struct PassData
+    {
+      RelaxSharedConstants relaxSharedConstants;
+      uint32_t padding;
+    } passData;
+
+    passData.relaxSharedConstants = relaxSharedConstants;
+
+    static_assert(sizeof(passData) % (4 * sizeof(float)) == 0,
+      "RelaxSharedConstants size must be multiple of sizeof(float4) for d3d::set_cb0_data");
+
+    d3d::set_cb0_data(STAGE_CS, (const float *)&passData, divide_up(sizeof(passData), 16));
     d3d::set_tex(STAGE_CS, 0, normalRoughness, false);
     d3d::set_tex(STAGE_CS, 1, viewZ, false);
     d3d::set_tex(STAGE_CS, 2, motionVectors, false);

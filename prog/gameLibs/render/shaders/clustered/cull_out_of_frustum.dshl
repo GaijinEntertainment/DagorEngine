@@ -42,7 +42,6 @@ hlsl(cs) {
   }
   float4 getBoundingSphere(float3 position, float3 direction, float lightRadius, float sinHalfAngle, float cosHalfAngle)
   {
-    // TODO: further vectorize this (incl getCosHalfAngle()/get_bounding_sphere_description())
     float2 boundingDesc = lightRadius*get_bounding_sphere_description(sinHalfAngle, cosHalfAngle);
     return float4(direction*boundingDesc.y + position, boundingDesc.x);
   }
@@ -73,6 +72,52 @@ shader cull_out_of_frustum_lights_cs
       return all(bool4(res03 >= 0));
     }
     RWByteAddressBuffer oof_lights_full_grid : register(u0);
+    struct bbox3f
+    {
+      float3 bmin, bmax;
+    };
+    void v_bbox3_init(inout bbox3f b, float3 v) {b.bmin = b.bmax = v;}
+    void v_bbox3_add_pt(inout bbox3f b, float3 v) {b.bmin = min(b.bmin, v); b.bmax = max(b.bmax, v);}
+    bbox3f v_bbox3_transform(float3 center, float3 ext, float4 boxR0, float4 boxR1, float4 boxR2)
+    {
+      float3 boxPos = float3(boxR0.w, boxR1.w, boxR2.w);
+      bbox3f b2; b2.bmin = center - boxPos; b2.bmax = center + boxPos;
+      bbox3f b;
+      // What we're doing here is this:
+      // xxxx*m0 + yyyy*m1 + zzzz*m2 + m3
+      // xxxx*m0 + yyyy*m1 + ZZZZ*m2 + m3
+      // xxxx*m0 + YYYY*m1 + zzzz*m2 + m3
+      // xxxx*m0 + YYYY*m1 + ZZZZ*m2 + m3
+      // XXXX*m0 + yyyy*m1 + zzzz*m2 + m3
+      // XXXX*m0 + yyyy*m1 + ZZZZ*m2 + m3
+      // XXXX*m0 + YYYY*m1 + zzzz*m2 + m3
+      // XXXX*m0 + YYYY*m1 + ZZZZ*m2 + m3
+      // Which we don't need to do at all as we just need to calculate 1/4 of this first and then summ up
+      float3 boxMulM_0_0 = (b2.bmin.x * boxR0.xyz);
+      float3 boxMulM_0_1 = (b2.bmax.x * boxR0.xyz);
+      float3 boxMulM_1_0 = (b2.bmin.y * boxR1.xyz);
+      float3 boxMulM_1_1 = (b2.bmax.y * boxR1.xyz);
+      float3 boxMulM_2_0 = (b2.bmin.z * boxR2.xyz);
+      float3 boxMulM_2_1 = (b2.bmax.z * boxR2.xyz);
+
+      // Summing y and z
+      float3 boxSum_0_0 = (boxMulM_1_0 + boxMulM_2_0);
+      float3 boxSum_0_1 = (boxMulM_1_0 + boxMulM_2_1);
+      float3 boxSum_1_0 = (boxMulM_1_1 + boxMulM_2_0);
+      float3 boxSum_1_1 = (boxMulM_1_1 + boxMulM_2_1);
+    #define COMBINE_BOX(a,b,c) (boxMulM_0_##a + boxSum_##b##_##c)
+      v_bbox3_init(  b, COMBINE_BOX(0, 0, 0));
+      v_bbox3_add_pt(b, COMBINE_BOX(0, 0, 1));
+      v_bbox3_add_pt(b, COMBINE_BOX(0, 1, 0));
+      v_bbox3_add_pt(b, COMBINE_BOX(0, 1, 1));
+      v_bbox3_add_pt(b, COMBINE_BOX(1, 0, 0));
+      v_bbox3_add_pt(b, COMBINE_BOX(1, 0, 1));
+      v_bbox3_add_pt(b, COMBINE_BOX(1, 1, 0));
+      v_bbox3_add_pt(b, COMBINE_BOX(1, 1, 1));
+    #undef COMBINE_BOX
+      return b;
+    }
+
     [numthreads(8, 8, 1)]
     void cull_out_of_frustum_lights_cs(uint3 dtId:SV_DispatchThreadID, uint3 gtId:SV_GroupThreadID, uint3 gid:SV_GroupID, uint tid:SV_GroupIndex)
     {
@@ -88,8 +133,12 @@ shader cull_out_of_frustum_lights_cs
         float3 gridPosCenter = out_of_frustum_grid_cull_box[0].xyz + (gridPos.xzy*2)*gridCellHalfSz;
         //if (any(abs(posRadius.xyz - gridPosCenter) > gridCellSz*0.5 + posRadius.w))
         //  return;
-        //if (!bbox_test_sph_intersect(gridPosCenter-gridCellHalfSz, gridPosCenter+gridCellHalfSz, posRadius.xyz, posRadius.w*posRadius.w))
-        //  return;
+        if (!bbox_test_sph_intersect(gridPosCenter-gridCellHalfSz, gridPosCenter+gridCellHalfSz, posRadius.xyz, posRadius.w*posRadius.w))
+          return;
+        float4 boxR0 = omni_lights_cb[lightId].boxR0, boxR1 = omni_lights_cb[lightId].boxR1, boxR2 = omni_lights_cb[lightId].boxR2;
+        bbox3f lbox = v_bbox3_transform(gridPosCenter, gridCellHalfSz, boxR0, boxR1, boxR2);
+        if (any(or(lbox.bmin > 0.5, lbox.bmax < -0.5)))
+          return;
         uint gridCellIndex = (gridPos.z*OOF_GRID_W + gridPos.y)*OOF_GRID_W + gridPos.x;
         uint lightWordIndex = lightId>>5;
         ##assert(lightWordIndex < omni_lights_count.y, "[%s:%.f] Out of bounds: omni words count is (%.f), but access to (%.f)", _FILE_, __LINE__, omni_lights_count.y, lightWordIndex);

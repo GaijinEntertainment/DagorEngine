@@ -57,42 +57,37 @@ FidelityFXSuperResolution::FidelityFXSuperResolution(const IPoint2 &outputResolu
 
   inputResolution = fsr->getRenderingResolution(fsr->getUpscalingMode(), outputResolution);
 
-  applierNode = resource_slot::register_access("fsr", DABFG_PP_NODE_SRC,
-    {resource_slot::Create{"postfx_input_slot", "frame_for_postfx"}},
-    [this](resource_slot::State slotsState, dabfg::Registry registry) {
-      auto opaqueFinalTargetHndl =
-        registry.readTexture("final_target_with_motion_blur").atStage(dabfg::Stage::CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
+  applierNode = dabfg::register_node("fsr", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+    auto opaqueFinalTargetHndl =
+      registry.readTexture("final_target_with_motion_blur").atStage(dabfg::Stage::CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
 
-      auto depthHndl =
-        registry.readTexture("depth_after_transparency").atStage(dabfg::Stage::CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
-      auto motionVecsHndl =
-        registry.readTexture("motion_vecs_after_transparency").atStage(dabfg::Stage::CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
-      auto antialiasedHndl = registry
-                               .createTexture2d(slotsState.resourceToCreateFor("postfx_input_slot"), dabfg::History::No,
-                                 {TEXFMT_A16B16G16R16F | TEXCF_UNORDERED | TEXCF_RTARGET, registry.getResolution<2>("display")})
-                               .atStage(dabfg::Stage::PS_OR_CS)
-                               .useAs(dabfg::Usage::COLOR_ATTACHMENT)
-                               .handle();
-      auto exposureNormFactorHndl = registry.readTexture("exposure_normalization_factor")
-                                      .atStage(dabfg::Stage::PS_OR_CS)
-                                      .useAs(dabfg::Usage::SHADER_RESOURCE)
-                                      .handle();
-      auto camera = registry.readBlob<CameraParams>("current_camera").handle();
+    auto depthHndl =
+      registry.readTexture("depth_after_transparency").atStage(dabfg::Stage::CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
+    auto motionVecsHndl =
+      registry.readTexture("motion_vecs_after_transparency").atStage(dabfg::Stage::CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
+    auto antialiasedHndl = registry
+                             .createTexture2d("frame_after_aa", dabfg::History::No,
+                               {TEXFMT_A16B16G16R16F | TEXCF_UNORDERED | TEXCF_RTARGET, registry.getResolution<2>("display")})
+                             .atStage(dabfg::Stage::PS_OR_CS)
+                             .useAs(dabfg::Usage::COLOR_ATTACHMENT)
+                             .handle();
+    auto exposureTexHndl =
+      registry.readTexture("exposure_tex").atStage(dabfg::Stage::PS_OR_CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
+    auto camera = registry.readBlob<CameraParams>("current_camera").handle();
 
-      auto reactiveHandle =
-        registry.readTexture("reactive_mask").atStage(dabfg::Stage::CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
+    auto reactiveHandle =
+      registry.readTexture("reactive_mask").atStage(dabfg::Stage::CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
 
-      return
-        [this, depthHndl, motionVecsHndl, opaqueFinalTargetHndl, antialiasedHndl, exposureNormFactorHndl, camera, reactiveHandle] {
-          OptionalInputParams params;
-          params.depth = depthHndl.view().getTex2D();
-          params.motion = motionVecsHndl.view().getTex2D();
-          params.exposure = exposureNormFactorHndl.view().getTex2D();
-          params.reactive = reactiveHandle.view().getTex2D();
-          params.perspective = camera.ref().noJitterPersp;
-          render(opaqueFinalTargetHndl.view().getTex2D(), antialiasedHndl.view().getTex2D(), params);
-        };
-    });
+    return [this, depthHndl, motionVecsHndl, opaqueFinalTargetHndl, antialiasedHndl, exposureTexHndl, camera, reactiveHandle] {
+      OptionalInputParams params;
+      params.depth = depthHndl.view().getTex2D();
+      params.motion = motionVecsHndl.view().getTex2D();
+      params.exposure = exposureTexHndl.view().getTex2D();
+      params.reactive = reactiveHandle.view().getTex2D();
+      params.perspective = camera.ref().noJitterPersp;
+      render(opaqueFinalTargetHndl.view().getTex2D(), antialiasedHndl.view().getTex2D(), params);
+    };
+  });
 }
 
 FidelityFXSuperResolution::~FidelityFXSuperResolution() { fsr->teardownUpscaling(); }

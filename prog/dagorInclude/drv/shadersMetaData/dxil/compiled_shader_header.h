@@ -8,6 +8,9 @@
 #include <util/dag_bindump_ext.h>
 #include <EASTL/string.h>
 #include <EASTL/vector.h>
+#include <EASTL/span.h>
+#include <EASTL/functional.h>
+#include <EASTL/optional.h>
 #include <shaders/dag_shaderHash.h>
 
 // some headers define DOMAIN as macro which collides with enum names
@@ -374,5 +377,26 @@ BINDUMP_BEGIN_LAYOUT(ShaderLibraryContainer)
   /// Hash value of the data of driverBinary
   ShaderHashValue binaryHash;
 BINDUMP_END_LAYOUT()
+
+struct LibraryShaderPropertiesCompileResult
+{
+  eastl::vector<LibraryShaderProperties> properties;
+  eastl::vector<eastl::string> names;
+  LibraryResourceInformation libInfo{};
+  bool isOk = true;
+  eastl::string logMessage;
+};
+
+struct FunctionExtraInfo
+{
+  uint32_t recursionDepth = 0;
+  uint32_t maxPayLoadSizeInBytes = 0;
+  uint32_t maxAttributeSizeInBytes = 0;
+};
+
+using FunctionExtraDataQuery = eastl::function<eastl::optional<FunctionExtraInfo>(ShaderStage, const eastl::string &)>;
+
+LibraryShaderPropertiesCompileResult compileLibraryShaderPropertiesFromReflectionData(uint32_t default_playload_size_in_bytes,
+  const FunctionExtraDataQuery &function_extra_data_query, eastl::span<const uint8_t> reflection, void *dxc_lib_handle);
 
 } // namespace dxil

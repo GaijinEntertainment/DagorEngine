@@ -107,7 +107,7 @@ shader combine_shadows
       float NoL = dot(gbuffer.normal, -from_sun_direction);
       float additionalLight = load_additional_light(input.texcoord);
       BRANCH
-      if (!(isSubSurfaceShader(gbuffer.material) && isSubSurfaceProfileValid(gbuffer.sss_profile) && gbuffer.translucency > 1.0/255) && NoL <= 0.f)
+      if (!(isSubSurfaceShader(gbuffer.material) && isTranslucentProfileValid(gbuffer.sss_profile) && gbuffer.translucency > 1.0/255) && NoL <= 0.f)
       {
         float cloudsShadow = calculate_clouds_shadow(additionalLight, input.texcoord, input.viewVec);
         return get_black_shadow(additionalLight, cloudsShadow);

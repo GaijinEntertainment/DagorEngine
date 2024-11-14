@@ -54,9 +54,13 @@ public:
   // used by the navigation code.
   bool checkHashes(dag::ConstSpan<uint64_t> poly_refs, const PolyHashes &hashes) const;
 
+  void invalidateTile(uint32_t tile_id, int tx, int ty, int tlayer);
+  void restoreLostTiles();
+
   void removeTile(uint32_t tile_id);
 
 private:
+  friend class CustomNavHelper;
   struct Area
   {
     inline BBox3 getAABB() const { return isCylinder ? oobb : tm * oobb; }
@@ -84,6 +88,7 @@ private:
   void areaUpdate(const Area &area, float posThreshold, float angCosThreshold);
 
   void areaAddToTiles(Area &area);
+  void addAreaToTile(Area &area, uint32_t tile_id);
 
   void areaRemoveFromTiles(Area &area, Tab<uint32_t> &affected_tiles);
 
@@ -92,5 +97,27 @@ private:
   ska::flat_hash_map<uint32_t, Area> areas;
   ska::flat_hash_map<uint32_t, Tile> tiles;
   mutable Tab<eastl::pair<uint32_t, uint32_t>> tmpHashBuff;
+
+  struct ReTile
+  {
+    int tx = 0, ty = 0, tlayer = 0;
+    eastl::fixed_vector<uint32_t, 32, true> areas;
+    bool Init(int _tx, int _ty, int _tlayer, const Tile &from)
+    {
+      if (from.cylinderAreas.empty() && from.boxAreas.empty())
+        return false;
+      tx = _tx;
+      ty = _ty;
+      tlayer = _tlayer;
+      areas.clear();
+      for (auto jt = from.boxAreas.begin(); jt != from.boxAreas.end(); ++jt)
+        areas.push_back(jt->id);
+      for (auto jt = from.cylinderAreas.begin(); jt != from.cylinderAreas.end(); ++jt)
+        areas.push_back(jt->id);
+      return true;
+    }
+  };
+  bool reTilePending = false;
+  ReTile reTile;
 };
 }; // namespace pathfinder

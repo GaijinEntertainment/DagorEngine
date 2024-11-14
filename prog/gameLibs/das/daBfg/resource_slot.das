@@ -33,8 +33,8 @@ def registerAccess(var self : NameSpace; name : string; slot_decl : resource_slo
     for a in slot_decl.read
       actionList |> read(a.slot, a.priority)
 
-    let declCB <- @ <| [[ <- declaration_callback ]] (var node_handle : daBfgCore::NodeHandle &; var slots_state : ResourceSlotCore::State &)
-      node_handle <- self |> daBfg::registerNode(name) <| @ [[ <- declaration_callback, <- slots_state ]] (var reg : daBfg::Registry)
+    let declCB <- @ <| [[ <- declaration_callback]] (var node_handle : daBfgCore::NodeHandle &; var slots_state : ResourceSlotCore::State &)
+      node_handle <- self |> daBfg::registerNode(name) <| @ [[ <- declaration_callback, <- slots_state]] (var reg : daBfg::Registry)
         return <- declaration_callback |> invoke(slots_state, reg)
 
     handle |> ResourceSlotCore::register_access(self.nameSpaceId, name, actionList, declCB)

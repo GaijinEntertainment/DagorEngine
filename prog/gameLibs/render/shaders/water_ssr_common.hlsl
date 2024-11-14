@@ -46,14 +46,9 @@ float4 hierarchRayMarch(float2 rayStart_uv, float3 R, float linear_roughness, fl
   float3 rayStepScreen = rayEndScreen - rayStartScreen;
 
   // calculate border of screen
-  float2 screenBorder = (rayStepScreen.xy >= 0) ? float2(1,1) : -float2(1,1);
-  float2 bScale = (abs(rayStepScreen.xy) < 1e-5) ? 1 : (screenBorder - rayStartScreen.xy) / rayStepScreen.xy;
-  bScale = (screenBorder - rayStartScreen.xy) / rayStepScreen.xy;
-  float bScaleW = max(bScale.x, bScale.y);
-  float borderScale = bScaleW > 0 ? min(bScale.x, bScale.y) : 1;
-  FLATTEN
-  if (rayStepScreen.z > 0)
-    borderScale = min(borderScale, (1-rayStartScreen.z)/rayStepScreen.z);
+  float3 screenBorder = (rayStepScreen >= 0) ? float3(1, 1, 1) : float3(-1, -1, 0);
+  float3 bScale = (screenBorder - rayStartScreen) / rayStepScreen;
+  float borderScale = min3(bScale.x, bScale.y, bScale.z);
   rayStepScreen *= borderScale;
   float2 toleranceUpMAD = -float2(abs(rayStepScreen.z*0.25), abs(rayStepScreen.z*STEP));
   float3 rayStartUVz = float3( rayStartScreen.xy * float2( 0.5, -0.5 ) + float2(0.5,0.5), rayStartScreen.z );
@@ -186,7 +181,7 @@ half4 performSSR(uint2 pixelPos, float2 UV, float linear_roughness, float3 N,
   float3 originToPoint = cameraToPoint;
   originToPoint = normalize(originToPoint);
   uint frameRandom = uint(SSRParams.w);
-  float stepOfs = blue_noise_tex[pixelPos.xy % 128].x;
+  float stepOfs = interleavedGradientNoiseFramed(pixelPos.xy, uint(SSRParams.z)) - 0.25;
 
   // Sample set dithered over 4x4 pixels
   float3 R = reflect(originToPoint, N);

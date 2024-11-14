@@ -588,6 +588,7 @@ struct Context
     BVHBufferReference *uniqueTransformBuffer;
     UniqueBLAS *uniqueBlas;
     bool uniqueIsRecycled;
+    bool noShadow;
     MeshMetaAllocator::AllocId metaAllocId;
     bool hasInstanceColor;
     eastl::optional<Point4> perInstanceData;
@@ -680,6 +681,8 @@ struct Context
   String name;
 
   Features features = static_cast<Features>(0);
+
+  float grassRange = 100;
 
   InstanceMap genericInstances;
   InstanceMap riGenInstances[ri_gen_thread_count];

@@ -117,7 +117,7 @@ def register_downsample_nodes(var local_tone_mapping__downsample_nodes : NodeHan
       var exposureHndl = registry |> create(format("exposures_%d", index), History No) |> texture(nextLayerInfo) |> atStage(Stage COMPUTE) |> useAs(Usage SHADER_RESOURCE) |> handle()
       var weightHndl = registry |> create(format("weights_%d", index), History No) |> texture(nextLayerInfo) |> atStage(Stage COMPUTE) |> useAs(Usage SHADER_RESOURCE) |> handle()
       var postfxResolution = registry |> getResolution`2("post_fx")
-      return <- @ <| [[ <- postfxResolution, <- exposureHndl, <- weightHndl, <- displayMip, <- resolutionDivider, <- highQuality ]]
+      return <- @ <| [[ <- postfxResolution, <- exposureHndl, <- weightHndl, <- displayMip, <- resolutionDivider, <- highQuality]]
         set_int(source_mipVarId, index == 0 ? 0 : MIPS_FOR_ONE_PASS - 1)
         set_int(mips_cntVarId, int(mipsCnt))
         set_int(display_mipVarId, int(displayMip))
@@ -188,7 +188,7 @@ def register_upsample_nodes(var local_tone_mapping__upsample_nodes : NodeHandleV
       var exposureHndl = registry |> create(firstNode ? "exposure_multiplier_tex" : format("exposure_multiplier_%d", inversedIndex), History No) |> texture(nextLayerInfo) |> atStage(Stage COMPUTE) |> useAs(Usage SHADER_RESOURCE) |> handle()
       var postfxResolution = registry |> getResolution`2("post_fx");
 
-      return <- @ <| [[ <- postfxResolution, <- exposureHndl, <- weightHndls, <- displayMip, <- upsampleMode, <- resolutionDivider ]]
+      return <- @ <| [[ <- postfxResolution, <- exposureHndl, <- weightHndls, <- displayMip, <- upsampleMode, <- resolutionDivider]]
         set_int(upsample_modeVarId, upsampleMode)
         set_int(mips_cntVarId, mipsCnt)
         set_int(base_mipVarId, displayMip)

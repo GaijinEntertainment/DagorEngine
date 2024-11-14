@@ -34,6 +34,7 @@
 #include <ioSys/dag_dataBlock.h>
 #include <memory/dag_framemem.h>
 #include <math/dag_math3d.h>
+#include <math/dag_vecMathCompatibility.h>
 #include <util/dag_convar.h>
 #include <util/dag_stlqsort.h>
 #include <generic/dag_sort.h>
@@ -288,7 +289,8 @@ void rendinstdestr::init_ex(rendinstdestr::on_destr_changed_callback on_destr_cb
   get_current_camera_pos = get_current_camera_pos_;
   rendinst::registerRIGenExtraInvalidateHandleCb(invalidate_handle_cb);
   rendinst::do_delayed_ri_extra_destruction = do_delayed_ri_extra_destruction_impl;
-  debugTreeInstData.branchDestr = get_tree_destr().branchDestr;
+  debugTreeInstData.branchDestrFromDamage = get_tree_destr().branchDestrFromDamage;
+  debugTreeInstData.branchDestrOther = get_tree_destr().branchDestrOther;
 }
 
 void rendinstdestr::init(rendinstdestr::on_destr_changed_callback on_destr_cb, bool apply_pending,
@@ -308,7 +310,8 @@ void rendinstdestr::init(rendinstdestr::on_destr_changed_callback on_destr_cb, b
   apex_force_remove_actor_cb = nullptr;
   get_current_camera_pos = get_camera_pos_cb;
 
-  debugTreeInstData.branchDestr = get_tree_destr().branchDestr;
+  debugTreeInstData.branchDestrFromDamage = get_tree_destr().branchDestrFromDamage;
+  debugTreeInstData.branchDestrOther = get_tree_destr().branchDestrOther;
 }
 
 
@@ -447,7 +450,7 @@ static void findRendinstNeighbors(rendinst::RendInstDesc desc, int destroy_neigh
 
 
 void rendinstdestr::fill_ri_destructable_params(destructables::DestructableCreationParams &params, const rendinst::RendInstDesc &desc,
-  DynamicPhysObjectData *po_data, const TMatrix &tm)
+  DynamicPhysObjectData *po_data, const TMatrix &tm, rendinst::DestrOptionFlags flags)
 {
   params.physObjData = po_data;
   params.tm = tm;
@@ -459,6 +462,7 @@ void rendinstdestr::fill_ri_destructable_params(destructables::DestructableCreat
   params.timeToLive = riexHandle != rendinst::RIEX_HANDLE_NULL ? rendinst::get_riextra_destr_time_to_live(riexHandle) : 15.0f;
   params.timeToKinematic =
     riexHandle != rendinst::RIEX_HANDLE_NULL ? rendinst::get_riextra_destr_time_to_kinematic(riexHandle) : -1.0f;
+  params.isDestroyedByExplosion = bool(flags & rendinst::DestrOptionFlag::DestroyedByExplosion);
 }
 
 static rendinst::RendInstDesc destroyRendinstInternal(rendinst::RendInstDesc desc, bool add_restorable, const Point3 &pos,
@@ -565,15 +569,15 @@ static rendinst::RendInstDesc destroyRendinstInternal(rendinst::RendInstDesc des
     rendinstdestr::call_on_rendinst_destroyed_cb(desc.getRiExtraHandle(), mainTm, bbox);
 
   destructables::id_t destrId = destructables::INVALID_ID;
-  if (!apex_asset_created && poData && create_destr_effects) //-V560
+  if (!apex_asset_created && poData && create_destr_effects && rendinstdestr::get_destr_settings().createDestr) //-V560
   {
     destructables::DestructableCreationParams params;
-    rendinstdestr::fill_ri_destructable_params(params, desc, poData, mainTm);
+    rendinstdestr::fill_ri_destructable_params(params, desc, poData, mainTm, flags);
     gamephys::DestructableObject *destr = nullptr;
     destrId = destructables::addDestructable(&destr, params, phys_world);
     if (destr) //-V1051
     {
-      if (impulse != ZERO<Point3>())
+      if (impulse.lengthSq() > 0.f)
         destr->addImpulse(*phys_world, pos, impulse);
     }
   }
@@ -670,20 +674,27 @@ rendinst::RendInstDesc rendinstdestr::destroyRendinst(rendinst::RendInstDesc des
 }
 
 void rendinstdestr::destroyRiExtra(rendinst::riex_handle_t riex_handle, const TMatrix &transform, const Point3 &impulse,
-  const Point3 &impulse_pos)
+  const Point3 &impulse_pos, rendinst::DestrOptionFlags flags)
 {
-  if (DynamicPhysObjectData *poData = rendinst::doRIExGenDestrEx(riex_handle, ri_effect_cb))
+  if (DynamicPhysObjectData *poData = rendinst::doRIExGenDestrEx(riex_handle, ri_effect_cb);
+      poData != nullptr && rendinstdestr::get_destr_settings().createDestr)
   {
     destructables::DestructableCreationParams params;
-    fill_ri_destructable_params(params, rendinst::RendInstDesc(riex_handle), poData, transform);
+    fill_ri_destructable_params(params, rendinst::RendInstDesc(riex_handle), poData, transform, flags);
     gamephys::DestructableObject *destr = nullptr;
     destructables::addDestructable(&destr, params, phys_world);
-    if (destr && impulse != ZERO<Point3>())
+    if (destr && impulse.lengthSq() > 0.f)
     {
       G_ASSERTF(lengthSq(impulse) < sqr(MAX_RI_DESTROY_IMPULSE), "Bad destroy rendInst impulse %@", impulse);
       destr->addImpulse(*phys_world, impulse_pos, impulse);
     }
   }
+}
+
+void rendinstdestr::update_paused(const Frustum *frustum)
+{
+  if (useDebugTreeInstData)
+    update(0.f, frustum);
 }
 
 void rendinstdestr::update(float dt, const Frustum *frustum)
@@ -800,6 +811,7 @@ void rendinstdestr::update(float dt, const Frustum *frustum)
           del_it(phys.additionalBody);
           phys.ttl = 15.f;
           phys.maxTtl = 15.f;
+          phys.treeInstData.disappearStartTime = phys.treeInstData.timer;
         }
         else if (phys.physBody)
         {
@@ -890,6 +902,11 @@ void rendinstdestr::update(float dt, const Frustum *frustum)
     if (!updateList.empty())
     {
       TIME_PROFILE(rendinstDestrTmUpdate);
+
+      vec3f frustumPoints[8];
+      frustum->generateAllPointFrustm(frustumPoints);
+      Point3 nearPlaneCenter = (as_point3(&frustumPoints[2]) + as_point3(&frustumPoints[4])) * 0.5f;
+
       rendinst::ScopedRIExtraWriteLock wr;
       for (int i = 0; i < updateList.size(); i++)
       {
@@ -902,7 +919,8 @@ void rendinstdestr::update(float dt, const Frustum *frustum)
         v_mat44_transpose_to_mat43(m43, m44);
         rendinst::moveRIGenExtra43(l.id, m43, l.moved, true);
 
-        rendinst::updateTreeDestrRenderData(l.originalTm, l.id, l.treeInstData, useDebugTreeInstData ? &debugTreeInstData : nullptr);
+        if ((l.originalTm.col[3] - nearPlaneCenter).lengthSq() < sqr(l.treeInstData.branchDestr.maxVisibleDistance))
+          rendinst::updateTreeDestrRenderData(l.originalTm, l.id, l.treeInstData, useDebugTreeInstData ? &debugTreeInstData : nullptr);
       }
     }
   }
@@ -1182,7 +1200,7 @@ static bool destroy_rend_inst_from_net(rendinst::RendInstDesc &restorable_desc, 
     {
       float s, c;
       sincos(angle, s, c);
-      create_tree_cb(restorable_desc, false, local_impulse_pos, Point3(c, 0.f, s), true, true, 0.5f, 0.f, NULL, create_destr);
+      create_tree_cb(restorable_desc, false, local_impulse_pos, Point3(c, 0.f, s), true, true, 0.5f, 0.f, NULL, create_destr, false);
     }
   }
   else
@@ -1596,8 +1614,12 @@ static void do_delayed_ri_extra_destruction_impl()
   if (destrCnt > 0)
     debug("delayed rend inst net destr: version:%llu->%llu destroyed:%i pending:%i", g_delayed_net_destr_list.lastUpdatedWorldVersion,
       version, destrCnt, int(g_delayed_net_destr_list.list.size()));
-  g_delayed_net_destr_list.lastUpdatedWorldVersion = version;
-  g_delayed_net_destr_list.isForcedUpdatePending = false;
+
+  {
+    rendinst::ScopedRIExtraReadLock riVersionLock;
+    g_delayed_net_destr_list.lastUpdatedWorldVersion = version;
+    g_delayed_net_destr_list.isForcedUpdatePending = false;
+  }
 }
 
 
@@ -1994,7 +2016,7 @@ int rendinstdestr::test_dynobj_to_ri_phys_collision(const CollisionObject &coA, 
 
 void rendinstdestr::create_tree_rend_inst_destr(const rendinst::RendInstDesc &desc, bool add_restorable, const Point3 &impactPos,
   const Point3 &_impulse, bool create_phys, bool constrained_phys, float wanted_omega, float at_time,
-  const rendinst::CollisionInfo *coll_info, bool create_destr)
+  const rendinst::CollisionInfo *coll_info, bool create_destr, bool from_damage)
 {
   G_UNUSED(impactPos);
   Point3 impulse = _impulse;
@@ -2224,11 +2246,15 @@ void rendinstdestr::create_tree_rend_inst_destr(const rendinst::RendInstDesc &de
     if (!constrained_phys && (coll_info->destrFxId >= 0 || !coll_info->destrFxTemplate.empty()) && ri_effect_cb)
       ri_effect_cb(coll_info->destrFxId, TMatrix::IDENT, tm, coll_info->desc.pool, false, nullptr, coll_info->destrFxTemplate.c_str());
 
-    if (treeDestr.branchDestr.enableBranchDestruction)
+    const rendinstdestr::TreeDestr::BranchDestr &branchDestr =
+      from_damage ? treeDestr.branchDestrFromDamage : treeDestr.branchDestrOther;
+    if (branchDestr.enableBranchDestruction)
     {
-      phys.treeInstData.branchDestr = treeDestr.branchDestr;
-      if (!rendinst::fillTreeInstData(desc, impulseDir * vel, phys.treeInstData))
+      phys.treeInstData.branchDestr = branchDestr;
+      if (!rendinst::fillTreeInstData(desc, impulseDir * vel, from_damage, phys.treeInstData))
         phys.treeInstData.branchDestr.enableBranchDestruction = false;
+      else
+        debugTreeInstData.last_object_was_from_damage = from_damage;
     }
   }
   else
@@ -2258,9 +2284,16 @@ void rendinstdestr::perform_delayed_destruction(int quota_usec)
   TIME_PROFILE(doDeferredRiDestruction);
   const auto start_time = ref_time_ticks();
 
-  if (g_delayed_net_destr_list.isForcedUpdatePending ||
-      g_delayed_net_destr_list.lastUpdatedWorldVersion != rendinst::getRIExtraGlobalWorldVersion(true, false))
-    do_delayed_ri_extra_destruction_impl(); // will set lastUpdatedWorldVersion and isForcedUpdatePending
+  if (!g_delayed_net_destr_list.list.empty())
+  {
+    uint64_t riExtraGlobalVersion;
+    {
+      rendinst::ScopedRIExtraReadLock riVersionLock;
+      riExtraGlobalVersion = rendinst::getRIExtraGlobalWorldVersion(true, false);
+    }
+    if (g_delayed_net_destr_list.isForcedUpdatePending || g_delayed_net_destr_list.lastUpdatedWorldVersion != riExtraGlobalVersion)
+      do_delayed_ri_extra_destruction_impl(); // will set lastUpdatedWorldVersion and isForcedUpdatePending
+  }
 
   while (!g_deferred_ri_destr_list.list.empty())
   {
@@ -2398,12 +2431,18 @@ static void imguiWindow()
 {
   static bool isPlaying = false;
 
-  ImGui::Checkbox("Enable Branch Destruction", &get_tree_destr_mutable().branchDestr.enableBranchDestruction);
+  auto &globalBranchDestr = debugTreeInstData.last_object_was_from_damage ? get_tree_destr_mutable().branchDestrFromDamage
+                                                                          : get_tree_destr_mutable().branchDestrOther;
+
+  rendinstdestr::TreeDestr::BranchDestr &branchDestr =
+    debugTreeInstData.last_object_was_from_damage ? debugTreeInstData.branchDestrFromDamage : debugTreeInstData.branchDestrOther;
+
+  ImGui::Checkbox("Enable Branch Destruction", &globalBranchDestr.enableBranchDestruction);
   ImGui::Checkbox("Use Debug Values", &useDebugTreeInstData);
   if (ImGui::Button("Reset Debug Values"))
   {
     debugTreeInstData.timer_offset = 0.0f;
-    debugTreeInstData.branchDestr = get_tree_destr().branchDestr;
+    branchDestr = globalBranchDestr;
   }
 
   static float maxTime = 3.0f;
@@ -2417,33 +2456,36 @@ static void imguiWindow()
       debugTreeInstData.timer_offset = 0.0f;
   }
 
-  rendinstdestr::TreeDestr::BranchDestr &branchDestr = debugTreeInstData.branchDestr;
   ImGui::SliderFloat("Timer Offset", &debugTreeInstData.timer_offset, -2.0f, maxTime, "%0.2f");
   ImGui::SliderFloat("Timer Max (For Play)", &maxTime, 0.0, 15.0f, "%0.2f");
   ImGui::Spacing();
   ImGui::SliderFloat("Impulse Mul", &branchDestr.impulseMul, 0, 15.0f, "%0.2f");
 
-  ImGui::SliderFloat("Impulse Threshold", &branchDestr.impulseMaxLength, 0, 1000.0f, "%0.1f", ImGuiSliderFlags_Logarithmic);
-  ImGui::SliderFloat("Branch Size Threshold", &branchDestr.branchSizeMax, 0, 50.0f, "%0.2f", ImGuiSliderFlags_Logarithmic);
+  ImGui::SliderFloat("Impulse Min", &branchDestr.impulseMin, 0, 100.0f, "%0.1f", ImGuiSliderFlags_Logarithmic);
+  ImGui::SliderFloat("Impulse Max", &branchDestr.impulseMax, 0, 100.0f, "%0.1f", ImGuiSliderFlags_Logarithmic);
+  ImGui::SliderFloat("Start keeping bigger branches than", &branchDestr.branchSizeMin, 0, 100.0f, "%0.2f",
+    ImGuiSliderFlags_Logarithmic);
+  ImGui::SliderFloat("Keep all branches bigger than", &branchDestr.branchSizeMax, 0, 100.0f, "%0.2f", ImGuiSliderFlags_Logarithmic);
   ImGui::SliderFloat("Rotate Speed X", &branchDestr.rotateRandomSpeedMulX, 0, 10.0f, "%0.2f", ImGuiSliderFlags_Logarithmic);
   ImGui::SliderFloat("Rotate Speed Y", &branchDestr.rotateRandomSpeedMulY, 0, 10.0f, "%0.2f", ImGuiSliderFlags_Logarithmic);
   ImGui::SliderFloat("Rotate Speed Z", &branchDestr.rotateRandomSpeedMulZ, 0, 10.0f, "%0.2f", ImGuiSliderFlags_Logarithmic);
-  ImGui::SliderFloat("Angle Spread", &branchDestr.rotateRandomAngleSpread, 0, 7.0f, "%0.2f", ImGuiSliderFlags_Logarithmic);
+  ImGui::SliderFloat("Angle Spread", &branchDestr.rotateRandomAngleSpread, 0, 10.0f, "%0.2f", ImGuiSliderFlags_Logarithmic);
   ImGui::SliderFloat("Branch Size Slow Down", &branchDestr.branchSizeSlowDown, 0, 1.0f, "%0.3f", ImGuiSliderFlags_Logarithmic);
   ImGui::SliderFloat("Falling Speed", &branchDestr.fallingSpeedMul, 0, 2.0f, "%0.3f", ImGuiSliderFlags_Logarithmic);
   ImGui::SliderFloat("Falling Speed Rnd", &branchDestr.fallingSpeedRnd, 0, 1.0f, "%0.3f", ImGuiSliderFlags_Logarithmic);
-  ImGui::SliderFloat("Horizontal Speed", &branchDestr.horizontalSpeedMul, 0, 10.0f, "%0.3f", ImGuiSliderFlags_Logarithmic);
+  ImGui::SliderFloat("Horizontal Speed", &branchDestr.horizontalSpeedMul, 0, 20.0f, "%0.3f", ImGuiSliderFlags_Logarithmic);
 
-  if (get_tree_destr().branchDestr.enableBranchDestruction)
+  float lastImpulse = -1.0f;
+  float chance = 0.0f;
+  if (riPhys.size())
   {
-    for (int i = 0; i < riPhys.size(); ++i)
-    {
-      RendInstPhys &phys = riPhys[i];
-
-      rendinst::updateTreeDestrRenderData(phys.originalTm, phys.ri->riHandle, phys.treeInstData,
-        useDebugTreeInstData ? &debugTreeInstData : nullptr);
-    }
+    lastImpulse = riPhys[riPhys.size() - 1].treeInstData.impactXZ.length();
+    chance =
+      clamp((lastImpulse - branchDestr.impulseMin) / max(branchDestr.impulseMax - branchDestr.impulseMin, 0.01f), 0.0f, 1.0f) * 100.0f;
   }
+
+  ImGui::Text("Last impulse: %.2f. Chance: %.2f%% (%s)", lastImpulse, chance,
+    debugTreeInstData.last_object_was_from_damage ? "From damage" : "Non-damage");
 }
 
 REGISTER_IMGUI_WINDOW("Render", "Tree Destruction", imguiWindow);

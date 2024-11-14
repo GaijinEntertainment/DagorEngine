@@ -344,7 +344,7 @@ shader deferred_immediate_resolve
 
       float NoL = dot(gbuffer.normal, lightDir);
       half3 result = 0;
-      bool subSurface = isSubSurfaceShader(gbuffer.material) && isSubSurfaceProfileValid(gbuffer.sss_profile);
+      bool subSurface = isSubSurfaceShader(gbuffer.material) && isTranslucentProfileValid(gbuffer.sss_profile);
 
       half csmShadow = 1;
 

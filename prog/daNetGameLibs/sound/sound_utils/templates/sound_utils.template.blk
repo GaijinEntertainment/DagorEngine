@@ -49,7 +49,6 @@ watched_by_player_sound{
 sound_control{
   _use:t="sound_banks_state"
   _tracked:t="sound_control__soundEnabled"
-  _tracked:t="sound_control__enabledGroups"
 
   _group{
     _tags:t="sound"
@@ -58,8 +57,6 @@ sound_control{
     sound_control__soundEnabled:b=no
     // setup
     sound_control__allowSound:b=yes
-    "sound_control__enabledGroups:u32" { value:i=1; }
-    "sound_control__needGroupsMask:u32" { value:i=1; }
     sound_control__subtemplate:t=""
   }
 }
@@ -102,7 +99,6 @@ base_managed_sound_control{
     _tags:t="sound"
     "managed_sound_control__entities:list<eid>"{}
     "managed_sound_control__positions:list<p3>"{}
-    "managed_sound_control__groupMask:u32" { value:i=1; }
   }
   // setup
   managed_sound_control__maxInstances:i=3
@@ -116,7 +112,7 @@ base_managed_sound{
   }
   _group{
     _tags:t="sound"
-    "sound_control__enabledGroups:u32" { value:i=0; } // disabled on appeared
+    sound_control__allowSound:b=no // disabled on appeared
     "managedSound:tag"{}
   }
 }

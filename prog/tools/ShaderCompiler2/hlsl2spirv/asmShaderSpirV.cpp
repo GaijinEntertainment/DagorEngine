@@ -41,9 +41,6 @@
 #include "../DebugLevel.h"
 #include <EASTL/unique_ptr.h>
 
-extern DebugLevel hlslDebugLevel;
-extern bool enableBindless;
-
 using namespace std;
 
 static void fix_varaible_names(String &glsl) { glsl.replaceAll("__", "_"); }
@@ -247,11 +244,12 @@ bool useBaseVertexPatch(const char *source)
 }
 
 CompileResult compileShaderSpirV(const char *source, const char *profile, const char *entry, bool need_disasm, bool enable_fp16,
-  bool skipValidation, bool optimize, int max_constants_no, const char *shader_name, CompilerMode mode, uint64_t shader_variant_hash)
+  bool skipValidation, bool optimize, int max_constants_no, const char *shader_name, CompilerMode mode, uint64_t shader_variant_hash,
+  bool enable_bindless, bool embed_debug_data)
 {
   CompileResult result;
 
-  if (enableBindless)
+  if (enable_bindless)
   {
     if (mode != CompilerMode::DXC)
     {
@@ -272,8 +270,6 @@ CompileResult compileShaderSpirV(const char *source, const char *profile, const 
     return result;
   }
 #endif
-  // to make this true -> turn on validation and set optimization to 0
-  const bool embedDebugData = hlslDebugLevel != DebugLevel::NONE;
   // just to have it for debugging
   (void)need_disasm;
 
@@ -301,7 +297,7 @@ CompileResult compileShaderSpirV(const char *source, const char *profile, const 
   Tab<uint8_t> chunkStore;
   std::vector<unsigned int> spirv;
 
-  if (embedDebugData)
+  if (embed_debug_data)
     add_chunk(chunks, chunkStore, spirv::ChunkType::UNPROCESSED_HLSL, 0, source, static_cast<uint32_t>(strlen(source)));
 
   if (CompilerMode::HLSLCC == mode)
@@ -312,7 +308,7 @@ CompileResult compileShaderSpirV(const char *source, const char *profile, const 
     {
       ComPtr<ID3DBlob> errors;
 
-      if (embedDebugData)
+      if (embed_debug_data)
         add_chunk(chunks, chunkStore, spirv::ChunkType::UNPROCESSED_HLSL, 0, source, static_cast<uint32_t>(strlen(source)));
 
       const D3D_SHADER_MACRO macros[] = //
@@ -344,7 +340,7 @@ CompileResult compileShaderSpirV(const char *source, const char *profile, const 
 
       stringstream infoLog;
 
-      if (embedDebugData)
+      if (embed_debug_data)
       {
         auto dxbcDisas = disassemble_dxbc(byteCode);
         add_chunk(chunks, chunkStore, spirv::ChunkType::HLSL_DISASSEMBLY, 0, dxbcDisas.data(),
@@ -372,7 +368,7 @@ CompileResult compileShaderSpirV(const char *source, const char *profile, const 
     }
 
     fix_varaible_names(shaderCode);
-    if (embedDebugData)
+    if (embed_debug_data)
       add_chunk(chunks, chunkStore, spirv::ChunkType::RECONSTRUCTED_GLSL, 0, shaderCode.data(), shaderCode.length());
 
     const spirv::CompileFlags glslCompileFlags = optimize ? spirv::CompileFlags::NONE : spirv::CompileFlags::DEBUG_BUILD;
@@ -456,7 +452,7 @@ CompileResult compileShaderSpirV(const char *source, const char *profile, const 
       "#define HW_VERTEX_ID uint vertexId: SV_VertexID;\n"
       "#define HW_BASE_VERTEX_ID [[vk::builtin(\"BaseVertex\")]] uint baseVertexId : DXC_SPIRV_BASE_VERTEX_ID;\n"
       "#define HW_BASE_VERTEX_ID_OPTIONAL [[vk::builtin(\"BaseVertex\")]] uint baseVertexId : DXC_SPIRV_BASE_VERTEX_ID;\n";
-    if (enableBindless)
+    if (enable_bindless)
     {
       macros += "#define BINDLESS_TEXTURE_SET_META_ID " + std::to_string(spirv::bindless::TEXTURE_DESCRIPTOR_SET_META_INDEX) + "\n";
       macros += "#define BINDLESS_SAMPLER_SET_META_ID " + std::to_string(spirv::bindless::SAMPLER_DESCRIPTOR_SET_META_INDEX) + "\n";
@@ -479,7 +475,7 @@ CompileResult compileShaderSpirV(const char *source, const char *profile, const 
 
     auto sourceRange = make_span(codeCopy.c_str(), codeCopy.size());
 
-    auto flags = enableBindless ? spirv::CompileFlags::ENABLE_BINDLESS_SUPPORT : spirv::CompileFlags::NONE;
+    auto flags = enable_bindless ? spirv::CompileFlags::ENABLE_BINDLESS_SUPPORT : spirv::CompileFlags::NONE;
     flags |= enable_fp16 ? spirv::CompileFlags::ENABLE_HALFS : spirv::CompileFlags::NONE;
 
     auto finalSpirV = spirv::compileHLSL_DXC(sourceRange, entry, profile, flags, disabledSpirvOptims);
@@ -565,7 +561,7 @@ CompileResult compileShaderSpirV(const char *source, const char *profile, const 
   }
 #endif
 
-  if (embedDebugData)
+  if (embed_debug_data)
   {
     spvtools::SpirvTools tools{SPV_ENV_VULKAN_1_0};
 

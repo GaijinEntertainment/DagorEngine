@@ -386,7 +386,7 @@ macro USE_COMBINE_SHADOWS()
             if (contactShadow<0.999)
             {
               ProcessedGbuffer gbuffer = readProcessedGbuffer(hitUV);//reads TWO textures - material and translucency!!!. Can be optimized, probably.
-              if (isSubSurfaceProfileValid(gbuffer.sss_profile))
+              if (isTranslucentProfileValid(gbuffer.sss_profile))
                 contactShadow = lerp(contactShadow, contactShadow*0.25 + 0.75, gbuffer.translucency);
               ##if shadows_quality != high
               contactShadow = gbuffer.dynamic ? 1.0 : contactShadow;

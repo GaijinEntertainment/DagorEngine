@@ -1,11 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <debug/dag_log.h>
-
 #include "driver.h"
 #include "d3d12_utils.h"
-#include "drv_log_defs.h"
+
+#include <debug/dag_log.h>
+#include <drv_log_defs.h>
+#include <util/dag_compilerDefs.h>
 
 
 namespace drv3d_dx12
@@ -64,6 +65,7 @@ inline const char *dxgi_error_code_to_string(HRESULT ec)
 bool dx12_is_gpu_crash_code(HRESULT result);
 void dx12_check_result_for_gpu_crash_and_enter_error_state(HRESULT result);
 
+DAGOR_NOINLINE
 inline HRESULT dx12_check_result_no_oom_report(HRESULT result, const char *expr, const char *file, int line)
 {
   if (SUCCEEDED(result))
@@ -88,6 +90,7 @@ inline HRESULT dx12_check_result_no_oom_report(HRESULT result, const char *expr,
 
 inline bool is_oom_error_code(HRESULT result) { return E_OUTOFMEMORY == result; }
 
+DAGOR_NOINLINE
 inline HRESULT dx12_check_result(HRESULT result, const char *expr, const char *file, int line)
 {
   if (SUCCEEDED(result))
@@ -127,6 +130,7 @@ inline bool is_recoverable_error(HRESULT error)
   }
 }
 
+DAGOR_NOINLINE
 inline HRESULT dx12_debug_result(HRESULT result, const char *expr, const char *file, int line)
 {
   if (SUCCEEDED(result))
@@ -147,21 +151,6 @@ inline HRESULT dx12_debug_result(HRESULT result, const char *expr, const char *f
   return result;
 }
 
-#define DX12_DEBUG_RESULT(r) drv3d_dx12::dx12_debug_result(r, #r, __FILE__, __LINE__)
-#define DX12_DEBUG_OK(r)     SUCCEEDED(DX12_DEBUG_RESULT(r))
-#define DX12_DEBUG_FAIL(r)   FAILED(DX12_DEBUG_RESULT(r))
-
-#define DX12_CHECK_RESULT(r) drv3d_dx12::dx12_check_result(r, #r, __FILE__, __LINE__)
-#define DX12_CHECK_OK(r)     SUCCEEDED(DX12_CHECK_RESULT(r))
-#define DX12_CHECK_FAIL(r)   FAILED(DX12_CHECK_RESULT(r))
-#define DX12_EXIT_ON_FAIL(r) \
-  if (DX12_CHECK_FAIL(r))    \
-  {                          \
-    /* no-op */              \
-  }
-
-#define DX12_CHECK_RESULT_NO_OOM_CHECK(r) drv3d_dx12::dx12_check_result_no_oom_report(r, #r, __FILE__, __LINE__)
-
 inline void report_resource_alloc_info_error(const D3D12_RESOURCE_DESC &desc)
 {
   D3D_ERROR("DX12: Error while querying resource allocation info, resource desc: %s, %u, %u x %u x "
@@ -171,3 +160,31 @@ inline void report_resource_alloc_info_error(const D3D12_RESOURCE_DESC &desc)
 }
 
 } // namespace drv3d_dx12
+
+#define DX12_DEBUG_RESULT(expr)                                                                                         \
+  [result = expr] {                                                                                                     \
+    return DAGOR_LIKELY(SUCCEEDED(result)) ? result : drv3d_dx12::dx12_debug_result(result, #expr, __FILE__, __LINE__); \
+  }()
+#define DX12_DEBUG_OK(expr)   SUCCEEDED(DX12_DEBUG_RESULT(expr))
+#define DX12_DEBUG_FAIL(expr) FAILED(DX12_DEBUG_RESULT(expr))
+
+#define DX12_CHECK_RESULT(expr)                                                                                         \
+  [result = expr] {                                                                                                     \
+    return DAGOR_LIKELY(SUCCEEDED(result)) ? result : drv3d_dx12::dx12_check_result(result, #expr, __FILE__, __LINE__); \
+  }()
+#define DX12_CHECK_RESULTF(expr, name)                                                                                 \
+  [result = expr] {                                                                                                    \
+    return DAGOR_LIKELY(SUCCEEDED(result)) ? result : drv3d_dx12::dx12_check_result(result, name, __FILE__, __LINE__); \
+  }()
+#define DX12_CHECK_OK(expr)   SUCCEEDED(DX12_CHECK_RESULT(expr))
+#define DX12_CHECK_FAIL(expr) FAILED(DX12_CHECK_RESULT(expr))
+#define DX12_EXIT_ON_FAIL(expr) \
+  if (DX12_CHECK_FAIL(expr))    \
+  {                             \
+    /* no-op */                 \
+  }
+
+#define DX12_CHECK_RESULT_NO_OOM_CHECK(expr)                                                                                          \
+  [result = expr] {                                                                                                                   \
+    return DAGOR_LIKELY(SUCCEEDED(result)) ? result : drv3d_dx12::dx12_check_result_no_oom_report(result, #expr, __FILE__, __LINE__); \
+  }()

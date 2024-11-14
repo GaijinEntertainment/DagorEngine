@@ -3,6 +3,7 @@
 #include "linkShaders.h"
 #include "gitRunner.h"
 #include "loadShaders.h"
+#include "globalConfig.h"
 
 #include "globVar.h"
 #include "varMap.h"
@@ -37,13 +38,6 @@
 
 #if _CROSS_TARGET_SPIRV
 #include <drv/shadersMetaData/spirv/compiled_meta_data.h>
-#endif
-
-#if _CROSS_TARGET_DX12
-#include "dx12/asmShaderDXIL.h"
-extern dx12::dxil::Platform targetPlatform;
-
-#include "DebugLevel.h"
 #endif
 
 static Tab<ShaderClass *> shader_class(tmpmem_ptr());
@@ -106,9 +100,6 @@ int add_fshader(dag::ConstSpan<unsigned> code)
 
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_files.h>
-
-extern bool useSha1Cache, writeSha1Cache;
-extern char *sha1_cache_dir;
 
 int add_vprog(dag::ConstSpan<unsigned> vs, dag::ConstSpan<unsigned> hs, dag::ConstSpan<unsigned> ds, dag::ConstSpan<unsigned> gs)
 {
@@ -259,13 +250,7 @@ int add_vprog(dag::ConstSpan<unsigned> vs, dag::ConstSpan<unsigned> hs, dag::Con
 }
 
 #if _CROSS_TARGET_DX12
-extern int hlslOptimizationLevel;
-extern bool hlslSkipValidation;
-extern bool hlsl2021;
-extern DebugLevel hlslDebugLevel;
-extern bool hlslEmbedSource;
-static bool is_hlsl_debug() { return hlslDebugLevel != DebugLevel::NONE; }
-extern char *sha1_cache_dir;
+static bool is_hlsl_debug() { return shc::config().hlslDebugLevel != DebugLevel::NONE; }
 
 #if REPORT_RECOMPILE_PROGRESS
 #define REPORT debug
@@ -305,12 +290,12 @@ VertexProgramAndPixelShaderIdents add_phase_one_progs(dag::ConstSpan<unsigned> v
   }
 
   dx12::dxil::CompilationOptions compileOptions;
-  compileOptions.optimize = hlslOptimizationLevel ? true : false;
-  compileOptions.skipValidation = hlslSkipValidation;
+  compileOptions.optimize = shc::config().hlslOptimizationLevel ? true : false;
+  compileOptions.skipValidation = shc::config().hlslSkipValidation;
   compileOptions.debugInfo = is_hlsl_debug();
   compileOptions.scarlettW32 = useScarlettWave32;
-  compileOptions.hlsl2021 = hlsl2021;
-  compileOptions.enableFp16 = enable_fp16;
+  compileOptions.hlsl2021 = shc::config().hlsl2021;
+  compileOptions.enableFp16 = shc::config().enableFp16;
   if (-1 == result.vprog)
   {
     auto packed = dx12::dxil::combinePhaseOneVertexProgram(vShaderData, hShaderData, dShaderData, gShaderData, rootSignatureDefinition,
@@ -348,15 +333,16 @@ struct RecompileJobBase : shc::Job
 
   eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>> load_cache(dag::ConstSpan<unsigned> uncompiled, const char *type_name)
   {
-    if (!useSha1Cache)
+    if (!shc::config().useSha1Cache)
       return {};
 
-    const char *profile_name = dx12::dxil::Platform::XBOX_ONE == targetPlatform ? "x" : "xs";
+    const char *profile_name = dx12::dxil::Platform::XBOX_ONE == shc::config().targetPlatform ? "x" : "xs";
     HASH_CONTEXT ctx;
     HASH_INIT(&ctx);
     HASH_UPDATE(&ctx, reinterpret_cast<const unsigned char *>(uncompiled.data()), data_size(uncompiled));
     HASH_FINISH(&ctx, ilHash);
-    SNPRINTF(ilPath, sizeof(ilPath), "%s/il/%s/%s/" HASH_LIST_STRING, sha1_cache_dir, type_name, profile_name, HASH_LIST(ilHash));
+    SNPRINTF(ilPath, sizeof(ilPath), "%s/il/%s/%s/" HASH_LIST_STRING, shc::config().sha1CacheDir, type_name, profile_name,
+      HASH_LIST(ilHash));
     auto file = df_open(ilPath, DF_READ);
     if (!file)
     {
@@ -373,7 +359,7 @@ struct RecompileJobBase : shc::Job
     }
 
     char byteCodePath[420];
-    SNPRINTF(byteCodePath, sizeof(byteCodePath), "%s/bc/%s/%s/" HASH_LIST_STRING, sha1_cache_dir, type_name, profile_name,
+    SNPRINTF(byteCodePath, sizeof(byteCodePath), "%s/bc/%s/%s/" HASH_LIST_STRING, shc::config().sha1CacheDir, type_name, profile_name,
       HASH_LIST(mappingFile.byteCodeHash));
     auto byteCodeFile = df_open(byteCodePath, DF_READ);
     if (!byteCodeFile)
@@ -409,10 +395,10 @@ struct RecompileJobBase : shc::Job
 
   void store_cache(dag::ConstSpan<unsigned> uncompiled, dag::ConstSpan<unsigned> compiled, const char *type_name)
   {
-    if (!writeSha1Cache)
+    if (!shc::config().writeSha1Cache)
       return;
 
-    const char *profile_name = dx12::dxil::Platform::XBOX_ONE == targetPlatform ? "x" : "xs";
+    const char *profile_name = dx12::dxil::Platform::XBOX_ONE == shc::config().targetPlatform ? "x" : "xs";
     MappingFileLayout mappingFile{};
     mappingFile.ilSize = data_size(uncompiled);
     mappingFile.byteCodeSize = data_size(compiled);
@@ -422,7 +408,7 @@ struct RecompileJobBase : shc::Job
     HASH_UPDATE(&ctx, reinterpret_cast<const unsigned char *>(uncompiled.data()), data_size(uncompiled));
     HASH_FINISH(&ctx, mappingFile.byteCodeHash);
     char bcPath[420];
-    SNPRINTF(bcPath, sizeof(bcPath), "%s/bc/%s/%s/" HASH_LIST_STRING, sha1_cache_dir, type_name, profile_name,
+    SNPRINTF(bcPath, sizeof(bcPath), "%s/bc/%s/%s/" HASH_LIST_STRING, shc::config().sha1CacheDir, type_name, profile_name,
       HASH_LIST(mappingFile.byteCodeHash));
 
     DagorStat bcInfo;
@@ -433,8 +419,8 @@ struct RecompileJobBase : shc::Job
     }
     else
     {
-      SNPRINTF(tempPath, sizeof(tempPath), "%s/%s_bc_%s_" HASH_TEMP_STRING "XXXXXX", sha1_cache_dir, type_name, profile_name,
-        HASH_LIST(mappingFile.byteCodeHash));
+      SNPRINTF(tempPath, sizeof(tempPath), "%s/%s_bc_%s_" HASH_TEMP_STRING "XXXXXX", shc::config().sha1CacheDir, type_name,
+        profile_name, HASH_LIST(mappingFile.byteCodeHash));
       auto file = df_mkstemp(tempPath);
       if (!file)
       {
@@ -458,7 +444,7 @@ struct RecompileJobBase : shc::Job
         return;
       }
     }
-    SNPRINTF(tempPath, sizeof(tempPath), "%s/%s_il_%s_" HASH_TEMP_STRING "XXXXXX", sha1_cache_dir, type_name, profile_name,
+    SNPRINTF(tempPath, sizeof(tempPath), "%s/%s_il_%s_" HASH_TEMP_STRING "XXXXXX", shc::config().sha1CacheDir, type_name, profile_name,
       HASH_LIST(ilHash));
     auto file = df_mkstemp(tempPath);
     if (!file)
@@ -480,7 +466,6 @@ struct RecompileJobBase : shc::Job
     }
   }
 };
-extern wchar_t *dx12_pdb_cache_dir;
 
 struct RecompileVPRogJob : RecompileJobBase
 {
@@ -494,8 +479,8 @@ struct RecompileVPRogJob : RecompileJobBase
     if (!recompiledVProgBlob)
     {
       writeCache = true;
-      auto recompiledVProg = dx12::dxil::recompileVertexProgram(shaders_vpr[compileTarget], targetPlatform, dx12_pdb_cache_dir,
-        hlslDebugLevel, hlslEmbedSource);
+      auto recompiledVProg = dx12::dxil::recompileVertexProgram(shaders_vpr[compileTarget], shc::config().targetPlatform,
+        shc::config().dx12PdbCacheDir, shc::config().hlslDebugLevel, shc::config().hlslEmbedSource);
       if (!recompiledVProg)
       {
         DAG_FATAL("Recompilation of vprog failed");
@@ -538,8 +523,8 @@ struct RecompilePShJob : RecompileJobBase
     if (!recompiledFShBlob)
     {
       writeCache = true;
-      auto recompiledFSh = dx12::dxil::recompilePixelSader(shaders_fsh[compileTarget], targetPlatform, dx12_pdb_cache_dir,
-        hlslDebugLevel, hlslEmbedSource);
+      auto recompiledFSh = dx12::dxil::recompilePixelSader(shaders_fsh[compileTarget], shc::config().targetPlatform,
+        shc::config().dx12PdbCacheDir, shc::config().hlslDebugLevel, shc::config().hlslEmbedSource);
       if (!recompiledFSh)
       {
         DAG_FATAL("Recompilation of fsh failed");
@@ -1136,20 +1121,40 @@ void save_scripted_shaders(const char *filename, dag::ConstSpan<SimpleString> fi
     shaders.shaders_vpr.push_back(eastl::move(code));
   }
 
+  // 4gb, cause eastl asserts this size, dag::Vector with default settings uses 32bit indices, and a lot of the bindump library code
+  // also assumes 32 bits is enough
+  constexpr size_t MAX_UNCOMPRESSED_SIZE = (1ull << 32) - 1;
+
+  bindump::SizeMetter sizeChecker;
+  bindump::streamWrite(shaders, sizeChecker);
+
+  if (sizeChecker.mSize > MAX_UNCOMPRESSED_SIZE)
+  {
+    sh_debug(SHLOG_FATAL,
+      "The shaders bindump is too large (%llu bytes uncompressed, doesn't fit into 32-bit indexing), "
+      "consider disabling global debug info options, or reducing the shader set",
+      sizeChecker.mSize);
+    return;
+  }
+
   bindump::VectorWriter mem_writer;
   bindump::streamWrite(shaders, mem_writer);
 
-  if (mem_writer.mData.size() > (1 << 30))
+  if (mem_writer.mData.size() > (1u << 30))
   {
     compressed.compressed_shaders.resize(zstd_compress_bound(mem_writer.mData.size()));
     size_t compressed_size = zstd_compress(compressed.compressed_shaders.data(), compressed.compressed_shaders.size(),
       mem_writer.mData.data(), mem_writer.mData.size(), 9);
 
-    extern bool autotest_mode;
-    const size_t maxCompressedSize = autotest_mode ? 0x40000000 : 0x20000000;
-
-    G_ASSERTF(compressed_size <= maxCompressedSize, "zstd_compress() returns %d (0x%x), srcDataSz=%u destBufSz=%u",
-      (ptrdiff_t)compressed_size, compressed_size, mem_writer.mData.size(), compressed.compressed_shaders.size());
+    const size_t maxCompressedSize = shc::config().autotestMode ? 0x40000000 : 0x20000000;
+    if (compressed_size > maxCompressedSize)
+    {
+      sh_debug(SHLOG_FATAL,
+        "Compressed bindump size is too large, zstd_compress() returns %lld (0x%llx), srcDataSz=%llu destBufSz=%llu, "
+        "while cap is %llu, consider disabling global debug info options, or reducing the shader set",
+        (ptrdiff_t)compressed_size, compressed_size, mem_writer.mData.size(), compressed.compressed_shaders.size(), maxCompressedSize);
+      return;
+    }
 
     compressed.compressed_shaders.resize(compressed_size);
     compressed.decompressed_size = mem_writer.mData.size();
@@ -1172,7 +1177,7 @@ void update_shaders_timestamps(dag::ConstSpan<SimpleString> dependencies)
 #if _CROSS_TARGET_DX12
   int64_t mostRecentTimestamp = 0;
 
-  if (use_git_timestamps)
+  if (shc::config().useGitTimestamps)
     mostRecentTimestamp = get_git_files_last_commit_timestamp(dependencies);
 #else
   G_UNUSED(dependencies);

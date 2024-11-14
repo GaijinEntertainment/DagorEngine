@@ -433,6 +433,15 @@ rule ProcessLinkTarget
       }
     }
 
+    if $(AndroidMakeAssetIndexMasks) {
+      local index_file = $(stage_dir)/assets/_asset_index.blk ;
+      postlink +=
+        del $(index_file) "
+ "      call $(PYTHON_EXE) $(jbuild_dir)/make_assets_index.py --dir $(stage_dir)/assets --masks $(AndroidMakeAssetIndexMasks) --output $(index_file)"
+ "
+      ;
+    }
+
     local final_output_name = $(Target:D=:S=) ;
     if $(AndroidOutputSuffix) {
       final_output_name = $(final_output_name)-$(AndroidOutputSuffix) ;

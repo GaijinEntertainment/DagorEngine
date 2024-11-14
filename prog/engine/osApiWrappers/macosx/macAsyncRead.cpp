@@ -159,7 +159,6 @@ bool dfa_read_async(void *handle, int asyncdata_handle, int offset, void *buf, i
         lseek(p.aio_fildes, offset, SEEK_SET);
         p.bytesRead = read(p.aio_fildes, buf, len);
         p.code = 0;
-        logwarn("AIO failed, using sync IO: read(%d,%d)->%d", offset, len, p.bytesRead);
         return true;
       }
       sleep_msec(1);

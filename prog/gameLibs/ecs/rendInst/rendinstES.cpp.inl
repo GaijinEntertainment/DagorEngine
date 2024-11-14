@@ -6,6 +6,7 @@
 #include <rendInst/rendInstGen.h>
 #include <rendInst/rendInstAccess.h>
 #include <rendInst/rendInstExtraAccess.h>
+#include <rendInst/rendInstDebug.h>
 #include <ecs/core/attributeEx.h>
 #include <daECS/core/coreEvents.h>
 #include <daECS/core/baseIo.h>
@@ -38,6 +39,7 @@ ECS_REGISTER_EVENT(EventRendinstImpulse);
 ECS_REGISTER_EVENT(EventOnRendinstDamage);
 
 static CONSOLE_BOOL_VAL("rendinst", debug_movement, false);
+static CONSOLE_BOOL_VAL("rendinst", ruler, false);
 static CONSOLE_BOOL_VAL("rigrid", debug_draw, false);
 static const bbox3f RENDINST_WORLD_BBOX = {v_make_vec4f(-1e4f, -1e4f, -1e4f, 0.f), v_make_vec4f(1e4f, 1e4f, 1e4f, 0.f)};
 
@@ -548,6 +550,20 @@ bool replace_ri_extra_res(ecs::EntityId eid, const char *res_name, bool destroy,
 
   riExtra->handle = spawn_ri_extra(mgr, eid, resIdx, res_name, /*preloaded*/ false);
   return riExtra->handle != rendinst::RIEX_HANDLE_NULL;
+}
+
+ECS_NO_ORDER
+ECS_TAG(render, dev)
+ECS_REQUIRE(eastl::true_type camera__active)
+static void rendinst_ruler_es(const ecs::UpdateStageInfoRenderDebug &, const TMatrix &transform)
+{
+  if (!ruler.get())
+    return;
+
+  float t = 1000.f;
+  rendinst::RendInstDesc traceDesc;
+  dacoll::traceray_normalized(transform.getcol(3), transform.getcol(2), t, nullptr, nullptr, dacoll::ETF_DEFAULT, &traceDesc);
+  rendinst::draw_rendinst_info(transform.getcol(3) + transform.getcol(2) * t, transform, traceDesc);
 }
 
 ECS_NO_ORDER

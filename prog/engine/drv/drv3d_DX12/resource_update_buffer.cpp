@@ -1,11 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <drv/3d/dag_tex3d.h>
-#include <drv/3d/dag_resUpdateBuffer.h>
-
 #include "device.h"
 #include "driver.h"
 #include "texture.h"
+
+#include <drv/3d/dag_tex3d.h>
+#include <drv/3d/dag_resUpdateBuffer.h>
+
 
 using namespace drv3d_dx12;
 

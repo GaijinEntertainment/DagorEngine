@@ -404,6 +404,7 @@ struct MeshInfo
 
   bool isImpostor = false;
   bool isInterior = false;
+  bool isClipmap = false;
   bool hasInstanceColor = false;
   bool isCamo = false;
   bool isHeliRotor = false;
@@ -441,6 +442,7 @@ static constexpr uint32_t bvhGroupRiExtra = 1 << 2;
 static constexpr uint32_t bvhGroupDynrend = 1 << 3;
 static constexpr uint32_t bvhGroupGrass = 1 << 4;
 static constexpr uint32_t bvhGroupImpostor = 1 << 5;
+static constexpr uint32_t bvhGroupNoShadow = 1 << 6;
 
 enum Features
 {
@@ -515,7 +517,7 @@ void set_ri_extra_range(ContextId context_id, float range);
 void prepare_ri_extra_instances();
 
 void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Frustum &frustum,
-  dynrend::ContextId *dynrend_context_id, RiGenVisibility *ri_gen_visibility);
+  dynrend::ContextId *dynrend_context_id, dynrend::ContextId *dynrend_plane_context_id, RiGenVisibility *ri_gen_visibility);
 
 // The upper 32 bits of the mesh_id are reserved for RI
 void add_mesh(ContextId context_id, uint64_t mesh_id, const MeshInfo &info);
@@ -558,5 +560,7 @@ void start_async_atmosphere_update(ContextId context_id, const Point3 &view_pos,
 void finalize_async_atmosphere_update(ContextId context_id);
 
 bool is_building(ContextId context_id);
+
+void set_grass_range(ContextId context_id, float range);
 
 } // namespace bvh

@@ -340,6 +340,7 @@ namespace das {
                                 ffd.privateField = pDecl->isPrivate;
                                 ffd.sealed = pDecl->sealed;
                                 ffd.implemented = true;
+                                ffd.classMethod = pDecl->isClassMethod;
                             }
                         }
                     } else {
@@ -358,6 +359,7 @@ namespace das {
                             oldFd->privateField = pDecl->isPrivate;
                             oldFd->sealed = pDecl->sealed;
                             oldFd->implemented = true;
+                            oldFd->classMethod = pDecl->isClassMethod;
                         } else {
                             das_yyerror(scanner,"structure field is already declared "+name_at.name
                                 +", use override to replace initial value instead",name_at.at,
@@ -583,6 +585,7 @@ namespace das {
                 nullptr
             );
             decl->isPrivate = isPrivate;
+            decl->isClassMethod = true;
             list->push_back(decl);
         }
         func->delRef();
@@ -666,6 +669,7 @@ namespace das {
                     decl->override = ovr == OVERRIDE_OVERRIDE;
                     decl->sealed = ovr == OVERRIDE_SEALED;
                     decl->isPrivate = isPrivate;
+                    decl->isClassMethod = true;
                     list->push_back(decl);
                     modifyToClassMember(func, yyextra->g_thisStructure, false, cnst);
                 }

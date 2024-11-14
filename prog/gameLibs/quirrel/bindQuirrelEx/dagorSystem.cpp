@@ -6,6 +6,7 @@
 #include <debug/dag_logSys.h>
 #include <osApiWrappers/dag_messageBox.h>
 #include <osApiWrappers/dag_progGlobals.h>
+#include <util/dag_compilerDefs.h>
 
 #if _TARGET_PC_WIN
 #include <windows.h>
@@ -137,7 +138,17 @@ void register_dagor_system(SqModules *module_mgr)
 
     /// @skipline
     .SetValue("DBGLEVEL", DAGOR_DBGLEVEL)
-    /// @const DBGLEVEL
+  /// @const DBGLEVEL
+
+  /// @skipline
+#if DAGOR_ADDRESS_SANITIZER
+    .SetValue("SANITIZER", "address")
+#elif DAGOR_THREAD_SANITIZER
+    .SetValue("SANITIZER", "thread")
+#else
+    .SetValue("SANITIZER", /*null*/ Sqrat::Object{})
+#endif
+    /// @const SANITIZER
 
     /// @skipline
     .SetValue("ARCH_BITS", targetArch)

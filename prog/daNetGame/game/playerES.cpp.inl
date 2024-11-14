@@ -147,7 +147,7 @@ Player *find_player_that_possess(ecs::EntityId eid)
 Player *find_player_by_userid(matching::UserId uid)
 {
   Player *result = nullptr;
-  players_search_ecs_query([&](Player &player, uint64_t userid) {
+  players_search_ecs_query([&](game::Player &player, uint64_t userid) {
     if (userid == uid)
     {
       result = &player;
@@ -161,7 +161,7 @@ Player *find_player_by_userid(matching::UserId uid)
 Player *find_player_by_platform_uid(const eastl::string &platform_uid)
 {
   Player *result = nullptr;
-  players_search_by_platfrom_ecs_query([&](Player &player, const eastl::string &platformUid) {
+  players_search_by_platfrom_ecs_query([&](game::Player &player, const eastl::string &platformUid) {
     if (!result && platformUid == platform_uid)
     {
       result = &player;
