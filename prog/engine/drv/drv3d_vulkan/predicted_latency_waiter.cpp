@@ -13,16 +13,19 @@ int64_t PredictedLatencyWaiter::getLastWaitTimeUs() { return profile_usec_from_t
 
 void PredictedLatencyWaiter::updateDynamicThreshold(uint64_t external_waited_us)
 {
-  // track average for external wait time and treat it as dynamic threshold
+  // track average for external wait time to treat it as dynamic threshold if needed
   externalWaitHistoryIndex = (externalWaitHistoryIndex + 1) % AVG_ELEMS;
   externalWaitUsSum -= externalWaitUsHistory[externalWaitHistoryIndex];
   externalWaitUsHistory[externalWaitHistoryIndex] = external_waited_us;
   externalWaitUsSum += external_waited_us;
-  dynamicThresholdUs = (externalWaitUsSum / AVG_ELEMS);
-  // reduce threshold from pure average
-  // this allows feedback to loop around stable point in order to avoid latching on pure average
-  if (dynamicThresholdUs > Globals::cfg.latencyWaitDeltaUs)
-    dynamicThresholdUs -= Globals::cfg.latencyWaitDeltaUs;
+
+  // we can reach max wait time either because frame rate is too low
+  // and we don't want to correct latency in this case, as prediction time correction step is considered small
+  // or if we trying to move non-movable time into predicted wait
+  // in both cases just consume external wait time as dynamic threshold
+  // reducing inertion on frame rate on low frame rates and fixing up non-movable time block
+  if (timeToWaitUs == Globals::cfg.latencyWaitMaxUs)
+    dynamicThresholdUs = (externalWaitUsSum / AVG_ELEMS);
 }
 
 void PredictedLatencyWaiter::update(int64_t external_waited_ticks)

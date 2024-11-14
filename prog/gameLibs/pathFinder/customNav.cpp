@@ -105,6 +105,8 @@ void CustomNav::areaUpdateCylinder(uint32_t area_id, const BBox3 &aabb, float w1
 
 void CustomNav::areaUpdate(const Area &area, float posThreshold, float angCosThreshold)
 {
+  restoreLostTiles();
+
   dtNavMesh *navMesh = getNavMeshPtr();
   if (!navMesh || (area.id == 0))
     return;
@@ -152,6 +154,23 @@ void CustomNav::areaUpdate(const Area &area, float posThreshold, float angCosThr
   }
 }
 
+class CustomNavHelper
+{
+public:
+  static EASTL_FORCE_INLINE bool isAreaTile(const dtMeshTile *tile, const BBox3 &aabb, const CustomNav::Area &area)
+  {
+    BBox3 tileAABB(Point3(&tile->header->bmin[0], Point3::CTOR_FROM_PTR), Point3(&tile->header->bmax[0], Point3::CTOR_FROM_PTR));
+    if (!(aabb & tileAABB))
+      return false;
+    if (area.isCylinder)
+    {
+      Point3 sz = area.oobb.width();
+      return testCircleAABB(tileAABB, area.oobb.center(), sz.x * sz.z);
+    }
+    return check_bbox_intersection(area.oobb, area.tm, tileAABB, TMatrix::IDENT);
+  }
+};
+
 template <typename T>
 void CustomNav::walkAreaTiles(const Area &area, T cb)
 {
@@ -170,61 +189,100 @@ void CustomNav::walkAreaTiles(const Area &area, T cb)
       const int nneis = navMesh->getTilesAt(x, y, neis, MAX_NEIS);
       for (int j = 0; j < nneis; ++j)
       {
-        BBox3 tileAABB(Point3(&neis[j]->header->bmin[0], Point3::CTOR_FROM_PTR),
-          Point3(&neis[j]->header->bmax[0], Point3::CTOR_FROM_PTR));
-        if (!(aabb & tileAABB))
-          continue;
-        if (area.isCylinder)
-        {
-          Point3 sz = area.oobb.width();
-          if (testCircleAABB(tileAABB, area.oobb.center(), sz.x * sz.z))
-            cb(navMesh->decodePolyIdTile(navMesh->getTileRef(neis[j])));
-        }
-        else if (check_bbox_intersection(area.oobb, area.tm, tileAABB, TMatrix::IDENT))
-          cb(navMesh->decodePolyIdTile(navMesh->getTileRef(neis[j])));
+        const dtMeshTile *tile = neis[j];
+        if (CustomNavHelper::isAreaTile(tile, aabb, area))
+          cb(navMesh->decodePolyIdTile(navMesh->getTileRef(tile)));
       }
     }
 }
 
+void CustomNav::addAreaToTile(Area &area, uint32_t tile_id)
+{
+  Tile &tile = tiles[tile_id];
+  if (area.isCylinder)
+  {
+    for (const Area &a : tile.cylinderAreas)
+    {
+      if (DAGOR_UNLIKELY(a.id == area.id))
+      {
+        logerr("a.id == area.id  %d == %d for cylinder area in %s", a.id, area.id, __FUNCTION__);
+        debug("tile count %d and gen %d, tile_id %u", area.tileCount, area.generation, tile_id);
+        BBox3 bbox = area.getAABB();
+        debug("customNav area bbox  %f %f %f %f %f %f", bbox.boxMin().x, bbox.boxMin().y, bbox.boxMin().z, bbox.boxMax().x,
+          bbox.boxMax().y, bbox.boxMax().z);
+        return;
+      }
+    }
+    tile.cylinderAreas.push_back(area);
+    ++area.tileCount;
+  }
+  else
+  {
+    for (const Area &a : tile.boxAreas)
+    {
+      if (DAGOR_UNLIKELY(a.id == area.id))
+      {
+        logerr("a.id == area.id  %d == %d for box area in %s", a.id, area.id, __FUNCTION__);
+        debug("tile count %d and gen %d, tile_id %u", area.tileCount, area.generation, tile_id);
+        BBox3 bbox = area.getAABB();
+        debug("customNav area bbox  %f %f %f %f %f %f", bbox.boxMin().x, bbox.boxMin().y, bbox.boxMin().z, bbox.boxMax().x,
+          bbox.boxMax().y, bbox.boxMax().z);
+        return;
+      }
+    }
+    tile.boxAreas.push_back(area);
+    ++area.tileCount;
+  }
+}
+
 void CustomNav::areaAddToTiles(Area &area)
 {
-  walkAreaTiles(area, [this, &area](uint32_t tile_id) {
-    Tile &tile = tiles[tile_id];
-    if (area.isCylinder)
+  walkAreaTiles(area, [this, &area](uint32_t tile_id) { addAreaToTile(area, tile_id); });
+}
+
+void CustomNav::invalidateTile(uint32_t tile_id, int tx, int ty, int tlayer)
+{
+  auto it = tiles.find(tile_id);
+  if (it == tiles.end())
+    return;
+
+  restoreLostTiles();
+
+  if (reTile.Init(tx, ty, tlayer, it->second))
+    reTilePending = true;
+
+  tiles.erase(tile_id);
+}
+
+void CustomNav::restoreLostTiles()
+{
+  if (!reTilePending)
+    return;
+  reTilePending = false;
+
+  const dtNavMesh *navMesh = getNavMeshPtr();
+  if (!navMesh)
+    return;
+
+  static const int MAX_NEIS = 32;
+  const dtMeshTile *neis[MAX_NEIS];
+  const int numAreas = (int)reTile.areas.size();
+  for (int k = 0; k < numAreas; ++k)
+  {
+    auto it = areas.find(reTile.areas[k]);
+    if (it == areas.end())
+      continue;
+    Area &area = it->second;
+    BBox3 aabb = area.getAABB();
+    int nneis = navMesh->getTilesAt(reTile.tx, reTile.ty, neis, MAX_NEIS);
+    for (int j = 0; j < nneis; ++j)
     {
-      for (const Area &a : tile.cylinderAreas)
-      {
-        if (DAGOR_UNLIKELY(a.id == area.id))
-        {
-          logerr("a.id == area.id  %d == %d for cylinder area in %s", a.id, area.id, __FUNCTION__);
-          debug("tile count %d and gen %d", area.tileCount, area.generation);
-          BBox3 bbox = area.getAABB();
-          debug("customNav area bbox  %f %f %f %f %f %f", bbox.boxMin().x, bbox.boxMin().y, bbox.boxMin().z, bbox.boxMax().x,
-            bbox.boxMax().y, bbox.boxMax().z);
-          return;
-        }
-      }
-      tile.cylinderAreas.push_back(area);
-      ++area.tileCount;
+      const dtMeshTile *tile = neis[j];
+      if (tile->header->layer == reTile.tlayer)
+        if (CustomNavHelper::isAreaTile(tile, aabb, area))
+          addAreaToTile(area, navMesh->decodePolyIdTile(navMesh->getTileRef(tile)));
     }
-    else
-    {
-      for (const Area &a : tile.boxAreas)
-      {
-        if (DAGOR_UNLIKELY(a.id == area.id))
-        {
-          logerr("a.id == area.id  %d == %d for box area in %s", a.id, area.id, __FUNCTION__);
-          debug("tile count %d and gen %d", area.tileCount, area.generation);
-          BBox3 bbox = area.getAABB();
-          debug("customNav area bbox  %f %f %f %f %f %f", bbox.boxMin().x, bbox.boxMin().y, bbox.boxMin().z, bbox.boxMax().x,
-            bbox.boxMax().y, bbox.boxMax().z);
-          return;
-        }
-      }
-      tile.boxAreas.push_back(area);
-      ++area.tileCount;
-    }
-  });
+  }
 }
 
 void CustomNav::removeTile(uint32_t tile_id) { tiles.erase(tile_id); }
@@ -267,6 +325,8 @@ void CustomNav::areaRemove(uint32_t area_id)
   auto it = areas.find(area_id);
   if (it != areas.end())
   {
+    restoreLostTiles();
+
     Tab<uint32_t> affectedTiles(framemem_ptr());
     areaRemoveFromTiles(it->second, affectedTiles);
     for (uint32_t tile_id : affectedTiles)
@@ -357,6 +417,8 @@ bool CustomNav::checkHashes(dag::ConstSpan<uint64_t> poly_refs, const PolyHashes
   dtNavMesh *navMesh = getNavMeshPtr();
   if (!navMesh)
     return true;
+  if (reTilePending)
+    return false;
   for (uint64_t polyRef : poly_refs)
   {
     auto it = hashes.find(polyRef);

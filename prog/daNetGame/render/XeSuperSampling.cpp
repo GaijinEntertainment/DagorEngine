@@ -28,31 +28,32 @@ XeSuperSampling::XeSuperSampling(const IPoint2 &outputResolution) : AntiAliasing
   float y = inputResolution.y;
   d3d::driver_command(Drv3dCommand::SET_XESS_VELOCITY_SCALE, &x, &y);
 
-  applierNode = resource_slot::register_access("xess", DABFG_PP_NODE_SRC,
-    {resource_slot::Create{"postfx_input_slot", "frame_for_postfx"}},
-    [this](resource_slot::State slotsState, dabfg::Registry registry) {
-      auto opaqueFinalTargetHndl =
-        registry.readTexture("final_target_with_motion_blur").atStage(dabfg::Stage::CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
-      auto depthHndl =
-        registry.readTexture("depth_after_transparency").atStage(dabfg::Stage::CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
-      auto motionVecsHndl = registry.readTexture("motion_vecs_after_transparency")
-                              .optional()
-                              .atStage(dabfg::Stage::CS)
-                              .useAs(dabfg::Usage::SHADER_RESOURCE)
-                              .handle();
-      auto antialiasedHndl = registry
-                               .createTexture2d(slotsState.resourceToCreateFor("postfx_input_slot"), dabfg::History::No,
-                                 {TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, registry.getResolution<2>("display")})
-                               .atStage(dabfg::Stage::CS)
-                               .useAs(dabfg::Usage::SHADER_RESOURCE)
-                               .handle();
-      return [this, depthHndl, motionVecsHndl, opaqueFinalTargetHndl, antialiasedHndl] {
-        OptionalInputParams params;
-        params.depth = depthHndl.view().getTex2D();
-        params.motion = motionVecsHndl.view().getTex2D();
-        xess_render(opaqueFinalTargetHndl.view().getTex2D(), antialiasedHndl.view().getTex2D(), inputResolution, jitterOffset, params);
-      };
-    });
+  applierNode = dabfg::register_node("xess", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+    auto opaqueFinalTargetHndl =
+      registry.readTexture("final_target_with_motion_blur").atStage(dabfg::Stage::CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
+    auto depthHndl =
+      registry.readTexture("depth_after_transparency").atStage(dabfg::Stage::CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
+    auto motionVecsHndl = registry.readTexture("motion_vecs_after_transparency")
+                            .optional()
+                            .atStage(dabfg::Stage::CS)
+                            .useAs(dabfg::Usage::SHADER_RESOURCE)
+                            .handle();
+    auto antialiasedHndl = registry
+                             .createTexture2d("frame_after_aa", dabfg::History::No,
+                               {TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, registry.getResolution<2>("display")})
+                             .atStage(dabfg::Stage::CS)
+                             .useAs(dabfg::Usage::SHADER_RESOURCE)
+                             .handle();
+    auto exposureTexHndl =
+      registry.readTexture("exposure_tex").atStage(dabfg::Stage::PS_OR_CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
+    return [this, depthHndl, motionVecsHndl, opaqueFinalTargetHndl, antialiasedHndl, exposureTexHndl] {
+      OptionalInputParams params;
+      params.depth = depthHndl.view().getTex2D();
+      params.motion = motionVecsHndl.view().getTex2D();
+      params.exposure = exposureTexHndl.view().getTex2D();
+      xess_render(opaqueFinalTargetHndl.view().getTex2D(), antialiasedHndl.view().getTex2D(), inputResolution, jitterOffset, params);
+    };
+  });
 }
 
 void xess_render(Texture *in_color,
@@ -65,6 +66,7 @@ void xess_render(Texture *in_color,
   xessParams.inColor = in_color;
   xessParams.inDepth = params.depth;
   xessParams.inMotionVectors = params.motion;
+  xessParams.inExposure = params.exposure;
   xessParams.inJitterOffsetX = jitter_offset.x;
   xessParams.inJitterOffsetY = jitter_offset.y;
   xessParams.outColor = out_color;

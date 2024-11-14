@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "shSemCode.h"
+#include "globalConfig.h"
 #include <shaders/shInternalTypes.h>
 #include "shaderVariant.h"
 #include <shaders/shUtils.h>
@@ -19,7 +20,6 @@
 
 #if _CROSS_TARGET_DX12
 #include "dx12/asmShaderDXIL.h"
-extern dx12::dxil::Platform targetPlatform;
 #endif
 
 extern int opcode_usage[2][256];
@@ -64,7 +64,6 @@ ShaderCode *ShaderSemCode::generateShaderCode(const ShaderVariant::VariantTableS
   Tab<int> cvar(tmpmem);
   cvar.resize(vars.size());
   int ofs = 0;
-  extern bool addTextureType;
 
   for (int i = 0; i < vars.size(); ++i)
   {
@@ -80,7 +79,7 @@ ShaderCode *ShaderSemCode::generateShaderCode(const ShaderVariant::VariantTableS
     }
     cvar[i] = ofs;
     ofs += sz;
-    if (addTextureType && vars[i].slot >= 0)
+    if (shc::config().addTextureType && vars[i].slot >= 0)
     {
       if (vars[i].slot >= code->staticTextureTypes.size())
         for (int j = code->staticTextureTypes.size(); j <= vars[i].slot; j++)
@@ -251,7 +250,7 @@ void ShaderSemCode::convert_passes(ShaderSemCode::Pass &semP, ShaderCode::Pass &
   else
   {
 #if _CROSS_TARGET_DX12
-    if (use_two_phase_compilation(targetPlatform))
+    if (use_two_phase_compilation(shc::config().targetPlatform) && !shc::config().autotestMode)
     {
       auto idents = add_phase_one_progs(semP.vpr, semP.hs, semP.ds, semP.gs, semP.fsh, semP.enableFp16);
       p.vprog = idents.vprog;

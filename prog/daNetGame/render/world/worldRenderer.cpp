@@ -300,7 +300,11 @@ CONSOLE_BOOL_VAL("render", immediate_flush, false);
 CONSOLE_BOOL_VAL("render", use_24bit_depth, false);
 
 CONSOLE_BOOL_VAL("ridestr", show_ri_phys_bboxes, false);
+#if DAGOR_DBGLEVEL > 0
 CONSOLE_BOOL_VAL("bfg", test_dynamic_node_allocation, false);
+#else
+static constexpr bool test_dynamic_node_allocation = false;
+#endif
 
 CONSOLE_FLOAT_VAL_MINMAX("skies", sun_direction_update_threshold_deg, 1, 0, 180);
 CONSOLE_FLOAT_VAL_MINMAX("skies", dynamic_time_scale, 0, -10000, 10000);
@@ -1752,7 +1756,7 @@ eastl::optional<IPoint2> WorldRenderer::getDimsForVrsTexture(int screenWidth, in
 
 void WorldRenderer::setAntialiasing()
 {
-  prepareForPostfxNoAANode.reset();
+  prepareForPostfxNoAANode = {};
   fxaaNode = {};
   ssaaNode = {};
   IPoint2 postFxResolution;
@@ -1848,7 +1852,7 @@ void WorldRenderer::setResolution()
   antiAliasing.reset();
   closeStaticUpsample();
   closeFsr();
-  prepareForPostfxNoAANode.reset();
+  prepareForPostfxNoAANode = {};
 
   if (hasFeature(FeatureRenderFlags::TAA))
   {
@@ -2632,8 +2636,10 @@ void WorldRenderer::createNodes()
     eastl::move(nodes.begin(), nodes.end(), eastl::back_inserter(fgNodeHandles));
   }
   fgNodeHandles.push_back(makeOpaqueDynamicsNode());
+  fgNodeHandles.push_back(makeDistortionFxNode());
 
   resource_slot::NodeHandleWithSlotsAccess (*resSlotFactories[])(){
+    makePostFxInputSlotProviderNode,
     makePostFxNode,
     makePreparePostFxNode,
   };
@@ -3800,7 +3806,11 @@ void WorldRenderer::beforeRender(float scaled_dt,
 
   // should be called in WorldRenderer::beforeRender to avoid data race with ParallelUpdateFrame
   if (get_cables_mgr())
-    get_cables_mgr()->beforeRender();
+  {
+    bool cablesChanged = get_cables_mgr()->beforeRender();
+    if (cablesChanged)
+      bvh_cables_changed();
+  }
 
   // dispatch performed in this functions, so it should be done in beforeRender
   {
@@ -3945,9 +3955,11 @@ static void set_mip_bias(float bias_value)
 
 void WorldRenderer::draw(float realDt)
 {
-  screencap::start_prending_request(); // Must call before additional game jobs are started to avoid data race
-  superPixels = getSuperPixels();
-  subPixels = getSubPixels();
+  auto callBeforePUFD = []() { // `PUFD` is abbr ParallelUpdateFrameDelayed
+    screencap::start_pending_request();
+    rendinst::applyTiledScenesUpdateForRIGenExtra(2000, 1000);
+  };
+  callBeforePUFD(); // Must be called before additional job (aka PUFD) to avoid data races & lock order inversions
   start_async_game_tasks(AGT_ADDITIONAL, /*wake*/ true); // Note: long job - start as early as possible
 
   const TMatrix &itm = currentFrameCamera.viewItm;
@@ -3985,8 +3997,6 @@ void WorldRenderer::draw(float realDt)
 
   if (attemptsToUpdateSkySph != 0) // It means that we have failed attempts to compute sky spherical harmonic
     updateSkyProbeDiffuse();
-
-  rendinst::applyTiledScenesUpdateForRIGenExtra(2000, 1000);
 
   cameraHeight = 4.0f; // fixme: get real height
   if (lmeshMgr)
@@ -4465,14 +4475,11 @@ void WorldRenderer::draw(float realDt)
   AimRenderingData aimRenderingData = get_aim_rendering_data();
 
   dabfg::NodeHandle testEmptyNode;
-
-  if (test_dynamic_node_allocation.get())
-  {
+  if (test_dynamic_node_allocation)
     testEmptyNode = dabfg::register_node("empty_test_node", DABFG_PP_NODE_SRC, [](dabfg::Registry) { return [] {}; });
-  }
 
-  const bool requiresSubsamplingThisFrame = subPixels > 1;
-  const bool requiresSuperSamplingThisFrame = superPixels > 1;
+  const bool requiresSubsamplingThisFrame = (subPixels = getSubPixels()) > 1;
+  const bool requiresSuperSamplingThisFrame = (superPixels = getSuperPixels()) > 1;
   if (requiresSuperSamplingThisFrame)
   {
     int superW = w * superPixels, superH = h * superPixels;
@@ -6034,7 +6041,7 @@ void WorldRenderer::renderWaterSSR(bool enabled,
     waterSSRStrenght->getTex2D()->generateMips();
     ShaderGlobal::set_texture(water_reflection_strenght_texVarId, waterSSRStrenght->getTexId());
 
-    ShaderGlobal::set_int(force_ignore_historyVarId, getSubPixels() > 1 || getSuperPixels() > 1);
+    ShaderGlobal::set_int(force_ignore_historyVarId, subPixels > 1 || superPixels > 1);
   }
   else
   {
@@ -6810,7 +6817,7 @@ int WorldRenderer::getTemporalShadowFramesCount() const
     return 1;
   }
   // Count how many samples will be taken to avoid repeating dithering pattern
-  return getSubPixels() * getSubPixels();
+  return subPixels * subPixels;
 }
 
 int WorldRenderer::getShadowFramesCount() const
@@ -6826,7 +6833,7 @@ int WorldRenderer::getShadowFramesCount() const
     return 8;
   }
   // Count how many samples will be taken to avoid repeating dithering pattern
-  return getSubPixels() * getSubPixels();
+  return subPixels * subPixels;
 }
 
 bool WorldRenderer::isTimeDynamic() const { return timeDynamic || dynamic_time_scale != 0; }

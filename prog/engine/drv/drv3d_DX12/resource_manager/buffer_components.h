@@ -1,20 +1,17 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <device_memory_class.h>
+#include <pipeline.h>
+#include <container_mutex_wrapper.h>
+#include <bindless.h>
+#include "host_shared_components.h"
+
 #include <EASTL/vector.h>
 #include <debug/dag_log.h>
 
-#include "device_memory_class.h"
-#include "pipeline.h"
-#include "container_mutex_wrapper.h"
-#include "bindless.h"
 
-#include "resource_manager/host_shared_components.h"
-
-
-namespace drv3d_dx12
-{
-namespace resource_manager
+namespace drv3d_dx12::resource_manager
 {
 class BufferHeap : public PersistentBidirectionalMemoryProvider
 {
@@ -716,5 +713,4 @@ public:
     return {};
   }
 };
-} // namespace resource_manager
-} // namespace drv3d_dx12
+} // namespace drv3d_dx12::resource_manager

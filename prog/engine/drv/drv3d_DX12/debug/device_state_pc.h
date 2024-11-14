@@ -1,11 +1,27 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include "global_state.h"
 #include "call_stack.h"
 #include "event_marker_tracker.h"
+#include <dag/dag_vector.h>
+#include <driver.h>
+#include <EASTL/string_view.h>
+#include <supp/dag_comPtr.h>
+#include <util/dag_compilerDefs.h>
 
-namespace drv3d_dx12::debug::pc
+
+namespace drv3d_dx12
+{
+class BasePipeline;
+class ComputePipeline;
+class PipelineVariant;
+struct BufferResourceReferenceAndOffset;
+struct Direct3D12Enviroment;
+struct PipelineStageStateBase;
+namespace debug
+{
+class GlobalState;
+namespace pc
 {
 class DeviceState : public call_stack::Reporter, protected event_marker::Tracker
 {
@@ -65,4 +81,6 @@ public:
 private:
   void processDebugLogImpl();
 };
-} // namespace drv3d_dx12::debug::pc
+} // namespace pc
+} // namespace debug
+} // namespace drv3d_dx12

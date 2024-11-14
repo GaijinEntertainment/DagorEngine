@@ -98,7 +98,7 @@ def operator ?.(t : Object const? const ==const; name : string) : ChildComponent
       return (*t)[name]
     else
       return get_child(*t, name, ecs_hash(name))
-  return [[ChildComponent const? const ]]
+  return [[ChildComponent const? const]]
 
 
 [generic, constant_expression(name=false), unused_argument(name)]
@@ -108,7 +108,7 @@ def operator ?.(var t : Object? ==const; name : string) : ChildComponent?
       return (*t)[name]
     else
       return getRW_child(*t, name, ecs_hash(name))
-  return [[ChildComponent? ]]
+  return [[ChildComponent?]]
 
 
 [generic, constant_expression(name=false), unused_argument(name)]
@@ -118,7 +118,7 @@ def operator ?[] (t : Object const? const; name : string) : ChildComponent const
       return (*t)[name]
     else
       return get_child(*t, name, ecs_hash(name))
-  return [[ChildComponent const? const ]]
+  return [[ChildComponent const? const]]
 
 
 [generic, constant_expression(name=false), unused_argument(name)]
@@ -128,7 +128,7 @@ def operator ?[] (var t : Object?; name : string) : ChildComponent?
       return (*t)[name]
     else
       return getRW_child(*t, name, ecs_hash(name))
-  return [[ChildComponent? ]]
+  return [[ChildComponent?]]
 
 
 def operator ??(a : ChildComponent const? const; default_value)

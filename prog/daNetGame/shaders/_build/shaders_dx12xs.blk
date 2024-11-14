@@ -11,6 +11,7 @@ include "shaders_xboxOne.blk"
   "@override:assume_vars"
   {
     gi_voxelize_use_multidraw:i=1
+    froxel_fog_use_experimental_offscreen_reprojection:i = 1 // we don't have DF on this platform, but we can afford this feature at least
     "@override:dagi_sp_has_exposure_assume":i=0
   }
 }

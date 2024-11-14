@@ -2,10 +2,15 @@
 
 #include "device.h"
 
-#include <nvLowLatency.h>
+#if _TARGET_PC_WIN
+#include "debug/global_state.h"
+#endif
+
+#include <dxgi_utils.h>
 #include <ioSys/dag_dataBlock.h>
 #include <math/random/dag_random.h>
-#include "../drv3d_commonCode/dxgi_utils.h"
+#include <nvLowLatency.h>
+
 
 using namespace drv3d_dx12;
 
@@ -1419,6 +1424,7 @@ LUID Device::preRecovery()
   // reporting errors during wind down phase and result in a stuck thread, we wait to finish for.
   auto errorObserverShutdownToken = enterDeviceErrorObserverInShutdownMode();
   // also shuts down the swapchain
+  nvlowlatency::close();
   context.preRecovery();
   for (auto &handler : deviceResetEventHandlers)
     handler->preRecovery();
@@ -1433,6 +1439,7 @@ LUID Device::preRecovery()
   DXGI_ADAPTER_DESC desc = {};
   adapter->GetDesc(&desc);
   adapter.Reset();
+  context.shutdownStreamline();
   bindlessManager.preRecovery();
   return desc.AdapterLuid;
 }
@@ -1459,10 +1466,7 @@ bool Device::recover(DXGIFactory *factory, ComPtr<IDXGIAdapter1> input_adapter, 
   }
   logdbg("DX12: ...Device has been successfully recreated");
 
-  nvlowlatency::close();
-
-  context.shutdownStreamline();
-  context.initStreamline(&factory, this->adapter.Get());
+  context.initStreamline(&factory, adapter.Get());
 
   debug::DeviceState::recover(device.get(), d3d_env);
   startDeviceErrorObserver(device.get());
@@ -1627,140 +1631,6 @@ Image *Device::placeTextureInHeap(::ResourceHeap *heap, const ResourceDescriptio
   }
 
   return result.image;
-}
-
-/*
- **************
- * FrameInfo  *
- **************
- */
-void FrameInfo::init(ID3D12Device *device)
-{
-  genericCommands.init(device);
-  computeCommands.init(device);
-  earlyUploadCommands.init(device);
-  lateUploadCommands.init(device);
-  readBackCommands.init(device);
-
-  resourceViewHeaps = ShaderResourceViewDescriptorHeapManager //
-    {device, device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)};
-  samplerHeaps = SamplerDescriptorHeapManager //
-    {device, device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)};
-
-  progressEvent.reset(CreateEvent(nullptr, FALSE, FALSE, nullptr));
-}
-void FrameInfo::shutdown(DeviceQueueGroup &queue_group, PipelineManager &pipe_man)
-{
-  // have to check if the queue group was initialized properly to wait on frame progress
-  // also if progress is 0, this frame info was never used
-  if (queue_group.canWaitOnFrameProgress() && progress > 0)
-  {
-    wait_for_frame_progress_with_event(queue_group, progress, progressEvent.get(), "FrameInfo::shutdown");
-  }
-
-  genericCommands.shutdown();
-  computeCommands.shutdown();
-  earlyUploadCommands.shutdown();
-  lateUploadCommands.shutdown();
-  readBackCommands.shutdown();
-
-  for (auto &&prog : deletedPrograms)
-    pipe_man.removeProgram(prog);
-  deletedPrograms.clear();
-
-  for (auto &&prog : deletedGraphicPrograms)
-    pipe_man.removeProgram(prog);
-  deletedGraphicPrograms.clear();
-
-  deletedShaderModules.clear();
-
-  resourceViewHeaps = ShaderResourceViewDescriptorHeapManager{};
-  samplerHeaps = SamplerDescriptorHeapManager{};
-
-  backendQueryManager.shutdown();
-}
-
-int64_t FrameInfo::beginFrame(DeviceQueueGroup &queue_group, PipelineManager &pipe_man, uint32_t frame_idx)
-{
-  auto waitTicks = ref_time_ticks();
-  wait_for_frame_progress_with_event(queue_group, progress, progressEvent.get(), "FrameInfo::beginFrame");
-  waitTicks = ref_time_ticks() - waitTicks;
-
-  frameIndex = frame_idx;
-
-  backendQueryManager.flush();
-
-  genericCommands.frameReset();
-  computeCommands.frameReset();
-  earlyUploadCommands.frameReset();
-  lateUploadCommands.frameReset();
-  readBackCommands.frameReset();
-
-  for (auto &&prog : deletedPrograms)
-    pipe_man.removeProgram(prog);
-  deletedPrograms.clear();
-
-  for (auto &&prog : deletedGraphicPrograms)
-    pipe_man.removeProgram(prog);
-  deletedGraphicPrograms.clear();
-
-  deletedShaderModules.clear();
-
-  // usual ranges are from sub 100 to about 2k on resources and sub 100 to about 300 for samplers
-#if DX12_REPORT_DESCRIPTOR_USES
-  logdbg("DX12: Frame %u used %u resource descriptors", progress, resourceViewHeaps.getTotalUsedDescriptors());
-  logdbg("DX12: Frame %u used %u sampler descriptors", progress, samplerHeaps.getTotalUsedDescriptors());
-#endif
-
-  resourceViewHeaps.clearScratchSegments();
-  samplerHeaps.clearScratchSegment();
-
-  return waitTicks;
-}
-
-void FrameInfo::preRecovery(DeviceQueueGroup &queue_group, PipelineManager &pipe_man)
-{
-  wait_for_frame_progress_with_event(queue_group, progress, progressEvent.get(), "FrameInfo::preRecovery");
-
-  genericCommands.shutdown();
-  computeCommands.shutdown();
-  earlyUploadCommands.shutdown();
-  lateUploadCommands.shutdown();
-  readBackCommands.shutdown();
-
-  for (auto &&prog : deletedPrograms)
-    pipe_man.removeProgram(prog);
-  deletedPrograms.clear();
-
-  for (auto &&prog : deletedGraphicPrograms)
-    pipe_man.removeProgram(prog);
-  deletedGraphicPrograms.clear();
-
-  // handle?
-  // dag::Vector<ProgramID> deletedPrograms;
-  deletedShaderModules.clear();
-  resourceViewHeaps = ShaderResourceViewDescriptorHeapManager{};
-  samplerHeaps = SamplerDescriptorHeapManager{};
-  backendQueryManager.shutdown();
-  progress = 0;
-}
-
-void FrameInfo::recover(ID3D12Device *device)
-{
-#if _TARGET_PC_WIN
-  genericCommands.init(device);
-  computeCommands.init(device);
-  earlyUploadCommands.init(device);
-  lateUploadCommands.init(device);
-  readBackCommands.init(device);
-
-  resourceViewHeaps = ShaderResourceViewDescriptorHeapManager //
-    {device, device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)};
-  samplerHeaps = SamplerDescriptorHeapManager //
-    {device, device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)};
-#else
-  G_UNUSED(device);
-#endif
 }
 
 namespace

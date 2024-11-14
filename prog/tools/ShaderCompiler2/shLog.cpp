@@ -106,7 +106,7 @@ void sh_debug(ShLogMode mode, const char *fmt, const DagorSafeArg *arg, int anum
       String s = current_variant->getVarStringInfo();
       debug("\n== S.variant: %s", (char *)s);
       if (dup_stdout && !lockShaderOutput)
-        printf("\n== S.variant: shader=%s %s\n", current_shader, (char *)s);
+        ATOMIC_PRINTF("\n== S.variant: shader=%s %s\n", current_shader, (char *)s);
     }
   }
 
@@ -118,7 +118,7 @@ void sh_debug(ShLogMode mode, const char *fmt, const DagorSafeArg *arg, int anum
       String s = current_dyn_variant->getVarStringInfo();
       debug(" = D.variant: %s", (char *)s);
       if (dup_stdout && !lockShaderOutput)
-        printf(" = D.variant: %s\n", (char *)s);
+        ATOMIC_PRINTF(" = D.variant: %s\n", (char *)s);
     }
   }
 
@@ -222,8 +222,9 @@ void sh_process_errors()
     shc::deinit_jobs();
     if (usePrintf)
     {
-      printf("\n\nCompilation aborted after %d error(s)\n", ErrorCounter::allShaders().err);
-      printf("See shaderlog for more info\n");
+      ATOMIC_PRINTF_IMM("\n\nCompilation aborted after %d error(s)\n"
+                        "See shaderlog for more info\n",
+        ErrorCounter::allShaders().err);
       quit_game(13);
     }
     else

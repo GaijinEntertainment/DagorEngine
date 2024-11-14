@@ -2,6 +2,7 @@ texture tsr_input_color;
 texture tsr_history_color;
 texture tsr_history_confidence;
 texture tsr_reactive_mask;
+texture tsr_exposure;
 
 float4 tsr_jitter_offset;
 float4 tsr_input_resolution = (1, 1, 1, 1);

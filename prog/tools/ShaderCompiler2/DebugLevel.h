@@ -1,7 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-enum class DebugLevel
+#include <cstdint>
+
+enum class DebugLevel : uint8_t
 {
   NONE,
   BASIC,

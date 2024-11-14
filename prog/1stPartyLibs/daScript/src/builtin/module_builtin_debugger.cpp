@@ -1201,6 +1201,18 @@ namespace debugapi {
         ctx.heap->breakOnFree(ptr,size);
     }
 
+#if DAS_TRACK_INSANE_POINTER
+    void das_track_insane_pointer ( void * ptr );
+#endif
+
+    void track_insane_pointer ( void * ptr, Context * ctx ) {
+#if DAS_TRACK_INSANE_POINTER
+        das_track_insane_pointer(ptr);
+#else
+        ctx->throw_error("insane pointer tracking is disabled, recompile with DAS_TRACK_INSANE_POINTER=1 && DAS_TRACK_ALLOCATIONS=1");
+#endif
+    }
+
     class Module_Debugger : public Module {
     public:
         Module_Debugger() : Module("debugapi") {
@@ -1452,6 +1464,9 @@ namespace debugapi {
             addExtern<DAS_BIND_FUN(break_on_free)>(*this, lib, "break_on_free",
                 SideEffects::modifyArgumentAndAccessExternal, "break_on_free")
                     ->args({"context","ptr","size"})->unsafeOperation = true;
+            addExtern<DAS_BIND_FUN(track_insane_pointer)>(*this, lib, "track_insane_pointer",
+                SideEffects::modifyArgumentAndAccessExternal, "track_insane_pointer")
+                    ->args({"ptr","context"})->unsafeOperation = true;
             // add builtin module
             compileBuiltinModule("debugger.das",debugger_das,sizeof(debugger_das));
             // lets make sure its all aot ready

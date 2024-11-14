@@ -971,15 +971,17 @@
     return calc_debug_color(delta_xy, 0.1, 0.2, 0.3);
   }
 
-#if !MODFX_SHADER_ATEST && !defined(_HARDWARE_METAL)
-  [earlydepthstencil]
+#if !MODFX_SHADER_ATEST && !_HARDWARE_METALIOS
+  #define USE_EARLY_DEPTH_STENCIL [earlydepthstencil]
+#else
+  #define USE_EARLY_DEPTH_STENCIL
 #endif
 #if MODFX_SHADER_VOLFOG_INJECTION
-  void dafx_bboard_ps(VsOutput input HW_USE_SCREEN_POS)
+  USE_EARLY_DEPTH_STENCIL void dafx_bboard_ps(VsOutput input HW_USE_SCREEN_POS)
 #elif MODFX_SHADER_FOM
-  FOM_DATA dafx_bboard_ps( VsOutput input HW_USE_SCREEN_POS)
+  USE_EARLY_DEPTH_STENCIL FOM_DATA dafx_bboard_ps( VsOutput input HW_USE_SCREEN_POS)
 #elif MODFX_WBOIT_ENABLED
-  WBOIT_RET dafx_bboard_ps( VsOutput input HW_USE_SCREEN_POS) WBOIT_TAR
+  USE_EARLY_DEPTH_STENCIL WBOIT_RET dafx_bboard_ps( VsOutput input HW_USE_SCREEN_POS) WBOIT_TAR
 #else
   struct PsOutput
   {
@@ -997,7 +999,7 @@
 #endif
     return output;
   }
-  PsOutput dafx_bboard_ps(VsOutput input HW_USE_SCREEN_POS)
+  USE_EARLY_DEPTH_STENCIL PsOutput dafx_bboard_ps(VsOutput input HW_USE_SCREEN_POS)
 #endif
   {
 

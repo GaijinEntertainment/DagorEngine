@@ -9,6 +9,7 @@ const CASE_PAIR_UPPER = "ABCDEFGHIJKLMNOPQRSTUVWXYZÀÁÂÃÄÅÆÇÈÉÊËÌÍ�
 local INVALID_INDEX = -1
 
 local intRegExp = null
+local possibleNotStrRegExp = null
 local floatRegExp = null
 local trimRegExp = null
 local stripTagsConfig = null
@@ -55,10 +56,14 @@ function split(joined, glue, isIgnoreEmpty = false) {
             : joined.split(glue).filter(@(v) v!="")
 }
 
+const intre = @"^-?\d+$"
+const floatre = @"^-?\d+\.?\d*([eE][-+]?\d{1,3})?$"
+let notstringre = @"(^-?\d+$)|(^-?\d+\.?\d*([eE][-+]?\d{1,3})?$)|^(null|true|false)$"
 if (regexp2 != null) {
-  intRegExp = regexp2(@"^-?\d+$")
-  floatRegExp  = regexp2(@"^-?\d+\.?\d*([eE][-+]?\d{1,3})?$")
+  intRegExp = regexp2(intre)
+  floatRegExp  = regexp2(floatre)
   trimRegExp = regexp2(@"^\s+|\s+$")
+  possibleNotStrRegExp = regexp2(notstringre)
   stripTagsConfig = [
     {
       re2 = regexp2("~")
@@ -94,8 +99,9 @@ if (regexp2 != null) {
     })
 }
 else if (regexp != null) {
-  intRegExp = regexp(@"^-?(\d+)$")
-  floatRegExp  = regexp(@"^-?\d+\.?\d*([eE][-+]?\d{1,3})?$")
+  intRegExp = regexp(intre)
+  possibleNotStrRegExp = regexp(notstringre)
+  floatRegExp  = regexp(floatre)
   trimRegExp = regexp(@"^(\s+)|(\s+)$")
   stripTagsConfig = [
     {
@@ -130,6 +136,12 @@ else if (regexp != null) {
       re2 = regexp(format(@"\x%02X", ch))
       repl = format(@"\\u%04X", ch)
     })
+}
+
+function isStringObviousString(str) {
+  if (possibleNotStrRegExp != null)
+    return !possibleNotStrRegExp.match(str)
+  return false
 }
 
 let defTostringParams = freeze({
@@ -219,7 +231,9 @@ function tostring_any(input, tostringfunc=null, compact=true) {
   else if (typ == "string"){
     if (input=="")
       return "\"\""
-    return $"\"{input}\""
+    if (!compact || !isStringObviousString(input))
+      return $"\"{input}\""
+    return input
   }
   else if (typ == "null"){
     return "null"
@@ -596,7 +610,6 @@ function floatToStringRounded(value, presize) {
   }
   return format("%.{0}f".subst(-math.log10(presize).tointeger()), value)
 }
-
 function isStringInteger(str) {
   if (type(str) == "integer")
     return true

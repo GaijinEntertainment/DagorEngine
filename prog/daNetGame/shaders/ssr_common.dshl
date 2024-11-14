@@ -33,11 +33,18 @@ macro SETUP_SSR(code)
   }
 endmacro
 
-macro SSR_CALCULATE(code)
+macro SSR_USE_EXPOSURE(code)
   INIT_HDR(code)
   USE_HDR(code)
   hlsl(code){
     #define PREV_FRAME_UNPACK(x) unpack_hdr(x)
+    #define PREV_FRAME_PACK(x) pack_hdr(x)
+  }
+endmacro
+
+macro SSR_CALCULATE(code)
+  SSR_USE_EXPOSURE(code)
+  hlsl(code){
     #include "ssr_common.hlsl"
   }
 endmacro

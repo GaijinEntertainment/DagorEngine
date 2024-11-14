@@ -33,7 +33,7 @@ CPPopt += -D_CROSS_TARGET_SPIRV=1 -DBINDUMP_TARGET_BE=0 -D_CRT_SECURE_NO_DEPRECA
 ;
 
 if $(Platform) = macOS {
-  CPPopt += -Wno-switch ;
+  CPPopt += -Wno-switch -Wno-deprecated-declarations ;
 } else if $(Platform) = linux {
   if $(PlatformSpec) = clang { CPPopt += -Wno-switch -Wno-sometimes-uninitialized ; }
 }

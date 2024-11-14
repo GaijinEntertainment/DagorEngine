@@ -2859,13 +2859,15 @@ void mark_polygons_upper(float world_level, uint8_t area_id)
 
 bool find_nearest_ladder(const Point3 &pos, float radius, Point3 &out_pos, Point3 &out_forw, Point3 &out_along)
 {
+  const scene::TiledScene *ladders = get_nav_mesh_data(NM_MAIN).tcMeshProc.getLadders();
+  if (!ladders)
+    return false;
   bool found = false;
   BBox3 box;
   box.boxMin().set(pos.x - radius, pos.y - radius, pos.z - radius);
   box.boxMax().set(pos.x + radius, pos.y + radius, pos.z + radius);
   bbox3f bbox = v_ldu_bbox3(box);
   float minDist = FLT_MAX;
-  const scene::TiledScene *ladders = get_nav_mesh_data(NM_MAIN).tcMeshProc.getLadders();
   ladders->boxCull<false, true>(bbox, 0, 0, [&](scene::node_index, mat44f_cref tm) {
     const Point3 ladderPos{v_extract_x(tm.col3), v_extract_y(tm.col3), v_extract_z(tm.col3)};
     const Point3 dir = ladderPos - pos;

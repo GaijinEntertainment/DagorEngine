@@ -33,7 +33,7 @@ enum RestorableRendinstState
 
 typedef void (*create_tree_rend_inst_destr_cb)(const rendinst::RendInstDesc &desc, bool add_restorable, const Point3 &impactPos,
   const Point3 &impulse, bool create_phys, bool constrained_phys, float omega, float at_time, const rendinst::CollisionInfo *coll_info,
-  bool create_destr);
+  bool create_destr, bool from_damage);
 typedef void (*remove_tree_rendinst_destr_cb)(const rendinst::RendInstDesc &desc);
 typedef void (*remove_physx_collision_object_callback)(const rendinst::RendInstDesc &desc);
 typedef int (*create_apex_actors_callback)(const char *name, const TMatrix &normalized_tm, const Point3 &scale, const Point3 &pos,
@@ -163,10 +163,12 @@ rendinst::RendInstDesc destroyRendinst(rendinst::RendInstDesc desc, bool add_res
   float at_time, const rendinst::CollisionInfo *coll_info, bool create_destr_effects, ApexDmgInfo *apex_dmg_info = NULL,
   int destroy_neighbour_recursive_depth = 1, float impulse_mult_for_child = 1.f, on_destr_callback on_destr_cb = nullptr,
   rendinst::DestrOptionFlags flags = rendinst::DestrOptionFlag::AddDestroyedRi | rendinst::DestrOptionFlag::ForceDestroy);
-void destroyRiExtra(rendinst::riex_handle_t riex_handle, const TMatrix &transform, const Point3 &impulse, const Point3 &impulse_pos);
+void destroyRiExtra(rendinst::riex_handle_t riex_handle, const TMatrix &transform, const Point3 &impulse, const Point3 &impulse_pos,
+  rendinst::DestrOptionFlags flags = {});
 void update(float dt, const Frustum *frustum);
+void update_paused(const Frustum *frustum);
 void fill_ri_destructable_params(destructables::DestructableCreationParams &params, const rendinst::RendInstDesc &desc,
-  DynamicPhysObjectData *po_data, const TMatrix &tm);
+  DynamicPhysObjectData *po_data, const TMatrix &tm, rendinst::DestrOptionFlags flags);
 
 bool apply_damage_to_riextra(rendinst::riex_handle_t handle, float dmg, const Point3 &pos, const Point3 &impulse, float at_time);
 void apply_damage_to_ri(const rendinst::RendInstDesc &desc, float dmg, float impulse_to_hp, const Point3 &pos, const Point3 &impulse,
@@ -197,7 +199,7 @@ int test_dynobj_to_ri_phys_collision(const CollisionObject &coA, float max_rad);
 void remove_tree_rendinst_destr(const rendinst::RendInstDesc &desc);
 void create_tree_rend_inst_destr(const rendinst::RendInstDesc &desc, bool add_restorable, const Point3 &impactPos,
   const Point3 &impulse, bool create_phys, bool constrained_phys, float wanted_omega, float at_time,
-  const rendinst::CollisionInfo *coll_info, bool create_destr);
+  const rendinst::CollisionInfo *coll_info, bool create_destr, bool from_damage);
 
 void clear_phys_objs();
 

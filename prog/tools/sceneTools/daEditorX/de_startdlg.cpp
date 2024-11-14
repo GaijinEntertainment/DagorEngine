@@ -60,6 +60,7 @@ StartupDlg::StartupDlg(const char *caption, DeWorkspace &wsp, const char *wsp_bl
   mPanel->createRadioGroup(ID_GROUP, "Select action:");
 
   reloadWsp();
+  autoSize(/*auto_center = */ false);
 }
 
 

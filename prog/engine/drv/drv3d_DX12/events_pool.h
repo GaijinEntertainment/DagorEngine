@@ -2,9 +2,13 @@
 #pragma once
 
 #include <atomic>
-#include <new>
+#include <debug/dag_assert.h>
 #include <eastl/array.h>
+#include <math/dag_intrin.h>
+#include <new>
+#include <util/dag_compilerDefs.h>
 #include <windows.h>
+
 
 class EventsPool
 {

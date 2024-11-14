@@ -1,5 +1,6 @@
 include "../../../../prog/gameLibs/render/denoiser/shaders/build.blk"
 include "../../../../prog/gameLibs/render/rtsm/shaders/build.blk"
+include "../../../../prog/gameLibs/render/rtao/shaders/build.blk"
 include "../../../../prog/gameLibs/render/rtr/shaders/build.blk"
 
 "@override:source"

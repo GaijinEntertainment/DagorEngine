@@ -796,9 +796,6 @@ void correctStreamingDriverReserve()
     debug("vulkan: Cannot override texStreaming/driverReserveKB. Settings is not inited yet.");
 }
 
-using UpdateGpuDriverConfigFunc = void (*)(GpuDriverConfig &);
-extern UpdateGpuDriverConfigFunc update_gpu_driver_config;
-
 void update_vulkan_gpu_driver_config(GpuDriverConfig &gpu_driver_config)
 {
   auto &deviceProps = Globals::VK::phy;

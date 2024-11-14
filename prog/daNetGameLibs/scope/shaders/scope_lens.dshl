@@ -23,6 +23,8 @@ float4 scope_lens_local_x = (1, 0, 0, 0);
 float4 scope_lens_local_y = (0, 1, 0, 0);
 float4 scope_lens_local_z = (0, 0, 1, 0);
 
+float lens_zoom_factor = 1.0;
+interval lens_zoom_factor:has_zoom <1.0, no_zoom;
 texture lens_frame_tex;
 texture scope_lens_mask;
 
@@ -252,10 +254,12 @@ shader scope_lens, dynamic_crosshair
             SET_DRAW_CALL_ID(GET_DRAW_ID(input) & MATERIAL_OFFSET_MASK);
           #endif
 
+        ##if mobile_render != off
           float4 screenPos = GET_SCREEN_POS(input.pos);
           float maskValue = tex2D(scope_lens_mask, screenPos.xy * screen_pos_to_texcoord).r;
           if (maskValue == 0.0)
             discard;
+        ##endif
 
           half4 diffuseColor = tex2DBindless(get_diffuse_tex(), input.texcoord);
           diffuseColor.a *= get_transparency_mul();
@@ -332,10 +336,22 @@ shader scope_lens, dynamic_crosshair
     else if (lens_render_mode == render_frame)
     {
       (ps) {
-        screen_pos_to_texcoord@f2 = (screen_pos_to_texcoord.x, screen_pos_to_texcoord.y, 0, 0);
+        lens_zoom_factor@f1 = lens_zoom_factor;
+        screen_size@f2 = (1.0 / screen_pos_to_texcoord.x, 1.0 / screen_pos_to_texcoord.y)
+        inv_screen_size@f2 = (screen_pos_to_texcoord.x, screen_pos_to_texcoord.y)
         frame_tex@smp2d = lens_frame_tex;
       }
       hlsl(ps) {
+        #include "tex2DCatmullRom.hlsl"
+
+        float2 apply_zoom(float2 uv)
+        {
+          uv = uv * 2.0 - 1.0;
+          uv *= lens_zoom_factor;
+          uv = uv * 0.5 + 0.5;
+          return uv;
+        }
+
         float4 scope_lens_ps(VsOutput input HW_USE_SCREEN_POS INPUT_VFACE) : SV_Target0
         {
           #if SET_UP_MULTIDRAW
@@ -344,7 +360,16 @@ shader scope_lens, dynamic_crosshair
           #endif
 
           float4 screenPos = GET_SCREEN_POS(input.pos);
-          half3 frameColor = tex2D(frame_tex, screenPos.xy * screen_pos_to_texcoord).rgb;
+          float2 uv = screenPos.xy * inv_screen_size;
+
+          float3 frameColor;
+        ##if lens_zoom_factor == has_zoom
+          uv = apply_zoom(uv);
+          frameColor = sample_texture_catmull_rom(frame_tex, frame_tex_samplerstate, uv, screen_size, inv_screen_size).rgb;
+        ##else
+          frameColor = tex2D(frame_tex, uv).rgb;
+        ##endif
+
           return float4(frameColor, 1);
         }
       }
@@ -582,7 +607,6 @@ shader scope_reticle
 
   (ps) {
     scope_reticle_tex@smp2d = scope_reticle_tex;
-    scope_lens_mask@smp2d = scope_lens_mask;
   }
 
   hlsl {
@@ -623,11 +647,6 @@ shader scope_reticle
   {
     float4 scope_reticle_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
     {
-      float2 tc = GET_SCREEN_POS(input.pos).xy;
-      float maskValue = texelFetch(scope_lens_mask, tc, 0).r;
-      if (maskValue == 0.0)
-        discard;
-
       float alpha = tex2D(scope_reticle_tex, input.texcoord).a;
       return float4(0, 0, 0, alpha);
     }

@@ -61,7 +61,7 @@ static inline void global_manager_debug_imgui_ecs_query(Callable);
 
 static void imgui_callback()
 {
-  global_manager_debug_imgui_ecs_query([](GlobalManager &dagdp__global_manager) { dagdp__global_manager.imgui(); });
+  global_manager_debug_imgui_ecs_query([](dagdp::GlobalManager &dagdp__global_manager) { dagdp__global_manager.imgui(); });
 }
 
 } // namespace dagdp

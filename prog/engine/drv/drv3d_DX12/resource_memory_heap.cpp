@@ -1,12 +1,11 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include "device.h"
-
-#include <supp/dag_cpuControl.h>
-
+#include "resource_memory_heap.h"
 #include "frontend_state.h"
 
+#include <supp/dag_cpuControl.h>
 #include <3d/dag_resourceDump.h>
+
 
 using namespace drv3d_dx12;
 using namespace drv3d_dx12::resource_manager;

@@ -71,6 +71,7 @@ DAGOR_NOINLINE void paint_window(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 #endif
 
 bool get_enable_hdr_from_settings(const char *name = nullptr);
+bool get_hfr_preference_from_settings();
 
 /* Returns with the "video/monitor:t" value from config.
  nullptr result means default. */

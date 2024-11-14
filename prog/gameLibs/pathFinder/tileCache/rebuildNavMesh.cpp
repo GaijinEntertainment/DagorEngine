@@ -38,7 +38,6 @@ extern RiexHashMap<RiObstacle> riHandle2obstacle;
 
 void renderDebugReset();
 
-static Tab<uint32_t> removedNavMeshTiles;
 static ska::flat_hash_set<uint32_t> removedObstacles;
 static ska::flat_hash_set<uint32_t> addedObstacles;
 
@@ -752,8 +751,6 @@ void rebuildNavMesh_update_removeTiles()
         const int tlayer = tile->header->tlayer;
         dtTileRef tileRef = navMesh->getTileRefAt(tile->header->tx, tile->header->ty, tlayer);
 
-        removedNavMeshTiles.push_back(navMesh->decodePolyIdTile(tileRef));
-
         dtStatus status1 = navMesh->removeTile(tileRef, 0, 0);
         dtStatus status2 = tileCache->removeTile(tiles[i], NULL, NULL);
 
@@ -1325,8 +1322,4 @@ bool patchedNavMesh_loadFromFile(const char *fileName, dtTileCache *tlCache, uin
 
   return true;
 }
-
-const Tab<uint32_t> &get_removed_rebuild_tile_cache_tiles() { return removedNavMeshTiles; }
-
-void clear_removed_rebuild_tile_cache_tiles() { clear_and_shrink(removedNavMeshTiles); }
 } // namespace pathfinder

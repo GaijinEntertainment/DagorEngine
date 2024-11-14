@@ -1,132 +1,23 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "constants.h"
+#include "device_caps_and_shader_model.h"
+#include "format_store.h"
+#include "frame_buffer.h"
+#include "render_state.h"
+#include "shader.h"
+
+#include <drv/shadersMetaData/dxil/compiled_shader_header.h>
 #include <generic/dag_bitset.h>
 #include <math/dag_lsbVisitor.h>
 #include <supp/dag_comPtr.h>
-#include <drv/shadersMetaData/dxil/compiled_shader_header.h>
-
-#include "render_state.h"
-#include "device_caps_and_shader_model.h"
-#include "format_store.h"
-#include "constants.h"
-#include "shader.h"
 
 
 inline const char CACHE_FILE_NAME[] = "cache/dx12.cache";
 
 namespace drv3d_dx12
 {
-// This data structure is used as is for binary storage on disk for caches and its bit pattern is hashed,
-// so its layout has to be tightly packed and avoid padding of members, otherwise initialized bits may
-// yield different results for "equal" instances.
-struct FramebufferLayout
-{
-  FormatStore colorFormats[Driver3dRenderTarget::MAX_SIMRT] = {};
-  FormatStore depthStencilFormat = {};
-  uint8_t colorTargetMask = 0;
-  uint16_t colorMsaaLevels = 0;
-  uint8_t hasDepth = 0;
-  uint8_t depthMsaaLevel = 0;
-
-  static constexpr int MSAA_LEVEL_BITS_PER_RT = BitsNeeded<(TEXCF_SAMPLECOUNT_MAX >> TEXCF_SAMPLECOUNT_OFFSET)>::VALUE;
-  static_assert(sizeof(colorMsaaLevels) * 8 >= MSAA_LEVEL_BITS_PER_RT * Driver3dRenderTarget::MAX_SIMRT);
-  static_assert(MSAA_LEVEL_BITS_PER_RT + 1 <= 8);
-
-  static constexpr size_t expected_size = sizeof(uint8_t) * Driver3dRenderTarget::MAX_SIMRT + sizeof(uint8_t) + sizeof(uint8_t) +
-                                          sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint8_t);
-
-  void clear()
-  {
-    eastl::fill(eastl::begin(colorFormats), eastl::end(colorFormats), FormatStore{});
-    depthStencilFormat = FormatStore{};
-    colorTargetMask = 0;
-    hasDepth = 0;
-    depthMsaaLevel = 0;
-    colorMsaaLevels = 0;
-  }
-
-  void setColorAttachment(uint8_t index, uint8_t msaa_level, FormatStore format)
-  {
-    colorTargetMask |= 1 << index;
-    colorFormats[index] = format;
-    setColorMsaaLevel(msaa_level, index);
-  }
-
-  void clearColorAttachment(uint8_t index)
-  {
-    colorTargetMask &= ~(1 << index);
-    colorFormats[index] = FormatStore(0);
-    clearColorMsaaLevel(index);
-  }
-
-  void setDepthStencilAttachment(uint8_t msaa_level, FormatStore format)
-  {
-    hasDepth = 1;
-    depthStencilFormat = format;
-    depthMsaaLevel = msaa_level;
-  }
-
-  void clearDepthStencilAttachment()
-  {
-    hasDepth = 0;
-    depthStencilFormat = FormatStore(0);
-    depthMsaaLevel = 0;
-  }
-
-  uint8_t getColorMsaaLevel(uint8_t index) const { return (colorMsaaLevels >> (index * MSAA_LEVEL_BITS_PER_RT)) & MSAA_LEVEL_MASK; }
-
-  void checkMsaaLevelsEqual() const
-  {
-    eastl::optional<uint8_t> previous;
-    for (const auto index : LsbVisitor{colorTargetMask})
-    {
-      G_ASSERT(!previous || *previous == getColorMsaaLevel(index));
-      previous = getColorMsaaLevel(index);
-    }
-    G_ASSERT(!previous || !hasDepth || *previous == depthMsaaLevel);
-  }
-
-  // Calculates the color write mask for all targets, per target channel mask depends on format
-  uint32_t getColorWriteMask() const
-  {
-    uint32_t mask = 0;
-    for (auto i : LsbVisitor{colorTargetMask})
-    {
-      auto m = colorFormats[i].getChannelMask();
-      mask |= m << (i * 4);
-    }
-    return mask;
-  }
-
-private:
-  static constexpr int MSAA_LEVEL_MASK = TEXCF_SAMPLECOUNT_MASK >> TEXCF_SAMPLECOUNT_OFFSET;
-
-  void clearColorMsaaLevel(uint8_t index) { colorMsaaLevels &= ~(MSAA_LEVEL_MASK << (index * MSAA_LEVEL_BITS_PER_RT)); }
-
-  void setColorMsaaLevel(uint8_t level, uint8_t index)
-  {
-    clearColorMsaaLevel(index);
-    colorMsaaLevels |= level << (index * MSAA_LEVEL_BITS_PER_RT);
-  }
-};
-
-inline bool operator==(const FramebufferLayout &l, const FramebufferLayout &r)
-{
-  static_assert(sizeof(FramebufferLayout) == FramebufferLayout::expected_size);
-  return (l.colorTargetMask == r.colorTargetMask) && (l.hasDepth == r.hasDepth) && (l.depthStencilFormat == r.depthStencilFormat) &&
-         l.colorMsaaLevels == r.colorMsaaLevels && l.depthMsaaLevel == r.depthMsaaLevel &&
-         eastl::equal(eastl::begin(l.colorFormats), eastl::end(l.colorFormats), eastl::begin(r.colorFormats));
-}
-
-inline bool operator!=(const FramebufferLayout &l, const FramebufferLayout &r) { return !(l == r); }
-
-struct FramebufferLayoutWithHash
-{
-  FramebufferLayout layout;
-  dxil::HashValue hash;
-};
-
 struct BasePipelineIdentifierHashSet
 {
   char vsHash[1 + 2 * sizeof(dxil::HashValue)]{};

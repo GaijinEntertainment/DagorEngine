@@ -54,3 +54,8 @@ int AnimCharV20::addSlotId(const char *slot_name)
 {
   return get_slot_id(slot_name, [](const char *sn) { return slotNames.addNameId(sn); });
 }
+const char *AnimCharV20::getSlotName(const int slot_id)
+{
+  OSSpinlockScopedLock lock(slotNamesMapMutex);
+  return slotNames.getName(slot_id);
+}

@@ -9,6 +9,7 @@
 #include "shsyn.h"
 #include "shcode.h"
 #include "shSemCode.h"
+#include "globalConfig.h"
 #include "shExprParser.h"
 #include "namedConst.h"
 #include "nameMap.h"
@@ -321,10 +322,9 @@ static inline CodeSourceBlocks *getSourceBlocks(const char *profile)
 
 extern SCFastNameMap renderStageToIdxMap;
 
-inline bool disallow_hlsl_hardcoded_regs = false;
 inline bool validate_hardcoded_regs_in_hlsl_block(const SHTOK_hlsl_text *hlsl)
 {
-  if (!disallow_hlsl_hardcoded_regs)
+  if (!shc::config().disallowHlslHardcodedRegs)
     return true;
 
   if (!hlsl || !hlsl->text)
@@ -332,18 +332,24 @@ inline bool validate_hardcoded_regs_in_hlsl_block(const SHTOK_hlsl_text *hlsl)
 
   constexpr char regToken[] = "register";
   constexpr size_t tokLen = sizeof(regToken) - 1;
-  for (const char *p = hlsl->text; p; p = strstr(p, regToken))
+  for (const char *p = strstr(hlsl->text, regToken); p; p = strstr(p, regToken))
   {
     const bool isStartOfToken = (p == hlsl->text) || !fast_isalnum_or_(p[-1]); // neg index is ok because p != text beginning
     const bool isSeparateToken = isStartOfToken && !fast_isalnum_or_(p[tokLen]);
     if (isSeparateToken)
     {
-      sh_debug(SHLOG_FATAL, "Old-style raw hardcoded registers are disallowed, please use the stcode version");
+      const char *begin = p, *end = p + tokLen;
+      while (begin != hlsl->text && begin[-1] != '\n')
+        --begin;
+      while (*end && *end != '\n')
+        ++end;
+      const String targetLine{begin, static_cast<int>(end - begin)};
+      sh_debug(SHLOG_FATAL, "Old-style raw hardcoded registers are disallowed, please use the stcode version:\n%s",
+        targetLine.c_str());
       return false;
     }
 
     p += tokLen;
-    continue;
   }
 
   return true;

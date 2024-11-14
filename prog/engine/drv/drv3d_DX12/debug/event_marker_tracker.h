@@ -1,11 +1,10 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <dag/dag_vector.h>
 #include <EASTL/string.h>
-
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <util/dag_oaHashNameMap.h>
-#include <dag/dag_vector.h>
 
 
 namespace drv3d_dx12::debug::event_marker

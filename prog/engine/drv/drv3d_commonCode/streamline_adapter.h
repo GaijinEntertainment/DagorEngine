@@ -76,6 +76,7 @@ public:
   eastl::optional<OptimalSettings> getOptimalSettings(Mode mode, IPoint2 output_resolution) const override;
   bool setOptions(int viewportId, Mode mode, IPoint2 output_resolution, float sharpness) override;
   nv::DLSS::State getDlssState() const override { return dlssState; }
+  dag::Expected<eastl::string, nv::SupportState> getDlssVersion() const override;
 
   // DLSS-G
   bool createDlssGFeature(int viewportId, void *commandBuffer);

@@ -333,7 +333,7 @@ def render_AnimBlendCtrl_Fifo3(var nod : IAnimBlendNode?; var graph : AnimationG
     let timeScaleParam = *node |> anim_blend_node_getTimeScaleParamId(state)
     add_input_param(timeScaleParam, ++inNodeIdx, "time scale", nodeId, state, graph, context)
     let paramId = *node |> anim_blend_node_getParamId()
-    var queue : AnimFifo3Queue? = reinterpret<AnimFifo3Queue?> (state |> anim_state_holder_getInlinePtr(paramId))
+    var queue : AnimFifo3Queue? = reinterpret<AnimFifo3Queue?>(state |> anim_state_holder_getInlinePtr(paramId))
     add_input_param(paramId, ++inNodeIdx, "state: {queue.state} t0: {queue.t0}", nodeId, state, graph, context)
 
     for idx in range(3)
@@ -534,7 +534,7 @@ def render_AnimPostBlendCtrl(var nod : IAnimBlendNode?; var graph : AnimationGra
 
 
 [unused_argument(state)]
-def render_anim_graph2(var graph : AnimationGraph; var state : IAnimStateHolder; var reset_state : bool&; var params_filter : ImGuiTextFilter&)
+def render_anim_graph2(animchar : AnimcharBaseComponent; var graph : AnimationGraph; var state : IAnimStateHolder; var reset_state : bool&; var params_filter : ImGuiTextFilter&)
 
   var renderers : table<uint; BlendNodeRenderer>
   renderers[AnimBlendNodeNullCID] = @@render_AnimBlendNodeNull
@@ -624,7 +624,7 @@ def render_anim_graph2(var graph : AnimationGraph; var state : IAnimStateHolder;
           continue
 
         if paramType == PT_ScalarParam
-          imgui::Text(param.name)
+          imgui::Text("({param.id}) {param.name}")
           var value = state |> anim_state_holder_getParam(param.id)
           let min = -1e8
           let max = 1e8
@@ -634,7 +634,7 @@ def render_anim_graph2(var graph : AnimationGraph; var state : IAnimStateHolder;
           Spacing()
 
         elif paramType == PT_ScalarParamInt
-          imgui::Text(param.name)
+          imgui::Text("({param.id}) {param.name}")
           let value = state |> anim_state_holder_getParamInt(param.id)
           let step = 1
           let fastStep = 5
@@ -645,7 +645,7 @@ def render_anim_graph2(var graph : AnimationGraph; var state : IAnimStateHolder;
 
         elif showHiddenParams
           if paramType == PT_TimeParam
-            imgui::Text(param.name)
+            imgui::Text("({param.id}) {param.name}")
             let timeValue = state |> anim_state_holder_getParam(param.id)
             let min = -1e8
             let max = 1e8
@@ -663,29 +663,33 @@ def render_anim_graph2(var graph : AnimationGraph; var state : IAnimStateHolder;
             Spacing()
 
           elif paramType == PT_InlinePtr
-            imgui::Text(param.name)
+            imgui::Text("({param.id}) {param.name}")
             imgui::TextUnformatted("  <PT_InlinePtr>")
             Spacing()
 
           elif paramType == PT_InlinePtrCTZ
-            imgui::Text(param.name)
+            imgui::Text("({param.id}) {param.name}")
             imgui::TextUnformatted("  <PT_InlinePtrCTZ>")
             Spacing()
 
           elif paramType == PT_Fifo3
-            imgui::Text(param.name)
+            imgui::Text("({param.id}) {param.name}")
             imgui::TextUnformatted("  <PT_Fifo3>")
             Spacing()
 
           elif paramType == PT_Effector
-            imgui::Text(param.name)
+            imgui::Text("({param.id}) {param.name}")
             imgui::TextUnformatted("  <PT_Effector>")
             Spacing()
 
           else
-            imgui::Text(param.name)
+            imgui::Text("({param.id}) {param.name}")
             Spacing()
 
+  if imgui::CollapsingHeader("Slots")
+    for i in range(animchar |> animchar_getAttachmentSlotsCount())
+      let slotId = animchar |> animchar_getAttachmentSlotId(i)
+      imgui::Text("({slotId}) {animchar_getSlotName(slotId)}")
 
   imgui::EndChild()
   ImGuiEx_NextColumn()
@@ -773,6 +777,8 @@ def render_anim_graph2(var graph : AnimationGraph; var state : IAnimStateHolder;
             var foundRender = false
             for uid, render in keys(renderers), values(renderers)
               if *nodePtr |> anim_blend_node_isSubOf(uid)
+                unsafe
+                  imgui::Text("ID: {reinterpret<uint64> nodePtr}")
                 render |> invoke(nodePtr, graph, state, ctx, weight)
                 foundRender = true
                 break

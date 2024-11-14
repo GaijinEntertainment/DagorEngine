@@ -2,15 +2,13 @@
 
 #include "device.h"
 
-using namespace drv3d_dx12;
-
-#if DAGOR_DBGLEVEL > 0
-
 #include <gui/dag_imgui.h>
-// #include <ioSys/dag_dataBlock.h>
 #include <imgui.h>
+// #include <ioSys/dag_dataBlock.h>
 // #include <implot.h>
 // #include <psapi.h>
+
+using namespace drv3d_dx12;
 
 namespace
 {
@@ -981,6 +979,4 @@ void ResourceUsageHistoryDataSetDebugger::debugOverlay()
     ImGui::TreePop();
   }
 }
-#endif
-
 #endif

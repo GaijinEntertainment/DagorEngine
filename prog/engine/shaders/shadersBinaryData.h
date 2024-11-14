@@ -64,6 +64,7 @@ struct ScriptedShadersBinDumpOwner
   void clear();
 
   size_t getDumpSize() const { return mSelfData.size(); }
+  HashVal<64> getDumpHash() const { return mInitialDataHash; }
 
   dag::ConstSpan<uint32_t> getCode(uint32_t id, ShaderCodeType type, ShaderBytecode &tmpbuf);
 
@@ -89,6 +90,7 @@ private:
   ScriptedShadersBinDumpV2 *mShaderDumpV2 = nullptr;
   ScriptedShadersBinDumpV3 *mShaderDumpV3 = nullptr;
   Tab<uint8_t> mSelfData;
+  HashVal<64> mInitialDataHash;
 
   eastl::unique_ptr<decompressed_groups_cache_t> mDecompressedGropusLru;
   OSSpinlock mDecompressedGroupsLruMutex;

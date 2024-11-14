@@ -71,7 +71,7 @@ int CtrlChildsDialog::onMenuItemClick(unsigned id)
 void CtrlChildsDialog::initPanel()
 {
   PropPanel::ContainerPropertyControl *panel = DialogWindow::getPanel();
-  panel->createTree(PID_CHILDS_TREE, "", hdpi::Px(300));
+  panel->createTree(PID_CHILDS_TREE, "", hdpi::Px(0));
 }
 
 void CtrlChildsDialog::clear()
@@ -223,15 +223,6 @@ const char *CtrlChildsDialog::getChildNameFromSettings(const DataBlock &settings
   }
 
   return nullptr;
-}
-
-void CtrlChildsDialog::updateImguiDialog()
-{
-  PropPanel::ContainerPropertyControl *tree = getPanel()->getById(PID_CHILDS_TREE)->getContainer();
-  const float treeHeight = ImGui::GetContentRegionAvail().y - ImGui::GetStyle().ItemSpacing.y;
-  tree->setHeight(hdpi::Px(treeHeight));
-
-  DialogWindow::updateImguiDialog();
 }
 
 void CtrlChildsDialog::editSelectedNode()

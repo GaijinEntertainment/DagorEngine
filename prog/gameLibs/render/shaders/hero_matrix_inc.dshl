@@ -1,12 +1,12 @@
 include "mulPointTm_inc.dshl"
 
-float4 hero_matrixX = (1,0,0,0);
-float4 hero_matrixY = (0,1,0,0);
-float4 hero_matrixZ = (0,0,1,0);
+float4 hero_matrixX = (0,0,0,1);
+float4 hero_matrixY = (0,0,0,1);
+float4 hero_matrixZ = (0,0,0,1);
 
-float4 prev_hero_matrixX = (1,0,0,0);
-float4 prev_hero_matrixY = (0,1,0,0);
-float4 prev_hero_matrixZ = (0,0,1,0);
+float4 prev_hero_matrixX = (0,0,0,1);
+float4 prev_hero_matrixY = (0,0,0,1);
+float4 prev_hero_matrixZ = (0,0,0,1);
 float4 hero_bbox_reprojectionX = (1,0,0,0);
 float4 hero_bbox_reprojectionY = (0,1,0,0);
 float4 hero_bbox_reprojectionZ = (0,0,1,0);

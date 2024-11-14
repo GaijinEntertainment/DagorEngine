@@ -2,21 +2,22 @@
 #pragma once
 
 #include "cppStcodeAssembly.h"
+#include "cppStcodePlatformInfo.h"
+#include "globalConfig.h"
 #include "shHardwareOpt.h"
 #include "processes.h"
 #include <generic/dag_expected.h>
+#include "globalConfig.h"
 
-extern bool compile_cpp_stcode;
-extern bool cpp_stcode_unity_build;
 extern StcodeShader g_cppstcode;
 
-bool set_stcode_arch_from_arg(const char *str);
+bool set_stcode_arch_from_arg(const char *str, shc::CompilerConfig &config_rw);
 
-#define RET_IF_SHOULD_NOT_COMPILE(_ret) \
-  do                                    \
-  {                                     \
-    if (!compile_cpp_stcode)            \
-      return _ret;                      \
+#define RET_IF_SHOULD_NOT_COMPILE(_ret)  \
+  do                                     \
+  {                                      \
+    if (!shc::config().compileCppStcode) \
+      return _ret;                       \
   } while (0)
 
 void prepare_stcode_directory(const char *dest_dir);

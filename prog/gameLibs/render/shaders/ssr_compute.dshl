@@ -369,6 +369,7 @@ macro RESOLVE_BY_NEIGHBOURS(code)
           TotalWeight += sampleWeight; // Integration of microfacet distribution (PDF)
 
           //fireflies
+          sampleColor.rgb = PREV_FRAME_PACK(sampleColor.rgb);
           sampleColor.rgb /= 1 + luminance(sampleColor.rgb);
 
           Out += sampleWeight*sampleColor; // Integration of BRDF weighted color
@@ -380,6 +381,7 @@ macro RESOLVE_BY_NEIGHBOURS(code)
 
       //fireflies
       Out.rgb /= 1 - luminance(Out.rgb);
+      Out.rgb = PREV_FRAME_UNPACK(Out.rgb);
 
       return Out;
     }

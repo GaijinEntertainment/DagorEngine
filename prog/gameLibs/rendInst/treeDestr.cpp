@@ -30,7 +30,9 @@ void rendinstdestr::tree_destr_load_from_blk(const DataBlock &blk)
   tree_destr.constraintLimitY = blk.getPoint2("constraintLimitY", Point2(0.f, 0.f));
   tree_destr.canopyLinearDamping = blk.getReal("canopyLinearDamping", 0.9f);
   tree_destr.canopyAngularDamping = blk.getReal("canopyAngularDamping", 0.9f);
-  branch_destr_load_from_blk(tree_destr.branchDestr, blk.getBlockByNameEx("branchDestr"));
+  branch_destr_load_from_blk(tree_destr.branchDestrFromDamage, blk.getBlockByNameEx("branchDestr"));
+  tree_destr.branchDestrOther = tree_destr.branchDestrFromDamage;
+  branch_destr_load_from_blk(tree_destr.branchDestrOther, blk.getBlockByNameEx("branchDestrOther"));
   read_interpolate_tab_float_p2(tree_destr.radiusToImpulse, *blk.getBlockByNameEx("radiusToImpulse"));
 }
 
@@ -44,7 +46,9 @@ void rendinstdestr::branch_destr_load_from_blk(TreeDestr::BranchDestr &target, c
 
   target.enableBranchDestruction = blk->getBool("enable", loadingMultipliers ? true : target.enableBranchDestruction);
   target.impulseMul = blk->getReal("impulseMul", loadingMultipliers ? 1.0f : target.impulseMul);
-  target.impulseMaxLength = blk->getReal("impulseMaxLength", loadingMultipliers ? 1.0f : target.impulseMaxLength);
+  target.impulseMin = blk->getReal("impulseMin", loadingMultipliers ? 1.0f : target.impulseMin);
+  target.impulseMax = blk->getReal("impulseMax", loadingMultipliers ? 1.0f : target.impulseMax);
+  target.branchSizeMin = blk->getReal("branchSizeMin", loadingMultipliers ? 1.0f : target.branchSizeMin);
   target.branchSizeMax = blk->getReal("branchSizeMax", loadingMultipliers ? 1.0f : target.branchSizeMax);
   target.rotateRandomSpeedMulX = blk->getReal("rotateSpeedMul", loadingMultipliers ? 1.0f : target.rotateRandomSpeedMulX);
   target.rotateRandomSpeedMulY = blk->getReal("rotateSpeedMulY", loadingMultipliers ? 1.0f : target.rotateRandomSpeedMulY);
@@ -54,6 +58,7 @@ void rendinstdestr::branch_destr_load_from_blk(TreeDestr::BranchDestr &target, c
   target.fallingSpeedMul = blk->getReal("fallingSpeedMul", loadingMultipliers ? 1.0f : target.fallingSpeedMul);
   target.fallingSpeedRnd = blk->getReal("fallingSpeedRnd", loadingMultipliers ? 1.0f : target.fallingSpeedRnd);
   target.horizontalSpeedMul = blk->getReal("horizontalSpeedMul", loadingMultipliers ? 1.0f : target.horizontalSpeedMul);
+  target.maxVisibleDistance = blk->getReal("maxVisibleDistance", loadingMultipliers ? 1.0f : target.maxVisibleDistance);
 }
 
 const rendinstdestr::TreeDestr &rendinstdestr::get_tree_destr() { return tree_destr; }
@@ -65,7 +70,9 @@ void rendinstdestr::TreeDestr::BranchDestr::apply(const BranchDestr &other)
   {
     enableBranchDestruction = enableBranchDestruction && other.enableBranchDestruction;
     impulseMul *= other.impulseMul;
-    impulseMaxLength *= other.impulseMaxLength;
+    impulseMin *= other.impulseMin;
+    impulseMax *= other.impulseMax;
+    branchSizeMin *= other.branchSizeMin;
     branchSizeMax *= other.branchSizeMax;
     rotateRandomSpeedMulX *= other.rotateRandomSpeedMulX;
     rotateRandomSpeedMulY *= other.rotateRandomSpeedMulY;
@@ -75,12 +82,15 @@ void rendinstdestr::TreeDestr::BranchDestr::apply(const BranchDestr &other)
     fallingSpeedMul *= other.fallingSpeedMul;
     fallingSpeedRnd *= other.fallingSpeedRnd;
     horizontalSpeedMul *= other.horizontalSpeedMul;
+    maxVisibleDistance *= other.maxVisibleDistance;
   }
   else
   {
     enableBranchDestruction = other.enableBranchDestruction;
     impulseMul = other.impulseMul;
-    impulseMaxLength = other.impulseMaxLength;
+    impulseMin = other.impulseMin;
+    impulseMax = other.impulseMax;
+    branchSizeMin = other.branchSizeMin;
     branchSizeMax = other.branchSizeMax;
     rotateRandomSpeedMulX = other.rotateRandomSpeedMulX;
     rotateRandomSpeedMulY = other.rotateRandomSpeedMulY;
@@ -90,5 +100,6 @@ void rendinstdestr::TreeDestr::BranchDestr::apply(const BranchDestr &other)
     fallingSpeedMul = other.fallingSpeedMul;
     fallingSpeedRnd = other.fallingSpeedRnd;
     horizontalSpeedMul = other.horizontalSpeedMul;
+    maxVisibleDistance = other.maxVisibleDistance;
   }
 }

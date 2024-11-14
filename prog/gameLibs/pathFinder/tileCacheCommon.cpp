@@ -19,9 +19,15 @@ static bool generateDynamicJumpLinks = true;
 static bool generateDynamicLadderLinks = true;
 static float maxDynamicJumpLinkDist = 2.5f;
 
+static bool tileCacheRemoveCbEnabled = true;
+static tile_remove_cb_t tileCacheRemoveCb = nullptr;
+
 void tilecache_disable_dynamic_jump_links() { generateDynamicJumpLinks = false; }
 void tilecache_disable_dynamic_ladder_links() { generateDynamicLadderLinks = false; }
 bool tilecache_is_dynamic_ladder_links_enabled() { return generateDynamicLadderLinks; }
+
+void tilecache_disable_tile_remove_cb() { tileCacheRemoveCbEnabled = false; }
+void tilecache_set_tile_remove_cb(tile_remove_cb_t tile_remove_cb) { tileCacheRemoveCb = tile_remove_cb; }
 
 static const float fastlzMaxCompressedSizeFactor = 1.05f;
 
@@ -57,8 +63,6 @@ static const int offmeshLinkSz = 6;
 static int reservedSpace = 32;
 static float connectionRadius = 0.25f;
 static float invStepSize = 2.f;
-
-static Tab<uint32_t> removedNavMeshTiles;
 
 static inline bool is_obstacle_in_tile(const dtCompressedTileRef *a, const int n, const dtCompressedTileRef v)
 {
@@ -457,9 +461,6 @@ bool TileCacheMeshProcess::checkOverLink(const float *from, const float *to, uns
 void TileCacheMeshProcess::process(struct dtNavMeshCreateParams *params, unsigned char *polyAreas, unsigned short *polyFlags,
   dtCompressedTileRef ref)
 {
-  dtTileRef tileRef = mesh->getTileRefAt(params->tileX, params->tileY, params->tileLayer);
-  removedNavMeshTiles.push_back(mesh->decodePolyIdTile(tileRef));
-
   for (int i = 0; i < params->polyCount; ++i)
   {
     const auto area = polyAreas[i];
@@ -476,6 +477,12 @@ void TileCacheMeshProcess::process(struct dtNavMeshCreateParams *params, unsigne
   const dtMeshTile *tile = mesh->getTileAt(params->tileX, params->tileY, params->tileLayer);
   if (!tile)
     return;
+
+  if (tileCacheRemoveCbEnabled && tileCacheRemoveCb)
+  {
+    uint32_t tileId = mesh->decodePolyIdTile(mesh->getTileRef(tile));
+    tileCacheRemoveCb(tileId, params->tileX, params->tileY, params->tileLayer);
+  }
 
   Tab<int> removedObstaclesId(framemem_ptr());
 
@@ -807,8 +814,4 @@ BBox3 tilecache_calc_tile_bounds(const dtTileCacheParams *params, const dtTileCa
   aabb.lim[1].z = header->bmin[2] + (header->maxy + 1) * cs;
   return aabb;
 }
-
-const Tab<uint32_t> &get_removed_tile_cache_tiles() { return removedNavMeshTiles; }
-
-void clear_removed_tile_cache_tiles() { clear_and_shrink(removedNavMeshTiles); }
 } // namespace pathfinder

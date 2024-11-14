@@ -604,6 +604,12 @@ bool get_enable_hdr_from_settings(const char *name)
          !isHDRBlackListed(blkDrv, name);
 }
 
+bool get_hfr_preference_from_settings()
+{
+  const DataBlock &blk_video = *dgs_get_settings()->getBlockByNameEx("video");
+  return blk_video.getBool("preferHfr", false);
+}
+
 const char *get_monitor_name_from_settings()
 {
   const char *displayName = ::dgs_get_settings()->getBlockByNameEx("video")->getStr("monitor", nullptr);

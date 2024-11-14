@@ -11,6 +11,7 @@
 
 #include <type_traits>
 
+
 using namespace drv3d_dx12;
 
 static const char *get_xess_result_as_string(xess_result_t result)
@@ -33,6 +34,45 @@ static const char *get_xess_result_as_string(xess_result_t result)
     CASE(XESS_RESULT_ERROR_CANT_LOAD_LIBRARY);
     default: CASE(XESS_RESULT_ERROR_UNKNOWN);
 #undef CASE
+  }
+}
+
+static XessWrapper::ErrorKind toErrorKind(xess_result_t result)
+{
+  switch (result)
+  {
+    case XESS_RESULT_SUCCESS: return XessWrapper::ErrorKind::Unknown; // not an error
+    case XESS_RESULT_ERROR_UNSUPPORTED_DEVICE: return XessWrapper::ErrorKind::UnsupportedDevice;
+    case XESS_RESULT_ERROR_UNSUPPORTED_DRIVER: return XessWrapper::ErrorKind::UnsupportedDriver;
+    case XESS_RESULT_ERROR_UNINITIALIZED: return XessWrapper::ErrorKind::Uninitialized;
+    case XESS_RESULT_ERROR_INVALID_ARGUMENT: return XessWrapper::ErrorKind::InvalidArgument;
+    case XESS_RESULT_ERROR_DEVICE_OUT_OF_MEMORY: return XessWrapper::ErrorKind::DeviceOutOfMemory;
+    case XESS_RESULT_ERROR_DEVICE: return XessWrapper::ErrorKind::Device;
+    case XESS_RESULT_ERROR_NOT_IMPLEMENTED: return XessWrapper::ErrorKind::NotImplemented;
+    case XESS_RESULT_ERROR_INVALID_CONTEXT: return XessWrapper::ErrorKind::InvalidContext;
+    case XESS_RESULT_ERROR_OPERATION_IN_PROGRESS: return XessWrapper::ErrorKind::OperationInProgress;
+    case XESS_RESULT_ERROR_UNSUPPORTED: return XessWrapper::ErrorKind::Unsupported;
+    case XESS_RESULT_ERROR_CANT_LOAD_LIBRARY: return XessWrapper::ErrorKind::CantLoadLibrary;
+    default: return XessWrapper::ErrorKind::Unknown;
+  }
+}
+
+eastl::string XessWrapper::errorKindToString(ErrorKind kind)
+{
+  switch (kind)
+  {
+    case ErrorKind::UnsupportedDevice: return "Unsupported Device";
+    case ErrorKind::UnsupportedDriver: return "Unsupported Driver";
+    case ErrorKind::Uninitialized: return "Uninitialized";
+    case ErrorKind::InvalidArgument: return "Invalid Argument";
+    case ErrorKind::DeviceOutOfMemory: return "Device Out Of Memory";
+    case ErrorKind::Device: return "Device error";
+    case ErrorKind::NotImplemented: return "Not Implemented";
+    case ErrorKind::InvalidContext: return "Invalid Context";
+    case ErrorKind::OperationInProgress: return "Operation In Progress";
+    case ErrorKind::Unsupported: return "Unsupported";
+    case ErrorKind::CantLoadLibrary: return "Can't Load Library";
+    default: return "Unknown";
   }
 }
 
@@ -77,6 +117,7 @@ public:
     LOAD_FUNC(xessD3D12Execute);       //-V516
     LOAD_FUNC(xessSetVelocityScale);   //-V516
     LOAD_FUNC(xessStartDump);          //-V516
+    LOAD_FUNC(xessGetVersion);         //-V516
 #undef LOAD_FUNC
 
     return true;
@@ -104,7 +145,7 @@ public:
     memset(&initParms, 0, sizeof(initParms));
     initParms.outputResolution = m_desiredOutputResolution;
     initParms.qualitySetting = toXeSSQuality(quality);
-    initParms.initFlags = xess_init_flags_t::XESS_INIT_FLAG_INVERTED_DEPTH;
+    initParms.initFlags = xess_init_flags_t::XESS_INIT_FLAG_INVERTED_DEPTH | xess_init_flags_t::XESS_INIT_FLAG_EXPOSURE_SCALE_TEXTURE;
 
     if (!checkResult(xessD3D12Init(m_xessContext, &initParms)))
       return false;
@@ -149,6 +190,7 @@ public:
     exec_params.pVelocityTexture = xessParams.inMotionVectors->getHandle();
     exec_params.pOutputTexture = xessParams.outColor->getHandle();
     exec_params.pDepthTexture = xessParams.inDepth->getHandle();
+    exec_params.pExposureScaleTexture = xessParams.inExposure ? xessParams.inExposure->getHandle() : nullptr;
 
     exec_params.inputColorBase.x = xessParams.inColorDepthOffsetX;
     exec_params.inputColorBase.y = xessParams.inColorDepthOffsetY;
@@ -206,6 +248,22 @@ public:
     }
   }
 
+  dag::Expected<eastl::string, XessWrapper::ErrorKind> getVersion()
+  {
+    if (xessGetVersion)
+    {
+      xess_version_t version;
+      if (auto result = xessGetVersion(&version); result == XESS_RESULT_SUCCESS)
+        return eastl::string(eastl::string::CtorSprintf(), "%d.%d.%d", version.major, version.minor, version.patch);
+      else
+        return dag::Unexpected(toErrorKind(result));
+    }
+    else
+    {
+      return dag::Unexpected(XessWrapper::ErrorKind::CantLoadLibrary);
+    }
+  }
+
 private:
   bool checkResult(xess_result_t result)
   {
@@ -238,6 +296,7 @@ private:
   decltype(::xessD3D12Execute) *xessD3D12Execute;
   decltype(::xessSetVelocityScale) *xessSetVelocityScale;
   decltype(::xessStartDump) *xessStartDump;
+  decltype(::xessGetVersion) *xessGetVersion;
 };
 
 } // namespace drv3d_dx12
@@ -278,6 +337,8 @@ XessState XessWrapper::getXessState() const { return pImpl->getXessState(); }
 void XessWrapper::getXeSSRenderResolution(int &w, int &h) const { pImpl->getXeSSRenderResolution(w, h); }
 
 void XessWrapper::startDump(const char *path, int numberOfFrames) { pImpl->startDump(path, numberOfFrames); }
+
+dag::Expected<eastl::string, XessWrapper::ErrorKind> XessWrapper::getVersion() const { return pImpl->getVersion(); }
 
 #if DAGOR_DBGLEVEL > 0
 

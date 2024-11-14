@@ -93,7 +93,7 @@ void d3d::delete_program(PROGRAM prog)
 
 int d3d::set_vs_constbuffer_size(int required_size)
 {
-  return required_size;
+  return min(Render::MAX_CBUFFER_SIZE, required_size);
 }
 
 bool d3d::set_const(unsigned stage, unsigned reg_base, const void *data, unsigned num_regs)
@@ -106,7 +106,7 @@ bool d3d::set_const(unsigned stage, unsigned reg_base, const void *data, unsigne
 
 int d3d::set_cs_constbuffer_size(int required_size)
 {
-  return required_size;
+  return min(Render::MAX_CBUFFER_SIZE, required_size);
 }
 
 bool d3d::dispatch(uint32_t thread_group_x, uint32_t thread_group_y, uint32_t thread_group_z, GpuPipeline gpu_pipeline)

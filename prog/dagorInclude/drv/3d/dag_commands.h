@@ -190,6 +190,11 @@ enum class Drv3dCommand
   // par2: int *height
   GET_XESS_RESOLUTION,
 
+  // Returns current XESS version as a string.
+  // par1: char *version
+  // par2: size_t versionSize
+  GET_XESS_VERSION,
+
   // Executes DLSS
   // par1: DlssParams *
   // par2: int *view_index
@@ -335,8 +340,6 @@ enum class Drv3dCommand
   // return 1 when pending ops performed, 0 otherwise
   PROCESS_PENDING_RESOURCE_UPDATED,
 
-  GET_PS5_HFR_STATUS,
-  GET_PS5_HFR_SUPPORTED,
   GET_PS5_PSSR_STATUS,
 
   SET_FREQ_LEVEL,
@@ -387,7 +390,11 @@ enum class Drv3dCommand
 
   // Gets if the console is running at 120Hz
   // returns true if running on a console and the display is running at 120Hz
-  GET_CONSOLE_120_HZ_STATUS,
+  GET_CONSOLE_HFR_STATUS,
+
+  // Gets if the console is capable to run at 120Hz
+  // returns true if running on a console and the display supports 120Hz
+  GET_CONSOLE_HFR_SUPPORTED,
 
   // Collects a dump of all gpu resources currently in memory to a vector of ResourceDumpInfo structs
   // (It works similarly to GET_TEXTURE_STATISTICS, however instead of it dumping a bunch of text

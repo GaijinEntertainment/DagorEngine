@@ -1,13 +1,15 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include "device.h"
-#include "device_context.h"
+#include "buffer_components.h"
+#include <device.h>
+#include <device_context.h>
 
-using namespace drv3d_dx12;
 
-BufferState resource_manager::BufferHeap::discardBuffer(DXGIAdapter *adapter, Device &device, BufferState to_discared,
-  DeviceMemoryClass memory_class, FormatStore format, uint32_t struct_size, bool raw_view, bool struct_view,
-  D3D12_RESOURCE_FLAGS flags, uint32_t cflags, const char *name, uint32_t frame_index, bool disable_sub_alloc, bool name_objects)
+namespace drv3d_dx12::resource_manager
+{
+BufferState BufferHeap::discardBuffer(DXGIAdapter *adapter, Device &device, BufferState to_discared, DeviceMemoryClass memory_class,
+  FormatStore format, uint32_t struct_size, bool raw_view, bool struct_view, D3D12_RESOURCE_FLAGS flags, uint32_t cflags,
+  const char *name, uint32_t frame_index, bool disable_sub_alloc, bool name_objects)
 {
   auto &ctx = device.getContext();
 
@@ -112,7 +114,7 @@ BufferState resource_manager::BufferHeap::discardBuffer(DXGIAdapter *adapter, De
   return result;
 }
 
-BufferState resource_manager::BufferHeap::allocateBuffer(DXGIAdapter *adapter, Device &device, uint64_t size, uint32_t structure_size,
+BufferState BufferHeap::allocateBuffer(DXGIAdapter *adapter, Device &device, uint64_t size, uint32_t structure_size,
   uint32_t discard_count, DeviceMemoryClass memory_class, D3D12_RESOURCE_FLAGS flags, uint32_t cflags, const char *name,
   bool disable_sub_alloc, bool name_objects)
 {
@@ -139,13 +141,12 @@ BufferState resource_manager::BufferHeap::allocateBuffer(DXGIAdapter *adapter, D
   return result;
 }
 
-BufferState resource_manager::BufferHeap::allocateBufferWithoutDefragmentation(DXGIAdapter *adapter, ID3D12Device *device,
-  uint64_t size, uint32_t structure_size, uint32_t discard_count, DeviceMemoryClass memory_class, D3D12_RESOURCE_FLAGS flags,
-  uint32_t cflags, const char *name, bool disable_sub_alloc, bool name_objects, const ResourceHeapProperties &heap_properties,
+BufferState BufferHeap::allocateBufferWithoutDefragmentation(DXGIAdapter *adapter, ID3D12Device *device, uint64_t size,
+  uint32_t structure_size, uint32_t discard_count, DeviceMemoryClass memory_class, D3D12_RESOURCE_FLAGS flags, uint32_t cflags,
+  const char *name, bool disable_sub_alloc, bool name_objects, const ResourceHeapProperties &heap_properties,
   AllocationFlags allocation_flags, HRESULT &error_code)
 {
   const bool canUseSubAlloc = !disable_sub_alloc && can_use_sub_alloc(cflags);
-
 
   Heap *selectedHeap = nullptr;
   ValueRange<uint64_t> allocationRange;
@@ -332,3 +333,4 @@ BufferState resource_manager::BufferHeap::allocateBufferWithoutDefragmentation(D
 
   return result;
 }
+} // namespace drv3d_dx12::resource_manager

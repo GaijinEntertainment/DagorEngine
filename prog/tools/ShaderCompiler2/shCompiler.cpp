@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "shCompiler.h"
+#include "globalConfig.h"
 #include "codeBlocks.h"
 #include <shaders/dag_shaders.h>
 #include <osApiWrappers/dag_files.h>
@@ -32,7 +33,6 @@
 
 #if _CROSS_TARGET_DX12
 #include "dx12/asmShaderDXIL.h"
-extern dx12::dxil::Platform targetPlatform;
 #endif
 
 extern void parse_shader_script(const char *fn, const ShHardwareOptions &opt, Tab<SimpleString> *out_filenames);
@@ -52,7 +52,6 @@ static String updbPath;
 bool relinkOnly = false;
 static SCFastNameMap explicitGlobVarRef;
 
-bool use_threadpool = true;
 static unsigned worker_cnt = 0;
 
 static constexpr size_t WORKER_STACK_SIZE = 1 << 20;
@@ -121,7 +120,7 @@ Job::Job()
 {
   G_ASSERT(is_main_thread());
 
-  if (!use_threadpool)
+  if (!shc::config().useThreadpool)
   {
     // Must always seq-before (in program order) the respective notifyJobRelease
     jobs_in_flight_count.fetch_add(1, std::memory_order_relaxed);
@@ -140,7 +139,7 @@ void Job::releaseJob()
 {
   releaseJobBody();
 
-  if (!use_threadpool)
+  if (!shc::config().useThreadpool)
   {
     // @HACK: allowed from jobs to enable termination from error processing (that can happen in jobs)
 
@@ -155,7 +154,7 @@ void init_jobs(unsigned num_workers)
 
   worker_cnt = num_workers;
 
-  if (use_threadpool)
+  if (shc::config().useThreadpool)
     cpujobs::init(-1, false);
   else
     cpujobs::init();
@@ -171,7 +170,7 @@ void init_jobs(unsigned num_workers)
     return;
   }
 
-  if (use_threadpool)
+  if (shc::config().useThreadpool)
   {
     threadpool::init(worker_cnt, THREADPOOL_QUEUE_SIZE, WORKER_STACK_SIZE);
     debug("started threadpool");
@@ -211,7 +210,7 @@ void deinit_jobs()
   if (!is_multithreaded())
     return;
 
-  if (use_threadpool)
+  if (shc::config().useThreadpool)
   {
     // @TODO: specific drop & shutdown? If so, do up threadpool or spoof jobs w/ flag?
     threadpool::shutdown();
@@ -237,13 +236,13 @@ void deinit_jobs()
 unsigned worker_count() { return worker_cnt; }
 bool is_multithreaded() { return worker_cnt > 1; }
 
-bool is_in_worker() { return use_threadpool ? threadpool::get_current_worker_id() != -1 : cpujobs::is_in_job(); }
+bool is_in_worker() { return shc::config().useThreadpool ? threadpool::get_current_worker_id() != -1 : cpujobs::is_in_job(); }
 
 void await_all_jobs(void (*on_released_cb)())
 {
   G_ASSERT(!is_in_worker());
 
-  if (use_threadpool)
+  if (shc::config().useThreadpool)
   {
     if (jobs_in_flight.empty())
       return;
@@ -287,7 +286,7 @@ void add_job(Job *job, JobMgrChoiceStrategy mgr_choice_strat)
     return;
   }
 
-  if (use_threadpool)
+  if (shc::config().useThreadpool)
   {
     jobs_in_flight.push_back(job);
     threadpool::add(jobs_in_flight.back(), threadpool::PRIO_DEFAULT, queue_pos, threadpool::AddFlags::IgnoreNotDone);
@@ -479,7 +478,7 @@ void compileShader(const ShVariantName &variant_name, bool no_save, bool should_
         parse_shader_script(sourceFileName, variant_name.opt, &dependenciesList);
 
 #if _CROSS_TARGET_DX12
-        if (use_two_phase_compilation(targetPlatform))
+        if (use_two_phase_compilation(shc::config().targetPlatform) && !shc::config().autotestMode)
           recompile_shaders();
 #endif
 

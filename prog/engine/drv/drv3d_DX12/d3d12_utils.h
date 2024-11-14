@@ -1,10 +1,10 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <supp/dag_comPtr.h>
-
 #include "driver.h"
 #include "util.h"
+
+#include <supp/dag_comPtr.h>
 
 
 inline bool operator==(D3D12_CPU_DESCRIPTOR_HANDLE l, D3D12_CPU_DESCRIPTOR_HANDLE r) { return l.ptr == r.ptr; }

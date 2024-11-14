@@ -18,6 +18,7 @@ class PanelWindowPropertyControl : public ContainerPropertyControl
 public:
   PanelWindowPropertyControl(int id, ControlEventHandler *event_handler, ContainerPropertyControl *parent, int x, int y, hdpi::Px w,
     hdpi::Px h, const char caption[]);
+  ~PanelWindowPropertyControl();
 
   virtual unsigned getTypeMaskForSet() const override { return CONTROL_CAPTION; }
   virtual unsigned getTypeMaskForGet() const override { return 0; }

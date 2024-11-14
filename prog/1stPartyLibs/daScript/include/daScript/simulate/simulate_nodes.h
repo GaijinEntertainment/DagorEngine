@@ -2458,7 +2458,6 @@ SIM_NODE_AT_VECTOR(Float, float)
         virtual SimNode * visit ( SimVisitor & vis ) override;
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
-            DAS_KEEPALIVE_LOOP(&context);
             context.stopFlags |= EvalFlags::jumpToLabel;
             context.gotoLabel = label;
             return v_zero();
@@ -2472,7 +2471,6 @@ SIM_NODE_AT_VECTOR(Float, float)
         virtual SimNode * visit ( SimVisitor & vis ) override;
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
-            DAS_KEEPALIVE_LOOP(&context);
             context.gotoLabel = subexpr->evalInt(context);
             context.stopFlags |= EvalFlags::jumpToLabel;
             return v_zero();

@@ -40,6 +40,7 @@ struct DestructableCreationParams
   float timeToLive = -1.0f;
   float defaultTimeToLive = -1.0f;
   float timeToKinematic = -1.0f;
+  bool isDestroyedByExplosion = false;
 };
 } // namespace destructables
 

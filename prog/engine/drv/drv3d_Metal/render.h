@@ -104,6 +104,7 @@ class Render
 {
 public:
   static constexpr int MAX_FRAMES_TO_RENDER = 2;
+  static constexpr int MAX_CBUFFER_SIZE = 64 * 1024;
 
   struct Caps
   {
@@ -764,10 +765,10 @@ public:
 
 #if DAGOR_DBGLEVEL > 0
   void put_encoder_label(const char *label);
-  void wait_for_encoder();
+  id<MTLCommandBuffer> wait_for_encoder();
 #else
   void put_encoder_label(const char *label) {}
-  void wait_for_encoder() {}
+  id<MTLCommandBuffer> wait_for_encoder() { return commandBuffer; }
 #endif
 
   enum class EncoderType
@@ -778,17 +779,18 @@ public:
     Compute,
     Acceleration
   };
-  inline void ensureHaveEncoderExceptRender(id<MTLCommandBuffer> cmdBuf, EncoderType type)
+  inline void ensureHaveEncoderExceptRender(id<MTLCommandBuffer> cmdBuf, EncoderType type, bool wait = true)
   {
-#define KILL_ENCODER(t, enc) \
-  if (type != t)             \
-  {                          \
-    if (enc != nil)          \
-    {                        \
-      [enc endEncoding];     \
-      enc = nil;             \
-      wait_for_encoder();    \
-    }                        \
+#define KILL_ENCODER(t, enc)         \
+  if (type != t)                     \
+  {                                  \
+    if (enc != nil)                  \
+    {                                \
+      [enc endEncoding];             \
+      enc = nil;                     \
+      if (wait)                      \
+        cmdBuf = wait_for_encoder(); \
+    }                                \
   }
     KILL_ENCODER(EncoderType::Render, renderEncoder);
     KILL_ENCODER(EncoderType::Compute, computeEncoder);

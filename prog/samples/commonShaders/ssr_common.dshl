@@ -25,12 +25,19 @@ float4 prev_globtm_no_ofs_psf_3;
 int downsampled_depth_mip_count;
 float4 lowres_rt_params = (1280, 720, 0, 0);
 
-macro SSR_CALCULATE(code)
+macro SSR_USE_EXPOSURE(code)
   INIT_PREV_PRE_EXPOSURE(code)
   USE_PREV_PRE_EXPOSURE(code)
   hlsl(code){
-    #define linearSmoothnessToLinearRoughness(_param) (1.0f - _param)
     #define PREV_FRAME_UNPACK(x) prev_pre_exposure_decode(x)
+    #define PREV_FRAME_PACK(x) prev_pre_exposure_encode(x)
+  }
+endmacro
+
+macro SSR_CALCULATE(code)
+  SSR_USE_EXPOSURE(code)
+  hlsl(code){
+    #define linearSmoothnessToLinearRoughness(_param) (1.0f - _param)
     #include "ssr_common.hlsl"
   }
 endmacro

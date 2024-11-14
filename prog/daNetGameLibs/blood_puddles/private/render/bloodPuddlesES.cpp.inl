@@ -746,7 +746,13 @@ static void update_blood_shader_params_es(const ecs::Event &,
   const ShaderVar &blood_puddle_smoothness,
   const float blood_puddle_smoothness_value,
   const ShaderVar &blood_puddle_smoothness_edge,
-  const float blood_puddle_smoothness_edge_value)
+  const float blood_puddle_smoothness_edge_value,
+  const ShaderVar &blood_puddle_landscape_reflectance,
+  const float blood_puddle_landscape_reflectance_value,
+  const ShaderVar &blood_puddle_landscape_smoothness_edge,
+  const float blood_puddle_landscape_smoothness_edge_value,
+  const ShaderVar &blood_puddle_landscape_albedo_darkening,
+  const float blood_puddle_landscape_albedo_darkening_value)
 {
   ShaderGlobal::set_color4(blood_begin_color, blood_begin_color_value);
   ShaderGlobal::set_color4(blood_end_color, blood_end_color_value);
@@ -756,6 +762,9 @@ static void update_blood_shader_params_es(const ecs::Event &,
   ShaderGlobal::set_real(blood_puddle_reflectance, blood_puddle_reflectance_value);
   ShaderGlobal::set_real(blood_puddle_smoothness, blood_puddle_smoothness_value);
   ShaderGlobal::set_real(blood_puddle_smoothness_edge, blood_puddle_smoothness_edge_value);
+  ShaderGlobal::set_real(blood_puddle_landscape_reflectance, blood_puddle_landscape_reflectance_value);
+  ShaderGlobal::set_real(blood_puddle_landscape_smoothness_edge, blood_puddle_landscape_smoothness_edge_value);
+  ShaderGlobal::set_real(blood_puddle_landscape_albedo_darkening, blood_puddle_landscape_albedo_darkening_value);
 }
 
 static bool blood_puddle_console_handler(const char *argv[], int argc)

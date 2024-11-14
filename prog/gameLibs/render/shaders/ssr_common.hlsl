@@ -18,6 +18,10 @@
 #define PREV_FRAME_UNPACK(x) (x)
 #endif
 
+#ifndef PREV_FRAME_PACK
+#define PREV_FRAME_PACK(x) (x)
+#endif
+
 #include "interleavedGradientNoise.hlsl"
 #include "noise/Value3D.hlsl"
 

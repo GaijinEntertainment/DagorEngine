@@ -352,7 +352,7 @@ function make_curve_editor_html(name, value, onchange_cb, stroke_style, bck_curv
           if (e && e._curve_coefficients)
           {
             this._ctx.beginPath();
-            for (var i = 0; i < curve_default_width; i += 2)
+            for (var i = 0; i <= curve_default_width; i += 2)
             {
               var x = i;
               var y = (1.0 - e._get_value(1.0 * i / (curve_default_width - 1))) * (curve_default_height - 1);
@@ -374,7 +374,7 @@ function make_curve_editor_html(name, value, onchange_cb, stroke_style, bck_curv
       for (var pass = 0; pass < 2; pass++)
       {
         this._ctx.beginPath();
-        for (var i = 0; i < curve_default_width; i += 2)
+        for (var i = 0; i <= curve_default_width; i += 2)
         {
           var x = i;
           var y = (1.0 - this._get_value(1.0 * i / (curve_default_width - 1))) * (curve_default_height - 1);
@@ -397,10 +397,35 @@ function make_curve_editor_html(name, value, onchange_cb, stroke_style, bck_curv
           this._curve_points[i][0] * (curve_default_width - 1) - 2,
           (1.0 - this._curve_points[i][1]) * (curve_default_height - 1) - 2,
           5, 5);
+
+      if (this._curve_point_idx >= 0)
+      {
+        var pointPos = this._curve_points[this._curve_point_idx];
+        var textPos = [pointPos[0] * (curve_default_width - 1) + 5, (1.0 - pointPos[1]) * (curve_default_height - 1) - 5];
+        textPos[0] += pointPos[0] < 0.5 ? 10 : -80;
+        textPos[1] += pointPos[1] < 0.5 ? -10 : 30;
+
+        var pointX = pointPos[0].toFixed(3);
+        var pointY = pointPos[1].toFixed(3);
+        var text = "" + pointX + ", " + pointY;
+        this._ctx.font = "13px Arial";
+
+        this._ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+        var textWidth = this._ctx.measureText(text).width;
+        this._ctx.fillRect(textPos[0] - 2, textPos[1] - 15, textWidth + 4, 20);
+
+        this._ctx.fillStyle = "black";
+        this._ctx.fillText(text, textPos[0] + 1, textPos[1] + 1);
+        this._ctx.fillStyle = "#ddd";
+        this._ctx.fillText(text, textPos[0], textPos[1]);
+      }
     }
 
     elem._curve_mouse_down = function(event)
     {
+      if (event.button !== 0)
+        return;
+
       curve_is_global_mouse_up = false;
       var x = 1.0 * event.offsetX / (curve_default_width - 1);
       var y = 1.0 - 1.0 * event.offsetY / (curve_default_height - 1);
@@ -495,7 +520,6 @@ function make_curve_editor_html(name, value, onchange_cb, stroke_style, bck_curv
     elem._curve_interpolation = interpolation;
     elem._curve_add_remove_points = can_add_remove_points;
     setTimeout(function(){elem._curve_render(elem, ctx);}, 1);
-    
   }
 
   setTimeout(setup_curve_elem, 1);
@@ -531,7 +555,7 @@ function global_curve_mouse_up(obj, event)
     var value = "";
 
     if (obj._curve_interpolation === "polynom")
-      value = obj._curve_coefficients[i].join(", ");
+      value = obj._curve_coefficients.join(", ");
     else
     {
       for (var i = 0; i < obj._curve_coefficients.length; i++)
@@ -607,7 +631,6 @@ function make_curve_gradient_html(name, bck_curves) // bck_curves - array of ele
     elem._curve_point_idx = -1;
     elem._curve_name = name;
     setTimeout(function(){elem._curve_render(elem, ctx);}, 1);
-    
   }
 
   setTimeout(setup_curve_elem, 1);

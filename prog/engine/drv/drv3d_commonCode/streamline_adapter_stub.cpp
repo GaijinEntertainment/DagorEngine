@@ -54,6 +54,11 @@ bool StreamlineAdapter::createDlssFeature(int, IPoint2, void *) { return false; 
 
 bool StreamlineAdapter::releaseDlssFeature(int) { return false; }
 
+dag::Expected<eastl::string, nv::SupportState> StreamlineAdapter::getDlssVersion() const
+{
+  return dag::Unexpected(nv::SupportState::NotSupported);
+}
+
 bool StreamlineAdapter::createDlssGFeature(int, void *) { return false; }
 
 bool StreamlineAdapter::releaseDlssGFeature(int) { return false; }

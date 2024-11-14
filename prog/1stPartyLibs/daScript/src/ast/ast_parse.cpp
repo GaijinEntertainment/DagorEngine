@@ -410,8 +410,15 @@ namespace das {
                     continue;
                 }
             }
-            if (text[i] == '#' && i + 5 < length && text[i + 1] == 'g' && text[i + 2] == 'e' && text[i + 3] == 'n' && text[i + 4] == '2' && text[i + 5] == '#') {
-                return true;
+            // check for options\s*gen2
+            if (text[i] == 'o' && i + 7 < length && text[i + 1] == 'p' && text[i + 2] == 't' && text[i + 3] == 'i' && text[i + 4] == 'o' && text[i + 5] == 'n' && text[i + 6] == 's' && isspace(text[i + 7]) ) {
+                i += 7;
+                while (i < length && isspace(text[i])) {
+                    ++i;
+                }
+                if (i + 4 < length && text[i] == 'g' && text[i + 1] == 'e' && text[i + 2] == 'n' && text[i + 3] == '2') {
+                    return true;
+                }
             }
         }
         return false;
@@ -461,6 +468,7 @@ namespace das {
             uint32_t len = 0;
             fi->getSourceAndLength(src,len);
             bool gen2 = policies.version_2_syntax || detectGen2Syntax(src, len);
+            program->policies.version_2_syntax = gen2;
             if ( gen2 ) {
                 das2_yylex_init_extra(&parserState, &scanner);
             } else {
@@ -479,6 +487,12 @@ namespace das {
                     das_yybegin(src, len, scanner);
                 }
             }
+            libGroup.foreach([&](Module * mod){
+                if ( mod->commentReader ) {
+                    parserState.g_CommentReaders.push_back(mod->commentReader.get());
+                }
+                return true;
+            },"*");
             if ( gen2 ) {
                 err = das2_yyparse(scanner);
                 das2_yylex_destroy(scanner);
@@ -486,12 +500,6 @@ namespace das {
                 err = das_yyparse(scanner);
                 das_yylex_destroy(scanner);
             }
-            libGroup.foreach([&](Module * mod){
-                if ( mod->commentReader ) {
-                    parserState.g_CommentReaders.push_back(mod->commentReader.get());
-                }
-                return true;
-            },"*");
         } else {
             program->error(fileName + " not found", "","",LineInfo());
             program->isCompiling = false;

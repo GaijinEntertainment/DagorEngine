@@ -1,20 +1,21 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "bitfield.h"
+#include "driver.h"
+#include "dynamic_array.h"
+#include "tagged_handles.h"
+
+#include <drv/3d/dag_consts.h>
+#include <drv/3d/dag_decl.h>
+#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_renderStates.h>
+#include <drv/shadersMetaData/dxil/compiled_shader_header.h>
 #include <EASTL/vector.h>
 #include <ioSys/dag_dataBlock.h>
+#include <osApiWrappers/dag_spinlock.h>
 #include <util/dag_string.h>
 #include <util/dag_strUtil.h>
-#include <osApiWrappers/dag_spinlock.h>
-#include <drv/3d/dag_renderStates.h>
-#include <drv/3d/dag_info.h>
-#include <drv/3d/dag_decl.h>
-#include <drv/3d/dag_consts.h>
-
-#include "driver.h"
-#include "bitfield.h"
-#include "tagged_handles.h"
-#include "dynamic_array.h"
 
 
 #define MINIMUM_REPRESENTABLE_D32 3e-10

@@ -42,36 +42,49 @@ hlsl {
       bool4 or(bool4 a, bool4 b) { return a || b; }
     ##endif
 
+
     #if SHADER_COMPILER_FP16_ENABLED
-      float16_t2 select(bool2 a, float16_t2 b, float16_t2 c) { return a ? b : c; }
-      float16_t3 select(bool3 a, float16_t3 b, float16_t3 c) { return a ? b : c; }
-      float16_t4 select(bool4 a, float16_t4 b, float16_t4 c) { return a ? b : c; }
-      float16_t2 and(float16_t2 a, float16_t2 b) { return a && b; }
-      float16_t3 and(float16_t3 a, float16_t3 b) { return a && b; }
-      float16_t4 and(float16_t4 a, float16_t4 b) { return a && b; }
-      float16_t2 or(float16_t2 a, float16_t2 b) { return a || b; }
-      float16_t3 or(float16_t3 a, float16_t3 b) { return a || b; }
-      float16_t4 or(float16_t4 a, float16_t4 b) { return a || b; }
+      #if _HARDWARE_FSH_6_2
+        float16_t2 select(bool2 a, float16_t2 b, float16_t2 c) { return a ? b : c; }
+        float16_t3 select(bool3 a, float16_t3 b, float16_t3 c) { return a ? b : c; }
+        float16_t4 select(bool4 a, float16_t4 b, float16_t4 c) { return a ? b : c; }
+        float16_t2 and(float16_t2 a, float16_t2 b) { return a && b; }
+        float16_t3 and(float16_t3 a, float16_t3 b) { return a && b; }
+        float16_t4 and(float16_t4 a, float16_t4 b) { return a && b; }
+        float16_t2 or(float16_t2 a, float16_t2 b) { return a || b; }
+        float16_t3 or(float16_t3 a, float16_t3 b) { return a || b; }
+        float16_t4 or(float16_t4 a, float16_t4 b) { return a || b; }
 
-      int16_t2 select(bool2 a, int16_t2 b, int16_t2 c) { return a ? b : c; }
-      int16_t3 select(bool3 a, int16_t3 b, int16_t3 c) { return a ? b : c; }
-      int16_t4 select(bool4 a, int16_t4 b, int16_t4 c) { return a ? b : c; }
-      int16_t2 and(int16_t2 a, int16_t2 b) { return a && b; }
-      int16_t3 and(int16_t3 a, int16_t3 b) { return a && b; }
-      int16_t4 and(int16_t4 a, int16_t4 b) { return a && b; }
-      int16_t2 or(int16_t2 a, int16_t2 b) { return a || b; }
-      int16_t3 or(int16_t3 a, int16_t3 b) { return a || b; }
-      int16_t4 or(int16_t4 a, int16_t4 b) { return a || b; }
+        int16_t2 select(bool2 a, int16_t2 b, int16_t2 c) { return a ? b : c; }
+        int16_t3 select(bool3 a, int16_t3 b, int16_t3 c) { return a ? b : c; }
+        int16_t4 select(bool4 a, int16_t4 b, int16_t4 c) { return a ? b : c; }
+        int16_t2 and(int16_t2 a, int16_t2 b) { return a && b; }
+        int16_t3 and(int16_t3 a, int16_t3 b) { return a && b; }
+        int16_t4 and(int16_t4 a, int16_t4 b) { return a && b; }
+        int16_t2 or(int16_t2 a, int16_t2 b) { return a || b; }
+        int16_t3 or(int16_t3 a, int16_t3 b) { return a || b; }
+        int16_t4 or(int16_t4 a, int16_t4 b) { return a || b; }
 
-      uint16_t2 select(bool2 a, uint16_t2 b, uint16_t2 c) { return a ? b : c; }
-      uint16_t3 select(bool3 a, uint16_t3 b, uint16_t3 c) { return a ? b : c; }
-      uint16_t4 select(bool4 a, uint16_t4 b, uint16_t4 c) { return a ? b : c; }
-      uint16_t2 and(uint16_t2 a, uint16_t2 b) { return a && b; }
-      uint16_t3 and(uint16_t3 a, uint16_t3 b) { return a && b; }
-      uint16_t4 and(uint16_t4 a, uint16_t4 b) { return a && b; }
-      uint16_t2 or(uint16_t2 a, uint16_t2 b) { return a || b; }
-      uint16_t3 or(uint16_t3 a, uint16_t3 b) { return a || b; }
-      uint16_t4 or(uint16_t4 a, uint16_t4 b) { return a || b; }
+        uint16_t2 select(bool2 a, uint16_t2 b, uint16_t2 c) { return a ? b : c; }
+        uint16_t3 select(bool3 a, uint16_t3 b, uint16_t3 c) { return a ? b : c; }
+        uint16_t4 select(bool4 a, uint16_t4 b, uint16_t4 c) { return a ? b : c; }
+        uint16_t2 and(uint16_t2 a, uint16_t2 b) { return a && b; }
+        uint16_t3 and(uint16_t3 a, uint16_t3 b) { return a && b; }
+        uint16_t4 and(uint16_t4 a, uint16_t4 b) { return a && b; }
+        uint16_t2 or(uint16_t2 a, uint16_t2 b) { return a || b; }
+        uint16_t3 or(uint16_t3 a, uint16_t3 b) { return a || b; }
+        uint16_t4 or(uint16_t4 a, uint16_t4 b) { return a || b; }
+      #else
+        min16float2 select(bool2 a, min16float2 b, min16float2 c) { return a ? b : c; }
+        min16float3 select(bool3 a, min16float3 b, min16float3 c) { return a ? b : c; }
+        min16float4 select(bool4 a, min16float4 b, min16float4 c) { return a ? b : c; }
+        min16float2 and(min16float2 a, min16float2 b) { return a && b; }
+        min16float3 and(min16float3 a, min16float3 b) { return a && b; }
+        min16float4 and(min16float4 a, min16float4 b) { return a && b; }
+        min16float2 or(min16float2 a, min16float2 b) { return a || b; }
+        min16float3 or(min16float3 a, min16float3 b) { return a || b; }
+        min16float4 or(min16float4 a, min16float4 b) { return a || b; }
+      #endif
     #endif
   #endif
 }
@@ -562,11 +575,27 @@ hlsl(ps) {
       #define IF_IS_BACK_FACE if (!vface)
       #define SET_IF_IS_BACK_FACE(name, val) if (!vface) name = val;
 
-      #define half float
-      #define half1 float1
-      #define half2 float2
-      #define half3 float3
-      #define half4 float4
+      #if SHADER_COMPILER_FP16_ENABLED
+        #if _HARDWARE_FSH_6_2
+          #define half float16_t
+          #define half1 float16_t1
+          #define half2 float16_t2
+          #define half3 float16_t3
+          #define half4 float16_t4
+        #else
+          #define half min16float
+          #define half1 min16float1
+          #define half2 min16float2
+          #define half3 min16float3
+          #define half4 min16float4
+        #endif
+      #else
+        #define half float
+        #define half1 float1
+        #define half2 float2
+        #define half3 float3
+        #define half4 float4
+      #endif
     ##endif
 
     #define tex2DBindless(a, uv) (a).tex.Sample((a).smp, uv)

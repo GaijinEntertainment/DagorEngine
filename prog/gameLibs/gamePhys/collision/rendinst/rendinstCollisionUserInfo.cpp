@@ -80,7 +80,7 @@ RendinstCollisionUserInfo::TreeRendinstImpulseThresholdData::~TreeRendinstImpuls
   {
     const rendinstdestr::TreeDestr &treeDestr = rendinstdestr::get_tree_destr();
     rendinstdestr::create_tree_rend_inst_destr(riDesc, true, finalPos, finalImpulse, true, lastPointVel < treeDestr.minSpeed,
-      lastOmega, atTime, &collInfo, true);
+      lastOmega, atTime, &collInfo, true, false);
   }
 }
 

@@ -4,6 +4,7 @@
 #include "semUtils.h"
 #include "globVarSem.h"
 #include "globVar.h"
+#include "globalConfig.h"
 #include "boolVar.h"
 #include "varMap.h"
 #include <debug/dag_debug.h>
@@ -24,7 +25,6 @@
 using namespace ShaderParser;
 
 extern SCFastNameMap glob_string_table;
-extern bool isDebugModeEnabled;
 
 /*********************************
  *
@@ -33,7 +33,7 @@ extern bool isDebugModeEnabled;
  *********************************/
 GatherVarShaderEvalCB::GatherVarShaderEvalCB(ShaderSyntaxParser &_parser, const ShHardwareOptions &_opt, Terminal *shname,
   const char *hlsl_vs, const char *hlsl_hs, const char *hlsl_ds, const char *hlsl_gs, const char *hlsl_ps, const char *hlsl_cs,
-  const char *hlsl_ms, const char *hlsl_as) :
+  const char *hlsl_ms, const char *hlsl_as, bool &out_shaderDebugModeEnabled) :
   parser(_parser),
   hasHWFlag(false),
   hwStack(tmpmem),
@@ -57,14 +57,35 @@ GatherVarShaderEvalCB::GatherVarShaderEvalCB(ShaderSyntaxParser &_parser, const 
   hlslMs = hlsl_ms;
   hlslAs = hlsl_as;
 
-  if (isDebugModeEnabled)
+  shaderDebugModeEnabled = shc::config().isDebugModeEnabled;
+  if (!shaderDebugModeEnabled)
   {
-    DataBlock *blk = shc::getAssumedVarsBlock();
-    if (blk)
-    {
-      blk = blk->addBlock(shname_token->text);
-      blk->setReal(debug_mode_enabled_interval, 1.0f);
-    }
+    float value = 0.0f;
+    if (shc::getAssumedValue("debug_mode_enabled", shname_token->text, true, value))
+      shaderDebugModeEnabled = (value > 0.0f);
+  }
+  out_shaderDebugModeEnabled = shaderDebugModeEnabled;
+  if (!shaderDebugModeEnabled)
+  {
+    const char *pattern_to_remove = "#line 1 \"precompiled\"\n#undef _FILE_\n#define _FILE_ ";
+    const char *stubhdr_to_insert = "#line 1 \"precompiled\"\n#define _FILE_ -1\n";
+    int stubhdr_to_insert_sz = (int)strlen(stubhdr_to_insert);
+    hlslVs.replaceAll(pattern_to_remove, "//");
+    hlslPs.replaceAll(pattern_to_remove, "//");
+    hlslHs.replaceAll(pattern_to_remove, "//");
+    hlslDs.replaceAll(pattern_to_remove, "//");
+    hlslGs.replaceAll(pattern_to_remove, "//");
+    hlslCs.replaceAll(pattern_to_remove, "//");
+    hlslMs.replaceAll(pattern_to_remove, "//");
+    hlslAs.replaceAll(pattern_to_remove, "//");
+    hlslVs.insert(0, stubhdr_to_insert, stubhdr_to_insert_sz);
+    hlslPs.insert(0, stubhdr_to_insert, stubhdr_to_insert_sz);
+    hlslHs.insert(0, stubhdr_to_insert, stubhdr_to_insert_sz);
+    hlslDs.insert(0, stubhdr_to_insert, stubhdr_to_insert_sz);
+    hlslGs.insert(0, stubhdr_to_insert, stubhdr_to_insert_sz);
+    hlslCs.insert(0, stubhdr_to_insert, stubhdr_to_insert_sz);
+    hlslMs.insert(0, stubhdr_to_insert, stubhdr_to_insert_sz);
+    hlslAs.insert(0, stubhdr_to_insert, stubhdr_to_insert_sz);
   }
 }
 
@@ -120,17 +141,13 @@ void GatherVarShaderEvalCB::decl_bool_alias(const char *name, bool_expr &expr)
 
 int GatherVarShaderEvalCB::add_message(const char *message, bool file_name)
 {
-  float value = 0.0f;
-  if (shc::getAssumedValue(debug_mode_enabled_interval, shname_token->text, true, value))
-    if (value > 0.0f)
-    {
-      int id = messages.addNameId(message);
-      if (!file_name)
-        nonFilenameMessages.set(id, true);
-      return id;
-    }
+  if (!shaderDebugModeEnabled)
+    return -1;
 
-  return -1;
+  int id = messages.addNameId(message);
+  if (!file_name)
+    nonFilenameMessages.set(id, true);
+  return id;
 }
 
 void GatherVarShaderEvalCB::eval_static(static_var_decl &s)
@@ -462,23 +479,25 @@ bool GatherVarShaderEvalCB::end_eval(CodeSourceBlocks &vs_blk, CodeSourceBlocks 
   CodeSourceBlocks &gs_blk, CodeSourceBlocks &ps_blk, CodeSourceBlocks &cs_blk, CodeSourceBlocks &ms_blk, CodeSourceBlocks &as_blk)
 {
   G_ASSERT(messages.nameCount() == 0);
-  messages = glob_string_table;
+  if (shaderDebugModeEnabled)
+    messages = glob_string_table;
 
-  if (!vs_blk.parseSourceCode("vs", hlslVs, *this))
+  bool pp_as_comments = shc::config().hlslSavePPAsComments && !shaderDebugModeEnabled;
+  if (!vs_blk.parseSourceCode("vs", hlslVs, *this, pp_as_comments))
     return false;
-  if (!hs_blk.parseSourceCode("hs", hlslHs, *this))
+  if (!hs_blk.parseSourceCode("hs", hlslHs, *this, pp_as_comments))
     return false;
-  if (!ds_blk.parseSourceCode("ds", hlslDs, *this))
+  if (!ds_blk.parseSourceCode("ds", hlslDs, *this, pp_as_comments))
     return false;
-  if (!gs_blk.parseSourceCode("gs", hlslGs, *this))
+  if (!gs_blk.parseSourceCode("gs", hlslGs, *this, pp_as_comments))
     return false;
-  if (!ps_blk.parseSourceCode("ps", hlslPs, *this))
+  if (!ps_blk.parseSourceCode("ps", hlslPs, *this, pp_as_comments))
     return false;
-  if (!cs_blk.parseSourceCode("cs", hlslCs, *this))
+  if (!cs_blk.parseSourceCode("cs", hlslCs, *this, pp_as_comments))
     return false;
-  if (!ms_blk.parseSourceCode("ms", hlslMs, *this))
+  if (!ms_blk.parseSourceCode("ms", hlslMs, *this, pp_as_comments))
     return false;
-  if (!as_blk.parseSourceCode("as", hlslAs, *this))
+  if (!as_blk.parseSourceCode("as", hlslAs, *this, pp_as_comments))
     return false;
   return true;
 }
@@ -570,13 +589,13 @@ void GatherVarShaderEvalCB::eval_supports(supports_stat &s)
   }
 
   uint32_t hlsl_types = 0;
-  addSourceCode(hlslPs, &s, hlsl.c_str(), parser);
-  addSourceCode(hlslVs, &s, hlsl.c_str(), parser);
-  addSourceCode(hlslHs, &s, hlsl.c_str(), parser);
-  addSourceCode(hlslDs, &s, hlsl.c_str(), parser);
-  addSourceCode(hlslGs, &s, hlsl.c_str(), parser);
-  addSourceCode(hlslMs, &s, hlsl.c_str(), parser);
-  addSourceCode(hlslAs, &s, hlsl.c_str(), parser);
+  addSourceCode(hlslPs, s.name[0], hlsl.c_str(), parser, shaderDebugModeEnabled);
+  addSourceCode(hlslVs, s.name[0], hlsl.c_str(), parser, shaderDebugModeEnabled);
+  addSourceCode(hlslHs, s.name[0], hlsl.c_str(), parser, shaderDebugModeEnabled);
+  addSourceCode(hlslDs, s.name[0], hlsl.c_str(), parser, shaderDebugModeEnabled);
+  addSourceCode(hlslGs, s.name[0], hlsl.c_str(), parser, shaderDebugModeEnabled);
+  addSourceCode(hlslMs, s.name[0], hlsl.c_str(), parser, shaderDebugModeEnabled);
+  addSourceCode(hlslAs, s.name[0], hlsl.c_str(), parser, shaderDebugModeEnabled);
 #endif
 }
 
@@ -624,24 +643,24 @@ void GatherVarShaderEvalCB::eval(immediate_const_block &s)
 
   uint32_t hlsl_types = 0;
   if (strstr(s.scope->text, "ps") != 0)
-    addSourceCode(hlslPs, s.scope, hlsl.c_str(), parser);
+    addSourceCode(hlslPs, s.scope, hlsl.c_str(), parser, shaderDebugModeEnabled);
   else if (strstr(s.scope->text, "vs") != 0)
   {
-    addSourceCode(hlslVs, s.scope, hlsl.c_str(), parser);
+    addSourceCode(hlslVs, s.scope, hlsl.c_str(), parser, shaderDebugModeEnabled);
     // hs, ds and gs stage also see vs sources so they need this also
-    addSourceCode(hlslGs, s.scope, hlsl.c_str(), parser);
-    addSourceCode(hlslHs, s.scope, hlsl.c_str(), parser);
-    addSourceCode(hlslDs, s.scope, hlsl.c_str(), parser);
+    addSourceCode(hlslGs, s.scope, hlsl.c_str(), parser, shaderDebugModeEnabled);
+    addSourceCode(hlslHs, s.scope, hlsl.c_str(), parser, shaderDebugModeEnabled);
+    addSourceCode(hlslDs, s.scope, hlsl.c_str(), parser, shaderDebugModeEnabled);
   }
   else if (strstr(s.scope->text, "cs") != 0)
-    addSourceCode(hlslCs, s.scope, hlsl.c_str(), parser);
+    addSourceCode(hlslCs, s.scope, hlsl.c_str(), parser, shaderDebugModeEnabled);
   else if (strstr(s.scope->text, "ms") != 0)
   {
-    addSourceCode(hlslMs, s.scope, hlsl.c_str(), parser);
+    addSourceCode(hlslMs, s.scope, hlsl.c_str(), parser, shaderDebugModeEnabled);
   }
   else if (strstr(s.scope->text, "as") != 0)
   {
-    addSourceCode(hlslAs, s.scope, hlsl.c_str(), parser);
+    addSourceCode(hlslAs, s.scope, hlsl.c_str(), parser, shaderDebugModeEnabled);
   }
   else
     error("unknown hlsl block", s.scope);
@@ -684,21 +703,21 @@ void GatherVarShaderEvalCB::eval_hlsl_decl(hlsl_local_decl_class &sh)
     hlsl_types |= HLSL_MS;
 
   if (hlsl_types & HLSL_PS)
-    addSourceCode(hlslPs, sh.text, parser);
+    addSourceCode(hlslPs, sh.text, parser, shaderDebugModeEnabled);
   if (hlsl_types & HLSL_VS)
-    addSourceCode(hlslVs, sh.text, parser);
+    addSourceCode(hlslVs, sh.text, parser, shaderDebugModeEnabled);
   if (hlsl_types & HLSL_CS)
-    addSourceCode(hlslCs, sh.text, parser);
+    addSourceCode(hlslCs, sh.text, parser, shaderDebugModeEnabled);
   if (hlsl_types & HLSL_GS)
-    addSourceCode(hlslGs, sh.text, parser);
+    addSourceCode(hlslGs, sh.text, parser, shaderDebugModeEnabled);
   if (hlsl_types & HLSL_DS)
-    addSourceCode(hlslDs, sh.text, parser);
+    addSourceCode(hlslDs, sh.text, parser, shaderDebugModeEnabled);
   if (hlsl_types & HLSL_HS)
-    addSourceCode(hlslHs, sh.text, parser);
+    addSourceCode(hlslHs, sh.text, parser, shaderDebugModeEnabled);
   if (hlsl_types & HLSL_MS)
-    addSourceCode(hlslMs, sh.text, parser);
+    addSourceCode(hlslMs, sh.text, parser, shaderDebugModeEnabled);
   if (hlsl_types & HLSL_AS)
-    addSourceCode(hlslAs, sh.text, parser);
+    addSourceCode(hlslAs, sh.text, parser, shaderDebugModeEnabled);
 }
 
 void GatherVarShaderEvalCB::eval_endif(bool_expr &e)

@@ -1,7 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "gpu_postmortem_microsoft_dred.h"
-#include "device.h"
+#include "configuration.h"
+#include <platform.h>
 
 namespace
 {
@@ -142,8 +143,6 @@ void DeviceRemovedExtendedData::walkBreadcumbs(const D3D12_AUTO_BREADCRUMB_NODE 
   }
 }
 
-void DeviceRemovedExtendedData::configure() {}
-
 void DeviceRemovedExtendedData::beginCommandBuffer(ID3D12Device *, ID3D12GraphicsCommandList *cmd)
 {
   commandListTable.beginList(cmd).beginTrace();
@@ -252,9 +251,6 @@ void DeviceRemovedExtendedData::onDeviceRemoved(D3DDevice *device, HRESULT reaso
   report_page_fault(dred.Get());
 }
 
-bool DeviceRemovedExtendedData::sendGPUCrashDump(const char *, const void *, uintptr_t) { return false; }
-
 void DeviceRemovedExtendedData::onDeviceShutdown() { commandListTable.reset(); }
 
-bool DeviceRemovedExtendedData::onDeviceSetup(ID3D12Device *, const Configuration &, const Direct3D12Enviroment &) { return true; }
 } // namespace drv3d_dx12::debug::gpu_postmortem::microsoft

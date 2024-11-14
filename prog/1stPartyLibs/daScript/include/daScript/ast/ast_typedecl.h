@@ -2,6 +2,7 @@
 
 #include "daScript/ast/ast_typefactory.h"
 #include "daScript/misc/free_list.h"
+#include <limits.h> // ULLONG_MAX
 
 namespace das {
 
@@ -318,7 +319,7 @@ namespace das {
     template<> struct ToBasicType<long double>      { enum { type = Type::tDouble }; };
     template<> struct ToBasicType<wchar_t>          { enum { type = Type::tUInt16 }; };
 #endif
-#if defined(__linux__) || defined(_TARGET_C1) || defined(_TARGET_C2)
+#if !defined(_MSC_VER) && !defined(__APPLE__) && defined(ULLONG_MAX) && ULLONG_MAX == 0xffffffffffffffffULL
     template<> struct ToBasicType<long long int>      { enum { type = Type::tInt64 }; };
     template<> struct ToBasicType<unsigned long long int>     { enum { type = Type::tUInt64 }; };
 #endif

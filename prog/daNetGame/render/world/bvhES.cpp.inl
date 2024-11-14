@@ -5,6 +5,7 @@
 #include <render/denoiser.h>
 #include <render/rtsm.h>
 #include <render/rtr.h>
+#include <render/rtao.h>
 #include <bvh/bvh_connection.h>
 
 #include <render/daBfg/bfg.h>
@@ -18,6 +19,8 @@
 #include <rendInst/visibility.h>
 #include <render/skies.h>
 #include <render/fx/fxRenderTags.h>
+#include <render/cables.h>
+#include <shaders/dag_shaderBlock.h>
 
 #include <daECS/core/coreEvents.h>
 #include <daECS/core/entitySystem.h>
@@ -28,6 +31,7 @@
 // Can't be stored in ECS, because then it'd be reset on level change.
 static bvh::ContextId bvhRenderingContextId;
 static BVHConnection *fxBvhConnection = nullptr;
+static bool cablesChanged = false;
 
 struct BvhHeightProvider final : public bvh::HeightProvider
 {
@@ -77,16 +81,21 @@ void initBVH()
   if (is_bvh_enabled())
   {
     bvh::init(bvh::process_elem);
-    bvhRenderingContextId =
-      bvh::create_context("Rendering", static_cast<bvh::Features>(bvh::Features::Terrain | bvh::Features::RIFull | bvh::Features::Fx));
+    bvhRenderingContextId = bvh::create_context("Rendering",
+      static_cast<bvh::Features>(bvh::Features::Terrain | bvh::Features::RIFull | bvh::Features::Fx | bvh::Features::Cable));
     bvh::connect_fx(bvhRenderingContextId, [](BVHConnection *connection) { fxBvhConnection = connection; });
     // TODO proper resolution setting support
     // TODO dynamic resolution support
     int w, h;
     d3d::get_screen_size(w, h);
-    denoiser::initialize(w, h);
-    rtsm::initialize(w, h, rtsm::RenderMode::Denoised, false);
-    rtr::initialize(false, true);
+    if (is_denoiser_enabled())
+      denoiser::initialize(w, h);
+    if (is_rtsm_enabled())
+      rtsm::initialize(w, h, rtsm::RenderMode::Denoised, false);
+    if (is_rtr_enabled())
+      rtr::initialize(true, true);
+    if (is_rtao_enabled())
+      rtao::initialize(true);
   }
 }
 
@@ -94,6 +103,7 @@ void closeBVH()
 {
   if (bvhRenderingContextId)
   {
+    rtao::teardown();
     rtr::teardown();
     rtsm::turn_off();
     rtsm::teardown();
@@ -170,11 +180,36 @@ void prepareFXForBVH(const Point3 &cameraPos) { acesfx::prepare_bvh_culling(get_
 
 bool is_bvh_enabled()
 {
-  static bool isEnabled = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("enableBVH", false);
+  // Allow for debugging in the ImGUI window, even with no render features
+  constexpr bool isDebug = DAGOR_DBGLEVEL > 0;
+  static bool isEnabled = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("enableBVH", false) && isDebug;
+  return (bvh::is_available() && isEnabled) || is_rtsm_enabled() || is_rtr_enabled() || is_rtao_enabled();
+}
+
+bool is_rtsm_enabled()
+{
+  const char *rtsmSetting = dgs_get_settings()->getBlockByNameEx("graphics")->getStr("enableRTSM", "off");
+  static bool isEnabled = strcmp(rtsmSetting, "sun_and_dynamic") == 0 || strcmp(rtsmSetting, "sun") == 0;
   return bvh::is_available() && isEnabled;
 }
 
+bool is_rtr_enabled()
+{
+  static bool isEnabled = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("enableRTR", false);
+  return bvh::is_available() && isEnabled;
+}
+
+bool is_rtao_enabled()
+{
+  static bool isEnabled = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("enableRTAO", false);
+  return bvh::is_available() && isEnabled;
+}
+
+bool is_denoiser_enabled() { return is_rtsm_enabled() || is_rtr_enabled() || is_rtao_enabled(); }
+
 void draw_rtr_validation() { rtr::render_validation_layer(); }
+
+void bvh_cables_changed() { cablesChanged = true; }
 
 static void update_fx_for_bvh()
 {
@@ -208,8 +243,18 @@ static dabfg::NodeHandle makeBVHUpdateNode()
       bvh::prepare_ri_extra_instances();
       Frustum frustum = get_bvh_culling_matrix(cameraPos);
       rendinst::prepareRIGenVisibility(frustum, cameraPos, visibility, false, nullptr);
-      bvh::update_instances(bvhRenderingContextId, cameraPos, cameraHndl.ref().jitterFrustum, nullptr, visibility);
+      bvh::update_instances(bvhRenderingContextId, cameraPos, cameraHndl.ref().jitterFrustum, nullptr, nullptr, visibility);
       update_fx_for_bvh();
+      if (auto cables = get_cables_mgr())
+      {
+        if (cablesChanged)
+        {
+          static int globalFrameBlockId = ShaderGlobal::getBlockId("global_frame");
+          FRAME_LAYER_GUARD(globalFrameBlockId);
+          bvh::on_cables_changed(cables, bvhRenderingContextId);
+          cablesChanged = false;
+        }
+      }
       bvh::build(bvhRenderingContextId, cameraHndl.ref().viewItm, cameraHndl.ref().jitterProjTm, cameraPos, Point3::ZERO);
       // TODO: data race, because there is no order with daskies::prepare
       bvh::finalize_async_atmosphere_update(bvhRenderingContextId);
@@ -223,7 +268,7 @@ static dabfg::NodeHandle makeBVHUpdateNode()
 
 static dabfg::NodeHandle makeDenoiserPrepareNode()
 {
-  if (!is_bvh_enabled())
+  if (!is_denoiser_enabled())
     return {};
   return dabfg::register_node("denoiser_prepare", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
     registry.executionHas(dabfg::SideEffects::External);
@@ -233,7 +278,16 @@ static dabfg::NodeHandle makeDenoiserPrepareNode()
     read_gbuffer(registry, dabfg::Stage::PS_OR_CS);
     auto motionVecsHndl = read_gbuffer_motion(registry, dabfg::Stage::PS_OR_CS).handle();
     read_gbuffer_depth(registry, dabfg::Stage::PS_OR_CS);
-    return [cameraHndl, prevCameraHndl, motionVecsHndl]() {
+    auto downsampledMotionVectorsHndl = registry.read("downsampled_motion_vectors_tex")
+                                          .texture()
+                                          .atStage(dabfg::Stage::PS_OR_CS)
+                                          .useAs(dabfg::Usage::SHADER_RESOURCE)
+                                          .handle();
+    auto downsampledNormalsHndl =
+      registry.readTexture("downsampled_normals").atStage(dabfg::Stage::PS_OR_CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
+    registry.read("close_depth").texture().atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("downsampled_close_depth_tex");
+
+    return [cameraHndl, prevCameraHndl, motionVecsHndl, downsampledMotionVectorsHndl, downsampledNormalsHndl]() {
       denoiser::FrameParams params;
       params.viewPos = cameraHndl.ref().viewItm.getcol(3);
       params.prevViewPos = prevCameraHndl.ref().viewItm.getcol(3);
@@ -245,8 +299,10 @@ static dabfg::NodeHandle makeDenoiserPrepareNode()
       params.prevProjTm = prevCameraHndl.ref().noJitterProjTm;
       params.jitter = Point2(cameraHndl.ref().jitterPersp.ox, cameraHndl.ref().jitterPersp.oy);
       params.prevJitter = Point2(prevCameraHndl.ref().jitterPersp.ox, prevCameraHndl.ref().jitterPersp.oy);
-      params.motionMultiplier = Point3(1, 1, 0);
+      params.motionMultiplier = Point3::ONE;
       params.motionVectors = motionVecsHndl.view().getTex2D();
+      params.halfMotionVectors = downsampledMotionVectorsHndl.view().getTex2D();
+      params.halfNormals = {downsampledNormalsHndl.view().getTex2D(), downsampledNormalsHndl.view().getTexId()};
       denoiser::prepare(params);
     };
   });
@@ -257,7 +313,7 @@ static ShaderVariableInfo from_sun_directionVarId = ShaderVariableInfo("from_sun
 
 static dabfg::NodeHandle makeRTSMNode()
 {
-  if (!is_bvh_enabled())
+  if (!is_rtsm_enabled())
     return {};
   return dabfg::register_node("rtsm", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
     registry.executionHas(dabfg::SideEffects::External);
@@ -279,7 +335,7 @@ static dabfg::NodeHandle makeRTSMNode()
 
 static dabfg::NodeHandle makeRTRNode()
 {
-  if (!is_bvh_enabled())
+  if (!is_rtr_enabled())
     return {};
   return dabfg::register_node("rtr", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
     registry.executionHas(dabfg::SideEffects::External);
@@ -291,9 +347,34 @@ static dabfg::NodeHandle makeRTRNode()
     read_gbuffer(registry, dabfg::Stage::PS_OR_CS);
     read_gbuffer_motion(registry, dabfg::Stage::PS_OR_CS);
     read_gbuffer_depth(registry, dabfg::Stage::PS_OR_CS);
-    return [cameraHndl]() {
+    auto closeDepthHndl =
+      registry.read("close_depth").texture().atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("downsampled_close_depth_tex").handle();
+    return [cameraHndl, closeDepthHndl]() {
       set_viewvecs_to_shader(cameraHndl.ref().viewTm, cameraHndl.ref().jitterProjTm);
-      rtr::render(bvhRenderingContextId, cameraHndl.ref().jitterProjTm, true, false, false, BAD_D3DRESID /*TODO::*/);
+      rtr::render(bvhRenderingContextId, cameraHndl.ref().jitterProjTm, true, false, false, closeDepthHndl.view().getTexId());
+    };
+  });
+}
+
+static dabfg::NodeHandle makeRTAONode()
+{
+  if (!is_rtao_enabled())
+    return {};
+  return dabfg::register_node("rtao", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+    registry.executionHas(dabfg::SideEffects::External);
+    registry.readBlob<OrderingToken>("bvh_ready_token");
+    registry.readBlob<OrderingToken>("denoiser_ready_token");
+    registry.createBlob<OrderingToken>("rtao_token", dabfg::History::No);
+    auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
+    registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
+    read_gbuffer(registry, dabfg::Stage::PS_OR_CS);
+    read_gbuffer_motion(registry, dabfg::Stage::PS_OR_CS);
+    read_gbuffer_depth(registry, dabfg::Stage::PS_OR_CS);
+    auto closeDepthHndl =
+      registry.read("close_depth").texture().atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("downsampled_close_depth_tex").handle();
+    return [cameraHndl, closeDepthHndl]() {
+      set_viewvecs_to_shader(cameraHndl.ref().viewTm, cameraHndl.ref().jitterProjTm);
+      rtao::render(bvhRenderingContextId, cameraHndl.ref().jitterProjTm, true, closeDepthHndl.view().getTexId());
     };
   });
 }
@@ -305,12 +386,14 @@ static void init_bvh_scene_es(const ecs::Event &,
   dabfg::NodeHandle &denoiser_prepare_node,
   dabfg::NodeHandle &rtsm_node,
   dabfg::NodeHandle &rtr_node,
+  dabfg::NodeHandle &rtao_node,
   RiGenVisibilityECS &bvh__rendinst_visibility)
 {
   bvh__update_node = makeBVHUpdateNode();
   denoiser_prepare_node = makeDenoiserPrepareNode();
   rtsm_node = makeRTSMNode();
   rtr_node = makeRTRNode();
+  rtao_node = makeRTAONode();
   bvh__rendinst_visibility.visibility = rendinst::createRIGenVisibility(midmem);
 }
 
@@ -335,8 +418,10 @@ static void process_elem(const ShaderMesh::RElem &elem,
   static int atlas_last_tileVarId = get_shader_variable_id("atlas_last_tile");
   static int detail0_const_colorVarId = get_shader_variable_id("detail0_const_color");
   static int paint_const_colorVarId = get_shader_variable_id("paint_const_color");
+  static int is_rendinst_clipmapVarId = get_shader_variable_id("is_rendinst_clipmap");
 
-  // TODO trees are not supported yet
+  int isClipmap = 0;
+  elem.mat->getIntVariable(is_rendinst_clipmapVarId, isClipmap);
   bool isTree = strncmp(elem.mat->getShaderClassName(), "rendinst_tree", 13) == 0;
   bool isLayered = strncmp(elem.mat->getShaderClassName(), "rendinst_layered", 16) == 0 ||
                    strncmp(elem.mat->getShaderClassName(), "dynamic_layered", 15) == 0;
@@ -398,6 +483,10 @@ static void process_elem(const ShaderMesh::RElem &elem,
   }
 
   bool isTwoSided = impostor_textures || (elem.mat->get_flags() & (SHFLG_2SIDED | SHFLG_REAL2SIDED));
+
+
+  if (isClipmap)
+    mesh_info.isClipmap = true;
 
   if (use_paintingValue > 0)
   {

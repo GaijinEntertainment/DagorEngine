@@ -1,7 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "pipeline_resource_reporter.h"
-#include "device.h"
+#include <pipeline.h>
+#include <resource_manager/image.h>
 
 using namespace drv3d_dx12;
 

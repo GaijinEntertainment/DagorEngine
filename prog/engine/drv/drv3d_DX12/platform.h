@@ -1,13 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <supp/dag_comPtr.h>
-#include <debug/dag_log.h>
-#include <winapi_helpers.h>
-
-#include <EASTL/optional.h>
-
 #include "driver.h"
+
+#include <debug/dag_log.h>
+#include <EASTL/optional.h>
+#include <supp/dag_comPtr.h>
+#include <winapi_helpers.h>
 
 
 namespace drv3d_dx12
@@ -21,11 +20,12 @@ struct HDRCapabilities
 
 eastl::optional<HDRCapabilities> get_hdr_caps(const ComPtr<IDXGIOutput> &output);
 bool is_hdr_available(const ComPtr<IDXGIOutput> &output = {});
-bool change_hdr(bool force_enable = false, const ComPtr<IDXGIOutput> &output = {});
+bool change_hdr(bool prefer_hfr, bool force_enable = false, const ComPtr<IDXGIOutput> &output = {});
 void hdr_changed(const eastl::optional<HDRCapabilities> &caps);
 
 struct SwapchainProperties;
 void set_hdr_config(SwapchainProperties &sci);
+void set_hfr_config(SwapchainProperties &sci);
 
 #if _TARGET_PC_WIN
 struct Direct3D12Enviroment

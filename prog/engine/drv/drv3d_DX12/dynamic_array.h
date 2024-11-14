@@ -1,8 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <EASTL/unique_ptr.h>
 #include <EASTL/span.h>
+#include <EASTL/unique_ptr.h>
+#include <util/dag_globDef.h>
 
 
 template <typename T>

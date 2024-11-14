@@ -1,12 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <osApiWrappers/dag_stackHlp.h>
-#include <osApiWrappers/dag_critSec.h>
-#include <EASTL/hash_set.h>
-#include <EASTL/hash_map.h>
 #include <EASTL/array.h>
+#include <EASTL/hash_map.h>
+#include <EASTL/hash_set.h>
 #include <EASTL/string.h>
+#include <osApiWrappers/dag_critSec.h>
+#include <osApiWrappers/dag_stackHlp.h>
 #include <util/dag_string.h>
 
 

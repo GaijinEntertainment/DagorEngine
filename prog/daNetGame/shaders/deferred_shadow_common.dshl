@@ -29,6 +29,8 @@ include "deferred_snow_cover.dshl"
 include "water_heightmap.dshl"
 include "use_gi.dshl"
 include "night_light.dshl"
+include "rtao_use.dshl"
+include "rtr_use.dshl"
 
 float4 stereo_params = (0, 0, 0, 0);
 
@@ -58,6 +60,7 @@ int combined_shadows_has_caustics;
 
 float4 tank_cockpit__bsphere = float4(0., 0., 0., 0.);
 float tank_cockpit_fake_ambient_light_strength = 0.25;
+int use_rtr = 0;
 
 macro COMMON_RESOLVE_SIMPLE(code)
   (code) {
@@ -114,6 +117,9 @@ macro COMMON_RESOLVE_EXTENDED(code)
   USE_UPSCALE_SAMPLING_BASE(code)
   INIT_SSAO_BASE(code)
   USE_SSAO_UPSCALE_BASE_WITH_SMP(code, ssao_tex_samplerstate)
+  USING_RTAO(code, 3)
+  USING_RTR(code)
+  (code) {use_rtr@i1 = use_rtr;}
 
   hlsl(code) {
     #define SSR_UPSCALE_MODE SSR_UPSCALE_MISS_HIT_AWARE
@@ -333,6 +339,12 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
       half4 ssrReflections = getSSRWeighted(gbuffer.linearRoughness, curViewTc, screenpos, weights);
       //SSAO_TYPE ssao = getSSAO(w, screenpos);
 
+      if (isRTAOEnabled())
+      {
+        float rtao = getRTAO(uint2(screenpos));
+        ssao.x = rtao;
+      }
+
       patch_gbuffer(gbuffer, worldPos.xyz, ssao.x);
       //ssao = 1;
       //gbuffer.diffuseColor = 0.5;
@@ -342,7 +354,7 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
 
       float geometryFactor = 1;
 
-      half translucencyStrength = isSubSurfaceProfileValid(gbuffer.sss_profile) ? gbuffer.translucency : 0;
+      half translucencyStrength = isTranslucentProfileValid(gbuffer.sss_profile) ? gbuffer.translucency : 0;
 
       // zero and disabled if not subsurface and sss profile is not cloth, see processGbuffer
       float sheenStrength = gbuffer.sheen;
@@ -381,7 +393,7 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
 
       float NoL = dot(gbuffer.normal, lightDir);
       half3 result = 0;
-      bool isValidSubsurface = isSubSurfaceShader(gbuffer.material) && isSubSurfaceProfileValid(gbuffer.sss_profile);
+      bool isValidSubsurface = isSubSurfaceShader(gbuffer.material) && isTranslucentProfileValid(gbuffer.sss_profile);
 
       float csmShadow, ssssTransmittance, base_caustics, cloudShadow;
       get_combined_shadows_sample(curViewTc, csmShadow, ssssTransmittance, base_caustics, cloudShadow);
@@ -547,10 +559,19 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
         //totalReflection *= specularAOcclusion;
       ##endif
 
+      // isRTREnabled returns true when SSR denoiser is used, so use_rtr works around that
+      if (isRTREnabled() && use_rtr)
+      {
+        totalReflection = getRTR(uint2(screenpos)) * enviBRDF;
+      }
 
-      bool isSubSurfaceFoliage = isFoliageShader(gbuffer.material) && translucencyStrength > 1.0/255;
+
+      bool isTranslucent =
+        (isFoliageShader(gbuffer.material) || (isSubSurfaceShader(gbuffer.material) && gbuffer.sss_profile == SSS_PROFILE_NEUTRAL_TRANSLUCENT)) &&
+        translucencyStrength > 1.0/255;
+
       BRANCH
-      if (isSubSurfaceFoliage)
+      if (isTranslucent)
       {
         if ((SSSshadow > 0)) {
           result += (gbuffer.ao * foliageSSS(NoL, view, lightDir) * SSSshadow) * lightColor * gbuffer.translucencyColor;

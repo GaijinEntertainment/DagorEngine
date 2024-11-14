@@ -504,8 +504,12 @@ static void load_animations(
   const DataBlock *clipsBlock = source.getBlockByName("clips");
   if (!clipsBlock)
   {
-    logerr("no clips block in %s", path.c_str());
+    logerr("MM: no clips block in %s", path.c_str());
     return;
+  }
+  else if (source.blockCount() > 1 || source.paramCount() > 0)
+  {
+    logerr("MM: only single 'clips' block is supported (%s)", path.c_str());
   }
   const char *defaultMaskName = clipsBlock->getStr("default_animation_mask", nullptr);
   const char *defaultTags = clipsBlock->getStr("default_tags", nullptr);

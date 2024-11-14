@@ -7,6 +7,7 @@
 
 #include "device_state_null.h"
 
+
 namespace drv3d_dx12::debug
 {
 #if _TARGET_PC_WIN

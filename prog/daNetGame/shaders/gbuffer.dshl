@@ -38,6 +38,7 @@ hlsl {
 #define SSS_PROFILE_MASK 0xF8
 #define SSS_PROFILE_EYES 0xF0
 #define SSS_PROFILE_CLOTH 0x08
+#define SSS_PROFILE_NEUTRAL_TRANSLUCENT 0x10
 
 bool isSubSurfaceShader(int material) {
 ##if mobile_render == deferred
@@ -51,6 +52,10 @@ bool isEmissiveShader(float material) {return material == SHADING_SELFILLUM;}
 bool isFoliageShader(uint material) {return material == SHADING_FOLIAGE;}
 
 bool isSubSurfaceProfileValid(uint sss_profile) {
+  return sss_profile != SSS_PROFILE_EYES && sss_profile != SSS_PROFILE_CLOTH && sss_profile != SSS_PROFILE_NEUTRAL_TRANSLUCENT;
+}
+
+bool isTranslucentProfileValid(uint sss_profile) {
   return sss_profile != SSS_PROFILE_EYES && sss_profile != SSS_PROFILE_CLOTH;
 }
 
@@ -276,6 +281,11 @@ hlsl(code) {
 
     return gbuffer;
   }
+
+  #ifndef NEUTRAL_SSS_FACTOR
+  #define NEUTRAL_SSS_FACTOR half3(1,1,1)
+  #endif
+
   #ifndef BLOOD_SSS_FACTOR
   #define BLOOD_SSS_FACTOR half3(0.8,0.4,0.3)
   #endif
@@ -285,7 +295,7 @@ hlsl(code) {
   #endif
 
   #ifndef SHEEN_SSS_FACTOR
-  #define SHEEN_SSS_FACTOR half3(1,1,1)
+  #define SHEEN_SSS_FACTOR NEUTRAL_SSS_FACTOR
   #endif
 
   ProcessedGbuffer processGbuffer(UnpackedGbuffer gbuf)
@@ -301,8 +311,8 @@ hlsl(code) {
     gbuffer.extracted_albedo_ao = decode_albedo_ao(gbuf.albedo);
     gbuffer.diffuseColor = gbuf.albedo-gbuffer.metalness*gbuf.albedo;//*(1-met)
     gbuffer.albedo = gbuf.albedo;
-    gbuffer.translucencyColor = isSubSurfaceProfileValid(gbuf.sss_profile) ? (gbuffer.diffuseColor * gbuffer.translucency) : gbuf.sss_profile == SSS_PROFILE_CLOTH ? SHEEN_SSS_FACTOR : 0;
-    gbuffer.translucencyColor *= gbuffer.material == SHADING_SUBSURFACE ? (gbuf.sss_profile == 0 ? BLOOD_SSS_FACTOR : half3(1, 1, 1)) : LEAVES_SSS_FACTOR;
+    gbuffer.translucencyColor = isTranslucentProfileValid(gbuf.sss_profile) ? (gbuffer.diffuseColor * gbuffer.translucency) : gbuf.sss_profile == SSS_PROFILE_CLOTH ? SHEEN_SSS_FACTOR : 0;
+    gbuffer.translucencyColor *= gbuffer.material == SHADING_SUBSURFACE ? (gbuf.sss_profile == 0 ? BLOOD_SSS_FACTOR : NEUTRAL_SSS_FACTOR) : LEAVES_SSS_FACTOR;
     gbuffer.sheen = gbuf.sss_profile == SSS_PROFILE_CLOTH ? gbuf.translucency : 0;
     gbuffer.shadow = gbuf.shadow;
     gbuffer.dynamic = gbuf.dynamic;
@@ -430,7 +440,7 @@ macro WRITE_GBUFFER()
     }
     else if (mobile_render == forward)
     {
-      WRITE_GBUFFER_FORWARD()
+      WRITE_GBUFFER_FORWARD_WITH_EXPOSURE()
     }
     else
     {

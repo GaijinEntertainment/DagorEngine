@@ -1,7 +1,15 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "driver.h"
+#include "dynamic_array.h"
+
 #include <drv/3d/dag_shaderLibrary.h>
+#include <drv/shadersMetaData/dxil/compiled_shader_header.h>
+#include <EASTL/string.h>
+#include <EASTL/utility.h>
+#include <supp/dag_comPtr.h>
+
 
 #if !_TARGET_XBOXONE
 namespace drv3d_dx12
@@ -25,10 +33,10 @@ public:
   ~ShaderLibrary() = default;
   ShaderLibrary(eastl::string &&lib_name, eastl::wstring &&lib_prefix, const dxil::LibraryResourceInformation &lib_res_info,
     dag::ConstSpan<dxil::LibraryShaderProperties> shader_properties, ComPtr<ID3D12StateObject> &&obj, bool allow_expandable_use) :
-    libName{eastl::forward<eastl::string>(lib_name)},
-    libPrefix{eastl::forward<eastl::wstring>(lib_prefix)},
+    libName{eastl::move(lib_name)},
+    libPrefix{eastl::move(lib_prefix)},
     libraryResourceInfo{lib_res_info},
-    object{eastl::forward<ComPtr<ID3D12StateObject>>(obj)},
+    object{eastl::move(obj)},
     allowExpandableUse{allow_expandable_use}
   {
     shaderProperties.resize(shader_properties.size());

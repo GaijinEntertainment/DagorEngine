@@ -18,7 +18,7 @@
 #include "PostEffectsRS.hlsli"
 #include "ShaderUtility.hlsli"
 
-RWTexture2D<float> exposureNormalizationFactor : register(u1);
+RWTexture2D<float> exposureTex : register(u1);
 
 #define HISTOGRAM_SIZE 256
 
@@ -143,14 +143,10 @@ void main( uint GI : SV_GroupIndex )
       Exposure[8] = 1.0 / max(0.0001f, smoothedLuminance); // Current exposure without extra factors.
       Exposure[9] = 1.0 / max(0.0001f, autoLuminance); // Target exposure wiithout extra factors.
 
-      static const float midGray = 0.18;
-      const float normalizationFactor = midGray / (currentLuminance * (1 - midGray) * exposureScale);
-
-#if !_HARDWARE_METAL  //due to compiler bug, Metal is unable to write to texture with if.
-      exposureNormalizationFactor[uint2(0,0)] = isfinite(normalizationFactor) ? normalizationFactor : 1.f;
+#if HAS_PRE_EXPOSURE
+      exposureTex[uint2(0, 0)] = 1;
 #else
-      if (isfinite(normalizationFactor))
-        exposureNormalizationFactor[uint2(0,0)] = normalizationFactor;
+      exposureTex[uint2(0, 0)] = exposureScale;
 #endif
     }
 }

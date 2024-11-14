@@ -3,8 +3,8 @@
 
 #include "call_stack.h"
 
-#include <EASTL/variant.h>
 #include <EASTL/unordered_map.h>
+#include <EASTL/variant.h>
 
 #if HAS_GF_AFTERMATH
 #include <GFSDK_Aftermath.h>
@@ -21,6 +21,7 @@
 #if HAS_AMD_GPU_SERVICES
 #include "gpu_postmortem_ags_trace.h"
 #endif
+
 
 namespace drv3d_dx12::debug
 {

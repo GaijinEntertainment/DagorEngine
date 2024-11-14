@@ -27,6 +27,7 @@ namespace ecs
 
 #define LIST_TYPES                         \
   LIST_TYPE(i, int, Int, )                 \
+  LIST_TYPE(u8, uint8_t, Int, )            \
   LIST_TYPE(u16, uint16_t, Int, )          \
   LIST_TYPE(t, ecs::string, Str, .c_str()) \
   LIST_TYPE(r, float, Real, )              \

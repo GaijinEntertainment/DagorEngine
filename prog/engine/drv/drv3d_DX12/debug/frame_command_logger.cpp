@@ -1,7 +1,28 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#if DAGOR_DBGLEVEL > 0
-#include "device.h"
+#include "frame_command_logger.h"
+
+// Dependencies of commands
+#include "device_queue.h"
+#include "fsr_args.h"
+#include "fsr2_wrapper.h"
+#include "info_types.h"
+#include "pipeline.h"
+#include "query_manager.h"
+#include "resource_memory_heap.h"
+#include "swapchain.h"
+#include "viewport_state.h"
+#include "xess_wrapper.h"
+#include <3d/dag_amdFsr.h>
+#include <3d/dag_nvFeatures.h>
+#include <drv/3d/dag_commands.h>
+#include <drv/3d/dag_decl.h>
+#include <drv/3d/dag_heap.h>
+#include <osApiWrappers/dag_events.h>
+
+#include <util/dag_string.h>
+#include <value_range.h>
+
 
 using namespace drv3d_dx12;
 
@@ -597,7 +618,7 @@ void append_arg(String &target, T const &, const char *type)
   return result;                                 \
   }
 
-#include "device_context_cmd.inc.h"
+#include <device_context_cmd.inc.h>
 
 #undef DX12_BEGIN_CONTEXT_COMMAND
 #undef DX12_BEGIN_CONTEXT_COMMAND_EXT_1
@@ -610,37 +631,14 @@ void append_arg(String &target, T const &, const char *type)
 
 }
 
-namespace drv3d_dx12
+namespace drv3d_dx12::debug::core
 {
-
-void DeviceContext::initNextFrameLog()
-{
-  frameId++;
-
-  activeLogId = (activeLogId + 1) % NumFrameCommandLogs;
-  frameLogs[activeLogId].frameId = frameId;
-  GetActiveFrameLog().clear();
-}
-
-void DeviceContext::dumpCommandLog()
-{
-  for (int32_t i = 0; i < NumFrameCommandLogs; i++)
-  {
-    FrameCommandLog &frameCmdLog = frameLogs[(activeLogId + i + 1) % NumFrameCommandLogs];
-    dumpFrameCommandLog(frameCmdLog);
-  }
-}
-
-void DeviceContext::dumpActiveFrameCommandLog() { dumpFrameCommandLog(frameLogs[activeLogId % NumFrameCommandLogs]); }
-
-void DeviceContext::dumpFrameCommandLog(FrameCommandLog &frame_log)
+void FrameCommandLogger::dumpFrameCommandLog(FrameCommandLog &frame_log, call_stack::Reporter &call_stack_reporter)
 {
   String buffer;
   logdbg("Frame %d log begin", frame_log.frameId);
   logdbg("--------------------");
-  frame_log.log.visitAll([&buffer, this](const auto &value) { logdbg(cmdToStr(buffer, back.sharedContextState, value)); });
+  frame_log.log.visitAll([&buffer, &call_stack_reporter](const auto &value) { logdbg(cmdToStr(buffer, call_stack_reporter, value)); });
   logdbg("Frame %d log end", frame_log.frameId);
 }
-
 }
-#endif

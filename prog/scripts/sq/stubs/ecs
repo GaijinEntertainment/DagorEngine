@@ -248,6 +248,22 @@ let ecsTypes = {
     name = "CompStringList"
     getAll = @() []
   }
+  CompFloatList =  class {
+    name = "CompFloatList"
+    getAll = @() []
+  }
+  CompPoint2List =  class {
+    name = "CompPoint2List"
+    getAll = @() []
+  }
+  CompPoint3List =  class {
+    name = "CompPoint3List"
+    getAll = @() []
+  }
+  CompPoint4List =  class {
+    name = "CompPoint4List"
+    getAll = @() []
+  }
   CompTMatrixList =  class {
     name = "CompTMatrixList"
     getAll = @() []

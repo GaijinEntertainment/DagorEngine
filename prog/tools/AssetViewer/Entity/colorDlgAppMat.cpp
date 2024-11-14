@@ -4,7 +4,7 @@
 #include "../av_environment.h"
 
 ColorDialogAppMat::ColorDialogAppMat(void *phandle, const char caption[]) :
-  ColorDialog(phandle, caption, environment::getSinglePaintColor())
+  ColorDialog(phandle, caption, environment::getSinglePaintColor(), hdpi::_pxScaled(760), hdpi::_pxScaled(420))
 {
   getPanel()->createCheckBox(ID_CHECKBOX_MODE, "Apply color to entity mode", environment::isUsingSinglePaintColor());
 }

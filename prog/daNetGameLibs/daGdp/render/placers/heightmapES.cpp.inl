@@ -85,7 +85,8 @@ static inline void heightmap_density_mask_disappeared_es(const ecs::Event &)
 }
 
 ECS_NO_ORDER
-static inline void heightmap_initialize_density_mask_es(const EventInitialize &, HeightmapManager &dagdp__heightmap_manager)
+static inline void heightmap_initialize_density_mask_es(const dagdp::EventInitialize &,
+  dagdp::HeightmapManager &dagdp__heightmap_manager)
 {
   auto &currentBuilder = dagdp__heightmap_manager.currentBuilder;
 
@@ -97,7 +98,7 @@ static inline void heightmap_initialize_density_mask_es(const EventInitialize &,
 }
 
 ECS_NO_ORDER
-static inline void heightmap_view_process_es(const EventViewProcess &evt, HeightmapManager &dagdp__heightmap_manager)
+static inline void heightmap_view_process_es(const dagdp::EventViewProcess &evt, dagdp::HeightmapManager &dagdp__heightmap_manager)
 {
   FRAMEMEM_REGION;
 
@@ -374,7 +375,8 @@ static inline void heightmap_view_process_es(const EventViewProcess &evt, Height
   }
 }
 
-ECS_NO_ORDER static inline void heightmap_view_finalize_es(const EventViewFinalize &evt, HeightmapManager &dagdp__heightmap_manager)
+ECS_NO_ORDER static inline void heightmap_view_finalize_es(const dagdp::EventViewFinalize &evt,
+  dagdp::HeightmapManager &dagdp__heightmap_manager)
 {
   const auto &viewInfo = evt.get<0>();
   const auto &viewBuilder = evt.get<1>();
@@ -415,7 +417,7 @@ ECS_REQUIRE(ecs::Tag dagdp_placer_heightmap,
   float dagdp__heightmap_cell_size)
 static void dagdp_placer_heightmap_changed_es(const ecs::Event &)
 {
-  manager_ecs_query([](GlobalManager &dagdp__global_manager) { dagdp__global_manager.invalidateRules(); });
+  manager_ecs_query([](dagdp::GlobalManager &dagdp__global_manager) { dagdp__global_manager.invalidateRules(); });
 }
 
 } // namespace dagdp

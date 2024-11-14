@@ -335,6 +335,7 @@ void BcCompressor::updateFromFaceMip(TEXTUREID src_id, int src_face, int src_mip
       d3d::draw(PRIM_TRISTRIP, 3 + (tiles - 1) * 4, 2);
 #endif
     }
+    d3d::setvsrc_ex(0, nullptr, 0, 0);
 
     d3d::resource_barrier({bufferTex.getTex2D(), RB_RO_SRV | RB_RO_COPY_SOURCE, (unsigned)dst_mip, 1});
   }

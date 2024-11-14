@@ -17,6 +17,7 @@
 #include <perfMon/dag_statDrv.h>
 
 #include <generic/dag_sort.h>
+#include <generic/dag_carray.h>
 
 #include <render/toroidal_update_regions.h>
 #define GLOBAL_VARS_LIST              \
@@ -25,7 +26,8 @@
   VAR(trees2d_depth_region)           \
   VAR(trees2d_depth_samplerstate)     \
   VAR(trees2d_depth_min_samplerstate) \
-  VAR(trees2d_samplerstate)
+  VAR(trees2d_samplerstate)           \
+  VAR(trees2d_clear_regions_arr)
 
 static ShaderVariableInfo object_tess_factorVarId{"object_tess_factor", true};
 
@@ -173,23 +175,31 @@ void TreesAboveDepth::prepare(const Point3 &origin, float minZ, float maxZ, cons
   // clear all regions first
   if (!regionsToClear.empty())
   {
+    TIME_D3D_PROFILE(trees_above_clear);
+    carray<IPoint4, MAX_STORED_REGIONS> shaderRegions;
+    G_ASSERT(regionsToClear.size() <= shaderRegions.size());
+
+    for (int i = 0; i < regionsToClear.size(); i++)
+    {
+      auto &b = regionsToClear[i];
+      shaderRegions[i] = IPoint4(b.getMin().x, b.getMin().y, b.getMax().x, b.getMax().y);
+    }
+    for (int i = regionsToClear.size(); i < shaderRegions.size(); i++)
+      shaderRegions[i] = IPoint4(1, 1, 0, 0); // empty, inclusive min/max
+
+    ShaderGlobal::set_int4_array(trees2d_clear_regions_arrVarId, shaderRegions.data(), shaderRegions.size());
+
     d3d::set_render_target(nullptr, 0);
     d3d::set_depth(trees2dDepthMin.getTex2D(), 0, DepthAccess::RW);
 
-    for (auto &reg : regionsToClear)
-    {
-      d3d::setview(reg.left(), reg.top(), reg.size().x + 1, reg.size().y + 1, 0, 1);
-      d3d::clearview(CLEAR_ZBUFFER, 0, 0.0f, 0);
-    }
+    d3d::setview(0, 0, trees2dHelper.texSize, trees2dHelper.texSize, 0, 1);
+    clearRegions.render();
 
     d3d::set_render_target(trees2d.getTex2D(), 0);
     d3d::set_depth(trees2dDepth.getTex2D(), 0, DepthAccess::RW);
 
-    for (auto &reg : regionsToClear)
-    {
-      d3d::setview(reg.left(), reg.top(), reg.size().x + 1, reg.size().y + 1, 0, 1);
-      d3d::clearview(CLEAR_ZBUFFER | CLEAR_TARGET, 0, 0.0f, 0);
-    }
+    d3d::setview(0, 0, trees2dHelper.texSize, trees2dHelper.texSize, 0, 1);
+    clearRegions.render();
 
     d3d::resource_barrier({trees2dDepth.getTex2D(), RB_RO_SRV | stageAll | RB_SOURCE_STAGE_PIXEL, 0, 0});
     d3d::resource_barrier({trees2dDepthMin.getTex2D(), RB_RO_SRV | stageAll | RB_SOURCE_STAGE_PIXEL, 0, 0});
@@ -281,6 +291,7 @@ void TreesAboveDepth::init(float half_distance, float texel_size)
   trees2dHelper.curOrigin = IPoint2(-1000000, 1000000);
   trees2dHelper.texSize = trees2dDRes;
   writeDepthToAlpha.init("trees2d_depth_write_to_alpha");
+  clearRegions.init("trees2d_clear");
 }
 
 void TreesAboveDepth::invalidate() { trees2dHelper.curOrigin = IPoint2(-1024 * 1024, 1024 * 1024); }

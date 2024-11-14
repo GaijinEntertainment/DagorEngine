@@ -39,9 +39,11 @@ struct TreeDestr
   {
     bool enableBranchDestruction = false;
     bool multiplierMode = false; // if false, overrides default values
-    float impulseMul = 4.0f;
-    float impulseMaxLength = 3.5f;
-    float branchSizeMax = 8.0f;
+    float impulseMul = 1.0f;     // multiplies the incoming impulse
+    float impulseMin = 0.0f;     // if the impulse is lower than this, the falling chance will be 0%
+    float impulseMax = 6.0f;     // if the impulse is higher than this, the falling chance will be 100%
+    float branchSizeMin = 3.0f;  // if the branch size is lower than this, the falling chance will not be decreased
+    float branchSizeMax = 20.0f; // if the branch size if higher than this, the falling chance will be 0%
     float rotateRandomSpeedMulX = 0.5f;
     float rotateRandomSpeedMulY = 1.5f;
     float rotateRandomSpeedMulZ = 0.5f;
@@ -50,9 +52,10 @@ struct TreeDestr
     float fallingSpeedMul = 0.7f;
     float fallingSpeedRnd = 0.4f;
     float horizontalSpeedMul = 1.0f;
+    float maxVisibleDistance = 100.0f;
 
     void apply(const BranchDestr &other);
-  } branchDestr;
+  } branchDestrFromDamage, branchDestrOther;
 
   InterpolateTabFloat radiusToImpulse;
   float getRadiusToImpulse(float radius) const;

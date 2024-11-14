@@ -1,8 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <drv/3d/dag_consts.h>
 #include "d3d_cap_set_xmacro.h"
+#include "driver.h"
+#include <drv/3d/dag_consts.h>
 
 
 struct DeviceCapsAndShaderModel

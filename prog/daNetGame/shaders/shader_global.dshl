@@ -532,8 +532,8 @@ macro USE_HDR(code)
       half get_exposure_mul() {return getExposureScale();}
       half get_exposure_inv() {return getInvExposureScale();}
 
-      half3 pack_hdr(half3 a) {return a * get_exposure_mul();}
-      half3 unpack_hdr(half3 a) {return a * get_exposure_inv();}
+      half3 pack_hdr(half3 a) {return a;}
+      half3 unpack_hdr(half3 a) {return a;}
     #endif
   }
 endmacro
@@ -546,7 +546,7 @@ macro USE_COMPAT_HDR_WRITE_BASE(code, exposure_name)
       #define HAS_HDR_DEFINED 1
       half get_exposure_mul() {return exposure_name;}
 
-      half3 pack_hdr(half3 a) {return a * get_exposure_mul();}
+      half3 pack_hdr(half3 a) {return a;}
     #endif
   }
 endmacro

@@ -2495,19 +2495,22 @@ void HumanPhys::updatePhys(float at_time, float dt, bool /*is_for_real*/)
       // So recalc all relative things into their absolute versions, change vertDir and recalc relative things back
       Point3 vertBefore = currentState.vertDirection;
       Point3 rootBefore = get_some_normal(currentState.vertDirection);
-      Point3 sideDirBefore = normalize(cross(currentState.vertDirection, rootBefore));
+      Point3 sideDirBefore = normalize(cross(rootBefore, currentState.vertDirection));
       Point2 gunAnglesBefore = currentState.gunAngles;
       Point3 gunDirBefore = basis_aware_angles_to_dir(gunAnglesBefore, vertBefore, rootBefore);
       Point3 body3DDirBefore = relative_2d_dir_to_absolute_3d_dir(currentState.bodyOrientDir, rootBefore, sideDirBefore);
       Point3 walk3DDirBefore = relative_2d_dir_to_absolute_3d_dir(currentState.walkDir, rootBefore, sideDirBefore);
 
-      currentState.vertDirection = normalize(approach(dir_and_up_to_quat(currentState.vertDirection, rotAxisVert),
-        dir_and_up_to_quat(wishVertDirection, rotAxisVert), dt, 0.2f)
-                                               .getForward());
+      if (currentState.vertDirection * wishVertDirection > 0.999)
+        currentState.vertDirection = wishVertDirection;
+      else
+        currentState.vertDirection = normalize(approach(dir_and_up_to_quat(currentState.vertDirection, rotAxisVert),
+          dir_and_up_to_quat(wishVertDirection, rotAxisVert), dt, 0.2f)
+                                                 .getForward());
 
       Quat changeInVert = quat_rotation_arc(vertBefore, currentState.vertDirection);
       Point3 newRoot = get_some_normal(currentState.vertDirection);
-      Point3 newSide = normalize(cross(currentState.vertDirection, newRoot));
+      Point3 newSide = normalize(cross(newRoot, currentState.vertDirection));
 
       currentState.gunDir = changeInVert * gunDirBefore;
       currentState.gunAngles = basis_aware_dir_to_angles(currentState.gunDir, currentState.vertDirection, newRoot);

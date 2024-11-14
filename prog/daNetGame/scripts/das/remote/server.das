@@ -19,7 +19,7 @@ class StringMatch : Matcher
     matchStr = str
   def override match(str : string) : MatchResult
     if str == matchStr
-      return <- [[MatchResult success = length(str) ]]
+      return <- [[MatchResult success = length(str)]]
     return <- [[MatchResult invalid = null]]
 
 

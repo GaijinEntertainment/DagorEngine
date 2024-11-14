@@ -54,6 +54,7 @@ struct ShadowDenoiser
   Texture *denoisedShadowMap = nullptr;
   Texture *shadowValue = nullptr;
   Texture *shadowTranslucency = nullptr;
+  Texture *csmTexture = nullptr;
 };
 
 struct AODenoiser

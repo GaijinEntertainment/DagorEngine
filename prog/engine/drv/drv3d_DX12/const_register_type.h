@@ -1,10 +1,10 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <EASTL/iterator.h>
-#include <EASTL/algorithm.h>
-
 #include "constants.h"
+
+#include <EASTL/algorithm.h>
+#include <EASTL/iterator.h>
 
 
 namespace drv3d_dx12

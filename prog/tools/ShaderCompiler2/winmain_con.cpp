@@ -53,7 +53,7 @@ static const char *get_debug_fname()
       else
         SNPRINTF(log_fn, sizeof(log_fn), "%s.c/%s.log", log_prefix, __argv[i + 1]);
       for (char *p = log_fn + strlen(log_prefix) + (log_dir ? strlen(log_dir) + 1 : 0) + 3; *p; p++)
-        if (*p == '\\' || *p == '/')
+        if (strchr("\\/:", *p))
           *p = '_';
       dd_mkpath(log_fn);
       return log_fn;

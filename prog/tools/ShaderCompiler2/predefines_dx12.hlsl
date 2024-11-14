@@ -1,6 +1,4 @@
 
-#define _HARDWARE_DX12 1
-#define _HARDWARE_DX11 1
 struct TextureSampler
 {
   Texture2D tex;

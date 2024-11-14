@@ -321,14 +321,15 @@ void screencap::schedule_screenshot(bool with_gui, int sequence_number, const ch
 #endif
 }
 
-void screencap::start_prending_request()
+void screencap::start_pending_request()
 {
 #ifdef CAPTURE_SCREENSHOT_FRAMES
   if (--pending_delay > 0)
     return;
 #endif
-  screenshot_scheduled = screenshot_scheduled_pending;
-  screenshot_scheduled_pending = false;
+  if (!eastl::exchange(screenshot_scheduled_pending, false))
+    return;
+  screenshot_scheduled = true;
   scheduled_screenshot_name = scheduled_screenshot_name_pending;
   capturing_gui = capturing_gui_pending;
   sequence_num = sequence_num_pending;

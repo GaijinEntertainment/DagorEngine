@@ -1,12 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "bitfield.h"
+#include "driver.h"
+#include "tagged_types.h"
+
 #include <drv/3d/dag_tex3d.h>
 #include <util/dag_globDef.h>
-
-#include "driver.h"
-#include "bitfield.h"
-#include "tagged_types.h"
 
 
 namespace drv3d_dx12

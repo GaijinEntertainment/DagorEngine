@@ -1,11 +1,11 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include "device.h"
 #include "fsr2_wrapper.h"
+#include "device.h"
+#include <fsr2/dx12/ffx_fsr2_dx12.h>
 #include <fsr2/ffx_fsr2.h>
 #include <fsr2/ffx_fsr2_interface.h>
-#include <fsr2/dx12/ffx_fsr2_dx12.h>
-#include <type_traits>
+
 
 using namespace drv3d_dx12;
 

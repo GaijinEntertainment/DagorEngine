@@ -55,7 +55,7 @@ public:
 
   constexpr const E &error() const & { return m_error; }
   constexpr E &error() & { return m_error; }
-  constexpr const E &&error() const && { return m_error; }
+  constexpr const E &&error() const && { return std::move(m_error); }
   constexpr E &&error() && { return eastl::move(m_error); }
 
   template <eastl::enable_if_t<eastl::is_swappable_v<E>, bool> = true>
@@ -131,17 +131,20 @@ public:
   constexpr Expected &operator=(U &&val)
   {
     m_var = eastl::move(val);
+    return *this;
   }
 
   template <typename G = E, eastl::enable_if_t<eastl::is_convertible_v<const G &, E>, bool> = true>
   constexpr Expected &operator=(const Unexpected<G> &unexpected)
   {
     m_var = unexpected.error();
+    return *this;
   }
   template <typename G = E, eastl::enable_if_t<eastl::is_convertible_v<G, E>, bool> = true>
   constexpr Expected &operator=(Unexpected<G> &&unexpected)
   {
     m_var = eastl::move(unexpected.error());
+    return *this;
   }
 
   constexpr const T *operator->() const { return eastl::get_if<T>(&m_var); }
@@ -169,6 +172,7 @@ public:
   constexpr T &emplace(TArgs &&...args)
   {
     m_var = T{eastl::forward<TArgs>(args)...};
+    return eastl::get<T>(m_var);
   }
 
   template <class U = T>

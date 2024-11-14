@@ -17,6 +17,7 @@
 
 struct ScopedPerfLag
 {
+#if ACTION_DEBUG_NAMES
   const char *name;
   uint64_t ref;
   ScopedPerfLag(const char *n) : name(n), ref(profile_ref_ticks()) {}
@@ -42,6 +43,9 @@ struct ScopedPerfLag
         dgs_lag_handler(name, (t * 1000) / freq); // time in msec
     }
   }
+#else
+  ScopedPerfLag(const char *) {}
+#endif
 };
 
 struct DelayedRecord
@@ -49,11 +53,22 @@ struct DelayedRecord
   DelayedAction *action = nullptr;
   delayed_callback cb = nullptr;
   void *cbArg;
+#if ACTION_DEBUG_NAMES
   const char *debugName;
+#else
+  static constexpr inline const char *debugName = nullptr;
+#endif
   DelayedRecord() = default;
   DelayedRecord(DelayedAction *a, delayed_callback c, void *cb_arg, const char *debug_name) :
-    action(a), cb(c), cbArg(cb_arg), debugName(debug_name)
+    action(a),
+    cb(c),
+    cbArg(cb_arg)
+#if ACTION_DEBUG_NAMES
+    ,
+    debugName(debug_name)
+#endif
   {
+    G_UNUSED(debug_name);
     G_ASSERT(a || c);
   }
   void run()
@@ -170,8 +185,8 @@ static struct DelayedActionsContext
         logwarn("stop perform_delayed_actions() after %d actions performed for %d usec; quota is %d usec;"
                 " actions left in list: %d normal and %d buffered",
           cnt, get_time_usec_qpc(t_start), quotaUsec, actionsLeft, delayed_actions_buffered.size());
-        if (!is_debugger_present())
-          break;
+        // Note: we _want_ to break here regadless of debugger presense to avoid altering program behaviour
+        break;
       }
       WinAutoLock lock(delayedCrit);
       action = getNextAction();

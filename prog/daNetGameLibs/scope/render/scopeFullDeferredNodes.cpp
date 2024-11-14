@@ -16,6 +16,7 @@
 
 extern ConVarT<bool, false> vrs_dof;
 
+#define SCOPE_LENS_VARS VAR(screen_pos_to_texcoord)
 
 #define SCOPE_VRS_MASK_VARS  \
   VAR(scope_vrs_mask_rate)   \
@@ -24,15 +25,15 @@ extern ConVarT<bool, false> vrs_dof;
 
 #define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
 SCOPE_VRS_MASK_VARS
+SCOPE_LENS_VARS
 #undef VAR
 
 
 dabfg::NodeHandle makeScopePrepassNode()
 {
   auto ns = dabfg::root() / "opaque" / "closeups";
-  return ns.registerNode("scope_prepass_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return ns.registerNode("scope_prepass_opaque_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
     registry.requestState().setFrameBlock("global_frame");
-
     render_to_gbuffer_prepass(registry);
 
     auto aimRenderDataHndl = registry.readBlob<AimRenderingData>("aim_render_data").handle();
@@ -197,13 +198,12 @@ dabfg::NodeHandle makeRenderLensFrameNode()
   return dabfg::register_node("render_lens_frame_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
     registry.requestState().allowWireframe().setFrameBlock("global_frame");
     registry.requestRenderPass().color({registry.createTexture2d("lens_frame_target", dabfg::History::No,
-      {get_frame_render_target_format() | TEXCF_RTARGET, registry.getResolution<2>("main_view")})});
+      {get_frame_render_target_format() | TEXCF_RTARGET, registry.getResolution<2>("post_fx")})});
 
-    registry.readTexture("depth_for_transparency").atStage(dabfg::Stage::PS).bindToShaderVar("depth_gbuf");
     registry.readBlob<CameraParams>("current_camera").bindAsView<&CameraParams::viewRotTm>().bindAsProj<&CameraParams::jitterProjTm>();
 
     auto frameHndl =
-      registry.readTexture("target_for_transparency").atStage(dabfg::Stage::PS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
+      registry.readTexture("frame_after_distortion").atStage(dabfg::Stage::PS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
     auto lensSourceHndl =
       registry.readTexture("lens_source_target").atStage(dabfg::Stage::PS).useAs(dabfg::Usage::SHADER_RESOURCE).optional().handle();
 
@@ -211,15 +211,57 @@ dabfg::NodeHandle makeRenderLensFrameNode()
     auto scopeAimRenderDataHndl = registry.readBlob<ScopeAimRenderingData>("scope_aim_render_data").handle();
     auto strmCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
 
-    return [aimRenderDataHndl, scopeAimRenderDataHndl, frameHndl, lensSourceHndl, strmCtxHndl]() {
+    auto postfxResolution = registry.getResolution<2>("post_fx");
+
+    return [postfxResolution, aimRenderDataHndl, scopeAimRenderDataHndl, frameHndl, lensSourceHndl, strmCtxHndl]() {
       const ScopeAimRenderingData &scopeAimRenderData = scopeAimRenderDataHndl.ref();
       if (!aimRenderDataHndl.ref().lensRenderEnabled)
         return;
 
-      if (scopeAimRenderData.nightVision)
-        d3d::set_depth(nullptr, DepthAccess::RW);
+      const auto &res = postfxResolution.get();
+      ShaderGlobal::set_color4(screen_pos_to_texcoordVarId, 1.0f / res.x, 1.0f / res.y, 0, 0);
 
       render_lens_frame(scopeAimRenderData, frameHndl.d3dResId(), lensSourceHndl.d3dResId(), strmCtxHndl.ref());
+    };
+  });
+}
+
+dabfg::NodeHandle makeRenderOpticsPrepassNode()
+{
+  return dabfg::register_node("scope_prepass_optics_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+    registry.requestState().setFrameBlock("global_frame");
+
+    dabfg::Texture2dCreateInfo cInfo;
+    cInfo.creationFlags = get_gbuffer_depth_format() | TEXCF_RTARGET;
+    cInfo.resolution = registry.getResolution<2>("post_fx");
+    auto depthForOptics = registry.createTexture2d("aim_scope_optics_depth", dabfg::History::No, cInfo);
+    registry.requestRenderPass().depthRw(depthForOptics).clear(depthForOptics, make_clear_value(0.0f, 0.0f));
+
+    auto aimRenderDataHndl = registry.readBlob<AimRenderingData>("aim_render_data").handle();
+    auto scopeAimRenderDataHndl = registry.readBlob<ScopeAimRenderingData>("scope_aim_render_data").handle();
+    auto strmCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
+
+    registry.read("current_camera")
+      .blob<CameraParams>()
+      .bindAsProj<&CameraParams::jitterProjTm>()
+      .bindAsView<&CameraParams::viewRotTm>();
+
+    auto hasOpticsPrepass = registry.createBlob<bool>("has_aim_scope_optics_prepass", dabfg::History::No).handle();
+    auto mainViewRes = registry.getResolution<2>("main_view");
+    auto postfxRes = registry.getResolution<2>("post_fx");
+
+    return [hasOpticsPrepass, mainViewRes, postfxRes, aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl]() {
+      if (!aimRenderDataHndl.ref().lensRenderEnabled)
+        return;
+
+      if (mainViewRes.get() == postfxRes.get())
+      {
+        hasOpticsPrepass.ref() = false;
+        return;
+      }
+
+      render_scope_lens_prepass(scopeAimRenderDataHndl.ref(), strmCtxHndl.ref());
+      hasOpticsPrepass.ref() = true;
     };
   });
 }
@@ -228,10 +270,18 @@ dabfg::NodeHandle makeRenderLensOpticsNode()
 {
   return dabfg::register_node("render_lens_optics_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
     registry.requestState().allowWireframe().setFrameBlock("global_frame");
-    registry.requestRenderPass()
-      .color({"target_before_motion_blur"})
-      .depthRoAndBindToShaderVars("depth_for_transparency", {"depth_gbuf"});
-    registry.read("gbuf_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("depth_gbuf_samplerstate");
+
+    auto hasOpticsPrepass = registry.readBlob<bool>("has_aim_scope_optics_prepass").handle();
+    auto opticsPrepassDepthHndl = registry.modifyTexture("aim_scope_optics_depth")
+                                    .atStage(dabfg::Stage::PRE_RASTER)
+                                    .useAs(dabfg::Usage::DEPTH_ATTACHMENT)
+                                    .handle();
+    auto depthAfterTransparentsHndl = registry.readTexture("depth_after_transparency")
+                                        .atStage(dabfg::Stage::PRE_RASTER)
+                                        .useAs(dabfg::Usage::DEPTH_ATTACHMENT)
+                                        .handle();
+    auto frameHndl =
+      registry.modifyTexture("frame_for_postfx").atStage(dabfg::Stage::POST_RASTER).useAs(dabfg::Usage::COLOR_ATTACHMENT).handle();
 
     registry.readTexture("lens_frame_target").atStage(dabfg::Stage::PS).bindToShaderVar("lens_frame_tex");
     registry.readBlob<CameraParams>("current_camera").bindAsView<&CameraParams::viewRotTm>().bindAsProj<&CameraParams::jitterProjTm>();
@@ -240,14 +290,18 @@ dabfg::NodeHandle makeRenderLensOpticsNode()
     auto scopeAimRenderDataHndl = registry.readBlob<ScopeAimRenderingData>("scope_aim_render_data").handle();
     auto strmCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
 
-    return [aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl, fadingRenderer = PostFxRenderer("solid_color_shader")]() {
+    return [hasOpticsPrepass, opticsPrepassDepthHndl, depthAfterTransparentsHndl, frameHndl, aimRenderDataHndl, scopeAimRenderDataHndl,
+             strmCtxHndl, fadingRenderer = PostFxRenderer("solid_color_shader")]() {
       if (!aimRenderDataHndl.ref().lensRenderEnabled)
         return;
 
-      const ScopeAimRenderingData &scopeAimRenderData = scopeAimRenderDataHndl.ref();
-      if (scopeAimRenderData.nightVision)
-        d3d::set_depth(nullptr, DepthAccess::RW);
+      d3d::set_render_target(frameHndl.get(), 0);
+      if (hasOpticsPrepass.ref())
+        d3d::set_depth(opticsPrepassDepthHndl.view().getTex2D(), DepthAccess::RW);
+      else
+        d3d::set_depth(depthAfterTransparentsHndl.view().getTex2D(), DepthAccess::SampledRO);
 
+      const ScopeAimRenderingData &scopeAimRenderData = scopeAimRenderDataHndl.ref();
       render_lens_optics(scopeAimRenderData, strmCtxHndl.ref(), fadingRenderer);
     };
   });
@@ -255,17 +309,13 @@ dabfg::NodeHandle makeRenderLensOpticsNode()
 
 dabfg::NodeHandle makeRenderCrosshairNode()
 {
-  auto ns = dabfg::root() / "before_ui";
-  return ns.registerNode("render_scope_crosshair_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+  return dabfg::register_node("render_scope_crosshair_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
     registry.requestState().allowWireframe().setFrameBlock("global_frame");
-    registry.requestRenderPass().color({"frame"});
+    registry.requestRenderPass().color({"lens_frame_target"});
 
     auto aimRenderDataHndl = registry.readBlob<AimRenderingData>("aim_render_data").handle();
     auto scopeAimRenderDataHndl = registry.readBlob<ScopeAimRenderingData>("scope_aim_render_data").handle();
     auto strmCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
-
-    auto closeupsNs = registry.root() / "opaque" / "closeups";
-    closeupsNs.readTexture("scope_lens_mask").atStage(dabfg::Stage::POST_RASTER).bindToShaderVar("scope_lens_mask").optional();
 
     registry.readBlob<CameraParams>("current_camera")
       .bindAsView<&CameraParams::viewRotTm>()

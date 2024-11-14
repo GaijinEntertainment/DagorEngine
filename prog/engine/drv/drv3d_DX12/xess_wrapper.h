@@ -2,8 +2,10 @@
 #pragma once
 
 #include <drv/3d/dag_consts.h>
+#include <generic/dag_expected.h>
 
 #include <EASTL/unique_ptr.h>
+#include <EASTL/string.h>
 
 namespace drv3d_dx12
 {
@@ -15,6 +17,7 @@ struct XessParamsDx12
   Image *inColor;
   Image *inDepth;
   Image *inMotionVectors;
+  Image *inExposure;
   float inJitterOffsetX;
   float inJitterOffsetY;
   float inInputWidth;
@@ -28,6 +31,23 @@ struct XessParamsDx12
 class XessWrapper
 {
 public:
+  enum class ErrorKind
+  {
+    UnsupportedDevice,
+    UnsupportedDriver,
+    Uninitialized,
+    InvalidArgument,
+    DeviceOutOfMemory,
+    Device,
+    NotImplemented,
+    InvalidContext,
+    OperationInProgress,
+    Unsupported,
+    CantLoadLibrary,
+    Unknown
+  };
+  static eastl::string errorKindToString(ErrorKind kind);
+
   bool xessInit(void *device);
   bool xessCreateFeature(int quality, uint32_t target_width, uint32_t target_height);
   bool xessShutdown();
@@ -37,6 +57,7 @@ public:
   bool evaluateXess(void *context, const void *dlss_params);
   void setVelocityScale(float x, float y);
   bool isXessQualityAvailableAtResolution(uint32_t target_width, uint32_t target_height, int xess_quality) const;
+  dag::Expected<eastl::string, ErrorKind> getVersion() const;
   XessWrapper();
   ~XessWrapper();
 

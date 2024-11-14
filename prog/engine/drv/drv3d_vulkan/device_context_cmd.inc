@@ -1345,13 +1345,22 @@ VULKAN_END_CONTEXT_COMMAND
 VULKAN_BEGIN_CONTEXT_COMMAND(DelaySyncCompletion)
   VULKAN_CONTEXT_COMMAND_PARAM(bool, enable)
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
-  Backend::sync.setCompletionDelay(enable);
   if (enable)
   {
+    // we need to interrupt frame core, but only once and only after that enable sync delay
+    // so interrupt it by hand only if we outside of RP and in proper order
+    InPassStateFieldType inPassState = Backend::State::exec.get<StateFieldGraphicsInPass, InPassStateFieldType, BackGraphicsState>();
+    bool willInterruptFrameCoreViaRP = (inPassState == InPassStateFieldType::NORMAL_PASS);
+
     ctx.beginCustomStage("DelayedSyncStart");
-    ctx.interruptFrameCore();
+    if (!willInterruptFrameCoreViaRP)
+      ctx.interruptFrameCore();
+    Backend::sync.setCompletionDelay(enable);
   }
   else
+  {
+    Backend::sync.setCompletionDelay(enable);
     ctx.performSyncToPreviousCommandList();
+  }
 #endif
 VULKAN_END_CONTEXT_COMMAND

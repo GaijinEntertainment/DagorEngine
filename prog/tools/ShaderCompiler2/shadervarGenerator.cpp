@@ -5,6 +5,7 @@
 #if _TARGET_PC_WIN
 
 #include "shLog.h"
+#include "globalConfig.h"
 #include <osApiWrappers/dag_direct.h>
 #include <ioSys/dag_findFiles.h>
 #include <sstream>
@@ -14,19 +15,14 @@
 #include <ranges>
 #include <regex>
 
-extern ShadervarGeneratorMode shadervar_generator_mode;
-extern std::string shadervars_code_template_filename;
-extern GeneratedPathInfos generated_path_infos;
-extern std::vector<std::string> exclude_from_generation;
-
 static std::string get_generated_shadervars_template()
 {
-  if (shadervars_code_template_filename.empty())
+  if (shc::config().shadervarsCodeTemplateFilename.empty())
     return "";
-  std::ifstream file(shadervars_code_template_filename);
+  std::ifstream file(shc::config().shadervarsCodeTemplateFilename);
   if (!file.good())
   {
-    sh_debug(SHLOG_FATAL, "Could not open file %s", shadervars_code_template_filename.c_str());
+    sh_debug(SHLOG_FATAL, "Could not open file %s", shc::config().shadervarsCodeTemplateFilename.c_str());
     return "";
   }
   std::string result((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
@@ -36,7 +32,7 @@ static std::string get_generated_shadervars_template()
 static std::pair<std::string, int> get_generated_file_name(const std::string &shader_file_name)
 {
   int no = 0;
-  for (auto &[matcher, replacer] : generated_path_infos)
+  for (auto &[matcher, replacer] : shc::config().generatedPathInfos)
   {
     no++;
     std::regex folder_matcher(matcher.c_str());
@@ -45,7 +41,7 @@ static std::pair<std::string, int> get_generated_file_name(const std::string &sh
   }
 
   std::string matchers;
-  for (auto &[matcher, _] : generated_path_infos)
+  for (auto &[matcher, _] : shc::config().generatedPathInfos)
     matchers += matcher + ", ";
   sh_debug(SHLOG_FATAL, "Couldn't match shader file %s with regexps %s", shader_file_name.c_str(), matchers.c_str());
   return {"", no};
@@ -55,7 +51,7 @@ static std::string get_code_to_write_to_generated_file(const std::string &file_n
 {
   if (!dd_file_exist(file_name.c_str()))
   {
-    if (shadervar_generator_mode == ShadervarGeneratorMode::Check)
+    if (shc::config().shadervarGeneratorMode == ShadervarGeneratorMode::Check)
       sh_debug(SHLOG_ERROR, "File doesn't exist %s", file_name.c_str());
     return std::string(code);
   }
@@ -64,7 +60,7 @@ static std::string get_code_to_write_to_generated_file(const std::string &file_n
   std::string file_content_str((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
   if (file_content_str.empty())
   {
-    if (shadervar_generator_mode == ShadervarGeneratorMode::Check)
+    if (shc::config().shadervarGeneratorMode == ShadervarGeneratorMode::Check)
       sh_debug(SHLOG_ERROR, "File is empty %s", file_name.c_str());
     return std::string(code);
   }
@@ -86,7 +82,7 @@ static std::string get_code_to_write_to_generated_file(const std::string &file_n
     if (file_content == code)
       return std::string();
 
-    if (shadervar_generator_mode == ShadervarGeneratorMode::Check)
+    if (shc::config().shadervarGeneratorMode == ShadervarGeneratorMode::Check)
     {
       sh_debug(SHLOG_ERROR, "Generated content is different from the file %s", file_name.c_str());
       show_diff();
@@ -110,7 +106,7 @@ static std::string get_code_to_write_to_generated_file(const std::string &file_n
   str << code.substr(0, code.rfind("}  // namespace intervals"));
   str << file_content_str.substr(namespace_pos);
 
-  if (shadervar_generator_mode == ShadervarGeneratorMode::Check)
+  if (shc::config().shadervarGeneratorMode == ShadervarGeneratorMode::Check)
   {
     sh_debug(SHLOG_ERROR, "Generated content is different from the file %s with header", file_name.c_str());
     show_diff();
@@ -186,7 +182,7 @@ static bool process_template(std::stringstream &output, std::string_view code,
   NEXT_KEY(for shadervars)
   FOR_EACH(shadervar, shadervars.size())
   NEXT_KEY(template)
-  output << shadervars_code_template_filename;
+  output << shc::config().shadervarsCodeTemplateFilename;
   NEXT_KEY(for intervals)
   FOR_EACH(interval, intervals.size())
   NEXT_KEY(interval_name)
@@ -215,14 +211,14 @@ static bool process_template(std::stringstream &output, std::string_view code,
 
 void ShadervarGenerator::addShadervarsAndIntervals(dag::Span<ShaderGlobal::Var> shadervars, const IntervalList &intervals)
 {
-  if (shadervar_generator_mode == ShadervarGeneratorMode::None)
+  if (shc::config().shadervarGeneratorMode == ShadervarGeneratorMode::None)
     return;
 
   auto add_entry = [](const char *fname, const char *vname, auto &entries, auto &var) {
     char buf[DAGOR_MAX_PATH];
     const char *path = dd_get_fname_without_path_and_ext(buf, DAGOR_MAX_PATH, fname);
 
-    if (std::ranges::find(exclude_from_generation, path) != exclude_from_generation.end())
+    if (std::ranges::find(shc::config().excludeFromGeneration, path) != shc::config().excludeFromGeneration.end())
       return;
 
     dd_get_fname_location(buf, fname);
@@ -264,7 +260,7 @@ void ShadervarGenerator::addShadervarsAndIntervals(dag::Span<ShaderGlobal::Var> 
 
 void ShadervarGenerator::generateShadervars()
 {
-  if (shadervar_generator_mode == ShadervarGeneratorMode::None)
+  if (shc::config().shadervarGeneratorMode == ShadervarGeneratorMode::None)
     return;
 
   std::string code_template = get_generated_shadervars_template();
@@ -287,7 +283,7 @@ void ShadervarGenerator::generateShadervars()
 
   for (auto &[generated_file_name, shadervars] : shadervars_by_file)
   {
-    if (shadervar_generator_mode == ShadervarGeneratorMode::Remove)
+    if (shc::config().shadervarGeneratorMode == ShadervarGeneratorMode::Remove)
     {
       remove_generated_file(generated_file_name);
       continue;
@@ -299,7 +295,7 @@ void ShadervarGenerator::generateShadervars()
     std::string code_to_write = get_code_to_write_to_generated_file(generated_file_name, output.str());
     if (!code_to_write.empty())
     {
-      if (shadervar_generator_mode == ShadervarGeneratorMode::Check)
+      if (shc::config().shadervarGeneratorMode == ShadervarGeneratorMode::Check)
       {
         sh_debug(SHLOG_FATAL, "The generated code does not match the one that has already been saved to the file");
         continue;

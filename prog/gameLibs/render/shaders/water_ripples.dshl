@@ -36,7 +36,7 @@ float4 water_ripples_speed = (4, 4, 4, 2);
 // y - unused
 // z - for deep water
 // w - mul for deepness (limited by 1)
-float4 water_ripples_drop_force = (2, 0, 3, 2);
+float4 water_ripples_drop_force = (1, 0, 1.5, 1);
 
 define_macro_if_not_defined INIT_TRACKDIRT_OFFSET(code)
 endmacro
@@ -264,8 +264,8 @@ shader water_ripples_update
           }
         }
 
-        infoAdd *= noiseData * 30 * (water_ripples_drop_force.x +
-                                     water_ripples_drop_force.z * saturate(waterBelow * water_ripples_drop_force.w));
+        infoAdd *= noiseData * (water_ripples_drop_force.x +
+                                water_ripples_drop_force.z * saturate(waterBelow * water_ripples_drop_force.w));
 
         float waveFactor = saturate(10*abs(Ucenter1));
 
@@ -285,7 +285,8 @@ shader water_ripples_update
         newU = (DT2 / (1.0f + waveDamp * DT)) * ( waveSpeed * laplacian +
                                                  (2 * Ucenter1 - Ucenter2) / DT2 +
                                                  waveDamp * Ucenter1 / DT -
-                                                 waveBack * Ucenter1 + infoAdd);
+                                                 waveBack * Ucenter1 +
+                                                 infoAdd / DT );
       }
     }
   }

@@ -286,6 +286,11 @@ endmacro
 macro USE_BLOOD_DECAL(samplerName)
 
 hlsl(vs) {
+  float2 rotate_on_minus_pi (float2 coords)
+  {
+    return float2(-coords.x, -coords.y);
+  }
+
   void vs_blood_decal_function(float3 input_pos, inout float4 bloodDecalTC, inout float textureIndexTime)
   {
     bloodDecalTC = NaN;
@@ -313,6 +318,10 @@ hlsl(vs) {
         bloodDecalTC.xyz = pos;
         bloodDecalTC.w = i + 1;
         textureIndexTime = start_time;
+
+        //we rotate all texture for 180 degreese, to make  floating along attachment
+        bloodDecalTC.xy = rotate_on_minus_pi(bloodDecalTC.xy);
+
       }
     }
   }

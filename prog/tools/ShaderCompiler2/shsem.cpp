@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "shCompiler.h"
+#include "globalConfig.h"
 #include "shsem.h"
 #include "shLog.h"
 #include "assemblyShader.h"
@@ -27,23 +28,23 @@ using namespace ShaderParser;
 #define FAST_BOOLEAN_EVAL
 
 static String hlsl_glob_vs, hlsl_glob_hs, hlsl_glob_ds, hlsl_glob_gs, hlsl_glob_ps, hlsl_glob_cs, hlsl_glob_ms, hlsl_glob_as;
-extern bool optionalIntervalsAsBranches;
 
 SCFastNameMap glob_string_table;
 
-void ShaderParser::addSourceCode(String &text, Symbol *term, const char *src, ShaderSyntaxParser &p)
+void ShaderParser::addSourceCode(String &text, Symbol *term, const char *src, ShaderSyntaxParser &p, bool need_file_idx)
 {
+  if (!*src)
+    return;
   const char *filename = p.get_lex_parser().get_input_stream()->get_filename(term->file_start);
-  text.aprintf(32,
-    "#line 1 \"precompiled\"\n"
-    "#undef _FILE_\n"
-    "#define _FILE_ %d\n"
-    "#line %d \"%s\"\n"
-    "%s",
-    glob_string_table.addNameId(filename), term->line_start, filename, src);
+  if (need_file_idx)
+    text.aprintf(32, "#line 1 \"precompiled\"\n#undef _FILE_\n#define _FILE_ %d\n", glob_string_table.addNameId(filename));
+  text.aprintf(32, "#line %d \"%s\"\n%s", term->line_start, filename, src);
 }
 
-void ShaderParser::addSourceCode(String &text, SHTOK_hlsl_text *src, ShaderSyntaxParser &p) { addSourceCode(text, src, src->text, p); }
+void ShaderParser::addSourceCode(String &text, SHTOK_hlsl_text *src, ShaderSyntaxParser &p, bool need_file_idx)
+{
+  addSourceCode(text, src, src->text, p, need_file_idx);
+}
 
 
 void ShaderSemCode::dump()
@@ -379,7 +380,7 @@ static bool is_compute(hlsl_compile_class &hlsl_compile)
 void eval_shader(shader_decl &sh, ShaderEvalCB &cb)
 {
   BoolVar::clear(true);
-  if (optionalIntervalsAsBranches)
+  if (shc::config().optionalIntervalsAsBranches)
   {
     bool isCompute = false;
     for (int i = 0; i < sh.stat.size(); ++i)
@@ -616,7 +617,7 @@ static bool validate_cs(ShaderClass *sclass, ShaderSemCode *ssc, int staticVaria
   return ErrorCounter::curShader().err == 0;
 }
 
-static void add_shader(shader_decl *sh, ShaderSyntaxParser &parser, Terminal *shname)
+static void add_shader(shader_decl *sh, ShaderSyntaxParser &parser, Terminal *shname, bool &out_shaderDebugModeEnabled)
 {
   if (!shc::isShaderRequired(shname->text))
     return;
@@ -633,7 +634,7 @@ static void add_shader(shader_decl *sh, ShaderSyntaxParser &parser, Terminal *sh
   // gather static variant vars
   parser.get_lex_parser().begin_shader();
   GatherVarShaderEvalCB stVarCB(parser, currentShaderOptions, shname, hlsl_glob_vs, hlsl_glob_hs, hlsl_glob_ds, hlsl_glob_gs,
-    hlsl_glob_ps, hlsl_glob_cs, hlsl_glob_ms, hlsl_glob_as);
+    hlsl_glob_ps, hlsl_glob_cs, hlsl_glob_ms, hlsl_glob_as, out_shaderDebugModeEnabled);
 
   ShaderClass *sclass = new ShaderClass(shname->text);
 
@@ -694,9 +695,7 @@ static void add_shader(shader_decl *sh, ShaderSyntaxParser &parser, Terminal *sh
   Tab<VarUsageInfo> usageInfo(tmpmem);
   Tab<int> shInitCodeLast(tmpmem);
 
-  float debug_mode_value = -1.0f;
-  shc::getAssumedValue(debug_mode_enabled_interval, shname->text, true, debug_mode_value);
-  if (debug_mode_value > 0.0f)
+  if (stVarCB.shaderDebugModeEnabled)
   {
     for (int i = 0; i < stVarCB.get_messages().nameCount(); i++)
     {
@@ -926,13 +925,9 @@ static void add_shader(shader_decl *sh, ShaderSyntaxParser &parser, Terminal *sh
     }
   }
 
-  if (debug_mode_value > 0.0f)
-  {
+  if (stVarCB.shaderDebugModeEnabled)
     for (int i = 0; i < sclass->uniqueStrings.nameCount(); i++)
-    {
       sclass->messages.emplace_back(sclass->uniqueStrings.getName(i));
-    }
-  }
 
   shc::prepareTestVariantShader(NULL);
   if (has_first_static_variant)
@@ -964,13 +959,14 @@ static void add_shader(shader_decl *sh, ShaderSyntaxParser &parser, Terminal *sh
 }
 
 
-void add_shader(shader_decl *sh, ShaderSyntaxParser &parser)
+void add_shader(shader_decl *sh, ShaderSyntaxParser &parser, bool &out_shaderDebugModeEnabled)
 {
   if (!sh)
     return;
 
   for (int i = 0; i < sh->name.size(); ++i)
-    add_shader(sh, parser, sh->name[i]);
+    add_shader(sh, parser, sh->name[i], out_shaderDebugModeEnabled);
+  out_shaderDebugModeEnabled = true;
 }
 
 static Tab<block_stat *> curBlockStat;
@@ -1126,7 +1122,7 @@ void add_block(block_decl *bl, ShaderSyntaxParser &parser)
   }
 }
 
-void add_hlsl(hlsl_global_decl_class &sh, ShaderSyntaxParser &parser)
+void add_hlsl(hlsl_global_decl_class &sh, ShaderSyntaxParser &parser, bool need_file_idx)
 {
   if (!validate_hardcoded_regs_in_hlsl_block(sh.text))
     return;
@@ -1162,21 +1158,21 @@ void add_hlsl(hlsl_global_decl_class &sh, ShaderSyntaxParser &parser)
     hlsl_types |= HLSL_MS;
 
   if (hlsl_types & HLSL_PS)
-    addSourceCode(hlsl_glob_ps, sh.text, parser);
+    addSourceCode(hlsl_glob_ps, sh.text, parser, need_file_idx);
   if (hlsl_types & HLSL_CS)
-    addSourceCode(hlsl_glob_cs, sh.text, parser);
+    addSourceCode(hlsl_glob_cs, sh.text, parser, need_file_idx);
   if (hlsl_types & HLSL_VS)
-    addSourceCode(hlsl_glob_vs, sh.text, parser);
+    addSourceCode(hlsl_glob_vs, sh.text, parser, need_file_idx);
   if (hlsl_types & HLSL_GS)
-    addSourceCode(hlsl_glob_gs, sh.text, parser);
+    addSourceCode(hlsl_glob_gs, sh.text, parser, need_file_idx);
   if (hlsl_types & HLSL_DS)
-    addSourceCode(hlsl_glob_ds, sh.text, parser);
+    addSourceCode(hlsl_glob_ds, sh.text, parser, need_file_idx);
   if (hlsl_types & HLSL_HS)
-    addSourceCode(hlsl_glob_hs, sh.text, parser);
+    addSourceCode(hlsl_glob_hs, sh.text, parser, need_file_idx);
   if (hlsl_types & HLSL_MS)
-    addSourceCode(hlsl_glob_ms, sh.text, parser);
+    addSourceCode(hlsl_glob_ms, sh.text, parser, need_file_idx);
   if (hlsl_types & HLSL_AS)
-    addSourceCode(hlsl_glob_as, sh.text, parser);
+    addSourceCode(hlsl_glob_as, sh.text, parser, need_file_idx);
 }
 #undef REPORT_ERR
 

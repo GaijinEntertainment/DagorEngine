@@ -1,23 +1,20 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <supp/dag_comPtr.h>
+#include "basic_buffer.h"
+#include "esram_components.h"
+#include <constants.h>
+#include <container_mutex_wrapper.h>
+#include <d3d12_error_handling.h>
+#include <driver.h>
+#include <host_device_shared_memory_region.h>
+#include <resource_memory.h>
+
 #include <EASTL/vector.h>
-
-#include "driver.h"
-#include "constants.h"
-#include "resource_memory.h"
-#include "host_device_shared_memory_region.h"
-#include "d3d12_error_handling.h"
-#include "container_mutex_wrapper.h"
-
-#include "resource_manager/basic_buffer.h"
-#include "resource_manager/esram_components.h"
+#include <supp/dag_comPtr.h>
 
 
-namespace drv3d_dx12
-{
-namespace resource_manager
+namespace drv3d_dx12::resource_manager
 {
 class RingMemoryBase : public ESRamPageMappingProvider
 {
@@ -1449,5 +1446,4 @@ public:
     }
   }
 };
-} // namespace resource_manager
-} // namespace drv3d_dx12
+} // namespace drv3d_dx12::resource_manager

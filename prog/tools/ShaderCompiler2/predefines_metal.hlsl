@@ -1,7 +1,7 @@
+
 #define RWBuffer         RWStructuredBuffer
 
 #define NOP
-#define _HARDWARE_METAL 1
 
 struct TextureSampler
 {
@@ -47,4 +47,3 @@ struct TextureCubeArraySampler
 #define WaveAllMin_F32    WaveActiveMin
 #define WaveAllMin_I32    WaveActiveMin
 #define WaveAllMin_U32    WaveActiveMin
-

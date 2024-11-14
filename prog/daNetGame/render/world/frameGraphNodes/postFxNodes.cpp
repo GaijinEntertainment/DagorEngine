@@ -229,14 +229,6 @@ resource_slot::NodeHandleWithSlotsAccess makePostFxNode()
       registry.readTexture("blood_texture").atStage(dabfg::Stage::PS).bindToShaderVar("blood_texture").optional();
       registry.read("blood_on_screen_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("blood_texture_samplerstate").optional();
 
-      registry.readTexture("haze_offset").atStage(dabfg::Stage::POST_RASTER).bindToShaderVar("haze_offset_tex").optional();
-      registry.create("haze_default_sampler", dabfg::History::No)
-        .blob(d3d::request_sampler({}))
-        .bindToShaderVar("haze_offset_tex_samplerstate")
-        .bindToShaderVar("haze_depth_tex_samplerstate")
-        .optional();
-      registry.readTexture("haze_color").atStage(dabfg::Stage::POST_RASTER).bindToShaderVar("haze_color_tex").optional();
-      registry.readTexture("haze_depth").atStage(dabfg::Stage::POST_RASTER).bindToShaderVar("haze_depth_tex").optional();
       auto closeupsNs = registry.root() / "opaque" / "closeups";
       postfx_bind_additional_textures_from_namespace(closeupsNs);
 
@@ -258,6 +250,15 @@ resource_slot::NodeHandleWithSlotsAccess makePostFxNode()
           d3d::set_render_target(1, secondaryPostFxTarget, 0);
         postfx.render();
       };
+    });
+}
+
+resource_slot::NodeHandleWithSlotsAccess makePostFxInputSlotProviderNode()
+{
+  return resource_slot::register_access("postfx_input_slot_provider", DABFG_PP_NODE_SRC,
+    {resource_slot::Create{"postfx_input_slot", "frame_for_postfx"}}, [](resource_slot::State slotsState, dabfg::Registry registry) {
+      registry.renameTexture("frame_after_distortion", slotsState.resourceToCreateFor("postfx_input_slot"), dabfg::History::No);
+      return []() {};
     });
 }
 
@@ -308,4 +309,27 @@ resource_slot::NodeHandleWithSlotsAccess makePreparePostFxNode()
         ShaderGlobal::set_texture(depth_gbufVarId, BAD_TEXTUREID);
       };
     });
+}
+
+dabfg::NodeHandle makeDistortionFxNode()
+{
+  return dabfg::register_node("distortion_postfx_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+    auto frame = registry.createTexture2d("frame_after_distortion", dabfg::History::No,
+      {TEXFMT_R11G11B10F | TEXCF_RTARGET, registry.getResolution<2>("post_fx")});
+
+    registry.requestRenderPass().color({frame});
+
+    registry.readTexture("frame_after_aa").atStage(dabfg::Stage::POST_RASTER).bindToShaderVar("frame_tex");
+
+    registry.readTexture("haze_offset").atStage(dabfg::Stage::POST_RASTER).bindToShaderVar("haze_offset_tex").optional();
+    registry.create("haze_default_sampler", dabfg::History::No)
+      .blob(d3d::request_sampler({}))
+      .bindToShaderVar("haze_offset_tex_samplerstate")
+      .bindToShaderVar("haze_depth_tex_samplerstate")
+      .optional();
+    registry.readTexture("haze_color").atStage(dabfg::Stage::POST_RASTER).bindToShaderVar("haze_color_tex").optional();
+    registry.readTexture("haze_depth").atStage(dabfg::Stage::POST_RASTER).bindToShaderVar("haze_depth_tex").optional();
+
+    return [distortionPostfx = PostFxRenderer("distortion_postfx")]() { distortionPostfx.render(); };
+  });
 }

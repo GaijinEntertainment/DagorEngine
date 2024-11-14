@@ -57,14 +57,14 @@ shader local_tone_mapping_downsample
     static const uint GROUP_SIZE = 1u << GROUP_SIZE_POW;
     RWTexture2D<float3> output[WINDOW_SIZE_POW + 1] : register(u0);
     RWTexture2D<float3> weights_tex[WINDOW_SIZE_POW + 1] : register(u4);
-    groupshared float3 cachedMem[GROUP_SIZE][GROUP_SIZE];
-    groupshared float3 cachedWeights[GROUP_SIZE][GROUP_SIZE];
 
+    ##if apply_per_tile_blur == yes
     static const float gaussian_weights[3][3] = {
       { 0.077847, 0.123317, 0.077847 },
       { 0.123317, 0.195346, 0.123317 },
       { 0.077847, 0.123317, 0.077847 }
     };
+    ##endif
 
     float3 compute_weights(float3 exposures)
     {
@@ -83,31 +83,39 @@ shader local_tone_mapping_downsample
       return float3(highlights, midtones, shadows);
     }
 
+    ##if apply_per_tile_blur == yes || mips_cnt > one
+
+    // grouping as linear block of float4 instead of float3 is 4 times faster on vk/dx12
+    // probably dx11 does that internally, while DXC does not
+    groupshared float4 cachedMem[GROUP_SIZE*GROUP_SIZE];
+    groupshared float4 cachedWeights[GROUP_SIZE*GROUP_SIZE];
+
     float3 get_cached_exposure(uint2 localId)
     {
       ##assert(all(localId < GROUP_SIZE), "localId (%f, %f) is out of bounds on exposure reading", localId.x, localId.y);
-      return cachedMem[localId.x][localId.y];
+      return cachedMem[localId.x+GROUP_SIZE*localId.y].xyz;
     }
     float3 get_cached_weight(uint2 localId)
     {
       ##assert(all(localId < GROUP_SIZE), "localId (%f, %f) is out of bounds on weights reading", localId.x, localId.y);
-      return cachedWeights[localId.x][localId.y];
+      return cachedWeights[localId.x+GROUP_SIZE*localId.y].xyz;
     }
     void store_cached_exposure(uint2 localId, float3 exposure)
     {
       ##assert(all(localId < GROUP_SIZE), "localId (%f, %f) is out of bounds on exposure writing", localId.x, localId.y);
-      cachedMem[localId.x][localId.y] = exposure;
+      cachedMem[localId.x+GROUP_SIZE*localId.y] = float4(exposure,0);
     }
     void store_cached_weight(uint2 localId, float3 weight)
     {
       ##assert(all(localId < GROUP_SIZE), "localId (%f, %f) is out of bounds on weights writing", localId.x, localId.y);
-      cachedWeights[localId.x][localId.y] = weight;
+      cachedWeights[localId.x+GROUP_SIZE*localId.y] = float4(weight,0);
     }
 
     void process_mip(uint divisor_pow, uint2 algoBasedLocalId, uint2 algoBasedGroupId, uint2 groupDataOffset, uint2 localId, inout float3 exposure, inout float3 w)
     {
       GroupMemoryBarrierWithGroupSync();
-      if (all(algoBasedLocalId < (WINDOW_SIZE >> divisor_pow)))
+      bool algoLocalIdInWindow = all(algoBasedLocalId < (WINDOW_SIZE >> divisor_pow));
+      if (algoLocalIdInWindow)
       {
         exposure = 0;
         w = 0;
@@ -119,14 +127,8 @@ shader local_tone_mapping_downsample
             exposure += get_cached_exposure(algoBasedLocalId * 2 + int2(i, j) + groupDataOffset);
             w += get_cached_weight(algoBasedLocalId * 2 + int2(i, j) + groupDataOffset);
           }
-      }
-      GroupMemoryBarrierWithGroupSync();
-      if (all(algoBasedLocalId < (WINDOW_SIZE >> divisor_pow)))
-      {
         exposure /= 4;
         w /= 4;
-        store_cached_exposure(algoBasedLocalId + groupDataOffset, exposure);
-        store_cached_weight(algoBasedLocalId + groupDataOffset, w);
         BRANCH
         if (display_mip <= divisor_pow)
         {
@@ -139,6 +141,12 @@ shader local_tone_mapping_downsample
             texture2DAt(weights_tex[divisor_pow], finalImageIdx) = w;
           }
         }
+      }
+      GroupMemoryBarrierWithGroupSync();
+      if (algoLocalIdInWindow)
+      {
+        store_cached_exposure(algoBasedLocalId + groupDataOffset, exposure);
+        store_cached_weight(algoBasedLocalId + groupDataOffset, w);
       }
       ##if apply_per_tile_blur == yes
       GroupMemoryBarrierWithGroupSync();
@@ -160,6 +168,7 @@ shader local_tone_mapping_downsample
       store_cached_weight(localId, w);
       ##endif
     }
+    ##endif
 
     [numthreads(GROUP_SIZE, GROUP_SIZE, 1)]
     void local_tone_mapping_downsample_cs(uint2 dtId : SV_DispatchThreadID, uint2 localId : SV_GroupThreadID, uint2 groupId : SV_GroupID)
@@ -169,14 +178,14 @@ shader local_tone_mapping_downsample
       uint2 algoBasedGroupId = (groupId << (GROUP_SIZE_POW - WINDOW_SIZE_POW)) | (localId >> WINDOW_SIZE_POW);
       float3 exposure = 0;
       float3 w = 0;
+      uint2 mipSize;
+      uint level;
+      src_tex.GetDimensions(source_mip, mipSize.x, mipSize.y, level);
       UNROLL
       for (int i = 0; i < 2; ++i)
         UNROLL
         for (int j = 0; j < 2; ++j)
         {
-          uint2 mipSize;
-          uint level;
-          src_tex.GetDimensions(source_mip, mipSize.x, mipSize.y, level);
           uint2 threadTc = dtId * 2 + int2(i, j);
           ##if skip_each_odd_texel == yes
           if (source_mip == 0)
@@ -190,33 +199,43 @@ shader local_tone_mapping_downsample
           BRANCH
           if (source_mip == 0)
             w += compute_weights(currentExp);
+          ##if src_weight_tex != NULL
           else
             w += texelFetch(src_weight_tex, threadTc, source_mip).xyz;
+          ##endif
         }
       exposure /= 4;
       w /= 4;
-      store_cached_exposure(algoBasedLocalId + groupDataOffset, exposure);
-      store_cached_weight(algoBasedLocalId + groupDataOffset, w);
-      ##if apply_per_tile_blur == yes
-      GroupMemoryBarrierWithGroupSync();
-      exposure = 0;
-      w = 0;
-      UNROLL
-      for (int x = 0; x < 3; ++x)
-        UNROLL
-        for (int y = 0; y < 3; ++y)
-        {
-          uint2 clampedId = clamp(int2(localId) + int2(x - 1, y - 1), 0, int(GROUP_SIZE) - 1);
-          float3 cachedExposure = get_cached_exposure(clampedId);
-          float3 cachedWeight = get_cached_weight(clampedId);
-          float gaussianWeight = gaussian_weights[x][y]; // Replace with actual gaussian weights
-          exposure += cachedExposure * gaussianWeight;
-          w += cachedWeight * gaussianWeight;
-        }
-      store_cached_exposure(localId, exposure);
-      store_cached_weight(localId, w);
+
+      ##if apply_per_tile_blur == yes || mips_cnt > one
+        store_cached_exposure(algoBasedLocalId + groupDataOffset, exposure);
+        store_cached_weight(algoBasedLocalId + groupDataOffset, w);
+        GroupMemoryBarrierWithGroupSync();
       ##endif
-      GroupMemoryBarrierWithGroupSync();
+
+      ##if apply_per_tile_blur == yes
+        exposure = 0;
+        w = 0;
+        UNROLL
+        for (int x = 0; x < 3; ++x)
+          UNROLL
+          for (int y = 0; y < 3; ++y)
+          {
+            uint2 clampedId = clamp(int2(localId) + int2(x - 1, y - 1), 0, int(GROUP_SIZE) - 1);
+            float3 cachedExposure = get_cached_exposure(clampedId);
+            float3 cachedWeight = get_cached_weight(clampedId);
+            float gaussianWeight = gaussian_weights[x][y];
+            exposure += cachedExposure * gaussianWeight;
+            w += cachedWeight * gaussianWeight;
+          }
+        ##if mips_cnt > one
+          store_cached_exposure(localId, exposure);
+          store_cached_weight(localId, w);
+          //next process mip has GroupMemoryBarrierWithGroupSync(); internally
+        ##endif
+      ##endif
+
+
       BRANCH
       if (display_mip == 0)
       {

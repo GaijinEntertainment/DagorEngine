@@ -127,7 +127,7 @@ def registerNode(var self : NameSpace; name : string; var declaration_callback :
   return <- registry.nodes |> get(nodeId) <| $(var node_data : NodeData&)
     getTracker() |> unregisterNode(nodeId, node_data.generation)
     getTracker() |> registerNode(nodeId)
-    node_data |> registerNodeDeclaration(self.nameSpaceId) <| @ [[ <- declaration_callback, =registry ]] ()
+    node_data |> registerNodeDeclaration(self.nameSpaceId) <| @ [[ <- declaration_callback, =registry]] ()
       return <- declaration_callback |> invoke() <| [[Registry
         nameSpaceId = self.nameSpaceId,
         nodeId = nodeId,
@@ -479,8 +479,8 @@ class BlobMacro : AstCallMacro
                 res |> setDescription($v(mangledBlobTypeName), $v(blobType.sizeOf), $v(blobType.alignOf),
                   getTypeInfo(type<$t(blobType)>), @@$c("ctor`{blobTypeHash}"), @@$c("dtor`{blobTypeHash}"), @@$c("copy`{blobTypeHash}"));
               } else {
-                let nullFunc = [[function<(var arg0 : void?) : void> ]];
-                let nullCopyFunc = [[function<(var arg0 : void?; arg1 : void const?) : void> ]];
+                let nullFunc = [[function<(var arg0 : void?) : void>]];
+                let nullCopyFunc = [[function<(var arg0 : void?; arg1 : void const?) : void>]];
                 res |> setDescription($v(mangledBlobTypeName), $v(blobType.sizeOf), $v(blobType.alignOf),
                   getTypeInfo(type<$t(blobType)>), nullFunc, nullFunc, nullCopyFunc);
               }

@@ -383,7 +383,7 @@ struct GuiState
 
 struct ExtState // aliased to specific structure
 {
-  uint8_t data[64];
+  uint8_t data[72];
 };
 
 struct CallBackState
@@ -441,6 +441,7 @@ struct StdGuiShader : GuiShader
     Color4 fontTex2ofs;
     Color4 fontTex2rotCCSmS;
     Color4 user[2];
+    uint8_t padding[8];
 
     void setFontTex2Ofs(GuiVertexTransform &xform, float su, float sv, float x0, float y0);
     //      void setFontFx(FontFxType type, E3DCOLOR col, int factor_x32);
@@ -456,6 +457,7 @@ struct StdGuiShader : GuiShader
 
     void resetRotation() { fontTex2rotCCSmS.set(1, 1, 0, 0); }
   };
+  static_assert(sizeof(ExtState) == sizeof(ExtStateLocal), "ExtState size mismatch");
 
   virtual void channels(const CompiledShaderChannelId *&channels, int &num_chans);
   virtual void link();

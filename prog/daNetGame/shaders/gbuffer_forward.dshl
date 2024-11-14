@@ -70,7 +70,7 @@ macro INIT_AND_USE_TILED_LIGHTS_FORWARD()
   }
 endmacro
 
-macro WRITE_GBUFFER_FORWARD()
+macro WRITE_GBUFFER_FORWARD_BASE(preExposureTerm)
   if (use_postfx == off)
   {
     USE_FULL_TONEMAP_LUT(ps)
@@ -175,7 +175,7 @@ macro WRITE_GBUFFER_FORWARD()
       #if SPECULAR_DISABLED && BRDF_DIFFUSE == DIFFUSE_LAMBERT
         half backlight = 0.0f;
         #if USE_SSS_THIN
-          if (isSubSurfaceShader(gbuffer.material) && isSubSurfaceProfileValid(gbuffer.sss_profile))
+          if (isSubSurfaceShader(gbuffer.material) && isTranslucentProfileValid(gbuffer.sss_profile))
             backlight += foliageSSSfast(NoL) * gbuffer.translucency;
         #endif
         sunLight = diffuseLambert( gbuffer.diffuseColor ) * (saturate(NoL) + backlight) * shadow;
@@ -226,7 +226,7 @@ macro WRITE_GBUFFER_FORWARD()
       half3 ambientLight = enviAO * environmentAmbientUnoccludedLighting * gbuffer.diffuseColor;
 
       #if USE_SSS_THIN
-        if (isSubSurfaceShader(gbuffer.material) && isSubSurfaceProfileValid(gbuffer.sss_profile))
+        if (isSubSurfaceShader(gbuffer.material) && isTranslucentProfileValid(gbuffer.sss_profile))
           ambientLight *= (1.0f + gbuffer.translucency);
       #endif
 
@@ -356,7 +356,7 @@ macro WRITE_GBUFFER_FORWARD()
 
     GBUFFER_OUTPUT encode_gbuffer(UnpackedGbuffer gbuf, float3 pointToEye, float4 screenPos)
     {
-      return encode_gbuffer_exposure(gbuf, pointToEye, screenPos, get_exposure_mul(),
+      return encode_gbuffer_exposure(gbuf, pointToEye, screenPos, preExposureTerm,
         gbuffer_sun_light_dir.xyz, gbuffer_sun_light_col.rgb,
         gbuffer_enviSPH0, gbuffer_enviSPH1, gbuffer_enviSPH2, gbuffer_sun_light_col.w);
     }
@@ -377,4 +377,12 @@ macro WRITE_GBUFFER_FORWARD()
       }
     #endif
   }
+endmacro
+
+macro WRITE_GBUFFER_FORWARD_WITH_EXPOSURE()
+  WRITE_GBUFFER_FORWARD_BASE(get_exposure_mul())
+endmacro
+
+macro WRITE_GBUFFER_FORWARD()
+  WRITE_GBUFFER_FORWARD_BASE(1)
 endmacro

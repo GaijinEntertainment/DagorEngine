@@ -14,7 +14,6 @@ void shutdown();
 int get_player_team(matching::UserId uid);
 int get_player_req_teams_num(matching::UserId uid);
 int64_t get_player_group(matching::UserId uid);
-int64_t get_player_original_group(matching::UserId uid);
 int get_player_app_id(matching::UserId uid);
 eastl::string get_player_name(matching::UserId uid);
 const Json::Value &get_mode_info();

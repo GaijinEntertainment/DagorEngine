@@ -61,4 +61,17 @@ void get_catmullrom_samples(float2 uv, float2 tex_size, float2 inv_tex_size, out
     fetch_uvs[8] = float2(texPos3.x, texPos3.y);
 }
 
+float4 sample_texture_catmull_rom(in Texture2D<float4> tex, in SamplerState linear_sampler, in float2 uv, in float2 tex_size, in float2 inv_tex_size)
+{
+    float2 fetchUVs[9];
+    float fetchWeights[9];
+    get_catmullrom_samples(uv, tex_size, inv_tex_size, fetchUVs, fetchWeights);
+    float4 result = 0;
+    UNROLL
+    for (uint i = 0; i < 9; i++)
+      result += tex.SampleLevel(linear_sampler, fetchUVs[i], 0.0) * fetchWeights[i];
+    return result;
+}
+
+
 #endif

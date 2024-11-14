@@ -6,5 +6,6 @@ bvh{
   "denoiser_prepare_node:dabfg::NodeHandle"{}
   "rtsm_node:dabfg::NodeHandle"{}
   "rtr_node:dabfg::NodeHandle"{}
+  "rtao_node:dabfg::NodeHandle"{}
   "bvh__rendinst_visibility:RiGenVisibilityECS"{}
 }

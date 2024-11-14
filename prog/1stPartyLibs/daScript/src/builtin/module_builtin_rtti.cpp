@@ -719,6 +719,7 @@ namespace das {
         // language
             addField<DAS_BIND_MANAGED_FIELD(version_2_syntax)>("version_2_syntax");
             addField<DAS_BIND_MANAGED_FIELD(gen2_make_syntax)>("gen2_make_syntax");
+            addField<DAS_BIND_MANAGED_FIELD(relaxed_assign)>("relaxed_assign");
             addField<DAS_BIND_MANAGED_FIELD(no_unsafe)>("no_unsafe");
             addField<DAS_BIND_MANAGED_FIELD(local_ref_is_unsafe)>("local_ref_is_unsafe");
             addField<DAS_BIND_MANAGED_FIELD(no_global_variables)>("no_global_variables");

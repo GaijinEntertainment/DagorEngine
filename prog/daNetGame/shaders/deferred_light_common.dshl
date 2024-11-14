@@ -16,7 +16,6 @@ include "custom_probe_inc.dshl"
 
 include "world_sdf.dshl"
 include "use_gi.dshl"
-include "rtr_use.dshl"
 
 int shadow_frame = 0;
 
@@ -51,7 +50,6 @@ macro INIT_AND_USE_DEFERRED_LIGHT_COMMON(code)
   USE_CUSTOM_PROBE(code)
   USE_HDR(code)
   INIT_HDR(code)
-  USING_RTR(code)
 
   (code) {
     hero_cockpit_camera_to_point@f3 = hero_cockpit_camera_to_point;
@@ -263,15 +261,7 @@ macro INIT_AND_USE_DEFERRED_LIGHT_COMMON(code)
 
         half3 totalReflection = environmentAmbientReflection;
 
-        /*#if HAS_RTR
-          // TODO make a variant for this to avoid calculating with SSR at all
-          if (isRTREnabled())
-          {
-            totalReflection = getRTR(viewPixcoord.xy);
-          }
-          else
-        #endif
-          {
+        /*{
             half4 ssrReflections = getSSR(gbuffer.linearRoughness, vr_reproject(viewTexcoord, rawDepth), viewPixcoord);
             half enviSSR = (1-ssrReflections.a);
 

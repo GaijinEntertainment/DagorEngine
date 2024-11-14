@@ -9,6 +9,7 @@ scope_full_deferred_renderer{
   "scope__full_deferred__cut_depth_node:dabfg::NodeHandle"{}
   "scope__full_deferred__crosshair_node:dabfg::NodeHandle"{}
 
+  "scope__full_deferred__render_lens_optics_prepass:dabfg::NodeHandle"{}
   "scope__full_deferred__render_lens_frame_node:dabfg::NodeHandle"{}
   "scope__full_deferred__render_lens_optics_node:dabfg::NodeHandle"{}
 

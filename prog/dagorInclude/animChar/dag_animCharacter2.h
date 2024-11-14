@@ -231,6 +231,10 @@ public:
     int idx = slot_id >= 0 ? find_value_idx(attachmentSlotId, slot_id) : -1;
     return idx < 0 ? 0 : attachment[idx].uid;
   }
+  //! returns amount of named attach slots
+  int getAttachmentSlotId(int char_slot_idx) const;
+  //! returns amount of named attach slots
+  int getAttachmentSlotsCount() const;
   //! returns animchar attached to named slot
   AnimcharBaseComponent *getAttachedChar(int slot_id) const;
   //! returns skeleton effectively attached to named slot
@@ -648,6 +652,7 @@ void prepareFrustum(bool is_main_camera, const Frustum &culling_frustum, const P
 
 int getSlotId(const char *slot_name);
 int addSlotId(const char *slot_name);
+const char *getSlotName(const int slot_id);
 
 struct alignas(16) LegsIkRay
 {

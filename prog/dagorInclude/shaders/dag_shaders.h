@@ -170,6 +170,7 @@ ShaderMaterial *new_shader_material_by_name_optional(const char *shader_name, co
   bool sec_dump_for_exp = false);
 ShaderMaterial *new_shader_material_by_name(const char *shader_name, const char *mat_script = NULL, bool sec_dump_for_exp = false);
 bool shader_exists(const char *shader_name);
+const char *get_shader_class_name_by_material_name(const char *mat_name);
 
 d3d::shadermodel::Version getMaxFSHVersion();
 

@@ -9,7 +9,7 @@
 #include <daNet/bitStream.h>
 #include <ioSys/dag_dataBlock.h>
 
-struct TerraformSerializer final : public ecs::ComponentSerializer
+static struct TerraformSerializer final : public ecs::ComponentSerializer
 {
   void serialize(ecs::SerializerCb &cb, const void *data, size_t, ecs::component_type_t hint) override
   {
@@ -44,7 +44,7 @@ struct TerraformSerializer final : public ecs::ComponentSerializer
   }
 } terraform_serializer;
 
-struct TerraformConstruct : public TerraformComponent
+struct TerraformConstruct final : public TerraformComponent
 {
   bool operator==(const TerraformConstruct &rhs) const { return isEqual(rhs); }
 

@@ -11,8 +11,8 @@
 namespace dagdp
 {
 
-ECS_NO_ORDER static inline void heightmap_debug_invalidate_views_es(const EventInvalidateViews &,
-  HeightmapManager &dagdp__heightmap_manager)
+ECS_NO_ORDER static inline void heightmap_debug_invalidate_views_es(const dagdp::EventInvalidateViews &,
+  dagdp::HeightmapManager &dagdp__heightmap_manager)
 {
   dagdp__heightmap_manager.debug.builders.clear();
 }
@@ -132,7 +132,7 @@ static inline void heightmap_debug_imgui_ecs_query(Callable);
 
 static void imgui_callback()
 {
-  heightmap_debug_imgui_ecs_query([](GlobalManager &dagdp__global_manager, HeightmapManager &dagdp__heightmap_manager) {
+  heightmap_debug_imgui_ecs_query([](dagdp::GlobalManager &dagdp__global_manager, dagdp::HeightmapManager &dagdp__heightmap_manager) {
     imgui(dagdp__global_manager, dagdp__heightmap_manager);
   });
 }

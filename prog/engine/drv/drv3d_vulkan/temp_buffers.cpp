@@ -174,7 +174,11 @@ BufferRef FramememBufferManager::acquire(uint32_t size, DeviceMemoryClass mem_cl
     if (Globals::cfg.debugLevel > 0)
       buf->setDebugName(String(32, "framemem_%u", frameToRingIdx(frame)));
   }
-  return BufferRef{buf, size};
+  BufferRef ret{buf, size};
+  // make acquires unique over multiple frames as some framemem buffers may be leaved bound, yet not updated
+  // causing discard state replacement to fail, due to non unique buf+offset combos
+  ret.frameReference = frame;
+  return ret;
 }
 
 BufferRef FramememBufferManager::acquire(uint32_t size, uint32_t flags)

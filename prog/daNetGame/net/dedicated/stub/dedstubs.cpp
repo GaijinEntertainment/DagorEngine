@@ -25,7 +25,7 @@ void shutdown() {}
 String setup_log() { return String(); }
 bool init_statsd(const char *) { return false; }
 void statsd_report_ctrl_ploss(ControlsPlossCalc &, uint16_t &, uint16_t) {}
-net::INetDriver *create_net_driver() { return nullptr; }
+net::INetDriver *create_listen_net_driver() { return nullptr; }
 uint16_t get_binded_port() { return 0; }
 net::msg_handler_t get_clientinfo_msg_handler() { return NULL; }
 net::msg_handler_t get_sync_vroms_done_msg_handler() { return NULL; }

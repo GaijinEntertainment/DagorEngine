@@ -1,10 +1,14 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include "device.h"
+#include "rtx_components.h"
 
 #ifdef D3D_HAS_RAY_TRACING
 
-using namespace drv3d_dx12::resource_manager;
+#include "device.h"
+
+
+namespace drv3d_dx12::resource_manager
+{
 
 RaytraceAccelerationStructureHeap RaytraceAccelerationStructureObjectProvider::allocAccelStructHeap(DXGIAdapter *adapter,
   Device &device, uint32_t size)
@@ -206,5 +210,5 @@ drv3d_dx12::RaytraceAccelerationStructure *drv3d_dx12::resource_manager::Raytrac
   }
   return result;
 }
-
+} // namespace drv3d_dx12::resource_manager
 #endif

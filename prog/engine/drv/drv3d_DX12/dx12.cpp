@@ -2,10 +2,11 @@
 
 #include "device.h"
 
-#include "../drv3d_commonCode/stereoHelper.h"
-#include "../drv3d_commonCode/dxgi_utils.h"
-#include "../drv3d_commonCode/gpuConfig.h"
-#include "../drv3d_commonCode/validate_sbuf_flags.h"
+#include <stereoHelper.h>
+#include <dxgi_utils.h>
+#include <gpuConfig.h>
+#include <validate_sbuf_flags.h>
+#include <frameStateTM.inc.h>
 
 #include <../hid_mouse/api_wrappers.h>
 
@@ -51,8 +52,6 @@
 
 #include "frontend_state.h"
 
-#include "frameStateTM.inc.h"
-
 #include <ioSys/dag_dataBlock.h>
 
 #include <util/dag_watchdog.h>
@@ -61,9 +60,11 @@
 #if _TARGET_PC_WIN
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_unicode.h>
+#include "debug/global_state.h"
 #endif
 
 #include "driver_mutex.h"
+
 
 #if _TARGET_PC_WIN
 extern "C"
@@ -128,7 +129,7 @@ FrameStateTM g_frameState;
                                     "lock will be released before the destructor is called with "  \
                                     "the offending D3D function call, this is because "            \
                                     "destructors are called on scope exit at the closing }.")
-#include "frameStateTM.inc.cpp"
+#include <frameStateTM.inc.cpp>
 
 namespace drv3d_dx12
 {
@@ -601,6 +602,16 @@ void drv3d_dx12::set_hdr_config(SwapchainProperties &sci)
 #endif
 }
 
+void drv3d_dx12::set_hfr_config(SwapchainProperties &sci)
+{
+#if _TARGET_XBOX
+  sci.preferHfr = get_hfr_preference_from_settings();
+  logdbg("DX12: Preferred display mode is set to %s", sci.preferHfr ? "HFR" : "HDR");
+#else
+  G_UNUSED(sci);
+#endif
+}
+
 #if _TARGET_XBOX
 static bool is_auto_gamedvr() { return ::dgs_get_settings()->getBlockByNameEx("dx12")->getBool("autoGameDvr", true); }
 #endif
@@ -827,9 +838,6 @@ void sort_adapters_by_integrated(dag::Vector<Device::AdapterInfo> &adapter_list,
   });
 }
 } // namespace
-
-using UpdateGpuDriverConfigFunc = void (*)(GpuDriverConfig &);
-extern UpdateGpuDriverConfigFunc update_gpu_driver_config;
 
 void update_dx12_gpu_driver_config(GpuDriverConfig &gpu_driver_config)
 {
@@ -1108,6 +1116,7 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
   sci.resolution.height = api_state.windowState.settings.resolutionY;
 
   set_hdr_config(sci);
+  set_hfr_config(sci);
 
 #if DAGOR_DBGLEVEL > 0
   constexpr float default_immediate_threshold_percent = 100.f;
@@ -1547,6 +1556,19 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       api_state.device.getContext().getXessRenderResolution(*(int *)par1, *(int *)par2);
       return 1;
     }
+    case Drv3dCommand::GET_XESS_VERSION:
+    {
+      auto maybeVersionString = api_state.device.getContext().getXessVersion();
+      if (!maybeVersionString)
+        logerr("DX12: Failed to get XESS version string. Error: %s", XessWrapper::errorKindToString(maybeVersionString.error()));
+
+      auto versionString = maybeVersionString.value_or("N/A");
+
+      char *data = reinterpret_cast<char *>(par1);
+      size_t size = reinterpret_cast<size_t>(par2);
+      strncpy(data, versionString.c_str(), size);
+      return 1;
+    }
     case Drv3dCommand::EXECUTE_DLSS:
     {
       api_state.device.getContext().executeDlss(*(nv::DlssParams<> *)par1, par2 ? *(int *)par2 : 0);
@@ -1784,10 +1806,13 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
     }
 
 #if _TARGET_SCARLETT
-    case Drv3dCommand::GET_CONSOLE_120_HZ_STATUS:
+    case Drv3dCommand::GET_CONSOLE_HFR_STATUS:
     {
-      // Placeholder, for now it reports 120 Hz mode. Need to be implemented.
-      return 1;
+      return api_state.device.getContext().isHfrEnabled();
+    }
+    case Drv3dCommand::GET_CONSOLE_HFR_SUPPORTED:
+    {
+      return api_state.device.getContext().isHfrSupported();
     }
 #endif
 

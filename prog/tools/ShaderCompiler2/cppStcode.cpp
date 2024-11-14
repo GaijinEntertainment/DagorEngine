@@ -18,28 +18,12 @@
 #include <unistd.h>
 #endif
 
-enum class StcodeTargetArch
-{
-  DEFAULT,
-  X86,
-  X86_64,
-  ARM64
-};
-
-#if _CROSS_TARGET_DX12
-#include "dx12/asmShaderDXIL.h"
-extern dx12::dxil::Platform targetPlatform;
-#endif
-
-bool compile_cpp_stcode = false;
-bool cpp_stcode_unity_build = false;
-StcodeTargetArch cpp_stcode_arch = StcodeTargetArch::DEFAULT;
 StcodeShader g_cppstcode;
 
 static eastl::string stcode_dir;
 static eastl::string src_dir;
 
-bool set_stcode_arch_from_arg(const char *str)
+bool set_stcode_arch_from_arg(const char *str, shc::CompilerConfig &config_rw)
 {
   StcodeTargetArch res;
   if (strcmp(str, "x86") == 0)
@@ -52,20 +36,20 @@ bool set_stcode_arch_from_arg(const char *str)
     return false;
 
 #if _CROSS_TARGET_DX12
-  if (targetPlatform != dx12::dxil::Platform::PC && res != StcodeTargetArch::X86_64)
+  if (shc::config().targetPlatform != dx12::dxil::Platform::PC && res != StcodeTargetArch::X86_64)
     return false;
 #elif _CROSS_TARGET_C1 | _CROSS_TARGET_C2
 
 
 #endif
 
-  cpp_stcode_arch = res;
+  config_rw.cppStcodeArch = res;
   return true;
 }
 
 static bool current_arch_is_valid(StcodeTargetArch desired)
 {
-  return cpp_stcode_arch == StcodeTargetArch::DEFAULT || cpp_stcode_arch == desired;
+  return shc::config().cppStcodeArch == StcodeTargetArch::DEFAULT || shc::config().cppStcodeArch == desired;
 }
 
 static const char *arch_name(StcodeTargetArch arch)
@@ -170,7 +154,7 @@ void save_stcode_dll_main(StcodeInterface &&cpp_interface)
   const eastl::string cppFileName(eastl::string::CtorSprintf{}, "%s/stcode_main.stcode.gen.cpp", stcode_dir.c_str());
 
   // For unity build, paste cpps as is. Otherwise, use headers for fwd decl
-  const char *includesExtForBuildType = cpp_stcode_unity_build ? "cpp" : "h";
+  const char *includesExtForBuildType = shc::config().cppStcodeUnityBuild ? "cpp" : "h";
 
   eastl::string includes = "";
   const eastl::string matchPath(eastl::string::CtorSprintf{}, "%s/*.stcode.gen.%s", src_dir.c_str(), includesExtForBuildType);
@@ -333,7 +317,7 @@ dag::Expected<proc::ProcessTask, StcodeMakeTaskError> make_stcode_compilation_ta
 
   eastl::string sourcesList;
 
-  if (cpp_stcode_unity_build)
+  if (shc::config().cppStcodeUnityBuild)
     sourcesList = "";
   else
   {
@@ -365,7 +349,7 @@ dag::Expected<proc::ProcessTask, StcodeMakeTaskError> make_stcode_compilation_ta
 #endif
     ;
 
-  const char *customCppOpts = cpp_stcode_unity_build ? "-DROUTINE_VISIBILITY=static" : "-DROUTINE_VISIBILITY=extern";
+  const char *customCppOpts = shc::config().cppStcodeUnityBuild ? "-DROUTINE_VISIBILITY=static" : "-DROUTINE_VISIBILITY=extern";
 
   const eastl::string jamPath(eastl::string::CtorSprintf{}, "%s/jamfile", stcode_dir.c_str());
   const eastl::string jamContent(eastl::string::CtorSprintf{}, jamTemplate, rootRelPath.c_str(), stcodeRelPath.c_str(),
@@ -378,11 +362,8 @@ dag::Expected<proc::ProcessTask, StcodeMakeTaskError> make_stcode_compilation_ta
   const char *targetType = "dll";
   StcodeTargetArch arch = StcodeTargetArch::DEFAULT;
 
-#define SET_ARCH_WITH_DEF(default_)                                                   \
-  do                                                                                  \
-  {                                                                                   \
-    arch = cpp_stcode_arch == StcodeTargetArch::DEFAULT ? default_ : cpp_stcode_arch; \
-  } while (0)
+#define SET_ARCH_WITH_DEF(default_) \
+  arch = (shc::config().cppStcodeArch == StcodeTargetArch::DEFAULT ? default_ : shc::config().cppStcodeArch)
 
   // Start proc
 #if _TARGET_PC_WIN
@@ -392,7 +373,7 @@ dag::Expected<proc::ProcessTask, StcodeMakeTaskError> make_stcode_compilation_ta
   SET_ARCH_WITH_DEF(StcodeTargetArch::X86_64);
 
 #if _CROSS_TARGET_DX12
-  switch (targetPlatform)
+  switch (shc::config().targetPlatform)
   {
     case dx12::dxil::Platform::PC: jamPlatform = "windows"; break;
     case dx12::dxil::Platform::XBOX_ONE: jamPlatform = "xboxOne"; break;

@@ -643,8 +643,8 @@ static void load_scene(const char *name, const eastl::vector<eastl::string> &imp
     if (!game::get_local_player()) // initial load
       g_entity_mgr->broadcastEventImmediate(
         EventOnClientConnected(net::INVALID_CONNECTION_ID, net::get_user_id(), net::get_user_name(),
-          /*group_id*/ net::get_user_id(), /*orig_group_id*/ net::get_user_id(), /*flags*/ 0, /*pltf_uid*/ "",
-          get_platform_string_id(), TEAM_UNASSIGNED, app_profile::get().appId));
+          /*group_id*/ net::get_user_id(), /*flags*/ 0, /*pltf_uid*/ "", get_platform_string_id(), TEAM_UNASSIGNED,
+          app_profile::get().appId));
     else // restart
       g_entity_mgr->broadcastEventImmediate(ServerCreatePlayersEntities{});
   }
@@ -786,6 +786,7 @@ static void load_scene_impl(const eastl::string_view &scene_name,
   const UserGameModeContext &mods_ctx)
 {
   TIME_PROFILE(load_scene_impl)
+  debug("load_scene_impl");
 #if _TARGET_ANDROID || _TARGET_IOS
   crashlytics::AppState appState("load_scene_impl");
 #endif
@@ -1200,6 +1201,7 @@ struct SwitchSceneAndUpdateDelayedAction final : SwitchSceneDelayedAction
 
 void switch_scene(eastl::string_view scene, eastl::vector<eastl::string> &&import_scenes, UserGameModeContext &&ugm_ctx)
 {
+  debug("switch_scene(%s)", scene);
   auto act = new SwitchSceneDelayedAction{};
   act->scene = scene;
   act->importScenes = eastl::move(import_scenes);
@@ -1209,6 +1211,7 @@ void switch_scene(eastl::string_view scene, eastl::vector<eastl::string> &&impor
 
 void switch_scene_and_update(eastl::string_view scene)
 {
+  debug("switch_scene_and_update(%s)", scene);
   auto act = new SwitchSceneAndUpdateDelayedAction{};
   act->scene = scene;
   add_delayed_action(act);

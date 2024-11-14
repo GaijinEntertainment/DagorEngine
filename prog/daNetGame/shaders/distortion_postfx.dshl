@@ -1,0 +1,129 @@
+include "contrast_adaptive_sharpening.dshl"
+include "heatHazeOffset.dshl"
+include "postfx_common.dshl"
+
+float4 chromatic_aberration_params = float4(0.01,0.007,1,0);
+
+shader distortion_postfx {
+
+  INIT_HEAT_HAZE_OFFSET()
+  USE_HEAT_HAZE_OFFSET()
+  COMMON_POSTFX()
+  INIT_CONTRAST_ADAPTIVE_SHARPENING(ps)
+  USE_CONTRAST_ADAPTIVE_SHARPENING(ps)
+
+  local float4 frame_tex_resolution = get_dimensions(frame_tex, 0);
+
+  (ps) {
+    frame_tex@smp2d = frame_tex;
+    frame_tex_resolution@f4 = (frame_tex_resolution.xy, 1/frame_tex_resolution.xy);
+    chromatic_aberration_params@f3 = chromatic_aberration_params;
+  }
+
+  hlsl(ps) {
+    #include <noise/Value2D.hlsl>
+    #include <noise/Value1D.hlsl>
+    #include <pixelPacking/yCoCgSpace.hlsl>
+
+    float4 blurred_source2(float2 tc, float2 offset, out float4 centerSample){
+      //Can be changed to tex2Dlod with mipmap filter
+      float4 c0 = h4tex2Dlod(frame_tex, half4(tc + float2(-1, -1) * offset, 0.0, 0.0));
+      float4 c1 = h4tex2Dlod(frame_tex, half4(tc + float2(0, -1) * offset, 0.0, 0.0));
+      float4 c2 = h4tex2Dlod(frame_tex, half4(tc + float2(1, -1) * offset, 0.0, 0.0));
+      float4 c3 = h4tex2Dlod(frame_tex, half4(tc + float2(-1, 0) * offset, 0.0, 0.0));
+      float4 c4 = h4tex2Dlod(frame_tex, half4(tc, 0.0, 0.0));
+      float4 c5 = h4tex2Dlod(frame_tex, half4(tc + float2(1, 0) * offset, 0.0, 0.0));
+      float4 c6 = h4tex2Dlod(frame_tex, half4(tc + float2(-1, 1) * offset, 0.0, 0.0));
+      float4 c7 = h4tex2Dlod(frame_tex, half4(tc + float2(0, 1) * offset, 0.0, 0.0));
+      float4 c8 = h4tex2Dlod(frame_tex, half4(tc + float2(1, 1) * offset, 0.0, 0.0));
+      centerSample = c4;
+      return 0.0625f * (c0 + 2 * c1 + c2 + 2 * c3 + 4 * c4 + 2 * c5 + c6 + 2 * c7 + c8);
+    }
+
+    float4 blurred_source(float2 tc, float offset){
+      float4 centerSample;
+      return blurred_source2(tc, float2(offset,offset), centerSample);
+    }
+
+    half3 sampleSceneColor(float2 uv)
+    {
+      if(contrast_adaptive_sharpening < -0.125)
+        return tex2DCAS(frame_tex, uv, frame_tex_resolution.xy, frame_tex_resolution.zw, contrast_adaptive_sharpening).rgb;
+      else
+        return tex2Dlod(frame_tex, float4(uv,0,0)).rgb;
+    }
+
+    float4 distortion_postfx_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
+    {
+      half2 distortionOffset;
+      half3 distortionOffsetMul;
+      half  distortionBlur;
+      sample_heat_haze_offset_mul_blur(input.tc, distortionOffset, distortionOffsetMul, distortionBlur);
+
+      float2 sceneUV = input.tc + distortionOffset;
+      float3 frame;
+
+      BRANCH
+      if (all(distortionOffsetMul == 1))
+      {
+        ##if (haze_offset_tex != NULL)
+          BRANCH
+          if (distortionBlur > distortionBlurThreshold)
+            frame = blurred_source(sceneUV, distortionBlur).rgb;
+          else
+        ##endif
+            frame = sampleSceneColor(sceneUV);
+      }
+      else
+      {
+        ##if (haze_offset_tex != NULL)
+          BRANCH
+          if (distortionBlur > distortionBlurThreshold)
+          {
+            frame.r = blurred_source(input.tc + distortionOffset * distortionOffsetMul.r, distortionBlur).r;
+            frame.g = blurred_source(input.tc + distortionOffset * distortionOffsetMul.g, distortionBlur).g;
+            frame.b = blurred_source(input.tc + distortionOffset * distortionOffsetMul.b, distortionBlur).b;
+          }
+          else
+        ##endif
+          {
+            frame.r = sampleSceneColor(input.tc + distortionOffset * distortionOffsetMul.r).r;
+            frame.g = sampleSceneColor(input.tc + distortionOffset * distortionOffsetMul.g).g;
+            frame.b = sampleSceneColor(input.tc + distortionOffset * distortionOffsetMul.b).b;
+          }
+      }
+
+      BRANCH
+      if (chromatic_aberration_params.z < 1)
+      {
+        float2 screenPosR    = (input.tc + distortionOffset * distortionOffsetMul.r)*2-1;
+        float2 screenPosG    = (input.tc + distortionOffset * distortionOffsetMul.g)*2-1;
+        float4 screenPos     = float4(screenPosR, screenPosG);
+        float2 caRGScale     = chromatic_aberration_params.xy;
+        float  caStartOffset = chromatic_aberration_params.z;
+
+        float4 uvRG;
+        uvRG = screenPos - sign(screenPos) * saturate(abs(screenPos) - caStartOffset) * caRGScale.xxyy;
+        uvRG = uvRG*0.5+0.5;
+        ##if (haze_offset_tex != NULL)
+        BRANCH
+        if (distortionBlur > distortionBlurThreshold)
+        {
+          frame.r = blurred_source(uvRG.xy, distortionBlur).r;
+          frame.g = blurred_source(uvRG.zw, distortionBlur).g;
+        }
+        else
+        ##endif
+        {
+          frame.r = sampleSceneColor(uvRG.xy).r;
+          frame.g = sampleSceneColor(uvRG.zw).g;
+        }
+      }
+
+      return float4(frame, 1.0);
+    }
+  }
+
+  compile("target_vs", "postfx_vs");
+  compile("target_ps", "distortion_postfx_ps");
+}

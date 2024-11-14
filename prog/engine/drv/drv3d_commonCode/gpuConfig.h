@@ -12,3 +12,5 @@ struct GpuDriverConfig : GpuUserConfig
 };
 
 const GpuDriverConfig &get_gpu_driver_cfg();
+
+extern void (*update_gpu_driver_config)(GpuDriverConfig &);

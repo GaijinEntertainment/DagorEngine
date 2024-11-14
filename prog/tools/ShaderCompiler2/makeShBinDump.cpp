@@ -10,6 +10,7 @@
 #include "namedConst.h"
 #include "samplers.h"
 #include "shCompiler.h"
+#include "globalConfig.h"
 
 #include "cppStcode.h"
 
@@ -985,7 +986,7 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   //        the compilation proc right after that. If then stcode is sorted again here, the remapping will be messed
   //        up (runtime will be fetching wrong routines). However, if we move to cpp stcode completely, the sorting
   //        won't make sense at all, so I do not think it is wise to accomodate this in the cpp stcode implementation.
-  bindumphlp::sortShaders(blocks, !compile_cpp_stcode);
+  bindumphlp::sortShaders(blocks, !shc::config().compileCppStcode);
 
   dag::Vector<int> stcode_type(stCode.size()); // 1 - blk, 2 - shclass blk, 3 -- shclass
   for (int i = 0; i < blocks.size(); i++)
@@ -1387,16 +1388,11 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
     dag::Vector<int> sh_ids;
   };
 
-  extern size_t dictionary_size_in_kb;
-  extern size_t sh_group_size_in_kb;
+  const bool packGroups = (packing_flags & BindumpPackingFlagsBits::SHADER_GROUPS) && !shc::config().autotestMode;
 
-  extern bool autotest_mode;
-
-  const bool packGroups = (packing_flags & BindumpPackingFlagsBits::SHADER_GROUPS) && !autotest_mode;
-
-  const size_t dictSizeBytes = packGroups ? dictionary_size_in_kb << 10 : 0;
+  const size_t dictSizeBytes = packGroups ? shc::config().dictionarySizeInKb << 10 : 0;
   const bool needToTrainDict = dictSizeBytes > 0;
-  const size_t groupThresholdBytes = packGroups ? sh_group_size_in_kb << 10 : 0;
+  const size_t groupThresholdBytes = packGroups ? shc::config().shGroupSizeInKb << 10 : 0;
   const bool packEachShaderIntoSeparateGroup = groupThresholdBytes == 0;
 
   dag::Vector<GroupInfo> groups;
@@ -1453,7 +1449,7 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
     dag::Vector<char> dict_buffer;
     dict_buffer.resize(dictSizeBytes);
     size_t dict_size = zstd_train_dict_buffer(make_span(dict_buffer), ZSTD_SH_CLEVEL, samples_buffer, samples_sizes);
-    debug("using dictionary %dK: trained from %d samples (%dK total size) to trained size=%dK (%d)", dictionary_size_in_kb,
+    debug("using dictionary %dK: trained from %d samples (%dK total size) to trained size=%dK (%d)", shc::config().dictionarySizeInKb,
       samples_sizes.size(), samples_total_size >> 10, dict_size >> 10, dict_size);
     dict_buffer.resize(dict_size);
     shaders_dump.dictionary = dict_buffer;
@@ -1578,7 +1574,6 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   }
 
   // write shader classes
-  extern bool addTextureType;
   SharedStorage<int> shInitCodeStorage;
   shaders_dump.classes.resize(dumpClasses.size());
   shaders_dump.messagesByShclass.resize(dumpClasses.size());
@@ -1598,7 +1593,7 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
     out_c.name = shaders_dump.shaderNameMap[out_c.nameId].getElementAddress(0);
     out_c.name.setCount(shaders_dump.shaderNameMap[out_c.nameId].size());
 
-    if (addTextureType && !code.staticTextureTypesByCode.empty())
+    if (shc::config().addTextureType && !code.staticTextureTypesByCode.empty())
       out_c.staticTextureTypeBySlot = code.staticTextureTypesByCode.front();
 
     shInitCodeStorage.getRef(out_c.initCode, shClass[i]->shInitCode.data(), shClass[i]->shInitCode.size(), 8);
@@ -1609,7 +1604,7 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   }
   shaders_dump.shInitCodeStorage = eastl::move(shInitCodeStorage.getVecHolder());
 
-  const bool packBin = (packing_flags & BindumpPackingFlagsBits::WHOLE_BINARY) && !autotest_mode;
+  const bool packBin = (packing_flags & BindumpPackingFlagsBits::WHOLE_BINARY) && !shc::config().autotestMode;
   const int compressedSize =
     shaders_dump_compressed.scriptedShadersBindumpCompressed.compress(shaders_dump, packBin ? ZSTD_SH_CLEVEL : -1);
 

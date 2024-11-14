@@ -1,26 +1,28 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "d3d12_debug_names.h"
+#include "d3d12_error_handling.h"
+#include "d3d12_utils.h"
+#include "descriptor_heap.h"
+#include "dynamic_array.h"
+#include "host_device_shared_memory_region.h"
+#include "image_view_state.h"
+#include "pipeline_cache.h"
+#include "render_state.h"
+#include "shader_program_id.h"
+#include "tagged_handles.h"
+
 #include <atomic>
-#include <EASTL/vector.h>
-#include <EASTL/unique_ptr.h>
-#include <EASTL/string.h>
+#include <drv/shadersMetaData/dxil/compiled_shader_header.h>
 #include <EASTL/fixed_string.h>
+#include <EASTL/string.h>
+#include <EASTL/unique_ptr.h>
+#include <EASTL/vector.h>
 #include <perfMon/dag_autoFuncProf.h>
 #include <perfMon/dag_statDrv.h>
 #include <supp/dag_comPtr.h>
-#include <drv/shadersMetaData/dxil/compiled_shader_header.h>
 
-#include "d3d12_error_handling.h"
-#include "d3d12_debug_names.h"
-#include "host_device_shared_memory_region.h"
-#include "shader_program_id.h"
-#include "pipeline_cache.h"
-#include "d3d12_utils.h"
-#include "render_state.h"
-#include "descriptor_heap.h"
-#include "image_view_state.h"
-#include "tagged_handles.h"
 
 namespace cacheBlk
 {
@@ -627,30 +629,29 @@ struct PipelineCreateInfoDataBase
       return *::new (at) CT{IST(eastl::forward<Args>(args)...)};
     }
   };
+};
 
-  // this just explodes if the inner storage type is a pointer so
-  // need extra handling of that
-  template <>
-  struct ConstructExecuter<true>
+// this just explodes if the inner storage type is a pointer so
+// need extra handling of that
+template <>
+struct PipelineCreateInfoDataBase::ConstructExecuter<true>
+{
+  template <typename, typename CT, typename... Args>
+  static CT &construct(void *at, Args &&...args)
   {
-    template <typename, typename CT, typename... Args>
-    static CT &construct(void *at, Args &&...args)
-    {
-      return *::new (at) CT{eastl::forward<Args>(args)...};
-    }
-  };
+    return *::new (at) CT{eastl::forward<Args>(args)...};
+  }
+};
 
-  template <typename IST, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE T, typename DA>
-  struct ConstructHandler<CD3DX12_PIPELINE_STATE_STREAM_SUBOBJECT<IST, T, DA>>
+template <typename IST, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE T, typename DA>
+struct PipelineCreateInfoDataBase::ConstructHandler<CD3DX12_PIPELINE_STATE_STREAM_SUBOBJECT<IST, T, DA>>
+{
+  typedef CD3DX12_PIPELINE_STATE_STREAM_SUBOBJECT<IST, T, DA> ConstructType;
+  template <typename... Args>
+  static ConstructType &construct(void *at, Args &&...args)
   {
-    typedef CD3DX12_PIPELINE_STATE_STREAM_SUBOBJECT<IST, T, DA> ConstructType;
-    template <typename... Args>
-    static ConstructType &construct(void *at, Args &&...args)
-    {
-      return ConstructExecuter<eastl::is_pointer<IST>::value>::template construct<IST, ConstructType>(at,
-        eastl::forward<Args>(args)...);
-    }
-  };
+    return ConstructExecuter<eastl::is_pointer<IST>::value>::template construct<IST, ConstructType>(at, eastl::forward<Args>(args)...);
+  }
 };
 
 // This is a base structure for pipeline create info, it

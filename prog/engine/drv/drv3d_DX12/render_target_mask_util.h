@@ -1,6 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <cstdint>
+
+
 // Input is 4x8 bits color channel mask and output will be a 8bit mask of render targets
 inline uint32_t color_channel_mask_to_render_target_mask(uint32_t mask)
 {

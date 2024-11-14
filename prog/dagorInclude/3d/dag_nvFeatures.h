@@ -8,8 +8,10 @@
 #include <drv/3d/dag_consts.h>
 #include <3d/dag_latencyTypes.h>
 #include <math/dag_TMatrix4.h>
+#include <generic/dag_expected.h>
 
 #include <EASTL/optional.h>
+#include <EASTL/string.h>
 
 namespace nv
 {
@@ -147,6 +149,7 @@ struct DLSS
   virtual bool isFrameGenerationEnabled() const = 0;
   virtual unsigned getActualFramesPresented() const = 0;
   virtual void setDlssGSuppressed(bool supressed) = 0;
+  virtual dag::Expected<eastl::string, SupportState> getDlssVersion() const = 0;
 };
 
 struct Reflex

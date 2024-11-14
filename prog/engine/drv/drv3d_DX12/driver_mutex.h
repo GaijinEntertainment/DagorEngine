@@ -1,8 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <osApiWrappers/dag_critSec.h>
 #include <debug/dag_assert.h>
+#include <osApiWrappers/dag_critSec.h>
 
 
 namespace drv3d_dx12

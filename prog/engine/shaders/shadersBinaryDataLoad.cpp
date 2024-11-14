@@ -144,6 +144,8 @@ bool ScriptedShadersBinDumpOwner::load(IGenLoad &crd, int size, bool full_file_l
   ShaderVariableInfo::resolveAll();
   if (mShaderDump == &shBinDump())
     d3d::driver_command(Drv3dCommand::REGISTER_SHADER_DUMP, this, (void *)crd.getTargetName());
+
+  mInitialDataHash = mem_hash_fnv1<64>((char *)mSelfData.data(), mSelfData.size());
   return true;
 }
 

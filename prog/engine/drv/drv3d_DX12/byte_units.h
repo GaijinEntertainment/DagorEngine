@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <supp/dag_math.h>
 #include <util/dag_inttypes.h>
 
 

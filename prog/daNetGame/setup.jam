@@ -119,7 +119,7 @@ if $(Platform) && $(Platform) in ps4 ps5 xboxOne scarlett nswitch { # too slow f
 if $(Platform)-$(PlatformArch) = linux-x86_64 { # same build cfg as linux dedicated (to be able share build output)
   SSEVersion = 4 ;
   MArch ?= haswell ; # MOVBE,MMX,SSE,SSE2,SSE3,SSSE3,SSE4.1,SSE4.2,POPCNT,CX16,SAHF,FXSR,AVX,XSAVE,PCLMUL,FSGSBASE,RDRND,F16C,AVX2,BMI,BMI2,LZCNT,FMA,MOVBE,HLE
-  if ! -march=$(MArch) in $(GlobalCPPopt) { GlobalCPPopt += -march=$(MArch) ; }
+  if $(MArch) != -default- && ! -march=$(MArch) in $(GlobalCPPopt) { GlobalCPPopt += -march=$(MArch) ; }
 }
 
 FmodStudio ?= 2.01.06 ;

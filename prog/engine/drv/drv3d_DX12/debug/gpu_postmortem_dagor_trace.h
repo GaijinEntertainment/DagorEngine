@@ -1,16 +1,21 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <EASTL/span.h>
-
 #include "command_list_storage.h"
 #include "command_list_trace.h"
 #include "command_list_trace_recorder.h"
 
+#include <EASTL/span.h>
+
 
 namespace drv3d_dx12
 {
+class BasePipeline;
+class ComputePipeline;
+class PipelineVariant;
+struct BufferResourceReferenceAndOffset;
 struct Direct3D12Enviroment;
+struct PipelineStageStateBase;
 namespace debug
 {
 union Configuration;

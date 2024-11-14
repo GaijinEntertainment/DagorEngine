@@ -1,6 +1,10 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include "swapchain.h"
 #include "device.h"
+#include "device_context.h"
+#include "resource_manager/image.h"
+#include "texture.h"
 
 #include <3d/dag_lowLatency.h>
 

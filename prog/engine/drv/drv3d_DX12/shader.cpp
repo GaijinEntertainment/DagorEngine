@@ -1,7 +1,11 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include "shader.h"
+#include "d3d12_error_handling.h"
+#include "device_context.h"
+#include "pipeline/blk_cache.h"
+
 #include <EASTL/fixed_vector.h>
-#include "device.h"
 
 using namespace drv3d_dx12;
 

@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <dag/dag_vector.h>
 #include <EASTL/type_traits.h>
 #include <EASTL/vector.h>
 

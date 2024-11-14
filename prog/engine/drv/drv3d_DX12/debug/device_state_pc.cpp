@@ -1,24 +1,23 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "device_state_pc.h"
-#include "device.h"
+#include "global_state.h"
 
+#include <validationLayer.h>
 #if USE_PIX
 #if _TARGET_64BIT
 // PROFILE_BUILD will enable USE_PIX in pix3.h if architecture is supported
 #define PROFILE_BUILD
 #if !defined(__d3d12_h__)
 #define __d3d12_h__
-#include "WinPixEventRuntime/pix3.h"
+#include <WinPixEventRuntime/pix3.h>
 #undef __d3d12_h__
 #else
-#include "WinPixEventRuntime/pix3.h"
+#include <WinPixEventRuntime/pix3.h>
 #endif
 #endif
 #endif
 
-#include <util/dag_watchdog.h>
-#include <validationLayer.h>
 
 #if COMMAND_BUFFER_DEBUG_INFO_DEFINED
 

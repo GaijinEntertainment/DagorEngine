@@ -16,6 +16,7 @@ static void make_full_deferred_scope_nodes(dabfg::NodeHandle &scopeFullDeferredO
   dabfg::NodeHandle &scopeFullDeferredLensMaskNode,
   dabfg::NodeHandle &scopeFullDeferredVrsMaskNode,
   dabfg::NodeHandle &scopeFullDeferredCutDepthNode,
+  dabfg::NodeHandle &scopeFullDeferredRenderLensOpticsPrepass,
   dabfg::NodeHandle &scopeFullDeferredRenderLensFrameNode,
   dabfg::NodeHandle &scopeFullDeferredRenderLensOpticsNode,
   dabfg::NodeHandle &scopeFullDeferredRenderCrossharNode,
@@ -29,6 +30,7 @@ static void make_full_deferred_scope_nodes(dabfg::NodeHandle &scopeFullDeferredO
   scopeFullDeferredLensMaskNode = makeScopeLensMaskNode();
   scopeFullDeferredVrsMaskNode = makeScopeVrsMaskNode();
   scopeFullDeferredCutDepthNode = makeScopeCutDepthNode();
+  scopeFullDeferredRenderLensOpticsPrepass = makeRenderOpticsPrepassNode();
   scopeFullDeferredRenderLensFrameNode = makeRenderLensFrameNode();
   scopeFullDeferredRenderLensOpticsNode = makeRenderLensOpticsNode();
   scopeFullDeferredRenderCrossharNode = makeRenderCrosshairNode();
@@ -47,6 +49,7 @@ static void init_full_deferred_scope_rendering_es_event_handler(const ecs::Event
   dabfg::NodeHandle &scope__full_deferred__vrs_mask_node,
   dabfg::NodeHandle &scope__full_deferred__cut_depth_node,
   dabfg::NodeHandle &scope__full_deferred__crosshair_node,
+  dabfg::NodeHandle &scope__full_deferred__render_lens_optics_prepass,
   dabfg::NodeHandle &scope__full_deferred__render_lens_frame_node,
   dabfg::NodeHandle &scope__full_deferred__render_lens_optics_node,
   dabfg::NodeHandle &aim_dof_prepare_node,
@@ -59,8 +62,9 @@ static void init_full_deferred_scope_rendering_es_event_handler(const ecs::Event
 
   make_full_deferred_scope_nodes(scope__full_deferred__opaque_node, scope__full_deferred__prepass_node,
     scope__full_deferred__lens_mask_node, scope__full_deferred__vrs_mask_node, scope__full_deferred__cut_depth_node,
-    scope__full_deferred__crosshair_node, scope__full_deferred__render_lens_frame_node, scope__full_deferred__render_lens_optics_node,
-    aim_dof_prepare_node, aim_dof_restore_node, setup_scope_aim_rendering_data_node, setup_aim_rendering_data_node);
+    scope__full_deferred__crosshair_node, scope__full_deferred__render_lens_optics_prepass,
+    scope__full_deferred__render_lens_frame_node, scope__full_deferred__render_lens_optics_node, aim_dof_prepare_node,
+    aim_dof_restore_node, setup_scope_aim_rendering_data_node, setup_aim_rendering_data_node);
 }
 
 ECS_TAG(render)
@@ -71,6 +75,7 @@ static void full_deferred_scope_render_features_changed_es_event_handler(const e
   dabfg::NodeHandle &scope__full_deferred__lens_mask_node,
   dabfg::NodeHandle &scope__full_deferred__vrs_mask_node,
   dabfg::NodeHandle &scope__full_deferred__cut_depth_node,
+  dabfg::NodeHandle &scope__full_deferred__render_lens_optics_prepass,
   dabfg::NodeHandle &scope__full_deferred__render_lens_frame_node,
   dabfg::NodeHandle &scope__full_deferred__render_lens_optics_node,
   dabfg::NodeHandle &scope__full_deferred__crosshair_node,
@@ -90,6 +95,7 @@ static void full_deferred_scope_render_features_changed_es_event_handler(const e
     scope__full_deferred__lens_mask_node = {};
     scope__full_deferred__vrs_mask_node = {};
     scope__full_deferred__cut_depth_node = {};
+    scope__full_deferred__render_lens_optics_prepass = {};
     scope__full_deferred__render_lens_frame_node = {};
     scope__full_deferred__render_lens_optics_node = {};
     scope__full_deferred__crosshair_node = {};
@@ -102,6 +108,7 @@ static void full_deferred_scope_render_features_changed_es_event_handler(const e
 
   make_full_deferred_scope_nodes(scope__full_deferred__opaque_node, scope__full_deferred__prepass_node,
     scope__full_deferred__lens_mask_node, scope__full_deferred__vrs_mask_node, scope__full_deferred__cut_depth_node,
-    scope__full_deferred__render_lens_frame_node, scope__full_deferred__render_lens_optics_node, scope__full_deferred__crosshair_node,
-    aim_dof_prepare_node, aim_dof_restore_node, setup_scope_aim_rendering_data_node, setup_aim_rendering_data_node);
+    scope__full_deferred__render_lens_optics_prepass, scope__full_deferred__render_lens_frame_node,
+    scope__full_deferred__render_lens_optics_node, scope__full_deferred__crosshair_node, aim_dof_prepare_node, aim_dof_restore_node,
+    setup_scope_aim_rendering_data_node, setup_aim_rendering_data_node);
 }

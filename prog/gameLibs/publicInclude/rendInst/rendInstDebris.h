@@ -59,6 +59,8 @@ riex_handle_t restoreRiGenDestr(const RendInstDesc &desc, const RendInstBufferDa
 struct TreeInstData
 {
   float timer = 0.0f;
+  float disappearStartTime = -1.0f;
+  float maxDistanceSq = 0.0f;
   int rndSeed = 0;
   Point2 impactXZ = Point2(0.0f, 0.0f);
   rendinstdestr::TreeDestr::BranchDestr branchDestr;
@@ -66,8 +68,10 @@ struct TreeInstData
 
 struct TreeInstDebugData
 {
-  rendinstdestr::TreeDestr::BranchDestr branchDestr;
+  rendinstdestr::TreeDestr::BranchDestr branchDestrFromDamage;
+  rendinstdestr::TreeDestr::BranchDestr branchDestrOther;
   float timer_offset = 0.0f;
+  bool last_object_was_from_damage = false;
 };
 
 struct DestroyedRi
@@ -92,7 +96,7 @@ struct DestroyedRi
 };
 
 DestroyedRi *doRIGenExternalControl(const RendInstDesc &desc, bool rem_rendinst = true);
-bool fillTreeInstData(const RendInstDesc &desc, const Point2 &impact_velocity_xz, TreeInstData &out_data);
+bool fillTreeInstData(const RendInstDesc &desc, const Point2 &impact_velocity_xz, bool from_damage, TreeInstData &out_data);
 void updateTreeDestrRenderData(const TMatrix &original_tm, riex_handle_t ri_handle, TreeInstData &tree_inst_data,
   const TreeInstDebugData *tree_inst_debug_data = nullptr);
 
