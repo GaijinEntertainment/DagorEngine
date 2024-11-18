@@ -108,7 +108,9 @@ public:
 
     // Use full width by default. Use height that can fit ~7 items by default.
     const float width = mW > 0 ? min((float)mW, ImGui::GetContentRegionAvail().x) : -FLT_MIN;
-    const ImVec2 size(width, mH > 0 ? mH : 0.0f);
+    const float height =
+      (mH == (float)Constants::LISTBOX_DEFAULT_HEIGHT || mH > (float)Constants::LISTBOX_FULL_HEIGHT) ? mH : -FLT_MIN;
+    const ImVec2 size(width, height);
 
     if (ImGui::BeginListBox("##lb", size))
     {

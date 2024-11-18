@@ -63,6 +63,8 @@ eastl::fixed_vector<dabfg::NodeHandle, 5> makeScreenSpaceReflectionNodes(
 
       bindShaderVar("downsampled_close_depth_tex", "close_depth");
       bindHistoryShaderVar("prev_downsampled_close_depth_tex", "close_depth");
+      registry.read("close_depth_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("prev_downsampled_close_depth_tex_samplerstate");
+      registry.read("close_depth_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("downsampled_close_depth_tex_samplerstate");
 
       bindShaderVar("downsampled_normals", "downsampled_normals");
       registry.read("downsampled_normals_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("downsampled_normals_samplerstate");
@@ -156,6 +158,10 @@ eastl::fixed_vector<dabfg::NodeHandle, 5> makeScreenSpaceReflectionNodes(
 
         bindShaderVar("downsampled_close_depth_tex", "close_depth");
         bindHistoryShaderVar("prev_downsampled_close_depth_tex", "close_depth");
+        registry.read("close_depth_sampler")
+          .blob<d3d::SamplerHandle>()
+          .bindToShaderVar("prev_downsampled_close_depth_tex_samplerstate");
+        registry.read("close_depth_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("downsampled_close_depth_tex_samplerstate");
 
         bindShaderVar("downsampled_normals", "downsampled_normals");
         registry.read("downsampled_normals_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("downsampled_normals_samplerstate");

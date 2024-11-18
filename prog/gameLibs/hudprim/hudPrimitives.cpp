@@ -488,12 +488,13 @@ void HudPrimitives::renderQuadScreenSpaceDeprecated(TEXTUREID texture_id, d3d::S
 #undef FILL_GUIVTX42
 }
 
-void HudPrimitives::renderQuadScreenSpace3d(TEXTUREID texture_id, E3DCOLOR color, const Point4 &p0, const Point4 &p1, const Point4 &p2,
-  const Point4 &p3, const Point2 &tc0, const Point2 &tc1, const Point2 &tc2, const Point2 &tc3, const E3DCOLOR *vertex_colors)
+void HudPrimitives::renderQuadScreenSpace3d(TEXTUREID texture_id, d3d::SamplerHandle smp, E3DCOLOR color, const Point4 &p0,
+  const Point4 &p1, const Point4 &p2, const Point4 &p3, const Point2 &tc0, const Point2 &tc1, const Point2 &tc2, const Point2 &tc3,
+  const E3DCOLOR *vertex_colors)
 {
   G_ASSERT(isInHudRender);
 
-  updateState(texture_id, d3d::INVALID_SAMPLER_HANDLE); // TODO: Use actual sampler IDs
+  updateState(texture_id, smp);
   HudVertex *vtx = guiContext->qCacheAllocT<HudVertex>(1);
 
 #define FILL_GUIVTX42(data, idx, p, t, cc)                          \
@@ -658,12 +659,13 @@ static void triangulate(dag::ConstSpan<Point4> p, Tab<HudIndexType> &indices) { 
 
 static void triangulate(dag::ConstSpan<Point2> p, Tab<HudIndexType> &indices) { triangulateT(p, indices); }
 
-void HudPrimitives::renderPoly(TEXTUREID texture_id, E3DCOLOR color, dag::ConstSpan<Point2> p, dag::ConstSpan<Point2> tc)
+void HudPrimitives::renderPoly(TEXTUREID texture_id, d3d::SamplerHandle smp, E3DCOLOR color, dag::ConstSpan<Point2> p,
+  dag::ConstSpan<Point2> tc)
 {
   G_ASSERT(isInHudRender);
   G_ASSERT(p.size() == tc.size());
 
-  updateState(texture_id, d3d::INVALID_SAMPLER_HANDLE); // TODO: Use actual sampler IDs
+  updateState(texture_id, smp);
   flush();
 
   Tab<HudPrimitives::HudVertex> vtx(framemem_ptr());
@@ -871,24 +873,28 @@ void HudPrimitives::renderText(int x, int y, int font_no, E3DCOLOR color, const 
     Point2 posOffset = Point2(x, y);
 
     StdGuiRender::set_font(font_no);
-    buffer->isReady = StdGuiRender::draw_str_scaled_u_buf(buffer->qv, buffer->tex_qcnt, DSBFLAG_rel, 1.f, text_u, textLen);
+    buffer->isReady =
+      StdGuiRender::draw_str_scaled_u_buf(buffer->qv, buffer->tex_qcnt, buffer->samplers, DSBFLAG_rel, 1.f, text_u, textLen);
   }
 
   if (!buffer->isReady || buffer->tex_qcnt.size() < 2)
     return;
 
   const GuiVertex *cur_qv = buffer->qv.data();
-  for (const uint16_t *tq = &buffer->tex_qcnt[1], *tq_end = buffer->tex_qcnt.data() + buffer->tex_qcnt.size(); tq < tq_end; tq += 2)
+  const d3d::SamplerHandle *cur_smp = buffer->samplers.data();
+  for (const uint16_t *tq = &buffer->tex_qcnt[1], *tq_end = buffer->tex_qcnt.data() + buffer->tex_qcnt.size(); tq < tq_end;
+       tq += 2, cur_smp++)
   {
     int full_qnum = tq[1];
     if (!full_qnum)
       continue;
 
     TEXTUREID texture_id = D3DRESID::fromIndex(tq[0]);
+    d3d::SamplerHandle smp = *cur_smp;
     if (texture_id != state().currentTexture)
     {
       state().currentTexture = texture_id;
-      state().currentSampler = d3d::INVALID_SAMPLER_HANDLE; // TODO: Use actual sampler IDs
+      state().currentSampler = smp;
       state().currentBlueToAlpha = Color4(1.f, 0.f, 0.f, 0.f);
       setState();
     }
@@ -1012,7 +1018,8 @@ void HudPrimitives::renderTextFx(float x, float y, int font_no, E3DCOLOR color, 
     G_ASSERT(guiContext->curRenderFont.font);
 
     float locScale = (scale <= 0) ? 1 : scale;
-    buffer->isReady = guiContext->draw_str_scaled_u_buf(buffer->qv, buffer->tex_qcnt, DSBFLAG_rel, locScale, text_u, len);
+    buffer->isReady =
+      guiContext->draw_str_scaled_u_buf(buffer->qv, buffer->tex_qcnt, buffer->samplers, DSBFLAG_rel, locScale, text_u, len);
   }
 
   if (align == 0 || align == 1 || valign == 0 || valign == 1)
@@ -1036,7 +1043,7 @@ void HudPrimitives::renderTextFx(float x, float y, int font_no, E3DCOLOR color, 
     guiContext->set_color(color);
     guiContext->goto_xy(x - viewX, y - viewY);
     guiContext->setRotViewTm(pivot.origin.x - viewX, pivot.origin.y - viewY, pivot.angleRadians, 0);
-    guiContext->render_str_buf(buffer->qv, buffer->tex_qcnt, DSBFLAG_rel | DSBFLAG_allQuads | DSBFLAG_curColor);
+    guiContext->render_str_buf(buffer->qv, buffer->tex_qcnt, buffer->samplers, DSBFLAG_rel | DSBFLAG_allQuads | DSBFLAG_curColor);
   }
 
   guiContext->setBuffer(1);
@@ -1044,11 +1051,11 @@ void HudPrimitives::renderTextFx(float x, float y, int font_no, E3DCOLOR color, 
   guiContext->reset_draw_str_texture();
 }
 
-void HudPrimitives::setMask(TEXTUREID texture_id, const Point3 &matrix_line_0, const Point3 &matrix_line_1, const Point2 &tc0,
-  const Point2 &tc1)
+void HudPrimitives::setMask(TEXTUREID texture_id, d3d::SamplerHandle smp_id, const Point3 &matrix_line_0, const Point3 &matrix_line_1,
+  const Point2 &tc0, const Point2 &tc1)
 {
   state().maskTexId = texture_id;
-  state().maskSampler = d3d::INVALID_SAMPLER_HANDLE; // TODO: Use actual sampler IDs
+  state().maskSampler = smp_id;
 
   Point3 matrixLine0 = matrix_line_0 * (tc1.x - tc0.x);
   Point3 matrixLine1 = matrix_line_1 * (tc1.y - tc0.y);
@@ -1061,11 +1068,11 @@ void HudPrimitives::setMask(TEXTUREID texture_id, const Point3 &matrix_line_0, c
   setState();
 }
 
-void HudPrimitives::setMask(TEXTUREID texture_id, const Point2 &center_pos, float angle, const Point2 &scale, const Point2 &tc0,
-  const Point2 &tc1)
+void HudPrimitives::setMask(TEXTUREID texture_id, d3d::SamplerHandle smp_id, const Point2 &center_pos, float angle,
+  const Point2 &scale, const Point2 &tc0, const Point2 &tc1)
 {
   state().maskTexId = texture_id;
-  state().maskSampler = d3d::INVALID_SAMPLER_HANDLE; // TODO: Use actual sampler IDs
+  state().maskSampler = smp_id;
 
   Point2 centerPos((center_pos.x - viewX) * viewWidthRcp2 - 1.f, 1.f - (center_pos.y - viewY) * viewHeightRcp2);
 
@@ -1086,7 +1093,8 @@ void HudPrimitives::setMask(TEXTUREID texture_id, const Point2 &center_pos, floa
 
   Matrix3 matrix = texCenter * rotation * sacaleAndOffset;
 
-  setMask(texture_id, Point3(matrix[0][0], matrix[1][0], matrix[2][0]), Point3(matrix[0][1], matrix[1][1], matrix[2][1]), tc0, tc1);
+  setMask(texture_id, smp_id, Point3(matrix[0][0], matrix[1][0], matrix[2][0]), Point3(matrix[0][1], matrix[1][1], matrix[2][1]), tc0,
+    tc1);
 }
 
 void HudPrimitives::clearMask()

@@ -727,15 +727,16 @@ public:
     shaders_internal::shader_mats.clear();
     shaders_internal::shader_mat_elems.clear();
     ShaderStateBlock::clear();
-    auto &dump = shBinDump();
+    auto &dumpOwner = shBinDumpOwner();
+    const auto &dump = shBinDump();
     if (dump.varMap.size())
     {
       unsigned vars_resolved = 0, glob_vars_resolved = 0;
       for (int i = 0, ie = VariableMap::getVariablesCount(); i < ie; i++)
-        if (dump.varIdx[i] < dump.VARIDX_ABSENT)
+        if (dumpOwner.varIndexMap[i] < SHADERVAR_IDX_ABSENT)
         {
           vars_resolved++;
-          if (dump.globvarIdx[i] < dump.VARIDX_ABSENT)
+          if (dumpOwner.globvarIndexMap[i] < SHADERVAR_IDX_ABSENT)
             glob_vars_resolved++;
         }
 

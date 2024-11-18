@@ -299,7 +299,14 @@ obstacle_handle_t tilecache_obstacle_add(const Point3 &c, const Point3 &ext, flo
       int ntouched = 0;
       tileCache->queryTiles(bmin, bmax, ob->touched, &ntouched, DT_MAX_TOUCHED_TILES);
       if (ntouched == DT_MAX_TOUCHED_TILES)
-        logerr("Maximum number of touched tiles (%d) has been reached? pos(%@) ext(%@)", DT_MAX_TOUCHED_TILES, c, ext);
+      {
+#if _TARGET_PC || DAGOR_DBGLEVEL <= 0
+        constexpr int ll = LOGLEVEL_ERR;
+#else
+        constexpr int ll = LOGLEVEL_WARN; // Dev run of PC server mission/scene?
+#endif
+        logmessage(ll, "Maximum number of touched tiles (%d) has been reached? pos(%@) ext(%@)", DT_MAX_TOUCHED_TILES, c, ext);
+      }
       ob->ntouched = (unsigned char)ntouched;
     }
     else

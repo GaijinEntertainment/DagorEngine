@@ -187,6 +187,9 @@ public:
     return ImVec2(textLineHeight, textLineHeight);
   }
 
+  static void setPointSampler();
+  static void setDefaultSampler();
+
 private:
   static ImVec2 getImageButtonWithDownArrowSizeInternal(const ImVec2 &image_size, float &default_height, ImVec2 &arrow_half_size);
 

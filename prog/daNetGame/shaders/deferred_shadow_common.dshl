@@ -467,12 +467,12 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
       BRANCH
       if (shadow > 0)
       {
-        result = standardBRDF( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, gbuffer.specularColor, enviSSR*gbuffer.extracted_albedo_ao, lightDir, view, gbuffer.normal, sheenColor, sheenStrength)*(shadow)*lightColor*caustics.x;
+        result = standardBRDF( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, gbuffer.specularColor, gbuffer.extracted_albedo_ao, lightDir, view, gbuffer.normal, sheenColor, sheenStrength)*(shadow)*lightColor*caustics.x;
         float lightningNoL = dot(gbuffer.normal, lightning_dir);
         BRANCH
         if (lightning_scene_illumination && lightningNoL > 0)
         {
-          result += standardBRDF( NoV, lightningNoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, gbuffer.specularColor, enviSSR*gbuffer.extracted_albedo_ao, lightning_dir, view, gbuffer.normal, sheenColor, sheenStrength)*(shadow)*lightning_color;
+          result += standardBRDF( NoV, lightningNoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, gbuffer.specularColor, gbuffer.extracted_albedo_ao, lightning_dir, view, gbuffer.normal, sheenColor, sheenStrength)*(shadow)*lightning_color;
         }
       }
       result += get_dynamic_lighting(gbuffer, worldPos.xyz, -viewVect, w, screenpos, NoV, specularColor, curViewTc, enviAO);

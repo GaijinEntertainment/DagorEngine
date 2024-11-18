@@ -434,41 +434,32 @@ struct Mesh
 struct TerrainPatch
 {
   Point2 position;
-  Sbuffer *indices = nullptr;
   UniqueBVHBuffer vertices;
   UniqueBLAS blas;
   MeshMetaAllocator::AllocId metaAllocId = -1;
 
   TerrainPatch() = default;
-  TerrainPatch(const Point2 &position, Sbuffer *indices, UniqueBVHBuffer &&vertices, UniqueBLAS &&blas) :
-    position(position), indices(indices), vertices(eastl::move(vertices)), blas(eastl::move(blas))
+  TerrainPatch(const Point2 &position, UniqueBVHBuffer &&vertices, UniqueBLAS &&blas) :
+    position(position), vertices(eastl::move(vertices)), blas(eastl::move(blas))
   {}
-  TerrainPatch(const Point2 &position, Sbuffer *indices, UniqueBVHBuffer &&vertices, UniqueBLAS &&blas,
-    MeshMetaAllocator::AllocId meta_alloc_id) :
-    position(position), indices(indices), vertices(eastl::move(vertices)), blas(eastl::move(blas)), metaAllocId(meta_alloc_id)
+  TerrainPatch(const Point2 &position, UniqueBVHBuffer &&vertices, UniqueBLAS &&blas, MeshMetaAllocator::AllocId meta_alloc_id) :
+    position(position), vertices(eastl::move(vertices)), blas(eastl::move(blas)), metaAllocId(meta_alloc_id)
   {}
   TerrainPatch(TerrainPatch &&other) :
-    position(other.position),
-    indices(other.indices),
-    vertices(eastl::move(other.vertices)),
-    blas(eastl::move(other.blas)),
-    metaAllocId(other.metaAllocId)
+    position(other.position), vertices(eastl::move(other.vertices)), blas(eastl::move(other.blas)), metaAllocId(other.metaAllocId)
   {
     other.metaAllocId = -1;
-    other.indices = nullptr;
   }
   TerrainPatch &operator=(TerrainPatch &&other)
   {
     position = other.position;
-    indices = other.indices;
     vertices = eastl::move(other.vertices);
     blas = eastl::move(other.blas);
     metaAllocId = other.metaAllocId;
     other.metaAllocId = -1;
-    other.indices = nullptr;
     return *this;
   }
-  ~TerrainPatch() { G_ASSERT(metaAllocId < 0 && !indices); }
+  ~TerrainPatch() { G_ASSERT(metaAllocId < 0); }
 
   void teardown(ContextId context_id);
 };

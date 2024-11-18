@@ -135,6 +135,19 @@ struct LiteralInteger
   LiteralInteger &operator=(LiteralInteger &&) = default;
   LiteralInteger(const Id &v) : value{v} {}
 };
+
+struct LiteralFloat
+{
+  Id value;
+  LiteralFloat() = default;
+  ~LiteralFloat() = default;
+  LiteralFloat(const LiteralFloat &) = default;
+  LiteralFloat &operator=(const LiteralFloat &) = default;
+  LiteralFloat(LiteralFloat &&) = default;
+  LiteralFloat &operator=(LiteralFloat &&) = default;
+  LiteralFloat(const Id &v) : value{v} {}
+};
+
 // Size usually depends on the type that is associated with this value
 // in most cases this is just one word for 32 or less bits constant values
 // currently this can not be larger than 64 bits

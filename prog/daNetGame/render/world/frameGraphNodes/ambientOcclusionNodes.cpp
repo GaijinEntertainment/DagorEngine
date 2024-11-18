@@ -113,6 +113,7 @@ static dabfg::NodeHandle gen_ssao_node(int w, int h, uint32_t ssao_flags)
     registry.read("close_depth_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("downsampled_close_depth_tex_samplerstate");
 
     bindHistoryShaderVar("prev_downsampled_close_depth_tex", "close_depth");
+    registry.read("close_depth_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("prev_downsampled_close_depth_tex_samplerstate");
 
     // Only used on some presets
     bindShaderVar("downsampled_normals", "downsampled_normals").optional();

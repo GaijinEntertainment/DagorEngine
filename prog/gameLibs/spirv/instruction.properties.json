@@ -1,7 +1,4 @@
 {
-  "info": [
-    "Auto generated extended grammar by spirv_meta_data_tools.make_extended_grammar_json_ready_def"
-  ],
   "instructions": [
     {
       "opname": "OpNop",
@@ -14,8 +11,8 @@
       "opname": "OpUndef",
       "grammar": "core",
       "properties": [
-        "undef",
         "allocates-id",
+        "undef",
         "result-type"
       ]
     },
@@ -31,9 +28,9 @@
       "opname": "OpSource",
       "grammar": "core",
       "properties": [
+        "source-code",
         "debug",
-        "source-language",
-        "source-code"
+        "source-language"
       ]
     },
     {
@@ -56,24 +53,24 @@
       "opname": "OpMemberName",
       "grammar": "core",
       "properties": [
-        "debug",
-        "object-member-name"
+        "object-member-name",
+        "debug"
       ]
     },
     {
       "opname": "OpString",
       "grammar": "core",
       "properties": [
-        "source-file",
-        "allocates-id"
+        "allocates-id",
+        "source-file"
       ]
     },
     {
       "opname": "OpLine",
       "grammar": "core",
       "properties": [
-        "action",
-        "begin-source-position"
+        "begin-source-position",
+        "action"
       ]
     },
     {
@@ -95,8 +92,8 @@
       "opname": "OpExtInst",
       "grammar": "core",
       "properties": [
-        "call-extended-grammar",
         "allocates-id",
+        "call-extended-grammar",
         "result-type"
       ]
     },
@@ -148,8 +145,8 @@
       "opname": "OpTypeInt",
       "grammar": "core",
       "properties": [
-        "bit-size",
         "typedef",
+        "bit-size",
         "allocates-id"
       ]
     },
@@ -157,8 +154,8 @@
       "opname": "OpTypeFloat",
       "grammar": "core",
       "properties": [
-        "bit-size",
         "typedef",
+        "bit-size",
         "allocates-id"
       ]
     },
@@ -294,17 +291,17 @@
       "opname": "OpTypeForwardPointer",
       "grammar": "core",
       "properties": [
+        "forward-typedef",
         "action",
-        "unary",
-        "forward-typedef"
+        "unary"
       ]
     },
     {
       "opname": "OpConstantTrue",
       "grammar": "core",
       "properties": [
-        "constant",
         "allocates-id",
+        "constant",
         "result-type"
       ]
     },
@@ -312,8 +309,8 @@
       "opname": "OpConstantFalse",
       "grammar": "core",
       "properties": [
-        "constant",
         "allocates-id",
+        "constant",
         "result-type"
       ]
     },
@@ -321,8 +318,8 @@
       "opname": "OpConstant",
       "grammar": "core",
       "properties": [
-        "constant",
         "allocates-id",
+        "constant",
         "result-type"
       ]
     },
@@ -330,9 +327,9 @@
       "opname": "OpConstantComposite",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "composite-constant",
         "constant",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -340,9 +337,9 @@
       "opname": "OpConstantSampler",
       "grammar": "core",
       "properties": [
-        "sampler-constant",
-        "constant",
         "allocates-id",
+        "constant",
+        "sampler-constant",
         "result-type"
       ]
     },
@@ -350,8 +347,8 @@
       "opname": "OpConstantNull",
       "grammar": "core",
       "properties": [
-        "constant",
         "allocates-id",
+        "constant",
         "result-type"
       ]
     },
@@ -359,8 +356,8 @@
       "opname": "OpSpecConstantTrue",
       "grammar": "core",
       "properties": [
-        "spec-constant",
         "allocates-id",
+        "spec-constant",
         "result-type"
       ]
     },
@@ -368,8 +365,8 @@
       "opname": "OpSpecConstantFalse",
       "grammar": "core",
       "properties": [
-        "spec-constant",
         "allocates-id",
+        "spec-constant",
         "result-type"
       ]
     },
@@ -377,8 +374,8 @@
       "opname": "OpSpecConstant",
       "grammar": "core",
       "properties": [
-        "spec-constant",
         "allocates-id",
+        "spec-constant",
         "result-type"
       ]
     },
@@ -386,9 +383,9 @@
       "opname": "OpSpecConstantComposite",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "spec-constant",
         "composite-constant",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -396,9 +393,9 @@
       "opname": "OpSpecConstantOp",
       "grammar": "core",
       "properties": [
-        "spec-op",
-        "spec-constant",
         "allocates-id",
+        "spec-constant",
+        "spec-op",
         "result-type"
       ]
     },
@@ -406,8 +403,8 @@
       "opname": "OpFunction",
       "grammar": "core",
       "properties": [
-        "function-begin",
         "allocates-id",
+        "function-begin",
         "result-type"
       ]
     },
@@ -415,9 +412,9 @@
       "opname": "OpFunctionParameter",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "function-parameter",
         "variable",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -432,8 +429,8 @@
       "opname": "OpFunctionCall",
       "grammar": "core",
       "properties": [
-        "function-call",
         "allocates-id",
+        "function-call",
         "result-type"
       ]
     },
@@ -441,9 +438,9 @@
       "opname": "OpVariable",
       "grammar": "core",
       "properties": [
-        "variable",
         "global-variable",
         "allocates-id",
+        "variable",
         "result-type"
       ]
     },
@@ -451,8 +448,8 @@
       "opname": "OpImageTexelPointer",
       "grammar": "core",
       "properties": [
-        "variable",
         "allocates-id",
+        "variable",
         "result-type"
       ]
     },
@@ -460,8 +457,8 @@
       "opname": "OpLoad",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -469,32 +466,32 @@
       "opname": "OpStore",
       "grammar": "core",
       "properties": [
-        "action",
-        "binary"
+        "binary",
+        "action"
       ]
     },
     {
       "opname": "OpCopyMemory",
       "grammar": "core",
       "properties": [
-        "action",
-        "binary"
+        "binary",
+        "action"
       ]
     },
     {
       "opname": "OpCopyMemorySized",
       "grammar": "core",
       "properties": [
-        "action",
-        "trinary"
+        "trinary",
+        "action"
       ]
     },
     {
       "opname": "OpAccessChain",
       "grammar": "core",
       "properties": [
-        "variable",
         "allocates-id",
+        "variable",
         "result-type"
       ]
     },
@@ -502,8 +499,8 @@
       "opname": "OpInBoundsAccessChain",
       "grammar": "core",
       "properties": [
-        "variable",
         "allocates-id",
+        "variable",
         "result-type"
       ]
     },
@@ -511,8 +508,8 @@
       "opname": "OpPtrAccessChain",
       "grammar": "core",
       "properties": [
-        "variable",
         "allocates-id",
+        "variable",
         "result-type"
       ]
     },
@@ -520,8 +517,8 @@
       "opname": "OpArrayLength",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -529,8 +526,8 @@
       "opname": "OpGenericPtrMemSemantics",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -538,8 +535,8 @@
       "opname": "OpInBoundsPtrAccessChain",
       "grammar": "core",
       "properties": [
-        "variable",
         "allocates-id",
+        "variable",
         "result-type"
       ]
     },
@@ -554,41 +551,41 @@
       "opname": "OpMemberDecorate",
       "grammar": "core",
       "properties": [
-        "member-property",
-        "adds-property"
+        "adds-property",
+        "member-property"
       ]
     },
     {
       "opname": "OpDecorationGroup",
       "grammar": "core",
       "properties": [
-        "create-property-group",
-        "allocates-id"
+        "allocates-id",
+        "create-property-group"
       ]
     },
     {
       "opname": "OpGroupDecorate",
       "grammar": "core",
       "properties": [
-        "use-property-group",
-        "adds-property"
+        "adds-property",
+        "use-property-group"
       ]
     },
     {
       "opname": "OpGroupMemberDecorate",
       "grammar": "core",
       "properties": [
+        "adds-property",
         "use-property-group",
-        "member-property",
-        "adds-property"
+        "member-property"
       ]
     },
     {
       "opname": "OpVectorExtractDynamic",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -596,8 +593,8 @@
       "opname": "OpVectorInsertDynamic",
       "grammar": "core",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -605,8 +602,8 @@
       "opname": "OpVectorShuffle",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -622,8 +619,8 @@
       "opname": "OpCompositeExtract",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -631,8 +628,8 @@
       "opname": "OpCompositeInsert",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -640,8 +637,8 @@
       "opname": "OpCopyObject",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -649,8 +646,8 @@
       "opname": "OpTranspose",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -658,8 +655,8 @@
       "opname": "OpSampledImage",
       "grammar": "core",
       "properties": [
-        "image-op",
         "allocates-id",
+        "image-op",
         "result-type"
       ]
     },
@@ -667,8 +664,8 @@
       "opname": "OpImageSampleImplicitLod",
       "grammar": "core",
       "properties": [
-        "sampled-image-op",
         "allocates-id",
+        "sampled-image-op",
         "result-type"
       ]
     },
@@ -676,8 +673,8 @@
       "opname": "OpImageSampleExplicitLod",
       "grammar": "core",
       "properties": [
-        "sampled-image-op",
         "allocates-id",
+        "sampled-image-op",
         "result-type"
       ]
     },
@@ -685,8 +682,8 @@
       "opname": "OpImageSampleDrefImplicitLod",
       "grammar": "core",
       "properties": [
-        "sampled-image-op",
         "allocates-id",
+        "sampled-image-op",
         "result-type"
       ]
     },
@@ -694,8 +691,8 @@
       "opname": "OpImageSampleDrefExplicitLod",
       "grammar": "core",
       "properties": [
-        "sampled-image-op",
         "allocates-id",
+        "sampled-image-op",
         "result-type"
       ]
     },
@@ -703,8 +700,8 @@
       "opname": "OpImageSampleProjImplicitLod",
       "grammar": "core",
       "properties": [
-        "sampled-image-op",
         "allocates-id",
+        "sampled-image-op",
         "result-type"
       ]
     },
@@ -712,8 +709,8 @@
       "opname": "OpImageSampleProjExplicitLod",
       "grammar": "core",
       "properties": [
-        "sampled-image-op",
         "allocates-id",
+        "sampled-image-op",
         "result-type"
       ]
     },
@@ -721,8 +718,8 @@
       "opname": "OpImageSampleProjDrefImplicitLod",
       "grammar": "core",
       "properties": [
-        "sampled-image-op",
         "allocates-id",
+        "sampled-image-op",
         "result-type"
       ]
     },
@@ -730,8 +727,8 @@
       "opname": "OpImageSampleProjDrefExplicitLod",
       "grammar": "core",
       "properties": [
-        "sampled-image-op",
         "allocates-id",
+        "sampled-image-op",
         "result-type"
       ]
     },
@@ -739,8 +736,8 @@
       "opname": "OpImageFetch",
       "grammar": "core",
       "properties": [
-        "image-op",
         "allocates-id",
+        "image-op",
         "result-type"
       ]
     },
@@ -748,8 +745,8 @@
       "opname": "OpImageGather",
       "grammar": "core",
       "properties": [
-        "sampled-image-op",
         "allocates-id",
+        "sampled-image-op",
         "result-type"
       ]
     },
@@ -757,8 +754,8 @@
       "opname": "OpImageDrefGather",
       "grammar": "core",
       "properties": [
-        "sampled-image-op",
         "allocates-id",
+        "sampled-image-op",
         "result-type"
       ]
     },
@@ -766,8 +763,8 @@
       "opname": "OpImageRead",
       "grammar": "core",
       "properties": [
-        "image-op",
         "allocates-id",
+        "image-op",
         "result-type"
       ]
     },
@@ -775,16 +772,16 @@
       "opname": "OpImageWrite",
       "grammar": "core",
       "properties": [
-        "action",
-        "image-op"
+        "image-op",
+        "action"
       ]
     },
     {
       "opname": "OpImage",
       "grammar": "core",
       "properties": [
-        "sampled-image-op",
         "allocates-id",
+        "sampled-image-op",
         "result-type"
       ]
     },
@@ -792,8 +789,8 @@
       "opname": "OpImageQueryFormat",
       "grammar": "core",
       "properties": [
-        "image-op",
         "allocates-id",
+        "image-op",
         "result-type"
       ]
     },
@@ -801,8 +798,8 @@
       "opname": "OpImageQueryOrder",
       "grammar": "core",
       "properties": [
-        "image-op",
         "allocates-id",
+        "image-op",
         "result-type"
       ]
     },
@@ -810,8 +807,8 @@
       "opname": "OpImageQuerySizeLod",
       "grammar": "core",
       "properties": [
-        "image-op",
         "allocates-id",
+        "image-op",
         "result-type"
       ]
     },
@@ -819,8 +816,8 @@
       "opname": "OpImageQuerySize",
       "grammar": "core",
       "properties": [
-        "image-op",
         "allocates-id",
+        "image-op",
         "result-type"
       ]
     },
@@ -828,8 +825,8 @@
       "opname": "OpImageQueryLod",
       "grammar": "core",
       "properties": [
-        "sampled-image-op",
         "allocates-id",
+        "sampled-image-op",
         "result-type"
       ]
     },
@@ -837,8 +834,8 @@
       "opname": "OpImageQueryLevels",
       "grammar": "core",
       "properties": [
-        "image-op",
         "allocates-id",
+        "image-op",
         "result-type"
       ]
     },
@@ -846,8 +843,8 @@
       "opname": "OpImageQuerySamples",
       "grammar": "core",
       "properties": [
-        "image-op",
         "allocates-id",
+        "image-op",
         "result-type"
       ]
     },
@@ -855,8 +852,8 @@
       "opname": "OpConvertFToU",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -864,8 +861,8 @@
       "opname": "OpConvertFToS",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -873,8 +870,8 @@
       "opname": "OpConvertSToF",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -882,8 +879,8 @@
       "opname": "OpConvertUToF",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -891,8 +888,8 @@
       "opname": "OpUConvert",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -900,8 +897,8 @@
       "opname": "OpSConvert",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -909,8 +906,8 @@
       "opname": "OpFConvert",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -918,8 +915,8 @@
       "opname": "OpQuantizeToF16",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -927,8 +924,8 @@
       "opname": "OpConvertPtrToU",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -936,8 +933,8 @@
       "opname": "OpSatConvertSToU",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -945,8 +942,8 @@
       "opname": "OpSatConvertUToS",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -954,8 +951,8 @@
       "opname": "OpConvertUToPtr",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -963,8 +960,8 @@
       "opname": "OpPtrCastToGeneric",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -972,8 +969,8 @@
       "opname": "OpGenericCastToPtr",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -981,8 +978,8 @@
       "opname": "OpGenericCastToPtrExplicit",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -990,8 +987,8 @@
       "opname": "OpBitcast",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -999,8 +996,8 @@
       "opname": "OpSNegate",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -1008,8 +1005,8 @@
       "opname": "OpFNegate",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -1017,8 +1014,8 @@
       "opname": "OpIAdd",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1026,8 +1023,8 @@
       "opname": "OpFAdd",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1035,8 +1032,8 @@
       "opname": "OpISub",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1044,8 +1041,8 @@
       "opname": "OpFSub",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1053,8 +1050,8 @@
       "opname": "OpIMul",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1062,8 +1059,8 @@
       "opname": "OpFMul",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1071,8 +1068,8 @@
       "opname": "OpUDiv",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1080,8 +1077,8 @@
       "opname": "OpSDiv",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1089,8 +1086,8 @@
       "opname": "OpFDiv",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1098,8 +1095,8 @@
       "opname": "OpUMod",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1107,8 +1104,8 @@
       "opname": "OpSRem",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1116,8 +1113,8 @@
       "opname": "OpSMod",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1125,8 +1122,8 @@
       "opname": "OpFRem",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1134,8 +1131,8 @@
       "opname": "OpFMod",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1143,8 +1140,8 @@
       "opname": "OpVectorTimesScalar",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1152,8 +1149,8 @@
       "opname": "OpMatrixTimesScalar",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1161,8 +1158,8 @@
       "opname": "OpVectorTimesMatrix",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1170,8 +1167,8 @@
       "opname": "OpMatrixTimesVector",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1179,8 +1176,8 @@
       "opname": "OpMatrixTimesMatrix",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1188,8 +1185,8 @@
       "opname": "OpOuterProduct",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1197,8 +1194,8 @@
       "opname": "OpDot",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1206,8 +1203,8 @@
       "opname": "OpIAddCarry",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1215,8 +1212,8 @@
       "opname": "OpISubBorrow",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1224,8 +1221,8 @@
       "opname": "OpUMulExtended",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1233,8 +1230,8 @@
       "opname": "OpSMulExtended",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1242,8 +1239,8 @@
       "opname": "OpAny",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -1251,8 +1248,8 @@
       "opname": "OpAll",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -1260,8 +1257,8 @@
       "opname": "OpIsNan",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -1269,8 +1266,8 @@
       "opname": "OpIsInf",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -1278,8 +1275,8 @@
       "opname": "OpIsFinite",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -1287,8 +1284,8 @@
       "opname": "OpIsNormal",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -1296,8 +1293,8 @@
       "opname": "OpSignBitSet",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -1305,8 +1302,8 @@
       "opname": "OpLessOrGreater",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1314,8 +1311,8 @@
       "opname": "OpOrdered",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1323,8 +1320,8 @@
       "opname": "OpUnordered",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1332,8 +1329,8 @@
       "opname": "OpLogicalEqual",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1341,8 +1338,8 @@
       "opname": "OpLogicalNotEqual",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1350,8 +1347,8 @@
       "opname": "OpLogicalOr",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1359,8 +1356,8 @@
       "opname": "OpLogicalAnd",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1368,8 +1365,8 @@
       "opname": "OpLogicalNot",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -1377,8 +1374,8 @@
       "opname": "OpSelect",
       "grammar": "core",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -1386,8 +1383,8 @@
       "opname": "OpIEqual",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1395,8 +1392,8 @@
       "opname": "OpINotEqual",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1404,8 +1401,8 @@
       "opname": "OpUGreaterThan",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1413,8 +1410,8 @@
       "opname": "OpSGreaterThan",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1422,8 +1419,8 @@
       "opname": "OpUGreaterThanEqual",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1431,8 +1428,8 @@
       "opname": "OpSGreaterThanEqual",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1440,8 +1437,8 @@
       "opname": "OpULessThan",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1449,8 +1446,8 @@
       "opname": "OpSLessThan",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1458,8 +1455,8 @@
       "opname": "OpULessThanEqual",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1467,8 +1464,8 @@
       "opname": "OpSLessThanEqual",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1476,8 +1473,8 @@
       "opname": "OpFOrdEqual",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1485,8 +1482,8 @@
       "opname": "OpFUnordEqual",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1494,8 +1491,8 @@
       "opname": "OpFOrdNotEqual",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1503,8 +1500,8 @@
       "opname": "OpFUnordNotEqual",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1512,8 +1509,8 @@
       "opname": "OpFOrdLessThan",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1521,8 +1518,8 @@
       "opname": "OpFUnordLessThan",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1530,8 +1527,8 @@
       "opname": "OpFOrdGreaterThan",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1539,8 +1536,8 @@
       "opname": "OpFUnordGreaterThan",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1548,8 +1545,8 @@
       "opname": "OpFOrdLessThanEqual",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1557,8 +1554,8 @@
       "opname": "OpFUnordLessThanEqual",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1566,8 +1563,8 @@
       "opname": "OpFOrdGreaterThanEqual",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1575,8 +1572,8 @@
       "opname": "OpFUnordGreaterThanEqual",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1584,8 +1581,8 @@
       "opname": "OpShiftRightLogical",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1593,8 +1590,8 @@
       "opname": "OpShiftRightArithmetic",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1602,8 +1599,8 @@
       "opname": "OpShiftLeftLogical",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1611,8 +1608,8 @@
       "opname": "OpBitwiseOr",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1620,8 +1617,8 @@
       "opname": "OpBitwiseXor",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1629,8 +1626,8 @@
       "opname": "OpBitwiseAnd",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -1638,8 +1635,8 @@
       "opname": "OpNot",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -1647,8 +1644,8 @@
       "opname": "OpBitFieldInsert",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -1656,8 +1653,8 @@
       "opname": "OpBitFieldSExtract",
       "grammar": "core",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -1665,8 +1662,8 @@
       "opname": "OpBitFieldUExtract",
       "grammar": "core",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -1674,8 +1671,8 @@
       "opname": "OpBitReverse",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -1683,8 +1680,8 @@
       "opname": "OpBitCount",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -1692,8 +1689,8 @@
       "opname": "OpDPdx",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -1701,8 +1698,8 @@
       "opname": "OpDPdy",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -1710,8 +1707,8 @@
       "opname": "OpFwidth",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -1719,8 +1716,8 @@
       "opname": "OpDPdxFine",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -1728,8 +1725,8 @@
       "opname": "OpDPdyFine",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -1737,8 +1734,8 @@
       "opname": "OpFwidthFine",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -1746,8 +1743,8 @@
       "opname": "OpDPdxCoarse",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -1755,8 +1752,8 @@
       "opname": "OpDPdyCoarse",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -1764,8 +1761,8 @@
       "opname": "OpFwidthCoarse",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -1819,9 +1816,9 @@
       "opname": "OpAtomicLoad",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "atomic-op",
         "unary",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -1829,8 +1826,8 @@
       "opname": "OpAtomicStore",
       "grammar": "core",
       "properties": [
-        "atomic-op",
         "action",
+        "atomic-op",
         "unary"
       ]
     },
@@ -1838,9 +1835,9 @@
       "opname": "OpAtomicExchange",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "atomic-op",
         "unary",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -1848,9 +1845,9 @@
       "opname": "OpAtomicCompareExchange",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "atomic-op",
         "unary",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -1858,9 +1855,9 @@
       "opname": "OpAtomicCompareExchangeWeak",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "atomic-op",
         "unary",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -1868,9 +1865,9 @@
       "opname": "OpAtomicIIncrement",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "atomic-op",
         "unary",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -1878,9 +1875,9 @@
       "opname": "OpAtomicIDecrement",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "atomic-op",
         "unary",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -1888,9 +1885,9 @@
       "opname": "OpAtomicIAdd",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "atomic-op",
         "unary",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -1898,9 +1895,9 @@
       "opname": "OpAtomicISub",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "atomic-op",
         "unary",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -1908,9 +1905,9 @@
       "opname": "OpAtomicSMin",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "atomic-op",
         "unary",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -1918,9 +1915,9 @@
       "opname": "OpAtomicUMin",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "atomic-op",
         "unary",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -1928,9 +1925,9 @@
       "opname": "OpAtomicSMax",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "atomic-op",
         "unary",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -1938,9 +1935,9 @@
       "opname": "OpAtomicUMax",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "atomic-op",
         "unary",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -1948,9 +1945,9 @@
       "opname": "OpAtomicAnd",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "atomic-op",
         "unary",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -1958,9 +1955,9 @@
       "opname": "OpAtomicOr",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "atomic-op",
         "unary",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -1968,9 +1965,9 @@
       "opname": "OpAtomicXor",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "atomic-op",
         "unary",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -2003,32 +2000,32 @@
       "opname": "OpLabel",
       "grammar": "core",
       "properties": [
-        "block-begin",
-        "allocates-id"
+        "allocates-id",
+        "block-begin"
       ]
     },
     {
       "opname": "OpBranch",
       "grammar": "core",
       "properties": [
-        "ends-block",
-        "branch"
+        "branch",
+        "ends-block"
       ]
     },
     {
       "opname": "OpBranchConditional",
       "grammar": "core",
       "properties": [
-        "ends-block",
-        "branch-conditional"
+        "branch-conditional",
+        "ends-block"
       ]
     },
     {
       "opname": "OpSwitch",
       "grammar": "core",
       "properties": [
-        "switch-section",
-        "ends-block"
+        "ends-block",
+        "switch-section"
       ]
     },
     {
@@ -2043,17 +2040,17 @@
       "opname": "OpReturn",
       "grammar": "core",
       "properties": [
-        "exit-function",
-        "ends-block"
+        "ends-block",
+        "exit-function"
       ]
     },
     {
       "opname": "OpReturnValue",
       "grammar": "core",
       "properties": [
-        "exit-function",
+        "function-result",
         "ends-block",
-        "function-result"
+        "exit-function"
       ]
     },
     {
@@ -2083,8 +2080,8 @@
       "opname": "OpGroupAsyncCopy",
       "grammar": "core",
       "properties": [
-        "scoped",
         "allocates-id",
+        "scoped",
         "result-type"
       ]
     },
@@ -2100,8 +2097,8 @@
       "opname": "OpGroupAll",
       "grammar": "core",
       "properties": [
-        "scoped",
         "allocates-id",
+        "scoped",
         "result-type"
       ]
     },
@@ -2109,8 +2106,8 @@
       "opname": "OpGroupAny",
       "grammar": "core",
       "properties": [
-        "scoped",
         "allocates-id",
+        "scoped",
         "result-type"
       ]
     },
@@ -2118,8 +2115,8 @@
       "opname": "OpGroupBroadcast",
       "grammar": "core",
       "properties": [
-        "scoped",
         "allocates-id",
+        "scoped",
         "result-type"
       ]
     },
@@ -2127,9 +2124,9 @@
       "opname": "OpGroupIAdd",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -2137,9 +2134,9 @@
       "opname": "OpGroupFAdd",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -2147,9 +2144,9 @@
       "opname": "OpGroupFMin",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -2157,9 +2154,9 @@
       "opname": "OpGroupUMin",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -2167,9 +2164,9 @@
       "opname": "OpGroupSMin",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -2177,9 +2174,9 @@
       "opname": "OpGroupFMax",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -2187,9 +2184,9 @@
       "opname": "OpGroupUMax",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -2197,9 +2194,9 @@
       "opname": "OpGroupSMax",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -2207,8 +2204,8 @@
       "opname": "OpReadPipe",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -2216,8 +2213,8 @@
       "opname": "OpWritePipe",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -2225,8 +2222,8 @@
       "opname": "OpReservedReadPipe",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -2234,8 +2231,8 @@
       "opname": "OpReservedWritePipe",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -2243,8 +2240,8 @@
       "opname": "OpReserveReadPipePackets",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -2252,8 +2249,8 @@
       "opname": "OpReserveWritePipePackets",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -2277,8 +2274,8 @@
       "opname": "OpIsValidReserveId",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -2286,8 +2283,8 @@
       "opname": "OpGetNumPipePackets",
       "grammar": "core",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -2295,8 +2292,8 @@
       "opname": "OpGetMaxPipePackets",
       "grammar": "core",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -2304,8 +2301,8 @@
       "opname": "OpGroupReserveReadPipePackets",
       "grammar": "core",
       "properties": [
-        "scoped",
         "allocates-id",
+        "scoped",
         "result-type"
       ]
     },
@@ -2313,8 +2310,8 @@
       "opname": "OpGroupReserveWritePipePackets",
       "grammar": "core",
       "properties": [
-        "scoped",
         "allocates-id",
+        "scoped",
         "result-type"
       ]
     },
@@ -2338,8 +2335,8 @@
       "opname": "OpEnqueueMarker",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -2347,8 +2344,8 @@
       "opname": "OpEnqueueKernel",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -2356,8 +2353,8 @@
       "opname": "OpGetKernelNDrangeSubGroupCount",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -2365,8 +2362,8 @@
       "opname": "OpGetKernelNDrangeMaxSubGroupSize",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -2374,8 +2371,8 @@
       "opname": "OpGetKernelWorkGroupSize",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -2383,8 +2380,8 @@
       "opname": "OpGetKernelPreferredWorkGroupSizeMultiple",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -2416,8 +2413,8 @@
       "opname": "OpIsValidEvent",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -2425,16 +2422,16 @@
       "opname": "OpSetUserEventStatus",
       "grammar": "core",
       "properties": [
-        "action",
-        "binary"
+        "binary",
+        "action"
       ]
     },
     {
       "opname": "OpCaptureEventProfilingInfo",
       "grammar": "core",
       "properties": [
-        "action",
-        "trinary"
+        "trinary",
+        "action"
       ]
     },
     {
@@ -2449,8 +2446,8 @@
       "opname": "OpBuildNDRange",
       "grammar": "core",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -2458,8 +2455,8 @@
       "opname": "OpImageSparseSampleImplicitLod",
       "grammar": "core",
       "properties": [
-        "sampled-image-op",
         "allocates-id",
+        "sampled-image-op",
         "result-type"
       ]
     },
@@ -2467,8 +2464,8 @@
       "opname": "OpImageSparseSampleExplicitLod",
       "grammar": "core",
       "properties": [
-        "sampled-image-op",
         "allocates-id",
+        "sampled-image-op",
         "result-type"
       ]
     },
@@ -2476,8 +2473,8 @@
       "opname": "OpImageSparseSampleDrefImplicitLod",
       "grammar": "core",
       "properties": [
-        "sampled-image-op",
         "allocates-id",
+        "sampled-image-op",
         "result-type"
       ]
     },
@@ -2485,8 +2482,8 @@
       "opname": "OpImageSparseSampleDrefExplicitLod",
       "grammar": "core",
       "properties": [
-        "sampled-image-op",
         "allocates-id",
+        "sampled-image-op",
         "result-type"
       ]
     },
@@ -2494,8 +2491,8 @@
       "opname": "OpImageSparseSampleProjImplicitLod",
       "grammar": "core",
       "properties": [
-        "sampled-image-op",
         "allocates-id",
+        "sampled-image-op",
         "result-type"
       ]
     },
@@ -2503,8 +2500,8 @@
       "opname": "OpImageSparseSampleProjExplicitLod",
       "grammar": "core",
       "properties": [
-        "sampled-image-op",
         "allocates-id",
+        "sampled-image-op",
         "result-type"
       ]
     },
@@ -2512,8 +2509,8 @@
       "opname": "OpImageSparseSampleProjDrefImplicitLod",
       "grammar": "core",
       "properties": [
-        "sampled-image-op",
         "allocates-id",
+        "sampled-image-op",
         "result-type"
       ]
     },
@@ -2521,8 +2518,8 @@
       "opname": "OpImageSparseSampleProjDrefExplicitLod",
       "grammar": "core",
       "properties": [
-        "sampled-image-op",
         "allocates-id",
+        "sampled-image-op",
         "result-type"
       ]
     },
@@ -2530,8 +2527,8 @@
       "opname": "OpImageSparseFetch",
       "grammar": "core",
       "properties": [
-        "image-op",
         "allocates-id",
+        "image-op",
         "result-type"
       ]
     },
@@ -2539,8 +2536,8 @@
       "opname": "OpImageSparseGather",
       "grammar": "core",
       "properties": [
-        "sampled-image-op",
         "allocates-id",
+        "sampled-image-op",
         "result-type"
       ]
     },
@@ -2548,8 +2545,8 @@
       "opname": "OpImageSparseDrefGather",
       "grammar": "core",
       "properties": [
-        "sampled-image-op",
         "allocates-id",
+        "sampled-image-op",
         "result-type"
       ]
     },
@@ -2557,8 +2554,8 @@
       "opname": "OpImageSparseTexelsResident",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -2566,17 +2563,17 @@
       "opname": "OpNoLine",
       "grammar": "core",
       "properties": [
-        "action",
-        "end-source-position"
+        "end-source-position",
+        "action"
       ]
     },
     {
       "opname": "OpAtomicFlagTestAndSet",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "atomic-op",
         "unary",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -2584,8 +2581,8 @@
       "opname": "OpAtomicFlagClear",
       "grammar": "core",
       "properties": [
-        "atomic-op",
         "action",
+        "atomic-op",
         "unary"
       ]
     },
@@ -2593,8 +2590,8 @@
       "opname": "OpImageSparseRead",
       "grammar": "core",
       "properties": [
-        "image-op",
         "allocates-id",
+        "image-op",
         "result-type"
       ]
     },
@@ -2602,8 +2599,8 @@
       "opname": "OpSizeOf",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -2619,8 +2616,8 @@
       "opname": "OpConstantPipeStorage",
       "grammar": "core",
       "properties": [
-        "constant",
         "allocates-id",
+        "constant",
         "result-type"
       ]
     },
@@ -2628,8 +2625,8 @@
       "opname": "OpCreatePipeFromPipeStorage",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -2637,8 +2634,8 @@
       "opname": "OpGetKernelLocalSizeForSubgroupCount",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -2646,8 +2643,8 @@
       "opname": "OpGetKernelMaxNumSubgroups",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -2663,8 +2660,8 @@
       "opname": "OpNamedBarrierInitialize",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -2695,16 +2692,16 @@
       "opname": "OpDecorateId",
       "grammar": "core",
       "properties": [
-        "property-type-id",
-        "adds-property"
+        "adds-property",
+        "property-type-id"
       ]
     },
     {
       "opname": "OpGroupNonUniformElect",
       "grammar": "core",
       "properties": [
-        "scoped",
         "allocates-id",
+        "scoped",
         "result-type"
       ]
     },
@@ -2712,8 +2709,8 @@
       "opname": "OpGroupNonUniformAll",
       "grammar": "core",
       "properties": [
-        "scoped",
         "allocates-id",
+        "scoped",
         "result-type"
       ]
     },
@@ -2721,8 +2718,8 @@
       "opname": "OpGroupNonUniformAny",
       "grammar": "core",
       "properties": [
-        "scoped",
         "allocates-id",
+        "scoped",
         "result-type"
       ]
     },
@@ -2730,8 +2727,8 @@
       "opname": "OpGroupNonUniformAllEqual",
       "grammar": "core",
       "properties": [
-        "scoped",
         "allocates-id",
+        "scoped",
         "result-type"
       ]
     },
@@ -2739,8 +2736,8 @@
       "opname": "OpGroupNonUniformBroadcast",
       "grammar": "core",
       "properties": [
-        "scoped",
         "allocates-id",
+        "scoped",
         "result-type"
       ]
     },
@@ -2748,8 +2745,8 @@
       "opname": "OpGroupNonUniformBroadcastFirst",
       "grammar": "core",
       "properties": [
-        "scoped",
         "allocates-id",
+        "scoped",
         "result-type"
       ]
     },
@@ -2757,8 +2754,8 @@
       "opname": "OpGroupNonUniformBallot",
       "grammar": "core",
       "properties": [
-        "scoped",
         "allocates-id",
+        "scoped",
         "result-type"
       ]
     },
@@ -2766,8 +2763,8 @@
       "opname": "OpGroupNonUniformInverseBallot",
       "grammar": "core",
       "properties": [
-        "scoped",
         "allocates-id",
+        "scoped",
         "result-type"
       ]
     },
@@ -2775,8 +2772,8 @@
       "opname": "OpGroupNonUniformBallotBitExtract",
       "grammar": "core",
       "properties": [
-        "scoped",
         "allocates-id",
+        "scoped",
         "result-type"
       ]
     },
@@ -2784,9 +2781,9 @@
       "opname": "OpGroupNonUniformBallotBitCount",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -2794,8 +2791,8 @@
       "opname": "OpGroupNonUniformBallotFindLSB",
       "grammar": "core",
       "properties": [
-        "scoped",
         "allocates-id",
+        "scoped",
         "result-type"
       ]
     },
@@ -2803,8 +2800,8 @@
       "opname": "OpGroupNonUniformBallotFindMSB",
       "grammar": "core",
       "properties": [
-        "scoped",
         "allocates-id",
+        "scoped",
         "result-type"
       ]
     },
@@ -2812,8 +2809,8 @@
       "opname": "OpGroupNonUniformShuffle",
       "grammar": "core",
       "properties": [
-        "scoped",
         "allocates-id",
+        "scoped",
         "result-type"
       ]
     },
@@ -2821,8 +2818,8 @@
       "opname": "OpGroupNonUniformShuffleXor",
       "grammar": "core",
       "properties": [
-        "scoped",
         "allocates-id",
+        "scoped",
         "result-type"
       ]
     },
@@ -2830,8 +2827,8 @@
       "opname": "OpGroupNonUniformShuffleUp",
       "grammar": "core",
       "properties": [
-        "scoped",
         "allocates-id",
+        "scoped",
         "result-type"
       ]
     },
@@ -2839,8 +2836,8 @@
       "opname": "OpGroupNonUniformShuffleDown",
       "grammar": "core",
       "properties": [
-        "scoped",
         "allocates-id",
+        "scoped",
         "result-type"
       ]
     },
@@ -2848,9 +2845,9 @@
       "opname": "OpGroupNonUniformIAdd",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -2858,9 +2855,9 @@
       "opname": "OpGroupNonUniformFAdd",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -2868,9 +2865,9 @@
       "opname": "OpGroupNonUniformIMul",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -2878,9 +2875,9 @@
       "opname": "OpGroupNonUniformFMul",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -2888,9 +2885,9 @@
       "opname": "OpGroupNonUniformSMin",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -2898,9 +2895,9 @@
       "opname": "OpGroupNonUniformUMin",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -2908,9 +2905,9 @@
       "opname": "OpGroupNonUniformFMin",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -2918,9 +2915,9 @@
       "opname": "OpGroupNonUniformSMax",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -2928,9 +2925,9 @@
       "opname": "OpGroupNonUniformUMax",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -2938,9 +2935,9 @@
       "opname": "OpGroupNonUniformFMax",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -2948,9 +2945,9 @@
       "opname": "OpGroupNonUniformBitwiseAnd",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -2958,9 +2955,9 @@
       "opname": "OpGroupNonUniformBitwiseOr",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -2968,9 +2965,9 @@
       "opname": "OpGroupNonUniformBitwiseXor",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -2978,9 +2975,9 @@
       "opname": "OpGroupNonUniformLogicalAnd",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -2988,9 +2985,9 @@
       "opname": "OpGroupNonUniformLogicalOr",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -2998,9 +2995,9 @@
       "opname": "OpGroupNonUniformLogicalXor",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -3008,8 +3005,8 @@
       "opname": "OpGroupNonUniformQuadBroadcast",
       "grammar": "core",
       "properties": [
-        "scoped",
         "allocates-id",
+        "scoped",
         "result-type"
       ]
     },
@@ -3017,8 +3014,8 @@
       "opname": "OpGroupNonUniformQuadSwap",
       "grammar": "core",
       "properties": [
-        "scoped",
         "allocates-id",
+        "scoped",
         "result-type"
       ]
     },
@@ -3026,8 +3023,8 @@
       "opname": "OpCopyLogical",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -3035,8 +3032,8 @@
       "opname": "OpPtrEqual",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -3044,8 +3041,8 @@
       "opname": "OpPtrNotEqual",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -3053,7 +3050,32 @@
       "opname": "OpPtrDiff",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "binary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpColorAttachmentReadEXT",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "unary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpDepthAttachmentReadEXT",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpStencilAttachmentReadEXT",
+      "grammar": "core",
+      "properties": [
         "allocates-id",
         "result-type"
       ]
@@ -3069,8 +3091,8 @@
       "opname": "OpSubgroupBallotKHR",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -3078,8 +3100,8 @@
       "opname": "OpSubgroupFirstInvocationKHR",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -3087,8 +3109,8 @@
       "opname": "OpSubgroupAllKHR",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -3096,8 +3118,8 @@
       "opname": "OpSubgroupAnyKHR",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -3105,8 +3127,17 @@
       "opname": "OpSubgroupAllEqualKHR",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpGroupNonUniformRotateKHR",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "scoped",
         "result-type"
       ]
     },
@@ -3114,8 +3145,17 @@
       "opname": "OpSubgroupReadInvocationKHR",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpExtInstWithForwardRefsKHR",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -3131,16 +3171,16 @@
       "opname": "OpExecuteCallableKHR",
       "grammar": "core",
       "properties": [
-        "action",
-        "binary"
+        "binary",
+        "action"
       ]
     },
     {
       "opname": "OpConvertUToAccelerationStructureKHR",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -3162,8 +3202,8 @@
       "opname": "OpSDot",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -3171,8 +3211,8 @@
       "opname": "OpSDotKHR",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -3180,8 +3220,8 @@
       "opname": "OpUDot",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -3189,8 +3229,8 @@
       "opname": "OpUDotKHR",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -3198,8 +3238,8 @@
       "opname": "OpSUDot",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -3207,8 +3247,8 @@
       "opname": "OpSUDotKHR",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -3216,8 +3256,8 @@
       "opname": "OpSDotAccSat",
       "grammar": "core",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -3225,8 +3265,8 @@
       "opname": "OpSDotAccSatKHR",
       "grammar": "core",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -3234,8 +3274,8 @@
       "opname": "OpUDotAccSat",
       "grammar": "core",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -3243,8 +3283,8 @@
       "opname": "OpUDotAccSatKHR",
       "grammar": "core",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -3252,8 +3292,8 @@
       "opname": "OpSUDotAccSat",
       "grammar": "core",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -3261,8 +3301,82 @@
       "opname": "OpSUDotAccSatKHR",
       "grammar": "core",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpTypeCooperativeMatrixKHR",
+      "grammar": "core",
+      "properties": [
+        "typedef",
+        "allocates-id"
+      ]
+    },
+    {
+      "opname": "OpCooperativeMatrixLoadKHR",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "binary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpCooperativeMatrixStoreKHR",
+      "grammar": "core",
+      "properties": [
+        "trinary",
+        "action"
+      ]
+    },
+    {
+      "opname": "OpCooperativeMatrixMulAddKHR",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "trinary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpCooperativeMatrixLengthKHR",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "unary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpConstantCompositeReplicateEXT",
+      "grammar": "core",
+      "properties": [
+        "composite-constant",
+        "unary",
+        "result-type",
+        "allocates-id",
+        "constant"
+      ]
+    },
+    {
+      "opname": "OpSpecConstantCompositeReplicateEXT",
+      "grammar": "core",
+      "properties": [
+        "spec-constant",
+        "composite-constant",
+        "unary",
+        "result-type",
+        "allocates-id"
+      ]
+    },
+    {
+      "opname": "OpCompositeConstructReplicateEXT",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -3294,8 +3408,8 @@
       "opname": "OpRayQueryGenerateIntersectionKHR",
       "grammar": "core",
       "properties": [
-        "action",
-        "binary"
+        "binary",
+        "action"
       ]
     },
     {
@@ -3310,8 +3424,8 @@
       "opname": "OpRayQueryProceedKHR",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -3319,8 +3433,80 @@
       "opname": "OpRayQueryGetIntersectionTypeKHR",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpImageSampleWeightedQCOM",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "trinary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpImageBoxFilterQCOM",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "trinary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpImageBlockMatchSSDQCOM",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "multinary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpImageBlockMatchSADQCOM",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "multinary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpImageBlockMatchWindowSSDQCOM",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "multinary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpImageBlockMatchWindowSADQCOM",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "multinary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpImageBlockMatchGatherSSDQCOM",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "multinary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpImageBlockMatchGatherSADQCOM",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -3328,9 +3514,9 @@
       "opname": "OpGroupIAddNonUniformAMD",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -3338,9 +3524,9 @@
       "opname": "OpGroupFAddNonUniformAMD",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -3348,9 +3534,9 @@
       "opname": "OpGroupFMinNonUniformAMD",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -3358,9 +3544,9 @@
       "opname": "OpGroupUMinNonUniformAMD",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -3368,9 +3554,9 @@
       "opname": "OpGroupSMinNonUniformAMD",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -3378,9 +3564,9 @@
       "opname": "OpGroupFMaxNonUniformAMD",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -3388,9 +3574,9 @@
       "opname": "OpGroupUMaxNonUniformAMD",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -3398,9 +3584,9 @@
       "opname": "OpGroupSMaxNonUniformAMD",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "grouped",
         "scoped",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -3408,8 +3594,8 @@
       "opname": "OpFragmentMaskFetchAMD",
       "grammar": "core",
       "properties": [
-        "image-op",
         "allocates-id",
+        "image-op",
         "result-type"
       ]
     },
@@ -3417,8 +3603,8 @@
       "opname": "OpFragmentFetchAMD",
       "grammar": "core",
       "properties": [
-        "image-op",
         "allocates-id",
+        "image-op",
         "result-type"
       ]
     },
@@ -3426,26 +3612,368 @@
       "opname": "OpReadClockKHR",
       "grammar": "core",
       "properties": [
-        "scoped",
         "allocates-id",
+        "scoped",
         "result-type"
+      ]
+    },
+    {
+      "opname": "OpFinalizeNodePayloadsAMDX",
+      "grammar": "core",
+      "properties": [
+        "action",
+        "unary"
+      ]
+    },
+    {
+      "opname": "OpFinishWritingNodePayloadAMDX",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "unary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpInitializeNodePayloadsAMDX",
+      "grammar": "core",
+      "properties": [
+        "action",
+        "unary"
+      ]
+    },
+    {
+      "opname": "OpGroupNonUniformQuadAllKHR",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "unary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpGroupNonUniformQuadAnyKHR",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "unary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpHitObjectRecordHitMotionNV",
+      "grammar": "core",
+      "properties": [
+        "action",
+        "multinary"
+      ]
+    },
+    {
+      "opname": "OpHitObjectRecordHitWithIndexMotionNV",
+      "grammar": "core",
+      "properties": [
+        "action",
+        "multinary"
+      ]
+    },
+    {
+      "opname": "OpHitObjectRecordMissMotionNV",
+      "grammar": "core",
+      "properties": [
+        "action",
+        "multinary"
+      ]
+    },
+    {
+      "opname": "OpHitObjectGetWorldToObjectNV",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "unary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpHitObjectGetObjectToWorldNV",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "unary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpHitObjectGetObjectRayDirectionNV",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "unary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpHitObjectGetObjectRayOriginNV",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "unary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpHitObjectTraceRayMotionNV",
+      "grammar": "core",
+      "properties": [
+        "action",
+        "multinary"
+      ]
+    },
+    {
+      "opname": "OpHitObjectGetShaderRecordBufferHandleNV",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "unary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpHitObjectGetShaderBindingTableRecordIndexNV",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "unary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpHitObjectRecordEmptyNV",
+      "grammar": "core",
+      "properties": [
+        "action",
+        "unary"
+      ]
+    },
+    {
+      "opname": "OpHitObjectTraceRayNV",
+      "grammar": "core",
+      "properties": [
+        "action",
+        "multinary"
+      ]
+    },
+    {
+      "opname": "OpHitObjectRecordHitNV",
+      "grammar": "core",
+      "properties": [
+        "action",
+        "multinary"
+      ]
+    },
+    {
+      "opname": "OpHitObjectRecordHitWithIndexNV",
+      "grammar": "core",
+      "properties": [
+        "action",
+        "multinary"
+      ]
+    },
+    {
+      "opname": "OpHitObjectRecordMissNV",
+      "grammar": "core",
+      "properties": [
+        "action",
+        "multinary"
+      ]
+    },
+    {
+      "opname": "OpHitObjectExecuteShaderNV",
+      "grammar": "core",
+      "properties": [
+        "binary",
+        "action"
+      ]
+    },
+    {
+      "opname": "OpHitObjectGetCurrentTimeNV",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "unary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpHitObjectGetAttributesNV",
+      "grammar": "core",
+      "properties": [
+        "binary",
+        "action"
+      ]
+    },
+    {
+      "opname": "OpHitObjectGetHitKindNV",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "unary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpHitObjectGetPrimitiveIndexNV",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "unary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpHitObjectGetGeometryIndexNV",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "unary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpHitObjectGetInstanceIdNV",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "unary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpHitObjectGetInstanceCustomIndexNV",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "unary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpHitObjectGetWorldRayDirectionNV",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "unary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpHitObjectGetWorldRayOriginNV",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "unary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpHitObjectGetRayTMaxNV",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "unary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpHitObjectGetRayTMinNV",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "unary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpHitObjectIsEmptyNV",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "unary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpHitObjectIsHitNV",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "unary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpHitObjectIsMissNV",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "unary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpReorderThreadWithHitObjectNV",
+      "grammar": "core",
+      "properties": [
+        "action",
+        "unary"
+      ]
+    },
+    {
+      "opname": "OpReorderThreadWithHintNV",
+      "grammar": "core",
+      "properties": [
+        "binary",
+        "action"
+      ]
+    },
+    {
+      "opname": "OpTypeHitObjectNV",
+      "grammar": "core",
+      "properties": [
+        "typedef",
+        "allocates-id"
       ]
     },
     {
       "opname": "OpImageSampleFootprintNV",
       "grammar": "core",
       "properties": [
-        "sampled-image-op",
         "allocates-id",
+        "sampled-image-op",
         "result-type"
+      ]
+    },
+    {
+      "opname": "OpEmitMeshTasksEXT",
+      "grammar": "core",
+      "properties": [
+        "trinary",
+        "action"
+      ]
+    },
+    {
+      "opname": "OpSetMeshOutputsEXT",
+      "grammar": "core",
+      "properties": [
+        "binary",
+        "action"
       ]
     },
     {
       "opname": "OpGroupNonUniformPartitionNV",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -3453,16 +3981,25 @@
       "opname": "OpWritePackedPrimitiveIndices4x8NV",
       "grammar": "core",
       "properties": [
-        "action",
-        "binary"
+        "binary",
+        "action"
       ]
     },
     {
-      "opname": "OpReportIntersectionNV",
+      "opname": "OpFetchMicroTriangleVertexPositionNV",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "multinary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpFetchMicroTriangleVertexBarycentricNV",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -3470,8 +4007,17 @@
       "opname": "OpReportIntersectionKHR",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpReportIntersectionNV",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -3514,11 +4060,12 @@
       ]
     },
     {
-      "opname": "OpTypeAccelerationStructureNV",
+      "opname": "OpRayQueryGetIntersectionTriangleVertexPositionsKHR",
       "grammar": "core",
       "properties": [
-        "typedef",
-        "allocates-id"
+        "allocates-id",
+        "binary",
+        "result-type"
       ]
     },
     {
@@ -3530,11 +4077,19 @@
       ]
     },
     {
+      "opname": "OpTypeAccelerationStructureNV",
+      "grammar": "core",
+      "properties": [
+        "typedef",
+        "allocates-id"
+      ]
+    },
+    {
       "opname": "OpExecuteCallableNV",
       "grammar": "core",
       "properties": [
-        "action",
-        "binary"
+        "binary",
+        "action"
       ]
     },
     {
@@ -3549,8 +4104,8 @@
       "opname": "OpCooperativeMatrixLoadNV",
       "grammar": "core",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -3566,8 +4121,8 @@
       "opname": "OpCooperativeMatrixMulAddNV",
       "grammar": "core",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -3575,8 +4130,8 @@
       "opname": "OpCooperativeMatrixLengthNV",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -3620,8 +4175,8 @@
       "opname": "OpConvertUToImageNV",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -3629,8 +4184,8 @@
       "opname": "OpConvertUToSamplerNV",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -3638,8 +4193,8 @@
       "opname": "OpConvertImageToUNV",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -3647,8 +4202,8 @@
       "opname": "OpConvertSamplerToUNV",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -3656,8 +4211,8 @@
       "opname": "OpConvertUToSampledImageNV",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -3665,8 +4220,17 @@
       "opname": "OpConvertSampledImageToUNV",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpRawAccessChainNV",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -3674,8 +4238,8 @@
       "opname": "OpSubgroupShuffleINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -3683,8 +4247,8 @@
       "opname": "OpSubgroupShuffleDownINTEL",
       "grammar": "core",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -3692,8 +4256,8 @@
       "opname": "OpSubgroupShuffleUpINTEL",
       "grammar": "core",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -3701,8 +4265,8 @@
       "opname": "OpSubgroupShuffleXorINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -3710,8 +4274,8 @@
       "opname": "OpSubgroupBlockReadINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -3719,16 +4283,16 @@
       "opname": "OpSubgroupBlockWriteINTEL",
       "grammar": "core",
       "properties": [
-        "action",
-        "binary"
+        "binary",
+        "action"
       ]
     },
     {
       "opname": "OpSubgroupImageBlockReadINTEL",
       "grammar": "core",
       "properties": [
-        "image-op",
         "allocates-id",
+        "image-op",
         "result-type"
       ]
     },
@@ -3736,16 +4300,16 @@
       "opname": "OpSubgroupImageBlockWriteINTEL",
       "grammar": "core",
       "properties": [
-        "action",
-        "image-op"
+        "image-op",
+        "action"
       ]
     },
     {
       "opname": "OpSubgroupImageMediaBlockReadINTEL",
       "grammar": "core",
       "properties": [
-        "image-op",
         "allocates-id",
+        "image-op",
         "result-type"
       ]
     },
@@ -3753,16 +4317,16 @@
       "opname": "OpSubgroupImageMediaBlockWriteINTEL",
       "grammar": "core",
       "properties": [
-        "action",
-        "image-op"
+        "image-op",
+        "action"
       ]
     },
     {
       "opname": "OpUCountLeadingZerosINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -3770,8 +4334,8 @@
       "opname": "OpUCountTrailingZerosINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -3779,8 +4343,8 @@
       "opname": "OpAbsISubINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -3788,8 +4352,8 @@
       "opname": "OpAbsUSubINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -3797,8 +4361,8 @@
       "opname": "OpIAddSatINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -3806,8 +4370,8 @@
       "opname": "OpUAddSatINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -3815,8 +4379,8 @@
       "opname": "OpIAverageINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -3824,8 +4388,8 @@
       "opname": "OpUAverageINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -3833,8 +4397,8 @@
       "opname": "OpIAverageRoundedINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -3842,8 +4406,8 @@
       "opname": "OpUAverageRoundedINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -3851,8 +4415,8 @@
       "opname": "OpISubSatINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -3860,8 +4424,8 @@
       "opname": "OpUSubSatINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -3869,8 +4433,8 @@
       "opname": "OpIMul32x16INTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -3878,8 +4442,8 @@
       "opname": "OpUMul32x16INTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -3887,9 +4451,9 @@
       "opname": "OpConstantFunctionPointerINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
-        "constant",
         "allocates-id",
+        "constant",
+        "unary",
         "result-type"
       ]
     },
@@ -3913,8 +4477,8 @@
       "opname": "OpAsmINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -3922,8 +4486,8 @@
       "opname": "OpAsmCallINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -3931,9 +4495,9 @@
       "opname": "OpAtomicFMinEXT",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "atomic-op",
         "unary",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -3941,9 +4505,9 @@
       "opname": "OpAtomicFMaxEXT",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "atomic-op",
         "unary",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -3959,8 +4523,8 @@
       "opname": "OpExpectKHR",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -3968,42 +4532,42 @@
       "opname": "OpDecorateString",
       "grammar": "core",
       "properties": [
-        "property-type-string",
-        "adds-property"
+        "adds-property",
+        "property-type-string"
       ]
     },
     {
       "opname": "OpDecorateStringGOOGLE",
       "grammar": "core",
       "properties": [
-        "property-type-string",
-        "adds-property"
+        "adds-property",
+        "property-type-string"
       ]
     },
     {
       "opname": "OpMemberDecorateString",
       "grammar": "core",
       "properties": [
-        "member-property",
+        "adds-property",
         "property-type-string",
-        "adds-property"
+        "member-property"
       ]
     },
     {
       "opname": "OpMemberDecorateStringGOOGLE",
       "grammar": "core",
       "properties": [
-        "member-property",
+        "adds-property",
         "property-type-string",
-        "adds-property"
+        "member-property"
       ]
     },
     {
       "opname": "OpVmeImageINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -4115,8 +4679,8 @@
       "opname": "OpSubgroupAvcMceGetDefaultInterBaseMultiReferencePenaltyINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -4124,8 +4688,8 @@
       "opname": "OpSubgroupAvcMceSetInterBaseMultiReferencePenaltyINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -4133,8 +4697,8 @@
       "opname": "OpSubgroupAvcMceGetDefaultInterShapePenaltyINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -4142,8 +4706,8 @@
       "opname": "OpSubgroupAvcMceSetInterShapePenaltyINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -4151,8 +4715,8 @@
       "opname": "OpSubgroupAvcMceGetDefaultInterDirectionPenaltyINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -4160,8 +4724,8 @@
       "opname": "OpSubgroupAvcMceSetInterDirectionPenaltyINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -4169,8 +4733,8 @@
       "opname": "OpSubgroupAvcMceGetDefaultIntraLumaShapePenaltyINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -4178,8 +4742,8 @@
       "opname": "OpSubgroupAvcMceGetDefaultInterMotionVectorCostTableINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -4211,8 +4775,8 @@
       "opname": "OpSubgroupAvcMceSetMotionVectorCostFunctionINTEL",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -4220,8 +4784,8 @@
       "opname": "OpSubgroupAvcMceGetDefaultIntraLumaModePenaltyINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -4245,8 +4809,8 @@
       "opname": "OpSubgroupAvcMceSetAcOnlyHaarINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4254,8 +4818,8 @@
       "opname": "OpSubgroupAvcMceSetSourceInterlacedFieldPolarityINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -4263,8 +4827,8 @@
       "opname": "OpSubgroupAvcMceSetSingleReferenceInterlacedFieldPolarityINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -4272,8 +4836,8 @@
       "opname": "OpSubgroupAvcMceSetDualReferenceInterlacedFieldPolaritiesINTEL",
       "grammar": "core",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -4281,8 +4845,8 @@
       "opname": "OpSubgroupAvcMceConvertToImePayloadINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4290,8 +4854,8 @@
       "opname": "OpSubgroupAvcMceConvertToImeResultINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4299,8 +4863,8 @@
       "opname": "OpSubgroupAvcMceConvertToRefPayloadINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4308,8 +4872,8 @@
       "opname": "OpSubgroupAvcMceConvertToRefResultINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4317,8 +4881,8 @@
       "opname": "OpSubgroupAvcMceConvertToSicPayloadINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4326,8 +4890,8 @@
       "opname": "OpSubgroupAvcMceConvertToSicResultINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4335,8 +4899,8 @@
       "opname": "OpSubgroupAvcMceGetMotionVectorsINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4344,8 +4908,8 @@
       "opname": "OpSubgroupAvcMceGetInterDistortionsINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4353,8 +4917,8 @@
       "opname": "OpSubgroupAvcMceGetBestInterDistortionsINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4362,8 +4926,8 @@
       "opname": "OpSubgroupAvcMceGetInterMajorShapeINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4371,8 +4935,8 @@
       "opname": "OpSubgroupAvcMceGetInterMinorShapeINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4380,8 +4944,8 @@
       "opname": "OpSubgroupAvcMceGetInterDirectionsINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4389,8 +4953,8 @@
       "opname": "OpSubgroupAvcMceGetInterMotionVectorCountINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4398,8 +4962,8 @@
       "opname": "OpSubgroupAvcMceGetInterReferenceIdsINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4407,8 +4971,8 @@
       "opname": "OpSubgroupAvcMceGetInterReferenceInterlacedFieldPolaritiesINTEL",
       "grammar": "core",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -4416,8 +4980,8 @@
       "opname": "OpSubgroupAvcImeInitializeINTEL",
       "grammar": "core",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -4425,8 +4989,8 @@
       "opname": "OpSubgroupAvcImeSetSingleReferenceINTEL",
       "grammar": "core",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -4434,8 +4998,8 @@
       "opname": "OpSubgroupAvcImeSetDualReferenceINTEL",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -4443,8 +5007,8 @@
       "opname": "OpSubgroupAvcImeRefWindowSizeINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -4452,8 +5016,8 @@
       "opname": "OpSubgroupAvcImeAdjustRefOffsetINTEL",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -4461,8 +5025,8 @@
       "opname": "OpSubgroupAvcImeConvertToMcePayloadINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4470,8 +5034,8 @@
       "opname": "OpSubgroupAvcImeSetMaxMotionVectorCountINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -4479,8 +5043,8 @@
       "opname": "OpSubgroupAvcImeSetUnidirectionalMixDisableINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4488,8 +5052,8 @@
       "opname": "OpSubgroupAvcImeSetEarlySearchTerminationThresholdINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -4497,8 +5061,8 @@
       "opname": "OpSubgroupAvcImeSetWeightedSadINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -4506,8 +5070,8 @@
       "opname": "OpSubgroupAvcImeEvaluateWithSingleReferenceINTEL",
       "grammar": "core",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -4515,8 +5079,8 @@
       "opname": "OpSubgroupAvcImeEvaluateWithDualReferenceINTEL",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -4524,8 +5088,8 @@
       "opname": "OpSubgroupAvcImeEvaluateWithSingleReferenceStreaminINTEL",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -4533,8 +5097,8 @@
       "opname": "OpSubgroupAvcImeEvaluateWithDualReferenceStreaminINTEL",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -4542,8 +5106,8 @@
       "opname": "OpSubgroupAvcImeEvaluateWithSingleReferenceStreamoutINTEL",
       "grammar": "core",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -4551,8 +5115,8 @@
       "opname": "OpSubgroupAvcImeEvaluateWithDualReferenceStreamoutINTEL",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -4560,8 +5124,8 @@
       "opname": "OpSubgroupAvcImeEvaluateWithSingleReferenceStreaminoutINTEL",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -4569,8 +5133,8 @@
       "opname": "OpSubgroupAvcImeEvaluateWithDualReferenceStreaminoutINTEL",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -4578,8 +5142,8 @@
       "opname": "OpSubgroupAvcImeConvertToMceResultINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4587,8 +5151,8 @@
       "opname": "OpSubgroupAvcImeGetSingleReferenceStreaminINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4596,8 +5160,8 @@
       "opname": "OpSubgroupAvcImeGetDualReferenceStreaminINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4605,8 +5169,8 @@
       "opname": "OpSubgroupAvcImeStripSingleReferenceStreamoutINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4614,8 +5178,8 @@
       "opname": "OpSubgroupAvcImeStripDualReferenceStreamoutINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4623,8 +5187,8 @@
       "opname": "OpSubgroupAvcImeGetStreamoutSingleReferenceMajorShapeMotionVectorsINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -4632,8 +5196,8 @@
       "opname": "OpSubgroupAvcImeGetStreamoutSingleReferenceMajorShapeDistortionsINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -4641,8 +5205,8 @@
       "opname": "OpSubgroupAvcImeGetStreamoutSingleReferenceMajorShapeReferenceIdsINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -4650,8 +5214,8 @@
       "opname": "OpSubgroupAvcImeGetStreamoutDualReferenceMajorShapeMotionVectorsINTEL",
       "grammar": "core",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -4659,8 +5223,8 @@
       "opname": "OpSubgroupAvcImeGetStreamoutDualReferenceMajorShapeDistortionsINTEL",
       "grammar": "core",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -4668,8 +5232,8 @@
       "opname": "OpSubgroupAvcImeGetStreamoutDualReferenceMajorShapeReferenceIdsINTEL",
       "grammar": "core",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -4677,8 +5241,8 @@
       "opname": "OpSubgroupAvcImeGetBorderReachedINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -4686,8 +5250,8 @@
       "opname": "OpSubgroupAvcImeGetTruncatedSearchIndicationINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4695,8 +5259,8 @@
       "opname": "OpSubgroupAvcImeGetUnidirectionalEarlySearchTerminationINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4704,8 +5268,8 @@
       "opname": "OpSubgroupAvcImeGetWeightingPatternMinimumMotionVectorINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4713,8 +5277,8 @@
       "opname": "OpSubgroupAvcImeGetWeightingPatternMinimumDistortionINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4722,8 +5286,8 @@
       "opname": "OpSubgroupAvcFmeInitializeINTEL",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -4731,8 +5295,8 @@
       "opname": "OpSubgroupAvcBmeInitializeINTEL",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -4740,8 +5304,8 @@
       "opname": "OpSubgroupAvcRefConvertToMcePayloadINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4749,8 +5313,8 @@
       "opname": "OpSubgroupAvcRefSetBidirectionalMixDisableINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4758,8 +5322,8 @@
       "opname": "OpSubgroupAvcRefSetBilinearFilterEnableINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4767,8 +5331,8 @@
       "opname": "OpSubgroupAvcRefEvaluateWithSingleReferenceINTEL",
       "grammar": "core",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -4776,8 +5340,8 @@
       "opname": "OpSubgroupAvcRefEvaluateWithDualReferenceINTEL",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -4785,8 +5349,8 @@
       "opname": "OpSubgroupAvcRefEvaluateWithMultiReferenceINTEL",
       "grammar": "core",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -4794,8 +5358,8 @@
       "opname": "OpSubgroupAvcRefEvaluateWithMultiReferenceInterlacedINTEL",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -4803,8 +5367,8 @@
       "opname": "OpSubgroupAvcRefConvertToMceResultINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4812,8 +5376,8 @@
       "opname": "OpSubgroupAvcSicInitializeINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4821,8 +5385,8 @@
       "opname": "OpSubgroupAvcSicConfigureSkcINTEL",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -4830,8 +5394,8 @@
       "opname": "OpSubgroupAvcSicConfigureIpeLumaINTEL",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -4839,8 +5403,8 @@
       "opname": "OpSubgroupAvcSicConfigureIpeLumaChromaINTEL",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -4848,8 +5412,8 @@
       "opname": "OpSubgroupAvcSicGetMotionVectorMaskINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -4857,8 +5421,8 @@
       "opname": "OpSubgroupAvcSicConvertToMcePayloadINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4866,8 +5430,8 @@
       "opname": "OpSubgroupAvcSicSetIntraLumaShapePenaltyINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -4875,8 +5439,8 @@
       "opname": "OpSubgroupAvcSicSetIntraLumaModeCostFunctionINTEL",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -4884,8 +5448,8 @@
       "opname": "OpSubgroupAvcSicSetIntraChromaModeCostFunctionINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -4893,8 +5457,8 @@
       "opname": "OpSubgroupAvcSicSetBilinearFilterEnableINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4902,8 +5466,8 @@
       "opname": "OpSubgroupAvcSicSetSkcForwardTransformEnableINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -4911,8 +5475,8 @@
       "opname": "OpSubgroupAvcSicSetBlockBasedRawSkipSadINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -4920,8 +5484,8 @@
       "opname": "OpSubgroupAvcSicEvaluateIpeINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -4929,8 +5493,8 @@
       "opname": "OpSubgroupAvcSicEvaluateWithSingleReferenceINTEL",
       "grammar": "core",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -4938,8 +5502,8 @@
       "opname": "OpSubgroupAvcSicEvaluateWithDualReferenceINTEL",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -4947,8 +5511,8 @@
       "opname": "OpSubgroupAvcSicEvaluateWithMultiReferenceINTEL",
       "grammar": "core",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -4956,8 +5520,8 @@
       "opname": "OpSubgroupAvcSicEvaluateWithMultiReferenceInterlacedINTEL",
       "grammar": "core",
       "properties": [
-        "multinary",
         "allocates-id",
+        "multinary",
         "result-type"
       ]
     },
@@ -4965,8 +5529,8 @@
       "opname": "OpSubgroupAvcSicConvertToMceResultINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4974,8 +5538,8 @@
       "opname": "OpSubgroupAvcSicGetIpeLumaShapeINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4983,8 +5547,8 @@
       "opname": "OpSubgroupAvcSicGetBestIpeLumaDistortionINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -4992,8 +5556,8 @@
       "opname": "OpSubgroupAvcSicGetBestIpeChromaDistortionINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5001,8 +5565,8 @@
       "opname": "OpSubgroupAvcSicGetPackedIpeLumaModesINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5010,8 +5574,8 @@
       "opname": "OpSubgroupAvcSicGetIpeChromaModeINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5019,8 +5583,8 @@
       "opname": "OpSubgroupAvcSicGetPackedSkcLumaCountThresholdINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5028,8 +5592,8 @@
       "opname": "OpSubgroupAvcSicGetPackedSkcLumaSumThresholdINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5037,8 +5601,8 @@
       "opname": "OpSubgroupAvcSicGetInterRawSadsINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5046,8 +5610,8 @@
       "opname": "OpVariableLengthArrayINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5071,8 +5635,8 @@
       "opname": "OpArbitraryFloatSinCosPiINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5080,8 +5644,8 @@
       "opname": "OpArbitraryFloatCastINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5089,8 +5653,8 @@
       "opname": "OpArbitraryFloatCastFromIntINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5098,8 +5662,8 @@
       "opname": "OpArbitraryFloatCastToIntINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5107,8 +5671,8 @@
       "opname": "OpArbitraryFloatAddINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5116,8 +5680,8 @@
       "opname": "OpArbitraryFloatSubINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5125,8 +5689,8 @@
       "opname": "OpArbitraryFloatMulINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5134,8 +5698,8 @@
       "opname": "OpArbitraryFloatDivINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5143,8 +5707,8 @@
       "opname": "OpArbitraryFloatGTINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5152,8 +5716,8 @@
       "opname": "OpArbitraryFloatGEINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5161,8 +5725,8 @@
       "opname": "OpArbitraryFloatLTINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5170,8 +5734,8 @@
       "opname": "OpArbitraryFloatLEINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5179,8 +5743,8 @@
       "opname": "OpArbitraryFloatEQINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5188,8 +5752,8 @@
       "opname": "OpArbitraryFloatRecipINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5197,8 +5761,8 @@
       "opname": "OpArbitraryFloatRSqrtINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5206,8 +5770,8 @@
       "opname": "OpArbitraryFloatCbrtINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5215,8 +5779,8 @@
       "opname": "OpArbitraryFloatHypotINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5224,8 +5788,8 @@
       "opname": "OpArbitraryFloatSqrtINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5233,8 +5797,8 @@
       "opname": "OpArbitraryFloatLogINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5242,8 +5806,8 @@
       "opname": "OpArbitraryFloatLog2INTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5251,8 +5815,8 @@
       "opname": "OpArbitraryFloatLog10INTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5260,8 +5824,8 @@
       "opname": "OpArbitraryFloatLog1pINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5269,8 +5833,8 @@
       "opname": "OpArbitraryFloatExpINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5278,8 +5842,8 @@
       "opname": "OpArbitraryFloatExp2INTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5287,8 +5851,8 @@
       "opname": "OpArbitraryFloatExp10INTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5296,8 +5860,8 @@
       "opname": "OpArbitraryFloatExpm1INTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5305,8 +5869,8 @@
       "opname": "OpArbitraryFloatSinINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5314,8 +5878,8 @@
       "opname": "OpArbitraryFloatCosINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5323,8 +5887,8 @@
       "opname": "OpArbitraryFloatSinCosINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5332,8 +5896,8 @@
       "opname": "OpArbitraryFloatSinPiINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5341,8 +5905,8 @@
       "opname": "OpArbitraryFloatCosPiINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5350,8 +5914,8 @@
       "opname": "OpArbitraryFloatASinINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5359,8 +5923,8 @@
       "opname": "OpArbitraryFloatASinPiINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5368,8 +5932,8 @@
       "opname": "OpArbitraryFloatACosINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5377,8 +5941,8 @@
       "opname": "OpArbitraryFloatACosPiINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5386,8 +5950,8 @@
       "opname": "OpArbitraryFloatATanINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5395,8 +5959,8 @@
       "opname": "OpArbitraryFloatATanPiINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5404,8 +5968,8 @@
       "opname": "OpArbitraryFloatATan2INTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5413,8 +5977,8 @@
       "opname": "OpArbitraryFloatPowINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5422,8 +5986,8 @@
       "opname": "OpArbitraryFloatPowRINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5431,17 +5995,38 @@
       "opname": "OpArbitraryFloatPowNINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
+      ]
+    },
+    {
+      "opname": "OpAliasDomainDeclINTEL",
+      "grammar": "core",
+      "properties": [
+        "allocates-id"
+      ]
+    },
+    {
+      "opname": "OpAliasScopeDeclINTEL",
+      "grammar": "core",
+      "properties": [
+        "allocates-id"
+      ]
+    },
+    {
+      "opname": "OpAliasScopeListDeclINTEL",
+      "grammar": "core",
+      "properties": [
+        "allocates-id"
       ]
     },
     {
       "opname": "OpFixedSqrtINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -5449,8 +6034,8 @@
       "opname": "OpFixedRecipINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -5458,8 +6043,8 @@
       "opname": "OpFixedRsqrtINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -5467,8 +6052,8 @@
       "opname": "OpFixedSinINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -5476,8 +6061,8 @@
       "opname": "OpFixedCosINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -5485,8 +6070,8 @@
       "opname": "OpFixedSinCosINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -5494,8 +6079,8 @@
       "opname": "OpFixedSinPiINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -5503,8 +6088,8 @@
       "opname": "OpFixedCosPiINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -5512,8 +6097,8 @@
       "opname": "OpFixedSinCosPiINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -5521,8 +6106,8 @@
       "opname": "OpFixedLogINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -5530,8 +6115,8 @@
       "opname": "OpFixedExpINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -5539,8 +6124,8 @@
       "opname": "OpPtrCastToCrossWorkgroupINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5548,8 +6133,8 @@
       "opname": "OpCrossWorkgroupCastToPtrINTEL",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5557,8 +6142,8 @@
       "opname": "OpReadPipeBlockingINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -5566,8 +6151,8 @@
       "opname": "OpWritePipeBlockingINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -5575,8 +6160,8 @@
       "opname": "OpFPGARegINTEL",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -5584,8 +6169,8 @@
       "opname": "OpRayQueryGetRayTMinKHR",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5593,8 +6178,8 @@
       "opname": "OpRayQueryGetRayFlagsKHR",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5602,8 +6187,8 @@
       "opname": "OpRayQueryGetIntersectionTKHR",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -5611,8 +6196,8 @@
       "opname": "OpRayQueryGetIntersectionInstanceCustomIndexKHR",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -5620,8 +6205,8 @@
       "opname": "OpRayQueryGetIntersectionInstanceIdKHR",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -5629,8 +6214,8 @@
       "opname": "OpRayQueryGetIntersectionInstanceShaderBindingTableRecordOffsetKHR",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -5638,8 +6223,8 @@
       "opname": "OpRayQueryGetIntersectionGeometryIndexKHR",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -5647,8 +6232,8 @@
       "opname": "OpRayQueryGetIntersectionPrimitiveIndexKHR",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -5656,8 +6241,8 @@
       "opname": "OpRayQueryGetIntersectionBarycentricsKHR",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -5665,8 +6250,8 @@
       "opname": "OpRayQueryGetIntersectionFrontFaceKHR",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -5674,8 +6259,8 @@
       "opname": "OpRayQueryGetIntersectionCandidateAABBOpaqueKHR",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5683,8 +6268,8 @@
       "opname": "OpRayQueryGetIntersectionObjectRayDirectionKHR",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -5692,8 +6277,8 @@
       "opname": "OpRayQueryGetIntersectionObjectRayOriginKHR",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -5701,8 +6286,8 @@
       "opname": "OpRayQueryGetWorldRayDirectionKHR",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5710,8 +6295,8 @@
       "opname": "OpRayQueryGetWorldRayOriginKHR",
       "grammar": "core",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5719,8 +6304,8 @@
       "opname": "OpRayQueryGetIntersectionObjectToWorldKHR",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -5728,8 +6313,8 @@
       "opname": "OpRayQueryGetIntersectionWorldToObjectKHR",
       "grammar": "core",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -5737,9 +6322,9 @@
       "opname": "OpAtomicFAddEXT",
       "grammar": "core",
       "properties": [
+        "allocates-id",
         "atomic-op",
         "unary",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -5775,11 +6360,150 @@
       ]
     },
     {
+      "opname": "OpCompositeConstructContinuedINTEL",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpConvertFToBF16INTEL",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "unary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpConvertBF16ToFINTEL",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "unary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpControlBarrierArriveINTEL",
+      "grammar": "core",
+      "properties": [
+        "action",
+        "scoped"
+      ]
+    },
+    {
+      "opname": "OpControlBarrierWaitINTEL",
+      "grammar": "core",
+      "properties": [
+        "action",
+        "scoped"
+      ]
+    },
+    {
+      "opname": "OpGroupIMulKHR",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "grouped",
+        "scoped",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpGroupFMulKHR",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "grouped",
+        "scoped",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpGroupBitwiseAndKHR",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "grouped",
+        "scoped",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpGroupBitwiseOrKHR",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "grouped",
+        "scoped",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpGroupBitwiseXorKHR",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "grouped",
+        "scoped",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpGroupLogicalAndKHR",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "grouped",
+        "scoped",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpGroupLogicalOrKHR",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "grouped",
+        "scoped",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpGroupLogicalXorKHR",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "grouped",
+        "scoped",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpMaskedGatherINTEL",
+      "grammar": "core",
+      "properties": [
+        "allocates-id",
+        "unary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "OpMaskedScatterINTEL",
+      "grammar": "core",
+      "properties": [
+        "binary",
+        "action"
+      ]
+    },
+    {
       "opname": "Round",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5787,8 +6511,8 @@
       "opname": "RoundEven",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5796,8 +6520,8 @@
       "opname": "Trunc",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5805,8 +6529,8 @@
       "opname": "FAbs",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5814,8 +6538,8 @@
       "opname": "SAbs",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5823,8 +6547,8 @@
       "opname": "FSign",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5832,8 +6556,8 @@
       "opname": "SSign",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5841,8 +6565,8 @@
       "opname": "Floor",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5850,8 +6574,8 @@
       "opname": "Ceil",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5859,8 +6583,8 @@
       "opname": "Fract",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5868,8 +6592,8 @@
       "opname": "Radians",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5877,8 +6601,8 @@
       "opname": "Degrees",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5886,8 +6610,8 @@
       "opname": "Sin",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5895,8 +6619,8 @@
       "opname": "Cos",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5904,8 +6628,8 @@
       "opname": "Tan",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5913,8 +6637,8 @@
       "opname": "Asin",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5922,8 +6646,8 @@
       "opname": "Acos",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5931,8 +6655,8 @@
       "opname": "Atan",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5940,8 +6664,8 @@
       "opname": "Sinh",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5949,8 +6673,8 @@
       "opname": "Cosh",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5958,8 +6682,8 @@
       "opname": "Tanh",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5967,8 +6691,8 @@
       "opname": "Asinh",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5976,8 +6700,8 @@
       "opname": "Acosh",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5985,8 +6709,8 @@
       "opname": "Atanh",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -5994,8 +6718,8 @@
       "opname": "Atan2",
       "grammar": "GLSL.std.450",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -6003,8 +6727,8 @@
       "opname": "Pow",
       "grammar": "GLSL.std.450",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -6012,8 +6736,8 @@
       "opname": "Exp",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -6021,8 +6745,8 @@
       "opname": "Log",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -6030,8 +6754,8 @@
       "opname": "Exp2",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -6039,8 +6763,8 @@
       "opname": "Log2",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -6048,8 +6772,8 @@
       "opname": "Sqrt",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -6057,8 +6781,8 @@
       "opname": "InverseSqrt",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -6066,8 +6790,8 @@
       "opname": "Determinant",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -6075,8 +6799,8 @@
       "opname": "MatrixInverse",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -6084,8 +6808,8 @@
       "opname": "Modf",
       "grammar": "GLSL.std.450",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -6093,8 +6817,8 @@
       "opname": "ModfStruct",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -6102,8 +6826,8 @@
       "opname": "FMin",
       "grammar": "GLSL.std.450",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -6111,8 +6835,8 @@
       "opname": "UMin",
       "grammar": "GLSL.std.450",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -6120,8 +6844,8 @@
       "opname": "SMin",
       "grammar": "GLSL.std.450",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -6129,8 +6853,8 @@
       "opname": "FMax",
       "grammar": "GLSL.std.450",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -6138,8 +6862,8 @@
       "opname": "UMax",
       "grammar": "GLSL.std.450",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -6147,8 +6871,8 @@
       "opname": "SMax",
       "grammar": "GLSL.std.450",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -6156,8 +6880,8 @@
       "opname": "FClamp",
       "grammar": "GLSL.std.450",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -6165,8 +6889,8 @@
       "opname": "UClamp",
       "grammar": "GLSL.std.450",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -6174,8 +6898,8 @@
       "opname": "SClamp",
       "grammar": "GLSL.std.450",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -6183,8 +6907,8 @@
       "opname": "FMix",
       "grammar": "GLSL.std.450",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -6192,8 +6916,8 @@
       "opname": "IMix",
       "grammar": "GLSL.std.450",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -6201,8 +6925,8 @@
       "opname": "Step",
       "grammar": "GLSL.std.450",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -6210,8 +6934,8 @@
       "opname": "SmoothStep",
       "grammar": "GLSL.std.450",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -6219,8 +6943,8 @@
       "opname": "Fma",
       "grammar": "GLSL.std.450",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -6228,8 +6952,8 @@
       "opname": "Frexp",
       "grammar": "GLSL.std.450",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -6237,8 +6961,8 @@
       "opname": "FrexpStruct",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -6246,8 +6970,8 @@
       "opname": "Ldexp",
       "grammar": "GLSL.std.450",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -6255,8 +6979,8 @@
       "opname": "PackSnorm4x8",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -6264,8 +6988,8 @@
       "opname": "PackUnorm4x8",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -6273,8 +6997,8 @@
       "opname": "PackSnorm2x16",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -6282,8 +7006,8 @@
       "opname": "PackUnorm2x16",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -6291,8 +7015,8 @@
       "opname": "PackHalf2x16",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -6300,8 +7024,8 @@
       "opname": "PackDouble2x32",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -6309,8 +7033,8 @@
       "opname": "UnpackSnorm2x16",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -6318,8 +7042,8 @@
       "opname": "UnpackUnorm2x16",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -6327,8 +7051,8 @@
       "opname": "UnpackHalf2x16",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -6336,8 +7060,8 @@
       "opname": "UnpackSnorm4x8",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -6345,8 +7069,8 @@
       "opname": "UnpackUnorm4x8",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -6354,8 +7078,8 @@
       "opname": "UnpackDouble2x32",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -6363,8 +7087,8 @@
       "opname": "Length",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -6372,8 +7096,8 @@
       "opname": "Distance",
       "grammar": "GLSL.std.450",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -6381,8 +7105,8 @@
       "opname": "Cross",
       "grammar": "GLSL.std.450",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -6390,8 +7114,8 @@
       "opname": "Normalize",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -6399,8 +7123,8 @@
       "opname": "FaceForward",
       "grammar": "GLSL.std.450",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -6408,8 +7132,8 @@
       "opname": "Reflect",
       "grammar": "GLSL.std.450",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -6417,8 +7141,8 @@
       "opname": "Refract",
       "grammar": "GLSL.std.450",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -6426,8 +7150,8 @@
       "opname": "FindILsb",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -6435,8 +7159,8 @@
       "opname": "FindSMsb",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -6444,8 +7168,8 @@
       "opname": "FindUMsb",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -6453,8 +7177,8 @@
       "opname": "InterpolateAtCentroid",
       "grammar": "GLSL.std.450",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -6462,8 +7186,8 @@
       "opname": "InterpolateAtSample",
       "grammar": "GLSL.std.450",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -6471,8 +7195,8 @@
       "opname": "InterpolateAtOffset",
       "grammar": "GLSL.std.450",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -6480,8 +7204,8 @@
       "opname": "NMin",
       "grammar": "GLSL.std.450",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -6489,8 +7213,8 @@
       "opname": "NMax",
       "grammar": "GLSL.std.450",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -6498,8 +7222,8 @@
       "opname": "NClamp",
       "grammar": "GLSL.std.450",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -6507,8 +7231,8 @@
       "opname": "CubeFaceIndexAMD",
       "grammar": "SPV_AMD_gcn_shader",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -6516,8 +7240,8 @@
       "opname": "CubeFaceCoordAMD",
       "grammar": "SPV_AMD_gcn_shader",
       "properties": [
-        "unary",
         "allocates-id",
+        "unary",
         "result-type"
       ]
     },
@@ -6533,8 +7257,8 @@
       "opname": "SwizzleInvocationsAMD",
       "grammar": "SPV_AMD_shader_ballot",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -6542,8 +7266,8 @@
       "opname": "SwizzleInvocationsMaskedAMD",
       "grammar": "SPV_AMD_shader_ballot",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
         "result-type"
       ]
     },
@@ -6551,8 +7275,8 @@
       "opname": "WriteInvocationAMD",
       "grammar": "SPV_AMD_shader_ballot",
       "properties": [
-        "trinary",
         "allocates-id",
+        "trinary",
         "result-type"
       ]
     },
@@ -6560,89 +7284,8 @@
       "opname": "MbcntAMD",
       "grammar": "SPV_AMD_shader_ballot",
       "properties": [
+        "allocates-id",
         "unary",
-        "allocates-id",
-        "result-type"
-      ]
-    },
-    {
-      "opname": "FMin3AMD",
-      "grammar": "SPV_AMD_shader_trinary_minmax",
-      "properties": [
-        "trinary",
-        "allocates-id",
-        "result-type"
-      ]
-    },
-    {
-      "opname": "UMin3AMD",
-      "grammar": "SPV_AMD_shader_trinary_minmax",
-      "properties": [
-        "trinary",
-        "allocates-id",
-        "result-type"
-      ]
-    },
-    {
-      "opname": "SMin3AMD",
-      "grammar": "SPV_AMD_shader_trinary_minmax",
-      "properties": [
-        "trinary",
-        "allocates-id",
-        "result-type"
-      ]
-    },
-    {
-      "opname": "FMax3AMD",
-      "grammar": "SPV_AMD_shader_trinary_minmax",
-      "properties": [
-        "trinary",
-        "allocates-id",
-        "result-type"
-      ]
-    },
-    {
-      "opname": "UMax3AMD",
-      "grammar": "SPV_AMD_shader_trinary_minmax",
-      "properties": [
-        "trinary",
-        "allocates-id",
-        "result-type"
-      ]
-    },
-    {
-      "opname": "SMax3AMD",
-      "grammar": "SPV_AMD_shader_trinary_minmax",
-      "properties": [
-        "trinary",
-        "allocates-id",
-        "result-type"
-      ]
-    },
-    {
-      "opname": "FMid3AMD",
-      "grammar": "SPV_AMD_shader_trinary_minmax",
-      "properties": [
-        "trinary",
-        "allocates-id",
-        "result-type"
-      ]
-    },
-    {
-      "opname": "UMid3AMD",
-      "grammar": "SPV_AMD_shader_trinary_minmax",
-      "properties": [
-        "trinary",
-        "allocates-id",
-        "result-type"
-      ]
-    },
-    {
-      "opname": "SMid3AMD",
-      "grammar": "SPV_AMD_shader_trinary_minmax",
-      "properties": [
-        "trinary",
-        "allocates-id",
         "result-type"
       ]
     },
@@ -6650,10 +7293,94 @@
       "opname": "InterpolateAtVertexAMD",
       "grammar": "SPV_AMD_shader_explicit_vertex_parameter",
       "properties": [
-        "binary",
         "allocates-id",
+        "binary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "FMin3AMD",
+      "grammar": "SPV_AMD_shader_trinary_minmax",
+      "properties": [
+        "allocates-id",
+        "trinary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "UMin3AMD",
+      "grammar": "SPV_AMD_shader_trinary_minmax",
+      "properties": [
+        "allocates-id",
+        "trinary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "SMin3AMD",
+      "grammar": "SPV_AMD_shader_trinary_minmax",
+      "properties": [
+        "allocates-id",
+        "trinary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "FMax3AMD",
+      "grammar": "SPV_AMD_shader_trinary_minmax",
+      "properties": [
+        "allocates-id",
+        "trinary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "UMax3AMD",
+      "grammar": "SPV_AMD_shader_trinary_minmax",
+      "properties": [
+        "allocates-id",
+        "trinary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "SMax3AMD",
+      "grammar": "SPV_AMD_shader_trinary_minmax",
+      "properties": [
+        "allocates-id",
+        "trinary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "FMid3AMD",
+      "grammar": "SPV_AMD_shader_trinary_minmax",
+      "properties": [
+        "allocates-id",
+        "trinary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "UMid3AMD",
+      "grammar": "SPV_AMD_shader_trinary_minmax",
+      "properties": [
+        "allocates-id",
+        "trinary",
+        "result-type"
+      ]
+    },
+    {
+      "opname": "SMid3AMD",
+      "grammar": "SPV_AMD_shader_trinary_minmax",
+      "properties": [
+        "allocates-id",
+        "trinary",
         "result-type"
       ]
     }
+  ],
+  "info": [
+    "Auto generated extended grammar by spirv_meta_data_tools.make_extended_grammar_json_ready_def"
   ]
 }

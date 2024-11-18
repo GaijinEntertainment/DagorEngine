@@ -205,6 +205,7 @@ public:
     uint32_t stencil_ref = 0;
     uint32_t cull = 0;
     uint32_t depth_clip = 0;
+    uint32_t forcedSampleCount = 1;
   };
 
   static MTLDepthStencilDescriptor *depthStateDesc;
@@ -312,7 +313,7 @@ public:
 
   id<MTLBuffer> createBuffer(uint32_t size, uint32_t flags, const char *name = "");
 
-  id<MTLBuffer> AllocateConstants(uint32_t size, int &offset, int sizeLeft = 0)
+  id<MTLBuffer> AllocateConstants(uint32_t size, int &offset, int sizeLeft, const char *name)
   {
     G_ASSERT(size <= RingBufferItem::max_size);
 
@@ -333,12 +334,20 @@ public:
       {
         constant_buffer = constant_buffers_free.back();
         constant_buffers_free.pop_back();
+#if DAGOR_DBGLEVEL > 0
+        [constant_buffer.buf removeAllDebugMarkers];
+#endif
       }
       constant_buffer.offset = 0;
     }
 
     offset = constant_buffer.offset;
     constant_buffer.offset += size;
+
+#if DAGOR_DBGLEVEL > 0
+    G_ASSERT(name);
+    [constant_buffer.buf addDebugMarker:[NSString stringWithUTF8String:name] range:NSMakeRange(offset, size)];
+#endif
 
     return constant_buffer.buf;
   }
@@ -590,6 +599,7 @@ public:
   Program::RenderState cur_rstate;
   id<MTLRenderPipelineState> cur_state;
   Program::RenderState last_rstate;
+  uint32_t forcedSampleCount = 1;
 
   Program *cur_prog;
   id<MTLComputePipelineState> current_cs_pipeline = nil;

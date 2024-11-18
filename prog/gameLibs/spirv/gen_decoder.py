@@ -249,7 +249,8 @@ def make_decoder(language):
   return result
 
 def generate_module_decoder(language, build_cfg):
-  result  = '// this file is auto generated, do not modify\n//-V::1020\n'
+  result  = '// Copyright (C) Gaijin Games KFT.  All rights reserved.\n\n'
+  result += '// auto generated, do not modify\n//-V::1020\n'
   result += '#pragma once\n'
   result += '#include "{}"\n'.format(build_cfg.get('generated-cpp-header-file-name'))
 

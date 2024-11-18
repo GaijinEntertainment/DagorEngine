@@ -1,0 +1,30 @@
+ModuleDependsOnVars = HaveRenderer PhysName ;
+HaveRenderer ?= yes ;
+
+Root    ?= ../../.. ;
+Module = paint_color ;
+Location = prog/daNetGameLibs/$(Module) ;
+local DasModule = daNetGameLibs_paint_color_DAS_pull_AOT ;
+
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/daNetGame
+  $(Root)/prog/daNetGameLibs
+  $(Root)/prog/1stPartyLibs/daScript/include
+;
+
+UseProgLibs =
+;
+
+local AllSrcFolder_DAS =
+;
+
+if $(HaveRenderer) = yes {
+  AllSrcFolder_DAS +=
+    render
+  ;
+}
+
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

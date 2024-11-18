@@ -31,7 +31,8 @@ public:
   ~Picture();
 
   void init(const char *name);
-  void onLoaded(PICTUREID pid, TEXTUREID tid, const Point2 &tcLt, const Point2 &tcRb, const Point2 &picture_sz);
+  void onLoaded(PICTUREID pid, TEXTUREID tid, d3d::SamplerHandle smp, const Point2 &tcLt, const Point2 &tcRb,
+    const Point2 &picture_sz);
   void onAsyncLoadStopped(AsyncLoadRequest *req);
 
   IGuiScene *getScene() const;

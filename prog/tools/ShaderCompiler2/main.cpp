@@ -850,6 +850,17 @@ static bool fatal_handler(const char *msg, const char *call_stack, const char *f
 }
 #endif
 
+struct StdoutBlkErrReporter : public DataBlock::IErrorReporterPipe
+{
+  void reportError(const char *err, bool fat) override { fputs(String(0, "[%c] %s\n", fat ? 'F' : 'E', err).str(), stdout); }
+};
+static bool load_blk_with_report(DataBlock &blk, const char *fn)
+{
+  StdoutBlkErrReporter rep;
+  DataBlock::InstallReporterRAII irep(&rep);
+  return dblk::load(blk, fn);
+}
+
 #if _TARGET_PC_WIN
 static BOOL WINAPI ctrl_break_handler(_In_ DWORD dwCtrlType)
 {
@@ -1356,12 +1367,11 @@ int DagorWinMain(bool debugmode)
       AtomicPrintfMutex::init(dd_get_fname(__argv[0]), filename);
 
     // read data block with files
-    DataBlock blk;
     const String cfgDir(getDir(filename));
-    if (!blk.load(filename))
+    DataBlock blk;
+    if (!load_blk_with_report(blk, filename))
     {
-      printf("\n[FATAL ERROR] Cannot open BLK file '%s' (file not found or syntax error, see log for details)\n", filename);
-      showUsage();
+      printf("\n[FATAL ERROR] Cannot open BLK file '%s' (file not found or syntax error, or unresolved includes)\n", filename);
       return 13;
     }
     if (const DataBlock *b = blk.getBlockByName("renderStages"))

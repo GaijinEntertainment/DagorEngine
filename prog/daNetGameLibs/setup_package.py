@@ -10,7 +10,7 @@ if PY_VER[0] < 3 or PY_VER[1] < 6: #fstrings
   sys.exit(1)
 
 def setup_package(libsListOrPath=None, basePath=None, dngLibsPath=None,
-  vromfsOutputPath=None, templateOutputPath=None, dasInitPath=None, jamPath=None, jamPathAot=None, shadersPath=None):
+  vromfsOutputPath=None, vromfsName=None, templateOutputPath=None, dasInitPath=None, jamPath=None, jamPathAot=None, shadersPath=None):
 
   if libsListOrPath is None or basePath is None or dngLibsPath is None:
     print("libsListOrPath, basePath and dngLibsPath is required. \n  Usage: setup_package(libsListOrPath=, basePath=, dngLibsPath=)")
@@ -29,10 +29,11 @@ def setup_package(libsListOrPath=None, basePath=None, dngLibsPath=None,
   jamPathAot = jamPathAot or os.path.join(basePath, "aot", "dng_libs.jam")
   print("path to jam aot output file", jamPathAot)
   shadersPath = shadersPath or os.path.join(basePath, "shaders", "dng_libs_shaders.blk")
+  shadersPathDir = os.path.dirname(shadersPath)
   print("path to shader list output file", shadersPath)
 
-  C_LIKE_CODEGEN_COMMENT = "\n//THIS FILE CREATED BY CODEGEN, DON'T CHANGE THIS!!! USE setup_dng_libs.bat INSTEAD!!!\n\n"
-  PYTHON_LIKE_CODEGEN_COMMENT = "\n#THIS FILE CREATED BY CODEGEN, DON'T CHANGE THIS!!! USE setup_dng_libs.bat INSTEAD!!!\n\n"
+  C_LIKE_CODEGEN_COMMENT = "\n//THIS FILE CREATED BY CODEGEN, DON'T CHANGE THIS!!! USE setup_dng_libs.py INSTEAD!!!\n\n"
+  PYTHON_LIKE_CODEGEN_COMMENT = "\n#THIS FILE CREATED BY CODEGEN, DON'T CHANGE THIS!!! USE setup_dng_libs.py INSTEAD!!!\n\n"
 
   vromfsOutput = open(vromfsOutputPath, 'w')
   vromfsOutput.write(C_LIKE_CODEGEN_COMMENT)
@@ -56,7 +57,7 @@ def setup_package(libsListOrPath=None, basePath=None, dngLibsPath=None,
   shaders = open(shadersPath, 'w')
   shaders.write(C_LIKE_CODEGEN_COMMENT)
 
-  vromfsName = "danetlibs.vromfs.bin"
+  vromfsName = vromfsName or "danetlibs.vromfs.bin"
 
   extForVromfs = ['.blk', '.das', '.das_project']
 
@@ -84,7 +85,8 @@ def setup_package(libsListOrPath=None, basePath=None, dngLibsPath=None,
 
     shaderBlockFile = os.path.join(libDirectory, '_shaders.blk').replace('\\', '/')
     if os.path.exists(shaderBlockFile):
-      shaders.write(f'include \"{shaderBlockFile}\"\n')
+      relToShadersPath = os.path.join(os.path.relpath(libDirectory, start = shadersPathDir), '_shaders.blk').replace('\\', '/')
+      shaders.write(f"include \"{relToShadersPath}\"\n")
 
     templateFolder = os.path.join(libDirectory, 'templates')
     if os.path.isdir(templateFolder):

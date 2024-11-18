@@ -2,7 +2,7 @@ include "rendinst_opaque_inc.dshl"
 include "normaldetail.dshl"
 include "projectiveDecals/projective_decals_common.dshl"
 
-shader rendinst_projective_decal // blood
+shader rendinst_projective_decal
 {
   if (instancing_type != tm_vb)
   {
@@ -18,6 +18,9 @@ shader rendinst_projective_decal // blood
   static int draw_order = 0 no_warnings;
   static float4 decal_tc = (0, 0, 1, 1);
   static float4 box_scale = (1, 1, 1, 0);
+
+  static int mapping_mode = 0;
+  interval mapping_mode: cone_mapping < 1, planar_mapping_fade;
 
   texture tex = material.texture.diffuse;
   texture normal = material.texture[2];
@@ -126,7 +129,10 @@ shader rendinst_projective_decal // blood
       half3 worldPos = world_view_pos - pointToEye;
       half3 decalTC = get_decal_tex_coord_from_world_pos(worldPos, input.center, input.normal, input.tangent);
       decalTC *= input.invBoxSize.xzy;
-      decalTC.xy /= saturate(1 - abs(decalTC.z) * 2);
+      half depthScale = saturate(1 - abs(decalTC.z) * 2);
+      ##if mapping_mode == cone_mapping
+        decalTC.xy /= depthScale;
+      ##endif
       if (max(abs(decalTC.x), abs(decalTC.y)) > 0.5)
         discard;
       decalTC.xy = decalTC.xy + 0.5;
@@ -134,6 +140,9 @@ shader rendinst_projective_decal // blood
 
       half4 diffuse = tex2DBindless(get_diffuse_tex(), decalTC.xy);
       half alpha = diffuse.a;
+      ##if mapping_mode == planar_mapping_fade
+        alpha *= depthScale;
+      ##endif
       half3 surfaceNormal = normalize(cross(ddx(pointToEye), ddy(pointToEye)));
       half dotNormal = dot(surfaceNormal, input.normal);
       // Hide decal on opposite side of wall/floor

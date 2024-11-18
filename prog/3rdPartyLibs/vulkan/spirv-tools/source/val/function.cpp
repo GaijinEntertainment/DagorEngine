@@ -18,7 +18,6 @@
 #include <cassert>
 #include <sstream>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 
 #include "source/cfa.h"
@@ -33,7 +32,7 @@ namespace val {
 static const uint32_t kInvalidId = 0x400000;
 
 Function::Function(uint32_t function_id, uint32_t result_type_id,
-                   SpvFunctionControlMask function_control,
+                   spv::FunctionControlMask function_control,
                    uint32_t function_type_id)
     : id_(function_id),
       function_type_id_(function_type_id),
@@ -57,7 +56,7 @@ spv_result_t Function::RegisterFunctionParameter(uint32_t parameter_id,
                                                  uint32_t type_id) {
   assert(current_block_ == nullptr &&
          "RegisterFunctionParameter can only be called when parsing the binary "
-         "ouside of a block");
+         "outside of a block");
   // TODO(umar): Validate function parameter type order and count
   // TODO(umar): Use these variables to validate parameter type
   (void)parameter_id;
@@ -73,6 +72,8 @@ spv_result_t Function::RegisterLoopMerge(uint32_t merge_id,
   BasicBlock& continue_target_block = blocks_.at(continue_id);
   assert(current_block_ &&
          "RegisterLoopMerge must be called when called within a block");
+  current_block_->RegisterStructuralSuccessor(&merge_block);
+  current_block_->RegisterStructuralSuccessor(&continue_target_block);
 
   current_block_->set_type(kBlockTypeLoop);
   merge_block.set_type(kBlockTypeMerge);
@@ -101,6 +102,7 @@ spv_result_t Function::RegisterSelectionMerge(uint32_t merge_id) {
   current_block_->set_type(kBlockTypeSelection);
   merge_block.set_type(kBlockTypeMerge);
   merge_block_header_[&merge_block] = current_block_;
+  current_block_->RegisterStructuralSuccessor(&merge_block);
 
   AddConstruct({ConstructType::kSelection, current_block(), &merge_block});
 
@@ -130,7 +132,7 @@ spv_result_t Function::RegisterBlock(uint32_t block_id, bool is_definition) {
     undefined_blocks_.erase(block_id);
     current_block_ = &inserted_block->second;
     ordered_blocks_.push_back(current_block_);
-  } else if (success) {  // Block doesn't exsist but this is not a definition
+  } else if (success) {  // Block doesn't exist but this is not a definition
     undefined_blocks_.insert(block_id);
   }
 
@@ -251,16 +253,6 @@ Function::GetBlocksFunction Function::AugmentedCFGSuccessorsFunction() const {
   };
 }
 
-Function::GetBlocksFunction
-Function::AugmentedCFGSuccessorsFunctionIncludingHeaderToContinueEdge() const {
-  return [this](const BasicBlock* block) {
-    auto where = loop_header_successors_plus_continue_target_map_.find(block);
-    return where == loop_header_successors_plus_continue_target_map_.end()
-               ? AugmentedCFGSuccessorsFunction()(block)
-               : &(*where).second;
-  };
-}
-
 Function::GetBlocksFunction Function::AugmentedCFGPredecessorsFunction() const {
   return [this](const BasicBlock* block) {
     auto where = augmented_predecessors_map_.find(block);
@@ -269,11 +261,35 @@ Function::GetBlocksFunction Function::AugmentedCFGPredecessorsFunction() const {
   };
 }
 
+Function::GetBlocksFunction Function::AugmentedStructuralCFGSuccessorsFunction()
+    const {
+  return [this](const BasicBlock* block) {
+    auto where = augmented_successors_map_.find(block);
+    return where == augmented_successors_map_.end()
+               ? block->structural_successors()
+               : &(*where).second;
+  };
+}
+
+Function::GetBlocksFunction
+Function::AugmentedStructuralCFGPredecessorsFunction() const {
+  return [this](const BasicBlock* block) {
+    auto where = augmented_predecessors_map_.find(block);
+    return where == augmented_predecessors_map_.end()
+               ? block->structural_predecessors()
+               : &(*where).second;
+  };
+}
+
 void Function::ComputeAugmentedCFG() {
   // Compute the successors of the pseudo-entry block, and
   // the predecessors of the pseudo exit block.
-  auto succ_func = [](const BasicBlock* b) { return b->successors(); };
-  auto pred_func = [](const BasicBlock* b) { return b->predecessors(); };
+  auto succ_func = [](const BasicBlock* b) {
+    return b->structural_successors();
+  };
+  auto pred_func = [](const BasicBlock* b) {
+    return b->structural_predecessors();
+  };
   CFA<BasicBlock>::ComputeAugmentedCFG(
       ordered_blocks_, &pseudo_entry_block_, &pseudo_exit_block_,
       &augmented_successors_map_, &augmented_predecessors_map_, succ_func,
@@ -354,10 +370,10 @@ int Function::GetBlockDepth(BasicBlock* bb) {
   return block_depth_[bb];
 }
 
-void Function::RegisterExecutionModelLimitation(SpvExecutionModel model,
+void Function::RegisterExecutionModelLimitation(spv::ExecutionModel model,
                                                 const std::string& message) {
   execution_model_limitations_.push_back(
-      [model, message](SpvExecutionModel in_model, std::string* out_message) {
+      [model, message](spv::ExecutionModel in_model, std::string* out_message) {
         if (model != in_model) {
           if (out_message) {
             *out_message = message;
@@ -368,7 +384,7 @@ void Function::RegisterExecutionModelLimitation(SpvExecutionModel model,
       });
 }
 
-bool Function::IsCompatibleWithExecutionModel(SpvExecutionModel model,
+bool Function::IsCompatibleWithExecutionModel(spv::ExecutionModel model,
                                               std::string* reason) const {
   bool return_value = true;
   std::stringstream ss_reason;

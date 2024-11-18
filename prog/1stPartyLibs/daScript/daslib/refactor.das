@@ -52,16 +52,16 @@ class ExtractMethodMacro : AstFunctionAnnotation
         if !(call.arguments[0] is ExprConstString)
             print("extract_method: first argument must be a string literal")
             return false
-        var capture <- capture_block(call.arguments[1])
-        sort(capture) <| $ ( a,b ) => string(a.variable.name) < string(b.variable.name)
+        var captured <- capture_block(call.arguments[1])
+        sort(captured) <| $ ( a,b ) => string(a.variable.name) < string(b.variable.name)
         var call_name = string((call.arguments[0] as ExprConstString).value)
         let function_declaration = build_string <| $ ( writer )
             writer |> write ( "def ")
             writer |> write ( call_name )
-            if length(capture) != 0
+            if length(captured) != 0
                 writer |> write ( " ( " )
                 var first = true
-                for v in capture
+                for v in captured
                     if first
                         first = false
                     else
@@ -78,9 +78,9 @@ class ExtractMethodMacro : AstFunctionAnnotation
         let call_expression = build_string <| $ ( writer )
             writer |> write ( call_name )
             writer |> write ( "(" )
-            if length(capture) != 0
+            if length(captured) != 0
                 var first = true
-                for v in capture
+                for v in captured
                     if first
                         first = false
                     else

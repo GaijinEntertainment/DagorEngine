@@ -22,8 +22,6 @@ interval mips_cnt : one < 2, two < 3, three < 4, four;
 shader local_tone_mapping_downsample
 {
   ENABLE_ASSERT(cs)
-  INIT_EXPOSURE(cs)
-  USE_EXPOSURE(cs)
   INIT_BLOOM(cs)
   USE_BLOOM(cs)
   INIT_ZNZFAR_STAGE(cs)
@@ -68,7 +66,7 @@ shader local_tone_mapping_downsample
 
     float3 compute_weights(float3 exposures)
     {
-      float3 weights = float3(exp(-0.5 * pow2(exposures - linear_to_log(middle_luminance * getPrevExposureRatio())) * sigma_sq));
+      float3 weights = float3(exp(-0.5 * pow2(exposures - linear_to_log(middle_luminance)) * sigma_sq));
       return weights / (dot(weights, float3(1, 1, 1)) + 0.00001);
     }
 
@@ -76,7 +74,6 @@ shader local_tone_mapping_downsample
     {
       apply_dof(uv, color);
       apply_bloom(uv, color);
-      color *= getPrevExposureRatio();
       float highlights = linear_to_log(luminance(color * highlights_multiplier));
       float midtones = linear_to_log(luminance(color));
       float shadows = linear_to_log(luminance(color * shadows_multiplier));

@@ -246,19 +246,11 @@ hlsl (ps) {
 
       float alpha = saturate(bloodIntensity * blood_brightness);
 
-  ##if blood_wound_high_quality == no
-      float3 bloodColor = high_intensity_blood.rgb * distFactor;
-      diffuse_color = lerp(diffuse_color,  bloodColor, alpha);
-
-      float bloodSmoothness = high_intensity_blood.a;
-      smoothness = lerp(smoothness, bloodSmoothness, alpha);
-  ##else
-      float3 bloodColor = wet_blood_color * distFactor;
+      float3 bloodColor = blood_wound_color_high_intensity * distFactor;
 
       diffuse_color = lerp(diffuse_color,  diffuse_color * bloodColor, alpha);
       float porosity = get_porosity_by_microdetail_base(micro_detail_layer);
       smoothness = lerp(smoothness, 0.9, (1.0 - porosity) * alpha);
-  ##endif
 
       float3 bloodNorm = lerp(detailed_normal_map, original_normalmap, 0.5);
       detailed_normal_map = lerp(detailed_normal_map, bloodNorm, alpha);
@@ -340,43 +332,48 @@ hlsl(ps) {
     return abs (floor(f + eps) - f) <= eps;
   }
 
-##if blood_wound_high_quality == yes
-  void apply_blood_material(float thickness, float edge_closeness, float drying_time, float porosity,
+  void apply_blood_material(float thickness, float edge_closeness, float porosity,
                               float3 blood_normal, inout float3 normal,
                               inout float3 albedo, inout float smoothness, inout float reflectance)
   {
-    thickness = min(thickness, blood_wound_max_thickness);
+    bool isPuddleHole = thickness >= blood_wound_puddle_begin_thickness;
+    float materialReflectance = lerp(blood_wound_low_porosity_reflectance, min(reflectance, blood_wound_low_porosity_reflectance), porosity);
+    float3 materialNormal = lerp(blood_normal, normal, porosity);
+    float materialSmoothness = lerp(1.0, smoothness, porosity);
 
-    float3 bloodColor = lerp(wet_blood_color, dry_blood_color, drying_time)
-                      * (1.0 - thickness);
+    BRANCH
+    if (isPuddleHole)
+    {
+      float colorT = (thickness - blood_wound_puddle_begin_thickness) / one_minus_blood_puddle_begin_thickness;
+      float3 bloodColor = lerp(blood_wound_meat_color_high_intensity, blood_wound_meat_color_low_intensity, colorT);
 
-    bool isPuddleHole = thickness >= blood_wound_opaque_thickness;
+      float edgeT = saturate((blood_wound_puddle_edge_ending_thickness - thickness) / (blood_wound_puddle_edge_thickness_width + 0.0001));
+      edgeT = pow3(edgeT);
+      float3 bloodOnMaterialColor = albedo * blood_wound_color_low_intensity;
+      float3 bloodAlbedo = lerp(bloodColor, bloodOnMaterialColor, edgeT);
 
-    float thicknessDrying = max(0.5, 1.0 - drying_time);
-    thickness *= thicknessDrying;
+      albedo = bloodAlbedo;
+      smoothness = lerp(blood_wound_meat_smoothness, materialSmoothness, edgeT);
+      reflectance = lerp(blood_wound_meat_reflectance, materialReflectance, edgeT);
+      normal = lerp(blood_normal, materialNormal, edgeT);
+    }
+    else
+    {
+      float edgeClosenessWithPorosity = edge_closeness * porosity;
+      float colorT = thickness / blood_wound_puddle_begin_thickness;
 
-    float3 opacityColor = lerp(bloodColor.rrr, 1.0.xxx, edge_closeness);
-    float3 bloodAlbedo = lerp(bloodColor, opacityColor, edge_closeness * drying_time)
-                       * albedo;
-    float3 opaqueColor = float3(0.0007,0,0);
+      float3 bloodColor = lerp(blood_wound_color_high_intensity, blood_wound_color_low_intensity, colorT);
+      float3 opacityColor = lerp(bloodColor.rrr, 1.0.xxx, edgeClosenessWithPorosity);
+      float3 bloodAlbedo = lerp(bloodColor, opacityColor, edgeClosenessWithPorosity);
 
-    float bloodOpacity = saturate((thickness - edge_closeness - blood_wound_opaque_thickness) / blood_wound_max_thickness_minus_opaque_thickness);
-    albedo = lerp(bloodAlbedo, opaqueColor, bloodOpacity);
+      float darkAlbedoCompensationT = blood_wound_dark_albedo_compensation_factor * (1.0 - porosity);
+      albedo = lerp(bloodAlbedo * albedo, bloodAlbedo, darkAlbedoCompensationT);
 
-    float invPorosity = 1.0-porosity;
-    float lowWetnessBlend = invPorosity * lerp(1.0, 0.05, drying_time);
-    smoothness = thickness < blood_wound_high_wetness_thickness
-               ? lerp(smoothness, 0.9, lowWetnessBlend)
-               : 0.9;
-
-    reflectance = lerp(reflectance, 0.19, lowWetnessBlend);
-
-    float normalBlend = isPuddleHole
-                      ? 1.0
-                      : max(edge_closeness, thickness) * invPorosity;
-    normal = lerp(normal, blood_normal, normalBlend);
+      reflectance = materialReflectance;
+      smoothness = materialSmoothness;
+      normal = materialNormal;
+    }
   }
-##endif
 
   void apply_blood_decal(float4 decal_tc, float start_time, uint tex_index, float3 frag_norm,
                           int micro_detail_layer,
@@ -395,24 +392,6 @@ hlsl(ps) {
       float time = current_time - start_time;
       float bloody_time = time_wetness_bloody_time.y;
 
-##if blood_wound_high_quality == no
-      time =  saturate(bloody_time * time);
-      float time_func = 1 - (1 - blood.r) / (time + eps);
-      const float brightnessDepthFactor = 2.5;
-      const float brightnessTimeFactor = 2.0;
-      float depth_factor = saturate(brightnessDepthFactor * (1 - length(decal_tc.xyz)));
-      float time_factor = saturate(brightnessTimeFactor * time_func);
-
-      float alpha = depth_factor * time_factor;
-      float bloodIntensive = blood.b;
-      float4 bloodColorSmoothness = lerp(low_intensity_blood, high_intensity_blood, bloodIntensive);
-      bloodColorSmoothness = lerp(float4(diffuse_color, smoothness), bloodColorSmoothness, alpha);
-
-      diffuse_color = bloodColorSmoothness.rgb;
-      smoothness = bloodColorSmoothness.a;
-      float3 bloodNorm = unpack_ag_normal(blood);
-      detailed_normal_map = lerp(detailed_normal_map, bloodNorm, alpha);
-##else
       float linearTime = saturate(bloody_time * time);
       float flowValue = blood.r;
 
@@ -420,8 +399,7 @@ hlsl(ps) {
       if ((1.0 - linearTime) >= flowValue - 0.1)
         return;
 
-      float dryingTime = saturate(time * blood_wound_drying_time);
-      float borderScale = 4.0;
+      float borderScale = 4.0 * blood_wound_dry_edge_scale;
       float edgeCloseness = 1.0 - saturate((flowValue - (1.0 - linearTime))*borderScale);
 
       float intensity = blood.b;
@@ -429,9 +407,8 @@ hlsl(ps) {
 
       float porosity = get_porosity_by_microdetail_base(micro_detail_layer);
       float3 bloodNormal = unpack_ag_normal(blood);
-      apply_blood_material(thickness, edgeCloseness, dryingTime, porosity, bloodNormal,
+      apply_blood_material(thickness, edgeCloseness, porosity, bloodNormal,
         detailed_normal_map, diffuse_color, smoothness, reflectance);
-##endif
     }
   }
 }

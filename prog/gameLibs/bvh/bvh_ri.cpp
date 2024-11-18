@@ -99,7 +99,6 @@ void teardown_ri_gen();
 
 void teardown()
 {
-  relem_changed_token.~CallbackToken();
   relem_changed_token = CallbackToken();
   RenderableInstanceLodsResource::setImpostorTextureCallback(nullptr);
 

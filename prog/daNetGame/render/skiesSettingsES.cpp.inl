@@ -137,6 +137,20 @@ static __forceinline void strata_clouds_es_event_handler(
   invalidate_skies(skies);
 }
 
+// strata_clouds_texture
+ECS_REQUIRE(ecs::Tag skies_settings_tag)
+ECS_TRACK(*)
+ECS_ON_EVENT(on_appear, SkiesLoaded)
+static void strata_clouds_tex_es(const ecs::Event &, const ecs::string &strata_clouds__tex)
+{
+  DngSkies *skies = get_daskies();
+  if (!skies)
+    return;
+
+  skies->setStrataCloudsTexture(strata_clouds__tex.c_str());
+  invalidate_skies(skies);
+};
+
 
 // clouds_form
 ECS_REQUIRE(ecs::Tag skies_settings_tag)

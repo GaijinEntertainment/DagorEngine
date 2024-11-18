@@ -42,6 +42,7 @@ class IEventList;
 class Element;
 class BaseScriptHandler;
 struct IGuiScene;
+struct PanelSpatialInfo;
 
 enum SceneErrorRenderMode
 {
@@ -204,6 +205,7 @@ public:
   virtual void updateSpatialElements(const VrSceneData &vr_scene) = 0;
   virtual void refreshVrCursorProjections() = 0;
   virtual bool hasAnyPanels() = 0;
+  virtual const darg::PanelSpatialInfo *getPanelSpatialInfo(int id) const = 0;
 
   // Returns true iff panel was hit.
   // TODO: it is awkward tha GUI has to know about the game world...

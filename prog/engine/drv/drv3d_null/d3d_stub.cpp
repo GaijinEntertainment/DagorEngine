@@ -212,13 +212,13 @@ void d3d::insert_wait_on_fence(GPUFENCEHANDLE & /*fence*/, GpuPipeline /*gpu_pip
 bool d3d::set_depth(Texture *tex, DepthAccess) { return false; }
 bool d3d::set_depth(BaseTexture *tex, int, DepthAccess) { return false; }
 bool d3d::set_render_target() { return false; }
-bool d3d::set_render_target(int, Texture *, int level) { return false; }
-bool d3d::set_render_target(int, BaseTexture *, int fc, int level) { return false; }
+bool d3d::set_render_target(int, Texture *, uint8_t level) { return false; }
+bool d3d::set_render_target(int, BaseTexture *, int fc, uint8_t level) { return false; }
 
 void d3d::get_render_target(Driver3dRenderTarget &out_rt) {}
 bool d3d::set_render_target(const Driver3dRenderTarget &rt) { return false; }
 bool d3d::get_target_size(int &w, int &h) { return false; }
-bool d3d::get_render_target_size(int &w, int &h, BaseTexture *rt_tex, int lev) { return false; }
+bool d3d::get_render_target_size(int &w, int &h, BaseTexture *rt_tex, uint8_t level) { return false; }
 
 bool d3d::settm(int which, const Matrix44 *tm) { return false; }
 bool d3d::settm(int which, const TMatrix &tm) { return false; }

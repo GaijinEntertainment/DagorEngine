@@ -1,8 +1,3 @@
-def operator :=(value : auto(T))
-    var res : T
-    res := value
-    return <-res
-
 var
     some_a <- [{ auto[] "test"}]
 

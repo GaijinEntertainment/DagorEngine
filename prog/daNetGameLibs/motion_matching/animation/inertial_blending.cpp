@@ -6,25 +6,19 @@
 #include "animation_sampling.h"
 #include "inertial_blending.h"
 
-void inertialize_pose_transition(BoneInertialInfo &offset,
-  const BoneInertialInfo &current,
-  const BoneInertialInfo &goal,
-  const eastl::bitvector<framemem_allocator> &position_dirty,
-  const eastl::bitvector<framemem_allocator> &rotation_dirty)
+void inertialize_pose_transition(
+  BoneInertialInfo &offset, const BoneInertialInfo &current, const BoneInertialInfo &goal, const dag::Vector<float> &node_weights)
 {
 
   // Transition all the inertializers for each other bone
   for (int i = 0, n = offset.position.size(); i < n; i++)
   {
-    if (position_dirty[i])
+    if (node_weights[i] > 0.0f)
     {
       vec3f goalVelocity = goal.velocity[i];
       inertialize_transition_v3(offset.position[i], offset.velocity[i], current.position[i], current.velocity[i], goal.position[i],
         goalVelocity);
-    }
 
-    if (rotation_dirty[i])
-    {
       vec3f goalAngularVelocity = goal.angular_velocity[i];
       inertialize_transition_q(offset.rotation[i], offset.angular_velocity[i], current.rotation[i], current.angular_velocity[i],
         goal.rotation[i], goalAngularVelocity);
@@ -54,12 +48,7 @@ void inertialize_pose_update(BoneInertialInfo &result,
   }
 }
 
-void apply_root_motion_correction(float t,
-  const AnimationClip &clip,
-  dag::Index16 root_idx,
-  BoneInertialInfo &info,
-  const eastl::bitvector<framemem_allocator> &position_dirty,
-  const eastl::bitvector<framemem_allocator> &rotation_dirty)
+void apply_root_motion_correction(float t, const AnimationClip &clip, dag::Index16 root_idx, BoneInertialInfo &info)
 {
   if (clip.inPlaceAnimation)
     return;
@@ -67,22 +56,13 @@ void apply_root_motion_correction(float t,
   RootMotion rootTm = lerp_root_motion(clip, t);
   quat4f invRot = v_quat_conjugate(rootTm.rotation);
 
-  if (position_dirty[rootId])
-  {
-    vec3f pos = v_quat_mul_vec3(invRot, v_sub(info.position[rootId], rootTm.translation));
-    info.position[rootId] = pos;
-    info.velocity[rootId] = v_quat_mul_vec3(invRot, info.velocity[rootId]);
-  }
-
-  if (rotation_dirty[rootId])
-    info.rotation[rootId] = v_norm4(v_quat_mul_quat(invRot, info.rotation[rootId]));
+  vec3f pos = v_quat_mul_vec3(invRot, v_sub(info.position[rootId], rootTm.translation));
+  info.position[rootId] = pos;
+  info.velocity[rootId] = v_quat_mul_vec3(invRot, info.velocity[rootId]);
+  info.rotation[rootId] = v_norm4(v_quat_mul_quat(invRot, info.rotation[rootId]));
 }
 
-void extract_frame_info(float t,
-  const AnimationClip &clip,
-  BoneInertialInfo &info,
-  eastl::bitvector<framemem_allocator> &position_dirty,
-  eastl::bitvector<framemem_allocator> &rotation_dirty)
+void extract_frame_info(float t, const AnimationClip &clip, BoneInertialInfo &info)
 {
   constexpr int TIME_FramesPerSec = AnimV20::TIME_TicksPerSec >> AnimV20::TIME_SubdivExp;
 
@@ -103,7 +83,6 @@ void extract_frame_info(float t,
     int nodeIdx = channel.second.index();
     info.position[nodeIdx] = p1;
     info.velocity[nodeIdx] = v_mul(v_sub(p2, p1), dtInv);
-    position_dirty.set(nodeIdx, true);
   }
 
   for (const AnimationClip::QuaternionChannel &channel : clip.channelRotation)
@@ -117,6 +96,5 @@ void extract_frame_info(float t,
     info.rotation[nodeIdx] = r1;
     vec3f w = quat_log(v_quat_mul_quat(r1, v_quat_conjugate(r2)));
     info.angular_velocity[nodeIdx] = v_mul(w, dtInv);
-    rotation_dirty.set(nodeIdx, true);
   }
 }

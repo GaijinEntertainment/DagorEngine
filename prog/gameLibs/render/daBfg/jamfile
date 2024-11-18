@@ -103,6 +103,7 @@ if $(Config) in dbg dev {
     engine/imgui
     engine/imgui/util
     gameLibs/graphLayouter
+    gameLibs/render/texDebug
   ;
 } else {
   Sources += debug/backendDebugStub.cpp ;

@@ -157,13 +157,23 @@ struct AtlasData
 struct TexRec
 {
   TEXTUREID texId;
+  d3d::SamplerHandle smpId;
   int nameId : 24;
   unsigned ownedTex : 1, flags : 7;
   int refCount;
   AtlasData *ad;
   Point2 size;
 
-  TexRec(int name_id) : texId(BAD_TEXTUREID), nameId(name_id), ownedTex(0), flags(0), refCount(-1), ad(NULL), size(0, 0) {}
+  TexRec(int name_id) :
+    texId(BAD_TEXTUREID),
+    smpId(d3d::INVALID_SAMPLER_HANDLE),
+    nameId(name_id),
+    ownedTex(0),
+    flags(0),
+    refCount(-1),
+    ad(NULL),
+    size(0, 0)
+  {}
   ~TexRec()
   {
     G_ASSERT_LOG(refCount <= 1, "refCount(%s)=%d{%d}", getName(), refCount, get_managed_texture_refcount(texId));
@@ -266,6 +276,7 @@ struct AsyncPicLoadJob : public cpujobs::IJob
   Point2 *outTc0, *outTc1, *outSz, tc0S, tc1S, szS;
   PICTUREID picId;
   TEXTUREID outTexId;
+  d3d::SamplerHandle smpId;
   bool premulAlpha = false;
   bool jobDone;
   JobType jtype;
@@ -284,6 +295,7 @@ struct AsyncPicLoadJob : public cpujobs::IJob
     done_arg(arg),
     jobDone(false),
     outTexId(BAD_TEXTUREID),
+    smpId(d3d::INVALID_SAMPLER_HANDLE),
     outTc0(out_tc0 ? out_tc0 : &tc0S),
     outTc1(out_tc1 ? out_tc1 : &tc1S),
     outSz(out_sz ? out_sz : &szS)
@@ -309,12 +321,12 @@ struct AsyncPicLoadJob : public cpujobs::IJob
   }
   virtual unsigned getJobTag() { return _MAKE4C('PICM'); };
 
-  TEXTUREID doJobSync()
+  eastl::pair<TEXTUREID, d3d::SamplerHandle> doJobSync()
   {
     done_cb = NULL;
     doJob();
     finalizeJob();
-    return outTexId;
+    return {outTexId, smpId};
   }
 
 protected:
@@ -336,12 +348,13 @@ protected:
           return;
         }
         outTexId = texRec[getTexRecIdx(picId)]->texId;
+        smpId = texRec[getTexRecIdx(picId)]->smpId;
         if (outTexId != BAD_TEXTUREID)
           reportErr = 101; // we can report texture as done and then try reload it later on demand
       }
 
       if (jobDone || reportErr == 101)
-        (*done_cb)(picId, outTexId, d3d::INVALID_SAMPLER_HANDLE, outTc0, outTc1, outSz, done_arg); // TODO: Use actual sampler IDs
+        (*done_cb)(picId, outTexId, smpId, outTc0, outTc1, outSz, done_arg);
       else
         (*done_cb)(reportErr == 100 ? picId : BAD_PICTUREID, BAD_TEXTUREID, d3d::INVALID_SAMPLER_HANDLE, NULL, NULL, NULL,
           done_arg); // report abort/error
@@ -408,6 +421,7 @@ static bool searchBlkBeforeTaBin = true;
 static bool dynAtlasLazyAllocDef = false;
 static Texture *texTransp[AtlasData::FMT_none * 2] = {NULL};
 static TEXTUREID substOnePixelTexId = BAD_TEXTUREID;
+static d3d::SamplerHandle substOnePixelSmpId = d3d::INVALID_SAMPLER_HANDLE;
 } // namespace PictureManager
 
 namespace PictureManager
@@ -955,6 +969,7 @@ void PictureManager::init(const DataBlock *params)
   Texture *onePixelTex = d3d::create_tex(image, 1, 1, TEXCF_RGB | TEXCF_LOADONCE | TEXCF_SYSTEXCOPY, 1, "picMgr$stub");
   d3d_err(onePixelTex);
   substOnePixelTexId = register_managed_tex("picMgr$stub", onePixelTex);
+  substOnePixelSmpId = d3d::request_sampler({});
 
   create_critical_section(critSec);
   for (PictureRenderFactory *f = PictureRenderFactory::tail; f; f = f->next)
@@ -1122,6 +1137,7 @@ PICTUREID PictureManager::add_picture(BaseTexture *tex, const char *as_name, boo
     return BAD_PICTUREID;
   tr.refCount = 1;
   tr.texId = register_managed_tex(as_name, tex);
+  tr.smpId = d3d::request_sampler({});
   tr.ownedTex = 1;
   G_ASSERTF(tr.texId != BAD_TEXTUREID, "tex=%p as_name=%s", tex, as_name);
 
@@ -1133,11 +1149,12 @@ PICTUREID PictureManager::add_picture(BaseTexture *tex, const char *as_name, boo
   return makePicId(tex_rec_idx, 0);
 }
 
-bool PictureManager::get_picture_ex(const char *file_name, PICTUREID &out_pic_id, TEXTUREID &out_tex_id, Point2 *out_tc0,
-  Point2 *out_tc1, Point2 *out_sz, async_load_done_cb_t done_cb, void *cb_arg)
+bool PictureManager::get_picture_ex(const char *file_name, PICTUREID &out_pic_id, TEXTUREID &out_tex_id,
+  d3d::SamplerHandle &out_smp_id, Point2 *out_tc0, Point2 *out_tc1, Point2 *out_sz, async_load_done_cb_t done_cb, void *cb_arg)
 {
   out_pic_id = BAD_PICTUREID;
   out_tex_id = BAD_TEXTUREID;
+  out_smp_id = d3d::INVALID_SAMPLER_HANDLE;
   if (!file_name || !*file_name)
     return true;
 
@@ -1166,6 +1183,7 @@ bool PictureManager::get_picture_ex(const char *file_name, PICTUREID &out_pic_id
       {
         out_pic_id = makePicId(tex_rec_idx, tr.ad->atlas.getItemIdx(d), tr.ad->dynamic);
         out_tex_id = tr.texId;
+        out_smp_id = tr.smpId;
         if (out_tc0)
           out_tc0->set(d->u0, d->v0);
         if (out_tc1)
@@ -1207,6 +1225,7 @@ bool PictureManager::get_picture_ex(const char *file_name, PICTUREID &out_pic_id
       }
       out_pic_id = makePicId(tex_rec_idx, tr.ad->atlas.getItemIdx(d), true);
       out_tex_id = BAD_TEXTUREID;
+      out_smp_id = d3d::INVALID_SAMPLER_HANDLE;
 
       j = new AsyncPicLoadJob(AsyncPicLoadJob::JT_picInAtlas, out_pic_id, tr.ad->makeAbsFn(fn), out_tc0, out_tc1, out_sz, done_cb,
         cb_arg);
@@ -1215,7 +1234,9 @@ bool PictureManager::get_picture_ex(const char *file_name, PICTUREID &out_pic_id
       if (!done_cb || asyncLoadJobMgr < 0)
       {
         lock.unlockFinal();
-        out_tex_id = j->doJobSync();
+        const auto res = j->doJobSync();
+        out_tex_id = res.first;
+        out_smp_id = res.second;
         delete j;
         return true;
       }
@@ -1236,6 +1257,7 @@ bool PictureManager::get_picture_ex(const char *file_name, PICTUREID &out_pic_id
     }
     out_pic_id = makePicId(tex_rec_idx, 0);
     out_tex_id = tr.texId;
+    out_smp_id = tr.smpId;
     if (tr.refCount != -1 && (tr.texId != BAD_TEXTUREID || tr.size.y > 0))
     {
       tr.addRef();
@@ -1276,7 +1298,9 @@ bool PictureManager::get_picture_ex(const char *file_name, PICTUREID &out_pic_id
     if (!done_cb || asyncLoadJobMgr < 0 || tr.texId != BAD_TEXTUREID)
     {
       lock.unlockFinal();
-      out_tex_id = j->doJobSync();
+      const auto res = j->doJobSync();
+      out_tex_id = res.first;
+      out_smp_id = res.second;
       delete j;
       if (add_quard_ref)
         release_managed_tex(tex_id);
@@ -1289,6 +1313,7 @@ bool PictureManager::get_picture_ex(const char *file_name, PICTUREID &out_pic_id
   G_VERIFY(cpujobs::add_job(asyncLoadJobMgr, j));
   out_pic_id = BAD_PICTUREID;
   acquire_managed_tex(out_tex_id = substOnePixelTexId);
+  out_smp_id = substOnePixelSmpId;
 
   return false;
 }
@@ -1439,11 +1464,12 @@ void PictureManager::add_ref_picture(PICTUREID pid)
 }
 void PictureManager::get_picture(const char *file_name, PicDesc &out_pic)
 {
-  if (!PictureManager::get_picture_ex(file_name, out_pic.pic, out_pic.tex, &out_pic.tcLt, &out_pic.tcRb))
+  if (!PictureManager::get_picture_ex(file_name, out_pic.pic, out_pic.tex, out_pic.smp, &out_pic.tcLt, &out_pic.tcRb))
   {
     PICMGR_DEBUG("PM: get_picture(%s) failed", file_name);
     out_pic.pic = BAD_PICTUREID;
     out_pic.tex = BAD_TEXTUREID;
+    out_pic.smp = d3d::INVALID_SAMPLER_HANDLE;
   }
 }
 
@@ -1598,6 +1624,7 @@ bool PictureManager::TexRec::initAtlas()
     G_ASSERT(!bc_format || ad->atlas.getCornerResvSz() == 4);
     G_ASSERT(!bc_format || ad->atlas.getMarginLtOfs() == 0);
     texId = ad->atlas.tex.first.getId();
+    smpId = ad->atlas.tex.second;
     if (ad->maxAllowedPicSz.x > sz.x - ad->atlas.getMargin())
       ad->maxAllowedPicSz.x = sz.x - ad->atlas.getMargin();
     if (ad->maxAllowedPicSz.y > sz.y - ad->atlas.getMargin())
@@ -1634,6 +1661,7 @@ bool PictureManager::TexRec::initAtlas()
   texId = get_managed_texture_id(validTexName); // already exist?
   if (texId == BAD_TEXTUREID)
     texId = add_managed_texture(validTexName);
+  smpId = get_texture_separate_sampler(texId);
   refCount = 0;
   G_ASSERTF(texId != BAD_TEXTUREID, "'%s'", validTexName);
 
@@ -1944,6 +1972,7 @@ void PictureManager::AsyncPicLoadJob::loadTexPic()
     outTexId = add_managed_texture(name);
 
   BaseTexture *tex = acquire_managed_tex(outTexId);
+  smpId = get_texture_separate_sampler(outTexId);
   TextureInfo ti;
   if (!tex || tex->restype() != RES3D_TEX || !tex->getinfo(ti))
     ti.w = ti.h = 0;
@@ -2052,6 +2081,7 @@ void PictureManager::AsyncPicLoadJob::loadTexPic()
   outTc1->set(1, 1);
   outSz->set(ti.w, ti.h);
   tr.texId = outTexId;
+  tr.smpId = smpId;
   tr.addRef();
   jobDone = true;
   interlocked_decrement(numJobsInFlight);
@@ -2068,6 +2098,7 @@ void PictureManager::AsyncPicLoadJob::discardUndonePic()
 void PictureManager::AsyncPicLoadJob::finalizePic(DynamicPicAtlas::ItemData *d, TexRec &tr)
 {
   outTexId = tr.texId;
+  smpId = tr.smpId;
   if (d->valid())
   {
     outTc0->set(d->u0, d->v0);

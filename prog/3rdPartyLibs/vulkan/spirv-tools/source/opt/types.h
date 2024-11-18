@@ -28,6 +28,7 @@
 
 #include "source/latest_version_spirv_header.h"
 #include "source/opt/instruction.h"
+#include "source/util/small_vector.h"
 #include "spirv-tools/libspirv.h"
 
 namespace spvtools {
@@ -59,13 +60,17 @@ class PipeStorage;
 class NamedBarrier;
 class AccelerationStructureNV;
 class CooperativeMatrixNV;
+class CooperativeMatrixKHR;
 class RayQueryKHR;
+class HitObjectNV;
 
 // Abstract class for a SPIR-V type. It has a bunch of As<sublcass>() methods,
 // which is used as a way to probe the actual <subclass>.
 class Type {
  public:
   typedef std::set<std::pair<const Pointer*, const Pointer*>> IsSameCache;
+
+  using SeenTypes = spvtools::utils::SmallVector<const Type*, 8>;
 
   // Available subtypes.
   //
@@ -96,7 +101,10 @@ class Type {
     kNamedBarrier,
     kAccelerationStructureNV,
     kCooperativeMatrixNV,
-    kRayQueryKHR
+    kCooperativeMatrixKHR,
+    kRayQueryKHR,
+    kHitObjectNV,
+    kLast
   };
 
   Type(Kind k) : kind_(k) {}
@@ -142,33 +150,27 @@ class Type {
   // Returns a clone of |this| minus any decorations.
   std::unique_ptr<Type> RemoveDecorations() const;
 
-  // Returns true if this type must be unique.
+  // Returns true if this cannot hash to the same value as another type in the
+  // module. For example, structs are not unique types because the module could
+  // have two types
   //
-  // If variable pointers are allowed, then pointers are not required to be
-  // unique.
-  // TODO(alanbaker): Update this if variable pointers become a core feature.
-  bool IsUniqueType(bool allowVariablePointers = false) const;
+  //  %1 = OpTypeStruct %int
+  //  %2 = OpTypeStruct %int
+  //
+  // The only way to distinguish these types is the result id. The type manager
+  // will hash them to the same value.
+  bool IsUniqueType() const;
 
   bool operator==(const Type& other) const;
 
   // Returns the hash value of this type.
   size_t HashValue() const;
 
-  // Adds the necessary words to compute a hash value of this type to |words|.
-  void GetHashWords(std::vector<uint32_t>* words) const {
-    std::unordered_set<const Type*> seen;
-    GetHashWords(words, &seen);
-  }
+  size_t ComputeHashValue(size_t hash, SeenTypes* seen) const;
 
-  // Adds the necessary words to compute a hash value of this type to |words|.
-  void GetHashWords(std::vector<uint32_t>* words,
-                    std::unordered_set<const Type*>* seen) const;
-
-  // Adds necessary extra words for a subtype to calculate a hash value into
-  // |words|.
-  virtual void GetExtraHashWords(
-      std::vector<uint32_t>* words,
-      std::unordered_set<const Type*>* pSet) const = 0;
+  // Returns the number of components in a composite type.  Returns 0 for a
+  // non-composite type.
+  uint64_t NumberOfComponents() const;
 
 // A bunch of methods for casting this type to a given type. Returns this if the
 // cast can be done, nullptr otherwise.
@@ -201,8 +203,14 @@ class Type {
   DeclareCastMethod(NamedBarrier)
   DeclareCastMethod(AccelerationStructureNV)
   DeclareCastMethod(CooperativeMatrixNV)
+  DeclareCastMethod(CooperativeMatrixKHR)
   DeclareCastMethod(RayQueryKHR)
+  DeclareCastMethod(HitObjectNV)
 #undef DeclareCastMethod
+
+protected:
+  // Add any type-specific state to |hash| and returns new hash.
+  virtual size_t ComputeExtraStateHash(size_t hash, SeenTypes* seen) const = 0;
 
  protected:
   // Decorations attached to this type. Each decoration is encoded as a vector
@@ -232,8 +240,7 @@ class Integer : public Type {
   uint32_t width() const { return width_; }
   bool IsSigned() const { return signed_; }
 
-  void GetExtraHashWords(std::vector<uint32_t>* words,
-                         std::unordered_set<const Type*>* pSet) const override;
+  size_t ComputeExtraStateHash(size_t hash, SeenTypes* seen) const override;
 
  private:
   bool IsSameImpl(const Type* that, IsSameCache*) const override;
@@ -253,8 +260,7 @@ class Float : public Type {
   const Float* AsFloat() const override { return this; }
   uint32_t width() const { return width_; }
 
-  void GetExtraHashWords(std::vector<uint32_t>* words,
-                         std::unordered_set<const Type*>* pSet) const override;
+  size_t ComputeExtraStateHash(size_t hash, SeenTypes* seen) const override;
 
  private:
   bool IsSameImpl(const Type* that, IsSameCache*) const override;
@@ -274,8 +280,7 @@ class Vector : public Type {
   Vector* AsVector() override { return this; }
   const Vector* AsVector() const override { return this; }
 
-  void GetExtraHashWords(std::vector<uint32_t>* words,
-                         std::unordered_set<const Type*>* pSet) const override;
+  size_t ComputeExtraStateHash(size_t hash, SeenTypes* seen) const override;
 
  private:
   bool IsSameImpl(const Type* that, IsSameCache*) const override;
@@ -296,8 +301,7 @@ class Matrix : public Type {
   Matrix* AsMatrix() override { return this; }
   const Matrix* AsMatrix() const override { return this; }
 
-  void GetExtraHashWords(std::vector<uint32_t>* words,
-                         std::unordered_set<const Type*>* pSet) const override;
+  size_t ComputeExtraStateHash(size_t hash, SeenTypes* seen) const override;
 
  private:
   bool IsSameImpl(const Type* that, IsSameCache*) const override;
@@ -308,9 +312,9 @@ class Matrix : public Type {
 
 class Image : public Type {
  public:
-  Image(Type* type, SpvDim dimen, uint32_t d, bool array, bool multisample,
-        uint32_t sampling, SpvImageFormat f,
-        SpvAccessQualifier qualifier = SpvAccessQualifierReadOnly);
+  Image(Type* type, spv::Dim dimen, uint32_t d, bool array, bool multisample,
+        uint32_t sampling, spv::ImageFormat f,
+        spv::AccessQualifier qualifier = spv::AccessQualifier::ReadOnly);
   Image(const Image&) = default;
 
   std::string str() const override;
@@ -319,28 +323,27 @@ class Image : public Type {
   const Image* AsImage() const override { return this; }
 
   const Type* sampled_type() const { return sampled_type_; }
-  SpvDim dim() const { return dim_; }
+  spv::Dim dim() const { return dim_; }
   uint32_t depth() const { return depth_; }
   bool is_arrayed() const { return arrayed_; }
   bool is_multisampled() const { return ms_; }
   uint32_t sampled() const { return sampled_; }
-  SpvImageFormat format() const { return format_; }
-  SpvAccessQualifier access_qualifier() const { return access_qualifier_; }
+  spv::ImageFormat format() const { return format_; }
+  spv::AccessQualifier access_qualifier() const { return access_qualifier_; }
 
-  void GetExtraHashWords(std::vector<uint32_t>* words,
-                         std::unordered_set<const Type*>* pSet) const override;
+  size_t ComputeExtraStateHash(size_t hash, SeenTypes* seen) const override;
 
  private:
   bool IsSameImpl(const Type* that, IsSameCache*) const override;
 
   Type* sampled_type_;
-  SpvDim dim_;
+  spv::Dim dim_;
   uint32_t depth_;
   bool arrayed_;
   bool ms_;
   uint32_t sampled_;
-  SpvImageFormat format_;
-  SpvAccessQualifier access_qualifier_;
+  spv::ImageFormat format_;
+  spv::AccessQualifier access_qualifier_;
 };
 
 class SampledImage : public Type {
@@ -355,8 +358,7 @@ class SampledImage : public Type {
 
   const Type* image_type() const { return image_type_; }
 
-  void GetExtraHashWords(std::vector<uint32_t>* words,
-                         std::unordered_set<const Type*>* pSet) const override;
+  size_t ComputeExtraStateHash(size_t hash, SeenTypes* seen) const override;
 
  private:
   bool IsSameImpl(const Type* that, IsSameCache*) const override;
@@ -399,10 +401,10 @@ class Array : public Type {
   Array* AsArray() override { return this; }
   const Array* AsArray() const override { return this; }
 
-  void GetExtraHashWords(std::vector<uint32_t>* words,
-                         std::unordered_set<const Type*>* pSet) const override;
+  size_t ComputeExtraStateHash(size_t hash, SeenTypes* seen) const override;
 
   void ReplaceElementType(const Type* element_type);
+  LengthInfo GetConstantLengthInfo(uint32_t const_id, uint32_t length) const;
 
  private:
   bool IsSameImpl(const Type* that, IsSameCache*) const override;
@@ -422,8 +424,7 @@ class RuntimeArray : public Type {
   RuntimeArray* AsRuntimeArray() override { return this; }
   const RuntimeArray* AsRuntimeArray() const override { return this; }
 
-  void GetExtraHashWords(std::vector<uint32_t>* words,
-                         std::unordered_set<const Type*>* pSet) const override;
+  size_t ComputeExtraStateHash(size_t hash, SeenTypes* seen) const override;
 
   void ReplaceElementType(const Type* element_type);
 
@@ -459,8 +460,7 @@ class Struct : public Type {
   Struct* AsStruct() override { return this; }
   const Struct* AsStruct() const override { return this; }
 
-  void GetExtraHashWords(std::vector<uint32_t>* words,
-                         std::unordered_set<const Type*>* pSet) const override;
+  size_t ComputeExtraStateHash(size_t hash, SeenTypes* seen) const override;
 
  private:
   bool IsSameImpl(const Type* that, IsSameCache*) const override;
@@ -491,8 +491,7 @@ class Opaque : public Type {
 
   const std::string& name() const { return name_; }
 
-  void GetExtraHashWords(std::vector<uint32_t>* words,
-                         std::unordered_set<const Type*>* pSet) const override;
+  size_t ComputeExtraStateHash(size_t hash, SeenTypes* seen) const override;
 
  private:
   bool IsSameImpl(const Type* that, IsSameCache*) const override;
@@ -502,18 +501,17 @@ class Opaque : public Type {
 
 class Pointer : public Type {
  public:
-  Pointer(const Type* pointee, SpvStorageClass sc);
+  Pointer(const Type* pointee, spv::StorageClass sc);
   Pointer(const Pointer&) = default;
 
   std::string str() const override;
   const Type* pointee_type() const { return pointee_type_; }
-  SpvStorageClass storage_class() const { return storage_class_; }
+  spv::StorageClass storage_class() const { return storage_class_; }
 
   Pointer* AsPointer() override { return this; }
   const Pointer* AsPointer() const override { return this; }
 
-  void GetExtraHashWords(std::vector<uint32_t>* words,
-                         std::unordered_set<const Type*>* pSet) const override;
+  size_t ComputeExtraStateHash(size_t hash, SeenTypes* seen) const override;
 
   void SetPointeeType(const Type* type);
 
@@ -521,7 +519,7 @@ class Pointer : public Type {
   bool IsSameImpl(const Type* that, IsSameCache*) const override;
 
   const Type* pointee_type_;
-  SpvStorageClass storage_class_;
+  spv::StorageClass storage_class_;
 };
 
 class Function : public Type {
@@ -539,8 +537,7 @@ class Function : public Type {
   const std::vector<const Type*>& param_types() const { return param_types_; }
   std::vector<const Type*>& param_types() { return param_types_; }
 
-  void GetExtraHashWords(std::vector<uint32_t>* words,
-                         std::unordered_set<const Type*>*) const override;
+  size_t ComputeExtraStateHash(size_t hash, SeenTypes* seen) const override;
 
   void SetReturnType(const Type* type);
 
@@ -553,7 +550,7 @@ class Function : public Type {
 
 class Pipe : public Type {
  public:
-  Pipe(SpvAccessQualifier qualifier)
+  Pipe(spv::AccessQualifier qualifier)
       : Type(kPipe), access_qualifier_(qualifier) {}
   Pipe(const Pipe&) = default;
 
@@ -562,20 +559,19 @@ class Pipe : public Type {
   Pipe* AsPipe() override { return this; }
   const Pipe* AsPipe() const override { return this; }
 
-  SpvAccessQualifier access_qualifier() const { return access_qualifier_; }
+  spv::AccessQualifier access_qualifier() const { return access_qualifier_; }
 
-  void GetExtraHashWords(std::vector<uint32_t>* words,
-                         std::unordered_set<const Type*>* pSet) const override;
+  size_t ComputeExtraStateHash(size_t hash, SeenTypes* seen) const override;
 
  private:
   bool IsSameImpl(const Type* that, IsSameCache*) const override;
 
-  SpvAccessQualifier access_qualifier_;
+  spv::AccessQualifier access_qualifier_;
 };
 
 class ForwardPointer : public Type {
  public:
-  ForwardPointer(uint32_t id, SpvStorageClass sc)
+  ForwardPointer(uint32_t id, spv::StorageClass sc)
       : Type(kForwardPointer),
         target_id_(id),
         storage_class_(sc),
@@ -584,7 +580,7 @@ class ForwardPointer : public Type {
 
   uint32_t target_id() const { return target_id_; }
   void SetTargetPointer(const Pointer* pointer) { pointer_ = pointer; }
-  SpvStorageClass storage_class() const { return storage_class_; }
+  spv::StorageClass storage_class() const { return storage_class_; }
   const Pointer* target_pointer() const { return pointer_; }
 
   std::string str() const override;
@@ -592,14 +588,13 @@ class ForwardPointer : public Type {
   ForwardPointer* AsForwardPointer() override { return this; }
   const ForwardPointer* AsForwardPointer() const override { return this; }
 
-  void GetExtraHashWords(std::vector<uint32_t>* words,
-                         std::unordered_set<const Type*>* pSet) const override;
+  size_t ComputeExtraStateHash(size_t hash, SeenTypes* seen) const override;
 
  private:
   bool IsSameImpl(const Type* that, IsSameCache*) const override;
 
   uint32_t target_id_;
-  SpvStorageClass storage_class_;
+  spv::StorageClass storage_class_;
   const Pointer* pointer_;
 };
 
@@ -616,8 +611,7 @@ class CooperativeMatrixNV : public Type {
     return this;
   }
 
-  void GetExtraHashWords(std::vector<uint32_t>*,
-                         std::unordered_set<const Type*>*) const override;
+  size_t ComputeExtraStateHash(size_t hash, SeenTypes* seen) const override;
 
   const Type* component_type() const { return component_type_; }
   uint32_t scope_id() const { return scope_id_; }
@@ -633,24 +627,57 @@ class CooperativeMatrixNV : public Type {
   const uint32_t columns_id_;
 };
 
-#define DefineParameterlessType(type, name)                                    \
-  class type : public Type {                                                   \
-   public:                                                                     \
-    type() : Type(k##type) {}                                                  \
-    type(const type&) = default;                                               \
-                                                                               \
-    std::string str() const override { return #name; }                         \
-                                                                               \
-    type* As##type() override { return this; }                                 \
-    const type* As##type() const override { return this; }                     \
-                                                                               \
-    void GetExtraHashWords(std::vector<uint32_t>*,                             \
-                           std::unordered_set<const Type*>*) const override {} \
-                                                                               \
-   private:                                                                    \
-    bool IsSameImpl(const Type* that, IsSameCache*) const override {           \
-      return that->As##type() && HasSameDecorations(that);                     \
-    }                                                                          \
+class CooperativeMatrixKHR : public Type {
+ public:
+  CooperativeMatrixKHR(const Type* type, const uint32_t scope,
+                       const uint32_t rows, const uint32_t columns,
+                       const uint32_t use);
+  CooperativeMatrixKHR(const CooperativeMatrixKHR&) = default;
+
+  std::string str() const override;
+
+  CooperativeMatrixKHR* AsCooperativeMatrixKHR() override { return this; }
+  const CooperativeMatrixKHR* AsCooperativeMatrixKHR() const override {
+    return this;
+  }
+
+  size_t ComputeExtraStateHash(size_t hash, SeenTypes* seen) const override;
+
+  const Type* component_type() const { return component_type_; }
+  uint32_t scope_id() const { return scope_id_; }
+  uint32_t rows_id() const { return rows_id_; }
+  uint32_t columns_id() const { return columns_id_; }
+  uint32_t use_id() const { return use_id_; }
+
+ private:
+  bool IsSameImpl(const Type* that, IsSameCache*) const override;
+
+  const Type* component_type_;
+  const uint32_t scope_id_;
+  const uint32_t rows_id_;
+  const uint32_t columns_id_;
+  const uint32_t use_id_;
+};
+
+#define DefineParameterlessType(type, name)                                \
+  class type : public Type {                                               \
+   public:                                                                 \
+    type() : Type(k##type) {}                                              \
+    type(const type&) = default;                                           \
+                                                                           \
+    std::string str() const override { return #name; }                     \
+                                                                           \
+    type* As##type() override { return this; }                             \
+    const type* As##type() const override { return this; }                 \
+                                                                           \
+    size_t ComputeExtraStateHash(size_t hash, SeenTypes*) const override { \
+      return hash;                                                         \
+    }                                                                      \
+                                                                           \
+   private:                                                                \
+    bool IsSameImpl(const Type* that, IsSameCache*) const override {       \
+      return that->As##type() && HasSameDecorations(that);                 \
+    }                                                                      \
   }
 DefineParameterlessType(Void, void);
 DefineParameterlessType(Bool, bool);
@@ -663,6 +690,7 @@ DefineParameterlessType(PipeStorage, pipe_storage);
 DefineParameterlessType(NamedBarrier, named_barrier);
 DefineParameterlessType(AccelerationStructureNV, accelerationStructureNV);
 DefineParameterlessType(RayQueryKHR, rayQueryKHR);
+DefineParameterlessType(HitObjectNV, hitObjectNV);
 #undef DefineParameterlessType
 
 }  // namespace analysis

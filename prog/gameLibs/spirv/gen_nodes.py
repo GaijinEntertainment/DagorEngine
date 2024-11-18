@@ -428,7 +428,20 @@ def make_execution_mode_infos(language):
 
   result += 'template<typename T, typename U> void executionModeVisitor(T *t, U u) {\n'
   result += 'switch (t->mode) {'
+
+  uniqueSwitchOps = []
+
+  duplicatedEntry = False
   for e in executionModelType.values:
+    for j in uniqueSwitchOps:
+      if e.value == j:
+        duplicatedEntry = True
+        result += '//duplicated {} = {} \n'.format(e.name, e.value)
+        break
+    if duplicatedEntry:
+      continue
+    uniqueSwitchOps.append(e.value)
+
     result += 'case {}::{}:\n'.format(executionModelType.get_type_name(), e.name)
     result += 'u(reinterpret_cast<{}{} *>(t)); break;\n'.format(executionModelType.get_type_name(), e.name)
   result += '}\n'
@@ -1124,7 +1137,8 @@ def make_node_definitions_new(language):
   return result
 
 def generate_module_nodes(language, build_cfg):
-  result  = '// this file is auto generated, do not modify\n'
+  result  = '// Copyright (C) Gaijin Games KFT.  All rights reserved.\n\n'
+  result += '// auto generated, do not modify!\n'
   result += '#pragma once\n'
   result += '#include "{}"\n'.format(build_cfg.get('generated-cpp-header-file-name'))
 

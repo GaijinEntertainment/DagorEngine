@@ -2316,7 +2316,7 @@ void AnimBlendCtrl_LinearPoly::createNode(AnimationGraph &graph, const DataBlock
             ANIM_ERR("blend node <%s> (suffix=%s) not found!", nm, nm_suffix);
           return;
         }
-        node->addBlendNode(n, cblk->getReal("val", 0), graph, name, var_name);
+        node->addBlendNode(n, cblk->getReal("val", 0), graph, name);
       }
   graph.registerBlendNode(node, name, nm_suffix);
 }
@@ -2436,7 +2436,7 @@ void AnimBlendCtrl_ParametricSwitcher::createNode(AnimationGraph &graph, const D
           r1 = eval + 0.1f;
         }
       }
-      node->addBlendNode(n, min(r0, r1), max(r1, r0), bv, graph, var_name);
+      node->addBlendNode(n, min(r0, r1), max(r1, r0), bv, graph, name);
       if (n->isSubOf(AnimBlendNodeSingleLeafCID))
         has_single = true;
     }

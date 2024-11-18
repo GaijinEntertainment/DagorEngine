@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 // auto generated, do not modify!
 #include "module_nodes.h"
 #include <spirv/module_builder.h>
@@ -470,6 +472,16 @@ struct NodeWriteVisitor
       {
         compare = compare ^ MemoryAccessMask::NonPrivatePointerKHR;
       }
+      if (MemoryAccessMask::AliasScopeINTELMask == (compare & MemoryAccessMask::AliasScopeINTELMask))
+      {
+        compare = compare ^ MemoryAccessMask::AliasScopeINTELMask;
+        ++len;
+      }
+      if (MemoryAccessMask::NoAliasINTELMask == (compare & MemoryAccessMask::NoAliasINTELMask))
+      {
+        compare = compare ^ MemoryAccessMask::NoAliasINTELMask;
+        ++len;
+      }
     }
     writer.beginInstruction(Op::OpLoad, len);
     writer.writeWord(value->resultType->resultId);
@@ -519,6 +531,16 @@ struct NodeWriteVisitor
       if (MemoryAccessMask::NonPrivatePointerKHR == (compareWrite & MemoryAccessMask::NonPrivatePointerKHR))
       {
         compareWrite = compareWrite ^ MemoryAccessMask::NonPrivatePointerKHR;
+      }
+      if (MemoryAccessMask::AliasScopeINTELMask == (compareWrite & MemoryAccessMask::AliasScopeINTELMask))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::AliasScopeINTELMask;
+        writer.writeWord(value->memoryAccessAliasScopeINTELMask->resultId);
+      }
+      if (MemoryAccessMask::NoAliasINTELMask == (compareWrite & MemoryAccessMask::NoAliasINTELMask))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::NoAliasINTELMask;
+        writer.writeWord(value->memoryAccessNoAliasINTELMask->resultId);
       }
     }
     writer.endWrite();
@@ -572,6 +594,16 @@ struct NodeWriteVisitor
       {
         compare = compare ^ MemoryAccessMask::NonPrivatePointerKHR;
       }
+      if (MemoryAccessMask::AliasScopeINTELMask == (compare & MemoryAccessMask::AliasScopeINTELMask))
+      {
+        compare = compare ^ MemoryAccessMask::AliasScopeINTELMask;
+        ++len;
+      }
+      if (MemoryAccessMask::NoAliasINTELMask == (compare & MemoryAccessMask::NoAliasINTELMask))
+      {
+        compare = compare ^ MemoryAccessMask::NoAliasINTELMask;
+        ++len;
+      }
     }
     writer.beginInstruction(Op::OpStore, len);
     writer.writeWord(value->pointer->resultId);
@@ -620,6 +652,16 @@ struct NodeWriteVisitor
       if (MemoryAccessMask::NonPrivatePointerKHR == (compareWrite & MemoryAccessMask::NonPrivatePointerKHR))
       {
         compareWrite = compareWrite ^ MemoryAccessMask::NonPrivatePointerKHR;
+      }
+      if (MemoryAccessMask::AliasScopeINTELMask == (compareWrite & MemoryAccessMask::AliasScopeINTELMask))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::AliasScopeINTELMask;
+        writer.writeWord(value->memoryAccessAliasScopeINTELMask->resultId);
+      }
+      if (MemoryAccessMask::NoAliasINTELMask == (compareWrite & MemoryAccessMask::NoAliasINTELMask))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::NoAliasINTELMask;
+        writer.writeWord(value->memoryAccessNoAliasINTELMask->resultId);
       }
     }
     writer.endWrite();
@@ -673,6 +715,16 @@ struct NodeWriteVisitor
       {
         compare = compare ^ MemoryAccessMask::NonPrivatePointerKHR;
       }
+      if (MemoryAccessMask::AliasScopeINTELMask == (compare & MemoryAccessMask::AliasScopeINTELMask))
+      {
+        compare = compare ^ MemoryAccessMask::AliasScopeINTELMask;
+        ++len;
+      }
+      if (MemoryAccessMask::NoAliasINTELMask == (compare & MemoryAccessMask::NoAliasINTELMask))
+      {
+        compare = compare ^ MemoryAccessMask::NoAliasINTELMask;
+        ++len;
+      }
     }
     if (value->memoryAccess1)
     {
@@ -718,6 +770,16 @@ struct NodeWriteVisitor
       if (MemoryAccessMask::NonPrivatePointerKHR == (compare & MemoryAccessMask::NonPrivatePointerKHR))
       {
         compare = compare ^ MemoryAccessMask::NonPrivatePointerKHR;
+      }
+      if (MemoryAccessMask::AliasScopeINTELMask == (compare & MemoryAccessMask::AliasScopeINTELMask))
+      {
+        compare = compare ^ MemoryAccessMask::AliasScopeINTELMask;
+        ++len;
+      }
+      if (MemoryAccessMask::NoAliasINTELMask == (compare & MemoryAccessMask::NoAliasINTELMask))
+      {
+        compare = compare ^ MemoryAccessMask::NoAliasINTELMask;
+        ++len;
       }
     }
     writer.beginInstruction(Op::OpCopyMemory, len);
@@ -768,6 +830,16 @@ struct NodeWriteVisitor
       {
         compareWrite = compareWrite ^ MemoryAccessMask::NonPrivatePointerKHR;
       }
+      if (MemoryAccessMask::AliasScopeINTELMask == (compareWrite & MemoryAccessMask::AliasScopeINTELMask))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::AliasScopeINTELMask;
+        writer.writeWord(value->memoryAccess0AliasScopeINTELMask->resultId);
+      }
+      if (MemoryAccessMask::NoAliasINTELMask == (compareWrite & MemoryAccessMask::NoAliasINTELMask))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::NoAliasINTELMask;
+        writer.writeWord(value->memoryAccess0NoAliasINTELMask->resultId);
+      }
     }
     if (value->memoryAccess1)
     {
@@ -813,6 +885,16 @@ struct NodeWriteVisitor
       if (MemoryAccessMask::NonPrivatePointerKHR == (compareWrite & MemoryAccessMask::NonPrivatePointerKHR))
       {
         compareWrite = compareWrite ^ MemoryAccessMask::NonPrivatePointerKHR;
+      }
+      if (MemoryAccessMask::AliasScopeINTELMask == (compareWrite & MemoryAccessMask::AliasScopeINTELMask))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::AliasScopeINTELMask;
+        writer.writeWord(value->memoryAccess1AliasScopeINTELMask->resultId);
+      }
+      if (MemoryAccessMask::NoAliasINTELMask == (compareWrite & MemoryAccessMask::NoAliasINTELMask))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::NoAliasINTELMask;
+        writer.writeWord(value->memoryAccess1NoAliasINTELMask->resultId);
       }
     }
     writer.endWrite();
@@ -866,6 +948,16 @@ struct NodeWriteVisitor
       {
         compare = compare ^ MemoryAccessMask::NonPrivatePointerKHR;
       }
+      if (MemoryAccessMask::AliasScopeINTELMask == (compare & MemoryAccessMask::AliasScopeINTELMask))
+      {
+        compare = compare ^ MemoryAccessMask::AliasScopeINTELMask;
+        ++len;
+      }
+      if (MemoryAccessMask::NoAliasINTELMask == (compare & MemoryAccessMask::NoAliasINTELMask))
+      {
+        compare = compare ^ MemoryAccessMask::NoAliasINTELMask;
+        ++len;
+      }
     }
     if (value->memoryAccess1)
     {
@@ -911,6 +1003,16 @@ struct NodeWriteVisitor
       if (MemoryAccessMask::NonPrivatePointerKHR == (compare & MemoryAccessMask::NonPrivatePointerKHR))
       {
         compare = compare ^ MemoryAccessMask::NonPrivatePointerKHR;
+      }
+      if (MemoryAccessMask::AliasScopeINTELMask == (compare & MemoryAccessMask::AliasScopeINTELMask))
+      {
+        compare = compare ^ MemoryAccessMask::AliasScopeINTELMask;
+        ++len;
+      }
+      if (MemoryAccessMask::NoAliasINTELMask == (compare & MemoryAccessMask::NoAliasINTELMask))
+      {
+        compare = compare ^ MemoryAccessMask::NoAliasINTELMask;
+        ++len;
       }
     }
     writer.beginInstruction(Op::OpCopyMemorySized, len);
@@ -962,6 +1064,16 @@ struct NodeWriteVisitor
       {
         compareWrite = compareWrite ^ MemoryAccessMask::NonPrivatePointerKHR;
       }
+      if (MemoryAccessMask::AliasScopeINTELMask == (compareWrite & MemoryAccessMask::AliasScopeINTELMask))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::AliasScopeINTELMask;
+        writer.writeWord(value->memoryAccess0AliasScopeINTELMask->resultId);
+      }
+      if (MemoryAccessMask::NoAliasINTELMask == (compareWrite & MemoryAccessMask::NoAliasINTELMask))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::NoAliasINTELMask;
+        writer.writeWord(value->memoryAccess0NoAliasINTELMask->resultId);
+      }
     }
     if (value->memoryAccess1)
     {
@@ -1007,6 +1119,16 @@ struct NodeWriteVisitor
       if (MemoryAccessMask::NonPrivatePointerKHR == (compareWrite & MemoryAccessMask::NonPrivatePointerKHR))
       {
         compareWrite = compareWrite ^ MemoryAccessMask::NonPrivatePointerKHR;
+      }
+      if (MemoryAccessMask::AliasScopeINTELMask == (compareWrite & MemoryAccessMask::AliasScopeINTELMask))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::AliasScopeINTELMask;
+        writer.writeWord(value->memoryAccess1AliasScopeINTELMask->resultId);
+      }
+      if (MemoryAccessMask::NoAliasINTELMask == (compareWrite & MemoryAccessMask::NoAliasINTELMask))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::NoAliasINTELMask;
+        writer.writeWord(value->memoryAccess1NoAliasINTELMask->resultId);
       }
     }
     writer.endWrite();
@@ -8872,6 +8994,49 @@ struct NodeWriteVisitor
     writer.endWrite();
     return true;
   }
+  bool operator()(NodeOpColorAttachmentReadEXT *value)
+  {
+    size_t len = 3;
+    len += value->sample ? 1 : 0;
+    writer.beginInstruction(Op::OpColorAttachmentReadEXT, len);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->attachment->resultId);
+    if (value->sample)
+    {
+      writer.writeWord((*value->sample)->resultId);
+    }
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpDepthAttachmentReadEXT *value)
+  {
+    size_t len = 2;
+    len += value->sample ? 1 : 0;
+    writer.beginInstruction(Op::OpDepthAttachmentReadEXT, len);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    if (value->sample)
+    {
+      writer.writeWord((*value->sample)->resultId);
+    }
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpStencilAttachmentReadEXT *value)
+  {
+    size_t len = 2;
+    len += value->sample ? 1 : 0;
+    writer.beginInstruction(Op::OpStencilAttachmentReadEXT, len);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    if (value->sample)
+    {
+      writer.writeWord((*value->sample)->resultId);
+    }
+    writer.endWrite();
+    return true;
+  }
   bool operator()(NodeOpTerminateInvocation *value)
   {
     writer.beginInstruction(Op::OpTerminateInvocation, 0);
@@ -8923,6 +9088,23 @@ struct NodeWriteVisitor
     writer.endWrite();
     return true;
   }
+  bool operator()(NodeOpGroupNonUniformRotateKHR *value)
+  {
+    size_t len = 5;
+    len += value->clusterSize ? 1 : 0;
+    writer.beginInstruction(Op::OpGroupNonUniformRotateKHR, len);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->execution->resultId);
+    writer.writeWord(value->value->resultId);
+    writer.writeWord(value->delta->resultId);
+    if (value->clusterSize)
+    {
+      writer.writeWord((*value->clusterSize)->resultId);
+    }
+    writer.endWrite();
+    return true;
+  }
   bool operator()(NodeOpSubgroupReadInvocationKHR *value)
   {
     writer.beginInstruction(Op::OpSubgroupReadInvocationKHR, 4);
@@ -8930,6 +9112,22 @@ struct NodeWriteVisitor
     writer.writeWord(value->resultId);
     writer.writeWord(value->value->resultId);
     writer.writeWord(value->index->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpExtInstWithForwardRefsKHR *value)
+  {
+    size_t len = 4;
+    len += value->param4.size();
+    writer.beginInstruction(Op::OpExtInstWithForwardRefsKHR, len);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->set->resultId);
+    writer.writeWord(value->instruction);
+    for (auto &&v : value->param4)
+    {
+      writer.writeWord(v->resultId);
+    }
     writer.endWrite();
     return true;
   }
@@ -9177,6 +9375,326 @@ struct NodeWriteVisitor
     writer.endWrite();
     return true;
   }
+  bool operator()(NodeOpTypeCooperativeMatrixKHR *value)
+  {
+    writer.beginInstruction(Op::OpTypeCooperativeMatrixKHR, 6);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->componentType->resultId);
+    writer.writeWord(value->scope->resultId);
+    writer.writeWord(value->rows->resultId);
+    writer.writeWord(value->columns->resultId);
+    writer.writeWord(value->use->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpCooperativeMatrixLoadKHR *value)
+  {
+    size_t len = 4;
+    len += value->stride ? 1 : 0;
+    if (value->memoryOperand)
+    {
+      ++len;
+      auto compare = *value->memoryOperand;
+      if (MemoryAccessMask::Volatile == (compare & MemoryAccessMask::Volatile))
+      {
+        compare = compare ^ MemoryAccessMask::Volatile;
+      }
+      if (MemoryAccessMask::Aligned == (compare & MemoryAccessMask::Aligned))
+      {
+        compare = compare ^ MemoryAccessMask::Aligned;
+        ++len;
+      }
+      if (MemoryAccessMask::Nontemporal == (compare & MemoryAccessMask::Nontemporal))
+      {
+        compare = compare ^ MemoryAccessMask::Nontemporal;
+      }
+      if (MemoryAccessMask::MakePointerAvailable == (compare & MemoryAccessMask::MakePointerAvailable))
+      {
+        compare = compare ^ MemoryAccessMask::MakePointerAvailable;
+        ++len;
+      }
+      if (MemoryAccessMask::MakePointerAvailableKHR == (compare & MemoryAccessMask::MakePointerAvailableKHR))
+      {
+        compare = compare ^ MemoryAccessMask::MakePointerAvailableKHR;
+        ++len;
+      }
+      if (MemoryAccessMask::MakePointerVisible == (compare & MemoryAccessMask::MakePointerVisible))
+      {
+        compare = compare ^ MemoryAccessMask::MakePointerVisible;
+        ++len;
+      }
+      if (MemoryAccessMask::MakePointerVisibleKHR == (compare & MemoryAccessMask::MakePointerVisibleKHR))
+      {
+        compare = compare ^ MemoryAccessMask::MakePointerVisibleKHR;
+        ++len;
+      }
+      if (MemoryAccessMask::NonPrivatePointer == (compare & MemoryAccessMask::NonPrivatePointer))
+      {
+        compare = compare ^ MemoryAccessMask::NonPrivatePointer;
+      }
+      if (MemoryAccessMask::NonPrivatePointerKHR == (compare & MemoryAccessMask::NonPrivatePointerKHR))
+      {
+        compare = compare ^ MemoryAccessMask::NonPrivatePointerKHR;
+      }
+      if (MemoryAccessMask::AliasScopeINTELMask == (compare & MemoryAccessMask::AliasScopeINTELMask))
+      {
+        compare = compare ^ MemoryAccessMask::AliasScopeINTELMask;
+        ++len;
+      }
+      if (MemoryAccessMask::NoAliasINTELMask == (compare & MemoryAccessMask::NoAliasINTELMask))
+      {
+        compare = compare ^ MemoryAccessMask::NoAliasINTELMask;
+        ++len;
+      }
+    }
+    writer.beginInstruction(Op::OpCooperativeMatrixLoadKHR, len);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->pointer->resultId);
+    writer.writeWord(value->memoryLayout->resultId);
+    if (value->stride)
+    {
+      writer.writeWord((*value->stride)->resultId);
+    }
+    if (value->memoryOperand)
+    {
+      writer.writeWord(static_cast<unsigned>((*value->memoryOperand)));
+      auto compareWrite = (*value->memoryOperand);
+      if (MemoryAccessMask::Volatile == (compareWrite & MemoryAccessMask::Volatile))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::Volatile;
+      }
+      if (MemoryAccessMask::Aligned == (compareWrite & MemoryAccessMask::Aligned))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::Aligned;
+        writer.writeWord(static_cast<unsigned>(value->memoryOperandAligned.value));
+      }
+      if (MemoryAccessMask::Nontemporal == (compareWrite & MemoryAccessMask::Nontemporal))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::Nontemporal;
+      }
+      if (MemoryAccessMask::MakePointerAvailable == (compareWrite & MemoryAccessMask::MakePointerAvailable))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::MakePointerAvailable;
+        writer.writeWord(value->memoryOperandMakePointerAvailable->resultId);
+      }
+      if (MemoryAccessMask::MakePointerAvailableKHR == (compareWrite & MemoryAccessMask::MakePointerAvailableKHR))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::MakePointerAvailableKHR;
+        writer.writeWord(value->memoryOperandMakePointerAvailableKHR->resultId);
+      }
+      if (MemoryAccessMask::MakePointerVisible == (compareWrite & MemoryAccessMask::MakePointerVisible))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::MakePointerVisible;
+        writer.writeWord(value->memoryOperandMakePointerVisible->resultId);
+      }
+      if (MemoryAccessMask::MakePointerVisibleKHR == (compareWrite & MemoryAccessMask::MakePointerVisibleKHR))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::MakePointerVisibleKHR;
+        writer.writeWord(value->memoryOperandMakePointerVisibleKHR->resultId);
+      }
+      if (MemoryAccessMask::NonPrivatePointer == (compareWrite & MemoryAccessMask::NonPrivatePointer))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::NonPrivatePointer;
+      }
+      if (MemoryAccessMask::NonPrivatePointerKHR == (compareWrite & MemoryAccessMask::NonPrivatePointerKHR))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::NonPrivatePointerKHR;
+      }
+      if (MemoryAccessMask::AliasScopeINTELMask == (compareWrite & MemoryAccessMask::AliasScopeINTELMask))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::AliasScopeINTELMask;
+        writer.writeWord(value->memoryOperandAliasScopeINTELMask->resultId);
+      }
+      if (MemoryAccessMask::NoAliasINTELMask == (compareWrite & MemoryAccessMask::NoAliasINTELMask))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::NoAliasINTELMask;
+        writer.writeWord(value->memoryOperandNoAliasINTELMask->resultId);
+      }
+    }
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpCooperativeMatrixStoreKHR *value)
+  {
+    size_t len = 3;
+    len += value->stride ? 1 : 0;
+    if (value->memoryOperand)
+    {
+      ++len;
+      auto compare = *value->memoryOperand;
+      if (MemoryAccessMask::Volatile == (compare & MemoryAccessMask::Volatile))
+      {
+        compare = compare ^ MemoryAccessMask::Volatile;
+      }
+      if (MemoryAccessMask::Aligned == (compare & MemoryAccessMask::Aligned))
+      {
+        compare = compare ^ MemoryAccessMask::Aligned;
+        ++len;
+      }
+      if (MemoryAccessMask::Nontemporal == (compare & MemoryAccessMask::Nontemporal))
+      {
+        compare = compare ^ MemoryAccessMask::Nontemporal;
+      }
+      if (MemoryAccessMask::MakePointerAvailable == (compare & MemoryAccessMask::MakePointerAvailable))
+      {
+        compare = compare ^ MemoryAccessMask::MakePointerAvailable;
+        ++len;
+      }
+      if (MemoryAccessMask::MakePointerAvailableKHR == (compare & MemoryAccessMask::MakePointerAvailableKHR))
+      {
+        compare = compare ^ MemoryAccessMask::MakePointerAvailableKHR;
+        ++len;
+      }
+      if (MemoryAccessMask::MakePointerVisible == (compare & MemoryAccessMask::MakePointerVisible))
+      {
+        compare = compare ^ MemoryAccessMask::MakePointerVisible;
+        ++len;
+      }
+      if (MemoryAccessMask::MakePointerVisibleKHR == (compare & MemoryAccessMask::MakePointerVisibleKHR))
+      {
+        compare = compare ^ MemoryAccessMask::MakePointerVisibleKHR;
+        ++len;
+      }
+      if (MemoryAccessMask::NonPrivatePointer == (compare & MemoryAccessMask::NonPrivatePointer))
+      {
+        compare = compare ^ MemoryAccessMask::NonPrivatePointer;
+      }
+      if (MemoryAccessMask::NonPrivatePointerKHR == (compare & MemoryAccessMask::NonPrivatePointerKHR))
+      {
+        compare = compare ^ MemoryAccessMask::NonPrivatePointerKHR;
+      }
+      if (MemoryAccessMask::AliasScopeINTELMask == (compare & MemoryAccessMask::AliasScopeINTELMask))
+      {
+        compare = compare ^ MemoryAccessMask::AliasScopeINTELMask;
+        ++len;
+      }
+      if (MemoryAccessMask::NoAliasINTELMask == (compare & MemoryAccessMask::NoAliasINTELMask))
+      {
+        compare = compare ^ MemoryAccessMask::NoAliasINTELMask;
+        ++len;
+      }
+    }
+    writer.beginInstruction(Op::OpCooperativeMatrixStoreKHR, len);
+    writer.writeWord(value->pointer->resultId);
+    writer.writeWord(value->object->resultId);
+    writer.writeWord(value->memoryLayout->resultId);
+    if (value->stride)
+    {
+      writer.writeWord((*value->stride)->resultId);
+    }
+    if (value->memoryOperand)
+    {
+      writer.writeWord(static_cast<unsigned>((*value->memoryOperand)));
+      auto compareWrite = (*value->memoryOperand);
+      if (MemoryAccessMask::Volatile == (compareWrite & MemoryAccessMask::Volatile))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::Volatile;
+      }
+      if (MemoryAccessMask::Aligned == (compareWrite & MemoryAccessMask::Aligned))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::Aligned;
+        writer.writeWord(static_cast<unsigned>(value->memoryOperandAligned.value));
+      }
+      if (MemoryAccessMask::Nontemporal == (compareWrite & MemoryAccessMask::Nontemporal))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::Nontemporal;
+      }
+      if (MemoryAccessMask::MakePointerAvailable == (compareWrite & MemoryAccessMask::MakePointerAvailable))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::MakePointerAvailable;
+        writer.writeWord(value->memoryOperandMakePointerAvailable->resultId);
+      }
+      if (MemoryAccessMask::MakePointerAvailableKHR == (compareWrite & MemoryAccessMask::MakePointerAvailableKHR))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::MakePointerAvailableKHR;
+        writer.writeWord(value->memoryOperandMakePointerAvailableKHR->resultId);
+      }
+      if (MemoryAccessMask::MakePointerVisible == (compareWrite & MemoryAccessMask::MakePointerVisible))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::MakePointerVisible;
+        writer.writeWord(value->memoryOperandMakePointerVisible->resultId);
+      }
+      if (MemoryAccessMask::MakePointerVisibleKHR == (compareWrite & MemoryAccessMask::MakePointerVisibleKHR))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::MakePointerVisibleKHR;
+        writer.writeWord(value->memoryOperandMakePointerVisibleKHR->resultId);
+      }
+      if (MemoryAccessMask::NonPrivatePointer == (compareWrite & MemoryAccessMask::NonPrivatePointer))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::NonPrivatePointer;
+      }
+      if (MemoryAccessMask::NonPrivatePointerKHR == (compareWrite & MemoryAccessMask::NonPrivatePointerKHR))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::NonPrivatePointerKHR;
+      }
+      if (MemoryAccessMask::AliasScopeINTELMask == (compareWrite & MemoryAccessMask::AliasScopeINTELMask))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::AliasScopeINTELMask;
+        writer.writeWord(value->memoryOperandAliasScopeINTELMask->resultId);
+      }
+      if (MemoryAccessMask::NoAliasINTELMask == (compareWrite & MemoryAccessMask::NoAliasINTELMask))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::NoAliasINTELMask;
+        writer.writeWord(value->memoryOperandNoAliasINTELMask->resultId);
+      }
+    }
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpCooperativeMatrixMulAddKHR *value)
+  {
+    size_t len = 5;
+    len += value->cooperativeMatrixOperands ? 1 : 0;
+    writer.beginInstruction(Op::OpCooperativeMatrixMulAddKHR, len);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->a->resultId);
+    writer.writeWord(value->b->resultId);
+    writer.writeWord(value->c->resultId);
+    if (value->cooperativeMatrixOperands)
+    {
+      writer.writeWord(static_cast<unsigned>((*value->cooperativeMatrixOperands)));
+    }
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpCooperativeMatrixLengthKHR *value)
+  {
+    writer.beginInstruction(Op::OpCooperativeMatrixLengthKHR, 3);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->type->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpConstantCompositeReplicateEXT *value)
+  {
+    writer.beginInstruction(Op::OpConstantCompositeReplicateEXT, 3);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->value->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpSpecConstantCompositeReplicateEXT *value)
+  {
+    writer.beginInstruction(Op::OpSpecConstantCompositeReplicateEXT, 3);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->value->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpCompositeConstructReplicateEXT *value)
+  {
+    writer.beginInstruction(Op::OpCompositeConstructReplicateEXT, 3);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->value->resultId);
+    writer.endWrite();
+    return true;
+  }
   bool operator()(NodeOpTypeRayQueryKHR *value)
   {
     writer.beginInstruction(Op::OpTypeRayQueryKHR, 1);
@@ -9236,6 +9754,106 @@ struct NodeWriteVisitor
     writer.writeWord(value->resultId);
     writer.writeWord(value->rayQuery->resultId);
     writer.writeWord(value->intersection->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpImageSampleWeightedQCOM *value)
+  {
+    writer.beginInstruction(Op::OpImageSampleWeightedQCOM, 5);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->texture->resultId);
+    writer.writeWord(value->coordinates->resultId);
+    writer.writeWord(value->weights->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpImageBoxFilterQCOM *value)
+  {
+    writer.beginInstruction(Op::OpImageBoxFilterQCOM, 5);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->texture->resultId);
+    writer.writeWord(value->coordinates->resultId);
+    writer.writeWord(value->boxSize->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpImageBlockMatchSSDQCOM *value)
+  {
+    writer.beginInstruction(Op::OpImageBlockMatchSSDQCOM, 7);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->target->resultId);
+    writer.writeWord(value->targetCoordinates->resultId);
+    writer.writeWord(value->reference->resultId);
+    writer.writeWord(value->referenceCoordinates->resultId);
+    writer.writeWord(value->blockSize->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpImageBlockMatchSADQCOM *value)
+  {
+    writer.beginInstruction(Op::OpImageBlockMatchSADQCOM, 7);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->target->resultId);
+    writer.writeWord(value->targetCoordinates->resultId);
+    writer.writeWord(value->reference->resultId);
+    writer.writeWord(value->referenceCoordinates->resultId);
+    writer.writeWord(value->blockSize->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpImageBlockMatchWindowSSDQCOM *value)
+  {
+    writer.beginInstruction(Op::OpImageBlockMatchWindowSSDQCOM, 7);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->targetSampledImage->resultId);
+    writer.writeWord(value->targetCoordinates->resultId);
+    writer.writeWord(value->referenceSampledImage->resultId);
+    writer.writeWord(value->referenceCoordinates->resultId);
+    writer.writeWord(value->blockSize->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpImageBlockMatchWindowSADQCOM *value)
+  {
+    writer.beginInstruction(Op::OpImageBlockMatchWindowSADQCOM, 7);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->targetSampledImage->resultId);
+    writer.writeWord(value->targetCoordinates->resultId);
+    writer.writeWord(value->referenceSampledImage->resultId);
+    writer.writeWord(value->referenceCoordinates->resultId);
+    writer.writeWord(value->blockSize->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpImageBlockMatchGatherSSDQCOM *value)
+  {
+    writer.beginInstruction(Op::OpImageBlockMatchGatherSSDQCOM, 7);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->targetSampledImage->resultId);
+    writer.writeWord(value->targetCoordinates->resultId);
+    writer.writeWord(value->referenceSampledImage->resultId);
+    writer.writeWord(value->referenceCoordinates->resultId);
+    writer.writeWord(value->blockSize->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpImageBlockMatchGatherSADQCOM *value)
+  {
+    writer.beginInstruction(Op::OpImageBlockMatchGatherSADQCOM, 7);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->targetSampledImage->resultId);
+    writer.writeWord(value->targetCoordinates->resultId);
+    writer.writeWord(value->referenceSampledImage->resultId);
+    writer.writeWord(value->referenceCoordinates->resultId);
+    writer.writeWord(value->blockSize->resultId);
     writer.endWrite();
     return true;
   }
@@ -9354,6 +9972,415 @@ struct NodeWriteVisitor
     writer.writeWord(value->resultType->resultId);
     writer.writeWord(value->resultId);
     writer.writeWord(value->scope->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpFinalizeNodePayloadsAMDX *value)
+  {
+    writer.beginInstruction(Op::OpFinalizeNodePayloadsAMDX, 1);
+    writer.writeWord(value->payloadArray->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpFinishWritingNodePayloadAMDX *value)
+  {
+    writer.beginInstruction(Op::OpFinishWritingNodePayloadAMDX, 3);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->payload->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpInitializeNodePayloadsAMDX *value)
+  {
+    writer.beginInstruction(Op::OpInitializeNodePayloadsAMDX, 4);
+    writer.writeWord(value->payloadArray->resultId);
+    writer.writeWord(value->visibility->resultId);
+    writer.writeWord(value->payloadCount->resultId);
+    writer.writeWord(value->nodeIndex->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpGroupNonUniformQuadAllKHR *value)
+  {
+    writer.beginInstruction(Op::OpGroupNonUniformQuadAllKHR, 3);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->predicate->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpGroupNonUniformQuadAnyKHR *value)
+  {
+    writer.beginInstruction(Op::OpGroupNonUniformQuadAnyKHR, 3);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->predicate->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpHitObjectRecordHitMotionNV *value)
+  {
+    writer.beginInstruction(Op::OpHitObjectRecordHitMotionNV, 14);
+    writer.writeWord(value->hitObject->resultId);
+    writer.writeWord(value->accelerationStructure->resultId);
+    writer.writeWord(value->instanceId->resultId);
+    writer.writeWord(value->primitiveId->resultId);
+    writer.writeWord(value->geometryIndex->resultId);
+    writer.writeWord(value->hitKind->resultId);
+    writer.writeWord(value->sbtRecordOffset->resultId);
+    writer.writeWord(value->sbtRecordStride->resultId);
+    writer.writeWord(value->origin->resultId);
+    writer.writeWord(value->tMin->resultId);
+    writer.writeWord(value->direction->resultId);
+    writer.writeWord(value->tMax->resultId);
+    writer.writeWord(value->currentTime->resultId);
+    writer.writeWord(value->hitobjectAttributes->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpHitObjectRecordHitWithIndexMotionNV *value)
+  {
+    writer.beginInstruction(Op::OpHitObjectRecordHitWithIndexMotionNV, 13);
+    writer.writeWord(value->hitObject->resultId);
+    writer.writeWord(value->accelerationStructure->resultId);
+    writer.writeWord(value->instanceId->resultId);
+    writer.writeWord(value->primitiveId->resultId);
+    writer.writeWord(value->geometryIndex->resultId);
+    writer.writeWord(value->hitKind->resultId);
+    writer.writeWord(value->sbtRecordIndex->resultId);
+    writer.writeWord(value->origin->resultId);
+    writer.writeWord(value->tMin->resultId);
+    writer.writeWord(value->direction->resultId);
+    writer.writeWord(value->tMax->resultId);
+    writer.writeWord(value->currentTime->resultId);
+    writer.writeWord(value->hitobjectAttributes->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpHitObjectRecordMissMotionNV *value)
+  {
+    writer.beginInstruction(Op::OpHitObjectRecordMissMotionNV, 7);
+    writer.writeWord(value->hitObject->resultId);
+    writer.writeWord(value->sbtIndex->resultId);
+    writer.writeWord(value->origin->resultId);
+    writer.writeWord(value->tMin->resultId);
+    writer.writeWord(value->direction->resultId);
+    writer.writeWord(value->tMax->resultId);
+    writer.writeWord(value->currentTime->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpHitObjectGetWorldToObjectNV *value)
+  {
+    writer.beginInstruction(Op::OpHitObjectGetWorldToObjectNV, 3);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->hitObject->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpHitObjectGetObjectToWorldNV *value)
+  {
+    writer.beginInstruction(Op::OpHitObjectGetObjectToWorldNV, 3);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->hitObject->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpHitObjectGetObjectRayDirectionNV *value)
+  {
+    writer.beginInstruction(Op::OpHitObjectGetObjectRayDirectionNV, 3);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->hitObject->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpHitObjectGetObjectRayOriginNV *value)
+  {
+    writer.beginInstruction(Op::OpHitObjectGetObjectRayOriginNV, 3);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->hitObject->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpHitObjectTraceRayMotionNV *value)
+  {
+    writer.beginInstruction(Op::OpHitObjectTraceRayMotionNV, 13);
+    writer.writeWord(value->hitObject->resultId);
+    writer.writeWord(value->accelerationStructure->resultId);
+    writer.writeWord(value->rayFlags->resultId);
+    writer.writeWord(value->cullmask->resultId);
+    writer.writeWord(value->sbtRecordOffset->resultId);
+    writer.writeWord(value->sbtRecordStride->resultId);
+    writer.writeWord(value->missIndex->resultId);
+    writer.writeWord(value->origin->resultId);
+    writer.writeWord(value->tMin->resultId);
+    writer.writeWord(value->direction->resultId);
+    writer.writeWord(value->tMax->resultId);
+    writer.writeWord(value->time->resultId);
+    writer.writeWord(value->payload->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpHitObjectGetShaderRecordBufferHandleNV *value)
+  {
+    writer.beginInstruction(Op::OpHitObjectGetShaderRecordBufferHandleNV, 3);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->hitObject->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpHitObjectGetShaderBindingTableRecordIndexNV *value)
+  {
+    writer.beginInstruction(Op::OpHitObjectGetShaderBindingTableRecordIndexNV, 3);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->hitObject->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpHitObjectRecordEmptyNV *value)
+  {
+    writer.beginInstruction(Op::OpHitObjectRecordEmptyNV, 1);
+    writer.writeWord(value->hitObject->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpHitObjectTraceRayNV *value)
+  {
+    writer.beginInstruction(Op::OpHitObjectTraceRayNV, 12);
+    writer.writeWord(value->hitObject->resultId);
+    writer.writeWord(value->accelerationStructure->resultId);
+    writer.writeWord(value->rayFlags->resultId);
+    writer.writeWord(value->cullmask->resultId);
+    writer.writeWord(value->sbtRecordOffset->resultId);
+    writer.writeWord(value->sbtRecordStride->resultId);
+    writer.writeWord(value->missIndex->resultId);
+    writer.writeWord(value->origin->resultId);
+    writer.writeWord(value->tMin->resultId);
+    writer.writeWord(value->direction->resultId);
+    writer.writeWord(value->tMax->resultId);
+    writer.writeWord(value->payload->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpHitObjectRecordHitNV *value)
+  {
+    writer.beginInstruction(Op::OpHitObjectRecordHitNV, 13);
+    writer.writeWord(value->hitObject->resultId);
+    writer.writeWord(value->accelerationStructure->resultId);
+    writer.writeWord(value->instanceId->resultId);
+    writer.writeWord(value->primitiveId->resultId);
+    writer.writeWord(value->geometryIndex->resultId);
+    writer.writeWord(value->hitKind->resultId);
+    writer.writeWord(value->sbtRecordOffset->resultId);
+    writer.writeWord(value->sbtRecordStride->resultId);
+    writer.writeWord(value->origin->resultId);
+    writer.writeWord(value->tMin->resultId);
+    writer.writeWord(value->direction->resultId);
+    writer.writeWord(value->tMax->resultId);
+    writer.writeWord(value->hitobjectAttributes->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpHitObjectRecordHitWithIndexNV *value)
+  {
+    writer.beginInstruction(Op::OpHitObjectRecordHitWithIndexNV, 12);
+    writer.writeWord(value->hitObject->resultId);
+    writer.writeWord(value->accelerationStructure->resultId);
+    writer.writeWord(value->instanceId->resultId);
+    writer.writeWord(value->primitiveId->resultId);
+    writer.writeWord(value->geometryIndex->resultId);
+    writer.writeWord(value->hitKind->resultId);
+    writer.writeWord(value->sbtRecordIndex->resultId);
+    writer.writeWord(value->origin->resultId);
+    writer.writeWord(value->tMin->resultId);
+    writer.writeWord(value->direction->resultId);
+    writer.writeWord(value->tMax->resultId);
+    writer.writeWord(value->hitobjectAttributes->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpHitObjectRecordMissNV *value)
+  {
+    writer.beginInstruction(Op::OpHitObjectRecordMissNV, 6);
+    writer.writeWord(value->hitObject->resultId);
+    writer.writeWord(value->sbtIndex->resultId);
+    writer.writeWord(value->origin->resultId);
+    writer.writeWord(value->tMin->resultId);
+    writer.writeWord(value->direction->resultId);
+    writer.writeWord(value->tMax->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpHitObjectExecuteShaderNV *value)
+  {
+    writer.beginInstruction(Op::OpHitObjectExecuteShaderNV, 2);
+    writer.writeWord(value->hitObject->resultId);
+    writer.writeWord(value->payload->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpHitObjectGetCurrentTimeNV *value)
+  {
+    writer.beginInstruction(Op::OpHitObjectGetCurrentTimeNV, 3);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->hitObject->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpHitObjectGetAttributesNV *value)
+  {
+    writer.beginInstruction(Op::OpHitObjectGetAttributesNV, 2);
+    writer.writeWord(value->hitObject->resultId);
+    writer.writeWord(value->hitObjectAttribute->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpHitObjectGetHitKindNV *value)
+  {
+    writer.beginInstruction(Op::OpHitObjectGetHitKindNV, 3);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->hitObject->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpHitObjectGetPrimitiveIndexNV *value)
+  {
+    writer.beginInstruction(Op::OpHitObjectGetPrimitiveIndexNV, 3);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->hitObject->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpHitObjectGetGeometryIndexNV *value)
+  {
+    writer.beginInstruction(Op::OpHitObjectGetGeometryIndexNV, 3);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->hitObject->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpHitObjectGetInstanceIdNV *value)
+  {
+    writer.beginInstruction(Op::OpHitObjectGetInstanceIdNV, 3);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->hitObject->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpHitObjectGetInstanceCustomIndexNV *value)
+  {
+    writer.beginInstruction(Op::OpHitObjectGetInstanceCustomIndexNV, 3);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->hitObject->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpHitObjectGetWorldRayDirectionNV *value)
+  {
+    writer.beginInstruction(Op::OpHitObjectGetWorldRayDirectionNV, 3);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->hitObject->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpHitObjectGetWorldRayOriginNV *value)
+  {
+    writer.beginInstruction(Op::OpHitObjectGetWorldRayOriginNV, 3);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->hitObject->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpHitObjectGetRayTMaxNV *value)
+  {
+    writer.beginInstruction(Op::OpHitObjectGetRayTMaxNV, 3);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->hitObject->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpHitObjectGetRayTMinNV *value)
+  {
+    writer.beginInstruction(Op::OpHitObjectGetRayTMinNV, 3);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->hitObject->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpHitObjectIsEmptyNV *value)
+  {
+    writer.beginInstruction(Op::OpHitObjectIsEmptyNV, 3);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->hitObject->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpHitObjectIsHitNV *value)
+  {
+    writer.beginInstruction(Op::OpHitObjectIsHitNV, 3);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->hitObject->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpHitObjectIsMissNV *value)
+  {
+    writer.beginInstruction(Op::OpHitObjectIsMissNV, 3);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->hitObject->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpReorderThreadWithHitObjectNV *value)
+  {
+    size_t len = 1;
+    len += value->hint ? 1 : 0;
+    len += value->bits ? 1 : 0;
+    writer.beginInstruction(Op::OpReorderThreadWithHitObjectNV, len);
+    writer.writeWord(value->hitObject->resultId);
+    if (value->hint)
+    {
+      writer.writeWord((*value->hint)->resultId);
+    }
+    if (value->bits)
+    {
+      writer.writeWord((*value->bits)->resultId);
+    }
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpReorderThreadWithHintNV *value)
+  {
+    writer.beginInstruction(Op::OpReorderThreadWithHintNV, 2);
+    writer.writeWord(value->hint->resultId);
+    writer.writeWord(value->bits->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpTypeHitObjectNV *value)
+  {
+    writer.beginInstruction(Op::OpTypeHitObjectNV, 1);
+    writer.writeWord(value->resultId);
     writer.endWrite();
     return true;
   }
@@ -9568,6 +10595,29 @@ struct NodeWriteVisitor
     writer.endWrite();
     return true;
   }
+  bool operator()(NodeOpEmitMeshTasksEXT *value)
+  {
+    size_t len = 3;
+    len += value->payload ? 1 : 0;
+    writer.beginInstruction(Op::OpEmitMeshTasksEXT, len);
+    writer.writeWord(value->groupCountX->resultId);
+    writer.writeWord(value->groupCountY->resultId);
+    writer.writeWord(value->groupCountZ->resultId);
+    if (value->payload)
+    {
+      writer.writeWord((*value->payload)->resultId);
+    }
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpSetMeshOutputsEXT *value)
+  {
+    writer.beginInstruction(Op::OpSetMeshOutputsEXT, 2);
+    writer.writeWord(value->vertexCount->resultId);
+    writer.writeWord(value->primitiveCount->resultId);
+    writer.endWrite();
+    return true;
+  }
   bool operator()(NodeOpGroupNonUniformPartitionNV *value)
   {
     writer.beginInstruction(Op::OpGroupNonUniformPartitionNV, 3);
@@ -9585,9 +10635,35 @@ struct NodeWriteVisitor
     writer.endWrite();
     return true;
   }
-  bool operator()(NodeOpReportIntersectionNV *value)
+  bool operator()(NodeOpFetchMicroTriangleVertexPositionNV *value)
   {
-    writer.beginInstruction(Op::OpReportIntersectionNV, 4);
+    writer.beginInstruction(Op::OpFetchMicroTriangleVertexPositionNV, 7);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->accel->resultId);
+    writer.writeWord(value->instanceId->resultId);
+    writer.writeWord(value->geometryIndex->resultId);
+    writer.writeWord(value->primitiveIndex->resultId);
+    writer.writeWord(value->barycentric->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpFetchMicroTriangleVertexBarycentricNV *value)
+  {
+    writer.beginInstruction(Op::OpFetchMicroTriangleVertexBarycentricNV, 7);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->accel->resultId);
+    writer.writeWord(value->instanceId->resultId);
+    writer.writeWord(value->geometryIndex->resultId);
+    writer.writeWord(value->primitiveIndex->resultId);
+    writer.writeWord(value->barycentric->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpReportIntersectionKHR *value)
+  {
+    writer.beginInstruction(Op::OpReportIntersectionKHR, 4);
     writer.writeWord(value->resultType->resultId);
     writer.writeWord(value->resultId);
     writer.writeWord(value->hit->resultId);
@@ -9595,9 +10671,9 @@ struct NodeWriteVisitor
     writer.endWrite();
     return true;
   }
-  bool operator()(NodeOpReportIntersectionKHR *value)
+  bool operator()(NodeOpReportIntersectionNV *value)
   {
-    writer.beginInstruction(Op::OpReportIntersectionKHR, 4);
+    writer.beginInstruction(Op::OpReportIntersectionNV, 4);
     writer.writeWord(value->resultType->resultId);
     writer.writeWord(value->resultId);
     writer.writeWord(value->hit->resultId);
@@ -9670,16 +10746,26 @@ struct NodeWriteVisitor
     writer.endWrite();
     return true;
   }
-  bool operator()(NodeOpTypeAccelerationStructureNV *value)
+  bool operator()(NodeOpRayQueryGetIntersectionTriangleVertexPositionsKHR *value)
   {
-    writer.beginInstruction(Op::OpTypeAccelerationStructureNV, 1);
+    writer.beginInstruction(Op::OpRayQueryGetIntersectionTriangleVertexPositionsKHR, 4);
+    writer.writeWord(value->resultType->resultId);
     writer.writeWord(value->resultId);
+    writer.writeWord(value->rayQuery->resultId);
+    writer.writeWord(value->intersection->resultId);
     writer.endWrite();
     return true;
   }
   bool operator()(NodeOpTypeAccelerationStructureKHR *value)
   {
     writer.beginInstruction(Op::OpTypeAccelerationStructureKHR, 1);
+    writer.writeWord(value->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpTypeAccelerationStructureNV *value)
+  {
+    writer.beginInstruction(Op::OpTypeAccelerationStructureNV, 1);
     writer.writeWord(value->resultId);
     writer.endWrite();
     return true;
@@ -9751,6 +10837,16 @@ struct NodeWriteVisitor
       {
         compare = compare ^ MemoryAccessMask::NonPrivatePointerKHR;
       }
+      if (MemoryAccessMask::AliasScopeINTELMask == (compare & MemoryAccessMask::AliasScopeINTELMask))
+      {
+        compare = compare ^ MemoryAccessMask::AliasScopeINTELMask;
+        ++len;
+      }
+      if (MemoryAccessMask::NoAliasINTELMask == (compare & MemoryAccessMask::NoAliasINTELMask))
+      {
+        compare = compare ^ MemoryAccessMask::NoAliasINTELMask;
+        ++len;
+      }
     }
     writer.beginInstruction(Op::OpCooperativeMatrixLoadNV, len);
     writer.writeWord(value->resultType->resultId);
@@ -9802,6 +10898,16 @@ struct NodeWriteVisitor
       if (MemoryAccessMask::NonPrivatePointerKHR == (compareWrite & MemoryAccessMask::NonPrivatePointerKHR))
       {
         compareWrite = compareWrite ^ MemoryAccessMask::NonPrivatePointerKHR;
+      }
+      if (MemoryAccessMask::AliasScopeINTELMask == (compareWrite & MemoryAccessMask::AliasScopeINTELMask))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::AliasScopeINTELMask;
+        writer.writeWord(value->memoryAccessAliasScopeINTELMask->resultId);
+      }
+      if (MemoryAccessMask::NoAliasINTELMask == (compareWrite & MemoryAccessMask::NoAliasINTELMask))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::NoAliasINTELMask;
+        writer.writeWord(value->memoryAccessNoAliasINTELMask->resultId);
       }
     }
     writer.endWrite();
@@ -9855,6 +10961,16 @@ struct NodeWriteVisitor
       {
         compare = compare ^ MemoryAccessMask::NonPrivatePointerKHR;
       }
+      if (MemoryAccessMask::AliasScopeINTELMask == (compare & MemoryAccessMask::AliasScopeINTELMask))
+      {
+        compare = compare ^ MemoryAccessMask::AliasScopeINTELMask;
+        ++len;
+      }
+      if (MemoryAccessMask::NoAliasINTELMask == (compare & MemoryAccessMask::NoAliasINTELMask))
+      {
+        compare = compare ^ MemoryAccessMask::NoAliasINTELMask;
+        ++len;
+      }
     }
     writer.beginInstruction(Op::OpCooperativeMatrixStoreNV, len);
     writer.writeWord(value->pointer->resultId);
@@ -9905,6 +11021,16 @@ struct NodeWriteVisitor
       if (MemoryAccessMask::NonPrivatePointerKHR == (compareWrite & MemoryAccessMask::NonPrivatePointerKHR))
       {
         compareWrite = compareWrite ^ MemoryAccessMask::NonPrivatePointerKHR;
+      }
+      if (MemoryAccessMask::AliasScopeINTELMask == (compareWrite & MemoryAccessMask::AliasScopeINTELMask))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::AliasScopeINTELMask;
+        writer.writeWord(value->memoryAccessAliasScopeINTELMask->resultId);
+      }
+      if (MemoryAccessMask::NoAliasINTELMask == (compareWrite & MemoryAccessMask::NoAliasINTELMask))
+      {
+        compareWrite = compareWrite ^ MemoryAccessMask::NoAliasINTELMask;
+        writer.writeWord(value->memoryAccessNoAliasINTELMask->resultId);
       }
     }
     writer.endWrite();
@@ -10013,6 +11139,24 @@ struct NodeWriteVisitor
     writer.writeWord(value->resultType->resultId);
     writer.writeWord(value->resultId);
     writer.writeWord(value->operand->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpRawAccessChainNV *value)
+  {
+    size_t len = 6;
+    len += value->rawAccessChainOperands ? 1 : 0;
+    writer.beginInstruction(Op::OpRawAccessChainNV, len);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->base->resultId);
+    writer.writeWord(value->byteStride->resultId);
+    writer.writeWord(value->elementIndex->resultId);
+    writer.writeWord(value->byteOffset->resultId);
+    if (value->rawAccessChainOperands)
+    {
+      writer.writeWord(static_cast<unsigned>((*value->rawAccessChainOperands)));
+    }
     writer.endWrite();
     return true;
   }
@@ -11528,7 +12672,7 @@ struct NodeWriteVisitor
     writer.beginInstruction(Op::OpVariableLengthArrayINTEL, 3);
     writer.writeWord(value->resultType->resultId);
     writer.writeWord(value->resultId);
-    writer.writeWord(value->length->resultId);
+    writer.writeWord(value->lenght->resultId);
     writer.endWrite();
     return true;
   }
@@ -12128,6 +13272,46 @@ struct NodeWriteVisitor
     writer.endWrite();
     return true;
   }
+  bool operator()(NodeOpAliasDomainDeclINTEL *value)
+  {
+    size_t len = 1;
+    len += value->name ? 1 : 0;
+    writer.beginInstruction(Op::OpAliasDomainDeclINTEL, len);
+    writer.writeWord(value->resultId);
+    if (value->name)
+    {
+      writer.writeWord((*value->name)->resultId);
+    }
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpAliasScopeDeclINTEL *value)
+  {
+    size_t len = 2;
+    len += value->name ? 1 : 0;
+    writer.beginInstruction(Op::OpAliasScopeDeclINTEL, len);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->aliasDomain->resultId);
+    if (value->name)
+    {
+      writer.writeWord((*value->name)->resultId);
+    }
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpAliasScopeListDeclINTEL *value)
+  {
+    size_t len = 1;
+    len += value->aliasscope1Aliasscope2.size();
+    writer.beginInstruction(Op::OpAliasScopeListDeclINTEL, len);
+    writer.writeWord(value->resultId);
+    for (auto &&v : value->aliasscope1Aliasscope2)
+    {
+      writer.writeWord(v->resultId);
+    }
+    writer.endWrite();
+    return true;
+  }
   bool operator()(NodeOpFixedSqrtINTEL *value)
   {
     writer.beginInstruction(Op::OpFixedSqrtINTEL, 9);
@@ -12559,6 +13743,166 @@ struct NodeWriteVisitor
     {
       writer.writeWord(v->resultId);
     }
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpCompositeConstructContinuedINTEL *value)
+  {
+    size_t len = 2;
+    len += value->constituents.size();
+    writer.beginInstruction(Op::OpCompositeConstructContinuedINTEL, len);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    for (auto &&v : value->constituents)
+    {
+      writer.writeWord(v->resultId);
+    }
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpConvertFToBF16INTEL *value)
+  {
+    writer.beginInstruction(Op::OpConvertFToBF16INTEL, 3);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->floatValue->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpConvertBF16ToFINTEL *value)
+  {
+    writer.beginInstruction(Op::OpConvertBF16ToFINTEL, 3);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->bfloat16Value->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpControlBarrierArriveINTEL *value)
+  {
+    writer.beginInstruction(Op::OpControlBarrierArriveINTEL, 3);
+    writer.writeWord(value->execution->resultId);
+    writer.writeWord(value->memory->resultId);
+    writer.writeWord(value->semantics->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpControlBarrierWaitINTEL *value)
+  {
+    writer.beginInstruction(Op::OpControlBarrierWaitINTEL, 3);
+    writer.writeWord(value->execution->resultId);
+    writer.writeWord(value->memory->resultId);
+    writer.writeWord(value->semantics->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpGroupIMulKHR *value)
+  {
+    writer.beginInstruction(Op::OpGroupIMulKHR, 5);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->execution->resultId);
+    writer.writeWord(static_cast<unsigned>(value->operation));
+    writer.writeWord(value->x->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpGroupFMulKHR *value)
+  {
+    writer.beginInstruction(Op::OpGroupFMulKHR, 5);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->execution->resultId);
+    writer.writeWord(static_cast<unsigned>(value->operation));
+    writer.writeWord(value->x->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpGroupBitwiseAndKHR *value)
+  {
+    writer.beginInstruction(Op::OpGroupBitwiseAndKHR, 5);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->execution->resultId);
+    writer.writeWord(static_cast<unsigned>(value->operation));
+    writer.writeWord(value->x->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpGroupBitwiseOrKHR *value)
+  {
+    writer.beginInstruction(Op::OpGroupBitwiseOrKHR, 5);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->execution->resultId);
+    writer.writeWord(static_cast<unsigned>(value->operation));
+    writer.writeWord(value->x->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpGroupBitwiseXorKHR *value)
+  {
+    writer.beginInstruction(Op::OpGroupBitwiseXorKHR, 5);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->execution->resultId);
+    writer.writeWord(static_cast<unsigned>(value->operation));
+    writer.writeWord(value->x->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpGroupLogicalAndKHR *value)
+  {
+    writer.beginInstruction(Op::OpGroupLogicalAndKHR, 5);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->execution->resultId);
+    writer.writeWord(static_cast<unsigned>(value->operation));
+    writer.writeWord(value->x->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpGroupLogicalOrKHR *value)
+  {
+    writer.beginInstruction(Op::OpGroupLogicalOrKHR, 5);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->execution->resultId);
+    writer.writeWord(static_cast<unsigned>(value->operation));
+    writer.writeWord(value->x->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpGroupLogicalXorKHR *value)
+  {
+    writer.beginInstruction(Op::OpGroupLogicalXorKHR, 5);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->execution->resultId);
+    writer.writeWord(static_cast<unsigned>(value->operation));
+    writer.writeWord(value->x->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpMaskedGatherINTEL *value)
+  {
+    writer.beginInstruction(Op::OpMaskedGatherINTEL, 6);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(value->ptrVector->resultId);
+    writer.writeWord(value->alignment.value);
+    writer.writeWord(value->mask->resultId);
+    writer.writeWord(value->fillEmpty->resultId);
+    writer.endWrite();
+    return true;
+  }
+  bool operator()(NodeOpMaskedScatterINTEL *value)
+  {
+    writer.beginInstruction(Op::OpMaskedScatterINTEL, 4);
+    writer.writeWord(value->inputVector->resultId);
+    writer.writeWord(value->ptrVector->resultId);
+    writer.writeWord(value->alignment.value);
+    writer.writeWord(value->mask->resultId);
     writer.endWrite();
     return true;
   }
@@ -13572,6 +14916,18 @@ struct NodeWriteVisitor
     writer.endWrite();
     return true;
   }
+  bool operator()(NodeOpAMDShaderExplicitVertexParameterInterpolateAtVertex *value)
+  {
+    writer.beginInstruction(Op::OpExtInst, 6);
+    writer.writeWord(value->resultType->resultId);
+    writer.writeWord(value->resultId);
+    writer.writeWord(builder.getExtendedGrammarIdRef(value->grammarId));
+    writer.writeWord(static_cast<unsigned>(value->extOpCode));
+    writer.writeWord(value->interpolant->resultId);
+    writer.writeWord(value->vertexIdx->resultId);
+    writer.endWrite();
+    return true;
+  }
   bool operator()(NodeOpAMDShaderTrinaryMinmaxFMin3 *value)
   {
     writer.beginInstruction(Op::OpExtInst, 7);
@@ -13689,18 +15045,6 @@ struct NodeWriteVisitor
     writer.endWrite();
     return true;
   }
-  bool operator()(NodeOpAMDShaderExplicitVertexParameterInterpolateAtVertex *value)
-  {
-    writer.beginInstruction(Op::OpExtInst, 6);
-    writer.writeWord(value->resultType->resultId);
-    writer.writeWord(value->resultId);
-    writer.writeWord(builder.getExtendedGrammarIdRef(value->grammarId));
-    writer.writeWord(static_cast<unsigned>(value->extOpCode));
-    writer.writeWord(value->interpolant->resultId);
-    writer.writeWord(value->vertexIdx->resultId);
-    writer.endWrite();
-    return true;
-  }
   // generic nodes do nothing, should never be called anyways
   bool operator()(Node *value) { return false; }
   bool operator()(NodeId *value) { return false; }
@@ -13748,7 +15092,7 @@ struct CanWriteTypeCheckVisitor
   bool operator()(T *value)
   {
     canWrite = true;
-    value->visitRefs([&, this](auto node) //
+    value->visitRefs([&](auto node) //
       {
         if (writtenTypes.has(node->resultId))
           return;
@@ -14108,6 +15452,27 @@ struct ExecutionModeWriteVisitor
     target.writeWord(value->zSizeHint->resultId);
     target.endWrite();
   }
+  void operator()(const ExecutionModeNonCoherentColorAttachmentReadEXT *value)
+  {
+    target.beginInstruction(Op::OpExecutionMode, 2);
+    target.writeWord(function->resultId);
+    target.writeWord(static_cast<Id>(ExecutionMode::NonCoherentColorAttachmentReadEXT));
+    target.endWrite();
+  }
+  void operator()(const ExecutionModeNonCoherentDepthAttachmentReadEXT *value)
+  {
+    target.beginInstruction(Op::OpExecutionMode, 2);
+    target.writeWord(function->resultId);
+    target.writeWord(static_cast<Id>(ExecutionMode::NonCoherentDepthAttachmentReadEXT));
+    target.endWrite();
+  }
+  void operator()(const ExecutionModeNonCoherentStencilAttachmentReadEXT *value)
+  {
+    target.beginInstruction(Op::OpExecutionMode, 2);
+    target.writeWord(function->resultId);
+    target.writeWord(static_cast<Id>(ExecutionMode::NonCoherentStencilAttachmentReadEXT));
+    target.endWrite();
+  }
   void operator()(const ExecutionModeSubgroupUniformControlFlowKHR *value)
   {
     target.beginInstruction(Op::OpExecutionMode, 2);
@@ -14162,6 +15527,13 @@ struct ExecutionModeWriteVisitor
     target.writeWord(static_cast<Id>(value->targetWidth.value));
     target.endWrite();
   }
+  void operator()(const ExecutionModeEarlyAndLateFragmentTestsAMD *value)
+  {
+    target.beginInstruction(Op::OpExecutionMode, 2);
+    target.writeWord(function->resultId);
+    target.writeWord(static_cast<Id>(ExecutionMode::EarlyAndLateFragmentTestsAMD));
+    target.endWrite();
+  }
   void operator()(const ExecutionModeStencilRefReplacingEXT *value)
   {
     target.beginInstruction(Op::OpExecutionMode, 2);
@@ -14169,11 +15541,125 @@ struct ExecutionModeWriteVisitor
     target.writeWord(static_cast<Id>(ExecutionMode::StencilRefReplacingEXT));
     target.endWrite();
   }
+  void operator()(const ExecutionModeCoalescingAMDX *value)
+  {
+    target.beginInstruction(Op::OpExecutionMode, 2);
+    target.writeWord(function->resultId);
+    target.writeWord(static_cast<Id>(ExecutionMode::CoalescingAMDX));
+    target.endWrite();
+  }
+  void operator()(const ExecutionModeMaxNodeRecursionAMDX *value)
+  {
+    target.beginInstruction(Op::OpExecutionModeId, 3);
+    target.writeWord(function->resultId);
+    target.writeWord(static_cast<Id>(ExecutionMode::MaxNodeRecursionAMDX));
+    target.writeWord(value->numberOfRecursions->resultId);
+    target.endWrite();
+  }
+  void operator()(const ExecutionModeStaticNumWorkgroupsAMDX *value)
+  {
+    target.beginInstruction(Op::OpExecutionModeId, 5);
+    target.writeWord(function->resultId);
+    target.writeWord(static_cast<Id>(ExecutionMode::StaticNumWorkgroupsAMDX));
+    target.writeWord(value->xSize->resultId);
+    target.writeWord(value->ySize->resultId);
+    target.writeWord(value->zSize->resultId);
+    target.endWrite();
+  }
+  void operator()(const ExecutionModeShaderIndexAMDX *value)
+  {
+    target.beginInstruction(Op::OpExecutionModeId, 3);
+    target.writeWord(function->resultId);
+    target.writeWord(static_cast<Id>(ExecutionMode::ShaderIndexAMDX));
+    target.writeWord(value->shaderIndex->resultId);
+    target.endWrite();
+  }
+  void operator()(const ExecutionModeMaxNumWorkgroupsAMDX *value)
+  {
+    target.beginInstruction(Op::OpExecutionModeId, 5);
+    target.writeWord(function->resultId);
+    target.writeWord(static_cast<Id>(ExecutionMode::MaxNumWorkgroupsAMDX));
+    target.writeWord(value->xSize->resultId);
+    target.writeWord(value->ySize->resultId);
+    target.writeWord(value->zSize->resultId);
+    target.endWrite();
+  }
+  void operator()(const ExecutionModeStencilRefUnchangedFrontAMD *value)
+  {
+    target.beginInstruction(Op::OpExecutionMode, 2);
+    target.writeWord(function->resultId);
+    target.writeWord(static_cast<Id>(ExecutionMode::StencilRefUnchangedFrontAMD));
+    target.endWrite();
+  }
+  void operator()(const ExecutionModeStencilRefGreaterFrontAMD *value)
+  {
+    target.beginInstruction(Op::OpExecutionMode, 2);
+    target.writeWord(function->resultId);
+    target.writeWord(static_cast<Id>(ExecutionMode::StencilRefGreaterFrontAMD));
+    target.endWrite();
+  }
+  void operator()(const ExecutionModeStencilRefLessFrontAMD *value)
+  {
+    target.beginInstruction(Op::OpExecutionMode, 2);
+    target.writeWord(function->resultId);
+    target.writeWord(static_cast<Id>(ExecutionMode::StencilRefLessFrontAMD));
+    target.endWrite();
+  }
+  void operator()(const ExecutionModeStencilRefUnchangedBackAMD *value)
+  {
+    target.beginInstruction(Op::OpExecutionMode, 2);
+    target.writeWord(function->resultId);
+    target.writeWord(static_cast<Id>(ExecutionMode::StencilRefUnchangedBackAMD));
+    target.endWrite();
+  }
+  void operator()(const ExecutionModeStencilRefGreaterBackAMD *value)
+  {
+    target.beginInstruction(Op::OpExecutionMode, 2);
+    target.writeWord(function->resultId);
+    target.writeWord(static_cast<Id>(ExecutionMode::StencilRefGreaterBackAMD));
+    target.endWrite();
+  }
+  void operator()(const ExecutionModeStencilRefLessBackAMD *value)
+  {
+    target.beginInstruction(Op::OpExecutionMode, 2);
+    target.writeWord(function->resultId);
+    target.writeWord(static_cast<Id>(ExecutionMode::StencilRefLessBackAMD));
+    target.endWrite();
+  }
+  void operator()(const ExecutionModeQuadDerivativesKHR *value)
+  {
+    target.beginInstruction(Op::OpExecutionMode, 2);
+    target.writeWord(function->resultId);
+    target.writeWord(static_cast<Id>(ExecutionMode::QuadDerivativesKHR));
+    target.endWrite();
+  }
+  void operator()(const ExecutionModeRequireFullQuadsKHR *value)
+  {
+    target.beginInstruction(Op::OpExecutionMode, 2);
+    target.writeWord(function->resultId);
+    target.writeWord(static_cast<Id>(ExecutionMode::RequireFullQuadsKHR));
+    target.endWrite();
+  }
+  void operator()(const ExecutionModeOutputLinesEXT *value)
+  {
+    target.beginInstruction(Op::OpExecutionMode, 2);
+    target.writeWord(function->resultId);
+    target.writeWord(static_cast<Id>(ExecutionMode::OutputLinesEXT));
+    target.endWrite();
+  }
   void operator()(const ExecutionModeOutputLinesNV *value)
   {
     target.beginInstruction(Op::OpExecutionMode, 2);
     target.writeWord(function->resultId);
     target.writeWord(static_cast<Id>(ExecutionMode::OutputLinesNV));
+    target.endWrite();
+  }
+  void operator()(const ExecutionModeOutputPrimitivesEXT *value)
+  {
+    target.beginInstruction(Op::OpExecutionMode, 3);
+    target.writeWord(function->resultId);
+    target.writeWord(static_cast<Id>(ExecutionMode::OutputPrimitivesEXT));
+    target.writeWord(static_cast<Id>(value->primitiveCount.value));
     target.endWrite();
   }
   void operator()(const ExecutionModeOutputPrimitivesNV *value)
@@ -14196,6 +15682,13 @@ struct ExecutionModeWriteVisitor
     target.beginInstruction(Op::OpExecutionMode, 2);
     target.writeWord(function->resultId);
     target.writeWord(static_cast<Id>(ExecutionMode::DerivativeGroupLinearNV));
+    target.endWrite();
+  }
+  void operator()(const ExecutionModeOutputTrianglesEXT *value)
+  {
+    target.beginInstruction(Op::OpExecutionMode, 2);
+    target.writeWord(function->resultId);
+    target.writeWord(static_cast<Id>(ExecutionMode::OutputTrianglesEXT));
     target.endWrite();
   }
   void operator()(const ExecutionModeOutputTrianglesNV *value)
@@ -14326,6 +15819,70 @@ struct ExecutionModeWriteVisitor
     target.writeWord(function->resultId);
     target.writeWord(static_cast<Id>(ExecutionMode::SchedulerTargetFmaxMhzINTEL));
     target.writeWord(static_cast<Id>(value->target_fmax.value));
+    target.endWrite();
+  }
+  void operator()(const ExecutionModeMaximallyReconvergesKHR *value)
+  {
+    target.beginInstruction(Op::OpExecutionMode, 2);
+    target.writeWord(function->resultId);
+    target.writeWord(static_cast<Id>(ExecutionMode::MaximallyReconvergesKHR));
+    target.endWrite();
+  }
+  void operator()(const ExecutionModeFPFastMathDefault *value)
+  {
+    target.beginInstruction(Op::OpExecutionModeId, 4);
+    target.writeWord(function->resultId);
+    target.writeWord(static_cast<Id>(ExecutionMode::FPFastMathDefault));
+    target.writeWord(value->targetType->resultId);
+    target.writeWord(value->fastMathMode->resultId);
+    target.endWrite();
+  }
+  void operator()(const ExecutionModeStreamingInterfaceINTEL *value)
+  {
+    target.beginInstruction(Op::OpExecutionMode, 3);
+    target.writeWord(function->resultId);
+    target.writeWord(static_cast<Id>(ExecutionMode::StreamingInterfaceINTEL));
+    target.writeWord(static_cast<Id>(value->stallFreeReturn.value));
+    target.endWrite();
+  }
+  void operator()(const ExecutionModeRegisterMapInterfaceINTEL *value)
+  {
+    target.beginInstruction(Op::OpExecutionMode, 3);
+    target.writeWord(function->resultId);
+    target.writeWord(static_cast<Id>(ExecutionMode::RegisterMapInterfaceINTEL));
+    target.writeWord(static_cast<Id>(value->waitForDoneWrite.value));
+    target.endWrite();
+  }
+  void operator()(const ExecutionModeNamedBarrierCountINTEL *value)
+  {
+    target.beginInstruction(Op::OpExecutionMode, 3);
+    target.writeWord(function->resultId);
+    target.writeWord(static_cast<Id>(ExecutionMode::NamedBarrierCountINTEL));
+    target.writeWord(static_cast<Id>(value->barrierCount.value));
+    target.endWrite();
+  }
+  void operator()(const ExecutionModeMaximumRegistersINTEL *value)
+  {
+    target.beginInstruction(Op::OpExecutionMode, 3);
+    target.writeWord(function->resultId);
+    target.writeWord(static_cast<Id>(ExecutionMode::MaximumRegistersINTEL));
+    target.writeWord(static_cast<Id>(value->numberOfRegisters.value));
+    target.endWrite();
+  }
+  void operator()(const ExecutionModeMaximumRegistersIdINTEL *value)
+  {
+    target.beginInstruction(Op::OpExecutionModeId, 3);
+    target.writeWord(function->resultId);
+    target.writeWord(static_cast<Id>(ExecutionMode::MaximumRegistersIdINTEL));
+    target.writeWord(value->numberOfRegisters->resultId);
+    target.endWrite();
+  }
+  void operator()(const ExecutionModeNamedMaximumRegistersINTEL *value)
+  {
+    target.beginInstruction(Op::OpExecutionMode, 3);
+    target.writeWord(function->resultId);
+    target.writeWord(static_cast<Id>(ExecutionMode::NamedMaximumRegistersINTEL));
+    target.writeWord((uint32_t)(value->namedMaximumNumberOfRegisters));
     target.endWrite();
   }
 };
@@ -15276,6 +16833,57 @@ struct DecorationWriteVisitor
     }
     target.endWrite();
   }
+  void operator()(const PropertyWeightTextureQCOM *value)
+  {
+    if (value->memberIndex)
+    {
+      target.beginInstruction(Op::OpMemberDecorate, 3);
+      target.writeWord(node->resultId);
+      target.writeWord(*value->memberIndex);
+      target.writeWord(static_cast<Id>(Decoration::WeightTextureQCOM));
+    }
+    else
+    {
+      target.beginInstruction(Op::OpDecorate, 2);
+      target.writeWord(node->resultId);
+      target.writeWord(static_cast<Id>(Decoration::WeightTextureQCOM));
+    }
+    target.endWrite();
+  }
+  void operator()(const PropertyBlockMatchTextureQCOM *value)
+  {
+    if (value->memberIndex)
+    {
+      target.beginInstruction(Op::OpMemberDecorate, 3);
+      target.writeWord(node->resultId);
+      target.writeWord(*value->memberIndex);
+      target.writeWord(static_cast<Id>(Decoration::BlockMatchTextureQCOM));
+    }
+    else
+    {
+      target.beginInstruction(Op::OpDecorate, 2);
+      target.writeWord(node->resultId);
+      target.writeWord(static_cast<Id>(Decoration::BlockMatchTextureQCOM));
+    }
+    target.endWrite();
+  }
+  void operator()(const PropertyBlockMatchSamplerQCOM *value)
+  {
+    if (value->memberIndex)
+    {
+      target.beginInstruction(Op::OpMemberDecorate, 3);
+      target.writeWord(node->resultId);
+      target.writeWord(*value->memberIndex);
+      target.writeWord(static_cast<Id>(Decoration::BlockMatchSamplerQCOM));
+    }
+    else
+    {
+      target.beginInstruction(Op::OpDecorate, 2);
+      target.writeWord(node->resultId);
+      target.writeWord(static_cast<Id>(Decoration::BlockMatchSamplerQCOM));
+    }
+    target.endWrite();
+  }
   void operator()(const PropertyExplicitInterpAMD *value)
   {
     if (value->memberIndex)
@@ -15290,6 +16898,60 @@ struct DecorationWriteVisitor
       target.beginInstruction(Op::OpDecorate, 2);
       target.writeWord(node->resultId);
       target.writeWord(static_cast<Id>(Decoration::ExplicitInterpAMD));
+    }
+    target.endWrite();
+  }
+  void operator()(const PropertyNodeSharesPayloadLimitsWithAMDX *value)
+  {
+    target.beginInstruction(Op::OpDecorateId, 2 + 1);
+    target.writeWord(node->resultId);
+    target.writeWord(static_cast<Id>(Decoration::NodeSharesPayloadLimitsWithAMDX));
+    target.writeWord(value->payloadArray->resultId);
+    target.endWrite();
+  }
+  void operator()(const PropertyNodeMaxPayloadsAMDX *value)
+  {
+    target.beginInstruction(Op::OpDecorateId, 2 + 1);
+    target.writeWord(node->resultId);
+    target.writeWord(static_cast<Id>(Decoration::NodeMaxPayloadsAMDX));
+    target.writeWord(value->maxNumberOfPayloads->resultId);
+    target.endWrite();
+  }
+  void operator()(const PropertyTrackFinishWritingAMDX *value)
+  {
+    if (value->memberIndex)
+    {
+      target.beginInstruction(Op::OpMemberDecorate, 3);
+      target.writeWord(node->resultId);
+      target.writeWord(*value->memberIndex);
+      target.writeWord(static_cast<Id>(Decoration::TrackFinishWritingAMDX));
+    }
+    else
+    {
+      target.beginInstruction(Op::OpDecorate, 2);
+      target.writeWord(node->resultId);
+      target.writeWord(static_cast<Id>(Decoration::TrackFinishWritingAMDX));
+    }
+    target.endWrite();
+  }
+  void operator()(const PropertyPayloadNodeNameAMDX *value)
+  {
+    size_t length = 0;
+    length += (value->nodeName.length() + sizeof(unsigned)) / sizeof(unsigned);
+    if (value->memberIndex)
+    {
+      target.beginInstruction(Op::OpMemberDecorateStringGOOGLE, 3 + length);
+      target.writeWord(node->resultId);
+      target.writeWord(*value->memberIndex);
+      target.writeWord(static_cast<Id>(Decoration::PayloadNodeNameAMDX));
+      target.writeString(value->nodeName.c_str());
+    }
+    else
+    {
+      target.beginInstruction(Op::OpDecorateStringGOOGLE, 2 + length);
+      target.writeWord(node->resultId);
+      target.writeWord(static_cast<Id>(Decoration::PayloadNodeNameAMDX));
+      target.writeString(value->nodeName.c_str());
     }
     target.endWrite();
   }
@@ -15363,20 +17025,20 @@ struct DecorationWriteVisitor
     }
     target.endWrite();
   }
-  void operator()(const PropertyPerPrimitiveNV *value)
+  void operator()(const PropertyPerPrimitiveEXT *value)
   {
     if (value->memberIndex)
     {
       target.beginInstruction(Op::OpMemberDecorate, 3);
       target.writeWord(node->resultId);
       target.writeWord(*value->memberIndex);
-      target.writeWord(static_cast<Id>(Decoration::PerPrimitiveNV));
+      target.writeWord(static_cast<Id>(Decoration::PerPrimitiveEXT));
     }
     else
     {
       target.beginInstruction(Op::OpDecorate, 2);
       target.writeWord(node->resultId);
-      target.writeWord(static_cast<Id>(Decoration::PerPrimitiveNV));
+      target.writeWord(static_cast<Id>(Decoration::PerPrimitiveEXT));
     }
     target.endWrite();
   }
@@ -15479,6 +17141,23 @@ struct DecorationWriteVisitor
       target.beginInstruction(Op::OpDecorate, 2);
       target.writeWord(node->resultId);
       target.writeWord(static_cast<Id>(Decoration::AliasedPointer));
+    }
+    target.endWrite();
+  }
+  void operator()(const PropertyHitObjectShaderRecordBufferNV *value)
+  {
+    if (value->memberIndex)
+    {
+      target.beginInstruction(Op::OpMemberDecorate, 3);
+      target.writeWord(node->resultId);
+      target.writeWord(*value->memberIndex);
+      target.writeWord(static_cast<Id>(Decoration::HitObjectShaderRecordBufferNV));
+    }
+    else
+    {
+      target.beginInstruction(Op::OpDecorate, 2);
+      target.writeWord(node->resultId);
+      target.writeWord(static_cast<Id>(Decoration::HitObjectShaderRecordBufferNV));
     }
     target.endWrite();
   }
@@ -16032,6 +17711,61 @@ struct DecorationWriteVisitor
     }
     target.endWrite();
   }
+  void operator()(const PropertyStridesizeINTEL *value)
+  {
+    if (value->memberIndex)
+    {
+      target.beginInstruction(Op::OpMemberDecorate, 3 + 1);
+      target.writeWord(node->resultId);
+      target.writeWord(*value->memberIndex);
+      target.writeWord(static_cast<Id>(Decoration::StridesizeINTEL));
+      target.writeWord(static_cast<Id>(value->strideSize.value));
+    }
+    else
+    {
+      target.beginInstruction(Op::OpDecorate, 2 + 1);
+      target.writeWord(node->resultId);
+      target.writeWord(static_cast<Id>(Decoration::StridesizeINTEL));
+      target.writeWord(static_cast<Id>(value->strideSize.value));
+    }
+    target.endWrite();
+  }
+  void operator()(const PropertyWordsizeINTEL *value)
+  {
+    if (value->memberIndex)
+    {
+      target.beginInstruction(Op::OpMemberDecorate, 3 + 1);
+      target.writeWord(node->resultId);
+      target.writeWord(*value->memberIndex);
+      target.writeWord(static_cast<Id>(Decoration::WordsizeINTEL));
+      target.writeWord(static_cast<Id>(value->wordSize.value));
+    }
+    else
+    {
+      target.beginInstruction(Op::OpDecorate, 2 + 1);
+      target.writeWord(node->resultId);
+      target.writeWord(static_cast<Id>(Decoration::WordsizeINTEL));
+      target.writeWord(static_cast<Id>(value->wordSize.value));
+    }
+    target.endWrite();
+  }
+  void operator()(const PropertyTrueDualPortINTEL *value)
+  {
+    if (value->memberIndex)
+    {
+      target.beginInstruction(Op::OpMemberDecorate, 3);
+      target.writeWord(node->resultId);
+      target.writeWord(*value->memberIndex);
+      target.writeWord(static_cast<Id>(Decoration::TrueDualPortINTEL));
+    }
+    else
+    {
+      target.beginInstruction(Op::OpDecorate, 2);
+      target.writeWord(node->resultId);
+      target.writeWord(static_cast<Id>(Decoration::TrueDualPortINTEL));
+    }
+    target.endWrite();
+  }
   void operator()(const PropertyBurstCoalesceINTEL *value)
   {
     if (value->memberIndex)
@@ -16135,6 +17869,100 @@ struct DecorationWriteVisitor
       target.beginInstruction(Op::OpDecorate, 2);
       target.writeWord(node->resultId);
       target.writeWord(static_cast<Id>(Decoration::FuseLoopsInFunctionINTEL));
+    }
+    target.endWrite();
+  }
+  void operator()(const PropertyMathOpDSPModeINTEL *value)
+  {
+    if (value->memberIndex)
+    {
+      target.beginInstruction(Op::OpMemberDecorate, 3 + 2);
+      target.writeWord(node->resultId);
+      target.writeWord(*value->memberIndex);
+      target.writeWord(static_cast<Id>(Decoration::MathOpDSPModeINTEL));
+      target.writeWord(static_cast<Id>(value->mode.value));
+      target.writeWord(static_cast<Id>(value->propagate.value));
+    }
+    else
+    {
+      target.beginInstruction(Op::OpDecorate, 2 + 2);
+      target.writeWord(node->resultId);
+      target.writeWord(static_cast<Id>(Decoration::MathOpDSPModeINTEL));
+      target.writeWord(static_cast<Id>(value->mode.value));
+      target.writeWord(static_cast<Id>(value->propagate.value));
+    }
+    target.endWrite();
+  }
+  void operator()(const PropertyAliasScopeINTEL *value)
+  {
+    target.beginInstruction(Op::OpDecorateId, 2 + 1);
+    target.writeWord(node->resultId);
+    target.writeWord(static_cast<Id>(Decoration::AliasScopeINTEL));
+    target.writeWord(value->aliasingScopesList->resultId);
+    target.endWrite();
+  }
+  void operator()(const PropertyNoAliasINTEL *value)
+  {
+    target.beginInstruction(Op::OpDecorateId, 2 + 1);
+    target.writeWord(node->resultId);
+    target.writeWord(static_cast<Id>(Decoration::NoAliasINTEL));
+    target.writeWord(value->aliasingScopesList->resultId);
+    target.endWrite();
+  }
+  void operator()(const PropertyInitiationIntervalINTEL *value)
+  {
+    if (value->memberIndex)
+    {
+      target.beginInstruction(Op::OpMemberDecorate, 3 + 1);
+      target.writeWord(node->resultId);
+      target.writeWord(*value->memberIndex);
+      target.writeWord(static_cast<Id>(Decoration::InitiationIntervalINTEL));
+      target.writeWord(static_cast<Id>(value->cycles.value));
+    }
+    else
+    {
+      target.beginInstruction(Op::OpDecorate, 2 + 1);
+      target.writeWord(node->resultId);
+      target.writeWord(static_cast<Id>(Decoration::InitiationIntervalINTEL));
+      target.writeWord(static_cast<Id>(value->cycles.value));
+    }
+    target.endWrite();
+  }
+  void operator()(const PropertyMaxConcurrencyINTEL *value)
+  {
+    if (value->memberIndex)
+    {
+      target.beginInstruction(Op::OpMemberDecorate, 3 + 1);
+      target.writeWord(node->resultId);
+      target.writeWord(*value->memberIndex);
+      target.writeWord(static_cast<Id>(Decoration::MaxConcurrencyINTEL));
+      target.writeWord(static_cast<Id>(value->invocations.value));
+    }
+    else
+    {
+      target.beginInstruction(Op::OpDecorate, 2 + 1);
+      target.writeWord(node->resultId);
+      target.writeWord(static_cast<Id>(Decoration::MaxConcurrencyINTEL));
+      target.writeWord(static_cast<Id>(value->invocations.value));
+    }
+    target.endWrite();
+  }
+  void operator()(const PropertyPipelineEnableINTEL *value)
+  {
+    if (value->memberIndex)
+    {
+      target.beginInstruction(Op::OpMemberDecorate, 3 + 1);
+      target.writeWord(node->resultId);
+      target.writeWord(*value->memberIndex);
+      target.writeWord(static_cast<Id>(Decoration::PipelineEnableINTEL));
+      target.writeWord(static_cast<Id>(value->enable.value));
+    }
+    else
+    {
+      target.beginInstruction(Op::OpDecorate, 2 + 1);
+      target.writeWord(node->resultId);
+      target.writeWord(static_cast<Id>(Decoration::PipelineEnableINTEL));
+      target.writeWord(static_cast<Id>(value->enable.value));
     }
     target.endWrite();
   }
@@ -16245,6 +18073,353 @@ struct DecorationWriteVisitor
       target.beginInstruction(Op::OpDecorate, 2);
       target.writeWord(node->resultId);
       target.writeWord(static_cast<Id>(Decoration::MediaBlockIOINTEL));
+    }
+    target.endWrite();
+  }
+  void operator()(const PropertyStallFreeINTEL *value)
+  {
+    if (value->memberIndex)
+    {
+      target.beginInstruction(Op::OpMemberDecorate, 3);
+      target.writeWord(node->resultId);
+      target.writeWord(*value->memberIndex);
+      target.writeWord(static_cast<Id>(Decoration::StallFreeINTEL));
+    }
+    else
+    {
+      target.beginInstruction(Op::OpDecorate, 2);
+      target.writeWord(node->resultId);
+      target.writeWord(static_cast<Id>(Decoration::StallFreeINTEL));
+    }
+    target.endWrite();
+  }
+  void operator()(const PropertyFPMaxErrorDecorationINTEL *value)
+  {
+    if (value->memberIndex)
+    {
+      target.beginInstruction(Op::OpMemberDecorate, 3 + 1);
+      target.writeWord(node->resultId);
+      target.writeWord(*value->memberIndex);
+      target.writeWord(static_cast<Id>(Decoration::FPMaxErrorDecorationINTEL));
+      target.writeWord(static_cast<Id>(value->maxError.value));
+    }
+    else
+    {
+      target.beginInstruction(Op::OpDecorate, 2 + 1);
+      target.writeWord(node->resultId);
+      target.writeWord(static_cast<Id>(Decoration::FPMaxErrorDecorationINTEL));
+      target.writeWord(static_cast<Id>(value->maxError.value));
+    }
+    target.endWrite();
+  }
+  void operator()(const PropertyLatencyControlLabelINTEL *value)
+  {
+    if (value->memberIndex)
+    {
+      target.beginInstruction(Op::OpMemberDecorate, 3 + 1);
+      target.writeWord(node->resultId);
+      target.writeWord(*value->memberIndex);
+      target.writeWord(static_cast<Id>(Decoration::LatencyControlLabelINTEL));
+      target.writeWord(static_cast<Id>(value->latencyLabel.value));
+    }
+    else
+    {
+      target.beginInstruction(Op::OpDecorate, 2 + 1);
+      target.writeWord(node->resultId);
+      target.writeWord(static_cast<Id>(Decoration::LatencyControlLabelINTEL));
+      target.writeWord(static_cast<Id>(value->latencyLabel.value));
+    }
+    target.endWrite();
+  }
+  void operator()(const PropertyLatencyControlConstraintINTEL *value)
+  {
+    if (value->memberIndex)
+    {
+      target.beginInstruction(Op::OpMemberDecorate, 3 + 3);
+      target.writeWord(node->resultId);
+      target.writeWord(*value->memberIndex);
+      target.writeWord(static_cast<Id>(Decoration::LatencyControlConstraintINTEL));
+      target.writeWord(static_cast<Id>(value->relativeTo.value));
+      target.writeWord(static_cast<Id>(value->controlType.value));
+      target.writeWord(static_cast<Id>(value->relativeCycle.value));
+    }
+    else
+    {
+      target.beginInstruction(Op::OpDecorate, 2 + 3);
+      target.writeWord(node->resultId);
+      target.writeWord(static_cast<Id>(Decoration::LatencyControlConstraintINTEL));
+      target.writeWord(static_cast<Id>(value->relativeTo.value));
+      target.writeWord(static_cast<Id>(value->controlType.value));
+      target.writeWord(static_cast<Id>(value->relativeCycle.value));
+    }
+    target.endWrite();
+  }
+  void operator()(const PropertyConduitKernelArgumentINTEL *value)
+  {
+    if (value->memberIndex)
+    {
+      target.beginInstruction(Op::OpMemberDecorate, 3);
+      target.writeWord(node->resultId);
+      target.writeWord(*value->memberIndex);
+      target.writeWord(static_cast<Id>(Decoration::ConduitKernelArgumentINTEL));
+    }
+    else
+    {
+      target.beginInstruction(Op::OpDecorate, 2);
+      target.writeWord(node->resultId);
+      target.writeWord(static_cast<Id>(Decoration::ConduitKernelArgumentINTEL));
+    }
+    target.endWrite();
+  }
+  void operator()(const PropertyRegisterMapKernelArgumentINTEL *value)
+  {
+    if (value->memberIndex)
+    {
+      target.beginInstruction(Op::OpMemberDecorate, 3);
+      target.writeWord(node->resultId);
+      target.writeWord(*value->memberIndex);
+      target.writeWord(static_cast<Id>(Decoration::RegisterMapKernelArgumentINTEL));
+    }
+    else
+    {
+      target.beginInstruction(Op::OpDecorate, 2);
+      target.writeWord(node->resultId);
+      target.writeWord(static_cast<Id>(Decoration::RegisterMapKernelArgumentINTEL));
+    }
+    target.endWrite();
+  }
+  void operator()(const PropertyMMHostInterfaceAddressWidthINTEL *value)
+  {
+    if (value->memberIndex)
+    {
+      target.beginInstruction(Op::OpMemberDecorate, 3 + 1);
+      target.writeWord(node->resultId);
+      target.writeWord(*value->memberIndex);
+      target.writeWord(static_cast<Id>(Decoration::MMHostInterfaceAddressWidthINTEL));
+      target.writeWord(static_cast<Id>(value->addressWidth.value));
+    }
+    else
+    {
+      target.beginInstruction(Op::OpDecorate, 2 + 1);
+      target.writeWord(node->resultId);
+      target.writeWord(static_cast<Id>(Decoration::MMHostInterfaceAddressWidthINTEL));
+      target.writeWord(static_cast<Id>(value->addressWidth.value));
+    }
+    target.endWrite();
+  }
+  void operator()(const PropertyMMHostInterfaceDataWidthINTEL *value)
+  {
+    if (value->memberIndex)
+    {
+      target.beginInstruction(Op::OpMemberDecorate, 3 + 1);
+      target.writeWord(node->resultId);
+      target.writeWord(*value->memberIndex);
+      target.writeWord(static_cast<Id>(Decoration::MMHostInterfaceDataWidthINTEL));
+      target.writeWord(static_cast<Id>(value->dataWidth.value));
+    }
+    else
+    {
+      target.beginInstruction(Op::OpDecorate, 2 + 1);
+      target.writeWord(node->resultId);
+      target.writeWord(static_cast<Id>(Decoration::MMHostInterfaceDataWidthINTEL));
+      target.writeWord(static_cast<Id>(value->dataWidth.value));
+    }
+    target.endWrite();
+  }
+  void operator()(const PropertyMMHostInterfaceLatencyINTEL *value)
+  {
+    if (value->memberIndex)
+    {
+      target.beginInstruction(Op::OpMemberDecorate, 3 + 1);
+      target.writeWord(node->resultId);
+      target.writeWord(*value->memberIndex);
+      target.writeWord(static_cast<Id>(Decoration::MMHostInterfaceLatencyINTEL));
+      target.writeWord(static_cast<Id>(value->latency.value));
+    }
+    else
+    {
+      target.beginInstruction(Op::OpDecorate, 2 + 1);
+      target.writeWord(node->resultId);
+      target.writeWord(static_cast<Id>(Decoration::MMHostInterfaceLatencyINTEL));
+      target.writeWord(static_cast<Id>(value->latency.value));
+    }
+    target.endWrite();
+  }
+  void operator()(const PropertyMMHostInterfaceReadWriteModeINTEL *value)
+  {
+    if (value->memberIndex)
+    {
+      target.beginInstruction(Op::OpMemberDecorate, 3 + 1);
+      target.writeWord(node->resultId);
+      target.writeWord(*value->memberIndex);
+      target.writeWord(static_cast<Id>(Decoration::MMHostInterfaceReadWriteModeINTEL));
+      target.writeWord(static_cast<Id>(value->readWriteMode));
+    }
+    else
+    {
+      target.beginInstruction(Op::OpDecorate, 2 + 1);
+      target.writeWord(node->resultId);
+      target.writeWord(static_cast<Id>(Decoration::MMHostInterfaceReadWriteModeINTEL));
+      target.writeWord(static_cast<Id>(value->readWriteMode));
+    }
+    target.endWrite();
+  }
+  void operator()(const PropertyMMHostInterfaceMaxBurstINTEL *value)
+  {
+    if (value->memberIndex)
+    {
+      target.beginInstruction(Op::OpMemberDecorate, 3 + 1);
+      target.writeWord(node->resultId);
+      target.writeWord(*value->memberIndex);
+      target.writeWord(static_cast<Id>(Decoration::MMHostInterfaceMaxBurstINTEL));
+      target.writeWord(static_cast<Id>(value->maxBurstCount.value));
+    }
+    else
+    {
+      target.beginInstruction(Op::OpDecorate, 2 + 1);
+      target.writeWord(node->resultId);
+      target.writeWord(static_cast<Id>(Decoration::MMHostInterfaceMaxBurstINTEL));
+      target.writeWord(static_cast<Id>(value->maxBurstCount.value));
+    }
+    target.endWrite();
+  }
+  void operator()(const PropertyMMHostInterfaceWaitRequestINTEL *value)
+  {
+    if (value->memberIndex)
+    {
+      target.beginInstruction(Op::OpMemberDecorate, 3 + 1);
+      target.writeWord(node->resultId);
+      target.writeWord(*value->memberIndex);
+      target.writeWord(static_cast<Id>(Decoration::MMHostInterfaceWaitRequestINTEL));
+      target.writeWord(static_cast<Id>(value->waitrequest.value));
+    }
+    else
+    {
+      target.beginInstruction(Op::OpDecorate, 2 + 1);
+      target.writeWord(node->resultId);
+      target.writeWord(static_cast<Id>(Decoration::MMHostInterfaceWaitRequestINTEL));
+      target.writeWord(static_cast<Id>(value->waitrequest.value));
+    }
+    target.endWrite();
+  }
+  void operator()(const PropertyStableKernelArgumentINTEL *value)
+  {
+    if (value->memberIndex)
+    {
+      target.beginInstruction(Op::OpMemberDecorate, 3);
+      target.writeWord(node->resultId);
+      target.writeWord(*value->memberIndex);
+      target.writeWord(static_cast<Id>(Decoration::StableKernelArgumentINTEL));
+    }
+    else
+    {
+      target.beginInstruction(Op::OpDecorate, 2);
+      target.writeWord(node->resultId);
+      target.writeWord(static_cast<Id>(Decoration::StableKernelArgumentINTEL));
+    }
+    target.endWrite();
+  }
+  void operator()(const PropertyHostAccessINTEL *value)
+  {
+    size_t length = 0;
+    ++length;
+    length += (value->name.length() + sizeof(unsigned)) / sizeof(unsigned);
+    if (value->memberIndex)
+    {
+      target.beginInstruction(Op::OpMemberDecorate, 3 + length);
+      target.writeWord(node->resultId);
+      target.writeWord(*value->memberIndex);
+      target.writeWord(static_cast<Id>(Decoration::HostAccessINTEL));
+      target.writeWord(static_cast<Id>(value->access));
+      target.writeString(value->name.c_str());
+    }
+    else
+    {
+      target.beginInstruction(Op::OpDecorate, 2 + length);
+      target.writeWord(node->resultId);
+      target.writeWord(static_cast<Id>(Decoration::HostAccessINTEL));
+      target.writeWord(static_cast<Id>(value->access));
+      target.writeString(value->name.c_str());
+    }
+    target.endWrite();
+  }
+  void operator()(const PropertyInitModeINTEL *value)
+  {
+    if (value->memberIndex)
+    {
+      target.beginInstruction(Op::OpMemberDecorate, 3 + 1);
+      target.writeWord(node->resultId);
+      target.writeWord(*value->memberIndex);
+      target.writeWord(static_cast<Id>(Decoration::InitModeINTEL));
+      target.writeWord(static_cast<Id>(value->trigger));
+    }
+    else
+    {
+      target.beginInstruction(Op::OpDecorate, 2 + 1);
+      target.writeWord(node->resultId);
+      target.writeWord(static_cast<Id>(Decoration::InitModeINTEL));
+      target.writeWord(static_cast<Id>(value->trigger));
+    }
+    target.endWrite();
+  }
+  void operator()(const PropertyImplementInRegisterMapINTEL *value)
+  {
+    if (value->memberIndex)
+    {
+      target.beginInstruction(Op::OpMemberDecorate, 3 + 1);
+      target.writeWord(node->resultId);
+      target.writeWord(*value->memberIndex);
+      target.writeWord(static_cast<Id>(Decoration::ImplementInRegisterMapINTEL));
+      target.writeWord(static_cast<Id>(value->value.value));
+    }
+    else
+    {
+      target.beginInstruction(Op::OpDecorate, 2 + 1);
+      target.writeWord(node->resultId);
+      target.writeWord(static_cast<Id>(Decoration::ImplementInRegisterMapINTEL));
+      target.writeWord(static_cast<Id>(value->value.value));
+    }
+    target.endWrite();
+  }
+  void operator()(const PropertyCacheControlLoadINTEL *value)
+  {
+    if (value->memberIndex)
+    {
+      target.beginInstruction(Op::OpMemberDecorate, 3 + 2);
+      target.writeWord(node->resultId);
+      target.writeWord(*value->memberIndex);
+      target.writeWord(static_cast<Id>(Decoration::CacheControlLoadINTEL));
+      target.writeWord(static_cast<Id>(value->cacheLevel.value));
+      target.writeWord(static_cast<Id>(value->cacheControl));
+    }
+    else
+    {
+      target.beginInstruction(Op::OpDecorate, 2 + 2);
+      target.writeWord(node->resultId);
+      target.writeWord(static_cast<Id>(Decoration::CacheControlLoadINTEL));
+      target.writeWord(static_cast<Id>(value->cacheLevel.value));
+      target.writeWord(static_cast<Id>(value->cacheControl));
+    }
+    target.endWrite();
+  }
+  void operator()(const PropertyCacheControlStoreINTEL *value)
+  {
+    if (value->memberIndex)
+    {
+      target.beginInstruction(Op::OpMemberDecorate, 3 + 2);
+      target.writeWord(node->resultId);
+      target.writeWord(*value->memberIndex);
+      target.writeWord(static_cast<Id>(Decoration::CacheControlStoreINTEL));
+      target.writeWord(static_cast<Id>(value->cacheLevel.value));
+      target.writeWord(static_cast<Id>(value->cacheControl));
+    }
+    else
+    {
+      target.beginInstruction(Op::OpDecorate, 2 + 2);
+      target.writeWord(node->resultId);
+      target.writeWord(static_cast<Id>(Decoration::CacheControlStoreINTEL));
+      target.writeWord(static_cast<Id>(value->cacheLevel.value));
+      target.writeWord(static_cast<Id>(value->cacheControl));
     }
     target.endWrite();
   }

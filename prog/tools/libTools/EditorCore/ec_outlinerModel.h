@@ -713,6 +713,39 @@ public:
     return selected_type >= 0;
   }
 
+  // Returns false if no object or any object with a different type than the target layer is selected.
+  // Returns true if all the selected objects are of a single type and at least one of them is not on the target layer.
+  bool isLayerTargetableBySelection(int type, int per_type_layer_index) const
+  {
+    if (type < 0 || objectTypes.size() <= type)
+      return false;
+
+    // At least one object should be selected!
+    const int objectSelectionCount = selectionCountPerItemType[(int)OutlinerTreeItem::ItemType::Object];
+    if (objectSelectionCount == 0)
+      return false;
+
+    ObjectTypeTreeItem *objectTypeTreeItem = objectTypes[type];
+    G_ASSERT(!objectTypeTreeItem->isSelected());
+
+    const int layerCount = objectTypeTreeItem->layers.size();
+    if (per_type_layer_index < 0 || layerCount <= per_type_layer_index)
+      return false;
+
+    // Target cannot contain all the selected objects!
+    if (objectTypeTreeItem->layers[per_type_layer_index]->selectedObjectCount == objectSelectionCount)
+      return false;
+
+    // All the selected objects should be of the same object type!
+    int perTypeObjectSelectionCount = 0;
+    for (int layerIndex = 0; layerIndex < layerCount; ++layerIndex)
+    {
+      LayerTreeItem *layerTreeItem = objectTypeTreeItem->layers[layerIndex];
+      perTypeObjectSelectionCount += layerTreeItem->selectedObjectCount;
+    }
+    return perTypeObjectSelectionCount == objectSelectionCount;
+  }
+
   bool getShowAssetNameUnderObjects() const { return showAssetNameUnderObjects; }
 
   void setShowAssetNameUnderObjects(IOutliner &tree_interface, bool show)

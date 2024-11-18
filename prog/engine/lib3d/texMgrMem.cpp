@@ -542,7 +542,8 @@ static void free_up_gpu_mem(int mem_to_free_kb, int actual_quota_kb)
             if (RMGR.downgradeTexQuality(i, *t, RMGR.resQS[i].getMaxLev()))
             {
               downgraded++;
-              RMGR.dumpTexState(i);
+              if (mgr_log_level >= 2)
+                RMGR.dumpTexState(i);
               if (RMGR.getTotalUsedTexSzKB() < target_tex_size)
                 break;
             }

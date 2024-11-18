@@ -440,6 +440,7 @@
     }
 
     float placementNormalOffset = -1;
+    BRANCH
     if ( parent_data.mods_offsets[MODFX_RMOD_RENDER_PLACEMENT_PARAMS] )
     {
       ModfxDeclRenderPlacementParams placementParams = ModfxDeclRenderPlacementParams_load(0, parent_data.mods_offsets[MODFX_RMOD_RENDER_PLACEMENT_PARAMS]);
@@ -471,7 +472,7 @@
     }
 #endif
 
-#if !(MODFX_SHADER_VOLSHAPE || MODFX_SHADER_VOLSHAPE_WBOIT || MODFX_SHADER_VOLSHAPE_DEPTH) && !MODFX_SHADER_VOLFOG_INJECTION
+#if !(MODFX_SHADER_VOLSHAPE || MODFX_SHADER_VOLSHAPE_WBOIT) && !MODFX_SHADER_VOLFOG_INJECTION
     if ( parent_data.mods_offsets[MODFX_RMOD_DEPTH_MASK] && !is_dead )
     {
       ModfxDepthMask pp = ModfxDepthMask_load( 0, parent_data.mods_offsets[MODFX_RMOD_DEPTH_MASK] );
@@ -583,7 +584,7 @@
     float3 up_vec = gdata.view_dir_y;
     float3 right_vec = gdata.view_dir_x;
 
-#if (MODFX_SHADER_VOLSHAPE || MODFX_SHADER_VOLSHAPE_WBOIT || MODFX_SHADER_VOLSHAPE_DEPTH)
+#if (MODFX_SHADER_VOLSHAPE || MODFX_SHADER_VOLSHAPE_WBOIT)
     float stable_rnd_offset = (ren_info.instance_id + ren_info.data_ofs % 20 ) * 0.001;
     rdata.pos += gdata.view_dir_z * stable_rnd_offset;
 
@@ -700,7 +701,7 @@
       rotated_right_vec = normalize( cross( view_dir_norm, rotated_up_vec ) );
     }
 
-#if !(MODFX_SHADER_VOLSHAPE || MODFX_SHADER_VOLSHAPE_WBOIT || MODFX_SHADER_VOLSHAPE_DEPTH)
+#if !(MODFX_SHADER_VOLSHAPE || MODFX_SHADER_VOLSHAPE_WBOIT)
     if ( MOD_ENABLED( parent_data.mods, MODFX_RMOD_SHAPE_ADAPTIVE_ALIGNED ) )
     {
       float3 r = normalize( cross( view_dir_norm, rotated_up_vec ) );
@@ -908,25 +909,11 @@
   }
 
 #if MODFX_WBOIT_ENABLED
-  #if MODFX_WBOIT_PASS_COMBINED
     struct WboitData
     {
       float4 color : SV_Target0;
       float alpha : SV_Target1;
     };
-    #define WBOIT_RET WboitData
-    #define WBOIT_TAR
-  #endif
-
-  #if MODFX_WBOIT_PASS_COLOR
-    #define WBOIT_RET float4
-    #define WBOIT_TAR : SV_Target0
-  #endif
-
-  #if MODFX_WBOIT_PASS_ALPHA
-    #define WBOIT_RET float
-    #define WBOIT_TAR : SV_Target0
-  #endif
 
   float wboit_weight(float z, float a)
   {
@@ -976,29 +963,54 @@
 #else
   #define USE_EARLY_DEPTH_STENCIL
 #endif
+
+struct PsOutput
+{
+  float4 color : SV_Target0;
+#if DAFXEX_USE_REACTIVE_MASK
+  float reactive : SV_Target1;
+#endif
+};
+PsOutput encode_output(float4 color)
+{
+  PsOutput output;
+  output.color = color;
+#if DAFXEX_USE_REACTIVE_MASK
+  output.reactive = color.a;
+#endif
+  return output;
+}
+
+#if MODFX_SHADER_VOLFOG_INJECTION
+  #define fx_null
+#elif MODFX_SHADER_FOM
+  #define fx_null fx_fom_null()
+#elif MODFX_SHADER_VOLSHAPE_WBOIT
+  #define fx_null (WboitData)0
+#else
+  #define fx_null encode_output(0)
+#endif
+
+bool color_discard_test(float4 src, uint flags)
+{
+  // default = premult
+  float src_alpha = src.a;
+  float src_color_sum = dot(src.rgb, 1.f);
+  if ( FLAG_ENABLED( flags, MODFX_RFLAG_BLEND_ADD ) )
+    src_alpha = 0;
+  else if ( FLAG_ENABLED( flags, MODFX_RFLAG_BLEND_ABLEND ) )
+    src_color_sum = 0;
+
+  return (src_alpha + src_color_sum) < 1.f / 255.f;
+}
+
 #if MODFX_SHADER_VOLFOG_INJECTION
   USE_EARLY_DEPTH_STENCIL void dafx_bboard_ps(VsOutput input HW_USE_SCREEN_POS)
 #elif MODFX_SHADER_FOM
   USE_EARLY_DEPTH_STENCIL FOM_DATA dafx_bboard_ps( VsOutput input HW_USE_SCREEN_POS)
 #elif MODFX_WBOIT_ENABLED
-  USE_EARLY_DEPTH_STENCIL WBOIT_RET dafx_bboard_ps( VsOutput input HW_USE_SCREEN_POS) WBOIT_TAR
+  USE_EARLY_DEPTH_STENCIL WboitData dafx_bboard_ps( VsOutput input HW_USE_SCREEN_POS)
 #else
-  struct PsOutput
-  {
-    float4 color : SV_Target0;
-#if DAFXEX_USE_REACTIVE_MASK
-    float reactive : SV_Target1;
-#endif
-  };
-  PsOutput encode_output(float4 color)
-  {
-    PsOutput output;
-    output.color = color;
-#if DAFXEX_USE_REACTIVE_MASK
-    output.reactive = color.a;
-#endif
-    return output;
-  }
   USE_EARLY_DEPTH_STENCIL PsOutput dafx_bboard_ps(VsOutput input HW_USE_SCREEN_POS)
 #endif
   {
@@ -1010,11 +1022,6 @@
 #endif
     return output;
 #else // MODFX_DEBUG_RENDER_ENABLED
-
-
-#if MODFX_SHADER_VOLSHAPE_DEPTH
-    return encode_output(0);
-#endif
 
     GlobalData gdata = global_data_load();
     DafxRenderData ren_info;
@@ -1095,26 +1102,35 @@
       src_tex_0 = lerp( src_tex_0, tex2D( g_tex_0, input.tc.zw ), input.frame_blend );
 #endif
 
+  uint any_color_remap = 0;
+  bool shouldDiscard = false;
+#if !(MODFX_SHADER_VOLSHAPE || MODFX_SHADER_VOLSHAPE_WBOIT || MODFX_SHADER_VOLFOG_INJECTION)
+#if MODFX_USE_COLOR_MATRIX
+  any_color_remap |= (parent_data.mods_offsets[MODFX_RMOD_TEX_COLOR_MATRIX] != 0) ? 1 : 0;
+#endif
+#if MODFX_USE_COLOR_REMAP
+  any_color_remap |= (parent_data.mods_offsets[MODFX_RMOD_TEX_COLOR_REMAP] != 0) ? 1 : 0;
+#endif
+
+  BRANCH
+  if (!any_color_remap)
+    shouldDiscard = color_discard_test(src_tex_0, flags);
+
+#endif
+
 #if !MODFX_SHADER_VOLSHAPE_WBOIT_APPLY
     if ( FLAG_ENABLED( flags, MODFX_RFLAG_USE_UV_ROTATION ) )
     {
       if ( dot( input.delta, input.delta ) > 1.f )
-      {
-        discard;
-        #if MODFX_SHADER_VOLFOG_INJECTION
-          return;
-        #elif MODFX_SHADER_FOM
-          return fx_fom_null();
-        #elif MODFX_WBOIT_PASS_COMBINED
-          WboitData wboit_res = (WboitData)0;
-        #elif MODFX_WBOIT_ENABLED
-          return 0;
-        #else
-          return encode_output(0);
-        #endif
-      }
+        shouldDiscard = true;
     }
 #endif
+
+  if (shouldDiscard)
+  {
+    discard;
+    return fx_null;
+  }
 
 #endif
 
@@ -1141,6 +1157,14 @@
       float4 cloud_tc = viewport_tc;
       cloud_tc.xy = reproject_scattering(cloud_tc.xy, cloud_tc.z / cloud_tc.w);
       depth_mask = dafx_get_soft_depth_mask(viewport_tc, cloud_tc, pp.depth_softness_rcp, gdata);
+
+  #if !MODFX_SHADER_VOLFOG_INJECTION
+      if (depth_mask < 1e-03)
+      {
+        discard;
+        return fx_null;
+      }
+  #endif
     }
 #endif
 
@@ -1234,6 +1258,14 @@
       lighting_part = c;
     }
 
+#if !(MODFX_SHADER_VOLSHAPE || MODFX_SHADER_VOLSHAPE_WBOIT || MODFX_SHADER_VOLFOG_INJECTION)
+    if (color_discard_test(float4(lighting_part.xyz, alpha), flags))
+    {
+      discard;
+      return fx_null;
+    }
+#endif
+
 #if MODFX_SHADER_VOLFOG_INJECTION
     float4 volfogInjection = float4(lighting_part, alpha);
 
@@ -1283,20 +1315,21 @@
     emissive_part *= vol_alpha;
     alpha *= vol_alpha;
 
+    if (alpha < 1e-03)
+    {
+      discard;
+      return fx_null;
+    }
+
 #if MODFX_SHADER_VOLSHAPE_WBOIT_APPLY
 
 #ifdef DAFXEX_CLOUD_MASK_ENABLED
     alpha *= dafx_get_screen_cloud_volume_mask(viewport_tc.xy, viewport_tc.w);
 #endif
 
-  #if MODFX_WBOIT_PASS_COMBINED
     float4 wboit_accum = tex2D(wboit_color, viewport_tc.xy);
     float wboit_r = wboit_accum.w;
     wboit_accum.w = tex2D(wboit_alpha, viewport_tc.xy).r;
-  #else
-    float4 wboit_accum = tex2D(wboit_color, viewport_tc.xy);
-    float wboit_r = tex2D(wboit_alpha, viewport_tc.xy).r;
-  #endif
 
     float3 col = wboit_accum.xyz / clamp(wboit_accum.w, 0.0000001f, 1000.f);
     float a = 1.f - wboit_r;
@@ -1307,6 +1340,7 @@
 
 #if MODFX_USE_LIGHTING
     // TODO: optimize!
+    BRANCH
     if ( parent_data.mods_offsets[MODFX_RMOD_LIGHTING_INIT] )
     {
       ModfxDeclLighting pp = ModfxDeclLighting_load( 0, parent_data.mods_offsets[MODFX_RMOD_LIGHTING_INIT] );
@@ -1351,6 +1385,7 @@
       }
       else if ( pp.type == MODFX_LIGHTING_TYPE_NORMALMAP )
       {
+  #if !MODFX_SHADER_VOLSHAPE && !MODFX_SHADER_VOLSHAPE_WBOIT
         float2 src_tex_1 = tex2D( g_tex_1, input.tc.xy ).rg;
         if ( FLAG_ENABLED( flags, MODFX_RFLAG_FRAME_ANIMATED_FLIPBOOK ) )
           src_tex_1 = lerp( src_tex_1, tex2D( g_tex_1, input.tc.zw ).rg, input.frame_blend );
@@ -1362,6 +1397,7 @@
         wnorm = fwd_dir * lnorm.z + input.right_dir * lnorm.x - input.up_dir * lnorm.y;
 
         nda = saturate( dot( sphere_normal, wnorm ) );
+  #endif
       }
 #endif
 
@@ -1536,21 +1572,14 @@
     }
 
   #if MODFX_WBOIT_ENABLED
-    #if MODFX_WBOIT_PASS_COMBINED
       WboitData wboit_res;
       wboit_res.color.xyz = result.xyz * wboit_weight(cur_depth, result.w);
       wboit_res.color.w = result.w;
       wboit_res.alpha = result.w * wboit_weight(cur_depth, result.w);
       return wboit_res;
-    #elif MODFX_WBOIT_PASS_COLOR
-      return result * wboit_weight(cur_depth, result.w);
-      // return result * wboit_weight(cur_depth, result.w) * result.w;
-    #elif MODFX_WBOIT_PASS_ALPHA
-      return result.w;
-    #endif
   #else
     return encode_output(result);
-#endif
+  #endif
 #endif
 
 #endif // MODFX_DEBUG_RENDER_ENABLED

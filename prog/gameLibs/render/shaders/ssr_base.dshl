@@ -13,6 +13,19 @@ include "halfres_close_depth_with_normals.dshl"
 include "motion_vectors_type.dshl"
 include_optional "ssr_env_resolve.dshl"
 
+hlsl {
+  #define HIGH_ROUGHNESS_THRESHOLD_END 0.5
+  #define HIGH_ROUGHNESS_THRESHOLD_START 0.1
+  #define CALC_SSR_ROUGHNESS_THRESHOLD 0.7
+  #define CALC_SSR_SMOOTHNESS_THRESHOLD (1-0.7)
+  // 0 - should be treated perform mirro-like for virtual point reflection
+  // 1 - should be treated rough-like for virtual point reflection
+  half get_is_rough_surface_param(half linear_roughness)
+  {
+    return saturate(linear_roughness*(1./HIGH_ROUGHNESS_THRESHOLD_END) - HIGH_ROUGHNESS_THRESHOLD_START/(HIGH_ROUGHNESS_THRESHOLD_END-HIGH_ROUGHNESS_THRESHOLD_START));
+  }
+}
+
 int ssr_quality = 1;
 interval ssr_quality : low<1, medium<2, high<3, highest;
 
@@ -40,6 +53,12 @@ define_macro_if_not_defined GET_TRANSLUCENT_ALTERNATE_REFLECTIONS(code)
   hlsl(code) {
     float4 get_translucent_alternate_reflections(float3 cameraToPoint, float3 R, float reflectionDistance) {return 0;}
   }
+endmacro
+
+define_macro_if_not_defined GET_PLANAR_REFLECTIONS(code)
+hlsl(code) {
+  void get_planar_reflections(inout half4 newTarget, inout float precision, float3 worldPos, float3 normal, float2 screenTC) {}
+}
 endmacro
 
 macro INIT_TEXTURES(code)
@@ -151,6 +170,7 @@ macro SSR_COMMON(code)
   INIT_TEXTURES(code)
   SSR_BASE(code)
   SSR_REPROJECTION(code)
+  GET_PLANAR_REFLECTIONS(code)
 
   (code) {
     prev_frame_tex@smp2d = prev_frame_tex;
@@ -188,20 +208,72 @@ macro SSR_COMMON(code)
   }
 endmacro
 
+
 macro SSR_DISOCCLUSION(code)
   hlsl(code) {
+    #include <smootherstep.hlsl>
+    half get_ssr_disocclusion_weight_sample(half3 current_normal, half current_roughness, float2 historyUV, float prev_linear_depth, inout half4 historySample)
+    {
+      #if USE_PREV_DOWNSAMPLED_CLOSE_DEPTH
+        // instead of exact uv = floor(historyCrdf)/prev_downsampled_close_depth_tex_target_size.xy
+        // we rely on prev_downsampled_close_depth_tex_samplerstate being point sample
+        float2 uv = historyUV;
+        float2 historyCrdf = historyUV*prev_downsampled_close_depth_tex_target_size.xy - 0.5;
+        float2 floorCrd = floor(historyCrdf);
+        float2 gatherUV = floorCrd*prev_downsampled_close_depth_tex_target_size.zw + prev_downsampled_close_depth_tex_target_size.zw;
+        float2 fractCrd = historyCrdf - floorCrd;
+        float4 depths = prev_downsampled_close_depth_tex.GatherRed(prev_downsampled_close_depth_tex_samplerstate, gatherUV).wzxy;
+        //uv = uv - 0.5*prev_downsampled_close_depth_tex_target_size.zw;// re-center uv
+        float4 linearDepths = linearize_z4(depths, prev_zn_zfar.zw);
+        float4 depthDiff = abs(linearDepths - prev_linear_depth);
+        float threshold = 0.1*prev_linear_depth;
+        half4 weights = depthDiff < threshold;
+        if (any(abs(historyUV*2-1) >= 1) || !any(weights)) // bilinear filtering is valid
+        {
+          historySample = 0;
+          return 0;
+        }
+        half4 lowResR = ssr_prev_target.GatherRed(prev_downsampled_close_depth_tex_samplerstate, gatherUV).wzxy;
+        half4 lowResG = ssr_prev_target.GatherGreen(prev_downsampled_close_depth_tex_samplerstate, gatherUV).wzxy;
+        half4 lowResB = ssr_prev_target.GatherBlue(prev_downsampled_close_depth_tex_samplerstate, gatherUV).wzxy;
+        half4 lowResA = ssr_prev_target.GatherAlpha(prev_downsampled_close_depth_tex_samplerstate, gatherUV).wzxy;
+        #if USE_PREV_DOWNSAMPLED_NORMALS
+          //ssr there was not computed
+          half4 lowresSmoothness = prev_downsampled_normals.GatherAlpha(prev_downsampled_close_depth_tex_samplerstate, gatherUV).wzxy;
+          weights *= lowresSmoothness > half(CALC_SSR_SMOOTHNESS_THRESHOLD);
+        #endif
+
+        //half weight = saturate(dot(weights, 1)); // ignore bilateral weights
+
+        half4 bil;
+        bil.xy = fractCrd;
+        bil.zw = 1.h - bil.xy;
+        weights *= half4(bil.zx*bil.w, bil.zx*bil.y) + 1e-4h;
+        weights *= exp2(depthDiff*(-5.f/threshold));
+        half sumWeight = dot(weights, 1.h);
+        weights *= rcp(sumWeight);
+        bool weight = sumWeight > 1e-8h;
+        historySample = weight ? half4(dot(lowResR, weights), dot(lowResG, weights), dot(lowResB, weights), dot(lowResA, weights)) : 0;
+        return weight;
+      #else
+        historySample = tex2Dlod(ssr_prev_target, float4(historyUV, 0, 0));
+        return 1;
+      #endif
+    }
+    #if USE_PREV_DOWNSAMPLED_NORMALS && USE_PREV_DOWNSAMPLED_CLOSE_DEPTH
     half4 unpack_normal_roughness(half4 packed_normal)
     {
       packed_normal.xyz = (packed_normal.xyz*2 - 1);
       packed_normal.xyz = normalize(packed_normal.xyz);
-      packed_normal.w = 1 - linearSmoothnessToLinearRoughness(packed_normal.w);
+      packed_normal.w = linearSmoothnessToLinearRoughness(packed_normal.w);
       return packed_normal;
     }
-    half historyNormalWeight(half4 sample_normal_smoothness, half3 normal, half roughness)
+    half historyNormalWeight(half4 sample_normal_roughness, half3 normal, half roughness)
     {
-      half smoothness = 1-roughness;
       //we can use higher smoothness history in lower smoothness (to a certain degree), but not visa verse
-      return (dot(normal, sample_normal_smoothness.xyz))*pow2(saturate(1.02 + (sample_normal_smoothness.w - smoothness)));
+      return sample_normal_roughness.w < half(CALC_SSR_ROUGHNESS_THRESHOLD) ? (dot(normal, sample_normal_roughness.xyz))*pow2(saturate(1.02 + (roughness - sample_normal_roughness.w))) : 0;
+
+      //return pow2(dot(normal, sample_normal_smoothness.xyz)*saturate(1.0 - (sample_normal_smoothness.w - smoothness)));
     }
     half4 historyNormalWeights(half4 normalW, half roughness)
     {
@@ -210,54 +282,169 @@ macro SSR_DISOCCLUSION(code)
       const float threshold = 0.2;
       return saturate(w*(1./(1-threshold)) - threshold*(1./(1-threshold)));
     }
+    half get_ssr_disocclusion_weight_sample_virtual(half3 current_normal, half current_roughness, float2 historyUV, float prev_linear_depth, inout half4 historySample)
+    {
+      // instead of exact uv = floor(historyCrdf)/prev_downsampled_close_depth_tex_target_size.xy
+      // we rely on prev_downsampled_close_depth_tex_samplerstate being point sample
+      float2 uv = historyUV;
+      float2 historyCrdf = historyUV*prev_downsampled_close_depth_tex_target_size.xy - 0.5;
+      float2 floorCrd = floor(historyCrdf);
+      float2 gatherUV = floorCrd*prev_downsampled_close_depth_tex_target_size.zw + prev_downsampled_close_depth_tex_target_size.zw;
+      float2 fractCrd = historyCrdf - floorCrd;
+      float4 depths = prev_downsampled_close_depth_tex.GatherRed(prev_downsampled_close_depth_tex_samplerstate, gatherUV).wzxy;
+      //uv = uv - 0.5*prev_downsampled_close_depth_tex_target_size.zw;// re-center uv
+      float4 linearDepths = linearize_z4(depths, prev_zn_zfar.zw);
+      float4 depthDiff = abs(linearDepths - prev_linear_depth);
+      float threshold = 0.1*prev_linear_depth;
+      half4 mask = depthDiff < threshold;
+      historySample = 0;
+      if (any(abs(historyUV*2-1) >= 1) || !any(mask)) // bilinear filtering is valid
+        return 0;
+      half4 weights = mask;
+      half4 normalslt = unpack_normal_roughness(prev_downsampled_normals.SampleLevel(prev_downsampled_close_depth_tex_samplerstate, gatherUV, 0));
+      half4 normalsrt = unpack_normal_roughness(prev_downsampled_normals.SampleLevel(prev_downsampled_close_depth_tex_samplerstate, gatherUV, 0, int2(1,0)));
+      half4 normalslb = unpack_normal_roughness(prev_downsampled_normals.SampleLevel(prev_downsampled_close_depth_tex_samplerstate, gatherUV, 0, int2(0,1)));
+      half4 normalsrb = unpack_normal_roughness(prev_downsampled_normals.SampleLevel(prev_downsampled_close_depth_tex_samplerstate, gatherUV, 0, int2(1,1)));
+      half4 normalW = half4(historyNormalWeight(normalslt, current_normal, current_roughness), historyNormalWeight(normalsrt, current_normal, current_roughness), historyNormalWeight(normalslb, current_normal, current_roughness), historyNormalWeight(normalsrb, current_normal, current_roughness));
+      normalW = historyNormalWeights(normalW, current_roughness);
+      weights *= normalW;
+      half weight = saturate(dot(weights, 1)); // ignore bilateral weights
+
+      half4 bil;
+      bil.xy = fractCrd;
+      bil.zw = 1.h - bil.xy;
+      weights *= half4(bil.zx*bil.w, bil.zx*bil.y) + 1e-4h;
+      weights *= exp2(depthDiff*(-5.f/threshold));
+      float sumW = dot(weights, 1.h);
+      if (sumW <= 1e-6)
+        return 0;
+      weights /= sumW;
+
+      half4 lowResR = ssr_prev_target.GatherRed(prev_downsampled_close_depth_tex_samplerstate, gatherUV).wzxy;
+      half4 lowResG = ssr_prev_target.GatherGreen(prev_downsampled_close_depth_tex_samplerstate, gatherUV).wzxy;
+      half4 lowResB = ssr_prev_target.GatherBlue(prev_downsampled_close_depth_tex_samplerstate, gatherUV).wzxy;
+      half4 lowResA = ssr_prev_target.GatherAlpha(prev_downsampled_close_depth_tex_samplerstate, gatherUV).wzxy;
+      historySample = float4(dot(lowResR, weights), dot(lowResG, weights), dot(lowResB, weights), dot(lowResA, weights));
+      return weight;
+    }
+    #endif
+
+    half get_ssr_disocclusion_weight_sample_duo(half rough_virtual_weight, half inf_refl_virtual_weight, half3 current_normal, half current_roughness, float2 historyVirtualUV, float prev_linear_depth, inout half4 historySample, inout half historyWeight)
+    {
+      #if 0
+        #if USE_PREV_DOWNSAMPLED_NORMALS && USE_PREV_DOWNSAMPLED_CLOSE_DEPTH
+          //virtualWeight = 0;
+          //return get_ssr_disocclusion_weight_sample(reproject_alphaScale, currentAlpha, current_normal, current_roughness, historyVirtualUV, prev_linear_depth, historySample);
+          return historyWeight = get_ssr_disocclusion_weight_sample_virtual(current_normal, current_roughness, historyVirtualUV, prev_linear_depth, historySample);
+        #else
+          return 0;
+        #endif
+      #else
+      #if USE_PREV_DOWNSAMPLED_NORMALS && USE_PREV_DOWNSAMPLED_CLOSE_DEPTH
+      half4 historyVirtualSample;
+      half virtualWeight = get_ssr_disocclusion_weight_sample_virtual(current_normal, current_roughness, historyVirtualUV, prev_linear_depth, historyVirtualSample);
+      //virtualWeight = virtualWeight > 0.01;
+      virtualWeight *= rough_virtual_weight;
+      historyWeight *= (1.0-pow4(virtualWeight));
+      virtualWeight *= inf_refl_virtual_weight;
+      half totalW = historyWeight + virtualWeight;
+      half invTotalW = rcp(max(1e-6h, totalW));
+      half ret = max(virtualWeight, historyWeight);
+      historyWeight *= invTotalW;
+      virtualWeight *= invTotalW;
+      historySample = historySample*historyWeight + historyVirtualSample*virtualWeight;
+      historyWeight = ret;
+      return virtualWeight;
+      #else
+      return 0;
+      #endif
+      #endif
+    }
+    //old code
     bool get_ssr_disocclusion_weight_sample(half3 current_normal, half current_roughness, float2 historyUV, float prev_linear_depth, bool validate_normal, inout half4 historySample)
     {
-      bool weight = all(abs(historyUV*2-1) < 1);
-      #if USE_PREV_DOWNSAMPLED_CLOSE_DEPTH
-        // instead of exact uv = floor(historyCrdf)/prev_downsampled_close_depth_tex_target_size.xy
-        // we rely on prev_downsampled_close_depth_tex_samplerstate being point sample
-        float2 uv = historyUV;
-        float2 historyCrdf = historyUV*prev_downsampled_close_depth_tex_target_size.xy - 0.5;
-        uv = (floor(historyCrdf) + 0.5)*prev_downsampled_close_depth_tex_target_size.zw;//todo: one madd
-        float4 depths = prev_downsampled_close_depth_tex.GatherRed(prev_downsampled_close_depth_tex_samplerstate, historyUV).wzxy;
-        float4 linearDepths = linearize_z4(depths, prev_zn_zfar.zw);
-        float4 depthDiff = abs(linearDepths - prev_linear_depth);
-        float threshold = 0.1*prev_linear_depth;
-        half4 weights = depthDiff < threshold;
-        #if USE_PREV_DOWNSAMPLED_NORMALS
-          if (validate_normal)
-          {
-            half4 normalslt = unpack_normal_roughness(prev_downsampled_normals.SampleLevel(prev_downsampled_close_depth_tex_samplerstate, uv, 0));
-            half4 normalsrt = unpack_normal_roughness(prev_downsampled_normals.SampleLevel(prev_downsampled_close_depth_tex_samplerstate, uv, 0, int2(1,0)));
-            half4 normalslb = unpack_normal_roughness(prev_downsampled_normals.SampleLevel(prev_downsampled_close_depth_tex_samplerstate, uv, 0, int2(0,1)));
-            half4 normalsrb = unpack_normal_roughness(prev_downsampled_normals.SampleLevel(prev_downsampled_close_depth_tex_samplerstate, uv, 0, int2(1,1)));
-            half4 normalW = half4(historyNormalWeight(normalslt, current_normal, current_roughness), historyNormalWeight(normalsrt, current_normal, current_roughness), historyNormalWeight(normalslb, current_normal, current_roughness), historyNormalWeight(normalsrb, current_normal, current_roughness));
-            normalW = historyNormalWeights(normalW, current_roughness);
-            weights *= normalW;
-          }
-        #endif
-        if (all(weights)) // bilinear filtering is valid
-        {
-          historySample = tex2Dlod(ssr_prev_target, float4(historyUV, 0, 0));
-        } else
-        {
-          float4 bil = float4(frac(historyCrdf), 1-frac(historyCrdf));
-          weights *= float4(bil.zx*bil.w, bil.zx*bil.y) + 1e-4;
-          //weights = float4(bil.zx*bil.w, bil.zx*bil.y);
-          float sumW = dot(weights, 1);
-          weight = weight && sumW >= 0.0001;
-          weights *= rcp(max(1e-6, sumW));
-          half4 lt = ssr_prev_target.SampleLevel(prev_downsampled_close_depth_tex_samplerstate, uv, 0);
-          half4 rt = ssr_prev_target.SampleLevel(prev_downsampled_close_depth_tex_samplerstate, uv, 0, int2(1,0));
-          half4 lb = ssr_prev_target.SampleLevel(prev_downsampled_close_depth_tex_samplerstate, uv, 0, int2(0,1));
-          half4 rb = ssr_prev_target.SampleLevel(prev_downsampled_close_depth_tex_samplerstate, uv, 0, int2(1,1));
-          historySample = lt*weights.x + rt*weights.y + lb*weights.z + rb*weights.w;
-        }
-      #else
-        historySample = tex2Dlod(ssr_prev_target, float4(historyUV, 0, 0));
-      #endif
-      return weight;
+    #if USE_PREV_DOWNSAMPLED_NORMALS && USE_PREV_DOWNSAMPLED_CLOSE_DEPTH
+      if (validate_normal)
+        return get_ssr_disocclusion_weight_sample_virtual(current_normal, current_roughness, historyUV, prev_linear_depth, historySample) > 0;
+      else
+    #endif
+        return get_ssr_disocclusion_weight_sample(current_normal, current_roughness, historyUV, prev_linear_depth, historySample) > 0;
+
     }
   }
 endmacro
 
+macro SSR_GET_TEMPORAL_REPROJECTION_DUO(code)
+  SSR_DISOCCLUSION(code)
+  hlsl(code) {
+    half get_ssr_reprojection_with_weight(inout half neighboorhoodVariance, float3 cameraToPoint, float2 curViewTc, half3 normal, half linear_roughness, float reflectionDistance, float w, inout half4 prevFrame, out half virtualWeight)
+    {
+      float disocclusionWeightAtten = 1;
+      float3 prevViewVec = cameraToPoint;
+
+      #if SSR_MOTIONREPROJ != 1
+        bool isHero = apply_hero_matrix(curViewTc, prevViewVec);
+      #endif
+
+      float4 prevClipExactPos = mul(float4(prevViewVec, 1), prev_globtm_no_ofs_psf);
+      float3 prevScreenExact = prevClipExactPos.w > 1e-6 ? prevClipExactPos.xyz/prevClipExactPos.w : float3(2,2,0);
+      float2 oldExactUV = prevScreenExact.xy*float2(0.5,-0.5) + float2(0.5,0.5);
+      float3 oldExactUVZ = float3(oldExactUV, clamp(linearize_z(prevScreenExact.z, prev_zn_zfar.zw), prev_zn_zfar.x, prev_zn_zfar.y));
+
+      float rayLength = length(cameraToPoint);
+      half linearRoughnessIsRoughW = get_is_rough_surface_param(linear_roughness);
+      float reflectionDistanceUse = lerp(reflectionDistance, 0, linearRoughnessIsRoughW);
+      float4 prevReflClip = mul(float4(prevViewVec*(reflectionDistanceUse + rayLength)/rayLength, 1), prev_globtm_no_ofs_psf);
+      float3 prevReflScreen = prevReflClip.w > 1e-6 ? prevReflClip.xyz/prevReflClip.w : float3(2,2,0);
+      float2 prevVirtualUV = prevReflScreen.xy*float2(0.5,-0.5) + float2(0.5,0.5);
+      float3 prevVirtualUVZ = float3(prevVirtualUV, clamp(linearize_z(prevReflScreen.z, prev_zn_zfar.zw), prev_zn_zfar.x, prev_zn_zfar.y));
+
+
+      float weight = 1;
+      float3 reflecting_surface_3d_motion;
+
+      #if SSR_MOTIONREPROJ == 1
+        motion_type surface_motion = tex2Dlod(MOTION_VECTORS_TEXTURE, float4(curViewTc,0,0)).motion_attr;
+        #ifdef MOTION_TO_PREV_JITTERED_UV_OFS
+          surface_motion.xy += MOTION_TO_PREV_JITTERED_UV_OFS;
+        #endif
+        #if MOTION_VECTORS_3D
+          reflecting_surface_3d_motion = surface_motion;
+        #else
+          reflecting_surface_3d_motion = float3(surface_motion, oldExactUVZ.z - w);
+        #endif
+        if (!CHECK_VALID_MOTION_VECTOR(reflecting_surface_3d_motion))
+          reflecting_surface_3d_motion = oldExactUVZ - float3(curViewTc, w);
+
+        //motion_type reflect_motion = tex2Dlod(MOTION_VECTORS_TEXTURE, float4(cameraHitUVZ.xy,0,0)).motion_attr;
+        //if (CHECK_VALID_MOTION_VECTOR(reflect_motion) && all(abs(cameraHitUVZ.xy*2-1) < 1))
+        //  prevUVZ = cameraHitUVZ + reflect_motion;
+        bool staticPixel = all(abs(curViewTc + reflecting_surface_3d_motion.xy - oldExactUVZ.xy) < 0.5*ssr_target_size.zw);
+      #else
+        reflecting_surface_3d_motion = oldExactUVZ - float3(curViewTc, w);
+        bool staticPixel = !isHero;
+        if (isHero)
+          reflecting_surface_3d_motion.z = 0;
+      #endif
+      float2 useUV = curViewTc + reflecting_surface_3d_motion.xy;
+      float currentPosToPrevW = w + reflecting_surface_3d_motion.z;
+      {
+
+        //&& any(abs(prevVirtualUV.xy - useUV.xy) > ssr_target_size.zw)
+        weight = get_ssr_disocclusion_weight_sample(normal, linear_roughness, useUV, currentPosToPrevW, prevFrame);
+        virtualWeight = 0;
+        float invDepth = rcp(w);
+        half scaledMovement = saturate(scaled_prev_camera_translation*invDepth);
+        half virtualMulW = (1-linearRoughnessIsRoughW)*(1-neighboorhoodVariance)*scaledMovement;
+        half virtualMulPostW = lerp(1, exp2(-reflectionDistance*invDepth), virtualMulW);
+
+        if (staticPixel && virtualMulW > 1e-4 && all(abs(prevVirtualUV.xy*2-1) < 1))
+        {
+          virtualWeight = get_ssr_disocclusion_weight_sample_duo(virtualMulW, virtualMulPostW, normal, linear_roughness, prevVirtualUV.xy, currentPosToPrevW, prevFrame, weight);
+        }
+      }
+      neighboorhoodVariance = lerp(1, neighboorhoodVariance, weight);
+      return weight;
+    }
+  }
+endmacro

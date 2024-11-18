@@ -1,4 +1,5 @@
 int rtsm_bindless_slot = -1;
+int rtsm_is_translucent = 0;
 int csm_bindless_slot = -1;
 int csm_sampler_bindless_slot = -1;
 
@@ -7,6 +8,7 @@ macro CHECKING_RTSM(stage)
   {
     (stage) {
       rtsm_bindless_slot@i1 = rtsm_bindless_slot;
+      rtsm_is_translucent@i1 = rtsm_is_translucent;
       csm_bindless_slot@i1 = csm_bindless_slot;
       csm_sampler_bindless_slot@i1 = csm_sampler_bindless_slot;
     }
@@ -46,7 +48,11 @@ macro USING_RTSM(stage)
       {
         half4 shadowTexel = texture2DAt(rt_texture_outputs[rtsm_bindless_slot], tci);
         half4 shadowData = SIGMA_BackEnd_UnpackShadow(shadowTexel);
-        return lerp(shadowData.yzw, 1.0, shadowData.x);
+
+        if (!rtsm_is_translucent)
+          return shadowTexel.xxx;
+        else
+          return lerp(shadowData.yzw, 1.0, shadowData.x);
       }
     }
   }

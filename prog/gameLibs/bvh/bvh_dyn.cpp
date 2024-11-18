@@ -129,11 +129,7 @@ static void on_relem_changed_all(const DynamicRenderableSceneLodsResource *resou
 
 void init() { relem_changed_token = unitedvdata::dmUnitedVdata.on_mesh_relems_updated.subscribe(on_relem_changed_all); }
 
-void teardown()
-{
-  relem_changed_token.~CallbackToken();
-  relem_changed_token = CallbackToken();
-}
+void teardown() { relem_changed_token = CallbackToken(); }
 
 void init(ContextId context_id)
 {

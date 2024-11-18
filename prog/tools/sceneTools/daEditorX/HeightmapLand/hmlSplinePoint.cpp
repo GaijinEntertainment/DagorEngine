@@ -37,6 +37,7 @@ SplinePointObject::Props *SplinePointObject::defaultProps = NULL;
 enum
 {
   PID_USEDEFSET = 1,
+  PID_SPLINE_LAYERS,
   PID_GENBLKNAME,
   PID_EFFECTIVE_ASSET,
   PID_FUSE_POINTS,
@@ -195,92 +196,125 @@ void SplinePointObject::fillProps(PropPanel::ContainerPropertyControl &op, DClas
   if (!spline)
     return;
 
+  PropPanel::ContainerPropertyControl *commonGrp = op.getContainerById(PID_COMMON_GROUP);
+
   bool one_type = true;
+  int one_type_idx = -1;
   int one_layer = -1;
 
+  bool targetLayerEnabled = true;
   for (int i = 0; i < objects.size(); ++i)
     if (SplinePointObject *o = RTTI_cast<SplinePointObject>(objects[i]))
     {
       if (!o->spline)
+      {
         one_layer = -2;
-      else if (one_layer == -1)
-        one_layer = o->spline->getEditLayerIdx();
-      else if (one_layer != o->spline->getEditLayerIdx())
-        one_layer = -2;
+        targetLayerEnabled = false;
+      }
+      else
+      {
+        int type_idx = o->spline->isPoly() ? EditLayerProps::PLG : EditLayerProps::SPL;
+        if (one_type_idx == type_idx || one_type_idx == -1)
+          one_type_idx = type_idx;
+        else
+        {
+          one_type_idx = -2;
+          targetLayerEnabled = false;
+        }
+
+        if (one_layer == -1)
+          one_layer = o->spline->getEditLayerIdx();
+        else if (one_layer != o->spline->getEditLayerIdx())
+          one_layer = -2;
+      }
     }
     else
     {
       one_layer = -2;
       one_type = false;
+      one_type_idx = -2;
+      targetLayerEnabled = false;
       break;
     }
 
-  if (one_layer < 0)
-    op.createStatic(-1, "Edit layer:  --multiple selected--");
-  else
-    op.createStatic(-1, String(0, "Edit layer:  %s", EditLayerProps::layerProps[one_layer].name()));
+  int targetLayerValue = 0;
+  Tab<String> targetLayers(tmpmem);
+  if (one_type_idx >= 0)
+  {
+    targetLayerValue = EditLayerProps::findTypeIdx(one_type_idx, one_layer);
+    getObjEditor()->getLayerNames(one_type_idx, targetLayers);
+    targetLayerEnabled = targetLayers.size() > 1;
+  }
+  if (one_layer < 0 || one_type_idx < 0)
+  {
+    targetLayerValue = targetLayers.size();
+    targetLayers.push_back(String("-- (mixed) --"));
+  }
+
+  commonGrp->createStatic(-1, "Edit layer:");
+  commonGrp->createCombo(PID_SPLINE_LAYERS, "", targetLayers, targetLayerValue, targetLayerEnabled);
 
   if (one_type)
   {
-    op.createCheckBox(PID_USEDEFSET, "Use default spline settings", props.useDefSet);
+    commonGrp->createCheckBox(PID_USEDEFSET, "Use default spline settings", props.useDefSet);
 
-    op.createEditFloat(PID_SCALE_H, "Scale Height", props.attr.scale_h);
-    op.createEditFloat(PID_SCALE_W, "Scale Width", props.attr.scale_w);
-    op.createTrackFloat(PID_OPACITY, "Opacity", props.attr.opacity, 0.0f, 1.0f, 0.01f);
-    op.createEditFloat(PID_TC3U, "TC3.u", props.attr.tc3u);
-    op.createEditFloat(PID_TC3V, "TC3.v", props.attr.tc3v);
+    commonGrp->createEditFloat(PID_SCALE_H, "Scale Height", props.attr.scale_h);
+    commonGrp->createEditFloat(PID_SCALE_W, "Scale Width", props.attr.scale_w);
+    commonGrp->createTrackFloat(PID_OPACITY, "Opacity", props.attr.opacity, 0.0f, 1.0f, 0.01f);
+    commonGrp->createEditFloat(PID_TC3U, "TC3.u", props.attr.tc3u);
+    commonGrp->createEditFloat(PID_TC3V, "TC3.v", props.attr.tc3v);
 
-    op.setMinMaxStep(PID_SCALE_H, 0.0f, 1e6f, 0.01f);
-    op.setMinMaxStep(PID_SCALE_W, 0.0f, 1e6f, 0.01f);
-    op.setMinMaxStep(PID_OPACITY, 0.0f, 1.0f, 0.01f);
+    commonGrp->setMinMaxStep(PID_SCALE_H, 0.0f, 1e6f, 0.01f);
+    commonGrp->setMinMaxStep(PID_SCALE_W, 0.0f, 1e6f, 0.01f);
+    commonGrp->setMinMaxStep(PID_OPACITY, 0.0f, 1.0f, 0.01f);
 
     {
-      op.createIndent();
+      commonGrp->createIndent();
 
-      PropPanel::ContainerPropertyControl &followGrp = *op.createRadioGroup(PID_FOLLOW, "Follow type override");
+      PropPanel::ContainerPropertyControl &followGrp = *commonGrp->createRadioGroup(PID_FOLLOW, "Follow type override");
       followGrp.createRadio(-1, "Default (as in asset)");
       followGrp.createRadio(0, "No follow");
       followGrp.createRadio(1, "Follow hills");
       followGrp.createRadio(2, "Follow hollows");
       followGrp.createRadio(3, "Follow landscape");
-      op.setInt(PID_FOLLOW, props.attr.followOverride);
+      commonGrp->setInt(PID_FOLLOW, props.attr.followOverride);
 
-      PropPanel::ContainerPropertyControl &roadGrp = *op.createRadioGroup(PID_ROADBHV, "Road behavior override");
+      PropPanel::ContainerPropertyControl &roadGrp = *commonGrp->createRadioGroup(PID_ROADBHV, "Road behavior override");
       roadGrp.createRadio(-1, "Default (as in asset)");
       roadGrp.createRadio(0, "Not a road");
       roadGrp.createRadio(1, "Follow as road");
-      op.setInt(PID_ROADBHV, props.attr.roadBhvOverride);
+      commonGrp->setInt(PID_ROADBHV, props.attr.roadBhvOverride);
 
-      op.createIndent();
-      op.createStatic(-1, "Spline class asset");
-      op.createButton(PID_GENBLKNAME, ::dd_get_fname(props.blkGenName), !props.useDefSet);
+      commonGrp->createIndent();
+      commonGrp->createStatic(-1, "Spline class asset");
+      commonGrp->createButton(PID_GENBLKNAME, ::dd_get_fname(props.blkGenName), !props.useDefSet);
 
       if (props.useDefSet)
       {
-        op.createStatic(-1, "Effective spline class asset");
-        op.createButton(PID_EFFECTIVE_ASSET, ::dd_get_fname(getEffectiveAsset()));
+        commonGrp->createStatic(-1, "Effective spline class asset");
+        commonGrp->createButton(PID_EFFECTIVE_ASSET, ::dd_get_fname(getEffectiveAsset()));
       }
       else
       {
-        op.createStatic(-1, "Previous spline class asset");
-        op.createButton(PID_EFFECTIVE_ASSET, ::dd_get_fname(getEffectiveAsset(-1)));
+        commonGrp->createStatic(-1, "Previous spline class asset");
+        commonGrp->createButton(PID_EFFECTIVE_ASSET, ::dd_get_fname(getEffectiveAsset(-1)));
       }
     }
 
-    op.createSeparator(0);
-    PropPanel::ContainerPropertyControl &cornerGrp = *op.createRadioGroup(PID_CORNER_TYPE, "Corner type");
+    commonGrp->createSeparator(0);
+    PropPanel::ContainerPropertyControl &cornerGrp = *commonGrp->createRadioGroup(PID_CORNER_TYPE, "Corner type");
     cornerGrp.createRadio(-2, "As spline (default)");
     cornerGrp.createRadio(-1, "Corner");
     cornerGrp.createRadio(0, "Smooth tangent");
     cornerGrp.createRadio(1, "Smooth curvature");
-    op.setInt(PID_CORNER_TYPE, props.cornerType);
+    commonGrp->setInt(PID_CORNER_TYPE, props.cornerType);
 
-    op.createSeparator(0);
-    op.createButton(PID_LEVEL_TANGENTS, String(64, "Level tangents (%d points)", objects.size()));
+    commonGrp->createSeparator(0);
+    commonGrp->createButton(PID_LEVEL_TANGENTS, String(64, "Level tangents (%d points)", objects.size()));
     if (objects.size() > 1)
     {
-      op.createButton(PID_LEVEL_POINTS, String(64, "Level %d points (set average .y)", objects.size()));
-      op.createButton(PID_FUSE_POINTS, String(64, "Fuse %d points", objects.size()));
+      commonGrp->createButton(PID_LEVEL_POINTS, String(64, "Level %d points (set average .y)", objects.size()));
+      commonGrp->createButton(PID_FUSE_POINTS, String(64, "Fuse %d points", objects.size()));
     }
   }
 
@@ -292,16 +326,16 @@ void SplinePointObject::fillProps(PropPanel::ContainerPropertyControl &op, DClas
       continue;
 
     if (o->props.useDefSet != props.useDefSet)
-      op.resetById(PID_USEDEFSET);
+      commonGrp->resetById(PID_USEDEFSET);
     if (stricmp(o->props.blkGenName, props.blkGenName))
-      op.setCaption(PID_GENBLKNAME, "");
+      commonGrp->setCaption(PID_GENBLKNAME, "");
 
     if (o->props.useDefSet == props.useDefSet)
       if (stricmp(o->getEffectiveAsset(eff_disp), getEffectiveAsset(eff_disp)))
-        op.setCaption(PID_EFFECTIVE_ASSET, "");
+        commonGrp->setCaption(PID_EFFECTIVE_ASSET, "");
 
     if (o->props.cornerType != props.cornerType)
-      op.resetById(PID_CORNER_TYPE);
+      commonGrp->resetById(PID_CORNER_TYPE);
   }
 }
 
@@ -331,6 +365,42 @@ void SplinePointObject::onPPChange(int pid, bool edit_finished, PropPanel::Conta
           gen->clearLoftGeom();
     }
     getObjEditor()->invalidateObjectProps();
+  }
+
+  if (pid == PID_SPLINE_LAYERS)
+  {
+    dag::Vector<RenderableEditableObject *> objectsToMove;
+    objectsToMove.set_capacity(objects.size());
+    int oneTypeIdx = -1;
+    for (int i = 0; i < objects.size(); ++i)
+    {
+      if (SplinePointObject *s = RTTI_cast<SplinePointObject>(objects[i]))
+      {
+        if (s->spline)
+        {
+          if (eastl::find(objectsToMove.begin(), objectsToMove.end(), s->spline) == objectsToMove.end())
+            objectsToMove.push_back(s->spline);
+
+          int typeIdx = s->spline->isPoly() ? EditLayerProps::PLG : EditLayerProps::SPL;
+          if (oneTypeIdx == typeIdx || oneTypeIdx == -1)
+          {
+            oneTypeIdx = typeIdx;
+            continue;
+          }
+        }
+      }
+      oneTypeIdx = -2;
+    }
+
+    int selectedLayer = panel.getInt(PID_SPLINE_LAYERS);
+    int layerIdx = EditLayerProps::findLayerByTypeIdx(oneTypeIdx, selectedLayer);
+    if (layerIdx != -1)
+    {
+      HmapLandPlugin::self->moveObjectsToLayer(layerIdx, make_span(objectsToMove));
+
+      DAGORED2->invalidateViewportCache();
+      getObjEditor()->invalidateObjectProps();
+    }
   }
 
   if ((pid == PID_SCALE_H) || (pid == PID_SCALE_W) || (pid == PID_OPACITY) || (pid == PID_TC3U) || (pid == PID_TC3V))

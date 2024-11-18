@@ -20,13 +20,12 @@ MatchingResult motion_matching(const AnimationDataBase &dataBase,
   bool use_brute_force,
   const AnimationFilterTags &current_tags,
   const FeatureWeights &weights,
-  const FrameFeaturesData &current_feature)
+  dag::ConstSpan<FrameFeaturesData::value_type> current_feature)
 {
   int featureSize = dataBase.featuresSize;
 
   G_ASSERT(featureSize == weights.featureWeights.size());
-  G_ASSERT(featureSize == current_feature.size());
-  const vec3f *goalFeaturePtr = current_feature.data();
+  G_ASSERT(featureSize * dataBase.normalizationGroupsCount == current_feature.size());
   const vec4f *featureWeightsPtr = weights.featureWeights.data();
 
   int cur_clip = current_state.clip;
@@ -43,6 +42,8 @@ MatchingResult motion_matching(const AnimationDataBase &dataBase,
     const auto &smallBoundsMax = nextClip.boundsSmallMax;
     const auto &largeBoundsMin = nextClip.boundsLargeMin;
     const auto &largeBoundsMax = nextClip.boundsLargeMax;
+    int featuresOffset = nextClip.featuresNormalizationGroup * featureSize;
+    const vec3f *goalFeaturePtr = current_feature.data() + featuresOffset;
 
     G_ASSERT(nextClip.features.data.size() == nextClip.tickDuration * featureSize);
 

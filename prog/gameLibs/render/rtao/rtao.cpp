@@ -29,14 +29,22 @@ static int inv_proj_tmVarId = -1;
 static int rtao_targetVarId = -1;
 static int rtao_frame_indexVarId = -1;
 static int rtao_hit_dist_paramsVarId = -1;
-static int rtao_resolutionVarId = -1;
 static int rtao_resolutionIVarId = -1;
 static int ssao_texVarId = -1;
 static int rtao_bindless_slotVarId = -1;
 static int rtao_res_mulVarId = -1;
 static int downsampled_close_depth_texVarId = -1;
 
-static float ray_length = 3;
+static constexpr float ray_length_min = 0.01f;
+static constexpr float ray_length_max = 10;
+static constexpr float distance_factor_min = 0.01;
+static constexpr float distance_factor_max = 5;
+static constexpr float scatter_factor_min = 0;
+static constexpr float scatter_factor_max = 50;
+static constexpr float roughness_factor_min = -50.0;
+static constexpr float roughness_factor_max = 0;
+
+static float ray_length = -1;
 static float distance_factor = 1;
 static float scatter_factor = 20.0;
 static float roughness_factor = -25.0;
@@ -48,7 +56,6 @@ void initialize(bool half_res)
 
   rtao_frame_indexVarId = get_shader_variable_id("rtao_frame_index");
   rtao_hit_dist_paramsVarId = get_shader_variable_id("rtao_hit_dist_params");
-  rtao_resolutionVarId = get_shader_variable_id("rtao_resolution");
   rtao_resolutionIVarId = get_shader_variable_id("rtao_resolutionI");
   rtao_targetVarId = get_shader_variable_id("rtao_target");
   inv_proj_tmVarId = get_shader_variable_id("inv_proj_tm");
@@ -64,6 +71,20 @@ void initialize(bool half_res)
   denoised_ao.close();
 
   denoiser::make_ao_maps(ao_value, denoised_ao, half_res);
+
+  if (ray_length <= 0)
+  {
+    auto gfx = ::dgs_get_settings()->getBlockByNameEx("graphics");
+    ray_length = gfx->getReal("rtaoRayLength", 0.95f);
+    distance_factor = gfx->getReal("rtaoDistanceFactor", 1);
+    scatter_factor = gfx->getReal("rtaoScatterFactor", 20);
+    roughness_factor = gfx->getReal("rtaoRoughnessFactor", -25);
+
+    ray_length = clamp(ray_length, ray_length_min, ray_length_max);
+    distance_factor = clamp(distance_factor, distance_factor_min, distance_factor_max);
+    scatter_factor = clamp(scatter_factor, scatter_factor_min, scatter_factor_max);
+    roughness_factor = clamp(roughness_factor, roughness_factor_min, roughness_factor_max);
+  }
 }
 
 template <typename T>
@@ -100,7 +121,6 @@ void render(bvh::ContextId context_id, const TMatrix4 &proj_tm, bool performance
   ShaderGlobal::set_texture(rtao_targetVarId, ao_value.getTexId());
   ShaderGlobal::set_int(rtao_frame_indexVarId, denoiser::get_frame_number());
   ShaderGlobal::set_color4(rtao_hit_dist_paramsVarId, hitDistParams);
-  ShaderGlobal::set_color4(rtao_resolutionVarId, ti.w, ti.h);
   ShaderGlobal::set_int4(rtao_resolutionIVarId, ti.w, ti.h, 0, 0);
 
   ShaderGlobal::set_texture(downsampled_close_depth_texVarId, half_depth);
@@ -124,10 +144,10 @@ static void imguiWindow()
   if (!denoised_ao)
     return;
 
-  ImGui::SliderFloat("Ray length", &ray_length, 0.01f, 10);
-  ImGui::SliderFloat("Distance factor", &distance_factor, 0.01, 5);
-  ImGui::SliderFloat("Scatter factor", &scatter_factor, 0, 50);
-  ImGui::SliderFloat("Roughness factor", &roughness_factor, -50, 0);
+  ImGui::SliderFloat("Ray length", &ray_length, ray_length_min, ray_length_max);
+  ImGui::SliderFloat("Distance factor", &distance_factor, distance_factor_min, distance_factor_max);
+  ImGui::SliderFloat("Scatter factor", &scatter_factor, scatter_factor_min, scatter_factor_max);
+  ImGui::SliderFloat("Roughness factor", &roughness_factor, roughness_factor_min, roughness_factor_max);
 
   ImGuiDagor::Image(denoised_ao.getTexId(), denoised_ao.getTex2D());
 }

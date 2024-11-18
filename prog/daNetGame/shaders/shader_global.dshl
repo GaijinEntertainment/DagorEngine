@@ -668,10 +668,13 @@ INIT_BRUNETON_FOG(ps)
 endmacro
 
 hlsl {
-  //float linearSmoothnessToGGXRoughness(float smoothness) {return max(1e-4, pow2(pow3(1-0.7*smoothness)));}//oldbuggy
-  float linearSmoothnessToLinearRoughness(float smoothness) {return 1-smoothness;}//dice
-  float linearSmoothnessToGGXRoughness(float smoothness) {return max(1e-4, pow2(linearSmoothnessToLinearRoughness(smoothness)));}//remove me!
-  //float linearSmoothnessToGGXRoughness(float smoothness) {return max(1e-4, pow3(1-0.7*smoothness));}//crytek
+  float linearSmoothnessToLinearRoughness(float smoothness) {return 1-smoothness;}
+  #if SHADER_COMPILER_FP16_ENABLED
+    half linearSmoothnessToLinearRoughness(half linearSmoothness)
+    {
+      return saturate(1.h-linearSmoothness);
+    }
+  #endif
 }
 
 hlsl {

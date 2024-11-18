@@ -257,6 +257,16 @@ int OutlinerWindow::onMenuItemClick(unsigned id)
       PropPanel::focus_helper.requestFocus(&addingLayerToType);
     }
   }
+  else if (id == (unsigned)MenuItemId::MoveToThisLayer)
+  {
+    if (outlinerModel->isLayerTargetableBySelection(contextMenuType, contextMenuPerTypeLayerIndex))
+    {
+      dag::Vector<RenderableEditableObject *> selectedObjects = outlinerModel->getSelectedObjects();
+      treeInterface->moveObjectsToLayer(make_span(selectedObjects), contextMenuType, contextMenuPerTypeLayerIndex);
+
+      return 1;
+    }
+  }
   else if (id == (unsigned)MenuItemId::SelectAllTypeObjects || id == (unsigned)MenuItemId::DeselectAllTypeObjects)
   {
     const bool select = id == (unsigned)MenuItemId::SelectAllTypeObjects;
@@ -276,13 +286,17 @@ int OutlinerWindow::onMenuItemClick(unsigned id)
         if (outlinerModel->objectTypes[typeIndex]->layers[layerIndex]->isSelected())
           treeInterface->selectAllLayerObjects(typeIndex, layerIndex, select);
     }
+    LayerTreeItem *targetLayer = getContextMenuTargetLayer();
+    if (targetLayer && !targetLayer->isSelected())
+      treeInterface->selectAllLayerObjects(contextMenuType, contextMenuPerTypeLayerIndex, select);
   }
   else if (id == (unsigned)MenuItemId::ExpandLayerChildren || id == (unsigned)MenuItemId::CollapseLayerChildren)
   {
     const bool expand = id == (unsigned)MenuItemId::ExpandLayerChildren;
+    LayerTreeItem *targetLayer = getContextMenuTargetLayer();
     for (ObjectTypeTreeItem *objectTypeTreeItem : outlinerModel->objectTypes)
       for (LayerTreeItem *layerTreeItem : objectTypeTreeItem->layers)
-        if (layerTreeItem->isSelected())
+        if (layerTreeItem->isSelected() || layerTreeItem == targetLayer)
         {
           const int objectCount = layerTreeItem->sortedObjects.size();
           for (int objectIndex = 0; objectIndex < objectCount; ++objectIndex)
@@ -462,7 +476,9 @@ bool OutlinerWindow::showTypeControls(ObjectTypeTreeItem &tree_item, int type, b
     const ImVec2 originaCursorPos = ImGui::GetCursorScreenPos();
 
     ImGui::SetCursorScreenPos(leftIconPos);
+    PropPanel::ImguiHelper::setPointSampler();
     ImGui::Image(icons.getForType(type), fontSizedIconSize);
+    PropPanel::ImguiHelper::setDefaultSampler();
 
     ImGui::SetCursorScreenPos(ImVec2(actionButtonsStartX, endData.textPos.y));
 
@@ -507,7 +523,8 @@ bool OutlinerWindow::showTypeControls(ObjectTypeTreeItem &tree_item, int type, b
 }
 
 bool OutlinerWindow::showLayerControls(LayerTreeItem &tree_item, int type, int per_type_layer_index, bool layer_visible,
-  bool layer_locked, bool dim_layer_color, int object_count, const ImVec4 &dimmed_text_color, float action_buttons_total_width)
+  bool layer_locked, bool dim_layer_color, int object_count, const ImVec4 &dimmed_text_color, float action_buttons_total_width,
+  ImGuiMultiSelectIO *multiSelectIo)
 {
   const bool selected = tree_item.isSelected();
   if (selected && layerRenamer)
@@ -529,6 +546,8 @@ bool OutlinerWindow::showLayerControls(LayerTreeItem &tree_item, int type, int p
     layerTreeNodeFlags |= ImGuiTreeNodeFlags_Leaf;
   if (selected)
     layerTreeNodeFlags |= ImGuiTreeNodeFlags_Selected;
+
+  const int multiSelectRequestCount = multiSelectIo->Requests.size();
 
   PropPanel::ImguiHelper::TreeNodeWithSpecialHoverBehaviorEndData endData;
   const bool isExpanded =
@@ -645,6 +664,13 @@ bool OutlinerWindow::showLayerControls(LayerTreeItem &tree_item, int type, int p
 
   if (isExpanded != wasExpanded)
     tree_item.setExpanded(isExpanded);
+
+  // Make right mouse button presses keep the selection state intact!
+  if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+  {
+    while (multiSelectRequestCount < multiSelectIo->Requests.size())
+      multiSelectIo->Requests.pop_back();
+  }
 
   // Imitate Windows where the context menu comes up on mouse button release. (BeginPopupContextItem also does this.)
   if (endData.hovered && ImGui::IsMouseReleased(ImGuiMouseButton_Right))
@@ -778,7 +804,9 @@ bool OutlinerWindow::showObjectAssetNameControls(ObjectAssetNameTreeItem &tree_i
 
       const ImVec2 originaCursorPos = ImGui::GetCursorScreenPos();
       ImGui::SetCursorScreenPos(leftIconPos);
+      PropPanel::ImguiHelper::setPointSampler();
       ImGui::Image(assetTypeIcon, fontSizedIconSize);
+      PropPanel::ImguiHelper::setDefaultSampler();
       ImGui::SetCursorScreenPos(originaCursorPos);
     }
 
@@ -825,8 +853,11 @@ void OutlinerWindow::fillLayerContextMenu(int type, int per_type_layer_index)
   if (!treeInterface || !contextMenu)
     return;
 
-  if (!outlinerModel->isAnyLayerSelected())
-    return;
+  if (outlinerModel->isLayerTargetableBySelection(type, per_type_layer_index))
+  {
+    contextMenu->addItem(PropPanel::ROOT_MENU_ITEM, (unsigned)MenuItemId::MoveToThisLayer, "Move to this layer");
+    contextMenu->addSeparator(PropPanel::ROOT_MENU_ITEM);
+  }
 
   const bool canChangeSelection = !treeInterface->isLayerLocked(type, per_type_layer_index);
 
@@ -910,7 +941,7 @@ void OutlinerWindow::createContextMenu(int type, int per_type_layer_index, bool 
   if (contextMenu)
     return;
 
-  contextMenu.reset(PropPanel::create_context_menu());
+  resetContextMenu(PropPanel::create_context_menu(), type, per_type_layer_index);
   contextMenu->setEventHandler(this);
 
   if (type >= 0 && per_type_layer_index >= 0 && object_menu)
@@ -947,6 +978,26 @@ void OutlinerWindow::createContextMenuByKeyboard()
   }
 }
 
+LayerTreeItem *OutlinerWindow::getContextMenuTargetLayer() const
+{
+  const int typeCount = outlinerModel->objectTypes.size();
+  if (0 <= contextMenuType && contextMenuType < typeCount)
+  {
+    const ObjectTypeTreeItem *objectTypeTreeItem = outlinerModel->objectTypes[contextMenuType];
+    const int layerCount = objectTypeTreeItem->layers.size();
+    if (0 <= contextMenuPerTypeLayerIndex && contextMenuPerTypeLayerIndex < layerCount)
+      return objectTypeTreeItem->layers[contextMenuPerTypeLayerIndex];
+  }
+  return nullptr;
+}
+
+void OutlinerWindow::resetContextMenu(PropPanel::IMenu *context_menu, int type, int per_type_layer_index)
+{
+  contextMenu.reset(context_menu);
+  contextMenuType = type;
+  contextMenuPerTypeLayerIndex = per_type_layer_index;
+}
+
 void OutlinerWindow::updateSelectionHead(OutlinerTreeItem &tree_item)
 {
   const bool focused = ImGui::IsItemFocused();
@@ -970,7 +1021,7 @@ void OutlinerWindow::updateSelectionHead(OutlinerTreeItem &tree_item)
   }
 }
 
-void OutlinerWindow::fillTree()
+void OutlinerWindow::fillTree(ImGuiMultiSelectIO *multiSelectIo)
 {
   G_ASSERT(treeInterface);
 
@@ -1030,7 +1081,7 @@ void OutlinerWindow::fillTree()
       const int objectCount = layerTreeItem->sortedObjects.size();
 
       const bool layerOpen = showLayerControls(*layerTreeItem, typeIndex, layerIndex, layerVisible, layerLocked, dimLayerColor,
-        objectCount, dimmedTextColor, actionButtonsTotalWidth);
+        objectCount, dimmedTextColor, actionButtonsTotalWidth, multiSelectIo);
 
       if (!layerOpen)
       {
@@ -1507,7 +1558,9 @@ void OutlinerWindow::updateImgui()
   if (selectedType < 0)
     ImGui::BeginDisabled();
 
+  PropPanel::ImguiHelper::setPointSampler();
   const bool pressedAddLayer = ImGui::ImageButton("addLayer", icons.layerAdd, fontSizedIconSize);
+  PropPanel::ImguiHelper::setDefaultSampler();
   PropPanel::set_previous_imgui_control_tooltip((const void *)ImGui::GetItemID(), "Add new layer");
 
   if (selectedType < 0)
@@ -1579,7 +1632,7 @@ void OutlinerWindow::updateImgui()
       applySelectionRequests(*multiSelectIo, startedSelecting);
 
     ImGui::PushStyleColor(ImGuiCol_Header, PropPanel::Constants::TREE_SELECTION_BACKGROUND_COLOR);
-    fillTree();
+    fillTree(multiSelectIo);
     ImGui::PopStyleColor();
 
     multiSelectIo = ImGui::EndMultiSelect();
@@ -1590,7 +1643,7 @@ void OutlinerWindow::updateImgui()
       treeInterface->endObjectSelection();
 
     if (contextMenu && (contextMenu->getItemCount(PropPanel::ROOT_MENU_ITEM) == 0 || !PropPanel::render_context_menu(*contextMenu)))
-      contextMenu.reset();
+      resetContextMenu();
   }
   ImGui::EndChild();
 

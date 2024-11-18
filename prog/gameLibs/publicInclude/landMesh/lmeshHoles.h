@@ -8,6 +8,7 @@
 #include <math/dag_bounds2.h>
 #include <math/dag_Point2.h>
 #include <EASTL/vector.h>
+#include <osApiWrappers/dag_rwLock.h>
 
 class HeightmapHandler;
 class LandMeshHolesCell
@@ -55,6 +56,7 @@ public:
 
 private:
   size_t getCellIndex(const Point2 &p) const;
+  void clearHolesInternal();
 
   int holeCellsCount;
   BBox2 holesRegion;
@@ -62,4 +64,5 @@ private:
   Point2 cellSizeInv;
   eastl::vector<LandMeshHolesCell> cells;
   const HeightmapHandler *hmapHandler;
+  mutable SmartReadWriteFifoLock rwLock;
 };

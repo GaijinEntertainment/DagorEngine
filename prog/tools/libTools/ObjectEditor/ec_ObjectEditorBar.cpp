@@ -10,6 +10,13 @@
 #include <debug/dag_debug.h>
 #include <de3_interface.h>
 
+static class DefObjectEditorPropParams
+{
+public:
+  bool commonGroupMinimized;
+  DefObjectEditorPropParams() : commonGroupMinimized(false) {}
+} defaultObjectEditorPropParams;
+
 enum
 {
   ID_NAME = 10000,
@@ -56,7 +63,11 @@ void ObjectEditorPropPanelBar::getObjects()
 
 void ObjectEditorPropPanelBar::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
-  if (pcb_id == ID_NAME)
+  if (pcb_id == RenderableEditableObject::PID_COMMON_GROUP)
+  {
+    ::defaultObjectEditorPropParams.commonGroupMinimized = panel->getBool(pcb_id);
+  }
+  else if (pcb_id == ID_NAME)
   {
     objEd->renameObject(objEd->getSelected(0), panel->getText(pcb_id).str());
   }
@@ -105,17 +116,21 @@ void ObjectEditorPropPanelBar::fillPanel()
 
   propPanel->clear();
 
-  propPanel->createEditBox(ID_NAME, "Name:", "", false);
+  PropPanel::ContainerPropertyControl *commonGrp =
+    propPanel->createGroup(RenderableEditableObject::PID_COMMON_GROUP, "Common parameters");
+  commonGrp->setBoolValue(::defaultObjectEditorPropParams.commonGroupMinimized);
+
+  commonGrp->createEditBox(ID_NAME, "Name:", "", false);
 
   if (objEd->selectedCount())
   {
     if (objEd->selectedCount() == 1)
     {
-      propPanel->setEnabledById(ID_NAME, true);
-      propPanel->setText(ID_NAME, objEd->getSelected(0)->getName());
+      commonGrp->setEnabledById(ID_NAME, true);
+      commonGrp->setText(ID_NAME, objEd->getSelected(0)->getName());
     }
     else
-      propPanel->setText(ID_NAME, String(100, "%d objects selected", objEd->selectedCount()));
+      commonGrp->setText(ID_NAME, String(100, "%d objects selected", objEd->selectedCount()));
 
     getObjects();
 
@@ -130,7 +145,7 @@ void ObjectEditorPropPanelBar::fillPanel()
       objects[0]->fillProps(*propPanel, commonClassId, o);
     }
     else
-      propPanel->setEnabledById(ID_NAME, false);
+      commonGrp->setEnabledById(ID_NAME, false);
   }
 }
 

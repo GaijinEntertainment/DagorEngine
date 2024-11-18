@@ -7,6 +7,7 @@ let TEST_LUA = true
 let TEST_LUA_JIT = true
 let TEST_SQUIRREL = true
 let TEST_CSHARP = true
+let TEST_MONO_INTERPRETER = false
 
 [no_jit,no_aot]
 def cpp_label
@@ -117,7 +118,8 @@ def run_files ( tf:TestFile )
         let cwd = getcwd()
         chdir(monoRoot)
         run_and_gun_silent("{monoCompiler} -optimize+ {monoRoot}/{tf.monoFile} -out:test.exe")
-        run_and_gun("MONO --interpreter","{monoRunner} --interpreter test.exe")
+        if TEST_MONO_INTERPRETER
+            run_and_gun("MONO --interpreter","{monoRunner} --interpreter test.exe")
         run_and_gun("MONO","{monoRunner} test.exe")
     if TEST_CSHARP && !empty(tf.dotNetFile)
         let cscRoot = "{get_das_root()}/examples/profile/tests/cs"

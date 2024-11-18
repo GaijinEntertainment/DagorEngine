@@ -1672,6 +1672,23 @@ TEXTUREID ScriptedShaderElement::getTexture(int index) const
   return ((const Tex *)&vars[texVarOfs[index]])->texId;
 }
 
+bool ScriptedShaderElement::checkAndPrefetchMissingTextures() const
+{
+  if (texturesLoaded)
+    return true;
+  const uint8_t *vars = getVars();
+  for (int i = 0; i < texVarOfs.size(); i++)
+  {
+    const Tex &t = *(const Tex *)&vars[texVarOfs[i]];
+    if (t.texId != BAD_TEXTUREID && !check_managed_texture_loaded(t.texId))
+    {
+      prefetch_managed_texture(t.texId);
+      return false;
+    }
+  }
+  return texturesLoaded = true;
+}
+
 void ScriptedShaderElement::gatherUsedTex(TextureIdSet &tex_id_list) const
 {
   const uint8_t *vars = getVars();

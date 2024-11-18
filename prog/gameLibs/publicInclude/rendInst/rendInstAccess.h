@@ -20,8 +20,15 @@ struct RiGenVisibility;
 
 namespace rendinst
 {
+struct AutoLockReadPrimary
+{
+  AutoLockReadPrimary();
+  ~AutoLockReadPrimary();
+};
+
 struct AutoLockReadPrimaryAndExtra
 {
+  AutoLockReadPrimary primaryLock;
   AutoLockReadPrimaryAndExtra();
   ~AutoLockReadPrimaryAndExtra();
 };

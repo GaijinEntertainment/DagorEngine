@@ -66,8 +66,11 @@ macro USE_BONE_MATRIX_BLENDING_GEN(blend_bone_mtx_name_t, fetch_bone_mtx_name_t,
   {
     bone_t blend_bone_mtx_name_t(uint offset, uint4 bi, float4 bw)
     {
+      ##if in_editor_assume == no
+        offset += additional_offset;
+      ##endif
       bone_t skinnedTm;
-      bi = bi * bone_mtx_stride + offset + additional_offset;
+      bi = bi * bone_mtx_stride + offset;
       skinnedTm.r0 = bone_mtx_row_getter(bi.x+0) * bw.x + bone_mtx_row_getter(bi.y+0) * bw.y + bone_mtx_row_getter(bi.z+0) * bw.z + bone_mtx_row_getter(bi.w+0) * bw.w;
       skinnedTm.r1 = bone_mtx_row_getter(bi.x+1) * bw.x + bone_mtx_row_getter(bi.y+1) * bw.y + bone_mtx_row_getter(bi.z+1) * bw.z + bone_mtx_row_getter(bi.w+1) * bw.w;
       skinnedTm.r2 = bone_mtx_row_getter(bi.x+2) * bw.x + bone_mtx_row_getter(bi.y+2) * bw.y + bone_mtx_row_getter(bi.z+2) * bw.z + bone_mtx_row_getter(bi.w+2) * bw.w;
@@ -75,8 +78,11 @@ macro USE_BONE_MATRIX_BLENDING_GEN(blend_bone_mtx_name_t, fetch_bone_mtx_name_t,
     }
     bone_t fetch_bone_mtx_name_t(uint offset, uint bi)
     {
+      ##if in_editor_assume == no
+        offset += additional_offset;
+      ##endif
       bone_t skinnedTm;
-      bi = bi * bone_mtx_stride + offset + additional_offset;
+      bi = bi * bone_mtx_stride + offset;
       skinnedTm.r0 = bone_mtx_row_getter(bi.x+0);
       skinnedTm.r1 = bone_mtx_row_getter(bi.x+1);
       skinnedTm.r2 = bone_mtx_row_getter(bi.x+2);
@@ -207,6 +213,7 @@ hlsl(vs)
   float3 mul_bone3m(float3 p3, float3x3 m3) { return mul(m3, p3); }
 
 
+##if in_editor_assume == no
   void get_node_collapser_bits(out uint4 node_collapser_bits[2])
   {
     // bone rows start from ADDITIONAL_BONE_MTX_OFFSET, these rows are used for node collapser
@@ -235,6 +242,7 @@ hlsl(vs)
     get_node_collapser_bits(nodeCollapserBits);
     return checkBoneToCollapse(bi, 1, nodeCollapserBits);
   }
+##endif
 
   bone_t blend_skinning_matrix(uint4 bi, float4 bw, uint in_matrix_offset)
   {

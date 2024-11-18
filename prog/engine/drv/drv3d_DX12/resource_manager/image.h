@@ -26,6 +26,21 @@
 
 namespace drv3d_dx12
 {
+inline void printDesc(const D3D12_RESOURCE_DESC &desc)
+{
+  logdbg("DX12: desc.Dimension = %s", to_string(desc.Dimension));
+  logdbg("DX12: desc.Alignment = %llu", desc.Alignment);
+  logdbg("DX12: desc.Width = %llu", desc.Width);
+  logdbg("DX12: desc.Height = %u", desc.Height);
+  logdbg("DX12: desc.DepthOrArraySize = %u", desc.DepthOrArraySize);
+  logdbg("DX12: desc.MipLevels = %u", desc.MipLevels);
+  logdbg("DX12: desc.Format = %u", dxgi_format_name(desc.Format));
+  logdbg("DX12: desc.SampleDesc.Count = %u", desc.SampleDesc.Count);
+  logdbg("DX12: desc.SampleDesc.Quality = %u", desc.SampleDesc.Quality);
+  logdbg("DX12: desc.Layout = %u", desc.Layout);
+  logdbg("DX12: desc.Flags = %08X", desc.Flags);
+}
+
 class Image
 {
 public:
@@ -60,14 +75,46 @@ private:
   uint64_t lastFrameAccess = 0;
 
 public:
+#if DAGOR_DBGLEVEL > 0
+  void dbgOnImageValidationFailed(ImageViewState image_view_state, const D3D12_RESOURCE_DESC &desc)
+  {
+    logdbg("DX12: image.debugName = %s", *debugName.access());
+    logdbg("DX12: image.mipLevels = %d", mipLevels.count());
+    logdbg("DX12: image.layerCount = %d", layerCount);
+    logdbg("DX12: image.dimension = %d", imageType);
+    logdbg("DX12: image.extent = (%d, %d, %d)", extent.width, extent.height, extent.depth);
+    logdbg("DX12: view.mipBase = %d", image_view_state.getMipBase());
+    logdbg("DX12: view.mipCount = %d", image_view_state.getMipCount());
+    logdbg("DX12: view.arrayBase = %d", image_view_state.getArrayBase());
+    logdbg("DX12: view.arrayCount = %d", image_view_state.getArrayCount());
+    printDesc(desc);
+    G_ASSERT_FAIL("DX12: Image validation failed, please attach logs and dump to report");
+  }
+
+  void dbgCheckImageValidationCondition(bool condition, const char *str, ImageViewState image_view_state,
+    const D3D12_RESOURCE_DESC &desc)
+  {
+    if (condition)
+      return;
+    logerr("DX12: Image validation info failed (%s). Logging debug info...", str);
+    dbgOnImageValidationFailed(image_view_state, desc);
+  }
+#endif
+
   void dbgValidateImageViewStateCompatibility([[maybe_unused]] ImageViewState image_view_state)
   {
-    G_ASSERTF(image_view_state.getMipBase() + image_view_state.getMipCount() <= mipLevels,
-      "DX12: Image view validation failed, wrong mip range (tex: %s, view.mipBase: %d, view.mipCount: %d, img.mipCount: %d)",
-      *debugName.access(), image_view_state.getMipBase(), image_view_state.getMipCount(), mipLevels.count());
-    G_ASSERTF(image_view_state.getArrayBase() + image_view_state.getArrayCount() <= layerCount,
-      "DX12: Image view validation failed, wrong layers range (tex: %s, view.mipBase: %d, view.mipCount: %d, img.mipCount: %d)",
-      *debugName.access(), image_view_state.getMipBase(), image_view_state.getMipCount(), mipLevels.count());
+#if DAGOR_DBGLEVEL > 0
+    G_ASSERTF(image, "DX12: Image view validation failed, image is not presented (tex: %s)", *debugName.access());
+    const auto desc = image->GetDesc();
+    dbgCheckImageValidationCondition(image_view_state.getMipBase() + image_view_state.getMipCount() <= mipLevels, "wrong mip range",
+      image_view_state, desc);
+    dbgCheckImageValidationCondition(image_view_state.getArrayBase() + image_view_state.getArrayCount() <= layerCount,
+      "wrong layers range", image_view_state, desc);
+    dbgCheckImageValidationCondition(desc.DepthOrArraySize == max((uint32_t)layerCount.count(), extent.depth),
+      "wrong layers count in desc", image_view_state, desc);
+    dbgCheckImageValidationCondition(desc.MipLevels == mipLevels.count(), "wrong mips count in desc", image_view_state, desc);
+    dbgCheckImageValidationCondition(desc.Dimension == imageType, "wrong dimension", image_view_state, desc);
+#endif
   }
   void updateLastFrameAccess(uint64_t index) { lastFrameAccess = index; }
   bool wasAccessedPreviousFrames(uint64_t index) const

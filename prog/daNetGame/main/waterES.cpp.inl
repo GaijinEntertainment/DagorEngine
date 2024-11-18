@@ -173,6 +173,7 @@ ECS_TRACK(water__flowmap_foam_power,
   water__flowmap_speed_depth_max,
   water__flowmap_foam_depth_max,
   water__flowmap_slope,
+  water__has_slopes,
   water__flowmap_detail)
 static void water_flowmap_foam_es_event_handler(const ecs::Event &,
   FFTWater &water,
@@ -188,6 +189,7 @@ static void water_flowmap_foam_es_event_handler(const ecs::Event &,
   float water__flowmap_speed_depth_max,
   float water__flowmap_foam_depth_max,
   float water__flowmap_slope,
+  bool water__has_slopes,
   bool water__flowmap_detail)
 {
   fft_water::WaterFlowmap *waterFlowmap = fft_water::get_flowmap(&water);
@@ -205,6 +207,7 @@ static void water_flowmap_foam_es_event_handler(const ecs::Event &,
     waterFlowmap->flowmapDepth = flowmap_depth;
     waterFlowmap->flowmapSlope = water__flowmap_slope;
     waterFlowmap->flowmapDetail = water__flowmap_detail;
+    waterFlowmap->hasSlopes = water__has_slopes;
 
     fft_water::set_flowmap_foam_params(&water);
   }

@@ -5,6 +5,7 @@
 #pragma once
 
 #include <util/dag_stdint.h>
+#include <drv/3d/dag_info.h>
 
 /**
  * @brief Extended draw call arguments structure.

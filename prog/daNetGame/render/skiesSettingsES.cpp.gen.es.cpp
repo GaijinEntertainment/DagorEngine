@@ -190,6 +190,35 @@ static ecs::EntitySystemDesc strata_clouds_es_event_handler_es_desc
                        ecs::EventComponentsAppear>::build(),
   0
 ,nullptr,"*");
+static constexpr ecs::ComponentDesc strata_clouds_tex_es_comps[] =
+{
+//start of 1 ro components at [0]
+  {ECS_HASH("strata_clouds__tex"), ecs::ComponentTypeInfo<ecs::string>()},
+//start of 1 rq components at [1]
+  {ECS_HASH("skies_settings_tag"), ecs::ComponentTypeInfo<ecs::Tag>()}
+};
+static void strata_clouds_tex_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    strata_clouds_tex_es(evt
+        , ECS_RO_COMP(strata_clouds_tex_es_comps, "strata_clouds__tex", ecs::string)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc strata_clouds_tex_es_es_desc
+(
+  "strata_clouds_tex_es",
+  "prog/daNetGame/render/skiesSettingsES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, strata_clouds_tex_es_all_events),
+  empty_span(),
+  make_span(strata_clouds_tex_es_comps+0, 1)/*ro*/,
+  make_span(strata_clouds_tex_es_comps+1, 1)/*rq*/,
+  empty_span(),
+  ecs::EventSetBuilder<SkiesLoaded,
+                       ecs::EventEntityCreated,
+                       ecs::EventComponentsAppear>::build(),
+  0
+,nullptr,"*");
 static constexpr ecs::ComponentDesc clouds_form_es_event_handler_comps[] =
 {
 //start of 6 ro components at [0]

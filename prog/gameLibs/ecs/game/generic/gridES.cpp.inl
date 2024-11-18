@@ -282,8 +282,12 @@ void grid_obj_update_es_event_handler(const ecs::Event &, GridObjComponent &grid
 #if DAGOR_DBGLEVEL > 0
       if (DAGOR_UNLIKELY(isnan(boundingRad) || boundingRad > MAX_VALID_BOUNDING_RADIUS))
       {
-        grid_logerr("Grid entity %i (%s) update error: bounding radius %f is too big or NaN", ecs::entity_id_t(grid_obj.eid),
-          g_entity_mgr->getEntityTemplateName(grid_obj.eid), boundingRad);
+        const char *resName = nullptr;
+        if (ri_extra)
+          resName = rendinst::getRIGenExtraName(rendinst::handle_to_ri_type(ri_extra->handle));
+
+        grid_logerr("Grid entity %i (%s) update error: bounding radius %f is too big or NaN (resName=%s)",
+          ecs::entity_id_t(grid_obj.eid), g_entity_mgr->getEntityTemplateName(grid_obj.eid), boundingRad, resName ? resName : "n/a");
         boundingRad = FLT_EPSILON;
       }
 #endif

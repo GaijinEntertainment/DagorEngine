@@ -45,6 +45,7 @@ struct AnimationClip
   eastl::string name;
   float duration;
   int tickDuration;
+  int featuresNormalizationGroup;
 
   dag::Vector<AnimationInterval> intervals;
 

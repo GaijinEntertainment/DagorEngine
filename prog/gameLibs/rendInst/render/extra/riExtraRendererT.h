@@ -214,7 +214,7 @@ public:
     d3d_err(d3d::setind(unitedvdata::riUnitedVdata.getIB()));
 
     RiShaderConstBuffers cb;
-    cb.setInstancing(0, 4, 1, 0);
+    cb.setInstancing(0, 4, 0x5, 0);
     cb.flushPerDraw();
 
 #if USE_DEPTH_PREPASS_FOR_TREES
@@ -282,7 +282,7 @@ public:
     d3d_err(d3d::setind(unitedvdata::riUnitedVdata.getIB()));
 
     RiShaderConstBuffers cb;
-    cb.setInstancing(0, 4, 1, 0);
+    cb.setInstancing(0, 4, 0x5, 0);
     cb.flushPerDraw();
 
     int cVbIdx = -1, cStride = 0;
@@ -584,6 +584,9 @@ public:
         int curVar = DynamicVariantsPolicy::getStates(currentShader->native(), prog, state, rstate, cstate, tstate);
 
         if (curVar < 0)
+          continue;
+
+        if (!currentShader->checkAndPrefetchMissingTextures())
           continue;
 
         if (elem.vbIdx == unitedvdata::BufPool::IDX_IB)

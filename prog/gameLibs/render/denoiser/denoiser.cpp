@@ -90,6 +90,8 @@ static ComputeShaderElement *relaxSpecularHistoryFix = nullptr;
 static ComputeShaderElement *relaxSpecularHistoryClamping = nullptr;
 static ComputeShaderElement *relaxSpecularATorusSmem = nullptr;
 static ComputeShaderElement *relaxSpecularATorus = nullptr;
+static ComputeShaderElement *relaxSpecularAntiFirefly = nullptr;
+static ComputeShaderElement *relaxSpecularCopy = nullptr;
 
 static d3d::SamplerHandle samplerNearestClamp = d3d::INVALID_SAMPLER_HANDLE;
 static d3d::SamplerHandle samplerNearestMirror = d3d::INVALID_SAMPLER_HANDLE;
@@ -137,6 +139,7 @@ static int denoiser_spec_confidence_half_resVarId = -1;
 
 static int rtao_bindless_slotVarId = -1;
 static int rtsm_bindless_slotVarId = -1;
+static int rtsm_is_translucentVarId = -1;
 static int csm_bindless_slotVarId = -1;
 static int csm_sampler_bindless_slotVarId = -1;
 static int rtr_bindless_slotVarId = -1;
@@ -478,6 +481,10 @@ void initialize(int w, int h)
     relaxSpecularATorusSmem = new_compute_shader("nrd_relax_specular_atorus_smem");
   if (!relaxSpecularATorus)
     relaxSpecularATorus = new_compute_shader("nrd_relax_specular_atorus");
+  if (!relaxSpecularAntiFirefly)
+    relaxSpecularAntiFirefly = new_compute_shader("nrd_relax_specular_anti_firefly");
+  if (!relaxSpecularCopy)
+    relaxSpecularCopy = new_compute_shader("nrd_relax_specular_copy");
 
   if (samplerNearestClamp == d3d::INVALID_SAMPLER_HANDLE)
   {
@@ -543,6 +550,7 @@ void initialize(int w, int h)
 
   rtao_bindless_slotVarId = get_shader_variable_id("rtao_bindless_slot");
   rtsm_bindless_slotVarId = get_shader_variable_id("rtsm_bindless_slot");
+  rtsm_is_translucentVarId = get_shader_variable_id("rtsm_is_translucent");
   csm_bindless_slotVarId = get_shader_variable_id("csm_bindless_slot", true);
   csm_sampler_bindless_slotVarId = get_shader_variable_id("csm_sampler_bindless_slot", true);
   rtr_bindless_slotVarId = get_shader_variable_id("rtr_bindless_slot");
@@ -647,20 +655,25 @@ static void clear_history_textures()
       clear_texture(tex);
 }
 
-void make_shadow_maps(UniqueTex &shadow_value, UniqueTex &denoised_shadow)
+static void do_make_shadow_maps(UniqueTex &shadow_value, UniqueTex &denoised_shadow, bool translucent)
 {
   shadow_value = dag::create_tex(nullptr, shadow_width, shadow_height, TEXCF_UNORDERED | TEXFMT_G16R16F, 1, "rtsm_value");
-  denoised_shadow =
-    dag::create_tex(nullptr, shadow_width, shadow_height, TEXCF_UNORDERED | TEXCF_RTARGET | TEXFMT_A8R8G8B8, 1, "rtsm_shadows");
+  denoised_shadow = dag::create_tex(nullptr, shadow_width, shadow_height,
+    TEXCF_UNORDERED | TEXCF_RTARGET | (translucent ? TEXFMT_A8R8G8B8 : TEXFMT_R8), 1, "rtsm_shadows");
 
   transient_textures.clear();
   clear_history_textures();
   clear_texture(denoised_shadow);
 }
 
+void make_shadow_maps(UniqueTex &shadow_value, UniqueTex &denoised_shadow)
+{
+  do_make_shadow_maps(shadow_value, denoised_shadow, false);
+}
+
 void make_shadow_maps(UniqueTex &shadow_value, UniqueTex &shadow_translucency, UniqueTex &denoised_shadow)
 {
-  make_shadow_maps(shadow_value, denoised_shadow);
+  do_make_shadow_maps(shadow_value, denoised_shadow, true);
   shadow_translucency =
     dag::create_tex(nullptr, shadow_width, shadow_height, TEXCF_UNORDERED | TEXFMT_A8R8G8B8, 1, "rtsm_translucency");
 
@@ -669,8 +682,8 @@ void make_shadow_maps(UniqueTex &shadow_value, UniqueTex &shadow_translucency, U
 
 void make_ao_maps(UniqueTex &ao_value, UniqueTex &denoised_ao, bool half_res)
 {
-  int width = denoiser::ao_width = half_res ? divide_up(denoiser::render_width, 2) : denoiser::render_width;
-  int height = denoiser::ao_height = half_res ? divide_up(denoiser::render_height, 2) : denoiser::render_height;
+  int width = denoiser::ao_width = half_res ? denoiser::render_width / 2 : denoiser::render_width;     // TODO: Ceil division.
+  int height = denoiser::ao_height = half_res ? denoiser::render_height / 2 : denoiser::render_height; // TODO: Ceil division.
   ao_value = dag::create_tex(nullptr, width, height, TEXCF_UNORDERED | TEXFMT_L16, 1, "rtao_tex_unfiltered");
   denoised_ao = dag::create_tex(nullptr, width, height, TEXCF_UNORDERED | TEXFMT_L16, 1, "rtao_tex");
 
@@ -692,8 +705,8 @@ void make_ao_maps(UniqueTex &ao_value, UniqueTex &denoised_ao, bool half_res)
 
 void make_reflection_maps(UniqueTex &reflection_value, UniqueTex &denoised_reflection, ReflectionMethod method, bool half_res)
 {
-  int width = denoiser::reflection_width = half_res ? divide_up(denoiser::render_width, 2) : denoiser::render_width;
-  int height = denoiser::reflection_height = half_res ? divide_up(denoiser::render_height, 2) : denoiser::render_height;
+  int width = denoiser::reflection_width = half_res ? denoiser::render_width / 2 : denoiser::render_width;     // TODO: Ceil division.
+  int height = denoiser::reflection_height = half_res ? denoiser::render_height / 2 : denoiser::render_height; // TODO: Ceil division.
   reflection_value = dag::create_tex(nullptr, width, height, TEXCF_UNORDERED | TEXFMT_A16B16G16R16F, 1, "rtr_tex_unfiltered");
   denoised_reflection = dag::create_tex(nullptr, width, height, TEXCF_UNORDERED | TEXFMT_A16B16G16R16F, 1, "rtr_tex");
 
@@ -833,6 +846,8 @@ void teardown()
   safe_delete(relaxSpecularHistoryClamping);
   safe_delete(relaxSpecularATorusSmem);
   safe_delete(relaxSpecularATorus);
+  safe_delete(relaxSpecularAntiFirefly);
+  safe_delete(relaxSpecularCopy);
 
   normal_roughness.close();
   view_z.close();
@@ -1152,6 +1167,7 @@ void denoise_shadow(const ShadowDenoiser &params)
   d3d::update_bindless_resource(bindless_range + rtsm_bindless_index, params.denoisedShadowMap);
   d3d::resource_barrier({params.denoisedShadowMap, RB_RO_SRV | RB_STAGE_ALL_SHADERS, 0, 0});
   ShaderGlobal::set_int(rtsm_bindless_slotVarId, bindless_range + rtsm_bindless_index);
+  ShaderGlobal::set_int(rtsm_is_translucentVarId, params.shadowTranslucency ? 1 : 0);
 
   if (params.csmTexture)
   {
@@ -2207,6 +2223,60 @@ static void denoise_reflection_relax(const ReflectionDenoiser &params)
     d3d::set_rwtex(STAGE_CS, 2, relax_spec_history_length_prev.getTex2D(), 0, 0);
 
     relaxSpecularHistoryClamping->dispatch(tilesW * 2, tilesH * 2, 1);
+  }
+
+  if (params.antiFirefly)
+  {
+    {
+      TIME_D3D_PROFILE(relax::copy);
+
+      struct PassData
+      {
+        RelaxSharedConstants relaxSharedConstants;
+        uint32_t padding;
+      } passData;
+
+      passData.relaxSharedConstants = relaxSharedConstants;
+
+      static_assert(sizeof(passData) % (4 * sizeof(float)) == 0,
+        "RelaxSharedConstants size must be multiple of sizeof(float4) for d3d::set_cb0_data");
+
+      d3d::set_sampler(STAGE_CS, 0, samplerNearestClamp);
+      d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
+
+      d3d::set_cb0_data(STAGE_CS, (const float *)&passData, divide_up(sizeof(passData), 16));
+      d3d::set_tex(STAGE_CS, 0, relax_spec_illum_prev.getTex2D(), false);
+      d3d::set_rwtex(STAGE_CS, 0, params.denoisedReflection, 0, 0);
+
+      relaxSpecularCopy->dispatch(tilesW * 2, tilesH * 2, 1);
+    }
+
+    {
+      TIME_D3D_PROFILE(relax::anti_firefly);
+
+      struct PassData
+      {
+        RelaxSharedConstants relaxSharedConstants;
+        uint32_t padding;
+      } passData;
+
+      passData.relaxSharedConstants = relaxSharedConstants;
+
+      static_assert(sizeof(passData) % (4 * sizeof(float)) == 0,
+        "RelaxSharedConstants size must be multiple of sizeof(float4) for d3d::set_cb0_data");
+
+      d3d::set_sampler(STAGE_CS, 0, samplerNearestClamp);
+      d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
+
+      d3d::set_cb0_data(STAGE_CS, (const float *)&passData, divide_up(sizeof(passData), 16));
+      d3d::set_tex(STAGE_CS, 0, tiles, false);
+      d3d::set_tex(STAGE_CS, 1, params.denoisedReflection, false);
+      d3d::set_tex(STAGE_CS, 2, normalRoughness, false);
+      d3d::set_tex(STAGE_CS, 3, viewZ, false);
+      d3d::set_rwtex(STAGE_CS, 0, relax_spec_illum_prev.getTex2D(), 0, 0);
+
+      relaxSpecularAntiFirefly->dispatch(tilesW * 2, tilesH * 2, 1);
+    }
   }
 
   struct ATorusData

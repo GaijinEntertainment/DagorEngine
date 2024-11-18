@@ -6897,4 +6897,5 @@ void HmapLandPlugin::moveObjectsToLayer(int lidx, dag::Span<RenderableEditableOb
         }
   }
   objEd.getUndoSystem()->accept(String(0, "Move objects to layer \"%s\"", EditLayerProps::layerProps[lidx].name()));
+  objEd.invalidateObjectProps();
 }

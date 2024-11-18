@@ -24,5 +24,10 @@
     max-width: 90%;
 }
 
+audio, canvas, video {
+    display: block;
+    margin: auto;
+    margin-bottom: 12px;
+}
 
 

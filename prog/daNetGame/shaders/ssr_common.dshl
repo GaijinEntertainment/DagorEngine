@@ -19,9 +19,12 @@ macro SETUP_SSR(code)
   {
     (code) {
       downsampled_motion_vectors_tex@smp2d = downsampled_motion_vectors_tex;
+      uv_temporal_jitter@f4 = uv_temporal_jitter;
+      current_jittered_pos_to_prev_jittered_pos_ofs@f2 = (uv_temporal_jitter.z - uv_temporal_jitter.x, uv_temporal_jitter.w - uv_temporal_jitter.y,0,0);
     }
     hlsl(code) {
       #define SSR_MOTIONREPROJ 1
+      #define MOTION_TO_PREV_JITTERED_UV_OFS (current_jittered_pos_to_prev_jittered_pos_ofs)
       #define CHECK_VALID_MOTION_VECTOR(a) true
       #define MOTION_VECTORS_TEXTURE downsampled_motion_vectors_tex
     }

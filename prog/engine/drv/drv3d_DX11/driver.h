@@ -538,20 +538,6 @@ static void reset_frame_all()
   flush_states(rs); // depends on rendertargets
 }
 
-
-static void close_all()
-{
-  close_rendertargets();
-  close_buffers();
-  close_shaders();
-  close_states();
-  close_samplers();
-  close_predicates();
-  close_textures();
-  close_frame_callbacks();
-  reset_all_queries();
-}
-
 DXGI_FORMAT dxgi_format_from_flags(uint32_t cflg);
 int dxgi_format_to_bpp(DXGI_FORMAT fmt);
 const char *dx11_error(HRESULT hr);

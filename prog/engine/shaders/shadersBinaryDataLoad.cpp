@@ -134,12 +134,12 @@ bool ScriptedShadersBinDumpOwner::load(IGenLoad &crd, int size, bool full_file_l
   if (!read_shdump_file(crd, size, full_file_load, [&](const uint8_t *data, int size_) { return loadData(data, size_); }))
     return false;
 
-  G_ASSERTF(mShaderDump->varMap.size() <= ScriptedShadersBinDump::MAX_VARS,
-    "Total number of shadervars (%d) exceeds the max allowed for mapping (%d). Remove redundant shadervars, or increase "
-    "ScriptedShadersBinDump::MAX_VARS and the shader compiler cache version.",
-    mShaderDump->varMap.size(), ScriptedShadersBinDump::MAX_VARS);
+  G_ASSERTF(mShaderDump->varMap.size() <= MAX_BINDUMP_SHADERVARS,
+    "Total number of shadervars (%d) exceeds the max allowed for mapping (%d). "
+    "Remove redundant shadervars, or increase MAX_BINDUMP_SHADERVARS",
+    mShaderDump->varMap.size(), MAX_BINDUMP_SHADERVARS);
 
-  mShaderDump->reinitVarTables();
+  initVarIndexMaps();
   shadervars::resolve_shadervars();
   ShaderVariableInfo::resolveAll();
   if (mShaderDump == &shBinDump())

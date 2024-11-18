@@ -967,8 +967,7 @@ void AnimBlendCtrl_LinearPoly::buildBlendingList(BlendCtx &bctx, real w)
   else
     poly[wishPt].applyWt(bctx, 1.0f, w);
 }
-void AnimBlendCtrl_LinearPoly::addBlendNode(IAnimBlendNode *n, real p0, AnimationGraph &graph, const char *ctrl_name,
-  const char *param_name)
+void AnimBlendCtrl_LinearPoly::addBlendNode(IAnimBlendNode *n, real p0, AnimationGraph &graph, const char *ctrl_name)
 {
   int l = append_items(poly, 1);
   if (l < 0)
@@ -979,7 +978,7 @@ void AnimBlendCtrl_LinearPoly::addBlendNode(IAnimBlendNode *n, real p0, Animatio
   poly[l].wtPid = graph.addParamId(String(128, ":lp_wt_%s%d", ctrl_name, l), IPureAnimStateHolder::PT_ScalarParam);
 
   if (l % 32 == 0) // We just exceeded our 32 bit limit in the last bitmap
-    add_rewind_bitmap(rewindBitmapParamsIds, graph, param_name);
+    add_rewind_bitmap(rewindBitmapParamsIds, graph, ctrl_name);
 }
 
 
@@ -1638,7 +1637,7 @@ bool AnimBlendCtrl_ParametricSwitcher::isAliasOf(IPureAnimStateHolder &st, IAnim
 
 // creation-time routines
 void AnimBlendCtrl_ParametricSwitcher::addBlendNode(IAnimBlendNode *n, real range0, real range1, real bval, AnimationGraph &graph,
-  const char *param_name)
+  const char *ctrl_name)
 {
   int l = append_items(list, 1);
   list[l].node = n;
@@ -1647,7 +1646,7 @@ void AnimBlendCtrl_ParametricSwitcher::addBlendNode(IAnimBlendNode *n, real rang
   list[l].baseVal = bval;
 
   if (l % 32 == 0) // We just exceeded our 32 bit limit in the last bitmap
-    add_rewind_bitmap(rewindBitmapParamsIds, graph, param_name);
+    add_rewind_bitmap(rewindBitmapParamsIds, graph, ctrl_name);
 }
 
 int AnimBlendCtrl_ParametricSwitcher::getAnimForRange(real range)

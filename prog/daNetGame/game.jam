@@ -1,5 +1,6 @@
 # to be included from final Game Project's jamfile
 if ! $(Game) { Exit Game is not defined! ; }
+if $(Game) != $(Game:L) { Exit Game=$(Game) contains uppercase letters; use only lowercase to avoid problems with vromfs ; }
 
 gameMain = \# include \"main/main.cpp\" ;
 gameVersion = \# include \"main/version.cpp\" ;

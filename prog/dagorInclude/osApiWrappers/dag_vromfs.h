@@ -34,6 +34,20 @@ struct VirtualRomFsDataHdr
   bool signedContents() const { return (hw32 & 0x80000000U) != 0; }
 };
 
+enum EVirtualRomFsExtFlags : uint16_t
+{
+  EVFSEF_SIGN_PLAIN_DATA = 0x0001,
+  EVFSEF_HAVE_FILE_ATTRIBUTES = 0x0002
+};
+
+enum EVirtualRomFsFileAttributes : uint8_t
+{
+  EVFSFA_TYPE_PLAIN = 0x00,
+  EVFSFA_TYPE_BLK = 0x01,
+  EVFSFA_TYPE_SHARED_NM = 0x02,
+  EVFSFA_TYPE_MASK = 0x03
+};
+
 struct VirtualRomFsExtHdr
 {
   uint16_t size = 0, flags = 0;

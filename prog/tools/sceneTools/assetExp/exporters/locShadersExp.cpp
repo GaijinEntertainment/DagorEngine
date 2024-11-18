@@ -31,6 +31,27 @@ static String nonOptionalFileName;
 static DataBlock nonOptionalFile;
 static char appBlkDir[512] = {0};
 
+static String find_shader_editors_path()
+{
+  static String foundPath;
+  if (!foundPath.empty())
+    return foundPath;
+
+  String path("prog/gameLibs/webui/plugins/shaderEditors");
+
+  for (int i = 0; i < 16; i++)
+    if (::dd_dir_exists(path.str()))
+    {
+      foundPath = path;
+      return foundPath;
+    }
+    else
+      path = String("../") + path;
+
+  // error, but it gets propagated to collect_template_files with a hlsl #error
+  return String("");
+}
+
 static String join_str(Tab<String> &arr, const char *delimiter)
 {
   String res;
@@ -244,7 +265,7 @@ private:
     templateNames.push_back(String("../../../render/volumetricLights/shaders/volfog_shadow.hlsl"));
     templateNames.push_back(String("fogShadowShaderTemplateBody.hlsl"));
 
-    String editorPath = String("../../prog/gameLibs/webui/plugins/shaderEditors");
+    String editorPath = find_shader_editors_path();
     for (int i = 0; i < templateNames.size(); ++i)
       templateNames[i] = editorPath + "/" + templateNames[i];
     return templateNames;

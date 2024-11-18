@@ -51,6 +51,8 @@ enum
   PID_PLACE_TYPE_DROPDOWN = PID_PLACE_TYPE_RADIO + LandscapeEntityObject::Props::PT_count + 1, /* +1 is "mixed" */
   PID_PLACE_TYPE_OVERRIDE,
 
+  PID_ENTITY_LAYERS,
+
   PID_ENTITY_COLLISION,
   PID_ENTITY_NOTES,
   PID_ENTITY_CASTER_GRP,
@@ -70,6 +72,8 @@ enum
   PID_DECAL_MATERIAL_FIRST,
   PID_DECAL_MATERIAL_LAST = PID_DECAL_MATERIAL_FIRST + decal_material_max_count,
   PID_DECAL_MATERIAL_SAVE,
+
+  PID_SEED_GROUP,
 
   PID_GENERATE_PERINST_SEED,
   PID_GENERATE_EQUAL_PERINST_SEED,
@@ -104,9 +108,12 @@ static class DefHMLEntityParams
 public:
   int placeTypeTab;
   bool placeTypeMixed;
+  bool seedGroupMinimized;
   bool splitCompRecursive;
 
-  DefHMLEntityParams() : placeTypeTab(PID_PLACE_TYPE_BTN_DROPDOWN), placeTypeMixed(false), splitCompRecursive(false) {}
+  DefHMLEntityParams() :
+    placeTypeTab(PID_PLACE_TYPE_BTN_DROPDOWN), placeTypeMixed(false), seedGroupMinimized(true), splitCompRecursive(false)
+  {}
 
 } defaultHMLEntity;
 
@@ -305,9 +312,12 @@ bool LandscapeEntityObject::isColliderEnabled(const IDagorEdCustomCollider *coll
 void LandscapeEntityObject::fillProps(PropPanel::ContainerPropertyControl &panel, DClassID for_class_id,
   dag::ConstSpan<RenderableEditableObject *> objects)
 {
+  PropPanel::ContainerPropertyControl *commonGrp = panel.getContainerById(PID_COMMON_GROUP);
+
   bool one_type = true;
   int one_layer = -1;
 
+  bool targetLayerEnabled = true;
   for (int i = 0; i < objects.size(); ++i)
     if (LandscapeEntityObject *o = RTTI_cast<LandscapeEntityObject>(objects[i]))
     {
@@ -320,13 +330,26 @@ void LandscapeEntityObject::fillProps(PropPanel::ContainerPropertyControl &panel
     {
       one_layer = -2;
       one_type = false;
+      targetLayerEnabled = false;
       break;
     }
 
-  if (one_layer < 0)
-    panel.createStatic(-1, "Edit layer:  --multiple selected--");
-  else
-    panel.createStatic(-1, String(0, "Edit layer:  %s", EditLayerProps::layerProps[one_layer].name()));
+  int targetLayerValue = 0;
+  Tab<String> targetLayers(tmpmem);
+  if (one_type)
+  {
+    targetLayerValue = EditLayerProps::findTypeIdx(EditLayerProps::ENT, one_layer);
+    getObjEditor()->getLayerNames(EditLayerProps::ENT, targetLayers);
+    targetLayerEnabled = targetLayers.size() > 1;
+  }
+  if (one_layer < 0 || !one_type)
+  {
+    targetLayerValue = targetLayers.size();
+    targetLayers.push_back(String(place_types_full[Props::PT_count]));
+  }
+
+  commonGrp->createStatic(-1, "Edit layer:");
+  commonGrp->createCombo(PID_ENTITY_LAYERS, "", targetLayers, targetLayerValue, targetLayerEnabled);
 
   if (one_type)
   {
@@ -352,7 +375,9 @@ void LandscapeEntityObject::fillProps(PropPanel::ContainerPropertyControl &panel
         entNotes = "";
     }
 
-    panel.createEditBox(PID_ENTITY_NOTES, "Notes", entNotes);
+    commonGrp->createEditBox(PID_ENTITY_NOTES, "Notes", entNotes);
+    commonGrp->createIndent();
+    commonGrp->createButton(PID_ENTITYNAME, entName);
 
     PropPanel::ContainerPropertyControl &placeContainer = *panel.createContainer(PID_PLACE_TYPE);
     placeContainer.setHorizontalSpaceBetweenControls(hdpi::Px(0));
@@ -392,31 +417,37 @@ void LandscapeEntityObject::fillProps(PropPanel::ContainerPropertyControl &panel
     }
 
     panel.createIndent();
-    panel.createButton(PID_ENTITYNAME, entName);
 
     fillMaterialProps(panel);
 
     panel.createIndent();
-    panel.createButton(PID_GENERATE_PERINST_SEED, "Generate individual per-inst-seed");
-    panel.createButton(PID_GENERATE_EQUAL_PERINST_SEED, "Generate equal per-inst-seed");
+
+    PropPanel::ContainerPropertyControl *subGrp = panel.createGroup(PID_SEED_GROUP, "Seed");
+    subGrp->setBoolValue(::defaultHMLEntity.seedGroupMinimized);
+
+    subGrp->createStatic(0, "Generate per-inst seed:");
+    subGrp->createButton(PID_GENERATE_PERINST_SEED, "Individual");
+    subGrp->createButton(PID_GENERATE_EQUAL_PERINST_SEED, "Equal", true, false);
     if (entity && objects.size() == 1)
       if (IRandomSeedHolder *irsh = entity->queryInterface<IRandomSeedHolder>())
-        panel.createTrackInt(PID_PERINST_SEED, "Per-instance seed", irsh->getPerInstanceSeed() & 0x7FFF, 0, 32767, 1);
+        subGrp->createTrackInt(PID_PERINST_SEED, "Per-instance seed", irsh->getPerInstanceSeed() & 0x7FFF, 0, 32767, 1);
 
-    panel.createIndent();
-    panel.createButton(PID_GENERATE_SEED, "Generate individual seed");
-    panel.createButton(PID_GENERATE_EQUAL_SEED, "Generate equal seed");
+    subGrp->createIndent();
+
+    subGrp->createStatic(0, "Generate seed:");
+    subGrp->createButton(PID_GENERATE_SEED, "Individual");
+    subGrp->createButton(PID_GENERATE_EQUAL_SEED, "Equal", true, false);
     if (entity && objects.size() == 1)
       if (IRandomSeedHolder *irsh = entity->queryInterface<IRandomSeedHolder>())
         if (irsh->isSeedSetSupported())
-          panel.createTrackInt(PID_SEED, "Random seed", irsh->getSeed() & 0x7FFF, 0, 32767, 1);
+          subGrp->createTrackInt(PID_SEED, "Random seed", irsh->getSeed() & 0x7FFF, 0, 32767, 1);
 
     panel.createIndent();
     objParam.fillParams(panel, objects);
 
     panel.createIndent();
 
-    PropPanel::ContainerPropertyControl *subGrp = panel.createGroup(PID_ENTITY_CASTER_GRP, "Entity casters");
+    subGrp = panel.createGroup(PID_ENTITY_CASTER_GRP, "Entity casters");
 
     Tab<String> def_place_type_nm(tmpmem);
     def_place_type_nm.insert(def_place_type_nm.end(), eastl::begin(place_types_full),
@@ -652,6 +683,21 @@ void LandscapeEntityObject::onPPChange(int pid, bool edit_finished, PropPanel::C
     }
     DAGORED2->invalidateViewportCache();
   }
+  else if (pid == PID_ENTITY_LAYERS)
+  {
+    int selectedLayer = panel.getInt(PID_ENTITY_LAYERS);
+    int layerIdx = EditLayerProps::findLayerByTypeIdx(EditLayerProps::ENT, selectedLayer);
+    if (layerIdx != -1)
+    {
+      dag::Vector<RenderableEditableObject *> objectsToMove;
+      objectsToMove.set_capacity(objects.size());
+      objectsToMove.insert(objectsToMove.end(), objects.begin(), objects.end());
+      HmapLandPlugin::self->moveObjectsToLayer(layerIdx, make_span(objectsToMove));
+
+      DAGORED2->invalidateViewportCache();
+      getObjEditor()->invalidateObjectProps();
+    }
+  }
   else if (((pid == PID_PLACE_TYPE_RADIO || pid == PID_PLACE_TYPE_DROPDOWN) &&
              (panel.getInt(pid) >= 0 && panel.getInt(pid) < Props::PT_count)) ||
            pid == PID_PLACE_TYPE_OVERRIDE)
@@ -753,6 +799,8 @@ void LandscapeEntityObject::onPPChange(int pid, bool edit_finished, PropPanel::C
       rePlaceAllEntities();
     }
   }
+  else if (pid == PID_SEED_GROUP)
+    ::defaultHMLEntity.seedGroupMinimized = panel.getBool(pid);
   else if (pid == PID_SEED && objects.size() == 1)
   {
     if (LandscapeEntityObject *p = RTTI_cast<LandscapeEntityObject>(objects[0]))

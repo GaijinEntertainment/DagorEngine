@@ -167,7 +167,7 @@ const Driver3dDesc &d3d::get_driver_desc()
         g_device_desc.caps.hasBindless = [render.device supportsFamily:MTLGPUFamilyMetal3];
     }
 
-    g_device_desc.caps.hasUAVOnlyForcedSampleCount = false;
+    g_device_desc.caps.hasUAVOnlyForcedSampleCount = true;
 
     g_device_desc.shaderModel = 5.0_sm;
 #else //_TARGET_IOS | _TARGET_TVOS

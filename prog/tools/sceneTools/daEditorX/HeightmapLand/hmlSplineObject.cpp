@@ -56,6 +56,8 @@ enum
   PID_GENBLKNAME = 1,
   PID_GENBLKNAME2,
 
+  PID_SPLINE_LAYERS,
+
   PID_NOTES,
   PID_SPLINE_LEN,
   PID_TC_ALONG_MUL,
@@ -635,12 +637,25 @@ void SplineObject::render(DynRenderBuffer *db, const TMatrix4 &gtm, const Point2
 void SplineObject::fillProps(PropPanel::ContainerPropertyControl &op, DClassID for_class_id,
   dag::ConstSpan<RenderableEditableObject *> objects)
 {
+  PropPanel::ContainerPropertyControl *commonGrp = op.getContainerById(PID_COMMON_GROUP);
+
   bool one_type = true;
+  int one_type_idx = -1;
   int one_layer = -1;
 
+  bool targetLayerEnabled = true;
   for (int i = 0; i < objects.size(); ++i)
     if (SplineObject *s = RTTI_cast<SplineObject>(objects[i]))
     {
+      int type_idx = s->isPoly() ? EditLayerProps::PLG : EditLayerProps::SPL;
+      if (one_type_idx == type_idx || one_type_idx == -1)
+        one_type_idx = type_idx;
+      else
+      {
+        one_type_idx = -2;
+        targetLayerEnabled = false;
+      }
+
       if (one_layer == -1)
         one_layer = s->getEditLayerIdx();
       else if (one_layer != s->getEditLayerIdx())
@@ -650,64 +665,78 @@ void SplineObject::fillProps(PropPanel::ContainerPropertyControl &op, DClassID f
     {
       one_layer = -2;
       one_type = false;
+      one_type_idx = -2;
+      targetLayerEnabled = false;
       break;
     }
 
-  if (one_layer < 0)
-    op.createStatic(-1, "Edit layer:  --multiple selected--");
-  else
-    op.createStatic(-1, String(0, "Edit layer:  %s", EditLayerProps::layerProps[one_layer].name()));
+  int targetLayerValue = 0;
+  Tab<String> targetLayers(tmpmem);
+  if (one_type_idx >= 0)
+  {
+    targetLayerValue = EditLayerProps::findTypeIdx(one_type_idx, one_layer);
+    getObjEditor()->getLayerNames(one_type_idx, targetLayers);
+    targetLayerEnabled = targetLayers.size() > 1;
+  }
+  if (one_layer < 0 || one_type_idx < 0)
+  {
+    targetLayerValue = targetLayers.size();
+    targetLayers.push_back(String("-- (mixed) --"));
+  }
+
+  commonGrp->createStatic(-1, "Edit layer:");
+  commonGrp->createCombo(PID_SPLINE_LAYERS, "", targetLayers, targetLayerValue, targetLayerEnabled);
 
   if (one_type)
   {
-    op.createStatic(PID_SPLINE_LEN, String(128, "Length: %.1f m", bezierSpline.getLength()));
-    op.createEditBox(PID_NOTES, "Notes", props.notes);
-    op.createEditFloat(PID_TC_ALONG_MUL, "Scale TC along spline", props.scaleTcAlong);
+    commonGrp->createStatic(PID_SPLINE_LEN, String(128, "Length: %.1f m", bezierSpline.getLength()));
+    commonGrp->createEditBox(PID_NOTES, "Notes", props.notes);
+    commonGrp->createEditFloat(PID_TC_ALONG_MUL, "Scale TC along spline", props.scaleTcAlong);
 
     Tab<String> lorders(tmpmem);
     for (int i = 0; i < LAYER_ORDER_MAX; ++i)
       lorders.push_back(String(8, "%d", i));
-    op.createCombo(PID_LAYER_ORDER, "Place layer order", lorders, props.layerOrder);
+    commonGrp->createCombo(PID_LAYER_ORDER, "Place layer order", lorders, props.layerOrder);
 
     String title(poly ? "Land class asset" : "Spline class asset");
 
-    op.createIndent();
-    op.createStatic(-1, title);
-    op.createButton(PID_GENBLKNAME, ::dd_get_fname(props.blkGenName));
+    commonGrp->createIndent();
+    commonGrp->createStatic(-1, title);
+    commonGrp->createButton(PID_GENBLKNAME, ::dd_get_fname(props.blkGenName));
     if (poly)
     {
-      op.createStatic(-1, "Border spline class asset");
-      op.createButton(PID_GENBLKNAME2, ::dd_get_fname(points[0]->getProps().blkGenName));
+      commonGrp->createStatic(-1, "Border spline class asset");
+      commonGrp->createButton(PID_GENBLKNAME2, ::dd_get_fname(points[0]->getProps().blkGenName));
     }
 
     if (!poly)
     {
-      op.createIndent();
-      op.createCheckBox(PID_MAY_SELF_CROSS, "Self cross allowed", props.maySelfCross);
+      commonGrp->createIndent();
+      commonGrp->createCheckBox(PID_MAY_SELF_CROSS, "Self cross allowed", props.maySelfCross);
     }
 
     if (poly)
     {
-      op.createCheckBox(PID_ALT_GEOM, "Alternative geom export", polyGeom.altGeom);
-      op.createEditFloat(PID_BBOX_ALIGN_STEP, "geom bbox align step", polyGeom.bboxAlignStep);
-      op.setEnabledById(PID_BBOX_ALIGN_STEP, polyGeom.altGeom);
-      op.createSeparator(0);
+      commonGrp->createCheckBox(PID_ALT_GEOM, "Alternative geom export", polyGeom.altGeom);
+      commonGrp->createEditFloat(PID_BBOX_ALIGN_STEP, "geom bbox align step", polyGeom.bboxAlignStep);
+      commonGrp->setEnabledById(PID_BBOX_ALIGN_STEP, polyGeom.altGeom);
+      commonGrp->createSeparator(0);
     }
-    op.createCheckBox(PID_EXPORTABLE, "Export to game", props.exportable);
+    commonGrp->createCheckBox(PID_EXPORTABLE, "Export to game", props.exportable);
 
-    op.createCheckBox(PID_USE_FOR_NAVMESH, "Use for NavMesh", props.useForNavMesh);
-    op.createEditFloat(PID_NAVMESH_STRIPE_WIDTH, "Width", props.navMeshStripeWidth);
+    commonGrp->createCheckBox(PID_USE_FOR_NAVMESH, "Use for NavMesh", props.useForNavMesh);
+    commonGrp->createEditFloat(PID_NAVMESH_STRIPE_WIDTH, "Width", props.navMeshStripeWidth);
 
     if (objects.size() == 1)
-      op.createTrackInt(PID_PERINST_SEED, "Per-instance seed", props.perInstSeed, 0, 32767, 1);
+      commonGrp->createTrackInt(PID_PERINST_SEED, "Per-instance seed", props.perInstSeed, 0, 32767, 1);
 
     createMaterialControls(op);
 
-    PropPanel::ContainerPropertyControl &cornerGrp = *op.createRadioGroup(PID_CORNER_TYPE, "Spline knots corner type");
+    PropPanel::ContainerPropertyControl &cornerGrp = *commonGrp->createRadioGroup(PID_CORNER_TYPE, "Spline knots corner type");
     cornerGrp.createRadio(-1, "Corner");
     cornerGrp.createRadio(0, "Smooth tangent");
     cornerGrp.createRadio(1, "Smooth curvature");
-    op.setInt(PID_CORNER_TYPE, props.cornerType);
+    commonGrp->setInt(PID_CORNER_TYPE, props.cornerType);
 
     PropPanel::ContainerPropertyControl *modGroup = op.createGroup(PID_MODIF_GRP, "Modify");
 
@@ -869,6 +898,37 @@ void SplineObject::onPPChange(int pid, bool edit_finished, PropPanel::ContainerP
   {
     CHANGE_VAL(String, props.notes, getText)
     DAGORED2->invalidateViewportCache();
+  }
+
+  if (pid == PID_SPLINE_LAYERS)
+  {
+    int oneTypeIdx = -1;
+    for (int i = 0; i < objects.size(); ++i)
+    {
+      if (SplineObject *s = RTTI_cast<SplineObject>(objects[i]))
+      {
+        int typeIdx = s->isPoly() ? EditLayerProps::PLG : EditLayerProps::SPL;
+        if (oneTypeIdx == typeIdx || oneTypeIdx == -1)
+        {
+          oneTypeIdx = typeIdx;
+          continue;
+        }
+      }
+      break;
+    }
+
+    int selectedLayer = panel.getInt(PID_SPLINE_LAYERS);
+    int layerIdx = EditLayerProps::findLayerByTypeIdx(oneTypeIdx, selectedLayer);
+    if (layerIdx != -1)
+    {
+      dag::Vector<RenderableEditableObject *> objectsToMove;
+      objectsToMove.set_capacity(objects.size());
+      objectsToMove.insert(objectsToMove.end(), objects.begin(), objects.end());
+      HmapLandPlugin::self->moveObjectsToLayer(layerIdx, make_span(objectsToMove));
+
+      DAGORED2->invalidateViewportCache();
+      getObjEditor()->invalidateObjectProps();
+    }
   }
 
   if (pid == PID_TC_ALONG_MUL)

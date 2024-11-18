@@ -567,6 +567,8 @@ void WorldRenderer::setWater(FFTWater *fftWater)
     ShaderGlobal::set_real(water_levelVarId, waterLevel = HeightmapHeightCulling::NO_WATER_ON_LEVEL);
   }
 
+  setupWaterQuality();
+
   fft_water::close_flowmap(water);
 }
 
@@ -1941,24 +1943,27 @@ void WorldRenderer::setResolution()
   if (!hasFeature(FeatureRenderFlags::PREV_OPAQUE_TEX))
     ShaderGlobal::set_texture(water_refraction_texVarId, BAD_TEXTUREID);
 
-  resetBackBufferTex();
+  auto setRtControl = [this](RtControl nrt, bool force = false) {
+    if (eastl::exchange(rtControl, nrt) != nrt || force)
+      resetBackBufferTex();
+  };
   if (hdrrender::is_hdr_enabled())
   {
-    rtControl = RtControl::RT;
-    hdrrender::set_resolution(displayResolution.x, displayResolution.y, isFsrEnabled());
+    auto prevt = hdrrender::get_render_target_tex();
+    hdrrender::set_resolution(displayResolution.x, displayResolution.y, isFsrEnabled()); // This might re-create tex
+    setRtControl(RtControl::RT, /*force*/ prevt != hdrrender::get_render_target_tex());
     setFinalTargetTex(&hdrrender::get_render_target());
   }
   else if (!d3d::get_backbuffer_tex() || overrideDisplayRes)
   {
-    rtControl = RtControl::OWNED_RT;
+    setRtControl(RtControl::OWNED_RT, /*force*/ true);
     ownedBackbufferTex = dag::create_tex(NULL, displayResolution.x, displayResolution.y,
       TEXCF_RTARGET | (isFsrEnabled() ? TEXCF_UNORDERED : 0), 1, "final_target_frame");
-
     setFinalTargetTex(&ownedBackbufferTex);
   }
   else
   {
-    rtControl = RtControl::BACKBUFFER;
+    setRtControl(RtControl::BACKBUFFER, /*force*/ !backbufferTex || backbufferTex.getBaseTex() != d3d::get_backbuffer_tex());
     updateBackBufferTex();
   }
 
@@ -2964,6 +2969,12 @@ void WorldRenderer::createNodes()
       currentFrameCamera.jitterPersp = jitterPersp;
       currentFrameCamera.jitterGlobtm = TMatrix4(currentFrameCamera.viewTm) * currentFrameCamera.jitterProjTm;
       currentFrameCamera.jitterFrustum = currentFrameCamera.jitterGlobtm;
+      ShaderGlobal::set_color4(uv_temporal_jitterVarId, jitterPersp.ox * 0.5, jitterPersp.oy * -0.5,
+        prevFrameCamera.jitterPersp.ox * 0.5, prevFrameCamera.jitterPersp.oy * -0.5);
+
+      TMatrix4D viewRotTm = currentFrameCamera.viewTm;
+      viewRotTm.setrow(3, 0.0f, 0.0f, 0.0f, 1.0f);
+      currentFrameCamera.viewRotJitterProjTm = TMatrix4(viewRotTm * currentFrameCamera.jitterProjTm);
       updateTransformations(jitterOffset);
 
       auto &camera = cameraHndl.ref();
@@ -4149,7 +4160,7 @@ void WorldRenderer::draw(float realDt)
   //       stall the beginning of deform hmap calculation on the async pipeline, because it can't start until deforming
   //       depth is rendered on the graphics pipeline.
   d3d::set_render_target();
-  grass_prepare(itm);
+  grass_prepare(itm, persp);
 
   createDeforms();
 
@@ -6558,15 +6569,16 @@ bool WorldRenderer::getNeedShore()
     return false;
 
   if (!lmeshMgr || !water)
-  {
-    return false;
-  }
-
-  float significantWave = fft_water::get_significant_wave_height(water);
-  if (significantWave < fft_water::get_shore_wave_threshold(water) && !isForcingWaterWaves)
     return false;
 
-  return true;
+  fft_water::WaterFlowmap *waterFlowmap = fft_water::get_flowmap(water);
+  if (waterFlowmap && waterFlowmap->hasSlopes)
+    return true;
+
+  if (isForcingWaterWaves)
+    return true;
+
+  return fft_water::get_significant_wave_height(water) >= fft_water::get_shore_wave_threshold(water);
 }
 
 void WorldRenderer::updateShore()
@@ -6598,7 +6610,7 @@ void WorldRenderer::updateShore()
       fft_water::WaterFlowmap *waterFlowmap = fft_water::get_flowmap(water);
       if (waterFlowmap && waterFlowmap->enabled && (waterFlowmap->flowmapWaveFade.y > fft_water::get_max_wave(water)))
       {
-        if (water_quality >= 1)
+        if (waterFlowmap->hasSlopes || water_quality >= 1)
         {
           TIME_D3D_PROFILE(build_flowmap_1)
           fft_water::build_flowmap(water, shoreTextureSize / 2, shoreTextureSize, currentFrameCamera.cameraWorldPos, 0, true);

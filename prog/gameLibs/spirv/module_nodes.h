@@ -1,4 +1,6 @@
-// this file is auto generated, do not modify
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+// auto generated, do not modify!
 #pragma once
 #include "../publicInclude/spirv/traits_table.h"
 namespace spirv
@@ -1616,6 +1618,87 @@ struct PropertyNoUnsignedWrap
   void visitRefs(T)
   {}
 };
+struct PropertyWeightTextureQCOM
+{
+  const Decoration type = Decoration::WeightTextureQCOM;
+  eastl::optional<Id> memberIndex;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::WeightTextureQCOM;
+  }
+  CastableUniquePointer<PropertyWeightTextureQCOM> clone() const
+  {
+    CastableUniquePointer<PropertyWeightTextureQCOM> result //
+      {new PropertyWeightTextureQCOM};
+    result->memberIndex = memberIndex;
+    return result;
+  }
+  CastableUniquePointer<PropertyWeightTextureQCOM> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyWeightTextureQCOM> result //
+      {new PropertyWeightTextureQCOM};
+    result->memberIndex = i.value;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct PropertyBlockMatchTextureQCOM
+{
+  const Decoration type = Decoration::BlockMatchTextureQCOM;
+  eastl::optional<Id> memberIndex;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::BlockMatchTextureQCOM;
+  }
+  CastableUniquePointer<PropertyBlockMatchTextureQCOM> clone() const
+  {
+    CastableUniquePointer<PropertyBlockMatchTextureQCOM> result //
+      {new PropertyBlockMatchTextureQCOM};
+    result->memberIndex = memberIndex;
+    return result;
+  }
+  CastableUniquePointer<PropertyBlockMatchTextureQCOM> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyBlockMatchTextureQCOM> result //
+      {new PropertyBlockMatchTextureQCOM};
+    result->memberIndex = i.value;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct PropertyBlockMatchSamplerQCOM
+{
+  const Decoration type = Decoration::BlockMatchSamplerQCOM;
+  eastl::optional<Id> memberIndex;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::BlockMatchSamplerQCOM;
+  }
+  CastableUniquePointer<PropertyBlockMatchSamplerQCOM> clone() const
+  {
+    CastableUniquePointer<PropertyBlockMatchSamplerQCOM> result //
+      {new PropertyBlockMatchSamplerQCOM};
+    result->memberIndex = memberIndex;
+    return result;
+  }
+  CastableUniquePointer<PropertyBlockMatchSamplerQCOM> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyBlockMatchSamplerQCOM> result //
+      {new PropertyBlockMatchSamplerQCOM};
+    result->memberIndex = i.value;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
 struct PropertyExplicitInterpAMD
 {
   const Decoration type = Decoration::ExplicitInterpAMD;
@@ -1637,6 +1720,127 @@ struct PropertyExplicitInterpAMD
     CastableUniquePointer<PropertyExplicitInterpAMD> result //
       {new PropertyExplicitInterpAMD};
     result->memberIndex = i.value;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct PropertyNodeSharesPayloadLimitsWithAMDX
+{
+  const Decoration type = Decoration::NodeSharesPayloadLimitsWithAMDX;
+  eastl::optional<Id> memberIndex;
+  NodePointer<NodeId> payloadArray;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::NodeSharesPayloadLimitsWithAMDX;
+  }
+  CastableUniquePointer<PropertyNodeSharesPayloadLimitsWithAMDX> clone() const
+  {
+    CastableUniquePointer<PropertyNodeSharesPayloadLimitsWithAMDX> result //
+      {new PropertyNodeSharesPayloadLimitsWithAMDX};
+    result->memberIndex = memberIndex;
+    result->payloadArray = payloadArray;
+    return result;
+  }
+  CastableUniquePointer<PropertyNodeSharesPayloadLimitsWithAMDX> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyNodeSharesPayloadLimitsWithAMDX> result //
+      {new PropertyNodeSharesPayloadLimitsWithAMDX};
+    result->memberIndex = i.value;
+    result->payloadArray = payloadArray;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(payloadArray);
+  }
+};
+struct PropertyNodeMaxPayloadsAMDX
+{
+  const Decoration type = Decoration::NodeMaxPayloadsAMDX;
+  eastl::optional<Id> memberIndex;
+  NodePointer<NodeId> maxNumberOfPayloads;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::NodeMaxPayloadsAMDX;
+  }
+  CastableUniquePointer<PropertyNodeMaxPayloadsAMDX> clone() const
+  {
+    CastableUniquePointer<PropertyNodeMaxPayloadsAMDX> result //
+      {new PropertyNodeMaxPayloadsAMDX};
+    result->memberIndex = memberIndex;
+    result->maxNumberOfPayloads = maxNumberOfPayloads;
+    return result;
+  }
+  CastableUniquePointer<PropertyNodeMaxPayloadsAMDX> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyNodeMaxPayloadsAMDX> result //
+      {new PropertyNodeMaxPayloadsAMDX};
+    result->memberIndex = i.value;
+    result->maxNumberOfPayloads = maxNumberOfPayloads;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(maxNumberOfPayloads);
+  }
+};
+struct PropertyTrackFinishWritingAMDX
+{
+  const Decoration type = Decoration::TrackFinishWritingAMDX;
+  eastl::optional<Id> memberIndex;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::TrackFinishWritingAMDX;
+  }
+  CastableUniquePointer<PropertyTrackFinishWritingAMDX> clone() const
+  {
+    CastableUniquePointer<PropertyTrackFinishWritingAMDX> result //
+      {new PropertyTrackFinishWritingAMDX};
+    result->memberIndex = memberIndex;
+    return result;
+  }
+  CastableUniquePointer<PropertyTrackFinishWritingAMDX> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyTrackFinishWritingAMDX> result //
+      {new PropertyTrackFinishWritingAMDX};
+    result->memberIndex = i.value;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct PropertyPayloadNodeNameAMDX
+{
+  const Decoration type = Decoration::PayloadNodeNameAMDX;
+  eastl::optional<Id> memberIndex;
+  eastl::string nodeName;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::PayloadNodeNameAMDX;
+  }
+  CastableUniquePointer<PropertyPayloadNodeNameAMDX> clone() const
+  {
+    CastableUniquePointer<PropertyPayloadNodeNameAMDX> result //
+      {new PropertyPayloadNodeNameAMDX};
+    result->memberIndex = memberIndex;
+    result->nodeName = nodeName;
+    return result;
+  }
+  CastableUniquePointer<PropertyPayloadNodeNameAMDX> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyPayloadNodeNameAMDX> result //
+      {new PropertyPayloadNodeNameAMDX};
+    result->memberIndex = i.value;
+    result->nodeName = nodeName;
     return result;
   }
   template <typename T>
@@ -1754,26 +1958,26 @@ struct PropertySecondaryViewportRelativeNV
   void visitRefs(T)
   {}
 };
-struct PropertyPerPrimitiveNV
+struct PropertyPerPrimitiveEXT
 {
-  const Decoration type = Decoration::PerPrimitiveNV;
+  const Decoration type = Decoration::PerPrimitiveEXT;
   eastl::optional<Id> memberIndex;
   template <typename T>
   static constexpr bool is(const T *value)
   {
-    return value->type == Decoration::PerPrimitiveNV;
+    return value->type == Decoration::PerPrimitiveEXT;
   }
-  CastableUniquePointer<PropertyPerPrimitiveNV> clone() const
+  CastableUniquePointer<PropertyPerPrimitiveEXT> clone() const
   {
-    CastableUniquePointer<PropertyPerPrimitiveNV> result //
-      {new PropertyPerPrimitiveNV};
+    CastableUniquePointer<PropertyPerPrimitiveEXT> result //
+      {new PropertyPerPrimitiveEXT};
     result->memberIndex = memberIndex;
     return result;
   }
-  CastableUniquePointer<PropertyPerPrimitiveNV> cloneWithMemberIndexOverride(LiteralInteger i) const
+  CastableUniquePointer<PropertyPerPrimitiveEXT> cloneWithMemberIndexOverride(LiteralInteger i) const
   {
-    CastableUniquePointer<PropertyPerPrimitiveNV> result //
-      {new PropertyPerPrimitiveNV};
+    CastableUniquePointer<PropertyPerPrimitiveEXT> result //
+      {new PropertyPerPrimitiveEXT};
     result->memberIndex = i.value;
     return result;
   }
@@ -1781,6 +1985,7 @@ struct PropertyPerPrimitiveNV
   void visitRefs(T)
   {}
 };
+typedef PropertyPerPrimitiveEXT PropertyPerPrimitiveNV;
 struct PropertyPerViewNV
 {
   const Decoration type = Decoration::PerViewNV;
@@ -1947,6 +2152,33 @@ struct PropertyAliasedPointer
   {}
 };
 typedef PropertyAliasedPointer PropertyAliasedPointerEXT;
+struct PropertyHitObjectShaderRecordBufferNV
+{
+  const Decoration type = Decoration::HitObjectShaderRecordBufferNV;
+  eastl::optional<Id> memberIndex;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::HitObjectShaderRecordBufferNV;
+  }
+  CastableUniquePointer<PropertyHitObjectShaderRecordBufferNV> clone() const
+  {
+    CastableUniquePointer<PropertyHitObjectShaderRecordBufferNV> result //
+      {new PropertyHitObjectShaderRecordBufferNV};
+    result->memberIndex = memberIndex;
+    return result;
+  }
+  CastableUniquePointer<PropertyHitObjectShaderRecordBufferNV> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyHitObjectShaderRecordBufferNV> result //
+      {new PropertyHitObjectShaderRecordBufferNV};
+    result->memberIndex = i.value;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
 struct PropertyBindlessSamplerNV
 {
   const Decoration type = Decoration::BindlessSamplerNV;
@@ -2821,6 +3053,93 @@ struct PropertyForcePow2DepthINTEL
   void visitRefs(T)
   {}
 };
+struct PropertyStridesizeINTEL
+{
+  const Decoration type = Decoration::StridesizeINTEL;
+  eastl::optional<Id> memberIndex;
+  LiteralInteger strideSize;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::StridesizeINTEL;
+  }
+  CastableUniquePointer<PropertyStridesizeINTEL> clone() const
+  {
+    CastableUniquePointer<PropertyStridesizeINTEL> result //
+      {new PropertyStridesizeINTEL};
+    result->memberIndex = memberIndex;
+    result->strideSize = strideSize;
+    return result;
+  }
+  CastableUniquePointer<PropertyStridesizeINTEL> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyStridesizeINTEL> result //
+      {new PropertyStridesizeINTEL};
+    result->memberIndex = i.value;
+    result->strideSize = strideSize;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct PropertyWordsizeINTEL
+{
+  const Decoration type = Decoration::WordsizeINTEL;
+  eastl::optional<Id> memberIndex;
+  LiteralInteger wordSize;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::WordsizeINTEL;
+  }
+  CastableUniquePointer<PropertyWordsizeINTEL> clone() const
+  {
+    CastableUniquePointer<PropertyWordsizeINTEL> result //
+      {new PropertyWordsizeINTEL};
+    result->memberIndex = memberIndex;
+    result->wordSize = wordSize;
+    return result;
+  }
+  CastableUniquePointer<PropertyWordsizeINTEL> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyWordsizeINTEL> result //
+      {new PropertyWordsizeINTEL};
+    result->memberIndex = i.value;
+    result->wordSize = wordSize;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct PropertyTrueDualPortINTEL
+{
+  const Decoration type = Decoration::TrueDualPortINTEL;
+  eastl::optional<Id> memberIndex;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::TrueDualPortINTEL;
+  }
+  CastableUniquePointer<PropertyTrueDualPortINTEL> clone() const
+  {
+    CastableUniquePointer<PropertyTrueDualPortINTEL> result //
+      {new PropertyTrueDualPortINTEL};
+    result->memberIndex = memberIndex;
+    return result;
+  }
+  CastableUniquePointer<PropertyTrueDualPortINTEL> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyTrueDualPortINTEL> result //
+      {new PropertyTrueDualPortINTEL};
+    result->memberIndex = i.value;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
 struct PropertyBurstCoalesceINTEL
 {
   const Decoration type = Decoration::BurstCoalesceINTEL;
@@ -2983,6 +3302,193 @@ struct PropertyFuseLoopsInFunctionINTEL
     CastableUniquePointer<PropertyFuseLoopsInFunctionINTEL> result //
       {new PropertyFuseLoopsInFunctionINTEL};
     result->memberIndex = i.value;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct PropertyMathOpDSPModeINTEL
+{
+  const Decoration type = Decoration::MathOpDSPModeINTEL;
+  eastl::optional<Id> memberIndex;
+  LiteralInteger mode;
+  LiteralInteger propagate;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::MathOpDSPModeINTEL;
+  }
+  CastableUniquePointer<PropertyMathOpDSPModeINTEL> clone() const
+  {
+    CastableUniquePointer<PropertyMathOpDSPModeINTEL> result //
+      {new PropertyMathOpDSPModeINTEL};
+    result->memberIndex = memberIndex;
+    result->mode = mode;
+    result->propagate = propagate;
+    return result;
+  }
+  CastableUniquePointer<PropertyMathOpDSPModeINTEL> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyMathOpDSPModeINTEL> result //
+      {new PropertyMathOpDSPModeINTEL};
+    result->memberIndex = i.value;
+    result->mode = mode;
+    result->propagate = propagate;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct PropertyAliasScopeINTEL
+{
+  const Decoration type = Decoration::AliasScopeINTEL;
+  eastl::optional<Id> memberIndex;
+  NodePointer<NodeId> aliasingScopesList;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::AliasScopeINTEL;
+  }
+  CastableUniquePointer<PropertyAliasScopeINTEL> clone() const
+  {
+    CastableUniquePointer<PropertyAliasScopeINTEL> result //
+      {new PropertyAliasScopeINTEL};
+    result->memberIndex = memberIndex;
+    result->aliasingScopesList = aliasingScopesList;
+    return result;
+  }
+  CastableUniquePointer<PropertyAliasScopeINTEL> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyAliasScopeINTEL> result //
+      {new PropertyAliasScopeINTEL};
+    result->memberIndex = i.value;
+    result->aliasingScopesList = aliasingScopesList;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(aliasingScopesList);
+  }
+};
+struct PropertyNoAliasINTEL
+{
+  const Decoration type = Decoration::NoAliasINTEL;
+  eastl::optional<Id> memberIndex;
+  NodePointer<NodeId> aliasingScopesList;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::NoAliasINTEL;
+  }
+  CastableUniquePointer<PropertyNoAliasINTEL> clone() const
+  {
+    CastableUniquePointer<PropertyNoAliasINTEL> result //
+      {new PropertyNoAliasINTEL};
+    result->memberIndex = memberIndex;
+    result->aliasingScopesList = aliasingScopesList;
+    return result;
+  }
+  CastableUniquePointer<PropertyNoAliasINTEL> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyNoAliasINTEL> result //
+      {new PropertyNoAliasINTEL};
+    result->memberIndex = i.value;
+    result->aliasingScopesList = aliasingScopesList;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(aliasingScopesList);
+  }
+};
+struct PropertyInitiationIntervalINTEL
+{
+  const Decoration type = Decoration::InitiationIntervalINTEL;
+  eastl::optional<Id> memberIndex;
+  LiteralInteger cycles;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::InitiationIntervalINTEL;
+  }
+  CastableUniquePointer<PropertyInitiationIntervalINTEL> clone() const
+  {
+    CastableUniquePointer<PropertyInitiationIntervalINTEL> result //
+      {new PropertyInitiationIntervalINTEL};
+    result->memberIndex = memberIndex;
+    result->cycles = cycles;
+    return result;
+  }
+  CastableUniquePointer<PropertyInitiationIntervalINTEL> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyInitiationIntervalINTEL> result //
+      {new PropertyInitiationIntervalINTEL};
+    result->memberIndex = i.value;
+    result->cycles = cycles;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct PropertyMaxConcurrencyINTEL
+{
+  const Decoration type = Decoration::MaxConcurrencyINTEL;
+  eastl::optional<Id> memberIndex;
+  LiteralInteger invocations;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::MaxConcurrencyINTEL;
+  }
+  CastableUniquePointer<PropertyMaxConcurrencyINTEL> clone() const
+  {
+    CastableUniquePointer<PropertyMaxConcurrencyINTEL> result //
+      {new PropertyMaxConcurrencyINTEL};
+    result->memberIndex = memberIndex;
+    result->invocations = invocations;
+    return result;
+  }
+  CastableUniquePointer<PropertyMaxConcurrencyINTEL> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyMaxConcurrencyINTEL> result //
+      {new PropertyMaxConcurrencyINTEL};
+    result->memberIndex = i.value;
+    result->invocations = invocations;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct PropertyPipelineEnableINTEL
+{
+  const Decoration type = Decoration::PipelineEnableINTEL;
+  eastl::optional<Id> memberIndex;
+  LiteralInteger enable;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::PipelineEnableINTEL;
+  }
+  CastableUniquePointer<PropertyPipelineEnableINTEL> clone() const
+  {
+    CastableUniquePointer<PropertyPipelineEnableINTEL> result //
+      {new PropertyPipelineEnableINTEL};
+    result->memberIndex = memberIndex;
+    result->enable = enable;
+    return result;
+  }
+  CastableUniquePointer<PropertyPipelineEnableINTEL> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyPipelineEnableINTEL> result //
+      {new PropertyPipelineEnableINTEL};
+    result->memberIndex = i.value;
+    result->enable = enable;
     return result;
   }
   template <typename T>
@@ -3157,6 +3663,549 @@ struct PropertyMediaBlockIOINTEL
     CastableUniquePointer<PropertyMediaBlockIOINTEL> result //
       {new PropertyMediaBlockIOINTEL};
     result->memberIndex = i.value;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct PropertyStallFreeINTEL
+{
+  const Decoration type = Decoration::StallFreeINTEL;
+  eastl::optional<Id> memberIndex;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::StallFreeINTEL;
+  }
+  CastableUniquePointer<PropertyStallFreeINTEL> clone() const
+  {
+    CastableUniquePointer<PropertyStallFreeINTEL> result //
+      {new PropertyStallFreeINTEL};
+    result->memberIndex = memberIndex;
+    return result;
+  }
+  CastableUniquePointer<PropertyStallFreeINTEL> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyStallFreeINTEL> result //
+      {new PropertyStallFreeINTEL};
+    result->memberIndex = i.value;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct PropertyFPMaxErrorDecorationINTEL
+{
+  const Decoration type = Decoration::FPMaxErrorDecorationINTEL;
+  eastl::optional<Id> memberIndex;
+  LiteralFloat maxError;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::FPMaxErrorDecorationINTEL;
+  }
+  CastableUniquePointer<PropertyFPMaxErrorDecorationINTEL> clone() const
+  {
+    CastableUniquePointer<PropertyFPMaxErrorDecorationINTEL> result //
+      {new PropertyFPMaxErrorDecorationINTEL};
+    result->memberIndex = memberIndex;
+    result->maxError = maxError;
+    return result;
+  }
+  CastableUniquePointer<PropertyFPMaxErrorDecorationINTEL> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyFPMaxErrorDecorationINTEL> result //
+      {new PropertyFPMaxErrorDecorationINTEL};
+    result->memberIndex = i.value;
+    result->maxError = maxError;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct PropertyLatencyControlLabelINTEL
+{
+  const Decoration type = Decoration::LatencyControlLabelINTEL;
+  eastl::optional<Id> memberIndex;
+  LiteralInteger latencyLabel;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::LatencyControlLabelINTEL;
+  }
+  CastableUniquePointer<PropertyLatencyControlLabelINTEL> clone() const
+  {
+    CastableUniquePointer<PropertyLatencyControlLabelINTEL> result //
+      {new PropertyLatencyControlLabelINTEL};
+    result->memberIndex = memberIndex;
+    result->latencyLabel = latencyLabel;
+    return result;
+  }
+  CastableUniquePointer<PropertyLatencyControlLabelINTEL> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyLatencyControlLabelINTEL> result //
+      {new PropertyLatencyControlLabelINTEL};
+    result->memberIndex = i.value;
+    result->latencyLabel = latencyLabel;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct PropertyLatencyControlConstraintINTEL
+{
+  const Decoration type = Decoration::LatencyControlConstraintINTEL;
+  eastl::optional<Id> memberIndex;
+  LiteralInteger relativeTo;
+  LiteralInteger controlType;
+  LiteralInteger relativeCycle;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::LatencyControlConstraintINTEL;
+  }
+  CastableUniquePointer<PropertyLatencyControlConstraintINTEL> clone() const
+  {
+    CastableUniquePointer<PropertyLatencyControlConstraintINTEL> result //
+      {new PropertyLatencyControlConstraintINTEL};
+    result->memberIndex = memberIndex;
+    result->relativeTo = relativeTo;
+    result->controlType = controlType;
+    result->relativeCycle = relativeCycle;
+    return result;
+  }
+  CastableUniquePointer<PropertyLatencyControlConstraintINTEL> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyLatencyControlConstraintINTEL> result //
+      {new PropertyLatencyControlConstraintINTEL};
+    result->memberIndex = i.value;
+    result->relativeTo = relativeTo;
+    result->controlType = controlType;
+    result->relativeCycle = relativeCycle;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct PropertyConduitKernelArgumentINTEL
+{
+  const Decoration type = Decoration::ConduitKernelArgumentINTEL;
+  eastl::optional<Id> memberIndex;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::ConduitKernelArgumentINTEL;
+  }
+  CastableUniquePointer<PropertyConduitKernelArgumentINTEL> clone() const
+  {
+    CastableUniquePointer<PropertyConduitKernelArgumentINTEL> result //
+      {new PropertyConduitKernelArgumentINTEL};
+    result->memberIndex = memberIndex;
+    return result;
+  }
+  CastableUniquePointer<PropertyConduitKernelArgumentINTEL> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyConduitKernelArgumentINTEL> result //
+      {new PropertyConduitKernelArgumentINTEL};
+    result->memberIndex = i.value;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct PropertyRegisterMapKernelArgumentINTEL
+{
+  const Decoration type = Decoration::RegisterMapKernelArgumentINTEL;
+  eastl::optional<Id> memberIndex;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::RegisterMapKernelArgumentINTEL;
+  }
+  CastableUniquePointer<PropertyRegisterMapKernelArgumentINTEL> clone() const
+  {
+    CastableUniquePointer<PropertyRegisterMapKernelArgumentINTEL> result //
+      {new PropertyRegisterMapKernelArgumentINTEL};
+    result->memberIndex = memberIndex;
+    return result;
+  }
+  CastableUniquePointer<PropertyRegisterMapKernelArgumentINTEL> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyRegisterMapKernelArgumentINTEL> result //
+      {new PropertyRegisterMapKernelArgumentINTEL};
+    result->memberIndex = i.value;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct PropertyMMHostInterfaceAddressWidthINTEL
+{
+  const Decoration type = Decoration::MMHostInterfaceAddressWidthINTEL;
+  eastl::optional<Id> memberIndex;
+  LiteralInteger addressWidth;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::MMHostInterfaceAddressWidthINTEL;
+  }
+  CastableUniquePointer<PropertyMMHostInterfaceAddressWidthINTEL> clone() const
+  {
+    CastableUniquePointer<PropertyMMHostInterfaceAddressWidthINTEL> result //
+      {new PropertyMMHostInterfaceAddressWidthINTEL};
+    result->memberIndex = memberIndex;
+    result->addressWidth = addressWidth;
+    return result;
+  }
+  CastableUniquePointer<PropertyMMHostInterfaceAddressWidthINTEL> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyMMHostInterfaceAddressWidthINTEL> result //
+      {new PropertyMMHostInterfaceAddressWidthINTEL};
+    result->memberIndex = i.value;
+    result->addressWidth = addressWidth;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct PropertyMMHostInterfaceDataWidthINTEL
+{
+  const Decoration type = Decoration::MMHostInterfaceDataWidthINTEL;
+  eastl::optional<Id> memberIndex;
+  LiteralInteger dataWidth;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::MMHostInterfaceDataWidthINTEL;
+  }
+  CastableUniquePointer<PropertyMMHostInterfaceDataWidthINTEL> clone() const
+  {
+    CastableUniquePointer<PropertyMMHostInterfaceDataWidthINTEL> result //
+      {new PropertyMMHostInterfaceDataWidthINTEL};
+    result->memberIndex = memberIndex;
+    result->dataWidth = dataWidth;
+    return result;
+  }
+  CastableUniquePointer<PropertyMMHostInterfaceDataWidthINTEL> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyMMHostInterfaceDataWidthINTEL> result //
+      {new PropertyMMHostInterfaceDataWidthINTEL};
+    result->memberIndex = i.value;
+    result->dataWidth = dataWidth;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct PropertyMMHostInterfaceLatencyINTEL
+{
+  const Decoration type = Decoration::MMHostInterfaceLatencyINTEL;
+  eastl::optional<Id> memberIndex;
+  LiteralInteger latency;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::MMHostInterfaceLatencyINTEL;
+  }
+  CastableUniquePointer<PropertyMMHostInterfaceLatencyINTEL> clone() const
+  {
+    CastableUniquePointer<PropertyMMHostInterfaceLatencyINTEL> result //
+      {new PropertyMMHostInterfaceLatencyINTEL};
+    result->memberIndex = memberIndex;
+    result->latency = latency;
+    return result;
+  }
+  CastableUniquePointer<PropertyMMHostInterfaceLatencyINTEL> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyMMHostInterfaceLatencyINTEL> result //
+      {new PropertyMMHostInterfaceLatencyINTEL};
+    result->memberIndex = i.value;
+    result->latency = latency;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct PropertyMMHostInterfaceReadWriteModeINTEL
+{
+  const Decoration type = Decoration::MMHostInterfaceReadWriteModeINTEL;
+  eastl::optional<Id> memberIndex;
+  AccessQualifier readWriteMode;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::MMHostInterfaceReadWriteModeINTEL;
+  }
+  CastableUniquePointer<PropertyMMHostInterfaceReadWriteModeINTEL> clone() const
+  {
+    CastableUniquePointer<PropertyMMHostInterfaceReadWriteModeINTEL> result //
+      {new PropertyMMHostInterfaceReadWriteModeINTEL};
+    result->memberIndex = memberIndex;
+    result->readWriteMode = readWriteMode;
+    return result;
+  }
+  CastableUniquePointer<PropertyMMHostInterfaceReadWriteModeINTEL> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyMMHostInterfaceReadWriteModeINTEL> result //
+      {new PropertyMMHostInterfaceReadWriteModeINTEL};
+    result->memberIndex = i.value;
+    result->readWriteMode = readWriteMode;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct PropertyMMHostInterfaceMaxBurstINTEL
+{
+  const Decoration type = Decoration::MMHostInterfaceMaxBurstINTEL;
+  eastl::optional<Id> memberIndex;
+  LiteralInteger maxBurstCount;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::MMHostInterfaceMaxBurstINTEL;
+  }
+  CastableUniquePointer<PropertyMMHostInterfaceMaxBurstINTEL> clone() const
+  {
+    CastableUniquePointer<PropertyMMHostInterfaceMaxBurstINTEL> result //
+      {new PropertyMMHostInterfaceMaxBurstINTEL};
+    result->memberIndex = memberIndex;
+    result->maxBurstCount = maxBurstCount;
+    return result;
+  }
+  CastableUniquePointer<PropertyMMHostInterfaceMaxBurstINTEL> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyMMHostInterfaceMaxBurstINTEL> result //
+      {new PropertyMMHostInterfaceMaxBurstINTEL};
+    result->memberIndex = i.value;
+    result->maxBurstCount = maxBurstCount;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct PropertyMMHostInterfaceWaitRequestINTEL
+{
+  const Decoration type = Decoration::MMHostInterfaceWaitRequestINTEL;
+  eastl::optional<Id> memberIndex;
+  LiteralInteger waitrequest;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::MMHostInterfaceWaitRequestINTEL;
+  }
+  CastableUniquePointer<PropertyMMHostInterfaceWaitRequestINTEL> clone() const
+  {
+    CastableUniquePointer<PropertyMMHostInterfaceWaitRequestINTEL> result //
+      {new PropertyMMHostInterfaceWaitRequestINTEL};
+    result->memberIndex = memberIndex;
+    result->waitrequest = waitrequest;
+    return result;
+  }
+  CastableUniquePointer<PropertyMMHostInterfaceWaitRequestINTEL> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyMMHostInterfaceWaitRequestINTEL> result //
+      {new PropertyMMHostInterfaceWaitRequestINTEL};
+    result->memberIndex = i.value;
+    result->waitrequest = waitrequest;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct PropertyStableKernelArgumentINTEL
+{
+  const Decoration type = Decoration::StableKernelArgumentINTEL;
+  eastl::optional<Id> memberIndex;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::StableKernelArgumentINTEL;
+  }
+  CastableUniquePointer<PropertyStableKernelArgumentINTEL> clone() const
+  {
+    CastableUniquePointer<PropertyStableKernelArgumentINTEL> result //
+      {new PropertyStableKernelArgumentINTEL};
+    result->memberIndex = memberIndex;
+    return result;
+  }
+  CastableUniquePointer<PropertyStableKernelArgumentINTEL> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyStableKernelArgumentINTEL> result //
+      {new PropertyStableKernelArgumentINTEL};
+    result->memberIndex = i.value;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct PropertyHostAccessINTEL
+{
+  const Decoration type = Decoration::HostAccessINTEL;
+  eastl::optional<Id> memberIndex;
+  HostAccessQualifier access;
+  eastl::string name;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::HostAccessINTEL;
+  }
+  CastableUniquePointer<PropertyHostAccessINTEL> clone() const
+  {
+    CastableUniquePointer<PropertyHostAccessINTEL> result //
+      {new PropertyHostAccessINTEL};
+    result->memberIndex = memberIndex;
+    result->access = access;
+    result->name = name;
+    return result;
+  }
+  CastableUniquePointer<PropertyHostAccessINTEL> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyHostAccessINTEL> result //
+      {new PropertyHostAccessINTEL};
+    result->memberIndex = i.value;
+    result->access = access;
+    result->name = name;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct PropertyInitModeINTEL
+{
+  const Decoration type = Decoration::InitModeINTEL;
+  eastl::optional<Id> memberIndex;
+  InitializationModeQualifier trigger;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::InitModeINTEL;
+  }
+  CastableUniquePointer<PropertyInitModeINTEL> clone() const
+  {
+    CastableUniquePointer<PropertyInitModeINTEL> result //
+      {new PropertyInitModeINTEL};
+    result->memberIndex = memberIndex;
+    result->trigger = trigger;
+    return result;
+  }
+  CastableUniquePointer<PropertyInitModeINTEL> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyInitModeINTEL> result //
+      {new PropertyInitModeINTEL};
+    result->memberIndex = i.value;
+    result->trigger = trigger;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct PropertyImplementInRegisterMapINTEL
+{
+  const Decoration type = Decoration::ImplementInRegisterMapINTEL;
+  eastl::optional<Id> memberIndex;
+  LiteralInteger value;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::ImplementInRegisterMapINTEL;
+  }
+  CastableUniquePointer<PropertyImplementInRegisterMapINTEL> clone() const
+  {
+    CastableUniquePointer<PropertyImplementInRegisterMapINTEL> result //
+      {new PropertyImplementInRegisterMapINTEL};
+    result->memberIndex = memberIndex;
+    result->value = value;
+    return result;
+  }
+  CastableUniquePointer<PropertyImplementInRegisterMapINTEL> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyImplementInRegisterMapINTEL> result //
+      {new PropertyImplementInRegisterMapINTEL};
+    result->memberIndex = i.value;
+    result->value = value;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct PropertyCacheControlLoadINTEL
+{
+  const Decoration type = Decoration::CacheControlLoadINTEL;
+  eastl::optional<Id> memberIndex;
+  LiteralInteger cacheLevel;
+  LoadCacheControl cacheControl;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::CacheControlLoadINTEL;
+  }
+  CastableUniquePointer<PropertyCacheControlLoadINTEL> clone() const
+  {
+    CastableUniquePointer<PropertyCacheControlLoadINTEL> result //
+      {new PropertyCacheControlLoadINTEL};
+    result->memberIndex = memberIndex;
+    result->cacheLevel = cacheLevel;
+    result->cacheControl = cacheControl;
+    return result;
+  }
+  CastableUniquePointer<PropertyCacheControlLoadINTEL> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyCacheControlLoadINTEL> result //
+      {new PropertyCacheControlLoadINTEL};
+    result->memberIndex = i.value;
+    result->cacheLevel = cacheLevel;
+    result->cacheControl = cacheControl;
+    return result;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct PropertyCacheControlStoreINTEL
+{
+  const Decoration type = Decoration::CacheControlStoreINTEL;
+  eastl::optional<Id> memberIndex;
+  LiteralInteger cacheLevel;
+  StoreCacheControl cacheControl;
+  template <typename T>
+  static constexpr bool is(const T *value)
+  {
+    return value->type == Decoration::CacheControlStoreINTEL;
+  }
+  CastableUniquePointer<PropertyCacheControlStoreINTEL> clone() const
+  {
+    CastableUniquePointer<PropertyCacheControlStoreINTEL> result //
+      {new PropertyCacheControlStoreINTEL};
+    result->memberIndex = memberIndex;
+    result->cacheLevel = cacheLevel;
+    result->cacheControl = cacheControl;
+    return result;
+  }
+  CastableUniquePointer<PropertyCacheControlStoreINTEL> cloneWithMemberIndexOverride(LiteralInteger i) const
+  {
+    CastableUniquePointer<PropertyCacheControlStoreINTEL> result //
+      {new PropertyCacheControlStoreINTEL};
+    result->memberIndex = i.value;
+    result->cacheLevel = cacheLevel;
+    result->cacheControl = cacheControl;
     return result;
   }
   template <typename T>
@@ -3556,6 +4605,8 @@ struct NodeOpCopyMemory
   NodePointer<NodeOperation> memoryAccess0MakePointerAvailableKHR;
   NodePointer<NodeOperation> memoryAccess0MakePointerVisible;
   NodePointer<NodeOperation> memoryAccess0MakePointerVisibleKHR;
+  NodePointer<NodeId> memoryAccess0AliasScopeINTELMask;
+  NodePointer<NodeId> memoryAccess0NoAliasINTELMask;
   eastl::optional<MemoryAccessMask> memoryAccess1;
   // extra values for memoryAccess1
   LiteralInteger memoryAccess1Aligned;
@@ -3563,6 +4614,8 @@ struct NodeOpCopyMemory
   NodePointer<NodeOperation> memoryAccess1MakePointerAvailableKHR;
   NodePointer<NodeOperation> memoryAccess1MakePointerVisible;
   NodePointer<NodeOperation> memoryAccess1MakePointerVisibleKHR;
+  NodePointer<NodeId> memoryAccess1AliasScopeINTELMask;
+  NodePointer<NodeId> memoryAccess1NoAliasINTELMask;
   template <typename T>
   void visitRefs(T visitor)
   {
@@ -3576,6 +4629,10 @@ struct NodeOpCopyMemory
       visitor(memoryAccess0MakePointerVisible);
     if (memoryAccess0MakePointerVisibleKHR)
       visitor(memoryAccess0MakePointerVisibleKHR);
+    if (memoryAccess0AliasScopeINTELMask)
+      visitor(memoryAccess0AliasScopeINTELMask);
+    if (memoryAccess0NoAliasINTELMask)
+      visitor(memoryAccess0NoAliasINTELMask);
     if (memoryAccess1MakePointerAvailable)
       visitor(memoryAccess1MakePointerAvailable);
     if (memoryAccess1MakePointerAvailableKHR)
@@ -3584,6 +4641,10 @@ struct NodeOpCopyMemory
       visitor(memoryAccess1MakePointerVisible);
     if (memoryAccess1MakePointerVisibleKHR)
       visitor(memoryAccess1MakePointerVisibleKHR);
+    if (memoryAccess1AliasScopeINTELMask)
+      visitor(memoryAccess1AliasScopeINTELMask);
+    if (memoryAccess1NoAliasINTELMask)
+      visitor(memoryAccess1NoAliasINTELMask);
   }
   NodeOpCopyMemory() = default;
   ~NodeOpCopyMemory() = default;
@@ -3595,11 +4656,13 @@ struct NodeOpCopyMemory
     eastl::optional<LiteralInteger> memory_access0_aligned = {}, NodePointer<NodeOperation> memory_access0_makePointerAvailable = {},
     NodePointer<NodeOperation> memory_access0_makePointerAvailableKHR = {},
     NodePointer<NodeOperation> memory_access0_makePointerVisible = {},
-    NodePointer<NodeOperation> memory_access0_makePointerVisibleKHR = {}, eastl::optional<MemoryAccessMask> memory_access1 = {},
+    NodePointer<NodeOperation> memory_access0_makePointerVisibleKHR = {}, NodePointer<NodeId> memory_access0_aliasScopeINTELMask = {},
+    NodePointer<NodeId> memory_access0_noAliasINTELMask = {}, eastl::optional<MemoryAccessMask> memory_access1 = {},
     eastl::optional<LiteralInteger> memory_access1_aligned = {}, NodePointer<NodeOperation> memory_access1_makePointerAvailable = {},
     NodePointer<NodeOperation> memory_access1_makePointerAvailableKHR = {},
     NodePointer<NodeOperation> memory_access1_makePointerVisible = {},
-    NodePointer<NodeOperation> memory_access1_makePointerVisibleKHR = {})
+    NodePointer<NodeOperation> memory_access1_makePointerVisibleKHR = {}, NodePointer<NodeId> memory_access1_aliasScopeINTELMask = {},
+    NodePointer<NodeId> memory_access1_noAliasINTELMask = {})
   {
     this->target = target;
     this->source = source;
@@ -3610,6 +4673,8 @@ struct NodeOpCopyMemory
     this->memoryAccess0MakePointerAvailableKHR = memory_access0_makePointerAvailableKHR;
     this->memoryAccess0MakePointerVisible = memory_access0_makePointerVisible;
     this->memoryAccess0MakePointerVisibleKHR = memory_access0_makePointerVisibleKHR;
+    this->memoryAccess0AliasScopeINTELMask = memory_access0_aliasScopeINTELMask;
+    this->memoryAccess0NoAliasINTELMask = memory_access0_noAliasINTELMask;
     this->memoryAccess1 = memory_access1;
     if (memory_access1_aligned)
       this->memoryAccess1Aligned = *memory_access1_aligned;
@@ -3617,6 +4682,8 @@ struct NodeOpCopyMemory
     this->memoryAccess1MakePointerAvailableKHR = memory_access1_makePointerAvailableKHR;
     this->memoryAccess1MakePointerVisible = memory_access1_makePointerVisible;
     this->memoryAccess1MakePointerVisibleKHR = memory_access1_makePointerVisibleKHR;
+    this->memoryAccess1AliasScopeINTELMask = memory_access1_aliasScopeINTELMask;
+    this->memoryAccess1NoAliasINTELMask = memory_access1_noAliasINTELMask;
   }
   template <typename T>
   static constexpr bool is(const T *value);
@@ -3677,6 +4744,96 @@ struct NodeOpExecuteCallableNV
   template <typename T>
   static constexpr bool is(const T *value);
 };
+struct NodeOpHitObjectExecuteShaderNV
+{
+  const NodeKind nodeKind = NodeKind::BinaryAction;
+  const Op opCode = Op::OpHitObjectExecuteShaderNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  NodePointer<NodeId> hitObject;
+  NodePointer<NodeId> payload;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(hitObject);
+    visitor(payload);
+  }
+  NodeOpHitObjectExecuteShaderNV() = default;
+  ~NodeOpHitObjectExecuteShaderNV() = default;
+  NodeOpHitObjectExecuteShaderNV(const NodeOpHitObjectExecuteShaderNV &) = delete;
+  NodeOpHitObjectExecuteShaderNV &operator=(const NodeOpHitObjectExecuteShaderNV &) = delete;
+  NodeOpHitObjectExecuteShaderNV(NodeOpHitObjectExecuteShaderNV &&) = delete;
+  NodeOpHitObjectExecuteShaderNV &operator=(NodeOpHitObjectExecuteShaderNV &&) = delete;
+  NodeOpHitObjectExecuteShaderNV(NodePointer<NodeId> hit_object, NodePointer<NodeId> payload)
+  {
+    this->hitObject = hit_object;
+    this->payload = payload;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpHitObjectGetAttributesNV
+{
+  const NodeKind nodeKind = NodeKind::BinaryAction;
+  const Op opCode = Op::OpHitObjectGetAttributesNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  NodePointer<NodeId> hitObject;
+  NodePointer<NodeId> hitObjectAttribute;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(hitObject);
+    visitor(hitObjectAttribute);
+  }
+  NodeOpHitObjectGetAttributesNV() = default;
+  ~NodeOpHitObjectGetAttributesNV() = default;
+  NodeOpHitObjectGetAttributesNV(const NodeOpHitObjectGetAttributesNV &) = delete;
+  NodeOpHitObjectGetAttributesNV &operator=(const NodeOpHitObjectGetAttributesNV &) = delete;
+  NodeOpHitObjectGetAttributesNV(NodeOpHitObjectGetAttributesNV &&) = delete;
+  NodeOpHitObjectGetAttributesNV &operator=(NodeOpHitObjectGetAttributesNV &&) = delete;
+  NodeOpHitObjectGetAttributesNV(NodePointer<NodeId> hit_object, NodePointer<NodeId> hit_object_attribute)
+  {
+    this->hitObject = hit_object;
+    this->hitObjectAttribute = hit_object_attribute;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpMaskedScatterINTEL
+{
+  const NodeKind nodeKind = NodeKind::BinaryAction;
+  const Op opCode = Op::OpMaskedScatterINTEL;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  NodePointer<NodeId> inputVector;
+  NodePointer<NodeId> ptrVector;
+  LiteralInteger alignment;
+  NodePointer<NodeId> mask;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(inputVector);
+    visitor(ptrVector);
+    visitor(mask);
+  }
+  NodeOpMaskedScatterINTEL() = default;
+  ~NodeOpMaskedScatterINTEL() = default;
+  NodeOpMaskedScatterINTEL(const NodeOpMaskedScatterINTEL &) = delete;
+  NodeOpMaskedScatterINTEL &operator=(const NodeOpMaskedScatterINTEL &) = delete;
+  NodeOpMaskedScatterINTEL(NodeOpMaskedScatterINTEL &&) = delete;
+  NodeOpMaskedScatterINTEL &operator=(NodeOpMaskedScatterINTEL &&) = delete;
+  NodeOpMaskedScatterINTEL(NodePointer<NodeId> input_vector, NodePointer<NodeId> ptr_vector, LiteralInteger alignment,
+    NodePointer<NodeId> mask)
+  {
+    this->inputVector = input_vector;
+    this->ptrVector = ptr_vector;
+    this->alignment = alignment;
+    this->mask = mask;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
 struct NodeOpRayQueryGenerateIntersectionKHR
 {
   const NodeKind nodeKind = NodeKind::BinaryAction;
@@ -3701,6 +4858,62 @@ struct NodeOpRayQueryGenerateIntersectionKHR
   {
     this->rayQuery = ray_query;
     this->hitT = hit_t;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpReorderThreadWithHintNV
+{
+  const NodeKind nodeKind = NodeKind::BinaryAction;
+  const Op opCode = Op::OpReorderThreadWithHintNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  NodePointer<NodeId> hint;
+  NodePointer<NodeId> bits;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(hint);
+    visitor(bits);
+  }
+  NodeOpReorderThreadWithHintNV() = default;
+  ~NodeOpReorderThreadWithHintNV() = default;
+  NodeOpReorderThreadWithHintNV(const NodeOpReorderThreadWithHintNV &) = delete;
+  NodeOpReorderThreadWithHintNV &operator=(const NodeOpReorderThreadWithHintNV &) = delete;
+  NodeOpReorderThreadWithHintNV(NodeOpReorderThreadWithHintNV &&) = delete;
+  NodeOpReorderThreadWithHintNV &operator=(NodeOpReorderThreadWithHintNV &&) = delete;
+  NodeOpReorderThreadWithHintNV(NodePointer<NodeId> hint, NodePointer<NodeId> bits)
+  {
+    this->hint = hint;
+    this->bits = bits;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpSetMeshOutputsEXT
+{
+  const NodeKind nodeKind = NodeKind::BinaryAction;
+  const Op opCode = Op::OpSetMeshOutputsEXT;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  NodePointer<NodeId> vertexCount;
+  NodePointer<NodeId> primitiveCount;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(vertexCount);
+    visitor(primitiveCount);
+  }
+  NodeOpSetMeshOutputsEXT() = default;
+  ~NodeOpSetMeshOutputsEXT() = default;
+  NodeOpSetMeshOutputsEXT(const NodeOpSetMeshOutputsEXT &) = delete;
+  NodeOpSetMeshOutputsEXT &operator=(const NodeOpSetMeshOutputsEXT &) = delete;
+  NodeOpSetMeshOutputsEXT(NodeOpSetMeshOutputsEXT &&) = delete;
+  NodeOpSetMeshOutputsEXT &operator=(NodeOpSetMeshOutputsEXT &&) = delete;
+  NodeOpSetMeshOutputsEXT(NodePointer<NodeId> vertex_count, NodePointer<NodeId> primitive_count)
+  {
+    this->vertexCount = vertex_count;
+    this->primitiveCount = primitive_count;
   }
   template <typename T>
   static constexpr bool is(const T *value);
@@ -3748,6 +4961,8 @@ struct NodeOpStore
   NodePointer<NodeOperation> memoryAccessMakePointerAvailableKHR;
   NodePointer<NodeOperation> memoryAccessMakePointerVisible;
   NodePointer<NodeOperation> memoryAccessMakePointerVisibleKHR;
+  NodePointer<NodeId> memoryAccessAliasScopeINTELMask;
+  NodePointer<NodeId> memoryAccessNoAliasINTELMask;
   template <typename T>
   void visitRefs(T visitor)
   {
@@ -3761,6 +4976,10 @@ struct NodeOpStore
       visitor(memoryAccessMakePointerVisible);
     if (memoryAccessMakePointerVisibleKHR)
       visitor(memoryAccessMakePointerVisibleKHR);
+    if (memoryAccessAliasScopeINTELMask)
+      visitor(memoryAccessAliasScopeINTELMask);
+    if (memoryAccessNoAliasINTELMask)
+      visitor(memoryAccessNoAliasINTELMask);
   }
   NodeOpStore() = default;
   ~NodeOpStore() = default;
@@ -3772,7 +4991,8 @@ struct NodeOpStore
     eastl::optional<LiteralInteger> memory_access_aligned = {}, NodePointer<NodeOperation> memory_access_makePointerAvailable = {},
     NodePointer<NodeOperation> memory_access_makePointerAvailableKHR = {},
     NodePointer<NodeOperation> memory_access_makePointerVisible = {},
-    NodePointer<NodeOperation> memory_access_makePointerVisibleKHR = {})
+    NodePointer<NodeOperation> memory_access_makePointerVisibleKHR = {}, NodePointer<NodeId> memory_access_aliasScopeINTELMask = {},
+    NodePointer<NodeId> memory_access_noAliasINTELMask = {})
   {
     this->pointer = pointer;
     this->object = object;
@@ -3783,6 +5003,8 @@ struct NodeOpStore
     this->memoryAccessMakePointerAvailableKHR = memory_access_makePointerAvailableKHR;
     this->memoryAccessMakePointerVisible = memory_access_makePointerVisible;
     this->memoryAccessMakePointerVisibleKHR = memory_access_makePointerVisibleKHR;
+    this->memoryAccessAliasScopeINTELMask = memory_access_aliasScopeINTELMask;
+    this->memoryAccessNoAliasINTELMask = memory_access_noAliasINTELMask;
   }
   template <typename T>
   static constexpr bool is(const T *value);
@@ -3863,8 +5085,28 @@ inline bool NodeBinaryAction::visit(NodeBinaryAction *node, T visitor)
         if (visitor(reinterpret_cast<NodeOpExecuteCallableNV *>(node)))
           return true;
         break;
+      case Op::OpHitObjectExecuteShaderNV:
+        if (visitor(reinterpret_cast<NodeOpHitObjectExecuteShaderNV *>(node)))
+          return true;
+        break;
+      case Op::OpHitObjectGetAttributesNV:
+        if (visitor(reinterpret_cast<NodeOpHitObjectGetAttributesNV *>(node)))
+          return true;
+        break;
+      case Op::OpMaskedScatterINTEL:
+        if (visitor(reinterpret_cast<NodeOpMaskedScatterINTEL *>(node)))
+          return true;
+        break;
       case Op::OpRayQueryGenerateIntersectionKHR:
         if (visitor(reinterpret_cast<NodeOpRayQueryGenerateIntersectionKHR *>(node)))
+          return true;
+        break;
+      case Op::OpReorderThreadWithHintNV:
+        if (visitor(reinterpret_cast<NodeOpReorderThreadWithHintNV *>(node)))
+          return true;
+        break;
+      case Op::OpSetMeshOutputsEXT:
+        if (visitor(reinterpret_cast<NodeOpSetMeshOutputsEXT *>(node)))
           return true;
         break;
       case Op::OpSetUserEventStatus:
@@ -4200,6 +5442,8 @@ struct NodeOpCooperativeMatrixStoreNV
   NodePointer<NodeOperation> memoryAccessMakePointerAvailableKHR;
   NodePointer<NodeOperation> memoryAccessMakePointerVisible;
   NodePointer<NodeOperation> memoryAccessMakePointerVisibleKHR;
+  NodePointer<NodeId> memoryAccessAliasScopeINTELMask;
+  NodePointer<NodeId> memoryAccessNoAliasINTELMask;
   template <typename T>
   void visitRefs(T visitor)
   {
@@ -4215,6 +5459,10 @@ struct NodeOpCooperativeMatrixStoreNV
       visitor(memoryAccessMakePointerVisible);
     if (memoryAccessMakePointerVisibleKHR)
       visitor(memoryAccessMakePointerVisibleKHR);
+    if (memoryAccessAliasScopeINTELMask)
+      visitor(memoryAccessAliasScopeINTELMask);
+    if (memoryAccessNoAliasINTELMask)
+      visitor(memoryAccessNoAliasINTELMask);
   }
   NodeOpCooperativeMatrixStoreNV() = default;
   ~NodeOpCooperativeMatrixStoreNV() = default;
@@ -4227,7 +5475,8 @@ struct NodeOpCooperativeMatrixStoreNV
     eastl::optional<LiteralInteger> memory_access_aligned = {}, NodePointer<NodeOperation> memory_access_makePointerAvailable = {},
     NodePointer<NodeOperation> memory_access_makePointerAvailableKHR = {},
     NodePointer<NodeOperation> memory_access_makePointerVisible = {},
-    NodePointer<NodeOperation> memory_access_makePointerVisibleKHR = {})
+    NodePointer<NodeOperation> memory_access_makePointerVisibleKHR = {}, NodePointer<NodeId> memory_access_aliasScopeINTELMask = {},
+    NodePointer<NodeId> memory_access_noAliasINTELMask = {})
   {
     this->pointer = pointer;
     this->object = object;
@@ -4240,6 +5489,485 @@ struct NodeOpCooperativeMatrixStoreNV
     this->memoryAccessMakePointerAvailableKHR = memory_access_makePointerAvailableKHR;
     this->memoryAccessMakePointerVisible = memory_access_makePointerVisible;
     this->memoryAccessMakePointerVisibleKHR = memory_access_makePointerVisibleKHR;
+    this->memoryAccessAliasScopeINTELMask = memory_access_aliasScopeINTELMask;
+    this->memoryAccessNoAliasINTELMask = memory_access_noAliasINTELMask;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpHitObjectRecordHitMotionNV
+{
+  const NodeKind nodeKind = NodeKind::MultinaryAction;
+  const Op opCode = Op::OpHitObjectRecordHitMotionNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  const Id pCount = 14;
+  NodePointer<NodeId> hitObject;
+  NodePointer<NodeId> accelerationStructure;
+  NodePointer<NodeId> instanceId;
+  NodePointer<NodeId> primitiveId;
+  NodePointer<NodeId> geometryIndex;
+  NodePointer<NodeId> hitKind;
+  NodePointer<NodeId> sbtRecordOffset;
+  NodePointer<NodeId> sbtRecordStride;
+  NodePointer<NodeId> origin;
+  NodePointer<NodeId> tMin;
+  NodePointer<NodeId> direction;
+  NodePointer<NodeId> tMax;
+  NodePointer<NodeId> currentTime;
+  NodePointer<NodeId> hitobjectAttributes;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(hitObject);
+    visitor(accelerationStructure);
+    visitor(instanceId);
+    visitor(primitiveId);
+    visitor(geometryIndex);
+    visitor(hitKind);
+    visitor(sbtRecordOffset);
+    visitor(sbtRecordStride);
+    visitor(origin);
+    visitor(tMin);
+    visitor(direction);
+    visitor(tMax);
+    visitor(currentTime);
+    visitor(hitobjectAttributes);
+  }
+  NodeOpHitObjectRecordHitMotionNV() = default;
+  ~NodeOpHitObjectRecordHitMotionNV() = default;
+  NodeOpHitObjectRecordHitMotionNV(const NodeOpHitObjectRecordHitMotionNV &) = delete;
+  NodeOpHitObjectRecordHitMotionNV &operator=(const NodeOpHitObjectRecordHitMotionNV &) = delete;
+  NodeOpHitObjectRecordHitMotionNV(NodeOpHitObjectRecordHitMotionNV &&) = delete;
+  NodeOpHitObjectRecordHitMotionNV &operator=(NodeOpHitObjectRecordHitMotionNV &&) = delete;
+  NodeOpHitObjectRecordHitMotionNV(NodePointer<NodeId> hit_object, NodePointer<NodeId> acceleration_structure,
+    NodePointer<NodeId> instance_id, NodePointer<NodeId> primitive_id, NodePointer<NodeId> geometry_index,
+    NodePointer<NodeId> hit_kind, NodePointer<NodeId> s_b_t_record_offset, NodePointer<NodeId> s_b_t_record_stride,
+    NodePointer<NodeId> origin, NodePointer<NodeId> t_min, NodePointer<NodeId> direction, NodePointer<NodeId> t_max,
+    NodePointer<NodeId> current_time, NodePointer<NodeId> hit_object_attributes)
+  {
+    this->hitObject = hit_object;
+    this->accelerationStructure = acceleration_structure;
+    this->instanceId = instance_id;
+    this->primitiveId = primitive_id;
+    this->geometryIndex = geometry_index;
+    this->hitKind = hit_kind;
+    this->sbtRecordOffset = s_b_t_record_offset;
+    this->sbtRecordStride = s_b_t_record_stride;
+    this->origin = origin;
+    this->tMin = t_min;
+    this->direction = direction;
+    this->tMax = t_max;
+    this->currentTime = current_time;
+    this->hitobjectAttributes = hit_object_attributes;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpHitObjectRecordHitNV
+{
+  const NodeKind nodeKind = NodeKind::MultinaryAction;
+  const Op opCode = Op::OpHitObjectRecordHitNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  const Id pCount = 13;
+  NodePointer<NodeId> hitObject;
+  NodePointer<NodeId> accelerationStructure;
+  NodePointer<NodeId> instanceId;
+  NodePointer<NodeId> primitiveId;
+  NodePointer<NodeId> geometryIndex;
+  NodePointer<NodeId> hitKind;
+  NodePointer<NodeId> sbtRecordOffset;
+  NodePointer<NodeId> sbtRecordStride;
+  NodePointer<NodeId> origin;
+  NodePointer<NodeId> tMin;
+  NodePointer<NodeId> direction;
+  NodePointer<NodeId> tMax;
+  NodePointer<NodeId> hitobjectAttributes;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(hitObject);
+    visitor(accelerationStructure);
+    visitor(instanceId);
+    visitor(primitiveId);
+    visitor(geometryIndex);
+    visitor(hitKind);
+    visitor(sbtRecordOffset);
+    visitor(sbtRecordStride);
+    visitor(origin);
+    visitor(tMin);
+    visitor(direction);
+    visitor(tMax);
+    visitor(hitobjectAttributes);
+  }
+  NodeOpHitObjectRecordHitNV() = default;
+  ~NodeOpHitObjectRecordHitNV() = default;
+  NodeOpHitObjectRecordHitNV(const NodeOpHitObjectRecordHitNV &) = delete;
+  NodeOpHitObjectRecordHitNV &operator=(const NodeOpHitObjectRecordHitNV &) = delete;
+  NodeOpHitObjectRecordHitNV(NodeOpHitObjectRecordHitNV &&) = delete;
+  NodeOpHitObjectRecordHitNV &operator=(NodeOpHitObjectRecordHitNV &&) = delete;
+  NodeOpHitObjectRecordHitNV(NodePointer<NodeId> hit_object, NodePointer<NodeId> acceleration_structure,
+    NodePointer<NodeId> instance_id, NodePointer<NodeId> primitive_id, NodePointer<NodeId> geometry_index,
+    NodePointer<NodeId> hit_kind, NodePointer<NodeId> s_b_t_record_offset, NodePointer<NodeId> s_b_t_record_stride,
+    NodePointer<NodeId> origin, NodePointer<NodeId> t_min, NodePointer<NodeId> direction, NodePointer<NodeId> t_max,
+    NodePointer<NodeId> hit_object_attributes)
+  {
+    this->hitObject = hit_object;
+    this->accelerationStructure = acceleration_structure;
+    this->instanceId = instance_id;
+    this->primitiveId = primitive_id;
+    this->geometryIndex = geometry_index;
+    this->hitKind = hit_kind;
+    this->sbtRecordOffset = s_b_t_record_offset;
+    this->sbtRecordStride = s_b_t_record_stride;
+    this->origin = origin;
+    this->tMin = t_min;
+    this->direction = direction;
+    this->tMax = t_max;
+    this->hitobjectAttributes = hit_object_attributes;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpHitObjectRecordHitWithIndexMotionNV
+{
+  const NodeKind nodeKind = NodeKind::MultinaryAction;
+  const Op opCode = Op::OpHitObjectRecordHitWithIndexMotionNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  const Id pCount = 13;
+  NodePointer<NodeId> hitObject;
+  NodePointer<NodeId> accelerationStructure;
+  NodePointer<NodeId> instanceId;
+  NodePointer<NodeId> primitiveId;
+  NodePointer<NodeId> geometryIndex;
+  NodePointer<NodeId> hitKind;
+  NodePointer<NodeId> sbtRecordIndex;
+  NodePointer<NodeId> origin;
+  NodePointer<NodeId> tMin;
+  NodePointer<NodeId> direction;
+  NodePointer<NodeId> tMax;
+  NodePointer<NodeId> currentTime;
+  NodePointer<NodeId> hitobjectAttributes;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(hitObject);
+    visitor(accelerationStructure);
+    visitor(instanceId);
+    visitor(primitiveId);
+    visitor(geometryIndex);
+    visitor(hitKind);
+    visitor(sbtRecordIndex);
+    visitor(origin);
+    visitor(tMin);
+    visitor(direction);
+    visitor(tMax);
+    visitor(currentTime);
+    visitor(hitobjectAttributes);
+  }
+  NodeOpHitObjectRecordHitWithIndexMotionNV() = default;
+  ~NodeOpHitObjectRecordHitWithIndexMotionNV() = default;
+  NodeOpHitObjectRecordHitWithIndexMotionNV(const NodeOpHitObjectRecordHitWithIndexMotionNV &) = delete;
+  NodeOpHitObjectRecordHitWithIndexMotionNV &operator=(const NodeOpHitObjectRecordHitWithIndexMotionNV &) = delete;
+  NodeOpHitObjectRecordHitWithIndexMotionNV(NodeOpHitObjectRecordHitWithIndexMotionNV &&) = delete;
+  NodeOpHitObjectRecordHitWithIndexMotionNV &operator=(NodeOpHitObjectRecordHitWithIndexMotionNV &&) = delete;
+  NodeOpHitObjectRecordHitWithIndexMotionNV(NodePointer<NodeId> hit_object, NodePointer<NodeId> acceleration_structure,
+    NodePointer<NodeId> instance_id, NodePointer<NodeId> primitive_id, NodePointer<NodeId> geometry_index,
+    NodePointer<NodeId> hit_kind, NodePointer<NodeId> s_b_t_record_index, NodePointer<NodeId> origin, NodePointer<NodeId> t_min,
+    NodePointer<NodeId> direction, NodePointer<NodeId> t_max, NodePointer<NodeId> current_time,
+    NodePointer<NodeId> hit_object_attributes)
+  {
+    this->hitObject = hit_object;
+    this->accelerationStructure = acceleration_structure;
+    this->instanceId = instance_id;
+    this->primitiveId = primitive_id;
+    this->geometryIndex = geometry_index;
+    this->hitKind = hit_kind;
+    this->sbtRecordIndex = s_b_t_record_index;
+    this->origin = origin;
+    this->tMin = t_min;
+    this->direction = direction;
+    this->tMax = t_max;
+    this->currentTime = current_time;
+    this->hitobjectAttributes = hit_object_attributes;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpHitObjectRecordHitWithIndexNV
+{
+  const NodeKind nodeKind = NodeKind::MultinaryAction;
+  const Op opCode = Op::OpHitObjectRecordHitWithIndexNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  const Id pCount = 12;
+  NodePointer<NodeId> hitObject;
+  NodePointer<NodeId> accelerationStructure;
+  NodePointer<NodeId> instanceId;
+  NodePointer<NodeId> primitiveId;
+  NodePointer<NodeId> geometryIndex;
+  NodePointer<NodeId> hitKind;
+  NodePointer<NodeId> sbtRecordIndex;
+  NodePointer<NodeId> origin;
+  NodePointer<NodeId> tMin;
+  NodePointer<NodeId> direction;
+  NodePointer<NodeId> tMax;
+  NodePointer<NodeId> hitobjectAttributes;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(hitObject);
+    visitor(accelerationStructure);
+    visitor(instanceId);
+    visitor(primitiveId);
+    visitor(geometryIndex);
+    visitor(hitKind);
+    visitor(sbtRecordIndex);
+    visitor(origin);
+    visitor(tMin);
+    visitor(direction);
+    visitor(tMax);
+    visitor(hitobjectAttributes);
+  }
+  NodeOpHitObjectRecordHitWithIndexNV() = default;
+  ~NodeOpHitObjectRecordHitWithIndexNV() = default;
+  NodeOpHitObjectRecordHitWithIndexNV(const NodeOpHitObjectRecordHitWithIndexNV &) = delete;
+  NodeOpHitObjectRecordHitWithIndexNV &operator=(const NodeOpHitObjectRecordHitWithIndexNV &) = delete;
+  NodeOpHitObjectRecordHitWithIndexNV(NodeOpHitObjectRecordHitWithIndexNV &&) = delete;
+  NodeOpHitObjectRecordHitWithIndexNV &operator=(NodeOpHitObjectRecordHitWithIndexNV &&) = delete;
+  NodeOpHitObjectRecordHitWithIndexNV(NodePointer<NodeId> hit_object, NodePointer<NodeId> acceleration_structure,
+    NodePointer<NodeId> instance_id, NodePointer<NodeId> primitive_id, NodePointer<NodeId> geometry_index,
+    NodePointer<NodeId> hit_kind, NodePointer<NodeId> s_b_t_record_index, NodePointer<NodeId> origin, NodePointer<NodeId> t_min,
+    NodePointer<NodeId> direction, NodePointer<NodeId> t_max, NodePointer<NodeId> hit_object_attributes)
+  {
+    this->hitObject = hit_object;
+    this->accelerationStructure = acceleration_structure;
+    this->instanceId = instance_id;
+    this->primitiveId = primitive_id;
+    this->geometryIndex = geometry_index;
+    this->hitKind = hit_kind;
+    this->sbtRecordIndex = s_b_t_record_index;
+    this->origin = origin;
+    this->tMin = t_min;
+    this->direction = direction;
+    this->tMax = t_max;
+    this->hitobjectAttributes = hit_object_attributes;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpHitObjectRecordMissMotionNV
+{
+  const NodeKind nodeKind = NodeKind::MultinaryAction;
+  const Op opCode = Op::OpHitObjectRecordMissMotionNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  const Id pCount = 7;
+  NodePointer<NodeId> hitObject;
+  NodePointer<NodeId> sbtIndex;
+  NodePointer<NodeId> origin;
+  NodePointer<NodeId> tMin;
+  NodePointer<NodeId> direction;
+  NodePointer<NodeId> tMax;
+  NodePointer<NodeId> currentTime;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(hitObject);
+    visitor(sbtIndex);
+    visitor(origin);
+    visitor(tMin);
+    visitor(direction);
+    visitor(tMax);
+    visitor(currentTime);
+  }
+  NodeOpHitObjectRecordMissMotionNV() = default;
+  ~NodeOpHitObjectRecordMissMotionNV() = default;
+  NodeOpHitObjectRecordMissMotionNV(const NodeOpHitObjectRecordMissMotionNV &) = delete;
+  NodeOpHitObjectRecordMissMotionNV &operator=(const NodeOpHitObjectRecordMissMotionNV &) = delete;
+  NodeOpHitObjectRecordMissMotionNV(NodeOpHitObjectRecordMissMotionNV &&) = delete;
+  NodeOpHitObjectRecordMissMotionNV &operator=(NodeOpHitObjectRecordMissMotionNV &&) = delete;
+  NodeOpHitObjectRecordMissMotionNV(NodePointer<NodeId> hit_object, NodePointer<NodeId> s_b_t_index, NodePointer<NodeId> origin,
+    NodePointer<NodeId> t_min, NodePointer<NodeId> direction, NodePointer<NodeId> t_max, NodePointer<NodeId> current_time)
+  {
+    this->hitObject = hit_object;
+    this->sbtIndex = s_b_t_index;
+    this->origin = origin;
+    this->tMin = t_min;
+    this->direction = direction;
+    this->tMax = t_max;
+    this->currentTime = current_time;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpHitObjectRecordMissNV
+{
+  const NodeKind nodeKind = NodeKind::MultinaryAction;
+  const Op opCode = Op::OpHitObjectRecordMissNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  const Id pCount = 6;
+  NodePointer<NodeId> hitObject;
+  NodePointer<NodeId> sbtIndex;
+  NodePointer<NodeId> origin;
+  NodePointer<NodeId> tMin;
+  NodePointer<NodeId> direction;
+  NodePointer<NodeId> tMax;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(hitObject);
+    visitor(sbtIndex);
+    visitor(origin);
+    visitor(tMin);
+    visitor(direction);
+    visitor(tMax);
+  }
+  NodeOpHitObjectRecordMissNV() = default;
+  ~NodeOpHitObjectRecordMissNV() = default;
+  NodeOpHitObjectRecordMissNV(const NodeOpHitObjectRecordMissNV &) = delete;
+  NodeOpHitObjectRecordMissNV &operator=(const NodeOpHitObjectRecordMissNV &) = delete;
+  NodeOpHitObjectRecordMissNV(NodeOpHitObjectRecordMissNV &&) = delete;
+  NodeOpHitObjectRecordMissNV &operator=(NodeOpHitObjectRecordMissNV &&) = delete;
+  NodeOpHitObjectRecordMissNV(NodePointer<NodeId> hit_object, NodePointer<NodeId> s_b_t_index, NodePointer<NodeId> origin,
+    NodePointer<NodeId> t_min, NodePointer<NodeId> direction, NodePointer<NodeId> t_max)
+  {
+    this->hitObject = hit_object;
+    this->sbtIndex = s_b_t_index;
+    this->origin = origin;
+    this->tMin = t_min;
+    this->direction = direction;
+    this->tMax = t_max;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpHitObjectTraceRayMotionNV
+{
+  const NodeKind nodeKind = NodeKind::MultinaryAction;
+  const Op opCode = Op::OpHitObjectTraceRayMotionNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  const Id pCount = 13;
+  NodePointer<NodeId> hitObject;
+  NodePointer<NodeId> accelerationStructure;
+  NodePointer<NodeId> rayFlags;
+  NodePointer<NodeId> cullmask;
+  NodePointer<NodeId> sbtRecordOffset;
+  NodePointer<NodeId> sbtRecordStride;
+  NodePointer<NodeId> missIndex;
+  NodePointer<NodeId> origin;
+  NodePointer<NodeId> tMin;
+  NodePointer<NodeId> direction;
+  NodePointer<NodeId> tMax;
+  NodePointer<NodeId> time;
+  NodePointer<NodeId> payload;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(hitObject);
+    visitor(accelerationStructure);
+    visitor(rayFlags);
+    visitor(cullmask);
+    visitor(sbtRecordOffset);
+    visitor(sbtRecordStride);
+    visitor(missIndex);
+    visitor(origin);
+    visitor(tMin);
+    visitor(direction);
+    visitor(tMax);
+    visitor(time);
+    visitor(payload);
+  }
+  NodeOpHitObjectTraceRayMotionNV() = default;
+  ~NodeOpHitObjectTraceRayMotionNV() = default;
+  NodeOpHitObjectTraceRayMotionNV(const NodeOpHitObjectTraceRayMotionNV &) = delete;
+  NodeOpHitObjectTraceRayMotionNV &operator=(const NodeOpHitObjectTraceRayMotionNV &) = delete;
+  NodeOpHitObjectTraceRayMotionNV(NodeOpHitObjectTraceRayMotionNV &&) = delete;
+  NodeOpHitObjectTraceRayMotionNV &operator=(NodeOpHitObjectTraceRayMotionNV &&) = delete;
+  NodeOpHitObjectTraceRayMotionNV(NodePointer<NodeId> hit_object, NodePointer<NodeId> acceleration_structure,
+    NodePointer<NodeId> ray_flags, NodePointer<NodeId> cullmask, NodePointer<NodeId> s_b_t_record_offset,
+    NodePointer<NodeId> s_b_t_record_stride, NodePointer<NodeId> miss_index, NodePointer<NodeId> origin, NodePointer<NodeId> t_min,
+    NodePointer<NodeId> direction, NodePointer<NodeId> t_max, NodePointer<NodeId> time, NodePointer<NodeId> payload)
+  {
+    this->hitObject = hit_object;
+    this->accelerationStructure = acceleration_structure;
+    this->rayFlags = ray_flags;
+    this->cullmask = cullmask;
+    this->sbtRecordOffset = s_b_t_record_offset;
+    this->sbtRecordStride = s_b_t_record_stride;
+    this->missIndex = miss_index;
+    this->origin = origin;
+    this->tMin = t_min;
+    this->direction = direction;
+    this->tMax = t_max;
+    this->time = time;
+    this->payload = payload;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpHitObjectTraceRayNV
+{
+  const NodeKind nodeKind = NodeKind::MultinaryAction;
+  const Op opCode = Op::OpHitObjectTraceRayNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  const Id pCount = 12;
+  NodePointer<NodeId> hitObject;
+  NodePointer<NodeId> accelerationStructure;
+  NodePointer<NodeId> rayFlags;
+  NodePointer<NodeId> cullmask;
+  NodePointer<NodeId> sbtRecordOffset;
+  NodePointer<NodeId> sbtRecordStride;
+  NodePointer<NodeId> missIndex;
+  NodePointer<NodeId> origin;
+  NodePointer<NodeId> tMin;
+  NodePointer<NodeId> direction;
+  NodePointer<NodeId> tMax;
+  NodePointer<NodeId> payload;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(hitObject);
+    visitor(accelerationStructure);
+    visitor(rayFlags);
+    visitor(cullmask);
+    visitor(sbtRecordOffset);
+    visitor(sbtRecordStride);
+    visitor(missIndex);
+    visitor(origin);
+    visitor(tMin);
+    visitor(direction);
+    visitor(tMax);
+    visitor(payload);
+  }
+  NodeOpHitObjectTraceRayNV() = default;
+  ~NodeOpHitObjectTraceRayNV() = default;
+  NodeOpHitObjectTraceRayNV(const NodeOpHitObjectTraceRayNV &) = delete;
+  NodeOpHitObjectTraceRayNV &operator=(const NodeOpHitObjectTraceRayNV &) = delete;
+  NodeOpHitObjectTraceRayNV(NodeOpHitObjectTraceRayNV &&) = delete;
+  NodeOpHitObjectTraceRayNV &operator=(NodeOpHitObjectTraceRayNV &&) = delete;
+  NodeOpHitObjectTraceRayNV(NodePointer<NodeId> hit_object, NodePointer<NodeId> acceleration_structure, NodePointer<NodeId> ray_flags,
+    NodePointer<NodeId> cullmask, NodePointer<NodeId> s_b_t_record_offset, NodePointer<NodeId> s_b_t_record_stride,
+    NodePointer<NodeId> miss_index, NodePointer<NodeId> origin, NodePointer<NodeId> t_min, NodePointer<NodeId> direction,
+    NodePointer<NodeId> t_max, NodePointer<NodeId> payload)
+  {
+    this->hitObject = hit_object;
+    this->accelerationStructure = acceleration_structure;
+    this->rayFlags = ray_flags;
+    this->cullmask = cullmask;
+    this->sbtRecordOffset = s_b_t_record_offset;
+    this->sbtRecordStride = s_b_t_record_stride;
+    this->missIndex = miss_index;
+    this->origin = origin;
+    this->tMin = t_min;
+    this->direction = direction;
+    this->tMax = t_max;
+    this->payload = payload;
   }
   template <typename T>
   static constexpr bool is(const T *value);
@@ -4553,6 +6281,38 @@ inline bool NodeMultinaryAction::visit(NodeMultinaryAction *node, T visitor)
         if (visitor(reinterpret_cast<NodeOpCooperativeMatrixStoreNV *>(node)))
           return true;
         break;
+      case Op::OpHitObjectRecordHitMotionNV:
+        if (visitor(reinterpret_cast<NodeOpHitObjectRecordHitMotionNV *>(node)))
+          return true;
+        break;
+      case Op::OpHitObjectRecordHitNV:
+        if (visitor(reinterpret_cast<NodeOpHitObjectRecordHitNV *>(node)))
+          return true;
+        break;
+      case Op::OpHitObjectRecordHitWithIndexMotionNV:
+        if (visitor(reinterpret_cast<NodeOpHitObjectRecordHitWithIndexMotionNV *>(node)))
+          return true;
+        break;
+      case Op::OpHitObjectRecordHitWithIndexNV:
+        if (visitor(reinterpret_cast<NodeOpHitObjectRecordHitWithIndexNV *>(node)))
+          return true;
+        break;
+      case Op::OpHitObjectRecordMissMotionNV:
+        if (visitor(reinterpret_cast<NodeOpHitObjectRecordMissMotionNV *>(node)))
+          return true;
+        break;
+      case Op::OpHitObjectRecordMissNV:
+        if (visitor(reinterpret_cast<NodeOpHitObjectRecordMissNV *>(node)))
+          return true;
+        break;
+      case Op::OpHitObjectTraceRayMotionNV:
+        if (visitor(reinterpret_cast<NodeOpHitObjectTraceRayMotionNV *>(node)))
+          return true;
+        break;
+      case Op::OpHitObjectTraceRayNV:
+        if (visitor(reinterpret_cast<NodeOpHitObjectTraceRayNV *>(node)))
+          return true;
+        break;
       case Op::OpRayQueryInitializeKHR:
         if (visitor(reinterpret_cast<NodeOpRayQueryInitializeKHR *>(node)))
           return true;
@@ -4615,6 +6375,70 @@ struct NodeOpControlBarrier
   NodeOpControlBarrier(NodeOpControlBarrier &&) = delete;
   NodeOpControlBarrier &operator=(NodeOpControlBarrier &&) = delete;
   NodeOpControlBarrier(NodePointer<NodeOperation> execution, NodePointer<NodeOperation> memory, NodePointer<NodeOperation> semantics)
+  {
+    this->execution = execution;
+    this->memory = memory;
+    this->semantics = semantics;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpControlBarrierArriveINTEL
+{
+  const NodeKind nodeKind = NodeKind::ScopedAction;
+  const Op opCode = Op::OpControlBarrierArriveINTEL;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  NodePointer<NodeOperation> execution;
+  NodePointer<NodeOperation> memory;
+  NodePointer<NodeOperation> semantics;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(execution);
+    visitor(memory);
+    visitor(semantics);
+  }
+  NodeOpControlBarrierArriveINTEL() = default;
+  ~NodeOpControlBarrierArriveINTEL() = default;
+  NodeOpControlBarrierArriveINTEL(const NodeOpControlBarrierArriveINTEL &) = delete;
+  NodeOpControlBarrierArriveINTEL &operator=(const NodeOpControlBarrierArriveINTEL &) = delete;
+  NodeOpControlBarrierArriveINTEL(NodeOpControlBarrierArriveINTEL &&) = delete;
+  NodeOpControlBarrierArriveINTEL &operator=(NodeOpControlBarrierArriveINTEL &&) = delete;
+  NodeOpControlBarrierArriveINTEL(NodePointer<NodeOperation> execution, NodePointer<NodeOperation> memory,
+    NodePointer<NodeOperation> semantics)
+  {
+    this->execution = execution;
+    this->memory = memory;
+    this->semantics = semantics;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpControlBarrierWaitINTEL
+{
+  const NodeKind nodeKind = NodeKind::ScopedAction;
+  const Op opCode = Op::OpControlBarrierWaitINTEL;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  NodePointer<NodeOperation> execution;
+  NodePointer<NodeOperation> memory;
+  NodePointer<NodeOperation> semantics;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(execution);
+    visitor(memory);
+    visitor(semantics);
+  }
+  NodeOpControlBarrierWaitINTEL() = default;
+  ~NodeOpControlBarrierWaitINTEL() = default;
+  NodeOpControlBarrierWaitINTEL(const NodeOpControlBarrierWaitINTEL &) = delete;
+  NodeOpControlBarrierWaitINTEL &operator=(const NodeOpControlBarrierWaitINTEL &) = delete;
+  NodeOpControlBarrierWaitINTEL(NodeOpControlBarrierWaitINTEL &&) = delete;
+  NodeOpControlBarrierWaitINTEL &operator=(NodeOpControlBarrierWaitINTEL &&) = delete;
+  NodeOpControlBarrierWaitINTEL(NodePointer<NodeOperation> execution, NodePointer<NodeOperation> memory,
+    NodePointer<NodeOperation> semantics)
   {
     this->execution = execution;
     this->memory = memory;
@@ -4787,6 +6611,14 @@ inline bool NodeScopedAction::visit(NodeScopedAction *node, T visitor)
         if (visitor(reinterpret_cast<NodeOpControlBarrier *>(node)))
           return true;
         break;
+      case Op::OpControlBarrierArriveINTEL:
+        if (visitor(reinterpret_cast<NodeOpControlBarrierArriveINTEL *>(node)))
+          return true;
+        break;
+      case Op::OpControlBarrierWaitINTEL:
+        if (visitor(reinterpret_cast<NodeOpControlBarrierWaitINTEL *>(node)))
+          return true;
+        break;
       case Op::OpGroupCommitReadPipe:
         if (visitor(reinterpret_cast<NodeOpGroupCommitReadPipe *>(node)))
           return true;
@@ -4863,6 +6695,77 @@ struct NodeOpCaptureEventProfilingInfo
   template <typename T>
   static constexpr bool is(const T *value);
 };
+struct NodeOpCooperativeMatrixStoreKHR
+{
+  const NodeKind nodeKind = NodeKind::TrinaryAction;
+  const Op opCode = Op::OpCooperativeMatrixStoreKHR;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  NodePointer<NodeId> pointer;
+  NodePointer<NodeId> object;
+  NodePointer<NodeId> memoryLayout;
+  eastl::optional<NodePointer<NodeId>> stride;
+  eastl::optional<MemoryAccessMask> memoryOperand;
+  // extra values for memoryOperand
+  LiteralInteger memoryOperandAligned;
+  NodePointer<NodeOperation> memoryOperandMakePointerAvailable;
+  NodePointer<NodeOperation> memoryOperandMakePointerAvailableKHR;
+  NodePointer<NodeOperation> memoryOperandMakePointerVisible;
+  NodePointer<NodeOperation> memoryOperandMakePointerVisibleKHR;
+  NodePointer<NodeId> memoryOperandAliasScopeINTELMask;
+  NodePointer<NodeId> memoryOperandNoAliasINTELMask;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(pointer);
+    visitor(object);
+    visitor(memoryLayout);
+    if (stride)
+      visitor(*stride);
+    if (memoryOperandMakePointerAvailable)
+      visitor(memoryOperandMakePointerAvailable);
+    if (memoryOperandMakePointerAvailableKHR)
+      visitor(memoryOperandMakePointerAvailableKHR);
+    if (memoryOperandMakePointerVisible)
+      visitor(memoryOperandMakePointerVisible);
+    if (memoryOperandMakePointerVisibleKHR)
+      visitor(memoryOperandMakePointerVisibleKHR);
+    if (memoryOperandAliasScopeINTELMask)
+      visitor(memoryOperandAliasScopeINTELMask);
+    if (memoryOperandNoAliasINTELMask)
+      visitor(memoryOperandNoAliasINTELMask);
+  }
+  NodeOpCooperativeMatrixStoreKHR() = default;
+  ~NodeOpCooperativeMatrixStoreKHR() = default;
+  NodeOpCooperativeMatrixStoreKHR(const NodeOpCooperativeMatrixStoreKHR &) = delete;
+  NodeOpCooperativeMatrixStoreKHR &operator=(const NodeOpCooperativeMatrixStoreKHR &) = delete;
+  NodeOpCooperativeMatrixStoreKHR(NodeOpCooperativeMatrixStoreKHR &&) = delete;
+  NodeOpCooperativeMatrixStoreKHR &operator=(NodeOpCooperativeMatrixStoreKHR &&) = delete;
+  NodeOpCooperativeMatrixStoreKHR(NodePointer<NodeId> pointer, NodePointer<NodeId> object, NodePointer<NodeId> memory_layout,
+    eastl::optional<NodePointer<NodeId>> stride = {}, eastl::optional<MemoryAccessMask> memory_operand = {},
+    eastl::optional<LiteralInteger> memory_operand_aligned = {}, NodePointer<NodeOperation> memory_operand_makePointerAvailable = {},
+    NodePointer<NodeOperation> memory_operand_makePointerAvailableKHR = {},
+    NodePointer<NodeOperation> memory_operand_makePointerVisible = {},
+    NodePointer<NodeOperation> memory_operand_makePointerVisibleKHR = {}, NodePointer<NodeId> memory_operand_aliasScopeINTELMask = {},
+    NodePointer<NodeId> memory_operand_noAliasINTELMask = {})
+  {
+    this->pointer = pointer;
+    this->object = object;
+    this->memoryLayout = memory_layout;
+    this->stride = stride;
+    this->memoryOperand = memory_operand;
+    if (memory_operand_aligned)
+      this->memoryOperandAligned = *memory_operand_aligned;
+    this->memoryOperandMakePointerAvailable = memory_operand_makePointerAvailable;
+    this->memoryOperandMakePointerAvailableKHR = memory_operand_makePointerAvailableKHR;
+    this->memoryOperandMakePointerVisible = memory_operand_makePointerVisible;
+    this->memoryOperandMakePointerVisibleKHR = memory_operand_makePointerVisibleKHR;
+    this->memoryOperandAliasScopeINTELMask = memory_operand_aliasScopeINTELMask;
+    this->memoryOperandNoAliasINTELMask = memory_operand_noAliasINTELMask;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
 struct NodeOpCopyMemorySized
 {
   const NodeKind nodeKind = NodeKind::TrinaryAction;
@@ -4879,6 +6782,8 @@ struct NodeOpCopyMemorySized
   NodePointer<NodeOperation> memoryAccess0MakePointerAvailableKHR;
   NodePointer<NodeOperation> memoryAccess0MakePointerVisible;
   NodePointer<NodeOperation> memoryAccess0MakePointerVisibleKHR;
+  NodePointer<NodeId> memoryAccess0AliasScopeINTELMask;
+  NodePointer<NodeId> memoryAccess0NoAliasINTELMask;
   eastl::optional<MemoryAccessMask> memoryAccess1;
   // extra values for memoryAccess1
   LiteralInteger memoryAccess1Aligned;
@@ -4886,6 +6791,8 @@ struct NodeOpCopyMemorySized
   NodePointer<NodeOperation> memoryAccess1MakePointerAvailableKHR;
   NodePointer<NodeOperation> memoryAccess1MakePointerVisible;
   NodePointer<NodeOperation> memoryAccess1MakePointerVisibleKHR;
+  NodePointer<NodeId> memoryAccess1AliasScopeINTELMask;
+  NodePointer<NodeId> memoryAccess1NoAliasINTELMask;
   template <typename T>
   void visitRefs(T visitor)
   {
@@ -4900,6 +6807,10 @@ struct NodeOpCopyMemorySized
       visitor(memoryAccess0MakePointerVisible);
     if (memoryAccess0MakePointerVisibleKHR)
       visitor(memoryAccess0MakePointerVisibleKHR);
+    if (memoryAccess0AliasScopeINTELMask)
+      visitor(memoryAccess0AliasScopeINTELMask);
+    if (memoryAccess0NoAliasINTELMask)
+      visitor(memoryAccess0NoAliasINTELMask);
     if (memoryAccess1MakePointerAvailable)
       visitor(memoryAccess1MakePointerAvailable);
     if (memoryAccess1MakePointerAvailableKHR)
@@ -4908,6 +6819,10 @@ struct NodeOpCopyMemorySized
       visitor(memoryAccess1MakePointerVisible);
     if (memoryAccess1MakePointerVisibleKHR)
       visitor(memoryAccess1MakePointerVisibleKHR);
+    if (memoryAccess1AliasScopeINTELMask)
+      visitor(memoryAccess1AliasScopeINTELMask);
+    if (memoryAccess1NoAliasINTELMask)
+      visitor(memoryAccess1NoAliasINTELMask);
   }
   NodeOpCopyMemorySized() = default;
   ~NodeOpCopyMemorySized() = default;
@@ -4920,11 +6835,13 @@ struct NodeOpCopyMemorySized
     NodePointer<NodeOperation> memory_access0_makePointerAvailable = {},
     NodePointer<NodeOperation> memory_access0_makePointerAvailableKHR = {},
     NodePointer<NodeOperation> memory_access0_makePointerVisible = {},
-    NodePointer<NodeOperation> memory_access0_makePointerVisibleKHR = {}, eastl::optional<MemoryAccessMask> memory_access1 = {},
+    NodePointer<NodeOperation> memory_access0_makePointerVisibleKHR = {}, NodePointer<NodeId> memory_access0_aliasScopeINTELMask = {},
+    NodePointer<NodeId> memory_access0_noAliasINTELMask = {}, eastl::optional<MemoryAccessMask> memory_access1 = {},
     eastl::optional<LiteralInteger> memory_access1_aligned = {}, NodePointer<NodeOperation> memory_access1_makePointerAvailable = {},
     NodePointer<NodeOperation> memory_access1_makePointerAvailableKHR = {},
     NodePointer<NodeOperation> memory_access1_makePointerVisible = {},
-    NodePointer<NodeOperation> memory_access1_makePointerVisibleKHR = {})
+    NodePointer<NodeOperation> memory_access1_makePointerVisibleKHR = {}, NodePointer<NodeId> memory_access1_aliasScopeINTELMask = {},
+    NodePointer<NodeId> memory_access1_noAliasINTELMask = {})
   {
     this->target = target;
     this->source = source;
@@ -4936,6 +6853,8 @@ struct NodeOpCopyMemorySized
     this->memoryAccess0MakePointerAvailableKHR = memory_access0_makePointerAvailableKHR;
     this->memoryAccess0MakePointerVisible = memory_access0_makePointerVisible;
     this->memoryAccess0MakePointerVisibleKHR = memory_access0_makePointerVisibleKHR;
+    this->memoryAccess0AliasScopeINTELMask = memory_access0_aliasScopeINTELMask;
+    this->memoryAccess0NoAliasINTELMask = memory_access0_noAliasINTELMask;
     this->memoryAccess1 = memory_access1;
     if (memory_access1_aligned)
       this->memoryAccess1Aligned = *memory_access1_aligned;
@@ -4943,6 +6862,44 @@ struct NodeOpCopyMemorySized
     this->memoryAccess1MakePointerAvailableKHR = memory_access1_makePointerAvailableKHR;
     this->memoryAccess1MakePointerVisible = memory_access1_makePointerVisible;
     this->memoryAccess1MakePointerVisibleKHR = memory_access1_makePointerVisibleKHR;
+    this->memoryAccess1AliasScopeINTELMask = memory_access1_aliasScopeINTELMask;
+    this->memoryAccess1NoAliasINTELMask = memory_access1_noAliasINTELMask;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpEmitMeshTasksEXT
+{
+  const NodeKind nodeKind = NodeKind::TrinaryAction;
+  const Op opCode = Op::OpEmitMeshTasksEXT;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  NodePointer<NodeId> groupCountX;
+  NodePointer<NodeId> groupCountY;
+  NodePointer<NodeId> groupCountZ;
+  eastl::optional<NodePointer<NodeId>> payload;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(groupCountX);
+    visitor(groupCountY);
+    visitor(groupCountZ);
+    if (payload)
+      visitor(*payload);
+  }
+  NodeOpEmitMeshTasksEXT() = default;
+  ~NodeOpEmitMeshTasksEXT() = default;
+  NodeOpEmitMeshTasksEXT(const NodeOpEmitMeshTasksEXT &) = delete;
+  NodeOpEmitMeshTasksEXT &operator=(const NodeOpEmitMeshTasksEXT &) = delete;
+  NodeOpEmitMeshTasksEXT(NodeOpEmitMeshTasksEXT &&) = delete;
+  NodeOpEmitMeshTasksEXT &operator=(NodeOpEmitMeshTasksEXT &&) = delete;
+  NodeOpEmitMeshTasksEXT(NodePointer<NodeId> group_count_x, NodePointer<NodeId> group_count_y, NodePointer<NodeId> group_count_z,
+    eastl::optional<NodePointer<NodeId>> payload = {})
+  {
+    this->groupCountX = group_count_x;
+    this->groupCountY = group_count_y;
+    this->groupCountZ = group_count_z;
+    this->payload = payload;
   }
   template <typename T>
   static constexpr bool is(const T *value);
@@ -4959,8 +6916,16 @@ inline bool NodeTrinaryAction::visit(NodeTrinaryAction *node, T visitor)
         if (visitor(reinterpret_cast<NodeOpCaptureEventProfilingInfo *>(node)))
           return true;
         break;
+      case Op::OpCooperativeMatrixStoreKHR:
+        if (visitor(reinterpret_cast<NodeOpCooperativeMatrixStoreKHR *>(node)))
+          return true;
+        break;
       case Op::OpCopyMemorySized:
         if (visitor(reinterpret_cast<NodeOpCopyMemorySized *>(node)))
+          return true;
+        break;
+      case Op::OpEmitMeshTasksEXT:
+        if (visitor(reinterpret_cast<NodeOpEmitMeshTasksEXT *>(node)))
           return true;
         break;
     }
@@ -5111,6 +7076,85 @@ struct NodeOpEndStreamPrimitive
   NodeOpEndStreamPrimitive(NodeOpEndStreamPrimitive &&) = delete;
   NodeOpEndStreamPrimitive &operator=(NodeOpEndStreamPrimitive &&) = delete;
   NodeOpEndStreamPrimitive(NodePointer<NodeId> stream) { this->stream = stream; }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpFinalizeNodePayloadsAMDX
+{
+  const NodeKind nodeKind = NodeKind::UnaryAction;
+  const Op opCode = Op::OpFinalizeNodePayloadsAMDX;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  NodePointer<NodeId> payloadArray;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(payloadArray);
+  }
+  NodeOpFinalizeNodePayloadsAMDX() = default;
+  ~NodeOpFinalizeNodePayloadsAMDX() = default;
+  NodeOpFinalizeNodePayloadsAMDX(const NodeOpFinalizeNodePayloadsAMDX &) = delete;
+  NodeOpFinalizeNodePayloadsAMDX &operator=(const NodeOpFinalizeNodePayloadsAMDX &) = delete;
+  NodeOpFinalizeNodePayloadsAMDX(NodeOpFinalizeNodePayloadsAMDX &&) = delete;
+  NodeOpFinalizeNodePayloadsAMDX &operator=(NodeOpFinalizeNodePayloadsAMDX &&) = delete;
+  NodeOpFinalizeNodePayloadsAMDX(NodePointer<NodeId> payload_array) { this->payloadArray = payload_array; }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpHitObjectRecordEmptyNV
+{
+  const NodeKind nodeKind = NodeKind::UnaryAction;
+  const Op opCode = Op::OpHitObjectRecordEmptyNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  NodePointer<NodeId> hitObject;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(hitObject);
+  }
+  NodeOpHitObjectRecordEmptyNV() = default;
+  ~NodeOpHitObjectRecordEmptyNV() = default;
+  NodeOpHitObjectRecordEmptyNV(const NodeOpHitObjectRecordEmptyNV &) = delete;
+  NodeOpHitObjectRecordEmptyNV &operator=(const NodeOpHitObjectRecordEmptyNV &) = delete;
+  NodeOpHitObjectRecordEmptyNV(NodeOpHitObjectRecordEmptyNV &&) = delete;
+  NodeOpHitObjectRecordEmptyNV &operator=(NodeOpHitObjectRecordEmptyNV &&) = delete;
+  NodeOpHitObjectRecordEmptyNV(NodePointer<NodeId> hit_object) { this->hitObject = hit_object; }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpInitializeNodePayloadsAMDX
+{
+  const NodeKind nodeKind = NodeKind::UnaryAction;
+  const Op opCode = Op::OpInitializeNodePayloadsAMDX;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  NodePointer<NodeId> payloadArray;
+  NodePointer<NodeOperation> visibility;
+  NodePointer<NodeId> payloadCount;
+  NodePointer<NodeId> nodeIndex;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(payloadArray);
+    visitor(visibility);
+    visitor(payloadCount);
+    visitor(nodeIndex);
+  }
+  NodeOpInitializeNodePayloadsAMDX() = default;
+  ~NodeOpInitializeNodePayloadsAMDX() = default;
+  NodeOpInitializeNodePayloadsAMDX(const NodeOpInitializeNodePayloadsAMDX &) = delete;
+  NodeOpInitializeNodePayloadsAMDX &operator=(const NodeOpInitializeNodePayloadsAMDX &) = delete;
+  NodeOpInitializeNodePayloadsAMDX(NodeOpInitializeNodePayloadsAMDX &&) = delete;
+  NodeOpInitializeNodePayloadsAMDX &operator=(NodeOpInitializeNodePayloadsAMDX &&) = delete;
+  NodeOpInitializeNodePayloadsAMDX(NodePointer<NodeId> payload_array, NodePointer<NodeOperation> visibility,
+    NodePointer<NodeId> payload_count, NodePointer<NodeId> node_index)
+  {
+    this->payloadArray = payload_array;
+    this->visibility = visibility;
+    this->payloadCount = payload_count;
+    this->nodeIndex = node_index;
+  }
   template <typename T>
   static constexpr bool is(const T *value);
 };
@@ -5265,6 +7309,40 @@ struct NodeOpReleaseEvent
   template <typename T>
   static constexpr bool is(const T *value);
 };
+struct NodeOpReorderThreadWithHitObjectNV
+{
+  const NodeKind nodeKind = NodeKind::UnaryAction;
+  const Op opCode = Op::OpReorderThreadWithHitObjectNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  NodePointer<NodeId> hitObject;
+  eastl::optional<NodePointer<NodeId>> hint;
+  eastl::optional<NodePointer<NodeId>> bits;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(hitObject);
+    if (hint)
+      visitor(*hint);
+    if (bits)
+      visitor(*bits);
+  }
+  NodeOpReorderThreadWithHitObjectNV() = default;
+  ~NodeOpReorderThreadWithHitObjectNV() = default;
+  NodeOpReorderThreadWithHitObjectNV(const NodeOpReorderThreadWithHitObjectNV &) = delete;
+  NodeOpReorderThreadWithHitObjectNV &operator=(const NodeOpReorderThreadWithHitObjectNV &) = delete;
+  NodeOpReorderThreadWithHitObjectNV(NodeOpReorderThreadWithHitObjectNV &&) = delete;
+  NodeOpReorderThreadWithHitObjectNV &operator=(NodeOpReorderThreadWithHitObjectNV &&) = delete;
+  NodeOpReorderThreadWithHitObjectNV(NodePointer<NodeId> hit_object, eastl::optional<NodePointer<NodeId>> hint = {},
+    eastl::optional<NodePointer<NodeId>> bits = {})
+  {
+    this->hitObject = hit_object;
+    this->hint = hint;
+    this->bits = bits;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
 struct NodeOpRestoreMemoryINTEL
 {
   const NodeKind nodeKind = NodeKind::UnaryAction;
@@ -5337,6 +7415,18 @@ inline bool NodeUnaryAction::visit(NodeUnaryAction *node, T visitor)
         if (visitor(reinterpret_cast<NodeOpEndStreamPrimitive *>(node)))
           return true;
         break;
+      case Op::OpFinalizeNodePayloadsAMDX:
+        if (visitor(reinterpret_cast<NodeOpFinalizeNodePayloadsAMDX *>(node)))
+          return true;
+        break;
+      case Op::OpHitObjectRecordEmptyNV:
+        if (visitor(reinterpret_cast<NodeOpHitObjectRecordEmptyNV *>(node)))
+          return true;
+        break;
+      case Op::OpInitializeNodePayloadsAMDX:
+        if (visitor(reinterpret_cast<NodeOpInitializeNodePayloadsAMDX *>(node)))
+          return true;
+        break;
       case Op::OpLifetimeStart:
         if (visitor(reinterpret_cast<NodeOpLifetimeStart *>(node)))
           return true;
@@ -5359,6 +7449,10 @@ inline bool NodeUnaryAction::visit(NodeUnaryAction *node, T visitor)
         break;
       case Op::OpReleaseEvent:
         if (visitor(reinterpret_cast<NodeOpReleaseEvent *>(node)))
+          return true;
+        break;
+      case Op::OpReorderThreadWithHitObjectNV:
+        if (visitor(reinterpret_cast<NodeOpReorderThreadWithHitObjectNV *>(node)))
           return true;
         break;
       case Op::OpRestoreMemoryINTEL:
@@ -5827,6 +7921,97 @@ struct NodeId : Node
   void visitRefs(T)
   {}
 };
+struct NodeOpAliasDomainDeclINTEL
+{
+  const NodeKind nodeKind = NodeKind::Id;
+  const Op opCode = Op::OpAliasDomainDeclINTEL;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  eastl::optional<NodePointer<NodeId>> name;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    if (name)
+      visitor(*name);
+  }
+  NodeOpAliasDomainDeclINTEL() = default;
+  ~NodeOpAliasDomainDeclINTEL() = default;
+  NodeOpAliasDomainDeclINTEL(const NodeOpAliasDomainDeclINTEL &) = delete;
+  NodeOpAliasDomainDeclINTEL &operator=(const NodeOpAliasDomainDeclINTEL &) = delete;
+  NodeOpAliasDomainDeclINTEL(NodeOpAliasDomainDeclINTEL &&) = delete;
+  NodeOpAliasDomainDeclINTEL &operator=(NodeOpAliasDomainDeclINTEL &&) = delete;
+  NodeOpAliasDomainDeclINTEL(Id id_result, eastl::optional<NodePointer<NodeId>> name = {})
+  {
+    this->resultId = id_result;
+    this->name = name;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpAliasScopeDeclINTEL
+{
+  const NodeKind nodeKind = NodeKind::Id;
+  const Op opCode = Op::OpAliasScopeDeclINTEL;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeId> aliasDomain;
+  eastl::optional<NodePointer<NodeId>> name;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(aliasDomain);
+    if (name)
+      visitor(*name);
+  }
+  NodeOpAliasScopeDeclINTEL() = default;
+  ~NodeOpAliasScopeDeclINTEL() = default;
+  NodeOpAliasScopeDeclINTEL(const NodeOpAliasScopeDeclINTEL &) = delete;
+  NodeOpAliasScopeDeclINTEL &operator=(const NodeOpAliasScopeDeclINTEL &) = delete;
+  NodeOpAliasScopeDeclINTEL(NodeOpAliasScopeDeclINTEL &&) = delete;
+  NodeOpAliasScopeDeclINTEL &operator=(NodeOpAliasScopeDeclINTEL &&) = delete;
+  NodeOpAliasScopeDeclINTEL(Id id_result, NodePointer<NodeId> alias_domain, eastl::optional<NodePointer<NodeId>> name = {})
+  {
+    this->resultId = id_result;
+    this->aliasDomain = alias_domain;
+    this->name = name;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpAliasScopeListDeclINTEL
+{
+  const NodeKind nodeKind = NodeKind::Id;
+  const Op opCode = Op::OpAliasScopeListDeclINTEL;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  eastl::vector<NodePointer<NodeId>> aliasscope1Aliasscope2;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    for (auto &&ref : aliasscope1Aliasscope2)
+      visitor(ref);
+  }
+  NodeOpAliasScopeListDeclINTEL() = default;
+  ~NodeOpAliasScopeListDeclINTEL() = default;
+  NodeOpAliasScopeListDeclINTEL(const NodeOpAliasScopeListDeclINTEL &) = delete;
+  NodeOpAliasScopeListDeclINTEL &operator=(const NodeOpAliasScopeListDeclINTEL &) = delete;
+  NodeOpAliasScopeListDeclINTEL(NodeOpAliasScopeListDeclINTEL &&) = delete;
+  NodeOpAliasScopeListDeclINTEL &operator=(NodeOpAliasScopeListDeclINTEL &&) = delete;
+  NodeOpAliasScopeListDeclINTEL(Id id_result, NodePointer<NodeId> *alias_scope1_alias_scope2 = nullptr,
+    size_t alias_scope1_alias_scope2_count = 0)
+  {
+    this->resultId = id_result;
+    this->aliasscope1Aliasscope2.assign(alias_scope1_alias_scope2, alias_scope1_alias_scope2 + alias_scope1_alias_scope2_count);
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
 struct NodeOpDecorationGroup
 {
   const NodeKind nodeKind = NodeKind::Id;
@@ -5995,6 +8180,39 @@ struct NodeOpCompositeConstruct
   template <typename T>
   static constexpr bool is(const T *value);
 };
+struct NodeOpCompositeConstructContinuedINTEL
+{
+  const NodeKind nodeKind = NodeKind::Operation;
+  const Op opCode = Op::OpCompositeConstructContinuedINTEL;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  eastl::vector<NodePointer<NodeId>> constituents;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    for (auto &&ref : constituents)
+      visitor(ref);
+  }
+  NodeOpCompositeConstructContinuedINTEL() = default;
+  ~NodeOpCompositeConstructContinuedINTEL() = default;
+  NodeOpCompositeConstructContinuedINTEL(const NodeOpCompositeConstructContinuedINTEL &) = delete;
+  NodeOpCompositeConstructContinuedINTEL &operator=(const NodeOpCompositeConstructContinuedINTEL &) = delete;
+  NodeOpCompositeConstructContinuedINTEL(NodeOpCompositeConstructContinuedINTEL &&) = delete;
+  NodeOpCompositeConstructContinuedINTEL &operator=(NodeOpCompositeConstructContinuedINTEL &&) = delete;
+  NodeOpCompositeConstructContinuedINTEL(Id id_result, NodePointer<NodeTypedef> id_result_type,
+    NodePointer<NodeId> *constituents = nullptr, size_t constituents_count = 0)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->constituents.assign(constituents, constituents + constituents_count);
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
 struct NodeOpCreateUserEvent
 {
   const NodeKind nodeKind = NodeKind::Operation;
@@ -6019,6 +8237,38 @@ struct NodeOpCreateUserEvent
   {
     this->resultId = id_result;
     this->resultType = id_result_type;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpDepthAttachmentReadEXT
+{
+  const NodeKind nodeKind = NodeKind::Operation;
+  const Op opCode = Op::OpDepthAttachmentReadEXT;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  eastl::optional<NodePointer<NodeId>> sample;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    if (sample)
+      visitor(*sample);
+  }
+  NodeOpDepthAttachmentReadEXT() = default;
+  ~NodeOpDepthAttachmentReadEXT() = default;
+  NodeOpDepthAttachmentReadEXT(const NodeOpDepthAttachmentReadEXT &) = delete;
+  NodeOpDepthAttachmentReadEXT &operator=(const NodeOpDepthAttachmentReadEXT &) = delete;
+  NodeOpDepthAttachmentReadEXT(NodeOpDepthAttachmentReadEXT &&) = delete;
+  NodeOpDepthAttachmentReadEXT &operator=(NodeOpDepthAttachmentReadEXT &&) = delete;
+  NodeOpDepthAttachmentReadEXT(Id id_result, NodePointer<NodeTypedef> id_result_type, eastl::optional<NodePointer<NodeId>> sample = {})
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->sample = sample;
   }
   template <typename T>
   static constexpr bool is(const T *value);
@@ -6136,6 +8386,39 @@ struct NodeOpSaveMemoryINTEL
   {
     this->resultId = id_result;
     this->resultType = id_result_type;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpStencilAttachmentReadEXT
+{
+  const NodeKind nodeKind = NodeKind::Operation;
+  const Op opCode = Op::OpStencilAttachmentReadEXT;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  eastl::optional<NodePointer<NodeId>> sample;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    if (sample)
+      visitor(*sample);
+  }
+  NodeOpStencilAttachmentReadEXT() = default;
+  ~NodeOpStencilAttachmentReadEXT() = default;
+  NodeOpStencilAttachmentReadEXT(const NodeOpStencilAttachmentReadEXT &) = delete;
+  NodeOpStencilAttachmentReadEXT &operator=(const NodeOpStencilAttachmentReadEXT &) = delete;
+  NodeOpStencilAttachmentReadEXT(NodeOpStencilAttachmentReadEXT &&) = delete;
+  NodeOpStencilAttachmentReadEXT &operator=(NodeOpStencilAttachmentReadEXT &&) = delete;
+  NodeOpStencilAttachmentReadEXT(Id id_result, NodePointer<NodeTypedef> id_result_type,
+    eastl::optional<NodePointer<NodeId>> sample = {})
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->sample = sample;
   }
   template <typename T>
   static constexpr bool is(const T *value);
@@ -7053,6 +9336,81 @@ struct NodeOpCompositeInsert
     this->object = object;
     this->composite = composite;
     this->indexes.assign(indexes, indexes + indexes_count);
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpCooperativeMatrixLoadKHR
+{
+  const NodeKind nodeKind = NodeKind::BinaryOperation;
+  const Op opCode = Op::OpCooperativeMatrixLoadKHR;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> pointer;
+  NodePointer<NodeId> memoryLayout;
+  eastl::optional<NodePointer<NodeId>> stride;
+  eastl::optional<MemoryAccessMask> memoryOperand;
+  // extra values for memoryOperand
+  LiteralInteger memoryOperandAligned;
+  NodePointer<NodeOperation> memoryOperandMakePointerAvailable;
+  NodePointer<NodeOperation> memoryOperandMakePointerAvailableKHR;
+  NodePointer<NodeOperation> memoryOperandMakePointerVisible;
+  NodePointer<NodeOperation> memoryOperandMakePointerVisibleKHR;
+  NodePointer<NodeId> memoryOperandAliasScopeINTELMask;
+  NodePointer<NodeId> memoryOperandNoAliasINTELMask;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(pointer);
+    visitor(memoryLayout);
+    if (stride)
+      visitor(*stride);
+    if (memoryOperandMakePointerAvailable)
+      visitor(memoryOperandMakePointerAvailable);
+    if (memoryOperandMakePointerAvailableKHR)
+      visitor(memoryOperandMakePointerAvailableKHR);
+    if (memoryOperandMakePointerVisible)
+      visitor(memoryOperandMakePointerVisible);
+    if (memoryOperandMakePointerVisibleKHR)
+      visitor(memoryOperandMakePointerVisibleKHR);
+    if (memoryOperandAliasScopeINTELMask)
+      visitor(memoryOperandAliasScopeINTELMask);
+    if (memoryOperandNoAliasINTELMask)
+      visitor(memoryOperandNoAliasINTELMask);
+  }
+  NodeOpCooperativeMatrixLoadKHR() = default;
+  ~NodeOpCooperativeMatrixLoadKHR() = default;
+  NodeOpCooperativeMatrixLoadKHR(const NodeOpCooperativeMatrixLoadKHR &) = delete;
+  NodeOpCooperativeMatrixLoadKHR &operator=(const NodeOpCooperativeMatrixLoadKHR &) = delete;
+  NodeOpCooperativeMatrixLoadKHR(NodeOpCooperativeMatrixLoadKHR &&) = delete;
+  NodeOpCooperativeMatrixLoadKHR &operator=(NodeOpCooperativeMatrixLoadKHR &&) = delete;
+  NodeOpCooperativeMatrixLoadKHR(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> pointer,
+    NodePointer<NodeId> memory_layout, eastl::optional<NodePointer<NodeId>> stride = {},
+    eastl::optional<MemoryAccessMask> memory_operand = {}, eastl::optional<LiteralInteger> memory_operand_aligned = {},
+    NodePointer<NodeOperation> memory_operand_makePointerAvailable = {},
+    NodePointer<NodeOperation> memory_operand_makePointerAvailableKHR = {},
+    NodePointer<NodeOperation> memory_operand_makePointerVisible = {},
+    NodePointer<NodeOperation> memory_operand_makePointerVisibleKHR = {}, NodePointer<NodeId> memory_operand_aliasScopeINTELMask = {},
+    NodePointer<NodeId> memory_operand_noAliasINTELMask = {})
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->pointer = pointer;
+    this->memoryLayout = memory_layout;
+    this->stride = stride;
+    this->memoryOperand = memory_operand;
+    if (memory_operand_aligned)
+      this->memoryOperandAligned = *memory_operand_aligned;
+    this->memoryOperandMakePointerAvailable = memory_operand_makePointerAvailable;
+    this->memoryOperandMakePointerAvailableKHR = memory_operand_makePointerAvailableKHR;
+    this->memoryOperandMakePointerVisible = memory_operand_makePointerVisible;
+    this->memoryOperandMakePointerVisibleKHR = memory_operand_makePointerVisibleKHR;
+    this->memoryOperandAliasScopeINTELMask = memory_operand_aliasScopeINTELMask;
+    this->memoryOperandNoAliasINTELMask = memory_operand_noAliasINTELMask;
   }
   template <typename T>
   static constexpr bool is(const T *value);
@@ -9518,6 +11876,43 @@ struct NodeOpRayQueryGetIntersectionTKHR
   NodeOpRayQueryGetIntersectionTKHR &operator=(NodeOpRayQueryGetIntersectionTKHR &&) = delete;
   NodeOpRayQueryGetIntersectionTKHR(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> ray_query,
     NodePointer<NodeId> intersection)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->rayQuery = ray_query;
+    this->intersection = intersection;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpRayQueryGetIntersectionTriangleVertexPositionsKHR
+{
+  const NodeKind nodeKind = NodeKind::BinaryOperation;
+  const Op opCode = Op::OpRayQueryGetIntersectionTriangleVertexPositionsKHR;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> rayQuery;
+  NodePointer<NodeId> intersection;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(rayQuery);
+    visitor(intersection);
+  }
+  NodeOpRayQueryGetIntersectionTriangleVertexPositionsKHR() = default;
+  ~NodeOpRayQueryGetIntersectionTriangleVertexPositionsKHR() = default;
+  NodeOpRayQueryGetIntersectionTriangleVertexPositionsKHR(const NodeOpRayQueryGetIntersectionTriangleVertexPositionsKHR &) = delete;
+  NodeOpRayQueryGetIntersectionTriangleVertexPositionsKHR &operator=(
+    const NodeOpRayQueryGetIntersectionTriangleVertexPositionsKHR &) = delete;
+  NodeOpRayQueryGetIntersectionTriangleVertexPositionsKHR(NodeOpRayQueryGetIntersectionTriangleVertexPositionsKHR &&) = delete;
+  NodeOpRayQueryGetIntersectionTriangleVertexPositionsKHR &operator=(
+    NodeOpRayQueryGetIntersectionTriangleVertexPositionsKHR &&) = delete;
+  NodeOpRayQueryGetIntersectionTriangleVertexPositionsKHR(Id id_result, NodePointer<NodeTypedef> id_result_type,
+    NodePointer<NodeId> ray_query, NodePointer<NodeId> intersection)
   {
     this->resultId = id_result;
     this->resultType = id_result_type;
@@ -12333,6 +14728,10 @@ inline bool NodeBinaryOperation::visit(NodeBinaryOperation *node, T visitor)
         if (visitor(reinterpret_cast<NodeOpCompositeInsert *>(node)))
           return true;
         break;
+      case Op::OpCooperativeMatrixLoadKHR:
+        if (visitor(reinterpret_cast<NodeOpCooperativeMatrixLoadKHR *>(node)))
+          return true;
+        break;
       case Op::OpDot:
         if (visitor(reinterpret_cast<NodeOpDot *>(node)))
           return true;
@@ -12603,6 +15002,10 @@ inline bool NodeBinaryOperation::visit(NodeBinaryOperation *node, T visitor)
         break;
       case Op::OpRayQueryGetIntersectionTKHR:
         if (visitor(reinterpret_cast<NodeOpRayQueryGetIntersectionTKHR *>(node)))
+          return true;
+        break;
+      case Op::OpRayQueryGetIntersectionTriangleVertexPositionsKHR:
+        if (visitor(reinterpret_cast<NodeOpRayQueryGetIntersectionTriangleVertexPositionsKHR *>(node)))
           return true;
         break;
       case Op::OpRayQueryGetIntersectionTypeKHR:
@@ -12955,6 +15358,14 @@ inline bool NodeBinaryOperation::visit(NodeBinaryOperation *node, T visitor)
                 break;
             }
             break;
+          case ExtendedGrammar::AMD_shader_explicit_vertex_parameter: // only one instruction for this grammar
+            if (static_cast<AMDShaderExplicitVertexParameter>(node->extOpCode) ==
+                AMDShaderExplicitVertexParameter::InterpolateAtVertexAMD)
+            {
+              if (visitor(reinterpret_cast<NodeOpAMDShaderExplicitVertexParameterInterpolateAtVertex *>(node)))
+                return true;
+            }
+            break;
           case ExtendedGrammar::AMD_shader_ballot:
             switch (static_cast<AMDShaderBallot>(node->extOpCode))
             {
@@ -12967,14 +15378,6 @@ inline bool NodeBinaryOperation::visit(NodeBinaryOperation *node, T visitor)
                 if (visitor(reinterpret_cast<NodeOpAMDShaderBallotSwizzleInvocationsMasked *>(node)))
                   return true;
                 break;
-            }
-            break;
-          case ExtendedGrammar::AMD_shader_explicit_vertex_parameter: // only one instruction for this grammar
-            if (static_cast<AMDShaderExplicitVertexParameter>(node->extOpCode) ==
-                AMDShaderExplicitVertexParameter::InterpolateAtVertexAMD)
-            {
-              if (visitor(reinterpret_cast<NodeOpAMDShaderExplicitVertexParameterInterpolateAtVertex *>(node)))
-                return true;
             }
             break;
         }
@@ -13051,6 +15454,37 @@ struct NodeOpConstantFalse
   {
     this->resultId = id_result;
     this->resultType = id_result_type;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpConstantFunctionPointerINTEL
+{
+  const NodeKind nodeKind = NodeKind::Constant;
+  const Op opCode = Op::OpConstantFunctionPointerINTEL;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> function;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(function);
+  }
+  NodeOpConstantFunctionPointerINTEL() = default;
+  ~NodeOpConstantFunctionPointerINTEL() = default;
+  NodeOpConstantFunctionPointerINTEL(const NodeOpConstantFunctionPointerINTEL &) = delete;
+  NodeOpConstantFunctionPointerINTEL &operator=(const NodeOpConstantFunctionPointerINTEL &) = delete;
+  NodeOpConstantFunctionPointerINTEL(NodeOpConstantFunctionPointerINTEL &&) = delete;
+  NodeOpConstantFunctionPointerINTEL &operator=(NodeOpConstantFunctionPointerINTEL &&) = delete;
+  NodeOpConstantFunctionPointerINTEL(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> function)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->function = function;
   }
   template <typename T>
   static constexpr bool is(const T *value);
@@ -13189,12 +15623,59 @@ struct NodeOpConstantComposite
   template <typename T>
   static constexpr bool is(const T *value);
 };
+struct NodeOpConstantCompositeReplicateEXT
+{
+  const NodeKind nodeKind = NodeKind::ConstantComposite;
+  const Op opCode = Op::OpConstantCompositeReplicateEXT;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> value;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(value);
+  }
+  NodeOpConstantCompositeReplicateEXT() = default;
+  ~NodeOpConstantCompositeReplicateEXT() = default;
+  NodeOpConstantCompositeReplicateEXT(const NodeOpConstantCompositeReplicateEXT &) = delete;
+  NodeOpConstantCompositeReplicateEXT &operator=(const NodeOpConstantCompositeReplicateEXT &) = delete;
+  NodeOpConstantCompositeReplicateEXT(NodeOpConstantCompositeReplicateEXT &&) = delete;
+  NodeOpConstantCompositeReplicateEXT &operator=(NodeOpConstantCompositeReplicateEXT &&) = delete;
+  NodeOpConstantCompositeReplicateEXT(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> value)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->value = value;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
 template <typename T>
 inline bool NodeConstantComposite::visit(NodeConstantComposite *node, T visitor)
 {
-  // simplified case where this node has no children and only one instruction
-  if (visitor(reinterpret_cast<NodeOpConstantComposite *>(node)))
-    return true;
+  if (node->nodeKind == NodeKind::ConstantComposite)
+  {
+    switch (node->opCode)
+    {
+      default: break;
+      case Op::OpConstantComposite:
+        if (visitor(reinterpret_cast<NodeOpConstantComposite *>(node)))
+          return true;
+        break;
+      case Op::OpConstantCompositeReplicateEXT:
+        if (visitor(reinterpret_cast<NodeOpConstantCompositeReplicateEXT *>(node)))
+          return true;
+        break;
+    }
+  }
+  else
+  {
+    return false;
+  }
   return visitor(node);
 }
 struct NodeConstantSampler : NodeConstant
@@ -13264,6 +15745,10 @@ inline bool NodeConstant::visit(NodeConstant *node, T visitor)
         break;
       case Op::OpConstantFalse:
         if (visitor(reinterpret_cast<NodeOpConstantFalse *>(node)))
+          return true;
+        break;
+      case Op::OpConstantFunctionPointerINTEL:
+        if (visitor(reinterpret_cast<NodeOpConstantFunctionPointerINTEL *>(node)))
           return true;
         break;
       case Op::OpConstantNull:
@@ -16790,6 +19275,98 @@ struct NodeOpEnqueueMarker
   template <typename T>
   static constexpr bool is(const T *value);
 };
+struct NodeOpFetchMicroTriangleVertexBarycentricNV
+{
+  const NodeKind nodeKind = NodeKind::MultinaryOperation;
+  const Op opCode = Op::OpFetchMicroTriangleVertexBarycentricNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  const Id pCount = 5;
+  NodePointer<NodeId> accel;
+  NodePointer<NodeId> instanceId;
+  NodePointer<NodeId> geometryIndex;
+  NodePointer<NodeId> primitiveIndex;
+  NodePointer<NodeId> barycentric;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(accel);
+    visitor(instanceId);
+    visitor(geometryIndex);
+    visitor(primitiveIndex);
+    visitor(barycentric);
+  }
+  NodeOpFetchMicroTriangleVertexBarycentricNV() = default;
+  ~NodeOpFetchMicroTriangleVertexBarycentricNV() = default;
+  NodeOpFetchMicroTriangleVertexBarycentricNV(const NodeOpFetchMicroTriangleVertexBarycentricNV &) = delete;
+  NodeOpFetchMicroTriangleVertexBarycentricNV &operator=(const NodeOpFetchMicroTriangleVertexBarycentricNV &) = delete;
+  NodeOpFetchMicroTriangleVertexBarycentricNV(NodeOpFetchMicroTriangleVertexBarycentricNV &&) = delete;
+  NodeOpFetchMicroTriangleVertexBarycentricNV &operator=(NodeOpFetchMicroTriangleVertexBarycentricNV &&) = delete;
+  NodeOpFetchMicroTriangleVertexBarycentricNV(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> accel,
+    NodePointer<NodeId> instance_id, NodePointer<NodeId> geometry_index, NodePointer<NodeId> primitive_index,
+    NodePointer<NodeId> barycentric)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->accel = accel;
+    this->instanceId = instance_id;
+    this->geometryIndex = geometry_index;
+    this->primitiveIndex = primitive_index;
+    this->barycentric = barycentric;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpFetchMicroTriangleVertexPositionNV
+{
+  const NodeKind nodeKind = NodeKind::MultinaryOperation;
+  const Op opCode = Op::OpFetchMicroTriangleVertexPositionNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  const Id pCount = 5;
+  NodePointer<NodeId> accel;
+  NodePointer<NodeId> instanceId;
+  NodePointer<NodeId> geometryIndex;
+  NodePointer<NodeId> primitiveIndex;
+  NodePointer<NodeId> barycentric;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(accel);
+    visitor(instanceId);
+    visitor(geometryIndex);
+    visitor(primitiveIndex);
+    visitor(barycentric);
+  }
+  NodeOpFetchMicroTriangleVertexPositionNV() = default;
+  ~NodeOpFetchMicroTriangleVertexPositionNV() = default;
+  NodeOpFetchMicroTriangleVertexPositionNV(const NodeOpFetchMicroTriangleVertexPositionNV &) = delete;
+  NodeOpFetchMicroTriangleVertexPositionNV &operator=(const NodeOpFetchMicroTriangleVertexPositionNV &) = delete;
+  NodeOpFetchMicroTriangleVertexPositionNV(NodeOpFetchMicroTriangleVertexPositionNV &&) = delete;
+  NodeOpFetchMicroTriangleVertexPositionNV &operator=(NodeOpFetchMicroTriangleVertexPositionNV &&) = delete;
+  NodeOpFetchMicroTriangleVertexPositionNV(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> accel,
+    NodePointer<NodeId> instance_id, NodePointer<NodeId> geometry_index, NodePointer<NodeId> primitive_index,
+    NodePointer<NodeId> barycentric)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->accel = accel;
+    this->instanceId = instance_id;
+    this->geometryIndex = geometry_index;
+    this->primitiveIndex = primitive_index;
+    this->barycentric = barycentric;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
 struct NodeOpGetKernelLocalSizeForSubgroupCount
 {
   const NodeKind nodeKind = NodeKind::MultinaryOperation;
@@ -17047,6 +19624,327 @@ struct NodeOpGetKernelWorkGroupSize
     this->param = param;
     this->paramSize = param_size;
     this->paramAlign = param_align;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpImageBlockMatchGatherSADQCOM
+{
+  const NodeKind nodeKind = NodeKind::MultinaryOperation;
+  const Op opCode = Op::OpImageBlockMatchGatherSADQCOM;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  const Id pCount = 5;
+  NodePointer<NodeId> targetSampledImage;
+  NodePointer<NodeId> targetCoordinates;
+  NodePointer<NodeId> referenceSampledImage;
+  NodePointer<NodeId> referenceCoordinates;
+  NodePointer<NodeId> blockSize;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(targetSampledImage);
+    visitor(targetCoordinates);
+    visitor(referenceSampledImage);
+    visitor(referenceCoordinates);
+    visitor(blockSize);
+  }
+  NodeOpImageBlockMatchGatherSADQCOM() = default;
+  ~NodeOpImageBlockMatchGatherSADQCOM() = default;
+  NodeOpImageBlockMatchGatherSADQCOM(const NodeOpImageBlockMatchGatherSADQCOM &) = delete;
+  NodeOpImageBlockMatchGatherSADQCOM &operator=(const NodeOpImageBlockMatchGatherSADQCOM &) = delete;
+  NodeOpImageBlockMatchGatherSADQCOM(NodeOpImageBlockMatchGatherSADQCOM &&) = delete;
+  NodeOpImageBlockMatchGatherSADQCOM &operator=(NodeOpImageBlockMatchGatherSADQCOM &&) = delete;
+  NodeOpImageBlockMatchGatherSADQCOM(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> target_sampled_image,
+    NodePointer<NodeId> target_coordinates, NodePointer<NodeId> reference_sampled_image, NodePointer<NodeId> reference_coordinates,
+    NodePointer<NodeId> block_size)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->targetSampledImage = target_sampled_image;
+    this->targetCoordinates = target_coordinates;
+    this->referenceSampledImage = reference_sampled_image;
+    this->referenceCoordinates = reference_coordinates;
+    this->blockSize = block_size;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpImageBlockMatchGatherSSDQCOM
+{
+  const NodeKind nodeKind = NodeKind::MultinaryOperation;
+  const Op opCode = Op::OpImageBlockMatchGatherSSDQCOM;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  const Id pCount = 5;
+  NodePointer<NodeId> targetSampledImage;
+  NodePointer<NodeId> targetCoordinates;
+  NodePointer<NodeId> referenceSampledImage;
+  NodePointer<NodeId> referenceCoordinates;
+  NodePointer<NodeId> blockSize;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(targetSampledImage);
+    visitor(targetCoordinates);
+    visitor(referenceSampledImage);
+    visitor(referenceCoordinates);
+    visitor(blockSize);
+  }
+  NodeOpImageBlockMatchGatherSSDQCOM() = default;
+  ~NodeOpImageBlockMatchGatherSSDQCOM() = default;
+  NodeOpImageBlockMatchGatherSSDQCOM(const NodeOpImageBlockMatchGatherSSDQCOM &) = delete;
+  NodeOpImageBlockMatchGatherSSDQCOM &operator=(const NodeOpImageBlockMatchGatherSSDQCOM &) = delete;
+  NodeOpImageBlockMatchGatherSSDQCOM(NodeOpImageBlockMatchGatherSSDQCOM &&) = delete;
+  NodeOpImageBlockMatchGatherSSDQCOM &operator=(NodeOpImageBlockMatchGatherSSDQCOM &&) = delete;
+  NodeOpImageBlockMatchGatherSSDQCOM(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> target_sampled_image,
+    NodePointer<NodeId> target_coordinates, NodePointer<NodeId> reference_sampled_image, NodePointer<NodeId> reference_coordinates,
+    NodePointer<NodeId> block_size)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->targetSampledImage = target_sampled_image;
+    this->targetCoordinates = target_coordinates;
+    this->referenceSampledImage = reference_sampled_image;
+    this->referenceCoordinates = reference_coordinates;
+    this->blockSize = block_size;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpImageBlockMatchSADQCOM
+{
+  const NodeKind nodeKind = NodeKind::MultinaryOperation;
+  const Op opCode = Op::OpImageBlockMatchSADQCOM;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  const Id pCount = 5;
+  NodePointer<NodeId> target;
+  NodePointer<NodeId> targetCoordinates;
+  NodePointer<NodeId> reference;
+  NodePointer<NodeId> referenceCoordinates;
+  NodePointer<NodeId> blockSize;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(target);
+    visitor(targetCoordinates);
+    visitor(reference);
+    visitor(referenceCoordinates);
+    visitor(blockSize);
+  }
+  NodeOpImageBlockMatchSADQCOM() = default;
+  ~NodeOpImageBlockMatchSADQCOM() = default;
+  NodeOpImageBlockMatchSADQCOM(const NodeOpImageBlockMatchSADQCOM &) = delete;
+  NodeOpImageBlockMatchSADQCOM &operator=(const NodeOpImageBlockMatchSADQCOM &) = delete;
+  NodeOpImageBlockMatchSADQCOM(NodeOpImageBlockMatchSADQCOM &&) = delete;
+  NodeOpImageBlockMatchSADQCOM &operator=(NodeOpImageBlockMatchSADQCOM &&) = delete;
+  NodeOpImageBlockMatchSADQCOM(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> target,
+    NodePointer<NodeId> target_coordinates, NodePointer<NodeId> reference, NodePointer<NodeId> reference_coordinates,
+    NodePointer<NodeId> block_size)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->target = target;
+    this->targetCoordinates = target_coordinates;
+    this->reference = reference;
+    this->referenceCoordinates = reference_coordinates;
+    this->blockSize = block_size;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpImageBlockMatchSSDQCOM
+{
+  const NodeKind nodeKind = NodeKind::MultinaryOperation;
+  const Op opCode = Op::OpImageBlockMatchSSDQCOM;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  const Id pCount = 5;
+  NodePointer<NodeId> target;
+  NodePointer<NodeId> targetCoordinates;
+  NodePointer<NodeId> reference;
+  NodePointer<NodeId> referenceCoordinates;
+  NodePointer<NodeId> blockSize;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(target);
+    visitor(targetCoordinates);
+    visitor(reference);
+    visitor(referenceCoordinates);
+    visitor(blockSize);
+  }
+  NodeOpImageBlockMatchSSDQCOM() = default;
+  ~NodeOpImageBlockMatchSSDQCOM() = default;
+  NodeOpImageBlockMatchSSDQCOM(const NodeOpImageBlockMatchSSDQCOM &) = delete;
+  NodeOpImageBlockMatchSSDQCOM &operator=(const NodeOpImageBlockMatchSSDQCOM &) = delete;
+  NodeOpImageBlockMatchSSDQCOM(NodeOpImageBlockMatchSSDQCOM &&) = delete;
+  NodeOpImageBlockMatchSSDQCOM &operator=(NodeOpImageBlockMatchSSDQCOM &&) = delete;
+  NodeOpImageBlockMatchSSDQCOM(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> target,
+    NodePointer<NodeId> target_coordinates, NodePointer<NodeId> reference, NodePointer<NodeId> reference_coordinates,
+    NodePointer<NodeId> block_size)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->target = target;
+    this->targetCoordinates = target_coordinates;
+    this->reference = reference;
+    this->referenceCoordinates = reference_coordinates;
+    this->blockSize = block_size;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpImageBlockMatchWindowSADQCOM
+{
+  const NodeKind nodeKind = NodeKind::MultinaryOperation;
+  const Op opCode = Op::OpImageBlockMatchWindowSADQCOM;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  const Id pCount = 5;
+  NodePointer<NodeId> targetSampledImage;
+  NodePointer<NodeId> targetCoordinates;
+  NodePointer<NodeId> referenceSampledImage;
+  NodePointer<NodeId> referenceCoordinates;
+  NodePointer<NodeId> blockSize;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(targetSampledImage);
+    visitor(targetCoordinates);
+    visitor(referenceSampledImage);
+    visitor(referenceCoordinates);
+    visitor(blockSize);
+  }
+  NodeOpImageBlockMatchWindowSADQCOM() = default;
+  ~NodeOpImageBlockMatchWindowSADQCOM() = default;
+  NodeOpImageBlockMatchWindowSADQCOM(const NodeOpImageBlockMatchWindowSADQCOM &) = delete;
+  NodeOpImageBlockMatchWindowSADQCOM &operator=(const NodeOpImageBlockMatchWindowSADQCOM &) = delete;
+  NodeOpImageBlockMatchWindowSADQCOM(NodeOpImageBlockMatchWindowSADQCOM &&) = delete;
+  NodeOpImageBlockMatchWindowSADQCOM &operator=(NodeOpImageBlockMatchWindowSADQCOM &&) = delete;
+  NodeOpImageBlockMatchWindowSADQCOM(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> target_sampled_image,
+    NodePointer<NodeId> target_coordinates, NodePointer<NodeId> reference_sampled_image, NodePointer<NodeId> reference_coordinates,
+    NodePointer<NodeId> block_size)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->targetSampledImage = target_sampled_image;
+    this->targetCoordinates = target_coordinates;
+    this->referenceSampledImage = reference_sampled_image;
+    this->referenceCoordinates = reference_coordinates;
+    this->blockSize = block_size;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpImageBlockMatchWindowSSDQCOM
+{
+  const NodeKind nodeKind = NodeKind::MultinaryOperation;
+  const Op opCode = Op::OpImageBlockMatchWindowSSDQCOM;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  const Id pCount = 5;
+  NodePointer<NodeId> targetSampledImage;
+  NodePointer<NodeId> targetCoordinates;
+  NodePointer<NodeId> referenceSampledImage;
+  NodePointer<NodeId> referenceCoordinates;
+  NodePointer<NodeId> blockSize;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(targetSampledImage);
+    visitor(targetCoordinates);
+    visitor(referenceSampledImage);
+    visitor(referenceCoordinates);
+    visitor(blockSize);
+  }
+  NodeOpImageBlockMatchWindowSSDQCOM() = default;
+  ~NodeOpImageBlockMatchWindowSSDQCOM() = default;
+  NodeOpImageBlockMatchWindowSSDQCOM(const NodeOpImageBlockMatchWindowSSDQCOM &) = delete;
+  NodeOpImageBlockMatchWindowSSDQCOM &operator=(const NodeOpImageBlockMatchWindowSSDQCOM &) = delete;
+  NodeOpImageBlockMatchWindowSSDQCOM(NodeOpImageBlockMatchWindowSSDQCOM &&) = delete;
+  NodeOpImageBlockMatchWindowSSDQCOM &operator=(NodeOpImageBlockMatchWindowSSDQCOM &&) = delete;
+  NodeOpImageBlockMatchWindowSSDQCOM(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> target_sampled_image,
+    NodePointer<NodeId> target_coordinates, NodePointer<NodeId> reference_sampled_image, NodePointer<NodeId> reference_coordinates,
+    NodePointer<NodeId> block_size)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->targetSampledImage = target_sampled_image;
+    this->targetCoordinates = target_coordinates;
+    this->referenceSampledImage = reference_sampled_image;
+    this->referenceCoordinates = reference_coordinates;
+    this->blockSize = block_size;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpRawAccessChainNV
+{
+  const NodeKind nodeKind = NodeKind::MultinaryOperation;
+  const Op opCode = Op::OpRawAccessChainNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  const Id pCount = 4;
+  NodePointer<NodeId> base;
+  NodePointer<NodeId> byteStride;
+  NodePointer<NodeId> elementIndex;
+  NodePointer<NodeId> byteOffset;
+  eastl::optional<RawAccessChainOperandsMask> rawAccessChainOperands;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(base);
+    visitor(byteStride);
+    visitor(elementIndex);
+    visitor(byteOffset);
+  }
+  NodeOpRawAccessChainNV() = default;
+  ~NodeOpRawAccessChainNV() = default;
+  NodeOpRawAccessChainNV(const NodeOpRawAccessChainNV &) = delete;
+  NodeOpRawAccessChainNV &operator=(const NodeOpRawAccessChainNV &) = delete;
+  NodeOpRawAccessChainNV(NodeOpRawAccessChainNV &&) = delete;
+  NodeOpRawAccessChainNV &operator=(NodeOpRawAccessChainNV &&) = delete;
+  NodeOpRawAccessChainNV(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> base,
+    NodePointer<NodeId> byte_stride, NodePointer<NodeId> element_index, NodePointer<NodeId> byte_offset,
+    eastl::optional<RawAccessChainOperandsMask> raw_access_chain_operands = {})
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->base = base;
+    this->byteStride = byte_stride;
+    this->elementIndex = element_index;
+    this->byteOffset = byte_offset;
+    this->rawAccessChainOperands = raw_access_chain_operands;
   }
   template <typename T>
   static constexpr bool is(const T *value);
@@ -18246,6 +21144,14 @@ inline bool NodeMultinaryOperation::visit(NodeMultinaryOperation *node, T visito
         if (visitor(reinterpret_cast<NodeOpEnqueueMarker *>(node)))
           return true;
         break;
+      case Op::OpFetchMicroTriangleVertexBarycentricNV:
+        if (visitor(reinterpret_cast<NodeOpFetchMicroTriangleVertexBarycentricNV *>(node)))
+          return true;
+        break;
+      case Op::OpFetchMicroTriangleVertexPositionNV:
+        if (visitor(reinterpret_cast<NodeOpFetchMicroTriangleVertexPositionNV *>(node)))
+          return true;
+        break;
       case Op::OpGetKernelLocalSizeForSubgroupCount:
         if (visitor(reinterpret_cast<NodeOpGetKernelLocalSizeForSubgroupCount *>(node)))
           return true;
@@ -18268,6 +21174,34 @@ inline bool NodeMultinaryOperation::visit(NodeMultinaryOperation *node, T visito
         break;
       case Op::OpGetKernelWorkGroupSize:
         if (visitor(reinterpret_cast<NodeOpGetKernelWorkGroupSize *>(node)))
+          return true;
+        break;
+      case Op::OpImageBlockMatchGatherSADQCOM:
+        if (visitor(reinterpret_cast<NodeOpImageBlockMatchGatherSADQCOM *>(node)))
+          return true;
+        break;
+      case Op::OpImageBlockMatchGatherSSDQCOM:
+        if (visitor(reinterpret_cast<NodeOpImageBlockMatchGatherSSDQCOM *>(node)))
+          return true;
+        break;
+      case Op::OpImageBlockMatchSADQCOM:
+        if (visitor(reinterpret_cast<NodeOpImageBlockMatchSADQCOM *>(node)))
+          return true;
+        break;
+      case Op::OpImageBlockMatchSSDQCOM:
+        if (visitor(reinterpret_cast<NodeOpImageBlockMatchSSDQCOM *>(node)))
+          return true;
+        break;
+      case Op::OpImageBlockMatchWindowSADQCOM:
+        if (visitor(reinterpret_cast<NodeOpImageBlockMatchWindowSADQCOM *>(node)))
+          return true;
+        break;
+      case Op::OpImageBlockMatchWindowSSDQCOM:
+        if (visitor(reinterpret_cast<NodeOpImageBlockMatchWindowSSDQCOM *>(node)))
+          return true;
+        break;
+      case Op::OpRawAccessChainNV:
+        if (visitor(reinterpret_cast<NodeOpRawAccessChainNV *>(node)))
           return true;
         break;
       case Op::OpReadPipe:
@@ -19080,6 +22014,48 @@ struct NodeOpGroupNonUniformQuadSwap
   template <typename T>
   static constexpr bool is(const T *value);
 };
+struct NodeOpGroupNonUniformRotateKHR
+{
+  const NodeKind nodeKind = NodeKind::ScopedOperation;
+  const Op opCode = Op::OpGroupNonUniformRotateKHR;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeOperation> execution;
+  NodePointer<NodeId> value;
+  NodePointer<NodeId> delta;
+  eastl::optional<NodePointer<NodeId>> clusterSize;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(execution);
+    visitor(value);
+    visitor(delta);
+    if (clusterSize)
+      visitor(*clusterSize);
+  }
+  NodeOpGroupNonUniformRotateKHR() = default;
+  ~NodeOpGroupNonUniformRotateKHR() = default;
+  NodeOpGroupNonUniformRotateKHR(const NodeOpGroupNonUniformRotateKHR &) = delete;
+  NodeOpGroupNonUniformRotateKHR &operator=(const NodeOpGroupNonUniformRotateKHR &) = delete;
+  NodeOpGroupNonUniformRotateKHR(NodeOpGroupNonUniformRotateKHR &&) = delete;
+  NodeOpGroupNonUniformRotateKHR &operator=(NodeOpGroupNonUniformRotateKHR &&) = delete;
+  NodeOpGroupNonUniformRotateKHR(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeOperation> execution,
+    NodePointer<NodeId> value, NodePointer<NodeId> delta, eastl::optional<NodePointer<NodeId>> cluster_size = {})
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->execution = execution;
+    this->value = value;
+    this->delta = delta;
+    this->clusterSize = cluster_size;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
 struct NodeOpGroupNonUniformShuffle
 {
   const NodeKind nodeKind = NodeKind::ScopedOperation;
@@ -19363,6 +22339,117 @@ struct NodeGroupedOperation : NodeScopedOperation
   void visitRefs(T)
   {}
 };
+struct NodeOpGroupBitwiseAndKHR
+{
+  const NodeKind nodeKind = NodeKind::GroupedOperation;
+  const Op opCode = Op::OpGroupBitwiseAndKHR;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeOperation> execution;
+  GroupOperation operation;
+  NodePointer<NodeId> x;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(execution);
+    visitor(x);
+  }
+  NodeOpGroupBitwiseAndKHR() = default;
+  ~NodeOpGroupBitwiseAndKHR() = default;
+  NodeOpGroupBitwiseAndKHR(const NodeOpGroupBitwiseAndKHR &) = delete;
+  NodeOpGroupBitwiseAndKHR &operator=(const NodeOpGroupBitwiseAndKHR &) = delete;
+  NodeOpGroupBitwiseAndKHR(NodeOpGroupBitwiseAndKHR &&) = delete;
+  NodeOpGroupBitwiseAndKHR &operator=(NodeOpGroupBitwiseAndKHR &&) = delete;
+  NodeOpGroupBitwiseAndKHR(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeOperation> execution,
+    GroupOperation operation, NodePointer<NodeId> x)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->execution = execution;
+    this->operation = operation;
+    this->x = x;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpGroupBitwiseOrKHR
+{
+  const NodeKind nodeKind = NodeKind::GroupedOperation;
+  const Op opCode = Op::OpGroupBitwiseOrKHR;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeOperation> execution;
+  GroupOperation operation;
+  NodePointer<NodeId> x;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(execution);
+    visitor(x);
+  }
+  NodeOpGroupBitwiseOrKHR() = default;
+  ~NodeOpGroupBitwiseOrKHR() = default;
+  NodeOpGroupBitwiseOrKHR(const NodeOpGroupBitwiseOrKHR &) = delete;
+  NodeOpGroupBitwiseOrKHR &operator=(const NodeOpGroupBitwiseOrKHR &) = delete;
+  NodeOpGroupBitwiseOrKHR(NodeOpGroupBitwiseOrKHR &&) = delete;
+  NodeOpGroupBitwiseOrKHR &operator=(NodeOpGroupBitwiseOrKHR &&) = delete;
+  NodeOpGroupBitwiseOrKHR(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeOperation> execution,
+    GroupOperation operation, NodePointer<NodeId> x)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->execution = execution;
+    this->operation = operation;
+    this->x = x;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpGroupBitwiseXorKHR
+{
+  const NodeKind nodeKind = NodeKind::GroupedOperation;
+  const Op opCode = Op::OpGroupBitwiseXorKHR;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeOperation> execution;
+  GroupOperation operation;
+  NodePointer<NodeId> x;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(execution);
+    visitor(x);
+  }
+  NodeOpGroupBitwiseXorKHR() = default;
+  ~NodeOpGroupBitwiseXorKHR() = default;
+  NodeOpGroupBitwiseXorKHR(const NodeOpGroupBitwiseXorKHR &) = delete;
+  NodeOpGroupBitwiseXorKHR &operator=(const NodeOpGroupBitwiseXorKHR &) = delete;
+  NodeOpGroupBitwiseXorKHR(NodeOpGroupBitwiseXorKHR &&) = delete;
+  NodeOpGroupBitwiseXorKHR &operator=(NodeOpGroupBitwiseXorKHR &&) = delete;
+  NodeOpGroupBitwiseXorKHR(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeOperation> execution,
+    GroupOperation operation, NodePointer<NodeId> x)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->execution = execution;
+    this->operation = operation;
+    this->x = x;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
 struct NodeOpGroupFAdd
 {
   const NodeKind nodeKind = NodeKind::GroupedOperation;
@@ -19585,6 +22672,43 @@ struct NodeOpGroupFMinNonUniformAMD
   template <typename T>
   static constexpr bool is(const T *value);
 };
+struct NodeOpGroupFMulKHR
+{
+  const NodeKind nodeKind = NodeKind::GroupedOperation;
+  const Op opCode = Op::OpGroupFMulKHR;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeOperation> execution;
+  GroupOperation operation;
+  NodePointer<NodeId> x;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(execution);
+    visitor(x);
+  }
+  NodeOpGroupFMulKHR() = default;
+  ~NodeOpGroupFMulKHR() = default;
+  NodeOpGroupFMulKHR(const NodeOpGroupFMulKHR &) = delete;
+  NodeOpGroupFMulKHR &operator=(const NodeOpGroupFMulKHR &) = delete;
+  NodeOpGroupFMulKHR(NodeOpGroupFMulKHR &&) = delete;
+  NodeOpGroupFMulKHR &operator=(NodeOpGroupFMulKHR &&) = delete;
+  NodeOpGroupFMulKHR(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeOperation> execution,
+    GroupOperation operation, NodePointer<NodeId> x)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->execution = execution;
+    this->operation = operation;
+    this->x = x;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
 struct NodeOpGroupIAdd
 {
   const NodeKind nodeKind = NodeKind::GroupedOperation;
@@ -19648,6 +22772,154 @@ struct NodeOpGroupIAddNonUniformAMD
   NodeOpGroupIAddNonUniformAMD(NodeOpGroupIAddNonUniformAMD &&) = delete;
   NodeOpGroupIAddNonUniformAMD &operator=(NodeOpGroupIAddNonUniformAMD &&) = delete;
   NodeOpGroupIAddNonUniformAMD(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeOperation> execution,
+    GroupOperation operation, NodePointer<NodeId> x)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->execution = execution;
+    this->operation = operation;
+    this->x = x;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpGroupIMulKHR
+{
+  const NodeKind nodeKind = NodeKind::GroupedOperation;
+  const Op opCode = Op::OpGroupIMulKHR;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeOperation> execution;
+  GroupOperation operation;
+  NodePointer<NodeId> x;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(execution);
+    visitor(x);
+  }
+  NodeOpGroupIMulKHR() = default;
+  ~NodeOpGroupIMulKHR() = default;
+  NodeOpGroupIMulKHR(const NodeOpGroupIMulKHR &) = delete;
+  NodeOpGroupIMulKHR &operator=(const NodeOpGroupIMulKHR &) = delete;
+  NodeOpGroupIMulKHR(NodeOpGroupIMulKHR &&) = delete;
+  NodeOpGroupIMulKHR &operator=(NodeOpGroupIMulKHR &&) = delete;
+  NodeOpGroupIMulKHR(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeOperation> execution,
+    GroupOperation operation, NodePointer<NodeId> x)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->execution = execution;
+    this->operation = operation;
+    this->x = x;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpGroupLogicalAndKHR
+{
+  const NodeKind nodeKind = NodeKind::GroupedOperation;
+  const Op opCode = Op::OpGroupLogicalAndKHR;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeOperation> execution;
+  GroupOperation operation;
+  NodePointer<NodeId> x;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(execution);
+    visitor(x);
+  }
+  NodeOpGroupLogicalAndKHR() = default;
+  ~NodeOpGroupLogicalAndKHR() = default;
+  NodeOpGroupLogicalAndKHR(const NodeOpGroupLogicalAndKHR &) = delete;
+  NodeOpGroupLogicalAndKHR &operator=(const NodeOpGroupLogicalAndKHR &) = delete;
+  NodeOpGroupLogicalAndKHR(NodeOpGroupLogicalAndKHR &&) = delete;
+  NodeOpGroupLogicalAndKHR &operator=(NodeOpGroupLogicalAndKHR &&) = delete;
+  NodeOpGroupLogicalAndKHR(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeOperation> execution,
+    GroupOperation operation, NodePointer<NodeId> x)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->execution = execution;
+    this->operation = operation;
+    this->x = x;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpGroupLogicalOrKHR
+{
+  const NodeKind nodeKind = NodeKind::GroupedOperation;
+  const Op opCode = Op::OpGroupLogicalOrKHR;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeOperation> execution;
+  GroupOperation operation;
+  NodePointer<NodeId> x;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(execution);
+    visitor(x);
+  }
+  NodeOpGroupLogicalOrKHR() = default;
+  ~NodeOpGroupLogicalOrKHR() = default;
+  NodeOpGroupLogicalOrKHR(const NodeOpGroupLogicalOrKHR &) = delete;
+  NodeOpGroupLogicalOrKHR &operator=(const NodeOpGroupLogicalOrKHR &) = delete;
+  NodeOpGroupLogicalOrKHR(NodeOpGroupLogicalOrKHR &&) = delete;
+  NodeOpGroupLogicalOrKHR &operator=(NodeOpGroupLogicalOrKHR &&) = delete;
+  NodeOpGroupLogicalOrKHR(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeOperation> execution,
+    GroupOperation operation, NodePointer<NodeId> x)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->execution = execution;
+    this->operation = operation;
+    this->x = x;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpGroupLogicalXorKHR
+{
+  const NodeKind nodeKind = NodeKind::GroupedOperation;
+  const Op opCode = Op::OpGroupLogicalXorKHR;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeOperation> execution;
+  GroupOperation operation;
+  NodePointer<NodeId> x;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(execution);
+    visitor(x);
+  }
+  NodeOpGroupLogicalXorKHR() = default;
+  ~NodeOpGroupLogicalXorKHR() = default;
+  NodeOpGroupLogicalXorKHR(const NodeOpGroupLogicalXorKHR &) = delete;
+  NodeOpGroupLogicalXorKHR &operator=(const NodeOpGroupLogicalXorKHR &) = delete;
+  NodeOpGroupLogicalXorKHR(NodeOpGroupLogicalXorKHR &&) = delete;
+  NodeOpGroupLogicalXorKHR &operator=(NodeOpGroupLogicalXorKHR &&) = delete;
+  NodeOpGroupLogicalXorKHR(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeOperation> execution,
     GroupOperation operation, NodePointer<NodeId> x)
   {
     this->resultId = id_result;
@@ -20656,6 +23928,18 @@ inline bool NodeGroupedOperation::visit(NodeGroupedOperation *node, T visitor)
     switch (node->opCode)
     {
       default: break;
+      case Op::OpGroupBitwiseAndKHR:
+        if (visitor(reinterpret_cast<NodeOpGroupBitwiseAndKHR *>(node)))
+          return true;
+        break;
+      case Op::OpGroupBitwiseOrKHR:
+        if (visitor(reinterpret_cast<NodeOpGroupBitwiseOrKHR *>(node)))
+          return true;
+        break;
+      case Op::OpGroupBitwiseXorKHR:
+        if (visitor(reinterpret_cast<NodeOpGroupBitwiseXorKHR *>(node)))
+          return true;
+        break;
       case Op::OpGroupFAdd:
         if (visitor(reinterpret_cast<NodeOpGroupFAdd *>(node)))
           return true;
@@ -20680,12 +23964,32 @@ inline bool NodeGroupedOperation::visit(NodeGroupedOperation *node, T visitor)
         if (visitor(reinterpret_cast<NodeOpGroupFMinNonUniformAMD *>(node)))
           return true;
         break;
+      case Op::OpGroupFMulKHR:
+        if (visitor(reinterpret_cast<NodeOpGroupFMulKHR *>(node)))
+          return true;
+        break;
       case Op::OpGroupIAdd:
         if (visitor(reinterpret_cast<NodeOpGroupIAdd *>(node)))
           return true;
         break;
       case Op::OpGroupIAddNonUniformAMD:
         if (visitor(reinterpret_cast<NodeOpGroupIAddNonUniformAMD *>(node)))
+          return true;
+        break;
+      case Op::OpGroupIMulKHR:
+        if (visitor(reinterpret_cast<NodeOpGroupIMulKHR *>(node)))
+          return true;
+        break;
+      case Op::OpGroupLogicalAndKHR:
+        if (visitor(reinterpret_cast<NodeOpGroupLogicalAndKHR *>(node)))
+          return true;
+        break;
+      case Op::OpGroupLogicalOrKHR:
+        if (visitor(reinterpret_cast<NodeOpGroupLogicalOrKHR *>(node)))
+          return true;
+        break;
+      case Op::OpGroupLogicalXorKHR:
+        if (visitor(reinterpret_cast<NodeOpGroupLogicalXorKHR *>(node)))
           return true;
         break;
       case Op::OpGroupNonUniformBallotBitCount:
@@ -20872,6 +24176,10 @@ inline bool NodeScopedOperation::visit(NodeScopedOperation *node, T visitor)
         if (visitor(reinterpret_cast<NodeOpGroupNonUniformQuadSwap *>(node)))
           return true;
         break;
+      case Op::OpGroupNonUniformRotateKHR:
+        if (visitor(reinterpret_cast<NodeOpGroupNonUniformRotateKHR *>(node)))
+          return true;
+        break;
       case Op::OpGroupNonUniformShuffle:
         if (visitor(reinterpret_cast<NodeOpGroupNonUniformShuffle *>(node)))
           return true;
@@ -21055,12 +24363,59 @@ struct NodeOpSpecConstantComposite
   template <typename T>
   static constexpr bool is(const T *value);
 };
+struct NodeOpSpecConstantCompositeReplicateEXT
+{
+  const NodeKind nodeKind = NodeKind::SpecConstantComposite;
+  const Op opCode = Op::OpSpecConstantCompositeReplicateEXT;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> value;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(value);
+  }
+  NodeOpSpecConstantCompositeReplicateEXT() = default;
+  ~NodeOpSpecConstantCompositeReplicateEXT() = default;
+  NodeOpSpecConstantCompositeReplicateEXT(const NodeOpSpecConstantCompositeReplicateEXT &) = delete;
+  NodeOpSpecConstantCompositeReplicateEXT &operator=(const NodeOpSpecConstantCompositeReplicateEXT &) = delete;
+  NodeOpSpecConstantCompositeReplicateEXT(NodeOpSpecConstantCompositeReplicateEXT &&) = delete;
+  NodeOpSpecConstantCompositeReplicateEXT &operator=(NodeOpSpecConstantCompositeReplicateEXT &&) = delete;
+  NodeOpSpecConstantCompositeReplicateEXT(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> value)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->value = value;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
 template <typename T>
 inline bool NodeSpecConstantComposite::visit(NodeSpecConstantComposite *node, T visitor)
 {
-  // simplified case where this node has no children and only one instruction
-  if (visitor(reinterpret_cast<NodeOpSpecConstantComposite *>(node)))
-    return true;
+  if (node->nodeKind == NodeKind::SpecConstantComposite)
+  {
+    switch (node->opCode)
+    {
+      default: break;
+      case Op::OpSpecConstantComposite:
+        if (visitor(reinterpret_cast<NodeOpSpecConstantComposite *>(node)))
+          return true;
+        break;
+      case Op::OpSpecConstantCompositeReplicateEXT:
+        if (visitor(reinterpret_cast<NodeOpSpecConstantCompositeReplicateEXT *>(node)))
+          return true;
+        break;
+    }
+  }
+  else
+  {
+    return false;
+  }
   return visitor(node);
 }
 struct NodeSpecConstantOperation : NodeSpecConstant
@@ -21641,6 +24996,8 @@ struct NodeOpCooperativeMatrixLoadNV
   NodePointer<NodeOperation> memoryAccessMakePointerAvailableKHR;
   NodePointer<NodeOperation> memoryAccessMakePointerVisible;
   NodePointer<NodeOperation> memoryAccessMakePointerVisibleKHR;
+  NodePointer<NodeId> memoryAccessAliasScopeINTELMask;
+  NodePointer<NodeId> memoryAccessNoAliasINTELMask;
   template <typename T>
   void visitRefs(T visitor)
   {
@@ -21656,6 +25013,10 @@ struct NodeOpCooperativeMatrixLoadNV
       visitor(memoryAccessMakePointerVisible);
     if (memoryAccessMakePointerVisibleKHR)
       visitor(memoryAccessMakePointerVisibleKHR);
+    if (memoryAccessAliasScopeINTELMask)
+      visitor(memoryAccessAliasScopeINTELMask);
+    if (memoryAccessNoAliasINTELMask)
+      visitor(memoryAccessNoAliasINTELMask);
   }
   NodeOpCooperativeMatrixLoadNV() = default;
   ~NodeOpCooperativeMatrixLoadNV() = default;
@@ -21668,7 +25029,8 @@ struct NodeOpCooperativeMatrixLoadNV
     eastl::optional<LiteralInteger> memory_access_aligned = {}, NodePointer<NodeOperation> memory_access_makePointerAvailable = {},
     NodePointer<NodeOperation> memory_access_makePointerAvailableKHR = {},
     NodePointer<NodeOperation> memory_access_makePointerVisible = {},
-    NodePointer<NodeOperation> memory_access_makePointerVisibleKHR = {})
+    NodePointer<NodeOperation> memory_access_makePointerVisibleKHR = {}, NodePointer<NodeId> memory_access_aliasScopeINTELMask = {},
+    NodePointer<NodeId> memory_access_noAliasINTELMask = {})
   {
     this->resultId = id_result;
     this->resultType = id_result_type;
@@ -21682,6 +25044,48 @@ struct NodeOpCooperativeMatrixLoadNV
     this->memoryAccessMakePointerAvailableKHR = memory_access_makePointerAvailableKHR;
     this->memoryAccessMakePointerVisible = memory_access_makePointerVisible;
     this->memoryAccessMakePointerVisibleKHR = memory_access_makePointerVisibleKHR;
+    this->memoryAccessAliasScopeINTELMask = memory_access_aliasScopeINTELMask;
+    this->memoryAccessNoAliasINTELMask = memory_access_noAliasINTELMask;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpCooperativeMatrixMulAddKHR
+{
+  const NodeKind nodeKind = NodeKind::TrinaryOperation;
+  const Op opCode = Op::OpCooperativeMatrixMulAddKHR;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> a;
+  NodePointer<NodeId> b;
+  NodePointer<NodeId> c;
+  eastl::optional<CooperativeMatrixOperandsMask> cooperativeMatrixOperands;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(a);
+    visitor(b);
+    visitor(c);
+  }
+  NodeOpCooperativeMatrixMulAddKHR() = default;
+  ~NodeOpCooperativeMatrixMulAddKHR() = default;
+  NodeOpCooperativeMatrixMulAddKHR(const NodeOpCooperativeMatrixMulAddKHR &) = delete;
+  NodeOpCooperativeMatrixMulAddKHR &operator=(const NodeOpCooperativeMatrixMulAddKHR &) = delete;
+  NodeOpCooperativeMatrixMulAddKHR(NodeOpCooperativeMatrixMulAddKHR &&) = delete;
+  NodeOpCooperativeMatrixMulAddKHR &operator=(NodeOpCooperativeMatrixMulAddKHR &&) = delete;
+  NodeOpCooperativeMatrixMulAddKHR(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> a, NodePointer<NodeId> b,
+    NodePointer<NodeId> c, eastl::optional<CooperativeMatrixOperandsMask> cooperative_matrix_operands = {})
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->a = a;
+    this->b = b;
+    this->c = c;
+    this->cooperativeMatrixOperands = cooperative_matrix_operands;
   }
   template <typename T>
   static constexpr bool is(const T *value);
@@ -21796,6 +25200,82 @@ struct NodeOpGetNumPipePackets
     this->pipe = pipe;
     this->packetSize = packet_size;
     this->packetAlignment = packet_alignment;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpImageBoxFilterQCOM
+{
+  const NodeKind nodeKind = NodeKind::TrinaryOperation;
+  const Op opCode = Op::OpImageBoxFilterQCOM;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> texture;
+  NodePointer<NodeId> coordinates;
+  NodePointer<NodeId> boxSize;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(texture);
+    visitor(coordinates);
+    visitor(boxSize);
+  }
+  NodeOpImageBoxFilterQCOM() = default;
+  ~NodeOpImageBoxFilterQCOM() = default;
+  NodeOpImageBoxFilterQCOM(const NodeOpImageBoxFilterQCOM &) = delete;
+  NodeOpImageBoxFilterQCOM &operator=(const NodeOpImageBoxFilterQCOM &) = delete;
+  NodeOpImageBoxFilterQCOM(NodeOpImageBoxFilterQCOM &&) = delete;
+  NodeOpImageBoxFilterQCOM &operator=(NodeOpImageBoxFilterQCOM &&) = delete;
+  NodeOpImageBoxFilterQCOM(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> texture,
+    NodePointer<NodeId> coordinates, NodePointer<NodeId> box_size)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->texture = texture;
+    this->coordinates = coordinates;
+    this->boxSize = box_size;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpImageSampleWeightedQCOM
+{
+  const NodeKind nodeKind = NodeKind::TrinaryOperation;
+  const Op opCode = Op::OpImageSampleWeightedQCOM;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> texture;
+  NodePointer<NodeId> coordinates;
+  NodePointer<NodeId> weights;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(texture);
+    visitor(coordinates);
+    visitor(weights);
+  }
+  NodeOpImageSampleWeightedQCOM() = default;
+  ~NodeOpImageSampleWeightedQCOM() = default;
+  NodeOpImageSampleWeightedQCOM(const NodeOpImageSampleWeightedQCOM &) = delete;
+  NodeOpImageSampleWeightedQCOM &operator=(const NodeOpImageSampleWeightedQCOM &) = delete;
+  NodeOpImageSampleWeightedQCOM(NodeOpImageSampleWeightedQCOM &&) = delete;
+  NodeOpImageSampleWeightedQCOM &operator=(NodeOpImageSampleWeightedQCOM &&) = delete;
+  NodeOpImageSampleWeightedQCOM(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> texture,
+    NodePointer<NodeId> coordinates, NodePointer<NodeId> weights)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->texture = texture;
+    this->coordinates = coordinates;
+    this->weights = weights;
   }
   template <typename T>
   static constexpr bool is(const T *value);
@@ -23157,6 +26637,10 @@ inline bool NodeTrinaryOperation::visit(NodeTrinaryOperation *node, T visitor)
         if (visitor(reinterpret_cast<NodeOpCooperativeMatrixLoadNV *>(node)))
           return true;
         break;
+      case Op::OpCooperativeMatrixMulAddKHR:
+        if (visitor(reinterpret_cast<NodeOpCooperativeMatrixMulAddKHR *>(node)))
+          return true;
+        break;
       case Op::OpCooperativeMatrixMulAddNV:
         if (visitor(reinterpret_cast<NodeOpCooperativeMatrixMulAddNV *>(node)))
           return true;
@@ -23167,6 +26651,14 @@ inline bool NodeTrinaryOperation::visit(NodeTrinaryOperation *node, T visitor)
         break;
       case Op::OpGetNumPipePackets:
         if (visitor(reinterpret_cast<NodeOpGetNumPipePackets *>(node)))
+          return true;
+        break;
+      case Op::OpImageBoxFilterQCOM:
+        if (visitor(reinterpret_cast<NodeOpImageBoxFilterQCOM *>(node)))
+          return true;
+        break;
+      case Op::OpImageSampleWeightedQCOM:
+        if (visitor(reinterpret_cast<NodeOpImageSampleWeightedQCOM *>(node)))
           return true;
         break;
       case Op::OpSDotAccSat:
@@ -23302,13 +26794,6 @@ inline bool NodeTrinaryOperation::visit(NodeTrinaryOperation *node, T visitor)
                 break;
             }
             break;
-          case ExtendedGrammar::AMD_shader_ballot: // only one instruction for this grammar
-            if (static_cast<AMDShaderBallot>(node->extOpCode) == AMDShaderBallot::WriteInvocationAMD)
-            {
-              if (visitor(reinterpret_cast<NodeOpAMDShaderBallotWriteInvocation *>(node)))
-                return true;
-            }
-            break;
           case ExtendedGrammar::AMD_shader_trinary_minmax:
             switch (static_cast<AMDShaderTrinaryMinmax>(node->extOpCode))
             {
@@ -23349,6 +26834,13 @@ inline bool NodeTrinaryOperation::visit(NodeTrinaryOperation *node, T visitor)
                 if (visitor(reinterpret_cast<NodeOpAMDShaderTrinaryMinmaxUMin3 *>(node)))
                   return true;
                 break;
+            }
+            break;
+          case ExtendedGrammar::AMD_shader_ballot: // only one instruction for this grammar
+            if (static_cast<AMDShaderBallot>(node->extOpCode) == AMDShaderBallot::WriteInvocationAMD)
+            {
+              if (visitor(reinterpret_cast<NodeOpAMDShaderBallotWriteInvocation *>(node)))
+                return true;
             }
             break;
         }
@@ -27130,6 +30622,73 @@ struct NodeOpBitcast
   template <typename T>
   static constexpr bool is(const T *value);
 };
+struct NodeOpColorAttachmentReadEXT
+{
+  const NodeKind nodeKind = NodeKind::UnaryOperation;
+  const Op opCode = Op::OpColorAttachmentReadEXT;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> attachment;
+  eastl::optional<NodePointer<NodeId>> sample;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(attachment);
+    if (sample)
+      visitor(*sample);
+  }
+  NodeOpColorAttachmentReadEXT() = default;
+  ~NodeOpColorAttachmentReadEXT() = default;
+  NodeOpColorAttachmentReadEXT(const NodeOpColorAttachmentReadEXT &) = delete;
+  NodeOpColorAttachmentReadEXT &operator=(const NodeOpColorAttachmentReadEXT &) = delete;
+  NodeOpColorAttachmentReadEXT(NodeOpColorAttachmentReadEXT &&) = delete;
+  NodeOpColorAttachmentReadEXT &operator=(NodeOpColorAttachmentReadEXT &&) = delete;
+  NodeOpColorAttachmentReadEXT(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> attachment,
+    eastl::optional<NodePointer<NodeId>> sample = {})
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->attachment = attachment;
+    this->sample = sample;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpCompositeConstructReplicateEXT
+{
+  const NodeKind nodeKind = NodeKind::UnaryOperation;
+  const Op opCode = Op::OpCompositeConstructReplicateEXT;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> value;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(value);
+  }
+  NodeOpCompositeConstructReplicateEXT() = default;
+  ~NodeOpCompositeConstructReplicateEXT() = default;
+  NodeOpCompositeConstructReplicateEXT(const NodeOpCompositeConstructReplicateEXT &) = delete;
+  NodeOpCompositeConstructReplicateEXT &operator=(const NodeOpCompositeConstructReplicateEXT &) = delete;
+  NodeOpCompositeConstructReplicateEXT(NodeOpCompositeConstructReplicateEXT &&) = delete;
+  NodeOpCompositeConstructReplicateEXT &operator=(NodeOpCompositeConstructReplicateEXT &&) = delete;
+  NodeOpCompositeConstructReplicateEXT(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> value)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->value = value;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
 struct NodeOpCompositeExtract
 {
   const NodeKind nodeKind = NodeKind::UnaryOperation;
@@ -27164,33 +30723,64 @@ struct NodeOpCompositeExtract
   template <typename T>
   static constexpr bool is(const T *value);
 };
-struct NodeOpConstantFunctionPointerINTEL
+struct NodeOpConvertBF16ToFINTEL
 {
   const NodeKind nodeKind = NodeKind::UnaryOperation;
-  const Op opCode = Op::OpConstantFunctionPointerINTEL;
+  const Op opCode = Op::OpConvertBF16ToFINTEL;
   const Id extOpCode = {};
   const ExtendedGrammar grammarId = ExtendedGrammar::Count;
   Id resultId = 0;
   eastl::vector<CastableUniquePointer<Property>> properties;
   NodePointer<NodeTypedef> resultType;
-  NodePointer<NodeId> function;
+  NodePointer<NodeId> bfloat16Value;
   template <typename T>
   void visitRefs(T visitor)
   {
     visitor(resultType);
-    visitor(function);
+    visitor(bfloat16Value);
   }
-  NodeOpConstantFunctionPointerINTEL() = default;
-  ~NodeOpConstantFunctionPointerINTEL() = default;
-  NodeOpConstantFunctionPointerINTEL(const NodeOpConstantFunctionPointerINTEL &) = delete;
-  NodeOpConstantFunctionPointerINTEL &operator=(const NodeOpConstantFunctionPointerINTEL &) = delete;
-  NodeOpConstantFunctionPointerINTEL(NodeOpConstantFunctionPointerINTEL &&) = delete;
-  NodeOpConstantFunctionPointerINTEL &operator=(NodeOpConstantFunctionPointerINTEL &&) = delete;
-  NodeOpConstantFunctionPointerINTEL(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> function)
+  NodeOpConvertBF16ToFINTEL() = default;
+  ~NodeOpConvertBF16ToFINTEL() = default;
+  NodeOpConvertBF16ToFINTEL(const NodeOpConvertBF16ToFINTEL &) = delete;
+  NodeOpConvertBF16ToFINTEL &operator=(const NodeOpConvertBF16ToFINTEL &) = delete;
+  NodeOpConvertBF16ToFINTEL(NodeOpConvertBF16ToFINTEL &&) = delete;
+  NodeOpConvertBF16ToFINTEL &operator=(NodeOpConvertBF16ToFINTEL &&) = delete;
+  NodeOpConvertBF16ToFINTEL(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> b_float16_value)
   {
     this->resultId = id_result;
     this->resultType = id_result_type;
-    this->function = function;
+    this->bfloat16Value = b_float16_value;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpConvertFToBF16INTEL
+{
+  const NodeKind nodeKind = NodeKind::UnaryOperation;
+  const Op opCode = Op::OpConvertFToBF16INTEL;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> floatValue;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(floatValue);
+  }
+  NodeOpConvertFToBF16INTEL() = default;
+  ~NodeOpConvertFToBF16INTEL() = default;
+  NodeOpConvertFToBF16INTEL(const NodeOpConvertFToBF16INTEL &) = delete;
+  NodeOpConvertFToBF16INTEL &operator=(const NodeOpConvertFToBF16INTEL &) = delete;
+  NodeOpConvertFToBF16INTEL(NodeOpConvertFToBF16INTEL &&) = delete;
+  NodeOpConvertFToBF16INTEL &operator=(NodeOpConvertFToBF16INTEL &&) = delete;
+  NodeOpConvertFToBF16INTEL(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> float_value)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->floatValue = float_value;
   }
   template <typename T>
   static constexpr bool is(const T *value);
@@ -27598,6 +31188,37 @@ struct NodeOpConvertUToSamplerNV
   template <typename T>
   static constexpr bool is(const T *value);
 };
+struct NodeOpCooperativeMatrixLengthKHR
+{
+  const NodeKind nodeKind = NodeKind::UnaryOperation;
+  const Op opCode = Op::OpCooperativeMatrixLengthKHR;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> type;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(type);
+  }
+  NodeOpCooperativeMatrixLengthKHR() = default;
+  ~NodeOpCooperativeMatrixLengthKHR() = default;
+  NodeOpCooperativeMatrixLengthKHR(const NodeOpCooperativeMatrixLengthKHR &) = delete;
+  NodeOpCooperativeMatrixLengthKHR &operator=(const NodeOpCooperativeMatrixLengthKHR &) = delete;
+  NodeOpCooperativeMatrixLengthKHR(NodeOpCooperativeMatrixLengthKHR &&) = delete;
+  NodeOpCooperativeMatrixLengthKHR &operator=(NodeOpCooperativeMatrixLengthKHR &&) = delete;
+  NodeOpCooperativeMatrixLengthKHR(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> type)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->type = type;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
 struct NodeOpCooperativeMatrixLengthNV
 {
   const NodeKind nodeKind = NodeKind::UnaryOperation;
@@ -27939,6 +31560,44 @@ struct NodeOpDPdyFine
   template <typename T>
   static constexpr bool is(const T *value);
 };
+struct NodeOpExtInstWithForwardRefsKHR
+{
+  const NodeKind nodeKind = NodeKind::UnaryOperation;
+  const Op opCode = Op::OpExtInstWithForwardRefsKHR;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> set;
+  LiteralExtInstInteger instruction;
+  eastl::vector<NodePointer<NodeId>> param4;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(set);
+    for (auto &&ref : param4)
+      visitor(ref);
+  }
+  NodeOpExtInstWithForwardRefsKHR() = default;
+  ~NodeOpExtInstWithForwardRefsKHR() = default;
+  NodeOpExtInstWithForwardRefsKHR(const NodeOpExtInstWithForwardRefsKHR &) = delete;
+  NodeOpExtInstWithForwardRefsKHR &operator=(const NodeOpExtInstWithForwardRefsKHR &) = delete;
+  NodeOpExtInstWithForwardRefsKHR(NodeOpExtInstWithForwardRefsKHR &&) = delete;
+  NodeOpExtInstWithForwardRefsKHR &operator=(NodeOpExtInstWithForwardRefsKHR &&) = delete;
+  NodeOpExtInstWithForwardRefsKHR(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> set,
+    LiteralExtInstInteger instruction, NodePointer<NodeId> *param_4 = nullptr, size_t param_4_count = 0)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->set = set;
+    this->instruction = instruction;
+    this->param4.assign(param_4, param_4 + param_4_count);
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
 struct NodeOpFConvert
 {
   const NodeKind nodeKind = NodeKind::UnaryOperation;
@@ -27997,6 +31656,37 @@ struct NodeOpFNegate
     this->resultId = id_result;
     this->resultType = id_result_type;
     this->operand = operand;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpFinishWritingNodePayloadAMDX
+{
+  const NodeKind nodeKind = NodeKind::UnaryOperation;
+  const Op opCode = Op::OpFinishWritingNodePayloadAMDX;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> payload;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(payload);
+  }
+  NodeOpFinishWritingNodePayloadAMDX() = default;
+  ~NodeOpFinishWritingNodePayloadAMDX() = default;
+  NodeOpFinishWritingNodePayloadAMDX(const NodeOpFinishWritingNodePayloadAMDX &) = delete;
+  NodeOpFinishWritingNodePayloadAMDX &operator=(const NodeOpFinishWritingNodePayloadAMDX &) = delete;
+  NodeOpFinishWritingNodePayloadAMDX(NodeOpFinishWritingNodePayloadAMDX &&) = delete;
+  NodeOpFinishWritingNodePayloadAMDX &operator=(NodeOpFinishWritingNodePayloadAMDX &&) = delete;
+  NodeOpFinishWritingNodePayloadAMDX(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> payload)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->payload = payload;
   }
   template <typename T>
   static constexpr bool is(const T *value);
@@ -28217,6 +31907,658 @@ struct NodeOpGroupNonUniformPartitionNV
     this->resultId = id_result;
     this->resultType = id_result_type;
     this->value = value;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpGroupNonUniformQuadAllKHR
+{
+  const NodeKind nodeKind = NodeKind::UnaryOperation;
+  const Op opCode = Op::OpGroupNonUniformQuadAllKHR;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> predicate;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(predicate);
+  }
+  NodeOpGroupNonUniformQuadAllKHR() = default;
+  ~NodeOpGroupNonUniformQuadAllKHR() = default;
+  NodeOpGroupNonUniformQuadAllKHR(const NodeOpGroupNonUniformQuadAllKHR &) = delete;
+  NodeOpGroupNonUniformQuadAllKHR &operator=(const NodeOpGroupNonUniformQuadAllKHR &) = delete;
+  NodeOpGroupNonUniformQuadAllKHR(NodeOpGroupNonUniformQuadAllKHR &&) = delete;
+  NodeOpGroupNonUniformQuadAllKHR &operator=(NodeOpGroupNonUniformQuadAllKHR &&) = delete;
+  NodeOpGroupNonUniformQuadAllKHR(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> predicate)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->predicate = predicate;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpGroupNonUniformQuadAnyKHR
+{
+  const NodeKind nodeKind = NodeKind::UnaryOperation;
+  const Op opCode = Op::OpGroupNonUniformQuadAnyKHR;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> predicate;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(predicate);
+  }
+  NodeOpGroupNonUniformQuadAnyKHR() = default;
+  ~NodeOpGroupNonUniformQuadAnyKHR() = default;
+  NodeOpGroupNonUniformQuadAnyKHR(const NodeOpGroupNonUniformQuadAnyKHR &) = delete;
+  NodeOpGroupNonUniformQuadAnyKHR &operator=(const NodeOpGroupNonUniformQuadAnyKHR &) = delete;
+  NodeOpGroupNonUniformQuadAnyKHR(NodeOpGroupNonUniformQuadAnyKHR &&) = delete;
+  NodeOpGroupNonUniformQuadAnyKHR &operator=(NodeOpGroupNonUniformQuadAnyKHR &&) = delete;
+  NodeOpGroupNonUniformQuadAnyKHR(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> predicate)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->predicate = predicate;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpHitObjectGetCurrentTimeNV
+{
+  const NodeKind nodeKind = NodeKind::UnaryOperation;
+  const Op opCode = Op::OpHitObjectGetCurrentTimeNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> hitObject;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(hitObject);
+  }
+  NodeOpHitObjectGetCurrentTimeNV() = default;
+  ~NodeOpHitObjectGetCurrentTimeNV() = default;
+  NodeOpHitObjectGetCurrentTimeNV(const NodeOpHitObjectGetCurrentTimeNV &) = delete;
+  NodeOpHitObjectGetCurrentTimeNV &operator=(const NodeOpHitObjectGetCurrentTimeNV &) = delete;
+  NodeOpHitObjectGetCurrentTimeNV(NodeOpHitObjectGetCurrentTimeNV &&) = delete;
+  NodeOpHitObjectGetCurrentTimeNV &operator=(NodeOpHitObjectGetCurrentTimeNV &&) = delete;
+  NodeOpHitObjectGetCurrentTimeNV(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> hit_object)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->hitObject = hit_object;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpHitObjectGetGeometryIndexNV
+{
+  const NodeKind nodeKind = NodeKind::UnaryOperation;
+  const Op opCode = Op::OpHitObjectGetGeometryIndexNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> hitObject;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(hitObject);
+  }
+  NodeOpHitObjectGetGeometryIndexNV() = default;
+  ~NodeOpHitObjectGetGeometryIndexNV() = default;
+  NodeOpHitObjectGetGeometryIndexNV(const NodeOpHitObjectGetGeometryIndexNV &) = delete;
+  NodeOpHitObjectGetGeometryIndexNV &operator=(const NodeOpHitObjectGetGeometryIndexNV &) = delete;
+  NodeOpHitObjectGetGeometryIndexNV(NodeOpHitObjectGetGeometryIndexNV &&) = delete;
+  NodeOpHitObjectGetGeometryIndexNV &operator=(NodeOpHitObjectGetGeometryIndexNV &&) = delete;
+  NodeOpHitObjectGetGeometryIndexNV(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> hit_object)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->hitObject = hit_object;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpHitObjectGetHitKindNV
+{
+  const NodeKind nodeKind = NodeKind::UnaryOperation;
+  const Op opCode = Op::OpHitObjectGetHitKindNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> hitObject;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(hitObject);
+  }
+  NodeOpHitObjectGetHitKindNV() = default;
+  ~NodeOpHitObjectGetHitKindNV() = default;
+  NodeOpHitObjectGetHitKindNV(const NodeOpHitObjectGetHitKindNV &) = delete;
+  NodeOpHitObjectGetHitKindNV &operator=(const NodeOpHitObjectGetHitKindNV &) = delete;
+  NodeOpHitObjectGetHitKindNV(NodeOpHitObjectGetHitKindNV &&) = delete;
+  NodeOpHitObjectGetHitKindNV &operator=(NodeOpHitObjectGetHitKindNV &&) = delete;
+  NodeOpHitObjectGetHitKindNV(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> hit_object)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->hitObject = hit_object;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpHitObjectGetInstanceCustomIndexNV
+{
+  const NodeKind nodeKind = NodeKind::UnaryOperation;
+  const Op opCode = Op::OpHitObjectGetInstanceCustomIndexNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> hitObject;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(hitObject);
+  }
+  NodeOpHitObjectGetInstanceCustomIndexNV() = default;
+  ~NodeOpHitObjectGetInstanceCustomIndexNV() = default;
+  NodeOpHitObjectGetInstanceCustomIndexNV(const NodeOpHitObjectGetInstanceCustomIndexNV &) = delete;
+  NodeOpHitObjectGetInstanceCustomIndexNV &operator=(const NodeOpHitObjectGetInstanceCustomIndexNV &) = delete;
+  NodeOpHitObjectGetInstanceCustomIndexNV(NodeOpHitObjectGetInstanceCustomIndexNV &&) = delete;
+  NodeOpHitObjectGetInstanceCustomIndexNV &operator=(NodeOpHitObjectGetInstanceCustomIndexNV &&) = delete;
+  NodeOpHitObjectGetInstanceCustomIndexNV(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> hit_object)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->hitObject = hit_object;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpHitObjectGetInstanceIdNV
+{
+  const NodeKind nodeKind = NodeKind::UnaryOperation;
+  const Op opCode = Op::OpHitObjectGetInstanceIdNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> hitObject;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(hitObject);
+  }
+  NodeOpHitObjectGetInstanceIdNV() = default;
+  ~NodeOpHitObjectGetInstanceIdNV() = default;
+  NodeOpHitObjectGetInstanceIdNV(const NodeOpHitObjectGetInstanceIdNV &) = delete;
+  NodeOpHitObjectGetInstanceIdNV &operator=(const NodeOpHitObjectGetInstanceIdNV &) = delete;
+  NodeOpHitObjectGetInstanceIdNV(NodeOpHitObjectGetInstanceIdNV &&) = delete;
+  NodeOpHitObjectGetInstanceIdNV &operator=(NodeOpHitObjectGetInstanceIdNV &&) = delete;
+  NodeOpHitObjectGetInstanceIdNV(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> hit_object)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->hitObject = hit_object;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpHitObjectGetObjectRayDirectionNV
+{
+  const NodeKind nodeKind = NodeKind::UnaryOperation;
+  const Op opCode = Op::OpHitObjectGetObjectRayDirectionNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> hitObject;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(hitObject);
+  }
+  NodeOpHitObjectGetObjectRayDirectionNV() = default;
+  ~NodeOpHitObjectGetObjectRayDirectionNV() = default;
+  NodeOpHitObjectGetObjectRayDirectionNV(const NodeOpHitObjectGetObjectRayDirectionNV &) = delete;
+  NodeOpHitObjectGetObjectRayDirectionNV &operator=(const NodeOpHitObjectGetObjectRayDirectionNV &) = delete;
+  NodeOpHitObjectGetObjectRayDirectionNV(NodeOpHitObjectGetObjectRayDirectionNV &&) = delete;
+  NodeOpHitObjectGetObjectRayDirectionNV &operator=(NodeOpHitObjectGetObjectRayDirectionNV &&) = delete;
+  NodeOpHitObjectGetObjectRayDirectionNV(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> hit_object)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->hitObject = hit_object;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpHitObjectGetObjectRayOriginNV
+{
+  const NodeKind nodeKind = NodeKind::UnaryOperation;
+  const Op opCode = Op::OpHitObjectGetObjectRayOriginNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> hitObject;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(hitObject);
+  }
+  NodeOpHitObjectGetObjectRayOriginNV() = default;
+  ~NodeOpHitObjectGetObjectRayOriginNV() = default;
+  NodeOpHitObjectGetObjectRayOriginNV(const NodeOpHitObjectGetObjectRayOriginNV &) = delete;
+  NodeOpHitObjectGetObjectRayOriginNV &operator=(const NodeOpHitObjectGetObjectRayOriginNV &) = delete;
+  NodeOpHitObjectGetObjectRayOriginNV(NodeOpHitObjectGetObjectRayOriginNV &&) = delete;
+  NodeOpHitObjectGetObjectRayOriginNV &operator=(NodeOpHitObjectGetObjectRayOriginNV &&) = delete;
+  NodeOpHitObjectGetObjectRayOriginNV(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> hit_object)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->hitObject = hit_object;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpHitObjectGetObjectToWorldNV
+{
+  const NodeKind nodeKind = NodeKind::UnaryOperation;
+  const Op opCode = Op::OpHitObjectGetObjectToWorldNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> hitObject;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(hitObject);
+  }
+  NodeOpHitObjectGetObjectToWorldNV() = default;
+  ~NodeOpHitObjectGetObjectToWorldNV() = default;
+  NodeOpHitObjectGetObjectToWorldNV(const NodeOpHitObjectGetObjectToWorldNV &) = delete;
+  NodeOpHitObjectGetObjectToWorldNV &operator=(const NodeOpHitObjectGetObjectToWorldNV &) = delete;
+  NodeOpHitObjectGetObjectToWorldNV(NodeOpHitObjectGetObjectToWorldNV &&) = delete;
+  NodeOpHitObjectGetObjectToWorldNV &operator=(NodeOpHitObjectGetObjectToWorldNV &&) = delete;
+  NodeOpHitObjectGetObjectToWorldNV(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> hit_object)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->hitObject = hit_object;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpHitObjectGetPrimitiveIndexNV
+{
+  const NodeKind nodeKind = NodeKind::UnaryOperation;
+  const Op opCode = Op::OpHitObjectGetPrimitiveIndexNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> hitObject;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(hitObject);
+  }
+  NodeOpHitObjectGetPrimitiveIndexNV() = default;
+  ~NodeOpHitObjectGetPrimitiveIndexNV() = default;
+  NodeOpHitObjectGetPrimitiveIndexNV(const NodeOpHitObjectGetPrimitiveIndexNV &) = delete;
+  NodeOpHitObjectGetPrimitiveIndexNV &operator=(const NodeOpHitObjectGetPrimitiveIndexNV &) = delete;
+  NodeOpHitObjectGetPrimitiveIndexNV(NodeOpHitObjectGetPrimitiveIndexNV &&) = delete;
+  NodeOpHitObjectGetPrimitiveIndexNV &operator=(NodeOpHitObjectGetPrimitiveIndexNV &&) = delete;
+  NodeOpHitObjectGetPrimitiveIndexNV(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> hit_object)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->hitObject = hit_object;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpHitObjectGetRayTMaxNV
+{
+  const NodeKind nodeKind = NodeKind::UnaryOperation;
+  const Op opCode = Op::OpHitObjectGetRayTMaxNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> hitObject;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(hitObject);
+  }
+  NodeOpHitObjectGetRayTMaxNV() = default;
+  ~NodeOpHitObjectGetRayTMaxNV() = default;
+  NodeOpHitObjectGetRayTMaxNV(const NodeOpHitObjectGetRayTMaxNV &) = delete;
+  NodeOpHitObjectGetRayTMaxNV &operator=(const NodeOpHitObjectGetRayTMaxNV &) = delete;
+  NodeOpHitObjectGetRayTMaxNV(NodeOpHitObjectGetRayTMaxNV &&) = delete;
+  NodeOpHitObjectGetRayTMaxNV &operator=(NodeOpHitObjectGetRayTMaxNV &&) = delete;
+  NodeOpHitObjectGetRayTMaxNV(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> hit_object)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->hitObject = hit_object;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpHitObjectGetRayTMinNV
+{
+  const NodeKind nodeKind = NodeKind::UnaryOperation;
+  const Op opCode = Op::OpHitObjectGetRayTMinNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> hitObject;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(hitObject);
+  }
+  NodeOpHitObjectGetRayTMinNV() = default;
+  ~NodeOpHitObjectGetRayTMinNV() = default;
+  NodeOpHitObjectGetRayTMinNV(const NodeOpHitObjectGetRayTMinNV &) = delete;
+  NodeOpHitObjectGetRayTMinNV &operator=(const NodeOpHitObjectGetRayTMinNV &) = delete;
+  NodeOpHitObjectGetRayTMinNV(NodeOpHitObjectGetRayTMinNV &&) = delete;
+  NodeOpHitObjectGetRayTMinNV &operator=(NodeOpHitObjectGetRayTMinNV &&) = delete;
+  NodeOpHitObjectGetRayTMinNV(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> hit_object)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->hitObject = hit_object;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpHitObjectGetShaderBindingTableRecordIndexNV
+{
+  const NodeKind nodeKind = NodeKind::UnaryOperation;
+  const Op opCode = Op::OpHitObjectGetShaderBindingTableRecordIndexNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> hitObject;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(hitObject);
+  }
+  NodeOpHitObjectGetShaderBindingTableRecordIndexNV() = default;
+  ~NodeOpHitObjectGetShaderBindingTableRecordIndexNV() = default;
+  NodeOpHitObjectGetShaderBindingTableRecordIndexNV(const NodeOpHitObjectGetShaderBindingTableRecordIndexNV &) = delete;
+  NodeOpHitObjectGetShaderBindingTableRecordIndexNV &operator=(const NodeOpHitObjectGetShaderBindingTableRecordIndexNV &) = delete;
+  NodeOpHitObjectGetShaderBindingTableRecordIndexNV(NodeOpHitObjectGetShaderBindingTableRecordIndexNV &&) = delete;
+  NodeOpHitObjectGetShaderBindingTableRecordIndexNV &operator=(NodeOpHitObjectGetShaderBindingTableRecordIndexNV &&) = delete;
+  NodeOpHitObjectGetShaderBindingTableRecordIndexNV(Id id_result, NodePointer<NodeTypedef> id_result_type,
+    NodePointer<NodeId> hit_object)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->hitObject = hit_object;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpHitObjectGetShaderRecordBufferHandleNV
+{
+  const NodeKind nodeKind = NodeKind::UnaryOperation;
+  const Op opCode = Op::OpHitObjectGetShaderRecordBufferHandleNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> hitObject;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(hitObject);
+  }
+  NodeOpHitObjectGetShaderRecordBufferHandleNV() = default;
+  ~NodeOpHitObjectGetShaderRecordBufferHandleNV() = default;
+  NodeOpHitObjectGetShaderRecordBufferHandleNV(const NodeOpHitObjectGetShaderRecordBufferHandleNV &) = delete;
+  NodeOpHitObjectGetShaderRecordBufferHandleNV &operator=(const NodeOpHitObjectGetShaderRecordBufferHandleNV &) = delete;
+  NodeOpHitObjectGetShaderRecordBufferHandleNV(NodeOpHitObjectGetShaderRecordBufferHandleNV &&) = delete;
+  NodeOpHitObjectGetShaderRecordBufferHandleNV &operator=(NodeOpHitObjectGetShaderRecordBufferHandleNV &&) = delete;
+  NodeOpHitObjectGetShaderRecordBufferHandleNV(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> hit_object)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->hitObject = hit_object;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpHitObjectGetWorldRayDirectionNV
+{
+  const NodeKind nodeKind = NodeKind::UnaryOperation;
+  const Op opCode = Op::OpHitObjectGetWorldRayDirectionNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> hitObject;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(hitObject);
+  }
+  NodeOpHitObjectGetWorldRayDirectionNV() = default;
+  ~NodeOpHitObjectGetWorldRayDirectionNV() = default;
+  NodeOpHitObjectGetWorldRayDirectionNV(const NodeOpHitObjectGetWorldRayDirectionNV &) = delete;
+  NodeOpHitObjectGetWorldRayDirectionNV &operator=(const NodeOpHitObjectGetWorldRayDirectionNV &) = delete;
+  NodeOpHitObjectGetWorldRayDirectionNV(NodeOpHitObjectGetWorldRayDirectionNV &&) = delete;
+  NodeOpHitObjectGetWorldRayDirectionNV &operator=(NodeOpHitObjectGetWorldRayDirectionNV &&) = delete;
+  NodeOpHitObjectGetWorldRayDirectionNV(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> hit_object)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->hitObject = hit_object;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpHitObjectGetWorldRayOriginNV
+{
+  const NodeKind nodeKind = NodeKind::UnaryOperation;
+  const Op opCode = Op::OpHitObjectGetWorldRayOriginNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> hitObject;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(hitObject);
+  }
+  NodeOpHitObjectGetWorldRayOriginNV() = default;
+  ~NodeOpHitObjectGetWorldRayOriginNV() = default;
+  NodeOpHitObjectGetWorldRayOriginNV(const NodeOpHitObjectGetWorldRayOriginNV &) = delete;
+  NodeOpHitObjectGetWorldRayOriginNV &operator=(const NodeOpHitObjectGetWorldRayOriginNV &) = delete;
+  NodeOpHitObjectGetWorldRayOriginNV(NodeOpHitObjectGetWorldRayOriginNV &&) = delete;
+  NodeOpHitObjectGetWorldRayOriginNV &operator=(NodeOpHitObjectGetWorldRayOriginNV &&) = delete;
+  NodeOpHitObjectGetWorldRayOriginNV(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> hit_object)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->hitObject = hit_object;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpHitObjectGetWorldToObjectNV
+{
+  const NodeKind nodeKind = NodeKind::UnaryOperation;
+  const Op opCode = Op::OpHitObjectGetWorldToObjectNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> hitObject;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(hitObject);
+  }
+  NodeOpHitObjectGetWorldToObjectNV() = default;
+  ~NodeOpHitObjectGetWorldToObjectNV() = default;
+  NodeOpHitObjectGetWorldToObjectNV(const NodeOpHitObjectGetWorldToObjectNV &) = delete;
+  NodeOpHitObjectGetWorldToObjectNV &operator=(const NodeOpHitObjectGetWorldToObjectNV &) = delete;
+  NodeOpHitObjectGetWorldToObjectNV(NodeOpHitObjectGetWorldToObjectNV &&) = delete;
+  NodeOpHitObjectGetWorldToObjectNV &operator=(NodeOpHitObjectGetWorldToObjectNV &&) = delete;
+  NodeOpHitObjectGetWorldToObjectNV(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> hit_object)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->hitObject = hit_object;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpHitObjectIsEmptyNV
+{
+  const NodeKind nodeKind = NodeKind::UnaryOperation;
+  const Op opCode = Op::OpHitObjectIsEmptyNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> hitObject;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(hitObject);
+  }
+  NodeOpHitObjectIsEmptyNV() = default;
+  ~NodeOpHitObjectIsEmptyNV() = default;
+  NodeOpHitObjectIsEmptyNV(const NodeOpHitObjectIsEmptyNV &) = delete;
+  NodeOpHitObjectIsEmptyNV &operator=(const NodeOpHitObjectIsEmptyNV &) = delete;
+  NodeOpHitObjectIsEmptyNV(NodeOpHitObjectIsEmptyNV &&) = delete;
+  NodeOpHitObjectIsEmptyNV &operator=(NodeOpHitObjectIsEmptyNV &&) = delete;
+  NodeOpHitObjectIsEmptyNV(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> hit_object)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->hitObject = hit_object;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpHitObjectIsHitNV
+{
+  const NodeKind nodeKind = NodeKind::UnaryOperation;
+  const Op opCode = Op::OpHitObjectIsHitNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> hitObject;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(hitObject);
+  }
+  NodeOpHitObjectIsHitNV() = default;
+  ~NodeOpHitObjectIsHitNV() = default;
+  NodeOpHitObjectIsHitNV(const NodeOpHitObjectIsHitNV &) = delete;
+  NodeOpHitObjectIsHitNV &operator=(const NodeOpHitObjectIsHitNV &) = delete;
+  NodeOpHitObjectIsHitNV(NodeOpHitObjectIsHitNV &&) = delete;
+  NodeOpHitObjectIsHitNV &operator=(NodeOpHitObjectIsHitNV &&) = delete;
+  NodeOpHitObjectIsHitNV(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> hit_object)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->hitObject = hit_object;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpHitObjectIsMissNV
+{
+  const NodeKind nodeKind = NodeKind::UnaryOperation;
+  const Op opCode = Op::OpHitObjectIsMissNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> hitObject;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(hitObject);
+  }
+  NodeOpHitObjectIsMissNV() = default;
+  ~NodeOpHitObjectIsMissNV() = default;
+  NodeOpHitObjectIsMissNV(const NodeOpHitObjectIsMissNV &) = delete;
+  NodeOpHitObjectIsMissNV &operator=(const NodeOpHitObjectIsMissNV &) = delete;
+  NodeOpHitObjectIsMissNV(NodeOpHitObjectIsMissNV &&) = delete;
+  NodeOpHitObjectIsMissNV &operator=(NodeOpHitObjectIsMissNV &&) = delete;
+  NodeOpHitObjectIsMissNV(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> hit_object)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->hitObject = hit_object;
   }
   template <typename T>
   static constexpr bool is(const T *value);
@@ -28455,6 +32797,8 @@ struct NodeOpLoad
   NodePointer<NodeOperation> memoryAccessMakePointerAvailableKHR;
   NodePointer<NodeOperation> memoryAccessMakePointerVisible;
   NodePointer<NodeOperation> memoryAccessMakePointerVisibleKHR;
+  NodePointer<NodeId> memoryAccessAliasScopeINTELMask;
+  NodePointer<NodeId> memoryAccessNoAliasINTELMask;
   template <typename T>
   void visitRefs(T visitor)
   {
@@ -28468,6 +32812,10 @@ struct NodeOpLoad
       visitor(memoryAccessMakePointerVisible);
     if (memoryAccessMakePointerVisibleKHR)
       visitor(memoryAccessMakePointerVisibleKHR);
+    if (memoryAccessAliasScopeINTELMask)
+      visitor(memoryAccessAliasScopeINTELMask);
+    if (memoryAccessNoAliasINTELMask)
+      visitor(memoryAccessNoAliasINTELMask);
   }
   NodeOpLoad() = default;
   ~NodeOpLoad() = default;
@@ -28480,7 +32828,8 @@ struct NodeOpLoad
     NodePointer<NodeOperation> memory_access_makePointerAvailable = {},
     NodePointer<NodeOperation> memory_access_makePointerAvailableKHR = {},
     NodePointer<NodeOperation> memory_access_makePointerVisible = {},
-    NodePointer<NodeOperation> memory_access_makePointerVisibleKHR = {})
+    NodePointer<NodeOperation> memory_access_makePointerVisibleKHR = {}, NodePointer<NodeId> memory_access_aliasScopeINTELMask = {},
+    NodePointer<NodeId> memory_access_noAliasINTELMask = {})
   {
     this->resultId = id_result;
     this->resultType = id_result_type;
@@ -28492,6 +32841,8 @@ struct NodeOpLoad
     this->memoryAccessMakePointerAvailableKHR = memory_access_makePointerAvailableKHR;
     this->memoryAccessMakePointerVisible = memory_access_makePointerVisible;
     this->memoryAccessMakePointerVisibleKHR = memory_access_makePointerVisibleKHR;
+    this->memoryAccessAliasScopeINTELMask = memory_access_aliasScopeINTELMask;
+    this->memoryAccessNoAliasINTELMask = memory_access_noAliasINTELMask;
   }
   template <typename T>
   static constexpr bool is(const T *value);
@@ -28523,6 +32874,46 @@ struct NodeOpLogicalNot
     this->resultId = id_result;
     this->resultType = id_result_type;
     this->operand = operand;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpMaskedGatherINTEL
+{
+  const NodeKind nodeKind = NodeKind::UnaryOperation;
+  const Op opCode = Op::OpMaskedGatherINTEL;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeTypedef> resultType;
+  NodePointer<NodeId> ptrVector;
+  LiteralInteger alignment;
+  NodePointer<NodeId> mask;
+  NodePointer<NodeId> fillEmpty;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(resultType);
+    visitor(ptrVector);
+    visitor(mask);
+    visitor(fillEmpty);
+  }
+  NodeOpMaskedGatherINTEL() = default;
+  ~NodeOpMaskedGatherINTEL() = default;
+  NodeOpMaskedGatherINTEL(const NodeOpMaskedGatherINTEL &) = delete;
+  NodeOpMaskedGatherINTEL &operator=(const NodeOpMaskedGatherINTEL &) = delete;
+  NodeOpMaskedGatherINTEL(NodeOpMaskedGatherINTEL &&) = delete;
+  NodeOpMaskedGatherINTEL &operator=(NodeOpMaskedGatherINTEL &&) = delete;
+  NodeOpMaskedGatherINTEL(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> ptr_vector,
+    LiteralInteger alignment, NodePointer<NodeId> mask, NodePointer<NodeId> fill_empty)
+  {
+    this->resultId = id_result;
+    this->resultType = id_result_type;
+    this->ptrVector = ptr_vector;
+    this->alignment = alignment;
+    this->mask = mask;
+    this->fillEmpty = fill_empty;
   }
   template <typename T>
   static constexpr bool is(const T *value);
@@ -30709,12 +35100,12 @@ struct NodeOpVariableLengthArrayINTEL
   Id resultId = 0;
   eastl::vector<CastableUniquePointer<Property>> properties;
   NodePointer<NodeTypedef> resultType;
-  NodePointer<NodeId> length;
+  NodePointer<NodeId> lenght;
   template <typename T>
   void visitRefs(T visitor)
   {
     visitor(resultType);
-    visitor(length);
+    visitor(lenght);
   }
   NodeOpVariableLengthArrayINTEL() = default;
   ~NodeOpVariableLengthArrayINTEL() = default;
@@ -30722,11 +35113,11 @@ struct NodeOpVariableLengthArrayINTEL
   NodeOpVariableLengthArrayINTEL &operator=(const NodeOpVariableLengthArrayINTEL &) = delete;
   NodeOpVariableLengthArrayINTEL(NodeOpVariableLengthArrayINTEL &&) = delete;
   NodeOpVariableLengthArrayINTEL &operator=(NodeOpVariableLengthArrayINTEL &&) = delete;
-  NodeOpVariableLengthArrayINTEL(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> length)
+  NodeOpVariableLengthArrayINTEL(Id id_result, NodePointer<NodeTypedef> id_result_type, NodePointer<NodeId> lenght)
   {
     this->resultId = id_result;
     this->resultType = id_result_type;
-    this->length = length;
+    this->lenght = lenght;
   }
   template <typename T>
   static constexpr bool is(const T *value);
@@ -31720,12 +36111,24 @@ inline bool NodeUnaryOperation::visit(NodeUnaryOperation *node, T visitor)
         if (visitor(reinterpret_cast<NodeOpBitcast *>(node)))
           return true;
         break;
+      case Op::OpColorAttachmentReadEXT:
+        if (visitor(reinterpret_cast<NodeOpColorAttachmentReadEXT *>(node)))
+          return true;
+        break;
+      case Op::OpCompositeConstructReplicateEXT:
+        if (visitor(reinterpret_cast<NodeOpCompositeConstructReplicateEXT *>(node)))
+          return true;
+        break;
       case Op::OpCompositeExtract:
         if (visitor(reinterpret_cast<NodeOpCompositeExtract *>(node)))
           return true;
         break;
-      case Op::OpConstantFunctionPointerINTEL:
-        if (visitor(reinterpret_cast<NodeOpConstantFunctionPointerINTEL *>(node)))
+      case Op::OpConvertBF16ToFINTEL:
+        if (visitor(reinterpret_cast<NodeOpConvertBF16ToFINTEL *>(node)))
+          return true;
+        break;
+      case Op::OpConvertFToBF16INTEL:
+        if (visitor(reinterpret_cast<NodeOpConvertFToBF16INTEL *>(node)))
           return true;
         break;
       case Op::OpConvertFToS:
@@ -31780,6 +36183,10 @@ inline bool NodeUnaryOperation::visit(NodeUnaryOperation *node, T visitor)
         if (visitor(reinterpret_cast<NodeOpConvertUToSamplerNV *>(node)))
           return true;
         break;
+      case Op::OpCooperativeMatrixLengthKHR:
+        if (visitor(reinterpret_cast<NodeOpCooperativeMatrixLengthKHR *>(node)))
+          return true;
+        break;
       case Op::OpCooperativeMatrixLengthNV:
         if (visitor(reinterpret_cast<NodeOpCooperativeMatrixLengthNV *>(node)))
           return true;
@@ -31824,12 +36231,20 @@ inline bool NodeUnaryOperation::visit(NodeUnaryOperation *node, T visitor)
         if (visitor(reinterpret_cast<NodeOpDPdyFine *>(node)))
           return true;
         break;
+      case Op::OpExtInstWithForwardRefsKHR:
+        if (visitor(reinterpret_cast<NodeOpExtInstWithForwardRefsKHR *>(node)))
+          return true;
+        break;
       case Op::OpFConvert:
         if (visitor(reinterpret_cast<NodeOpFConvert *>(node)))
           return true;
         break;
       case Op::OpFNegate:
         if (visitor(reinterpret_cast<NodeOpFNegate *>(node)))
+          return true;
+        break;
+      case Op::OpFinishWritingNodePayloadAMDX:
+        if (visitor(reinterpret_cast<NodeOpFinishWritingNodePayloadAMDX *>(node)))
           return true;
         break;
       case Op::OpFwidth:
@@ -31858,6 +36273,90 @@ inline bool NodeUnaryOperation::visit(NodeUnaryOperation *node, T visitor)
         break;
       case Op::OpGroupNonUniformPartitionNV:
         if (visitor(reinterpret_cast<NodeOpGroupNonUniformPartitionNV *>(node)))
+          return true;
+        break;
+      case Op::OpGroupNonUniformQuadAllKHR:
+        if (visitor(reinterpret_cast<NodeOpGroupNonUniformQuadAllKHR *>(node)))
+          return true;
+        break;
+      case Op::OpGroupNonUniformQuadAnyKHR:
+        if (visitor(reinterpret_cast<NodeOpGroupNonUniformQuadAnyKHR *>(node)))
+          return true;
+        break;
+      case Op::OpHitObjectGetCurrentTimeNV:
+        if (visitor(reinterpret_cast<NodeOpHitObjectGetCurrentTimeNV *>(node)))
+          return true;
+        break;
+      case Op::OpHitObjectGetGeometryIndexNV:
+        if (visitor(reinterpret_cast<NodeOpHitObjectGetGeometryIndexNV *>(node)))
+          return true;
+        break;
+      case Op::OpHitObjectGetHitKindNV:
+        if (visitor(reinterpret_cast<NodeOpHitObjectGetHitKindNV *>(node)))
+          return true;
+        break;
+      case Op::OpHitObjectGetInstanceCustomIndexNV:
+        if (visitor(reinterpret_cast<NodeOpHitObjectGetInstanceCustomIndexNV *>(node)))
+          return true;
+        break;
+      case Op::OpHitObjectGetInstanceIdNV:
+        if (visitor(reinterpret_cast<NodeOpHitObjectGetInstanceIdNV *>(node)))
+          return true;
+        break;
+      case Op::OpHitObjectGetObjectRayDirectionNV:
+        if (visitor(reinterpret_cast<NodeOpHitObjectGetObjectRayDirectionNV *>(node)))
+          return true;
+        break;
+      case Op::OpHitObjectGetObjectRayOriginNV:
+        if (visitor(reinterpret_cast<NodeOpHitObjectGetObjectRayOriginNV *>(node)))
+          return true;
+        break;
+      case Op::OpHitObjectGetObjectToWorldNV:
+        if (visitor(reinterpret_cast<NodeOpHitObjectGetObjectToWorldNV *>(node)))
+          return true;
+        break;
+      case Op::OpHitObjectGetPrimitiveIndexNV:
+        if (visitor(reinterpret_cast<NodeOpHitObjectGetPrimitiveIndexNV *>(node)))
+          return true;
+        break;
+      case Op::OpHitObjectGetRayTMaxNV:
+        if (visitor(reinterpret_cast<NodeOpHitObjectGetRayTMaxNV *>(node)))
+          return true;
+        break;
+      case Op::OpHitObjectGetRayTMinNV:
+        if (visitor(reinterpret_cast<NodeOpHitObjectGetRayTMinNV *>(node)))
+          return true;
+        break;
+      case Op::OpHitObjectGetShaderBindingTableRecordIndexNV:
+        if (visitor(reinterpret_cast<NodeOpHitObjectGetShaderBindingTableRecordIndexNV *>(node)))
+          return true;
+        break;
+      case Op::OpHitObjectGetShaderRecordBufferHandleNV:
+        if (visitor(reinterpret_cast<NodeOpHitObjectGetShaderRecordBufferHandleNV *>(node)))
+          return true;
+        break;
+      case Op::OpHitObjectGetWorldRayDirectionNV:
+        if (visitor(reinterpret_cast<NodeOpHitObjectGetWorldRayDirectionNV *>(node)))
+          return true;
+        break;
+      case Op::OpHitObjectGetWorldRayOriginNV:
+        if (visitor(reinterpret_cast<NodeOpHitObjectGetWorldRayOriginNV *>(node)))
+          return true;
+        break;
+      case Op::OpHitObjectGetWorldToObjectNV:
+        if (visitor(reinterpret_cast<NodeOpHitObjectGetWorldToObjectNV *>(node)))
+          return true;
+        break;
+      case Op::OpHitObjectIsEmptyNV:
+        if (visitor(reinterpret_cast<NodeOpHitObjectIsEmptyNV *>(node)))
+          return true;
+        break;
+      case Op::OpHitObjectIsHitNV:
+        if (visitor(reinterpret_cast<NodeOpHitObjectIsHitNV *>(node)))
+          return true;
+        break;
+      case Op::OpHitObjectIsMissNV:
+        if (visitor(reinterpret_cast<NodeOpHitObjectIsMissNV *>(node)))
           return true;
         break;
       case Op::OpImageSparseTexelsResident:
@@ -31894,6 +36393,10 @@ inline bool NodeUnaryOperation::visit(NodeUnaryOperation *node, T visitor)
         break;
       case Op::OpLogicalNot:
         if (visitor(reinterpret_cast<NodeOpLogicalNot *>(node)))
+          return true;
+        break;
+      case Op::OpMaskedGatherINTEL:
+        if (visitor(reinterpret_cast<NodeOpMaskedGatherINTEL *>(node)))
           return true;
         break;
       case Op::OpNamedBarrierInitialize:
@@ -32746,8 +37249,16 @@ inline bool NodeOperation::visit(NodeOperation *node, T visitor)
         if (visitor(reinterpret_cast<NodeOpCompositeConstruct *>(node)))
           return true;
         break;
+      case Op::OpCompositeConstructContinuedINTEL:
+        if (visitor(reinterpret_cast<NodeOpCompositeConstructContinuedINTEL *>(node)))
+          return true;
+        break;
       case Op::OpCreateUserEvent:
         if (visitor(reinterpret_cast<NodeOpCreateUserEvent *>(node)))
+          return true;
+        break;
+      case Op::OpDepthAttachmentReadEXT:
+        if (visitor(reinterpret_cast<NodeOpDepthAttachmentReadEXT *>(node)))
           return true;
         break;
       case Op::OpFunctionPointerCallINTEL:
@@ -32764,6 +37275,10 @@ inline bool NodeOperation::visit(NodeOperation *node, T visitor)
         break;
       case Op::OpSaveMemoryINTEL:
         if (visitor(reinterpret_cast<NodeOpSaveMemoryINTEL *>(node)))
+          return true;
+        break;
+      case Op::OpStencilAttachmentReadEXT:
+        if (visitor(reinterpret_cast<NodeOpStencilAttachmentReadEXT *>(node)))
           return true;
         break;
       case Op::OpSubgroupAvcMceGetDefaultHighPenaltyCostTableINTEL:
@@ -33253,6 +37768,47 @@ struct NodeOpTypeBufferSurfaceINTEL
   template <typename T>
   static constexpr bool is(const T *value);
 };
+struct NodeOpTypeCooperativeMatrixKHR
+{
+  const NodeKind nodeKind = NodeKind::Typedef;
+  const Op opCode = Op::OpTypeCooperativeMatrixKHR;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  NodePointer<NodeId> componentType;
+  NodePointer<NodeOperation> scope;
+  NodePointer<NodeId> rows;
+  NodePointer<NodeId> columns;
+  NodePointer<NodeId> use;
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(componentType);
+    visitor(scope);
+    visitor(rows);
+    visitor(columns);
+    visitor(use);
+  }
+  NodeOpTypeCooperativeMatrixKHR() = default;
+  ~NodeOpTypeCooperativeMatrixKHR() = default;
+  NodeOpTypeCooperativeMatrixKHR(const NodeOpTypeCooperativeMatrixKHR &) = delete;
+  NodeOpTypeCooperativeMatrixKHR &operator=(const NodeOpTypeCooperativeMatrixKHR &) = delete;
+  NodeOpTypeCooperativeMatrixKHR(NodeOpTypeCooperativeMatrixKHR &&) = delete;
+  NodeOpTypeCooperativeMatrixKHR &operator=(NodeOpTypeCooperativeMatrixKHR &&) = delete;
+  NodeOpTypeCooperativeMatrixKHR(Id id_result, NodePointer<NodeId> component_type, NodePointer<NodeOperation> scope,
+    NodePointer<NodeId> rows, NodePointer<NodeId> columns, NodePointer<NodeId> use)
+  {
+    this->resultId = id_result;
+    this->componentType = component_type;
+    this->scope = scope;
+    this->rows = rows;
+    this->columns = columns;
+    this->use = use;
+  }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
 struct NodeOpTypeCooperativeMatrixNV
 {
   const NodeKind nodeKind = NodeKind::Typedef;
@@ -33388,6 +37944,27 @@ struct NodeOpTypeFunction
     this->returnType = return_type;
     this->param2.assign(param_2, param_2 + param_2_count);
   }
+  template <typename T>
+  static constexpr bool is(const T *value);
+};
+struct NodeOpTypeHitObjectNV
+{
+  const NodeKind nodeKind = NodeKind::Typedef;
+  const Op opCode = Op::OpTypeHitObjectNV;
+  const Id extOpCode = {};
+  const ExtendedGrammar grammarId = ExtendedGrammar::Count;
+  Id resultId = 0;
+  eastl::vector<CastableUniquePointer<Property>> properties;
+  template <typename T>
+  void visitRefs(T)
+  {}
+  NodeOpTypeHitObjectNV() = default;
+  ~NodeOpTypeHitObjectNV() = default;
+  NodeOpTypeHitObjectNV(const NodeOpTypeHitObjectNV &) = delete;
+  NodeOpTypeHitObjectNV &operator=(const NodeOpTypeHitObjectNV &) = delete;
+  NodeOpTypeHitObjectNV(NodeOpTypeHitObjectNV &&) = delete;
+  NodeOpTypeHitObjectNV &operator=(NodeOpTypeHitObjectNV &&) = delete;
+  NodeOpTypeHitObjectNV(Id id_result) { this->resultId = id_result; }
   template <typename T>
   static constexpr bool is(const T *value);
 };
@@ -33937,6 +38514,10 @@ inline bool NodeTypedef::visit(NodeTypedef *node, T visitor)
         if (visitor(reinterpret_cast<NodeOpTypeBufferSurfaceINTEL *>(node)))
           return true;
         break;
+      case Op::OpTypeCooperativeMatrixKHR:
+        if (visitor(reinterpret_cast<NodeOpTypeCooperativeMatrixKHR *>(node)))
+          return true;
+        break;
       case Op::OpTypeCooperativeMatrixNV:
         if (visitor(reinterpret_cast<NodeOpTypeCooperativeMatrixNV *>(node)))
           return true;
@@ -33955,6 +38536,10 @@ inline bool NodeTypedef::visit(NodeTypedef *node, T visitor)
         break;
       case Op::OpTypeFunction:
         if (visitor(reinterpret_cast<NodeOpTypeFunction *>(node)))
+          return true;
+        break;
+      case Op::OpTypeHitObjectNV:
+        if (visitor(reinterpret_cast<NodeOpTypeHitObjectNV *>(node)))
           return true;
         break;
       case Op::OpTypeImage:
@@ -34045,6 +38630,18 @@ inline bool NodeId::visit(NodeId *node, T visitor)
     switch (node->opCode)
     {
       default: break;
+      case Op::OpAliasDomainDeclINTEL:
+        if (visitor(reinterpret_cast<NodeOpAliasDomainDeclINTEL *>(node)))
+          return true;
+        break;
+      case Op::OpAliasScopeDeclINTEL:
+        if (visitor(reinterpret_cast<NodeOpAliasScopeDeclINTEL *>(node)))
+          return true;
+        break;
+      case Op::OpAliasScopeListDeclINTEL:
+        if (visitor(reinterpret_cast<NodeOpAliasScopeListDeclINTEL *>(node)))
+          return true;
+        break;
       case Op::OpDecorationGroup:
         if (visitor(reinterpret_cast<NodeOpDecorationGroup *>(node)))
           return true;
@@ -34256,9 +38853,34 @@ inline constexpr bool NodeOpExecuteCallableNV::is(const T *val)
   return val->opCode == Op::OpExecuteCallableNV;
 }
 template <typename T>
+inline constexpr bool NodeOpHitObjectExecuteShaderNV::is(const T *val)
+{
+  return val->opCode == Op::OpHitObjectExecuteShaderNV;
+}
+template <typename T>
+inline constexpr bool NodeOpHitObjectGetAttributesNV::is(const T *val)
+{
+  return val->opCode == Op::OpHitObjectGetAttributesNV;
+}
+template <typename T>
+inline constexpr bool NodeOpMaskedScatterINTEL::is(const T *val)
+{
+  return val->opCode == Op::OpMaskedScatterINTEL;
+}
+template <typename T>
 inline constexpr bool NodeOpRayQueryGenerateIntersectionKHR::is(const T *val)
 {
   return val->opCode == Op::OpRayQueryGenerateIntersectionKHR;
+}
+template <typename T>
+inline constexpr bool NodeOpReorderThreadWithHintNV::is(const T *val)
+{
+  return val->opCode == Op::OpReorderThreadWithHintNV;
+}
+template <typename T>
+inline constexpr bool NodeOpSetMeshOutputsEXT::is(const T *val)
+{
+  return val->opCode == Op::OpSetMeshOutputsEXT;
 }
 template <typename T>
 inline constexpr bool NodeOpSetUserEventStatus::is(const T *val)
@@ -34321,6 +38943,46 @@ inline constexpr bool NodeOpCooperativeMatrixStoreNV::is(const T *val)
   return val->opCode == Op::OpCooperativeMatrixStoreNV;
 }
 template <typename T>
+inline constexpr bool NodeOpHitObjectRecordHitMotionNV::is(const T *val)
+{
+  return val->opCode == Op::OpHitObjectRecordHitMotionNV;
+}
+template <typename T>
+inline constexpr bool NodeOpHitObjectRecordHitNV::is(const T *val)
+{
+  return val->opCode == Op::OpHitObjectRecordHitNV;
+}
+template <typename T>
+inline constexpr bool NodeOpHitObjectRecordHitWithIndexMotionNV::is(const T *val)
+{
+  return val->opCode == Op::OpHitObjectRecordHitWithIndexMotionNV;
+}
+template <typename T>
+inline constexpr bool NodeOpHitObjectRecordHitWithIndexNV::is(const T *val)
+{
+  return val->opCode == Op::OpHitObjectRecordHitWithIndexNV;
+}
+template <typename T>
+inline constexpr bool NodeOpHitObjectRecordMissMotionNV::is(const T *val)
+{
+  return val->opCode == Op::OpHitObjectRecordMissMotionNV;
+}
+template <typename T>
+inline constexpr bool NodeOpHitObjectRecordMissNV::is(const T *val)
+{
+  return val->opCode == Op::OpHitObjectRecordMissNV;
+}
+template <typename T>
+inline constexpr bool NodeOpHitObjectTraceRayMotionNV::is(const T *val)
+{
+  return val->opCode == Op::OpHitObjectTraceRayMotionNV;
+}
+template <typename T>
+inline constexpr bool NodeOpHitObjectTraceRayNV::is(const T *val)
+{
+  return val->opCode == Op::OpHitObjectTraceRayNV;
+}
+template <typename T>
 inline constexpr bool NodeOpRayQueryInitializeKHR::is(const T *val)
 {
   return val->opCode == Op::OpRayQueryInitializeKHR;
@@ -34354,6 +39016,16 @@ template <typename T>
 inline constexpr bool NodeOpControlBarrier::is(const T *val)
 {
   return val->opCode == Op::OpControlBarrier;
+}
+template <typename T>
+inline constexpr bool NodeOpControlBarrierArriveINTEL::is(const T *val)
+{
+  return val->opCode == Op::OpControlBarrierArriveINTEL;
+}
+template <typename T>
+inline constexpr bool NodeOpControlBarrierWaitINTEL::is(const T *val)
+{
+  return val->opCode == Op::OpControlBarrierWaitINTEL;
 }
 template <typename T>
 inline constexpr bool NodeOpGroupCommitReadPipe::is(const T *val)
@@ -34391,9 +39063,19 @@ inline constexpr bool NodeOpCaptureEventProfilingInfo::is(const T *val)
   return val->opCode == Op::OpCaptureEventProfilingInfo;
 }
 template <typename T>
+inline constexpr bool NodeOpCooperativeMatrixStoreKHR::is(const T *val)
+{
+  return val->opCode == Op::OpCooperativeMatrixStoreKHR;
+}
+template <typename T>
 inline constexpr bool NodeOpCopyMemorySized::is(const T *val)
 {
   return val->opCode == Op::OpCopyMemorySized;
+}
+template <typename T>
+inline constexpr bool NodeOpEmitMeshTasksEXT::is(const T *val)
+{
+  return val->opCode == Op::OpEmitMeshTasksEXT;
 }
 template <typename T>
 inline constexpr bool NodeUnaryAction::is(const T *val)
@@ -34426,6 +39108,21 @@ inline constexpr bool NodeOpEndStreamPrimitive::is(const T *val)
   return val->opCode == Op::OpEndStreamPrimitive;
 }
 template <typename T>
+inline constexpr bool NodeOpFinalizeNodePayloadsAMDX::is(const T *val)
+{
+  return val->opCode == Op::OpFinalizeNodePayloadsAMDX;
+}
+template <typename T>
+inline constexpr bool NodeOpHitObjectRecordEmptyNV::is(const T *val)
+{
+  return val->opCode == Op::OpHitObjectRecordEmptyNV;
+}
+template <typename T>
+inline constexpr bool NodeOpInitializeNodePayloadsAMDX::is(const T *val)
+{
+  return val->opCode == Op::OpInitializeNodePayloadsAMDX;
+}
+template <typename T>
 inline constexpr bool NodeOpLifetimeStart::is(const T *val)
 {
   return val->opCode == Op::OpLifetimeStart;
@@ -34454,6 +39151,11 @@ template <typename T>
 inline constexpr bool NodeOpReleaseEvent::is(const T *val)
 {
   return val->opCode == Op::OpReleaseEvent;
+}
+template <typename T>
+inline constexpr bool NodeOpReorderThreadWithHitObjectNV::is(const T *val)
+{
+  return val->opCode == Op::OpReorderThreadWithHitObjectNV;
 }
 template <typename T>
 inline constexpr bool NodeOpRestoreMemoryINTEL::is(const T *val)
@@ -34531,6 +39233,21 @@ inline constexpr bool NodeId::is(const T *val)
   return val->nodeKind == NodeKind::Id || NodeBlock::is(val) || NodeOperation::is(val) || NodeTypedef::is(val);
 }
 template <typename T>
+inline constexpr bool NodeOpAliasDomainDeclINTEL::is(const T *val)
+{
+  return val->opCode == Op::OpAliasDomainDeclINTEL;
+}
+template <typename T>
+inline constexpr bool NodeOpAliasScopeDeclINTEL::is(const T *val)
+{
+  return val->opCode == Op::OpAliasScopeDeclINTEL;
+}
+template <typename T>
+inline constexpr bool NodeOpAliasScopeListDeclINTEL::is(const T *val)
+{
+  return val->opCode == Op::OpAliasScopeListDeclINTEL;
+}
+template <typename T>
 inline constexpr bool NodeOpDecorationGroup::is(const T *val)
 {
   return val->opCode == Op::OpDecorationGroup;
@@ -34569,9 +39286,19 @@ inline constexpr bool NodeOpCompositeConstruct::is(const T *val)
   return val->opCode == Op::OpCompositeConstruct;
 }
 template <typename T>
+inline constexpr bool NodeOpCompositeConstructContinuedINTEL::is(const T *val)
+{
+  return val->opCode == Op::OpCompositeConstructContinuedINTEL;
+}
+template <typename T>
 inline constexpr bool NodeOpCreateUserEvent::is(const T *val)
 {
   return val->opCode == Op::OpCreateUserEvent;
+}
+template <typename T>
+inline constexpr bool NodeOpDepthAttachmentReadEXT::is(const T *val)
+{
+  return val->opCode == Op::OpDepthAttachmentReadEXT;
 }
 template <typename T>
 inline constexpr bool NodeOpFunctionPointerCallINTEL::is(const T *val)
@@ -34592,6 +39319,11 @@ template <typename T>
 inline constexpr bool NodeOpSaveMemoryINTEL::is(const T *val)
 {
   return val->opCode == Op::OpSaveMemoryINTEL;
+}
+template <typename T>
+inline constexpr bool NodeOpStencilAttachmentReadEXT::is(const T *val)
+{
+  return val->opCode == Op::OpStencilAttachmentReadEXT;
 }
 template <typename T>
 inline constexpr bool NodeOpSubgroupAvcMceGetDefaultHighPenaltyCostTableINTEL::is(const T *val)
@@ -34746,6 +39478,11 @@ template <typename T>
 inline constexpr bool NodeOpCompositeInsert::is(const T *val)
 {
   return val->opCode == Op::OpCompositeInsert;
+}
+template <typename T>
+inline constexpr bool NodeOpCooperativeMatrixLoadKHR::is(const T *val)
+{
+  return val->opCode == Op::OpCooperativeMatrixLoadKHR;
 }
 template <typename T>
 inline constexpr bool NodeOpDot::is(const T *val)
@@ -35086,6 +39823,11 @@ template <typename T>
 inline constexpr bool NodeOpRayQueryGetIntersectionTKHR::is(const T *val)
 {
   return val->opCode == Op::OpRayQueryGetIntersectionTKHR;
+}
+template <typename T>
+inline constexpr bool NodeOpRayQueryGetIntersectionTriangleVertexPositionsKHR::is(const T *val)
+{
+  return val->opCode == Op::OpRayQueryGetIntersectionTriangleVertexPositionsKHR;
 }
 template <typename T>
 inline constexpr bool NodeOpRayQueryGetIntersectionTypeKHR::is(const T *val)
@@ -35502,6 +40244,11 @@ inline constexpr bool NodeOpConstantFalse::is(const T *val)
   return val->opCode == Op::OpConstantFalse;
 }
 template <typename T>
+inline constexpr bool NodeOpConstantFunctionPointerINTEL::is(const T *val)
+{
+  return val->opCode == Op::OpConstantFunctionPointerINTEL;
+}
+template <typename T>
 inline constexpr bool NodeOpConstantNull::is(const T *val)
 {
   return val->opCode == Op::OpConstantNull;
@@ -35525,6 +40272,11 @@ template <typename T>
 inline constexpr bool NodeOpConstantComposite::is(const T *val)
 {
   return val->opCode == Op::OpConstantComposite;
+}
+template <typename T>
+inline constexpr bool NodeOpConstantCompositeReplicateEXT::is(const T *val)
+{
+  return val->opCode == Op::OpConstantCompositeReplicateEXT;
 }
 template <typename T>
 inline constexpr bool NodeConstantSampler::is(const T *val)
@@ -35772,6 +40524,16 @@ inline constexpr bool NodeOpEnqueueMarker::is(const T *val)
   return val->opCode == Op::OpEnqueueMarker;
 }
 template <typename T>
+inline constexpr bool NodeOpFetchMicroTriangleVertexBarycentricNV::is(const T *val)
+{
+  return val->opCode == Op::OpFetchMicroTriangleVertexBarycentricNV;
+}
+template <typename T>
+inline constexpr bool NodeOpFetchMicroTriangleVertexPositionNV::is(const T *val)
+{
+  return val->opCode == Op::OpFetchMicroTriangleVertexPositionNV;
+}
+template <typename T>
 inline constexpr bool NodeOpGetKernelLocalSizeForSubgroupCount::is(const T *val)
 {
   return val->opCode == Op::OpGetKernelLocalSizeForSubgroupCount;
@@ -35800,6 +40562,41 @@ template <typename T>
 inline constexpr bool NodeOpGetKernelWorkGroupSize::is(const T *val)
 {
   return val->opCode == Op::OpGetKernelWorkGroupSize;
+}
+template <typename T>
+inline constexpr bool NodeOpImageBlockMatchGatherSADQCOM::is(const T *val)
+{
+  return val->opCode == Op::OpImageBlockMatchGatherSADQCOM;
+}
+template <typename T>
+inline constexpr bool NodeOpImageBlockMatchGatherSSDQCOM::is(const T *val)
+{
+  return val->opCode == Op::OpImageBlockMatchGatherSSDQCOM;
+}
+template <typename T>
+inline constexpr bool NodeOpImageBlockMatchSADQCOM::is(const T *val)
+{
+  return val->opCode == Op::OpImageBlockMatchSADQCOM;
+}
+template <typename T>
+inline constexpr bool NodeOpImageBlockMatchSSDQCOM::is(const T *val)
+{
+  return val->opCode == Op::OpImageBlockMatchSSDQCOM;
+}
+template <typename T>
+inline constexpr bool NodeOpImageBlockMatchWindowSADQCOM::is(const T *val)
+{
+  return val->opCode == Op::OpImageBlockMatchWindowSADQCOM;
+}
+template <typename T>
+inline constexpr bool NodeOpImageBlockMatchWindowSSDQCOM::is(const T *val)
+{
+  return val->opCode == Op::OpImageBlockMatchWindowSSDQCOM;
+}
+template <typename T>
+inline constexpr bool NodeOpRawAccessChainNV::is(const T *val)
+{
+  return val->opCode == Op::OpRawAccessChainNV;
 }
 template <typename T>
 inline constexpr bool NodeOpReadPipe::is(const T *val)
@@ -36027,6 +40824,11 @@ inline constexpr bool NodeOpGroupNonUniformQuadSwap::is(const T *val)
   return val->opCode == Op::OpGroupNonUniformQuadSwap;
 }
 template <typename T>
+inline constexpr bool NodeOpGroupNonUniformRotateKHR::is(const T *val)
+{
+  return val->opCode == Op::OpGroupNonUniformRotateKHR;
+}
+template <typename T>
 inline constexpr bool NodeOpGroupNonUniformShuffle::is(const T *val)
 {
   return val->opCode == Op::OpGroupNonUniformShuffle;
@@ -36067,6 +40869,21 @@ inline constexpr bool NodeGroupedOperation::is(const T *val)
   return val->nodeKind == NodeKind::GroupedOperation;
 }
 template <typename T>
+inline constexpr bool NodeOpGroupBitwiseAndKHR::is(const T *val)
+{
+  return val->opCode == Op::OpGroupBitwiseAndKHR;
+}
+template <typename T>
+inline constexpr bool NodeOpGroupBitwiseOrKHR::is(const T *val)
+{
+  return val->opCode == Op::OpGroupBitwiseOrKHR;
+}
+template <typename T>
+inline constexpr bool NodeOpGroupBitwiseXorKHR::is(const T *val)
+{
+  return val->opCode == Op::OpGroupBitwiseXorKHR;
+}
+template <typename T>
 inline constexpr bool NodeOpGroupFAdd::is(const T *val)
 {
   return val->opCode == Op::OpGroupFAdd;
@@ -36097,6 +40914,11 @@ inline constexpr bool NodeOpGroupFMinNonUniformAMD::is(const T *val)
   return val->opCode == Op::OpGroupFMinNonUniformAMD;
 }
 template <typename T>
+inline constexpr bool NodeOpGroupFMulKHR::is(const T *val)
+{
+  return val->opCode == Op::OpGroupFMulKHR;
+}
+template <typename T>
 inline constexpr bool NodeOpGroupIAdd::is(const T *val)
 {
   return val->opCode == Op::OpGroupIAdd;
@@ -36105,6 +40927,26 @@ template <typename T>
 inline constexpr bool NodeOpGroupIAddNonUniformAMD::is(const T *val)
 {
   return val->opCode == Op::OpGroupIAddNonUniformAMD;
+}
+template <typename T>
+inline constexpr bool NodeOpGroupIMulKHR::is(const T *val)
+{
+  return val->opCode == Op::OpGroupIMulKHR;
+}
+template <typename T>
+inline constexpr bool NodeOpGroupLogicalAndKHR::is(const T *val)
+{
+  return val->opCode == Op::OpGroupLogicalAndKHR;
+}
+template <typename T>
+inline constexpr bool NodeOpGroupLogicalOrKHR::is(const T *val)
+{
+  return val->opCode == Op::OpGroupLogicalOrKHR;
+}
+template <typename T>
+inline constexpr bool NodeOpGroupLogicalXorKHR::is(const T *val)
+{
+  return val->opCode == Op::OpGroupLogicalXorKHR;
 }
 template <typename T>
 inline constexpr bool NodeOpGroupNonUniformBallotBitCount::is(const T *val)
@@ -36262,6 +41104,11 @@ inline constexpr bool NodeOpSpecConstantComposite::is(const T *val)
   return val->opCode == Op::OpSpecConstantComposite;
 }
 template <typename T>
+inline constexpr bool NodeOpSpecConstantCompositeReplicateEXT::is(const T *val)
+{
+  return val->opCode == Op::OpSpecConstantCompositeReplicateEXT;
+}
+template <typename T>
 inline constexpr bool NodeSpecConstantOperation::is(const T *val)
 {
   return val->nodeKind == NodeKind::SpecConstantOperation;
@@ -36351,6 +41198,11 @@ inline constexpr bool NodeOpCooperativeMatrixLoadNV::is(const T *val)
   return val->opCode == Op::OpCooperativeMatrixLoadNV;
 }
 template <typename T>
+inline constexpr bool NodeOpCooperativeMatrixMulAddKHR::is(const T *val)
+{
+  return val->opCode == Op::OpCooperativeMatrixMulAddKHR;
+}
+template <typename T>
 inline constexpr bool NodeOpCooperativeMatrixMulAddNV::is(const T *val)
 {
   return val->opCode == Op::OpCooperativeMatrixMulAddNV;
@@ -36364,6 +41216,16 @@ template <typename T>
 inline constexpr bool NodeOpGetNumPipePackets::is(const T *val)
 {
   return val->opCode == Op::OpGetNumPipePackets;
+}
+template <typename T>
+inline constexpr bool NodeOpImageBoxFilterQCOM::is(const T *val)
+{
+  return val->opCode == Op::OpImageBoxFilterQCOM;
+}
+template <typename T>
+inline constexpr bool NodeOpImageSampleWeightedQCOM::is(const T *val)
+{
+  return val->opCode == Op::OpImageSampleWeightedQCOM;
 }
 template <typename T>
 inline constexpr bool NodeOpSDotAccSat::is(const T *val)
@@ -37079,14 +41941,29 @@ inline constexpr bool NodeOpBitcast::is(const T *val)
   return val->opCode == Op::OpBitcast;
 }
 template <typename T>
+inline constexpr bool NodeOpColorAttachmentReadEXT::is(const T *val)
+{
+  return val->opCode == Op::OpColorAttachmentReadEXT;
+}
+template <typename T>
+inline constexpr bool NodeOpCompositeConstructReplicateEXT::is(const T *val)
+{
+  return val->opCode == Op::OpCompositeConstructReplicateEXT;
+}
+template <typename T>
 inline constexpr bool NodeOpCompositeExtract::is(const T *val)
 {
   return val->opCode == Op::OpCompositeExtract;
 }
 template <typename T>
-inline constexpr bool NodeOpConstantFunctionPointerINTEL::is(const T *val)
+inline constexpr bool NodeOpConvertBF16ToFINTEL::is(const T *val)
 {
-  return val->opCode == Op::OpConstantFunctionPointerINTEL;
+  return val->opCode == Op::OpConvertBF16ToFINTEL;
+}
+template <typename T>
+inline constexpr bool NodeOpConvertFToBF16INTEL::is(const T *val)
+{
+  return val->opCode == Op::OpConvertFToBF16INTEL;
 }
 template <typename T>
 inline constexpr bool NodeOpConvertFToS::is(const T *val)
@@ -37154,6 +42031,11 @@ inline constexpr bool NodeOpConvertUToSamplerNV::is(const T *val)
   return val->opCode == Op::OpConvertUToSamplerNV;
 }
 template <typename T>
+inline constexpr bool NodeOpCooperativeMatrixLengthKHR::is(const T *val)
+{
+  return val->opCode == Op::OpCooperativeMatrixLengthKHR;
+}
+template <typename T>
 inline constexpr bool NodeOpCooperativeMatrixLengthNV::is(const T *val)
 {
   return val->opCode == Op::OpCooperativeMatrixLengthNV;
@@ -37209,6 +42091,11 @@ inline constexpr bool NodeOpDPdyFine::is(const T *val)
   return val->opCode == Op::OpDPdyFine;
 }
 template <typename T>
+inline constexpr bool NodeOpExtInstWithForwardRefsKHR::is(const T *val)
+{
+  return val->opCode == Op::OpExtInstWithForwardRefsKHR;
+}
+template <typename T>
 inline constexpr bool NodeOpFConvert::is(const T *val)
 {
   return val->opCode == Op::OpFConvert;
@@ -37217,6 +42104,11 @@ template <typename T>
 inline constexpr bool NodeOpFNegate::is(const T *val)
 {
   return val->opCode == Op::OpFNegate;
+}
+template <typename T>
+inline constexpr bool NodeOpFinishWritingNodePayloadAMDX::is(const T *val)
+{
+  return val->opCode == Op::OpFinishWritingNodePayloadAMDX;
 }
 template <typename T>
 inline constexpr bool NodeOpFwidth::is(const T *val)
@@ -37252,6 +42144,111 @@ template <typename T>
 inline constexpr bool NodeOpGroupNonUniformPartitionNV::is(const T *val)
 {
   return val->opCode == Op::OpGroupNonUniformPartitionNV;
+}
+template <typename T>
+inline constexpr bool NodeOpGroupNonUniformQuadAllKHR::is(const T *val)
+{
+  return val->opCode == Op::OpGroupNonUniformQuadAllKHR;
+}
+template <typename T>
+inline constexpr bool NodeOpGroupNonUniformQuadAnyKHR::is(const T *val)
+{
+  return val->opCode == Op::OpGroupNonUniformQuadAnyKHR;
+}
+template <typename T>
+inline constexpr bool NodeOpHitObjectGetCurrentTimeNV::is(const T *val)
+{
+  return val->opCode == Op::OpHitObjectGetCurrentTimeNV;
+}
+template <typename T>
+inline constexpr bool NodeOpHitObjectGetGeometryIndexNV::is(const T *val)
+{
+  return val->opCode == Op::OpHitObjectGetGeometryIndexNV;
+}
+template <typename T>
+inline constexpr bool NodeOpHitObjectGetHitKindNV::is(const T *val)
+{
+  return val->opCode == Op::OpHitObjectGetHitKindNV;
+}
+template <typename T>
+inline constexpr bool NodeOpHitObjectGetInstanceCustomIndexNV::is(const T *val)
+{
+  return val->opCode == Op::OpHitObjectGetInstanceCustomIndexNV;
+}
+template <typename T>
+inline constexpr bool NodeOpHitObjectGetInstanceIdNV::is(const T *val)
+{
+  return val->opCode == Op::OpHitObjectGetInstanceIdNV;
+}
+template <typename T>
+inline constexpr bool NodeOpHitObjectGetObjectRayDirectionNV::is(const T *val)
+{
+  return val->opCode == Op::OpHitObjectGetObjectRayDirectionNV;
+}
+template <typename T>
+inline constexpr bool NodeOpHitObjectGetObjectRayOriginNV::is(const T *val)
+{
+  return val->opCode == Op::OpHitObjectGetObjectRayOriginNV;
+}
+template <typename T>
+inline constexpr bool NodeOpHitObjectGetObjectToWorldNV::is(const T *val)
+{
+  return val->opCode == Op::OpHitObjectGetObjectToWorldNV;
+}
+template <typename T>
+inline constexpr bool NodeOpHitObjectGetPrimitiveIndexNV::is(const T *val)
+{
+  return val->opCode == Op::OpHitObjectGetPrimitiveIndexNV;
+}
+template <typename T>
+inline constexpr bool NodeOpHitObjectGetRayTMaxNV::is(const T *val)
+{
+  return val->opCode == Op::OpHitObjectGetRayTMaxNV;
+}
+template <typename T>
+inline constexpr bool NodeOpHitObjectGetRayTMinNV::is(const T *val)
+{
+  return val->opCode == Op::OpHitObjectGetRayTMinNV;
+}
+template <typename T>
+inline constexpr bool NodeOpHitObjectGetShaderBindingTableRecordIndexNV::is(const T *val)
+{
+  return val->opCode == Op::OpHitObjectGetShaderBindingTableRecordIndexNV;
+}
+template <typename T>
+inline constexpr bool NodeOpHitObjectGetShaderRecordBufferHandleNV::is(const T *val)
+{
+  return val->opCode == Op::OpHitObjectGetShaderRecordBufferHandleNV;
+}
+template <typename T>
+inline constexpr bool NodeOpHitObjectGetWorldRayDirectionNV::is(const T *val)
+{
+  return val->opCode == Op::OpHitObjectGetWorldRayDirectionNV;
+}
+template <typename T>
+inline constexpr bool NodeOpHitObjectGetWorldRayOriginNV::is(const T *val)
+{
+  return val->opCode == Op::OpHitObjectGetWorldRayOriginNV;
+}
+template <typename T>
+inline constexpr bool NodeOpHitObjectGetWorldToObjectNV::is(const T *val)
+{
+  return val->opCode == Op::OpHitObjectGetWorldToObjectNV;
+}
+template <typename T>
+inline constexpr bool NodeOpHitObjectIsEmptyNV::is(const T *val)
+{
+  return val->opCode == Op::OpHitObjectIsEmptyNV;
+}
+template <typename T>
+inline constexpr bool NodeOpHitObjectIsHitNV::is(const T *val)
+{
+  return val->opCode == Op::OpHitObjectIsHitNV;
+}
+template <typename T>
+inline constexpr bool NodeOpHitObjectIsMissNV::is(const T *val)
+{
+  return val->opCode == Op::OpHitObjectIsMissNV;
 }
 template <typename T>
 inline constexpr bool NodeOpImageSparseTexelsResident::is(const T *val)
@@ -37297,6 +42294,11 @@ template <typename T>
 inline constexpr bool NodeOpLogicalNot::is(const T *val)
 {
   return val->opCode == Op::OpLogicalNot;
+}
+template <typename T>
+inline constexpr bool NodeOpMaskedGatherINTEL::is(const T *val)
+{
+  return val->opCode == Op::OpMaskedGatherINTEL;
 }
 template <typename T>
 inline constexpr bool NodeOpNamedBarrierInitialize::is(const T *val)
@@ -37917,6 +42919,11 @@ inline constexpr bool NodeOpTypeBufferSurfaceINTEL::is(const T *val)
   return val->opCode == Op::OpTypeBufferSurfaceINTEL;
 }
 template <typename T>
+inline constexpr bool NodeOpTypeCooperativeMatrixKHR::is(const T *val)
+{
+  return val->opCode == Op::OpTypeCooperativeMatrixKHR;
+}
+template <typename T>
 inline constexpr bool NodeOpTypeCooperativeMatrixNV::is(const T *val)
 {
   return val->opCode == Op::OpTypeCooperativeMatrixNV;
@@ -37940,6 +42947,11 @@ template <typename T>
 inline constexpr bool NodeOpTypeFunction::is(const T *val)
 {
   return val->opCode == Op::OpTypeFunction;
+}
+template <typename T>
+inline constexpr bool NodeOpTypeHitObjectNV::is(const T *val)
+{
+  return val->opCode == Op::OpTypeHitObjectNV;
 }
 template <typename T>
 inline constexpr bool NodeOpTypeImage::is(const T *val)
@@ -38086,18 +43098,26 @@ inline auto visitProperty(T *p, U u)
     case Decoration::MaxByteOffsetId: return u(reinterpret_cast<PropertyMaxByteOffsetId *>(p));
     case Decoration::NoSignedWrap: return u(reinterpret_cast<PropertyNoSignedWrap *>(p));
     case Decoration::NoUnsignedWrap: return u(reinterpret_cast<PropertyNoUnsignedWrap *>(p));
+    case Decoration::WeightTextureQCOM: return u(reinterpret_cast<PropertyWeightTextureQCOM *>(p));
+    case Decoration::BlockMatchTextureQCOM: return u(reinterpret_cast<PropertyBlockMatchTextureQCOM *>(p));
+    case Decoration::BlockMatchSamplerQCOM: return u(reinterpret_cast<PropertyBlockMatchSamplerQCOM *>(p));
     case Decoration::ExplicitInterpAMD: return u(reinterpret_cast<PropertyExplicitInterpAMD *>(p));
+    case Decoration::NodeSharesPayloadLimitsWithAMDX: return u(reinterpret_cast<PropertyNodeSharesPayloadLimitsWithAMDX *>(p));
+    case Decoration::NodeMaxPayloadsAMDX: return u(reinterpret_cast<PropertyNodeMaxPayloadsAMDX *>(p));
+    case Decoration::TrackFinishWritingAMDX: return u(reinterpret_cast<PropertyTrackFinishWritingAMDX *>(p));
+    case Decoration::PayloadNodeNameAMDX: return u(reinterpret_cast<PropertyPayloadNodeNameAMDX *>(p));
     case Decoration::OverrideCoverageNV: return u(reinterpret_cast<PropertyOverrideCoverageNV *>(p));
     case Decoration::PassthroughNV: return u(reinterpret_cast<PropertyPassthroughNV *>(p));
     case Decoration::ViewportRelativeNV: return u(reinterpret_cast<PropertyViewportRelativeNV *>(p));
     case Decoration::SecondaryViewportRelativeNV: return u(reinterpret_cast<PropertySecondaryViewportRelativeNV *>(p));
-    case Decoration::PerPrimitiveNV: return u(reinterpret_cast<PropertyPerPrimitiveNV *>(p));
+    case Decoration::PerPrimitiveEXT: return u(reinterpret_cast<PropertyPerPrimitiveEXT *>(p));
     case Decoration::PerViewNV: return u(reinterpret_cast<PropertyPerViewNV *>(p));
     case Decoration::PerTaskNV: return u(reinterpret_cast<PropertyPerTaskNV *>(p));
     case Decoration::PerVertexKHR: return u(reinterpret_cast<PropertyPerVertexKHR *>(p));
     case Decoration::NonUniform: return u(reinterpret_cast<PropertyNonUniform *>(p));
     case Decoration::RestrictPointer: return u(reinterpret_cast<PropertyRestrictPointer *>(p));
     case Decoration::AliasedPointer: return u(reinterpret_cast<PropertyAliasedPointer *>(p));
+    case Decoration::HitObjectShaderRecordBufferNV: return u(reinterpret_cast<PropertyHitObjectShaderRecordBufferNV *>(p));
     case Decoration::BindlessSamplerNV: return u(reinterpret_cast<PropertyBindlessSamplerNV *>(p));
     case Decoration::BindlessImageNV: return u(reinterpret_cast<PropertyBindlessImageNV *>(p));
     case Decoration::BoundSamplerNV: return u(reinterpret_cast<PropertyBoundSamplerNV *>(p));
@@ -38128,18 +43148,45 @@ inline auto visitProperty(T *p, U u)
     case Decoration::MergeINTEL: return u(reinterpret_cast<PropertyMergeINTEL *>(p));
     case Decoration::BankBitsINTEL: return u(reinterpret_cast<PropertyBankBitsINTEL *>(p));
     case Decoration::ForcePow2DepthINTEL: return u(reinterpret_cast<PropertyForcePow2DepthINTEL *>(p));
+    case Decoration::StridesizeINTEL: return u(reinterpret_cast<PropertyStridesizeINTEL *>(p));
+    case Decoration::WordsizeINTEL: return u(reinterpret_cast<PropertyWordsizeINTEL *>(p));
+    case Decoration::TrueDualPortINTEL: return u(reinterpret_cast<PropertyTrueDualPortINTEL *>(p));
     case Decoration::BurstCoalesceINTEL: return u(reinterpret_cast<PropertyBurstCoalesceINTEL *>(p));
     case Decoration::CacheSizeINTEL: return u(reinterpret_cast<PropertyCacheSizeINTEL *>(p));
     case Decoration::DontStaticallyCoalesceINTEL: return u(reinterpret_cast<PropertyDontStaticallyCoalesceINTEL *>(p));
     case Decoration::PrefetchINTEL: return u(reinterpret_cast<PropertyPrefetchINTEL *>(p));
     case Decoration::StallEnableINTEL: return u(reinterpret_cast<PropertyStallEnableINTEL *>(p));
     case Decoration::FuseLoopsInFunctionINTEL: return u(reinterpret_cast<PropertyFuseLoopsInFunctionINTEL *>(p));
+    case Decoration::MathOpDSPModeINTEL: return u(reinterpret_cast<PropertyMathOpDSPModeINTEL *>(p));
+    case Decoration::AliasScopeINTEL: return u(reinterpret_cast<PropertyAliasScopeINTEL *>(p));
+    case Decoration::NoAliasINTEL: return u(reinterpret_cast<PropertyNoAliasINTEL *>(p));
+    case Decoration::InitiationIntervalINTEL: return u(reinterpret_cast<PropertyInitiationIntervalINTEL *>(p));
+    case Decoration::MaxConcurrencyINTEL: return u(reinterpret_cast<PropertyMaxConcurrencyINTEL *>(p));
+    case Decoration::PipelineEnableINTEL: return u(reinterpret_cast<PropertyPipelineEnableINTEL *>(p));
     case Decoration::BufferLocationINTEL: return u(reinterpret_cast<PropertyBufferLocationINTEL *>(p));
     case Decoration::IOPipeStorageINTEL: return u(reinterpret_cast<PropertyIOPipeStorageINTEL *>(p));
     case Decoration::FunctionFloatingPointModeINTEL: return u(reinterpret_cast<PropertyFunctionFloatingPointModeINTEL *>(p));
     case Decoration::SingleElementVectorINTEL: return u(reinterpret_cast<PropertySingleElementVectorINTEL *>(p));
     case Decoration::VectorComputeCallableFunctionINTEL: return u(reinterpret_cast<PropertyVectorComputeCallableFunctionINTEL *>(p));
     case Decoration::MediaBlockIOINTEL: return u(reinterpret_cast<PropertyMediaBlockIOINTEL *>(p));
+    case Decoration::StallFreeINTEL: return u(reinterpret_cast<PropertyStallFreeINTEL *>(p));
+    case Decoration::FPMaxErrorDecorationINTEL: return u(reinterpret_cast<PropertyFPMaxErrorDecorationINTEL *>(p));
+    case Decoration::LatencyControlLabelINTEL: return u(reinterpret_cast<PropertyLatencyControlLabelINTEL *>(p));
+    case Decoration::LatencyControlConstraintINTEL: return u(reinterpret_cast<PropertyLatencyControlConstraintINTEL *>(p));
+    case Decoration::ConduitKernelArgumentINTEL: return u(reinterpret_cast<PropertyConduitKernelArgumentINTEL *>(p));
+    case Decoration::RegisterMapKernelArgumentINTEL: return u(reinterpret_cast<PropertyRegisterMapKernelArgumentINTEL *>(p));
+    case Decoration::MMHostInterfaceAddressWidthINTEL: return u(reinterpret_cast<PropertyMMHostInterfaceAddressWidthINTEL *>(p));
+    case Decoration::MMHostInterfaceDataWidthINTEL: return u(reinterpret_cast<PropertyMMHostInterfaceDataWidthINTEL *>(p));
+    case Decoration::MMHostInterfaceLatencyINTEL: return u(reinterpret_cast<PropertyMMHostInterfaceLatencyINTEL *>(p));
+    case Decoration::MMHostInterfaceReadWriteModeINTEL: return u(reinterpret_cast<PropertyMMHostInterfaceReadWriteModeINTEL *>(p));
+    case Decoration::MMHostInterfaceMaxBurstINTEL: return u(reinterpret_cast<PropertyMMHostInterfaceMaxBurstINTEL *>(p));
+    case Decoration::MMHostInterfaceWaitRequestINTEL: return u(reinterpret_cast<PropertyMMHostInterfaceWaitRequestINTEL *>(p));
+    case Decoration::StableKernelArgumentINTEL: return u(reinterpret_cast<PropertyStableKernelArgumentINTEL *>(p));
+    case Decoration::HostAccessINTEL: return u(reinterpret_cast<PropertyHostAccessINTEL *>(p));
+    case Decoration::InitModeINTEL: return u(reinterpret_cast<PropertyInitModeINTEL *>(p));
+    case Decoration::ImplementInRegisterMapINTEL: return u(reinterpret_cast<PropertyImplementInRegisterMapINTEL *>(p));
+    case Decoration::CacheControlLoadINTEL: return u(reinterpret_cast<PropertyCacheControlLoadINTEL *>(p));
+    case Decoration::CacheControlStoreINTEL: return u(reinterpret_cast<PropertyCacheControlStoreINTEL *>(p));
   }
   if (p->type == DecorationName)
   {
@@ -38800,6 +43847,45 @@ struct ExecutionModeLocalSizeHintId : ExecutionModeBase
     visitor(zSizeHint);
   }
 };
+struct ExecutionModeNonCoherentColorAttachmentReadEXT : ExecutionModeBase
+{
+  ExecutionModeNonCoherentColorAttachmentReadEXT() : ExecutionModeBase(ExecutionMode::NonCoherentColorAttachmentReadEXT) {}
+  ~ExecutionModeNonCoherentColorAttachmentReadEXT() = default;
+  template <typename T>
+  static constexpr bool is(const T *v)
+  {
+    return v->mode == ExecutionMode::NonCoherentColorAttachmentReadEXT;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct ExecutionModeNonCoherentDepthAttachmentReadEXT : ExecutionModeBase
+{
+  ExecutionModeNonCoherentDepthAttachmentReadEXT() : ExecutionModeBase(ExecutionMode::NonCoherentDepthAttachmentReadEXT) {}
+  ~ExecutionModeNonCoherentDepthAttachmentReadEXT() = default;
+  template <typename T>
+  static constexpr bool is(const T *v)
+  {
+    return v->mode == ExecutionMode::NonCoherentDepthAttachmentReadEXT;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct ExecutionModeNonCoherentStencilAttachmentReadEXT : ExecutionModeBase
+{
+  ExecutionModeNonCoherentStencilAttachmentReadEXT() : ExecutionModeBase(ExecutionMode::NonCoherentStencilAttachmentReadEXT) {}
+  ~ExecutionModeNonCoherentStencilAttachmentReadEXT() = default;
+  template <typename T>
+  static constexpr bool is(const T *v)
+  {
+    return v->mode == ExecutionMode::NonCoherentStencilAttachmentReadEXT;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
 struct ExecutionModeSubgroupUniformControlFlowKHR : ExecutionModeBase
 {
   ExecutionModeSubgroupUniformControlFlowKHR() : ExecutionModeBase(ExecutionMode::SubgroupUniformControlFlowKHR) {}
@@ -38916,6 +44002,19 @@ struct ExecutionModeRoundingModeRTZ : ExecutionModeBase
   void visitRefs(T)
   {}
 };
+struct ExecutionModeEarlyAndLateFragmentTestsAMD : ExecutionModeBase
+{
+  ExecutionModeEarlyAndLateFragmentTestsAMD() : ExecutionModeBase(ExecutionMode::EarlyAndLateFragmentTestsAMD) {}
+  ~ExecutionModeEarlyAndLateFragmentTestsAMD() = default;
+  template <typename T>
+  static constexpr bool is(const T *v)
+  {
+    return v->mode == ExecutionMode::EarlyAndLateFragmentTestsAMD;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
 struct ExecutionModeStencilRefReplacingEXT : ExecutionModeBase
 {
   ExecutionModeStencilRefReplacingEXT() : ExecutionModeBase(ExecutionMode::StencilRefReplacingEXT) {}
@@ -38929,6 +44028,230 @@ struct ExecutionModeStencilRefReplacingEXT : ExecutionModeBase
   void visitRefs(T)
   {}
 };
+struct ExecutionModeCoalescingAMDX : ExecutionModeBase
+{
+  ExecutionModeCoalescingAMDX() : ExecutionModeBase(ExecutionMode::CoalescingAMDX) {}
+  ~ExecutionModeCoalescingAMDX() = default;
+  template <typename T>
+  static constexpr bool is(const T *v)
+  {
+    return v->mode == ExecutionMode::CoalescingAMDX;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct ExecutionModeMaxNodeRecursionAMDX : ExecutionModeBase
+{
+  NodePointer<NodeId> numberOfRecursions;
+  ExecutionModeMaxNodeRecursionAMDX() : ExecutionModeBase(ExecutionMode::MaxNodeRecursionAMDX) {}
+  ~ExecutionModeMaxNodeRecursionAMDX() = default;
+  ExecutionModeMaxNodeRecursionAMDX(NodePointer<NodeId> number_of_recursions) : ExecutionModeBase(ExecutionMode::MaxNodeRecursionAMDX)
+  {
+    numberOfRecursions = number_of_recursions;
+  }
+  template <typename T>
+  static constexpr bool is(const T *v)
+  {
+    return v->mode == ExecutionMode::MaxNodeRecursionAMDX;
+  }
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(numberOfRecursions);
+  }
+};
+struct ExecutionModeStaticNumWorkgroupsAMDX : ExecutionModeBase
+{
+  NodePointer<NodeId> xSize;
+  NodePointer<NodeId> ySize;
+  NodePointer<NodeId> zSize;
+  ExecutionModeStaticNumWorkgroupsAMDX() : ExecutionModeBase(ExecutionMode::StaticNumWorkgroupsAMDX) {}
+  ~ExecutionModeStaticNumWorkgroupsAMDX() = default;
+  ExecutionModeStaticNumWorkgroupsAMDX(NodePointer<NodeId> x_size, NodePointer<NodeId> y_size, NodePointer<NodeId> z_size) :
+    ExecutionModeBase(ExecutionMode::StaticNumWorkgroupsAMDX)
+  {
+    xSize = x_size;
+    ySize = y_size;
+    zSize = z_size;
+  }
+  template <typename T>
+  static constexpr bool is(const T *v)
+  {
+    return v->mode == ExecutionMode::StaticNumWorkgroupsAMDX;
+  }
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(xSize);
+    visitor(ySize);
+    visitor(zSize);
+  }
+};
+struct ExecutionModeShaderIndexAMDX : ExecutionModeBase
+{
+  NodePointer<NodeId> shaderIndex;
+  ExecutionModeShaderIndexAMDX() : ExecutionModeBase(ExecutionMode::ShaderIndexAMDX) {}
+  ~ExecutionModeShaderIndexAMDX() = default;
+  ExecutionModeShaderIndexAMDX(NodePointer<NodeId> shader_index) : ExecutionModeBase(ExecutionMode::ShaderIndexAMDX)
+  {
+    shaderIndex = shader_index;
+  }
+  template <typename T>
+  static constexpr bool is(const T *v)
+  {
+    return v->mode == ExecutionMode::ShaderIndexAMDX;
+  }
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(shaderIndex);
+  }
+};
+struct ExecutionModeMaxNumWorkgroupsAMDX : ExecutionModeBase
+{
+  NodePointer<NodeId> xSize;
+  NodePointer<NodeId> ySize;
+  NodePointer<NodeId> zSize;
+  ExecutionModeMaxNumWorkgroupsAMDX() : ExecutionModeBase(ExecutionMode::MaxNumWorkgroupsAMDX) {}
+  ~ExecutionModeMaxNumWorkgroupsAMDX() = default;
+  ExecutionModeMaxNumWorkgroupsAMDX(NodePointer<NodeId> x_size, NodePointer<NodeId> y_size, NodePointer<NodeId> z_size) :
+    ExecutionModeBase(ExecutionMode::MaxNumWorkgroupsAMDX)
+  {
+    xSize = x_size;
+    ySize = y_size;
+    zSize = z_size;
+  }
+  template <typename T>
+  static constexpr bool is(const T *v)
+  {
+    return v->mode == ExecutionMode::MaxNumWorkgroupsAMDX;
+  }
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(xSize);
+    visitor(ySize);
+    visitor(zSize);
+  }
+};
+struct ExecutionModeStencilRefUnchangedFrontAMD : ExecutionModeBase
+{
+  ExecutionModeStencilRefUnchangedFrontAMD() : ExecutionModeBase(ExecutionMode::StencilRefUnchangedFrontAMD) {}
+  ~ExecutionModeStencilRefUnchangedFrontAMD() = default;
+  template <typename T>
+  static constexpr bool is(const T *v)
+  {
+    return v->mode == ExecutionMode::StencilRefUnchangedFrontAMD;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct ExecutionModeStencilRefGreaterFrontAMD : ExecutionModeBase
+{
+  ExecutionModeStencilRefGreaterFrontAMD() : ExecutionModeBase(ExecutionMode::StencilRefGreaterFrontAMD) {}
+  ~ExecutionModeStencilRefGreaterFrontAMD() = default;
+  template <typename T>
+  static constexpr bool is(const T *v)
+  {
+    return v->mode == ExecutionMode::StencilRefGreaterFrontAMD;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct ExecutionModeStencilRefLessFrontAMD : ExecutionModeBase
+{
+  ExecutionModeStencilRefLessFrontAMD() : ExecutionModeBase(ExecutionMode::StencilRefLessFrontAMD) {}
+  ~ExecutionModeStencilRefLessFrontAMD() = default;
+  template <typename T>
+  static constexpr bool is(const T *v)
+  {
+    return v->mode == ExecutionMode::StencilRefLessFrontAMD;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct ExecutionModeStencilRefUnchangedBackAMD : ExecutionModeBase
+{
+  ExecutionModeStencilRefUnchangedBackAMD() : ExecutionModeBase(ExecutionMode::StencilRefUnchangedBackAMD) {}
+  ~ExecutionModeStencilRefUnchangedBackAMD() = default;
+  template <typename T>
+  static constexpr bool is(const T *v)
+  {
+    return v->mode == ExecutionMode::StencilRefUnchangedBackAMD;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct ExecutionModeStencilRefGreaterBackAMD : ExecutionModeBase
+{
+  ExecutionModeStencilRefGreaterBackAMD() : ExecutionModeBase(ExecutionMode::StencilRefGreaterBackAMD) {}
+  ~ExecutionModeStencilRefGreaterBackAMD() = default;
+  template <typename T>
+  static constexpr bool is(const T *v)
+  {
+    return v->mode == ExecutionMode::StencilRefGreaterBackAMD;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct ExecutionModeStencilRefLessBackAMD : ExecutionModeBase
+{
+  ExecutionModeStencilRefLessBackAMD() : ExecutionModeBase(ExecutionMode::StencilRefLessBackAMD) {}
+  ~ExecutionModeStencilRefLessBackAMD() = default;
+  template <typename T>
+  static constexpr bool is(const T *v)
+  {
+    return v->mode == ExecutionMode::StencilRefLessBackAMD;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct ExecutionModeQuadDerivativesKHR : ExecutionModeBase
+{
+  ExecutionModeQuadDerivativesKHR() : ExecutionModeBase(ExecutionMode::QuadDerivativesKHR) {}
+  ~ExecutionModeQuadDerivativesKHR() = default;
+  template <typename T>
+  static constexpr bool is(const T *v)
+  {
+    return v->mode == ExecutionMode::QuadDerivativesKHR;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct ExecutionModeRequireFullQuadsKHR : ExecutionModeBase
+{
+  ExecutionModeRequireFullQuadsKHR() : ExecutionModeBase(ExecutionMode::RequireFullQuadsKHR) {}
+  ~ExecutionModeRequireFullQuadsKHR() = default;
+  template <typename T>
+  static constexpr bool is(const T *v)
+  {
+    return v->mode == ExecutionMode::RequireFullQuadsKHR;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct ExecutionModeOutputLinesEXT : ExecutionModeBase
+{
+  ExecutionModeOutputLinesEXT() : ExecutionModeBase(ExecutionMode::OutputLinesEXT) {}
+  ~ExecutionModeOutputLinesEXT() = default;
+  template <typename T>
+  static constexpr bool is(const T *v)
+  {
+    return v->mode == ExecutionMode::OutputLinesEXT;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
 struct ExecutionModeOutputLinesNV : ExecutionModeBase
 {
   ExecutionModeOutputLinesNV() : ExecutionModeBase(ExecutionMode::OutputLinesNV) {}
@@ -38937,6 +44260,24 @@ struct ExecutionModeOutputLinesNV : ExecutionModeBase
   static constexpr bool is(const T *v)
   {
     return v->mode == ExecutionMode::OutputLinesNV;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct ExecutionModeOutputPrimitivesEXT : ExecutionModeBase
+{
+  LiteralInteger primitiveCount;
+  ExecutionModeOutputPrimitivesEXT() : ExecutionModeBase(ExecutionMode::OutputPrimitivesEXT) {}
+  ~ExecutionModeOutputPrimitivesEXT() = default;
+  ExecutionModeOutputPrimitivesEXT(LiteralInteger primitive_count) : ExecutionModeBase(ExecutionMode::OutputPrimitivesEXT)
+  {
+    primitiveCount = primitive_count;
+  }
+  template <typename T>
+  static constexpr bool is(const T *v)
+  {
+    return v->mode == ExecutionMode::OutputPrimitivesEXT;
   }
   template <typename T>
   void visitRefs(T)
@@ -38981,6 +44322,19 @@ struct ExecutionModeDerivativeGroupLinearNV : ExecutionModeBase
   static constexpr bool is(const T *v)
   {
     return v->mode == ExecutionMode::DerivativeGroupLinearNV;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct ExecutionModeOutputTrianglesEXT : ExecutionModeBase
+{
+  ExecutionModeOutputTrianglesEXT() : ExecutionModeBase(ExecutionMode::OutputTrianglesEXT) {}
+  ~ExecutionModeOutputTrianglesEXT() = default;
+  template <typename T>
+  static constexpr bool is(const T *v)
+  {
+    return v->mode == ExecutionMode::OutputTrianglesEXT;
   }
   template <typename T>
   void visitRefs(T)
@@ -39257,6 +44611,156 @@ struct ExecutionModeSchedulerTargetFmaxMhzINTEL : ExecutionModeBase
   void visitRefs(T)
   {}
 };
+struct ExecutionModeMaximallyReconvergesKHR : ExecutionModeBase
+{
+  ExecutionModeMaximallyReconvergesKHR() : ExecutionModeBase(ExecutionMode::MaximallyReconvergesKHR) {}
+  ~ExecutionModeMaximallyReconvergesKHR() = default;
+  template <typename T>
+  static constexpr bool is(const T *v)
+  {
+    return v->mode == ExecutionMode::MaximallyReconvergesKHR;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct ExecutionModeFPFastMathDefault : ExecutionModeBase
+{
+  NodePointer<NodeId> targetType;
+  NodePointer<NodeId> fastMathMode;
+  ExecutionModeFPFastMathDefault() : ExecutionModeBase(ExecutionMode::FPFastMathDefault) {}
+  ~ExecutionModeFPFastMathDefault() = default;
+  ExecutionModeFPFastMathDefault(NodePointer<NodeId> target_type, NodePointer<NodeId> fast_math_mode) :
+    ExecutionModeBase(ExecutionMode::FPFastMathDefault)
+  {
+    targetType = target_type;
+    fastMathMode = fast_math_mode;
+  }
+  template <typename T>
+  static constexpr bool is(const T *v)
+  {
+    return v->mode == ExecutionMode::FPFastMathDefault;
+  }
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(targetType);
+    visitor(fastMathMode);
+  }
+};
+struct ExecutionModeStreamingInterfaceINTEL : ExecutionModeBase
+{
+  LiteralInteger stallFreeReturn;
+  ExecutionModeStreamingInterfaceINTEL() : ExecutionModeBase(ExecutionMode::StreamingInterfaceINTEL) {}
+  ~ExecutionModeStreamingInterfaceINTEL() = default;
+  ExecutionModeStreamingInterfaceINTEL(LiteralInteger stall_free_return) : ExecutionModeBase(ExecutionMode::StreamingInterfaceINTEL)
+  {
+    stallFreeReturn = stall_free_return;
+  }
+  template <typename T>
+  static constexpr bool is(const T *v)
+  {
+    return v->mode == ExecutionMode::StreamingInterfaceINTEL;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct ExecutionModeRegisterMapInterfaceINTEL : ExecutionModeBase
+{
+  LiteralInteger waitForDoneWrite;
+  ExecutionModeRegisterMapInterfaceINTEL() : ExecutionModeBase(ExecutionMode::RegisterMapInterfaceINTEL) {}
+  ~ExecutionModeRegisterMapInterfaceINTEL() = default;
+  ExecutionModeRegisterMapInterfaceINTEL(LiteralInteger wait_for_done_write) :
+    ExecutionModeBase(ExecutionMode::RegisterMapInterfaceINTEL)
+  {
+    waitForDoneWrite = wait_for_done_write;
+  }
+  template <typename T>
+  static constexpr bool is(const T *v)
+  {
+    return v->mode == ExecutionMode::RegisterMapInterfaceINTEL;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct ExecutionModeNamedBarrierCountINTEL : ExecutionModeBase
+{
+  LiteralInteger barrierCount;
+  ExecutionModeNamedBarrierCountINTEL() : ExecutionModeBase(ExecutionMode::NamedBarrierCountINTEL) {}
+  ~ExecutionModeNamedBarrierCountINTEL() = default;
+  ExecutionModeNamedBarrierCountINTEL(LiteralInteger barrier_count) : ExecutionModeBase(ExecutionMode::NamedBarrierCountINTEL)
+  {
+    barrierCount = barrier_count;
+  }
+  template <typename T>
+  static constexpr bool is(const T *v)
+  {
+    return v->mode == ExecutionMode::NamedBarrierCountINTEL;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct ExecutionModeMaximumRegistersINTEL : ExecutionModeBase
+{
+  LiteralInteger numberOfRegisters;
+  ExecutionModeMaximumRegistersINTEL() : ExecutionModeBase(ExecutionMode::MaximumRegistersINTEL) {}
+  ~ExecutionModeMaximumRegistersINTEL() = default;
+  ExecutionModeMaximumRegistersINTEL(LiteralInteger number_of_registers) : ExecutionModeBase(ExecutionMode::MaximumRegistersINTEL)
+  {
+    numberOfRegisters = number_of_registers;
+  }
+  template <typename T>
+  static constexpr bool is(const T *v)
+  {
+    return v->mode == ExecutionMode::MaximumRegistersINTEL;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
+struct ExecutionModeMaximumRegistersIdINTEL : ExecutionModeBase
+{
+  NodePointer<NodeId> numberOfRegisters;
+  ExecutionModeMaximumRegistersIdINTEL() : ExecutionModeBase(ExecutionMode::MaximumRegistersIdINTEL) {}
+  ~ExecutionModeMaximumRegistersIdINTEL() = default;
+  ExecutionModeMaximumRegistersIdINTEL(NodePointer<NodeId> number_of_registers) :
+    ExecutionModeBase(ExecutionMode::MaximumRegistersIdINTEL)
+  {
+    numberOfRegisters = number_of_registers;
+  }
+  template <typename T>
+  static constexpr bool is(const T *v)
+  {
+    return v->mode == ExecutionMode::MaximumRegistersIdINTEL;
+  }
+  template <typename T>
+  void visitRefs(T visitor)
+  {
+    visitor(numberOfRegisters);
+  }
+};
+struct ExecutionModeNamedMaximumRegistersINTEL : ExecutionModeBase
+{
+  NamedMaximumNumberOfRegisters namedMaximumNumberOfRegisters;
+  ExecutionModeNamedMaximumRegistersINTEL() : ExecutionModeBase(ExecutionMode::NamedMaximumRegistersINTEL) {}
+  ~ExecutionModeNamedMaximumRegistersINTEL() = default;
+  ExecutionModeNamedMaximumRegistersINTEL(NamedMaximumNumberOfRegisters named_maximum_number_of_registers) :
+    ExecutionModeBase(ExecutionMode::NamedMaximumRegistersINTEL)
+  {
+    namedMaximumNumberOfRegisters = named_maximum_number_of_registers;
+  }
+  template <typename T>
+  static constexpr bool is(const T *v)
+  {
+    return v->mode == ExecutionMode::NamedMaximumRegistersINTEL;
+  }
+  template <typename T>
+  void visitRefs(T)
+  {}
+};
 template <typename T, typename U>
 void executionModeVisitor(T *t, U u)
 {
@@ -39300,6 +44804,15 @@ void executionModeVisitor(T *t, U u)
     case ExecutionMode::SubgroupsPerWorkgroupId: u(reinterpret_cast<ExecutionModeSubgroupsPerWorkgroupId *>(t)); break;
     case ExecutionMode::LocalSizeId: u(reinterpret_cast<ExecutionModeLocalSizeId *>(t)); break;
     case ExecutionMode::LocalSizeHintId: u(reinterpret_cast<ExecutionModeLocalSizeHintId *>(t)); break;
+    case ExecutionMode::NonCoherentColorAttachmentReadEXT:
+      u(reinterpret_cast<ExecutionModeNonCoherentColorAttachmentReadEXT *>(t));
+      break;
+    case ExecutionMode::NonCoherentDepthAttachmentReadEXT:
+      u(reinterpret_cast<ExecutionModeNonCoherentDepthAttachmentReadEXT *>(t));
+      break;
+    case ExecutionMode::NonCoherentStencilAttachmentReadEXT:
+      u(reinterpret_cast<ExecutionModeNonCoherentStencilAttachmentReadEXT *>(t));
+      break;
     case ExecutionMode::SubgroupUniformControlFlowKHR: u(reinterpret_cast<ExecutionModeSubgroupUniformControlFlowKHR *>(t)); break;
     case ExecutionMode::PostDepthCoverage: u(reinterpret_cast<ExecutionModePostDepthCoverage *>(t)); break;
     case ExecutionMode::DenormPreserve: u(reinterpret_cast<ExecutionModeDenormPreserve *>(t)); break;
@@ -39307,30 +44820,25 @@ void executionModeVisitor(T *t, U u)
     case ExecutionMode::SignedZeroInfNanPreserve: u(reinterpret_cast<ExecutionModeSignedZeroInfNanPreserve *>(t)); break;
     case ExecutionMode::RoundingModeRTE: u(reinterpret_cast<ExecutionModeRoundingModeRTE *>(t)); break;
     case ExecutionMode::RoundingModeRTZ: u(reinterpret_cast<ExecutionModeRoundingModeRTZ *>(t)); break;
+    case ExecutionMode::EarlyAndLateFragmentTestsAMD: u(reinterpret_cast<ExecutionModeEarlyAndLateFragmentTestsAMD *>(t)); break;
     case ExecutionMode::StencilRefReplacingEXT: u(reinterpret_cast<ExecutionModeStencilRefReplacingEXT *>(t)); break;
-    case ExecutionMode::OutputLinesNV: u(reinterpret_cast<ExecutionModeOutputLinesNV *>(t)); break;
-    case ExecutionMode::OutputPrimitivesNV: u(reinterpret_cast<ExecutionModeOutputPrimitivesNV *>(t)); break;
-    case ExecutionMode::DerivativeGroupQuadsNV: u(reinterpret_cast<ExecutionModeDerivativeGroupQuadsNV *>(t)); break;
-    case ExecutionMode::DerivativeGroupLinearNV: u(reinterpret_cast<ExecutionModeDerivativeGroupLinearNV *>(t)); break;
-    case ExecutionMode::OutputTrianglesNV: u(reinterpret_cast<ExecutionModeOutputTrianglesNV *>(t)); break;
-    case ExecutionMode::PixelInterlockOrderedEXT: u(reinterpret_cast<ExecutionModePixelInterlockOrderedEXT *>(t)); break;
-    case ExecutionMode::PixelInterlockUnorderedEXT: u(reinterpret_cast<ExecutionModePixelInterlockUnorderedEXT *>(t)); break;
-    case ExecutionMode::SampleInterlockOrderedEXT: u(reinterpret_cast<ExecutionModeSampleInterlockOrderedEXT *>(t)); break;
-    case ExecutionMode::SampleInterlockUnorderedEXT: u(reinterpret_cast<ExecutionModeSampleInterlockUnorderedEXT *>(t)); break;
-    case ExecutionMode::ShadingRateInterlockOrderedEXT: u(reinterpret_cast<ExecutionModeShadingRateInterlockOrderedEXT *>(t)); break;
-    case ExecutionMode::ShadingRateInterlockUnorderedEXT:
-      u(reinterpret_cast<ExecutionModeShadingRateInterlockUnorderedEXT *>(t));
+    case ExecutionMode::CoalescingAMDX: u(reinterpret_cast<ExecutionModeCoalescingAMDX *>(t)); break;
+    case ExecutionMode::MaxNodeRecursionAMDX: u(reinterpret_cast<ExecutionModeMaxNodeRecursionAMDX *>(t)); break;
+    case ExecutionMode::StaticNumWorkgroupsAMDX: u(reinterpret_cast<ExecutionModeStaticNumWorkgroupsAMDX *>(t)); break;
+    case ExecutionMode::ShaderIndexAMDX: u(reinterpret_cast<ExecutionModeShaderIndexAMDX *>(t)); break;
+    case ExecutionMode::MaxNumWorkgroupsAMDX: u(reinterpret_cast<ExecutionModeMaxNumWorkgroupsAMDX *>(t)); break;
+    case ExecutionMode::StencilRefUnchangedFrontAMD: u(reinterpret_cast<ExecutionModeStencilRefUnchangedFrontAMD *>(t)); break;
+    case ExecutionMode::StencilRefGreaterFrontAMD: u(reinterpret_cast<ExecutionModeStencilRefGreaterFrontAMD *>(t)); break;
+    case ExecutionMode::StencilRefLessFrontAMD: u(reinterpret_cast<ExecutionModeStencilRefLessFrontAMD *>(t)); break;
+    case ExecutionMode::StencilRefUnchangedBackAMD: u(reinterpret_cast<ExecutionModeStencilRefUnchangedBackAMD *>(t)); break;
+    case ExecutionMode::StencilRefGreaterBackAMD: u(reinterpret_cast<ExecutionModeStencilRefGreaterBackAMD *>(t)); break;
+    case ExecutionMode::StencilRefLessBackAMD: u(reinterpret_cast<ExecutionModeStencilRefLessBackAMD *>(t)); break;
+    case ExecutionMode::QuadDerivativesKHR: u(reinterpret_cast<ExecutionModeQuadDerivativesKHR *>(t)); break;
+    case ExecutionMode::RequireFullQuadsKHR: u(reinterpret_cast<ExecutionModeRequireFullQuadsKHR *>(t)); break;
+    case ExecutionMode::OutputLinesEXT:
+      u(reinterpret_cast<ExecutionModeOutputLinesEXT *>(t));
       break;
-    case ExecutionMode::SharedLocalMemorySizeINTEL: u(reinterpret_cast<ExecutionModeSharedLocalMemorySizeINTEL *>(t)); break;
-    case ExecutionMode::RoundingModeRTPINTEL: u(reinterpret_cast<ExecutionModeRoundingModeRTPINTEL *>(t)); break;
-    case ExecutionMode::RoundingModeRTNINTEL: u(reinterpret_cast<ExecutionModeRoundingModeRTNINTEL *>(t)); break;
-    case ExecutionMode::FloatingPointModeALTINTEL: u(reinterpret_cast<ExecutionModeFloatingPointModeALTINTEL *>(t)); break;
-    case ExecutionMode::FloatingPointModeIEEEINTEL: u(reinterpret_cast<ExecutionModeFloatingPointModeIEEEINTEL *>(t)); break;
-    case ExecutionMode::MaxWorkgroupSizeINTEL: u(reinterpret_cast<ExecutionModeMaxWorkgroupSizeINTEL *>(t)); break;
-    case ExecutionMode::MaxWorkDimINTEL: u(reinterpret_cast<ExecutionModeMaxWorkDimINTEL *>(t)); break;
-    case ExecutionMode::NoGlobalOffsetINTEL: u(reinterpret_cast<ExecutionModeNoGlobalOffsetINTEL *>(t)); break;
-    case ExecutionMode::NumSIMDWorkitemsINTEL: u(reinterpret_cast<ExecutionModeNumSIMDWorkitemsINTEL *>(t)); break;
-    case ExecutionMode::SchedulerTargetFmaxMhzINTEL: u(reinterpret_cast<ExecutionModeSchedulerTargetFmaxMhzINTEL *>(t)); break;
+      // duplicated OutputLinesNV = 5269
   }
 };
 } // namespace spirv

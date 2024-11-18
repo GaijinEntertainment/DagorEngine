@@ -308,6 +308,7 @@ bool FileTextEdit::OnImGui(bool windowIsOpen)
 	if (ImGui::BeginPopup("code_editor_find_popup"))
 	{
 		ImGui::Checkbox("Case sensitive", &ctrlfCaseSensitive);
+		ImGui::Checkbox("Whole words", &ctrlfWholeWords);
 		if (requestingFindPopup)
 			ImGui::SetKeyboardFocusHere();
 		ImGui::InputText("Search for", ctrlfTextToFind, FIND_POPUP_TEXT_FIELD_LENGTH, ImGuiInputTextFlags_AutoSelectAll);
@@ -315,7 +316,7 @@ bool FileTextEdit::OnImGui(bool windowIsOpen)
 		if ((ImGui::Button("Find next") || ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter)) && toFindTextSize > 0)
 		{
 			editor->ClearExtraCursors();
-			if (editor->SelectNextOccurrenceOf(ctrlfTextToFind, toFindTextSize, ctrlfCaseSensitive))
+			if (editor->SelectNextOccurrenceOf(ctrlfTextToFind, toFindTextSize, ctrlfCaseSensitive, ctrlfWholeWords))
 			{
 				int nextOccurrenceLine, _;
 				editor->GetCursorPosition(nextOccurrenceLine, _);
@@ -338,6 +339,7 @@ bool FileTextEdit::OnImGui(bool windowIsOpen)
 	if (ImGui::BeginPopup("code_editor_replace_popup"))
 	{
 		ImGui::Checkbox("Case sensitive", &ctrlfCaseSensitive);
+		ImGui::Checkbox("Whole words", &ctrlfWholeWords);
 		if (requestingFindPopup)
 			ImGui::SetKeyboardFocusHere();
 		ImGui::InputText("Search for", ctrlfTextToFind, FIND_POPUP_TEXT_FIELD_LENGTH, ImGuiInputTextFlags_AutoSelectAll);
@@ -347,7 +349,7 @@ bool FileTextEdit::OnImGui(bool windowIsOpen)
 		if ((ImGui::Button("Replace") || ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter)) && toFindTextSize > 0)
 		{
 			editor->ClearExtraCursors();
-			if (editor->Replace(ctrlfTextToFind, toFindTextSize, ctrlfTextToReplace, toReplaceTextSize, ctrlfCaseSensitive, false))
+			if (editor->Replace(ctrlfTextToFind, toFindTextSize, ctrlfTextToReplace, toReplaceTextSize, ctrlfCaseSensitive, ctrlfWholeWords, false))
 			{
 				int nextOccurrenceLine, _;
 				editor->GetCursorPosition(nextOccurrenceLine, _);
@@ -357,7 +359,7 @@ bool FileTextEdit::OnImGui(bool windowIsOpen)
 		ImGui::SameLine();
 		if (ImGui::Button("Replace all") && toFindTextSize > 0)
 		{
-			if (editor->Replace(ctrlfTextToFind, toFindTextSize, ctrlfTextToReplace, toReplaceTextSize, ctrlfCaseSensitive, true))
+			if (editor->Replace(ctrlfTextToFind, toFindTextSize, ctrlfTextToReplace, toReplaceTextSize, ctrlfCaseSensitive, ctrlfWholeWords, true))
 			{
 				int nextOccurrenceLine, _;
 				editor->GetCursorPosition(nextOccurrenceLine, _);

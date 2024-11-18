@@ -96,14 +96,16 @@ bool Picture::load(const char *name)
   TEXTUREID prevTexId = pic.tex;
   PICTUREID picId = BAD_PICTUREID;
   TEXTUREID texId = BAD_TEXTUREID;
+  d3d::SamplerHandle smpId = d3d::INVALID_SAMPLER_HANDLE;
 
   AsyncLoadRequest *req = PicAsyncLoad::make_request(this);
 
-  bool sync = PictureManager::get_picture_ex(name, picId, texId, &req->tcLt, &req->tcRb, /*picSize*/ nullptr,
+  bool sync = PictureManager::get_picture_ex(name, picId, texId, smpId, &req->tcLt, &req->tcRb, /*picSize*/ nullptr,
     PicAsyncLoad::pic_mgr_async_load_cb, req);
 
   pic.pic = picId;
   pic.tex = texId;
+  pic.smp = smpId;
   darg::free_texture(prevTexId, prevPicId);
 
   if (sync)
@@ -130,7 +132,8 @@ void Picture::onAsyncLoadStopped(AsyncLoadRequest *req)
 }
 
 
-void Picture::onLoaded(PICTUREID pid, TEXTUREID tid, const Point2 &tcLt, const Point2 &tcRb, const Point2 &picture_sz)
+void Picture::onLoaded(PICTUREID pid, TEXTUREID tid, d3d::SamplerHandle smp, const Point2 &tcLt, const Point2 &tcRb,
+  const Point2 &picture_sz)
 {
   G_UNUSED(picture_sz);
 
@@ -142,6 +145,7 @@ void Picture::onLoaded(PICTUREID pid, TEXTUREID tid, const Point2 &tcLt, const P
     G_ASSERTF(pid != pic.pic, "pid: %X | %X", pid, pic.pic);
     pic.pic = pid;
     pic.tex = tid;
+    pic.smp = smp;
     pic.tcLt = tcLt;
     pic.tcRb = tcRb;
   }
@@ -149,6 +153,7 @@ void Picture::onLoaded(PICTUREID pid, TEXTUREID tid, const Point2 &tcLt, const P
   {
     pic.pic = BAD_PICTUREID;
     pic.tex = BAD_TEXTUREID;
+    pic.smp = d3d::INVALID_SAMPLER_HANDLE;
     pic.tcLt.zero();
     pic.tcRb.zero();
   }

@@ -1,4 +1,6 @@
-// this file is auto generated, do not modify
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+// auto generated, do not modify
 //-V::1020
 #pragma once
 #include "../publicInclude/spirv/traits_table.h"
@@ -790,6 +792,28 @@ inline bool loadExtendedAMDShaderBallot(IdResult result_id, IdResultType result_
   return true;
 }
 template <typename LC, typename ECB>
+inline bool loadExtendedAMDShaderExplicitVertexParameter(IdResult result_id, IdResultType result_type,
+  AMDShaderExplicitVertexParameter opcode, detail::Operands &operands, LC load_context, ECB on_error)
+{
+  switch (opcode)
+  {
+    default:
+      if (on_error("unknown opcode for extended grammar 'SPV_AMD_shader_explicit_vertex_parameter'"))
+        return false;
+      break;
+    case AMDShaderExplicitVertexParameter::InterpolateAtVertexAMD:
+    {
+      auto c0 = operands.read<IdRef>();
+      auto c1 = operands.read<IdRef>();
+      if (!operands.finishOperands(on_error, "SPV_AMD_shader_explicit_vertex_parameter:InterpolateAtVertexAMD"))
+        return false;
+      load_context.onAMDShaderExplicitVertexParameterInterpolateAtVertex(opcode, result_id, result_type, c0, c1);
+      break;
+    }
+  };
+  return true;
+}
+template <typename LC, typename ECB>
 inline bool loadExtendedAMDShaderTrinaryMinmax(IdResult result_id, IdResultType result_type, AMDShaderTrinaryMinmax opcode,
   detail::Operands &operands, LC load_context, ECB on_error)
 {
@@ -887,28 +911,6 @@ inline bool loadExtendedAMDShaderTrinaryMinmax(IdResult result_id, IdResultType 
       if (!operands.finishOperands(on_error, "SPV_AMD_shader_trinary_minmax:SMid3AMD"))
         return false;
       load_context.onAMDShaderTrinaryMinmaxSMid3(opcode, result_id, result_type, c0, c1, c2);
-      break;
-    }
-  };
-  return true;
-}
-template <typename LC, typename ECB>
-inline bool loadExtendedAMDShaderExplicitVertexParameter(IdResult result_id, IdResultType result_type,
-  AMDShaderExplicitVertexParameter opcode, detail::Operands &operands, LC load_context, ECB on_error)
-{
-  switch (opcode)
-  {
-    default:
-      if (on_error("unknown opcode for extended grammar 'SPV_AMD_shader_explicit_vertex_parameter'"))
-        return false;
-      break;
-    case AMDShaderExplicitVertexParameter::InterpolateAtVertexAMD:
-    {
-      auto c0 = operands.read<IdRef>();
-      auto c1 = operands.read<IdRef>();
-      if (!operands.finishOperands(on_error, "SPV_AMD_shader_explicit_vertex_parameter:InterpolateAtVertexAMD"))
-        return false;
-      load_context.onAMDShaderExplicitVertexParameterInterpolateAtVertex(opcode, result_id, result_type, c0, c1);
       break;
     }
   };
@@ -1067,14 +1069,14 @@ inline bool load(const Id *words, Id word_count, HCB on_header, LC load_context,
             if (!loadExtendedAMDShaderBallot(c1, c0, static_cast<AMDShaderBallot>(c3.value), operands, load_context, on_error))
               return false;
             break;
-          case ExtendedGrammar::AMD_shader_trinary_minmax:
-            if (!loadExtendedAMDShaderTrinaryMinmax(c1, c0, static_cast<AMDShaderTrinaryMinmax>(c3.value), operands, load_context,
-                  on_error))
-              return false;
-            break;
           case ExtendedGrammar::AMD_shader_explicit_vertex_parameter:
             if (!loadExtendedAMDShaderExplicitVertexParameter(c1, c0, static_cast<AMDShaderExplicitVertexParameter>(c3.value),
                   operands, load_context, on_error))
+              return false;
+            break;
+          case ExtendedGrammar::AMD_shader_trinary_minmax:
+            if (!loadExtendedAMDShaderTrinaryMinmax(c1, c0, static_cast<AMDShaderTrinaryMinmax>(c3.value), operands, load_context,
+                  on_error))
               return false;
             break;
         };
@@ -5236,6 +5238,37 @@ inline bool load(const Id *words, Id word_count, HCB on_header, LC load_context,
         load_context.onPtrDiff(Op::OpPtrDiff, c1, c0, c2, c3);
         break;
       }
+      case Op::OpColorAttachmentReadEXT:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        auto c3 = operands.read<Optional<IdRef>>();
+        if (!operands.finishOperands(on_error, "OpColorAttachmentReadEXT"))
+          return false;
+        load_context.onColorAttachmentReadEXT(Op::OpColorAttachmentReadEXT, c1, c0, c2, c3);
+        break;
+      }
+      case Op::OpDepthAttachmentReadEXT:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<Optional<IdRef>>();
+        if (!operands.finishOperands(on_error, "OpDepthAttachmentReadEXT"))
+          return false;
+        load_context.onDepthAttachmentReadEXT(Op::OpDepthAttachmentReadEXT, c1, c0, c2);
+        break;
+      }
+      case Op::OpStencilAttachmentReadEXT:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<Optional<IdRef>>();
+        if (!operands.finishOperands(on_error, "OpStencilAttachmentReadEXT"))
+          return false;
+        load_context.onStencilAttachmentReadEXT(Op::OpStencilAttachmentReadEXT, c1, c0, c2);
+        break;
+      }
       case Op::OpTerminateInvocation:
       {
         if (!operands.finishOperands(on_error, "OpTerminateInvocation"))
@@ -5293,6 +5326,19 @@ inline bool load(const Id *words, Id word_count, HCB on_header, LC load_context,
         load_context.onSubgroupAllEqualKHR(Op::OpSubgroupAllEqualKHR, c1, c0, c2);
         break;
       }
+      case Op::OpGroupNonUniformRotateKHR:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdScope>();
+        auto c3 = operands.read<IdRef>();
+        auto c4 = operands.read<IdRef>();
+        auto c5 = operands.read<Optional<IdRef>>();
+        if (!operands.finishOperands(on_error, "OpGroupNonUniformRotateKHR"))
+          return false;
+        load_context.onGroupNonUniformRotateKHR(Op::OpGroupNonUniformRotateKHR, c1, c0, c2, c3, c4, c5);
+        break;
+      }
       case Op::OpSubgroupReadInvocationKHR:
       {
         auto c0 = operands.read<IdResultType>();
@@ -5302,6 +5348,18 @@ inline bool load(const Id *words, Id word_count, HCB on_header, LC load_context,
         if (!operands.finishOperands(on_error, "OpSubgroupReadInvocationKHR"))
           return false;
         load_context.onSubgroupReadInvocationKHR(Op::OpSubgroupReadInvocationKHR, c1, c0, c2, c3);
+        break;
+      }
+      case Op::OpExtInstWithForwardRefsKHR:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        auto c3 = operands.read<LiteralExtInstInteger>();
+        auto c4 = operands.read<Multiple<IdRef>>();
+        if (!operands.finishOperands(on_error, "OpExtInstWithForwardRefsKHR"))
+          return false;
+        load_context.onExtInstWithForwardRefsKHR(Op::OpExtInstWithForwardRefsKHR, c1, c0, c2, c3, c4);
         break;
       }
       case Op::OpTraceRayKHR:
@@ -5436,6 +5494,97 @@ inline bool load(const Id *words, Id word_count, HCB on_header, LC load_context,
         break;
       }
       // OpSUDotAccSatKHR alias of OpSUDotAccSat
+      case Op::OpTypeCooperativeMatrixKHR:
+      {
+        auto c0 = operands.read<IdResult>();
+        auto c1 = operands.read<IdRef>();
+        auto c2 = operands.read<IdScope>();
+        auto c3 = operands.read<IdRef>();
+        auto c4 = operands.read<IdRef>();
+        auto c5 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpTypeCooperativeMatrixKHR"))
+          return false;
+        load_context.onTypeCooperativeMatrixKHR(Op::OpTypeCooperativeMatrixKHR, c0, c1, c2, c3, c4, c5);
+        break;
+      }
+      case Op::OpCooperativeMatrixLoadKHR:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        auto c3 = operands.read<IdRef>();
+        auto c4 = operands.read<Optional<IdRef>>();
+        auto c5 = operands.read<Optional<MemoryAccessMask>>();
+        if (!operands.finishOperands(on_error, "OpCooperativeMatrixLoadKHR"))
+          return false;
+        load_context.onCooperativeMatrixLoadKHR(Op::OpCooperativeMatrixLoadKHR, c1, c0, c2, c3, c4, c5);
+        break;
+      }
+      case Op::OpCooperativeMatrixStoreKHR:
+      {
+        auto c0 = operands.read<IdRef>();
+        auto c1 = operands.read<IdRef>();
+        auto c2 = operands.read<IdRef>();
+        auto c3 = operands.read<Optional<IdRef>>();
+        auto c4 = operands.read<Optional<MemoryAccessMask>>();
+        if (!operands.finishOperands(on_error, "OpCooperativeMatrixStoreKHR"))
+          return false;
+        load_context.onCooperativeMatrixStoreKHR(Op::OpCooperativeMatrixStoreKHR, c0, c1, c2, c3, c4);
+        break;
+      }
+      case Op::OpCooperativeMatrixMulAddKHR:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        auto c3 = operands.read<IdRef>();
+        auto c4 = operands.read<IdRef>();
+        auto c5 = operands.read<Optional<CooperativeMatrixOperandsMask>>();
+        if (!operands.finishOperands(on_error, "OpCooperativeMatrixMulAddKHR"))
+          return false;
+        load_context.onCooperativeMatrixMulAddKHR(Op::OpCooperativeMatrixMulAddKHR, c1, c0, c2, c3, c4, c5);
+        break;
+      }
+      case Op::OpCooperativeMatrixLengthKHR:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpCooperativeMatrixLengthKHR"))
+          return false;
+        load_context.onCooperativeMatrixLengthKHR(Op::OpCooperativeMatrixLengthKHR, c1, c0, c2);
+        break;
+      }
+      case Op::OpConstantCompositeReplicateEXT:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpConstantCompositeReplicateEXT"))
+          return false;
+        load_context.onConstantCompositeReplicateEXT(Op::OpConstantCompositeReplicateEXT, c1, c0, c2);
+        break;
+      }
+      case Op::OpSpecConstantCompositeReplicateEXT:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpSpecConstantCompositeReplicateEXT"))
+          return false;
+        load_context.onSpecConstantCompositeReplicateEXT(Op::OpSpecConstantCompositeReplicateEXT, c1, c0, c2);
+        break;
+      }
+      case Op::OpCompositeConstructReplicateEXT:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpCompositeConstructReplicateEXT"))
+          return false;
+        load_context.onCompositeConstructReplicateEXT(Op::OpCompositeConstructReplicateEXT, c1, c0, c2);
+        break;
+      }
       case Op::OpTypeRayQueryKHR:
       {
         auto c0 = operands.read<IdResult>();
@@ -5503,6 +5652,114 @@ inline bool load(const Id *words, Id word_count, HCB on_header, LC load_context,
         if (!operands.finishOperands(on_error, "OpRayQueryGetIntersectionTypeKHR"))
           return false;
         load_context.onRayQueryGetIntersectionTypeKHR(Op::OpRayQueryGetIntersectionTypeKHR, c1, c0, c2, c3);
+        break;
+      }
+      case Op::OpImageSampleWeightedQCOM:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        auto c3 = operands.read<IdRef>();
+        auto c4 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpImageSampleWeightedQCOM"))
+          return false;
+        load_context.onImageSampleWeightedQCOM(Op::OpImageSampleWeightedQCOM, c1, c0, c2, c3, c4);
+        break;
+      }
+      case Op::OpImageBoxFilterQCOM:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        auto c3 = operands.read<IdRef>();
+        auto c4 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpImageBoxFilterQCOM"))
+          return false;
+        load_context.onImageBoxFilterQCOM(Op::OpImageBoxFilterQCOM, c1, c0, c2, c3, c4);
+        break;
+      }
+      case Op::OpImageBlockMatchSSDQCOM:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        auto c3 = operands.read<IdRef>();
+        auto c4 = operands.read<IdRef>();
+        auto c5 = operands.read<IdRef>();
+        auto c6 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpImageBlockMatchSSDQCOM"))
+          return false;
+        load_context.onImageBlockMatchSSDQCOM(Op::OpImageBlockMatchSSDQCOM, c1, c0, c2, c3, c4, c5, c6);
+        break;
+      }
+      case Op::OpImageBlockMatchSADQCOM:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        auto c3 = operands.read<IdRef>();
+        auto c4 = operands.read<IdRef>();
+        auto c5 = operands.read<IdRef>();
+        auto c6 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpImageBlockMatchSADQCOM"))
+          return false;
+        load_context.onImageBlockMatchSADQCOM(Op::OpImageBlockMatchSADQCOM, c1, c0, c2, c3, c4, c5, c6);
+        break;
+      }
+      case Op::OpImageBlockMatchWindowSSDQCOM:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        auto c3 = operands.read<IdRef>();
+        auto c4 = operands.read<IdRef>();
+        auto c5 = operands.read<IdRef>();
+        auto c6 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpImageBlockMatchWindowSSDQCOM"))
+          return false;
+        load_context.onImageBlockMatchWindowSSDQCOM(Op::OpImageBlockMatchWindowSSDQCOM, c1, c0, c2, c3, c4, c5, c6);
+        break;
+      }
+      case Op::OpImageBlockMatchWindowSADQCOM:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        auto c3 = operands.read<IdRef>();
+        auto c4 = operands.read<IdRef>();
+        auto c5 = operands.read<IdRef>();
+        auto c6 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpImageBlockMatchWindowSADQCOM"))
+          return false;
+        load_context.onImageBlockMatchWindowSADQCOM(Op::OpImageBlockMatchWindowSADQCOM, c1, c0, c2, c3, c4, c5, c6);
+        break;
+      }
+      case Op::OpImageBlockMatchGatherSSDQCOM:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        auto c3 = operands.read<IdRef>();
+        auto c4 = operands.read<IdRef>();
+        auto c5 = operands.read<IdRef>();
+        auto c6 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpImageBlockMatchGatherSSDQCOM"))
+          return false;
+        load_context.onImageBlockMatchGatherSSDQCOM(Op::OpImageBlockMatchGatherSSDQCOM, c1, c0, c2, c3, c4, c5, c6);
+        break;
+      }
+      case Op::OpImageBlockMatchGatherSADQCOM:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        auto c3 = operands.read<IdRef>();
+        auto c4 = operands.read<IdRef>();
+        auto c5 = operands.read<IdRef>();
+        auto c6 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpImageBlockMatchGatherSADQCOM"))
+          return false;
+        load_context.onImageBlockMatchGatherSADQCOM(Op::OpImageBlockMatchGatherSADQCOM, c1, c0, c2, c3, c4, c5, c6);
         break;
       }
       case Op::OpGroupIAddNonUniformAMD:
@@ -5634,6 +5891,448 @@ inline bool load(const Id *words, Id word_count, HCB on_header, LC load_context,
         load_context.onReadClockKHR(Op::OpReadClockKHR, c1, c0, c2);
         break;
       }
+      case Op::OpFinalizeNodePayloadsAMDX:
+      {
+        auto c0 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpFinalizeNodePayloadsAMDX"))
+          return false;
+        load_context.onFinalizeNodePayloadsAMDX(Op::OpFinalizeNodePayloadsAMDX, c0);
+        break;
+      }
+      case Op::OpFinishWritingNodePayloadAMDX:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpFinishWritingNodePayloadAMDX"))
+          return false;
+        load_context.onFinishWritingNodePayloadAMDX(Op::OpFinishWritingNodePayloadAMDX, c1, c0, c2);
+        break;
+      }
+      case Op::OpInitializeNodePayloadsAMDX:
+      {
+        auto c0 = operands.read<IdRef>();
+        auto c1 = operands.read<IdScope>();
+        auto c2 = operands.read<IdRef>();
+        auto c3 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpInitializeNodePayloadsAMDX"))
+          return false;
+        load_context.onInitializeNodePayloadsAMDX(Op::OpInitializeNodePayloadsAMDX, c0, c1, c2, c3);
+        break;
+      }
+      case Op::OpGroupNonUniformQuadAllKHR:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpGroupNonUniformQuadAllKHR"))
+          return false;
+        load_context.onGroupNonUniformQuadAllKHR(Op::OpGroupNonUniformQuadAllKHR, c1, c0, c2);
+        break;
+      }
+      case Op::OpGroupNonUniformQuadAnyKHR:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpGroupNonUniformQuadAnyKHR"))
+          return false;
+        load_context.onGroupNonUniformQuadAnyKHR(Op::OpGroupNonUniformQuadAnyKHR, c1, c0, c2);
+        break;
+      }
+      case Op::OpHitObjectRecordHitMotionNV:
+      {
+        auto c0 = operands.read<IdRef>();
+        auto c1 = operands.read<IdRef>();
+        auto c2 = operands.read<IdRef>();
+        auto c3 = operands.read<IdRef>();
+        auto c4 = operands.read<IdRef>();
+        auto c5 = operands.read<IdRef>();
+        auto c6 = operands.read<IdRef>();
+        auto c7 = operands.read<IdRef>();
+        auto c8 = operands.read<IdRef>();
+        auto c9 = operands.read<IdRef>();
+        auto c10 = operands.read<IdRef>();
+        auto c11 = operands.read<IdRef>();
+        auto c12 = operands.read<IdRef>();
+        auto c13 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpHitObjectRecordHitMotionNV"))
+          return false;
+        load_context.onHitObjectRecordHitMotionNV(Op::OpHitObjectRecordHitMotionNV, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11,
+          c12, c13);
+        break;
+      }
+      case Op::OpHitObjectRecordHitWithIndexMotionNV:
+      {
+        auto c0 = operands.read<IdRef>();
+        auto c1 = operands.read<IdRef>();
+        auto c2 = operands.read<IdRef>();
+        auto c3 = operands.read<IdRef>();
+        auto c4 = operands.read<IdRef>();
+        auto c5 = operands.read<IdRef>();
+        auto c6 = operands.read<IdRef>();
+        auto c7 = operands.read<IdRef>();
+        auto c8 = operands.read<IdRef>();
+        auto c9 = operands.read<IdRef>();
+        auto c10 = operands.read<IdRef>();
+        auto c11 = operands.read<IdRef>();
+        auto c12 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpHitObjectRecordHitWithIndexMotionNV"))
+          return false;
+        load_context.onHitObjectRecordHitWithIndexMotionNV(Op::OpHitObjectRecordHitWithIndexMotionNV, c0, c1, c2, c3, c4, c5, c6, c7,
+          c8, c9, c10, c11, c12);
+        break;
+      }
+      case Op::OpHitObjectRecordMissMotionNV:
+      {
+        auto c0 = operands.read<IdRef>();
+        auto c1 = operands.read<IdRef>();
+        auto c2 = operands.read<IdRef>();
+        auto c3 = operands.read<IdRef>();
+        auto c4 = operands.read<IdRef>();
+        auto c5 = operands.read<IdRef>();
+        auto c6 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpHitObjectRecordMissMotionNV"))
+          return false;
+        load_context.onHitObjectRecordMissMotionNV(Op::OpHitObjectRecordMissMotionNV, c0, c1, c2, c3, c4, c5, c6);
+        break;
+      }
+      case Op::OpHitObjectGetWorldToObjectNV:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpHitObjectGetWorldToObjectNV"))
+          return false;
+        load_context.onHitObjectGetWorldToObjectNV(Op::OpHitObjectGetWorldToObjectNV, c1, c0, c2);
+        break;
+      }
+      case Op::OpHitObjectGetObjectToWorldNV:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpHitObjectGetObjectToWorldNV"))
+          return false;
+        load_context.onHitObjectGetObjectToWorldNV(Op::OpHitObjectGetObjectToWorldNV, c1, c0, c2);
+        break;
+      }
+      case Op::OpHitObjectGetObjectRayDirectionNV:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpHitObjectGetObjectRayDirectionNV"))
+          return false;
+        load_context.onHitObjectGetObjectRayDirectionNV(Op::OpHitObjectGetObjectRayDirectionNV, c1, c0, c2);
+        break;
+      }
+      case Op::OpHitObjectGetObjectRayOriginNV:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpHitObjectGetObjectRayOriginNV"))
+          return false;
+        load_context.onHitObjectGetObjectRayOriginNV(Op::OpHitObjectGetObjectRayOriginNV, c1, c0, c2);
+        break;
+      }
+      case Op::OpHitObjectTraceRayMotionNV:
+      {
+        auto c0 = operands.read<IdRef>();
+        auto c1 = operands.read<IdRef>();
+        auto c2 = operands.read<IdRef>();
+        auto c3 = operands.read<IdRef>();
+        auto c4 = operands.read<IdRef>();
+        auto c5 = operands.read<IdRef>();
+        auto c6 = operands.read<IdRef>();
+        auto c7 = operands.read<IdRef>();
+        auto c8 = operands.read<IdRef>();
+        auto c9 = operands.read<IdRef>();
+        auto c10 = operands.read<IdRef>();
+        auto c11 = operands.read<IdRef>();
+        auto c12 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpHitObjectTraceRayMotionNV"))
+          return false;
+        load_context.onHitObjectTraceRayMotionNV(Op::OpHitObjectTraceRayMotionNV, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11,
+          c12);
+        break;
+      }
+      case Op::OpHitObjectGetShaderRecordBufferHandleNV:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpHitObjectGetShaderRecordBufferHandleNV"))
+          return false;
+        load_context.onHitObjectGetShaderRecordBufferHandleNV(Op::OpHitObjectGetShaderRecordBufferHandleNV, c1, c0, c2);
+        break;
+      }
+      case Op::OpHitObjectGetShaderBindingTableRecordIndexNV:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpHitObjectGetShaderBindingTableRecordIndexNV"))
+          return false;
+        load_context.onHitObjectGetShaderBindingTableRecordIndexNV(Op::OpHitObjectGetShaderBindingTableRecordIndexNV, c1, c0, c2);
+        break;
+      }
+      case Op::OpHitObjectRecordEmptyNV:
+      {
+        auto c0 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpHitObjectRecordEmptyNV"))
+          return false;
+        load_context.onHitObjectRecordEmptyNV(Op::OpHitObjectRecordEmptyNV, c0);
+        break;
+      }
+      case Op::OpHitObjectTraceRayNV:
+      {
+        auto c0 = operands.read<IdRef>();
+        auto c1 = operands.read<IdRef>();
+        auto c2 = operands.read<IdRef>();
+        auto c3 = operands.read<IdRef>();
+        auto c4 = operands.read<IdRef>();
+        auto c5 = operands.read<IdRef>();
+        auto c6 = operands.read<IdRef>();
+        auto c7 = operands.read<IdRef>();
+        auto c8 = operands.read<IdRef>();
+        auto c9 = operands.read<IdRef>();
+        auto c10 = operands.read<IdRef>();
+        auto c11 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpHitObjectTraceRayNV"))
+          return false;
+        load_context.onHitObjectTraceRayNV(Op::OpHitObjectTraceRayNV, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11);
+        break;
+      }
+      case Op::OpHitObjectRecordHitNV:
+      {
+        auto c0 = operands.read<IdRef>();
+        auto c1 = operands.read<IdRef>();
+        auto c2 = operands.read<IdRef>();
+        auto c3 = operands.read<IdRef>();
+        auto c4 = operands.read<IdRef>();
+        auto c5 = operands.read<IdRef>();
+        auto c6 = operands.read<IdRef>();
+        auto c7 = operands.read<IdRef>();
+        auto c8 = operands.read<IdRef>();
+        auto c9 = operands.read<IdRef>();
+        auto c10 = operands.read<IdRef>();
+        auto c11 = operands.read<IdRef>();
+        auto c12 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpHitObjectRecordHitNV"))
+          return false;
+        load_context.onHitObjectRecordHitNV(Op::OpHitObjectRecordHitNV, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12);
+        break;
+      }
+      case Op::OpHitObjectRecordHitWithIndexNV:
+      {
+        auto c0 = operands.read<IdRef>();
+        auto c1 = operands.read<IdRef>();
+        auto c2 = operands.read<IdRef>();
+        auto c3 = operands.read<IdRef>();
+        auto c4 = operands.read<IdRef>();
+        auto c5 = operands.read<IdRef>();
+        auto c6 = operands.read<IdRef>();
+        auto c7 = operands.read<IdRef>();
+        auto c8 = operands.read<IdRef>();
+        auto c9 = operands.read<IdRef>();
+        auto c10 = operands.read<IdRef>();
+        auto c11 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpHitObjectRecordHitWithIndexNV"))
+          return false;
+        load_context.onHitObjectRecordHitWithIndexNV(Op::OpHitObjectRecordHitWithIndexNV, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10,
+          c11);
+        break;
+      }
+      case Op::OpHitObjectRecordMissNV:
+      {
+        auto c0 = operands.read<IdRef>();
+        auto c1 = operands.read<IdRef>();
+        auto c2 = operands.read<IdRef>();
+        auto c3 = operands.read<IdRef>();
+        auto c4 = operands.read<IdRef>();
+        auto c5 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpHitObjectRecordMissNV"))
+          return false;
+        load_context.onHitObjectRecordMissNV(Op::OpHitObjectRecordMissNV, c0, c1, c2, c3, c4, c5);
+        break;
+      }
+      case Op::OpHitObjectExecuteShaderNV:
+      {
+        auto c0 = operands.read<IdRef>();
+        auto c1 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpHitObjectExecuteShaderNV"))
+          return false;
+        load_context.onHitObjectExecuteShaderNV(Op::OpHitObjectExecuteShaderNV, c0, c1);
+        break;
+      }
+      case Op::OpHitObjectGetCurrentTimeNV:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpHitObjectGetCurrentTimeNV"))
+          return false;
+        load_context.onHitObjectGetCurrentTimeNV(Op::OpHitObjectGetCurrentTimeNV, c1, c0, c2);
+        break;
+      }
+      case Op::OpHitObjectGetAttributesNV:
+      {
+        auto c0 = operands.read<IdRef>();
+        auto c1 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpHitObjectGetAttributesNV"))
+          return false;
+        load_context.onHitObjectGetAttributesNV(Op::OpHitObjectGetAttributesNV, c0, c1);
+        break;
+      }
+      case Op::OpHitObjectGetHitKindNV:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpHitObjectGetHitKindNV"))
+          return false;
+        load_context.onHitObjectGetHitKindNV(Op::OpHitObjectGetHitKindNV, c1, c0, c2);
+        break;
+      }
+      case Op::OpHitObjectGetPrimitiveIndexNV:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpHitObjectGetPrimitiveIndexNV"))
+          return false;
+        load_context.onHitObjectGetPrimitiveIndexNV(Op::OpHitObjectGetPrimitiveIndexNV, c1, c0, c2);
+        break;
+      }
+      case Op::OpHitObjectGetGeometryIndexNV:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpHitObjectGetGeometryIndexNV"))
+          return false;
+        load_context.onHitObjectGetGeometryIndexNV(Op::OpHitObjectGetGeometryIndexNV, c1, c0, c2);
+        break;
+      }
+      case Op::OpHitObjectGetInstanceIdNV:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpHitObjectGetInstanceIdNV"))
+          return false;
+        load_context.onHitObjectGetInstanceIdNV(Op::OpHitObjectGetInstanceIdNV, c1, c0, c2);
+        break;
+      }
+      case Op::OpHitObjectGetInstanceCustomIndexNV:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpHitObjectGetInstanceCustomIndexNV"))
+          return false;
+        load_context.onHitObjectGetInstanceCustomIndexNV(Op::OpHitObjectGetInstanceCustomIndexNV, c1, c0, c2);
+        break;
+      }
+      case Op::OpHitObjectGetWorldRayDirectionNV:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpHitObjectGetWorldRayDirectionNV"))
+          return false;
+        load_context.onHitObjectGetWorldRayDirectionNV(Op::OpHitObjectGetWorldRayDirectionNV, c1, c0, c2);
+        break;
+      }
+      case Op::OpHitObjectGetWorldRayOriginNV:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpHitObjectGetWorldRayOriginNV"))
+          return false;
+        load_context.onHitObjectGetWorldRayOriginNV(Op::OpHitObjectGetWorldRayOriginNV, c1, c0, c2);
+        break;
+      }
+      case Op::OpHitObjectGetRayTMaxNV:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpHitObjectGetRayTMaxNV"))
+          return false;
+        load_context.onHitObjectGetRayTMaxNV(Op::OpHitObjectGetRayTMaxNV, c1, c0, c2);
+        break;
+      }
+      case Op::OpHitObjectGetRayTMinNV:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpHitObjectGetRayTMinNV"))
+          return false;
+        load_context.onHitObjectGetRayTMinNV(Op::OpHitObjectGetRayTMinNV, c1, c0, c2);
+        break;
+      }
+      case Op::OpHitObjectIsEmptyNV:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpHitObjectIsEmptyNV"))
+          return false;
+        load_context.onHitObjectIsEmptyNV(Op::OpHitObjectIsEmptyNV, c1, c0, c2);
+        break;
+      }
+      case Op::OpHitObjectIsHitNV:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpHitObjectIsHitNV"))
+          return false;
+        load_context.onHitObjectIsHitNV(Op::OpHitObjectIsHitNV, c1, c0, c2);
+        break;
+      }
+      case Op::OpHitObjectIsMissNV:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpHitObjectIsMissNV"))
+          return false;
+        load_context.onHitObjectIsMissNV(Op::OpHitObjectIsMissNV, c1, c0, c2);
+        break;
+      }
+      case Op::OpReorderThreadWithHitObjectNV:
+      {
+        auto c0 = operands.read<IdRef>();
+        auto c1 = operands.read<Optional<IdRef>>();
+        auto c2 = operands.read<Optional<IdRef>>();
+        if (!operands.finishOperands(on_error, "OpReorderThreadWithHitObjectNV"))
+          return false;
+        load_context.onReorderThreadWithHitObjectNV(Op::OpReorderThreadWithHitObjectNV, c0, c1, c2);
+        break;
+      }
+      case Op::OpReorderThreadWithHintNV:
+      {
+        auto c0 = operands.read<IdRef>();
+        auto c1 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpReorderThreadWithHintNV"))
+          return false;
+        load_context.onReorderThreadWithHintNV(Op::OpReorderThreadWithHintNV, c0, c1);
+        break;
+      }
+      case Op::OpTypeHitObjectNV:
+      {
+        auto c0 = operands.read<IdResult>();
+        if (!operands.finishOperands(on_error, "OpTypeHitObjectNV"))
+          return false;
+        load_context.onTypeHitObjectNV(Op::OpTypeHitObjectNV, c0);
+        break;
+      }
       case Op::OpImageSampleFootprintNV:
       {
         auto c0 = operands.read<IdResultType>();
@@ -5646,6 +6345,26 @@ inline bool load(const Id *words, Id word_count, HCB on_header, LC load_context,
         if (!operands.finishOperands(on_error, "OpImageSampleFootprintNV"))
           return false;
         load_context.onImageSampleFootprintNV(Op::OpImageSampleFootprintNV, c1, c0, c2, c3, c4, c5, c6);
+        break;
+      }
+      case Op::OpEmitMeshTasksEXT:
+      {
+        auto c0 = operands.read<IdRef>();
+        auto c1 = operands.read<IdRef>();
+        auto c2 = operands.read<IdRef>();
+        auto c3 = operands.read<Optional<IdRef>>();
+        if (!operands.finishOperands(on_error, "OpEmitMeshTasksEXT"))
+          return false;
+        load_context.onEmitMeshTasksEXT(Op::OpEmitMeshTasksEXT, c0, c1, c2, c3);
+        break;
+      }
+      case Op::OpSetMeshOutputsEXT:
+      {
+        auto c0 = operands.read<IdRef>();
+        auto c1 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpSetMeshOutputsEXT"))
+          return false;
+        load_context.onSetMeshOutputsEXT(Op::OpSetMeshOutputsEXT, c0, c1);
         break;
       }
       case Op::OpGroupNonUniformPartitionNV:
@@ -5667,18 +6386,46 @@ inline bool load(const Id *words, Id word_count, HCB on_header, LC load_context,
         load_context.onWritePackedPrimitiveIndices4x8NV(Op::OpWritePackedPrimitiveIndices4x8NV, c0, c1);
         break;
       }
-      case Op::OpReportIntersectionNV:
+      case Op::OpFetchMicroTriangleVertexPositionNV:
       {
         auto c0 = operands.read<IdResultType>();
         auto c1 = operands.read<IdResult>();
         auto c2 = operands.read<IdRef>();
         auto c3 = operands.read<IdRef>();
-        if (!operands.finishOperands(on_error, "OpReportIntersectionNV"))
+        auto c4 = operands.read<IdRef>();
+        auto c5 = operands.read<IdRef>();
+        auto c6 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpFetchMicroTriangleVertexPositionNV"))
           return false;
-        load_context.onReportIntersectionNV(Op::OpReportIntersectionNV, c1, c0, c2, c3);
+        load_context.onFetchMicroTriangleVertexPositionNV(Op::OpFetchMicroTriangleVertexPositionNV, c1, c0, c2, c3, c4, c5, c6);
         break;
       }
-      // OpReportIntersectionKHR alias of OpReportIntersectionNV
+      case Op::OpFetchMicroTriangleVertexBarycentricNV:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        auto c3 = operands.read<IdRef>();
+        auto c4 = operands.read<IdRef>();
+        auto c5 = operands.read<IdRef>();
+        auto c6 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpFetchMicroTriangleVertexBarycentricNV"))
+          return false;
+        load_context.onFetchMicroTriangleVertexBarycentricNV(Op::OpFetchMicroTriangleVertexBarycentricNV, c1, c0, c2, c3, c4, c5, c6);
+        break;
+      }
+      case Op::OpReportIntersectionKHR:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        auto c3 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpReportIntersectionKHR"))
+          return false;
+        load_context.onReportIntersectionKHR(Op::OpReportIntersectionKHR, c1, c0, c2, c3);
+        break;
+      }
+      // OpReportIntersectionNV alias of OpReportIntersectionKHR
       case Op::OpIgnoreIntersectionNV:
       {
         if (!operands.finishOperands(on_error, "OpIgnoreIntersectionNV"))
@@ -5749,15 +6496,27 @@ inline bool load(const Id *words, Id word_count, HCB on_header, LC load_context,
         load_context.onTraceRayMotionNV(Op::OpTraceRayMotionNV, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11);
         break;
       }
-      case Op::OpTypeAccelerationStructureNV:
+      case Op::OpRayQueryGetIntersectionTriangleVertexPositionsKHR:
       {
-        auto c0 = operands.read<IdResult>();
-        if (!operands.finishOperands(on_error, "OpTypeAccelerationStructureNV"))
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        auto c3 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpRayQueryGetIntersectionTriangleVertexPositionsKHR"))
           return false;
-        load_context.onTypeAccelerationStructureNV(Op::OpTypeAccelerationStructureNV, c0);
+        load_context.onRayQueryGetIntersectionTriangleVertexPositionsKHR(Op::OpRayQueryGetIntersectionTriangleVertexPositionsKHR, c1,
+          c0, c2, c3);
         break;
       }
-      // OpTypeAccelerationStructureKHR alias of OpTypeAccelerationStructureNV
+      case Op::OpTypeAccelerationStructureKHR:
+      {
+        auto c0 = operands.read<IdResult>();
+        if (!operands.finishOperands(on_error, "OpTypeAccelerationStructureKHR"))
+          return false;
+        load_context.onTypeAccelerationStructureKHR(Op::OpTypeAccelerationStructureKHR, c0);
+        break;
+      }
+      // OpTypeAccelerationStructureNV alias of OpTypeAccelerationStructureKHR
       case Op::OpExecuteCallableNV:
       {
         auto c0 = operands.read<IdRef>();
@@ -5923,6 +6682,20 @@ inline bool load(const Id *words, Id word_count, HCB on_header, LC load_context,
         if (!operands.finishOperands(on_error, "OpSamplerImageAddressingModeNV"))
           return false;
         load_context.onSamplerImageAddressingModeNV(Op::OpSamplerImageAddressingModeNV, c0);
+        break;
+      }
+      case Op::OpRawAccessChainNV:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        auto c3 = operands.read<IdRef>();
+        auto c4 = operands.read<IdRef>();
+        auto c5 = operands.read<IdRef>();
+        auto c6 = operands.read<Optional<RawAccessChainOperandsMask>>();
+        if (!operands.finishOperands(on_error, "OpRawAccessChainNV"))
+          return false;
+        load_context.onRawAccessChainNV(Op::OpRawAccessChainNV, c1, c0, c2, c3, c4, c5, c6);
         break;
       }
       case Op::OpSubgroupShuffleINTEL:
@@ -8300,6 +9073,34 @@ inline bool load(const Id *words, Id word_count, HCB on_header, LC load_context,
         load_context.onLoopControlINTEL(Op::OpLoopControlINTEL, c0);
         break;
       }
+      case Op::OpAliasDomainDeclINTEL:
+      {
+        auto c0 = operands.read<IdResult>();
+        auto c1 = operands.read<Optional<IdRef>>();
+        if (!operands.finishOperands(on_error, "OpAliasDomainDeclINTEL"))
+          return false;
+        load_context.onAliasDomainDeclINTEL(Op::OpAliasDomainDeclINTEL, c0, c1);
+        break;
+      }
+      case Op::OpAliasScopeDeclINTEL:
+      {
+        auto c0 = operands.read<IdResult>();
+        auto c1 = operands.read<IdRef>();
+        auto c2 = operands.read<Optional<IdRef>>();
+        if (!operands.finishOperands(on_error, "OpAliasScopeDeclINTEL"))
+          return false;
+        load_context.onAliasScopeDeclINTEL(Op::OpAliasScopeDeclINTEL, c0, c1, c2);
+        break;
+      }
+      case Op::OpAliasScopeListDeclINTEL:
+      {
+        auto c0 = operands.read<IdResult>();
+        auto c1 = operands.read<Multiple<IdRef>>();
+        if (!operands.finishOperands(on_error, "OpAliasScopeListDeclINTEL"))
+          return false;
+        load_context.onAliasScopeListDeclINTEL(Op::OpAliasScopeListDeclINTEL, c0, c1);
+        break;
+      }
       case Op::OpFixedSqrtINTEL:
       {
         auto c0 = operands.read<IdResultType>();
@@ -8758,6 +9559,176 @@ inline bool load(const Id *words, Id word_count, HCB on_header, LC load_context,
         if (!operands.finishOperands(on_error, "OpSpecConstantCompositeContinuedINTEL"))
           return false;
         load_context.onSpecConstantCompositeContinuedINTEL(Op::OpSpecConstantCompositeContinuedINTEL, c0);
+        break;
+      }
+      case Op::OpCompositeConstructContinuedINTEL:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<Multiple<IdRef>>();
+        if (!operands.finishOperands(on_error, "OpCompositeConstructContinuedINTEL"))
+          return false;
+        load_context.onCompositeConstructContinuedINTEL(Op::OpCompositeConstructContinuedINTEL, c1, c0, c2);
+        break;
+      }
+      case Op::OpConvertFToBF16INTEL:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpConvertFToBF16INTEL"))
+          return false;
+        load_context.onConvertFToBF16INTEL(Op::OpConvertFToBF16INTEL, c1, c0, c2);
+        break;
+      }
+      case Op::OpConvertBF16ToFINTEL:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpConvertBF16ToFINTEL"))
+          return false;
+        load_context.onConvertBF16ToFINTEL(Op::OpConvertBF16ToFINTEL, c1, c0, c2);
+        break;
+      }
+      case Op::OpControlBarrierArriveINTEL:
+      {
+        auto c0 = operands.read<IdScope>();
+        auto c1 = operands.read<IdScope>();
+        auto c2 = operands.read<IdMemorySemantics>();
+        if (!operands.finishOperands(on_error, "OpControlBarrierArriveINTEL"))
+          return false;
+        load_context.onControlBarrierArriveINTEL(Op::OpControlBarrierArriveINTEL, c0, c1, c2);
+        break;
+      }
+      case Op::OpControlBarrierWaitINTEL:
+      {
+        auto c0 = operands.read<IdScope>();
+        auto c1 = operands.read<IdScope>();
+        auto c2 = operands.read<IdMemorySemantics>();
+        if (!operands.finishOperands(on_error, "OpControlBarrierWaitINTEL"))
+          return false;
+        load_context.onControlBarrierWaitINTEL(Op::OpControlBarrierWaitINTEL, c0, c1, c2);
+        break;
+      }
+      case Op::OpGroupIMulKHR:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdScope>();
+        auto c3 = operands.read<GroupOperation>();
+        auto c4 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpGroupIMulKHR"))
+          return false;
+        load_context.onGroupIMulKHR(Op::OpGroupIMulKHR, c1, c0, c2, c3, c4);
+        break;
+      }
+      case Op::OpGroupFMulKHR:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdScope>();
+        auto c3 = operands.read<GroupOperation>();
+        auto c4 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpGroupFMulKHR"))
+          return false;
+        load_context.onGroupFMulKHR(Op::OpGroupFMulKHR, c1, c0, c2, c3, c4);
+        break;
+      }
+      case Op::OpGroupBitwiseAndKHR:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdScope>();
+        auto c3 = operands.read<GroupOperation>();
+        auto c4 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpGroupBitwiseAndKHR"))
+          return false;
+        load_context.onGroupBitwiseAndKHR(Op::OpGroupBitwiseAndKHR, c1, c0, c2, c3, c4);
+        break;
+      }
+      case Op::OpGroupBitwiseOrKHR:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdScope>();
+        auto c3 = operands.read<GroupOperation>();
+        auto c4 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpGroupBitwiseOrKHR"))
+          return false;
+        load_context.onGroupBitwiseOrKHR(Op::OpGroupBitwiseOrKHR, c1, c0, c2, c3, c4);
+        break;
+      }
+      case Op::OpGroupBitwiseXorKHR:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdScope>();
+        auto c3 = operands.read<GroupOperation>();
+        auto c4 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpGroupBitwiseXorKHR"))
+          return false;
+        load_context.onGroupBitwiseXorKHR(Op::OpGroupBitwiseXorKHR, c1, c0, c2, c3, c4);
+        break;
+      }
+      case Op::OpGroupLogicalAndKHR:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdScope>();
+        auto c3 = operands.read<GroupOperation>();
+        auto c4 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpGroupLogicalAndKHR"))
+          return false;
+        load_context.onGroupLogicalAndKHR(Op::OpGroupLogicalAndKHR, c1, c0, c2, c3, c4);
+        break;
+      }
+      case Op::OpGroupLogicalOrKHR:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdScope>();
+        auto c3 = operands.read<GroupOperation>();
+        auto c4 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpGroupLogicalOrKHR"))
+          return false;
+        load_context.onGroupLogicalOrKHR(Op::OpGroupLogicalOrKHR, c1, c0, c2, c3, c4);
+        break;
+      }
+      case Op::OpGroupLogicalXorKHR:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdScope>();
+        auto c3 = operands.read<GroupOperation>();
+        auto c4 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpGroupLogicalXorKHR"))
+          return false;
+        load_context.onGroupLogicalXorKHR(Op::OpGroupLogicalXorKHR, c1, c0, c2, c3, c4);
+        break;
+      }
+      case Op::OpMaskedGatherINTEL:
+      {
+        auto c0 = operands.read<IdResultType>();
+        auto c1 = operands.read<IdResult>();
+        auto c2 = operands.read<IdRef>();
+        auto c3 = operands.read<LiteralInteger>();
+        auto c4 = operands.read<IdRef>();
+        auto c5 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpMaskedGatherINTEL"))
+          return false;
+        load_context.onMaskedGatherINTEL(Op::OpMaskedGatherINTEL, c1, c0, c2, c3, c4, c5);
+        break;
+      }
+      case Op::OpMaskedScatterINTEL:
+      {
+        auto c0 = operands.read<IdRef>();
+        auto c1 = operands.read<IdRef>();
+        auto c2 = operands.read<LiteralInteger>();
+        auto c3 = operands.read<IdRef>();
+        if (!operands.finishOperands(on_error, "OpMaskedScatterINTEL"))
+          return false;
+        load_context.onMaskedScatterINTEL(Op::OpMaskedScatterINTEL, c0, c1, c2, c3);
         break;
       }
     }

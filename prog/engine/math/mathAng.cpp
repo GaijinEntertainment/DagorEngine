@@ -9,8 +9,8 @@
 //==============================================================================
 void euler_to_quat(real heading, real attitude, real bank, Quat &quat)
 {
-  vec4f angles = v_make_vec4f(heading, attitude, bank, bank);
-  v_stu(&quat.x, v_quat_from_euler(angles));
+  vec3f angles = v_make_vec3f(bank, heading, attitude);
+  v_stu(&quat.x, v_quat_from_euler_yzx(angles));
 }
 
 void euler_heading_to_quat(real heading, Quat &quat)

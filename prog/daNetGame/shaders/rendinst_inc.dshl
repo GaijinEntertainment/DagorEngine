@@ -185,15 +185,17 @@ macro RENDINST_INSTANCING()
       float4 rendinst_color_to; \
       float4 rendinst_interaction_params; \
       BRANCH if (!useCbufferParams)\
-      {\
         perDrawOffset = GET_PER_DRAW_OFFSET; \
-        useCbufferParams = perDrawOffset == 0; \
-      }\
+      useCbufferParams = useCbufferParams || (perDrawOffset == 0); \
+      useCbufferInstanceOffset = useCbufferInstanceOffset || (perDrawOffset == 0); \
+      BRANCH if (useCbufferInstanceOffset) \
+        inst_offset = cb_inst_offset.xyz; \
+      else \
+        inst_offset = asuint(perDrawInstanceData[perDrawOffset + 1].xyz); \
       BRANCH if (useCbufferParams) \
       { \
         cellxyz_min = cb_cellxyz_min; \
         cellxyz_size = cb_cellxyz_size; \
-        inst_offset = cb_inst_offset.xyz; \
         impostor_data_offset = cb_impostor_data_offset; \
         rendinst_opacity = cb_rendinst_opacity; \
         bounding_sphere = cb_bounding_sphere; \
@@ -212,7 +214,6 @@ macro RENDINST_INSTANCING()
       { \
         cellxyz_min = perDrawInstanceData[perDrawOffset - 1]; \
         cellxyz_size = perDrawInstanceData[perDrawOffset + 0]; \
-        inst_offset = asuint(perDrawInstanceData[perDrawOffset + 1].xyz); \
         impostor_data_offset = asuint(perDrawInstanceData[perDrawOffset + 1].w); \
         rendinst_opacity = perDrawInstanceData[perDrawOffset + 2]; \
         bounding_sphere = perDrawInstanceData[perDrawOffset + 3]; \
@@ -261,6 +262,7 @@ macro RENDINST_INSTANCING()
         uint instNo = uint(instance_id)/INSTANCE_ID_DIVISOR;\
         uint voxelize_axis = uint(instance_id)%INSTANCE_ID_DIVISOR;\
         bool useCbufferParams = (cb_inst_offset.z & 1) == 0; \
+        bool useCbufferInstanceOffset = (cb_inst_offset.z & 4) == 0; \
         int perDrawOffset = 0; \
         FILL_PER_DRAW_DATA \
         uint3 inst_offset2 = inst_offset;\
@@ -274,6 +276,7 @@ macro RENDINST_INSTANCING()
         uint instNo = uint(instance_id)/INSTANCE_ID_DIVISOR;\
         uint voxelize_axis = uint(instance_id)%INSTANCE_ID_DIVISOR;\
         bool useCbufferParams = (cb_inst_offset.z & 1) == 0; \
+        bool useCbufferInstanceOffset = (cb_inst_offset.z & 4) == 0; \
         int perDrawOffset = 0; \
         FILL_PER_DRAW_DATA \
         uint3 inst_offset2 = inst_offset;\
@@ -291,6 +294,7 @@ macro RENDINST_INSTANCING()
       uint voxelize_axis = uint(instance_id)%INSTANCE_ID_DIVISOR;\
       int perDrawOffset = 0; \
       bool useCbufferParams = (cb_inst_offset.z & 1) == 0; \
+      bool useCbufferInstanceOffset = (cb_inst_offset.z & 4) == 0; \
       FILL_PER_DRAW_DATA \
       uint3 inst_offset2 = inst_offset;\
       HW_INSTANCE_OFFSET(inst_offset2);\

@@ -87,7 +87,7 @@ const char *dd_resolve_named_mount_in_path(const char *fpath, const char *&mnt_p
     {
       if ((mnt_path = dd_get_named_mount_path(fpath + 1)) != nullptr)
         return "";
-      logerr("named mount <%.*s> not set", fpath + 1);
+      logerr("named mount <%s> not set", fpath + 1);
     }
   }
   mnt_path = "";

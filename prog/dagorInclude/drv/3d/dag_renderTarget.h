@@ -99,7 +99,7 @@ bool set_depth(BaseTexture *tex, int layer, DepthAccess access);
  * @param level The level of the render target.
  * @return True if the render target was set successfully, false otherwise.
  */
-bool set_render_target(int rt_index, BaseTexture *, int fc, int level);
+bool set_render_target(int rt_index, BaseTexture *, int fc, uint8_t level);
 
 /**
  * @brief Sets the render target for rendering.
@@ -112,7 +112,7 @@ bool set_render_target(int rt_index, BaseTexture *, int fc, int level);
  * @param level The level of the render target.
  * @return True if the render target was set successfully, false otherwise.
  */
-bool set_render_target(int rt_index, BaseTexture *, int level);
+bool set_render_target(int rt_index, BaseTexture *, uint8_t level);
 
 /**
  * @brief Sets the render target for rendering. All other render targets will be set to nullptr.
@@ -124,7 +124,7 @@ bool set_render_target(int rt_index, BaseTexture *, int level);
  * @param level The level of the render target.
  * @return True if the render target was set successfully, false otherwise.
  */
-inline bool set_render_target(BaseTexture *t, int level) { return set_render_target() && set_render_target(0, t, level); }
+inline bool set_render_target(BaseTexture *t, uint8_t level) { return set_render_target() && set_render_target(0, t, level); }
 
 /**
  * @brief Sets the render target for rendering. All other render targets will be set to nullptr.
@@ -138,7 +138,10 @@ inline bool set_render_target(BaseTexture *t, int level) { return set_render_tar
  * @param level The level of the render target.
  * @return True if the render target was set successfully, false otherwise.
  */
-inline bool set_render_target(BaseTexture *t, int fc, int level) { return set_render_target() && set_render_target(0, t, fc, level); }
+inline bool set_render_target(BaseTexture *t, int fc, uint8_t level)
+{
+  return set_render_target() && set_render_target(0, t, fc, level);
+}
 
 /**
  * @brief Sets the render target for rendering. All other render targets will be set to nullptr.
@@ -208,10 +211,10 @@ bool get_target_size(int &w, int &h);
  * @param w The width of the render target texture.
  * @param h The height of the render target texture.
  * @param rt_tex The render target texture. If nullptr, the size of the backbuffer will be written to w and h.
- * @param lev The level of the render target texture.
+ * @param level The level of the render target texture.
  * @return true if the operation was successful, false otherwise.
  */
-bool get_render_target_size(int &w, int &h, BaseTexture *rt_tex, int lev = 0);
+bool get_render_target_size(int &w, int &h, BaseTexture *rt_tex, uint8_t level = 0);
 
 /// clear all view
 /**
@@ -265,17 +268,17 @@ inline bool clear_rt(const RenderTarget &rt, const ResourceClearValue &clear_val
 inline bool set_render_target() { return d3di.set_render_target(); }
 inline bool set_depth(BaseTexture *tex, DepthAccess access) { return d3di.set_depth(tex, access); }
 inline bool set_depth(BaseTexture *tex, int layer, DepthAccess access) { return d3di.set_depth(tex, layer, access); }
-inline bool set_render_target(int rt_index, BaseTexture *t, int fc, int level)
+inline bool set_render_target(int rt_index, BaseTexture *t, int fc, uint8_t level)
 {
   return d3di.set_render_target(rt_index, t, fc, level);
 }
-inline bool set_render_target(int rt_index, BaseTexture *t, int level) { return d3di.set_render_target(rt_index, t, level); }
+inline bool set_render_target(int rt_index, BaseTexture *t, uint8_t level) { return d3di.set_render_target(rt_index, t, level); }
 inline void get_render_target(Driver3dRenderTarget &out_rt) { return d3di.get_render_target(out_rt); }
 inline bool set_render_target(const Driver3dRenderTarget &rt) { return d3di.set_render_target(rt); }
 inline bool get_target_size(int &w, int &h) { return d3di.get_target_size(w, h); }
-inline bool get_render_target_size(int &w, int &h, BaseTexture *rt_tex, int lev)
+inline bool get_render_target_size(int &w, int &h, BaseTexture *rt_tex, uint8_t level)
 {
-  return d3di.get_render_target_size(w, h, rt_tex, lev);
+  return d3di.get_render_target_size(w, h, rt_tex, level);
 }
 inline bool clearview(int what, E3DCOLOR c, float z, uint32_t stencil) { return d3di.clearview(what, c, z, stencil); }
 inline void get_screen_size(int &w, int &h) { d3di.get_screen_size(w, h); }

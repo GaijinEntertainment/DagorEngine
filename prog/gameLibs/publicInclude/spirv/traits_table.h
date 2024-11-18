@@ -14,100 +14,137 @@ namespace spirv
 {
 enum class Extension
 {
-  KHR_ray_query = 0,
-  KHR_multiview = 1,
+  KHR_multiview = 0,
+  KHR_ray_query = 1,
   INTEL_optnone = 2,
-  AMD_gcn_shader = 3,
-  INTEL_fpga_reg = 4,
-  NV_mesh_shader = 5,
-  NV_ray_tracing = 6,
-  INTEL_io_pipes = 7,
-  INTEL_loop_fuse = 8,
+  NV_mesh_shader = 3,
+  NV_ray_tracing = 4,
+  INTEL_io_pipes = 5,
+  INTEL_fpga_reg = 6,
+  AMD_gcn_shader = 7,
+  EXT_mesh_shader = 8,
   KHR_ray_tracing = 9,
-  INTEL_subgroups = 10,
-  NV_shading_rate = 11,
-  KHR_linkonce_odr = 12,
-  KHR_device_group = 13,
+  NV_shading_rate = 10,
+  INTEL_subgroups = 11,
+  INTEL_loop_fuse = 12,
+  KHR_linkonce_odr = 13,
   GOOGLE_user_type = 14,
-  KHR_8bit_storage = 15,
-  KHR_shader_clock = 16,
-  KHR_subgroup_vote = 17,
-  AMD_shader_ballot = 18,
-  KHR_expect_assume = 19,
-  KHR_16bit_storage = 20,
-  KHR_shader_ballot = 21,
-  NV_viewport_array2 = 22,
-  INTEL_debug_module = 23,
-  KHR_float_controls = 24,
-  NV_bindless_texture = 25,
-  INTEL_media_block_io = 26,
-  INTEL_vector_compute = 27,
-  KHR_bit_instructions = 28,
-  INTEL_blocking_pipes = 29,
-  INTEL_float_controls2 = 30,
-  INTEL_inline_assembly = 31,
-  NV_shader_sm_builtins = 32,
-  NV_cooperative_matrix = 33,
-  KHR_variable_pointers = 34,
-  EXT_shader_image_int64 = 35,
-  GOOGLE_decorate_string = 36,
-  EXT_descriptor_indexing = 37,
-  KHR_integer_dot_product = 38,
-  INTEL_function_pointers = 39,
-  KHR_vulkan_memory_model = 40,
-  INTEL_kernel_attributes = 41,
-  KHR_post_depth_coverage = 42,
-  INTEL_fp_fast_math_mode = 43,
-  NV_stereo_view_rendering = 44,
-  AMD_shader_fragment_mask = 45,
-  KHR_terminate_invocation = 46,
-  INTEL_fpga_loop_controls = 47,
-  KHR_fragment_shading_rate = 48,
-  AMD_shader_trinary_minmax = 49,
-  EXT_shader_stencil_export = 50,
-  INTEL_usm_storage_classes = 51,
-  NV_shader_image_footprint = 52,
-  NV_ray_tracing_motion_blur = 53,
-  INTEL_fpga_memory_accesses = 54,
-  INTEL_fpga_buffer_location = 55,
-  KHR_shader_draw_parameters = 56,
-  GOOGLE_hlsl_functionality1 = 57,
-  EXT_fragment_fully_covered = 58,
-  EXT_shader_atomic_float_add = 59,
-  AMD_texture_gather_bias_lod = 60,
-  INTEL_variable_length_array = 61,
-  KHR_physical_storage_buffer = 62,
-  EXT_physical_storage_buffer = 63,
-  INTEL_fpga_memory_attributes = 64,
-  INTEL_long_constant_composite = 65,
-  INTEL_fpga_cluster_attributes = 66,
-  EXT_shader_atomic_float16_add = 67,
-  NV_compute_shader_derivatives = 68,
-  EXT_fragment_shader_interlock = 69,
-  KHR_shader_atomic_counter_ops = 70,
-  KHR_no_integer_wrap_decoration = 71,
-  NV_geometry_shader_passthrough = 72,
-  NV_shader_subgroup_partitioned = 73,
-  NV_fragment_shader_barycentric = 74,
-  AMD_shader_image_load_store_lod = 75,
-  AMD_gpu_shader_half_float_fetch = 76,
-  EXT_demote_to_helper_invocation = 77,
-  KHR_fragment_shader_barycentric = 78,
-  EXT_fragment_invocation_density = 79,
-  INTEL_shader_integer_functions2 = 80,
-  EXT_shader_viewport_index_layer = 81,
-  EXT_shader_atomic_float_min_max = 82,
-  NV_sample_mask_override_coverage = 83,
-  KHR_storage_buffer_storage_class = 84,
-  INTEL_unstructured_loop_controls = 85,
-  NVX_multiview_per_view_attributes = 86,
-  KHR_subgroup_uniform_control_flow = 87,
-  INTEL_arbitrary_precision_integers = 88,
-  KHR_workgroup_memory_explicit_layout = 89,
-  AMD_shader_explicit_vertex_parameter = 90,
-  INTEL_arbitrary_precision_fixed_point = 91,
-  INTEL_device_side_avc_motion_estimation = 92,
-  INTEL_arbitrary_precision_floating_point = 93,
+  KHR_device_group = 15,
+  KHR_8bit_storage = 16,
+  KHR_shader_clock = 17,
+  KHR_quad_control = 18,
+  KHR_shader_ballot = 19,
+  KHR_ray_cull_mask = 20,
+  AMD_shader_ballot = 21,
+  ARM_core_builtins = 22,
+  KHR_subgroup_vote = 23,
+  KHR_16bit_storage = 24,
+  KHR_expect_assume = 25,
+  KHR_float_controls = 26,
+  NV_viewport_array2 = 27,
+  INTEL_debug_module = 28,
+  INTEL_fp_max_error = 29,
+  AMDX_shader_enqueue = 30,
+  NV_bindless_texture = 31,
+  KHR_subgroup_rotate = 32,
+  KHR_float_controls2 = 33,
+  INTEL_split_barrier = 34,
+  EXT_opacity_micromap = 35,
+  NV_raw_access_chains = 36,
+  INTEL_media_block_io = 37,
+  INTEL_vector_compute = 38,
+  INTEL_blocking_pipes = 39,
+  KHR_bit_instructions = 40,
+  INTEL_cache_controls = 41,
+  KHR_variable_pointers = 42,
+  QCOM_image_processing = 43,
+  NV_shader_sm_builtins = 44,
+  EXT_shader_tile_image = 45,
+  NV_cooperative_matrix = 46,
+  INTEL_float_controls2 = 47,
+  INTEL_inline_assembly = 48,
+  INTEL_runtime_aligned = 49,
+  INTEL_long_composites = 50,
+  QCOM_image_processing2 = 51,
+  EXT_shader_image_int64 = 52,
+  INTEL_fpga_dsp_control = 53,
+  KHR_cooperative_matrix = 54,
+  GOOGLE_decorate_string = 55,
+  KHR_vulkan_memory_model = 56,
+  KHR_post_depth_coverage = 57,
+  INTEL_kernel_attributes = 58,
+  INTEL_function_pointers = 59,
+  EXT_descriptor_indexing = 60,
+  INTEL_fp_fast_math_mode = 61,
+  KHR_integer_dot_product = 62,
+  INTEL_maximum_registers = 63,
+  NV_stereo_view_rendering = 64,
+  AMD_shader_fragment_mask = 65,
+  NV_displacement_micromap = 66,
+  INTEL_fpga_loop_controls = 67,
+  KHR_terminate_invocation = 68,
+  EXT_shader_stencil_export = 69,
+  KHR_maximal_reconvergence = 70,
+  INTEL_usm_storage_classes = 71,
+  KHR_fragment_shading_rate = 72,
+  NV_shader_image_footprint = 73,
+  EXT_replicated_composites = 74,
+  INTEL_bfloat16_conversion = 75,
+  AMD_shader_trinary_minmax = 76,
+  GOOGLE_hlsl_functionality1 = 77,
+  KHR_shader_draw_parameters = 78,
+  EXT_fragment_fully_covered = 79,
+  NV_ray_tracing_motion_blur = 80,
+  INTEL_fpga_memory_accesses = 81,
+  INTEL_fpga_buffer_location = 82,
+  INTEL_fpga_latency_control = 83,
+  EXT_physical_storage_buffer = 84,
+  KHR_physical_storage_buffer = 85,
+  AMD_texture_gather_bias_lod = 86,
+  INTEL_variable_length_array = 87,
+  EXT_shader_atomic_float_add = 88,
+  INTEL_masked_gather_scatter = 89,
+  INTEL_memory_access_aliasing = 90,
+  INTEL_fpga_memory_attributes = 91,
+  NV_shader_invocation_reorder = 92,
+  NV_shader_atomic_fp16_vector = 93,
+  NV_compute_shader_derivatives = 94,
+  EXT_fragment_shader_interlock = 95,
+  KHR_shader_atomic_counter_ops = 96,
+  INTEL_fpga_cluster_attributes = 97,
+  EXT_shader_atomic_float16_add = 98,
+  KHR_no_integer_wrap_decoration = 99,
+  NV_geometry_shader_passthrough = 100,
+  NV_fragment_shader_barycentric = 101,
+  NV_shader_subgroup_partitioned = 102,
+  ARM_cooperative_matrix_layouts = 103,
+  KHR_ray_tracing_position_fetch = 104,
+  INTEL_fpga_argument_interfaces = 105,
+  KHR_uniform_group_instructions = 106,
+  KHR_fragment_shader_barycentric = 107,
+  EXT_fragment_invocation_density = 108,
+  AMD_gpu_shader_half_float_fetch = 109,
+  AMD_shader_image_load_store_lod = 110,
+  EXT_shader_viewport_index_layer = 111,
+  EXT_demote_to_helper_invocation = 112,
+  INTEL_shader_integer_functions2 = 113,
+  EXT_shader_atomic_float_min_max = 114,
+  KHR_storage_buffer_storage_class = 115,
+  NV_sample_mask_override_coverage = 116,
+  INTEL_unstructured_loop_controls = 117,
+  KHR_relaxed_extended_instruction = 118,
+  KHR_subgroup_uniform_control_flow = 119,
+  NVX_multiview_per_view_attributes = 120,
+  INTEL_global_variable_host_access = 121,
+  INTEL_arbitrary_precision_integers = 122,
+  AMD_shader_explicit_vertex_parameter = 123,
+  KHR_workgroup_memory_explicit_layout = 124,
+  INTEL_arbitrary_precision_fixed_point = 125,
+  INTEL_global_variable_fpga_decorations = 126,
+  INTEL_device_side_avc_motion_estimation = 127,
+  AMD_shader_early_and_late_fragment_tests = 128,
+  INTEL_arbitrary_precision_floating_point = 129,
+  INTEL_fpga_invocation_pipelining_attributes = 130,
   Count
 };
 enum class ExtendedGrammar
@@ -222,6 +259,10 @@ enum class AMDShaderBallot : unsigned
   WriteInvocationAMD = 3,
   MbcntAMD = 4
 };
+enum class AMDShaderExplicitVertexParameter : unsigned
+{
+  InterpolateAtVertexAMD = 1
+};
 enum class AMDShaderTrinaryMinmax : unsigned
 {
   FMin3AMD = 1,
@@ -234,118 +275,8 @@ enum class AMDShaderTrinaryMinmax : unsigned
   UMid3AMD = 8,
   SMid3AMD = 9
 };
-enum class AMDShaderExplicitVertexParameter : unsigned
-{
-  InterpolateAtVertexAMD = 1
-};
 // extended grammar enum types
-inline MemorySemanticsMask operator&(MemorySemanticsMask a, MemorySemanticsMask b)
-{
-  return MemorySemanticsMask(unsigned(a) & unsigned(b));
-}
-inline MemorySemanticsMask operator^(MemorySemanticsMask a, MemorySemanticsMask b)
-{
-  return MemorySemanticsMask(unsigned(a) ^ unsigned(b));
-}
-inline SelectionControlMask operator&(SelectionControlMask a, SelectionControlMask b)
-{
-  return SelectionControlMask(unsigned(a) & unsigned(b));
-}
-inline SelectionControlMask operator^(SelectionControlMask a, SelectionControlMask b)
-{
-  return SelectionControlMask(unsigned(a) ^ unsigned(b));
-}
-inline LoopControlMask operator&(LoopControlMask a, LoopControlMask b) { return LoopControlMask(unsigned(a) & unsigned(b)); }
-inline LoopControlMask operator^(LoopControlMask a, LoopControlMask b) { return LoopControlMask(unsigned(a) ^ unsigned(b)); }
-inline RayFlagsMask operator&(RayFlagsMask a, RayFlagsMask b) { return RayFlagsMask(unsigned(a) & unsigned(b)); }
-inline RayFlagsMask operator^(RayFlagsMask a, RayFlagsMask b) { return RayFlagsMask(unsigned(a) ^ unsigned(b)); }
-inline FragmentShadingRateMask operator&(FragmentShadingRateMask a, FragmentShadingRateMask b)
-{
-  return FragmentShadingRateMask(unsigned(a) & unsigned(b));
-}
-inline FragmentShadingRateMask operator^(FragmentShadingRateMask a, FragmentShadingRateMask b)
-{
-  return FragmentShadingRateMask(unsigned(a) ^ unsigned(b));
-}
-inline FunctionControlMask operator&(FunctionControlMask a, FunctionControlMask b)
-{
-  return FunctionControlMask(unsigned(a) & unsigned(b));
-}
-inline FunctionControlMask operator^(FunctionControlMask a, FunctionControlMask b)
-{
-  return FunctionControlMask(unsigned(a) ^ unsigned(b));
-}
-inline ImageOperandsMask operator&(ImageOperandsMask a, ImageOperandsMask b) { return ImageOperandsMask(unsigned(a) & unsigned(b)); }
-inline ImageOperandsMask operator^(ImageOperandsMask a, ImageOperandsMask b) { return ImageOperandsMask(unsigned(a) ^ unsigned(b)); }
-inline MemoryAccessMask operator&(MemoryAccessMask a, MemoryAccessMask b) { return MemoryAccessMask(unsigned(a) & unsigned(b)); }
-inline MemoryAccessMask operator^(MemoryAccessMask a, MemoryAccessMask b) { return MemoryAccessMask(unsigned(a) ^ unsigned(b)); }
-inline FPFastMathModeMask operator&(FPFastMathModeMask a, FPFastMathModeMask b)
-{
-  return FPFastMathModeMask(unsigned(a) & unsigned(b));
-}
-inline FPFastMathModeMask operator^(FPFastMathModeMask a, FPFastMathModeMask b)
-{
-  return FPFastMathModeMask(unsigned(a) ^ unsigned(b));
-}
-inline KernelProfilingInfoMask operator&(KernelProfilingInfoMask a, KernelProfilingInfoMask b)
-{
-  return KernelProfilingInfoMask(unsigned(a) & unsigned(b));
-}
-inline KernelProfilingInfoMask operator^(KernelProfilingInfoMask a, KernelProfilingInfoMask b)
-{
-  return KernelProfilingInfoMask(unsigned(a) ^ unsigned(b));
-}
 // type traits
-template <>
-struct TypeTraits<LiteralSpecConstantOpInteger>
-{
-  static const char *doc()
-  {
-    return "An opcode indicating the operation to be performed and determining the layout of following operands (for "
-           "OpSpecConstantOp)";
-  }
-  static const char *name() { return "LiteralSpecConstantOpInteger"; }
-  typedef LiteralSpecConstantOpInteger ReadType;
-  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
-  {
-    if (to - from < 1)
-    {
-      error = true;
-      return {};
-    }
-    ReadType result{*from++};
-    return result;
-  };
-};
-template <>
-struct TypeTraits<LiteralExtInstInteger>
-{
-  static const char *doc()
-  {
-    return "A 32-bit unsigned integer indicating which instruction to use and determining the layout of following operands (for "
-           "OpExtInst)";
-  }
-  static const char *name() { return "LiteralExtInstInteger"; }
-  typedef LiteralExtInstInteger ReadType;
-  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
-  {
-    if (to - from < 1)
-    {
-      error = true;
-      return {};
-    }
-    ReadType result{*from++};
-    return result;
-  };
-};
-struct IdRefTag;
-typedef detail::TaggedType<Id, IdRefTag> IdRef;
-template <>
-struct TypeTraits<IdRef> : detail::BasicIdTypeTraits<IdRef>
-{
-  static const char *doc() { return "Reference to an <id>"; }
-  static const char *name() { return "IdRef"; }
-};
 struct IdResultTypeTag;
 typedef detail::TaggedType<Id, IdResultTypeTag> IdResultType;
 template <>
@@ -353,6 +284,25 @@ struct TypeTraits<IdResultType> : detail::BasicIdTypeTraits<IdResultType>
 {
   static const char *doc() { return "Reference to an <id> representing the result's type of the enclosing instruction"; }
   static const char *name() { return "IdResultType"; }
+};
+struct IdResultTag;
+typedef detail::TaggedType<Id, IdResultTag> IdResult;
+template <>
+struct TypeTraits<IdResult> : detail::BasicIdTypeTraits<IdResult>
+{
+  static const char *doc() { return "Definition of an <id> representing the result of the enclosing instruction"; }
+  static const char *name() { return "IdResult"; }
+};
+struct IdMemorySemanticsTag;
+typedef detail::TaggedType<Id, IdMemorySemanticsTag> IdMemorySemantics;
+template <>
+struct TypeTraits<IdMemorySemantics> : detail::BasicIdTypeTraits<IdMemorySemantics>
+{
+  static const char *doc()
+  {
+    return "Reference to an <id> representing a 32-bit integer that is a mask from the MemorySemantics operand kind";
+  }
+  static const char *name() { return "IdMemorySemantics"; }
 };
 struct IdScopeTag;
 typedef detail::TaggedType<Id, IdScopeTag> IdScope;
@@ -362,13 +312,30 @@ struct TypeTraits<IdScope> : detail::BasicIdTypeTraits<IdScope>
   static const char *doc() { return "Reference to an <id> representing a 32-bit integer that is a mask from the Scope operand kind"; }
   static const char *name() { return "IdScope"; }
 };
-struct IdResultTag;
-typedef detail::TaggedType<Id, IdResultTag> IdResult;
+struct IdRefTag;
+typedef detail::TaggedType<Id, IdRefTag> IdRef;
 template <>
-struct TypeTraits<IdResult> : detail::BasicIdTypeTraits<IdResult>
+struct TypeTraits<IdRef> : detail::BasicIdTypeTraits<IdRef>
 {
-  static const char *doc() { return "Definition of an <id> representing the result of the enclosing instruction"; }
-  static const char *name() { return "IdResult"; }
+  static const char *doc() { return "Reference to an <id>"; }
+  static const char *name() { return "IdRef"; }
+};
+template <>
+struct TypeTraits<LiteralInteger>
+{
+  static const char *doc() { return "An integer consuming one or more words"; }
+  static const char *name() { return "LiteralInteger"; }
+  typedef LiteralInteger ReadType;
+  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
+  {
+    if (to - from < 1)
+    {
+      error = true;
+      return {};
+    }
+    ReadType result{*from++};
+    return result;
+  };
 };
 template <>
 struct TypeTraits<LiteralString>
@@ -388,16 +355,22 @@ struct TypeTraits<LiteralString>
     return result;
   };
 };
-struct IdMemorySemanticsTag;
-typedef detail::TaggedType<Id, IdMemorySemanticsTag> IdMemorySemantics;
 template <>
-struct TypeTraits<IdMemorySemantics> : detail::BasicIdTypeTraits<IdMemorySemantics>
+struct TypeTraits<LiteralFloat>
 {
-  static const char *doc()
+  static const char *doc() { return "A float consuming one word"; }
+  static const char *name() { return "LiteralFloat"; }
+  typedef LiteralFloat ReadType;
+  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
   {
-    return "Reference to an <id> representing a 32-bit integer that is a mask from the MemorySemantics operand kind";
-  }
-  static const char *name() { return "IdMemorySemantics"; }
+    if (to - from < 1)
+    {
+      error = true;
+      return {};
+    }
+    ReadType result{*from++};
+    return result;
+  };
 };
 template <>
 struct TypeTraits<LiteralContextDependentNumber>
@@ -425,11 +398,36 @@ struct TypeTraits<LiteralContextDependentNumber>
   };
 };
 template <>
-struct TypeTraits<LiteralInteger>
+struct TypeTraits<LiteralExtInstInteger>
 {
-  static const char *doc() { return "An integer consuming one or more words"; }
-  static const char *name() { return "LiteralInteger"; }
-  typedef LiteralInteger ReadType;
+  static const char *doc()
+  {
+    return "A 32-bit unsigned integer indicating which instruction to use and determining the layout of following operands (for "
+           "OpExtInst)";
+  }
+  static const char *name() { return "LiteralExtInstInteger"; }
+  typedef LiteralExtInstInteger ReadType;
+  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
+  {
+    if (to - from < 1)
+    {
+      error = true;
+      return {};
+    }
+    ReadType result{*from++};
+    return result;
+  };
+};
+template <>
+struct TypeTraits<LiteralSpecConstantOpInteger>
+{
+  static const char *doc()
+  {
+    return "An opcode indicating the operation to be performed and determining the layout of following operands (for "
+           "OpSpecConstantOp)";
+  }
+  static const char *name() { return "LiteralSpecConstantOpInteger"; }
+  typedef LiteralSpecConstantOpInteger ReadType;
   static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
   {
     if (to - from < 1)
@@ -442,6 +440,7 @@ struct TypeTraits<LiteralInteger>
   };
 };
 // reordered type traits defenitions
+//  NamedMaximumNumberOfRegisters
 //  BuiltIn
 //  FunctionParameterAttribute
 //  FPRoundingMode
@@ -449,6 +448,28 @@ struct TypeTraits<LiteralInteger>
 //  LinkageType
 //  FPDenormMode
 //  FPOperationMode
+//  AccessQualifier
+//  HostAccessQualifier
+//  InitializationModeQualifier
+//  LoadCacheControl
+//  StoreCacheControl
+template <>
+struct TypeTraits<NamedMaximumNumberOfRegisters>
+{
+  static const char *doc() { return ""; }
+  static const char *name() { return "NamedMaximumNumberOfRegisters"; }
+  typedef NamedMaximumNumberOfRegisters ReadType;
+  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
+  {
+    if (to - from < 1)
+    {
+      error = true;
+      return {};
+    }
+    ReadType result{static_cast<ReadType>(*from++)};
+    return result;
+  }
+};
 template <>
 struct TypeTraits<BuiltIn>
 {
@@ -569,11 +590,11 @@ struct TypeTraits<FPOperationMode>
   }
 };
 template <>
-struct TypeTraits<SamplerFilterMode>
+struct TypeTraits<AccessQualifier>
 {
   static const char *doc() { return ""; }
-  static const char *name() { return "SamplerFilterMode"; }
-  typedef SamplerFilterMode ReadType;
+  static const char *name() { return "AccessQualifier"; }
+  typedef AccessQualifier ReadType;
   static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
   {
     if (to - from < 1)
@@ -586,11 +607,11 @@ struct TypeTraits<SamplerFilterMode>
   }
 };
 template <>
-struct TypeTraits<ImageChannelOrder>
+struct TypeTraits<HostAccessQualifier>
 {
   static const char *doc() { return ""; }
-  static const char *name() { return "ImageChannelOrder"; }
-  typedef ImageChannelOrder ReadType;
+  static const char *name() { return "HostAccessQualifier"; }
+  typedef HostAccessQualifier ReadType;
   static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
   {
     if (to - from < 1)
@@ -603,11 +624,11 @@ struct TypeTraits<ImageChannelOrder>
   }
 };
 template <>
-struct TypeTraits<KernelEnqueueFlags>
+struct TypeTraits<InitializationModeQualifier>
 {
   static const char *doc() { return ""; }
-  static const char *name() { return "KernelEnqueueFlags"; }
-  typedef KernelEnqueueFlags ReadType;
+  static const char *name() { return "InitializationModeQualifier"; }
+  typedef InitializationModeQualifier ReadType;
   static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
   {
     if (to - from < 1)
@@ -620,45 +641,11 @@ struct TypeTraits<KernelEnqueueFlags>
   }
 };
 template <>
-struct TypeTraits<MemorySemanticsMask>
+struct TypeTraits<LoadCacheControl>
 {
   static const char *doc() { return ""; }
-  static const char *name() { return "MemorySemantics"; }
-  typedef MemorySemanticsMask ReadType;
-  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
-  {
-    if (to - from < 1)
-    {
-      error = true;
-      return {};
-    }
-    ReadType result{static_cast<ReadType>(*from++)};
-    return result;
-  };
-};
-template <>
-struct TypeTraits<SelectionControlMask>
-{
-  static const char *doc() { return ""; }
-  static const char *name() { return "SelectionControl"; }
-  typedef SelectionControlMask ReadType;
-  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
-  {
-    if (to - from < 1)
-    {
-      error = true;
-      return {};
-    }
-    ReadType result{static_cast<ReadType>(*from++)};
-    return result;
-  };
-};
-template <>
-struct TypeTraits<RayQueryIntersection>
-{
-  static const char *doc() { return ""; }
-  static const char *name() { return "RayQueryIntersection"; }
-  typedef RayQueryIntersection ReadType;
+  static const char *name() { return "LoadCacheControl"; }
+  typedef LoadCacheControl ReadType;
   static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
   {
     if (to - from < 1)
@@ -671,964 +658,11 @@ struct TypeTraits<RayQueryIntersection>
   }
 };
 template <>
-struct TypeTraits<ImageFormat>
+struct TypeTraits<StoreCacheControl>
 {
   static const char *doc() { return ""; }
-  static const char *name() { return "ImageFormat"; }
-  typedef ImageFormat ReadType;
-  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
-  {
-    if (to - from < 1)
-    {
-      error = true;
-      return {};
-    }
-    ReadType result{static_cast<ReadType>(*from++)};
-    return result;
-  }
-};
-template <>
-struct TypeTraits<Scope>
-{
-  static const char *doc() { return ""; }
-  static const char *name() { return "Scope"; }
-  typedef Scope ReadType;
-  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
-  {
-    if (to - from < 1)
-    {
-      error = true;
-      return {};
-    }
-    ReadType result{static_cast<ReadType>(*from++)};
-    return result;
-  }
-};
-template <>
-struct TypeTraits<LoopControlMask>
-{
-  static const char *doc() { return ""; }
-  static const char *name() { return "LoopControl"; }
-  struct ReadType
-  {
-    LoopControlMask value;
-    struct DataTag
-    {
-      struct DependencyLengthTag
-      {
-        LiteralInteger first;
-      } DependencyLength;
-      struct MinIterationsTag
-      {
-        LiteralInteger first;
-      } MinIterations;
-      struct MaxIterationsTag
-      {
-        LiteralInteger first;
-      } MaxIterations;
-      struct IterationMultipleTag
-      {
-        LiteralInteger first;
-      } IterationMultiple;
-      struct PeelCountTag
-      {
-        LiteralInteger first;
-      } PeelCount;
-      struct PartialCountTag
-      {
-        LiteralInteger first;
-      } PartialCount;
-      struct InitiationIntervalINTELTag
-      {
-        LiteralInteger first;
-      } InitiationIntervalINTEL;
-      struct MaxConcurrencyINTELTag
-      {
-        LiteralInteger first;
-      } MaxConcurrencyINTEL;
-      struct DependencyArrayINTELTag
-      {
-        LiteralInteger first;
-      } DependencyArrayINTEL;
-      struct PipelineEnableINTELTag
-      {
-        LiteralInteger first;
-      } PipelineEnableINTEL;
-      struct LoopCoalesceINTELTag
-      {
-        LiteralInteger first;
-      } LoopCoalesceINTEL;
-      struct MaxInterleavingINTELTag
-      {
-        LiteralInteger first;
-      } MaxInterleavingINTEL;
-      struct SpeculatedIterationsINTELTag
-      {
-        LiteralInteger first;
-      } SpeculatedIterationsINTEL;
-      struct NoFusionINTELTag
-      {
-        LiteralInteger first;
-      } NoFusionINTEL;
-    } data;
-  };
-  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
-  {
-    if (to - from < 1)
-    {
-      error = true;
-      return {};
-    }
-    ReadType result;
-    result.value = static_cast<LoopControlMask>(*from++);
-    if (LoopControlMask::DependencyLength == (result.value & LoopControlMask::DependencyLength))
-    {
-      result.data.DependencyLength.first = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-      if (error)
-        return {};
-    }
-    if (LoopControlMask::MinIterations == (result.value & LoopControlMask::MinIterations))
-    {
-      result.data.MinIterations.first = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-      if (error)
-        return {};
-    }
-    if (LoopControlMask::MaxIterations == (result.value & LoopControlMask::MaxIterations))
-    {
-      result.data.MaxIterations.first = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-      if (error)
-        return {};
-    }
-    if (LoopControlMask::IterationMultiple == (result.value & LoopControlMask::IterationMultiple))
-    {
-      result.data.IterationMultiple.first = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-      if (error)
-        return {};
-    }
-    if (LoopControlMask::PeelCount == (result.value & LoopControlMask::PeelCount))
-    {
-      result.data.PeelCount.first = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-      if (error)
-        return {};
-    }
-    if (LoopControlMask::PartialCount == (result.value & LoopControlMask::PartialCount))
-    {
-      result.data.PartialCount.first = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-      if (error)
-        return {};
-    }
-    if (LoopControlMask::InitiationIntervalINTEL == (result.value & LoopControlMask::InitiationIntervalINTEL))
-    {
-      result.data.InitiationIntervalINTEL.first = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-      if (error)
-        return {};
-    }
-    if (LoopControlMask::MaxConcurrencyINTEL == (result.value & LoopControlMask::MaxConcurrencyINTEL))
-    {
-      result.data.MaxConcurrencyINTEL.first = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-      if (error)
-        return {};
-    }
-    if (LoopControlMask::DependencyArrayINTEL == (result.value & LoopControlMask::DependencyArrayINTEL))
-    {
-      result.data.DependencyArrayINTEL.first = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-      if (error)
-        return {};
-    }
-    if (LoopControlMask::PipelineEnableINTEL == (result.value & LoopControlMask::PipelineEnableINTEL))
-    {
-      result.data.PipelineEnableINTEL.first = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-      if (error)
-        return {};
-    }
-    if (LoopControlMask::LoopCoalesceINTEL == (result.value & LoopControlMask::LoopCoalesceINTEL))
-    {
-      result.data.LoopCoalesceINTEL.first = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-      if (error)
-        return {};
-    }
-    if (LoopControlMask::MaxInterleavingINTEL == (result.value & LoopControlMask::MaxInterleavingINTEL))
-    {
-      result.data.MaxInterleavingINTEL.first = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-      if (error)
-        return {};
-    }
-    if (LoopControlMask::SpeculatedIterationsINTEL == (result.value & LoopControlMask::SpeculatedIterationsINTEL))
-    {
-      result.data.SpeculatedIterationsINTEL.first = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-      if (error)
-        return {};
-    }
-    if (LoopControlMask::NoFusionINTEL == (result.value & LoopControlMask::NoFusionINTEL))
-    {
-      result.data.NoFusionINTEL.first = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-      if (error)
-        return {};
-    }
-    return result;
-  };
-};
-template <>
-struct TypeTraits<ImageChannelDataType>
-{
-  static const char *doc() { return ""; }
-  static const char *name() { return "ImageChannelDataType"; }
-  typedef ImageChannelDataType ReadType;
-  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
-  {
-    if (to - from < 1)
-    {
-      error = true;
-      return {};
-    }
-    ReadType result{static_cast<ReadType>(*from++)};
-    return result;
-  }
-};
-template <>
-struct TypeTraits<Decoration>
-{
-  static const char *doc() { return ""; }
-  static const char *name() { return "Decoration"; }
-  struct ReadType
-  {
-    Decoration value;
-    union DataTag
-    {
-      struct SpecIdTag
-      {
-        LiteralInteger specializationConstantId;
-      } SpecId;
-      struct ArrayStrideTag
-      {
-        LiteralInteger arrayStride;
-      } ArrayStride;
-      struct MatrixStrideTag
-      {
-        LiteralInteger matrixStride;
-      } MatrixStride;
-      struct BuiltInTag
-      {
-        BuiltIn first;
-      } BuiltInData;
-      struct UniformIdTag
-      {
-        IdScope execution;
-      } UniformId;
-      struct StreamTag
-      {
-        LiteralInteger streamNumber;
-      } Stream;
-      struct LocationTag
-      {
-        LiteralInteger location;
-      } Location;
-      struct ComponentTag
-      {
-        LiteralInteger component;
-      } Component;
-      struct IndexTag
-      {
-        LiteralInteger index;
-      } Index;
-      struct BindingTag
-      {
-        LiteralInteger bindingPoint;
-      } Binding;
-      struct DescriptorSetTag
-      {
-        LiteralInteger descriptorSet;
-      } DescriptorSet;
-      struct OffsetTag
-      {
-        LiteralInteger byteOffset;
-      } Offset;
-      struct XfbBufferTag
-      {
-        LiteralInteger xfbBufferNumber;
-      } XfbBuffer;
-      struct XfbStrideTag
-      {
-        LiteralInteger xfbStride;
-      } XfbStride;
-      struct FuncParamAttrTag
-      {
-        FunctionParameterAttribute functionParameterAttribute;
-      } FuncParamAttr;
-      struct FPRoundingModeTag
-      {
-        FPRoundingModeValue floatingPointRoundingMode;
-      } FPRoundingMode;
-      struct FPFastMathModeTag
-      {
-        FPFastMathModeMask fastMathMode;
-      } FPFastMathMode;
-      struct LinkageAttributesTag
-      {
-        LiteralString name;
-        LinkageType linkageType;
-      } LinkageAttributes;
-      struct InputAttachmentIndexTag
-      {
-        LiteralInteger attachmentIndex;
-      } InputAttachmentIndex;
-      struct AlignmentTag
-      {
-        LiteralInteger alignment;
-      } Alignment;
-      struct MaxByteOffsetTag
-      {
-        LiteralInteger maxByteOffset;
-      } MaxByteOffset;
-      struct AlignmentIdTag
-      {
-        IdRef alignment;
-      } AlignmentId;
-      struct MaxByteOffsetIdTag
-      {
-        IdRef maxByteOffset;
-      } MaxByteOffsetId;
-      struct SecondaryViewportRelativeNVTag
-      {
-        LiteralInteger offset;
-      } SecondaryViewportRelativeNV;
-      struct SIMTCallINTELTag
-      {
-        LiteralInteger n;
-      } SIMTCallINTEL;
-      struct ClobberINTELTag
-      {
-        LiteralString _register;
-      } ClobberINTEL;
-      struct FuncParamIOKindINTELTag
-      {
-        LiteralInteger kind;
-      } FuncParamIOKindINTEL;
-      struct GlobalVariableOffsetINTELTag
-      {
-        LiteralInteger offset;
-      } GlobalVariableOffsetINTEL;
-      struct CounterBufferTag
-      {
-        IdRef counterBuffer;
-      } CounterBuffer;
-      struct HlslCounterBufferGOOGLETag
-      {
-        IdRef counterBuffer;
-      } HlslCounterBufferGOOGLE;
-      struct UserSemanticTag
-      {
-        LiteralString semantic;
-      } UserSemantic;
-      struct HlslSemanticGOOGLETag
-      {
-        LiteralString semantic;
-      } HlslSemanticGOOGLE;
-      struct UserTypeGOOGLETag
-      {
-        LiteralString userType;
-      } UserTypeGOOGLE;
-      struct FunctionRoundingModeINTELTag
-      {
-        LiteralInteger targetWidth;
-        FPRoundingModeValue fpRoundingMode;
-      } FunctionRoundingModeINTEL;
-      struct FunctionDenormModeINTELTag
-      {
-        LiteralInteger targetWidth;
-        FPDenormMode fpDenormMode;
-      } FunctionDenormModeINTEL;
-      struct MemoryINTELTag
-      {
-        LiteralString memoryType;
-      } MemoryINTEL;
-      struct NumbanksINTELTag
-      {
-        LiteralInteger banks;
-      } NumbanksINTEL;
-      struct BankwidthINTELTag
-      {
-        LiteralInteger bankWidth;
-      } BankwidthINTEL;
-      struct MaxPrivateCopiesINTELTag
-      {
-        LiteralInteger maximumCopies;
-      } MaxPrivateCopiesINTEL;
-      struct MaxReplicatesINTELTag
-      {
-        LiteralInteger maximumReplicates;
-      } MaxReplicatesINTEL;
-      struct MergeINTELTag
-      {
-        LiteralString mergeKey;
-        LiteralString mergeType;
-      } MergeINTEL;
-      struct BankBitsINTELTag
-      {
-        LiteralInteger bankBits;
-      } BankBitsINTEL;
-      struct ForcePow2DepthINTELTag
-      {
-        LiteralInteger forceKey;
-      } ForcePow2DepthINTEL;
-      struct CacheSizeINTELTag
-      {
-        LiteralInteger cacheSizeInBytes;
-      } CacheSizeINTEL;
-      struct PrefetchINTELTag
-      {
-        LiteralInteger prefetcherSizeInBytes;
-      } PrefetchINTEL;
-      struct BufferLocationINTELTag
-      {
-        LiteralInteger bufferLocationId;
-      } BufferLocationINTEL;
-      struct IOPipeStorageINTELTag
-      {
-        LiteralInteger ioPipeId;
-      } IOPipeStorageINTEL;
-      struct FunctionFloatingPointModeINTELTag
-      {
-        LiteralInteger targetWidth;
-        FPOperationMode fpOperationMode;
-      } FunctionFloatingPointModeINTEL;
-    } data;
-  };
-  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
-  {
-    if (to - from < 1)
-    {
-      error = true;
-      return {};
-    }
-    ReadType result;
-    result.value = static_cast<Decoration>(*from++);
-    switch (result.value)
-    {
-      default: error = true; return {};
-      case Decoration::RelaxedPrecision:
-      case Decoration::Block:
-      case Decoration::BufferBlock:
-      case Decoration::RowMajor:
-      case Decoration::ColMajor:
-      case Decoration::GLSLShared:
-      case Decoration::GLSLPacked:
-      case Decoration::CPacked:
-      case Decoration::NoPerspective:
-      case Decoration::Flat:
-      case Decoration::Patch:
-      case Decoration::Centroid:
-      case Decoration::Sample:
-      case Decoration::Invariant:
-      case Decoration::Restrict:
-      case Decoration::Aliased:
-      case Decoration::Volatile:
-      case Decoration::Constant:
-      case Decoration::Coherent:
-      case Decoration::NonWritable:
-      case Decoration::NonReadable:
-      case Decoration::Uniform:
-      case Decoration::SaturatedConversion:
-      case Decoration::NoContraction:
-      case Decoration::NoSignedWrap:
-      case Decoration::NoUnsignedWrap:
-      case Decoration::ExplicitInterpAMD:
-      case Decoration::OverrideCoverageNV:
-      case Decoration::PassthroughNV:
-      case Decoration::ViewportRelativeNV:
-      case Decoration::PerPrimitiveNV:
-      case Decoration::PerViewNV:
-      case Decoration::PerTaskNV:
-      case Decoration::PerVertexKHR:
-      case Decoration::NonUniform:
-      case Decoration::RestrictPointer:
-      case Decoration::AliasedPointer:
-      case Decoration::BindlessSamplerNV:
-      case Decoration::BindlessImageNV:
-      case Decoration::BoundSamplerNV:
-      case Decoration::BoundImageNV:
-      case Decoration::ReferencedIndirectlyINTEL:
-      case Decoration::SideEffectsINTEL:
-      case Decoration::VectorComputeVariableINTEL:
-      case Decoration::VectorComputeFunctionINTEL:
-      case Decoration::StackCallINTEL:
-      case Decoration::RegisterINTEL:
-      case Decoration::SinglepumpINTEL:
-      case Decoration::DoublepumpINTEL:
-      case Decoration::SimpleDualPortINTEL:
-      case Decoration::BurstCoalesceINTEL:
-      case Decoration::DontStaticallyCoalesceINTEL:
-      case Decoration::StallEnableINTEL:
-      case Decoration::FuseLoopsInFunctionINTEL:
-      case Decoration::SingleElementVectorINTEL:
-      case Decoration::VectorComputeCallableFunctionINTEL:
-      case Decoration::MediaBlockIOINTEL: break;
-      case Decoration::SpecId:
-      {
-        result.data.SpecId.specializationConstantId = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::ArrayStride:
-      {
-        result.data.ArrayStride.arrayStride = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::MatrixStride:
-      {
-        result.data.MatrixStride.matrixStride = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::BuiltIn:
-      {
-        result.data.BuiltInData.first = TypeTraits<BuiltIn>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::UniformId:
-      {
-        result.data.UniformId.execution = TypeTraits<IdScope>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::Stream:
-      {
-        result.data.Stream.streamNumber = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::Location:
-      {
-        result.data.Location.location = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::Component:
-      {
-        result.data.Component.component = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::Index:
-      {
-        result.data.Index.index = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::Binding:
-      {
-        result.data.Binding.bindingPoint = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::DescriptorSet:
-      {
-        result.data.DescriptorSet.descriptorSet = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::Offset:
-      {
-        result.data.Offset.byteOffset = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::XfbBuffer:
-      {
-        result.data.XfbBuffer.xfbBufferNumber = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::XfbStride:
-      {
-        result.data.XfbStride.xfbStride = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::FuncParamAttr:
-      {
-        result.data.FuncParamAttr.functionParameterAttribute = TypeTraits<FunctionParameterAttribute>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::FPRoundingMode:
-      {
-        result.data.FPRoundingMode.floatingPointRoundingMode = TypeTraits<FPRoundingModeValue>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::FPFastMathMode:
-      {
-        result.data.FPFastMathMode.fastMathMode = TypeTraits<FPFastMathModeMask>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::LinkageAttributes:
-      {
-        result.data.LinkageAttributes.name = TypeTraits<LiteralString>::read(from, to, cds, error);
-        if (error)
-          return {};
-        result.data.LinkageAttributes.linkageType = TypeTraits<LinkageType>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::InputAttachmentIndex:
-      {
-        result.data.InputAttachmentIndex.attachmentIndex = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::Alignment:
-      {
-        result.data.Alignment.alignment = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::MaxByteOffset:
-      {
-        result.data.MaxByteOffset.maxByteOffset = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::AlignmentId:
-      {
-        result.data.AlignmentId.alignment = TypeTraits<IdRef>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::MaxByteOffsetId:
-      {
-        result.data.MaxByteOffsetId.maxByteOffset = TypeTraits<IdRef>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::SecondaryViewportRelativeNV:
-      {
-        result.data.SecondaryViewportRelativeNV.offset = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::SIMTCallINTEL:
-      {
-        result.data.SIMTCallINTEL.n = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::ClobberINTEL:
-      {
-        result.data.ClobberINTEL._register = TypeTraits<LiteralString>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::FuncParamIOKindINTEL:
-      {
-        result.data.FuncParamIOKindINTEL.kind = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::GlobalVariableOffsetINTEL:
-      {
-        result.data.GlobalVariableOffsetINTEL.offset = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::CounterBuffer:
-      {
-        result.data.CounterBuffer.counterBuffer = TypeTraits<IdRef>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::UserSemantic:
-      {
-        result.data.UserSemantic.semantic = TypeTraits<LiteralString>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::UserTypeGOOGLE:
-      {
-        result.data.UserTypeGOOGLE.userType = TypeTraits<LiteralString>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::FunctionRoundingModeINTEL:
-      {
-        result.data.FunctionRoundingModeINTEL.targetWidth = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-        if (error)
-          return {};
-        result.data.FunctionRoundingModeINTEL.fpRoundingMode = TypeTraits<FPRoundingModeValue>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::FunctionDenormModeINTEL:
-      {
-        result.data.FunctionDenormModeINTEL.targetWidth = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-        if (error)
-          return {};
-        result.data.FunctionDenormModeINTEL.fpDenormMode = TypeTraits<FPDenormMode>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::MemoryINTEL:
-      {
-        result.data.MemoryINTEL.memoryType = TypeTraits<LiteralString>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::NumbanksINTEL:
-      {
-        result.data.NumbanksINTEL.banks = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::BankwidthINTEL:
-      {
-        result.data.BankwidthINTEL.bankWidth = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::MaxPrivateCopiesINTEL:
-      {
-        result.data.MaxPrivateCopiesINTEL.maximumCopies = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::MaxReplicatesINTEL:
-      {
-        result.data.MaxReplicatesINTEL.maximumReplicates = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::MergeINTEL:
-      {
-        result.data.MergeINTEL.mergeKey = TypeTraits<LiteralString>::read(from, to, cds, error);
-        if (error)
-          return {};
-        result.data.MergeINTEL.mergeType = TypeTraits<LiteralString>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::BankBitsINTEL:
-      {
-        result.data.BankBitsINTEL.bankBits = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::ForcePow2DepthINTEL:
-      {
-        result.data.ForcePow2DepthINTEL.forceKey = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::CacheSizeINTEL:
-      {
-        result.data.CacheSizeINTEL.cacheSizeInBytes = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::PrefetchINTEL:
-      {
-        result.data.PrefetchINTEL.prefetcherSizeInBytes = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::BufferLocationINTEL:
-      {
-        result.data.BufferLocationINTEL.bufferLocationId = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::IOPipeStorageINTEL:
-      {
-        result.data.IOPipeStorageINTEL.ioPipeId = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-      case Decoration::FunctionFloatingPointModeINTEL:
-      {
-        result.data.FunctionFloatingPointModeINTEL.targetWidth = TypeTraits<LiteralInteger>::read(from, to, cds, error);
-        if (error)
-          return {};
-        result.data.FunctionFloatingPointModeINTEL.fpOperationMode = TypeTraits<FPOperationMode>::read(from, to, cds, error);
-        if (error)
-          return {};
-        break;
-      };
-    };
-    return result;
-  }
-};
-template <>
-struct TypeTraits<QuantizationModes>
-{
-  static const char *doc() { return ""; }
-  static const char *name() { return "QuantizationModes"; }
-  typedef QuantizationModes ReadType;
-  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
-  {
-    if (to - from < 1)
-    {
-      error = true;
-      return {};
-    }
-    ReadType result{static_cast<ReadType>(*from++)};
-    return result;
-  }
-};
-template <>
-struct TypeTraits<RayFlagsMask>
-{
-  static const char *doc() { return ""; }
-  static const char *name() { return "RayFlags"; }
-  typedef RayFlagsMask ReadType;
-  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
-  {
-    if (to - from < 1)
-    {
-      error = true;
-      return {};
-    }
-    ReadType result{static_cast<ReadType>(*from++)};
-    return result;
-  };
-};
-template <>
-struct TypeTraits<FragmentShadingRateMask>
-{
-  static const char *doc() { return ""; }
-  static const char *name() { return "FragmentShadingRate"; }
-  typedef FragmentShadingRateMask ReadType;
-  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
-  {
-    if (to - from < 1)
-    {
-      error = true;
-      return {};
-    }
-    ReadType result{static_cast<ReadType>(*from++)};
-    return result;
-  };
-};
-template <>
-struct TypeTraits<FunctionControlMask>
-{
-  static const char *doc() { return ""; }
-  static const char *name() { return "FunctionControl"; }
-  typedef FunctionControlMask ReadType;
-  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
-  {
-    if (to - from < 1)
-    {
-      error = true;
-      return {};
-    }
-    ReadType result{static_cast<ReadType>(*from++)};
-    return result;
-  };
-};
-template <>
-struct TypeTraits<AddressingModel>
-{
-  static const char *doc() { return ""; }
-  static const char *name() { return "AddressingModel"; }
-  typedef AddressingModel ReadType;
-  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
-  {
-    if (to - from < 1)
-    {
-      error = true;
-      return {};
-    }
-    ReadType result{static_cast<ReadType>(*from++)};
-    return result;
-  }
-};
-template <>
-struct TypeTraits<PackedVectorFormat>
-{
-  static const char *doc() { return ""; }
-  static const char *name() { return "PackedVectorFormat"; }
-  typedef PackedVectorFormat ReadType;
-  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
-  {
-    if (to - from < 1)
-    {
-      error = true;
-      return {};
-    }
-    ReadType result{static_cast<ReadType>(*from++)};
-    return result;
-  }
-};
-template <>
-struct TypeTraits<Dim>
-{
-  static const char *doc() { return ""; }
-  static const char *name() { return "Dim"; }
-  typedef Dim ReadType;
-  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
-  {
-    if (to - from < 1)
-    {
-      error = true;
-      return {};
-    }
-    ReadType result{static_cast<ReadType>(*from++)};
-    return result;
-  }
-};
-template <>
-struct TypeTraits<OverflowModes>
-{
-  static const char *doc() { return ""; }
-  static const char *name() { return "OverflowModes"; }
-  typedef OverflowModes ReadType;
+  static const char *name() { return "StoreCacheControl"; }
+  typedef StoreCacheControl ReadType;
   static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
   {
     if (to - from < 1)
@@ -1819,11 +853,11 @@ struct TypeTraits<ImageOperandsMask>
   };
 };
 template <>
-struct TypeTraits<Capability>
+struct TypeTraits<SelectionControlMask>
 {
   static const char *doc() { return ""; }
-  static const char *name() { return "Capability"; }
-  typedef Capability ReadType;
+  static const char *name() { return "SelectionControl"; }
+  typedef SelectionControlMask ReadType;
   static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
   {
     if (to - from < 1)
@@ -1833,7 +867,215 @@ struct TypeTraits<Capability>
     }
     ReadType result{static_cast<ReadType>(*from++)};
     return result;
-  }
+  };
+};
+template <>
+struct TypeTraits<LoopControlMask>
+{
+  static const char *doc() { return ""; }
+  static const char *name() { return "LoopControl"; }
+  struct ReadType
+  {
+    LoopControlMask value;
+    struct DataTag
+    {
+      struct DependencyLengthTag
+      {
+        LiteralInteger first;
+      } DependencyLength;
+      struct MinIterationsTag
+      {
+        LiteralInteger first;
+      } MinIterations;
+      struct MaxIterationsTag
+      {
+        LiteralInteger first;
+      } MaxIterations;
+      struct IterationMultipleTag
+      {
+        LiteralInteger first;
+      } IterationMultiple;
+      struct PeelCountTag
+      {
+        LiteralInteger first;
+      } PeelCount;
+      struct PartialCountTag
+      {
+        LiteralInteger first;
+      } PartialCount;
+      struct InitiationIntervalINTELTag
+      {
+        LiteralInteger first;
+      } InitiationIntervalINTEL;
+      struct MaxConcurrencyINTELTag
+      {
+        LiteralInteger first;
+      } MaxConcurrencyINTEL;
+      struct DependencyArrayINTELTag
+      {
+        LiteralInteger first;
+      } DependencyArrayINTEL;
+      struct PipelineEnableINTELTag
+      {
+        LiteralInteger first;
+      } PipelineEnableINTEL;
+      struct LoopCoalesceINTELTag
+      {
+        LiteralInteger first;
+      } LoopCoalesceINTEL;
+      struct MaxInterleavingINTELTag
+      {
+        LiteralInteger first;
+      } MaxInterleavingINTEL;
+      struct SpeculatedIterationsINTELTag
+      {
+        LiteralInteger first;
+      } SpeculatedIterationsINTEL;
+      struct LoopCountINTELTag
+      {
+        LiteralInteger first;
+      } LoopCountINTEL;
+      struct MaxReinvocationDelayINTELTag
+      {
+        LiteralInteger first;
+      } MaxReinvocationDelayINTEL;
+    } data;
+  };
+  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
+  {
+    if (to - from < 1)
+    {
+      error = true;
+      return {};
+    }
+    ReadType result;
+    result.value = static_cast<LoopControlMask>(*from++);
+    if (LoopControlMask::DependencyLength == (result.value & LoopControlMask::DependencyLength))
+    {
+      result.data.DependencyLength.first = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+      if (error)
+        return {};
+    }
+    if (LoopControlMask::MinIterations == (result.value & LoopControlMask::MinIterations))
+    {
+      result.data.MinIterations.first = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+      if (error)
+        return {};
+    }
+    if (LoopControlMask::MaxIterations == (result.value & LoopControlMask::MaxIterations))
+    {
+      result.data.MaxIterations.first = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+      if (error)
+        return {};
+    }
+    if (LoopControlMask::IterationMultiple == (result.value & LoopControlMask::IterationMultiple))
+    {
+      result.data.IterationMultiple.first = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+      if (error)
+        return {};
+    }
+    if (LoopControlMask::PeelCount == (result.value & LoopControlMask::PeelCount))
+    {
+      result.data.PeelCount.first = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+      if (error)
+        return {};
+    }
+    if (LoopControlMask::PartialCount == (result.value & LoopControlMask::PartialCount))
+    {
+      result.data.PartialCount.first = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+      if (error)
+        return {};
+    }
+    if (LoopControlMask::InitiationIntervalINTEL == (result.value & LoopControlMask::InitiationIntervalINTEL))
+    {
+      result.data.InitiationIntervalINTEL.first = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+      if (error)
+        return {};
+    }
+    if (LoopControlMask::MaxConcurrencyINTEL == (result.value & LoopControlMask::MaxConcurrencyINTEL))
+    {
+      result.data.MaxConcurrencyINTEL.first = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+      if (error)
+        return {};
+    }
+    if (LoopControlMask::DependencyArrayINTEL == (result.value & LoopControlMask::DependencyArrayINTEL))
+    {
+      result.data.DependencyArrayINTEL.first = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+      if (error)
+        return {};
+    }
+    if (LoopControlMask::PipelineEnableINTEL == (result.value & LoopControlMask::PipelineEnableINTEL))
+    {
+      result.data.PipelineEnableINTEL.first = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+      if (error)
+        return {};
+    }
+    if (LoopControlMask::LoopCoalesceINTEL == (result.value & LoopControlMask::LoopCoalesceINTEL))
+    {
+      result.data.LoopCoalesceINTEL.first = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+      if (error)
+        return {};
+    }
+    if (LoopControlMask::MaxInterleavingINTEL == (result.value & LoopControlMask::MaxInterleavingINTEL))
+    {
+      result.data.MaxInterleavingINTEL.first = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+      if (error)
+        return {};
+    }
+    if (LoopControlMask::SpeculatedIterationsINTEL == (result.value & LoopControlMask::SpeculatedIterationsINTEL))
+    {
+      result.data.SpeculatedIterationsINTEL.first = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+      if (error)
+        return {};
+    }
+    if (LoopControlMask::LoopCountINTEL == (result.value & LoopControlMask::LoopCountINTEL))
+    {
+      result.data.LoopCountINTEL.first = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+      if (error)
+        return {};
+    }
+    if (LoopControlMask::MaxReinvocationDelayINTEL == (result.value & LoopControlMask::MaxReinvocationDelayINTEL))
+    {
+      result.data.MaxReinvocationDelayINTEL.first = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+      if (error)
+        return {};
+    }
+    return result;
+  };
+};
+template <>
+struct TypeTraits<FunctionControlMask>
+{
+  static const char *doc() { return ""; }
+  static const char *name() { return "FunctionControl"; }
+  typedef FunctionControlMask ReadType;
+  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
+  {
+    if (to - from < 1)
+    {
+      error = true;
+      return {};
+    }
+    ReadType result{static_cast<ReadType>(*from++)};
+    return result;
+  };
+};
+template <>
+struct TypeTraits<MemorySemanticsMask>
+{
+  static const char *doc() { return ""; }
+  static const char *name() { return "MemorySemantics"; }
+  typedef MemorySemanticsMask ReadType;
+  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
+  {
+    if (to - from < 1)
+    {
+      error = true;
+      return {};
+    }
+    ReadType result{static_cast<ReadType>(*from++)};
+    return result;
+  };
 };
 template <>
 struct TypeTraits<MemoryAccessMask>
@@ -1865,6 +1107,14 @@ struct TypeTraits<MemoryAccessMask>
       {
         IdScope first;
       } MakePointerVisibleKHR;
+      struct AliasScopeINTELMaskTag
+      {
+        IdRef first;
+      } AliasScopeINTELMask;
+      struct NoAliasINTELMaskTag
+      {
+        IdRef first;
+      } NoAliasINTELMask;
     } data;
   };
   static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
@@ -1910,15 +1160,97 @@ struct TypeTraits<MemoryAccessMask>
     {
       compareValue = compareValue ^ MemoryAccessMask::NonPrivatePointer;
     }
+    if (MemoryAccessMask::AliasScopeINTELMask == (compareValue & MemoryAccessMask::AliasScopeINTELMask))
+    {
+      result.data.AliasScopeINTELMask.first = TypeTraits<IdRef>::read(from, to, cds, error);
+      if (error)
+        return {};
+      compareValue = compareValue ^ MemoryAccessMask::AliasScopeINTELMask;
+    }
+    if (MemoryAccessMask::NoAliasINTELMask == (compareValue & MemoryAccessMask::NoAliasINTELMask))
+    {
+      result.data.NoAliasINTELMask.first = TypeTraits<IdRef>::read(from, to, cds, error);
+      if (error)
+        return {};
+      compareValue = compareValue ^ MemoryAccessMask::NoAliasINTELMask;
+    }
     return result;
   };
 };
 template <>
-struct TypeTraits<GroupOperation>
+struct TypeTraits<KernelProfilingInfoMask>
 {
   static const char *doc() { return ""; }
-  static const char *name() { return "GroupOperation"; }
-  typedef GroupOperation ReadType;
+  static const char *name() { return "KernelProfilingInfo"; }
+  typedef KernelProfilingInfoMask ReadType;
+  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
+  {
+    if (to - from < 1)
+    {
+      error = true;
+      return {};
+    }
+    ReadType result{static_cast<ReadType>(*from++)};
+    return result;
+  };
+};
+template <>
+struct TypeTraits<RayFlagsMask>
+{
+  static const char *doc() { return ""; }
+  static const char *name() { return "RayFlags"; }
+  typedef RayFlagsMask ReadType;
+  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
+  {
+    if (to - from < 1)
+    {
+      error = true;
+      return {};
+    }
+    ReadType result{static_cast<ReadType>(*from++)};
+    return result;
+  };
+};
+template <>
+struct TypeTraits<FragmentShadingRateMask>
+{
+  static const char *doc() { return ""; }
+  static const char *name() { return "FragmentShadingRate"; }
+  typedef FragmentShadingRateMask ReadType;
+  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
+  {
+    if (to - from < 1)
+    {
+      error = true;
+      return {};
+    }
+    ReadType result{static_cast<ReadType>(*from++)};
+    return result;
+  };
+};
+template <>
+struct TypeTraits<RawAccessChainOperandsMask>
+{
+  static const char *doc() { return ""; }
+  static const char *name() { return "RawAccessChainOperands"; }
+  typedef RawAccessChainOperandsMask ReadType;
+  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
+  {
+    if (to - from < 1)
+    {
+      error = true;
+      return {};
+    }
+    ReadType result{static_cast<ReadType>(*from++)};
+    return result;
+  };
+};
+template <>
+struct TypeTraits<SourceLanguage>
+{
+  static const char *doc() { return ""; }
+  static const char *name() { return "SourceLanguage"; }
+  typedef SourceLanguage ReadType;
   static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
   {
     if (to - from < 1)
@@ -1948,11 +1280,11 @@ struct TypeTraits<ExecutionModel>
   }
 };
 template <>
-struct TypeTraits<AccessQualifier>
+struct TypeTraits<AddressingModel>
 {
   static const char *doc() { return ""; }
-  static const char *name() { return "AccessQualifier"; }
-  typedef AccessQualifier ReadType;
+  static const char *name() { return "AddressingModel"; }
+  typedef AddressingModel ReadType;
   static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
   {
     if (to - from < 1)
@@ -1965,11 +1297,11 @@ struct TypeTraits<AccessQualifier>
   }
 };
 template <>
-struct TypeTraits<RayQueryCommittedIntersectionType>
+struct TypeTraits<MemoryModel>
 {
   static const char *doc() { return ""; }
-  static const char *name() { return "RayQueryCommittedIntersectionType"; }
-  typedef RayQueryCommittedIntersectionType ReadType;
+  static const char *name() { return "MemoryModel"; }
+  typedef MemoryModel ReadType;
   static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
   {
     if (to - from < 1)
@@ -1980,40 +1312,6 @@ struct TypeTraits<RayQueryCommittedIntersectionType>
     ReadType result{static_cast<ReadType>(*from++)};
     return result;
   }
-};
-template <>
-struct TypeTraits<SourceLanguage>
-{
-  static const char *doc() { return ""; }
-  static const char *name() { return "SourceLanguage"; }
-  typedef SourceLanguage ReadType;
-  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
-  {
-    if (to - from < 1)
-    {
-      error = true;
-      return {};
-    }
-    ReadType result{static_cast<ReadType>(*from++)};
-    return result;
-  }
-};
-template <>
-struct TypeTraits<KernelProfilingInfoMask>
-{
-  static const char *doc() { return ""; }
-  static const char *name() { return "KernelProfilingInfo"; }
-  typedef KernelProfilingInfoMask ReadType;
-  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
-  {
-    if (to - from < 1)
-    {
-      error = true;
-      return {};
-    }
-    ReadType result{static_cast<ReadType>(*from++)};
-    return result;
-  };
 };
 template <>
 struct TypeTraits<ExecutionMode>
@@ -2093,6 +1391,30 @@ struct TypeTraits<ExecutionMode>
       {
         LiteralInteger targetWidth;
       } RoundingModeRTZ;
+      struct MaxNodeRecursionAMDXTag
+      {
+        IdRef numberOfRecursions;
+      } MaxNodeRecursionAMDX;
+      struct StaticNumWorkgroupsAMDXTag
+      {
+        IdRef xSize;
+        IdRef ySize;
+        IdRef zSize;
+      } StaticNumWorkgroupsAMDX;
+      struct ShaderIndexAMDXTag
+      {
+        IdRef shaderIndex;
+      } ShaderIndexAMDX;
+      struct MaxNumWorkgroupsAMDXTag
+      {
+        IdRef xSize;
+        IdRef ySize;
+        IdRef zSize;
+      } MaxNumWorkgroupsAMDX;
+      struct OutputPrimitivesEXTTag
+      {
+        LiteralInteger primitiveCount;
+      } OutputPrimitivesEXT;
       struct OutputPrimitivesNVTag
       {
         LiteralInteger primitiveCount;
@@ -2135,6 +1457,35 @@ struct TypeTraits<ExecutionMode>
       {
         LiteralInteger target_fmax;
       } SchedulerTargetFmaxMhzINTEL;
+      struct FPFastMathDefaultTag
+      {
+        IdRef targetType;
+        IdRef fastMathMode;
+      } FPFastMathDefault;
+      struct StreamingInterfaceINTELTag
+      {
+        LiteralInteger stallFreeReturn;
+      } StreamingInterfaceINTEL;
+      struct RegisterMapInterfaceINTELTag
+      {
+        LiteralInteger waitForDoneWrite;
+      } RegisterMapInterfaceINTEL;
+      struct NamedBarrierCountINTELTag
+      {
+        LiteralInteger barrierCount;
+      } NamedBarrierCountINTEL;
+      struct MaximumRegistersINTELTag
+      {
+        LiteralInteger numberOfRegisters;
+      } MaximumRegistersINTEL;
+      struct MaximumRegistersIdINTELTag
+      {
+        IdRef numberOfRegisters;
+      } MaximumRegistersIdINTEL;
+      struct NamedMaximumRegistersINTELTag
+      {
+        NamedMaximumNumberOfRegisters namedMaximumNumberOfRegisters;
+      } NamedMaximumRegistersINTEL;
     } data;
   };
   static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
@@ -2177,20 +1528,34 @@ struct TypeTraits<ExecutionMode>
       case ExecutionMode::ContractionOff:
       case ExecutionMode::Initializer:
       case ExecutionMode::Finalizer:
+      case ExecutionMode::NonCoherentColorAttachmentReadEXT:
+      case ExecutionMode::NonCoherentDepthAttachmentReadEXT:
+      case ExecutionMode::NonCoherentStencilAttachmentReadEXT:
       case ExecutionMode::SubgroupUniformControlFlowKHR:
       case ExecutionMode::PostDepthCoverage:
+      case ExecutionMode::EarlyAndLateFragmentTestsAMD:
       case ExecutionMode::StencilRefReplacingEXT:
-      case ExecutionMode::OutputLinesNV:
+      case ExecutionMode::CoalescingAMDX:
+      case ExecutionMode::StencilRefUnchangedFrontAMD:
+      case ExecutionMode::StencilRefGreaterFrontAMD:
+      case ExecutionMode::StencilRefLessFrontAMD:
+      case ExecutionMode::StencilRefUnchangedBackAMD:
+      case ExecutionMode::StencilRefGreaterBackAMD:
+      case ExecutionMode::StencilRefLessBackAMD:
+      case ExecutionMode::QuadDerivativesKHR:
+      case ExecutionMode::RequireFullQuadsKHR:
+      case ExecutionMode::OutputLinesEXT:
       case ExecutionMode::DerivativeGroupQuadsNV:
       case ExecutionMode::DerivativeGroupLinearNV:
-      case ExecutionMode::OutputTrianglesNV:
+      case ExecutionMode::OutputTrianglesEXT:
       case ExecutionMode::PixelInterlockOrderedEXT:
       case ExecutionMode::PixelInterlockUnorderedEXT:
       case ExecutionMode::SampleInterlockOrderedEXT:
       case ExecutionMode::SampleInterlockUnorderedEXT:
       case ExecutionMode::ShadingRateInterlockOrderedEXT:
       case ExecutionMode::ShadingRateInterlockUnorderedEXT:
-      case ExecutionMode::NoGlobalOffsetINTEL: break;
+      case ExecutionMode::NoGlobalOffsetINTEL:
+      case ExecutionMode::MaximallyReconvergesKHR: break;
       case ExecutionMode::Invocations:
       {
         result.data.Invocations.numberOfInvocationInvocations = TypeTraits<LiteralInteger>::read(from, to, cds, error);
@@ -2320,9 +1685,49 @@ struct TypeTraits<ExecutionMode>
           return {};
         break;
       };
-      case ExecutionMode::OutputPrimitivesNV:
+      case ExecutionMode::MaxNodeRecursionAMDX:
       {
-        result.data.OutputPrimitivesNV.primitiveCount = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        result.data.MaxNodeRecursionAMDX.numberOfRecursions = TypeTraits<IdRef>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case ExecutionMode::StaticNumWorkgroupsAMDX:
+      {
+        result.data.StaticNumWorkgroupsAMDX.xSize = TypeTraits<IdRef>::read(from, to, cds, error);
+        if (error)
+          return {};
+        result.data.StaticNumWorkgroupsAMDX.ySize = TypeTraits<IdRef>::read(from, to, cds, error);
+        if (error)
+          return {};
+        result.data.StaticNumWorkgroupsAMDX.zSize = TypeTraits<IdRef>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case ExecutionMode::ShaderIndexAMDX:
+      {
+        result.data.ShaderIndexAMDX.shaderIndex = TypeTraits<IdRef>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case ExecutionMode::MaxNumWorkgroupsAMDX:
+      {
+        result.data.MaxNumWorkgroupsAMDX.xSize = TypeTraits<IdRef>::read(from, to, cds, error);
+        if (error)
+          return {};
+        result.data.MaxNumWorkgroupsAMDX.ySize = TypeTraits<IdRef>::read(from, to, cds, error);
+        if (error)
+          return {};
+        result.data.MaxNumWorkgroupsAMDX.zSize = TypeTraits<IdRef>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case ExecutionMode::OutputPrimitivesEXT:
+      {
+        result.data.OutputPrimitivesEXT.primitiveCount = TypeTraits<LiteralInteger>::read(from, to, cds, error);
         if (error)
           return {};
         break;
@@ -2396,16 +1801,69 @@ struct TypeTraits<ExecutionMode>
           return {};
         break;
       };
+      case ExecutionMode::FPFastMathDefault:
+      {
+        result.data.FPFastMathDefault.targetType = TypeTraits<IdRef>::read(from, to, cds, error);
+        if (error)
+          return {};
+        result.data.FPFastMathDefault.fastMathMode = TypeTraits<IdRef>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case ExecutionMode::StreamingInterfaceINTEL:
+      {
+        result.data.StreamingInterfaceINTEL.stallFreeReturn = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case ExecutionMode::RegisterMapInterfaceINTEL:
+      {
+        result.data.RegisterMapInterfaceINTEL.waitForDoneWrite = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case ExecutionMode::NamedBarrierCountINTEL:
+      {
+        result.data.NamedBarrierCountINTEL.barrierCount = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case ExecutionMode::MaximumRegistersINTEL:
+      {
+        result.data.MaximumRegistersINTEL.numberOfRegisters = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case ExecutionMode::MaximumRegistersIdINTEL:
+      {
+        result.data.MaximumRegistersIdINTEL.numberOfRegisters = TypeTraits<IdRef>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case ExecutionMode::NamedMaximumRegistersINTEL:
+      {
+        result.data.NamedMaximumRegistersINTEL.namedMaximumNumberOfRegisters =
+          TypeTraits<NamedMaximumNumberOfRegisters>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
     };
     return result;
   }
 };
 template <>
-struct TypeTraits<RayQueryCandidateIntersectionType>
+struct TypeTraits<StorageClass>
 {
   static const char *doc() { return ""; }
-  static const char *name() { return "RayQueryCandidateIntersectionType"; }
-  typedef RayQueryCandidateIntersectionType ReadType;
+  static const char *name() { return "StorageClass"; }
+  typedef StorageClass ReadType;
   static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
   {
     if (to - from < 1)
@@ -2418,11 +1876,11 @@ struct TypeTraits<RayQueryCandidateIntersectionType>
   }
 };
 template <>
-struct TypeTraits<MemoryModel>
+struct TypeTraits<Dim>
 {
   static const char *doc() { return ""; }
-  static const char *name() { return "MemoryModel"; }
-  typedef MemoryModel ReadType;
+  static const char *name() { return "Dim"; }
+  typedef Dim ReadType;
   static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
   {
     if (to - from < 1)
@@ -2452,11 +1910,11 @@ struct TypeTraits<SamplerAddressingMode>
   }
 };
 template <>
-struct TypeTraits<StorageClass>
+struct TypeTraits<SamplerFilterMode>
 {
   static const char *doc() { return ""; }
-  static const char *name() { return "StorageClass"; }
-  typedef StorageClass ReadType;
+  static const char *name() { return "SamplerFilterMode"; }
+  typedef SamplerFilterMode ReadType;
   static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
   {
     if (to - from < 1)
@@ -2465,6 +1923,1231 @@ struct TypeTraits<StorageClass>
       return {};
     }
     ReadType result{static_cast<ReadType>(*from++)};
+    return result;
+  }
+};
+template <>
+struct TypeTraits<ImageFormat>
+{
+  static const char *doc() { return ""; }
+  static const char *name() { return "ImageFormat"; }
+  typedef ImageFormat ReadType;
+  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
+  {
+    if (to - from < 1)
+    {
+      error = true;
+      return {};
+    }
+    ReadType result{static_cast<ReadType>(*from++)};
+    return result;
+  }
+};
+template <>
+struct TypeTraits<ImageChannelOrder>
+{
+  static const char *doc() { return ""; }
+  static const char *name() { return "ImageChannelOrder"; }
+  typedef ImageChannelOrder ReadType;
+  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
+  {
+    if (to - from < 1)
+    {
+      error = true;
+      return {};
+    }
+    ReadType result{static_cast<ReadType>(*from++)};
+    return result;
+  }
+};
+template <>
+struct TypeTraits<ImageChannelDataType>
+{
+  static const char *doc() { return ""; }
+  static const char *name() { return "ImageChannelDataType"; }
+  typedef ImageChannelDataType ReadType;
+  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
+  {
+    if (to - from < 1)
+    {
+      error = true;
+      return {};
+    }
+    ReadType result{static_cast<ReadType>(*from++)};
+    return result;
+  }
+};
+template <>
+struct TypeTraits<QuantizationModes>
+{
+  static const char *doc() { return ""; }
+  static const char *name() { return "QuantizationModes"; }
+  typedef QuantizationModes ReadType;
+  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
+  {
+    if (to - from < 1)
+    {
+      error = true;
+      return {};
+    }
+    ReadType result{static_cast<ReadType>(*from++)};
+    return result;
+  }
+};
+template <>
+struct TypeTraits<OverflowModes>
+{
+  static const char *doc() { return ""; }
+  static const char *name() { return "OverflowModes"; }
+  typedef OverflowModes ReadType;
+  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
+  {
+    if (to - from < 1)
+    {
+      error = true;
+      return {};
+    }
+    ReadType result{static_cast<ReadType>(*from++)};
+    return result;
+  }
+};
+template <>
+struct TypeTraits<Decoration>
+{
+  static const char *doc() { return ""; }
+  static const char *name() { return "Decoration"; }
+  struct ReadType
+  {
+    Decoration value;
+    union DataTag
+    {
+      struct SpecIdTag
+      {
+        LiteralInteger specializationConstantId;
+      } SpecId;
+      struct ArrayStrideTag
+      {
+        LiteralInteger arrayStride;
+      } ArrayStride;
+      struct MatrixStrideTag
+      {
+        LiteralInteger matrixStride;
+      } MatrixStride;
+      struct BuiltInTag
+      {
+        BuiltIn first;
+      } BuiltInData;
+      struct UniformIdTag
+      {
+        IdScope execution;
+      } UniformId;
+      struct StreamTag
+      {
+        LiteralInteger streamNumber;
+      } Stream;
+      struct LocationTag
+      {
+        LiteralInteger location;
+      } Location;
+      struct ComponentTag
+      {
+        LiteralInteger component;
+      } Component;
+      struct IndexTag
+      {
+        LiteralInteger index;
+      } Index;
+      struct BindingTag
+      {
+        LiteralInteger bindingPoint;
+      } Binding;
+      struct DescriptorSetTag
+      {
+        LiteralInteger descriptorSet;
+      } DescriptorSet;
+      struct OffsetTag
+      {
+        LiteralInteger byteOffset;
+      } Offset;
+      struct XfbBufferTag
+      {
+        LiteralInteger xfbBufferNumber;
+      } XfbBuffer;
+      struct XfbStrideTag
+      {
+        LiteralInteger xfbStride;
+      } XfbStride;
+      struct FuncParamAttrTag
+      {
+        FunctionParameterAttribute functionParameterAttribute;
+      } FuncParamAttr;
+      struct FPRoundingModeTag
+      {
+        FPRoundingModeValue floatingPointRoundingMode;
+      } FPRoundingMode;
+      struct FPFastMathModeTag
+      {
+        FPFastMathModeMask fastMathMode;
+      } FPFastMathMode;
+      struct LinkageAttributesTag
+      {
+        LiteralString name;
+        LinkageType linkageType;
+      } LinkageAttributes;
+      struct InputAttachmentIndexTag
+      {
+        LiteralInteger attachmentIndex;
+      } InputAttachmentIndex;
+      struct AlignmentTag
+      {
+        LiteralInteger alignment;
+      } Alignment;
+      struct MaxByteOffsetTag
+      {
+        LiteralInteger maxByteOffset;
+      } MaxByteOffset;
+      struct AlignmentIdTag
+      {
+        IdRef alignment;
+      } AlignmentId;
+      struct MaxByteOffsetIdTag
+      {
+        IdRef maxByteOffset;
+      } MaxByteOffsetId;
+      struct NodeSharesPayloadLimitsWithAMDXTag
+      {
+        IdRef payloadArray;
+      } NodeSharesPayloadLimitsWithAMDX;
+      struct NodeMaxPayloadsAMDXTag
+      {
+        IdRef maxNumberOfPayloads;
+      } NodeMaxPayloadsAMDX;
+      struct PayloadNodeNameAMDXTag
+      {
+        LiteralString nodeName;
+      } PayloadNodeNameAMDX;
+      struct SecondaryViewportRelativeNVTag
+      {
+        LiteralInteger offset;
+      } SecondaryViewportRelativeNV;
+      struct SIMTCallINTELTag
+      {
+        LiteralInteger n;
+      } SIMTCallINTEL;
+      struct ClobberINTELTag
+      {
+        LiteralString _register;
+      } ClobberINTEL;
+      struct FuncParamIOKindINTELTag
+      {
+        LiteralInteger kind;
+      } FuncParamIOKindINTEL;
+      struct GlobalVariableOffsetINTELTag
+      {
+        LiteralInteger offset;
+      } GlobalVariableOffsetINTEL;
+      struct CounterBufferTag
+      {
+        IdRef counterBuffer;
+      } CounterBuffer;
+      struct HlslCounterBufferGOOGLETag
+      {
+        IdRef counterBuffer;
+      } HlslCounterBufferGOOGLE;
+      struct UserSemanticTag
+      {
+        LiteralString semantic;
+      } UserSemantic;
+      struct HlslSemanticGOOGLETag
+      {
+        LiteralString semantic;
+      } HlslSemanticGOOGLE;
+      struct UserTypeGOOGLETag
+      {
+        LiteralString userType;
+      } UserTypeGOOGLE;
+      struct FunctionRoundingModeINTELTag
+      {
+        LiteralInteger targetWidth;
+        FPRoundingModeValue fpRoundingMode;
+      } FunctionRoundingModeINTEL;
+      struct FunctionDenormModeINTELTag
+      {
+        LiteralInteger targetWidth;
+        FPDenormMode fpDenormMode;
+      } FunctionDenormModeINTEL;
+      struct MemoryINTELTag
+      {
+        LiteralString memoryType;
+      } MemoryINTEL;
+      struct NumbanksINTELTag
+      {
+        LiteralInteger banks;
+      } NumbanksINTEL;
+      struct BankwidthINTELTag
+      {
+        LiteralInteger bankWidth;
+      } BankwidthINTEL;
+      struct MaxPrivateCopiesINTELTag
+      {
+        LiteralInteger maximumCopies;
+      } MaxPrivateCopiesINTEL;
+      struct MaxReplicatesINTELTag
+      {
+        LiteralInteger maximumReplicates;
+      } MaxReplicatesINTEL;
+      struct MergeINTELTag
+      {
+        LiteralString mergeKey;
+        LiteralString mergeType;
+      } MergeINTEL;
+      struct BankBitsINTELTag
+      {
+        LiteralInteger bankBits;
+      } BankBitsINTEL;
+      struct ForcePow2DepthINTELTag
+      {
+        LiteralInteger forceKey;
+      } ForcePow2DepthINTEL;
+      struct StridesizeINTELTag
+      {
+        LiteralInteger strideSize;
+      } StridesizeINTEL;
+      struct WordsizeINTELTag
+      {
+        LiteralInteger wordSize;
+      } WordsizeINTEL;
+      struct CacheSizeINTELTag
+      {
+        LiteralInteger cacheSizeInBytes;
+      } CacheSizeINTEL;
+      struct PrefetchINTELTag
+      {
+        LiteralInteger prefetcherSizeInBytes;
+      } PrefetchINTEL;
+      struct MathOpDSPModeINTELTag
+      {
+        LiteralInteger mode;
+        LiteralInteger propagate;
+      } MathOpDSPModeINTEL;
+      struct AliasScopeINTELTag
+      {
+        IdRef aliasingScopesList;
+      } AliasScopeINTEL;
+      struct NoAliasINTELTag
+      {
+        IdRef aliasingScopesList;
+      } NoAliasINTEL;
+      struct InitiationIntervalINTELTag
+      {
+        LiteralInteger cycles;
+      } InitiationIntervalINTEL;
+      struct MaxConcurrencyINTELTag
+      {
+        LiteralInteger invocations;
+      } MaxConcurrencyINTEL;
+      struct PipelineEnableINTELTag
+      {
+        LiteralInteger enable;
+      } PipelineEnableINTEL;
+      struct BufferLocationINTELTag
+      {
+        LiteralInteger bufferLocationId;
+      } BufferLocationINTEL;
+      struct IOPipeStorageINTELTag
+      {
+        LiteralInteger ioPipeId;
+      } IOPipeStorageINTEL;
+      struct FunctionFloatingPointModeINTELTag
+      {
+        LiteralInteger targetWidth;
+        FPOperationMode fpOperationMode;
+      } FunctionFloatingPointModeINTEL;
+      struct FPMaxErrorDecorationINTELTag
+      {
+        LiteralFloat maxError;
+      } FPMaxErrorDecorationINTEL;
+      struct LatencyControlLabelINTELTag
+      {
+        LiteralInteger latencyLabel;
+      } LatencyControlLabelINTEL;
+      struct LatencyControlConstraintINTELTag
+      {
+        LiteralInteger relativeTo;
+        LiteralInteger controlType;
+        LiteralInteger relativeCycle;
+      } LatencyControlConstraintINTEL;
+      struct MMHostInterfaceAddressWidthINTELTag
+      {
+        LiteralInteger addressWidth;
+      } MMHostInterfaceAddressWidthINTEL;
+      struct MMHostInterfaceDataWidthINTELTag
+      {
+        LiteralInteger dataWidth;
+      } MMHostInterfaceDataWidthINTEL;
+      struct MMHostInterfaceLatencyINTELTag
+      {
+        LiteralInteger latency;
+      } MMHostInterfaceLatencyINTEL;
+      struct MMHostInterfaceReadWriteModeINTELTag
+      {
+        AccessQualifier readWriteMode;
+      } MMHostInterfaceReadWriteModeINTEL;
+      struct MMHostInterfaceMaxBurstINTELTag
+      {
+        LiteralInteger maxBurstCount;
+      } MMHostInterfaceMaxBurstINTEL;
+      struct MMHostInterfaceWaitRequestINTELTag
+      {
+        LiteralInteger waitrequest;
+      } MMHostInterfaceWaitRequestINTEL;
+      struct HostAccessINTELTag
+      {
+        HostAccessQualifier access;
+        LiteralString name;
+      } HostAccessINTEL;
+      struct InitModeINTELTag
+      {
+        InitializationModeQualifier trigger;
+      } InitModeINTEL;
+      struct ImplementInRegisterMapINTELTag
+      {
+        LiteralInteger value;
+      } ImplementInRegisterMapINTEL;
+      struct CacheControlLoadINTELTag
+      {
+        LiteralInteger cacheLevel;
+        LoadCacheControl cacheControl;
+      } CacheControlLoadINTEL;
+      struct CacheControlStoreINTELTag
+      {
+        LiteralInteger cacheLevel;
+        StoreCacheControl cacheControl;
+      } CacheControlStoreINTEL;
+    } data;
+  };
+  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
+  {
+    if (to - from < 1)
+    {
+      error = true;
+      return {};
+    }
+    ReadType result;
+    result.value = static_cast<Decoration>(*from++);
+    switch (result.value)
+    {
+      default: error = true; return {};
+      case Decoration::RelaxedPrecision:
+      case Decoration::Block:
+      case Decoration::BufferBlock:
+      case Decoration::RowMajor:
+      case Decoration::ColMajor:
+      case Decoration::GLSLShared:
+      case Decoration::GLSLPacked:
+      case Decoration::CPacked:
+      case Decoration::NoPerspective:
+      case Decoration::Flat:
+      case Decoration::Patch:
+      case Decoration::Centroid:
+      case Decoration::Sample:
+      case Decoration::Invariant:
+      case Decoration::Restrict:
+      case Decoration::Aliased:
+      case Decoration::Volatile:
+      case Decoration::Constant:
+      case Decoration::Coherent:
+      case Decoration::NonWritable:
+      case Decoration::NonReadable:
+      case Decoration::Uniform:
+      case Decoration::SaturatedConversion:
+      case Decoration::NoContraction:
+      case Decoration::NoSignedWrap:
+      case Decoration::NoUnsignedWrap:
+      case Decoration::WeightTextureQCOM:
+      case Decoration::BlockMatchTextureQCOM:
+      case Decoration::BlockMatchSamplerQCOM:
+      case Decoration::ExplicitInterpAMD:
+      case Decoration::TrackFinishWritingAMDX:
+      case Decoration::OverrideCoverageNV:
+      case Decoration::PassthroughNV:
+      case Decoration::ViewportRelativeNV:
+      case Decoration::PerPrimitiveEXT:
+      case Decoration::PerViewNV:
+      case Decoration::PerTaskNV:
+      case Decoration::PerVertexKHR:
+      case Decoration::NonUniform:
+      case Decoration::RestrictPointer:
+      case Decoration::AliasedPointer:
+      case Decoration::HitObjectShaderRecordBufferNV:
+      case Decoration::BindlessSamplerNV:
+      case Decoration::BindlessImageNV:
+      case Decoration::BoundSamplerNV:
+      case Decoration::BoundImageNV:
+      case Decoration::ReferencedIndirectlyINTEL:
+      case Decoration::SideEffectsINTEL:
+      case Decoration::VectorComputeVariableINTEL:
+      case Decoration::VectorComputeFunctionINTEL:
+      case Decoration::StackCallINTEL:
+      case Decoration::RegisterINTEL:
+      case Decoration::SinglepumpINTEL:
+      case Decoration::DoublepumpINTEL:
+      case Decoration::SimpleDualPortINTEL:
+      case Decoration::TrueDualPortINTEL:
+      case Decoration::BurstCoalesceINTEL:
+      case Decoration::DontStaticallyCoalesceINTEL:
+      case Decoration::StallEnableINTEL:
+      case Decoration::FuseLoopsInFunctionINTEL:
+      case Decoration::SingleElementVectorINTEL:
+      case Decoration::VectorComputeCallableFunctionINTEL:
+      case Decoration::MediaBlockIOINTEL:
+      case Decoration::StallFreeINTEL:
+      case Decoration::ConduitKernelArgumentINTEL:
+      case Decoration::RegisterMapKernelArgumentINTEL:
+      case Decoration::StableKernelArgumentINTEL: break;
+      case Decoration::SpecId:
+      {
+        result.data.SpecId.specializationConstantId = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::ArrayStride:
+      {
+        result.data.ArrayStride.arrayStride = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::MatrixStride:
+      {
+        result.data.MatrixStride.matrixStride = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::BuiltIn:
+      {
+        result.data.BuiltInData.first = TypeTraits<BuiltIn>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::UniformId:
+      {
+        result.data.UniformId.execution = TypeTraits<IdScope>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::Stream:
+      {
+        result.data.Stream.streamNumber = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::Location:
+      {
+        result.data.Location.location = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::Component:
+      {
+        result.data.Component.component = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::Index:
+      {
+        result.data.Index.index = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::Binding:
+      {
+        result.data.Binding.bindingPoint = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::DescriptorSet:
+      {
+        result.data.DescriptorSet.descriptorSet = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::Offset:
+      {
+        result.data.Offset.byteOffset = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::XfbBuffer:
+      {
+        result.data.XfbBuffer.xfbBufferNumber = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::XfbStride:
+      {
+        result.data.XfbStride.xfbStride = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::FuncParamAttr:
+      {
+        result.data.FuncParamAttr.functionParameterAttribute = TypeTraits<FunctionParameterAttribute>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::FPRoundingMode:
+      {
+        result.data.FPRoundingMode.floatingPointRoundingMode = TypeTraits<FPRoundingModeValue>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::FPFastMathMode:
+      {
+        result.data.FPFastMathMode.fastMathMode = TypeTraits<FPFastMathModeMask>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::LinkageAttributes:
+      {
+        result.data.LinkageAttributes.name = TypeTraits<LiteralString>::read(from, to, cds, error);
+        if (error)
+          return {};
+        result.data.LinkageAttributes.linkageType = TypeTraits<LinkageType>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::InputAttachmentIndex:
+      {
+        result.data.InputAttachmentIndex.attachmentIndex = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::Alignment:
+      {
+        result.data.Alignment.alignment = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::MaxByteOffset:
+      {
+        result.data.MaxByteOffset.maxByteOffset = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::AlignmentId:
+      {
+        result.data.AlignmentId.alignment = TypeTraits<IdRef>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::MaxByteOffsetId:
+      {
+        result.data.MaxByteOffsetId.maxByteOffset = TypeTraits<IdRef>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::NodeSharesPayloadLimitsWithAMDX:
+      {
+        result.data.NodeSharesPayloadLimitsWithAMDX.payloadArray = TypeTraits<IdRef>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::NodeMaxPayloadsAMDX:
+      {
+        result.data.NodeMaxPayloadsAMDX.maxNumberOfPayloads = TypeTraits<IdRef>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::PayloadNodeNameAMDX:
+      {
+        result.data.PayloadNodeNameAMDX.nodeName = TypeTraits<LiteralString>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::SecondaryViewportRelativeNV:
+      {
+        result.data.SecondaryViewportRelativeNV.offset = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::SIMTCallINTEL:
+      {
+        result.data.SIMTCallINTEL.n = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::ClobberINTEL:
+      {
+        result.data.ClobberINTEL._register = TypeTraits<LiteralString>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::FuncParamIOKindINTEL:
+      {
+        result.data.FuncParamIOKindINTEL.kind = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::GlobalVariableOffsetINTEL:
+      {
+        result.data.GlobalVariableOffsetINTEL.offset = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::CounterBuffer:
+      {
+        result.data.CounterBuffer.counterBuffer = TypeTraits<IdRef>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::UserSemantic:
+      {
+        result.data.UserSemantic.semantic = TypeTraits<LiteralString>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::UserTypeGOOGLE:
+      {
+        result.data.UserTypeGOOGLE.userType = TypeTraits<LiteralString>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::FunctionRoundingModeINTEL:
+      {
+        result.data.FunctionRoundingModeINTEL.targetWidth = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        result.data.FunctionRoundingModeINTEL.fpRoundingMode = TypeTraits<FPRoundingModeValue>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::FunctionDenormModeINTEL:
+      {
+        result.data.FunctionDenormModeINTEL.targetWidth = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        result.data.FunctionDenormModeINTEL.fpDenormMode = TypeTraits<FPDenormMode>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::MemoryINTEL:
+      {
+        result.data.MemoryINTEL.memoryType = TypeTraits<LiteralString>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::NumbanksINTEL:
+      {
+        result.data.NumbanksINTEL.banks = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::BankwidthINTEL:
+      {
+        result.data.BankwidthINTEL.bankWidth = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::MaxPrivateCopiesINTEL:
+      {
+        result.data.MaxPrivateCopiesINTEL.maximumCopies = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::MaxReplicatesINTEL:
+      {
+        result.data.MaxReplicatesINTEL.maximumReplicates = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::MergeINTEL:
+      {
+        result.data.MergeINTEL.mergeKey = TypeTraits<LiteralString>::read(from, to, cds, error);
+        if (error)
+          return {};
+        result.data.MergeINTEL.mergeType = TypeTraits<LiteralString>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::BankBitsINTEL:
+      {
+        result.data.BankBitsINTEL.bankBits = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::ForcePow2DepthINTEL:
+      {
+        result.data.ForcePow2DepthINTEL.forceKey = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::StridesizeINTEL:
+      {
+        result.data.StridesizeINTEL.strideSize = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::WordsizeINTEL:
+      {
+        result.data.WordsizeINTEL.wordSize = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::CacheSizeINTEL:
+      {
+        result.data.CacheSizeINTEL.cacheSizeInBytes = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::PrefetchINTEL:
+      {
+        result.data.PrefetchINTEL.prefetcherSizeInBytes = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::MathOpDSPModeINTEL:
+      {
+        result.data.MathOpDSPModeINTEL.mode = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        result.data.MathOpDSPModeINTEL.propagate = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::AliasScopeINTEL:
+      {
+        result.data.AliasScopeINTEL.aliasingScopesList = TypeTraits<IdRef>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::NoAliasINTEL:
+      {
+        result.data.NoAliasINTEL.aliasingScopesList = TypeTraits<IdRef>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::InitiationIntervalINTEL:
+      {
+        result.data.InitiationIntervalINTEL.cycles = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::MaxConcurrencyINTEL:
+      {
+        result.data.MaxConcurrencyINTEL.invocations = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::PipelineEnableINTEL:
+      {
+        result.data.PipelineEnableINTEL.enable = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::BufferLocationINTEL:
+      {
+        result.data.BufferLocationINTEL.bufferLocationId = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::IOPipeStorageINTEL:
+      {
+        result.data.IOPipeStorageINTEL.ioPipeId = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::FunctionFloatingPointModeINTEL:
+      {
+        result.data.FunctionFloatingPointModeINTEL.targetWidth = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        result.data.FunctionFloatingPointModeINTEL.fpOperationMode = TypeTraits<FPOperationMode>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::FPMaxErrorDecorationINTEL:
+      {
+        result.data.FPMaxErrorDecorationINTEL.maxError = TypeTraits<LiteralFloat>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::LatencyControlLabelINTEL:
+      {
+        result.data.LatencyControlLabelINTEL.latencyLabel = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::LatencyControlConstraintINTEL:
+      {
+        result.data.LatencyControlConstraintINTEL.relativeTo = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        result.data.LatencyControlConstraintINTEL.controlType = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        result.data.LatencyControlConstraintINTEL.relativeCycle = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::MMHostInterfaceAddressWidthINTEL:
+      {
+        result.data.MMHostInterfaceAddressWidthINTEL.addressWidth = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::MMHostInterfaceDataWidthINTEL:
+      {
+        result.data.MMHostInterfaceDataWidthINTEL.dataWidth = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::MMHostInterfaceLatencyINTEL:
+      {
+        result.data.MMHostInterfaceLatencyINTEL.latency = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::MMHostInterfaceReadWriteModeINTEL:
+      {
+        result.data.MMHostInterfaceReadWriteModeINTEL.readWriteMode = TypeTraits<AccessQualifier>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::MMHostInterfaceMaxBurstINTEL:
+      {
+        result.data.MMHostInterfaceMaxBurstINTEL.maxBurstCount = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::MMHostInterfaceWaitRequestINTEL:
+      {
+        result.data.MMHostInterfaceWaitRequestINTEL.waitrequest = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::HostAccessINTEL:
+      {
+        result.data.HostAccessINTEL.access = TypeTraits<HostAccessQualifier>::read(from, to, cds, error);
+        if (error)
+          return {};
+        result.data.HostAccessINTEL.name = TypeTraits<LiteralString>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::InitModeINTEL:
+      {
+        result.data.InitModeINTEL.trigger = TypeTraits<InitializationModeQualifier>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::ImplementInRegisterMapINTEL:
+      {
+        result.data.ImplementInRegisterMapINTEL.value = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::CacheControlLoadINTEL:
+      {
+        result.data.CacheControlLoadINTEL.cacheLevel = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        result.data.CacheControlLoadINTEL.cacheControl = TypeTraits<LoadCacheControl>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+      case Decoration::CacheControlStoreINTEL:
+      {
+        result.data.CacheControlStoreINTEL.cacheLevel = TypeTraits<LiteralInteger>::read(from, to, cds, error);
+        if (error)
+          return {};
+        result.data.CacheControlStoreINTEL.cacheControl = TypeTraits<StoreCacheControl>::read(from, to, cds, error);
+        if (error)
+          return {};
+        break;
+      };
+    };
+    return result;
+  }
+};
+template <>
+struct TypeTraits<Scope>
+{
+  static const char *doc() { return ""; }
+  static const char *name() { return "Scope"; }
+  typedef Scope ReadType;
+  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
+  {
+    if (to - from < 1)
+    {
+      error = true;
+      return {};
+    }
+    ReadType result{static_cast<ReadType>(*from++)};
+    return result;
+  }
+};
+template <>
+struct TypeTraits<GroupOperation>
+{
+  static const char *doc() { return ""; }
+  static const char *name() { return "GroupOperation"; }
+  typedef GroupOperation ReadType;
+  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
+  {
+    if (to - from < 1)
+    {
+      error = true;
+      return {};
+    }
+    ReadType result{static_cast<ReadType>(*from++)};
+    return result;
+  }
+};
+template <>
+struct TypeTraits<KernelEnqueueFlags>
+{
+  static const char *doc() { return ""; }
+  static const char *name() { return "KernelEnqueueFlags"; }
+  typedef KernelEnqueueFlags ReadType;
+  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
+  {
+    if (to - from < 1)
+    {
+      error = true;
+      return {};
+    }
+    ReadType result{static_cast<ReadType>(*from++)};
+    return result;
+  }
+};
+template <>
+struct TypeTraits<Capability>
+{
+  static const char *doc() { return ""; }
+  static const char *name() { return "Capability"; }
+  typedef Capability ReadType;
+  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
+  {
+    if (to - from < 1)
+    {
+      error = true;
+      return {};
+    }
+    ReadType result{static_cast<ReadType>(*from++)};
+    return result;
+  }
+};
+template <>
+struct TypeTraits<RayQueryIntersection>
+{
+  static const char *doc() { return ""; }
+  static const char *name() { return "RayQueryIntersection"; }
+  typedef RayQueryIntersection ReadType;
+  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
+  {
+    if (to - from < 1)
+    {
+      error = true;
+      return {};
+    }
+    ReadType result{static_cast<ReadType>(*from++)};
+    return result;
+  }
+};
+template <>
+struct TypeTraits<RayQueryCommittedIntersectionType>
+{
+  static const char *doc() { return ""; }
+  static const char *name() { return "RayQueryCommittedIntersectionType"; }
+  typedef RayQueryCommittedIntersectionType ReadType;
+  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
+  {
+    if (to - from < 1)
+    {
+      error = true;
+      return {};
+    }
+    ReadType result{static_cast<ReadType>(*from++)};
+    return result;
+  }
+};
+template <>
+struct TypeTraits<RayQueryCandidateIntersectionType>
+{
+  static const char *doc() { return ""; }
+  static const char *name() { return "RayQueryCandidateIntersectionType"; }
+  typedef RayQueryCandidateIntersectionType ReadType;
+  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
+  {
+    if (to - from < 1)
+    {
+      error = true;
+      return {};
+    }
+    ReadType result{static_cast<ReadType>(*from++)};
+    return result;
+  }
+};
+template <>
+struct TypeTraits<PackedVectorFormat>
+{
+  static const char *doc() { return ""; }
+  static const char *name() { return "PackedVectorFormat"; }
+  typedef PackedVectorFormat ReadType;
+  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
+  {
+    if (to - from < 1)
+    {
+      error = true;
+      return {};
+    }
+    ReadType result{static_cast<ReadType>(*from++)};
+    return result;
+  }
+};
+template <>
+struct TypeTraits<CooperativeMatrixOperandsMask>
+{
+  static const char *doc() { return ""; }
+  static const char *name() { return "CooperativeMatrixOperands"; }
+  typedef CooperativeMatrixOperandsMask ReadType;
+  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
+  {
+    if (to - from < 1)
+    {
+      error = true;
+      return {};
+    }
+    ReadType result{static_cast<ReadType>(*from++)};
+    return result;
+  };
+};
+template <>
+struct TypeTraits<CooperativeMatrixLayout>
+{
+  static const char *doc() { return ""; }
+  static const char *name() { return "CooperativeMatrixLayout"; }
+  typedef CooperativeMatrixLayout ReadType;
+  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
+  {
+    if (to - from < 1)
+    {
+      error = true;
+      return {};
+    }
+    ReadType result{static_cast<ReadType>(*from++)};
+    return result;
+  }
+};
+template <>
+struct TypeTraits<CooperativeMatrixUse>
+{
+  static const char *doc() { return ""; }
+  static const char *name() { return "CooperativeMatrixUse"; }
+  typedef CooperativeMatrixUse ReadType;
+  static ReadType read(const Id *&from, const Id *to, Id cds, bool &error)
+  {
+    if (to - from < 1)
+    {
+      error = true;
+      return {};
+    }
+    ReadType result{static_cast<ReadType>(*from++)};
+    return result;
+  }
+};
+struct PairLiteralIntegerIdRef
+{
+  LiteralInteger first;
+  IdRef second;
+};
+template <>
+struct TypeTraits<PairLiteralIntegerIdRef>
+{
+  static const char *name() { return "PairLiteralIntegerIdRef"; }
+  static PairLiteralIntegerIdRef read(const Id *&from, const Id *to, Id cds, bool &error)
+  {
+    auto localFrom = from;
+    auto c0 = TypeTraits<LiteralInteger>::read(localFrom, to, cds, error);
+    if (error)
+      return {};
+    auto c1 = TypeTraits<IdRef>::read(localFrom, to, cds, error);
+    if (error)
+      return {};
+    PairLiteralIntegerIdRef result;
+    result.first = c0;
+    result.second = c1;
+    from = localFrom;
     return result;
   }
 };
@@ -2518,60 +3201,42 @@ struct TypeTraits<PairIdRefIdRef>
     return result;
   }
 };
-struct PairLiteralIntegerIdRef
-{
-  LiteralInteger first;
-  IdRef second;
-};
-template <>
-struct TypeTraits<PairLiteralIntegerIdRef>
-{
-  static const char *name() { return "PairLiteralIntegerIdRef"; }
-  static PairLiteralIntegerIdRef read(const Id *&from, const Id *to, Id cds, bool &error)
-  {
-    auto localFrom = from;
-    auto c0 = TypeTraits<LiteralInteger>::read(localFrom, to, cds, error);
-    if (error)
-      return {};
-    auto c1 = TypeTraits<IdRef>::read(localFrom, to, cds, error);
-    if (error)
-      return {};
-    PairLiteralIntegerIdRef result;
-    result.first = c0;
-    result.second = c1;
-    from = localFrom;
-    return result;
-  }
-};
 // enumerant name lookups
-const char *name_of(SamplerFilterMode value);
-const char *name_of(FunctionParameterAttribute value);
-const char *name_of(ImageChannelOrder value);
-const char *name_of(KernelEnqueueFlags value);
-const char *name_of(RayQueryIntersection value);
-const char *name_of(ImageFormat value);
-const char *name_of(Scope value);
-const char *name_of(LinkageType value);
-const char *name_of(ImageChannelDataType value);
-const char *name_of(Decoration value);
-const char *name_of(QuantizationModes value);
-const char *name_of(BuiltIn value);
-const char *name_of(AddressingModel value);
-const char *name_of(PackedVectorFormat value);
-const char *name_of(Dim value);
-const char *name_of(OverflowModes value);
-const char *name_of(FPRoundingMode value);
-const char *name_of(Capability value);
-const char *name_of(GroupOperation value);
-const char *name_of(ExecutionModel value);
-const char *name_of(AccessQualifier value);
-const char *name_of(RayQueryCommittedIntersectionType value);
 const char *name_of(SourceLanguage value);
-const char *name_of(FPDenormMode value);
-const char *name_of(ExecutionMode value);
-const char *name_of(FPOperationMode value);
-const char *name_of(RayQueryCandidateIntersectionType value);
+const char *name_of(ExecutionModel value);
+const char *name_of(AddressingModel value);
 const char *name_of(MemoryModel value);
-const char *name_of(SamplerAddressingMode value);
+const char *name_of(ExecutionMode value);
 const char *name_of(StorageClass value);
+const char *name_of(Dim value);
+const char *name_of(SamplerAddressingMode value);
+const char *name_of(SamplerFilterMode value);
+const char *name_of(ImageFormat value);
+const char *name_of(ImageChannelOrder value);
+const char *name_of(ImageChannelDataType value);
+const char *name_of(FPRoundingMode value);
+const char *name_of(FPDenormMode value);
+const char *name_of(QuantizationModes value);
+const char *name_of(FPOperationMode value);
+const char *name_of(OverflowModes value);
+const char *name_of(LinkageType value);
+const char *name_of(AccessQualifier value);
+const char *name_of(HostAccessQualifier value);
+const char *name_of(FunctionParameterAttribute value);
+const char *name_of(Decoration value);
+const char *name_of(BuiltIn value);
+const char *name_of(Scope value);
+const char *name_of(GroupOperation value);
+const char *name_of(KernelEnqueueFlags value);
+const char *name_of(Capability value);
+const char *name_of(RayQueryIntersection value);
+const char *name_of(RayQueryCommittedIntersectionType value);
+const char *name_of(RayQueryCandidateIntersectionType value);
+const char *name_of(PackedVectorFormat value);
+const char *name_of(CooperativeMatrixLayout value);
+const char *name_of(CooperativeMatrixUse value);
+const char *name_of(InitializationModeQualifier value);
+const char *name_of(LoadCacheControl value);
+const char *name_of(StoreCacheControl value);
+const char *name_of(NamedMaximumNumberOfRegisters value);
 } // namespace spirv

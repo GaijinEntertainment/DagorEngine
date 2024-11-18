@@ -1323,6 +1323,18 @@ void HmapLandObjectEditor::onSelectedNames(const Tab<String> &names)
 }
 
 
+void HmapLandObjectEditor::getLayerNames(int type, Tab<String> &names)
+{
+  const int layerCount = EditLayerProps::layerProps.size();
+  for (int i = 0; i < layerCount; i++)
+  {
+    auto &layerProps = EditLayerProps::layerProps[i];
+    if (layerProps.type == type)
+      names.push_back(String(layerProps.name()));
+  }
+}
+
+
 bool HmapLandObjectEditor::findTargetPos(IGenViewportWnd *wnd, int x, int y, Point3 &out, bool place_on_ri_collision)
 {
   Point3 dir, world;

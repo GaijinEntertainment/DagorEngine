@@ -120,6 +120,11 @@ struct FrameFeatures
     validateFrameOOB(frame);
     return make_span(data.data() + frame * featuresSizeInVec4f, trajectorySizeInVec4f);
   }
+  dag::Span<vec4f> get_node_features_raw(int frame)
+  {
+    validateFrameOOB(frame);
+    return make_span(data.data() + frame * featuresSizeInVec4f + trajectorySizeInVec4f, featuresSizeInVec4f - trajectorySizeInVec4f);
+  }
   dag::Span<Point2> get_root_positions(int frame)
   {
     validateFrameOOB(frame);

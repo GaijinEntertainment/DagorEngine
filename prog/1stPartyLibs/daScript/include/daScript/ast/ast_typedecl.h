@@ -319,7 +319,7 @@ namespace das {
     template<> struct ToBasicType<long double>      { enum { type = Type::tDouble }; };
     template<> struct ToBasicType<wchar_t>          { enum { type = Type::tUInt16 }; };
 #endif
-#if !defined(_MSC_VER) && !defined(__APPLE__) && defined(ULLONG_MAX) && ULLONG_MAX == 0xffffffffffffffffULL
+#if !defined(_MSC_VER) && !defined(__APPLE__) && !defined(_EMSCRIPTEN_VER) && defined(ULLONG_MAX) && ULLONG_MAX == 0xffffffffffffffffULL
     template<> struct ToBasicType<long long int>      { enum { type = Type::tInt64 }; };
     template<> struct ToBasicType<unsigned long long int>     { enum { type = Type::tUInt64 }; };
 #endif

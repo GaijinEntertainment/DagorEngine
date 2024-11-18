@@ -7,4 +7,4 @@ void init_grass(const DataBlock *grass_settings_from_level);
 void erase_grass(const Point3 &world_pos, float radius);
 void grass_invalidate();
 void grass_invalidate(const dag::ConstSpan<BBox3> &boxes);
-void grass_prepare(const TMatrix &itm);
+void grass_prepare(const TMatrix &itm, const Driver3dPerspective &perspective);

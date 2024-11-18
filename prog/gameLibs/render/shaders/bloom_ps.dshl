@@ -40,8 +40,6 @@ endmacro
 shader frame_bloom_downsample, bloom_downsample_hq, bloom_downsample_lq
 {
   POSTFX()
-  INIT_EXPOSURE(ps)
-  USE_EXPOSURE(ps)
 
   if (shader == bloom_downsample_hq)
   {
@@ -78,7 +76,7 @@ shader frame_bloom_downsample, bloom_downsample_hq, bloom_downsample_lq
         #define THRESHOLD(a)
       ##elif shader == bloom_downsample_hq
         const bool bKillFireflies = true;
-        float ScaledThreshold = bloom_threshold * getInvExposureScale();   // BloomThreshold / Exposure
+        float ScaledThreshold = bloom_threshold;   // BloomThreshold / Exposure
         #define THRESHOLD(a) {tex2 = tex; tex = max(0, tex - ScaledThreshold);}
       ##else
         const bool bKillFireflies = false;

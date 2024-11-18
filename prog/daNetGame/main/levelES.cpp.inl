@@ -217,13 +217,13 @@ public:
   using BaseStreamingSceneHolder::mainBindump;
 
   ecs::EntityId eid;
-  bool waterHeightmapLoaded = false;
   eastl::unique_ptr<RenderScene> rivers;
   eastl::unique_ptr<LandMeshManager> lmeshMgr;
   Tab<levelsplines::Spline> splines;
   eastl::unique_ptr<splineroads::SplineRoads> roads;
   uint32_t dataNeeded = 0;
   bool needLmeshLoadedCall = false;
+  bool waterHeightmapLoaded = false;
   eastl::unique_ptr<DataBlock> levelBlk; // Shall be accessed only during loading
   Tab<ObjectsToPlace *> objectsToPlace, efxToPlace;
   DataBlock riGenExtraConfig;
@@ -441,12 +441,14 @@ public:
 
     if (tag == _MAKE4C('WHM'))
     {
-      FFTWater *water = dacoll::get_water();
-      if (water)
+      if (FFTWater *water = dacoll::get_water())
       {
-        waterHeightmapLoaded = true;
         fft_water::load_heightmap(crd, water);
+        waterHeightmapLoaded = true;
       }
+      else
+        logerr("Water heightmap exist in level but there is no water during level load. "
+               "Make sure that water entity resides before level's one in scene file");
     }
 
     if (tag == _MAKE4C('lmap'))
@@ -622,8 +624,7 @@ public:
         get_world_renderer()->onLandmeshLoaded(*levelBlk, levelBlk->getStr(LEVEL_BIN_NAME, "undefined"), lmeshMgr.get());
       }
 #endif
-      FFTWater *water = dacoll::get_water();
-      if (water && waterHeightmapLoaded)
+      if (FFTWater *water = dacoll::get_water(); waterHeightmapLoaded)
       {
         fft_water::reset_render(water);
         fft_water::reset_physics(water);

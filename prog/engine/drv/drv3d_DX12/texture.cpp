@@ -314,6 +314,8 @@ bool create_tex2d(BaseTex &tex, uint32_t w, uint32_t h, uint32_t levels, bool cu
 #endif
   if (!tex.image)
   {
+    if (device.isIll())
+      return true;
     if (tex.stagingMemory)
       free_and_reset_staging_memory(tex.stagingMemory);
     return false;
@@ -938,7 +940,7 @@ void BaseTex::replaceTexResObject(BaseTexture *&other_tex)
     other->setWasUsed();
 #endif
 
-    get_device().updateTextureBindlessReferencesNoLock(this, other->image, image, isStubUsed);
+    get_device().updateTextureBindlessReferencesNoLock(this, other->image, isStubUsed);
   }
   del_d3dres(other_tex);
 }

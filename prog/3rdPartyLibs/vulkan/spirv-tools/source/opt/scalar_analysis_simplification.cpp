@@ -12,15 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "source/opt/scalar_analysis.h"
-
 #include <functional>
 #include <map>
 #include <memory>
 #include <set>
-#include <unordered_set>
 #include <utility>
 #include <vector>
+
+#include "source/opt/scalar_analysis.h"
 
 // Simplifies scalar analysis DAGs.
 //
@@ -88,7 +87,7 @@ class SENodeSimplifyImpl {
 
  private:
   // Recursively descend through the graph to build up the accumulator objects
-  // which are used to flatten the graph. |child| is the node currenty being
+  // which are used to flatten the graph. |child| is the node currently being
   // traversed and the |negation| flag is used to signify that this operation
   // was preceded by a unary negative operation and as such the result should be
   // negated.

@@ -24,9 +24,10 @@ public:
   Grassify(const DataBlock &settings, int grassMaskResolution, float grassDistance);
   ~Grassify();
 
-  void generate(const Point3 &pos, const TMatrix &view_itm, BaseTexture *grass_mask, IRandomGrassRenderHelper &grassRenderHelper,
-    const GPUGrassBase &gpuGrassBase);
+  void generate(const Point3 &pos, const TMatrix &view_tm, const Driver3dPerspective &perspective, BaseTexture *grass_mask,
+    IRandomGrassRenderHelper &grassRenderHelper, const GPUGrassBase &gpuGrassBase);
   void generateGrassMask(IRandomGrassRenderHelper &grassRenderHelper);
+  void initGrassifyRendinst();
 
 private:
   eastl::unique_ptr<GrassMaskSliceHelper> grassMaskHelper;

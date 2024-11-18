@@ -269,6 +269,12 @@ public:
   /// #RenderableEditableObject or derived from it, @b NullCID in other case
   virtual DClassID getCommonClassId(RenderableEditableObject **objects, int num);
 
+  /// Property Panel common group and property PID values
+  enum
+  {
+    PID_COMMON_GROUP = 100000
+  };
+
   /// Fill Property Panel with object properties.
   /// Used to place object (group of objects) properties on Property Panel.
   /// @param[in] panel - Property Panel

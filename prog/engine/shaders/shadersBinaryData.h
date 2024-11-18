@@ -19,6 +19,7 @@
 #include <osApiWrappers/dag_spinlock.h>
 #include <EASTL/span.h>
 #include <EASTL/bonus/lru_cache.h>
+#include <EASTL/array.h>
 
 struct Color4;
 struct ShaderChannelId;
@@ -44,6 +45,10 @@ using ScriptedShadersBinDump = bindump::Mapper<shader_layout::ScriptedShadersBin
 using ScriptedShadersBinDumpV2 = bindump::Mapper<shader_layout::ScriptedShadersBinDumpV2>;
 using ScriptedShadersBinDumpV3 = bindump::Mapper<shader_layout::ScriptedShadersBinDumpV3>;
 using StrHolder = bindump::Mapper<bindump::StrHolder>;
+
+static constexpr size_t MAX_BINDUMP_SHADERVARS = 4096;
+static constexpr uint32_t SHADERVAR_IDX_ABSENT = 0xFFFE;
+static constexpr uint32_t SHADERVAR_IDX_INVALID = 0xFFFF;
 
 enum class ShaderCodeType
 {
@@ -76,6 +81,9 @@ struct ScriptedShadersBinDumpOwner
   Tab<int16_t> globVarIntervalIdx;
   Tab<uint8_t> globIntervalNormValues;
 
+  // Runtime map name id -> internal dump id
+  eastl::array<uint16_t, MAX_BINDUMP_SHADERVARS> varIndexMap, globvarIndexMap;
+
   auto getDecompressionDict() { return mDictionary.get(); }
 
 private:
@@ -98,6 +106,8 @@ private:
   void copyDecompressedShader(const DecompressedGroup &decompressed_group, uint16_t index_in_group, ShaderBytecode &tmpbuf);
   void loadDecompressedShader(uint16_t group_id, uint16_t index_in_group, ShaderBytecode &tmpbuf);
   void storeDecompressedGroup(uint16_t group_id, DecompressedGroup &&decompressed_group);
+
+  void initVarIndexMaps();
 
   struct ZstdDictionaryDeleter
   {

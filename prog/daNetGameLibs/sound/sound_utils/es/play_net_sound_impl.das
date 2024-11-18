@@ -72,8 +72,8 @@ def play_net_sound_impl_client_simple(cmd : CmdPlaySoundSimple; eid : EntityId; 
 // -------------------------------------------------------------
 
 [es(tag=sound)]
-def play_net_sound_impl_from_any_source(cmd : CmdPlayNetSoundFromAnySource; eid : EntityId; var sound_event_group : SoundEventGroup?; transform : float3x4)
-  find_query() <| $ [es(REQUIRE=anySourceNetSounds)] ([[shared_comp]] net_sound__descs : Object)
+def play_scene_net_sound_impl(cmd : CmdPlaySceneNetSound; eid : EntityId; var sound_event_group : SoundEventGroup?; transform : float3x4)
+  find_query() <| $ [es(REQUIRE=sceneNetSounds)] ([[shared_comp]] net_sound__descs : Object)
     if has_net_sound_desc(cmd.hash, net_sound__descs)
       play_impl(cmd.hash, transform[3], 0., net_sound__descs, has(eid, "hero"), sound_event_group)
       return true

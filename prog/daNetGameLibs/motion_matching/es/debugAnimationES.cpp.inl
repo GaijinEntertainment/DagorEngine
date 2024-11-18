@@ -172,13 +172,13 @@ static void debug_motion_matching_es(const ecs::UpdateStageInfoRenderDebug &,
   auto clipBegin = dataBase.clips[cur_clip].features.data.data() + cur_frame * dataBase.featuresSize;
 
   // need to create copy for denormalization
-  FrameFeatures goalCopy = motion_matching__goalFeature;
   FrameFeatures clipCopy = motion_matching__goalFeature;
   clipCopy.data.assign(clipBegin, clipBegin + dataBase.featuresSize);
-  denormalize_feature(make_span(goalCopy.data), dataBase.featuresAvg, dataBase.featuresStd);
-  denormalize_feature(make_span(clipCopy.data), dataBase.featuresAvg, dataBase.featuresStd);
+  int clipFeaturesOffset = dataBase.clips[cur_clip].featuresNormalizationGroup * dataBase.featuresSize;
+  denormalize_feature(make_span(clipCopy.data), dataBase.featuresAvg.data() + clipFeaturesOffset,
+    dataBase.featuresStd.data() + clipFeaturesOffset);
   FrameFeature clipFeature = clipCopy.get_feature(0);
-  FrameFeature goalFeature = goalCopy.get_feature(0);
+  ConstFrameFeature goalFeature = motion_matching__goalFeature.get_feature(0);
 
   // It is next frame tm because physics and animchars are updated after MM update but before debug
   // rendering. Not sure that it is a real issue because it affects only debug visualization
@@ -281,7 +281,13 @@ static void motion_matching_weights()
       if (!motion_matching__controller.hasActiveAnimation())
         return;
       const AnimationDataBase &dataBase = *motion_matching__controller.dataBase;
-      const FrameFeatures &currentFeature = motion_matching__goalFeature;
+      dag::Vector<vec4f, framemem_allocator> normalizedFeatures(dataBase.featuresSize * dataBase.normalizationGroupsCount);
+      for (int i = 0; i < dataBase.normalizationGroupsCount; ++i)
+      {
+        int offset = i * dataBase.featuresSize;
+        normalize_feature(make_span(normalizedFeatures.data() + offset, dataBase.featuresSize),
+          motion_matching__goalFeature.data.data(), dataBase.featuresAvg.data() + offset, dataBase.featuresStd.data() + offset);
+      }
 
       if (dataBase.tagsPresets.size() <= (uint32_t)motion_matching__presetIdx)
         return;
@@ -296,14 +302,15 @@ static void motion_matching_weights()
         cur_frame = motion_matching__controller.getCurrentFrame();
         int featureSize = dataBase.featuresSize;
         const vec4f *frameFeature = dataBase.clips[cur_clip].features.data.data() + cur_frame * featureSize;
-        curMetric =
-          feature_distance_metric(currentFeature.data.data(), frameFeature, currentWeights.featureWeights.data(), featureSize);
+        int featuresOffset = dataBase.clips[cur_clip].featuresNormalizationGroup * featureSize;
+        curMetric = feature_distance_metric(normalizedFeatures.data() + featuresOffset, frameFeature,
+          currentWeights.featureWeights.data(), featureSize);
       }
 
 
       MatchingResult currentState = {cur_clip, cur_frame, FLT_MAX};
       MatchingResult result =
-        motion_matching(dataBase, currentState, false, motion_matching__controller.currentTags, currentWeights, currentFeature.data);
+        motion_matching(dataBase, currentState, false, motion_matching__controller.currentTags, currentWeights, normalizedFeatures);
 
       String tags;
       for (int tag_idx = 0, num_tags = dataBase.getTagsCount(); tag_idx < num_tags; ++tag_idx)
@@ -369,7 +376,6 @@ static void motion_matching_weights()
       int trajectorySize = dataBase.trajectorySize;
 
 
-      const vec3f *goalFeaturePtr = motion_matching__goalFeature.data.data();
       const vec4f *featureWeightsPtr = currentWeights.featureWeights.data();
 
 
@@ -424,6 +430,8 @@ static void motion_matching_weights()
         ImGui::Text("%s (%d)", nextClip.name.c_str(), nextClip.tickDuration);
 
 
+        int featuresOffset = nextClip.featuresNormalizationGroup * featureSize;
+        const vec4f *goalFeaturePtr = normalizedFeatures.data() + featuresOffset;
         const vec3f *nextFeaturePtr = nextClip.features.data.data();
         for (int frame = 0, frameOffset = 0; frame < nextClip.tickDuration; frame++, frameOffset++)
         {
@@ -452,7 +460,9 @@ static void motion_matching_weights()
               "cost: %f\n"
               "- trajectory: %f\n",
               frame, result, trajectory);
-            ConstTrajectoryFeature goalTrajectory = motion_matching__goalFeature.get_trajectory_feature(0);
+            FrameFeatures goalFeaturesCopy = motion_matching__goalFeature;
+            goalFeaturesCopy.data.assign(goalFeaturePtr, goalFeaturePtr + featureSize);
+            TrajectoryFeature goalTrajectory = goalFeaturesCopy.get_trajectory_feature(0);
             ConstTrajectoryFeature clipTrajectory = nextClip.features.get_trajectory_feature(frame);
             for (int i = 0, ie = goalTrajectory.rootPositions.size(); i < ie; ++i)
             {
@@ -463,7 +473,7 @@ static void motion_matching_weights()
               tooltipMessage.aprintf(0, "  - pt%d pos: %f, dir: %f\n", i, posCost, dirCost);
             }
             tooltipMessage.aprintf(0, "- pose: %f\n", pose);
-            ConstNodeFeature goalNodeFeatures = motion_matching__goalFeature.get_node_feature(0);
+            NodeFeature goalNodeFeatures = goalFeaturesCopy.get_node_feature(0);
             ConstNodeFeature clipNodeFeatures = nextClip.features.get_node_feature(frame);
             for (int i = 0, ie = goalNodeFeatures.nodePositions.size(); i < ie; ++i)
             {

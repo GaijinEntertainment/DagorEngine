@@ -5,6 +5,7 @@
 
 IDXGIAdapter *get_active_adapter(ID3D11Device *dx_device)
 {
+  G_ASSERT_RETURN(dx_device, nullptr);
   IDXGIDevice *dxgiDevice = nullptr;
   IDXGIAdapter *dxgiAdapter = nullptr;
   HRESULT hr = dx_device->QueryInterface(__uuidof(IDXGIDevice), (void **)&dxgiDevice);

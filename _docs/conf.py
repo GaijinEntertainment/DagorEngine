@@ -50,6 +50,7 @@ extensions = [
   'hoverxref.extension',
   'versionwarning.extension',
   'sphinx_copybutton',
+  'sphinxcontrib.video',
 ]
 
 myst_enable_extensions = [

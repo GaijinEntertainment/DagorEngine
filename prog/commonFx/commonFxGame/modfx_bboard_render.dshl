@@ -13,9 +13,6 @@ interval modfx_debug_render : off < 1, on;
 int modfx_wboit_enabled = 0;
 interval modfx_wboit_enabled : off < 1, on;
 
-int modfx_wboit_pass = 2;
-interval modfx_wboit_pass : color < 1, alpha < 2, combined;
-
 int fx_apply_volfog_per_pixel = 0;
 interval fx_apply_volfog_per_pixel: no < 1, yes; // must be disabled explicitly for WT compat for lack of UAV
 
@@ -133,10 +130,6 @@ shader dafx_modfx_bboard_render, dafx_modfx_ribbon_render, dafx_modfx_ribbon_ren
         wboit_color@smp2d = wboit_color;
         wboit_alpha@smp2d = wboit_alpha;
       }
-      if ( modfx_wboit_pass == combined )
-      {
-        hlsl  {#define MODFX_WBOIT_PASS_COMBINED 1 }
-      }
     }
     else
     {
@@ -166,28 +159,10 @@ shader dafx_modfx_bboard_render, dafx_modfx_ribbon_render, dafx_modfx_ribbon_ren
   else if ( shader == dafx_modfx_volshape_wboit_render )
   {
     z_write = false;
-    if ( modfx_wboit_pass == combined )
-    {
-      blend_src=one;
-      blend_dst=one;
-      blend_asrc=zero;
-      blend_adst=isa;
-      hlsl  {#define MODFX_WBOIT_PASS_COMBINED 1 }
-    }
-    else if ( modfx_wboit_pass == color )
-    {
-      blend_src=one;
-      blend_dst=one;
-      blend_asrc=one;
-      blend_adst=one;
-      hlsl  {#define MODFX_WBOIT_PASS_COLOR 1 }
-    }
-    else if ( modfx_wboit_pass == alpha )
-    {
-      blend_src=zero;
-      blend_dst=isc;
-      hlsl  {#define MODFX_WBOIT_PASS_ALPHA 1 }
-    }
+    blend_src=one;
+    blend_dst=one;
+    blend_asrc=zero;
+    blend_adst=isa;
 
     DAFX_USE_CLOUD_SHADOWS()
     hlsl

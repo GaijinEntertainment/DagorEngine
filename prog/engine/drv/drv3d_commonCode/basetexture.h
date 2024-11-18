@@ -22,9 +22,9 @@ public:
 
       uint32_t texFilter : 3;
       uint32_t mipFilter : 3;
+      uint32_t _res : 4;
       uint32_t minMipLevel : 4;
       uint32_t maxMipLevel : 4;
-      uint32_t mipLevels : 4;
     };
     uint32_t key;
   };
@@ -34,6 +34,7 @@ public:
   uint32_t cflg;
   uint32_t lockFlags = 0;
   uint16_t width = 1, height = 1, depth = 1;
+  uint8_t mipLevels;
   uint8_t type;
   uint8_t lockedLevel = 0;
 

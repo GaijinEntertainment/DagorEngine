@@ -27,28 +27,6 @@ namespace spvtools {
 namespace opt {
 namespace analysis {
 
-// Class for representing a use of id. Note that:
-// * Result type id is a use.
-// * Ids referenced in OpSectionMerge & OpLoopMerge are considered as use.
-// * Ids referenced in OpPhi's in operands are considered as use.
-struct Use {
-  Instruction* inst;       // Instruction using the id.
-  uint32_t operand_index;  // logical operand index of the id use. This can be
-                           // the index of result type id.
-};
-
-inline bool operator==(const Use& lhs, const Use& rhs) {
-  return lhs.inst == rhs.inst && lhs.operand_index == rhs.operand_index;
-}
-
-inline bool operator!=(const Use& lhs, const Use& rhs) { return !(lhs == rhs); }
-
-inline bool operator<(const Use& lhs, const Use& rhs) {
-  if (lhs.inst < rhs.inst) return true;
-  if (lhs.inst > rhs.inst) return false;
-  return lhs.operand_index < rhs.operand_index;
-}
-
 // Definition should never be null. User can be null, however, such an entry
 // should be used only for searching (e.g. all users of a particular definition)
 // and never stored in a container.
@@ -190,7 +168,7 @@ class DefUseManager {
   // Returns the annotation instrunctions which are a direct use of the given
   // |id|. This means when the decorations are applied through decoration
   // group(s), this function will just return the OpGroupDecorate
-  // instrcution(s) which refer to the given id as an operand. The OpDecorate
+  // instruction(s) which refer to the given id as an operand. The OpDecorate
   // instructions which decorate the decoration group will not be returned.
   std::vector<Instruction*> GetAnnotations(uint32_t id) const;
 
@@ -210,7 +188,7 @@ class DefUseManager {
   friend bool CompareAndPrintDifferences(const DefUseManager&,
                                          const DefUseManager&);
 
-  // If |inst| has not already been analysed, then analyses its defintion and
+  // If |inst| has not already been analysed, then analyses its definition and
   // uses.
   void UpdateDefUse(Instruction* inst);
 

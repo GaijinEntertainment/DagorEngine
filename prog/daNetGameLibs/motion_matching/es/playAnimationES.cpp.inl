@@ -87,14 +87,7 @@ static void mm_update_goal_features_es(const ParallelUpdateFrameDelayed &act,
     trajectoryFeature.rootPositions[i] = Point2::xz(mm_trajectory__featurePositions[i]);
     trajectoryFeature.rootDirections[i] = Point2::xz(mm_trajectory__featureDirections[i]);
   }
-  const AnimationDataBase &dataBase = *motion_matching__controller.dataBase;
-  if (motion_matching__controller.hasActiveAnimation())
-  {
-    // normalize only trajectory, node features will be copied from current animation
-    dag::Span<vec4f> packedTrajectory = motion_matching__goalFeature.get_trajectory_features(0);
-    normalize_feature(packedTrajectory, dataBase.featuresAvg, dataBase.featuresStd);
-  }
-  else
+  if (!motion_matching__controller.hasActiveAnimation())
   {
     NodeFeature nodeFeature = motion_matching__goalFeature.get_node_feature(0);
     mat44f invRoot;
@@ -106,7 +99,6 @@ static void mm_update_goal_features_es(const ParallelUpdateFrameDelayed &act,
       v_stu_p3(&nodeFeature.nodeVelocities[i].x, v_mat44_mul_vec3v(invRoot, v_safediv(deltaPos, v_splats(act.dt))));
       v_stu_p3(&nodeFeature.nodePositions[i].x, v_mat44_mul_vec3p(invRoot, tree.getNodeWposRel(nodeId)));
     }
-    normalize_feature(make_span(motion_matching__goalFeature.data), dataBase.featuresAvg, dataBase.featuresStd);
   }
 }
 
@@ -127,6 +119,10 @@ static void copy_pose_features(FrameFeatures &goal_feature, const MotionMatching
       dstFeature.nodePositions[i] = srcFeature.nodePositions[i];
       dstFeature.nodeVelocities[i] = srcFeature.nodeVelocities[i];
     }
+    int nodeFeaturesOffset =
+      dataBase.clips[clip].featuresNormalizationGroup * dataBase.featuresSize + goal_feature.trajectorySizeInVec4f;
+    denormalize_feature(goal_feature.get_node_features_raw(0), dataBase.featuresAvg.data() + nodeFeaturesOffset,
+      dataBase.featuresStd.data() + nodeFeaturesOffset);
   }
 }
 
@@ -238,10 +234,6 @@ public:
         const bool animFinished = motion_matching__controller.updateAnimationProgress(dt);
         motion_matching__controller.lastTransitionTime += dt;
 
-        // we need this masks, because around 90% of bones hasn't animation and no need to update them
-        eastl::bitvector<framemem_allocator> positionDirty(motion_matching__controller.nodeCount, false);
-        eastl::bitvector<framemem_allocator> rotationDirty(motion_matching__controller.nodeCount, false);
-
         const AnimationDataBase &dataBase = *motion_matching__controller.dataBase;
         const TagPreset &currentPreset = dataBase.tagsPresets[motion_matching__presetIdx];
         if (motion_matching__presetBlendTimeLeft > 0)
@@ -255,7 +247,15 @@ public:
         motion_matching__updateProgress += dt * TICKS_PER_SECOND;
         if (motion_matching__updateProgress >= motion_matching__distanceFactor || animFinished)
         {
-          const FrameFeaturesData &currentFeature = motion_matching__goalFeature.data;
+          copy_pose_features(motion_matching__goalFeature, motion_matching__controller);
+          dag::Span<vec4f> currentFeature;
+          dag::Vector<vec4f, framemem_allocator> normalizedFeatures(dataBase.featuresSize * dataBase.normalizationGroupsCount);
+          for (int i = 0; i < dataBase.normalizationGroupsCount; ++i)
+          {
+            int offset = i * dataBase.featuresSize;
+            normalize_feature(make_span(normalizedFeatures.data() + offset, dataBase.featuresSize),
+              motion_matching__goalFeature.data.data(), dataBase.featuresAvg.data() + offset, dataBase.featuresStd.data() + offset);
+          }
 
           const FeatureWeights &currentWeights = currentPreset.weights;
 
@@ -266,12 +266,13 @@ public:
           bool sameTags = false;
           const vec3f *frameFeature = nullptr;
           bool performSearch = true;
-          copy_pose_features(motion_matching__goalFeature, motion_matching__controller);
           if (motion_matching__controller.hasActiveAnimation())
           {
             cur_clip = motion_matching__controller.getCurrentClip();
             cur_frame = motion_matching__controller.getCurrentFrame();
             frameFeature = clips[cur_clip].features.data.data() + cur_frame * featuresSizeof;
+            int featuresOffset = clips[cur_clip].featuresNormalizationGroup * dataBase.featuresSize;
+            currentFeature = make_span(normalizedFeatures.data() + featuresOffset, dataBase.featuresSize);
             int curInterval = clips[cur_clip].getInterval(cur_frame);
 
             float pathErrorTolerance = motion_matching__trajectoryTolerance * motion_matching__distanceFactor;
@@ -309,8 +310,8 @@ public:
                 ? feature_distance_metric(currentFeature.data(), frameFeature, currentWeights.featureWeights.data(), featuresSizeof)
                 : FLT_MAX;
             MatchingResult currentState = {cur_clip, cur_frame, currentMetric};
-            MatchingResult bestIndex =
-              motion_matching(dataBase, currentState, false, motion_matching__controller.currentTags, currentWeights, currentFeature);
+            MatchingResult bestIndex = motion_matching(dataBase, currentState, false, motion_matching__controller.currentTags,
+              currentWeights, normalizedFeatures);
 
 #if BRUTE_FORCE_COMPARISON
             MatchingResult bestIndex2 = motion_matching(dataBase, cur_clip, cur_frame, currentMetric, true,
@@ -333,26 +334,14 @@ public:
                   BoneInertialInfo &nextAnimation = motion_matching__controller.resultAnimation;
                   float timeInSeconds = motion_matching__controller.getFrameTimeInSeconds(bestIndex.clip, bestIndex.frame, 0.f);
                   // sample new animation in nextAnimation
-                  extract_frame_info(timeInSeconds, clips[bestIndex.clip], nextAnimation, positionDirty, rotationDirty);
+                  extract_frame_info(timeInSeconds, clips[bestIndex.clip], nextAnimation);
 
-                  apply_root_motion_correction(timeInSeconds, clips[bestIndex.clip], dataBase.rootNode, nextAnimation, positionDirty,
-                    rotationDirty);
-
-                  // Do not calculate `offset` for nodes with zero weights
-                  // because we don't have valid currentAnimation for them
-                  const dag::Vector<float> &nodeWeights = motion_matching__controller.perNodeWeights;
-                  for (int i = 0, n = nodeWeights.size(); i < n; ++i)
-                  {
-                    if (positionDirty[i] && nodeWeights[i] < 0.001)
-                      positionDirty[i] = false;
-                    if (rotationDirty[i] && nodeWeights[i] < 0.001)
-                      rotationDirty[i] = false;
-                  }
+                  apply_root_motion_correction(timeInSeconds, clips[bestIndex.clip], dataBase.rootNode, nextAnimation);
 
                   // caclulate offset between currentAnimation and nextAnimation
                   // we will decay offset for smooth transition
                   inertialize_pose_transition(motion_matching__controller.offset, motion_matching__controller.currentAnimation,
-                    nextAnimation, positionDirty, rotationDirty);
+                    nextAnimation, motion_matching__controller.perNodeWeights);
                 }
               }
             }
@@ -363,10 +352,9 @@ public:
           const MotionMatchingController::CurrentClipInfo &param = motion_matching__controller.currentClipInfo;
           float timeInSeconds = motion_matching__controller.getFrameTimeInSeconds(param.clip, param.frame, param.linearBlendProgress);
           // update currentAnimation
-          extract_frame_info(timeInSeconds, clips[param.clip], motion_matching__controller.currentAnimation, positionDirty,
-            rotationDirty);
+          extract_frame_info(timeInSeconds, clips[param.clip], motion_matching__controller.currentAnimation);
           apply_root_motion_correction(timeInSeconds, clips[param.clip], dataBase.rootNode,
-            motion_matching__controller.currentAnimation, positionDirty, rotationDirty);
+            motion_matching__controller.currentAnimation);
           // decay offset here. Result animation it is offset + currentAnimation
           inertialize_pose_update(motion_matching__controller.resultAnimation, motion_matching__controller.offset,
             motion_matching__controller.currentAnimation, motion_matching__controller.perNodeWeights,

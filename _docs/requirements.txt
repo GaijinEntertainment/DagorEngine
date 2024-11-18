@@ -10,6 +10,7 @@ sphinx-design==0.6.0
 sphinx-hoverxref==1.4.0
 sphinx-markdown-tables==0.0.17
 sphinx-version-warning==1.1.2
+sphinxcontrib-video==0.3.1
 
 # Documentation theme
 

@@ -40,6 +40,30 @@ public:
         return i;
     return -1;
   }
+  static int findTypeIdx(unsigned t, unsigned idx)
+  {
+    unsigned targetIdx = 0;
+    for (int i = 0; i < layerProps.size(); i++)
+      if (layerProps[i].type == t)
+      {
+        if (i == idx)
+          return targetIdx;
+        targetIdx++;
+      }
+    return -1;
+  }
+  static int findLayerByTypeIdx(unsigned t, unsigned typeIdx)
+  {
+    unsigned targetIdx = 0;
+    for (int i = 0; i < layerProps.size(); i++)
+      if (layerProps[i].type == t)
+      {
+        if (targetIdx == typeIdx)
+          return i;
+        targetIdx++;
+      }
+    return -1;
+  }
   static int findLayerOrCreate(unsigned t, unsigned nid)
   {
     int lidx = findLayer(t, nid);

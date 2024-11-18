@@ -17,4 +17,4 @@ MatchingResult motion_matching(const AnimationDataBase &dataBase,
   bool use_brute_force,
   const AnimationFilterTags &current_tags,
   const FeatureWeights &weights,
-  const FrameFeaturesData &current_feature);
+  dag::ConstSpan<FrameFeaturesData::value_type> current_feature);

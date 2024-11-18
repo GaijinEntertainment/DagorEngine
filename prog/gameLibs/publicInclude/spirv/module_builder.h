@@ -510,6 +510,13 @@ struct WordWriter
     words.reserve(words.size() + wordsToWrite);
     writeWord(static_cast<Id>(opcode) | static_cast<Id>(wordsToWrite << WordCountShift));
   }
+  void writeWord(LiteralExtInstInteger w)
+  {
+    if (hadError)
+      return;
+    words.push_back(w.value);
+    ++wordsWritten;
+  }
   void writeWord(unsigned w)
   {
     if (hadError)

@@ -103,6 +103,7 @@ private:
   {
     SelectAllTypeObjects = 1,
     DeselectAllTypeObjects,
+    MoveToThisLayer,
     SelectAllLayerObjects,
     DeselectAllLayerObjects,
     ExpandLayerChildren,
@@ -132,7 +133,8 @@ private:
   bool showTypeControls(ObjectTypeTreeItem &tree_item, int type, bool type_visible, bool type_locked, bool dim_type_color,
     int layer_count, const ImVec4 &dimmed_text_color, float action_buttons_total_width);
   bool showLayerControls(LayerTreeItem &tree_item, int type, int per_type_layer_index, bool layer_visible, bool layer_locked,
-    bool dim_layer_color, int object_count, const ImVec4 &dimmed_text_color, float action_buttons_total_width);
+    bool dim_layer_color, int object_count, const ImVec4 &dimmed_text_color, float action_buttons_total_width,
+    ImGuiMultiSelectIO *multiSelectIo);
   const char *getObjectNoun(int type, int count) const;
   bool showObjectControls(ObjectTreeItem &tree_item, int type, int per_type_layer_index, int object_index, bool has_child);
   bool showObjectAssetNameControls(ObjectAssetNameTreeItem &tree_item, RenderableEditableObject &object);
@@ -142,8 +144,10 @@ private:
   void fillObjectContextMenu(int type, int per_type_layer_index);
   void createContextMenu(int type, int per_type_layer_index = -1, bool object_menu = false);
   void createContextMenuByKeyboard();
+  LayerTreeItem *getContextMenuTargetLayer() const;
+  void resetContextMenu(PropPanel::IMenu *context_menu = nullptr, int type = -1, int per_type_layer_index = -1);
   void updateSelectionHead(OutlinerTreeItem &tree_item);
-  void fillTree();
+  void fillTree(ImGuiMultiSelectIO *multiSelectIo);
   bool applyRangeSelectionRequestInternal(const ImGuiSelectionRequest &request, OutlinerTreeItem &tree_item, bool &found_first);
   void applyRangeSelectionRequest(const ImGuiSelectionRequest &request);
   void applySelectionRequests(const ImGuiMultiSelectIO &multi_select_io, bool &started_selecting);
@@ -166,7 +170,11 @@ private:
   bool showActionButtonExportLayer = true;
   dag::Vector<bool> showTypes;
 
+  // Context menu.
   eastl::unique_ptr<PropPanel::IMenu> contextMenu;
+  int contextMenuType = -1;
+  int contextMenuPerTypeLayerIndex = -1;
+
   eastl::unique_ptr<OutlinerModel> outlinerModel;
   eastl::unique_ptr<TreeItemInlineRenamerControl> layerRenamer;
   eastl::unique_ptr<TreeItemInlineRenamerControl> objectRenamer;

@@ -8,6 +8,7 @@ texture normal_gbuf;
 texture material_gbuf;
 texture depth_gbuf;
 texture motion_gbuf;
+float4 uv_temporal_jitter = (0,0,0,0);//.xy - current, .zw - prev in uv
 texture bvh_gbuf;
 
 int4 gbuffer_view_size = (1, 1, 0, 0);

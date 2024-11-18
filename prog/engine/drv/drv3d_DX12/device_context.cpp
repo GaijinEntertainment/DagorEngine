@@ -2497,16 +2497,13 @@ void DeviceContext::deleteTexture(BaseTex *tex)
   device.resources.deleteTextureObjectOnFrameCompletion(tex);
 }
 
-void DeviceContext::resetBindlessReferences(BaseTex *tex)
-{
-  device.bindlessManager.resetTextureReferences(*this, tex, device.nullResourceTable);
-}
+void DeviceContext::resetBindlessReferences(BaseTex *tex) { device.bindlessManager.resetTextureReferences(*this, tex); }
 
 void DeviceContext::resetBindlessReferences(BufferState &buffer)
 {
   if (!buffer.srvs)
     return;
-  device.bindlessManager.resetBufferReferences(*this, buffer.currentSRV(), device.nullResourceTable);
+  device.bindlessManager.resetBufferReferences(*this, buffer.currentSRV());
 }
 
 void DeviceContext::updateBindlessReferences(D3D12_CPU_DESCRIPTOR_HANDLE old_descriptor, D3D12_CPU_DESCRIPTOR_HANDLE new_descriptor)

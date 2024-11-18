@@ -548,7 +548,7 @@ static void render(SubPass sub_pass,
   // It works without this cb as well but it might be better to leave it here as a fallback.
   // (in case perDrawOffset is 0)
   rendinst::render::RiShaderConstBuffers cb;
-  cb.setInstancing(0, 4, 1, 0);
+  cb.setInstancing(0, 4, 0x1, 0);
   cb.setOpacity(0, 1);
   const E3DCOLOR defaultColors[] = {E3DCOLOR(0x80808080), E3DCOLOR(0x80808080)};
   cb.setRandomColors(defaultColors);

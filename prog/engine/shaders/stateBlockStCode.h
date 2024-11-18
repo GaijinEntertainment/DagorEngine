@@ -4,6 +4,12 @@
 #include <drv/3d/dag_renderStates.h>
 #include <util/dag_globDef.h>
 #include <memory/dag_framemem.h>
+#include <shaders/shOpcode.h>
+#include <shaders/shOpcodeFormat.h>
+#include <shaders/shFunc.h>
+
+#include "shStateBlock.h"
+#include "shRegs.h"
 
 #if !_TARGET_STATIC_LIB
 #define SHOW_ERROR(fmt, ...) G_ASSERTF(0, fmt, ##__VA_ARGS__);

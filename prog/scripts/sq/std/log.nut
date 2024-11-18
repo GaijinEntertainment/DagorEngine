@@ -31,6 +31,7 @@ function Log(tostringfunc=null) {
   function dlog(...) {
     vlog.acall([this].extend(vargv))
     log.acall([this].extend(vargv))
+    dagorDebug.console_print(" ".join(vargv.map(@(v) tostring_r(v, {maxdeeplevel=DEF_MAX_DEEPLEVEL, showArrIdx=false, tostringfunc=tostringfunc}))))
   }
 
   function dlogsplit(...) {

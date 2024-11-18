@@ -73,6 +73,7 @@ struct ReflectionDenoiser
   Texture *denoisedReflection = nullptr;
   Texture *reflectionValue = nullptr;
   Texture *validationTexture = nullptr;
+  bool antiFirefly = false;
   bool performanceMode = true;
   bool checkerboard = true;
   bool highSpeedMode = false;

@@ -816,6 +816,9 @@ static void visualize_framegraph_dependencies()
 
   fg_texture_visualization_imgui_line(registry);
 
+  ImGui::SameLine();
+  overlay_checkbox("Overlay mode");
+
   static ImGuiEx::Canvas canvas;
   static ImVec2 viewOrigin = ImVec2(0.0f, 0.0f);
   ImVec2 centerView = ImVec2(0.0f, 0.0f);

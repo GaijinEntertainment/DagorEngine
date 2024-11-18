@@ -89,13 +89,17 @@ public:
     return *contextMenu;
   }
 
-  void updateImgui(float controlWidth = 0.0f, float controlHeight = 0.0f)
+  void updateImgui(float controlWidth = 0.0f, float controlHeight = (float)Constants::LISTBOX_DEFAULT_HEIGHT)
   {
     ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);
 
     // Use full width by default. Use height that can fit ~7 items by default.
     const float width = controlWidth > 0.0f ? controlWidth : -FLT_MIN;
-    const ImVec2 size(width, controlHeight > 0.0f ? controlHeight : 0.0f);
+    const float height =
+      (controlHeight == (float)Constants::LISTBOX_DEFAULT_HEIGHT || controlHeight > (float)Constants::LISTBOX_FULL_HEIGHT)
+        ? controlHeight
+        : -FLT_MIN;
+    const ImVec2 size(width, height);
 
     if (ImguiHelper::beginListBoxWithWindowFlags("##lb", size, ImGuiChildFlags_FrameStyle, ImGuiWindowFlags_HorizontalScrollbar))
     {

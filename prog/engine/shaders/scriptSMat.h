@@ -54,6 +54,7 @@ public:
   int execInitCode();
 
   __forceinline const ScriptedShadersBinDump &shBinDump() const { return ::shBinDumpEx(!secondDump); }
+  __forceinline const ScriptedShadersBinDumpOwner &shBinDumpOwner() const { return ::shBinDumpExOwner(!secondDump); }
 
 protected:
   ShaderMaterialProperties(const shaderbindump::ShaderClass *sc, const MaterialData &m, bool sec_dump_for_exp);

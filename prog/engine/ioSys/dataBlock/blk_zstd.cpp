@@ -6,6 +6,7 @@
 #include <ioSys/dag_zstdIo.h>
 #include <ioSys/dag_memIo.h>
 #include <ioSys/dag_chainedMemIo.h>
+#include <ioSys/dag_ioUtils.h>
 #include <osApiWrappers/dag_vromfs.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <util/dag_strUtil.h>
@@ -23,7 +24,9 @@ enum
 {
   SNM_HSZ = 8,
   DICT_HSZ = 32,
-  SNM_RAW_HDR_SZ = SNM_HSZ + DICT_HSZ
+  SNM_RAW_HDR_SZ = SNM_HSZ + DICT_HSZ,
+  DEFAULT_COMPRESSION_LEVEL = 18,
+  MIN_SIZE_TO_COMPRESS_UNCONDITIONALLY = 128
 };
 
 struct SharedNameMapRec
@@ -224,6 +227,48 @@ ZSTD_CDict_s *dblk::create_vromfs_blk_cdict(const VirtualRomFsData *fs, int comp
   return zstd_create_cdict(dag::ConstSpan<char>(fs->data[idx].data(), data_size(fs->data[idx])), compr_level);
 }
 
+void dblk::pack_shared_nm_dump_to_stream(IGenSave &cwr, IGenLoad &crd, int sz, int compr_level, const ZSTD_CDict_s *cdict)
+{
+  if (sz >= MIN_SIZE_TO_COMPRESS_UNCONDITIONALLY)
+  {
+    if (cdict)
+    {
+      cwr.writeIntP<1>(dblk::BBF_binary_with_shared_nm_zd);
+      zstd_stream_compress_data_with_dict(cwr, crd, sz, compr_level, cdict);
+    }
+    else
+    {
+      cwr.writeIntP<1>(dblk::BBF_binary_with_shared_nm_z);
+      zstd_stream_compress_data(cwr, crd, sz, compr_level);
+    }
+    return;
+  }
+
+  MemorySaveCB mcwr(256);
+  const int posOnStart = crd.tell();
+  if (cdict)
+    zstd_stream_compress_data_with_dict(mcwr, crd, sz, compr_level, cdict);
+  else
+    zstd_stream_compress_data(mcwr, crd, sz, compr_level);
+
+  const int plainSize = crd.tell() - posOnStart; // can't use sz, it can be negative to autodetect size
+  if (mcwr.getSize() > plainSize)
+  {
+    cwr.writeIntP<1>(dblk::BBF_binary_with_shared_nm);
+    crd.seekto(posOnStart);
+    copy_stream_to_stream(crd, cwr, plainSize);
+    return;
+  }
+
+  cwr.writeIntP<1>(cdict ? dblk::BBF_binary_with_shared_nm_zd : dblk::BBF_binary_with_shared_nm_z);
+  mcwr.copyDataTo(cwr);
+}
+
+void dblk::pack_shared_nm_dump_to_stream(IGenSave &cwr, IGenLoad &crd, int sz, const ZSTD_CDict_s *cdict)
+{
+  dblk::pack_shared_nm_dump_to_stream(cwr, crd, sz, DEFAULT_COMPRESSION_LEVEL, cdict);
+}
+
 bool DataBlock::saveBinDumpWithSharedNamemap(IGenSave &cwr, const DBNameMap *shared_nm, bool pack, const ZSTD_CDict_s *dict) const
 {
   if (!pack)
@@ -236,34 +281,10 @@ bool DataBlock::saveBinDumpWithSharedNamemap(IGenSave &cwr, const DBNameMap *sha
   if (!saveDumpToBinStream(mcwr, shared_nm))
     return false;
   MemoryLoadCB mcrd(mcwr.getMem(), false);
-
-  if (dict)
-  {
-    if (mcrd.getTargetDataSize() >= 128)
-    {
-      cwr.writeIntP<1>(dblk::BBF_binary_with_shared_nm_zd);
-      zstd_stream_compress_data_with_dict(cwr, mcrd, mcrd.getTargetDataSize(), 18, dict);
-      return true;
-    }
-
-    MemorySaveCB mcwr2(256);
-    zstd_stream_compress_data_with_dict(mcwr2, mcrd, mcrd.getTargetDataSize(), 18, dict);
-    if (mcwr2.getSize() > mcrd.getTargetDataSize())
-    {
-      cwr.writeIntP<1>(dblk::BBF_binary_with_shared_nm);
-      mcwr.copyDataTo(cwr);
-      return true;
-    }
-
-    cwr.writeIntP<1>(dblk::BBF_binary_with_shared_nm_zd);
-    mcwr2.copyDataTo(cwr);
-    return true;
-  }
-
-  cwr.writeIntP<1>(dblk::BBF_binary_with_shared_nm_z);
-  zstd_stream_compress_data(cwr, mcrd, 18);
+  dblk::pack_shared_nm_dump_to_stream(cwr, mcrd, mcrd.getTargetDataSize(), dict);
   return true;
 }
+
 bool DataBlock::loadBinDumpWithSharedNamemap(IGenLoad &crd, const DBNameMap *shared_nm, const ZSTD_DDict_s *dict)
 {
   unsigned label = crd.readIntP<1>();
@@ -293,7 +314,7 @@ void dblk::pack_to_stream(const DataBlock &blk, IGenSave &cwr, int approx_sz)
   cwr.writeInt(0);
 
   MemoryLoadCB mcrd(mcwr.getMem(), false);
-  zstd_stream_compress_data(cwr, mcrd, mcrd.getTargetDataSize(), 18);
+  zstd_stream_compress_data(cwr, mcrd, mcrd.getTargetDataSize(), DEFAULT_COMPRESSION_LEVEL);
   unsigned sz = cwr.tell() - pos - 4;
 
   cwr.seekto(pos);

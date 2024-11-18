@@ -64,6 +64,15 @@ GatherVarShaderEvalCB::GatherVarShaderEvalCB(ShaderSyntaxParser &_parser, const 
     if (shc::getAssumedValue("debug_mode_enabled", shname_token->text, true, value))
       shaderDebugModeEnabled = (value > 0.0f);
   }
+  else
+  {
+    static DataBlock static_empty_blk;
+    DataBlock *blk = shc::getAssumedVarsBlock();
+    if (!blk)
+      shc::setAssumedVarsBlock(blk = &static_empty_blk);
+    blk->addBlock(shname_token->text)->setReal("debug_mode_enabled", 1.0f);
+  }
+
   out_shaderDebugModeEnabled = shaderDebugModeEnabled;
   if (!shaderDebugModeEnabled)
   {

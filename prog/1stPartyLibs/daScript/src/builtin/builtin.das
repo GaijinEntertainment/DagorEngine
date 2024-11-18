@@ -339,7 +339,7 @@ def find(Tab:table<auto(keyT)>;at:keyT|#;blk:block<(p:void?):void>)
 
 // one table lookup with block to rule them all 'get'
 
-def get(Tab:table<auto(keyT);auto(valT)> ==const #;at:keyT-#;blk:block<(p:valT#&):void>)
+def get(Tab:table<auto(keyT);auto(valT)> ==const #;at:keyT|#;blk:block<(p:valT#&):void>)
     var val = __builtin_table_find(Tab,at)
     if val != null
         __builtin_table_lock(Tab)
@@ -350,7 +350,7 @@ def get(Tab:table<auto(keyT);auto(valT)> ==const #;at:keyT-#;blk:block<(p:valT#&
     else
         return false
 
-def get(Tab:table<auto(keyT);auto(valT)> ==const;at:keyT-#;blk:block<(p:valT&):void>)
+def get(Tab:table<auto(keyT);auto(valT)> ==const;at:keyT|#;blk:block<(p:valT&):void>)
     var val = __builtin_table_find(Tab,at)
     if val != null
         __builtin_table_lock(Tab)
@@ -361,7 +361,7 @@ def get(Tab:table<auto(keyT);auto(valT)> ==const;at:keyT-#;blk:block<(p:valT&):v
     else
         return false
 
-def get(var Tab:table<auto(keyT);auto(valT)> ==const #;at:keyT-#;blk:block<(var p:valT#&):void>)
+def get(var Tab:table<auto(keyT);auto(valT)> ==const #;at:keyT|#;blk:block<(var p:valT#&):void>)
     var val = __builtin_table_find(Tab,at)
     if val != null
         __builtin_table_lock(Tab)
@@ -372,7 +372,7 @@ def get(var Tab:table<auto(keyT);auto(valT)> ==const #;at:keyT-#;blk:block<(var 
     else
         return false
 
-def get(var Tab:table<auto(keyT);auto(valT)> ==const;at:keyT-#;blk:block<(var p:valT&):void>)
+def get(var Tab:table<auto(keyT);auto(valT)> ==const;at:keyT|#;blk:block<(var p:valT&):void>)
     var val = __builtin_table_find(Tab,at)
     if val != null
         __builtin_table_lock(Tab)
@@ -517,6 +517,13 @@ def move_to_local ( var a : auto(TT)& ) : TT -const -&
         return <- a
     else
         concept_assert(false,"can't move this type")
+
+[skip_lock_check]
+def clone(clone_src:auto(TT)|#) : TT -const -#
+    unsafe
+        var clone_dest : TT - #
+        clone_dest := clone_src
+        return <- clone_dest
 
 [skip_lock_check]
 def clone_to_move(clone_src:auto(TT)|#) : TT -const -#

@@ -70,7 +70,7 @@ shader rt_reflection_classify
     world_view_pos@f3 = world_view_pos;
     resolution@u2 = rtr_resolutionI.xy;
     tilesResolution@i2 = rtr_resolutionI.zw;
-    inv_resolution@f2 = (1.0 / get_dimensions(rtr_target, 0).xy);
+    inv_aligned_resolution@f2 = (rtr_res_mul*screen_pos_to_texcoord.xy);
     classify_tresholds@f3 = rtr_classify_tresholds;
     frame_index@i1 = rtr_frame_index;
     output@uav = rtr_tiles hlsl { RWTexture2D<uint> output@uav; };
@@ -142,7 +142,7 @@ shader rt_reflection_classify
         if (rawDepth > 0)
         {
           float w = linearize_z(rawDepth, zn_zfar.zw);
-          half underwaterFade = calc_underwater_fade(w, dtid, inv_resolution, world_view_pos);
+          half underwaterFade = calc_underwater_fade(w, dtid, inv_aligned_resolution, world_view_pos);
 
           uint sampleCount = 0;
 
@@ -153,14 +153,14 @@ shader rt_reflection_classify
 
             float4 surfaceNormal_roughness = NRD_FrontEnd_UnpackNormalAndRoughness(texture2DAt(nr_texture, rayIndex));
             half smoothness = 1.0 - surfaceNormal_roughness.w;
-            float3 relPos = calc_camera_relative_pos(rayIndex, w, inv_resolution);
+            float3 relPos = calc_camera_relative_pos(rayIndex, w, inv_aligned_resolution);
             half3 toPoint = (half3)normalize(relPos);
             half3 surfaceNormal = (half3)normalize(surfaceNormal_roughness.xyz);
 
             if (rtr_res_mul > 1)
-              gbuffer.albedo = albedo_gbuf_read.SampleLevel(rtsm_linear_sampler, (rayIndex + .5f) * inv_resolution, 0).rgb;
+              gbuffer.albedo = albedo_gbuf_read.SampleLevel(rtsm_linear_sampler, (rayIndex + .5f) * inv_aligned_resolution, 0).rgb;
 
-            float3 worldPos = calc_world_pos(dtid, w, inv_resolution, world_view_pos);
+            float3 worldPos = calc_world_pos(dtid, w, inv_aligned_resolution, world_view_pos);
             apply_env_wetness(worldPos, surfaceNormal, -toPoint, gbuffer.material, gbuffer.albedo, smoothness, surfaceNormal, gbuffer.reflectance);
 
             half roughness = 1.0 - smoothness;
@@ -208,7 +208,7 @@ shader rt_reflection_sample
     world_view_pos@f3 = world_view_pos;
     resolution@u2 = rtr_resolutionI;
     tilesResolution@u2 = rtr_resolutionI.zw;
-    inv_resolution@f2 = (1.0 / get_dimensions(rtr_target, 0).xy);
+    inv_aligned_resolution@f2 = (rtr_res_mul*screen_pos_to_texcoord.xy);
     hit_dist_params@f4 = rtr_hit_dist_params;
     frame_index@i1 = rtr_frame_index;
     output@uav = rtr_target hlsl { RWTexture2D<float4> output@uav; };
@@ -295,11 +295,11 @@ shader rt_reflection_sample
         return;
 
       float w = linearize_z(rawDepth, zn_zfar.zw);
-      half underwaterFade = calc_underwater_fade(w, rayIndex, inv_resolution, world_view_pos);
+      half underwaterFade = calc_underwater_fade(w, rayIndex, inv_aligned_resolution, world_view_pos);
 
-      UnpackedGbuffer gbuffer = unpackGbuffer(loadPackedGbuffer(rayIndex));
+      UnpackedGbuffer gbuffer = unpackGbuffer(loadPackedGbuffer(rayIndex * rtr_res_mul));
       half roughness = linearSmoothnessToLinearRoughness(gbuffer.smoothness);
-      float3 relPos = calc_camera_relative_pos(rayIndex, w, inv_resolution);
+      float3 relPos = calc_camera_relative_pos(rayIndex, w, inv_aligned_resolution);
       half3 toPoint = (half3)normalize(relPos);
       half3 surfaceNormal = (half3) normalize(gbuffer.normal);
       half3 reflectionVector = reflect(toPoint, surfaceNormal);
@@ -365,7 +365,7 @@ shader rt_reflection
     world_view_pos@f3 = world_view_pos;
     resolution@u2 = rtr_resolutionI;
     tilesResolution@u2 = rtr_resolutionI.zw;
-    inv_resolution@f2 = (1.0 / get_dimensions(rtr_target, 0).xy);
+    inv_aligned_resolution@f2 = (rtr_res_mul*screen_pos_to_texcoord.xy);
     hit_dist_params@f4 = rtr_hit_dist_params;
     rough_ray_length@f1 = rtr_rough_ray_length;
     frame_index@i1 = rtr_frame_index;
@@ -496,7 +496,7 @@ shader rt_reflection
       bool isUnstable = bvhFlags & BVH_UNSTABLE;
       bool isGrass    = bvhFlags & BVH_GRASS;
 
-      float3 relPos = calc_camera_relative_pos(rayIndex, w, inv_resolution);
+      float3 relPos = calc_camera_relative_pos(rayIndex, w, inv_aligned_resolution);
       half3 toPoint = (half3)normalize(relPos);
 
       float4 surfaceNormal_roughness = NRD_FrontEnd_UnpackNormalAndRoughness(texture2DAt(nr_texture, rayIndex));
@@ -507,7 +507,7 @@ shader rt_reflection
       half3 sampleDir = get_scattered_reflection_vector(reflectionVector, seed, roughness);
       if (!isGrass)
       {
-        normal = rtr_res_mul > 1 ? calc_geometry_normal_half(rayIndex, inv_resolution, resolution) : calc_geometry_normal(rayIndex, inv_resolution, resolution);
+        normal = rtr_res_mul > 1 ? calc_geometry_normal_half(rayIndex, inv_aligned_resolution, resolution) : calc_geometry_normal(rayIndex, inv_aligned_resolution, resolution);
         half SoN = dot(normal, sampleDir);
         // The ray points into the surface, lets mirror it to the surface
         if (SoN < 0)

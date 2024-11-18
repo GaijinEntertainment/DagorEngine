@@ -282,21 +282,6 @@ inline bool validate_resource_state(D3D12_RESOURCE_STATES state, uint32_t resour
   return errors.none();
 }
 
-inline void print(const D3D12_RESOURCE_DESC &desc)
-{
-  logdbg("DX12: desc.Dimension = %s", to_string(desc.Dimension));
-  logdbg("DX12: desc.Alignment = %llu", desc.Alignment);
-  logdbg("DX12: desc.Width = %llu", desc.Width);
-  logdbg("DX12: desc.Height = %u", desc.Height);
-  logdbg("DX12: desc.DepthOrArraySize = %u", desc.DepthOrArraySize);
-  logdbg("DX12: desc.MipLevels = %u", desc.MipLevels);
-  logdbg("DX12: desc.Format = %u", dxgi_format_name(desc.Format));
-  logdbg("DX12: desc.SampleDesc.Count = %u", desc.SampleDesc.Count);
-  logdbg("DX12: desc.SampleDesc.Quality = %u", desc.SampleDesc.Quality);
-  logdbg("DX12: desc.Layout = %u", desc.Layout);
-  logdbg("DX12: desc.Flags = %08X", desc.Flags);
-}
-
 // Extensive transition barrier validation, validates the following rules:
 // - If write state are set, no read states can be set
 // - Can not combine multiple write states together
@@ -335,7 +320,7 @@ inline bool validate_transition_barrier(const D3D12_RESOURCE_TRANSITION_BARRIER 
   if (beforeErrors.any() || afterErrors.any() || (barrier.StateBefore == barrier.StateAfter) || !subResourceIndexIsValid)
   {
     logdbg("DX12: validate_transition_barrier found an error, reporting resource properties:");
-    print(desc);
+    printDesc(desc);
 
     char resnameBuffer[MAX_OBJECT_NAME_LENGTH];
     get_resource_name(barrier.pResource, resnameBuffer);

@@ -32,6 +32,16 @@ public:
 		FirstVisibleLine, Centered, LastVisibleLine
 	};
 
+	struct ErrorMarker
+	{
+		int line = -1;
+		int column = -1;
+		eastl::string text;
+	};
+
+	typedef eastl::vector<ErrorMarker> ErrorMarkers;
+	typedef eastl::vector<int> Breakpoints;
+
 	inline void SetReadOnlyEnabled(bool aValue) { mReadOnly = aValue; }
 	inline bool IsReadOnlyEnabled() const { return mReadOnly; }
 	inline void SetAutoIndentEnabled(bool aValue) { mAutoIndent = aValue; }
@@ -60,9 +70,9 @@ public:
 	void SelectAll();
 	void SelectLine(int aLine);
 	void SelectRegion(int aStartLine, int aStartChar, int aEndLine, int aEndChar);
-	bool SelectNextOccurrenceOf(const char* aText, int aTextSize, bool aCaseSensitive = true);
-	void SelectAllOccurrencesOf(const char* aText, int aTextSize, bool aCaseSensitive = true);
-	bool Replace(const char * find, int findLength, const char * replaceWith, int replaceLength, bool aCaseSensitive, bool all);
+	bool SelectNextOccurrenceOf(const char* aText, int aTextSize, bool aCaseSensitive = true, bool aWholeWords = false);
+	void SelectAllOccurrencesOf(const char* aText, int aTextSize, bool aCaseSensitive = true, bool aWholeWords = false);
+	bool Replace(const char * find, int findLength, const char * replaceWith, int replaceLength, bool aCaseSensitive, bool aWholeWords, bool all);
 	bool AnyCursorHasSelection() const;
 	bool AllCursorsHaveSelection() const;
 	void ClearExtraCursors();
@@ -100,6 +110,9 @@ public:
 	void UnitTests();
 
 	void GetSuitableTextToFind(char * result, int max_size);
+
+	Breakpoints mBreakpoints;
+	ErrorMarkers mErrorMarkers;
 
 private:
 	// ------------- Generic utils ------------- //
@@ -345,9 +358,9 @@ private:
 	void SetSelection(Coordinates aStart, Coordinates aEnd, int aCursor = -1);
 	void SetSelection(int aStartLine, int aStartChar, int aEndLine, int aEndChar, int aCursor = -1);
 
-	bool SelectNextOccurrenceOf(const char* aText, int aTextSize, int aCursor = -1, bool aCaseSensitive = true);
-	void AddCursorForNextOccurrence(bool aCaseSensitive = true);
-	bool FindNextOccurrence(const char* aText, int aTextSize, const Coordinates& aFrom, Coordinates& outStart, Coordinates& outEnd, bool aCaseSensitive = true);
+	bool SelectNextOccurrenceOf(const char* aText, int aTextSize, int aCursor = -1, bool aCaseSensitive = true, bool aWholeWords = false);
+	void AddCursorForNextOccurrence(bool aCaseSensitive = true, bool aWholeWords = false);
+	bool FindNextOccurrence(const char* aText, int aTextSize, const Coordinates& aFrom, Coordinates& outStart, Coordinates& outEnd, bool aCaseSensitive = true, bool aWholeWords = false);
 	bool FindMatchingBracket(int aLine, int aCharIndex, Coordinates& out);
 	void ChangeCurrentLinesIndentation(bool aIncrease);
 	void ChangeSingleLineIndentation(UndoRecord &u, int line, bool aIncrease);
@@ -447,7 +460,7 @@ private:
 	int mColorRangeMin = 0;
 	int mColorRangeMax = 0;
 	bool mCheckComments = true;
-	PaletteId mPaletteId;
+ 	PaletteId mPaletteId;
 	Palette mPalette;
 	LanguageDefinitionId mLanguageDefinitionId;
 	const LanguageDefinition* mLanguageDefinition = nullptr;

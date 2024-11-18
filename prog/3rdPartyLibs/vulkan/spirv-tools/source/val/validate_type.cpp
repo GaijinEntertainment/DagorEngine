@@ -19,26 +19,10 @@
 #include "source/val/instruction.h"
 #include "source/val/validate.h"
 #include "source/val/validation_state.h"
-#include "spirv/unified1/spirv.h"
 
 namespace spvtools {
 namespace val {
 namespace {
-
-// Returns, as an int64_t, the literal value from an OpConstant or the
-// default value of an OpSpecConstant, assuming it is an integral type.
-// For signed integers, relies the rule that literal value is sign extended
-// to fill out to word granularity.  Assumes that the constant value
-// has
-int64_t ConstantLiteralAsInt64(uint32_t width,
-                               const std::vector<uint32_t>& const_words) {
-  const uint32_t lo_word = const_words[3];
-  if (width <= 32) return int32_t(lo_word);
-  assert(width <= 64);
-  assert(const_words.size() > 4);
-  const uint32_t hi_word = const_words[4];  // Must exist, per spec.
-  return static_cast<int64_t>(uint64_t(lo_word) | uint64_t(hi_word) << 32);
-}
 
 // Validates that type declarations are unique, unless multiple declarations
 // of the same data type are allowed by the specification.
@@ -50,8 +34,8 @@ spv_result_t ValidateUniqueness(ValidationState_t& _, const Instruction* inst) {
     return SPV_SUCCESS;
 
   const auto opcode = inst->opcode();
-  if (opcode != SpvOpTypeArray && opcode != SpvOpTypeRuntimeArray &&
-      opcode != SpvOpTypeStruct && opcode != SpvOpTypePointer &&
+  if (opcode != spv::Op::OpTypeArray && opcode != spv::Op::OpTypeRuntimeArray &&
+      opcode != spv::Op::OpTypeStruct && opcode != spv::Op::OpTypePointer &&
       !_.RegisterUniqueTypeDeclaration(inst)) {
     return _.diag(SPV_ERROR_INVALID_DATA, inst)
            << "Duplicate non-aggregate type declarations are not allowed. "
@@ -84,7 +68,7 @@ spv_result_t ValidateTypeInt(ValidationState_t& _, const Instruction* inst) {
              << "Using a 16-bit integer type requires the Int16 capability,"
                 " or an extension that explicitly enables 16-bit integers.";
     } else if (num_bits == 64) {
-      if (_.HasCapability(SpvCapabilityInt64)) {
+      if (_.HasCapability(spv::Capability::Int64)) {
         return SPV_SUCCESS;
       }
       return _.diag(SPV_ERROR_INVALID_DATA, inst)
@@ -105,7 +89,8 @@ spv_result_t ValidateTypeInt(ValidationState_t& _, const Instruction* inst) {
 
   // SPIR-V Spec 2.16.3: Validation Rules for Kernel Capabilities: The
   // Signedness in OpTypeInt must always be 0.
-  if (SpvOpTypeInt == inst->opcode() && _.HasCapability(SpvCapabilityKernel) &&
+  if (spv::Op::OpTypeInt == inst->opcode() &&
+      _.HasCapability(spv::Capability::Kernel) &&
       inst->GetOperandAs<uint32_t>(2) != 0u) {
     return _.diag(SPV_ERROR_INVALID_BINARY, inst)
            << "The Signedness in OpTypeInt "
@@ -135,7 +120,7 @@ spv_result_t ValidateTypeFloat(ValidationState_t& _, const Instruction* inst) {
               " or an extension that explicitly enables 16-bit floating point.";
   }
   if (num_bits == 64) {
-    if (_.HasCapability(SpvCapabilityFloat64)) {
+    if (_.HasCapability(spv::Capability::Float64)) {
       return SPV_SUCCESS;
     }
     return _.diag(SPV_ERROR_INVALID_DATA, inst)
@@ -152,8 +137,8 @@ spv_result_t ValidateTypeVector(ValidationState_t& _, const Instruction* inst) {
   const auto component_type = _.FindDef(component_id);
   if (!component_type || !spvOpcodeIsScalarType(component_type->opcode())) {
     return _.diag(SPV_ERROR_INVALID_ID, inst)
-           << "OpTypeVector Component Type <id> '" << _.getIdName(component_id)
-           << "' is not a scalar type.";
+           << "OpTypeVector Component Type <id> " << _.getIdName(component_id)
+           << " is not a scalar type.";
   }
 
   // Validates that the number of components in the vector is valid.
@@ -163,7 +148,7 @@ spv_result_t ValidateTypeVector(ValidationState_t& _, const Instruction* inst) {
   if (num_components == 2 || num_components == 3 || num_components == 4) {
     return SPV_SUCCESS;
   } else if (num_components == 8 || num_components == 16) {
-    if (_.HasCapability(SpvCapabilityVector16)) {
+    if (_.HasCapability(spv::Capability::Vector16)) {
       return SPV_SUCCESS;
     }
     return _.diag(SPV_ERROR_INVALID_DATA, inst)
@@ -183,7 +168,7 @@ spv_result_t ValidateTypeMatrix(ValidationState_t& _, const Instruction* inst) {
   const auto column_type_index = 1;
   const auto column_type_id = inst->GetOperandAs<uint32_t>(column_type_index);
   const auto column_type = _.FindDef(column_type_id);
-  if (!column_type || SpvOpTypeVector != column_type->opcode()) {
+  if (!column_type || spv::Op::OpTypeVector != column_type->opcode()) {
     return _.diag(SPV_ERROR_INVALID_ID, inst)
            << "Columns in a matrix must be of type vector.";
   }
@@ -192,7 +177,7 @@ spv_result_t ValidateTypeMatrix(ValidationState_t& _, const Instruction* inst) {
   // Operand 1 is the <id> of the type of data in the vector.
   const auto comp_type_id = column_type->GetOperandAs<uint32_t>(1);
   auto comp_type_instruction = _.FindDef(comp_type_id);
-  if (comp_type_instruction->opcode() != SpvOpTypeFloat) {
+  if (comp_type_instruction->opcode() != spv::Op::OpTypeFloat) {
     return _.diag(SPV_ERROR_INVALID_DATA, inst) << "Matrix types can only be "
                                                    "parameterized with "
                                                    "floating-point types.";
@@ -215,21 +200,21 @@ spv_result_t ValidateTypeArray(ValidationState_t& _, const Instruction* inst) {
   const auto element_type = _.FindDef(element_type_id);
   if (!element_type || !spvOpcodeGeneratesType(element_type->opcode())) {
     return _.diag(SPV_ERROR_INVALID_ID, inst)
-           << "OpTypeArray Element Type <id> '" << _.getIdName(element_type_id)
-           << "' is not a type.";
+           << "OpTypeArray Element Type <id> " << _.getIdName(element_type_id)
+           << " is not a type.";
   }
 
-  if (element_type->opcode() == SpvOpTypeVoid) {
+  if (element_type->opcode() == spv::Op::OpTypeVoid) {
     return _.diag(SPV_ERROR_INVALID_ID, inst)
-           << "OpTypeArray Element Type <id> '" << _.getIdName(element_type_id)
-           << "' is a void type.";
+           << "OpTypeArray Element Type <id> " << _.getIdName(element_type_id)
+           << " is a void type.";
   }
 
   if (spvIsVulkanEnv(_.context()->target_env) &&
-      element_type->opcode() == SpvOpTypeRuntimeArray) {
+      element_type->opcode() == spv::Op::OpTypeRuntimeArray) {
     return _.diag(SPV_ERROR_INVALID_ID, inst)
-           << "OpTypeArray Element Type <id> '" << _.getIdName(element_type_id)
-           << "' is not valid in "
+           << _.VkErrorID(4680) << "OpTypeArray Element Type <id> "
+           << _.getIdName(element_type_id) << " is not valid in "
            << spvLogStringForEnv(_.context()->target_env) << " environments.";
   }
 
@@ -238,43 +223,31 @@ spv_result_t ValidateTypeArray(ValidationState_t& _, const Instruction* inst) {
   const auto length = _.FindDef(length_id);
   if (!length || !spvOpcodeIsConstant(length->opcode())) {
     return _.diag(SPV_ERROR_INVALID_ID, inst)
-           << "OpTypeArray Length <id> '" << _.getIdName(length_id)
-           << "' is not a scalar constant type.";
+           << "OpTypeArray Length <id> " << _.getIdName(length_id)
+           << " is not a scalar constant type.";
   }
 
   // NOTE: Check the initialiser value of the constant
   const auto const_inst = length->words();
   const auto const_result_type_index = 1;
   const auto const_result_type = _.FindDef(const_inst[const_result_type_index]);
-  if (!const_result_type || SpvOpTypeInt != const_result_type->opcode()) {
+  if (!const_result_type || spv::Op::OpTypeInt != const_result_type->opcode()) {
     return _.diag(SPV_ERROR_INVALID_ID, inst)
-           << "OpTypeArray Length <id> '" << _.getIdName(length_id)
-           << "' is not a constant integer type.";
+           << "OpTypeArray Length <id> " << _.getIdName(length_id)
+           << " is not a constant integer type.";
   }
 
-  switch (length->opcode()) {
-    case SpvOpSpecConstant:
-    case SpvOpConstant: {
-      auto& type_words = const_result_type->words();
-      const bool is_signed = type_words[3] > 0;
-      const uint32_t width = type_words[2];
-      const int64_t ivalue = ConstantLiteralAsInt64(width, length->words());
-      if (ivalue == 0 || (ivalue < 0 && is_signed)) {
-        return _.diag(SPV_ERROR_INVALID_ID, inst)
-               << "OpTypeArray Length <id> '" << _.getIdName(length_id)
-               << "' default value must be at least 1: found " << ivalue;
-      }
-    } break;
-    case SpvOpConstantNull:
+  int64_t length_value;
+  if (_.EvalConstantValInt64(length_id, &length_value)) {
+    auto& type_words = const_result_type->words();
+    const bool is_signed = type_words[3] > 0;
+    if (length_value == 0 || (length_value < 0 && is_signed)) {
       return _.diag(SPV_ERROR_INVALID_ID, inst)
-             << "OpTypeArray Length <id> '" << _.getIdName(length_id)
-             << "' default value must be at least 1.";
-    case SpvOpSpecConstantOp:
-      // Assume it's OK, rather than try to evaluate the operation.
-      break;
-    default:
-      assert(0 && "bug in spvOpcodeIsConstant() or result type isn't int");
+             << "OpTypeArray Length <id> " << _.getIdName(length_id)
+             << " default value must be at least 1: found " << length_value;
+    }
   }
+
   return SPV_SUCCESS;
 }
 
@@ -285,54 +258,25 @@ spv_result_t ValidateTypeRuntimeArray(ValidationState_t& _,
   const auto element_type = _.FindDef(element_id);
   if (!element_type || !spvOpcodeGeneratesType(element_type->opcode())) {
     return _.diag(SPV_ERROR_INVALID_ID, inst)
-           << "OpTypeRuntimeArray Element Type <id> '"
-           << _.getIdName(element_id) << "' is not a type.";
+           << "OpTypeRuntimeArray Element Type <id> " << _.getIdName(element_id)
+           << " is not a type.";
   }
 
-  if (element_type->opcode() == SpvOpTypeVoid) {
+  if (element_type->opcode() == spv::Op::OpTypeVoid) {
     return _.diag(SPV_ERROR_INVALID_ID, inst)
-           << "OpTypeRuntimeArray Element Type <id> '"
-           << _.getIdName(element_id) << "' is a void type.";
+           << "OpTypeRuntimeArray Element Type <id> " << _.getIdName(element_id)
+           << " is a void type.";
   }
 
   if (spvIsVulkanEnv(_.context()->target_env) &&
-      element_type->opcode() == SpvOpTypeRuntimeArray) {
+      element_type->opcode() == spv::Op::OpTypeRuntimeArray) {
     return _.diag(SPV_ERROR_INVALID_ID, inst)
-           << "OpTypeRuntimeArray Element Type <id> '"
-           << _.getIdName(element_id) << "' is not valid in "
+           << _.VkErrorID(4680) << "OpTypeRuntimeArray Element Type <id> "
+           << _.getIdName(element_id) << " is not valid in "
            << spvLogStringForEnv(_.context()->target_env) << " environments.";
   }
 
   return SPV_SUCCESS;
-}
-
-bool ContainsOpaqueType(ValidationState_t& _, const Instruction* str) {
-  const size_t elem_type_index = 1;
-  uint32_t elem_type_id;
-  Instruction* elem_type;
-
-  if (spvOpcodeIsBaseOpaqueType(str->opcode())) {
-    return true;
-  }
-
-  switch (str->opcode()) {
-    case SpvOpTypeArray:
-    case SpvOpTypeRuntimeArray:
-      elem_type_id = str->GetOperandAs<uint32_t>(elem_type_index);
-      elem_type = _.FindDef(elem_type_id);
-      return ContainsOpaqueType(_, elem_type);
-    case SpvOpTypeStruct:
-      for (size_t member_type_index = 1;
-           member_type_index < str->operands().size(); ++member_type_index) {
-        auto member_type_id = str->GetOperandAs<uint32_t>(member_type_index);
-        auto member_type = _.FindDef(member_type_id);
-        if (ContainsOpaqueType(_, member_type)) return true;
-      }
-      break;
-    default:
-      break;
-  }
-  return false;
 }
 
 spv_result_t ValidateTypeStruct(ValidationState_t& _, const Instruction* inst) {
@@ -348,14 +292,14 @@ spv_result_t ValidateTypeStruct(ValidationState_t& _, const Instruction* inst) {
     auto member_type = _.FindDef(member_type_id);
     if (!member_type || !spvOpcodeGeneratesType(member_type->opcode())) {
       return _.diag(SPV_ERROR_INVALID_ID, inst)
-             << "OpTypeStruct Member Type <id> '" << _.getIdName(member_type_id)
-             << "' is not a type.";
+             << "OpTypeStruct Member Type <id> " << _.getIdName(member_type_id)
+             << " is not a type.";
     }
-    if (member_type->opcode() == SpvOpTypeVoid) {
+    if (member_type->opcode() == spv::Op::OpTypeVoid) {
       return _.diag(SPV_ERROR_INVALID_ID, inst)
              << "Structures cannot contain a void type.";
     }
-    if (SpvOpTypeStruct == member_type->opcode() &&
+    if (spv::Op::OpTypeStruct == member_type->opcode() &&
         _.IsStructTypeWithBuiltInMember(member_type_id)) {
       return _.diag(SPV_ERROR_INVALID_ID, inst)
              << "Structure <id> " << _.getIdName(member_type_id)
@@ -368,14 +312,24 @@ spv_result_t ValidateTypeStruct(ValidationState_t& _, const Instruction* inst) {
     }
 
     if (spvIsVulkanEnv(_.context()->target_env) &&
-        member_type->opcode() == SpvOpTypeRuntimeArray) {
+        member_type->opcode() == spv::Op::OpTypeRuntimeArray) {
       const bool is_last_member =
           member_type_index == inst->operands().size() - 1;
       if (!is_last_member) {
         return _.diag(SPV_ERROR_INVALID_ID, inst)
-               << "In " << spvLogStringForEnv(_.context()->target_env)
+               << _.VkErrorID(4680) << "In "
+               << spvLogStringForEnv(_.context()->target_env)
                << ", OpTypeRuntimeArray must only be used for the last member "
                   "of an OpTypeStruct";
+      }
+
+      if (!_.HasDecoration(inst->id(), spv::Decoration::Block) &&
+          !_.HasDecoration(inst->id(), spv::Decoration::BufferBlock)) {
+        return _.diag(SPV_ERROR_INVALID_ID, inst)
+               << _.VkErrorID(4680)
+               << spvLogStringForEnv(_.context()->target_env)
+               << ", OpTypeStruct containing an OpTypeRuntimeArray "
+               << "must be decorated with Block or BufferBlock.";
       }
     }
   }
@@ -385,9 +339,10 @@ spv_result_t ValidateTypeStruct(ValidationState_t& _, const Instruction* inst) {
   for (size_t word_i = 2; word_i < inst->words().size(); ++word_i) {
     auto member = inst->word(word_i);
     auto memberTypeInstr = _.FindDef(member);
-    if (memberTypeInstr && SpvOpTypeStruct == memberTypeInstr->opcode()) {
-      if (_.HasDecoration(memberTypeInstr->id(), SpvDecorationBlock) ||
-          _.HasDecoration(memberTypeInstr->id(), SpvDecorationBufferBlock) ||
+    if (memberTypeInstr && spv::Op::OpTypeStruct == memberTypeInstr->opcode()) {
+      if (_.HasDecoration(memberTypeInstr->id(), spv::Decoration::Block) ||
+          _.HasDecoration(memberTypeInstr->id(),
+                          spv::Decoration::BufferBlock) ||
           _.GetHasNestedBlockOrBufferBlockStruct(memberTypeInstr->id()))
         has_nested_blockOrBufferBlock_struct = true;
     }
@@ -396,8 +351,8 @@ spv_result_t ValidateTypeStruct(ValidationState_t& _, const Instruction* inst) {
   _.SetHasNestedBlockOrBufferBlockStruct(inst->id(),
                                          has_nested_blockOrBufferBlock_struct);
   if (_.GetHasNestedBlockOrBufferBlockStruct(inst->id()) &&
-      (_.HasDecoration(inst->id(), SpvDecorationBufferBlock) ||
-       _.HasDecoration(inst->id(), SpvDecorationBlock))) {
+      (_.HasDecoration(inst->id(), spv::Decoration::BufferBlock) ||
+       _.HasDecoration(inst->id(), spv::Decoration::Block))) {
     return _.diag(SPV_ERROR_INVALID_ID, inst)
            << "rules: A Block or BufferBlock cannot be nested within another "
               "Block or BufferBlock. ";
@@ -405,7 +360,7 @@ spv_result_t ValidateTypeStruct(ValidationState_t& _, const Instruction* inst) {
 
   std::unordered_set<uint32_t> built_in_members;
   for (auto decoration : _.id_decorations(struct_id)) {
-    if (decoration.dec_type() == SpvDecorationBuiltIn &&
+    if (decoration.dec_type() == spv::Decoration::BuiltIn &&
         decoration.struct_member_index() != Decoration::kInvalidMember) {
       built_in_members.insert(decoration.struct_member_index());
     }
@@ -424,8 +379,21 @@ spv_result_t ValidateTypeStruct(ValidationState_t& _, const Instruction* inst) {
     _.RegisterStructTypeWithBuiltInMember(struct_id);
   }
 
+  const auto isOpaqueType = [&_](const Instruction* opaque_inst) {
+    auto opcode = opaque_inst->opcode();
+    if (_.HasCapability(spv::Capability::BindlessTextureNV) &&
+        (opcode == spv::Op::OpTypeImage || opcode == spv::Op::OpTypeSampler ||
+         opcode == spv::Op::OpTypeSampledImage)) {
+      return false;
+    } else if (spvOpcodeIsBaseOpaqueType(opcode)) {
+      return true;
+    }
+    return false;
+  };
+
   if (spvIsVulkanEnv(_.context()->target_env) &&
-      !_.options()->before_hlsl_legalization && ContainsOpaqueType(_, inst)) {
+      !_.options()->before_hlsl_legalization &&
+      _.ContainsType(inst->id(), isOpaqueType)) {
     return _.diag(SPV_ERROR_INVALID_ID, inst)
            << _.VkErrorID(4667) << "In "
            << spvLogStringForEnv(_.context()->target_env)
@@ -441,19 +409,19 @@ spv_result_t ValidateTypePointer(ValidationState_t& _,
   auto type = _.FindDef(type_id);
   if (!type || !spvOpcodeGeneratesType(type->opcode())) {
     return _.diag(SPV_ERROR_INVALID_ID, inst)
-           << "OpTypePointer Type <id> '" << _.getIdName(type_id)
-           << "' is not a type.";
+           << "OpTypePointer Type <id> " << _.getIdName(type_id)
+           << " is not a type.";
   }
   // See if this points to a storage image.
-  const auto storage_class = inst->GetOperandAs<SpvStorageClass>(1);
-  if (storage_class == SpvStorageClassUniformConstant) {
+  const auto storage_class = inst->GetOperandAs<spv::StorageClass>(1);
+  if (storage_class == spv::StorageClass::UniformConstant) {
     // Unpack an optional level of arraying.
-    if (type->opcode() == SpvOpTypeArray ||
-        type->opcode() == SpvOpTypeRuntimeArray) {
+    if (type->opcode() == spv::Op::OpTypeArray ||
+        type->opcode() == spv::Op::OpTypeRuntimeArray) {
       type_id = type->GetOperandAs<uint32_t>(1);
       type = _.FindDef(type_id);
     }
-    if (type->opcode() == SpvOpTypeImage) {
+    if (type->opcode() == spv::Op::OpTypeImage) {
       const auto sampled = type->GetOperandAs<uint32_t>(6);
       // 2 indicates this image is known to be be used without a sampler, i.e.
       // a storage image.
@@ -476,8 +444,8 @@ spv_result_t ValidateTypeFunction(ValidationState_t& _,
   const auto return_type = _.FindDef(return_type_id);
   if (!return_type || !spvOpcodeGeneratesType(return_type->opcode())) {
     return _.diag(SPV_ERROR_INVALID_ID, inst)
-           << "OpTypeFunction Return Type <id> '" << _.getIdName(return_type_id)
-           << "' is not a type.";
+           << "OpTypeFunction Return Type <id> " << _.getIdName(return_type_id)
+           << " is not a type.";
   }
   size_t num_args = 0;
   for (size_t param_type_index = 2; param_type_index < inst->operands().size();
@@ -486,14 +454,14 @@ spv_result_t ValidateTypeFunction(ValidationState_t& _,
     const auto param_type = _.FindDef(param_id);
     if (!param_type || !spvOpcodeGeneratesType(param_type->opcode())) {
       return _.diag(SPV_ERROR_INVALID_ID, inst)
-             << "OpTypeFunction Parameter Type <id> '" << _.getIdName(param_id)
-             << "' is not a type.";
+             << "OpTypeFunction Parameter Type <id> " << _.getIdName(param_id)
+             << " is not a type.";
     }
 
-    if (param_type->opcode() == SpvOpTypeVoid) {
+    if (param_type->opcode() == spv::Op::OpTypeVoid) {
       return _.diag(SPV_ERROR_INVALID_ID, inst)
-             << "OpTypeFunction Parameter Type <id> '" << _.getIdName(param_id)
-             << "' cannot be OpTypeVoid.";
+             << "OpTypeFunction Parameter Type <id> " << _.getIdName(param_id)
+             << " cannot be OpTypeVoid.";
     }
   }
   const uint32_t num_function_args_limit =
@@ -501,8 +469,8 @@ spv_result_t ValidateTypeFunction(ValidationState_t& _,
   if (num_args > num_function_args_limit) {
     return _.diag(SPV_ERROR_INVALID_ID, inst)
            << "OpTypeFunction may not take more than "
-           << num_function_args_limit << " arguments. OpTypeFunction <id> '"
-           << _.getIdName(inst->GetOperandAs<uint32_t>(0)) << "' has "
+           << num_function_args_limit << " arguments. OpTypeFunction <id> "
+           << _.getIdName(inst->GetOperandAs<uint32_t>(0)) << " has "
            << num_args << " arguments.";
   }
 
@@ -510,8 +478,9 @@ spv_result_t ValidateTypeFunction(ValidationState_t& _,
   // decoration instruction.
   for (auto& pair : inst->uses()) {
     const auto* use = pair.first;
-    if (use->opcode() != SpvOpFunction && !spvOpcodeIsDebug(use->opcode()) &&
-        !use->IsNonSemantic() && !spvOpcodeIsDecoration(use->opcode())) {
+    if (use->opcode() != spv::Op::OpFunction &&
+        !spvOpcodeIsDebug(use->opcode()) && !use->IsNonSemantic() &&
+        !spvOpcodeIsDecoration(use->opcode())) {
       return _.diag(SPV_ERROR_INVALID_ID, use)
              << "Invalid use of function type result id "
              << _.getIdName(inst->id()) << ".";
@@ -525,13 +494,13 @@ spv_result_t ValidateTypeForwardPointer(ValidationState_t& _,
                                         const Instruction* inst) {
   const auto pointer_type_id = inst->GetOperandAs<uint32_t>(0);
   const auto pointer_type_inst = _.FindDef(pointer_type_id);
-  if (pointer_type_inst->opcode() != SpvOpTypePointer) {
+  if (pointer_type_inst->opcode() != spv::Op::OpTypePointer) {
     return _.diag(SPV_ERROR_INVALID_ID, inst)
            << "Pointer type in OpTypeForwardPointer is not a pointer type.";
   }
 
-  const auto storage_class = inst->GetOperandAs<SpvStorageClass>(1);
-  if (storage_class != pointer_type_inst->GetOperandAs<uint32_t>(1)) {
+  const auto storage_class = inst->GetOperandAs<spv::StorageClass>(1);
+  if (storage_class != pointer_type_inst->GetOperandAs<spv::StorageClass>(1)) {
     return _.diag(SPV_ERROR_INVALID_ID, inst)
            << "Storage class in OpTypeForwardPointer does not match the "
            << "pointer definition.";
@@ -539,13 +508,13 @@ spv_result_t ValidateTypeForwardPointer(ValidationState_t& _,
 
   const auto pointee_type_id = pointer_type_inst->GetOperandAs<uint32_t>(2);
   const auto pointee_type = _.FindDef(pointee_type_id);
-  if (!pointee_type || pointee_type->opcode() != SpvOpTypeStruct) {
+  if (!pointee_type || pointee_type->opcode() != spv::Op::OpTypeStruct) {
     return _.diag(SPV_ERROR_INVALID_ID, inst)
            << "Forward pointers must point to a structure";
   }
 
   if (spvIsVulkanEnv(_.context()->target_env)) {
-    if (storage_class != SpvStorageClassPhysicalStorageBuffer) {
+    if (storage_class != spv::StorageClass::PhysicalStorageBuffer) {
       return _.diag(SPV_ERROR_INVALID_ID, inst)
              << _.VkErrorID(4711)
              << "In Vulkan, OpTypeForwardPointer must have "
@@ -556,18 +525,18 @@ spv_result_t ValidateTypeForwardPointer(ValidationState_t& _,
   return SPV_SUCCESS;
 }
 
-spv_result_t ValidateTypeCooperativeMatrixNV(ValidationState_t& _,
-                                             const Instruction* inst) {
+spv_result_t ValidateTypeCooperativeMatrix(ValidationState_t& _,
+                                           const Instruction* inst) {
   const auto component_type_index = 1;
   const auto component_type_id =
       inst->GetOperandAs<uint32_t>(component_type_index);
   const auto component_type = _.FindDef(component_type_id);
-  if (!component_type || (SpvOpTypeFloat != component_type->opcode() &&
-                          SpvOpTypeInt != component_type->opcode())) {
+  if (!component_type || (spv::Op::OpTypeFloat != component_type->opcode() &&
+                          spv::Op::OpTypeInt != component_type->opcode())) {
     return _.diag(SPV_ERROR_INVALID_ID, inst)
-           << "OpTypeCooperativeMatrixNV Component Type <id> '"
+           << "OpTypeCooperativeMatrix Component Type <id> "
            << _.getIdName(component_type_id)
-           << "' is not a scalar numerical type.";
+           << " is not a scalar numerical type.";
   }
 
   const auto scope_index = 2;
@@ -576,8 +545,8 @@ spv_result_t ValidateTypeCooperativeMatrixNV(ValidationState_t& _,
   if (!scope || !_.IsIntScalarType(scope->type_id()) ||
       !spvOpcodeIsConstant(scope->opcode())) {
     return _.diag(SPV_ERROR_INVALID_ID, inst)
-           << "OpTypeCooperativeMatrixNV Scope <id> '" << _.getIdName(scope_id)
-           << "' is not a constant instruction with scalar integer type.";
+           << "OpTypeCooperativeMatrix Scope <id> " << _.getIdName(scope_id)
+           << " is not a constant instruction with scalar integer type.";
   }
 
   const auto rows_index = 3;
@@ -586,8 +555,8 @@ spv_result_t ValidateTypeCooperativeMatrixNV(ValidationState_t& _,
   if (!rows || !_.IsIntScalarType(rows->type_id()) ||
       !spvOpcodeIsConstant(rows->opcode())) {
     return _.diag(SPV_ERROR_INVALID_ID, inst)
-           << "OpTypeCooperativeMatrixNV Rows <id> '" << _.getIdName(rows_id)
-           << "' is not a constant instruction with scalar integer type.";
+           << "OpTypeCooperativeMatrix Rows <id> " << _.getIdName(rows_id)
+           << " is not a constant instruction with scalar integer type.";
   }
 
   const auto cols_index = 4;
@@ -596,8 +565,20 @@ spv_result_t ValidateTypeCooperativeMatrixNV(ValidationState_t& _,
   if (!cols || !_.IsIntScalarType(cols->type_id()) ||
       !spvOpcodeIsConstant(cols->opcode())) {
     return _.diag(SPV_ERROR_INVALID_ID, inst)
-           << "OpTypeCooperativeMatrixNV Cols <id> '" << _.getIdName(cols_id)
-           << "' is not a constant instruction with scalar integer type.";
+           << "OpTypeCooperativeMatrix Cols <id> " << _.getIdName(cols_id)
+           << " is not a constant instruction with scalar integer type.";
+  }
+
+  if (inst->opcode() == spv::Op::OpTypeCooperativeMatrixKHR) {
+    const auto use_index = 5;
+    const auto use_id = inst->GetOperandAs<uint32_t>(use_index);
+    const auto use = _.FindDef(use_id);
+    if (!use || !_.IsIntScalarType(use->type_id()) ||
+        !spvOpcodeIsConstant(use->opcode())) {
+      return _.diag(SPV_ERROR_INVALID_ID, inst)
+             << "OpTypeCooperativeMatrixKHR Use <id> " << _.getIdName(use_id)
+             << " is not a constant instruction with scalar integer type.";
+    }
   }
 
   return SPV_SUCCESS;
@@ -606,45 +587,46 @@ spv_result_t ValidateTypeCooperativeMatrixNV(ValidationState_t& _,
 
 spv_result_t TypePass(ValidationState_t& _, const Instruction* inst) {
   if (!spvOpcodeGeneratesType(inst->opcode()) &&
-      inst->opcode() != SpvOpTypeForwardPointer) {
+      inst->opcode() != spv::Op::OpTypeForwardPointer) {
     return SPV_SUCCESS;
   }
 
   if (auto error = ValidateUniqueness(_, inst)) return error;
 
   switch (inst->opcode()) {
-    case SpvOpTypeInt:
+    case spv::Op::OpTypeInt:
       if (auto error = ValidateTypeInt(_, inst)) return error;
       break;
-    case SpvOpTypeFloat:
+    case spv::Op::OpTypeFloat:
       if (auto error = ValidateTypeFloat(_, inst)) return error;
       break;
-    case SpvOpTypeVector:
+    case spv::Op::OpTypeVector:
       if (auto error = ValidateTypeVector(_, inst)) return error;
       break;
-    case SpvOpTypeMatrix:
+    case spv::Op::OpTypeMatrix:
       if (auto error = ValidateTypeMatrix(_, inst)) return error;
       break;
-    case SpvOpTypeArray:
+    case spv::Op::OpTypeArray:
       if (auto error = ValidateTypeArray(_, inst)) return error;
       break;
-    case SpvOpTypeRuntimeArray:
+    case spv::Op::OpTypeRuntimeArray:
       if (auto error = ValidateTypeRuntimeArray(_, inst)) return error;
       break;
-    case SpvOpTypeStruct:
+    case spv::Op::OpTypeStruct:
       if (auto error = ValidateTypeStruct(_, inst)) return error;
       break;
-    case SpvOpTypePointer:
+    case spv::Op::OpTypePointer:
       if (auto error = ValidateTypePointer(_, inst)) return error;
       break;
-    case SpvOpTypeFunction:
+    case spv::Op::OpTypeFunction:
       if (auto error = ValidateTypeFunction(_, inst)) return error;
       break;
-    case SpvOpTypeForwardPointer:
+    case spv::Op::OpTypeForwardPointer:
       if (auto error = ValidateTypeForwardPointer(_, inst)) return error;
       break;
-    case SpvOpTypeCooperativeMatrixNV:
-      if (auto error = ValidateTypeCooperativeMatrixNV(_, inst)) return error;
+    case spv::Op::OpTypeCooperativeMatrixNV:
+    case spv::Op::OpTypeCooperativeMatrixKHR:
+      if (auto error = ValidateTypeCooperativeMatrix(_, inst)) return error;
       break;
     default:
       break;

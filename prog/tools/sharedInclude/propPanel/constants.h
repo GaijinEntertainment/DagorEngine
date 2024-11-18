@@ -4,6 +4,7 @@
 //
 #pragma once
 
+#include <libTools/util/hdpiUtil.h>
 #include <imgui/imgui.h>
 
 namespace PropPanel
@@ -26,6 +27,12 @@ public:
 
   // Vertical space between a label and a control when they are on a separate line.
   static constexpr int SPACE_BETWEEN_SEPARATE_LINE_LABEL_AND_CONTROL = 0.0f;
+
+  // The default height can fit ~7 items.
+  static constexpr hdpi::Px LISTBOX_DEFAULT_HEIGHT = (hdpi::Px)0;
+
+  // Use all the available height.
+  static constexpr hdpi::Px LISTBOX_FULL_HEIGHT = (hdpi::Px)1;
 
   // Colors for the daEditorX Classic style.
 

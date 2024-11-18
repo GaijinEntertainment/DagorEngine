@@ -1000,6 +1000,7 @@ BaseTexture *BaseTex::makeTmpTexResCopy(int w, int h, int d, int l, bool staging
   if (!staging_tex)
     clonedTex->tidXored = tidXored, clonedTex->stubTexIdx = stubTexIdx;
 
+  clonedTex->key = key;
   set_tex_params(clonedTex, w, h, d, clonedTex->cflg, l, String::mk_str_cat(staging_tex ? "stg:" : "tmp:", getTexName()));
   clonedTex->preallocBeforeLoad = clonedTex->delayedCreate = true;
 
@@ -1026,16 +1027,8 @@ void BaseTex::replaceTexResObject(BaseTexture *&other_tex)
     eastl::swap(width, other->width);
     eastl::swap(height, other->height);
     eastl::swap(depth, other->depth);
-
-    uint32_t tmp32; // bitfields
-#define SWAP_UINT32(X) \
-  tmp32 = other->X;    \
-  other->X = X;        \
-  X = tmp32
-    SWAP_UINT32(mipLevels);
-    SWAP_UINT32(minMipLevel);
-    SWAP_UINT32(maxMipLevel);
-#undef SWAP_UINT32
+    eastl::swap(mipLevels, other->mipLevels);
+    eastl::swap(key, other->key);
 
     // swap wasUsed flag
     wasUsed = other->wasUsed;

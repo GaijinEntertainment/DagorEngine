@@ -3168,6 +3168,15 @@ namespace das {
                                                     expr->at, CompilationError::invalid_argument_count);
                                             }
                                         } else {
+                                            auto stf = sttf->type;
+                                            if ( stf && stf->dim.size()==0 && (stf->baseType==Type::tBlock || stf->baseType==Type::tFunction || stf->baseType==Type::tLambda) ) {
+                                                reportAstChanged();
+                                                expr->isInvokeMethod = false;      // we replace invoke(foo.GetValue,cast<auto> foo,...) with invoke(foo.GetValue,...)
+                                                expr->arguments.erase(expr->arguments.begin()+1);
+                                            } else {
+                                                error("'" + stt->name + "->" + eField->name + "' expecting function", "", "",
+                                                    expr->at, CompilationError::invalid_argument_count);
+                                            }
                                             error("'" + stt->name + "->" + eField->name + "' expecting function", "", "",
                                                 expr->at, CompilationError::invalid_argument_count);
                                         }
@@ -4508,7 +4517,7 @@ namespace das {
                     return Visitor::visit(expr);
                 }
                 if ( seT->isConst() ) {
-                    error("cannot access the constant table by index, use 'find' instead", "", "",
+                    error("cannot access the constant table by index, use 'get' instead", "", "",
                         expr->index->at, CompilationError::invalid_table_type);
                     return Visitor::visit(expr);
                 }
@@ -7034,11 +7043,18 @@ namespace das {
         bool canRelaxAssign ( Expression * init ) const {
             if ( !relaxedAssign ) return false;
             if ( !init->type || !init->type->canMove() ) return false;  // only if it can be moved
-            if ( init->rtti_isMakeLocal() ) return true;    // a = [[...]] is always ok to transform to a <- [[...]]
-            if ( init->rtti_isCallFunc() ) {
+            if ( init->rtti_isMakeLocal() ) return true;        // a = [[...]] is always ok to transform to a <- [[...]]
+            else if ( init->rtti_isMakeBlock() ) return true;   // a = @... is always ok to transform to a <- @
+            else if ( init->rtti_isAscend() ) return true;      // a = new [[Foo()]] is always ok to transform to a <- new [[Foo()]]
+            else if ( init->rtti_isCallFunc() ) {
                 auto call = static_cast<ExprCallFunc *>(init);
                 if ( call->func && call->func->result && !call->func->result->ref ) {
                     return true;    // a = f() is ok to transform to a <- f(), if its not a function which returns reference
+                }
+            } else if ( init->rtti_isInvoke() ) {
+                auto inv = static_cast<ExprInvoke *>(init);
+                if ( inv->isCopyOrMove() ) {
+                    return true;    // a = invoke(f,...) is ok to transform to a <- invoke(f,...), if it does not return reference
                 }
             }
             return false;
@@ -8180,6 +8196,50 @@ namespace das {
             fieldName->type = conststring;
             return inferGenericOperator(opN, expr_at, arg0, fieldName, err);
         }
+
+
+        Variable * findMatchingBlockOrLambdaVariable ( const string & name ) {
+            // local (that on the stack)
+            for ( auto it = local.rbegin(); it!=local.rend(); ++it ) {
+                auto var = (*it).get();
+                if ( var->name==name || var->aka==name ) {
+                    return var;
+                }
+            }
+            // block arguments
+            for ( auto it = blocks.rbegin(); it!=blocks.rend(); ++it ) {
+                ExprBlock * block = *it;
+                for ( auto & arg : block->arguments ) {
+                    if ( arg->name==name || arg->aka==name ) {
+                        return arg.get();
+                    }
+                }
+            }
+            // function argument
+            if ( func ) {
+                for ( auto & arg : func->arguments ) {
+                    if ( arg->name==name || arg->aka==name ) {
+                        return arg.get();
+                    }
+                }
+            }
+            // static class method accessing static variables
+            if ( func && func->isStaticClassMethod && func->classParent->hasStaticMembers ) {
+                auto staticVarName = func->classParent->name + "`" + name;
+                if ( auto var = func->classParent->module->findVariable(staticVarName) ) {
+                    return var.get();
+                }
+            }
+            // global
+            auto vars = findMatchingVar(name, false);
+            if ( vars.size()==1 ) {
+                auto var = vars.back();
+                return var.get();
+            }
+            // and nada
+            return nullptr;
+        }
+
         virtual ExpressionPtr visit ( ExprCall * expr ) override {
             if (expr->argumentsFailedToInfer) return Visitor::visit(expr);
             expr->func = inferFunctionCall(expr).get();
@@ -8214,20 +8274,49 @@ namespace das {
                     }
                 }
             }
+            if ( !expr->func ) {
+                auto var = findMatchingBlockOrLambdaVariable(expr->name);   // if this is lambda_var(args...) or such
+                if ( var && var->type && var->type->dim.size()==0 ) {              // we promote to vname(args...) to invoke(vname,args...)
+                    auto bt = var->type->baseType;
+                    if ( bt==Type::tBlock || bt==Type::tLambda || bt==Type::tFunction ) {
+                        reportAstChanged();
+                        auto varExpr = make_smart<ExprVar>(expr->at, var->name);
+                        auto invokeExpr = make_smart<ExprInvoke>(expr->at, expr->name);
+                        invokeExpr->arguments.push_back(varExpr);
+                        for ( auto & arg : expr->arguments ) {
+                            invokeExpr->arguments.push_back(arg->clone());
+                        }
+                        return invokeExpr;
+                    }
+                }
+            }
             if ( func && !expr->func && func->isClassMethod && func->arguments.size()>=1 ) {
                 auto bt = func->arguments[0]->type;
                 if ( bt && bt->isClass() ) {
                     if ( expr->name.find("::") == string::npos ) {  // we only promote to self->call() if its not blah::call, _::call, or __::call
                         auto memFn = bt->structType->findField(expr->name);
-                        if ( memFn && memFn->type && memFn->type->isFunction() ) {
-                            auto self = new ExprVar(expr->at, "self");
-                            auto pInvoke = makeInvokeMethod(expr->at, self, expr->name);
-                            for ( auto & arg : expr->arguments ) {
-                                pInvoke->arguments.push_back(arg->clone());
+                        if ( memFn && memFn->type ) {
+                            if (  memFn->type->dim.size()==0 && (memFn->type->baseType==Type::tBlock || memFn->type->baseType==Type::tLambda || memFn->type->baseType==Type::tFunction) ) {
+                                reportAstChanged();
+                                if ( memFn->classMethod ) {
+                                    auto self = new ExprVar(expr->at, "self");
+                                    auto pInvoke = makeInvokeMethod(expr->at, self, expr->name);
+                                    for ( auto & arg : expr->arguments ) {
+                                        pInvoke->arguments.push_back(arg->clone());
+                                    }
+                                    pInvoke->alwaysSafe = expr->alwaysSafe;
+                                    return pInvoke;
+                                } else {
+                                    auto invokeExpr = make_smart<ExprInvoke>(expr->at, expr->name);
+                                    auto self = make_smart<ExprVar>(expr->at, "self");
+                                    auto that = make_smart<ExprField>(expr->at, self, expr->name);
+                                    invokeExpr->arguments.push_back(that);
+                                    for ( auto & arg : expr->arguments ) {
+                                        invokeExpr->arguments.push_back(arg->clone());
+                                    }
+                                    return invokeExpr;
+                                }
                             }
-                            pInvoke->alwaysSafe = expr->alwaysSafe;
-                            reportAstChanged();
-                            return pInvoke;
                         }
                     }
                 }

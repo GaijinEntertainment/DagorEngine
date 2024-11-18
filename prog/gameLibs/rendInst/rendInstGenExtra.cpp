@@ -661,6 +661,7 @@ static void update_ri_extra_game_resources(const char *ri_res_name, int id, Rend
     static int enable_hmap_blend_variable_id = VariableMap::getVariableId("enable_hmap_blend");
     static int material_pn_triangulation_variable_id = VariableMap::getVariableId("material_pn_triangulation");
     static int draw_grass_variable_id = VariableMap::getVariableId("draw_grass");
+    static int material_grassify_variable_id = VariableMap::getVariableId("material_grassify");
 
     static int ri_landclass_indexVarId = VariableMap::getVariableId("ri_landclass_index");
     bool isPoolRendinstLandclass = false;
@@ -743,6 +744,11 @@ static void update_ri_extra_game_resources(const char *ri_res_name, int id, Rend
 
           int drawGrass = 0;
           riExtra[id].usedInLandmaskHeight |= elems[elemNo].mat->getIntVariable(draw_grass_variable_id, drawGrass) && drawGrass;
+
+          int materialGrassify = 0;
+          riExtra[id].isGrassify |=
+            elems[elemNo].mat->getIntVariable(material_grassify_variable_id, materialGrassify) && materialGrassify;
+
           if (riExtra[id].isRendinstClipmap)
           {
             hasRiClipmap = rendinst::HasRIClipmap::YES;

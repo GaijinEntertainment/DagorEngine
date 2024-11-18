@@ -5,6 +5,7 @@
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_commands.h>
+#include <drv/3d/dag_texture.h>
 #include <ioSys/dag_dataBlock.h>
 
 namespace amd
@@ -31,10 +32,25 @@ FSR::UpscalingMode FSR::getUpscalingMode(const DataBlock &video)
   return UpscalingMode::Off;
 }
 
+using FormatTypeID = uint32_t;
+
+static bool is_uav_load_supported(std::initializer_list<FormatTypeID> formats)
+{
+  for (auto format : formats)
+  {
+    if (!(d3d::get_texformat_usage(format) & d3d::USAGE_UNORDERED_LOAD))
+      return false;
+  }
+  return true;
+}
+
 bool FSR::isSupported()
 {
 #if _TARGET_PC_WIN
-  if (d3d::get_driver_desc().shaderModel >= 6.2_sm && (d3d::get_driver_code().is(d3d::dx12) || d3d::get_driver_code().is(d3d::vulkan)))
+  if (d3d::get_driver_desc().shaderModel >= 6.2_sm &&
+      (d3d::get_driver_code().is(d3d::dx12) || d3d::get_driver_code().is(d3d::vulkan)) &&
+      is_uav_load_supported(
+        {TEXFMT_R8, TEXFMT_A16B16G16R16F, TEXFMT_R11G11B10F, TEXFMT_R16F, TEXFMT_G16R16F, TEXFMT_R32UI, TEXFMT_R8G8B8A8}))
     return true;
 #elif _TARGET_XBOX
   return true;

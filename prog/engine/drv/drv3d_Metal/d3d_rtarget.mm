@@ -345,12 +345,12 @@ bool d3d::set_depth(BaseTexture *tex, int face, DepthAccess access)
   return true;
 }
 
-bool d3d::set_render_target(int rt_index, BaseTexture* rt, int level)
+bool d3d::set_render_target(int rt_index, BaseTexture* rt, uint8_t level)
 {
   return set_render_target_impl(rt_index, rt, level, 0);
 }
 
-bool d3d::set_render_target(int rt_index, BaseTexture* rt, int fc, int level)
+bool d3d::set_render_target(int rt_index, BaseTexture* rt, int fc, uint8_t level)
 {
   return set_render_target_impl(rt_index, rt, level, fc);
 }
@@ -402,7 +402,7 @@ bool d3d::get_target_size(int &w, int &h)
   return false;
 }
 
-bool d3d::get_render_target_size(int &w, int &h, BaseTexture *rt_tex, int lev)
+bool d3d::get_render_target_size(int &w, int &h, BaseTexture *rt_tex, uint8_t level)
 {
   w = h = 0;
 
@@ -421,10 +421,10 @@ bool d3d::get_render_target_size(int &w, int &h, BaseTexture *rt_tex, int lev)
     return false;
   }
 
-  G_ASSERT(lev < tex->mipLevels);
+  G_ASSERT(level < tex->mipLevels);
 
-  w = max(1, tex->width >> lev);
-  h = max(1, tex->height >> lev);
+  w = max(1, tex->width >> level);
+  h = max(1, tex->height >> level);
 
   return true;
 }

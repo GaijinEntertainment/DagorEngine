@@ -35,6 +35,14 @@ class SpreadVolatileSemantics : public Pass {
   }
 
  private:
+  // Returns true if it does not have an execution model. Linkage shaders do not
+  // have an execution model.
+  bool HasNoExecutionModel() {
+    return get_module()->entry_points().empty() &&
+           context()->get_feature_mgr()->HasCapability(
+               spv::Capability::Linkage);
+  }
+
   // Iterates interface variables and spreads the Volatile semantics if it has
   // load instructions for the Volatile semantics.
   Pass::Status SpreadVolatileSemanticsToVariables(
@@ -45,7 +53,7 @@ class SpreadVolatileSemantics : public Pass {
   // VUID-StandaloneSpirv-VulkanMemoryModel-04678 or
   // VUID-StandaloneSpirv-VulkanMemoryModel-04679.
   bool IsTargetForVolatileSemantics(uint32_t var_id,
-                                    SpvExecutionModel execution_model);
+                                    spv::ExecutionModel execution_model);
 
   // Collects interface variables that need the volatile semantics.
   // |is_vk_memory_model_enabled| is true if VulkanMemoryModel capability is
@@ -65,15 +73,14 @@ class SpreadVolatileSemantics : public Pass {
                                                  Instruction* entry_point);
 
   // Visits load instructions of pointers to variable whose result id is
-  // |var_id| if the load instructions are in entry points whose
-  // function id is one of |entry_function_ids|. |handle_load| is a function to
-  // do some actions for the load instructions. Finishes the traversal and
-  // returns false if |handle_load| returns false for a load instruction.
-  // Otherwise, returns true after running |handle_load| for all the load
-  // instructions.
+  // |var_id| if the load instructions are in reachable functions from entry
+  // points. |handle_load| is a function to do some actions for the load
+  // instructions. Finishes the traversal and returns false if |handle_load|
+  // returns false for a load instruction. Otherwise, returns true after running
+  // |handle_load| for all the load instructions.
   bool VisitLoadsOfPointersToVariableInEntries(
       uint32_t var_id, const std::function<bool(Instruction*)>& handle_load,
-      const std::unordered_set<uint32_t>& entry_function_ids);
+      const std::unordered_set<uint32_t>& function_ids);
 
   // Sets Memory Operands of OpLoad instructions that load |var| or pointers
   // of |var| as Volatile if the function id of the OpLoad instruction is

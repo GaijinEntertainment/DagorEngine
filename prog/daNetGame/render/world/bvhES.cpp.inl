@@ -26,6 +26,10 @@
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/componentTypes.h>
 #include <render/renderEvent.h>
+#include <util/dag_convar.h>
+
+CONSOLE_BOOL_VAL("raytracing", rtr_shadow, false);
+CONSOLE_BOOL_VAL("raytracing", rtr_use_csm, true);
 
 // Context ID with the same lifespan as WorldRenderer.
 // Can't be stored in ECS, because then it'd be reset on level change.
@@ -351,7 +355,8 @@ static dabfg::NodeHandle makeRTRNode()
       registry.read("close_depth").texture().atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("downsampled_close_depth_tex").handle();
     return [cameraHndl, closeDepthHndl]() {
       set_viewvecs_to_shader(cameraHndl.ref().viewTm, cameraHndl.ref().jitterProjTm);
-      rtr::render(bvhRenderingContextId, cameraHndl.ref().jitterProjTm, true, false, false, closeDepthHndl.view().getTexId());
+      rtr::render(bvhRenderingContextId, cameraHndl.ref().jitterProjTm, rtr_shadow, rtr_use_csm, false,
+        closeDepthHndl.view().getTexId());
     };
   });
 }

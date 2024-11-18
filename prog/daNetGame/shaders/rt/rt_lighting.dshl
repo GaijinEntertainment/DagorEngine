@@ -3,6 +3,8 @@ include "clipmap.dshl"
 include "shader_global.dshl"
 include "skyLight.dshl"
 include "gbuffer.dshl"
+include "static_shadow.dshl"
+include "csm.dshl"
 
 texture paint_details_tex;
 int bvh_paint_details_tex_slot;
@@ -10,6 +12,11 @@ int bvh_paint_details_smp_slot;
 
 texture bvh_atmosphere_texture;
 float bvh_atmosphere_texture_distance = 10000;
+
+int rtr_shadow = 1;
+interval rtr_shadow: off < 1, on;
+int rtr_use_csm = 0;
+interval rtr_use_csm: no < 1, yes;
 
 // use_cockpit_lights is Skyquake specific
 macro INIT_RT_LIGHTING(stage, use_cockpit_lights, use_sampler_for_cloud_shadows)
@@ -63,6 +70,20 @@ macro USE_RT_LIGHTING(stage, use_cockpit_lights)
     DAGI_IRRADIANCE_GRID_SAMPLE_USE(stage)
   }
   USE_COSINE_SAMPLING(stage)
+
+  if (rtr_shadow == off)
+  {
+    hlsl(stage) {
+      #define HAS_STATIC_SHADOW 1
+    }
+    INIT_STATIC_SHADOW_BASE(stage)
+    USE_STATIC_SHADOW_BASE(stage)
+    if (rtr_use_csm == yes)
+    {
+      INIT_CSM_SHADOW(stage)
+      BASE_USE_CSM_SHADOW_DEF_NUM(stage)
+    }
+  }
 
   hlsl(stage)
   {
@@ -241,8 +262,15 @@ macro USE_RT_LIGHTING(stage, use_cockpit_lights)
       half3 reflectionVec = 2 * NdotV * normalh - view;
       half NoV = abs(NdotV) + 1e-5h;
 
-      // TODO: Have two sided in model meta and set bias accordingly
-      half shadow = is_obstructed(bvhMain, hitInfo.position, toSun, 0, ray_max, w + hitInfo.t, bvhGroupAll & ~bvhGroupGrass) ? 0 : 1;
+      ##if rtr_shadow == on
+        // TODO: Have two sided in model meta and set bias accordingly
+        half shadow = is_obstructed(bvhMain, hitInfo.position, toSun, 0, ray_max, w + hitInfo.t, bvhGroupAll & ~bvhGroupGrass) ? 0 : 1;
+      ##else
+        half shadow = getStaticShadow(worldPos.xyz);
+        ##if rtr_use_csm == yes
+          shadow *= get_csm_shadow(-hitInfo.position).x;
+        ##endif
+      ##endif
 
       half extractedAlbedoAo = decode_albedo_ao(albedo);
       half3 diffuseColor = albedo - metalness * albedo;

@@ -595,6 +595,7 @@ character_sequence
 
 string_constant
     :   BEGIN_STRING character_sequence[seq] END_STRING    { $$ = $seq; }
+    |   BEGIN_STRING END_STRING                            { $$ = new string(); }
     ;
 
 string_builder_body
@@ -1519,10 +1520,11 @@ block_or_lambda
     ;
 
 capture_entry
-    :   '&' NAME[name]         { $$ = new CaptureEntry(*$name,CaptureMode::capture_by_reference); delete $name; }
-    |   '=' NAME[name]         { $$ = new CaptureEntry(*$name,CaptureMode::capture_by_copy); delete $name; }
-    |   LARROW NAME[name]      { $$ = new CaptureEntry(*$name,CaptureMode::capture_by_move); delete $name; }
-    |   CLONEEQU NAME[name]    { $$ = new CaptureEntry(*$name,CaptureMode::capture_by_clone); delete $name; }
+    :   '&' NAME[name]              { $$ = new CaptureEntry(*$name,CaptureMode::capture_by_reference); delete $name; }
+    |   '=' NAME[name]              { $$ = new CaptureEntry(*$name,CaptureMode::capture_by_copy); delete $name; }
+    |   LARROW NAME[name]           { $$ = new CaptureEntry(*$name,CaptureMode::capture_by_move); delete $name; }
+    |   CLONEEQU NAME[name]         { $$ = new CaptureEntry(*$name,CaptureMode::capture_by_clone); delete $name; }
+    |   NAME[op] '(' NAME[name] ')' { $$ = ast_makeCaptureEntry(scanner,tokAt(scanner,@op),*$op,*$name); delete $op; delete $name; }
     ;
 
 capture_list
@@ -1677,6 +1679,18 @@ expr_field
         auto callArgs = sequenceToList($arguments);
         pInvoke->arguments.insert ( pInvoke->arguments.end(), callArgs.begin(), callArgs.end() );
         delete $method_name;
+        $$ = pInvoke;
+    }
+    |   expr[left] '.'[loc] basic_type_declaration[method_type] '(' ')' {
+        auto method_name = das_to_string($method_type);
+        auto pInvoke = makeInvokeMethod(tokAt(scanner,@loc), $left, method_name);
+        $$ = pInvoke;
+    }
+    |   expr[left] '.'[loc] basic_type_declaration[method_type] '(' expr_list[arguments] ')' {
+        auto method_name = das_to_string($method_type);
+        auto pInvoke = makeInvokeMethod(tokAt(scanner,@loc), $left, method_name);
+        auto callArgs = sequenceToList($arguments);
+        pInvoke->arguments.insert ( pInvoke->arguments.end(), callArgs.begin(), callArgs.end() );
         $$ = pInvoke;
     }
     |   expr[subexpr] '.'[loc] { yyextra->das_suppress_errors=true; } error { yyextra->das_suppress_errors=false; } {

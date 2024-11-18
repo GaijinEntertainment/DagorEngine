@@ -296,6 +296,7 @@ void WaterRipples::addDropInst(int reg_num)
 void WaterRipples::clearRts()
 {
   SCOPE_RENDER_TARGET;
+  d3d::set_render_target();
   d3d::set_render_target(0, texBuffers[0].getTex2D(), 0);
   d3d::set_render_target(1, texBuffers[1].getTex2D(), 0);
   d3d::set_render_target(2, texBuffers[2].getTex2D(), 0);

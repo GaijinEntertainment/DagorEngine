@@ -53,6 +53,13 @@ public:
         WHEEL
       } shape = CYLINDER;
     } attachment{};
+
+    struct Panel
+    {
+      bool isHoldingPanel = false;
+      Point3 angles{};
+      Point3 position{};
+    } panel{};
   };
 
   using HandsState = eastl::array<OneHandState, VrInput::Hands::Total>;
@@ -170,6 +177,7 @@ private:
   int addAnimPhysVar(AnimV20::AnimcharBaseComponent &animchar_component, VrInput::Hands side, const char *name, float def_val);
   void setAnimPhysVarVal(VrInput::Hands side, int var_id, float val);
   void updateFingerStates(VrInput::Hands side);
+  void updatePanelAnim(VrInput::Hands side);
   void updateAttachment(VrInput::Hands side, const TMatrix &ref_rot_tm, const bool is_fold_forced);
   void convertDistalToFingertipTm(TMatrix &in_out_tm);
 

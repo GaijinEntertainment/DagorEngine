@@ -40,6 +40,7 @@ struct DestructableCreationParams
   float timeToLive = -1.0f;
   float defaultTimeToLive = -1.0f;
   float timeToKinematic = -1.0f;
+  float timeToSinkUnderground = -1.0f;
   bool isDestroyedByExplosion = false;
 };
 } // namespace destructables
@@ -60,6 +61,8 @@ private:
   friend struct gamephys::DestructableObjectAddImpulse;
   float timeToKinematic = 2;
   float defaultTimeToLive = 3;
+  float timeToSinkUnderground = 3;
+  float bboxHeight = 0.0f;
   float scaleDt;
   void doAddImpulse(const Point3 &pos, const Point3 &impulse, float speedLimit, float omegaLimit);
 
@@ -71,7 +74,7 @@ public:
   Point4 intialTmAndHash[4]; // row0-1 - initialTm(43), row3 = hash
 
   DestructableObject(const destructables::DestructableCreationParams &params, PhysWorld *phys_world, float scale_dt);
-  bool update(float dt, bool force_update_ttl); // return false if it need to be destroyed
+  bool update(float dt, float cur_dt_scale, bool force_update_ttl); // return false if it need to be destroyed
 
   destructables::id_t getId() const { return (destructables::id_t)this; }
 

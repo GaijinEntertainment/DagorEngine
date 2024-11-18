@@ -191,14 +191,17 @@ bool set_render_target() { return d3di.set_render_target(); }
 bool set_depth(BaseTexture *tex, DepthAccess access) { return d3di.set_depth(tex, access); }
 bool set_depth(BaseTexture *tex, int layer, DepthAccess access) { return d3di.set_depth(tex, layer, access); }
 
-bool set_render_target(int rt_index, BaseTexture *t, int fc, int level) { return d3di.set_render_target(rt_index, t, fc, level); }
-bool set_render_target(int rt_index, BaseTexture *t, int level) { return d3di.set_render_target(rt_index, t, level); }
+bool set_render_target(int rt_index, BaseTexture *t, int fc, uint8_t level) { return d3di.set_render_target(rt_index, t, fc, level); }
+bool set_render_target(int rt_index, BaseTexture *t, uint8_t level) { return d3di.set_render_target(rt_index, t, level); }
 
 void get_render_target(Driver3dRenderTarget &out_rt) { return d3di.get_render_target(out_rt); }
 bool set_render_target(const Driver3dRenderTarget &rt) { return d3di.set_render_target(rt); }
 
 bool get_target_size(int &w, int &h) { return d3di.get_target_size(w, h); }
-bool get_render_target_size(int &w, int &h, BaseTexture *rt_tex, int lev) { return d3di.get_render_target_size(w, h, rt_tex, lev); }
+bool get_render_target_size(int &w, int &h, BaseTexture *rt_tex, uint8_t level)
+{
+  return d3di.get_render_target_size(w, h, rt_tex, level);
+}
 
 bool settm(int which, const Matrix44 *tm) { return d3di.settm(which, tm); }
 bool settm(int which, const TMatrix &tm) { return d3di.settm(which, tm); }

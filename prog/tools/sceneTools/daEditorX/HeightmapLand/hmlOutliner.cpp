@@ -120,6 +120,8 @@ int HeightmapLandOutlinerInterface::addNewLayer(int type, const char *name)
 
   EditLayerProps::layerProps[layerPropsIndex].renameable = true;
 
+  objectEditor.invalidateObjectProps();
+
   const int perTypeLayerIndex = getPerTypeLayerIndex(type, layerPropsIndex);
   return perTypeLayerIndex;
 }

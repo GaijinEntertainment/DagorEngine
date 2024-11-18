@@ -31,7 +31,6 @@ bloom_tex:i=1
 dof_linear_depth:i = 0
 volumetric_light_assumed_off:i=0
 use_directional_blood_on_screen:i=0
-blood_wound_high_quality:i=0
 blood_puddles_has_separate_flowmap:i=0
 small_sampled_buffers:i=0
 clouds_close_layer_is_outside:i = 1
