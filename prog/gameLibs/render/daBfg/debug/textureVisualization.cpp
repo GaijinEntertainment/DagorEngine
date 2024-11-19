@@ -6,10 +6,13 @@
 #include <render/daBfg/bfg.h>
 #include <util/dag_console.h>
 #include <drv/3d/dag_texture.h>
+#include <render/texDebug.h>
 
 
 static dabfg::NodeHandle debugTextureCopyNode;
 static UniqueTex copiedTexture;
+
+static bool overlayMode = false;
 
 static const ImVec4 DISABLED_TEXT_COLOR = ImGuiStyle().Colors[ImGuiCol_TextDisabled];
 
@@ -63,18 +66,41 @@ bool deselect_button(const char *label)
   return buttonPressed;
 }
 
-static UniqueTex create_empty_debug_tex(int fmt, int w, int h) { return dag::create_tex(NULL, w, h, fmt, 1, "copied_fg_debug_tex"); }
+void overlay_checkbox(const char *label)
+{
+  ImGui::Checkbox(label, &overlayMode);
+  ImGui::SameLine();
+  String hint(0, "If enabled, the selected texture will be displayed as overlay (similar to render.show_tex).\n"
+                 "If disabled, Texture Debugger window will be opened for the selected texture.");
+  ImGuiDagor::HelpMarker(hint);
+}
+
+static UniqueTex create_empty_debug_tex(int fmt, int w, int h, const char *name)
+{
+  return dag::create_tex(nullptr, w, h, fmt, 1, name);
+}
 
 static const char *get_selected_resource_name(dabfg::ResNameId nameId, const dabfg::InternalRegistry &registry)
 {
   return nameId == dabfg::ResNameId::Invalid ? "None" : registry.knownNames.getName(nameId);
 }
 
+static void update_texdebug_texture()
+{
+  if (!savedSelection)
+  {
+    texdebug::select_texture("");
+    return;
+  }
+
+  texdebug::select_texture(copiedTexture->getTexName());
+}
+
 // Calculated assuming that fgDebugTexBrightness of 1 corresponds to range limit of 1,
 // and fgDebugTexBrightness of 10 corresponds to range limit of 0.001.
 static float brightness_to_range_limit(float brightness) { return pow(10, (1 - brightness) / 3); }
 
-static void update_shown_texture()
+static void update_overlay_texture()
 {
   if (!savedSelection)
   {
@@ -82,7 +108,8 @@ static void update_shown_texture()
     return;
   }
 
-  String showTexCommand(0, "render.show_tex copied_fg_debug_tex ");
+  String showTexCommand(0, "render.show_tex ");
+  showTexCommand.aprintf(0, "%s ", copiedTexture->getTexName());
   if (auto manualSettings = eastl::get_if<ManualShowTexSettings>(&showTexSettings))
   {
     showTexCommand.aprintf(0, "%s", manualSettings->showTexArgs);
@@ -106,6 +133,8 @@ static void update_shown_texture()
     }
   }
 }
+
+static void update_shown_texture() { overlayMode ? update_overlay_texture() : update_texdebug_texture(); }
 
 void fg_texture_visualization_imgui_line(const dabfg::InternalRegistry &registry)
 {
@@ -209,19 +238,28 @@ static dabfg::NodeHandle makeDebugTextureCopyNode(const Selection &selection, da
       internalRegistry.nodes[ourId].readResources.clear();
     }
 
-    return [hndl, fullSelectedResName]() {
+    return [hndl, fullSelectedResName, shortSelectedResName]() {
       if (hndl.get())
       {
+        TextureInfo srcInfo;
+        hndl.view()->getinfo(srcInfo);
+
         if (!copiedTexture)
         {
-          TextureInfo texInfo;
-          hndl.view()->getinfo(texInfo);
-          copiedTexture = create_empty_debug_tex(TEXFMT_A16B16G16R16F | TEXCF_RTARGET, texInfo.w, texInfo.h);
-          copiedTextureChannelCount = get_tex_format_desc(texInfo.cflg).channelsCount();
-
+          String copiedTextureName(0, "%s_copied", shortSelectedResName);
+          copiedTexture = create_empty_debug_tex(srcInfo.cflg | TEXCF_RTARGET, srcInfo.w, srcInfo.h, copiedTextureName);
+          copiedTextureChannelCount = get_tex_format_desc(srcInfo.cflg).channelsCount();
           runShowTex = true;
         }
-        d3d::stretch_rect(hndl.view().getBaseTex(), copiedTexture.getBaseTex());
+        else
+        {
+          TextureInfo dstInfo;
+          copiedTexture->getinfo(dstInfo);
+          G_ASSERTF_RETURN(dstInfo.cflg == (srcInfo.cflg | TEXCF_RTARGET), ,
+            "Source and debug texture formats are different. Debug texture should be recreated.");
+        }
+
+        copiedTexture.getBaseTex()->update(hndl.view().getBaseTex());
       }
       else
         logerr("<%s> texture handle returned NULL - no copy was created", fullSelectedResName);
@@ -256,6 +294,7 @@ void update_fg_debug_tex(const eastl::optional<Selection> &selection, dabfg::Int
       }
       selectedResourceIsATexture = true;
       savedSelection = selection;
+      close_visualization_texture();
       debugTextureCopyNode = makeDebugTextureCopyNode(*selection, registry);
     }
     else

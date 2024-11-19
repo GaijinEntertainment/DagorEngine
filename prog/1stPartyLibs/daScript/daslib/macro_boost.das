@@ -33,13 +33,13 @@ class MacroVerifyMacro : AstFunctionAnnotation
 [macro]
 class CaptureBlock : AstVisitor
     [[do_not_delete]] scope : table<Variable?>
-    [[do_not_delete]] capture : table<Variable?; ExprVar?>
+    [[do_not_delete]] captured : table<Variable?; ExprVar?>
     def override preVisitExprVar(expr:smart_ptr<ExprVar>) : void
         if !(expr.varFlags.local || expr.varFlags.argument || expr.varFlags._block)
             return
         let vptr = get_ptr(expr.variable)
         if !(scope |> key_exists(vptr))
-            capture[vptr] = get_ptr(expr)
+            captured[vptr] = get_ptr(expr)
     def override preVisitExprLetVariable(expr:smart_ptr<ExprLet>;arg:VariablePtr;lastArg:bool) : void
         scope |> insert(get_ptr(arg))
     def override preVisitExprForVariable(expr:smart_ptr<ExprFor>;svar:VariablePtr;last:bool) : void
@@ -59,7 +59,7 @@ def public capture_block(expr:ExpressionPtr) : array<CapturedVariable>
     var astVisitor = new CaptureBlock()
     var inscope adapter <- make_visitor(*astVisitor)
     visit(expr, adapter)
-    var res <- [{for k,v in keys(astVisitor.capture),values(astVisitor.capture); [[CapturedVariable variable=k,expression=v]] }]
+    var res <- [{for k,v in keys(astVisitor.captured),values(astVisitor.captured); [[CapturedVariable variable=k,expression=v]] }]
     unsafe
         delete astVisitor
     return <- res

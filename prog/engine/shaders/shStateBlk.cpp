@@ -99,8 +99,8 @@ bool shaders_internal::reload_shaders_materials(ScriptedShadersBinDumpOwner &pre
     }
 
     // copy global intervals
-    int id = shBinDump().globvarIdx[varId];
-    if (id == ScriptedShadersBinDump::VARIDX_ABSENT)
+    int id = shBinDumpOwner().globvarIndexMap[varId];
+    if (id == SHADERVAR_IDX_ABSENT)
       continue;
     int iid = shBinDumpOwner().globVarIntervalIdx[id];
     int prevIid = prev_sh_owner.globVarIntervalIdx[prevGId];

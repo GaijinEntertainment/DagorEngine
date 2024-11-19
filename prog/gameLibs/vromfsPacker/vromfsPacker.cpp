@@ -383,6 +383,44 @@ namespace dblk
 extern bool add_name_to_name_map(DBNameMap &nm, const char *s);
 }
 
+class MultiOutputSave : public IGenSave
+{
+public:
+  MultiOutputSave(IGenSave &out) { addOut(out); }
+
+  void addOut(IGenSave &out) { outs.push_back(&out); }
+
+  void write(const void *data, int sz) override
+  {
+    for (IGenSave *out : outs)
+      out->write(data, sz);
+  }
+
+  int tell() override
+  {
+    G_ASSERTF(0, "Not supported");
+    return 0;
+  }
+  const char *getTargetName() override
+  {
+    G_ASSERTF(0, "Not supported");
+    return "";
+  }
+  void flush() override { G_ASSERTF(0, "Not supported"); }
+  void seekto(int) override { G_ASSERTF(0, "Not supported"); }
+  void seektoend(int) override { G_ASSERTF(0, "Not supported"); }
+  void beginBlock() override { G_ASSERTF(0, "Not supported"); }
+  void endBlock(unsigned) override { G_ASSERTF(0, "Not supported"); }
+  int getBlockLevel() override
+  {
+    G_ASSERTF(0, "Not supported");
+    return 0;
+  }
+
+private:
+  Tab<IGenSave *> outs;
+};
+
 bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &files, Tab<String> &dst_files,
   OAHashNameMap<true> &parse_ext, bool zpack, const DataBlock &inp, bool content_sha1, const char *alt_outdir)
 {
@@ -476,6 +514,8 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
     exit(13);
   }
   bool sign_contents = READ_PROP(Bool, "signedContents", true);
+  bool sign_packed = READ_PROP(Bool, "signPacked", true);
+  bool sign_plain_data = !force_legacy_format && shared_nm && sign_contents && !sign_packed;
 
   mkbindump::BinDumpSaveCB cwr(8 << 20, targetCode, write_be);
   mkbindump::PatchTabRef pt_names, pt_data;
@@ -505,6 +545,7 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
 
   pt_names.reserveData(cwr, files.nameCount(), cwr.PTR_SZ);
   cwr.align16();
+  int names_data_ofs = cwr.tell();
   name_ofs.resize(files.nameCount());
   int i = 0;
   iterate_names_in_order(sorted_fnlist, sorted_fnlist_ids, [&](int, const char *name) {
@@ -514,6 +555,7 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
       printf("DST: %s\n", name);
     i++;
   });
+  int names_data_size = cwr.tell() - names_data_ofs;
 
   cwr.align16();
   pt_data.reserveData(cwr, files.nameCount(), cwr.TAB_SZ);
@@ -566,6 +608,19 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
   Tab<DataBlock *> preloaded_blk;
   preloaded_blk.resize(files.nameCount());
   mem_set_0(preloaded_blk);
+
+  Tab<uint8_t> file_attributes;
+  bool enable_file_attributes = sign_plain_data;
+  int file_attributes_pos = -1;
+  if (enable_file_attributes)
+  {
+    file_attributes.resize(files.nameCount());
+    mem_set_0(file_attributes);
+    file_attributes_pos = cwr.tell();
+    cwr.getRawWriter().writeIntP<1>(1); // attributes version
+    cwr.writeRaw(file_attributes.data(), data_size(file_attributes));
+  }
+
   if (shared_nm)
   {
     // first pass to gather actual shared namemap
@@ -653,6 +708,10 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
 
   cwr.align16();
   data_ofs.resize(files.nameCount());
+  MemorySaveCB plain_cwr(1 << 20);
+  plain_cwr.setMcdMinMax(1 << 20, 8 << 20);
+  MemorySaveCB tmp_cwr(128 << 10);
+
   int mi = 0;
   for (int id : sorted_fnlist_ids)
   {
@@ -681,11 +740,34 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
     if (content_sha1)
       file_data_cwr = create_hash_computer_cb(HASH_SAVECB_SHA1, file_data_cwr);
 
+    MultiOutputSave mos_cwr(*file_data_cwr);
+    if (sign_plain_data)
+      mos_cwr.addOut(plain_cwr);
+
     if (preloaded_blk[id])
     {
       G_ASSERT(shared_nm);
+
+      if (enable_file_attributes)
+        file_attributes[id] |= EVFSFA_TYPE_BLK;
+
       if (!export_data_for_dict_dir)
-        preloaded_blk[id]->saveBinDumpWithSharedNamemap(*file_data_cwr, shared_nm, true, zstd_cdict);
+      {
+        if (sign_plain_data)
+        {
+          tmp_cwr.seekto(0);
+          preloaded_blk[id]->saveDumpToBinStream(tmp_cwr, shared_nm);
+          int sz = tmp_cwr.tell();
+          MemoryLoadCB mcrd(tmp_cwr.getMem(), false);
+          dblk::pack_shared_nm_dump_to_stream(*file_data_cwr, mcrd, sz, zstd_cdict);
+          mcrd.seekto(0);
+          copy_stream_to_stream(mcrd, plain_cwr, sz);
+        }
+        else
+        {
+          preloaded_blk[id]->saveBinDumpWithSharedNamemap(*file_data_cwr, shared_nm, true, zstd_cdict);
+        }
+      }
       else
       {
         cwr_data_for_dict.beginBlock();
@@ -703,6 +785,9 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
       MemorySaveCB mcwr(1 << 20);
       uint64_t names_hash;
 
+      if (enable_file_attributes)
+        file_attributes[id] |= EVFSFA_TYPE_SHARED_NM;
+
       dblk::write_names(mcwr, *shared_nm, &names_hash);
       // write names hash
       file_data_cwr->write(&names_hash, sizeof(names_hash));
@@ -711,18 +796,33 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
       // write shared name map
       MemoryLoadCB mcrd(mcwr.takeMem(), true);
       zstd_stream_compress_data(*file_data_cwr, mcrd, mcrd.getTargetDataSize(), ZSTD_BLK_CLEVEL);
+
+      if (sign_plain_data)
+      {
+        plain_cwr.write(&names_hash, sizeof(names_hash));
+        plain_cwr.write(zstd_dict_blake3_digest, sizeof(zstd_dict_blake3_digest));
+        mcrd.seekto(0);
+        copy_stream_to_stream(mcrd, plain_cwr, mcrd.getTargetDataSize());
+      }
       goto done_write;
     }
 
     if (write_version && force_legacy_format && strcmp(orig_fn, version_legacy_fn) == 0)
     {
+      G_ASSERT(!sign_plain_data);
+      if (enable_file_attributes)
+        file_attributes[id] |= EVFSFA_TYPE_PLAIN;
       String ver(0, "%d.%d.%d.%d", (write_version >> 24) & 0xFF, (write_version >> 16) & 0xFF, (write_version >> 8) & 0xFF,
         write_version & 0xFF);
       file_data_cwr->write(ver.data(), ver.length());
     }
     else if (convert_blk)
     {
+      G_ASSERT(!sign_plain_data);
       DataBlock blk;
+
+      if (enable_file_attributes)
+        file_attributes[id] |= EVFSFA_TYPE_BLK;
 
       {
         DynamicMemGeneralSaveCB memCwr(tmpmem);
@@ -760,9 +860,17 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
         file_data_cwr->write(memCwrBin.data(), memCwrBin.size());
     }
     else if (preprocess)
-      process_and_copy_file_to_stream(orig_fn, *file_data_cwr, targetString, keep_lines);
+    {
+      if (enable_file_attributes)
+        file_attributes[id] |= EVFSFA_TYPE_PLAIN;
+      process_and_copy_file_to_stream(orig_fn, mos_cwr, targetString, keep_lines);
+    }
     else
-      copy_file_to_stream(orig_fn, *file_data_cwr);
+    {
+      if (enable_file_attributes)
+        file_attributes[id] |= EVFSFA_TYPE_PLAIN;
+      copy_file_to_stream(orig_fn, mos_cwr);
+    }
   done_write:
     if (file_data_cwr != &cwr.getRawWriter())
     {
@@ -852,6 +960,12 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
     cwr.writeRaw(file_sha1.data(), data_size(file_sha1));
   }
 
+  if (enable_file_attributes)
+  {
+    cwr.seekto(file_attributes_pos + 1);
+    cwr.writeRaw(file_attributes.data(), data_size(file_attributes));
+  }
+
   pt_names.finishTab(cwr);
   pt_data.finishTab(cwr);
   if (!zpack || content_sha1)
@@ -869,12 +983,23 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
   fcwr.writeInt(targetCode);
   int sz = cwr.getSize();
   fcwr.writeInt(mkbindump::le2be32_cond(sz, write_be));
-  fcwr.writeInt(0);
+  fcwr.writeInt(0);         // placeholder for packed size
   if (!force_legacy_format) // new format with extended header and version
   {
-    fcwr.writeIntP<2>(mkbindump::le2be16_cond(8, write_be));         // size of of extended header
-    fcwr.writeIntP<2>(mkbindump::le2be16_cond(0, write_be));         // flags
-    fcwr.writeInt(mkbindump::le2be32_cond(write_version, write_be)); // version
+    uint16_t flags = 0;
+    uint16_t ext_hdr_size = 8;
+    if (sign_plain_data)
+      flags |= EVFSEF_SIGN_PLAIN_DATA;
+    if (enable_file_attributes)
+    {
+      ext_hdr_size += 4;
+      flags |= EVFSEF_HAVE_FILE_ATTRIBUTES;
+    }
+    fcwr.writeIntP<2>(mkbindump::le2be16_cond(ext_hdr_size, write_be)); // size of of extended header
+    fcwr.writeIntP<2>(mkbindump::le2be16_cond(flags, write_be));        // flags
+    fcwr.writeInt(mkbindump::le2be32_cond(write_version, write_be));    // version
+    if (enable_file_attributes)
+      fcwr.writeInt(mkbindump::le2be32_cond(file_attributes_pos, write_be));
   }
 
   int packed_sz = fcwr.tell();
@@ -921,7 +1046,36 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
   fcwr.close();
 
   fflush(stdout);
-  return write_digital_signature(fcwr, fname, sign_contents ? cwr.getMem() : NULL, inp);
+
+  MemoryChainedData *data_to_sign = nullptr;
+  if (sign_contents)
+  {
+    if (sign_plain_data)
+    {
+      // things that must be signed:
+      // - file data (already in plain_cwr)
+      // - file name pointer table
+      // - file name data
+      // - file attributes
+      int name_ptrs_size = files.nameCount() * cwr.PTR_SZ;
+      int file_attributes_size = enable_file_attributes ? 0 : (1 + data_size(file_attributes));
+      MemorySaveCB &raw_cwr = cwr.getRawWriter();
+      MemoryLoadCB raw_crd(raw_cwr.getMem(), false);
+      raw_crd.seekto(pt_names.resvDataPos);
+      copy_stream_to_stream(raw_crd, plain_cwr, name_ptrs_size);
+      raw_crd.seekto(names_data_ofs);
+      copy_stream_to_stream(raw_crd, plain_cwr, names_data_size);
+      if (file_attributes_size)
+      {
+        raw_crd.seekto(file_attributes_pos);
+        copy_stream_to_stream(raw_crd, plain_cwr, file_attributes_size);
+      }
+      data_to_sign = plain_cwr.getMem();
+    }
+    else
+      data_to_sign = cwr.getMem();
+  }
+  return write_digital_signature(fcwr, fname, data_to_sign, inp);
 }
 
 bool unpackVromfs(const char *fname, const char *dest_folder, bool txt_blk, int content_hash_fn_base, int content_hash_fn_prefix_cnt,
@@ -1377,12 +1531,14 @@ static void print_usage()
     "  -rootfiles<+|->         scan/don't scan root files,          def: -rootfiles+\n"
     "  -packBlk<+|->           pack/don't BLKs to binary format,    def: -packBlk-\n"
     "  -pack<+|->              pack/don't pack vrom contents,       def: -pack+\n"
+    "  -signPacked<+|->        sign zstd/plain content if packing,  def: -signPacked+\n"
     "  -sign:<private_key_fn>  sign content with private key and SHA256 digest\n"
     "  -verbose                use verbose mode (default is -quiet for -B)\n"
     "\nbuild.blk format:\n"
     "  platform:t=\"PC\"             // \"PC\"=default, \"iOS\", \"and\" [multi]\n"
     "  //rootFolder:t=\".\"          // [optional] root path\n"
     "  //pack:b=true               // [optional] use ZSTD pack or not, def=true\n"
+    "  //signPacked:b=true         // [optional] sign ZSTD-packed content instead of plain, def=true\n"
     "  //storeContentSHA1:b=false  // [optional] store content-SHA1 for each file, def=false\n"
     "  //packBlockSizeKB:i=1024    // [optional] use specific block size while packing data, def=1024 (KB)\n"
     "  //blkUseSharedNamemap:b=    // [optional] use shared namemap for all BLKs in vrom (BLK will be saved compressed), def=false\n"
@@ -1671,6 +1827,8 @@ int buildVromfs(DataBlock *explicit_build_rules, dag::ConstSpan<const char *> ar
         }
         else if (strnicmp("-pack", argv[i], 5) == 0)
           inp.setBool("pack", argv[i][5] == '+' || argv[i][5] == '\0');
+        else if (strnicmp("-signPacked", argv[i], 11) == 0)
+          inp.setBool("signPacked", argv[i][11] == '+' || argv[i][11] == '\0');
         else if (strnicmp("-sign:", argv[i], 6) == 0)
         {
           inp.setStr("sign_private_key", argv[i] + 6);
@@ -1812,9 +1970,9 @@ int buildVromfs(DataBlock *explicit_build_rules, dag::ConstSpan<const char *> ar
         ; // skip
       else if (simple_build_mode && (strnicmp("-dest_path:", argv[i], 11) == 0 || strnicmp("-out:", argv[i], 5) == 0 ||
                                       strnicmp("-packBlk", argv[i], 8) == 0 || strnicmp("-pack", argv[i], 5) == 0 ||
-                                      strnicmp("-sign:", argv[i], 6) == 0 || strnicmp("-exclude:", argv[i], 9) == 0 ||
-                                      strnicmp("-subdirs", argv[i], 8) == 0 || strnicmp("-rootfiles", argv[i], 10) == 0 ||
-                                      strnicmp("-include:", argv[i], 9) == 0) ||
+                                      strnicmp("-signPacked", argv[i], 11) == 0 || strnicmp("-sign:", argv[i], 6) == 0 ||
+                                      strnicmp("-exclude:", argv[i], 9) == 0 || strnicmp("-subdirs", argv[i], 8) == 0 ||
+                                      strnicmp("-rootfiles", argv[i], 10) == 0 || strnicmp("-include:", argv[i], 9) == 0) ||
                stricmp("-verbose", argv[i]) == 0)
         ; // skip
       else

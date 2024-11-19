@@ -39,7 +39,7 @@ void FFX_SSSR_InitialAdvanceRay(float3 origin, float3 direction, float3 inv_dire
 
 bool FFX_SSSR_AdvanceRay(float3 origin, float3 direction, float3 inv_direction, float2 current_mip_position, float2 current_mip_resolution_inv, float2 floor_offset, float2 uv_offset, float surface_z, inout float3 position, inout float current_t, bool hit_validation) {
     // Skip tile if view space depth is below the finest surface thickness
-    bool below_surface = hit_validation && (position.z * 1.01 < surface_z);
+    bool below_surface = hit_validation && (linearize_z(position.z, zn_zfar.zw) > linearize_z(surface_z, zn_zfar.zw) * 1.01);
 
     // Create boundary planes
     float2 xy_plane = floor(current_mip_position) + floor_offset;

@@ -222,7 +222,7 @@ public:
   }
 
   // creation-time routines
-  void addBlendNode(IAnimBlendNode *n, real range0, real range1, real bval, AnimationGraph &graph, const char *param_name);
+  void addBlendNode(IAnimBlendNode *n, real range0, real range1, real bval, AnimationGraph &graph, const char *ctrl_name);
 
   // run-time routines
   int getAnimForRange(real range);
@@ -418,7 +418,7 @@ public:
   virtual int getTimeScaleParamId(IPureAnimStateHolder &st) { return poly.size() ? poly[0].node->getTimeScaleParamId(st) : -1; }
 
   // creation-time routines
-  void addBlendNode(IAnimBlendNode *n, real p0, AnimationGraph &graph, const char *ctrl_name, const char *param_name);
+  void addBlendNode(IAnimBlendNode *n, real p0, AnimationGraph &graph, const char *ctrl_name);
 
   const char *class_name() const override { return "AnimBlendCtrl_LinearPoly"; }
   virtual bool isSubOf(DClassID id) { return id == AnimBlendCtrl_LinearPolyCID || IAnimBlendNode::isSubOf(id); }

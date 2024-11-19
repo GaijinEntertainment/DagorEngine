@@ -67,7 +67,10 @@ public:
   virtual void createList(int id, const char caption[], const Tab<String> &vals, int index, bool enabled = true, bool new_line = true);
   virtual void createList(int id, const char caption[], const Tab<String> &vals, const char *selection, bool enabled = true,
     bool new_line = true);
+
+  // You can also use Constants::LISTBOX_DEFAULT_HEIGHT and Constants::LISTBOX_FULL_HEIGHT for height.
   virtual void createMultiSelectList(int id, const Tab<String> &vals, hdpi::Px height, bool enabled = true, bool new_line = true);
+
   virtual void createRadio(int id, const char caption[], bool enabled = true, bool new_line = true);
   virtual void createColorBox(int id, const char caption[], E3DCOLOR value = E3DCOLOR(0, 0, 0, 255), bool enabled = true,
     bool new_line = true);

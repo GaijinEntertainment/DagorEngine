@@ -8,6 +8,7 @@
 #include <math/dag_mathUtils.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <perfMon/dag_statDrv.h>
+#include <perfMon/dag_perfTimer.h>
 #include <sqstdaux.h>
 
 #include <EASTL/algorithm.h>
@@ -610,7 +611,7 @@ bool ObservablesGraph::updateDeferred(String &err_msg)
   FRPDBG("@#@ ObservablesGraph(%p)::updateDeferred()", this);
   G_ASSERT(triggerNestDepth == 0);
 
-  auto t0 = ref_time_ticks();
+  auto t0 = profile_ref_ticks();
   onEnterTriggerRoot();
 
   bool ok = true;
@@ -647,7 +648,7 @@ bool ObservablesGraph::updateDeferred(String &err_msg)
     if (sortedGraph.empty())
     {
       TIME_PROFILE(frp_topo_sort);
-      sortedGraph.reserve(allObservables.size());
+      sortedGraph.reserve(allObservables.size() / 2); // Note: x0.5 is heuristic
 
       // topological sort (roots-to-leaves)
       forAllComputed([&](auto &c) {
@@ -861,7 +862,21 @@ bool ObservablesGraph::updateDeferred(String &err_msg)
 
   onExitTriggerRoot();
 
-  usecUpdateDeferred += get_time_usec(t0);
+  int updateTime = profile_time_usec(t0);
+  usecUpdateDeferred += updateTime;
+
+  if (updateTime > slowUpdateThresholdUsec)
+  {
+    if (++slowUpdateFrames == 60)
+    {
+#if DAGOR_DBGLEVEL > 0
+      logerr("every FRP update is consistenly slow (%d > %d us), looks like looping", updateTime, slowUpdateThresholdUsec);
+#endif
+    }
+  }
+  else
+    slowUpdateFrames = 0;
+
   FRPDBG("@#@ / ObservablesGraph(%p)::updateDeferred()", this);
   return ok;
 }
@@ -896,7 +911,7 @@ bool ObservablesGraph::callScriptSubscribers(BaseObservable *triggered_node, Str
   if (isCallingSubscribers) // leave processing to top level call
     return true;
 
-  auto t0 = ref_time_ticks();
+  auto t0 = profile_ref_ticks();
   bool ok = true;
   for (;;)
   {
@@ -936,7 +951,7 @@ bool ObservablesGraph::callScriptSubscribers(BaseObservable *triggered_node, Str
     }
     curSubscriberCalls.clear();
   }
-  usecSubscribers += get_time_usec(t0);
+  usecSubscribers += profile_time_usec(t0);
   return ok;
 }
 
@@ -1067,7 +1082,7 @@ bool BaseObservable::triggerRoot(String &err_msg, bool call_subscribers)
     logerr("%s triggered during recalc of %s", info.c_str(), rinfo.c_str());
   }
 
-  auto t0 = ref_time_ticks();
+  auto t0 = profile_ref_ticks();
   graph->onEnterTriggerRoot();
 
   bool ok = true;
@@ -1169,7 +1184,7 @@ bool BaseObservable::triggerRoot(String &err_msg, bool call_subscribers)
   isInTrigger = false;
 
   graph->onExitTriggerRoot();
-  graph->usecTrigger += get_time_usec(t0);
+  graph->usecTrigger += profile_time_usec(t0);
 
   return ok;
 }
@@ -2137,7 +2152,7 @@ bool ComputedValue::recalculate(bool &ok)
 
   Sqrat::Object newVal;
   bool callSucceeded = false;
-  auto t0 = ref_time_ticks();
+  auto t0 = profile_ref_ticks();
   if (funcAcceptsCurVal)
     callSucceeded = func.Evaluate(value, newVal);
   else
@@ -2147,7 +2162,7 @@ bool ComputedValue::recalculate(bool &ok)
   needRecalc = false;
   maybeRecalc = false;
 
-  int timeUsec = get_time_usec(t0);
+  int timeUsec = profile_time_usec(t0);
   (isUsed ? graph->usecUsedComputed : graph->usecUnusedComputed) += timeUsec;
   graph->computedRecalcs++;
 
@@ -2557,6 +2572,15 @@ static SQInteger set_recursive_sources(HSQUIRRELVM vm)
   return 0;
 }
 
+static SQInteger set_slow_update_threshold_usec(HSQUIRRELVM vm)
+{
+  ObservablesGraph *graph = ObservablesGraph::get_from_vm(vm);
+  SQInteger val = 1500;
+  sq_getinteger(vm, 2, &val);
+  graph->slowUpdateThresholdUsec = val;
+  return 0;
+}
+
 static SQInteger update_deferred(HSQUIRRELVM vm)
 {
   ObservablesGraph *graph = ObservablesGraph::get_from_vm(vm);
@@ -2650,6 +2674,7 @@ void bind_frp_classes(SqModules *module_mgr)
     .SquirrelFunc("make_all_observables_immutable", make_all_observables_immutable, 2, ".b")
     .SquirrelFunc("set_default_deferred", set_default_deferred, 2, ".b")
     .SquirrelFunc("set_recursive_sources", set_recursive_sources, 2, ".b")
+    .SquirrelFunc("set_slow_update_threshold_usec", set_slow_update_threshold_usec, 2, ".i")
     .SquirrelFunc("recalc_all_computed_values", recalc_all_computed_values, 1, ".")
     .SquirrelFunc("gather_graph_stats", gather_graph_stats, 1, ".")
     .SquirrelFunc("update_deferred", update_deferred, 1, ".")

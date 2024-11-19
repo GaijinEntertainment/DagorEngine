@@ -1,66 +1,85 @@
-require app
 require ecs
-require soundSystem
 require sound_utils.modules.managed_sound_control_common
 
 
-[es(tag=sound, on_event=ParallelUpdateFrameDelayed, REQUIRE=vehicleManageSoundControl, after=(animchar_before_render_es, sound_begin_update_es, sound_control_update), before=sound_end_update_es)]
-def vehicle_managed_sound_control(evt : Event;
-                                  managed_sound_control__maxInstances : int;
-                                  managed_sound_control__cooldown : float;
-                                  var managed_sound_control__entities : EidList&;
-                                  var managed_sound_control__positions : Point3List&)
+[es(tag=sound, on_appear)]
+def managed_sound_on_appear(evt : Event;
+                            managed_sound__maxInstances : int;
+                            managed_sound__type : string;
+                            var managed_sound__idx : int&)
 
-  let listener = get_listener_pos()
-  let curTime = get_sync_time()
+  managed_sound__idx = -1
+  query() <| $ [es] (var managed_sound_control__types : StringList&;
+                     var managed_sound_control__beginPosEnd : IPoint3List&;
+                     var managed_sound_control__entities : EidList&;
+                     var managed_sound_control__positions : Point3List&)
 
-  query() <| $ [es(REQUIRE=vehicleManageSoundControl)] (eid : EntityId;
-                                                        sound_control__inRange : bool;
-                                                        var sound_control__allowSound : bool&;
-                                                        managed_sound__nextTimeToAllow : float;
-                                                        transform : float3x4)
-    managed_sound_control_impl(sound_control__inRange,
-                               managed_sound_control__maxInstances,
-                               managed_sound_control__cooldown,
+    append_managed_sound(managed_sound__maxInstances,
+                         managed_sound__type,
+                         managed_sound__idx,
+
+                         managed_sound_control__types,
+                         managed_sound_control__beginPosEnd,
+                         managed_sound_control__entities,
+                         managed_sound_control__positions)
+
+
+
+[es(tag=sound, on_appear)]
+def managed_sound_control_on_appear(evt : Event;
+                                    var managed_sound_control__types : StringList&;
+                                    var managed_sound_control__beginPosEnd : IPoint3List&;
+                                    var managed_sound_control__entities : EidList&;
+                                    var managed_sound_control__positions : Point3List&)
+
+  clear(managed_sound_control__types)
+  clear(managed_sound_control__beginPosEnd)
+  clear(managed_sound_control__entities)
+  clear(managed_sound_control__positions)
+
+  query() <| $ [es] (managed_sound__maxInstances : int;
+                     managed_sound__type : string;
+                     var managed_sound__idx : int&)
+
+    managed_sound__idx = -1
+
+    append_managed_sound(managed_sound__maxInstances,
+                         managed_sound__type,
+                         managed_sound__idx,
+
+                         managed_sound_control__types,
+                         managed_sound_control__beginPosEnd,
+                         managed_sound_control__entities,
+                         managed_sound_control__positions)
+
+
+
+[es(tag=sound, on_event=ParallelUpdateFrameDelayed, after=(animchar_before_render_es, sound_begin_update_es, sound_control_update), before=sound_end_update_es)]
+def managed_sound_control_update(evt : Event;
+                                 managed_sound_control__cooldown : float;
+                                 var managed_sound_control__beginPosEnd : IPoint3List&;
+                                 var managed_sound_control__entities : EidList&;
+                                 var managed_sound_control__positions : Point3List&)
+
+  update_managed_sound_control(managed_sound_control__cooldown,
+                               managed_sound_control__beginPosEnd,
                                managed_sound_control__entities,
-                               managed_sound_control__positions,
-                               listener,
-                               curTime,
-                               eid,
-                               sound_control__allowSound,
-                               managed_sound__nextTimeToAllow,
-                               transform)
+                               managed_sound_control__positions)
 
 
-
-[es(tag=sound, on_event=ParallelUpdateFrameDelayed, REQUIRE=sfxManageSoundControl, after=(animchar_before_render_es, sound_begin_update_es, sound_control_update), before=sound_end_update_es)]
-def sfx_managed_sound_control(evt : Event;
-                              managed_sound_control__maxInstances : int;
-                              managed_sound_control__cooldown : float;
-                              var managed_sound_control__entities : EidList&;
-                              var managed_sound_control__positions : Point3List&)
-
-  let listener = get_listener_pos()
-  let curTime = get_sync_time()
-
-  query() <| $ [es(REQUIRE=sfxManageSoundControl)] (eid : EntityId;
-                                                    sound_control__inRange : bool;
-                                                    var sound_control__allowSound : bool&;
-                                                    managed_sound__nextTimeToAllow : float;
-                                                    transform : float3x4)
-    managed_sound_control_impl(sound_control__inRange,
-                               managed_sound_control__maxInstances,
-                               managed_sound_control__cooldown,
-                               managed_sound_control__entities,
-                               managed_sound_control__positions,
-                               listener,
-                               curTime,
-                               eid,
-                               sound_control__allowSound,
-                               managed_sound__nextTimeToAllow,
-                               transform)
+[es(tag=sound, track=isAlive)]
+def managed_sound_track_is_alive(evt : Event;
+                                 eid : EntityId;
+                                 isAlive : bool;
+                                 managed_sound__idx : int;
+                                 var sound_control__allowSound : bool&)
+  if !isAlive
+    remove_managed_sound(eid, managed_sound__idx)
+    sound_control__allowSound = false
 
 
-[es(tag=sound, on_disappear, REQUIRE=managedSound)]
-def managed_sound_disappear(evt : Event; eid : EntityId)
-  remove_managed_sound(eid)
+[es(tag=sound, on_disappear)]
+def managed_sound_disappear(evt : Event;
+                            eid : EntityId;
+                            managed_sound__idx : int)
+  remove_managed_sound(eid, managed_sound__idx)

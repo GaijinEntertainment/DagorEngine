@@ -1920,7 +1920,25 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
   return SUCCEEDED(last_hres);
 }
 
-void close_device(bool is_reset)
+static void close_all(bool is_reset)
+{
+  close_rendertargets();
+  close_buffers();
+  close_shaders();
+  close_states();
+  close_samplers();
+  close_predicates();
+  close_textures();
+  close_frame_callbacks();
+  reset_all_queries();
+
+  if (is_reset)
+    print_memory_stat();
+
+  debug("%s", __FUNCTION__);
+}
+
+static void close_device(bool is_reset)
 {
   nvlowlatency::close();
   close_perf_analysis();
@@ -1930,7 +1948,7 @@ void close_device(bool is_reset)
   DEBUG_CTX("deleted backbuffer %p", ds.backBufferColorTex);
   del_d3dres(ds.backBufferColorTex);
 
-  debug("close_device");
+  debug("%s", __FUNCTION__);
 
   if (!dx11_dllh)
     return;
@@ -1939,10 +1957,7 @@ void close_device(bool is_reset)
     dx11_DXGIFactory->Release();
   dx11_DXGIFactory = NULL;
 
-  close_all();
-  print_memory_stat();
-
-  debug("closed_all");
+  close_all(is_reset);
 
   if (amdDepthBoundsExtension != nullptr)
   {
@@ -2104,7 +2119,9 @@ HRESULT drv3d_dx11::set_fullscreen_state(bool fullscreen)
     DEBUG_CTX("deleted backbuffer %p", g_driver_state.backBufferColorTex);
     // DXGI_SWAP_EFFECT_FLIP_DISCARD or DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL
     // MSDN: Before you call ResizeBuffers, ensure that the application releases all references.
-    del_d3dres(g_driver_state.backBufferColorTex);
+    // Note: Destroy via DA to reduce chances that some other render (perhaps splash) thread refs it
+    add_delayed_callback_buffered([](void *t) { destroy_d3dres((Texture *)t); }, g_driver_state.backBufferColorTex);
+    g_driver_state.backBufferColorTex = nullptr;
 
     {
       ContextAutoLock contextLock;

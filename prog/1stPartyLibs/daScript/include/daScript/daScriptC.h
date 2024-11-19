@@ -59,7 +59,13 @@ typedef struct dasNode das_node;
 typedef struct dasStructure das_structure;
 typedef struct dasEnumeration das_enumeration;
 
+typedef struct {
+    float x, y, z, w;
+} vec4f_unaligned;
+
 typedef vec4f (das_interop_function) ( das_context * ctx, das_node * node, vec4f * arguments );
+
+typedef void (das_interop_function_unaligned) ( das_context * ctx, das_node * node, vec4f_unaligned * arguments, vec4f_unaligned * result );
 
 void das_initialize();
 void das_shutdown();
@@ -94,6 +100,7 @@ das_context * das_context_make ( int stackSize );
 void das_context_release ( das_context * context );
 das_function * das_context_find_function ( das_context * context, char * name );
 vec4f das_context_eval_with_catch ( das_context * context, das_function * fun, vec4f * arguments );
+void das_context_eval_with_catch_unaligned ( das_context * context, das_function * fun, vec4f_unaligned * arguments, int narguments, vec4f_unaligned * result );
 char * das_context_get_exception ( das_context * context );
 
 das_structure * das_structure_make ( das_module_group * lib, const char * name, const char * cppname, int sz, int al );
@@ -104,6 +111,7 @@ void das_enumeration_add_value ( das_enumeration * enu, const char * name, const
 
 das_module * das_module_create ( char * name );
 void das_module_bind_interop_function ( das_module * mod, das_module_group * lib, das_interop_function * fun, char * name, char * cppName, uint32_t sideffects, char* args );
+void das_module_bind_interop_function_unaligned ( das_module * mod, das_module_group * lib, das_interop_function_unaligned * fun, char * name, char * cppName, uint32_t sideffects, char* args );
 void das_module_bind_alias ( das_module * mod, das_module_group * lib, char * aname, char * tname );
 void das_module_bind_structure ( das_module * mod, das_structure * st );
 void das_module_bind_enumeration ( das_module * mod, das_enumeration * en );
@@ -114,12 +122,25 @@ double das_argument_double ( vec4f arg );
 char * das_argument_string ( vec4f arg );
 void * das_argument_ptr ( vec4f arg );
 
+int das_argument_int_unaligned ( vec4f_unaligned * arg );
+float das_argument_float_unaligned ( vec4f_unaligned * arg );
+double das_argument_double_unaligned ( vec4f_unaligned * arg );
+char * das_argument_string_unaligned ( vec4f_unaligned * arg );
+void * das_argument_ptr_unaligned ( vec4f_unaligned * arg );
+
 vec4f das_result_void ();
 vec4f das_result_int ( int r );
 vec4f das_result_float ( float r );
 vec4f das_result_double ( double r );
 vec4f das_result_string ( char * r );
 vec4f das_result_ptr ( void * r );
+
+void das_result_void_unaligned ( vec4f_unaligned * result );
+void das_result_int_unaligned ( vec4f_unaligned * result, int r );
+void das_result_float_unaligned ( vec4f_unaligned * result, float r );
+void das_result_double_unaligned ( vec4f_unaligned * result, double r );
+void das_result_string_unaligned ( vec4f_unaligned * result, char * r );
+void das_result_ptr_unaligned ( vec4f_unaligned * result, void * r );
 
 #ifdef __cplusplus
 }

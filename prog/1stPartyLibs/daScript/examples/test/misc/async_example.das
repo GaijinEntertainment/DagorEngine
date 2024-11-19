@@ -14,6 +14,13 @@ struct Data
     b : string
     arr : array<int>
 
+[async] def timeout(time : float; var callback : lambda<void>): void
+    let start_time = get_clock()
+    while get_clock() - start_time < double(time)
+        await_next_frame()
+    invoke(callback)
+
+
 [async] def get_plus_1(a : int) : int
     log("get_plus_1 1\n")
     await_next_frame() // frame pause
@@ -48,6 +55,8 @@ struct Data
         yield true
 
 [async] def getall() : void
+    log("timeout...\n")
+    await <| timeout(1.0, @() { log("timeout done\n"); })
     var a = await <| get_plus_1(100)
     debug(a, "1+100")
     assert(a == 101)

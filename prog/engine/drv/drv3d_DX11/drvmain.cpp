@@ -189,7 +189,7 @@ void reset_all_queries()
 void print_memory_stat()
 {
   ComPtr<IDXGIAdapter3> adapter3;
-  if (SUCCEEDED(get_active_adapter(dx_device)->QueryInterface(COM_ARGS(&adapter3))))
+  if (auto adptr = get_active_adapter(dx_device); adptr && SUCCEEDED(adptr->QueryInterface(COM_ARGS(&adapter3))))
   {
     DXGI_QUERY_VIDEO_MEMORY_INFO info;
     if ((SUCCEEDED(adapter3->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &info)) && info.Budget > 0) ||

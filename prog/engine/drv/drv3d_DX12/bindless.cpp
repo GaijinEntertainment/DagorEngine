@@ -14,7 +14,8 @@ using namespace drv3d_dx12;
 #define BINDLESS_REPORT(...)
 #endif
 
-void frontend::BindlessManager::init(DeviceContext &ctx, SamplerDescriptorAndState default_bindless_sampler)
+void frontend::BindlessManager::init(DeviceContext &ctx, SamplerDescriptorAndState default_bindless_sampler,
+  const NullResourceTable *null_resource_table)
 {
   // need to take the lock here to keep consistent ordering
   ScopedCommitLock ctxLock{ctx};
@@ -25,6 +26,8 @@ void frontend::BindlessManager::init(DeviceContext &ctx, SamplerDescriptorAndSta
 
   const uint32_t defaultSamplerBindlessIdx = 0;
   ctx.bindlessSetSamplerDescriptorNoLock(defaultSamplerBindlessIdx, default_bindless_sampler.sampler);
+
+  nullResourceTable = null_resource_table;
 }
 
 uint32_t frontend::BindlessManager::registerSampler(Device &device, DeviceContext &ctx, BaseTex *texture)
@@ -67,10 +70,9 @@ uint32_t frontend::BindlessManager::registerSampler(DeviceContext &ctx, SamplerD
   return newIndex;
 }
 
-void frontend::BindlessManager::resetBufferReferences(DeviceContext &ctx, D3D12_CPU_DESCRIPTOR_HANDLE descriptor,
-  const NullResourceTable &null_table)
+void frontend::BindlessManager::resetBufferReferences(DeviceContext &ctx, D3D12_CPU_DESCRIPTOR_HANDLE descriptor)
 {
-  const auto nullDescriptor = null_table.table[NullResourceTable::SRV_BUFFER];
+  const auto nullDescriptor = nullResourceTable->table[NullResourceTable::SRV_BUFFER];
   resetReferences<BufferSlotUsage>(ctx, nullDescriptor,
     [descriptor](const BufferSlotUsage &info) { return info.descriptor == descriptor; });
 }
@@ -220,8 +222,7 @@ uint32_t res_type_to_null_resource_table_entry(int res_type)
 }
 } // namespace
 
-void frontend::BindlessManager::updateBindlessTexture(DeviceContext &ctx, uint32_t index, BaseTex *texture,
-  const NullResourceTable &null_table)
+void frontend::BindlessManager::updateBindlessTexture(DeviceContext &ctx, uint32_t index, BaseTex *texture)
 {
   // need to take the lock here to keep consistent ordering
   ScopedCommitLock ctxLock{ctx};
@@ -229,23 +230,25 @@ void frontend::BindlessManager::updateBindlessTexture(DeviceContext &ctx, uint32
 
   checkBindlessRangeAllocatedNoLock(index, 1);
 
-  if (texture->isStub())
-    texture = texture->getStubTex();
+  auto textureRes = texture;
+  if (textureRes->isStub())
+    textureRes = textureRes->getStubTex();
 
-  if (!texture->getDeviceImage())
+  if (!textureRes->getDeviceImage())
   {
     state.resourceSlotInfo[index] = eastl::monostate{};
-    ctx.bindlessSetResourceDescriptorNoLock(index, null_table.table[res_type_to_null_resource_table_entry(texture->restype())]);
+    ctx.bindlessSetResourceDescriptorNoLock(index,
+      nullResourceTable->table[res_type_to_null_resource_table_entry(textureRes->restype())]);
     logwarn("DX12: frontend::BindlessManager::updateBindlessTexture slot %u was updated to null descriptor (texture is not valid)",
       index);
     return;
   }
 
-  auto view = texture->getViewInfo();
-  auto image = texture->getDeviceImage();
+  auto view = textureRes->getViewInfo();
+  auto image = textureRes->getDeviceImage();
 
   TextureSlotUsage info;
-  info.texture = texture;
+  info.texture = texture; // I think, we need to keep reference to the resource from args here to have oportunity to update it later.
   info.image = image;
   info.view = view;
 
@@ -304,13 +307,13 @@ frontend::BindlessManager::CheckTextureImagePairResultType frontend::BindlessMan
   return result;
 }
 
-void frontend::BindlessManager::updateTextureReferencesNoLock(DeviceContext &ctx, BaseTex *tex, Image *old_image, Image *new_image,
+void frontend::BindlessManager::updateTextureReferencesNoLock(DeviceContext &ctx, BaseTex *tex, Image *old_image,
   uint32_t search_offset, uint32_t change_max_count, bool ignore_previous_view)
 {
   const auto bot = state.resourceSlotInfo.beginOfStartingAt<TextureSlotUsage>(search_offset);
   const auto eot = state.resourceSlotInfo.endOf<TextureSlotUsage>();
-  auto at = bot;
-  for (; change_max_count; --change_max_count, ++at)
+  const auto newImage = tex->getDeviceImage();
+  for (auto at = bot; change_max_count; --change_max_count, ++at)
   {
     at = eastl::find_if(at, eot, [tex, old_image](const auto &info) { return tex == info.texture && old_image == info.image; });
     if (eot == at)
@@ -321,11 +324,11 @@ void frontend::BindlessManager::updateTextureReferencesNoLock(DeviceContext &ctx
     const auto index = eastl::distance(state.resourceSlotInfo.begin(), at.asUntyped());
 
     const auto adjustedPreviousView =
-      adjust_previous_view(previousView, old_image->getMipLevelRange().count(), new_image->getMipLevelRange().count());
+      adjust_previous_view(previousView, old_image->getMipLevelRange().count(), newImage->getMipLevelRange().count());
     const auto newView = ignore_previous_view ? tex->getViewInfo() : adjustedPreviousView;
-    ctx.bindlessSetResourceDescriptorNoLock(index, new_image, newView);
+    ctx.bindlessSetResourceDescriptorNoLock(index, newImage, newView);
 
-    at->image = new_image;
+    at->image = newImage;
     at->view = newView;
   }
 }
@@ -351,13 +354,17 @@ void frontend::BindlessManager::updateBufferReferencesNoLock(DeviceContext &ctx,
   }
 }
 
-bool frontend::BindlessManager::hasTextureReference(BaseTex *tex)
+bool frontend::BindlessManager::hasTextureReferenceNoLock(BaseTex *tex)
 {
-  OSSpinlockScopedLock stateLock{get_state_guard()};
-
   const auto bot = state.resourceSlotInfo.beginOf<TextureSlotUsage>();
   const auto eot = state.resourceSlotInfo.endOf<TextureSlotUsage>();
   return eot != eastl::find_if(bot, eot, [tex](const auto &info) { return info.texture == tex; });
+}
+
+bool frontend::BindlessManager::hasTextureReference(BaseTex *tex)
+{
+  OSSpinlockScopedLock stateLock{get_state_guard()};
+  return hasTextureReferenceNoLock(tex);
 }
 
 bool frontend::BindlessManager::hasTextureImageReference(BaseTex *tex, Image *image)
@@ -424,14 +431,20 @@ bool frontend::BindlessManager::hasBufferViewReference(D3D12_CPU_DESCRIPTOR_HAND
   return eot != eastl::find_if(bot, eot, [view](const auto &info) { return info.descriptor == view; });
 }
 
-void frontend::BindlessManager::resetTextureReferences(DeviceContext &ctx, BaseTex *texture, const NullResourceTable &null_table)
+void frontend::BindlessManager::resetTextureReferences(DeviceContext &ctx, BaseTex *texture)
 {
-  const auto nullDescriptor = null_table.table[res_type_to_null_resource_table_entry(texture->restype())];
+  const auto nullDescriptor = nullResourceTable->table[res_type_to_null_resource_table_entry(texture->restype())];
   resetReferences<TextureSlotUsage>(ctx, nullDescriptor, [texture](const auto &info) { return texture == info.texture; });
 }
 
-void frontend::BindlessManager::updateBindlessNull(DeviceContext &ctx, uint32_t resource_type, uint32_t index, uint32_t count,
-  const NullResourceTable &null_table)
+void frontend::BindlessManager::resetTextureImagePairReferencesNoLock(DeviceContext &ctx, BaseTex *texture, Image *image)
+{
+  const auto nullDescriptor = nullResourceTable->table[res_type_to_null_resource_table_entry(texture->restype())];
+  resetReferencesNoLock<TextureSlotUsage>(ctx, nullDescriptor,
+    [texture, image](const auto &info) { return texture == info.texture && image == info.image; });
+}
+
+void frontend::BindlessManager::updateBindlessNull(DeviceContext &ctx, uint32_t resource_type, uint32_t index, uint32_t count)
 {
   // need to take the lock here to keep consistent ordering
   ScopedCommitLock ctxLock{ctx};
@@ -442,7 +455,7 @@ void frontend::BindlessManager::updateBindlessNull(DeviceContext &ctx, uint32_t 
   eastl::fill_n(state.resourceSlotInfo.begin() + index, count, eastl::monostate{});
   for (uint32_t i = index; i < index + count; ++i)
   {
-    ctx.bindlessSetResourceDescriptorNoLock(i, null_table.table[res_type_to_null_resource_table_entry(resource_type)]);
+    ctx.bindlessSetResourceDescriptorNoLock(i, nullResourceTable->table[res_type_to_null_resource_table_entry(resource_type)]);
   }
 }
 
@@ -465,13 +478,9 @@ ImageViewState frontend::BindlessManager::adjust_previous_view(ImageViewState pr
 }
 
 template <typename SlotType, typename CheckerType>
-void frontend::BindlessManager::resetReferences(DeviceContext &ctx, D3D12_CPU_DESCRIPTOR_HANDLE nullDescriptor,
+void frontend::BindlessManager::resetReferencesNoLock(DeviceContext &ctx, D3D12_CPU_DESCRIPTOR_HANDLE nullDescriptor,
   const CheckerType &checker)
 {
-  // need to take the lock here to keep consistent ordering
-  ScopedCommitLock ctxLock{ctx};
-  OSSpinlockScopedLock stateLock{get_state_guard()};
-
   auto at = state.resourceSlotInfo.beginOf<SlotType>();
   const auto typedEnd = state.resourceSlotInfo.endOf<SlotType>();
   for (;; ++at)
@@ -492,6 +501,16 @@ void frontend::BindlessManager::resetReferences(DeviceContext &ctx, D3D12_CPU_DE
     // descriptors on a race condition
     *untypedAt = eastl::monostate{};
   }
+}
+
+template <typename SlotType, typename CheckerType>
+void frontend::BindlessManager::resetReferences(DeviceContext &ctx, D3D12_CPU_DESCRIPTOR_HANDLE nullDescriptor,
+  const CheckerType &checker)
+{
+  // need to take the lock here to keep consistent ordering
+  ScopedCommitLock ctxLock{ctx};
+  OSSpinlockScopedLock stateLock{get_state_guard()};
+  resetReferencesNoLock<SlotType>(ctx, nullDescriptor, checker);
 }
 
 void backend::BindlessSetManager::init(ID3D12Device *device)

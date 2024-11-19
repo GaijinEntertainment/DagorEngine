@@ -82,7 +82,7 @@ struct DapiFunc
 
 // das::Lambda
 struct DapiLambda
-    capture : void?
+    captured : void?
 
 // das::Sequence
 struct DapiSequence

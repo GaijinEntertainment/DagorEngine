@@ -253,6 +253,7 @@ shader deferred_simple, satellite_render_resolve
       //result.rgb = apply_fog(result.rgb, pointToEye);
       result.rgb = pack_hdr(result.rgb).rgb;
       ##if shader == satellite_render_resolve
+      result.rgb *= getExposureScale();
       result.rgb = performLUTTonemap(result.rgb);
       ##endif
       return float4(result,1);

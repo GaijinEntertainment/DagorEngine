@@ -103,7 +103,7 @@ shader dagdp_heightmap_cull_tiles
         int2 tileIntPos = structuredBufferAt(tile_positions, dtId.x);
         float2 tilePosXZ = base_tile_pos_xz + tile_pos_delta * tileIntPos;
         float3 tilePos = float3(tilePosXZ.x, getWorldHeight(tilePosXZ), tilePosXZ.y) - max_placeable_bounding_radius;
-        float3 tileSize = float3(tile_pos_delta, 0, tile_pos_delta) + max_placeable_bounding_radius;
+        float3 tileSize = float3(tile_pos_delta, 0, tile_pos_delta) + 2*max_placeable_bounding_radius;
 
         // For full correctness, the height of the bbox tile should probably be tied to the y view position.
         if (testBoxB(tilePos, tilePos + tileSize))

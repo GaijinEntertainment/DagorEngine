@@ -9,6 +9,7 @@
 #include <dag/dag_vector.h>
 #include <EASTL/optional.h>
 #include <EASTL/variant.h>
+#include <drv/3d/dag_samplerHandle.h>
 
 class DataBlock;
 class BaseTexture;
@@ -72,5 +73,6 @@ inline void EnumCombo(const char *name, T first, T last, T &value, const char *(
 
 void Image(const TEXTUREID &id, Texture *texture, const ImVec2 &uv0 = ImVec2(0, 0), const ImVec2 &uv1 = ImVec2(1, 1));
 void Image(const TEXTUREID &id, float aspect, const ImVec2 &uv0 = ImVec2(0, 0), const ImVec2 &uv1 = ImVec2(1, 1));
+void Sampler(d3d::SamplerHandle smp);
 
 } // namespace ImGuiDagor

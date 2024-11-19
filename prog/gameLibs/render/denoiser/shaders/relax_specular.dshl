@@ -68,6 +68,24 @@ shader nrd_relax_specular_atorus
   compile("cs_6_5", "main");
 }
 
+shader nrd_relax_specular_copy
+{
+  hlsl(cs) {
+    #include "RELAX_Specular_Copy.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
+shader nrd_relax_specular_anti_firefly
+{
+  hlsl(cs) {
+    #include "RELAX_Specular_AntiFirefly.cs.hlsl"
+  }
+
+  compile("cs_6_5", "main");
+}
+
 shader nrd_relax_validation
 {
   hlsl (cs) {

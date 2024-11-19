@@ -66,19 +66,20 @@
   DECL_VEC_CONST vec4f_const V_C_UNIT_0011 = {0.0f, 0.0f, 1.0f, 1.0f};
 
   DECL_VEC_CONST vec4i_const V_CI_MASK0000 = { 0, 0, 0, 0 };
-  DECL_VEC_CONST vec4i_const V_CI_MASK1000 = { 0xFFFFFFFF, 0, 0, 0 };
-  DECL_VEC_CONST vec4i_const V_CI_MASK0100 = { 0, 0xFFFFFFFF, 0, 0 };
-  DECL_VEC_CONST vec4i_const V_CI_MASK0010 = { 0, 0, 0xFFFFFFFF, 0 };
   DECL_VEC_CONST vec4i_const V_CI_MASK0001 = { 0, 0, 0, 0xFFFFFFFF };
-  DECL_VEC_CONST vec4i_const V_CI_MASK1100 = { 0xFFFFFFFF, 0xFFFFFFFF, 0, 0 };
-  DECL_VEC_CONST vec4i_const V_CI_MASK0110 = { 0, 0xFFFFFFFF, 0xFFFFFFFF, 0 };
+  DECL_VEC_CONST vec4i_const V_CI_MASK0010 = { 0, 0, 0xFFFFFFFF, 0 };
   DECL_VEC_CONST vec4i_const V_CI_MASK0011 = { 0, 0, 0xFFFFFFFF, 0xFFFFFFFF };
-  DECL_VEC_CONST vec4i_const V_CI_MASK1010 = { 0xFFFFFFFF, 0, 0xFFFFFFFF, 0 };
-  DECL_VEC_CONST vec4i_const V_CI_MASK0101 = { 0, 0xFFFFFFFF, 0xFFFFFFFF, 0 };
-  DECL_VEC_CONST vec4i_const V_CI_MASK1110 = { 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0 };
-  DECL_VEC_CONST vec4i_const V_CI_MASK1101 = { 0xFFFFFFFF, 0xFFFFFFFF, 0, 0xFFFFFFFF };
-  DECL_VEC_CONST vec4i_const V_CI_MASK1011 = { 0xFFFFFFFF, 0, 0xFFFFFFFF, 0xFFFFFFFF };
+  DECL_VEC_CONST vec4i_const V_CI_MASK0100 = { 0, 0xFFFFFFFF, 0, 0 };
+  DECL_VEC_CONST vec4i_const V_CI_MASK0101 = { 0, 0xFFFFFFFF, 0, 0xFFFFFFFF };
+  DECL_VEC_CONST vec4i_const V_CI_MASK0110 = { 0, 0xFFFFFFFF, 0xFFFFFFFF, 0 };
   DECL_VEC_CONST vec4i_const V_CI_MASK0111 = { 0, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF };
+  DECL_VEC_CONST vec4i_const V_CI_MASK1000 = { 0xFFFFFFFF, 0, 0, 0 };
+  DECL_VEC_CONST vec4i_const V_CI_MASK1001 = { 0xFFFFFFFF, 0, 0, 0xFFFFFFFF };
+  DECL_VEC_CONST vec4i_const V_CI_MASK1010 = { 0xFFFFFFFF, 0, 0xFFFFFFFF, 0 };
+  DECL_VEC_CONST vec4i_const V_CI_MASK1011 = { 0xFFFFFFFF, 0, 0xFFFFFFFF, 0xFFFFFFFF };
+  DECL_VEC_CONST vec4i_const V_CI_MASK1100 = { 0xFFFFFFFF, 0xFFFFFFFF, 0, 0 };
+  DECL_VEC_CONST vec4i_const V_CI_MASK1101 = { 0xFFFFFFFF, 0xFFFFFFFF, 0, 0xFFFFFFFF };
+  DECL_VEC_CONST vec4i_const V_CI_MASK1110 = { 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0 };
   DECL_VEC_CONST vec4i_const V_CI_MASK1111 = { 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF };
 
 #elif _TARGET_SIMD_NEON
@@ -153,19 +154,20 @@
   #define V_C_UNIT_0011       DECL_VECFLOAT4( 0.0f, 0.0f, 1.0f, 1.0f )
 
   #define V_CI_MASK0000       vdupq_n_s32(0)
-  #define V_CI_MASK1000       DECL_VECUINT4( -1, 0, 0, 0 )
-  #define V_CI_MASK0100       DECL_VECUINT4( 0, -1, 0, 0 )
-  #define V_CI_MASK0010       DECL_VECUINT4( 0, 0, -1, 0 )
   #define V_CI_MASK0001       DECL_VECUINT4( 0, 0, 0, -1 )
-  #define V_CI_MASK1100       DECL_VECUINT4( -1, -1, 0, 0 )
-  #define V_CI_MASK0110       DECL_VECUINT4( 0, -1, -1, 0 )
+  #define V_CI_MASK0010       DECL_VECUINT4( 0, 0, -1, 0 )
   #define V_CI_MASK0011       DECL_VECUINT4( 0, 0, -1, -1 )
-  #define V_CI_MASK1010       DECL_VECUINT4( -1, 0, -1, 0 )
+  #define V_CI_MASK0100       DECL_VECUINT4( 0, -1, 0, 0 )
   #define V_CI_MASK0101       DECL_VECUINT4( 0, -1, 0, -1 )
-  #define V_CI_MASK1110       DECL_VECUINT4( -1, -1, -1, 0 )
-  #define V_CI_MASK1101       DECL_VECUINT4( -1, -1, 0, -1 )
-  #define V_CI_MASK1011       DECL_VECUINT4( -1, 0, -1, -1 )
+  #define V_CI_MASK0110       DECL_VECUINT4( 0, -1, -1, 0 )
   #define V_CI_MASK0111       DECL_VECUINT4( 0, -1, -1, -1 )
+  #define V_CI_MASK1000       DECL_VECUINT4( -1, 0, 0, 0 )
+  #define V_CI_MASK1001       DECL_VECUINT4( -1, 0, 0, -1 )
+  #define V_CI_MASK1010       DECL_VECUINT4( -1, 0, -1, 0 )
+  #define V_CI_MASK1011       DECL_VECUINT4( -1, 0, -1, -1 )
+  #define V_CI_MASK1100       DECL_VECUINT4( -1, -1, 0, 0 )
+  #define V_CI_MASK1101       DECL_VECUINT4( -1, -1, 0, -1 )
+  #define V_CI_MASK1110       DECL_VECUINT4( -1, -1, -1, 0 )
   #define V_CI_MASK1111       DECL_VECUINT4( -1, -1, -1, -1 )
 #endif
 

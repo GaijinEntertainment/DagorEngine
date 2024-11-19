@@ -1,0 +1,97 @@
+include "shader_global.dshl"
+
+buffer screen_snowflakes_buf;
+
+shader screen_snowflakes
+{
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  blend_src = one; blend_dst = one;
+  blend_op = max;
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 localPos : TEXCOORD0;
+      float opacity : TEXCOORD1;
+      float seed : TEXCOORD2;
+      float size : TEXCOORD3;
+    };
+  }
+
+  (vs) {
+    screen_aspect_ratio@f1 = rendering_res.x / rendering_res.y;
+    screen_snowflakes_buf@buf = screen_snowflakes_buf hlsl {
+      #include <screen_snowflakes/shaders/snowflake.hlsli>
+      StructuredBuffer<Snowflake> screen_snowflakes_buf@buf;
+    };
+  }
+
+  hlsl(vs) {
+    VsOutput screen_snowflakes_vs(uint vertex_id : SV_VertexID, uint inst_id : SV_InstanceID) {
+      VsOutput OUT;
+
+      float2 vpos = float2(vertex_id < 2 ? -0.5 : 0.5,
+                           vertex_id % 3 == 0 ? 0.5 : -0.5);
+
+      Snowflake snowflake = screen_snowflakes_buf[inst_id];
+      OUT.pos = float4(snowflake.pos.x + vpos.x * snowflake.size.x,
+                       snowflake.pos.y + vpos.y * snowflake.size.y * screen_aspect_ratio,
+                       0, 1);
+      OUT.localPos = OUT.pos.xy - snowflake.pos;
+      OUT.opacity = snowflake.opacity;
+      OUT.seed = snowflake.seed;
+      OUT.size = snowflake.size.x;
+
+      return OUT;
+    }
+  }
+
+  (ps) {
+    screen_aspect_ratio@f1 = rendering_res.x / rendering_res.y;
+  }
+
+  hlsl(ps) {
+    #include "noise/Perlin2D.hlsl"
+
+    #define BASE_PERLIN_STRENGTH 45.
+    #define JAGGEDNESS 3.
+    #define DETAIL_STRENGTH 0.5
+    #define DETAIL_INVERSE_SCALE 2.
+
+    float perlin_scaled(float2 p) // to [0.5, 1] range
+    {
+      return noise_Perlin2D(p) * 0.25 + 0.75;
+    }
+
+    float relu_pow2(float x)
+    {
+      x = max(0.0, x);
+      return x * x;
+    }
+
+    float screen_snowflakes_ps(VsOutput input): SV_Target
+    {
+      float dist = length(float2(input.localPos.x, input.localPos.y / screen_aspect_ratio)) / input.size;
+      input.localPos *= JAGGEDNESS / input.size;
+      float value = BASE_PERLIN_STRENGTH * perlin_scaled(input.localPos + input.seed);
+
+      // Fade with distance from the center:
+      value *= relu_pow2(1.0 - dist);
+
+      value = smoothstep(15., 30., value) * input.opacity;
+      float detail = noise_Perlin2D(DETAIL_INVERSE_SCALE * input.localPos + input.seed);
+      value *= (1. + DETAIL_STRENGTH * detail);
+      // Adding irregurality to snowflake melting:
+      value -= 0.5 * (1. - input.opacity) * (detail * 0.5 + 0.5);
+
+      return saturate(value);
+    }
+  }
+
+  compile("target_vs", "screen_snowflakes_vs");
+  compile("target_ps", "screen_snowflakes_ps");
+}

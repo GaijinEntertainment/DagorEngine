@@ -71,7 +71,6 @@ Compile
     volumetric_light_assumed_off:i=1
     froxel_fog_use_experimental_offscreen_reprojection:i = 0
     use_directional_blood_on_screen:i=0
-    blood_wound_high_quality:i=0
     blood_puddles_has_separate_flowmap:i=0
     small_sampled_buffers:i=0
     assume_fom_shadows:i=1

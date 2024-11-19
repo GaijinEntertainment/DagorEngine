@@ -813,7 +813,8 @@ void Device::shutdown(const DeviceCapsAndShaderModel &features)
 
 void Device::initializeBindlessManager()
 {
-  bindlessManager.init(context, {nullResourceTable.table[NullResourceTable::SAMPLER], SamplerState::make_default()});
+  bindlessManager.init(context, {nullResourceTable.table[NullResourceTable::SAMPLER], SamplerState::make_default()},
+    &nullResourceTable);
 }
 
 namespace gpu
@@ -1400,6 +1401,10 @@ HRESULT Device::findClosestMatchingMode(DXGI_MODE_DESC *out_desc)
 D3D12_FEATURE_DATA_FORMAT_SUPPORT Device::getFormatFeatures(FormatStore fmt)
 {
   D3D12_FEATURE_DATA_FORMAT_SUPPORT query = {};
+  if (!waitForHealthyState())
+  {
+    return query;
+  }
   query.Format = fmt.asDxGiFormat();
   device->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &query, sizeof(query));
   // If this is true we also need to check the linear variant to accurately represent possible uses when in linear mode
@@ -1609,9 +1614,16 @@ void Device::unregisterDeviceResetEventHandler(DeviceResetEventHandler *handler)
     G_ASSERTF(false, "Could not find device reset event handler to unregister.");
 }
 
-void Device::updateTextureBindlessReferencesNoLock(BaseTex *tex, Image *old_image, Image *new_image, bool ignore_previous_view)
+void Device::updateTextureBindlessReferencesNoLock(BaseTex *tex, Image *old_image, bool ignore_previous_view)
 {
-  bindlessManager.updateTextureReferencesNoLock(context, tex, old_image, new_image, 0, eastl::numeric_limits<uint32_t>::max(),
+  if (tex->image == nullptr)
+  {
+    logwarn("DX12: Texture (%s) has no image, resetting all bindless references...", tex->getResName());
+    bindlessManager.resetTextureImagePairReferencesNoLock(context, tex, old_image);
+    G_ASSERT(!bindlessManager.hasTextureReferenceNoLock(tex));
+    return;
+  }
+  bindlessManager.updateTextureReferencesNoLock(context, tex, old_image, 0, eastl::numeric_limits<uint32_t>::max(),
     ignore_previous_view);
 }
 

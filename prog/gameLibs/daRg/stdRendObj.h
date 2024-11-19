@@ -26,11 +26,13 @@ struct GuiTextCache
 {
   SmallTab<GuiVertex> v;
   SmallTab<uint16_t> c;
+  SmallTab<d3d::SamplerHandle> samplers;
 
   void discard()
   {
     v.resize(0);
     c.resize(0);
+    samplers.resize(0);
   }
   bool isReady() const { return StdGuiRender::check_str_buf_ready(c); }
 };

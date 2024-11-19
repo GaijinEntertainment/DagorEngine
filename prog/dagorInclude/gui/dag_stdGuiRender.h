@@ -942,12 +942,13 @@ public:
   // separate prepare/render text as quads
   //
   //! render scaled text to buffer (fill quad vertices and tex/quad count pairs); returns false if some glyphs to be yet rasterized
-  bool draw_str_scaled_u_buf(SmallTab<GuiVertex> &out_qv, SmallTab<uint16_t> &out_tex_qcnt, unsigned dsb_flags, real scale,
-    const wchar_t *str, int len = -1);
-  bool draw_str_scaled_buf(SmallTab<GuiVertex> &out_qv, SmallTab<uint16_t> &out_tex_qcnt, unsigned dsb_flags, real scale,
-    const char *str, int len = -1);
+  bool draw_str_scaled_u_buf(SmallTab<GuiVertex> &out_qv, SmallTab<uint16_t> &out_tex_qcnt, SmallTab<d3d::SamplerHandle> &out_smp,
+    unsigned dsb_flags, real scale, const wchar_t *str, int len = -1);
+  bool draw_str_scaled_buf(SmallTab<GuiVertex> &out_qv, SmallTab<uint16_t> &out_tex_qcnt, SmallTab<d3d::SamplerHandle> &out_smp,
+    unsigned dsb_flags, real scale, const char *str, int len = -1);
   //! render buffer (previously filled with draw_str_scaled_u_buf)
-  void render_str_buf(dag::ConstSpan<GuiVertex> qv, dag::ConstSpan<uint16_t> tex_qcnt, unsigned dsb_flags);
+  void render_str_buf(dag::ConstSpan<GuiVertex> qv, dag::ConstSpan<uint16_t> tex_qcnt, dag::ConstSpan<d3d::SamplerHandle> smp,
+    unsigned dsb_flags);
 
 
   //! render text string with scale=1
@@ -1384,17 +1385,18 @@ inline void purge_inscription(uint32_t inscr_handle) { GuiContext::purge_inscrip
 inline bool is_inscription_ready(uint32_t inscr_handle) { return GuiContext::is_inscription_ready(inscr_handle); }
 
 //! render scaled text to buffer (fill quad vertices and tex/quad count pairs); returns false if some glyphs shall be yet rasterized
-bool draw_str_scaled_u_buf(SmallTab<GuiVertex> &out_qv, SmallTab<uint16_t> &out_tex_qcnt, unsigned dsb_flags, real scale,
-  const wchar_t *str, int len = -1);
-bool draw_str_scaled_buf(SmallTab<GuiVertex> &out_qv, SmallTab<uint16_t> &out_tex_qcnt, unsigned dsb_flags, real scale,
-  const char *str, int len = -1);
+bool draw_str_scaled_u_buf(SmallTab<GuiVertex> &out_qv, SmallTab<uint16_t> &out_tex_qcnt, SmallTab<d3d::SamplerHandle> &out_smp,
+  unsigned dsb_flags, real scale, const wchar_t *str, int len = -1);
+bool draw_str_scaled_buf(SmallTab<GuiVertex> &out_qv, SmallTab<uint16_t> &out_tex_qcnt, SmallTab<d3d::SamplerHandle> &out_smp,
+  unsigned dsb_flags, real scale, const char *str, int len = -1);
 //! checks whether quad cache buffers (previously filled with draw_str_scaled_u_buf) is valid and up-to-date
 inline bool check_str_buf_ready(dag::ConstSpan<uint16_t> tex_qcnt)
 {
   return tex_qcnt.size() > 0 && tex_qcnt[0] == dyn_font_atlas_reset_generation;
 }
 //! render buffer (previously filled with draw_str_scaled_u_buf)
-void render_str_buf(dag::ConstSpan<GuiVertex> qv, dag::ConstSpan<uint16_t> tex_qcnt, unsigned dsb_flags);
+void render_str_buf(dag::ConstSpan<GuiVertex> qv, dag::ConstSpan<uint16_t> tex_qcnt, dag::ConstSpan<d3d::SamplerHandle> smp,
+  unsigned dsb_flags);
 
 //! render text string with scale=1
 static inline void draw_str(const char *str, int len = -1) { draw_str_scaled(1.0f, str, len); }

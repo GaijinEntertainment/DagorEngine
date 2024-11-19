@@ -54,6 +54,9 @@ struct FileTextEdit
 			editorRequests.push_back(request);
 	}
 
+	TextEditor* getEditor() { return editor; }
+	eastl::string getAssociatedFile() { return associatedFile; }
+
 private:
 
 	// Commands
@@ -83,6 +86,7 @@ private:
 	char ctrlfTextToFind[FIND_POPUP_TEXT_FIELD_LENGTH] = "";
 	char ctrlfTextToReplace[FIND_POPUP_TEXT_FIELD_LENGTH] = "";
 	bool ctrlfCaseSensitive = false;
+	bool ctrlfWholeWords = false;
 
 	static eastl::unordered_map<eastl::string, TextEditor::LanguageDefinitionId> extensionToLanguageDefinition;
 	static eastl::unordered_map<TextEditor::LanguageDefinitionId, const char*> languageDefinitionToName;

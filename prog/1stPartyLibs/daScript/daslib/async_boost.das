@@ -58,7 +58,7 @@ class AsyncMacro : AstFunctionAnnotation
     //! Generator yields bool if its a void function (coroutine), and yields the return type otherwise (async return).
     //! async function can wait for another async function using await(<async fn call>).
     //! use 'return false' to immediately return from the generator.
-    [unused_argument(group, args, errors)] def override apply(var func : FunctionPtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool
+    [unused_argument(group, args)] def override apply(var func : FunctionPtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool
         if func.result.baseType == Type autoinfer
             errors := "async function should have explicit return type"
             return false
@@ -94,6 +94,20 @@ class AsyncMacro : AstFunctionAnnotation
             return <- generator<$t(retT)> () <|
                 $e(func.body)
                 return false
+
+        var ret = blk as ExprReturn
+        var gen = ret.subexpr as ExprMakeGenerator
+        for arg in func.arguments
+            if arg._type.baseType == Type.autoinfer
+                errors := "{errors}\nasync function argument '{arg.name}' should have explicit type"
+                return false
+
+            if !arg._type.canCopy
+                let capturesNum = length(gen._capture)
+                gen._capture.resize(capturesNum + 1)
+                gen._capture[capturesNum].name := arg.name
+                let mode = arg._type.canMove ? CaptureMode.capture_by_move : CaptureMode.capture_by_clone
+                gen._capture[capturesNum].mode = mode
 
         blk.at := func.at
         func.body |> move() <| blk

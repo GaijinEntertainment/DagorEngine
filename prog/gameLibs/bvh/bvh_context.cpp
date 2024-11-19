@@ -265,9 +265,7 @@ void TerrainPatch::teardown(ContextId context_id)
   G_VERIFY(context_id->releaseBuffer(vertices.get()));
   vertices.reset();
 
-  context_id->releaseBuffer(indices);
   context_id->freeMetaRegion(metaAllocId);
-  indices = nullptr;
 }
 
 } // namespace bvh

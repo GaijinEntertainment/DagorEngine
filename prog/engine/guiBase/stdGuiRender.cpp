@@ -1043,12 +1043,15 @@ struct RecorderCallback
 {
   SmallTab<GuiVertex> &qv;
   SmallTab<uint16_t> &texQCnt;
+  SmallTab<d3d::SamplerHandle> &texSamplers;
   int missingGlyphs = 0;
   bool checkVis = false;
-  RecorderCallback(SmallTab<GuiVertex> &_qv, SmallTab<uint16_t> &_tex_qcnt, bool cv) : qv(_qv), texQCnt(_tex_qcnt), checkVis(cv)
+  RecorderCallback(SmallTab<GuiVertex> &_qv, SmallTab<uint16_t> &_tex_qcnt, SmallTab<d3d::SamplerHandle> &smp, bool cv) :
+    qv(_qv), texQCnt(_tex_qcnt), texSamplers(smp), checkVis(cv)
   {
     qv.resize(0);
     texQCnt.resize(0);
+    smp.resize(0);
   }
 
   void *qAlloc(int num)
@@ -1059,13 +1062,14 @@ struct RecorderCallback
     texQCnt.back()++;
     return &qv[idx];
   }
-  void setTex(TEXTUREID tex_id)
+  void setTex(TEXTUREID tex_id, d3d::SamplerHandle smp)
   {
     if (texQCnt.size() < 2 || texQCnt[texQCnt.size() - 2] != tex_id.index())
     {
       G_ASSERTF(tex_id != BAD_TEXTUREID && tex_id.index() < 0x10000, "tex_idx=0x%x", tex_id);
       texQCnt.push_back(tex_id.index());
       texQCnt.push_back(0);
+      texSamplers.push_back(smp);
     }
   }
 };
@@ -1730,7 +1734,7 @@ void GuiContext::set_textures(TEXTUREID tex_id, d3d::SamplerHandle smp_id, TEXTU
   bool tex_in_linear)
 {
   if (recCb)
-    return recCb->setTex(tex_id);
+    return recCb->setTex(tex_id, smp_id);
   curQuadMask = font_l8 ? 0x00000001 : (tex_id == BAD_TEXTUREID ? 0x00010001 : 0x00010000);
 
   bool update = false;
@@ -3705,14 +3709,14 @@ void GuiContext::draw_str_scaled(real scale, const char *str, int len)
   return draw_str_scaled_u(scale, tmpU16, len);
 }
 
-bool GuiContext::draw_str_scaled_buf(SmallTab<GuiVertex> &out_qv, SmallTab<uint16_t> &out_tex_qcnt, unsigned dsb_flags, float scale,
-  const char *str, int len)
+bool GuiContext::draw_str_scaled_buf(SmallTab<GuiVertex> &out_qv, SmallTab<uint16_t> &out_tex_qcnt,
+  SmallTab<d3d::SamplerHandle> &out_smp, unsigned dsb_flags, float scale, const char *str, int len)
 {
   CVT_TO_UTF16_ON_STACK(tmpU16, str, len);
-  return draw_str_scaled_u_buf(out_qv, out_tex_qcnt, dsb_flags, scale, tmpU16);
+  return draw_str_scaled_u_buf(out_qv, out_tex_qcnt, out_smp, dsb_flags, scale, tmpU16);
 }
-bool GuiContext::draw_str_scaled_u_buf(SmallTab<GuiVertex> &out_qv, SmallTab<uint16_t> &out_tex_qcnt, unsigned dsb_flags, float scale,
-  const wchar_t *str, int len)
+bool GuiContext::draw_str_scaled_u_buf(SmallTab<GuiVertex> &out_qv, SmallTab<uint16_t> &out_tex_qcnt,
+  SmallTab<d3d::SamplerHandle> &out_smp, unsigned dsb_flags, float scale, const wchar_t *str, int len)
 {
   if (!str || !len || !*str)
   {
@@ -3722,7 +3726,7 @@ bool GuiContext::draw_str_scaled_u_buf(SmallTab<GuiVertex> &out_qv, SmallTab<uin
     return true;
   }
 
-  RecorderCallback cb(out_qv, out_tex_qcnt, dsb_flags & DSBFLAG_checkVis);
+  RecorderCallback cb(out_qv, out_tex_qcnt, out_smp, dsb_flags & DSBFLAG_checkVis);
   GuiVertex v0 = {0};
   char prev_m[sizeof(vertexTransform.vtm)];
   Point2 prev_curPos = currentPos;
@@ -3753,7 +3757,8 @@ bool GuiContext::draw_str_scaled_u_buf(SmallTab<GuiVertex> &out_qv, SmallTab<uin
 
   return cb.missingGlyphs == 0;
 }
-void GuiContext::render_str_buf(dag::ConstSpan<GuiVertex> buf_qv, dag::ConstSpan<uint16_t> tex_qcnt, unsigned dsb_flags)
+void GuiContext::render_str_buf(dag::ConstSpan<GuiVertex> buf_qv, dag::ConstSpan<uint16_t> tex_qcnt,
+  dag::ConstSpan<d3d::SamplerHandle> samplers, unsigned dsb_flags)
 {
   if (tex_qcnt.size() < 3 || tex_qcnt[0] != dyn_font_atlas_reset_generation)
     return;
@@ -3776,15 +3781,16 @@ void GuiContext::render_str_buf(dag::ConstSpan<GuiVertex> buf_qv, dag::ConstSpan
   }
 
   const GuiVertex *cur_qv = buf_qv.data();
-  for (const uint16_t *tq = &tex_qcnt[1], *tq_end = tex_qcnt.data() + tex_qcnt.size(); tq < tq_end; tq += 2)
+  const d3d::SamplerHandle *cur_smp = samplers.data();
+  for (const uint16_t *tq = &tex_qcnt[1], *tq_end = tex_qcnt.data() + tex_qcnt.size(); tq < tq_end; tq += 2, cur_smp++)
   {
     int full_qnum = tq[1];
     if (!full_qnum)
       continue;
     TEXTUREID font_tid = D3DRESID::fromIndex(tq[0]);
-    update_font_fx_tex(*this, font_tid, d3d::INVALID_SAMPLER_HANDLE); // TODO: Use actual sampler IDs
-    // TODO: Use actual sampler IDs
-    set_textures(font_tid, d3d::INVALID_SAMPLER_HANDLE, BAD_TEXTUREID, d3d::INVALID_SAMPLER_HANDLE, true);
+    d3d::SamplerHandle font_smp = *cur_smp;
+    update_font_fx_tex(*this, font_tid, font_smp);
+    set_textures(font_tid, font_smp, BAD_TEXTUREID, d3d::INVALID_SAMPLER_HANDLE, true);
     while (full_qnum > 0)
     {
       int qnum = full_qnum < qCacheCapacity() ? full_qnum : qCacheCapacity(), qunused = 0;
@@ -4356,19 +4362,20 @@ void draw_str_scaled(real scale, const char *str, int len) { stdgui_context.draw
 void draw_str_scaled_u(real scale, const wchar_t *str, int len) { stdgui_context.draw_str_scaled_u(scale, str, len); }
 void draw_inscription_scaled(real scale, const char *str, int len) { stdgui_context.draw_inscription_scaled(scale, str, len); }
 void draw_inscription(uint32_t inscr_handle, float over_scale) { stdgui_context.draw_inscription(inscr_handle, over_scale); }
-bool draw_str_scaled_u_buf(SmallTab<GuiVertex> &out_qv, SmallTab<uint16_t> &out_tex_qcnt, unsigned dsb_flags, real scale,
-  const wchar_t *str, int len)
+bool draw_str_scaled_u_buf(SmallTab<GuiVertex> &out_qv, SmallTab<uint16_t> &out_tex_qcnt, SmallTab<d3d::SamplerHandle> &out_smp,
+  unsigned dsb_flags, real scale, const wchar_t *str, int len)
 {
-  return stdgui_context.draw_str_scaled_u_buf(out_qv, out_tex_qcnt, dsb_flags, scale, str, len);
+  return stdgui_context.draw_str_scaled_u_buf(out_qv, out_tex_qcnt, out_smp, dsb_flags, scale, str, len);
 }
-bool draw_str_scaled_buf(SmallTab<GuiVertex> &out_qv, SmallTab<uint16_t> &out_tex_qcnt, unsigned dsb_flags, real scale,
-  const char *str, int len)
+bool draw_str_scaled_buf(SmallTab<GuiVertex> &out_qv, SmallTab<uint16_t> &out_tex_qcnt, SmallTab<d3d::SamplerHandle> &out_smp,
+  unsigned dsb_flags, real scale, const char *str, int len)
 {
-  return stdgui_context.draw_str_scaled_buf(out_qv, out_tex_qcnt, dsb_flags, scale, str, len);
+  return stdgui_context.draw_str_scaled_buf(out_qv, out_tex_qcnt, out_smp, dsb_flags, scale, str, len);
 }
-void render_str_buf(dag::ConstSpan<GuiVertex> qv, dag::ConstSpan<uint16_t> tex_qcnt, unsigned dsb_flags)
+void render_str_buf(dag::ConstSpan<GuiVertex> qv, dag::ConstSpan<uint16_t> tex_qcnt, dag::ConstSpan<d3d::SamplerHandle> smp,
+  unsigned dsb_flags)
 {
-  stdgui_context.render_str_buf(qv, tex_qcnt, dsb_flags);
+  stdgui_context.render_str_buf(qv, tex_qcnt, smp, dsb_flags);
 }
 //***********************************************************************
 
@@ -4378,10 +4385,9 @@ void draw_inscription_v(float scale, const char *fmt, const DagorSafeArg *arg, i
   stdgui_context.draw_inscription_v(scale, fmt, arg, anum);
 }
 void draw_timestr(unsigned int ms) { stdgui_context.draw_timestr(ms); }
-void set_textures(TEXTUREID tex_id, TEXTUREID tex_id2, bool font_l8)
+void set_textures(TEXTUREID tex_id, d3d::SamplerHandle smp_id, TEXTUREID tex_id2, d3d::SamplerHandle smp_id2, bool font_l8)
 {
-  // TODO: Use actual sampler IDs
-  stdgui_context.set_textures(tex_id, d3d::INVALID_SAMPLER_HANDLE, tex_id2, d3d::INVALID_SAMPLER_HANDLE, font_l8);
+  stdgui_context.set_textures(tex_id, smp_id, tex_id2, smp_id2, font_l8);
 }
 }; // namespace StdGuiRender
 

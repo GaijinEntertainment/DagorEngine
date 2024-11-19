@@ -1,7 +1,6 @@
 options no_aot
 require ecs
 require DagorConsole
-require vehicle
 require DagorSystem
 require danetlibs.console_commands.main.das_debug_common
 require ecs.ecs_template

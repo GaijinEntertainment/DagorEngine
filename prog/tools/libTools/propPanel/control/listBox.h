@@ -13,7 +13,9 @@ class ListBoxPropertyControl : public PropertyControlBase
 public:
   ListBoxPropertyControl(ControlEventHandler *event_handler, ContainerPropertyControl *parent, int id, int x, int y, hdpi::Px w,
     const char caption[], const Tab<String> &vals, int index) :
-    PropertyControlBase(id, event_handler, parent, x, y, w, hdpi::Px(0)), controlCaption(caption), listBox(vals, index)
+    PropertyControlBase(id, event_handler, parent, x, y, w, Constants::LISTBOX_DEFAULT_HEIGHT),
+    controlCaption(caption),
+    listBox(vals, index)
   {
     listBox.setEventHandler(this);
   }

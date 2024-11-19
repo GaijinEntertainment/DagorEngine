@@ -155,6 +155,22 @@ protected:
     }
   }
 
+  /// will return true when the device is in Health::HEALTHY state
+  /// will return false when the device is in Health::DEAD state
+  /// for any other state, this will block and wait for any of the states that would return true or false
+  bool waitForHealthyState()
+  {
+    auto v = contextHealth.load(std::memory_order_relaxed);
+
+    while ((Health::HEALTHY != v) && (Health::DEAD != v))
+    {
+      wait(contextHealth, v);
+      v = contextHealth.load(std::memory_order_relaxed);
+    }
+
+    return Health::HEALTHY == v;
+  }
+
 public:
   bool isHealthyOrRecovering() const
   {
@@ -282,6 +298,7 @@ protected:
   void enterRecoveringState() {}
 
   bool enterHealthyState() { return true; }
+  bool waitForHealthyState() { return true; }
 
 public:
   constexpr bool isHealthyOrRecovering() const { return true; }
@@ -727,17 +744,14 @@ public:
     bindlessManager.updateBindlessBuffer(context, index, buffer);
   }
 
-  void updateBindlessTexture(uint32_t index, BaseTex *res)
-  {
-    bindlessManager.updateBindlessTexture(context, index, res, nullResourceTable);
-  }
+  void updateBindlessTexture(uint32_t index, BaseTex *res) { bindlessManager.updateBindlessTexture(context, index, res); }
 
   void updateBindlessNull(uint32_t resource_type, uint32_t index, uint32_t count)
   {
-    bindlessManager.updateBindlessNull(context, resource_type, index, count, nullResourceTable);
+    bindlessManager.updateBindlessNull(context, resource_type, index, count);
   }
 
-  void updateTextureBindlessReferencesNoLock(BaseTex *tex, Image *old_image, Image *new_image, bool ignore_previous_view);
+  void updateTextureBindlessReferencesNoLock(BaseTex *tex, Image *old_image, bool ignore_previous_view);
 
 #if _TARGET_PC_WIN
   DriverVersion getDriverVersion() const { return driverVersion; }

@@ -1,0 +1,22 @@
+object_motion_blur {
+  _singleton:b=true
+  _tags:t="render"
+  "object_motion_blur__render_node:dabfg::NodeHandle"{}
+  object_motion_blur__max_blur_px:i=32
+  object_motion_blur__max_samples:i=16
+  object_motion_blur__strength:r=1
+  object_motion_blur__vignette_strength:r=0.6
+  object_motion_blur__ramp_strength:r=1
+  object_motion_blur__ramp_cutoff:r=1
+}
+
+object_motion_blur_settings {
+  _singleton:b=yes
+  _tags:t="render"
+  object_motion_blur_settings__max_blur_px:i=32 // Only pixels reaching this velocity this will use all samples
+  object_motion_blur_settings__max_samples:i=16 // Maximum samples used for one pixel.
+  object_motion_blur_settings__strength:r=1
+  object_motion_blur_settings__vignette_strength:r=0.6
+  object_motion_blur_settings__ramp_strength:r=1 // how much to increase or decrease the velocity
+  object_motion_blur_settings__ramp_cutoff:r=1 // velocities greater than this will be increased, smaller will be decreased
+}

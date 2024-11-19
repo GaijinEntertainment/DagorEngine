@@ -20,11 +20,24 @@
 #include <3d/dag_resPtr.h>
 
 static FastNameMapTS<false> shvarNameMap;
+
+void ScriptedShadersBinDumpOwner::initVarIndexMaps()
+{
+  int nameCount = shvarNameMap.iterate([&](int nid, const char *name) {
+    varIndexMap[nid] = mapbinarysearch::bfindStrId(mShaderDump->varMap, name);
+    globvarIndexMap[nid] = (varIndexMap[nid] == SHADERVAR_IDX_INVALID) ? SHADERVAR_IDX_ABSENT
+                                                                       : bfind_packed_uint16_x2(mShaderDump->gvMap, varIndexMap[nid]);
+  });
+  for (int nid = nameCount; nid < MAX_BINDUMP_SHADERVARS; nid++)
+    varIndexMap[nid] = globvarIndexMap[nid] = SHADERVAR_IDX_ABSENT;
+}
+
 #if DAGOR_DBGLEVEL > 0
 namespace shaderbindump
 {
 void dump_shader_var_names();
 }
+
 static bool is_name_cident(const char *name, char delimiter = '\0')
 {
   if (*name && !(*name == '_' || isalpha(*name)))
@@ -99,23 +112,25 @@ int VariableMap::getVariableId(const char *var_name, bool sec_dump)
 {
   int nid = shvarNameMap.addNameId(var_name);
 #if DAGOR_DBGLEVEL
-  if (DAGOR_UNLIKELY(nid >= ScriptedShadersBinDump::MAX_VARS))
+  if (DAGOR_UNLIKELY(nid >= MAX_BINDUMP_SHADERVARS))
     shaderbindump::dump_shader_var_names();
 #endif
-  G_ASSERTF_RETURN(nid < ScriptedShadersBinDump::MAX_VARS, -1, "var_name=%s shvarNameMap.nameCount=%d", var_name,
+  G_ASSERTF_RETURN(nid < MAX_BINDUMP_SHADERVARS, -1, "var_name=%s shvarNameMap.nameCount=%d", var_name,
     shvarNameMap.nameCountRelaxed()); // it is unsafe to add variable and access in differnt thread without sync. That means, that
                                       // relaxed load is sufficient.
-  auto &dump = shBinDumpExRW(!sec_dump);
-  if (dump.varIdx[nid] == dump.VARIDX_ABSENT)
+  auto &dumpOwner = shBinDumpExOwner(!sec_dump);
+  const auto &dump = *dumpOwner.getDump();
+  if (dumpOwner.varIndexMap[nid] == SHADERVAR_IDX_ABSENT)
   {
     uint16_t var_id = mapbinarysearch::bfindStrId(dump.varMap, var_name);
 #if DAGOR_DBGLEVEL
-    if (var_id == dump.VARIDX_INVALID && !shadervar_name_is_valid(var_name))
+    if (var_id == SHADERVAR_IDX_INVALID && !shadervar_name_is_valid(var_name))
       logerr("bad var_name=%s for %s", var_name, __FUNCTION__);
 #endif
-    dump.varIdx[nid] = var_id;
-    dump.globvarIdx[nid] =
-      (dump.varIdx[nid] == dump.VARIDX_INVALID) ? dump.VARIDX_ABSENT : bfind_packed_uint16_x2(dump.gvMap, dump.varIdx[nid]);
+    dumpOwner.varIndexMap[nid] = var_id;
+    dumpOwner.globvarIndexMap[nid] = (dumpOwner.varIndexMap[nid] == SHADERVAR_IDX_INVALID)
+                                       ? SHADERVAR_IDX_ABSENT
+                                       : bfind_packed_uint16_x2(dump.gvMap, dumpOwner.varIndexMap[nid]);
   }
   return nid;
 }
@@ -137,7 +152,7 @@ bool VariableMap::isVariablePresent(int var_id)
   if (uint32_t(var_id) >= shvarNameMap.nameCountRelaxed()) // it is unsafe to add variable and access in differnt thread without sync.
                                                            // That means, that relaxed load is sufficient.
     return false;
-  return shBinDump().varIdx[var_id] < ScriptedShadersBinDump::VARIDX_ABSENT;
+  return shBinDumpOwner().varIndexMap[var_id] < SHADERVAR_IDX_ABSENT;
 }
 
 bool VariableMap::isGlobVariablePresent(int var_id)
@@ -145,7 +160,7 @@ bool VariableMap::isGlobVariablePresent(int var_id)
   if (uint32_t(var_id) >= shvarNameMap.nameCountRelaxed()) // it is unsafe to add variable and access in differnt thread without sync.
                                                            // That means, that relaxed load is sufficient.
     return false;
-  return shBinDump().globvarIdx[var_id] < ScriptedShadersBinDump::VARIDX_ABSENT;
+  return shBinDumpOwner().globvarIndexMap[var_id] < SHADERVAR_IDX_ABSENT;
 }
 
 bool VariableMap::isVariablePresent(const ShaderVariableInfo &v) { return isVariablePresent(v.get_var_id()); }
@@ -165,17 +180,6 @@ dag::Vector<String> VariableMap::getPresentedGlobalVariableNames()
   return varNames;
 }
 
-template <>
-void ScriptedShadersBinDump::reinitVarTables()
-{
-  int nameCount = shvarNameMap.iterate([&](int nid, const char *name) {
-    varIdx[nid] = mapbinarysearch::bfindStrId(varMap, name);
-    globvarIdx[nid] = (varIdx[nid] == VARIDX_INVALID) ? VARIDX_ABSENT : bfind_packed_uint16_x2(gvMap, varIdx[nid]);
-  });
-  for (int nid = nameCount; nid < MAX_VARS; nid++)
-    varIdx[nid] = globvarIdx[nid] = ScriptedShadersBinDump::VARIDX_ABSENT;
-}
-
 #define CHECK_VAR_ID(TYPE)                                                                                                          \
   if (var_id == -1)                                                                                                                 \
     return false;                                                                                                                   \
@@ -184,14 +188,15 @@ void ScriptedShadersBinDump::reinitVarTables()
     G_ASSERTF(0, "%s invalid var_id %d", __FUNCTION__, var_id);                                                                     \
     return false;                                                                                                                   \
   }                                                                                                                                 \
+  auto &dumpOwner = shBinDumpOwner();                                                                                               \
   auto &dump = shBinDumpRW();                                                                                                       \
   if (!dump.globVars.size())                                                                                                        \
   {                                                                                                                                 \
     logerr("shaders not loaded while setting var_id=%d (%s)", var_id, shvarNameMap.getName(var_id));                                \
     return false;                                                                                                                   \
   }                                                                                                                                 \
-  int id = dump.globvarIdx[var_id];                                                                                                 \
-  if (id == ScriptedShadersBinDump::VARIDX_ABSENT)                                                                                  \
+  int id = dumpOwner.globvarIndexMap[var_id];                                                                                       \
+  if (id == SHADERVAR_IDX_ABSENT)                                                                                                   \
     return false;                                                                                                                   \
   G_ASSERTF_RETURN(id < dump.globVars.size(), false, "%s invalid var_id %d (to glob var %d)", __FUNCTION__, var_id, id);            \
   G_ASSERTF_RETURN(dump.globVars.getType(id) == TYPE, false, "var_id=%d (%s) glob_var_id=%d", var_id, shvarNameMap.getName(var_id), \
@@ -320,16 +325,17 @@ void ShaderVariableInfo::resolve()
     G_ASSERTF(0, "%s invalid var_id %d", __FUNCTION__, var_id);
     return;
   }
+  auto &dumpOwner = shBinDumpOwner();
   auto &dump = shBinDumpRW();
   if (!dump.globVars.size())
   {
     logerr("shaders not loaded while setting var_id=%d (%s)", var_id, shvarNameMap.getName(var_id));
     return;
   }
-  int id = dump.globvarIdx[var_id];
-  if (id == ScriptedShadersBinDump::VARIDX_ABSENT)
+  int id = dumpOwner.globvarIndexMap[var_id];
+  if (id == SHADERVAR_IDX_ABSENT)
     return;
-  if (id == dump.VARIDX_INVALID)
+  if (id == SHADERVAR_IDX_INVALID)
   {
 #if DAGOR_DBGLEVEL
     if (!shadervar_name_is_valid(shvarNameMap.getName(var_id)))
@@ -339,7 +345,7 @@ void ShaderVariableInfo::resolve()
   }
   data = &dump.globVars.get<char>(id);
   varType = dump.globVars.getType(id);
-  iid = shBinDumpOwner().globVarIntervalIdx[id];
+  iid = dumpOwner.globVarIntervalIdx[id];
 }
 
 void ShaderVariableInfo::nanError() const { logerr("setting <%s> variable to nan", VariableMap::getVariableName(var_id)); }
@@ -414,11 +420,10 @@ int ShaderGlobal::get_var_type(int var_id)
   if (uint32_t(var_id) >= shvarNameMap.nameCountRelaxed()) // it is unsafe to add variable and access in differnt thread without sync.
                                                            // That means, that relaxed load is sufficient.
     return -1;
-  auto &dump = shBinDump();
-  int id = dump.globvarIdx[var_id];
-  if (id >= ScriptedShadersBinDump::VARIDX_ABSENT)
+  int id = shBinDumpOwner().globvarIndexMap[var_id];
+  if (id >= SHADERVAR_IDX_ABSENT)
     return -1;
-  return dump.globVars.getType(id);
+  return shBinDump().globVars.getType(id);
 }
 
 static const shaderbindump::Interval *get_interval(int var_id)
@@ -426,9 +431,9 @@ static const shaderbindump::Interval *get_interval(int var_id)
   if (uint32_t(var_id) >= shvarNameMap.nameCountRelaxed())
     return nullptr;
 
-  auto &dump = shBinDump();
-  int id = dump.globvarIdx[var_id];
-  return id != ScriptedShadersBinDump::VARIDX_ABSENT ? &dump.intervals[shBinDumpOwner().globVarIntervalIdx[id]] : nullptr;
+  const auto &dumpOwner = shBinDumpOwner();
+  int id = dumpOwner.globvarIndexMap[var_id];
+  return id != SHADERVAR_IDX_ABSENT ? &shBinDump().intervals[dumpOwner.globVarIntervalIdx[id]] : nullptr;
 }
 
 bool ShaderGlobal::is_var_assumed(int var_id)
@@ -462,18 +467,19 @@ bool ShaderGlobal::has_associated_interval(int var_id)
 {
   if (uint32_t(var_id) >= shvarNameMap.nameCountRelaxed())
     return false;
-  auto &dump = shBinDump();
-  int id = dump.globvarIdx[var_id];
-  return id != ScriptedShadersBinDump::VARIDX_ABSENT ? shBinDumpOwner().globVarIntervalIdx[id] >= 0 : false;
+  const auto &dumpOwner = shBinDumpOwner();
+  int id = dumpOwner.globvarIndexMap[var_id];
+  return id != SHADERVAR_IDX_ABSENT ? dumpOwner.globVarIntervalIdx[id] >= 0 : false;
 }
 
 dag::ConstSpan<float> ShaderGlobal::get_interval_ranges(int var_id)
 {
   G_ASSERT(uint32_t(var_id) < shvarNameMap.nameCountRelaxed());
-  auto &dump = shBinDump();
-  int id = dump.globvarIdx[var_id];
-  G_ASSERT_RETURN(id != ScriptedShadersBinDump::VARIDX_ABSENT, {});
-  int iid = shBinDumpOwner().globVarIntervalIdx[id];
+  const auto &dumpOwner = shBinDumpOwner();
+  const auto &dump = shBinDump();
+  int id = dumpOwner.globvarIndexMap[var_id];
+  G_ASSERT_RETURN(id != SHADERVAR_IDX_ABSENT, {});
+  int iid = dumpOwner.globVarIntervalIdx[id];
   G_ASSERT_RETURN(iid >= 0 && iid < dump.intervals.size(), {});
   return dump.intervals[iid].maxVal;
 }
@@ -559,7 +565,7 @@ bool ShaderGlobal::set_texture(int var_id, TEXTUREID tex_id)
   G_ASSERTF(tex_id == BAD_TEXTUREID || get_managed_texture_refcount(tex_id) > 0, "set_tex(%d) %d->%d rc=%d", var_id, old_id, tex_id,
     get_managed_texture_refcount(tex_id));
 
-  G_ASSERT_RETURN(id != ScriptedShadersBinDump::VARIDX_ABSENT, false);
+  G_ASSERT_RETURN(id != SHADERVAR_IDX_ABSENT, false);
   int iid = shBinDumpOwner().globVarIntervalIdx[id];
   if (iid >= 0)
     shBinDumpOwner().globIntervalNormValues[iid] = (tex_id != BAD_TEXTUREID && tex.tex);
@@ -596,7 +602,7 @@ bool ShaderGlobal::set_buffer(int var_id, D3DRESID buf_id)
   G_ASSERTF(buf_id == BAD_D3DRESID || get_managed_res_refcount(buf_id) > 0, "set_tex(%d) %d->%d rc=%d", var_id, old_id, buf_id,
     get_managed_res_refcount(buf_id));
 
-  G_ASSERT_RETURN(id != ScriptedShadersBinDump::VARIDX_ABSENT, false);
+  G_ASSERT_RETURN(id != SHADERVAR_IDX_ABSENT, false);
   int iid = shBinDumpOwner().globVarIntervalIdx[id];
   if (iid >= 0)
     shBinDumpOwner().globIntervalNormValues[iid] = (buf_id != BAD_D3DRESID && buf.buf);
@@ -661,14 +667,14 @@ bool ShaderGlobal::set_float4x4(int var_id, FXMMATRIX mat)
 #define CHECK_VAR_ID(TYPE, DEF_VAL)                                                                      \
   if (var_id < 0)                                                                                        \
     return DEF_VAL;                                                                                      \
-  auto &dump = shBinDump();                                                                              \
+  const auto &dump = shBinDump();                                                                        \
   if (!dump.globVars.size())                                                                             \
   {                                                                                                      \
     logerr("shaders not loaded while getting var_id=%d (%s)", var_id, shvarNameMap.getName(var_id));     \
     return DEF_VAL;                                                                                      \
   }                                                                                                      \
-  int glob_var_id = dump.globvarIdx[var_id];                                                             \
-  if (glob_var_id == ScriptedShadersBinDump::VARIDX_ABSENT)                                              \
+  int glob_var_id = shBinDumpOwner().globvarIndexMap[var_id];                                            \
+  if (glob_var_id == SHADERVAR_IDX_ABSENT)                                                               \
     return DEF_VAL;                                                                                      \
   G_ASSERTF_RETURN(glob_var_id < dump.globVars.size(), DEF_VAL, "var_id=%d (%s) glob_var_id=%d", var_id, \
     shvarNameMap.getName(var_id), glob_var_id);                                                          \
@@ -761,9 +767,12 @@ void shaderbindump::dump_shader_var_names()
   uint32_t cnt = shvarNameMap.nameCountAcquire();
   debug("shvarNameMap.nameCount()=%d:", cnt);
   int wd = cnt >= 1000 ? 4 : (cnt >= 100 ? 3 : (cnt >= 10 ? 2 : 1));
-  auto &dump = ::shBinDump();
+  const auto &dumpOwner = ::shBinDumpOwner();
   for (int i = 0; i < cnt; i++)
-    debug("  %*d [%c] %s", wd, i, dump.globvarIdx[i] < dump.VARIDX_ABSENT ? 'G' : (dump.varIdx[i] < dump.VARIDX_ABSENT ? 'v' : '?'),
+  {
+    debug("  %*d [%c] %s", wd, i,
+      dumpOwner.globvarIndexMap[i] < SHADERVAR_IDX_ABSENT ? 'G' : (dumpOwner.varIndexMap[i] < SHADERVAR_IDX_ABSENT ? 'v' : '?'),
       shvarNameMap.getName(i));
+  }
 }
 #endif

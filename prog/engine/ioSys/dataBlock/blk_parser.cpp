@@ -62,6 +62,7 @@ public:
   int curLine;
   const char *curLineP;
   Tab<String> includeStack;
+  Tab<int> includeStackPrevCurLine;
   DataBlock *blkRef = nullptr;
   bool robustParsing;
   bool wasNewlineAfterStatement = false;
@@ -96,10 +97,12 @@ public:
   void updatePointers()
   {
     int pos = curp - text;
+    int pos_ln = curLineP - text;
 
     text = &buffer[0];
     textend = text + buffer.size() - 1;
     curp = text + pos;
+    curLineP = text + pos_ln;
   }
 
   void syntaxError(const char *msg)
@@ -166,6 +169,8 @@ bool DataBlockParser::skipWhite(bool allow_crlf, bool track_newline_after_param)
       {
         includeStack.pop_back();
         fileName = includeStack.back();
+        curLine = includeStackPrevCurLine.back();
+        includeStackPrevCurLine.pop_back();
       }
       continue;
     }
@@ -234,6 +239,19 @@ bool DataBlockParser::skipWhite(bool allow_crlf, bool track_newline_after_param)
               curp += 2;
               if (--cnt <= 0)
                 break;
+            }
+            else if (*curp == '\r')
+            {
+              if (*(curp + 1) == '\n')
+              {
+                curp += 2;
+                INC_CURLINE;
+              }
+            }
+            else if (*curp == '\n')
+            {
+              curp++;
+              INC_CURLINE;
             }
             else
               ++curp;
@@ -1420,6 +1438,7 @@ bool DataBlockParser::parse(DataBlock &blk, bool isTop)
       // We have to cache 'filename' here because 'getValue()' might incorrectly change it
       // in case when this include is last one in file (which breaks relative pathes)
       String cachedFileName(fileName);
+      int include_curLine = curLine;
       value.clear();
       if (!getValue(value))
         return false;
@@ -1435,8 +1454,6 @@ bool DataBlockParser::parse(DataBlock &blk, bool isTop)
         if (*valueStr.str() != '%')
           makeFullPathFromRelative(valueStr, cachedFileName.str());
 
-      const char *baseFileName = cachedFileName.str();
-
       if (fnotify)
         fnotify->onFileLoaded(valueStr);
 
@@ -1446,20 +1463,27 @@ bool DataBlockParser::parse(DataBlock &blk, bool isTop)
       file_ptr_t h = df_open(valueStr, DF_READ | (robustParsing ? DF_IGNORE_MISSING : 0));
       if (!h)
       {
-        logerr("can't open include file '%s' for '%s'", valueStr.str(), baseFileName);
-        SYNTAX_ERROR("can't open include file");
+        includeStack.pop_back();
+        fileName = includeStack.back();
+        blkRef->issue_error_parsing(cachedFileName, include_curLine, String(0, "can't open include file '%s'", valueStr), " ");
+        return false;
       }
-      (void)baseFileName;
 
       int len = df_length(h);
       if (len < 0)
       {
         df_close(h);
-        SYNTAX_ERROR("error loading include file");
+        includeStack.pop_back();
+        fileName = includeStack.back();
+        blkRef->issue_error_parsing(cachedFileName, include_curLine, String(0, "error loading include file '%s'", valueStr), " ");
+        return false;
       }
 
+      includeStackPrevCurLine.push_back(curLine);
+      curLine = 1;
+
       erase_items(buffer, start - text, curp - start - 1);
-      curp = start;
+      curLineP = curp = start;
       *(char *)curp = EOF_CHAR;
 
       int pos = curp - text;
@@ -1472,11 +1496,9 @@ bool DataBlockParser::parse(DataBlock &blk, bool isTop)
         SYNTAX_ERROR("error loading include file");
       }
 
-      if (
-        (len > 1 && buffer[pos] >= dblk::BBF_full_binary_in_stream && buffer[pos] <= dblk::BBF_binary_with_shared_nm_zd) || // new
-                                                                                                                            // binary
-                                                                                                                            // formats
-        (len >= 4 && *(int *)&buffer[pos] == _MAKE4C('BBF'))) // old BBF3 format
+      if ((/*new binaryformats*/ len > 1 && buffer[pos] >= dblk::BBF_full_binary_in_stream &&
+            buffer[pos] <= dblk::BBF_binary_with_shared_nm_zd) ||
+          (/* old BBF3 format */ len >= 4 && *(int *)&buffer[pos] == _MAKE4C('BBF')))
       {
         logwarn("including binary file '%s', not fastest codepath", valueStr.str());
 

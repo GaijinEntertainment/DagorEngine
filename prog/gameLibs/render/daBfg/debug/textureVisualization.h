@@ -18,6 +18,7 @@ class NodeHandle;
 } // namespace dabfg
 
 bool deselect_button(const char *label);
+void overlay_checkbox(const char *label);
 
 void fg_texture_visualization_imgui_line(const dabfg::InternalRegistry &registry);
 

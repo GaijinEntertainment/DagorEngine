@@ -1243,7 +1243,9 @@ void set_local_offset_hint(const Point3 &hint) { localOffsetHint = hint; }
 
 void enable_separate_atest_pass(bool enable) { separateAtestPass = enable; }
 
+ShaderElement *get_replaced_shader() { return replacement_shader; }
 void replace_shader(ShaderElement *element) { replacement_shader = element; }
+const Tab<const char *> &get_filtered_material_names() { return filtered_material_names; }
 void set_material_filters_by_name(Tab<const char *> &&material_names) { filtered_material_names = std::move(material_names); }
 
 void render_one_instance(const DynamicRenderableSceneInstance *instance, RenderMode mode, TexStreamingContext texCtx,

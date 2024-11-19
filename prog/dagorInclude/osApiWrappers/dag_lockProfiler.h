@@ -10,7 +10,6 @@
 typedef uint64_t lock_start_t;
 #if DA_PROFILER_ENABLED && DAGOR_DBGLEVEL > 0 // for performance reasons, none of wait profiling is enabled in release builds
 #define LOCK_PROFILER_ENABLED 1
-
 #if _TARGET_ANDROID | _TARGET_IOS
 static constexpr unsigned DEFAULT_LOCK_PROFILER_USEC_THRESHOLD = 4;
 #else
@@ -56,13 +55,14 @@ struct ScopeLockProfiler<da_profiler::NoDesc, usec_threshold>
 };
 #else
 #define LOCK_PROFILER_ENABLED 0
-template <da_profiler::desc_id_t desc, uint32_t usec_threshold = 1>
+static constexpr unsigned DEFAULT_LOCK_PROFILER_USEC_THRESHOLD = 0;
+template <da_profiler::desc_id_t desc, uint32_t usec_threshold = DEFAULT_LOCK_PROFILER_USEC_THRESHOLD>
 struct ScopeLockProfiler
 {
   ScopeLockProfiler() = default;
   ScopeLockProfiler(da_profiler::desc_id_t) {}
 };
-__forceinline lock_start_t dagor_lock_profiler_start() { return 0; }
-__forceinline void dagor_lock_profiler_interval(lock_start_t, da_profiler::desc_id_t, uint32_t = 1) {}
-__forceinline void dagor_lock_profiler_stop(lock_start_t, da_profiler::desc_id_t, uint32_t = 1) {}
+inline lock_start_t dagor_lock_profiler_start() { return 0; }
+inline void dagor_lock_profiler_interval(lock_start_t, da_profiler::desc_id_t, uint32_t = DEFAULT_LOCK_PROFILER_USEC_THRESHOLD) {}
+inline void dagor_lock_profiler_stop(lock_start_t, da_profiler::desc_id_t, uint32_t = DEFAULT_LOCK_PROFILER_USEC_THRESHOLD) {}
 #endif

@@ -281,14 +281,22 @@ bool rendinst::prepareExtraVisibilityInternal(mat44f_cref globtm_cull, const Poi
     if (threads)
     {
       dag::ConstSpan<RendinstTiledScene> cscenes = riExTiledScenes.cscenes(firstScene, sceneCount);
-      scene::TiledSceneCullContext *sceneContexts =
-        (scene::TiledSceneCullContext *)alloca(sizeof(scene::TiledSceneCullContext) * cscenes.size());
-      std::atomic<uint32_t> *riexDataCnt =
+      auto sceneContexts = (scene::TiledSceneCullContext *)alloca(sizeof(scene::TiledSceneCullContext) * cscenes.size());
+      auto riexDataCnt =
         (std::atomic<uint32_t> *)alloca(poolInfo.size() * rendinst::RiExtraPool::MAX_LODS * sizeof(std::atomic<uint32_t>));
       std::atomic<uint32_t> *riexLargeCnt =
         sortLarge ? (std::atomic<uint32_t> *)alloca(poolInfo.size() * LARGE_LOD_CNT * sizeof(std::atomic<uint32_t>)) : nullptr;
-      for (int tiled_scene_idx = 0; tiled_scene_idx < cscenes.size(); tiled_scene_idx++)
-        new (sceneContexts + tiled_scene_idx, _NEW_INPLACE) scene::TiledSceneCullContext;
+      uint32_t totalTilesCount = 0; // Shared across all contexts
+      for (auto &ctx : make_span(sceneContexts, cscenes.size()))
+      {
+        new (&ctx, _NEW_INPLACE) scene::TiledSceneCullContext(totalTilesCount);
+        if (threads > 1) //-V547
+        {
+          // To consider: wake up after first scene cull instead?
+          ctx.wakeUpOnNTiles = (threads - 1) * 12;
+          ctx.wake_up_cb = [](void *cjr) { ((CullJobRing *)cjr)->start(); };
+        }
+      }
 
       memset(riexDataCnt, 0, poolInfo.size() * rendinst::RiExtraPool::MAX_LODS * sizeof(riexDataCnt[0]));
       if (riexLargeCnt)
@@ -311,11 +319,13 @@ bool rendinst::prepareExtraVisibilityInternal(mat44f_cref globtm_cull, const Poi
       // also we locking rendInst layers locks in correct order because of using active wait
       {
         rendinst::AutoLockReadPrimaryAndExtra lock;
-        for (int tiled_scene_idx = 0; tiled_scene_idx < cscenes.size(); tiled_scene_idx++)
-          sceneContexts[tiled_scene_idx].needToUnlock = cscenes[tiled_scene_idx].lockForRead();
 
-        CullJobRing ring;
-        ring.start(threads, cull_sd);
+        CullJobRing ring(threads, cull_sd);
+        for (int tiled_scene_idx = 0; tiled_scene_idx < cscenes.size(); tiled_scene_idx++)
+        {
+          sceneContexts[tiled_scene_idx].needToUnlock = cscenes[tiled_scene_idx].lockForRead();
+          sceneContexts[tiled_scene_idx].wake_up_ctx = &ring;
+        }
 
         for (int lod = 0; lod < rendinst::RiExtraPool::MAX_LODS; ++lod)
           for (auto &vv : v.riexData[lod])
@@ -324,6 +334,7 @@ bool rendinst::prepareExtraVisibilityInternal(mat44f_cref globtm_cull, const Poi
           for (int lod = 0; lod < LARGE_LOD_CNT; ++lod)
             for (auto &vv : v.riexLarge[lod])
               vv.resize(vv.capacity());
+
         for (int tiled_scene_idx = 0; tiled_scene_idx < cscenes.size(); tiled_scene_idx++)
         {
           const auto &tiled_scene = cscenes[tiled_scene_idx];
@@ -389,16 +400,13 @@ bool rendinst::prepareExtraVisibilityInternal(mat44f_cref globtm_cull, const Poi
 
           for (int tiled_scene_idx = 0; tiled_scene_idx < cscenes.size(); tiled_scene_idx++)
             sceneContexts[tiled_scene_idx].nextIdxToProcess = 0;
-          ring.start(threads, cull_sd);
+          ring.start();
         }
 
         for (int tiled_scene_idx = 0; tiled_scene_idx < cscenes.size(); tiled_scene_idx++)
         {
-          if (sceneContexts[tiled_scene_idx].needToUnlock)
-          {
+          if (eastl::exchange(sceneContexts[tiled_scene_idx].needToUnlock, false))
             cscenes[tiled_scene_idx].unlockAfterRead();
-            sceneContexts[tiled_scene_idx].needToUnlock = 0;
-          }
           sceneContexts[tiled_scene_idx].~TiledSceneCullContext();
         }
       } // unlock ri and extra
@@ -952,8 +960,20 @@ bool rendinst::prepareRIGenExtraVisibility(mat44f_cref globtm_cull, const Point3
       cullIntention, for_visual_collision, filter_rendinst_clipmap, for_vsm, external_filter);
 }
 
+bool rendinst::prepareRIGenExtraVisibilityForGrassifyBox(bbox3f_cref box_cull, int forced_lod, float min_size, float min_dist,
+  RiGenVisibility &vbase, bbox3f *result_box)
+{
+  return prepareRIGenExtraVisibilityBoxInternal(box_cull, forced_lod, min_size, min_dist, true, vbase, result_box);
+}
+
 bool rendinst::prepareRIGenExtraVisibilityBox(bbox3f_cref box_cull, int forced_lod, float min_size, float min_dist,
   RiGenVisibility &vbase, bbox3f *result_box)
+{
+  return prepareRIGenExtraVisibilityBoxInternal(box_cull, forced_lod, min_size, min_dist, false, vbase, result_box);
+}
+
+bool rendinst::prepareRIGenExtraVisibilityBoxInternal(bbox3f_cref box_cull, int forced_lod, float min_size, float min_dist,
+  bool filter_grassify, RiGenVisibility &vbase, bbox3f *result_box)
 {
   if (!RendInstGenData::renderResRequired || !maxExtraRiCount || RendInstGenData::isLoading)
     return false;
@@ -1012,6 +1032,8 @@ bool rendinst::prepareRIGenExtraVisibilityBox(bbox3f_cref box_cull, int forced_l
         return;
       const scene::pool_index poolId = scene::get_node_pool(m);
       const auto &riPool = poolInfo[poolId];
+      if (filter_grassify && !riExtra[poolId].isGrassify)
+        return;
       if (riPool.distSqLOD[rendinst::RiExtraPool::MAX_LODS - 1] < min_dist_sq)
         return;
       const unsigned llm = riPool.lodLimits >> ((ri_game_render_mode + 1) * 8);
@@ -1035,4 +1057,70 @@ bool rendinst::prepareRIGenExtraVisibilityBox(bbox3f_cref box_cull, int forced_l
   sortByPoolSizeOrder(v, maxLodUsed);
 
   return true;
+}
+
+void rendinst::filterVisibility(RiGenVisibility &from, RiGenVisibility &to, const VisibilityExternalFilter &external_filter)
+{
+  TIME_D3D_PROFILE(filter_visibility);
+
+  RiGenExtraVisibility &v = to.riex;
+  RiGenExtraVisibility &f = from.riex;
+  v.vbExtraGeneration = INVALID_VB_EXTRA_GEN;
+  rendinst::setRIGenVisibilityMinLod(&to, from.forcedLod, f.forcedExtraLod);
+
+  const auto &poolInfo = riExTiledScenes.getPools();
+
+  for (int lod = 0; lod < rendinst::RiExtraPool::MAX_LODS; ++lod)
+  {
+    clear_and_resize(v.riexData[lod], poolInfo.size());
+    clear_and_resize(v.minSqDistances[lod], poolInfo.size());
+    clear_and_resize(v.minAllowedSqDistances[lod], poolInfo.size());
+    memset(v.minSqDistances[lod].data(), 0x7f, data_size(v.minSqDistances[lod]));               // ~FLT_MAX
+    memset(v.minAllowedSqDistances[lod].data(), 0x7f, data_size(v.minAllowedSqDistances[lod])); // ~FLT_MAX
+    for (auto &vv : v.riexData[lod])
+      vv.resize(0);
+  }
+  v.riexPoolOrder.resize(0);
+
+  int maxLodUsed = 0;
+  int newVisCnt = 0;
+  auto storeVisibleRiexData = [&](const vec4f *data, uint32_t poolId, int lod) -> bool {
+    mat44f riTm44f;
+    v_mat43_transpose_to_mat44(riTm44f, *(const mat43f *)data);
+    // riTm44f.col3[3] = 1; // v_mat43_transpose_to_mat44 sets the last column to 0
+
+    bbox3f box;
+    v_bbox3_init_empty(box);
+    v_bbox3_add_transformed_box(box, riTm44f, rendinst::riExtra[poolId].lbb);
+
+    if (!external_filter(box.bmin, box.bmax))
+      return false;
+
+    maxLodUsed = max(lod, maxLodUsed);
+    v.minSqDistances[lod].data()[poolId] = f.minSqDistances[lod].data()[poolId];
+    vec4f *addData = append_data(v.riexData[lod].data()[poolId], RIEXTRA_VECS_COUNT);
+    eastl::copy_n(data, RIEXTRA_VECS_COUNT, addData);
+    newVisCnt++;
+    return true;
+  };
+
+  for (int lod = 0; lod < rendinst::RiExtraPool::MAX_LODS; ++lod)
+  {
+    for (auto poolAndCnt : f.riexPoolOrder)
+    {
+      auto poolI = poolAndCnt & render::RI_RES_ORDER_COUNT_MASK;
+      const uint32_t poolCnt = (uint32_t)f.riexData[lod][poolI].size() / RIEXTRA_VECS_COUNT;
+      const vec4f *data = f.riexData[lod][poolI].data();
+
+      for (uint32_t i = 0, n = poolCnt; i < n; ++i)
+        storeVisibleRiexData(data + i * RIEXTRA_VECS_COUNT, poolI, lod);
+    }
+  }
+  v.riexInstCount = newVisCnt;
+
+  if (!v.riexInstCount)
+    return;
+
+  sortByPoolSizeOrder(v, maxLodUsed);
+  return;
 }

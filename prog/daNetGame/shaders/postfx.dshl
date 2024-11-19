@@ -1,5 +1,6 @@
 include "postfx_common.dshl"
 include "dof/dof_composite.dshl"
+include "distortion_postfx_inc.dshl"
 include "normaldetail.dshl"
 include "sky_shader_global.dshl"
 include "contact_shadows.dshl"
@@ -214,6 +215,13 @@ shader postfx
           return tex2Dlod(frame_tex, float4(uv,0,0)).rgb;
       }
     #endif //MOBILE_DEVICE
+  }
+
+  if (in_editor_assume == yes) {
+    INIT_HEAT_HAZE_OFFSET()
+    USE_HEAT_HAZE_OFFSET()
+    INIT_DISTORTION_POSTFX()
+    USE_DISTORTION_POSTFX()
   }
 
   USE_POSTFX_MODIFIER()
@@ -435,7 +443,11 @@ shader postfx
     #if MOBILE_DEVICE
       sampleSceneColor(sceneUV, frame);
     #else
-      frame = sampleSceneColor(sceneUV);
+      ##if (in_editor_assume == yes)
+        frame = apply_distortion_postfx(input);
+      ##else
+        frame = sampleSceneColor(sceneUV);
+      ##endif
     #endif
 
       apply_dof_effect(input.tc, frame);

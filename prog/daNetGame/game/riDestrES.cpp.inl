@@ -43,19 +43,20 @@
 
 namespace ridestr
 {
-static void net_rcv_ri_destr_info(const net::IMessage *msg);
+static void net_rcv_ri_destr_snapshot(const net::IMessage *msg);
 static void net_rcv_ri_destr_update(const net::IMessage *msg);
+static void net_rcv_ri_pools_update(const net::IMessage *msg);
 } // namespace ridestr
 
-ECS_NET_DECL_MSG(RiDestrInfoMsg, danet::BitStream);
-ECS_NET_IMPL_MSG(RiDestrInfoMsg,
+ECS_NET_DECL_MSG(RiDestrSnapshotMsg, danet::BitStream);
+ECS_NET_IMPL_MSG(RiDestrSnapshotMsg,
   net::ROUTING_SERVER_TO_CLIENT,
   &net::broadcast_rcptf,
-  RELIABLE_UNORDERED,
+  RELIABLE_ORDERED,
   NC_DEFAULT,
   net::MF_DEFAULT_FLAGS,
   ECS_NET_NO_DUP,
-  &ridestr::net_rcv_ri_destr_info);
+  &ridestr::net_rcv_ri_destr_snapshot);
 ECS_NET_DECL_MSG(RiDestrUpdateMsg, danet::BitStream);
 ECS_NET_IMPL_MSG(RiDestrUpdateMsg,
   net::ROUTING_SERVER_TO_CLIENT,
@@ -65,6 +66,17 @@ ECS_NET_IMPL_MSG(RiDestrUpdateMsg,
   net::MF_DEFAULT_FLAGS,
   ECS_NET_NO_DUP,
   &ridestr::net_rcv_ri_destr_update);
+// IMPORTANT: pool updates MUST be ordered, otherwise empty snapshot, that players usually receive during entering the match,
+// might come later than pool updates and override them. RiPoolDataUpdateMsg can be unordered
+ECS_NET_DECL_MSG(RiPoolDataUpdateMsg, danet::BitStream);
+ECS_NET_IMPL_MSG(RiPoolDataUpdateMsg,
+  net::ROUTING_SERVER_TO_CLIENT,
+  &net::broadcast_rcptf,
+  RELIABLE_ORDERED,
+  0,
+  net::MF_DEFAULT_FLAGS,
+  ECS_NET_NO_DUP,
+  &ridestr::net_rcv_ri_pools_update);
 
 template <typename Callable>
 inline void destroyable_ents_ecs_query(Callable c);
@@ -78,6 +90,20 @@ namespace ridestr
 static dag::Vector<rendinstdestr::DestrUpdateDesc> unsynced_destr_data;
 static uint16_t cur_ridestr_ver = 0, cached_ridestr_ver = 0, update_ridestr_ver = 0;
 static danet::BitStream cached_serialized_initial_ridestr; // Full ridestr update cached on server
+static int prev_ri_extra_map_size = -1;
+static bool is_pool_sync_sent = true;
+
+static void ensure_all_ri_extra_pools_are_synced()
+{
+  // check, if rend inst pool list has changed, and updates synced rendinsts,
+  // if nothing has changed (most cases) this call is free
+  if (rendinst::getRIExtraMapSize() != prev_ri_extra_map_size)
+  {
+    prev_ri_extra_map_size = rendinst::getRIExtraMapSize();
+    is_pool_sync_sent = false;
+    rendinstdestr::sync_all_ri_extra_pools();
+  }
+}
 
 static void on_ridestr_changed_server(
   const rendinst::RendInstDesc &desc, const TMatrix &ri_tm, const Point3 &pos, const Point3 &impulse)
@@ -329,12 +355,19 @@ static void on_riex_destruction_cb(
   rendinst::removeRIGenExtraFromGrid(handle);
 }
 
-static void net_rcv_ri_destr_info(const net::IMessage *msg)
+static void net_rcv_ri_destr_snapshot(const net::IMessage *msg)
 {
-  TIME_PROFILE(net_rcv_ri_destr_info);
-  auto ridestrMsg = msg->cast<RiDestrInfoMsg>();
+  TIME_PROFILE(net_rcv_ri_destr_snapshot);
+  auto ridestrMsg = msg->cast<RiDestrSnapshotMsg>();
   G_ASSERT(ridestrMsg);
-  rendinstdestr::deserialize_destr_data(ridestrMsg->get<0>(), 0, rendinstdestr::get_destr_settings().riMaxSimultaneousDestrs);
+  ensure_all_ri_extra_pools_are_synced();
+  const danet::BitStream &bs = ridestrMsg->get<0>();
+  bool done = rendinstdestr::deserialize_synced_ri_extra_pools(bs);
+  G_ASSERT(done);
+  bs.AlignReadToByteBoundary();
+  done &= rendinstdestr::deserialize_destr_data(bs, 0, rendinstdestr::get_destr_settings().riMaxSimultaneousDestrs);
+  G_ASSERT(!done || bs.GetNumberOfUnreadBits() == 0);
+  G_UNUSED(done);
 }
 
 static void net_rcv_ri_destr_update(const net::IMessage *msg)
@@ -342,9 +375,20 @@ static void net_rcv_ri_destr_update(const net::IMessage *msg)
   TIME_PROFILE(net_rcv_ri_destr_update);
   auto ridestrMsg = msg->cast<RiDestrUpdateMsg>();
   G_ASSERT(ridestrMsg);
+  ensure_all_ri_extra_pools_are_synced();
   bool done = rendinstdestr::deserialize_destr_update(ridestrMsg->get<0>());
   G_ASSERT(!done || ridestrMsg->get<0>().GetNumberOfUnreadBits() == 0);
   G_UNUSED(done);
+}
+
+static void net_rcv_ri_pools_update(const net::IMessage *msg)
+{
+  const RiPoolDataUpdateMsg *riMsg = msg->cast<RiPoolDataUpdateMsg>();
+  G_ASSERT(riMsg);
+  ensure_all_ri_extra_pools_are_synced();
+  const bool ok = rendinstdestr::deserialize_synced_ri_extra_pools(riMsg->get<0>());
+  G_ASSERT(ok && riMsg->get<0>().GetNumberOfUnreadBits() == 0);
+  G_UNUSED(ok);
 }
 
 void init(bool have_render)
@@ -420,7 +464,11 @@ void send_initial_ridestr(net::IConnection &conn)
   if (!cached_serialized_initial_ridestr.GetNumberOfBitsUsed())
     return;
 
-  RiDestrInfoMsg msg(cached_serialized_initial_ridestr);
+  ensure_all_ri_extra_pools_are_synced();
+  RiDestrSnapshotMsg msg(danet::BitStream(1024, framemem_ptr()));
+  rendinstdestr::serialize_synced_ri_extra_pools(msg.get<0>(), /* full snapshot */ true, /* skip if empty */ false);
+  msg.get<0>().WriteAlignedBytes(cached_serialized_initial_ridestr.GetData(),
+    cached_serialized_initial_ridestr.GetNumberOfBytesUsed());
   net::MessageNetDesc md = msg.getMsgClass();
   md.rcptFilter = &net::direct_connection_rcptf;
   msg.connection = &conn;
@@ -429,6 +477,15 @@ void send_initial_ridestr(net::IConnection &conn)
 
 static void flush_ridestr_update()
 {
+  ensure_all_ri_extra_pools_are_synced();
+  if (!is_pool_sync_sent)
+  {
+    // do not reserve memory, there might be nothing to send
+    RiPoolDataUpdateMsg msg = RiPoolDataUpdateMsg(danet::BitStream(framemem_ptr()));
+    if (rendinstdestr::serialize_synced_ri_extra_pools(msg.get<0>(), /* full snapshot */ false, /* skip if empty */ true))
+      send_net_msg(::net::get_msg_sink(), eastl::move(msg));
+    is_pool_sync_sent = true;
+  }
   if (unsynced_destr_data.empty())
     return;
 
@@ -477,11 +534,12 @@ static void flush_dirty_ri_destr_msg()
     return;
 
   update_ridestr_ver = cur_ridestr_ver;
-  send_net_msg(net::get_msg_sink(), RiDestrInfoMsg(cached_serialized_initial_ridestr));
+  send_net_msg(net::get_msg_sink(), RiDestrSnapshotMsg(cached_serialized_initial_ridestr));
 }
 
 void update(float dt, const TMatrix4 &glob_tm)
 {
+  ensure_all_ri_extra_pools_are_synced();
   if (dedicated::is_dedicated())
   {
     rendinstdestr::update(dt, nullptr);
@@ -505,6 +563,8 @@ void shutdown()
   cur_ridestr_ver = cached_ridestr_ver = 0;
   cached_serialized_initial_ridestr.Clear();
   clear_and_shrink(unsynced_destr_data);
+  prev_ri_extra_map_size = -1;
+  is_pool_sync_sent = true;
 }
 
 } // namespace ridestr

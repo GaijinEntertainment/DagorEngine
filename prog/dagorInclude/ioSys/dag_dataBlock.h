@@ -857,6 +857,11 @@ KRNLIMP int discard_unused_blk_ddict();
 //! returns ZSTD encoder dictionary for specified vromfs created with zstd_create_cdict (to be released with zstd_destroy_cdict)
 KRNLIMP ZSTD_CDict_s *create_vromfs_blk_cdict(const VirtualRomFsData *fs, int compr_level);
 
+//! ZSTD-packs a binary stream as if it contained a datablock dump
+KRNLIMP void pack_shared_nm_dump_to_stream(IGenSave &cwr, IGenLoad &crd, int sz, int compr_level, const ZSTD_CDict_s *cdict);
+//! same but with the default (internally defined) compression level
+KRNLIMP void pack_shared_nm_dump_to_stream(IGenSave &cwr, IGenLoad &crd, int sz, const ZSTD_CDict_s *cdict);
+
 template <typename Cb>
 static inline void iterate_child_blocks(const DataBlock &db, Cb cb);
 template <typename Cb>

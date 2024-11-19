@@ -84,6 +84,7 @@ static denoiser::ReflectionMethod output_type = denoiser::ReflectionMethod::Rela
 static bool performance_mode = true;
 static bool checkerboard = true;
 static bool show_validation = false;
+static bool use_anti_firefly = false;
 static bool use_nrd_lib = false;
 
 static d3d::SamplerHandle linear_sampler = d3d::INVALID_SAMPLER_HANDLE;
@@ -282,6 +283,7 @@ void render(bvh::ContextId context_id, const TMatrix4 &proj_tm, bool rt_shadow, 
   params.reflectionValue = reflection_value.getTex2D();
   params.performanceMode = performance_mode;
   params.validationTexture = show_validation ? validation_texture.getTex2D() : nullptr;
+  params.antiFirefly = use_anti_firefly;
   params.checkerboard = rtr::checkerboard;
   params.useNRDLib = use_nrd_lib;
   params.highSpeedMode = high_speed_mode;
@@ -348,6 +350,7 @@ static void imguiWindow()
 
   ImGui::Checkbox("Show validation layer", &show_validation);
   ImGui::Checkbox("Use NRD library", &use_nrd_lib);
+  ImGui::Checkbox("Use anti firefly", &use_anti_firefly);
 
   if (oldType != output_type)
   {

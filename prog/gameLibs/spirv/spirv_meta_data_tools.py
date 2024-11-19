@@ -480,10 +480,10 @@ class Grammar(object):
       self.cpp_op_type_name = 'Op'
 
   def load_from_json(self, json_def):
-    combo_v = int(str(json_def.get('version', 0)), 0)
-    self.major = int(str(json_def.get('major_version', combo_v / 100)), 0)
-    self.minor = int(str(json_def.get('minor_version', combo_v % 100)), 0)
-    self.rev = int(str(json_def.get('revision', 0)), 0)
+    combo_v = int(float(str(json_def.get('version', 0))))
+    self.major = int(float(str(json_def.get('major_version', combo_v / 100))))
+    self.minor = int(float(str(json_def.get('minor_version', combo_v % 100))))
+    self.rev = int(float(str(json_def.get('revision', 0))))
     self.instructions = []
 
     for i in json_def.get('instructions', []):
@@ -886,7 +886,7 @@ class Language(object):
       for t in self.types:
         if type_filter(self.types[t].category):
           yield self.types[t]
-    elif isinstance(type_filter, basestring):
+    elif isinstance(type_filter, str):
       for t in self.types:
         if self.types[t].category == type_filter:
           yield self.types[t]

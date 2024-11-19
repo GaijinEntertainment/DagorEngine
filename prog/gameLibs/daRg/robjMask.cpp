@@ -42,9 +42,8 @@ void RobjMask::render(StdGuiRender::GuiContext &ctx, const Element *elem, const 
   const PictureManager::PicDesc &pic = params->image->getPic();
   pic.updateTc();
 
-  darg::uishader::set_mask(ctx, pic.tex, d3d::INVALID_SAMPLER_HANDLE, rdata->pos + rdata->size / 2, 0,
-    Point2(2 * rdata->size.x / StdGuiRender::screen_width(), 2 * rdata->size.y / StdGuiRender::screen_height()), pic.tcLt,
-    pic.tcRb); // TODO: Use actual sampler IDs
+  darg::uishader::set_mask(ctx, pic.tex, pic.smp, rdata->pos + rdata->size / 2, 0,
+    Point2(2 * rdata->size.x / StdGuiRender::screen_width(), 2 * rdata->size.y / StdGuiRender::screen_height()), pic.tcLt, pic.tcRb);
 }
 
 void RobjMask::postRender(StdGuiRender::GuiContext &ctx, const Element *elem)

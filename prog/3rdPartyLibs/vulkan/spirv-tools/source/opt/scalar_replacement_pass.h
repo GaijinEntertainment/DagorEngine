@@ -15,6 +15,7 @@
 #ifndef SOURCE_OPT_SCALAR_REPLACEMENT_PASS_H_
 #define SOURCE_OPT_SCALAR_REPLACEMENT_PASS_H_
 
+#include <cassert>
 #include <cstdio>
 #include <memory>
 #include <queue>
@@ -23,23 +24,34 @@
 #include <vector>
 
 #include "source/opt/function.h"
-#include "source/opt/pass.h"
+#include "source/opt/mem_pass.h"
 #include "source/opt/type_manager.h"
 
 namespace spvtools {
 namespace opt {
 
 // Documented in optimizer.hpp
-class ScalarReplacementPass : public Pass {
+class ScalarReplacementPass : public MemPass {
  private:
-  static const uint32_t kDefaultLimit = 100;
+  static constexpr uint32_t kDefaultLimit = 100;
 
  public:
   ScalarReplacementPass(uint32_t limit = kDefaultLimit)
       : max_num_elements_(limit) {
-    name_[0] = '\0';
-    strcat(name_, "scalar-replacement=");
-    sprintf(&name_[strlen(name_)], "%d", max_num_elements_);
+    const auto num_to_write = snprintf(
+        name_, sizeof(name_), "scalar-replacement=%u", max_num_elements_);
+    assert(size_t(num_to_write) < sizeof(name_));
+    (void)num_to_write;  // Mark as unused
+
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    // ClusterFuzz/OSS-Fuzz is likely to yield examples with very large arrays.
+    // This can cause timeouts and memouts during fuzzing that
+    // are not classed as bugs. To avoid this noise, we set the
+    // max_num_elements_ to a smaller value for fuzzing.
+    max_num_elements_ =
+        (max_num_elements_ > 0 && max_num_elements_ < 100 ? max_num_elements_
+                                                          : 100);
+#endif
   }
 
   const char* name() const override { return name_; }
@@ -92,10 +104,10 @@ class ScalarReplacementPass : public Pass {
   // Returns true if the uses of |inst| are acceptable for scalarization.
   //
   // Recursively checks all the uses of |inst|. For |inst| specifically, only
-  // allows SpvOpAccessChain, SpvOpInBoundsAccessChain, SpvOpLoad and
-  // SpvOpStore. Access chains must have the first index be a compile-time
-  // constant. Subsequent uses of access chains (including other access chains)
-  // are checked in a more relaxed manner.
+  // allows spv::Op::OpAccessChain, spv::Op::OpInBoundsAccessChain,
+  // spv::Op::OpLoad and spv::Op::OpStore. Access chains must have the first
+  // index be a compile-time constant. Subsequent uses of access chains
+  // (including other access chains) are checked in a more relaxed manner.
   bool CheckUses(const Instruction* inst) const;
 
   // Helper function for the above |CheckUses|.
@@ -234,10 +246,8 @@ class ScalarReplacementPass : public Pass {
   std::unique_ptr<std::unordered_set<int64_t>> GetUsedComponents(
       Instruction* inst);
 
-  // Returns an instruction defining a null constant with type |type_id|.  If
-  // one already exists, it is returned.  Otherwise a new one is created.
-  // Returns |nullptr| if the new constant could not be created.
-  Instruction* CreateNullConstant(uint32_t type_id);
+  // Returns an instruction defining an undefined value type |type_id|.
+  Instruction* GetUndef(uint32_t type_id);
 
   // Maps storage type to a pointer type enclosing that type.
   std::unordered_map<uint32_t, uint32_t> pointee_to_pointer_;
@@ -252,10 +262,30 @@ class ScalarReplacementPass : public Pass {
   // that we will be willing to split.
   bool IsLargerThanSizeLimit(uint64_t length) const;
 
+  // Copies all relevant decorations from `from` to `to`. This includes
+  // decorations applied to the variable, and to the members of the type.
+  // It is assumed that `to` is a variable that is intended to replace the
+  // `member_index`th member of `from`.
+  void CopyDecorationsToVariable(Instruction* from, Instruction* to,
+                                 uint32_t member_index);
+
+  // Copies pointer related decoration from `from` to `to` if they exist.
+  void CopyPointerDecorationsToVariable(Instruction* from, Instruction* to);
+
+  // Copies decorations that are needed from the `member_index` of `from` to
+  // `to, if there was one.
+  void CopyNecessaryMemberDecorationsToVariable(Instruction* from,
+                                                Instruction* to,
+                                                uint32_t member_index);
+
   // Limit on the number of members in an object that will be replaced.
   // 0 means there is no limit.
   uint32_t max_num_elements_;
-  char name_[55];
+
+  // This has to be big enough to fit "scalar-replacement=" followed by a
+  // uint32_t number written in decimal (so 10 digits), and then a
+  // terminating nul.
+  char name_[30];
 };
 
 }  // namespace opt

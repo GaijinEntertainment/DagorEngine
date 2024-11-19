@@ -191,7 +191,7 @@ macro BLOOD_PUDDLES_COMMON_PS()
       decal_type__is_landscape = input.decal_type_and_landscape__frame__rndIndex.x;
       uint decalType = decal_type__is_landscape >> 1;
       bool isLandscape = (decal_type__is_landscape & 0x1) == 1;
-      bool isPuddle = decalType == 0;
+      bool isPuddle = decalType == DecalGroup::BLOOD_DECAL_GROUP_PUDDLE;
       uint frameNo = input.decal_type_and_landscape__frame__rndIndex.y;
       uint rndIndex = input.decal_type_and_landscape__frame__rndIndex.z;
       float3 worldNormal = normalize(input.normal_fadetime.xyz);

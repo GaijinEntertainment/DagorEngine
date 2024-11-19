@@ -454,34 +454,6 @@ shader water_ssr_nv2, water_ssr_nv2_heightmap
       half oldStrength = oldAlphaStrength.g;
 
       BRANCH
-      if (offscreen && !hasData)
-      {
-        // travelling 10% screen width pixel towards the middle of the screen, during each
-        float2 dir = float2(-sign(oldUv.x - 0.5) * 0.1, 0);
-        float4 nearTarget1 = half4(
-          tex2Dlod(water_reflection_tex, float4(oldUv + dir * 1, 0,0)).rgb,
-          tex2Dlod(water_reflection_strenght_tex, float4(oldUv + dir * 1, 0,0)).r
-        );
-        float4 nearTarget2 = half4(
-          tex2Dlod(water_reflection_tex, float4(oldUv + dir * 2, 0,0)).rgb,
-          tex2Dlod(water_reflection_strenght_tex, float4(oldUv + dir * 2, 0,0)).r
-        );
-        float4 nearTarget3 = half4(
-          tex2Dlod(water_reflection_tex, float4(oldUv + dir * 3, 0,0)).rgb,
-          tex2Dlod(water_reflection_strenght_tex, float4(oldUv + dir * 3, 0,0)).r
-        );
-        float4 nearTarget4 = half4(
-          tex2Dlod(water_reflection_tex, float4(oldUv + dir * 4, 0,0)).rgb,
-          tex2Dlod(water_reflection_strenght_tex, float4(oldUv + dir * 4, 0,0)).r
-        );
-
-        newTarget = nearTarget4;
-        newTarget = nearTarget3.a > 0 ? nearTarget3 : newTarget;
-        newTarget = nearTarget2.a > 0 ? nearTarget2 : newTarget;
-        newTarget = nearTarget1.a > 0 ? nearTarget1 : newTarget;
-      }
-
-      BRANCH
       if (water_quality == water_quality_high && !hitSky && newTarget.a == 0)
       {
         float rayHitDist = 0;

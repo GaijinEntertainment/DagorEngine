@@ -685,7 +685,19 @@ def generate_instruction_reader(language, instruction):
         result += 'switch ({}.value)'.format(modeName)
         result += '{\n'
         extParamNames = generate_extended_params_value_names(modeType, False)
+        uniqueSwitchOps = []
         for e in modeType.values:
+
+          duplicatedEntry = False
+          for j in uniqueSwitchOps:
+            if e.value == j:
+              duplicatedEntry = True
+              result += '//duplicated {} = {} \n'.format(e.name, e.value)
+              break
+          if duplicatedEntry:
+            continue
+          uniqueSwitchOps.append(e.value)
+
           result += 'case {}::{}:\n'.format(modeType.get_type_name(), e.name)
           paramList = []
           forwardRefs = []
@@ -735,10 +747,11 @@ def generate_instruction_reader(language, instruction):
   return result
 
 def generate_module_reader(language, build_cfg):
-  result = '// auto generated, do not modify!\n'
-  result += '#include "{}"\n'.format(build_cfg.get('module-decoder-file-name'))
-  result += '#include <spirv/module_builder.h>\n'
+  result  = '// Copyright (C) Gaijin Games KFT.  All rights reserved.\n\n'
+  result += '// auto generated, do not modify!\n'
   result += '#include "{}"\n'.format(build_cfg.get('module-node-file-name'))
+  result += '#include <spirv/module_builder.h>\n'
+  result += '#include "{}"\n'.format(build_cfg.get('module-decoder-file-name'))
   result += 'using namespace spirv;\n'
 
   result += 'struct PorpertyCloneVisitor {\n'

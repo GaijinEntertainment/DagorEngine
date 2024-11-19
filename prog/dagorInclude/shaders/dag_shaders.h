@@ -160,6 +160,7 @@ public:
 
   virtual bool setReqTexLevel(int req_level = 15) const = 0;
 
+  virtual bool checkAndPrefetchMissingTextures() const = 0;
   //! invalidates internal cached state block (to force block re-apply and d3d program update)
   static void invalidate_cached_state_block();
 };

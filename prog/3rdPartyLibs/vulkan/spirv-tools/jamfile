@@ -32,6 +32,7 @@ Sources =
   source/opcode.cpp
   source/operand.cpp
   source/opt/aggressive_dead_code_elim_pass.cpp
+  source/opt/analyze_live_input_pass.cpp
   source/opt/amd_ext_to_khr.cpp
   source/opt/basic_block.cpp
   source/opt/block_merge_pass.cpp
@@ -64,8 +65,11 @@ Sources =
   source/opt/eliminate_dead_constant_pass.cpp
   source/opt/eliminate_dead_functions_pass.cpp
   source/opt/eliminate_dead_functions_util.cpp
+  source/opt/eliminate_dead_io_components_pass.cpp
   source/opt/eliminate_dead_members_pass.cpp
+  source/opt/eliminate_dead_output_stores_pass.cpp
   source/opt/feature_manager.cpp
+  source/opt/fix_func_call_arguments.cpp
   source/opt/fix_storage_class.cpp
   source/opt/flatten_decoration_pass.cpp
   source/opt/fold.cpp
@@ -81,13 +85,16 @@ Sources =
   source/opt/instruction.cpp
   source/opt/instruction_list.cpp
   source/opt/instrument_pass.cpp
+  source/opt/interface_var_sroa.cpp
   source/opt/inst_bindless_check_pass.cpp
   source/opt/inst_buff_addr_check_pass.cpp
   source/opt/inst_debug_printf_pass.cpp
   source/opt/interp_fixup_pass.cpp
+  source/opt/invocation_interlock_placement_pass.cpp
   source/opt/ir_context.cpp
   source/opt/ir_loader.cpp
   source/opt/licm_pass.cpp
+  source/opt/liveness.cpp
   source/opt/local_access_chain_convert_pass.cpp
   source/opt/local_redundancy_elimination.cpp
   source/opt/local_single_block_elim_pass.cpp
@@ -104,6 +111,7 @@ Sources =
   source/opt/loop_utils.cpp
   source/opt/mem_pass.cpp
   source/opt/merge_return_pass.cpp
+  source/opt/modify_maximal_reconvergence.cpp
   source/opt/module.cpp
   source/opt/optimizer.cpp
   source/opt/pass.cpp
@@ -115,6 +123,7 @@ Sources =
   source/opt/redundancy_elimination.cpp
   source/opt/register_pressure.cpp
   source/opt/relax_float_ops_pass.cpp
+  source/opt/remove_dontinline_pass.cpp
   source/opt/remove_duplicates_pass.cpp
   source/opt/remove_unused_interface_variables_pass.cpp
   source/opt/replace_desc_array_access_using_var_index.cpp
@@ -130,8 +139,10 @@ Sources =
   source/opt/strip_debug_info_pass.cpp
   source/opt/strip_nonsemantic_info_pass.cpp
   source/opt/struct_cfg_analysis.cpp
+  source/opt/switch_descriptorset_pass.cpp
   source/opt/types.cpp
   source/opt/type_manager.cpp
+  source/opt/trim_capabilities_pass.cpp
   source/opt/unify_const_pass.cpp
   source/opt/upgrade_memory_model.cpp
   source/opt/value_number_table.cpp
@@ -218,10 +229,14 @@ Sources =
   source/val/validate_logicals.cpp
   source/val/validate_memory.cpp
   source/val/validate_memory_semantics.cpp
+  source/val/validate_mesh_shading.cpp
   source/val/validate_misc.cpp
   source/val/validate_mode_setting.cpp
   source/val/validate_non_uniform.cpp
   source/val/validate_primitives.cpp
+  source/val/validate_ray_query.cpp
+  source/val/validate_ray_tracing.cpp
+  source/val/validate_ray_tracing_reorder.cpp
   source/val/validate_scopes.cpp
   source/val/validate_small_type_uses.cpp
   source/val/validate_type.cpp

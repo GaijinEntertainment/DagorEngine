@@ -83,7 +83,7 @@ class BasicBlock {
   const Instruction* GetMergeInst() const;
   Instruction* GetMergeInst();
 
-  // Returns the OpLoopMerge instruciton in this basic block, if it exists.
+  // Returns the OpLoopMerge instruction in this basic block, if it exists.
   // Otherwise return null.  May be used whenever tail() can be used.
   const Instruction* GetLoopMergeInst() const;
   Instruction* GetLoopMergeInst();
@@ -319,7 +319,7 @@ inline bool BasicBlock::WhileEachPhiInst(
   Instruction* inst = &insts_.front();
   while (inst != nullptr) {
     Instruction* next_instruction = inst->NextNode();
-    if (inst->opcode() != SpvOpPhi) break;
+    if (inst->opcode() != spv::Op::OpPhi) break;
     if (!inst->WhileEachInst(f, run_on_debug_line_insts)) return false;
     inst = next_instruction;
   }

@@ -52,6 +52,21 @@ DestructableObject::DestructableObject(const destructables::DestructableCreation
     defaultTimeToLive = params.defaultTimeToLive;
   if (params.timeToKinematic >= 0.0f)
     timeToKinematic = params.timeToKinematic;
+  if (params.timeToSinkUnderground > 0.0f)
+    timeToSinkUnderground = params.timeToSinkUnderground;
+
+  BBox3 bbox;
+  for (int i = 0; i < physObj->getPhysSys()->getBodyCount(); i++)
+  {
+    Point3 bodyMin, bodyMax;
+    TMatrix bodyTm;
+    auto *body = physObj->getPhysSys()->getBody(i);
+    body->getTm(bodyTm);
+    body->getShapeAabb(bodyMin, bodyMax);
+    bbox += bodyTm * bodyMin;
+    bbox += bodyTm * bodyMax;
+  }
+  bboxHeight = bbox.width().y;
 
   clear_and_resize(ttlBodies, physObj->getPhysSys()->getBodyCount());
   for (int i = 0; i < ttlBodies.size(); ++i)
@@ -172,12 +187,12 @@ void DestructableObject::keepFloatable(float dt, float at_time)
   }
 }
 
-bool DestructableObject::update(float dt, bool force_update_ttl)
+bool DestructableObject::update(float dt, float dt_scale, bool force_update_ttl)
 {
   TIME_PROFILE(DestructableObject__update);
 
   float updateDt = dt * scaleDt;
-  bool forceUpdateTtl = force_update_ttl && scaleDt > 1.f;
+  bool forceUpdateTtl = force_update_ttl && scaleDt > 1.f || ttl < defaultTimeToLive + timeToSinkUnderground;
   for (int i = 0; i < physObj->getPhysSys()->getBodyCount(); ++i)
   {
     PhysBody *body = physObj->getPhysSys()->getBody(i);
@@ -191,9 +206,12 @@ bool DestructableObject::update(float dt, bool force_update_ttl)
     {
       if (updateDt > ttlBodies[i] && ttlBodies[i] >= 0.f)
       {
+        // calculate acceleration, required to fully sink object bounding box
+        const float sinkUndergroundGravity =
+          eastl::max(0.1f, bboxHeight / sqr(timeToSinkUnderground / (scaleDt * dt_scale)) * 2.0f / /* adjust for damping */ 0.8f);
         // Disable physics, just play animation
         body->setGroupAndLayerMask(0, 0);
-        body->setGravity(Point3(0.f, -0.1f, 0.f));
+        body->setGravity(Point3(0.f, -sinkUndergroundGravity, 0.f));
       }
       if (ttlBodies[i] < 0.f)
         body->activateBody(true);
@@ -357,7 +375,8 @@ void update(float dt)
 {
   TIME_PROFILE(destructables_update);
 
-  float dtUpdate = dt * cvt(numActiveBodies, numOfDestrBodiesForScaleDt, maxNumberOfDestructableBodies, 1.f, maxScaleDt);
+  const float dtUpdateScale = cvt(numActiveBodies, numOfDestrBodiesForScaleDt, maxNumberOfDestructableBodies, 1.f, maxScaleDt);
+  const float dtUpdate = dt * dtUpdateScale;
   bool forceUpdateTtl = numOfDestrBodiesForScaleDt > 0 && numActiveBodies > numOfDestrBodiesForScaleDt;
   numActiveBodies = 0;
   int deleteLimit = DESTRUCTABLES_DELETE_MAX_PER_FRAME;
@@ -369,7 +388,7 @@ void update(float dt)
                                 if (deleteLimit-- > 0)
                                   return true; // ~18 deletions at 1 msec on AMD 5800H. Move to thread?
                               }
-                              else if (object->update(dtUpdate, forceUpdateTtl))
+                              else if (object->update(dtUpdate, dtUpdateScale, forceUpdateTtl))
                                 numActiveBodies += object->getNumActiveBodies();
                               // else it already considered marked for deletion
                               return false;

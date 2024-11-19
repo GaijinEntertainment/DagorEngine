@@ -16,6 +16,7 @@
 #include "bhv/bhvTouchScreenStick.h"
 #include "bhv/BhvRotateRelativeToDir.h"
 #include "bhv/BhvRotateByComponent.h"
+#include "bhv/bhvOpacityByComponent.h"
 #include "bhv/bhvMenuCameraControl.h"
 #include "bhv/bhvActivateActionSet.h"
 #include "bhv/bhvReplayFreeCameraControl.h"
@@ -60,6 +61,7 @@ void bind_ui_behaviors(SqModules *module_mgr)
     .SetValue("TouchScreenStick", (darg::Behavior *)&bhv_touch_screen_stick)
     .SetValue("RotateRelativeToDir", (darg::Behavior *)&bhv_rotate_relative_to_dir)
     .SetValue("RotateByComponent", (darg::Behavior *)&bhv_rotate_by_component)
+    .SetValue("OpacityByComponent", (darg::Behavior *)&bhv_opacity_by_component)
     .SetValue("MenuCameraControl", (darg::Behavior *)&bhv_menu_camera_control)
     .SetValue("ActivateActionSet", (darg::Behavior *)&bhv_activate_action_set)
     .SetValue("ReplayFreeCameraControl", (darg::Behavior *)&bhv_replay_free_camera_control)

@@ -6,7 +6,6 @@ require AnimV20
 require DagorMaterials
 require math.base
 require app
-require danetlibs.weaponry_hit_fx.main.weaponry_fx_common
 require danetlibs.light_flicker.render.light_flicker_common
 require daSkies
 
@@ -17,6 +16,14 @@ def is_night_time()
     return true
   return skies.sunDir.y < NIGHT_SUN_COS
 
+
+def calc_effect_tm(pos : float3; norm : float3)
+  var tm = IDENT_TM
+  tm[1] = normalize(norm)
+  tm[2] = normalize(cross(float3(1, 0, 0), tm[1]))
+  tm[0] = normalize(cross(tm[1], tm[2]))
+  tm[3] = pos
+  return tm
 
 def smoothstep(edge0 : float; edge1 : float; x : float)
    // Scale, and clamp x to 0..1 range

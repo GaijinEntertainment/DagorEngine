@@ -31,12 +31,17 @@ using MessageConsumer = std::function<void(
     const spv_position_t& /* position */, const char* /* message */
     )>;
 
+using HeaderParser = std::function<spv_result_t(
+    const spv_endianness_t endianess, const spv_parsed_header_t& instruction)>;
+using InstructionParser =
+    std::function<spv_result_t(const spv_parsed_instruction_t& instruction)>;
+
 // C++ RAII wrapper around the C context object spv_context.
-class Context {
+class SPIRV_TOOLS_EXPORT Context {
  public:
   // Constructs a context targeting the given environment |env|.
   //
-  // See specific API calls for how the target environment is interpeted
+  // See specific API calls for how the target environment is interpreted
   // (particularly assembly and validation).
   //
   // The constructed instance will have an empty message consumer, which just
@@ -68,7 +73,7 @@ class Context {
 };
 
 // A RAII wrapper around a validator options object.
-class ValidatorOptions {
+class SPIRV_TOOLS_EXPORT ValidatorOptions {
  public:
   ValidatorOptions() : options_(spvValidatorOptionsCreate()) {}
   ~ValidatorOptions() { spvValidatorOptionsDestroy(options_); }
@@ -139,7 +144,7 @@ class ValidatorOptions {
   //    set that option.
   // 2) Pointers that are pass as parameters to function calls do not have to
   //    match the storage class of the formal parameter.
-  // 3) Pointers that are actaul parameters on function calls do not have to
+  // 3) Pointers that are actual parameters on function calls do not have to
   //    point to the same type pointed as the formal parameter.  The types just
   //    need to logically match.
   // 4) GLSLstd450 Interpolate* instructions can have a load of an interpolant
@@ -148,12 +153,17 @@ class ValidatorOptions {
     spvValidatorOptionsSetBeforeHlslLegalization(options_, val);
   }
 
+  // Whether friendly names should be used in validation error messages.
+  void SetFriendlyNames(bool val) {
+    spvValidatorOptionsSetFriendlyNames(options_, val);
+  }
+
  private:
   spv_validator_options options_;
 };
 
 // A C++ wrapper around an optimization options object.
-class OptimizerOptions {
+class SPIRV_TOOLS_EXPORT OptimizerOptions {
  public:
   OptimizerOptions() : options_(spvOptimizerOptionsCreate()) {}
   ~OptimizerOptions() { spvOptimizerOptionsDestroy(options_); }
@@ -195,7 +205,7 @@ class OptimizerOptions {
 };
 
 // A C++ wrapper around a reducer options object.
-class ReducerOptions {
+class SPIRV_TOOLS_EXPORT ReducerOptions {
  public:
   ReducerOptions() : options_(spvReducerOptionsCreate()) {}
   ~ReducerOptions() { spvReducerOptionsDestroy(options_); }
@@ -226,7 +236,7 @@ class ReducerOptions {
 };
 
 // A C++ wrapper around a fuzzer options object.
-class FuzzerOptions {
+class SPIRV_TOOLS_EXPORT FuzzerOptions {
  public:
   FuzzerOptions() : options_(spvFuzzerOptionsCreate()) {}
   ~FuzzerOptions() { spvFuzzerOptionsDestroy(options_); }
@@ -273,7 +283,7 @@ class FuzzerOptions {
 // provides methods for assembling, disassembling, and validating.
 //
 // Instances of this class provide basic thread-safety guarantee.
-class SpirvTools {
+class SPIRV_TOOLS_EXPORT SpirvTools {
  public:
   enum {
     // Default assembling option used by assemble():
@@ -331,6 +341,23 @@ class SpirvTools {
                    std::string* text,
                    uint32_t options = kDefaultDisassembleOption) const;
 
+  // Parses a SPIR-V binary, specified as counted sequence of 32-bit words.
+  // Parsing feedback is provided via two callbacks provided as std::function.
+  // In a valid parse the parsed-header callback is called once, and
+  // then the parsed-instruction callback is called once for each instruction
+  // in the stream.
+  // Returns true on successful parsing.
+  // If diagnostic is non-null, a diagnostic is emitted on failed parsing.
+  // If diagnostic is null the context's message consumer
+  // will be used to emit any errors. If a callback returns anything other than
+  // SPV_SUCCESS, then that status code is returned, no further callbacks are
+  // issued, and no additional diagnostics are emitted.
+  // This is a wrapper around the C API spvBinaryParse.
+  bool Parse(const std::vector<uint32_t>& binary,
+             const HeaderParser& header_parser,
+             const InstructionParser& instruction_parser,
+             spv_diagnostic* diagnostic = nullptr);
+
   // Validates the given SPIR-V |binary|. Returns true if no issues are found.
   // Otherwise, returns false and communicates issues via the message consumer
   // registered.
@@ -361,7 +388,8 @@ class SpirvTools {
   bool IsValid() const;
 
  private:
-  struct Impl;  // Opaque struct for holding the data fields used by this class.
+  struct SPIRV_TOOLS_LOCAL
+      Impl;  // Opaque struct for holding the data fields used by this class.
   std::unique_ptr<Impl> impl_;  // Unique pointer to implementation data.
 };
 

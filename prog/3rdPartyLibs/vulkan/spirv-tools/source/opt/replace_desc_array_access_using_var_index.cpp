@@ -21,11 +21,10 @@
 namespace spvtools {
 namespace opt {
 namespace {
-
-const uint32_t kOpAccessChainInOperandIndexes = 1;
-const uint32_t kOpTypePointerInOperandType = 1;
-const uint32_t kOpTypeArrayInOperandType = 0;
-const uint32_t kOpTypeStructInOperandMember = 0;
+constexpr uint32_t kOpAccessChainInOperandIndexes = 1;
+constexpr uint32_t kOpTypePointerInOperandType = 1;
+constexpr uint32_t kOpTypeArrayInOperandType = 0;
+constexpr uint32_t kOpTypeStructInOperandMember = 0;
 IRContext::Analysis kAnalysisDefUseAndInstrToBlockMapping =
     IRContext::kAnalysisDefUse | IRContext::kAnalysisInstrToBlockMapping;
 
@@ -54,8 +53,8 @@ bool ReplaceDescArrayAccessUsingVarIndex::
   std::vector<Instruction*> work_list;
   get_def_use_mgr()->ForEachUser(var, [&work_list](Instruction* use) {
     switch (use->opcode()) {
-      case SpvOpAccessChain:
-      case SpvOpInBoundsAccessChain:
+      case spv::Op::OpAccessChain:
+      case spv::Op::OpInBoundsAccessChain:
         work_list.push_back(use);
         break;
       default:
@@ -95,7 +94,7 @@ void ReplaceDescArrayAccessUsingVarIndex::ReplaceUsersOfAccessChain(
   CollectRecursiveUsersWithConcreteType(access_chain, &final_users);
   for (auto* inst : final_users) {
     std::deque<Instruction*> insts_to_be_cloned =
-        CollectRequiredImageInsts(inst);
+        CollectRequiredImageAndAccessInsts(inst);
     ReplaceNonUniformAccessWithSwitchCase(
         inst, access_chain, number_of_elements, insts_to_be_cloned);
   }
@@ -121,8 +120,8 @@ void ReplaceDescArrayAccessUsingVarIndex::CollectRecursiveUsersWithConcreteType(
 }
 
 std::deque<Instruction*>
-ReplaceDescArrayAccessUsingVarIndex::CollectRequiredImageInsts(
-    Instruction* user_of_image_insts) const {
+ReplaceDescArrayAccessUsingVarIndex::CollectRequiredImageAndAccessInsts(
+    Instruction* user) const {
   std::unordered_set<uint32_t> seen_inst_ids;
   std::queue<Instruction*> work_list;
 
@@ -131,21 +130,23 @@ ReplaceDescArrayAccessUsingVarIndex::CollectRequiredImageInsts(
     if (!seen_inst_ids.insert(*idp).second) return;
     Instruction* operand = get_def_use_mgr()->GetDef(*idp);
     if (context()->get_instr_block(operand) != nullptr &&
-        HasImageOrImagePtrType(operand)) {
+        (HasImageOrImagePtrType(operand) ||
+         operand->opcode() == spv::Op::OpAccessChain ||
+         operand->opcode() == spv::Op::OpInBoundsAccessChain)) {
       work_list.push(operand);
     }
   };
 
-  std::deque<Instruction*> required_image_insts;
-  required_image_insts.push_front(user_of_image_insts);
-  user_of_image_insts->ForEachInId(decision_to_include_operand);
+  std::deque<Instruction*> required_insts;
+  required_insts.push_front(user);
+  user->ForEachInId(decision_to_include_operand);
   while (!work_list.empty()) {
     auto* inst_from_work_list = work_list.front();
     work_list.pop();
-    required_image_insts.push_front(inst_from_work_list);
+    required_insts.push_front(inst_from_work_list);
     inst_from_work_list->ForEachInId(decision_to_include_operand);
   }
-  return required_image_insts;
+  return required_insts;
 }
 
 bool ReplaceDescArrayAccessUsingVarIndex::HasImageOrImagePtrType(
@@ -156,22 +157,22 @@ bool ReplaceDescArrayAccessUsingVarIndex::HasImageOrImagePtrType(
 
 bool ReplaceDescArrayAccessUsingVarIndex::IsImageOrImagePtrType(
     const Instruction* type_inst) const {
-  if (type_inst->opcode() == SpvOpTypeImage ||
-      type_inst->opcode() == SpvOpTypeSampler ||
-      type_inst->opcode() == SpvOpTypeSampledImage) {
+  if (type_inst->opcode() == spv::Op::OpTypeImage ||
+      type_inst->opcode() == spv::Op::OpTypeSampler ||
+      type_inst->opcode() == spv::Op::OpTypeSampledImage) {
     return true;
   }
-  if (type_inst->opcode() == SpvOpTypePointer) {
+  if (type_inst->opcode() == spv::Op::OpTypePointer) {
     Instruction* pointee_type_inst = get_def_use_mgr()->GetDef(
         type_inst->GetSingleWordInOperand(kOpTypePointerInOperandType));
     return IsImageOrImagePtrType(pointee_type_inst);
   }
-  if (type_inst->opcode() == SpvOpTypeArray) {
+  if (type_inst->opcode() == spv::Op::OpTypeArray) {
     Instruction* element_type_inst = get_def_use_mgr()->GetDef(
         type_inst->GetSingleWordInOperand(kOpTypeArrayInOperandType));
     return IsImageOrImagePtrType(element_type_inst);
   }
-  if (type_inst->opcode() != SpvOpTypeStruct) return false;
+  if (type_inst->opcode() != spv::Op::OpTypeStruct) return false;
   for (uint32_t in_operand_idx = kOpTypeStructInOperandMember;
        in_operand_idx < type_inst->NumInOperands(); ++in_operand_idx) {
     Instruction* member_type_inst = get_def_use_mgr()->GetDef(
@@ -184,16 +185,16 @@ bool ReplaceDescArrayAccessUsingVarIndex::IsImageOrImagePtrType(
 bool ReplaceDescArrayAccessUsingVarIndex::IsConcreteType(
     uint32_t type_id) const {
   Instruction* type_inst = get_def_use_mgr()->GetDef(type_id);
-  if (type_inst->opcode() == SpvOpTypeInt ||
-      type_inst->opcode() == SpvOpTypeFloat) {
+  if (type_inst->opcode() == spv::Op::OpTypeInt ||
+      type_inst->opcode() == spv::Op::OpTypeFloat) {
     return true;
   }
-  if (type_inst->opcode() == SpvOpTypeVector ||
-      type_inst->opcode() == SpvOpTypeMatrix ||
-      type_inst->opcode() == SpvOpTypeArray) {
+  if (type_inst->opcode() == spv::Op::OpTypeVector ||
+      type_inst->opcode() == spv::Op::OpTypeMatrix ||
+      type_inst->opcode() == spv::Op::OpTypeArray) {
     return IsConcreteType(type_inst->GetSingleWordInOperand(0));
   }
-  if (type_inst->opcode() == SpvOpTypeStruct) {
+  if (type_inst->opcode() == spv::Op::OpTypeStruct) {
     for (uint32_t i = 0; i < type_inst->NumInOperands(); ++i) {
       if (!IsConcreteType(type_inst->GetSingleWordInOperand(i))) return false;
     }
@@ -253,8 +254,12 @@ void ReplaceDescArrayAccessUsingVarIndex::ReplaceNonUniformAccessWithSwitchCase(
     Instruction* access_chain_final_user, Instruction* access_chain,
     uint32_t number_of_elements,
     const std::deque<Instruction*>& insts_to_be_cloned) const {
-  // Create merge block and add terminator
   auto* block = context()->get_instr_block(access_chain_final_user);
+  // If the instruction does not belong to a block (i.e. in the case of
+  // OpDecorate), no replacement is needed.
+  if (!block) return;
+
+  // Create merge block and add terminator
   auto* merge_block = SeparateInstructionsIntoNewBlock(
       block, access_chain_final_user->NextNode());
 
@@ -316,8 +321,8 @@ ReplaceDescArrayAccessUsingVarIndex::SeparateInstructionsIntoNewBlock(
 }
 
 BasicBlock* ReplaceDescArrayAccessUsingVarIndex::CreateNewBlock() const {
-  auto* new_block = new BasicBlock(std::unique_ptr<Instruction>(
-      new Instruction(context(), SpvOpLabel, 0, context()->TakeNextId(), {})));
+  auto* new_block = new BasicBlock(std::unique_ptr<Instruction>(new Instruction(
+      context(), spv::Op::OpLabel, 0, context()->TakeNextId(), {})));
   get_def_use_mgr()->AnalyzeInstDefUse(new_block->GetLabelInst());
   context()->set_instr_block(new_block->GetLabelInst(), new_block);
   return new_block;
@@ -326,7 +331,7 @@ BasicBlock* ReplaceDescArrayAccessUsingVarIndex::CreateNewBlock() const {
 void ReplaceDescArrayAccessUsingVarIndex::UseConstIndexForAccessChain(
     Instruction* access_chain, uint32_t const_element_idx) const {
   uint32_t const_element_idx_id =
-      context()->get_constant_mgr()->GetUIntConst(const_element_idx);
+      context()->get_constant_mgr()->GetUIntConstId(const_element_idx);
   access_chain->SetInOperand(kOpAccessChainInOperandIndexes,
                              {const_element_idx_id});
 }
@@ -416,7 +421,7 @@ void ReplaceDescArrayAccessUsingVarIndex::ReplacePhiIncomingBlock(
     uint32_t old_incoming_block_id, uint32_t new_incoming_block_id) const {
   context()->ReplaceAllUsesWithPredicate(
       old_incoming_block_id, new_incoming_block_id,
-      [](Instruction* use) { return use->opcode() == SpvOpPhi; });
+      [](Instruction* use) { return use->opcode() == spv::Op::OpPhi; });
 }
 
 }  // namespace opt

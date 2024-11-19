@@ -10,6 +10,7 @@
 #include <gui/dag_imguiUtil.h>
 #include <libTools/util/hdpiUtil.h>
 #include <imgui/imgui_internal.h>
+#include <drv/3d/dag_sampler.h>
 
 using namespace ImGui;
 
@@ -713,7 +714,9 @@ bool ImguiHelper::imageCheckButtonWithBackground(const char *str_id, ImTextureID
   ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
   ImGui::PushStyleColor(ImGuiCol_Border, Constants::TOGGLE_BUTTON_CHECKED_BORDER_COLOR);
 
+  setPointSampler();
   const bool pressed = ImGui::ImageButton(str_id, texture_id, image_size);
+  setDefaultSampler();
 
   ImGui::PopStyleColor(3);
 
@@ -1187,6 +1190,20 @@ float ImguiHelper::getCursorPosYWithoutLastItemSpacing()
   ImGuiWindow *window = ImGui::GetCurrentWindowRead();
   float cursorPosYWithoutItemSpacing = (window->DC.CursorPosPrevLine.y + window->DC.PrevLineSize.y); // See ImGui::ItemSize().
   return cursorPosYWithoutItemSpacing - window->Pos.y + window->Scroll.y;                            // See ImGui::GetCursorPosY().
+}
+
+void ImguiHelper::setPointSampler()
+{
+  d3d::SamplerInfo smpInfo;
+  smpInfo.filter_mode = d3d::FilterMode::Point;
+  static d3d::SamplerHandle smp = d3d::request_sampler(smpInfo);
+  ImGuiDagor::Sampler(smp);
+}
+
+void ImguiHelper::setDefaultSampler()
+{
+  static d3d::SamplerHandle smp = d3d::request_sampler({});
+  ImGuiDagor::Sampler(smp);
 }
 
 } // namespace PropPanel

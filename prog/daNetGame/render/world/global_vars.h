@@ -60,6 +60,7 @@
   VAR(film_grain_params)
 
 #define GLOBAL_VARS_OPTIONAL_LIST             \
+  VAR(uv_temporal_jitter)                     \
   VAR(glass_shadow_k)                         \
   VAR(gi_hero_cockpit_distance)               \
   VAR(scratch_params)                         \

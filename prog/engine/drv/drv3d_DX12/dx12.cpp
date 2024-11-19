@@ -2696,7 +2696,7 @@ bool d3d::set_depth(BaseTexture *tex, int layer, DepthAccess access)
   return true;
 }
 
-bool d3d::set_render_target(int ri, Texture *tex, int level)
+bool d3d::set_render_target(int ri, Texture *tex, uint8_t level)
 {
   G_ASSERTF_RETURN(ri < Driver3dRenderTarget::MAX_SIMRT, false, "DX12: in set_render_target, 'ri' is %d, while MAX_SIMRT is %d", ri,
     Driver3dRenderTarget::MAX_SIMRT);
@@ -2736,7 +2736,7 @@ bool d3d::set_render_target(int ri, Texture *tex, int level)
   return true;
 }
 
-bool d3d::set_render_target(int ri, BaseTexture *tex, int layer, int level)
+bool d3d::set_render_target(int ri, BaseTexture *tex, int layer, uint8_t level)
 {
   G_ASSERTF_RETURN(ri < Driver3dRenderTarget::MAX_SIMRT, false, "DX12: in set_render_target, 'ri' is %d, while MAX_SIMRT is %d", ri,
     Driver3dRenderTarget::MAX_SIMRT);
@@ -2805,7 +2805,7 @@ bool d3d::get_target_size(int &w, int &h)
   return true;
 }
 
-bool d3d::get_render_target_size(int &w, int &h, BaseTexture *rt_tex, int lev)
+bool d3d::get_render_target_size(int &w, int &h, BaseTexture *rt_tex, uint8_t level)
 {
   // NOTE: no thread check needed, this function should be removed as it can be implemented in a different (more clearer) way.
   if (!rt_tex)
@@ -2816,7 +2816,7 @@ bool d3d::get_render_target_size(int &w, int &h, BaseTexture *rt_tex, int lev)
   }
   else
   {
-    auto size = cast_to_texture_base(*rt_tex).getMipmapExtent(lev);
+    auto size = cast_to_texture_base(*rt_tex).getMipmapExtent(level);
     w = size.width;
     h = size.height;
   }

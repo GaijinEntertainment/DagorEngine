@@ -92,59 +92,58 @@ sound_control_disable_timer{
   }
 }
 
-base_managed_sound_control{
+managed_sound_control{
   _use:t="replicating"
+  _singleton:b=yes
 
   _group{
     _tags:t="sound"
+    "managed_sound_control__beginPosEnd:list<ip3>"{}
+    "managed_sound_control__types:list<t>"{}
+
     "managed_sound_control__entities:list<eid>"{}
     "managed_sound_control__positions:list<p3>"{}
+
+    // setup
+    managed_sound_control__cooldown:r=1
   }
-  // setup
-  managed_sound_control__maxInstances:i=3
-  managed_sound_control__cooldown:r=1
 }
 
 base_managed_sound{
   _group{
     _tags:t="sound"
+    managed_sound__idx:i=-1
     managed_sound__nextTimeToAllow:r=0
+    // setup
+    managed_sound__maxInstances:i=4
+    managed_sound__type:t=""
   }
   _group{
     _tags:t="sound"
     sound_control__allowSound:b=no // disabled on appeared
-    "managedSound:tag"{}
   }
 }
 
-vehicle_managed_sound_control{
-  _use:t="base_managed_sound_control"
-  "vehicleManageSoundControl:tag"{_tags:t="sound";}
-  _singleton:b=yes
-}
-sfx_managed_sound_control{
-  _use:t="base_managed_sound_control"
-  "sfxManageSoundControl:tag"{_tags:t="sound";}
-  _singleton:b=yes
-}
-
-vehicle_managed_sound{
-  _use:t="base_managed_sound"
-  "vehicleManageSoundControl:tag"{_tags:t="sound";}
-}
 sfx_managed_sound{
   _use:t="base_managed_sound"
-  "sfxManageSoundControl:tag"{_tags:t="sound";}
+  _group{
+    _tags:t="sound"
+    managed_sound__type:t="sfx"
+  }
 }
 
 test_managed_sound{
   _use:t="sound_effect"
   _use:t="moveable_sound_effect"
-  _use:t="sfx_managed_sound"
+  _use:t="base_managed_sound"
   transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
   _group{
     _tags:t="sound"
     sound_effect__path:t="env_effects/fire/fire_mid"
+  }
+  _group{
+    _tags:t="sound"
+    managed_sound__type:t="test"
   }
 }
 

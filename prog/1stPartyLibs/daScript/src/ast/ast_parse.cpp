@@ -628,10 +628,12 @@ namespace das {
         }
         if ( !hasModule && !modFile.empty() ) {
             vector<FileInfo *> chain;
+            TextWriter tw;
             if ( !getPrerequisits(modFile, access, req, missing, circular, notAllowed, chain,
-                dependencies, libGroup, nullptr, 1, !policies.ignore_shared_modules) ) {
+                dependencies, libGroup, &tw, 1, !policies.ignore_shared_modules) ) {
                 if ( log ) {
                     *log << "failed to add extra dependency " << modName << " from " << modFile << "\n";
+                    *log << "module dependency graph:\n" << tw.str();
                 }
                 return false;
             }

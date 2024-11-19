@@ -340,7 +340,7 @@ function tostring_r(inp, params=defTostringParams) {
         let info = input.len.getfuncinfos()
         if (!info.native && info.parameters.len()==1)
           maxind = input.len()-1
-        else if (info.native && info.typecheck.len()==1 && info.typecheck[0]==32) //this is instance
+        else if (info.native && info.typecheck.len()==1 && (info.typecheck[0]==32|| info.typecheck[0]==64)) //this is instance
           maxind = input.len()-1
       }
     }

@@ -720,7 +720,7 @@ void imgui_perform_registered(bool with_menu_bar)
     q->opened = load_window_opened(q->name);
     if (q->opened)
     {
-      G_ASSERTF_CONTINUE("Registered ImGui window function is null: %s/%s", q->group, q->name);
+      G_ASSERTF_CONTINUE(q->function, "Registered ImGui window function is null: %s/%s", q->group, q->name);
       bool oldOpened = true; // q->opened == true here
       ImGui::Begin(q->name, &q->opened, q->flags);
       if (q->opened != oldOpened)

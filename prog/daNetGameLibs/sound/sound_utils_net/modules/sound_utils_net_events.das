@@ -14,7 +14,7 @@ struct CmdPlayNetSoundPos
   time : float
 
 [event(unicast, routing=ROUTING_SERVER_TO_CLIENT)]
-struct CmdPlayNetSoundFromAnySource
+struct CmdPlaySceneNetSound
   hash : uint
   time : float
 

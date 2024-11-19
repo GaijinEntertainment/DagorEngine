@@ -13,6 +13,7 @@ return {
   TouchScreenStick = "TouchScreenStick"
   RotateRelativeToDir = "RotateRelativeToDir"
   RotateByComponent = "RotateByComponent"
+  OpacityByComponent = "OpacityByComponent"
   MenuCameraControl = "MenuCameraControl"
   ActivateActionSet = "ActivateActionSet"
   ReplayFreeCameraControl = "ReplayFreeCameraControl"

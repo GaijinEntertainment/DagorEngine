@@ -46,8 +46,9 @@ void after_d3d_reset();
 // load completion from cpujobs::release_done_jobs())
 // return true if request was synchronously done (or picture already loaded)
 // and false otherwise (i.e. it was successfully sheduled)
-bool get_picture_ex(const char *file_name, PICTUREID &out_pic_id, TEXTUREID &out_tex_id, Point2 *out_tc_lefttop = NULL,
-  Point2 *out_tc_rightbottom = NULL, Point2 *picture_size = NULL, async_load_done_cb_t load_done_cb = NULL, void *cb_arg = NULL);
+bool get_picture_ex(const char *file_name, PICTUREID &out_pic_id, TEXTUREID &out_tex_id, d3d::SamplerHandle &out_smp_id,
+  Point2 *out_tc_lefttop = NULL, Point2 *out_tc_rightbottom = NULL, Point2 *picture_size = NULL,
+  async_load_done_cb_t load_done_cb = NULL, void *cb_arg = NULL);
 
 // add ref, fill picture description
 void get_picture(const char *file_name, PicDesc &out_pic);
@@ -108,11 +109,12 @@ struct PictureManager::PicDesc
   // Picture and texture IDs
   PICTUREID pic;
   TEXTUREID tex;
+  d3d::SamplerHandle smp;
   // left-top and right-bottom texture coords
   Point2 tcLt, tcRb;
 
-  PicDesc() : pic(BAD_PICTUREID), tex(BAD_TEXTUREID), tcLt(0, 0), tcRb(0, 0) {}
-  PicDesc(const PicDesc &picture) : pic(picture.pic), tex(picture.tex), tcLt(picture.tcLt), tcRb(picture.tcRb)
+  PicDesc() : pic(BAD_PICTUREID), tex(BAD_TEXTUREID), smp(d3d::INVALID_SAMPLER_HANDLE), tcLt(0, 0), tcRb(0, 0) {}
+  PicDesc(const PicDesc &picture) : pic(picture.pic), tex(picture.tex), smp(picture.smp), tcLt(picture.tcLt), tcRb(picture.tcRb)
   {
     if (pic > BAD_PICTUREID)
       PictureManager::add_ref_picture(pic);
@@ -125,6 +127,7 @@ struct PictureManager::PicDesc
     release();
     pic = picture.pic;
     tex = picture.tex;
+    smp = picture.smp;
     tcLt = picture.tcLt;
     tcRb = picture.tcRb;
     if (pic > BAD_PICTUREID)
@@ -144,6 +147,7 @@ struct PictureManager::PicDesc
       PictureManager::free_picture(pic);
     pic = BAD_PICTUREID;
     tex = BAD_TEXTUREID;
+    smp = d3d::INVALID_SAMPLER_HANDLE;
   }
 
   inline Point2 getSize() const { return get_picture_pix_size(pic); }

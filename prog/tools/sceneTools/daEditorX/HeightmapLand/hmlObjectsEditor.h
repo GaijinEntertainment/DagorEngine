@@ -91,6 +91,8 @@ public:
   virtual void getTypeNames(Tab<String> &names);
   virtual void onSelectedNames(const Tab<String> &names);
 
+  virtual void getLayerNames(int type, Tab<String> &names);
+
   void setSelectMode(int cm);
   int getSelectMode() { return selectMode; }
 

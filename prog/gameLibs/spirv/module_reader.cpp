@@ -1,3 +1,5 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
 // auto generated, do not modify!
 #include "module_nodes.h"
 #include <spirv/module_builder.h>
@@ -292,6 +294,9 @@ struct ReaderContext
         info.mode = emode;
       };
       break;
+      case ExecutionMode::NonCoherentColorAttachmentReadEXT: info.mode = new ExecutionModeNonCoherentColorAttachmentReadEXT; break;
+      case ExecutionMode::NonCoherentDepthAttachmentReadEXT: info.mode = new ExecutionModeNonCoherentDepthAttachmentReadEXT; break;
+      case ExecutionMode::NonCoherentStencilAttachmentReadEXT: info.mode = new ExecutionModeNonCoherentStencilAttachmentReadEXT; break;
       case ExecutionMode::SubgroupUniformControlFlowKHR: info.mode = new ExecutionModeSubgroupUniformControlFlowKHR; break;
       case ExecutionMode::PostDepthCoverage: info.mode = new ExecutionModePostDepthCoverage; break;
       case ExecutionMode::DenormPreserve: info.mode = new ExecutionModeDenormPreserve(mode.data.DenormPreserve.targetWidth); break;
@@ -303,14 +308,79 @@ struct ReaderContext
         break;
       case ExecutionMode::RoundingModeRTE: info.mode = new ExecutionModeRoundingModeRTE(mode.data.RoundingModeRTE.targetWidth); break;
       case ExecutionMode::RoundingModeRTZ: info.mode = new ExecutionModeRoundingModeRTZ(mode.data.RoundingModeRTZ.targetWidth); break;
+      case ExecutionMode::EarlyAndLateFragmentTestsAMD: info.mode = new ExecutionModeEarlyAndLateFragmentTestsAMD; break;
       case ExecutionMode::StencilRefReplacingEXT: info.mode = new ExecutionModeStencilRefReplacingEXT; break;
-      case ExecutionMode::OutputLinesNV: info.mode = new ExecutionModeOutputLinesNV; break;
-      case ExecutionMode::OutputPrimitivesNV:
-        info.mode = new ExecutionModeOutputPrimitivesNV(mode.data.OutputPrimitivesNV.primitiveCount);
+      case ExecutionMode::CoalescingAMDX: info.mode = new ExecutionModeCoalescingAMDX; break;
+      case ExecutionMode::MaxNodeRecursionAMDX:
+      {
+        auto emode = new ExecutionModeMaxNodeRecursionAMDX;
+        PropertyReferenceResolveInfo refInfo;
+        refInfo.target = &emode->numberOfRecursions;
+        refInfo.ref = mode.data.MaxNodeRecursionAMDX.numberOfRecursions;
+        propertyReferenceResolves.push_back(refInfo);
+        info.mode = emode;
+      };
+      break;
+      case ExecutionMode::StaticNumWorkgroupsAMDX:
+      {
+        auto emode = new ExecutionModeStaticNumWorkgroupsAMDX;
+        PropertyReferenceResolveInfo refInfo;
+        refInfo.target = &emode->xSize;
+        refInfo.ref = mode.data.StaticNumWorkgroupsAMDX.xSize;
+        propertyReferenceResolves.push_back(refInfo);
+        refInfo.target = &emode->ySize;
+        refInfo.ref = mode.data.StaticNumWorkgroupsAMDX.ySize;
+        propertyReferenceResolves.push_back(refInfo);
+        refInfo.target = &emode->zSize;
+        refInfo.ref = mode.data.StaticNumWorkgroupsAMDX.zSize;
+        propertyReferenceResolves.push_back(refInfo);
+        info.mode = emode;
+      };
+      break;
+      case ExecutionMode::ShaderIndexAMDX:
+      {
+        auto emode = new ExecutionModeShaderIndexAMDX;
+        PropertyReferenceResolveInfo refInfo;
+        refInfo.target = &emode->shaderIndex;
+        refInfo.ref = mode.data.ShaderIndexAMDX.shaderIndex;
+        propertyReferenceResolves.push_back(refInfo);
+        info.mode = emode;
+      };
+      break;
+      case ExecutionMode::MaxNumWorkgroupsAMDX:
+      {
+        auto emode = new ExecutionModeMaxNumWorkgroupsAMDX;
+        PropertyReferenceResolveInfo refInfo;
+        refInfo.target = &emode->xSize;
+        refInfo.ref = mode.data.MaxNumWorkgroupsAMDX.xSize;
+        propertyReferenceResolves.push_back(refInfo);
+        refInfo.target = &emode->ySize;
+        refInfo.ref = mode.data.MaxNumWorkgroupsAMDX.ySize;
+        propertyReferenceResolves.push_back(refInfo);
+        refInfo.target = &emode->zSize;
+        refInfo.ref = mode.data.MaxNumWorkgroupsAMDX.zSize;
+        propertyReferenceResolves.push_back(refInfo);
+        info.mode = emode;
+      };
+      break;
+      case ExecutionMode::StencilRefUnchangedFrontAMD: info.mode = new ExecutionModeStencilRefUnchangedFrontAMD; break;
+      case ExecutionMode::StencilRefGreaterFrontAMD: info.mode = new ExecutionModeStencilRefGreaterFrontAMD; break;
+      case ExecutionMode::StencilRefLessFrontAMD: info.mode = new ExecutionModeStencilRefLessFrontAMD; break;
+      case ExecutionMode::StencilRefUnchangedBackAMD: info.mode = new ExecutionModeStencilRefUnchangedBackAMD; break;
+      case ExecutionMode::StencilRefGreaterBackAMD: info.mode = new ExecutionModeStencilRefGreaterBackAMD; break;
+      case ExecutionMode::StencilRefLessBackAMD: info.mode = new ExecutionModeStencilRefLessBackAMD; break;
+      case ExecutionMode::QuadDerivativesKHR: info.mode = new ExecutionModeQuadDerivativesKHR; break;
+      case ExecutionMode::RequireFullQuadsKHR: info.mode = new ExecutionModeRequireFullQuadsKHR; break;
+      case ExecutionMode::OutputLinesEXT: info.mode = new ExecutionModeOutputLinesEXT; break;
+      // duplicated OutputLinesNV = 5269
+      case ExecutionMode::OutputPrimitivesEXT:
+        info.mode = new ExecutionModeOutputPrimitivesEXT(mode.data.OutputPrimitivesEXT.primitiveCount);
         break;
+      // duplicated OutputPrimitivesNV = 5270
       case ExecutionMode::DerivativeGroupQuadsNV: info.mode = new ExecutionModeDerivativeGroupQuadsNV; break;
       case ExecutionMode::DerivativeGroupLinearNV: info.mode = new ExecutionModeDerivativeGroupLinearNV; break;
-      case ExecutionMode::OutputTrianglesNV: info.mode = new ExecutionModeOutputTrianglesNV; break;
+      case ExecutionMode::OutputTrianglesEXT: info.mode = new ExecutionModeOutputTrianglesEXT; break;
+      // duplicated OutputTrianglesNV = 5298
       case ExecutionMode::PixelInterlockOrderedEXT: info.mode = new ExecutionModePixelInterlockOrderedEXT; break;
       case ExecutionMode::PixelInterlockUnorderedEXT: info.mode = new ExecutionModePixelInterlockUnorderedEXT; break;
       case ExecutionMode::SampleInterlockOrderedEXT: info.mode = new ExecutionModeSampleInterlockOrderedEXT; break;
@@ -345,6 +415,45 @@ struct ReaderContext
         break;
       case ExecutionMode::SchedulerTargetFmaxMhzINTEL:
         info.mode = new ExecutionModeSchedulerTargetFmaxMhzINTEL(mode.data.SchedulerTargetFmaxMhzINTEL.target_fmax);
+        break;
+      case ExecutionMode::MaximallyReconvergesKHR: info.mode = new ExecutionModeMaximallyReconvergesKHR; break;
+      case ExecutionMode::FPFastMathDefault:
+      {
+        auto emode = new ExecutionModeFPFastMathDefault;
+        PropertyReferenceResolveInfo refInfo;
+        refInfo.target = &emode->targetType;
+        refInfo.ref = mode.data.FPFastMathDefault.targetType;
+        propertyReferenceResolves.push_back(refInfo);
+        refInfo.target = &emode->fastMathMode;
+        refInfo.ref = mode.data.FPFastMathDefault.fastMathMode;
+        propertyReferenceResolves.push_back(refInfo);
+        info.mode = emode;
+      };
+      break;
+      case ExecutionMode::StreamingInterfaceINTEL:
+        info.mode = new ExecutionModeStreamingInterfaceINTEL(mode.data.StreamingInterfaceINTEL.stallFreeReturn);
+        break;
+      case ExecutionMode::RegisterMapInterfaceINTEL:
+        info.mode = new ExecutionModeRegisterMapInterfaceINTEL(mode.data.RegisterMapInterfaceINTEL.waitForDoneWrite);
+        break;
+      case ExecutionMode::NamedBarrierCountINTEL:
+        info.mode = new ExecutionModeNamedBarrierCountINTEL(mode.data.NamedBarrierCountINTEL.barrierCount);
+        break;
+      case ExecutionMode::MaximumRegistersINTEL:
+        info.mode = new ExecutionModeMaximumRegistersINTEL(mode.data.MaximumRegistersINTEL.numberOfRegisters);
+        break;
+      case ExecutionMode::MaximumRegistersIdINTEL:
+      {
+        auto emode = new ExecutionModeMaximumRegistersIdINTEL;
+        PropertyReferenceResolveInfo refInfo;
+        refInfo.target = &emode->numberOfRegisters;
+        refInfo.ref = mode.data.MaximumRegistersIdINTEL.numberOfRegisters;
+        propertyReferenceResolves.push_back(refInfo);
+        info.mode = emode;
+      };
+      break;
+      case ExecutionMode::NamedMaximumRegistersINTEL:
+        info.mode = new ExecutionModeNamedMaximumRegistersINTEL(mode.data.NamedMaximumRegistersINTEL.namedMaximumNumberOfRegisters);
         break;
     }
     executionModes.push_back(eastl::move(info));
@@ -1329,6 +1438,8 @@ struct ReaderContext
     NodePointer<NodeOperation> memory_access_MakePointerAvailableKHR_first;
     NodePointer<NodeOperation> memory_access_MakePointerVisible_first;
     NodePointer<NodeOperation> memory_access_MakePointerVisibleKHR_first;
+    NodePointer<NodeId> memory_access_AliasScopeINTELMask_first;
+    NodePointer<NodeId> memory_access_NoAliasINTELMask_first;
     if (memory_access.valid)
     {
       memory_accessVal = memory_access.value.value;
@@ -1356,10 +1467,21 @@ struct ReaderContext
         memory_access_MakePointerVisibleKHR_first =
           NodePointer<NodeOperation>(moduleBuilder.getNode(memory_access.value.data.MakePointerVisibleKHR.first));
       }
+      if ((memory_access.value.value & MemoryAccessMask::AliasScopeINTELMask) != MemoryAccessMask::MaskNone)
+      {
+        memory_access_AliasScopeINTELMask_first =
+          NodePointer<NodeId>(moduleBuilder.getNode(memory_access.value.data.AliasScopeINTELMask.first));
+      }
+      if ((memory_access.value.value & MemoryAccessMask::NoAliasINTELMask) != MemoryAccessMask::MaskNone)
+      {
+        memory_access_NoAliasINTELMask_first =
+          NodePointer<NodeId>(moduleBuilder.getNode(memory_access.value.data.NoAliasINTELMask.first));
+      }
     }
     auto node = moduleBuilder.newNode<NodeOpLoad>(id_result.value, moduleBuilder.getType(id_result_type),
       moduleBuilder.getNode(pointer), memory_accessVal, memory_access_Aligned_first, memory_access_MakePointerAvailable_first,
-      memory_access_MakePointerAvailableKHR_first, memory_access_MakePointerVisible_first, memory_access_MakePointerVisibleKHR_first);
+      memory_access_MakePointerAvailableKHR_first, memory_access_MakePointerVisible_first, memory_access_MakePointerVisibleKHR_first,
+      memory_access_AliasScopeINTELMask_first, memory_access_NoAliasINTELMask_first);
     if (currentBlock)
       currentBlock->instructions.push_back(node);
   }
@@ -1371,6 +1493,8 @@ struct ReaderContext
     NodePointer<NodeOperation> memory_access_MakePointerAvailableKHR_first;
     NodePointer<NodeOperation> memory_access_MakePointerVisible_first;
     NodePointer<NodeOperation> memory_access_MakePointerVisibleKHR_first;
+    NodePointer<NodeId> memory_access_AliasScopeINTELMask_first;
+    NodePointer<NodeId> memory_access_NoAliasINTELMask_first;
     if (memory_access.valid)
     {
       memory_accessVal = memory_access.value.value;
@@ -1398,10 +1522,21 @@ struct ReaderContext
         memory_access_MakePointerVisibleKHR_first =
           NodePointer<NodeOperation>(moduleBuilder.getNode(memory_access.value.data.MakePointerVisibleKHR.first));
       }
+      if ((memory_access.value.value & MemoryAccessMask::AliasScopeINTELMask) != MemoryAccessMask::MaskNone)
+      {
+        memory_access_AliasScopeINTELMask_first =
+          NodePointer<NodeId>(moduleBuilder.getNode(memory_access.value.data.AliasScopeINTELMask.first));
+      }
+      if ((memory_access.value.value & MemoryAccessMask::NoAliasINTELMask) != MemoryAccessMask::MaskNone)
+      {
+        memory_access_NoAliasINTELMask_first =
+          NodePointer<NodeId>(moduleBuilder.getNode(memory_access.value.data.NoAliasINTELMask.first));
+      }
     }
     auto node = moduleBuilder.newNode<NodeOpStore>(moduleBuilder.getNode(pointer), moduleBuilder.getNode(object), memory_accessVal,
       memory_access_Aligned_first, memory_access_MakePointerAvailable_first, memory_access_MakePointerAvailableKHR_first,
-      memory_access_MakePointerVisible_first, memory_access_MakePointerVisibleKHR_first);
+      memory_access_MakePointerVisible_first, memory_access_MakePointerVisibleKHR_first, memory_access_AliasScopeINTELMask_first,
+      memory_access_NoAliasINTELMask_first);
     if (currentBlock)
       currentBlock->instructions.push_back(node);
   }
@@ -1414,6 +1549,8 @@ struct ReaderContext
     NodePointer<NodeOperation> memory_access0_MakePointerAvailableKHR_first;
     NodePointer<NodeOperation> memory_access0_MakePointerVisible_first;
     NodePointer<NodeOperation> memory_access0_MakePointerVisibleKHR_first;
+    NodePointer<NodeId> memory_access0_AliasScopeINTELMask_first;
+    NodePointer<NodeId> memory_access0_NoAliasINTELMask_first;
     if (memory_access0.valid)
     {
       memory_access0Val = memory_access0.value.value;
@@ -1441,6 +1578,16 @@ struct ReaderContext
         memory_access0_MakePointerVisibleKHR_first =
           NodePointer<NodeOperation>(moduleBuilder.getNode(memory_access0.value.data.MakePointerVisibleKHR.first));
       }
+      if ((memory_access0.value.value & MemoryAccessMask::AliasScopeINTELMask) != MemoryAccessMask::MaskNone)
+      {
+        memory_access0_AliasScopeINTELMask_first =
+          NodePointer<NodeId>(moduleBuilder.getNode(memory_access0.value.data.AliasScopeINTELMask.first));
+      }
+      if ((memory_access0.value.value & MemoryAccessMask::NoAliasINTELMask) != MemoryAccessMask::MaskNone)
+      {
+        memory_access0_NoAliasINTELMask_first =
+          NodePointer<NodeId>(moduleBuilder.getNode(memory_access0.value.data.NoAliasINTELMask.first));
+      }
     }
     eastl::optional<MemoryAccessMask> memory_access1Val;
     eastl::optional<LiteralInteger> memory_access1_Aligned_first;
@@ -1448,6 +1595,8 @@ struct ReaderContext
     NodePointer<NodeOperation> memory_access1_MakePointerAvailableKHR_first;
     NodePointer<NodeOperation> memory_access1_MakePointerVisible_first;
     NodePointer<NodeOperation> memory_access1_MakePointerVisibleKHR_first;
+    NodePointer<NodeId> memory_access1_AliasScopeINTELMask_first;
+    NodePointer<NodeId> memory_access1_NoAliasINTELMask_first;
     if (memory_access1.valid)
     {
       memory_access1Val = memory_access1.value.value;
@@ -1475,13 +1624,24 @@ struct ReaderContext
         memory_access1_MakePointerVisibleKHR_first =
           NodePointer<NodeOperation>(moduleBuilder.getNode(memory_access1.value.data.MakePointerVisibleKHR.first));
       }
+      if ((memory_access1.value.value & MemoryAccessMask::AliasScopeINTELMask) != MemoryAccessMask::MaskNone)
+      {
+        memory_access1_AliasScopeINTELMask_first =
+          NodePointer<NodeId>(moduleBuilder.getNode(memory_access1.value.data.AliasScopeINTELMask.first));
+      }
+      if ((memory_access1.value.value & MemoryAccessMask::NoAliasINTELMask) != MemoryAccessMask::MaskNone)
+      {
+        memory_access1_NoAliasINTELMask_first =
+          NodePointer<NodeId>(moduleBuilder.getNode(memory_access1.value.data.NoAliasINTELMask.first));
+      }
     }
-    auto node =
-      moduleBuilder.newNode<NodeOpCopyMemory>(moduleBuilder.getNode(target), moduleBuilder.getNode(source), memory_access0Val,
-        memory_access0_Aligned_first, memory_access0_MakePointerAvailable_first, memory_access0_MakePointerAvailableKHR_first,
-        memory_access0_MakePointerVisible_first, memory_access0_MakePointerVisibleKHR_first, memory_access1Val,
-        memory_access1_Aligned_first, memory_access1_MakePointerAvailable_first, memory_access1_MakePointerAvailableKHR_first,
-        memory_access1_MakePointerVisible_first, memory_access1_MakePointerVisibleKHR_first);
+    auto node = moduleBuilder.newNode<NodeOpCopyMemory>(moduleBuilder.getNode(target), moduleBuilder.getNode(source),
+      memory_access0Val, memory_access0_Aligned_first, memory_access0_MakePointerAvailable_first,
+      memory_access0_MakePointerAvailableKHR_first, memory_access0_MakePointerVisible_first,
+      memory_access0_MakePointerVisibleKHR_first, memory_access0_AliasScopeINTELMask_first, memory_access0_NoAliasINTELMask_first,
+      memory_access1Val, memory_access1_Aligned_first, memory_access1_MakePointerAvailable_first,
+      memory_access1_MakePointerAvailableKHR_first, memory_access1_MakePointerVisible_first,
+      memory_access1_MakePointerVisibleKHR_first, memory_access1_AliasScopeINTELMask_first, memory_access1_NoAliasINTELMask_first);
     if (currentBlock)
       currentBlock->instructions.push_back(node);
   }
@@ -1494,6 +1654,8 @@ struct ReaderContext
     NodePointer<NodeOperation> memory_access0_MakePointerAvailableKHR_first;
     NodePointer<NodeOperation> memory_access0_MakePointerVisible_first;
     NodePointer<NodeOperation> memory_access0_MakePointerVisibleKHR_first;
+    NodePointer<NodeId> memory_access0_AliasScopeINTELMask_first;
+    NodePointer<NodeId> memory_access0_NoAliasINTELMask_first;
     if (memory_access0.valid)
     {
       memory_access0Val = memory_access0.value.value;
@@ -1521,6 +1683,16 @@ struct ReaderContext
         memory_access0_MakePointerVisibleKHR_first =
           NodePointer<NodeOperation>(moduleBuilder.getNode(memory_access0.value.data.MakePointerVisibleKHR.first));
       }
+      if ((memory_access0.value.value & MemoryAccessMask::AliasScopeINTELMask) != MemoryAccessMask::MaskNone)
+      {
+        memory_access0_AliasScopeINTELMask_first =
+          NodePointer<NodeId>(moduleBuilder.getNode(memory_access0.value.data.AliasScopeINTELMask.first));
+      }
+      if ((memory_access0.value.value & MemoryAccessMask::NoAliasINTELMask) != MemoryAccessMask::MaskNone)
+      {
+        memory_access0_NoAliasINTELMask_first =
+          NodePointer<NodeId>(moduleBuilder.getNode(memory_access0.value.data.NoAliasINTELMask.first));
+      }
     }
     eastl::optional<MemoryAccessMask> memory_access1Val;
     eastl::optional<LiteralInteger> memory_access1_Aligned_first;
@@ -1528,6 +1700,8 @@ struct ReaderContext
     NodePointer<NodeOperation> memory_access1_MakePointerAvailableKHR_first;
     NodePointer<NodeOperation> memory_access1_MakePointerVisible_first;
     NodePointer<NodeOperation> memory_access1_MakePointerVisibleKHR_first;
+    NodePointer<NodeId> memory_access1_AliasScopeINTELMask_first;
+    NodePointer<NodeId> memory_access1_NoAliasINTELMask_first;
     if (memory_access1.valid)
     {
       memory_access1Val = memory_access1.value.value;
@@ -1555,13 +1729,24 @@ struct ReaderContext
         memory_access1_MakePointerVisibleKHR_first =
           NodePointer<NodeOperation>(moduleBuilder.getNode(memory_access1.value.data.MakePointerVisibleKHR.first));
       }
+      if ((memory_access1.value.value & MemoryAccessMask::AliasScopeINTELMask) != MemoryAccessMask::MaskNone)
+      {
+        memory_access1_AliasScopeINTELMask_first =
+          NodePointer<NodeId>(moduleBuilder.getNode(memory_access1.value.data.AliasScopeINTELMask.first));
+      }
+      if ((memory_access1.value.value & MemoryAccessMask::NoAliasINTELMask) != MemoryAccessMask::MaskNone)
+      {
+        memory_access1_NoAliasINTELMask_first =
+          NodePointer<NodeId>(moduleBuilder.getNode(memory_access1.value.data.NoAliasINTELMask.first));
+      }
     }
     auto node = moduleBuilder.newNode<NodeOpCopyMemorySized>(moduleBuilder.getNode(target), moduleBuilder.getNode(source),
       moduleBuilder.getNode(size), memory_access0Val, memory_access0_Aligned_first, memory_access0_MakePointerAvailable_first,
       memory_access0_MakePointerAvailableKHR_first, memory_access0_MakePointerVisible_first,
-      memory_access0_MakePointerVisibleKHR_first, memory_access1Val, memory_access1_Aligned_first,
-      memory_access1_MakePointerAvailable_first, memory_access1_MakePointerAvailableKHR_first, memory_access1_MakePointerVisible_first,
-      memory_access1_MakePointerVisibleKHR_first);
+      memory_access0_MakePointerVisibleKHR_first, memory_access0_AliasScopeINTELMask_first, memory_access0_NoAliasINTELMask_first,
+      memory_access1Val, memory_access1_Aligned_first, memory_access1_MakePointerAvailable_first,
+      memory_access1_MakePointerAvailableKHR_first, memory_access1_MakePointerVisible_first,
+      memory_access1_MakePointerVisibleKHR_first, memory_access1_AliasScopeINTELMask_first, memory_access1_NoAliasINTELMask_first);
     if (currentBlock)
       currentBlock->instructions.push_back(node);
   }
@@ -1962,10 +2147,61 @@ struct ReaderContext
         propPtr.reset(newProp);
         break;
       }
+      case Decoration::WeightTextureQCOM:
+      {
+        auto newProp = new PropertyWeightTextureQCOM;
+        propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::BlockMatchTextureQCOM:
+      {
+        auto newProp = new PropertyBlockMatchTextureQCOM;
+        propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::BlockMatchSamplerQCOM:
+      {
+        auto newProp = new PropertyBlockMatchSamplerQCOM;
+        propPtr.reset(newProp);
+        break;
+      }
       case Decoration::ExplicitInterpAMD:
       {
         auto newProp = new PropertyExplicitInterpAMD;
         propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::NodeSharesPayloadLimitsWithAMDX:
+      {
+        auto newProp = new PropertyNodeSharesPayloadLimitsWithAMDX;
+        propPtr.reset(newProp);
+        PropertyReferenceResolveInfo refResolve //
+          {reinterpret_cast<NodePointer<NodeId> *>(&newProp->payloadArray),
+            IdRef{decoration.data.NodeSharesPayloadLimitsWithAMDX.payloadArray.value}};
+        propertyReferenceResolves.push_back(refResolve);
+        break;
+      }
+      case Decoration::NodeMaxPayloadsAMDX:
+      {
+        auto newProp = new PropertyNodeMaxPayloadsAMDX;
+        propPtr.reset(newProp);
+        PropertyReferenceResolveInfo refResolve //
+          {reinterpret_cast<NodePointer<NodeId> *>(&newProp->maxNumberOfPayloads),
+            IdRef{decoration.data.NodeMaxPayloadsAMDX.maxNumberOfPayloads.value}};
+        propertyReferenceResolves.push_back(refResolve);
+        break;
+      }
+      case Decoration::TrackFinishWritingAMDX:
+      {
+        auto newProp = new PropertyTrackFinishWritingAMDX;
+        propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::PayloadNodeNameAMDX:
+      {
+        auto newProp = new PropertyPayloadNodeNameAMDX;
+        propPtr.reset(newProp);
+        newProp->nodeName = decoration.data.PayloadNodeNameAMDX.nodeName.asStringObj();
         break;
       }
       case Decoration::OverrideCoverageNV:
@@ -1993,9 +2229,9 @@ struct ReaderContext
         newProp->offset = decoration.data.SecondaryViewportRelativeNV.offset;
         break;
       }
-      case Decoration::PerPrimitiveNV:
+      case Decoration::PerPrimitiveEXT:
       {
-        auto newProp = new PropertyPerPrimitiveNV;
+        auto newProp = new PropertyPerPrimitiveEXT;
         propPtr.reset(newProp);
         break;
       }
@@ -2032,6 +2268,12 @@ struct ReaderContext
       case Decoration::AliasedPointer:
       {
         auto newProp = new PropertyAliasedPointer;
+        propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::HitObjectShaderRecordBufferNV:
+      {
+        auto newProp = new PropertyHitObjectShaderRecordBufferNV;
         propPtr.reset(newProp);
         break;
       }
@@ -2237,6 +2479,26 @@ struct ReaderContext
         newProp->forceKey = decoration.data.ForcePow2DepthINTEL.forceKey;
         break;
       }
+      case Decoration::StridesizeINTEL:
+      {
+        auto newProp = new PropertyStridesizeINTEL;
+        propPtr.reset(newProp);
+        newProp->strideSize = decoration.data.StridesizeINTEL.strideSize;
+        break;
+      }
+      case Decoration::WordsizeINTEL:
+      {
+        auto newProp = new PropertyWordsizeINTEL;
+        propPtr.reset(newProp);
+        newProp->wordSize = decoration.data.WordsizeINTEL.wordSize;
+        break;
+      }
+      case Decoration::TrueDualPortINTEL:
+      {
+        auto newProp = new PropertyTrueDualPortINTEL;
+        propPtr.reset(newProp);
+        break;
+      }
       case Decoration::BurstCoalesceINTEL:
       {
         auto newProp = new PropertyBurstCoalesceINTEL;
@@ -2273,6 +2535,55 @@ struct ReaderContext
       {
         auto newProp = new PropertyFuseLoopsInFunctionINTEL;
         propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::MathOpDSPModeINTEL:
+      {
+        auto newProp = new PropertyMathOpDSPModeINTEL;
+        propPtr.reset(newProp);
+        newProp->mode = decoration.data.MathOpDSPModeINTEL.mode;
+        newProp->propagate = decoration.data.MathOpDSPModeINTEL.propagate;
+        break;
+      }
+      case Decoration::AliasScopeINTEL:
+      {
+        auto newProp = new PropertyAliasScopeINTEL;
+        propPtr.reset(newProp);
+        PropertyReferenceResolveInfo refResolve //
+          {reinterpret_cast<NodePointer<NodeId> *>(&newProp->aliasingScopesList),
+            IdRef{decoration.data.AliasScopeINTEL.aliasingScopesList.value}};
+        propertyReferenceResolves.push_back(refResolve);
+        break;
+      }
+      case Decoration::NoAliasINTEL:
+      {
+        auto newProp = new PropertyNoAliasINTEL;
+        propPtr.reset(newProp);
+        PropertyReferenceResolveInfo refResolve //
+          {reinterpret_cast<NodePointer<NodeId> *>(&newProp->aliasingScopesList),
+            IdRef{decoration.data.NoAliasINTEL.aliasingScopesList.value}};
+        propertyReferenceResolves.push_back(refResolve);
+        break;
+      }
+      case Decoration::InitiationIntervalINTEL:
+      {
+        auto newProp = new PropertyInitiationIntervalINTEL;
+        propPtr.reset(newProp);
+        newProp->cycles = decoration.data.InitiationIntervalINTEL.cycles;
+        break;
+      }
+      case Decoration::MaxConcurrencyINTEL:
+      {
+        auto newProp = new PropertyMaxConcurrencyINTEL;
+        propPtr.reset(newProp);
+        newProp->invocations = decoration.data.MaxConcurrencyINTEL.invocations;
+        break;
+      }
+      case Decoration::PipelineEnableINTEL:
+      {
+        auto newProp = new PropertyPipelineEnableINTEL;
+        propPtr.reset(newProp);
+        newProp->enable = decoration.data.PipelineEnableINTEL.enable;
         break;
       }
       case Decoration::BufferLocationINTEL:
@@ -2313,6 +2624,133 @@ struct ReaderContext
       {
         auto newProp = new PropertyMediaBlockIOINTEL;
         propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::StallFreeINTEL:
+      {
+        auto newProp = new PropertyStallFreeINTEL;
+        propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::FPMaxErrorDecorationINTEL:
+      {
+        auto newProp = new PropertyFPMaxErrorDecorationINTEL;
+        propPtr.reset(newProp);
+        newProp->maxError = decoration.data.FPMaxErrorDecorationINTEL.maxError;
+        break;
+      }
+      case Decoration::LatencyControlLabelINTEL:
+      {
+        auto newProp = new PropertyLatencyControlLabelINTEL;
+        propPtr.reset(newProp);
+        newProp->latencyLabel = decoration.data.LatencyControlLabelINTEL.latencyLabel;
+        break;
+      }
+      case Decoration::LatencyControlConstraintINTEL:
+      {
+        auto newProp = new PropertyLatencyControlConstraintINTEL;
+        propPtr.reset(newProp);
+        newProp->relativeTo = decoration.data.LatencyControlConstraintINTEL.relativeTo;
+        newProp->controlType = decoration.data.LatencyControlConstraintINTEL.controlType;
+        newProp->relativeCycle = decoration.data.LatencyControlConstraintINTEL.relativeCycle;
+        break;
+      }
+      case Decoration::ConduitKernelArgumentINTEL:
+      {
+        auto newProp = new PropertyConduitKernelArgumentINTEL;
+        propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::RegisterMapKernelArgumentINTEL:
+      {
+        auto newProp = new PropertyRegisterMapKernelArgumentINTEL;
+        propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::MMHostInterfaceAddressWidthINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceAddressWidthINTEL;
+        propPtr.reset(newProp);
+        newProp->addressWidth = decoration.data.MMHostInterfaceAddressWidthINTEL.addressWidth;
+        break;
+      }
+      case Decoration::MMHostInterfaceDataWidthINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceDataWidthINTEL;
+        propPtr.reset(newProp);
+        newProp->dataWidth = decoration.data.MMHostInterfaceDataWidthINTEL.dataWidth;
+        break;
+      }
+      case Decoration::MMHostInterfaceLatencyINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceLatencyINTEL;
+        propPtr.reset(newProp);
+        newProp->latency = decoration.data.MMHostInterfaceLatencyINTEL.latency;
+        break;
+      }
+      case Decoration::MMHostInterfaceReadWriteModeINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceReadWriteModeINTEL;
+        propPtr.reset(newProp);
+        newProp->readWriteMode = decoration.data.MMHostInterfaceReadWriteModeINTEL.readWriteMode;
+        break;
+      }
+      case Decoration::MMHostInterfaceMaxBurstINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceMaxBurstINTEL;
+        propPtr.reset(newProp);
+        newProp->maxBurstCount = decoration.data.MMHostInterfaceMaxBurstINTEL.maxBurstCount;
+        break;
+      }
+      case Decoration::MMHostInterfaceWaitRequestINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceWaitRequestINTEL;
+        propPtr.reset(newProp);
+        newProp->waitrequest = decoration.data.MMHostInterfaceWaitRequestINTEL.waitrequest;
+        break;
+      }
+      case Decoration::StableKernelArgumentINTEL:
+      {
+        auto newProp = new PropertyStableKernelArgumentINTEL;
+        propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::HostAccessINTEL:
+      {
+        auto newProp = new PropertyHostAccessINTEL;
+        propPtr.reset(newProp);
+        newProp->access = decoration.data.HostAccessINTEL.access;
+        newProp->name = decoration.data.HostAccessINTEL.name.asStringObj();
+        break;
+      }
+      case Decoration::InitModeINTEL:
+      {
+        auto newProp = new PropertyInitModeINTEL;
+        propPtr.reset(newProp);
+        newProp->trigger = decoration.data.InitModeINTEL.trigger;
+        break;
+      }
+      case Decoration::ImplementInRegisterMapINTEL:
+      {
+        auto newProp = new PropertyImplementInRegisterMapINTEL;
+        propPtr.reset(newProp);
+        newProp->value = decoration.data.ImplementInRegisterMapINTEL.value;
+        break;
+      }
+      case Decoration::CacheControlLoadINTEL:
+      {
+        auto newProp = new PropertyCacheControlLoadINTEL;
+        propPtr.reset(newProp);
+        newProp->cacheLevel = decoration.data.CacheControlLoadINTEL.cacheLevel;
+        newProp->cacheControl = decoration.data.CacheControlLoadINTEL.cacheControl;
+        break;
+      }
+      case Decoration::CacheControlStoreINTEL:
+      {
+        auto newProp = new PropertyCacheControlStoreINTEL;
+        propPtr.reset(newProp);
+        newProp->cacheLevel = decoration.data.CacheControlStoreINTEL.cacheLevel;
+        newProp->cacheControl = decoration.data.CacheControlStoreINTEL.cacheControl;
         break;
       }
     }
@@ -2699,11 +3137,69 @@ struct ReaderContext
         newProp->memberIndex = member.value;
         break;
       }
+      case Decoration::WeightTextureQCOM:
+      {
+        auto newProp = new PropertyWeightTextureQCOM;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::BlockMatchTextureQCOM:
+      {
+        auto newProp = new PropertyBlockMatchTextureQCOM;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::BlockMatchSamplerQCOM:
+      {
+        auto newProp = new PropertyBlockMatchSamplerQCOM;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        break;
+      }
       case Decoration::ExplicitInterpAMD:
       {
         auto newProp = new PropertyExplicitInterpAMD;
         propPtr.reset(newProp);
         newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::NodeSharesPayloadLimitsWithAMDX:
+      {
+        auto newProp = new PropertyNodeSharesPayloadLimitsWithAMDX;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        PropertyReferenceResolveInfo refResolve //
+          {reinterpret_cast<NodePointer<NodeId> *>(&newProp->payloadArray),
+            IdRef{decoration.data.NodeSharesPayloadLimitsWithAMDX.payloadArray.value}};
+        propertyReferenceResolves.push_back(refResolve);
+        break;
+      }
+      case Decoration::NodeMaxPayloadsAMDX:
+      {
+        auto newProp = new PropertyNodeMaxPayloadsAMDX;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        PropertyReferenceResolveInfo refResolve //
+          {reinterpret_cast<NodePointer<NodeId> *>(&newProp->maxNumberOfPayloads),
+            IdRef{decoration.data.NodeMaxPayloadsAMDX.maxNumberOfPayloads.value}};
+        propertyReferenceResolves.push_back(refResolve);
+        break;
+      }
+      case Decoration::TrackFinishWritingAMDX:
+      {
+        auto newProp = new PropertyTrackFinishWritingAMDX;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::PayloadNodeNameAMDX:
+      {
+        auto newProp = new PropertyPayloadNodeNameAMDX;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->nodeName = decoration.data.PayloadNodeNameAMDX.nodeName.asStringObj();
         break;
       }
       case Decoration::OverrideCoverageNV:
@@ -2735,9 +3231,9 @@ struct ReaderContext
         newProp->offset = decoration.data.SecondaryViewportRelativeNV.offset;
         break;
       }
-      case Decoration::PerPrimitiveNV:
+      case Decoration::PerPrimitiveEXT:
       {
-        auto newProp = new PropertyPerPrimitiveNV;
+        auto newProp = new PropertyPerPrimitiveEXT;
         propPtr.reset(newProp);
         newProp->memberIndex = member.value;
         break;
@@ -2780,6 +3276,13 @@ struct ReaderContext
       case Decoration::AliasedPointer:
       {
         auto newProp = new PropertyAliasedPointer;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::HitObjectShaderRecordBufferNV:
+      {
+        auto newProp = new PropertyHitObjectShaderRecordBufferNV;
         propPtr.reset(newProp);
         newProp->memberIndex = member.value;
         break;
@@ -3016,6 +3519,29 @@ struct ReaderContext
         newProp->forceKey = decoration.data.ForcePow2DepthINTEL.forceKey;
         break;
       }
+      case Decoration::StridesizeINTEL:
+      {
+        auto newProp = new PropertyStridesizeINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->strideSize = decoration.data.StridesizeINTEL.strideSize;
+        break;
+      }
+      case Decoration::WordsizeINTEL:
+      {
+        auto newProp = new PropertyWordsizeINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->wordSize = decoration.data.WordsizeINTEL.wordSize;
+        break;
+      }
+      case Decoration::TrueDualPortINTEL:
+      {
+        auto newProp = new PropertyTrueDualPortINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        break;
+      }
       case Decoration::BurstCoalesceINTEL:
       {
         auto newProp = new PropertyBurstCoalesceINTEL;
@@ -3058,6 +3584,61 @@ struct ReaderContext
         auto newProp = new PropertyFuseLoopsInFunctionINTEL;
         propPtr.reset(newProp);
         newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::MathOpDSPModeINTEL:
+      {
+        auto newProp = new PropertyMathOpDSPModeINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->mode = decoration.data.MathOpDSPModeINTEL.mode;
+        newProp->propagate = decoration.data.MathOpDSPModeINTEL.propagate;
+        break;
+      }
+      case Decoration::AliasScopeINTEL:
+      {
+        auto newProp = new PropertyAliasScopeINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        PropertyReferenceResolveInfo refResolve //
+          {reinterpret_cast<NodePointer<NodeId> *>(&newProp->aliasingScopesList),
+            IdRef{decoration.data.AliasScopeINTEL.aliasingScopesList.value}};
+        propertyReferenceResolves.push_back(refResolve);
+        break;
+      }
+      case Decoration::NoAliasINTEL:
+      {
+        auto newProp = new PropertyNoAliasINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        PropertyReferenceResolveInfo refResolve //
+          {reinterpret_cast<NodePointer<NodeId> *>(&newProp->aliasingScopesList),
+            IdRef{decoration.data.NoAliasINTEL.aliasingScopesList.value}};
+        propertyReferenceResolves.push_back(refResolve);
+        break;
+      }
+      case Decoration::InitiationIntervalINTEL:
+      {
+        auto newProp = new PropertyInitiationIntervalINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->cycles = decoration.data.InitiationIntervalINTEL.cycles;
+        break;
+      }
+      case Decoration::MaxConcurrencyINTEL:
+      {
+        auto newProp = new PropertyMaxConcurrencyINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->invocations = decoration.data.MaxConcurrencyINTEL.invocations;
+        break;
+      }
+      case Decoration::PipelineEnableINTEL:
+      {
+        auto newProp = new PropertyPipelineEnableINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->enable = decoration.data.PipelineEnableINTEL.enable;
         break;
       }
       case Decoration::BufferLocationINTEL:
@@ -3104,6 +3685,151 @@ struct ReaderContext
         auto newProp = new PropertyMediaBlockIOINTEL;
         propPtr.reset(newProp);
         newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::StallFreeINTEL:
+      {
+        auto newProp = new PropertyStallFreeINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::FPMaxErrorDecorationINTEL:
+      {
+        auto newProp = new PropertyFPMaxErrorDecorationINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->maxError = decoration.data.FPMaxErrorDecorationINTEL.maxError;
+        break;
+      }
+      case Decoration::LatencyControlLabelINTEL:
+      {
+        auto newProp = new PropertyLatencyControlLabelINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->latencyLabel = decoration.data.LatencyControlLabelINTEL.latencyLabel;
+        break;
+      }
+      case Decoration::LatencyControlConstraintINTEL:
+      {
+        auto newProp = new PropertyLatencyControlConstraintINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->relativeTo = decoration.data.LatencyControlConstraintINTEL.relativeTo;
+        newProp->controlType = decoration.data.LatencyControlConstraintINTEL.controlType;
+        newProp->relativeCycle = decoration.data.LatencyControlConstraintINTEL.relativeCycle;
+        break;
+      }
+      case Decoration::ConduitKernelArgumentINTEL:
+      {
+        auto newProp = new PropertyConduitKernelArgumentINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::RegisterMapKernelArgumentINTEL:
+      {
+        auto newProp = new PropertyRegisterMapKernelArgumentINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::MMHostInterfaceAddressWidthINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceAddressWidthINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->addressWidth = decoration.data.MMHostInterfaceAddressWidthINTEL.addressWidth;
+        break;
+      }
+      case Decoration::MMHostInterfaceDataWidthINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceDataWidthINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->dataWidth = decoration.data.MMHostInterfaceDataWidthINTEL.dataWidth;
+        break;
+      }
+      case Decoration::MMHostInterfaceLatencyINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceLatencyINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->latency = decoration.data.MMHostInterfaceLatencyINTEL.latency;
+        break;
+      }
+      case Decoration::MMHostInterfaceReadWriteModeINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceReadWriteModeINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->readWriteMode = decoration.data.MMHostInterfaceReadWriteModeINTEL.readWriteMode;
+        break;
+      }
+      case Decoration::MMHostInterfaceMaxBurstINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceMaxBurstINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->maxBurstCount = decoration.data.MMHostInterfaceMaxBurstINTEL.maxBurstCount;
+        break;
+      }
+      case Decoration::MMHostInterfaceWaitRequestINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceWaitRequestINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->waitrequest = decoration.data.MMHostInterfaceWaitRequestINTEL.waitrequest;
+        break;
+      }
+      case Decoration::StableKernelArgumentINTEL:
+      {
+        auto newProp = new PropertyStableKernelArgumentINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::HostAccessINTEL:
+      {
+        auto newProp = new PropertyHostAccessINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->access = decoration.data.HostAccessINTEL.access;
+        newProp->name = decoration.data.HostAccessINTEL.name.asStringObj();
+        break;
+      }
+      case Decoration::InitModeINTEL:
+      {
+        auto newProp = new PropertyInitModeINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->trigger = decoration.data.InitModeINTEL.trigger;
+        break;
+      }
+      case Decoration::ImplementInRegisterMapINTEL:
+      {
+        auto newProp = new PropertyImplementInRegisterMapINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->value = decoration.data.ImplementInRegisterMapINTEL.value;
+        break;
+      }
+      case Decoration::CacheControlLoadINTEL:
+      {
+        auto newProp = new PropertyCacheControlLoadINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->cacheLevel = decoration.data.CacheControlLoadINTEL.cacheLevel;
+        newProp->cacheControl = decoration.data.CacheControlLoadINTEL.cacheControl;
+        break;
+      }
+      case Decoration::CacheControlStoreINTEL:
+      {
+        auto newProp = new PropertyCacheControlStoreINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->cacheLevel = decoration.data.CacheControlStoreINTEL.cacheLevel;
+        newProp->cacheControl = decoration.data.CacheControlStoreINTEL.cacheControl;
         break;
       }
     }
@@ -3176,6 +3902,37 @@ struct ReaderContext
               }
             }
           }
+          else if (is<PropertyNodeSharesPayloadLimitsWithAMDX>(newProp))
+          {
+            PropertyReferenceResolveInfo refResolve //
+              {reinterpret_cast<NodePointer<NodeId> *>(&as<PropertyNodeSharesPayloadLimitsWithAMDX>(newProp)->payloadArray)};
+            auto cmp =
+              reinterpret_cast<NodePointer<NodeId> *>(&as<PropertyNodeSharesPayloadLimitsWithAMDX>(prop.property)->payloadArray);
+            for (auto &&ref : propertyReferenceResolves)
+            {
+              if (ref.target == cmp)
+              {
+                refResolve.ref = ref.ref;
+                refsToAdd.push_back(refResolve);
+                break;
+              }
+            }
+          }
+          else if (is<PropertyNodeMaxPayloadsAMDX>(newProp))
+          {
+            PropertyReferenceResolveInfo refResolve //
+              {reinterpret_cast<NodePointer<NodeId> *>(&as<PropertyNodeMaxPayloadsAMDX>(newProp)->maxNumberOfPayloads)};
+            auto cmp = reinterpret_cast<NodePointer<NodeId> *>(&as<PropertyNodeMaxPayloadsAMDX>(prop.property)->maxNumberOfPayloads);
+            for (auto &&ref : propertyReferenceResolves)
+            {
+              if (ref.target == cmp)
+              {
+                refResolve.ref = ref.ref;
+                refsToAdd.push_back(refResolve);
+                break;
+              }
+            }
+          }
           else if (is<PropertyCounterBuffer>(newProp))
           {
             PropertyReferenceResolveInfo refResolve //
@@ -3196,6 +3953,36 @@ struct ReaderContext
             PropertyReferenceResolveInfo refResolve //
               {reinterpret_cast<NodePointer<NodeId> *>(&as<PropertyHlslCounterBufferGOOGLE>(newProp)->counterBuffer)};
             auto cmp = reinterpret_cast<NodePointer<NodeId> *>(&as<PropertyHlslCounterBufferGOOGLE>(prop.property)->counterBuffer);
+            for (auto &&ref : propertyReferenceResolves)
+            {
+              if (ref.target == cmp)
+              {
+                refResolve.ref = ref.ref;
+                refsToAdd.push_back(refResolve);
+                break;
+              }
+            }
+          }
+          else if (is<PropertyAliasScopeINTEL>(newProp))
+          {
+            PropertyReferenceResolveInfo refResolve //
+              {reinterpret_cast<NodePointer<NodeId> *>(&as<PropertyAliasScopeINTEL>(newProp)->aliasingScopesList)};
+            auto cmp = reinterpret_cast<NodePointer<NodeId> *>(&as<PropertyAliasScopeINTEL>(prop.property)->aliasingScopesList);
+            for (auto &&ref : propertyReferenceResolves)
+            {
+              if (ref.target == cmp)
+              {
+                refResolve.ref = ref.ref;
+                refsToAdd.push_back(refResolve);
+                break;
+              }
+            }
+          }
+          else if (is<PropertyNoAliasINTEL>(newProp))
+          {
+            PropertyReferenceResolveInfo refResolve //
+              {reinterpret_cast<NodePointer<NodeId> *>(&as<PropertyNoAliasINTEL>(newProp)->aliasingScopesList)};
+            auto cmp = reinterpret_cast<NodePointer<NodeId> *>(&as<PropertyNoAliasINTEL>(prop.property)->aliasingScopesList);
             for (auto &&ref : propertyReferenceResolves)
             {
               if (ref.target == cmp)
@@ -3273,6 +4060,37 @@ struct ReaderContext
               }
             }
           }
+          else if (is<PropertyNodeSharesPayloadLimitsWithAMDX>(newProp))
+          {
+            PropertyReferenceResolveInfo refResolve //
+              {reinterpret_cast<NodePointer<NodeId> *>(&as<PropertyNodeSharesPayloadLimitsWithAMDX>(newProp)->payloadArray)};
+            auto cmp =
+              reinterpret_cast<NodePointer<NodeId> *>(&as<PropertyNodeSharesPayloadLimitsWithAMDX>(prop.property)->payloadArray);
+            for (auto &&ref : propertyReferenceResolves)
+            {
+              if (ref.target == cmp)
+              {
+                refResolve.ref = ref.ref;
+                refsToAdd.push_back(refResolve);
+                break;
+              }
+            }
+          }
+          else if (is<PropertyNodeMaxPayloadsAMDX>(newProp))
+          {
+            PropertyReferenceResolveInfo refResolve //
+              {reinterpret_cast<NodePointer<NodeId> *>(&as<PropertyNodeMaxPayloadsAMDX>(newProp)->maxNumberOfPayloads)};
+            auto cmp = reinterpret_cast<NodePointer<NodeId> *>(&as<PropertyNodeMaxPayloadsAMDX>(prop.property)->maxNumberOfPayloads);
+            for (auto &&ref : propertyReferenceResolves)
+            {
+              if (ref.target == cmp)
+              {
+                refResolve.ref = ref.ref;
+                refsToAdd.push_back(refResolve);
+                break;
+              }
+            }
+          }
           else if (is<PropertyCounterBuffer>(newProp))
           {
             PropertyReferenceResolveInfo refResolve //
@@ -3293,6 +4111,36 @@ struct ReaderContext
             PropertyReferenceResolveInfo refResolve //
               {reinterpret_cast<NodePointer<NodeId> *>(&as<PropertyHlslCounterBufferGOOGLE>(newProp)->counterBuffer)};
             auto cmp = reinterpret_cast<NodePointer<NodeId> *>(&as<PropertyHlslCounterBufferGOOGLE>(prop.property)->counterBuffer);
+            for (auto &&ref : propertyReferenceResolves)
+            {
+              if (ref.target == cmp)
+              {
+                refResolve.ref = ref.ref;
+                refsToAdd.push_back(refResolve);
+                break;
+              }
+            }
+          }
+          else if (is<PropertyAliasScopeINTEL>(newProp))
+          {
+            PropertyReferenceResolveInfo refResolve //
+              {reinterpret_cast<NodePointer<NodeId> *>(&as<PropertyAliasScopeINTEL>(newProp)->aliasingScopesList)};
+            auto cmp = reinterpret_cast<NodePointer<NodeId> *>(&as<PropertyAliasScopeINTEL>(prop.property)->aliasingScopesList);
+            for (auto &&ref : propertyReferenceResolves)
+            {
+              if (ref.target == cmp)
+              {
+                refResolve.ref = ref.ref;
+                refsToAdd.push_back(refResolve);
+                break;
+              }
+            }
+          }
+          else if (is<PropertyNoAliasINTEL>(newProp))
+          {
+            PropertyReferenceResolveInfo refResolve //
+              {reinterpret_cast<NodePointer<NodeId> *>(&as<PropertyNoAliasINTEL>(newProp)->aliasingScopesList)};
+            auto cmp = reinterpret_cast<NodePointer<NodeId> *>(&as<PropertyNoAliasINTEL>(prop.property)->aliasingScopesList);
             for (auto &&ref : propertyReferenceResolves)
             {
               if (ref.target == cmp)
@@ -7140,6 +7988,9 @@ struct ReaderContext
         info.mode = emode;
       };
       break;
+      case ExecutionMode::NonCoherentColorAttachmentReadEXT: info.mode = new ExecutionModeNonCoherentColorAttachmentReadEXT; break;
+      case ExecutionMode::NonCoherentDepthAttachmentReadEXT: info.mode = new ExecutionModeNonCoherentDepthAttachmentReadEXT; break;
+      case ExecutionMode::NonCoherentStencilAttachmentReadEXT: info.mode = new ExecutionModeNonCoherentStencilAttachmentReadEXT; break;
       case ExecutionMode::SubgroupUniformControlFlowKHR: info.mode = new ExecutionModeSubgroupUniformControlFlowKHR; break;
       case ExecutionMode::PostDepthCoverage: info.mode = new ExecutionModePostDepthCoverage; break;
       case ExecutionMode::DenormPreserve: info.mode = new ExecutionModeDenormPreserve(mode.data.DenormPreserve.targetWidth); break;
@@ -7151,14 +8002,79 @@ struct ReaderContext
         break;
       case ExecutionMode::RoundingModeRTE: info.mode = new ExecutionModeRoundingModeRTE(mode.data.RoundingModeRTE.targetWidth); break;
       case ExecutionMode::RoundingModeRTZ: info.mode = new ExecutionModeRoundingModeRTZ(mode.data.RoundingModeRTZ.targetWidth); break;
+      case ExecutionMode::EarlyAndLateFragmentTestsAMD: info.mode = new ExecutionModeEarlyAndLateFragmentTestsAMD; break;
       case ExecutionMode::StencilRefReplacingEXT: info.mode = new ExecutionModeStencilRefReplacingEXT; break;
-      case ExecutionMode::OutputLinesNV: info.mode = new ExecutionModeOutputLinesNV; break;
-      case ExecutionMode::OutputPrimitivesNV:
-        info.mode = new ExecutionModeOutputPrimitivesNV(mode.data.OutputPrimitivesNV.primitiveCount);
+      case ExecutionMode::CoalescingAMDX: info.mode = new ExecutionModeCoalescingAMDX; break;
+      case ExecutionMode::MaxNodeRecursionAMDX:
+      {
+        auto emode = new ExecutionModeMaxNodeRecursionAMDX;
+        PropertyReferenceResolveInfo refInfo;
+        refInfo.target = &emode->numberOfRecursions;
+        refInfo.ref = mode.data.MaxNodeRecursionAMDX.numberOfRecursions;
+        propertyReferenceResolves.push_back(refInfo);
+        info.mode = emode;
+      };
+      break;
+      case ExecutionMode::StaticNumWorkgroupsAMDX:
+      {
+        auto emode = new ExecutionModeStaticNumWorkgroupsAMDX;
+        PropertyReferenceResolveInfo refInfo;
+        refInfo.target = &emode->xSize;
+        refInfo.ref = mode.data.StaticNumWorkgroupsAMDX.xSize;
+        propertyReferenceResolves.push_back(refInfo);
+        refInfo.target = &emode->ySize;
+        refInfo.ref = mode.data.StaticNumWorkgroupsAMDX.ySize;
+        propertyReferenceResolves.push_back(refInfo);
+        refInfo.target = &emode->zSize;
+        refInfo.ref = mode.data.StaticNumWorkgroupsAMDX.zSize;
+        propertyReferenceResolves.push_back(refInfo);
+        info.mode = emode;
+      };
+      break;
+      case ExecutionMode::ShaderIndexAMDX:
+      {
+        auto emode = new ExecutionModeShaderIndexAMDX;
+        PropertyReferenceResolveInfo refInfo;
+        refInfo.target = &emode->shaderIndex;
+        refInfo.ref = mode.data.ShaderIndexAMDX.shaderIndex;
+        propertyReferenceResolves.push_back(refInfo);
+        info.mode = emode;
+      };
+      break;
+      case ExecutionMode::MaxNumWorkgroupsAMDX:
+      {
+        auto emode = new ExecutionModeMaxNumWorkgroupsAMDX;
+        PropertyReferenceResolveInfo refInfo;
+        refInfo.target = &emode->xSize;
+        refInfo.ref = mode.data.MaxNumWorkgroupsAMDX.xSize;
+        propertyReferenceResolves.push_back(refInfo);
+        refInfo.target = &emode->ySize;
+        refInfo.ref = mode.data.MaxNumWorkgroupsAMDX.ySize;
+        propertyReferenceResolves.push_back(refInfo);
+        refInfo.target = &emode->zSize;
+        refInfo.ref = mode.data.MaxNumWorkgroupsAMDX.zSize;
+        propertyReferenceResolves.push_back(refInfo);
+        info.mode = emode;
+      };
+      break;
+      case ExecutionMode::StencilRefUnchangedFrontAMD: info.mode = new ExecutionModeStencilRefUnchangedFrontAMD; break;
+      case ExecutionMode::StencilRefGreaterFrontAMD: info.mode = new ExecutionModeStencilRefGreaterFrontAMD; break;
+      case ExecutionMode::StencilRefLessFrontAMD: info.mode = new ExecutionModeStencilRefLessFrontAMD; break;
+      case ExecutionMode::StencilRefUnchangedBackAMD: info.mode = new ExecutionModeStencilRefUnchangedBackAMD; break;
+      case ExecutionMode::StencilRefGreaterBackAMD: info.mode = new ExecutionModeStencilRefGreaterBackAMD; break;
+      case ExecutionMode::StencilRefLessBackAMD: info.mode = new ExecutionModeStencilRefLessBackAMD; break;
+      case ExecutionMode::QuadDerivativesKHR: info.mode = new ExecutionModeQuadDerivativesKHR; break;
+      case ExecutionMode::RequireFullQuadsKHR: info.mode = new ExecutionModeRequireFullQuadsKHR; break;
+      case ExecutionMode::OutputLinesEXT: info.mode = new ExecutionModeOutputLinesEXT; break;
+      // duplicated OutputLinesNV = 5269
+      case ExecutionMode::OutputPrimitivesEXT:
+        info.mode = new ExecutionModeOutputPrimitivesEXT(mode.data.OutputPrimitivesEXT.primitiveCount);
         break;
+      // duplicated OutputPrimitivesNV = 5270
       case ExecutionMode::DerivativeGroupQuadsNV: info.mode = new ExecutionModeDerivativeGroupQuadsNV; break;
       case ExecutionMode::DerivativeGroupLinearNV: info.mode = new ExecutionModeDerivativeGroupLinearNV; break;
-      case ExecutionMode::OutputTrianglesNV: info.mode = new ExecutionModeOutputTrianglesNV; break;
+      case ExecutionMode::OutputTrianglesEXT: info.mode = new ExecutionModeOutputTrianglesEXT; break;
+      // duplicated OutputTrianglesNV = 5298
       case ExecutionMode::PixelInterlockOrderedEXT: info.mode = new ExecutionModePixelInterlockOrderedEXT; break;
       case ExecutionMode::PixelInterlockUnorderedEXT: info.mode = new ExecutionModePixelInterlockUnorderedEXT; break;
       case ExecutionMode::SampleInterlockOrderedEXT: info.mode = new ExecutionModeSampleInterlockOrderedEXT; break;
@@ -7193,6 +8109,45 @@ struct ReaderContext
         break;
       case ExecutionMode::SchedulerTargetFmaxMhzINTEL:
         info.mode = new ExecutionModeSchedulerTargetFmaxMhzINTEL(mode.data.SchedulerTargetFmaxMhzINTEL.target_fmax);
+        break;
+      case ExecutionMode::MaximallyReconvergesKHR: info.mode = new ExecutionModeMaximallyReconvergesKHR; break;
+      case ExecutionMode::FPFastMathDefault:
+      {
+        auto emode = new ExecutionModeFPFastMathDefault;
+        PropertyReferenceResolveInfo refInfo;
+        refInfo.target = &emode->targetType;
+        refInfo.ref = mode.data.FPFastMathDefault.targetType;
+        propertyReferenceResolves.push_back(refInfo);
+        refInfo.target = &emode->fastMathMode;
+        refInfo.ref = mode.data.FPFastMathDefault.fastMathMode;
+        propertyReferenceResolves.push_back(refInfo);
+        info.mode = emode;
+      };
+      break;
+      case ExecutionMode::StreamingInterfaceINTEL:
+        info.mode = new ExecutionModeStreamingInterfaceINTEL(mode.data.StreamingInterfaceINTEL.stallFreeReturn);
+        break;
+      case ExecutionMode::RegisterMapInterfaceINTEL:
+        info.mode = new ExecutionModeRegisterMapInterfaceINTEL(mode.data.RegisterMapInterfaceINTEL.waitForDoneWrite);
+        break;
+      case ExecutionMode::NamedBarrierCountINTEL:
+        info.mode = new ExecutionModeNamedBarrierCountINTEL(mode.data.NamedBarrierCountINTEL.barrierCount);
+        break;
+      case ExecutionMode::MaximumRegistersINTEL:
+        info.mode = new ExecutionModeMaximumRegistersINTEL(mode.data.MaximumRegistersINTEL.numberOfRegisters);
+        break;
+      case ExecutionMode::MaximumRegistersIdINTEL:
+      {
+        auto emode = new ExecutionModeMaximumRegistersIdINTEL;
+        PropertyReferenceResolveInfo refInfo;
+        refInfo.target = &emode->numberOfRegisters;
+        refInfo.ref = mode.data.MaximumRegistersIdINTEL.numberOfRegisters;
+        propertyReferenceResolves.push_back(refInfo);
+        info.mode = emode;
+      };
+      break;
+      case ExecutionMode::NamedMaximumRegistersINTEL:
+        info.mode = new ExecutionModeNamedMaximumRegistersINTEL(mode.data.NamedMaximumRegistersINTEL.namedMaximumNumberOfRegisters);
         break;
     }
     executionModes.push_back(eastl::move(info));
@@ -7527,10 +8482,61 @@ struct ReaderContext
         propPtr.reset(newProp);
         break;
       }
+      case Decoration::WeightTextureQCOM:
+      {
+        auto newProp = new PropertyWeightTextureQCOM;
+        propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::BlockMatchTextureQCOM:
+      {
+        auto newProp = new PropertyBlockMatchTextureQCOM;
+        propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::BlockMatchSamplerQCOM:
+      {
+        auto newProp = new PropertyBlockMatchSamplerQCOM;
+        propPtr.reset(newProp);
+        break;
+      }
       case Decoration::ExplicitInterpAMD:
       {
         auto newProp = new PropertyExplicitInterpAMD;
         propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::NodeSharesPayloadLimitsWithAMDX:
+      {
+        auto newProp = new PropertyNodeSharesPayloadLimitsWithAMDX;
+        propPtr.reset(newProp);
+        PropertyReferenceResolveInfo refResolve //
+          {reinterpret_cast<NodePointer<NodeId> *>(&newProp->payloadArray),
+            IdRef{decoration.data.NodeSharesPayloadLimitsWithAMDX.payloadArray.value}};
+        propertyReferenceResolves.push_back(refResolve);
+        break;
+      }
+      case Decoration::NodeMaxPayloadsAMDX:
+      {
+        auto newProp = new PropertyNodeMaxPayloadsAMDX;
+        propPtr.reset(newProp);
+        PropertyReferenceResolveInfo refResolve //
+          {reinterpret_cast<NodePointer<NodeId> *>(&newProp->maxNumberOfPayloads),
+            IdRef{decoration.data.NodeMaxPayloadsAMDX.maxNumberOfPayloads.value}};
+        propertyReferenceResolves.push_back(refResolve);
+        break;
+      }
+      case Decoration::TrackFinishWritingAMDX:
+      {
+        auto newProp = new PropertyTrackFinishWritingAMDX;
+        propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::PayloadNodeNameAMDX:
+      {
+        auto newProp = new PropertyPayloadNodeNameAMDX;
+        propPtr.reset(newProp);
+        newProp->nodeName = decoration.data.PayloadNodeNameAMDX.nodeName.asStringObj();
         break;
       }
       case Decoration::OverrideCoverageNV:
@@ -7558,9 +8564,9 @@ struct ReaderContext
         newProp->offset = decoration.data.SecondaryViewportRelativeNV.offset;
         break;
       }
-      case Decoration::PerPrimitiveNV:
+      case Decoration::PerPrimitiveEXT:
       {
-        auto newProp = new PropertyPerPrimitiveNV;
+        auto newProp = new PropertyPerPrimitiveEXT;
         propPtr.reset(newProp);
         break;
       }
@@ -7597,6 +8603,12 @@ struct ReaderContext
       case Decoration::AliasedPointer:
       {
         auto newProp = new PropertyAliasedPointer;
+        propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::HitObjectShaderRecordBufferNV:
+      {
+        auto newProp = new PropertyHitObjectShaderRecordBufferNV;
         propPtr.reset(newProp);
         break;
       }
@@ -7802,6 +8814,26 @@ struct ReaderContext
         newProp->forceKey = decoration.data.ForcePow2DepthINTEL.forceKey;
         break;
       }
+      case Decoration::StridesizeINTEL:
+      {
+        auto newProp = new PropertyStridesizeINTEL;
+        propPtr.reset(newProp);
+        newProp->strideSize = decoration.data.StridesizeINTEL.strideSize;
+        break;
+      }
+      case Decoration::WordsizeINTEL:
+      {
+        auto newProp = new PropertyWordsizeINTEL;
+        propPtr.reset(newProp);
+        newProp->wordSize = decoration.data.WordsizeINTEL.wordSize;
+        break;
+      }
+      case Decoration::TrueDualPortINTEL:
+      {
+        auto newProp = new PropertyTrueDualPortINTEL;
+        propPtr.reset(newProp);
+        break;
+      }
       case Decoration::BurstCoalesceINTEL:
       {
         auto newProp = new PropertyBurstCoalesceINTEL;
@@ -7838,6 +8870,55 @@ struct ReaderContext
       {
         auto newProp = new PropertyFuseLoopsInFunctionINTEL;
         propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::MathOpDSPModeINTEL:
+      {
+        auto newProp = new PropertyMathOpDSPModeINTEL;
+        propPtr.reset(newProp);
+        newProp->mode = decoration.data.MathOpDSPModeINTEL.mode;
+        newProp->propagate = decoration.data.MathOpDSPModeINTEL.propagate;
+        break;
+      }
+      case Decoration::AliasScopeINTEL:
+      {
+        auto newProp = new PropertyAliasScopeINTEL;
+        propPtr.reset(newProp);
+        PropertyReferenceResolveInfo refResolve //
+          {reinterpret_cast<NodePointer<NodeId> *>(&newProp->aliasingScopesList),
+            IdRef{decoration.data.AliasScopeINTEL.aliasingScopesList.value}};
+        propertyReferenceResolves.push_back(refResolve);
+        break;
+      }
+      case Decoration::NoAliasINTEL:
+      {
+        auto newProp = new PropertyNoAliasINTEL;
+        propPtr.reset(newProp);
+        PropertyReferenceResolveInfo refResolve //
+          {reinterpret_cast<NodePointer<NodeId> *>(&newProp->aliasingScopesList),
+            IdRef{decoration.data.NoAliasINTEL.aliasingScopesList.value}};
+        propertyReferenceResolves.push_back(refResolve);
+        break;
+      }
+      case Decoration::InitiationIntervalINTEL:
+      {
+        auto newProp = new PropertyInitiationIntervalINTEL;
+        propPtr.reset(newProp);
+        newProp->cycles = decoration.data.InitiationIntervalINTEL.cycles;
+        break;
+      }
+      case Decoration::MaxConcurrencyINTEL:
+      {
+        auto newProp = new PropertyMaxConcurrencyINTEL;
+        propPtr.reset(newProp);
+        newProp->invocations = decoration.data.MaxConcurrencyINTEL.invocations;
+        break;
+      }
+      case Decoration::PipelineEnableINTEL:
+      {
+        auto newProp = new PropertyPipelineEnableINTEL;
+        propPtr.reset(newProp);
+        newProp->enable = decoration.data.PipelineEnableINTEL.enable;
         break;
       }
       case Decoration::BufferLocationINTEL:
@@ -7878,6 +8959,133 @@ struct ReaderContext
       {
         auto newProp = new PropertyMediaBlockIOINTEL;
         propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::StallFreeINTEL:
+      {
+        auto newProp = new PropertyStallFreeINTEL;
+        propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::FPMaxErrorDecorationINTEL:
+      {
+        auto newProp = new PropertyFPMaxErrorDecorationINTEL;
+        propPtr.reset(newProp);
+        newProp->maxError = decoration.data.FPMaxErrorDecorationINTEL.maxError;
+        break;
+      }
+      case Decoration::LatencyControlLabelINTEL:
+      {
+        auto newProp = new PropertyLatencyControlLabelINTEL;
+        propPtr.reset(newProp);
+        newProp->latencyLabel = decoration.data.LatencyControlLabelINTEL.latencyLabel;
+        break;
+      }
+      case Decoration::LatencyControlConstraintINTEL:
+      {
+        auto newProp = new PropertyLatencyControlConstraintINTEL;
+        propPtr.reset(newProp);
+        newProp->relativeTo = decoration.data.LatencyControlConstraintINTEL.relativeTo;
+        newProp->controlType = decoration.data.LatencyControlConstraintINTEL.controlType;
+        newProp->relativeCycle = decoration.data.LatencyControlConstraintINTEL.relativeCycle;
+        break;
+      }
+      case Decoration::ConduitKernelArgumentINTEL:
+      {
+        auto newProp = new PropertyConduitKernelArgumentINTEL;
+        propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::RegisterMapKernelArgumentINTEL:
+      {
+        auto newProp = new PropertyRegisterMapKernelArgumentINTEL;
+        propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::MMHostInterfaceAddressWidthINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceAddressWidthINTEL;
+        propPtr.reset(newProp);
+        newProp->addressWidth = decoration.data.MMHostInterfaceAddressWidthINTEL.addressWidth;
+        break;
+      }
+      case Decoration::MMHostInterfaceDataWidthINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceDataWidthINTEL;
+        propPtr.reset(newProp);
+        newProp->dataWidth = decoration.data.MMHostInterfaceDataWidthINTEL.dataWidth;
+        break;
+      }
+      case Decoration::MMHostInterfaceLatencyINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceLatencyINTEL;
+        propPtr.reset(newProp);
+        newProp->latency = decoration.data.MMHostInterfaceLatencyINTEL.latency;
+        break;
+      }
+      case Decoration::MMHostInterfaceReadWriteModeINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceReadWriteModeINTEL;
+        propPtr.reset(newProp);
+        newProp->readWriteMode = decoration.data.MMHostInterfaceReadWriteModeINTEL.readWriteMode;
+        break;
+      }
+      case Decoration::MMHostInterfaceMaxBurstINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceMaxBurstINTEL;
+        propPtr.reset(newProp);
+        newProp->maxBurstCount = decoration.data.MMHostInterfaceMaxBurstINTEL.maxBurstCount;
+        break;
+      }
+      case Decoration::MMHostInterfaceWaitRequestINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceWaitRequestINTEL;
+        propPtr.reset(newProp);
+        newProp->waitrequest = decoration.data.MMHostInterfaceWaitRequestINTEL.waitrequest;
+        break;
+      }
+      case Decoration::StableKernelArgumentINTEL:
+      {
+        auto newProp = new PropertyStableKernelArgumentINTEL;
+        propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::HostAccessINTEL:
+      {
+        auto newProp = new PropertyHostAccessINTEL;
+        propPtr.reset(newProp);
+        newProp->access = decoration.data.HostAccessINTEL.access;
+        newProp->name = decoration.data.HostAccessINTEL.name.asStringObj();
+        break;
+      }
+      case Decoration::InitModeINTEL:
+      {
+        auto newProp = new PropertyInitModeINTEL;
+        propPtr.reset(newProp);
+        newProp->trigger = decoration.data.InitModeINTEL.trigger;
+        break;
+      }
+      case Decoration::ImplementInRegisterMapINTEL:
+      {
+        auto newProp = new PropertyImplementInRegisterMapINTEL;
+        propPtr.reset(newProp);
+        newProp->value = decoration.data.ImplementInRegisterMapINTEL.value;
+        break;
+      }
+      case Decoration::CacheControlLoadINTEL:
+      {
+        auto newProp = new PropertyCacheControlLoadINTEL;
+        propPtr.reset(newProp);
+        newProp->cacheLevel = decoration.data.CacheControlLoadINTEL.cacheLevel;
+        newProp->cacheControl = decoration.data.CacheControlLoadINTEL.cacheControl;
+        break;
+      }
+      case Decoration::CacheControlStoreINTEL:
+      {
+        auto newProp = new PropertyCacheControlStoreINTEL;
+        propPtr.reset(newProp);
+        newProp->cacheLevel = decoration.data.CacheControlStoreINTEL.cacheLevel;
+        newProp->cacheControl = decoration.data.CacheControlStoreINTEL.cacheControl;
         break;
       }
     }
@@ -8249,6 +9457,41 @@ struct ReaderContext
     if (currentBlock)
       currentBlock->instructions.push_back(node);
   }
+  void onColorAttachmentReadEXT(Op, IdResult id_result, IdResultType id_result_type, IdRef attachment, Optional<IdRef> sample)
+  {
+    eastl::optional<NodePointer<NodeId>> sampleOpt;
+    if (sample.valid)
+    {
+      sampleOpt = moduleBuilder.getNode(sample.value);
+    }
+    auto node = moduleBuilder.newNode<NodeOpColorAttachmentReadEXT>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(attachment), sampleOpt);
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onDepthAttachmentReadEXT(Op, IdResult id_result, IdResultType id_result_type, Optional<IdRef> sample)
+  {
+    eastl::optional<NodePointer<NodeId>> sampleOpt;
+    if (sample.valid)
+    {
+      sampleOpt = moduleBuilder.getNode(sample.value);
+    }
+    auto node = moduleBuilder.newNode<NodeOpDepthAttachmentReadEXT>(id_result.value, moduleBuilder.getType(id_result_type), sampleOpt);
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onStencilAttachmentReadEXT(Op, IdResult id_result, IdResultType id_result_type, Optional<IdRef> sample)
+  {
+    eastl::optional<NodePointer<NodeId>> sampleOpt;
+    if (sample.valid)
+    {
+      sampleOpt = moduleBuilder.getNode(sample.value);
+    }
+    auto node =
+      moduleBuilder.newNode<NodeOpStencilAttachmentReadEXT>(id_result.value, moduleBuilder.getType(id_result_type), sampleOpt);
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
   void onTerminateInvocation(Op)
   {
     auto node = moduleBuilder.newNode<NodeOpTerminateInvocation>();
@@ -8290,10 +9533,37 @@ struct ReaderContext
     if (currentBlock)
       currentBlock->instructions.push_back(node);
   }
+  void onGroupNonUniformRotateKHR(Op, IdResult id_result, IdResultType id_result_type, IdScope execution, IdRef value, IdRef delta,
+    Optional<IdRef> cluster_size)
+  {
+    eastl::optional<NodePointer<NodeId>> cluster_sizeOpt;
+    if (cluster_size.valid)
+    {
+      cluster_sizeOpt = moduleBuilder.getNode(cluster_size.value);
+    }
+    auto node = moduleBuilder.newNode<NodeOpGroupNonUniformRotateKHR>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(execution), moduleBuilder.getNode(value), moduleBuilder.getNode(delta), cluster_sizeOpt);
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
   void onSubgroupReadInvocationKHR(Op, IdResult id_result, IdResultType id_result_type, IdRef value, IdRef index)
   {
     auto node = moduleBuilder.newNode<NodeOpSubgroupReadInvocationKHR>(id_result.value, moduleBuilder.getType(id_result_type),
       moduleBuilder.getNode(value), moduleBuilder.getNode(index));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onExtInstWithForwardRefsKHR(Op, IdResult id_result, IdResultType id_result_type, IdRef set, LiteralExtInstInteger instruction,
+    Multiple<IdRef> param_4)
+  {
+    // FIXME: use vector directly in constructor
+    eastl::vector<NodePointer<NodeId>> param_4Var;
+    while (!param_4.empty())
+    {
+      param_4Var.push_back(moduleBuilder.getNode(param_4.consume()));
+    }
+    auto node = moduleBuilder.newNode<NodeOpExtInstWithForwardRefsKHR>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(set), instruction, param_4Var.data(), param_4Var.size());
     if (currentBlock)
       currentBlock->instructions.push_back(node);
   }
@@ -8489,6 +9759,174 @@ struct ReaderContext
     if (currentBlock)
       currentBlock->instructions.push_back(node);
   }
+  void onTypeCooperativeMatrixKHR(Op, IdResult id_result, IdRef component_type, IdScope scope, IdRef rows, IdRef columns, IdRef use)
+  {
+    moduleBuilder.newNode<NodeOpTypeCooperativeMatrixKHR>(id_result.value, moduleBuilder.getNode(component_type),
+      moduleBuilder.getNode(scope), moduleBuilder.getNode(rows), moduleBuilder.getNode(columns), moduleBuilder.getNode(use));
+  }
+  void onCooperativeMatrixLoadKHR(Op, IdResult id_result, IdResultType id_result_type, IdRef pointer, IdRef memory_layout,
+    Optional<IdRef> stride, Optional<TypeTraits<MemoryAccessMask>::ReadType> memory_operand)
+  {
+    eastl::optional<NodePointer<NodeId>> strideOpt;
+    if (stride.valid)
+    {
+      strideOpt = moduleBuilder.getNode(stride.value);
+    }
+    eastl::optional<MemoryAccessMask> memory_operandVal;
+    eastl::optional<LiteralInteger> memory_operand_Aligned_first;
+    NodePointer<NodeOperation> memory_operand_MakePointerAvailable_first;
+    NodePointer<NodeOperation> memory_operand_MakePointerAvailableKHR_first;
+    NodePointer<NodeOperation> memory_operand_MakePointerVisible_first;
+    NodePointer<NodeOperation> memory_operand_MakePointerVisibleKHR_first;
+    NodePointer<NodeId> memory_operand_AliasScopeINTELMask_first;
+    NodePointer<NodeId> memory_operand_NoAliasINTELMask_first;
+    if (memory_operand.valid)
+    {
+      memory_operandVal = memory_operand.value.value;
+      if ((memory_operand.value.value & MemoryAccessMask::Aligned) != MemoryAccessMask::MaskNone)
+      {
+        memory_operand_Aligned_first = memory_operand.value.data.Aligned.first;
+      }
+      if ((memory_operand.value.value & MemoryAccessMask::MakePointerAvailable) != MemoryAccessMask::MaskNone)
+      {
+        memory_operand_MakePointerAvailable_first =
+          NodePointer<NodeOperation>(moduleBuilder.getNode(memory_operand.value.data.MakePointerAvailable.first));
+      }
+      if ((memory_operand.value.value & MemoryAccessMask::MakePointerAvailableKHR) != MemoryAccessMask::MaskNone)
+      {
+        memory_operand_MakePointerAvailableKHR_first =
+          NodePointer<NodeOperation>(moduleBuilder.getNode(memory_operand.value.data.MakePointerAvailableKHR.first));
+      }
+      if ((memory_operand.value.value & MemoryAccessMask::MakePointerVisible) != MemoryAccessMask::MaskNone)
+      {
+        memory_operand_MakePointerVisible_first =
+          NodePointer<NodeOperation>(moduleBuilder.getNode(memory_operand.value.data.MakePointerVisible.first));
+      }
+      if ((memory_operand.value.value & MemoryAccessMask::MakePointerVisibleKHR) != MemoryAccessMask::MaskNone)
+      {
+        memory_operand_MakePointerVisibleKHR_first =
+          NodePointer<NodeOperation>(moduleBuilder.getNode(memory_operand.value.data.MakePointerVisibleKHR.first));
+      }
+      if ((memory_operand.value.value & MemoryAccessMask::AliasScopeINTELMask) != MemoryAccessMask::MaskNone)
+      {
+        memory_operand_AliasScopeINTELMask_first =
+          NodePointer<NodeId>(moduleBuilder.getNode(memory_operand.value.data.AliasScopeINTELMask.first));
+      }
+      if ((memory_operand.value.value & MemoryAccessMask::NoAliasINTELMask) != MemoryAccessMask::MaskNone)
+      {
+        memory_operand_NoAliasINTELMask_first =
+          NodePointer<NodeId>(moduleBuilder.getNode(memory_operand.value.data.NoAliasINTELMask.first));
+      }
+    }
+    auto node = moduleBuilder.newNode<NodeOpCooperativeMatrixLoadKHR>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(pointer), moduleBuilder.getNode(memory_layout), strideOpt, memory_operandVal, memory_operand_Aligned_first,
+      memory_operand_MakePointerAvailable_first, memory_operand_MakePointerAvailableKHR_first, memory_operand_MakePointerVisible_first,
+      memory_operand_MakePointerVisibleKHR_first, memory_operand_AliasScopeINTELMask_first, memory_operand_NoAliasINTELMask_first);
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onCooperativeMatrixStoreKHR(Op, IdRef pointer, IdRef object, IdRef memory_layout, Optional<IdRef> stride,
+    Optional<TypeTraits<MemoryAccessMask>::ReadType> memory_operand)
+  {
+    eastl::optional<NodePointer<NodeId>> strideOpt;
+    if (stride.valid)
+    {
+      strideOpt = moduleBuilder.getNode(stride.value);
+    }
+    eastl::optional<MemoryAccessMask> memory_operandVal;
+    eastl::optional<LiteralInteger> memory_operand_Aligned_first;
+    NodePointer<NodeOperation> memory_operand_MakePointerAvailable_first;
+    NodePointer<NodeOperation> memory_operand_MakePointerAvailableKHR_first;
+    NodePointer<NodeOperation> memory_operand_MakePointerVisible_first;
+    NodePointer<NodeOperation> memory_operand_MakePointerVisibleKHR_first;
+    NodePointer<NodeId> memory_operand_AliasScopeINTELMask_first;
+    NodePointer<NodeId> memory_operand_NoAliasINTELMask_first;
+    if (memory_operand.valid)
+    {
+      memory_operandVal = memory_operand.value.value;
+      if ((memory_operand.value.value & MemoryAccessMask::Aligned) != MemoryAccessMask::MaskNone)
+      {
+        memory_operand_Aligned_first = memory_operand.value.data.Aligned.first;
+      }
+      if ((memory_operand.value.value & MemoryAccessMask::MakePointerAvailable) != MemoryAccessMask::MaskNone)
+      {
+        memory_operand_MakePointerAvailable_first =
+          NodePointer<NodeOperation>(moduleBuilder.getNode(memory_operand.value.data.MakePointerAvailable.first));
+      }
+      if ((memory_operand.value.value & MemoryAccessMask::MakePointerAvailableKHR) != MemoryAccessMask::MaskNone)
+      {
+        memory_operand_MakePointerAvailableKHR_first =
+          NodePointer<NodeOperation>(moduleBuilder.getNode(memory_operand.value.data.MakePointerAvailableKHR.first));
+      }
+      if ((memory_operand.value.value & MemoryAccessMask::MakePointerVisible) != MemoryAccessMask::MaskNone)
+      {
+        memory_operand_MakePointerVisible_first =
+          NodePointer<NodeOperation>(moduleBuilder.getNode(memory_operand.value.data.MakePointerVisible.first));
+      }
+      if ((memory_operand.value.value & MemoryAccessMask::MakePointerVisibleKHR) != MemoryAccessMask::MaskNone)
+      {
+        memory_operand_MakePointerVisibleKHR_first =
+          NodePointer<NodeOperation>(moduleBuilder.getNode(memory_operand.value.data.MakePointerVisibleKHR.first));
+      }
+      if ((memory_operand.value.value & MemoryAccessMask::AliasScopeINTELMask) != MemoryAccessMask::MaskNone)
+      {
+        memory_operand_AliasScopeINTELMask_first =
+          NodePointer<NodeId>(moduleBuilder.getNode(memory_operand.value.data.AliasScopeINTELMask.first));
+      }
+      if ((memory_operand.value.value & MemoryAccessMask::NoAliasINTELMask) != MemoryAccessMask::MaskNone)
+      {
+        memory_operand_NoAliasINTELMask_first =
+          NodePointer<NodeId>(moduleBuilder.getNode(memory_operand.value.data.NoAliasINTELMask.first));
+      }
+    }
+    auto node = moduleBuilder.newNode<NodeOpCooperativeMatrixStoreKHR>(moduleBuilder.getNode(pointer), moduleBuilder.getNode(object),
+      moduleBuilder.getNode(memory_layout), strideOpt, memory_operandVal, memory_operand_Aligned_first,
+      memory_operand_MakePointerAvailable_first, memory_operand_MakePointerAvailableKHR_first, memory_operand_MakePointerVisible_first,
+      memory_operand_MakePointerVisibleKHR_first, memory_operand_AliasScopeINTELMask_first, memory_operand_NoAliasINTELMask_first);
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onCooperativeMatrixMulAddKHR(Op, IdResult id_result, IdResultType id_result_type, IdRef a, IdRef b, IdRef c,
+    Optional<CooperativeMatrixOperandsMask> cooperative_matrix_operands)
+  {
+    eastl::optional<CooperativeMatrixOperandsMask> cooperative_matrix_operandsOpt;
+    if (cooperative_matrix_operands.valid)
+    {
+      cooperative_matrix_operandsOpt = cooperative_matrix_operands.value;
+    }
+    auto node = moduleBuilder.newNode<NodeOpCooperativeMatrixMulAddKHR>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(a), moduleBuilder.getNode(b), moduleBuilder.getNode(c), cooperative_matrix_operandsOpt);
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onCooperativeMatrixLengthKHR(Op, IdResult id_result, IdResultType id_result_type, IdRef type)
+  {
+    auto node = moduleBuilder.newNode<NodeOpCooperativeMatrixLengthKHR>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(type));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onConstantCompositeReplicateEXT(Op, IdResult id_result, IdResultType id_result_type, IdRef value)
+  {
+    auto node = moduleBuilder.newNode<NodeOpConstantCompositeReplicateEXT>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(value));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onSpecConstantCompositeReplicateEXT(Op, IdResult id_result, IdResultType id_result_type, IdRef value)
+  {
+    auto node = moduleBuilder.newNode<NodeOpSpecConstantCompositeReplicateEXT>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(value));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onCompositeConstructReplicateEXT(Op, IdResult id_result, IdResultType id_result_type, IdRef value)
+  {
+    auto node = moduleBuilder.newNode<NodeOpCompositeConstructReplicateEXT>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(value));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
   void onTypeRayQueryKHR(Op, IdResult id_result) { moduleBuilder.newNode<NodeOpTypeRayQueryKHR>(id_result.value); }
   void onRayQueryInitializeKHR(Op, IdRef ray_query, IdRef accel, IdRef ray_flags, IdRef cull_mask, IdRef ray_origin, IdRef ray_t_min,
     IdRef ray_direction, IdRef ray_t_max)
@@ -8529,6 +9967,74 @@ struct ReaderContext
   {
     auto node = moduleBuilder.newNode<NodeOpRayQueryGetIntersectionTypeKHR>(id_result.value, moduleBuilder.getType(id_result_type),
       moduleBuilder.getNode(ray_query), moduleBuilder.getNode(intersection));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onImageSampleWeightedQCOM(Op, IdResult id_result, IdResultType id_result_type, IdRef texture, IdRef coordinates, IdRef weights)
+  {
+    auto node = moduleBuilder.newNode<NodeOpImageSampleWeightedQCOM>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(texture), moduleBuilder.getNode(coordinates), moduleBuilder.getNode(weights));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onImageBoxFilterQCOM(Op, IdResult id_result, IdResultType id_result_type, IdRef texture, IdRef coordinates, IdRef box_size)
+  {
+    auto node = moduleBuilder.newNode<NodeOpImageBoxFilterQCOM>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(texture), moduleBuilder.getNode(coordinates), moduleBuilder.getNode(box_size));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onImageBlockMatchSSDQCOM(Op, IdResult id_result, IdResultType id_result_type, IdRef target, IdRef target_coordinates,
+    IdRef reference, IdRef reference_coordinates, IdRef block_size)
+  {
+    auto node = moduleBuilder.newNode<NodeOpImageBlockMatchSSDQCOM>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(target), moduleBuilder.getNode(target_coordinates), moduleBuilder.getNode(reference),
+      moduleBuilder.getNode(reference_coordinates), moduleBuilder.getNode(block_size));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onImageBlockMatchSADQCOM(Op, IdResult id_result, IdResultType id_result_type, IdRef target, IdRef target_coordinates,
+    IdRef reference, IdRef reference_coordinates, IdRef block_size)
+  {
+    auto node = moduleBuilder.newNode<NodeOpImageBlockMatchSADQCOM>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(target), moduleBuilder.getNode(target_coordinates), moduleBuilder.getNode(reference),
+      moduleBuilder.getNode(reference_coordinates), moduleBuilder.getNode(block_size));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onImageBlockMatchWindowSSDQCOM(Op, IdResult id_result, IdResultType id_result_type, IdRef target_sampled_image,
+    IdRef target_coordinates, IdRef reference_sampled_image, IdRef reference_coordinates, IdRef block_size)
+  {
+    auto node = moduleBuilder.newNode<NodeOpImageBlockMatchWindowSSDQCOM>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(target_sampled_image), moduleBuilder.getNode(target_coordinates),
+      moduleBuilder.getNode(reference_sampled_image), moduleBuilder.getNode(reference_coordinates), moduleBuilder.getNode(block_size));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onImageBlockMatchWindowSADQCOM(Op, IdResult id_result, IdResultType id_result_type, IdRef target_sampled_image,
+    IdRef target_coordinates, IdRef reference_sampled_image, IdRef reference_coordinates, IdRef block_size)
+  {
+    auto node = moduleBuilder.newNode<NodeOpImageBlockMatchWindowSADQCOM>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(target_sampled_image), moduleBuilder.getNode(target_coordinates),
+      moduleBuilder.getNode(reference_sampled_image), moduleBuilder.getNode(reference_coordinates), moduleBuilder.getNode(block_size));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onImageBlockMatchGatherSSDQCOM(Op, IdResult id_result, IdResultType id_result_type, IdRef target_sampled_image,
+    IdRef target_coordinates, IdRef reference_sampled_image, IdRef reference_coordinates, IdRef block_size)
+  {
+    auto node = moduleBuilder.newNode<NodeOpImageBlockMatchGatherSSDQCOM>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(target_sampled_image), moduleBuilder.getNode(target_coordinates),
+      moduleBuilder.getNode(reference_sampled_image), moduleBuilder.getNode(reference_coordinates), moduleBuilder.getNode(block_size));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onImageBlockMatchGatherSADQCOM(Op, IdResult id_result, IdResultType id_result_type, IdRef target_sampled_image,
+    IdRef target_coordinates, IdRef reference_sampled_image, IdRef reference_coordinates, IdRef block_size)
+  {
+    auto node = moduleBuilder.newNode<NodeOpImageBlockMatchGatherSADQCOM>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(target_sampled_image), moduleBuilder.getNode(target_coordinates),
+      moduleBuilder.getNode(reference_sampled_image), moduleBuilder.getNode(reference_coordinates), moduleBuilder.getNode(block_size));
     if (currentBlock)
       currentBlock->instructions.push_back(node);
   }
@@ -8617,6 +10123,306 @@ struct ReaderContext
     if (currentBlock)
       currentBlock->instructions.push_back(node);
   }
+  void onFinalizeNodePayloadsAMDX(Op, IdRef payload_array)
+  {
+    auto node = moduleBuilder.newNode<NodeOpFinalizeNodePayloadsAMDX>(moduleBuilder.getNode(payload_array));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onFinishWritingNodePayloadAMDX(Op, IdResult id_result, IdResultType id_result_type, IdRef payload)
+  {
+    auto node = moduleBuilder.newNode<NodeOpFinishWritingNodePayloadAMDX>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(payload));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onInitializeNodePayloadsAMDX(Op, IdRef payload_array, IdScope visibility, IdRef payload_count, IdRef node_index)
+  {
+    auto node = moduleBuilder.newNode<NodeOpInitializeNodePayloadsAMDX>(moduleBuilder.getNode(payload_array),
+      moduleBuilder.getNode(visibility), moduleBuilder.getNode(payload_count), moduleBuilder.getNode(node_index));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onGroupNonUniformQuadAllKHR(Op, IdResult id_result, IdResultType id_result_type, IdRef predicate)
+  {
+    auto node = moduleBuilder.newNode<NodeOpGroupNonUniformQuadAllKHR>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(predicate));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onGroupNonUniformQuadAnyKHR(Op, IdResult id_result, IdResultType id_result_type, IdRef predicate)
+  {
+    auto node = moduleBuilder.newNode<NodeOpGroupNonUniformQuadAnyKHR>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(predicate));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onHitObjectRecordHitMotionNV(Op, IdRef hit_object, IdRef acceleration_structure, IdRef instance_id, IdRef primitive_id,
+    IdRef geometry_index, IdRef hit_kind, IdRef s_b_t_record_offset, IdRef s_b_t_record_stride, IdRef origin, IdRef t_min,
+    IdRef direction, IdRef t_max, IdRef current_time, IdRef hit_object_attributes)
+  {
+    auto node = moduleBuilder.newNode<NodeOpHitObjectRecordHitMotionNV>(moduleBuilder.getNode(hit_object),
+      moduleBuilder.getNode(acceleration_structure), moduleBuilder.getNode(instance_id), moduleBuilder.getNode(primitive_id),
+      moduleBuilder.getNode(geometry_index), moduleBuilder.getNode(hit_kind), moduleBuilder.getNode(s_b_t_record_offset),
+      moduleBuilder.getNode(s_b_t_record_stride), moduleBuilder.getNode(origin), moduleBuilder.getNode(t_min),
+      moduleBuilder.getNode(direction), moduleBuilder.getNode(t_max), moduleBuilder.getNode(current_time),
+      moduleBuilder.getNode(hit_object_attributes));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onHitObjectRecordHitWithIndexMotionNV(Op, IdRef hit_object, IdRef acceleration_structure, IdRef instance_id, IdRef primitive_id,
+    IdRef geometry_index, IdRef hit_kind, IdRef s_b_t_record_index, IdRef origin, IdRef t_min, IdRef direction, IdRef t_max,
+    IdRef current_time, IdRef hit_object_attributes)
+  {
+    auto node = moduleBuilder.newNode<NodeOpHitObjectRecordHitWithIndexMotionNV>(moduleBuilder.getNode(hit_object),
+      moduleBuilder.getNode(acceleration_structure), moduleBuilder.getNode(instance_id), moduleBuilder.getNode(primitive_id),
+      moduleBuilder.getNode(geometry_index), moduleBuilder.getNode(hit_kind), moduleBuilder.getNode(s_b_t_record_index),
+      moduleBuilder.getNode(origin), moduleBuilder.getNode(t_min), moduleBuilder.getNode(direction), moduleBuilder.getNode(t_max),
+      moduleBuilder.getNode(current_time), moduleBuilder.getNode(hit_object_attributes));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onHitObjectRecordMissMotionNV(Op, IdRef hit_object, IdRef s_b_t_index, IdRef origin, IdRef t_min, IdRef direction, IdRef t_max,
+    IdRef current_time)
+  {
+    auto node = moduleBuilder.newNode<NodeOpHitObjectRecordMissMotionNV>(moduleBuilder.getNode(hit_object),
+      moduleBuilder.getNode(s_b_t_index), moduleBuilder.getNode(origin), moduleBuilder.getNode(t_min),
+      moduleBuilder.getNode(direction), moduleBuilder.getNode(t_max), moduleBuilder.getNode(current_time));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onHitObjectGetWorldToObjectNV(Op, IdResult id_result, IdResultType id_result_type, IdRef hit_object)
+  {
+    auto node = moduleBuilder.newNode<NodeOpHitObjectGetWorldToObjectNV>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(hit_object));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onHitObjectGetObjectToWorldNV(Op, IdResult id_result, IdResultType id_result_type, IdRef hit_object)
+  {
+    auto node = moduleBuilder.newNode<NodeOpHitObjectGetObjectToWorldNV>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(hit_object));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onHitObjectGetObjectRayDirectionNV(Op, IdResult id_result, IdResultType id_result_type, IdRef hit_object)
+  {
+    auto node = moduleBuilder.newNode<NodeOpHitObjectGetObjectRayDirectionNV>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(hit_object));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onHitObjectGetObjectRayOriginNV(Op, IdResult id_result, IdResultType id_result_type, IdRef hit_object)
+  {
+    auto node = moduleBuilder.newNode<NodeOpHitObjectGetObjectRayOriginNV>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(hit_object));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onHitObjectTraceRayMotionNV(Op, IdRef hit_object, IdRef acceleration_structure, IdRef ray_flags, IdRef cullmask,
+    IdRef s_b_t_record_offset, IdRef s_b_t_record_stride, IdRef miss_index, IdRef origin, IdRef t_min, IdRef direction, IdRef t_max,
+    IdRef time, IdRef payload)
+  {
+    auto node = moduleBuilder.newNode<NodeOpHitObjectTraceRayMotionNV>(moduleBuilder.getNode(hit_object),
+      moduleBuilder.getNode(acceleration_structure), moduleBuilder.getNode(ray_flags), moduleBuilder.getNode(cullmask),
+      moduleBuilder.getNode(s_b_t_record_offset), moduleBuilder.getNode(s_b_t_record_stride), moduleBuilder.getNode(miss_index),
+      moduleBuilder.getNode(origin), moduleBuilder.getNode(t_min), moduleBuilder.getNode(direction), moduleBuilder.getNode(t_max),
+      moduleBuilder.getNode(time), moduleBuilder.getNode(payload));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onHitObjectGetShaderRecordBufferHandleNV(Op, IdResult id_result, IdResultType id_result_type, IdRef hit_object)
+  {
+    auto node = moduleBuilder.newNode<NodeOpHitObjectGetShaderRecordBufferHandleNV>(id_result.value,
+      moduleBuilder.getType(id_result_type), moduleBuilder.getNode(hit_object));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onHitObjectGetShaderBindingTableRecordIndexNV(Op, IdResult id_result, IdResultType id_result_type, IdRef hit_object)
+  {
+    auto node = moduleBuilder.newNode<NodeOpHitObjectGetShaderBindingTableRecordIndexNV>(id_result.value,
+      moduleBuilder.getType(id_result_type), moduleBuilder.getNode(hit_object));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onHitObjectRecordEmptyNV(Op, IdRef hit_object)
+  {
+    auto node = moduleBuilder.newNode<NodeOpHitObjectRecordEmptyNV>(moduleBuilder.getNode(hit_object));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onHitObjectTraceRayNV(Op, IdRef hit_object, IdRef acceleration_structure, IdRef ray_flags, IdRef cullmask,
+    IdRef s_b_t_record_offset, IdRef s_b_t_record_stride, IdRef miss_index, IdRef origin, IdRef t_min, IdRef direction, IdRef t_max,
+    IdRef payload)
+  {
+    auto node = moduleBuilder.newNode<NodeOpHitObjectTraceRayNV>(moduleBuilder.getNode(hit_object),
+      moduleBuilder.getNode(acceleration_structure), moduleBuilder.getNode(ray_flags), moduleBuilder.getNode(cullmask),
+      moduleBuilder.getNode(s_b_t_record_offset), moduleBuilder.getNode(s_b_t_record_stride), moduleBuilder.getNode(miss_index),
+      moduleBuilder.getNode(origin), moduleBuilder.getNode(t_min), moduleBuilder.getNode(direction), moduleBuilder.getNode(t_max),
+      moduleBuilder.getNode(payload));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onHitObjectRecordHitNV(Op, IdRef hit_object, IdRef acceleration_structure, IdRef instance_id, IdRef primitive_id,
+    IdRef geometry_index, IdRef hit_kind, IdRef s_b_t_record_offset, IdRef s_b_t_record_stride, IdRef origin, IdRef t_min,
+    IdRef direction, IdRef t_max, IdRef hit_object_attributes)
+  {
+    auto node = moduleBuilder.newNode<NodeOpHitObjectRecordHitNV>(moduleBuilder.getNode(hit_object),
+      moduleBuilder.getNode(acceleration_structure), moduleBuilder.getNode(instance_id), moduleBuilder.getNode(primitive_id),
+      moduleBuilder.getNode(geometry_index), moduleBuilder.getNode(hit_kind), moduleBuilder.getNode(s_b_t_record_offset),
+      moduleBuilder.getNode(s_b_t_record_stride), moduleBuilder.getNode(origin), moduleBuilder.getNode(t_min),
+      moduleBuilder.getNode(direction), moduleBuilder.getNode(t_max), moduleBuilder.getNode(hit_object_attributes));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onHitObjectRecordHitWithIndexNV(Op, IdRef hit_object, IdRef acceleration_structure, IdRef instance_id, IdRef primitive_id,
+    IdRef geometry_index, IdRef hit_kind, IdRef s_b_t_record_index, IdRef origin, IdRef t_min, IdRef direction, IdRef t_max,
+    IdRef hit_object_attributes)
+  {
+    auto node = moduleBuilder.newNode<NodeOpHitObjectRecordHitWithIndexNV>(moduleBuilder.getNode(hit_object),
+      moduleBuilder.getNode(acceleration_structure), moduleBuilder.getNode(instance_id), moduleBuilder.getNode(primitive_id),
+      moduleBuilder.getNode(geometry_index), moduleBuilder.getNode(hit_kind), moduleBuilder.getNode(s_b_t_record_index),
+      moduleBuilder.getNode(origin), moduleBuilder.getNode(t_min), moduleBuilder.getNode(direction), moduleBuilder.getNode(t_max),
+      moduleBuilder.getNode(hit_object_attributes));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onHitObjectRecordMissNV(Op, IdRef hit_object, IdRef s_b_t_index, IdRef origin, IdRef t_min, IdRef direction, IdRef t_max)
+  {
+    auto node =
+      moduleBuilder.newNode<NodeOpHitObjectRecordMissNV>(moduleBuilder.getNode(hit_object), moduleBuilder.getNode(s_b_t_index),
+        moduleBuilder.getNode(origin), moduleBuilder.getNode(t_min), moduleBuilder.getNode(direction), moduleBuilder.getNode(t_max));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onHitObjectExecuteShaderNV(Op, IdRef hit_object, IdRef payload)
+  {
+    auto node =
+      moduleBuilder.newNode<NodeOpHitObjectExecuteShaderNV>(moduleBuilder.getNode(hit_object), moduleBuilder.getNode(payload));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onHitObjectGetCurrentTimeNV(Op, IdResult id_result, IdResultType id_result_type, IdRef hit_object)
+  {
+    auto node = moduleBuilder.newNode<NodeOpHitObjectGetCurrentTimeNV>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(hit_object));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onHitObjectGetAttributesNV(Op, IdRef hit_object, IdRef hit_object_attribute)
+  {
+    auto node = moduleBuilder.newNode<NodeOpHitObjectGetAttributesNV>(moduleBuilder.getNode(hit_object),
+      moduleBuilder.getNode(hit_object_attribute));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onHitObjectGetHitKindNV(Op, IdResult id_result, IdResultType id_result_type, IdRef hit_object)
+  {
+    auto node = moduleBuilder.newNode<NodeOpHitObjectGetHitKindNV>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(hit_object));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onHitObjectGetPrimitiveIndexNV(Op, IdResult id_result, IdResultType id_result_type, IdRef hit_object)
+  {
+    auto node = moduleBuilder.newNode<NodeOpHitObjectGetPrimitiveIndexNV>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(hit_object));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onHitObjectGetGeometryIndexNV(Op, IdResult id_result, IdResultType id_result_type, IdRef hit_object)
+  {
+    auto node = moduleBuilder.newNode<NodeOpHitObjectGetGeometryIndexNV>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(hit_object));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onHitObjectGetInstanceIdNV(Op, IdResult id_result, IdResultType id_result_type, IdRef hit_object)
+  {
+    auto node = moduleBuilder.newNode<NodeOpHitObjectGetInstanceIdNV>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(hit_object));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onHitObjectGetInstanceCustomIndexNV(Op, IdResult id_result, IdResultType id_result_type, IdRef hit_object)
+  {
+    auto node = moduleBuilder.newNode<NodeOpHitObjectGetInstanceCustomIndexNV>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(hit_object));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onHitObjectGetWorldRayDirectionNV(Op, IdResult id_result, IdResultType id_result_type, IdRef hit_object)
+  {
+    auto node = moduleBuilder.newNode<NodeOpHitObjectGetWorldRayDirectionNV>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(hit_object));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onHitObjectGetWorldRayOriginNV(Op, IdResult id_result, IdResultType id_result_type, IdRef hit_object)
+  {
+    auto node = moduleBuilder.newNode<NodeOpHitObjectGetWorldRayOriginNV>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(hit_object));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onHitObjectGetRayTMaxNV(Op, IdResult id_result, IdResultType id_result_type, IdRef hit_object)
+  {
+    auto node = moduleBuilder.newNode<NodeOpHitObjectGetRayTMaxNV>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(hit_object));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onHitObjectGetRayTMinNV(Op, IdResult id_result, IdResultType id_result_type, IdRef hit_object)
+  {
+    auto node = moduleBuilder.newNode<NodeOpHitObjectGetRayTMinNV>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(hit_object));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onHitObjectIsEmptyNV(Op, IdResult id_result, IdResultType id_result_type, IdRef hit_object)
+  {
+    auto node = moduleBuilder.newNode<NodeOpHitObjectIsEmptyNV>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(hit_object));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onHitObjectIsHitNV(Op, IdResult id_result, IdResultType id_result_type, IdRef hit_object)
+  {
+    auto node = moduleBuilder.newNode<NodeOpHitObjectIsHitNV>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(hit_object));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onHitObjectIsMissNV(Op, IdResult id_result, IdResultType id_result_type, IdRef hit_object)
+  {
+    auto node = moduleBuilder.newNode<NodeOpHitObjectIsMissNV>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(hit_object));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onReorderThreadWithHitObjectNV(Op, IdRef hit_object, Optional<IdRef> hint, Optional<IdRef> bits)
+  {
+    eastl::optional<NodePointer<NodeId>> hintOpt;
+    if (hint.valid)
+    {
+      hintOpt = moduleBuilder.getNode(hint.value);
+    }
+    eastl::optional<NodePointer<NodeId>> bitsOpt;
+    if (bits.valid)
+    {
+      bitsOpt = moduleBuilder.getNode(bits.value);
+    }
+    auto node = moduleBuilder.newNode<NodeOpReorderThreadWithHitObjectNV>(moduleBuilder.getNode(hit_object), hintOpt, bitsOpt);
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onReorderThreadWithHintNV(Op, IdRef hint, IdRef bits)
+  {
+    auto node = moduleBuilder.newNode<NodeOpReorderThreadWithHintNV>(moduleBuilder.getNode(hint), moduleBuilder.getNode(bits));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onTypeHitObjectNV(Op, IdResult id_result) { moduleBuilder.newNode<NodeOpTypeHitObjectNV>(id_result.value); }
   void onImageSampleFootprintNV(Op, IdResult id_result, IdResultType id_result_type, IdRef sampled_image, IdRef coordinate,
     IdRef granularity, IdRef coarse, Optional<TypeTraits<ImageOperandsMask>::ReadType> image_operands)
   {
@@ -8706,6 +10512,25 @@ struct ReaderContext
     if (currentBlock)
       currentBlock->instructions.push_back(node);
   }
+  void onEmitMeshTasksEXT(Op, IdRef group_count_x, IdRef group_count_y, IdRef group_count_z, Optional<IdRef> payload)
+  {
+    eastl::optional<NodePointer<NodeId>> payloadOpt;
+    if (payload.valid)
+    {
+      payloadOpt = moduleBuilder.getNode(payload.value);
+    }
+    auto node = moduleBuilder.newNode<NodeOpEmitMeshTasksEXT>(moduleBuilder.getNode(group_count_x),
+      moduleBuilder.getNode(group_count_y), moduleBuilder.getNode(group_count_z), payloadOpt);
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onSetMeshOutputsEXT(Op, IdRef vertex_count, IdRef primitive_count)
+  {
+    auto node =
+      moduleBuilder.newNode<NodeOpSetMeshOutputsEXT>(moduleBuilder.getNode(vertex_count), moduleBuilder.getNode(primitive_count));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
   void onGroupNonUniformPartitionNV(Op, IdResult id_result, IdResultType id_result_type, IdRef value)
   {
     auto node = moduleBuilder.newNode<NodeOpGroupNonUniformPartitionNV>(id_result.value, moduleBuilder.getType(id_result_type),
@@ -8720,16 +10545,34 @@ struct ReaderContext
     if (currentBlock)
       currentBlock->instructions.push_back(node);
   }
-  void onReportIntersectionNV(Op, IdResult id_result, IdResultType id_result_type, IdRef hit, IdRef hit_kind)
+  void onFetchMicroTriangleVertexPositionNV(Op, IdResult id_result, IdResultType id_result_type, IdRef accel, IdRef instance_id,
+    IdRef geometry_index, IdRef primitive_index, IdRef barycentric)
   {
-    auto node = moduleBuilder.newNode<NodeOpReportIntersectionNV>(id_result.value, moduleBuilder.getType(id_result_type),
-      moduleBuilder.getNode(hit), moduleBuilder.getNode(hit_kind));
+    auto node = moduleBuilder.newNode<NodeOpFetchMicroTriangleVertexPositionNV>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(accel), moduleBuilder.getNode(instance_id), moduleBuilder.getNode(geometry_index),
+      moduleBuilder.getNode(primitive_index), moduleBuilder.getNode(barycentric));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onFetchMicroTriangleVertexBarycentricNV(Op, IdResult id_result, IdResultType id_result_type, IdRef accel, IdRef instance_id,
+    IdRef geometry_index, IdRef primitive_index, IdRef barycentric)
+  {
+    auto node = moduleBuilder.newNode<NodeOpFetchMicroTriangleVertexBarycentricNV>(id_result.value,
+      moduleBuilder.getType(id_result_type), moduleBuilder.getNode(accel), moduleBuilder.getNode(instance_id),
+      moduleBuilder.getNode(geometry_index), moduleBuilder.getNode(primitive_index), moduleBuilder.getNode(barycentric));
     if (currentBlock)
       currentBlock->instructions.push_back(node);
   }
   void onReportIntersectionKHR(Op, IdResult id_result, IdResultType id_result_type, IdRef hit, IdRef hit_kind)
   {
     auto node = moduleBuilder.newNode<NodeOpReportIntersectionKHR>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(hit), moduleBuilder.getNode(hit_kind));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onReportIntersectionNV(Op, IdResult id_result, IdResultType id_result_type, IdRef hit, IdRef hit_kind)
+  {
+    auto node = moduleBuilder.newNode<NodeOpReportIntersectionNV>(id_result.value, moduleBuilder.getType(id_result_type),
       moduleBuilder.getNode(hit), moduleBuilder.getNode(hit_kind));
     if (currentBlock)
       currentBlock->instructions.push_back(node);
@@ -8778,13 +10621,21 @@ struct ReaderContext
     if (currentBlock)
       currentBlock->instructions.push_back(node);
   }
-  void onTypeAccelerationStructureNV(Op, IdResult id_result)
+  void onRayQueryGetIntersectionTriangleVertexPositionsKHR(Op, IdResult id_result, IdResultType id_result_type, IdRef ray_query,
+    IdRef intersection)
   {
-    moduleBuilder.newNode<NodeOpTypeAccelerationStructureNV>(id_result.value);
+    auto node = moduleBuilder.newNode<NodeOpRayQueryGetIntersectionTriangleVertexPositionsKHR>(id_result.value,
+      moduleBuilder.getType(id_result_type), moduleBuilder.getNode(ray_query), moduleBuilder.getNode(intersection));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
   }
   void onTypeAccelerationStructureKHR(Op, IdResult id_result)
   {
     moduleBuilder.newNode<NodeOpTypeAccelerationStructureKHR>(id_result.value);
+  }
+  void onTypeAccelerationStructureNV(Op, IdResult id_result)
+  {
+    moduleBuilder.newNode<NodeOpTypeAccelerationStructureNV>(id_result.value);
   }
   void onExecuteCallableNV(Op, IdRef s_b_t_index, IdRef callable_data_id)
   {
@@ -8807,6 +10658,8 @@ struct ReaderContext
     NodePointer<NodeOperation> memory_access_MakePointerAvailableKHR_first;
     NodePointer<NodeOperation> memory_access_MakePointerVisible_first;
     NodePointer<NodeOperation> memory_access_MakePointerVisibleKHR_first;
+    NodePointer<NodeId> memory_access_AliasScopeINTELMask_first;
+    NodePointer<NodeId> memory_access_NoAliasINTELMask_first;
     if (memory_access.valid)
     {
       memory_accessVal = memory_access.value.value;
@@ -8834,11 +10687,22 @@ struct ReaderContext
         memory_access_MakePointerVisibleKHR_first =
           NodePointer<NodeOperation>(moduleBuilder.getNode(memory_access.value.data.MakePointerVisibleKHR.first));
       }
+      if ((memory_access.value.value & MemoryAccessMask::AliasScopeINTELMask) != MemoryAccessMask::MaskNone)
+      {
+        memory_access_AliasScopeINTELMask_first =
+          NodePointer<NodeId>(moduleBuilder.getNode(memory_access.value.data.AliasScopeINTELMask.first));
+      }
+      if ((memory_access.value.value & MemoryAccessMask::NoAliasINTELMask) != MemoryAccessMask::MaskNone)
+      {
+        memory_access_NoAliasINTELMask_first =
+          NodePointer<NodeId>(moduleBuilder.getNode(memory_access.value.data.NoAliasINTELMask.first));
+      }
     }
     auto node = moduleBuilder.newNode<NodeOpCooperativeMatrixLoadNV>(id_result.value, moduleBuilder.getType(id_result_type),
       moduleBuilder.getNode(pointer), moduleBuilder.getNode(stride), moduleBuilder.getNode(column_major), memory_accessVal,
       memory_access_Aligned_first, memory_access_MakePointerAvailable_first, memory_access_MakePointerAvailableKHR_first,
-      memory_access_MakePointerVisible_first, memory_access_MakePointerVisibleKHR_first);
+      memory_access_MakePointerVisible_first, memory_access_MakePointerVisibleKHR_first, memory_access_AliasScopeINTELMask_first,
+      memory_access_NoAliasINTELMask_first);
     if (currentBlock)
       currentBlock->instructions.push_back(node);
   }
@@ -8851,6 +10715,8 @@ struct ReaderContext
     NodePointer<NodeOperation> memory_access_MakePointerAvailableKHR_first;
     NodePointer<NodeOperation> memory_access_MakePointerVisible_first;
     NodePointer<NodeOperation> memory_access_MakePointerVisibleKHR_first;
+    NodePointer<NodeId> memory_access_AliasScopeINTELMask_first;
+    NodePointer<NodeId> memory_access_NoAliasINTELMask_first;
     if (memory_access.valid)
     {
       memory_accessVal = memory_access.value.value;
@@ -8878,11 +10744,21 @@ struct ReaderContext
         memory_access_MakePointerVisibleKHR_first =
           NodePointer<NodeOperation>(moduleBuilder.getNode(memory_access.value.data.MakePointerVisibleKHR.first));
       }
+      if ((memory_access.value.value & MemoryAccessMask::AliasScopeINTELMask) != MemoryAccessMask::MaskNone)
+      {
+        memory_access_AliasScopeINTELMask_first =
+          NodePointer<NodeId>(moduleBuilder.getNode(memory_access.value.data.AliasScopeINTELMask.first));
+      }
+      if ((memory_access.value.value & MemoryAccessMask::NoAliasINTELMask) != MemoryAccessMask::MaskNone)
+      {
+        memory_access_NoAliasINTELMask_first =
+          NodePointer<NodeId>(moduleBuilder.getNode(memory_access.value.data.NoAliasINTELMask.first));
+      }
     }
     auto node = moduleBuilder.newNode<NodeOpCooperativeMatrixStoreNV>(moduleBuilder.getNode(pointer), moduleBuilder.getNode(object),
       moduleBuilder.getNode(stride), moduleBuilder.getNode(column_major), memory_accessVal, memory_access_Aligned_first,
       memory_access_MakePointerAvailable_first, memory_access_MakePointerAvailableKHR_first, memory_access_MakePointerVisible_first,
-      memory_access_MakePointerVisibleKHR_first);
+      memory_access_MakePointerVisibleKHR_first, memory_access_AliasScopeINTELMask_first, memory_access_NoAliasINTELMask_first);
     if (currentBlock)
       currentBlock->instructions.push_back(node);
   }
@@ -8973,6 +10849,20 @@ struct ReaderContext
       currentBlock->instructions.push_back(node);
   }
   void onSamplerImageAddressingModeNV(Op, LiteralInteger bit_width) {}
+  void onRawAccessChainNV(Op, IdResult id_result, IdResultType id_result_type, IdRef base, IdRef byte_stride, IdRef element_index,
+    IdRef byte_offset, Optional<RawAccessChainOperandsMask> raw_access_chain_operands)
+  {
+    eastl::optional<RawAccessChainOperandsMask> raw_access_chain_operandsOpt;
+    if (raw_access_chain_operands.valid)
+    {
+      raw_access_chain_operandsOpt = raw_access_chain_operands.value;
+    }
+    auto node = moduleBuilder.newNode<NodeOpRawAccessChainNV>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(base), moduleBuilder.getNode(byte_stride), moduleBuilder.getNode(element_index),
+      moduleBuilder.getNode(byte_offset), raw_access_chain_operandsOpt);
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
   void onSubgroupShuffleINTEL(Op, IdResult id_result, IdResultType id_result_type, IdRef data, IdRef invocation_id)
   {
     auto node = moduleBuilder.newNode<NodeOpSubgroupShuffleINTEL>(id_result.value, moduleBuilder.getType(id_result_type),
@@ -9548,10 +11438,61 @@ struct ReaderContext
         propPtr.reset(newProp);
         break;
       }
+      case Decoration::WeightTextureQCOM:
+      {
+        auto newProp = new PropertyWeightTextureQCOM;
+        propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::BlockMatchTextureQCOM:
+      {
+        auto newProp = new PropertyBlockMatchTextureQCOM;
+        propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::BlockMatchSamplerQCOM:
+      {
+        auto newProp = new PropertyBlockMatchSamplerQCOM;
+        propPtr.reset(newProp);
+        break;
+      }
       case Decoration::ExplicitInterpAMD:
       {
         auto newProp = new PropertyExplicitInterpAMD;
         propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::NodeSharesPayloadLimitsWithAMDX:
+      {
+        auto newProp = new PropertyNodeSharesPayloadLimitsWithAMDX;
+        propPtr.reset(newProp);
+        PropertyReferenceResolveInfo refResolve //
+          {reinterpret_cast<NodePointer<NodeId> *>(&newProp->payloadArray),
+            IdRef{decoration.data.NodeSharesPayloadLimitsWithAMDX.payloadArray.value}};
+        propertyReferenceResolves.push_back(refResolve);
+        break;
+      }
+      case Decoration::NodeMaxPayloadsAMDX:
+      {
+        auto newProp = new PropertyNodeMaxPayloadsAMDX;
+        propPtr.reset(newProp);
+        PropertyReferenceResolveInfo refResolve //
+          {reinterpret_cast<NodePointer<NodeId> *>(&newProp->maxNumberOfPayloads),
+            IdRef{decoration.data.NodeMaxPayloadsAMDX.maxNumberOfPayloads.value}};
+        propertyReferenceResolves.push_back(refResolve);
+        break;
+      }
+      case Decoration::TrackFinishWritingAMDX:
+      {
+        auto newProp = new PropertyTrackFinishWritingAMDX;
+        propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::PayloadNodeNameAMDX:
+      {
+        auto newProp = new PropertyPayloadNodeNameAMDX;
+        propPtr.reset(newProp);
+        newProp->nodeName = decoration.data.PayloadNodeNameAMDX.nodeName.asStringObj();
         break;
       }
       case Decoration::OverrideCoverageNV:
@@ -9579,9 +11520,9 @@ struct ReaderContext
         newProp->offset = decoration.data.SecondaryViewportRelativeNV.offset;
         break;
       }
-      case Decoration::PerPrimitiveNV:
+      case Decoration::PerPrimitiveEXT:
       {
-        auto newProp = new PropertyPerPrimitiveNV;
+        auto newProp = new PropertyPerPrimitiveEXT;
         propPtr.reset(newProp);
         break;
       }
@@ -9618,6 +11559,12 @@ struct ReaderContext
       case Decoration::AliasedPointer:
       {
         auto newProp = new PropertyAliasedPointer;
+        propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::HitObjectShaderRecordBufferNV:
+      {
+        auto newProp = new PropertyHitObjectShaderRecordBufferNV;
         propPtr.reset(newProp);
         break;
       }
@@ -9823,6 +11770,26 @@ struct ReaderContext
         newProp->forceKey = decoration.data.ForcePow2DepthINTEL.forceKey;
         break;
       }
+      case Decoration::StridesizeINTEL:
+      {
+        auto newProp = new PropertyStridesizeINTEL;
+        propPtr.reset(newProp);
+        newProp->strideSize = decoration.data.StridesizeINTEL.strideSize;
+        break;
+      }
+      case Decoration::WordsizeINTEL:
+      {
+        auto newProp = new PropertyWordsizeINTEL;
+        propPtr.reset(newProp);
+        newProp->wordSize = decoration.data.WordsizeINTEL.wordSize;
+        break;
+      }
+      case Decoration::TrueDualPortINTEL:
+      {
+        auto newProp = new PropertyTrueDualPortINTEL;
+        propPtr.reset(newProp);
+        break;
+      }
       case Decoration::BurstCoalesceINTEL:
       {
         auto newProp = new PropertyBurstCoalesceINTEL;
@@ -9859,6 +11826,55 @@ struct ReaderContext
       {
         auto newProp = new PropertyFuseLoopsInFunctionINTEL;
         propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::MathOpDSPModeINTEL:
+      {
+        auto newProp = new PropertyMathOpDSPModeINTEL;
+        propPtr.reset(newProp);
+        newProp->mode = decoration.data.MathOpDSPModeINTEL.mode;
+        newProp->propagate = decoration.data.MathOpDSPModeINTEL.propagate;
+        break;
+      }
+      case Decoration::AliasScopeINTEL:
+      {
+        auto newProp = new PropertyAliasScopeINTEL;
+        propPtr.reset(newProp);
+        PropertyReferenceResolveInfo refResolve //
+          {reinterpret_cast<NodePointer<NodeId> *>(&newProp->aliasingScopesList),
+            IdRef{decoration.data.AliasScopeINTEL.aliasingScopesList.value}};
+        propertyReferenceResolves.push_back(refResolve);
+        break;
+      }
+      case Decoration::NoAliasINTEL:
+      {
+        auto newProp = new PropertyNoAliasINTEL;
+        propPtr.reset(newProp);
+        PropertyReferenceResolveInfo refResolve //
+          {reinterpret_cast<NodePointer<NodeId> *>(&newProp->aliasingScopesList),
+            IdRef{decoration.data.NoAliasINTEL.aliasingScopesList.value}};
+        propertyReferenceResolves.push_back(refResolve);
+        break;
+      }
+      case Decoration::InitiationIntervalINTEL:
+      {
+        auto newProp = new PropertyInitiationIntervalINTEL;
+        propPtr.reset(newProp);
+        newProp->cycles = decoration.data.InitiationIntervalINTEL.cycles;
+        break;
+      }
+      case Decoration::MaxConcurrencyINTEL:
+      {
+        auto newProp = new PropertyMaxConcurrencyINTEL;
+        propPtr.reset(newProp);
+        newProp->invocations = decoration.data.MaxConcurrencyINTEL.invocations;
+        break;
+      }
+      case Decoration::PipelineEnableINTEL:
+      {
+        auto newProp = new PropertyPipelineEnableINTEL;
+        propPtr.reset(newProp);
+        newProp->enable = decoration.data.PipelineEnableINTEL.enable;
         break;
       }
       case Decoration::BufferLocationINTEL:
@@ -9899,6 +11915,133 @@ struct ReaderContext
       {
         auto newProp = new PropertyMediaBlockIOINTEL;
         propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::StallFreeINTEL:
+      {
+        auto newProp = new PropertyStallFreeINTEL;
+        propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::FPMaxErrorDecorationINTEL:
+      {
+        auto newProp = new PropertyFPMaxErrorDecorationINTEL;
+        propPtr.reset(newProp);
+        newProp->maxError = decoration.data.FPMaxErrorDecorationINTEL.maxError;
+        break;
+      }
+      case Decoration::LatencyControlLabelINTEL:
+      {
+        auto newProp = new PropertyLatencyControlLabelINTEL;
+        propPtr.reset(newProp);
+        newProp->latencyLabel = decoration.data.LatencyControlLabelINTEL.latencyLabel;
+        break;
+      }
+      case Decoration::LatencyControlConstraintINTEL:
+      {
+        auto newProp = new PropertyLatencyControlConstraintINTEL;
+        propPtr.reset(newProp);
+        newProp->relativeTo = decoration.data.LatencyControlConstraintINTEL.relativeTo;
+        newProp->controlType = decoration.data.LatencyControlConstraintINTEL.controlType;
+        newProp->relativeCycle = decoration.data.LatencyControlConstraintINTEL.relativeCycle;
+        break;
+      }
+      case Decoration::ConduitKernelArgumentINTEL:
+      {
+        auto newProp = new PropertyConduitKernelArgumentINTEL;
+        propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::RegisterMapKernelArgumentINTEL:
+      {
+        auto newProp = new PropertyRegisterMapKernelArgumentINTEL;
+        propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::MMHostInterfaceAddressWidthINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceAddressWidthINTEL;
+        propPtr.reset(newProp);
+        newProp->addressWidth = decoration.data.MMHostInterfaceAddressWidthINTEL.addressWidth;
+        break;
+      }
+      case Decoration::MMHostInterfaceDataWidthINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceDataWidthINTEL;
+        propPtr.reset(newProp);
+        newProp->dataWidth = decoration.data.MMHostInterfaceDataWidthINTEL.dataWidth;
+        break;
+      }
+      case Decoration::MMHostInterfaceLatencyINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceLatencyINTEL;
+        propPtr.reset(newProp);
+        newProp->latency = decoration.data.MMHostInterfaceLatencyINTEL.latency;
+        break;
+      }
+      case Decoration::MMHostInterfaceReadWriteModeINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceReadWriteModeINTEL;
+        propPtr.reset(newProp);
+        newProp->readWriteMode = decoration.data.MMHostInterfaceReadWriteModeINTEL.readWriteMode;
+        break;
+      }
+      case Decoration::MMHostInterfaceMaxBurstINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceMaxBurstINTEL;
+        propPtr.reset(newProp);
+        newProp->maxBurstCount = decoration.data.MMHostInterfaceMaxBurstINTEL.maxBurstCount;
+        break;
+      }
+      case Decoration::MMHostInterfaceWaitRequestINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceWaitRequestINTEL;
+        propPtr.reset(newProp);
+        newProp->waitrequest = decoration.data.MMHostInterfaceWaitRequestINTEL.waitrequest;
+        break;
+      }
+      case Decoration::StableKernelArgumentINTEL:
+      {
+        auto newProp = new PropertyStableKernelArgumentINTEL;
+        propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::HostAccessINTEL:
+      {
+        auto newProp = new PropertyHostAccessINTEL;
+        propPtr.reset(newProp);
+        newProp->access = decoration.data.HostAccessINTEL.access;
+        newProp->name = decoration.data.HostAccessINTEL.name.asStringObj();
+        break;
+      }
+      case Decoration::InitModeINTEL:
+      {
+        auto newProp = new PropertyInitModeINTEL;
+        propPtr.reset(newProp);
+        newProp->trigger = decoration.data.InitModeINTEL.trigger;
+        break;
+      }
+      case Decoration::ImplementInRegisterMapINTEL:
+      {
+        auto newProp = new PropertyImplementInRegisterMapINTEL;
+        propPtr.reset(newProp);
+        newProp->value = decoration.data.ImplementInRegisterMapINTEL.value;
+        break;
+      }
+      case Decoration::CacheControlLoadINTEL:
+      {
+        auto newProp = new PropertyCacheControlLoadINTEL;
+        propPtr.reset(newProp);
+        newProp->cacheLevel = decoration.data.CacheControlLoadINTEL.cacheLevel;
+        newProp->cacheControl = decoration.data.CacheControlLoadINTEL.cacheControl;
+        break;
+      }
+      case Decoration::CacheControlStoreINTEL:
+      {
+        auto newProp = new PropertyCacheControlStoreINTEL;
+        propPtr.reset(newProp);
+        newProp->cacheLevel = decoration.data.CacheControlStoreINTEL.cacheLevel;
+        newProp->cacheControl = decoration.data.CacheControlStoreINTEL.cacheControl;
         break;
       }
     }
@@ -10236,10 +12379,61 @@ struct ReaderContext
         propPtr.reset(newProp);
         break;
       }
+      case Decoration::WeightTextureQCOM:
+      {
+        auto newProp = new PropertyWeightTextureQCOM;
+        propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::BlockMatchTextureQCOM:
+      {
+        auto newProp = new PropertyBlockMatchTextureQCOM;
+        propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::BlockMatchSamplerQCOM:
+      {
+        auto newProp = new PropertyBlockMatchSamplerQCOM;
+        propPtr.reset(newProp);
+        break;
+      }
       case Decoration::ExplicitInterpAMD:
       {
         auto newProp = new PropertyExplicitInterpAMD;
         propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::NodeSharesPayloadLimitsWithAMDX:
+      {
+        auto newProp = new PropertyNodeSharesPayloadLimitsWithAMDX;
+        propPtr.reset(newProp);
+        PropertyReferenceResolveInfo refResolve //
+          {reinterpret_cast<NodePointer<NodeId> *>(&newProp->payloadArray),
+            IdRef{decoration.data.NodeSharesPayloadLimitsWithAMDX.payloadArray.value}};
+        propertyReferenceResolves.push_back(refResolve);
+        break;
+      }
+      case Decoration::NodeMaxPayloadsAMDX:
+      {
+        auto newProp = new PropertyNodeMaxPayloadsAMDX;
+        propPtr.reset(newProp);
+        PropertyReferenceResolveInfo refResolve //
+          {reinterpret_cast<NodePointer<NodeId> *>(&newProp->maxNumberOfPayloads),
+            IdRef{decoration.data.NodeMaxPayloadsAMDX.maxNumberOfPayloads.value}};
+        propertyReferenceResolves.push_back(refResolve);
+        break;
+      }
+      case Decoration::TrackFinishWritingAMDX:
+      {
+        auto newProp = new PropertyTrackFinishWritingAMDX;
+        propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::PayloadNodeNameAMDX:
+      {
+        auto newProp = new PropertyPayloadNodeNameAMDX;
+        propPtr.reset(newProp);
+        newProp->nodeName = decoration.data.PayloadNodeNameAMDX.nodeName.asStringObj();
         break;
       }
       case Decoration::OverrideCoverageNV:
@@ -10267,9 +12461,9 @@ struct ReaderContext
         newProp->offset = decoration.data.SecondaryViewportRelativeNV.offset;
         break;
       }
-      case Decoration::PerPrimitiveNV:
+      case Decoration::PerPrimitiveEXT:
       {
-        auto newProp = new PropertyPerPrimitiveNV;
+        auto newProp = new PropertyPerPrimitiveEXT;
         propPtr.reset(newProp);
         break;
       }
@@ -10306,6 +12500,12 @@ struct ReaderContext
       case Decoration::AliasedPointer:
       {
         auto newProp = new PropertyAliasedPointer;
+        propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::HitObjectShaderRecordBufferNV:
+      {
+        auto newProp = new PropertyHitObjectShaderRecordBufferNV;
         propPtr.reset(newProp);
         break;
       }
@@ -10511,6 +12711,26 @@ struct ReaderContext
         newProp->forceKey = decoration.data.ForcePow2DepthINTEL.forceKey;
         break;
       }
+      case Decoration::StridesizeINTEL:
+      {
+        auto newProp = new PropertyStridesizeINTEL;
+        propPtr.reset(newProp);
+        newProp->strideSize = decoration.data.StridesizeINTEL.strideSize;
+        break;
+      }
+      case Decoration::WordsizeINTEL:
+      {
+        auto newProp = new PropertyWordsizeINTEL;
+        propPtr.reset(newProp);
+        newProp->wordSize = decoration.data.WordsizeINTEL.wordSize;
+        break;
+      }
+      case Decoration::TrueDualPortINTEL:
+      {
+        auto newProp = new PropertyTrueDualPortINTEL;
+        propPtr.reset(newProp);
+        break;
+      }
       case Decoration::BurstCoalesceINTEL:
       {
         auto newProp = new PropertyBurstCoalesceINTEL;
@@ -10547,6 +12767,55 @@ struct ReaderContext
       {
         auto newProp = new PropertyFuseLoopsInFunctionINTEL;
         propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::MathOpDSPModeINTEL:
+      {
+        auto newProp = new PropertyMathOpDSPModeINTEL;
+        propPtr.reset(newProp);
+        newProp->mode = decoration.data.MathOpDSPModeINTEL.mode;
+        newProp->propagate = decoration.data.MathOpDSPModeINTEL.propagate;
+        break;
+      }
+      case Decoration::AliasScopeINTEL:
+      {
+        auto newProp = new PropertyAliasScopeINTEL;
+        propPtr.reset(newProp);
+        PropertyReferenceResolveInfo refResolve //
+          {reinterpret_cast<NodePointer<NodeId> *>(&newProp->aliasingScopesList),
+            IdRef{decoration.data.AliasScopeINTEL.aliasingScopesList.value}};
+        propertyReferenceResolves.push_back(refResolve);
+        break;
+      }
+      case Decoration::NoAliasINTEL:
+      {
+        auto newProp = new PropertyNoAliasINTEL;
+        propPtr.reset(newProp);
+        PropertyReferenceResolveInfo refResolve //
+          {reinterpret_cast<NodePointer<NodeId> *>(&newProp->aliasingScopesList),
+            IdRef{decoration.data.NoAliasINTEL.aliasingScopesList.value}};
+        propertyReferenceResolves.push_back(refResolve);
+        break;
+      }
+      case Decoration::InitiationIntervalINTEL:
+      {
+        auto newProp = new PropertyInitiationIntervalINTEL;
+        propPtr.reset(newProp);
+        newProp->cycles = decoration.data.InitiationIntervalINTEL.cycles;
+        break;
+      }
+      case Decoration::MaxConcurrencyINTEL:
+      {
+        auto newProp = new PropertyMaxConcurrencyINTEL;
+        propPtr.reset(newProp);
+        newProp->invocations = decoration.data.MaxConcurrencyINTEL.invocations;
+        break;
+      }
+      case Decoration::PipelineEnableINTEL:
+      {
+        auto newProp = new PropertyPipelineEnableINTEL;
+        propPtr.reset(newProp);
+        newProp->enable = decoration.data.PipelineEnableINTEL.enable;
         break;
       }
       case Decoration::BufferLocationINTEL:
@@ -10587,6 +12856,133 @@ struct ReaderContext
       {
         auto newProp = new PropertyMediaBlockIOINTEL;
         propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::StallFreeINTEL:
+      {
+        auto newProp = new PropertyStallFreeINTEL;
+        propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::FPMaxErrorDecorationINTEL:
+      {
+        auto newProp = new PropertyFPMaxErrorDecorationINTEL;
+        propPtr.reset(newProp);
+        newProp->maxError = decoration.data.FPMaxErrorDecorationINTEL.maxError;
+        break;
+      }
+      case Decoration::LatencyControlLabelINTEL:
+      {
+        auto newProp = new PropertyLatencyControlLabelINTEL;
+        propPtr.reset(newProp);
+        newProp->latencyLabel = decoration.data.LatencyControlLabelINTEL.latencyLabel;
+        break;
+      }
+      case Decoration::LatencyControlConstraintINTEL:
+      {
+        auto newProp = new PropertyLatencyControlConstraintINTEL;
+        propPtr.reset(newProp);
+        newProp->relativeTo = decoration.data.LatencyControlConstraintINTEL.relativeTo;
+        newProp->controlType = decoration.data.LatencyControlConstraintINTEL.controlType;
+        newProp->relativeCycle = decoration.data.LatencyControlConstraintINTEL.relativeCycle;
+        break;
+      }
+      case Decoration::ConduitKernelArgumentINTEL:
+      {
+        auto newProp = new PropertyConduitKernelArgumentINTEL;
+        propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::RegisterMapKernelArgumentINTEL:
+      {
+        auto newProp = new PropertyRegisterMapKernelArgumentINTEL;
+        propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::MMHostInterfaceAddressWidthINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceAddressWidthINTEL;
+        propPtr.reset(newProp);
+        newProp->addressWidth = decoration.data.MMHostInterfaceAddressWidthINTEL.addressWidth;
+        break;
+      }
+      case Decoration::MMHostInterfaceDataWidthINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceDataWidthINTEL;
+        propPtr.reset(newProp);
+        newProp->dataWidth = decoration.data.MMHostInterfaceDataWidthINTEL.dataWidth;
+        break;
+      }
+      case Decoration::MMHostInterfaceLatencyINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceLatencyINTEL;
+        propPtr.reset(newProp);
+        newProp->latency = decoration.data.MMHostInterfaceLatencyINTEL.latency;
+        break;
+      }
+      case Decoration::MMHostInterfaceReadWriteModeINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceReadWriteModeINTEL;
+        propPtr.reset(newProp);
+        newProp->readWriteMode = decoration.data.MMHostInterfaceReadWriteModeINTEL.readWriteMode;
+        break;
+      }
+      case Decoration::MMHostInterfaceMaxBurstINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceMaxBurstINTEL;
+        propPtr.reset(newProp);
+        newProp->maxBurstCount = decoration.data.MMHostInterfaceMaxBurstINTEL.maxBurstCount;
+        break;
+      }
+      case Decoration::MMHostInterfaceWaitRequestINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceWaitRequestINTEL;
+        propPtr.reset(newProp);
+        newProp->waitrequest = decoration.data.MMHostInterfaceWaitRequestINTEL.waitrequest;
+        break;
+      }
+      case Decoration::StableKernelArgumentINTEL:
+      {
+        auto newProp = new PropertyStableKernelArgumentINTEL;
+        propPtr.reset(newProp);
+        break;
+      }
+      case Decoration::HostAccessINTEL:
+      {
+        auto newProp = new PropertyHostAccessINTEL;
+        propPtr.reset(newProp);
+        newProp->access = decoration.data.HostAccessINTEL.access;
+        newProp->name = decoration.data.HostAccessINTEL.name.asStringObj();
+        break;
+      }
+      case Decoration::InitModeINTEL:
+      {
+        auto newProp = new PropertyInitModeINTEL;
+        propPtr.reset(newProp);
+        newProp->trigger = decoration.data.InitModeINTEL.trigger;
+        break;
+      }
+      case Decoration::ImplementInRegisterMapINTEL:
+      {
+        auto newProp = new PropertyImplementInRegisterMapINTEL;
+        propPtr.reset(newProp);
+        newProp->value = decoration.data.ImplementInRegisterMapINTEL.value;
+        break;
+      }
+      case Decoration::CacheControlLoadINTEL:
+      {
+        auto newProp = new PropertyCacheControlLoadINTEL;
+        propPtr.reset(newProp);
+        newProp->cacheLevel = decoration.data.CacheControlLoadINTEL.cacheLevel;
+        newProp->cacheControl = decoration.data.CacheControlLoadINTEL.cacheControl;
+        break;
+      }
+      case Decoration::CacheControlStoreINTEL:
+      {
+        auto newProp = new PropertyCacheControlStoreINTEL;
+        propPtr.reset(newProp);
+        newProp->cacheLevel = decoration.data.CacheControlStoreINTEL.cacheLevel;
+        newProp->cacheControl = decoration.data.CacheControlStoreINTEL.cacheControl;
         break;
       }
     }
@@ -10973,11 +13369,69 @@ struct ReaderContext
         newProp->memberIndex = member.value;
         break;
       }
+      case Decoration::WeightTextureQCOM:
+      {
+        auto newProp = new PropertyWeightTextureQCOM;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::BlockMatchTextureQCOM:
+      {
+        auto newProp = new PropertyBlockMatchTextureQCOM;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::BlockMatchSamplerQCOM:
+      {
+        auto newProp = new PropertyBlockMatchSamplerQCOM;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        break;
+      }
       case Decoration::ExplicitInterpAMD:
       {
         auto newProp = new PropertyExplicitInterpAMD;
         propPtr.reset(newProp);
         newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::NodeSharesPayloadLimitsWithAMDX:
+      {
+        auto newProp = new PropertyNodeSharesPayloadLimitsWithAMDX;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        PropertyReferenceResolveInfo refResolve //
+          {reinterpret_cast<NodePointer<NodeId> *>(&newProp->payloadArray),
+            IdRef{decoration.data.NodeSharesPayloadLimitsWithAMDX.payloadArray.value}};
+        propertyReferenceResolves.push_back(refResolve);
+        break;
+      }
+      case Decoration::NodeMaxPayloadsAMDX:
+      {
+        auto newProp = new PropertyNodeMaxPayloadsAMDX;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        PropertyReferenceResolveInfo refResolve //
+          {reinterpret_cast<NodePointer<NodeId> *>(&newProp->maxNumberOfPayloads),
+            IdRef{decoration.data.NodeMaxPayloadsAMDX.maxNumberOfPayloads.value}};
+        propertyReferenceResolves.push_back(refResolve);
+        break;
+      }
+      case Decoration::TrackFinishWritingAMDX:
+      {
+        auto newProp = new PropertyTrackFinishWritingAMDX;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::PayloadNodeNameAMDX:
+      {
+        auto newProp = new PropertyPayloadNodeNameAMDX;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->nodeName = decoration.data.PayloadNodeNameAMDX.nodeName.asStringObj();
         break;
       }
       case Decoration::OverrideCoverageNV:
@@ -11009,9 +13463,9 @@ struct ReaderContext
         newProp->offset = decoration.data.SecondaryViewportRelativeNV.offset;
         break;
       }
-      case Decoration::PerPrimitiveNV:
+      case Decoration::PerPrimitiveEXT:
       {
-        auto newProp = new PropertyPerPrimitiveNV;
+        auto newProp = new PropertyPerPrimitiveEXT;
         propPtr.reset(newProp);
         newProp->memberIndex = member.value;
         break;
@@ -11054,6 +13508,13 @@ struct ReaderContext
       case Decoration::AliasedPointer:
       {
         auto newProp = new PropertyAliasedPointer;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::HitObjectShaderRecordBufferNV:
+      {
+        auto newProp = new PropertyHitObjectShaderRecordBufferNV;
         propPtr.reset(newProp);
         newProp->memberIndex = member.value;
         break;
@@ -11290,6 +13751,29 @@ struct ReaderContext
         newProp->forceKey = decoration.data.ForcePow2DepthINTEL.forceKey;
         break;
       }
+      case Decoration::StridesizeINTEL:
+      {
+        auto newProp = new PropertyStridesizeINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->strideSize = decoration.data.StridesizeINTEL.strideSize;
+        break;
+      }
+      case Decoration::WordsizeINTEL:
+      {
+        auto newProp = new PropertyWordsizeINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->wordSize = decoration.data.WordsizeINTEL.wordSize;
+        break;
+      }
+      case Decoration::TrueDualPortINTEL:
+      {
+        auto newProp = new PropertyTrueDualPortINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        break;
+      }
       case Decoration::BurstCoalesceINTEL:
       {
         auto newProp = new PropertyBurstCoalesceINTEL;
@@ -11332,6 +13816,61 @@ struct ReaderContext
         auto newProp = new PropertyFuseLoopsInFunctionINTEL;
         propPtr.reset(newProp);
         newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::MathOpDSPModeINTEL:
+      {
+        auto newProp = new PropertyMathOpDSPModeINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->mode = decoration.data.MathOpDSPModeINTEL.mode;
+        newProp->propagate = decoration.data.MathOpDSPModeINTEL.propagate;
+        break;
+      }
+      case Decoration::AliasScopeINTEL:
+      {
+        auto newProp = new PropertyAliasScopeINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        PropertyReferenceResolveInfo refResolve //
+          {reinterpret_cast<NodePointer<NodeId> *>(&newProp->aliasingScopesList),
+            IdRef{decoration.data.AliasScopeINTEL.aliasingScopesList.value}};
+        propertyReferenceResolves.push_back(refResolve);
+        break;
+      }
+      case Decoration::NoAliasINTEL:
+      {
+        auto newProp = new PropertyNoAliasINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        PropertyReferenceResolveInfo refResolve //
+          {reinterpret_cast<NodePointer<NodeId> *>(&newProp->aliasingScopesList),
+            IdRef{decoration.data.NoAliasINTEL.aliasingScopesList.value}};
+        propertyReferenceResolves.push_back(refResolve);
+        break;
+      }
+      case Decoration::InitiationIntervalINTEL:
+      {
+        auto newProp = new PropertyInitiationIntervalINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->cycles = decoration.data.InitiationIntervalINTEL.cycles;
+        break;
+      }
+      case Decoration::MaxConcurrencyINTEL:
+      {
+        auto newProp = new PropertyMaxConcurrencyINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->invocations = decoration.data.MaxConcurrencyINTEL.invocations;
+        break;
+      }
+      case Decoration::PipelineEnableINTEL:
+      {
+        auto newProp = new PropertyPipelineEnableINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->enable = decoration.data.PipelineEnableINTEL.enable;
         break;
       }
       case Decoration::BufferLocationINTEL:
@@ -11378,6 +13917,151 @@ struct ReaderContext
         auto newProp = new PropertyMediaBlockIOINTEL;
         propPtr.reset(newProp);
         newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::StallFreeINTEL:
+      {
+        auto newProp = new PropertyStallFreeINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::FPMaxErrorDecorationINTEL:
+      {
+        auto newProp = new PropertyFPMaxErrorDecorationINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->maxError = decoration.data.FPMaxErrorDecorationINTEL.maxError;
+        break;
+      }
+      case Decoration::LatencyControlLabelINTEL:
+      {
+        auto newProp = new PropertyLatencyControlLabelINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->latencyLabel = decoration.data.LatencyControlLabelINTEL.latencyLabel;
+        break;
+      }
+      case Decoration::LatencyControlConstraintINTEL:
+      {
+        auto newProp = new PropertyLatencyControlConstraintINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->relativeTo = decoration.data.LatencyControlConstraintINTEL.relativeTo;
+        newProp->controlType = decoration.data.LatencyControlConstraintINTEL.controlType;
+        newProp->relativeCycle = decoration.data.LatencyControlConstraintINTEL.relativeCycle;
+        break;
+      }
+      case Decoration::ConduitKernelArgumentINTEL:
+      {
+        auto newProp = new PropertyConduitKernelArgumentINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::RegisterMapKernelArgumentINTEL:
+      {
+        auto newProp = new PropertyRegisterMapKernelArgumentINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::MMHostInterfaceAddressWidthINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceAddressWidthINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->addressWidth = decoration.data.MMHostInterfaceAddressWidthINTEL.addressWidth;
+        break;
+      }
+      case Decoration::MMHostInterfaceDataWidthINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceDataWidthINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->dataWidth = decoration.data.MMHostInterfaceDataWidthINTEL.dataWidth;
+        break;
+      }
+      case Decoration::MMHostInterfaceLatencyINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceLatencyINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->latency = decoration.data.MMHostInterfaceLatencyINTEL.latency;
+        break;
+      }
+      case Decoration::MMHostInterfaceReadWriteModeINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceReadWriteModeINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->readWriteMode = decoration.data.MMHostInterfaceReadWriteModeINTEL.readWriteMode;
+        break;
+      }
+      case Decoration::MMHostInterfaceMaxBurstINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceMaxBurstINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->maxBurstCount = decoration.data.MMHostInterfaceMaxBurstINTEL.maxBurstCount;
+        break;
+      }
+      case Decoration::MMHostInterfaceWaitRequestINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceWaitRequestINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->waitrequest = decoration.data.MMHostInterfaceWaitRequestINTEL.waitrequest;
+        break;
+      }
+      case Decoration::StableKernelArgumentINTEL:
+      {
+        auto newProp = new PropertyStableKernelArgumentINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::HostAccessINTEL:
+      {
+        auto newProp = new PropertyHostAccessINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->access = decoration.data.HostAccessINTEL.access;
+        newProp->name = decoration.data.HostAccessINTEL.name.asStringObj();
+        break;
+      }
+      case Decoration::InitModeINTEL:
+      {
+        auto newProp = new PropertyInitModeINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->trigger = decoration.data.InitModeINTEL.trigger;
+        break;
+      }
+      case Decoration::ImplementInRegisterMapINTEL:
+      {
+        auto newProp = new PropertyImplementInRegisterMapINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->value = decoration.data.ImplementInRegisterMapINTEL.value;
+        break;
+      }
+      case Decoration::CacheControlLoadINTEL:
+      {
+        auto newProp = new PropertyCacheControlLoadINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->cacheLevel = decoration.data.CacheControlLoadINTEL.cacheLevel;
+        newProp->cacheControl = decoration.data.CacheControlLoadINTEL.cacheControl;
+        break;
+      }
+      case Decoration::CacheControlStoreINTEL:
+      {
+        auto newProp = new PropertyCacheControlStoreINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->cacheLevel = decoration.data.CacheControlStoreINTEL.cacheLevel;
+        newProp->cacheControl = decoration.data.CacheControlStoreINTEL.cacheControl;
         break;
       }
     }
@@ -11764,11 +14448,69 @@ struct ReaderContext
         newProp->memberIndex = member.value;
         break;
       }
+      case Decoration::WeightTextureQCOM:
+      {
+        auto newProp = new PropertyWeightTextureQCOM;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::BlockMatchTextureQCOM:
+      {
+        auto newProp = new PropertyBlockMatchTextureQCOM;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::BlockMatchSamplerQCOM:
+      {
+        auto newProp = new PropertyBlockMatchSamplerQCOM;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        break;
+      }
       case Decoration::ExplicitInterpAMD:
       {
         auto newProp = new PropertyExplicitInterpAMD;
         propPtr.reset(newProp);
         newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::NodeSharesPayloadLimitsWithAMDX:
+      {
+        auto newProp = new PropertyNodeSharesPayloadLimitsWithAMDX;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        PropertyReferenceResolveInfo refResolve //
+          {reinterpret_cast<NodePointer<NodeId> *>(&newProp->payloadArray),
+            IdRef{decoration.data.NodeSharesPayloadLimitsWithAMDX.payloadArray.value}};
+        propertyReferenceResolves.push_back(refResolve);
+        break;
+      }
+      case Decoration::NodeMaxPayloadsAMDX:
+      {
+        auto newProp = new PropertyNodeMaxPayloadsAMDX;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        PropertyReferenceResolveInfo refResolve //
+          {reinterpret_cast<NodePointer<NodeId> *>(&newProp->maxNumberOfPayloads),
+            IdRef{decoration.data.NodeMaxPayloadsAMDX.maxNumberOfPayloads.value}};
+        propertyReferenceResolves.push_back(refResolve);
+        break;
+      }
+      case Decoration::TrackFinishWritingAMDX:
+      {
+        auto newProp = new PropertyTrackFinishWritingAMDX;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::PayloadNodeNameAMDX:
+      {
+        auto newProp = new PropertyPayloadNodeNameAMDX;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->nodeName = decoration.data.PayloadNodeNameAMDX.nodeName.asStringObj();
         break;
       }
       case Decoration::OverrideCoverageNV:
@@ -11800,9 +14542,9 @@ struct ReaderContext
         newProp->offset = decoration.data.SecondaryViewportRelativeNV.offset;
         break;
       }
-      case Decoration::PerPrimitiveNV:
+      case Decoration::PerPrimitiveEXT:
       {
-        auto newProp = new PropertyPerPrimitiveNV;
+        auto newProp = new PropertyPerPrimitiveEXT;
         propPtr.reset(newProp);
         newProp->memberIndex = member.value;
         break;
@@ -11845,6 +14587,13 @@ struct ReaderContext
       case Decoration::AliasedPointer:
       {
         auto newProp = new PropertyAliasedPointer;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::HitObjectShaderRecordBufferNV:
+      {
+        auto newProp = new PropertyHitObjectShaderRecordBufferNV;
         propPtr.reset(newProp);
         newProp->memberIndex = member.value;
         break;
@@ -12081,6 +14830,29 @@ struct ReaderContext
         newProp->forceKey = decoration.data.ForcePow2DepthINTEL.forceKey;
         break;
       }
+      case Decoration::StridesizeINTEL:
+      {
+        auto newProp = new PropertyStridesizeINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->strideSize = decoration.data.StridesizeINTEL.strideSize;
+        break;
+      }
+      case Decoration::WordsizeINTEL:
+      {
+        auto newProp = new PropertyWordsizeINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->wordSize = decoration.data.WordsizeINTEL.wordSize;
+        break;
+      }
+      case Decoration::TrueDualPortINTEL:
+      {
+        auto newProp = new PropertyTrueDualPortINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        break;
+      }
       case Decoration::BurstCoalesceINTEL:
       {
         auto newProp = new PropertyBurstCoalesceINTEL;
@@ -12123,6 +14895,61 @@ struct ReaderContext
         auto newProp = new PropertyFuseLoopsInFunctionINTEL;
         propPtr.reset(newProp);
         newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::MathOpDSPModeINTEL:
+      {
+        auto newProp = new PropertyMathOpDSPModeINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->mode = decoration.data.MathOpDSPModeINTEL.mode;
+        newProp->propagate = decoration.data.MathOpDSPModeINTEL.propagate;
+        break;
+      }
+      case Decoration::AliasScopeINTEL:
+      {
+        auto newProp = new PropertyAliasScopeINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        PropertyReferenceResolveInfo refResolve //
+          {reinterpret_cast<NodePointer<NodeId> *>(&newProp->aliasingScopesList),
+            IdRef{decoration.data.AliasScopeINTEL.aliasingScopesList.value}};
+        propertyReferenceResolves.push_back(refResolve);
+        break;
+      }
+      case Decoration::NoAliasINTEL:
+      {
+        auto newProp = new PropertyNoAliasINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        PropertyReferenceResolveInfo refResolve //
+          {reinterpret_cast<NodePointer<NodeId> *>(&newProp->aliasingScopesList),
+            IdRef{decoration.data.NoAliasINTEL.aliasingScopesList.value}};
+        propertyReferenceResolves.push_back(refResolve);
+        break;
+      }
+      case Decoration::InitiationIntervalINTEL:
+      {
+        auto newProp = new PropertyInitiationIntervalINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->cycles = decoration.data.InitiationIntervalINTEL.cycles;
+        break;
+      }
+      case Decoration::MaxConcurrencyINTEL:
+      {
+        auto newProp = new PropertyMaxConcurrencyINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->invocations = decoration.data.MaxConcurrencyINTEL.invocations;
+        break;
+      }
+      case Decoration::PipelineEnableINTEL:
+      {
+        auto newProp = new PropertyPipelineEnableINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->enable = decoration.data.PipelineEnableINTEL.enable;
         break;
       }
       case Decoration::BufferLocationINTEL:
@@ -12169,6 +14996,151 @@ struct ReaderContext
         auto newProp = new PropertyMediaBlockIOINTEL;
         propPtr.reset(newProp);
         newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::StallFreeINTEL:
+      {
+        auto newProp = new PropertyStallFreeINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::FPMaxErrorDecorationINTEL:
+      {
+        auto newProp = new PropertyFPMaxErrorDecorationINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->maxError = decoration.data.FPMaxErrorDecorationINTEL.maxError;
+        break;
+      }
+      case Decoration::LatencyControlLabelINTEL:
+      {
+        auto newProp = new PropertyLatencyControlLabelINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->latencyLabel = decoration.data.LatencyControlLabelINTEL.latencyLabel;
+        break;
+      }
+      case Decoration::LatencyControlConstraintINTEL:
+      {
+        auto newProp = new PropertyLatencyControlConstraintINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->relativeTo = decoration.data.LatencyControlConstraintINTEL.relativeTo;
+        newProp->controlType = decoration.data.LatencyControlConstraintINTEL.controlType;
+        newProp->relativeCycle = decoration.data.LatencyControlConstraintINTEL.relativeCycle;
+        break;
+      }
+      case Decoration::ConduitKernelArgumentINTEL:
+      {
+        auto newProp = new PropertyConduitKernelArgumentINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::RegisterMapKernelArgumentINTEL:
+      {
+        auto newProp = new PropertyRegisterMapKernelArgumentINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::MMHostInterfaceAddressWidthINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceAddressWidthINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->addressWidth = decoration.data.MMHostInterfaceAddressWidthINTEL.addressWidth;
+        break;
+      }
+      case Decoration::MMHostInterfaceDataWidthINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceDataWidthINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->dataWidth = decoration.data.MMHostInterfaceDataWidthINTEL.dataWidth;
+        break;
+      }
+      case Decoration::MMHostInterfaceLatencyINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceLatencyINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->latency = decoration.data.MMHostInterfaceLatencyINTEL.latency;
+        break;
+      }
+      case Decoration::MMHostInterfaceReadWriteModeINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceReadWriteModeINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->readWriteMode = decoration.data.MMHostInterfaceReadWriteModeINTEL.readWriteMode;
+        break;
+      }
+      case Decoration::MMHostInterfaceMaxBurstINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceMaxBurstINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->maxBurstCount = decoration.data.MMHostInterfaceMaxBurstINTEL.maxBurstCount;
+        break;
+      }
+      case Decoration::MMHostInterfaceWaitRequestINTEL:
+      {
+        auto newProp = new PropertyMMHostInterfaceWaitRequestINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->waitrequest = decoration.data.MMHostInterfaceWaitRequestINTEL.waitrequest;
+        break;
+      }
+      case Decoration::StableKernelArgumentINTEL:
+      {
+        auto newProp = new PropertyStableKernelArgumentINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        break;
+      }
+      case Decoration::HostAccessINTEL:
+      {
+        auto newProp = new PropertyHostAccessINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->access = decoration.data.HostAccessINTEL.access;
+        newProp->name = decoration.data.HostAccessINTEL.name.asStringObj();
+        break;
+      }
+      case Decoration::InitModeINTEL:
+      {
+        auto newProp = new PropertyInitModeINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->trigger = decoration.data.InitModeINTEL.trigger;
+        break;
+      }
+      case Decoration::ImplementInRegisterMapINTEL:
+      {
+        auto newProp = new PropertyImplementInRegisterMapINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->value = decoration.data.ImplementInRegisterMapINTEL.value;
+        break;
+      }
+      case Decoration::CacheControlLoadINTEL:
+      {
+        auto newProp = new PropertyCacheControlLoadINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->cacheLevel = decoration.data.CacheControlLoadINTEL.cacheLevel;
+        newProp->cacheControl = decoration.data.CacheControlLoadINTEL.cacheControl;
+        break;
+      }
+      case Decoration::CacheControlStoreINTEL:
+      {
+        auto newProp = new PropertyCacheControlStoreINTEL;
+        propPtr.reset(newProp);
+        newProp->memberIndex = member.value;
+        newProp->cacheLevel = decoration.data.CacheControlStoreINTEL.cacheLevel;
+        newProp->cacheControl = decoration.data.CacheControlStoreINTEL.cacheControl;
         break;
       }
     }
@@ -13039,10 +16011,10 @@ struct ReaderContext
     if (currentBlock)
       currentBlock->instructions.push_back(node);
   }
-  void onVariableLengthArrayINTEL(Op, IdResult id_result, IdResultType id_result_type, IdRef length)
+  void onVariableLengthArrayINTEL(Op, IdResult id_result, IdResultType id_result_type, IdRef lenght)
   {
     auto node = moduleBuilder.newNode<NodeOpVariableLengthArrayINTEL>(id_result.value, moduleBuilder.getType(id_result_type),
-      moduleBuilder.getNode(length));
+      moduleBuilder.getNode(lenght));
     if (currentBlock)
       currentBlock->instructions.push_back(node);
   }
@@ -13396,6 +16368,41 @@ struct ReaderContext
       currentBlock->instructions.push_back(node);
   }
   void onLoopControlINTEL(Op, Multiple<LiteralInteger> loop_control_parameters) {}
+  void onAliasDomainDeclINTEL(Op, IdResult id_result, Optional<IdRef> name)
+  {
+    eastl::optional<NodePointer<NodeId>> nameOpt;
+    if (name.valid)
+    {
+      nameOpt = moduleBuilder.getNode(name.value);
+    }
+    auto node = moduleBuilder.newNode<NodeOpAliasDomainDeclINTEL>(id_result.value, nameOpt);
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onAliasScopeDeclINTEL(Op, IdResult id_result, IdRef alias_domain, Optional<IdRef> name)
+  {
+    eastl::optional<NodePointer<NodeId>> nameOpt;
+    if (name.valid)
+    {
+      nameOpt = moduleBuilder.getNode(name.value);
+    }
+    auto node = moduleBuilder.newNode<NodeOpAliasScopeDeclINTEL>(id_result.value, moduleBuilder.getNode(alias_domain), nameOpt);
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onAliasScopeListDeclINTEL(Op, IdResult id_result, Multiple<IdRef> alias_scope1_alias_scope2)
+  {
+    // FIXME: use vector directly in constructor
+    eastl::vector<NodePointer<NodeId>> alias_scope1_alias_scope2Var;
+    while (!alias_scope1_alias_scope2.empty())
+    {
+      alias_scope1_alias_scope2Var.push_back(moduleBuilder.getNode(alias_scope1_alias_scope2.consume()));
+    }
+    auto node = moduleBuilder.newNode<NodeOpAliasScopeListDeclINTEL>(id_result.value, alias_scope1_alias_scope2Var.data(),
+      alias_scope1_alias_scope2Var.size());
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
   void onFixedSqrtINTEL(Op, IdResult id_result, IdResultType id_result_type, IdRef input_type, IdRef input, LiteralInteger s,
     LiteralInteger i, LiteralInteger r_i, LiteralInteger q, LiteralInteger o)
   {
@@ -13690,6 +16697,118 @@ struct ReaderContext
       constituentsVar.push_back(moduleBuilder.getNode(constituents.consume()));
     }
     auto node = moduleBuilder.newNode<NodeOpSpecConstantCompositeContinuedINTEL>(constituentsVar.data(), constituentsVar.size());
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onCompositeConstructContinuedINTEL(Op, IdResult id_result, IdResultType id_result_type, Multiple<IdRef> constituents)
+  {
+    // FIXME: use vector directly in constructor
+    eastl::vector<NodePointer<NodeId>> constituentsVar;
+    while (!constituents.empty())
+    {
+      constituentsVar.push_back(moduleBuilder.getNode(constituents.consume()));
+    }
+    auto node = moduleBuilder.newNode<NodeOpCompositeConstructContinuedINTEL>(id_result.value, moduleBuilder.getType(id_result_type),
+      constituentsVar.data(), constituentsVar.size());
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onConvertFToBF16INTEL(Op, IdResult id_result, IdResultType id_result_type, IdRef float_value)
+  {
+    auto node = moduleBuilder.newNode<NodeOpConvertFToBF16INTEL>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(float_value));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onConvertBF16ToFINTEL(Op, IdResult id_result, IdResultType id_result_type, IdRef b_float16_value)
+  {
+    auto node = moduleBuilder.newNode<NodeOpConvertBF16ToFINTEL>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(b_float16_value));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onControlBarrierArriveINTEL(Op, IdScope execution, IdScope memory, IdMemorySemantics semantics)
+  {
+    auto node = moduleBuilder.newNode<NodeOpControlBarrierArriveINTEL>(moduleBuilder.getNode(execution), moduleBuilder.getNode(memory),
+      moduleBuilder.getNode(semantics));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onControlBarrierWaitINTEL(Op, IdScope execution, IdScope memory, IdMemorySemantics semantics)
+  {
+    auto node = moduleBuilder.newNode<NodeOpControlBarrierWaitINTEL>(moduleBuilder.getNode(execution), moduleBuilder.getNode(memory),
+      moduleBuilder.getNode(semantics));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onGroupIMulKHR(Op, IdResult id_result, IdResultType id_result_type, IdScope execution, GroupOperation operation, IdRef x)
+  {
+    auto node = moduleBuilder.newNode<NodeOpGroupIMulKHR>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(execution), operation, moduleBuilder.getNode(x));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onGroupFMulKHR(Op, IdResult id_result, IdResultType id_result_type, IdScope execution, GroupOperation operation, IdRef x)
+  {
+    auto node = moduleBuilder.newNode<NodeOpGroupFMulKHR>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(execution), operation, moduleBuilder.getNode(x));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onGroupBitwiseAndKHR(Op, IdResult id_result, IdResultType id_result_type, IdScope execution, GroupOperation operation, IdRef x)
+  {
+    auto node = moduleBuilder.newNode<NodeOpGroupBitwiseAndKHR>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(execution), operation, moduleBuilder.getNode(x));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onGroupBitwiseOrKHR(Op, IdResult id_result, IdResultType id_result_type, IdScope execution, GroupOperation operation, IdRef x)
+  {
+    auto node = moduleBuilder.newNode<NodeOpGroupBitwiseOrKHR>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(execution), operation, moduleBuilder.getNode(x));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onGroupBitwiseXorKHR(Op, IdResult id_result, IdResultType id_result_type, IdScope execution, GroupOperation operation, IdRef x)
+  {
+    auto node = moduleBuilder.newNode<NodeOpGroupBitwiseXorKHR>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(execution), operation, moduleBuilder.getNode(x));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onGroupLogicalAndKHR(Op, IdResult id_result, IdResultType id_result_type, IdScope execution, GroupOperation operation, IdRef x)
+  {
+    auto node = moduleBuilder.newNode<NodeOpGroupLogicalAndKHR>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(execution), operation, moduleBuilder.getNode(x));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onGroupLogicalOrKHR(Op, IdResult id_result, IdResultType id_result_type, IdScope execution, GroupOperation operation, IdRef x)
+  {
+    auto node = moduleBuilder.newNode<NodeOpGroupLogicalOrKHR>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(execution), operation, moduleBuilder.getNode(x));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onGroupLogicalXorKHR(Op, IdResult id_result, IdResultType id_result_type, IdScope execution, GroupOperation operation, IdRef x)
+  {
+    auto node = moduleBuilder.newNode<NodeOpGroupLogicalXorKHR>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(execution), operation, moduleBuilder.getNode(x));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onMaskedGatherINTEL(Op, IdResult id_result, IdResultType id_result_type, IdRef ptr_vector, LiteralInteger alignment, IdRef mask,
+    IdRef fill_empty)
+  {
+    auto node = moduleBuilder.newNode<NodeOpMaskedGatherINTEL>(id_result.value, moduleBuilder.getType(id_result_type),
+      moduleBuilder.getNode(ptr_vector), alignment, moduleBuilder.getNode(mask), moduleBuilder.getNode(fill_empty));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
+  void onMaskedScatterINTEL(Op, IdRef input_vector, IdRef ptr_vector, LiteralInteger alignment, IdRef mask)
+  {
+    auto node = moduleBuilder.newNode<NodeOpMaskedScatterINTEL>(moduleBuilder.getNode(input_vector), moduleBuilder.getNode(ptr_vector),
+      alignment, moduleBuilder.getNode(mask));
     if (currentBlock)
       currentBlock->instructions.push_back(node);
   }
@@ -14310,6 +17429,14 @@ struct ReaderContext
     if (currentBlock)
       currentBlock->instructions.push_back(node);
   }
+  void onAMDShaderExplicitVertexParameterInterpolateAtVertex(AMDShaderExplicitVertexParameter, IdResult id_result,
+    IdResultType id_result_type, IdRef interpolant, IdRef vertex_idx)
+  {
+    auto node = moduleBuilder.newNode<NodeOpAMDShaderExplicitVertexParameterInterpolateAtVertex>(id_result.value,
+      moduleBuilder.getType(id_result_type), moduleBuilder.getNode(interpolant), moduleBuilder.getNode(vertex_idx));
+    if (currentBlock)
+      currentBlock->instructions.push_back(node);
+  }
   void onAMDShaderTrinaryMinmaxFMin3(AMDShaderTrinaryMinmax, IdResult id_result, IdResultType id_result_type, IdRef x, IdRef y,
     IdRef z)
   {
@@ -14382,15 +17509,7 @@ struct ReaderContext
     if (currentBlock)
       currentBlock->instructions.push_back(node);
   }
-  void onAMDShaderExplicitVertexParameterInterpolateAtVertex(AMDShaderExplicitVertexParameter, IdResult id_result,
-    IdResultType id_result_type, IdRef interpolant, IdRef vertex_idx)
-  {
-    auto node = moduleBuilder.newNode<NodeOpAMDShaderExplicitVertexParameterInterpolateAtVertex>(id_result.value,
-      moduleBuilder.getType(id_result_type), moduleBuilder.getNode(interpolant), moduleBuilder.getNode(vertex_idx));
-    if (currentBlock)
-      currentBlock->instructions.push_back(node);
-  }
-  // 752 instructions handled
+  // 835 instructions handled
 };
 struct ErrorRecorder
 {

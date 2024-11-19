@@ -195,31 +195,35 @@ bool get_prev_frame_disocclusion_weight_sample(float2 historyUV, float prev_line
 {
   bool weight = all(abs(historyUV*2-1) < 1);
   #if USE_PREV_DOWNSAMPLED_CLOSE_DEPTH
-    float4 depths = prev_downsampled_close_depth_tex.GatherRed(prev_downsampled_close_depth_tex_samplerstate, historyUV).wzxy;
+    float2 historyCrdf = historyUV * prev_downsampled_close_depth_tex_target_size.xy - 0.5;
+    float2 floorCrd = floor(historyCrdf);
+    float2 gatherUV = floorCrd*prev_downsampled_close_depth_tex_target_size.zw + prev_downsampled_close_depth_tex_target_size.zw;
+    float2 fractCrd = historyCrdf - floorCrd;
+
+    float4 depths = prev_downsampled_close_depth_tex.GatherRed(prev_downsampled_close_depth_tex_samplerstate, gatherUV).wzxy;
     float4 linearDepths = linearize_z4(depths, prev_zn_zfar.zw);
     float4 depthDiff = abs(linearDepths - prev_linear_depth);
     float threshold = 0.05*prev_linear_depth;
     float4 weights = depthDiff < threshold;
-    if (all(weights)) // bilinear filtering is valid
+
+    if (!any(weights) || !weight)
+      return false;
     {
-      historySample = tex2Dlod(prev_frame_tex, float4(historyUV, 0, lod)).rgb;
-    } else
-    {
-      float2 historyCrdf = historyUV*prev_downsampled_close_depth_tex_target_size.xy - 0.5;
-      float4 bil = float4(frac(historyCrdf), 1-frac(historyCrdf));
-      weights *= float4(bil.zx*bil.w, bil.zx*bil.y);
-      float sumW = dot(weights, 1);
-      weight = weight && sumW >= 0.0001;
-      weights *= rcp(max(1e-6, sumW));
-      float2 uv = (floor(historyCrdf) + 0.5)*prev_downsampled_close_depth_tex_target_size.zw;//todo: one madd
+
+      float4 bil = float4(fractCrd, 1 - fractCrd);
+      float4 upsampleWeights = float4(bil.zx * bil.w, bil.zx * bil.y);
+      float4 spatialWeights = exp(-depthDiff * (5.0 / threshold));
+      weights *= (spatialWeights * upsampleWeights + 1e-4);
+      weights /= dot(weights, 1.0);
+      float2 uv = gatherUV;
       // we rely on prev_downsampled_close_depth_tex_samplerstate being point sample
       //float2 uv = historyUV;
-      half3 lt = prev_frame_tex.SampleLevel(prev_downsampled_close_depth_tex_samplerstate, uv, lod).rgb;
-      half3 rt = prev_frame_tex.SampleLevel(prev_downsampled_close_depth_tex_samplerstate, uv, lod, int2(1,0)).rgb;
-      half3 lb = prev_frame_tex.SampleLevel(prev_downsampled_close_depth_tex_samplerstate, uv, lod, int2(0,1)).rgb;
-      half3 rb = prev_frame_tex.SampleLevel(prev_downsampled_close_depth_tex_samplerstate, uv, lod, int2(1,1)).rgb;
-      historySample = lt*weights.x + rt*weights.y + lb*weights.z + rb*weights.w;
-      //weight = 0;
+      half4 R = prev_frame_tex.GatherRed(prev_downsampled_close_depth_tex_samplerstate, uv, lod).wzxy;
+      historySample.r = dot(weights, R);
+      half4 G = prev_frame_tex.GatherGreen(prev_downsampled_close_depth_tex_samplerstate, uv, lod).wzxy;
+      historySample.g = dot(weights, G);
+      half4 B = prev_frame_tex.GatherBlue(prev_downsampled_close_depth_tex_samplerstate, uv, lod).wzxy;
+      historySample.b = dot(weights, B);
     }
   #else
     historySample = tex2Dlod(prev_frame_tex, float4(historyUV, 0, lod)).rgb;

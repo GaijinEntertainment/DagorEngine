@@ -393,16 +393,12 @@ BINDUMP_BEGIN_LAYOUT(ScriptedShadersBinDump)
   VecHolder<Compressed<Field<ShGroup>>> shGroups;
   VecHolder<char> dictionary;
 
-  // shader context/work data
+  // @TODO: remove from layout (this is pure runtime stuff)
   enum
   {
-    MAX_VARS = 3584,
-    VARIDX_ABSENT = 0xFFFEu,
-    VARIDX_INVALID = 0xFFFFu
+    MAX_VARS_DEPRECATED_ = 3584,
   };
-  uint16_t varIdx[MAX_VARS] = {}, globvarIdx[MAX_VARS] = {};
-
-  void reinitVarTables();
+  uint16_t varIdx_deprecated_[MAX_VARS_DEPRECATED_] = {}, globvarIdx_deprecated_[MAX_VARS_DEPRECATED_] = {};
 
   const Field<ShaderClass> *findShaderClass(const char *name) const;
 BINDUMP_END_LAYOUT()

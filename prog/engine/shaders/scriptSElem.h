@@ -80,6 +80,8 @@ public:
 
   mutable int tex_level = 15;
 
+  mutable bool texturesLoaded = false;
+
 public:
   ScriptedShaderElement(ScriptedShaderElement &&) = default;
 
@@ -121,6 +123,7 @@ public:
   SNC_LIKELY_TARGET void gatherUsedTex(TextureIdSet &tex_id_list) const override;
   SNC_LIKELY_TARGET bool replaceTexture(TEXTUREID tex_id_old, TEXTUREID tex_id_new) override;
   SNC_LIKELY_TARGET bool hasTexture(TEXTUREID tex_id) const override;
+  SNC_LIKELY_TARGET bool checkAndPrefetchMissingTextures() const override;
 
   // Return vertex size on shader input.
   SNC_LIKELY_TARGET unsigned int getVertexStride() const override { return code.vertexStride; }

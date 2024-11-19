@@ -109,7 +109,7 @@ hlsl(stage) {
 #if FIX_DISCONTINUTIES
     float2 historyCrdf = historyUV * prev_downsampled_close_depth_tex_target_size.xy - 0.5;
     float2 floorCrd = floor(historyCrdf);
-    float2 gatherUV = (floorCrd + 1.0) * prev_downsampled_close_depth_tex_target_size.zw;
+    float2 gatherUV = floorCrd*prev_downsampled_close_depth_tex_target_size.zw + prev_downsampled_close_depth_tex_target_size.zw;
     float2 fractCrd = historyCrdf - floorCrd;
     float4 depths = prev_downsampled_close_depth_tex.GatherRed(prev_downsampled_close_depth_tex_samplerstate, gatherUV).wzxy;
     float4 linearDepths = linearize_z4(depths, prev_zn_zfar.zw);

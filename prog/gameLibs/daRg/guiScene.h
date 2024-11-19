@@ -213,6 +213,15 @@ public:
 
   const eastl::vector_map<int, eastl::unique_ptr<PanelData>> &getPanels() const { return panels; }
 
+
+  const darg::PanelSpatialInfo *getPanelSpatialInfo(int id) const override
+  {
+    if (const auto &found = panels.find(id); found != panels.end())
+      return &found->second->panel->spatialInfo;
+    return nullptr;
+  }
+
+
   bool haveActiveCursorOnPanels() const override;
   bool isAnyPanelPointedAtWithHand(int hand) const override { return spatialInteractionState.wasPanelHit(hand); }
   bool isAnyPanelTouchedWithHand(int hand) const override { return spatialInteractionState.isHandTouchingPanel[hand]; }

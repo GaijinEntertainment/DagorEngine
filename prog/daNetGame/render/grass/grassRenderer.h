@@ -27,7 +27,7 @@ struct GrassRenderer
   void renderGrassPrepassInternal();
   void renderGrassPrepass();
   void renderGrass();
-  void generateGrass(const TMatrix &itm);
+  void generateGrass(const TMatrix &itm, const Driver3dPerspective &perspective);
   void setGrassErasers(int count, const Point4 *erasers);
   void addGrassEraser(const Point3 &world_pos, float radius);
   void clearGrassErasers();

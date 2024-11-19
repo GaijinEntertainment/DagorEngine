@@ -142,6 +142,7 @@ public:
 
   ComputedValue *inRecalc = nullptr;
 
+  int slowUpdateThresholdUsec = 1500;
   int generation = 0;
   bool checkNestedObservable = false;
   bool forceImmutable = false;
@@ -157,6 +158,7 @@ private:
   int curTriggerSubscribersCounter = 0;
   int triggerNestDepth = 0;
   int recalcNestDepth = 0;
+  int slowUpdateFrames = 0;
 
   eastl::vector<Sqrat::Object> stubObservableClases;
 };

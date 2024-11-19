@@ -46,10 +46,12 @@ macro USING_RTAO(stage, rtao_tex_space)
       float getRTAO(uint2 tci)
       {
         float2 uv = (tci.xy + 0.5) * inv_output_resolution;
-        float2 texelPos = frac(uv * output_resolutionF);
-        uint2 crd = uint2(uv * output_resolutionF);
+        float2 unnormalizedUv = uv * output_resolutionF;
+        float2 unnormalizedUvOfs = unnormalizedUv - 0.5;
+        float2 texelPos = frac(unnormalizedUvOfs);
+        uint2 crd = uint2(unnormalizedUvOfs);
 
-        float tl = texture2DAt(rt_texture_outputs[rtao_bindless_slot], crd).r;
+        float tl = texture2DAt(rt_texture_outputs[rtao_bindless_slot], min(crd, output_resolutionI - 1)).r; // TODO: Remove "min" when we ceil resolution scaling (only this line).
         float tr = texture2DAt(rt_texture_outputs[rtao_bindless_slot], min(crd + uint2(1, 0), output_resolutionI - 1)).r;
         float bl = texture2DAt(rt_texture_outputs[rtao_bindless_slot], min(crd + uint2(0, 1), output_resolutionI - 1)).r;
         float br = texture2DAt(rt_texture_outputs[rtao_bindless_slot], min(crd + uint2(1, 1), output_resolutionI - 1)).r;

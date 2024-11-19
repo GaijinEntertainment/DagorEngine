@@ -11,7 +11,7 @@ shader ssr
   INIT_ZNZFAR()
   SSR_CALCULATE(ps)
   POSTFX_VS(0)
-  SSR_DISOCCLUSION(ps)
+  SSR_GET_TEMPORAL_REPROJECTION_DUO(ps)
 
   hlsl(ps) {
     float4 ssr_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
@@ -55,6 +55,8 @@ shader ssr
       #endif
 
       float ssrResultPrecision = newTarget.a;
+      // alternate reflections for puddles, if presented
+      get_planar_reflections(newTarget, ssrResultPrecision, worldPos, normal, curViewTc);
 
       float3 prevViewVec = cameraToPoint;
 
@@ -79,6 +81,9 @@ shader ssr
 
       #if SSR_MOTIONREPROJ == 1
         motion_type surface_motion = tex2Dlod(MOTION_VECTORS_TEXTURE, float4(curViewTc,0,0)).motion_attr;
+        #ifdef MOTION_TO_PREV_JITTERED_UV_OFS
+          surface_motion.xy += MOTION_TO_PREV_JITTERED_UV_OFS;
+        #endif
         #if MOTION_VECTORS_3D
           float3 surface_3d_motion = surface_motion;
         #else

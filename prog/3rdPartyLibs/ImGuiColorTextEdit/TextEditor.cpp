@@ -110,22 +110,22 @@ void TextEditor::SelectRegion(int aStartLine, int aStartChar, int aEndLine, int 
 	SetSelection(aStartLine, aStartChar, aEndLine, aEndChar);
 }
 
-bool TextEditor::SelectNextOccurrenceOf(const char* aText, int aTextSize, bool aCaseSensitive)
+bool TextEditor::SelectNextOccurrenceOf(const char* aText, int aTextSize, bool aCaseSensitive, bool aWholeWords)
 {
 	ClearSelections();
 	ClearExtraCursors();
-	return SelectNextOccurrenceOf(aText, aTextSize, -1, aCaseSensitive);
+	return SelectNextOccurrenceOf(aText, aTextSize, -1, aCaseSensitive, aWholeWords);
 }
 
-void TextEditor::SelectAllOccurrencesOf(const char* aText, int aTextSize, bool aCaseSensitive)
+void TextEditor::SelectAllOccurrencesOf(const char* aText, int aTextSize, bool aCaseSensitive, bool aWholeWords)
 {
 	ClearSelections();
 	ClearExtraCursors();
-	SelectNextOccurrenceOf(aText, aTextSize, -1, aCaseSensitive);
+	SelectNextOccurrenceOf(aText, aTextSize, -1, aCaseSensitive, aWholeWords);
 	Coordinates startPos = mState.mCursors[mState.GetLastAddedCursorIndex()].mInteractiveEnd;
 	while (true)
 	{
-		AddCursorForNextOccurrence(aCaseSensitive);
+		AddCursorForNextOccurrence(aCaseSensitive, aWholeWords);
 		Coordinates lastAddedPos = mState.mCursors[mState.GetLastAddedCursorIndex()].mInteractiveEnd;
 		if (lastAddedPos == startPos)
 			break;
@@ -1223,12 +1223,12 @@ void TextEditor::SetSelection(int aStartLine, int aStartChar, int aEndLine, int 
 	SetSelection(startCoords, endCoords, aCursor);
 }
 
-bool TextEditor::SelectNextOccurrenceOf(const char* aText, int aTextSize, int aCursor, bool aCaseSensitive)
+bool TextEditor::SelectNextOccurrenceOf(const char* aText, int aTextSize, int aCursor, bool aCaseSensitive, bool aWholeWords)
 {
 	if (aCursor == -1)
 		aCursor = mState.mCurrentCursor;
 	Coordinates nextStart, nextEnd;
-	if (!FindNextOccurrence(aText, aTextSize, mState.mCursors[aCursor].mInteractiveEnd, nextStart, nextEnd, aCaseSensitive))
+	if (!FindNextOccurrence(aText, aTextSize, mState.mCursors[aCursor].mInteractiveEnd, nextStart, nextEnd, aCaseSensitive, aWholeWords))
 		return false;
 	SetSelection(nextStart, nextEnd, aCursor);
 	EnsureCursorVisible(aCursor, true);
@@ -1236,22 +1236,22 @@ bool TextEditor::SelectNextOccurrenceOf(const char* aText, int aTextSize, int aC
 }
 
 
-bool TextEditor::Replace(const char* find, int findLength, const char * replaceWith, int replaceLength, bool aCaseSensitive, bool all)
+bool TextEditor::Replace(const char* find, int findLength, const char * replaceWith, int replaceLength, bool aCaseSensitive, bool aWholeWords, bool all)
 {
 	(void)replaceLength;
-	bool replaceOccured = false;
+	bool replaceOccurred = false;
 
 	do
 	{
 		int aCursor = mState.mCurrentCursor;
 		Coordinates nextStart, nextEnd;
 
-		if (!FindNextOccurrence(find, findLength, mState.mCursors[aCursor].mInteractiveEnd, nextStart, nextEnd, aCaseSensitive))
+		if (!FindNextOccurrence(find, findLength, mState.mCursors[aCursor].mInteractiveEnd, nextStart, nextEnd, aCaseSensitive, aWholeWords))
 			break;
 
 		SetSelection(nextStart, nextEnd, aCursor);
 		PasteText(replaceWith);
-		replaceOccured = true;
+		replaceOccurred = true;
 
 		if (!all && nextStart != mState.mCursors[aCursor].mInteractiveEnd)
 			SetSelection(nextStart, mState.mCursors[aCursor].mInteractiveEnd, aCursor);
@@ -1260,11 +1260,11 @@ bool TextEditor::Replace(const char* find, int findLength, const char * replaceW
 	}
 	while (all);
 
-	return replaceOccured;
+	return replaceOccurred;
 }
 
 
-void TextEditor::AddCursorForNextOccurrence(bool aCaseSensitive)
+void TextEditor::AddCursorForNextOccurrence(bool aCaseSensitive, bool aWholeWords)
 {
 	const Cursor& currentCursor = mState.mCursors[mState.GetLastAddedCursorIndex()];
 	if (currentCursor.GetSelectionStart() == currentCursor.GetSelectionEnd())
@@ -1282,7 +1282,7 @@ void TextEditor::AddCursorForNextOccurrence(bool aCaseSensitive)
 	EnsureCursorVisible(-1, true);
 }
 
-bool TextEditor::FindNextOccurrence(const char* aText, int aTextSize, const Coordinates& aFrom, Coordinates& outStart, Coordinates& outEnd, bool aCaseSensitive)
+bool TextEditor::FindNextOccurrence(const char* aText, int aTextSize, const Coordinates& aFrom, Coordinates& outStart, Coordinates& outEnd, bool aCaseSensitive, bool aWholeWords)
 {
 	EASTL_ASSERT(aTextSize > 0);
 	bool fmatches = false;
@@ -1326,9 +1326,28 @@ bool TextEditor::FindNextOccurrence(const char* aText, int aTextSize, const Coor
 			matches = i == aTextSize;
 			if (matches)
 			{
-				outStart = { fline, GetCharacterColumn(fline, findex) };
-				outEnd = { fline + lineOffset, GetCharacterColumn(fline + lineOffset, currentCharIndex) };
-				return true;
+				if (aWholeWords)
+				{
+					if (findex > 0)
+					{
+						char charBefore = mLines[fline][findex - 1].mChar;
+						if (CharIsWordChar(charBefore))
+							matches = false;
+					}
+					if (matches && findex + aTextSize < mLines[fline].size())
+					{
+						char charAfter = mLines[fline][findex + aTextSize].mChar;
+						if (CharIsWordChar(charAfter))
+							matches = false;
+					}
+				}
+
+				if (matches)
+				{
+					outStart = { fline, GetCharacterColumn(fline, findex) };
+					outEnd = { fline + lineOffset, GetCharacterColumn(fline + lineOffset, currentCharIndex) };
+					return true;
+				}
 			}
 		}
 
@@ -1915,6 +1934,17 @@ int TextEditor::GetLineMaxColumn(int aLine, int aLimit) const
 TextEditor::Line& TextEditor::InsertLine(int aIndex)
 {
 	EASTL_ASSERT(!mReadOnly);
+
+	int atTheEOL = !mLines.empty() && (mLines[max(aIndex - 1, 0)].size() == mState.mCursors[0].mInteractiveEnd.mColumn) ? 1 : 0;
+
+	for (auto&& err : mErrorMarkers)
+		if (err.line >= aIndex + atTheEOL)
+			err.line++;
+
+	for (int& bp : mBreakpoints)
+		if (bp >= aIndex + atTheEOL)
+			bp++;
+
 	auto& result = *mLines.insert(mLines.begin() + aIndex, Line());
 
 	for (int c = 0; c <= mState.mCurrentCursor; c++) // handle multiple cursors
@@ -1943,6 +1973,20 @@ void TextEditor::RemoveLine(int aIndex, const eastl::set<int>* aHandledCursors)
 				SetCursorPosition({ mState.mCursors[c].mInteractiveEnd.mLine - 1, mState.mCursors[c].mInteractiveEnd.mColumn }, c);
 		}
 	}
+
+	mErrorMarkers.erase(eastl::remove_if(mErrorMarkers.begin(), mErrorMarkers.end(),
+		[aIndex](const ErrorMarker& aMarker) { return aMarker.line == aIndex + 1; }), mErrorMarkers.end());
+
+	for (auto && err : mErrorMarkers)
+		if (err.line >= aIndex)
+			err.line--;
+
+	mBreakpoints.erase(eastl::remove_if(mBreakpoints.begin(), mBreakpoints.end(),
+		[aIndex](int aMarker) { return aMarker == aIndex + 1; }), mBreakpoints.end());
+
+	for (int & bp : mBreakpoints)
+		if (bp >= aIndex)
+			bp--;
 }
 
 void TextEditor::RemoveLines(int aStart, int aEnd)
@@ -1964,6 +2008,21 @@ void TextEditor::RemoveLines(int aStart, int aEnd)
 			SetCursorPosition({ targetLine , mState.mCursors[c].mInteractiveEnd.mColumn }, c);
 		}
 	}
+
+	mErrorMarkers.erase(eastl::remove_if(mErrorMarkers.begin(), mErrorMarkers.end(),
+		[aStart, aEnd](const ErrorMarker& aMarker) { return aMarker.line > aStart - 1 && aMarker.line < aEnd; }), mErrorMarkers.end());
+
+	for (auto && err : mErrorMarkers)
+		if (err.line >= aEnd)
+			err.line -= (aEnd - aStart);
+
+	mBreakpoints.erase(eastl::remove_if(mBreakpoints.begin(), mBreakpoints.end(),
+		[aStart, aEnd](int aMarker) { return aMarker > aStart - 1 && aMarker < aEnd; }), mBreakpoints.end());
+
+	for (int & bp : mBreakpoints)
+		if (bp >= aEnd)
+			bp -= (aEnd - aStart);
+
 }
 
 void TextEditor::DeleteRange(const Coordinates& aStart, const Coordinates& aEnd)
@@ -2400,6 +2459,39 @@ void TextEditor::Render(bool aParentIsFocused)
 						ImVec2{ lineStartScreenPos.x + mTextStart + rectStart, lineStartScreenPos.y },
 						ImVec2{ lineStartScreenPos.x + mTextStart + rectEnd, lineStartScreenPos.y + mCharAdvance.y },
 						mPalette[(int)PaletteIndex::Selection]);
+			}
+
+			// Draw breakpoints
+			auto start = ImVec2(lineStartScreenPos.x + mTextStart, lineStartScreenPos.y);
+
+			auto breakpointIt = eastl::find(mBreakpoints.begin(), mBreakpoints.end(), lineNo + 1);
+			if (breakpointIt != mBreakpoints.end())
+			{
+				auto end = ImVec2(lineStartScreenPos.x + mTextStart, lineStartScreenPos.y + mCharAdvance.y);
+				drawList->AddRectFilled(start, end, mPalette[(int)PaletteIndex::Breakpoint]);
+			}
+
+			// Draw error markers
+			auto errorIt = eastl::find_if(mErrorMarkers.begin(), mErrorMarkers.end(),
+				[lineNo](const ErrorMarker& aMarker) { return aMarker.line == lineNo + 1; });
+
+			if (errorIt != mErrorMarkers.end())
+			{
+				auto end = ImVec2(lineStartScreenPos.x + mTextStart + 4000, lineStartScreenPos.y + mCharAdvance.y);
+				drawList->AddRectFilled(start, end, mPalette[(int)PaletteIndex::ErrorMarker]);
+
+				if (ImGui::IsMouseHoveringRect(lineStartScreenPos, end))
+				{
+					ImGui::BeginTooltip();
+					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.2f, 0.2f, 1.0f));
+					ImGui::Text("Error at line %d:", errorIt->line);
+					ImGui::PopStyleColor();
+					ImGui::Separator();
+					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 0.2f, 1.0f));
+					ImGui::Text("%s", errorIt->text.c_str());
+					ImGui::PopStyleColor();
+					ImGui::EndTooltip();
+				}
 			}
 
 			// Draw line number (right aligned)

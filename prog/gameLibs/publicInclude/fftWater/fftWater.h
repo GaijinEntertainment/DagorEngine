@@ -172,6 +172,7 @@ struct WaterFlowmap
   Point2 flowmapWaveFade = Point2(1, 5);
   bool flowmapDetail = true;
   bool usingFoamFx = false;
+  bool hasSlopes = false;
 
   SharedTexHolder tex;
   PostFxRenderer builder;

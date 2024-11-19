@@ -1156,7 +1156,7 @@ bool d3d::set_depth(BaseTexture *tex, int face, DepthAccess access)
   return true;
 }
 
-bool d3d::set_render_target(int ri, Texture *tex, int level)
+bool d3d::set_render_target(int ri, Texture *tex, uint8_t level)
 {
   if (!tex)
     currentRtState.removeColor(ri);
@@ -1165,7 +1165,7 @@ bool d3d::set_render_target(int ri, Texture *tex, int level)
   return true;
 }
 
-bool d3d::set_render_target(int ri, BaseTexture *ctex, int fc, int level)
+bool d3d::set_render_target(int ri, BaseTexture *ctex, int fc, uint8_t level)
 {
   if (!ctex)
     currentRtState.removeColor(ri);
@@ -1193,7 +1193,7 @@ bool d3d::get_target_size(int &w, int &h)
   return false;
 }
 
-bool d3d::get_render_target_size(int &w, int &h, BaseTexture *rt_tex, int lev)
+bool d3d::get_render_target_size(int &w, int &h, BaseTexture *rt_tex, uint8_t level)
 {
   w = h = 0;
   if (!rt_tex)
@@ -1201,7 +1201,7 @@ bool d3d::get_render_target_size(int &w, int &h, BaseTexture *rt_tex, int lev)
   else if (rt_tex->restype() == RES3D_TEX || rt_tex->restype() == RES3D_CUBETEX || rt_tex->restype() == RES3D_ARRTEX)
   {
     TextureInfo i;
-    rt_tex->getinfo(i, lev);
+    rt_tex->getinfo(i, level);
     w = i.w;
     h = i.h;
     return true;

@@ -174,7 +174,7 @@ static constexpr ecs::ComponentDesc water_flowmap_foam_es_event_handler_comps[] 
 {
 //start of 1 rw components at [0]
   {ECS_HASH("water"), ecs::ComponentTypeInfo<FFTWater>()},
-//start of 13 ro components at [1]
+//start of 14 ro components at [1]
   {ECS_HASH("water__flowmap_foam_power"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("water__flowmap_foam_scale"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("water__flowmap_foam_threshold"), ecs::ComponentTypeInfo<float>()},
@@ -187,6 +187,7 @@ static constexpr ecs::ComponentDesc water_flowmap_foam_es_event_handler_comps[] 
   {ECS_HASH("water__flowmap_speed_depth_max"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("water__flowmap_foam_depth_max"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("water__flowmap_slope"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("water__has_slopes"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("water__flowmap_detail"), ecs::ComponentTypeInfo<bool>()}
 };
 static void water_flowmap_foam_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -206,6 +207,7 @@ static void water_flowmap_foam_es_event_handler_all_events(const ecs::Event &__r
     , ECS_RO_COMP(water_flowmap_foam_es_event_handler_comps, "water__flowmap_speed_depth_max", float)
     , ECS_RO_COMP(water_flowmap_foam_es_event_handler_comps, "water__flowmap_foam_depth_max", float)
     , ECS_RO_COMP(water_flowmap_foam_es_event_handler_comps, "water__flowmap_slope", float)
+    , ECS_RO_COMP(water_flowmap_foam_es_event_handler_comps, "water__has_slopes", bool)
     , ECS_RO_COMP(water_flowmap_foam_es_event_handler_comps, "water__flowmap_detail", bool)
     );
   while (++comp != compE);
@@ -216,13 +218,13 @@ static ecs::EntitySystemDesc water_flowmap_foam_es_event_handler_es_desc
   "prog/daNetGame/main/waterES.cpp.inl",
   ecs::EntitySystemOps(nullptr, water_flowmap_foam_es_event_handler_all_events),
   make_span(water_flowmap_foam_es_event_handler_comps+0, 1)/*rw*/,
-  make_span(water_flowmap_foam_es_event_handler_comps+1, 13)/*ro*/,
+  make_span(water_flowmap_foam_es_event_handler_comps+1, 14)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<ecs::EventEntityCreated,
                        ecs::EventComponentsAppear>::build(),
   0
-,nullptr,"water__flowmap_detail,water__flowmap_foam_color,water__flowmap_foam_depth_max,water__flowmap_foam_power,water__flowmap_foam_reflectivity,water__flowmap_foam_reflectivity_min,water__flowmap_foam_scale,water__flowmap_foam_speed_scale,water__flowmap_foam_threshold,water__flowmap_foam_tiling,water__flowmap_slope,water__flowmap_speed_depth_max,water__flowmap_speed_depth_scale");
+,nullptr,"water__flowmap_detail,water__flowmap_foam_color,water__flowmap_foam_depth_max,water__flowmap_foam_power,water__flowmap_foam_reflectivity,water__flowmap_foam_reflectivity_min,water__flowmap_foam_scale,water__flowmap_foam_speed_scale,water__flowmap_foam_threshold,water__flowmap_foam_tiling,water__flowmap_slope,water__flowmap_speed_depth_max,water__flowmap_speed_depth_scale,water__has_slopes");
 static constexpr ecs::ComponentDesc water_shore_setup_es_event_handler_comps[] =
 {
 //start of 5 ro components at [0]

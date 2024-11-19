@@ -41,6 +41,7 @@ struct RiExtraPool
   unsigned hasOccluder : 1, largeOccluder : 1, isWalls : 1, useVsm : 1, usedInLandmaskHeight : 1;
   unsigned patchesHeightmap : 1, usingClipmap : 1;
   unsigned killsNearEffects : 1, hasTransitionLod : 1;
+  unsigned isGrassify : 1;
   uint8_t hideMask = 0;
   struct ElemMask
   {
@@ -151,6 +152,7 @@ struct RiExtraPool
     immortal(false),
     hasColoredShaders(false),
     isTree(false),
+    isGrassify(false),
     hasOccluder(false),
     largeOccluder(false),
     isWalls(false),

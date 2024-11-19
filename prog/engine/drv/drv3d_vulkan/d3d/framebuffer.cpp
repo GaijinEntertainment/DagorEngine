@@ -151,9 +151,9 @@ bool d3d::set_depth(BaseTexture *tex, int layer, DepthAccess access)
   return true;
 }
 
-bool d3d::set_render_target(int ri, Texture *tex, int level) { return d3d::set_render_target(ri, tex, 0, level); }
+bool d3d::set_render_target(int ri, Texture *tex, uint8_t level) { return d3d::set_render_target(ri, tex, 0, level); }
 
-bool d3d::set_render_target(int ri, BaseTexture *tex, int layer, int level)
+bool d3d::set_render_target(int ri, BaseTexture *tex, int layer, uint8_t level)
 {
   G_ASSERTF(ri >= 0, "vulkan: no meaning of negative render target index is present");
 
@@ -242,7 +242,7 @@ bool d3d::get_target_size(int &w, int &h)
     return d3d::get_render_target_size(w, h, nullptr, 0);
 }
 
-bool d3d::get_render_target_size(int &w, int &h, BaseTexture *rt_tex, int lev)
+bool d3d::get_render_target_size(int &w, int &h, BaseTexture *rt_tex, uint8_t level)
 {
   if (!rt_tex)
   {
@@ -252,7 +252,7 @@ bool d3d::get_render_target_size(int &w, int &h, BaseTexture *rt_tex, int lev)
   }
   else
   {
-    const VkExtent3D &size = cast_to_texture_base(*rt_tex).getMipmapExtent(lev);
+    const VkExtent3D &size = cast_to_texture_base(*rt_tex).getMipmapExtent(level);
     w = size.width;
     h = size.height;
   }

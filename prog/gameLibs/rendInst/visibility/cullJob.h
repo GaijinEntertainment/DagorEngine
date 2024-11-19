@@ -37,18 +37,21 @@ struct CullJobSharedState
 
 class CullJob final : public cpujobs::IJob
 {
-  CullJobSharedState *parent = 0;
+  const CullJobSharedState *parent = 0;
   int jobIdx = 0;
 
 public:
-  void set(int job_idx, CullJobSharedState *parent_)
+  void set(int job_idx, const CullJobSharedState *parent_)
   {
     jobIdx = job_idx;
     parent = parent_;
   }
 
-  static inline void perform_job(int job_idx, CullJobSharedState *info)
+  static inline void perform_job(int job_idx, const CullJobSharedState *info)
   {
+    if (job_idx == 0) // First job wakes the rest
+      threadpool::wake_up_all();
+
     TIME_PROFILE(parallel_ri_cull_job);
 
     mat44f globtm = info->globtm;
@@ -63,7 +66,7 @@ public:
     std::atomic<uint32_t> *riexLargeCnt = info->riexLargeCnt;
 
     [[maybe_unused]] int tiled_scene_idx = 0;
-    scene::TiledSceneCullContext *ctx = info->sceneContexts;
+    const scene::TiledSceneCullContext *ctx = info->sceneContexts;
     for (const RendinstTiledScene &tiled_scene : info->scenes)
     {
       while (!ctx->tilesPassDone.load() || ctx->nextIdxToProcess.load(std::memory_order_relaxed) < ctx->tilesCount)
@@ -159,13 +162,7 @@ public:
       G_FAST_ASSERT(ctx == &info->sceneContexts[++tiled_scene_idx]);
     }
   }
-  virtual void doJob() override
-  {
-    if (!parent)
-      return;
-    perform_job(jobIdx, parent);
-    parent = nullptr;
-  }
+  void doJob() override { perform_job(jobIdx, parent); }
 };
 
 } // namespace rendinst

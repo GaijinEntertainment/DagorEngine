@@ -6544,8 +6544,7 @@ HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveR
   }
   if (bindlessInfo.matchCount > 0)
   {
-    bindless_manager.updateTextureReferencesNoLock(ctx, baseTex, texture, newTexture, bindlessInfo.firstFound, bindlessInfo.matchCount,
-      false);
+    bindless_manager.updateTextureReferencesNoLock(ctx, baseTex, texture, bindlessInfo.firstFound, bindlessInfo.matchCount, false);
   }
   ctx.moveTextureNoLock(texture, newTexture);
 

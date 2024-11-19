@@ -513,6 +513,12 @@ static void load_animations(
   }
   const char *defaultMaskName = clipsBlock->getStr("default_animation_mask", nullptr);
   const char *defaultTags = clipsBlock->getStr("default_tags", nullptr);
+  int featuresNormalizationGroup = 0;
+  if (clipsBlock->getBool("separate_features_normalization", false))
+  {
+    featuresNormalizationGroup = dataBase.normalizationGroupsCount;
+    dataBase.normalizationGroupsCount++;
+  }
   auto &clips = dataBase.clips;
   clips.reserve(clips.size() + clipsBlock->blockCount());
 
@@ -539,6 +545,7 @@ static void load_animations(
       clip.nextClipName = clipBlock->getStr("nextClip", "");
       clip.looped = clip.name == clip.nextClipName;
       clip.playSpeedMultiplierRange = clipBlock->getPoint2("play_speed_multiplier_range", Point2::ONE);
+      clip.featuresNormalizationGroup = featuresNormalizationGroup;
 
       const char *maskName = clipBlock->getStr("animation_mask", defaultMaskName);
       const DataBlock *nodeMask = node_masks.getBlockByName(maskName);
@@ -699,11 +706,13 @@ void load_animations(AnimationDataBase &dataBase,
   load_animation_root_motion_bones(rootMotionConfig, dataBase);
   dataBase.defaultCenterOfMass = extract_center_of_mass(dataBase, *dataBase.getReferenceSkeleton());
 
+  dataBase.normalizationGroupsCount = 1;
   for (const ecs::string &path : clips_path)
     load_animations(dataBase, data_base_eid, node_masks, path);
   dataBase.playOnlyFromStartTag = dataBase.tags.getNameId("play_only_from_start");
   resolve_next_clips(dataBase.clips, dataBase);
-  calculate_normalization(dataBase.clips, dataBase.featuresAvg, dataBase.featuresStd, dataBase.featuresSize);
+  calculate_normalization(dataBase.clips, dataBase.featuresAvg, dataBase.featuresStd, dataBase.featuresSize,
+    dataBase.normalizationGroupsCount);
   calculate_acceleration_struct(dataBase.clips, dataBase.featuresSize);
 
   debug("[MM] loading motion matching data base in %d ms", get_time_usec(refTime) / 1000);

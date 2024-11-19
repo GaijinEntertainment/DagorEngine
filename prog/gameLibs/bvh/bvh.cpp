@@ -1657,10 +1657,12 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
     for (auto &instances : context_id->riExtraInstances)
       uploadCount += instances.size();
 
-    auto upload = lock_sbuffer<HWInstance>(context_id->tlasUploadMain.getBuf(), 0, uploadCount, VBLOCK_WRITEONLY);
     {
-      auto cursor = upload.get();
+      auto upload = lock_sbuffer<HWInstance>(context_id->tlasUploadMain.getBuf(), 0, uploadCount, VBLOCK_WRITEONLY);
+      HANDLE_LOST_DEVICE_STATE(upload, );
+
       TIME_PROFILE(memcpy);
+      auto cursor = upload.get();
       memcpy(cursor, instanceDescs.data(), instanceDescs.size() * sizeof(HWInstance));
       cursor += instanceDescs.size();
       for (auto &instances : context_id->impostorInstances)
@@ -1676,7 +1678,6 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
 
       cpuInstanceCount = cursor - upload.get();
     }
-    upload.close();
 
     G_ASSERT(cpuInstanceCount <= instanceCount);
 

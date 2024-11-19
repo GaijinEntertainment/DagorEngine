@@ -69,6 +69,7 @@ struct DestrSettings
   bool hasStaticShadowsInvalidationCallback = false;
 
   float rendInstMaxLifeTime = 25.f;
+  float maxTreeImpulseDamage = 1000.0f;
   float hitPointsToDestrImpulseMult = 3000.f;
   float destrImpulseHitPointsMult = 1.f / 3000.f;
   float destrImpulseSendDist = 128.f;

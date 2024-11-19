@@ -54,21 +54,23 @@ macro USING_RTR(stage)
       float3 getRTR(uint2 tci)
       {
         float2 uv = (tci.xy + 0.5) * inv_output_resolution_rt;
-        float2 texelPos = frac(uv * resolutionF_rt);
-        uint2 crd = uint2(uv * resolutionF_rt);
+        float2 unnormalizedUv = uv * resolutionF_rt;
+        float2 unnormalizedUvOfs = unnormalizedUv - 0.5;
+        float2 texelPos = frac(unnormalizedUvOfs);
+        uint2 crd = uint2(unnormalizedUvOfs);
 
         float3 tl, tr, bl, br;
         BRANCH
         if (rtr_output_type == RTR_REBLUR)
         {
-          tl = REBLUR_BackEnd_UnpackRadianceAndNormHitDist(texture2DAt(rt_texture_outputs[rtr_bindless_slot], crd)).rgb;
+          tl = REBLUR_BackEnd_UnpackRadianceAndNormHitDist(texture2DAt(rt_texture_outputs[rtr_bindless_slot], min(crd, resolutionI_rt - 1))).rgb; // TODO: Remove "min" when we ceil resolution scaling (only this line).
           tr = REBLUR_BackEnd_UnpackRadianceAndNormHitDist(texture2DAt(rt_texture_outputs[rtr_bindless_slot], min(crd + uint2(1, 0), resolutionI_rt - 1))).rgb;
           bl = REBLUR_BackEnd_UnpackRadianceAndNormHitDist(texture2DAt(rt_texture_outputs[rtr_bindless_slot], min(crd + uint2(0, 1), resolutionI_rt - 1))).rgb;
           br = REBLUR_BackEnd_UnpackRadianceAndNormHitDist(texture2DAt(rt_texture_outputs[rtr_bindless_slot], min(crd + uint2(1, 1), resolutionI_rt - 1))).rgb;
         }
         else
         {
-          tl = RELAX_BackEnd_UnpackRadiance(texture2DAt(rt_texture_outputs[rtr_bindless_slot], crd)).rgb;
+          tl = RELAX_BackEnd_UnpackRadiance(texture2DAt(rt_texture_outputs[rtr_bindless_slot], min(crd, resolutionI_rt - 1))).rgb; // TODO: Remove "min" when we ceil resolution scaling (only this line).
           tr = RELAX_BackEnd_UnpackRadiance(texture2DAt(rt_texture_outputs[rtr_bindless_slot], min(crd + uint2(1, 0), resolutionI_rt - 1))).rgb;
           bl = RELAX_BackEnd_UnpackRadiance(texture2DAt(rt_texture_outputs[rtr_bindless_slot], min(crd + uint2(0, 1), resolutionI_rt - 1))).rgb;
           br = RELAX_BackEnd_UnpackRadiance(texture2DAt(rt_texture_outputs[rtr_bindless_slot], min(crd + uint2(1, 1), resolutionI_rt - 1))).rgb;

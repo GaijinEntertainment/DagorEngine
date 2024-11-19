@@ -191,7 +191,7 @@ void GrassRenderer::renderGrass()
     grass.render(grass.GRASS_NO_PREPASS);
 }
 
-void GrassRenderer::generateGrass(const TMatrix &itm)
+void GrassRenderer::generateGrass(const TMatrix &itm, const Driver3dPerspective &perspective)
 {
   auto *lmeshRenderer = WRDispatcher::getLandMeshRenderer();
   auto *lmeshManagerer = WRDispatcher::getLandMeshManager();
@@ -231,7 +231,7 @@ void GrassRenderer::generateGrass(const TMatrix &itm)
 
   if (grassify)
   {
-    grassify->generate(itm.getcol(3), itm, grass.getMaskTex(), rhlp, grass.base);
+    grassify->generate(itm.getcol(3), itm, perspective, grass.getMaskTex(), rhlp, grass.base);
   }
 
   if (::grs_draw_wire)
@@ -276,6 +276,9 @@ void GrassRenderer::initGrass(const DataBlock &grass_settings)
 
 void GrassRenderer::initGrassRendinstClipmap()
 {
+  if (grassify)
+    grassify->initGrassifyRendinst();
+
   // Note: technically the scene can have dynamically created objects that generate heightmap (currently there isn't any)
   if (!RendInstHeightmap::has_heightmap_objects_on_scene())
     return;
@@ -362,9 +365,9 @@ ECS_TRACK(render_settings__anisotropy)
 ECS_REQUIRE(int render_settings__anisotropy)
 static void track_anisotropy_change_es(const ecs::Event &, GrassRenderer &grass_render) { grass_render.grass.applyAnisotropy(); }
 
-void grass_prepare(const TMatrix &itm)
+void grass_prepare(const TMatrix &itm, const Driver3dPerspective &perspective)
 {
-  get_grass_render_ecs_query([&](GrassRenderer &grass_render) { grass_render.generateGrass(itm); });
+  get_grass_render_ecs_query([&](GrassRenderer &grass_render) { grass_render.generateGrass(itm, perspective); });
 }
 
 void grass_invalidate()

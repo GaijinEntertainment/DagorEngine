@@ -49,7 +49,9 @@ public:
     ImGui::PushStyleColor(ImGuiCol_Border, PropPanel::Constants::TOGGLE_BUTTON_CHECKED_BORDER_COLOR);
 
     const float size = ImGui::GetTextLineHeight();
+    PropPanel::ImguiHelper::setPointSampler();
     const bool clicked = ImGui::ImageButton("ib", iconId, ImVec2(size, size)); // "ib" stands for ImageButton. It could be anything.
+    PropPanel::ImguiHelper::setDefaultSampler();
 
     ImGui::PopStyleColor(2);
     ImGui::PopStyleVar();

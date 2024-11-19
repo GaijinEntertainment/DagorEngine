@@ -48,6 +48,7 @@ struct AnimationDataBase
   int featuresSize = 0;
   TagPresetVector tagsPresets;
   dag::Vector<vec4f> featuresAvg, featuresStd;
+  int normalizationGroupsCount = 0;
 
   dag::Index16 rootNode;
   // Prefer this node if it exists in a2d, otherwise fallback to root motion calculation based on skeleton nodes

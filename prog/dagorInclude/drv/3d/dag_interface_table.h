@@ -180,12 +180,12 @@ struct D3dInterfaceTable
   bool (*set_depth_0)(BaseTexture *, DepthAccess);
   bool (*set_depth_1)(BaseTexture *tex, int layer, DepthAccess);
   bool (*set_render_target_0)();
-  bool (*set_render_target_1)(int rt_index, BaseTexture *, int level);
-  bool (*set_render_target_2)(int rt_index, BaseTexture *, int fc, int level);
+  bool (*set_render_target_1)(int rt_index, BaseTexture *, uint8_t level);
+  bool (*set_render_target_2)(int rt_index, BaseTexture *, int fc, uint8_t level);
   bool (*set_render_target_3)(const Driver3dRenderTarget &rt);
   void (*get_render_target)(Driver3dRenderTarget &out_rt);
   bool (*get_target_size)(int &w, int &h);
-  bool (*get_render_target_size)(int &w, int &h, BaseTexture *rt_tex, int lev);
+  bool (*get_render_target_size)(int &w, int &h, BaseTexture *rt_tex, uint8_t level);
   void (*set_variable_rate_shading)(unsigned rate_x, unsigned rate_y, VariableRateShadingCombiner vertex_combiner,
     VariableRateShadingCombiner pixel_combiner);
   void (*set_variable_rate_shading_texture)(BaseTexture *rate_texture);

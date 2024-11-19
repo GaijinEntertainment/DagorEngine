@@ -1075,4 +1075,13 @@ namespace das {
         return mks;
     }
 
+    CaptureEntry * ast_makeCaptureEntry ( yyscan_t scanner, const LineInfo & at, const string & op, const string & name ) {
+        CaptureMode mode = CaptureMode::capture_by_reference;
+        if ( op=="clone" ) mode = CaptureMode::capture_by_clone;
+        else if ( op=="move" ) mode = CaptureMode::capture_by_move;
+        else if ( op=="copy" ) mode = CaptureMode::capture_by_copy;
+        else if ( op=="ref" ) mode = CaptureMode::capture_by_reference;
+        else yyextra->g_Program->error("unknown capture mode " + op, "", "", at, CompilationError::syntax_error);
+        return new CaptureEntry(name,mode);
+    }
  }

@@ -15,38 +15,37 @@
 #include "source/opt/spread_volatile_semantics.h"
 
 #include "source/opt/decoration_manager.h"
-#include "source/opt/ir_builder.h"
 #include "source/spirv_constant.h"
 
 namespace spvtools {
 namespace opt {
 namespace {
-
-const uint32_t kOpDecorateInOperandBuiltinDecoration = 2u;
-const uint32_t kOpLoadInOperandMemoryOperands = 1u;
-const uint32_t kOpEntryPointInOperandEntryPoint = 1u;
-const uint32_t kOpEntryPointInOperandInterface = 3u;
+constexpr uint32_t kOpDecorateInOperandBuiltinDecoration = 2u;
+constexpr uint32_t kOpLoadInOperandMemoryOperands = 1u;
+constexpr uint32_t kOpEntryPointInOperandEntryPoint = 1u;
+constexpr uint32_t kOpEntryPointInOperandInterface = 3u;
 
 bool HasBuiltinDecoration(analysis::DecorationManager* decoration_manager,
                           uint32_t var_id, uint32_t built_in) {
   return decoration_manager->FindDecoration(
-      var_id, SpvDecorationBuiltIn, [built_in](const Instruction& inst) {
+      var_id, uint32_t(spv::Decoration::BuiltIn),
+      [built_in](const Instruction& inst) {
         return built_in == inst.GetSingleWordInOperand(
                                kOpDecorateInOperandBuiltinDecoration);
       });
 }
 
-bool IsBuiltInForRayTracingVolatileSemantics(uint32_t built_in) {
+bool IsBuiltInForRayTracingVolatileSemantics(spv::BuiltIn built_in) {
   switch (built_in) {
-    case SpvBuiltInSMIDNV:
-    case SpvBuiltInWarpIDNV:
-    case SpvBuiltInSubgroupSize:
-    case SpvBuiltInSubgroupLocalInvocationId:
-    case SpvBuiltInSubgroupEqMask:
-    case SpvBuiltInSubgroupGeMask:
-    case SpvBuiltInSubgroupGtMask:
-    case SpvBuiltInSubgroupLeMask:
-    case SpvBuiltInSubgroupLtMask:
+    case spv::BuiltIn::SMIDNV:
+    case spv::BuiltIn::WarpIDNV:
+    case spv::BuiltIn::SubgroupSize:
+    case spv::BuiltIn::SubgroupLocalInvocationId:
+    case spv::BuiltIn::SubgroupEqMask:
+    case spv::BuiltIn::SubgroupGeMask:
+    case spv::BuiltIn::SubgroupGtMask:
+    case spv::BuiltIn::SubgroupLeMask:
+    case spv::BuiltIn::SubgroupLtMask:
       return true;
     default:
       return false;
@@ -56,49 +55,28 @@ bool IsBuiltInForRayTracingVolatileSemantics(uint32_t built_in) {
 bool HasBuiltinForRayTracingVolatileSemantics(
     analysis::DecorationManager* decoration_manager, uint32_t var_id) {
   return decoration_manager->FindDecoration(
-      var_id, SpvDecorationBuiltIn, [](const Instruction& inst) {
-        uint32_t built_in =
-            inst.GetSingleWordInOperand(kOpDecorateInOperandBuiltinDecoration);
+      var_id, uint32_t(spv::Decoration::BuiltIn), [](const Instruction& inst) {
+        spv::BuiltIn built_in = spv::BuiltIn(
+            inst.GetSingleWordInOperand(kOpDecorateInOperandBuiltinDecoration));
         return IsBuiltInForRayTracingVolatileSemantics(built_in);
       });
 }
 
 bool HasVolatileDecoration(analysis::DecorationManager* decoration_manager,
                            uint32_t var_id) {
-  return decoration_manager->HasDecoration(var_id, SpvDecorationVolatile);
-}
-
-bool HasOnlyEntryPointsAsFunctions(IRContext* context, Module* module) {
-  std::unordered_set<uint32_t> entry_function_ids;
-  for (Instruction& entry_point : module->entry_points()) {
-    entry_function_ids.insert(
-        entry_point.GetSingleWordInOperand(kOpEntryPointInOperandEntryPoint));
-  }
-  for (auto& function : *module) {
-    if (entry_function_ids.find(function.result_id()) ==
-        entry_function_ids.end()) {
-      std::string message(
-          "Functions of SPIR-V for spread-volatile-semantics pass input must "
-          "be inlined except entry points");
-      message += "\n  " + function.DefInst().PrettyPrint(
-                              SPV_BINARY_TO_TEXT_OPTION_FRIENDLY_NAMES);
-      context->consumer()(SPV_MSG_ERROR, "", {0, 0, 0}, message.c_str());
-      return false;
-    }
-  }
-  return true;
+  return decoration_manager->HasDecoration(var_id,
+                                           uint32_t(spv::Decoration::Volatile));
 }
 
 }  // namespace
 
 Pass::Status SpreadVolatileSemantics::Process() {
-  if (!HasOnlyEntryPointsAsFunctions(context(), get_module())) {
-    return Status::Failure;
+  if (HasNoExecutionModel()) {
+    return Status::SuccessWithoutChange;
   }
-
   const bool is_vk_memory_model_enabled =
       context()->get_feature_mgr()->HasCapability(
-          SpvCapabilityVulkanMemoryModel);
+          spv::Capability::VulkanMemoryModel);
   CollectTargetsForVolatileSemantics(is_vk_memory_model_enabled);
 
   // If VulkanMemoryModel capability is not enabled, we have to set Volatile
@@ -138,6 +116,8 @@ bool SpreadVolatileSemantics::IsTargetUsedByNonVolatileLoadInEntryPoint(
     uint32_t var_id, Instruction* entry_point) {
   uint32_t entry_function_id =
       entry_point->GetSingleWordInOperand(kOpEntryPointInOperandEntryPoint);
+  std::unordered_set<uint32_t> funcs;
+  context()->CollectCallTreeFromRoots(entry_function_id, &funcs);
   return !VisitLoadsOfPointersToVariableInEntries(
       var_id,
       [](Instruction* load) {
@@ -148,15 +128,16 @@ bool SpreadVolatileSemantics::IsTargetUsedByNonVolatileLoadInEntryPoint(
         }
         uint32_t memory_operands =
             load->GetSingleWordInOperand(kOpLoadInOperandMemoryOperands);
-        return (memory_operands & SpvMemoryAccessVolatileMask) != 0;
+        return (memory_operands & uint32_t(spv::MemoryAccessMask::Volatile)) !=
+               0;
       },
-      {entry_function_id});
+      funcs);
 }
 
 bool SpreadVolatileSemantics::HasInterfaceInConflictOfVolatileSemantics() {
   for (Instruction& entry_point : get_module()->entry_points()) {
-    SpvExecutionModel execution_model =
-        static_cast<SpvExecutionModel>(entry_point.GetSingleWordInOperand(0));
+    spv::ExecutionModel execution_model =
+        static_cast<spv::ExecutionModel>(entry_point.GetSingleWordInOperand(0));
     for (uint32_t operand_index = kOpEntryPointInOperandInterface;
          operand_index < entry_point.NumInOperands(); ++operand_index) {
       uint32_t var_id = entry_point.GetSingleWordInOperand(operand_index);
@@ -190,8 +171,8 @@ void SpreadVolatileSemantics::MarkVolatileSemanticsForVariable(
 void SpreadVolatileSemantics::CollectTargetsForVolatileSemantics(
     const bool is_vk_memory_model_enabled) {
   for (Instruction& entry_point : get_module()->entry_points()) {
-    SpvExecutionModel execution_model =
-        static_cast<SpvExecutionModel>(entry_point.GetSingleWordInOperand(0));
+    spv::ExecutionModel execution_model =
+        static_cast<spv::ExecutionModel>(entry_point.GetSingleWordInOperand(0));
     for (uint32_t operand_index = kOpEntryPointInOperandInterface;
          operand_index < entry_point.NumInOperands(); ++operand_index) {
       uint32_t var_id = entry_point.GetSingleWordInOperand(operand_index);
@@ -214,14 +195,15 @@ void SpreadVolatileSemantics::DecorateVarWithVolatile(Instruction* var) {
     return;
   }
   get_decoration_mgr()->AddDecoration(
-      SpvOpDecorate, {{spv_operand_type_t::SPV_OPERAND_TYPE_ID, {var_id}},
-                      {spv_operand_type_t::SPV_OPERAND_TYPE_LITERAL_INTEGER,
-                       {SpvDecorationVolatile}}});
+      spv::Op::OpDecorate,
+      {{spv_operand_type_t::SPV_OPERAND_TYPE_ID, {var_id}},
+       {spv_operand_type_t::SPV_OPERAND_TYPE_LITERAL_INTEGER,
+        {uint32_t(spv::Decoration::Volatile)}}});
 }
 
 bool SpreadVolatileSemantics::VisitLoadsOfPointersToVariableInEntries(
     uint32_t var_id, const std::function<bool(Instruction*)>& handle_load,
-    const std::unordered_set<uint32_t>& entry_function_ids) {
+    const std::unordered_set<uint32_t>& function_ids) {
   std::vector<uint32_t> worklist({var_id});
   auto* def_use_mgr = context()->get_def_use_mgr();
   while (!worklist.empty()) {
@@ -229,25 +211,25 @@ bool SpreadVolatileSemantics::VisitLoadsOfPointersToVariableInEntries(
     worklist.pop_back();
     bool finish_traversal = !def_use_mgr->WhileEachUser(
         ptr_id, [this, &worklist, &ptr_id, handle_load,
-                 &entry_function_ids](Instruction* user) {
+                 &function_ids](Instruction* user) {
           BasicBlock* block = context()->get_instr_block(user);
           if (block == nullptr ||
-              entry_function_ids.find(block->GetParent()->result_id()) ==
-                  entry_function_ids.end()) {
+              function_ids.find(block->GetParent()->result_id()) ==
+                  function_ids.end()) {
             return true;
           }
 
-          if (user->opcode() == SpvOpAccessChain ||
-              user->opcode() == SpvOpInBoundsAccessChain ||
-              user->opcode() == SpvOpPtrAccessChain ||
-              user->opcode() == SpvOpInBoundsPtrAccessChain ||
-              user->opcode() == SpvOpCopyObject) {
+          if (user->opcode() == spv::Op::OpAccessChain ||
+              user->opcode() == spv::Op::OpInBoundsAccessChain ||
+              user->opcode() == spv::Op::OpPtrAccessChain ||
+              user->opcode() == spv::Op::OpInBoundsPtrAccessChain ||
+              user->opcode() == spv::Op::OpCopyObject) {
             if (ptr_id == user->GetSingleWordInOperand(0))
               worklist.push_back(user->result_id());
             return true;
           }
 
-          if (user->opcode() != SpvOpLoad) {
+          if (user->opcode() != spv::Op::OpLoad) {
             return true;
           }
 
@@ -262,47 +244,51 @@ void SpreadVolatileSemantics::SetVolatileForLoadsInEntries(
     Instruction* var, const std::unordered_set<uint32_t>& entry_function_ids) {
   // Set Volatile memory operand for all load instructions if they do not have
   // it.
-  VisitLoadsOfPointersToVariableInEntries(
-      var->result_id(),
-      [](Instruction* load) {
-        if (load->NumInOperands() <= kOpLoadInOperandMemoryOperands) {
-          load->AddOperand(
-              {SPV_OPERAND_TYPE_MEMORY_ACCESS, {SpvMemoryAccessVolatileMask}});
+  for (auto entry_id : entry_function_ids) {
+    std::unordered_set<uint32_t> funcs;
+    context()->CollectCallTreeFromRoots(entry_id, &funcs);
+    VisitLoadsOfPointersToVariableInEntries(
+        var->result_id(),
+        [](Instruction* load) {
+          if (load->NumInOperands() <= kOpLoadInOperandMemoryOperands) {
+            load->AddOperand({SPV_OPERAND_TYPE_MEMORY_ACCESS,
+                              {uint32_t(spv::MemoryAccessMask::Volatile)}});
+            return true;
+          }
+          uint32_t memory_operands =
+              load->GetSingleWordInOperand(kOpLoadInOperandMemoryOperands);
+          memory_operands |= uint32_t(spv::MemoryAccessMask::Volatile);
+          load->SetInOperand(kOpLoadInOperandMemoryOperands, {memory_operands});
           return true;
-        }
-        uint32_t memory_operands =
-            load->GetSingleWordInOperand(kOpLoadInOperandMemoryOperands);
-        memory_operands |= SpvMemoryAccessVolatileMask;
-        load->SetInOperand(kOpLoadInOperandMemoryOperands, {memory_operands});
-        return true;
-      },
-      entry_function_ids);
+        },
+        funcs);
+  }
 }
 
 bool SpreadVolatileSemantics::IsTargetForVolatileSemantics(
-    uint32_t var_id, SpvExecutionModel execution_model) {
+    uint32_t var_id, spv::ExecutionModel execution_model) {
   analysis::DecorationManager* decoration_manager =
       context()->get_decoration_mgr();
-  if (execution_model == SpvExecutionModelFragment) {
+  if (execution_model == spv::ExecutionModel::Fragment) {
     return get_module()->version() >= SPV_SPIRV_VERSION_WORD(1, 6) &&
            HasBuiltinDecoration(decoration_manager, var_id,
-                                SpvBuiltInHelperInvocation);
+                                uint32_t(spv::BuiltIn::HelperInvocation));
   }
 
-  if (execution_model == SpvExecutionModelIntersectionKHR ||
-      execution_model == SpvExecutionModelIntersectionNV) {
+  if (execution_model == spv::ExecutionModel::IntersectionKHR ||
+      execution_model == spv::ExecutionModel::IntersectionNV) {
     if (HasBuiltinDecoration(decoration_manager, var_id,
-                             SpvBuiltInRayTmaxKHR)) {
+                             uint32_t(spv::BuiltIn::RayTmaxKHR))) {
       return true;
     }
   }
 
   switch (execution_model) {
-    case SpvExecutionModelRayGenerationKHR:
-    case SpvExecutionModelClosestHitKHR:
-    case SpvExecutionModelMissKHR:
-    case SpvExecutionModelCallableKHR:
-    case SpvExecutionModelIntersectionKHR:
+    case spv::ExecutionModel::RayGenerationKHR:
+    case spv::ExecutionModel::ClosestHitKHR:
+    case spv::ExecutionModel::MissKHR:
+    case spv::ExecutionModel::CallableKHR:
+    case spv::ExecutionModel::IntersectionKHR:
       return HasBuiltinForRayTracingVolatileSemantics(decoration_manager,
                                                       var_id);
     default:

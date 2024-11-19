@@ -145,19 +145,31 @@ void get_prev_view_proj(TMatrix4_vec4 &prev_view, TMatrix4_vec4 &prev_proj);
 void set_local_offset_hint(const Point3 &hint);
 void enable_separate_atest_pass(bool enable);
 
+ShaderElement *get_replaced_shader();
 void replace_shader(ShaderElement *element);
 
 struct ReplacedShaderScope
 {
-  ReplacedShaderScope(ShaderElement *element) { replace_shader(element); }
+  ReplacedShaderScope(ShaderElement *element)
+  {
+    G_ASSERTF(get_replaced_shader() == nullptr, "ReplacedShaderScope reentry not allowed!");
+    replace_shader(element);
+  }
+
   ~ReplacedShaderScope() { replace_shader(nullptr); }
 };
 
 // scoped material filtering
+const Tab<const char *> &get_filtered_material_names();
 void set_material_filters_by_name(Tab<const char *> &&material_names);
 struct MaterialFilterScope
 {
-  MaterialFilterScope(Tab<const char *> &&material_names) { set_material_filters_by_name(std::move(material_names)); }
+  MaterialFilterScope(Tab<const char *> &&material_names)
+  {
+    G_ASSERTF(get_filtered_material_names().size() == 0, "MaterialFilterScope reentry not allowed!");
+    set_material_filters_by_name(std::move(material_names));
+  }
+
   ~MaterialFilterScope() { set_material_filters_by_name({}); }
 };
 

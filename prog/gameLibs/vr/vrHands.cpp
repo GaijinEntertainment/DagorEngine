@@ -4,6 +4,7 @@
 
 #include <drv/dag_vr.h>
 
+#include <math/dag_mathAng.h>
 #include <gameRes/dag_gameResources.h>
 #include <gameRes/dag_collisionResource.h>
 #include <gameRes/dag_stdGameResId.h>
@@ -58,9 +59,14 @@ void VrHands::updateAnimPhys(VrInput::Hands side, AnimV20::AnimcharBaseComponent
   const float POINTING_POSE_GRIP_THRESHOLD = 0.85f;
   const bool shouldPoint =
     !float_nonzero(state.indexFinger) && float_nonzero(state.thumb) && state.squeeze > POINTING_POSE_GRIP_THRESHOLD;
-  setAnimPhysVarVal(side, indexFingerAnimVarId[side], shouldPoint ? 1.f : state.indexFinger * 0.5f);
-  setAnimPhysVarVal(side, thumbAnimVarId[side], shouldPoint ? 1.f : state.thumb * 0.5f);
-  setAnimPhysVarVal(side, fingersAnimVarId[side], state.squeeze);
+
+  const float indexVal = state.panel.isHoldingPanel ? 1.f : (shouldPoint ? 1.f : state.indexFinger * 0.5f);
+  const float thumbVal = state.panel.isHoldingPanel ? 0.41f : (shouldPoint ? 1.f : state.thumb * 0.5f);
+  const float squeezeVal = state.panel.isHoldingPanel ? 0.f : state.squeeze;
+
+  setAnimPhysVarVal(side, indexFingerAnimVarId[side], indexVal);
+  setAnimPhysVarVal(side, thumbAnimVarId[side], thumbVal);
+  setAnimPhysVarVal(side, fingersAnimVarId[side], squeezeVal);
 
   animPhys[side]->update(animchar_component, *physVars[side]);
 }
@@ -356,6 +362,87 @@ static Ellipse get_cylindrical_section(const Point3 &childPos, const Point3 &nor
 }
 
 
+static void place_fingers_on_flat_plane(GeomNodeTree &tree, const VrHands::GeomNodeTreeJointIndices &joint_indices,
+  const Point3 &plane_pos, const Point3 &plane_normal, const float fingertip_length)
+{
+  using Joints = VrHands::Joints;
+
+  constexpr int JOINTS_PER_FINGER = 3;
+  Joints fingers[4][JOINTS_PER_FINGER] = {
+    {Joints::VRIN_HAND_JOINT_INDEX_PROXIMAL, Joints::VRIN_HAND_JOINT_INDEX_INTERMEDIATE, Joints::VRIN_HAND_JOINT_INDEX_DISTAL},
+    {Joints::VRIN_HAND_JOINT_MIDDLE_PROXIMAL, Joints::VRIN_HAND_JOINT_MIDDLE_INTERMEDIATE, Joints::VRIN_HAND_JOINT_MIDDLE_DISTAL},
+    {Joints::VRIN_HAND_JOINT_RING_PROXIMAL, Joints::VRIN_HAND_JOINT_RING_INTERMEDIATE, Joints::VRIN_HAND_JOINT_RING_DISTAL},
+    {Joints::VRIN_HAND_JOINT_LITTLE_PROXIMAL, Joints::VRIN_HAND_JOINT_LITTLE_INTERMEDIATE, Joints::VRIN_HAND_JOINT_LITTLE_DISTAL}};
+
+  for (const auto &joints : fingers)
+  {
+    float fingerLength = 0.f;
+    float boneLength[JOINTS_PER_FINGER];
+    for (int jointIndex = 0; jointIndex < JOINTS_PER_FINGER; ++jointIndex)
+    {
+      if ((jointIndex + 1) < JOINTS_PER_FINGER)
+      {
+        // Be aware of parent scale
+        TMatrix parentWtm, childWtm;
+        tree.getNodeWtmScalar(joint_indices[joints[jointIndex]], parentWtm);
+        tree.getNodeWtmScalar(joint_indices[joints[jointIndex + 1]], childWtm);
+        boneLength[jointIndex] = length(parentWtm.getcol(3) - childWtm.getcol(3));
+      }
+      else
+        boneLength[jointIndex] = fingertip_length;
+      fingerLength += boneLength[jointIndex];
+    }
+
+    TMatrix parentWtm;
+    GeomNodeTree::Index16 parentIndex = tree.getParentNodeIdx(joint_indices[joints[0]]);
+    tree.getNodeWtmRelScalar(parentIndex, parentWtm);
+
+    for (int jointIndex = 0; jointIndex < JOINTS_PER_FINGER; ++jointIndex)
+    {
+      const GeomNodeTree::Index16 childIndex = joint_indices[joints[jointIndex]];
+
+      G_ASSERT_RETURN(parentIndex == tree.getParentNodeIdx(childIndex), );
+
+      mat44f &childTm = tree.getNodeTm(childIndex);
+      TMatrix childWtm;
+      v_mat_43cu_from_mat44(childWtm.array, childTm);
+      childWtm = parentWtm * childWtm;
+      const Point3 &childPos = childWtm.getcol(3);
+      const Point3 &oldBoneDir = -childWtm.getcol(2);
+      const Point3 rotationAxis = -normalize(childWtm.getcol(0));
+
+      constexpr float FINGER_RADIUS = 0.01f;
+      const Point3 attachmentPosWithOffset = plane_pos + sign((childPos - plane_pos) * plane_normal) * plane_normal * FINGER_RADIUS;
+      const Point3 intersectionAxis = normalize(cross(plane_normal, rotationAxis));
+
+      const Point3 childToIntersectionDir = normalize(cross(intersectionAxis, rotationAxis));
+
+      const float t = safediv(((attachmentPosWithOffset - childPos) * plane_normal), (childToIntersectionDir * plane_normal));
+      const Point3 intersectionPoint = childPos + childToIntersectionDir * t;
+      const float childToIntersectionDist = length(childPos - intersectionPoint);
+
+      const Point3 flatOldBoneDir = normalize(oldBoneDir - (oldBoneDir * rotationAxis) * rotationAxis);
+      const float fingerDirSign = sign(flatOldBoneDir * cross(rotationAxis, childToIntersectionDir));
+      const float currentAngle = safe_acos(flatOldBoneDir * childToIntersectionDir) * fingerDirSign;
+      const float wishAngle = safe_acos(safediv(childToIntersectionDist, fingerLength));
+
+      const Quat rotQuat(rotationAxis, (wishAngle - currentAngle));
+      const TMatrix rotTm = quat_to_matrix(rotQuat);
+
+      const TMatrix parentWitm = inverse(parentWtm);
+
+      TMatrix tm = parentWitm * rotTm * childWtm;
+      tm.setcol(3, as_point3(&childTm.col3));
+      v_mat44_make_from_43cu_unsafe(childTm, tm.array);
+      parentWtm = parentWtm * tm;
+      parentIndex = childIndex;
+
+      fingerLength -= boneLength[jointIndex];
+    }
+  }
+}
+
+
 static void place_fingers_on_attachment(GeomNodeTree &tree, VrInput::Hands hand,
   const VrHands::GeomNodeTreeJointIndices &joint_indices, const Point3 &attachment_pos, const Point3 &attachment_dir,
   const float attachment_radius, const float fingertip_length, const bool is_forced)
@@ -502,6 +589,32 @@ static void place_fingers_on_attachment(GeomNodeTree &tree, VrInput::Hands hand,
     const Point3 fingerBendPlaneNormal =
       normalize(parentWtm % as_point3(&tree.getNodeTm(joint_indices[Joints::VRIN_HAND_JOINT_THUMB_DISTAL]).col0));
     calcThumbNode(THUMB_DISTAL_RADIUS, joint_indices[Joints::VRIN_HAND_JOINT_THUMB_DISTAL], fingerBendPlaneNormal);
+  }
+}
+
+
+void VrHands::updatePanelAnim(VrInput::Hands side)
+{
+  auto &tree = animChar[side]->getNodeTree();
+  auto &state = handsState[side];
+  if (state.panel.isHoldingPanel && !state.attachment.isAttached)
+  {
+    auto &panelAngles = state.panel.angles;
+    auto &panelPosition = state.panel.position;
+
+    Quat rotation;
+    euler_to_quat(panelAngles.y, panelAngles.x, panelAngles.z, rotation);
+    TMatrix matRotation = quat_to_matrix(rotation);
+    TMatrix matTranslation = TMatrix::IDENT;
+    matTranslation.setcol(3, panelPosition);
+    TMatrix handTm;
+    tree.getNodeWtmRelScalar(GeomNodeTree::Index16(0), handTm);
+    handTm.orthonormalize();
+    const TMatrix panelTm = handTm * matTranslation * matRotation;
+
+    place_fingers_on_flat_plane(tree, jointIndices[side], panelTm.getcol(3), panelTm.getcol(2), fingertipLength);
+    tree.invalidateWtm();
+    tree.calcWtm();
   }
 }
 
@@ -664,6 +777,7 @@ void VrHands::update(float dt, const TMatrix &local_ref_space_tm, HandsState &&h
       ac.act(dt, true);
     }
     updateFingerStates(side);
+    updatePanelAnim(side);
     updateAttachment(side, refRotTm, !areJointsTracked);
 
     TMatrix &fingertipRealTm = realIndexFingertipTms[side];

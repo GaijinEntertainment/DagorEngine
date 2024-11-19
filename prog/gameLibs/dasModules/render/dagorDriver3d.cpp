@@ -105,10 +105,11 @@ public:
     BIND_FUNC_SIGNATURE(d3d::set_depth, "d3d_set_depth", modifyArgumentAndExternal, bool (*)(BaseTexture *, DepthAccess));
     BIND_FUNC_SIGNATURE(d3d::set_depth, "d3d_set_depth", modifyArgumentAndExternal, bool (*)(BaseTexture *, int, DepthAccess));
     BIND_FUNC_SIGNATURE(d3d::set_render_target, "d3d_set_render_target", modifyArgumentAndExternal, bool (*)());
-    BIND_FUNC_SIGNATURE(d3d::set_render_target, "d3d_set_render_target", modifyArgumentAndExternal, bool (*)(BaseTexture *, int));
-    BIND_FUNC_SIGNATURE(d3d::set_render_target, "d3d_set_render_target", modifyArgumentAndExternal, bool (*)(int, BaseTexture *, int));
+    BIND_FUNC_SIGNATURE(d3d::set_render_target, "d3d_set_render_target", modifyArgumentAndExternal, bool (*)(BaseTexture *, uint8_t));
     BIND_FUNC_SIGNATURE(d3d::set_render_target, "d3d_set_render_target", modifyArgumentAndExternal,
-      bool (*)(int, BaseTexture *, int, int));
+      bool (*)(int, BaseTexture *, uint8_t));
+    BIND_FUNC_SIGNATURE(d3d::set_render_target, "d3d_set_render_target", modifyArgumentAndExternal,
+      bool (*)(int, BaseTexture *, int, uint8_t));
     BIND_FUNC(d3d::set_rwtex, "d3d_set_rwtex", modifyArgumentAndExternal);
     BIND_FUNC(d3d::get_screen_size, "d3d_get_screen_size", modifyArgument);
     BIND_FUNC(d3d::setwire, "d3d_setwire", modifyExternal);

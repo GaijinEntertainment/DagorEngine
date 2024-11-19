@@ -49,9 +49,10 @@ class BindlessManager
   };
 
   State state;
+  const NullResourceTable *nullResourceTable = nullptr;
 
 public:
-  void init(DeviceContext &ctx, SamplerDescriptorAndState default_bindless_sampler);
+  void init(DeviceContext &ctx, SamplerDescriptorAndState default_bindless_sampler, const NullResourceTable *null_resource_table);
 
   uint32_t registerSampler(Device &device, DeviceContext &ctx, BaseTex *texture);
   uint32_t registerSampler(DeviceContext &ctx, SamplerDescriptorAndState sampler);
@@ -61,7 +62,7 @@ public:
 
   void freeBindlessResourceRange(uint32_t index, uint32_t count);
   void updateBindlessBuffer(DeviceContext &ctx, uint32_t index, Sbuffer *buffer);
-  void updateBindlessTexture(DeviceContext &ctx, uint32_t index, BaseTex *res, const NullResourceTable &null_table);
+  void updateBindlessTexture(DeviceContext &ctx, uint32_t index, BaseTex *res);
 
   struct CheckTextureImagePairResultType
   {
@@ -80,12 +81,13 @@ public:
   // Default values can be 0 for search_offset and ~0 for change_count, the method will still
   // function as expected by searching the whole set and replacing all found matches.
   // Requires front guard and binding guard locked.
-  void updateTextureReferencesNoLock(DeviceContext &ctx, BaseTex *tex, Image *old_image, Image *new_image, uint32_t search_offset,
+  void updateTextureReferencesNoLock(DeviceContext &ctx, BaseTex *tex, Image *old_image, uint32_t search_offset,
     uint32_t change_max_count, bool ignore_previous_view);
   void updateBufferReferencesNoLock(DeviceContext &ctx, D3D12_CPU_DESCRIPTOR_HANDLE old_descriptor,
     D3D12_CPU_DESCRIPTOR_HANDLE new_descriptor);
 
   bool hasTextureReference(BaseTex *tex);
+  bool hasTextureReferenceNoLock(BaseTex *tex);
   bool hasTextureImageReference(BaseTex *tex, Image *image);
   bool hasTextureImageViewReference(BaseTex *tex, Image *image, ImageViewState view);
   bool hasImageReference(Image *image);
@@ -94,11 +96,11 @@ public:
   bool hasBufferViewReference(Sbuffer *buf, D3D12_CPU_DESCRIPTOR_HANDLE view);
   bool hasBufferViewReference(D3D12_CPU_DESCRIPTOR_HANDLE view);
 
-  void resetTextureReferences(DeviceContext &ctx, BaseTex *texture, const NullResourceTable &null_table);
-  void resetBufferReferences(DeviceContext &ctx, D3D12_CPU_DESCRIPTOR_HANDLE descriptor, const NullResourceTable &null_table);
+  void resetTextureReferences(DeviceContext &ctx, BaseTex *texture);
+  void resetTextureImagePairReferencesNoLock(DeviceContext &ctx, BaseTex *texture, Image *image);
+  void resetBufferReferences(DeviceContext &ctx, D3D12_CPU_DESCRIPTOR_HANDLE descriptor);
 
-  void updateBindlessNull(DeviceContext &ctx, uint32_t resource_type, uint32_t index, uint32_t count,
-    const NullResourceTable &null_table);
+  void updateBindlessNull(DeviceContext &ctx, uint32_t resource_type, uint32_t index, uint32_t count);
   void preRecovery();
 
   template <typename T>
@@ -116,6 +118,8 @@ private:
   static ImageViewState adjust_previous_view(ImageViewState previous_view, int old_count, int new_count);
   template <typename SlotType, typename CheckerType>
   void resetReferences(DeviceContext &ctx, D3D12_CPU_DESCRIPTOR_HANDLE nullDescriptor, const CheckerType &checker);
+  template <typename SlotType, typename CheckerType>
+  void resetReferencesNoLock(DeviceContext &ctx, D3D12_CPU_DESCRIPTOR_HANDLE nullDescriptor, const CheckerType &checker);
 
   uint32_t allocateBindlessResourceRangeNoLock(uint32_t count);
   void freeBindlessResourceRangeNoLock(uint32_t index, uint32_t count);

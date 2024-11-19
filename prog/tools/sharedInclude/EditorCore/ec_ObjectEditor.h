@@ -138,6 +138,8 @@ public:
   virtual bool setUniqName(RenderableEditableObject *o, const char *n);
   void setSuffixDigitsCount(int c) { suffixDigitsCount = c; }
 
+  /// Get layer names for a given object type.
+  virtual void getLayerNames(int type, Tab<String> &names) {}
 
   //*****************************************************************
   /// @name Editing objects (add, remove, render).

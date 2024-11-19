@@ -421,7 +421,12 @@ namespace drv3d_metal
       num_reg = num_strored;
     }
 
-    id<MTLBuffer> buf = render.AllocateConstants(num_reg, device_buffer_offset);
+    String name;
+#if DAGOR_DBGLEVEL > 0
+    name.printf(0, "Default cb for stage %d, frame %llu", stage, render.frame);
+#endif
+
+    id<MTLBuffer> buf = render.AllocateConstants(num_reg, device_buffer_offset, num_reg, name);
     uint8_t* ptr = (uint8_t*)buf.contents + device_buffer_offset;
     G_ASSERT(device_buffer_offset + num_reg <= RingBufferItem::max_size);
 
@@ -456,8 +461,13 @@ namespace drv3d_metal
     {
       G_ASSERTF(immediate_dword_count > 0, "Shader name and variant: %s", getShaderName(shader->src == nil ? "" : [shader->src cStringUsingEncoding:[NSString defaultCStringEncoding]]).c_str());
 
-      int buf_imm_offset = 0;
-      id<MTLBuffer> buf_imm = render.AllocateConstants(immediate_dword_count*sizeof(uint32_t), buf_imm_offset);
+      String name;
+  #if DAGOR_DBGLEVEL > 0
+      name.printf(0, "Immediate cb for stage %d, frame %llu", stage, render.frame);
+  #endif
+
+      int buf_imm_offset = 0, imm_size = immediate_dword_count*sizeof(uint32_t);
+      id<MTLBuffer> buf_imm = render.AllocateConstants(imm_size, buf_imm_offset, imm_size, name);
       memcpy((uint8_t *)buf_imm.contents + buf_imm_offset, immediate_dwords, immediate_dword_count*sizeof(uint32_t));
 
       int target = shader->immediate_slot;
@@ -1314,8 +1324,13 @@ namespace drv3d_metal
         auto& rc = buffers2copy[i];
         G_ASSERT((rc.size & 3) == 0);
 
+        String name;
+#if DAGOR_DBGLEVEL > 0
+        name.printf(0, "Copy cb for buffer %s, frame %llu", [rc.dst.label UTF8String], render.frame);
+#endif
+
         int buf_size_offset = 0;
-        id<MTLBuffer> buf_size = AllocateConstants(16, buf_size_offset);
+        id<MTLBuffer> buf_size = AllocateConstants(16, buf_size_offset, 16, name);
         uint32_t * data = (uint32_t *)((uint8_t *)buf_size.contents + buf_size_offset);
         data[0] = rc.size / 4;
         data[1] = rc.src_offset / 4;
@@ -1824,8 +1839,14 @@ namespace drv3d_metal
     };
     BufferUP tempBufferVB, tempBufferIB;
 
+    String name_vb, name_ib;
+#if DAGOR_DBGLEVEL > 0
+    name_vb.printf(0, "immediate vb, frame %llu", render.frame);
+    name_ib.printf(0, "immediate ib, frame %llu", render.frame);
+#endif
+
     int vbuf_offset = 0;
-    tempBufferVB.dynamic_buffer = AllocateConstants(numvert*stride_bytes, vbuf_offset);
+    tempBufferVB.dynamic_buffer = AllocateConstants(numvert*stride_bytes, vbuf_offset, numvert*stride_bytes, name_vb);
     tempBufferVB.dynamic_frame = frame;
     tempBufferVB.dynamic_offset = 0;
 
@@ -1835,7 +1856,7 @@ namespace drv3d_metal
     if (ind)
     {
       int ibuf_offset = 0;
-      tempBufferIB.dynamic_buffer = AllocateConstants(prim_count * 2, ibuf_offset);
+      tempBufferIB.dynamic_buffer = AllocateConstants(prim_count * 2, ibuf_offset, prim_count * 2, name_ib);
       tempBufferIB.dynamic_frame = frame;
       tempBufferIB.dynamic_offset = 0;
 
@@ -2055,8 +2076,13 @@ namespace drv3d_metal
         [computeEncoder setComputePipelineState:clear_cs_pipeline];
       current_cs_pipeline = clear_cs_pipeline;
 
+      String name;
+  #if DAGOR_DBGLEVEL > 0
+      name.printf(0, "clear rwbuffer %s frame %llu", buff->getResName(), render.frame);
+  #endif
+
       int buf_size_offset = 0;
-      id<MTLBuffer> buf_size = AllocateConstants(32, buf_size_offset);
+      id<MTLBuffer> buf_size = AllocateConstants(32, buf_size_offset, 32, name);
       *(uint32_t *)((uint8_t *)buf_size.contents + buf_size_offset) = val[0];
       *(uint32_t *)((uint8_t *)buf_size.contents + buf_size_offset + 16) = buf->bufSize / 4;
 
@@ -2742,7 +2768,8 @@ namespace drv3d_metal
       G_ASSERT(rt.vp.w > 0);
       G_ASSERT(rt.vp.h > 0);
 
-      samples = 1;
+      // apple hardware only supports 4 so lets use 4 if any msaa is set
+      samples = forcedSampleCount < 2 ? 1 : 4;
       render_desc.renderTargetWidth = rt.vp.x + rt.vp.w;
       render_desc.renderTargetHeight = rt.vp.y + rt.vp.h;
       render_desc.defaultRasterSampleCount = samples;
@@ -3287,6 +3314,7 @@ namespace drv3d_metal
     rstate.depth_clip = state.zClip;
     rstate.stencil_ref = state.stencilRef;
     rstate.cull = state.cull-1;
+    rstate.forcedSampleCount = state.forcedSampleCount;
 
     rstate.raster_state.a2c = state.alphaToCoverage;
     rstate.raster_state.writeMask = state.colorWr;
@@ -3340,6 +3368,7 @@ namespace drv3d_metal
     if (cur_cull != state.cull)
       setCull(state.cull);
     cur_rstate.raster_state = state.raster_state;
+    forcedSampleCount = state.forcedSampleCount;
 
     return true;
   }

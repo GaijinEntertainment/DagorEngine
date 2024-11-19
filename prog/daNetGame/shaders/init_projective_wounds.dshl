@@ -2,23 +2,26 @@ texture teared_wounds_decal;
 texture wounds_decal_array;
 texture burned_cloth;
 texture burned_flesh;
-float4 high_intensity_blood = (0.04, 0.001, 0, 0.5);
-float4 low_intensity_blood = (0.0, 0.00, 0, 0.3);
-float4 wet_blood_color = (0.157, 0.012, 0.000, 1);
-float4 dry_blood_color = (0.086, 0.024, 0.020, 1);
-float blood_wound_high_wetness_thickness = 0.75;
-float blood_wound_opaque_thickness = 0.8;
-float blood_wound_max_thickness = 0.93;
-float blood_wound_drying_time = 1.0 / 120.0;
+
+float blood_wound_meat_smoothness = 0.8;
+float blood_wound_meat_reflectance = 0.21;
+float blood_wound_meat_intensity_border = 0.2;
+float blood_wound_meat_edge_scale = 0.3;
+float4 blood_wound_meat_color_high_intensity = (0.007, 0, 0, 1);
+float4 blood_wound_meat_color_low_intensity = (0.002, 0, 0, 1);
+
+float blood_wound_dark_albedo_compensation_factor = 0.04;
+float blood_wound_low_porosity_reflectance = 0.3;
+float blood_wound_dry_edge_scale = 0.5;
+float4 blood_wound_color_high_intensity = (0.05, 0, 0, 1);
+float4 blood_wound_color_low_intensity = (0.3, 0.02, 0, 1);
+
 float bloody_time = 0.25;
 float blood_tex_discard_threshold = 0.85;
 float sample_tex_inside_of = 0.9;
 float blood_brightness = 2.0;
 int debug_torn_wounds = 0;
 interval debug_torn_wounds: off<1, on;
-
-int blood_wound_high_quality = 0;
-interval blood_wound_high_quality : no<1, yes;
 
 macro INIT_BURNED_DIFFUSE_FUNCTION()
   (ps) {
@@ -36,22 +39,29 @@ macro INIT_PROJECTIVE_WOUNDS()
   sample_tex_inside_of@f1 = sample_tex_inside_of;
   blood_brightness@f1 = blood_brightness;
 }
-if (blood_wound_high_quality == no) {
-  (ps) {
-    high_intensity_blood@f4 = high_intensity_blood;
-    low_intensity_blood@f4 = low_intensity_blood;
-  }
-} else {
-  (ps) {
-    wet_blood_color@f3 = wet_blood_color;
-    dry_blood_color@f3 = dry_blood_color;
-    blood_wound_high_wetness_thickness@f1 = blood_wound_high_wetness_thickness;
-    blood_wound_opaque_thickness@f1 = blood_wound_opaque_thickness;
-    blood_wound_max_thickness@f1 = blood_wound_max_thickness;
-    blood_wound_max_thickness_minus_opaque_thickness@f1 = (blood_wound_max_thickness - blood_wound_opaque_thickness);
-    blood_wound_drying_time@f1 = blood_wound_drying_time;
-  }
+
+local float blood_wound_puddle_begin_thickness = 1.0 - blood_wound_meat_intensity_border;
+local float blood_wound_puddle_edge_thickness_width = blood_wound_puddle_begin_thickness*blood_wound_meat_edge_scale;
+
+(ps) {
+  blood_wound_meat_smoothness@f1 = blood_wound_meat_smoothness;
+  blood_wound_meat_reflectance@f1 = blood_wound_meat_reflectance;
+  blood_wound_puddle_begin_thickness@f1 = blood_wound_puddle_begin_thickness;
+  blood_wound_meat_edge_scale@f1 = blood_wound_meat_edge_scale;
+  blood_wound_puddle_edge_thickness_width@f1 = blood_wound_puddle_edge_thickness_width;
+  blood_wound_puddle_edge_ending_thickness@f1 = (blood_wound_puddle_begin_thickness + blood_wound_puddle_edge_thickness_width);
+  blood_wound_meat_color_high_intensity@f3 = blood_wound_meat_color_high_intensity.xyz;
+  blood_wound_meat_color_low_intensity@f3 = blood_wound_meat_color_low_intensity.xyz;
+  one_minus_blood_puddle_begin_thickness@f1 = (1.0 - blood_wound_puddle_begin_thickness);
+
+  blood_wound_dark_albedo_compensation_factor@f1 = blood_wound_dark_albedo_compensation_factor;
+  blood_wound_low_porosity_reflectance@f1 = blood_wound_low_porosity_reflectance;
+  blood_wound_dry_edge_scale@f1 = blood_wound_dry_edge_scale;
+  blood_wound_color_high_intensity@f3 = blood_wound_color_high_intensity.xyz;
+  blood_wound_color_low_intensity@f3 = blood_wound_color_low_intensity.xyz;
+
 }
+
 endmacro
 
 macro INIT_BURNED_DIFFUSE_FUNCTION_BLOCK()

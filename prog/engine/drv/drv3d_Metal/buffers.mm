@@ -277,18 +277,19 @@ namespace drv3d_metal
       }
       else
 #endif
-        dynamic_buffer = render.AllocateConstants(locked_size, dynamic_offset, bufSize);
+      {
+        String name;
+#if DAGOR_DBGLEVEL > 0
+        name.printf(0, "upload for %s %llu", getResName(), render.frame);
+#endif
+        dynamic_buffer = render.AllocateConstants(locked_size, dynamic_offset, bufSize, name);
+      }
       G_ASSERT(dynamic_buffer);
       dynamic_frame = render.frame;
 
       cur_render_buffer = cur_buffer;
 
       uint8_t *ret = (uint8_t*)dynamic_buffer.contents + dynamic_offset + offset_bytes;
-#if _TARGET_IOS
-      G_ASSERT(offset_bytes == 0);
-      if (size_bytes != locked_size)
-        memset(ret + size_bytes, 0, locked_size - size_bytes);
-#endif
       return ret;
     }
 
@@ -359,16 +360,19 @@ namespace drv3d_metal
         uint64_t cur_thread = 0;
         pthread_threadid_np(NULL, &cur_thread);
 
+        String name;
+#if DAGOR_DBGLEVEL > 0
+        name.printf(0, "upload for %s %llu", getResName(), render.frame);
+#endif
+
         bool from_thread = render.acquire_depth == 0 || cur_thread != render.cur_thread;
         if (from_thread || locked_size > 256 * 1024)
         {
-          String name;
-          name.printf(0, "upload for %s %llu", getResName(), render.frame);
           upload_buffer = render.createBuffer(locked_size, MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeShared, name);
           upload_buffer_offset = 0;
         }
         else
-          upload_buffer = [render.AllocateConstants(locked_size, upload_buffer_offset, locked_size) retain];
+          upload_buffer = [render.AllocateConstants(locked_size, upload_buffer_offset, locked_size, name) retain];
       }
       G_ASSERT((upload_buffer_offset & 3) == 0);
       G_ASSERT((offset_bytes & 3) == 0);
@@ -430,14 +434,14 @@ namespace drv3d_metal
     int tempOffset = 0;
     @autoreleasepool
     {
+      String name;
+#if DAGOR_DBGLEVEL > 0
+      name.printf(0, "upload for %s %llu", getResName(), render.frame);
+#endif
       if (size_bytes > 128 * 1024)
-      {
-        String name;
-        name.printf(0, "upload for %s %llu", getResName(), render.frame);
         tempBuffer = render.createBuffer(size_bytes, MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeShared, name);
-      }
       else
-        tempBuffer = [render.AllocateConstants(size_bytes, tempOffset) retain];
+        tempBuffer = [render.AllocateConstants(size_bytes, tempOffset, size_bytes, name) retain];
     }
 
     G_ASSERT(tempBuffer);

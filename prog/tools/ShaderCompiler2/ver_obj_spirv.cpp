@@ -4,7 +4,7 @@
 
 #include "util/dag_baseDef.h"
 
-extern const int VER_OBJ_SPIRV_VAL = _MAKE4C('12.9');
+extern const int VER_OBJ_SPIRV_VAL = _MAKE4C('13.0');
 
 #if _CROSS_TARGET_SPIRV
 #include <drv/shadersMetaData/spirv/compiled_meta_data.h>

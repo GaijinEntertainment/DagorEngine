@@ -1,0 +1,28 @@
+texture screen_snowflakes_tex;
+int screen_snowflakes_rendered = 0;
+
+macro INIT_SCREEN_SNOWFLAKES()
+  (ps) {
+    screen_snowflakes_tex@tex2d = screen_snowflakes_tex;
+    screen_snowflakes_rendered@i1 = screen_snowflakes_rendered;
+  }
+endmacro
+
+macro USE_SCREEN_SNOWFLAKES()
+hlsl(ps) {
+  void apply_screen_snowflakes(inout float3 frame, float2 tc)
+  {
+    BRANCH
+    if (screen_snowflakes_rendered)
+    {
+      float snowAlpha = saturate(screen_snowflakes_tex.SampleLevel(frame_tex_samplerstate, tc, 0).r);
+      // Squaring is needed to get rid of optical illusion of a border between snowflake and background. This also works as a cheap blur:
+      snowAlpha *= snowAlpha;
+      // Since snowflakes are applied in linear color space still, we need to mitigate a way too high jump in brightness
+      // when snowflake is in the dark area of the frame (obviously not mathematically correct, but good enough):
+      float frameGrayscale = (frame.r + frame.g + frame.b) / 3.f;
+      frame += sqrt(frameGrayscale + 0.01f) * snowAlpha;
+    }
+  }
+}
+endmacro

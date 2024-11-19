@@ -710,7 +710,7 @@ void RiGenRenderer::renderPackedObjects(const RendInstGenData::RtData &rt_data, 
   ShaderGlobal::setBlock(ShaderGlobal::getBlock(ShaderGlobal::LAYER_SCENE), ShaderGlobal::LAYER_SCENE);
 
   rendinst::render::RiShaderConstBuffers cb;
-  cb.setInstancing(0, 1, 1, 0);
+  cb.setInstancing(0, 1, 0x5, 0);
   cb.flushPerDraw();
 
   bool currentDepthPrepass = false;

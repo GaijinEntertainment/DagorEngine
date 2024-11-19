@@ -97,7 +97,10 @@ public:
   virtual int getID() const { return mId; }
 
   virtual void setWidth(hdpi::Px w) { mW = _px(w); }
+
+  // You can use Constants::LISTBOX_FULL_HEIGHT for list boxes here.
   virtual void setHeight(hdpi::Px h) { mH = _px(h); }
+
   virtual void resize(hdpi::Px w, hdpi::Px h)
   {
     setWidth(w);

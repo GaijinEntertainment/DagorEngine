@@ -251,9 +251,8 @@ void RenderObjectText::render(StdGuiRender::GuiContext &ctx, const Element *elem
     ctx.set_draw_str_attr(params->fontFx, params->fxOffsX, params->fxOffsY,
       color_apply_mods(params->fxColor, render_state.opacity, params->brightness), params->fxFactor);
 
-  // TODO: Use actual sampler IDs
   if (params->fontTex && params->fontTex->getPic().tex != BAD_TEXTUREID)
-    ctx.set_draw_str_texture(params->fontTex->getPic().tex, d3d::INVALID_SAMPLER_HANDLE, params->fontTexSu, params->fontTexSv,
+    ctx.set_draw_str_texture(params->fontTex->getPic().tex, params->fontTex->getPic().smp, params->fontTexSu, params->fontTexSv,
       params->fontTexBov);
 
   float strHeight = (ascent + descent);
@@ -308,8 +307,8 @@ void RenderObjectText::render(StdGuiRender::GuiContext &ctx, const Element *elem
       }
       strWidth += ellipsisWidth;
     }
-    all_glyphs_ready = ctx.draw_str_scaled_u_buf(params->guiText.v, params->guiText.c, StdGuiRender::DSBFLAG_rel, SCALE,
-      textU16 + start_char_idx, char_count);
+    all_glyphs_ready = ctx.draw_str_scaled_u_buf(params->guiText.v, params->guiText.c, params->guiText.samplers,
+      StdGuiRender::DSBFLAG_rel, SCALE, textU16 + start_char_idx, char_count);
 
     params->strWidth = strWidth;
     if (has_focus)
@@ -347,7 +346,7 @@ void RenderObjectText::render(StdGuiRender::GuiContext &ctx, const Element *elem
   {
     ctx.goto_xy(startPosX, startPosY);
     ctx.start_font_str(SCALE);
-    ctx.render_str_buf(params->guiText.v, params->guiText.c,
+    ctx.render_str_buf(params->guiText.v, params->guiText.c, params->guiText.samplers,
       StdGuiRender::DSBFLAG_rel | StdGuiRender::DSBFLAG_curColor | StdGuiRender::DSBFLAG_checkVis);
   }
   else
@@ -498,9 +497,8 @@ void RenderObjectInscription::render(StdGuiRender::GuiContext &ctx, const Elemen
     ctx.set_draw_str_attr(params->fontFx, params->fxOffsX, params->fxOffsY,
       color_apply_mods(params->fxColor, render_state.opacity, params->brightness), params->fxFactor);
 
-  // TODO: Use actual sampler IDs
   if (params->fontTex && params->fontTex->getPic().tex != BAD_TEXTUREID)
-    ctx.set_draw_str_texture(params->fontTex->getPic().tex, d3d::INVALID_SAMPLER_HANDLE, params->fontTexSu, params->fontTexSv,
+    ctx.set_draw_str_texture(params->fontTex->getPic().tex, params->fontTex->getPic().smp, params->fontTexSu, params->fontTexSv,
       params->fontTexBov);
 
   ctx.goto_xy(startPos);
@@ -674,7 +672,7 @@ void RenderObjectImage::render(StdGuiRender::GuiContext &ctx, const Element *ele
   if (params->saturateFactor != 1.0f)
     ctx.set_picquad_color_matrix_saturate(params->saturateFactor);
 
-  ctx.set_texture(pic.tex, d3d::INVALID_SAMPLER_HANDLE); // TODO: Use actual sampler IDs
+  ctx.set_texture(pic.tex, pic.smp);
   ctx.set_alpha_blend(image->getBlendMode());
 
   pic.updateTc();
@@ -1056,7 +1054,7 @@ void RenderObject9rect::render(StdGuiRender::GuiContext &ctx, const Element *ele
 
   const PictureManager::PicDesc &pic = params->image->getPic();
 
-  ctx.set_texture(pic.tex, d3d::INVALID_SAMPLER_HANDLE); // TODO: Use actual sampler IDs
+  ctx.set_texture(pic.tex, pic.smp);
   ctx.set_alpha_blend(params->image->getBlendMode());
 
   const float *texOffs = params->texOffs;
@@ -1350,6 +1348,7 @@ void RenderObjectProgressCircular::renderProgress(StdGuiRender::GuiContext &ctx,
   const float d = sqrtf(2.0);
 
   TEXTUREID texId = BAD_TEXTUREID;
+  d3d::SamplerHandle smpId = d3d::INVALID_SAMPLER_HANDLE;
   Point2 tcLt(0, 0), tcRb(0, 0);
   BlendMode blendMode = NONPREMULTIPLIED;
 
@@ -1358,13 +1357,14 @@ void RenderObjectProgressCircular::renderProgress(StdGuiRender::GuiContext &ctx,
     const PictureManager::PicDesc &pic = image->getPic();
     pic.updateTc();
     texId = pic.tex;
+    smpId = pic.smp;
     tcLt = pic.tcLt;
     tcRb = pic.tcRb;
     blendMode = image->getBlendMode();
   }
 
   ctx.set_color(255, 255, 255);
-  ctx.set_texture(texId, d3d::INVALID_SAMPLER_HANDLE); // TODO: Use actual sampler IDs
+  ctx.set_texture(texId, smpId);
   ctx.set_alpha_blend(blendMode);
 
   ctx.start_raw_layer();
@@ -1611,15 +1611,15 @@ void RenderObjectTextArea::render(StdGuiRender::GuiContext &ctx, const Element *
         {
           tmpU16.resize(block->text.length() + 1);
           tmpU16.resize(utf8_to_wcs_ex(block->text.c_str(), tmpU16.size() - 1, tmpU16.data(), tmpU16.size()));
-          all_glyphs_ready =
-            ctx.draw_str_scaled_u_buf(guiText.v, guiText.c, StdGuiRender::DSBFLAG_rel, 1.0f, tmpU16.data(), tmpU16.size());
+          all_glyphs_ready = ctx.draw_str_scaled_u_buf(guiText.v, guiText.c, guiText.samplers, StdGuiRender::DSBFLAG_rel, 1.0f,
+            tmpU16.data(), tmpU16.size());
         }
         nowHaveAllSymbols &= all_glyphs_ready;
         if (all_glyphs_ready && hadAllSymbols)
         {
           ctx.goto_xy(sc.screenPos.x - sc.scrollOffs.x + x, sc.screenPos.y - sc.scrollOffs.y + y);
           ctx.start_font_str(1.0f);
-          ctx.render_str_buf(guiText.v, guiText.c,
+          ctx.render_str_buf(guiText.v, guiText.c, guiText.samplers,
             StdGuiRender::DSBFLAG_rel | StdGuiRender::DSBFLAG_curColor | StdGuiRender::DSBFLAG_checkVis);
         }
         if (!all_glyphs_ready)
@@ -1956,7 +1956,7 @@ void RenderObjectBox::renderNoRadius(StdGuiRender::GuiContext &ctx, const Elemen
           image = params->fallbackImage;
         const PictureManager::PicDesc &pic = image->getPic();
         pic.updateTc();
-        ctx.set_texture(pic.tex, d3d::INVALID_SAMPLER_HANDLE); // TODO: Use actual sampler IDs
+        ctx.set_texture(pic.tex, pic.smp);
         ctx.set_alpha_blend(image->getBlendMode());
         if (params->saturateFactor != 1.0f)
           ctx.set_picquad_color_matrix_saturate(params->saturateFactor);
@@ -2038,7 +2038,7 @@ void RenderObjectBox::render(StdGuiRender::GuiContext &ctx, const Element *elem,
     const PictureManager::PicDesc &pic = image->getPic();
 
     pic.updateTc();
-    ctx.set_texture(pic.tex, d3d::INVALID_SAMPLER_HANDLE); // TODO: Use actual sampler IDs
+    ctx.set_texture(pic.tex, pic.smp);
     ctx.set_alpha_blend(image->getBlendMode() == NO_BLEND ? PREMULTIPLIED : image->getBlendMode());
     Point2 picLt = lt, picRb = rb, picLtTc = pic.tcLt, picRbTc = pic.tcRb;
 

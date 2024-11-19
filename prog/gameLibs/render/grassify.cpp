@@ -60,16 +60,31 @@ struct GrassGenerateHelper
   GrassGenerateHelper(float distance, float viewSize) : distance(distance), viewSize(viewSize)
   {
     texelSize = (distance * 2.0f) / viewSize;
-
-    rendinstVisibility = rendinst::createRIGenVisibility(midmem);
-    rendinst::setRIGenVisibilityMinLod(rendinstVisibility, 0, 2);
-    rendinst::setRIGenVisibilityRendering(rendinstVisibility, rendinst::VisibilityRenderingFlag::Static);
   };
 
-  ~GrassGenerateHelper() { rendinst::destroyRIGenVisibility(rendinstVisibility); }
+  void initGrassifyRendinst()
+  {
+    if (!globalVis)
+      globalVis = rendinst::createRIGenVisibility(midmem);
+
+    if (!frameVis)
+      frameVis = rendinst::createRIGenVisibility(midmem);
+
+    rendinst::setRIGenVisibilityMinLod(globalVis, 0, 2);
+    rendinst::setRIGenVisibilityRendering(globalVis, rendinst::VisibilityRenderingFlag::Static);
+    const real max = 1e10;
+    bbox3f boxCull = v_ldu_bbox3(BBox3(Point3(-max, -max, -max), Point3(max, max, max)));
+    rendinst::prepareRIGenExtraVisibilityForGrassifyBox(boxCull, 3, 0, 0, *globalVis);
+  }
+
+  ~GrassGenerateHelper()
+  {
+    rendinst::destroyRIGenVisibility(globalVis);
+    rendinst::destroyRIGenVisibility(frameVis);
+  }
 
   void generate(const Point3 &position, const IPoint2 &grassOffset, const IPoint2 &grassMaskSize, float grassMaskTexelSize,
-    const TMatrix &view_itm, const GPUGrassBase &gpuGrassBase);
+    const TMatrix &view_itm, Driver3dPerspective perspective, const GPUGrassBase &gpuGrassBase);
   void render(const Point3 &position, const TMatrix &view_itm, const GPUGrassBase &gpuGrassBase);
 
 private:
@@ -80,7 +95,8 @@ private:
   float distance;
   float viewSize;
   float texelSize;
-  RiGenVisibility *rendinstVisibility = nullptr;
+  RiGenVisibility *globalVis = nullptr;
+  RiGenVisibility *frameVis = nullptr;
   int rendinstGrassifySceneBlockId = ShaderGlobal::getBlockId("rendinst_grassify_scene");
 };
 
@@ -117,8 +133,11 @@ TMatrix4 GrassGenerateHelper::getProjectionMatrix(const Point3 &position) const
 }
 
 void GrassGenerateHelper::generate(const Point3 &position, const IPoint2 &grassMaskOffset, const IPoint2 &grassMaskSize,
-  float grassMaskTexelSize, const TMatrix &, const GPUGrassBase &gpuGrassBase)
+  float grassMaskTexelSize, const TMatrix &itm, Driver3dPerspective perspective, const GPUGrassBase &gpuGrassBase)
 {
+  if (!globalVis)
+    return;
+
   TIME_D3D_PROFILE(grassify_generate);
 
   IPoint2 positionTC = IPoint2(position.x / texelSize, position.z / texelSize);
@@ -126,12 +145,13 @@ void GrassGenerateHelper::generate(const Point3 &position, const IPoint2 &grassM
   Point3 alignedCenterPos = Point3(position2D.x, position.y, position2D.y);
   Point2 grassMaskDistance = Point2(grassMaskSize) * grassMaskTexelSize;
 
-  bbox3f boxCull = v_ldu_bbox3(BBox3(alignedCenterPos, distance * 2));
-  // box visibility, skip small ri
-  bbox3f actualBox;
+  TMatrix4 projTm;
+  // Fix far to cull based on distance.
+  perspective.zf = distance;
+  d3d::calcproj(perspective, projTm);
+  Frustum frustum(TMatrix4(inverse(itm)) * projTm);
+  rendinst::filterVisibility(*globalVis, *frameVis, [&frustum](vec4f min, vec4f max) { return frustum.testBox(min, max); });
 
-  rendinst::prepareRIGenExtraVisibilityBox(boxCull, 3, 0, 0, *rendinstVisibility, &actualBox);
-  if (v_bbox3_test_box_intersect_safe(actualBox, boxCull))
   {
     SCOPE_VIEW_PROJ_MATRIX;
 
@@ -156,7 +176,7 @@ void GrassGenerateHelper::generate(const Point3 &position, const IPoint2 &grassM
       );
       //  ShaderGlobal::set_color4(grass_grid_paramsVarId, alignedCenterPos.x, alignedCenterPos.y, currentGridSize, quadSize);
 
-      rendinst::render::renderRIGen(rendinst::RenderPass::Grassify, rendinstVisibility, orthonormalized_inverse(vtm),
+      rendinst::render::renderRIGen(rendinst::RenderPass::Grassify, frameVis, orthonormalized_inverse(vtm),
         rendinst::LayerFlag::Opaque, rendinst::OptimizeDepthPass::No, 3);
     };
 
@@ -188,8 +208,10 @@ Grassify::Grassify(const DataBlock &, int grassMaskResolution, float grassDistan
   grassGenHelper = eastl::make_unique<GrassGenerateHelper>(grassDistance, grassMaskResolution);
 }
 
-void Grassify::generate(const Point3 &pos, const TMatrix &view_itm, Texture *grass_mask, IRandomGrassRenderHelper &grassRenderHelper,
-  const GPUGrassBase &gpuGrassBase)
+void Grassify::initGrassifyRendinst() { grassGenHelper->initGrassifyRendinst(); }
+
+void Grassify::generate(const Point3 &pos, const TMatrix &view_itm, const Driver3dPerspective &perspective, Texture *grass_mask,
+  IRandomGrassRenderHelper &grassRenderHelper, const GPUGrassBase &gpuGrassBase)
 {
   if (!grassMaskHelper)
     generateGrassMask(grassRenderHelper);
@@ -201,7 +223,7 @@ void Grassify::generate(const Point3 &pos, const TMatrix &view_itm, Texture *gra
   grassMaskHelper->maskTex.setVar();
   grassMaskHelper->colorTex.setVar();
 
-  grassGenHelper->generate(pos, grassMaskHelper->offset, grassMaskHelper->maskSize, grassMaskHelper->texelSize, view_itm,
+  grassGenHelper->generate(pos, grassMaskHelper->offset, grassMaskHelper->maskSize, grassMaskHelper->texelSize, view_itm, perspective,
     gpuGrassBase);
 }
 

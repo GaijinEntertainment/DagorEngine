@@ -10,7 +10,6 @@ texture rtao_target;
 int rtao_frame_index;
 
 float4 rtao_hit_dist_params;
-float4 rtao_resolution;
 int4 rtao_resolutionI = (1,1,1,1);
 int rtao_res_mul = 1;
 
@@ -31,7 +30,7 @@ shader rt_ao
     inv_proj_tm@f44 = inv_proj_tm;
     world_view_pos@f3 = world_view_pos;
     resolution@u2 = rtao_resolutionI.xy;
-    inv_resolution@f2 = (1.0 / rtao_resolution.x, 1.0 / rtao_resolution.y);
+    inv_aligned_resolution@f2 = (rtao_res_mul*screen_pos_to_texcoord.xy);
     hit_dist_params@f4 = rtao_hit_dist_params;
     frame_index@i1 = rtao_frame_index;
     output@uav = rtao_target hlsl { RWTexture2D<float> output@uav; };
@@ -120,7 +119,7 @@ shader rt_ao
       }
 
       float w = linearize_z(rawDepth, zn_zfar.zw);
-      float underwaterFade = calc_underwater_fade(w, rayIndex, inv_resolution, world_view_pos);
+      float underwaterFade = calc_underwater_fade(w, rayIndex, inv_aligned_resolution, world_view_pos);
 
       BRANCH
       if (underwaterFade == 0)
@@ -133,14 +132,14 @@ shader rt_ao
       bool isGrass = gbuffer.isGrass;
 
       float seed = outputIndex.x + outputIndex.y * 3.43121412313 + frac(1.12345314312 * (frame_index % MAX_ACCUM_DENOISE_FRAMES));
-      float3 relPos = calc_camera_relative_pos(rayIndex, w, inv_resolution);
+      float3 relPos = calc_camera_relative_pos(rayIndex, w, inv_aligned_resolution);
       float3 normal = gbuffer.normal;
       if (!isGrass)
       {
         ##if rtao_res_mul == on
-          normal = calc_geometry_normal_half(rayIndex, inv_resolution, resolution);
+          normal = calc_geometry_normal_half(rayIndex, inv_aligned_resolution, resolution);
         ##else
-          normal = calc_geometry_normal(rayIndex, inv_resolution, resolution);
+          normal = calc_geometry_normal(rayIndex, inv_aligned_resolution, resolution);
         ##endif
       }
       float3 sampleDir = cosine_sample_hemisphere(normal, seed);

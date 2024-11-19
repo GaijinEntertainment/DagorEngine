@@ -11,13 +11,12 @@ public:
   SQ_PRECACHED_STRINGS_DECLARE(CachedStrings,
     cstr, //
     rotationComponentEntity,
-    rotationComponentName);
+    rotationComponentName,
+    rotationComponentHash);
 
   BhvRotateByComponent();
   virtual void onAttach(darg::Element *) override;
   virtual int update(UpdateStage stage, darg::Element *elem, float dt) override final;
-
-  ecs::HashedConstString componentNameHash;
 };
 
 extern BhvRotateByComponent bhv_rotate_by_component;

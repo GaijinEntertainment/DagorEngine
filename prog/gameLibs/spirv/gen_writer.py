@@ -379,6 +379,9 @@ def make_encoder_for_node(language, node):
           pName = make_node_param_name(p, pIndex)
           if p.type.category == 'Id':
             result += 'target.writeWord(value->{}->resultId);\n'.format(pName)
+          elif p.type.category == 'ValueEnum':
+            # usual word should be ok here
+            result += 'target.writeWord((uint32_t)(value->{}));\n'.format(pName)
           else:
             result += 'target.writeWord(static_cast<Id>(value->{}.value));\n'.format(pName)
           pIndex += 1
@@ -779,7 +782,8 @@ def generate_module_opcodes_writer(language):
   return result
 
 def generate_module_writer(language, cfg, module_sections_json):
-  result = '// auto generated, do not modify!\n'
+  result  = '// Copyright (C) Gaijin Games KFT.  All rights reserved.\n\n'
+  result += '// auto generated, do not modify!\n'
   result += '#include "{}"\n'.format(cfg.get('module-node-file-name'))
   result += '#include <spirv/module_builder.h>\n'
   result += 'using namespace spirv;\n'

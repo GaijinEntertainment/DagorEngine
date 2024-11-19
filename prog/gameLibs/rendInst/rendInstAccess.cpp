@@ -11,21 +11,23 @@
 #include <vecmath/dag_vecMath.h>
 #include <math/dag_mathUtils.h>
 
-rendinst::AutoLockReadPrimaryAndExtra::AutoLockReadPrimaryAndExtra()
+rendinst::AutoLockReadPrimary::AutoLockReadPrimary()
 {
   for (int l = 0; l < rendinst::rgPrimaryLayers; l++)
     if (RendInstGenData *rgl = rendinst::rgLayer[l])
       rgl->rtData->riRwCs.lockRead();
-  rendinst::ccExtra.lockRead();
 }
 
-rendinst::AutoLockReadPrimaryAndExtra::~AutoLockReadPrimaryAndExtra()
+rendinst::AutoLockReadPrimary::~AutoLockReadPrimary()
 {
   for (int l = rendinst::rgPrimaryLayers - 1; l >= 0; l--)
     if (RendInstGenData *rgl = rendinst::rgLayer[l])
       rgl->rtData->riRwCs.unlockRead();
-  rendinst::ccExtra.unlockRead();
 }
+
+rendinst::AutoLockReadPrimaryAndExtra::AutoLockReadPrimaryAndExtra() { rendinst::ccExtra.lockRead(); }
+
+rendinst::AutoLockReadPrimaryAndExtra::~AutoLockReadPrimaryAndExtra() { rendinst::ccExtra.unlockRead(); }
 
 int rendinst::getRIGenMaterialId(const RendInstDesc &desc, bool need_lock)
 {
@@ -493,6 +495,7 @@ void rendinst::build_ri_gen_thread_accel(RiGenVisibility *visibility, dag::Vecto
 void rendinst::foreachRiGenInstance(RiGenVisibility *visibility, RiGenIterator callback, void *user_data,
   const dag::Vector<uint32_t> &accel1, const dag::Vector<uint64_t> &accel2, volatile int &cursor1, volatile int &cursor2)
 {
+  rendinst::AutoLockReadPrimary lock;
   for (int index = interlocked_increment(cursor1) - 1; index < accel1.size(); index = interlocked_increment(cursor1) - 1)
   {
     TIME_PROFILE(process_lod_1);

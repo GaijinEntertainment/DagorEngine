@@ -150,6 +150,8 @@ shader rendinst_tree_perlin_layered
     USE_SPECULAR_FROM_COLOR()
   }
 
+  INIT_VEGETATION_INTERACTIONS()
+
   macro FILL_CURRENT_GBUFFER_LAYERED()
     (ps){
       diffuse_tex@static = tex;
@@ -346,6 +348,8 @@ shader rendinst_tree_perlin_layered
       };
     }
 
+    USE_AND_APPLY_VEGETATION_INTERACTIONS(is_pivoted == yes && (interactions == interactionsTrees))
+
     hlsl(vs) {
       #if PN_TESSELATION
         #define VS_OUTPUT HsInput
@@ -396,6 +400,7 @@ shader rendinst_tree_perlin_layered
           float3 prevWorldPos;
           applyWindAnimationOffset(worldPos, worldNormal, Data, tree_wind_params.x, AnimWindScale, worldPos, prevWorldPos, maxMovement);
         ##endif
+        APPLY_INTERACTIONS
 
         float3 pointToEye = world_view_pos-worldPos;
 
@@ -524,6 +529,8 @@ shader rendinst_tree_perlin_layered
       DEFINE_PIVOT_POINT_WIND_SCALE()
     }
 
+    USE_AND_APPLY_VEGETATION_INTERACTIONS(is_pivoted == yes && (interactions == interactionsTrees))
+
     hlsl(vs) {
       struct VsOutput
       {
@@ -562,6 +569,7 @@ shader rendinst_tree_perlin_layered
           float3 unusedPrevPos;
           applyWindAnimationOffset(worldPos, worldNormal, Data, tree_wind_params.x, AnimWindScale, worldPos, unusedPrevPos);
         ##endif
+        APPLY_INTERACTIONS
 
         output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
 

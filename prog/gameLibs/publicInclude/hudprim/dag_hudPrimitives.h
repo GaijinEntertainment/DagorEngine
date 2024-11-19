@@ -303,14 +303,14 @@ public:
       vertex_colors);
   }
 
-  void renderQuadScreenSpace3d(TEXTUREID texture_id, E3DCOLOR color, const Point4 &p0, const Point4 &p1, const Point4 &p2,
-    const Point4 &p3, const Point2 &tc0 = Point2(0.f, 0.f), const Point2 &tc1 = Point2(0.f, 1.f), const Point2 &tc2 = Point2(1.f, 1.f),
-    const Point2 &tc3 = Point2(1.f, 0.f), const E3DCOLOR *vertex_colors = NULL);
+  void renderQuadScreenSpace3d(TEXTUREID texture_id, d3d::SamplerHandle smp, E3DCOLOR color, const Point4 &p0, const Point4 &p1,
+    const Point4 &p2, const Point4 &p3, const Point2 &tc0 = Point2(0.f, 0.f), const Point2 &tc1 = Point2(0.f, 1.f),
+    const Point2 &tc2 = Point2(1.f, 1.f), const Point2 &tc3 = Point2(1.f, 0.f), const E3DCOLOR *vertex_colors = NULL);
 
   void renderQuad(const HudTexElem &elem, const E3DCOLOR color, dag::ConstSpan<float> pos, dag::ConstSpan<E3DCOLOR> col,
     const Coords coords, const float depth_2d = 0.0f);
 
-  void renderPoly(TEXTUREID texture_id, E3DCOLOR color, dag::ConstSpan<Point2> p, dag::ConstSpan<Point2> tc);
+  void renderPoly(TEXTUREID texture_id, d3d::SamplerHandle smp, E3DCOLOR color, dag::ConstSpan<Point2> p, dag::ConstSpan<Point2> tc);
 
   void renderTriFan(TEXTUREID texture_id, d3d::SamplerHandle smp, E3DCOLOR color, dag::ConstSpan<Point4> p, dag::ConstSpan<Point2> tc);
 
@@ -339,11 +339,11 @@ public:
 
   Point2 getColoredTextBBox(const char *text, int font_no);
 
-  void setMask(TEXTUREID texture_id, const Point3 &matrix_line_0, const Point3 &matrix_line_1, const Point2 &tc0 = Point2(0.f, 0.f),
-    const Point2 &tc1 = Point2(1.f, 1.f));
+  void setMask(TEXTUREID texture_id, d3d::SamplerHandle smp_id, const Point3 &matrix_line_0, const Point3 &matrix_line_1,
+    const Point2 &tc0 = Point2(0.f, 0.f), const Point2 &tc1 = Point2(1.f, 1.f));
 
-  void setMask(TEXTUREID texture_id, const Point2 &center_pos, float angle, const Point2 &scale, const Point2 &tc0 = Point2(0.f, 0.f),
-    const Point2 &tc1 = Point2(1.f, 1.f));
+  void setMask(TEXTUREID texture_id, d3d::SamplerHandle smp_id, const Point2 &center_pos, float angle, const Point2 &scale,
+    const Point2 &tc0 = Point2(0.f, 0.f), const Point2 &tc1 = Point2(1.f, 1.f));
 
   void clearMask();
 
@@ -412,6 +412,7 @@ protected:
     bool isReady = false;
     SmallTab<GuiVertex> qv;
     SmallTab<uint16_t> tex_qcnt;
+    SmallTab<d3d::SamplerHandle> samplers;
   };
   ska::flat_hash_map<uint32_t, TextBuffer> textBuffers;
 

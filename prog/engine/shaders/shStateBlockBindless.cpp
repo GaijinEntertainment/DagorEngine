@@ -25,10 +25,14 @@ struct BindlessTexRecord
 
 struct BindlessState;
 
-const uint32_t REGS_IN_CONST_BUF = 4096;
-const uint32_t MAX_CONST_BUFFER_SIZE = REGS_IN_CONST_BUF;
+static constexpr uint32_t REGS_IN_CONST_BUF = 4096;
+static constexpr uint32_t MAX_CONST_BUFFER_SIZE = REGS_IN_CONST_BUF;
 static_assert(MAX_CONST_BUFFER_SIZE <= REGS_IN_CONST_BUF, "Const buffer should be less than max value available by graphics APIs.");
-const int32_t DEFAULT_SAMPLER_ID = 0;
+static constexpr int32_t DEFAULT_SAMPLER_ID = 0;
+
+static constexpr uint32_t PACKED_STCODE_BITS = 12;
+static constexpr uint32_t BUFFER_BITS = 7;
+static constexpr uint32_t GLOBAL_STATE_BITS = 13;
 
 // TODO: generalize this to custom container that verifies invariant of non relocation on insertion
 using ConstantsContainer = NonRelocatableCont<Point4, MAX_CONST_BUFFER_SIZE>;
@@ -44,13 +48,6 @@ static OSSpinlock mutex;
 
 constexpr uint8_t INVALID_MAT_ID = UCHAR_MAX;
 static eastl::deque<eastl::remove_const_t<decltype(INVALID_MAT_ID)>, EASTLAllocatorType, 2048> stcodeIdToPacked;
-
-enum PackedConstsStateBits
-{
-  PACKED_STCODE_BITS = 12,
-  BUFFER_BITS = 7,
-  LOCAL_STATE_BITS = 13
-};
 
 template <typename T>
 using PackedCont = eastl::deque<T, EASTLAllocatorType, 32>;
@@ -115,34 +112,34 @@ static Sbuffer *create_static_cb(uint32_t register_count, const char *name)
 
 class PackedConstsState
 {
-  static_assert(PACKED_STCODE_BITS + BUFFER_BITS + LOCAL_STATE_BITS == 32, "We want to use the whole uint32_t for state id.");
+  static_assert(PACKED_STCODE_BITS + BUFFER_BITS + GLOBAL_STATE_BITS == 32, "We want to use the whole uint32_t for state id.");
 
   eastl::underlying_type_t<ConstStateIdx> stateId;
 
 public:
-  PackedConstsState(int packed_stcode_id, uint32_t buffer_id, uint32_t local_state_id)
+  PackedConstsState(int packed_stcode_id, uint32_t buffer_id, uint32_t global_state_id)
   {
     G_ASSERTF(packed_stcode_id < (1 << PACKED_STCODE_BITS), "PackedConstsState: packed_stcode_id=%d", packed_stcode_id);
     G_ASSERTF(buffer_id < (1 << BUFFER_BITS), "PackedConstsState: buffer_id=%" PRIu32, buffer_id);
-    G_ASSERTF(local_state_id < (1 << LOCAL_STATE_BITS),
-      "PackedConstsState: local_state_id=%" PRIu32 ". (Hint: check if too many materials are created!)", local_state_id);
+    G_ASSERTF(global_state_id < (1 << GLOBAL_STATE_BITS),
+      "PackedConstsState: global_state_id=%" PRIu32 ". (Hint: check if too many materials are created!)", global_state_id);
 
     stateId = (packed_stcode_id < 0)
-                ? local_state_id
-                : (((((uint32_t)(packed_stcode_id + 1) << BUFFER_BITS) | buffer_id) << LOCAL_STATE_BITS) | local_state_id);
+                ? global_state_id
+                : (((((uint32_t)(packed_stcode_id + 1) << BUFFER_BITS) | buffer_id) << GLOBAL_STATE_BITS) | global_state_id);
   }
 
   PackedConstsState(ConstStateIdx state) : stateId(eastl::to_underlying(state)) {}
 
-  int getPackedStcodeId() const { return (int)(stateId >> (LOCAL_STATE_BITS + BUFFER_BITS)) - 1; }
+  int getPackedStcodeId() const { return (int)(stateId >> (GLOBAL_STATE_BITS + BUFFER_BITS)) - 1; }
 
-  uint32_t getGlobalStateId() const { return stateId & ((1 << LOCAL_STATE_BITS) - 1); }
+  uint32_t getGlobalStateId() const { return stateId & ((1 << GLOBAL_STATE_BITS) - 1); }
 
-  uint32_t getLocalStateId() const;
+  uint32_t getLocalStateOffset() const;
 
-  uint32_t getBufferId() const { return (stateId >> LOCAL_STATE_BITS) & ((1 << BUFFER_BITS) - 1); }
+  uint32_t getBufferId() const { return (stateId >> GLOBAL_STATE_BITS) & ((1 << BUFFER_BITS) - 1); }
 
-  uint32_t getMaterialId() const { return (stateId >> LOCAL_STATE_BITS) & ((1 << (PACKED_STCODE_BITS + BUFFER_BITS)) - 1); }
+  uint32_t getMaterialId() const { return (stateId >> GLOBAL_STATE_BITS) & ((1 << (PACKED_STCODE_BITS + BUFFER_BITS)) - 1); }
 
   operator ConstStateIdx() const { return static_cast<ConstStateIdx>(stateId); }
 };
@@ -342,11 +339,11 @@ struct BindlessState
     });
     if (foundIt != end(states))
     {
-      const uint32_t localStateId = eastl::distance(begin(states), foundIt);
-      const uint32_t bufferId = consts_count == 0 ? 0 : (localStateId / (MAX_CONST_BUFFER_SIZE / consts_count));
+      const uint32_t globalStateId = eastl::distance(begin(states), foundIt);
+      const uint32_t bufferId = consts_count == 0 ? 0 : (globalStateId / (MAX_CONST_BUFFER_SIZE / consts_count));
       if (consts_count != 0 && stcode_id >= 0)
         bufferNeedsUpdate[packedId].set(bufferId);
-      return PackedConstsState(stcode_id < 0 ? -1 : packedId, bufferId, localStateId);
+      return PackedConstsState(stcode_id < 0 ? -1 : packedId, bufferId, globalStateId);
     }
 
     uint32_t bid = bindlessConstParams.size();
@@ -565,11 +562,17 @@ void update_bindless_state(ConstStateIdx const_state_idx, int tex_level)
   packedAll[state.getPackedStcodeId()][state.getGlobalStateId()].updateTexForPackedMaterial(const_state_idx, tex_level);
 }
 
-uint32_t PackedConstsState::getLocalStateId() const
+uint32_t PackedConstsState::getLocalStateOffset() const
 {
   const uint32_t constsCount = packedAll[getPackedStcodeId()][getGlobalStateId()].constsCount;
   if (!constsCount)
     return 0;
+  // NOTE: the secret knowledge here is that for each packedStcodeId we have a set of materials with
+  // different const params which all share the same stcode and hence constsCount (although the contents of
+  // the consts are different), so we pack them all into a set of buffers, each of which is MAX_CONST_BUFFER_SIZE,
+  // and then interpret these buffers as a T[MAX_CONST_BUFFER_SIZE/constsCount] inside of shaders, where
+  // sizeof(T) = constsCount. A "local offset" is the offset into this structured buffer that should be used
+  // by shaders, and it is calculated as follows.
   return getGlobalStateId() - (MAX_CONST_BUFFER_SIZE / constsCount) * getBufferId();
 }
 
@@ -577,7 +580,7 @@ uint32_t get_material_offset(ConstStateIdx const_state_idx)
 {
   const PackedConstsState state(const_state_idx);
   G_ASSERT(state.getPackedStcodeId() >= 0);
-  return state.getLocalStateId();
+  return state.getLocalStateOffset();
 }
 
 uint32_t get_material_id(ConstStateIdx const_state_idx)

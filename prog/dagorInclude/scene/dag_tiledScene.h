@@ -844,23 +844,29 @@ struct scene::TiledSceneCullContext
   vec3f plane47X, plane47Y, plane47Z, plane47W;
   uint32_t test_flags;
   uint32_t equal_flags;
-  std::atomic<uint32_t> tilesPassDone;    // flag, set to 1 when code finishes pushing to tiles
-  std::atomic<uint32_t> nextIdxToProcess; // index in tiles to be processed
+  std::atomic<uint32_t> tilesPassDone{0u}; // flag, set to 1 when code finishes pushing to tiles
   int *tilesPtr = nullptr;
-  std::atomic<uint32_t> tilesCount{0};
-  uint32_t tilesMax : 30, use_dist : 1, needToUnlock : 1;
+  uint32_t &totalTilesCount;
+  std::atomic<uint32_t> tilesCount{0u};
+  uint32_t tilesMax = 0;
+  bool use_dist = false;
+  bool needToUnlock = false;
+  uint16_t wakeUpOnNTiles = USHRT_MAX;
+  void *wake_up_ctx = nullptr;
+  void (*wake_up_cb)(void *) = [](void *) {};
+  mutable std::atomic<uint32_t> nextIdxToProcess{0u}; // index in tiles to be processed
 
-  TiledSceneCullContext() //-V730
-  {
-    tilesPassDone.store(0);
-    nextIdxToProcess.store(0);
-    needToUnlock = 0;
-  }
+  TiledSceneCullContext(uint32_t &ttc) : totalTilesCount(ttc) {} //-V730
   ~TiledSceneCullContext()
   {
-    tilesMax = tilesCount = 0;
-    framemem_ptr()->free(tilesPtr);
     G_ASSERT(!needToUnlock);
+    framemem_ptr()->free(tilesPtr);
+  }
+
+  void done()
+  {
+    G_ASSERTF(tilesCount <= tilesMax, "max=%d count=%d", tilesMax, tilesCount.load());
+    tilesPassDone.store(1);
   }
 };
 
@@ -873,22 +879,26 @@ void scene::TiledScene::frustumCullTilesPass(mat44f_cref globtm, vec4f pos_dists
     G_ASSERT_RETURN(occlusion, );
   }
   if (!getNodesAliveCount())
-  {
-    octx.tilesPassDone.store(1);
-    return;
-  }
+    return octx.done();
 
   G_ASSERT(debugIsReadingAllowed());
 
   octx.test_flags = test_flags << 16;
   octx.equal_flags = equal_flags << 16;
+  const auto wakeOn = octx.wakeUpOnNTiles;
+  uint32_t &totalTilesCount = octx.totalTilesCount;
+  auto addTile = [&](int ti) {
+    octx.tilesPtr[octx.tilesCount.load(std::memory_order_relaxed)] = ti;
+    octx.tilesCount++;
+    if (DAGOR_UNLIKELY(++totalTilesCount == wakeOn))
+      octx.wake_up_cb(octx.wake_up_ctx);
+  };
   if (tileCull.size() <= 1)
   {
     octx.tilesPtr = (int *)framemem_ptr()->alloc(sizeof(int));
     octx.tilesMax = 1;
-    octx.tilesPtr[0] = OUTER_TILE_INDEX - 1;
-    octx.tilesCount = 1;
-    octx.tilesPassDone.store(1);
+    addTile(OUTER_TILE_INDEX - 1);
+    octx.done();
     return;
   }
 
@@ -925,8 +935,7 @@ void scene::TiledScene::frustumCullTilesPass(mat44f_cref globtm, vec4f pos_dists
     {
       if (isEmptyTileMemory(tileBox.data()[i]))
         continue;
-      octx.tilesPtr[octx.tilesCount] = i;
-      octx.tilesCount++;
+      addTile(i);
     }
   }
   else
@@ -939,17 +948,12 @@ void scene::TiledScene::frustumCullTilesPass(mat44f_cref globtm, vec4f pos_dists
           continue;
         G_FAST_ASSERT(tileIndex < tileCull.size());
         G_FAST_ASSERT(!isEmptyTileMemory(tileBox.data()[tileIndex]));
-        octx.tilesPtr[octx.tilesCount] = tileIndex;
-        octx.tilesCount++;
+        addTile(tileIndex);
       }
     if (!isEmptyTileMemory(tileBox.data()[OUTER_TILE_INDEX]))
-    {
-      octx.tilesPtr[octx.tilesCount] = OUTER_TILE_INDEX;
-      octx.tilesCount++;
-    }
+      addTile(OUTER_TILE_INDEX);
   }
-  G_ASSERTF(octx.tilesCount <= octx.tilesMax, "max=%d count=%d", octx.tilesMax, octx.tilesCount.load());
-  octx.tilesPassDone.store(1);
+  octx.done();
 }
 
 template <bool use_flags, bool use_pools, bool use_occlusion, typename VisibleNodesF>

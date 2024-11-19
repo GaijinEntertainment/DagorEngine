@@ -24,6 +24,7 @@ render_settings {
   render_settings__dropletsOnScreen:b=true // graphics
   render_settings__snowflakesOnScreen:b=false // graphics
   render_settings__mudOnScreen:b=false // graphics
+  render_settings__ambientBloodOnScreen:b=false // graphics
 
   render_settings__forwardRendering:b=true // render feature
   render_settings__upscaleSamplingTex:b=true // render feature

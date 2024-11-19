@@ -9,6 +9,8 @@ include "character_micro_detail.dshl"
 
 shader rendinst_translucent
 {
+  ENABLE_ASSERT(ps)
+
   VERTEX_DENSITY_INIT_VS()
   VERTEX_DENSITY_WRITE()
 

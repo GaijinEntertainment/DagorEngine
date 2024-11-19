@@ -5,6 +5,8 @@ require rtti
 require debugapi
 require math
 
+var HTML_TEST_MODE = false
+
 var LOG_TEST_COMPILATION_TIME = false
 var ENABLE_AOT = true
 var ENABLE_JIT = true
@@ -64,8 +66,12 @@ def test_single_file ( fileName:string )
         print("\n\n")
 
 def run_dir ( appDir : string )
+    var once = false
     dir(appDir) <| $ ( fileName )
         if (!fileName |> starts_with("_")) && fileName |> ends_with(".das")
+            if HTML_TEST_MODE && once
+                return
+            once = true
             let appfile = "{appDir}/{fileName}"
             test_single_file(appfile)
 
@@ -102,44 +108,39 @@ def parse_short_profile_entry ( invocation:string; blk:block<(var res : ProfileE
             return <- [[ProfileEntry category=category, time=time, count=int(count)]]
 
 def make_table ( tablename:string; entries:array<ProfileEntry>; languages:table<string> )
-    var categories : table<string; double>
+    var categories : table<string; tuple<min:double;max:double>>
     for e in entries
         if languages |> key_exists(e.language)
             if categories |> key_exists(e.category)
-                categories[e.category] = min(e.time, categories[e.category])
+                let [[tmin,tmax]] = categories[e.category]
+                categories[e.category] = ( min(e.time,tmin), max(e.time, tmax))
             else
-                categories[e.category] = e.time
+                categories[e.category] = ( e.time, e.time )
     var slanguages <- [{for l in keys(languages); l}]
     slanguages |> sort
     var scategories <- [{for c in keys(categories); c}]
     scategories |> sort
-    print("<h2>{tablename}</h2>\n")
-    print("<table border=\"1\">\n")
-    print("<tr><th>Test</th>\n")
-    for l in slanguages
-        print("<th>{l}</th>")
-    print("</tr>\n")
+    print("\n<h2>{tablename}</h2>\n")
     for c in scategories
         var cattime : table<string; double>
         for e in entries
             if e.category==c
                 cattime[e.language] = e.time
-        print("<tr><td>{c}</td>\n")
+        print("<h3>{c}</h3>\n")
+        print("<table class=\"chart\" style=\"width: 600px;\">\n")
         for l in slanguages
             if cattime |> key_exists(l)
                 let time = cattime[l]
-                let mintime = categories[c]
-                let factor = time / mintime
+                let [[tmin,tmax]] = categories[c]
+                let minfactor = time / tmin
+                let maxfactor = time / tmax
                 let ts = fmt(":.4f", float(time))
-                let fs = fmt(":.2f", float(factor))
-                if int(factor*100.0lf) == 100
-                    print("<td><b>{fs} ({ts})</b></td>")
-                else
-                    print("<td>{fs} ({ts})</td>")
-            else
-                print("<td>N/A</td>")
-        print("</tr>\n")
-    print("</table>\n")
+                let fs = fmt(":.2f", float(minfactor))
+                let featured = int(minfactor*100.0lf) == 100
+                let tabclass = !featured ? "chart-bar" : "chart-bar featured"
+                let space = maxfactor*100.0lf // make it no less than 10%?
+                print("<tr><th>{l}</th><td><div class=\"{tabclass}\" style=\"width: {space}%;\">{ts}&nbsp ({fs})</div></td></tr>\n")
+        print("</table>\n")
 
 def make_entries ( extra:string = "" )
     let exe = get_command_line_arguments()[0]

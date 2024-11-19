@@ -191,14 +191,14 @@ KRNLIMP ConsoleModel get_console_model();
 KRNLIMP const char *get_console_model_revision(ConsoleModel model);
 
 template <typename F>
-__forceinline void spin_wait_no_profile(F keep_waiting_cb)
+__forceinline void spin_wait_no_profile(F keep_waiting_cb, int init_spins = SPINS_BEFORE_SLEEP)
 {
-  int spinsLeftBeforeSleep = SPINS_BEFORE_SLEEP;
+  int spinsLeftBeforeSleep = init_spins;
   while (keep_waiting_cb())
   {
     if (--spinsLeftBeforeSleep > 0)
       cpu_yield();
-    else if (spinsLeftBeforeSleep > -SPINS_BEFORE_SLEEP / 8)
+    else if (spinsLeftBeforeSleep > -(init_spins / 8))
       sleep_usec(0);
     else
     {
@@ -209,11 +209,15 @@ __forceinline void spin_wait_no_profile(F keep_waiting_cb)
 }
 
 template <typename F>
-inline void spin_wait(F keep_waiting_cb, uint32_t token = da_profiler::DescSleep, uint32_t threshold_us = 1)
+inline void spin_wait(F keep_waiting_cb, int spins = SPINS_BEFORE_SLEEP, uint32_t token = da_profiler::DescSleep,
+  uint32_t threshold_us = DEFAULT_LOCK_PROFILER_USEC_THRESHOLD)
 {
-  lock_start_t reft = dagor_lock_profiler_start();
-  spin_wait_no_profile(keep_waiting_cb);
-  dagor_lock_profiler_stop(reft, token, threshold_us);
+  if (!LOCK_PROFILER_ENABLED || keep_waiting_cb()) //-V547
+  {
+    lock_start_t reft = dagor_lock_profiler_start();
+    spin_wait_no_profile(keep_waiting_cb, spins);
+    dagor_lock_profiler_stop(reft, token, threshold_us);
+  }
 }
 
 #include <supp/dag_undef_KRNLIMP.h>

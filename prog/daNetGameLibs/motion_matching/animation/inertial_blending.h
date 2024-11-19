@@ -45,11 +45,8 @@ struct BoneInertialInfo
 // for the pose being transitioned from (src) as well
 // as the pose being transitioned to (dst) in their
 // own animation spaces.
-void inertialize_pose_transition(BoneInertialInfo &offset,
-  const BoneInertialInfo &current,
-  const BoneInertialInfo &goal,
-  const eastl::bitvector<framemem_allocator> &position_dirty,
-  const eastl::bitvector<framemem_allocator> &rotation_dirty);
+void inertialize_pose_transition(
+  BoneInertialInfo &offset, const BoneInertialInfo &current, const BoneInertialInfo &goal, const dag::Vector<float> &node_weights);
 
 // This function updates the inertializer states. Here
 // it outputs the smoothed animation (input plus offset)
@@ -65,18 +62,9 @@ void inertialize_pose_update(BoneInertialInfo &result,
 
 struct AnimationClip;
 
-void extract_frame_info(float t,
-  const AnimationClip &clip,
-  BoneInertialInfo &info,
-  eastl::bitvector<framemem_allocator> &position_dirty,
-  eastl::bitvector<framemem_allocator> &rotation_dirty);
+void extract_frame_info(float t, const AnimationClip &clip, BoneInertialInfo &info);
 
 // We need this correction because current mocap animations are not centered. Root node
 // will be transformed to local model space and animation become in-place. Most likely we
 // can perform this transformation during a2d export in future.
-void apply_root_motion_correction(float t,
-  const AnimationClip &clip,
-  dag::Index16 root_idx,
-  BoneInertialInfo &info,
-  const eastl::bitvector<framemem_allocator> &position_dirty,
-  const eastl::bitvector<framemem_allocator> &rotation_dirty);
+void apply_root_motion_correction(float t, const AnimationClip &clip, dag::Index16 root_idx, BoneInertialInfo &info);

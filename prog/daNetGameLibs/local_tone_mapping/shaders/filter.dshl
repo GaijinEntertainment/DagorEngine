@@ -12,8 +12,6 @@ shader local_tone_mapping_filter
   z_test=false;
   color_write = rgb;
   POSTFX_VS_TEXCOORD(0, tc)
-  INIT_EXPOSURE(ps)
-  USE_EXPOSURE(ps)
   local float4 tex_resolution = get_dimensions(exposure_tex, 0);
   (ps) {
     exposure_tex@tex2d = exposure_tex;
@@ -28,7 +26,7 @@ shader local_tone_mapping_filter
 
     float3 local_tone_mapping_filter_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
     {
-      float targetLum = linear_to_log(luminance(tex2D(frame_tex, input.tc).xyz * getPrevExposureRatio()));
+      float targetLum = linear_to_log(luminance(tex2D(frame_tex, input.tc).xyz));
       float lum = 0;
       float weightSum = 0.00001;
       int windowHalfSize = 1;
@@ -36,7 +34,7 @@ shader local_tone_mapping_filter
       for (int dy = -windowHalfSize; dy <= windowHalfSize; dy += 1) {
         UNROLL
         for (int dx = -windowHalfSize; dx <= windowHalfSize; dx += 1) {
-          float3 color = tex2D(frame_tex, input.tc + float2(dx, dy) * tex_resolution.zw).xyz * getPrevExposureRatio();
+          float3 color = tex2D(frame_tex, input.tc + float2(dx, dy) * tex_resolution.zw).xyz;
           float currentLum = linear_to_log(luminance(color));
           float w = exp(sigma_d_scale * float(dx*dx + dy*dy) + sigma_r_scale * (currentLum - targetLum) * (currentLum - targetLum));
           lum += tex2D(exposure_tex, input.tc + float2(dx, dy) * tex_resolution.zw).x * w;

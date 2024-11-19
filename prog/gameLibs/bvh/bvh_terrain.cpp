@@ -23,6 +23,7 @@ namespace bvh::terrain
 {
 
 static UniqueBuf indices;
+static uint32_t indices_bindless_slot = -1;
 
 static constexpr int terrain_cell_size = 100;
 static constexpr int terrain_cell_vertex_count = (terrain_cell_size + 1) * (terrain_cell_size + 1);
@@ -167,7 +168,6 @@ template <bool embed_normals>
 static bool generate_patch_template(int cell_size, TerrainPatch &patch, TerrainVertex<embed_normals> *scratch)
 {
   patch.position = Point2::ZERO;
-  patch.indices = indices.getBuf();
 
   if (!generate_patch_buffer<false, embed_normals>(nullptr, patch.vertices, scratch, Point2::ZERO, cell_size, false))
     return false;
@@ -198,7 +198,6 @@ static bool instantiate_patch(ContextId context_id, TerrainPatch &patch, void *s
   CHECK_LOST_DEVICE_STATE_RET(false);
 
   patch.position = origin;
-  patch.indices = indices.getBuf();
 
   if (!generate_patch_buffer<true, embed_normals>(context_id, patch.vertices, scratch, origin, cell_size, true))
     return false;
@@ -224,17 +223,18 @@ static bool instantiate_patch(ContextId context_id, TerrainPatch &patch, void *s
 
   if (patch.metaAllocId < 0)
   {
+    G_ASSERT(indices_bindless_slot != -1);
+
     patch.metaAllocId = context_id->allocateMetaRegion();
     auto &meta = context_id->meshMetaAllocator.get(patch.metaAllocId);
 
     meta.markInitialized();
 
-    uint32_t bindlessIndicesIndex, bindlessVerticesIndex;
-    context_id->holdBuffer(indices.getBuf(), bindlessIndicesIndex);
+    uint32_t bindlessVerticesIndex;
     context_id->holdBuffer(patch.vertices.get(), bindlessVerticesIndex);
 
     meta.materialType = MeshMeta::bvhMaterialTerrain;
-    meta.indexAndVertexBufferIndex = (bindlessIndicesIndex << 16) | bindlessVerticesIndex;
+    meta.indexAndVertexBufferIndex = (indices_bindless_slot << 16) | bindlessVerticesIndex;
   }
 
   return true;
@@ -437,7 +437,11 @@ void init() { generate_indices(); }
 void init(ContextId context_id)
 {
   if (context_id->has(Features::Terrain))
+  {
+    G_ASSERT(indices && indices_bindless_slot == -1);
     context_id->terrainLods.resize(bvh_terrain_lod_count);
+    context_id->holdBuffer(indices.getBuf(), indices_bindless_slot);
+  }
 }
 
 void teardown() { indices.close(); }
@@ -445,8 +449,11 @@ void teardown() { indices.close(); }
 void teardown(ContextId context_id)
 {
   remove_patches(context_id);
-  context_id->terrainPatchTemplate.indices = nullptr;
   context_id->terrainPatchTemplate.~TerrainPatch();
+
+  G_ASSERT(indices_bindless_slot != -1);
+  G_VERIFY(context_id->releaseBuffer(indices.getBuf()));
+  indices_bindless_slot = -1;
 }
 
 dag::Vector<eastl::tuple<uint64_t, uint32_t, Point2>> get_blases(ContextId context_id)
