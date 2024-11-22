@@ -71,18 +71,20 @@ FidelityFXSuperResolution::FidelityFXSuperResolution(const IPoint2 &outputResolu
                              .atStage(dabfg::Stage::PS_OR_CS)
                              .useAs(dabfg::Usage::COLOR_ATTACHMENT)
                              .handle();
-    auto exposureTexHndl =
-      registry.readTexture("exposure_tex").atStage(dabfg::Stage::PS_OR_CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
+    auto exposureNormFactorHndl = registry.readTexture("exposure_normalization_factor")
+                                    .atStage(dabfg::Stage::PS_OR_CS)
+                                    .useAs(dabfg::Usage::SHADER_RESOURCE)
+                                    .handle();
     auto camera = registry.readBlob<CameraParams>("current_camera").handle();
 
     auto reactiveHandle =
       registry.readTexture("reactive_mask").atStage(dabfg::Stage::CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
 
-    return [this, depthHndl, motionVecsHndl, opaqueFinalTargetHndl, antialiasedHndl, exposureTexHndl, camera, reactiveHandle] {
+    return [this, depthHndl, motionVecsHndl, opaqueFinalTargetHndl, antialiasedHndl, exposureNormFactorHndl, camera, reactiveHandle] {
       OptionalInputParams params;
       params.depth = depthHndl.view().getTex2D();
       params.motion = motionVecsHndl.view().getTex2D();
-      params.exposure = exposureTexHndl.view().getTex2D();
+      params.exposure = exposureNormFactorHndl.view().getTex2D();
       params.reactive = reactiveHandle.view().getTex2D();
       params.perspective = camera.ref().noJitterPersp;
       render(opaqueFinalTargetHndl.view().getTex2D(), antialiasedHndl.view().getTex2D(), params);

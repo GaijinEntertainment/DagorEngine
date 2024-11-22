@@ -58,7 +58,7 @@ void ExecutionSyncTracker::BufferOp::aliasEndAccess(VkPipelineStageFlags stage, 
 
 void ExecutionSyncTracker::BufferOpsArray::removeRoSeal(Buffer *obj)
 {
-  arr[lastProcessed] = {obj->getRoSealReads(), obj, {0, obj->getBlockSize()}, {}, // we don't know actual caller
+  arr[lastProcessed] = {OpUid::next(), obj->getRoSealReads(), obj, {0, obj->getBlockSize()}, {}, // we don't know actual caller
     VK_ACCESS_NONE,
     /*completed*/ false, /*dstConflict*/ false};
 }

@@ -220,5 +220,7 @@ int mac_message_box_internal(const char *utf8_text, const char *utf8_caption, in
       dispatch_semaphore_signal(semaphore);
   });
   dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+  dispatch_release(semaphore);
+
   return res;
 }

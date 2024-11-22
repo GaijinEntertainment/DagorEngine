@@ -144,7 +144,7 @@ public:
 
   bool isLeafSelected(TLeafHandle leaf) const { return tree.isLeafSelected(leaf); }
 
-  void setSelectedLeaf(TLeafHandle leaf) { tree.setSelectedLeaf(leaf); }
+  void setSelectedLeaf(TLeafHandle leaf, bool keep_selected = false) { tree.setSelectedLeaf(leaf, keep_selected); }
 
   TLeafHandle getSelectedLeaf() const { return tree.getSelectedLeaf(); }
 

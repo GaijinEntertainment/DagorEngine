@@ -2641,6 +2641,7 @@ void WorldRenderer::createNodes()
     eastl::move(nodes.begin(), nodes.end(), eastl::back_inserter(fgNodeHandles));
   }
   fgNodeHandles.push_back(makeOpaqueDynamicsNode());
+  fgNodeHandles.push_back(makeFrameBeforeDistortionProducerNode());
   fgNodeHandles.push_back(makeDistortionFxNode());
 
   resource_slot::NodeHandleWithSlotsAccess (*resSlotFactories[])(){
@@ -5967,6 +5968,7 @@ void WorldRenderer::updateHeroMatrix(const DPoint3 &world_pos)
     ShaderGlobal::set_color4(hero_matrixXVarId, Color4((float *)&wtm.row0));
     ShaderGlobal::set_color4(hero_matrixYVarId, Color4((float *)&wtm.row1));
     ShaderGlobal::set_color4(hero_matrixZVarId, Color4((float *)&wtm.row2));
+    ShaderGlobal::set_int(hero_is_cockpitVarId, hero_data.resFlags == hero_data.WEAPON);
 
     mat44f worldToPrevNoReprojectedWPos;
     mat43f wtmPrevNoReprojectedWpos;

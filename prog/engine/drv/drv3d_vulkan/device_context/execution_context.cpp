@@ -205,15 +205,24 @@ void ExecutionContext::imageBarrier(Image *img, ResourceBarrier d3d_barrier, uin
   }
 }
 
-void ExecutionContext::switchFrameCore()
+void ExecutionContext::switchFrameCore(DeviceQueueType target_queue, bool async)
 {
-  scratch.cmdListsToSubmit.push_back(frameCore);
+  // override any queue to graphics if multi queue is not enabled
+  if (!Globals::cfg.bits.allowMultiQueue)
+  {
+    target_queue = DeviceQueueType::GRAPHICS;
+    async = false;
+  }
+  // note: first switch will push empty buffer, that is used to replace later on for preFrame
+  scratch.cmdListsToSubmit.push_back({frameCoreQueue, frameCore, frameCoreAsync, false /*externalWaitPoint*/});
+  frameCoreQueue = target_queue;
+  frameCoreAsync = async;
   allocFrameCore();
 }
 
 void ExecutionContext::allocFrameCore()
 {
-  frameCore = Backend::gpuJob->allocateCommandBuffer(vkDev);
+  frameCore = Backend::gpuJob->allocateCommandBuffer(frameCoreQueue);
   VkCommandBufferBeginInfo cbbi;
   cbbi.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
   cbbi.pNext = nullptr;
@@ -280,8 +289,7 @@ void ExecutionContext::cleanupMemory()
   {
     TIME_PROFILE(vulkan_make_syscopy);
 
-    allocFrameCore();
-    scratch.cmdListsToSubmit.push_back(VulkanCommandBufferHandle{});
+    switchFrameCore(DeviceQueueType::GRAPHICS, false);
     {
       WinAutoLock lk(Globals::Mem::mutex);
       do
@@ -318,22 +326,43 @@ void ExecutionContext::cleanupMemory()
 void ExecutionContext::prepareFrameCore()
 {
   G_ASSERTF(is_null(frameCore), "vulkan: execution context already prepared for command execution");
-  allocFrameCore();
   TIME_PROFILE(vulkan_pre_frame_core);
-  writeExectionChekpointNonCommandStream(frameCore, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_START);
-  data.timestampQueryBlock->ensureSizesAndResetStatus(frameCore);
-  writeExectionChekpointNonCommandStream(frameCore, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_TIMESTAMPS_RESET_QUEUE_READBACKS);
-  // for optional preFrame
-  scratch.cmdListsToSubmit.push_back(VulkanCommandBufferHandle{});
+  // not tied to command buffer
   Backend::bindless.advance();
-  flushUnorderedImageColorClears();
-  flushUnorderedImageDepthStencilClears();
-  flushImageUploads();
-  flushUnorderedImageCopies();
-  flushBufferUploads(frameCore);
-  flushOrderedBufferUploads(frameCore);
-  processBindlessUpdates();
+
+  // queue fork point
+  bool needGraphicsUpload = data.unorderedImageColorClears.size() || data.unorderedImageDepthStencilClears.size() ||
+                            data.imageUploads.size() || data.unorderedImageCopies.size();
+  bool needTransferUpload = data.bufferUploads.size() || data.orderedBufferUploads.size();
+
+  if (needGraphicsUpload)
+  {
+    // can't live on transfer queue (or can't always live) and followup queue should be graphics after prepare
+    switchFrameCore(DeviceQueueType::GRAPHICS, needTransferUpload);
+    writeExectionChekpointNonCommandStream(frameCore, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_START);
+    flushUnorderedImageColorClears();
+    flushUnorderedImageDepthStencilClears();
+    flushImageUploads();
+    flushUnorderedImageCopies();
+  }
+
+  if (needTransferUpload)
+  {
+    switchFrameCore(DeviceQueueType::TRANSFER, true);
+    writeExectionChekpointNonCommandStream(frameCore, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_START_TRANSFER_UPLOAD);
+    flushBufferUploads(frameCore);
+    flushOrderedBufferUploads(frameCore);
+  }
+  // join point or initial frame core allocation
+  switchFrameCore(DeviceQueueType::GRAPHICS, false);
+  writeExectionChekpointNonCommandStream(frameCore, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_TIMESTAMPS_RESET_QUEUE_READBACKS);
+  data.timestampQueryBlock->ensureSizesAndResetStatus(frameCore);
+
+  // pre frame completion marker
   writeExectionChekpointNonCommandStream(frameCore, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_END);
+
+  // not tied to command buffer, but tied to layout changes order on CPU-worker timeline so do after all other uploads
+  processBindlessUpdates();
 }
 
 void ExecutionContext::processBindlessUpdates()
@@ -375,10 +404,10 @@ void ExecutionContext::restoreImageResidencies(VulkanCommandBufferHandle cmd_b)
   scratch.imageResidenceRestores.clear();
 }
 
-VulkanCommandBufferHandle ExecutionContext::allocAndBeginCommandBuffer()
+VulkanCommandBufferHandle ExecutionContext::allocAndBeginCommandBuffer(DeviceQueueType queue)
 {
   FrameInfo &frame = Backend::gpuJob.get();
-  VulkanCommandBufferHandle ncmd = frame.allocateCommandBuffer(vkDev);
+  VulkanCommandBufferHandle ncmd = frame.allocateCommandBuffer(queue);
   VkCommandBufferBeginInfo cbbi;
   cbbi.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
   cbbi.pNext = nullptr;
@@ -394,7 +423,7 @@ VulkanCommandBufferHandle ExecutionContext::flushImageDownloads(VulkanCommandBuf
     return cmd_b;
 
   if (is_null(cmd_b))
-    cmd_b = allocAndBeginCommandBuffer();
+    cmd_b = allocAndBeginCommandBuffer(frameCoreQueue);
 
   for (auto &&download : data.imageDownloads)
   {
@@ -437,7 +466,7 @@ VulkanCommandBufferHandle ExecutionContext::flushBufferDownloads(VulkanCommandBu
     BufferCopyInfo::optimizeBufferCopies(data.bufferDownloads, data.bufferDownloadCopies);
 
   if (is_null(cmd_b))
-    cmd_b = allocAndBeginCommandBuffer();
+    cmd_b = allocAndBeginCommandBuffer(frameCoreQueue);
 
   for (auto &&download : data.bufferDownloads)
   {
@@ -617,7 +646,7 @@ VulkanCommandBufferHandle ExecutionContext::flushBufferToHostFlushes(VulkanComma
     return cmd_b;
 
   if (is_null(cmd_b))
-    cmd_b = allocAndBeginCommandBuffer();
+    cmd_b = allocAndBeginCommandBuffer(frameCoreQueue);
 
 
   for (auto &&flush : data.bufferToHostFlushes)
@@ -628,6 +657,104 @@ VulkanCommandBufferHandle ExecutionContext::flushBufferToHostFlushes(VulkanComma
   Backend::sync.completeNeeded(cmd_b, vkDev);
 
   return cmd_b;
+}
+
+void ExecutionContext::flushPostFrameCommands()
+{
+  auto postFrame = flushBufferDownloads(frameCore);
+  writeExectionChekpointNonCommandStream(postFrame, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_DOWNLOAD_BUFFERS);
+  postFrame = flushImageDownloads(postFrame);
+  writeExectionChekpointNonCommandStream(postFrame, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_DOWNLOAD_IMAGES);
+  postFrame = flushBufferToHostFlushes(postFrame);
+  writeExectionChekpointNonCommandStream(postFrame, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_BUFFER_HOST_FLUSHES);
+
+  Backend::sync.completeAll(postFrame, vkDev, data.id);
+  writeExectionChekpointNonCommandStream(postFrame, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_FRAME_END_SYNC);
+}
+
+void ExecutionContext::enqueueCommandListsToMultipleQueues(ThreadedFence *fence)
+{
+  FrameInfo &frame = Backend::gpuJob.get();
+
+  uint32_t submitOrder = 0;
+  DeviceQueueType activeQue = DeviceQueueType::INVALID;
+  bool activeQueList[(uint32_t)DeviceQueueType::COUNT] = {};
+  bool activeAsync = false;
+  for (ExecutionScratch::CommandBufferSubmit &i : scratch.cmdListsToSubmit)
+  {
+    if (is_null(i.handle))
+      continue;
+    if (activeQue != i.queue || activeAsync != i.async)
+      scratch.submitGraph.push_back({{}, {}, i.queue, i.async && (activeAsync == i.async) ? submitOrder : ++submitOrder, false});
+    activeQue = i.queue;
+    activeAsync = i.async;
+    scratch.submitGraph.back().cbs.push_back(i.handle);
+    scratch.submitGraph.back().fenceWait |= i.externalWaitPoint;
+  }
+
+  StaticTab<VulkanSemaphoreHandle, (uint32_t)DeviceQueueType::COUNT> frameJoinPoints;
+  DeviceQueueType fenceWaitQue = DeviceQueueType::INVALID;
+
+  for (ExecutionScratch::QueueSubmitItem &i : scratch.submitGraph)
+  {
+    i.semaphore.push_back(frame.allocSemaphore(vkDev));
+
+    bool consumedOn[(int)DeviceQueueType::COUNT] = {};
+    for (ExecutionScratch::QueueSubmitItem &j : scratch.submitGraph)
+    {
+      if (j.order > i.order && i.que != j.que && !consumedOn[(int)j.que])
+      {
+        i.semaphore.push_back(frame.allocSemaphore(vkDev));
+        Globals::VK::que[j.que].addSubmitSemaphore(i.semaphore.back(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+        consumedOn[(int)j.que] = true;
+      }
+    }
+
+    if (fence && i.fenceWait)
+    {
+      for (uint32_t j = (uint32_t)DeviceQueueType::ZERO; j < (uint32_t)DeviceQueueType::COUNT; ++j)
+      {
+        if (!activeQueList[j] || static_cast<DeviceQueueType>(j) == i.que)
+          continue;
+        i.semaphore.push_back(frame.allocSemaphore(vkDev));
+        frameJoinPoints.push_back(i.semaphore.back());
+      }
+    }
+
+    DeviceQueue::TrimmedSubmitInfo si = {};
+    si.pCommandBuffers = ary(i.cbs.data());
+    si.commandBufferCount = i.cbs.size();
+    si.pSignalSemaphores = ary(i.semaphore.data());
+    si.signalSemaphoreCount = i.semaphore.size();
+    activeQueList[static_cast<uint32_t>(i.que)] |= true;
+    if (fence && i.fenceWait)
+    {
+      Globals::VK::que[i.que].submit(vkDev, frame, si, fence->get());
+      fence->setAsSubmited();
+      fenceWaitQue = i.que;
+    }
+    else
+    {
+      Globals::VK::que[i.que].submit(vkDev, frame, si);
+    }
+
+    // affects next submit
+    Globals::VK::que[i.que].addSubmitSemaphore(i.semaphore[0], VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+  }
+
+  // join queues on frame end
+  if (frameJoinPoints.size())
+  {
+    for (uint32_t j = (uint32_t)DeviceQueueType::ZERO; j < (uint32_t)DeviceQueueType::COUNT; ++j)
+    {
+      if (!activeQueList[j] || static_cast<DeviceQueueType>(j) == fenceWaitQue || frameJoinPoints.empty())
+        continue;
+      Globals::VK::que[static_cast<DeviceQueueType>(j)].addSubmitSemaphore(frameJoinPoints.back(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+      frameJoinPoints.pop_back();
+    }
+  }
+
+  scratch.submitGraph.clear();
 }
 
 void ExecutionContext::flush(ThreadedFence *fence)
@@ -641,64 +768,31 @@ void ExecutionContext::flush(ThreadedFence *fence)
   auto preFrame = VulkanCommandBufferHandle{};
   if (scratch.imageResidenceRestores.size())
   {
-    preFrame = allocAndBeginCommandBuffer();
+    scratch.cmdListsToSubmit[0].queue = DeviceQueueType::GRAPHICS;
+    preFrame = allocAndBeginCommandBuffer(scratch.cmdListsToSubmit[0].queue);
 
     restoreImageResidencies(preFrame);
     writeExectionChekpointNonCommandStream(preFrame, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_IMAGE_RESIDENCY_RESTORE);
+    scratch.cmdListsToSubmit[0].handle = preFrame;
   }
 
-  if (!is_null(preFrame))
-    scratch.cmdListsToSubmit[0] = preFrame;
 
-  auto postFrame = flushBufferDownloads(frameCore);
-  writeExectionChekpointNonCommandStream(postFrame, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_DOWNLOAD_BUFFERS);
-  postFrame = flushImageDownloads(postFrame);
-  writeExectionChekpointNonCommandStream(postFrame, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_DOWNLOAD_IMAGES);
-  postFrame = flushBufferToHostFlushes(postFrame);
-  writeExectionChekpointNonCommandStream(postFrame, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_BUFFER_HOST_FLUSHES);
+  flushPostFrameCommands();
+  // no more command buffers after this point! so push last active one in list to submit
+  scratch.cmdListsToSubmit.push_back({frameCoreQueue, frameCore, frameCoreAsync, true /*externalWaitPoint*/});
 
-  Backend::sync.completeAll(postFrame, vkDev, data.id);
-  writeExectionChekpointNonCommandStream(postFrame, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_FRAME_END_SYNC);
-
-  scratch.cmdListsToSubmit.push_back(postFrame);
-  for (VulkanCommandBufferHandle i : scratch.cmdListsToSubmit)
+  // finalize command buffers
+  for (ExecutionScratch::CommandBufferSubmit &i : scratch.cmdListsToSubmit)
   {
-    if (!is_null(i))
-      VULKAN_EXIT_ON_FAIL(vkDev.vkEndCommandBuffer(i));
+    if (!is_null(i.handle))
+      VULKAN_EXIT_ON_FAIL(vkDev.vkEndCommandBuffer(i.handle));
   }
-
-  DeviceQueue::TrimmedSubmitInfo si = {};
-  si.pCommandBuffers = ary(scratch.cmdListsToSubmit.data());
-  si.commandBufferCount = scratch.cmdListsToSubmit.size();
-
-  // skip 0 element when preFrame is empty
-  if (is_null(preFrame))
-  {
-    ++si.pCommandBuffers;
-    --si.commandBufferCount;
-  }
-
-  FrameInfo &frame = Backend::gpuJob.get();
-  frame.pendingTimestamps = data.timestampQueryBlock;
-  VulkanSemaphoreHandle syncSemaphore = frame.allocSemaphore(vkDev);
-  si.pSignalSemaphores = ary(&syncSemaphore);
-  si.signalSemaphoreCount = 1;
-
-  if (fence)
-  {
-    Globals::VK::que[DeviceQueueType::GRAPHICS].submit(vkDev, frame, si, fence->get());
-    fence->setAsSubmited();
-  }
-  else
-  {
-    Globals::VK::que[DeviceQueueType::GRAPHICS].submit(vkDev, frame, si);
-  }
-  Globals::VK::que[DeviceQueueType::GRAPHICS].addSubmitSemaphore(syncSemaphore, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-
+  enqueueCommandListsToMultipleQueues(fence);
 
   scratch.cmdListsToSubmit.clear();
   onFrameCoreReset();
-  frame.replayId = data.id;
+  Backend::gpuJob.get().pendingTimestamps = data.timestampQueryBlock;
+  Backend::gpuJob.get().replayId = data.id;
 
   Backend::pipelineCompiler.processQueued();
   flushProcessed = true;
@@ -1436,7 +1530,7 @@ bool ExecutionContext::interruptFrameCore()
   Backend::State::exec.set<StateFieldActiveExecutionStage>(ActiveExecutionStage::CUSTOM);
   applyStateChanges();
 
-  switchFrameCore();
+  switchFrameCore(DeviceQueueType::GRAPHICS, false);
   onFrameCoreReset();
 
   return true;

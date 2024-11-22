@@ -996,6 +996,11 @@ namespace IMGUIZMO_NAMESPACE
       return gContext.mbUsing || gContext.mbUsingBounds;
    }
 
+   bool IsUsingBounds()
+   {
+      return gContext.mbUsingBounds;
+   }
+
    bool IsOver()
    {
       return (Intersects(gContext.mOperation, TRANSLATE) && GetMoveType(gContext.mOperation, NULL) != MT_NONE) ||
@@ -1626,8 +1631,9 @@ namespace IMGUIZMO_NAMESPACE
       return false;
    }
 
-   static void HandleAndDrawLocalBounds(const float* bounds, matrix_t* matrix, const float* snapValues, OPERATION operation)
+   static bool HandleAndDrawLocalBounds(const float* bounds, matrix_t* matrix, const float* snapValues, OPERATION operation)
    {
+      bool manipulated = false; // DAGOR PATCH
       ImGuiIO& io = ImGui::GetIO();
       ImDrawList* drawList = gContext.mDrawList;
 
@@ -1863,6 +1869,7 @@ namespace IMGUIZMO_NAMESPACE
             postScale.Translation(gContext.mBoundsLocalPivot);
             matrix_t res = preScale * scale * postScale * gContext.mBoundsMatrix;
             *matrix = res;
+            manipulated = true;
 
             // info text
             char tmps[512];
@@ -1885,6 +1892,7 @@ namespace IMGUIZMO_NAMESPACE
             break;
          }
       }
+      return manipulated;
    }
 
    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2556,7 +2564,7 @@ namespace IMGUIZMO_NAMESPACE
 
       if (localBounds && !gContext.mbUsing)
       {
-         HandleAndDrawLocalBounds(localBounds, (matrix_t*)matrix, boundsSnap, operation);
+         manipulated |= HandleAndDrawLocalBounds(localBounds, (matrix_t*)matrix, boundsSnap, operation);
       }
 
       gContext.mOperation = operation;

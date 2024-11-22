@@ -88,8 +88,11 @@ public:
   void lockRead(::da_profiler::desc_id_t profile_token = ::da_profiler::DescReadLock) DAG_TS_ACQUIRE_SHARED()
   {
     debugVerifyNoCurThreadReadLocked();
-    ScopeLockProfiler<da_profiler::NoDesc> lp(profile_token);
-    os_rwlock_acquire_read_lock(lock);
+    if (!LOCK_PROFILER_ENABLED || !os_rwlock_try_acquire_read_lock(lock)) //-V547
+    {
+      ScopeLockProfiler<da_profiler::NoDesc> lp(profile_token);
+      os_rwlock_acquire_read_lock(lock);
+    }
   }
   bool tryLockRead() DAG_TS_TRY_ACQUIRE_SHARED(true)
   {
@@ -208,10 +211,12 @@ public:
 
   void lockRead(::da_profiler::desc_id_t profile_token = ::da_profiler::DescReadLock) DAG_TS_ACQUIRE_SHARED()
   {
-    ScopeLockProfiler<da_profiler::NoDesc> lp(profile_token);
     size_t rcount = rtlsGet();
-    if (!rcount)
+    if (!rcount && (!LOCK_PROFILER_ENABLED || !os_rwlock_try_acquire_read_lock(lock))) //-V547
+    {
+      ScopeLockProfiler<da_profiler::NoDesc> lp(profile_token);
       os_rwlock_acquire_read_lock(lock);
+    }
     rtlsSet(++rcount);
   }
   bool tryLockRead() DAG_TS_TRY_ACQUIRE_SHARED(true)

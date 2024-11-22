@@ -87,7 +87,7 @@ shader upscale_sampling_cs
       if (any(DTid.xy >= lowres_size.xy))
         return;
 
-      target[DTid.xy] = upscale_sampling(DTid.xy + 0.5);
+      texture2DAt(target, DTid.xy) = upscale_sampling(DTid.xy + 0.5);
     }
   }
 

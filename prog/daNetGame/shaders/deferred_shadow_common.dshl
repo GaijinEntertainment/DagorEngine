@@ -263,19 +263,14 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
       return max(AO, ((AO * A + B) * AO + C) * AO);
     }
 
-    void get_combined_shadows_sample(float2 uv, out float csmShadow, out float ssssTransmittance, out float base_caustics, out float cloudShadow)
+    void get_combined_shadows_sample(float2 uv, out float csmShadow, out float base_caustics, out float cloudShadow)
     {
       ##if (combined_shadows == NULL) && (in_editor_assume == yes)
         csmShadow = 1;
-        ssssTransmittance = base_caustics = cloudShadow = 0;
+        base_caustics = cloudShadow = 0;
       ##else
         float4 sampledValues = tex2Dlod(combined_shadows, float4(uv, 0, 0));
         csmShadow = sampledValues.x;
-        ##if use_ssss != off
-          ssssTransmittance = decode_ssss_transmittance(sampledValues.y);
-        ##else
-          ssssTransmittance = 0;
-        ##endif
         base_caustics = combined_shadows_has_caustics ? sampledValues.z : 0;
         cloudShadow = combined_shadows_has_caustics ? sampledValues.w : 0;
       ##endif
@@ -395,8 +390,8 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
       half3 result = 0;
       bool isValidSubsurface = isSubSurfaceShader(gbuffer.material) && isTranslucentProfileValid(gbuffer.sss_profile);
 
-      float csmShadow, ssssTransmittance, base_caustics, cloudShadow;
-      get_combined_shadows_sample(curViewTc, csmShadow, ssssTransmittance, base_caustics, cloudShadow);
+      float csmShadow, base_caustics, cloudShadow;
+      get_combined_shadows_sample(curViewTc, csmShadow, base_caustics, cloudShadow);
 
       //half trees_shadow = min(cloudShadow, vsmShadow);
       //float apperture = 2*pow2(gbuffer.ao);

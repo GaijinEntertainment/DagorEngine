@@ -120,7 +120,7 @@ FrameBoundaryBufferManager::FrameBoundaryBufferManager(FrameBoundaryBufferManage
   updateDebugTexCs = eastl::move(rhs.updateDebugTexCs);
 }
 
-void FrameBoundaryBufferManager::init(bool use_sbuffer)
+void FrameBoundaryBufferManager::init(bool use_sbuffer, bool approximate_fill)
 {
   WinAutoLock lock(g_frame_boundary_cs);
 
@@ -129,8 +129,11 @@ void FrameBoundaryBufferManager::init(bool use_sbuffer)
   fillBoundaryLegacyCs = new_compute_shader("fill_fx_keyframe_boundary_legacy", true);
   isSupported = isSupported && fillBoundaryLegacyCs;
 
+  fillBoundaryApproxCs = new_compute_shader("fill_fx_keyframe_boundary_approx", true);
+  isSupported = isSupported && (fillBoundaryApproxCs || !approximate_fill);
+
   fillBoundaryOptCs = new_compute_shader("fill_fx_keyframe_boundary_opt", true);
-  isSupported = isSupported && fillBoundaryOptCs;
+  isSupported = isSupported && (fillBoundaryOptCs || approximate_fill);
 
   fillBoundaryOptStartCs = new_compute_shader("fill_fx_keyframe_boundary_opt_start", true);
   isSupported = isSupported && fillBoundaryOptStartCs;
@@ -159,6 +162,8 @@ void FrameBoundaryBufferManager::init(bool use_sbuffer)
     debug("dafx: frameboundary init, not supported");
     ShaderGlobal::set_buffer(::get_shader_variable_id("dafx_frame_boundary_buffer", true), BAD_D3DRESID);
   }
+
+  approximateFill = approximate_fill;
 }
 
 int FrameBoundaryBufferManager::acquireFrameBoundary(TEXTUREID texture_id, IPoint2 frame_dim)
@@ -309,6 +314,14 @@ void FrameBoundaryBufferManager::updateFrameElems(unsigned int currect_frame)
           res = res && fillBoundaryOptStartCs->dispatchThreads(DAFX_FLIPBOOK_MAX_KEYFRAME_DIM * DAFX_FLIPBOOK_MAX_KEYFRAME_DIM, 1, 1);
         }
         d3d::resource_barrier({frameBoundaryBufferTmp.getBuf(), RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE});
+        if (approximateFill)
+        {
+          TIME_D3D_PROFILE(fillBoundaryApproxCs);
+          STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, 0, VALUE), frameBoundaryBufferTmp.getBuf());
+          res = res && fillBoundaryApproxCs->dispatchThreads(textureSize.x / (elem.frameDim.x * DAFX_FRAME_BOUNDARY_BLOCK_SIZE * 2),
+                         textureSize.y / (elem.frameDim.y * DAFX_FRAME_BOUNDARY_BLOCK_SIZE * 2), elem.frameDim.x * elem.frameDim.y);
+        }
+        else
         {
           TIME_D3D_PROFILE(fillBoundaryOptCs);
           STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, 0, VALUE), frameBoundaryBufferTmp.getBuf());

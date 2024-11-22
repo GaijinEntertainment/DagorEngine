@@ -162,11 +162,11 @@ shader clouds_hole_pos_cs
     {
       if ((structuredBufferAt(clouds_hole_buf, 0)>>22) < 220)
       {
-        holePosition[uint2(0, 0)] = calcHolePosBufferData(clouds_hole_buf[0], clouds_hole_target_alt.w, clouds_weather_size, clouds_hole_light_dir, clouds_hole_target_alt.xyz);
+        texture2DAt(holePosition, uint2(0, 0)) = calcHolePosBufferData(clouds_hole_buf[0], clouds_hole_target_alt.w, clouds_weather_size, clouds_hole_light_dir, clouds_hole_target_alt.xyz);
       }
       else
       {
-        holePosition[uint2(0, 0)] = float4(0, 0, 0, 0);
+        texture2DAt(holePosition, uint2(0, 0)) = float4(0, 0, 0, 0);
       }
     }
   }

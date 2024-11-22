@@ -11,20 +11,8 @@ include "force_ignore_history.dshl"
 include "hero_matrix_inc.dshl"
 include "halfres_close_depth_with_normals.dshl"
 include "motion_vectors_type.dshl"
+include "ssr_common_use.dshl"
 include_optional "ssr_env_resolve.dshl"
-
-hlsl {
-  #define HIGH_ROUGHNESS_THRESHOLD_END 0.5
-  #define HIGH_ROUGHNESS_THRESHOLD_START 0.1
-  #define CALC_SSR_ROUGHNESS_THRESHOLD 0.7
-  #define CALC_SSR_SMOOTHNESS_THRESHOLD (1-0.7)
-  // 0 - should be treated perform mirro-like for virtual point reflection
-  // 1 - should be treated rough-like for virtual point reflection
-  half get_is_rough_surface_param(half linear_roughness)
-  {
-    return saturate(linear_roughness*(1./HIGH_ROUGHNESS_THRESHOLD_END) - HIGH_ROUGHNESS_THRESHOLD_START/(HIGH_ROUGHNESS_THRESHOLD_END-HIGH_ROUGHNESS_THRESHOLD_START));
-  }
-}
 
 int ssr_quality = 1;
 interval ssr_quality : low<1, medium<2, high<3, highest;
@@ -106,7 +94,6 @@ macro INIT_TEXTURES(code)
   }
 endmacro
 
-float4 prev_zn_zfar = (1, 10, 0, 0);
 float4 move_world_view_pos;
 float ssr_camera_move_scale_for_miss_reprojection = 200.0;
 float static_pixel_miss_reprojection_weight = 0.5;
@@ -143,8 +130,6 @@ macro SSR_REPROJECTION(code)
   (code) {
     ssr_prev_target@smp2d = ssr_prev_target;
 
-    //prev_zn_zfar@f4 = (prev_zn_zfar.x, prev_zn_zfar.y, prev_zn_zfar.x/(prev_zn_zfar.x * prev_zn_zfar.y), (prev_zn_zfar.y-prev_zn_zfar.x)/(prev_zn_zfar.x * prev_zn_zfar.y));
-    prev_zn_zfar@f4 = (zn_zfar.x, zn_zfar.y, zn_zfar.x/(zn_zfar.x * zn_zfar.y), (zn_zfar.y-zn_zfar.x)/(zn_zfar.x * zn_zfar.y));
     prev_camera_translation@f1 = (move_world_view_pos.w);
 
     prev_downsampled_close_depth_tex@smp2d = prev_downsampled_close_depth_tex;
@@ -244,6 +229,9 @@ macro SSR_DISOCCLUSION(code)
         #endif
 
         //half weight = saturate(dot(weights, 1)); // ignore bilateral weights
+        #ifdef MOTION_TO_PREV_JITTERED_UV_OFS
+          fractCrd = saturate(fractCrd - MOTION_TO_PREV_JITTERED_UV_OFS*prev_downsampled_close_depth_tex_target_size.xy);
+        #endif
 
         half4 bil;
         bil.xy = fractCrd;
@@ -271,13 +259,12 @@ macro SSR_DISOCCLUSION(code)
     half historyNormalWeight(half4 sample_normal_roughness, half3 normal, half roughness)
     {
       //we can use higher smoothness history in lower smoothness (to a certain degree), but not visa verse
-      return sample_normal_roughness.w < half(CALC_SSR_ROUGHNESS_THRESHOLD) ? (dot(normal, sample_normal_roughness.xyz))*pow2(saturate(1.02 + (roughness - sample_normal_roughness.w))) : 0;
-
+      return sample_normal_roughness.w < half(CALC_SSR_ROUGHNESS_THRESHOLD) ? pow2(dot(normal, sample_normal_roughness.xyz)*saturate(1.0 - abs(roughness - sample_normal_roughness.w))) : 0;
       //return pow2(dot(normal, sample_normal_smoothness.xyz)*saturate(1.0 - (sample_normal_smoothness.w - smoothness)));
     }
     half4 historyNormalWeights(half4 normalW, half roughness)
     {
-      float sigma = lerp(0, -100, (1 - roughness));
+      float sigma = lerp(0, -150, (1 - roughness));
       half4 w = exp2(sigma*saturate(1.0 - normalW));
       const float threshold = 0.2;
       return saturate(w*(1./(1-threshold)) - threshold*(1./(1-threshold)));
@@ -311,6 +298,9 @@ macro SSR_DISOCCLUSION(code)
       half weight = saturate(dot(weights, 1)); // ignore bilateral weights
 
       half4 bil;
+      #ifdef MOTION_TO_PREV_JITTERED_UV_OFS
+        fractCrd = saturate(fractCrd - MOTION_TO_PREV_JITTERED_UV_OFS*prev_downsampled_close_depth_tex_target_size.xy);
+      #endif
       bil.xy = fractCrd;
       bil.zw = 1.h - bil.xy;
       weights *= half4(bil.zx*bil.w, bil.zx*bil.y) + 1e-4h;
@@ -346,7 +336,7 @@ macro SSR_DISOCCLUSION(code)
       //virtualWeight = virtualWeight > 0.01;
       virtualWeight *= rough_virtual_weight;
       historyWeight *= (1.0-pow4(virtualWeight));
-      virtualWeight *= inf_refl_virtual_weight;
+      //virtualWeight *= inf_refl_virtual_weight;
       half totalW = historyWeight + virtualWeight;
       half invTotalW = rcp(max(1e-6h, totalW));
       half ret = max(virtualWeight, historyWeight);
@@ -377,8 +367,9 @@ endmacro
 macro SSR_GET_TEMPORAL_REPROJECTION_DUO(code)
   SSR_DISOCCLUSION(code)
   hlsl(code) {
-    half get_ssr_reprojection_with_weight(inout half neighboorhoodVariance, float3 cameraToPoint, float2 curViewTc, half3 normal, half linear_roughness, float reflectionDistance, float w, inout half4 prevFrame, out half virtualWeight)
+    half get_ssr_reprojection_with_weight(inout half relativePixelTranslation, inout half neighboorhoodVariance, float3 cameraToPoint, float2 curViewTc, half3 normal, half linear_roughness, float reflectionDistance, float w, inout half4 prevFrame, out half virtualWeight)
     {
+      relativePixelTranslation = saturate(scaled_prev_camera_translation/w);
       float disocclusionWeightAtten = 1;
       float3 prevViewVec = cameraToPoint;
 
@@ -442,6 +433,7 @@ macro SSR_GET_TEMPORAL_REPROJECTION_DUO(code)
         {
           virtualWeight = get_ssr_disocclusion_weight_sample_duo(virtualMulW, virtualMulPostW, normal, linear_roughness, prevVirtualUV.xy, currentPosToPrevW, prevFrame, weight);
         }
+        relativePixelTranslation = staticPixel ? relativePixelTranslation : relativePixelTranslation*saturate(length(reflecting_surface_3d_motion.xy)*100);
       }
       neighboorhoodVariance = lerp(1, neighboorhoodVariance, weight);
       return weight;

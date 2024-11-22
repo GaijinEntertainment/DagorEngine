@@ -45,14 +45,14 @@ static void snowflakes_enabled_global_setting_ecs_query(Callable c);
 
 ECS_TAG(render)
 ECS_ON_EVENT(OnRenderSettingsReady, SetResolutionEvent, ChangeRenderFeatures)
-ECS_TRACK(render_settings__snowflakesOnScreen)
+ECS_TRACK(render_settings__screenSpaceWeatherEffects)
 static void create_screen_snowflakes_renderer_entity_on_settings_changed_es(const ecs::Event &,
-  bool render_settings__snowflakesOnScreen)
+  bool render_settings__screenSpaceWeatherEffects)
 {
   bool renderSnowflakes = false;
-  snow_enabled_on_level_ecs_query([&renderSnowflakes, render_settings__snowflakesOnScreen](ecs::Tag snow_tag) {
+  snow_enabled_on_level_ecs_query([&renderSnowflakes, render_settings__screenSpaceWeatherEffects](ecs::Tag snow_tag) {
     G_UNUSED(snow_tag);
-    renderSnowflakes = render_settings__snowflakesOnScreen;
+    renderSnowflakes = render_settings__screenSpaceWeatherEffects;
   });
   create_or_destroy_screen_snowflakes_renderer_entity(renderSnowflakes);
 }
@@ -63,8 +63,9 @@ ECS_ON_EVENT(on_appear)
 static void create_screen_snowflakes_renderer_entity_on_snow_appearance_es(const ecs::Event &)
 {
   bool renderSnowflakes = false;
-  snowflakes_enabled_global_setting_ecs_query(
-    [&renderSnowflakes](bool render_settings__snowflakesOnScreen) { renderSnowflakes = render_settings__snowflakesOnScreen; });
+  snowflakes_enabled_global_setting_ecs_query([&renderSnowflakes](bool render_settings__screenSpaceWeatherEffects) {
+    renderSnowflakes = render_settings__screenSpaceWeatherEffects;
+  });
   create_or_destroy_screen_snowflakes_renderer_entity(renderSnowflakes);
 }
 

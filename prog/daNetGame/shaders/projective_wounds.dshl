@@ -8,6 +8,12 @@ macro WOUNDS_AND_BURNING_INIT_TYPE_INTERVAL()
   interval has_burning: off<1, on;
 endmacro
 
+macro WOUNDS_BLOOD_ON_SKIN_INIT()
+  hlsl{
+    #define WOUND_BLOOD_ON_SKIN 1
+  }
+endmacro
+
 macro WOUNDS_AND_BURNING_INIT()
   WOUNDS_AND_BURNING_INIT_TYPE_INTERVAL()
   if ((has_burning != off || has_wounds == blood_decal) && dyn_model_render_pass == render_pass_normal || has_wounds >= torn_wounds)
@@ -227,9 +233,9 @@ hlsl (ps) {
     return bloodTex;
   }
 
-  void apply_blood_splash(float4 wound_param, float3 original_normalmap, float3 frag_pos, float3 frag_norm,
+  void apply_blood_splash(float4 wound_param, float3 frag_pos, float3 frag_norm,
                           float micro_detail_layer, bool skip_blood,
-                          inout float3 diffuse_color, inout float3 detailed_normal_map, inout float smoothness)
+                          inout float3 diffuse_color, inout float smoothness)
   {
     const float splashStrength = wound_param.x;
     const float distFactor = wound_param.y;
@@ -251,9 +257,6 @@ hlsl (ps) {
       diffuse_color = lerp(diffuse_color,  diffuse_color * bloodColor, alpha);
       float porosity = get_porosity_by_microdetail_base(micro_detail_layer);
       smoothness = lerp(smoothness, 0.9, (1.0 - porosity) * alpha);
-
-      float3 bloodNorm = lerp(detailed_normal_map, original_normalmap, 0.5);
-      detailed_normal_map = lerp(detailed_normal_map, bloodNorm, alpha);
 ##endif
     }
   }
@@ -320,6 +323,8 @@ hlsl(vs) {
 }
 
 hlsl(ps) {
+  #include <psh_tangent.hlsl>
+
   void extract_time_index(in float packed_value, out float time, out uint index)
   {
     uint p = asuint(packed_value);
@@ -341,15 +346,27 @@ hlsl(ps) {
     float3 materialNormal = lerp(blood_normal, normal, porosity);
     float materialSmoothness = lerp(1.0, smoothness, porosity);
 
+  #if WOUND_BLOOD_ON_SKIN
+    float3 meatColorHighIntensity = blood_wound_skin_meat_color_high_intensity;
+    float3 meatColorLowIntensity = blood_wound_skin_meat_color_low_intensity;
+    float3 bloodColorHighIntensity = blood_wound_skin_color_high_intensity;
+    float3 bloodColorLowIntensity = blood_wound_skin_color_low_intensity;
+  #else
+    float3 meatColorHighIntensity = blood_wound_meat_color_high_intensity;
+    float3 meatColorLowIntensity = blood_wound_meat_color_low_intensity;
+    float3 bloodColorHighIntensity = blood_wound_color_high_intensity;
+    float3 bloodColorLowIntensity = blood_wound_color_low_intensity;
+  #endif
+
     BRANCH
     if (isPuddleHole)
     {
       float colorT = (thickness - blood_wound_puddle_begin_thickness) / one_minus_blood_puddle_begin_thickness;
-      float3 bloodColor = lerp(blood_wound_meat_color_high_intensity, blood_wound_meat_color_low_intensity, colorT);
+      float3 bloodColor = lerp(meatColorHighIntensity, meatColorLowIntensity, colorT);
 
       float edgeT = saturate((blood_wound_puddle_edge_ending_thickness - thickness) / (blood_wound_puddle_edge_thickness_width + 0.0001));
       edgeT = pow3(edgeT);
-      float3 bloodOnMaterialColor = albedo * blood_wound_color_low_intensity;
+      float3 bloodOnMaterialColor = albedo * bloodColorLowIntensity;
       float3 bloodAlbedo = lerp(bloodColor, bloodOnMaterialColor, edgeT);
 
       albedo = bloodAlbedo;
@@ -362,7 +379,7 @@ hlsl(ps) {
       float edgeClosenessWithPorosity = edge_closeness * porosity;
       float colorT = thickness / blood_wound_puddle_begin_thickness;
 
-      float3 bloodColor = lerp(blood_wound_color_high_intensity, blood_wound_color_low_intensity, colorT);
+      float3 bloodColor = lerp(bloodColorHighIntensity, bloodColorLowIntensity, colorT);
       float3 opacityColor = lerp(bloodColor.rrr, 1.0.xxx, edgeClosenessWithPorosity);
       float3 bloodAlbedo = lerp(bloodColor, opacityColor, edgeClosenessWithPorosity);
 
@@ -375,9 +392,9 @@ hlsl(ps) {
     }
   }
 
-  void apply_blood_decal(float4 decal_tc, float start_time, uint tex_index, float3 frag_norm,
-                          int micro_detail_layer,
-                          inout float3 diffuse_color, inout float3 detailed_normal_map,
+  void apply_blood_decal(float4 decal_tc, float start_time, uint tex_index, float3 frag_norm, float3 normal,
+                          float3 point_to_eye, int micro_detail_layer,
+                          inout float3 diffuse_color, inout float3 world_normal,
                           inout float smoothness, inout float reflectance)
   {
     float decal_idx = decal_tc.w;
@@ -392,11 +409,13 @@ hlsl(ps) {
       float time = current_time - start_time;
       float bloody_time = time_wetness_bloody_time.y;
 
-      float linearTime = saturate(bloody_time * time);
+      float flowmapCuttingOffset = 0.1;
+
+      float linearTime = saturate(bloody_time * time + flowmapCuttingOffset);
       float flowValue = blood.r;
 
       BRANCH
-      if ((1.0 - linearTime) >= flowValue - 0.1)
+      if ((1.0 - linearTime) >= flowValue - flowmapCuttingOffset)
         return;
 
       float borderScale = 4.0 * blood_wound_dry_edge_scale;
@@ -406,9 +425,10 @@ hlsl(ps) {
       float thickness = 1.0 - intensity;
 
       float porosity = get_porosity_by_microdetail_base(micro_detail_layer);
-      float3 bloodNormal = unpack_ag_normal(blood);
-      apply_blood_material(thickness, edgeCloseness, porosity, bloodNormal,
-        detailed_normal_map, diffuse_color, smoothness, reflectance);
+      float3 bloodWorldNormal = perturb_normal_precise(unpack_ag_normal(blood), normal, point_to_eye, decal_tc.xy);
+
+      apply_blood_material(thickness, edgeCloseness, porosity, bloodWorldNormal,
+        world_normal, diffuse_color, smoothness, reflectance);
     }
   }
 }
@@ -420,10 +440,9 @@ macro USE_PROJECTIVE_WOUNDS()
 
 hlsl(ps) {
   void apply_burning_and_wounds(VsOutput input,
-      float3 original_normal_map,
       int micro_detail_layer,
+      inout float3 world_normal,
       inout float3 diffuse_color,
-      inout float3 normal_map,
       inout float smoothness,
       inout float reflectance,
       bool skip_blood = false
@@ -433,8 +452,8 @@ hlsl(ps) {
     #if HAS_TORN_WOUNDS_DEBUG
       apply_debug_colormap(input.tornWoundParams, input.fragPos, input.fragNormal, input.debugColor, diffuse_color);
     #else
-      apply_blood_splash(input.tornWoundParams, original_normal_map, input.fragPos, input.fragNormal,
-        micro_detail_layer, skip_blood, diffuse_color, normal_map, smoothness);
+      apply_blood_splash(input.tornWoundParams, input.fragPos, input.fragNormal,
+        micro_detail_layer, skip_blood, diffuse_color, smoothness);
     #endif
   #endif
   #if HAS_BLOOD_DECAL
@@ -444,8 +463,8 @@ hlsl(ps) {
       float start_time;
       uint tex_index;
       extract_time_index(input.textureIndexTime, start_time, tex_index);
-      apply_blood_decal(input.bloodDecalTC, start_time, tex_index, input.fragNormal,
-        micro_detail_layer, diffuse_color, normal_map, smoothness, reflectance);
+      apply_blood_decal(input.bloodDecalTC, start_time, tex_index, input.fragNormal, input.normal, input.pointToEye,
+        micro_detail_layer, diffuse_color, world_normal, smoothness, reflectance);
     }
   #endif
 

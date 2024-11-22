@@ -100,6 +100,7 @@ endmacro
 
 shader fluid_wind_clear
 {
+  ENABLE_ASSERT(cs)
   USE_FLUID_WIND_SIMULATION()
 
   hlsl(cs) {
@@ -107,9 +108,9 @@ shader fluid_wind_clear
     [numthreads(16, 4, 4)]
     void main(uint3 Gid: SV_GroupID, uint3 i: SV_DispatchThreadID, uint3 GTid: SV_GroupThreadID, uint GI: SV_GroupIndex)
     {
-      speedRW[i] = float4(0, 0, 0, 0);
+      texture3DAt(speedRW, i) = float4(0, 0, 0, 0);
       if (i.x < dim.x / 4)
-        pressureRW[i] = 0;
+        texture3DAt(pressureRW, i) = 0;
     }
   }
 
@@ -118,6 +119,7 @@ shader fluid_wind_clear
 
 shader fluid_wind_advect
 {
+  ENABLE_ASSERT(cs)
   USE_FLUID_WIND_SIMULATION()
 
   hlsl(cs) {
@@ -129,7 +131,7 @@ shader fluid_wind_advect
       float3 coord = toLocalPoint(i) - speed[i].xyz * TIMESTEP * MODULATE * 1;
       float3 tc = (coord + fluid_wind_origin_delta.xyz) / dim;
       float4 s = tex3Dlod(speed, float4(tc, 0));
-      speedRW[i] = s;
+      texture3DAt(speedRW, i) = s;
     }
   }
 
@@ -138,6 +140,7 @@ shader fluid_wind_advect
 
 shader fluid_wind_divergence
 {
+  ENABLE_ASSERT(cs)
   USE_FLUID_WIND_SIMULATION()
 
   hlsl(cs) {
@@ -164,7 +167,7 @@ shader fluid_wind_divergence
         pzp = speed[i4 + uint3(0, 0, 1)].z;
         divergence[j] = (pxp - pxm + pyp - pym + pzp - pzm) / 2;
       }
-      divergenceRW[i] = divergence;
+      texture3DAt(divergenceRW, i) = divergence;
     }
   }
 
@@ -173,6 +176,7 @@ shader fluid_wind_divergence
 
 shader fluid_wind_jaccobi3d
 {
+  ENABLE_ASSERT(cs)
   USE_FLUID_WIND_SIMULATION()
 
   hlsl(cs) {
@@ -202,9 +206,9 @@ shader fluid_wind_jaccobi3d
       float4 pzp = pressure[j];
 
     #if USE_PRESSURE
-      pressureRW[i] = (pxp + pxm + pyp + pym + pzp + pzm - divergence[i]) / 6;
+      texture3DAt(pressureRW, i) = (pxp + pxm + pyp + pym + pzp + pzm - divergence[i]) / 6;
     #else
-      pressureRW[i] = -divergence[i] / 6;
+      texture3DAt(pressureRW, i) = -divergence[i] / 6;
     #endif
     }
   }
@@ -214,6 +218,7 @@ shader fluid_wind_jaccobi3d
 
 shader fluid_wind_project3d
 {
+  ENABLE_ASSERT(cs)
   USE_FLUID_WIND_SIMULATION()
 
   hlsl(cs) {
@@ -258,19 +263,19 @@ shader fluid_wind_project3d
 
       s = speed[i] - float4(pxp.x, pyp.x, pzp.x, 0) / 2 * MODULATE;
       s = (i.x == 0 || borderyz) ? APPLY_BORDER(s) : s;
-      speedRW[i] = s;
+      texture3DAt(speedRW, i) = s;
       i.x++;
       s = speed[i] - float4(pxp.y, pyp.y, pzp.y, 0) / 2 * MODULATE;
       s = (borderyz) ? APPLY_BORDER(s) : s;
-      speedRW[i] = s;
+      texture3DAt(speedRW, i) = s;
       i.x++;
       s = speed[i] - float4(pxp.z, pyp.z, pzp.z, 0) / 2 * MODULATE;
       s = (borderyz) ? APPLY_BORDER(s) : s;
-      speedRW[i] = s;
+      texture3DAt(speedRW, i) = s;
       i.x++;
       s = speed[i] - float4(pxp.w, pyp.w, pzp.w, 0) / 2 * MODULATE;
       s = (i.x == dim.x-1 || borderyz) ? APPLY_BORDER(s) : s;
-      speedRW[i] = s;
+      texture3DAt(speedRW, i) = s;
     }
   }
 
@@ -279,6 +284,7 @@ shader fluid_wind_project3d
 
 shader fluid_wind_render
 {
+  ENABLE_ASSERT(cs)
   USE_FLUID_WIND_SIMULATION()
 
   hlsl(cs) {
@@ -343,7 +349,7 @@ shader fluid_wind_render
       // scale to see
       col.rgb *= COL_SCALE;
       //
-      output[int2(width - DTid.x, DTid.y)] = col;
+      texture2DAt(output, int2(width - DTid.x, DTid.y)) = col;
     #else
       float2 texcoord = DTid.xy / float2(width, height);
       float sliceSize = sqrt(width * height / float(DEBUG_SLICES_DIM.z));
@@ -353,20 +359,20 @@ shader fluid_wind_render
       int sliceZ = coordZ.x + coordZ.y * numSlicesZ.x;
       if (sliceZ >= DEBUG_SLICES_DIM.z)
       {
-        output[DTid.xy] = 0;
+        texture2DAt(output, DTid.xy) = 0;
         return;
       }
       int2 coordXY = frac(texcoord * numSlicesZ) * DEBUG_SLICES_DIM.xy;
 
       #if DEBUG_SLICES_MODE == DEBUG_PRESSURE
         float4 res = pressure[int3(coordXY.xy, sliceZ)] * 1000;
-        output[DTid.xy] = float4(res.xyz, 0) * 0.01;
+        texture2DAt(output, DTid.xy) = float4(res.xyz, 0) * 0.01;
       #elif DEBUG_SLICES_MODE == DEBUG_SPEED
         float4 res = speed[int3(coordXY.xy, sliceZ)] * 100;
-        output[DTid.xy] = float4(abs(res.xyz), 0) * 0.01;
+        texture2DAt(output, DTid.xy) = float4(abs(res.xyz), 0) * 0.01;
       #elif DEBUG_SLICES_MODE == DEBUG_DIVERGENCE
         float4 res = divergence[int3(coordXY.xy, sliceZ)] * 100;
-        output[DTid.xy] = float4(res.xyz, 0) * 0.01;
+        texture2DAt(output, DTid.xy) = float4(res.xyz, 0) * 0.01;
       #endif
     #endif
     }
@@ -377,6 +383,7 @@ shader fluid_wind_render
 
 shader fluid_motor_omni
 {
+  ENABLE_ASSERT(cs)
   USE_FLUID_WIND_SIMULATION()
 
   (cs) {
@@ -398,10 +405,10 @@ shader fluid_motor_omni
       if (distSq < (radius * radius))
       {
         float dist = sqrt(distSq);
-        speedRW[i] = speed[i] + float4(force * diff / max(dist, 0.001) * pow2(saturate((radius - dist) / RADIUS_AA)), 0);
+        texture3DAt(speedRW, i) = texture3DAt(speed, i) + float4(force * diff / max(dist, 0.001) * pow2(saturate((radius - dist) / RADIUS_AA)), 0);
       }
       else
-        speedRW[i] = speed[i];
+        texture3DAt(speedRW, i) = texture3DAt(speed, i);
 
       /*if (i.x < dim.x/4)
       {
@@ -423,7 +430,7 @@ shader fluid_motor_omni
           }
         }
 
-        pressureRW[i] = newP;
+        texture3DAt(pressureRW, i) = newP;
       }*/
     }
   }
@@ -433,6 +440,7 @@ shader fluid_motor_omni
 
 shader fluid_motor_directional
 {
+  ENABLE_ASSERT(cs)
   USE_FLUID_WIND_SIMULATION()
 
   (cs) {
@@ -454,10 +462,10 @@ shader fluid_motor_directional
       if (distSq < (radius * radius))
       {
         float dist = sqrt(distSq);
-        speedRW[i] = speed[i] + float4(force * pow2(saturate((radius - dist) / RADIUS_AA)), 0);
+        texture3DAt(speedRW, i) = texture3DAt(speed, i) + float4(force * pow2(saturate((radius - dist) / RADIUS_AA)), 0);
       }
       else
-        speedRW[i] = speed[i];
+        texture3DAt(speedRW, i) = texture3DAt(speed, i);
     }
   }
 
@@ -466,6 +474,7 @@ shader fluid_motor_directional
 
 shader fluid_motor_vortex
 {
+  ENABLE_ASSERT(cs)
   USE_FLUID_WIND_SIMULATION()
 
   (cs) {
@@ -487,10 +496,10 @@ shader fluid_motor_vortex
       if (distSq < (radius * radius))
       {
         float dist = sqrt(distSq);
-        speedRW[i] = speed[i] + float4(force * cross(float3(0, 0, 1), diff / max(dist, 0.001)) * pow2(saturate((radius - dist) / RADIUS_AA)), 0);
+        texture3DAt(speedRW, i) = texture3DAt(speed, i) + float4(force * cross(float3(0, 0, 1), diff / max(dist, 0.001)) * pow2(saturate((radius - dist) / RADIUS_AA)), 0);
       }
       else
-        speedRW[i] = speed[i];
+        texture3DAt(speedRW, i) = texture3DAt(speed, i);
     }
   }
 

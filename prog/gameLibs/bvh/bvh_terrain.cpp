@@ -63,6 +63,8 @@ static bool generate_indices()
   HANDLE_LOST_DEVICE_STATE(indices, false);
 
   auto upload = lock_sbuffer<uint16_t>(indices.getBuf(), 0, 0, VBLOCK_WRITEONLY);
+  HANDLE_LOST_DEVICE_STATE(upload, false);
+
   for (int z = 0; z < terrain_cell_size; ++z)
     for (int x = 0; x < terrain_cell_size; ++x)
     {

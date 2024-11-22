@@ -1,5 +1,4 @@
 include "distortion_postfx_inc.dshl"
-include "contrast_adaptive_sharpening.dshl"
 include "heatHazeOffset.dshl"
 include "postfx_common.dshl"
 
@@ -8,16 +7,11 @@ shader distortion_postfx {
   INIT_HEAT_HAZE_OFFSET()
   USE_HEAT_HAZE_OFFSET()
   COMMON_POSTFX()
-  INIT_CONTRAST_ADAPTIVE_SHARPENING(ps)
-  USE_CONTRAST_ADAPTIVE_SHARPENING(ps)
 
   hlsl(ps) {
     half3 sampleSceneColor(float2 uv)
     {
-      if(contrast_adaptive_sharpening < -0.125)
-        return tex2DCAS(frame_tex, uv, frame_tex_resolution.xy, frame_tex_resolution.zw, contrast_adaptive_sharpening).rgb;
-      else
-        return tex2Dlod(frame_tex, float4(uv,0,0)).rgb;
+      return tex2Dlod(frame_tex, float4(uv,0,0)).rgb;
     }
   }
 

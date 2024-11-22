@@ -313,7 +313,7 @@ public:
 
   id<MTLBuffer> createBuffer(uint32_t size, uint32_t flags, const char *name = "");
 
-  id<MTLBuffer> AllocateConstants(uint32_t size, int &offset, int sizeLeft, const char *name)
+  id<MTLBuffer> AllocateConstants(uint32_t size, int &offset, int sizeLeft = 0)
   {
     G_ASSERT(size <= RingBufferItem::max_size);
 
@@ -334,20 +334,12 @@ public:
       {
         constant_buffer = constant_buffers_free.back();
         constant_buffers_free.pop_back();
-#if DAGOR_DBGLEVEL > 0
-        [constant_buffer.buf removeAllDebugMarkers];
-#endif
       }
       constant_buffer.offset = 0;
     }
 
     offset = constant_buffer.offset;
     constant_buffer.offset += size;
-
-#if DAGOR_DBGLEVEL > 0
-    G_ASSERT(name);
-    [constant_buffer.buf addDebugMarker:[NSString stringWithUTF8String:name] range:NSMakeRange(offset, size)];
-#endif
 
     return constant_buffer.buf;
   }
@@ -533,8 +525,6 @@ public:
   StageBinding stages[3];
   BindlessManager bindlessManager;
 
-  bool msaa_pass = false;
-  bool depth_resolve = false;
   bool forceClearOnCreate = false;
   bool render_pass = false;
   bool has_image_blocks = false;
@@ -701,8 +691,6 @@ public:
   void setProgram(int prog);
   void deleteProgram(int prog);
 
-  void setMSAAPass();
-  void setDepthResolve();
   void setRenderPass(bool set);
 
   int createComputeProgram(const uint8_t *code);

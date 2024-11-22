@@ -59,10 +59,6 @@ bool d3d::setscissors(dag::ConstSpan<ScissorRect> /* scissorRects */)
   return false;
 }
 
-// AA & iOS like MSAA
-bool d3d::set_msaa_pass() { return true; }
-bool d3d::set_depth_resolve() { return true; }
-
 // old/debug PC dev specific stuff
 
 #if _TARGET_PC_WIN

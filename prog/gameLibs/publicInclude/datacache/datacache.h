@@ -98,9 +98,10 @@ public:
 
 class Entry
 {
-public:
-  virtual ~Entry() {}
+protected:
+  ~Entry() = default;
 
+public:
   // metadata
   virtual const char *getKey() const = 0; // Note: key is not necessary the same that was passed to Backend::set()
   virtual const char *getPath() const = 0;

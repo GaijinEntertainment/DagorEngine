@@ -917,6 +917,11 @@ def fmt_space_after_cast_type(var ctx: FormatterCtx)
                         ctx |> add_space_before(j)
                         break
 
+def fmt_destructure_space(var ctx: FormatterCtx)
+    for i in range(0, length(ctx.tokens) - 1)
+        if ctx |> eq(i, "let", "var") && ctx.tokens[i + 1].spaces == 0
+            ctx |> add_space_before(i + 1)
+
 
 def do_format(var ctx: FormatterCtx)
     ctx |> parse_all_tokens()
@@ -947,6 +952,7 @@ def do_format(var ctx: FormatterCtx)
     ctx |> fmt_remove_space_before_end_of_object()
     ctx |> fmt_remove_space_before_object_type()
     ctx |> fmt_remove_space_before_array_of_type()
+    ctx |> fmt_destructure_space()
 
     let top = length(ctx.tokens) - 1
     for it in range(16)

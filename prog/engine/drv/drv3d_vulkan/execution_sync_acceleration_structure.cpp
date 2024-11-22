@@ -38,8 +38,8 @@ void ExecutionSyncTracker::AccelerationStructureOp::onConflictWithDst(const Exec
 
 void ExecutionSyncTracker::AccelerationStructureOpsArray::removeRoSeal(RaytraceAccelerationStructure *obj)
 {
-  arr[lastProcessed] = {obj->getRoSealReads(), obj, {}, {}, // we don't know actual
-                                                            // caller
+  arr[lastProcessed] = {OpUid::next(), obj->getRoSealReads(), obj, {}, {}, // we don't know actual
+                                                                           // caller
     VK_ACCESS_NONE,
     /*completed*/ false,
     /*dstConflict*/ false};

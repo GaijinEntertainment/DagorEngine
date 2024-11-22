@@ -34,7 +34,7 @@ shader dirichlet_initial_conditions
       result.x = (tex_size.x - tid.x - 1) / float(tex_size.x);
       result.y = (tex_size.y - tid.y - 1) / float(tex_size.y);
 
-      potential_tex[tid] = result;
+      texture3DAt(potential_tex, tid) = result;
     }
   }
   compile("cs_5_0", "cs_main")
@@ -84,7 +84,7 @@ shader dirichlet_initial_conditions_toroidal
         result += potentialCorrection;
       }
 
-      potential_tex[tid] = result;
+      texture3DAt(potential_tex, tid) = result;
     }
   }
   compile("cs_5_0", "cs_main")
@@ -108,7 +108,7 @@ shader dirichlet_initial_conditions_from_tex
       if (tid.x >= tex_size.x || tid.y >= tex_size.y || tid.z >= tex_size.z)
         return;
 
-      potential_tex[tid] = tex3Dlod(initial_potential_tex, float4(float3(tid + 0.5) / float3(tex_size), 0)).xy;
+      texture3DAt(potential_tex, tid) = tex3Dlod(initial_potential_tex, float4(float3(tid + 0.5) / float3(tex_size), 0)).xy;
     }
   }
 
@@ -192,7 +192,7 @@ shader dirichlet_solver
       nextPotential.y = centerPotential.y + tau * (inside ? laplacian(centerPotential.y, crossPotentialVertical, h)
                                                           : boundaryAwareLaplacian(centerPotential.y, crossPotentialVertical, h, boundaries, push_val));
 
-      next_potential_tex[tid] = nextPotential;
+      texture3DAt(next_potential_tex, tid) = nextPotential;
     }
   }
   compile("cs_5_0", "cs_main")

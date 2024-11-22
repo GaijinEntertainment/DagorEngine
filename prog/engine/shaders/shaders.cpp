@@ -678,6 +678,7 @@ public:
   void startup()
   {
     shaders_internal::init_stateblocks();
+    ShaderStateBlock::clear();
     if (d3d::smAny == maxFshVer)
       maxFshVer = getMaxFSHVersion();
 

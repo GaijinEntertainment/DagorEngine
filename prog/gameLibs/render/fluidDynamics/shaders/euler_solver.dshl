@@ -78,7 +78,7 @@ shader fill_initial_conditions
         return;
 
       float boundaryData = tex3Dlod(solid_boundaries, float4(float3(tid + 0.5) / float3(tex_size), 0)).x;
-      velocity_density[tid] = float4(boundaryData > 0 ? float2(0, 0) : standard_velocity, 0, standard_density);
+      texture3DAt(velocity_density, tid) = float4(boundaryData > 0 ? float2(0, 0) : standard_velocity, 0, standard_density);
     }
   }
 
@@ -111,7 +111,7 @@ shader fill_initial_conditions_from_tex
 
       float3 tc = float3(tid + 0.5) / float3(size);
       float boundaryData = tex3Dlod(solid_boundaries, float4(tc, 0)).x;
-      velocity_density[tid] = boundaryData > 0 ? float4(0, 0, 0, standard_density) : tex3Dlod(initial_velocity_density, float4(tc, 0));
+      texture3DAt(velocity_density, tid) = boundaryData > 0 ? float4(0, 0, 0, standard_density) : tex3Dlod(initial_velocity_density, float4(tc, 0));
     }
   }
 
@@ -213,7 +213,7 @@ shader euler_simulation_cs
       nextVelDensity.x = v_x + dt * ((force.x - dval_dx(PCross, h)) / (rho + 0.0001) - v_x * dval_dx(v_xCross, h) - v_y * dval_dy(v_xCross, h));
       nextVelDensity.y = v_y + dt * ((force.y - dval_dy(PCross, h)) / (rho + 0.0001) - v_x * dval_dx(v_yCross, h) - v_y * dval_dy(v_yCross, h));
 
-      next_velocity_density[coord] = nextVelDensity;
+      texture2DAt(next_velocity_density, coord) = nextVelDensity;
     }
 
     [numthreads(8, 8, 1)]
@@ -401,7 +401,7 @@ shader euler_simulation_explicit_implicit_cs
       nextVelDensity.y = solution[1][threadCoord];
       nextVelDensity.w = solution[2][threadCoord];
 
-      next_velocity_density[coord] = nextVelDensity;
+      texture2DAt(next_velocity_density, coord) = nextVelDensity;
     }
 
   ##if euler_implicit_mode == hor
@@ -451,7 +451,7 @@ shader blur_result_cs
       float centerBoundary = tex3Dlod(solid_boundaries, float4(float3(coord + 0.5) / float3(tex_size), 0)).x;
       if (centerBoundary > 0)
       {
-        next_velocity_density[coord] = float4(0, 0, 0, standard_density);
+        texture2DAt(next_velocity_density, coord) = float4(0, 0, 0, standard_density);
         return;
       }
 
@@ -489,7 +489,7 @@ shader blur_result_cs
                                                             + velDensityTop.w);
       blurredVelDensity = float4(v_x, v_y, 0, blurredDensity);
 
-      next_velocity_density[coord] = blurredVelDensity;
+      texture2DAt(next_velocity_density, coord) = blurredVelDensity;
     }
 
     [numthreads(8, 8, 1)]

@@ -298,6 +298,12 @@ struct QueryHeroWtmAndBoxForRender : public ecs::Event
   mutable bool resReady = false;
   // parameters
   bool onlyWeapons = false;
+  enum
+  {
+    WEAPON = 1,
+    VEHICLE = 2
+  };
+  mutable uint8_t resFlags = 0; // WEAPON|VEHICLE
 
   ECS_UNICAST_EVENT_DECL(QueryHeroWtmAndBoxForRender)
   QueryHeroWtmAndBoxForRender(bool weap_only = false) : ECS_EVENT_CONSTRUCTOR(QueryHeroWtmAndBoxForRender), onlyWeapons(weap_only) {}

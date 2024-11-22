@@ -557,9 +557,9 @@ static void close_aftermath()
 static bool init_aftermath(ID3D11Device *device)
 {
 #if _TARGET_64BIT
-  static const char *aftermath_fn = "GFSDK_2024.1.0.24075\\GFSDK_Aftermath_Lib.x64.dll";
+  static const char *aftermath_fn = "GFSDK_Aftermath_Lib.x64.dll";
 #else
-  static const char *aftermath_fn = "GFSDK_2024.1.0.24075\\GFSDK_Aftermath_Lib.x86.dll";
+  static const char *aftermath_fn = "GFSDK_Aftermath_Lib.x86.dll";
 #endif
   aftermath_dllh = LoadLibraryA(aftermath_fn);
   if (!aftermath_dllh)

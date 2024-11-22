@@ -54,7 +54,7 @@ static ecs::EntitySystemDesc set_water_on_level_loaded_es_es_desc
                        ecs::EventEntityCreated,
                        ecs::EventComponentsAppear>::build(),
   0
-,"gameClient",nullptr,"water_strength_es_event_handler");
+,"gameClient",nullptr,"water_strength_es");
 static constexpr ecs::ComponentDesc water_level_es_event_handler_comps[] =
 {
 //start of 1 rw components at [0]
@@ -257,7 +257,8 @@ static ecs::EntitySystemDesc water_shore_setup_es_event_handler_es_desc
   make_span(water_shore_setup_es_event_handler_comps+0, 5)/*ro*/,
   make_span(water_shore_setup_es_event_handler_comps+5, 1)/*rq*/,
   empty_span(),
-  ecs::EventSetBuilder<ecs::EventEntityCreated,
+  ecs::EventSetBuilder<EventLevelLoaded,
+                       ecs::EventEntityCreated,
                        ecs::EventComponentsAppear>::build(),
   0
 ,nullptr,",shore__enabled,shore__hmap_size,shore__rivers_width,shore__significant_wave_threshold,shore__texture_size");
@@ -295,7 +296,8 @@ static ecs::EntitySystemDesc water_shore_surf_setup_es_event_handler_es_desc
   make_span(water_shore_surf_setup_es_event_handler_comps+0, 6)/*ro*/,
   make_span(water_shore_surf_setup_es_event_handler_comps+6, 1)/*rq*/,
   empty_span(),
-  ecs::EventSetBuilder<ecs::EventEntityCreated,
+  ecs::EventSetBuilder<EventLevelLoaded,
+                       ecs::EventEntityCreated,
                        ecs::EventComponentsAppear>::build(),
   0
 ,nullptr,"shore__amplitude_to_length,shore__parallelism_to_wind,shore__wave_gspeed,shore__wave_height_to_amplitude,shore__waves_dist,shore__width_k");

@@ -6,6 +6,8 @@ include "rendinst_plod_inc.dshl"
 
 shader rendinst_plod_perlin
 {
+  ENABLE_ASSERT(ps)
+
   static int material_channel_count = 3;
   interval material_channel_count : one<1, two<2, three;
 

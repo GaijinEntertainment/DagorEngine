@@ -201,13 +201,78 @@ ECS_DECL_LIST_TYPES
 
 struct VmExtraData
 {
-  bool createSystems;
-  bool createFactories;
   Sqrat::Table compTbl;
+  dag::Vector<Sqrat::Object> pendingCreationCbs;
+  uint16_t createSystems : 1;
+  uint16_t createFactories : 1;
+  uint16_t id : 14;
+  static inline uint16_t nextId = 0;
+  uint16_t numPendingCreationCbs = 0;
+  VmExtraData()
+  {
+    createSystems = createFactories = 1;
+    id = 0;
+  }
+
+  struct PendingCreationCbRef
+  {
+    uint16_t id;
+    int vmedSlotId = -1;
+    int cbSlotId = -1;
+    PendingCreationCbRef(uint16_t id_, int vi, int ci) : id(id_), vmedSlotId(vi), cbSlotId(ci) {}
+    PendingCreationCbRef(PendingCreationCbRef &&other)
+    {
+      memcpy(this, &other, sizeof(other));
+      other.vmedSlotId = -1;
+    }
+    PendingCreationCbRef(const PendingCreationCbRef &) { G_FAST_ASSERT(0); } //-V730 Shall not be called
+    ~PendingCreationCbRef();
+    eastl::pair<HSQUIRRELVM, VmExtraData> *isValid() const;
+    void invoke(ecs::EntityId) const;
+  };
+
+  PendingCreationCbRef addPendingCreationCb(uint16_t id_, int vm_slot_id, Sqrat::Object &&cb)
+  {
+    int i = pendingCreationCbs.size();
+    pendingCreationCbs.emplace_back(eastl::move(cb));
+    numPendingCreationCbs++;
+    return PendingCreationCbRef{id_, vm_slot_id, i};
+  }
 };
 static eastl::vector_map<HSQUIRRELVM, VmExtraData, eastl::less<HSQUIRRELVM>, EASTLAllocatorType,
   eastl::fixed_vector<eastl::pair<HSQUIRRELVM, VmExtraData>, 2>>
   vm_extra_data;
+
+eastl::pair<HSQUIRRELVM, VmExtraData> *VmExtraData::PendingCreationCbRef::isValid() const
+{
+  auto &vmed = static_cast<decltype(vm_extra_data)::base_type &>(vm_extra_data);
+  if (vmedSlotId < vmed.size() && vmed[vmedSlotId].second.id == id && cbSlotId < vmed[vmedSlotId].second.pendingCreationCbs.size())
+    return &vmed[vmedSlotId];
+  return nullptr;
+}
+
+void VmExtraData::PendingCreationCbRef::invoke(ecs::EntityId ceid) const
+{
+  if (auto vmed = isValid())
+  {
+    G_ASSERT(vmed->first == vmed->second.pendingCreationCbs[cbSlotId].GetVM());
+    Sqrat::Function cb(vmed->first, Sqrat::Object(vmed->first), vmed->second.pendingCreationCbs[cbSlotId]);
+    cb(ceid);
+  }
+}
+
+VmExtraData::PendingCreationCbRef::~PendingCreationCbRef()
+{
+  if (auto vmed = isValid())
+  {
+    G_ASSERT(vmed->first == vmed->second.pendingCreationCbs[cbSlotId].GetVM());
+    if (--vmed->second.numPendingCreationCbs == 0)
+      clear_and_shrink(vmed->second.pendingCreationCbs);
+    else
+      vmed->second.pendingCreationCbs[cbSlotId].Release();
+  }
+}
+
 static constexpr int COMPS_TABLE_MAX_NODES_COUNT = 16;
 
 struct ScriptCompDesc
@@ -2069,9 +2134,12 @@ static SQInteger create_entity_impl(HSQUIRRELVM vm, bool sync)
   }
   else
   {
-    Sqrat::Function cb(vm, Sqrat::Object(vm), callback.value);
-    eid =
-      mgr.value->createEntityAsync(tplName.value, eastl::move(compMap), [cb](EntityId created_entity) { cb.Execute(created_entity); });
+    auto vmit = vm_extra_data.find(vm);
+    G_ASSERT_RETURN(vmit != vm_extra_data.end(), SQ_ERROR);
+    int vmedSlotId = eastl::distance(vm_extra_data.begin(), vmit);
+    auto cbRef = vmit->second.addPendingCreationCb(vmit->second.id, vmedSlotId, eastl::move(callback.value));
+    eid = mgr.value->createEntityAsync(tplName.value, eastl::move(compMap),
+      [cbRef = eastl::move(cbRef)](EntityId ceid) { cbRef.invoke(ceid); });
   }
   sq_pushinteger(vm, (ecs::entity_id_t)eid); // Warning: this eid can'not be used for get<> until creation callback is called!
 
@@ -2106,9 +2174,12 @@ static SQInteger recreate_entity(HSQUIRRELVM vm)
     mgr.value->reCreateEntityFromAsync(eid.value, tplName.value, eastl::move(compMap), ComponentsMap());
   else
   {
-    Sqrat::Function cb(vm, Sqrat::Object(vm), callback.value);
-    mgr.value->reCreateEntityFromAsync(eid.value, tplName.value, eastl::move(compMap), ComponentsMap(),
-      [cb](EntityId created_entity) { cb.Execute(created_entity); });
+    auto vmit = vm_extra_data.find(vm);
+    G_ASSERT_RETURN(vmit != vm_extra_data.end(), SQ_ERROR);
+    int vmedSlotId = eastl::distance(vm_extra_data.begin(), vmit);
+    auto cbRef = vmit->second.addPendingCreationCb(vmit->second.id, vmedSlotId, eastl::move(callback.value));
+    mgr.value->reCreateEntityFromAsync(eid.value, tplName.value, eastl::move(compMap), {},
+      [cbRef = eastl::move(cbRef)](EntityId ceid) { cbRef.invoke(ceid); });
   }
 
   return 0;
@@ -3395,7 +3466,10 @@ void ecs_register_sq_binding(SqModules *module_mgr, bool create_systems, bool cr
   vmExtra.createSystems = create_systems;
   vmExtra.createFactories = create_factories;
   if (ins.second)
+  {
+    vmExtra.id = vmExtra.nextId++;
     vmExtra.compTbl = comps_create_table(vm, COMPS_TABLE_MAX_NODES_COUNT);
+  }
 
   Sqrat::Table tblEcs(vm);
   ///@module ecs

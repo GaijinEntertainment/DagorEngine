@@ -504,7 +504,20 @@ void Element::readTransform(const Sqrat::Table &desc)
       !isfinite(transform->translate.x) || !isfinite(transform->translate.y) || !isfinite(transform->pivot.x) ||
       !isfinite(transform->pivot.y))
   {
-    darg_assert_trace_var("Invalid transform values", desc, csk->transform);
+    eastl::string invalidValues("Invalid transform values ");
+    if (!isfinite(transform->rotate) || fabsf(transform->rotate) > 1e6)
+      invalidValues.append_sprintf("rotate=%f ", transform->rotate);
+    if (!isfinite(transform->scale.x) || !isfinite(transform->scale.y) || fabsf(transform->scale.x) > 1e-6 ||
+        fabsf(transform->scale.y) > 1e-6)
+      invalidValues.append_sprintf("scale=(%f, %f) ", transform->scale.x, transform->scale.y);
+    if (!isfinite(transform->translate.x) || !isfinite(transform->translate.y) || fabsf(transform->translate.x) > 1e6 ||
+        fabsf(transform->translate.y) > 1e6)
+      invalidValues.append_sprintf("translate=(%f, %f) ", transform->translate.x, transform->translate.y);
+    if (!isfinite(transform->pivot.x) || !isfinite(transform->pivot.y) || fabsf(transform->pivot.x) > 1e6 ||
+        fabsf(transform->pivot.y) > 1e6)
+      invalidValues.append_sprintf("pivot=(%f, %f) ", transform->pivot.x, transform->pivot.y);
+
+    darg_assert_trace_var(invalidValues.c_str(), desc, csk->transform);
   }
 }
 

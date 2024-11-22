@@ -323,7 +323,6 @@ static void eval_shader_stat(shader_stat &s, ShaderEvalCB &cb)
   {
     // error
     G_ASSERT(0);
-    //    logerr("error\n");
   }
 }
 
@@ -400,7 +399,6 @@ void eval_shader(shader_decl &sh, ShaderEvalCB &cb)
 
 static ShVarBool eval_shader_bool_not(not_expr &e, ShaderBoolEvalCB &cb)
 {
-  // debug("eval_shader_bool_not");
   G_ASSERT(&e);
   G_ASSERT(e.value);
   ShVarBool v;
@@ -410,44 +408,35 @@ static ShVarBool eval_shader_bool_not(not_expr &e, ShaderBoolEvalCB &cb)
     v = cb.eval_bool_value(*e.value);
   if (e.is_not)
     v = !v;
-  // debug("eval_shader_bool_not returned %d %d", v.isConst, v.value);
   return v;
 }
 
 static ShVarBool eval_shader_bool_and(and_expr &e, ShaderBoolEvalCB &cb)
 {
-  // debug("eval_shader_bool_and");
   if (e.value)
   {
     ShVarBool v = eval_shader_bool_not(*e.value, cb);
-    // debug("eval_shader_bool_and returned %d %d", v.isConst, v.value);
     return v;
   }
-  // debug("const=%d v=%d", a.isConst, a.value);
 
   ShVarBool a = eval_shader_bool_and(*e.a, cb);
 #if defined(FAST_BOOLEAN_EVAL)
   if (a.isConst && !a.value)
   {
-    // debug("eval_shader_bool_and returned %d %d (truncated AND)", a.isConst, a.value);
     return a;
   }
 #endif
 
   ShVarBool b = eval_shader_bool_not(*e.b, cb);
-
-  // debug("eval_shader_bool_and returned %d %d", (a && b).isConst, (a && b).value);
   return a && b;
 }
 
 ShVarBool eval_shader_bool(bool_expr &e, ShaderBoolEvalCB &cb)
 {
-  // debug("eval_shader_bool");
   G_ASSERT(&e);
   if (e.value)
   {
     ShVarBool v = eval_shader_bool_and(*e.value, cb);
-    // debug("eval_shader_bool returned %d %d", v.isConst, v.value);
     return v;
   }
 
@@ -455,13 +444,11 @@ ShVarBool eval_shader_bool(bool_expr &e, ShaderBoolEvalCB &cb)
 #if defined(FAST_BOOLEAN_EVAL)
   if (a.isConst && a.value)
   {
-    // debug("eval_shader_bool returned %d %d (truncated OR)", a.isConst, a.value);
     return a;
   }
 #endif
 
   ShVarBool b = eval_shader_bool_and(*e.b, cb);
-  // debug("eval_shader_bool returned %d %d", (a || b).isConst, (a || b).value);
   return a || b;
 }
 
@@ -484,15 +471,12 @@ static bool evalShaderVariant(shader_decl *sh, int dyn_index, ShaderSemCode *ssc
     cb.end_eval(*sh);
   }
   catch (ShaderEvalCB::GsclStopProcessingException e)
-  {
-    // debug ( "variant processing stopped" );
-  }
+  {}
   parser.get_lex_parser().end_shader();
 
   if (cb.dont_render)
   {
     ssc->deletePasses(dyn_index);
-    // debug("%d dont_render", i);
     //  render not needed - skip shader code selection
     return false;
   }
@@ -621,7 +605,6 @@ static void add_shader(shader_decl *sh, ShaderSyntaxParser &parser, Terminal *sh
 {
   if (!shc::isShaderRequired(shname->text))
     return;
-  //  debug_flush(true);
   if (ErrorCounter::curShader().err > 0)
   {
     sh_dump_warn_info();
@@ -725,7 +708,7 @@ static void add_shader(shader_decl *sh, ShaderSyntaxParser &parser, Terminal *sh
 
     sh_set_current_variant(staticVariant);
 
-    // empty class for storade
+    // empty class for storage
     eastl::unique_ptr<ShaderSemCode> ssc;
 
     bool needRender = false;
@@ -747,7 +730,6 @@ static void add_shader(shader_decl *sh, ShaderSyntaxParser &parser, Terminal *sh
       // for each dynamic variant:
       for (int d = 0; d < dynamicVariantCount; d++)
       {
-        // debug("Variant %d-%d", i, d);
         if (!shc::isValidVariant(staticVariant, dynamicVariants.getVariant(d)))
         {
           if (!shc::shouldMarkInvalidAsNull())
@@ -873,7 +855,7 @@ static void add_shader(shader_decl *sh, ShaderSyntaxParser &parser, Terminal *sh
         sh_debug(SHLOG_WARNING, "shader(%s): staticvariant uses renderStageIdx=%d, while dynvariants uses %d", sclass->name.c_str(),
           (ssc->flags & SC_STAGE_IDX_MASK), render_stage_idx);
 
-      // synpoint for issued compile jobs
+      // syncpoint for issued compile jobs
       shc::await_all_jobs(&sh_process_errors);
       sh_process_errors();
       resolve_pending_shaders_from_cache();
@@ -900,7 +882,6 @@ static void add_shader(shader_decl *sh, ShaderSyntaxParser &parser, Terminal *sh
           inter.name = name;
           inter.value = value;
         }
-        // debug("new code variant #%d", j);
       }
 
       staticVariant->codeId = j;
@@ -1231,7 +1212,7 @@ static void build_condition_value(bool_value &e, String &out)
         ;
         break;
 
-      default: debug("%p.num=%d", e.cmpop->op, e.cmpop->op->num); // G_ASSERT(0);
+      default: debug("%p.num=%d", e.cmpop->op, e.cmpop->op->num);
     }
 
   if (e.two_sided)

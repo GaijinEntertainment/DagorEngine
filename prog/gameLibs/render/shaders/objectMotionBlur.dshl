@@ -97,7 +97,7 @@ shader object_motion_blur_tile_max
     void storeFlattenedVelocity(uint2 samplePos, half2 velPolar, half sampledDepth)
     {
       velPolar.y = velPolar.y * (0.5 / PI) + 0.5;   // normalize angle to [0, 1]
-      flattened_vel_tex[samplePos] = float3(velPolar, sampledDepth);
+      texture2DAt(flattened_vel_tex, samplePos) = float3(velPolar, sampledDepth);
     }
 
     float2 getCameraMotion(float2 uv, float z)
@@ -198,7 +198,7 @@ shader object_motion_blur_tile_max
       if(groupIndex == 0)
       {
         vel = maxPolarVelocityForTile[groupIndex].xy;
-        tile_max_tex[groupId] = polarToCartesian(vel);
+        texture2DAt(tile_max_tex, groupId) = polarToCartesian(vel);
       }
     }
   }
@@ -255,7 +255,7 @@ shader object_motion_blur_neighbor_max
         if(vel1.z < vel2.z)
           vel1 = vel2;
 
-        neighbor_max_tex[groupId] = vel1.xy;
+        texture2DAt(neighbor_max_tex, groupId) = vel1.xy;
       }
     }
   }
@@ -470,7 +470,7 @@ shader object_motion_blur
       BRANCH
       if(maxNeighborVelLength < 0.5)
       { // no motion blur
-        output_tex[dtid] = inputColor;
+        texture2DAt(output_tex, dtid) = inputColor;
         return;
       }
 
@@ -547,7 +547,7 @@ shader object_motion_blur
         step += 2;
       }
 
-      output_tex[dtid] = float4(result / totalWeight, inputColor.a);
+      texture2DAt(output_tex, dtid) = float4(result / totalWeight, inputColor.a);
     }
   }
   compile("target_cs", "object_motion_blur_cs");

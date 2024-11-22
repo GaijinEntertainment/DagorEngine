@@ -50,7 +50,6 @@ public:
     Var() : nameId(-1), used(false), dynamic(false), noWarnings(false), terminal(NULL) {}
 
     inline const char *getName() const { return VarMap::getName(nameId); };
-    // inline void setName(const char* new_name) {name = new_name;};
   };
   Tab<Var> vars;
   int regsize;

@@ -57,8 +57,13 @@ public:
   void marker(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text);
 
   template <typename T>
-  static bool connect(const Configuration &, Direct3D12Enviroment &, T &target)
+  static bool connect(const Configuration &config, Direct3D12Enviroment &, T &target)
   {
+    if (!config.enableGPUCapturers)
+    {
+      return false;
+    }
+
     logdbg("DX12: Looking for RenderDoc capture attachment...");
     auto iface = try_connect_interface();
     if (!iface)
@@ -94,8 +99,13 @@ public:
   void marker(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text);
 
   template <typename T>
-  static bool connect(const Configuration &, Direct3D12Enviroment &d3d_env, T &target)
+  static bool connect(const Configuration &config, Direct3D12Enviroment &d3d_env, T &target)
   {
+    if (!config.enableGPUCapturers)
+    {
+      return false;
+    }
+
     logdbg("DX12: Looking for legacy PIX capture attachment...");
     auto iface = try_connect_interface(d3d_env);
     if (!iface)
@@ -133,8 +143,13 @@ public:
   void marker(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text);
 
   template <typename T>
-  static bool connect(const Configuration &, Direct3D12Enviroment &, T &target)
+  static bool connect(const Configuration &config, Direct3D12Enviroment &, T &target)
   {
+    if (!config.enableGPUCapturers)
+    {
+      return false;
+    }
+
     logdbg("DX12: Loading PIX runtime library...");
     auto runtime = try_load_runtime_interface();
     if (!runtime)
@@ -197,8 +212,13 @@ public:
   void marker(ID3D12GraphicsCommandList *, eastl::span<const char>);
 
   template <typename T>
-  static bool connect(const Configuration &, Direct3D12Enviroment &, T &target)
+  static bool connect(const Configuration &config, Direct3D12Enviroment &, T &target)
   {
+    if (!config.enableGPUCapturers)
+    {
+      return false;
+    }
+
     logdbg("DX12: Looking for Nvidia NSight...");
     if (!try_connect_interface())
     {

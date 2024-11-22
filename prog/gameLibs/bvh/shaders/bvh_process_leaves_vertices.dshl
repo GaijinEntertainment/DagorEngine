@@ -50,10 +50,10 @@ shader bvh_process_leaves_vertices
 
       int vertexStart = (start_vertex + vertexId) * vertex_stride;
 
-      uint2 inputPosPack = source.Load2(vertexStart);
-      uint texcoord = source.Load(vertexStart + 8);
-      uint2 texcoord2Pack = source.Load2(vertexStart + 12);
-      uint normalPack = source.Load(vertexStart + 20);
+      uint2 inputPosPack = loadBuffer2(source, vertexStart);
+      uint texcoord = loadBuffer(source, vertexStart + 8);
+      uint2 texcoord2Pack = loadBuffer2(source, vertexStart + 12);
+      uint normalPack = loadBuffer(source, vertexStart + 20);
 
       float3 pos = f16tof32(uint3(inputPosPack.x, inputPosPack.x >> 16, inputPosPack.y));
       float4 tc2 = f16tof32(uint4(texcoord2Pack.x, texcoord2Pack.x >> 16, texcoord2Pack.y, texcoord2Pack.y >> 16));
@@ -91,9 +91,9 @@ shader bvh_process_leaves_vertices
 
       static const uint processedVertexStride = 16; // half4 + short2 + uint
 
-      output.Store2(target_offset + vertexId * processedVertexStride + 0, uint2(outputPosPack.x | (outputPosPack.y << 16), outputPosPack.z | (outputPosPack.w << 16)));
-      output.Store(target_offset + vertexId * processedVertexStride + 8, texcoord);
-      output.Store(target_offset + vertexId * processedVertexStride + 12, normalPack);
+      storeBuffer2(output, target_offset + vertexId * processedVertexStride + 0, uint2(outputPosPack.x | (outputPosPack.y << 16), outputPosPack.z | (outputPosPack.w << 16)));
+      storeBuffer(output, target_offset + vertexId * processedVertexStride + 8, texcoord);
+      storeBuffer(output, target_offset + vertexId * processedVertexStride + 12, normalPack);
     }
   }
 

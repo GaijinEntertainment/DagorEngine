@@ -18,7 +18,7 @@ shader move_y_octahderal_distances_cs
       int from = ssgi_copy_y_indices1.x;
       int to = ssgi_copy_y_indices1.y;
       int z_ofs = ssgi_copy_y_indices0.z;
-      octahedral_distances[uint3(dtId.xy, to + z_ofs)] = octahedral_distances[uint3(dtId.xy, from + z_ofs)];
+      texture3DAt(octahedral_distances, uint3(dtId.xy, to + z_ofs)) = texture3DAt(octahedral_distances, uint3(dtId.xy, from + z_ofs));
     }
   }
   compile("cs_5_0", "copy_octahedral_cs");
@@ -40,7 +40,7 @@ shader move_y_dead_probes_cs
       int from = ssgi_copy_y_indices1.x;
       int to = ssgi_copy_y_indices1.y;
       int z_ofs = ssgi_copy_y_indices0.z;
-      dead[uint3(dtId.xy, to + z_ofs)] = dead[uint3(dtId.xy, from + z_ofs)];
+      texture3DAt(dead, uint3(dtId.xy, to + z_ofs)) = texture3DAt(dead, uint3(dtId.xy, from + z_ofs));
     }
   }
   compile("cs_5_0", "copy_dead_probes_cs");

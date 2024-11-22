@@ -45,9 +45,7 @@ AddIncludes =
 Sources =
   app.cpp
   main.cpp
-  fileDropHandler.cpp
   joystick.cpp
-  screenshotMetaInfoLoader.cpp
   scriptBindings.cpp
   initScript.cpp
   vr.cpp

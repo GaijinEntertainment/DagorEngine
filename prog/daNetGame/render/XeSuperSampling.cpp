@@ -44,13 +44,10 @@ XeSuperSampling::XeSuperSampling(const IPoint2 &outputResolution) : AntiAliasing
                              .atStage(dabfg::Stage::CS)
                              .useAs(dabfg::Usage::SHADER_RESOURCE)
                              .handle();
-    auto exposureTexHndl =
-      registry.readTexture("exposure_tex").atStage(dabfg::Stage::PS_OR_CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
-    return [this, depthHndl, motionVecsHndl, opaqueFinalTargetHndl, antialiasedHndl, exposureTexHndl] {
+    return [this, depthHndl, motionVecsHndl, opaqueFinalTargetHndl, antialiasedHndl] {
       OptionalInputParams params;
       params.depth = depthHndl.view().getTex2D();
       params.motion = motionVecsHndl.view().getTex2D();
-      params.exposure = exposureTexHndl.view().getTex2D();
       xess_render(opaqueFinalTargetHndl.view().getTex2D(), antialiasedHndl.view().getTex2D(), inputResolution, jitterOffset, params);
     };
   });
@@ -66,7 +63,6 @@ void xess_render(Texture *in_color,
   xessParams.inColor = in_color;
   xessParams.inDepth = params.depth;
   xessParams.inMotionVectors = params.motion;
-  xessParams.inExposure = params.exposure;
   xessParams.inJitterOffsetX = jitter_offset.x;
   xessParams.inJitterOffsetY = jitter_offset.y;
   xessParams.outColor = out_color;

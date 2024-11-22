@@ -44,6 +44,7 @@ void debug_ui_resources();
 void debug_ui_pipelines();
 void debug_ui_renderpasses();
 void debug_ui_misc();
+void debug_ui_sync();
 
 void debug_ui_update_pipelines_data();
 

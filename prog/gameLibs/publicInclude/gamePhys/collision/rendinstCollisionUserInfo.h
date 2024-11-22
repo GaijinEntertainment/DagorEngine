@@ -54,6 +54,7 @@ struct RendinstCollisionUserInfo : public PhysObjectUserData
   bool isDestr;
   bool bushBehaviour;
   bool treeBehaviour;
+  CollisionResource *collRes;
   gamephys::CollisionObjectInfo *objInfoData;
   mutable bool collided;
 

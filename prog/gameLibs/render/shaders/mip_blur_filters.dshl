@@ -135,6 +135,7 @@ interval gaussian_mipchain_srgb: no < 1, yes;
 
 shader gaussian_mipchain_cs
 {
+  ENABLE_ASSERT(cs)
   GAUSSIAN_MIP_CORE(cs)
 
   hlsl(cs) {
@@ -149,9 +150,9 @@ shader gaussian_mipchain_cs
     void gauss_mip_cs(uint3 DTid : SV_DispatchThreadID)
     {
       ##if gaussian_mipchain_srgb == yes
-        mip_target[DTid.xy] = ApplySRGBCurve(gauss_mip(mip_target_size.zw * (DTid.xy + 0.5)));
+        texture2DAt(mip_target, DTid.xy) = ApplySRGBCurve(gauss_mip(mip_target_size.zw * (DTid.xy + 0.5)));
       ##else
-        mip_target[DTid.xy] = gauss_mip(mip_target_size.zw * (DTid.xy + 0.5));
+        texture2DAt(mip_target, DTid.xy) = gauss_mip(mip_target_size.zw * (DTid.xy + 0.5));
       ##endif
     }
   }
@@ -160,6 +161,7 @@ shader gaussian_mipchain_cs
 
 shader gaussian_mipchain_alpha_cs
 {
+  ENABLE_ASSERT(cs)
   GAUSSIAN_MIP_CORE(cs)
 
   hlsl(cs) {
@@ -174,9 +176,9 @@ shader gaussian_mipchain_alpha_cs
     void gauss_mip_cs(uint3 DTid : SV_DispatchThreadID)
     {
       ##if gaussian_mipchain_srgb == yes
-        mip_target[DTid.xy] = ApplySRGBCurve(gauss_mip_alpha(mip_target_size.zw * (DTid.xy + 0.5)));
+        texture2DAt(mip_target, DTid.xy) = ApplySRGBCurve(gauss_mip_alpha(mip_target_size.zw * (DTid.xy + 0.5)));
       ##else
-        mip_target[DTid.xy] = gauss_mip_alpha(mip_target_size.zw * (DTid.xy + 0.5));
+        texture2DAt(mip_target, DTid.xy) = gauss_mip_alpha(mip_target_size.zw * (DTid.xy + 0.5));
       ##endif
     }
   }

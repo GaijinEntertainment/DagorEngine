@@ -39,5 +39,6 @@ REGISTER_IMGUI_WINDOW("VULK", "Frame##VULK-frame", drv3d_vulkan::debug_ui_frame)
 REGISTER_IMGUI_WINDOW("VULK", "Timeline##VULK-timeline", drv3d_vulkan::debug_ui_timeline);
 REGISTER_IMGUI_WINDOW("VULK", "Resources##VULK-resources", drv3d_vulkan::debug_ui_resources);
 REGISTER_IMGUI_WINDOW("VULK", "Pipelines##VULK-pipelines", drv3d_vulkan::debug_ui_pipelines);
+REGISTER_IMGUI_WINDOW("VULK", "Sync##VULK-sync", drv3d_vulkan::debug_ui_sync);
 REGISTER_IMGUI_WINDOW("VULK", "Misc##VULK-misc-debug-features", drv3d_vulkan::debug_ui_misc);
 #endif

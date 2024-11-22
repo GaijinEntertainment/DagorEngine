@@ -114,9 +114,6 @@ public:
       // This is here to prevent assert in ImGui::ErrorCheckUsingSetCursorPosToExtendParentBoundaries().
       ImGui::Dummy(ImVec2(0.0f, 0.0f));
     }
-
-    if (wasMinimized != minimized)
-      message_queue.sendDelayedOnWcChange(*this);
   }
 
   // There is getCaption but that returns with a new SimpleString, and there is getCaptionValue that copies to a buffer,

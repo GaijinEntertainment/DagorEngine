@@ -67,7 +67,7 @@ private:
   ArrayLayerCount layerCount{};
   MipMapCount mipLevels{};
   FormatStore format{};
-  ExtendedImageGlobalSubresouceId globalSubResBase;
+  ExtendedImageGlobalSubresourceId globalSubResBase;
 #if _TARGET_XBOX
   TextureAccessComputer textureAccessComputer;
   D3D12_TEXTURE_LAYOUT textureLayout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
@@ -193,7 +193,7 @@ public:
   SubresourcePerFormatPlaneCount getSubresourcesPerPlane() const { return mipLevels * layerCount; }
   FormatPlaneCount getPlaneCount() const { return format.getPlanes(); }
   SubresourceRange getSubresourceRange() const { return getSubresourcesPerPlane() * format.getPlanes(); }
-  ValueRange<ExtendedImageGlobalSubresouceId> getGlobalSubresourceIdRange() const
+  ValueRange<ExtendedImageGlobalSubresourceId> getGlobalSubresourceIdRange() const
   {
     if (globalSubResBase.isValid())
     {
@@ -208,7 +208,7 @@ public:
   bool isMultisampled() const { return msaaLevel > 0; }
   uint8_t getMsaaLevel() const { return msaaLevel; }
 
-  ExtendedImageGlobalSubresouceId getGlobalSubResourceIdBase() const { return globalSubResBase; }
+  ExtendedImageGlobalSubresourceId getGlobalSubResourceIdBase() const { return globalSubResBase; }
   bool hasTrackedState() const { return globalSubResBase.isValid(); }
 
   // Handles count of 0 and validates inputs. On invalid inputs it returns a invalid range.
@@ -260,7 +260,7 @@ public:
   }
 
   Image(ResourceMemory mem, ComPtr<ID3D12Resource> img, D3D12_RESOURCE_DIMENSION type, D3D12_TEXTURE_LAYOUT layout, FormatStore fmt,
-    Extent3D ext, MipMapCount levels, ArrayLayerCount layers, ImageGlobalSubresouceId sub_res_base, uint8_t msaa_level) :
+    Extent3D ext, MipMapCount levels, ArrayLayerCount layers, ImageGlobalSubresourceId sub_res_base, uint8_t msaa_level) :
     memory{mem},
     msaaLevel{msaa_level},
     imageType{type},
@@ -272,14 +272,14 @@ public:
     format{fmt},
     extent{ext},
     mipLevels{levels},
-    globalSubResBase{ExtendedImageGlobalSubresouceId::make(sub_res_base)}
+    globalSubResBase{ExtendedImageGlobalSubresourceId::make(sub_res_base)}
   {
     G_UNUSED(layout);
   }
 
 #if DX12_USE_ESRAM
   Image(ResourceMemory mem, ComPtr<ID3D12Resource> img, D3D12_RESOURCE_DIMENSION type, FormatStore fmt, Extent3D ext,
-    MipMapCount levels, ArrayLayerCount layers, ImageGlobalSubresouceId sub_res_base, const EsramResource &esram_resource,
+    MipMapCount levels, ArrayLayerCount layers, ImageGlobalSubresourceId sub_res_base, const EsramResource &esram_resource,
     uint8_t msaa_level) :
     memory{mem},
     msaaLevel{msaa_level},
@@ -289,7 +289,7 @@ public:
     format{fmt},
     extent{ext},
     mipLevels{levels},
-    globalSubResBase{ExtendedImageGlobalSubresouceId::make(sub_res_base)},
+    globalSubResBase{ExtendedImageGlobalSubresourceId::make(sub_res_base)},
     esramResource{esram_resource}
   {}
 

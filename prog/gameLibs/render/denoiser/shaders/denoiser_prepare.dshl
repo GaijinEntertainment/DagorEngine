@@ -90,23 +90,23 @@ shader denoiser_prepare
           historyConfidence = gbuffer.linearRoughness + glass_tweak;
       }
 
-      viewZTexture[ dtid.xy ] = viewZ;
-      nrTexture[ dtid.xy ] = normalRoughness;
+      texture2DAt(viewZTexture, dtid.xy) = viewZ;
+      texture2DAt(nrTexture, dtid.xy) = normalRoughness;
       ##if denoiser_half_res == yes
         if (all(dtid.xy & 1) == 0)
         {
-          float rawHalfDepth = halfResDepthTex[dtid.xy / 2].r;
-          halfZTexture[ dtid.xy / 2 ] = rawHalfDepth > 0 ? linearize_z(rawHalfDepth, zn_zfar.zw) : INF;
-          halfNrTexture[ dtid.xy / 2 ] = NRD_FrontEnd_PackNormalAndRoughness(normalize(halfNormalsTexture[dtid.xy / 2].xyz * 2 - 1), roughness, 0);
+          float rawHalfDepth = texture2DAt(halfResDepthTex, dtid.xy / 2).r;
+          texture2DAt(halfZTexture, dtid.xy / 2) = rawHalfDepth > 0 ? linearize_z(rawHalfDepth, zn_zfar.zw) : INF;
+          texture2DAt(halfNrTexture, dtid.xy / 2) = NRD_FrontEnd_PackNormalAndRoughness(normalize(halfNormalsTexture[dtid.xy / 2].xyz * 2 - 1), roughness, 0);
         }
       ##endif
 
       ##if denoiser_spec_history_confidence != NULL
         ##if denoiser_spec_confidence_half_res == yes
           if (all(dtid.xy & 1) == 0)
-            specHistoryConfidence[dtid.xy / 2] = historyConfidence;
+            texture2DAt(specHistoryConfidence, dtid.xy / 2) = historyConfidence;
         ##else
-          specHistoryConfidence[dtid.xy] = historyConfidence;
+          texture2DAt(specHistoryConfidence, dtid.xy) = historyConfidence;
         ##endif
       ##endif
     }

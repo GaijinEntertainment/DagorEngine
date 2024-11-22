@@ -5,13 +5,13 @@ ECS_DEF_PULL_VAR(screenSnowflakes);
 static constexpr ecs::ComponentDesc create_screen_snowflakes_renderer_entity_on_settings_changed_es_comps[] =
 {
 //start of 1 ro components at [0]
-  {ECS_HASH("render_settings__snowflakesOnScreen"), ecs::ComponentTypeInfo<bool>()}
+  {ECS_HASH("render_settings__screenSpaceWeatherEffects"), ecs::ComponentTypeInfo<bool>()}
 };
 static void create_screen_snowflakes_renderer_entity_on_settings_changed_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     create_screen_snowflakes_renderer_entity_on_settings_changed_es(evt
-        , ECS_RO_COMP(create_screen_snowflakes_renderer_entity_on_settings_changed_es_comps, "render_settings__snowflakesOnScreen", bool)
+        , ECS_RO_COMP(create_screen_snowflakes_renderer_entity_on_settings_changed_es_comps, "render_settings__screenSpaceWeatherEffects", bool)
     );
   while (++comp != compE);
 }
@@ -28,7 +28,7 @@ static ecs::EntitySystemDesc create_screen_snowflakes_renderer_entity_on_setting
                        OnRenderSettingsReady,
                        SetResolutionEvent>::build(),
   0
-,"render","render_settings__snowflakesOnScreen");
+,"render","render_settings__screenSpaceWeatherEffects");
 static constexpr ecs::ComponentDesc create_screen_snowflakes_renderer_entity_on_snow_appearance_es_comps[] =
 {
 //start of 1 rq components at [0]
@@ -267,7 +267,7 @@ inline void snow_enabled_on_level_ecs_query(Callable function)
 static constexpr ecs::ComponentDesc snowflakes_enabled_global_setting_ecs_query_comps[] =
 {
 //start of 1 ro components at [0]
-  {ECS_HASH("render_settings__snowflakesOnScreen"), ecs::ComponentTypeInfo<bool>()}
+  {ECS_HASH("render_settings__screenSpaceWeatherEffects"), ecs::ComponentTypeInfo<bool>()}
 };
 static ecs::CompileTimeQueryDesc snowflakes_enabled_global_setting_ecs_query_desc
 (
@@ -285,7 +285,7 @@ inline void snowflakes_enabled_global_setting_ecs_query(Callable function)
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
         {
           function(
-              ECS_RO_COMP(snowflakes_enabled_global_setting_ecs_query_comps, "render_settings__snowflakesOnScreen", bool)
+              ECS_RO_COMP(snowflakes_enabled_global_setting_ecs_query_comps, "render_settings__screenSpaceWeatherEffects", bool)
             );
 
         }while (++comp != compE);

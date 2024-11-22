@@ -202,6 +202,7 @@ shader skies_view_lut_tex_prepare_cs
 {
   cull_mode=none;
   z_write=false;
+  ENABLE_ASSERT(cs)
   USE_PS5_WAVE32_MODE()
   SKIES_VIEW_LUT_TEX_PREPARE(cs)
   hlsl(cs) {
@@ -218,8 +219,8 @@ shader skies_view_lut_tex_prepare_cs
       float2 texcoord = screenpos*prepare_resolution.xy;
       float3 viewVect = getViewVecOptimized(texcoord.xy);
       RetSkiesLut ret = daskies_sky(viewVect, texcoord, screenpos.xy);
-      output0[dtId] = ret.noPhaseScatter;
-      output1[dtId] = half4(ret.miePhaseScatter,0);
+      texture2DAt(output0, dtId) = ret.noPhaseScatter;
+      texture2DAt(output1, dtId) = half4(ret.miePhaseScatter,0);
     }
   }
   compile("cs_5_0", "daskies_sky_cs");

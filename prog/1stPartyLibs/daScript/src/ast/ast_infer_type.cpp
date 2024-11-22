@@ -3097,9 +3097,9 @@ namespace das {
                                 // we build _::{field.name} ( field, arg1, arg2, ... )
                                 auto callName = "_::" + eField->name;
                                 auto newCall = make_smart<ExprCall>(expr->at, callName);
-                                newCall->arguments.push_back(eField->value->clone());
+                                newCall->arguments.push_back(eField->value);
                                 for ( size_t i=2; i!=expr->arguments.size(); ++i ) {
-                                    newCall->arguments.push_back(expr->arguments[i]->clone());
+                                    newCall->arguments.push_back(expr->arguments[i]);
                                 }
                                 auto fcall = inferFunctionCall(newCall.get(), InferCallError::tryOperator);  // we infer it
                                 if ( fcall != nullptr || newCall->name != callName ) {
@@ -5165,7 +5165,7 @@ namespace das {
                     auto valT = expr->value->type;
                     if ( valT->isPointer() && valT->firstType ) {
                         auto derefV = make_smart<ExprPtr2Ref>(expr->at, expr->value);
-                        derefV->type = valT->firstType;
+                        derefV->type = make_smart<TypeDecl>(*valT->firstType);
                         TypeDecl::applyAutoContracts(derefV->type,valT->firstType);
                         derefV->type->ref = true;
                         derefV->type->constant |= valT->constant;
@@ -5177,7 +5177,7 @@ namespace das {
                     auto valT = expr->value->type;
                     if ( valT->isPointer() && valT->firstType ) {
                         auto derefV = make_smart<ExprPtr2Ref>(expr->at, expr->value);
-                        derefV->type = valT->firstType;
+                        derefV->type = make_smart<TypeDecl>(*valT->firstType);
                         TypeDecl::applyAutoContracts(derefV->type,valT->firstType);
                         derefV->type->ref = true;
                         derefV->type->constant |= valT->constant;

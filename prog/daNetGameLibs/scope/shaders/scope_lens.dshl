@@ -560,7 +560,7 @@ shader scope_lens, dynamic_crosshair
           ##endif
           color *= shadeFactor;
 
-          ##if lens_detail_level != full_night_vision
+          ##if lens_detail_level != full_night_vision && special_vision != thermal_vision
           half4 reflection = apply_glass_ps(input, screenpos, half4(0, 0, 0, 1), 1);
           color += reflection.rgb * (1 - shadeFactor) * get_scope_lens_albedo().rgb * get_scope_lens_albedo().a;
           ##endif

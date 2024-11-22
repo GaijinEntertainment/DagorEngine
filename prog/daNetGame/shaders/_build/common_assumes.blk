@@ -123,4 +123,3 @@ ssr_denoiser_type:i=0
 ds_motion_vectors_with_z:i=1
 detect_cockpit_by_distance:i=0
 clouds_panorama_split:i=0
-has_pre_exposure:i=0

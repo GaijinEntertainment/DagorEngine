@@ -169,7 +169,7 @@ public:
   // This even is triggered whenever a resource was changed due to
   // vertex buffer defrag and things like RElem::bv and RElem::si are no
   // longer the same as before.
-  inline static MulticastEvent<void(const RES *, bool)> on_mesh_relems_updated;
+  inline static MulticastEvent<void(const RES *, bool /*deleted*/)> on_mesh_relems_updated;
 
   typedef void (*enumRElemFct)(const RES *);
   void enumRElems(enumRElemFct enum_cb);

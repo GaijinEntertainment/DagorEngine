@@ -32,13 +32,15 @@ struct ResourceDumpInfo
 
   int memSize;
   uint64_t gpuAddress;
+  uint64_t heapId = (uint64_t)-1;
+  uint64_t heapOffset = (uint64_t)-1;
   resource_dump_types::ResourceType type;
   union
   {
     struct
     {
       const char *name;
-      int flags, totalDiscards, currentDiscard, id, sysCopySize;
+      int flags, totalDiscards, currentDiscard, currentDiscardOffset, id, sysCopySize;
       uint64_t offset, mapAddress, gpuAddress;
     } buffer;
 
@@ -66,25 +68,38 @@ struct ResourceDumpInfo
     struct
     {
       bool top;
+      bool canDifferentiate;
     } rtAcceleration;
   };
 
-  ResourceDumpInfo(resource_dump_types::ResourceType type, int mem_size, uint64_t gpu_address, bool top) :
-    memSize(mem_size), gpuAddress(gpu_address), type(type), rtAcceleration({top})
+  ResourceDumpInfo(resource_dump_types::ResourceType type, int mem_size, uint64_t gpu_address, bool top, bool canDifferentiate = true,
+    uint64_t heapId = (uint64_t)-1, uint64_t heapOffset = (uint64_t)-1) :
+    memSize(mem_size),
+    gpuAddress(gpu_address),
+    type(type),
+    heapId(heapId),
+    heapOffset(heapOffset),
+    rtAcceleration({top, canDifferentiate})
   {}
 
   ResourceDumpInfo(resource_dump_types::ResourceType type, const char *name, int mem_size, int sys_copy_size, int flags,
-    int current_discard, int total_discards, int id, uint64_t offset, uint64_t map_address, uint64_t gpu_address) :
+    int current_discard, int current_discard_offset, int total_discards, int id, uint64_t offset, uint64_t map_address,
+    uint64_t gpu_address, uint64_t heapId = (uint64_t)-1, uint64_t heapOffset = (uint64_t)-1) :
     type(type),
     gpuAddress(gpu_address),
     memSize(mem_size),
-    buffer({name, flags, total_discards, current_discard, id, sys_copy_size, offset, map_address})
+    heapId(heapId),
+    heapOffset(heapOffset),
+    buffer({name, flags, total_discards, current_discard, current_discard_offset, id, sys_copy_size, offset, map_address})
   {}
 
   ResourceDumpInfo(resource_dump_types::ResourceType type, const char *name, int mem_size, resource_dump_types::TextureTypes tex_type,
-    int res_x, int res_y, int depth, int layers, int mip, uint32_t format_flags, bool is_color, uint32_t flags, uint64_t gpu_address) :
+    int res_x, int res_y, int depth, int layers, int mip, uint32_t format_flags, bool is_color, uint32_t flags, uint64_t gpu_address,
+    uint64_t heapId = (uint64_t)-1, uint64_t heapOffset = (uint64_t)-1) :
     memSize(mem_size),
     gpuAddress(gpu_address),
+    heapId(heapId),
+    heapOffset(heapOffset),
     type(type),
     texture({name, res_x, res_y, mip, depth, layers, flags, format_flags, tex_type, is_color})
   {}

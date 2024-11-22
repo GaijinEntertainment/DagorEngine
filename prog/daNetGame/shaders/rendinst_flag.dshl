@@ -8,6 +8,8 @@ include "wind/wind_simulation_inc.dshl"
 
 shader rendinst_flag_colored, rendinst_flag_layered
 {
+  ENABLE_ASSERT(ps)
+
   if (rendinst_render_pass != rendinst_render_pass_voxelize_albedo)
   {
     USE_COMBINED_WIND(vs)

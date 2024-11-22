@@ -17,7 +17,8 @@ enum class DeviceQueueType
   TRANSFER,
 
   COUNT,
-  INVALID = COUNT
+  INVALID = COUNT,
+  ZERO = GRAPHICS
 };
 class DeviceQueue
 {

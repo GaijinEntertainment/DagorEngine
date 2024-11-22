@@ -452,6 +452,16 @@ eastl::optional<ImGuiKey> map_dagor_key_to_imgui(int humap_key)
 {
   switch (humap_key)
   {
+    case HumanInput::DKEY_1: return ImGuiKey_1;
+    case HumanInput::DKEY_2: return ImGuiKey_2;
+    case HumanInput::DKEY_3: return ImGuiKey_3;
+    case HumanInput::DKEY_4: return ImGuiKey_4;
+    case HumanInput::DKEY_5: return ImGuiKey_5;
+    case HumanInput::DKEY_6: return ImGuiKey_6;
+    case HumanInput::DKEY_7: return ImGuiKey_7;
+    case HumanInput::DKEY_8: return ImGuiKey_8;
+    case HumanInput::DKEY_9: return ImGuiKey_9;
+    case HumanInput::DKEY_0: return ImGuiKey_0;
     case HumanInput::DKEY_TAB: return ImGuiKey_Tab;
     case HumanInput::DKEY_LEFT: return ImGuiKey_LeftArrow;
     case HumanInput::DKEY_RIGHT: return ImGuiKey_RightArrow;

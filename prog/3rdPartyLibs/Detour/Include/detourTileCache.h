@@ -64,7 +64,7 @@ struct dtObstacleOrientedBox
 };
 
 #if _TARGET_PC
-static const int DT_MAX_TOUCHED_TILES = 128;
+static const int DT_MAX_TOUCHED_TILES = 64;
 #else
 static const int DT_MAX_TOUCHED_TILES = 8;
 #endif

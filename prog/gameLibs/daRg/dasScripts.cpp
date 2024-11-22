@@ -2,6 +2,7 @@
 
 #include "dasScripts.h"
 #include <daRg/dasBinding.h>
+#include <ecs/scripts/dasEs.h>
 #include "guiScene.h"
 
 #include <osApiWrappers/dag_files.h>
@@ -47,7 +48,7 @@ public:
   DargFileAccess(const char *pak) : das::ModuleFileAccess(pak, das::make_smart<DargFileAccess>()) {}
 
   virtual das::FileInfo *getNewFileInfo(const das::string &fname) override;
-  //  virtual das::ModuleInfo getModuleInfo(const das::string & req, const das::string & from) const override;
+  virtual das::ModuleInfo getModuleInfo(const das::string &req, const das::string &from) const override;
 };
 
 
@@ -75,28 +76,25 @@ das::FileInfo *DargFileAccess::getNewFileInfo(const das::string &fname)
   return setFileInfo(fname, std::move(info));
 }
 
-/****************************************************************************/
 
-
-/****************************************************************************/
-
-DasScriptsData::DasScriptsData() : fAccess(make_smart<DargFileAccess>())
+das::ModuleInfo DargFileAccess::getModuleInfo(const das::string &req, const das::string &from) const
 {
-  dasEnv = daScriptEnvironment::bound;
-  G_ASSERT(dasEnv);
+  if (!failed())
+    return das::ModuleFileAccess::getModuleInfo(req, from);
 
-  typeGuiContextRef = dbgInfoHelper.makeTypeInfo(nullptr, makeType<StdGuiRender::GuiContext &>(moduleGroup));
-  typeConstElemRenderDataRef = dbgInfoHelper.makeTypeInfo(nullptr, makeType<const ElemRenderData &>(moduleGroup));
-  typeConstRenderStateRef = dbgInfoHelper.makeTypeInfo(nullptr, makeType<const RenderState &>(moduleGroup));
-  typeConstPropsRef = dbgInfoHelper.makeTypeInfo(nullptr, makeType<const Properties &>(moduleGroup));
+  bool reqUsesMountPoint = strncmp(req.c_str(), "%", 1) == 0;
+  return das::ModuleFileAccess::getModuleInfo(req, reqUsesMountPoint ? das::string() : from);
 }
 
 
-bool DasScriptsData::is_das_inited()
+/****************************************************************************/
+/****************************************************************************/
+
+
+static bool is_das_inited()
 {
   if (!daScriptEnvironment::bound)
     return false;
-
   bool isDargBound = false;
   das::Module::foreach([&](Module *module) -> bool {
     if (module->name == "darg")
@@ -107,6 +105,90 @@ bool DasScriptsData::is_das_inited()
     return true;
   });
   return isDargBound;
+}
+
+
+DasEnvironmentGuard::DasEnvironmentGuard(das::daScriptEnvironment *environment)
+{
+  initialOwned = das::daScriptEnvironment::owned;
+  initialBound = das::daScriptEnvironment::bound;
+  das::daScriptEnvironment::owned = environment;
+  das::daScriptEnvironment::bound = environment;
+}
+
+
+DasEnvironmentGuard::~DasEnvironmentGuard()
+{
+  das::daScriptEnvironment::owned = initialOwned;
+  das::daScriptEnvironment::bound = initialBound;
+}
+
+
+void DasScriptsData::initModuleGroup()
+{
+  G_ASSERT(dasEnv);
+  DasEnvironmentGuard envGuard(dasEnv);
+  moduleGroup = eastl::make_unique<das::ModuleGroup>();
+  dbgInfoHelper = eastl::make_unique<DebugInfoHelper>();
+  typeGuiContextRef = dbgInfoHelper->makeTypeInfo(nullptr, makeType<StdGuiRender::GuiContext &>(*moduleGroup));
+  typeConstElemRenderDataRef = dbgInfoHelper->makeTypeInfo(nullptr, makeType<const ElemRenderData &>(*moduleGroup));
+  typeConstRenderStateRef = dbgInfoHelper->makeTypeInfo(nullptr, makeType<const RenderState &>(*moduleGroup));
+  typeConstPropsRef = dbgInfoHelper->makeTypeInfo(nullptr, makeType<const Properties &>(*moduleGroup));
+}
+
+
+DasScriptsData::DasScriptsData() : fAccess(make_smart<DargFileAccess>())
+{
+  if (is_das_inited())
+  {
+    dasEnv = daScriptEnvironment::bound;
+    G_ASSERT(dasEnv);
+    initModuleGroup();
+  }
+}
+
+
+void DasScriptsData::initDasEnvironment(TInitDasEnv init_callback)
+{
+  if (!init_callback)
+    logerr("Das environment initialization callback can't be null");
+
+  shutdownDasEnvironment();
+  dasEnv = new das::daScriptEnvironment();
+  isOwnedDasEnv = true;
+  initCallback = init_callback;
+
+  {
+    DasEnvironmentGuard envGuard(dasEnv);
+    init_callback();
+  }
+  initModuleGroup();
+}
+void DasScriptsData::shutdownDasEnvironment()
+{
+  {
+    DasEnvironmentGuard envGuard(dasEnv);
+    // module group must be destroyed before dasEnv
+    moduleGroup.reset();
+  }
+  if (isOwnedDasEnv)
+  {
+    {
+      DasEnvironmentGuard envGuard(dasEnv);
+      das::Module::Shutdown();
+    }
+
+    isOwnedDasEnv = false;
+    dasEnv = nullptr;
+  }
+}
+
+
+void DasScriptsData::resetBeforeReload()
+{
+  if (isOwnedDasEnv)
+    initDasEnvironment(initCallback); // recreate environment to lose all stored shared modules
+  fAccess->reset();
 }
 
 
@@ -128,17 +210,19 @@ static void process_loaded_script(const das::Context &ctx, const char *filename)
   }
 }
 
+
 void set_das_loading_settings(HSQUIRRELVM vm, AotMode aot_mode, LogAotErrors need_aot_error_log)
 {
   GuiScene *guiScene = GuiScene::get_from_sqvm(vm);
   G_ASSERT(guiScene);
-  DasScriptsData *dasMgr = guiScene->dasScriptsData.get();
-  if (dasMgr)
+
+  if (DasScriptsData *dasMgr = guiScene->dasScriptsData.get())
   {
     dasMgr->aotMode = aot_mode;
     dasMgr->needAotErrorLog = need_aot_error_log;
   }
 }
+
 
 static SQInteger load_das(HSQUIRRELVM vm)
 {
@@ -147,6 +231,7 @@ static SQInteger load_das(HSQUIRRELVM vm)
 
   GuiScene *guiScene = GuiScene::get_from_sqvm(vm);
   G_ASSERT(guiScene);
+  DasEnvironmentGuard envGuard(guiScene->dasScriptsData->dasEnv);
   DasScriptsData *dasMgr = guiScene->dasScriptsData.get();
   if (!dasMgr)
     return sq_throwerror(vm, "Not using daScript in this VM");
@@ -162,7 +247,8 @@ static SQInteger load_das(HSQUIRRELVM vm)
 
   dasMgr->fAccess->invalidateFileInfo(strFileName); // force reload, let quirrel script manage lifetime
 
-  ProgramPtr program = compileDaScript(strFileName, dasMgr->fAccess, dasMgr->logWriter, dasMgr->moduleGroup, policies);
+  ProgramPtr program = compileDaScript(strFileName, dasMgr->fAccess, guiScene->dasScriptsData->logWriter,
+    *guiScene->dasScriptsData->moduleGroup, policies);
 
   if (program->failed())
   {
@@ -189,7 +275,7 @@ static SQInteger load_das(HSQUIRRELVM vm)
 
   auto ctx = make_smart<DargContext>(guiScene, program->getContextStackSize());
 
-  if (!program->simulate(*ctx.get(), dasMgr->logWriter))
+  if (!program->simulate(*ctx, guiScene->dasScriptsData->logWriter))
   {
     eastl::string details(eastl::string::CtorSprintf{}, "Failed to simulate '%s'", filename);
 

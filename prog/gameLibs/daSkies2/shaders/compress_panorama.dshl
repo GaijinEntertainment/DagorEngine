@@ -127,7 +127,7 @@ shader compress_panorama_etc2
         GET_TEXEL(0, 3), GET_TEXEL(1, 3), GET_TEXEL(2, 3), GET_TEXEL(3, 3)
       };
       #undef GET_TEXEL
-      compressedTexture[dtId.xy] = CompressBlock_ETC2_RGBA(texels);
+      texture2DAt(compressedTexture, dtId.xy) = CompressBlock_ETC2_RGBA(texels);
     }
   }
 

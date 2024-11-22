@@ -38,14 +38,14 @@ static void settings_override_quality_changed_es_event_handler(const ecs::Event 
   SettingsOverride &settings_override__manager,
   const bool settings_override__useCustomSettings,
   const ecs::Object &settings_override__graphicsSettings,
-  const ecs::Object &settings_override__graphicsSettings_pc,
-  const ecs::Object &settings_override__graphicsSettings_xboxone,
-  const ecs::Object &settings_override__graphicsSettings_scarlett,
-  const ecs::Object &settings_override__graphicsSettings_ps4,
-  const ecs::Object &settings_override__graphicsSettings_ps5,
-  const ecs::Object &settings_override__graphicsSettings_nswitch,
-  const ecs::Object &settings_override__graphicsSettings_android,
-  const ecs::Object &settings_override__graphicsSettings_ios)
+  const ecs::Object *settings_override__graphicsSettings_pc = nullptr,
+  const ecs::Object *settings_override__graphicsSettings_xboxone = nullptr,
+  const ecs::Object *settings_override__graphicsSettings_scarlett = nullptr,
+  const ecs::Object *settings_override__graphicsSettings_ps4 = nullptr,
+  const ecs::Object *settings_override__graphicsSettings_ps5 = nullptr,
+  const ecs::Object *settings_override__graphicsSettings_nswitch = nullptr,
+  const ecs::Object *settings_override__graphicsSettings_android = nullptr,
+  const ecs::Object *settings_override__graphicsSettings_ios = nullptr)
 {
   G_UNUSED(settings_override__graphicsSettings_pc);
   G_UNUSED(settings_override__graphicsSettings_xboxone);
@@ -56,12 +56,15 @@ static void settings_override_quality_changed_es_event_handler(const ecs::Event 
   G_UNUSED(settings_override__graphicsSettings_android);
   G_UNUSED(settings_override__graphicsSettings_ios);
 
+  const ecs::Object defaultObject;
+#define DEREF_STG(X) X ? *X : defaultObject
+
 #if _TARGET_PC
-  const ecs::Object &platformObject = settings_override__graphicsSettings_pc;
+  const ecs::Object &platformObject = DEREF_STG(settings_override__graphicsSettings_pc);
 #elif _TARGET_XBOXONE
-  const ecs::Object &platformObject = settings_override__graphicsSettings_xboxone;
+  const ecs::Object &platformObject = DEREF_STG(settings_override__graphicsSettings_xboxone);
 #elif _TARGET_SCARLETT
-  const ecs::Object &platformObject = settings_override__graphicsSettings_scarlett;
+  const ecs::Object &platformObject = DEREF_STG(settings_override__graphicsSettings_scarlett);
 #elif _TARGET_C1
 
 #elif _TARGET_C2
@@ -69,14 +72,14 @@ static void settings_override_quality_changed_es_event_handler(const ecs::Event 
 #elif _TARGET_C3
 
 #elif _TARGET_ANDROID
-  const ecs::Object &platformObject = settings_override__graphicsSettings_nswitch;
+  const ecs::Object &platformObject = DEREF_STG(settings_override__graphicsSettings_android);
 #elif _TARGET_IOS
-  const ecs::Object &platformObject = settings_override__graphicsSettings_ios;
+  const ecs::Object &platformObject = DEREF_STG(settings_override__graphicsSettings_ios);
 #else
-  const ecs::Object defaultObject;
   const ecs::Object &platformObject = defaultObject;
   logerr("No platform specific override for settings_override entity!");
 #endif
+#undef DEREF_STG
 
   if (!settings_override__useCustomSettings)
   {
@@ -104,14 +107,14 @@ ECS_TRACK(settings_override__graphicsSettings_android)
 ECS_TRACK(settings_override__graphicsSettings_ios)
 static void settings_override_logerr_es_event_handler(const ecs::Event &,
   const ecs::Object &settings_override__graphicsSettings,
-  const ecs::Object &settings_override__graphicsSettings_pc,
-  const ecs::Object &settings_override__graphicsSettings_xboxone,
-  const ecs::Object &settings_override__graphicsSettings_scarlett,
-  const ecs::Object &settings_override__graphicsSettings_ps4,
-  const ecs::Object &settings_override__graphicsSettings_ps5,
-  const ecs::Object &settings_override__graphicsSettings_nswitch,
-  const ecs::Object &settings_override__graphicsSettings_android,
-  const ecs::Object &settings_override__graphicsSettings_ios)
+  const ecs::Object *settings_override__graphicsSettings_pc = nullptr,
+  const ecs::Object *settings_override__graphicsSettings_xboxone = nullptr,
+  const ecs::Object *settings_override__graphicsSettings_scarlett = nullptr,
+  const ecs::Object *settings_override__graphicsSettings_ps4 = nullptr,
+  const ecs::Object *settings_override__graphicsSettings_ps5 = nullptr,
+  const ecs::Object *settings_override__graphicsSettings_nswitch = nullptr,
+  const ecs::Object *settings_override__graphicsSettings_android = nullptr,
+  const ecs::Object *settings_override__graphicsSettings_ios = nullptr)
 {
   G_UNUSED(settings_override__graphicsSettings);
   G_UNUSED(settings_override__graphicsSettings_pc);

@@ -9,6 +9,7 @@ include "ssao_reprojection.dshl"
 include "halfres_close_depth_with_normals.dshl"
 
 float gtao_radius = 2.8;
+float gtao_half_hfov_tan = 1.0;
 float gtao_temporal_directions = 0;
 float gtao_temporal_offset = 0;
 int4 temporal_shadow_frame;
@@ -50,7 +51,7 @@ macro GTAO_MAIN_CORE(code)
     gtao_texel_size@f4 = (1.0 / max(1, halfResTexSize.x), 1.0 / max(1, halfResTexSize.y), halfResTexSize.xy);
     gtao_temporal_directions@f1 = (gtao_temporal_directions);
     gtao_temporal_offset@f1 = (gtao_temporal_offset);
-    gtao_height_width_rel@f1 = (halfResTexSize.y / max(1, halfResTexSize.x), 0, 0, 0);
+    gtao_half_fov_tan_xy@f2 = (gtao_half_hfov_tan, gtao_half_hfov_tan * halfResTexSize.y / max(1, halfResTexSize.x));
     hero_cockpit_vec@f4 = hero_cockpit_vec;
 
     local_view_x@f3 = local_view_x;
@@ -87,7 +88,7 @@ macro GTAO_MAIN_CORE(code)
 
     half3 GetCameraVec(half2 uv)
     {
-      return half3(uv.x * -2.0 + 1.0, uv.y * 2 * gtao_height_width_rel - gtao_height_width_rel, 1.0);
+      return half3(half2(uv.x * -2.0 + 1.0, uv.y * 2.0 - 1.0) * gtao_half_fov_tan_xy, 1.0);
     }
 
     half3 GetPosition(half2 uv)
@@ -327,6 +328,7 @@ shader gtao_main_cs
     #define NO_GRADIENTS_IN_SHADER 1
   }
 
+  ENABLE_ASSERT(cs)
   USE_AND_INIT_VIEW_VEC_CS()
   GTAO_MAIN_CORE(cs)
 
@@ -343,7 +345,7 @@ shader gtao_main_cs
       float2 texcoord    = pixelCenter * gtao_texel_size.xy;
       float3 worldDir    = lerp_view_vec(texcoord);
       SSAO_TYPE ao = gtao_resolve(pixelCenter, texcoord, worldDir);
-      gtao_target[DTid.xy] = ao;
+      texture2DAt(gtao_target, DTid.xy) = ao;
     }
   }
   compile("target_cs", "gtao_resolve_cs");
@@ -425,6 +427,7 @@ shader gtao_spatial
 
 shader gtao_spatial_cs
 {
+  ENABLE_ASSERT(cs)
   GTAO_SPATIAL_CORE(cs)
 
   hlsl(cs) {
@@ -439,7 +442,7 @@ shader gtao_spatial_cs
       float2 pixelCenter = DTid.xy + 0.5;
       float2 texcoord    = pixelCenter * gtao_texel_size.xy;
       SSAO_TYPE ao = gtao_spatial(texcoord);
-      gtao_target[DTid.xy] = ao;
+      texture2DAt(gtao_target, DTid.xy) = ao;
     }
   }
 
@@ -541,6 +544,7 @@ shader gtao_temporal
 
 shader gtao_temporal_cs
 {
+  ENABLE_ASSERT(cs)
   GTAO_TEMPORAL_CORE(cs)
 
   hlsl(cs) {
@@ -553,7 +557,7 @@ shader gtao_temporal_cs
         return;
 
       SSAO_TYPE ao = gtao_temporal(DTid.xy);
-      gtao_target[DTid.xy] = ao;
+      texture2DAt(gtao_target, DTid.xy) = ao;
     }
   }
 

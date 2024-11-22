@@ -106,6 +106,8 @@ struct DriverConfig
     uint64_t robustBufferAccess : 1;
     // enables device execution tracking to hunt down device lost sources without exts/tooling
     uint64_t enableDeviceExecutionTracker : 1;
+    // enables multi queue submit scheme
+    uint64_t allowMultiQueue : 1;
   };
 
   struct DeviceBits

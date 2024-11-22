@@ -19,11 +19,13 @@
 #include "shader/module.h"
 #include "backend_interop.h"
 #include "resource_manager.h"
+#include "execution_sync_capture.h"
 
 using namespace drv3d_vulkan;
 
 BackExecutionTimings Backend::timings;
 ExecutionSyncTracker Backend::sync;
+ExecutionSyncCapture Backend::syncCapture;
 StackedProfileEvents Backend::profilerStack;
 BindlessManagerBackend Backend::bindless;
 RenderStateSystemBackend Backend::renderStateSystem;

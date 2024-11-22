@@ -562,7 +562,8 @@ static void rendinst_ruler_es(const ecs::UpdateStageInfoRenderDebug &, const TMa
 
   float t = 1000.f;
   rendinst::RendInstDesc traceDesc;
-  dacoll::traceray_normalized(transform.getcol(3), transform.getcol(2), t, nullptr, nullptr, dacoll::ETF_DEFAULT, &traceDesc);
+  dacoll::traceray_normalized(transform.getcol(3), transform.getcol(2), t, nullptr, nullptr, dacoll::ETF_RI | dacoll::ETF_RI_TREES,
+    &traceDesc);
   rendinst::draw_rendinst_info(transform.getcol(3) + transform.getcol(2) * t, transform, traceDesc);
 }
 

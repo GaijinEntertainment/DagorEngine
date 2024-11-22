@@ -9,14 +9,14 @@ static constexpr ecs::ComponentDesc settings_override_quality_changed_es_event_h
 //start of 10 ro components at [1]
   {ECS_HASH("settings_override__useCustomSettings"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("settings_override__graphicsSettings"), ecs::ComponentTypeInfo<ecs::Object>()},
-  {ECS_HASH("settings_override__graphicsSettings_pc"), ecs::ComponentTypeInfo<ecs::Object>()},
-  {ECS_HASH("settings_override__graphicsSettings_xboxone"), ecs::ComponentTypeInfo<ecs::Object>()},
-  {ECS_HASH("settings_override__graphicsSettings_scarlett"), ecs::ComponentTypeInfo<ecs::Object>()},
-  {ECS_HASH("settings_override__graphicsSettings_ps4"), ecs::ComponentTypeInfo<ecs::Object>()},
-  {ECS_HASH("settings_override__graphicsSettings_ps5"), ecs::ComponentTypeInfo<ecs::Object>()},
-  {ECS_HASH("settings_override__graphicsSettings_nswitch"), ecs::ComponentTypeInfo<ecs::Object>()},
-  {ECS_HASH("settings_override__graphicsSettings_android"), ecs::ComponentTypeInfo<ecs::Object>()},
-  {ECS_HASH("settings_override__graphicsSettings_ios"), ecs::ComponentTypeInfo<ecs::Object>()}
+  {ECS_HASH("settings_override__graphicsSettings_pc"), ecs::ComponentTypeInfo<ecs::Object>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("settings_override__graphicsSettings_xboxone"), ecs::ComponentTypeInfo<ecs::Object>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("settings_override__graphicsSettings_scarlett"), ecs::ComponentTypeInfo<ecs::Object>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("settings_override__graphicsSettings_ps4"), ecs::ComponentTypeInfo<ecs::Object>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("settings_override__graphicsSettings_ps5"), ecs::ComponentTypeInfo<ecs::Object>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("settings_override__graphicsSettings_nswitch"), ecs::ComponentTypeInfo<ecs::Object>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("settings_override__graphicsSettings_android"), ecs::ComponentTypeInfo<ecs::Object>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("settings_override__graphicsSettings_ios"), ecs::ComponentTypeInfo<ecs::Object>(), ecs::CDF_OPTIONAL}
 };
 static void settings_override_quality_changed_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -25,14 +25,14 @@ static void settings_override_quality_changed_es_event_handler_all_events(const 
         , ECS_RW_COMP(settings_override_quality_changed_es_event_handler_comps, "settings_override__manager", SettingsOverride)
     , ECS_RO_COMP(settings_override_quality_changed_es_event_handler_comps, "settings_override__useCustomSettings", bool)
     , ECS_RO_COMP(settings_override_quality_changed_es_event_handler_comps, "settings_override__graphicsSettings", ecs::Object)
-    , ECS_RO_COMP(settings_override_quality_changed_es_event_handler_comps, "settings_override__graphicsSettings_pc", ecs::Object)
-    , ECS_RO_COMP(settings_override_quality_changed_es_event_handler_comps, "settings_override__graphicsSettings_xboxone", ecs::Object)
-    , ECS_RO_COMP(settings_override_quality_changed_es_event_handler_comps, "settings_override__graphicsSettings_scarlett", ecs::Object)
-    , ECS_RO_COMP(settings_override_quality_changed_es_event_handler_comps, "settings_override__graphicsSettings_ps4", ecs::Object)
-    , ECS_RO_COMP(settings_override_quality_changed_es_event_handler_comps, "settings_override__graphicsSettings_ps5", ecs::Object)
-    , ECS_RO_COMP(settings_override_quality_changed_es_event_handler_comps, "settings_override__graphicsSettings_nswitch", ecs::Object)
-    , ECS_RO_COMP(settings_override_quality_changed_es_event_handler_comps, "settings_override__graphicsSettings_android", ecs::Object)
-    , ECS_RO_COMP(settings_override_quality_changed_es_event_handler_comps, "settings_override__graphicsSettings_ios", ecs::Object)
+    , ECS_RO_COMP_PTR(settings_override_quality_changed_es_event_handler_comps, "settings_override__graphicsSettings_pc", ecs::Object)
+    , ECS_RO_COMP_PTR(settings_override_quality_changed_es_event_handler_comps, "settings_override__graphicsSettings_xboxone", ecs::Object)
+    , ECS_RO_COMP_PTR(settings_override_quality_changed_es_event_handler_comps, "settings_override__graphicsSettings_scarlett", ecs::Object)
+    , ECS_RO_COMP_PTR(settings_override_quality_changed_es_event_handler_comps, "settings_override__graphicsSettings_ps4", ecs::Object)
+    , ECS_RO_COMP_PTR(settings_override_quality_changed_es_event_handler_comps, "settings_override__graphicsSettings_ps5", ecs::Object)
+    , ECS_RO_COMP_PTR(settings_override_quality_changed_es_event_handler_comps, "settings_override__graphicsSettings_nswitch", ecs::Object)
+    , ECS_RO_COMP_PTR(settings_override_quality_changed_es_event_handler_comps, "settings_override__graphicsSettings_android", ecs::Object)
+    , ECS_RO_COMP_PTR(settings_override_quality_changed_es_event_handler_comps, "settings_override__graphicsSettings_ios", ecs::Object)
     );
   while (++comp != compE);
 }
@@ -53,14 +53,14 @@ static constexpr ecs::ComponentDesc settings_override_logerr_es_event_handler_co
 {
 //start of 10 ro components at [0]
   {ECS_HASH("settings_override__graphicsSettings"), ecs::ComponentTypeInfo<ecs::Object>()},
-  {ECS_HASH("settings_override__graphicsSettings_pc"), ecs::ComponentTypeInfo<ecs::Object>()},
-  {ECS_HASH("settings_override__graphicsSettings_xboxone"), ecs::ComponentTypeInfo<ecs::Object>()},
-  {ECS_HASH("settings_override__graphicsSettings_scarlett"), ecs::ComponentTypeInfo<ecs::Object>()},
-  {ECS_HASH("settings_override__graphicsSettings_ps4"), ecs::ComponentTypeInfo<ecs::Object>()},
-  {ECS_HASH("settings_override__graphicsSettings_ps5"), ecs::ComponentTypeInfo<ecs::Object>()},
-  {ECS_HASH("settings_override__graphicsSettings_nswitch"), ecs::ComponentTypeInfo<ecs::Object>()},
-  {ECS_HASH("settings_override__graphicsSettings_android"), ecs::ComponentTypeInfo<ecs::Object>()},
-  {ECS_HASH("settings_override__graphicsSettings_ios"), ecs::ComponentTypeInfo<ecs::Object>()},
+  {ECS_HASH("settings_override__graphicsSettings_pc"), ecs::ComponentTypeInfo<ecs::Object>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("settings_override__graphicsSettings_xboxone"), ecs::ComponentTypeInfo<ecs::Object>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("settings_override__graphicsSettings_scarlett"), ecs::ComponentTypeInfo<ecs::Object>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("settings_override__graphicsSettings_ps4"), ecs::ComponentTypeInfo<ecs::Object>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("settings_override__graphicsSettings_ps5"), ecs::ComponentTypeInfo<ecs::Object>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("settings_override__graphicsSettings_nswitch"), ecs::ComponentTypeInfo<ecs::Object>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("settings_override__graphicsSettings_android"), ecs::ComponentTypeInfo<ecs::Object>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("settings_override__graphicsSettings_ios"), ecs::ComponentTypeInfo<ecs::Object>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("settings_override__useCustomSettings"), ecs::ComponentTypeInfo<bool>()}
 };
 static void settings_override_logerr_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -71,14 +71,14 @@ static void settings_override_logerr_es_event_handler_all_events(const ecs::Even
       continue;
     settings_override_logerr_es_event_handler(evt
           , ECS_RO_COMP(settings_override_logerr_es_event_handler_comps, "settings_override__graphicsSettings", ecs::Object)
-      , ECS_RO_COMP(settings_override_logerr_es_event_handler_comps, "settings_override__graphicsSettings_pc", ecs::Object)
-      , ECS_RO_COMP(settings_override_logerr_es_event_handler_comps, "settings_override__graphicsSettings_xboxone", ecs::Object)
-      , ECS_RO_COMP(settings_override_logerr_es_event_handler_comps, "settings_override__graphicsSettings_scarlett", ecs::Object)
-      , ECS_RO_COMP(settings_override_logerr_es_event_handler_comps, "settings_override__graphicsSettings_ps4", ecs::Object)
-      , ECS_RO_COMP(settings_override_logerr_es_event_handler_comps, "settings_override__graphicsSettings_ps5", ecs::Object)
-      , ECS_RO_COMP(settings_override_logerr_es_event_handler_comps, "settings_override__graphicsSettings_nswitch", ecs::Object)
-      , ECS_RO_COMP(settings_override_logerr_es_event_handler_comps, "settings_override__graphicsSettings_android", ecs::Object)
-      , ECS_RO_COMP(settings_override_logerr_es_event_handler_comps, "settings_override__graphicsSettings_ios", ecs::Object)
+      , ECS_RO_COMP_PTR(settings_override_logerr_es_event_handler_comps, "settings_override__graphicsSettings_pc", ecs::Object)
+      , ECS_RO_COMP_PTR(settings_override_logerr_es_event_handler_comps, "settings_override__graphicsSettings_xboxone", ecs::Object)
+      , ECS_RO_COMP_PTR(settings_override_logerr_es_event_handler_comps, "settings_override__graphicsSettings_scarlett", ecs::Object)
+      , ECS_RO_COMP_PTR(settings_override_logerr_es_event_handler_comps, "settings_override__graphicsSettings_ps4", ecs::Object)
+      , ECS_RO_COMP_PTR(settings_override_logerr_es_event_handler_comps, "settings_override__graphicsSettings_ps5", ecs::Object)
+      , ECS_RO_COMP_PTR(settings_override_logerr_es_event_handler_comps, "settings_override__graphicsSettings_nswitch", ecs::Object)
+      , ECS_RO_COMP_PTR(settings_override_logerr_es_event_handler_comps, "settings_override__graphicsSettings_android", ecs::Object)
+      , ECS_RO_COMP_PTR(settings_override_logerr_es_event_handler_comps, "settings_override__graphicsSettings_ios", ecs::Object)
       );
   } while (++comp != compE);
 }

@@ -85,9 +85,16 @@ void load_pso_cache(const char *game_name, const char *game_version)
     return;
   WaitableCallback waitableCallback;
   httprequests::AsyncRequestParams request;
+  const char *defaultUrl =
+#if DAGOR_DBGLEVEL > 0
+    "https://beta.pso-cache.gaijin.net"
+#else
+    "https://pso-cache.gaijin.net"
+#endif
+    ;
   const eastl::string url(eastl::string::CtorSprintf(), "%s/%s/%s/%s",
-    ::dgs_get_settings()->getBlockByNameEx("dx12")->getStr("pso_cache_download_url", "https://pso-cache.gaijin.net"), game_name,
-    game_version, CACHE_FILENAME);
+    ::dgs_get_settings()->getBlockByNameEx("dx12")->getStr("pso_cache_download_url", defaultUrl), game_name, game_version,
+    CACHE_FILENAME);
   request.url = url.c_str();
   request.reqType = httprequests::HTTPReq::GET;
   if (waitableCallback.previousCacheLoadedFromDisk)

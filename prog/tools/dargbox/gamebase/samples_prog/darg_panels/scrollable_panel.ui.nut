@@ -1,7 +1,7 @@
 from "%darg/ui_imports.nut" import *
 
 let {IPoint2, Point2, Point3} = require("dagor.math")
-let scrollbar = require("samples_prog/_basic/components/scrollbar.nut")
+let {makeHVScrolls} = require("samples_prog/_basic/components/scrollbar.nut")
 
 
 let panelCursor = Cursor({
@@ -50,12 +50,6 @@ function makeCells() {
     children = rows
   }
 
-  let rootBase = {
-    size = flex()
-    behavior = Behaviors.Pannable
-    joystickScroll = true
-  }
-
   let container = {
     size = flex()
     rendObj = ROBJ_FRAME
@@ -63,7 +57,7 @@ function makeCells() {
     borderWidth = 4
     padding = 4
 
-    children = scrollbar.makeHVScrolls(pannable, {rootBase=rootBase})
+    children = makeHVScrolls(pannable, {behaviors = [Behaviors.Pannable]})
   }
 
   return container

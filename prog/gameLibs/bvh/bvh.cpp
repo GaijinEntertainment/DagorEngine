@@ -249,7 +249,7 @@ uint32_t get_transform_buffers_memory_statistics() { return transform_buffer_man
 
 Sbuffer *alloc_scratch_buffer(uint32_t size, uint32_t &offset)
 {
-  uint32_t alignment = d3d::get_driver_desc().raytrace.accelerationStructureBuildScratchBufferOffetAlignment;
+  uint32_t alignment = d3d::get_driver_desc().raytrace.accelerationStructureBuildScratchBufferOffsetAlignment;
   uint32_t alignedSize = ((size + alignment - 1) / alignment) * alignment;
   return scratch_buffer_manager.alloc(alignedSize, offset);
 }
@@ -305,7 +305,7 @@ void init(elem_rules_fn elem_rules_init)
 {
   elem_rules = elem_rules_init;
 
-  scratch_buffer_manager.alignment = d3d::get_driver_desc().raytrace.accelerationStructureBuildScratchBufferOffetAlignment;
+  scratch_buffer_manager.alignment = d3d::get_driver_desc().raytrace.accelerationStructureBuildScratchBufferOffsetAlignment;
 
   UniqueBVHBuffer emptyInstances(
     d3d::buffers::create_persistent_sr_structured(sizeof(HWInstance), 1, "empty_tlas_instances", d3d::buffers::Init::Zero));
@@ -505,7 +505,7 @@ static bool process(ContextId context_id, Sbuffer *buffer, UniqueOrReferencedBVH
     didProcessing = true;
   }
 
-  G_ASSERT(processedBuffer.isAllocated());
+  G_ASSERT(processedBuffer.isAllocated() || d3d::device_lost(nullptr));
 
   return didProcessing;
 }
@@ -888,7 +888,7 @@ void process_meshes(ContextId context_id, BuildBudget budget)
 {
   TIME_D3D_PROFILE_NAME(bvh_process_meshes, String(128, "bvh_process_meshes for %s", context_id->name.data()));
 
-  CHECK_LOST_DEVICE_STATE();
+  HANDLE_LOST_DEVICE_STATE(context_id, );
 
   handle_pending_mesh_actions(context_id);
 
@@ -948,7 +948,9 @@ void process_meshes(ContextId context_id, BuildBudget budget)
     RaytraceGeometryDescription desc[2];
     memset(&desc, 0, sizeof(desc));
     desc[0].type = RaytraceGeometryDescription::Type::TRIANGLES;
+    HANDLE_LOST_DEVICE_STATE(mesh.processedVertices, );
     desc[0].data.triangles.vertexBuffer = mesh.processedVertices.get();
+    HANDLE_LOST_DEVICE_STATE(mesh.processedIndices, );
     desc[0].data.triangles.indexBuffer = mesh.processedIndices.get();
     desc[0].data.triangles.vertexCount = mesh.vertexCount;
     desc[0].data.triangles.vertexStride = meta.texcoordNormalColorOffsetAndVertexStride & 255;

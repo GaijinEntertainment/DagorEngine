@@ -811,26 +811,26 @@ void BaseTex::dirtyBoundUavsNoLock()
 void BaseTex::setUavBinding(uint32_t stage, uint32_t index, bool s)
 {
   uavBindingStages[stage].set(index, s);
-  stateBitSet.set(acitve_binding_was_used_offset);
+  stateBitSet.set(active_binding_was_used_offset);
 }
 
 void BaseTex::setSrvBinding(uint32_t stage, uint32_t index, bool s)
 {
   srvBindingStages[stage].set(index, s);
-  stateBitSet.set(acitve_binding_was_used_offset);
+  stateBitSet.set(active_binding_was_used_offset);
 }
 
 void BaseTex::setRtvBinding(uint32_t index, bool s)
 {
   G_ASSERT(index < Driver3dRenderTarget::MAX_SIMRT);
   stateBitSet.set(active_binding_rtv_offset + index, s);
-  stateBitSet.set(acitve_binding_was_used_offset);
+  stateBitSet.set(active_binding_was_used_offset);
 }
 
 void BaseTex::setDsvBinding(bool s)
 {
   stateBitSet.set(active_binding_dsv_offset, s);
-  stateBitSet.set(acitve_binding_was_used_offset);
+  stateBitSet.set(active_binding_was_used_offset);
 }
 
 Bitset<Driver3dRenderTarget::MAX_SIMRT> BaseTex::getRtvBinding() const
@@ -2084,7 +2084,11 @@ int BaseTex::setAnisotropyImpl(int level)
 static constexpr int IMAGE_BYTES_PER_PIXEL = 4;
 static Texture *create_tex_internal(TexImage32 *img, int w, int h, int flg, int levels, const char *stat_name, Texture *baseTexture)
 {
-  G_ASSERT_RETURN(d3d::check_texformat(flg), nullptr);
+  if (!d3d::check_texformat(flg))
+  {
+    G_ASSERT_LOG(!get_device().isHealthy(), "DX12: check_texformat failed (but device is in healthy state)");
+    return nullptr;
+  }
 
   if ((flg & (TEXCF_RTARGET | TEXCF_DYNAMIC)) == (TEXCF_RTARGET | TEXCF_DYNAMIC))
   {
@@ -2317,7 +2321,11 @@ VolTexture *d3d::create_voltex(int w, int h, int d, int flg, int levels, const c
 static ArrayTexture *create_array_tex_internal(int w, int h, int d, int flg, int levels, const char *stat_name,
   ArrayTexture *baseTexture)
 {
-  G_ASSERT_RETURN(d3d::check_texformat(flg), nullptr);
+  if (!d3d::check_texformat(flg))
+  {
+    G_ASSERT_LOG(!get_device().isHealthy(), "DX12: check_texformat failed (but device is in healthy state)");
+    return nullptr;
+  }
 
   levels = count_mips_if_needed(w, h, flg, levels);
 
@@ -2420,7 +2428,11 @@ BaseTexture *d3d::create_ddsx_tex(IGenLoad &crd, int flg, int quality_id, int le
     {
       for (unsigned attempt = 0, tries = 5, f = dagor_frame_no(); attempt < tries;)
         if (dagor_frame_no() < f + 1)
+        {
           sleep_msec(1);
+          if (!drv3d_dx12::get_device().isHealthy())
+            attempt++; // we have to add this to avoid infinite cycles on device reset
+        }
         else
         {
           crd.seekto(st_pos);

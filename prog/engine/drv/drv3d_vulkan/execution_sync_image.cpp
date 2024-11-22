@@ -340,8 +340,10 @@ void ExecutionSyncTracker::ImageOp::aliasEndAccess(VkPipelineStageFlags stage, E
 
 void ExecutionSyncTracker::ImageOpsArray::removeRoSeal(Image *obj)
 {
-  arr[lastProcessed] = {obj->getRoSealReads(), obj, {0, obj->getMipLevels(), 0, obj->getArrayLayers()}, {}, // we don't know actual
-                                                                                                            // caller
+  arr[lastProcessed] = {OpUid::next(), obj->getRoSealReads(), obj, {0, obj->getMipLevels(), 0, obj->getArrayLayers()}, {}, // we don't
+                                                                                                                           // know
+                                                                                                                           // actual
+                                                                                                                           // caller
     VK_ACCESS_NONE, obj->layout.roSealTargetLayout, ExecutionSyncTracker::SUBPASS_NON_NATIVE, 0,
     /*completed*/ false,
     /*dstConflict*/ false};

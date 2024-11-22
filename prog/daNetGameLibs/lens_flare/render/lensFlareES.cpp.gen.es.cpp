@@ -4,18 +4,14 @@ ECS_DEF_PULL_VAR(lensFlare);
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc lens_flare_renderer_on_appear_es_comps[] =
 {
-//start of 3 rw components at [0]
-  {ECS_HASH("lens_flare_renderer"), ecs::ComponentTypeInfo<LensFlareRenderer>()},
-  {ECS_HASH("lens_flare_renderer__render_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
-  {ECS_HASH("lens_flare_renderer__prepare_lights_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()}
+//start of 1 rw components at [0]
+  {ECS_HASH("lens_flare_renderer"), ecs::ComponentTypeInfo<LensFlareRenderer>()}
 };
 static void lens_flare_renderer_on_appear_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     lens_flare_renderer_on_appear_es(evt
         , ECS_RW_COMP(lens_flare_renderer_on_appear_es_comps, "lens_flare_renderer", LensFlareRenderer)
-    , ECS_RW_COMP(lens_flare_renderer_on_appear_es_comps, "lens_flare_renderer__render_node", dabfg::NodeHandle)
-    , ECS_RW_COMP(lens_flare_renderer_on_appear_es_comps, "lens_flare_renderer__prepare_lights_node", dabfg::NodeHandle)
     );
   while (++comp != compE);
 }
@@ -24,14 +20,39 @@ static ecs::EntitySystemDesc lens_flare_renderer_on_appear_es_es_desc
   "lens_flare_renderer_on_appear_es",
   "prog/daNetGameLibs/lens_flare/render/lensFlareES.cpp.inl",
   ecs::EntitySystemOps(nullptr, lens_flare_renderer_on_appear_es_all_events),
-  make_span(lens_flare_renderer_on_appear_es_comps+0, 3)/*rw*/,
+  make_span(lens_flare_renderer_on_appear_es_comps+0, 1)/*rw*/,
   empty_span(),
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<ecs::EventEntityCreated,
                        ecs::EventComponentsAppear>::build(),
   0
-);
+,"render");
+static constexpr ecs::ComponentDesc lens_flare_renderer_on_settings_changed_es_comps[] =
+{
+//start of 1 ro components at [0]
+  {ECS_HASH("render_settings__lensFlares"), ecs::ComponentTypeInfo<bool>()}
+};
+static void lens_flare_renderer_on_settings_changed_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    lens_flare_renderer_on_settings_changed_es(evt
+        , ECS_RO_COMP(lens_flare_renderer_on_settings_changed_es_comps, "render_settings__lensFlares", bool)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc lens_flare_renderer_on_settings_changed_es_es_desc
+(
+  "lens_flare_renderer_on_settings_changed_es",
+  "prog/daNetGameLibs/lens_flare/render/lensFlareES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, lens_flare_renderer_on_settings_changed_es_all_events),
+  empty_span(),
+  make_span(lens_flare_renderer_on_settings_changed_es_comps+0, 1)/*ro*/,
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<OnRenderSettingsReady>::build(),
+  0
+,"render","render_settings__lensFlares");
 static constexpr ecs::ComponentDesc sun_flare_provider_invalidate_es_comps[] =
 {
 //start of 2 rw components at [0]
@@ -61,7 +82,7 @@ static ecs::EntitySystemDesc sun_flare_provider_invalidate_es_es_desc
   ecs::EventSetBuilder<ecs::EventEntityCreated,
                        ecs::EventComponentsAppear>::build(),
   0
-,nullptr,"sun_flare_provider__flare_config");
+,"render","sun_flare_provider__flare_config");
 static constexpr ecs::ComponentDesc lens_flare_config_on_appear_es_comps[] =
 {
 //start of 6 rq components at [0]
@@ -90,7 +111,7 @@ static ecs::EntitySystemDesc lens_flare_config_on_appear_es_es_desc
   ecs::EventSetBuilder<ecs::EventEntityCreated,
                        ecs::EventComponentsAppear>::build(),
   0
-,nullptr,"lens_flare_config__elements,lens_flare_config__intensity,lens_flare_config__name,lens_flare_config__scale,lens_flare_config__smooth_screen_fadeout_distance,lens_flare_config__use_occlusion");
+,"render","lens_flare_config__elements,lens_flare_config__intensity,lens_flare_config__name,lens_flare_config__scale,lens_flare_config__smooth_screen_fadeout_distance,lens_flare_config__use_occlusion");
 static constexpr ecs::ComponentDesc lens_flare_config_on_disappear_es_comps[] =
 {
 //start of 1 rq components at [0]
@@ -114,7 +135,7 @@ static ecs::EntitySystemDesc lens_flare_config_on_disappear_es_es_desc
   ecs::EventSetBuilder<ecs::EventEntityDestroyed,
                        ecs::EventComponentsDisappear>::build(),
   0
-);
+,"render");
 static constexpr ecs::ComponentDesc register_lens_flare_for_postfx_es_comps[] =
 {
 //start of 1 rq components at [0]
@@ -139,6 +160,38 @@ static ecs::EntitySystemDesc register_lens_flare_for_postfx_es_es_desc
   ecs::EventSetBuilder<RegisterPostfxResources>::build(),
   0
 ,"render");
+static constexpr ecs::ComponentDesc init_lens_flare_nodes_ecs_query_comps[] =
+{
+//start of 3 rw components at [0]
+  {ECS_HASH("lens_flare_renderer"), ecs::ComponentTypeInfo<LensFlareRenderer>()},
+  {ECS_HASH("lens_flare_renderer__render_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
+  {ECS_HASH("lens_flare_renderer__prepare_lights_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()}
+};
+static ecs::CompileTimeQueryDesc init_lens_flare_nodes_ecs_query_desc
+(
+  "init_lens_flare_nodes_ecs_query",
+  make_span(init_lens_flare_nodes_ecs_query_comps+0, 3)/*rw*/,
+  empty_span(),
+  empty_span(),
+  empty_span());
+template<typename Callable>
+inline void init_lens_flare_nodes_ecs_query(Callable function)
+{
+  perform_query(g_entity_mgr, init_lens_flare_nodes_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
+        {
+          function(
+              ECS_RW_COMP(init_lens_flare_nodes_ecs_query_comps, "lens_flare_renderer", LensFlareRenderer)
+            , ECS_RW_COMP(init_lens_flare_nodes_ecs_query_comps, "lens_flare_renderer__render_node", dabfg::NodeHandle)
+            , ECS_RW_COMP(init_lens_flare_nodes_ecs_query_comps, "lens_flare_renderer__prepare_lights_node", dabfg::NodeHandle)
+            );
+
+        }while (++comp != compE);
+    }
+  );
+}
 static constexpr ecs::ComponentDesc prepare_sun_flares_ecs_query_comps[] =
 {
 //start of 2 rw components at [0]

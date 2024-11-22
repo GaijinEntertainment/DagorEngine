@@ -84,23 +84,23 @@ shader ssgi_clear_volmap_cs
       float3 extent = volmap[cascadeId].voxelSize.xyx;
       bool copied = sample_25d_volmap_no_vignette_cube_no_intersected(worldPos, col0, col1, col2, col3, col4, col5);
       ssgi_init_volmap(worldPos, extent, col0, col1, col2, col3, col4, col5, copied);
-      ssgi_ambient_volmap_temporal[uint3(coord.xy, coord.z + ssgi_cascade_z_crd_ofs(cascadeId))] = copied ? SSGI_TEMPORAL_COPIED_VALUE : 0;
+      texture3DAt(ssgi_ambient_volmap_temporal, uint3(coord.xy, coord.z + ssgi_cascade_z_crd_ofs(cascadeId))) = copied ? SSGI_TEMPORAL_COPIED_VALUE : 0;
       coord.z += ssgi_cascade_z_crd_ofs(cascadeId)*6;
       uint z_ofs = volmap_y_dim(cascadeId);
 ##if gi_quality != only_ao
-      gi_ambient_volmap[coord] = col0;coord.z+=z_ofs;
-      gi_ambient_volmap[coord] = col1;coord.z+=z_ofs;
-      gi_ambient_volmap[coord] = col2;coord.z+=z_ofs;
-      gi_ambient_volmap[coord] = col3;coord.z+=z_ofs;
-      gi_ambient_volmap[coord] = col4;coord.z+=z_ofs;
-      gi_ambient_volmap[coord] = col5;
+      texture3DAt(gi_ambient_volmap, coord) = col0;coord.z+=z_ofs;
+      texture3DAt(gi_ambient_volmap, coord) = col1;coord.z+=z_ofs;
+      texture3DAt(gi_ambient_volmap, coord) = col2;coord.z+=z_ofs;
+      texture3DAt(gi_ambient_volmap, coord) = col3;coord.z+=z_ofs;
+      texture3DAt(gi_ambient_volmap, coord) = col4;coord.z+=z_ofs;
+      texture3DAt(gi_ambient_volmap, coord) = col5;
 ##else
-      gi_ambient_volmap[coord] = 1;coord.z+=z_ofs;
-      gi_ambient_volmap[coord] = 1;coord.z+=z_ofs;
-      gi_ambient_volmap[coord] = 1;coord.z+=z_ofs;
-      gi_ambient_volmap[coord] = 1;coord.z+=z_ofs;
-      gi_ambient_volmap[coord] = 1;coord.z+=z_ofs;
-      gi_ambient_volmap[coord] = 1;
+      texture3DAt(gi_ambient_volmap, coord) = 1;coord.z+=z_ofs;
+      texture3DAt(gi_ambient_volmap, coord) = 1;coord.z+=z_ofs;
+      texture3DAt(gi_ambient_volmap, coord) = 1;coord.z+=z_ofs;
+      texture3DAt(gi_ambient_volmap, coord) = 1;coord.z+=z_ofs;
+      texture3DAt(gi_ambient_volmap, coord) = 1;coord.z+=z_ofs;
+      texture3DAt(gi_ambient_volmap, coord) = 1;
 ##endif
     }
   }

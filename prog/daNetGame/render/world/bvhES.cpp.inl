@@ -30,6 +30,7 @@
 
 CONSOLE_BOOL_VAL("raytracing", rtr_shadow, false);
 CONSOLE_BOOL_VAL("raytracing", rtr_use_csm, true);
+static constexpr float threshold_64 = 0.038, threshold_16 = 0.017, threshold_4 = 0;
 
 // Context ID with the same lifespan as WorldRenderer.
 // Can't be stored in ECS, because then it'd be reset on level change.
@@ -97,7 +98,11 @@ void initBVH()
     if (is_rtsm_enabled())
       rtsm::initialize(w, h, rtsm::RenderMode::Denoised, false);
     if (is_rtr_enabled())
+    {
+      rtr::set_classify_threshold(threshold_64, threshold_16, threshold_4);
+      rtr::set_reflection_method(denoiser::ReflectionMethod::Reblur);
       rtr::initialize(true, true);
+    }
     if (is_rtao_enabled())
       rtao::initialize(true);
   }

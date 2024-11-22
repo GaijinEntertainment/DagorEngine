@@ -69,8 +69,8 @@ public:
   Bitset<Driver3dRenderTarget::MAX_SIMRT> getRtvBinding() const;
   bool getDsvBinding() const { return stateBitSet.test(active_binding_dsv_offset); }
 #if DAGOR_DBGLEVEL > 0
-  bool wasUsed() const { return stateBitSet.test(acitve_binding_was_used_offset); }
-  void setWasUsed() { stateBitSet.set(acitve_binding_was_used_offset); }
+  bool wasUsed() const { return stateBitSet.test(active_binding_was_used_offset); }
+  void setWasUsed() { stateBitSet.set(active_binding_was_used_offset); }
 #endif
   bool isPreallocBeforeLoad() const { return stateBitSet.test(active_binding_is_prealloc_before_load_offset); }
   void setIsPreallocBeforeLoad(bool s) { stateBitSet.set(active_binding_is_prealloc_before_load_offset, s); }
@@ -223,8 +223,8 @@ private:
 
   static constexpr uint32_t active_binding_rtv_offset = 0;
   static constexpr uint32_t active_binding_dsv_offset = Driver3dRenderTarget::MAX_SIMRT + active_binding_rtv_offset;
-  static constexpr uint32_t acitve_binding_was_used_offset = 1 + active_binding_dsv_offset;
-  static constexpr uint32_t active_binding_is_prealloc_before_load_offset = 1 + acitve_binding_was_used_offset;
+  static constexpr uint32_t active_binding_was_used_offset = 1 + active_binding_dsv_offset;
+  static constexpr uint32_t active_binding_is_prealloc_before_load_offset = 1 + active_binding_was_used_offset;
   static constexpr uint32_t active_binding_is_sample_stencil = 1 + active_binding_is_prealloc_before_load_offset;
   static constexpr uint32_t active_binding_is_array_cube_offset = 1 + active_binding_is_sample_stencil;
   static constexpr uint32_t unlock_image_is_upload_skipped = active_binding_is_array_cube_offset + 1;

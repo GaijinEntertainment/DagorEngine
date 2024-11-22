@@ -36,6 +36,7 @@ endmacro
 
 shader copy_cloud_shadows_volume
 {
+  ENABLE_ASSERT(cs)
   INIT_COPY_CLOUD_SHADOWS_VOLUME(cs)
   hlsl(cs) {
     RWTexture3D<uint> output : register(u0);
@@ -47,7 +48,7 @@ shader copy_cloud_shadows_volume
       float4 currentValues;
       currentValues.xy = clouds_shadows_volume[tid].xy;
       currentValues.zw = clouds_shadows_volume[tid+uint3(1,0,0)].xy;
-      output[dtid] = encode(currentValues.x,0) | encode(currentValues.y,8) | encode(currentValues.z,16) | encode(currentValues.w,24);
+      texture3DAt(output, dtid) = encode(currentValues.x,0) | encode(currentValues.y,8) | encode(currentValues.z,16) | encode(currentValues.w,24);
     }
   }
   compile("cs_5_0", "cs_main")
@@ -237,6 +238,7 @@ endmacro
 
 shader gen_cloud_shadows_volume_cs, gen_cloud_shadows_volume_partial_cs
 {
+  ENABLE_ASSERT(cs)
   USE_GEN_CLOUD_SHADOWS_VOLUME(cs)
   hlsl(cs) {
     #define D3D_SHADER_REQUIRES_TYPED_UAV_LOAD_ADDITIONAL_FORMATS 1
@@ -248,7 +250,7 @@ shader gen_cloud_shadows_volume_cs, gen_cloud_shadows_volume_partial_cs
     void cs_main(uint3 dtid : SV_DispatchThreadID, uint3 gid:SV_GroupID) {
       float2 result;
       uint3 tid = gen_cloud_shadows_volume_main(dtid, gid, result);
-      output[tid] = result;
+      texture3DAt(output, tid) = result;
     }
   }
   compile("cs_5_0", "cs_main")

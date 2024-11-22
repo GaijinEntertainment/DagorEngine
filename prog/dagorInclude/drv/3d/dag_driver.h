@@ -134,10 +134,6 @@ void insert_wait_on_fence(GPUFENCEHANDLE &fence, GpuPipeline gpu_pipeline);
 // Miscellaneous
 bool set_srgb_backbuffer_write(bool); // returns previous result. switch on/off srgb write to backbuffer (default is off)
 
-bool set_msaa_pass();
-
-bool set_depth_resolve();
-
 bool setgamma(float);
 
 float get_screen_aspect_ratio();

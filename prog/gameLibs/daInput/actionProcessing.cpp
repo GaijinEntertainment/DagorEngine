@@ -1072,6 +1072,8 @@ void dainput::mouse_wheel_event_occurs(int64_t t_usec, int wheel_inc)
 }
 void dainput::mouse_move_event_occurs(int64_t t_usec, float dx, float dy, int scr_x, int scr_y)
 {
+  if (dx != 0.f || dy != 0.f)
+    dev_mouse_lastInputOnFrameNo = dagor_frame_no();
   last_queued_t_us = t_usec;
   emergency_events_dispatch();
   IGenSave *cwr = input_queue.startWrite();

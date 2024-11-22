@@ -32,6 +32,8 @@ MAKE_TYPE_FACTORY(ComputeShader, ComputeShader);
 
 DAS_BIND_ENUM_CAST(d3d::SamplerHandle);
 DAS_BASE_BIND_ENUM_FACTORY(d3d::SamplerHandle, "SamplerHandle");
+MAKE_TYPE_FACTORY(SamplerInfo, d3d::SamplerInfo);
+MAKE_TYPE_FACTORY(BorderColor, d3d::BorderColor);
 
 namespace bind_dascript
 {
@@ -78,5 +80,14 @@ inline float d3d_get_vsync_refresh_rate()
 }
 
 inline void d3d_stretch_rect(BaseTexture *src, BaseTexture *dst) { d3d::stretch_rect(src, dst); }
+
+inline d3d::SamplerHandle d3d_request_sampler(const das::TBlock<void, das::TTemporary<d3d::SamplerInfo &>> &block,
+  das::Context *context, das::LineInfoArg *at)
+{
+  d3d::SamplerInfo smpInfo;
+  vec4f arg = das::cast<d3d::SamplerInfo *>::from(&smpInfo);
+  context->invoke(block, &arg, nullptr, at);
+  return d3d::request_sampler(smpInfo);
+}
 
 } // namespace bind_dascript

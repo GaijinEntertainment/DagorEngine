@@ -62,6 +62,7 @@ int trace_rays_count;
 
 shader trace_clouds_cs
 {
+  ENABLE_ASSERT(cs)
   TRACE_CLOUDS(cs)
   (cs) { trace_rays_count@f1 = (trace_rays_count); }
   hlsl(cs) {
@@ -75,7 +76,7 @@ shader trace_clouds_cs
       float4 pos_threshold = rays[dtid*2], dir_dist = rays[dtid*2+1];
       float step_size = max(32.0, dir_dist.w / TRACE_CLOUDS_MAX_STEPS);
       float2 result = trace_ray(pos_threshold.xyz, dir_dist.xyz, dir_dist.w, pos_threshold.w, step_size);
-      output[dtid] = (result.x < 0 ? 65535 : clamp(uint(result.x/dir_dist.w*65534+.499f), 0, 65534)) | (clamp(uint(result.y*65535+0.499f), 0, 65535) << 16);
+      structuredBufferAt(output, dtid) = (result.x < 0 ? 65535 : clamp(uint(result.x/dir_dist.w*65534+.499f), 0, 65534)) | (clamp(uint(result.y*65535+0.499f), 0, 65535) << 16);
     }
   }
   compile("cs_5_0", "cs_main")

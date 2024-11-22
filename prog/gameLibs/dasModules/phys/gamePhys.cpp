@@ -145,6 +145,8 @@ public:
     das::addExtern<DAS_BIND_FUN(gamephys::atmosphere::temperature)>(*this, lib, "atmosphere_temperature",
       das::SideEffects::accessExternal, "gamephys::atmosphere::temperature")
       ->arg("height");
+    das::addExtern<DAS_BIND_FUN(gamephys::atmosphere::sonicSpeed)>(*this, lib, "atmosphere_sonicSpeed",
+      das::SideEffects::accessExternal, "gamephys::atmosphere::sonicSpeed");
     das::addExtern<DAS_BIND_FUN(orient_setYP0)>(*this, lib, "orient_setYP0", das::SideEffects::modifyArgument,
       "bind_dascript::orient_setYP0");
     das::addExtern<DAS_BIND_FUN(orient_transformInv)>(*this, lib, "orient_transformInv", das::SideEffects::modifyArgument,

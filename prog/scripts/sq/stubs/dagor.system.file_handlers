@@ -1,0 +1,4 @@
+return {
+  get_meta_info_from_screenshot = @(_) null
+  init_file_drop_handler = @(_) null
+}

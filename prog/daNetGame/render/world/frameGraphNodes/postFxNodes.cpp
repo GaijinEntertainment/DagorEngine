@@ -311,15 +311,46 @@ resource_slot::NodeHandleWithSlotsAccess makePreparePostFxNode()
     });
 }
 
+dabfg::NodeHandle makeFrameBeforeDistortionProducerNode()
+{
+  return dabfg::register_node("frame_before_distortion_producer", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+    auto srcFrameHndl = registry.readTexture("frame_after_aa").atStage(dabfg::Stage::TRANSFER).useAs(dabfg::Usage::BLIT).handle();
+
+    auto dstFrameHndl = registry
+                          .createTexture2d("frame_before_distortion", dabfg::History::No,
+                            {TEXFMT_R11G11B10F | TEXCF_RTARGET, registry.getResolution<2>("post_fx")})
+                          .atStage(dabfg::Stage::TRANSFER)
+                          .useAs(dabfg::Usage::BLIT)
+                          .handle();
+
+    auto hasThermalRender = registry.readBlob<OrderingToken>("thermal_spectre_rendered").optional().handle();
+    auto hazeRenderedHndl = registry.readBlob<bool>("haze_rendered").optional().handle();
+
+    auto distortionPostfxRequired = registry.createBlob<bool>("distortion_postfx_required", dabfg::History::No).handle();
+
+    return [srcFrameHndl, dstFrameHndl, hasThermalRender, hazeRenderedHndl, distortionPostfxRequired]() {
+      const bool hasHaze = hazeRenderedHndl.get() && *hazeRenderedHndl.get();
+
+      distortionPostfxRequired.ref() = !hasThermalRender.get() && hasHaze;
+
+      if (!distortionPostfxRequired.ref())
+        d3d::stretch_rect(srcFrameHndl.view().getTex2D(), dstFrameHndl.get());
+    };
+  });
+}
+
 dabfg::NodeHandle makeDistortionFxNode()
 {
   return dabfg::register_node("distortion_postfx_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
-    auto frame = registry.createTexture2d("frame_after_distortion", dabfg::History::No,
-      {TEXFMT_R11G11B10F | TEXCF_RTARGET, registry.getResolution<2>("post_fx")});
+    auto frame = registry.renameTexture("frame_before_distortion", "frame_after_distortion", dabfg::History::No);
 
     registry.requestRenderPass().color({frame});
 
     registry.readTexture("frame_after_aa").atStage(dabfg::Stage::POST_RASTER).bindToShaderVar("frame_tex");
+
+    auto distortionPostfxRequired = registry.readBlob<bool>("distortion_postfx_required").handle();
+
+    registry.readTexture("depth_after_transparency").atStage(dabfg::Stage::PS).bindToShaderVar("haze_scene_depth_tex");
 
     registry.readTexture("haze_offset").atStage(dabfg::Stage::POST_RASTER).bindToShaderVar("haze_offset_tex").optional();
     registry.create("haze_default_sampler", dabfg::History::No)
@@ -330,6 +361,9 @@ dabfg::NodeHandle makeDistortionFxNode()
     registry.readTexture("haze_color").atStage(dabfg::Stage::POST_RASTER).bindToShaderVar("haze_color_tex").optional();
     registry.readTexture("haze_depth").atStage(dabfg::Stage::POST_RASTER).bindToShaderVar("haze_depth_tex").optional();
 
-    return [distortionPostfx = PostFxRenderer("distortion_postfx")]() { distortionPostfx.render(); };
+    return [distortionPostfxRequired, distortionPostfx = PostFxRenderer("distortion_postfx")]() {
+      if (distortionPostfxRequired.ref())
+        distortionPostfx.render();
+    };
   });
 }

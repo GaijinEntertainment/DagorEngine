@@ -27,6 +27,8 @@ struct ScopeAimRenderingData
   bool nearDofEnabled = false;
   bool simplifiedAimDof = false;
   dag::RelocatableFixedVector<ecs::EntityId, 31> scopeLensCockpitEntities;
+  TMatrix4_vec4 jitterProjTm;
+  TMatrix4_vec4 noJitterProjTm;
 };
 
 struct AimDofSettings
@@ -51,7 +53,7 @@ void prepare_aim_dof(const ScopeAimRenderingData &scopeAimData,
   Texture *aim_dof_depth,
   const TexStreamingContext &tex_ctx);
 
-void render_scope_lens_prepass(const ScopeAimRenderingData &scopeAimData, const TexStreamingContext &texCtx);
+void render_scope_prepass(const ScopeAimRenderingData &scopeAimData, const TexStreamingContext &texCtx);
 void render_scope(const ScopeAimRenderingData &scopeAimData, const TexStreamingContext &texCtx);
 void render_scope_lens_mask(const ScopeAimRenderingData &scopeAimData, const TexStreamingContext &texCtx);
 void render_scope_lens_hole(const ScopeAimRenderingData &scopeAimData, const bool by_mask, const TexStreamingContext &texCtx);

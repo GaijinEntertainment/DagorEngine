@@ -37,7 +37,7 @@ function registerScriptProfiler(prefix, logRes = log.console_print, filePath = n
       return ret
     }
     if (ret=="off") {
-      logRes($"time take: {get_time_msec() - st}ms")
+      let timeTake = get_time_msec() - st
       st = 0
       if (fileName == null)
         profiler.stop()
@@ -45,6 +45,7 @@ function registerScriptProfiler(prefix, logRes = log.console_print, filePath = n
         profiler.stop_and_save_to_file(fileName)
         ret = $"{ret} (saved to file {fileName})"
       }
+      logRes($"time take: {timeTake}ms")
     }
     logRes(ret)
     return ret

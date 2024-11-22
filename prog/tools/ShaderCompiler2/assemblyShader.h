@@ -258,11 +258,11 @@ public:
     return r;
   }
 
-  void reset(int r)
+  void reset(int r, int num)
   {
     releaseRegs();
-    G_ASSERT(owner->usedRegs[r] > 0);
-    acquireRegs(r, 1);
+    G_ASSERT(eastl::all_of(&owner->usedRegs[r], &owner->usedRegs[r + num], [](int used) { return used > 0; }));
+    acquireRegs(r, num);
   }
 
   explicit operator int() const

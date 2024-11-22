@@ -842,6 +842,17 @@ void AnimBlender::unregisterPostBlendCtrl(int id, AnimPostBlendCtrl *n)
   pbCtrl[id] = NULL;
 }
 
+void log_active_bnls(const dag::Span<real> &bnlWt, PtrTab<AnimBlendNodeLeaf> &bnl, int bnlNum, const AnimationGraph &graph)
+{
+  logdbg("Active bnls:");
+  for (int bnlIdx = 0; bnlIdx < bnlNum; bnlIdx++)
+  {
+    if (fabsf(bnlWt[bnlIdx]) <= 1e-6f || !bnl[bnlIdx] || !bnl.data()[bnlIdx]->anim)
+      continue;
+    logdbg(" - %s (weight: %lf)", graph.getAnimNodeName(bnl[bnlIdx]->getAnimNodeId()), bnlWt[bnlIdx]);
+  }
+}
+
 static PerformanceTimer2 __pm(false);
 static PerformanceTimer2 __pm_quat(false);
 static PerformanceTimer2 __pm_p3(false);
@@ -849,8 +860,10 @@ static PerformanceTimer2 __pm_prepare(false);
 static PerformanceTimer2 __pm_outer(false);
 static int __pm_anim_cnt = 0;
 
-bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNode *root, const CharNodeModif *cmm)
+bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNode *root, const CharNodeModif *cmm,
+  const AnimationGraph &graph)
 {
+  G_UNUSED(graph);
 #if MEASURE_PERF
   perf_tm.go();
 #endif
@@ -990,8 +1003,14 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
       if (ch_w.totalNum >= MAX_ANIMS_IN_NODE)
       {
 #if DAGOR_DBGLEVEL > 0
-        LOGERR_ONCE("pos: Need to increase max anims for node %d/%s, j=%d, targetChN=%d: %d\n", i, pos.nodeName[j].get(), j, targetChN,
-          ch_w.totalNum);
+        static bool logged_ = false;
+        if (!logged_)
+        {
+          logged_ = true;
+          log_active_bnls(bnlWt, bnl, bnlNum, graph);
+          logerr("pos: Need to increase max anims for node %d/%s, j=%d, targetChN=%d: %d. See log for active bnls dump.", i,
+            pos.nodeName[j].get(), j, targetChN, ch_w.totalNum);
+        }
 #endif
         continue;
       }
@@ -1034,8 +1053,14 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
       if (ch_w.totalNum >= MAX_ANIMS_IN_NODE)
       {
 #if DAGOR_DBGLEVEL > 0
-        LOGERR_ONCE("scl: Need to increase max anims for node %d/%s, j=%d, targetChN=%d: %d\n", i, scl.nodeName[j].get(), j, targetChN,
-          ch_w.totalNum);
+        static bool logged_ = false;
+        if (!logged_)
+        {
+          logged_ = true;
+          log_active_bnls(bnlWt, bnl, bnlNum, graph);
+          logerr("scl: Need to increase max anims for node %d/%s, j=%d, targetChN=%d: %d. See log for active bnls dump.", i,
+            scl.nodeName[j].get(), j, targetChN, ch_w.totalNum);
+        }
 #endif
         continue;
       }
@@ -1073,8 +1098,14 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
       if (ch_w.totalNum >= MAX_ANIMS_IN_NODE)
       {
 #if DAGOR_DBGLEVEL > 0
-        LOGERR_ONCE("rot: Need to increase max anims for node %d/%s, j=%d, targetChN=%d: %d\n", i, rot.nodeName[j].get(), j, targetChN,
-          ch_w.totalNum);
+        static bool logged_ = false;
+        if (!logged_)
+        {
+          logged_ = true;
+          log_active_bnls(bnlWt, bnl, bnlNum, graph);
+          logerr("rot: Need to increase max anims for node %d/%s, j=%d, targetChN=%d: %d. See log for active bnls dump.", i,
+            rot.nodeName[j].get(), j, targetChN, ch_w.totalNum);
+        }
 #endif
         continue;
       }

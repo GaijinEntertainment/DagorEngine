@@ -24,18 +24,6 @@ using namespace das;
 namespace darg
 {
 
-class DasEnvSwitch
-{
-public:
-  DasEnvSwitch(das::daScriptEnvironment *target) : saved(das::daScriptEnvironment::bound) { das::daScriptEnvironment::bound = target; }
-
-  ~DasEnvSwitch() { das::daScriptEnvironment::bound = saved; }
-
-private:
-  das::daScriptEnvironment *saved = nullptr;
-};
-
-
 static bool verify_draw_func(DasScriptsData *das_script_data, FuncInfo *info, das::TypeInfo *data_arg_type)
 {
   if (info->count != 3 && info->count != 4)
@@ -98,7 +86,7 @@ bool RobjDasCanvasParams::load(const Element *elem)
   }
   else
   {
-    DasEnvSwitch envSwitch(scene->dasScriptsData->dasEnv);
+    DasEnvironmentGuard envGuard(scene->dasScriptsData->dasEnv);
 
     DasScript *script = scriptObj.Cast<DasScript *>();
     das::Context *ctx = script->ctx.get();
@@ -126,11 +114,15 @@ bool RobjDasCanvasParams::load(const Element *elem)
           {
             dataArgType = argType;
             data.resize(argType->size);
-
             vec4f args[2] = {das::cast<const Properties &>::from(elem->props), das::cast<void *>::from(data.data())};
-            ctx->eval(setupFunc, args, nullptr);
+            ctx->tryRestartAndLock();
 
-            ctx->restart();
+            ctx->evalWithCatch(setupFunc, args, nullptr);
+
+            if (const char *error = ctx->getException())
+              logerr("%s: %s", ctx->exceptionAt.describe().c_str(), error);
+
+            ctx->unlock();
             ctx->restartHeaps();
           }
         }
@@ -178,20 +170,24 @@ void RobjDasCanvas::render(GuiContext &ctx, const Element *elem, const ElemRende
   GuiVertexTransform xf;
   ctx.getViewTm(xf.vtm);
 
+  vec4f args[4] = {das::cast<GuiContext &>::from(ctx), das::cast<const ElemRenderData &>::from(*rdata),
+    das::cast<const RenderState &>::from(render_state), das::cast<void *>::from(params->data.data())};
+
+  params->dasCtx->tryRestartAndLock();
+
+  GuiScene *scene = GuiScene::get_from_elem(elem);
+
   {
-    GuiScene *scene = GuiScene::get_from_elem(elem);
-    DasEnvSwitch envSwitch(scene->dasScriptsData->dasEnv);
-
-    vec4f args[4] = {das::cast<GuiContext &>::from(ctx), das::cast<const ElemRenderData &>::from(*rdata),
-      das::cast<const RenderState &>::from(render_state), das::cast<void *>::from(params->data.data())};
-    params->dasCtx->eval(params->drawFunc, args, nullptr);
-
-    params->dasCtx->restart();
-    params->dasCtx->restartHeaps();
+    DasEnvironmentGuard envGuard(scene->dasScriptsData->dasEnv);
+    params->dasCtx->evalWithCatch(params->drawFunc, args, nullptr);
   }
 
-  ctx.setViewTm(xf.vtm);
+  if (const char *ex = params->dasCtx->getException())
+    logerr("%s: %s", params->dasCtx->exceptionAt.describe().c_str(), ex);
 
+  params->dasCtx->unlock();
+  params->dasCtx->restartHeaps();
+  ctx.setViewTm(xf.vtm);
   ctx.reset_draw_str_attr();
   ctx.reset_draw_str_texture();
 }

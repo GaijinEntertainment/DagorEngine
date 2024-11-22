@@ -11,7 +11,6 @@
 
 }
 
-
 .wy-side-nav-search, .wy-nav-top {
     background: #1a1c1e;
 }
@@ -28,6 +27,18 @@ audio, canvas, video {
     display: block;
     margin: auto;
     margin-bottom: 12px;
+}
+
+.rst-content code, .rst-content tt, code, kbd, pre, samp {
+    font-family: monospace,serif;
+    _font-family: courier new,monospace;
+    font-size: 0.95em;
+}
+
+.rst-content .linenodiv pre, .rst-content div[class^=highlight] pre, .rst-content pre.literal-block {
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, Courier, monospace;
+    font-size: 0.95em;
+    line-height: 1.4;
 }
 
 

@@ -4,8 +4,10 @@
 #include <EASTL/span.h>
 #include <EASTL/tuple.h>
 #include <EASTL/unique_ptr.h>
-#include <generic/dag_relocatableFixedVector.h>
+#include <dag/dag_vector.h>
 #include <math/dag_intrin.h>
+#include <math/dag_adjpow2.h>
+#include <debug/dag_log.h>
 
 
 namespace concurrent_range_pool_detail
@@ -208,7 +210,7 @@ private:
 private:
   // NOTE: ranges are stored SPARSELY inside of here, and we don't keep track of
   // where the uninitialized gaps are, so it is impossible to iterate this!
-  dag::RelocatableFixedVector<concurrent_range_pool_detail::FixedArray<T>, BUCKET_COUNT> buckets;
+  dag::Vector<concurrent_range_pool_detail::FixedArray<T>> buckets;
   uint32_t totalElems = 0;
   uint32_t firstFreeInLastBucket = 0;
 };

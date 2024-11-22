@@ -164,10 +164,11 @@ void PHYS_ACTOR::doEnqueueCT(float at_time)
     return;
 
   int ctTick = gamephys::floorPhysicsTickNumber(at_time, phys.timeStep);
+
+  ControlsSerializer<PhysImpl>::beforeEnqueueAsUnapproved(phys); // client must update data for unapproved CT
   if (!phys.isNeedToSaveControlsAt(ctTick) || !beforeEnqueueCT(at_time))
     return;
 
-  ControlsSerializer<PhysImpl>::beforeEnqueueAsUnapproved(phys);
   phys.saveProducedCTAsUnapproved(ctTick);
   phys.producedCT.stepHistory();
 

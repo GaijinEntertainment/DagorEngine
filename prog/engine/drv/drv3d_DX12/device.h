@@ -155,22 +155,6 @@ protected:
     }
   }
 
-  /// will return true when the device is in Health::HEALTHY state
-  /// will return false when the device is in Health::DEAD state
-  /// for any other state, this will block and wait for any of the states that would return true or false
-  bool waitForHealthyState()
-  {
-    auto v = contextHealth.load(std::memory_order_relaxed);
-
-    while ((Health::HEALTHY != v) && (Health::DEAD != v))
-    {
-      wait(contextHealth, v);
-      v = contextHealth.load(std::memory_order_relaxed);
-    }
-
-    return Health::HEALTHY == v;
-  }
-
 public:
   bool isHealthyOrRecovering() const
   {
@@ -298,7 +282,6 @@ protected:
   void enterRecoveringState() {}
 
   bool enterHealthyState() { return true; }
-  bool waitForHealthyState() { return true; }
 
 public:
   constexpr bool isHealthyOrRecovering() const { return true; }
@@ -658,8 +641,8 @@ public:
   bool isSamplesCountSupported(DXGI_FORMAT format, int32_t samples_count);
 
   D3D12_FEATURE_DATA_FORMAT_SUPPORT getFormatFeatures(FormatStore fmt);
-  ImageGlobalSubresouceId getSwapchainColorGlobalId() const { return resources.getSwapchainColorGlobalId(); }
-  ImageGlobalSubresouceId getSwapchainSecondaryColorGlobalId() const { return resources.getSwapchainSecondaryColorGlobalId(); }
+  ImageGlobalSubresourceId getSwapchainColorGlobalId() const { return resources.getSwapchainColorGlobalId(); }
+  ImageGlobalSubresourceId getSwapchainSecondaryColorGlobalId() const { return resources.getSwapchainSecondaryColorGlobalId(); }
 
 #if _TARGET_PC_WIN
   void signalDeviceError()
@@ -1573,6 +1556,11 @@ inline BufferInterfaceConfigCommon::BufferType PlatformBufferInterfaceConfig::di
 {
   G_UNUSED(size);
   auto &device = get_device();
+  if (!current_buffer.buffer)
+  {
+    G_ASSERT_LOG(!device.isHealthy(), "DX12: Buffer is null but device is not lost");
+    return {};
+  }
   auto nextBuffer = device.getContext().discardBuffer(eastl::move(current_buffer), memory_class, view_format, structure_size,
     self->usesRawView(), self->usesStructuredView(), getResourceFlags(buf_flags), buf_flags, name);
   // notify state system, that it has to mark all uses as dirty

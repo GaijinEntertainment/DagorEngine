@@ -73,9 +73,11 @@ int DagorWinMain(bool debugmode)
     return 1;
   }
 
-  printf("loaded binary dump %s (memSize=%uK), dumping contents to: \"%s\" [VARS SHADERS %s %s %s], %d shaders, %d globvars\n",
+  printf("loaded binary dump %s (memSize=%uK), dumping contents to: \"%s\" [VARS SHADERS %s %s %s], %d shaders, %d total vars, %d "
+         "globvars\n",
     __argv[1], (uint32_t)(shBinDumpOwner().getDumpSize() >> 10), output_log_fn, out_variants ? "VARIANT_TABLES" : "",
-    out_asm ? "ASM" : "", out_stcode ? "STCODE" : "", (int)shBinDump().classes.size(), shBinDump().globVars.v.size());
+    out_asm ? "ASM" : "", out_stcode ? "STCODE" : "", (int)shBinDump().classes.size(), shBinDump().varMap.size(),
+    shBinDump().globVars.v.size());
   if (out_shaders)
     printf("(dumping shaders with content-like names to folder: %s/ )\n", out_shaders);
   if (single_shader)

@@ -421,12 +421,7 @@ namespace drv3d_metal
       num_reg = num_strored;
     }
 
-    String name;
-#if DAGOR_DBGLEVEL > 0
-    name.printf(0, "Default cb for stage %d, frame %llu", stage, render.frame);
-#endif
-
-    id<MTLBuffer> buf = render.AllocateConstants(num_reg, device_buffer_offset, num_reg, name);
+    id<MTLBuffer> buf = render.AllocateConstants(num_reg, device_buffer_offset);
     uint8_t* ptr = (uint8_t*)buf.contents + device_buffer_offset;
     G_ASSERT(device_buffer_offset + num_reg <= RingBufferItem::max_size);
 
@@ -461,13 +456,8 @@ namespace drv3d_metal
     {
       G_ASSERTF(immediate_dword_count > 0, "Shader name and variant: %s", getShaderName(shader->src == nil ? "" : [shader->src cStringUsingEncoding:[NSString defaultCStringEncoding]]).c_str());
 
-      String name;
-  #if DAGOR_DBGLEVEL > 0
-      name.printf(0, "Immediate cb for stage %d, frame %llu", stage, render.frame);
-  #endif
-
-      int buf_imm_offset = 0, imm_size = immediate_dword_count*sizeof(uint32_t);
-      id<MTLBuffer> buf_imm = render.AllocateConstants(imm_size, buf_imm_offset, imm_size, name);
+      int buf_imm_offset = 0;
+      id<MTLBuffer> buf_imm = render.AllocateConstants(immediate_dword_count*sizeof(uint32_t), buf_imm_offset);
       memcpy((uint8_t *)buf_imm.contents + buf_imm_offset, immediate_dwords, immediate_dword_count*sizeof(uint32_t));
 
       int target = shader->immediate_slot;
@@ -1324,13 +1314,8 @@ namespace drv3d_metal
         auto& rc = buffers2copy[i];
         G_ASSERT((rc.size & 3) == 0);
 
-        String name;
-#if DAGOR_DBGLEVEL > 0
-        name.printf(0, "Copy cb for buffer %s, frame %llu", [rc.dst.label UTF8String], render.frame);
-#endif
-
         int buf_size_offset = 0;
-        id<MTLBuffer> buf_size = AllocateConstants(16, buf_size_offset, 16, name);
+        id<MTLBuffer> buf_size = AllocateConstants(16, buf_size_offset);
         uint32_t * data = (uint32_t *)((uint8_t *)buf_size.contents + buf_size_offset);
         data[0] = rc.size / 4;
         data[1] = rc.src_offset / 4;
@@ -1549,7 +1534,7 @@ namespace drv3d_metal
     checkRenderAcquired();
 
     Render::StageBinding &stage = stages[rstage];
-    if (rstage == STAGE_VS)
+    if (rstage == STAGE_VS && bf_type == GEOM_BUFFER)
     {
       G_ASSERT(stride < 256);
       cur_rstate.vbuffer_stride[slot] = stride;
@@ -1839,14 +1824,8 @@ namespace drv3d_metal
     };
     BufferUP tempBufferVB, tempBufferIB;
 
-    String name_vb, name_ib;
-#if DAGOR_DBGLEVEL > 0
-    name_vb.printf(0, "immediate vb, frame %llu", render.frame);
-    name_ib.printf(0, "immediate ib, frame %llu", render.frame);
-#endif
-
     int vbuf_offset = 0;
-    tempBufferVB.dynamic_buffer = AllocateConstants(numvert*stride_bytes, vbuf_offset, numvert*stride_bytes, name_vb);
+    tempBufferVB.dynamic_buffer = AllocateConstants(numvert*stride_bytes, vbuf_offset);
     tempBufferVB.dynamic_frame = frame;
     tempBufferVB.dynamic_offset = 0;
 
@@ -1856,7 +1835,7 @@ namespace drv3d_metal
     if (ind)
     {
       int ibuf_offset = 0;
-      tempBufferIB.dynamic_buffer = AllocateConstants(prim_count * 2, ibuf_offset, prim_count * 2, name_ib);
+      tempBufferIB.dynamic_buffer = AllocateConstants(prim_count * 2, ibuf_offset);
       tempBufferIB.dynamic_frame = frame;
       tempBufferIB.dynamic_offset = 0;
 
@@ -2076,13 +2055,8 @@ namespace drv3d_metal
         [computeEncoder setComputePipelineState:clear_cs_pipeline];
       current_cs_pipeline = clear_cs_pipeline;
 
-      String name;
-  #if DAGOR_DBGLEVEL > 0
-      name.printf(0, "clear rwbuffer %s frame %llu", buff->getResName(), render.frame);
-  #endif
-
       int buf_size_offset = 0;
-      id<MTLBuffer> buf_size = AllocateConstants(32, buf_size_offset, 32, name);
+      id<MTLBuffer> buf_size = AllocateConstants(32, buf_size_offset);
       *(uint32_t *)((uint8_t *)buf_size.contents + buf_size_offset) = val[0];
       *(uint32_t *)((uint8_t *)buf_size.contents + buf_size_offset + 16) = buf->bufSize / 4;
 
@@ -2634,10 +2608,9 @@ namespace drv3d_metal
     drv3d_metal::Texture *tex = attach.texture;
     G_ASSERT(tex && tex->apiTex);
 
-    bool no_msaa = !render.msaa_pass && tex->apiTex->rt_texture.sampleCount > 1;
-    desc.texture = no_msaa ? tex->apiTex->texture : tex->apiTex->rt_texture;
-    desc.loadAction = no_msaa ? MTLLoadActionLoad : attach.load_action;
-    desc.storeAction = no_msaa ? MTLStoreActionStore : attach.store_action;
+    desc.texture = tex->apiTex->rt_texture;
+    desc.loadAction = attach.load_action;
+    desc.storeAction = attach.store_action;
     desc.level = attach.level;
     if (desc.storeAction == MTLStoreActionMultisampleResolve)
     {
@@ -2815,7 +2788,6 @@ namespace drv3d_metal
     }
 
     need_change_rt = 0;
-    msaa_pass = false;
 
     cached_viewport.originX = -FLT_MAX;
 
@@ -2992,13 +2964,6 @@ namespace drv3d_metal
     query->status = 2;
   }
 
-  void Render::setMSAAPass()
-  {
-    checkRenderAcquired();
-
-    msaa_pass = true;
-  }
-
   void Render::setRenderPass(bool set)
   {
     checkRenderAcquired();
@@ -3021,13 +2986,6 @@ namespace drv3d_metal
 
     is_rgb_backbuffer = set;
     return set;
-  }
-
-  void Render::setDepthResolve()
-  {
-    checkRenderAcquired();
-
-    depth_resolve = true;
   }
 
   uint64_t Render::getQueryResult(Query* query, bool force_flush)

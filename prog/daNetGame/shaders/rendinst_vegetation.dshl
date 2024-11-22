@@ -39,6 +39,8 @@ endmacro
 
 shader rendinst_tree_colored, rendinst_tree_colored_alpha_split
 {
+  ENABLE_ASSERT(ps)
+
   VERTEX_DENSITY_INIT_VS()
   VERTEX_DENSITY_WRITE()
 

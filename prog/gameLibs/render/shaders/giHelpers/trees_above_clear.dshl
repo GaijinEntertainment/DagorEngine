@@ -8,7 +8,7 @@ shader trees2d_clear
   supports none;
   supports global_frame;
 
-  z_test = false;
+  z_func = always;
   z_write = true;
   cull_mode = none;
   POSTFX_VS(0)

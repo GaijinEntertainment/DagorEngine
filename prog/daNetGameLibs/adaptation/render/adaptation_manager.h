@@ -42,7 +42,7 @@ struct AdaptationManager
   void accumulateHistogram();
   void adaptExposure();
   void updateReadbackExposure();
-  void clearExposureTex();
+  void clearNormalizationFactor();
   void sheduleClear() { isClearNeeded = true; }
   D3DRESID getExposureBufferId() { return g_Exposure.getBufId(); }
   void uploadInitialExposure();
@@ -57,7 +57,7 @@ private:
   };
 
 private:
-  UniqueTex exposureTex;
+  UniqueTex exposureNormalizationFactor;
   UniqueBuf g_Exposure, g_NoExposureBuffer;
   eastl::unique_ptr<ComputeShaderElement> generateHistogramCenterWeightedFromSourceCS;
   eastl::unique_ptr<ComputeShaderElement> adaptExposureCS, accumulate_hist_cs;

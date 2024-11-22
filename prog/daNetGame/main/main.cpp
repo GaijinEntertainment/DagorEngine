@@ -100,7 +100,6 @@
 #if _TARGET_C1 | _TARGET_C2
 
 #elif _TARGET_GDK
-#include <osApiWrappers/xbox/storage.h>
 #include "platform/xbox/xboxServices.h"
 #elif _TARGET_C3
 
@@ -206,11 +205,7 @@ static void init_early() // called from within main(), but before log system ini
 static String get_log_dir()
 {
   String dir(framemem_ptr());
-#if _TARGET_PC_WIN && _TARGET_GDK
-  dir.printf(0, "%s/.logs~%s", xbox::get_pls_path(), get_game_name());
-#else
   dir.printf(0, ".logs~%s", get_game_name());
-#endif
   return dir;
 }
 

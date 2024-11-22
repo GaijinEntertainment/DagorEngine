@@ -1565,8 +1565,8 @@ class GlobalSubresourceIdProvider : public MetricsProvider
 
   struct GlobalSubresourceIdProviderState
   {
-    dag::Vector<BareBoneImageGlobalSubresouceIdRange> freeRanges;
-    ImageGlobalSubresouceId nextFreeSubRes = first_dynamic_texture_global_id;
+    dag::Vector<BareBoneImageGlobalSubresourceIdRange> freeRanges;
+    ImageGlobalSubresourceId nextFreeSubRes = first_dynamic_texture_global_id;
 
     void reset()
     {
@@ -1608,15 +1608,15 @@ protected:
   }
 
 public:
-  ImageGlobalSubresouceId getSwapchainColorGlobalId() const { return swapchain_color_texture_global_id; }
+  ImageGlobalSubresourceId getSwapchainColorGlobalId() const { return swapchain_color_texture_global_id; }
 
-  ImageGlobalSubresouceId getSwapchainSecondaryColorGlobalId() const { return swapchain_secondary_color_texture_global_id; }
+  ImageGlobalSubresourceId getSwapchainSecondaryColorGlobalId() const { return swapchain_secondary_color_texture_global_id; }
 
-  ImageGlobalSubresouceId allocateGlobalResourceIdRange(SubresourceCount count)
+  ImageGlobalSubresourceId allocateGlobalResourceIdRange(SubresourceCount count)
   {
     auto stateAccess = idProviderState.access();
 
-    auto range = free_list_allocate_smallest_fit<ImageGlobalSubresouceId>(stateAccess->freeRanges, count.count());
+    auto range = free_list_allocate_smallest_fit<ImageGlobalSubresourceId>(stateAccess->freeRanges, count.count());
     if (range.empty())
     {
       auto r = stateAccess->nextFreeSubRes;
@@ -1629,7 +1629,7 @@ public:
     }
   }
 
-  void freeGlobalResourceIdRange(ValueRange<ImageGlobalSubresouceId> range)
+  void freeGlobalResourceIdRange(ValueRange<ImageGlobalSubresourceId> range)
   {
     if (first_dynamic_texture_global_id > range.front())
       return;

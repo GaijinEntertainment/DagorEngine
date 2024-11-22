@@ -688,7 +688,7 @@ bool SingleColorChannelExpression::assembly(AssembleShaderEvalCB &owner, CodeTab
 
   if (!child->assembly(owner, code, cpp_expr, srcReg, is_integer))
     return false;
-  dest_reg.reset(int(srcReg) + colorChannel);
+  dest_reg.reset(int(srcReg) + colorChannel, 1);
   return true;
 }
 
@@ -1197,7 +1197,7 @@ bool LVarValueExpression::assembly(AssembleShaderEvalCB &owner, CodeTable &code,
   if (getUnaryOperator() == shexpr::UOP_NEGATIVE)
     code.push_back(shaderopcode::makeOp2(cod, int(dest_reg), locVar->reg));
   else
-    dest_reg.reset(locVar->reg);
+    dest_reg.reset(locVar->reg, locVar->valueType == shexpr::VT_COLOR4 ? 4 : 1);
 
   cpp_expr.specifyNextExprElement(StcodeExpression::ElementType::LOCVAR, getTerminal()->text);
   return Expression::assembly(owner, code, cpp_expr, dest_reg, is_integer);

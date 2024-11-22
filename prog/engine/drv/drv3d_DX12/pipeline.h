@@ -1468,7 +1468,7 @@ class PipelineManager : public backend::ShaderModuleManager,
     eastl::unique_ptr<RaytracePipeline> raytrace;
 #endif
   };
-  struct BlitPipeline
+  struct FormatPipeline
   {
     ComPtr<ID3D12PipelineState> pipeline;
     DXGI_FORMAT outFormat;
@@ -1476,7 +1476,9 @@ class PipelineManager : public backend::ShaderModuleManager,
   dag::Vector<PrepedForDelete> prepedForDeletion;
   // blit signature is special
   ComPtr<ID3D12RootSignature> blitSignature;
-  dag::Vector<BlitPipeline> blitPipelines;
+  ComPtr<ID3D12RootSignature> clearSignature;
+  dag::Vector<FormatPipeline> blitPipelines;
+  dag::Vector<FormatPipeline> clearPipelines;
   PFN_D3D12_SERIALIZE_ROOT_SIGNATURE D3D12SerializeRootSignature = nullptr;
   D3D_ROOT_SIGNATURE_VERSION signatureVersion = D3D_ROOT_SIGNATURE_VERSION_1;
 #if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
@@ -1486,7 +1488,9 @@ class PipelineManager : public backend::ShaderModuleManager,
 
   void setCompilePipelineSetQueueLength();
   void createBlitSignature(ID3D12Device *device);
+  void createClearSignature(ID3D12Device *device);
   ID3D12PipelineState *createBlitPipeline(ID3D12Device2 *device, DXGI_FORMAT out_fmt, bool give_name);
+  ID3D12PipelineState *createClearPipeline(ID3D12Device2 *device, DXGI_FORMAT out_fmt, bool give_name);
   GraphicsPipelineSignature *getGraphicsPipelineSignature(ID3D12Device *device, PipelineCache &cache, bool has_vertex_input,
     bool has_acceleration_structure, const dxil::ShaderResourceUsageTable &vs_header, const dxil::ShaderResourceUsageTable &ps_header,
     const dxil::ShaderResourceUsageTable *gs_header, const dxil::ShaderResourceUsageTable *hs_header,
@@ -1551,14 +1555,25 @@ public:
 #endif
 
   ID3D12RootSignature *getBlitSignature() { return blitSignature.Get(); }
+  ID3D12RootSignature *getClearSignature() { return clearSignature.Get(); }
   ID3D12PipelineState *getBlitPipeline(ID3D12Device2 *device, DXGI_FORMAT out_fmt, bool give_name)
   {
     auto ref =
-      eastl::find_if(begin(blitPipelines), end(blitPipelines), [=](const BlitPipeline &bp) { return bp.outFormat == out_fmt; });
+      eastl::find_if(begin(blitPipelines), end(blitPipelines), [=](const FormatPipeline &bp) { return bp.outFormat == out_fmt; });
     if (ref == end(blitPipelines))
     {
       return createBlitPipeline(device, out_fmt, give_name);
     }
+    return ref->pipeline.Get();
+  }
+
+  ID3D12PipelineState *getClearPipeline(ID3D12Device2 *device, DXGI_FORMAT out_fmt, bool give_name)
+  {
+    auto ref =
+      eastl::find_if(begin(clearPipelines), end(clearPipelines), [=](const FormatPipeline &cp) { return cp.outFormat == out_fmt; });
+    if (ref == end(clearPipelines))
+      return createClearPipeline(device, out_fmt, give_name);
+
     return ref->pipeline.Get();
   }
 

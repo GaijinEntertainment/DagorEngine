@@ -73,13 +73,13 @@ static ecs::EntitySystemDesc screen_droplets_settings_es_event_handler_es_desc
 static constexpr ecs::ComponentDesc reset_screen_droplets_es_comps[] =
 {
 //start of 1 ro components at [0]
-  {ECS_HASH("render_settings__dropletsOnScreen"), ecs::ComponentTypeInfo<bool>()}
+  {ECS_HASH("render_settings__screenSpaceWeatherEffects"), ecs::ComponentTypeInfo<bool>()}
 };
 static void reset_screen_droplets_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     reset_screen_droplets_es(evt
-        , ECS_RO_COMP(reset_screen_droplets_es_comps, "render_settings__dropletsOnScreen", bool)
+        , ECS_RO_COMP(reset_screen_droplets_es_comps, "render_settings__screenSpaceWeatherEffects", bool)
     );
   while (++comp != compE);
 }
@@ -96,7 +96,7 @@ static ecs::EntitySystemDesc reset_screen_droplets_es_es_desc
                        OnRenderSettingsReady,
                        SetResolutionEvent>::build(),
   0
-,"render","render_settings__dropletsOnScreen");
+,"render","render_settings__screenSpaceWeatherEffects");
 //static constexpr ecs::ComponentDesc disable_screen_droplets_es_comps[] ={};
 static void disable_screen_droplets_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {

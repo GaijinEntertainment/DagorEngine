@@ -487,6 +487,9 @@ class BlobMacro : AstCallMacro
 
               res.resType = ResourceType Blob;
             } |> invoke(self.registry.resources |> get(self.resUid.nameId));
+            self |> modifyRequest() <| $(var request : ResourceRequest&) {
+              request |> markWithTag($v(mangledBlobTypeName));
+            };
             return <- [[$t(requestStruct) registry=self.registry, nodeId=self.nodeId, resUid=self.resUid]];
           } |> invoke($e(request));
         }

@@ -119,15 +119,15 @@ shader light_initial_ambient_voxels_cs
       if (tid == 0)
       {
         coord.z += ssgi_cascade_z_crd_ofs(cascade_id);
-        ssgi_ambient_volmap_temporal[coord] = SSGI_TEMPORAL_INITED_VALUE;
+        texture3DAt(ssgi_ambient_volmap_temporal, coord) = SSGI_TEMPORAL_INITED_VALUE;
         coord.z += ssgi_cascade_z_crd_ofs(cascade_id)*5;
         uint z_ofs = volmap_y_dim(cascade_id);
-        gi_ambient_volmap_init[coord] = col0;coord.z+=z_ofs;
-        gi_ambient_volmap_init[coord] = col1;coord.z+=z_ofs;
-        gi_ambient_volmap_init[coord] = col2;coord.z+=z_ofs;
-        gi_ambient_volmap_init[coord] = col3;coord.z+=z_ofs;
-        gi_ambient_volmap_init[coord] = col4;coord.z+=z_ofs;
-        gi_ambient_volmap_init[coord] = col5;
+        texture3DAt(gi_ambient_volmap_init, coord) = col0;coord.z+=z_ofs;
+        texture3DAt(gi_ambient_volmap_init, coord) = col1;coord.z+=z_ofs;
+        texture3DAt(gi_ambient_volmap_init, coord) = col2;coord.z+=z_ofs;
+        texture3DAt(gi_ambient_volmap_init, coord) = col3;coord.z+=z_ofs;
+        texture3DAt(gi_ambient_volmap_init, coord) = col4;coord.z+=z_ofs;
+        texture3DAt(gi_ambient_volmap_init, coord) = col5;
       }
     }
   }

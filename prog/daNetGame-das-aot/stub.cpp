@@ -96,6 +96,7 @@ namespace atmosphere
 float density(float h) { G_ASSERT_RETURN(false, 0.0f); }
 Point3 get_wind() { G_ASSERT_RETURN(false, Point3()); }
 float temperature(float) { G_ASSERT_RETURN(false, 0.0f); }
+float sonicSpeed(float) { G_ASSERT_RETURN(false, 0.0f); }
 } // namespace atmosphere
 void Orient::setYP0(const Point3 &) { G_ASSERT(0); }
 void Orient::setQuat(const Quat &) { G_ASSERT(0); }
@@ -339,7 +340,7 @@ void flush_ri_instances() { G_ASSERT(0); }
 bool is_ri_instance_enabled(const CollisionInstances *, const rendinst::RendInstDesc &) { G_ASSERT_RETURN(false, true); }
 
 } // namespace dacoll
-bool LandMeshHolesManager::check(const Point2 &) const { return false; }
+bool LandMeshHolesCell::check(const Point2 &, const HeightmapHandler *) const { return false; }
 
 #include <gamePhys/collision/collisionResponse.h>
 namespace daphys

@@ -18,57 +18,69 @@ static char logDirPath[DAGOR_MAX_PATH];
 
 using namespace debug_internal;
 
-static void rotate_debug_files(const char *debugPath, const int count)
+static int rotate_debug_files(const char *debugPath, const char *debugExt, const int count)
 {
-  G_ASSERT(count <= 9);
   char debug[DAGOR_MAX_PATH];
   memset(debug, '\0', DAGOR_MAX_PATH);
-  SNPRINTF(debug, DAGOR_MAX_PATH - 2, "%s/debug", debugPath);
-  const size_t digitIndex = i_strlen(debug);
-  char &digit = debug[digitIndex];
-  auto convertIndex = [](const size_t index) { return (index == 0) ? '\0' : ('0' + index); };
-  size_t index = 0;
-  digit = convertIndex(index);
-  while (index <= count && dd_file_exists(debug))
+  SNPRINTF(debug, sizeof(debug), "%s/", debugPath);
+
+  const int filenameOffset = i_strlen(debug);
+  const int debugBufferLenght = sizeof(debug) - filenameOffset;
+  char *debugFilename = debug + filenameOffset;
+
+  SNPRINTF(debugFilename, debugBufferLenght, "debug0%s", debugExt);
+
+  // Step 0: Check 'debug[0..Count]' and return first not existing log index
+  for (int logIndex = 0; logIndex <= count;)
   {
-    index++;
-    digit = convertIndex(index);
+    if (!dd_file_exists(debug))
+      return logIndex;
+
+    SNPRINTF(debugFilename, debugBufferLenght, "debug%d%s", ++logIndex, debugExt);
   }
 
-  if (index > count)
+  // Step 1: Remove 'debug0' - the oldest log file
+  SNPRINTF(debugFilename, debugBufferLenght, "debug0%s", debugExt);
+  if (unlink(debug) != 0)
   {
-    digit = convertIndex(count);
-    if (unlink(debug) != 0)
-    {
-      __android_log_print(ANDROID_LOG_WARN, "dagor", "Unable to remove debug log file: %s error: %d \n", debug, errno);
-      return;
-    }
-    index--;
+    __android_log_print(ANDROID_LOG_WARN, "dagor", "Unable to remove debug log file: %s error: %d \n", debug, errno);
+    return 0;
   }
+
   char debug1[DAGOR_MAX_PATH];
   memcpy(debug1, debug, DAGOR_MAX_PATH); // For copy nullterminators after string end
-  while (index > 0)
+
+  // Step 2: Shift log names like debug1 -> debug0, debug2 -> debug1, etc.
+  for (int logIndex = 1; logIndex <= count; ++logIndex)
   {
-    index--;
-    digit = convertIndex(index);
-    debug1[digitIndex] = convertIndex(index + 1);
-    if (dd_rename(debug, debug1) == 0)
+    SNPRINTF(debugFilename, debugBufferLenght, "debug%d%s", logIndex, debugExt);
+    SNPRINTF(debug1 + filenameOffset, sizeof(debug1) - filenameOffset, "debug%d%s", logIndex - 1, debugExt);
+
+    if (!dd_rename(debug, debug1))
     {
       __android_log_print(ANDROID_LOG_WARN, "dagor", "Unable to rename debug log file from: %s to: %s error: %d \n", debug, debug1,
         errno);
-      return;
+      return 0;
     }
   }
+
+  return count;
 }
 
 void setup_debug_system(const char *exe_fname, const char *prefix, bool datetime_name, const size_t rotatedCount)
 {
+  static const char *BASE_LOG_NAME = "debug";
+
 #if DAGOR_FORCE_LOGS && DAGOR_DBGLEVEL == 0
-  const char *logFilename = "debug.clog";
+  const char *logExt = ".clog";
   crypt_debug_setup(get_dagor_log_crypt_key(), 60 << 20 /* MAX_LOGS_FILE_SIZE */);
 #else
-  const char *logFilename = "debug";
+  const char *logExt = "";
 #endif
+
+  char logFilename[DAGOR_MAX_PATH];
+  memset(logFilename, 0, sizeof(logFilename));
+  strcpy(logFilename, BASE_LOG_NAME);
 
   char lastDbgPath[DAGOR_MAX_PATH];
   memset(dbgFilepath, 0, sizeof(dbgFilepath));
@@ -87,8 +99,14 @@ void setup_debug_system(const char *exe_fname, const char *prefix, bool datetime
   }
   else
   {
-    rotate_debug_files(logDirPath, rotatedCount);
+    const int logIndex = rotate_debug_files(logDirPath, logExt, rotatedCount);
+    SNPRINTF(logFilename, sizeof(logFilename), "%s%d", BASE_LOG_NAME, logIndex);
   }
+
+#if DAGOR_FORCE_LOGS && DAGOR_DBGLEVEL == 0
+  strcat(logFilename, logExt);
+#endif
+
   SNPRINTF(dbgFilepath, DAGOR_MAX_PATH, "%s/%s", logDirPath, logFilename);
   dd_mkpath(dbgFilepath);
   dd_mkpath(lastDbgPath);

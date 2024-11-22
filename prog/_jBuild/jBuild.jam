@@ -1708,10 +1708,14 @@ if $(SkipLicenseBuild) != yes && $(lic_file_list) {
 
     local lic_target = $($(t)__OutDir)/LICENSE-$(t:B) ;
     if $(Platform) = macOS && [ MATCH "(\.app/Contents/MacOS)" : $($(t)__OutDir)) ] { lic_target = $($(t)__OutDir)/../Resources/LICENSE-$(t:B) ; }
+    else if $(Platform) = android { lic_target = $($(t)__TmpDir)/android/assets/LICENSE-$(t:B) ; }
+    else if $(Platform) = iOS { lic_target = $($(t)__OutDir)/game/LICENSE-$(t:B) ; }
 
     local lic_exe_name = $($(t)-BundleExe:E=$(t:D=)) ;
     local lic_target = $($(t)__OutDir)/LICENSE-$(lic_exe_name:B) ;
     if $(Platform) = macOS && [ MATCH "(\.app/Contents/MacOS)" : $($(t)__OutDir)) ] { lic_target = $($(t)__OutDir)/../Resources/LICENSE-$(lic_exe_name:B) ; }
+    else if $(Platform) = android { lic_target = $($(t)__TmpDir)/android/assets/LICENSE-$(lic_exe_name:B) ; }
+    else if $(Platform) = iOS { lic_target = $($(t)__OutDir)/game/LICENSE-$(lic_exe_name:B) ; }
 
     Depends all : $(lic_target) ;
     Depends $(lic_target) : $(lic_file_list) ;

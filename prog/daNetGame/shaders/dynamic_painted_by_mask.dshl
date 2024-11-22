@@ -205,12 +205,14 @@ shader dynamic_painted_by_mask
         float emissionAlbedoMult = 1; // using albedo as emission
         get_emissive_parameters(emissiveColor, emissionAlbedoMult);
 
+        half3 worldNormal = perturb_normal_precise(normalMap, input.normal, input.pointToEye.xyz, input.diffuseTexcoord.xy );
+        // Damaged insides.
+        worldNormal = MUL_VFACE(worldNormal);
+
         half isDead = input.isDead;
         bool skipBloodWound = emissiveColor.a > 0 && !isDead;
-        apply_burning_and_wounds(input, originalNormalMap, character_micro_detail_layer,
-          diffuseColor.rgb, normalMap, smoothness, reflectance, skipBloodWound);
-
-        half3 worldNormal = perturb_normal_precise(normalMap, input.normal, input.pointToEye.xyz, input.diffuseTexcoord.xy );
+        apply_burning_and_wounds(input, character_micro_detail_layer, worldNormal,
+          diffuseColor.rgb, smoothness, reflectance, skipBloodWound);
 
         isDead = saturate(floor(isDead) * 0.01); //0-alive, 100-dead
 
@@ -234,9 +236,6 @@ shader dynamic_painted_by_mask
         ##endif
         UnpackedGbuffer result;
         init_gbuffer(result);
-
-        // Damaged insides.
-        worldNormal = MUL_VFACE(worldNormal);
 
         init_albedo(result, diffuseColor.rgb);
         init_smoothness(result, smoothness);

@@ -117,7 +117,7 @@ public:
   }
 
   // work with active leaf handle
-  virtual void setSelLeaf(TLeafHandle leaf) override { tree.setSelectedLeaf(leaf); }
+  virtual void setSelLeaf(TLeafHandle leaf, bool keep_selected = false) override { tree.setSelectedLeaf(leaf, keep_selected); }
 
   virtual TLeafHandle getSelLeaf() const override { return tree.getSelectedLeaf(); }
 

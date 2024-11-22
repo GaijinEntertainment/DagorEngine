@@ -1096,6 +1096,7 @@ float4 clouds2_dispatch_groups;
 
 shader clouds2_temporal_cs, clouds2_close_temporal_cs//, clouds2_direct_cs
 {
+  ENABLE_ASSERT(cs)
   RAYCAST_CLOUDS(cs)
   VIEW_VEC_OPTIMIZED(cs)
 
@@ -1117,14 +1118,14 @@ shader clouds2_temporal_cs, clouds2_close_temporal_cs//, clouds2_direct_cs
     void cs_main(uint2 dtid_ : SV_DispatchThreadID, uint2 gid_ : SV_GroupID, uint3 tid_ : SV_GroupThreadID)
     {
       uint2 dtid = dtid_;
-      //target0[dtid] = flattenedGroupIdOrigin/float(dispatchGridDim.x*dispatchGridDim.y);
+      //texture2DAt(target0, dtid) = flattenedGroupIdOrigin/float(dispatchGridDim.x*dispatchGridDim.y);
       float2 texcoord = dtid*invres.xy + invres.zw;
       float3 viewVect = getViewVecOptimized(texcoord);
       CLOUDS_RET tr = trace_clouds(viewVect, texcoord, dtid, texcoord);
 
-      target0[dtid] = tr.target0;
+      texture2DAt(target0, dtid) = tr.target0;
       #if HAS_DEPTH_TARGET
-      target1[dtid] = tr.dist;
+      texture2DAt(target1, dtid) = tr.dist;
       #endif
     }
   }

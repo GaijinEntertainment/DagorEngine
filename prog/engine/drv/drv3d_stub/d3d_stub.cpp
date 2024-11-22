@@ -1315,10 +1315,6 @@ bool d3d::setstencil(uint32_t /*ref*/) { return true; }
 
 bool d3d::setwire(bool /*in*/) { return true; }
 
-bool d3d::set_msaa_pass() { return true; }
-
-bool d3d::set_depth_resolve() { return true; }
-
 bool d3d::setgamma(float) { return true; }
 
 float d3d::get_screen_aspect_ratio() { return screen_aspect_ratio; }

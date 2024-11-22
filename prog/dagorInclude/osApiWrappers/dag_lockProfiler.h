@@ -12,6 +12,8 @@ typedef uint64_t lock_start_t;
 #define LOCK_PROFILER_ENABLED 1
 #if _TARGET_ANDROID | _TARGET_IOS
 static constexpr unsigned DEFAULT_LOCK_PROFILER_USEC_THRESHOLD = 4;
+#elif _TARGET_C1 | _TARGET_XBOXONE
+static constexpr unsigned DEFAULT_LOCK_PROFILER_USEC_THRESHOLD = 2;
 #else
 static constexpr unsigned DEFAULT_LOCK_PROFILER_USEC_THRESHOLD = 1;
 #endif

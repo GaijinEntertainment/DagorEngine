@@ -23,11 +23,11 @@ enum
   SHCOD_GET_INT,         // 2p      | load local var to INT reg           | p1=reg#  p2=varId
   SHCOD_GET_INT_TOREAL,  // 2p      | load INT local var to REAL reg      | p1=reg#  p2=varId
 
-  SHCOD_VPR_CONST, // 2p      | set VS const[ind] from VEC4 reg     | p1=ind p2=reg#
-  SHCOD_FSH_CONST, // 2p      | set PS const[ind] from VEC4 reg     | p1=ind p2=reg#
-  SHCOD_TEXTURE,   // 2p      | set texture                         | p1=ind p2=reg#
-  SHCOD_G_TM,      // 2p_8_16 | set 4xVEC4 const for GM/PM/VPM      | p1=type (8 bits)  p2=ind
-  SHCOD_SAMPLER,   // 3p      | set sampler                         | p1=stage p2=ind p3=varId
+  SHCOD_VPR_CONST,    // 2p      | set VS const[ind] from VEC4 reg     | p1=ind p2=reg#
+  SHCOD_FSH_CONST,    // 2p      | set PS const[ind] from VEC4 reg     | p1=ind p2=reg#
+  SHCOD_TEXTURE,      // 2p      | set texture                         | p1=ind p2=reg#
+  SHCOD_G_TM,         // 2p_8_16 | set 4xVEC4 const for GM/PM/VPM      | p1=type (8 bits)  p2=ind
+  SHCOD_GLOB_SAMPLER, // 3p      | set sampler from global var         | p1=stage p2=ind p3=varId
 
   SHCOD_MUL_REAL, // 3p      | REAL: dest# = left# * right#        | p1=dest# p2=left# p3=right#
   SHCOD_DIV_REAL, // 3p      | REAL: dest# = left# / right#        | p1=dest# p2=left# p3=right#
@@ -45,7 +45,7 @@ enum
 
   SHCOD_LVIEW,   // 2p      | load local view M44.col to VEC4 reg | p1=reg#  p2=col
   SHCOD_TMWORLD, // 2p      | load world M44.col to VEC4 reg      | p1=reg#  p2=col
-  SHCOD_NOP,
+  SHCOD_SAMPLER, // 3p      | set sampler from local var          | p1=stage p2=ind p3=varId
   SHCOD_NOP,
   SHCOD_NOP,
 

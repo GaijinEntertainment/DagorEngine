@@ -382,6 +382,13 @@ bool FileTextEdit::OnImGui(bool windowIsOpen)
 	return windowIsOpen;
 }
 
+
+void FileTextEdit::SetCursorPosition(int line, int column)
+{
+	editor->SetCursorPosition(line, column);
+	CenterViewAtLine(line);
+}
+
 void FileTextEdit::SetSelection(int startLine, int startChar, int endLine, int endChar)
 {
 	editor->SetCursorPosition(endLine, endChar);

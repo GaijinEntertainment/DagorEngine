@@ -10,72 +10,72 @@
 namespace drv3d_dx12
 {
 
-class ImageGlobalSubresouceId
+class ImageGlobalSubresourceId
 {
 protected:
   static constexpr uint32_t invalid_id = 0x00FFFFFF;
 
   uint32_t value = invalid_id;
 
-  constexpr ImageGlobalSubresouceId(uint32_t v) : value{v} {}
+  constexpr ImageGlobalSubresourceId(uint32_t v) : value{v} {}
 
-  friend class ExtendedImageGlobalSubresouceId;
+  friend class ExtendedImageGlobalSubresourceId;
 
 public:
-  constexpr ImageGlobalSubresouceId() = default;
-  ~ImageGlobalSubresouceId() = default;
-  constexpr ImageGlobalSubresouceId(const ImageGlobalSubresouceId &) = default;
-  ImageGlobalSubresouceId &operator=(const ImageGlobalSubresouceId &) = default;
+  constexpr ImageGlobalSubresourceId() = default;
+  ~ImageGlobalSubresourceId() = default;
+  constexpr ImageGlobalSubresourceId(const ImageGlobalSubresourceId &) = default;
+  ImageGlobalSubresourceId &operator=(const ImageGlobalSubresourceId &) = default;
 
   constexpr bool isValid() const { return invalid_id != value; }
   constexpr uint32_t index() const { return value; }
 
-  static ImageGlobalSubresouceId make(uint32_t value)
+  static ImageGlobalSubresourceId make(uint32_t value)
   {
     G_ASSERT(value == (value & invalid_id));
     return {value};
   }
 
-  static constexpr ImageGlobalSubresouceId makec(uint32_t value) { return {value}; }
+  static constexpr ImageGlobalSubresourceId makec(uint32_t value) { return {value}; }
 
-  static constexpr ImageGlobalSubresouceId make_invalid() { return {}; }
+  static constexpr ImageGlobalSubresourceId make_invalid() { return {}; }
 
-  ImageGlobalSubresouceId &operator+=(uint32_t r)
+  ImageGlobalSubresourceId &operator+=(uint32_t r)
   {
     G_ASSERT(isValid());
     value += r;
     return *this;
   }
 
-  ImageGlobalSubresouceId &operator-=(uint32_t r)
+  ImageGlobalSubresourceId &operator-=(uint32_t r)
   {
     G_ASSERT(isValid());
     value -= r;
     return *this;
   }
 
-  ImageGlobalSubresouceId &operator++()
+  ImageGlobalSubresourceId &operator++()
   {
     G_ASSERT(isValid());
     ++value;
     return *this;
   }
 
-  ImageGlobalSubresouceId operator++(int) const
+  ImageGlobalSubresourceId operator++(int) const
   {
     G_ASSERT(isValid());
     auto copy = *this;
     return ++copy;
   }
 
-  ImageGlobalSubresouceId &operator--()
+  ImageGlobalSubresourceId &operator--()
   {
     G_ASSERT(isValid());
     --value;
     return *this;
   }
 
-  ImageGlobalSubresouceId operator--(int) const
+  ImageGlobalSubresourceId operator--(int) const
   {
     G_ASSERT(isValid());
     auto copy = *this;
@@ -84,55 +84,70 @@ public:
 
   operator DagorSafeArg() const { return {index()}; }
 
-  constexpr SubresourceIndex toSubresouceIndex(ImageGlobalSubresouceId base) const
+  constexpr SubresourceIndex toSubresouceIndex(ImageGlobalSubresourceId base) const
   {
     return SubresourceIndex::make(index() - base.index());
   }
 };
 
-inline constexpr ImageGlobalSubresouceId swapchain_color_texture_global_id = ImageGlobalSubresouceId::makec(0);
-inline constexpr ImageGlobalSubresouceId swapchain_secondary_color_texture_global_id = ImageGlobalSubresouceId::makec(1);
-inline constexpr ImageGlobalSubresouceId first_dynamic_texture_global_id = ImageGlobalSubresouceId::makec(2);
+inline constexpr ImageGlobalSubresourceId swapchain_color_texture_global_id = ImageGlobalSubresourceId::makec(0);
+inline constexpr ImageGlobalSubresourceId swapchain_secondary_color_texture_global_id = ImageGlobalSubresourceId::makec(1);
+inline constexpr ImageGlobalSubresourceId first_dynamic_texture_global_id = ImageGlobalSubresourceId::makec(2);
 
-inline constexpr ImageGlobalSubresouceId operator+(const ImageGlobalSubresouceId &l, uint32_t r)
+inline constexpr ImageGlobalSubresourceId operator+(const ImageGlobalSubresourceId &l, uint32_t r)
 {
-  return ImageGlobalSubresouceId::makec(l.index() + r);
+  return ImageGlobalSubresourceId::makec(l.index() + r);
 }
 
-inline constexpr ImageGlobalSubresouceId operator+(const ImageGlobalSubresouceId &l, SubresourceIndex r)
+inline constexpr ImageGlobalSubresourceId operator+(const ImageGlobalSubresourceId &l, SubresourceIndex r)
 {
-  return ImageGlobalSubresouceId::makec(l.index() + r.index());
+  return ImageGlobalSubresourceId::makec(l.index() + r.index());
 }
 
-inline constexpr ImageGlobalSubresouceId operator-(const ImageGlobalSubresouceId &l, uint32_t r)
+inline constexpr ImageGlobalSubresourceId operator-(const ImageGlobalSubresourceId &l, uint32_t r)
 {
-  return ImageGlobalSubresouceId::makec(l.index() - r);
+  return ImageGlobalSubresourceId::makec(l.index() - r);
 }
 
-inline constexpr ImageGlobalSubresouceId operator-(const ImageGlobalSubresouceId &l, SubresourceIndex r)
+inline constexpr ImageGlobalSubresourceId operator-(const ImageGlobalSubresourceId &l, SubresourceIndex r)
 {
-  return ImageGlobalSubresouceId::makec(l.index() - r.index());
+  return ImageGlobalSubresourceId::makec(l.index() - r.index());
 }
 
-inline constexpr size_t operator-(const ImageGlobalSubresouceId &l, const ImageGlobalSubresouceId &r) { return l.index() - r.index(); }
-
-inline constexpr bool operator==(const ImageGlobalSubresouceId &l, const ImageGlobalSubresouceId &r) { return l.index() == r.index(); }
-
-inline constexpr bool operator!=(const ImageGlobalSubresouceId &l, const ImageGlobalSubresouceId &r) { return l.index() != r.index(); }
-
-inline constexpr bool operator<(const ImageGlobalSubresouceId &l, const ImageGlobalSubresouceId &r) { return l.index() < r.index(); }
-
-inline constexpr bool operator<=(const ImageGlobalSubresouceId &l, const ImageGlobalSubresouceId &r) { return l.index() <= r.index(); }
-
-inline constexpr bool operator>(const ImageGlobalSubresouceId &l, const ImageGlobalSubresouceId &r) { return l.index() > r.index(); }
-
-inline constexpr bool operator>=(const ImageGlobalSubresouceId &l, const ImageGlobalSubresouceId &r) { return l.index() >= r.index(); }
-
-using BareBoneImageGlobalSubresouceIdRange = ValueRange<ImageGlobalSubresouceId>;
-
-class ExtendedImageGlobalSubresouceId
+inline constexpr size_t operator-(const ImageGlobalSubresourceId &l, const ImageGlobalSubresourceId &r)
 {
-  using BareBoneType = ImageGlobalSubresouceId;
+  return l.index() - r.index();
+}
+
+inline constexpr bool operator==(const ImageGlobalSubresourceId &l, const ImageGlobalSubresourceId &r)
+{
+  return l.index() == r.index();
+}
+
+inline constexpr bool operator!=(const ImageGlobalSubresourceId &l, const ImageGlobalSubresourceId &r)
+{
+  return l.index() != r.index();
+}
+
+inline constexpr bool operator<(const ImageGlobalSubresourceId &l, const ImageGlobalSubresourceId &r) { return l.index() < r.index(); }
+
+inline constexpr bool operator<=(const ImageGlobalSubresourceId &l, const ImageGlobalSubresourceId &r)
+{
+  return l.index() <= r.index();
+}
+
+inline constexpr bool operator>(const ImageGlobalSubresourceId &l, const ImageGlobalSubresourceId &r) { return l.index() > r.index(); }
+
+inline constexpr bool operator>=(const ImageGlobalSubresourceId &l, const ImageGlobalSubresourceId &r)
+{
+  return l.index() >= r.index();
+}
+
+using BareBoneImageGlobalSubresourceIdRange = ValueRange<ImageGlobalSubresourceId>;
+
+class ExtendedImageGlobalSubresourceId
+{
+  using BareBoneType = ImageGlobalSubresourceId;
   static constexpr uint32_t invalid_id = BareBoneType::invalid_id;
   static constexpr uint32_t static_texture_bit = 1u << 31;
   static constexpr uint32_t report_transitions_bit = 1u << 30;
@@ -141,27 +156,27 @@ class ExtendedImageGlobalSubresouceId
 
   uint32_t value = invalid_id;
 
-  constexpr ExtendedImageGlobalSubresouceId(uint32_t v) : value{v} {}
+  constexpr ExtendedImageGlobalSubresourceId(uint32_t v) : value{v} {}
 
 public:
-  constexpr ExtendedImageGlobalSubresouceId() = default;
-  ~ExtendedImageGlobalSubresouceId() = default;
-  constexpr ExtendedImageGlobalSubresouceId(const ExtendedImageGlobalSubresouceId &) = default;
-  ExtendedImageGlobalSubresouceId &operator=(const ExtendedImageGlobalSubresouceId &) = default;
+  constexpr ExtendedImageGlobalSubresourceId() = default;
+  ~ExtendedImageGlobalSubresourceId() = default;
+  constexpr ExtendedImageGlobalSubresourceId(const ExtendedImageGlobalSubresourceId &) = default;
+  ExtendedImageGlobalSubresourceId &operator=(const ExtendedImageGlobalSubresourceId &) = default;
 
-  constexpr ImageGlobalSubresouceId asBareBone() const { return {index()}; }
+  constexpr ImageGlobalSubresourceId asBareBone() const { return {index()}; }
 
-  constexpr operator ImageGlobalSubresouceId() const { return asBareBone(); }
+  constexpr operator ImageGlobalSubresourceId() const { return asBareBone(); }
 
-  static constexpr ExtendedImageGlobalSubresouceId make(ImageGlobalSubresouceId v) { return {v.index()}; }
+  static constexpr ExtendedImageGlobalSubresourceId make(ImageGlobalSubresourceId v) { return {v.index()}; }
 
-  static ExtendedImageGlobalSubresouceId make(uint32_t v)
+  static ExtendedImageGlobalSubresourceId make(uint32_t v)
   {
     G_ASSERT(0 == (v & index_mask));
     return {v};
   }
 
-  static ExtendedImageGlobalSubresouceId make_static(uint32_t v)
+  static ExtendedImageGlobalSubresourceId make_static(uint32_t v)
   {
     G_ASSERT(0 == (v & index_mask));
     return {v | static_texture_bit};
@@ -178,24 +193,24 @@ public:
   constexpr bool isStatic() const { return 0 != (value & static_texture_bit); }
   constexpr bool shouldReportTransitions() const { return 0 != (value & report_transitions_bit); }
 
-  constexpr ExtendedImageGlobalSubresouceId add(uint32_t v) const { return {value + v}; }
+  constexpr ExtendedImageGlobalSubresourceId add(uint32_t v) const { return {value + v}; }
 
-  constexpr ExtendedImageGlobalSubresouceId add(SubresourceCount v) const { return {value + v.count()}; }
+  constexpr ExtendedImageGlobalSubresourceId add(SubresourceCount v) const { return {value + v.count()}; }
 
-  constexpr ExtendedImageGlobalSubresouceId sub(uint32_t v) const { return {value - v}; }
+  constexpr ExtendedImageGlobalSubresourceId sub(uint32_t v) const { return {value - v}; }
 
   operator DagorSafeArg() const { return {index()}; }
 
-  constexpr SubresourceIndex toSubresouceIndex(ImageGlobalSubresouceId base) const
+  constexpr SubresourceIndex toSubresouceIndex(ImageGlobalSubresourceId base) const
   {
     return SubresourceIndex::make(index() - base.index());
   }
 };
 
-inline constexpr ExtendedImageGlobalSubresouceId operator+(const ExtendedImageGlobalSubresouceId &l, uint32_t r) { return l.add(r); }
+inline constexpr ExtendedImageGlobalSubresourceId operator+(const ExtendedImageGlobalSubresourceId &l, uint32_t r) { return l.add(r); }
 
-inline constexpr ExtendedImageGlobalSubresouceId operator-(const ExtendedImageGlobalSubresouceId &l, uint32_t r) { return l.sub(r); }
+inline constexpr ExtendedImageGlobalSubresourceId operator-(const ExtendedImageGlobalSubresourceId &l, uint32_t r) { return l.sub(r); }
 
-using ExtendedImageGlobalSubresouceIdRange = ValueRange<ExtendedImageGlobalSubresouceId>;
+using ExtendedImageGlobalSubresourceIdRange = ValueRange<ExtendedImageGlobalSubresourceId>;
 
 } // namespace drv3d_dx12

@@ -274,7 +274,7 @@ ResourceUsageHistoryDataSetDebugger::AnalyzerMode ResourceUsageHistoryDataSetDeb
   return nextMode;
 }
 
-void ResourceUsageHistoryDataSetDebugger::addAnalziedTextureInfo(D3D12_RESOURCE_STATES current_state, ResourceBarrier expected_state,
+void ResourceUsageHistoryDataSetDebugger::addAnalyzedTextureInfo(D3D12_RESOURCE_STATES current_state, ResourceBarrier expected_state,
   eastl::string_view segment, ResourceUsageHistoryDataSet::UsageEntryType what, bool is_automatic_transition,
   eastl::string_view what_string, AnalyzedIssueType issue_type)
 {
@@ -290,7 +290,7 @@ void ResourceUsageHistoryDataSetDebugger::addAnalziedTextureInfo(D3D12_RESOURCE_
   analyzedTextureEntries.push_back(e);
 }
 
-void ResourceUsageHistoryDataSetDebugger::addUniqueAnalziedTextureInfo(D3D12_RESOURCE_STATES current_state,
+void ResourceUsageHistoryDataSetDebugger::addUniqueAnalyzedTextureInfo(D3D12_RESOURCE_STATES current_state,
   ResourceBarrier expected_state, eastl::string_view segment, ResourceUsageHistoryDataSet::UsageEntryType what,
   bool is_automatic_transition, eastl::string_view what_string, AnalyzedIssueType issue_type)
 {
@@ -305,10 +305,10 @@ void ResourceUsageHistoryDataSetDebugger::addUniqueAnalziedTextureInfo(D3D12_RES
     ++ref->count;
     return;
   }
-  addAnalziedTextureInfo(current_state, expected_state, segment, what, is_automatic_transition, what_string, issue_type);
+  addAnalyzedTextureInfo(current_state, expected_state, segment, what, is_automatic_transition, what_string, issue_type);
 }
 
-void ResourceUsageHistoryDataSetDebugger::addAnalziedBufferInfo(D3D12_RESOURCE_STATES current_state, ResourceBarrier expected_state,
+void ResourceUsageHistoryDataSetDebugger::addAnalyzedBufferInfo(D3D12_RESOURCE_STATES current_state, ResourceBarrier expected_state,
   eastl::string_view segment, ResourceUsageHistoryDataSet::UsageEntryType what, bool is_automatic_transition,
   eastl::string_view what_string, AnalyzedIssueType issue_type)
 {
@@ -324,7 +324,7 @@ void ResourceUsageHistoryDataSetDebugger::addAnalziedBufferInfo(D3D12_RESOURCE_S
   analyzedBufferEntries.push_back(e);
 }
 
-void ResourceUsageHistoryDataSetDebugger::addUniqueAnalziedBufferInfo(D3D12_RESOURCE_STATES current_state,
+void ResourceUsageHistoryDataSetDebugger::addUniqueAnalyzedBufferInfo(D3D12_RESOURCE_STATES current_state,
   ResourceBarrier expected_state, eastl::string_view segment, ResourceUsageHistoryDataSet::UsageEntryType what,
   bool is_automatic_transition, eastl::string_view what_string, AnalyzedIssueType issue_type)
 {
@@ -339,7 +339,7 @@ void ResourceUsageHistoryDataSetDebugger::addUniqueAnalziedBufferInfo(D3D12_RESO
     ++ref->count;
     return;
   }
-  addAnalziedBufferInfo(current_state, expected_state, segment, what, is_automatic_transition, what_string, issue_type);
+  addAnalyzedBufferInfo(current_state, expected_state, segment, what, is_automatic_transition, what_string, issue_type);
 }
 
 void ResourceUsageHistoryDataSetDebugger::addTextureInfo(eastl::string_view name, Image *texture, SubresourceIndex sub_res,
@@ -707,12 +707,12 @@ void ResourceUsageHistoryDataSetDebugger::debugOverlay()
               }
               if (isUniqueMode)
               {
-                addUniqueAnalziedTextureInfo(current_state, expected_state, segment, what, is_automatic_transition, what_string,
+                addUniqueAnalyzedTextureInfo(current_state, expected_state, segment, what, is_automatic_transition, what_string,
                   issueType);
               }
               else
               {
-                addAnalziedTextureInfo(current_state, expected_state, segment, what, is_automatic_transition, what_string, issueType);
+                addAnalyzedTextureInfo(current_state, expected_state, segment, what, is_automatic_transition, what_string, issueType);
               }
               return true;
             });
@@ -892,12 +892,12 @@ void ResourceUsageHistoryDataSetDebugger::debugOverlay()
             }
             if (isUniqueMode)
             {
-              addUniqueAnalziedBufferInfo(current_state, expected_state, segment, what, is_automatic_transition, what_string,
+              addUniqueAnalyzedBufferInfo(current_state, expected_state, segment, what, is_automatic_transition, what_string,
                 issueType);
             }
             else
             {
-              addAnalziedBufferInfo(current_state, expected_state, segment, what, is_automatic_transition, what_string, issueType);
+              addAnalyzedBufferInfo(current_state, expected_state, segment, what, is_automatic_transition, what_string, issueType);
             }
             return true;
           }); // -V657

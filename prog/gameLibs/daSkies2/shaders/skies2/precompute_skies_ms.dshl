@@ -42,13 +42,14 @@ shader skies_generate_transmittance_ps//very first call
 
 shader skies_generate_transmittance_cs//very first call
 {
+  ENABLE_ASSERT(cs)
   TRANSMITTANCE(cs)
   hlsl(cs) {
     RWTexture2D<float4> OutputTexture:register(u0);
     [numthreads(8, 8, 1)]
     void skies_gen_cs(uint2 dtId : SV_DispatchThreadID)
     {
-      OutputTexture[dtId] = float4(saturate(ComputeTransmittanceToTopAtmosphereBoundaryTexture2(theAtmosphere, dtId + 0.5)), 0);
+      texture2DAt(OutputTexture, dtId) = float4(saturate(ComputeTransmittanceToTopAtmosphereBoundaryTexture2(theAtmosphere, dtId + 0.5)), 0);
     }
   }
   compile("cs_5_0", "skies_gen_cs")
@@ -108,6 +109,7 @@ endmacro
 
 shader skies_approximate_ms_lut_cs
 {
+  ENABLE_ASSERT(cs)
   MS_APPROXIMATE(cs)
   //WRITE_TO_TEX2D_TC()
   hlsl(cs) {
@@ -184,7 +186,7 @@ shader skies_approximate_ms_lut_cs
       const float3 SumOfAllMultiScatteringEventsContribution = 1.0f / (1.0 - r);
       float3 MS = summedInScatteredLuminance * SumOfAllMultiScatteringEventsContribution;// Equation 10 Psi_ms
 
-      OutputTexture[dtId.xy] = float4(theAtmosphere.multiple_scattering_factor * MS, 0);
+      texture2DAt(OutputTexture, dtId.xy) = float4(theAtmosphere.multiple_scattering_factor * MS, 0);
     }
 
   }
@@ -249,6 +251,7 @@ shader indirect_irradiance_ms
 shader indirect_irradiance_ms_cs
 {
   //WRITE_TO_TEX2D_TC()
+  ENABLE_ASSERT(cs)
   GET_STATISTICAL_SHADOW(cs)
   ATMO(cs)
   GET_ATMO(cs)
@@ -313,7 +316,7 @@ shader indirect_irradiance_ms_cs
       SUM_RAY_TAIL(2)
       if (threadId == 0)
       {
-        OutputTexture[gId.xy] = float4(ray[0] + ray[1], 0);
+        texture2DAt(OutputTexture, gId.xy) = float4(ray[0] + ray[1], 0);
       }
     }
 

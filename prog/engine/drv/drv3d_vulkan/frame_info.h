@@ -18,6 +18,7 @@
 #include "cleanup_queue.h"
 #include "timestamp_queries.h"
 #include "device_execution_tracker.h"
+#include "device_queue.h"
 
 namespace drv3d_vulkan
 {
@@ -27,9 +28,28 @@ struct FrameInfo
   Tab<CleanupQueue *> cleanupsRefs;
   CleanupQueue cleanups;
 
-  VulkanCommandPoolHandle commandPool;
-  Tab<VulkanCommandBufferHandle> freeCommandBuffers;
-  Tab<VulkanCommandBufferHandle> pendingCommandBuffers;
+  struct QueueCommandBuffers
+  {
+    VulkanCommandPoolHandle commandPool;
+    Tab<VulkanCommandBufferHandle> freeCommandBuffers;
+    Tab<VulkanCommandBufferHandle> pendingCommandBuffers;
+
+    void init(DeviceQueueType queue);
+    VulkanCommandBufferHandle allocateCommandBuffer();
+    void shutdown();
+    void finishCmdBuffers();
+  };
+
+  struct CommandBuffersGroup
+  {
+    carray<QueueCommandBuffers, uint32_t(DeviceQueueType::COUNT)> group;
+    void init();
+    void shutdown();
+    void finishCmdBuffers();
+    inline QueueCommandBuffers &operator[](DeviceQueueType type) { return group[static_cast<uint32_t>(type)]; }
+  };
+  CommandBuffersGroup commandBuffers = {};
+
   ThreadedFence *frameDone = nullptr;
   Tab<VulkanSemaphoreHandle> readySemaphores;
   int pendingSemaphoresRingIdx = 0;
@@ -40,7 +60,7 @@ struct FrameInfo
   DeviceExecutionTracker execTracker;
 
   void init();
-  VulkanCommandBufferHandle allocateCommandBuffer(VulkanDevice &device);
+  VulkanCommandBufferHandle allocateCommandBuffer(DeviceQueueType queue);
   VulkanSemaphoreHandle allocSemaphore(VulkanDevice &device);
   void addPendingSemaphore(VulkanSemaphoreHandle sem);
 

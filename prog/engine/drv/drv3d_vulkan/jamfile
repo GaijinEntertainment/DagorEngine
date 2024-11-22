@@ -72,6 +72,7 @@ Sources =
   temp_buffers.cpp
   cleanup_queue.cpp
   execution_sync.cpp
+  execution_sync_capture.cpp
   execution_sync_buffer.cpp
   execution_sync_image.cpp
   execution_sync_acceleration_structure.cpp
@@ -120,6 +121,7 @@ Sources =
   debug_ui.cpp
   debug_ui_memory.cpp
   debug_ui_resources.cpp
+  debug_ui_sync.cpp
   debug_naming.cpp
   debug_callbacks.cpp
 
@@ -214,7 +216,10 @@ if $(Platform)-$(PlatformArch) = windows-x86_64 {
 }
 
 if $(Config) != rel {
-  UseProgLibs += engine/imgui ;
+  UseProgLibs +=
+    engine/imgui
+    3rdPartyLibs/imgui-node-editor
+  ;
 } else {
   UseProgLibs += engine/imgui/stub ;
 }
@@ -242,6 +247,7 @@ AddIncludes +=
   $(Root)/prog/3rdPartyLibs/vulkan/spirv-tools/include
   $(Root)/prog/dagorInclude
   $(Root)/prog/3rdPartyLibs/imgui
+  $(Root)/prog/3rdPartyLibs/imgui-node-editor
 ;
 
 UseProgLibs +=

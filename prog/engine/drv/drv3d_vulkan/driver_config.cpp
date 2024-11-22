@@ -224,6 +224,13 @@ void DriverConfig::configurePerDeviceDriverFeatures()
     if (executionTrackerBreakpoint)
       debug("vulkan: will break on execution hash %016llX", executionTrackerBreakpoint);
   }
+
+  {
+    const DataBlock *multiQueueProp = Globals::cfg.getPerDriverPropertyBlock("multiQueue");
+    bits.allowMultiQueue = multiQueueProp->getBool("allow", false);
+    if (bits.allowMultiQueue)
+      debug("vulkan: using multi queue submit scheme");
+  }
 }
 
 const DataBlock *DriverConfig::getPerDriverPropertyBlock(const char *prop_name)
@@ -406,7 +413,7 @@ void DriverConfig::extCapsFillMultiplatform(Driver3dDesc &caps)
   caps.caps.hasSkipPrimitiveTypeInRayTracingShaders = Globals::VK::phy.hasRayTracePrimitiveCulling;
 
   caps.raytrace.topAccelerationStructureInstanceElementSize = Globals::VK::phy.raytraceTopAccelerationInstanceElementSize;
-  caps.raytrace.accelerationStructureBuildScratchBufferOffetAlignment = Globals::VK::phy.raytraceScratchBufferAlignment;
+  caps.raytrace.accelerationStructureBuildScratchBufferOffsetAlignment = Globals::VK::phy.raytraceScratchBufferAlignment;
   caps.raytrace.maxRecursionDepth = Globals::VK::phy.raytraceMaxRecursionDepth;
 
   // Explicitly disable pipeline raytracing until it's ready just like DX12 driver does
@@ -500,11 +507,12 @@ void DriverConfig::extCapsFillAndroidOnly(Driver3dDesc &caps)
           "the application and back");
   }
 
-  if (getPerDriverPropertyBlock("brokenRecreateImage")->getBool("affected", false))
+  if (getPerDriverPropertyBlock("brokenMTRecreateImage")->getBool("affected", false))
   {
-    caps.issues.hasBrokenRecreateImage = true;
-    debug("vulkan: DeviceDriverCapabilities::hasBrokenRecreateImage - texture recreation (e.g. when changing quality in settings) "
-          "might cause a crash");
+    caps.issues.hasBrokenMTRecreateImage = true;
+    debug(
+      "vulkan: DeviceDriverCapabilities::hasBrokenMTRecreateImage - mt texture recreation (e.g. when changing quality in settings) "
+      "might cause a crash");
   }
 
   if (caps.caps.hasTileBasedArchitecture)

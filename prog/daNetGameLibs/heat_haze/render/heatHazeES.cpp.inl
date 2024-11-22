@@ -100,7 +100,7 @@ static dabfg::NodeHandle makeHeatHazeRenderParticlesNode(HeatHazeRenderer *heatH
       auto visibilityHndl = registry.readBlob<RiGenVisibility *>("rendinst_main_visibility").handle();
       auto cameraHndl = registry.readBlob<CameraParams>("current_camera")
                           .bindAsView<&CameraParams::viewTm>()
-                          .bindAsProj<&CameraParams::jitterProjTm>()
+                          .bindAsProj<&CameraParams::noJitterProjTm>()
                           .handle();
 
       registry.requestState().setFrameBlock("global_frame");
@@ -142,7 +142,7 @@ static dabfg::NodeHandle makeHeatHazeRenderParticlesNode(HeatHazeRenderer *heatH
             handles->texCtxHndl.ref());
 
           g_entity_mgr->broadcastEventImmediate(
-            UpdateStageInfoRenderDistortion(camera.viewTm, camera.jitterProjTm, camera.viewItm, handles->texCtxHndl.ref()));
+            UpdateStageInfoRenderDistortion(camera.viewTm, camera.noJitterProjTm, camera.viewItm, handles->texCtxHndl.ref()));
         };
 
         if (!will_render_haze(visibilityHndl.ref()))

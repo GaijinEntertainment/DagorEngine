@@ -476,7 +476,23 @@ LRESULT CALLBACK drv3d_dx12::WindowState::windowProcProxy(HWND hWnd, UINT messag
     case WM_STYLECHANGING: // During the DXGI present if the window lost the focus, this message will be sent
     {
       api_state.windowState.readyForSwapchain.store(!api_state.windowState.minimizedExclusiveFullscreen);
+      break;
     }
+#if DX12_REMOVE_DEVICE_HOTKEY
+    case WM_KEYDOWN:
+    {
+      if (wParam == 0x52 // R key
+          && (GetAsyncKeyState(VK_CONTROL) & 0x8000) && (GetAsyncKeyState(VK_RSHIFT) & 0x8000) && (GetAsyncKeyState(VK_MENU) & 0x8000))
+      {
+        ComPtr<ID3D12Device5> device5;
+        if (SUCCEEDED(api_state.device.getDevice()->QueryInterface(COM_ARGS(&device5))))
+        {
+          device5->RemoveDevice();
+        }
+      }
+      return 1;
+    }
+#endif
   }
 
   if (originWndProc)
@@ -2559,8 +2575,7 @@ void clear_rt_impl(const RenderTarget &rt, const ResourceClearValue &clear_val, 
   }
   else
   {
-    ClearColorValue cv;
-    resource_clear_value_to_float4(texture->cflg, clear_val, cv.float32);
+    ClearColorValue cv{clear_val.asFloat[0], clear_val.asFloat[1], clear_val.asFloat[2], clear_val.asFloat[3]};
     api_state.device.getContext().clearColorImage(image, area, cv, rect);
   }
 }
@@ -3346,10 +3361,6 @@ bool d3d::setgamma(float power)
   G_UNUSED(power);
   return true;
 }
-
-bool d3d::set_msaa_pass() { return true; }
-
-bool d3d::set_depth_resolve() { return true; }
 
 float d3d::get_screen_aspect_ratio() { return api_state.windowState.settings.aspect; }
 
@@ -4444,6 +4455,14 @@ void d3d::resource_barrier(ResourceBarrierDesc desc, GpuPipeline gpu_pipeline /*
     }
 
     auto image = btex->getDeviceImage();
+    if (!image)
+    {
+      if (!api_state.device.isRecovering())
+      {
+        D3D_ERROR("DX12: Texture barrier for <%s>, image was null", btex->getResName());
+      }
+      return;
+    }
     auto range = image->getSubresourceRangeForBarrier(res_index, res_range);
     if (!range.isValidRange())
     {

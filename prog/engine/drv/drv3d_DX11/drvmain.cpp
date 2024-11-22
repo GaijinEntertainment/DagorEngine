@@ -946,6 +946,15 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       }
       return 0;
     }
+    case Drv3dCommand::GET_RESOURCE_STATISTICS:
+    {
+#if DAGOR_DBGLEVEL > 0
+      drv3d_dx11::dump_resources(*static_cast<Tab<ResourceDumpInfo> *>(par1));
+      return 1;
+#else
+      return 0;
+#endif
+    }
     default: return 0;
   }
   return 0;
@@ -1165,10 +1174,6 @@ namespace drv3d_dx11
 extern DXGI_GAMMA_CONTROL gamma_control;
 extern bool gamma_control_valid;
 } // namespace drv3d_dx11
-
-bool d3d::set_msaa_pass() { return true; }
-
-bool d3d::set_depth_resolve() { return true; }
 
 bool d3d::setgamma(float power)
 {

@@ -32,7 +32,7 @@ macro COMPRESS_VOLTEX_BC4_MAIN(stage)
       uint3 srcId = uint3(tid.x<<2, tid.y<<2, tid.z);
       #define GET_TEXEL(x, y)\
       {\
-        bc4_type v = source[srcId + uint3(x,y,0)].r;\
+        bc4_type v = texture3DAt(source, srcId + uint3(x,y,0)).r;\
         texels[x+(y*4)] = v; minV = min(minV, v);maxV = max(maxV, v);\
       }
 
@@ -48,6 +48,7 @@ endmacro
 //todo: we can actually generate directly to int2/BC4 block
 shader compress_voltex_bc4_cs
 {
+  ENABLE_ASSERT(cs)
   USE_COMPRESS_VOLTEX_BC4(cs)
   COMPRESS_VOLTEX_BC4_MAIN(cs)
   hlsl(cs) {
@@ -55,7 +56,7 @@ shader compress_voltex_bc4_cs
 
     [numthreads(4, 4, 4)]
     void cs_main(uint3 tid : SV_DispatchThreadID) {
-      output[tid] = compress_voltex_bc4_main(tid);
+      texture3DAt(output, tid) = compress_voltex_bc4_main(tid);
     }
   }
   compile("cs_5_0", "cs_main")
@@ -67,6 +68,7 @@ shader compress_voltex_bc4_ps
   {
     dont_render;
   }
+  ENABLE_ASSERT(ps)
   WRITE_TO_VOLTEX_TC()
   USE_COMPRESS_VOLTEX_BC4(ps)
   COMPRESS_VOLTEX_BC4_MAIN(ps)
@@ -84,6 +86,7 @@ int clouds_gen_mips_3d_one_layer = 0;
 interval clouds_gen_mips_3d_one_layer: no <1, yes;
 shader clouds_gen_mips_3d_cs, clouds_gen_mips_2d_cs
 {
+  ENABLE_ASSERT(cs)
   if (shader == clouds_gen_mips_3d_cs)
   {
     (cs) {
@@ -96,12 +99,12 @@ shader clouds_gen_mips_3d_cs, clouds_gen_mips_2d_cs
       [numthreads(4, 4, 4)]
       void cs_main(uint3 tid : SV_DispatchThreadID) {
         uint3 inp = tid*2;
-        float up = source[inp + uint3(0,0,0)].x + source[inp + uint3(1,0,0)].x + source[inp + uint3(0,1,0)].x + source[inp + uint3(1,1,0)].x;
+        float up = texture3DAt(source, inp + uint3(0,0,0)).x + texture3DAt(source, inp + uint3(1,0,0)).x + texture3DAt(source, inp + uint3(0,1,0)).x + texture3DAt(source, inp + uint3(1,1,0)).x;
         ##if clouds_gen_mips_3d_one_layer == no
-        float down = source[inp + uint3(0,0,1)].x + source[inp + uint3(1,0,1)].x + source[inp + uint3(0,1,1)].x + source[inp + uint3(1,1,1)].x;
-        output[tid] = (up+down)*0.125;
+        float down = texture3DAt(source, inp + uint3(0,0,1)).x + texture3DAt(source, inp + uint3(1,0,1)).x + texture3DAt(source, inp + uint3(0,1,1)).x + texture3DAt(source, inp + uint3(1,1,1)).x;
+        texture3DAt(output, tid) = (up+down)*0.125;
         ##else
-        output[tid] = up*0.25;
+        texture3DAt(output, tid) = up*0.25;
         ##endif
       }
     }
@@ -118,7 +121,7 @@ shader clouds_gen_mips_3d_cs, clouds_gen_mips_2d_cs
       [numthreads(8, 8, 1)]
       void cs_main(uint2 tid : SV_DispatchThreadID) {
         uint2 inp = tid*2;
-        output[tid] = (source[inp + uint2(0,0)].x + source[inp + uint2(1,0)].x + source[inp + uint2(0,1)].x + source[inp + uint2(1,1)].x)*0.25;
+        texture2DAt(output, tid) = (texture2DAt(source, inp + uint2(0,0)).x + texture2DAt(source, inp + uint2(1,0)).x + texture2DAt(source, inp + uint2(0,1)).x + texture2DAt(source, inp + uint2(1,1)).x)*0.25;
       }
     }
   }

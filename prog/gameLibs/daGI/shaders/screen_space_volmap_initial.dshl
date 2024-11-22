@@ -88,7 +88,7 @@ shader light_initialize_culling_cs, light_initialize_culling_check_age_cs
       ##endif
       uint encodedVoxel = encode_voxel_coord_bin(coord, 0);
       uint at; voxelCount.InterlockedAdd(0 * 4, 1u, at);
-      visible_ambient_voxels[at] = encodedVoxel;
+      structuredBufferAt(visible_ambient_voxels, at) = encodedVoxel;
     }
   }
   compile("cs_5_0", "light_voxels_cs");
@@ -233,12 +233,12 @@ shader light_initialize_ambient_voxels_cs, light_partial_initialize_ambient_voxe
       {
         uint z_ofs = volmap_y_dim(cascadeId);
         coord.z += ssgi_cascade_z_crd_ofs(cascadeId)*6;
-        gi_ambient_volmap_init[coord] = col0; coord.z += z_ofs;
-        gi_ambient_volmap_init[coord] = col1; coord.z += z_ofs;
-        gi_ambient_volmap_init[coord] = col2; coord.z += z_ofs;
-        gi_ambient_volmap_init[coord] = col3; coord.z += z_ofs;
-        gi_ambient_volmap_init[coord] = col4; coord.z += z_ofs;
-        gi_ambient_volmap_init[coord] = col5;
+        texture3DAt(gi_ambient_volmap_init, coord) = col0; coord.z += z_ofs;
+        texture3DAt(gi_ambient_volmap_init, coord) = col1; coord.z += z_ofs;
+        texture3DAt(gi_ambient_volmap_init, coord) = col2; coord.z += z_ofs;
+        texture3DAt(gi_ambient_volmap_init, coord) = col3; coord.z += z_ofs;
+        texture3DAt(gi_ambient_volmap_init, coord) = col4; coord.z += z_ofs;
+        texture3DAt(gi_ambient_volmap_init, coord) = col5;
       }
     }
 

@@ -427,7 +427,7 @@ static inline void init_locale(const DataBlock &blk, const DataBlock &banks_blk)
     init_locale_deprecated(blk, banks_blk);
   else
   {
-    const char *language = ::dgs_get_settings()->getStr("language", "English");
+    const char *language = get_current_language();
     language = blk.getStr("language", language);
     const DataBlock &languageToLocaleBlk = *banks_blk.getBlockByNameEx("languageToLocale");
     const char *def = languageToLocaleBlk.getStr("default", "en");
@@ -618,7 +618,7 @@ void init(const DataBlock &blk, const ProhibitedBankDescs &prohibited_bank_descs
   const DataBlock &modBlk = *blk.getBlockByNameEx("mod");
 
   init_locale(blk, banksBlk);
-  debug_trace_log("locale is \"%s\"", locale.c_str());
+  debug("[SNDSYS]: locale is \"%s\"", locale.c_str());
 
   const char *folder = banksBlk.getStr("folder", "sound");
   g_banks_folder = eastl::string(folder);

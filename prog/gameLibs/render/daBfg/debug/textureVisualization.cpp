@@ -3,6 +3,7 @@
 #include "textureVisualization.h"
 #include <frontend/internalRegistry.h>
 #include <gui/dag_imguiUtil.h>
+#include <gui/dag_imgui.h>
 #include <render/daBfg/bfg.h>
 #include <util/dag_console.h>
 #include <drv/3d/dag_texture.h>
@@ -134,7 +135,11 @@ static void update_overlay_texture()
   }
 }
 
-static void update_shown_texture() { overlayMode ? update_overlay_texture() : update_texdebug_texture(); }
+static void update_shown_texture()
+{
+  bool imguiOFF = imgui_get_state() == ImGuiState::OFF;
+  overlayMode || imguiOFF ? update_overlay_texture() : update_texdebug_texture();
+}
 
 void fg_texture_visualization_imgui_line(const dabfg::InternalRegistry &registry)
 {

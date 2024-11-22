@@ -66,6 +66,8 @@ public:
   uint32_t lastTimestampActionIdx = 0;
 
   VulkanCommandBufferHandle frameCore = VulkanHandle();
+  DeviceQueueType frameCoreQueue = DeviceQueueType::INVALID;
+  bool frameCoreAsync = false;
 
   typedef ContextedPipelineBarrier<BuiltinPipelineBarrierCache::EXECUTION_PRIMARY> PrimaryPipelineBarrier;
   typedef ContextedPipelineBarrier<BuiltinPipelineBarrierCache::EXECUTION_SECONDARY> SecondaryPipelineBarrier;
@@ -87,6 +89,7 @@ private:
   {
     // 0x4E434D = NCM
     MARKER_NCMD_START = 0x4E434D00,
+    MARKER_NCMD_START_TRANSFER_UPLOAD,
     MARKER_NCMD_UNORDERED_COLOR_CLEAR,
     MARKER_NCMD_UNORDERED_DEPTH_CLEAR,
     MARKER_NCMD_UNORDERED_IMAGE_COPY,
@@ -106,7 +109,7 @@ private:
   void writeExectionChekpointNonCommandStream(VulkanCommandBufferHandle cb, VkPipelineStageFlagBits stage, uint32_t key);
 
   void restoreImageResidencies(VulkanCommandBufferHandle cmd);
-  VulkanCommandBufferHandle allocAndBeginCommandBuffer();
+  VulkanCommandBufferHandle allocAndBeginCommandBuffer(DeviceQueueType queue);
   VulkanCommandBufferHandle flushTimestampQueryResets(VulkanCommandBufferHandle cmd);
   VulkanCommandBufferHandle flushImageDownloads(VulkanCommandBufferHandle cmd);
   VulkanCommandBufferHandle flushBufferDownloads(VulkanCommandBufferHandle cmd);
@@ -118,13 +121,16 @@ private:
   void flushUnorderedImageColorClears();
   void flushUnorderedImageDepthStencilClears();
   void flushUnorderedImageCopies();
+  void flushUploads();
+  void flushPostFrameCommands();
+  void enqueueCommandListsToMultipleQueues(ThreadedFence *fence);
 
   void printMemoryStatistics();
 
   void applyStateChanges();
   void applyQueuedDiscards();
 
-  void switchFrameCore();
+  void switchFrameCore(DeviceQueueType target_queue, bool async);
   void onFrameCoreReset();
 
 #if VULKAN_VALIDATION_COLLECT_CALLER > 0

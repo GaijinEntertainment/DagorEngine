@@ -101,13 +101,13 @@ String drv3d_vulkan::formatPipelineStageFlags(VkPipelineStageFlags flags)
 {
   String ret;
   bool nonEmpty = false;
-#define APPEND_FLAG(x)   \
-  if (flags & x)         \
-  {                      \
-    if (nonEmpty)        \
-      ret.append(" | "); \
-    ret.append(#x);      \
-    nonEmpty = true;     \
+#define APPEND_FLAG(x)     \
+  if (flags & x)           \
+  {                        \
+    if (nonEmpty)          \
+      ret.append("|");     \
+    ret.append((#x) + 18); \
+    nonEmpty = true;       \
   }
 
   APPEND_FLAG(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
@@ -142,13 +142,13 @@ String drv3d_vulkan::formatMemoryAccessFlags(VkAccessFlags flags)
 {
   String ret;
   bool nonEmpty = false;
-#define APPEND_FLAG(x)   \
-  if (flags & x)         \
-  {                      \
-    if (nonEmpty)        \
-      ret.append(" | "); \
-    ret.append(#x);      \
-    nonEmpty = true;     \
+#define APPEND_FLAG(x)     \
+  if (flags & x)           \
+  {                        \
+    if (nonEmpty)          \
+      ret.append("|");     \
+    ret.append((#x) + 10); \
+    nonEmpty = true;       \
   }
 
   APPEND_FLAG(VK_ACCESS_INDIRECT_COMMAND_READ_BIT);

@@ -899,7 +899,7 @@ bool OpenXRDevice::setUpSwapchainImage(SwapchainData &swapchain, int swap_chain_
       case RenderingAPI::D3D11: reinterpret_cast<XrSwapchainImageD3D11KHR *>(swapChainImages.get())[six].texture->Release(); break;
 #endif // XR_USE_GRAPHICS_API_D3D11
 #ifdef XR_USE_GRAPHICS_API_D3D12
-      case RenderingAPI::D3D12: reinterpret_cast<XrSwapchainImageD3D12KHR *>(swapChainImages.get())[six].texture->Release(); break;
+      case RenderingAPI::D3D12: break;
 #endif // XR_USE_GRAPHICS_API_D3D12
 #ifdef XR_USE_GRAPHICS_API_VULKAN
       case RenderingAPI::Vulkan:
@@ -964,13 +964,7 @@ void OpenXRDevice::tearDownSwapchainImages()
 
 #if defined(XR_USE_GRAPHICS_API_D3D12)
   if (renderingAPI == RenderingAPI::D3D12 && d3d::is_inited())
-  {
-    auto query = d3d::create_event_query();
-    d3d::issue_event_query(query);
-    while (!d3d::get_event_query_status(query, true))
-      sleep_msec(0);
-    d3d::release_event_query(query);
-  }
+    d3d::driver_command(Drv3dCommand::D3D_FLUSH);
 #endif // XR_USE_GRAPHICS_API_D3D12
 }
 

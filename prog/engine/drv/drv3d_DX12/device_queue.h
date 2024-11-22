@@ -2,6 +2,7 @@
 #pragma once
 
 #include "d3d12_debug_names.h"
+#include "constants.h"
 #include "d3d12_error_handling.h"
 
 #include <drv/3d/dag_driver.h>
@@ -270,14 +271,14 @@ inline DAGOR_NOINLINE bool wait_for_frame_progress_with_event_slow_path(DeviceQu
   {
     return false;
   }
-  auto result = WaitForSingleObject(event, INFINITE);
+  auto result = WaitForSingleObject(event, MAX_WAIT_OBJECT_TIMEOUT_MS);
   if (WAIT_OBJECT_0 == result)
   {
     return true;
   }
   if (DAGOR_UNLIKELY(WAIT_FAILED == result))
   {
-    logwarn("DX12: While waiting for frame progress %u - %s, WaitForSingleObject(%p, INFINITE) "
+    logwarn("DX12: While waiting for frame progress %u - %s, WaitForSingleObject(%p, MAX_WAIT_OBJECT_TIMEOUT_MS) "
             "failed with 0x%08X, trying to continue with alternatives",
       progress, what, event, GetLastError());
   }

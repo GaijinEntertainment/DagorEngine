@@ -145,22 +145,22 @@ macro COMMON_MASKED_CHROME_PS()
           apply_wetness_by_microdetail(character_micro_detail_layer, worldPos, diffuseColor.rgb, normalMap, reflectance, smoothness, ao);
         ##endif
 
-        apply_burning_and_wounds(input, originalNormalMap, character_micro_detail_layer, diffuseColor.rgb, normalMap, smoothness, reflectance);
         #if VERTEX_TANGENT
         half3 worldNormal = normalMap.x * input.dU + normalMap.y * input.dV.xyz + normalMap.z * input.normal;
         worldNormal = normalize(worldNormal);
         #else
         half3 worldNormal = perturb_normal_precise(normalMap, input.normal, input.pointToEye.xyz, input.diffuseTexcoord.xy );
         #endif
+        // Damaged insides.
+        worldNormal = MUL_VFACE(worldNormal);
+
+        apply_burning_and_wounds(input, character_micro_detail_layer, worldNormal, diffuseColor.rgb, smoothness, reflectance);
 
         ##if (aoTex != NULL)
         ao *= tex2DBindless(get_aoTex(), input.diffuseTexcoord.xy).g;
         ##endif
         UnpackedGbuffer result;
         init_gbuffer(result);
-
-        // Damaged insides.
-        worldNormal = MUL_VFACE(worldNormal);
 
         float material = SHADING_NORMAL;
 

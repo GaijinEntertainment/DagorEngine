@@ -225,7 +225,7 @@ static struct RiGenBVHJob : public cpujobs::IJob
 
 void wait_ri_gen_instances_update(ContextId context_id)
 {
-  for (int threadIx = 0; threadIx < ri_gen_thread_count; ++threadIx)
+  for (int threadIx = 0; threadIx < get_ri_gen_worker_count(); ++threadIx)
   {
     TIME_PROFILE_NAME(bvh::update_ri_extra_instances,
       String(128, "wait ri_gen_bvh_job for %s: %d", context_id->name.data(), threadIx));
@@ -244,7 +244,7 @@ void update_ri_gen_instances(ContextId context_id, RiGenVisibility *ri_gen_visib
   RiGenBVHJob::accel1Cursor = 0;
   RiGenBVHJob::accel2Cursor = 0;
 
-  for (int threadIx = 0; threadIx < ri_gen_thread_count; ++threadIx)
+  for (int threadIx = 0; threadIx < get_ri_gen_worker_count(); ++threadIx)
   {
     auto &job = ri_gen_bvh_job[threadIx];
     job.riGenVisibility = ri_gen_visibility;

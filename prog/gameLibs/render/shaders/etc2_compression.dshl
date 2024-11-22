@@ -41,9 +41,9 @@ shader etc2_compressor
       #undef GET_TEXEL
 
       ## if compress_rgba == yes
-      compressedTexture[dtId.xy] = CompressBlock_ETC2_RGBA(texels);
+      texture2DAt(compressedTexture, dtId.xy) = CompressBlock_ETC2_RGBA(texels);
       ##else
-      compressedTexture[dtId.xy] = CompressBlock_ETC2_RG(texels);
+      texture2DAt(compressedTexture, dtId.xy) = CompressBlock_ETC2_RG(texels);
       ##endif
     }
   }

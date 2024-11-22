@@ -406,8 +406,10 @@ public:
       G_ASSERT(lmeshMgr);
       if (lmeshMgr->loadHeightmapDump(crd, dataNeeded))
       {
+        // To consider: init it on first hole addition instead?
         if (g_entity_mgr->getOr<bool>(eid, ECS_HASH("level__useGroundHolesCollision"), false))
           lmeshMgr->initHolesManager();
+
         dacoll::add_collision_hmap(lmeshMgr.get(), /* restitution */ 0.f, /* margin */ 0.f);
         lmeshMgr->getHmapHandler()->pushHmapModificationOnPrepare = false;
 #if ASYNC_LOADING

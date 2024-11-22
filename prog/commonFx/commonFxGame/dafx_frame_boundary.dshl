@@ -99,6 +99,81 @@ shader fill_fx_keyframe_boundary_opt_start
   compile("target_cs", "main_cs");
 }
 
+shader fill_fx_keyframe_boundary_approx
+{
+  (cs){
+    dafx_fill_boundary_tex@tex2d = dafx_fill_boundary_tex;
+    dafx_fill_boundary_params@f4 = dafx_fill_boundary_params;
+    tile_size@f2 = (dafx_fill_boundary_params.z / dafx_fill_boundary_params.x, dafx_fill_boundary_params.w / dafx_fill_boundary_params.y);
+  }
+
+  ENABLE_ASSERT(cs)
+
+  hlsl(cs) {
+    RWStructuredBuffer<uint> dafx_frame_boundary_tmp : register(u0);
+
+    #define BOUNDARY_CACHE_SIZE 8
+    groupshared uint tmp_boundary_cache[4];
+
+    [numthreads( BOUNDARY_CACHE_SIZE, BOUNDARY_CACHE_SIZE, 1 )]
+    void main_cs( uint3 dtId : SV_DispatchThreadID, uint3 tid : SV_GroupThreadID, uint3 gId : SV_GroupID)
+    {
+      float4 nullTexel = texelFetch(dafx_fill_boundary_tex, 0, 0); // assuming the corners are always null (transparent)
+
+      uint2 frameRes = (uint2)dafx_fill_boundary_params.xy;
+      uint2 keyframeDim = (uint2)(tile_size / 2); // since we sample 1st mip
+      uint frameId = gId.z;
+      uint2 frameId2d = uint2(frameId % frameRes.x, frameId / frameRes.x);
+      uint2 keyframeBlockPos = dtId.xy * DAFX_FRAME_BOUNDARY_BLOCK_SIZE;
+      uint2 keyframeOffset = frameId2d * keyframeDim;
+
+      bool blockNotEmpty = false;
+      uint2 minBlockPos = uint2(0x0FFFFFFF, 0x0FFFFFFF);
+      uint2 maxBlockPos = uint2(0, 0);
+      uint2 keyframeBlockEnd = min(keyframeBlockPos + DAFX_FRAME_BOUNDARY_BLOCK_SIZE, keyframeDim);
+      for (int y = keyframeBlockPos.y; y < keyframeBlockEnd.y; y++)
+      {
+        for (int x = keyframeBlockPos.x; x < keyframeBlockEnd.x; x++)
+        {
+          uint2 keyframePixelPos = uint2(x, y);
+          if (any(nullTexel != texelFetch(dafx_fill_boundary_tex, keyframeOffset + keyframePixelPos, 1)))
+          {
+            minBlockPos = min(minBlockPos, keyframePixelPos);
+            maxBlockPos = max(maxBlockPos, keyframePixelPos);
+            blockNotEmpty = true;
+          }
+        }
+      }
+
+      if (all(tid == 0))
+      {
+        tmp_boundary_cache[0] = 0x0FFFFFFF;
+        tmp_boundary_cache[1] = 0x0FFFFFFF;
+        tmp_boundary_cache[2] = 0;
+        tmp_boundary_cache[3] = 0;
+      }
+      GroupMemoryBarrierWithGroupSync();
+      if (blockNotEmpty)
+      {
+        InterlockedMin(tmp_boundary_cache[0], minBlockPos.x);
+        InterlockedMin(tmp_boundary_cache[1], minBlockPos.y);
+        InterlockedMax(tmp_boundary_cache[2], maxBlockPos.x);
+        InterlockedMax(tmp_boundary_cache[3], maxBlockPos.y);
+      }
+      GroupMemoryBarrierWithGroupSync();
+      if (all(tid == 0))
+      {
+        #define BORDER_BIAS 3
+        InterlockedMin(structuredBufferAt(dafx_frame_boundary_tmp, frameId*4+0), max(tmp_boundary_cache[0] * 2, BORDER_BIAS) - BORDER_BIAS);
+        InterlockedMin(structuredBufferAt(dafx_frame_boundary_tmp, frameId*4+1), max(tmp_boundary_cache[1] * 2, BORDER_BIAS) - BORDER_BIAS);
+        InterlockedMax(structuredBufferAt(dafx_frame_boundary_tmp, frameId*4+2), min(tmp_boundary_cache[2] * 2, keyframeDim.x * 2 - BORDER_BIAS - 1) + BORDER_BIAS);
+        InterlockedMax(structuredBufferAt(dafx_frame_boundary_tmp, frameId*4+3), min(tmp_boundary_cache[3] * 2, keyframeDim.y * 2 - BORDER_BIAS - 1) + BORDER_BIAS);
+      }
+    }
+  }
+  compile("target_cs", "main_cs");
+}
+
 shader fill_fx_keyframe_boundary_opt
 {
   (cs){
@@ -133,7 +208,7 @@ shader fill_fx_keyframe_boundary_opt
       uint frameId = frameId2d.y * frameRes.x + frameId2d.x;
 
       bool isNotNull = false;
-      if (all(texelId < texRes))
+      if (all(texelId < texRes) && all(frameId2d < frameRes))
         isNotNull = any(nullTexel != texelFetch(dafx_fill_boundary_tex, texelId, 0));
 
 ##if dafx_use_experimental_boundary_calc == yes
@@ -287,7 +362,7 @@ shader frame_boundary_debug_update
     [numthreads( 8, 8, 1 )]
     void main_cs( uint2 dtId : SV_DispatchThreadID )
     {
-      outputTex[dtId] = getTextureResult(dtId);
+      texture2DAt(outputTex, dtId) = getTextureResult(dtId);
     }
   }
   compile("target_cs", "main_cs");

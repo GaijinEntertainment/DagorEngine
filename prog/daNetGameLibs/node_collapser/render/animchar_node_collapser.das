@@ -2,6 +2,7 @@ require ecs
 require ecs.safe
 require danetlibs.node_collapser.render.node_collapser_events
 require danetlibs.node_collapser.render.node_collapser_common
+require danetlibs.renderer.includes.render_events
 require AnimV20
 require GeomNodeTree
 require DagorSystem
@@ -59,11 +60,12 @@ def node_collapser_create(evt : Event;
   if length(animchar_node_collapser) == 0 && !isDisabled
     logwarn("animchar_node_collapser: not found any nodes of entity {eid} <{getEntityTemplateName(eid)}>")
 
-//fixme: this change node for shadows as well, if it calls after
-//also, it changes the state of instance
-//bad design in general
+[es(tag=render, before=animchar_before_render_es)]
+def begin_node_collapser_es(stg : UpdateStageInfoBeforeRender; var animchar_render : AnimcharRendComponent&)
+  assume scene = animchar_render.sceneInstance
+  *scene |> scene_instance_clearNodeCollapser()
 
-[soa_es, es(REQUIRE=watchedPlayerItem, before=animchar_before_render_es)]
+[soa_es, es(REQUIRE=watchedPlayerItem, before=animchar_before_render_es, after=begin_node_collapser_es)]
 def on_animchar_node_collapser_item(evt : HideNodesEvent;
                                     var animchar_render : AnimcharRendComponent&;
                                     animchar_visbits : uint8;
@@ -77,7 +79,7 @@ def on_animchar_node_collapser_item(evt : HideNodesEvent;
             animchar_node_collapser__camThreshold, animchar_node_collapser__origin_threshold_sq)
 
 
-[soa_es, es(REQUIRE=hero, before=animchar_before_render_es)]
+[soa_es, es(REQUIRE=hero, before=animchar_before_render_es, after=begin_node_collapser_es)]
 def on_animchar_node_collapser(evt : HideNodesEvent;
                                var animchar_render : AnimcharRendComponent&;
                                animchar_visbits : uint8;
