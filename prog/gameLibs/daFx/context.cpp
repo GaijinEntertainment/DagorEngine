@@ -83,7 +83,7 @@ ContextId create_context(const Config &cfg)
   v &= init_buffer_pool(ctx->cpuBufferPool, cfg.data_buffer_size);
   v &= init_culling(*ctx);
 
-  ctx->frameBoundaryBufferManager.init(cfg.use_render_sbuffer);
+  ctx->frameBoundaryBufferManager.init(cfg.use_render_sbuffer, cfg.approx_boundary_computation);
 
   ctx->supportsNoOverwrite = d3d::get_driver_desc().caps.hasNoOverwriteOnShaderResourceBuffers;
   debug("dafx: using %d threads", ctx->cfg.use_async_thread ? ctx->cfg.max_async_threads : 0);

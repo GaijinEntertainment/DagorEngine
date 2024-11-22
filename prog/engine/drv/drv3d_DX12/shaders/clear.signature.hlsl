@@ -1,0 +1,3 @@
+#define __XBOX_STRIP_DXIL  1
+#define CLEAR_SIGNATURE "RootConstants(num32BitConstants=4, b0, visibility = SHADER_VISIBILITY_PIXEL)," \
+                        "RootFlags(DENY_HULL_SHADER_ROOT_ACCESS | DENY_DOMAIN_SHADER_ROOT_ACCESS | DENY_GEOMETRY_SHADER_ROOT_ACCESS)"

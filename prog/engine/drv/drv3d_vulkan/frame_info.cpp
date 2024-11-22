@@ -10,14 +10,15 @@
 #include "backend.h"
 #include "execution_timings.h"
 #include "backend_interop.h"
+#include "timelines.h"
 
 using namespace drv3d_vulkan;
 
-void FrameInfo::init()
+void FrameInfo::QueueCommandBuffers::init(DeviceQueueType queue)
 {
   VulkanDevice &vkDev = Globals::VK::dev;
 
-  uint32_t cmdQFamily = Globals::VK::que[DeviceQueueType::GRAPHICS].getFamily();
+  uint32_t cmdQFamily = Globals::VK::que[queue].getFamily();
   bool resetCmdPool = Globals::cfg.bits.resetCommandPools;
 
   VkCommandPoolCreateInfo cpci;
@@ -30,12 +31,114 @@ void FrameInfo::init()
   VULKAN_EXIT_ON_FAIL(vkDev.vkCreateCommandPool(vkDev.get(), &cpci, NULL, ptr(commandPool)));
 
   pendingCommandBuffers.reserve(COMMAND_BUFFER_ALLOC_BLOCK_SIZE);
+}
 
-  // alloc one block and return the allocated buffer to this block
-  freeCommandBuffers.push_back(allocateCommandBuffer(vkDev));
-  // remove block from pending
+VulkanCommandBufferHandle FrameInfo::QueueCommandBuffers::allocateCommandBuffer()
+{
+  VulkanDevice &vkDev = Globals::VK::dev;
+  if (freeCommandBuffers.empty())
+  {
+    freeCommandBuffers.resize(COMMAND_BUFFER_ALLOC_BLOCK_SIZE);
+    VkCommandBufferAllocateInfo cbai;
+    cbai.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    cbai.pNext = NULL;
+    cbai.commandPool = commandPool;
+    cbai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    cbai.commandBufferCount = freeCommandBuffers.size();
+    VULKAN_EXIT_ON_FAIL(vkDev.vkAllocateCommandBuffers(vkDev.get(), &cbai, ary(freeCommandBuffers.data())));
+  }
+  G_ASSERT(!freeCommandBuffers.empty());
+  VulkanCommandBufferHandle cmd = freeCommandBuffers.back();
+  freeCommandBuffers.pop_back();
+  pendingCommandBuffers.push_back(cmd);
+
+  if (Globals::cfg.debugLevel > 0)
+    Globals::Dbg::naming.setCommandBufferName(cmd,
+      String(32, "Frame %u Pending order %u", Backend::gpuJob->index, pendingCommandBuffers.size()));
+
+  return cmd;
+}
+
+void FrameInfo::QueueCommandBuffers::shutdown()
+{
+  if (is_null(commandPool))
+    return;
+
+  VulkanDevice &vkDev = Globals::VK::dev;
+
+  if (!freeCommandBuffers.empty())
+  {
+    VULKAN_LOG_CALL(vkDev.vkFreeCommandBuffers(vkDev.get(), commandPool, freeCommandBuffers.size(), ary(freeCommandBuffers.data())));
+  }
+  clear_and_shrink(freeCommandBuffers);
+
+  if (!pendingCommandBuffers.empty())
+  {
+    VULKAN_LOG_CALL(
+      vkDev.vkFreeCommandBuffers(vkDev.get(), commandPool, pendingCommandBuffers.size(), ary(pendingCommandBuffers.data())));
+  }
+  clear_and_shrink(pendingCommandBuffers);
+
+  VULKAN_LOG_CALL(vkDev.vkDestroyCommandPool(vkDev.get(), commandPool, NULL));
+  commandPool = VulkanNullHandle();
+}
+
+void FrameInfo::QueueCommandBuffers::finishCmdBuffers()
+{
+  VulkanDevice &vkDev = Globals::VK::dev;
+
+  freeCommandBuffers.reserve(freeCommandBuffers.size() + pendingCommandBuffers.size());
+  if (Globals::cfg.bits.resetCommandPools)
+  {
+    VkCommandPoolResetFlags poolResetFlags =
+      Globals::cfg.bits.resetCommandsReleaseToSystem ? VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT : 0;
+    VULKAN_LOG_CALL(vkDev.vkResetCommandPool(vkDev.get(), commandPool, poolResetFlags));
+  }
+  else
+  {
+    VkCommandBufferResetFlags bufferResetFlags =
+      Globals::cfg.bits.resetCommandsReleaseToSystem ? VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT : 0;
+    for (VulkanCommandBufferHandle cmd : pendingCommandBuffers)
+      VULKAN_LOG_CALL(vkDev.vkResetCommandBuffer(cmd, bufferResetFlags));
+  }
+  append_items(freeCommandBuffers, pendingCommandBuffers.size(), pendingCommandBuffers.data());
   pendingCommandBuffers.clear();
+}
 
+void FrameInfo::CommandBuffersGroup::init()
+{
+  if (Globals::cfg.bits.allowMultiQueue)
+  {
+    for (uint32_t i = (uint32_t)DeviceQueueType::ZERO; i < (uint32_t)DeviceQueueType::COUNT; ++i)
+      group[i].init(static_cast<DeviceQueueType>(i));
+  }
+  else
+    group[0].init(DeviceQueueType::GRAPHICS);
+}
+
+void FrameInfo::CommandBuffersGroup::shutdown()
+{
+  for (QueueCommandBuffers &i : group)
+    i.shutdown();
+}
+
+void FrameInfo::CommandBuffersGroup::finishCmdBuffers()
+{
+  if (Globals::cfg.bits.allowMultiQueue)
+  {
+    for (QueueCommandBuffers &i : group)
+      i.finishCmdBuffers();
+  }
+  else
+    group[0].finishCmdBuffers();
+}
+
+
+void FrameInfo::init()
+{
+  VulkanDevice &vkDev = Globals::VK::dev;
+
+  commandBuffers.init();
   frameDone = new ThreadedFence(vkDev, ThreadedFence::State::SIGNALED);
   execTracker.init();
 
@@ -53,21 +156,7 @@ void FrameInfo::shutdown()
   delete frameDone;
   frameDone = NULL;
 
-  if (!freeCommandBuffers.empty())
-  {
-    VULKAN_LOG_CALL(vkDev.vkFreeCommandBuffers(vkDev.get(), commandPool, freeCommandBuffers.size(), ary(freeCommandBuffers.data())));
-  }
-  clear_and_shrink(freeCommandBuffers);
-
-  if (!pendingCommandBuffers.empty())
-  {
-    VULKAN_LOG_CALL(
-      vkDev.vkFreeCommandBuffers(vkDev.get(), commandPool, pendingCommandBuffers.size(), ary(pendingCommandBuffers.data())));
-  }
-  clear_and_shrink(pendingCommandBuffers);
-
-  VULKAN_LOG_CALL(vkDev.vkDestroyCommandPool(vkDev.get(), commandPool, NULL));
-  commandPool = VulkanNullHandle();
+  commandBuffers.shutdown();
 
   finishCleanups();
   finishSemaphores();
@@ -87,28 +176,9 @@ void FrameInfo::shutdown()
   execTracker.shutdown();
 }
 
-VulkanCommandBufferHandle FrameInfo::allocateCommandBuffer(VulkanDevice &device)
+VulkanCommandBufferHandle FrameInfo::allocateCommandBuffer(DeviceQueueType queue)
 {
-  if (freeCommandBuffers.empty())
-  {
-    freeCommandBuffers.resize(COMMAND_BUFFER_ALLOC_BLOCK_SIZE);
-    VkCommandBufferAllocateInfo cbai;
-    cbai.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    cbai.pNext = NULL;
-    cbai.commandPool = commandPool;
-    cbai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    cbai.commandBufferCount = freeCommandBuffers.size();
-    VULKAN_EXIT_ON_FAIL(device.vkAllocateCommandBuffers(device.get(), &cbai, ary(freeCommandBuffers.data())));
-  }
-  G_ASSERT(!freeCommandBuffers.empty());
-  VulkanCommandBufferHandle cmd = freeCommandBuffers.back();
-  freeCommandBuffers.pop_back();
-  pendingCommandBuffers.push_back(cmd);
-
-  if (Globals::cfg.debugLevel > 0)
-    Globals::Dbg::naming.setCommandBufferName(cmd, String(32, "Frame %u Pending order %u", index, pendingCommandBuffers.size()));
-
-  return cmd;
+  return commandBuffers[queue].allocateCommandBuffer();
 }
 
 VulkanSemaphoreHandle FrameInfo::allocSemaphore(VulkanDevice &device)
@@ -130,7 +200,15 @@ VulkanSemaphoreHandle FrameInfo::allocSemaphore(VulkanDevice &device)
   return sem;
 }
 
-void FrameInfo::addPendingSemaphore(VulkanSemaphoreHandle sem) { pendingSemaphores[pendingSemaphoresRingIdx].push_back(sem); }
+void FrameInfo::addPendingSemaphore(VulkanSemaphoreHandle sem)
+{
+  for (VulkanSemaphoreHandle i : pendingSemaphores[pendingSemaphoresRingIdx])
+  {
+    if (i == sem)
+      return;
+  }
+  pendingSemaphores[pendingSemaphoresRingIdx].push_back(sem);
+}
 
 void FrameInfo::submit()
 {
@@ -154,7 +232,7 @@ void FrameInfo::wait()
 {
   TIME_PROFILE(vulkan_frame_info_wait);
   finishGpuWork();
-  finishCmdBuffers();
+  commandBuffers.finishCmdBuffers();
   finishCleanups();
   finishSemaphores();
 
@@ -173,28 +251,6 @@ void FrameInfo::finishCleanups()
   clear_and_shrink(cleanupsRefs);
 
   cleanups.backendAfterGPUCleanup();
-}
-
-void FrameInfo::finishCmdBuffers()
-{
-  VulkanDevice &vkDev = Globals::VK::dev;
-
-  freeCommandBuffers.reserve(freeCommandBuffers.size() + pendingCommandBuffers.size());
-  if (Globals::cfg.bits.resetCommandPools)
-  {
-    VkCommandPoolResetFlags poolResetFlags =
-      Globals::cfg.bits.resetCommandsReleaseToSystem ? VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT : 0;
-    VULKAN_LOG_CALL(vkDev.vkResetCommandPool(vkDev.get(), commandPool, poolResetFlags));
-  }
-  else
-  {
-    VkCommandBufferResetFlags bufferResetFlags =
-      Globals::cfg.bits.resetCommandsReleaseToSystem ? VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT : 0;
-    for (VulkanCommandBufferHandle cmd : pendingCommandBuffers)
-      VULKAN_LOG_CALL(vkDev.vkResetCommandBuffer(cmd, bufferResetFlags));
-  }
-  append_items(freeCommandBuffers, pendingCommandBuffers.size(), pendingCommandBuffers.data());
-  pendingCommandBuffers.clear();
 }
 
 void FrameInfo::finishGpuWork()

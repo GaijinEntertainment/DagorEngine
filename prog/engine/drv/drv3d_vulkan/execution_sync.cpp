@@ -10,10 +10,15 @@
 #include "backend.h"
 #include "execution_state.h"
 #include "execution_context.h"
+#include "execution_sync_capture.h"
 
 using namespace drv3d_vulkan;
 
 typedef ContextedPipelineBarrier<BuiltinPipelineBarrierCache::PIPE_SYNC> InternalPipelineBarrier;
+
+#if EXECUTION_SYNC_DEBUG_CAPTURE > 0
+uint32_t ExecutionSyncTracker::OpUid::frame_local_next_op_uid = 0;
+#endif
 
 // #define PROFILE_SYNC(x) TIME_PROFILE(x)
 #define PROFILE_SYNC(x)
@@ -123,8 +128,10 @@ struct OpsProcessAlgorithm
       ops.arr.push_back_uninitialized();
       // read from proper memory if vector was reallocated
       ops.arr.back() = ops.arr[srcOpIndex];
+      ops.arr.back().uid = ExecutionSyncTracker::OpUid::next();
       ops.arr.back().area = cachedArea;
       ops.arr.back().onPartialSplit();
+      Backend::syncCapture.addOp(ops.arr.back().uid, ops.arr.back().laddr, ops.arr.back().obj, ops.arr.back().caller);
     }
 
     // cleanup scratches
@@ -152,6 +159,7 @@ struct OpsProcessAlgorithm
         auto &dstOp = ops.arr[j];
         if (dstOp.conflicts(srcOp))
         {
+          Backend::syncCapture.addLink(srcOp.uid, dstOp.uid);
           srcOp.onConflictWithDst(dstOp);
           if (srcOp.processPartials())
           {
@@ -299,6 +307,9 @@ bool filterReadsOnSealedObjects(size_t gpu_work_id, OpsArrayType &ops, Resource 
         ops.arr.push_back();
         ops.arr.back() = ops.arr[ops.lastProcessed];
         ops.removeRoSeal(obj);
+        // at least track to prev sync step
+        Backend::syncCapture.addOpPrevStep(ops.arr[ops.lastProcessed].uid, ops.arr[ops.lastProcessed].laddr,
+          ops.arr[ops.lastProcessed].obj, ops.arr[ops.lastProcessed].caller);
         ++ops.lastProcessed;
       }
     }
@@ -395,7 +406,9 @@ void ExecutionSyncTracker::addBufferAccess(LogicAddress laddr, Buffer *buf, Buff
   if (filterAccessTracking(gpuWorkId, bufOps, buf, laddr, area, 0))
     return;
   aliasCheckAndSync(buf, laddr, *this);
-  bufOps.arr.push_back({laddr, buf, area, getCaller(), VK_ACCESS_NONE, /*completed*/ false, /*dstConflict*/ false});
+
+  bufOps.arr.push_back({OpUid::next(), laddr, buf, area, getCaller(), VK_ACCESS_NONE, /*completed*/ false, /*dstConflict*/ false});
+  Backend::syncCapture.addOp(bufOps.arr.back().uid, bufOps.arr.back().laddr, bufOps.arr.back().obj, bufOps.arr.back().caller);
 }
 
 void ExecutionSyncTracker::addImageAccessImpl(LogicAddress laddr, Image *img, VkImageLayout layout, ImageArea area,
@@ -419,9 +432,12 @@ void ExecutionSyncTracker::addImageAccessImpl(LogicAddress laddr, Image *img, Vk
     return;
 
   aliasCheckAndSync(img, laddr, *this);
-  imgOps.arr.push_back({laddr, img, area, getCaller(), VK_ACCESS_NONE, layout, currentRenderSubpass, nativeRPIndex,
+
+
+  imgOps.arr.push_back({OpUid::next(), laddr, img, area, getCaller(), VK_ACCESS_NONE, layout, currentRenderSubpass, nativeRPIndex,
     /*completed*/ false, /*dstConflict*/ false,
     /*changesLayout*/ false, nrp_attachment, /*handledBySubpassDependency*/ false, /* discard */ discard});
+  Backend::syncCapture.addOp(imgOps.arr.back().uid, imgOps.arr.back().laddr, imgOps.arr.back().obj, imgOps.arr.back().caller);
 }
 
 void ExecutionSyncTracker::setCurrentRenderSubpass(uint8_t subpass_idx)
@@ -476,6 +492,7 @@ void ExecutionSyncTracker::completeNeeded(VulkanCommandBufferHandle cmd_buffer, 
     PROFILE_SYNC(vulkan_sync_barrier);
     barrier.submit(cmd_buffer);
   }
+  Backend::syncCapture.addSyncStep();
 }
 
 void ExecutionSyncTracker::clearOps()
@@ -495,6 +512,8 @@ void ExecutionSyncTracker::completeAll(VulkanCommandBufferHandle cmd_buffer, con
 
   // ending current block, so increment in advance
   gpuWorkId = gpu_work_id + 1;
+  OpUid::frame_end();
+  Backend::syncCapture.reset();
 
   if (allCompleted())
   {
@@ -611,7 +630,9 @@ void ExecutionSyncTracker::addAccelerationStructureAccess(LogicAddress laddr, Ra
   AccelerationStructureArea area;
   if (filterAccessTracking(gpuWorkId, asOps, as, laddr, area, 0))
     return;
-  asOps.arr.push_back({laddr, as, area, getCaller(), VK_ACCESS_NONE, /*completed*/ false, /*dstConflict*/ false});
+
+  asOps.arr.push_back({OpUid::next(), laddr, as, area, getCaller(), VK_ACCESS_NONE, /*completed*/ false, /*dstConflict*/ false});
+  Backend::syncCapture.addOp(asOps.arr.back().uid, asOps.arr.back().laddr, asOps.arr.back().obj, asOps.arr.back().caller);
 }
 
 #endif

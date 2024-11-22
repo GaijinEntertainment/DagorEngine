@@ -2,6 +2,7 @@
 #pragma once
 
 #include <drv/3d/dag_renderStates.h>
+#include <EASTL/optional.h>
 #include <util/dag_globDef.h>
 #include <memory/dag_framemem.h>
 #include <shaders/shOpcode.h>
@@ -18,9 +19,10 @@
 #endif
 
 template <typename Special>
-__forceinline bool execute_st_block_code(const int *__restrict &codp, const int *__restrict codp_end, ShaderStateBlock &block,
-  const char *context, int stcode_id, Special &&special, void (*lock_fn)())
+__forceinline eastl::optional<ShaderStateBlock> execute_st_block_code(const int *__restrict &codp, const int *__restrict codp_end,
+  const char *context, int stcode_id, Special &&special)
 {
+  ShaderStateBlock result;
   G_UNUSED(context);
 #if DAGOR_DBGLEVEL > 0
   const int *__restrict codpStart = codp;
@@ -52,8 +54,6 @@ __forceinline bool execute_st_block_code(const int *__restrict &codp, const int 
   eastl::fixed_vector<BindlessConstParams, 6, /*overflow*/ true, framemem_allocator> bindlessResources;
   added_bindless_textures_t addedBindlessTextures;
 
-  shaders::RenderState state;
-
   for (; codp < codp_end; codp++)
   {
     const uint32_t opc = *codp;
@@ -73,7 +73,7 @@ __forceinline bool execute_st_block_code(const int *__restrict &codp, const int 
         const uint32_t ind = getOp2p1(opc);
         const uint32_t ofs = getOp2p2(opc);
         G_ASSERT(ind >= vscBase && ind < vscBase + vscCnt);
-        int texId = find_or_add_bindless_tex(tex_reg(regs, ofs), addedBindlessTextures);
+        BindlessTexId texId = find_or_add_bindless_tex(tex_reg(regs, ofs), addedBindlessTextures);
         bindlessResources.push_back(BindlessConstParams{ind - vscBase, texId});
         vsConsts[ind - vscBase] = Point4(bitwise_cast<float, int>(-1), bitwise_cast<float, int>(-1), 0, 0);
       }
@@ -216,20 +216,18 @@ __forceinline bool execute_st_block_code(const int *__restrict &codp, const int 
       case SHCOD_PACK_MATERIALS: multidrawCbuf = true; break;
       default:
         if (!special(*codp, regs, vsConsts, vscBase))
-          return false;
+          return eastl::nullopt;
     }
   }
+
   if (PLATFORM_HAS_BINDLESS)
   {
-    block = create_bindless_state(bindlessResources.data(), bindlessResources.size(), vsConsts, vscCnt,
+    return create_bindless_state(bindlessResources.data(), bindlessResources.size(), vsConsts, vscCnt,
       make_span(addedBindlessTextures.data(), addedBindlessTextures.size()), static_cbuf, multidrawCbuf ? stcode_id : -1);
   }
   else
   {
-    block = create_slot_textures_state(psTex, psTexBase, psTexCount, vsTex + minVsTex, minVsTex, max((int)0, maxVsTex - minVsTex + 1),
+    return create_slot_textures_state(psTex, psTexBase, psTexCount, vsTex + minVsTex, minVsTex, max((int)0, maxVsTex - minVsTex + 1),
       vsConsts, vscCnt, static_cbuf);
   }
-  (*lock_fn)();
-  block.stateIdx = shaders::render_states::create(state);
-  return true;
 }

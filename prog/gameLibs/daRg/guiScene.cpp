@@ -211,8 +211,7 @@ GuiScene::GuiScene(StdGuiRender::GuiContext *gui_ctx) : etree(this, nullptr), ga
     G_VERIFY(guiContext->createBuffer(0, NULL, numQuads, numExtraIndices, "daRg.guibuf"));
   }
 
-  if (DasScriptsData::is_das_inited())
-    dasScriptsData.reset(new DasScriptsData());
+  dasScriptsData.reset(new DasScriptsData());
 
   add_wnd_proc_component(this);
 
@@ -238,6 +237,12 @@ GuiScene::~GuiScene()
   if (ownGuiContext)
     delete guiContext;
 }
+
+
+void GuiScene::initDasEnvironment(TGuiInitDas init_callback) { dasScriptsData->initDasEnvironment(init_callback); }
+
+
+void GuiScene::shutdownDasEnvironment() { dasScriptsData->shutdownDasEnvironment(); }
 
 
 static void create_scene_observable(const eastl::unique_ptr<sqfrp::ObservablesGraph> &frpGraph,
@@ -1841,7 +1846,7 @@ int GuiScene::onJoystickBtnEvent(HumanInput::IGenJoystick *joy, InputEvent event
     lastDirPadNavDir = -1;
 
   eastl::vector_set<HotkeyButton>::iterator itClickBtn;
-  if (config.gamepadCursorControl && event == INP_EV_RELEASE &&
+  if (event == INP_EV_RELEASE &&
       (itClickBtn = pressedClickButtons.find(HotkeyButton(DEVID_JOYSTICK, btn_idx))) != pressedClickButtons.end())
   {
     resFlags = handleMouseClick(INP_EV_RELEASE, DEVID_JOYSTICK, 0, pointerPos.mousePos.x, pointerPos.mousePos.y, 1, resFlags);
@@ -1865,8 +1870,7 @@ int GuiScene::onJoystickBtnEvent(HumanInput::IGenJoystick *joy, InputEvent event
     if (updateHotkeys())
       resFlags |= R_PROCESSED;
 
-  if (::dgs_app_active && config.gamepadCursorControl && event == INP_EV_PRESS && !(resFlags & R_PROCESSED) &&
-      config.isClickButton(DEVID_JOYSTICK, btn_idx))
+  if (::dgs_app_active && event == INP_EV_PRESS && !(resFlags & R_PROCESSED) && config.isClickButton(DEVID_JOYSTICK, btn_idx))
   {
     resFlags |= handleMouseClick(INP_EV_PRESS, DEVID_JOYSTICK, 0, pointerPos.mousePos.x, pointerPos.mousePos.y, 1, resFlags);
     pressedClickButtons.insert(HotkeyButton(DEVID_JOYSTICK, btn_idx));
@@ -3110,7 +3114,7 @@ void GuiScene::reloadScript(const char *fn)
   ApiThreadCheck atc(this);
 
   clear(false);
-
+  dasScriptsData->resetBeforeReload();
   frpGraph->generation++;
 
   // Ensure that string is always valid in this scope.

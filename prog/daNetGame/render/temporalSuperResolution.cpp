@@ -47,7 +47,8 @@
   VAR(tsr_scale_base_dynamic)              \
   VAR(tsr_scale_motion_steepness_dynamic)  \
   VAR(tsr_scale_motion_max_dynamic)        \
-  VAR(tsr_history_reconstruction)
+  VAR(tsr_history_reconstruction)          \
+  VAR(tsr_static_dynamic_mismatch_loss)
 
 #define VAR(a) static int a##_var_id = -1;
 SHADER_VAR_LIST
@@ -65,7 +66,7 @@ CONSOLE_BOOL_VAL("render", tsr_debug, false);
 CONSOLE_BOOL_VAL("render", tsr_use_bicubic_history_sampling, true);
 CONSOLE_BOOL_VAL("render", tsr_allow_reactive, true);
 CONSOLE_FLOAT_VAL_MINMAX("render", tsr_input_sampling_sigma, 0.47f, 0.f, 10.f);
-CONSOLE_FLOAT_VAL_MINMAX("render", tsr_sharpening, 0.5f, 0.f, 1.f);
+CONSOLE_FLOAT_VAL_MINMAX("render", tsr_sharpening, 0.15f, 0.f, 1.f);
 CONSOLE_FLOAT_VAL_MINMAX("render", tsr_resampling_loss_sigma, 1.f, 0.f, 10.f);
 CONSOLE_FLOAT_VAL_MINMAX("render", tsr_depth_overhang_sigma, 0.0004f, 0.f, 1.f);
 CONSOLE_FLOAT_VAL_MINMAX("render", tsr_process_loss, 0.99f, 0.f, 1.f);
@@ -77,6 +78,7 @@ CONSOLE_FLOAT_VAL_MINMAX("render", tsr_scale_motion_max, 0.1f, 0.f, 10.f);
 CONSOLE_FLOAT_VAL_MINMAX("render", tsr_scale_base_dynamic, 1.5f, 0.f, 10.f);
 CONSOLE_FLOAT_VAL_MINMAX("render", tsr_scale_motion_steepness_dynamic, 1e2f, 0.f, 1e6f);
 CONSOLE_FLOAT_VAL_MINMAX("render", tsr_scale_motion_max_dynamic, 3.f, 0.f, 10.f);
+CONSOLE_FLOAT_VAL_MINMAX("render", tsr_static_dynamic_mismatch_loss, 0.5f, 0.f, 1.f);
 
 void TemporalSuperResolution::load_settings() {} // kept around for consistency's sake
 
@@ -101,6 +103,7 @@ static void apply_preset(TemporalSuperResolution::Preset preset)
   tsr_process_loss_dynamic.set(preset == P::High ? 0.99f : 0.93f);
   tsr_depth_overhang_sigma.set(preset == P::High ? 0.0004f : 0.00006f);
   tsr_use_bicubic_history_sampling.set(preset == P::High);
+  tsr_static_dynamic_mismatch_loss.set(preset == P::High ? 0.9f : 0.0f);
 }
 
 TemporalSuperResolution::TemporalSuperResolution(const IPoint2 &output_resolution) :
@@ -154,7 +157,6 @@ TemporalSuperResolution::TemporalSuperResolution(const IPoint2 &output_resolutio
       registry.readTextureHistory("tsr_confidence").atStage(dabfg::Stage::PS_OR_CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
 
     registry.readTexture("reactive_mask").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("tsr_reactive_mask").optional();
-    registry.readTexture("exposure_tex").atStage(dabfg::Stage::CS).bindToShaderVar("tsr_exposure").optional();
 
     auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
 
@@ -204,6 +206,7 @@ Point2 TemporalSuperResolution::update(Driver3dPerspective &perspective)
   ShaderGlobal::set_real(tsr_scale_motion_steepness_dynamic_var_id, tsr_scale_motion_steepness_dynamic.get());
   ShaderGlobal::set_real(tsr_scale_motion_max_dynamic_var_id, tsr_scale_motion_max_dynamic.get());
   ShaderGlobal::set_int(tsr_history_reconstruction_var_id, tsr_use_bicubic_history_sampling.get());
+  ShaderGlobal::set_real(tsr_static_dynamic_mismatch_loss_var_id, tsr_static_dynamic_mismatch_loss.get());
 
   return frameJitterOffset;
 }

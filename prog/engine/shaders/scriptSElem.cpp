@@ -1010,7 +1010,7 @@ static __forceinline void exec_stcode(dag::ConstSpan<int> cod, const shaderbindu
         stcode::dbg::record_set_tex(stcode::dbg::RecordType::REFERENCE, this_elem.stageDest, ind, tex);
       }
       break;
-      case SHCOD_SAMPLER:
+      case SHCOD_GLOB_SAMPLER:
       {
         const uint32_t stage = shaderopcode::getOpStageSlot_Stage(opc);
         const uint32_t slot = shaderopcode::getOpStageSlot_Slot(opc);
@@ -1020,6 +1020,17 @@ static __forceinline void exec_stcode(dag::ConstSpan<int> cod, const shaderbindu
           d3d::set_sampler(stage, slot, smp);
 
         stcode::dbg::record_set_sampler(stcode::dbg::RecordType::REFERENCE, stage, slot, smp);
+      }
+      break;
+      case SHCOD_SAMPLER:
+      {
+        const uint32_t slot = shaderopcode::getOpStageSlot_Slot(opc);
+        const uint32_t ofs = shaderopcode::getOpStageSlot_Reg(opc);
+        d3d::SamplerHandle smp = *(d3d::SamplerHandle *)&vars[ofs];
+        if (smp != d3d::INVALID_SAMPLER_HANDLE)
+          d3d::set_sampler(this_elem.stageDest, slot, smp);
+
+        stcode::dbg::record_set_sampler(stcode::dbg::RecordType::REFERENCE, this_elem.stageDest, slot, smp);
       }
       break;
       case SHCOD_TEXTURE_VS:
@@ -1674,7 +1685,8 @@ TEXTUREID ScriptedShaderElement::getTexture(int index) const
 
 bool ScriptedShaderElement::checkAndPrefetchMissingTextures() const
 {
-  if (texturesLoaded)
+  // Might be accessed from more than 1 thread simultaneously
+  if (interlocked_relaxed_load(texturesLoaded))
     return true;
   const uint8_t *vars = getVars();
   for (int i = 0; i < texVarOfs.size(); i++)
@@ -1686,7 +1698,8 @@ bool ScriptedShaderElement::checkAndPrefetchMissingTextures() const
       return false;
     }
   }
-  return texturesLoaded = true;
+  interlocked_relaxed_store(texturesLoaded, true);
+  return true;
 }
 
 void ScriptedShaderElement::gatherUsedTex(TextureIdSet &tex_id_list) const
@@ -1754,83 +1767,82 @@ int ScriptedShaderElement::recordStateBlock(const shaderbindump::ShaderCode::ShR
   dag::ConstSpan<int> cod = shBinDump().stcode[p.stblkcodeId];
   const int *__restrict codp = cod.data();
   const int *__restrict codp_end = codp + shBinDump().stcode[p.stblkcodeId].size();
-  ShaderStateBlock block;
 
   const uint8_t *vars = getVars();
-  if (!execute_st_block_code(
-        codp, codp_end, block, (const char *)shClass.name, p.stblkcodeId,
-        [&](const int &codAt, char *regs, Point4 *, int) {
-          uint32_t opc = codAt;
-          switch (getOp(opc))
-          {
-            case SHCOD_GET_INT:
-            {
-              const uint32_t ro = getOp2p1(opc);
-              const uint32_t ofs = getOp2p2(opc);
-              int_reg(regs, ro) = *(int *)&vars[ofs];
-            }
-            break;
-            case SHCOD_GET_VEC:
-            {
-              const uint32_t ro = getOp2p1(opc);
-              const uint32_t ofs = getOp2p2(opc);
-              real *reg = get_reg_ptr<real>(regs, ro);
-              memcpy(reg, &vars[ofs], sizeof(real) * 4);
-            }
-            break;
+  auto maybeShStateBlock =
+    execute_st_block_code(codp, codp_end, (const char *)shClass.name, p.stblkcodeId, [&](const int &codAt, char *regs, Point4 *, int) {
+      uint32_t opc = codAt;
+      switch (getOp(opc))
+      {
+        case SHCOD_GET_INT:
+        {
+          const uint32_t ro = getOp2p1(opc);
+          const uint32_t ofs = getOp2p2(opc);
+          int_reg(regs, ro) = *(int *)&vars[ofs];
+        }
+        break;
+        case SHCOD_GET_VEC:
+        {
+          const uint32_t ro = getOp2p1(opc);
+          const uint32_t ofs = getOp2p2(opc);
+          real *reg = get_reg_ptr<real>(regs, ro);
+          memcpy(reg, &vars[ofs], sizeof(real) * 4);
+        }
+        break;
 
-            case SHCOD_GET_REAL:
-            {
-              const uint32_t ro = getOp2p1(opc);
-              const uint32_t ofs = getOp2p2(opc);
-              real_reg(regs, ro) = *(real *)&vars[ofs];
-            }
-            break;
+        case SHCOD_GET_REAL:
+        {
+          const uint32_t ro = getOp2p1(opc);
+          const uint32_t ofs = getOp2p2(opc);
+          real_reg(regs, ro) = *(real *)&vars[ofs];
+        }
+        break;
 
-            case SHCOD_GET_TEX:
-            {
-              const uint32_t reg = getOp2p1(opc);
-              const uint32_t ofs = getOp2p2(opc);
-              Tex &t = *(Tex *)&vars[ofs];
-              tex_reg(regs, reg) = t.texId == D3DRESID(D3DRESID::INVALID_ID2) ? BAD_TEXTUREID : t.texId;
-              t.get();
-            }
-            break;
+        case SHCOD_GET_TEX:
+        {
+          const uint32_t reg = getOp2p1(opc);
+          const uint32_t ofs = getOp2p2(opc);
+          Tex &t = *(Tex *)&vars[ofs];
+          tex_reg(regs, reg) = t.texId == D3DRESID(D3DRESID::INVALID_ID2) ? BAD_TEXTUREID : t.texId;
+          t.get();
+        }
+        break;
 
-            case SHCOD_GET_INT_TOREAL:
-            {
-              const uint32_t ro = getOp2p1(opc);
-              const uint32_t ofs = getOp2p2(opc);
-              real_reg(regs, ro) = *(int *)&vars[ofs];
-            }
-            break;
-            case SHCOD_GET_IVEC_TOREAL:
-            {
-              const uint32_t ro = getOp2p1(opc);
-              const uint32_t ofs = getOp2p2(opc);
-              int *reg = get_reg_ptr<int>(regs, ro);
-              reg[0] = *(int *)&vars[ofs];
-              reg[1] = *(int *)&vars[ofs + 1];
-              reg[2] = *(int *)&vars[ofs + 2];
-              reg[3] = *(int *)&vars[ofs + 3];
-            }
-            break;
+        case SHCOD_GET_INT_TOREAL:
+        {
+          const uint32_t ro = getOp2p1(opc);
+          const uint32_t ofs = getOp2p2(opc);
+          real_reg(regs, ro) = *(int *)&vars[ofs];
+        }
+        break;
+        case SHCOD_GET_IVEC_TOREAL:
+        {
+          const uint32_t ro = getOp2p1(opc);
+          const uint32_t ofs = getOp2p2(opc);
+          int *reg = get_reg_ptr<int>(regs, ro);
+          reg[0] = *(int *)&vars[ofs];
+          reg[1] = *(int *)&vars[ofs + 1];
+          reg[2] = *(int *)&vars[ofs + 2];
+          reg[3] = *(int *)&vars[ofs + 3];
+        }
+        break;
 
 
-            default:
-              logerr("recordEmulatedStateBlock: illegal instruction %u %s (index=%d)", getOp(opc), ShUtils::shcod_tokname(getOp(opc)),
-                &codAt - cod.data());
-              return false;
-          }
-          return true;
-        },
-        &shaders_internal::lock_block_critsec))
-    return 0;
+        default:
+          logerr("recordEmulatedStateBlock: illegal instruction %u %s (index=%d)", getOp(opc), ShUtils::shcod_tokname(getOp(opc)),
+            &codAt - cod.data());
+          return false;
+      }
+      return true;
+    });
 
-  block.stateIdx = shaders::render_states::create(shBinDump().renderStates[p.renderStateNo]);
-  int bid = ShaderStateBlock::addBlockNoLock(block);
-  shaders_internal::unlock_block_critsec(); // Note: it's locked within execute_st_block_code
-  return bid;
+  if (!maybeShStateBlock.has_value())
+  {
+    return DEFAULT_SHADER_STATE_BLOCK_ID;
+  }
+
+  maybeShStateBlock->stateIdx = shaders::render_states::create(shBinDump().renderStates[p.renderStateNo]);
+  return ShaderStateBlock::addBlock(eastl::move(*maybeShStateBlock));
 }
 
 void ShaderElement::invalidate_cached_state_block()

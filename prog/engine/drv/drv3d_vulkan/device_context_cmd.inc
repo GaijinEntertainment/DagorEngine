@@ -1348,14 +1348,13 @@ VULKAN_BEGIN_CONTEXT_COMMAND(DelaySyncCompletion)
   if (enable)
   {
     // we need to interrupt frame core, but only once and only after that enable sync delay
-    // so interrupt it by hand only if we outside of RP and in proper order
-    InPassStateFieldType inPassState = Backend::State::exec.get<StateFieldGraphicsInPass, InPassStateFieldType, BackGraphicsState>();
-    bool willInterruptFrameCoreViaRP = (inPassState == InPassStateFieldType::NORMAL_PASS);
+    VulkanCommandBufferHandle frameCoreOld = ctx.frameCore;
 
     ctx.beginCustomStage("DelayedSyncStart");
-    if (!willInterruptFrameCoreViaRP)
+    if (frameCoreOld == ctx.frameCore)
       ctx.interruptFrameCore();
     Backend::sync.setCompletionDelay(enable);
+    G_ASSERTF(frameCoreOld != ctx.frameCore, "vulkan: failed to interrupt frame core!");
   }
   else
   {

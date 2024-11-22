@@ -308,7 +308,7 @@ void ExecutionContext::performSyncToPreviousCommandList()
   // the current render pass. This is achieved by splitting the command
   // list and recording the pass commands into a new list, but submitting
   // barriers to the previous list.
-  Backend::sync.completeNeeded(scratch.cmdListsToSubmit.back(), vkDev);
+  Backend::sync.completeNeeded(scratch.cmdListsToSubmit.back().handle, vkDev);
 }
 
 void ExecutionContext::interruptFrameCoreForRenderPassStart()
@@ -318,7 +318,7 @@ void ExecutionContext::interruptFrameCoreForRenderPassStart()
     return;
   // called from applyStateChanges, so front is processed and back graphics is forced to be applied via setDirty
   // i.e. after cmd buffer switch all state should be reapplied properly
-  switchFrameCore();
+  switchFrameCore(DeviceQueueType::GRAPHICS, false);
   // only non re-applied state is one we don't track with tracked state approach
   // invalidate them by hand
   Backend::State::exec.set<StateFieldGraphicsPipeline, StateFieldGraphicsPipeline::FullInvalidate, BackGraphicsState>({});

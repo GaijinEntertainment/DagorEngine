@@ -100,10 +100,10 @@ shader bvh_process_impostor_vertices
       outputPos += float3(0, height_offset, 0);
 
       uint off = secondary ? vertex_count : 0;
-      output.Store3(target_offset + (vertex_id + off) * processedVertexStride, asuint(outputPos));
-      output.Store2(target_offset + (vertex_id + off) * processedVertexStride + 12, asuint(sliceData.xy));
-      output.Store3(target_offset + (vertex_id + off) * processedVertexStride + 20, asuint(sliceData.zww));
-      output.Store(target_offset + (vertex_id + off) * processedVertexStride + 32, pack_normal(normal));
+      storeBuffer3(output, target_offset + (vertex_id + off) * processedVertexStride, asuint(outputPos));
+      storeBuffer2(output, target_offset + (vertex_id + off) * processedVertexStride + 12, asuint(sliceData.xy));
+      storeBuffer3(output, target_offset + (vertex_id + off) * processedVertexStride + 20, asuint(sliceData.zww));
+      storeBuffer(output, target_offset + (vertex_id + off) * processedVertexStride + 32, pack_normal(normal));
     }
 
     [numthreads( 64, 1, 1 )]
@@ -114,7 +114,7 @@ shader bvh_process_impostor_vertices
         return;
 
       int vertexStart = (start_vertex + vertexId) * vertex_stride;
-      float3 inputPos = asfloat(source.Load3(vertexStart));
+      float3 inputPos = asfloat(loadBuffer3(source, vertexStart));
 
       generate_vertex(vertexId, false, inputPos);
       generate_vertex(vertexId, true, inputPos);

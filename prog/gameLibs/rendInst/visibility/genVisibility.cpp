@@ -114,6 +114,10 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
   const rendinst::VisibilityExternalFilter &external_filter)
 {
   TIME_D3D_PROFILE(prepare_ri_visibility);
+  if (rendinst::render::per_instance_visibility)
+  {
+    visibility.startTreeInstances();
+  }
   visibility.vismask = 0;
   if (for_visual_collision && rendinst::isRgLayerPrimary(rtData->layerIdx))
     return false;
@@ -231,7 +235,6 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
   carray<carray<vec4f, MAX_INSTANCES_TO_SORT>, rendinst::MAX_LOD_COUNT> sortedInstances;
   if (rendinst::render::per_instance_visibility)
   {
-    visibility.startTreeInstances();
     for (int vi = 0; vi < min<int>(MAX_PER_INSTANCE_CELLS, visData.cells.size()); ++vi)
     {
       int x = visData.cells[vi].x;

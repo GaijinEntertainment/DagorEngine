@@ -116,8 +116,11 @@ struct IGuiSceneCallback
 struct IGuiScene
 {
 public:
+  typedef void (*TGuiInitDas)();
   virtual ~IGuiScene() {}
   virtual void setCallback(IGuiSceneCallback *cb) = 0;
+  virtual void initDasEnvironment(TGuiInitDas init_callback) = 0;
+  virtual void shutdownDasEnvironment() = 0;
 
   // Need this to perform additional binding
   virtual HSQUIRRELVM getScriptVM() const = 0;

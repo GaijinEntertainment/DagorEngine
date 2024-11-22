@@ -47,10 +47,6 @@ static inline void insert_wait_on_fence(GPUFENCEHANDLE &fence, GpuPipeline gpu_p
 
 static inline bool set_srgb_backbuffer_write(bool on) { return d3di.set_srgb_backbuffer_write(on); }
 
-static inline bool set_msaa_pass() { return d3di.set_msaa_pass(); }
-
-static inline bool set_depth_resolve() { return d3di.set_depth_resolve(); }
-
 static inline bool setgamma(float power) { return d3di.setgamma(power); }
 
 static inline float get_screen_aspect_ratio() { return d3di.get_screen_aspect_ratio(); }

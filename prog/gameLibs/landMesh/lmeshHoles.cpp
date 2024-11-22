@@ -2,6 +2,7 @@
 
 #include <landMesh/lmeshHoles.h>
 #include <heightmap/heightmapHandler.h>
+#include <osApiWrappers/dag_rwLock.h>
 
 LandMeshHolesCell::HoleData::HoleData(const TMatrix &tm, bool is_round, bool shape_intesection) :
   round(is_round), shapeIntersection(shape_intesection)
@@ -20,16 +21,9 @@ LandMeshHolesCell::HoleData::HoleData(const TMatrix &tm, bool is_round, bool sha
   }
 }
 
-void LandMeshHolesCell::addHole(const HoleData &hole)
-{
-  holes.push_back(hole);
-  needsValidHeight = needsValidHeight || hole.shapeIntersection;
-}
-void LandMeshHolesCell::clear()
-{
-  holes.clear();
-  needsValidHeight = false;
-}
+void LandMeshHolesCell::addHole(const HoleData &hole) { holes.push_back(hole); }
+
+void LandMeshHolesCell::clear() { holes.clear(); }
 
 static bool checkHoleProjection(const Matrix3 &inverse_proj_tm, bool is_round, const Point2 &pos)
 {
@@ -54,11 +48,9 @@ static bool checkHoleShapeIntersection(const TMatrix &inverse_tm, bool is_round,
 bool LandMeshHolesCell::check(const Point2 &posXZ, const HeightmapHandler *hmapHandler) const
 {
   float height = MIN_REAL;
-  if (needsValidHeight)
+  if (hmapHandler)
     hmapHandler->getHeight(posXZ, height, nullptr);
-
-  Point3 posXYZ = Point3(posXZ.x, height, posXZ.y);
-  return check(posXYZ);
+  return check(Point3::xVy(posXZ, height));
 }
 bool LandMeshHolesCell::check(const Point3 &posXYZ) const
 {
@@ -90,27 +82,24 @@ BBox2 LandMeshHolesManager::HoleArgs::getBBox2() const
   return BBox2(center - cornersOfs, center + cornersOfs);
 }
 
-LandMeshHolesManager::LandMeshHolesManager(const HeightmapHandler *hmap_handler, int cells_count)
+LandMeshHolesManager::LandMeshHolesManager(const HeightmapHandler &hmap_handler, int cells_count) : hmapHandler(hmap_handler)
 {
-  ScopedLockWrite lock(&rwLock);
   holeCellsCount = cells_count;
+  G_FAST_ASSERT(holeCellsCount == cells_count); // No overflow
   cells.resize(holeCellsCount * holeCellsCount);
-  hmapHandler = hmap_handler;
-
-  clearHolesInternal();
 }
 
-void LandMeshHolesManager::clearAndAddHoles(const eastl::vector<HoleArgs> &holes)
+void LandMeshHolesManager::clearAndAddHoles(const Tab<HoleArgs> &holes)
 {
-  ScopedLockWrite lock(&rwLock);
-  clearHolesInternal();
+  clearHoles();
   if (holes.empty())
     return;
 
   for (const auto &hole : holes)
     holesRegion += hole.getBBox2();
+  emptyHolesRegion = false;
 
-  cellSize = holesRegion.size() / holeCellsCount;
+  Point2 cellSize = holesRegion.size() / holeCellsCount;
   cellSizeInv = Point2(1 / cellSize.x, 1 / cellSize.y);
 
   for (const auto &hole : holes)
@@ -123,46 +112,20 @@ void LandMeshHolesManager::clearAndAddHoles(const eastl::vector<HoleArgs> &holes
       for (j = 0, lb.x = holesRegion[0].x; j < holeCellsCount; j++, lb.x += cellSize.x)
       {
         if (holeBBox & BBox2(lb, lb + cellSize))
-          cells[i * holeCellsCount + j].addHole(holeData);
+        {
+          int k = i * holeCellsCount + j;
+          cells[k].addHole(holeData);
+          if (holeData.shapeIntersection)
+            cellsNeedValidHeight.set(k, true);
+        }
       }
   }
 }
 
 void LandMeshHolesManager::clearHoles()
 {
-  ScopedLockWrite lock(&rwLock);
-  clearHolesInternal();
-}
-
-void LandMeshHolesManager::clearHolesInternal()
-{
-  for (int i = 0; i < holeCellsCount * holeCellsCount; i++)
-    cells[i].clear();
-
-  holesRegion.setempty();
-  cellSize = Point2(0, 0);
-  cellSizeInv = Point2(0, 0);
-}
-
-size_t LandMeshHolesManager::getCellIndex(const Point2 &point) const
-{
-  Point2 pOfs = (point - holesRegion[0]);
-  Point2 cellPos = Point2(pOfs.x * cellSizeInv.x, pOfs.y * cellSizeInv.y);
-  int y = min(int(cellPos.y), holeCellsCount - 1);
-  int x = min(int(cellPos.x), holeCellsCount - 1);
-  return y * holeCellsCount + x;
-}
-bool LandMeshHolesManager::check(const Point2 &posXZ) const
-{
-  ScopedLockRead lock(&rwLock);
-  if (!hmapHandler || !(holesRegion & posXZ))
-    return false;
-  return cells[getCellIndex(posXZ)].check(posXZ, hmapHandler);
-}
-bool LandMeshHolesManager::check(const Point2 &posXZ, float hmap_height) const
-{
-  ScopedLockRead lock(&rwLock);
-  if (!hmapHandler || !(holesRegion & posXZ))
-    return false;
-  return cells[getCellIndex(posXZ)].check(Point3(posXZ.x, hmap_height, posXZ.y));
+  for (auto &c : cells)
+    c.clear();
+  cellsNeedValidHeight.clear();
+  emptyHolesRegion = true;
 }

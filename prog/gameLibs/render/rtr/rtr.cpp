@@ -414,4 +414,17 @@ REGISTER_IMGUI_WINDOW("Render", "RTR", imguiWindow);
 
 void turn_off() { ShaderGlobal::set_int(rtr_bindless_slotVarId, -1); }
 
+void set_classify_threshold(float threshold_64, float threshold_16, float threshold_4)
+{
+  classify_treshold1 = threshold_64;
+  classify_treshold2 = threshold_16;
+  classify_treshold3 = threshold_4;
+}
+
+void set_reflection_method(denoiser::ReflectionMethod method)
+{
+  G_ASSERTF(!trace, "set_reflection_method should be called before initalization!");
+  output_type = method;
+}
+
 } // namespace rtr

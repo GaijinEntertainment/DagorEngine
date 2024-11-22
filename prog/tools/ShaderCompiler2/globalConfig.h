@@ -128,9 +128,7 @@ struct CompilerConfig
   bool cppStcodeUnityBuild : 1 = false;
   bool disallowHlslHardcodedRegs : 1 = false;
 
-#if _CROSS_TARGET_C1 | _CROSS_TARGET_C2
-
-#elif _CROSS_TARGET_DX12
+#if _CROSS_TARGET_DX12
   dx12::dxil::Platform targetPlatform = dx12::dxil::Platform::PC;
 #elif _CROSS_TARGET_SPIRV
   bool compilerHlslCc : 1 = false;
@@ -138,7 +136,6 @@ struct CompilerConfig
 #elif _CROSS_TARGET_METAL
   bool useIosToken : 1 = false;
   bool useBinaryMsl : 1 = false;
-  bool useMetalGlslang : 1 = false;
 #endif
 
   const char *getShaderSrcRoot() const { return shaderSrcRoot.empty() ? nullptr : shaderSrcRoot.c_str(); }

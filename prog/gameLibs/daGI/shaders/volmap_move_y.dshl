@@ -7,6 +7,7 @@ buffer frustum_visible_ambient_voxels;
 
 shader move_y_from_cs, move_y_to_cs
 {
+  ENABLE_ASSERT(cs)
   GI_USE_AMBIENT_VOLMAP(cs)
   (cs) {
     ssgi_copy_y_indices0@f4 = ssgi_copy_y_indices0;
@@ -61,8 +62,8 @@ shader move_y_from_cs, move_y_to_cs
         col[5] = FETCH_AMBIENT_VOLMAP(int3(dtId.xy, colorZFrom));
         UNROLL
         for (uint i = 0; i < 6; ++i)
-          voxelColors[texel*7+i] = Pack_R11G11B10_FLOAT_LOG(col[i]);
-        voxelColors[texel*7+6] = asint(ssgi_ambient_volmap_temporal[int3(dtId.xy, temporalZFrom)].x);
+          structuredBufferAt(voxelColors, texel*7+i) = Pack_R11G11B10_FLOAT_LOG(col[i]);
+        structuredBufferAt(voxelColors, texel*7+6) = asint(texture3DAt(ssgi_ambient_volmap_temporal, int3(dtId.xy, temporalZFrom)).x);
       ##elif (shader == move_y_to_cs)
         int to = ind1.y + step*gId.z;
         int temporalZTo = to + z_ofs;
@@ -71,14 +72,14 @@ shader move_y_from_cs, move_y_to_cs
         float3 col[6];
         UNROLL
         for (uint i = 0; i < 6; ++i)
-          col[i] = Unpack_R11G11B10_FLOAT_LOG(voxelColors[texel*7+i]);
-        gi_ambient_volmap[int3(dtId.xy, colorZTo)] = col[0]; colorZTo+=dimZ;
-        gi_ambient_volmap[int3(dtId.xy, colorZTo)] = col[1]; colorZTo+=dimZ;
-        gi_ambient_volmap[int3(dtId.xy, colorZTo)] = col[2]; colorZTo+=dimZ;
-        gi_ambient_volmap[int3(dtId.xy, colorZTo)] = col[3]; colorZTo+=dimZ;
-        gi_ambient_volmap[int3(dtId.xy, colorZTo)] = col[4]; colorZTo+=dimZ;
-        gi_ambient_volmap[int3(dtId.xy, colorZTo)] = col[5];
-        ssgi_ambient_volmap_temporal[int3(dtId.xy, temporalZTo)] = asfloat(voxelColors[texel*7+6]);
+          col[i] = Unpack_R11G11B10_FLOAT_LOG(structuredBufferAt(voxelColors, texel*7+i));
+        texture3DAt(gi_ambient_volmap, int3(dtId.xy, colorZTo)) = col[0]; colorZTo+=dimZ;
+        texture3DAt(gi_ambient_volmap, int3(dtId.xy, colorZTo)) = col[1]; colorZTo+=dimZ;
+        texture3DAt(gi_ambient_volmap, int3(dtId.xy, colorZTo)) = col[2]; colorZTo+=dimZ;
+        texture3DAt(gi_ambient_volmap, int3(dtId.xy, colorZTo)) = col[3]; colorZTo+=dimZ;
+        texture3DAt(gi_ambient_volmap, int3(dtId.xy, colorZTo)) = col[4]; colorZTo+=dimZ;
+        texture3DAt(gi_ambient_volmap, int3(dtId.xy, colorZTo)) = col[5];
+        texture3DAt(ssgi_ambient_volmap_temporal, int3(dtId.xy, temporalZTo)) = asfloat(structuredBufferAt(voxelColors, texel*7+6));
      ##endif
     }
   }

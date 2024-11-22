@@ -2,6 +2,8 @@ include "rendinst_interior_mapping_inc.dshl"
 
 shader rendinst_interior_mapping
 {
+  ENABLE_ASSERT(ps)
+
   INIT_RENDINST_INTERIOR_MAPPING()
 
   static int shadow_caster = 1;

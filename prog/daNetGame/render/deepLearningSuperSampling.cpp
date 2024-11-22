@@ -103,8 +103,10 @@ DeepLearningSuperSampling::DeepLearningSuperSampling(const IPoint2 &outputResolu
                                .atStage(dabfg::Stage::PS_OR_CS)
                                .useAs(dabfg::Usage::SHADER_RESOURCE)
                                .handle();
-    auto exposureTexHndl =
-      registry.readTexture("exposure_tex").atStage(dabfg::Stage::PS_OR_CS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
+    auto exposureNormFactorHndl = registry.readTexture("exposure_normalization_factor")
+                                    .atStage(dabfg::Stage::PS_OR_CS)
+                                    .useAs(dabfg::Usage::SHADER_RESOURCE)
+                                    .handle();
     auto antialiasedHndl = registry
                              .createTexture2d("frame_after_aa", dabfg::History::No,
                                {TEXFMT_A16B16G16R16F | TEXCF_UNORDERED | TEXCF_RTARGET, registry.getResolution<2>("display")})
@@ -114,15 +116,17 @@ DeepLearningSuperSampling::DeepLearningSuperSampling(const IPoint2 &outputResolu
     auto camera = registry.readBlob<CameraParams>("current_camera").handle();
     auto cameraHistory = registry.readBlobHistory<CameraParams>("current_camera").handle();
 
-    return [this, depthHndl, motionVectorsHndl, exposureTexHndl, opaqueFinalTargetHndl, antialiasedHndl, camera, cameraHistory] {
-      OptionalInputParams params;
-      params.depth = depthHndl.view().getTex2D();
-      params.motion = motionVectorsHndl.view().getTex2D();
-      params.exposure = exposureTexHndl.view().getTex2D();
-      dlss_render(opaqueFinalTargetHndl.view().getTex2D(), antialiasedHndl.view().getTex2D(), jitterOffset, params, camera.ref(),
-        cameraHistory.ref());
-    };
+    return
+      [this, depthHndl, motionVectorsHndl, exposureNormFactorHndl, opaqueFinalTargetHndl, antialiasedHndl, camera, cameraHistory] {
+        OptionalInputParams params;
+        params.depth = depthHndl.view().getTex2D();
+        params.motion = motionVectorsHndl.view().getTex2D();
+        params.exposure = exposureNormFactorHndl.view().getTex2D();
+        dlss_render(opaqueFinalTargetHndl.view().getTex2D(), antialiasedHndl.view().getTex2D(), jitterOffset, params, camera.ref(),
+          cameraHistory.ref());
+      };
   });
+
   if (dlss->isFrameGenerationSupported())
   {
     if (::dgs_get_settings()->getBlockByNameEx("video")->getBool("dlssFrameGeneration", false))

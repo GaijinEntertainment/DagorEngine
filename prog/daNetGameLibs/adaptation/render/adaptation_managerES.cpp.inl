@@ -71,13 +71,13 @@ AdaptationManager::AdaptationManager()
   generateHistogramCenterWeightedFromSourceCS.reset(new_compute_shader("GenerateHistogramCenterWeightedFromSourceCS"));
   accumulate_hist_cs.reset(new_compute_shader("accumulate_hist_cs"));
 
-  static constexpr int exposureTextureFlags = TEXCF_RTARGET | TEXCF_UNORDERED | TEXFMT_R32F;
-  exposureTex = dag::create_tex(NULL, 1, 1, exposureTextureFlags, 1, "exposure_tex");
+  static constexpr int exposureNormalizationFlags = TEXCF_RTARGET | TEXCF_UNORDERED | TEXFMT_R32F;
+  exposureNormalizationFactor = dag::create_tex(NULL, 1, 1, exposureNormalizationFlags, 1, "exposure_normalization_factor");
 
   registerExposureNodeHandle = dabfg::register_node("register_adapatation_resoureces", DABFG_PP_NODE_SRC,
-    [exposure = ManagedTexView(exposureTex)](dabfg::Registry registry) {
+    [normFactorView = ManagedTexView(exposureNormalizationFactor)](dabfg::Registry registry) {
       registry.multiplex(dabfg::multiplexing::Mode::None);
-      registry.registerTexture2d("exposure_tex", [exposure](auto) -> ManagedTexView { return exposure; });
+      registry.registerTexture2d("exposure_normalization_factor", [normFactorView](auto) -> ManagedTexView { return normFactorView; });
       registry.executionHas(dabfg::SideEffects::External);
     });
 }
@@ -93,7 +93,7 @@ void AdaptationManager::uploadInitialExposure()
   }
 }
 
-void AdaptationManager::clearExposureTex()
+void AdaptationManager::clearNormalizationFactor()
 {
   // Run only once after sheduleClear
   if (!isClearNeeded)
@@ -101,7 +101,7 @@ void AdaptationManager::clearExposureTex()
 
   isClearNeeded = false;
   float ones[4] = {1, 1, 1, 1};
-  d3d::clear_rwtexf(exposureTex.getTex2D(), ones, 0, 0);
+  d3d::clear_rwtexf(exposureNormalizationFactor.getTex2D(), ones, 0, 0);
 }
 
 bool AdaptationManager::getExposure(float &exp) const
@@ -192,11 +192,11 @@ void AdaptationManager::adaptExposure()
   ShaderGlobal::set_color4(EyeAdaptationParams_2VarId, 1, 0, float(DispatchInfo::pixelsCount), settings.fadeMul);
   ShaderGlobal::set_color4(EyeAdaptationParams_3VarId, settings.brightnessPerceptionLinear, settings.brightnessPerceptionPower, 0.,
     adaptationInstant.get() ? 1.f : 0.f);
-  d3d::set_rwtex(STAGE_CS, 1, exposureTex.getTex2D(), 0, 0);
+  d3d::set_rwtex(STAGE_CS, 1, exposureNormalizationFactor.getTex2D(), 0, 0);
   ShaderGlobal::set_buffer(ExposureOutVarId, g_Exposure);
   adaptExposureCS->dispatch(1, 1, 1);
   d3d::set_rwtex(STAGE_CS, 1, nullptr, 0, 0);
-  d3d::resource_barrier({exposureTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+  d3d::resource_barrier({exposureNormalizationFactor.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 
   accumulatedTime = 0;
 }
@@ -353,10 +353,13 @@ static void adaptation_settings_tracking_es(const ecs::Event &,
       adaptation__set_exposure_node = dabfg::register_node("set_exposure", DABFG_PP_NODE_SRC,
         [&adaptation__manager, render_settings__gpuResidentAdaptation, render_settings__forwardRendering](dabfg::Registry registry) {
           registry.orderMeBefore(render_settings__forwardRendering ? "frame_data_setup_mobile" : "setup_world_rendering_node");
-          registry.modify("exposure_tex").buffer().atStage(dabfg::Stage::PS_OR_CS).useAs(dabfg::Usage::SHADER_RESOURCE);
+          registry.modify("exposure_normalization_factor")
+            .buffer()
+            .atStage(dabfg::Stage::PS_OR_CS)
+            .useAs(dabfg::Usage::SHADER_RESOURCE);
 
           return [&adaptation__manager, render_settings__gpuResidentAdaptation]() {
-            adaptation__manager.clearExposureTex();
+            adaptation__manager.clearNormalizationFactor();
 
             if (!render_settings__gpuResidentAdaptation)
             {

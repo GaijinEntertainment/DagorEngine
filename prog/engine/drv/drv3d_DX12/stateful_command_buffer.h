@@ -251,7 +251,7 @@ class StatefulCommandBuffer
   RaytraceState raytraceState;
 #endif
   GlobalState globalState;
-  ID3D12PipelineState *activeBlitPipeline = nullptr;
+  ID3D12PipelineState *activeEmbeddedPipeline = nullptr;
   FeatureState::Type activeFeatures = {};
 
   bool validateTopology()
@@ -392,7 +392,7 @@ public:
   void prepareBufferForSubmit()
   {
     dirtyAll();
-    activeBlitPipeline = nullptr;
+    activeEmbeddedPipeline = nullptr;
   }
 
   const GraphicsCommandList<AnyCommandListPtr> &getBufferWrapper() const { return cmd; }
@@ -471,7 +471,7 @@ public:
     if (raytraceState.dirtyState.test(RaytraceState::DirtySet::PIPELINE))
     {
       cmd.setPipelineState1(raytraceState.pipeline);
-      activeBlitPipeline = nullptr;
+      activeEmbeddedPipeline = nullptr;
     }
 
     if (raytraceState.dirtyState.test(RaytraceState::DirtySet::SIGNATURE))
@@ -606,7 +606,7 @@ public:
     if (computeState.dirtyState.test(ComputeState::DirtySet::PIPELINE))
     {
       cmd.setPipelineState(computeState.pipeline);
-      activeBlitPipeline = nullptr;
+      activeEmbeddedPipeline = nullptr;
     }
     if (computeState.dirtyState.test(ComputeState::DirtySet::SIGNATURE))
     {
@@ -942,7 +942,7 @@ public:
     if (graphicsDirtyState.test(GraphicsState::DirtySet::PIPELINE))
     {
       cmd.setPipelineState(graphicsState.pipeline);
-      activeBlitPipeline = nullptr;
+      activeEmbeddedPipeline = nullptr;
     }
     if (graphicsDirtyState.test(GraphicsState::DirtySet::SIGNATURE))
     {
@@ -1113,28 +1113,35 @@ public:
     cmd.drawIndexedInstanced(index_count, instance_count, first_index, vertex_offset, first_instance);
   }
 
-  void blitExecute(ID3D12RootSignature *signature, ID3D12PipelineState *pipeline, DWORD const_values[4],
-    D3D12_GPU_DESCRIPTOR_HANDLE src, D3D12_CPU_DESCRIPTOR_HANDLE dst, D3D12_VIEWPORT dst_view, D3D12_RECT dst_rect)
+  void embeddedExecute(ID3D12RootSignature *signature, ID3D12PipelineState *pipeline, DWORD const_values[4],
+    eastl::optional<D3D12_GPU_DESCRIPTOR_HANDLE> src, D3D12_CPU_DESCRIPTOR_HANDLE dst, D3D12_RECT dst_rect)
   {
-    if (!activeBlitPipeline)
+    G_ASSERT(signature);
+    G_ASSERT(pipeline);
+
+    D3D12_VIEWPORT dstViewport;
+    dstViewport.TopLeftX = dst_rect.left;
+    dstViewport.TopLeftY = dst_rect.top;
+    dstViewport.Width = dst_rect.right - dst_rect.left;
+    dstViewport.Height = dst_rect.bottom - dst_rect.top;
+    dstViewport.MinDepth = 0.01f;
+    dstViewport.MaxDepth = 1.f;
+
+    if (eastl::exchange(activeEmbeddedPipeline, pipeline) != pipeline)
     {
       cmd.setGraphicsRootSignature(signature);
-    }
-    // different pipeline is possible as they are tied to the output format
-    if (activeBlitPipeline != pipeline)
-    {
       cmd.setPipelineState(pipeline);
-      activeBlitPipeline = pipeline;
     }
 
     // heap pointers might have changed
     flushGlobalState(NeedSamplerHeap::No);
     // blit target rect
-    cmd.rsSetViewports(1, &dst_view);
+    cmd.rsSetViewports(1, &dstViewport);
     cmd.rsSetScissorRects(1, &dst_rect);
     // contains source coord offset and scaling to produce source rect
     cmd.setGraphicsRoot32BitConstants(0, 4, const_values, 0);
-    cmd.setGraphicsRootDescriptorTable(1, src);
+    if (src)
+      cmd.setGraphicsRootDescriptorTable(1, src.value());
     cmd.omSetRenderTargets(1, &dst, FALSE, nullptr);
     cmd.iaSetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 #if !_TARGET_XBOXONE
@@ -1165,6 +1172,18 @@ public:
 #if D3D_HAS_RAY_TRACING
     raytraceState.dirtyState.set(RaytraceState::DirtySet::PIPELINE);
 #endif
+  }
+
+  void blitExecute(ID3D12RootSignature *signature, ID3D12PipelineState *pipeline, DWORD const_values[4],
+    D3D12_GPU_DESCRIPTOR_HANDLE src, D3D12_CPU_DESCRIPTOR_HANDLE dst, D3D12_RECT dst_rect)
+  {
+    embeddedExecute(signature, pipeline, const_values, src, dst, dst_rect);
+  }
+
+  void clearExecute(ID3D12RootSignature *signature, ID3D12PipelineState *pipeline, DWORD const_values[4],
+    D3D12_CPU_DESCRIPTOR_HANDLE dst, D3D12_RECT dst_rect)
+  {
+    embeddedExecute(signature, pipeline, const_values, eastl::nullopt, dst, dst_rect);
   }
 
 #if !_TARGET_XBOXONE

@@ -13,7 +13,6 @@ float4 prev_view_vecLT;
 float4 prev_view_vecRT;
 float4 prev_view_vecLB;
 float4 prev_view_vecRB;
-float4 prev_zn_zfar = (1, 10, 0, 0);
 
 texture downsampled_motion_vectors_tex;
 texture prev_downsampled_motion_vectors_tex;
@@ -37,8 +36,6 @@ local float4 prev_downsampled_close_depth_tex_dim = get_dimensions(prev_downsamp
   prev_view_vecRT@f3 = prev_view_vecRT;
   prev_view_vecLB@f3 = prev_view_vecLB;
   prev_view_vecRB@f3 = prev_view_vecRB;
-  //prev_zn_zfar@f4 = (prev_zn_zfar.x, prev_zn_zfar.y, prev_zn_zfar.x/(prev_zn_zfar.x * prev_zn_zfar.y), (prev_zn_zfar.y-prev_zn_zfar.x)/(prev_zn_zfar.x * prev_zn_zfar.y));
-  prev_zn_zfar@f4 = (zn_zfar.x, zn_zfar.y, zn_zfar.x/(zn_zfar.x * zn_zfar.y), (zn_zfar.y-zn_zfar.x)/(zn_zfar.x * zn_zfar.y));
 
   prev_move_world_view_pos@f3= (-move_world_view_pos.x, -move_world_view_pos.y, -move_world_view_pos.z,0);
   prev_downsampled_close_depth_tex_target_size@f4 = (prev_downsampled_close_depth_tex_dim.x, prev_downsampled_close_depth_tex_dim.y, 1/max(1, prev_downsampled_close_depth_tex_dim.x), 1/max(1, prev_downsampled_close_depth_tex_dim.y));

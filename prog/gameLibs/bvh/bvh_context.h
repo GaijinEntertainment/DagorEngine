@@ -563,6 +563,7 @@ using MeshMap = eastl::unordered_map<uint64_t, Mesh>;
 static constexpr int ri_gen_thread_count = 8;
 static constexpr int ri_extra_thread_count = 8;
 
+inline int get_ri_gen_worker_count() { return min(ri_gen_thread_count, threadpool::get_num_workers()); }
 inline int get_ri_extra_worker_count() { return min(ri_extra_thread_count, threadpool::get_num_workers()); }
 
 struct Context
@@ -650,6 +651,7 @@ struct Context
   using InstanceMap = dag::Vector<Instance>;
   using HWInstanceMap = dag::Vector<HWInstance>;
 
+  Context();
   ~Context() { teardown(); }
 
   void teardown();
@@ -764,6 +766,8 @@ struct Context
   UniqueTex atmosphereTexture;
   int atmosphereCursor = 0;
   bool atmosphereDirty = true;
+
+  Texture *stubTexture = nullptr;
 
   static constexpr int atmDegreesPerSample = 4;
   static constexpr int atmDistanceSteps = 200;

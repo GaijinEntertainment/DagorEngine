@@ -49,6 +49,7 @@ void WrapperRendInstCollisionImplCB::addCollisionCheck(const rendinst::Collision
   userInfo.tm = normalizedTm;
   userInfo.bushBehaviour = coll_info.bushBehaviour;
   userInfo.treeBehaviour = coll_info.treeBehaviour;
+  userInfo.collRes = coll_info.collRes;
   if (coll_info.isDestr && shouldProvideCollisionInfo)
   {
     CachedCollisionObjectInfo *objInfo = rendinstdestr::get_or_add_cached_collision_object(coll_info.desc, atTime, coll_info);

@@ -1955,10 +1955,10 @@ struct DeviceDriverIssuesBase
    * \note
    * Known for certain device driver combinations.
    * \note
-   * - \constissue{DeviceDriverIssuesNoIssues::hasBrokenRecreateImage}
+   * - \constissue{DeviceDriverIssuesNoIssues::hasBrokenMTRecreateImage}
    * - \runtimeissue{DeviceDriverIssuesAndroid, \android}
    */
-  bool hasBrokenRecreateImage : 1;
+  bool hasBrokenMTRecreateImage : 1;
   /**
    * Some device drivers have some issues with subpasses.
    * \note
@@ -2050,9 +2050,9 @@ struct DeviceDriverIssuesWindows : DeviceDriverIssuesBase
   static constexpr bool hasBrokenComputeFormattedOutput = false;
   /**
    * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
-   * \baseissue{DeviceDriverIssuesBase::hasBrokenRecreateImage}
+   * \baseissue{DeviceDriverIssuesBase::hasBrokenMTRecreateImage}
    **/
-  static constexpr bool hasBrokenRecreateImage = false;
+  static constexpr bool hasBrokenMTRecreateImage = false;
   /**
    * \brief Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32
    * \baseissue{DeviceDriverIssuesBase::hasBrokenSubpasses}
@@ -2132,7 +2132,7 @@ struct DeviceDriverRaytraceProperties
   // only valid when caps.hasRaytracing is set
   unsigned topAccelerationStructureInstanceElementSize = 0;
   /// Offsets for scratch buffers for acceleration structures builds have to be aligned to this value.
-  unsigned accelerationStructureBuildScratchBufferOffetAlignment = 0;
+  unsigned accelerationStructureBuildScratchBufferOffsetAlignment = 0;
   /// Describes how many "recursions" ray dispatching supports.
   /// This describes how many rays can be cast without returning.
   /// A value of 1 would mean that only the ray gen shader can shoot the initial ray and no other

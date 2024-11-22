@@ -10,6 +10,7 @@
 #include <ioSys/dag_dataBlock.h>
 
 CONSOLE_INT_VAL("render", halton_sequence_length, 8, 1, 1024);
+CONSOLE_FLOAT_VAL_MINMAX("render", jitter_scale, 1.f, 0.f, 100.f);
 
 AntiAliasing::AntiAliasing(const IPoint2 &inputResolution, const IPoint2 &outputResolution) :
   inputResolution(inputResolution), outputResolution(outputResolution), lodBias(-log2(getUpsamplingRatio().y))
@@ -39,7 +40,7 @@ Point2 AntiAliasing::update(Driver3dPerspective &perspective)
 
   int sequenceLength = getTemporalFrameCount();
   int phase = frameCounter % sequenceLength + 1;
-  jitterOffset = Point2(halton_sequence(phase, 2) - 0.5f, halton_sequence(phase, 3) - 0.5f);
+  jitterOffset = Point2(halton_sequence(phase, 2) - 0.5f, halton_sequence(phase, 3) - 0.5f) * jitter_scale.get();
 
   Point2 result = Point2(jitterOffset.x * (2.0f / inputResolution.x), -jitterOffset.y * (2.0f / inputResolution.y));
 

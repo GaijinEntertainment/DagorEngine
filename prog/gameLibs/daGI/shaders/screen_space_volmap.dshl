@@ -156,7 +156,7 @@ shader ssgi_change_probability_cs
       {
         uint cur_voxels = structuredBufferAt(voxelsWeightHistogram, bin);
         float probability = get_probability(dot(uint3(max_voxels_in_bin3), uint3(bin==0, bin==1, bin==2)), cur_voxels, structuredBufferAt(voxelsWeightHistogram, MAX_BINS + bin), structuredBufferAt(prev_probability, bin));
-        next_probability[bin] = probability;
+        structuredBufferAt(next_probability, bin) = probability;
       }
       {
         uint groups = 0;

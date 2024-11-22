@@ -57,11 +57,12 @@ shader build_dacloud_volume_cs
 {
   hlsl(cs) {
     RWTexture3D<float> cloudsVolumeTransmittance:register(u0);
-    #define EACH_ITERATION(i, t) cloudsVolumeTransmittance[int3(scri, i)] = t;
+    #define EACH_ITERATION(i, t) texture3DAt(cloudsVolumeTransmittance, int3(scri, i)) = t;
   }
   WRITE_BUILD_VOLUME(cs)
 
   USE_PS5_WAVE32_MODE()
+  ENABLE_ASSERT(cs)
   hlsl(cs) {
 ##if hardware.ps5
     [numthreads(8, 2, 1)]
@@ -70,13 +71,13 @@ shader build_dacloud_volume_cs
 ##endif
     void cs_main(uint2 dtid : SV_DispatchThreadID)
     {
-      cloudsVolumeTransmittance[int3(dtid.xy,0)] = 1;
+      texture3DAt(cloudsVolumeTransmittance, int3(dtid.xy,0)) = 1;
       if (skies_has_clouds)
         iterateTransmittance(dtid*invres.xy + invres.zw, dtid, cloud_volume_res.z);
       else
       {
         for (int i = 1; i < cloud_volume_res.z; ++i)
-          cloudsVolumeTransmittance[int3(dtid.xy,i)] = 1;
+          texture3DAt(cloudsVolumeTransmittance, int3(dtid.xy,i)) = 1;
       }
     }
   }

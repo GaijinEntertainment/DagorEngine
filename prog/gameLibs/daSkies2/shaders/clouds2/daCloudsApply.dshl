@@ -432,6 +432,7 @@ endmacro
 
 shader clouds2_apply_blur_cs
 {
+  ENABLE_ASSERT(cs)
   CLOUD_BLUR(cs)
 
   hlsl(cs) {
@@ -444,7 +445,7 @@ shader clouds2_apply_blur_cs
       if (any(dtid >= clouds2_far_res.xy))
         return;
       float2 texcoord = dtid*clouds2_far_res.zw + 0.5*clouds2_far_res.zw;
-      target0[dtid] = get_simple_blur(texcoord);
+      texture2DAt(target0, dtid) = get_simple_blur(texcoord);
     }
   }
   compile("cs_5_0", "cs_main");

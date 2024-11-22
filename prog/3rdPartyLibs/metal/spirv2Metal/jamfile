@@ -14,9 +14,6 @@ Sources =
   spirv_msl.cpp
 ;
 
-AddIncludes =
-  $(Root)/prog/3rdPartyLibs/metal/glslang/SPIRV
-;
 if $(Platform) = macOS {
   CPPopt = -Wno-deprecated-declarations -Wno-overriding-t-option -fno-fast-math
   -Wno-deprecated-this-capture ; 

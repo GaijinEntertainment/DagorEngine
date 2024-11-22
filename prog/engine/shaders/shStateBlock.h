@@ -27,10 +27,15 @@
 #define PLATFORM_HAS_BINDLESS false
 #endif
 
+enum class BindlessTexId : uint32_t
+{
+  Invalid = 0
+};
+
 struct BindlessConstParams
 {
   uint32_t constIdx;
-  int texId; // if negative - not yet added to to uniqBindlessTex
+  BindlessTexId texId; // if BindlessTexId::Invalid -- not yet added to to uniqBindlessTex
 
   bool operator==(const BindlessConstParams &other) const { return constIdx == other.constIdx && texId == other.texId; }
 };
@@ -39,7 +44,7 @@ void apply_bindless_state(shaders::ConstStateIdx const_state_idx, int tex_level)
 void clear_bindless_states();
 void req_tex_level_bindless(shaders::ConstStateIdx const_state_idx, int tex_level);
 using added_bindless_textures_t = eastl::fixed_vector<uint32_t, 4, /*overflow*/ true, framemem_allocator>;
-int find_or_add_bindless_tex(TEXTUREID tid, added_bindless_textures_t &added_bindless_textures);
+BindlessTexId find_or_add_bindless_tex(TEXTUREID tid, added_bindless_textures_t &added_bindless_textures);
 void reset_bindless_samplers_in_all_collections();
 void dump_bindless_states_stat();
 
@@ -47,6 +52,11 @@ void apply_slot_textures_state(shaders::ConstStateIdx const_state_idx, shaders::
 void clear_slot_textures_states();
 void dump_slot_textures_states_stat();
 void slot_textures_req_tex_level(shaders::TexStateIdx sampler_state_id, int tex_level);
+
+inline constexpr int DEFAULT_SHADER_STATE_BLOCK_ID = 0;
+inline constexpr shaders::TexStateIdx DEFAULT_TEX_STATE_ID = static_cast<shaders::TexStateIdx>(1 << 10);
+inline constexpr shaders::ConstStateIdx DEFAULT_CONST_STATE_ID = static_cast<shaders::ConstStateIdx>(1 << 11);
+inline constexpr shaders::ConstStateIdx DEFAULT_BINDLESS_CONST_STATE_ID = static_cast<shaders::ConstStateIdx>(1 << 9);
 
 struct ShaderStateBlock
 {
@@ -68,8 +78,9 @@ struct ShaderStateBlock
     return stateIdx == b.stateIdx && samplerIdx == b.samplerIdx && constIdx == b.constIdx;
   }
 
-  static int addBlockNoLock(ShaderStateBlock &b)
+  static int addBlock(ShaderStateBlock &&b)
   {
+    shaders_internal::BlockAutoLock autoLock;
     G_ASSERT(b.refCount == 0);
 
     // find equivalent block and use it, when exists
@@ -86,12 +97,6 @@ struct ShaderStateBlock
 
     b.refCount = 1;
     return blocks.push_back(b);
-  }
-
-  static int addBlock(ShaderStateBlock &b)
-  {
-    shaders_internal::BlockAutoLock autoLock;
-    return addBlockNoLock(b);
   }
 
   static void delBlock(int id)
@@ -142,16 +147,17 @@ public:
   static void clear()
   {
     shaders_internal::BlockAutoLock autoLock;
+    blocks.clear();
     if (PLATFORM_HAS_BINDLESS)
     {
       clear_bindless_states();
+      blocks.push_back(ShaderStateBlock{{}, {}, DEFAULT_BINDLESS_CONST_STATE_ID, 0, 0});
     }
     else
     {
       clear_slot_textures_states();
+      blocks.push_back(ShaderStateBlock{{}, DEFAULT_TEX_STATE_ID, DEFAULT_CONST_STATE_ID, 0, 0});
     }
-    blocks.clear();
-    blocks.push_back(ShaderStateBlock{});
     deleted_blocks = 0;
   }
 
@@ -165,7 +171,7 @@ public:
 };
 
 ShaderStateBlock create_bindless_state(const BindlessConstParams *bindless_data, uint8_t bindless_count, const Point4 *consts_data,
-  uint8_t consts_count, dag::Span<uint32_t> added_bindless_textures, bool static_block, int stcode_id);
+  uint8_t consts_count, dag::ConstSpan<uint32_t> added_bindless_textures, bool static_block, int stcode_id);
 
 ShaderStateBlock create_slot_textures_state(const TEXTUREID *ps, uint8_t ps_base, uint8_t ps_cnt, const TEXTUREID *vs, uint8_t vs_base,
   uint8_t vs_cnt, const Point4 *consts_data, uint8_t consts_count, bool static_block);

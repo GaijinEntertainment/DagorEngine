@@ -1,7 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "main.h"
-#include "fileDropHandler.h"
 #include "scriptBindings.h"
 #include "vr.h"
 #include "vrInput.h"
@@ -408,7 +407,6 @@ public:
 
   void reloadScripts(bool full_reinit)
   {
-    release_file_drop_handler();
     if (full_reinit)
     {
       // hard reload
@@ -420,6 +418,7 @@ public:
       HSQUIRRELVM vm = darg_scene->getScriptVM();
       gamelib::sound::on_script_reload(false);
       sqeventbus::clear_on_reload(vm);
+      bindquirrel::cleanup_dagor_system_file_handlers();
       bindquirrel::clear_workcycle_actions(vm);
       // soft reload
       const char *scriptFn = dgs_get_settings()->getStr("script", "scripts/script.nut");
@@ -1042,7 +1041,6 @@ void dargbox_app_init()
 void dargbox_app_shutdown()
 {
   force_feedback::rumble::shutdown();
-  release_file_drop_handler();
   dagor_select_game_scene(NULL);
   del_it(game_scene);
   io_events_poll.reset();

@@ -173,11 +173,6 @@ public:
     // The constructor may kick off additional buffer allocations or frees so it can not be done
     // under the locked bufferPoolGuard
     auto buffer = ::new (memory) GenericBufferInterface(eastl::forward<Args>(args)...);
-    if (!buffer->getDeviceBuffer() && !buffer->isStreamBuffer())
-    {
-      buffer->destroy();
-      buffer = nullptr;
-    }
     return buffer;
   }
 

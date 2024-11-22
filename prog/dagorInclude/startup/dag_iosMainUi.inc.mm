@@ -55,6 +55,7 @@ const float EDIT_FIELD_WIDTH_SCALE = 0.75f;
 
 void (*dagor_ios_active_status_handler)(bool isVisible) = nullptr;
 static apple_events_callback_with_dictionary g_onDidFinishLaunchingWithOptionsFunc = NULL;
+static apple_continue_user_activity_callback g_onContinueUserActivityFunc = NULL;
 static apple_events_callback g_onApplicationDidBecomeActiveFunc = NULL;
 static apple_openurl_with_annotation_callback g_onOpenUrlAppWithAnnotationFunc = NULL;
 static apple_register_remote_token_callback g_onRegisterRemoteToken = NULL;
@@ -99,6 +100,8 @@ void setOnDidFinishLaunchingWithOptionsFunc(apple_events_callback_with_dictionar
 {
   g_onDidFinishLaunchingWithOptionsFunc = func;
 }
+
+void setOnContinueUserActivityFunc(apple_continue_user_activity_callback func) { g_onContinueUserActivityFunc = func; }
 
 void setOnApplicationDidBecomeActiveFunc(apple_events_callback func) { g_onApplicationDidBecomeActiveFunc = func; }
 
@@ -1162,6 +1165,15 @@ extern "C" BOOL dagor_ios_delegate_didFinishLaunchingWithOptions(id delegate, UI
   return YES;
 }
 
+extern "C" BOOL dagor_ios_delegate_continueUserActivity(UIApplication *application, NSUserActivity *userActivity, void (^restorationHandler)(NSArray *))
+{
+  DEBUG_CP();
+  if (g_onContinueUserActivityFunc)
+    return g_onContinueUserActivityFunc(application, userActivity);
+
+  return NO;
+}
+
 extern "C" void dagor_ios_delegate_dealloc()
 {
   DEBUG_CP();
@@ -1334,6 +1346,11 @@ intptr_t main_window_proc(void *, unsigned, uintptr_t, intptr_t);
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
   return dagor_ios_delegate_didFinishLaunchingWithOptions(self, application, launchOptions);
+}
+
+- (BOOL)application:(UIApplication *)application continueUserActivity:(NSUserActivity *)userActivity restorationHandler:(void (^)(NSArray<id<UIUserActivityRestoring>> *restorableObjects))restorationHandler
+{
+  return dagor_ios_delegate_continueUserActivity(application, userActivity, restorationHandler);
 }
 
 - (void)dealloc

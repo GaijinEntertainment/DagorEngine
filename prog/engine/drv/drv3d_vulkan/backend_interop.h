@@ -11,6 +11,8 @@ struct BackendInterop
 {
   // id of replay work that was completed on GPU last time
   std::atomic<size_t> lastGPUCompletedReplayWorkId{0};
+  // sync tracker capture request and status
+  std::atomic<size_t> syncCaptureRequest{0};
 };
 
 

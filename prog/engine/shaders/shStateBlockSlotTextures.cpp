@@ -1,21 +1,33 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include "shStateBlock.h"
 #include <drv/3d/dag_shaderConstants.h>
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_buffers.h>
+
+#include "shStateBlock.h"
+#include "concurrentElementPool.h"
+#include "concurrentRangePool.h"
 
 using namespace shaders;
 
 struct SBSamplerState
 {
-  uint32_t start;           // we start with PS textures, than VS textures
-  uint8_t psCount, vsCount; // don't think we will need more than 4 bits
-  uint8_t psBase, vsBase;   // don't think we will need more than 4 bits
+  using TexDataCont = ConcurrentRangePool<TEXTUREID, 12>;
+  static TexDataCont data;
+  static ConcurrentElementPool<TexStateIdx, SBSamplerState, 10> all; // first one is default
+  static OSSpinlock mutex;
+
+  static_assert(DEFAULT_TEX_STATE_ID == decltype(all)::FIRST_ID);
+
+  TexDataCont::Range textures; // we start with PS textures, then VS textures
+  uint8_t psCount;             // don't think we will need more than 4 bits
+  uint8_t vsCount;             // Redundant, but it doesn't hurt storing it
+  uint8_t psBase;              // don't think we will need more than 4 bits
+  uint8_t vsBase;
 
   void apply(int tex_level)
   {
-    uint32_t from = start;
+    const auto dataView = data.view(textures);
 
     const auto setTex = [&](TEXTUREID tid, ShaderStage stage, int slot) {
       mark_managed_tex_lfu(tid, tex_level);
@@ -29,56 +41,53 @@ struct SBSamplerState
         d3d::set_tex(stage, slot, D3dResManagerData::getBaseTex(tid));
     };
 
-    for (uint32_t i = psBase, e = (uint32_t)psBase + psCount; i < e; ++i, ++from)
-      setTex(data[from], STAGE_PS, i);
-    for (uint32_t i = vsBase, e = (uint32_t)vsBase + vsCount; i < e; ++i, ++from)
-      setTex(data[from], STAGE_VS, i);
+    for (uint32_t i = 0, e = psCount; i < e; ++i)
+      setTex(dataView[i], STAGE_PS, psBase + i);
+    for (uint32_t i = 0, e = vsCount; i < e; ++i)
+      setTex(dataView[psCount + i], STAGE_VS, vsBase + i);
   }
 
   void reqTexLevel(int tex_level)
   {
-    uint32_t from = start;
-    for (uint32_t i = psBase, e = (uint32_t)psBase + psCount; i < e; ++i, ++from)
-    {
-      mark_managed_tex_lfu(data[from], tex_level);
-    }
-    for (uint32_t i = vsBase, e = (uint32_t)vsBase + vsCount; i < e; ++i, ++from)
-    {
-      mark_managed_tex_lfu(data[from], tex_level);
-    }
+    const auto dataView = data.view(textures);
+    for (uint32_t i = 0, e = psCount; i < e; ++i)
+      mark_managed_tex_lfu(dataView[i], tex_level);
+    for (uint32_t i = vsBase, e = vsCount; i < e; ++i)
+      mark_managed_tex_lfu(dataView[psCount + i], tex_level);
   }
 
   static TexStateIdx create(const TEXTUREID *ps, uint8_t ps_base, uint8_t ps_cnt, const TEXTUREID *vs, uint8_t vs_base, uint8_t vs_cnt)
   {
     OSSpinlockScopedLock lock(mutex);
-    int id = all.find_if([&](const SBSamplerState &c) {
-      if (c.psCount != ps_cnt || c.vsCount != vs_cnt || c.psBase != ps_base || c.vsBase != vs_base)
+
+    {
+      TexStateIdx id = all.findIf([&](const SBSamplerState &c) {
+        if (c.psCount != ps_cnt || c.vsCount != vs_cnt || c.psBase != ps_base || c.vsBase != vs_base)
+          return false;
+        const auto dataView = data.view(c.textures);
+        if (memcmp(dataView.data(), ps, ps_cnt * sizeof(*ps)) == 0 && memcmp(dataView.data() + ps_cnt, vs, vs_cnt * sizeof(*vs)) == 0)
+          return true;
         return false;
-      auto d = &data[c.start];
-      if (memcmp(d, ps, ps_cnt * sizeof(*ps)) == 0 && memcmp(d + ps_cnt, vs, vs_cnt * sizeof(*vs)) == 0)
-        return true;
-      return false;
-    });
-    if (id >= 0)
-      return static_cast<TexStateIdx>(id);
+      });
+      if (id != TexStateIdx::Invalid)
+        return id;
+    }
 
-    uint32_t did = data.append(nullptr, ps_cnt + vs_cnt);
-    auto d = &data[did];
-    memcpy(d, ps, ps_cnt * sizeof(*ps));
-    memcpy(d + ps_cnt, vs, vs_cnt * sizeof(*vs));
+    const auto dataId = data.allocate(ps_cnt + vs_cnt);
+    const auto dataView = data.view(dataId);
+    memcpy(dataView.data(), ps, ps_cnt * sizeof(*ps));
+    memcpy(dataView.data() + ps_cnt, vs, vs_cnt * sizeof(*vs));
 
-    return static_cast<TexStateIdx>(all.push_back(SBSamplerState{did, ps_cnt, vs_cnt, ps_base, vs_base}));
+    const TexStateIdx result = all.allocate();
+    all[result] = SBSamplerState{dataId, ps_cnt, vs_cnt, ps_base, vs_base};
+    return result;
   }
   static void clear()
   {
     data.clear();
     all.clear();
-    all.push_back(SBSamplerState{0, 0, 0, 0, 0});
+    all[all.allocate()] = SBSamplerState{TexDataCont::Range::Empty, 0, 0, 0, 0};
   }
-
-  static NonRelocatableCont<TEXTUREID, 4096> data;
-  static NonRelocatableCont<SBSamplerState, 1024> all; // first one is default
-  static OSSpinlock mutex;
 };
 
 decltype(SBSamplerState::data) SBSamplerState::data;
@@ -88,12 +97,20 @@ decltype(SBSamplerState::mutex) SBSamplerState::mutex;
 
 struct ConstState
 {
-  uint32_t constsStart;
-  uint8_t constsCount;
+  using ConstsDataCont = ConcurrentRangePool<Point4, 13>;
+  static ConstsDataCont dataConsts;
+  static ConcurrentElementPool<ConstStateIdx, ConstState, 11> all;        // first one is default
+  static ConcurrentElementPool<ConstStateIdx, Sbuffer *, 11> allConstBuf; // parallel to all
+  static OSSpinlock mutex;
+
+  static_assert(DEFAULT_CONST_STATE_ID == decltype(all)::FIRST_ID);
+  static_assert(DEFAULT_CONST_STATE_ID == decltype(allConstBuf)::FIRST_ID);
+
+  ConstsDataCont::Range consts;
 
   void apply(ConstStateIdx self_idx)
   {
-    Sbuffer *constBuf = allConstBuf[eastl::to_underlying(self_idx)];
+    Sbuffer *constBuf = allConstBuf[self_idx];
     if (!constBuf)
       return;
 
@@ -104,55 +121,60 @@ struct ConstState
   static ConstStateIdx create(const Point4 *consts_data, uint8_t consts_count)
   {
     OSSpinlockScopedLock lock(mutex);
-    int cid = all.find_if([&](const ConstState &c) {
-      if (c.constsCount != consts_count)
-        return false;
+    {
+      ConstStateIdx cid = all.findIf([&](const ConstState &c) {
+        const auto constsView = dataConsts.view(c.consts);
+        if (constsView.size() != consts_count)
+          return false;
 
-      return memcmp(&dataConsts[c.constsStart], consts_data, consts_count * sizeof(*consts_data)) == 0; // -V1014
-    });
-    if (cid >= 0)
-      return static_cast<ConstStateIdx>(cid);
+        return memcmp(constsView.data(), consts_data, consts_count * sizeof(*consts_data)) == 0; // -V1014
+      });
+      if (cid != ConstStateIdx::Invalid)
+        return cid;
+    }
 
-    uint32_t did = dataConsts.append(consts_data, consts_count);
-    uint32_t id = all.push_back(ConstState{did, consts_count});
-    uint32_t acid = allConstBuf.push_back(nullptr);
-    G_FAST_ASSERT(id == acid);
-    G_UNUSED(acid);
-    return static_cast<ConstStateIdx>(id);
+    const auto consts = dataConsts.allocate(consts_count);
+    const auto constsView = dataConsts.view(consts);
+    memcpy(constsView.data(), consts_data, consts_count * sizeof(*consts_data));
+
+    const ConstStateIdx id = all.allocate();
+    all[id] = ConstState{consts};
+    {
+      ConstStateIdx bufId = allConstBuf.allocate();
+      G_UNUSED(bufId);
+      G_FAST_ASSERT(id == bufId);
+    }
+    return id;
   }
   static void clear()
   {
     dataConsts.clear();
     all.clear();
-    all.push_back(ConstState{0, 0});
-    allConstBuf.iterate([](auto &s) { destroy_d3dres(s); });
+    all[all.allocate()] = ConstState{ConstsDataCont::Range::Empty};
+    for (auto buf : allConstBuf)
+      destroy_d3dres(buf);
     allConstBuf.clear();
-    allConstBuf.push_back(nullptr);
+    allConstBuf.allocate();
   }
 
   static void prepareConstBuf(ConstStateIdx const_state_idx)
   {
-    const auto idx = eastl::to_underlying(const_state_idx);
-    const ConstState &state = all[idx];
-    if (!interlocked_acquire_load_ptr(allConstBuf[idx]) && state.constsCount)
+    const ConstState &state = all[const_state_idx];
+    if (!interlocked_acquire_load_ptr(allConstBuf[const_state_idx]) && ConstsDataCont::range_size(state.consts) > 0)
     {
-      String s(0, "staticCbuf%d", idx);
-      Sbuffer *constBuf = d3d::buffers::create_persistent_cb(state.constsCount, s.c_str());
+      String s(0, "staticCbuf%d", eastl::to_underlying(const_state_idx));
+      const auto constsView = dataConsts.view(state.consts);
+      Sbuffer *constBuf = d3d::buffers::create_persistent_cb(constsView.size(), s.c_str());
       if (!constBuf)
       {
         logerr("Could not create Sbuffer for const buf.");
         return;
       }
-      constBuf->updateDataWithLock(0, sizeof(Point4) * state.constsCount, &dataConsts[state.constsStart], VBLOCK_DISCARD);
-      if (DAGOR_UNLIKELY(interlocked_compare_exchange_ptr(allConstBuf[idx], constBuf, (Sbuffer *)nullptr) != nullptr))
+      constBuf->updateDataWithLock(0, constsView.size_bytes(), constsView.data(), VBLOCK_DISCARD);
+      if (DAGOR_UNLIKELY(interlocked_compare_exchange_ptr(allConstBuf[const_state_idx], constBuf, (Sbuffer *)nullptr) != nullptr))
         constBuf->destroy(); // unlikely case when other thread created/written buffer for this slot first
     }
   }
-
-  static NonRelocatableCont<Point4, 8192> dataConsts;
-  static NonRelocatableCont<ConstState, 2048> all;        // first one is default
-  static NonRelocatableCont<Sbuffer *, 2048> allConstBuf; // parallel to all
-  static OSSpinlock mutex;
 };
 
 decltype(ConstState::dataConsts) ConstState::dataConsts;
@@ -173,8 +195,8 @@ ShaderStateBlock create_slot_textures_state(const TEXTUREID *ps, uint8_t ps_base
 
 void apply_slot_textures_state(ConstStateIdx const_state_idx, TexStateIdx sampler_state_id, int tex_level)
 {
-  SBSamplerState::all[eastl::to_underlying(sampler_state_id)].apply(tex_level);
-  ConstState::all[eastl::to_underlying(const_state_idx)].apply(const_state_idx);
+  SBSamplerState::all[sampler_state_id].apply(tex_level);
+  ConstState::all[const_state_idx].apply(const_state_idx);
 }
 
 void clear_slot_textures_states()
@@ -185,11 +207,11 @@ void clear_slot_textures_states()
 
 void slot_textures_req_tex_level(TexStateIdx sampler_state_id, int tex_level)
 {
-  SBSamplerState::all[eastl::to_underlying(sampler_state_id)].reqTexLevel(tex_level);
+  SBSamplerState::all[sampler_state_id].reqTexLevel(tex_level);
 }
 
 void dump_slot_textures_states_stat()
 {
-  debug("%d const states (%d total), %d texture states (%d total)", ConstState::all.getTotalCount(),
-    ConstState::dataConsts.getTotalCount(), SBSamplerState::all.getTotalCount(), SBSamplerState::data.getTotalCount());
+  debug("%d const states (%d total), %d texture states (%d total)", ConstState::all.totalElements(),
+    ConstState::dataConsts.totalElements(), SBSamplerState::all.totalElements(), SBSamplerState::data.totalElements());
 }

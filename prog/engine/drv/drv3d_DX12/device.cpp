@@ -982,7 +982,8 @@ void Device::adjustCaps(Driver3dDesc &capabilities)
   capabilities.maxSimRT = min(capabilities.maxSimRT, D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT);
 #if !_TARGET_XBOXONE
   capabilities.raytrace.topAccelerationStructureInstanceElementSize = sizeof(D3D12_RAYTRACING_INSTANCE_DESC);
-  capabilities.raytrace.accelerationStructureBuildScratchBufferOffetAlignment = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT;
+  capabilities.raytrace.accelerationStructureBuildScratchBufferOffsetAlignment =
+    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT;
   capabilities.raytrace.maxRecursionDepth = D3D12_RAYTRACING_MAX_DECLARABLE_TRACE_RECURSION_DEPTH;
 #endif
 }
@@ -1401,7 +1402,7 @@ HRESULT Device::findClosestMatchingMode(DXGI_MODE_DESC *out_desc)
 D3D12_FEATURE_DATA_FORMAT_SUPPORT Device::getFormatFeatures(FormatStore fmt)
 {
   D3D12_FEATURE_DATA_FORMAT_SUPPORT query = {};
-  if (!waitForHealthyState())
+  if (!isHealthyOrRecovering()) // We don't want to wait for healthy state here. Otherwise there is a risk of an infinite loop.
   {
     return query;
   }

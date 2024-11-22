@@ -216,7 +216,10 @@ static void game_objects_events_es_event_handler(const EventGameObjectsCreated &
   for (const auto &instances : game_objects.objects)
   {
     if (!g_entity_mgr->getTemplateDB().getTemplateByName(instances.first))
+    {
+      logwarn("missing template <%s> for game_object", instances.first);
       continue;
+    }
     const scene::TiledScene &scene = *instances.second;
     eastl::string templName = add_sub_template_name<eastl::string>(instances.first.c_str(), "game_object");
     const ecs::HashedConstString instanceHash = ECS_HASH_SLOW(instances.first.c_str());

@@ -25,8 +25,17 @@ public:
 
 void DriverNetworkManager::sendPsoCacheBlkSync(const DataBlock &cache_blk)
 {
+  if (!::dgs_get_settings()->getBlockByNameEx("dx12")->getBool("pso_cache_sending_enabled", true))
+    return;
   httprequests::AsyncRequestParams request;
-  request.url = ::dgs_get_settings()->getBlockByNameEx("dx12")->getStr("pso_cache_server_url", "https://pso-cache.gaijin.net/data");
+  const char *defaultUrl =
+#if DAGOR_DBGLEVEL > 0
+    "https://beta.pso-cache.gaijin.net/data"
+#else
+    "https://pso-cache.gaijin.net/data"
+#endif
+    ;
+  request.url = ::dgs_get_settings()->getBlockByNameEx("dx12")->getStr("pso_cache_server_url", defaultUrl);
   request.reqType = httprequests::HTTPReq::POST; // -V1048
   request.needResponseHeaders = false;
   request.headers = {

@@ -40,10 +40,11 @@ dabfg::NodeHandle makeAimDofPrepareNode()
                                        .handle();
 
     registry.requestState().setFrameBlock("global_frame");
-    registry.readBlob<CameraParams>("current_camera").bindAsView<&CameraParams::viewRotTm>().bindAsProj<&CameraParams::jitterProjTm>();
+    registry.readBlob<CameraParams>("current_camera").bindAsView<&CameraParams::viewRotTm>();
 
     auto aimRenderingDataHndl = registry.readBlob<AimRenderingData>("aim_render_data").handle();
-    auto scopeAimRenderingDataHndl = registry.readBlob<ScopeAimRenderingData>("scope_aim_render_data").handle();
+    auto scopeAimRenderingDataHndl =
+      registry.readBlob<ScopeAimRenderingData>("scope_aim_render_data").bindAsProj<&ScopeAimRenderingData::jitterProjTm>().handle();
     auto aimDofHndl = registry.createBlob<AimDofSettings>("aimDof", dabfg::History::No).handle();
     auto strmCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
     auto antiAliasingModeHndl = registry.readBlob<AntiAliasingMode>("anti_aliasing_mode").handle();

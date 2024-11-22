@@ -749,7 +749,7 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
       G_ASSERT(shared_nm);
 
       if (enable_file_attributes)
-        file_attributes[id] |= EVFSFA_TYPE_BLK;
+        file_attributes[mi] |= EVFSFA_TYPE_BLK;
 
       if (!export_data_for_dict_dir)
       {
@@ -786,7 +786,7 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
       uint64_t names_hash;
 
       if (enable_file_attributes)
-        file_attributes[id] |= EVFSFA_TYPE_SHARED_NM;
+        file_attributes[mi] |= EVFSFA_TYPE_SHARED_NM;
 
       dblk::write_names(mcwr, *shared_nm, &names_hash);
       // write names hash
@@ -811,7 +811,7 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
     {
       G_ASSERT(!sign_plain_data);
       if (enable_file_attributes)
-        file_attributes[id] |= EVFSFA_TYPE_PLAIN;
+        file_attributes[mi] |= EVFSFA_TYPE_PLAIN;
       String ver(0, "%d.%d.%d.%d", (write_version >> 24) & 0xFF, (write_version >> 16) & 0xFF, (write_version >> 8) & 0xFF,
         write_version & 0xFF);
       file_data_cwr->write(ver.data(), ver.length());
@@ -822,7 +822,7 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
       DataBlock blk;
 
       if (enable_file_attributes)
-        file_attributes[id] |= EVFSFA_TYPE_BLK;
+        file_attributes[mi] |= EVFSFA_TYPE_BLK;
 
       {
         DynamicMemGeneralSaveCB memCwr(tmpmem);
@@ -862,13 +862,13 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
     else if (preprocess)
     {
       if (enable_file_attributes)
-        file_attributes[id] |= EVFSFA_TYPE_PLAIN;
+        file_attributes[mi] |= EVFSFA_TYPE_PLAIN;
       process_and_copy_file_to_stream(orig_fn, mos_cwr, targetString, keep_lines);
     }
     else
     {
       if (enable_file_attributes)
-        file_attributes[id] |= EVFSFA_TYPE_PLAIN;
+        file_attributes[mi] |= EVFSFA_TYPE_PLAIN;
       copy_file_to_stream(orig_fn, mos_cwr);
     }
   done_write:
@@ -1058,7 +1058,7 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
       // - file name data
       // - file attributes
       int name_ptrs_size = files.nameCount() * cwr.PTR_SZ;
-      int file_attributes_size = enable_file_attributes ? 0 : (1 + data_size(file_attributes));
+      int file_attributes_size = enable_file_attributes ? (1 + data_size(file_attributes)) : 0;
       MemorySaveCB &raw_cwr = cwr.getRawWriter();
       MemoryLoadCB raw_crd(raw_cwr.getMem(), false);
       raw_crd.seekto(pt_names.resvDataPos);

@@ -39,6 +39,12 @@ namespace drv3d_dx12
   struct Cmd##name : debug::call_stack::CommandData                                            \
   {
 
+#define DX12_CONTEXT_COMMAND_IS_PRIMARY(IsPrimary) \
+  static constexpr bool is_primary()               \
+  {                                                \
+    return IsPrimary;                              \
+  }
+
 #define DX12_END_CONTEXT_COMMAND \
   }                              \
   ;
@@ -49,6 +55,7 @@ namespace drv3d_dx12
 #undef DX12_BEGIN_CONTEXT_COMMAND
 #undef DX12_BEGIN_CONTEXT_COMMAND_EXT_1
 #undef DX12_BEGIN_CONTEXT_COMMAND_EXT_2
+#undef DX12_CONTEXT_COMMAND_IS_PRIMARY
 #undef DX12_END_CONTEXT_COMMAND
 #undef DX12_CONTEXT_COMMAND_PARAM
 #undef DX12_CONTEXT_COMMAND_PARAM_ARRAY
@@ -62,6 +69,7 @@ using AnyCommandPack = TypePack<
 #define DX12_BEGIN_CONTEXT_COMMAND_EXT_1(name, param0Type, param0Name) ExtendedVariant<Cmd##name, param0Type>,
 #define DX12_BEGIN_CONTEXT_COMMAND_EXT_2(name, param0Type, param0Name, param1Type, param1Name) \
   ExtendedVariant2<Cmd##name, param0Type, param1Type>,
+#define DX12_CONTEXT_COMMAND_IS_PRIMARY(isPrimary)
 #define DX12_END_CONTEXT_COMMAND
 #define DX12_CONTEXT_COMMAND_PARAM(type, name)
 #define DX12_CONTEXT_COMMAND_PARAM_ARRAY(type, name, size)
@@ -69,6 +77,7 @@ using AnyCommandPack = TypePack<
 #undef DX12_BEGIN_CONTEXT_COMMAND
 #undef DX12_BEGIN_CONTEXT_COMMAND_EXT_1
 #undef DX12_BEGIN_CONTEXT_COMMAND_EXT_2
+#undef DX12_CONTEXT_COMMAND_IS_PRIMARY
 #undef DX12_END_CONTEXT_COMMAND
 #undef DX12_CONTEXT_COMMAND_PARAM
 #undef DX12_CONTEXT_COMMAND_PARAM_ARRAY

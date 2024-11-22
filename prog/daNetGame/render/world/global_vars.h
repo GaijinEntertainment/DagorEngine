@@ -8,6 +8,7 @@
   VAR(sun_light_color)                  \
   VAR(zn_zfar)                          \
   VAR(water_level)                      \
+  VAR(hero_is_cockpit)                  \
   VAR(hero_matrixX)                     \
   VAR(hero_matrixY)                     \
   VAR(hero_matrixZ)                     \

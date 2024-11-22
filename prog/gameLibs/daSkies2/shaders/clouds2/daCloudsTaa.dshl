@@ -263,8 +263,8 @@ shader clouds2_taa_cs, clouds2_taa_cs_has_empty, clouds2_taa_cs_no_empty
     void cs_main(uint2 dtid : SV_DispatchThreadID)
     {
       float taaWeight;
-      target0[dtid] = clouds_taa(taaWeight, dtid.xy, dtid*invres.xy + invres.zw);
-      target1[dtid] = taaWeight;
+      texture2DAt(target0, dtid) = clouds_taa(taaWeight, dtid.xy, dtid*invres.xy + invres.zw);
+      texture2DAt(target1, dtid) = taaWeight;
     }
   }
   compile("cs_5_0", "cs_main");

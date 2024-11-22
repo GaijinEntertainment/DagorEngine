@@ -36,7 +36,7 @@ macro USE_SSR_BASE(code)
 
     half4 getSSRWeighted(half linear_roughness, float2 tc, int2 screenpos, half4 weight)
     {
-      half roughnessFade = saturate(linear_roughness * half(SSRParams.y) + 2);
+      half roughnessFade = get_roughness_fade(linear_roughness);
       BRANCH
       if (roughnessFade==0)
         return 0;
@@ -72,7 +72,7 @@ macro USE_SSR_BASE(code)
       half4 getSSR(half linear_roughness, float2 tc, int2 screenpos = 0)
     #endif
     {
-      half roughnessFade = saturate(linear_roughness * half(SSRParams.y) + 2);
+      half roughnessFade = get_roughness_fade(linear_roughness);
       BRANCH
       if (roughnessFade==0)
         return 0;

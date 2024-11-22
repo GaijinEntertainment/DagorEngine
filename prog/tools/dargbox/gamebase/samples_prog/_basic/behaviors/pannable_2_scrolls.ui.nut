@@ -2,7 +2,7 @@ from "%darg/ui_imports.nut" import *
 
 let cursors = require("samples_prog/_cursors.nut")
 
-let scrollbar = require("samples_prog/_basic/components/scrollbar.nut")
+let {makeHVScrolls} = require("samples_prog/_basic/components/scrollbar.nut")
 
 
 
@@ -38,12 +38,6 @@ function makeCells() {
     children = rows
   }
 
-  let rootBase = {
-    size = flex()
-    behavior = Behaviors.Pannable
-    joystickScroll = true
-  }
-
   let container = {
     size = [sw(80), sh(80)]
     rendObj = ROBJ_FRAME
@@ -51,7 +45,7 @@ function makeCells() {
     borderWidth = 4
     padding = 4
 
-    children = scrollbar.makeHVScrolls(pannable, {rootBase=rootBase})
+    children = makeHVScrolls(pannable, {behaviors=[Behaviors.Pannable]})
   }
 
   return container

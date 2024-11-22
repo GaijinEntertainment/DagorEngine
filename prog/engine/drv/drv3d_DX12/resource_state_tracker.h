@@ -1084,7 +1084,7 @@ public:
 };
 
 using BufferResourceStateSet = ResourceStateSetBase<BufferResourceState, BufferGlobalId>;
-using TextureResourceStateSet = ResourceStateSetBase<TextureResourceState, ImageGlobalSubresouceId>;
+using TextureResourceStateSet = ResourceStateSetBase<TextureResourceState, ImageGlobalSubresourceId>;
 
 class InitialTextureResourceStateSet
 {
@@ -1097,12 +1097,12 @@ public:
     dataSet.decay();
   }
 
-  void initialize(ImageGlobalSubresouceId base, uint32_t count, D3D12_RESOURCE_STATES state)
+  void initialize(ImageGlobalSubresourceId base, uint32_t count, D3D12_RESOURCE_STATES state)
   {
     dataSet.initialize(base, count, state);
   }
 
-  D3D12_RESOURCE_STATES getState(ImageGlobalSubresouceId base, SubresourceIndex sub) { return dataSet[base + sub]; }
+  D3D12_RESOURCE_STATES getState(ImageGlobalSubresourceId base, SubresourceIndex sub) { return dataSet[base + sub]; }
 };
 
 class InititalResourceStateSet : public InitialTextureResourceStateSet
@@ -1382,10 +1382,10 @@ public:
 #if DX12_ALLOW_SPLIT_BARRIERS
 class SplitTransitionTracker
 {
-  dag::Vector<eastl::pair<ImageGlobalSubresouceId, D3D12_RESOURCE_STATES>> dataSet;
+  dag::Vector<eastl::pair<ImageGlobalSubresourceId, D3D12_RESOURCE_STATES>> dataSet;
 
 public:
-  bool beginTransition(ImageGlobalSubresouceId global_id, D3D12_RESOURCE_STATES state)
+  bool beginTransition(ImageGlobalSubresourceId global_id, D3D12_RESOURCE_STATES state)
   {
     eastl::pair value(global_id, state);
     auto ref = eastl::lower_bound(begin(dataSet), end(dataSet), value,
@@ -1395,7 +1395,7 @@ public:
     return true;
   }
 
-  eastl::optional<D3D12_RESOURCE_STATES> checkPendingTransition(ImageGlobalSubresouceId global_id) const
+  eastl::optional<D3D12_RESOURCE_STATES> checkPendingTransition(ImageGlobalSubresourceId global_id) const
   {
     auto ref = eastl::lower_bound(begin(dataSet), end(dataSet), eastl::pair(global_id, D3D12_RESOURCE_STATE_COMMON),
       [](auto l, auto r) //
@@ -1411,7 +1411,7 @@ public:
     return ref->second;
   }
 
-  eastl::optional<D3D12_RESOURCE_STATES> endTransition(ImageGlobalSubresouceId global_id)
+  eastl::optional<D3D12_RESOURCE_STATES> endTransition(ImageGlobalSubresourceId global_id)
   {
     auto ref = eastl::lower_bound(begin(dataSet), end(dataSet), eastl::pair(global_id, D3D12_RESOURCE_STATE_COMMON),
       [](auto l, auto r) //
@@ -1429,8 +1429,8 @@ public:
     return value;
   }
 
-  eastl::optional<eastl::pair<ImageGlobalSubresouceId, D3D12_RESOURCE_STATES>> endTransitionInRange(ImageGlobalSubresouceId global_id,
-    uint32_t count)
+  eastl::optional<eastl::pair<ImageGlobalSubresourceId, D3D12_RESOURCE_STATES>> endTransitionInRange(
+    ImageGlobalSubresourceId global_id, uint32_t count)
   {
     auto ref = eastl::lower_bound(begin(dataSet), end(dataSet), eastl::pair(global_id, D3D12_RESOURCE_STATE_COMMON),
       [](auto l, auto r) //
@@ -1455,13 +1455,14 @@ public:
 class SplitTransitionTracker
 {
 public:
-  constexpr bool beginTransition(ImageGlobalSubresouceId, D3D12_RESOURCE_STATES) const { return false; }
+  constexpr bool beginTransition(ImageGlobalSubresourceId, D3D12_RESOURCE_STATES) const { return false; }
 
-  eastl::optional<D3D12_RESOURCE_STATES> checkPendingTransition(ImageGlobalSubresouceId) const { return eastl::nullopt; }
+  eastl::optional<D3D12_RESOURCE_STATES> checkPendingTransition(ImageGlobalSubresourceId) const { return eastl::nullopt; }
 
-  eastl::optional<D3D12_RESOURCE_STATES> endTransition(ImageGlobalSubresouceId) { return eastl::nullopt; }
+  eastl::optional<D3D12_RESOURCE_STATES> endTransition(ImageGlobalSubresourceId) { return eastl::nullopt; }
 
-  eastl::optional<eastl::pair<ImageGlobalSubresouceId, D3D12_RESOURCE_STATES>> endTransitionInRange(ImageGlobalSubresouceId, uint32_t)
+  eastl::optional<eastl::pair<ImageGlobalSubresourceId, D3D12_RESOURCE_STATES>> endTransitionInRange(ImageGlobalSubresourceId,
+    uint32_t)
   {
     return eastl::nullopt;
   }
@@ -1495,7 +1496,7 @@ public:
     return true;
   }
 
-  void ignoreNextDepenecy(ID3D12Resource *res)
+  void ignoreNextDependency(ID3D12Resource *res)
   {
     G_ASSERTF(res != nullptr, "DX12: Can not turn off null resource uav flush");
     auto ref = eastl::find(begin(userSkippedUavSync), end(userSkippedUavSync), res);
@@ -1655,7 +1656,7 @@ public:
     // User requested to skip barrier of that kind
     UserSkipped,
     // Split barrier end had a broader state to cover than the actual call requested
-    UnderpsecifiedEnd,
+    UnderspecifiedEnd,
     // Similar to merged, but instead to alter a barrier to merge the new state, the tracker had
     // to generate a barrier that transitioned the resource into a state that includes the old
     // state and the new state, which is in many cases a required but redundant barrier that should
@@ -1666,7 +1667,7 @@ public:
   };
 
 private:
-  __forceinline void reportStateTransition(ID3D12Resource *resource, ExtendedImageGlobalSubresouceId global_base,
+  __forceinline void reportStateTransition(ID3D12Resource *resource, ExtendedImageGlobalSubresourceId global_base,
     SubresourceIndex sub_res_index, D3D12_RESOURCE_STATES from, D3D12_RESOURCE_STATES to, TransitionResult action)
   {
     G_UNUSED(resource);
@@ -1747,7 +1748,7 @@ private:
         resTypeTable[is_texture], resource, resnameBuffer, sub_res_index, global_base + sub_res_index, fromTransitionMaskText,
         toTransitionMaskText);
     }
-    else if (TransitionResult::UnderpsecifiedEnd == action)
+    else if (TransitionResult::UnderspecifiedEnd == action)
     {
       logdbg("DX12: StateTrack: Split barrier end was broader than the begin barrier of %s 0x%p "
              "<%s>[%u] %u from <%s> to <%s>",
@@ -1808,7 +1809,7 @@ public:
     initial_state.update(textureStates);
   }
 
-  void setTextureState(InititalResourceStateSet &initial_state, ImageGlobalSubresouceId base, uint32_t count,
+  void setTextureState(InititalResourceStateSet &initial_state, ImageGlobalSubresourceId base, uint32_t count,
     D3D12_RESOURCE_STATES state)
   {
     if (!base.isValid())
@@ -1819,16 +1820,16 @@ public:
     textureStates.initialize(base, count, state);
   }
 
-  void setTextureState(InititalResourceStateSet &initial_state, ValueRange<ExtendedImageGlobalSubresouceId> range,
+  void setTextureState(InititalResourceStateSet &initial_state, ValueRange<ExtendedImageGlobalSubresourceId> range,
     D3D12_RESOURCE_STATES state)
   {
     setTextureState(initial_state, range.front(), range.size(), state);
   }
 
-  // TODO: have a optimized version for one subresouce
+  // TODO: have a optimized version for one subresource
   void transitionTexture(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *image,
-    ExtendedImageGlobalSubresouceId global_base, SubresourceIndex res_base, uint32_t count, SubresourcePerFormatPlaneCount plane_width,
-    FormatPlaneRange plane_count, D3D12_RESOURCE_STATES state)
+    ExtendedImageGlobalSubresourceId global_base, SubresourceIndex res_base, uint32_t count,
+    SubresourcePerFormatPlaneCount plane_width, FormatPlaneRange plane_count, D3D12_RESOURCE_STATES state)
   {
     G_ASSERT_RETURN(global_base.isValid(), );
 
@@ -2171,7 +2172,7 @@ public:
   }
 
   bool preTextureUploadTransition(BarrierBatcher &bb, InititalResourceStateSet &initial_state, ID3D12Resource *res,
-    ExtendedImageGlobalSubresouceId global_base, SubresourceIndex sub_res, D3D12_RESOURCE_STATES state)
+    ExtendedImageGlobalSubresourceId global_base, SubresourceIndex sub_res, D3D12_RESOURCE_STATES state)
   {
     G_ASSERT_RETURN(global_base.isValid(), true);
 
@@ -2187,7 +2188,7 @@ public:
     return true;
   }
 
-  void postTextureUploadTransition(BarrierBatcher &bb, ID3D12Resource *res, ExtendedImageGlobalSubresouceId global_base,
+  void postTextureUploadTransition(BarrierBatcher &bb, ID3D12Resource *res, ExtendedImageGlobalSubresourceId global_base,
     SubresourceIndex sub_res, D3D12_RESOURCE_STATES state)
   {
     G_ASSERT_RETURN(global_base.isValid(), );
@@ -2211,7 +2212,7 @@ public:
   }
 
   void beginTextureTransition(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *image,
-    ExtendedImageGlobalSubresouceId global_base, SubresourceIndex subresource, D3D12_RESOURCE_STATES state)
+    ExtendedImageGlobalSubresourceId global_base, SubresourceIndex subresource, D3D12_RESOURCE_STATES state)
   {
     if (!global_base.isValid())
     {
@@ -2259,7 +2260,7 @@ public:
   }
 
   TransitionResult endTextureTransition(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *image,
-    ExtendedImageGlobalSubresouceId global_base, SubresourceIndex subresource, D3D12_RESOURCE_STATES state)
+    ExtendedImageGlobalSubresourceId global_base, SubresourceIndex subresource, D3D12_RESOURCE_STATES state)
   {
     if (!global_base.isValid())
     {
@@ -2291,7 +2292,7 @@ public:
     TransitionResult result = TransitionResult::Transtioned;
     if (endState != state)
     {
-      result = TransitionResult::UnderpsecifiedEnd;
+      result = TransitionResult::UnderspecifiedEnd;
     }
 
     auto &currentState = textureStates[subResId];
@@ -2316,8 +2317,8 @@ public:
   // Returns false if at least one subresource is not in the requested state after completing all outstanding barriers
   // TODO replace res_base and count with subresource range
   bool endTextureTransitions(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *image,
-    ExtendedImageGlobalSubresouceId global_base, SubresourceIndex res_base, uint32_t count, SubresourcePerFormatPlaneCount plane_width,
-    FormatPlaneCount plane_count, D3D12_RESOURCE_STATES state)
+    ExtendedImageGlobalSubresourceId global_base, SubresourceIndex res_base, uint32_t count,
+    SubresourcePerFormatPlaneCount plane_width, FormatPlaneCount plane_count, D3D12_RESOURCE_STATES state)
   {
     if (!global_base.isValid())
     {
@@ -2369,7 +2370,7 @@ public:
       TransitionResult result = TransitionResult::Transtioned;
       if (endState != state)
       {
-        result = TransitionResult::UnderpsecifiedEnd;
+        result = TransitionResult::UnderspecifiedEnd;
         // To not break tracking a later barrier is needed to fix up expected state
         allEndStateMatchRequestedState = false;
       }
@@ -2563,7 +2564,7 @@ public:
   void userBufferUAVAccessFlushSkip(BufferResourceReference buffer)
   {
     G_ASSERT(buffer.resourceId);
-    UnorderedAccessTracker::ignoreNextDepenecy(buffer.buffer);
+    UnorderedAccessTracker::ignoreNextDependency(buffer.buffer);
   }
 
   // textures
@@ -3112,7 +3113,7 @@ public:
 
   void userTextureUAVAccessFlush(Image *texture) { UnorderedAccessTracker::explicitAccess(texture->getHandle()); }
 
-  void userTextureUAVAccessFlushSkip(Image *texture) { UnorderedAccessTracker::ignoreNextDepenecy(texture->getHandle()); }
+  void userTextureUAVAccessFlushSkip(Image *texture) { UnorderedAccessTracker::ignoreNextDependency(texture->getHandle()); }
 
   // misc
 
@@ -3123,7 +3124,7 @@ public:
   void useRTASAsBuildTarget(BarrierBatcher &, ID3D12Resource *) {}
 
   // Driver explicit barriers
-  TransitionResult tranitionBufferExplicit(BarrierBatcher &barriers, BufferResourceReference buffer, D3D12_RESOURCE_STATES state)
+  TransitionResult transitionBufferExplicit(BarrierBatcher &barriers, BufferResourceReference buffer, D3D12_RESOURCE_STATES state)
   {
     return transitionBuffer(barriers, buffer.buffer, buffer.resourceId, state);
   }
@@ -3839,16 +3840,16 @@ class ResourceUsageHistoryDataSetDebugger
   }
 
   static AnalyzerMode drawAnalyzerModeSelector(AnalyzerMode mode);
-  void addAnalziedTextureInfo(D3D12_RESOURCE_STATES current_state, ResourceBarrier expected_state, eastl::string_view segment,
+  void addAnalyzedTextureInfo(D3D12_RESOURCE_STATES current_state, ResourceBarrier expected_state, eastl::string_view segment,
     ResourceUsageHistoryDataSet::UsageEntryType what, bool is_automatic_transition, eastl::string_view what_string,
     AnalyzedIssueType issue_type);
-  void addUniqueAnalziedTextureInfo(D3D12_RESOURCE_STATES current_state, ResourceBarrier expected_state, eastl::string_view segment,
+  void addUniqueAnalyzedTextureInfo(D3D12_RESOURCE_STATES current_state, ResourceBarrier expected_state, eastl::string_view segment,
     ResourceUsageHistoryDataSet::UsageEntryType what, bool is_automatic_transition, eastl::string_view what_string,
     AnalyzedIssueType issue_type);
-  void addAnalziedBufferInfo(D3D12_RESOURCE_STATES current_state, ResourceBarrier expected_state, eastl::string_view segment,
+  void addAnalyzedBufferInfo(D3D12_RESOURCE_STATES current_state, ResourceBarrier expected_state, eastl::string_view segment,
     ResourceUsageHistoryDataSet::UsageEntryType what, bool is_automatic_transition, eastl::string_view what_string,
     AnalyzedIssueType issue_type);
-  void addUniqueAnalziedBufferInfo(D3D12_RESOURCE_STATES current_state, ResourceBarrier expected_state, eastl::string_view segment,
+  void addUniqueAnalyzedBufferInfo(D3D12_RESOURCE_STATES current_state, ResourceBarrier expected_state, eastl::string_view segment,
     ResourceUsageHistoryDataSet::UsageEntryType what, bool is_automatic_transition, eastl::string_view what_string,
     AnalyzedIssueType issue_type);
   void addTextureInfo(eastl::string_view name, Image *texture, SubresourceIndex sub_res, FormatStore fmt, bool needs_transition);
@@ -4823,9 +4824,9 @@ public:
   void useRTASAsBuildTarget(BarrierBatcher &bb, ID3D12Resource *as) { BaseType::useRTASAsBuildTarget(bb, as); }
 
   // Driver explicit barriers
-  TransitionResult tranitionBufferExplicit(BarrierBatcher &barriers, BufferResourceReference buffer, D3D12_RESOURCE_STATES state)
+  TransitionResult transitionBufferExplicit(BarrierBatcher &barriers, BufferResourceReference buffer, D3D12_RESOURCE_STATES state)
   {
-    return BaseType::tranitionBufferExplicit(barriers, buffer, state);
+    return BaseType::transitionBufferExplicit(barriers, buffer, state);
   }
 
   void onFlush(InititalResourceStateSet &initial_state)
@@ -5060,7 +5061,7 @@ public:
 
   void activateTexture(Image *tex, ResourceActivationAction action, const ResourceClearValue &value, ImageViewState view_state,
     D3D12_CPU_DESCRIPTOR_HANDLE view, ResourceUsageManagerWithHistory &rst, BarrierBatcher &bb, SplitTransitionTracker &stt,
-    ID3D12Device *device, ShaderResourceViewDescriptorHeapManager &descriptors, StatefulCommandBuffer &cmd)
+    ID3D12Device2 *device, ShaderResourceViewDescriptorHeapManager &descriptors, PipelineManager &pipeMan, StatefulCommandBuffer &cmd)
   {
     auto beforeBatchSize = bb.batchSize();
     // we do only the memory overlap, aliasing barrier and state barriers on mip level 0 and array
@@ -5172,7 +5173,23 @@ public:
       case ResourceActivationAction::CLEAR_AS_RTV_DSV:
         if (tex->getFormat().isColor())
         {
-          cmd.getHandle()->ClearRenderTargetView(view, value.asFloat, 0, nullptr);
+          // To save bit pattern for integer rt need to clear it with shader instead.
+          if (tex->getFormat().isSampledAsFloat())
+            cmd.getHandle()->ClearRenderTargetView(view, value.asFloat, 0, nullptr);
+          else
+          {
+            cmd.setResourceHeap(descriptors.getActiveHandle(), descriptors.getBindlessGpuAddress());
+            auto clearPipeline = pipeMan.getClearPipeline(device, tex->getFormat().asDxGiFormat(), true);
+
+            if (!clearPipeline)
+              return;
+
+            DWORD dwordRegs[4]{value.asUint[0], value.asUint[1], value.asUint[2], value.asUint[3]};
+
+            const Extent2D dstExtent = tex->getMipExtents2D(view_state.getMipBase());
+            D3D12_RECT dstRect{0, 0, static_cast<LONG>(dstExtent.width), static_cast<LONG>(dstExtent.height)};
+            cmd.clearExecute(pipeMan.getClearSignature(), clearPipeline, dwordRegs, view, dstRect);
+          };
         }
         else
         {

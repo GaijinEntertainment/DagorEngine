@@ -30,6 +30,8 @@
 #include <nvapi.h>
 #endif
 
+#include <3d/dag_resourceDump.h>
+
 using namespace drv3d_dx11;
 
 namespace drv3d_dx11
@@ -175,6 +177,26 @@ int get_buffer_mem_used(String *stat, T &bufList, int &out_sysmem)
 
   return totalSize;
 }
+
+
+#if DAGOR_DBGLEVEL > 0
+
+void dump_buffers(Tab<ResourceDumpInfo> &dump_info)
+{
+  ITERATE_OVER_OBJECT_POOL(g_buffers, bufferNo)
+    if (g_buffers[bufferNo].obj != NULL)
+    {
+      const GenericBuffer *buff = g_buffers[bufferNo].obj;
+
+      dump_info.emplace_back(resource_dump_types::ResourceType::Buffer, buff->getResName(), buff->ressize(),
+        buff->systemCopy ? buff->ressize() : -1, buff->getFlags(), -1, -1, -1, -1, -1, -1, -1);
+    }
+  ITERATE_OVER_OBJECT_POOL_RESTORE(g_buffers);
+}
+#else
+void dump_buffers(Tab<ResourceDumpInfo> &) {}
+#endif
+
 
 int get_ib_vb_mem_used(String *stat, int &out_sysmem)
 {

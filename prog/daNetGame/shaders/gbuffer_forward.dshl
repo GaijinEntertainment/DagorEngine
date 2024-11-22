@@ -28,7 +28,6 @@ endmacro
 macro INIT_AND_USE_VOLFOG_FORWARD()
   if (mobile_render == off && in_editor_assume == no)
   {
-    INIT_ZNZFAR()
     BRUNETON_FOG()
     USE_SCREENPOS_TO_TC()
     INIT_VOLUMETRIC_LIGHT_TRANSPARENT(ps)
@@ -70,7 +69,7 @@ macro INIT_AND_USE_TILED_LIGHTS_FORWARD()
   }
 endmacro
 
-macro WRITE_GBUFFER_FORWARD_BASE(preExposureTerm)
+macro WRITE_GBUFFER_FORWARD()
   if (use_postfx == off)
   {
     USE_FULL_TONEMAP_LUT(ps)
@@ -356,7 +355,7 @@ macro WRITE_GBUFFER_FORWARD_BASE(preExposureTerm)
 
     GBUFFER_OUTPUT encode_gbuffer(UnpackedGbuffer gbuf, float3 pointToEye, float4 screenPos)
     {
-      return encode_gbuffer_exposure(gbuf, pointToEye, screenPos, preExposureTerm,
+      return encode_gbuffer_exposure(gbuf, pointToEye, screenPos, get_exposure_mul(),
         gbuffer_sun_light_dir.xyz, gbuffer_sun_light_col.rgb,
         gbuffer_enviSPH0, gbuffer_enviSPH1, gbuffer_enviSPH2, gbuffer_sun_light_col.w);
     }
@@ -377,12 +376,4 @@ macro WRITE_GBUFFER_FORWARD_BASE(preExposureTerm)
       }
     #endif
   }
-endmacro
-
-macro WRITE_GBUFFER_FORWARD_WITH_EXPOSURE()
-  WRITE_GBUFFER_FORWARD_BASE(get_exposure_mul())
-endmacro
-
-macro WRITE_GBUFFER_FORWARD()
-  WRITE_GBUFFER_FORWARD_BASE(1)
 endmacro

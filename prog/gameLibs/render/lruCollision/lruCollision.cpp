@@ -355,7 +355,7 @@ bool LRURendinstCollision::updateLRU(dag::ConstSpan<rendinst::riex_handle_t> ri)
         nodeVbSize = COLLISION_BOX_VERTICES_NUM * sizeof(CollisionVertex);
         Point3_vec4 boxVertices[COLLISION_BOX_VERTICES_NUM];
         for (int vertNo = 0; vertNo < COLLISION_BOX_VERTICES_NUM; ++vertNo)
-          boxVertices[vertNo] = node->modelBBox.point(vertNo);
+          boxVertices[vertNo] = node->modelBBox.point(vertNo ^ 1); // xor 1 to invert culling
 
         const vec4f *__restrict verts = (const vec4f *)boxVertices;
         CollisionVertex *__restrict vertsDest = (CollisionVertex *)vertices;

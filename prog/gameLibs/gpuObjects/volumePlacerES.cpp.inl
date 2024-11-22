@@ -183,7 +183,8 @@ static void adjust_transform_to_border_offset(const Point2 *offset, int axis_ind
   float adjustedLength = axisLength - offsetV.x - offsetV.y;
   if (adjustedLength <= 0.0f)
   {
-    LOGERR_ONCE("GPUObjectsPlacer: box borders are too big for the object. Axis=%@, offset=%@", axis_index, offsetV);
+    LOGERR_ONCE("GPUObjectsPlacer: box borders are too big for the object. Axis=%@, offset=%@, pos=%@", axis_index, offsetV,
+      transform.getcol(3));
     return;
   }
   transform.setcol(axis_index, axis * (adjustedLength / axisLength));
@@ -840,6 +841,7 @@ void VolumePlacer::updateVisibility(const Frustum &frustum, ShadowPass for_shado
 void VolumePlacer::copyMatrices(Sbuffer *dst_buffer, uint32_t &dst_buffer_offset, int lod, int layer,
   eastl::vector<IPoint2> &offsets_and_counts, eastl::vector<uint16_t> &ri_ids)
 {
+  d3d::driver_command(Drv3dCommand::DELAY_SYNC);
   auto visibility = layer == Layers::LAYER_DECAL ? visibilityByLodDecal[lod] : visibilityByLod[lod];
   for (auto &pair : visibility)
   {
@@ -859,6 +861,7 @@ void VolumePlacer::copyMatrices(Sbuffer *dst_buffer, uint32_t &dst_buffer_offset
     ri_ids.emplace_back(riIdx);
     offsets_and_counts.emplace_back(offset * ROWS_IN_MATRIX, count);
   }
+  d3d::driver_command(Drv3dCommand::CONTINUE_SYNC);
 }
 
 void VolumePlacer::RingBuffer::invalidate()

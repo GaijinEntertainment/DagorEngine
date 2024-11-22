@@ -169,11 +169,11 @@ macro USE_BVH_ATTRIBUTE_FUNCTIONS(stage)
       switch (attributeFormat)
       {
         case bvhAttributeFloat2:
-          attribute = asfloat(vb.Load2(attributeBase));
+          attribute = asfloat(loadBuffer2(vb, attributeBase));
           break;
         case bvhAttributeShort2TC:
           {
-            uint packed = vb.Load(attributeBase);
+            uint packed = loadBuffer(vb, attributeBase);
             attribute.x = ShortToIntLow(packed) / 4096.0;
             attribute.y = ShortToIntHigh(packed) / 4096.0;
             break;
@@ -181,7 +181,7 @@ macro USE_BVH_ATTRIBUTE_FUNCTIONS(stage)
           break;
         case bvhAttributeShort2N:
           {
-            uint packed = vb.Load(attributeBase);
+            uint packed = loadBuffer(vb, attributeBase);
             attribute.x = ShortToIntLow(packed);
             attribute.y = ShortToIntHigh(packed);
             attribute = (attribute - 32767) / 32767.0;
@@ -190,7 +190,7 @@ macro USE_BVH_ATTRIBUTE_FUNCTIONS(stage)
           break;
         case bvhAttributeUShort2N:
           {
-            uint packed = vb.Load(attributeBase);
+            uint packed = loadBuffer(vb, attributeBase);
             attribute = float2(packed & 0xFFFF, packed >> 16) / 65535.0;
             break;
           }
@@ -206,13 +206,13 @@ macro USE_BVH_ATTRIBUTE_FUNCTIONS(stage)
           {
             const uint4 INPUT_ENCODING_OFFSET = uint4(16, 8, 0, 24);
 
-            uint packed = vb.Load(attributeBase);
+            uint packed = loadBuffer(vb, attributeBase);
             attribute = ((packed >> INPUT_ENCODING_OFFSET).xyz & 255) / 255.0;
             break;
           }
           break;
         case bvhAttributeFloat3:
-          attribute = asfloat(vb.Load3(attributeBase));
+          attribute = asfloat(loadBuffer3(vb, attributeBase));
           break;
       }
     }
@@ -455,7 +455,7 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
         if ((ibBase & 3) == 0)
         {
           // Aligned for 4-byte
-          uint2 packedIndices = ib.Load2(ibBase);
+          uint2 packedIndices = loadBuffer2(ib, ibBase);
           indices.x = packedIndices.x & 0xFFFF;
           indices.y = packedIndices.x >> 16;
           indices.z = packedIndices.y & 0xFFFF;
@@ -463,7 +463,7 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
         else
         {
           // Aligned for 2-byte
-          uint2 packedIndices = ib.Load2(ibBase - 2);
+          uint2 packedIndices = loadBuffer2(ib, ibBase - 2);
           indices.x = packedIndices.x >> 16;
           indices.y = packedIndices.y & 0xFFFF;
           indices.z = packedIndices.y >> 16;
@@ -471,7 +471,7 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
       }
       else
       {
-        indices = ib.Load3(ibBase);
+        indices = loadBuffer3(ib, ibBase);
       }
       return indices;
     }
@@ -482,11 +482,11 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
       float3 positions[ 3 ];
 
       uint2 packed;
-      packed = vb.Load2(vb_base + indices.x * stride);
+      packed = loadBuffer2(vb, vb_base + indices.x * stride);
       positions[ 0 ] = float3(f16tof32(packed.x), f16tof32(packed.x >> 16), f16tof32(packed.y));
-      packed = vb.Load2(vb_base + indices.y * stride);
+      packed = loadBuffer2(vb, vb_base + indices.y * stride);
       positions[ 1 ] = float3(f16tof32(packed.x), f16tof32(packed.x >> 16), f16tof32(packed.y));
-      packed = vb.Load2(vb_base + indices.z * stride);
+      packed = loadBuffer2(vb, vb_base + indices.z * stride);
       positions[ 2 ] = float3(f16tof32(packed.x), f16tof32(packed.x >> 16), f16tof32(packed.y));
 
       float3 e1 = positions[ 1 ] - positions[ 0 ];

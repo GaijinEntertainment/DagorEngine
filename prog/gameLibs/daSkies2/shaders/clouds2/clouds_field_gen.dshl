@@ -63,6 +63,7 @@ endmacro
 
 shader gen_cloud_field
 {
+  ENABLE_ASSERT(cs)
   GEN_FIELD(cs)
   hlsl(cs) {
     RWTexture3D<float> output : register(u0);
@@ -71,8 +72,8 @@ shader gen_cloud_field
     void cs_main(uint3 tid : SV_DispatchThreadID) {
       float encodedResult = getFinalDensity(tid);
       if (encodedResult > 0)
-        layerHt[uint2(tid.z, 0)] = 1;//instead of interlocked, use plain simple write. So it is all or nothing (but way faster!)
-      output[tid] = encodedResult;
+        texture2DAt(layerHt, uint2(tid.z, 0)) = 1;//instead of interlocked, use plain simple write. So it is all or nothing (but way faster!)
+      texture3DAt(output, tid) = encodedResult;
     }
   }
   compile("cs_5_0", "cs_main")
@@ -204,6 +205,7 @@ endmacro
 include "bc_compression_inc.dshl"
 shader gen_cloud_field_cmpr
 {
+  ENABLE_ASSERT(cs)
   USE_GEN_CLOUD_FIELD(cs)
   hlsl(cs) {
     RWTexture3D<uint2> output : register(u0);
@@ -213,9 +215,9 @@ shader gen_cloud_field_cmpr
     {
       bc4_type texels[4*4], minV = 2, maxV = -2;
       get_texels(tid, texels, minV, maxV);
-      output[tid] = pack_bc4_block( texels, minV, maxV ).xy;
+      texture3DAt(output, tid) = pack_bc4_block( texels, minV, maxV ).xy;
       if (maxV.x > 0)
-        layerHt[uint2(tid.z, 0)] = 1;//instead of interlocked, use plain simple write. So it is all or nothing (but way faster!)
+        texture2DAt(layerHt, uint2(tid.z, 0)) = 1;//instead of interlocked, use plain simple write. So it is all or nothing (but way faster!)
     }
   }
   compile("cs_5_0", "cs_main")

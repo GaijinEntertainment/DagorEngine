@@ -55,6 +55,7 @@ public:
     addEnumeration(das::make_smart<EnumerationBloodPuddlesGroup>());
     addAnnotation(das::make_smart<BloodPuddlesAnnotation>(lib));
     addAnnotation(das::make_smart<PuddleCtxAnnotation>(lib));
+    addConstant(*this, "INVALID_VARIANT", static_cast<int>(BloodPuddles::INVALID_VARIANT));
 
     das::addExtern<DAS_BIND_FUN(add_hit_blood_effect)>(*this, lib, "add_hit_blood_effect", das::SideEffects::modifyExternal,
       "add_hit_blood_effect");
@@ -85,12 +86,12 @@ public:
     using method_addSplashEmitter = DAS_CALL_MEMBER(BloodPuddles::addSplashEmitter);
     das::addExtern<DAS_CALL_METHOD(method_addSplashEmitter)>(*this, lib, "addSplashEmitter", das::SideEffects::modifyArgument,
       DAS_CALL_MEMBER_CPP(BloodPuddles::addSplashEmitter));
-    using method_putDecal = das::das_call_member<void (BloodPuddles::*)(int, const Point3 &, const Point3 &, float,
-                                                   rendinst::riex_handle_t, const Point3 &, bool),
+    using method_putDecal = das::das_call_member<void (BloodPuddles::*)(int, const Point3 &, const Point3 &, const Point3 &, float,
+                                                   rendinst::riex_handle_t, const Point3 &, bool, int, float),
       &BloodPuddles::putDecal>;
-    das::addExtern<DAS_CALL_METHOD(method_putDecal)>(*this, lib, "put_decal", das::SideEffects::modifyArgument,
-      "das_call_member<void (BloodPuddles::*)(int, const Point3 &, const Point3 &, float,"
-      "rendinst::riex_handle_t, const Point3 &, bool), &BloodPuddles::putDecal>::invoke");
+    das::addExtern<DAS_CALL_METHOD(method_putDecal)>(*this, lib, "__put_decal", das::SideEffects::modifyArgument,
+      "das_call_member<void (BloodPuddles::*)(int, const Point3 &, const Point3 &, const Point3 &, float,"
+      "rendinst::riex_handle_t, const Point3 &, bool, int, float), &BloodPuddles::putDecal>::invoke");
     using method_tryPlacePuddle = DAS_CALL_MEMBER(BloodPuddles::tryPlacePuddle);
     das::addExtern<DAS_CALL_METHOD(method_tryPlacePuddle)>(*this, lib, "tryPlacePuddle", das::SideEffects::accessExternal,
       DAS_CALL_MEMBER_CPP(BloodPuddles::tryPlacePuddle));

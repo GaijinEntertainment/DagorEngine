@@ -81,6 +81,8 @@ U &resolve(T &, U &u)
     G_UNUSED(ctx);                                                                                 \
     debug.setCommandData(cmd, "Cmd" #Name);
 
+#define DX12_CONTEXT_COMMAND_IS_PRIMARY(isPrimary)
+
 #define DX12_END_CONTEXT_COMMAND }
 // make an alias so we do not need to write cmd.
 #define DX12_CONTEXT_COMMAND_PARAM(type, name)  \
@@ -93,6 +95,7 @@ U &resolve(T &, U &u)
 #undef DX12_BEGIN_CONTEXT_COMMAND
 #undef DX12_BEGIN_CONTEXT_COMMAND_EXT_1
 #undef DX12_BEGIN_CONTEXT_COMMAND_EXT_2
+#undef DX12_CONTEXT_COMMAND_IS_PRIMARY
 #undef DX12_END_CONTEXT_COMMAND
 #undef DX12_CONTEXT_COMMAND_PARAM
 #undef DX12_CONTEXT_COMMAND_PARAM_ARRAY
@@ -1221,6 +1224,7 @@ void report_metrics(VariantContainerVisitMetricsCollector<A> &metrics)
 #define DX12_BEGIN_CONTEXT_COMMAND(name)                                                       "Cmd" #name,
 #define DX12_BEGIN_CONTEXT_COMMAND_EXT_1(name, param0Type, param0Name)                         "Cmd" #name,
 #define DX12_BEGIN_CONTEXT_COMMAND_EXT_2(name, param0Type, param0Name, param1Type, param1Name) "Cmd" #name,
+#define DX12_CONTEXT_COMMAND_IS_PRIMARY(isPrimary)
 #define DX12_END_CONTEXT_COMMAND
 #define DX12_CONTEXT_COMMAND_PARAM(type, name)
 #define DX12_CONTEXT_COMMAND_PARAM_ARRAY(type, name, size)
@@ -1228,6 +1232,7 @@ void report_metrics(VariantContainerVisitMetricsCollector<A> &metrics)
 #undef DX12_BEGIN_CONTEXT_COMMAND
 #undef DX12_BEGIN_CONTEXT_COMMAND_EXT_1
 #undef DX12_BEGIN_CONTEXT_COMMAND_EXT_2
+#undef DX12_CONTEXT_COMMAND_IS_PRIMARY
 #undef DX12_END_CONTEXT_COMMAND
 #undef DX12_CONTEXT_COMMAND_PARAM
 #undef DX12_CONTEXT_COMMAND_PARAM_ARRAY
@@ -1807,15 +1812,10 @@ void DeviceContext::destroyBuffer(BufferState buffer)
 BufferState DeviceContext::discardBuffer(BufferState to_discared, DeviceMemoryClass memory_class, FormatStore format,
   uint32_t struct_size, bool raw_view, bool struct_view, D3D12_RESOURCE_FLAGS flags, uint32_t cflags, const char *name)
 {
-  BufferState result;
-  {
-    DX12_LOCK_FRONT();
-    result = device.resources.discardBuffer(device.getDXGIAdapter(), device, eastl::move(to_discared), memory_class, format,
-      struct_size, raw_view, struct_view, flags, cflags, name, front.frameIndex,
-      device.config.features.test(DeviceFeaturesConfig::DISABLE_BUFFER_SUBALLOCATION), device.shouldNameObjects());
-  }
-
-  return result;
+  DX12_LOCK_FRONT();
+  return device.resources.discardBuffer(device.getDXGIAdapter(), device, eastl::move(to_discared), memory_class, format, struct_size,
+    raw_view, struct_view, flags, cflags, name, front.frameIndex,
+    device.config.features.test(DeviceFeaturesConfig::DISABLE_BUFFER_SUBALLOCATION), device.shouldNameObjects());
 }
 
 void DeviceContext::destroyImage(Image *img)
@@ -2030,6 +2030,12 @@ void DeviceContext::deleteQuery(Query *query)
 
 void DeviceContext::generateMipmaps(Image *img)
 {
+  if (!img)
+  {
+    G_ASSERT_LOG(!device.isHealthy(), "DX12: Image is null but device is not lost");
+    return;
+  }
+
   ImageBlit blit;
   const auto &ext = img->getBaseExtent();
   blit.srcOffsets[0].x = 0;
@@ -2350,13 +2356,13 @@ void DeviceContext::updatePixelShaderName(ShaderID shader, const char *name)
   immediateModeExecute();
 }
 
-void DeviceContext::setImageResourceState(D3D12_RESOURCE_STATES state, ValueRange<ExtendedImageGlobalSubresouceId> range)
+void DeviceContext::setImageResourceState(D3D12_RESOURCE_STATES state, ValueRange<ExtendedImageGlobalSubresourceId> range)
 {
   DX12_LOCK_FRONT();
   setImageResourceStateNoLock(state, range);
 }
 
-void DeviceContext::setImageResourceStateNoLock(D3D12_RESOURCE_STATES state, ValueRange<ExtendedImageGlobalSubresouceId> range)
+void DeviceContext::setImageResourceStateNoLock(D3D12_RESOURCE_STATES state, ValueRange<ExtendedImageGlobalSubresourceId> range)
 {
   auto cmd = make_command<CmdInitializeTextureState>(state, range);
   commandStream.pushBack(cmd);
@@ -2902,7 +2908,6 @@ void DeviceContext::executeXess(const XessParams &params)
   xessParams.inColor = cast_to_texture_base(params.inColor)->getDeviceImage();
   xessParams.inDepth = cast_to_texture_base(params.inDepth)->getDeviceImage();
   xessParams.inMotionVectors = cast_to_texture_base(params.inMotionVectors)->getDeviceImage();
-  xessParams.inExposure = params.inExposure ? cast_to_texture_base(params.inExposure)->getDeviceImage() : nullptr;
   xessParams.inJitterOffsetX = params.inJitterOffsetX;
   xessParams.inJitterOffsetY = params.inJitterOffsetY;
   xessParams.outColor = cast_to_texture_base(params.outColor)->getDeviceImage();
@@ -4719,8 +4724,28 @@ void DeviceContext::ExecutionContext::clearColorImage(Image *image, ImageViewSta
 
   contextState.graphicsCommandListBarrierBatch.execute(contextState.cmdBuffer);
 
-  contextState.cmdBuffer.clearRenderTargetView(view_descriptor, value.float32, rect ? 1 : 0, rect ? &(*rect) : nullptr);
+  // Need to use shader to save integer bit pattern
+  if (image->getFormat().isSampledAsFloat())
+  {
+    contextState.cmdBuffer.clearRenderTargetView(view_descriptor, value.float32, rect ? 1 : 0, rect ? &(*rect) : nullptr);
+  }
+  else
+  {
+    auto &frame = contextState.getFrameData();
 
+    contextState.cmdBuffer.setResourceHeap(frame.resourceViewHeaps.getActiveHandle(), frame.resourceViewHeaps.getBindlessGpuAddress());
+    auto clearPipeline = device.pipeMan.getClearPipeline(device.getDevice(), image->getFormat().asDxGiFormat(), true);
+
+    if (!clearPipeline)
+      return;
+
+    const Extent2D dstExtent = image->getMipExtents2D(view.getMipBase());
+    D3D12_RECT dstRect =
+      rect ? rect.value() : D3D12_RECT{0, 0, static_cast<LONG>(dstExtent.width), static_cast<LONG>(dstExtent.height)};
+
+    DWORD dwordRegs[4]{value.uint32[0], value.uint32[1], value.uint32[2], value.uint32[3]};
+    contextState.cmdBuffer.clearExecute(device.pipeMan.getClearSignature(), clearPipeline, dwordRegs, view_descriptor, dstRect);
+  }
   dirtyTextureState(image);
 }
 
@@ -4834,14 +4859,6 @@ void DeviceContext::ExecutionContext::blitImage(Image *src, Image *dst, ImageVie
 
   contextState.graphicsCommandListBarrierBatch.execute(contextState.cmdBuffer);
 
-  D3D12_VIEWPORT dstViewport;
-  dstViewport.TopLeftX = dst_rect.left;
-  dstViewport.TopLeftY = dst_rect.top;
-  dstViewport.Width = dst_rect.right - dst_rect.left;
-  dstViewport.Height = dst_rect.bottom - dst_rect.top;
-  dstViewport.MinDepth = 0.01f;
-  dstViewport.MaxDepth = 1.f;
-
   auto srcSize = src->getMipExtents2D(src_view.getMipBase());
   floatRegs[0] = float(src_rect.left) / srcSize.width;
   floatRegs[1] = float(src_rect.top) / srcSize.height;
@@ -4877,7 +4894,7 @@ void DeviceContext::ExecutionContext::blitImage(Image *src, Image *dst, ImageVie
 
   // blit pipeline signature can not be null when blitPipeline is not null, as blitPipeline requires the signature to be created
   contextState.cmdBuffer.blitExecute(device.pipeMan.getBlitSignature(), blitPipeline, dwordRegs, srcViewGpuHandle, dst_view_descriptor,
-    dstViewport, dst_rect);
+    dst_rect);
 
   src->updateLastFrameAccess(self.back.frameProgress);
 
@@ -5563,7 +5580,7 @@ void DeviceContext::ExecutionContext::flushVertexBuffers()
   contextState.graphicsState.statusBits &= eastl::bitset<GraphicsState::COUNT>{~(vertexBufferDirtyMask | vertexBufferStateDirtyMask)};
 }
 
-void DeviceContext::ExecutionContext::flushGraphicsStateRessourceBindings()
+void DeviceContext::ExecutionContext::flushGraphicsStateResourceBindings()
 {
   if (!contextState.graphicsState.basePipeline)
   {
@@ -6047,7 +6064,7 @@ void DeviceContext::ExecutionContext::executeXess(const XessParamsDx12 &params)
     return;
   }
 
-  prepareExecuteAA({params.inColor, params.inDepth, params.inMotionVectors, params.inExposure}, {params.outColor});
+  prepareExecuteAA({params.inColor, params.inDepth, params.inMotionVectors}, {params.outColor});
 
   self.xessWrapper.evaluateXess(static_cast<void *>(contextState.cmdBuffer.getHandle()), static_cast<const void *>(&params));
 
@@ -6204,7 +6221,7 @@ void DeviceContext::ExecutionContext::hostToDeviceMemoryCopy(BufferResourceRefer
 }
 
 void DeviceContext::ExecutionContext::initializeTextureState(D3D12_RESOURCE_STATES state,
-  ValueRange<ExtendedImageGlobalSubresouceId> id_range)
+  ValueRange<ExtendedImageGlobalSubresourceId> id_range)
 {
   contextState.resourceStates.setTextureState(contextState.initialResourceStateSet, id_range, state);
 }
@@ -6707,7 +6724,7 @@ void DeviceContext::ExecutionContext::activateTexture(Image *tex, ResourceActiva
   auto &frame = contextState.getFrameData();
   contextState.resourceActivationTracker.activateTexture(tex, action, value, view_state, view, contextState.resourceStates,
     contextState.graphicsCommandListBarrierBatch, contextState.graphicsCommandListSplitBarrierTracker, device.device.get(),
-    frame.resourceViewHeaps, contextState.cmdBuffer);
+    frame.resourceViewHeaps, device.pipeMan, contextState.cmdBuffer);
   G_UNUSED(gpu_pipeline);
   dirtyTextureState(tex);
 }
@@ -6837,12 +6854,18 @@ void DeviceContext::ExecutionContext::transitionBuffer(BufferResourceReference b
     return;
   }
 
-  contextState.resourceStates.tranitionBufferExplicit(contextState.graphicsCommandListBarrierBatch, buffer, state);
+  contextState.resourceStates.transitionBufferExplicit(contextState.graphicsCommandListBarrierBatch, buffer, state);
 }
 
 void DeviceContext::ExecutionContext::resizeImageMipMapTransfer(Image *src, Image *dst, MipMapRange mip_map_range,
   uint32_t src_mip_map_offset, uint32_t dst_mip_map_offset)
 {
+  if (!src || !dst)
+  {
+    G_ASSERT_LOG(!device.isHealthy(), "DX12: Image is null but device is not lost");
+    return;
+  }
+
   const auto arrayLayers = src->getArrayLayers();
   const auto formatPlanes = src->getPlaneCount();
   const auto format = src->getFormat();

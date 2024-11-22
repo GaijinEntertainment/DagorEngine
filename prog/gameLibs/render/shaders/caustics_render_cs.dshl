@@ -4,6 +4,7 @@ shader caustics_render_cs
 {
   if (hardware.fsh_5_0)
   {
+    ENABLE_ASSERT(cs)
     USE_AND_INIT_VIEW_VEC_CS()
     CAUSTICS_RENDER_CORE(cs)
 
@@ -17,7 +18,7 @@ shader caustics_render_cs
         float2 texcoord    = pixelCenter * inv_caustics_texture_size.xy;
         float3 viewVect    = lerp_view_vec(texcoord);
 
-        caustics_tex[DTid.xy] = caustics(texcoord, viewVect);
+        texture2DAt(caustics_tex, DTid.xy) = caustics(texcoord, viewVect);
       }
     }
     compile("target_cs", "caustics_cs");

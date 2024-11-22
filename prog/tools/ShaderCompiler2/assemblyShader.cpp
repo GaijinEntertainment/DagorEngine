@@ -55,7 +55,6 @@ static bool is_hlsl_debug() { return shc::config().hlslDebugLevel != DebugLevel:
 
 #elif _CROSS_TARGET_METAL
 #include "hlsl2metal/asmShaderHLSL2Metal.h"
-#include "hlsl2metal/asmShaderHLSL2MetalGlslang.h"
 #elif _CROSS_TARGET_SPIRV
 #include "hlsl2spirv/asmShaderSpirV.h"
 #elif _CROSS_TARGET_DX12
@@ -1356,7 +1355,7 @@ void AssembleShaderEvalCB::handle_external_block_stat(state_block_stat &state_bl
       case VariableType::sampler:
         if (stage != STAGE_PS && stage != STAGE_CS)
           error("@sampler is supported only in ps/cs stage", var);
-        shcod = SHCOD_SAMPLER;
+        shcod = SHCOD_GLOB_SAMPLER;
         shtype = SHVT_SAMPLER;
         name_space = NamedConstSpace::sampler;
         break;
@@ -2049,7 +2048,7 @@ void AssembleShaderEvalCB::handle_external_block_stat(state_block_stat &state_bl
 
               curpass->get_alt_curcppcode(true).addStmt(expr.releaseAssembledCode().c_str());
             }
-            curpass->push_stcode(shaderopcode::makeOpStageSlot(SHCOD_SAMPLER, stage, id, var_id));
+            curpass->push_stcode(shaderopcode::makeOpStageSlot(SHCOD_GLOB_SAMPLER, stage, id, var_id));
             curpass->get_alt_curcppcode(true).addGlobalShaderResource(stage, StcodeRoutine::ResourceType::SAMPLER, var->text,
               value->expr->lhs->lhs->var_name->text, true, id);
             continue;
@@ -2138,7 +2137,7 @@ void AssembleShaderEvalCB::handle_external_block_stat(state_block_stat &state_bl
               bool is_global;
               int samplerVarId = get_state_var(*fakeSamplerDeclaration.name, var_type, is_global);
 
-              curpass->push_stcode(shaderopcode::makeOpStageSlot(SHCOD_SAMPLER, stage, id, samplerVarId));
+              curpass->push_stcode(shaderopcode::makeOpStageSlot(SHCOD_GLOB_SAMPLER, stage, id, samplerVarId));
 
               const String samplerBindPointName(0, "%s%s", var->text, bindSuffix);
               curpass->get_alt_curcppcode(true).addGlobalShaderResource(stage, StcodeRoutine::ResourceType::SAMPLER,
@@ -3702,14 +3701,9 @@ void CompileShaderJob::doJobBody()
 
 
 #elif _CROSS_TARGET_METAL
-  if (shc::config().useMetalGlslang)
-    compile_result = compileShaderMetalGlslang(source, profile, entry, !shc::config().hlslNoDisassembly, shc::config().enableFp16,
-      shc::config().hlslSkipValidation, localHlslOptimizationLevel ? true : false, max_constants_no, shaderName,
-      shc::config().useIosToken, shc::config().useBinaryMsl, shader_variant_hash);
-  else
-    compile_result = compileShaderMetal(source, profile, entry, !shc::config().hlslNoDisassembly, shc::config().enableFp16,
-      shc::config().hlslSkipValidation, localHlslOptimizationLevel ? true : false, max_constants_no, shaderName,
-      shc::config().useIosToken, shc::config().useBinaryMsl, shader_variant_hash);
+  compile_result = compileShaderMetal(source, profile, entry, !shc::config().hlslNoDisassembly, shc::config().enableFp16,
+    shc::config().hlslSkipValidation, localHlslOptimizationLevel ? true : false, max_constants_no, shaderName,
+    shc::config().useIosToken, shc::config().useBinaryMsl, shader_variant_hash);
 #elif _CROSS_TARGET_SPIRV
   compile_result = compileShaderSpirV(source, profile, entry, !shc::config().hlslNoDisassembly, shc::config().enableFp16,
     shc::config().hlslSkipValidation, localHlslOptimizationLevel ? true : false, max_constants_no, shaderName,

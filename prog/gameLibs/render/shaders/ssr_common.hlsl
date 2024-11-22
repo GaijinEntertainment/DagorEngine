@@ -256,10 +256,9 @@ half4 sample_vignetted_color(float3 hit_uv_z, float linear_roughness, float hitD
       #if PREV_HERO_SPHERE
         bool isHero = apply_hero_matrix(hit_uv_z.xy, cameraToHitPoint);
       #endif
-      float2 screenPos1;
-      float2 oldUv = get_reprojected_history_uvz1(cameraToHitPoint, prev_globtm_no_ofs_psf, screenPos1).xy;
+      float3 oldUvZ = get_reprojected_history_uvz1(cameraToHitPoint, prev_globtm_no_ofs_psf);
 
-      float3 surface_3d_motion = float3(oldUv, isHero ? oldExactUVZ.z : hit_uv_z.z) - hit_uv_z;
+      float3 surface_3d_motion = oldUvZ - hit_uv_z;
     #endif
 
     #define SSR_MIPS 1

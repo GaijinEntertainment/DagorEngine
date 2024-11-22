@@ -209,6 +209,7 @@ const Driver3dDesc &d3d::get_driver_desc()
     {
       g_device_desc.caps.hasRayAccelerationStructure = true;
       g_device_desc.caps.hasRayQuery = true;
+      g_device_desc.raytrace.accelerationStructureBuildScratchBufferOffsetAlignment = 32;
       // TODO: may support?
       // hasGeometryIndexInRayAccelerationStructure
       // hasSkipPrimitiveTypeInRayTracingShaders
@@ -486,18 +487,6 @@ bool d3d::setstencil(uint32_t ref)
 bool d3d::set_srgb_backbuffer_write(bool set)
 {
   return render.setSrgbBackbuffer(set);
-}
-
-bool d3d::set_msaa_pass()
-{
-  render.setMSAAPass();
-  return true;
-}
-
-bool d3d::set_depth_resolve()
-{
-  render.setDepthResolve();
-  return true;
 }
 
 shaders::DriverRenderStateId d3d::create_render_state(const shaders::RenderState & state)

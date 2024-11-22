@@ -614,7 +614,7 @@ namespace drv3d_metal
       render.queueTextureForDeletion(texture);
     }
 
-    if (base && !base->waiting2delete)
+    if (base && !base->waiting2delete && !base->memoryless)
       TEXQL_ON_RELEASE(base);
 
     g_textures.lock();
@@ -824,7 +824,8 @@ namespace drv3d_metal
   {
     G_ASSERT(apiTex == nullptr);
     apiTex = new ApiTexture(this);
-    TEXQL_ON_ALLOC(this);
+    if (!memoryless)
+      TEXQL_ON_ALLOC(this);
     if (start_level)
       setMinMipLevel(start_level);
   }
@@ -1486,7 +1487,8 @@ namespace drv3d_metal
   void Texture::destroy()
   {
     waiting2delete = true;
-    TEXQL_ON_RELEASE(this);
+    if (!memoryless)
+      TEXQL_ON_RELEASE(this);
     render.deleteTexture(this);
   }
 

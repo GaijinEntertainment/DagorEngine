@@ -441,7 +441,7 @@ macro WRITE_GBUFFER()
     }
     else if (mobile_render == forward)
     {
-      WRITE_GBUFFER_FORWARD_WITH_EXPOSURE()
+      WRITE_GBUFFER_FORWARD()
     }
     else
     {

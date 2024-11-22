@@ -19,6 +19,8 @@ macro WRITE_GBUFFER_THIN()
 
     GBUFFER_OUTPUT apply_gbuffer_hdr(GBUFFER_OUTPUT ret)
     {
+      ret.sunLight.rgb *= get_exposure_mul();
+      ret.ambientLight.rgb *= get_exposure_mul();
       #if BLEND_GBUFFER
       ret.sunLight.a = 0;
       ret.ambientLight.a = 0;
@@ -119,7 +121,8 @@ macro WRITE_GBUFFER_THIN()
 
       //envi-
       ambientLight += gbuffer.emissionColor + environmentAmbientReflection;
-      ret.sunLight.rgb = sunLight;//hdr
+      ambientLight *= exposure;//hdr
+      ret.sunLight.rgb = sunLight*exposure;//hdr
       ret.ambientLight.rgb = ambientLight;//hdr
 
       ret.sunLight.a = 0;

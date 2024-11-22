@@ -228,4 +228,14 @@ DECLARE_DSA_OVERLOADS_FAMILY_LT(inline bool dgs_assertion_handler_inl, return dg
 #define G_DEBUG_BREAK ((void)0)
 #endif
 
+
+#define G_LOGERR_AND_DO(expression, action, ...) \
+  if (DAGOR_UNLIKELY(!(expression)))             \
+  {                                              \
+    logerr(__VA_ARGS__);                         \
+    action;                                      \
+  }                                              \
+  else
+
+
 #include <supp/dag_undef_KRNLIMP.h>

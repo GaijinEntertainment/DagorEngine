@@ -451,7 +451,7 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void flushGraphicsState(D3D12_PRIMITIVE_TOPOLOGY top);
     void flushIndexBuffer();
     void flushVertexBuffers();
-    void flushGraphicsStateRessourceBindings();
+    void flushGraphicsStateResourceBindings();
     // handled by flush, could be moved into this though
     void ensureActivePass();
     void changePresentMode(PresentationMode mode);
@@ -492,7 +492,7 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void deleteGraphicsProgram(GraphicsProgramID program);
     void deleteQueries(QueryPointerListRef::RangeType queries);
     void hostToDeviceMemoryCopy(BufferResourceReferenceAndRange target, HostDeviceSharedMemoryRegion source, size_t source_offset);
-    void initializeTextureState(D3D12_RESOURCE_STATES state, ValueRange<ExtendedImageGlobalSubresouceId> id_range);
+    void initializeTextureState(D3D12_RESOURCE_STATES state, ValueRange<ExtendedImageGlobalSubresourceId> id_range);
     void uploadTexture(Image *target, BufferImageCopyListRef::RangeType regions, HostDeviceSharedMemoryRegion source,
       DeviceQueueType queue, bool is_discard);
     void beginCapture(UINT flags, WStringIndexRef::RangeType name);
@@ -883,8 +883,8 @@ public:
   void placeAftermathMarker(const char *name);
   void updateVertexShaderName(ShaderID shader, const char *name);
   void updatePixelShaderName(ShaderID shader, const char *name);
-  void setImageResourceState(D3D12_RESOURCE_STATES state, ValueRange<ExtendedImageGlobalSubresouceId> range);
-  void setImageResourceStateNoLock(D3D12_RESOURCE_STATES state, ValueRange<ExtendedImageGlobalSubresouceId> range);
+  void setImageResourceState(D3D12_RESOURCE_STATES state, ValueRange<ExtendedImageGlobalSubresourceId> range);
+  void setImageResourceStateNoLock(D3D12_RESOURCE_STATES state, ValueRange<ExtendedImageGlobalSubresourceId> range);
   void clearUAVTexture(Image *image, ImageViewState view, const unsigned values[4]);
   void clearUAVTexture(Image *image, ImageViewState view, const float values[4]);
   void setComputeRootConstant(uint32_t offset, uint32_t size);

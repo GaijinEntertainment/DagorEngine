@@ -64,11 +64,11 @@ static void screen_droplets_settings_es_event_handler(const ecs::Event &,
 
 ECS_TAG(render)
 ECS_ON_EVENT(OnRenderSettingsReady, SetResolutionEvent, ChangeRenderFeatures)
-ECS_TRACK(render_settings__dropletsOnScreen)
-static void reset_screen_droplets_es(const ecs::Event &, bool render_settings__dropletsOnScreen)
+ECS_TRACK(render_settings__screenSpaceWeatherEffects)
+static void reset_screen_droplets_es(const ecs::Event &, bool render_settings__screenSpaceWeatherEffects)
 {
   close_screen_droplets_mgr();
-  if (render_settings__dropletsOnScreen && renderer_has_feature(FeatureRenderFlags::POSTFX))
+  if (render_settings__screenSpaceWeatherEffects && renderer_has_feature(FeatureRenderFlags::POSTFX))
   {
     int w, h;
     get_rendering_resolution(w, h);

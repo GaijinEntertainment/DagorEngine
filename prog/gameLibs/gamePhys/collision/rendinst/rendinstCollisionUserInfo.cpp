@@ -114,6 +114,7 @@ RendinstCollisionUserInfo::RendinstCollisionUserInfo(const rendinst::RendInstDes
   immortal(false),
   isDestr(false),
   objInfoData(NULL),
+  collRes(nullptr),
   collided(false),
   bushBehaviour(false),
   treeBehaviour(false)

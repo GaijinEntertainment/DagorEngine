@@ -390,6 +390,8 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
 #if DAGOR_DBGLEVEL > 0
       Tab<ResourceDumpInfo> &dumpInfo = *static_cast<Tab<ResourceDumpInfo> *>(par1);
 
+      WinAutoLock lk(Globals::Mem::mutex);
+
       // Textures
       Globals::Res::tex.iterateAllocated([&](TextureInterfaceBase *tex) {
         resource_dump_types::TextureTypes type = resource_dump_types::TextureTypes::TEX2D;
@@ -401,7 +403,6 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
           case RES3D_ARRTEX: type = resource_dump_types::TextureTypes::ARRTEX; break;
           case RES3D_CUBEARRTEX: type = resource_dump_types::TextureTypes::CUBEARRTEX; break;
         }
-
         bool color = true;
         switch (tex->getFormat().asTexFlags())
         {
@@ -411,37 +412,54 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
           case TEXFMT_DEPTH32_S8: color = false; break;
           default: break;
         }
+        Image *img = tex->getDeviceImage();
+        uint64_t heapID = (uint64_t)-1;
+        uint64_t heapOffset = (uint64_t)-1;
+        if (img && img->getMemoryId() != -1)
+        {
+          heapID = (uint64_t)img->getMemoryId();
+          heapOffset = img->getMemory().offset;
+        }
+
         dumpInfo.emplace_back(resource_dump_types::ResourceType::Texture, tex->getResName(), tex->ressize(), type, tex->width,
           tex->height, (tex->resType == RES3D_VOLTEX || tex->resType == RES3D_CUBEARRTEX) ? tex->depth : -1,
-          !(type == resource_dump_types::TextureTypes::ARRTEX)
-            ? ((type == resource_dump_types::TextureTypes::CUBETEX || type == resource_dump_types::TextureTypes::CUBEARRTEX) ? 6 : 1)
-            : tex->depth,
-          tex->level_count(), tex->getFormat().asTexFlags(), color, tex->cflg, -1);
+          (tex->resType == RES3D_TEX || tex->resType == RES3D_VOLTEX) ? -1 : (img ? img->getArrayLayers() : -1), tex->level_count(),
+          tex->getFormat().asTexFlags(), color, tex->cflg, -1, heapID, heapOffset);
       });
 
       // Buffers
       Globals::Res::buf.iterateAllocated([&](GenericBufferInterface *buff) {
         const BufferRef &buffRef = buff->getBufferRef();
         const Buffer *bufferPtr = buffRef.buffer;
-        uint64_t gpuAddress = -1;
+
+        uint64_t gpuAddress = (uint64_t)-1;
         if (bufferPtr && !bufferPtr->isFrameMem() &&
             (bufferPtr->getDescription().memoryClass == DeviceMemoryClass::DEVICE_RESIDENT_BUFFER))
         {
           gpuAddress = bufferPtr->devOffsetLoc(0);
         }
-        uint64_t cpuAddress = -1;
+
+        uint64_t cpuAddress = (uint64_t)-1;
         if (bufferPtr && !bufferPtr->isFrameMem() && (int)bufferPtr->getDescription().memoryClass > 1 &&
             (int)bufferPtr->getDescription().memoryClass < 6)
         {
           cpuAddress = bufferPtr->memOffsetLoc(0);
         }
+
+        uint64_t heapID = (uint64_t)-1;
+        uint64_t heapOffset = (uint64_t)-1;
+        if (bufferPtr && bufferPtr->getMemoryId() != -1)
+        {
+          heapID = (uint64_t)bufferPtr->getMemoryId();
+          heapOffset = bufferPtr->getMemory().offset;
+        }
         dumpInfo.emplace_back(resource_dump_types::ResourceType::Buffer, buff->getResName(), buff->ressize(), -1, buff->getFlags(), -1,
-          -1, -1, -1, cpuAddress, gpuAddress);
+          bufferPtr ? (int)bufferPtr->getCurrentDiscardOffset() : -1, bufferPtr ? (int)bufferPtr->getDiscardBlocks() : -1, -1, -1,
+          cpuAddress, gpuAddress, heapID, heapOffset);
       });
 
       // Ray Acceleration Structures
 #if D3D_HAS_RAY_TRACING
-      WinAutoLock lk(Globals::Mem::mutex);
 
       Globals::Mem::res.iterateAllocated<RaytraceAccelerationStructure>([&](RaytraceAccelerationStructure *rayAS) {
         dumpInfo.emplace_back(resource_dump_types::ResourceType::RtAccel, rayAS->getDescription().size, -1,

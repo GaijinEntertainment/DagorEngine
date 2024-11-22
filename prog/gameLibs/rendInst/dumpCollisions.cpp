@@ -48,7 +48,7 @@ void dumpAllCollisions(IGenSave &cb)
         vertices.resize(vertices.size() + COLLISION_BOX_VERTICES_NUM);
 
         for (int vertNo = 0; vertNo < COLLISION_BOX_VERTICES_NUM; ++vertNo, vAt++)
-          vertices[vAt] = to_coll_vert(node->modelBBox.point(vertNo));
+          vertices[vAt] = to_coll_vert(node->modelBBox.point(vertNo ^ 1)); // xor 1 to invert culling
 
         for (int ii = 0; ii < COLLISION_BOX_INDICES_NUM; ++ii)
           indices[iAt + ii] = boxIndices[ii] + firstVertex;

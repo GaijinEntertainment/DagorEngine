@@ -411,8 +411,8 @@ namespace das
 
     template <typename TT>
     struct cast_enum {
-      static __forceinline TT to ( vec4f x )            { return (TT) v_extract_xi(v_cast_vec4i(x)); }
-      static __forceinline vec4f from ( TT x )          { return v_cast_vec4f(v_seti_x(int32_t(x))); }
+      static __forceinline TT to ( vec4f x )            { return (TT)cast<typename das::underlying_type<TT>::type>::to(x); }
+      static __forceinline vec4f from ( TT x )          { return cast<typename das::underlying_type<TT>::type>::from(static_cast<typename das::underlying_type<TT>::type>(x)); }
       static __forceinline vec4f from ( int x )         { return v_cast_vec4f(v_seti_x(int32_t(x))); }
     };
 }

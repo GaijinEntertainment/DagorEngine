@@ -31,6 +31,8 @@ Sources =
 if $(ProjectUseQuirrel) in sq3r sq3r+ {
   Sources +=
     bindSqrat.cpp
+    fileDropHandler.cpp
+    screenshotMetaInfoLoader.cpp
     sqratDagorMath.cpp
     sqratDagorDebug.cpp
     logerrSqInterceptor.cpp
@@ -40,6 +42,7 @@ if $(ProjectUseQuirrel) in sq3r sq3r+ {
     hash.cpp
     platformMisc.cpp
     dagorSystem.cpp
+    dagorSystemFileHandlers.cpp
     dagorTime.cpp
     dagorWorkCycle.cpp
     dagorFS.cpp

@@ -72,7 +72,7 @@ dabfg::NodeHandle mk_scope_prepass_mobile_node()
       if (!aimDataHndl.ref().lensRenderEnabled)
         return;
 
-      render_scope_lens_prepass(scopeAimDataHndl.ref(), strmCtxHndl.ref());
+      render_scope_prepass(scopeAimDataHndl.ref(), strmCtxHndl.ref());
     };
   });
 }

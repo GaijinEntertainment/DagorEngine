@@ -734,7 +734,7 @@ struct FontInfo
       else if (blk.getParamType(k) == DataBlock::TYPE_STRING && blk.getParamNameId(k) == nid_subset_utf8)
       {
         const char *str = blk.getStr(k);
-        utf16.resize(strlen(str));
+        utf16.resize(strlen(str) + 1);
         int used = utf8_to_wcs_ex(str, (int)strlen(str), utf16.data(), utf16.size()) ? wcslen(utf16.data()) : 0;
 
         G_ASSERT(used <= utf16.size());
@@ -758,7 +758,7 @@ struct FontInfo
           utf8.resize(fread(utf8.data(), 1, utf8.size(), fp));
           fclose(fp);
 
-          utf16.resize(utf8.size());
+          utf16.resize(utf8.size() + 1);
           int used = utf8_to_wcs_ex(utf8.data(), utf8.size(), utf16.data(), utf16.size()) ? wcslen(utf16.data()) : 0;
           G_ASSERT(used <= utf16.size());
           utf16.resize(used);

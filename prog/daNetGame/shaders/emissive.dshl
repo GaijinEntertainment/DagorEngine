@@ -203,7 +203,7 @@ hlsl(ps) {
       half3 worldNormal = perturb_normal_precise( normalMap, normalize(input.normal.xyz), input.pointToEye.xyz, input.diffuseTexcoord.xy );
       half metalness = packedNormalMap.b;
       #if APPLY_WOUNDS
-        apply_burning_and_wounds(input, normalMap, character_micro_detail_layer, diffuseColor.rgb, normalMap, smoothness, reflectance);
+        apply_burning_and_wounds(input, character_micro_detail_layer, worldNormal, diffuseColor.rgb, smoothness, reflectance);
       #endif
     ##else
       half3 worldNormal = normalize(input.normal.xyz);

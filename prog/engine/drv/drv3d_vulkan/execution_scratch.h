@@ -9,6 +9,7 @@
 
 #include "vk_wrapped_handles.h"
 #include "buffer_ref.h"
+#include "device_queue.h"
 
 namespace drv3d_vulkan
 {
@@ -27,7 +28,24 @@ struct ExecutionScratch
     uint32_t flags;
   };
   eastl::vector<DiscardNotify> delayedDiscards;
-  eastl::vector<VulkanCommandBufferHandle> cmdListsToSubmit;
+  struct CommandBufferSubmit
+  {
+    DeviceQueueType queue;
+    VulkanCommandBufferHandle handle;
+    bool async;
+    bool externalWaitPoint;
+  };
+  eastl::vector<CommandBufferSubmit> cmdListsToSubmit;
+
+  struct QueueSubmitItem
+  {
+    Tab<VulkanCommandBufferHandle> cbs;
+    StaticTab<VulkanSemaphoreHandle, (uint32_t)DeviceQueueType::COUNT> semaphore;
+    DeviceQueueType que;
+    uint32_t order;
+    bool fenceWait;
+  };
+  Tab<QueueSubmitItem> submitGraph;
 };
 
 } // namespace drv3d_vulkan

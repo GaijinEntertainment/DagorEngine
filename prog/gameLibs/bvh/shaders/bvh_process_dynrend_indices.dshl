@@ -24,6 +24,7 @@ shader bvh_process_dynrend_indices
     item_count@i1 = bvh_process_dynrend_indices_count;
   }
 
+  ENABLE_ASSERT(cs)
   hlsl(cs) {
     ByteAddressBuffer source : register(t6);
     RWByteAddressBuffer output : register(u0);
@@ -36,23 +37,23 @@ shader bvh_process_dynrend_indices
         return;
 
       ##if bvh_process_dynrend_indices_size == four
-        uint index = source.Load((start_index + indexId) * 4);
-        output.Store(target_offset + indexId * 4, index - vertex_base);
+        uint index = loadBuffer(source, (start_index + indexId) * 4);
+        storeBuffer(output, target_offset + indexId * 4, index - vertex_base);
       ##else
         int address = start_index * 2 + indexId * 4;
         ##if bvh_process_dynrend_indices_start_aligned == yes
           // Dword aligned
-          uint packedIndex = source.Load(address);
+          uint packedIndex = loadBuffer(source, address);
           uint2 indices = uint2(packedIndex & 0xFFFF, packedIndex >> 16);
         ##else
           // In the middle of a dword
-          uint2 packedIndex = source.Load2(address - 2);
+          uint2 packedIndex = loadBuffer2(source, address - 2);
           uint2 indices = uint2(packedIndex.x >> 16, packedIndex.y & 0xFFFF);
         ##endif
 
         indices -= vertex_base;
         uint index = indices.x | (indices.y << 16);
-        output.Store(target_offset + indexId * 4, index);
+        storeBuffer(output, target_offset + indexId * 4, index);
       ##endif
     }
   }

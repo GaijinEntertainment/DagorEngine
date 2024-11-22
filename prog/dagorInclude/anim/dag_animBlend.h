@@ -241,6 +241,7 @@ private:
   friend class AnimationGraph;
 };
 
+class AnimationGraph;
 
 //
 // Animation blender
@@ -408,7 +409,7 @@ public:
   int registerPostBlendCtrl(AnimPostBlendCtrl *n);
   void unregisterPostBlendCtrl(int id, AnimPostBlendCtrl *n);
 
-  bool blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNode *root, const CharNodeModif *cmm);
+  bool blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNode *root, const CharNodeModif *cmm, const AnimationGraph &graph);
   void blendOriginVel(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNode *root, bool rebuild_list);
   void postBlendProcess(TlsContext &tls, IPureAnimStateHolder &st, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
 
@@ -629,7 +630,7 @@ public:
   inline bool blend(AnimBlender::TlsContext &tls, IPureAnimStateHolder &st, const AnimBlender::CharNodeModif *cmm = NULL)
   {
     if (root)
-      return blender.blend(tls, st, root, cmm);
+      return blender.blend(tls, st, root, cmm, *this);
     return false;
   }
   inline void blendOriginVel(AnimBlender::TlsContext &tls, IPureAnimStateHolder &st, bool rebuild_list = true)

@@ -987,7 +987,7 @@ protected:
       totalHeapCount += count;
     }
 
-    void visitHeap(ByteUnits total_size, ByteUnits free_size, uint32_t fragmentation_percent)
+    void visitHeap(ByteUnits total_size, ByteUnits free_size, uint32_t fragmentation_percent, uintptr_t)
     {
       totalSize += total_size;
       freeSize += free_size;
@@ -1096,7 +1096,7 @@ public:
         {
           freeSize += r.size();
         }
-        clb.visitHeap(heap.totalSize, freeSize, free_list_calculate_fragmentation(heap.freeRanges));
+        clb.visitHeap(heap.totalSize, freeSize, free_list_calculate_fragmentation(heap.freeRanges), (uintptr_t)heap.heapPointer());
         // we going to visit used and free ranges in order of offset, each set of ranges is sorted so
         // a simple compare of each position in the set will tell which one is next
         auto usedPos = begin(heap.usedRanges);
@@ -1254,7 +1254,8 @@ public:
         {
           freeSize += r.size();
         }
-        clb.visitHeap(heap.totalSize, freeSize, free_list_calculate_fragmentation(heap.freeRanges));
+
+        clb.visitHeap(heap.totalSize, freeSize, free_list_calculate_fragmentation(heap.freeRanges), (uintptr_t)heap.heapPointer());
         // we going to visit used and free ranges in order of offset, each set of ranges is sorted so
         // a simple compare of each position in the set will tell which one is next
         auto usedPos = begin(heap.usedRanges);

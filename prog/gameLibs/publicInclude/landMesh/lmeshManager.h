@@ -18,7 +18,7 @@
 #include <landMesh/lmeshRenderer.h>
 #include <landMesh/lmeshHoles.h>
 #include <generic/dag_carray.h>
-#include <EASTL/unique_ptr.h>
+#include <EASTL/optional.h>
 #include <physMap/physMap.h>
 
 
@@ -125,8 +125,12 @@ protected:
   TEXTUREID vertDetTexId;
   LandRayTracer *landTracer;
   bool useVertTexforHMAP;
-  eastl::unique_ptr<LandMeshHolesManager> holesMgr;
+  bool toolsInternal;
 
+public:
+  bool mayRenderHmap;
+
+protected:
   int fileVersion;
 
   TEXTUREID tileTexId;
@@ -135,7 +139,6 @@ protected:
   DetailMap detailMap;
   int visRange;
 
-  bool toolsInternal;
   unsigned srcFileMeshMapOfs = 0;
   const char *srcFileName = nullptr;
 
@@ -150,9 +153,14 @@ public:
   ~LandMeshManager();
   LandClassData getRenderDataNeeded() const { return (LandClassData)renderDataNeeded; }
   HeightmapHandler *getHmapHandler() const { return hmapHandler; }
-  LandMeshHolesManager *getHolesManager() const { return holesMgr.get(); }
-  void initHolesManager() { holesMgr.reset(new LandMeshHolesManager(hmapHandler)); }
-  bool clearAndAddHoles(const eastl::vector<LandMeshHolesManager::HoleArgs> &holes)
+  const LandMeshHolesManager *getHolesManager() const { return holesMgr ? &*holesMgr : nullptr; }
+  LandMeshHolesManager *getHolesManager() { return holesMgr ? &*holesMgr : nullptr; }
+  void initHolesManager()
+  {
+    if (hmapHandler)
+      holesMgr.emplace(*hmapHandler);
+  }
+  bool clearAndAddHoles(const Tab<LandMeshHolesManager::HoleArgs> &holes)
   {
     if (!holesMgr)
       return false;
@@ -298,7 +306,6 @@ public:
   void setGrassMaskBlk(const DataBlock &blk);
 
   LandMeshCullingState cullingState;
-  bool mayRenderHmap;
 
   LandRayTracer *getLandTracer() { return landTracer; }
 
@@ -306,5 +313,8 @@ public:
 
   Tab<LandClassDetailTextures> &getLandClasses() { return landClasses; }
   const Tab<int> &getDetailGroupsToPhysMats() const { return detailGroupsToPhysMats; }
+
+private:
+  eastl::optional<LandMeshHolesManager> holesMgr; // Meant to be last member (since it might be absent)
 };
 DAG_DECLARE_RELOCATABLE(LandMeshManager::CellData);

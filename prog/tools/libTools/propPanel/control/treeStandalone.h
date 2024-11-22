@@ -406,14 +406,15 @@ public:
 
   bool isLeafSelected(TLeafHandle leaf) const { return leafHandleAsNode(leaf) == lastSelected; }
 
-  void setSelectedLeaf(TLeafHandle leaf)
+  void setSelectedLeaf(TLeafHandle leaf, bool keep_selected = false)
   {
     TreeNode *node = leafHandleAsNode(leaf);
 
     if (multiSelectionEnabled)
     {
       setExpandedTillRoot(leaf);
-      selectAllVisibleItems(false);
+      if (!keep_selected)
+        selectAllVisibleItems(false);
 
       if (node)
         node->multiSelected = true;

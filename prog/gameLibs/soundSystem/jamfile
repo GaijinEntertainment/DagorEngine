@@ -42,6 +42,7 @@ Sources =
   userCreatedSound.cpp
   eventInstanceStealing.cpp
   visualLabels.cpp
+  geometry.cpp
 ;
 
 if $(Config) = rel {

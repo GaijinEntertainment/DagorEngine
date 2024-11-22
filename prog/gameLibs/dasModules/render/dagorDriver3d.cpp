@@ -10,6 +10,18 @@
 DAS_BIND_ENUM_CAST(DepthAccess);
 DAS_BASE_BIND_ENUM(DepthAccess, DepthAccess, RW, SampledRO);
 
+DAS_BIND_ENUM_CAST(d3d::MipMapMode);
+DAS_BASE_BIND_ENUM(d3d::MipMapMode, MipMapMode, Default, Disabled, Point, Linear);
+
+DAS_BIND_ENUM_CAST(d3d::FilterMode);
+DAS_BASE_BIND_ENUM(d3d::FilterMode, FilterMode, Default, Disabled, Point, Linear, Best, Compare);
+
+DAS_BIND_ENUM_CAST(d3d::AddressMode);
+DAS_BASE_BIND_ENUM(d3d::AddressMode, AddressMode, Wrap, Mirror, Clamp, Border, MirrorOnce);
+
+DAS_BIND_ENUM_CAST(d3d::BorderColor::Color);
+DAS_BASE_BIND_ENUM(d3d::BorderColor::Color, BorderColor_Color, TransparentBlack, OpaqueBlack, OpaqueWhite);
+
 DAS_BASE_BIND_ENUM_BOTH(DAS_BIND_ENUM_QUALIFIED_HELPER, d3d::SamplerHandle, SamplerHandle, EnumerationSamplerHandle, // -V1008
   Invalid);
 
@@ -28,6 +40,29 @@ struct PostFxRendererAnnotation : das::ManagedStructureAnnotation<PostFxRenderer
 struct ComputeShaderAnnotation : das::ManagedStructureAnnotation<ComputeShader, false>
 {
   ComputeShaderAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("ComputeShader", ml, "ComputeShader") {}
+};
+
+struct BorderColorAnnotation : das::ManagedStructureAnnotation<d3d::BorderColor, false>
+{
+  BorderColorAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("BorderColor", ml, "d3d::BorderColor")
+  {
+    addField<DAS_BIND_MANAGED_FIELD(color)>("color");
+  }
+};
+
+struct ShaderInfoAnnotation : das::ManagedStructureAnnotation<d3d::SamplerInfo, false>
+{
+  ShaderInfoAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("SamplerInfo", ml, "d3d::SamplerInfo")
+  {
+    addField<DAS_BIND_MANAGED_FIELD(mip_map_mode)>("mip_map_mode");
+    addField<DAS_BIND_MANAGED_FIELD(filter_mode)>("filter_mode");
+    addField<DAS_BIND_MANAGED_FIELD(address_mode_u)>("address_mode_u");
+    addField<DAS_BIND_MANAGED_FIELD(address_mode_v)>("address_mode_v");
+    addField<DAS_BIND_MANAGED_FIELD(address_mode_w)>("address_mode_w");
+    addField<DAS_BIND_MANAGED_FIELD(border_color)>("border_color");
+    addField<DAS_BIND_MANAGED_FIELD(anisotropic_max)>("anisotropic_max");
+    addField<DAS_BIND_MANAGED_FIELD(mip_map_bias)>("mip_map_bias");
+  }
 };
 
 struct Driver3dPerspectiveAnnotation : das::ManagedStructureAnnotation<Driver3dPerspective, false>
@@ -82,6 +117,12 @@ public:
     addAnnotation(das::make_smart<OverrideStateAnnotation>(lib));
     addEnumeration(das::make_smart<EnumerationDepthAccess>());
     addEnumeration(das::make_smart<EnumerationSamplerHandle>());
+    addEnumeration(das::make_smart<EnumerationMipMapMode>());
+    addEnumeration(das::make_smart<EnumerationFilterMode>());
+    addEnumeration(das::make_smart<EnumerationAddressMode>());
+    addEnumeration(das::make_smart<EnumerationBorderColor_Color>());
+    addAnnotation(das::make_smart<BorderColorAnnotation>(lib));
+    addAnnotation(das::make_smart<ShaderInfoAnnotation>(lib));
 
     das::addUsing<shaders::OverrideState>(*this, lib, "shaders::OverrideState");
 
@@ -101,6 +142,7 @@ public:
   das::addExtern<DAS_BIND_FUN(FUNC)>(*this, lib, NAME, das::SideEffects::SIDE_EFFECT, "bind_dascript::" #FUNC)
 
     BIND_WRAP_FUNC(get_Driver3dPerspective, "get_Driver3dPerspective", modifyArgumentAndExternal);
+    BIND_WRAP_FUNC(d3d_request_sampler, "d3d_request_sampler", modifyArgumentAndExternal);
 
     BIND_FUNC_SIGNATURE(d3d::set_depth, "d3d_set_depth", modifyArgumentAndExternal, bool (*)(BaseTexture *, DepthAccess));
     BIND_FUNC_SIGNATURE(d3d::set_depth, "d3d_set_depth", modifyArgumentAndExternal, bool (*)(BaseTexture *, int, DepthAccess));

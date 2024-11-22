@@ -552,7 +552,7 @@ inline void enable_scope_ri_lod_change_ecs_query(ecs::EntityId eid, Callable fun
 }
 static constexpr ecs::ComponentDesc prepare_scope_aim_rendering_data_ecs_query_comps[] =
 {
-//start of 11 ro components at [0]
+//start of 14 ro components at [0]
   {ECS_HASH("aim_data__lensNodeId"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("aim_data__crosshairNodeId"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("aim_data__entityWithScopeLensEid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
@@ -563,13 +563,16 @@ static constexpr ecs::ComponentDesc prepare_scope_aim_rendering_data_ecs_query_c
   {ECS_HASH("aim_data__nightVision"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("aim_data__nearDofEnabled"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("aim_data__simplifiedAimDof"), ecs::ComponentTypeInfo<bool>()},
+  {ECS_HASH("aim_data__scopeWeaponFov"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("aim_data__scopeWeaponFovType"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("aim_data__scopeWeaponLensZoomFactor"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("camera__active"), ecs::ComponentTypeInfo<bool>()}
 };
 static ecs::CompileTimeQueryDesc prepare_scope_aim_rendering_data_ecs_query_desc
 (
   "prepare_scope_aim_rendering_data_ecs_query",
   empty_span(),
-  make_span(prepare_scope_aim_rendering_data_ecs_query_comps+0, 11)/*ro*/,
+  make_span(prepare_scope_aim_rendering_data_ecs_query_comps+0, 14)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
@@ -593,6 +596,9 @@ inline void prepare_scope_aim_rendering_data_ecs_query(Callable function)
             , ECS_RO_COMP(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__nightVision", bool)
             , ECS_RO_COMP(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__nearDofEnabled", bool)
             , ECS_RO_COMP(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__simplifiedAimDof", bool)
+            , ECS_RO_COMP(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__scopeWeaponFov", float)
+            , ECS_RO_COMP(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__scopeWeaponFovType", int)
+            , ECS_RO_COMP(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__scopeWeaponLensZoomFactor", float)
             );
 
         }while (++comp != compE);

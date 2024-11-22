@@ -77,9 +77,9 @@ ImageCreateResult TextureImageFactory::createTexture(DXGIAdapter *adapter, Devic
         return result;
       }
 
-      const ImageGlobalSubresouceId subResIdBase = (ii.allocateSubresourceIDs)
-                                                     ? allocateGlobalResourceIdRange(ii.getSubResourceCount())
-                                                     : ImageGlobalSubresouceId::make_invalid();
+      const ImageGlobalSubresourceId subResIdBase = (ii.allocateSubresourceIDs)
+                                                      ? allocateGlobalResourceIdRange(ii.getSubResourceCount())
+                                                      : ImageGlobalSubresourceId::make_invalid();
 
       result.image = newImageObject(ResourceMemory{}, eastl::move(texture), ii.type, ii.memoryLayout, ii.format, ii.size, ii.mips,
         ii.arrays, subResIdBase, get_log2i_of_pow2(ii.sampleDesc.Count));
@@ -113,9 +113,9 @@ ImageCreateResult TextureImageFactory::createTexture(DXGIAdapter *adapter, Devic
         return result;
       }
 
-      const ImageGlobalSubresouceId subResIdBase = (ii.allocateSubresourceIDs)
-                                                     ? allocateGlobalResourceIdRange(ii.getSubResourceCount())
-                                                     : ImageGlobalSubresouceId::make_invalid();
+      const ImageGlobalSubresourceId subResIdBase = (ii.allocateSubresourceIDs)
+                                                      ? allocateGlobalResourceIdRange(ii.getSubResourceCount())
+                                                      : ImageGlobalSubresourceId::make_invalid();
 
       result.image = newImageObject(memory, eastl::move(texture), ii.type, ii.memoryLayout, ii.format, ii.size, ii.mips, ii.arrays,
         subResIdBase, get_log2i_of_pow2(ii.sampleDesc.Count));
@@ -140,8 +140,8 @@ ImageCreateResult TextureImageFactory::createTexture(DXGIAdapter *adapter, Devic
       return result;
     }
 
-    const ImageGlobalSubresouceId subResIdBase =
-      (ii.allocateSubresourceIDs) ? allocateGlobalResourceIdRange(ii.getSubResourceCount()) : ImageGlobalSubresouceId::make_invalid();
+    const ImageGlobalSubresourceId subResIdBase =
+      (ii.allocateSubresourceIDs) ? allocateGlobalResourceIdRange(ii.getSubResourceCount()) : ImageGlobalSubresourceId::make_invalid();
 
     result.image = newImageObject(ResourceMemory{}, eastl::move(texture), ii.type, ii.memoryLayout, ii.format, ii.size, ii.mips,
       ii.arrays, subResIdBase, get_log2i_of_pow2(ii.sampleDesc.Count));
@@ -234,7 +234,7 @@ Image *TextureImageFactory::tryCloneTexture(DXGIAdapter *adapter, ID3D12Device *
 
   auto subResIdBase = original->hasTrackedState()
                         ? allocateGlobalResourceIdRange(original->getSubresourcesPerPlane() * original->getPlaneCount())
-                        : ImageGlobalSubresouceId::make_invalid();
+                        : ImageGlobalSubresourceId::make_invalid();
   result = newImageObject(memory, eastl::move(texture), original->getType(), D3D12_TEXTURE_LAYOUT_UNKNOWN, original->getFormat(),
     original->getBaseExtent(), original->getMipLevelRange(), original->getArrayLayers(), subResIdBase, original->getMsaaLevel());
 
@@ -259,7 +259,7 @@ void TextureImageFactory::destroyTextures(eastl::span<Image *> textures, fronten
     if (texture->getGlobalSubResourceIdBase().isValid())
     {
       auto idrange = texture->getGlobalSubresourceIdRange();
-      freeGlobalResourceIdRange(ValueRange<ImageGlobalSubresouceId>(idrange.start, idrange.stop));
+      freeGlobalResourceIdRange(ValueRange<ImageGlobalSubresourceId>(idrange.start, idrange.stop));
     }
     if (texture->isHeapAllocated() && !texture->isAliased())
     {
@@ -5355,7 +5355,7 @@ struct ResourceHeapReportVisitor
     totalHeapCount += count;
   }
 
-  void visitHeap(ByteUnits total_size, ByteUnits free_size, uint32_t fragmentation_percent)
+  void visitHeap(ByteUnits total_size, ByteUnits free_size, uint32_t fragmentation_percent, uintptr_t)
   {
     totalResourceMemorySize += total_size;
     freeResourceMemorySize += free_size;
@@ -5459,24 +5459,38 @@ struct ResourceHeapReportVisitor
   }
 };
 
+struct HeapDescPair
+{
+  uint64_t heapOffset;
+  uintptr_t heapID;
+};
+
 struct ResourceHeapDumpVisitor
 {
   Tab<ResourceDumpInfo> &dumpInfo;
-  eastl::vector_map<Image *, uint64_t> &imgAdressMap;
-  eastl::vector_set<uint32_t> &buffersPresent;
+  eastl::vector_map<Image *, HeapDescPair> &imgAdressMap;
+  eastl::vector_map<uint32_t, HeapDescPair> &buffersPresent;
+  uintptr_t resourceHeapId = 0;
 
   template <typename T>
   void visitResourceInHeap(ValueRange<uint64_t>, const T &)
   {}
 
-  void visitResourceInHeap(ValueRange<uint64_t> range, Image *img) { imgAdressMap.insert(eastl::make_pair(img, range.front())); }
+  void visitResourceInHeap(ValueRange<uint64_t> range, Image *img)
+  {
+    imgAdressMap.insert(eastl::make_pair(img, HeapDescPair({range.front(), resourceHeapId})));
+  }
 
-  void visitResourceInHeap(ValueRange<uint64_t>, BufferGlobalId b) { buffersPresent.insert(b.index()); }
+  void visitResourceInHeap(ValueRange<uint64_t> range, BufferGlobalId b)
+  {
+    buffersPresent.insert(eastl::make_pair(b.index(), HeapDescPair({range.front(), resourceHeapId})));
+  }
 
-  void visitResourceInHeap(ValueRange<uint64_t> range, const ResourceMemoryHeap::RaytraceAccelerationStructureHeapReference &)
+  void visitResourceInHeap(ValueRange<uint64_t> range, const ResourceMemoryHeap::RaytraceAccelerationStructureHeapReference &as)
   {
     ByteUnits size = range.size();
-    dumpInfo.emplace_back(resource_dump_types::ResourceType::RtAccel, (int)size.value(), range.front(), true);
+    dumpInfo.emplace_back(resource_dump_types::ResourceType::RtAccel, (int)size.value(), as.as->GetGPUVirtualAddress(), true, false,
+      (uint64_t)resourceHeapId, range.front());
   }
 
   void visitHeapUsedRange(ValueRange<uint64_t> range, const ResourceMemoryHeap::AnyResourceReference &res)
@@ -5488,7 +5502,7 @@ struct ResourceHeapDumpVisitor
   void beginVisit() {}
   void endVisit() {}
   void visitHeapGroup(uint32_t, size_t, bool, bool, bool) {}
-  void visitHeap(ByteUnits, ByteUnits, uint32_t) {}
+  void visitHeap(ByteUnits, ByteUnits, uint32_t, uintptr_t heapId) { resourceHeapId = heapId; }
 };
 
 template <typename T>
@@ -5603,20 +5617,28 @@ struct SbufferReportVisitor
 struct SbufferDumpVisitor
 {
   Tab<ResourceDumpInfo> &dumpInfo;
-  eastl::vector_set<uint32_t> &buffersPresent;
+  eastl::vector_map<uint32_t, HeapDescPair> &buffersPresent;
   void beginVisit(size_t) {}
   void endVisit() {}
   void visitBuffer(const GenericBufferInterface *buffer)
   {
     const BufferState &deviceBuffer = buffer->getDeviceBuffer();
 
-    if (buffersPresent.find(deviceBuffer.resourceId.index()) == buffersPresent.end())
-      return;
+    uint64_t heapId = (uint64_t)-1;
+    uint64_t heapAddress = (uint64_t)-1;
+
+    if (auto it = buffersPresent.find(deviceBuffer.resourceId.index()); it != buffersPresent.end())
+    {
+      heapId = (uint64_t)it->second.heapID;
+      heapAddress = (uint64_t)it->second.heapOffset;
+    }
 
     dumpInfo.emplace_back(resource_dump_types::ResourceType::Buffer, buffer->getBufName(), buffer->ressize(),
-      buffer->hasSystemCopy() ? buffer->ressize() : -1, buffer->getFlags(), deviceBuffer.currentDiscardIndex,
-      deviceBuffer.discardCount, deviceBuffer.resourceId.index(), deviceBuffer.offset, (uint64_t)deviceBuffer.currentCPUPointer(),
-      (uint64_t)deviceBuffer.currentGPUPointer());
+      buffer->hasSystemCopy() ? buffer->ressize() : -1, buffer->getFlags(), deviceBuffer.currentDiscardIndex, -1,
+      deviceBuffer.discardCount, deviceBuffer.resourceId.index(), deviceBuffer.offset,
+      (uint64_t)deviceBuffer.currentCPUPointer() == 0 ? (uint64_t)-1 : (uint64_t)deviceBuffer.currentCPUPointer(),
+      (uint64_t)deviceBuffer.currentGPUPointer() == 0 ? (uint64_t)-1 : (uint64_t)deviceBuffer.currentGPUPointer(), heapId,
+      heapAddress);
   }
 };
 
@@ -5833,11 +5855,11 @@ struct BaseTexReportVisitor
 struct BaseTexDumpVisitor
 {
   Tab<ResourceDumpInfo> &dumpInfo;
-  eastl::vector_map<Image *, uint64_t> &imgToAddress;
+  eastl::vector_map<Image *, HeapDescPair> &imgToAddress;
 
   void beginVisit() {}
   void endVisit() {}
-  void visitTexture(const BaseTex *tex)
+  void visitTexture(const drv3d_dx12::BaseTex *tex)
   {
     resource_dump_types::TextureTypes type = resource_dump_types::TextureTypes::TEX2D;
     switch (tex->resType)
@@ -5848,16 +5870,22 @@ struct BaseTexDumpVisitor
       case RES3D_ARRTEX: type = resource_dump_types::TextureTypes::ARRTEX; break;
       case RES3D_CUBEARRTEX: type = resource_dump_types::TextureTypes::CUBEARRTEX; break;
     }
-    uint64_t pos;
-    if (auto it = imgToAddress.find(tex->getDeviceImage()); it != imgToAddress.end())
-      pos = it->second;
-    else
-      return;
+    uint64_t heapOffset = -1;
+    uint64_t heapId = -1;
+    Image *img = tex->getDeviceImage();
+    if (img)
+    {
+      if (auto it = imgToAddress.find(img); it != imgToAddress.end())
+      {
+        heapOffset = it->second.heapOffset;
+        heapId = (uint64_t)it->second.heapID;
+      }
+    }
 
     dumpInfo.emplace_back(resource_dump_types::ResourceType::Texture, tex->getResName(), tex->ressize(), type, tex->width, tex->height,
       (tex->resType == RES3D_VOLTEX || tex->resType == RES3D_CUBEARRTEX) ? tex->depth : -1,
-      (tex->resType == RES3D_TEX || tex->resType == RES3D_VOLTEX) ? -1 : tex->image->getArrayLayerRange().count(), tex->level_count(),
-      tex->getFormat().asTexFlags(), tex->getFormat().isColor(), tex->cflg, pos);
+      (tex->resType == RES3D_TEX || tex->resType == RES3D_VOLTEX) ? -1 : (img ? img->getArrayLayerRange().count() : -1),
+      tex->level_count(), tex->getFormat().asTexFlags(), tex->getFormat().isColor(), tex->cflg, -1, heapId, heapOffset);
   }
 };
 
@@ -6209,8 +6237,8 @@ void ResourceMemoryHeap::generateResourceAndMemoryReport(DXGIAdapter *adapter, u
 }
 void ResourceMemoryHeap::fillResourceDump(Tab<ResourceDumpInfo> &dump_container)
 {
-  eastl::vector_set<uint32_t> buffersPresent;
-  eastl::vector_map<Image *, uint64_t> imgToAddress;
+  eastl::vector_map<uint32_t, HeapDescPair> buffersPresent;
+  eastl::vector_map<Image *, HeapDescPair> imgToAddress;
   visitHeaps(ResourceHeapDumpVisitor{dump_container, imgToAddress, buffersPresent});
   visitTextureObjectsExplicit(BaseTexDumpVisitor{dump_container, imgToAddress});
   visitBufferObjectsExplicit(SbufferDumpVisitor{dump_container, buffersPresent});

@@ -30,6 +30,25 @@ using namespace drv3d_dx12;
 #endif
 #undef g_main
 
+#define g_main clear_vertex_shader
+#if _TARGET_XBOXONE
+#include "shaders/clear.vs.x.h"
+#elif _TARGET_SCARLETT
+#include "shaders/clear.vs.xs.h"
+#else
+#include "shaders/clear.vs.h"
+#endif
+#undef g_main
+
+#define g_main clear_pixel_shader
+#if _TARGET_XBOXONE
+#include "shaders/clear.ps.x.h"
+#elif _TARGET_SCARLETT
+#include "shaders/clear.ps.xs.h"
+#else
+#include "shaders/clear.ps.h"
+#endif
+
 #if _TARGET_SCARLETT
 static bool has_acceleration_structure(const dxil::ShaderHeader &header)
 {
@@ -680,6 +699,7 @@ void PipelineManager::init(const SetupParameters &params)
 #endif
 
   createBlitSignature(params.device);
+  createClearSignature(params.device);
 
   params.pipelineCache->enumerateInputLayouts([this](auto &layout) { addInternalLayout(layout); });
 
@@ -800,18 +820,38 @@ void PipelineManager::createBlitSignature(ID3D12Device *device)
     device->CreateRootSignature(0, rootSignBlob->GetBufferPointer(), rootSignBlob->GetBufferSize(), COM_ARGS(&blitSignature)));
 }
 
-ID3D12PipelineState *PipelineManager::createBlitPipeline(ID3D12Device2 *device, DXGI_FORMAT out_fmt, bool give_name)
+void PipelineManager::createClearSignature(ID3D12Device *device)
 {
-#if DX12_REPORT_PIPELINE_CREATE_TIMING
-  eastl::string profilerMsg;
-  profilerMsg.sprintf("PipelineManager::createBlitPipeline(out fmt: %s): took %%dus", dxgi_format_name(out_fmt));
-  AutoFuncProf funcProfiler(profilerMsg.c_str());
-#endif
+  // clear signature:
+  // [0][clear_value]
+  D3D12_ROOT_PARAMETER params[1] = {};
+  params[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+  params[0].Constants.ShaderRegister = 0;
+  params[0].Constants.RegisterSpace = 0;
+  params[0].Constants.Num32BitValues = 4; // one float4
+  params[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+  D3D12_ROOT_SIGNATURE_DESC desc = {};
+  desc.NumParameters = 1;
+  desc.pParameters = params;
+  desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
+               D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
+
+  ComPtr<ID3DBlob> rootSignBlob;
+  ComPtr<ID3DBlob> errorBlob;
+  if (DX12_CHECK_FAIL(D3D12SerializeRootSignature(&desc, D3D_ROOT_SIGNATURE_VERSION_1, &rootSignBlob, &errorBlob)))
+    DAG_FATAL("DX12: D3D12SerializeRootSignature failed with %s", reinterpret_cast<const char *>(errorBlob->GetBufferPointer()));
+
+  DX12_CHECK_RESULT(
+    device->CreateRootSignature(0, rootSignBlob->GetBufferPointer(), rootSignBlob->GetBufferSize(), COM_ARGS(&clearSignature)));
+}
+
+template <typename VertexShaderT, typename PixelShaderT>
+static auto createSimplePipeline(ID3D12Device2 *device, DXGI_FORMAT out_fmt, ComPtr<ID3D12PipelineState> &pipeline,
+  ID3D12RootSignature *signature, const VertexShaderT &vs, const PixelShaderT &ps)
+{
+  G_ASSERT(signature);
 #if _TARGET_PC_WIN
-  if (!blitSignature)
-  {
-    return nullptr;
-  }
   GraphicsPipelineCreateInfoData gpci;
 
   D3D12_RT_FORMAT_ARRAY &rtfma = gpci.append<CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS>();
@@ -841,30 +881,23 @@ ID3D12PipelineState *PipelineManager::createBlitPipeline(ID3D12Device2 *device, 
     0, D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_COMPARISON_FUNC_ALWAYS, D3D12_STENCIL_OP_KEEP,
     D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_COMPARISON_FUNC_ALWAYS);
 
-  gpci.append<CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE>(blitSignature.Get());
-  gpci.emplace<CD3DX12_PIPELINE_STATE_STREAM_VS, CD3DX12_SHADER_BYTECODE>(blit_vertex_shader, sizeof(blit_vertex_shader));
-  gpci.emplace<CD3DX12_PIPELINE_STATE_STREAM_PS, CD3DX12_SHADER_BYTECODE>(blit_pixel_shader, sizeof(blit_pixel_shader));
+  gpci.append<CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE>(signature);
+  gpci.emplace<CD3DX12_PIPELINE_STATE_STREAM_VS, CD3DX12_SHADER_BYTECODE>(vs, sizeof(vs));
+  gpci.emplace<CD3DX12_PIPELINE_STATE_STREAM_PS, CD3DX12_SHADER_BYTECODE>(ps, sizeof(ps));
   gpci.append<CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY>(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
 
-  BlitPipeline newBlitPipe{};
-  newBlitPipe.outFormat = out_fmt;
-
   D3D12_PIPELINE_STATE_STREAM_DESC gpciDesc = {gpci.rootSize(), gpci.root()};
-  auto result = DX12_CHECK_RESULT(device->CreatePipelineState(&gpciDesc, COM_ARGS(&newBlitPipe.pipeline)));
-  // pipe_cache.addVariant(top, staticState, renderPassClass, pipelines[top - 1].Get());
+  return DX12_CHECK_RESULT(device->CreatePipelineState(&gpciDesc, COM_ARGS(&pipeline)));
 
 #else
 
-  BlitPipeline newBlitPipe{};
-  newBlitPipe.outFormat = out_fmt;
-
   D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = {0};
   desc.SampleMask = 0x1;
-  desc.pRootSignature = blitSignature.Get();
-  desc.VS.pShaderBytecode = blit_vertex_shader;
-  desc.VS.BytecodeLength = sizeof(blit_vertex_shader);
-  desc.PS.pShaderBytecode = blit_pixel_shader;
-  desc.PS.BytecodeLength = sizeof(blit_pixel_shader);
+  desc.pRootSignature = signature;
+  desc.VS.pShaderBytecode = vs;
+  desc.VS.BytecodeLength = sizeof(vs);
+  desc.PS.pShaderBytecode = ps;
+  desc.PS.BytecodeLength = sizeof(ps);
   desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
   desc.NumRenderTargets = 1;
   desc.RTVFormats[0] = out_fmt;
@@ -906,11 +939,26 @@ ID3D12PipelineState *PipelineManager::createBlitPipeline(ID3D12Device2 *device, 
   desc.DepthStencilState.BackFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
   desc.DepthStencilState.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
 
-  // device->CreateGraphicsPipelineState(&desc, COM_ARGS(&newBlitPipe.pipeline));
-
-  auto result = DX12_CHECK_RESULT(xbox_create_graphics_pipeline(device, desc, true, newBlitPipe.pipeline));
-
+  return DX12_CHECK_RESULT(xbox_create_graphics_pipeline(device, desc, true, pipeline));
 #endif
+}
+
+ID3D12PipelineState *PipelineManager::createBlitPipeline(ID3D12Device2 *device, DXGI_FORMAT out_fmt, bool give_name)
+{
+#if DX12_REPORT_PIPELINE_CREATE_TIMING
+  eastl::string profilerMsg;
+  profilerMsg.sprintf("PipelineManager::createBlitPipeline(out fmt: %s): took %%dus", dxgi_format_name(out_fmt));
+  AutoFuncProf funcProfiler(profilerMsg.c_str());
+#endif
+
+#if _TARGET_PC_WIN
+  if (!blitSignature)
+    return nullptr;
+#endif
+
+  FormatPipeline newBlitPipe{nullptr, out_fmt};
+  auto result =
+    createSimplePipeline(device, out_fmt, newBlitPipe.pipeline, blitSignature.Get(), blit_vertex_shader, blit_pixel_shader);
 
   if (FAILED(result))
   {
@@ -919,10 +967,38 @@ ID3D12PipelineState *PipelineManager::createBlitPipeline(ID3D12Device2 *device, 
   }
 
   if (give_name)
-  {
-    DX12_SET_DEBUG_OBJ_NAME(newBlitPipe.pipeline, L"BlitPipline");
-  }
+    DX12_SET_DEBUG_OBJ_NAME(newBlitPipe.pipeline, L"BlitPipeline");
+
   return blitPipelines.emplace_back(eastl::move(newBlitPipe)).pipeline.Get();
+}
+
+ID3D12PipelineState *PipelineManager::createClearPipeline(ID3D12Device2 *device, DXGI_FORMAT out_fmt, bool give_name)
+{
+#if DX12_REPORT_PIPELINE_CREATE_TIMING
+  eastl::string profilerMsg;
+  profilerMsg.sprintf("PipelineManager::createClearPipeline(out fmt: %s): took %%dus", dxgi_format_name(out_fmt));
+  AutoFuncProf funcProfiler(profilerMsg.c_str());
+#endif
+
+#if _TARGET_PC_WIN
+  if (!clearSignature)
+    return nullptr;
+#endif
+
+  FormatPipeline newClearPipe{nullptr, out_fmt};
+  auto result =
+    createSimplePipeline(device, out_fmt, newClearPipe.pipeline, clearSignature.Get(), clear_vertex_shader, clear_pixel_shader);
+
+  if (FAILED(result))
+  {
+    DAG_FATAL("Failed to create clear pipeline");
+    return nullptr;
+  }
+
+  if (give_name)
+    DX12_SET_DEBUG_OBJ_NAME(newClearPipe.pipeline, L"ClearPipeline");
+
+  return clearPipelines.emplace_back(eastl::move(newClearPipe)).pipeline.Get();
 }
 
 namespace
@@ -1903,7 +1979,9 @@ eastl::unique_ptr<BasePipeline> PipelineManager::createGraphics(ID3D12Device2 *d
 void PipelineManager::unloadAll()
 {
   blitPipelines.clear();
+  clearPipelines.clear();
   blitSignature.Reset();
+  clearSignature.Reset();
 
   for (auto &group : graphicsPipelines)
   {
@@ -2075,8 +2153,10 @@ bool PipelineManager::recover(ID3D12Device2 *device, PipelineCache &cache)
   // no need to handle this list, we have to rebuild everything anyway
   prepedForDeletion.clear();
   createBlitSignature(device);
+  createClearSignature(device);
   // just reset the list and they will be rebuild on demand
   blitPipelines.clear();
+  clearPipelines.clear();
 
 #if D3D_HAS_RAY_TRACING
   // TODO NYI
@@ -2125,7 +2205,9 @@ bool PipelineManager::recover(ID3D12Device2 *device, PipelineCache &cache)
 void PipelineManager::preRecovery()
 {
   blitPipelines.clear();
+  clearPipelines.clear();
   blitSignature.Reset();
+  clearSignature.Reset();
   prepedForDeletion.clear();
 
 #if D3D_HAS_RAY_TRACING
@@ -2619,7 +2701,7 @@ struct PipelineInfoCollector
 void PipelineManager::writeBlkCache(FramebufferLayoutManager &fblm, uint32_t group)
 {
   auto dump = getDump(group);
-  if (!dump)
+  if (!dump || !dump->getDump())
   {
     return;
   }

@@ -43,7 +43,7 @@ public:
 
   void afterDeviceReset();
 
-  void init(bool use_sbuffer);
+  void init(bool use_sbuffer, bool approximate_fill);
   void update(unsigned int current_frame);
   void prepareRender();
 
@@ -61,6 +61,7 @@ protected:
   void resetFrameBoundaryResult();
 
   bool isSupported = false;
+  bool approximateFill = false;
   unsigned int lastUpdatedFrame = -1;
 
   LinearHeapAllocatorNull frameBoundaryAllocator;
@@ -75,6 +76,7 @@ protected:
   UniqueTexHolder debugTexture;
 
   Ptr<ComputeShaderElement> fillBoundaryLegacyCs;
+  Ptr<ComputeShaderElement> fillBoundaryApproxCs;
   Ptr<ComputeShaderElement> fillBoundaryOptCs;
   Ptr<ComputeShaderElement> fillBoundaryOptStartCs;
   Ptr<ComputeShaderElement> fillBoundaryOptEndCs;

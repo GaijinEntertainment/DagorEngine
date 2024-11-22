@@ -312,8 +312,8 @@ shader fftH_cs, fftV_cs, fftH_cs_android, fftV_cs_android
         structuredBufferAt(g_ht_output, index) = encode_float2_to_ht_type(ht[0]);
         structuredBufferAt(g_ht_output, index+m_half_resolution) = encode_float2_to_ht_type(ht[1]);
 
-        g_dt_output[index] = encode_float4_to_dt_type(float4(dx[0], dy[0]));
-        g_dt_output[index+m_half_resolution] = encode_float4_to_dt_type(float4(dx[1], dy[1]));
+        structuredBufferAt(g_dt_output, index) = encode_float4_to_dt_type(float4(dx[0], dy[0]));
+        structuredBufferAt(g_dt_output, index+m_half_resolution) = encode_float4_to_dt_type(float4(dx[1], dy[1]));
       }
     }
 
@@ -356,9 +356,9 @@ shader fftH_cs, fftV_cs, fftH_cs_android, fftV_cs_android
         float sgn = (dispatchThreadId.x + columnIdx) & 0x1 ? -1.0f : +1.0f;
         float scale = m_choppy_scale * sgn;
 
-        g_displacement_output[uint3(columnIdx, dispatchThreadId.x, arrrayId)] = 
+        texture3DAt(g_displacement_output, uint3(columnIdx, dispatchThreadId.x, arrrayId)) =
           float4(dx[0].x * scale, dy[0].x * scale, ht[0].x * sgn, 0);
-        g_displacement_output[uint3(columnIdx, dispatchThreadId.x+m_half_resolution, arrrayId)] = 
+        texture3DAt(g_displacement_output, uint3(columnIdx, dispatchThreadId.x+m_half_resolution, arrrayId)) =
           float4(dx[1].x * scale, dy[1].x * scale, ht[1].x * sgn, 0);
       }
     }

@@ -4,8 +4,9 @@
 #include <EASTL/span.h>
 #include <EASTL/tuple.h>
 #include <EASTL/unique_ptr.h>
-#include <generic/dag_relocatableFixedVector.h>
+#include <dag/dag_vector.h>
 #include <math/dag_intrin.h>
+#include <debug/dag_log.h>
 
 
 namespace concurrent_element_pool_detail
@@ -158,11 +159,18 @@ public:
   }
 
   iterator begin() { return iterator{this, 0, 0}; }
-  iterator end() { return iterator{this, buckets.size() - 1, firstFreeInLastBucket}; }
+  iterator end()
+  {
+    return last_bucket_full() ? iterator{this, buckets.size(), 0} : iterator{this, buckets.size() - 1, firstFreeInLastBucket};
+  }
   const_iterator begin() const { return const_iterator{this, 0, 0}; }
-  const_iterator end() const { return const_iterator{this, buckets.size() - 1, firstFreeInLastBucket}; }
-  const_iterator cbegin() const { return const_iterator{this, 0, 0}; }
-  const_iterator cend() const { return const_iterator{this, buckets.size() - 1, firstFreeInLastBucket}; }
+  const_iterator end() const
+  {
+    return last_bucket_full() ? const_iterator{this, buckets.size(), 0}
+                              : const_iterator{this, buckets.size() - 1, firstFreeInLastBucket};
+  }
+  const_iterator cbegin() const { return begin(); }
+  const_iterator cend() const { return end(); }
 
   /// @brief Clears the pool.
   void clear()
@@ -198,14 +206,21 @@ public:
   }
 
 private:
-  static uint32_t capacity(uint32_t bucket) { return INITIAL_CAPACITY << bucket; }
+  static constexpr uint32_t capacity(uint32_t bucket) { return INITIAL_CAPACITY << bucket; }
   uint32_t size(uint32_t bucket) const { return bucket == buckets.size() - 1 ? firstFreeInLastBucket : capacity(bucket); }
+  bool last_bucket_full() const { return firstFreeInLastBucket == capacity(buckets.size() - 1); }
+
+  // NOTE: without C++20 we cannot use G_FAST_ASSERT inside of constexpr functions :(
+  static constexpr Id make_index_unsafe(uint8_t bucket, uint16_t offset)
+  {
+    // NOTE: see break_index for the encoding
+    return static_cast<Id>((uint32_t{1} << (OFFSET_BITS_FOR_FIRST_BUCKET + bucket)) | offset);
+  }
 
   static Id make_index(uint8_t bucket, uint16_t offset)
   {
     G_FAST_ASSERT(bucket < MAX_BUCKET_COUNT && offset < capacity(bucket));
-    // NOTE: see break_index for the encoding
-    return static_cast<Id>((uint32_t{1} << (OFFSET_BITS_FOR_FIRST_BUCKET + bucket)) | offset);
+    return make_index_unsafe(bucket, offset);
   }
 
   static eastl::tuple<uint8_t, uint16_t> break_index(Id id)
@@ -233,9 +248,14 @@ private:
   }
 
 private:
-  dag::RelocatableFixedVector<concurrent_element_pool_detail::FixedArray<T>, BUCKET_COUNT> buckets;
+  dag::Vector<concurrent_element_pool_detail::FixedArray<T>> buckets;
   uint32_t totalElems = 0;
   uint32_t firstFreeInLastBucket = 0;
+
+public:
+  // NOTE: this is located here ONLY because of apple clang being quirky,
+  // should be up above with the rest of public stuff...
+  static inline constexpr Id FIRST_ID = make_index_unsafe(0, 0);
 };
 
 

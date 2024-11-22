@@ -13,7 +13,6 @@ include "heightmap_common.dshl"
 include "rtsm_use.dshl"
 
 float csm_distance = 1000;
-float clouds_shadow_influence = 0.7;
 
 int depth_bounds_support = 0;
 interval depth_bounds_support: no<1, yes;

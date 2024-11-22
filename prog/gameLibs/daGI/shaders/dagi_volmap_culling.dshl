@@ -110,7 +110,7 @@ shader cull_ambient_voxels_cs, cull_ambient_voxels_cs_warp_64
 
       uint encodedVoxel = encode_voxel_coord_bin(coord, intersects ? 0 : 1);
       uint at; InterlockedAdd(structuredBufferAt(voxelCount, 0), 1, at);
-      visible_ambient_voxels[at] = encodedVoxel;
+      structuredBufferAt(visible_ambient_voxels, at) = encodedVoxel;
     }
   }
   compile("cs_5_0", "cull_voxels_cs");

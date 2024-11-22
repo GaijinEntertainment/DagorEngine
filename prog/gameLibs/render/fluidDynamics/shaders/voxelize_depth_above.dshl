@@ -72,7 +72,7 @@ shader voxelize_depth_above
       else
         result = 0;
 
-      voxel_tex[coord] = result;
+      texture3DAt(voxel_tex, coord) = result;
     }
   }
   compile("cs_5_0", "cs_main")
@@ -125,7 +125,7 @@ shader cfd_generate_boundaries
 
       uint result = (center & 1) | ((top & 1) << 1) | ((right & 1) << 2) | ((bottom & 1) << 3) | ((left & 1) << 4);
 
-      next_boundaries[coord] = float(result) / 32.0;
+      texture3DAt(next_boundaries, coord) = float(result) / 32.0;
     }
   }
   compile("cs_5_0", "cs_main")

@@ -121,6 +121,8 @@ inline constexpr int64_t ASYNC_PIPELINE_PARENT_MAX_WAIT_US = 3 * 1000000;
 #define EXECUTION_SYNC_TRACK_CALLER         0
 // enable to verify that sync ops in single step has no self conflicts
 #define EXECUTION_SYNC_CHECK_SELF_CONFLICTS (DAGOR_DBGLEVEL > 0)
+// enable to use sync capture & tracker UI
+#define EXECUTION_SYNC_DEBUG_CAPTURE        0
 
 // enable to verify that every global state changing d3di method are runned under GPU lock
 #define VULKAN_VERIFY_GLOBAL_STATE_LOCK_ACCESS 0

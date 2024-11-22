@@ -43,7 +43,7 @@ shader octahedral_distances_cs
       if (tid == 0)
       {
         i = 0; j = 0; k = 0;
-        dead_probes[uint3(gId.x, gId.y, gId.z + ssgi_cascade_z_crd_ofs(cascadeId))] = 0;
+        texture3DAt(dead_probes, uint3(gId.x, gId.y, gId.z + ssgi_cascade_z_crd_ofs(cascadeId))) = 0;
       }
       GroupMemoryBarrierWithGroupSync();
       uint cornerTexelCoord = gId.x * OCTAHEDRAL_TILE_SIDE_LENGTH;
@@ -88,13 +88,13 @@ shader octahedral_distances_cs
       {
         // at least half of the rays hit something was backface and at least half of the rays hit something, then the probe is dead
         if (i > (k >> 1) && k > (j >> 1))
-          dead_probes[uint3(gId.x, gId.y, gId.z + ssgi_cascade_z_crd_ofs(cascadeId))] = 1.0;
+          texture3DAt(dead_probes, uint3(gId.x, gId.y, gId.z + ssgi_cascade_z_crd_ofs(cascadeId))) = 1.0;
       }
       float2 tc = octEncode(worldDir);
       tc.xy = tc.xy * 0.5 + 0.5;
-      octahedral_distances[uint3(cornerTexelCoord + tc.x * OCTAHEDRAL_TILE_SIDE_LENGTH,
+      texture3DAt(octahedral_distances, uint3(cornerTexelCoord + tc.x * OCTAHEDRAL_TILE_SIDE_LENGTH,
         (gId.y + tc.y) * OCTAHEDRAL_TILE_SIDE_LENGTH,
-        coord.z + ssgi_cascade_z_crd_ofs(cascadeId))] = rayDist / maxDist;
+        coord.z + ssgi_cascade_z_crd_ofs(cascadeId))) = rayDist / maxDist;
     }
   }
   compile("cs_6_5", "main_cs");

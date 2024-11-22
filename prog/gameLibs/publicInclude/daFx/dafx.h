@@ -357,6 +357,7 @@ struct Config
   bool low_prio_jobs = false;
   bool delayed_release_gpu_buffers = true;
   bool screen_area_cull_discard = true;
+  bool approx_boundary_computation = false;
   unsigned int max_async_threads = 0; // if 0, threadpool::get_num_workers() will be used
   unsigned int forced_sim_lod_offset = 0;
 

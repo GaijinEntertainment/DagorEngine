@@ -282,10 +282,6 @@ bool d3d::setstencil(uint32_t ref) { return false; }
 
 bool d3d::setwire(bool in) { return false; }
 
-bool d3d::set_msaa_pass() { return true; }
-
-bool d3d::set_depth_resolve() { return true; }
-
 bool d3d::setgamma(float p) { return false; }
 
 float d3d::get_screen_aspect_ratio() { return 4.0f / 3.0f; }

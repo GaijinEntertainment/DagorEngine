@@ -996,6 +996,9 @@ bool color_discard_test(float4 src, uint flags)
   // default = premult
   float src_alpha = src.a;
   float src_color_sum = dot(src.rgb, 1.f);
+#if MODFX_SHADER_DISTORTION
+  src_color_sum = abs(src_color_sum);
+#endif
   if ( FLAG_ENABLED( flags, MODFX_RFLAG_BLEND_ADD ) )
     src_alpha = 0;
   else if ( FLAG_ENABLED( flags, MODFX_RFLAG_BLEND_ABLEND ) )
@@ -1258,7 +1261,7 @@ bool color_discard_test(float4 src, uint flags)
       lighting_part = c;
     }
 
-#if !(MODFX_SHADER_VOLSHAPE || MODFX_SHADER_VOLSHAPE_WBOIT || MODFX_SHADER_VOLFOG_INJECTION)
+#if !(MODFX_SHADER_VOLSHAPE || MODFX_SHADER_VOLSHAPE_WBOIT || MODFX_SHADER_VOLFOG_INJECTION || MODFX_SHADER_DISTORTION)
     if (color_discard_test(float4(lighting_part.xyz, alpha), flags))
     {
       discard;
@@ -1435,7 +1438,7 @@ bool color_discard_test(float4 src, uint flags)
 #endif
         lighting_part *= lighting;
 #endif
-      lighting_part += specular * gdata.sun_color * alpha;
+      lighting_part += specular * gdata.sun_color * alpha * shadow;
     }
 #endif
 

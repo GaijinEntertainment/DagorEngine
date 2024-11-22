@@ -17,6 +17,7 @@
 #endif
 
 #define DAFX_FLIPBOOK_MAX_KEYFRAME_DIM 16
+#define DAFX_FRAME_BOUNDARY_BLOCK_SIZE 4
 
 #define DAFX_INVALID_BOUNDARY_OFFSET 0xFFFF // 16 bits are enough (not packed currently)
 

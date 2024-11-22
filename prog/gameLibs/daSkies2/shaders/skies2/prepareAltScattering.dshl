@@ -92,6 +92,7 @@ shader skies_prepare_transmittance_for_altitude_ps
 
 shader skies_prepare_transmittance_for_altitude_cs
 {
+  ENABLE_ASSERT(cs)
   PREPARE_TRANSMITTANCE(cs)
   (cs) {
     prepare_resolution@f2 = (1./prepare_resolution.x,1./prepare_resolution.y,0,0);
@@ -105,7 +106,7 @@ shader skies_prepare_transmittance_for_altitude_cs
       float2 texcoord = (dtId.xy+0.5)*prepare_resolution;
       Length d = scattering_TcToDist_Km(texcoord.x, preparedScatteringDistToTc);
       Number mu = scattering_tcToViewZ(texcoord.y);
-      output[dtId.xy] = float4(getTransmittance(dtId.xy, d, mu), 0.0);
+      texture2DAt(output, dtId.xy) = float4(getTransmittance(dtId.xy, d, mu), 0.0);
     }
   }
   compile("cs_5_0", "skies_gen_cs")
@@ -519,7 +520,7 @@ shader skies_integrate_froxel_scattering_cs
               ret = fp16_aware_lerp_filtered(old, ret, 0.06);
             }
           #endif
-          output[writeTo] = ret;
+          texture3DAt(output, writeTo) = ret;
         }
       }
       BRANCH
@@ -609,7 +610,7 @@ shader skies_integrate_froxel_scattering_cs
             ret = fp16_aware_lerp_filtered(old, ret, 0.06);
           }
         #endif
-        output[uint3(dtId, uint(skies_froxels_resolution.z)-1)] = ret;
+        texture3DAt(output, uint3(dtId, uint(skies_froxels_resolution.z)-1)) = ret;
       }
       }//
     }

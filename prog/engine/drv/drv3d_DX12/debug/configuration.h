@@ -12,6 +12,7 @@ union Configuration
 {
   struct
   {
+    bool enableGPUCapturers : 1;
     bool loadPIXCapturer : 1;
     bool enableAftermath : 1;
     bool enableShaderErrorReporting : 1;
@@ -40,6 +41,7 @@ union Configuration
 
   void applyReleaseDefaults()
   {
+    enableGPUCapturers = false;
     loadPIXCapturer = false;
     enableAftermath = true;
     enableAgsTrace = false;
@@ -57,6 +59,7 @@ union Configuration
   void applyDevDefaults()
   {
     auto gfx = dgs_get_settings()->getBlockByNameEx("graphics");
+    enableGPUCapturers = true;
     loadPIXCapturer = !gfx->getBool("enableBVH", false) && stricmp(gfx->getStr("bvhMode", "off"), "off") == 0;
     enableAftermath = true;
     enableAgsTrace = false;
@@ -74,6 +77,7 @@ union Configuration
   void applyDebugDefaults()
   {
     auto gfx = dgs_get_settings()->getBlockByNameEx("graphics");
+    enableGPUCapturers = true;
     loadPIXCapturer = !gfx->getBool("enableBVH", false) && stricmp(gfx->getStr("bvhMode", "off"), "off") == 0;
     enableAftermath = true;
     enableAgsTrace = false;
@@ -88,11 +92,11 @@ union Configuration
     enableGPUValidation = false;
   }
 
-  void applyPIXProfile() { loadPIXCapturer = true; }
+  void applyPIXProfile() { enableGPUCapturers = loadPIXCapturer = true; }
 
-  void applyRenderDocProfile() { loadPIXCapturer = false; }
+  void applyRenderDocProfile() { enableGPUCapturers = loadPIXCapturer = false; }
 
-  void applyGenericCaptureToolProfile() { loadPIXCapturer = true; }
+  void applyGenericCaptureToolProfile() { enableGPUCapturers = loadPIXCapturer = true; }
 
   void applyShaderDebugProfile()
   {
@@ -239,6 +243,7 @@ union Configuration
     enableAftermath = settings->getBool("enableAftermath", enableAftermath);
     trackPageFaults = settings->getBool("trackPageFaults", trackPageFaults || debugLevel > 0 || enableAftermath);
     enableDRED = settings->getBool("allowDRED", enableDRED);
+    enableGPUCapturers = settings->getBool("enableGPUCapturers", enableGPUCapturers);
     loadPIXCapturer = settings->getBool("loadPixCapturer", loadPIXCapturer);
     enableDagorGPUTrace = settings->getBool("enableDagorGPUTrace", enableDagorGPUTrace);
     enableShaderErrorReporting = settings->getBool("enableShaderErrorReporting", enableShaderErrorReporting);
@@ -264,6 +269,7 @@ union Configuration
     enableAgsTrace = modernSettings->getBool("agsTrace", enableAgsTrace);
     trackPageFaults = modernSettings->getBool("pageFaults", trackPageFaults || debugLevel > 0 || enableAftermath);
     enableDRED = modernSettings->getBool("DRED", enableDRED);
+    enableGPUCapturers = modernSettings->getBool("gpuCapturers", enableGPUCapturers);
     loadPIXCapturer = modernSettings->getBool("loadPixCapturer", loadPIXCapturer);
     enableDagorGPUTrace = modernSettings->getBool("dagorGPUTrace", enableDagorGPUTrace);
     enableShaderErrorReporting = modernSettings->getBool("shaderErrorReporting", enableShaderErrorReporting);

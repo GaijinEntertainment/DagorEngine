@@ -3,7 +3,7 @@ from "%darg/ui_imports.nut" import *
 let fa = require("fontawesome.map.nut")
 let { ceil, sqrt } = require("math")
 let { set_clipboard_text } = require("dagor.clipboard")
-let scrollbar = require("samples_prog/_basic/components/scrollbar.nut")
+let {makeVertScroll} = require("samples_prog/_basic/components/scrollbar.nut")
 
 let availHeight = sh(200)
 let availWidth = sw(80)
@@ -63,7 +63,7 @@ function mkTable() {
   return children
 }
 
-return scrollbar.makeVertScroll({
+return makeVertScroll({
   hplace = ALIGN_CENTER
   flow = FLOW_VERTICAL
   gap = hdpx(1)

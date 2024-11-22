@@ -1942,7 +1942,7 @@ int DagorWinMain(int nCmdShow, bool debugmode)
 }
 
 #include <landMesh/lmeshHoles.h>
-bool LandMeshHolesManager::check(const Point2 &) const { return false; }
+bool LandMeshHolesCell::check(const Point2 &, const HeightmapHandler *hmapHandler) const { return false; }
 
 #include "dag_cur_view.h"
 DagorCurView grs_cur_view;

@@ -124,8 +124,29 @@ public:
   OpCaller getCaller() { return {}; }
 #endif
 
+#if EXECUTION_SYNC_DEBUG_CAPTURE > 0
+  // Op inside array are sorted/moved/swapped, so we need to track originals by some uid/index
+  struct OpUid
+  {
+    uint32_t v;
+    static uint32_t frame_local_next_op_uid;
+
+    static OpUid next() { return {frame_local_next_op_uid++}; }
+
+    static void frame_end() { frame_local_next_op_uid = 0; }
+  };
+#else
+  struct OpUid
+  {
+    static OpUid next() { return {}; }
+
+    static void frame_end() {}
+  };
+#endif
+
   struct BufferOp
   {
+    OpUid uid;
     LogicAddress laddr;
     Buffer *obj;
     BufferArea area;
@@ -161,6 +182,7 @@ public:
 
   struct ImageOp
   {
+    OpUid uid;
     LogicAddress laddr;
     Image *obj;
     ImageArea area;
@@ -247,6 +269,7 @@ public:
 
   struct AccelerationStructureOp
   {
+    OpUid uid;
     LogicAddress laddr;
     RaytraceAccelerationStructure *obj;
     AccelerationStructureArea area;

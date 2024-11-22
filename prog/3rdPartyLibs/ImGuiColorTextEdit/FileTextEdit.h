@@ -25,6 +25,7 @@ struct FileTextEdit
 		OnShowInFolderViewCallback onShowInFolderViewCallback = nullptr);
 	~FileTextEdit();
 	bool OnImGui(bool windowIsOpen);
+	void SetCursorPosition(int line, int column);
 	void SetSelection(int startLine, int startChar, int endLine, int endChar);
 	void CenterViewAtLine(int line);
 	const char* GetAssociatedFile();

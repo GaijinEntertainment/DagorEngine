@@ -1,6 +1,6 @@
 from "%darg/ui_imports.nut" import *
 
-let scrollbar = require("samples_prog/_basic/components/scrollbar.nut")
+let {makeVertScroll} = require("samples_prog/_basic/components/scrollbar.nut")
 
 function messageInLog(entry) {
   return {
@@ -49,7 +49,7 @@ function textLog(log_state, options) {
     padding = [hdpx(1), 0]
 
     children = [
-      scrollbar.makeVertScroll(logContent(log_state, scrollHandler), {scrollHandler = scrollHandler})
+      makeVertScroll(logContent(log_state, scrollHandler), {scrollHandler})
     ]
   }
 }

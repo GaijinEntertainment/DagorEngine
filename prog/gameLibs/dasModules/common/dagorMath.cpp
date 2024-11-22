@@ -222,6 +222,8 @@ public:
       "bind_dascript::bbox3_inflateXZ");
     das::addExtern<DAS_BIND_FUN(bbox3_scale)>(*this, lib, "bbox3_scale", das::SideEffects::modifyArgument,
       "bind_dascript::bbox3_scale");
+    das::addExtern<DAS_BIND_FUN(bbox3_eq)>(*this, lib, "==", das::SideEffects::none, "bind_dascript::bbox3_eq");
+    das::addExtern<DAS_BIND_FUN(bbox3_neq)>(*this, lib, "!=", das::SideEffects::none, "bind_dascript::bbox3_neq");
     das::addExtern<DAS_BIND_FUN(bbox3_intersect_point)>(*this, lib, "&", das::SideEffects::none,
       "bind_dascript::bbox3_intersect_point");
     das::addExtern<DAS_BIND_FUN(bbox3_intersect_bbox3)>(*this, lib, "&", das::SideEffects::none,

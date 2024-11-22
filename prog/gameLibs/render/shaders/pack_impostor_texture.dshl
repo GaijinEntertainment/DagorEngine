@@ -422,8 +422,8 @@ shader pack_impostor_texture
 
       uint sdf = encode_sdf(bestTc - center, bestDistSq, maxDist);
       int2 targetCoord = input.tc * texture_size.xy;
-      if (impostor_sdf_tex[targetCoord] > sdf)
-        impostor_sdf_tex[targetCoord] = sdf;
+      if (texture2DAt(impostor_sdf_tex, targetCoord) > sdf)
+        texture2DAt(impostor_sdf_tex, targetCoord) = sdf;
 
       if (params.alpha <= 0.00001)
         discard;

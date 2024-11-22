@@ -473,7 +473,7 @@ __forceinline static void exec_stcode(dag::ConstSpan<int> cod, int block_id, sha
         stcode::dbg::record_set_tex(stcode::dbg::RecordType::REFERENCE, STAGE_PS, shaderopcode::getOp2p1(opc), tex);
       }
       break;
-      case SHCOD_SAMPLER:
+      case SHCOD_GLOB_SAMPLER:
       {
         const uint32_t stage = shaderopcode::getOpStageSlot_Stage(opc);
         const uint32_t slot = shaderopcode::getOpStageSlot_Slot(opc);
@@ -662,70 +662,66 @@ static int record_state_block(const int *__restrict cod_p, dag::ConstSpan<int> c
   using namespace shaderopcode;
   // debug("record_state_block(%p, (%p,%d))", &block, cod.data(), cod.size());
   const vec4f *tm_world_c = NULL, *tm_lview_c = NULL;
-  ShaderStateBlock block;
 
-  if (!execute_st_block_code(
-        cod_p, cod.data() + cod.size(), block, find_block(cod), -1 /*stcodeId*/,
-        [&](const int &codAt, char *regs, Point4 *vsConsts, int vscBase) {
-          uint32_t opc = codAt;
-          switch (getOp(opc))
+  auto maybeShStateBlock = execute_st_block_code(cod_p, cod.data() + cod.size(), find_block(cod), -1 /*stcodeId*/,
+    [&](const int &codAt, char *regs, Point4 *vsConsts, int vscBase) {
+      uint32_t opc = codAt;
+      switch (getOp(opc))
+      {
+        case SHCOD_GET_GVEC: color4_reg(regs, getOp2p1(opc)) = shBinDump().globVars.get<Color4>(getOp2p2(opc)); break;
+        case SHCOD_GET_GREAL: real_reg(regs, getOp2p1(opc)) = shBinDump().globVars.get<real>(getOp2p2(opc)); break;
+        case SHCOD_LVIEW:
+          if (!tm_lview_c)
+            tm_lview_c = &d3d::gettm_cref(TM_VIEW2LOCAL).col0;
+          v_stu(get_reg_ptr<real>(regs, getOp2p1(opc)), tm_lview_c[getOp2p2(opc)]);
+          break;
+        case SHCOD_GET_GTEX: tex_reg(regs, getOp2p1(opc)) = shBinDump().globVars.getTex(getOp2p2(opc)).texId; break;
+        case SHCOD_TMWORLD:
+          if (!tm_world_c)
+            tm_world_c = &d3d::gettm_cref(TM_WORLD).col0;
+          v_stu(get_reg_ptr<real>(regs, getOp2p1(opc)), tm_world_c[getOp2p2(opc)]);
+          break;
+
+        case SHCOD_GET_GINT: int_reg(regs, getOp2p1(opc)) = shBinDump().globVars.get<int>(getOp2p2(opc)); break;
+        case SHCOD_GET_GINT_TOREAL: real_reg(regs, getOp2p1(opc)) = shBinDump().globVars.get<int>(getOp2p2(opc)); break;
+        case SHCOD_GET_GIVEC_TOREAL:
+        {
+          const IPoint4 &ivec = shBinDump().globVars.get<IPoint4>(getOp2p2(opc));
+          color4_reg(regs, getOp2p1(opc)) = Color4(ivec.x, ivec.y, ivec.z, ivec.w);
+        }
+        break;
+
+        case SHCOD_G_TM:
+        {
+          TMatrix4_vec4 &gtm = *(TMatrix4_vec4 *)&vsConsts[getOp2p2_16(opc) - vscBase];
+          switch (shaderopcode::getOp2p1_8(opc))
           {
-            case SHCOD_GET_GVEC: color4_reg(regs, getOp2p1(opc)) = shBinDump().globVars.get<Color4>(getOp2p2(opc)); break;
-            case SHCOD_GET_GREAL: real_reg(regs, getOp2p1(opc)) = shBinDump().globVars.get<real>(getOp2p2(opc)); break;
-            case SHCOD_LVIEW:
-              if (!tm_lview_c)
-                tm_lview_c = &d3d::gettm_cref(TM_VIEW2LOCAL).col0;
-              v_stu(get_reg_ptr<real>(regs, getOp2p1(opc)), tm_lview_c[getOp2p2(opc)]);
-              break;
-            case SHCOD_GET_GTEX: tex_reg(regs, getOp2p1(opc)) = shBinDump().globVars.getTex(getOp2p2(opc)).texId; break;
-            case SHCOD_TMWORLD:
-              if (!tm_world_c)
-                tm_world_c = &d3d::gettm_cref(TM_WORLD).col0;
-              v_stu(get_reg_ptr<real>(regs, getOp2p1(opc)), tm_world_c[getOp2p2(opc)]);
-              break;
-
-            case SHCOD_GET_GINT: int_reg(regs, getOp2p1(opc)) = shBinDump().globVars.get<int>(getOp2p2(opc)); break;
-            case SHCOD_GET_GINT_TOREAL: real_reg(regs, getOp2p1(opc)) = shBinDump().globVars.get<int>(getOp2p2(opc)); break;
-            case SHCOD_GET_GIVEC_TOREAL:
+            case P1_SHCOD_G_TM_GLOBTM: d3d::getglobtm(gtm); break;
+            case P1_SHCOD_G_TM_PROJTM: d3d::gettm(TM_PROJ, &gtm); break;
+            case P1_SHCOD_G_TM_VIEWPROJTM:
             {
-              const IPoint4 &ivec = shBinDump().globVars.get<IPoint4>(getOp2p2(opc));
-              color4_reg(regs, getOp2p1(opc)) = Color4(ivec.x, ivec.y, ivec.z, ivec.w);
+              TMatrix4_vec4 v, p;
+              d3d::gettm(TM_VIEW, &v);
+              d3d::gettm(TM_PROJ, &p);
+              gtm = v * p;
             }
             break;
-
-            case SHCOD_G_TM:
-            {
-              TMatrix4_vec4 &gtm = *(TMatrix4_vec4 *)&vsConsts[getOp2p2_16(opc) - vscBase];
-              switch (shaderopcode::getOp2p1_8(opc))
-              {
-                case P1_SHCOD_G_TM_GLOBTM: d3d::getglobtm(gtm); break;
-                case P1_SHCOD_G_TM_PROJTM: d3d::gettm(TM_PROJ, &gtm); break;
-                case P1_SHCOD_G_TM_VIEWPROJTM:
-                {
-                  TMatrix4_vec4 v, p;
-                  d3d::gettm(TM_VIEW, &v);
-                  d3d::gettm(TM_PROJ, &p);
-                  gtm = v * p;
-                }
-                break;
-                default: G_ASSERTF(0, "SHCOD_G_TM(%d, %d)", getOp2p1_8(opc), getOp2p2_16(opc));
-              }
-              process_tm_for_drv_consts(gtm);
-            }
-            break;
-            default:
-              logerr("%s: exec_stcode: illegal instruction %u %s (index=%d)", find_block(cod), getOp(opc),
-                ShUtils::shcod_tokname(getOp(opc)), &codAt - cod.data());
-              return false;
+            default: G_ASSERTF(0, "SHCOD_G_TM(%d, %d)", getOp2p1_8(opc), getOp2p2_16(opc));
           }
-          return true;
-        },
-        &shaders_internal::lock_block_critsec))
+          process_tm_for_drv_consts(gtm);
+        }
+        break;
+        default:
+          logerr("%s: exec_stcode: illegal instruction %u %s (index=%d)", find_block(cod), getOp(opc),
+            ShUtils::shcod_tokname(getOp(opc)), &codAt - cod.data());
+          return false;
+      }
+      return true;
+    });
+  if (!maybeShStateBlock.has_value())
   {
-    block = ShaderStateBlock();
-    shaders_internal::lock_block_critsec();
+    return DEFAULT_SHADER_STATE_BLOCK_ID;
   }
-  int bid = ShaderStateBlock::addBlockNoLock(block);
-  shaders_internal::unlock_block_critsec();
-  return bid;
+  maybeShStateBlock->stateIdx = shaders::render_states::create({});
+  return ShaderStateBlock::addBlock(eastl::move(*maybeShStateBlock));
 }

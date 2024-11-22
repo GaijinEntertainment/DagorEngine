@@ -29,7 +29,6 @@ Sources +=
   hlsl2metal/HLSL2MetalCommon.cpp
   hlsl2metal/asmShaderHLSL2Metal.cpp
   hlsl2spirv/HLSL2SpirvCommon.cpp
-  hlsl2metal/asmShaderHLSL2MetalGlslang.cpp
   hlsl2metal/spirv2MetalCompiler.cpp
   hlsl2metal/asmShaderHLSL2MetalDXC.cpp
   hlsl2metal/hlsl2spirvCompile.cpp
@@ -37,7 +36,7 @@ Sources +=
 
 AddIncludes +=
   $(Root)/prog/3rdPartyLibs/metal
-  $(Root)/prog/3rdPartyLibs/metal/glslang
+  $(Root)/prog/3rdPartyLibs/vulkan/glslang
   $(Root)/prog/3rdPartyLibs/vulkan/include
   $(Root)/prog/3rdPartyLibs/vulkan/spirv-tools/include
   $(Root)/$(Location)/hlsl2spirv
@@ -48,7 +47,6 @@ AddIncludes +=
 
 UseProgLibs +=
   3rdPartyLibs/hash
-  3rdPartyLibs/metal/glslang
   3rdPartyLibs/vulkan/smol-v
   3rdPartyLibs/metal/spirv2Metal
   3rdPartyLibs/eastl

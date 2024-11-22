@@ -10,6 +10,7 @@
 #include "execution_timings.h"
 #include "frontend_pod_state.h"
 #include "temp_buffers.h"
+#include "execution_sync_capture.h"
 
 using namespace drv3d_vulkan;
 
@@ -20,6 +21,7 @@ ResourceUploadLimit Frontend::resUploadLimit;
 FrontExecutionTimings Frontend::timings;
 TempBufferManager Frontend::tempBuffers;
 FramememBufferManager Frontend::frameMemBuffers;
+ExecutionSyncCapture Frontend::syncCapture;
 
 PipelineState Frontend::State::pipe;
 FrontendPODState Frontend::State::pod;

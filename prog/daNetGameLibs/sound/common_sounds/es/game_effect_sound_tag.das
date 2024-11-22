@@ -10,6 +10,18 @@ def game_effect_sound_tag_set(evt : Event;
     raise_sound_tag(game_effect_sound__tag, sound_tags)
 
 
+[es(tag=sound, on_appear)]
+def sound_tags_entity_appear(evt : Event;
+                             eid : EntityId;
+                             var sound_tags : Object&)
+  ecs::query() <| $ [es] (game_effect_sound__tag : string;
+                          game_effect__attachedTo : EntityId)
+    if game_effect__attachedTo != eid
+      return
+
+    raise_sound_tag(game_effect_sound__tag, sound_tags)
+
+
 [es(tag=sound, on_disappear)]
 def game_effect_sound_tag_unset(evt : Event;
                                 game_effect_sound__tag : string;

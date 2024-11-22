@@ -134,12 +134,17 @@ bool ScriptedShadersBinDumpOwner::load(IGenLoad &crd, int size, bool full_file_l
   if (!read_shdump_file(crd, size, full_file_load, [&](const uint8_t *data, int size_) { return loadData(data, size_); }))
     return false;
 
-  G_ASSERTF(mShaderDump->varMap.size() <= MAX_BINDUMP_SHADERVARS,
-    "Total number of shadervars (%d) exceeds the max allowed for mapping (%d). "
-    "Remove redundant shadervars, or increase MAX_BINDUMP_SHADERVARS",
-    mShaderDump->varMap.size(), MAX_BINDUMP_SHADERVARS);
+  constexpr size_t DEFAULT_MAX_SHVARS = 4096;
+  const DataBlock *graphicsBlk = ::dgs_get_settings()->getBlockByName("graphics");
+  const size_t maxBindumpShadervars =
+    graphicsBlk ? graphicsBlk->getInt("max_bindump_shadervars", DEFAULT_MAX_SHVARS) : DEFAULT_MAX_SHVARS;
 
-  initVarIndexMaps();
+  G_ASSERTF(mShaderDump->varMap.size() <= maxBindumpShadervars,
+    "Total number of shadervars (%d) exceeds the max allowed for mapping (%d). "
+    "Remove redundant shadervars, or increase graphics/max_bindump_shadervars in the config",
+    mShaderDump->varMap.size(), maxBindumpShadervars);
+
+  initVarIndexMaps(maxBindumpShadervars);
   shadervars::resolve_shadervars();
   ShaderVariableInfo::resolveAll();
   if (mShaderDump == &shBinDump())

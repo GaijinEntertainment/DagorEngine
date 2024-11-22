@@ -77,6 +77,8 @@ public:
   ~GuiScene();
 
   virtual void setCallback(IGuiSceneCallback *cb) override { guiSceneCb = cb; }
+  virtual void initDasEnvironment(TGuiInitDas init_callback) override;
+  virtual void shutdownDasEnvironment() override;
 
   // Need this to perform additional binding
   virtual HSQUIRRELVM getScriptVM() const override { return sqvm; }

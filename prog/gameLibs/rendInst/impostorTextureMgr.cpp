@@ -395,9 +395,6 @@ void ImpostorTextureManager::render(const Point3 &point_to_eye, const TMatrix &v
     ImpostorGenRenderWrapperControl rwc;
     res->lods[lod].scene->render(TMatrix(1), rwc);
     res->lods[lod].scene->renderTrans(TMatrix(1), rwc);
-    // vulkan can process queued work properly without flush command
-    if (!d3d::get_driver_code().is(d3d::vulkan))
-      d3d::driver_command(Drv3dCommand::D3D_FLUSH);
     d3d::set_buffer(STAGE_PS, treeCrownBufSlot, nullptr);
   }
 }

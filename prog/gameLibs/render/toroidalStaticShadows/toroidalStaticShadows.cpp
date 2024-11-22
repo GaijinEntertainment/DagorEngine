@@ -162,6 +162,10 @@ ToroidalStaticShadowCascade::BeforeRenderReturned ToroidalStaticShadows::updateO
   if (needScrolling && !depthScroller)
   {
     depthScroller.reset(new ShadowDepthScroller);
+    // Scarlett places a barrier between each tile read/write causing massive spikes
+    // Doing the entire slice in one pass is much faster at the cost of more memory
+    if (d3d::get_driver_code().is(d3d::scarlett))
+      depthScroller->tileSizeW = depthScroller->tileSizeH = texSize;
     depthScroller->init();
   }
   bool varsChanged = false;

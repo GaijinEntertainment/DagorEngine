@@ -24,6 +24,7 @@ struct ClearDepthStencilValue
 union ClearColorValue
 {
   float float32[4];
+  uint32_t uint32[4];
 };
 
 struct ImageSubresourceRange

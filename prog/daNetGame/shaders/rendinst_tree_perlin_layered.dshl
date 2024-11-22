@@ -35,6 +35,8 @@ endmacro
 
 shader rendinst_tree_perlin_layered
 {
+  ENABLE_ASSERT(ps)
+
   static int material_pn_triangulation = 0 no_warnings;
   interval material_pn_triangulation : off < 1, displacement < 2, smoothing_only;
 

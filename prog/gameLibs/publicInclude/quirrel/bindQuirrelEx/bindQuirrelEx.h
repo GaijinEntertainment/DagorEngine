@@ -33,6 +33,10 @@ void register_random(SqModules *module_mgr);
 void register_hash(SqModules *module_mgr);
 
 void register_dagor_system(SqModules *module_mgr);
+
+void register_dagor_system_file_handlers(SqModules *module_mgr);
+void cleanup_dagor_system_file_handlers();
+
 void register_dagor_shell(SqModules *module_mgr);
 void register_dagor_fs_module(SqModules *module_mgr);
 void register_dagor_fs_vrom_module(SqModules *module_mgr);

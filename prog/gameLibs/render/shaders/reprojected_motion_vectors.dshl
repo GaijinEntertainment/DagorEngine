@@ -1,8 +1,11 @@
 float4 reprojected_world_view_pos;
+float4 prev_zn_zfar = (1, 10, 0, 0);
 
 macro INIT_REPROJECTED_MOTION_VECTORS(code)
   (code) {
     reprojected_world_view_pos@f4 = reprojected_world_view_pos;
+    //prev_zn_zfar@f4 = (prev_zn_zfar.x, prev_zn_zfar.y, prev_zn_zfar.x/(prev_zn_zfar.x * prev_zn_zfar.y), (prev_zn_zfar.y-prev_zn_zfar.x)/(prev_zn_zfar.x * prev_zn_zfar.y));
+    prev_zn_zfar@f4 = (zn_zfar.x, zn_zfar.y, zn_zfar.x/(zn_zfar.x * zn_zfar.y), (zn_zfar.y-zn_zfar.x)/(zn_zfar.x * zn_zfar.y));
   }
 endmacro
 
@@ -12,8 +15,9 @@ macro USE_REPROJECTED_MOTION_VECTORS(code)
     {
       float4 reprojectedViewVec = mul(float4(eye_to_point, 0), prev_viewproj_tm);
       float4 prevClip = reprojected_wrld_view_pos + reprojectedViewVec;
-      screen_pos = prevClip.w > 0 ? prevClip.xy * rcp(prevClip.w) : float2(2, 2);
-      return float3(screen_pos.xy * float2(0.5, -0.5) + float2(0.5, 0.5), prevClip.w);
+      float3 spz = prevClip.w > 0 ? prevClip.xyz * rcp(prevClip.w) : float3(2, 2, 0);
+      screen_pos = spz.xy;
+      return float3(screen_pos.xy * float2(0.5, -0.5) + float2(0.5, 0.5), linearize_z(spz.z, prev_zn_zfar.zw));
     }
     float3 get_reprojected_history_uvz(float3 eye_to_point, float4x4 prev_viewproj_tm, out float2 screen_pos)
     {
@@ -32,8 +36,9 @@ macro USE_REPROJECTED_MOTION_VECTORS(code)
     float3 get_reprojected_history_uvz1(float3 eye_to_point, float4x4 prev_viewproj_tm, out float2 screen_pos)
     {
       float4 prevClip = mul(float4(eye_to_point, 1), prev_viewproj_tm);
-      screen_pos = prevClip.w > 0 ? prevClip.xy * rcp(prevClip.w) : float2(2, 2);
-      return float3(screen_pos.xy * float2(0.5, -0.5) + float2(0.5, 0.5), prevClip.w);
+      float3 spz = prevClip.w > 0 ? prevClip.xyz * rcp(prevClip.w) : float3(2, 2, 0);
+      screen_pos = spz.xy;
+      return float3(screen_pos.xy * float2(0.5, -0.5) + float2(0.5, 0.5), linearize_z(spz.z, prev_zn_zfar.zw));
     }
     float3 get_reprojected_history_uvz1(float3 eye_to_point, float4x4 prev_viewproj_tm)
     {

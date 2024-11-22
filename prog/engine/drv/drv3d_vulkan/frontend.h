@@ -16,6 +16,7 @@ struct FrontExecutionTimings;
 struct FrontendPODState;
 class TempBufferManager;
 class FramememBufferManager;
+struct ExecutionSyncCapture;
 
 struct Frontend
 {
@@ -26,6 +27,7 @@ struct Frontend
   static FrontExecutionTimings timings;
   static TempBufferManager tempBuffers;
   static FramememBufferManager frameMemBuffers;
+  static ExecutionSyncCapture syncCapture;
 
   struct State
   {

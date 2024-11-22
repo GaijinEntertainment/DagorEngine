@@ -13,6 +13,7 @@ class RenderStateSystemBackend;
 class PipelineCompiler;
 struct BackExecutionTimings;
 class ExecutionSyncTracker;
+struct ExecutionSyncCapture;
 struct StackedProfileEvents;
 class ExecutionState;
 class PipelineState;
@@ -28,6 +29,7 @@ struct Backend
 {
   static BackExecutionTimings timings;
   static ExecutionSyncTracker sync;
+  static ExecutionSyncCapture syncCapture;
   static StackedProfileEvents profilerStack;
   static BindlessManagerBackend bindless;
   static RenderStateSystemBackend renderStateSystem;

@@ -56,8 +56,6 @@ ShaderCode *ShaderSemCode::generateShaderCode(const ShaderVariant::VariantTableS
   dynVariants.fillVariantTable(code->dynVariants);
   code->flags = flags;
 
-  //  debug("st='%s', dyn=%d", (char*)code->staticVariant.getVariantTypeStr(), code->dynVariants.getVariants().size());
-
   code->channel = channel;
 
   // compute var offsets
@@ -156,11 +154,6 @@ ShaderCode *ShaderSemCode::generateShaderCode(const ShaderVariant::VariantTableS
     if (code->passes[i])
       code->passes[i]->toPtr(make_span(code->allPasses));
 
-  // debug ( "passes=%d all_passes=%d",
-  //   passes.size(), code->allPasses.size());
-
-  // debug("minArraySize=%d", minArraySize);
-
   return code;
 }
 
@@ -170,7 +163,6 @@ void ShaderSemCode::convert_stcode(dag::Span<int> cod, Tab<int> &cvar, StcodeReg
   {
     int op = shaderopcode::getOp(cod[i]);
 
-    // debug("cod: % 9d %s",op,shcod_tokname(op));
     switch (op)
     {
       case SHCOD_INVERSE:
@@ -180,7 +172,7 @@ void ShaderSemCode::convert_stcode(dag::Span<int> cod, Tab<int> &cvar, StcodeReg
       case SHCOD_FSH_CONST:
       case SHCOD_VPR_CONST:
       case SHCOD_CS_CONST:
-      case SHCOD_SAMPLER:
+      case SHCOD_GLOB_SAMPLER:
       case SHCOD_TEXTURE:
       case SHCOD_TEXTURE_VS:
       case SHCOD_REG_BINDLESS:
@@ -287,16 +279,6 @@ void ShaderSemCode::convert_passes(ShaderSemCode::Pass &semP, ShaderCode::Pass &
   p.renderStateNo = add_render_state(semP);
   p.threadGroupSizes = semP.threadGroupSizes;
   p.scarlettWave32 = semP.scarlettWave32;
-
-  //  if (isDump)
-  //  {
-  //    debug("stCode-------------");
-  //    for (int i = 0; i < stcode.size(); i++)
-  //    {
-  //      debug("%d", stcode[i]);
-  //    }
-  //    debug("stCode end---------");
-  //  }
 }
 
 void ShaderSemCode::Pass::reset_code()

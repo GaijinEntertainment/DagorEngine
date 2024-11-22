@@ -112,7 +112,7 @@ const char *shcod_tokname(int t)
     case SHCOD_LVIEW: return "LVIEW";
     case SHCOD_TMWORLD: return "WTM";
     case SHCOD_MAKE_VEC: return "MAKE_VEC";
-    case SHCOD_SAMPLER: return "SAMPLER";
+    case SHCOD_GLOB_SAMPLER: return "GLOB_SAMPLER";
     case SHCOD_TEXTURE: return "TEXTURE";
     case SHCOD_TEXTURE_VS: return "TEXTURE_VS";
     case SHCOD_VPR_CONST: return "VPR_CONST";
@@ -324,7 +324,7 @@ void shcod_dump(dag::ConstSpan<int> cod, const shaderbindump::VarList *globals, 
         str.aprintf(128, "ind=%d ofs=%d", ind, ofs);
       }
       break;
-      case SHCOD_SAMPLER:
+      case SHCOD_GLOB_SAMPLER:
       {
         int ofs = shaderopcode::getOpStageSlot_Reg(cod[i]);
         if ((uint32_t)ofs < (uint32_t)globals->v.size())

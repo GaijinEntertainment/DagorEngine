@@ -15,6 +15,7 @@ typedef struct SQVM *HSQUIRRELVM;
 
 namespace darg
 {
+typedef void (*TInitDasEnv)();
 
 enum class AotMode
 {
@@ -45,26 +46,42 @@ struct DasScript
 };
 
 
+struct DasEnvironmentGuard
+{
+  das::daScriptEnvironment *initialOwned;
+  das::daScriptEnvironment *initialBound;
+  DasEnvironmentGuard(das::daScriptEnvironment *environment = nullptr);
+  ~DasEnvironmentGuard();
+};
+
+
 class DasScriptsData
 {
 public:
   DasScriptsData();
   ~DasScriptsData() = default;
 
-  static bool is_das_inited();
+  void initDasEnvironment(TInitDasEnv init_callback);
+  void shutdownDasEnvironment();
+  void initModuleGroup();
+  void resetBeforeReload();
 
 public:
-  das::ModuleGroup moduleGroup;
-  das::smart_ptr<das::ModuleFileAccess> fAccess;
-  DasLogWriter logWriter;
-  das::DebugInfoHelper dbgInfoHelper;
   das::daScriptEnvironment *dasEnv = nullptr;
+  bool isOwnedDasEnv = false;
+  TInitDasEnv initCallback = nullptr;
 
-  das::TypeInfo *typeGuiContextRef = nullptr, *typeConstElemRenderDataRef = nullptr, *typeConstRenderStateRef = nullptr,
-                *typeConstPropsRef = nullptr;
-
+  das::unique_ptr<das::ModuleGroup> moduleGroup;
+  DasLogWriter logWriter;
+  das::unique_ptr<das::DebugInfoHelper> dbgInfoHelper;
+  das::smart_ptr<das::ModuleFileAccess> fAccess;
   AotMode aotMode = AotMode::AOT;
   LogAotErrors needAotErrorLog = LogAotErrors::YES;
+
+  das::TypeInfo *typeGuiContextRef = nullptr;
+  das::TypeInfo *typeConstElemRenderDataRef = nullptr;
+  das::TypeInfo *typeConstRenderStateRef = nullptr;
+  das::TypeInfo *typeConstPropsRef = nullptr;
 };
 
 

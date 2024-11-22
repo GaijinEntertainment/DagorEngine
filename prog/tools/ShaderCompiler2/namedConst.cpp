@@ -1443,7 +1443,7 @@ void NamedConstBlock::patchStcodeIndices(dag::Span<int> stcode, StcodeRoutine &c
         stcode[i] = shaderopcode::makeOp2(op, dest, shaderopcode::getOp3p3(stcode[i]));
       }
       break;
-      case SHCOD_SAMPLER:
+      case SHCOD_GLOB_SAMPLER:
       {
         id = shaderopcode::getOpStageSlot_Slot(stcode[i]);
         uint32_t stage = shaderopcode::getOpStageSlot_Stage(stcode[i]);

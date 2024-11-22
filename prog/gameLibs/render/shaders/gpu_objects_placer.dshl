@@ -820,11 +820,11 @@ shader gpu_objects_cs, gpu_objects_on_rendinst_cs
         front = float3(rotatedRight.z, direction.z, rotatedFront.z);
         direction = float3(rotatedRight.y, direction.y, rotatedFront.y);
       ##endif
-      gpuObjectsBuffer[(at + buffer_offset) * 4 + 0] = float4(right * scale, pos.x);
-      gpuObjectsBuffer[(at + buffer_offset) * 4 + 1] = float4(direction * scale, pos.y);
-      gpuObjectsBuffer[(at + buffer_offset) * 4 + 2] = float4(front * scale, pos.z);
+      bufferAt(gpuObjectsBuffer, (at + buffer_offset) * 4 + 0) = float4(right * scale, pos.x);
+      bufferAt(gpuObjectsBuffer, (at + buffer_offset) * 4 + 1) = float4(direction * scale, pos.y);
+      bufferAt(gpuObjectsBuffer, (at + buffer_offset) * 4 + 2) = float4(front * scale, pos.z);
       uint c = uint(color.x * 255) | (uint(color.y * 255) << 8) | (uint(color.z * 255) << 16) | (uint(color.w * 255) << 24);
-      gpuObjectsBuffer[(at + buffer_offset) * 4 + 3] = float4(asfloat(gpu_objects_ri_pool_id_offset), 0.0, asfloat(c), 0.0);
+      bufferAt(gpuObjectsBuffer, (at + buffer_offset) * 4 + 3) = float4(asfloat(gpu_objects_ri_pool_id_offset), 0.0, asfloat(c), 0.0);
 
       bbox_min = min(bbox_min, float4(pos - bounding_radius, 0));
       bbox_max = max(bbox_max, float4(pos + bounding_radius, 0));
@@ -1150,6 +1150,7 @@ shader gpu_obj_clear_counter_and_bbox_cs
 
 shader gpu_objects_on_rendinst_clean_cs
 {
+  ENABLE_ASSERT(cs)
   GPU_OBJECTS_CS_INSTANCE_DATA_BUFFER()
 
   (cs) {
@@ -1166,7 +1167,7 @@ shader gpu_objects_on_rendinst_clean_cs
       if (thread_id < count)
       {
         uint idx = instanceBuf[thread_id * 4 + 3].w;
-        counters[idx] = 0;
+        bufferAt(counters, idx) = 0;
       }
     }
   }
@@ -1206,10 +1207,10 @@ shader gpu_objects_gather_matrices_cs
         return;
       uint matrixOffset = (offsets[thread_id.x].y * max_in_cell + thread_id.y) * ROWS_IN_MATRIX;
       uint targetOffset = target_offset + (offsets[thread_id.x].x + thread_id.y) * ROWS_IN_MATRIX;
-      targetBuffer[targetOffset + 0] = matrices[matrixOffset + 0];
-      targetBuffer[targetOffset + 1] = matrices[matrixOffset + 1];
-      targetBuffer[targetOffset + 2] = matrices[matrixOffset + 2];
-      targetBuffer[targetOffset + 3] = matrices[matrixOffset + 3];
+      bufferAt(targetBuffer, targetOffset + 0) = bufferAt(matrices, matrixOffset + 0);
+      bufferAt(targetBuffer, targetOffset + 1) = bufferAt(matrices, matrixOffset + 1);
+      bufferAt(targetBuffer, targetOffset + 2) = bufferAt(matrices, matrixOffset + 2);
+      bufferAt(targetBuffer, targetOffset + 3) = bufferAt(matrices, matrixOffset + 3);
 
       #if GENERATE_BVH_INTANCES
         uint bvhIndex;

@@ -11,9 +11,11 @@ namespace shaders
 
 enum class ConstStateIdx : uint32_t
 {
+  Invalid = 0
 };
 enum class TexStateIdx : uint32_t
 {
+  Invalid = 0
 };
 
 } // namespace shaders

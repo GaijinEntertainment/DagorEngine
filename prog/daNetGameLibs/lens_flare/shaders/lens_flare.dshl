@@ -2,6 +2,8 @@ include "shader_global.dshl"
 include "gbuffer.dshl"
 include "use_volfog.dshl"
 include "fom_shadows.dshl"
+include "clouds_shadow.dshl"
+include "sky_shader_global.dshl"
 
 texture lens_flare_texture;
 buffer lens_flare_info_buf;
@@ -45,6 +47,9 @@ shader prepare_lens_flare
     USE_FOM_SHADOWS(cs)
   }
 
+  INIT_CLOUDS_SHADOW_BASE(-from_sun_direction.y, cs)
+  USE_CLOUDS_SHADOW_BASE(cs)
+
   (cs) {
     num_flares@i1 = (lens_flare_prepare_num_flares);
     flares_offset@i1 = (lens_flare_prepare_flares_offset);
@@ -53,8 +58,8 @@ shader prepare_lens_flare
     sun_color@f3 = (lens_flare_prepare_sun_color);
     fadeout_distance@f1 = (lens_flare_prepare_fadeout_distance);
     sun_tc@f2 = (lens_flare_prepare_sun_screen_tc);
-    depth_resolution@f2 = get_dimensions(depth_gbuf, 0);
     camera_pos@f3 = lens_flare_prepare_camera_pos;
+    clouds_shadow_influence@f1 = clouds_shadow_influence;
 
     preparedLights@uav = lens_flare_prepared_lights_buf hlsl {
       #include <lens_flare/shaders/lens_flare_info.hlsli>
@@ -90,7 +95,7 @@ shader prepare_lens_flare
 
       BRANCH
       if (use_occlusion > 0 && intensity > 0) {
-        float rawDepth = loadGbufferDepth(screenTc * depth_resolution);
+        float rawDepth = loadGbufferDepth(screenTc * gbuffer_depth_size_load);
         float depth = linearize_z(rawDepth, zn_zfar.zw);
         if (depth < zn_zfar.y)
           intensity = 0;
@@ -103,12 +108,13 @@ shader prepare_lens_flare
             intensity *= get_volumetric_light_sky(screenTc, screenTc).a;
           ##endif
 
-          ##if lens_flare_has_fom_shadows == yes
-            if (is_sun) {
+          if (is_sun) {
+            intensity *= saturate(pow(clouds_shadow(camera_pos), clouds_shadow_influence));
+            ##if lens_flare_has_fom_shadows == yes
               // The shadow is rendered from the sun's direction, so it only makes sense to apply to the sun.
               intensity *= getFOMShadow(camera_pos);
-            }
-          ##endif
+            ##endif
+          }
         }
       }
 

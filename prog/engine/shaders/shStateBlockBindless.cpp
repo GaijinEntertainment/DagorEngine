@@ -12,6 +12,8 @@
 #include <vecmath/dag_vecMath.h>
 
 #include "shStateBlock.h"
+#include "concurrentRangePool.h"
+#include "concurrentElementPool.h"
 
 using namespace shaders;
 
@@ -34,43 +36,66 @@ static constexpr uint32_t PACKED_STCODE_BITS = 12;
 static constexpr uint32_t BUFFER_BITS = 7;
 static constexpr uint32_t GLOBAL_STATE_BITS = 13;
 
-// TODO: generalize this to custom container that verifies invariant of non relocation on insertion
-using ConstantsContainer = NonRelocatableCont<Point4, MAX_CONST_BUFFER_SIZE>;
-using StatesContainer = eastl::deque<BindlessState, EASTLAllocatorType, 512>;
-using BuffersContainer = eastl::deque<Sbuffer *, EASTLAllocatorType, 512>; // TODO: Use BufPtr instead of pointer
+enum class PackedStcodeId : uint16_t
+{
+  Invalid = 0
+};
+
+enum class GlobalStateId : uint16_t
+{
+  Invalid = 0
+};
+
+enum class PackedBufferId : uint8_t
+{
+  Invalid = 0
+};
+
+using ConstantsContainer = ConcurrentRangePool<Point4, get_const_log2(MAX_CONST_BUFFER_SIZE), 8, true>;
+using StatesContainer = ConcurrentElementPool<GlobalStateId, BindlessState, 9, 6>;
+using BuffersContainer = ConcurrentElementPool<GlobalStateId, Sbuffer *, 9, 6>;
 
 static ConstantsContainer dataConsts;
 static StatesContainer all;          // first one is default
 static BuffersContainer allConstBuf; // parallel to all
-static eastl::deque<BindlessConstParams, EASTLAllocatorType, 8192> bindlessConstParams;
-static eastl::deque<BindlessTexRecord, EASTLAllocatorType, 1024> uniqBindlessTex;
+using BindlessConstParamsStorage = ConcurrentRangePool<BindlessConstParams, get_const_log2(MAX_CONST_BUFFER_SIZE)>;
+static BindlessConstParamsStorage bindlessConstParams;
+static ConcurrentElementPool<BindlessTexId, BindlessTexRecord, 10> uniqBindlessTex;
 static OSSpinlock mutex;
 
-constexpr uint8_t INVALID_MAT_ID = UCHAR_MAX;
-static eastl::deque<eastl::remove_const_t<decltype(INVALID_MAT_ID)>, EASTLAllocatorType, 2048> stcodeIdToPacked;
+// NOTE: the "default" state is considered to be non-packed
+static_assert(DEFAULT_BINDLESS_CONST_STATE_ID == static_cast<ConstStateIdx>(decltype(all)::FIRST_ID));
+static_assert(DEFAULT_BINDLESS_CONST_STATE_ID == static_cast<ConstStateIdx>(decltype(allConstBuf)::FIRST_ID));
+
+static eastl::deque<PackedStcodeId, EASTLAllocatorType, 2048> stcodeIdToPacked;
+
+using PackedBuffersContainer = ConcurrentElementPool<PackedBufferId, Sbuffer *, 2, 5>;
 
 template <typename T>
-using PackedCont = eastl::deque<T, EASTLAllocatorType, 32>;
+using PackedCont = ConcurrentElementPool<PackedStcodeId, T, 5, 6>;
 static PackedCont<StatesContainer> packedAll;
 static PackedCont<ConstantsContainer> packedDataConsts;
-static PackedCont<eastl::deque<Sbuffer *, EASTLAllocatorType, 4>> packedConstBuf;
+static PackedCont<PackedBuffersContainer> packedConstBuf;
 static PackedCont<eastl::bitset<1 << BUFFER_BITS>> bufferNeedsUpdate;
 
-static uint32_t allocate_packed_cell(int stcode_id)
+static ConstantsContainer::ChunkIdx packed_buffer_id_to_chunk(PackedBufferId buffer_id)
+{
+  return static_cast<ConstantsContainer::ChunkIdx>(PackedBuffersContainer::to_index(buffer_id));
+}
+
+static PackedStcodeId allocate_packed_cell(int stcode_id)
 {
   G_FAST_ASSERT(stcode_id >= 0);
 
   if (stcodeIdToPacked.size() <= stcode_id)
-    stcodeIdToPacked.resize(stcode_id + 1, INVALID_MAT_ID);
+    stcodeIdToPacked.resize(stcode_id + 1, PackedStcodeId::Invalid);
 
-  if (stcodeIdToPacked[stcode_id] == INVALID_MAT_ID)
+  if (stcodeIdToPacked[stcode_id] == PackedStcodeId::Invalid)
   {
-    uint32_t cellId = packedDataConsts.size();
-    packedDataConsts.push_back();
-    packedConstBuf.resize(cellId + 1);
-    packedAll.resize(cellId + 1);
-    bufferNeedsUpdate.resize(cellId + 1);
-    G_ASSERTF(cellId < INVALID_MAT_ID, "!(%d < %d)", cellId, INVALID_MAT_ID);
+    const auto cellId = packedDataConsts.allocate();
+    packedConstBuf.ensureSpace(cellId);
+    packedAll.ensureSpace(cellId);
+    bufferNeedsUpdate.ensureSpace(cellId);
     stcodeIdToPacked[stcode_id] = cellId;
   }
 
@@ -117,27 +142,31 @@ class PackedConstsState
   eastl::underlying_type_t<ConstStateIdx> stateId;
 
 public:
-  PackedConstsState(int packed_stcode_id, uint32_t buffer_id, uint32_t global_state_id)
+  PackedConstsState(PackedStcodeId packed_stcode_id, PackedBufferId buffer_id, GlobalStateId global_state_id)
   {
-    G_ASSERTF(packed_stcode_id < (1 << PACKED_STCODE_BITS), "PackedConstsState: packed_stcode_id=%d", packed_stcode_id);
-    G_ASSERTF(buffer_id < (1 << BUFFER_BITS), "PackedConstsState: buffer_id=%" PRIu32, buffer_id);
-    G_ASSERTF(global_state_id < (1 << GLOBAL_STATE_BITS),
-      "PackedConstsState: global_state_id=%" PRIu32 ". (Hint: check if too many materials are created!)", global_state_id);
+    const auto packedStcodeId = eastl::to_underlying(packed_stcode_id);
+    const auto bufferId = eastl::to_underlying(buffer_id);
+    const auto globalStateId = eastl::to_underlying(global_state_id);
 
-    stateId = (packed_stcode_id < 0)
-                ? global_state_id
-                : (((((uint32_t)(packed_stcode_id + 1) << BUFFER_BITS) | buffer_id) << GLOBAL_STATE_BITS) | global_state_id);
+    G_ASSERTF(packedStcodeId < (1 << PACKED_STCODE_BITS), "PackedConstsState: packed_stcode_id=%u", packedStcodeId);
+    G_ASSERTF(bufferId < (1 << BUFFER_BITS), "PackedConstsState: buffer_id=%u", bufferId);
+    G_ASSERTF(globalStateId < (1 << GLOBAL_STATE_BITS),
+      "PackedConstsState: local_state_id=%u. (Hint: check if too many materials are created!)", globalStateId);
+
+    stateId = (packed_stcode_id == PackedStcodeId::Invalid)
+                ? globalStateId
+                : (((((uint32_t)(packedStcodeId) << BUFFER_BITS) | bufferId) << GLOBAL_STATE_BITS) | globalStateId);
   }
 
-  PackedConstsState(ConstStateIdx state) : stateId(eastl::to_underlying(state)) {}
+  /*implicit*/ PackedConstsState(ConstStateIdx state) : stateId(eastl::to_underlying(state)) {}
 
-  int getPackedStcodeId() const { return (int)(stateId >> (GLOBAL_STATE_BITS + BUFFER_BITS)) - 1; }
+  PackedStcodeId getPackedStcodeId() const { return static_cast<PackedStcodeId>((stateId >> (GLOBAL_STATE_BITS + BUFFER_BITS))); }
 
-  uint32_t getGlobalStateId() const { return stateId & ((1 << GLOBAL_STATE_BITS) - 1); }
+  GlobalStateId getGlobalStateId() const { return static_cast<GlobalStateId>(stateId & ((1 << GLOBAL_STATE_BITS) - 1)); }
 
   uint32_t getLocalStateOffset() const;
 
-  uint32_t getBufferId() const { return (stateId >> GLOBAL_STATE_BITS) & ((1 << BUFFER_BITS) - 1); }
+  PackedBufferId getBufferId() const { return static_cast<PackedBufferId>((stateId >> GLOBAL_STATE_BITS) & ((1 << BUFFER_BITS) - 1)); }
 
   uint32_t getMaterialId() const { return (stateId >> GLOBAL_STATE_BITS) & ((1 << (PACKED_STCODE_BITS + BUFFER_BITS)) - 1); }
 
@@ -146,17 +175,19 @@ public:
 
 struct BindlessState
 {
-  uint32_t bindlessTexStart, constsStart; // Note: not indexes, might have higher bits set
-  uint8_t bindlessTexCount, constsCount;
+  BindlessConstParamsStorage::Range params;
+  ConstantsContainer::Range consts;
 
   template <typename IterCb>
   void iterateBindlessRange(ConstantsContainer &container, const IterCb &callback)
   {
-    for (auto it = begin(bindlessConstParams) + bindlessTexStart, ite = it + bindlessTexCount; it != ite; ++it)
+    const auto paramsView = bindlessConstParams.view(params);
+    const auto constsView = container.view(consts);
+
+    for (const auto &params : paramsView)
     {
-      const BindlessConstParams &constParams = *it;
-      BindlessTexRecord &texRecord = uniqBindlessTex[constParams.texId];
-      IPoint4 &bindlessConsts = *reinterpret_cast<IPoint4 *>(&container[constsStart + constParams.constIdx]);
+      BindlessTexRecord &texRecord = uniqBindlessTex[params.texId];
+      IPoint4 &bindlessConsts = *reinterpret_cast<IPoint4 *>(&constsView[params.constIdx]);
       callback(texRecord, bindlessConsts);
     }
   }
@@ -164,16 +195,21 @@ struct BindlessState
   void updateTexForPackedMaterial(ConstStateIdx self_idx, int tex_level)
   {
     PackedConstsState stateId(self_idx);
-    const int packedId = stateId.getPackedStcodeId();
-    G_ASSERT(packedId != -1);
+    const PackedStcodeId packedId = stateId.getPackedStcodeId();
+    G_ASSERT(packedId != PackedStcodeId::Invalid);
+
+    // Material has no constants => no bindless textures => nothing to update
+    if (stateId.getBufferId() == PackedBufferId::Invalid)
+      return;
 
     Sbuffer *constBuf = packedConstBuf[packedId][stateId.getBufferId()];
     if (!constBuf)
       return;
-    const uint32_t frameNo = bindlessTexCount == 0 ? 0 : dagor_frame_no(); // We use frame no only if bindless textures are used, so
-                                                                           // set it to 0 otherwise.
 
-    iterateBindlessRange(packedDataConsts[packedId], [tex_level, frameNo](BindlessTexRecord &tex_record, IPoint4 &bindless_consts) {
+    // We use frame no only if bindless textures are used, so set it to 0 otherwise.
+    const uint32_t frameNo = BindlessConstParamsStorage::range_size(params) == 0 ? 0 : dagor_frame_no();
+
+    iterateBindlessRange(packedDataConsts[packedId], [tex_level, frameNo](BindlessTexRecord &tex_record, const IPoint4 &) {
       if (tex_record.texId == BAD_TEXTUREID)
       {
         update_tex_record_bindless_slot_to_null(tex_record, frameNo);
@@ -201,30 +237,30 @@ struct BindlessState
       }
     });
 
-    if (bufferNeedsUpdate[packedId].test(stateId.getBufferId()))
+    if (bufferNeedsUpdate[packedId].test(eastl::to_underlying(stateId.getBufferId())))
     {
-      bufferNeedsUpdate[packedId].reset(stateId.getBufferId());
-      uint32_t beginIdx = stateId.getBufferId() * MAX_CONST_BUFFER_SIZE;
+      bufferNeedsUpdate[packedId].reset(eastl::to_underlying(stateId.getBufferId()));
       const auto &dataConsts = packedDataConsts[packedId];
-      uint32_t beginId = dataConsts.indexToId(beginIdx);
-      uint32_t count = min(dataConsts.countInSubArray(beginId), MAX_CONST_BUFFER_SIZE);
-      if (count > 0)
-        constBuf->updateData(0, count * sizeof(Point4), &dataConsts[beginId], VBLOCK_DISCARD);
+      const auto chunk = packed_buffer_id_to_chunk(stateId.getBufferId());
+      const auto chunkView = dataConsts.viewChunk(chunk);
+      G_FAST_ASSERT(chunkView.size() <= MAX_CONST_BUFFER_SIZE);
+      constBuf->updateData(0, chunkView.size_bytes(), chunkView.data(), VBLOCK_DISCARD);
     }
   }
 
-  void resetPackedSamplers(uint32_t collection_id)
+  void resetPackedSamplers(PackedStcodeId collection_id)
   {
     iterateBindlessRange(packedDataConsts[collection_id], [](BindlessTexRecord &tex_record, IPoint4 &bindless_consts) {
       bindless_consts.y = register_bindless_sampler(tex_record.texId, true);
     });
 
-    for (size_t bufferId = 0; bufferId < packedConstBuf[collection_id].size(); ++bufferId)
-      if (packedConstBuf[collection_id][bufferId])
-        bufferNeedsUpdate[collection_id].set(bufferId);
+    packedConstBuf[collection_id].iterateWithIds([collection_id](PackedBufferId bufferId, Sbuffer *buf) {
+      if (buf)
+        bufferNeedsUpdate[collection_id].set(eastl::to_underlying(bufferId));
+    });
   }
 
-  void resetSamplers(uint32_t self_idx)
+  void resetSamplers(GlobalStateId self_idx)
   {
     Sbuffer *constBuf = allConstBuf[self_idx];
     if (!constBuf)
@@ -232,15 +268,20 @@ struct BindlessState
     iterateBindlessRange(dataConsts, [](BindlessTexRecord &tex_record, IPoint4 &bindless_consts) {
       bindless_consts.y = register_bindless_sampler(tex_record.texId, true);
     });
-    if (constsCount)
-      constBuf->updateData(0, constsCount * sizeof(Point4), &dataConsts[constsStart], VBLOCK_DISCARD);
+    const auto constsView = dataConsts.view(consts);
+    if (!constsView.empty())
+      constBuf->updateData(0, constsView.size_bytes(), constsView.data(), VBLOCK_DISCARD);
   }
 
   void applyPackedMaterial(ConstStateIdx self_idx)
   {
     PackedConstsState stateId(self_idx);
-    const int packedId = stateId.getPackedStcodeId();
-    G_ASSERT(packedId != -1);
+    const PackedStcodeId packedId = stateId.getPackedStcodeId();
+    G_ASSERT(packedId != PackedStcodeId::Invalid);
+
+    // Material has no constants
+    if (stateId.getBufferId() == PackedBufferId::Invalid)
+      return;
 
     Sbuffer *constBuf = packedConstBuf[packedId][stateId.getBufferId()];
     if (!constBuf)
@@ -253,15 +294,14 @@ struct BindlessState
   void apply(ConstStateIdx self_idx, int tex_level)
   {
     PackedConstsState stateId(self_idx);
-    const int stcode_id = stateId.getPackedStcodeId();
-    G_ASSERT(stcode_id == -1);
+    G_ASSERT(stateId.getPackedStcodeId() == PackedStcodeId::Invalid);
 
     Sbuffer *constBuf = allConstBuf[stateId.getGlobalStateId()];
     if (!constBuf)
       return;
-    const uint32_t frameNo = bindlessTexCount == 0 ? 0 : dagor_frame_no(); // We use frame no only if bindless textures are used, so
-                                                                           // set it to 0 otherwise.
-    bool requireToUpdateConstBuf = false;
+
+    // We use frame no only if bindless textures are used, so set it to 0 otherwise.
+    const uint32_t frameNo = BindlessConstParamsStorage::range_size(params) == 0 ? 0 : dagor_frame_no();
 
     iterateBindlessRange(dataConsts, [frameNo, tex_level](BindlessTexRecord &tex_record, IPoint4 &bindless_consts) {
       if (tex_record.texId == BAD_TEXTUREID)
@@ -290,10 +330,10 @@ struct BindlessState
 
   void reqTexLevel(int tex_level)
   {
-    for (auto it = begin(bindlessConstParams) + bindlessTexStart, ite = it + bindlessTexCount; it != ite; ++it)
+    const auto paramsView = bindlessConstParams.view(params);
+    for (const auto &params : paramsView)
     {
-      const BindlessConstParams &constParams = *it;
-      BindlessTexRecord &texRecord = uniqBindlessTex[constParams.texId];
+      BindlessTexRecord &texRecord = uniqBindlessTex[params.texId];
       if (texRecord.texId == BAD_TEXTUREID)
         continue;
 
@@ -306,132 +346,156 @@ struct BindlessState
   }
 
   static ConstStateIdx create(const BindlessConstParams *bindless_data, uint8_t bindless_count, const Point4 *consts_data,
-    uint8_t consts_count, dag::Span<uint32_t> addedBindlessTextures, int stcode_id = -1)
+    uint8_t consts_count, dag::ConstSpan<uint32_t> added_bindless_textures, int stcode_id)
   {
     G_FAST_ASSERT(stcode_id >= -1);
 
     OSSpinlockScopedLock lock(mutex);
     const bool usePackedConstants = stcode_id >= 0;
 
-    uint32_t packedId = usePackedConstants ? allocate_packed_cell(stcode_id) : INVALID_MAT_ID;
-    auto &dataConstToAdd = usePackedConstants ? packedDataConsts[packedId] : dataConsts;
-    auto &states = usePackedConstants ? packedAll[packedId] : all;
-    auto foundIt = eastl::find_if(begin(states), end(states), [&](const BindlessState &c) {
-      if (c.bindlessTexCount != bindless_count || c.constsCount != consts_count)
-        return false;
-      if (!eastl::equal(bindless_data, bindless_data + bindless_count, begin(bindlessConstParams) + c.bindlessTexStart))
-        return false;
+    const PackedStcodeId packedId = usePackedConstants ? allocate_packed_cell(stcode_id) : PackedStcodeId::Invalid;
+    auto &constsStorage = usePackedConstants ? packedDataConsts[packedId] : dataConsts;
+    auto &paramsStorage = usePackedConstants ? packedAll[packedId] : all;
 
-      auto p4btcmp = [](const Point4 &a, const Point4 &b) {
-        return v_signmask(v_cmp_eqi(v_ld(&a.x), v_ld(&b.x))) == 15; // bitwise compare to be able collapse bitwise-identical NaNs
-      };
-      uint32_t beginConst = 0;
-      // if there are exist bindless resources we compare all dataConstToAdd ranges EXCEPT bindless ones,
-      // since it might not be applied yet (register_bindless_sampler isn't called)
-      for (uint32_t i = c.bindlessTexStart, ie = i + bindless_count; i < ie; ++i)
-      {
-        uint32_t endConst = bindlessConstParams[i].constIdx;
-        if (!eastl::equal(consts_data + beginConst, consts_data + endConst, &dataConstToAdd[c.constsStart + beginConst], p4btcmp))
+    {
+      const auto found = paramsStorage.findIf([&](const BindlessState &c) {
+        const auto paramsView = bindlessConstParams.view(c.params);
+        const auto constsView = constsStorage.view(c.consts);
+
+        if (paramsView.size() != bindless_count || constsView.size() != consts_count)
           return false;
-        beginConst = endConst + 1;
+
+        if (!eastl::equal(bindless_data, bindless_data + bindless_count, paramsView.begin()))
+          return false;
+
+        auto p4btcmp = [](const Point4 &a, const Point4 &b) {
+          // bitwise compare to be able collapse bitwise-identical NaNs
+          return v_signmask(v_cmp_eqi(v_ld(&a.x), v_ld(&b.x))) == 15;
+        };
+        uint32_t beginConst = 0;
+        // if there are exist bindless resources we compare all dataConstToAdd ranges EXCEPT bindless ones,
+        // since it might not be applied yet (register_bindless_sampler isn't called)
+        for (uint32_t i = 0; i < bindless_count; ++i)
+        {
+          uint32_t endConst = paramsView[i].constIdx;
+          if (!eastl::equal(consts_data + beginConst, consts_data + endConst, constsView.data() + beginConst, p4btcmp))
+            return false;
+          beginConst = endConst + 1;
+        }
+        return eastl::equal(consts_data + beginConst, consts_data + consts_count, constsView.data() + beginConst, p4btcmp);
+      });
+
+      if (found != GlobalStateId::Invalid)
+      {
+        const PackedBufferId bufferId =
+          consts_count == 0
+            ? PackedBufferId::Invalid
+            : PackedBuffersContainer::from_index(eastl::to_underlying(constsStorage.chunkOf(paramsStorage[found].consts)));
+        if (consts_count != 0 && stcode_id >= 0)
+          bufferNeedsUpdate[packedId].set(eastl::to_underlying(bufferId));
+        return PackedConstsState(stcode_id < 0 ? PackedStcodeId::Invalid : packedId, bufferId, found);
       }
-      return eastl::equal(consts_data + beginConst, consts_data + consts_count, &dataConstToAdd[c.constsStart + beginConst], p4btcmp);
-    });
-    if (foundIt != end(states))
-    {
-      const uint32_t globalStateId = eastl::distance(begin(states), foundIt);
-      const uint32_t bufferId = consts_count == 0 ? 0 : (globalStateId / (MAX_CONST_BUFFER_SIZE / consts_count));
-      if (consts_count != 0 && stcode_id >= 0)
-        bufferNeedsUpdate[packedId].set(bufferId);
-      return PackedConstsState(stcode_id < 0 ? -1 : packedId, bufferId, globalStateId);
     }
 
-    uint32_t bid = bindlessConstParams.size();
+    BindlessConstParamsStorage::Range ourParamsRangeFirstId;
 
-    if (addedBindlessTextures.empty())
-      bindlessConstParams.insert(bindlessConstParams.end(), bindless_data, bindless_data + bindless_count);
+    if (added_bindless_textures.empty())
+    {
+      ourParamsRangeFirstId = bindlessConstParams.allocate(bindless_count);
+      const auto view = bindlessConstParams.view(ourParamsRangeFirstId);
+      eastl::copy(bindless_data, bindless_data + bindless_count, view.begin());
+    }
     else
-      bindlessConstParams.resize(bindlessConstParams.size() + bindless_count);
-    auto bdata = begin(bindlessConstParams) + bid;
-    if (!addedBindlessTextures.empty())
     {
-      uint32_t brange = d3d::allocate_bindless_resource_range(RES3D_TEX, addedBindlessTextures.size());
-      for (auto &tex : addedBindlessTextures)
+      ourParamsRangeFirstId = bindlessConstParams.allocate(bindless_count);
+
+      dag::Vector<BindlessTexId, framemem_allocator> addedBindlessTexIds;
       {
-        uniqBindlessTex.push_back(BindlessTexRecord{TEXTUREID(tex), brange++, 0, 0});
-        tex = uniqBindlessTex.size() - 1;
+        uint32_t brange = d3d::allocate_bindless_resource_range(RES3D_TEX, added_bindless_textures.size());
+        for (const auto &tex : added_bindless_textures)
+        {
+          addedBindlessTexIds.push_back(uniqBindlessTex.allocate());
+          uniqBindlessTex[addedBindlessTexIds.back()] = BindlessTexRecord{TEXTUREID(tex), brange++, 0, 0};
+        }
       }
 
-      auto bdataToFill = bdata;
-      uint32_t j = 0;
-      for (auto it = bindless_data, end = bindless_data + bindless_count; it != end; ++it, ++bdataToFill)
       {
-        if (it->texId >= 0)
-          *bdataToFill = *it;
-        else
-          *bdataToFill = BindlessConstParams{it->constIdx, (int)addedBindlessTextures[j++]};
+        uint32_t j = 0;
+        auto it = bindless_data;
+        const auto view = bindlessConstParams.view(ourParamsRangeFirstId);
+        for (auto &bcp : view)
+        {
+          if (it->texId != BindlessTexId::Invalid)
+            bcp = *it;
+          else
+            bcp = BindlessConstParams{it->constIdx, addedBindlessTexIds[j++]};
+          ++it;
+        }
+        G_FAST_ASSERT(j == addedBindlessTexIds.size());
+        G_FAST_ASSERT(it == bindless_data + bindless_count);
       }
-      G_FAST_ASSERT(j == addedBindlessTextures.size());
     }
+
 #ifdef _DEBUG_TAB_
-    for (auto it = bdata, ite = it + bindless_count; it != ite; ++it)
-      G_FAST_ASSERT(it->constIdx < consts_count);
-#endif
-    // Align to 4K blocks for 2nd and further subarrays
-    const uint32_t cBufferAlignment = usePackedConstants ? MAX_CONST_BUFFER_SIZE : 1;
-    if ((dataConstToAdd.getTotalCount() + consts_count) % cBufferAlignment != 0 &&
-        dataConstToAdd.getTotalCount() / cBufferAlignment != (dataConstToAdd.getTotalCount() + consts_count) / cBufferAlignment)
-      dataConstToAdd.append(nullptr, cBufferAlignment - dataConstToAdd.getTotalCount() % cBufferAlignment);
-    uint32_t did = dataConstToAdd.append(consts_data, consts_count);
-#if DAGOR_DBGLEVEL > 0
-    // If NonRelocatableCont's subarrays gets re-allocated then all thread safety guarantees are lost.
-    // Investigate why did it happened - it's either bad merge of consts or perhaps subarray size need to be increased.
-    if (DAGOR_UNLIKELY(dataConstToAdd.getTotalCount() >= dataConstToAdd.MaxNonRelocatableContSize))
-      logerr("Overflow thread-safe bindless data consts limit @ %d, subArraySize=%d, states[%d].size=%d, bindlessConstParams.size=%d",
-        dataConstToAdd.getTotalCount(), dataConstToAdd.MaxNonRelocatableContSize, packedId, states.size(), bindlessConstParams.size());
-#endif
-    auto cdata = &dataConstToAdd[did];
-    for (auto it = bdata, ite = it + bindless_count; it != ite; ++it)
     {
-      cdata[it->constIdx].x = bitwise_cast<float, uint32_t>(uniqBindlessTex[it->texId].bindlessId);
-      cdata[it->constIdx].y = bitwise_cast<float, uint32_t>(register_bindless_sampler(uniqBindlessTex[it->texId].texId));
+      const auto view = bindlessConstParams.view(ourParamsRangeFirstId);
+      for (const auto &bcp : view)
+        G_FAST_ASSERT(bcp.constIdx < consts_count);
     }
-    uint32_t id = states.size();
-    states.push_back(BindlessState{bid, did, bindless_count, consts_count});
-    uint32_t bufferId = 0;
+#endif
+
+    const auto ourConstsRangeFirstId = constsStorage.allocate(consts_count);
+    const auto constsView = constsStorage.view(ourConstsRangeFirstId);
+    eastl::copy(consts_data, consts_data + consts_count, constsView.begin());
+
+    {
+      auto constsView = constsStorage.view(ourConstsRangeFirstId);
+      auto paramsView = bindlessConstParams.view(ourParamsRangeFirstId);
+      for (const auto &bcp : paramsView)
+      {
+        constsView[bcp.constIdx].x = bitwise_cast<float, uint32_t>(uniqBindlessTex[bcp.texId].bindlessId);
+        constsView[bcp.constIdx].y = bitwise_cast<float, uint32_t>(register_bindless_sampler(uniqBindlessTex[bcp.texId].texId));
+      }
+    }
+
+    const GlobalStateId id = paramsStorage.allocate();
+    paramsStorage[id] = BindlessState{ourParamsRangeFirstId, ourConstsRangeFirstId};
+    PackedBufferId bufferId = PackedBufferId::Invalid;
     if (!usePackedConstants)
     {
-      G_FAST_ASSERT(allConstBuf.size() == id);
-      allConstBuf.push_back(nullptr);
+      allConstBuf.allocate();
+      G_FAST_ASSERT(allConstBuf.totalElements() == paramsStorage.totalElements());
     }
-    else
+    else if (consts_count > 0)
     {
-      bufferId = ConstantsContainer::idToIndex(did) / MAX_CONST_BUFFER_SIZE;
-      packedConstBuf[packedId].resize(bufferId + 1);
-      bufferNeedsUpdate[packedId].set(bufferId);
+      bufferId = PackedBuffersContainer::from_index(eastl::to_underlying(constsStorage.chunkOf(ourConstsRangeFirstId)));
+      packedConstBuf[packedId].ensureSpace(bufferId);
+      bufferNeedsUpdate[packedId].set(eastl::to_underlying(bufferId));
     }
-    return PackedConstsState(stcode_id < 0 ? -1 : packedId, bufferId, id);
+    return PackedConstsState(stcode_id < 0 ? PackedStcodeId::Invalid : packedId, bufferId, id);
   }
   static void clear()
   {
     dataConsts.clear();
-    decltype(bindlessConstParams)().swap(bindlessConstParams);
-    decltype(all)().swap(all);
-    all.push_back(BindlessState{0, 0, 0, 0});
-    eastl::for_each(begin(allConstBuf), end(allConstBuf), [](auto &s) { destroy_d3dres(s); });
-    decltype(allConstBuf)().swap(allConstBuf);
-    allConstBuf.push_back(nullptr);
+    bindlessConstParams.clear();
+    all.clear();
+    all[all.allocate()] = BindlessState{BindlessConstParamsStorage::Range::Empty, ConstantsContainer::Range::Empty};
+    for (auto &buf : allConstBuf)
+      destroy_d3dres(buf);
+    allConstBuf.clear();
+    allConstBuf.allocate();
     packedDataConsts.clear();
-    for (auto &buffers : packedConstBuf)
-      for (auto &buffer : buffers)
-        destroy_d3dres(buffer);
-    decltype(packedConstBuf)().swap(packedConstBuf);
-    decltype(packedAll)().swap(packedAll);
-    if (uniqBindlessTex.size())
+    for (auto &bufs : packedConstBuf)
+      for (auto buf : bufs)
+        destroy_d3dres(buf);
+    packedConstBuf.clear();
+    packedAll.clear();
+    if (uniqBindlessTex.totalElements() > 0)
     {
-      eastl::fixed_vector<eastl::pair<uint32_t, uint32_t>, 1, true, framemem_allocator> ranges;
+      dag::Vector<eastl::pair<uint32_t, uint32_t>, framemem_allocator> ranges;
       int rfirst = -1, rlast = -1;
-      eastl::for_each(begin(uniqBindlessTex), end(uniqBindlessTex), [&](const BindlessTexRecord &btr) {
+      for (const auto &btr : uniqBindlessTex)
+      {
         if (rfirst < 0)
           rfirst = rlast = (int)btr.bindlessId;
         else if (rlast + 1 == (int)btr.bindlessId)
@@ -441,27 +505,30 @@ struct BindlessState
           ranges.emplace_back(rfirst, (rlast - rfirst + 1));
           rfirst = -1;
         }
-      });
+      }
       if (rfirst >= 0)
         ranges.emplace_back(rfirst, (rlast - rfirst + 1));
       for (int i = ranges.size() - 1; i >= 0; --i)
         d3d::free_bindless_resource_range(RES3D_TEX, ranges[i].first, ranges[i].second);
-      decltype(uniqBindlessTex)().swap(uniqBindlessTex);
+      uniqBindlessTex.clear();
     }
-    decltype(stcodeIdToPacked)().swap(stcodeIdToPacked);
+    stcodeIdToPacked.clear();
   }
 
   static void preparePackedConstBuf(ConstStateIdx idx)
   {
     PackedConstsState stateId(idx);
-    const int packedId = stateId.getPackedStcodeId();
-    G_ASSERT(packedId != -1);
+    const PackedStcodeId packedId = stateId.getPackedStcodeId();
+    G_ASSERT(packedId != PackedStcodeId::Invalid);
+
+    if (stateId.getBufferId() == PackedBufferId::Invalid)
+      return;
 
     const BindlessState &state = packedAll[packedId][stateId.getGlobalStateId()];
     auto &constBuffer = packedConstBuf[packedId][stateId.getBufferId()];
-    if (!interlocked_acquire_load_ptr(constBuffer) && state.constsCount)
+    if (ConstantsContainer::range_size(state.consts) > 0 && !interlocked_acquire_load_ptr(constBuffer))
     {
-      String s(0, "staticCbuf%d_%d", packedId, stateId.getBufferId());
+      String s(0, "staticCbuf%d_%d", eastl::to_underlying(packedId), eastl::to_underlying(stateId.getBufferId()));
       Sbuffer *constBuf = create_static_cb(MAX_CONST_BUFFER_SIZE, s.c_str());
       if (!constBuf)
       {
@@ -475,32 +542,34 @@ struct BindlessState
 
   static void prepareConstBuf(ConstStateIdx const_state_idx)
   {
+    // NOTE: when packing is not used, the const_state_idx bytes are all for the global state id
     const auto idx = eastl::to_underlying(const_state_idx);
-    const BindlessState &state = all[idx];
-    if (!interlocked_acquire_load_ptr(allConstBuf[idx]) && state.constsCount)
+    const BindlessState &state = all[static_cast<GlobalStateId>(idx)];
+    auto &constBuffer = allConstBuf[static_cast<GlobalStateId>(idx)];
+    if (ConstantsContainer::range_size(state.consts) > 0 && !interlocked_acquire_load_ptr(constBuffer))
     {
+      const auto constsView = dataConsts.view(state.consts);
       String s(0, "staticCbuf%d", idx);
-      Sbuffer *constBuf = create_static_cb(state.constsCount, s.c_str());
+      Sbuffer *constBuf = create_static_cb(constsView.size(), s.c_str());
       if (!constBuf)
       {
         logerr("Could not create Sbuffer for const buf.");
         return;
       }
-      constBuf->updateData(0, state.constsCount * sizeof(Point4), &dataConsts[state.constsStart], VBLOCK_DISCARD);
-      if (DAGOR_UNLIKELY(interlocked_compare_exchange_ptr(allConstBuf[idx], constBuf, (Sbuffer *)nullptr) != nullptr))
+      constBuf->updateData(0, constsView.size_bytes(), constsView.data(), VBLOCK_DISCARD);
+      if (DAGOR_UNLIKELY(interlocked_compare_exchange_ptr(constBuffer, constBuf, (Sbuffer *)nullptr) != nullptr))
         constBuf->destroy(); // unlikely case when other thread created/written buffer for this slot first
     }
   }
 
-  static int find_or_add_bindless_tex(TEXTUREID tid, added_bindless_textures_t &addedBindlessTextures)
+  static BindlessTexId find_or_add_bindless_tex(TEXTUREID tid, added_bindless_textures_t &added_bindless_textures)
   {
     OSSpinlockScopedLock lock(mutex);
-    auto it =
-      eastl::find_if(begin(uniqBindlessTex), end(uniqBindlessTex), [=](const BindlessTexRecord &rec) { return rec.texId == tid; });
-    if (it != end(uniqBindlessTex))
-      return eastl::distance(begin(uniqBindlessTex), it);
-    addedBindlessTextures.push_back((uint32_t)tid);
-    return -1;
+    const auto id = uniqBindlessTex.findIf([tid](const BindlessTexRecord &rec) { return rec.texId == tid; });
+    if (id != BindlessTexId::Invalid)
+      return id;
+    added_bindless_textures.push_back((uint32_t)tid);
+    return BindlessTexId::Invalid;
   }
 
 private:
@@ -514,7 +583,7 @@ private:
 };
 
 ShaderStateBlock create_bindless_state(const BindlessConstParams *bindless_data, uint8_t bindless_count, const Point4 *consts_data,
-  uint8_t consts_count, dag::Span<uint32_t> added_bindless_textures, bool static_block, int stcode_id)
+  uint8_t consts_count, dag::ConstSpan<uint32_t> added_bindless_textures, bool static_block, int stcode_id)
 {
   ShaderStateBlock block;
   block.constIdx = BindlessState::create(bindless_data, bindless_count, consts_data, consts_count, added_bindless_textures, stcode_id);
@@ -531,8 +600,8 @@ ShaderStateBlock create_bindless_state(const BindlessConstParams *bindless_data,
 void apply_bindless_state(ConstStateIdx const_state_idx, int tex_level)
 {
   const PackedConstsState state(const_state_idx);
-  const int packedStcodeId = state.getPackedStcodeId();
-  if (packedStcodeId >= 0)
+  const PackedStcodeId packedStcodeId = state.getPackedStcodeId();
+  if (packedStcodeId != PackedStcodeId::Invalid)
     packedAll[packedStcodeId][state.getGlobalStateId()].applyPackedMaterial(const_state_idx);
   else
     all[state.getGlobalStateId()].apply(const_state_idx, tex_level);
@@ -543,28 +612,28 @@ void clear_bindless_states() { BindlessState::clear(); }
 void req_tex_level_bindless(ConstStateIdx const_state_idx, int tex_level)
 {
   const PackedConstsState state(const_state_idx);
-  const int packedStcodeId = state.getPackedStcodeId();
-  if (packedStcodeId < 0)
+  const PackedStcodeId packedStcodeId = state.getPackedStcodeId();
+  if (packedStcodeId == PackedStcodeId::Invalid)
     all[state.getGlobalStateId()].reqTexLevel(tex_level);
 }
 
-int find_or_add_bindless_tex(TEXTUREID tid, added_bindless_textures_t &added_bindless_textures)
+BindlessTexId find_or_add_bindless_tex(TEXTUREID tid, added_bindless_textures_t &added_bindless_textures)
 {
   return BindlessState::find_or_add_bindless_tex(tid, added_bindless_textures);
 }
 
-void dump_bindless_states_stat() { debug(" %d bindless states (%d total)", all.size(), dataConsts.getTotalCount()); }
+void dump_bindless_states_stat() { debug(" %d bindless states (%d total)", all.totalElements(), dataConsts.totalElements()); }
 
 void update_bindless_state(ConstStateIdx const_state_idx, int tex_level)
 {
   const PackedConstsState state(const_state_idx);
-  G_ASSERT(state.getPackedStcodeId() >= 0);
+  G_ASSERT(state.getPackedStcodeId() != PackedStcodeId::Invalid);
   packedAll[state.getPackedStcodeId()][state.getGlobalStateId()].updateTexForPackedMaterial(const_state_idx, tex_level);
 }
 
 uint32_t PackedConstsState::getLocalStateOffset() const
 {
-  const uint32_t constsCount = packedAll[getPackedStcodeId()][getGlobalStateId()].constsCount;
+  const uint32_t constsCount = ConstantsContainer::range_size(packedAll[getPackedStcodeId()][getGlobalStateId()].consts);
   if (!constsCount)
     return 0;
   // NOTE: the secret knowledge here is that for each packedStcodeId we have a set of materials with
@@ -573,13 +642,14 @@ uint32_t PackedConstsState::getLocalStateOffset() const
   // and then interpret these buffers as a T[MAX_CONST_BUFFER_SIZE/constsCount] inside of shaders, where
   // sizeof(T) = constsCount. A "local offset" is the offset into this structured buffer that should be used
   // by shaders, and it is calculated as follows.
-  return getGlobalStateId() - (MAX_CONST_BUFFER_SIZE / constsCount) * getBufferId();
+  return StatesContainer::to_index(getGlobalStateId()) -
+         (MAX_CONST_BUFFER_SIZE / constsCount) * PackedBuffersContainer::to_index(getBufferId());
 }
 
 uint32_t get_material_offset(ConstStateIdx const_state_idx)
 {
   const PackedConstsState state(const_state_idx);
-  G_ASSERT(state.getPackedStcodeId() >= 0);
+  G_ASSERT(state.getPackedStcodeId() != PackedStcodeId::Invalid);
   return state.getLocalStateOffset();
 }
 
@@ -593,9 +663,9 @@ bool is_packed_material(ConstStateIdx const_state_idx) { return PLATFORM_HAS_BIN
 
 void reset_bindless_samplers_in_all_collections()
 {
-  for (uint32_t collectionId = 0; collectionId < packedAll.size(); ++collectionId)
-    for (auto &state : packedAll[collectionId])
-      state.resetPackedSamplers(collectionId);
-  for (auto [idx, state] : enumerate(all))
-    state.resetSamplers(idx);
+  packedAll.iterateWithIds([](PackedStcodeId id, StatesContainer &collection) {
+    for (BindlessState &state : collection)
+      state.resetPackedSamplers(id);
+  });
+  all.iterateWithIds([&](GlobalStateId id, BindlessState &state) { state.resetSamplers(id); });
 }

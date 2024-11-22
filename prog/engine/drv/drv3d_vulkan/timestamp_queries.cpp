@@ -80,6 +80,7 @@ void TimestampQueryBlock::ensureSizesAndResetStatus(VulkanCommandBufferHandle cm
   const VkQueryPoolCreateInfo qpci = //
     {VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO, nullptr, 0, VK_QUERY_TYPE_TIMESTAMP, allocatedCount, 0};
   VULKAN_EXIT_ON_FAIL(vkDev.vkCreateQueryPool(vkDev.get(), &qpci, nullptr, ptr(pool)));
+  VULKAN_LOG_CALL(vkDev.vkCmdResetQueryPool(cmd_b, pool, 0, allocatedCount));
 }
 
 void TimestampQueryBlock::cleanup()

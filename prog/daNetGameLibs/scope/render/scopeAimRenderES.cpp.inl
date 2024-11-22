@@ -11,6 +11,7 @@
 #include <daECS/core/entitySystem.h>
 #include <ecs/anim/anim.h>
 #include <ecs/anim/animchar_visbits.h>
+#include <ecs/camera/getActiveCameraSetup.h>
 #include <shaders/dag_dynSceneRes.h>
 #include <ecs/render/resPtr.h>
 #include <ecs/render/shaders.h>
@@ -35,8 +36,10 @@
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
+#include <math/dag_TMatrix4D.h>
 
 #define SCOPE_AIM_RENDER_VARS \
+  VAR(lens_zoom_factor)       \
   VAR(scope_mask)             \
   VAR(scope_lens_local_x)     \
   VAR(scope_lens_local_y)     \
@@ -104,6 +107,7 @@ template <typename Callable>
 inline void in_vehicle_cockpit_ecs_query(Callable c);
 
 extern int dynamicSceneBlockId;
+extern int dynamicDepthSceneBlockId;
 extern int dynamicSceneTransBlockId;
 
 extern ConVarT<bool, false> vrs_dof;
@@ -326,12 +330,13 @@ static void render_scope_crosshair(const ScopeAimRenderingData &scopeAimData, co
     render_scope_reticle_quad(scopeAimData.entityWithScopeLensEid, scopeAimData.lensNodeId);
 }
 
-void render_scope_lens_prepass(const ScopeAimRenderingData &scopeAimData, const TexStreamingContext &texCtx)
+void render_scope_prepass(const ScopeAimRenderingData &scopeAimData, const TexStreamingContext &texCtx)
 {
   TIME_D3D_PROFILE(render_scope_prepass);
-  ShaderGlobal::set_int(dyn_model_render_passVarId, eastl::to_underlying(dynmodel::RenderPass::Color));
-  ShaderGlobal::set_int(lens_render_modeVarId, LENS_RENDER_MASK);
-  render_scope_trans(scopeAimData.entityWithScopeLensEid, scopeAimData.lensNodeId, texCtx);
+  STATE_GUARD_0(ShaderGlobal::set_int(is_hero_cockpitVarId, VALUE), 1);
+  ShaderGlobal::set_int(dyn_model_render_passVarId, eastl::to_underlying(dynmodel::RenderPass::Depth));
+  process_animchars_and_render(make_span_const(scopeAimData.scopeLensCockpitEntities), ShaderMesh::STG_opaque, ShaderMesh::STG_atest,
+    dynamicDepthSceneBlockId, VISFLG_MAIN_AND_SHADOW_VISIBLE, true, true, texCtx);
 }
 
 void render_scope(const ScopeAimRenderingData &scopeAimData, const TexStreamingContext &texCtx)
@@ -564,14 +569,15 @@ ECS_ON_EVENT(on_disappear)
 ECS_REQUIRE(ShadersECS scope_reticle_shader)
 static void release_scope_reticle_quad_rendering_es_event_handler(const ecs::Event &) { index_buffer::release_quads_16bit(); }
 
-static ScopeAimRenderingData prepare_scope_aim_rendering_data()
+static ScopeAimRenderingData prepare_scope_aim_rendering_data(const CameraParams &camera, const IPoint2 &main_view_res)
 {
   ScopeAimRenderingData scopeAimData;
   prepare_scope_aim_rendering_data_ecs_query(
-    [&scopeAimData](ECS_REQUIRE(eastl::true_type camera__active) int aim_data__lensNodeId, int aim_data__crosshairNodeId,
-      ecs::EntityId aim_data__entityWithScopeLensEid, ecs::EntityId aim_data__gunEid,
+    [&scopeAimData, &camera, &main_view_res](ECS_REQUIRE(eastl::true_type camera__active) int aim_data__lensNodeId,
+      int aim_data__crosshairNodeId, ecs::EntityId aim_data__entityWithScopeLensEid, ecs::EntityId aim_data__gunEid,
       const ecs::EidList &aim_data__scopeLensCockpitEntities, bool aim_data__isAiming, bool aim_data__isAimingThroughScope,
-      bool aim_data__nightVision, bool aim_data__nearDofEnabled, bool aim_data__simplifiedAimDof) {
+      bool aim_data__nightVision, bool aim_data__nearDofEnabled, bool aim_data__simplifiedAimDof, const float aim_data__scopeWeaponFov,
+      const int aim_data__scopeWeaponFovType, const float aim_data__scopeWeaponLensZoomFactor) {
       scopeAimData.lensNodeId = aim_data__lensNodeId;
       scopeAimData.crosshairNodeId = aim_data__crosshairNodeId;
       scopeAimData.entityWithScopeLensEid = aim_data__entityWithScopeLensEid;
@@ -583,6 +589,27 @@ static ScopeAimRenderingData prepare_scope_aim_rendering_data()
       scopeAimData.nightVision = aim_data__nightVision;
       scopeAimData.nearDofEnabled = aim_data__nearDofEnabled;
       scopeAimData.simplifiedAimDof = aim_data__simplifiedAimDof;
+
+      ShaderGlobal::set_real(lens_zoom_factorVarId, aim_data__scopeWeaponLensZoomFactor);
+
+      if (aim_data__scopeWeaponFov != 0.0f)
+      {
+        const auto [horFov, verFov] =
+          calc_hor_ver_fov(aim_data__scopeWeaponFov, (FovMode)aim_data__scopeWeaponFovType, main_view_res.x, main_view_res.y);
+        TMatrix4D weapJitterProjTm = dmatrix_perspective_reverse(horFov, verFov, camera.jitterPersp.zn, camera.jitterPersp.zf,
+          camera.jitterPersp.ox, camera.jitterPersp.oy);
+
+        scopeAimData.jitterProjTm = (TMatrix4)weapJitterProjTm;
+
+        scopeAimData.noJitterProjTm = scopeAimData.jitterProjTm;
+        scopeAimData.noJitterProjTm(2, 0) -= camera.jitterPersp.ox;
+        scopeAimData.noJitterProjTm(2, 1) -= camera.jitterPersp.oy;
+      }
+      else
+      {
+        scopeAimData.jitterProjTm = camera.jitterProjTm;
+        scopeAimData.noJitterProjTm = camera.noJitterProjTm;
+      }
     });
   return scopeAimData;
 }
@@ -591,10 +618,11 @@ dabfg::NodeHandle makeSetupScopeAimRenderingDataNode()
 {
   return dabfg::register_node("setup_scope_aim_rendering_data", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
     auto scopeAimRenderDataHandle = registry.createBlob<ScopeAimRenderingData>("scope_aim_render_data", dabfg::History::No).handle();
-    registry.multiplex(dabfg::multiplexing::Mode::None);
-    return [scopeAimRenderDataHandle]() {
+    auto cameraParams = registry.read("current_camera").blob<CameraParams>().handle();
+    auto mainViewResolution = registry.getResolution<2>("main_view");
+    return [scopeAimRenderDataHandle, cameraParams, mainViewResolution]() {
       auto &scopeAimData = scopeAimRenderDataHandle.ref();
-      scopeAimData = prepare_scope_aim_rendering_data();
+      scopeAimData = prepare_scope_aim_rendering_data(cameraParams.ref(), mainViewResolution.get());
     };
   });
 }

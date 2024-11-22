@@ -2,6 +2,8 @@
 
 #include "bvh_context.h"
 #include <3d/dag_lockSbuffer.h>
+#include <image/dag_texPixel.h>
+#include <memory/dag_framemem.h>
 
 namespace bvh
 {
@@ -42,6 +44,14 @@ MeshMeta &Mesh::createAndGetMeta(ContextId context_id)
   return context_id->meshMetaAllocator.get(metaAllocId);
 }
 
+Context::Context()
+{
+  auto white = TexImage32::create(1, 1, framemem_ptr());
+  white->getPixels()->u = 0xFFFFFFFF;
+  stubTexture = d3d::create_tex(white, 1, 1, TEXFMT_A8R8G8B8, 1, "bvh_stub_tex");
+  memfree(white, framemem_ptr());
+}
+
 void Context::teardown()
 {
   for (auto &mesh : meshes)
@@ -77,6 +87,8 @@ void Context::teardown()
   G_ASSERT(meshMetaAllocator.allocated() == 0);
   G_ASSERT(bindlessTextureAllocator.allocated() == 0);
   G_ASSERT(bindlessBufferAllocator.allocated() == 0);
+
+  del_d3dres(stubTexture);
 }
 
 void Context::releasePaintTex()
@@ -159,6 +171,11 @@ Texture *Context::holdTexture(TEXTUREID id, uint32_t &texture_and_sampler_bindle
     {
       // This is the initial allocation of the texture.
       result.first->second.texture = acquire_managed_tex(id);
+      if (!result.first->second.texture)
+      {
+        logwarn("BVH Context::holdTexture got a nullptr texture from acquire_managed_tex for id: %u", id.index());
+        result.first->second.texture = stubTexture;
+      }
       result.first->second.allocId = bindlessTextureAllocator.allocate(result.first->second.texture);
       if (sampler == d3d::INVALID_SAMPLER_HANDLE)
         result.first->second.samplerIndex = d3d::register_bindless_sampler(result.first->second.texture);
@@ -180,7 +197,7 @@ bool Context::releaseTexure(TEXTUREID id)
     return false;
 
   auto iter = usedTextures.find(id);
-  G_ASSERT(iter != usedTextures.end());
+  G_ASSERT_RETURN(iter != usedTextures.end(), false);
   if (--iter->second.referenceCount == 0)
   {
     bindlessTextureAllocator.free(iter->second.allocId);
@@ -215,7 +232,7 @@ bool Context::releaseBuffer(Sbuffer *buffer)
     return false;
 
   auto iter = usedBuffers.find(buffer);
-  G_ASSERT(iter != usedBuffers.end());
+  G_ASSERT_RETURN(iter != usedBuffers.end(), false);
   if (--iter->second.referenceCount == 0)
   {
     bindlessBufferAllocator.free(iter->second.allocId);

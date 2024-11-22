@@ -4,7 +4,10 @@ ground_holes_updater{
 
   ground_holes_main_tex_size:i=2048
   ground_holes_scale_offset:p4=-1,-1,-1,-1
-  should_update_ground_holes_coll:b=yes
+  _group{
+    _track:b=yes
+    "ground_holes_gen:u8"{value:i=0}
+  }
 
   _group{
     _tags:t="render"

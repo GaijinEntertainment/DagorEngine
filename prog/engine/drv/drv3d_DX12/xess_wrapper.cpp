@@ -145,7 +145,7 @@ public:
     memset(&initParms, 0, sizeof(initParms));
     initParms.outputResolution = m_desiredOutputResolution;
     initParms.qualitySetting = toXeSSQuality(quality);
-    initParms.initFlags = xess_init_flags_t::XESS_INIT_FLAG_INVERTED_DEPTH | xess_init_flags_t::XESS_INIT_FLAG_EXPOSURE_SCALE_TEXTURE;
+    initParms.initFlags = xess_init_flags_t::XESS_INIT_FLAG_INVERTED_DEPTH;
 
     if (!checkResult(xessD3D12Init(m_xessContext, &initParms)))
       return false;
@@ -190,7 +190,6 @@ public:
     exec_params.pVelocityTexture = xessParams.inMotionVectors->getHandle();
     exec_params.pOutputTexture = xessParams.outColor->getHandle();
     exec_params.pDepthTexture = xessParams.inDepth->getHandle();
-    exec_params.pExposureScaleTexture = xessParams.inExposure ? xessParams.inExposure->getHandle() : nullptr;
 
     exec_params.inputColorBase.x = xessParams.inColorDepthOffsetX;
     exec_params.inputColorBase.y = xessParams.inColorDepthOffsetY;

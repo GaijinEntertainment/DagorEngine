@@ -1,10 +1,10 @@
 # .blk File Format
 
 The `.blk` ("block") is a *Data Block*, the primary configuration format in
-Dagor. It is a configuration file similar to `.ini`, `.cfg`, and other
+*Dagor Engine*. It is a configuration file similar to `.ini`, `.cfg`, and other
 configuration files you may have encountered in other systems.
 
-The Dagor Engine uses `.blk` files for storing settings, parameters, and other
+The *Dagor Engine* uses `.blk` files for storing settings, parameters, and other
 essential information.
 
 There are two types of `.blk` files: *text* and *binary*.
@@ -18,7 +18,7 @@ Text `.blk` files are regular text files with proprietary syntax.
 The `.blk` file consists of a *block name* and optional *parameters* enclosed in
 curly braces.
 
-```plaintext
+```text
 <block_name>{
   <parameter_name>:<type>=<value>[;]
 }
@@ -26,41 +26,41 @@ curly braces.
 
 where
 
-- `<block name>` – the name of the block, which must start with a Latin
-letter or an underscore and consist of Latin letters, digits, or underscores.
-- `<parameter_name>` – the name of the parameter, which must start with a Latin
+- `<block name>`: The name of the block, which must start with a Latin letter or
+an underscore and consist of Latin letters, digits, or underscores.
+- `<parameter_name>`: The name of the parameter, which must start with a Latin
   letter or an underscore and consist of Latin letters, digits, or underscores.
-- `<type>` – the type of the parameter, which is mandatory and can be one of the
+- `<type>`: The type of the parameter, which is mandatory and can be one of the
   following:
-    - **t** – *string*, the `<value>` is a text string in quotes. If the string
+    - **`t`**: *string*, the `<value>` is a text string in quotes. If the string
       consists of only one word, quotes may be omitted. The string should not
-      contain LF, CR, or TAB symbols. Instead, use combinations of symbols: `~r`
-      (CR symbol), `~n` (LF symbol), `~t` (TAB symbol).
-    - **b** – *boolean*, the `<value>` is one of the strings: `yes`, `no`,
+      contain `LF`, `CR`, or `TAB` symbols. Instead, use combinations of
+      symbols: `~r` (`CR` symbol), `~n` (`LF` symbol), `~t` (`TAB` symbol).
+    - **`b`**: *boolean*, the `<value>` is one of the strings: `yes`, `no`,
       `true`, `false`, `on`, `off`, `1`, `0`.
-    - **c** – 32-bit *color (E3DCOLOR)*, the `<value>` is a sequence of
+    - **`c`**: 32-bit *color (E3DCOLOR)*, the `<value>` is a sequence of
       comma-separated integer numbers representing the color the format `R,G,B`
       or in `R, G, B, A` with components ranging from `0` to `255`.
-    - **r** – *floating-point number*, the `<value>` is a floating-point number
+    - **`r`**: *floating-point number*, the `<value>` is a floating-point number
       with truncated trailing zeros.
-    - **m** – `matrix 3x4`, the `<value>` is a string in the form of `[[first
+    - **`m`**: `matrix 3x4`, the `<value>` is a string in the form of `[[first
       line][second line][third line][fourth line]]`. The lines are
-      comma-separated floating-point numbers defining x,y,z vector (*p3* – see
-      below).
-    - **p2** – *Point2 vector*, the `<value>` is comma-separated floating-point
+      comma-separated floating-point numbers defining x,y,z vector (**`p3`** –
+      see below).
+    - **`p2`**: *Point2 vector*, the `<value>` is comma-separated floating-point
       numbers defining x,y vector.
-    - **p3** – *Point3 vector*, the `<value>` is comma-separated floating-point
+    - **`p3`**: *Point3 vector*, the `<value>` is comma-separated floating-point
       numbers defining x,y,z vector.
-    - **p4** – *Point4 vector*, the `<value>` is comma-separated floating-point
+    - **`p4`**: *Point4 vector*, the `<value>` is comma-separated floating-point
       numbers defining x,y,z,w vector.
-    - **ip2** – *IPoint2 vector*, the `<value>` is comma-separated integer
+    - **`ip2`**: *IPoint2 vector*, the `<value>` is comma-separated integer
       numbers defining x,y vector.
-    - **ip3** – *IPoint3 vector*, the `<value>` is comma-separated integer
+    - **`ip3`**: *IPoint3 vector*, the `<value>` is comma-separated integer
       numbers defining x,y,z vector.
-- `<value>` – the value of the parameter, can be in quotes.
-- `[;]` – if a semicolon is placed after the parameter, the next parameter may
-  be on the same line. If the semicolon is omitted, the next parameter should be
-  on a new line.
+- `<value>`: The value of the parameter, can be in quotes.
+- `[;]`: If a semicolon is placed after the parameter, the next parameter may be
+  on the same line. If the semicolon is omitted, the next parameter should be on
+  a new line.
 
   ```{note}
   Use a tilde (`~`) in quotes to represent special characters such as
@@ -69,19 +69,19 @@ letter or an underscore and consist of Latin letters, digits, or underscores.
 
 Parameters can be defined as an array:
 
-```plaintext
+```text
 <Parameter name>:<type>[] = [<values>]
 ```
 
 where:
 
-- `<type>` – the type of parameter,
-- `<values>` – a list of values of the corresponding type separated by a
+- `<type>`: The type of parameter,
+- `<values>`: A list of values of the corresponding type separated by a
   semicolon or a new line.
 
-**Example**
+**Example:**
 
-```plaintext
+```text
 param1:i[]=[42; 43; 44;]
 param2:t[]=[
   "parameter1"
@@ -101,7 +101,7 @@ in the current file. Included files may contain other `include` files.
 
 Including another `.blk` file:
 
-```plaintext
+```text
 include <file_name>
 ```
 
@@ -113,7 +113,7 @@ directory.
 
 #### Directive @override
 
-```plaintext
+```text
 "@override:<name of block or parameter>"
 "@override:block"{
   "@override:parameter"i=10`
@@ -126,9 +126,9 @@ There are rules to follow when *overriding*:
   it's common practice to delete it first. This ensures there is no such
   variable from that point, allowing you to add the variable normally.
 
-**Example**
+**Example:**
 
-```plaintext
+```text
 @override:video{
   @delete:vsync:b=no
   vsync:b=yes
@@ -142,13 +142,13 @@ presence of `vsync` before it.
 
 #### Directive @delete
 
-```plaintext
+```text
 "@delete:<name of block or parameter>"
 ```
 
 #### Directive @clone-last
 
-```plaintext
+```text
 "@clone-last:<name of block or parameter>"
 ```
 
@@ -164,7 +164,7 @@ Blocks can be of the following types: *sequential*, *nested* and combination of
 
 #### Sequential
 
-```plaintext
+```text
 block_name{
   param_name:type=value
 }
@@ -173,9 +173,9 @@ block_name{
 }
 ```
 
-**Example**
+**Example:**
 
-```plaintext
+```text
 lod{
   range:r=70;
 }
@@ -186,7 +186,7 @@ lod{
 
 #### Nested
 
-```plaintext
+```text
 block_name{
   param_name:type=value
   block_name{
@@ -195,9 +195,9 @@ block_name{
 }
 ```
 
-**Example**
+**Example:**
 
-```plaintext
+```text
 contents{
   lod{
     range:r=70;
@@ -207,7 +207,7 @@ contents{
 
 #### Combination of sequential and nested
 
-```plaintext
+```text
 block_name{
   param_name:type=value
   block_name{
@@ -219,9 +219,9 @@ block_name{
 }
 ```
 
-**Example**
+**Example:**
 
-```plaintext
+```text
 contents{
   lod{
     range:r=70;
@@ -279,8 +279,9 @@ The data in a binary `.blk` file consists of *header*, *name* and *string maps*,
 
 The `dagor3_cdk` has some useful tools for working with `.blk`:
 
-- `binBlk.exe` – converts binary and text `.blk` files to and from each other.
-- `blkDiff.exe` – performs a syntactic diff between two `.blk` files.
-- `blkEditor-dev.exe` – facilitates the creation of a GUI editor with dynamic
+- `binBlk.exe`: Converts binary and text `.blk` files to and from each other.
+- `blkDiff.exe`: Performs a syntactic diff between two `.blk` files.
+- `blkEditor-dev.exe`: Facilitates the creation of a GUI editor with dynamic
   views for `.blk` files.
+
 

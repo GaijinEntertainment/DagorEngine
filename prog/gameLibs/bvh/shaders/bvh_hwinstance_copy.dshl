@@ -37,7 +37,7 @@ shader bvh_hwinstance_copy
 
       ##if bvh_hwinstance_copy_mode == copy
         RTHWInstance instance = structuredBufferAt(source, dtId.x);
-        if (dtId.x < instance_count.Load(0))
+        if (dtId.x < loadBuffer(instance_count, 0))
         {
           instance.transform0.w -= world_view_pos.x;
           instance.transform1.w -= world_view_pos.y;

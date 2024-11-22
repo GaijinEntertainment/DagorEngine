@@ -66,7 +66,7 @@ static void water_es(const ecs::UpdateStageInfoAct &, FFTWater &water)
 }
 
 ECS_TAG(gameClient)
-ECS_BEFORE(water_strength_es_event_handler)
+ECS_BEFORE(water_strength_es)
 ECS_ON_EVENT(on_appear, EventLevelLoaded)
 static void set_water_on_level_loaded_es(const ecs::Event &, FFTWater &water)
 {
@@ -214,7 +214,7 @@ static void water_flowmap_foam_es_event_handler(const ecs::Event &,
 }
 
 ECS_REQUIRE(const FFTWater &water)
-ECS_ON_EVENT(on_appear)
+ECS_ON_EVENT(on_appear, EventLevelLoaded)
 ECS_TRACK(shore__texture_size, shore__enabled, shore__hmap_size, shore__rivers_width, shore__significant_wave_threshold, )
 static void water_shore_setup_es_event_handler(const ecs::Event &,
   int shore__texture_size,
@@ -230,7 +230,7 @@ static void water_shore_setup_es_event_handler(const ecs::Event &,
 }
 
 ECS_REQUIRE(const FFTWater &water)
-ECS_ON_EVENT(on_appear)
+ECS_ON_EVENT(on_appear, EventLevelLoaded)
 ECS_TRACK(shore__wave_height_to_amplitude,
   shore__amplitude_to_length,
   shore__parallelism_to_wind,

@@ -59,9 +59,6 @@ private:
   float footprintEmitterDryingTime = 0;
   float footprintDecayPerStep = 1;
 
-  static const int INVALID_VARIANT = 1 << 16;
-
-
   const char *BLOOD_PARAMS_DATA_BLOCK_NAME = "gamedata/bloodparams.blk";
 
   const eastl::array<const char *, BLOOD_DECAL_GROUPS_COUNT> groupNames = {
@@ -149,6 +146,7 @@ public:
     if (tryPlacePuddle(pctx))
       addPuddleAt(pctx);
   }
+  static const int INVALID_VARIANT = 1 << 16;
   void addFootprint(Point3 pos, const Point3 &dir, const Point3 &up_dir, float strength, bool is_left, int variant);
   void update();
   void beforeRender();

@@ -14,23 +14,45 @@
 #include <render/renderEvent.h>
 #include <EASTL/vector_set.h>
 #include <generic/dag_enumerate.h>
+#include <render/renderSettings.h>
 
 #include "lensFlareNodes.h"
 
 ECS_REGISTER_BOXED_TYPE(LensFlareRenderer, nullptr);
 
+ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
-static void lens_flare_renderer_on_appear_es(const ecs::Event &,
-  LensFlareRenderer &lens_flare_renderer,
-  dabfg::NodeHandle &lens_flare_renderer__render_node,
-  dabfg::NodeHandle &lens_flare_renderer__prepare_lights_node)
+static void lens_flare_renderer_on_appear_es(const ecs::Event &, LensFlareRenderer &lens_flare_renderer)
 {
   lens_flare_renderer.init();
-  LensFlareQualityParameters quality = {0.5f};
-  lens_flare_renderer__render_node = create_lens_flare_render_node(&lens_flare_renderer, quality);
-  lens_flare_renderer__prepare_lights_node = create_lens_flare_prepare_lights_node(&lens_flare_renderer);
 }
 
+template <typename Callable>
+static void init_lens_flare_nodes_ecs_query(Callable);
+
+ECS_TAG(render)
+ECS_ON_EVENT(OnRenderSettingsReady)
+ECS_TRACK(render_settings__lensFlares)
+static void lens_flare_renderer_on_settings_changed_es(const ecs::Event &, bool render_settings__lensFlares)
+{
+  init_lens_flare_nodes_ecs_query(
+    [render_settings__lensFlares](LensFlareRenderer &lens_flare_renderer, dabfg::NodeHandle &lens_flare_renderer__render_node,
+      dabfg::NodeHandle &lens_flare_renderer__prepare_lights_node) {
+      if (render_settings__lensFlares)
+      {
+        LensFlareQualityParameters quality = {0.5f};
+        lens_flare_renderer__render_node = create_lens_flare_render_node(&lens_flare_renderer, quality);
+        lens_flare_renderer__prepare_lights_node = create_lens_flare_prepare_lights_node(&lens_flare_renderer);
+      }
+      else
+      {
+        lens_flare_renderer__render_node = {};
+        lens_flare_renderer__prepare_lights_node = {};
+      }
+    });
+}
+
+ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
 ECS_TRACK(sun_flare_provider__flare_config)
 ECS_REQUIRE(const ecs::string &sun_flare_provider__flare_config)
@@ -168,6 +190,7 @@ static void schedule_flares_update()
   schedule_update_flares_renderer_ecs_query([](LensFlareRenderer &lens_flare_renderer) { lens_flare_renderer.markConfigsDirty(); });
 }
 
+ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
 ECS_REQUIRE(const ecs::string &lens_flare_config__name,
   const float &lens_flare_config__smooth_screen_fadeout_distance,
@@ -183,6 +206,7 @@ ECS_TRACK(lens_flare_config__name,
   lens_flare_config__elements)
 static void lens_flare_config_on_appear_es(const ecs::Event &) { schedule_flares_update(); }
 
+ECS_TAG(render)
 ECS_ON_EVENT(on_disappear)
 ECS_REQUIRE(const ecs::string &lens_flare_config__name)
 static void lens_flare_config_on_disappear_es(const ecs::Event &) { schedule_flares_update(); }

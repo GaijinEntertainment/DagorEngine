@@ -262,9 +262,6 @@ struct D3dInterfaceTable
 
   bool (*set_srgb_backbuffer_write)(bool on);
 
-  bool (*set_msaa_pass)();
-  bool (*set_depth_resolve)();
-
   bool (*setgamma)(float power);
 
   float (*get_screen_aspect_ratio)();

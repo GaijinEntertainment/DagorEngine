@@ -367,23 +367,23 @@ shader downsample_depth2x_cs
         DSOutput ds = downsample2x(scr, tc);
 
         #if HAS_FAR_DEPTH
-          farDepth[DTid.xy] = ds.farDepth;
+          texture2DAt(farDepth, DTid.xy) = ds.farDepth;
         #endif
 
         #if HAS_CLOSE_DEPTH
-          closeDepth[DTid.xy] = ds.closeDepth;
+          texture2DAt(closeDepth, DTid.xy) = ds.closeDepth;
         #endif
 
         #if HAS_CHECKER_DEPTH
-          checkerDepth[DTid.xy] = ds.checkerDepth;
+          texture2DAt(checkerDepth, DTid.xy) = ds.checkerDepth;
         #endif
 
         #if HAS_NORMAL
-          normal[DTid.xy] = ds.normal;
+          texture2DAt(normal, DTid.xy) = ds.normal;
         #endif
 
         #if HAS_MOTION_VEC
-          motion[DTid.xy] = ds.motion;
+          texture2DAt(motion, DTid.xy) = ds.motion;
         #endif
       }
     }

@@ -17,6 +17,7 @@ buffer gi_ambient_cube;
 
 shader ssgi_copy_to_volmap_cs, ssgi_copy_from_volmap_cs
 {
+  ENABLE_ASSERT(cs)
   INIT_VOXELS(cs)
   USE_VOXELS(cs)
   SSGI_USE_VOLMAP_GI_COORD(cs)
@@ -93,7 +94,7 @@ shader ssgi_copy_to_volmap_cs, ssgi_copy_from_volmap_cs
         {
           UNROLL
           for (uint i = 0; i < 6; ++i)
-            voxelColors[startId+i] = 0;
+            structuredBufferAt(voxelColors, startId+i) = 0;
         } else
         {
           float3 sourceTc = tc;
@@ -131,7 +132,7 @@ shader ssgi_copy_to_volmap_cs, ssgi_copy_from_volmap_cs
 
           UNROLL
           for (uint i = 0; i < 6; ++i)
-            voxelColors[startId+i] = Pack_R11G11B10_FLOAT_LOG(col[i]);
+            structuredBufferAt(voxelColors, startId+i) = Pack_R11G11B10_FLOAT_LOG(col[i]);
         }
 
       ##elif (shader == ssgi_copy_to_volmap_cs)
@@ -154,16 +155,16 @@ shader ssgi_copy_to_volmap_cs, ssgi_copy_from_volmap_cs
           bool nextCascadeIntersects = getIntersection(worldPos, ssgi_ambient_volmap_crd_to_world0_xyz(nextCascadeId).x);
           val = nextCascadeIntersects ? 0.0 : SSGI_TEMPORAL_COPIED_VALUE; //means copied (still not initialized reasonable)!
         }
-        ssgi_ambient_volmap_temporal[uint3(coord.xy, coord.z + ssgi_cascade_z_crd_ofs(cascadeId))] = val;
+        texture3DAt(ssgi_ambient_volmap_temporal, uint3(coord.xy, coord.z + ssgi_cascade_z_crd_ofs(cascadeId))) = val;
 
         coord.z += ssgi_cascade_z_crd_ofs(cascadeId)*6;
         uint z_ofs = volmap_y_dim(0); // TODO:: volmap_y_dim(cascadeId) ???
-        gi_ambient_volmap[coord] = col[0];coord.z+=z_ofs;
-        gi_ambient_volmap[coord] = col[1];coord.z+=z_ofs;
-        gi_ambient_volmap[coord] = col[2];coord.z+=z_ofs;
-        gi_ambient_volmap[coord] = col[3];coord.z+=z_ofs;
-        gi_ambient_volmap[coord] = col[4];coord.z+=z_ofs;
-        gi_ambient_volmap[coord] = col[5];
+        texture3DAt(gi_ambient_volmap, coord) = col[0];coord.z+=z_ofs;
+        texture3DAt(gi_ambient_volmap, coord) = col[1];coord.z+=z_ofs;
+        texture3DAt(gi_ambient_volmap, coord) = col[2];coord.z+=z_ofs;
+        texture3DAt(gi_ambient_volmap, coord) = col[3];coord.z+=z_ofs;
+        texture3DAt(gi_ambient_volmap, coord) = col[4];coord.z+=z_ofs;
+        texture3DAt(gi_ambient_volmap, coord) = col[5];
      ##endif
     }
   }

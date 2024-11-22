@@ -131,7 +131,7 @@
     </Expand>
   </Type>
 
-  <Type Name="drv3d_dx12::ExtendedImageGlobalSubresouceId">
+  <Type Name="drv3d_dx12::ExtendedImageGlobalSubresourceId">
     <Intrinsic Name="_valid" Expression="invalid_id != value" />
     <DisplayString Condition="_valid()">{value &amp; index_mask}</DisplayString>
     <DisplayString Condition="!_valid()">invalid</DisplayString>
@@ -143,7 +143,7 @@
   </Type>
 
   <Type Name="drv3d_dx12::TaggedIndexType&lt;*,*&gt;">
-    <AlternativeType Name="drv3d_dx12::ImageGlobalSubresouceId" />
+    <AlternativeType Name="drv3d_dx12::ImageGlobalSubresourceId" />
     <AlternativeType Name="drv3d_dx12::TaggedCountType&lt;*&gt;" />
     <DisplayString>{value}</DisplayString>
     <Expand HideRawView="true">

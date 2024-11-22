@@ -225,10 +225,6 @@ bool d3d::fill_interface_table(D3dInterfaceTable &d3dit)
 
   FILL_ENTRY(set_srgb_backbuffer_write);
 
-  FILL_ENTRY(set_msaa_pass);
-
-  FILL_ENTRY(set_depth_resolve);
-
   FILL_ENTRY(setgamma);
 
   FILL_ENTRY(get_screen_aspect_ratio);

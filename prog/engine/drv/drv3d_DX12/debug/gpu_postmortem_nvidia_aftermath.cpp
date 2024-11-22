@@ -526,9 +526,9 @@ LibPointer Aftermath::try_load_library()
 {
   static const char libName[] =
 #if _TARGET_64BIT
-    "GFSDK_2024.1.0.24075\\GFSDK_Aftermath_Lib.x64.dll";
+    "GFSDK_Aftermath_Lib.x64.dll";
 #else
-    "GFSDK_2024.1.0.24075\\GFSDK_Aftermath_Lib.x86.dll";
+    "GFSDK_Aftermath_Lib.x86.dll";
 #endif
   logdbg("DX12: ...loading '%s'...", libName);
   return {LoadLibraryA(libName), {}};

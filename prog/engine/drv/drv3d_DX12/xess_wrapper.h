@@ -17,7 +17,6 @@ struct XessParamsDx12
   Image *inColor;
   Image *inDepth;
   Image *inMotionVectors;
-  Image *inExposure;
   float inJitterOffsetX;
   float inJitterOffsetY;
   float inInputWidth;

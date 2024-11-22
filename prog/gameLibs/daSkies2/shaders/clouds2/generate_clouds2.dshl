@@ -142,6 +142,7 @@ endmacro
 
 shader gen_cloud_shape_cs, gen_cloud_detail_cs
 {
+  ENABLE_ASSERT(cs)
   GEN_CLOUD(cs)
 
   hlsl(cs) {
@@ -152,9 +153,9 @@ shader gen_cloud_shape_cs, gen_cloud_detail_cs
 
       #if GEN_CLOUD_TYPE == GEN_CLOUD_SHAPE
         float3 xyz = (((float3)tid.xyz+0.5)*clouds_tex_inv_size.xxy).xzy;
-        output[tid] = get_cloud_shape(xyz);
+        texture3DAt(output, tid) = get_cloud_shape(xyz);
       #elif GEN_CLOUD_TYPE == GEN_CLOUD_DETAIL
-        output[tid] = 1-get_cloud_detail((float3(tid.xyz)+0.5)*clouds_tex_inv_size);
+        texture3DAt(output, tid) = 1-get_cloud_detail((float3(tid.xyz)+0.5)*clouds_tex_inv_size);
       #endif
     }
   }
@@ -212,12 +213,13 @@ endmacro
 
 shader gen_curl_clouds_2d//, gen_curl_clouds_2d_compressed
 {
+  ENABLE_ASSERT(cs)
   GEN_CURL_CLOUDS(cs)
 
   hlsl(cs) {
     RWTexture2D<float2> output : register(u0);
     [numthreads(CLOUD_WARP_SIZE_2D, CLOUD_WARP_SIZE_2D, 1)]
-    void cs_main(uint3 tid : SV_DispatchThreadID) { output[tid.xy] =  getCurl(tid.xy); }
+    void cs_main(uint3 tid : SV_DispatchThreadID) { texture2DAt(output, tid.xy) = getCurl(tid.xy); }
   }
   compile("cs_5_0", "cs_main")
 }
@@ -238,6 +240,7 @@ shader gen_curl_clouds_2d_ps
 
 shader gen_curl_clouds_3d
 {
+  ENABLE_ASSERT(cs)
   hlsl(cs) {
     #include <common_functions.hlsl>
     #include <noise_functions.hlsl>
@@ -253,7 +256,7 @@ shader gen_curl_clouds_3d
       curl_values = set_ranges_signed(curl_values, -1, 1);
       //curl_values.z = 0;
 
-      output[tid] = encode_curl(curl_values);
+      texture3DAt(output, tid) = encode_curl(curl_values);
     }
   }
   compile("cs_5_0", "cs_main")

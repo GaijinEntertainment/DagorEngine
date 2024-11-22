@@ -383,7 +383,7 @@ int BhvButton::joystickBtnEvent(ElementTree *etree, Element *elem, const HumanIn
   int /*device_number*/, const HumanInput::ButtonBits & /*buttons*/, int accum_res)
 {
   const SceneConfig &config = etree->guiScene->config;
-  if (config.actionClickByBehavior && config.gamepadCursorControl && config.isClickButton(DEVID_JOYSTICK, btn_idx))
+  if (config.actionClickByBehavior && config.isClickButton(DEVID_JOYSTICK, btn_idx))
     return simulateClick(etree, elem, event, DEVID_JOYSTICK, btn_idx, accum_res);
 
   return 0;

@@ -21,15 +21,15 @@
 
 static FastNameMapTS<false> shvarNameMap;
 
-void ScriptedShadersBinDumpOwner::initVarIndexMaps()
+void ScriptedShadersBinDumpOwner::initVarIndexMaps(size_t max_shadervar_cnt)
 {
+  varIndexMap.resize(max_shadervar_cnt, SHADERVAR_IDX_ABSENT);
+  globvarIndexMap.resize(max_shadervar_cnt, SHADERVAR_IDX_ABSENT);
   int nameCount = shvarNameMap.iterate([&](int nid, const char *name) {
     varIndexMap[nid] = mapbinarysearch::bfindStrId(mShaderDump->varMap, name);
     globvarIndexMap[nid] = (varIndexMap[nid] == SHADERVAR_IDX_INVALID) ? SHADERVAR_IDX_ABSENT
                                                                        : bfind_packed_uint16_x2(mShaderDump->gvMap, varIndexMap[nid]);
   });
-  for (int nid = nameCount; nid < MAX_BINDUMP_SHADERVARS; nid++)
-    varIndexMap[nid] = globvarIndexMap[nid] = SHADERVAR_IDX_ABSENT;
 }
 
 #if DAGOR_DBGLEVEL > 0
@@ -111,15 +111,15 @@ const char *VariableMap::getGlobalVariableName(int globvar_idx)
 int VariableMap::getVariableId(const char *var_name, bool sec_dump)
 {
   int nid = shvarNameMap.addNameId(var_name);
-#if DAGOR_DBGLEVEL
-  if (DAGOR_UNLIKELY(nid >= MAX_BINDUMP_SHADERVARS))
-    shaderbindump::dump_shader_var_names();
-#endif
-  G_ASSERTF_RETURN(nid < MAX_BINDUMP_SHADERVARS, -1, "var_name=%s shvarNameMap.nameCount=%d", var_name,
-    shvarNameMap.nameCountRelaxed()); // it is unsafe to add variable and access in differnt thread without sync. That means, that
-                                      // relaxed load is sufficient.
   auto &dumpOwner = shBinDumpExOwner(!sec_dump);
   const auto &dump = *dumpOwner.getDump();
+#if DAGOR_DBGLEVEL
+  if (DAGOR_UNLIKELY(nid >= dumpOwner.maxShadervarCnt()))
+    shaderbindump::dump_shader_var_names();
+#endif
+  G_ASSERTF_RETURN(nid < dumpOwner.maxShadervarCnt(), -1, "var_name=%s shvarNameMap.nameCount=%d", var_name,
+    shvarNameMap.nameCountRelaxed()); // it is unsafe to add variable and access in differnt thread without sync. That means, that
+                                      // relaxed load is sufficient.
   if (dumpOwner.varIndexMap[nid] == SHADERVAR_IDX_ABSENT)
   {
     uint16_t var_id = mapbinarysearch::bfindStrId(dump.varMap, var_name);

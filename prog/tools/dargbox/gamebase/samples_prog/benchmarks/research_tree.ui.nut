@@ -2,7 +2,7 @@ from "%darg/ui_imports.nut" import *
 
 let cursors = require("samples_prog/_cursors.nut")
 
-let scrollbar = require("samples_prog/_basic/components/scrollbar.nut")
+let {makeVertScroll} = require("samples_prog/_basic/components/scrollbar.nut")
 let units = {
   ["a-20g"] = Picture("!ui/atlas#a-20g")
 }
@@ -229,7 +229,7 @@ function researchTreeBlock(key) {
     hplace = ALIGN_CENTER
     vplace = ALIGN_CENTER
     key
-    children = scrollbar.makeVertScroll(researchTree)
+    children = makeVertScroll(researchTree)
   })
 }
 

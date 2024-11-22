@@ -7,8 +7,9 @@
 #include <math/dag_TMatrix.h>
 #include <math/dag_bounds2.h>
 #include <math/dag_Point2.h>
-#include <EASTL/vector.h>
-#include <osApiWrappers/dag_rwLock.h>
+#include <math/integer/dag_IPoint2.h>
+#include <generic/dag_tab.h>
+#include <EASTL/bitvector.h>
 
 class HeightmapHandler;
 class LandMeshHolesCell
@@ -29,11 +30,11 @@ public:
   void clear();
   bool check(const Point2 &posXZ, const HeightmapHandler *hmapHandler) const;
   bool check(const Point3 &posXYZ) const;
-  size_t count() const { return holes.size(); }
+  uint32_t count() const { return holes.size(); }
+  bool empty() const { return holes.empty(); }
 
 private:
-  eastl::vector<HoleData> holes;
-  bool needsValidHeight = false;
+  dag::Vector<HoleData> holes;
 };
 class LandMeshHolesManager
 {
@@ -48,21 +49,38 @@ public:
     BBox2 getBBox2() const;
   };
 
-  LandMeshHolesManager(const HeightmapHandler *hmap_handler, int cells_count = 16);
-  void clearAndAddHoles(const eastl::vector<HoleArgs> &holes);
+  LandMeshHolesManager(const HeightmapHandler &hmap_handler, int cells_count = 16);
+  void clearAndAddHoles(const Tab<HoleArgs> &holes);
   void clearHoles();
   bool check(const Point2 &posXZ) const;
-  bool check(const Point2 &posXZ, float hmap_height) const;
 
 private:
-  size_t getCellIndex(const Point2 &p) const;
-  void clearHolesInternal();
+  uint32_t getCellIndex(const Point2 &point) const;
 
-  int holeCellsCount;
-  BBox2 holesRegion;
-  Point2 cellSize;
-  Point2 cellSizeInv;
-  eastl::vector<LandMeshHolesCell> cells;
-  const HeightmapHandler *hmapHandler;
-  mutable SmartReadWriteFifoLock rwLock;
+  uint16_t holeCellsCount;
+  bool emptyHolesRegion = true;
+  BBox2 holesRegion;  // Undefined if `emptyHolesRegion` is true
+  Point2 cellSizeInv; // Ditto
+  dag::Vector<LandMeshHolesCell> cells;
+  eastl::bitvector<> cellsNeedValidHeight;
+  const HeightmapHandler &hmapHandler;
 };
+
+inline uint32_t LandMeshHolesManager::getCellIndex(const Point2 &point) const
+{
+  G_FAST_ASSERT(!emptyHolesRegion);
+  // TODO: SIMDify this
+  Point2 pOfs = (point - holesRegion[0]);
+  Point2 cellPos = mul(pOfs, cellSizeInv);
+  IPoint2 iCellPos = min(IPoint2(int(cellPos.x), int(cellPos.y)), IPoint2(holeCellsCount - 1, holeCellsCount - 1));
+  return iCellPos.y * holeCellsCount + iCellPos.x;
+}
+
+inline bool LandMeshHolesManager::check(const Point2 &posXZ) const
+{
+  if (emptyHolesRegion || !(holesRegion & posXZ))
+    return false;
+  uint32_t ci = getCellIndex(posXZ);
+  auto &cell = cells[ci];
+  return !cell.empty() && cell.check(posXZ, cellsNeedValidHeight.test(ci, false) ? &hmapHandler : nullptr);
+}

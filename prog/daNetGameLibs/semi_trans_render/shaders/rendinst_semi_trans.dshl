@@ -6,6 +6,8 @@ texture diffuse_rendinst_tex;
 
 shader rendinst_semi_trans
 {
+  ENABLE_ASSERT(ps)
+
   assume instancing_type = tm_vb;
 
   render_trans;

@@ -85,7 +85,7 @@ hlsl(code)
 {
 float get_local_exposure(float3 frame, float2 tc)
 {
-  return getExposureScale();
+  return getPrevExposureRatio();
 }
 }
 endmacro

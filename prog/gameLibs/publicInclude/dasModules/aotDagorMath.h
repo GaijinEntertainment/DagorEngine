@@ -144,6 +144,8 @@ inline void bbox3_add_bbox3(BBox3 &box, const BBox3 &add) { box += add; }
 inline void bbox3_inflate(BBox3 &box, float val) { box.inflate(val); }
 inline void bbox3_inflateXZ(BBox3 &box, float val) { box.inflateXZ(val); }
 inline void bbox3_scale(BBox3 &box, float val) { box.scale(val); }
+inline bool bbox3_eq(const BBox3 &a, const BBox3 &b) { return a == b; }
+inline bool bbox3_neq(const BBox3 &a, const BBox3 &b) { return a != b; }
 inline bool bbox3_intersect_point(const BBox3 &box, das::float3 pos) { return box & reinterpret_cast<Point3 &>(pos); }
 inline bool bbox3_intersect_bbox3(const BBox3 &box1, const BBox3 &box2) { return box1 & box2; }
 inline bool bbox3_intersect_bsphere(const BBox3 &box, const BSphere3 &sphere) { return box & sphere; }

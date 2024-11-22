@@ -159,6 +159,29 @@ static SQInteger read_text_from_file(HSQUIRRELVM vm)
   return 1;
 }
 
+static SQInteger read_text_from_file_on_disk(HSQUIRRELVM vm)
+{
+  const char *fn;
+  sq_getstring(vm, 2, &fn);
+  FullFileLoadCB cb(fn, DF_REALFILE_ONLY | DF_READ);
+  if (!cb.fileHandle)
+    return sqstd_throwerrorf(vm, "Failed to open file '%s'", fn);
+
+  int size;
+  const void *data = df_mmap(cb.fileHandle, &size);
+  if (data)
+  {
+    sq_pushstring(vm, (const char *)data, size);
+    df_unmap(data, size);
+  }
+  else if (df_length(cb.fileHandle) == 0)
+  {
+    sq_pushstring(vm, "", 0);
+  }
+  else
+    return sq_throwerror(vm, String(0, "Cannot 'mmap' content in file '%s'", fn));
+  return 1;
+}
 
 namespace bindquirrel
 {
@@ -238,7 +261,15 @@ void register_dagor_fs_module(SqModules *module_mgr)
       {name:s, isDirectory:b, isReadOnly:b, isHidden:b, size:i, accessTime:i, modifyTime:i}
     */
     .SquirrelFunc("read_text_from_file", read_text_from_file, 2, ".s")
-    ///@return s : file as string
+    /**
+    will open file from in VROMS only in some cases (on platforms different then PC, on not allowed modding)
+    @return s : file as string
+    */
+    .SquirrelFunc("read_text_from_file_on_disk", read_text_from_file_on_disk, 2, ".s")
+    /**
+    will open file from disk only
+    @return s : file as string
+    */
     .SquirrelFunc("stat", stat, 2, ".s")
     /**
     @param filename s : path to file to get info

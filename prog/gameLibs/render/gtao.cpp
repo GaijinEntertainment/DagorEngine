@@ -14,6 +14,7 @@
   VAR(gtao_tex_size)              \
   VAR(gtao_temporal_directions)   \
   VAR(gtao_temporal_offset)       \
+  VAR(gtao_half_hfov_tan)         \
   VAR(raw_gtao_tex)               \
   VAR(raw_gtao_tex_samplerstate)  \
   VAR(gtao_prev_tex)              \
@@ -199,6 +200,7 @@ void GTAORenderer::render(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseT
 
   ShaderGlobal::set_texture(gtao_texVarId, BAD_TEXTUREID);
   ShaderGlobal::set_texture(raw_gtao_texVarId, BAD_TEXTUREID);
+  ShaderGlobal::set_real(gtao_half_hfov_tanVarId, 1.0f / max(proj_tm.m[0][0], 1e-6f));
 
   renderGTAO(rawTex);
 

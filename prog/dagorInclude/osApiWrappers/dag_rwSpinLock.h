@@ -26,26 +26,36 @@
 
 struct DAG_TS_CAPABILITY("mutex") SpinLockReadWriteLock
 {
-  SpinLockReadWriteLock() {}
-  void lockRead() DAG_TS_ACQUIRE_SHARED()
+  SpinLockReadWriteLock() = default;
+  void lockRead(::da_profiler::desc_id_t profile_token = ::da_profiler::DescReadLock) DAG_TS_ACQUIRE_SHARED()
   {
-    int64_t reft = dagor_lock_profiler_start();
     // first we try to wait till there are no 'waiting' writers, this will prioritize writers
-    if (interlocked_relaxed_load(waitingWritersCount))
-      spin_wait_no_profile([&]() { return interlocked_acquire_load(waitingWritersCount) != 0; });
-    // first we try to wait till there are no 'waiting' writers, this will prioritize writers
-    if (interlocked_increment(writerReadersWord) >= WRITER_BIT)
+    if (DAGOR_LIKELY(interlocked_relaxed_load(waitingWritersCount) == 0))
+    {
+      if (interlocked_increment(writerReadersWord) < WRITER_BIT)
+        return;
+      ScopeLockProfiler<da_profiler::NoDesc> lp(profile_token);
       spin_wait_no_profile([&] { return interlocked_acquire_load(writerReadersWord) >= WRITER_BIT; });
-    dagor_lock_profiler_stop(reft, da_profiler::DescReadLock, 1);
+    }
+    else
+    {
+      ScopeLockProfiler<da_profiler::NoDesc> lp(profile_token);
+      spin_wait_no_profile([&] { return interlocked_acquire_load(waitingWritersCount) != 0; });
+      if (interlocked_increment(writerReadersWord) >= WRITER_BIT)
+        spin_wait_no_profile([&] { return interlocked_acquire_load(writerReadersWord) >= WRITER_BIT; });
+    }
   }
   void unlockRead() DAG_TS_RELEASE_SHARED() { interlocked_decrement(writerReadersWord); }
-  void lockWrite() DAG_TS_ACQUIRE()
+  void lockWrite(::da_profiler::desc_id_t profile_token = ::da_profiler::DescWriteLock) DAG_TS_ACQUIRE()
   {
     interlocked_increment(waitingWritersCount);
-    int64_t reft = dagor_lock_profiler_start();
-    while (!tryLockWrite())
-      spin_wait_no_profile([&] { return interlocked_acquire_load(writerReadersWord) != 0; });
-    dagor_lock_profiler_stop(reft, da_profiler::DescWriteLock, 10);
+    if (!tryLockWrite())
+    {
+      ScopeLockProfiler<da_profiler::NoDesc> lp(profile_token);
+      do
+        spin_wait_no_profile([&] { return interlocked_acquire_load(writerReadersWord) != 0; });
+      while (!tryLockWrite());
+    }
   }
   void unlockWrite() DAG_TS_RELEASE()
   {

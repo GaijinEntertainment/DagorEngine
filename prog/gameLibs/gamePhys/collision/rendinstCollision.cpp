@@ -116,13 +116,14 @@ bool test_collision_ri(const CollisionObject &co, const BBox3 &box, Tab<gamephys
 
   if (trace_cache)
   {
-    BBox3 wbox = tm * box;
-    Point3_vec4 bmin = wbox.lim[0];
-    Point3_vec4 bmax = wbox.lim[1];
+    mat44f vtm;
+    v_mat44_make_from_43cu_unsafe(vtm, tm.array);
     bbox3f castBox;
-    castBox.bmin = v_ld(&bmin.x);
-    castBox.bmax = v_ld(&bmax.x);
+    v_bbox3_init(castBox, vtm, v_ldu_bbox3(box));
     bool res = try_use_trace_cache(castBox, trace_cache);
+
+    BBox3 wbox;
+    v_stu_bbox3(wbox, castBox);
     trace_utils::draw_trace_handle_debug_cast_result(trace_cache, wbox, res, false);
     if (!res)
       trace_cache = nullptr;
@@ -151,13 +152,14 @@ bool test_collision_ri(const CollisionObject &co, const BBox3 &box, Tab<gamephys
 
   if (trace_cache)
   {
-    BBox3 wbox = tm * box;
-    Point3_vec4 bmin = wbox.lim[0];
-    Point3_vec4 bmax = wbox.lim[1];
+    mat44f vtm;
+    v_mat44_make_from_43cu_unsafe(vtm, tm.array);
     bbox3f castBox;
-    castBox.bmin = v_ld(&bmin.x);
-    castBox.bmax = v_ld(&bmax.x);
+    v_bbox3_init(castBox, vtm, v_ldu_bbox3(box));
     bool res = try_use_trace_cache(castBox, trace_cache);
+
+    BBox3 wbox;
+    v_stu_bbox3(wbox, castBox);
     trace_utils::draw_trace_handle_debug_cast_result(trace_cache, wbox, res, false);
     if (!res)
       trace_cache = nullptr;
@@ -236,13 +238,14 @@ void shape_query_ri(const PhysBody *shape, const TMatrix &from, const TMatrix &t
 
   if (handle)
   {
-    BBox3 wbox = from * box;
-    Point3_vec4 bmin = wbox.lim[0];
-    Point3_vec4 bmax = wbox.lim[1];
+    mat44f vtm;
+    v_mat44_make_from_43cu_unsafe(vtm, from.array);
     bbox3f castBox;
-    castBox.bmin = v_ld(&bmin.x);
-    castBox.bmax = v_ld(&bmax.x);
+    v_bbox3_init(castBox, vtm, v_ldu_bbox3(box));
     bool res = try_use_trace_cache(castBox, handle);
+
+    BBox3 wbox;
+    v_stu_bbox3(wbox, castBox);
     trace_utils::draw_trace_handle_debug_cast_result(handle, wbox, res, false);
     if (!res)
       handle = nullptr;

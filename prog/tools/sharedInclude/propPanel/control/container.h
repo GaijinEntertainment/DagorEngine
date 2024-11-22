@@ -291,7 +291,11 @@ public:
     return NULL;
   }
 
-  virtual void setSelLeaf(TLeafHandle leaf) { G_UNUSED(leaf); }
+  virtual void setSelLeaf(TLeafHandle leaf, bool keep_selected = false)
+  {
+    G_UNUSED(leaf);
+    G_UNUSED(keep_selected);
+  }
   virtual TLeafHandle getSelLeaf() const { return NULL; }
 
   virtual bool removeLeaf(TLeafHandle id)

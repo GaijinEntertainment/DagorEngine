@@ -304,18 +304,18 @@ void ScriptedShaderMaterial::updateStVar(int prop_stvar_id)
     varElem->update_stvar(*this, prop_stvar_id);
 }
 
-#define SET_VARIABLE(var_type, param)                            \
-  if (uint32_t(variable_id) >= uint32_t(MAX_BINDUMP_SHADERVARS)) \
-    return false;                                                \
-  int vid = props.shBinDumpOwner().varIndexMap[variable_id];     \
-  if (vid >= SHADERVAR_IDX_ABSENT)                               \
-    return false;                                                \
-  int id = props.sclass->localVars.findVar(vid);                 \
-  if (id < 0)                                                    \
-    return false;                                                \
-  if (props.sclass->localVars.v[id].type != var_type)            \
-    return false;                                                \
-  props.stvar[id].param = v;                                     \
+#define SET_VARIABLE(var_type, param)                                              \
+  if (uint32_t(variable_id) >= uint32_t(props.shBinDumpOwner().maxShadervarCnt())) \
+    return false;                                                                  \
+  int vid = props.shBinDumpOwner().varIndexMap[variable_id];                       \
+  if (vid >= SHADERVAR_IDX_ABSENT)                                                 \
+    return false;                                                                  \
+  int id = props.sclass->localVars.findVar(vid);                                   \
+  if (id < 0)                                                                      \
+    return false;                                                                  \
+  if (props.sclass->localVars.v[id].type != var_type)                              \
+    return false;                                                                  \
+  props.stvar[id].param = v;                                                       \
   updateStVar(id);
 
 bool ScriptedShaderMaterial::set_int_param(const int variable_id, const int v)
@@ -348,21 +348,21 @@ bool ScriptedShaderMaterial::set_texture_param(const int variable_id, const TEXT
 
 #undef SET_VARIABLE
 
-#define GET_VARIABLE(GET_FUNC)                                   \
-  if (uint32_t(variable_id) >= uint32_t(MAX_BINDUMP_SHADERVARS)) \
-    return false;                                                \
-  int vid = props.shBinDumpOwner().varIndexMap[variable_id];     \
-  if (vid >= SHADERVAR_IDX_ABSENT)                               \
-    return false;                                                \
-  int id = props.sclass->localVars.findVar(vid);                 \
-  if (id < 0)                                                    \
-    return false;                                                \
-  value = GET_FUNC(id);                                          \
+#define GET_VARIABLE(GET_FUNC)                                                     \
+  if (uint32_t(variable_id) >= uint32_t(props.shBinDumpOwner().maxShadervarCnt())) \
+    return false;                                                                  \
+  int vid = props.shBinDumpOwner().varIndexMap[variable_id];                       \
+  if (vid >= SHADERVAR_IDX_ABSENT)                                                 \
+    return false;                                                                  \
+  int id = props.sclass->localVars.findVar(vid);                                   \
+  if (id < 0)                                                                      \
+    return false;                                                                  \
+  value = GET_FUNC(id);                                                            \
   return true;
 
 bool ScriptedShaderMaterial::hasVariable(const int variable_id) const
 {
-  if (variable_id < 0 || variable_id >= MAX_BINDUMP_SHADERVARS)
+  if (variable_id < 0 || variable_id >= props.shBinDumpOwner().maxShadervarCnt())
     return false;
   int vid = props.shBinDumpOwner().varIndexMap[variable_id];
   return (vid < SHADERVAR_IDX_ABSENT) ? props.sclass->localVars.findVar(vid) >= 0 : false;

@@ -174,7 +174,12 @@ static void showUsage()
     "  -wall - print really all warning, including strange ones\n"
     "  -nosave - no save output code (for debugs)\n"
     "  -debug - enable debugging mode in shaders. It assumes the DEBUG = yes interval, and enables assert\n"
-    "  -pdb - insert debug info during HLSL compile\n"
+#if _CROSS_TARGET_C1 | _CROSS_TARGET_C2
+
+#else
+    "  -pdb"
+#endif
+    " - insert debug info during HLSL compile\n"
     "  -dfull | -debugfull - for Dx11 and Dx12, it produces unoptimized shaders with full debug info,\n"
     "  -embed_source - for Dx11 and Dx12, it embeds hlsl source in the binary without turning off optimization,\n"
     "   including shader source, so shader debugging will have the HLSL source. It implies -pdb.\n"
@@ -239,15 +244,11 @@ static void showUsage()
 #endif
 #ifdef _CROSS_TARGET_METAL
     "  -metalios       - build shaders for iOS device\n"
-    "  -metal-use-glslang  - build with GLSLang (instead of DXC, which is default)\n"
 #endif
 #if _CROSS_TARGET_SPIRV || _CROSS_TARGET_METAL
     "  -debugdir DIR   - use DIR to store debuginfo for shader debugger\n"
 #endif
-
-#if _CROSS_TARGET_C1 | _CROSS_TARGET_C2
-
-#else
+#if !_CROSS_TARGET_C1 && !_CROSS_TARGET_C2
     "  -fsh:<1.1|1.3|1.4|2.0|2.b|2.a|3.0> - set fsh version (<2.0> by default)\n"
 #endif
   );
@@ -1009,7 +1010,11 @@ int DagorWinMain(bool debugmode)
       globalConfigRW.noSave = true;
     else if (dd_stricmp(s, "-debug") == 0)
       globalConfigRW.isDebugModeEnabled = true;
+#if _CROSS_TARGET_C1 | _CROSS_TARGET_C2
+
+#else
     else if (dd_stricmp(s, "-pdb") == 0)
+#endif
       globalConfigRW.hlslDebugLevel = DebugLevel::BASIC;
     else if (dd_stricmp(s, "-dfull") == 0 || dd_stricmp(s, "-debugfull") == 0)
       globalConfigRW.hlslDebugLevel = DebugLevel::FULL_DEBUG_INFO;
@@ -1145,21 +1150,11 @@ int DagorWinMain(bool debugmode)
     else if (dd_stricmp(s, "-compiler-dxc") == 0)
       globalConfigRW.compilerDXC = true;
 #endif
-#if _CROSS_TARGET_C1 | _CROSS_TARGET_C2
-
-
-#endif
 #ifdef _CROSS_TARGET_METAL
     else if (dd_stricmp(s, "-metalios") == 0)
     {
       globalConfigRW.useIosToken = true;
       globalConfigRW.crossCompiler = "metal-ios";
-    }
-    else if (dd_stricmp(s, "-metal-glslang") == 0)
-      ;
-    else if (dd_stricmp(s, "-metal-use-glslang") == 0)
-    {
-      globalConfigRW.useMetalGlslang = true;
     }
     else if (dd_stricmp(s, "-metal-binary") == 0)
     {

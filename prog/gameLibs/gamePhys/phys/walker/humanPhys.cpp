@@ -2485,6 +2485,8 @@ void HumanPhys::updatePhys(float at_time, float dt, bool /*is_for_real*/)
 
   if (currentState.vertDirection != wishVertDirection)
   {
+    if (dot(currentState.vertDirection, wishVertDirection) < -0.8)
+      wishVertDirection = currentState.location.O.getQuat().getLeft(); // Don't flip 180 degreees, flip gradually
     Point3 rotAxisVert = normalize(cross(currentState.vertDirection, wishVertDirection));
     if (rotAxisVert.lengthSq() > .1) // May not be true when vertDirection and wishVertDirection are very close
     {

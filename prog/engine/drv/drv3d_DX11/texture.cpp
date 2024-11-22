@@ -33,6 +33,7 @@
 #include <util/dag_watchdog.h>
 #include <validation/texture.h>
 
+#include <3d/dag_resourceDump.h>
 #include "resource_size_info.h"
 #include "driver.h"
 #include <supp/dag_comPtr.h>
@@ -58,6 +59,8 @@ namespace drv3d_dx11
 
 extern bool ignore_resource_leaks_on_exit;
 extern bool view_resizing_related_logging_enabled;
+
+extern void dump_buffers(Tab<ResourceDumpInfo> &dump_info);
 
 extern void get_shaders_mem_used(String &str);
 extern void get_states_mem_used(String &str);
@@ -1844,6 +1847,40 @@ const char *tex_filter_string(uint32_t filter)
   static const char *filterMode[6] = {"default", "point", "smooth", "best", "none", "unknown"};
   return filterMode[min(filter, (uint32_t)5)];
 }
+
+#if DAGOR_DBGLEVEL > 0
+void drv3d_dx11::dump_resources(Tab<ResourceDumpInfo> &dump_info)
+{
+  ITERATE_OVER_OBJECT_POOL(g_textures, textureNo)
+    if (g_textures[textureNo].obj != NULL)
+    {
+      BaseTex *tex = g_textures[textureNo].obj;
+
+      resource_dump_types::TextureTypes type = resource_dump_types::TextureTypes::TEX2D;
+      switch (tex->type)
+      {
+        case RES3D_TEX: type = resource_dump_types::TextureTypes::TEX2D; break;
+        case RES3D_CUBETEX: type = resource_dump_types::TextureTypes::CUBETEX; break;
+        case RES3D_VOLTEX: type = resource_dump_types::TextureTypes::VOLTEX; break;
+        case RES3D_ARRTEX: type = resource_dump_types::TextureTypes::ARRTEX; break;
+        case RES3D_CUBEARRTEX: type = resource_dump_types::TextureTypes::CUBEARRTEX; break;
+      }
+
+      dump_info.emplace_back(resource_dump_types::ResourceType::Texture, tex->getResName(), tex->ressize(), type, tex->width,
+        tex->height,
+        (type == resource_dump_types::TextureTypes::VOLTEX || type == resource_dump_types::TextureTypes::CUBEARRTEX) ? tex->depth : -1,
+        !(type == resource_dump_types::TextureTypes::ARRTEX)
+          ? ((type == resource_dump_types::TextureTypes::CUBETEX || type == resource_dump_types::TextureTypes::CUBEARRTEX) ? 6 : -1)
+          : tex->depth,
+        tex->level_count(), tex->base_format, !is_depth_format_flg(tex->base_format), tex->cflg, -1);
+    }
+  ITERATE_OVER_OBJECT_POOL_RESTORE(g_textures);
+
+  dump_buffers(dump_info);
+}
+#else
+void drv3d_dx11::dump_resources(Tab<ResourceDumpInfo> &) {}
+#endif
 
 #include "statStr.h"
 

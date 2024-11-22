@@ -374,6 +374,7 @@ void RenderScene::render(const VisibilityFinder &vf, int render_id, unsigned ren
 
       unsigned bit = 0x80000000 >> (ei & 0x1F);
       unsigned *wpos = &optScn.visData.usedElems[(ei >> 5) + lod * optScn.usedElemsStride];
+      unsigned *wposEnd = wpos + optScn.visData.usedElems.size();
       if (!*wpos)
       {
         ei += 32 - (ei & 0x1F);
@@ -431,7 +432,7 @@ void RenderScene::render(const VisibilityFinder &vf, int render_id, unsigned ren
 
           wpos++;
           bit = 0x80000000;
-          while (!*wpos)
+          while (wpos < wposEnd && !*wpos)
           {
             wpos++;
             ei += 32;

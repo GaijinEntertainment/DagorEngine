@@ -14,6 +14,8 @@
 #include <drv/3d/dag_viewScissor.h>
 #include <drv/3d/dag_renderTarget.h>
 
+#include <EASTL/shared_ptr.h>
+
 extern ConVarT<bool, false> vrs_dof;
 
 #define SCOPE_LENS_VARS VAR(screen_pos_to_texcoord)
@@ -37,17 +39,17 @@ dabfg::NodeHandle makeScopePrepassNode()
     render_to_gbuffer_prepass(registry);
 
     auto aimRenderDataHndl = registry.readBlob<AimRenderingData>("aim_render_data").handle();
-    auto scopeAimRenderDataHndl = registry.readBlob<ScopeAimRenderingData>("scope_aim_render_data").handle();
+    auto scopeAimRenderDataHndl =
+      registry.readBlob<ScopeAimRenderingData>("scope_aim_render_data").bindAsProj<&ScopeAimRenderingData::jitterProjTm>().handle();
     auto strmCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
 
-    registry.read("current_camera").blob<CameraParams>().bindAsProj<&CameraParams::jitterProjTm>();
     registry.read("viewtm_no_offset").blob<TMatrix>().bindAsView();
 
     return [aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl]() {
       if (!aimRenderDataHndl.ref().lensRenderEnabled)
         return;
 
-      render_scope_lens_prepass(scopeAimRenderDataHndl.ref(), strmCtxHndl.ref());
+      render_scope_prepass(scopeAimRenderDataHndl.ref(), strmCtxHndl.ref());
     };
   });
 }
@@ -61,10 +63,10 @@ dabfg::NodeHandle makeScopeOpaqueNode()
     render_to_gbuffer(registry);
 
     auto aimRenderDataHndl = registry.readBlob<AimRenderingData>("aim_render_data").handle();
-    auto scopeAimRenderDataHndl = registry.readBlob<ScopeAimRenderingData>("scope_aim_render_data").handle();
+    auto scopeAimRenderDataHndl =
+      registry.readBlob<ScopeAimRenderingData>("scope_aim_render_data").bindAsProj<&ScopeAimRenderingData::jitterProjTm>().handle();
     auto strmCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
 
-    registry.read("current_camera").blob<CameraParams>().bindAsProj<&CameraParams::jitterProjTm>();
     registry.read("viewtm_no_offset").blob<TMatrix>().bindAsView();
 
     return [aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl]() {
@@ -100,10 +102,10 @@ dabfg::NodeHandle makeScopeLensMaskNode()
       .clear("scope_lens_mask", make_clear_value(0.f, 0.f, 0.f, 0.f));
 
     auto aimRenderDataHndl = registry.readBlob<AimRenderingData>("aim_render_data").handle();
-    auto scopeAimRenderDataHndl = registry.readBlob<ScopeAimRenderingData>("scope_aim_render_data").handle();
+    auto scopeAimRenderDataHndl =
+      registry.readBlob<ScopeAimRenderingData>("scope_aim_render_data").bindAsProj<&ScopeAimRenderingData::jitterProjTm>().handle();
     auto strmCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
 
-    registry.read("current_camera").blob<CameraParams>().bindAsProj<&CameraParams::jitterProjTm>();
     registry.read("viewtm_no_offset").blob<TMatrix>().bindAsView();
 
     return [aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl]() {
@@ -172,10 +174,10 @@ dabfg::NodeHandle makeScopeCutDepthNode()
     registry.readTexture("scope_lens_mask").atStage(dabfg::Stage::PS).bindToShaderVar("scope_lens_mask");
     registry.read("scope_lens_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("scope_lens_mask_samplerstate");
     auto aimRenderDataHndl = registry.readBlob<AimRenderingData>("aim_render_data").handle();
-    auto scopeAimRenderDataHndl = registry.readBlob<ScopeAimRenderingData>("scope_aim_render_data").handle();
+    auto scopeAimRenderDataHndl =
+      registry.readBlob<ScopeAimRenderingData>("scope_aim_render_data").bindAsProj<&ScopeAimRenderingData::jitterProjTm>().handle();
     auto strmCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
 
-    registry.read("current_camera").blob<CameraParams>().bindAsProj<&CameraParams::jitterProjTm>();
     registry.read("viewtm_no_offset").blob<TMatrix>().bindAsView();
 
     const auto mainViewResolution = registry.getResolution<2>("main_view");
@@ -200,7 +202,7 @@ dabfg::NodeHandle makeRenderLensFrameNode()
     registry.requestRenderPass().color({registry.createTexture2d("lens_frame_target", dabfg::History::No,
       {get_frame_render_target_format() | TEXCF_RTARGET, registry.getResolution<2>("post_fx")})});
 
-    registry.readBlob<CameraParams>("current_camera").bindAsView<&CameraParams::viewRotTm>().bindAsProj<&CameraParams::jitterProjTm>();
+    registry.readBlob<CameraParams>("current_camera").bindAsView<&CameraParams::viewRotTm>();
 
     auto frameHndl =
       registry.readTexture("frame_after_distortion").atStage(dabfg::Stage::PS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();
@@ -208,7 +210,8 @@ dabfg::NodeHandle makeRenderLensFrameNode()
       registry.readTexture("lens_source_target").atStage(dabfg::Stage::PS).useAs(dabfg::Usage::SHADER_RESOURCE).optional().handle();
 
     auto aimRenderDataHndl = registry.readBlob<AimRenderingData>("aim_render_data").handle();
-    auto scopeAimRenderDataHndl = registry.readBlob<ScopeAimRenderingData>("scope_aim_render_data").handle();
+    auto scopeAimRenderDataHndl =
+      registry.readBlob<ScopeAimRenderingData>("scope_aim_render_data").bindAsProj<&ScopeAimRenderingData::jitterProjTm>().handle();
     auto strmCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
 
     auto postfxResolution = registry.getResolution<2>("post_fx");
@@ -260,11 +263,17 @@ dabfg::NodeHandle makeRenderOpticsPrepassNode()
         return;
       }
 
-      render_scope_lens_prepass(scopeAimRenderDataHndl.ref(), strmCtxHndl.ref());
+      render_scope_prepass(scopeAimRenderDataHndl.ref(), strmCtxHndl.ref());
       hasOpticsPrepass.ref() = true;
     };
   });
 }
+
+template <typename T>
+using BlobHandle = dabfg::VirtualResourceHandle<T, false, false>;
+
+template <typename T>
+using OptionalBlobHandle = dabfg::VirtualResourceHandle<T, false, true>;
 
 dabfg::NodeHandle makeRenderLensOpticsNode()
 {
@@ -272,6 +281,9 @@ dabfg::NodeHandle makeRenderLensOpticsNode()
     registry.requestState().allowWireframe().setFrameBlock("global_frame");
 
     auto hasOpticsPrepass = registry.readBlob<bool>("has_aim_scope_optics_prepass").handle();
+    // todo: disable blur instead when thermal is active
+    auto hasThermalRender = registry.readBlob<OrderingToken>("thermal_spectre_rendered").optional().handle();
+
     auto opticsPrepassDepthHndl = registry.modifyTexture("aim_scope_optics_depth")
                                     .atStage(dabfg::Stage::PRE_RASTER)
                                     .useAs(dabfg::Usage::DEPTH_ATTACHMENT)
@@ -284,19 +296,30 @@ dabfg::NodeHandle makeRenderLensOpticsNode()
       registry.modifyTexture("frame_for_postfx").atStage(dabfg::Stage::POST_RASTER).useAs(dabfg::Usage::COLOR_ATTACHMENT).handle();
 
     registry.readTexture("lens_frame_target").atStage(dabfg::Stage::PS).bindToShaderVar("lens_frame_tex");
-    registry.readBlob<CameraParams>("current_camera").bindAsView<&CameraParams::viewRotTm>().bindAsProj<&CameraParams::jitterProjTm>();
+    registry.readBlob<CameraParams>("current_camera").bindAsView<&CameraParams::viewRotTm>();
 
     auto aimRenderDataHndl = registry.readBlob<AimRenderingData>("aim_render_data").handle();
-    auto scopeAimRenderDataHndl = registry.readBlob<ScopeAimRenderingData>("scope_aim_render_data").handle();
+    auto scopeAimRenderDataHndl =
+      registry.readBlob<ScopeAimRenderingData>("scope_aim_render_data").bindAsProj<&ScopeAimRenderingData::jitterProjTm>().handle();
     auto strmCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
 
-    return [hasOpticsPrepass, opticsPrepassDepthHndl, depthAfterTransparentsHndl, frameHndl, aimRenderDataHndl, scopeAimRenderDataHndl,
-             strmCtxHndl, fadingRenderer = PostFxRenderer("solid_color_shader")]() {
+    struct BlobsToInit
+    {
+      BlobHandle<const bool> hasOpticsPrepass;
+      OptionalBlobHandle<const OrderingToken> hasThermalRender;
+    };
+    auto extraBlobs = eastl::shared_ptr<BlobsToInit>(new BlobsToInit{hasOpticsPrepass, hasThermalRender});
+
+    return [bs = std::move(extraBlobs), opticsPrepassDepthHndl, depthAfterTransparentsHndl, frameHndl, aimRenderDataHndl,
+             scopeAimRenderDataHndl, strmCtxHndl, fadingRenderer = PostFxRenderer("solid_color_shader")]() {
       if (!aimRenderDataHndl.ref().lensRenderEnabled)
         return;
 
+      if (bs->hasThermalRender.get())
+        d3d::clear_rt({frameHndl.get()}, make_clear_value(0.0f, 0.0f, 0.0f, 0.0f));
+
       d3d::set_render_target(frameHndl.get(), 0);
-      if (hasOpticsPrepass.ref())
+      if (bs->hasOpticsPrepass.ref())
         d3d::set_depth(opticsPrepassDepthHndl.view().getTex2D(), DepthAccess::RW);
       else
         d3d::set_depth(depthAfterTransparentsHndl.view().getTex2D(), DepthAccess::SampledRO);
@@ -314,12 +337,11 @@ dabfg::NodeHandle makeRenderCrosshairNode()
     registry.requestRenderPass().color({"lens_frame_target"});
 
     auto aimRenderDataHndl = registry.readBlob<AimRenderingData>("aim_render_data").handle();
-    auto scopeAimRenderDataHndl = registry.readBlob<ScopeAimRenderingData>("scope_aim_render_data").handle();
+    auto scopeAimRenderDataHndl =
+      registry.readBlob<ScopeAimRenderingData>("scope_aim_render_data").bindAsProj<&ScopeAimRenderingData::noJitterProjTm>().handle();
     auto strmCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
 
-    registry.readBlob<CameraParams>("current_camera")
-      .bindAsView<&CameraParams::viewRotTm>()
-      .bindAsProj<&CameraParams::noJitterProjTm>();
+    registry.readBlob<CameraParams>("current_camera").bindAsView<&CameraParams::viewRotTm>();
 
     return [scopeAimRenderDataHndl, aimRenderDataHndl, strmCtxHndl]() {
       if (!aimRenderDataHndl.ref().lensRenderEnabled)

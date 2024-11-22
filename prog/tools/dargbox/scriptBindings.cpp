@@ -19,10 +19,8 @@
 
 #include <util/dag_delayedAction.h>
 
-#include "fileDropHandler.h"
 #include "vr.h"
 #include "main.h"
-#include "screenshotMetaInfoLoader.h"
 #include "gamelib/sound.h"
 #include "gamelib/input.h"
 
@@ -55,6 +53,7 @@ void bind_dargbox_script_api(SqModules *module_mgr)
   bindquirrel::bind_dagor_time(module_mgr);
   bindquirrel::register_iso8601_time(module_mgr);
   bindquirrel::register_dagor_system(module_mgr);
+  bindquirrel::register_dagor_system_file_handlers(module_mgr);
   bindquirrel::register_dagor_clipboard(module_mgr);
   bindquirrel::bind_json_api(module_mgr);
   bindquirrel::register_reg_exp(module_mgr);
@@ -77,8 +76,6 @@ void bind_dargbox_script_api(SqModules *module_mgr)
 
   Sqrat::Table sqDargbox(vm);
   sqDargbox.Func("reload_scripts", [](bool full_reinit) { delayed_reload_scripts(full_reinit); });
-  sqDargbox.Func("get_meta_info_from_screenshot", get_meta_info_from_screenshot);
-  sqDargbox.Func("init_file_drop_handler", init_file_drop_handler);
   module_mgr->addNativeModule("dargbox", sqDargbox);
 
   Sqrat::Table sqVR(vm);
@@ -93,6 +90,7 @@ void unbind_dargbox_script_api(HSQUIRRELVM vm)
 #endif
   bindquirrel::http_client_wait_active_requests();
   bindquirrel::http_client_on_vm_shutdown(vm);
+  bindquirrel::cleanup_dagor_system_file_handlers();
   bindquirrel::cleanup_dagor_workcycle_module(vm);
   sqeventbus::unbind(vm);
   bindquirrel::shutdown_datacache();

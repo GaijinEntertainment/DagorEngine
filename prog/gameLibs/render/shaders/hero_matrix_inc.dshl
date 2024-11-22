@@ -10,6 +10,7 @@ float4 prev_hero_matrixZ = (0,0,0,1);
 float4 hero_bbox_reprojectionX = (1,0,0,0);
 float4 hero_bbox_reprojectionY = (0,1,0,0);
 float4 hero_bbox_reprojectionZ = (0,0,1,0);
+int hero_is_cockpit = 0;
 
 
 define_macro_if_not_defined INIT_READ_GBUFFER_MATERIAL_DYNAMIC_BASE(code)
@@ -29,6 +30,7 @@ macro INIT_HERO_MATRIX(code)
     hero_bbox_reprojectionX@f4 = hero_bbox_reprojectionX;
     hero_bbox_reprojectionY@f4 = hero_bbox_reprojectionY;
     hero_bbox_reprojectionZ@f4 = hero_bbox_reprojectionZ;
+    hero_is_cockpit@i1 = (hero_is_cockpit);
   }
 endmacro
 
@@ -47,15 +49,13 @@ macro USE_HERO_MATRIX(code)
 
     bool apply_hero_matrix(float2 uv, inout float3 eye_to_point)
     {
-      if (is_inside_hero_bbox(eye_to_point)
+      bool ret = is_inside_hero_bbox(eye_to_point);
 #ifdef GBUFFER_HAS_HERO_COCKPIT_BIT
-        || isGbufferHeroCockpit(uv)
+      bool isCockpit = isGbufferHeroCockpit(uv);
+      ret = isCockpit | (!hero_is_cockpit & ret);
 #endif
-      ){
-        eye_to_point = mulPointTm(eye_to_point, prev_hero_matrixX, prev_hero_matrixY, prev_hero_matrixZ);
-        return true;
-      }
-      return false;
+      eye_to_point = ret ? mulPointTm(eye_to_point, prev_hero_matrixX, prev_hero_matrixY, prev_hero_matrixZ) : eye_to_point;
+      return ret;
     }
   }
 endmacro

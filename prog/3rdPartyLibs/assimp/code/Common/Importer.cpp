@@ -592,7 +592,7 @@ const aiScene* Importer::ReadFile( const char* _pFile, unsigned int pFlags) {
     // ImportErrorException's are throw by ourselves and caught elsewhere.
     //-----------------------------------------------------------------------
 
-    WriteLogOpening(pFile);
+    // WriteLogOpening(pFile); // Dagor Patch, to avoid tsan warning on noop logging
 
 #ifdef ASSIMP_CATCH_GLOBAL_EXCEPTIONS
     try

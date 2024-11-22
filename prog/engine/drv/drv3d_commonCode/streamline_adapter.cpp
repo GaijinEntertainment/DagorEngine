@@ -468,8 +468,15 @@ bool StreamlineAdapter::evaluateDlss(uint32_t frame_id, int viewportId, const nv
   const sl::BaseStructure *inputs[] = {&viewport};
   if (SL_FAILED(result, sl_funcs::slEvaluateFeature(sl::kFeatureDLSS, *token, inputs, eastl::size(inputs), commandBuffer)))
   {
-    D3D_ERROR("SL: Failed to evaluate DLSS. Result: %s", getResultAsStr(result));
-    return false;
+    if (result == sl::Result::eWarnOutOfVRAM)
+    {
+      logwarn("SL: DLSS ran out of VRAM. We can still continue but expects severe performance degradation.");
+    }
+    else
+    {
+      D3D_ERROR("SL: Failed to evaluate DLSS. Result: %s", getResultAsStr(result));
+      return false;
+    }
   }
 
   return true;

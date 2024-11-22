@@ -55,7 +55,7 @@ shader downsample_cloud_field
       }
 
       if (flatIdx == 0)
-        output[groupId] = ret!=0 ? 1 : 0;
+        texture3DAt(output, groupId) = ret!=0 ? 1 : 0;
     }
   }
   compile("cs_5_0", "cs_main")
@@ -358,6 +358,7 @@ endmacro
 
 shader clouds_tile_dist_prepare_cs
 {
+  ENABLE_ASSERT(cs)
   (cs) {
     view_vecLT@f3 = view_vecLT;
     view_vecRT_minus_view_vecLT@f3 = (view_vecRT-view_vecLT);
@@ -373,7 +374,7 @@ shader clouds_tile_dist_prepare_cs
     {
       float2 texcoord = tid*clouds_tiled_res.xy + clouds_tiled_res.zw;
       float3 viewVect = view_vecLT + (view_vecRT_minus_view_vecLT)*texcoord.x + (view_vecLB_minus_view_vecLT)*texcoord.y;
-      tiledDist[tid] = getTiledDistance(normalize(viewVect));
+      texture2DAt(tiledDist, tid) = getTiledDistance(normalize(viewVect));
     }
   }
 
@@ -478,13 +479,14 @@ shader clouds_tile_dist_min_ps
 
 shader clouds_tile_dist_min_cs
 {
+  ENABLE_ASSERT(cs)
   CLOUDS_TILE_FILTER(cs)
   hlsl(cs) {
     RWTexture2D<float> tiledDist:register(u0);
     [numthreads(8, 8, 1)]//downsample 4 times, and +2 times in each thread
     void cs_main(uint2 tid : SV_DispatchThreadID)
     {
-      tiledDist[tid] = filter_tiled_dist(tid.xy);
+      texture2DAt(tiledDist, tid) = filter_tiled_dist(tid.xy);
     }
   }
   compile("cs_5_0", "cs_main");
@@ -564,6 +566,7 @@ endmacro
 
 shader clouds_refine_altitudes
 {
+  ENABLE_ASSERT(cs)
   USE_REFINE_ALTITUDES(cs)
   hlsl (cs) {
     RWTexture2D<float4> output : register(u0);
@@ -571,8 +574,8 @@ shader clouds_refine_altitudes
     void cs_main() {
       float first, last, firstRadius, lastRadius;
       refine_altitudes(first, last, firstRadius, lastRadius);
-      output[uint2(0, 0)] = float4(firstRadius-0.001, lastRadius+0.001, -firstRadius*firstRadius, -lastRadius*lastRadius);
-      output[uint2(1, 0)] = float4(first, last, firstRadius, lastRadius);
+      texture2DAt(output, uint2(0, 0)) = float4(firstRadius-0.001, lastRadius+0.001, -firstRadius*firstRadius, -lastRadius*lastRadius);
+      texture2DAt(output, uint2(1, 0)) = float4(first, last, firstRadius, lastRadius);
     }
   }
   compile("cs_5_0", "cs_main")

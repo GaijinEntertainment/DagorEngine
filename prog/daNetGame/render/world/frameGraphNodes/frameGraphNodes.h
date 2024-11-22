@@ -167,6 +167,8 @@ resource_slot::NodeHandleWithSlotsAccess makePostFxInputSlotProviderNode();
 
 resource_slot::NodeHandleWithSlotsAccess makePreparePostFxNode();
 
+dabfg::NodeHandle makeFrameBeforeDistortionProducerNode();
+
 dabfg::NodeHandle makeDistortionFxNode();
 
 dabfg::NodeHandle makeRenameDepthNode();

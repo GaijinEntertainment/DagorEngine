@@ -189,4 +189,20 @@ TMatrix get_3d_listener() { return {}; }
 // eventInstanceStealing.cpp
 int create_event_instance_stealing_group(const char *, int, float) { return -1; }
 void update_event_instance_stealing(EventHandle, int, float) {}
+
+// geometry.cpp
+int add_geometry(int, int) { return -1; }
+void remove_geometry(int) {}
+void remove_all_geometry() {}
+void add_polygons(int, dag::ConstSpan<Point3>, int, float, float, bool) {}
+void add_polygon(int, const Point3 &, const Point3 &, const Point3 &, float, float, bool) {}
+void set_geometry_position(int, const Point3 &) {}
+Point3 get_geometry_position(int) { return {}; }
+int get_geometry_count() { return 0; }
+int get_geometry_id(int) { return -1; }
+const eastl::vector<Point3> *get_geometry_faces(int) { return nullptr; }
+void save_geometry_to_file(const char *) {}
+bool load_geometry_from_file(const char *) { return false; }
+
+Point2 get_geometry_occlusion(const Point3 &, const Point3 &) { return {}; }
 } // namespace sndsys
