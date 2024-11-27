@@ -68,6 +68,6 @@ shader dynamic_simple_painted
     hlsl(ps) {
       #define IS_DYNAMIC 1
     }
-    SIMPLE_PAINTED_PS(true)
+    SIMPLE_PAINTED_PS(true, false)
   }
 }

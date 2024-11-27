@@ -14,6 +14,7 @@
 #include <generic/dag_smallTab.h>
 #include <osApiWrappers/dag_spinlock.h>
 #include <atomic>
+#include "shStateBlock.h"
 
 
 /************************************************************************
@@ -45,9 +46,12 @@ public:
   };
   struct PackedPassId
   {
+    static constexpr ShaderStateBlockId DELETED_STATE_BLOCK_ID = static_cast<ShaderStateBlockId>(-1);
+
     mutable struct Id
     {
-      std::atomic<int> v;
+      // NOTE: might also contain the special value of DELETED_STATE_BLOCK_ID, be careful
+      std::atomic<ShaderStateBlockId> v;
       int pr;
     } id; // we cache it inside stateBlocksSpinLock
     PackedPassId() = default;
@@ -99,8 +103,8 @@ public:
   int chooseDynamicVariant(unsigned int &out_variant_code) const;
   int chooseCachedDynamicVariant(unsigned int variant_code) const;
 
-  void setStatesForVariant(int curVariant, uint32_t program, uint32_t state_index) const;
-  void getDynamicVariantStates(int variant_code, int cur_variant, uint32_t &program, uint32_t &state_index,
+  void setStatesForVariant(int curVariant, uint32_t program, ShaderStateBlockId state_index) const;
+  void getDynamicVariantStates(int variant_code, int cur_variant, uint32_t &program, ShaderStateBlockId &state_index,
     shaders::RenderStateId &render_state, shaders::ConstStateIdx &const_state, shaders::TexStateIdx &tex_state) const;
 
   void update_stvar(ScriptedShaderMaterial &m, int stvarid);
@@ -163,7 +167,7 @@ private:
 
   const shaderbindump::ShaderCode::ShRef *getPassCode() const;
 
-  int recordStateBlock(const shaderbindump::ShaderCode::ShRef &p) const;
+  ShaderStateBlockId recordStateBlock(const shaderbindump::ShaderCode::ShRef &p) const;
   VDECL initVdecl() const;
 
   ScriptedShaderElement(const ScriptedShaderElement &);

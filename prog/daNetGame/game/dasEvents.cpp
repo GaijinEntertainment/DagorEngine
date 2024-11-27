@@ -12,6 +12,7 @@
 /// native_events
 
 ECS_REGISTER_EVENT(ChangeServerRoute);
+ECS_REGISTER_EVENT(CmdUpdateGridScale);
 ECS_REGISTER_EVENT(EventAnyEntityResurrected);
 ECS_REGISTER_EVENT(EventGameSessionFinished);
 ECS_REGISTER_EVENT(EventGameSessionStarted);
@@ -26,6 +27,7 @@ SQ_DEF_AUTO_BINDING_MODULE(dasEvents, "dasevents")
 {
   Sqrat::Table tbl(vm);
   bind_dascript::DasEventsBind<ChangeServerRoute>::bind(vm, tbl);
+  bind_dascript::DasEventsBind<CmdUpdateGridScale>::bind(vm, tbl);
   bind_dascript::DasEventsBind<EventAnyEntityResurrected>::bind(vm, tbl);
   bind_dascript::DasEventsBind<EventGameSessionFinished>::bind(vm, tbl);
   bind_dascript::DasEventsBind<EventGameSessionStarted>::bind(vm, tbl);

@@ -18,8 +18,7 @@ endmacro
 define_macro_if_not_defined USE_READ_GBUFFER_MATERIAL_DYNAMIC_BASE(code)
 endmacro
 
-macro INIT_HERO_MATRIX(code)
-  INIT_READ_GBUFFER_MATERIAL_DYNAMIC_BASE(code)
+macro INIT_HERO_MATRIX_NO_GBUF(code)
   (code) {
     hero_matrixX@f4 = hero_matrixX;
     hero_matrixY@f4 = hero_matrixY;
@@ -34,8 +33,12 @@ macro INIT_HERO_MATRIX(code)
   }
 endmacro
 
-macro USE_HERO_MATRIX(code)
-  USE_READ_GBUFFER_MATERIAL_DYNAMIC_BASE(code)
+macro INIT_HERO_MATRIX(code)
+  INIT_READ_GBUFFER_MATERIAL_DYNAMIC_BASE(code)
+  INIT_HERO_MATRIX_NO_GBUF(code)
+endmacro
+
+macro USE_HERO_MATRIX_NO_GBUF(code)
   hlsl(code) {
     bool is_inside_hero_bbox(float3 eye_to_point)
     {
@@ -47,15 +50,34 @@ macro USE_HERO_MATRIX(code)
       return mulPointTm(eye_to_point, hero_bbox_reprojectionX, hero_bbox_reprojectionY, hero_bbox_reprojectionZ);
     }
 
+    float3 just_apply_hero_matrix(float3 eye_to_point)
+    {
+      return mulPointTm(eye_to_point, prev_hero_matrixX, prev_hero_matrixY, prev_hero_matrixZ);
+    }
+    bool isInHero(bool isHeroCockpit, float3 eye_to_point)
+    {
+      return hero_is_cockpit ? isHeroCockpit : isHeroCockpit || is_inside_hero_bbox(eye_to_point);
+    }
+  }
+endmacro
+
+macro USE_HERO_MATRIX_WITH_GBUF(code)
+  USE_HERO_MATRIX_NO_GBUF(code)
+  hlsl(code) {
     bool apply_hero_matrix(float2 uv, inout float3 eye_to_point)
     {
-      bool ret = is_inside_hero_bbox(eye_to_point);
 #ifdef GBUFFER_HAS_HERO_COCKPIT_BIT
-      bool isCockpit = isGbufferHeroCockpit(uv);
-      ret = isCockpit | (!hero_is_cockpit & ret);
+      bool ret = isInHero(isGbufferHeroCockpit(uv), eye_to_point);
+#else
+      bool ret = is_inside_hero_bbox(eye_to_point);
 #endif
-      eye_to_point = ret ? mulPointTm(eye_to_point, prev_hero_matrixX, prev_hero_matrixY, prev_hero_matrixZ) : eye_to_point;
+      eye_to_point = ret ? just_apply_hero_matrix(eye_to_point) : eye_to_point;
       return ret;
     }
   }
+endmacro
+
+macro USE_HERO_MATRIX(code)
+  USE_READ_GBUFFER_MATERIAL_DYNAMIC_BASE(code)
+  USE_HERO_MATRIX_WITH_GBUF(code)
 endmacro

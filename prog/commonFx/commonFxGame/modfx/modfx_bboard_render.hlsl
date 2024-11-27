@@ -1262,7 +1262,7 @@ bool color_discard_test(float4 src, uint flags)
     }
 
 #if !(MODFX_SHADER_VOLSHAPE || MODFX_SHADER_VOLSHAPE_WBOIT || MODFX_SHADER_VOLFOG_INJECTION || MODFX_SHADER_DISTORTION)
-    if (color_discard_test(float4(lighting_part.xyz, alpha), flags))
+    if (color_discard_test(float4(lighting_part.xyz + emissive_part.xyz, alpha), flags))
     {
       discard;
       return fx_null;

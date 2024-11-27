@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <EASTL/hash_map.h>
+#include <EASTL/fixed_vector.h>
 
 using namespace AnimV20;
 
@@ -911,6 +912,8 @@ void AnimBlendCtrl_LinearPoly::buildBlendingList(BlendCtx &bctx, real w)
       break;
     }
 
+  // for some cases we want to go beyond the given limits (e.g. when standing up the person goes a bit above the standing up pose and
+  // comes back) to do this we specifically don't clamp alpha here
   if (poly.size() == 2 && poly[0].p0 < poly[1].p0 && morphTime <= 0)
   {
     // apply unconstrained cross-blend
@@ -924,6 +927,14 @@ void AnimBlendCtrl_LinearPoly::buildBlendingList(BlendCtx &bctx, real w)
   {
     const real morphSpeed = 1.0f / morphTime;
     real totalNewWeight = 0.0f;
+
+    struct NodeWeight
+    {
+      int idx;
+      real w;
+    };
+
+    eastl::fixed_vector<NodeWeight, 3> nonActiveMorphedNodes;
 
     for (int i = 0; i < poly.size(); ++i)
     {
@@ -939,7 +950,40 @@ void AnimBlendCtrl_LinearPoly::buildBlendingList(BlendCtx &bctx, real w)
         wishWeight = alpha;
 
       const real curWeight = st.getParam(poly[i].wtPid);
-      const real newWeight = move_to(curWeight, wishWeight, dt, morphSpeed);
+      real newWeight = move_to(curWeight, wishWeight, dt, morphSpeed);
+      if (wishWeight == 0.0f && newWeight > 0.0f)
+      {
+        if (nonActiveMorphedNodes.size() < nonActiveMorphedNodes.capacity())
+        {
+          if (nonActiveMorphedNodes.size() == 0 || newWeight < nonActiveMorphedNodes.back().w)
+            nonActiveMorphedNodes.push_back({i, newWeight});
+          else
+          {
+            int insertIndex = 0;
+            for (; insertIndex < nonActiveMorphedNodes.size() && nonActiveMorphedNodes[insertIndex].w > newWeight; ++insertIndex)
+              ;
+            nonActiveMorphedNodes.insert(nonActiveMorphedNodes.begin() + insertIndex, {i, newWeight});
+          }
+        }
+        else
+        {
+          if (newWeight < nonActiveMorphedNodes.back().w)
+            newWeight = 0.0f;
+          else
+          {
+            NodeWeight &node = nonActiveMorphedNodes.back();
+            totalNewWeight -= node.w;
+            st.setParam(poly[node.idx].wtPid, 0.0f);
+            nonActiveMorphedNodes.pop_back();
+
+            int insertIndex = 0;
+            for (; insertIndex < nonActiveMorphedNodes.size() && nonActiveMorphedNodes[insertIndex].w > newWeight; ++insertIndex)
+              ;
+            nonActiveMorphedNodes.insert(nonActiveMorphedNodes.begin() + insertIndex, {i, newWeight});
+          }
+        }
+      }
+
       totalNewWeight += newWeight;
       st.setParam(poly[i].wtPid, newWeight);
     }

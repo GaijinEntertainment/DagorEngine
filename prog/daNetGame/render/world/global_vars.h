@@ -26,7 +26,6 @@
   VAR(globtm_psf_1)                     \
   VAR(globtm_psf_2)                     \
   VAR(globtm_psf_3)                     \
-  VAR(prev_world_view_pos)              \
   VAR(world_view_pos)                   \
   VAR(frame_tex)                        \
   VAR(downsampled_far_depth_tex)        \
@@ -101,6 +100,8 @@
   VAR(lens_frame_tex)                         \
   VAR(lens_frame_tex_samplerstate)            \
   VAR(lens_distortion_params)                 \
+  VAR(jitteredCamPosToUnjitteredHistoryClip)  \
+  VAR(prev_to_cur_origin_move)                \
   VAR(prevViewProjTm0)                        \
   VAR(prevViewProjTm1)                        \
   VAR(prevViewProjTm2)                        \
@@ -109,6 +110,7 @@
   VAR(prevOrigoRelativeViewProjTm1)           \
   VAR(prevOrigoRelativeViewProjTm2)           \
   VAR(prevOrigoRelativeViewProjTm3)           \
+  VAR(prev_world_view_pos)                    \
   VAR(pixel_scale)                            \
   VAR(sky_color)                              \
   VAR(matrices_stride)                        \

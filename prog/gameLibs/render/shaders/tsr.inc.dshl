@@ -28,11 +28,7 @@ float tsr_scale_base_dynamic = 1.5;
 float tsr_scale_motion_steepness_dynamic = 1e2;
 float tsr_scale_motion_max_dynamic = 0.1;
 
-float4 prevViewProjTm0;
-float4 prevViewProjTm1;
-float4 prevViewProjTm2;
-float4 prevViewProjTm3;
-
+float4x4 jitteredCamPosToUnjitteredHistoryClip;
 texture tsr_vrs_mask;
 
 int tsr_should_restart;

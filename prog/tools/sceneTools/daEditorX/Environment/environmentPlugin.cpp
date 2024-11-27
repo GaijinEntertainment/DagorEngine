@@ -296,6 +296,19 @@ bool EnvironmentPlugin::catchEvent(unsigned ev_huid, void *userData)
 
 
 //==============================================================================
+void EnvironmentPlugin::registerMenuAccelerators()
+{
+  IWndManager &wndManager = *DAGORED2->getWndManager();
+
+  wndManager.addViewportAccelerator(CM_SHOW_PANEL, 'P');
+  wndManager.addViewportAccelerator(CM_RESET_GIZMO, wingw::V_DELETE);
+
+  if (!isAcesPlugin)
+    wndManager.addViewportAccelerator(CM_IMPORT, 'O', true);
+}
+
+
+//==============================================================================
 bool EnvironmentPlugin::begin(int toolbar_id, unsigned menu_id)
 {
   PropPanel::IMenu *mainMenu = DAGORED2->getMainMenu();
@@ -552,6 +565,11 @@ bool EnvironmentPlugin::onPluginMenuClickInternal(unsigned id, PropPanel::Contai
       EDITORCORE->managePropPanels();
       return true;
 
+    case CM_RESET_GIZMO:
+      // undoBefore();
+      DAGORED2->setGizmo(NULL, IDagorEd2Engine::MODE_None);
+      return true;
+
     case CM_ERASE_ENVI:
       if (wingw::message_box(wingw::MBS_OKCANCEL | wingw::MBS_QUEST, "Erase geometry", "Erase environment and fog capsules?") ==
           wingw::MBS_OK)
@@ -602,29 +620,6 @@ bool EnvironmentPlugin::onPluginMenuClickInternal(unsigned id, PropPanel::Contai
 
 //==============================================================================
 bool EnvironmentPlugin::onPluginMenuClick(unsigned id) { return onPluginMenuClickInternal(id, nullptr); }
-
-
-//==============================================================================
-void EnvironmentPlugin::handleKeyPress(IGenViewportWnd *wnd, int vk, int modif)
-{
-  if (!modif)
-  {
-    switch (vk)
-    {
-      case 'P': onPluginMenuClick(CM_SHOW_PANEL); break;
-      case wingw::V_DELETE:
-        // undoBefore();
-        DAGORED2->setGizmo(NULL, IDagorEd2Engine::MODE_None);
-        break;
-    }
-  }
-
-  if (modif & wingw::M_CTRL && !isAcesPlugin)
-  {
-    if (wingw::is_key_pressed('O'))
-      onClick(CM_IMPORT, NULL);
-  }
-}
 
 
 //==============================================================================

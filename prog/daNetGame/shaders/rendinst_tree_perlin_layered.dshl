@@ -19,10 +19,7 @@ include "taa_inc.dshl"
 int gbuffer_for_treesabove = 0;
 interval gbuffer_for_treesabove : off < 1, on;
 
-float4 prevViewProjTm0;
-float4 prevViewProjTm1;
-float4 prevViewProjTm2;
-float4 prevViewProjTm3;
+float4x4 jitteredCamPosToUnjitteredHistoryClip;
 
 float4 prev_world_view_pos;
 
@@ -106,8 +103,7 @@ shader rendinst_tree_perlin_layered
         rendinst_render_pass != rendinst_render_pass_depth && rendinst_render_pass != rendinst_render_pass_to_shadow)
     {
       (vs) {
-        prevViewProjTm@f44 = {prevViewProjTm0, prevViewProjTm1, prevViewProjTm2, prevViewProjTm3};
-        prev_world_view_pos@f3 = (prev_world_view_pos);
+        jitteredCamPosToUnjitteredHistoryClip@f44 = jitteredCamPosToUnjitteredHistoryClip;
       }
 
       USE_MOTION_VEC_ENCODE(ps)
@@ -152,7 +148,15 @@ shader rendinst_tree_perlin_layered
     USE_SPECULAR_FROM_COLOR()
   }
 
-  INIT_VEGETATION_INTERACTIONS()
+  if (is_pivoted == yes)
+  {
+    INIT_VEGETATION_INTERACTIONS()
+    // These are trees, they shouldn't use bush interactions
+    if (interactions == interactionsBushes)
+    {
+      dont_render;
+    }
+  }
 
   macro FILL_CURRENT_GBUFFER_LAYERED()
     (ps){
@@ -350,7 +354,8 @@ shader rendinst_tree_perlin_layered
       };
     }
 
-    USE_AND_APPLY_VEGETATION_INTERACTIONS(is_pivoted == yes && (interactions == interactionsTrees))
+    USE_AND_APPLY_VEGETATION_INTERACTIONS(is_pivoted == yes && (interactions == interactionsTrees)
+                                          && rendinst_render_pass != rendinst_render_pass_impostor_color)
 
     hlsl(vs) {
       #if PN_TESSELATION
@@ -411,7 +416,7 @@ shader rendinst_tree_perlin_layered
           #ifdef MOTION_VECTORS_ENABLED
             // motion vectors will not account for tesellation (for now)
             output.out_pos = mulPointTm(worldPos + camera_base_offset, globtm);
-            output.out_pos_prev = mulPointTm(prevWorldPos - prev_world_view_pos, prevViewProjTm);
+            output.out_pos_prev = mulPointTm(prevWorldPos - world_view_pos, jitteredCamPosToUnjitteredHistoryClip);
           #endif
           ##if (material_pn_triangulation == displacement && is_pivoted == yes)
             output.additional_displacement_mul = get_rendinst_displacement_mod()[Data.maxHierarchyLevel];
@@ -421,7 +426,7 @@ shader rendinst_tree_perlin_layered
           output.pointToEye = pointToEye;
           #ifdef MOTION_VECTORS_ENABLED
             output.out_pos = output.pos;
-            output.out_pos_prev = mulPointTm(prevWorldPos - prev_world_view_pos, prevViewProjTm);
+            output.out_pos_prev = mulPointTm(prevWorldPos - world_view_pos, jitteredCamPosToUnjitteredHistoryClip);
           #endif
         #endif
 
@@ -531,7 +536,8 @@ shader rendinst_tree_perlin_layered
       DEFINE_PIVOT_POINT_WIND_SCALE()
     }
 
-    USE_AND_APPLY_VEGETATION_INTERACTIONS(is_pivoted == yes && (interactions == interactionsTrees))
+    USE_AND_APPLY_VEGETATION_INTERACTIONS(is_pivoted == yes && (interactions == interactionsTrees)
+                                          && rendinst_render_pass != rendinst_render_pass_impostor_color)
 
     hlsl(vs) {
       struct VsOutput

@@ -324,14 +324,11 @@ dabfg::NodeHandle makeFrameBeforeDistortionProducerNode()
                           .handle();
 
     auto hasThermalRender = registry.readBlob<OrderingToken>("thermal_spectre_rendered").optional().handle();
-    auto hazeRenderedHndl = registry.readBlob<bool>("haze_rendered").optional().handle();
 
     auto distortionPostfxRequired = registry.createBlob<bool>("distortion_postfx_required", dabfg::History::No).handle();
 
-    return [srcFrameHndl, dstFrameHndl, hasThermalRender, hazeRenderedHndl, distortionPostfxRequired]() {
-      const bool hasHaze = hazeRenderedHndl.get() && *hazeRenderedHndl.get();
-
-      distortionPostfxRequired.ref() = !hasThermalRender.get() && hasHaze;
+    return [srcFrameHndl, dstFrameHndl, hasThermalRender, distortionPostfxRequired]() {
+      distortionPostfxRequired.ref() = !hasThermalRender.get();
 
       if (!distortionPostfxRequired.ref())
         d3d::stretch_rect(srcFrameHndl.view().getTex2D(), dstFrameHndl.get());
@@ -349,8 +346,6 @@ dabfg::NodeHandle makeDistortionFxNode()
     registry.readTexture("frame_after_aa").atStage(dabfg::Stage::POST_RASTER).bindToShaderVar("frame_tex");
 
     auto distortionPostfxRequired = registry.readBlob<bool>("distortion_postfx_required").handle();
-
-    registry.readTexture("depth_after_transparency").atStage(dabfg::Stage::PS).bindToShaderVar("haze_scene_depth_tex");
 
     registry.readTexture("haze_offset").atStage(dabfg::Stage::POST_RASTER).bindToShaderVar("haze_offset_tex").optional();
     registry.create("haze_default_sampler", dabfg::History::No)

@@ -303,7 +303,7 @@ void ScriptedShaderElement::preparePassIdOOL(ID_T &pass_id, int variant, unsigne
 
 __forceinline void ScriptedShaderElement::preparePassId(ID_T &pass_id, int variant, unsigned int variant_code) const
 {
-  if (pass_id.v.load(std::memory_order_relaxed) == -2)
+  if (pass_id.v.load(std::memory_order_relaxed) == PackedPassId::DELETED_STATE_BLOCK_ID)
     preparePassIdOOL(pass_id, variant, variant_code);
 }
 
@@ -440,7 +440,10 @@ ScriptedShaderElement::ScriptedShaderElement(const shaderbindump::ShaderCode &ma
     const shaderbindump::ShaderCode::Pass &otherPass = code.passes[i];
 
     if (otherPass.rpass)
-      passes[i].id.v = passes[i].id.pr = -2;
+    {
+      passes[i].id.v.store(PackedPassId::DELETED_STATE_BLOCK_ID);
+      passes[i].id.pr = -2;
+    }
   }
 
   // debug("%d dynamic variants", code.dynVariants.variantCount());
@@ -669,7 +672,7 @@ void ScriptedShaderElement::preCreateStateBlocks()
 }
 void ScriptedShaderElement::resetStateBlocks()
 {
-  eastl::fixed_vector<int, 32, true> toDelete;
+  eastl::fixed_vector<ShaderStateBlockId, 32, true> toDelete;
   // we need this spinlock, because we here invalidate pass_id.v and we can be creating in render thread.
   // so, when we were creating we could potentially create it with old textures (BaseTexture*)
   // we can't render with old texture*, because it is released in replaceTexture
@@ -681,11 +684,11 @@ void ScriptedShaderElement::resetStateBlocks()
     sleep_msec(1);
   for (int i = 0; i < passes.size(); i++)
   {
-    int v = passes[i].id.v.load();
-    if (v >= 0)
+    ShaderStateBlockId v = passes[i].id.v.load();
+    if (v != ShaderStateBlockId::Invalid && v != PackedPassId::DELETED_STATE_BLOCK_ID)
     {
       toDelete.push_back(v);
-      passes[i].id.v.store(-2);
+      passes[i].id.v.store(PackedPassId::DELETED_STATE_BLOCK_ID);
     }
   }
   stateBlocksSpinLock.unlock();
@@ -1422,14 +1425,15 @@ static void check_state_blocks_conformity(const shaderbindump::ShaderCode &code,
 }
 #endif
 
-void ScriptedShaderElement::getDynamicVariantStates(int variant_code, int cur_variant, uint32_t &program, uint32_t &state_index,
-  shaders::RenderStateId &render_state, shaders::ConstStateIdx &const_state, shaders::TexStateIdx &tex_state) const
+void ScriptedShaderElement::getDynamicVariantStates(int variant_code, int cur_variant, uint32_t &program,
+  ShaderStateBlockId &state_index, shaders::RenderStateId &render_state, shaders::ConstStateIdx &const_state,
+  shaders::TexStateIdx &tex_state) const
 {
   const PackedPassId *__restrict curPasses = &passes[cur_variant];
   OSSpinlockScopedLock lock(stateBlocksSpinLock);
   ID_T &pass_id = curPasses->id;
-  int v = pass_id.v.load(std::memory_order_relaxed);
-  if (v == -2)
+  ShaderStateBlockId v = pass_id.v.load(std::memory_order_relaxed);
+  if (v == PackedPassId::DELETED_STATE_BLOCK_ID)
   {
     preparePassIdOOL(pass_id, curPasses - passes.data(), variant_code);
     v = pass_id.v.load(std::memory_order_relaxed);
@@ -1456,8 +1460,8 @@ bool ScriptedShaderElement::setStates() const
     check_state_blocks_conformity(code, curVariant, shClass);
 #endif
   ID_T &pass_id = curPasses->id;
-  int v = pass_id.v.load(std::memory_order_relaxed);
-  if (v == -2)
+  ShaderStateBlockId v = pass_id.v.load(std::memory_order_relaxed);
+  if (v == PackedPassId::DELETED_STATE_BLOCK_ID)
   {
     preparePassIdOOL(pass_id, curPasses - passes.data(), variant_code);
     v = pass_id.v.load(std::memory_order_relaxed);
@@ -1470,8 +1474,8 @@ void ScriptedShaderElement::setProgram(uint32_t variant)
 {
   OSSpinlockScopedLock lock(stateBlocksSpinLock);
   auto &pass = passes[variant];
-  int v = pass.id.v.load(std::memory_order_relaxed);
-  if (v == -2)
+  ShaderStateBlockId v = pass.id.v.load(std::memory_order_relaxed);
+  if (v == PackedPassId::DELETED_STATE_BLOCK_ID)
   {
     preparePassIdOOL(pass.id, &pass - passes.data(), 0);
     v = pass.id.v.load(std::memory_order_relaxed);
@@ -1501,7 +1505,8 @@ void copy_current_global_variables_states(GlobalVariableStates &gv)
 }
 
 int get_dynamic_variant_states(const GlobalVariableStates &global_variants_state, const ScriptedShaderElement &s, uint32_t &program,
-  uint32_t &state_index, shaders::RenderStateId &render_state, shaders::ConstStateIdx &const_state, shaders::TexStateIdx &tex_state)
+  ShaderStateBlockId &state_index, shaders::RenderStateId &render_state, shaders::ConstStateIdx &const_state,
+  shaders::TexStateIdx &tex_state)
 {
   unsigned int variant_code;
   int curVariant = s.chooseDynamicVariant(global_variants_state.globIntervalNormValues, variant_code);
@@ -1511,7 +1516,7 @@ int get_dynamic_variant_states(const GlobalVariableStates &global_variants_state
   return curVariant;
 }
 
-int get_dynamic_variant_states(const ScriptedShaderElement &s, uint32_t &program, uint32_t &state_index,
+int get_dynamic_variant_states(const ScriptedShaderElement &s, uint32_t &program, ShaderStateBlockId &state_index,
   shaders::RenderStateId &render_state, shaders::ConstStateIdx &const_state, shaders::TexStateIdx &tex_state)
 {
   unsigned int variant_code;
@@ -1523,7 +1528,8 @@ int get_dynamic_variant_states(const ScriptedShaderElement &s, uint32_t &program
 }
 
 int get_cached_dynamic_variant_states(const ScriptedShaderElement &s, dag::ConstSpan<int> cache, uint32_t &program,
-  uint32_t &state_index, shaders::RenderStateId &render_state, shaders::ConstStateIdx &const_state, shaders::TexStateIdx &tex_state)
+  ShaderStateBlockId &state_index, shaders::RenderStateId &render_state, shaders::ConstStateIdx &const_state,
+  shaders::TexStateIdx &tex_state)
 {
   const int variantCode = cache[s.dynVariantCollectionId];
   int curVariant = s.chooseCachedDynamicVariant(variantCode);
@@ -1563,7 +1569,7 @@ void ScriptedShaderElement::execute_chosen_stcode(uint16_t stcodeId, const shade
 #endif
 }
 
-void ScriptedShaderElement::setStatesForVariant(int curVariant, uint32_t program, uint32_t state_index) const
+void ScriptedShaderElement::setStatesForVariant(int curVariant, uint32_t program, ShaderStateBlockId state_index) const
 {
   const PackedPassId *curPass = &passes[curVariant];
   const shaderbindump::ShaderCode::Pass *codeCp = &code.passes[curVariant];
@@ -1574,14 +1580,15 @@ void ScriptedShaderElement::setStatesForVariant(int curVariant, uint32_t program
 
   d3d::set_program(program);
   G_ASSERT(curPass->id.pr == program && curPass->id.v.load(std::memory_order_relaxed) == state_index);
-  if (shaders_internal::cached_state_block != state_index)
+  auto &ourBlock = ShaderStateBlock::blocks[state_index];
+  if (shaders_internal::cached_state_block != eastl::to_underlying(state_index))
   {
-    ShaderStateBlock::blocks[state_index].apply(tex_level);
-    shaders_internal::cached_state_block = state_index;
+    ourBlock.apply(tex_level);
+    shaders_internal::cached_state_block = eastl::to_underlying(state_index);
   }
-  else if (tex_level > ShaderStateBlock::blocks[state_index].texLevel)
+  else if (tex_level > ourBlock.texLevel)
   {
-    ShaderStateBlock::blocks[state_index].reqTexLevel(tex_level);
+    ourBlock.reqTexLevel(tex_level);
   }
 
   if (codeCp->rpass->stcodeId != 0xFFFF)
@@ -1593,7 +1600,7 @@ void ScriptedShaderElement::setStatesForVariant(int curVariant, uint32_t program
   }
 }
 
-void set_states_for_variant(const ScriptedShaderElement &s, int curVariant, uint32_t program, uint32_t state_index)
+void set_states_for_variant(const ScriptedShaderElement &s, int curVariant, uint32_t program, ShaderStateBlockId state_index)
 {
   s.setStatesForVariant(curVariant, program, state_index);
 }
@@ -1760,7 +1767,7 @@ const shaderbindump::ShaderCode::ShRef *ScriptedShaderElement::getPassCode() con
   return &*codeCp->rpass;
 }
 
-int ScriptedShaderElement::recordStateBlock(const shaderbindump::ShaderCode::ShRef &p) const
+ShaderStateBlockId ScriptedShaderElement::recordStateBlock(const shaderbindump::ShaderCode::ShRef &p) const
 {
   using namespace shaderopcode;
   G_ASSERT(p.stblkcodeId < shBinDump().stcode.size());
@@ -1837,18 +1844,15 @@ int ScriptedShaderElement::recordStateBlock(const shaderbindump::ShaderCode::ShR
     });
 
   if (!maybeShStateBlock.has_value())
-  {
     return DEFAULT_SHADER_STATE_BLOCK_ID;
-  }
 
-  maybeShStateBlock->stateIdx = shaders::render_states::create(shBinDump().renderStates[p.renderStateNo]);
-  return ShaderStateBlock::addBlock(eastl::move(*maybeShStateBlock));
+  return ShaderStateBlock::addBlock(eastl::move(*maybeShStateBlock), shBinDump().renderStates[p.renderStateNo]);
 }
 
 void ShaderElement::invalidate_cached_state_block()
 {
-  if (shaders_internal::cached_state_block != BAD_STATEBLOCK)
-    shaders_internal::cached_state_block = BAD_STATEBLOCK;
+  if (shaders_internal::cached_state_block != eastl::to_underlying(ShaderStateBlockId::Invalid))
+    shaders_internal::cached_state_block = eastl::to_underlying(ShaderStateBlockId::Invalid);
 }
 const char *ScriptedShaderElement::getShaderClassName() const { return (const char *)shClass.name; }
 
@@ -1874,7 +1878,7 @@ void defrag_shaders_stateblocks(bool force)
   d3d::GpuAutoLock gpuLock; // this is to avoid rendering from other thread
   shaders_internal::BlockAutoLock autoLock;
   if ((force && ShaderStateBlock::deleted_blocks > 0) ||
-      (ShaderStateBlock::deleted_blocks > ShaderStateBlock::blocks.getTotalCount() / 2))
+      (ShaderStateBlock::deleted_blocks > ShaderStateBlock::blocks.totalElements() / 2))
     rebuild_shaders_stateblocks();
 }
 

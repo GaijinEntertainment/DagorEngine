@@ -474,6 +474,8 @@ shader water_ssr_nv2, water_ssr_nv2_heightmap
 
       float weight = newStrength / (newStrength + oldStrength);
       half4 result = lerp(oldTarget, newTarget, weight);
+      // Increase alpha slightly to counteract R8 texture rounding down, causing ghosting
+      result.a = result.a*256.0/255.0;
       WaterOutput output;
       output.color = h3nanofilter(result.rgb);
       output.alpha__strength = half2(result.a, newStrength + oldStrength);

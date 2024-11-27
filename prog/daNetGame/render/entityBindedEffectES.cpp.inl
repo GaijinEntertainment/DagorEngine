@@ -12,7 +12,7 @@
 #include "phys/collRes.h"
 
 ECS_TAG(render)
-ECS_AFTER(auto_delete_entity_with_effect_component_es)
+ECS_NO_ORDER
 static inline void entity_binded_effect_es(const ecs::UpdateStageInfoAct &,
   const ecs::EntityId entity_binded_effect__entity,
   TheEffect &effect,

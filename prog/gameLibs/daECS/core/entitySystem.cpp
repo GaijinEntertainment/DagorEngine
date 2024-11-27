@@ -187,12 +187,14 @@ void EntityManager::resetEsOrder()
       auto insResult = nameESMap.emplace(es, graphNodesCount);
       if (insResult.second)
       {
-        if (esOrder.size() && (esSkip.find_as(name, eastl::less_2<const eastl::string, const char *>()) != esSkip.end()))
+        if (esOrder.size() && (esSkip.find_as(name, eastl::less_2<const eastl::string, const char *>()) == esSkip.end()))
         {
           const bool eventHandler = es.find("_event_handler") != es.npos;
           G_UNUSED(eventHandler);
-          logerr("ES <%s> is supposed to be %s ES/sync <%.*s>, which is undeclared.%s", name, before ? "before" : "after", es.length(),
-            es.data(), eventHandler ? "Just remove _event_handler in the end, as it is not part of ES name" : "");
+          // this has to be logerr. All ES has to be fixed first, than it can become logerr
+          // todo: if you see this line afer 01.02.2025 - replace with logerr!
+          logerr("ES <%s> is supposed to be %s ES/sync <%.*s>, which is undeclared.%s", name, before ? "before" : "after",
+            (int)es.length(), es.data(), eventHandler ? "Just remove _event_handler in the end, as it is not part of ES name" : "");
         }
         ++graphNodesCount;
       }
@@ -209,7 +211,8 @@ void EntityManager::resetEsOrder()
         return true;
       });
     };
-
+    const char *first_sync_point_name = "__first_sync_point";
+    nameESMap.emplace(first_sync_point_name, graphNodesCount++);
     for (int i = 0, e = esFullList.size(); i < e; ++i)
     {
       eastl::string_view name(esFullList[i]->name);
@@ -248,8 +251,8 @@ void EntityManager::resetEsOrder()
       const char *beforeStr = esFullList[i]->getBefore(), *afterStr = esFullList[i]->getAfter();
       insertEdges(esFullList[i]->name, graphNode, beforeStr, true);
       insertEdges(esFullList[i]->name, graphNode, afterStr, false);
-      if (!beforeStr || !beforeStr[0] || ::strstr(beforeStr, "__first_sync_point") == nullptr)
-        insertNameEdge(esFullList[i]->name, graphNode, "__first_sync_point", false);
+      if (!beforeStr || !beforeStr[0] || ::strstr(beforeStr, first_sync_point_name) == nullptr)
+        insertNameEdge(esFullList[i]->name, graphNode, first_sync_point_name, false);
     }
 
 

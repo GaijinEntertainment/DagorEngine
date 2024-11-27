@@ -57,7 +57,8 @@ bool is_inited();
 
 void update_listener(float dt, const TMatrix &listener_tm);
 void set_time_speed(float time_speed);
-void update(float dt);
+void begin_update(float dt);
+void end_update(float dt);
 void lazy_update();
 
 void override_time_speed(float time_speed); // should be > 0 to override value provided within update(float dt, float time_speed = 1.f)

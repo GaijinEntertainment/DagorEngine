@@ -47,7 +47,7 @@ shader rendinst_simple_painted
 
   if (!rendinst_render_is_shadow_or_depth)
   {
-    SIMPLE_PAINTED_PS((rendinst_render_pass != rendinst_render_pass_voxelize_albedo))
+    SIMPLE_PAINTED_PS((rendinst_render_pass != rendinst_render_pass_voxelize_albedo), false)
   }
 
   COMPILE_RI_VS_TARGET("simple_vs")

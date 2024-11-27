@@ -513,6 +513,12 @@ external-variable-array(external_variable_array) ->
    [hlsl=nothing hlsl_text = hlsl_var_text])
   [";"=nothing];
 
+external-register-array(external_register_array) ->
+  external-var-name=var "["=nothing ident=size_shader_var "]"=nothing ":"=nothing
+  "register"=nothing "("=nothing ident=shader_var ")"=nothing
+  [hlsl=nothing hlsl_text = hlsl_var_text]
+  [";"=nothing];
+
 external-state-block(external_state_block) -> "("=nothing ident=scope ")"=nothing "{"=nothing
   (state-block-stat=stblock_stat)*
   "}"=nothing
@@ -520,7 +526,7 @@ external-state-block(external_state_block) -> "("=nothing ident=scope ")"=nothin
 
 state-block-stat(state_block_stat) ->
   state-block-if-stat=stblock_if_stat |
-  (external-variable = var) | (external-variable-array = arr) | (external-register = reg);
+  (external-variable = var) | (external-variable-array = arr) | (external-register = reg) | (external-register-array = reg_arr);
 
 state-block-if-stat(state_block_if_stat) -> "if"=nothing "("=nothing bool-expr=expr ")"=nothing
   "{"=nothing (state-block-stat=true_stat)* "}"=nothing

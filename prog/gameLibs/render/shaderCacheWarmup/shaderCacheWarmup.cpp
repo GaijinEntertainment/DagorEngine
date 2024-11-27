@@ -510,12 +510,12 @@ private:
   virtual void onDynamicVariant(const shaderbindump::ShaderCode::Pass &, const size_t variant_id,
     const ScriptedShaderElement &el) override
   {
-    const int variantStateIndex = el.passes[variant_id].id.v;
-    const ShaderStateBlock *variantState = ShaderStateBlock::blocks.at(variantStateIndex);
-
     d3d::set_program(el.passes[variant_id].id.pr);
-    if (variantState)
-      shaders::render_states::set(variantState->stateIdx);
+
+    const ShaderStateBlockId variantStateIndex = el.passes[variant_id].id.v.load();
+    if (variantStateIndex != ShaderStateBlockId::Invalid &&
+        variantStateIndex != ScriptedShaderElement::PackedPassId::DELETED_STATE_BLOCK_ID)
+      shaders::render_states::set(ShaderStateBlock::blocks[variantStateIndex].stateIdx);
 
     const uintptr_t pipelineType = STAGE_PS;
     const uintptr_t topology = PRIM_TRILIST;

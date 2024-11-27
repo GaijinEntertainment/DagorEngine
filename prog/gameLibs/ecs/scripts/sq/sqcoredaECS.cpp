@@ -144,7 +144,7 @@ static inline ecs::sq::push_instance_fn_t get_event_script_push_inst_fn(ecs::eve
 namespace ecs
 {
 
-static bool ecs_is_in_init_phase = true;
+bool ecs_is_in_init_phase = true;
 
 } // namespace ecs
 
@@ -270,6 +270,22 @@ VmExtraData::PendingCreationCbRef::~PendingCreationCbRef()
       clear_and_shrink(vmed->second.pendingCreationCbs);
     else
       vmed->second.pendingCreationCbs[cbSlotId].Release();
+  }
+}
+
+static inline bool is_vm_registered(HSQUIRRELVM vm, const char *errmsg, eastl::pair<HSQUIRRELVM, VmExtraData> **pit = nullptr)
+{
+  auto it = vm_extra_data.find(vm);
+  if (DAGOR_LIKELY(it != vm_extra_data.end()))
+  {
+    if (pit)
+      *pit = &*it;
+    return true;
+  }
+  else
+  {
+    sq_throwerror(vm, errmsg);
+    return false;
   }
 }
 
@@ -2110,6 +2126,10 @@ static SQInteger create_entity_impl(HSQUIRRELVM vm, bool sync)
   if (!Sqrat::check_signature<EntityManager *>(vm))
     return SQ_ERROR;
 
+  decltype(vm_extra_data)::value_type *vmit = nullptr;
+  if (DAGOR_UNLIKELY(!is_vm_registered(vm, "Attempt to create entity in unknown (shutdowned?) vm", &vmit)))
+    return SQ_ERROR;
+
   register_pending_es();
   Sqrat::Var<EntityManager *> mgr(vm, 1);
   Sqrat::Var<const char *> tplName(vm, 2);
@@ -2134,8 +2154,6 @@ static SQInteger create_entity_impl(HSQUIRRELVM vm, bool sync)
   }
   else
   {
-    auto vmit = vm_extra_data.find(vm);
-    G_ASSERT_RETURN(vmit != vm_extra_data.end(), SQ_ERROR);
     int vmedSlotId = eastl::distance(vm_extra_data.begin(), vmit);
     auto cbRef = vmit->second.addPendingCreationCb(vmit->second.id, vmedSlotId, eastl::move(callback.value));
     eid = mgr.value->createEntityAsync(tplName.value, eastl::move(compMap),
@@ -2153,6 +2171,10 @@ static SQInteger create_entity_sync(HSQUIRRELVM vm) { return create_entity_impl(
 static SQInteger recreate_entity(HSQUIRRELVM vm)
 {
   if (!Sqrat::check_signature<EntityManager *>(vm))
+    return SQ_ERROR;
+
+  decltype(vm_extra_data)::value_type *vmit = nullptr;
+  if (DAGOR_UNLIKELY(!is_vm_registered(vm, "Attempt to re-create entity in unknown (shutdowned?) vm", &vmit)))
     return SQ_ERROR;
 
   register_pending_es();
@@ -2174,8 +2196,6 @@ static SQInteger recreate_entity(HSQUIRRELVM vm)
     mgr.value->reCreateEntityFromAsync(eid.value, tplName.value, eastl::move(compMap), ComponentsMap());
   else
   {
-    auto vmit = vm_extra_data.find(vm);
-    G_ASSERT_RETURN(vmit != vm_extra_data.end(), SQ_ERROR);
     int vmedSlotId = eastl::distance(vm_extra_data.begin(), vmit);
     auto cbRef = vmit->second.addPendingCreationCb(vmit->second.id, vmedSlotId, eastl::move(callback.value));
     mgr.value->reCreateEntityFromAsync(eid.value, tplName.value, eastl::move(compMap), {},
@@ -2858,13 +2878,28 @@ static void emgr_dispatch_event(ecs::EntityManager *mgr, ecs::EntityId eid, ecs:
     mgr->dispatchEvent(eid, evt);
 }
 
-static void emgr_send_event(ecs::EntityManager *mgr, ecs::EntityId eid, ecs::Event &evt)
+static SQInteger emgr_dispatch_event(HSQUIRRELVM vm, bool bcast)
 {
-  if (DAGOR_LIKELY(eid))
-    emgr_dispatch_event(mgr, eid, evt);
+  if (!Sqrat::check_signature<EntityManager *>(vm, 1))
+    return SQ_ERROR;
+  if (!Sqrat::check_signature<ecs::Event *>(vm, bcast ? 2 : 3))
+    return SQ_ERROR;
+  if (DAGOR_UNLIKELY(!is_vm_registered(vm, "Attempt to send|bcast event in unknown (shutdowned?) vm")))
+    return SQ_ERROR;
+  Sqrat::Var<EntityManager *> mgr(vm, 1);
+  SQInteger eid = ecs::ECS_INVALID_ENTITY_ID_VAL;
+  if (!bcast)
+  {
+    sq_getinteger(vm, 2, &eid);
+    if (eid == ecs::ECS_INVALID_ENTITY_ID_VAL)
+      return 0;
+  }
+  Sqrat::Var<ecs::Event *> evt(vm, bcast ? 2 : 3);
+  emgr_dispatch_event(mgr.value, ecs::EntityId(ecs::entity_id_t(eid)), *evt.value);
+  return 0;
 }
-
-static void emgr_bcast_event(ecs::EntityManager *mgr, ecs::Event &evt) { emgr_dispatch_event(mgr, ecs::INVALID_ENTITY_ID, evt); }
+static SQInteger emgr_send_event(HSQUIRRELVM vm) { return emgr_dispatch_event(vm, /*bcast*/ false); }
+static SQInteger emgr_bcast_event(HSQUIRRELVM vm) { return emgr_dispatch_event(vm, /*bcast*/ true); }
 
 static const ecs::TemplateDB *emgr_get_tempate_db(ecs::EntityManager *mgr) { return &mgr->getTemplateDB(); }
 static const ecs::EventsDB *emgr_get_events_db(ecs::EntityManager *mgr) { return &mgr->getEventsDb(); }
@@ -3561,8 +3596,8 @@ void ecs_register_sq_binding(SqModules *module_mgr, bool create_systems, bool cr
 
     //.Func("getNumComponents", &EntityManager::getNumComponents)
 
-    .GlobalFunc("sendEvent", emgr_send_event)
-    .GlobalFunc("broadcastEvent", emgr_bcast_event)
+    .SquirrelFunc("sendEvent", emgr_send_event, 3, "xix")
+    .SquirrelFunc("broadcastEvent", emgr_bcast_event, 2, "xx")
 
     //.Func("getEntityTemplate", &EntityManager::getEntityTemplate)
     .Func("getEntityTemplateName", &EntityManager::getEntityTemplateName)
@@ -3804,31 +3839,28 @@ void shutdown_ecs_sq_script(HSQUIRRELVM vm)
   debug("shutdown_ecs_sq_script called");
 
   auto itExtra = vm_extra_data.find(vm);
-  G_ASSERT(itExtra != vm_extra_data.end());
-  if (itExtra != vm_extra_data.end())
+  G_ASSERT_RETURN(itExtra != vm_extra_data.end(), );
+  VmExtraData &extra = itExtra->second;
+
+  if (extra.createSystems)
   {
-    VmExtraData &extra = itExtra->second;
-
-    if (extra.createSystems)
-    {
-      bool removed = false;
-      remove_if_systems([&vm, &removed](EntitySystemDesc *system) {
-        if (!entity_system_is_squirrel(system))
-          return false;
-        ScriptEsData *esData = (ScriptEsData *)system->getUserData();
-        if (esData->getVM() != vm)
-          return false;
-        system->freeIfDynamic();
-        removed = true;
-        return true;
-      });
-      if (removed && g_entity_mgr)
-        g_entity_mgr->resetEsOrder();
-      ecs::sq::shutdown_timers(vm);
-    }
-
-    vm_extra_data.erase(itExtra);
+    bool removed = false;
+    remove_if_systems([&vm, &removed](EntitySystemDesc *system) {
+      if (!entity_system_is_squirrel(system))
+        return false;
+      ScriptEsData *esData = (ScriptEsData *)system->getUserData();
+      if (esData->getVM() != vm)
+        return false;
+      system->freeIfDynamic();
+      removed = true;
+      return true;
+    });
+    if (removed && g_entity_mgr)
+      g_entity_mgr->resetEsOrder();
+    ecs::sq::shutdown_timers(vm);
   }
+
+  vm_extra_data.erase(itExtra);
 }
 
 

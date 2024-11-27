@@ -51,7 +51,6 @@ static void set_warn_level_lower(int &warn_level, float val, const Point2 &range
 }
 
 
-ECS_BEFORE(ui_render_es)
 static void ui_perf_stats_es(const RenderEventUI & /*evt*/,
   UiPerfStats &ui_perf_stats,
 

@@ -241,13 +241,11 @@ dabfg::NodeHandle makeRenderOpticsPrepassNode()
     registry.requestRenderPass().depthRw(depthForOptics).clear(depthForOptics, make_clear_value(0.0f, 0.0f));
 
     auto aimRenderDataHndl = registry.readBlob<AimRenderingData>("aim_render_data").handle();
-    auto scopeAimRenderDataHndl = registry.readBlob<ScopeAimRenderingData>("scope_aim_render_data").handle();
+    auto scopeAimRenderDataHndl =
+      registry.readBlob<ScopeAimRenderingData>("scope_aim_render_data").bindAsProj<&ScopeAimRenderingData::jitterProjTm>().handle();
     auto strmCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
 
-    registry.read("current_camera")
-      .blob<CameraParams>()
-      .bindAsProj<&CameraParams::jitterProjTm>()
-      .bindAsView<&CameraParams::viewRotTm>();
+    registry.read("current_camera").blob<CameraParams>().bindAsView<&CameraParams::viewRotTm>();
 
     auto hasOpticsPrepass = registry.createBlob<bool>("has_aim_scope_optics_prepass", dabfg::History::No).handle();
     auto mainViewRes = registry.getResolution<2>("main_view");

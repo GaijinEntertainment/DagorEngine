@@ -46,6 +46,7 @@ using ScriptedShadersBinDumpV2 = bindump::Mapper<shader_layout::ScriptedShadersB
 using ScriptedShadersBinDumpV3 = bindump::Mapper<shader_layout::ScriptedShadersBinDumpV3>;
 using StrHolder = bindump::Mapper<bindump::StrHolder>;
 
+static constexpr size_t MAX_BINDUMP_SHADERVARS = 4096;
 static constexpr uint32_t SHADERVAR_IDX_ABSENT = 0xFFFE;
 static constexpr uint32_t SHADERVAR_IDX_INVALID = 0xFFFF;
 
@@ -81,10 +82,9 @@ struct ScriptedShadersBinDumpOwner
   Tab<uint8_t> globIntervalNormValues;
 
   // Runtime map name id -> internal dump id
-  Tab<uint16_t> varIndexMap, globvarIndexMap;
+  eastl::array<uint16_t, MAX_BINDUMP_SHADERVARS> varIndexMap, globvarIndexMap;
 
   auto getDecompressionDict() { return mDictionary.get(); }
-  size_t maxShadervarCnt() const { return varIndexMap.size(); }
 
 private:
   struct DecompressedGroup
@@ -107,7 +107,7 @@ private:
   void loadDecompressedShader(uint16_t group_id, uint16_t index_in_group, ShaderBytecode &tmpbuf);
   void storeDecompressedGroup(uint16_t group_id, DecompressedGroup &&decompressed_group);
 
-  void initVarIndexMaps(size_t max_shadervar_cnt);
+  void initVarIndexMaps();
 
   struct ZstdDictionaryDeleter
   {

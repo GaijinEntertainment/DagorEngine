@@ -345,7 +345,7 @@ static ecs::EntitySystemDesc cinematic_mode_save_bloom_threshold_es_es_desc
   ecs::EventSetBuilder<ecs::EventEntityCreated,
                        ecs::EventComponentsAppear>::build(),
   0
-,nullptr,nullptr,"change_bloom_threshold_es");
+);
 static constexpr ecs::ComponentDesc cinematic_mode_restore_bloom_threshold_es_comps[] =
 {
 //start of 1 ro components at [0]
@@ -371,7 +371,7 @@ static ecs::EntitySystemDesc cinematic_mode_restore_bloom_threshold_es_es_desc
   ecs::EventSetBuilder<ecs::EventEntityDestroyed,
                        ecs::EventComponentsDisappear>::build(),
   0
-,nullptr,nullptr,"change_bloom_threshold_es");
+);
 static constexpr ecs::ComponentDesc flare_render_es_comps[] =
 {
 //start of 1 rw components at [0]

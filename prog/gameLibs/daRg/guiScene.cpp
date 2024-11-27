@@ -120,6 +120,7 @@ CONSOLE_BOOL_VAL("darg", debug_xmb, false);
 CONSOLE_BOOL_VAL("darg", debug_dirpad_nav, false);
 CONSOLE_BOOL_VAL("darg", debug_input_stack, false);
 
+static constexpr unsigned MAX_JOY_AXIS_OBSERVABLES = 15;
 
 using namespace sqfrp;
 
@@ -263,13 +264,6 @@ void GuiScene::createNativeWatches()
   create_scene_observable(frpGraph, isXmbModeOn);
   create_scene_observable(frpGraph, updateCounter);
 
-  joyAxisObservables.resize(15);
-  for (int i = 0; i < joyAxisObservables.size(); ++i)
-  {
-    joyAxisObservables[i].reset(new JoystickAxisObservable(this));
-    joyAxisObservables[i]->generation = -1;
-  }
-
   String errMsg;
 
   if (!cursorPresent->setValue(Sqrat::Object(false, sqvm), errMsg))
@@ -311,7 +305,7 @@ void GuiScene::initScript()
   G_ASSERT(sqvm);
 
   moduleMgr.reset(new SqModules(sqvm));
-  frpGraph.reset(new ObservablesGraph(sqvm));
+  frpGraph.reset(new ObservablesGraph(sqvm, "darg"));
 
   SqStackChecker stackCheck(sqvm);
 
@@ -3116,6 +3110,7 @@ void GuiScene::reloadScript(const char *fn)
   clear(false);
   dasScriptsData->resetBeforeReload();
   frpGraph->generation++;
+  frpGraph->setName(fn);
 
   // Ensure that string is always valid in this scope.
   // This may be too paranoid but in practice it happenned that the provided pointer to the string
@@ -4146,26 +4141,31 @@ bool GuiScene::useCircleAsActionButton() const
 
 JoystickAxisObservable *GuiScene::getJoystickAxis(int axis)
 {
-  if (axis < 0 || axis >= joyAxisObservables.size())
-    return nullptr;
-  return joyAxisObservables[axis].get();
+  if (DAGOR_UNLIKELY(joyAxisObservables.empty())) // Create on demand
+  {
+    joyAxisObservables.reserve(MAX_JOY_AXIS_OBSERVABLES);
+    for (int i = 0; i < MAX_JOY_AXIS_OBSERVABLES; ++i)
+      joyAxisObservables.emplace_back(this);
+  }
+  return (unsigned)axis < joyAxisObservables.size() ? &joyAxisObservables[axis] : nullptr;
 }
 
-
-void GuiScene::updateJoystickAxesObservables()
+void GuiScene::doUpdateJoystickAxesObservables()
 {
-  if (HumanInput::IGenJoystick *joy = getJoystick())
+  dag::RelocatableFixedVector<int, MAX_JOY_AXIS_OBSERVABLES, false> joyAxisPosData;
+  const HumanInput::IGenJoystick *joy = getJoystick();
+  if (unsigned n = joy ? min((unsigned)joy->getAxisCount(), MAX_JOY_AXIS_OBSERVABLES) : 0u)
   {
-    for (size_t i = 0, n = min(joyAxisObservables.size(), (size_t)joy->getAxisCount()); i < n; ++i)
-      joyAxisObservables[i]->update(float(joy->getAxisPosRaw(i)) / HumanInput::JOY_XINPUT_MAX_AXIS_VAL);
-    for (size_t i = joy->getAxisCount(), n = joyAxisObservables.size(); i < n; ++i)
-      joyAxisObservables[i]->update(0.0f);
+    joyAxisPosData.resize(n);
+    WinAutoLock lock(global_cls_drv_update_cs); // Protect against concurrent modifies by `dainput::poll` thread
+    for (int i = 0; i < n; ++i)
+      joyAxisPosData[i] = joy->getAxisPosRaw(i);
   }
-  else
-  {
-    for (size_t i = 0, n = joyAxisObservables.size(); i < n; ++i)
-      joyAxisObservables[i]->update(0.0f);
-  }
+  else // Still update everything with 0 in assumption that joystick was removed (and we need to reset all axes)
+    joyAxisPosData.resize(joyAxisObservables.size());
+  int j = 0;
+  for (auto &v : joyAxisPosData)
+    joyAxisObservables[j++].update(float(v) / HumanInput::JOY_XINPUT_MAX_AXIS_VAL);
 }
 
 

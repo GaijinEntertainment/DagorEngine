@@ -47,7 +47,7 @@ public:
     id<MTLTexture> allocateOrCreateSubmip(int set_minlevel, int set_maxlevel, bool is_uav);
     void destroyObject() {}
 
-    void applyName();
+    void applyName(const char *name);
   };
 
   uint32_t cflg;
@@ -159,7 +159,7 @@ public:
   virtual int updateSubRegion(BaseTexture *src, int src_subres_idx, int src_x, int src_y, int src_z, int src_w, int src_h, int src_d,
     int dest_subres_idx, int dest_x, int dest_y, int dest_z);
 
-  virtual void setResApiName(const char * /*name*/) const {} // TODO implement it when setting resource name on the API is implemented
+  virtual void setResApiName(const char * /*name*/) const;
 
   bool isCubeArray() const override { return type == RES3D_CUBEARRTEX; }
   int getinfo(TextureInfo &ti, int level) const override;

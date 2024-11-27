@@ -22,6 +22,7 @@ include "dagi_sky_vis_common.dshl"
 include "dagi_irrad_grid_sample.dshl"
 include "dagi_rad_grid_common.dshl"
 include "dagi_quality.dshl"
+include "reproject_gi.dshl"
 
 int gi_debug_froxels;
 interval gi_debug_froxels: off<1, on;
@@ -83,6 +84,7 @@ shader render_ambient
     } else
     {
       SAMPLE_IRRADIANCE_SPECULAR_SP(ps)
+      REPROJECT_GI(ps)
     }
 
     if (gi_quality != only_ao)
@@ -125,10 +127,17 @@ shader render_ambient
   hlsl(ps){
     #include <specular_brdf.hlsl>
     #include <diffuse_brdf.hlsl>
+    #include <ssr_common_use.hlsl>
+    #ifndef GI_ENCODED_TYPE
+    #define GI_ENCODED_TYPE half3
+    #endif
     struct Output
     {
-      half3 ambient  : SV_Target0;
-      half3 specular : SV_Target1;
+      GI_ENCODED_TYPE ambient  : SV_Target0;
+      GI_ENCODED_TYPE specular : SV_Target1;
+      ##if (gi_quality == screen_probes)
+      uint age : SV_Target2;
+      ##endif
     };
     Output shadows_to_target_ps(VsOutput input HW_USE_SCREEN_POS)
     {
@@ -232,9 +241,17 @@ shader render_ambient
       ##endif
 
 
-      //ambient = lerp(ambient, traced, traced.a);
-      output.ambient = pre_exposure_encode(ambient);
-      output.specular = pre_exposure_encode(specular);
+      ##if (gi_quality == screen_probes)
+      uint age;
+      half3 roughSpecular = specular;
+      reproject_ambient(lerp(0.05, 0.25, get_roughness_fade(linearRoughness)), 0.05, input.texcoord.xy, rawDepth, w, ambient, roughSpecular, age);
+      specular = lerp(roughSpecular, specular, saturate(smoothness*2 - 1)*0.9);
+      encode_gi_colors(output.ambient, output.specular, ambient, specular);
+      output.age = age;
+      ##else
+      output.ambient = ambient;
+      output.specular = specular;
+      ##endif
       return output;
     }
   }

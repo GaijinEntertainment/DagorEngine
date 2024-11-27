@@ -391,7 +391,7 @@ macro USE_MOTION_VECTORS()
       ##endif
       #endif
       ##if in_editor_assume == no
-        float4 r = mulPointTm(eye_to_point, prevViewProjTm);
+        float4 r = mulPointTm(eye_to_point - prev_to_cur_origin_move.xyz, jitteredCamPosToUnjitteredHistoryClip);
       ##else
         float4 r = skinned_vertex_pos.x * prev_globtm_0 + skinned_vertex_pos.y * prev_globtm_1 + skinned_vertex_pos.z * prev_globtm_2 + prev_globtm_3;
       ##endif

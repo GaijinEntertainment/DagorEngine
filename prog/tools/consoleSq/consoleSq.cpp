@@ -293,7 +293,7 @@ static Module modules[] = {
   {"register_frp", "Watched/Computed",
     [] {
       sqfrp::bind_frp_classes(module_manager);
-      frp_graph.reset(new sqfrp::ObservablesGraph(sqvm));
+      frp_graph.reset(new sqfrp::ObservablesGraph(sqvm, "csq"));
     }},
   {"register_localization", "doesLocTextExist, getLocTextForLang and so on for localizations",
     [] { bindquirrel::register_dagor_localization_module(module_manager); }},

@@ -904,6 +904,32 @@ namespace das
         }
     }
 
+    bool TypeDecl::canCloneFromConst() const {
+        if (baseType == Type::tHandle) {
+            return annotation->canClone();
+        } else if (baseType == Type::tStructure && structType) {
+            return !structType->circular ? structType->canCloneFromConst() : false;
+        } else if (baseType == Type::tTuple || baseType == Type::tVariant  || baseType == Type::option) {
+            for (const auto & arg : argTypes) {
+                if (!arg->canCloneFromConst()) return false;
+            }
+            return true;
+        } else if ( baseType == Type::tPointer ) {
+            if ( smartPtr || smartPtrNative ) return true;                // TODO: fix this
+            if ( !firstType ) return true;              // void pointer can always be cloned
+            if ( firstType->constant ) return true;     // can clone to const pointer, i.e. Foo const?
+            return false;
+        } else if (baseType == Type::tBlock) {
+            return true;
+        } else if (baseType == Type::tIterator) {
+            return true;
+        } else if ( baseType == Type::tLambda ) {
+            return true;
+        } else {
+            return true;
+        }
+    }
+
     bool TypeDecl::canClone() const {
         if (baseType == Type::tHandle) {
             return annotation->canClone();

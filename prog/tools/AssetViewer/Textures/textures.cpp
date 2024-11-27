@@ -1119,7 +1119,10 @@ void export_texture_as_dds(const char *fn, DagorAsset &a)
     dd_erase(fn);
     return;
   }
-  if (DagorAsset *hq_a = a.getMgr().findAsset(String(0, "%s$hq", a.getName()), a.getMgr().getTexAssetTypeId()))
+  DagorAsset *hq_a = a.getMgr().findAsset(String(0, "%s$uhq", a.getName()), a.getMgr().getTexAssetTypeId());
+  if (!hq_a)
+    hq_a = a.getMgr().findAsset(String(0, "%s$hq", a.getName()), a.getMgr().getTexAssetTypeId());
+  if (hq_a)
   {
     ddsx::DDSxDataPublicHdr hdrHq;
     Tab<char> dataHq;

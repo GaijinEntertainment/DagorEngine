@@ -400,3 +400,16 @@ LibraryShaderPropertiesCompileResult compileLibraryShaderPropertiesFromReflectio
   const FunctionExtraDataQuery &function_extra_data_query, eastl::span<const uint8_t> reflection, void *dxc_lib_handle);
 
 } // namespace dxil
+
+// TODO: move this somewhere else...
+namespace shader_layout
+{
+BINDUMP_BEGIN_LAYOUT(ShaderLibraryContainer)
+  BINDUMP_USING_EXTENSION()
+  /// Driver independent name table, shader in the name table at position N should be the shader of that name from source in the shader
+  /// binary. This table is required to be sorted, so that the user can use efficient binary searches.
+  VecHolder<StrHolder> shaderNames;
+  /// Driver specific shader library
+  VecHolder<uint8_t> driverBinary;
+BINDUMP_END_LAYOUT()
+} // namespace shader_layout

@@ -811,11 +811,6 @@ endmacro
 
 macro USE_READ_MOTION_BUFFER_BASE(code)
   hlsl(code) {
-    uint getDynamic(float2 uv)
-    {
-      float2 m = tex2Dlod(motion_gbuf_read, float4(uv,0,0)).rg;
-      return isinf(m.x) ? 0 : 1;
-    }
     float4 readMotionBuffer(float2 tc)
     {
       return tex2Dlod(motion_gbuf_read, float4(tc,0,0));

@@ -30,7 +30,6 @@ def collapser(position : float3;
 
   assume scene = animchar_render.sceneInstance
 
-  *scene |> scene_instance_clearNodeCollapser()
   var zeroTm = float3x4();
   var from = 0
   for node in animchar_node_collapser

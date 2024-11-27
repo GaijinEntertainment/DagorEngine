@@ -19,6 +19,7 @@ AddIncludes =
 
 Sources =
   frp.cpp
+  frp_imgui.cpp
 ;
 
 if $(SqVarTrace) = yes {

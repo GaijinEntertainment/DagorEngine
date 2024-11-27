@@ -23,7 +23,8 @@ macro INIT_SIMPLE_PAINTED()
   INIT_CONST_COLOR_OVERRIDES(paint_const_color)
 endmacro
 
-macro SIMPLE_PAINTED_PS(is_writing_gbuffer) //not for depth or shadow, for them use RENDER_TO_SHADOW_PS()
+// If use_translucency is set to true, translucent_inc.dshl:INIT_TRANSLUCENCY_SETTING(ps) should be called before
+macro SIMPLE_PAINTED_PS(is_writing_gbuffer, use_translucency) //not for depth or shadow, for them use RENDER_TO_SHADOW_PS()
   USE_PIXEL_TANGENT_SPACE()
   if (is_writing_gbuffer)
   {
@@ -36,6 +37,7 @@ macro SIMPLE_PAINTED_PS(is_writing_gbuffer) //not for depth or shadow, for them 
   USE_CHARACTER_MICRODETAIL()
   USE_CONST_COLOR_OVERRIDES()
   ENABLE_ASSERT(ps)
+
   hlsl(ps) {
     #if VOXELIZE_ALBEDO_PASS
       void simple_painted_ps(VsOutput input)
@@ -84,11 +86,18 @@ macro SIMPLE_PAINTED_PS(is_writing_gbuffer) //not for depth or shadow, for them 
           half4 packedNormalMap = tex2DBindless(get_normal_tex(), texCoord);
           half3 normalMap = unpack_ag_normal(packedNormalMap);
           half smoothness = packedNormalMap.r;//there is nothing good here!
-          half metalness = packedNormalMap.b;
+          half metalnessOrTranslucency = packedNormalMap.b;
         ##else
           half3 normalMap = half3(0,0,1);
           half smoothness = 0;//there is nothing good here!
-          half metalness = 0;
+          half metalnessOrTranslucency = 0;
+        ##endif
+
+        ##if use_translucency
+          if (SHOULD_USE_TRANLUCENCY && SHOULD_USE_OVERRIDEN_TRANLUCENCY)
+          {
+            metalnessOrTranslucency = TRANSLUCENCY_OVERRIDE;
+          }
         ##endif
 
         half reflectance = 0.5;
@@ -105,9 +114,21 @@ macro SIMPLE_PAINTED_PS(is_writing_gbuffer) //not for depth or shadow, for them 
         UnpackedGbuffer gbuffer;
         init_gbuffer(gbuffer);
 
-        init_metalness(gbuffer, metalness);
+        ##if use_translucency
+        if (SHOULD_USE_TRANLUCENCY)
+        {
+          init_translucency(gbuffer, metalnessOrTranslucency);
+          init_material(gbuffer, SHADING_SUBSURFACE);
+          init_sss_profile(gbuffer, SSS_PROFILE_NEUTRAL_TRANSLUCENT);
+        }
+        else
+        ##endif
+        {
+          init_metalness(gbuffer, metalnessOrTranslucency);
+          init_material(gbuffer, SHADING_NORMAL);
+        }
+
         init_ao(gbuffer, ao);
-        init_material(gbuffer, SHADING_NORMAL);
         init_smoothness(gbuffer, smoothness);
         init_reflectance(gbuffer, reflectance);
         init_normal(gbuffer, worldNormal);

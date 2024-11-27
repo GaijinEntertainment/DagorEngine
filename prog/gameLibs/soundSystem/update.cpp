@@ -108,10 +108,21 @@ static WinCritSec g_update_cs;
 static constexpr int g_lazy_step_ms = 500;
 static constexpr int g_invalid_lazy_value = -1;
 static std::atomic_int g_next_lazy_at = ATOMIC_VAR_INIT(g_invalid_lazy_value);
+static bool g_update_begin = false;
 
-void update(float dt)
+void begin_update(float dt)
 {
-  TIME_PROFILE(sndsys_update);
+  G_UNUSED(dt);
+  G_ASSERT_RETURN(!g_update_begin, );
+  g_update_begin = true;
+}
+
+void end_update(float dt)
+{
+  TIME_PROFILE(sndsys_end_update);
+
+  G_ASSERT_RETURN(g_update_begin, );
+  g_update_begin = false;
 
   g_next_lazy_at = get_time_msec() + g_lazy_step_ms;
 
@@ -133,7 +144,9 @@ void lazy_update()
 {
   if (g_next_lazy_at == g_invalid_lazy_value || get_time_msec() >= g_next_lazy_at)
   {
-    update((g_lazy_step_ms + get_time_msec() - g_next_lazy_at) / 1000.f);
+    const float dt = (g_lazy_step_ms + get_time_msec() - g_next_lazy_at) * 0.001f;
+    begin_update(dt);
+    end_update(dt);
   }
 }
 

@@ -235,4 +235,13 @@ inline int get_interval_assumed_value(const ShaderVariableInfo &v) { return get_
 inline int get_interval_current_value(const ShaderVariableInfo &v) { return get_interval_current_value(v.get_var_id()); }
 inline bool has_associated_interval(const ShaderVariableInfo &v) { return has_associated_interval(v.get_var_id()); }
 
+inline int get_slot_by_name(const char *name)
+{
+  int i = -1;
+  const bool result = get_int_by_name(name, i);
+  G_ASSERTF(result, "slot %s is undefined", name);
+  G_UNUSED(result);
+  return i;
+}
+
 }; // namespace ShaderGlobal

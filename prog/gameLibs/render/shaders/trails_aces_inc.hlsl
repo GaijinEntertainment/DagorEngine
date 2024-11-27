@@ -258,7 +258,7 @@
     // Fake reprojected motion vectors, but shaders that declare themselves dynamic to gbuffer has to provide
     // motion vectors too
     float2 screenUv = GET_SCREEN_POS(input.pos).xy * gbuf_texel_size;
-    float3 motionInUvSpace = get_reprojected_motion_vector(float3(screenUv, input.pos.w), -input.pointToEye.xyz, prevViewProjTm);
+    float3 motionInUvSpace = get_reprojected_motion_vector1(float3(screenUv, input.pos.w), -input.pointToEye.xyz, jitteredCamPosToUnjitteredHistoryClip);
     init_motion_vector(gbuffer, motionInUvSpace);
   #endif
     init_material(gbuffer, SHADING_SUBSURFACE);

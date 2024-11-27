@@ -384,8 +384,8 @@ static void place_fingers_on_flat_plane(GeomNodeTree &tree, const VrHands::GeomN
       {
         // Be aware of parent scale
         TMatrix parentWtm, childWtm;
-        tree.getNodeWtmScalar(joint_indices[joints[jointIndex]], parentWtm);
-        tree.getNodeWtmScalar(joint_indices[joints[jointIndex + 1]], childWtm);
+        tree.getNodeWtmRelScalar(joint_indices[joints[jointIndex]], parentWtm);
+        tree.getNodeWtmRelScalar(joint_indices[joints[jointIndex + 1]], childWtm);
         boneLength[jointIndex] = length(parentWtm.getcol(3) - childWtm.getcol(3));
       }
       else
@@ -411,7 +411,7 @@ static void place_fingers_on_flat_plane(GeomNodeTree &tree, const VrHands::GeomN
       const Point3 &oldBoneDir = -childWtm.getcol(2);
       const Point3 rotationAxis = -normalize(childWtm.getcol(0));
 
-      constexpr float FINGER_RADIUS = 0.01f;
+      constexpr float FINGER_RADIUS = 0.011f;
       const Point3 attachmentPosWithOffset = plane_pos + sign((childPos - plane_pos) * plane_normal) * plane_normal * FINGER_RADIUS;
       const Point3 intersectionAxis = normalize(cross(plane_normal, rotationAxis));
 

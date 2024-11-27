@@ -94,6 +94,7 @@ namespace das {
             addProperty<bool (TypeDecl::*)() const, &ManagedType::canCopy>("canCopy","canCopy");
             addProperty<DAS_BIND_MANAGED_PROP(canMove)>("canMove","canMove");
             addProperty<DAS_BIND_MANAGED_PROP(canClone)>("canClone","canClone");
+            addProperty<DAS_BIND_MANAGED_PROP(canCloneFromConst)>("canCloneFromConst","canCloneFromConst");
             addProperty<DAS_BIND_MANAGED_PROP(canNew)>("canNew","canNew");
             addProperty<DAS_BIND_MANAGED_PROP(canDeletePtr)>("canDeletePtr","canDeletePtr");
             addProperty<DAS_BIND_MANAGED_PROP(canDelete)>("canDelete","canDelete");

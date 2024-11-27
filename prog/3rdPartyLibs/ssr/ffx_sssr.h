@@ -36,10 +36,23 @@ void FFX_SSSR_InitialAdvanceRay(float3 origin, float3 direction, float3 inv_dire
     current_t = min(t.x, t.y);
     position = origin + current_t * direction;
 }
-
+bool linear_biased_comparison_of_rawdepth_use(float position_z, float surface_z)
+{
+  #if HAS_linear_biased_comparison_of_rawdepth
+    return linear_biased_comparison_of_rawdepth(position_z, surface_z);
+  #endif
+  //return (linearize_z(position_z, zn_zfar.zw) > linearize_z(surface_z, zn_zfar.zw) * 1.01);
+  // linearize_z(position_z, dd) == return rcp(decode_depth.x + decode_depth.y * position_z);
+  //float2 decode_depth = zn_zfar.zw;
+  //1/(zn_zfar.z + zn_zfar.w * position_z) > 1.01/(decode_depth.x + decode_depth.y * surface_z)
+  //this is still faster by two rcp then direct code
+  return (zn_zfar.z + zn_zfar.w * surface_z) > 1.01*(zn_zfar.z + zn_zfar.w * position_z);
+  //return (surface_z - 1.01*position_z) > 0.01*zn_zfar.z/zn_zfar.w;
+  //return (surface_z - 1.01*position_z) > 0.01*zn_zfar.x/(zn_zfar.y-zn_zfar.x);
+}
 bool FFX_SSSR_AdvanceRay(float3 origin, float3 direction, float3 inv_direction, float2 current_mip_position, float2 current_mip_resolution_inv, float2 floor_offset, float2 uv_offset, float surface_z, inout float3 position, inout float current_t, bool hit_validation) {
     // Skip tile if view space depth is below the finest surface thickness
-    bool below_surface = hit_validation && (linearize_z(position.z, zn_zfar.zw) > linearize_z(surface_z, zn_zfar.zw) * 1.01);
+    bool below_surface = hit_validation && linear_biased_comparison_of_rawdepth_use(position.z, surface_z);
 
     // Create boundary planes
     float2 xy_plane = floor(current_mip_position) + floor_offset;

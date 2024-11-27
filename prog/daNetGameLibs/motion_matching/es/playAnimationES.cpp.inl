@@ -59,7 +59,6 @@ static void mm_calculate_root_offset_es(const ParallelUpdateFrameDelayed &,
 }
 
 ECS_TAG(render)
-ECS_AFTER(motion_matching_locomotion_state)
 ECS_BEFORE(motion_matching_job_es)
 static void mm_update_goal_features_es(const ParallelUpdateFrameDelayed &act,
   FrameFeatures &motion_matching__goalFeature,

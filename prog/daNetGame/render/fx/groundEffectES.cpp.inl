@@ -72,7 +72,9 @@ public:
 
   bool update(const Point3 &camPos)
   {
-    if (biome_query::get_num_biome_groups())
+    if (DAGOR_LIKELY(biomeGroupId >= 0))
+      ; // We good
+    else if (biome_query::get_num_biome_groups())
     {
       biomeGroupId = biome_query::get_biome_group_id(biomeGroupName.c_str());
       if (biomeGroupId < 0)
@@ -109,7 +111,7 @@ public:
 
   void setParameters(const char *fx_name,
     const char *biome_group_name,
-    eastl::vector<int> &&biome_ids,
+    dag::Vector<int> &&biome_ids,
     float grid_cell_size,
     Point2 grid_world_origin,
     float vis_radius,
@@ -304,8 +306,8 @@ protected:
 
   eastl::string biomeGroupName; // Need to store since biomes aren't initialized when the entity is created.
   int biomeGroupId = -1;
-  eastl::vector<int> biomeIds;
-  eastl::vector<GroundEffectQuery> queryQueue;
+  dag::Vector<GroundEffectQuery> queryQueue;
+  dag::Vector<int> biomeIds;
 };
 
 ECS_DECLARE_RELOCATABLE_TYPE(GroundEffectManager);
@@ -351,9 +353,13 @@ static void update_ground_effect_params_es_event_handler(const ecs::Event &,
   Point2 ground_effect__scale_y,
   Point2 ground_effect__scale_z)
 {
-  eastl::vector<int> biomeIds(ground_effect__biome_ids.size());
-  for (int i = 0; i < biomeIds.size(); ++i)
-    biomeIds[i] = ground_effect__biome_ids[i].get<int>();
+  dag::Vector<int> biomeIds;
+  if (uint32_t bsz = ground_effect__biome_ids.size())
+  {
+    biomeIds.resize_noinit(bsz);
+    for (int i = 0; i < bsz; ++i)
+      biomeIds[i] = ground_effect__biome_ids[i].get<int>();
+  }
   GroundEffectTransform tmParams[2];
   for (int i = 0; i < 2; ++i)
   {

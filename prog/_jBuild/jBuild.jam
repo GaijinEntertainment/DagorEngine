@@ -1156,26 +1156,28 @@ rule CompileJamVarCpp
     NOCARE $(2) ;
   }
 
-    local ref_var = ;
-    for s in $($(2)) {
-      if [ MATCH ^(<|>)+$ : $(s) ] { Echo Skip bad ref $(s) for $(1) ; s = -conflict- ; }
-      ref_var += [ BuildValidJamString $(s) ] ;
-    }
+  local ref_var = ;
+  for s in $($(2)) {
+    if [ MATCH ^(<|>)+$ : $(s) ] { Echo Skip bad ref $(s) for $(1) ; s = -conflict- ; }
+    ref_var += [ BuildValidJamString $(s) ] ;
+  }
 
-    var_name on $(dest_cpp) = $(2)_cmp_value ;
-    var on $(dest_cpp) = $($(2)) ;
-    ref_var on $(dest_cpp) = $(ref_var) ;
+  var_name on $(dest_cpp) = $(2)_cmp_value ;
+  var on $(dest_cpp) = $($(2)) ;
+  ref_var on $(dest_cpp) = $(ref_var) ;
 
-    local action_name = $($(2)_action) ;
-    action_name ?= echo_var_to_cpp ;
-    if $(action_name) = echo_var_lines_to_cpp {
-      var on $(dest_cpp) = ;
-      local var_lines = echo $($(2)[1])>$(dest_cpp) ;
-      for ln in $($(2)[2-]) { var_lines += $(NEWLINE_STR_)"  echo" $(ln)>>$(dest_cpp) ; }
-      echo_var_lines on $(dest_cpp) = $(var_lines) ;
-    }
-    Depends $(dest_cpp) : $($(action_name)_DEPS) ;
-    $(action_name) $(dest_cpp) : $(2) ;
+  local action_name = $($(2)_action) ;
+  action_name ?= echo_var_to_cpp ;
+  if $(action_name) = echo_var_lines_to_cpp {
+    var on $(dest_cpp) = ;
+    local var_lines = echo $($(2)[1])>$(dest_cpp) ;
+    for ln in $($(2)[2-]) { var_lines += $(NEWLINE_STR_)"  echo" $(ln)>>$(dest_cpp) ; }
+    echo_var_lines on $(dest_cpp) = $(var_lines) ;
+  }
+  Depends $(dest_cpp) : $($(action_name)_DEPS) ;
+  $(action_name) $(dest_cpp) : $(2) ;
+  local dep_rule = $($(2)_dep_rule) ;
+  if $(dep_rule) { $(dep_rule) $(dest_cpp) : $(2) ; }
 
   $(2)_cmp_value = ;
 

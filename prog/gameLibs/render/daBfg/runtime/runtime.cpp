@@ -279,7 +279,7 @@ void Runtime::scheduleResources()
         case 1: d3d::deactivate_buffer(eastl::get<1>(deactivation)); break;
         case 2:
           auto [f, x] = eastl::get<2>(deactivation);
-          f(x);
+          (*f)(x);
           break;
       }
   }

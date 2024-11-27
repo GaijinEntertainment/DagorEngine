@@ -4,10 +4,7 @@ include "gbuffer.dshl"
 include "taa_inc.dshl"
 include "reprojected_motion_vectors.dshl"
 
-float4 prevViewProjTm0;
-float4 prevViewProjTm1;
-float4 prevViewProjTm2;
-float4 prevViewProjTm3;
+float4x4 jitteredCamPosToUnjitteredHistoryClip;
 
 shader motion_vectors_resolve
 {
@@ -28,7 +25,7 @@ shader motion_vectors_resolve
 
   (ps) {
     // prev frame viewproj matrix with current frame jitter, so motion vectors themselves are not jittered!
-    prevViewProjTm@f44 = {prevViewProjTm0, prevViewProjTm1, prevViewProjTm2, prevViewProjTm3};
+    jitteredCamPosToUnjitteredHistoryClip@f44 = jitteredCamPosToUnjitteredHistoryClip;
   }
 
   hlsl(ps) {
@@ -42,7 +39,7 @@ shader motion_vectors_resolve
 
       float depth = linearize_z(rawDepth, zn_zfar.zw);
       float3 cameraToPoint = i.viewVec * depth;
-      float3 motionInUvSpace = get_reprojected_motion_vector(float3(i.uv, depth), cameraToPoint, prevViewProjTm);
+      float3 motionInUvSpace = get_reprojected_motion_vector1(float3(i.uv, depth), cameraToPoint, jitteredCamPosToUnjitteredHistoryClip);
       return float4(motionInUvSpace, 0);  // static objects are assumed to be not reactive
     }
   }

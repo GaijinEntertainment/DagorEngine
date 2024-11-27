@@ -51,7 +51,7 @@ auto ResourceScheduler::gatherResourceProperties(const intermediate::Graph &grap
 {
   ResourceProperties resourceProperties(graph.resources.size(), ResourceAllocationProperties{});
 
-  auto getFakePropertiesForCpu = [](BlobDescription desc) {
+  auto getFakePropertiesForCpu = [](const BlobDescription &desc) {
     return ResourceAllocationProperties{desc.size, desc.alignment, CPU_HEAP_GROUP};
   };
 
@@ -544,7 +544,7 @@ ResourceScheduler::DestroyedHeapSet ResourceScheduler::allocateCpuHeaps(int prev
         if (potential_deactivation_set[resIdx].index() == 3)
         {
           auto [f, x] = eastl::get<3>(potential_deactivation_set[resIdx]);
-          f(x);
+          (*f)(x);
         }
 
       result.push_back(heapIdx);
@@ -705,7 +705,7 @@ ResourceScheduler::PotentialDeactivationSet ResourceScheduler::gatherPotentialDe
         case ResourceType::Texture: result[idx] = getTexture(prev_frame, idx).getBaseTex(); break;
         case ResourceType::Buffer: result[idx] = getBuffer(prev_frame, idx).getBuf(); break;
         case ResourceType::Blob:
-          result[idx] = BlobDeactivationRequest{res.asScheduled().getCpuDescription().deactivate, getBlob(prev_frame, idx).data};
+          result[idx] = BlobDeactivationRequest{&(res.asScheduled().getCpuDescription().deactivate), getBlob(prev_frame, idx).data};
           break;
         default: G_ASSERT(false); break;
       }

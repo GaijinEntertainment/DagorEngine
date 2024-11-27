@@ -23,7 +23,7 @@ using ContextId = Context *;
 namespace rtr
 {
 
-void initialize(bool half_res, bool checkerboard_);
+void initialize(bool half_res, bool checkerboard_, float cockpit_reflection_power);
 void teardown();
 
 void set_performance_mode(bool performance_mode);

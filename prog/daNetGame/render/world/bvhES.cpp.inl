@@ -101,7 +101,7 @@ void initBVH()
     {
       rtr::set_classify_threshold(threshold_64, threshold_16, threshold_4);
       rtr::set_reflection_method(denoiser::ReflectionMethod::Reblur);
-      rtr::initialize(true, true);
+      rtr::initialize(true, true, 1.f);
     }
     if (is_rtao_enabled())
       rtao::initialize(true);

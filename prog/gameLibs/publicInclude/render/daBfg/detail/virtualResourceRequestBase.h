@@ -33,7 +33,7 @@ struct VirtualResourceRequestBase
   void texture(const Texture2dCreateInfo &info);
   void texture(const Texture3dCreateInfo &info);
   void buffer(const BufferCreateInfo &info);
-  void blob(const BlobDescription &desc);
+  void blob(BlobDescription &&desc);
 
   void markWithTag(ResourceSubtypeTag tag);
 

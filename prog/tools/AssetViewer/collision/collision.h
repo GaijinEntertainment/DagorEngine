@@ -73,6 +73,7 @@ protected:
   UniqueTex faceOrientationRenderDepth;
   int selectedNodeId;
   bool drawNodeAnotate;
+  bool showBbox;
   bool showPhysCollidable;
   bool showTraceable;
   bool isSolidMatValid;
@@ -89,6 +90,6 @@ protected:
 
 void InitCollisionResource(const DagorAsset &asset, CollisionResource **collision_res, GeomNodeTree **node_tree);
 void ReleaseCollisionResource(CollisionResource **collision_res, GeomNodeTree **node_tree);
-void RenderCollisionResource(const CollisionResource &collision_res, GeomNodeTree *node_tree, bool show_phys_collidable = false,
-  bool show_traceable = false, bool draw_solid = false, bool show_face_orientation = false, int selected_node_id = -1,
-  bool edit_mode = false, const dag::Vector<bool> &hidden_nodes = {});
+void RenderCollisionResource(const CollisionResource &collision_res, GeomNodeTree *node_tree, bool show_bbox = false,
+  bool show_phys_collidable = false, bool show_traceable = false, bool draw_solid = false, bool show_face_orientation = false,
+  int selected_node_id = -1, bool edit_mode = false, const dag::Vector<bool> &hidden_nodes = {});

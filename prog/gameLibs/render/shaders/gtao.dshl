@@ -8,7 +8,11 @@ include "get_additional_ao.dshl"
 include "ssao_reprojection.dshl"
 include "halfres_close_depth_with_normals.dshl"
 
-float gtao_radius = 2.8;
+float gtao_cutoff_radius_mul = 1.68;
+float gtao_cutoff_smoothness = 0.8;
+float gtao_world_radius = 1.666;
+float gtao_screen_radius = 0; // Portion of screen height. 0 by default to preserve old behavior (world space constant radius).
+float gtao_max_pixel_radius = 64;
 float gtao_half_hfov_tan = 1.0;
 float gtao_temporal_directions = 0;
 float gtao_temporal_offset = 0;
@@ -45,9 +49,10 @@ macro GTAO_MAIN_CORE(code)
   supports global_const_block;
 
   local float4 halfResTexSize = get_dimensions(downsampled_close_depth_tex, 0);
+  local float pixelToTan = 2.0 * gtao_half_hfov_tan / halfResTexSize.x;
+  local float gtaoSamples = 4;
   (code) {
     world_view_pos@f3 = world_view_pos;
-    gtao_radius@f1 = (gtao_radius);
     gtao_texel_size@f4 = (1.0 / max(1, halfResTexSize.x), 1.0 / max(1, halfResTexSize.y), halfResTexSize.xy);
     gtao_temporal_directions@f1 = (gtao_temporal_directions);
     gtao_temporal_offset@f1 = (gtao_temporal_offset);
@@ -64,6 +69,14 @@ macro GTAO_MAIN_CORE(code)
 
     encode_depth@f4 = (-zn_zfar.x / (zn_zfar.y - zn_zfar.x), zn_zfar.x * zn_zfar.y / (zn_zfar.y - zn_zfar.x),
       zn_zfar.x / (zn_zfar.x * zn_zfar.y), (zn_zfar.y - zn_zfar.x) / (zn_zfar.x * zn_zfar.y));
+
+    gtao_cutoff_radius_mul@f1 = gtao_cutoff_radius_mul;
+    gtao_cutoff_smoothness@f1 = gtao_cutoff_smoothness;
+    gtao_world_radius@f1 = gtao_world_radius;
+
+    tan_to_stride@f1 = 1.0 / (pixelToTan * gtaoSamples);
+    depth_to_radius_limit_max_pixel_radius@f1 = gtao_max_pixel_radius * pixelToTan;
+    depth_to_radius_limit_min_screen_radius@f1 = gtao_screen_radius * halfResTexSize.y * pixelToTan;
   }
 
   INIT_HALF_RES_CLOSE_DEPTH(code)
@@ -110,18 +123,12 @@ macro GTAO_MAIN_CORE(code)
       return (1.0 / 16.0) * ((((position.x + position.y) & 3) << 2) + (position.x & 3));
     }
 
-    #define SSAO_LIMIT 200
     #define SSAO_SAMPLES 4
-    #define SSAO_FALLOFF 2.25
     #define SSAO_THICKNESSMIX 0.2
-    #ifdef READ_W_DEPTH //WT branch
-      #define SSAO_MAX_STRIDE 4
-    #else //Enlisted branch
-      #define SSAO_MAX_STRIDE 16
-    #endif
     #define PI_HALF 1.5707963267948966192313216916398
 
-    void SliceSample(half2 tc_base, half2 aoDir, int i, float targetMip, half3 ray, half3 v, inout float closest)
+    void SliceSample(half2 tc_base, half2 aoDir, int i, float targetMip, half3 ray, half3 v,
+      float cutoff_radius, float inv_falloff_range, inout float closest)
     {
       half2 uv = clamp(tc_base + aoDir * i,float2(0.001,0.001),float2(0.999,0.999));
       float rawDepth = tex2Dlod(half_res_close_depth, float4(uv.xy, 0, targetMip)).x;
@@ -134,10 +141,11 @@ macro GTAO_MAIN_CORE(code)
       float depth = decode_depth(rawDepth, zn_zfar.zw);
       // Vector from current pixel to current slice sample
       half3 p = GetCameraVec(uv) * depth - ray;
+      float pLen = length(p);
       // Cosine of the horizon angle of the current sample
-      float current = dot(v, normalize(p));
+      float current = dot(v, p) / pLen;
       // Linear falloff for samples that are too far away from current pixel
-      float falloff = saturate((gtao_radius - length(p)) / SSAO_FALLOFF);
+      float falloff = saturate((cutoff_radius - pLen) * inv_falloff_range);
       FLATTEN
       if (current > closest)
         closest = lerp(closest, current, falloff);
@@ -163,7 +171,8 @@ macro GTAO_MAIN_CORE(code)
     {
 
       // Vector from camera to the current pixel's position
-      half3 ray = GetPosition(tc_original);
+      float sceneDepth = decode_depth(tex2Dlod(half_res_close_depth, float4(tc_original.xy, 0, 0)).x, zn_zfar.zw);
+      half3 ray = GetCameraVec(tc_original) * sceneDepth;
 
       float3 normal = normalize(float3(
         -dot(local_view_x, worldNormal),
@@ -171,9 +180,19 @@ macro GTAO_MAIN_CORE(code)
          dot(local_view_z, worldNormal)
       ));
 
-      // Calculate the distance between samples (direction vector scale) so that the world space AO radius remains constant but also clamp to avoid cache trashing
-      float stride = min((1.0 / length(ray)) * SSAO_LIMIT, SSAO_MAX_STRIDE);
+      float worldRadiusLimitMaxPixelRadius = sceneDepth * depth_to_radius_limit_max_pixel_radius;
+      float worldRadiusLimitMinScreenRadius = sceneDepth * depth_to_radius_limit_min_screen_radius;
+
+      // World space radius is limited below by screen-constant radius (avoid AO disappearing on far objects, if needed)
+      // and above by max-stride-related one to not thrash GPU cache
+      float worldRadius = min(worldRadiusLimitMaxPixelRadius, max(gtao_world_radius, worldRadiusLimitMinScreenRadius));
+      float stride = worldRadius / sceneDepth * tan_to_stride;
+
+      // Compute cutoff relative to world space radius at current depth
+      float cutoffRadius = max(gtao_world_radius, worldRadiusLimitMinScreenRadius) * gtao_cutoff_radius_mul;
+      float invFalloffRange = 1.0 / (cutoffRadius * gtao_cutoff_smoothness);
       half2 dirMult = gtao_texel_size.xy * stride;
+
       // Get the view vector (normalized vector from pixel to camera)
       half3 v = normalize(-ray);
 
@@ -205,11 +224,11 @@ macro GTAO_MAIN_CORE(code)
       int i;
       for (i = -1; i >= -SSAO_SAMPLES; i--)
       {
-        SliceSample(tc_base, aoDir, i, targetMip, ray, v, c1);
+        SliceSample(tc_base, aoDir, i, targetMip, ray, v, cutoffRadius, invFalloffRange, c1);
       }
       for (i = 1; i <= SSAO_SAMPLES; i++)
       {
-        SliceSample(tc_base, aoDir, i, targetMip, ray, v, c2);
+        SliceSample(tc_base, aoDir, i, targetMip, ray, v, cutoffRadius, invFalloffRange, c2);
       }
 
       // Finalize

@@ -230,13 +230,13 @@ class JsonRpcHandler
     let res = "\{\"jsonrpc\": \"2.0\", \"result\": {msg}, \"id\": {int(id)}\}"
     server->sendStr(res)
 
-  def sendResponse(var server : WebServer?; msg : JsonValue?; id : uint64)
+  def sendResponse(var server : WebServer?; var msg : JsonValue?; id : uint64)
     var res = JV({{ "jsonrpc" => JV("2.0"); "id" => JV(double(id)); "result" => msg }})
     server->sendStr(write_json(res))
     unsafe
       delete res
 
-  def sendRequestRaw(var server : WebServer?; method : string; params : JsonValue?; id : uint64) : void
+  def sendRequestRaw(var server : WebServer?; method : string; var params : JsonValue?; id : uint64) : void
     var res = JV({{ "jsonrpc" => JV("2.0"); "id" => JV(double(id)); "method" => JV(method); "params" => params }})
     server->sendStr(write_json(res))
     unsafe
@@ -252,7 +252,7 @@ class JsonRpcHandler
     self->sendRequestRawStr(server, method, params, currentId)
     return currentId
 
-  def sendRequest(var server : WebServer?; method : string; params : JsonValue?; var handler : RpcCall?) : uint64
+  def sendRequest(var server : WebServer?; method : string; var params : JsonValue?; var handler : RpcCall?) : uint64
     currentId += 1ul
     self->addResponseHander(currentId, handler)
     self->sendRequestRaw(server, method, params, currentId)
@@ -262,13 +262,13 @@ class JsonRpcHandler
     let res = "\{\"jsonrpc\": \"2.0\", \"method\": \"{method}\", \"params\": {params}\}"
     server->sendStr(res)
 
-  def sendNotification(var server : WebServer?; method : string; params : JsonValue?)
+  def sendNotification(var server : WebServer?; method : string; var params : JsonValue?)
     var res = JV({{ "jsonrpc" => JV("2.0"); "method" => JV(method); "params" => params }})
     server->sendStr(write_json(res))
     unsafe
       delete res
 
-  def getError(error : string; code : double; data : JsonValue? = null; id : uint64 = 0ul) : JsonValue?
+  def getError(error : string; code : double; var data : JsonValue? = null; id : uint64 = 0ul) : JsonValue?
     var res <- {{ "jsonrpc" => JV("2.0"); "error" => JV({{ "code" => JV(code); "message" => JV(error) }}) }}
     if id != 0ul
       res["id"] = JV(double(id))
@@ -276,7 +276,7 @@ class JsonRpcHandler
       res["data"] = data
     return JV(res)
 
-  def sendError(var server : WebServer?; error : string; code : double; data : JsonValue? = null; id : uint64 = 0ul)
+  def sendError(var server : WebServer?; error : string; code : double; var data : JsonValue? = null; id : uint64 = 0ul)
     var res = self->getError(error, code, data, id)
     server->sendStr(write_json(res))
     unsafe

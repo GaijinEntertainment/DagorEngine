@@ -1,10 +1,10 @@
 include "shader_global.dshl"
 
+int tex_const_no = 2;
+
 shader copy_tex
 {
   no_ablend;
-
-
 
   cull_mode = none;
   z_write = false;
@@ -31,13 +31,11 @@ shader copy_tex
     }
   }
 
+  (ps) {
+    tex@smp2d : register(tex_const_no);
+  }
+
   hlsl(ps) {
-    ##if hardware.dx11 || hardware.ps4 || hardware.ps5 || hardware.vulkan || hardware.metal
-    Texture2D tex:register(t2);
-    SamplerState tex_samplerstate:register(s2);
-    ##else
-    sampler2D tex:register(s2);
-    ##endif
     struct MRT_OUTPUT
     {
       float4 color:SV_Target0;

@@ -831,6 +831,7 @@ namespace das {
         "max_infer_passes",             Type::tInt,
         "indenting",                    Type::tInt,
         "no_unsafe_uninitialized_structures", Type::tBool,
+        "relaxed_pointer_const",        Type::tBool,
     // debugger
         "debugger",                     Type::tBool,
     // profiler

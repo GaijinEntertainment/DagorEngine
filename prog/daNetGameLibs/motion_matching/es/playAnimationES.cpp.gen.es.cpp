@@ -104,7 +104,7 @@ static ecs::EntitySystemDesc mm_update_goal_features_es_es_desc
   empty_span(),
   ecs::EventSetBuilder<ParallelUpdateFrameDelayed>::build(),
   0
-,"render",nullptr,"motion_matching_job_es","motion_matching_locomotion_state");
+,"render",nullptr,"motion_matching_job_es");
 static constexpr ecs::ComponentDesc update_tag_changes_es_comps[] =
 {
 //start of 8 rw components at [0]

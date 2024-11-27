@@ -1432,6 +1432,7 @@ namespace das
         virtual void serialize( AstSerializer & ser ) override;
         TypeDeclPtr                 recordType;
         vector<ExpressionPtr>       values;
+        bool                        gen2 = false;
     };
 
     struct ExprMakeTuple : ExprMakeArray {

@@ -5,7 +5,7 @@
 namespace rtr
 {
 
-void initialize(bool, bool) {}
+void initialize(bool, bool, float) {}
 void teardown() {}
 
 void set_performance_mode(bool) {}

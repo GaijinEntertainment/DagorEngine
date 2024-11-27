@@ -20,8 +20,8 @@ float compatibility_vertex_lerp = 0;
 
 int water_globtm_const_no = 40;
 macro USE_HARDCODED_WATER()
-  hlsl(vs) {
-    float3 water_ofs_pos : register(c40);
+  (vs) {
+    water_ofs_pos@f4 : register(water_globtm_const_no);
   }
 endmacro
 

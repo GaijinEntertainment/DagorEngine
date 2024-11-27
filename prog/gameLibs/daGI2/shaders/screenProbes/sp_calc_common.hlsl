@@ -1,3 +1,6 @@
+#ifndef SP_CALC_COMMON
+#define SP_CALC_COMMON 1
+
 #define TEMPORAL_PROBES_FRAMES 8
 #define SP_SPATIAL_FILTER 1
 #define SP_TEMPORAL_BILINEAR_EXPAND 0
@@ -36,12 +39,26 @@
 // now, there are two more probes on a same wall as point.
 // and although both probes are facing same direction and point is almost right between them, bilinear filtering won't happen!
 // as depth difference is still signficant. with DEPTH_ONLY_WEIGHTENING 0, both would be used, as plane distance is almost zero for both of them
-// todo: use some kind of both weights. depth weight probably should be low
+// so use some kind of both weights. depth weight probably should be low
 
 #define DEPTH_ONLY_WEIGHTENING 0
 
-#ifndef SP_ENCODING
-#define SP_ENCODING 1
+#define ADDITIONAL_DEPTH_WEIGHTENING_PLACEMENT_EXP -30
+#define ADDITIONAL_DEPTH_WEIGHTENING_SAMPLE_EXP -3
+
+float sp_get_additional_rel_depth(float linear_depth1, float linear_depth2, float depth_exp_mul)
+{
+  return depth_exp_mul*abs(linear_depth1 - linear_depth2)/linear_depth2;
+}
+float sp_get_additional_rel_depth_sample(float linear_depth1, float linear_depth2, float depth_exp_base)
+{
+  return sp_get_additional_rel_depth(linear_depth1, linear_depth2, (ADDITIONAL_DEPTH_WEIGHTENING_SAMPLE_EXP/depth_exp_base));
+}
+
+float sp_get_additional_rel_depth_placement(float linear_depth1, float linear_depth2, float depth_exp_base)
+{
+  return sp_get_additional_rel_depth(linear_depth1, linear_depth2, (ADDITIONAL_DEPTH_WEIGHTENING_PLACEMENT_EXP/depth_exp_base));
+}
 
 #include <pixelPacking/PixelPacking_R11G11B10.hlsl>
 

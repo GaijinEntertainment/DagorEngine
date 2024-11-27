@@ -19,8 +19,10 @@
     width: 75%;
 }
 
+/* Override width of the main page*/
+
 .wy-nav-content{
-    max-width: 90%;
+    max-width: 100%;
 }
 
 audio, canvas, video {
@@ -39,6 +41,16 @@ audio, canvas, video {
     font-family: SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, Courier, monospace;
     font-size: 0.95em;
     line-height: 1.4;
+}
+
+/* Override margins of the images and text blocks*/
+
+.rst-content .align-center {
+    margin-bottom: 14px;
+}
+
+p {
+    margin-bottom: 14px;
 }
 
 

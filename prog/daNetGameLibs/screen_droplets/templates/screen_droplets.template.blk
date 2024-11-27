@@ -10,7 +10,7 @@ screen_droplets_settings{
   _group{
     _track:b=yes
     screen_droplets__has_leaks:b=yes
-    screen_droplets__on_rain_fadeout_radius:r=0.9
+    screen_droplets__on_rain_fadeout_radius:r=0.3
     screen_droplets__screen_time:r=4
     screen_droplets__rain_cone_max:r=0.5
     screen_droplets__rain_cone_off:r=-0.25

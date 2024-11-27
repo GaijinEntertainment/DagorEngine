@@ -130,7 +130,6 @@ int skies_continue_temporal = 1;
 int skies_render_panorama_scattering;
 interval skies_render_panorama_scattering:off<1, on;
 
-float4 reprojected_world_view_pos;
 float4 move_world_view_pos;
 
 
@@ -154,7 +153,6 @@ macro FROXELS_SCATTERING(code)
     skies_frustum_scattering_frame@f1 = (skies_frustum_scattering_frame);
     skies_continue_temporal__old_effect@f2 = (skies_continue_temporal*2-1, skies_scattering_effect / max(0.001, last_skies_scattering_effect), 0, 0);
     prev_globtm_no_ofs_psf@f44 = { prev_globtm_no_ofs_psf_0, prev_globtm_no_ofs_psf_1, prev_globtm_no_ofs_psf_2, prev_globtm_no_ofs_psf_3 };
-    reprojected_world_view_pos@f4 = reprojected_world_view_pos;
     prev_view_vecLT@f3 = prev_view_vecLT;
     prev_view_vecRT_minus_view_vecLT@f3 = (prev_view_vecRT-prev_view_vecLT);
     prev_view_vecLB_minus_view_vecLT@f3 = (prev_view_vecLB-prev_view_vecLT);
@@ -232,8 +230,7 @@ shader skies_integrate_froxel_scattering_ps
         float3 prevUV;
         float3 camPos = viewVect*1000*d;
         prevUV.z = sqrt(length(camPos - move_world_view_pos)*skies_froxels_prev_dist.x);
-        float4 reprojectedViewVec = mul(float4(camPos, 0), prev_globtm_no_ofs_psf);
-        float4 prevClip = reprojected_world_view_pos + reprojectedViewVec;
+        float4 prevClip = mul(float4(camPos, 1), prev_globtm_no_ofs_psf);
         float2 prevScreen = prevClip.w > 0 ? prevClip.xy/prevClip.w : float2(2, 2);
         prevUV.xy = float2(prevScreen.xy*float2(0.5, -0.5) + float2(0.5, 0.5));
         if (skies_panoramic_scattering)
@@ -476,8 +473,7 @@ shader skies_integrate_froxel_scattering_cs
               prevUV.z = flooredUVZ + saturate((prevLinearUVZ - flooredPrevTexelPosZ)*rcp(linearDistanceBetweenTexels))*skies_froxels_resolution.z;
               #endif
 
-              float4 reprojectedViewVec = mul(float4(camPos, 0), prev_globtm_no_ofs_psf);
-              float4 prevClip = reprojected_world_view_pos + reprojectedViewVec;
+              float4 prevClip = mul(float4(camPos, 1), prev_globtm_no_ofs_psf);
               float2 prevScreen = prevClip.w > 0 ? prevClip.xy/prevClip.w : float2(2, 2);
               prevUV.xy = float2(prevScreen.xy*float2(0.5, -0.5) + float2(0.5, 0.5));
               //float prevDepth = prevClip.w*length(getPrevViewVecOptimized(prevUV.xy));
@@ -585,8 +581,7 @@ shader skies_integrate_froxel_scattering_cs
             float prevLinearUVZ = saturate(prevLinearDist*skies_froxels_prev_dist.x);
             prevUV.z = sqrt(prevLinearUVZ);
 
-            float4 reprojectedViewVec = mul(float4(camPos, 0), prev_globtm_no_ofs_psf);
-            float4 prevClip = reprojected_world_view_pos + reprojectedViewVec;
+            float4 prevClip = mul(float4(camPos, 1), prev_globtm_no_ofs_psf);
             float2 prevScreen = prevClip.w > 0 ? prevClip.xy/prevClip.w : float2(2, 2);
             prevUV.xy = float2(prevScreen.xy*float2(0.5, -0.5) + float2(0.5, 0.5));
             //float prevDepth = prevClip.w*length(getPrevViewVecOptimized(prevUV.xy));

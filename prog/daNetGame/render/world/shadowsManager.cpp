@@ -498,18 +498,32 @@ struct StaticShadowCullJob final : public cpujobs::IJob
 {
   mat44f cullTm;
   Point3 viewPos;
-  RiGenVisibility *visibility;
+  RiGenVisibility *visibility = nullptr;
 
-  void doJob()
+  StaticShadowCullJob() = default;
+  StaticShadowCullJob(const StaticShadowCullJob &) = delete;
+  ~StaticShadowCullJob() { rendinst::destroyRIGenVisibility(visibility); }
+
+  void doJob() override
   {
     TIME_PROFILE(staticShadowVisibility);
     rendinst::prepareRIGenExtraVisibility(cullTm, viewPos, *visibility, true, nullptr);
     rendinst::prepareRIGenVisibility(Frustum(cullTm), viewPos, visibility, true, nullptr);
   }
 };
-
-static StaticShadowCullJob static_shadow_jobs[ShadowsManager::MAX_NUM_STATIC_SHADOWS_CASCADES]
-                                             [ShadowsManager::MAX_NUM_STATIC_SHADOWS_VISIBILITY_JOBS];
+DAG_DECLARE_RELOCATABLE(StaticShadowCullJob);
+static dag::RelocatableFixedVector<StaticShadowCullJob, 8, true, framemem_allocator>
+  static_shadow_jobs[ShadowsManager::MAX_NUM_STATIC_SHADOWS_CASCADES];
+static void free_overflowed_static_shadow_cull_jobs()
+{
+  for (auto &jobs : static_shadow_jobs)
+  {
+    for ([[maybe_unused]] auto &j : jobs)
+      G_ASSERT(interlocked_relaxed_load(j.done));       // Expected to be waited on by `renderStaticShadowsRegion`
+    if (DAGOR_UNLIKELY(jobs.size() > jobs.static_size)) // Overflowed?
+      jobs.clear();
+  }
+}
 
 struct ShadowsManager::StaticShadowCallback final : public IStaticShadowsCB
 {
@@ -534,11 +548,10 @@ struct ShadowsManager::StaticShadowCallback final : public IStaticShadowsCB
 
   void renderStaticShadowDepth(const mat44f &cull_matrix, const ViewTransformData &curTransform, int region) override
   {
-    G_ASSERT(region < ShadowsManager::MAX_NUM_STATIC_SHADOWS_VISIBILITY_JOBS);
     TMatrix4 lightGlobTm;
     v_mat_44cu_from_mat44(&lightGlobTm._11, curTransform.globtm);
 
-    shadowsManager.renderStaticShadows(cull_matrix, lightGlobTm, invShadowViewMatrix, curTransform.cascade, region);
+    shadowsManager.renderStaticShadowsRegion(cull_matrix, lightGlobTm, invShadowViewMatrix, curTransform.cascade, region);
 
     if (shadowsManager.hasRIShadowOcclusion() && curTransform.cascade == shadowsManager.staticShadows->cascadesCount() - 1)
     {
@@ -763,22 +776,23 @@ bool ShadowsManager::updateStaticShadowAround(const Point3 &pos, bool update_onl
   auto updateOriginAndDispatchCullingThreads = [&]() {
     ToroidalStaticShadowCascade::BeforeRenderReturned ret =
       staticShadows->updateOrigin(pos, 0.05f, 0.1f, staticShadowUniformUpdate, staticShadowMaxUpdateAmount, update_only_last_cascade);
-    for (int i = 0; i < staticShadows->cascadesCount(); i++)
-    {
-      G_ASSERT(staticShadows->getRegionToRenderCount(i) <= MAX_NUM_STATIC_SHADOWS_VISIBILITY_JOBS);
-
-      for (int j = 0; j < staticShadows->getRegionToRenderCount(i); ++j)
+    for (int i = 0, cn = staticShadows->cascadesCount(); i < cn; i++)
+      if (int rn = staticShadows->getRegionToRenderCount(i))
       {
-        if (static_shadow_jobs[i][j].visibility == nullptr)
-          static_shadow_jobs[i][j].visibility = initOneStaticShadowsVisibility();
+        if (DAGOR_UNLIKELY(rn > static_shadow_jobs[i].size()))
+          static_shadow_jobs[i].resize(rn);
+        for (int j = 0; j < rn; ++j)
+        {
+          if (!static_shadow_jobs[i][j].visibility)
+            static_shadow_jobs[i][j].visibility = initOneStaticShadowsVisibility();
 
-        TMatrix4_vec4 mat = staticShadows->getRegionToRenderCullTm(i, j);
-        static_shadow_jobs[i][j].cullTm = (mat44f &)mat;
-        static_shadow_jobs[i][j].viewPos = pos;
-        threadpool::add(&static_shadow_jobs[i][j], threadpool::PRIO_LOW, /*wake*/ false);
-        tpJobsAdded = true;
+          TMatrix4_vec4 mat = staticShadows->getRegionToRenderCullTm(i, j);
+          static_shadow_jobs[i][j].cullTm = (mat44f &)mat;
+          static_shadow_jobs[i][j].viewPos = pos;
+          threadpool::add(&static_shadow_jobs[i][j], threadpool::PRIO_LOW, /*wake*/ false);
+          tpJobsAdded = true;
+        }
       }
-    }
     return ret;
   };
 
@@ -827,6 +841,7 @@ void ShadowsManager::renderStaticShadows()
     staticShadows->render(cb);
     if (staticShadowsSetShaderVars)
       staticShadows->setShaderVars();
+    free_overflowed_static_shadow_cull_jobs();
   }
 }
 
@@ -1306,17 +1321,11 @@ void ShadowsManager::renderGroundShadows(const Point3 &origin, int displacement_
 
 void ShadowsManager::closeAllStaticShadowsVisibility()
 {
-  for (int i = 0; i < MAX_NUM_STATIC_SHADOWS_CASCADES; i++)
+  for (auto &jobs : static_shadow_jobs)
   {
-    for (int j = 0; j < MAX_NUM_STATIC_SHADOWS_VISIBILITY_JOBS; j++)
-    {
-      auto &job = static_shadow_jobs[i][j];
+    for (auto &job : jobs)
       threadpool::wait(&job);
-      RiGenVisibility *&rendinstStaticShadowVisibility = job.visibility;
-      if (rendinstStaticShadowVisibility)
-        rendinst::destroyRIGenVisibility(rendinstStaticShadowVisibility);
-      rendinstStaticShadowVisibility = nullptr;
-    }
+    jobs.clear();
   }
 }
 
@@ -1328,7 +1337,7 @@ RiGenVisibility *ShadowsManager::initOneStaticShadowsVisibility()
   return visibility;
 }
 
-void ShadowsManager::renderStaticShadows(
+void ShadowsManager::renderStaticShadowsRegion(
   const mat44f &culling_view_proj, const TMatrix4 &shadow_glob_tm, const TMatrix &view_itm, int cascade, int region)
 {
   G_ASSERT(staticShadows);

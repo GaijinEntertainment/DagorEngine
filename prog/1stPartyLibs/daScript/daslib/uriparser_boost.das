@@ -13,7 +13,7 @@ require daslib/sort_boost
 def uri_split_full_path ( uri:Uri implicit )
     //! Split the full path of a URI into its components.
     var paths : array<string>
-    var pcur = uri.uri.pathHead
+    var pcur : uriparser::UriPathSegmentStructA const? = uri.uri.pathHead
     while pcur != null
         paths |> push ( string(pcur.text) )
         pcur = pcur.next
@@ -77,7 +77,7 @@ def port ( uri:Uri implicit )
 def path ( uri:Uri implicit )
     //! Return the path of a URI.
     return build_string() <| $ ( var tw )
-        var pcur = uri.uri.pathHead
+        var pcur : uriparser::UriPathSegmentStructA const? = uri.uri.pathHead
         var first = true
         while pcur != null
             if first

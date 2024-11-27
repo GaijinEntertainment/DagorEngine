@@ -7,6 +7,7 @@
 #include <shaders/dag_shaderState.h>
 #include <shaders/dag_renderStateId.h>
 #include <math/integer/dag_IPoint2.h>
+#include <shaders/dag_shaderVarsUtils.h>
 
 
 struct RIExRenderRecord
@@ -14,11 +15,7 @@ struct RIExRenderRecord
   const ShaderElement *curShader;
   uint32_t prog;
   shaders::RenderStateId rstate;
-  enum : uint32_t
-  {
-    DISABLE_OPTIMIZATION_BIT_STATE = 0x80000000
-  };
-  uint32_t state;
+  ShaderStateBlockId state;
   shaders::TexStateIdx tstate;
   shaders::ConstStateIdx cstate;
   uint16_t cv;
@@ -31,16 +28,16 @@ struct RIExRenderRecord
   IPoint2 ofsAndCnt;
   int si, sv, numv, numf, bv;
   uint16_t texLevel;
-  uint8_t isTree : 1, isTessellated : 1, isSWVertexFetch : 1;
+  uint8_t isTree : 1, isTessellated : 1, isSWVertexFetch : 1, disableOptimization : 1;
 #if DAGOR_DBGLEVEL > 0
   uint8_t lod;
 #else
   static constexpr uint8_t lod = 0;
 #endif
-  RIExRenderRecord(const ShaderElement *curShader, int cv, uint32_t prog, uint32_t state_, shaders::RenderStateId rstate,
+  RIExRenderRecord(const ShaderElement *curShader, int cv, uint32_t prog, ShaderStateBlockId state_, shaders::RenderStateId rstate,
     shaders::TexStateIdx tstate, shaders::ConstStateIdx cstate, uint16_t poolOrder, uint16_t vstride, uint8_t vbIdx,
     PackedDrawOrder drawOrder_stage, uint8_t elem_order, uint8_t primitive, IPoint2 ofsAndCnt, int si, int sv, int numv, int numf,
-    int bv, int texLevel, int isTree, int isTessellated
+    int bv, int texLevel, int isTree, int isTessellated, bool disable_optimization
 #if DAGOR_DBGLEVEL > 0
     ,
     uint8_t lod
@@ -68,6 +65,7 @@ struct RIExRenderRecord
     isTree(isTree),
     isTessellated(isTessellated),
     isSWVertexFetch(false),
+    disableOptimization(disable_optimization),
     elemOrder(elem_order)
 #if DAGOR_DBGLEVEL > 0
     ,

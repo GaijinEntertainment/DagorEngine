@@ -7,7 +7,7 @@
 
 namespace dafx
 {
-FastNameMapTS<false> fxSysNameMap;
+decltype(fxSysNameMap) fxSysNameMap;
 
 bool register_value_binds(ValueBindMap &dst, const eastl::string &sys_name, const eastl::vector<ValueBindDesc> &binds, int size_limit,
   bool is_opt)
@@ -15,24 +15,25 @@ bool register_value_binds(ValueBindMap &dst, const eastl::string &sys_name, cons
   G_UNUSED(sys_name);
   for (const ValueBindDesc &desc : binds)
   {
-    G_ASSERTF(desc.offset >= 0 && desc.size > 0 && desc.offset <= 0xFFFFFF && desc.size <= 0xFF,
-      "%s: desc.name=%s desc.offset=%d desc.size=%d", sys_name.c_str(), desc.name.c_str(), desc.offset, desc.size);
-    if (desc.name.empty() || desc.offset < 0 || desc.size <= 0 || desc.offset + desc.size > size_limit)
+    G_ASSERTF(desc.size > 0 && desc.offset <= 0xFFFFFF && desc.size <= 0xFF, "%s: desc.name=%s desc.offset=%d desc.size=%d",
+      sys_name.c_str(), desc.name.c_str(), desc.offset, desc.size);
+    if (desc.name.empty() || desc.size <= 0 || desc.offset + desc.size > size_limit)
     {
       logerr("dafx: sys: %s, register_value_binds invalid desc, (%s, %d, %d, %d)", sys_name.c_str(), desc.name.c_str(), desc.offset,
         desc.size, size_limit);
       return false;
     }
-
+    ValueBind v = ValueBind((unsigned)desc.offset, (unsigned)desc.size);
+    G_FAST_ASSERT(v != ValueBind{});
     int nameId = fxSysNameMap.addNameId(desc.name.c_str(), desc.name.length());
-    ValueBindMap::iterator it = dst.find(nameId);
-    if (it == dst.end())
+    if (DAGOR_LIKELY(nameId >= dst.size() || dst[nameId] == ValueBind{}))
     {
-      dst.insert(nameId).first->second = {(unsigned)desc.offset, (unsigned)desc.size};
+      dst.resize(nameId + 1);
+      dst[nameId] = v;
     }
     else
     {
-      const ValueBind &v = it->second;
+      v = dst[nameId];
       if (!is_opt)
       {
         logerr("dafx: sys: %s, register_value_binds value:%s is already registered", sys_name.c_str(), desc.name.c_str());

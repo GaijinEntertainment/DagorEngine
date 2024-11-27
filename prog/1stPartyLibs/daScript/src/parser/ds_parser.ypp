@@ -3577,6 +3577,7 @@ make_dim_decl
         auto mka = make_smart<ExprMakeArray>(tokAt(scanner,@loc));
         mka->values = sequenceToList($arguments);
         mka->makeType = make_smart<TypeDecl>(Type::autoinfer);
+        mka->gen2 = true;
         auto tam = yyextra->g_Program->makeCall(tokAt(scanner,@loc),"to_array_move");
         tam->arguments.push_back(mka);
         $$ = tam;
@@ -3627,6 +3628,7 @@ make_dim_decl
         auto mka = make_smart<ExprMakeArray>(tokAt(scanner,@loc));
         mka->values = sequenceToList($arguments);
         mka->makeType = make_smart<TypeDecl>(Type::autoinfer);
+        mka->gen2 = true;
         auto tam = yyextra->g_Program->makeCall(tokAt(scanner,@loc),"to_array_move");
         tam->arguments.push_back(mka);
         $$ = tam;
@@ -3636,6 +3638,7 @@ make_dim_decl
             auto mka = make_smart<ExprMakeArray>(tokAt(scanner,@loc));
             mka->values = sequenceToList($arguments);
             mka->makeType = TypeDeclPtr($mkt);
+            mka->gen2 = true;
             auto tam = yyextra->g_Program->makeCall(tokAt(scanner,@loc),"to_array_move");
             tam->arguments.push_back(mka);
             $$ = tam;
@@ -3654,14 +3657,14 @@ make_dim_decl
         auto mka = new ExprMakeArray(tokAt(scanner,@loc));
         mka->values = sequenceToList($arguments);
         mka->makeType = make_smart<TypeDecl>(Type::autoinfer);
-        mka->makeType->dim.push_back(TypeDecl::dimAuto);
+        mka->gen2 = true;
         $$ = mka;
     }
     |   DAS_FIXED_ARRAY[loc] '<' { yyextra->das_arrow_depth ++; } type_declaration_no_options[mkt] '>' { yyextra->das_arrow_depth --; } '(' expr_list[arguments] optional_comma ')' {
         auto mka = new ExprMakeArray(tokAt(scanner,@loc));
         mka->values = sequenceToList($arguments);
         mka->makeType = TypeDeclPtr($mkt);
-        if ( !mka->makeType->dim.size() ) mka->makeType->dim.push_back(TypeDecl::dimAuto);
+        mka->gen2 = true;
         $$ = mka;
     }
     ;

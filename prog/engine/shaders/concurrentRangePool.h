@@ -97,10 +97,11 @@ public:
   Range allocate(uint8_t size)
   {
     if constexpr (ALIGN_TO_CHUNKS) // Align if we cross chunk boundary
-      if (firstFreeInLastBucket / INITIAL_CAPACITY != (firstFreeInLastBucket + size) / INITIAL_CAPACITY)
+      if ((firstFreeInLastBucket + size) % INITIAL_CAPACITY != 0 &&
+          firstFreeInLastBucket / INITIAL_CAPACITY != (firstFreeInLastBucket + size) / INITIAL_CAPACITY)
         firstFreeInLastBucket = ((firstFreeInLastBucket + INITIAL_CAPACITY - 1) / INITIAL_CAPACITY) * INITIAL_CAPACITY;
 
-    if (DAGOR_UNLIKELY(firstFreeInLastBucket + size >= capacity(buckets.size() - 1)))
+    if (DAGOR_UNLIKELY(firstFreeInLastBucket + size > capacity(buckets.size() - 1)))
     {
       T *newBucket = new T[capacity(buckets.size())]{};
       buckets.emplace_back().reset(newBucket);
@@ -158,6 +159,18 @@ public:
     const auto [size, bucket, offset] = break_range(r);
     G_FAST_ASSERT(size > 0);
     return ChunkIdx{(1 << bucket) - 1 + offset / INITIAL_CAPACITY};
+  }
+
+  /// @brief returns an offset of a range inside of it's chunk.
+  /// @note This is only available if ALIGN_TO_CHUNKS is true.
+  /// @param r The range to get the offset of.
+  /// @return The offset of \p r inside of it's chunk.
+  uint32_t offsetInChunk(Range r) const /* requires ALIGN_TO_CHUNK */
+  {
+    G_FAST_ASSERT(ALIGN_TO_CHUNKS);
+    const auto [size, bucket, offset] = break_range(r);
+    G_FAST_ASSERT(size > 0);
+    return offset % INITIAL_CAPACITY;
   }
 
   /// @brief returns a view of the chunk. Elements in the chunk which were not

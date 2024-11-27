@@ -73,7 +73,7 @@ def sound_effect_init(evt : Event;
         sound_control__range = 35.
         sound_debug("unknown range for {sound_effect__path}")
       elif sound_control__range > 8000.
-        sound_debug("max distance {sound_control__range} for event {sound_effect__path} seems too big")
+        sound_debug("max distance {sound_control__range} for event {sound_effect__path} should be less than 8000")
     sound_effect__event.abandonOnReset = sound_effect__abandonOnReset
   else
     release_immediate(sound_effect__event)

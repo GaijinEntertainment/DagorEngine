@@ -139,6 +139,8 @@ void setTextureDescription(dabfg::ResourceData &res, TextureResourceDescription 
 void setBufferDescription(dabfg::ResourceData &res, const BufferResourceDescription &desc);
 void setBlobDescription(dabfg::ResourceData &res, const char *mangled_name, int size, int align, das::TypeInfo *type_info,
   das::TFunc<void, void *> ctor, das::TFunc<void, void *> dtor, das::TFunc<void, void *, const void *> copy, das::Context *ctx);
+void setBlobDescriptionDefValue(dabfg::ResourceData &res, const char *mangled_name, int size, int align, das::TypeInfo *type_info,
+  das::TLambda<void, void *> ctor, das::TFunc<void, void *> dtor, das::TFunc<void, void *, const void *> copy, das::Context *ctx);
 void setNodeSource(dabfg::NodeData &node, const char *source);
 bool is_dabfg_runtime_initialized();
 void *getBlobViewData(dabfg::BlobView view, const char *mangled_name);

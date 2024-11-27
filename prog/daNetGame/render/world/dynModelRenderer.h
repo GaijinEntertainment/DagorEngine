@@ -15,6 +15,7 @@
 #include <shaders/dag_shSkinMesh.h>
 #include <drv/3d/dag_renderStateId.h>
 #include <3d/dag_ringDynBuf.h>
+#include <shaders/dag_shaderVarsUtils.h>
 
 
 struct UpdateStageInfoRender;
@@ -33,7 +34,7 @@ DAG_DECLARE_RELOCATABLE(dynmodel_renderer::RenderElement);
 namespace dynmodel_renderer
 {
 
-enum RenderPriority
+enum class RenderPriority : uint8_t
 {
   HIGH = 0,
   DEFAULT = 1,
@@ -50,11 +51,13 @@ struct RenderElement
   ShaderElement *curShader;
   GlobalVertexData *vData;
   int curVar; // probably can be just int16_t
-  uint32_t prog, state;
+  uint32_t prog;
+  ShaderStateBlockId state;
   shaders::RenderStateId rstate;
   shaders::TexStateIdx tstate;
   shaders::ConstStateIdx cstate;
   uint8_t reqTexLevel;
+  RenderPriority priority;
 #if DAGOR_DBGLEVEL > 0
   uint8_t lodNo;
 #else
@@ -68,12 +71,13 @@ struct RenderElement
   RenderElement(ShaderElement *curShader,
     int curVar,
     uint32_t prog,
-    uint32_t state,
+    ShaderStateBlockId state,
     shaders::RenderStateId rstate,
     shaders::TexStateIdx tstate,
     shaders::ConstStateIdx cstate,
     GlobalVertexData *vData,
     uint8_t req_tex_level,
+    RenderPriority priority,
 #if DAGOR_DBGLEVEL > 0
     uint8_t lodNo,
 #endif
@@ -92,6 +96,7 @@ struct RenderElement
     cstate(cstate),
     vData(vData),
     reqTexLevel(req_tex_level),
+    priority(priority),
 #if DAGOR_DBGLEVEL > 0
     lodNo(lodNo),
 #endif
@@ -143,7 +148,7 @@ struct DynModelRenderingState
     uint32_t path_filter_size = 0,
     uint8_t render_mask = 0,
     bool need_immediate_const_ps = false,
-    uint8_t priority = RenderPriority::DEFAULT,
+    RenderPriority priority = RenderPriority::DEFAULT,
     const GlobalVariableStates *gvars_state = nullptr,
     TexStreamingContext texCtx = TexStreamingContext(0));
   // legacy (get DynamicRenderableSceneResource* as scene->getCurSceneResource())
@@ -158,7 +163,7 @@ struct DynModelRenderingState
     uint32_t path_filter_size = 0,
     uint8_t render_mask = 0,
     bool need_immediate_const_ps = false,
-    uint8_t priority = RenderPriority::DEFAULT,
+    RenderPriority priority = RenderPriority::DEFAULT,
     const GlobalVariableStates *gvars_state = nullptr,
     TexStreamingContext texCtx = TexStreamingContext(0));
   void prepareForRender();

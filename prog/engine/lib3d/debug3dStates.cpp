@@ -37,7 +37,7 @@ void CachedStates::setState(const StateKey &key)
   shaders::overrides::reset();
   shaders::overrides::set(getState(key));
 
-  if (!renderStateId)
+  if (renderStateId == shaders::RenderStateId::Invalid)
   {
     shaders::RenderState state;
     renderStateId = shaders::render_states::create(state);

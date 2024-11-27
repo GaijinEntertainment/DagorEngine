@@ -350,8 +350,8 @@ shader blood_puddles_resolve
   INIT_VIEW_VEC_STAGE(ps)
 
   (ps) {
-    blood_acc_buf0@smp2d = blood_acc_buf0;
-    blood_acc_normal@smp2d = blood_acc_normal;
+    blood_acc_buf0@tex2d = blood_acc_buf0;
+    blood_acc_normal@tex2d = blood_acc_normal;
 
     blood_puddle_high_intensity_color@f4 = (blood_puddle_high_intensity_color);
     blood_puddle_low_intensity_color@f4 = (blood_puddle_low_intensity_color);
@@ -596,7 +596,7 @@ shader blood_puddles_resolve_debug
   }
 
   (ps) {
-    blood_acc_buf0@smp2d = blood_acc_buf0;
+    blood_acc_buf0@tex2d = blood_acc_buf0;
   }
 
   hlsl(ps) {

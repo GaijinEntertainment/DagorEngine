@@ -29,15 +29,14 @@ static bool get_value_bind(Context &ctx, const char *name, size_t name_len, uint
   G_ASSERT(name_hash == DefaultOAHasher<false>().hash_data(name, name_len));
 #endif
 
-  int nameId = fxSysNameMap.getNameId(name, name_len, name_hash);
-  if (nameId < 0)
+  unsigned nameId = fxSysNameMap.getNameId(name, name_len, name_hash);
+  if (nameId >= ctx.binds.globalValues.size())
     return false;
 
-  ValueBindMap::iterator it = ctx.binds.globalValues.find(nameId);
-  if (it == ctx.binds.globalValues.end())
+  v = ctx.binds.globalValues[nameId];
+  if (v == ValueBind{})
     return false;
 
-  v = it->second;
   if (v.size != size)
   {
     logerr("dafx: size for global value:%s doesn't match (%d/%d)", name, v.size, size);

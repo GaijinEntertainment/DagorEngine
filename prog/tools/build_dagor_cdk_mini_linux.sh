@@ -1,4 +1,5 @@
 # dabuild
+jam -s Root=../.. -f libTools/daKernel/jamfile
 jam -s Root=../.. -f sceneTools/assetExp/jamfile
 jam -s Root=../.. -f converters/ddsxCvt2/jamfile
 

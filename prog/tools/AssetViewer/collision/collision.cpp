@@ -90,6 +90,7 @@ CollisionPlugin::CollisionPlugin()
 {
   self = this;
   drawNodeAnotate = true;
+  showBbox = false;
   showPhysCollidable = false;
   showTraceable = false;
   drawSolid = false;
@@ -167,8 +168,8 @@ void CollisionPlugin::renderTransObjects()
     d3d::clearview(CLEAR_ZBUFFER, 0, 0, 0);
   }
 
-  RenderCollisionResource(*collisionRes, nodeTree, showPhysCollidable, showTraceable, drawSolid, showFaceOrientation, selectedNodeId,
-    nodesProcessing.editMode, nodesProcessing.selectionNodesProcessing.hiddenNodes);
+  RenderCollisionResource(*collisionRes, nodeTree, showBbox, showPhysCollidable, showTraceable, drawSolid, showFaceOrientation,
+    selectedNodeId, nodesProcessing.editMode, nodesProcessing.selectionNodesProcessing.hiddenNodes);
   nodesProcessing.renderNodes(selectedNodeId, drawSolid);
 
   fillAssetStats();
@@ -179,6 +180,7 @@ void CollisionPlugin::fillPropPanel(PropPanel::ContainerPropertyControl &panel)
   panel.setEventHandler(this);
 
   panel.createCheckBox(PID_DRAW_NODE_ANOTATE, "draw node anotate", drawNodeAnotate);
+  panel.createCheckBox(PID_SHOW_BBOX, "Show bounding box", showBbox);
   panel.createCheckBox(PID_SHOW_PHYS_COLLIDABLE, "Show Phys Collidable (green)", showPhysCollidable);
   panel.createCheckBox(PID_SHOW_TRACEABLE, "Show Traceable (red)", showTraceable);
   panel.createCheckBox(PID_DRAW_SOLID, "Draw collision solid", drawSolid, isSolidMatValid);
@@ -199,6 +201,11 @@ void CollisionPlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *p
   {
     case PID_DRAW_NODE_ANOTATE:
       drawNodeAnotate = panel->getBool(pcb_id);
+      repaintView();
+      break;
+
+    case PID_SHOW_BBOX:
+      showBbox = panel->getBool(pcb_id);
       repaintView();
       break;
 
@@ -691,11 +698,14 @@ static void draw_collision_mesh(const CollisionNode &node, const TMatrix &tm, co
   }
 }
 
-void RenderCollisionResource(const CollisionResource &collision_res, GeomNodeTree *node_tree, bool show_phys_collidable,
-  bool show_traceable, bool draw_solid, bool show_face_orientation, int selected_node_id, bool edit_mode,
+void RenderCollisionResource(const CollisionResource &collision_res, GeomNodeTree *node_tree, bool show_bbox,
+  bool show_phys_collidable, bool show_traceable, bool draw_solid, bool show_face_orientation, int selected_node_id, bool edit_mode,
   const dag::Vector<bool> &hidden_nodes)
 {
   begin_draw_cached_debug_lines();
+
+  if (show_bbox)
+    draw_cached_debug_box(collision_res.boundingBox, E3DCOLOR_MAKE(255, 255, 255, 255));
 
   const bool selectedNodeNotHidden = !hidden_nodes.empty() && selected_node_id >= 0 && !hidden_nodes[selected_node_id];
   const auto allNodes = collision_res.getAllNodes();

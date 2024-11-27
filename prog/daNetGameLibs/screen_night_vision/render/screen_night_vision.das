@@ -35,14 +35,14 @@ def set_night_vision_preset_value(eid : EntityId;
         screen_night_vision__enabled = night_vision__isActive
         return true
 
-[es(tag=render, REQUIRE=night_vision__isPreset, after=cockpit_change_active_camera_effects, before=screen_night_vision_attach_es_event_handler, track=vehicle__night_vision)]
+[es(tag=render, REQUIRE=night_vision__isPreset, after=cockpit_change_active_camera_effects, track=vehicle__night_vision)]
 def set_night_vision_preset_vehicle_parameters_es(evt : Event;
                                                   eid : EntityId;
                                                   vehicle__night_vision : bool)
   let value = vehicle__night_vision;
   set_night_vision_preset_value(eid, value);
 
-[es(tag=render, REQUIRE=night_vision__isPreset, on_disappear, before=screen_night_vision_attach_es_event_handler)]
+[es(tag=render, REQUIRE=night_vision__isPreset, on_disappear)]
 def night_vision_preset_remove_es(evt : Event)
   find_query() <| $ [es] (var screen_night_vision__enabled : bool&)
     screen_night_vision__enabled = false

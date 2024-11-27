@@ -1052,8 +1052,12 @@ void HmapLandObjectEditor::onObjectFlagsChange(RenderableEditableObject *obj, in
 {
   ObjectEditor::onObjectFlagsChange(obj, changed_flags);
 
-  if ((changed_flags & RenderableEditableObject::FLG_SELECTED) != 0 && outlinerWindow)
-    outlinerWindow->onObjectSelectionChanged(getMainObjectForOutliner(*obj));
+  if ((changed_flags & RenderableEditableObject::FLG_SELECTED) != 0)
+  {
+    if (outlinerWindow)
+      outlinerWindow->onObjectSelectionChanged(getMainObjectForOutliner(*obj));
+    HmapLandPlugin::self->onObjectSelectionChanged(obj);
+  }
 }
 
 

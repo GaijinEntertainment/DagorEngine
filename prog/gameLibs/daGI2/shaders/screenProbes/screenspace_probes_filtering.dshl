@@ -378,7 +378,7 @@ shader filter_screenspace_radiance_cs
       //probe.coord_ofs = decodeCoordOfs(encodedProbeNormal);
       float3 probeNormal = decodeProbeNormal(encodedProbeNormal);
       //float2 screenProbeCoord = min(screen_tile_coord*screenspace_probe_res.z + probe.coord_ofs + 0.5f, screenspace_probe_screen_limit.zw);
-      float3 probeWorldPos = sp_world_view_pos + probe.normalizedW*sp_getViewVecOptimizedNormalized(getScreenProbeCenterScreenUV(screen_tile_coord));
+      float3 probeCamPos = probe.normalizedW*sp_getViewVecOptimizedNormalized(getScreenProbeCenterScreenUV(screen_tile_coord));
       //float3 probeWorldPos = sp_world_view_pos + probe.normalizedW*sp_getViewVecOptimizedNormalized(screenCoordToScreenUV(screenProbeCoord));
 
       //float2 octTC = octCoord*sp_radiance_tc_decode.x + sp_radiance_tc_decode.y;
@@ -404,10 +404,7 @@ shader filter_screenspace_radiance_cs
         //  s.depth_exp /= 8;
         //s.usePositionAveraging = false;
         //use different plane - makes more accurate spatial results
-        float4 scenePlaneScaled = float4(rayDir, dot(rayDir, probeWorldPos)) / probeLinearW;
-        #if DEPTH_ONLY_WEIGHTENING
-        scenePlaneScaled = -float4(sp_view_z, dot(probeWorldPos, sp_view_z)) / probeLinearW;
-        #endif
+        float4 scenePlaneScaled = float4(rayDir, dot(rayDir, probeCamPos)) / probeLinearW;
         //scenePlaneScaled *= depth_exp_precision_scale(probe.normalizedW);
         // spatial filter
         float cWeight = sp_is_moving_or_new(probe.allTag) ? 0.25 : 1;
@@ -415,21 +412,21 @@ shader filter_screenspace_radiance_cs
         float w1 = 1, w2 = 1, w3 = 1;
         float invNormalizedW = rcp(probe.normalizedW);
         int2 tcoordI = screen_tile_coord;
-        get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeWorldPos, rayDir, tcoordI + int2( 0,-1), octCoord, rad_distance, cWeight, w2, s);
-        get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeWorldPos, rayDir, tcoordI + int2( 0,+1), octCoord, rad_distance, cWeight, w2, s);
-        get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeWorldPos, rayDir, tcoordI + int2(-1, 0), octCoord, rad_distance, cWeight, w2, s);
-        get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeWorldPos, rayDir, tcoordI + int2(+1, 0), octCoord, rad_distance, cWeight, w2, s);
+        get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2( 0,-1), octCoord, rad_distance, cWeight, w2, s);
+        get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2( 0,+1), octCoord, rad_distance, cWeight, w2, s);
+        get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(-1, 0), octCoord, rad_distance, cWeight, w2, s);
+        get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(+1, 0), octCoord, rad_distance, cWeight, w2, s);
 
         if (sp_is_moving_or_new(probe.allTag))//moving or relatively new probes to be smoothed more
         {
-          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeWorldPos, rayDir, tcoordI + int2(-1,-1), octCoord, rad_distance, cWeight, w1, s);
-          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeWorldPos, rayDir, tcoordI + int2(+1,-1), octCoord, rad_distance, cWeight, w1, s);
-          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeWorldPos, rayDir, tcoordI + int2(-1,+1), octCoord, rad_distance, cWeight, w1, s);
-          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeWorldPos, rayDir, tcoordI + int2(+1,+1), octCoord, rad_distance, cWeight, w1, s);
-          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeWorldPos, rayDir, tcoordI + int2( 0,-2), octCoord, rad_distance, cWeight, w3, s);
-          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeWorldPos, rayDir, tcoordI + int2( 0,+2), octCoord, rad_distance, cWeight, w3, s);
-          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeWorldPos, rayDir, tcoordI + int2(-2, 0), octCoord, rad_distance, cWeight, w3, s);
-          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeWorldPos, rayDir, tcoordI + int2(+2, 0), octCoord, rad_distance, cWeight, w3, s);
+          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(-1,-1), octCoord, rad_distance, cWeight, w1, s);
+          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(+1,-1), octCoord, rad_distance, cWeight, w1, s);
+          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(-1,+1), octCoord, rad_distance, cWeight, w1, s);
+          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(+1,+1), octCoord, rad_distance, cWeight, w1, s);
+          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2( 0,-2), octCoord, rad_distance, cWeight, w3, s);
+          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2( 0,+2), octCoord, rad_distance, cWeight, w3, s);
+          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(-2, 0), octCoord, rad_distance, cWeight, w3, s);
+          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(+2, 0), octCoord, rad_distance, cWeight, w3, s);
         }
         rad_distance.xyz /= cWeight;
       }

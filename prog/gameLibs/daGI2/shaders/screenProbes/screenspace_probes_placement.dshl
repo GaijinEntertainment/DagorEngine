@@ -287,6 +287,7 @@ shader additional_probes_placement_cs
             DecodedProbe baseProbe = sp_decodeProbeInfo(encodedProbe);
             float3 probeCamPos = baseProbe.normalizedW*getViewVecFromTc(getScreenProbeCenterScreenUV(sampleProbeCoord), vInfo.lt, vInfo.hor, vInfo.ver);
             corners.relDepth[i] = pow2(dot(float4(probeCamPos, -1), scenePlane));
+            corners.relDepth[i] += sp_get_additional_rel_depth_placement(baseProbe.normalizedW*vInfo.zn_zfar.y,  pointInfo.sceneLinearDepth, depth_exp);
             corners.depthWeights[i] = exp2(depth_exp*corners.relDepth[i]);
           }
         }
@@ -317,7 +318,7 @@ shader additional_probes_placement_cs
 
             uint probeIterationIndex = addProbeIndexAndIteration>>SP_ADDITIONAL_ITERATION_INDEX_SHIFT;
             if (probeIterationIndex != skip_iteration)
-              processAdditionalProbe(additionalProbe, vInfo, sampleProbeCoord, scenePlane, depth_exp, corners, i);
+              processAdditionalProbe(additionalProbe, vInfo, sampleProbeCoord, pointInfo.sceneLinearDepth, scenePlane, depth_exp, corners, i);
             addProbeIndexAndIteration = nextAndProbe.x;
           }
         }
@@ -332,7 +333,10 @@ shader additional_probes_placement_cs
     {
       BRANCH
       if (sp_placement_iteration.x == 0 && uint(screenspace_probe_res.z) > TILE_SIZE)//one constant, fixme
-        return texelFetch(downsampled_close_depth_tex, screenCoord >> 1, 0).x;
+      {
+        uint downsampled_mip = 0;//log2(screenspace_probe_res.z * 1. / TILE_SIZE);//one constant, fixme
+        return texelFetch(downsampled_close_depth_tex, screenCoord >> (downsampled_mip + 1), downsampled_mip).x;
+      }
       return loadGbufferDepth(screenCoord);
     }
 
@@ -438,7 +442,9 @@ shader additional_probes_placement_cs
       //uint minTheWeight = tileSharedMinW;
       //float minWeight = f16tof32(minTheWeight>>16)*weightThreshold;
 
-      bool reclassify = sp_placement_iteration.y && (uint(screenspace_probe_res.z) <= TILE_SIZE || (sp_placement_iteration.x&1) == 0);
+      //fixme: todo: all that is pre shader!
+      //unless we process same size as tile, we can't be sure we haven't missed anything on first iteration, as we just use close depth on it!
+      bool reclassify = sp_placement_iteration.y && (uint(screenspace_probe_res.z) <= TILE_SIZE || ((sp_placement_iteration.x&1) == 0 && sp_placement_iteration.x != 0));
 
       if (minWeight >= weightThreshold)
       {
@@ -535,18 +541,21 @@ shader additional_probes_placement_cs
         GroupMemoryBarrierWithGroupSync();
         bestProbeAndNormal = shared_bestProbeAndNormal;
         bestProbe = sp_decodeProbeInfo(bestProbeAndNormal.x);
-        float3 bestProbeCamPos = sp_decodeProbeInfo(bestProbeAndNormal.x).normalizedW*sp_getViewVecOptimizedNormalized(getScreenProbeCenterScreenUV(screen_tile_coord));
+        float bestProbeNormW = sp_decodeProbeInfo(bestProbeAndNormal.x).normalizedW;
+        float3 bestProbeCamPos = bestProbeNormW*sp_getViewVecOptimizedNormalized(getScreenProbeCenterScreenUV(screen_tile_coord));
         tileSharedAddProbesCount = asuint(1.f);
         GroupMemoryBarrierWithGroupSync();
         if (curW < weightThreshold && !isSelectedProbe)
         {
           float4 scenePlane = float4(pointInfo.worldNormal, dot(pointInfo.camPos, pointInfo.worldNormal)) / pointInfo.sceneLinearDepth;
           #if DEPTH_ONLY_WEIGHTENING
-          scenePlane = -float4(sp_view_z, dot(pointInfo.worldPos, sp_view_z)) / pointInfo.sceneLinearDepth;
+          scenePlane = -float4(sp_view_z, dot(pointInfo.camPos, sp_view_z)) / pointInfo.sceneLinearDepth;
           #endif
 
           float newRelativeDepthDifference  = pow2(dot(float4(bestProbeCamPos, -1), scenePlane));
-          float newDepthWeight = exp2(depth_exp_precision(SP_DEFAULT_BILINEAR_DEPTH_EXP, pointInfo.sceneLinearDepth, sp_zn_zfar.y)*newRelativeDepthDifference);
+          float depth_exp = depth_exp_precision(SP_DEFAULT_BILINEAR_DEPTH_EXP, pointInfo.sceneLinearDepth, sp_zn_zfar.y);
+          newRelativeDepthDifference += sp_get_additional_rel_depth_placement(bestProbeNormW*sp_zn_zfar.y,  pointInfo.sceneLinearDepth, depth_exp);
+          float newDepthWeight = exp2(depth_exp*newRelativeDepthDifference);
           InterlockedMin(tileSharedAddProbesCount, asuint(newDepthWeight));//todo: wave intrinsic (WaveMin)
         }
         GroupMemoryBarrierWithGroupSync();

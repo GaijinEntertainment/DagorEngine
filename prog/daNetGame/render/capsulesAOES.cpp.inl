@@ -25,7 +25,9 @@ struct GetNodeTreeWtmCB
   __forceinline mat44f operator()(dag::Index16 node_index) const
   {
     G_ASSERT(node_index);
-    return nodeTree.getNodeWtmRel(node_index);
+    mat44f wtm;
+    nodeTree.getNodeWtm(node_index, wtm);
+    return wtm;
   }
 
   const GeomNodeTree &nodeTree;

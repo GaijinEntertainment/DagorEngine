@@ -88,7 +88,7 @@ static __forceinline void animchar_render_semi_trans_es_event_handler(const Rend
   animchar_render.getSceneInstance()->setLod(semi_transparent__lod);
 
   state.process_animchar(0, ShaderMesh::STG_imm_decal, animchar_render.getSceneInstance(), &data, 1, false,
-    manager->dynamicObjectsRenderer.shader, nullptr, 0, 0, false, 0, nullptr, event.texCtx);
+    manager->dynamicObjectsRenderer.shader, nullptr, 0, 0, false, RenderPriority::HIGH, nullptr, event.texCtx);
 
   state.prepareForRender();
   const DynamicBufferHolder *buffer = state.requestBuffer(BufferType::TRANSPARENT_MAIN);

@@ -91,7 +91,7 @@ def isExpression(t:TypeDeclPtr; top:bool=true) : bool
     else
         return false
 
-def is_same_or_inherited ( parent,child: Structure? )
+def is_same_or_inherited ( parent,child: Structure const? )
     var ch = child
     while ch != null
         if parent == ch
@@ -193,7 +193,7 @@ def find_arg(args:AnnotationArgumentList; argn:string) : RttiValue
             return get_annotation_argument_value(a)
     return RttiValue_nothing()
 
-def private apply_tag_annotation(tag:string; ann:FunctionAnnotationPtr)
+def private apply_tag_annotation(tag:string; var ann:FunctionAnnotationPtr)
     var inscope funcs : array<FunctionPtr>
     for_each_tag_function(this_module(), tag) <| $ ( func )
         funcs |> push_clone(func)
@@ -277,7 +277,7 @@ def setup_macro(name: string; at:LineInfo) : ExprBlock?
         move(fn.body) <| blk
         if !(compiling_module() |> add_function(fn))
             panic("failed to setup macro, can't add function {fn.name}")
-        return res
+        return unsafe(reinterpret<ExprBlock?> res)
     else
         if fn.body.__rtti != "ExprBlock"
             panic("expecting func.ExprBlock")
@@ -450,7 +450,7 @@ class BetterRttiVisitor : AstVariantMacro
             return <- makeAsOrSafeAs(expr, new [[ExprConstPtr() at=expr.at]])
         return <- [[ExpressionPtr]]
 
-def private walk_and_convert_array ( data : uint8?; info:TypeDeclPtr; at:LineInfo ) : ExpressionPtr
+def private walk_and_convert_array ( data : uint8 const?; info:TypeDeclPtr; at:LineInfo ) : ExpressionPtr
     let total = any_array_size(data)
     if total != 0
         let stride = info.firstType.sizeOf
@@ -464,7 +464,7 @@ def private walk_and_convert_array ( data : uint8?; info:TypeDeclPtr; at:LineInf
     else
         return <- new [[ExprMakeStruct() at=at, makeType<-clone_type(info)]]
 
-def private walk_and_convert_dim ( data : uint8?; info:TypeDeclPtr; at:LineInfo ) : ExpressionPtr
+def private walk_and_convert_dim ( data : uint8 const?; info:TypeDeclPtr; at:LineInfo ) : ExpressionPtr
 	let stride = info.baseSizeOf
 	let total = info.countOf
 	var inscope einfo <- clone_type(info)
@@ -476,14 +476,14 @@ def private walk_and_convert_dim ( data : uint8?; info:TypeDeclPtr; at:LineInfo 
             emplace(mkArr.values, elem)
 	return <- mkArr
 
-def private walk_and_convert_pointer ( data : uint8?; info:TypeDeclPtr; at:LineInfo ) : ExpressionPtr
+def private walk_and_convert_pointer ( data : uint8 const?; info:TypeDeclPtr; at:LineInfo ) : ExpressionPtr
     unsafe
-    	let pdata = *(reinterpret<uint8??> data)
+    	let pdata = *(reinterpret<uint8 const??> data)
         var elem <- walk_and_convert(pdata, info.firstType, at)
         var mkAsc <- new [[ExprAscend() at=at, subexpr <- elem]]
         return mkAsc
 
-def private walk_and_convert_tuple ( data : uint8?; info:TypeDeclPtr; at:LineInfo ) : ExpressionPtr
+def private walk_and_convert_tuple ( data : uint8 const?; info:TypeDeclPtr; at:LineInfo ) : ExpressionPtr
     var inscope mkArr <- new [[ExprMakeTuple() at=at, recordType<-clone_type(info)]]
     for idx in range( info.argTypes |> length)
         let offset = get_tuple_field_offset(info,idx)
@@ -492,7 +492,7 @@ def private walk_and_convert_tuple ( data : uint8?; info:TypeDeclPtr; at:LineInf
             emplace(mkArr.values, elem)
     return <- mkArr
 
-def private walk_and_convert_structure ( data : uint8?; info:TypeDeclPtr; at:LineInfo ) : ExpressionPtr
+def private walk_and_convert_structure ( data : uint8 const?; info:TypeDeclPtr; at:LineInfo ) : ExpressionPtr
 	var inscope mkStruct <- new [[ExprMakeStruct() at=at, makeType<-clone_type(info)]]
 	let stype = info.structType
     var inscope mkS <- new [[ MakeStruct() ]]
@@ -508,7 +508,7 @@ def private walk_and_convert_structure ( data : uint8?; info:TypeDeclPtr; at:Lin
     emplace(mkStruct.structs, mkS)
 	return <- mkStruct
 
-def private walk_and_convert_variant ( data : uint8?; info:TypeDeclPtr; at:LineInfo ) : ExpressionPtr
+def private walk_and_convert_variant ( data : uint8 const?; info:TypeDeclPtr; at:LineInfo ) : ExpressionPtr
     unsafe
         let vindex = * reinterpret<int?> data
         let offset = get_variant_field_offset(info,vindex)
@@ -520,7 +520,7 @@ def private walk_and_convert_variant ( data : uint8?; info:TypeDeclPtr; at:LineI
         emplace(mkVariant.variants, mkS)
         return mkVariant
 
-def private walk_and_convert_table ( data : uint8?; info:TypeDeclPtr; at:LineInfo ) : ExpressionPtr
+def private walk_and_convert_table ( data : uint8 const?; info:TypeDeclPtr; at:LineInfo ) : ExpressionPtr
     let total = any_table_size(data)
     if total != 0
         var inscope tupT <- new [[TypeDecl() baseType=Type tTuple, at=at]]
@@ -543,7 +543,7 @@ def private walk_and_convert_table ( data : uint8?; info:TypeDeclPtr; at:LineInf
     else
         return <- new [[ExprMakeStruct() at=at, makeType<-clone_type(info)]]
 
-def private walk_and_convert_basic ( data : uint8?; info:TypeDeclPtr; at:LineInfo ) : ExpressionPtr
+def private walk_and_convert_basic ( data : uint8 const?; info:TypeDeclPtr; at:LineInfo ) : ExpressionPtr
     unsafe
         if info.baseType == Type tInt
             return new [[ExprConstInt() at=at, value=*reinterpret<int?> data]]
@@ -575,7 +575,7 @@ def private walk_and_convert_basic ( data : uint8?; info:TypeDeclPtr; at:LineInf
             panic("unsupported {info.baseType}")
             return [[ExpressionPtr]]
 
-def private walk_and_convert_enumeration ( data : uint8?; info:TypeDeclPtr; at:LineInfo ) : ExpressionPtr
+def private walk_and_convert_enumeration ( data : uint8 const?; info:TypeDeclPtr; at:LineInfo ) : ExpressionPtr
     var eval = 0l
     if info.baseType == Type tEnumeration
         eval = int64(*unsafe(reinterpret<int?> data))
@@ -589,9 +589,11 @@ def private walk_and_convert_enumeration ( data : uint8?; info:TypeDeclPtr; at:L
         panic("unsupported enumeration")
     let name = info.enumType |> find_enum_name(eval)
     panic("can't find name of enum value {eval} in {describe(info)}")  if name == ""
-    return <- new [[ExprConstEnumeration() enumType:=info.enumType, value:=name]]
+    return <- new [[ExprConstEnumeration()
+        enumType:=unsafe(reinterpret<Enumeration?> info.enumType),
+        value:=name]]
 
-def private walk_and_convert ( data : uint8?; info:TypeDeclPtr; at:LineInfo ) : ExpressionPtr
+def private walk_and_convert ( data : uint8 const?; info:TypeDeclPtr; at:LineInfo ) : ExpressionPtr
 	// print("0x{intptr(data)} {describe(info)}\n")
 	if info.dim |> length != 0
 		return <- walk_and_convert_dim(data,info,at)
@@ -599,7 +601,7 @@ def private walk_and_convert ( data : uint8?; info:TypeDeclPtr; at:LineInfo ) : 
 		return <- walk_and_convert_array(data,info,at)
 	elif info.baseType == Type tPointer
         unsafe
-            if *reinterpret<uint8??>data == null
+            if *reinterpret<uint8 const??>data == null
                 return new [[ExprConstPtr() at=at]]
             elif info.firstType==null || info.firstType.isVoid
                 return new [[ExprConstPtr() at=at]]
@@ -622,13 +624,13 @@ def convert_to_expression ( var value : auto& ==const; at:LineInfo )
 	var inscope info <- typeinfo(ast_typedecl value)
     unsafe
 	    let pval = addr(value)
-	    return walk_and_convert(reinterpret<uint8?> pval, info, at)
+	    return walk_and_convert(reinterpret<uint8 const?> pval, info, at)
 
 def convert_to_expression ( value : auto ==const; at:LineInfo )
 	var inscope info <- typeinfo(ast_typedecl value)
     unsafe
 	    let pval = addr(value)
-	    return walk_and_convert(reinterpret<uint8?> pval, info, at)
+	    return walk_and_convert(reinterpret<uint8 const?> pval, info, at)
 
 def convert_to_expression ( var value : auto ==const )
     return <- convert_to_expression(value,[[LineInfo]])

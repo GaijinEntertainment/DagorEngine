@@ -64,7 +64,7 @@ let INVALID_VALUE = LONG_MIN
 struct public Result
     tinfo : TypeInfo
     value : float4
-    data  : void?
+    data  : void const?
     error : string
 
 struct TokenStream
@@ -116,7 +116,7 @@ def loadI ( data:void?; t:auto(TT) )
 
 def getPD ( var st:TokenStream; result:Result; offset:int = 0 ) : void?
     unsafe
-        var data : void?
+        var data : void const?
         if result.data != null
             data = result.data
         else
@@ -131,7 +131,7 @@ def getPD ( var st:TokenStream; result:Result; offset:int = 0 ) : void?
             if pdata == null
                 return null
             data = *pdata
-        return (reinterpret<uint8?>data) + offset
+        return (reinterpret<uint8 const?>data) + offset
 
 def getI ( var st:TokenStream; result:Result ) : int64
     if result.tinfo.dimSize != 0u

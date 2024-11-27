@@ -112,7 +112,7 @@ def push(var Arr:array<auto(numT)>;value:numT-# const)
     static_if typeinfo(can_copy value)
         static_if typeinfo(need_lock_check type<numT>)
             _builtin_verify_locks(Arr)
-        Arr[__builtin_array_push_back(Arr,typeinfo(sizeof Arr[0]))] = value
+        Arr[__builtin_array_push_back(Arr,typeinfo(sizeof Arr[0]))] = unsafe(reinterpret<numT-#-const>(value))
     else
         concept_assert(false,"can't push value, which can't be copied")
 
@@ -1024,7 +1024,7 @@ def get_const_ptr ( src : smart_ptr<auto(TT)> ) : TT ? const
 
 def add_ptr_ref ( src : smart_ptr<auto(TT)> ) : smart_ptr<TT>
     unsafe
-        var dst := src
+        var dst := reinterpret<smart_ptr<TT>> src
         return <- dst
 
 [generic]

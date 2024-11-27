@@ -19,6 +19,15 @@ actions together quietly make_serve_files
   echo $(var_name) = $(ref_var) ; >$(1:S=.jam)
   call $(PYTHON_EXE) $(WebViewLocation)/make_serve_cpp.py $(1) $(var)
 }
+rule ServeFilesDeps dest_cpp : target
+{
+  for f in $($(target)) {
+    local o_split = [ MATCH "([^\.\-]*)[\.\-]([^\.\-]*)?[\.\-]?([^\.\-]*)?[\.\-]?([^\.\-]*)?[\.\-]?([^\.\-]*)?" : $(f:D=) ] ;
+    local o = ;
+    for c in $(o_split) { if $(c) != "" { o += $(c) ; } }
+    if ! [ GLOB $(dest_cpp:D) : $(o:J=_).inl ] { ALWAYS $(target) ; break ; }
+  }
+}
 make_serve_files_DEPS = $(Root)/$(Location)/make_serve_cpp.py ;
 
 SourcesWebFolders = 
@@ -46,6 +55,7 @@ AutoscanBuildLists $(SourcesWebFolders) : *.html : ServeFiles ;
 StringifySourceFile vue/index.html : vue/index.html.inl : webViewPlugin.cpp : --array ;
 
 ServeFiles_action = make_serve_files ;
+ServeFiles_dep_rule = ServeFilesDeps ;
 
 Sources =
   ServeFiles.jamvar

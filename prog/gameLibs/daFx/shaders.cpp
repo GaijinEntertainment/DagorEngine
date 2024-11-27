@@ -253,10 +253,10 @@ void update_gpu_tasks(Context &ctx, const eastl::vector<int> &workers)
     shaders.push_back(stream.get<T_shader>(sid));
     DispatchDesc &ddesc = dispatches.push_back();
 
-    int lodOfs = 0;
-    if (T_allow_sim_lods)
-      lodOfs = 1 << stream.get<INST_LOD>(sid);
-    G_FAST_ASSERT(buf.offset < 0xffffff && lodOfs < 0xff);
+    int lod = T_allow_sim_lods ? stream.get<INST_LOD>(sid) : 0;
+
+    int lodOfs = 1 << lod;
+    G_FAST_ASSERT(buf.offset <= 0xffffff && lodOfs <= 0xff);
 
     int rnd = interlocked_increment(ctx.rndSeed);
     ddesc.headOffsetAndLodOfs = (buf.offset & 0xffffff) | (lodOfs << 24);

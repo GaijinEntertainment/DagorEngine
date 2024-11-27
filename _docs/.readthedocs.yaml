@@ -16,4 +16,7 @@ python:
 sphinx:
   configuration: _docs/conf.py
 
-formats: all
+formats:
+  - pdf
+
+

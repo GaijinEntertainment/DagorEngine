@@ -35,8 +35,7 @@ static float get_randomized_float_from_point2(const Point2 &v12, uint32_t seed, 
 
 ECS_REQUIRE(ecs::Tag skies_settings_tag)
 ECS_ON_EVENT(on_appear)
-ECS_BEFORE(
-  strata_clouds_es_event_handler, clouds_form_es_event_handler, clouds_weather_gen_es_event_handler, sky_atmosphere_es_event_handler)
+ECS_BEFORE(strata_clouds_es, clouds_form_es, clouds_weather_gen_es, sky_atmosphere_es)
 static void skies_settings_weather_seed_created_es_event_handler(const ecs::Event &, int &skies_settings__weatherSeed)
 {
   if (skies_settings__weatherSeed < 0)
@@ -55,8 +54,7 @@ static void skies_settings_weather_seed_changed_es_event_handler(const ecs::Even
 // This will be called if this entity changed the seed, but because the value is same before and after
 // the change event shouldn't trigger again.
 ECS_REQUIRE(ecs::Tag skies_settings_tag)
-ECS_BEFORE(
-  strata_clouds_es_event_handler, clouds_form_es_event_handler, clouds_weather_gen_es_event_handler, sky_atmosphere_es_event_handler)
+ECS_BEFORE(strata_clouds_es, clouds_form_es, clouds_weather_gen_es, sky_atmosphere_es)
 static void skies_settings_skies_loaded_es_event_handler(const SkiesLoaded &, int &skies_settings__weatherSeed)
 {
   skies_settings__weatherSeed = get_skies_seed();
@@ -73,7 +71,7 @@ static void invalidate_skies(DngSkies *skies)
 ECS_REQUIRE(ecs::Tag skies_settings_tag)
 ECS_TRACK(*)
 ECS_ON_EVENT(on_appear, SkiesLoaded)
-ECS_BEFORE(clouds_form_es_event_handler, clouds_settings_es_event_handler)
+ECS_BEFORE(clouds_form_es, clouds_settings_es)
 static void force_panoramic_sky_es_event_handler(const ecs::Event &, bool clouds_settings__force_panorama)
 {
   G_UNUSED(clouds_settings__force_panorama);

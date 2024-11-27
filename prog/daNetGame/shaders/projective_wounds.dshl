@@ -410,8 +410,9 @@ hlsl(ps) {
       float bloody_time = time_wetness_bloody_time.y;
 
       float flowmapCuttingOffset = 0.1;
+      float flowmapStartOffset = 0.4;
 
-      float linearTime = saturate(bloody_time * time + flowmapCuttingOffset);
+      float linearTime = saturate(bloody_time * time + flowmapCuttingOffset + flowmapStartOffset);
       float flowValue = blood.r;
 
       BRANCH
@@ -424,7 +425,8 @@ hlsl(ps) {
       float intensity = blood.b;
       float thickness = 1.0 - intensity;
 
-      float porosity = get_porosity_by_microdetail_base(micro_detail_layer);
+      float porosity = micro_detail_layer != -1 ? get_porosity_by_microdetail_base(micro_detail_layer)
+                                                : 1.0;
       float3 bloodWorldNormal = perturb_normal_precise(unpack_ag_normal(blood), normal, point_to_eye, decal_tc.xy);
 
       apply_blood_material(thickness, edgeCloseness, porosity, bloodWorldNormal,

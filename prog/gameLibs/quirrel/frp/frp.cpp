@@ -274,7 +274,18 @@ void NotifyQueue::remove(BaseObservable *item) { container.erase_first(item); }
 static const int observable_graph_key_dummy = _MAKE4C('FRPG');
 static const int *observable_graph_key = &observable_graph_key_dummy;
 
-ObservablesGraph::ObservablesGraph(HSQUIRRELVM vm_, int compute_pool_initial_size) : vm(vm_)
+static dag::Vector<ObservablesGraph *> all_graphs;
+static OSSpinlock all_graphs_lock;
+
+dag::Vector<ObservablesGraph *> get_all_graphs()
+{
+  OSSpinlockScopedLock guard(all_graphs_lock);
+  dag::Vector<ObservablesGraph *> copy = all_graphs;
+  return copy;
+}
+
+ObservablesGraph::ObservablesGraph(HSQUIRRELVM vm_, const char *graph_name, int compute_pool_initial_size) :
+  vm(vm_), graphName(graph_name)
 {
   computedPool.init(sizeof(ComputedValue), compute_pool_initial_size);
 
@@ -293,9 +304,25 @@ ObservablesGraph::ObservablesGraph(HSQUIRRELVM vm_, int compute_pool_initial_siz
   sq_pushuserpointer(vm_, this);
   G_VERIFY(SQ_SUCCEEDED(sq_rawset(vm_, -3)));
   sq_pop(vm, 1);
+
+  {
+    OSSpinlockScopedLock guard(all_graphs_lock);
+    all_graphs.push_back(this);
+  }
 }
 
-ObservablesGraph::~ObservablesGraph() = default;
+ObservablesGraph::~ObservablesGraph()
+{
+  OSSpinlockScopedLock guard(all_graphs_lock);
+  if (auto it = eastl::find(all_graphs.begin(), all_graphs.end(), this); it != all_graphs.end())
+    all_graphs.erase_unsorted(it);
+}
+
+void ObservablesGraph::setName(const char *n)
+{
+  if (graphName != n)
+    graphName = n;
+}
 
 ObservablesGraph *ObservablesGraph::get_from_vm(HSQUIRRELVM vm)
 {
@@ -326,7 +353,10 @@ ScriptValueObservable *ObservablesGraph::allocScriptValueObservable() { return n
 
 void ObservablesGraph::addObservable(BaseObservable *obs)
 {
-  allObservables.insert(obs);
+  {
+    OSSpinlockScopedLock guard(allObservablesLock);
+    allObservables.insert(obs);
+  }
   if (obs->isComputed)
     allComputed.push_back(*static_cast<ComputedValue *>(obs));
   observablesListModified = true;
@@ -336,7 +366,10 @@ void ObservablesGraph::addObservable(BaseObservable *obs)
 
 void ObservablesGraph::removeObservable(BaseObservable *obs)
 {
-  allObservables.erase(obs);
+  {
+    OSSpinlockScopedLock guard(allObservablesLock);
+    allObservables.erase(obs);
+  }
   if (obs->isComputed)
     allComputed.remove(*static_cast<ComputedValue *>(obs));
   observablesListModified = true;
@@ -714,9 +747,12 @@ bool ObservablesGraph::updateDeferred(String &err_msg)
         ok = false;
         select_err_msg(err_msg, "Error: loops in FRP graph");
         forAllComputed([&](auto &c) {
-          String info;
-          c.fillInfo(info);
-          DEBUG_CTX("part of loop: %s", info.c_str());
+          if (!c.isCollected)
+          {
+            String info;
+            c.fillInfo(info);
+            DEBUG_CTX("part of loop: %s", info.c_str());
+          }
         });
       }
     }

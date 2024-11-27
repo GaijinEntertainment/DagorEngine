@@ -52,14 +52,16 @@ class private NewJobMacro : AstFunctionAnnotation
             fld._type.flags &= ~(TypeDeclFlags constant)
             fld.flags &= ~(FieldDeclarationFlags capturedConstant)
         var inscope pclone <- make_clone_structure(stype_ptr)
+        let const_clone = pclone.arguments[1]._type.flags.constant
         compiling_module() |> add_function(pclone)
         compiling_module() |> add_structure(stype)
-        // make an @@<function<(var L;L):void> type
+        // make an @@<function<(var L;L):void> type or @@<function<(var L;var L):void> type - depending on how the capture went
         var inscope ftype <- new [[TypeDecl() at=call.at, baseType=Type tFunction ]]
         move_new(ftype.firstType) <| new [[TypeDecl() at=call.at, baseType=Type tVoid]]
         ftype.argTypes |> emplace_new <| clone_type(sttype)
         ftype.argTypes |> emplace <| sttype
-        ftype.argTypes[1].flags |= TypeDeclFlags constant
+        if const_clone
+            ftype.argTypes[1].flags |= TypeDeclFlags constant
         // make a new_job_invoke call
         var inscope ncall <- new [[ExprCall() at=call.at, name:="{call.name}_invoke"]]
         ncall.arguments |> emplace_new <| clone_expression(call.arguments[0])
@@ -263,17 +265,17 @@ def each_clone ( var channel:Channel?; tinfo : auto(TT) )
         finally
             channel |> release
 
-def public capture_jobque_channel ( ch:Channel? ) : Channel?
+def public capture_jobque_channel ( var ch:Channel? ) : Channel?
     //! this function is used to capture a channel that is used by the jobque.
     ch |> add_ref
     return ch
 
-def public capture_jobque_job_status ( js:JobStatus? ) : JobStatus?
+def public capture_jobque_job_status ( var js:JobStatus? ) : JobStatus?
     //! this function is used to capture a job status that is used by the jobque.
     js |> add_ref
     return js
 
-def public capture_jobque_lock_box ( js:LockBox? ) : LockBox?
+def public capture_jobque_lock_box ( var js:LockBox? ) : LockBox?
     //! this function is used to capture a lock box that is used by the jobque.
     js |> add_ref
     return js

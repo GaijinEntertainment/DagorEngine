@@ -24,7 +24,7 @@ ECS_DECLARE_RELOCATABLE_TYPE(CamTrack);
 ECS_REGISTER_RELOCATABLE_TYPE(CamTrack, nullptr);
 ECS_AUTO_REGISTER_COMPONENT(CamTrack, "camtrack", nullptr, 0);
 
-ECS_AFTER(camtrack_executor_es)
+ECS_NO_ORDER
 static void camtrack_updater_es(const ecs::UpdateStageInfoAct &info, const CamTrack &camtrack, TMatrix &transform, float &fov)
 {
   if (camtrack.trackHandle == camtrack::INVALID_HANDLE)

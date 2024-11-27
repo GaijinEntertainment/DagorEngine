@@ -531,11 +531,12 @@ void initialize(int w, int h)
   view_z = dag::create_tex(nullptr, render_width, render_height, TEXCF_UNORDERED | TEXFMT_R32F, 1, "denoiser_view_z");
 
   half_normal_roughness.close();
-  half_normal_roughness = dag::create_tex(nullptr, divide_up(render_width, 2), divide_up(render_height, 2),
-    TEXCF_UNORDERED | TEXFMT_A2R10G10B10, 1, "denoiser_half_normal_roughness");
+  half_normal_roughness =
+    dag::create_tex(nullptr, render_width / 2, render_height / 2, TEXCF_UNORDERED | TEXFMT_A2R10G10B10, 1, // TODO: Ceil division.
+      "denoiser_half_normal_roughness");
 
   half_view_z.close();
-  half_view_z = dag::create_tex(nullptr, divide_up(render_width, 2), divide_up(render_height, 2), TEXCF_UNORDERED | TEXFMT_R32F, 1,
+  half_view_z = dag::create_tex(nullptr, render_width / 2, render_height / 2, TEXCF_UNORDERED | TEXFMT_R32F, 1, // TODO: Ceil division.
     "denoiser_half_view_z");
 
   denoiser_resolutionVarId = get_shader_variable_id("denoiser_resolution");

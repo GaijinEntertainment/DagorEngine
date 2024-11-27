@@ -1,0 +1,18 @@
+int dagi_sp_has_exposure_assume = 1;
+interval dagi_sp_has_exposure_assume : always_rgbe < 1, can_be_r11g11b10;
+
+macro DAGI_SCREEN_ENCODING(code)
+  hlsl(code) {
+    ##if dagi_sp_has_exposure_assume == always_rgbe
+      #define GI_PACK_ALGO 0
+    ##endif
+    #include <screen_gi_encoding.hlsl>
+  }
+endmacro
+
+macro DAGI_NO_SCREEN_ENCODING(code)
+  hlsl(code) {
+    #define GI_PACK_ALGO 0
+    #include <screen_gi_encoding.hlsl>
+  }
+endmacro

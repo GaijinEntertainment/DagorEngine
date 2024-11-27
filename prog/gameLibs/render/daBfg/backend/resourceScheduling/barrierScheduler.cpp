@@ -226,7 +226,7 @@ BarrierScheduler::EventsCollectionRef BarrierScheduler::scheduleEvents(const int
         if (scheduledRes.isGpuResource())
           payload = Event::Deactivation{};
         else
-          payload = Event::CpuDeactivation{scheduledRes.getCpuDescription().deactivate};
+          payload = Event::CpuDeactivation{&(scheduledRes.getCpuDescription().deactivate)};
 
         scheduledEvents[lastUsageOccurrence.frame][lastUsageOccurrence.nodeIndex + 1].emplace_back(
           Event{resIdx, static_cast<uint32_t>(frame), payload});
@@ -243,7 +243,7 @@ BarrierScheduler::EventsCollectionRef BarrierScheduler::scheduleEvents(const int
         }
         else
         {
-          payload = Event::CpuActivation{resource.asScheduled().getCpuDescription().activate};
+          payload = Event::CpuActivation{&(resource.asScheduled().getCpuDescription().activate)};
         }
         scheduledEvents[firstUsageOccurrence.frame][firstUsageOccurrence.nodeIndex].emplace_back(
           Event{resIdx, static_cast<uint32_t>(frame), payload});

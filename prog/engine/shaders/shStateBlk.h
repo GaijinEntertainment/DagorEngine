@@ -57,6 +57,9 @@ inline bool check_var_nan(float v, int variable_id)
       logerr("setting <%s> variable to nan", VariableMap::getVariableName(variable_id));
     return false;
   }
+#else
+  G_UNUSED(v);
+  G_UNUSED(variable_id);
 #endif
   return true;
 }

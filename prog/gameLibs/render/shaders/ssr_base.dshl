@@ -164,6 +164,7 @@ macro SSR_COMMON(code)
     globtm_no_ofs_psf@f44 = { globtm_no_ofs_psf_0, globtm_no_ofs_psf_1, globtm_no_ofs_psf_2, globtm_no_ofs_psf_3 };
 
     water_level@f1 = water_level;
+    linearize_z_bias_threshold@f1 = (zn_zfar.x*0.01/(zn_zfar.y-zn_zfar.x),0,0,0);
 
     encode_depth@f4 = (-zn_zfar.x/(zn_zfar.y-zn_zfar.x), zn_zfar.x * zn_zfar.y/(zn_zfar.y-zn_zfar.x),
                       zn_zfar.x/(zn_zfar.x * zn_zfar.y), (zn_zfar.y-zn_zfar.x)/(zn_zfar.x * zn_zfar.y));
@@ -175,6 +176,11 @@ macro SSR_COMMON(code)
   }
 
   hlsl(code) {
+    #define HAS_linear_biased_comparison_of_rawdepth 1
+    bool linear_biased_comparison_of_rawdepth(float position_z, float surface_z)
+    {
+      return (surface_z - 1.01*position_z) > linearize_z_bias_threshold;
+    }
     ##if ssr_quality == highest
       #define SSR_QUALITY 3
     ##elif ssr_quality == high

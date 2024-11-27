@@ -76,9 +76,9 @@ void overlay_checkbox(const char *label)
   ImGuiDagor::HelpMarker(hint);
 }
 
-static UniqueTex create_empty_debug_tex(int fmt, int w, int h, const char *name)
+static UniqueTex create_empty_debug_tex(int fmt, int w, int h, int miplevels, const char *name)
 {
-  return dag::create_tex(nullptr, w, h, fmt, 1, name);
+  return dag::create_tex(nullptr, w, h, fmt, miplevels, name);
 }
 
 static const char *get_selected_resource_name(dabfg::ResNameId nameId, const dabfg::InternalRegistry &registry)
@@ -252,7 +252,8 @@ static dabfg::NodeHandle makeDebugTextureCopyNode(const Selection &selection, da
         if (!copiedTexture)
         {
           String copiedTextureName(0, "%s_copied", shortSelectedResName);
-          copiedTexture = create_empty_debug_tex(srcInfo.cflg | TEXCF_RTARGET, srcInfo.w, srcInfo.h, copiedTextureName);
+          copiedTexture =
+            create_empty_debug_tex(srcInfo.cflg | TEXCF_RTARGET, srcInfo.w, srcInfo.h, srcInfo.mipLevels, copiedTextureName);
           copiedTextureChannelCount = get_tex_format_desc(srcInfo.cflg).channelsCount();
           runShowTex = true;
         }

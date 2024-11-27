@@ -609,14 +609,23 @@ static void compile(Tab<String> &source_files, const char *fn, const char *bindu
   if (strcmp(bindump_fnprefix, "*") != 0)
   {
     dd_mkpath(bindump_fn);
-    shc::buildShaderBinDump(bindump_fn, sv.dest, shc::config().forceRebuild, false, packing_flags);
+    if (!shc::buildShaderBinDump(bindump_fn, sv.dest, shc::config().forceRebuild, false, packing_flags))
+    {
+      sh_debug(SHLOG_FATAL, "Failed to build bindump at '%s' from combined obj at '%s'", bindump_fn, sv.dest.c_str());
+      return;
+    }
   }
 
   if (binminidump_fnprefix)
   {
     _snprintf(bindump_fn, 260, "%s.%s%s.shdump.bin", binminidump_fnprefix, verStr, shc::config().autotestMode ? ".autotest" : "");
     dd_mkpath(bindump_fn);
-    shc::buildShaderBinDump(bindump_fn, sv.dest, dd_stricmp(binminidump_fnprefix, bindump_fnprefix) == 0, true, packing_flags);
+    if (!shc::buildShaderBinDump(bindump_fn, sv.dest, dd_stricmp(binminidump_fnprefix, bindump_fnprefix) == 0, true, packing_flags))
+    {
+      sh_debug(SHLOG_FATAL, "Failed to build minidump %s at '%s' from combined obj at '%s'", binminidump_fnprefix, bindump_fn,
+        sv.dest.c_str());
+      return;
+    }
   }
 
   eastl::string bindump_path;

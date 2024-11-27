@@ -43,7 +43,7 @@ static ecs::EntitySystemDesc entity_binded_effect_es_es_desc
   empty_span(),
   ecs::EventSetBuilder<>::build(),
   (1<<ecs::UpdateStageInfoAct::STAGE)
-,"render",nullptr,nullptr,"auto_delete_entity_with_effect_component_es");
+,"render",nullptr,"*");
 static constexpr ecs::ComponentDesc auto_delete_client_entity_with_effect_component_es_comps[] =
 {
 //start of 2 ro components at [0]

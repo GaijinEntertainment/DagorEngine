@@ -1251,19 +1251,32 @@ bool HumanPhys::canClimbOverObstacle(const ClimbQueryResults &climb_res)
     return false;
 
   const Point3 maxPosForClimbingOver = Point3(currentState.location.P) + currentState.vertDirection * climbOverMaxHeight;
-  const bool isHeighAllowed =
+  const bool isHeightAllowed =
     dot(climb_res.climbToPos, currentState.vertDirection) <= dot(maxPosForClimbingOver, currentState.vertDirection);
 
-  if (isHeighAllowed)
+  if (isHeightAllowed)
   {
     const float heightThreshold = 0.1f;
-    Point3 from = climb_res.climbToPos + climb_res.climbDir * climbOverForwardOffset;
-    from += currentState.vertDirection * heightThreshold;
+
+    Point3 climbToPosTracePos = climb_res.climbToPos + currentState.vertDirection * heightThreshold;
+    Point3 climbOverForwardTracePos = climb_res.climbToPos + climb_res.climbDir * climbOverForwardOffset;
+    climbOverForwardTracePos += currentState.vertDirection * heightThreshold;
+
+    Point3 traceVec = climbOverForwardTracePos - climbToPosTracePos;
+    float traceVecLenSq = lengthSq(traceVec);
+    if (traceVecLenSq > sqr(1e-3f))
+    {
+      float t = sqrt(traceVecLenSq);
+      if (dacoll::traceray_normalized(climbToPosTracePos, traceVec / t, t, nullptr, nullptr, dacoll::ETF_DEFAULT, nullptr, rayMatId,
+            getTraceHandle()))
+        return false;
+    }
+
     real t = climbOverMinHeightBehindObstacle + heightThreshold;
-    Point3 to = from - currentState.vertDirection * t;
+    Point3 behindObstacleTracePos = climbOverForwardTracePos - currentState.vertDirection * t;
     dacoll::ShapeQueryOutput toClimbQuery;
-    return !dacoll::trace_sphere_cast_ex(from, to, climbOnRad, CLIMB_RAYS_FORWARD, toClimbQuery, rayMatId, getActor()->getId(),
-      getTraceHandle(), CLIMB_CAST_FLAGS);
+    return !dacoll::trace_sphere_cast_ex(climbOverForwardTracePos, behindObstacleTracePos, climbOnRad, CLIMB_RAYS_FORWARD,
+      toClimbQuery, rayMatId, getActor()->getId(), getTraceHandle(), CLIMB_CAST_FLAGS);
   }
   return false;
 }

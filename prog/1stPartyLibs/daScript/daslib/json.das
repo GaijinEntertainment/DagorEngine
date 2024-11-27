@@ -210,7 +210,7 @@ def private parse_value ( var itv : iterator<TokenAt>; var error : string & ) : 
         if sym == '['
             var arr : array<JsonValue?>
             while !empty(itv)
-                let value = parse_value(itv, error)
+                var value = parse_value(itv, error)
                 if value == null
                     if error |> starts_with("unexpected ]") && length(arr)==0
                         error = ""
@@ -240,7 +240,7 @@ def private parse_value ( var itv : iterator<TokenAt>; var error : string & ) : 
                 let key = ahead.value as _string
                 if !expect_symbol(itv, ahead, ':', error)
                     return null
-                let value = parse_value(itv, error)
+                var value = parse_value(itv, error)
                 if value == null
                     return null
                 if !allow_duplicate_keys && key_exists(tab,key)
@@ -279,14 +279,14 @@ def read_json ( text : string implicit; var error : string& ) : JsonValue?
     //! if `error` is not empty, it contains the parsing error message.
     error = ""
     var lex <- lexer(text)
-    let res = parse_value(lex,error)
+    var res = parse_value(lex,error)
     delete lex
     return res
 
 def read_json ( text : array<uint8>; var error : string& ) : JsonValue?
     error = ""
     var lex <- lexer(text)
-    let res = parse_value(lex,error)
+    var res = parse_value(lex,error)
     delete lex
     return res
 

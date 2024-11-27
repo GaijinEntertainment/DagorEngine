@@ -56,8 +56,8 @@ void combined_shadows_bind_additional_textures(dabfg::Registry &registry)
 }
 
 ECS_ON_EVENT(on_appear, EventRendinstsLoaded)
-ECS_AFTER(rendinst_move_es_event_handler)
-ECS_AFTER(rendinst_with_handle_move_es_event_handler)
+ECS_AFTER(rendinst_move_es)
+ECS_AFTER(rendinst_with_handle_move_es)
 static void update_world_bbox_es(
   const ecs::Event &, const TMatrix &transform, const Point3 &ri_extra__bboxMin, const Point3 ri_extra__bboxMax)
 {

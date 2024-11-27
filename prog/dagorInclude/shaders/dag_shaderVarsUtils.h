@@ -11,6 +11,11 @@
 
 class ScriptedShaderElement;
 
+enum class ShaderStateBlockId : uint32_t
+{
+  Invalid = 0
+};
+
 class GlobalVariableStates
 {
   Tab<uint8_t> globIntervalNormValues;
@@ -18,7 +23,7 @@ class GlobalVariableStates
 
   friend void copy_current_global_variables_states(GlobalVariableStates &gv);
   friend int get_dynamic_variant_states(const GlobalVariableStates &global_variants_state, const ScriptedShaderElement &s,
-    uint32_t &program, uint32_t &state_index, shaders::RenderStateId &render_state, shaders::ConstStateIdx &const_state,
+    uint32_t &program, ShaderStateBlockId &state_index, shaders::RenderStateId &render_state, shaders::ConstStateIdx &const_state,
     shaders::TexStateIdx &tex_state);
 
 public:
@@ -33,14 +38,15 @@ void copy_current_global_variables_states(GlobalVariableStates &gv);
 
 // uses explicit global variants state
 int get_dynamic_variant_states(const GlobalVariableStates &global_variants_state, const ScriptedShaderElement &s, uint32_t &program,
-  uint32_t &state_index, shaders::RenderStateId &render_state, shaders::ConstStateIdx &const_state, shaders::TexStateIdx &tex_state);
+  ShaderStateBlockId &state_index, shaders::RenderStateId &render_state, shaders::ConstStateIdx &const_state,
+  shaders::TexStateIdx &tex_state);
 
 // uses current global global variants state
-int get_dynamic_variant_states(const ScriptedShaderElement &s, uint32_t &program, uint32_t &state_index,
+int get_dynamic_variant_states(const ScriptedShaderElement &s, uint32_t &program, ShaderStateBlockId &state_index,
   shaders::RenderStateId &render_state, shaders::ConstStateIdx &const_state, shaders::TexStateIdx &tex_state);
 
 inline int get_dynamic_variant_states(const GlobalVariableStates *global_variants_state, const ScriptedShaderElement &s,
-  uint32_t &program, uint32_t &state_index, shaders::RenderStateId &render_state, shaders::ConstStateIdx &const_state,
+  uint32_t &program, ShaderStateBlockId &state_index, shaders::RenderStateId &render_state, shaders::ConstStateIdx &const_state,
   shaders::TexStateIdx &tex_state)
 {
   return global_variants_state
@@ -49,10 +55,11 @@ inline int get_dynamic_variant_states(const GlobalVariableStates *global_variant
 }
 
 int get_cached_dynamic_variant_states(const ScriptedShaderElement &s, dag::ConstSpan<int> cache, uint32_t &program,
-  uint32_t &state_index, shaders::RenderStateId &render_state, shaders::ConstStateIdx &const_state, shaders::TexStateIdx &tex_state);
+  ShaderStateBlockId &state_index, shaders::RenderStateId &render_state, shaders::ConstStateIdx &const_state,
+  shaders::TexStateIdx &tex_state);
 
 // set states returned by get_dynamic_variant_states family
-void set_states_for_variant(const ScriptedShaderElement &s, int curVariant, uint32_t program, uint32_t state_index);
+void set_states_for_variant(const ScriptedShaderElement &s, int curVariant, uint32_t program, ShaderStateBlockId state_index);
 
 namespace shaders
 {
@@ -61,7 +68,7 @@ struct CombinedDynVariantState
 {
   uint32_t program;
   uint32_t variant;
-  uint32_t state_index;
+  ShaderStateBlockId state_index;
   shaders::RenderStateId render_state;
   shaders::ConstStateIdx const_state;
   shaders::TexStateIdx tex_state;

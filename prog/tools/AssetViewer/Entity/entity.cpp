@@ -318,6 +318,7 @@ public:
     PID_GENERATE_PER_INSTANCE_SEED,
     PID_PER_INSTANCE_SEED,
     PID_SHOW_COLLIDER,
+    PID_SHOW_COLLIDER_BBOX,
     PID_SHOW_COLLIDER_PHYS_COLLIDABLE,
     PID_SHOW_COLLIDER_TRACEABLE,
     PID_MATERIAL_EDITOR_GROUP,
@@ -589,7 +590,12 @@ public:
     eastl::string collisionAssetName(asset->getName());
     collisionAssetName.append("_collision");
     if (DagorAsset *collisionAsset = assetMgr.findAsset(collisionAssetName.c_str(), collisionAtype))
+    {
       InitCollisionResource(*collisionAsset, &collisionResource, &collisionResourceNodeTree);
+      DAEDITOR3.conNote("Found and inited collision '%s'", collisionAssetName.c_str());
+    }
+    else
+      DAEDITOR3.conNote("Tried to init collision but no asset '%s' was found.", collisionAssetName.c_str());
 
     if (entity)
     {
@@ -1173,7 +1179,8 @@ public:
       physsimulator::renderTrans(true, false, false, false, false, false);
 
     if (showCollider && collisionResource)
-      RenderCollisionResource(*collisionResource, collisionResourceNodeTree, showColliderPhysCollidable, showColliderTraceable);
+      RenderCollisionResource(*collisionResource, collisionResourceNodeTree, showColliderBbox, showColliderPhysCollidable,
+        showColliderTraceable);
 
     compositeEditorViewport.renderTransObjects(entity);
   }
@@ -1317,6 +1324,7 @@ public:
       {
         commonPanel->createSeparator();
         commonPanel->createCheckBox(PID_SHOW_COLLIDER, String("Show collider"), showCollider);
+        commonPanel->createCheckBox(PID_SHOW_COLLIDER_BBOX, String("Show bounding box"), showColliderBbox, showCollider);
         commonPanel->createCheckBox(PID_SHOW_COLLIDER_PHYS_COLLIDABLE, String("Show phys collidable"), showColliderPhysCollidable,
           showCollider);
         commonPanel->createCheckBox(PID_SHOW_COLLIDER_TRACEABLE, String("Show traceable"), showColliderTraceable, showCollider);
@@ -1406,7 +1414,11 @@ public:
       Tab<String> anims(tmpmem);
       anims.push_back() = "-- none --";
       for (int i = 0, ie = animCtrl->getAnimNodeCount(); i < ie; ++i)
+      {
         anims.push_back() = animCtrl->getAnimNodeName(i);
+        if (anims.back().empty())
+          anims.back() = "##";
+      }
       animPanel->createSortedCombo(PID_ANIM_SET_NODE, "Force anim node", anims, lastForceAnimSet);
 
       AnimV20::AnimationGraph *anim = animCtrl->getAnimGraph();
@@ -1828,9 +1840,12 @@ public:
     else if (pcb_id == PID_SHOW_COLLIDER)
     {
       showCollider = panel->getBool(pcb_id);
+      panel->setEnabledById(PID_SHOW_COLLIDER_BBOX, showCollider);
       panel->setEnabledById(PID_SHOW_COLLIDER_PHYS_COLLIDABLE, showCollider);
       panel->setEnabledById(PID_SHOW_COLLIDER_TRACEABLE, showCollider);
     }
+    else if (pcb_id == PID_SHOW_COLLIDER_BBOX)
+      showColliderBbox = panel->getBool(pcb_id);
     else if (pcb_id == PID_SHOW_COLLIDER_PHYS_COLLIDABLE)
       showColliderPhysCollidable = panel->getBool(pcb_id);
     else if (pcb_id == PID_SHOW_COLLIDER_TRACEABLE)
@@ -2389,6 +2404,7 @@ private:
   float ragdollBulletImpulse = 2;
 
   bool showCollider = false;
+  bool showColliderBbox = false;
   bool showColliderPhysCollidable = false;
   bool showColliderTraceable = false;
   CollisionResource *collisionResource = NULL;

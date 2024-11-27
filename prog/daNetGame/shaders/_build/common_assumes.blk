@@ -1,4 +1,5 @@
 //gi_voxelize_with_instancing:i=1
+resolve_motion_vectors:i = 0//we always resolve motion vectors explicitly if we have them
 specular_tex:i=1
 sparkles_enable:i=1
 grass_instancing:i=0

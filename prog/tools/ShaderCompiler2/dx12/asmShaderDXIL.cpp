@@ -116,7 +116,8 @@ DecodedShaderContainer decode_shader_container(dag::ConstSpan<unsigned> containe
     return result;
 
   auto *shaderContainer = bindump::map<dxil::ShaderContainer>((const uint8_t *)container.data());
-  G_ASSERT(shaderContainer && shaderContainer->type == dxil::StoredShaderType::singleShader);
+  G_ASSERT(shaderContainer);
+  G_ASSERT(shaderContainer->type == dxil::StoredShaderType::singleShader);
 
   bindump::MemoryReader reader(shaderContainer->data.data(), shaderContainer->data.size());
   bindump::streamRead(result.shader, reader);

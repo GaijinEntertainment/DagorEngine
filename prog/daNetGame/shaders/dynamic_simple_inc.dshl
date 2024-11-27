@@ -89,10 +89,7 @@ macro SUPPORT_MULTIDRAW(use_drawid_vs_only)
   }
 endmacro
 
-float4 prevViewProjTm0;
-float4 prevViewProjTm1;
-float4 prevViewProjTm2;
-float4 prevViewProjTm3;
+float4x4 jitteredCamPosToUnjitteredHistoryClip;
 
 macro USE_FLOAT_POS_PACKING()
   hlsl(vs){

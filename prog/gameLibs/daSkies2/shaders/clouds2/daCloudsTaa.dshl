@@ -13,7 +13,6 @@ float4 prev_globtm_no_ofs_psf_0;
 float4 prev_globtm_no_ofs_psf_1;
 float4 prev_globtm_no_ofs_psf_2;
 float4 prev_globtm_no_ofs_psf_3;
-float4 reprojected_world_view_pos;
 
 texture clouds_color_prev;
 texture clouds_alpha_prev;
@@ -81,7 +80,6 @@ macro CLOUDS_TAA(code)
     prev_globtm_no_ofs_psf@f44 = { prev_globtm_no_ofs_psf_0, prev_globtm_no_ofs_psf_1, prev_globtm_no_ofs_psf_2, prev_globtm_no_ofs_psf_3 };
     globtm_no_ofs_psf@f44 = { globtm_no_ofs_psf_0, globtm_no_ofs_psf_1, globtm_no_ofs_psf_2, globtm_no_ofs_psf_3 };
     move_world_view_pos@f3 = move_world_view_pos;
-    reprojected_world_view_pos@f4 = reprojected_world_view_pos;
     //prev_view_vecLT@f3 = prev_view_vecLT;
     //prev_view_vecRT@f3 = prev_view_vecRT;
     //prev_view_vecLB@f3 = prev_view_vecLB;

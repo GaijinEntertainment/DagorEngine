@@ -6,7 +6,7 @@ require strings
 require daslib/json_boost public
 
 
-def get_arg(params : JsonValue?; idx : int = 0) : JsonValue?
+def get_arg(var params : JsonValue?; idx : int = 0) : JsonValue?
   if params == null
     return null
   if params is _array
@@ -15,11 +15,11 @@ def get_arg(params : JsonValue?; idx : int = 0) : JsonValue?
   return idx == 0 && !(params is _object) ? params : null
 
 
-def get_arg_name(params : JsonValue?; name : string) : JsonValue?
+def get_arg_name(var params : JsonValue?; name : string) : JsonValue?
   if params == null
     return null
   if params is _object
-    return (params as _object)?[name] ?? [[JsonValue?]]
+    return (params as _object)?[name] ?? null
   return null
 
 

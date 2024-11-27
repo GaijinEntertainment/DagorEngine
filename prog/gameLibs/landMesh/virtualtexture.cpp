@@ -4579,6 +4579,7 @@ void ClipmapImpl::setCacheBufferCount(int cache_count, int buffer_count)
   const bool needInvalidate = cacheCnt < cache_count || bufferCnt < buffer_count;
   cacheCnt = cache_count;
   bufferCnt = buffer_count;
+  ShaderGlobal::set_int(clipmap_cache_output_countVarId, cacheCnt);
   debug("clipmap: setCacheBufferCount: cache: %d, buffer: %d, invalidate: %d", cacheCnt, bufferCnt, needInvalidate);
   if (needInvalidate)
     invalidate(true);

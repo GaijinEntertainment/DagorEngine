@@ -6,6 +6,7 @@
 
 #include <math/dag_geomTree.h>
 #include <util/dag_roNameMap.h>
+#include <memory/dag_framemem.h>
 
 
 class GeomTreeIdxMap
@@ -21,25 +22,26 @@ public:
   };
 
 public:
-  GeomTreeIdxMap() {}
+  GeomTreeIdxMap() = default;
+  GeomTreeIdxMap(const GeomTreeIdxMap &) = delete;            // Not implemented
+  GeomTreeIdxMap &operator=(const GeomTreeIdxMap &) = delete; // Ditto
   ~GeomTreeIdxMap() { clear(); }
 
   void clear()
   {
-    memfree(entryMap, midmem);
-    entryMap = nullptr;
+    if (auto prevEntryMap = eastl::exchange(entryMap, nullptr))
+      memfree(prevEntryMap, midmem);
     entryCount = flags = 0;
   }
   void init(const GeomNodeTree &tree, const RoNameMapEx &names)
   {
     clear();
-    Tab<Pair> map(tmpmem);
+
+    Tab<Pair> map(framemem_ptr());
+    map.reserve(names.nameCount());
     for (dag::Index16 i(0), ie(tree.nodeCount()); i != ie; ++i)
-    {
-      int id = names.getNameId(i.index() == 0 ? "@root" : tree.getNodeName(i));
-      if (id != -1)
+      if (int id = names.getNameId(i.index() == 0 ? "@root" : tree.getNodeName(i)); id != -1)
         map.push_back(Pair(id, i));
-    }
 
     entryMap = (Pair *)memalloc(data_size(map), midmem);
     entryCount = map.size();

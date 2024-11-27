@@ -1,0 +1,105 @@
+include "screen_gi_encoding.dshl"
+
+int ambient_has_history;
+
+texture prev_ambient;
+texture prev_specular;
+texture prev_gbuffer_depth;
+texture prev_ambient_age;
+float4x4 ambient_reproject_tm;
+
+macro REPROJECT_GI(code)
+  DAGI_SCREEN_ENCODING(code)
+  local float4 prev_gbuffer_depth_dim = get_dimensions(prev_gbuffer_depth, 0);
+  (ps) {
+    ambient_has_history@i1 = ambient_has_history;
+
+    //todo: add later support for SW rgbe
+    /*
+    if (dagi_sp_has_exposure_assume == always_rgbe)
+    {
+      prev_ambient@tex = prev_ambient hlsl { Texture2D<float3> prev_ambient@tex; };
+      prev_specular@tex = prev_specular hlsl { Texture2D<float3> prev_specular@tex; };
+    } else
+    {
+      prev_ambient@tex = prev_ambient hlsl { Texture2D<uint> prev_ambient@tex; };
+      prev_specular@tex = prev_specular hlsl { Texture2D<uint> prev_specular@tex; };
+    }*/
+    prev_ambient@tex = prev_ambient hlsl { Texture2D<half3> prev_ambient@tex; };
+    prev_specular@tex = prev_specular hlsl { Texture2D<half3> prev_specular@tex; };
+
+    prev_ambient_age@tex = prev_ambient_age hlsl { Texture2D<uint> prev_ambient_age@tex; };
+
+    ambient_reproject_tm@f44 = ambient_reproject_tm;// current jittered screencoord -> history unjittered screencoord
+    prev_gbuffer_depth@smp2d = prev_gbuffer_depth;
+    prev_zn_zfar@f4 = (zn_zfar.x, zn_zfar.y, zn_zfar.x/(zn_zfar.x * zn_zfar.y), (zn_zfar.y-zn_zfar.x)/(zn_zfar.x * zn_zfar.y));//fixme
+    depth_gbuf_dim@f2 = get_dimensions(depth_gbuf, 0);
+    prev_gbuffer_depth_dim@f4 = (prev_gbuffer_depth_dim.x, prev_gbuffer_depth_dim.y, 1./max(1, prev_gbuffer_depth_dim.x), 1./max(prev_gbuffer_depth_dim.y, 1));
+  }
+
+  hlsl(code)
+  {
+    bool reproject_ambient(half new_specular_w, half new_diffuse_w, float2 cur_view_tc, float rawDepth, float linearDepth, inout half3 ambient, inout half3 specular, out uint age)
+    {
+      age = 0;
+      if (!ambient_has_history)
+        return false;
+      float4 historyClip = mul(float4(cur_view_tc*float2(2,-2) + float2(-1,1), rawDepth, 1), ambient_reproject_tm);
+      historyClip.xyz = historyClip.w > 1e-4 ? historyClip.xyz / historyClip.w : float3(2,2,2);
+      historyClip.w = linearize_z(historyClip.z, prev_zn_zfar.zw);
+
+      half newAge = 0;
+      bool valid = all(abs(historyClip.xy) < 1);
+      {
+        float2 historyUV = historyClip.xy*float2(0.5, -0.5) + 0.5;
+        float2 historyCrdf = historyUV * prev_gbuffer_depth_dim.xy - 0.5;
+        float2 floorCrd = floor(historyCrdf);
+        float2 gatherUV = floorCrd*prev_gbuffer_depth_dim.zw + prev_gbuffer_depth_dim.zw;
+        float2 fractCrd = historyCrdf - floorCrd;
+
+        float4 prevRawZ = prev_gbuffer_depth.GatherRed(prev_gbuffer_depth_samplerstate, gatherUV.xy).wzxy;
+        float4 prevLinearDepths = linearize_z4(prevRawZ, zn_zfar.zw);//fixme : prev
+        float4 bilW = float4(1-fractCrd, fractCrd);
+        bilW = bilW.xzxz*bilW.yyww;
+
+        float4 depthDiff = abs(historyClip.w - prevLinearDepths);
+        float threshold = 0.05*historyClip.w;
+        float4 weights = (depthDiff < threshold);
+        if (any(weights) && valid)
+        {
+          float4 spatialWeights = exp(-depthDiff * (5.0 / threshold));
+          weights *= (spatialWeights * bilW + 1e-4);
+          weights /= dot(weights, 1.0);
+          //float history_linear_depth = linearize_z(tex2Dlod(prev_gbuffer_depth, float4(historyUV.xy, 0, 0)).r, zn_zfar.zw);//fixme : prev
+          //if (abs(historyClip.w - history_linear_depth) < 0.1*max(historyClip.w, history_linear_depth))
+          //bool2 isInside = floorCrd + 1 < prev_gbuffer_depth_dim.xy;
+          //weights = select(bool4(true, isInside.x, isInside.y, isInside.x&&isInside.y), weights, float4(0,0,0,0));
+          half3 prevAmbient, prevSpecular;
+          #if GI_PACK_ALGO == GI_USE_SW_RGBE
+          decode_weighted_colors(prev_ambient.GatherRed(prev_gbuffer_depth_samplerstate, gatherUV.xy).wzxy,
+                                 prev_specular.GatherRed(prev_gbuffer_depth_samplerstate, gatherUV.xy).wzxy,
+                                 prevAmbient, prevSpecular,
+                                 weights);
+          #else
+          decode_weighted_colors(prev_ambient.GatherRed(prev_gbuffer_depth_samplerstate, gatherUV.xy).wzxy,
+                                 prev_ambient.GatherGreen(prev_gbuffer_depth_samplerstate, gatherUV.xy).wzxy,
+                                 prev_ambient.GatherBlue(prev_gbuffer_depth_samplerstate, gatherUV.xy).wzxy,
+                                 prev_specular.GatherRed(prev_gbuffer_depth_samplerstate, gatherUV.xy).wzxy,
+                                 prev_specular.GatherGreen(prev_gbuffer_depth_samplerstate, gatherUV.xy).wzxy,
+                                 prev_specular.GatherBlue(prev_gbuffer_depth_samplerstate, gatherUV.xy).wzxy,
+                                 prevAmbient, prevSpecular,
+                                 weights);
+          #endif
+          float oldAge = dot(prev_ambient_age.GatherRed(prev_gbuffer_depth_samplerstate, gatherUV.xy).wzxy, weights);
+          float newAgeF = (oldAge + 1);
+          float historyW = 1./(newAgeF + 1);
+          ambient = lerp(prevAmbient, ambient, max(new_diffuse_w, historyW));
+          specular = lerp(prevSpecular, specular, max(new_specular_w, historyW));
+          age = newAgeF + 0.5f;
+          return true;
+        }
+      }
+      return false;
+    }
+  }
+endmacro

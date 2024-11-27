@@ -5,6 +5,7 @@ include "normaldetail.dshl"
 include "simple_painted_inc.dshl"
 include "vcolor_layered_inc.dshl"
 include "wind/wind_simulation_inc.dshl"
+include "translucent_inc.dshl"
 
 shader rendinst_flag_colored, rendinst_flag_layered
 {
@@ -50,6 +51,8 @@ shader rendinst_flag_colored, rendinst_flag_layered
   channel color8 norm = norm unsigned_pack;
   channel float2 tc[0] = tc[0];
   channel color8 vcol[0] = extra[53];
+
+  INIT_TRANSLUCENCY_SETTING(ps)
 
   static int wind_type = 0;
   interval wind_type: fixedWind < 1, globalWindIngoreVcol < 2, globalWind;
@@ -322,12 +325,12 @@ shader rendinst_flag_colored, rendinst_flag_layered
   {
     if(shader == rendinst_flag_colored)
     {
-      SIMPLE_PAINTED_PS((rendinst_render_pass != rendinst_render_pass_voxelize_albedo))
+      SIMPLE_PAINTED_PS((rendinst_render_pass != rendinst_render_pass_voxelize_albedo), true)
     }
     else
     {
       USE_VCOLOR_LAYERED(ps)
-      VCOLOR_LAYERED_PS((rendinst_render_pass != rendinst_render_pass_voxelize_albedo), false)
+      VCOLOR_LAYERED_PS((rendinst_render_pass != rendinst_render_pass_voxelize_albedo), false, true)
     }
   }
 }

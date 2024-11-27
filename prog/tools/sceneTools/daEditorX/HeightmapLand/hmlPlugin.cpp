@@ -4244,6 +4244,16 @@ void HmapLandPlugin::loadGPUGrassFromLevelBlk()
 
 void HmapLandPlugin::onLandClassAssetTexturesChanged(landclass::AssetData *data) { resetLandmesh(); }
 
+void HmapLandPlugin::onObjectSelectionChanged(RenderableEditableObject *obj)
+{
+  if (SplineObject *spline = RTTI_cast<SplineObject>(obj))
+  {
+    int navmeshIdx = spline->getProps().navmeshIdx;
+    if (navmeshIdx >= 0)
+      navmeshAreasProcessing[navmeshIdx].onSplineSelectionChanged(spline);
+  }
+}
+
 void HmapLandPlugin::onObjectsRemove()
 {
   for (int i = 0; i < navmeshAreasProcessing.size(); i++)

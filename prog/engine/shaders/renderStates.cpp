@@ -11,7 +11,7 @@
 #include <drv/3d/dag_info.h>
 #include <shaders/dag_overrideStates.h>
 #include <shaders/dag_renderStateId.h>
-#include "nonRelocCont.h"
+#include "concurrentElementPool.h"
 
 namespace shaders
 {
@@ -26,7 +26,7 @@ namespace render_states
 {
 
 static ska::flat_hash_map</*hash*/ uint64_t, RenderStateId, ska::power_of_two_std_hash<uint64_t>> renderStatesHash;
-static NonRelocatableCont<eastl::pair<RenderState, DriverRenderStateId>, 32> renderStates;
+static ConcurrentElementPool<RenderStateId, eastl::pair<RenderState, DriverRenderStateId>, 5> renderStates;
 static eastl::vector_map<uint64_t, uint32_t> renderStateOverrides; // Key: (OverrideStateId<<32)|RenderStateId -> index in
                                                                    // overriddenRenderStates
 static ska::flat_hash_map</*hash*/ uint64_t, DriverRenderStateId, ska::power_of_two_std_hash<uint64_t>> overriddenRenderStatesHash;
@@ -156,12 +156,14 @@ RenderStateId create(const RenderState &state)
   auto it = renderStatesHash.find(hash);
   if (DAGOR_LIKELY(it != renderStatesHash.end()))
     return it->second;
-#if DAGOR_DBGLEVEL > 1
-  G_ASSERT((int)renderStates.find_if([&](auto &rs) { return rs.first == state; }) < 0); // must be unique
+#if DAGOR_DBGLEVEL > 0
+  // must be unique
+  G_ASSERT(renderStates.findIf([&](auto &rs) { return rs.first == state; }) == RenderStateId::Invalid);
 #endif
   auto statePair = eastl::make_pair(state, d3d::create_render_state(state));
   G_FAST_ASSERT(statePair.second != DriverRenderStateId());
-  RenderStateId ret(renderStates.push_back(eastl::move(statePair)));
+  RenderStateId ret = renderStates.allocate();
+  renderStates[ret] = eastl::move(statePair);
   renderStatesHash[hash] = ret;
   return ret;
 }
@@ -188,14 +190,14 @@ void on_override_state_destroyed(OverrideStateId overrideId)
 
 void set(RenderStateId id)
 {
-  G_FAST_ASSERT(id != RenderStateId());
-  if (DAGOR_UNLIKELY(!id))
+  G_FAST_ASSERT(id != RenderStateId::Invalid);
+  if (DAGOR_UNLIKELY(id == RenderStateId::Invalid))
   {
     LOGERR_ONCE("Attempt to set invalid render state");
     return;
   }
 
-  auto &rstate = renderStates[(unsigned)id];
+  auto &rstate = renderStates[id];
   DriverRenderStateId drsid = rstate.second;
   uint8_t stencilRef = rstate.first.stencilRef;
 
@@ -228,9 +230,9 @@ void set(RenderStateId id)
 #endif
 }
 
-uint32_t get_count() { return renderStates.getTotalCount(); }
+uint32_t get_count() { return renderStates.totalElements(); }
 
-const RenderState &get(RenderStateId render_id) { return renderStates[(unsigned)render_id].first; }
+const RenderState &get(RenderStateId render_id) { return renderStates[render_id].first; }
 
 } // namespace render_states
 } // namespace shaders

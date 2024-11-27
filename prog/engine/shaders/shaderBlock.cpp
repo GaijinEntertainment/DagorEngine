@@ -33,7 +33,7 @@
 #include "stcode/compareStcode.h"
 #include "profileStcode.h"
 
-static Tab<int> block_init_code(inimem);
+static Tab<ShaderStateBlockId> block_init_code(inimem);
 
 static eastl::array<UniqueBuf, 3> globalConstBuffers;
 
@@ -109,7 +109,7 @@ private:
 };
 
 static void exec_stcode(dag::ConstSpan<int> cod, int block_id, shaders_internal::ConstSetter *const_setter);
-static int record_state_block(const int *__restrict, dag::ConstSpan<int> cod, char *regs);
+static ShaderStateBlockId record_state_block(const int *__restrict, dag::ConstSpan<int> cod, char *regs);
 
 static eastl::array<int, ShaderGlobal::LAYER_OBJECT + 1> current_blocks = {-1, -1, -1};
 static int current_global_const = -1;
@@ -120,7 +120,7 @@ void shaders_internal::close_shader_block_stateblocks(bool final)
   shaders_internal::BlockAutoLock autoLock;
   for (int i = 0; i < block_init_code.size(); i++)
   {
-    if (block_init_code[i] != BAD_STATEBLOCK)
+    if (block_init_code[i] != ShaderStateBlockId::Invalid)
       ShaderStateBlock::delBlock(block_init_code[i]);
   }
   if (final)
@@ -148,7 +148,7 @@ int ShaderGlobal::getBlockId(const char *block_name, int layer)
         shBinDump().blocks[id].uidMask, nullBlock[layer]->uidMask);
   }
   if (!block_init_code.size() && shBinDump().blockNameMap.size())
-    block_init_code.assign(shBinDump().blockNameMap.size(), BAD_STATEBLOCK);
+    block_init_code.assign(shBinDump().blockNameMap.size(), ShaderStateBlockId::Invalid);
   return id;
 }
 
@@ -424,11 +424,11 @@ __forceinline static void exec_stcode(dag::ConstSpan<int> cod, int block_id, sha
     unsigned opc = *codp;
     if (getOp(opc) == SHCOD_STATIC_BLOCK)
     {
-      int blockId = block_init_code[block_id];
-      G_STATIC_ASSERT(BAD_STATEBLOCK < 0);
-      if (blockId < 0)
+      ShaderStateBlockId blockId = block_init_code[block_id];
+      if (blockId == ShaderStateBlockId::Invalid)
         blockId = block_init_code[block_id] = record_state_block(codp, make_span_const(cod).subspan(3, len - 2), regs);
-      if (blockId >= 0)
+
+      if (blockId != ShaderStateBlockId::Invalid)
         ShaderStateBlock::blocks[blockId].apply();
     }
     codp += len;
@@ -657,7 +657,7 @@ __forceinline static void exec_stcode(dag::ConstSpan<int> cod, int block_id, sha
 }
 
 #include "stateBlockStCode.h"
-static int record_state_block(const int *__restrict cod_p, dag::ConstSpan<int> cod, char * /*regs*/)
+static ShaderStateBlockId record_state_block(const int *__restrict cod_p, dag::ConstSpan<int> cod, char * /*regs*/)
 {
   using namespace shaderopcode;
   // debug("record_state_block(%p, (%p,%d))", &block, cod.data(), cod.size());
@@ -718,10 +718,9 @@ static int record_state_block(const int *__restrict cod_p, dag::ConstSpan<int> c
       }
       return true;
     });
+
   if (!maybeShStateBlock.has_value())
-  {
     return DEFAULT_SHADER_STATE_BLOCK_ID;
-  }
-  maybeShStateBlock->stateIdx = shaders::render_states::create({});
-  return ShaderStateBlock::addBlock(eastl::move(*maybeShStateBlock));
+
+  return ShaderStateBlock::addBlock(eastl::move(*maybeShStateBlock), {});
 }

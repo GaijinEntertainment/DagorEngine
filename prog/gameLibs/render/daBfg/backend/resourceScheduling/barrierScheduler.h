@@ -24,12 +24,12 @@ public:
 
     struct CpuActivation
     {
-      TypeErasedCall func;
+      const TypeErasedCall *func;
     };
 
     struct CpuDeactivation
     {
-      TypeErasedCall func;
+      const TypeErasedCall *func;
     };
 
     struct Barrier

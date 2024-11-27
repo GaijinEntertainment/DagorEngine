@@ -28,7 +28,7 @@ struct ReNode
     //! Single node in regular expression parsing tree.
     op      : ReOp
     id      : int
-    [[do_not_convert]] fun2 : function< (var regex:Regex; var node:ReNode?; str:uint8?) : uint8? >
+    [[do_not_convert]] fun2 : function< (var regex:Regex; var node:ReNode?; str:uint8 const?) : uint8 const? >
     [[do_not_convert]] gen2 : function< ( var node:ReNode?; var rnd:ReGenRandom; var str:StringBuilderWriter ) : void >
     at      : range
     text    : string
@@ -40,12 +40,12 @@ struct ReNode
     [[do_not_delete,do_not_convert]] next : ReNode?
     cset    : CharSet
     index   : int
-    [[do_not_convert]] tail : uint8?
+    [[do_not_convert]] tail : uint8 const?
 
 struct Regex
     //! Regular expression.
     root        : ReNode?
-    [[do_not_convert]] match : uint8?
+    [[do_not_convert]] match : uint8 const?
     groups      : array<tuple<range;string>>
     earlyOut    : CharSet
     canEarlyOut : bool
@@ -95,7 +95,7 @@ def private nada()
     trace_backtrack()
     return [[MaybeReNode nothing=null]]
 
-def private maybe( value : ReNode? )
+def private maybe( var value : ReNode? )
     trace_value(value)
     return [[MaybeReNode value=value]]
 
@@ -589,7 +589,7 @@ def private re_assign_match_functions ( var re:Regex )
             panic("unsupported {node.op}")
 
 [unsafe_deref]
-def private re_match2_single_char ( var regex:Regex; var node:ReNode?; str:uint8? ) : uint8?
+def private re_match2_single_char ( var regex:Regex; var node:ReNode?; str:uint8 const? ) : uint8 const?
     if log_match_enabled
         print("match single char `{node.text}` {str}\n")
     if *str == 0u8
@@ -606,7 +606,7 @@ def private re_match2_single_char ( var regex:Regex; var node:ReNode?; str:uint8
             return tail
 
 [unsafe_deref]
-def private re_match2_char ( var regex:Regex; var node:ReNode?; str:uint8? ) : uint8?
+def private re_match2_char ( var regex:Regex; var node:ReNode?; str:uint8 const? ) : uint8 const?
     if log_match_enabled
         print("match char `{node.text}` {str}\n")
     if *str == 0u8
@@ -625,7 +625,7 @@ def private re_match2_char ( var regex:Regex; var node:ReNode?; str:uint8? ) : u
             return tail
 
 [unsafe_deref]
-def private re_match2_union ( var regex:Regex; var node:ReNode?; str:uint8? ) : uint8?
+def private re_match2_union ( var regex:Regex; var node:ReNode?; str:uint8 const? ) : uint8 const?
     if log_match_enabled
         print("match union {str}\n")
     if *str == 0u8
@@ -638,7 +638,7 @@ def private re_match2_union ( var regex:Regex; var node:ReNode?; str:uint8? ) : 
     return null
 
 [unsafe_deref]
-def private re_match2_set ( var regex:Regex; var node:ReNode?; str:uint8? ) : uint8?
+def private re_match2_set ( var regex:Regex; var node:ReNode?; str:uint8 const? ) : uint8 const?
     if log_match_enabled
         print("match2 set {str}\n")
     if *str == 0u8
@@ -655,7 +655,7 @@ def private re_match2_set ( var regex:Regex; var node:ReNode?; str:uint8? ) : ui
             return tail
 
 [unsafe_deref]
-def private re_match2_any ( var regex:Regex; var node:ReNode?; str:uint8? ) : uint8?
+def private re_match2_any ( var regex:Regex; var node:ReNode?; str:uint8 const? ) : uint8 const?
     if log_match_enabled
         print("match2 any {str}\n")
     if *str == 0u8
@@ -670,7 +670,7 @@ def private re_match2_any ( var regex:Regex; var node:ReNode?; str:uint8? ) : ui
             return tail
 
 [unsafe_deref]
-def private re_match2_concat ( var regex:Regex; var node:ReNode?; str:uint8? ) : uint8?
+def private re_match2_concat ( var regex:Regex; var node:ReNode?; str:uint8 const? ) : uint8 const?
     if log_match_enabled
         print("match2 concat {str}\n")
     if *str == 0u8
@@ -683,7 +683,7 @@ def private re_match2_concat ( var regex:Regex; var node:ReNode?; str:uint8? ) :
     return oleft
 
 [unsafe_deref]
-def private re_match2_eos ( var regex:Regex; var node:ReNode?; str:uint8? ) : uint8?
+def private re_match2_eos ( var regex:Regex; var node:ReNode?; str:uint8 const? ) : uint8 const?
     if log_match_enabled
         print("match eos {str}\n")
     if *str != 0u8
@@ -696,7 +696,7 @@ def private re_match2_eos ( var regex:Regex; var node:ReNode?; str:uint8? ) : ui
         return str
 
 [unsafe_deref]
-def private re_match2_question ( var regex:Regex; var node:ReNode?; str:uint8? ) : uint8?
+def private re_match2_question ( var regex:Regex; var node:ReNode?; str:uint8 const? ) : uint8 const?
     if log_match_enabled
         print("match question {str}\n")
     var nsub = node.subexpr
@@ -711,7 +711,7 @@ def private re_match2_question ( var regex:Regex; var node:ReNode?; str:uint8? )
         return tail
 
 [unsafe_deref]
-def private re_match2_plus ( var regex:Regex; var node:ReNode?; str:uint8? ) : uint8?
+def private re_match2_plus ( var regex:Regex; var node:ReNode?; str:uint8 const? ) : uint8 const?
     if log_match_enabled
         print("match2 plus {str}\n")
     if *str == 0u8
@@ -738,7 +738,7 @@ def private re_match2_plus ( var regex:Regex; var node:ReNode?; str:uint8? ) : u
         return ofs
 
 [unsafe_deref]
-def private re_match2_plus_set ( var regex:Regex; var node:ReNode?; str:uint8? ) : uint8?
+def private re_match2_plus_set ( var regex:Regex; var node:ReNode?; str:uint8 const? ) : uint8 const?
     if log_match_enabled
         print("match2 plus {str}\n")
     if *str == 0u8
@@ -770,7 +770,7 @@ def private re_match2_plus_set ( var regex:Regex; var node:ReNode?; str:uint8? )
             return ofs
 
 [unsafe_deref]
-def private re_match2_star ( var regex:Regex; var node:ReNode?; str:uint8? ) : uint8?
+def private re_match2_star ( var regex:Regex; var node:ReNode?; str:uint8 const? ) : uint8 const?
     if log_match_enabled
         print("match2 plus {str}\n")
     var ofs = str
@@ -793,7 +793,7 @@ def private re_match2_star ( var regex:Regex; var node:ReNode?; str:uint8? ) : u
         return ofs
 
 [unsafe_deref]
-def private re_match2_group ( var regex:Regex; var node:ReNode?; str:uint8? ) : uint8?
+def private re_match2_group ( var regex:Regex; var node:ReNode?; str:uint8 const? ) : uint8 const?
     if log_match_enabled
         print("match2 group {str}\n")
     if *str == 0u8
@@ -901,9 +901,9 @@ def regex_foreach ( var regex:Regex; str:string; blk : block<(at:range):bool> )
     if empty(str)
         return
     unsafe
-        regex.match = reinterpret<uint8?> str
+        regex.match = reinterpret<uint8 const?> str
         var root = regex.root
-        var pstr = reinterpret<uint8?> str
+        var pstr = reinterpret<uint8 const?> str
         var cstr = pstr
         if regex.canEarlyOut
             // lets try if it helps
@@ -938,9 +938,9 @@ def regex_replace ( var regex:Regex; str:string; blk : block<(at:string):string>
         return ""
     unsafe
         return build_string <| $ ( writer )
-            regex.match = reinterpret<uint8?> str
+            regex.match = reinterpret<uint8 const?> str
             var root = regex.root
-            var pstr = reinterpret<uint8?> str
+            var pstr = reinterpret<uint8 const?> str
             var cstr = pstr
             if regex.canEarlyOut
                 // lets try if it helps

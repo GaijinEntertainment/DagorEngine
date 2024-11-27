@@ -130,7 +130,7 @@ if ! $(__DEFAULTS_INCLUDED) {
   }
 
   if $(Platform) in macOS iOS { SSEVersion = ; } # use only default SSEVersion for these platforms
-  if $(Platform) in macOS iOS || $(Platform)-$(PlatformArch) = windows-x86_64 {
+  if $(Platform) in macOS iOS || $(Platform)-$(PlatformArch) in windows-x86_64 linux-e2k {
     SSEVersion ?= 4 ;
   } else if $(Platform)-$(PlatformArch) = windows-x86 && $(Config) in dev dbg && $(PlatformSpec) != clang {
     SSEVersion ?= 0 ; # x87 FPU for FPEs

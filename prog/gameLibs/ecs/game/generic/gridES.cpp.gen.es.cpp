@@ -95,18 +95,18 @@ static ecs::EntitySystemDesc grid_obj_verify_server_es_es_desc
 ,"server");
 static constexpr ecs::ComponentDesc grid_obj_init_tm_scale_es_event_handler_comps[] =
 {
-//start of 1 rw components at [0]
+//start of 2 rw components at [0]
+  {ECS_HASH("grid_obj"), ecs::ComponentTypeInfo<GridObjComponent>()},
   {ECS_HASH("grid_obj__fixedTmScale"), ecs::ComponentTypeInfo<float>()},
-//start of 1 ro components at [1]
-  {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
-//start of 1 rq components at [2]
-  {ECS_HASH("grid_obj"), ecs::ComponentTypeInfo<GridObjComponent>()}
+//start of 1 ro components at [2]
+  {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()}
 };
 static void grid_obj_init_tm_scale_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     grid_obj_init_tm_scale_es_event_handler(evt
-        , ECS_RO_COMP(grid_obj_init_tm_scale_es_event_handler_comps, "transform", TMatrix)
+        , ECS_RW_COMP(grid_obj_init_tm_scale_es_event_handler_comps, "grid_obj", GridObjComponent)
+    , ECS_RO_COMP(grid_obj_init_tm_scale_es_event_handler_comps, "transform", TMatrix)
     , ECS_RW_COMP(grid_obj_init_tm_scale_es_event_handler_comps, "grid_obj__fixedTmScale", float)
     );
   while (++comp != compE);
@@ -116,11 +116,12 @@ static ecs::EntitySystemDesc grid_obj_init_tm_scale_es_event_handler_es_desc
   "grid_obj_init_tm_scale_es",
   "prog/gameLibs/ecs/game/generic/./gridES.cpp.inl",
   ecs::EntitySystemOps(nullptr, grid_obj_init_tm_scale_es_event_handler_all_events),
-  make_span(grid_obj_init_tm_scale_es_event_handler_comps+0, 1)/*rw*/,
-  make_span(grid_obj_init_tm_scale_es_event_handler_comps+1, 1)/*ro*/,
-  make_span(grid_obj_init_tm_scale_es_event_handler_comps+2, 1)/*rq*/,
+  make_span(grid_obj_init_tm_scale_es_event_handler_comps+0, 2)/*rw*/,
+  make_span(grid_obj_init_tm_scale_es_event_handler_comps+2, 1)/*ro*/,
   empty_span(),
-  ecs::EventSetBuilder<ecs::EventEntityCreated,
+  empty_span(),
+  ecs::EventSetBuilder<CmdUpdateGridScale,
+                       ecs::EventEntityCreated,
                        ecs::EventComponentsAppear>::build(),
   0
 );

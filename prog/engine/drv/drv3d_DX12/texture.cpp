@@ -481,8 +481,9 @@ bool create_tex3d(BaseTex &tex, uint32_t w, uint32_t h, uint32_t d, uint32_t flg
   }
 #endif
   if (!tex.image)
-    return false;
-
+  {
+    return device.isIll();
+  }
   if (initial_data)
   {
     if (!upload_initial_data_texture3d(tex, desc, initial_data))

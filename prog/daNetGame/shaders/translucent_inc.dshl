@@ -1,0 +1,14 @@
+macro INIT_TRANSLUCENCY_SETTING(stage)
+  static float translucency_setting = -1.0;
+
+  (stage) { translucency_setting@f1 = translucency_setting; }
+
+  hlsl (stage) {
+    #define TRANSLUCENCY_DISABLE_THRESHOLD -1.0
+    #define TRANSLUCENCY_FROM_TEX_THRESHOLD 0.0
+
+    #define SHOULD_USE_TRANLUCENCY (get_translucency_setting() > TRANSLUCENCY_DISABLE_THRESHOLD)
+    #define SHOULD_USE_OVERRIDEN_TRANLUCENCY (get_translucency_setting() > TRANSLUCENCY_FROM_TEX_THRESHOLD)
+    #define TRANSLUCENCY_OVERRIDE (get_translucency_setting())
+  }
+endmacro
