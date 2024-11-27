@@ -79,10 +79,10 @@ namespace das {
             if ( program ) {
                 printRef = program->options.getBoolOption("print_ref");
                 printVarAccess = program->options.getBoolOption("print_var_access");
-                printCStyle = program->options.getBoolOption("print_c_style");
                 printAliases= program->options.getBoolOption("log_aliasing");
                 printFuncUse= program->options.getBoolOption("print_func_use");
                 gen2 = program->policies.version_2_syntax;
+                printCStyle = program->options.getBoolOption("print_c_style") || gen2;
             }
         }
         string str() const { return ss.str(); };
@@ -122,15 +122,27 @@ namespace das {
             Visitor::preVisit(enu);
             ss << "enum ";
             ss << (enu->isPrivate ? "private " : "public ") << enu->name << " : " << das_to_string(enu->baseType) << "\n";
+            if ( gen2 ) {
+                ss << "{\n";
+            }
         }
         virtual void preVisitEnumerationValue ( Enumeration * enu, const string & name, Expression * value, bool last ) override {
             Visitor::preVisitEnumerationValue(enu, name, value, last);
             ss << "\t" << name << " = ";
         }
         virtual ExpressionPtr visitEnumerationValue ( Enumeration * enu, const string & name, Expression * value, bool last ) override {
-            if ( last ) ss << "\n";
-            ss << "\n";
+            if ( gen2 ) {
+                if ( !last ) ss << ",";
+                ss << "\n";
+            } else {
+                ss << "\n";
+            }
             return Visitor::visitEnumerationValue(enu, name, value, last);
+        }
+        virtual EnumerationPtr visit ( Enumeration * enu ) override {
+            if ( gen2 ) ss << "}\n";
+            ss << "\n";
+            return Visitor::visit(enu);
         }
     // strcuture
         void logAnnotationArguments(const AnnotationArgumentList & arguments) {
@@ -171,6 +183,7 @@ namespace das {
                 ss << " : " << that->parent->name;
             }
             ss << "\n";
+            if ( gen2 ) ss << "{\n";
         }
         void outputVariableAnnotation ( const AnnotationArgumentList & annotation ) {
             if ( annotation.size() ) {
@@ -205,14 +218,21 @@ namespace das {
         }
         virtual void visitStructureField ( Structure * var, Structure::FieldDeclaration & decl, bool last ) override {
             if ( decl.capturedConstant ) ss << " // captured constant";
+            if ( gen2 ) ss << ";";
             ss << "\n";
-            if ( last ) ss << "\n";
             Visitor::visitStructureField(var, decl, last);
+        }
+        virtual StructurePtr visit ( Structure * that ) override {
+            if ( gen2 ) ss << "}\n";
+            ss << "\n";
+            return Visitor::visit(that);
         }
     // alias
         virtual void preVisitAlias ( TypeDecl * td, const string & name ) override {
             Visitor::preVisitAlias(td,name);
-            ss  << "typedef\n" << "\t" << name << " = " << td->describe() << "\n\n";
+            ss  << "typedef " << name << " = " << td->describe();
+            if ( gen2 ) ss << ";";
+            ss << "\n\n";
         }
     // global
         virtual void preVisitGlobalLet ( const VariablePtr & var ) override {
@@ -256,6 +276,9 @@ namespace das {
     // function
         virtual void preVisit ( Function * fn) override {
             Visitor::preVisit(fn);
+            if ( fn->unsafeFunction ) {
+                ss << "/*unsafe*/ ";
+            }
             if ( fn->knownSideEffects ) {
                 if ( !fn->sideEffectFlags ) {
                 ss << "[nosideeffects]\n";
@@ -364,7 +387,7 @@ namespace das {
             return Visitor::visitArgument(fn, that, last);
         }
         virtual FunctionPtr visit ( Function * fn ) override {
-            ss << "\n";
+            ss << "\n\n";
             return Visitor::visit(fn);
         }
     // Ref2Value
@@ -407,8 +430,19 @@ namespace das {
             Visitor::preVisitBlockExpression(block, expr);
             ss << string(tab,'\t');
         }
+        bool needsTrailingSemicolumn ( Expression * that ) {
+            if ( that->rtti_isIfThenElse() ) return false;
+            if ( that->rtti_isFor() ) return false;
+            if ( that->rtti_isWhile() ) return false;
+            if ( that->rtti_isWith() ) return false;
+            return true;
+        }
         virtual ExpressionPtr visitBlockExpression ( ExprBlock * block, Expression * that ) override {
-            if ( printCStyle || block->isClosure ) ss << ";";
+            if ( printCStyle || block->isClosure ) {
+                if ( needsTrailingSemicolumn(that) ) {
+                    ss << ";";
+                }
+            }
             newLine();
             return Visitor::visitBlockExpression(block, that);
         }
@@ -459,7 +493,11 @@ namespace das {
             ss << string(tab,'\t');
         }
         virtual ExpressionPtr visitBlockFinalExpression ( ExprBlock * block, Expression * that ) override {
-            if ( printCStyle || block->isClosure ) ss << ";";
+            if ( printCStyle || block->isClosure ) {
+                if ( needsTrailingSemicolumn(that) ) {
+                    ss << ";";
+                }
+            }
             newLine();
             return Visitor::visitBlockFinalExpression(block, that);
         }
@@ -537,16 +575,18 @@ namespace das {
         virtual void preVisit ( ExprIfThenElse * ifte ) override {
             Visitor::preVisit(ifte);
             ss << (ifte->isStatic ? "static_if " : "if ");
+            if ( gen2 ) ss << "( ";
         }
         virtual void preVisitIfBlock ( ExprIfThenElse * ifte, Expression * block ) override {
             Visitor::preVisitIfBlock(ifte,block);
+            if ( gen2 ) ss <<  " )";
             ss << "\n";
         }
         virtual void preVisitElseBlock ( ExprIfThenElse * ifte, Expression * block ) override {
             Visitor::preVisitElseBlock(ifte, block);
-            ss << string(tab,'\t');
+            ss << "\n" << string(tab,'\t');
             if (block && block->rtti_isIfThenElse()) {
-                ss << (ifte->isStatic ? "static_else " : "else ");
+                ss << (ifte->isStatic ? "static_el" : "el");
             } else {
                 ss << (ifte->isStatic ? "static_else\n" : "else\n");
             }
@@ -564,15 +604,17 @@ namespace das {
         virtual void preVisit ( ExprFor * ffor ) override {
             Visitor::preVisit(ffor);
             ss << "for ";
+            if ( gen2 ) ss << "( ";
             bool first = true;
             for ( auto i : ffor->iterators ) {
                 if ( first) first = false; else ss << ", ";
                 ss << i;
             }
-            ss << " ";
+            ss << " in ";
         }
         virtual void preVisitForBody ( ExprFor * ffor, Expression * body ) override {
             Visitor::preVisitForBody(ffor, body);
+            if ( gen2 ) ss << " )";
             ss << "\n";
         }
         virtual ExpressionPtr visitForSource ( ExprFor * ffor, Expression * that , bool last ) override {
@@ -583,9 +625,11 @@ namespace das {
         virtual void preVisit ( ExprWith * wh ) override {
             Visitor::preVisit(wh);
             ss << "with ";
+            if ( gen2 ) ss << "( ";
         }
         virtual void preVisitWithBody ( ExprWith * wh, Expression * body ) override {
             Visitor::preVisitWithBody(wh,body);
+            if ( gen2 ) ss << " )";
             ss << "\n";
         }
     // with alias
@@ -621,9 +665,11 @@ namespace das {
         virtual void preVisit ( ExprWhile * wh ) override {
             Visitor::preVisit(wh);
             ss << "while ";
+            if ( gen2 ) ss << "( ";
         }
         virtual void preVisitWhileBody ( ExprWhile * wh, Expression * body ) override {
             Visitor::preVisitWhileBody(wh,body);
+            if ( gen2 ) ss << " )";
             ss << "\n";
         }
     // while
@@ -864,13 +910,25 @@ namespace das {
             if ( printRef && expr->r2v ) ss << "@";
             if ( printRef && expr->r2cr ) ss << "$";
             if ( printRef && expr->write ) ss << "#";
-            for ( auto f : expr->fields ) {
-                switch ( f ) {
-                    case 0:     ss << "x"; break;
-                    case 1:     ss << "y"; break;
-                    case 2:     ss << "z"; break;
-                    case 3:     ss << "w"; break;
-                    default:    ss << "?"; break;
+            if ( expr->fields.size() ) {
+                for ( auto f : expr->fields ) {
+                    switch ( f ) {
+                        case 0:     ss << "x"; break;
+                        case 1:     ss << "y"; break;
+                        case 2:     ss << "z"; break;
+                        case 3:     ss << "w"; break;
+                        default:    ss << "?"; break;
+                    }
+                }
+            } else {
+                ss << expr->mask;
+                if ( expr->value->type && expr->value->type->isVectorType() ) {
+                    auto dim = expr->value->type->getVectorDim();
+                    vector<uint8_t> dummy;
+                    if ( !TypeDecl::buildSwizzleMask(expr->mask, dim, dummy) ) {
+                        ss << "/*invalid swizzle*/";
+                        return Visitor::visit(expr);
+                    }
                 }
             }
             return Visitor::visit(expr);
@@ -1238,20 +1296,33 @@ namespace das {
     // make array
         virtual void preVisit ( ExprMakeArray * expr ) override {
             Visitor::preVisit(expr);
-            ss << "[[";
-            if ( expr->type ) {
-                ss << expr->type->describe();
+            if ( gen2 ) {
+                // if ( expr->type ) { ss << "/*" << expr->type->describe() << "*/ "; }
+                ss << "fixed_array";
+                if ( expr->makeType ) {
+                    ss << "<" << expr->makeType->describe() << ">";
+                } else {
+                    ss << "</* undefined */>";
+                }
+                ss << "(";
             } else {
-                ss << "/* undefined */";
+                ss << "[[";
+                if ( expr->type ) {
+                    ss << expr->type->describe();
+                } else {
+                    ss << "/* undefined */";
+                }
+                ss << " ";
             }
-            ss << " ";
         }
         virtual ExpressionPtr visitMakeArrayIndex ( ExprMakeArray * expr, int index, Expression * init, bool lastField ) override {
-            if ( !lastField ) ss << "; ";
+            if ( !lastField ) {
+                ss << (gen2 ? ", " : "; ");
+            }
             return Visitor::visitMakeArrayIndex(expr, index, init, lastField);
         }
         virtual ExpressionPtr visit ( ExprMakeArray * expr ) override {
-            ss << "]]";
+            ss << (gen2 ? ")" : "]]");
             return Visitor::visit(expr);
         }
     // array comprehension

@@ -1594,7 +1594,7 @@ namespace das {
 
     void ExprMakeArray::serialize ( AstSerializer & ser ) {
         ExprMakeLocal::serialize(ser);
-        ser << recordType << values;
+        ser << recordType << values << gen2;
     }
 
     void ExprMakeTuple::serialize ( AstSerializer & ser ) {
@@ -2195,7 +2195,7 @@ namespace das {
     }
 
     uint32_t AstSerializer::getVersion () {
-        static constexpr uint32_t currentVersion = 52;
+        static constexpr uint32_t currentVersion = 53;
         return currentVersion;
     }
 

@@ -83,6 +83,7 @@ public:
   virtual void unregistered();
   virtual void beforeMainLoop() { needSkiesUpdate = true; }
 
+  virtual void registerMenuAccelerators() override;
   virtual bool begin(int toolbar_id, unsigned menu_id);
   virtual bool end();
   virtual IGenEventHandler *getEventHandler() { return this; }
@@ -116,7 +117,7 @@ public:
   virtual bool catchEvent(unsigned ev_huid, void *userData);
 
   // command handlers
-  virtual void handleKeyPress(IGenViewportWnd *wnd, int vk, int modif);
+  virtual void handleKeyPress(IGenViewportWnd *wnd, int vk, int modif) {}
   virtual void handleKeyRelease(IGenViewportWnd *wnd, int vk, int modif) {}
 
   virtual bool handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);

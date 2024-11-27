@@ -49,7 +49,7 @@ shader tsr_cs
 
     uv_transform@f4 = tsr_uv_transform;
 
-    prevViewProjTm@f44 = {prevViewProjTm0, prevViewProjTm1, prevViewProjTm2, prevViewProjTm3};
+    jitteredCamPosToUnjitteredHistoryClip@f44 = jitteredCamPosToUnjitteredHistoryClip;
     shouldRestart@f1 = tsr_should_restart;
     debugUpdateOverride@f1 = tsr_debug_update_override;
     inputFilterSigmaInv@f1 = 1.0/tsr_input_sampling_sigma;

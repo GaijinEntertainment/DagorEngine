@@ -118,24 +118,24 @@ shader rt_reflection_classify
     {
       maxSampleCount = 0;
 
+      uint2 rayIndex = dtid;
+      BRANCH
+      if (rtr_checkerboard)
+      {
+        rayIndex.x *= 2;
+
+        bool evenFrame = ( frame_index & 1 ) == 0;
+        bool evenLine  = ( rayIndex.y & 1 ) == 0;
+
+        if ( evenFrame == evenLine && rayIndex.x + 1 != resolution.x)  // on odd resolution.x, don't checkerboard on the edge.
+          ++rayIndex.x;
+      }
+
       GroupMemoryBarrierWithGroupSync();
 
       BRANCH
-      if (all(dtid < resolution))
+      if (all(rayIndex < resolution))
       {
-        uint2 rayIndex = dtid;
-
-        BRANCH
-        if (rtr_checkerboard)
-        {
-          rayIndex.x *= 2;
-
-          bool evenFrame = ( frame_index & 1 ) == 0;
-          bool evenLine  = ( rayIndex.y & 1 ) == 0;
-
-          if ( evenFrame == evenLine )
-            ++rayIndex.x;
-        }
         float rawDepth = rtr_res_mul > 1  ? texture2DAt(half_res_depth_tex, rayIndex).r : loadGbufferDepth(rayIndex);
 
         BRANCH
@@ -264,19 +264,8 @@ shader rt_reflection_sample
     [numthreads(8, 8, 1)]
     void rt_reflection_sample(uint2 dtid : SV_DispatchThreadID, uint2 gtid : SV_GroupThreadID, uint2 gid : SV_GroupID)
     {
-      [branch]
-      if (any(dtid >= resolution))
-        return;
-
       uint2 rayIndex    = dtid;
       uint2 outputIndex = rayIndex;
-
-      if (any(gid >= tilesResolution))
-        return;
-
-      uint tile = texture2DAt(tiles, gid);
-      if (tile != 1)
-        return;
 
       BRANCH
       if (rtr_checkerboard)
@@ -286,9 +275,17 @@ shader rt_reflection_sample
         bool evenFrame = ( frame_index & 1 ) == 0;
         bool evenLine  = ( rayIndex.y & 1 ) == 0;
 
-        if ( evenFrame == evenLine )
+        if ( evenFrame == evenLine && rayIndex.x + 1 != resolution.x) // on odd resolution.x, don't checkerboard on the edge.
           ++rayIndex.x;
       }
+
+      BRANCH
+      if (any(rayIndex >= resolution) || any(gid >= tilesResolution))
+        return;
+
+      uint tile = texture2DAt(tiles, gid);
+      if (tile != 1)
+        return;
 
       float rawDepth = rtr_res_mul > 1 ? texture2DAt(half_res_depth_tex, rayIndex).r : loadGbufferDepth(rayIndex);
       if (rawDepth <= 0)
@@ -336,7 +333,7 @@ shader rt_reflection_sample
             zIndex.x *= 2;
             texture2DAt(viewZTexture, zIndex) = INF;
             texture2DAt(denoised, zIndex) = packedReflection;
-            zIndex.x += 1;
+            zIndex.x = min(zIndex.x + 1, resolution.x - 1);
             texture2DAt(viewZTexture, zIndex) = INF;
             texture2DAt(denoised, zIndex) = packedReflection;
           }
@@ -458,7 +455,7 @@ shader rt_reflection
         bool evenFrame = ( frame_index & 1 ) == 0;
         bool evenLine  = ( rayIndex.y & 1 ) == 0;
 
-        if ( evenFrame == evenLine )
+        if ( evenFrame == evenLine && rayIndex.x + 1 != resolution.x) // on odd resolution.x, don't checkerboard on the edge.
           rayIndex.x += rtr_spacing;
       }
       uint2 baseRayIndex = rayIndex;

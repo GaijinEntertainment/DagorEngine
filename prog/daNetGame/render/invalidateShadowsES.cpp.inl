@@ -29,7 +29,6 @@ void invalidate_ri_shadows_es(const UpdateStageInfoBeforeRender &, int &ri_textu
 }
 
 ECS_TAG(render)
-ECS_BEFORE(ri_extra_destroyed_es)
 ECS_REQUIRE(ecs::Tag isRendinstDestr)
 ECS_ON_EVENT(on_disappear)
 void invalidate_shadows_es_event_handler(const ecs::Event &, const RiExtraComponent &ri_extra, const TMatrix &transform)

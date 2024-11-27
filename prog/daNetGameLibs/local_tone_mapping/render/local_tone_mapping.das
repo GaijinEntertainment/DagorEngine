@@ -219,7 +219,7 @@ def register_filter_node(var local_tone_mapping__filter_node : NodeHandle&;
       resolution = [[TextureResolution2 autoRes=registry |> getResolution`2("post_fx", scale)]],
       mipLevels = 1u
     ]]
-    let exposureTexReq = registry |> create("exposure_multiplier_filtered_tex", History No) |> texture(nextLayerInfo)
+    var exposureTexReq = registry |> create("exposure_multiplier_filtered_tex", History No) |> texture(nextLayerInfo)
     registry |> requestRenderPass |> color([[auto[] exposureTexReq]])
     return <- @ <|
       ecs::query() <| $ [es] (local_tone_mapping_filter : PostFxRenderer)

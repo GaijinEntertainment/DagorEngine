@@ -19,6 +19,7 @@
 #include <drv/3d/dag_buffers.h>
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_lock.h>
+#include <drv/3d/dag_info.h>
 #include <util/dag_simpleString.h>
 #include <ioSys/dag_fileIo.h>
 #include <assets/asset.h>
@@ -384,6 +385,7 @@ ImpostorBaker::ImpostorData ImpostorBaker::generate(DagorAsset *asset, const Imp
         get_impostor_texture_mgr()->generate_mask_octahedral(h, v, gen_data, res, maskRt.get(), impostorMask.getTex2D(), last_lod);
       else
         get_impostor_texture_mgr()->generate_mask_billboard(sliceId, res, maskRt.get(), impostorMask.getTex2D(), last_lod);
+      d3d::driver_command(Drv3dCommand::D3D_FLUSH);
       get_impostor_texture_mgr()->setTreeCrownDataBuf(nullptr);
 
       if (auto data = lock_texture_ro(impostorMask.getTex2D(), 0, TEXLOCK_READ))
@@ -500,6 +502,7 @@ ImpostorBaker::ImpostorData ImpostorBaker::generate(DagorAsset *asset, const Imp
           get_impostor_texture_mgr()->render_slice_octahedral(h, v, viewToContent, gen_data, res, rendinstSceneBlockId, last_lod);
         else
           get_impostor_texture_mgr()->render_slice_billboard(sliceId, viewToContent, res, rendinstSceneBlockId, last_lod);
+        d3d::driver_command(Drv3dCommand::D3D_FLUSH);
         get_impostor_texture_mgr()->setTreeCrownDataBuf(nullptr);
         get_impostor_texture_mgr()->end_rendering_slices();
       }
@@ -519,6 +522,7 @@ ImpostorBaker::ImpostorData ImpostorBaker::generate(DagorAsset *asset, const Imp
           get_impostor_texture_mgr()->render_slice_octahedral(h, v, viewToContent, gen_data, res, rendinstSceneBlockId, last_lod);
         else
           get_impostor_texture_mgr()->render_slice_billboard(sliceId, viewToContent, res, rendinstSceneBlockId, last_lod);
+        d3d::driver_command(Drv3dCommand::D3D_FLUSH);
         get_impostor_texture_mgr()->setTreeCrownDataBuf(nullptr);
         ShaderGlobal::set_int(branch_mask_renderVarId, 0);
         get_impostor_texture_mgr()->end_rendering_slices();
@@ -788,10 +792,16 @@ SaveResult ImpostorBaker::saveImage(const char *filename, Texture *tex, int mip_
         }
       }
       if (!tex->unlockimg())
+      {
+        conerror("Cannot unlock tex=%p: err='%s' (dest=%s)", tex, d3d::get_last_error(), filename);
         return SaveResult::FAILED;
+      }
     }
     else
+    {
+      conerror("Cannot lock tex=%p: err='%s' (dest=%s)", tex, d3d::get_last_error(), filename);
       return SaveResult::FAILED;
+    }
     xoffset += mipW;
   }
   eastl::unique_ptr<TexImage32> image_old;

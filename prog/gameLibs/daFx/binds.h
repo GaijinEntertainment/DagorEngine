@@ -4,21 +4,30 @@
 #include "common.h"
 #include <EASTL/string.h>
 #include <EASTL/vector_map.h>
+#include <dag/dag_vector.h>
 #include <util/dag_generationReferencedData.h>
 #include <util/dag_fastNameMapTS.h>
+#include <osApiWrappers/dag_rwSpinLock.h>
 
 namespace dafx
 {
-struct ValueBind
+union ValueBind
 {
-  unsigned offset : 24;
-  unsigned size : 8;
+  unsigned raw = 0;
+  struct
+  {
+    unsigned offset : 24;
+    unsigned size : 8;
+  };
+  ValueBind() = default;
+  ValueBind(unsigned o, unsigned s) : offset(o), size(s) {}
+  bool operator==(const ValueBind &o) const { return raw == o.raw; }
+  bool operator!=(const ValueBind &o) const { return raw != o.raw; }
 };
 
-extern FastNameMapTS<false> fxSysNameMap;
+extern FastNameMapTS</*ci*/ false, SpinLockReadWriteLock> fxSysNameMap;
 
-using ValueBindMap = eastl::vector_map<uint32_t, ValueBind, eastl::less<uint32_t>, EASTLAllocatorType,
-  dag::Vector<eastl::pair<uint32_t, ValueBind>, EASTLAllocatorType>>;
+using ValueBindMap = dag::Vector<ValueBind>; // Indexed by nameId
 using ValueBindId = GenerationRefId<8, ValueBindMap>;
 using ValueBindData = GenerationReferencedData<ValueBindId, ValueBindMap>;
 
@@ -34,15 +43,12 @@ inline ValueBind *get_local_value_bind(ValueBindData &dst, ValueBindId bind_id, 
   if (!map)
     return nullptr;
 
-  int nameId = fxSysNameMap.getNameId(name.c_str(), name.length());
-  if (nameId < 0)
+  unsigned nameId = fxSysNameMap.getNameId(name.c_str(), name.length());
+  if (nameId >= map->size())
     return nullptr;
 
-  ValueBindMap::iterator bindIt = map->find(nameId);
-  if (bindIt == map->end())
-    return nullptr;
-
-  return &bindIt->second;
+  auto &v = (*map)[nameId];
+  return v != ValueBind{} ? &v : nullptr;
 }
 
 bool register_global_value_binds(Binds &dst, const eastl::string &sys_name, const eastl::vector<ValueBindDesc> &binds);

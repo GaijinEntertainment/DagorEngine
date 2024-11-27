@@ -197,11 +197,7 @@ eastl::fixed_vector<dabfg::NodeHandle, 5> makeScreenSpaceReflectionNodes(
 
         return
           [w, h, ssr_temporal_denoise_cs = eastl::unique_ptr<ComputeShaderElement>(new_compute_shader("ssr_temporal_denoise_cs"))]() {
-            static uint32_t frameNo = 0;
-            ShaderGlobal::set_int(ssr_denoiser_tileVarId, frameNo & 1);
-            auto tsz = ssr_temporal_denoise_cs->getThreadGroupSizes();
-            ssr_temporal_denoise_cs->dispatchThreads(w + (frameNo ? tsz[0] / 2 : 0), h + (frameNo ? tsz[1] / 2 : 0), 1);
-            frameNo++;
+            ssr_temporal_denoise_cs->dispatchThreads(w, h, 1);
           };
       }));
   }

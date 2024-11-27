@@ -22,7 +22,6 @@ public:
   void update(float val);
 
 public:
-  int axis = -1;
   float value = 0;
   float lastNotifiedVal = 1e6f;
   float resolution = 0.01f;

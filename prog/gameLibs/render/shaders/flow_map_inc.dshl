@@ -214,8 +214,9 @@ macro USE_WATER_FLOWMAP_FOAM()
             float3 flowmapSampleAdd2 = lerp(flowmapSampleAdd2a, flowmapSampleAdd2b, water_flowmap_blend);
             if (length(flowmapSampleAdd2.xy) > 1)
               flowmapSampleAdd2.xy = normalize(flowmapSampleAdd2.xy);
+            flowmapSampleAdd2.z *= saturate(1 - length(flowmapUVAdd2 * 2 - 1) * 0.7);
             flowmapSample.xy -= flowmapSampleAdd2.xy * water_fluid_strength.w;
-            flowmapSample.z *= flowmapSampleAdd2.z;
+            flowmapSample.z *= flowmapSampleAdd2.z * water_fluid_strength.z;
             flowmapSample.z += saturate(flowmapSampleAdd2.z - water_fluid_strength.x) * water_fluid_strength.z;
           }
         }

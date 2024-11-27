@@ -1967,7 +1967,8 @@ bool ddsx::read_ddsx_contents(const char *tex_name, Tab<char> &out_data, ddsx::D
     int i = bq_ref.pack;
     int r = bq_ref.rec;
 
-    auto &hq_ref = RMGR.texDesc[idx].packRecIdx[TQL_high];
+    auto &hq_ref =
+      RMGR.texDesc[idx].packRecIdx[TQL_uhq].pack >= 0 ? RMGR.texDesc[idx].packRecIdx[TQL_uhq] : RMGR.texDesc[idx].packRecIdx[TQL_high];
     if (hq_ref.pack >= 0)
     {
       DDSxTexturePack2::Factory *hq_f = tex_packs[hq_ref.pack].pack->file;

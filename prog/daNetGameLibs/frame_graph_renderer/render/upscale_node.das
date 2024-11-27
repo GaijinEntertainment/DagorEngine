@@ -17,7 +17,7 @@ def register_upscale_tex_gen_node(var upscale_tex_gen_node : NodeHandle&)
     registry |> read("checkerboard_depth_sampler") |> blob(type<SamplerHandle>) |> optional |> bindToShaderVar("downsampled_checkerboard_depth_tex_samplerstate")
 
     registry |> read("close_depth") |> texture |> optional |> atStage(Stage POST_RASTER) |> bindToShaderVar("downsampled_close_depth_tex")
-    registry |> read("close_depth_depth_sampler") |> blob(type<SamplerHandle>) |> optional |> bindToShaderVar("downsampled_close_depth_tex_samplerstate")
+    registry |> read("close_depth_sampler") |> blob(type<SamplerHandle>) |> optional |> bindToShaderVar("downsampled_close_depth_tex_samplerstate")
     registry |> read("downsampled_normals") |> texture |> optional |> atStage(Stage POST_RASTER) |> bindToShaderVar("downsampled_normals")
     registry |> read("downsampled_normals_sampler") |> blob(type<SamplerHandle>) |> optional |> bindToShaderVar("downsampled_normals_samplerstate")
 
@@ -26,7 +26,7 @@ def register_upscale_tex_gen_node(var upscale_tex_gen_node : NodeHandle&)
       resolution = [[TextureResolution2 autoRes=registry |> getResolution`2("main_view")]],
       mipLevels = 1u
     ]]
-    let upscaleTexReq = registry |> create("upscale_sampling_tex", History No) |> texture(upscaleInfo)
+    var upscaleTexReq = registry |> create("upscale_sampling_tex", History No) |> texture(upscaleInfo)
     registry |> requestRenderPass |> color([[auto[] upscaleTexReq]])
 
     return <- @ <|

@@ -9,7 +9,6 @@
   file:t = "./source/heightmap.dshl"
   file:t = "./source/deferred_shadow.dshl"
   file:t = "./source/ambient.dshl"
-  file:t = "./source/ambientReproject.dshl"
   file:t = "./source/taa.dshl"
   file:t = "giHelpers/render_lru_collision.dshl"
   file:t = "giHelpers/trees_above_process.dshl"

@@ -74,6 +74,7 @@ macro SSR_STOCHASTIC_RAY(code)
 
       return a < 1e-6 ? 2.0f / 3.0f : a >= 0.9999 ? 1.0 : (a - alpha2 * atanh(a)) / (a * a * a);
     }
+    static const bool use_bilateral_denoiser = true;
   }
 endmacro
 
@@ -164,16 +165,8 @@ shader ssr_temporal_denoise_cs
 
 
     groupshared float4 worldPos[TOTAL_SIZE];
-    #define ENCODE_HALVES 0
-
-    #if ENCODE_HALVES
-    groupshared uint4 reflectDir_rayTracedResults[TOTAL_SIZE];
-    uint2 encode_float4(float4 v) {uint4 vi = f32tof16(v);return vi.xy|(vi.zw<<16);}
-    float4 decode_float4(uint2 v) {return float4(f16tof32(v.xy), f16tof32(v.xy>>16));}
-    #else
     groupshared float4 reflectDir[TOTAL_SIZE];
     groupshared float4 rayTracedResults[TOTAL_SIZE];
-    #endif
     uint get_local_index(uint2 localCoord) {return localCoord.y*SHARED_ROW_SIZE + localCoord.x;}
 
     void write_shared_info(uint2 localCoord, PointInfo p)
@@ -182,12 +175,8 @@ shader ssr_temporal_denoise_cs
       if (localIndex >= TOTAL_SIZE)
         return;
       float4 rD = float4(p.normal, p.linear_roughness);
-      #if ENCODE_HALVES
-      reflectDir_rayTracedResults[localIndex] = uint4(encode_float4(rD), encode_float4(p.color));
-      #else
       reflectDir[localIndex] = rD;
       rayTracedResults[localIndex] = p.color;
-      #endif
       worldPos[localIndex] = float4(p.cameraToPoint, p.linearDepth);
     }
     PointInfo read_shared_info(uint2 localCoord)
@@ -197,19 +186,10 @@ shader ssr_temporal_denoise_cs
         return (PointInfo)0;
       PointInfo p;
       float4 v;
-      #if ENCODE_HALVES
-      uint4 vi = reflectDir_rayTracedResults[localIndex];
-      p.normal = 0;//missing
-      v = decode_float4(vi.xy);
-      p.rayDir = v.xyz; p.linear_roughness = v.a;
-      v = decode_float4(vi.zw);
-      p.color = v;
-      #else
       v = reflectDir[localIndex];
       p.normal = 0;//missing
       p.rayDir = v.xyz; p.linear_roughness = v.a;
       p.color = rayTracedResults[localIndex];
-      #endif
       v = worldPos[localIndex];
       p.cameraToPoint = v.xyz; p.linearDepth = v.a;
       return p;
@@ -218,20 +198,12 @@ shader ssr_temporal_denoise_cs
     {
       if (localIndex < TOTAL_SIZE)
       {
-      #if ENCODE_HALVES
-        reflectDir_rayTracedResults[localIndex].xy = encode_float4(float4(rayDir, linear_roughness));
-      #else
         reflectDir[localIndex].xyz = rayDir;
-      #endif
       }
     }
     void read_shared_normal_roughness(uint localIndex, out half3 normal, out half linear_roughness)
     {
-      #if ENCODE_HALVES
-      float4 v = (localIndex < TOTAL_SIZE) ? decode_float4(reflectDir_rayTracedResults[localIndex].xy) : 0;
-      #else
       float4 v = (localIndex < TOTAL_SIZE) ? reflectDir[localIndex] : 0;
-      #endif
       normal = v.xyz;
       linear_roughness = v.w;
     }
@@ -298,7 +270,7 @@ shader ssr_temporal_denoise_cs
 
       half neighboorhoodVariance = 0;
       {
-        #define CONFIDENCE_FILTER 3
+        #define CONFIDENCE_FILTER 2
         half confidence = 0;
         UNROLL
         for (uint xy = 0, xye = (CONFIDENCE_FILTER*2+1)*(CONFIDENCE_FILTER*2+1); xy < xye; ++xy)
@@ -480,13 +452,80 @@ macro RESOLVE_BY_NEIGHBOURS(code)
   hlsl(code) {
     #include <BRDF.hlsl>
 
-    groupshared float3 ReflectVecTarg[groupthreads];
-    half GetNeighborhoodVariance(uint2 GTid, uint filterSize, float3 normal, float3 cameraToPoint, float linear_roughness, float currentDepth, inout half averageRoughness)
+    groupshared float4 ReflectVecTarg[groupthreads];
+
+    half GetNeighborhoodConfidenceX(uint axis, uint2 GTid, uint filterSize, float3 normal, float3 cameraToPoint, float linear_roughness, float currentDepth)
     {
-      averageRoughness = linear_roughness;
-      half initial = AlphaToMacroNormalLength(pow2(linear_roughness));
-      half3 avgNormal = normal*initial;
-      half avgNormalW = 1;
+      half confidence = 1;
+      float4 scenePlaneScaled = float4(normal, dot(normal, cameraToPoint)) / currentDepth;
+      uint GTIDU = axis ? GTid.x : GTid.y;
+      for (uint i = GTIDU - min(filterSize, GTIDU), maxi = min(GTIDU + filterSize, TILE_SIZE - 1); i <= maxi; i++)
+      {
+        if (i != GTIDU)
+        {
+          uint groupIndex = axis ? GTid.y*TILE_SIZE + i : i*TILE_SIZE + GTid.x;
+
+          ##assert(groupIndex < groupthreads, "[%s:%.f] Out of bounds: groupthreads size is %d, but access to %d (%d:%d max %d:%d)", _FILE_, __LINE__, groupthreads, groupIndex, x, y, maxX, maxY);
+
+          float4 neighboordNormalRoughness = ColorTarg[groupIndex];
+          float4 neighboorWpos = wposDepthTarg[groupIndex];
+          float relativeDepthDifference = pow2(dot(float4(wposDepthTarg[groupIndex].xyz, -1), scenePlaneScaled));
+          float depthWeight = exp2(-1000 * relativeDepthDifference);
+          depthWeight *= saturate(2 - 10*abs(currentDepth - wposDepthTarg[groupIndex].w)/currentDepth);
+          half weight = neighboordNormalRoughness.w >= 0 ? depthWeight : 0;
+
+          half sampleVariance = 1-pow16(dot(neighboordNormalRoughness.xyz, normal)) + 1-pow8(1-abs(neighboordNormalRoughness.w - linear_roughness));
+          confidence += (1-sampleVariance)*weight;
+          weight = 1;
+        }
+      }
+      half maxSamples = min(GTIDU + filterSize, TILE_SIZE-1) + 1 - (GTIDU - min(filterSize, GTIDU));
+      return confidence / maxSamples;
+    }
+
+    half GetNeighborhoodConfidenceY(uint axis, uint2 GTid, uint filterSize, float3 normal, float3 cameraToPoint, float linear_roughness, float currentDepth, half curConfidence)
+    {
+      half confidence = curConfidence;
+      float4 scenePlaneScaled = float4(normal, dot(normal, cameraToPoint)) / currentDepth;
+      uint GTIDU = axis ? GTid.x : GTid.y;
+      for (uint i = GTIDU - min(filterSize, GTIDU), maxi = min(GTIDU + filterSize, TILE_SIZE - 1); i <= maxi; i++)
+      {
+        if (i != GTIDU)
+        {
+          uint groupIndex = axis ? GTid.y*TILE_SIZE + i : i*TILE_SIZE + GTid.x;
+
+          ##assert(groupIndex < groupthreads, "[%s:%.f] Out of bounds: groupthreads size is %d, but access to %d (%d:%d max %d:%d)", _FILE_, __LINE__, groupthreads, groupIndex, x, y, maxX, maxY);
+
+          float4 neighboordNormalRoughness = ColorTarg[groupIndex];
+          float4 neighboorWpos = wposDepthTarg[groupIndex];
+          float relativeDepthDifference = pow2(dot(float4(wposDepthTarg[groupIndex].xyz, -1), scenePlaneScaled));
+          float depthWeight = exp2(-1000 * relativeDepthDifference);
+          depthWeight *= saturate(2 - 10*abs(currentDepth - wposDepthTarg[groupIndex].w)/currentDepth);
+          half weight = neighboordNormalRoughness.w >= 0 ? depthWeight : 0;
+          half sampleVariance = 1-pow16(dot(neighboordNormalRoughness.xyz, normal)) + 1-pow8(1-abs(neighboordNormalRoughness.w - linear_roughness));
+          confidence += (ReflectVecTarg[groupIndex].x*(1-sampleVariance))*weight;
+        }
+      }
+      half maxSamples = min(GTIDU + filterSize, TILE_SIZE-1) + 1 - (GTIDU - min(filterSize, GTIDU));
+      return saturate(1-confidence / maxSamples);
+    }
+
+    half GetNeighborhoodVarianceBilateral(uint2 GTid, uint filterSize, half3 normal, float3 cameraToPoint, half linear_roughness, float currentDepth)
+    {
+      uint axis = uint(SSRParams.z)&1;
+      //axis = 1;
+      half confidenceX = GetNeighborhoodConfidenceX(axis, GTid, filterSize, normal, cameraToPoint, linear_roughness, currentDepth);
+      //return saturate(1-confidenceX);
+      ReflectVecTarg[GTid.y*TILE_SIZE + GTid.x].x = confidenceX;
+      GroupMemoryBarrierWithGroupSync();
+
+      return GetNeighborhoodConfidenceY(1-axis, GTid, filterSize, normal, cameraToPoint, linear_roughness, currentDepth, confidenceX);
+    }
+    half GetNeighborhoodVariance(uint2 GTid, uint filterSize, float3 normal, float3 cameraToPoint, float linear_roughness, float currentDepth)
+    {
+      if (use_bilateral_denoiser)
+        return GetNeighborhoodVarianceBilateral(GTid, filterSize, normal, cameraToPoint, linear_roughness, currentDepth);
+
       half confidence = 0;
       float4 scenePlaneScaled = float4(normal, dot(normal, cameraToPoint)) / currentDepth;
       for (uint y = GTid.y - min(filterSize, GTid.y), maxY = min(GTid.y + filterSize, TILE_SIZE - 1); y <= maxY; y++)
@@ -506,26 +545,11 @@ macro RESOLVE_BY_NEIGHBOURS(code)
             depthWeight *= saturate(2 - 10*abs(currentDepth - wposDepthTarg[groupIndex].w)/currentDepth);
             half weight = neighboordNormalRoughness.w >= 0 ? depthWeight : 0;
 
-            avgNormal += weight*neighboordNormalRoughness.xyz * AlphaToMacroNormalLength(pow2(neighboordNormalRoughness.w));
-            avgNormalW += weight;
-            if (weight > 1e-4)
-            {
-              half sampleVariance = 1-pow16(dot(neighboordNormalRoughness.xyz, normal)) + 1-pow8(1-abs(neighboordNormalRoughness.w - linear_roughness));
-              //variance += sampleVariance;
-              //samples += 1;
-              confidence += 1-sampleVariance;
-            }
+            half sampleVariance = 1-pow16(dot(neighboordNormalRoughness.xyz, normal)) + 1-pow8(1-abs(neighboordNormalRoughness.w - linear_roughness));
+            confidence += (1-sampleVariance)*(weight > 1e-4);
           }
         }
       }
-      avgNormal /= avgNormalW;
-      half avgNormalLen = length(avgNormal);
-      float aLR = (1 - linear_roughness)/(2./3. - initial);
-      float bLR = linear_roughness - initial*aLR;
-      averageRoughness = saturate(aLR*(avgNormalLen - initial) + linear_roughness);
-
-      averageRoughness = avgNormalLen > initial ? linear_roughness : avgNormalLen <= 2.0/3.0f ? 1 : averageRoughness;
-      averageRoughness = linear_roughness;
       half maxSamples = (min(GTid.y + filterSize, TILE_SIZE-1)+1 - (GTid.y - min(filterSize, GTid.y))) * (min(GTid.x + filterSize, TILE_SIZE-1) + 1 - (GTid.x - min(filterSize, GTid.x))) - 1;
       //return samples > 0 ? min(saturate(samples / (2*filterSize*filterSize)), saturate(variance / samples)) : 1;
       return saturate(1 - confidence / maxSamples);
@@ -541,14 +565,182 @@ macro RESOLVE_BY_NEIGHBOURS(code)
     // alpha2, NdV - BRDF supporting values
     // uints2 x_samp, y_samp - size of mini-tile
     /////////////////////////////////////
-    float4 ResolvePixels(float4 val, uint2 GTid, float3 pointToEyeDir, float3 normal, float3 cameraToPoint, float linear_roughness, uint filterSize, float currentDepth, out float4 maxDeviation, float neighboorhoodVariance)
+    struct ResolveStruct
     {
-      half confidence = saturate(1.01h - neighboorhoodVariance);
-      half filterExp = get_filter_exp(linear_roughness, confidence, currentDepth);
-      //half exposure = max(1e-6h, PREV_FRAME_PACK(half3(1,1,1)).x);
-      half curExposure = PREV_FRAME_PACK(half3(1,1,1)).x;
-      half exposure = max(1e-6h, curExposure*rcp(confidence*half(non_confident_exposure.x) + half(non_confident_exposure.y)));//to reduce fire-flies more
-      half invExposure = rcp(exposure);
+      half confidence, filterExp, invExposure;
+    };
+
+    float4 ResolvePixelsX(uint axis, uint2 GTid, float3 pointToEyeDir, float3 normal, float3 cameraToPoint, float linear_roughness, uint filterSize, float currentDepth, out half4 avg, out half4 avgSq, out half totalWeight, ResolveStruct r)
+    {
+      half confidence = r.confidence, invExposure = r.invExposure, filterExp = r.filterExp;
+      totalWeight = 0;
+      half4 averagedColor = 0;
+      float ggx_alpha = max(pow2(linear_roughness), 1e-4);
+      float4 scenePlaneScaled = float4(normal, dot(normal, cameraToPoint)) / currentDepth;
+      float NoV = saturate(dot(pointToEyeDir, normal));
+      avgSq = 0;
+      avg = 0;
+
+      uint GTIDU = axis ? GTid.x : GTid.y;
+      for (uint i = GTIDU - min(filterSize, GTIDU), maxi = min(GTIDU + filterSize, TILE_SIZE - 1); i <= maxi; i++)
+      {
+        uint groupIndex = axis ? GTid.y*TILE_SIZE + i : i*TILE_SIZE + GTid.x;
+
+        ##assert(groupIndex < groupthreads, "[%s:%.f] Out of bounds: groupthreads size is %d, but access to %d (%d:%d max %d:%d)", _FILE_, __LINE__, groupthreads, groupIndex, x, y, maxX, maxY);
+
+        // calculate reflection with compensation for neighboring pixels
+        float3 CurrentReflection = ReflectVecTarg[groupIndex].xyz;
+
+        // supporting values
+        float3 HalfVec = normalize(CurrentReflection.xyz + pointToEyeDir);
+        float NoH = saturate(dot(normal, HalfVec));
+        float NoL = saturate(dot(normal, CurrentReflection.xyz));
+        float D_GGX = NoL*BRDF_distribution( ggx_alpha, NoH );
+
+        float4 sampleColor = ColorTarg[groupIndex];
+
+        // We assume that the hit point of the neighbor's ray is also visible for our ray, and we blindly pretend
+        // that the current pixel shot that ray. To do that, we treat the hit point as a tiny light source. To calculate
+        // a lighting contribution from it, we evaluate the BRDF. Finally, we need to account for the probability of getting
+        // this specific position of the "light source", and that is approximately 1/PDF, where PDF comes from the neighbor.
+        // Finally, the weight is BRDF/PDF. BRDF uses the local pixel's normal and roughness, but PDF comes from the neighbor.
+
+        // Even though from a mathematical point of view we should divide by PDF.
+        // This adds a significant amount of noise and fireflyies. So ignore that part.
+        float hitPDF = 1.0;
+        float sampleWeight = D_GGX / max(1e-5, hitPDF);
+        //sampleWeight = sampleGGXVNDFPDF(ggx_alpha, NoH, NoV);
+        //float4 neighboorWpos = wposDepthTarg[groupIndex];
+        float relativeDepthDifference = pow2(dot(float4(wposDepthTarg[groupIndex].xyz, -1), scenePlaneScaled));
+        float depthWeight = exp2(-1000 * relativeDepthDifference);
+        depthWeight *= saturate(2 - 10*abs(currentDepth - wposDepthTarg[groupIndex].w)/currentDepth);
+        sampleWeight *= depthWeight;
+        //maxDeviation = max(maxDeviation, sampleWeight*abs(sampleColor - val));
+        //maxDeviation += sampleWeight*abs(sampleColor - val);
+
+        sampleWeight *= LocalNeighborhoodKernelWeighted((int(i) - int(GTIDU))*(int(i) - int(GTIDU)), 3, filterExp);
+        //reflectionDistanceW += CurrentReflection.w * sampleWeight;
+
+        //sampleWeight = (i == GTIDU) ? 1 : sampleWeight;
+        totalWeight += sampleWeight; // Integration of microfacet distribution (PDF)
+
+        //sampleColor.rgb /= max(reflection_tonemap_luminance(sampleColor.rgb)*invMaxBrightness,1);
+        avgSq += (sampleWeight*sampleColor)*sampleColor;
+        avg += (sampleWeight*sampleColor);
+        //fireflies
+        sampleColor.rgb *= rcp(invExposure + reflection_tonemap_luminance(sampleColor.rgb));
+
+        averagedColor += sampleWeight*sampleColor; // Integration of BRDF weighted color
+      }
+      half invW = totalWeight > 1e-6 ? rcp(totalWeight) : 0;
+      averagedColor *= invW;
+      avgSq *= invW;
+      avg *= invW;
+      totalWeight = totalWeight > 1e-6;
+      return averagedColor;
+    }
+    float4 ResolvePixelsY(uint axis, uint2 GTid, float3 pointToEyeDir, float3 normal, float3 cameraToPoint, float linear_roughness, uint filterSize, float currentDepth, out float4 maxDeviation, ResolveStruct r)
+    {
+      half confidence = r.confidence, invExposure = r.invExposure, filterExp = r.filterExp;
+      half totalWeight = 0;
+      half4 averagedColor = 0;
+      maxDeviation = 0;
+      float ggx_alpha = max(pow2(linear_roughness), 1e-4);
+      float4 scenePlaneScaled = float4(normal, dot(normal, cameraToPoint)) / currentDepth;
+      float NoV = saturate(dot(pointToEyeDir, normal));
+      float4 avgSq = 0, avg = 0;
+
+      uint GTIDU = axis ? GTid.x : GTid.y;
+      for (uint i = GTIDU - min(filterSize, GTIDU), maxi = min(GTIDU + filterSize, TILE_SIZE - 1); i <= maxi; i++)
+      {
+        uint groupIndex = axis ? GTid.y*TILE_SIZE + i : i*TILE_SIZE + GTid.x;
+
+        ##assert(groupIndex < groupthreads, "[%s:%.f] Out of bounds: groupthreads size is %d, but access to %d (%d:%d max %d:%d)", _FILE_, __LINE__, groupthreads, groupIndex, x, y, maxX, maxY);
+
+        // calculate reflection with compensation for neighboring pixels
+        float4 rVec = ReflectVecTarg[groupIndex];
+
+        uint4 cSampleColor = asuint(ColorTarg[groupIndex]);
+        float4 sampleColor = f16tof32(cSampleColor);
+        float3 CurrentReflection = f16tof32(asuint(rVec.xyz));
+        float currentW = f16tof32(asuint(rVec.w));
+        float4 cAvg = f16tof32(asuint(rVec)>>16);
+        float4 cAvgSq = f16tof32(asuint(cSampleColor)>>16);
+
+        // supporting values
+        float3 HalfVec = normalize(CurrentReflection.xyz + pointToEyeDir);
+        float NoH = saturate(dot(normal, HalfVec));
+        float NoL = saturate(dot(normal, CurrentReflection.xyz));
+        float D_GGX = NoL*BRDF_distribution( ggx_alpha, NoH );
+
+
+        // We assume that the hit point of the neighbor's ray is also visible for our ray, and we blindly pretend
+        // that the current pixel shot that ray. To do that, we treat the hit point as a tiny light source. To calculate
+        // a lighting contribution from it, we evaluate the BRDF. Finally, we need to account for the probability of getting
+        // this specific position of the "light source", and that is approximately 1/PDF, where PDF comes from the neighbor.
+        // Finally, the weight is BRDF/PDF. BRDF uses the local pixel's normal and roughness, but PDF comes from the neighbor.
+
+        // Even though from a mathematical point of view we should divide by PDF.
+        // This adds a significant amount of noise and fireflyies. So ignore that part.
+        float hitPDF = 1.0;
+        float sampleWeight = D_GGX / max(1e-5, hitPDF);
+        sampleWeight = sampleGGXVNDFPDF(ggx_alpha, NoH, NoV);
+        //float4 neighboorWpos = wposDepthTarg[groupIndex];
+        float relativeDepthDifference = pow2(dot(float4(wposDepthTarg[groupIndex].xyz, -1), scenePlaneScaled));
+        float depthWeight = exp2(-1000 * relativeDepthDifference);
+        depthWeight *= saturate(2 - 10*abs(currentDepth - wposDepthTarg[groupIndex].w)/currentDepth);
+        sampleWeight *= depthWeight;
+        //maxDeviation = max(maxDeviation, sampleWeight*abs(sampleColor - val));
+        //maxDeviation += sampleWeight*abs(sampleColor - val);
+
+        sampleWeight *= LocalNeighborhoodKernelWeighted((int(i) - int(GTIDU))*(int(i) - int(GTIDU)), 3, filterExp);
+        //sampleWeight = (y == GTid.y) ? 1 : sampleWeight;
+        //reflectionDistanceW += CurrentReflection.w * sampleWeight;
+
+        totalWeight += currentW*sampleWeight; // Integration of microfacet distribution (PDF)
+
+        //sampleColor.rgb /= max(reflection_tonemap_luminance(sampleColor.rgb)*invMaxBrightness,1);
+        avgSq += sampleWeight*cAvgSq;
+        avg += sampleWeight*cAvg;
+        //fireflies are already applied
+        //sampleColor.rgb *= rcp(invExposure + reflection_tonemap_luminance(sampleColor.rgb));
+
+        averagedColor += sampleWeight*sampleColor; // Integration of BRDF weighted color
+      }
+      //reflectionDistanceW /= TotalWeight;
+      // divide by sum NDF
+      half invW = totalWeight > 1e-6 ? rcp(totalWeight) : 0;
+      averagedColor *= invW;
+      avgSq *= invW;
+      avg *= invW;
+      //maxDeviation *= invW;
+      maxDeviation = sqrt(max(avgSq - avg*avg, 0));
+
+      //fireflies
+      averagedColor.rgb *= invExposure/(1 - reflection_tonemap_luminance(averagedColor.rgb));
+
+      return averagedColor;
+    }
+
+    float4 ResolvePixelsBilateral(ResolveStruct rs, uint2 GTid, float3 pointToEyeDir, float3 normal, float3 cameraToPoint, float linear_roughness, uint filterSize, float currentDepth, out float4 maxDeviation, float neighboorhoodVariance)
+    {
+      half4 avg, avgSq;
+      half totalW;
+      uint axis = uint(SSRParams.z)&1;
+      axis = 0;
+      float4 cColor = ResolvePixelsX(axis, GTid, pointToEyeDir, normal, cameraToPoint, linear_roughness, filterSize, currentDepth, avg, avgSq, totalW, rs);
+      float3 R = ReflectVecTarg[GTid.y*TILE_SIZE + GTid.x].xyz;
+      ReflectVecTarg[GTid.y*TILE_SIZE + GTid.x] = asfloat(f32tof16(float4(R, totalW)) | (f32tof16(avg)<<16));
+      ColorTarg[GTid.y*TILE_SIZE + GTid.x] = asfloat(f32tof16(cColor) | (f32tof16(avgSq)<<16));
+      //ColorTarg[GTid.y*TILE_SIZE + GTid.x] = cColor;
+      GroupMemoryBarrierWithGroupSync();
+
+      return ResolvePixelsY(1-axis, GTid, pointToEyeDir, normal, cameraToPoint, linear_roughness, filterSize, currentDepth, maxDeviation, rs);
+    }
+
+    float4 ResolvePixelsFull(ResolveStruct rs, uint2 GTid, float3 pointToEyeDir, float3 normal, float3 cameraToPoint, float linear_roughness, uint filterSize, float currentDepth, out float4 maxDeviation, float neighboorhoodVariance)
+    {
+      half confidence = rs.confidence, invExposure = rs.invExposure, filterExp = rs.filterExp;
       //half invMaxBrightness = curExposure/10;
       half totalWeight = 0;
       half4 averagedColor = 0;
@@ -567,7 +759,8 @@ macro RESOLVE_BY_NEIGHBOURS(code)
           ##assert(groupIndex < groupthreads, "[%s:%.f] Out of bounds: groupthreads size is %d, but access to %d (%d:%d max %d:%d)", _FILE_, __LINE__, groupthreads, groupIndex, x, y, maxX, maxY);
 
           // calculate reflection with compensation for neighboring pixels
-          float3 CurrentReflection = ReflectVecTarg[groupIndex];
+          float4 refV = ReflectVecTarg[groupIndex];
+          float3 CurrentReflection = refV.xyz;
 
           // supporting values
           float3 HalfVec = normalize(CurrentReflection.xyz + pointToEyeDir);
@@ -599,6 +792,7 @@ macro RESOLVE_BY_NEIGHBOURS(code)
           float2 toCenterVect = float2(float(x) - float(GTid.x), float(y) - float(GTid.y));
           sampleWeight *= LocalNeighborhoodKernelWeighted(dot(toCenterVect, toCenterVect), 3, filterExp);
           //reflectionDistanceW += CurrentReflection.w * sampleWeight;
+          //sampleWeight = (x == GTid.x && y == GTid.y) ? 1 : sampleWeight;
 
           totalWeight += sampleWeight; // Integration of microfacet distribution (PDF)
 
@@ -624,6 +818,23 @@ macro RESOLVE_BY_NEIGHBOURS(code)
       averagedColor.rgb *= invExposure/(1 - reflection_tonemap_luminance(averagedColor.rgb));
 
       return averagedColor;
+    }
+
+    float4 ResolvePixels(float4 val, uint2 GTid, float3 pointToEyeDir, float3 normal, float3 cameraToPoint, float linear_roughness, uint filterSize, float currentDepth, out float4 maxDeviation, float neighboorhoodVariance)
+    {
+      ResolveStruct rs;
+      half confidence = saturate(1.01h - neighboorhoodVariance);
+      half filterExp = get_filter_exp(linear_roughness, confidence, currentDepth);
+      //half exposure = max(1e-6h, PREV_FRAME_PACK(half3(1,1,1)).x);
+      half curExposure = PREV_FRAME_PACK(half3(1,1,1)).x;
+      half exposure = max(1e-6h, curExposure*rcp(confidence*half(non_confident_exposure.x) + half(non_confident_exposure.y)));//to reduce fire-flies more
+      half invExposure = rcp(exposure);
+      rs.confidence = confidence;
+      rs.invExposure = invExposure;
+      rs.filterExp = filterExp;
+      if (use_bilateral_denoiser)
+        return ResolvePixelsBilateral(rs, GTid, pointToEyeDir, normal, cameraToPoint, linear_roughness, filterSize, currentDepth, maxDeviation, neighboorhoodVariance);
+      return ResolvePixelsFull(rs, GTid, pointToEyeDir, normal, cameraToPoint, linear_roughness, filterSize, currentDepth, maxDeviation, neighboorhoodVariance);
     }
   }
 endmacro
@@ -690,13 +901,43 @@ shader tile_ssr_compute
     }
     ##endif
 
+
+    float4 packReflection(bool NEEDSSR, float4 result, float reflectionDistance, float w, half linear_roughness)
+    {
+      ##if ssr_denoiser_type == reblur
+        float hitDist = REBLUR_FrontEnd_GetNormHitDist(reflectionDistance, w, hit_dist_params, linear_roughness);
+        float4 packedReflection = REBLUR_FrontEnd_PackRadianceAndNormHitDist(result.rgb, hitDist, false);
+      ##elif ssr_denoiser_type == relax
+        float4 packedReflection = RELAX_FrontEnd_PackRadianceAndHitDist(result.rgb, reflectionDistance, false);
+      ##elif ssr_denoiser_type == simple
+        float4 packedReflection = result;
+        reflectionDistance = min(reflectionDistance, MAX_REFLECTION_DIST);
+        //packedReflection.a = result.a < 1 ? -reflectionDistance : reflectionDistance;
+        packedReflection.a = floor(reflectionDistance*REFLECTION_DIST_ENCODE+0.5) + saturate(1-result.a);
+        packedReflection = NEEDSSR ? packedReflection : half4(0,0,0,-1);
+      ##else
+        float4 packedReflection = result;
+      ##endif
+      return packedReflection;
+    }
+
     #define BLOCK_SIZE_W 8
     #define BLOCK_SIZE_H 8
+
+    groupshared uint some_used_in_group, min_linear_depth;
+    groupshared uint4 avg_normal_linear_roughness;
 
     #define SSR_FP16_MAX 65504.0 // fp16 friendly max
     [numthreads(BLOCK_SIZE_W,BLOCK_SIZE_H,1)]
     void tile_ssr_cs( uint2 Groupid : SV_GroupID, uint2 DTid : SV_DispatchThreadID, uint2 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex )
     {
+      if (GI == 0)
+      {
+        avg_normal_linear_roughness = 0;
+        min_linear_depth = asuint(zn_zfar.y);
+        some_used_in_group = 0;
+      }
+      GroupMemoryBarrierWithGroupSync();
       ##if manual_denoising
         #define INITIAL_REFLEC_DIST 0
       ##else
@@ -739,24 +980,46 @@ shader tile_ssr_compute
       float rawDepth = tex2Dlod(src_depth_tex, float4(curViewTc, 0, 0)).x;
 
       float w = linearize_z(rawDepth, zn_zfar.zw);
-      float3 cameraToPoint = viewVect * w;
       bool NEEDSSR = (linear_roughness < CALC_SSR_ROUGHNESS_THRESHOLD) && (w < 0.5*zn_zfar.y);
+      if (NEEDSSR)
+      {
+        uint4 avgN = uint4(float4(saturate(normal*0.5 + 0.5), linear_roughness)*(1<<20) + 0.5);
+        InterlockedAdd(avg_normal_linear_roughness.x, avgN.x);
+        InterlockedAdd(avg_normal_linear_roughness.y, avgN.y);
+        InterlockedAdd(avg_normal_linear_roughness.z, avgN.z);
+        InterlockedAdd(avg_normal_linear_roughness.w, avgN.w);
+        InterlockedMin(min_linear_depth, asuint(w));
+        InterlockedAdd(some_used_in_group, 1);
+      }
+      GroupMemoryBarrierWithGroupSync();
+      uint totalActive = some_used_in_group;
+      BRANCH
+      if (!totalActive)
+      {
+        if (all(outputCoord < uint2(ssr_target_size.xy)))
+          texture2DAt(Result, outputCoord) = packReflection(0, 0, INITIAL_REFLEC_DIST, w, linear_roughness);
+        return;
+      }
+      float3 cameraToPoint = viewVect * w;
+      uint4 avgN = avg_normal_linear_roughness;
+      float4 avgTileNLR = avgN*(1./(1<<20));
+      avgTileNLR.xyz = normalize(avgTileNLR.xyz*2 - 1);
 
-      half averageRoughness = linear_roughness;
+      half calcRoughness = min(CALC_SSR_ROUGHNESS_THRESHOLD, NEEDSSR ? linear_roughness : avgTileNLR.w);
+      float3 calcN = NEEDSSR ? normal : avgTileNLR.xyz;
+      w = NEEDSSR ? w : asfloat(min_linear_depth);
+      //calcRoughness = linear_roughness;
+      //calcN = normal;
       ##if (manual_denoising)
         wposDepthTarg[GI] = float4(cameraToPoint, w);
-        ColorTarg[GI] = float4(normal, linear_roughness);
+        ColorTarg[GI] = float4(calcN, calcRoughness);
         GroupMemoryBarrierWithGroupSync();
-        half neighboorhoodVariance = 0;
-        BRANCH
-        if (NEEDSSR)
-          neighboorhoodVariance = GetNeighborhoodVariance(GTid, 3, normal, cameraToPoint, linear_roughness, w, averageRoughness);
+        half neighboorhoodVariance = GetNeighborhoodVariance(GTid, 3, calcN, cameraToPoint, calcRoughness, w);
       ##endif
 
       float3 worldPos = world_view_pos.xyz + cameraToPoint;
       float3 realWorldPos = ssr_world_view_pos.xyz + cameraToPoint;
       uint2 pixelPos = screenCoord;
-      float3 N = normal;
       float linearDepth = w;
 
       float4 newFrame = 0;
@@ -772,17 +1035,15 @@ shader tile_ssr_compute
 
       float3 R = float3(0, 0, 0);
 
-      BRANCH
-      if (NEEDSSR)
       {
-        float stepOfs = interleavedGradientNoiseFramed(pixelPos.xy, uint(SSRParams.z)&7) - 0.25 + 1+ averageRoughness;
+        float stepOfs = interleavedGradientNoiseFramed(pixelPos.xy, uint(SSRParams.z)&7) - 0.25 +  1 + calcRoughness;
 
-        R = getReflectionRayDir(-viewDir, N, pixelPos.xy, averageRoughness);
+        R = getReflectionRayDir(-viewDir, calcN, pixelPos.xy, calcRoughness);
 
         #if SSR_TRACEWATER == 1
-          float4 hit_uv_z_fade = hierarchRayMarch(curViewTc, R, averageRoughness, w, cameraToPoint, stepOfs, globtm_no_ofs_psf, water_level-realWorldPos.y+worldPos.y);
+          float4 hit_uv_z_fade = hierarchRayMarch(curViewTc, R, calcRoughness, w, cameraToPoint, stepOfs, globtm_no_ofs_psf, water_level-realWorldPos.y+worldPos.y);
         #else
-          float4 hit_uv_z_fade = hierarchRayMarch(curViewTc, R, averageRoughness, w, cameraToPoint, stepOfs, globtm_no_ofs_psf, 0);
+          float4 hit_uv_z_fade = hierarchRayMarch(curViewTc, R, calcRoughness, w, cameraToPoint, stepOfs, globtm_no_ofs_psf, 0);
         #endif
 
         // if there was a hit
@@ -790,7 +1051,7 @@ shader tile_ssr_compute
         {
           const float linearZHit = ssr_linearize_z(hit_uv_z_fade.z);
           reflectionDistance = length(cameraToPoint - getViewVecOptimized(hit_uv_z_fade.xy) * linearZHit);
-          newFrame = sample_vignetted_color( float3(hit_uv_z_fade.xy, linearZHit), averageRoughness, linearZHit, cameraToPoint, N, realWorldPos);
+          newFrame = sample_vignetted_color( float3(hit_uv_z_fade.xy, linearZHit), calcRoughness, linearZHit, cameraToPoint, calcN, realWorldPos);
         }
         // alternate reflections for puddles, if presented
         half ssrResultPrecision = newFrame.a;
@@ -853,10 +1114,10 @@ shader tile_ssr_compute
         BRANCH
         if(NEEDSSR)
         {
-          half disocclusionWeightAtten = get_ssr_reprojection_with_weight(relativePixelTranslation, neighboorhoodVariance, cameraToPoint, curViewTc, normal, averageRoughness, reflectionDistance, w, prevFrame, virtualWeight);
+          half disocclusionWeightAtten = get_ssr_reprojection_with_weight(relativePixelTranslation, neighboorhoodVariance, cameraToPoint, curViewTc, normal, linear_roughness, reflectionDistance, w, prevFrame, virtualWeight);
           //rougher surfaces should be more relaxed, to fight noise
           //todo: add pixel age, so we can more correctly fight noise
-          const half roughnessWeightFactor = lerp(0.97h, 0.8h, exp2(-60*averageRoughness));
+          const half roughnessWeightFactor = lerp(0.97h, 0.8h, exp2(-60*linear_roughness));
           reprojectionWeight = disocclusionWeightAtten * roughnessWeightFactor;
         }
       #endif
@@ -864,15 +1125,15 @@ shader tile_ssr_compute
       ##if (manual_denoising)
 
         ColorTarg[GI] = newFrame;
-        ReflectVecTarg[GI] = R;
+        ReflectVecTarg[GI] = float4(R, NEEDSSR);
         GroupMemoryBarrierWithGroupSync();
         half4 maxDev = 0;
-        BRANCH
-        if (NEEDSSR)
         {
           uint res_Params = 3;
-          newFrame = ResolvePixels(newFrame, GTid, -viewDir, normal, cameraToPoint, averageRoughness, res_Params, w, maxDev, neighboorhoodVariance);
+          newFrame = ResolvePixels(newFrame, GTid, -viewDir, calcN, cameraToPoint, calcRoughness, res_Params, w, maxDev, neighboorhoodVariance);
         }
+        newFrame = NEEDSSR ? newFrame : 0;
+
       ##endif
 
       #if TEMPORAL_IN_ONE_PASS
@@ -882,7 +1143,7 @@ shader tile_ssr_compute
         half4 prevFrameClamped = clamp(prevFrame, minNeighboorhood, maxNeighboorhood);
         half lumaA = reflection_tonemap_luminance(prevFrame.rgb), lumaB = reflection_tonemap_luminance(prevFrameClamped.rgb);
         half temporal_blend = pow2(clamp(max(lumaA - lumaB - min(lumaA, lumaB), 0.0f) / max(max(lumaA, lumaB), 1e-4f), 0.0f, 1.f));
-        prevFrame = lerp(prevFrame, prevFrameClamped, lerp(temporal_blend, 1, confidence)*relativePixelTranslation*(1-0.95*get_is_rough_surface_param(averageRoughness)));
+        prevFrame = lerp(prevFrame, prevFrameClamped, lerp(temporal_blend, 1, confidence)*relativePixelTranslation*(1-0.95*get_is_rough_surface_param(linear_roughness)));
 
         newFrame = force_ignore_history == 0 ? lerp(newFrame, prevFrame, reprojectionWeight) : newFrame;
       #endif
@@ -892,20 +1153,7 @@ shader tile_ssr_compute
       if (any(!isfinite(result)))
         result = float4(0,0,0,0);
 
-      ##if ssr_denoiser_type == reblur
-        float hitDist = REBLUR_FrontEnd_GetNormHitDist(reflectionDistance, w, hit_dist_params, linear_roughness);
-        float4 packedReflection = REBLUR_FrontEnd_PackRadianceAndNormHitDist(result.rgb, hitDist, false);
-      ##elif ssr_denoiser_type == relax
-        float4 packedReflection = RELAX_FrontEnd_PackRadianceAndHitDist(result.rgb, reflectionDistance, false);
-      ##elif ssr_denoiser_type == simple
-        float4 packedReflection = result;
-        reflectionDistance = min(reflectionDistance, MAX_REFLECTION_DIST);
-        //packedReflection.a = result.a < 1 ? -reflectionDistance : reflectionDistance;
-        packedReflection.a = floor(reflectionDistance*REFLECTION_DIST_ENCODE+0.5) + saturate(1-result.a);
-        packedReflection = NEEDSSR ? packedReflection : half4(0,0,0,-1);
-      ##else
-        float4 packedReflection = result;
-      ##endif
+      float4 packedReflection = packReflection(NEEDSSR, result, reflectionDistance, w, linear_roughness);
       if (all(outputCoord < uint2(ssr_target_size.xy)))
         texture2DAt(Result, outputCoord) = packedReflection;
     }

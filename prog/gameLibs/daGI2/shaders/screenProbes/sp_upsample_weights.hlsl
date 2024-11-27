@@ -1,6 +1,6 @@
 #ifndef SP_UPSAMPLE_WEIGHTS_INCLUDED
 #define SP_UPSAMPLE_WEIGHTS_INCLUDED 1
-
+#include <sp_calc_common.hlsl>
 #define SP_INVALID_ADDITIONAL_PROBE_NEVER (SP_MAX_ADDITIONAL_PROBES_MASC<<SP_ADDITIONAL_ITERATION_INDEX_SHIFT)
 
 struct UpsampleCornerWeights
@@ -52,12 +52,13 @@ ViewInfo sp_getScreenViewInfo()
   return vInfo;
 }
 
-bool processAdditionalProbe(DecodedProbe additionalProbe, ViewInfo vInfo, uint2 tile_coord, float4 scenePlane, float depth_exp, inout UpsampleCornerWeights corners, uint i)
+bool processAdditionalProbe(DecodedProbe additionalProbe, ViewInfo vInfo, uint2 tile_coord, float sceneLinearDepth, float4 scenePlane, float depth_exp, inout UpsampleCornerWeights corners, uint i)
 {
   float2 uv = getScreenProbeCenterScreenUV(tile_coord, vInfo.tile_to_center, vInfo.screen_limit);
   //uv = screenICoordToScreenUV(tile_coord*screenspace_probe_res.z + additionalProbe.coord_ofs);
   float3 otherProbeCamPos = additionalProbe.normalizedW*getViewVecFromTc(uv, vInfo.lt, vInfo.hor, vInfo.ver);
   float newRelativeDepthDifference = pow2(dot(float4(otherProbeCamPos, -1), scenePlane));
+  newRelativeDepthDifference += sp_get_additional_rel_depth_sample(additionalProbe.normalizedW*vInfo.zn_zfar.y, sceneLinearDepth, depth_exp);
   float newDepthWeight = exp2(depth_exp*newRelativeDepthDifference);
   if (newDepthWeight <= corners.depthWeights[i])
     return false;
@@ -115,6 +116,7 @@ UpsampleCornerWeights calc_upsample_weights(SRVBufferInfo srvInfo, ViewInfo vInf
       DecodedProbe baseProbe = sp_decodeProbeInfo(encodedProbe);
       float3 probeCamPos = baseProbe.normalizedW*getViewVecFromTc(getScreenProbeCenterScreenUV(sampleProbeCoord, vInfo.tile_to_center, vInfo.screen_limit), vInfo.lt, vInfo.hor, vInfo.ver);
       corners.relDepth[i] = pow2(dot(float4(probeCamPos, -1), scenePlane));
+      corners.relDepth[i] += sp_get_additional_rel_depth_sample(baseProbe.normalizedW*vInfo.zn_zfar.y, pointInfo.sceneLinearDepth, depth_exp);
       corners.depthWeights[i] = exp2(depth_exp*corners.relDepth[i]);
       corners.normalizedLinearDepth[i] = baseProbe.normalizedW;
       corners.atlasSampleProbeCoord[i] = atlasSampleProbeCoord;
@@ -132,7 +134,7 @@ UpsampleCornerWeights calc_upsample_weights(SRVBufferInfo srvInfo, ViewInfo vInf
           uint additionalEncodedProbe = sp_loadEncodedProbe(srvInfo.posBuffer, addProbeIndex);
           DecodedProbe additionalProbe = sp_decodeProbeInfo(additionalEncodedProbe);
 
-          if (processAdditionalProbe(additionalProbe, vInfo, sampleProbeCoord, scenePlane, depth_exp, corners, i))
+          if (processAdditionalProbe(additionalProbe, vInfo, sampleProbeCoord, pointInfo.sceneLinearDepth, scenePlane, depth_exp, corners, i))
           {
             corners.encodedProbes[i] = additionalEncodedProbe;
             corners.atlasSampleProbeCoord[i] = uint2(addProbeIndex%uint(vInfo.screenspace_probe_res.x), addProbeIndex/uint(vInfo.screenspace_probe_res.x));

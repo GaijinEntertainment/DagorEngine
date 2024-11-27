@@ -68,6 +68,15 @@ using rigen_collidable_data_t = dag::RelocatableFixedVector<RiGenCollidableData,
 bool testObjToRIGenIntersection(CollisionResource *obj_res, const CollisionNodeFilter &filter, const TMatrix &obj_tm,
   const Point3 &obj_vel, Point3 *intersected_obj_pos, bool *tree_sphere_intersected, Point3 *collisionPoint);
 
+void testObjToRIGenIntersection(const BSphere3 &obj_sph, RendInstCollisionCB &callback, GatherRiTypeFlags ri_types,
+  const TraceMeshFaces *ri_cache = nullptr, PhysMat::MatID ray_mat = PHYSMAT_INVALID, bool unlock_in_cb = false);
+void testObjToRIGenIntersection(const BBox3 &obj_box, RendInstCollisionCB &callback, GatherRiTypeFlags ri_types,
+  const TraceMeshFaces *ri_cache = nullptr, PhysMat::MatID ray_mat = PHYSMAT_INVALID, bool unlock_in_cb = false);
+struct OrientedObjectBox
+{
+  mat44f tm;
+  bbox3f bbox;
+};
 void testObjToRIGenIntersection(const BBox3 &obj_box, const TMatrix &obj_tm, RendInstCollisionCB &callback, GatherRiTypeFlags ri_types,
   const TraceMeshFaces *ri_cache = nullptr, PhysMat::MatID ray_mat = PHYSMAT_INVALID, bool unlock_in_cb = false);
 

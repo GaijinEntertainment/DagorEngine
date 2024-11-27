@@ -30,7 +30,7 @@ static ShaderVariableInfo prev_globtm_psf_0("prev_globtm_psf_0");
 static ShaderVariableInfo prev_globtm_psf_1("prev_globtm_psf_1");
 static ShaderVariableInfo prev_globtm_psf_2("prev_globtm_psf_2");
 static ShaderVariableInfo prev_globtm_psf_3("prev_globtm_psf_3");
-static ShaderVariableInfo prev_world_view_pos("prev_world_view_pos");
+static ShaderVariableInfo prev_world_view_pos("prev_world_view_pos", true);
 static ShaderVariableInfo globtm_psf_0("globtm_psf_0");
 static ShaderVariableInfo globtm_psf_1("globtm_psf_1");
 static ShaderVariableInfo globtm_psf_2("globtm_psf_2");

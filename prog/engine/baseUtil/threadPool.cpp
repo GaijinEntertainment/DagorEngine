@@ -242,6 +242,10 @@ struct TPWorkerThread final : public DaThread
 
 
 
+#elif _TARGET_XBOX
+    // Disable thread priority boost (*) to disallow workers schedule each other out on wake ups
+    // (*) https://learn.microsoft.com/en-us/windows/win32/procthread/priority-boosts
+    G_VERIFYF(SetThreadPriorityBoost(GetCurrentThread(), /*bDisablePriorityBoost*/ TRUE), "%d", GetLastError());
 #endif
     TIME_PROFILE_THREAD(getCurrentThreadName());
     jenv.coreId = id;

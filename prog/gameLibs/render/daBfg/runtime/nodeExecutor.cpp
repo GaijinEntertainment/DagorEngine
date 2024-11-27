@@ -334,11 +334,11 @@ void NodeExecutor::processEvents(BarrierScheduler::NodeEventsRef events) const
 
         if (auto *data = eastl::get_if<BarrierScheduler::Event::CpuActivation>(&evt.data))
         {
-          data->func(blobView.data);
+          (*(data->func))(blobView.data);
         }
         else if (auto *data = eastl::get_if<BarrierScheduler::Event::CpuDeactivation>(&evt.data))
         {
-          data->func(blobView.data);
+          (*(data->func))(blobView.data);
         }
         else
           G_ASSERTF(false, "Unexpected event type!");

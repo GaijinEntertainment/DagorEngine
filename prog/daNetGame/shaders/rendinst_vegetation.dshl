@@ -20,12 +20,7 @@ interval gbuffer_for_treesabove : off < 1, on;
 
 texture noise_64_tex;
 
-float4 prevViewProjTm0;
-float4 prevViewProjTm1;
-float4 prevViewProjTm2;
-float4 prevViewProjTm3;
-
-float4 prev_world_view_pos;
+float4x4 jitteredCamPosToUnjitteredHistoryClip;
 
 int has_discard_without_prepass = 0;
 interval has_discard_without_prepass: discardOff <1, discardOn;
@@ -78,8 +73,7 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split
         rendinst_render_pass != rendinst_render_pass_depth && rendinst_render_pass != rendinst_render_pass_to_shadow)
     {
       (vs) {
-        prevViewProjTm@f44 = {prevViewProjTm0, prevViewProjTm1, prevViewProjTm2, prevViewProjTm3};
-        prev_world_view_pos@f3 = (prev_world_view_pos);
+        jitteredCamPosToUnjitteredHistoryClip@f44 = jitteredCamPosToUnjitteredHistoryClip;
       }
 
       USE_MOTION_VEC_ENCODE(ps)
@@ -260,7 +254,7 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split
         output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
         #ifdef MOTION_VECTORS_ENABLED
           output.out_pos = mulPointTm(currWorldPos + camera_base_offset, globtm);
-          output.out_pos_prev = mulPointTm(prevWorldPos - prev_world_view_pos, prevViewProjTm);
+          output.out_pos_prev = mulPointTm(prevWorldPos - world_view_pos, jitteredCamPosToUnjitteredHistoryClip);
         #endif
         ##if rendinst_render_pass != rendinst_render_pass_depth
           #if COLOR_NEEDED

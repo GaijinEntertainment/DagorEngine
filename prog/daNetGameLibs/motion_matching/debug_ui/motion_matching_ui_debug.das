@@ -27,7 +27,7 @@ def motion_matching_imgui_es()
   else
     imgui::Text("Select any entity")
 
-[es(tag=dev, after=motion_matching_locomotion_state, before=motion_matching_job_es)]
+[es(tag=dev, before=motion_matching_job_es)]
 def mm_enable_for_animation_player(act : ParallelUpdateFrameDelayed;
                                    mm_imguiAnimcharEid : EntityId;
                                    mm_clips_animationPlayMode : int)

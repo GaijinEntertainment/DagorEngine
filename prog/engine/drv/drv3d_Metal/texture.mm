@@ -556,7 +556,7 @@ namespace drv3d_metal
 
     sub_mip_textures.push_back(sub_mip);
 
-    applyName();
+    applyName(base->getResName());
 
     add_texture_to_list(this);
   }
@@ -626,24 +626,32 @@ namespace drv3d_metal
     delete this;
   }
 
-  void Texture::ApiTexture::applyName()
+  void Texture::ApiTexture::applyName(const char *name)
   {
-    if (base == nullptr)
+#if DAGOR_DBGLEVEL > 0
+    if (base == nullptr || name == nullptr)
       return;
 
     G_ASSERT(texture);
-    setTexName(texture, base->getResName());
+    setTexName(texture, name);
 
     if (rt_texture != texture)
-      setTexName(rt_texture, base->getResName());
+      setTexName(rt_texture, name);
     if (texture_as_uint)
-      setTexName(texture_as_uint, base->getResName());
+      setTexName(texture_as_uint, name);
     if (stencil_read_texture)
-      setTexName(stencil_read_texture, base->getResName());
+      setTexName(stencil_read_texture, name);
     if (texture_no_srgb != texture)
-      setTexName(texture_no_srgb, base->getResName());
+      setTexName(texture_no_srgb, name);
     for (size_t i = 1; i < sub_mip_textures.size(); i++)
-      setTexName(sub_mip_textures[i].tex, base->getResName());
+      setTexName(sub_mip_textures[i].tex, name);
+#endif
+  }
+
+  void Texture::setResApiName(const char *name) const
+  {
+    if (apiTex)
+      apiTex->applyName(name);
   }
 
   Texture::Texture(int w, int h, int l, int d, int tp, int flg, int fmt, const char* name, bool is_memoryless, bool alloc)
@@ -889,12 +897,12 @@ namespace drv3d_metal
     if (apiTex && !tql::isTexStub(apiTex->base))
     {
       apiTex->base = this;
-      apiTex->applyName();
+      apiTex->applyName(getResName());
     }
     if (other->apiTex && !tql::isTexStub(other->apiTex->base))
     {
       other->apiTex->base = other;
-      other->apiTex->applyName();
+      other->apiTex->applyName(other->getResName());
     }
     del_d3dres(other_tex);
     other_tex = nullptr;

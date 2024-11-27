@@ -61,7 +61,7 @@ static ecs::EntitySystemDesc update_world_bbox_es_es_desc
                        ecs::EventEntityCreated,
                        ecs::EventComponentsAppear>::build(),
   0
-,nullptr,nullptr,nullptr,"rendinst_move_es_event_handler,rendinst_with_handle_move_es_event_handler");
+,nullptr,nullptr,nullptr,"rendinst_move_es,rendinst_with_handle_move_es");
 static constexpr ecs::ComponentDesc use_rgba_fmt_ecs_query_comps[] =
 {
 //start of 1 ro components at [0]

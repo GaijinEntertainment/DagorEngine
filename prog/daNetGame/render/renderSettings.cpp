@@ -13,6 +13,11 @@
 
 ECS_REGISTER_EVENT(OnRenderSettingsReady)
 
+namespace ecs
+{
+extern bool ecs_is_in_init_phase;
+}
+
 template <class CB>
 static void gather_components_from_blk(const DataBlock &blk, CB cb, const char *prefix)
 {
@@ -113,7 +118,8 @@ bool update_settings_entity(const DataBlock *level_override)
         *render_settings__inited = true;
       }
     }
-    g_entity_mgr->performTrackChanges(true);
+    if (!ecs::ecs_is_in_init_phase) // FIXME: this is ugly but otherwise it might crashes on unresolved sq ESes
+      g_entity_mgr->performTrackChanges(true);
     return true;
   }
 

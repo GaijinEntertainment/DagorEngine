@@ -22,7 +22,6 @@ float4 prev_globtm_no_ofs_psf_3;
 //float4 prev_view_vecRT;
 //float4 prev_view_vecLB;
 //float4 prev_view_vecRB;
-float4 reprojected_world_view_pos;
 int skies_frustum_scattering_frame;
 int skies_continue_temporal = 1;
 float4 prepare_origin;
@@ -103,8 +102,7 @@ macro SKIES_VIEW_LUT_TEX_PREPARE(code)
       if (skies_panoramic_scattering)
         view = get_panoramic_scattering_view(texcoord);
       float4 reprojectedViewVec = mul(float4(viewVect*100, 0), prev_globtm_no_ofs_psf);
-      //reprojectedViewVec = mul(float4(view*1000, 0), globtm);
-      //float4 prevClip = reprojected_world_view_pos + reprojectedViewVec;
+      //float4 reprojectedViewVec = mul(float4(viewVect*100, 1), prev_globtm_no_ofs_psf);
       float4 prevClip = reprojectedViewVec;
       float2 prevScreen = prevClip.w > 0 ? prevClip.xy*rcp(prevClip.w) : float2(2,2);
       float2 prevUV = prevScreen.xy*float2(0.5, -0.5) + float2(0.5, 0.5);

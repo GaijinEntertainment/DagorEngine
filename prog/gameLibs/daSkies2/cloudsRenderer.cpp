@@ -373,12 +373,14 @@ void CloudsRenderer::renderDirect(CloudsRendererData &data)
 }
 /*static*/ void CloudsRenderer::set_program(ShaderElement *oe, ShaderElement *ne)
 {
-  uint32_t program, state_index;
+  uint32_t program;
+  ShaderStateBlockId state_index;
   shaders::RenderStateId rstate;
   shaders::ConstStateIdx cstate;
   shaders::TexStateIdx tstate;
   int curVariant = get_dynamic_variant_states(ne->native(), program, state_index, rstate, cstate, tstate);
-  uint32_t program2, state_index2;
+  uint32_t program2;
+  ShaderStateBlockId state_index2;
   shaders::RenderStateId rstate2;
   shaders::ConstStateIdx cstate2;
   shaders::TexStateIdx tstate2;

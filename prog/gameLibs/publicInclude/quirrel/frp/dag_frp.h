@@ -18,6 +18,7 @@
 #include <sqrat.h>
 #include <squirrel/vartrace.h>
 #include <memory/dag_fixedBlockAllocator.h>
+#include <osApiWrappers/dag_spinlock.h>
 
 
 class SqModules;
@@ -25,6 +26,7 @@ class SqModules;
 namespace sqfrp
 {
 class ScriptValueObservable;
+void graph_viewer();
 
 
 class NotifyQueue
@@ -67,8 +69,10 @@ class ObservablesGraph
   ComputedValue *allocComputed(Args &&...args);
 
 public:
-  ObservablesGraph(HSQUIRRELVM vm_, int compute_pool_initial_size = 1024);
+  ObservablesGraph(HSQUIRRELVM vm_, const char *graph_name, int compute_pool_initial_size = 1024);
   ~ObservablesGraph();
+
+  void setName(const char *name);
 
   // Note: wrapper for bin compat across different SQ_VAR_TRACE_ENABLED libs
   ScriptValueObservable *allocScriptValueObservable();
@@ -117,8 +121,10 @@ private:
 
 public:
   HSQUIRRELVM vm = nullptr;
-  eastl::hash_set<BaseObservable *> allObservables;
+  SimpleString graphName;
 
+  eastl::hash_set<BaseObservable *> allObservables;
+  OSSpinlock allObservablesLock;        //< this is for external access, the graph only locks it when adding/removing observables
   bool observablesListModified = false; //< to protect against iterator invalidation
 
   NotifyQueue notifyQueueCache;
@@ -177,6 +183,7 @@ public:
   virtual ~BaseObservable();
 
   ComputedValue *getComputed() { return isComputed ? (ComputedValue *)this : nullptr; }
+  const ComputedValue *getComputed() const { return isComputed ? (const ComputedValue *)this : nullptr; }
 
   bool triggerRoot(String &err_msg, bool call_subscribers = true);
 
@@ -199,6 +206,8 @@ public:
   void collectScriptSubscribers(Tab<SubscriberCall> &container) const;
 
 protected:
+  friend void graph_viewer();
+
   // all flags
   union
   {
@@ -390,6 +399,7 @@ private:
 
 protected:
   friend class ObservablesGraph;
+  friend void graph_viewer();
   Sqrat::Function func;
   dag::Vector<ComputedSource> sources;
   eastl::vector_set<ComputedValue *> implicitSources;
@@ -398,5 +408,9 @@ protected:
 void bind_frp_classes(SqModules *module_mgr);
 
 extern bool throw_frp_script_errors;
+
+dag::Vector<ObservablesGraph *> get_all_graphs();
+
+extern int pull_frp_imgui; // reference this to link imgui graph viewer module
 
 } // namespace sqfrp

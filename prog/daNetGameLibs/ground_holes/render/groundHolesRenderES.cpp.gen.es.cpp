@@ -177,7 +177,7 @@ static ecs::EntitySystemDesc ground_holes_convar_helper_es_es_desc
   empty_span(),
   ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
   0
-,"dev,render",nullptr,"ground_holes_before_render","animchar_before_render_es");
+,"dev,render",nullptr,"ground_holes_before_render_es","animchar_before_render_es");
 static constexpr ecs::ComponentDesc ground_holes_render_when_event_es_comps[] =
 {
 //start of 1 rw components at [0]

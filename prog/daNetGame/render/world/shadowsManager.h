@@ -69,13 +69,12 @@ public:
     CSM_MAX_CASCADES = 4,
     CSM_DYNAMIC_ONLY_CASCADE = 3,
     MAX_NUM_STATIC_SHADOWS_CASCADES = 2,
-    MAX_NUM_STATIC_SHADOWS_VISIBILITY_JOBS = 16,
   };
 
   ShadowsManager(IShadowInfoProvider &provider, ClusteredLights &lights);
 
   void renderGroundShadows(const Point3 &origin, int displacement_subdiv, const Frustum &culling_frustum);
-  void renderStaticShadows(
+  void renderStaticShadowsRegion(
     const mat44f &culling_view_proj, const TMatrix4 &shadow_glob_tm, const TMatrix &view_itm, int cascade, int region);
   void renderShadowsOpaque(int shadow_cascade, bool only_dynamic, const TMatrix &itm, const Point3 &cam_pos);
 

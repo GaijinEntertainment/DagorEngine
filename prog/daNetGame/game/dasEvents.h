@@ -12,6 +12,7 @@
 /// native_events
 
 ECS_BROADCAST_EVENT_TYPE(ChangeServerRoute, /*currentIsUnresponsive*/ bool);
+ECS_UNICAST_EVENT_TYPE(CmdUpdateGridScale);
 ECS_BROADCAST_EVENT_TYPE(EventAnyEntityResurrected, /*eid*/ ecs::EntityId);
 ECS_BROADCAST_EVENT_TYPE(EventGameSessionFinished, /*disconnected*/ bool);
 ECS_BROADCAST_EVENT_TYPE(EventGameSessionStarted);

@@ -108,9 +108,6 @@ include "clipmap_common_inc.dshl"
 
 shader rendinst_clipmap, rendinst_landclass
 {
-  static int material_pn_triangulation = 1 no_warnings;
-  interval material_pn_triangulation : off < 1, on;
-
   static int material_grassify = 0 no_warnings;
   interval material_grassify : off < 1, on;
 
@@ -119,6 +116,7 @@ shader rendinst_clipmap, rendinst_landclass
 
   if (shader == rendinst_landclass)
   {
+    static int material_pn_triangulation = 1 no_warnings;
     static float max_tessellation_factor = 40 no_warnings;
     static float max_tessellation_quality = 30 no_warnings;
     static float max_dispacement_distance = 30 no_warnings;
@@ -127,6 +125,7 @@ shader rendinst_clipmap, rendinst_landclass
   }
   else
   {
+    static int material_pn_triangulation = 0 no_warnings;
     assume material_has_edge_vcol_mask = no;
     static float max_tessellation_factor = 60 no_warnings;
     static float max_tessellation_quality = 30 no_warnings;
@@ -134,6 +133,7 @@ shader rendinst_clipmap, rendinst_landclass
     static float min_dispacement_distance = 0 no_warnings;
     static float tessellation_transition_distance = 1.0 no_warnings;
   }
+  interval material_pn_triangulation : off < 1, on;
 
   bool global_tessellation_enabled = (in_editor_assume == yes && object_tess_factor == object_tess_factor_on) || (in_editor_assume != yes && hmap_object_tess_factor == hmap_object_tess_factor_on);
   bool pn_triangulation_enabled =

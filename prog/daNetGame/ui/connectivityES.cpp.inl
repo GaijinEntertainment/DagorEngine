@@ -14,7 +14,6 @@ using namespace ui;
 
 
 ECS_TAG(ui, render, netClient)
-ECS_BEFORE(ui_render)
 ECS_AFTER(animchar_before_render_es) // require for execute animchar_before_render_es as early as possible
 static void connectivity_state_es(const UpdateStageInfoBeforeRender & /*brinfo*/, int &ui_state__connectivity)
 {

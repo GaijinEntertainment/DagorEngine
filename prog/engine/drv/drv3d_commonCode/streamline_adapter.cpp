@@ -55,7 +55,7 @@ void loadInterposer(void *module)
 {
 #define LOAD_FUNC(x)                                                         \
   sl_funcs::x = reinterpret_cast<PFun_##x *>(os_dll_get_symbol(module, #x)); \
-  G_ASSERTF(sl_funcs::x, "SL: Failed to load function " #x);
+  G_ASSERTF(sl_funcs::x, "sl: Failed to load function " #x);
 
   LOAD_FUNC(slInit);
   LOAD_FUNC(slShutdown);
@@ -111,7 +111,8 @@ static void logMessageCallback(sl::LogType type, const char *msg)
     return LOGLEVEL_FATAL;
   };
 
-  logmessage(toDagorLogLevel(type), "Streamline: %s", msg);
+  if (auto length = strlen(msg); length > 2)
+    logmessage(toDagorLogLevel(type), "sl: %.*s", length - 1, msg); // extract the extra \n character
 }
 
 eastl::optional<StreamlineAdapter> StreamlineAdapter::create(StreamlineAdapter::RenderAPI api, SupportOverrideMap support_override)
@@ -125,7 +126,7 @@ eastl::optional<StreamlineAdapter> StreamlineAdapter::create(StreamlineAdapter::
   int appId = ::dgs_get_settings()->getInt("nvidia_app_id", 0);
   if (appId == 0)
   {
-    logdbg("SL: No app ID is set for project.");
+    logdbg("sl: No app ID is set for project.");
     return eastl::nullopt;
   }
 
@@ -133,7 +134,7 @@ eastl::optional<StreamlineAdapter> StreamlineAdapter::create(StreamlineAdapter::
 
   if (!interposer)
   {
-    D3D_ERROR("SL: Could not load Streamline interposer DLL");
+    D3D_ERROR("sl: Could not load Streamline interposer DLL");
     return eastl::nullopt;
   }
 
@@ -169,7 +170,7 @@ eastl::optional<StreamlineAdapter> StreamlineAdapter::create(StreamlineAdapter::
   preferences.renderAPI = toSlRenderApi(api);
   if (SL_FAILED(result, sl_funcs::slInit(preferences, sl::kSDKVersion)))
   {
-    logwarn("SL: Failed to initialize Streamline: %s. DLSS and Reflex will be disabled.", getResultAsStr(result));
+    logwarn("sl: Failed to initialize Streamline: %s. DLSS and Reflex will be disabled.", getResultAsStr(result));
     // slShutdown will set PluginManager::s_status to ePluginsUnloaded to make sure we can try again later
     G_VERIFY(sl_funcs::slShutdown() == sl::Result::eOk);
     return eastl::nullopt;
@@ -190,7 +191,7 @@ void *StreamlineAdapter::hook(void *o)
 {
   if (SL_FAILED(result, sl_funcs::slUpgradeInterface(&o)))
   {
-    D3D_ERROR("SL: Failed to hook device: %s", getResultAsStr(result));
+    D3D_ERROR("sl: Failed to hook device: %s", getResultAsStr(result));
     return nullptr;
   }
   return o;
@@ -470,11 +471,11 @@ bool StreamlineAdapter::evaluateDlss(uint32_t frame_id, int viewportId, const nv
   {
     if (result == sl::Result::eWarnOutOfVRAM)
     {
-      logwarn("SL: DLSS ran out of VRAM. We can still continue but expects severe performance degradation.");
+      logwarn("sl: DLSS ran out of VRAM. We can still continue but expects severe performance degradation.");
     }
     else
     {
-      D3D_ERROR("SL: Failed to evaluate DLSS. Result: %s", getResultAsStr(result));
+      D3D_ERROR("sl: Failed to evaluate DLSS. Result: %s", getResultAsStr(result));
       return false;
     }
   }
@@ -660,7 +661,7 @@ bool StreamlineAdapter::isFrameGenerationSupported() const
   return dlssState == State::READY && isDlssGSupported() == nv::SupportState::Supported;
 }
 
-static void api_error_callback(const sl::APIError &lastError) { D3D_ERROR("Streamline: API error: %d", lastError.hres); }
+static void api_error_callback(const sl::APIError &lastError) { D3D_ERROR("sl: API error: %d", lastError.hres); }
 
 bool StreamlineAdapter::enableDlssG(int viewportId)
 {
@@ -676,7 +677,7 @@ bool StreamlineAdapter::enableDlssG(int viewportId)
   G_ASSERT_RETURN(ok, false);
   if (state.status != sl::DLSSGStatus::eOk)
   {
-    D3D_ERROR("Streamline: Failed to enable DLSS-G. Error %d", eastl::to_underlying(state.status));
+    D3D_ERROR("sl: Failed to enable DLSS-G. Error %d", eastl::to_underlying(state.status));
     disableDlssG(viewportId);
   }
 

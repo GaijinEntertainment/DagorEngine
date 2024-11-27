@@ -57,7 +57,7 @@ def fn_or_block_apply(var func; body; var errors : das_string)
   return true
 
 [macro_function]
-def patch_soa_blocks(fn : smart_ptr<Function>; ast_changed : bool?)
+def patch_soa_blocks(fn : smart_ptr<Function>; var ast_changed : bool?)
   var astVisitor = new PatchSoaBlocks(ast_changed)
   var inscope astVisitorAdapter <- make_visitor(*astVisitor)
   visit(fn, astVisitorAdapter)
@@ -69,7 +69,7 @@ def patch_soa_blocks(fn : smart_ptr<Function>; ast_changed : bool?)
 class PatchSoaBlocks : AstVisitor
   astChanged : bool?
 
-  def PatchSoaBlocks(ast_changed : bool?)
+  def PatchSoaBlocks(var ast_changed : bool?)
     astChanged = ast_changed
 
   def override visitExprBlock(var blk : smart_ptr<ExprBlock>) : ExpressionPtr
@@ -511,12 +511,12 @@ class SoaTemplateStructMacro : AstStructureAnnotation
     var inscope args <- [{ MakeFuncArg[] [[MakeFuncArg argT <- argT]] }]
     return <- make_any_named_call(st, stype, args, name, name, check_sizes)
 
-  def make_named_call(st, stype : StructurePtr; fnName, callName : string; isConst : bool; check_sizes : bool) : FunctionPtr
+  def make_named_call(var st, stype : StructurePtr; fnName, callName : string; isConst : bool; check_sizes : bool) : FunctionPtr
     var inscope argT <- new [[TypeDecl() baseType=Type tStructure, at=st.at, structType=get_ptr(st), flags= isConst ? TypeDeclFlags constant : bitfield(0)]]
     var inscope args <- [{ MakeFuncArg[] [[MakeFuncArg argT <- argT, argField=true]] }]
     return <- make_any_named_call(st, stype, args, fnName, callName, check_sizes)
 
-  def make_named_call2_int(st, stype : StructurePtr; fnName, callName : string; isConst : bool; check_sizes : bool) : FunctionPtr
+  def make_named_call2_int(var st, stype : StructurePtr; fnName, callName : string; isConst : bool; check_sizes : bool) : FunctionPtr
     var inscope argT <- new [[TypeDecl() baseType=Type tStructure, at=st.at, structType=get_ptr(st), flags= isConst ? TypeDeclFlags constant : bitfield(0)]]
     var inscope argT2 <- new [[TypeDecl() baseType=Type tInt, at=st.at]]
     var inscope args <- [{ MakeFuncArg[] [[MakeFuncArg argT <- argT, argField=true]]; [[MakeFuncArg argT <- argT2]] }]

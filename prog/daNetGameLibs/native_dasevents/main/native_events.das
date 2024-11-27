@@ -53,3 +53,6 @@ struct EventKeyFrameSaved
 
 [cpp_event(broadcast, with_scheme)]
 struct RequestSaveKeyFrame {}
+
+[cpp_event(unicast, with_scheme)]
+struct CmdUpdateGridScale {}

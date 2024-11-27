@@ -57,4 +57,4 @@ static ecs::EntitySystemDesc invalidate_shadows_es_event_handler_es_desc
   ecs::EventSetBuilder<ecs::EventEntityDestroyed,
                        ecs::EventComponentsDisappear>::build(),
   0
-,"render",nullptr,"ri_extra_destroyed_es");
+,"render");

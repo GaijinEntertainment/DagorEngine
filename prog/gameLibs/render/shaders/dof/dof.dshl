@@ -6,10 +6,7 @@ include "dof/dof_composite.dshl"
 
 //include "dacloud_mask.dshl"
 
-float4 prevViewProjTm0;
-float4 prevViewProjTm1;
-float4 prevViewProjTm2;
-float4 prevViewProjTm3;
+float4x4 jitteredCamPosToUnjitteredHistoryClip;
 
 texture dof_frame_tex;
 texture dof_downsampled_frame_tex;
@@ -94,7 +91,7 @@ shader dof_downsample
   }
   (ps) {
     dof_focus_params@f4 = dof_focus_params;
-    prevViewProjTm@f44 = { prevViewProjTm0, prevViewProjTm1, prevViewProjTm2, prevViewProjTm3 };
+    jitteredCamPosToUnjitteredHistoryClip@f44 = jitteredCamPosToUnjitteredHistoryClip;
     downsampled_close_depth_tex@smp2d = dof_downsampled_close_depth_tex;
     downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex;
     dof_coc_history@smp2d = dof_coc_history;
@@ -126,7 +123,7 @@ shader dof_downsample
       float linearDepth = linearize_z(rawDepth, zn_zfar.zw);
       float3 viewVec = getViewVecOptimized(uv);
       float3 cameraToPoint = viewVec * linearDepth;
-      return get_reprojected_motion_vector(float3(uv, linearDepth), cameraToPoint, prevViewProjTm).xy;
+      return get_reprojected_motion_vector1(float3(uv, linearDepth), cameraToPoint, jitteredCamPosToUnjitteredHistoryClip).xy;
     }
 
     OutDownscaleDof dof_downsample_ps(VsOutput IN HW_USE_SCREEN_POS)

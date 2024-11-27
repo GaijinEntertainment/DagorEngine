@@ -79,10 +79,10 @@ public:
   ShaderMaterial *clone() const override;
   void recreateMat(bool delete_programs = true);
 
-  bool set_int_param(const int variable_id, const int v);
-  bool set_real_param(const int variable_id, const real v);
-  bool set_color4_param(const int variable_id, const Color4 &val);
-  bool set_texture_param(const int variable_id, const TEXTUREID v);
+  bool set_int_param(const int variable_id, const int v) override;
+  bool set_real_param(const int variable_id, const real v) override;
+  bool set_color4_param(const int variable_id, const Color4 &val) override;
+  bool set_texture_param(const int variable_id, const TEXTUREID v) override;
 
   bool hasVariable(const int variable_id) const override;
   bool getColor4Variable(const int variable_id, Color4 &value) const override;

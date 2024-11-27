@@ -206,16 +206,17 @@ VirtualRomFsData *make_non_intrusive_vromfs(dag::ConstSpan<char> dump, IMemAlloc
   memcpy(&fs_copy.files, fs_data_start, sizeof(fs_copy) - FS_OFFS); //-V780
   fs_copy.data.patch(nullptr);
 
-  vrom_hdr_sz += data_size(fs_copy.data) + (intptr_t)fs_copy.data.data();
+  size_t fs_data_to_copy_sz = data_size(fs_copy.data) + (intptr_t)fs_copy.data.data();
+  vrom_hdr_sz += fs_data_to_copy_sz;
   if (out_hdr_sz)
     *out_hdr_sz = (unsigned)vrom_hdr_sz;
   if (out_signature_ofs)
     *out_signature_ofs = dump.size() > hdr->fullSz ? hdr->fullSz : -1;
 
-  VirtualRomFsData *fs = new (mem->tryAlloc(FS_OFFS + vrom_hdr_sz), _NEW_INPLACE) VirtualRomFsData;
+  VirtualRomFsData *fs = new (mem->tryAlloc(FS_OFFS + fs_data_to_copy_sz), _NEW_INPLACE) VirtualRomFsData;
   if (!fs)
     return nullptr;
-  memcpy(&fs->files, fs_data_start, vrom_hdr_sz); //-V780
+  memcpy(&fs->files, fs_data_start, fs_data_to_copy_sz); //-V780
   if (hdr_ext)
   {
     fs->flags = hdr_ext->flags;

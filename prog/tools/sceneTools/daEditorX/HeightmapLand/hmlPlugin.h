@@ -628,6 +628,7 @@ public:
   void selectLayerObjects(int lidx, bool sel = true);
   void moveObjectsToLayer(int lidx, dag::Span<RenderableEditableObject *> objects);
 
+  void onObjectSelectionChanged(RenderableEditableObject *obj);
   void onObjectsRemove();
 
 private:

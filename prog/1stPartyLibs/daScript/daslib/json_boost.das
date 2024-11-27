@@ -415,7 +415,7 @@ def JV(value): JsonValue?
     static_if typeinfo(is_dim value)
         var arr: array<JsonValue?>
         for t in value
-            arr |> push_clone(JV(t))
+            arr |> push(JV(t))
         return _::JV(arr)
     static_if typeinfo(typename value) == "json::JsonValue?" || typeinfo(typename value) == "json::JsonValue? const"
         return value
@@ -446,7 +446,7 @@ def JV(value): JsonValue?
     static_elif typeinfo(is_iterable value)
         var arr: array<JsonValue?>
         for x in value
-            arr |> push_clone <| _::JV(x)
+            arr |> push <| _::JV(x)
         return _::JV(arr)
     static_elif typeinfo(is_variant value)
         var map: table<string; JsonValue?>

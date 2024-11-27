@@ -92,7 +92,7 @@ dabfg::NodeHandle mk_frame_data_setup_node()
         wr.currentFrameCamera.jitterGlobtm = TMatrix4(wr.currentFrameCamera.viewTm) * wr.currentFrameCamera.jitterProjTm;
         wr.currentFrameCamera.jitterFrustum = wr.currentFrameCamera.jitterGlobtm;
 
-        wr.updateTransformations(jitterOffset);
+        wr.updateTransformations(jitterOffset, wr.currentFrameCamera.cameraWorldPos - wr.prevFrameCamera.cameraWorldPos);
       }
 
       occlusionHndl.ref() = current_occlusion;

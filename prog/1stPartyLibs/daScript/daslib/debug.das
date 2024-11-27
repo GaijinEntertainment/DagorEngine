@@ -176,7 +176,7 @@ class DAWalker: DapiDataWalker
                 return false
         return true
 
-    def override beforeStructure(ps: void?; si: StructInfo): void
+    def override beforeStructure(ps: void const?; si: StructInfo): void
         visited |> emplace([[auto ps, si.hash]])
 
     def override beforeStructureField(ps:void?; si: StructInfo; pv: void?; vi:VarInfo; last: bool): void
@@ -582,7 +582,9 @@ class private DAStackWalker: DapiStackWalker
         let iblock = intptr(pp._block)
         let isBlock = (iblock & 1ul) != 0ul
         let funcInfo = isBlock ? [[FuncInfo?]] : pp.info
-        ctx.stack |> emplace([[DAStackFrame() func=funcInfo, isBlock=isBlock, spAddr=intptr(sp) ]])
+        ctx.stack |> emplace([[DAStackFrame()
+            func=unsafe(reinterpret<FuncInfo?> funcInfo),
+            isBlock=isBlock, spAddr=intptr(sp) ]])
 
     def override onVariable(inf: FuncInfo; vinfo: LocalVariableInfo; arg: void?; inScope: bool): void
         if !inScope
@@ -858,7 +860,7 @@ class private DAgent: DapiDebugAgent
                 ctxData |> reset_debug_flags()
         self->onPause(ctx, at, reason, text)
 
-    def beforePause(ctxData: DAContext; at: LineInfo)
+    def beforePause(var ctxData: DAContext; at: LineInfo)
         pauseCtx = ctxData.ctx
         pauseAt = unsafe(addr(at))
         evalFrame.varId = 1000ul //EVAL_POOL

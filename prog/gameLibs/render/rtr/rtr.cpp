@@ -56,6 +56,7 @@ static int rtr_fom_shadowVarId = -1;
 static int rtr_res_mulVarId = -1;
 static int rtr_checkerboardVarId = -1;
 static int rt_nrVarId = -1;
+static int rt_cockpit_relfection_powerVarId = -1;
 static int downsampled_close_depth_texVarId = -1;
 static int denoiser_glass_history_confidence_tweakVarId = -1;
 static int denoiser_view_zVarId = -1;
@@ -93,7 +94,7 @@ static PostFxRenderer *validation_renderer;
 
 inline int divide_up(int x, int y) { return (x + y - 1) / y; }
 
-void initialize(bool half_res, bool checkerboard_)
+void initialize(bool half_res, bool checkerboard_, float cockpit_reflection_power)
 {
   if (!bvh::is_available())
     return;
@@ -119,11 +120,13 @@ void initialize(bool half_res, bool checkerboard_)
   rtr_fom_shadowVarId = get_shader_variable_id("rtr_fom_shadow", true);
   rtr_checkerboardVarId = get_shader_variable_id("rtr_checkerboard", true);
   rt_nrVarId = get_shader_variable_id("rt_nr");
+  rt_cockpit_relfection_powerVarId = get_shader_variable_id("rt_cockpit_relfection_power");
   downsampled_close_depth_texVarId = get_shader_variable_id("downsampled_close_depth_tex");
   denoiser_glass_history_confidence_tweakVarId = get_shader_variable_id("denoiser_glass_history_confidence_tweak", true);
   denoiser_view_zVarId = get_shader_variable_id("denoiser_view_z", true);
   ShaderGlobal::set_int(rtr_res_mulVarId, half_res ? 2 : 1);
   ShaderGlobal::set_int(rtr_checkerboardVarId, checkerboard_ ? 1 : 0);
+  ShaderGlobal::set_real(rt_cockpit_relfection_powerVarId, cockpit_reflection_power);
 
   if (!trace)
     trace = new_compute_shader("rt_reflection");
@@ -145,8 +148,9 @@ void initialize(bool half_res, bool checkerboard_)
   TextureInfo ti;
   reflection_value->getinfo(ti);
 
-  tiles = dag::create_tex(nullptr, divide_up(ti.w / (checkerboard_ ? 2 : 1), 8), divide_up(ti.h, 8), TEXCF_UNORDERED | TEXFMT_R8UI, 1,
-    "rtr_tiles");
+  int checkerboardWidth = divide_up(ti.w, 2);
+  tiles = dag::create_tex(nullptr, divide_up(checkerboard_ ? checkerboardWidth : ti.w, 8), divide_up(ti.h, 8),
+    TEXCF_UNORDERED | TEXFMT_R8UI, 1, "rtr_tiles");
 
   validation_texture = dag::create_tex(nullptr, ti.w, ti.h, TEXCF_UNORDERED, 1, "rtr_validation_texture");
 
@@ -321,6 +325,7 @@ inline const char *operator!(denoiser::ReflectionMethod mode)
 
 static void imguiWindow()
 {
+  static float glass_cockpit_reflection_power = 0.4;
   ImGui::SliderFloat("Water ray length", &water_ray_length, 0.01f, 5000);
   ImGui::SliderFloat("Gloss ray length", &gloss_ray_length, 0.01f, 5000);
   ImGui::SliderFloat("Rough ray length", &rough_ray_length, 0.01f, 5000);
@@ -334,6 +339,7 @@ static void imguiWindow()
   ImGui::SliderFloat("hitDistanceAntilagPower", &al_hit_distance_antilag_power, 0, 1);
 
   ImGui::SliderFloat("Glass tweak", is_half_res ? &glass_tweak_half : &glass_tweak_full, 0, 1);
+  ImGui::SliderFloat("Cockpit reflection power", &glass_cockpit_reflection_power, 0, 1);
   ShaderGlobal::set_real(denoiser_glass_history_confidence_tweakVarId, is_half_res ? glass_tweak_half : glass_tweak_full);
 
   ImGui::SliderFloat("Classify 64 treshold", &classify_treshold1, 0, 0.5);
@@ -355,7 +361,7 @@ static void imguiWindow()
   if (oldType != output_type)
   {
     teardown();
-    initialize(is_half_res, checkerboard);
+    initialize(is_half_res, checkerboard, glass_cockpit_reflection_power);
   }
 
   ImGui::Separator();

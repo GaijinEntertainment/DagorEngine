@@ -23,9 +23,6 @@ static constexpr int BAD_PROGRAM = -1;
 typedef int PALID;
 static constexpr int BAD_PALID = -1;
 
-typedef int STATEBLOCK;
-static constexpr int BAD_STATEBLOCK = -1;
-
 typedef int VPRTYPE;
 typedef unsigned long FSHTYPE;
 typedef unsigned long VSDTYPE;

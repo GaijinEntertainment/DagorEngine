@@ -240,12 +240,14 @@ static void grid_obj_verify_server_es(const ecs::Event &, ecs::EntityId eid, Gri
 }
 
 ECS_ON_EVENT(on_appear)
-ECS_REQUIRE(GridObjComponent &grid_obj)
-void grid_obj_init_tm_scale_es_event_handler(const ecs::Event &, const TMatrix &transform, float &grid_obj__fixedTmScale)
+ECS_ON_EVENT(CmdUpdateGridScale)
+void grid_obj_init_tm_scale_es_event_handler(const ecs::Event &, GridObjComponent &grid_obj, const TMatrix &transform,
+  float &grid_obj__fixedTmScale)
 {
   mat44f tm;
   v_mat44_make_from_43cu_unsafe(tm, transform.array);
   grid_obj__fixedTmScale = v_extract_x(v_mat44_max_scale43_x(tm));
+  grid_obj.wbsph = v_insert_w(grid_obj.wbsph, 0.f);
 }
 
 ECS_TRACK(transform)

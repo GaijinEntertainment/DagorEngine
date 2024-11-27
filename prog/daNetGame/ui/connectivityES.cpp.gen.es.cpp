@@ -27,4 +27,4 @@ static ecs::EntitySystemDesc connectivity_state_es_es_desc
   empty_span(),
   ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
   0
-,"netClient,render,ui",nullptr,"ui_render","animchar_before_render_es");
+,"netClient,render,ui",nullptr,nullptr,"animchar_before_render_es");

@@ -34,7 +34,10 @@ static dabfg::NodeHandle gen_gtao_node(int w, int h, uint32_t gtao_flags)
     };
 
     bindShaderVar("downsampled_close_depth_tex", "close_depth");
-    registry.read("close_depth_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("downsampled_close_depth_tex_samplerstate");
+    registry.read("close_depth_sampler")
+      .blob<d3d::SamplerHandle>()
+      .bindToShaderVar("downsampled_close_depth_tex_samplerstate")
+      .bindToShaderVar("prev_downsampled_close_depth_tex_samplerstate");
 
     bindHistoryShaderVar("prev_downsampled_close_depth_tex", "close_depth");
 

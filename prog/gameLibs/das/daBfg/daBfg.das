@@ -364,20 +364,20 @@ def useDasCtorDtor(var t : TypeDeclPtr) : bool
   return !t.isPod && isDasNative(t)
 
 [macro_function]
-def private tryAddBlobSpecializations(var blobType : TypeDeclPtr) : void
+def private tryAddBlobSpecializations(var blobType : TypeDeclPtr; hasDefValue : bool) : void
   let mangledBlobTypeName = get_mangled_name(blobType)
   let blobTypeHash = hash(mangledBlobTypeName)
 
   // We add 2 new types per blob type: blob request and blob handle
   var inscope vrr_type <- typeinfo(ast_typedecl type<VirtualResourceRequest>)
-  let vrrBase = vrr_type.structType
+  var vrrBase = vrr_type.structType
   var inscope blobRequestStruct <- clone_structure(vrrBase)
   blobRequestStruct.name := "VirtualBlobRequest`{blobTypeHash}"
   blobRequestStruct.parent := vrrBase
   blobRequestStruct.flags |= StructureFlags generated
 
   var inscope vrhb_type <- typeinfo(ast_typedecl type<VirtualResourceHandleBase>)
-  let vrhBase = vrhb_type.structType
+  var vrhBase = vrhb_type.structType
   var inscope blobHandleStruct <- clone_structure(vrhBase)
   blobHandleStruct.name := "VirtualBlobHandle`{blobTypeHash}"
   blobHandleStruct.parent := vrhBase
@@ -430,6 +430,18 @@ def private tryAddBlobSpecializations(var blobType : TypeDeclPtr) : void
       }
     compiling_module() |> add_function(blobCopyFn)
 
+  if hasDefValue
+    var inscope exprReinterpret <- qmacro(unsafe(reinterpret<$t(blobType)?> self))
+    // NOTE: some project use the "please error out if some optimizations
+    // were not possible due to aliasing restrictions" mode, so we need to
+    // explicitly say that no aliasing is happening here, hence the `assumeNoAlias`
+    var inscope exprDeref <- new [[ExprPtr2Ref() subexpr <- exprReinterpret, assumeNoAlias=true]]
+    var inscope blobDefCtorFn <- qmacro_function("ctor_def`{blobTypeHash}") <| \
+      $(var self : void?; def_value : $t(blobType)) : void {
+        $e(exprDeref) <- def_value;
+      }
+    compiling_module() |> add_function(blobDefCtorFn)
+
   compiling_module() |> add_structure(blobRequestStruct)
   compiling_module() |> add_structure(blobHandleStruct)
 
@@ -453,7 +465,13 @@ class BlobMacro : AstCallMacro
                  "First argument of function-like macro `blob` must be a resource request, \
                   e.g. registry |> read(\"sea_level\") or registry |> create(\"sea_level\", History No)")
 
+    let hasValue = !(expr.arguments[1] is ExprTypeDecl)
     var inscope blobType := expr.arguments[1]._type
+    if hasValue
+      blobType.flags &= ~TypeDeclFlags constant
+      blobType.flags &= ~TypeDeclFlags ref
+      blobType.flags &= ~TypeDeclFlags explicitRef
+    assume arg1 = expr.arguments[1]
 
     macro_verify(blobType != null, prog, expr.at,
                  "Unknown blob type! Perhaps you forgot to require the module that contains it? Got `{describe(expr.arguments[1])}`")
@@ -461,8 +479,11 @@ class BlobMacro : AstCallMacro
                  "Blob type must not be void! Got '{describe(blobType)}'")
     macro_verify(!blobType.isConst, prog, expr.at,
                  "Blob type must not be a constant! Got {describe(blobType)}")
+    // hasValue -> !useDasCtorDtor(blobType)
+    macro_verify(!hasValue || !useDasCtorDtor(blobType), prog, expr.at,
+                 "Non-pod types are not supported yet! Got {describe(blobType)}")
 
-    tryAddBlobSpecializations(blobType)
+    tryAddBlobSpecializations(blobType, hasValue)
 
     let mangledBlobTypeName = get_mangled_name(blobType)
     let blobTypeHash = hash(mangledBlobTypeName)
@@ -475,7 +496,13 @@ class BlobMacro : AstCallMacro
       return <- qmacro_expr <| ${
           $(var self : VirtualResourceCreationSemiRequest) {
             $(var res : ResourceData&) {
-              static_if $v(useDasCtorDtor(blobType)) {
+              static_if $v(hasValue) {
+                let ctor <- @(var self1 : void?){ ($c("ctor_def`{blobTypeHash}")(self1, $e(arg1))); };
+                let nullFunc = [[function<(var arg0 : void?) : void>]];
+                let nullCopyFunc = [[function<(var arg0 : void?; arg1 : void const?) : void>]];
+                res |> setDescription($v(mangledBlobTypeName), $v(blobType.sizeOf), $v(blobType.alignOf), getTypeInfo(type<$t(blobType)>),
+                  ctor, nullFunc, nullCopyFunc);
+              } static_elif $v(useDasCtorDtor(blobType)) {
                 res |> setDescription($v(mangledBlobTypeName), $v(blobType.sizeOf), $v(blobType.alignOf),
                   getTypeInfo(type<$t(blobType)>), @@$c("ctor`{blobTypeHash}"), @@$c("dtor`{blobTypeHash}"), @@$c("copy`{blobTypeHash}"));
               } else {

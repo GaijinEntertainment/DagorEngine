@@ -91,10 +91,10 @@ class LintVisitor : AstVisitor
             else
                 self->lint_error("variable {v.name}: {describe(v._type)} is never used (be careful, initializer has side effects)", v.at)
             return
-        if can_make_const && v._type.baseType != Type tPointer && !v._type.flags.constant && !v._type.flags.removeConstant && !v.access_flags.access_ref// && !v._type.flags.smartPtr
+        if can_make_const && v._type.baseType != Type tPointer && !v._type.flags.constant && !v._type.flags.removeConstant && !v.access_flags.access_ref && v._type.canCloneFromConst// && !v._type.flags.smartPtr
             self->lint_error("variable {v.name}: {describe(v._type)} can be made const (declare with 'let')", v.at)
             return
-        if can_make_const && v._type.baseType == Type tPointer && !v._type.flags.constant && !v._type.flags.removeConstant && !(v.access_flags.access_ref || v.access_flags.access_pass)
+        if can_make_const && v._type.baseType == Type tPointer && !v._type.flags.constant && !v._type.flags.removeConstant && !(v.access_flags.access_ref || v.access_flags.access_pass) && v._type.canCloneFromConst
             self->lint_error("variable {v.name}: {describe(v._type)} can be made const (declare with 'let')", v.at)
             return
 

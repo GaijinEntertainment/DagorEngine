@@ -368,7 +368,7 @@ void ScreenSpaceProbes::additional_probes_placement()
   d3d::resource_barrier({tileClassificator.getBuf(), RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE | RB_FLUSH_UAV});
   DA_PROFILE_GPU;
   const int iterations =
-    min<int>(sp_placement_probes_iterations < 0 ? max<int>(1, get_bigger_log2(current.tileSize) - 2) : sp_placement_probes_iterations,
+    min<int>(sp_placement_probes_iterations < 0 ? max<int>(1, get_bigger_log2(current.tileSize) - 1) : sp_placement_probes_iterations,
       SP_MAX_ADDITIONAL_PROBES_COUNT);
   for (int i = 0; i < iterations; ++i)
   {

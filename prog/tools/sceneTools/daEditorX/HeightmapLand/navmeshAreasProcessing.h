@@ -11,6 +11,7 @@ public:
   void onChange(int pcb_id);
   void onClick(int pcb_id);
   void onObjectsRemove();
+  void onSplineSelectionChanged(SplineObject *obj);
   void setPropPanel(PropPanel::ContainerPropertyControl *prop_panel);
   void fillNavmeshAreasPanel();
 

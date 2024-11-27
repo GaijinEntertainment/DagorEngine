@@ -4513,7 +4513,6 @@ void das2_collect_keywords ( Module * mod, yyscan_t yyscanner ) {
 }
 
 void das2_yybegin(const char * str, uint32_t len, yyscan_t yyscanner ) {
-    printf("DAS VERSION 2 SYNTAX\n");
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
     yyextra->g_thisStructure = nullptr;
     yyextra->das_module_alias.clear();

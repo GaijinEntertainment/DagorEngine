@@ -244,7 +244,12 @@ private:
   Point2 cursorPosition(Cursor *cursor) const;
   void updateActiveCursor();
   bool updateHotkeys();
-  void updateJoystickAxesObservables();
+  void doUpdateJoystickAxesObservables();
+  void updateJoystickAxesObservables()
+  {
+    if (!joyAxisObservables.empty())
+      doUpdateJoystickAxesObservables();
+  }
 
   enum class FlushPart
   {
@@ -375,7 +380,7 @@ private:
   eastl::unique_ptr<sqfrp::ScriptValueObservable> hoveredClickableInfo;
   eastl::unique_ptr<sqfrp::ScriptValueObservable> keyboardLayout, keyboardLocks;
   eastl::unique_ptr<sqfrp::ScriptValueObservable> updateCounter;
-  eastl::vector<eastl::unique_ptr<JoystickAxisObservable>> joyAxisObservables;
+  dag::Vector<JoystickAxisObservable> joyAxisObservables;
   eastl::vector_set<Cursor *> allCursors;
 
   dag::Vector<Element *> invalidatedElements;

@@ -594,7 +594,7 @@ void RenderPassResource::fillAttachmentDescription(const RenderPassDesc &rp_desc
 #endif
           }
           else
-            desc.storeOp = desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            desc.storeOp = desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
         }
 
         // TODO: implement layout transition at pass end

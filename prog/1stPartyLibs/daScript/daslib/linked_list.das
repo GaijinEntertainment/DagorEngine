@@ -16,7 +16,7 @@ class %ListClass
     def %ListClass
         head = null
         tail = null
-    def add ( data : %Foo? )
+    def add ( var data : %Foo? )
         var node = new [[LLNode_%ListClass data=data]]
         if head == null
             head = node

@@ -85,7 +85,8 @@ namespace FW
 				}
 #			else
 				{
-					int count = WideCharToMultiByte(CP_ACP, 0, pNotify->FileName,
+					// dagor patch: convert wide char to utf8 to be able to manage it on user side
+					int count = WideCharToMultiByte(CP_UTF8, 0, pNotify->FileName,
 						pNotify->FileNameLength / sizeof(WCHAR),
 						szFile, MAX_PATH - 1, NULL, NULL);
 					szFile[count] = TEXT('\0');

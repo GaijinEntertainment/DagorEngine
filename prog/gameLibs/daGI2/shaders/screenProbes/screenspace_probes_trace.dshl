@@ -36,7 +36,7 @@ macro SP_JITTER_POS(code)
     float2 returnJitterOffset(uint2 tile_coord, uint2 rand, uint frame)
     {
       //fixme: skip
-      return TEMPORAL_PROBES_FRAMES ? hammersley_rand16(frame, TEMPORAL_PROBES_FRAMES, rand) : 0.5;
+      return TEMPORAL_PROBES_FRAMES > 1 ? hammersley_rand16(frame, TEMPORAL_PROBES_FRAMES, rand) : 0.5;
       //return TEMPORAL_PROBES_FRAMES ? hammersley_rand16((uint(screenspace_probes_temporal.y))&(TEMPORAL_PROBES_FRAMES-1), TEMPORAL_PROBES_FRAMES, rand) : 0.5;
     }
   }

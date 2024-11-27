@@ -119,6 +119,7 @@ static void prepare_for_render(AnimV20::AnimcharRendComponent &animchar_render)
 
   scene->savePrevNodeWtm();
   animchar_render.setSceneBeforeRenderCalled(false); // so we can still call animchar.render()
+  scene->clearNodeCollapser();
 }
 
 
@@ -229,7 +230,7 @@ static __forceinline void animchar_before_render_es(const UpdateStageInfoBeforeR
 
         animchar_visbits |= VISFLG_MAIN_AND_SHADOW_VISIBLE;
 
-        // we have to call it here, as otherwise node collapser won't work
+        // we have to call it here, as otherwise node collapser won't work // probably no longer true
         prepare_for_render(animchar_render);
 
         DynamicRenderableSceneInstance *scene = animchar_render.getSceneInstance();
@@ -286,7 +287,7 @@ void preprocess_visible_animchars_in_frustum(
 
   animchar_visbits |= VISFLG_RENDER_CUSTOM;
 
-  // we have to call it here, as otherwise node collapser won't work
+  // we have to call it here, as otherwise node collapser won't work // probably no longer true
   prepare_for_render(animchar_render);
 
   DynamicRenderableSceneInstance *scene = animchar_render.getSceneInstance();
@@ -455,7 +456,8 @@ static void animchar_render_opaque_async_es(const AnimcharRenderAsyncEvent &stg_
     G_ASSERT(!animchar_render__nodeVisibleStgFilters || pathFilterSize == scene->getNodeCount());
     state.process_animchar(0, ShaderMesh::STG_imm_decal, scene, additionalData, additionalDataSize, needPreviousMatrices, nullptr,
       filter, pathFilterSize, stg.filterMask, needImmediateConstPS,
-      animchar__renderPriority ? dynmodel_renderer::HIGH : dynmodel_renderer::DEFAULT, stg.globVarsState, stg.texCtx);
+      animchar__renderPriority ? dynmodel_renderer::RenderPriority::HIGH : dynmodel_renderer::RenderPriority::DEFAULT,
+      stg.globVarsState, stg.texCtx);
   });
 }
 
@@ -621,7 +623,8 @@ static void animchar_render_opaque_es(const UpdateStageInfoRender &stg)
       G_ASSERT(!animchar_render__nodeVisibleStgFilters || pathFilterSize == scene->getNodeCount());
       state.process_animchar(0, ShaderMesh::STG_imm_decal, scene, additionalData, additionalDataSize, needPreviousMatrices, nullptr,
         filter, pathFilterSize, stg.hints & (stg.RENDER_SHADOW | stg.RENDER_MAIN), needImmediateConstPS,
-        animchar__renderPriority ? dynmodel_renderer::HIGH : dynmodel_renderer::DEFAULT, nullptr, stg.texCtx);
+        animchar__renderPriority ? dynmodel_renderer::RenderPriority::HIGH : dynmodel_renderer::RenderPriority::DEFAULT, nullptr,
+        stg.texCtx);
     });
 
   if (state.empty())
@@ -807,7 +810,7 @@ static __forceinline void animchar_render_trans_es(const UpdateStageInfoRenderTr
         const uint32_t pathFilterSize = animchar_render__nodeVisibleStgFilters ? animchar_render__nodeVisibleStgFilters->size() : 0;
         G_ASSERT(!animchar_render__nodeVisibleStgFilters || pathFilterSize == scene->getNodeCount());
         state.process_animchar(ShaderMesh::STG_trans, ShaderMesh::STG_trans, scene, nullptr, 0, false, nullptr, filter, pathFilterSize,
-          UpdateStageInfoRender::RENDER_MAIN, false, 0, nullptr, stg.texCtx);
+          UpdateStageInfoRender::RENDER_MAIN, false, RenderPriority::HIGH, nullptr, stg.texCtx);
       }
     });
 
@@ -833,7 +836,7 @@ static __forceinline void animchar_render_distortion_es(const UpdateStageInfoRen
         const uint32_t pathFilterSize = animchar_render__nodeVisibleStgFilters ? animchar_render__nodeVisibleStgFilters->size() : 0;
         G_ASSERT(!animchar_render__nodeVisibleStgFilters || pathFilterSize == scene->getNodeCount());
         state.process_animchar(ShaderMesh::STG_distortion, ShaderMesh::STG_distortion, scene, nullptr, 0, false, nullptr, filter,
-          pathFilterSize, UpdateStageInfoRender::RENDER_MAIN, false, 0, nullptr, stg.texCtx);
+          pathFilterSize, UpdateStageInfoRender::RENDER_MAIN, false, RenderPriority::HIGH, nullptr, stg.texCtx);
       }
     });
 

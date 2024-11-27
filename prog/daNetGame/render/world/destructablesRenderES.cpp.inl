@@ -114,7 +114,7 @@ static __forceinline void destructables_render(int render_pass,
         continue;
 
       state.process_animchar(startStage, endStage, modelDynScene, destr->intialTmAndHash, countof(destr->intialTmAndHash),
-        needPreviousMatrices, nullptr, nullptr, 0, 0, false, 0, nullptr, texCtx);
+        needPreviousMatrices, nullptr, nullptr, 0, 0, false, RenderPriority::HIGH, nullptr, texCtx);
     }
   }
 

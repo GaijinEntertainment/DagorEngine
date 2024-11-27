@@ -7,4 +7,5 @@ return {
   startAppsFlyer = @() null
   getAppsFlyerDeepLink = @() "{}"
   clearAppsFlyerDeepLink = @() null
+  triggerAppsFlyerDeepLink = @() null
 }

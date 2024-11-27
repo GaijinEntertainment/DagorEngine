@@ -1559,7 +1559,10 @@ void dabuild_finish_out_blk(DataBlock &dest, DagorAssetMgr &mgr, const DataBlock
           if (!sblk.blockCount())
             continue;
 
-          assethlp::build_package_dest(mntPoint, export_blk, src_blk.getBlock(p)->getBlockName(), app_dir, ts, profile);
+          String packFnamePrefix;
+          assethlp::build_package_dest_strings(mntPoint, packFnamePrefix, export_blk, src_blk.getBlock(p)->getBlockName(), app_dir, ts,
+            profile);
+
           String abs_fn(0, "%s/%s%s.bin", mntPoint, fn, profile_suffix);
 
           void *m = global_mutex_create(dd_get_fname(fn));
@@ -1592,7 +1595,7 @@ void dabuild_finish_out_blk(DataBlock &dest, DagorAssetMgr &mgr, const DataBlock
                 if (DagorAsset *a = mgr.findAsset(blk.getBlock(j)->getBlockName(), i))
                   blk.getBlock(j)->setInt("__pack", pack_fn.addNameId(a->getDestPackName()));
               for (int j = 0; j < pack_fn.nameCount(); j++)
-                blk.addStr("__pack", pack_fn.getName(j));
+                blk.addStr("__pack", String::mk_str_cat(packFnamePrefix, pack_fn.getName(j)));
             }
 
             if (blk.blockCount())

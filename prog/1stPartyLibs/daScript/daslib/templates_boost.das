@@ -95,7 +95,7 @@ def renameCall ( var self:Template; name:string; newName:das_string )
 
 class private TemplateVisitor : AstVisitor
     [[do_not_delete]] rules : Template?
-    def TemplateVisitor ( r : Template? )
+    def TemplateVisitor ( var r : Template? )
         rules = r
     def override visitExprTag ( var expr:smart_ptr<ExprTag> ) : ExpressionPtr
         if expr.name=="v"
@@ -460,7 +460,7 @@ class private QRulesVisitor : AstVisitor
     tag_index : int = 0
     failed : bool = false
     [[do_not_delete]] rblock : ExprBlock?
-    def QRulesVisitor ( rb:ExprBlock? )
+    def QRulesVisitor ( var rb:ExprBlock? )
         rblock = rb
     def visitTD ( var typ:TypeDeclPtr& ) : void
         unsafe
@@ -813,7 +813,7 @@ def public apply_qmacro_function ( fname:string; var expr:smart_ptr<Expression>;
     move(func.body) <| qblk
     return <- func
 
-def public apply_qmacro_method ( fname:string; parent:StructurePtr; var expr:smart_ptr<Expression>; blk:block<(var rules:Template):void> ) : FunctionPtr
+def public apply_qmacro_method ( fname:string; var parent:StructurePtr; var expr:smart_ptr<Expression>; blk:block<(var rules:Template):void> ) : FunctionPtr
     //! Implementation details for reification. This is a class method function generation reification.
     var inscope func <- apply_qmacro_function(fname,expr,blk)
     func.flags |= FunctionFlags isClassMethod
@@ -917,10 +917,10 @@ def public make_class ( name:string; mod:Module? )
     add_function(mod, virt_fin)
     return <- st
 
-def public make_class ( name:string; baseClass:StructurePtr; mod:Module? )
+def public make_class ( name:string; var baseClass:StructurePtr; mod:Module? )
     return <- make_class(name, get_ptr(baseClass), mod)
 
-def public make_class ( name:string; baseClass:Structure?; mod:Module? )
+def public make_class ( name:string; var baseClass:Structure?; mod:Module? )
     if mod == null
         panic("expecting module")
     var inscope st <- clone_structure(baseClass)

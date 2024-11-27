@@ -50,10 +50,7 @@ int haze_apply_is_manual = 0 always_referenced;
 
 int has_motion_vectors = 0;
 interval has_motion_vectors: no < 1, yes;
-float4 prevViewProjTm0;
-float4 prevViewProjTm1;
-float4 prevViewProjTm2;
-float4 prevViewProjTm3;
+float4x4 jitteredCamPosToUnjitteredHistoryClip;
 macro FX_WRITE_MOTION_VECTORS()
   if (has_motion_vectors == yes)
   {
@@ -62,7 +59,7 @@ macro FX_WRITE_MOTION_VECTORS()
     USE_MOTION_VEC_ENCODE(ps)
 
     (ps) {
-      prevViewProjTm@f44 = {prevViewProjTm0, prevViewProjTm1, prevViewProjTm2, prevViewProjTm3};
+      jitteredCamPosToUnjitteredHistoryClip@f44 = jitteredCamPosToUnjitteredHistoryClip;
       gbuf_texel_size@f2 = (rendering_res.z, rendering_res.w, 0, 0);
     }
 

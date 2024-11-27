@@ -419,8 +419,9 @@ void dump_exec_stcode_time()
   debug("STCODE: Total: %.3f ms per frame", 0.001f * total_time / last_frames);
 
   int num_active_blocks = 0;
-  ShaderStateBlock::blocks.iterate([&](auto &b) { num_active_blocks += b.refCount > 0; });
-  debug("STCODE: ShaderStateBlock %d blocks(%d total), %d render states", num_active_blocks, ShaderStateBlock::blocks.getTotalCount(),
+  for (const auto &b : ShaderStateBlock::blocks)
+    num_active_blocks += b.refCount > 0;
+  debug("STCODE: ShaderStateBlock %d blocks(%d total), %d render states", num_active_blocks, ShaderStateBlock::blocks.totalElements(),
     shaders::render_states::get_count());
   dump_bindless_states_stat();
   dump_slot_textures_states_stat();

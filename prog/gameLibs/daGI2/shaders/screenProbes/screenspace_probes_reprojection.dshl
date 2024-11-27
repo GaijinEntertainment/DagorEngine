@@ -18,6 +18,7 @@ endmacro
 macro SP_PREV_VIEW_VEC_OPTIMIZED(code)
   (code) {
     sp_prev_world_view_pos@f3 = sp_prev_world_view_pos;
+    sp_prev_view_z@f3 = sp_prev_view_z;
     sp_prev_view_vecLT@f3 = sp_prev_view_vecLT;
     sp_prev_view_vecRT_minus_view_vecLT@f3 = (sp_prev_view_vecRT-sp_prev_view_vecLT);
     sp_prev_view_vecLB_minus_view_vecLT@f3 = (sp_prev_view_vecLB-sp_prev_view_vecLT);
@@ -61,11 +62,16 @@ macro HISTORY_ONLY_PROBE(code)
   }
   hlsl(code) {
     #include <pcg_hash.hlsl>
-    uint is_history_only_probe(uint altas_probe_index, uint frame, uint probability_64k)
-    {
-      return (pcg2d(uint2(altas_probe_index, frame)).x&65535) >= probability_64k;
-    }
-    bool sp_is_valid_history() {return screenspace_probes_temporal.x;}
+    #if TEMPORAL_PROBES_FRAMES <= 1
+      uint is_history_only_probe(uint altas_probe_index, uint frame, uint probability_64k) { return 0; }
+      bool sp_is_valid_history() {return false;}
+    #else
+      uint is_history_only_probe(uint altas_probe_index, uint frame, uint probability_64k)
+      {
+        return (pcg2d(uint2(altas_probe_index, frame)).x&65535) >= probability_64k;
+      }
+      bool sp_is_valid_history() {return screenspace_probes_temporal.x;}
+    #endif
     bool sp_history_only_probe(uint altas_probe_index)
     {
       return is_history_only_probe(altas_probe_index, screenspace_probes_temporal.y, screenspace_probes_temporal.z);
@@ -136,6 +142,7 @@ macro REPROJECT_SP_WEIGHTS(code)
       vInfo.screen_limit = prev_screenspace_probe_screen_limit.xy;
       vInfo.screenspace_probe_screen_coord_to_probe_coord = prev_screenspace_probe_screen_coord_to_probe_coord;
       vInfo.screenspace_probes_count__added__total = prev_screenspace_probes_count__added__total;
+      vInfo.view_z = sp_prev_view_z;
 
       struct SRVBufferInfo srvInfo;
       srvInfo.posBuffer = prev_screenspace_probe_pos;

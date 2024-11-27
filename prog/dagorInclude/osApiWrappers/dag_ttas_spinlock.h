@@ -11,6 +11,7 @@
 
 #include <osApiWrappers/dag_atomic.h>
 #include <osApiWrappers/dag_miscApi.h> //for yield and spin wait
+#include <util/dag_compilerDefs.h>
 
 // will sleep after few iterations, preferrable
 inline void ttas_spinlock_lock(volatile int &lock, int taken = 1, int free = 0)
@@ -42,16 +43,17 @@ inline void ttas_spinlock_lock(volatile int &lock, int taken = 1, int free = 0)
       sleep_msec(spins > 2 * SPINS_BEFORE_SLEEP);
   }
 #else
-  for (;;)
-  {
-    // Optimistically assume the lock is free on the first try
-    if (interlocked_exchange_acquire(lock, taken) == free)
-      return;
-    // Wait for lock to be released without generating cache misses
-    // Issue X86 PAUSE or ARM YIELD instruction to reduce contention between
-    // hyper-threads
-    spin_wait([&]() { return interlocked_relaxed_load(lock) != free; });
-  }
+  // Optimistically assume the lock is free on the first try
+  if (DAGOR_UNLIKELY(interlocked_exchange_acquire(lock, taken) != free))
+    do
+    {
+      // Wait for lock to be released without generating cache misses
+      // Issue X86 PAUSE or ARM YIELD instruction to reduce contention between
+      // hyper-threads
+      spin_wait_no_profile([&]() { return interlocked_relaxed_load(lock) != free; });
+      // Note: intentionally use CMPXCHG here intead of XCHG as otherwise clang seems to refuse
+      // put away this contended loop from critical code path
+    } while (interlocked_compare_exchange(lock, taken, free) != free);
 #endif
 }
 

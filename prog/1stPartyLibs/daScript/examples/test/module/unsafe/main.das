@@ -10,3 +10,8 @@ def test
     implicit_print_failed("this can fail if implicit is uncommented.\n")
     return true
 
+[export]
+def main
+    test()
+
+options log

@@ -649,7 +649,7 @@ protected:
 
   void onBareMinimumSettingsChanged();
 
-  void updateTransformations(const Point2 &jitterOffset);
+  void updateTransformations(const Point2 &jitterOffset, const DPoint3 &);
   void prepareClipmap(const Point3 &origin, float additional_speed, const TMatrix &view_itm, const TMatrix4 &globtm);
   void prepareDeformHmap();
   enum class DistantWater : bool
@@ -686,8 +686,15 @@ protected:
   uint32_t getEnviProbeRenderFlags() const;
 
   bool enviProbeInvalid = false;
-  inline void invalidateCube() { enviProbeInvalid = true; }
+  bool specularCubesContainerNeedsReinit = false;
+  inline void setSpecularCubesContainerForReinit() { specularCubesContainerNeedsReinit = true; }
+  inline void invalidateCube()
+  {
+    enviProbeInvalid = true;
+    setSpecularCubesContainerForReinit();
+  }
   void reinitCubeIfInvalid();
+  void reinitSpecularCubesContainerIfNeeded(int cube_size = -1);
 
   uint32_t cubeResolution = 128;
   void reinitCube(int ew, const Point3 &at);

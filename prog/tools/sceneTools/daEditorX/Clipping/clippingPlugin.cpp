@@ -179,6 +179,17 @@ void ClippingPlugin::unregistered()
 
 
 //==============================================================================
+void ClippingPlugin::registerMenuAccelerators()
+{
+  IWndManager &wndManager = *DAGORED2->getWndManager();
+
+  wndManager.addViewportAccelerator(CM_IMPORT, 'O', true);
+  wndManager.addViewportAccelerator(CM_COMPILE_GAME_CLIPPING, 'B', true);
+  wndManager.addViewportAccelerator(CM_COLLISION_SHOW_PROPS, 'P');
+}
+
+
+//==============================================================================
 bool ClippingPlugin::begin(int toolbar_id, unsigned menu_id)
 {
   PropPanel::IMenu *mainMenu = DAGORED2->getMainMenu();
@@ -190,7 +201,7 @@ bool ClippingPlugin::begin(int toolbar_id, unsigned menu_id)
   mainMenu->addItem(menu_id, CM_COLLISION_SHOW_PROPS, "Show collision params\tP");
   mainMenu->addSeparator(menu_id);
   mainMenu->addItem(menu_id, CM_COMPILE_CLIPPING, "Compile collision...");
-  mainMenu->addItem(menu_id, CM_COMPILE_GAME_CLIPPING, "Compile collision for game (PC)...");
+  mainMenu->addItem(menu_id, CM_COMPILE_GAME_CLIPPING, "Compile collision for game (PC)...\tCtrl+B");
 
   toolBarId = toolbar_id;
   PropPanel::ContainerPropertyControl *toolbar = DAGORED2->getCustomPanel(toolbar_id);
@@ -780,28 +791,6 @@ bool ClippingPlugin::onPluginMenuClickInternal(unsigned id, PropPanel::Container
   }
 
   return false;
-}
-
-
-//==============================================================================
-void ClippingPlugin::handleKeyPress(IGenViewportWnd *wnd, int vk, int modif)
-{
-  // Ctrl
-  if (modif & wingw::M_CTRL)
-  {
-    if (wingw::is_key_pressed('O'))
-      onClick(CM_IMPORT, NULL);
-  }
-  else if (wingw::is_key_pressed(wingw::V_CONTROL))
-  {
-    if (wingw::is_key_pressed('B'))
-      onClick(CM_COMPILE_GAME_CLIPPING, NULL);
-  }
-  else if (!(wingw::is_key_pressed(wingw::V_SHIFT) || wingw::is_key_pressed(wingw::V_CONTROL) || wingw::is_key_pressed(wingw::V_ALT)))
-  {
-    if (wingw::is_key_pressed('P'))
-      onClick(CM_COLLISION_SHOW_PROPS, NULL);
-  }
 }
 
 

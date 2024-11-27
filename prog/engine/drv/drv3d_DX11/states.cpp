@@ -64,7 +64,7 @@ struct DriverRenderState
   shaders::RenderState sourceShaderRenderState;
 };
 
-// We can use NonRelocatableCont<DriverRenderState> here to avoid using mutex, but since it's cached in engine
+// We can use ConcurrentElementPool<DriverRenderState> here to avoid using mutex, but since it's cached in engine
 // (shaders/renderStates.cpp) there no much point as it's created rarely
 static OSSpinlock render_states_mutex;
 static GenerationReferencedData<shaders::DriverRenderStateId, DriverRenderState> render_states;

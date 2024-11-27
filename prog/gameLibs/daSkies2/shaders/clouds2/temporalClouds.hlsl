@@ -120,7 +120,7 @@ float2 TAAGetReprojectedMotionVector(float depth, float2 uv, float2 screenSize, 
     float2 movePixelScreen = curClip.xy*rcp(curClip.w);
     motionVectorPixelLengthTolerance = curClip.w <= 0 ? 1000 : length((movePixelScreen*float2(0.5, -0.5) + float2(0.5, 0.5) - uv)*screenSize);
   }
-  float4 prevClip = mul(float4(cameraPos, 0), prev_globtm_no_ofs_psf) + reprojected_world_view_pos;
+  float4 prevClip = mul(float4(cameraPos, 1), prev_globtm_no_ofs_psf);
   float2 prevScreen = prevClip.xy*rcp(prevClip.w);
   float2 prevUV = prevScreen*float2(0.5, -0.5) + float2(0.5, 0.5);//todo: this can be removed/(injected to prev_globtm_no_ofs_psf)
   float2 ret = prevClip.w > 0 ? prevUV.xy : float2(2,2);

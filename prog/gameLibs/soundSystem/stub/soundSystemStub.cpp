@@ -180,7 +180,8 @@ void set_pitch(float) {}
 void update_listener(float, const TMatrix &) {}
 void reset_3d_listener() {}
 void set_time_speed(float) {}
-void update(float) {}
+void begin_update(float) {}
+void end_update(float) {}
 void lazy_update() {}
 void override_time_speed(float) {}
 Point3 get_3d_listener_pos() { return {}; }

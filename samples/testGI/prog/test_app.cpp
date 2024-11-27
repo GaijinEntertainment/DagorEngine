@@ -135,14 +135,13 @@ typedef StrmSceneHolder scene_type_t;
 #define TEST_GUI 0
 
 #define GLOBAL_VARS_LIST                             \
-  VAR(new_ambient)                                   \
-  VAR(new_screen_specular)                           \
   VAR(prev_ambient_age)                              \
   VAR(prev_ambient)                                  \
-  VAR(prev_screen_specular)                          \
-  VAR(screen_ambient)                                \
-  VAR(ambient_reproject)                             \
+  VAR(prev_specular)                                 \
+  VAR(ambient_has_history)                           \
+  VAR(ambient_reproject_tm)                          \
   VAR(prev_gbuffer_depth)                            \
+  VAR(screen_ambient)                                \
   VAR(screen_specular)                               \
   VAR(voxelize_world_to_rasterize_space_mul)         \
   VAR(voxelize_world_to_rasterize_space_add)         \
@@ -212,7 +211,9 @@ bool exit_button_pressed = false;
 
 static bool enable_taa_override = false;
 static bool use_snapdragon_super_resolution = false;
-static float snapdragon_super_resolution_scale = 0.5f;
+
+static float snapdragon_super_resolution_scale = 0.75f;
+static uint32_t gi_fmt = TEXFMT_R11G11B10F; // TEXFMT_R32UI; // TEXFMT_R11G11B10F; // TEXFMT_R32UI;//
 
 static void init_webui(const DataBlock *debug_block)
 {
@@ -634,8 +635,6 @@ public:
   UniqueTex ambient[2];
   UniqueTex ambient_age[2];
   UniqueTex screen_specular[2];
-  UniqueTex current_ambient;
-  UniqueTex current_screen_specular;
   int cAmbientFrame = 0;
   PostFxRenderer ambientRenderer, ambientReproject;
 
@@ -661,13 +660,25 @@ public:
     }
   }
 
+  void initScreenGI(int w, int h)
+  {
+    const bool supportRGBE_RT = d3d::check_texformat(TEXFMT_R9G9B9E5 | TEXCF_RTARGET);
+    if (supportRGBE_RT)
+      gi_fmt = supportRGBE_RT ? TEXFMT_R9G9B9E5 : TEXFMT_R11G11B10F;
+
+    ambient[0].close();
+    ambient[0] = dag::create_tex(NULL, w, h, gi_fmt | TEXCF_RTARGET, 1, "screen_ambient0");
+    ambient[0]->texaddr(TEXADDR_CLAMP);
+    screen_specular[0].close();
+    screen_specular[0] = dag::create_tex(NULL, w, h, gi_fmt | TEXCF_RTARGET, 1, "screen_specular0");
+    screen_specular[0]->texaddr(TEXADDR_CLAMP);
+  }
+
   void closeGIReprojection()
   {
-    if (!ambient[0])
+    if (!ambient[1])
       return;
-    screen_specular[0].close();
     screen_specular[1].close();
-    ambient[0].close();
     ambient[1].close();
     ambient_age[0].close();
     ambient_age[1].close();
@@ -676,23 +687,30 @@ public:
 
   void initGIReprojection(int w, int h)
   {
-    if (ambient[0])
+    if (!gi_panel.reproject)
+    {
+      closeGIReprojection();
       return;
+    }
+    if (ambient[1] && gi_panel.reproject)
+    {
+      TextureInfo ti;
+      ambient[1].getTex2D()->getinfo(ti);
+      if (ti.w == w && ti.h == h)
+        return;
+    }
     closeGIReprojection();
-    ambient[0] = dag::create_tex(NULL, w, h, TEXFMT_R11G11B10F | TEXCF_RTARGET, 1, "screen_ambient0");
-    ambient[1] = dag::create_tex(NULL, w, h, TEXFMT_R11G11B10F | TEXCF_RTARGET, 1, "screen_ambient1");
-    ambient[0]->texaddr(TEXADDR_CLAMP);
+    ambient[1] = dag::create_tex(NULL, w, h, gi_fmt | TEXCF_RTARGET, 1, "screen_ambient1");
     ambient[1]->texaddr(TEXADDR_CLAMP);
 
-    screen_specular[0] = dag::create_tex(NULL, w, h, TEXFMT_R11G11B10F | TEXCF_RTARGET, 1, "screen_specular0");
-    screen_specular[1] = dag::create_tex(NULL, w, h, TEXFMT_R11G11B10F | TEXCF_RTARGET, 1, "screen_specular1");
-    screen_specular[0]->texaddr(TEXADDR_CLAMP);
+    screen_specular[1] = dag::create_tex(NULL, w, h, gi_fmt | TEXCF_RTARGET, 1, "screen_specular1");
     screen_specular[1]->texaddr(TEXADDR_CLAMP);
 
-    ambient_age[0] = dag::create_tex(NULL, w, h, TEXFMT_L8 | TEXCF_RTARGET, 1, "screen_ambient_age0");
-    ambient_age[1] = dag::create_tex(NULL, w, h, TEXFMT_L8 | TEXCF_RTARGET, 1, "screen_ambient_age1");
+    ambient_age[0] = dag::create_tex(NULL, w, h, TEXFMT_R8UI | TEXCF_RTARGET, 1, "screen_ambient_age0");
+    ambient_age[1] = dag::create_tex(NULL, w, h, TEXFMT_R8UI | TEXCF_RTARGET, 1, "screen_ambient_age1");
     ambient_age[0]->texaddr(TEXADDR_CLAMP);
     ambient_age[1]->texaddr(TEXADDR_CLAMP);
+    validAmbientHistory = false;
   }
 
   ResizableTex otherDepth;
@@ -707,9 +725,9 @@ public:
     ssr.reset();
     if (rq == REFLECTIONS_OFF)
       return;
-    ssr.reset(new ScreenSpaceReflections(w / 2, h / 2, 1, rq == REFLECTIONS_ALL ? TEXFMT_A16B16G16R16F : 0,
-      rq == REFLECTIONS_ALL ? SSRQuality::Compute : SSRQuality::Low));
+    ssr.reset(new ScreenSpaceReflections(w / 2, h / 2, 1, TEXFMT_A16B16G16R16F, SSRQuality::Compute));
     ShaderGlobal::set_int(get_shader_variable_id("ssr_alternate_reflections", true), rq == REFLECTIONS_ALL ? 1 : 0);
+    ShaderGlobal::set_int(get_shader_variable_id("ssr_quality", true), rq == REFLECTIONS_ALL ? 3 : 0);
   }
 
   void initRes(int w, int h)
@@ -743,11 +761,7 @@ public:
     gtao.reset();
     gtao = eastl::make_unique<GTAORenderer>(w / 2, h / 2, 1);
 
-    current_ambient.close();
-    current_ambient = dag::create_tex(NULL, w, h, TEXFMT_R11G11B10F | TEXCF_RTARGET, 1, "current_screen_ambient");
-    current_ambient->texaddr(TEXADDR_CLAMP);
-    current_screen_specular.close();
-    current_screen_specular = dag::create_tex(NULL, w, h, TEXFMT_R11G11B10F | TEXCF_RTARGET, 1, "current_screen_specular");
+    initScreenGI(w, h);
 
     if (ssao || gtao) //||ssr||dynamicLighting
     {
@@ -1598,7 +1612,7 @@ public:
     if (gi_panel.gi_mode == SCREEN_PROBES)
     {
       TextureInfo ti;
-      current_ambient.getTex2D()->getinfo(ti);
+      ambient[0].getTex2D()->getinfo(ti);
       initGIReprojection(ti.w, ti.h);
     }
     else
@@ -1871,64 +1885,44 @@ public:
     reloadCube(true);
   }
   bool validAmbientHistory = false;
-  void renderAmbient(UniqueTex &amb, UniqueTex &spec)
+  void renderAmbient(UniqueTex &amb, UniqueTex &spec, UniqueTex &age)
   {
     TIME_D3D_PROFILE(current_ambient)
     target->setVar();
     d3d::set_render_target(0, amb.getTex2D(), 0);
     d3d::set_render_target(1, spec.getTex2D(), 0);
+    d3d::set_render_target(2, age.getTex2D(), 0);
     d3d::set_depth(target->getDepth(), DepthAccess::SampledRO);
     ambientRenderer.render();
+    ShaderGlobal::set_texture(screen_ambientVarId, amb.getTexId());
+    ShaderGlobal::set_texture(screen_specularVarId, spec.getTexId());
   }
   void renderAmbient(const TMatrix4 &cGlobtm)
   {
     TIME_D3D_PROFILE(ambientFixup)
     SCOPE_RENDER_TARGET;
     static TMatrix4 prevGlobTm;
-    if (ambient[0] && gi_panel.reproject)
+    const bool hasHistory = ambient[1] && gi_panel.reproject && validAmbientHistory;
+
+    if (hasHistory)
     {
-      renderAmbient(validAmbientHistory ? current_ambient : ambient[cAmbientFrame],
-        validAmbientHistory ? current_screen_specular : screen_specular[cAmbientFrame]);
-      if (validAmbientHistory)
-      {
-        ShaderGlobal::set_texture(new_ambientVarId, current_ambient.getTexId());
-        ShaderGlobal::set_texture(new_screen_specularVarId, current_screen_specular.getTexId());
+      TMatrix4D globTmInv;
 
-        ShaderGlobal::set_texture(prev_ambientVarId, ambient[cAmbientFrame].getTexId());
-        ShaderGlobal::set_texture(prev_screen_specularVarId, screen_specular[cAmbientFrame].getTexId());
-        ShaderGlobal::set_texture(prev_ambient_ageVarId, ambient_age[cAmbientFrame].getTexId());
-
-        cAmbientFrame = 1 - cAmbientFrame;
-        d3d::set_render_target(0, ambient[cAmbientFrame].getTex2D(), 0);
-        d3d::set_render_target(1, screen_specular[cAmbientFrame].getTex2D(), 0);
-        d3d::set_render_target(2, ambient_age[cAmbientFrame].getTex2D(), 0);
-        TMatrix4D globTmInv;
-
-        double det;
-        G_VERIFY(inverse44(cGlobtm, globTmInv, det));
-        TMatrix4D reprojection = globTmInv * prevGlobTm;
-        TMatrix4 repr = TMatrix4(reprojection).transpose();
-        ShaderGlobal::set_float4x4(ambient_reprojectVarId, repr);
-
-        TIME_D3D_PROFILE(reproject_gi)
-        ambientReproject.render();
-      }
-      else
-      {
-        d3d::set_render_target(ambient_age[cAmbientFrame].getTex2D(), 0);
-        d3d::clearview(CLEAR_TARGET, E3DCOLOR(0, 0, 0, 0), 0, 0);
-      }
-      prevGlobTm = cGlobtm;
-      validAmbientHistory = true;
-      ShaderGlobal::set_texture(screen_ambientVarId, ambient[cAmbientFrame].getTexId());
-      ShaderGlobal::set_texture(screen_specularVarId, screen_specular[cAmbientFrame].getTexId());
+      double det;
+      G_VERIFY(inverse44(cGlobtm, globTmInv, det));
+      TMatrix4D reprojection = globTmInv * prevGlobTm;
+      TMatrix4 repr = TMatrix4(reprojection).transpose();
+      ShaderGlobal::set_float4x4(ambient_reproject_tmVarId, repr);
     }
-    else
-    {
-      renderAmbient(current_ambient, current_screen_specular);
-      ShaderGlobal::set_texture(screen_ambientVarId, current_ambient.getTexId());
-      ShaderGlobal::set_texture(screen_specularVarId, current_screen_specular.getTexId());
-    }
+    cAmbientFrame = hasHistory ? 1 - cAmbientFrame : 0;
+    ShaderGlobal::set_texture(prev_ambientVarId, ambient[1 - cAmbientFrame].getTexId());
+    ShaderGlobal::set_texture(prev_specularVarId, screen_specular[1 - cAmbientFrame].getTexId());
+    ShaderGlobal::set_texture(prev_ambient_ageVarId, ambient_age[1 - cAmbientFrame].getTexId());
+    ShaderGlobal::set_int(ambient_has_historyVarId, hasHistory);
+    renderAmbient(ambient[cAmbientFrame], screen_specular[cAmbientFrame], ambient_age[cAmbientFrame]);
+
+    prevGlobTm = cGlobtm;
+    validAmbientHistory = true;
   }
 
   enum
@@ -3157,7 +3151,7 @@ void add_dynrend_resource_to_bvh(bvh::ContextId context_id, const DynamicRendera
     posAdd = Point4(0.f, 0.f, 0.f, 0.0f);
   }
 
-  for (auto [lodIx, lod] : enumerate(resource->lods))
+  for (auto [lodIx, lod] : enumerate(make_span_const(resource->lods)))
   {
     auto rigidCount = lod.scene->getRigidsConst().size();
     auto lodIxLocal = lodIx;

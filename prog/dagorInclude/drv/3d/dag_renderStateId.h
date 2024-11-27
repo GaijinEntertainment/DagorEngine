@@ -9,9 +9,11 @@
 namespace shaders
 {
 struct RenderState;
-class RenderStateIdDummy
-{};
-using RenderStateId = GenerationRefId<8, RenderStateIdDummy>; // weak reference
+
+enum class RenderStateId : uint32_t
+{
+  Invalid = 0
+};
 
 class DriverRenderStateIdDummy
 {};

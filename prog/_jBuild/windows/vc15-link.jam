@@ -59,6 +59,7 @@ rule ProcessLinkTarget
 
     if $(UseGDK) != no {
       CopyGDKMedia ;
+      CopyGDKDlls ;
       ProcessGDKManifest ;
     }
 

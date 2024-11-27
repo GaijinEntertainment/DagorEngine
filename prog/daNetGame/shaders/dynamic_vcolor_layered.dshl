@@ -92,6 +92,6 @@ shader dynamic_vcolor_layered
       #define NORMAL_RENDER_PASS 1
       #define IS_DYNAMIC 1
     }
-    VCOLOR_LAYERED_PS(true, false)
+    VCOLOR_LAYERED_PS(true, false, false)
   }
 }

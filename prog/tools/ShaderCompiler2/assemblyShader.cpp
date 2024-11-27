@@ -1087,7 +1087,7 @@ static VariableType name_space_to_type(const char *name_space)
 
 void AssembleShaderEvalCB::eval_external_block_stat(state_block_stat &state_block, ShaderStage stage)
 {
-  G_ASSERT(state_block.var || state_block.arr || state_block.reg);
+  G_ASSERT(state_block.var || state_block.arr || state_block.reg || state_block.reg_arr);
   if (!state_block.var)
     return handle_external_block_stat(state_block, stage);
 
@@ -1177,8 +1177,9 @@ void AssembleShaderEvalCB::handle_external_block_stat(state_block_stat &state_bl
     Terminal *var = nullptr, *nameSpace = nullptr;
     Terminal *shader_var = nullptr;
     Terminal *builtin_var = nullptr;
+    Terminal *size_var = nullptr;
     SHTOK_hlsl_text *hlsl = nullptr;
-    G_ASSERT(state_block.var || state_block.arr || state_block.reg);
+    G_ASSERT(state_block.var || state_block.arr || state_block.reg || state_block.reg_arr);
     if (state_block.var)
     {
       var = state_block.var->var->name;
@@ -1194,13 +1195,23 @@ void AssembleShaderEvalCB::handle_external_block_stat(state_block_stat &state_bl
       nameSpace = state_block.arr->var->nameSpace;
       hlsl = state_block.arr->hlsl_var_text;
     }
-    else
+    else if (state_block.reg)
     {
       var = state_block.reg->var->name;
       nameSpace = state_block.reg->var->nameSpace;
       hlsl = state_block.reg->hlsl_var_text;
       shader_var = state_block.reg->shader_var;
     }
+    else if (state_block.reg_arr)
+    {
+      var = state_block.reg_arr->var->name;
+      nameSpace = state_block.reg_arr->var->nameSpace;
+      hlsl = state_block.reg_arr->hlsl_var_text;
+      shader_var = state_block.reg_arr->shader_var;
+      size_var = state_block.reg_arr->size_shader_var;
+    }
+    else
+      G_ASSERTF(0, "Invalid/unsupported state_block_stat type");
 
     if (!validate_hardcoded_regs_in_hlsl_block(hlsl))
       return;
@@ -1466,32 +1477,36 @@ void AssembleShaderEvalCB::handle_external_block_stat(state_block_stat &state_bl
       registers_count = initializer.size() > 4 ? initializer.size() : 4;
     }
     if (type != VariableType::f4 && type != VariableType::i4 && type != VariableType::u4 && type != VariableType::f44 &&
-        (initializer.size() > 1 || (state_block.arr && state_block.arr->par)))
+        (initializer.size() > 1 || (state_block.arr && state_block.arr->par) || state_block.reg_arr))
     {
       error(String(64, "variable <%s> is of type <%s> and not @f4, @f44, @i4, @u4 and so can't be array ", var->text, nameSpace->text),
         var);
     }
 
     int hardcoded_reg = -1;
-    if (state_block.reg)
+    if (state_block.reg || state_block.reg_arr)
     {
-      registers_count = 1;
+      auto getConstIntFromShadervar = [this](Terminal *t) -> int {
+        bool is_global;
+        int reg_type;
+        int vi = get_state_var(*t, reg_type, is_global);
+        G_ASSERT(vi >= 0);
+        if (reg_type != SHVT_INT)
+          error(
+            String(0, "Hardcoded register %s must be of type `int`, but found %s", t->text, ShUtils::shader_var_type_name(reg_type)),
+            t);
+        if (is_global)
+        {
+          ShaderGlobal::get_var(vi).isImplicitlyReferenced = true;
+          return ShaderGlobal::get_var(vi).value.i;
+        }
+        else
+          error("Only global variables for hardcoded registers are supported", t);
+        return -1;
+      };
 
-      bool is_global;
-      int reg_type;
-      int vi = get_state_var(*shader_var, reg_type, is_global);
-      G_ASSERT(vi >= 0);
-      if (reg_type != SHVT_INT)
-        error(String(0, "Hardcoded register %s must be of type `int`, but found %s", shader_var->text,
-                ShUtils::shader_var_type_name(reg_type)),
-          shader_var);
-      if (is_global)
-      {
-        hardcoded_reg = ShaderGlobal::get_var(vi).value.i;
-        ShaderGlobal::get_var(vi).isImplicitlyReferenced = true;
-      }
-      else
-        error("Only global variables for hardcoded registers are supported", shader_var);
+      hardcoded_reg = getConstIntFromShadervar(shader_var);
+      registers_count = state_block.reg ? 1 : getConstIntFromShadervar(size_var);
     }
 
     const char *var_type_str = nullptr;
@@ -1558,12 +1573,12 @@ void AssembleShaderEvalCB::handle_external_block_stat(state_block_stat &state_bl
         def_hlsl += '\n';
       char tempbuf[512];
       tempbuf[0] = 0;
-      if ((type == VariableType::i4 || type == VariableType::u4 || type == VariableType::f4) && initializer.size() > 1)
-        SNPRINTF(tempbuf, sizeof(tempbuf), "%s %s[%d]: register($%s%s);", var_type_str, var->text, (int)initializer.size(), var->text,
+      if ((type == VariableType::i4 || type == VariableType::u4 || type == VariableType::f4) && registers_count > 1)
+        SNPRINTF(tempbuf, sizeof(tempbuf), "%s %s[%d]: register($%s%s);", var_type_str, var->text, (int)registers_count, var->text,
           NamedConstBlock::nameSpaceToStr(name_space));
-      else if (type == VariableType::f44 && state_block.arr && initializer.size() > 4)
-        SNPRINTF(tempbuf, sizeof(tempbuf), "%s %s[%d]: register($%s%s);", var_type_str, var->text, (int)initializer.size() / 4,
-          var->text, NamedConstBlock::nameSpaceToStr(name_space));
+      else if (type == VariableType::f44 && state_block.arr && registers_count > 4)
+        SNPRINTF(tempbuf, sizeof(tempbuf), "%s %s[%d]: register($%s%s);", var_type_str, var->text, (int)registers_count / 4, var->text,
+          NamedConstBlock::nameSpaceToStr(name_space));
       else if (type == VariableType::f44 && state_block.arr && initializer.size() == 4)
         SNPRINTF(tempbuf, sizeof(tempbuf), "%s %s: register($%s%s);", var_type_str, var->text, var->text,
           NamedConstBlock::nameSpaceToStr(name_space));
@@ -1747,7 +1762,7 @@ void AssembleShaderEvalCB::handle_external_block_stat(state_block_stat &state_bl
 
     if (shtype == SHVT_COLOR4 || shtype == SHVT_INT4)
     {
-      if (type == VariableType::f44 && initializer.size() == 4 || initializer.size() == 1)
+      if ((type == VariableType::f44 && registers_count == 4) || initializer.size() == 1)
       {
         def_hlsl[def_hlsl.size() - 2] = ' ';
         def_hlsl.aprintf(0, "%s get_%s() { return %s; }", var_type_str, var->text, var->text);

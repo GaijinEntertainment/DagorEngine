@@ -2,6 +2,7 @@
 #pragma once
 
 #include <shaders/dag_shStateBlockBindless.h>
+#include <shaders/dag_shaderVarsUtils.h>
 #include <dag/dag_vector.h>
 #include <EASTL/fixed_vector.h>
 #include <memory/dag_framemem.h>
@@ -16,7 +17,7 @@
 #include <drv/3d/dag_resetDevice.h>
 #include <drv/3d/dag_info.h>
 
-#include "nonRelocCont.h"
+#include "concurrentElementPool.h"
 #include "shStateBlk.h"
 
 #if _TARGET_XBOX || _TARGET_C1 || _TARGET_C2
@@ -53,14 +54,18 @@ void clear_slot_textures_states();
 void dump_slot_textures_states_stat();
 void slot_textures_req_tex_level(shaders::TexStateIdx sampler_state_id, int tex_level);
 
-inline constexpr int DEFAULT_SHADER_STATE_BLOCK_ID = 0;
+// NOTE: these magic constants should actually be `FIRST_ID` of various `ConcurrentElementPool`
+// specializations, but due to header dependency loops we cannot use them directly, so we hard-code
+// magic constants and assert them to match `FIRST_ID` in various other places.
+// TODO: resolve include loops and use `FIRST_ID` directly
+inline constexpr ShaderStateBlockId DEFAULT_SHADER_STATE_BLOCK_ID = static_cast<ShaderStateBlockId>(1 << 11);
 inline constexpr shaders::TexStateIdx DEFAULT_TEX_STATE_ID = static_cast<shaders::TexStateIdx>(1 << 10);
 inline constexpr shaders::ConstStateIdx DEFAULT_CONST_STATE_ID = static_cast<shaders::ConstStateIdx>(1 << 11);
 inline constexpr shaders::ConstStateIdx DEFAULT_BINDLESS_CONST_STATE_ID = static_cast<shaders::ConstStateIdx>(1 << 9);
 
 struct ShaderStateBlock
 {
-  shaders::RenderStateId stateIdx;
+  shaders::RenderStateId stateIdx = {};
   shaders::TexStateIdx samplerIdx = {};
   shaders::ConstStateIdx constIdx = {};
 #if _TARGET_STATIC_LIB
@@ -70,48 +75,53 @@ struct ShaderStateBlock
 #endif
   uint16_t texLevel = 0;
 
-  static NonRelocatableCont<ShaderStateBlock, /*initialCap*/ 2048> blocks;
+  static ConcurrentElementPool<ShaderStateBlockId, ShaderStateBlock, 11> blocks;
   static int deleted_blocks;
+
+  static_assert(DEFAULT_SHADER_STATE_BLOCK_ID == decltype(blocks)::FIRST_ID);
 
   bool operator==(const ShaderStateBlock &b) const
   {
     return stateIdx == b.stateIdx && samplerIdx == b.samplerIdx && constIdx == b.constIdx;
   }
 
-  static int addBlock(ShaderStateBlock &&b)
+  static ShaderStateBlockId addBlock(ShaderStateBlock &&b, const shaders::RenderState &state)
   {
     shaders_internal::BlockAutoLock autoLock;
+
+    G_FAST_ASSERT(b.stateIdx == shaders::RenderStateId::Invalid);
+    b.stateIdx = shaders::render_states::create(state);
+
     G_ASSERT(b.refCount == 0);
 
     // find equivalent block and use it, when exists
-    auto bid = blocks.find_if([&](ShaderStateBlock &eb) {
-      if (b == eb && eb.refCount < eastl::numeric_limits<decltype(ShaderStateBlock::refCount)>::max())
-      {
-        eb.refCount++;
-        return true;
-      }
-      return false;
+    const auto bid = blocks.findIf([&](const ShaderStateBlock &eb) {
+      return b == eb && eb.refCount < eastl::numeric_limits<decltype(ShaderStateBlock::refCount)>::max();
     });
-    if (bid != BAD_STATEBLOCK)
+    if (bid != ShaderStateBlockId::Invalid)
+    {
+      blocks[bid].refCount++;
       return bid;
+    }
 
     b.refCount = 1;
-    return blocks.push_back(b);
+    const auto result = blocks.allocate();
+    blocks[result] = b;
+    return result;
   }
 
-  static void delBlock(int id)
+  static void delBlock(ShaderStateBlockId id)
   {
     shaders_internal::BlockAutoLock autoLock;
-    ShaderStateBlock *b = blocks.at(id);
-    if (!b) // do we really need handle this gracefully?
-      return;
-    if (b->refCount == 0)
+    ShaderStateBlock &b = blocks[id];
+    if (b.refCount == 0)
       logmessage(DAGOR_DBGLEVEL > 0 ? LOGLEVEL_ERR : LOGLEVEL_WARN, "trying to remove deleted/broken state block, refCount = %d",
-        blocks[id].refCount);
-    else if (--b->refCount)
+        b.refCount);
+    else if (--b.refCount)
       return;
     deleted_blocks++;
-    interlocked_compare_exchange(shaders_internal::cached_state_block, BAD_STATEBLOCK, id);
+    interlocked_compare_exchange(shaders_internal::cached_state_block, eastl::to_underlying(ShaderStateBlockId::Invalid),
+      eastl::to_underlying(id));
     return;
   }
 
@@ -151,12 +161,12 @@ public:
     if (PLATFORM_HAS_BINDLESS)
     {
       clear_bindless_states();
-      blocks.push_back(ShaderStateBlock{{}, {}, DEFAULT_BINDLESS_CONST_STATE_ID, 0, 0});
+      blocks[blocks.allocate()] = ShaderStateBlock{{}, {}, DEFAULT_BINDLESS_CONST_STATE_ID, 0, 0};
     }
     else
     {
       clear_slot_textures_states();
-      blocks.push_back(ShaderStateBlock{{}, DEFAULT_TEX_STATE_ID, DEFAULT_CONST_STATE_ID, 0, 0});
+      blocks[blocks.allocate()] = ShaderStateBlock{{}, DEFAULT_TEX_STATE_ID, DEFAULT_CONST_STATE_ID, 0, 0};
     }
     deleted_blocks = 0;
   }

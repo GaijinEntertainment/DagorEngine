@@ -66,7 +66,7 @@ void DynModelRenderingState::process_animchar(uint32_t start_stage,
   uint32_t path_filter_size,
   uint8_t render_mask,
   bool need_immediate_const_ps,
-  uint8_t priority,
+  RenderPriority priority,
   const GlobalVariableStates *gvars_state,
   TexStreamingContext texCtx)
 {
@@ -77,7 +77,7 @@ void DynModelRenderingState::process_animchar(uint32_t start_stage,
   matrixStride = addPreviousMatrices ? MATRIX_ROWS * 2 : MATRIX_ROWS; // 3 rows for matrix and 3 for previous matrix
   float distSq = scene->getDistSq();
   int reqLevel = texCtx.getTexLevel(scene->getLodsResource()->getTexScale(lodNo), distSq);
-  static constexpr int MAX_PRIORITY_BITS = 1;
+
   auto addMeshToList = [&](const ShaderMesh &mesh, int instId, int bindposeBufferOffset) {
 #if DAGOR_DBGLEVEL > 0
     int counter = lodNo;
@@ -98,7 +98,8 @@ void DynModelRenderingState::process_animchar(uint32_t start_stage,
       {
         if (!elem.e)
           continue;
-        uint32_t prog, state;
+        uint32_t prog;
+        ShaderStateBlockId state;
         shaders::TexStateIdx tstate;
         shaders::ConstStateIdx cstate;
         shaders::RenderStateId rstate;
@@ -108,17 +109,13 @@ void DynModelRenderingState::process_animchar(uint32_t start_stage,
         if (curVar < 0)
           continue;
         if (!is_packed_material(cstate))
-          list.emplace_back(s, curVar, prog, state,
-            shaders::RenderStateId(uint32_t(rstate) | (priority << (rstate.INDEX_BITS - MAX_PRIORITY_BITS))), tstate, cstate,
-            elem.vertexData, reqLevel,
+          list.emplace_back(s, curVar, prog, state, rstate, tstate, cstate, elem.vertexData, reqLevel, priority,
 #if DAGOR_DBGLEVEL > 0
             (uint8_t)counter,
 #endif
             instId, elem.si, elem.numf, elem.baseVertex, need_immediate_const_ps, bindposeBufferOffset);
         else
-          multidrawList.emplace_back(s, curVar, prog, state,
-            shaders::RenderStateId(uint32_t(rstate) | (priority << (rstate.INDEX_BITS - MAX_PRIORITY_BITS))), tstate, cstate,
-            elem.vertexData, reqLevel,
+          multidrawList.emplace_back(s, curVar, prog, state, rstate, tstate, cstate, elem.vertexData, reqLevel, priority,
 #if DAGOR_DBGLEVEL > 0
             (uint8_t)counter,
 #endif
@@ -210,7 +207,7 @@ void DynModelRenderingState::process_animchar(uint32_t start_stage,
   uint32_t path_filter_size,
   uint8_t render_mask,
   bool need_immediate_const_ps,
-  uint8_t priority,
+  RenderPriority priority,
   const GlobalVariableStates *gvars_state,
   TexStreamingContext texCtx)
 {
@@ -282,7 +279,8 @@ void DynModelRenderingState::coalesceDrawcalls()
   TIME_D3D_PROFILE(dyn_model_coalesce_drawcalls);
 
   const auto mergeComparator = [](const RenderElement &a, const RenderElement &b) -> bool {
-    return a.vData == b.vData && a.rstate == b.rstate && get_material_id(a.cstate) == get_material_id(b.cstate) && a.prog == b.prog;
+    return a.vData == b.vData && a.priority == b.priority && a.rstate == b.rstate &&
+           get_material_id(a.cstate) == get_material_id(b.cstate) && a.prog == b.prog;
   };
 
   drawcallRanges.push_back(PackedDrawCallsRange{0, 1});
@@ -309,6 +307,8 @@ void DynModelRenderingState::prepareForRender()
   {
     TIME_PROFILE(sort_dynm);
     stlsort::sort(list.begin(), list.end(), [&](const RenderElement &a, const RenderElement &b) {
+      if (a.priority != b.priority)
+        return a.priority < b.priority;
       if (a.rstate != b.rstate)
         return a.rstate < b.rstate;
       if (a.tstate != b.tstate) // maybe split state into sampler state (heavy) and const buffer (cheap)?
@@ -338,6 +338,8 @@ void DynModelRenderingState::prepareForRender()
     stlsort::sort(multidrawList.begin(), multidrawList.end(), [&](const RenderElement &a, const RenderElement &b) {
       if (get_material_id(a.cstate) != get_material_id(b.cstate))
         return get_material_id(a.cstate) < get_material_id(b.cstate);
+      if (a.priority != b.priority)
+        return a.priority < b.priority;
       if (a.rstate != b.rstate)
         return a.rstate < b.rstate;
       // TODO: split it on vbuffer/vstride comparator, because different vdata ofthen uses the same buffers

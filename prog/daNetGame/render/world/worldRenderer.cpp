@@ -901,6 +901,7 @@ void WorldRenderer::beforeLoadLevel(const DataBlock &level_blk, ecs::EntityId le
     ddsx::tex_pack2_perform_delayed_data_loading(); // or it will crash here
   d3d::set_render_target();
 
+  setSpecularCubesContainerForReinit();
   reinitCube(level_blk.getPoint3("enviProbePos", Point3(0, 100, 0)));
   if (auto *skies = get_daskies())
   {
@@ -1396,6 +1397,7 @@ void WorldRenderer::afterDeviceReset(bool full_reset)
     initResetable();
     resetGI();
     invalidateCube();
+    reinitSpecularCubesContainerIfNeeded();
     onSceneLoaded(binScene);
     g_entity_mgr->broadcastEventImmediate(AfterDeviceReset(full_reset));
 
@@ -2976,7 +2978,7 @@ void WorldRenderer::createNodes()
       TMatrix4D viewRotTm = currentFrameCamera.viewTm;
       viewRotTm.setrow(3, 0.0f, 0.0f, 0.0f, 1.0f);
       currentFrameCamera.viewRotJitterProjTm = TMatrix4(viewRotTm * currentFrameCamera.jitterProjTm);
-      updateTransformations(jitterOffset);
+      updateTransformations(jitterOffset, currentFrameCamera.cameraWorldPos - prevFrameCamera.cameraWorldPos);
 
       auto &camera = cameraHndl.ref();
       camera = currentFrameCamera;
@@ -3919,7 +3921,7 @@ const char *fmt_csm_render_pass_name(int cascade, char tmps[], int csm_task_id =
   return tmps;
 }
 
-void WorldRenderer::updateTransformations(const Point2 &jitterOffset)
+void WorldRenderer::updateTransformations(const Point2 &jitterOffset, const DPoint3 &move) // move currentWorldPos - prevWorldPos
 {
   TMatrix4_vec4 globtm = (const TMatrix4_vec4 &)currentFrameCamera.jitterGlobtm;
   globtm = globtm.transpose();
@@ -3942,10 +3944,26 @@ void WorldRenderer::updateTransformations(const Point2 &jitterOffset)
   TMatrix4_vec4 prevViewProjTM = TMatrix4(prevViewTm) * prevProjTm;
   prevViewProjTM = prevViewProjTM.transpose();
 
+  // this variable is no longer used, keep for backward compatibility for a while
   ShaderGlobal::set_color4(prevViewProjTm0VarId, Color4(prevViewProjTM[0]));
   ShaderGlobal::set_color4(prevViewProjTm1VarId, Color4(prevViewProjTM[1]));
   ShaderGlobal::set_color4(prevViewProjTm2VarId, Color4(prevViewProjTM[2]));
   ShaderGlobal::set_color4(prevViewProjTm3VarId, Color4(prevViewProjTM[3]));
+
+
+  double rprWorldPos[4] = {(double)prevViewProjTM[0][0] * move.x + (double)prevViewProjTM[0][1] * move.y +
+                             (double)prevViewProjTM[0][2] * move.z + (double)prevViewProjTM[0][3],
+    prevViewProjTM[1][0] * move.x + (double)prevViewProjTM[1][1] * move.y + (double)prevViewProjTM[1][2] * move.z +
+      (double)prevViewProjTM[1][3],
+    prevViewProjTM[2][0] * move.x + (double)prevViewProjTM[2][1] * move.y + (double)prevViewProjTM[2][2] * move.z +
+      (double)prevViewProjTM[2][3],
+    prevViewProjTM[3][0] * move.x + (double)prevViewProjTM[3][1] * move.y + (double)prevViewProjTM[3][2] * move.z +
+      (double)prevViewProjTM[3][3]};
+  TMatrix4_vec4 jitteredCamPosToUnjitteredHistoryClip = prevViewProjTM;
+  jitteredCamPosToUnjitteredHistoryClip.setcol(3, Point4(rprWorldPos[0], rprWorldPos[1], rprWorldPos[2], rprWorldPos[3]));
+
+  ShaderGlobal::set_float4x4(jitteredCamPosToUnjitteredHistoryClipVarId, jitteredCamPosToUnjitteredHistoryClip);
+  ShaderGlobal::set_color4(prev_to_cur_origin_moveVarId, move.x, move.y, move.z, length(move));
 
   TMatrix4_vec4 prevOrigoRelativeViewProjTm = TMatrix4(prevFrameCamera.viewTm) * prevProjTm;
   prevOrigoRelativeViewProjTm = prevOrigoRelativeViewProjTm.transpose();
@@ -5702,10 +5720,24 @@ void WorldRenderer::reinitCubeIfInvalid()
   }
 }
 
+static int get_envi_cube_size() { return dgs_get_settings()->getBlockByNameEx("graphics")->getInt("envi_cube_size", 128); }
+
 void WorldRenderer::reinitCube(const Point3 &at)
 {
-  cubeResolution = dgs_get_settings()->getBlockByNameEx("graphics")->getInt("envi_cube_size", 128);
+  cubeResolution = get_envi_cube_size();
   reinitCube(cubeResolution, at);
+}
+
+void WorldRenderer::reinitSpecularCubesContainerIfNeeded(int cube_size)
+{
+  if (!specularCubesContainerNeedsReinit)
+    return;
+
+  if (specularCubesContainer)
+  {
+    specularCubesContainer->init(cube_size < 0 ? get_envi_cube_size() : cube_size, TEXFMT_A16B16G16R16F);
+    specularCubesContainerNeedsReinit = false;
+  }
 }
 
 void WorldRenderer::reinitCube(int ew, const Point3 &at)
@@ -5716,8 +5748,7 @@ void WorldRenderer::reinitCube(int ew, const Point3 &at)
   enviProbe = light_probe::create("envi", ew, TEXFMT_A16B16G16R16F);
   ShaderGlobal::set_texture(envi_probe_specularVarId, *light_probe::getManagedTex(enviProbe));
   ShaderGlobal::set_sampler(envi_probe_specular_samplerstateVarId, d3d::request_sampler({}));
-  if (specularCubesContainer)
-    specularCubesContainer->init(ew, TEXFMT_A16B16G16R16F);
+  reinitSpecularCubesContainerIfNeeded(ew);
   initIndoorProbesIfNecessary();
   g_entity_mgr->broadcastEventImmediate(RenderReinitCube{});
   beforeDrawPostFx();
@@ -7202,6 +7233,7 @@ void WorldRenderer::changeFeatures(const FeatureRenderFlagMask &f)
   {
     closeResetable();
     initResetable();
+    setSpecularCubesContainerForReinit();
     reinitCube();
   }
 

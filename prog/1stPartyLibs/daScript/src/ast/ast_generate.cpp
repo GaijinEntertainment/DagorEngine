@@ -331,7 +331,7 @@ namespace das {
         auto varB = make_smart<Variable>();
         varB->name = "b";
         varB->type = make_smart<TypeDecl>(str);
-        varB->type->constant = true;
+        varB->type->constant = str->canCloneFromConst();    // allow to clone from const
         varB->type->implicit = true;
         varB->at = str->at;
         auto fn = make_smart<Function>();

@@ -249,7 +249,6 @@ template <typename Callable>
 static void set_bloom_threshold_ecs_query(Callable);
 
 ECS_ON_EVENT(on_appear)
-ECS_BEFORE(change_bloom_threshold_es)
 static void cinematic_mode_save_bloom_threshold_es(
   const ecs::Event &, float &cinematic_mode__saved_bloom_threshold, float cinematic_mode__default_bloom_threshold = 1.0)
 {
@@ -260,7 +259,6 @@ static void cinematic_mode_save_bloom_threshold_es(
 }
 
 ECS_ON_EVENT(on_disappear)
-ECS_BEFORE(change_bloom_threshold_es)
 static void cinematic_mode_restore_bloom_threshold_es(const ecs::Event &, float cinematic_mode__saved_bloom_threshold)
 {
   set_bloom_threshold_ecs_query([=](float &bloom__threshold) { bloom__threshold = cinematic_mode__saved_bloom_threshold; });

@@ -87,6 +87,66 @@ void setBlobDescription(dabfg::ResourceData &res, const char *mangled_name, int 
   }
 }
 
+void setBlobDescriptionDefValue(dabfg::ResourceData &res, const char *mangled_name, int size, int align, das::TypeInfo *type_info,
+  das::TLambda<void, void *> ctor, das::TFunc<void, void *> dtor, das::TFunc<void, void *, const void *> copy, das::Context *ctx)
+{
+  const auto tag = typeInterop.tryRegisterDasOnlyType(mangled_name);
+
+  G_ASSERT(align > 0 && size > 0);
+  G_ASSERT_RETURN(ctor, );
+
+  auto callCtor = [ctx, ctor = das::GcRootLambda(eastl::move(ctor), ctx), type_info](void *p) {
+    const auto call = [ctx, &ctor, p]() { das::das_invoke_lambda<void>::invoke<void *>(ctx, nullptr, ctor, p); };
+    callDasFunction(ctx, call);
+    ctx->addGcRoot(p, type_info);
+  };
+
+  // TODO: for C++ types, save their dtor/copy inside of typeInterop and
+  // use those instead of going through das to improve perf.
+  if (dtor && copy)
+  {
+    const auto callDtor = [ctx, dtor](void *p) {
+      ctx->removeGcRoot(p);
+      const auto call = [ctx, dtor, p]() { das::das_invoke_function<void>::invoke<void *>(ctx, nullptr, dtor, p); };
+      callDasFunction(ctx, call);
+    };
+    const auto callCopy = [ctx, copy, type_info](void *p, const void *from) {
+      const auto call = [ctx, copy, p, from]() {
+        das::das_invoke_function<void>::invoke<void *, const void *>(ctx, nullptr, copy, p, from);
+      };
+      callDasFunction(ctx, call);
+      ctx->addGcRoot(p, type_info);
+    };
+
+    res.creationInfo =
+      dabfg::BlobDescription{tag, static_cast<size_t>(size), static_cast<size_t>(align), eastl::move(callCtor), callDtor, callCopy};
+  }
+  else if (type_info->isPod())
+  {
+    const auto callDtor = [ctx](void *p) { ctx->removeGcRoot(p); };
+    const auto callCopy = [ctx, size, type_info](void *p, const void *from) {
+      ::memcpy(p, from, size);
+      ctx->addGcRoot(p, type_info);
+    };
+
+    res.creationInfo =
+      dabfg::BlobDescription{tag, static_cast<size_t>(size), static_cast<size_t>(align), eastl::move(callCtor), callDtor, callCopy};
+  }
+  else if (type_info->isRawPod())
+  {
+    const auto callDtor = [](void *) {};
+    const auto callCopy = [size](void *p, const void *from) { ::memcpy(p, from, size); };
+
+    res.creationInfo =
+      dabfg::BlobDescription{tag, static_cast<size_t>(size), static_cast<size_t>(align), eastl::move(callCtor), callDtor, callCopy};
+  }
+  else
+  {
+    // We check for POD-ness on das side, so this should never happen.
+    G_ASSERTF(false, "Impossible situation!");
+  }
+}
+
 dabfg::BlobView getBlobView(const dabfg::ResourceProvider *provider, dabfg::ResNameId resId, bool history)
 {
   G_ASSERT(provider);
@@ -125,6 +185,9 @@ void DaBfgCoreModule::addBlobBindings(das::ModuleLibrary &lib)
 
   das::addExtern<DAS_BIND_FUN(bind_dascript::setBlobDescription)>(*this, lib, //
     "setDescription", das::SideEffects::accessExternal, "bind_dascript::setBlobDescription");
+
+  das::addExtern<DAS_BIND_FUN(bind_dascript::setBlobDescriptionDefValue)>(*this, lib, //
+    "setDescription", das::SideEffects::accessExternal, "bind_dascript::setBlobDescriptionDefValue");
 
   das::addExtern<DAS_BIND_FUN(bind_dascript::getBlobView)>(*this, lib, //
     "getBlobView", das::SideEffects::accessExternal, "bind_dascript::getBlobView");

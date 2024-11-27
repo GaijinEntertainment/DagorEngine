@@ -32,7 +32,7 @@ macro COMMON_RENDINST_VCOLOR_PS(is_blending_hmap)
 
   if (!rendinst_render_is_shadow_or_depth)
   {
-    VCOLOR_LAYERED_PS((rendinst_render_pass != rendinst_render_pass_voxelize_albedo), is_blending_hmap)
+    VCOLOR_LAYERED_PS((rendinst_render_pass != rendinst_render_pass_voxelize_albedo), is_blending_hmap, false)
   }
 endmacro
 

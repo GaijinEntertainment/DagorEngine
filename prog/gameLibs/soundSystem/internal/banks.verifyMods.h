@@ -22,7 +22,7 @@ static bool read_file_hash(const char *path, intptr_t &filesize, prohibited_hash
 
   file_ptr_t fp = df_open(path, DF_READ);
   if (!fp)
-    return true;
+    return false;
 
   FINALLY([fp]() { df_close(fp); });
 
@@ -74,6 +74,8 @@ static bool verify_mods(const char *banks_folder, const char *mod_path, const ch
       cur = {};
       cur.filename = desc.filename;
       path.sprintf("%s/%s%s%s", banks_folder, mod_path, cur.filename, extension);
+      if (!dd_file_exist(path.c_str()))
+        continue;
       if (!read_file_hash(path.c_str(), cur.filesize, cur.filehash, tmpBuffer))
         return false;
       const int id = &desc - descs.begin();

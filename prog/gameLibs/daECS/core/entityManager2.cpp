@@ -598,7 +598,10 @@ inline bool EntityManager::validateInitializer(template_t templId, ComponentsIni
 #if DAECS_EXTENSIVE_CHECKS
         static eastl::vector_set<template_t> warnedTemplates;
         if (warnedTemplates.insert(templId).second)
-          logwarn("<0x%X> component is not known in template <%s>", initIt->name, getTemplateName(templId));
+        {
+          const char *name = templateDB.getComponentName(initIt->name);
+          logwarn("%s<0x%X> component is not known in template <%s>", name ? name : "", initIt->name, getTemplateName(templId));
+        }
 #endif
         continue;
       }

@@ -289,7 +289,7 @@ struct FrontendState
   }
 
   template <typename A, typename U, typename D>
-  void flushResources(A &ctx, uint32_t stage, U update_srv_buffer, D is_const_ds)
+  void flushResources(A &ctx, uint32_t stage, U update_srv_buffer, D is_const_ds) DAG_TS_REQUIRES(resourceBindingGuard)
   {
     StageResourcesState &target = stageResources[stage];
     const auto updateMask = target.dirtyMasks;
@@ -1189,6 +1189,7 @@ struct FrontendState
       ctx.setComputePipeline(computeProgram);
     }
 
+    OSSpinlockScopedLock resourceBindingLock(resourceBindingGuard);
     // check returns always false, compute shader can not conflict with framebuffer
     // also no check needed for const depth stencil target, pass has to end
     flushResources(
@@ -1244,6 +1245,7 @@ struct FrontendState
     if (dirtyState.test(DirtyState::RAYTRACE_PROGRAM))
       ctx.setRaytracePipeline(raytraceProgram);
 
+    OSSpinlockScopedLock resourceBindingLock(resourceBindingGuard);
     // check returns always false, raytrace shader can not conflict with framebuffer
     // also no check needed for const depth stencil target, pass has to end
     flushResources(

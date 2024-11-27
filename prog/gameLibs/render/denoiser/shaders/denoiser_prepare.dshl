@@ -93,17 +93,17 @@ shader denoiser_prepare
       texture2DAt(viewZTexture, dtid.xy) = viewZ;
       texture2DAt(nrTexture, dtid.xy) = normalRoughness;
       ##if denoiser_half_res == yes
-        if (all(dtid.xy & 1) == 0)
+        if (all(dtid.xy & 1) == 0 && all(dtid.xy / 2 < resolution / 2)) // TODO: Remove second check when we ceil resolution scaling.
         {
           float rawHalfDepth = texture2DAt(halfResDepthTex, dtid.xy / 2).r;
           texture2DAt(halfZTexture, dtid.xy / 2) = rawHalfDepth > 0 ? linearize_z(rawHalfDepth, zn_zfar.zw) : INF;
-          texture2DAt(halfNrTexture, dtid.xy / 2) = NRD_FrontEnd_PackNormalAndRoughness(normalize(halfNormalsTexture[dtid.xy / 2].xyz * 2 - 1), roughness, 0);
+          texture2DAt(halfNrTexture, dtid.xy / 2) = NRD_FrontEnd_PackNormalAndRoughness(normalize(texture2DAt(halfNormalsTexture, dtid.xy / 2).xyz * 2 - 1), roughness, 0);
         }
       ##endif
 
       ##if denoiser_spec_history_confidence != NULL
         ##if denoiser_spec_confidence_half_res == yes
-          if (all(dtid.xy & 1) == 0)
+          if (all(dtid.xy & 1) == 0 && all(dtid.xy / 2 < resolution / 2)) // TODO: Remove second check when we ceil resolution scaling.
             texture2DAt(specHistoryConfidence, dtid.xy / 2) = historyConfidence;
         ##else
           texture2DAt(specHistoryConfidence, dtid.xy) = historyConfidence;

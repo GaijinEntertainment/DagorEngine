@@ -10,6 +10,7 @@
 #include <drv/3d/dag_buffers.h>
 #include <3d/dag_lockSbuffer.h>
 #include <vecmath/dag_vecMath.h>
+#include <osApiWrappers/dag_miscApi.h>
 
 #include "shStateBlock.h"
 #include "concurrentRangePool.h"
@@ -76,7 +77,48 @@ using PackedCont = ConcurrentElementPool<PackedStcodeId, T, 5, 6>;
 static PackedCont<StatesContainer> packedAll;
 static PackedCont<ConstantsContainer> packedDataConsts;
 static PackedCont<PackedBuffersContainer> packedConstBuf;
-static PackedCont<eastl::bitset<1 << BUFFER_BITS>> bufferNeedsUpdate;
+
+namespace packed_buffs
+{
+// NOTE: for each const buffer, we store the value K -- length of a prefix
+// which is out of date (invalid) on the GPU and needs to be re-uploaded.
+// The value is in [0, 4096] range so we need 13 bits...
+static PackedCont<eastl::array<eastl::atomic<uint16_t>, 1 << BUFFER_BITS>> gpuInvalidPrefix;
+// We also store the length of the prefix valid on the CPU side to be able to invalidate
+// the entire (usable part of the) buffer if needed.
+static PackedCont<eastl::array<uint16_t, 1 << BUFFER_BITS>> cpuValidPrefix;
+
+// NOTE: this is ONLY called under the shader_internal mutex, and always with monotonically increasing
+// prefix_length, so we don't need atomic max or anything like that.
+static void invalidate_prefix(PackedStcodeId packed_stcode_id, PackedBufferId buffer_id, uint16_t prefix_length)
+{
+  const auto bufIndex = PackedBuffersContainer::to_index(buffer_id);
+  cpuValidPrefix[packed_stcode_id][bufIndex] = prefix_length;
+  gpuInvalidPrefix[packed_stcode_id][bufIndex].store(prefix_length, eastl::memory_order_release);
+}
+
+// NOTE: this is also only called under the shader_internal mutex, but also only
+// on the main thread (as it mutates already created constants).
+static void invalidate_all(PackedStcodeId packed_stcode_id, PackedBufferId buffer_id)
+{
+  const auto bufIndex = PackedBuffersContainer::to_index(buffer_id);
+  const auto observedValidPrefix = cpuValidPrefix[packed_stcode_id][bufIndex];
+  // Release is not needed here because invalidate_all and snatch_invalid_prefix
+  // are always called on the main thread.
+  gpuInvalidPrefix[packed_stcode_id][bufIndex].store(observedValidPrefix, eastl::memory_order_relaxed);
+}
+
+// This can be called without a lock & at any point in time whatsoever, but only on the main thread,
+// so we need to ACQUIRE the value to synchronize the last* non-atomic writes into the CPU version
+// of the const buffer (packedDataConsts) through `invalidate_prefix` which we will read & upload to the GPU.
+// * the word "last" only makes sense because modifications are done under a lock.
+static uint16_t snatch_invalid_prefix(PackedStcodeId packed_stcode_id, PackedBufferId buffer_id)
+{
+  const auto bufIndex = PackedBuffersContainer::to_index(buffer_id);
+  return gpuInvalidPrefix[packed_stcode_id][bufIndex].exchange(0, eastl::memory_order_acquire);
+}
+
+} // namespace packed_buffs
 
 static ConstantsContainer::ChunkIdx packed_buffer_id_to_chunk(PackedBufferId buffer_id)
 {
@@ -95,7 +137,8 @@ static PackedStcodeId allocate_packed_cell(int stcode_id)
     const auto cellId = packedDataConsts.allocate();
     packedConstBuf.ensureSpace(cellId);
     packedAll.ensureSpace(cellId);
-    bufferNeedsUpdate.ensureSpace(cellId);
+    packed_buffs::gpuInvalidPrefix.ensureSpace(cellId);
+    packed_buffs::cpuValidPrefix.ensureSpace(cellId);
     stcodeIdToPacked[stcode_id] = cellId;
   }
 
@@ -237,14 +280,17 @@ struct BindlessState
       }
     });
 
-    if (bufferNeedsUpdate[packedId].test(eastl::to_underlying(stateId.getBufferId())))
     {
-      bufferNeedsUpdate[packedId].reset(eastl::to_underlying(stateId.getBufferId()));
-      const auto &dataConsts = packedDataConsts[packedId];
-      const auto chunk = packed_buffer_id_to_chunk(stateId.getBufferId());
-      const auto chunkView = dataConsts.viewChunk(chunk);
-      G_FAST_ASSERT(chunkView.size() <= MAX_CONST_BUFFER_SIZE);
-      constBuf->updateData(0, chunkView.size_bytes(), chunkView.data(), VBLOCK_DISCARD);
+      const auto invalidPrefix = packed_buffs::snatch_invalid_prefix(packedId, stateId.getBufferId());
+      if (invalidPrefix > 0)
+      {
+        const auto &dataConsts = packedDataConsts[packedId];
+        const auto chunk = packed_buffer_id_to_chunk(stateId.getBufferId());
+        const auto chunkView = dataConsts.viewChunk(chunk);
+        const auto validConsts = chunkView.subspan(0, invalidPrefix);
+        G_FAST_ASSERT(validConsts.size() <= MAX_CONST_BUFFER_SIZE);
+        constBuf->updateData(0, validConsts.size_bytes(), validConsts.data(), VBLOCK_DISCARD);
+      }
     }
   }
 
@@ -256,7 +302,7 @@ struct BindlessState
 
     packedConstBuf[collection_id].iterateWithIds([collection_id](PackedBufferId bufferId, Sbuffer *buf) {
       if (buf)
-        bufferNeedsUpdate[collection_id].set(eastl::to_underlying(bufferId));
+        packed_buffs::invalidate_all(collection_id, bufferId);
     });
   }
 
@@ -391,8 +437,6 @@ struct BindlessState
           consts_count == 0
             ? PackedBufferId::Invalid
             : PackedBuffersContainer::from_index(eastl::to_underlying(constsStorage.chunkOf(paramsStorage[found].consts)));
-        if (consts_count != 0 && stcode_id >= 0)
-          bufferNeedsUpdate[packedId].set(eastl::to_underlying(bufferId));
         return PackedConstsState(stcode_id < 0 ? PackedStcodeId::Invalid : packedId, bufferId, found);
       }
     }
@@ -470,7 +514,7 @@ struct BindlessState
     {
       bufferId = PackedBuffersContainer::from_index(eastl::to_underlying(constsStorage.chunkOf(ourConstsRangeFirstId)));
       packedConstBuf[packedId].ensureSpace(bufferId);
-      bufferNeedsUpdate[packedId].set(eastl::to_underlying(bufferId));
+      packed_buffs::invalidate_prefix(packedId, bufferId, constsStorage.offsetInChunk(ourConstsRangeFirstId) + consts_count);
     }
     return PackedConstsState(stcode_id < 0 ? PackedStcodeId::Invalid : packedId, bufferId, id);
   }
@@ -663,6 +707,8 @@ bool is_packed_material(ConstStateIdx const_state_idx) { return PLATFORM_HAS_BIN
 
 void reset_bindless_samplers_in_all_collections()
 {
+  G_ASSERT(is_main_thread());
+
   packedAll.iterateWithIds([](PackedStcodeId id, StatesContainer &collection) {
     for (BindlessState &state : collection)
       state.resetPackedSamplers(id);

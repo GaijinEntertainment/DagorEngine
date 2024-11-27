@@ -120,6 +120,10 @@ shader testMaterialAO
   compile("target_ps", "test_ps");
 }
 
+int in_pos_const_no = 60;
+int in_insc_const_no = 61;
+int in_loss_const_no = 62;
+
 shader cpuFogRender
 {
   no_ablend;
@@ -139,21 +143,20 @@ shader cpuFogRender
   (vs)
   {
     globtm@f44 = globtm;
+    in_pos@f4 : register(in_pos_const_no);
+    in_insc@f4 : register(in_insc_const_no);
+    in_loss@f4 : register(in_loss_const_no);
   }
   hlsl(vs) {
-    float3 pos:register(c60);
-    float3 insc:register(c61);
-    float3 loss:register(c62);
-
     VsOutput test_vs(uint vertexId : SV_VertexID)
     {
       VsOutput output;
       float3 ofs = float3(0,0,0);
       ofs.xz = getPostfxVertexPositionById(vertexId).xy;
-      float3 cpos = pos+ofs*float3(2,3,1);
+      float3 cpos = in_pos.xyz+ofs*float3(2,3,1);
       output.pos = mul(float4(cpos, 1), globtm);
-      output.insc = insc;
-      output.loss = loss;
+      output.insc = in_insc.xyz;
+      output.loss = in_loss.xyz;
       return output;
     }
   }

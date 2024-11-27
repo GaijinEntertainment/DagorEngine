@@ -3247,8 +3247,8 @@ void DagorEdAppWindow::renderUI()
     ImGui::DockBuilderDockWindow("Viewport", dockSpaceViewport);
     ImGui::DockBuilderDockWindow("Outliner", dockSpaceRight1);
     ImGui::DockBuilderDockWindow("Properties", dockSpaceRight2);
-    ImGui::DockBuilderDockWindow("Trigger / Mission Obj. Info", dockSpaceRight2);
-    ImGui::DockBuilderDockWindow("Object Properties", dockSpaceRight3);
+    ImGui::DockBuilderDockWindow("Trigger / Mission Obj. Info", dockSpaceRight3);
+    ImGui::DockBuilderDockWindow("Object Properties", dockSpaceRight4);
 
     ImGui::DockBuilderFinish(rootDockSpaceId);
   }

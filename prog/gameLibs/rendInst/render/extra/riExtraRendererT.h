@@ -21,6 +21,7 @@
 #include <render/debugMesh.h>
 #include <render/pointLod/range.h>
 #include <rendInst/packedMultidrawParams.hlsli>
+#include <shaders/dag_shaderVarsUtils.h>
 
 
 // Tools don't have depth prepass for trees.
@@ -249,7 +250,7 @@ public:
       debug_mesh::set_debug_value(rl.lod);
 
       rl.curShader->setReqTexLevel(rl.texLevel);
-      set_states_for_variant(rl.curShader->native(), rl.cv, rl.prog, rl.state & ~rl.DISABLE_OPTIMIZATION_BIT_STATE);
+      set_states_for_variant(rl.curShader->native(), rl.cv, rl.prog, rl.state);
 
       multiDrawRenderer.render(PRIM_TRILIST, dcParams.start, dcParams.count);
     }
@@ -296,7 +297,8 @@ public:
 #endif
 
     shaders::RenderStateId curRstate = shaders::RenderStateId();
-    uint32_t curState = 0xFFFFFFFF;
+    ShaderStateBlockId curState = ShaderStateBlockId::Invalid;
+    bool curDisableOptimization = true;
     bool currentTessellationState = !list[0].isTessellated;
 
     for (auto &rl : list)
@@ -323,13 +325,14 @@ public:
 
       bool skipApply = false;
       if (optimizeDepthPass && rl.drawOrder_stage->stage == ShaderMesh::STG_opaque && curRstate == rl.rstate &&
-          !(rl.state & RIExRenderRecord::DISABLE_OPTIMIZATION_BIT_STATE) &&
-          (rl.isTessellated == currentTessellationState && (!rl.isTessellated || curState == rl.state)))
+          !rl.disableOptimization && rl.isTessellated == currentTessellationState &&
+          (!rl.isTessellated || (curState == rl.state && curDisableOptimization == rl.disableOptimization)))
       {
         skipApply = true; // we only switch renderstate - zbias,culling, etc
       }
       curRstate = rl.rstate;
       curState = rl.state;
+      curDisableOptimization = rl.disableOptimization;
       currentTessellationState = rl.isTessellated;
 
       RiExtraPool &riPool = riExtra[riResOrder[rl.poolOrder] & RI_RES_ORDER_COUNT_MASK];
@@ -355,7 +358,7 @@ public:
       rl.curShader->setReqTexLevel(rl.texLevel);
 
       if (!skipApply)
-        set_states_for_variant(rl.curShader->native(), rl.cv, rl.prog, rl.state & ~rl.DISABLE_OPTIMIZATION_BIT_STATE);
+        set_states_for_variant(rl.curShader->native(), rl.cv, rl.prog, rl.state);
 
       IPoint2 ofsAndVertexByteStart = {rl.ofsAndCnt.x, rl.bv * rl.vstride};
       const bool setInstancing = curOfsAndVertexByteStart != ofsAndVertexByteStart;
@@ -388,10 +391,10 @@ public:
         }
       }
 
-      if (rl.state & RIExRenderRecord::DISABLE_OPTIMIZATION_BIT_STATE)
+      if (rl.disableOptimization)
       {
         curRstate = shaders::RenderStateId();
-        curState = 0xFFFFFFFF;
+        curState = ShaderStateBlockId::Invalid;
       }
     }
 #if USE_DEPTH_PREPASS_FOR_TREES
@@ -422,12 +425,15 @@ public:
                                                                                                  // is all of one
                                                                                                  // shader anyway
       {
-        if (a.state != b.state) // maybe split state into sampler state (heavy) and const buffer (cheap)?
+        // maybe split state into sampler state (heavy) and const buffer (cheap)?
+        if (a.state != b.state || a.disableOptimization != b.disableOptimization)
         {
           if (a.tstate != b.tstate) // maybe split state into sampler state (heavy) and const buffer (cheap)?
             return a.tstate < b.tstate;
           if (a.rstate != b.rstate)
             return a.rstate < b.rstate;
+          if (a.disableOptimization != b.disableOptimization)
+            return a.disableOptimization < b.disableOptimization;
           return a.state < b.state;
         }
         if (a.prog != b.prog)
@@ -545,7 +551,6 @@ public:
     // Flag shaders and
     // Tree shaders are generally incompatible by VS with other RI shaders and with each other. // TODO: still true?
     const bool disableOptimization = riPool.isTree;
-    const uint32_t disableOptimizationBit = disableOptimization ? RIExRenderRecord::DISABLE_OPTIMIZATION_BIT_STATE : 0;
 
     int texLevel = texCtx.getTexLevel(riPool.res->getTexScale(lod), dist2);
 
@@ -576,7 +581,8 @@ public:
         const auto &elem = allElems[EI];
         if (!elem.shader)
           continue;
-        uint32_t prog, state;
+        uint32_t prog;
+        ShaderStateBlockId state;
         shaders::ConstStateIdx cstate;
         shaders::TexStateIdx tstate;
         shaders::RenderStateId rstate;
@@ -584,9 +590,6 @@ public:
         int curVar = DynamicVariantsPolicy::getStates(currentShader->native(), prog, state, rstate, cstate, tstate);
 
         if (curVar < 0)
-          continue;
-
-        if (!currentShader->checkAndPrefetchMissingTextures())
           continue;
 
         if (elem.vbIdx == unitedvdata::BufPool::IDX_IB)
@@ -597,9 +600,9 @@ public:
         }
 
         const bool isTessellated = riPool.elemMask[lod].tessellation & (1 << (EI - startEI));
-        RIExRenderRecord record = RIExRenderRecord(currentShader, curVar, prog, state | disableOptimizationBit, rstate, tstate, cstate,
-          pool_order, (uint16_t)elem.vstride, (uint8_t)elem.vbIdx, elem.drawOrder, EI - startEI, elem.primitive,
-          IPoint2(ofsAndCnt.x, count), elem.si, elem.sv, elem.numv, elem.numf, elem.baseVertex, texLevel, riPool.isTree, isTessellated
+        RIExRenderRecord record = RIExRenderRecord(currentShader, curVar, prog, state, rstate, tstate, cstate, pool_order,
+          (uint16_t)elem.vstride, (uint8_t)elem.vbIdx, elem.drawOrder, EI - startEI, elem.primitive, IPoint2(ofsAndCnt.x, count),
+          elem.si, elem.sv, elem.numv, elem.numf, elem.baseVertex, texLevel, riPool.isTree, isTessellated, disableOptimization
 #if DAGOR_DBGLEVEL > 0
           ,
           (uint8_t)max(counter, 0)

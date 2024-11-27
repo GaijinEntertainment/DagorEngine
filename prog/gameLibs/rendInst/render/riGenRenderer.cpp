@@ -236,7 +236,8 @@ static void addLodInstances(RendInstGenData::RtData &rt_data, const RiGenVisibil
 
       const auto &elem = elems[elemNo];
 
-      uint32_t prog, state;
+      uint32_t prog;
+      ShaderStateBlockId state;
       shaders::ConstStateIdx cstate;
       shaders::TexStateIdx tstate;
       shaders::RenderStateId rstate;
@@ -507,10 +508,10 @@ void RiGenRenderer::renderObjects(const RendInstGenData::RtData &rt_data, const 
 
   uint8_t curVbIdx = INVALID;
   uint16_t curStride = INVALID;
-  shaders::RenderStateId curRState(INVALID);
+  shaders::RenderStateId curRState = shaders::RenderStateId::Invalid;
   uint16_t curVariant = INVALID;
   uint32_t curProg = INVALID;
-  uint32_t curState = INVALID;
+  ShaderStateBlockId curState = ShaderStateBlockId::Invalid;
   uint32_t curPoolIdx = INVALID;
   IPoint2 curOfsAndVertexByteStart = {INVALID, INVALID};
   uint8_t curInstanceLod = INVALID;

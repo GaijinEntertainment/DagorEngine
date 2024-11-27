@@ -217,6 +217,7 @@ int on_debug_log(int lev_tag, const char *fmt, const void *arg, int anum, const 
     const char *pSlash = strrchr(scnn.c_str(), '/'), *pDot = strrchr(scnn.c_str(), '.');
     params.meta["scene"] =
       eastl::string(pSlash ? &pSlash[1] : scnn.c_str(), (pSlash && pDot > pSlash) ? pDot : (scnn.c_str() + scnn.length()));
+    params.meta["uid"] = app_profile::get().userId.empty() ? "-1" : app_profile::get().userId;
 
     event_log::send_error_log(s.str(), params);
   }

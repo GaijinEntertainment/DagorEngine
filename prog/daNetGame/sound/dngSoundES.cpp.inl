@@ -337,12 +337,11 @@ static void sound_draw_debug_es(const ecs::UpdateStageInfoRenderDebug &)
 
 ECS_TAG(sound)
 ECS_REQUIRE(ecs::Tag msg_sink)
-ECS_AFTER(after_net_phys_sync) // TODO: need some proper points
-static void sound_begin_update_es(const ParallelUpdateFrameDelayed &)
-{ // placeholder
-}
+ECS_AFTER(after_net_phys_sync) // may need some more proper points
+static void sound_begin_update_es(const ParallelUpdateFrameDelayed &evt) { sndsys::begin_update(evt.dt); }
+
 
 ECS_TAG(sound)
 ECS_REQUIRE(ecs::Tag msg_sink)
 ECS_AFTER(sound_begin_update_es)
-static void sound_end_update_es(const ParallelUpdateFrameDelayed &evt) { sndsys::update(evt.dt); }
+static void sound_end_update_es(const ParallelUpdateFrameDelayed &evt) { sndsys::end_update(evt.dt); }

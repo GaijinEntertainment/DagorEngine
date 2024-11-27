@@ -526,6 +526,22 @@ namespace drv3d_metal
     delete this;
   }
 
+  void Buffer::setResApiName(const char *name) const
+  {
+#if DAGOR_DBGLEVEL > 0
+    if (ring_buffer == nullptr)
+      return;
+    BufTex* buf = ring_buffer;
+    for (int i = 0; i < max_buffers; i++)
+    {
+      BufTex* prev_buf = buf;
+      buf = buf->next;
+      if (prev_buf->buffer)
+        prev_buf->buffer.label = [NSString stringWithUTF8String : name];
+    }
+#endif
+  }
+
   void Buffer::cleanup()
   {
     Tab<Buffer::BufTex*> buffers;

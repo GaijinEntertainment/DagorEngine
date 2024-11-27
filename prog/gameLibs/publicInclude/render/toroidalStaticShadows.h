@@ -8,6 +8,7 @@ class Point2;
 
 #include <render/staticShadowsCB.h>
 
+#include <generic/dag_relocatableFixedVector.h>
 #include <3d/dag_resPtr.h>
 #include <math/dag_Point3.h>
 #include <math/dag_bounds3.h>
@@ -161,7 +162,7 @@ protected:
       TMatrix4_vec4 cullViewProj;
       ViewTransformData transform;
     };
-    eastl::vector<RegionToRender> regionsToRender;
+    dag::RelocatableFixedVector<RegionToRender, 8> regionsToRender;
   } renderData{};
 
   int getRegionToRenderCount() const;
@@ -171,6 +172,7 @@ protected:
   bool copyTransitionAfterRender = false;
   BaseTexture *transitionCopyTarget = nullptr;
 };
+DAG_DECLARE_RELOCATABLE(ToroidalStaticShadowCascade);
 
 class ToroidalStaticShadows
 {
@@ -250,7 +252,7 @@ protected:
   BBox3 worldBox;
   bool useTextureSpaceAlignment = false;
   TMatrix lightViewProj = TMatrix::IDENT;
-  eastl::vector<ToroidalStaticShadowCascade> cascades;
+  dag::RelocatableFixedVector<ToroidalStaticShadowCascade, 2> cascades;
   eastl::unique_ptr<ShadowDepthScroller> depthScroller; // we only need depthScroller, if not orthogonal or maxHtRange is bigger than
                                                         // worldBox (or worldBox is unknown)
 };

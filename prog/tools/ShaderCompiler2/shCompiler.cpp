@@ -563,6 +563,7 @@ bool buildShaderBinDump(const char *bindump_fn, const char *sh_fn, bool forceReb
     if (!get_file_time64(sh_fn, sh_time))
     {
       dd_erase(bindump_fn);
+      sh_debug(SHLOG_ERROR, "Time stat syscall for bindump %s erred, aborting build...", bindump_fn);
       return false;
     }
 
@@ -592,7 +593,10 @@ bool buildShaderBinDump(const char *bindump_fn, const char *sh_fn, bool forceReb
   else
   {
     if (!dd_rename(tempbindump_fn.c_str(), bindump_fn))
+    {
       sh_debug(SHLOG_ERROR, "Can't rename binary '%s'->'%s'\n", tempbindump_fn.c_str(), bindump_fn);
+      return false;
+    }
   }
 
   sh_debug(SHLOG_INFO, "+++ Built shaders binary %sdump: '%s'\n", minidump ? "mini" : "", bindump_fn);

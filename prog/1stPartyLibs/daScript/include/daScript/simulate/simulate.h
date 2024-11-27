@@ -206,13 +206,13 @@ namespace das
     class dasException final : public std::exception {
     public:
         dasException ( const char * why, const LineInfo & at )
-            : exceptionAt(at), exceptionWhat(why) {}
+            : exceptionAt(at), exceptionWhat(why ? why : "") {}
         virtual char const* what() const noexcept override {
-            return exceptionWhat ? exceptionWhat : "unknown exception";
+            return exceptionWhat.empty() ? "unknown exception" : exceptionWhat.c_str();
         }
     public:
         LineInfo exceptionAt;
-        const char * exceptionWhat = nullptr;
+        std::string exceptionWhat;
     };
 #endif
 

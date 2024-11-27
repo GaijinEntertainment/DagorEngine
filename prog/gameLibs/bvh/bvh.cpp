@@ -505,7 +505,7 @@ static bool process(ContextId context_id, Sbuffer *buffer, UniqueOrReferencedBVH
     didProcessing = true;
   }
 
-  G_ASSERT(processedBuffer.isAllocated() || d3d::device_lost(nullptr));
+  HANDLE_LOST_DEVICE_STATE(processedBuffer.isAllocated(), false);
 
   return didProcessing;
 }

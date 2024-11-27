@@ -271,6 +271,7 @@ void TextureImageFactory::destroyTextures(eastl::span<Image *> textures, fronten
     }
     freeView(texture->getRecentView());
     texture->getDebugName([this, texture](auto &name) {
+      logdbg("DX12: Destroy image: %p (handle: %p, name: %s)", texture, texture->getHandle(), name); // In case of RE-2274 repro case
       recordTextureFreed(texture->getMipLevelRange(), texture->getArrayLayers(), texture->getBaseExtent(),
         !texture->isAliased() ? texture->getMemory().size() : 0, texture->getFormat(), name);
     });

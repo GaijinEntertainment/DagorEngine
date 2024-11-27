@@ -86,6 +86,8 @@ macro INIT_TANK_COCKPIT_LIGHTING()
   }
 endmacro
 
+float4 prev_to_cur_origin_move;
+
 block(scene) dynamic_scene
 {
   DYNAMIC_SIMPLE_VS_SHARED_DECL()
@@ -103,7 +105,8 @@ block(scene) dynamic_scene
   }
 
   (vs) {
-    prevViewProjTm@f44 = {prevViewProjTm0, prevViewProjTm1, prevViewProjTm2, prevViewProjTm3};
+    jitteredCamPosToUnjitteredHistoryClip@f44 = jitteredCamPosToUnjitteredHistoryClip;
+    prev_to_cur_origin_move@f3 = prev_to_cur_origin_move;
     paint_details_tex@smp2d = paint_details_tex;
   }
 

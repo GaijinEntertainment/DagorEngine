@@ -310,7 +310,7 @@ def joj(val : JsonValue?; id : string) : JsonValue?
     if val == null || !(val is _object)
         return res
     get(val as _object, id) <| $(v)
-        res = v
+        res = unsafe(reinterpret<JsonValue?> v)
     return res
 
 def jon(val : JsonValue?; id : string; defVal = 0lf) : double

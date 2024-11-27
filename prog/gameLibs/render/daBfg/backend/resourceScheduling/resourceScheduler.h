@@ -37,7 +37,7 @@ public:
 
   struct BlobDeactivationRequest
   {
-    TypeErasedCall destructor;
+    const TypeErasedCall *destructor;
     void *blob;
   };
 

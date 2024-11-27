@@ -139,6 +139,7 @@ namespace das {
         int getVariantUniqueFieldIndex ( const TypeDeclPtr & uniqueType ) const;
         int getVectorFieldOffset ( int index ) const;
         string describe ( DescribeExtra extra = DescribeExtra::yes, DescribeContracts contracts = DescribeContracts::yes, DescribeModule module = DescribeModule::yes) const;
+        bool canCloneFromConst() const;
         __forceinline bool canCopy() const { return canCopy(false); }
         bool canCopy(bool tempMatters) const;
         bool canMove() const;

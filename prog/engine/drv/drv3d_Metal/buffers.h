@@ -39,7 +39,7 @@ protected:
   bool isDynamic = false;
   BufTex *cur_buffer;
   BufTex *cur_render_buffer;
-  BufTex *ring_buffer;
+  BufTex *ring_buffer = nullptr;
   bool allow_resize_ring_buffer = false;
   bool fast_discard = false;
 
@@ -80,6 +80,8 @@ public:
 
   virtual int getElementSize() const { return structSize; }
   virtual int getNumElements() const { return (int)(structSize > 0 ? bufSize / structSize : 0); };
+
+  virtual void setResApiName(const char *name) const;
 
   virtual int lock(unsigned ofs_bytes, unsigned size_bytes, void **ptr, int flags);
   void *lock(uint32_t offset_bytes, uint32_t size_bytes, int flags);

@@ -156,7 +156,8 @@ static dabfg::NodeHandle makeDynamicHairRenderNode()
                 }
 
                 state.process_animchar(ShaderMesh::STG_atest, ShaderMesh::STG_atest, sceneInstance, dynRes, nullptr, 0, false, nullptr,
-                  nodeMask.begin(), nodeCount, UpdateStageInfoRender::RENDER_MAIN, false, 0, nullptr, texCtxHndl.ref());
+                  nodeMask.begin(), nodeCount, UpdateStageInfoRender::RENDER_MAIN, false, dynmodel_renderer::RenderPriority::HIGH,
+                  nullptr, texCtxHndl.ref());
               });
           }
           state.prepareForRender();

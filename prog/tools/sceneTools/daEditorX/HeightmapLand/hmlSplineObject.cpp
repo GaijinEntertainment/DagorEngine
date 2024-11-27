@@ -523,7 +523,7 @@ void SplineObject::renderLines(bool opaque_pass, const Frustum &frustum)
     col = E3DCOLOR(128, 128, 128, 255);
   else
   {
-    col = poly ? E3DCOLOR(0, 200, 0, 255) : E3DCOLOR(170, 170, 170, 255);
+    col = poly ? (props.navmeshIdx >= 0 ? E3DCOLOR(14, 9, 245, 255) : E3DCOLOR(0, 200, 0, 255)) : E3DCOLOR(170, 170, 170, 255);
     for (int i = 0; i < points.size(); i++)
       if (points[i]->isSelected())
       {

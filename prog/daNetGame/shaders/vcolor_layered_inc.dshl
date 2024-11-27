@@ -1,5 +1,6 @@
 include "layered_inc.dshl"
 include "hmap_blend_use_inc.dshl"
+include "translucent_inc.dshl"
 
 macro VCOLOR_LAYERED_WEIGHT_BLENDING(stage)
 hlsl(stage)
@@ -85,7 +86,8 @@ macro USE_VCOLOR_LAYERED(stage)
   VCOLOR_LAYERED_WEIGHT_BLENDING(stage)
 endmacro
 
-macro VCOLOR_LAYERED_PS(is_writing_gbuffer, is_blending_hmap)
+// If use_translucency is set to true, translucent_inc.dshl:INIT_TRANSLUCENCY_SETTING(ps) should be called before
+macro VCOLOR_LAYERED_PS(is_writing_gbuffer, is_blending_hmap, use_translucency)
   USE_LAYERED_PS()
   USE_PIXEL_TANGENT_SPACE()
   ENABLE_ASSERT(ps)
@@ -105,6 +107,7 @@ macro VCOLOR_LAYERED_PS(is_writing_gbuffer, is_blending_hmap)
       (ps){leaks_tex@static = leaks_tex;}
     }
   }
+
   hlsl(ps) {
     #ifndef SAMPLE_TEX
       #define SAMPLE_TEX(tex, tc) tex2DBindless(tex, tc)
@@ -196,7 +199,15 @@ macro VCOLOR_LAYERED_PS(is_writing_gbuffer, is_blending_hmap)
         ##endif
         diffuseColor = diffuseColor*weights.x + diffuseColor1*weights.y + diffuseColor2*weights.z;
 
-        half metalness = packedNormalMap.b;
+        half metalnessOrTranslucency;
+
+        ##if use_translucency
+        if (SHOULD_USE_TRANLUCENCY && SHOULD_USE_OVERRIDEN_TRANLUCENCY)
+          metalnessOrTranslucency = TRANSLUCENCY_OVERRIDE;
+        else
+        ##endif
+          metalnessOrTranslucency = packedNormalMap.b;
+
         half reflectance = 0.5;
         half ao = 1;
         BRANCH
@@ -213,6 +224,20 @@ macro VCOLOR_LAYERED_PS(is_writing_gbuffer, is_blending_hmap)
         UnpackedGbuffer gbuffer;
         init_gbuffer(gbuffer);
 
+        ##if use_translucency
+        if (SHOULD_USE_TRANLUCENCY)
+        {
+          init_translucency(gbuffer, metalnessOrTranslucency);
+          init_material(gbuffer, SHADING_SUBSURFACE);
+          init_sss_profile(gbuffer, SSS_PROFILE_NEUTRAL_TRANSLUCENT);
+        }
+        else
+        ##endif
+        {
+          init_metalness(gbuffer, metalnessOrTranslucency);
+          init_material(gbuffer, SHADING_NORMAL);
+        }
+
         init_dynamic(gbuffer,IS_DYNAMIC);
         init_order(gbuffer, GBUFFER_ORDER_DYNAMIC);
         init_auto_motion_vector(gbuffer, FORCE_AUTO_MOTION_VECTOR);
@@ -220,9 +245,7 @@ macro VCOLOR_LAYERED_PS(is_writing_gbuffer, is_blending_hmap)
           float3 motion = encode_motion_vector( input.out_pos, input.out_pos_prev );
           init_motion_vector(gbuffer, motion);
         #endif
-        init_metalness(gbuffer, metalness);
         init_ao(gbuffer, ao);
-        init_material(gbuffer, SHADING_NORMAL);
         ##if (shader != rendinst_cliff)
         diffuseColor.rgb *= lerp(get_overlay_color_from().xyz, get_overlay_color_to().xyz, input.vcolMask.b) * 2;
         ##endif

@@ -52,4 +52,4 @@ static ecs::EntitySystemDesc ui_perf_stats_es_es_desc
   empty_span(),
   ecs::EventSetBuilder<RenderEventUI>::build(),
   0
-,nullptr,nullptr,"ui_render_es");
+);

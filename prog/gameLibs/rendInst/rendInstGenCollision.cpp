@@ -2025,37 +2025,42 @@ private:
   bool locked = false;
 };
 
-class FastObbBoundingsChecker
+template <typename bounding_type_t>
+class BoundingsChecker
 {
 public:
-  __forceinline FastObbBoundingsChecker(const TMatrix &tm_a, const BBox3 &local_box_a, bbox3f world_box_a) : //-V730
-    tmA(tm_a), localBoxA(local_box_a), worldBoxA(world_box_a), isSmallA(isSmallBox(world_box_a)), itmInitedA(false)
+  __forceinline BoundingsChecker(const bounding_type_t &bounding_a, bbox3f world_box_a) : //-V730
+    boundingA(bounding_a), worldBoxA(world_box_a), isSmallA(isSmallBox(world_box_a)), itmInitedA(false)
   {}
 
   __forceinline bool testIntersection(mat44f tm_b, bbox3f local_box_b)
   {
     bbox3f worldBoxB;
     v_bbox3_init(worldBoxB, tm_b, local_box_b);
-    if (!v_bbox3_test_box_intersect(worldBoxA, worldBoxB))
-      return false;
 
-    if (DAGOR_UNLIKELY(!itmInitedA) && !isSmallA)
+    if constexpr (eastl::is_same_v<bounding_type_t, BSphere3>)
     {
-      itmInitedA = true;
-      mat44f tm;
-      v_mat44_make_from_43cu_unsafe(tm, tmA.array);
-      v_mat44_inverse43(itmA, tm);
+      vec3f centerA = v_ldu(&boundingA.c.x);
+      if (!v_bbox3_test_sph_intersect(worldBoxB, centerA, v_set_x(boundingA.r2)))
+        return false;
+
+      mat44f itmB;
+      v_mat44_inverse43(itmB, tm_b);
+      vec3f lcA = v_mat44_mul_vec3p(itmB, centerA);
+      vec4f maxScale = v_mat44_max_scale43_x(tm_b);
+      bbox3f extB = local_box_b;
+      v_bbox3_extend(extB, v_mul(v_splats(boundingA.r), maxScale));
+      return v_bbox3_test_pt_inside(extB, lcA);
     }
-    bool isSmallB = isSmallBox(worldBoxB);
-    if (isSmallA != isSmallB)
+
+    if constexpr (eastl::is_same_v<bounding_type_t, BBox3>)
     {
-      if (isSmallB)
-      {
-        bbox3f bInA;
-        v_bbox3_init(bInA, itmA, worldBoxB);
-        return v_bbox3_test_box_intersect(bInA, v_ldu_bbox3(localBoxA));
-      }
-      else
+      if (!v_bbox3_test_box_intersect(worldBoxA, worldBoxB))
+        return false;
+
+      if (bool isSmallB = isSmallBox(worldBoxB))
+        return true;
+      if (isSmallA)
       {
         bbox3f aInB;
         mat44f itmB;
@@ -2063,22 +2068,58 @@ public:
         v_bbox3_init(aInB, itmB, worldBoxA);
         return v_bbox3_test_box_intersect(aInB, local_box_b);
       }
+
+      if (v_bbox3_test_trasformed_box_intersect(worldBoxA, local_box_b, tm_b))
+        return true;
+
+      mat44f itmB;
+      v_mat44_inverse43(itmB, tm_b);
+      if (v_bbox3_test_trasformed_box_intersect(local_box_b, worldBoxA, itmB))
+        return true;
     }
-    if (isSmallA) // two small objects
-      return true;
 
-    mat44f tmBtoA;
-    v_mat44_mul43(tmBtoA, itmA, tm_b);
-    if (v_bbox3_test_trasformed_box_intersect(v_ldu_bbox3(localBoxA), local_box_b, tmBtoA))
-      return true;
+    if constexpr (eastl::is_same_v<bounding_type_t, OrientedObjectBox>)
+    {
+      if (!v_bbox3_test_box_intersect(worldBoxA, worldBoxB))
+        return false;
 
-    mat44f tmAtoB, tm, itmB;
-    v_mat44_inverse43(itmB, tm_b);
-    v_mat44_make_from_43cu_unsafe(tm, tmA.array);
-    v_mat44_mul43(tmAtoB, itmB, tm);
-    if (v_bbox3_test_trasformed_box_intersect(local_box_b, v_ldu_bbox3(localBoxA), tmAtoB))
-      return true;
+      if (DAGOR_UNLIKELY(!itmInitedA) && !isSmallA)
+      {
+        itmInitedA = true;
+        v_mat44_inverse43(itmA, boundingA.tm);
+      }
+      bool isSmallB = isSmallBox(worldBoxB);
+      if (isSmallA != isSmallB)
+      {
+        if (isSmallB)
+        {
+          bbox3f bInA;
+          v_bbox3_init(bInA, itmA, worldBoxB);
+          return v_bbox3_test_box_intersect(bInA, boundingA.bbox);
+        }
+        else
+        {
+          bbox3f aInB;
+          mat44f itmB;
+          v_mat44_inverse43(itmB, tm_b);
+          v_bbox3_init(aInB, itmB, worldBoxA);
+          return v_bbox3_test_box_intersect(aInB, local_box_b);
+        }
+      }
+      if (isSmallA) // two small objects
+        return true;
 
+      mat44f tmBtoA;
+      v_mat44_mul43(tmBtoA, itmA, tm_b);
+      if (v_bbox3_test_trasformed_box_intersect(boundingA.bbox, local_box_b, tmBtoA))
+        return true;
+
+      mat44f tmAtoB, itmB;
+      v_mat44_inverse43(itmB, tm_b);
+      v_mat44_mul43(tmAtoB, itmB, boundingA.tm);
+      if (v_bbox3_test_trasformed_box_intersect(local_box_b, boundingA.bbox, tmAtoB))
+        return true;
+    }
     return false;
   }
 
@@ -2089,24 +2130,23 @@ private:
     return (v_signmask(v_cmp_lt(v_bbox3_size(bbox), v_splats(smallObjWidth))) & 0b101) == 0b101;
   }
 
-  const TMatrix &tmA;
+  const bounding_type_t &boundingA;
   mat44f itmA;
-  const BBox3 &localBoxA;
   bbox3f worldBoxA;
   bool isSmallA;
   bool itmInitedA;
 };
 
 // NOTE: the looped lockign logic is insanely complicated, way too much even for humans, static analysis has no chance.
-template <typename Strategy>
-static CheckBoxRIResultFlags testObjToRIGenIntersectionNoCache(int layer, const BBox3 &obj_obb, const BBox3 &obj_world_aabb,
-  const TMatrix &obj_tm, GatherRiTypeFlags ri_types, Strategy &strategy, bool unlock_in_cb) DAG_TS_NO_THREAD_SAFETY_ANALYSIS
+template <typename Strategy, typename bounding_type_t>
+static CheckBoxRIResultFlags testObjToRIGenIntersectionNoCache(int layer, const bounding_type_t &obj_bounding,
+  const BBox3 &obj_world_aabb, GatherRiTypeFlags ri_types, Strategy &strategy, bool unlock_in_cb) DAG_TS_NO_THREAD_SAFETY_ANALYSIS
 {
-  G_ASSERT(!v_bbox3_is_empty(v_ldu_bbox3(obj_obb)));
+  G_ASSERT(!v_bbox3_is_empty(v_ldu_bbox3(obj_world_aabb)));
 #if !_TARGET_PC_TOOLS_BUILD
   // it shouldn't be significantly larger than phys size of tested object if use test collision by sphere cast (perf reasons)
-  G_ASSERTF(!unlock_in_cb || obj_obb.width().lengthSq() <= sqr(500.f), "Test intersection with oversize box width %f",
-    obj_obb.width().length());
+  G_ASSERTF(!unlock_in_cb || obj_world_aabb.width().lengthSq() <= sqr(500.f), "Test intersection with oversize box width %f",
+    obj_world_aabb.width().length());
 #endif
   RendInstGenData *rgl = rendinst::rgLayer[layer];
   if (DAGOR_UNLIKELY(!rgl || !rgl->rtData))
@@ -2117,7 +2157,7 @@ static CheckBoxRIResultFlags testObjToRIGenIntersectionNoCache(int layer, const 
   CheckBoxRIResultFlags result;
   unsigned testedNum = 0, trianglesNum = 0;
   G_UNUSED(testedNum + trianglesNum);
-  FastObbBoundingsChecker objectBounding(obj_tm, obj_obb, v_ldu_bbox3(obj_world_aabb));
+  BoundingsChecker objectBounding(obj_bounding, v_ldu_bbox3(obj_world_aabb));
 
   rendinst::riex_collidable_t riexHandles;
   if (ri_types & GatherRiTypeFlag::RiExtraOnly && rendinst::isRgLayerPrimary(layer))
@@ -2171,14 +2211,16 @@ static CheckBoxRIResultFlags testObjToRIGenIntersectionNoCache(int layer, const 
       lock.unlockRead();
   }
 
-  G_ASSERTF(testedNum <= max_number_of_rendinst_collision_callbacks,
-    "Tested (%d) more then allowed limit of %d @ tm[3]=%@ obb=(%@,%@) wabb=(%@,%@)", testedNum,
-    max_number_of_rendinst_collision_callbacks, obj_tm.getcol(3), obj_obb[0], obj_obb[1], obj_world_aabb[0], obj_world_aabb[1]);
+  G_ASSERTF(testedNum <= max_number_of_rendinst_collision_callbacks, "Tested (%d) more then allowed limit of %d @ pos=%@ wabb=(%@,%@)",
+    testedNum, max_number_of_rendinst_collision_callbacks, obj_world_aabb.center(), obj_world_aabb[0], obj_world_aabb[1]);
 
   if (result & CheckBoxRIResultFlag::HasTraceableRi || !(ri_types & GatherRiTypeFlag::RiGenOnly))
   {
 #if DA_PROFILER_ENABLED
-    DA_PROFILE_TAG(coll_tests, ": r %.1f; tested %u; %u tris", obj_obb.width().length() / 2.f, testedNum, trianglesNum);
+    if constexpr (eastl::is_same_v<bounding_type_t, BSphere3>)
+      DA_PROFILE_TAG(coll_tests, ": sph r %.1f; tested %u; %u tris", obj_bounding.r, testedNum, trianglesNum);
+    if constexpr (eastl::is_same_v<bounding_type_t, BBox3> || eastl::is_same_v<bounding_type_t, OrientedObjectBox>)
+      DA_PROFILE_TAG(coll_tests, ": box r %.1f; tested %u; %u tris", obj_world_aabb.width().length() / 2.f, testedNum, trianglesNum);
 #endif
     return result; //-V1020 The function exited without calling the 'lock.unlockRead' function.
   }
@@ -2378,11 +2420,10 @@ static CheckBoxRIResultFlags testObjToRIGenIntersectionNoCache(int layer, const 
   }
 done:
   lock.unlockRead();
-  G_ASSERTF(testedNum <= max_number_of_rendinst_collision_callbacks,
-    "Tested (%d) more then allowed limit of %d @ tm[3]=%@ obb=(%@,%@) wabb=(%@,%@)", testedNum,
-    max_number_of_rendinst_collision_callbacks, obj_tm.getcol(3), obj_obb[0], obj_obb[1], obj_world_aabb[0], obj_world_aabb[1]);
+  G_ASSERTF(testedNum <= max_number_of_rendinst_collision_callbacks, "Tested (%d) more then allowed limit of %d @ pos=%@ wabb=(%@,%@)",
+    testedNum, max_number_of_rendinst_collision_callbacks, obj_world_aabb.center(), obj_world_aabb[0], obj_world_aabb[1]);
 #if DA_PROFILER_ENABLED
-  DA_PROFILE_TAG(coll_tests, ": r %.1f; tested %u; %u tris", obj_obb.width().length() / 2.f, testedNum, trianglesNum);
+  DA_PROFILE_TAG(coll_tests, ": r %.1f; tested %u; %u tris", obj_world_aabb.width().length() / 2.f, testedNum, trianglesNum);
 #endif
   return result;
 }
@@ -2433,11 +2474,12 @@ void gatherRIGenCollidableInRadius(rigen_collidable_data_t &out_data, const Poin
   if (flags & GatherRiTypeFlag::RiExtraOnly)
     rendinst::gatherRIGenExtraCollidable(out_data, pos, radius, true /*lock*/);
   GatherCollidableInSphereStrat strat(pos, radius, out_data);
-  BBox3 bbox(BSphere3(pos, radius));
+  BSphere3 sph(pos, radius);
+  BBox3 bbox(sph);
   if (flags & GatherRiTypeFlag::RiGenOnly)
   {
     FOR_EACH_RG_LAYER_DO (rgl)
-      testObjToRIGenIntersectionNoCache(_layer, bbox, bbox, TMatrix::IDENT, GatherRiTypeFlag::RiGenOnly, strat, false);
+      testObjToRIGenIntersectionNoCache(_layer, sph, bbox, GatherRiTypeFlag::RiGenOnly, strat, false);
   }
 }
 
@@ -2484,20 +2526,26 @@ void clipCapsuleRI(const ::Capsule &c, Point3 &lpt, Point3 &wpt, real &md, const
 
     BBox3 wbb = c.getBoundingBoxScalar();
     FOR_EACH_RG_LAYER_DO (rgl)
-      testObjToRIGenIntersectionNoCache(_layer, wbb, wbb, TMatrix::IDENT, GatherRiTypeFlag::RiGenAndExtra, strat, false);
+      testObjToRIGenIntersectionNoCache(_layer, wbb, wbb, GatherRiTypeFlag::RiGenAndExtra, strat, false);
   }
 }
 
-void testObjToRIGenIntersection(const BBox3 &obj_box, const TMatrix &obj_tm, rendinst::RendInstCollisionCB &callback,
+template <typename bounding_type_t>
+static void testObjToRIGenIntersectionInternal(const bounding_type_t &bounding, rendinst::RendInstCollisionCB &callback,
   GatherRiTypeFlags ri_types, const TraceMeshFaces *ri_cache, PhysMat::MatID ray_mat, bool unlock_in_cb)
 {
   if (!rendinst::rgLayer.size() || !rendinst::rgLayer[0])
     return;
 
-  mat44f objTm;
-  v_mat44_make_from_43cu_unsafe(objTm, obj_tm.array);
   bbox3f objFullBBox;
-  v_bbox3_init(objFullBBox, objTm, v_ldu_bbox3(obj_box));
+  v_bbox3_init_empty(objFullBBox);
+  if constexpr (eastl::is_same_v<bounding_type_t, BSphere3>)
+    v_bbox3_init_by_bsph(objFullBBox, v_ldu(&bounding.c.x), v_splats(bounding.r));
+  if constexpr (eastl::is_same_v<bounding_type_t, BBox3>)
+    objFullBBox = v_ldu_bbox3(bounding);
+  if constexpr (eastl::is_same_v<bounding_type_t, OrientedObjectBox>)
+    v_bbox3_init(objFullBBox, bounding.tm, bounding.bbox);
+  G_ASSERT(!v_bbox3_is_empty(objFullBBox));
 
   // To consider: extract this code path to separate function
   if (ri_cache && v_bbox3_test_box_inside(v_ldu_bbox3(ri_cache->box), objFullBBox))
@@ -2510,7 +2558,7 @@ void testObjToRIGenIntersection(const BBox3 &obj_box, const TMatrix &obj_tm, ren
       if (check_cached_ri_data(ri_cache))
       {
         isCacheValid = true;
-        FastObbBoundingsChecker objectBounding(obj_tm, obj_box, objFullBBox);
+        BoundingsChecker objectBounding(bounding, objFullBBox);
 #if DA_PROFILER_ENABLED
         int testedNum = 0, trianglesNum = 0;
 #endif
@@ -2557,12 +2605,20 @@ void testObjToRIGenIntersection(const BBox3 &obj_box, const TMatrix &obj_tm, ren
 #endif
         });
 #if DA_PROFILER_ENABLED
-        DA_PROFILE_TAG(coll_tests, ": r %.1f; tested %u/%u; %u tris", obj_box.width().length() / 2.f, testedNum,
-          ri_cache->rendinstCache.size(), trianglesNum);
+        if constexpr (eastl::is_same_v<bounding_type_t, BSphere3>)
+          DA_PROFILE_TAG(coll_tests, ": sph r %.1f; tested %u/%u; %u tris", bounding.r, testedNum, ri_cache->rendinstCache.size(),
+            trianglesNum);
+        if constexpr (eastl::is_same_v<bounding_type_t, BSphere3> || eastl::is_same_v<bounding_type_t, OrientedObjectBox>)
+          DA_PROFILE_TAG(coll_tests, ": box r %.1f; tested %u/%u; %u tris", v_extract_x(v_length3_x(v_bbox3_size(objFullBBox))) / 2.f,
+            testedNum, ri_cache->rendinstCache.size(), trianglesNum);
 #endif
       }
       else
-        trace_utils::draw_trace_handle_debug_cast_result(ri_cache, obj_tm, obj_box, false, true);
+      {
+        BBox3 bb;
+        v_stu_bbox3(bb, objFullBBox);
+        trace_utils::draw_trace_handle_debug_cast_result(ri_cache, bb, false, true);
+      }
       // end of lock scope
     }
 
@@ -2586,7 +2642,28 @@ void testObjToRIGenIntersection(const BBox3 &obj_box, const TMatrix &obj_tm, ren
   v_stu_bbox3(aabb, objFullBBox);
   CallbackAddStrat strat(&callback, unlock_in_cb, ray_mat); // strat callback should be always executed with lock
   FOR_EACH_RG_LAYER_DO (rgl)
-    testObjToRIGenIntersectionNoCache(_layer, obj_box, aabb, obj_tm, ri_types, strat, false /*unlock_in_cb*/);
+    testObjToRIGenIntersectionNoCache(_layer, bounding, aabb, ri_types, strat, false /*unlock_in_cb*/);
+}
+
+void testObjToRIGenIntersection(const BSphere3 &obj_sph, RendInstCollisionCB &callback, GatherRiTypeFlags ri_types,
+  const TraceMeshFaces *ri_cache, PhysMat::MatID ray_mat, bool unlock_in_cb)
+{
+  testObjToRIGenIntersectionInternal(obj_sph, callback, ri_types, ri_cache, ray_mat, unlock_in_cb);
+}
+
+void testObjToRIGenIntersection(const BBox3 &obj_box, RendInstCollisionCB &callback, GatherRiTypeFlags ri_types,
+  const TraceMeshFaces *ri_cache, PhysMat::MatID ray_mat, bool unlock_in_cb)
+{
+  testObjToRIGenIntersectionInternal(obj_box, callback, ri_types, ri_cache, ray_mat, unlock_in_cb);
+}
+
+void testObjToRIGenIntersection(const BBox3 &obj_box, const TMatrix &obj_tm, RendInstCollisionCB &callback, GatherRiTypeFlags ri_types,
+  const TraceMeshFaces *ri_cache, PhysMat::MatID ray_mat, bool unlock_in_cb)
+{
+  OrientedObjectBox obb;
+  v_mat44_make_from_43cu_unsafe(obb.tm, obj_tm.array);
+  obb.bbox = v_ldu_bbox3(obj_box);
+  testObjToRIGenIntersectionInternal(obb, callback, ri_types, ri_cache, ray_mat, unlock_in_cb);
 }
 
 CheckBoxRIResultFlags checkBoxToRIGenIntersection(const BBox3 &box)
@@ -2595,8 +2672,8 @@ CheckBoxRIResultFlags checkBoxToRIGenIntersection(const BBox3 &box)
   CheckBoxRIResultFlags testRes = {};
   FOR_EACH_RG_LAYER_DO (rgl)
   {
-    CheckBoxRIResultFlags res = testObjToRIGenIntersectionNoCache(_layer, box, box, TMatrix::IDENT, GatherRiTypeFlag::RiGenAndExtra,
-      strat, false /*unlock_in_cb*/);
+    CheckBoxRIResultFlags res =
+      testObjToRIGenIntersectionNoCache(_layer, box, box, GatherRiTypeFlag::RiGenAndExtra, strat, false /*unlock_in_cb*/);
     if (rendinst::isRgLayerPrimary(_layer))
     {
       if (res & CheckBoxRIResultFlag::HasTraceableRi)
@@ -2640,7 +2717,7 @@ void foreachRIGenInBox(const BBox3 &box, GatherRiTypeFlags ri_types, ForeachCB &
 {
   ForeachRIGenStrat strat(cb);
   FOR_EACH_RG_LAYER_DO (rgl)
-    testObjToRIGenIntersectionNoCache(_layer, box, box, TMatrix::IDENT, ri_types, strat, false /*unlock_in_cb*/);
+    testObjToRIGenIntersectionNoCache(_layer, box, box, ri_types, strat, false /*unlock_in_cb*/);
 }
 
 bool initializeCachedRiData(TraceMeshFaces *ri_cache)
@@ -2661,7 +2738,7 @@ bool initializeCachedRiData(TraceMeshFaces *ri_cache)
   mat44f identTm;
   v_mat44_ident(identTm);
   FOR_EACH_PRIMARY_RG_LAYER_DO (rgl)
-    testObjToRIGenIntersectionNoCache(_layer, ri_cache->box, ri_cache->box, TMatrix::IDENT, GatherRiTypeFlag::RiGenAndExtra, strat,
+    testObjToRIGenIntersectionNoCache(_layer, ri_cache->box, ri_cache->box, GatherRiTypeFlag::RiGenAndExtra, strat,
       false /*unlock_in_cb*/);
   if (strat.valid)
   {

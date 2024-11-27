@@ -22,6 +22,8 @@ include "sq_clouds_shadow.dshl"
 include "static_shadow.dshl"
 include "use_prefiltered_gf.dshl"
 include "screenspace_probes_common.dshl"
+include "screen_gi_encoding.dshl"
+include "dagi_quality.dshl"
 
 float4 shadow_cascade_depth_range;
 
@@ -150,9 +152,28 @@ shader deferred_shadow_to_buffer
   }
 
   (ps) {
-    screen_ambient@tex2d = screen_ambient;
-    screen_specular@tex2d= screen_specular;
+    //todo: add later support for SW rgbe
+    /*
+    if (dagi_sp_has_exposure_assume == always_rgbe || gi_quality != screen_probes)
+    {
+      screen_ambient@tex = screen_ambient hlsl { Texture2D<half3> screen_ambient@tex; };
+      screen_specular@tex = screen_specular hlsl { Texture2D<half3> screen_specular@tex; };
+    } else
+    {
+      screen_ambient@tex = screen_ambient hlsl { Texture2D<uint> screen_ambient@tex; };
+      screen_specular@tex = screen_specular hlsl { Texture2D<uint> screen_specular@tex; };
+    }*/
+    screen_ambient@tex = screen_ambient hlsl { Texture2D<half3> screen_ambient@tex; };
+    screen_specular@tex = screen_specular hlsl { Texture2D<half3> screen_specular@tex; };
   }
+  if (gi_quality == screen_probes)
+  {
+    DAGI_SCREEN_ENCODING(ps)
+  } else
+  {
+    DAGI_NO_SCREEN_ENCODING(ps)
+  }
+
   if (oculus == oculus_on)
   {
     (ps) { stereo_params@f4 = stereo_params; }
@@ -314,8 +335,8 @@ shader deferred_shadow_to_buffer
       //half3 environmentAmbientReflection = gamma_to_linear(texCUBElod(envi_probe_specular, float4(reflectionVec, 0)).rgb);
       //half3 environmentAmbientReflection = gamma_to_linear(texCUBElod(envi_probe_specular, float4(roughR, roughMip)).rgb)*enviBRDF;
       //half3 environmentAmbientReflection = geometryFactor*gamma_to_linear(texCUBElod(envi_probe_specular, float4(roughR, roughMip)).rgb)*enviBRDF;
-      float3 giSpecular = pre_exposure_decode(screen_specular[int2(screenpos)].xyz);
-      float3 giAmbient = pre_exposure_decode(screen_ambient[int2(screenpos)].xyz);
+      half3 giSpecular, giAmbient;
+      decode_gi_colors(screen_ambient[int2(screenpos)], screen_specular[int2(screenpos)], giAmbient, giSpecular);
       //return half4(giAmbient,1);
       //environmentAmbientReflection *= 0.8 + 0.2*shadow;
       //return environmentAmbientReflection.rgbr;

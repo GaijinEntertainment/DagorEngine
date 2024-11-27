@@ -29,7 +29,7 @@ static ecs::EntitySystemDesc skies_settings_weather_seed_created_es_event_handle
   ecs::EventSetBuilder<ecs::EventEntityCreated,
                        ecs::EventComponentsAppear>::build(),
   0
-,nullptr,nullptr,"clouds_form_es_event_handler,clouds_weather_gen_es_event_handler,sky_atmosphere_es_event_handler,strata_clouds_es_event_handler");
+,nullptr,nullptr,"clouds_form_es,clouds_weather_gen_es,sky_atmosphere_es,strata_clouds_es");
 static constexpr ecs::ComponentDesc skies_settings_weather_seed_changed_es_event_handler_comps[] =
 {
 //start of 1 ro components at [0]
@@ -84,7 +84,7 @@ static ecs::EntitySystemDesc skies_settings_skies_loaded_es_event_handler_es_des
   empty_span(),
   ecs::EventSetBuilder<SkiesLoaded>::build(),
   0
-,nullptr,nullptr,"clouds_form_es_event_handler,clouds_weather_gen_es_event_handler,sky_atmosphere_es_event_handler,strata_clouds_es_event_handler");
+,nullptr,nullptr,"clouds_form_es,clouds_weather_gen_es,sky_atmosphere_es,strata_clouds_es");
 static constexpr ecs::ComponentDesc force_panoramic_sky_es_event_handler_comps[] =
 {
 //start of 1 ro components at [0]
@@ -113,7 +113,7 @@ static ecs::EntitySystemDesc force_panoramic_sky_es_event_handler_es_desc
                        ecs::EventEntityCreated,
                        ecs::EventComponentsAppear>::build(),
   0
-,nullptr,"*","clouds_form_es_event_handler,clouds_settings_es_event_handler");
+,nullptr,"*","clouds_form_es,clouds_settings_es");
 static constexpr ecs::ComponentDesc clouds_rendering_es_event_handler_comps[] =
 {
 //start of 9 ro components at [0]

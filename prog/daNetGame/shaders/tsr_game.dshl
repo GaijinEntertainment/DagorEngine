@@ -23,8 +23,7 @@ macro TSR_GAME(stage)
         if (is_dynamic)
           apply_hero_matrix(uv, cameraToPoint);
 
-        float4 reprojectedViewVec = mul(float4(cameraToPoint, 0), prevViewProjTm);
-        float4 prevClip = reprojected_world_view_pos + reprojectedViewVec;
+        float4 prevClip = mul(float4(cameraToPoint, 1), jitteredCamPosToUnjitteredHistoryClip);
         float3 prevPos = prevClip.xyz / prevClip.w;
         return float3(prevPos.xy * float2(0.5, -0.5) + float2(0.5, 0.5), prevPos.z) - float3(uv, raw_depth);
       ##endif

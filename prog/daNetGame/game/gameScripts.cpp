@@ -90,6 +90,11 @@ das::atomic<uint64_t> das::g_smart_ptr_total{0};
 #endif
 
 
+#if DAGOR_DBGLEVEL > 0
+const int *lets_link_our_imgui_module = &sqfrp::pull_frp_imgui;
+#endif
+
+
 extern bool NEED_DAS_AOT_COMPILE;
 // For das
 void os_debug_break()
@@ -122,6 +127,7 @@ extern bool load_entry_script_with_serialization(
 namespace gamescripts
 {
 static bool auto_hot_reload = false;
+static bool das_gc_enabled = true;
 
 struct SQCloser
 {
@@ -249,23 +255,25 @@ int get_game_das_reload_threads() { return get_das_int_setting("game_das_reload_
 void global_init_das()
 {
   // das::ptr_ref_count::ref_count_track = <insert idx of leaked smart ptr>
+  const DataBlock *settings = dgs_get_settings(), *debugBlk = settings->getBlockByNameEx("debug");
 #if _TARGET_PC && DAGOR_DBGLEVEL > 0 // only allow auto hot reload in dev mode
-  const DataBlock *debugBlk = dgs_get_settings()->getBlockByNameEx("debug");
   bool useAddonVromSrc = debugBlk->getBool("useAddonVromSrc", false);
   auto_hot_reload = debugBlk->getBool("daScriptHotReload", useAddonVromSrc);
 #endif
   debug("auto_hot_reload=%d", auto_hot_reload);
-  bind_dascript::enableSerialization = !das::is_in_aot() && dgs_get_settings()->getBool("game_das_enable_serialization", false);
+  bind_dascript::enableSerialization = !das::is_in_aot() && settings->getBool("game_das_enable_serialization", false);
 #if defined(DAGOR_THREAD_SANITIZER)
   bind_dascript::enableSerialization = false;
 #endif
   debug("game_das_enable_serialization=%d", bind_dascript::enableSerialization);
 
+  das_gc_enabled = settings->getBool("game_das_enable_gc", true);
+
   bind_dascript::set_das_root("."); // use current dir as root path
   bind_dascript::set_command_line_arguments(dgs_argc, dgs_argv);
 
-  const bool enableAot = NEED_DAS_AOT_COMPILE || dgs_get_settings()->getBlockByNameEx("debug")->getBool("das_aot", false);
-  const bool enableAotErrorsLog = dgs_get_settings()->getBlockByNameEx("debug")->getBool("das_log_aot_errors", DAGOR_DBGLEVEL > 0);
+  const bool enableAot = NEED_DAS_AOT_COMPILE || debugBlk->getBool("das_aot", false);
+  const bool enableAotErrorsLog = debugBlk->getBool("das_log_aot_errors", DAGOR_DBGLEVEL > 0);
   bind_dascript::init_das(enableAot ? bind_dascript::AotMode::AOT : bind_dascript::AotMode::NO_AOT,
     auto_hot_reload ? bind_dascript::HotReload::ENABLED : bind_dascript::HotReload::DISABLED,
     enableAotErrorsLog ? bind_dascript::LogAotErrors::YES : bind_dascript::LogAotErrors::NO);
@@ -376,7 +384,7 @@ HSQUIRRELVM init()
   bindquirrel::bind_base64_utils(moduleMgr.get());
 
   sqfrp::bind_frp_classes(moduleMgr.get());
-  frp_graph.reset(new sqfrp::ObservablesGraph(vm, 16));
+  frp_graph.reset(new sqfrp::ObservablesGraph(vm, "gamescripts", 16));
 
   create_script_console_processor(moduleMgr.get(), "sqgame.exec");
   nestdb::bind_api(moduleMgr.get());
@@ -741,7 +749,7 @@ bool reload_changed()
 
 void collect_das_garbage()
 {
-  if (dgs_get_settings()->getBool("game_das_enable_gc", true))
+  if (das_gc_enabled)
   {
     bind_dascript::ValidateDasGC validateGc = bind_dascript::ValidateDasGC::NO;
 #if DAGOR_DBGLEVEL > 0 && _TARGET_PC

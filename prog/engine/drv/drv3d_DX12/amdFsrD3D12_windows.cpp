@@ -6,6 +6,7 @@
 #include <drv/3d/dag_commands.h>
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_info.h>
+#include <drv/3d/dag_resetDevice.h>
 #include <ioSys/dag_dataBlock.h>
 #include <osApiWrappers/dag_dynLib.h>
 #include <memory/dag_framemem.h>
@@ -26,6 +27,10 @@ static inline FfxApiResource ffx_get_resource(void *texture, uint32_t state)
   apiRes = ffxApiGetResourceDX12((ID3D12Resource *)texture, state);
   return apiRes;
 }
+
+class FSRD3D12Win;
+
+FSRD3D12Win *fSRD3D12Win = nullptr; // With this only one FSR instance is allowed. When this will became a problem, please fix it
 
 // On windows, we use FSR3.1
 class FSRD3D12Win : public FSR
@@ -78,7 +83,12 @@ public:
     {
       logdbg("[AMDFSR] Failed to create FSRD3D12Win.");
     }
+
+    G_ASSERT(!fSRD3D12Win);
+    fSRD3D12Win = this;
   }
+
+  ~FSRD3D12Win() { fSRD3D12Win = nullptr; }
 
   bool initUpscaling(const ContextArgs &args)
   {
@@ -103,7 +113,7 @@ public:
       return false;
     }
 
-    upscalingMode = args.mode;
+    contextArgs = args;
 
     logdbg("[AMDFSR] Upscaling initialized.");
 
@@ -117,7 +127,7 @@ public:
 
     destroyContext(&upscalingContext, nullptr);
     upscalingContext = nullptr;
-    upscalingMode = UpscalingMode::Off;
+    contextArgs.mode = UpscalingMode::Off;
   }
 
   Point2 getNextJitter(uint32_t render_width, uint32_t output_width)
@@ -135,7 +145,7 @@ public:
     return get_rendering_resolution(mode, target_resolution, upscalingContext, query);
   }
 
-  UpscalingMode getUpscalingMode() const override { return upscalingMode; }
+  UpscalingMode getUpscalingMode() const override { return contextArgs.mode; }
 
   bool isLoaded() const override { return createContext && destroyContext && configure && query && dispatch; }
 
@@ -144,6 +154,8 @@ public:
   bool isFrameGenerationSupported() const override { return false; }
 
   String getVersionString() const override { return upscalingVersionString; }
+
+  void recover() { initUpscaling(contextArgs); }
 
 private:
   eastl::unique_ptr<void, DagorDllCloser> fsrModule;
@@ -156,7 +168,7 @@ private:
 
   ffxContext upscalingContext = nullptr;
 
-  UpscalingMode upscalingMode = UpscalingMode::Off;
+  ContextArgs contextArgs = {};
 
   uint32_t jitterIndex = 0;
 
@@ -166,3 +178,18 @@ private:
 FSR *createD3D12Win() { return new FSRD3D12Win; }
 
 } // namespace amd
+
+static void fsr3_before_reset(bool full_reset)
+{
+  if (full_reset && amd::fSRD3D12Win)
+    amd::fSRD3D12Win->teardownUpscaling();
+}
+
+static void fsr3_after_reset(bool full_reset)
+{
+  if (full_reset && amd::fSRD3D12Win)
+    amd::fSRD3D12Win->recover();
+}
+
+REGISTER_D3D_BEFORE_RESET_FUNC(fsr3_before_reset);
+REGISTER_D3D_AFTER_RESET_FUNC(fsr3_after_reset);
