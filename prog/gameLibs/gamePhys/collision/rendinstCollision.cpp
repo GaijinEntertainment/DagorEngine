@@ -87,14 +87,9 @@ void update_ri_cache_in_volume_to_phys_world(const BBox3 &box)
 
   get_phys_world()->fetchSimRes(true);
 
-  TMatrix tm = TMatrix::IDENT;
-  tm.setcol(3, box.center());
-
   RIAddToWorldCB callback;
-
-  BBox3 localBox(box.lim[0] - tm.getcol(3), box.lim[1] - tm.getcol(3));
-  rendinst::testObjToRIGenIntersection(localBox, tm, callback, rendinst::GatherRiTypeFlag::RiGenAndExtra, nullptr /*cache*/,
-    PHYSMAT_INVALID, true /*unlock_in_cb*/);
+  rendinst::testObjToRIGenIntersection(box, callback, rendinst::GatherRiTypeFlag::RiGenAndExtra, nullptr /*cache*/, PHYSMAT_INVALID,
+    true /*unlock_in_cb*/);
 }
 
 bool test_collision_ri(const CollisionObject &co, const BBox3 &box, Tab<gamephys::CollisionContactData> &out_contacts,
@@ -230,18 +225,11 @@ void shape_query_ri(const PhysBody *shape, const TMatrix &from, const TMatrix &t
 
   SweepCollisionCB sweepCb(shape, from, to, cast_mat_id, out, out_desc, filterCB);
   RICollisionCB<SweepCollisionCB> callback(sweepCb);
-
-  BBox3 box; // around from point
-  box += Point3(0.f, 0.f, 0.f);
-  box += to.getcol(3) - from.getcol(3);
-  box.inflate(rad);
+  Capsule capsule(from.getcol(3), to.getcol(3), rad);
 
   if (handle)
   {
-    mat44f vtm;
-    v_mat44_make_from_43cu_unsafe(vtm, from.array);
-    bbox3f castBox;
-    v_bbox3_init(castBox, vtm, v_ldu_bbox3(box));
+    bbox3f castBox = capsule.getBoundingBox();
     bool res = try_use_trace_cache(castBox, handle);
 
     BBox3 wbox;
@@ -251,7 +239,7 @@ void shape_query_ri(const PhysBody *shape, const TMatrix &from, const TMatrix &t
       handle = nullptr;
   }
 
-  rendinst::testObjToRIGenIntersection(box, from, callback, rendinst::GatherRiTypeFlag::RiGenAndExtra, handle, cast_mat_id,
+  rendinst::testObjToRIGenIntersection(capsule, callback, rendinst::GatherRiTypeFlag::RiGenAndExtra, handle, cast_mat_id,
     true /*unlock_in_cb*/);
 #if DA_PROFILER_ENABLED
   DA_PROFILE_TAG(shape_query_ri, ": %u contacts", sweepCb.contactsNum);

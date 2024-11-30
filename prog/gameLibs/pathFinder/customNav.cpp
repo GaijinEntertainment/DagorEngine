@@ -196,6 +196,34 @@ void CustomNav::walkAreaTiles(const Area &area, T cb)
     }
 }
 
+static void debug_log_tile_info(uint32_t tile_id)
+{
+  const dtNavMesh *navMesh = getNavMeshPtr();
+  const int tileId = (int)tile_id;
+  if (!navMesh)
+  {
+    debug("nav tile id=%d: no navmesh", tileId);
+    return;
+  }
+  const int maxTiles = navMesh->getMaxTiles();
+  if (tileId < 0 || tileId >= maxTiles)
+  {
+    debug("nav tile id=%d/%d: bad tile id", tileId, maxTiles);
+    return;
+  }
+  const dtMeshTile *tile = navMesh->getTile(tileId);
+  if (!tile || !tile->header)
+  {
+    debug("nav tile id=%d/%d: null", tileId, maxTiles);
+    return;
+  }
+  const dtMeshHeader *th = tile->header;
+  debug("nav tile id=%d: x=%d y=%d layer=%d pc=%d vc=%d mlc=%d dmc=%d dvc=%d dtc=%d bnc=%d occ=%d bmin(%f %f %f) bmax(%f %f %f)",
+    tileId, th->x, th->y, th->layer, th->polyCount, th->vertCount, th->maxLinkCount, th->detailMeshCount, th->detailVertCount,
+    th->detailTriCount, th->bvNodeCount, th->offMeshConCount, th->bmin[0], th->bmin[1], th->bmin[2], th->bmax[0], th->bmax[1],
+    th->bmax[2]);
+}
+
 void CustomNav::addAreaToTile(Area &area, uint32_t tile_id)
 {
   Tile &tile = tiles[tile_id];
@@ -206,7 +234,12 @@ void CustomNav::addAreaToTile(Area &area, uint32_t tile_id)
       if (DAGOR_UNLIKELY(a.id == area.id))
       {
         logerr("a.id == area.id  %d == %d for cylinder area in %s", a.id, area.id, __FUNCTION__);
-        debug("tile count %d and gen %d, tile_id %u", area.tileCount, area.generation, tile_id);
+        debug("tile count (%d vs %d) and gen (%d vs %d), tile_id %u", a.tileCount, area.tileCount, a.generation, area.generation,
+          tile_id);
+        debug_log_tile_info(tile_id);
+        BBox3 abb = a.getAABB();
+        debug("customNav a bbox  %f %f %f %f %f %f", abb.boxMin().x, abb.boxMin().y, abb.boxMin().z, abb.boxMax().x, abb.boxMax().y,
+          abb.boxMax().z);
         BBox3 bbox = area.getAABB();
         debug("customNav area bbox  %f %f %f %f %f %f", bbox.boxMin().x, bbox.boxMin().y, bbox.boxMin().z, bbox.boxMax().x,
           bbox.boxMax().y, bbox.boxMax().z);
@@ -223,7 +256,12 @@ void CustomNav::addAreaToTile(Area &area, uint32_t tile_id)
       if (DAGOR_UNLIKELY(a.id == area.id))
       {
         logerr("a.id == area.id  %d == %d for box area in %s", a.id, area.id, __FUNCTION__);
-        debug("tile count %d and gen %d, tile_id %u", area.tileCount, area.generation, tile_id);
+        debug("tile count (%d vs %d) and gen (%d vs %d), tile_id %u", a.tileCount, area.tileCount, a.generation, area.generation,
+          tile_id);
+        debug_log_tile_info(tile_id);
+        BBox3 abb = a.getAABB();
+        debug("customNav a bbox  %f %f %f %f %f %f", abb.boxMin().x, abb.boxMin().y, abb.boxMin().z, abb.boxMax().x, abb.boxMax().y,
+          abb.boxMax().z);
         BBox3 bbox = area.getAABB();
         debug("customNav area bbox  %f %f %f %f %f %f", bbox.boxMin().x, bbox.boxMin().y, bbox.boxMin().z, bbox.boxMax().x,
           bbox.boxMax().y, bbox.boxMax().z);
@@ -285,7 +323,12 @@ void CustomNav::restoreLostTiles()
   }
 }
 
-void CustomNav::removeTile(uint32_t tile_id) { tiles.erase(tile_id); }
+void CustomNav::removeTile(uint32_t tile_id)
+{
+  restoreLostTiles();
+
+  tiles.erase(tile_id);
+}
 
 void CustomNav::areaRemoveFromTiles(Area &area, Tab<uint32_t> &affected_tiles)
 {

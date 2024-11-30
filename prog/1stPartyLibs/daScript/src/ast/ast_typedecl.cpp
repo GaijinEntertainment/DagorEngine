@@ -917,6 +917,7 @@ namespace das
         } else if ( baseType == Type::tPointer ) {
             if ( smartPtr || smartPtrNative ) return true;                // TODO: fix this
             if ( !firstType ) return true;              // void pointer can always be cloned
+            if ( firstType->isVoid() ) return true;     // void pointer can always be cloned
             if ( firstType->constant ) return true;     // can clone to const pointer, i.e. Foo const?
             return false;
         } else if (baseType == Type::tBlock) {

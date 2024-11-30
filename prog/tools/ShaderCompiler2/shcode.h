@@ -7,6 +7,7 @@
 #include <generic/dag_smallTab.h>
 #include <math/dag_color.h>
 #include <math/integer/dag_IPoint4.h>
+#include <EASTL/bitvector.h>
 
 #include "shaderSave.h"
 #include "shaderVariant.h"
@@ -136,6 +137,7 @@ public:
   };
   SerializableTab<Var> stvar;
   SerializableTab<int> shInitCode;
+  BINDUMP_NON_SERIALIZABLE(eastl::bitvector<> stvarsAreDynamic);
 
   bindump::string name;
   int64_t timestamp = -1;
@@ -159,6 +161,10 @@ public:
       del_it(code[i]);
     clear_and_shrink(code);
   }
+
+  // First all static, then all dynamic to reduce posibility of material and shader layout mismatches
+  // After this function, stvarsAreDynamic field is invalidated, so it should be done after all var additions
+  void sortStaticVarsByMode();
 
   int find_static_var(const int variable_name_id);
 };

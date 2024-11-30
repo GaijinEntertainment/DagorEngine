@@ -250,7 +250,7 @@ bool Swapchain::acquireSwapImage(FrameInfo &frame)
 
   if (checkVkSwapchainError(rc, "vkAcquireNextImageKHR"))
   {
-    Globals::VK::que[DeviceQueueType::GRAPHICS].addSubmitSemaphore(syncSemaphore, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+    Globals::VK::queue[DeviceQueueType::GRAPHICS].addSubmitSemaphore(syncSemaphore, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
     // we can't read from it later on, so set layout as underfined to ignore contents on later usage for faster transitioning
     swapImages[colorTargetIndex]->layout.set(0, 0, VK_IMAGE_LAYOUT_UNDEFINED);
     return true;
@@ -818,7 +818,7 @@ void Swapchain::present(ExecutionContext &)
   if (currentState == SWP_HEADLESS)
   {
     DeviceQueue::TrimmedSubmitInfo si = {};
-    Globals::VK::que[DeviceQueueType::GRAPHICS].submit(Globals::VK::dev, frame, si);
+    Globals::VK::queue[DeviceQueueType::GRAPHICS].submit(Globals::VK::dev, frame, si);
   }
 
   if (currentState == SWP_PRESENT)
@@ -831,7 +831,7 @@ void Swapchain::present(ExecutionContext &)
     VkResult result;
     {
       TIME_PROFILE(vulkan_swapchain_present);
-      result = Globals::VK::que[DeviceQueueType::GRAPHICS].present(Globals::VK::dev, frame, pi);
+      result = Globals::VK::queue[DeviceQueueType::GRAPHICS].present(Globals::VK::dev, frame, pi);
     }
 
     if (checkVkSwapchainError(result, "vkQueuePresent"))

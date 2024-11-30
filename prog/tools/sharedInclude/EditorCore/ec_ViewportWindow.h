@@ -444,7 +444,8 @@ protected:
   void fillStat3dStatSettings(ViewportWindowStatSettingsDialog &dialog);
   void handleStat3dStatSettingsDialogChange(int pcb_id, bool value);
 
-  bool canInteractWithViewportAxis();
+  virtual bool canStartInteractionWithViewport();
+
   void handleViewportAxisMouseLButtonDown();
   void handleViewportAxisMouseLButtonUp();
   void processViewportAxisCameraRotation(TEcLParam l_param);

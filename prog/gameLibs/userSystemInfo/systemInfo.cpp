@@ -1184,7 +1184,7 @@ int get_battery_from_device_list()
 
   const DataBlock *model = modelsBlk.getBlockByName(cpuModel.c_str());
   if (!model)
-    return returnDefault("Unknown model");
+    return returnDefault(String(-1, "Unknown model %s", cpuModel.c_str()).c_str());
 
   return model->getInt("batterySize", UNKNOWN_CAPACITY);
 }
@@ -1325,9 +1325,10 @@ ThermalStatus get_thermal_state()
 JAVA_METHOD(getBattery, float, JNI_SIGNATURE(JNI_FLOAT, ));
 JAVA_METHOD(getIsBatteryCharging, bool, JNI_SIGNATURE(JNI_BOOL, ));
 JAVA_METHOD(mAhBatteryCapacity, long, JNI_SIGNATURE(JNI_LONG, ));
+JAVA_METHOD(isTablet, bool, JNI_SIGNATURE(JNI_BOOL, ));
 
 JAVA_APP_CONTEXT_CLASS(AppActivity, JAVA_CLASS_METHOD(getBattery), JAVA_CLASS_METHOD(getIsBatteryCharging),
-  JAVA_CLASS_METHOD(mAhBatteryCapacity));
+  JAVA_CLASS_METHOD(mAhBatteryCapacity), JAVA_CLASS_METHOD(isTablet));
 
 JAVA_THREAD_LOCAL_ENV(AppActivity);
 
@@ -1600,6 +1601,19 @@ int get_network_connection_type()
 String get_model_by_cpu(const char *cpu) { return String(cpu); }
 int get_network_connection_type() { return -1; }
 
+#endif
+
+#if _TARGET_ANDROID
+int is_tablet()
+{
+  if (JAVA_INIT_ENV)
+    return JAVA_CALL_RETURN(isTablet, JAVA_APP_CONTEXT, false);
+  return -1;
+};
+#elif _TARGET_IOS
+int is_tablet() { return ios_is_ipad(); }
+#else
+int is_tablet() { return -1; }
 #endif
 
 const char *to_string(ThermalStatus status)

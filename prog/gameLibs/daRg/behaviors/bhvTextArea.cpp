@@ -5,10 +5,13 @@
 #include <daRg/dag_element.h>
 #include <daRg/dag_properties.h>
 #include <daRg/dag_stringKeys.h>
+#include "guiScene.h"
 
 #include "textLayout.h"
 #include "textUtil.h"
 #include "dargDebugUtils.h"
+#include "profiler.h"
+#include <perfMon/dag_statDrv.h>
 
 
 namespace darg
@@ -159,6 +162,9 @@ void BhvTextArea::onDelete(Element *elem) { deleteData(elem); }
 
 void BhvTextArea::recalc_content(const Element *elem, int /*axis*/, const Point2 &elem_size, Point2 &out_size)
 {
+  AutoProfileScope profile(GuiScene::get_from_elem(elem)->getProfiler(), M_RECALC_TEXTAREA);
+  TIME_PROFILE(bhv_textarea_recalc_content);
+
   using namespace textlayout;
 
   out_size.zero();

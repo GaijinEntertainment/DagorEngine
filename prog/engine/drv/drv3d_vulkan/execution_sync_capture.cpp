@@ -15,9 +15,8 @@ void ExecutionSyncCapture::addSyncStep()
   currentLocalSyncStepOpIdx = 0;
   DeviceQueueType syncStepQueue = Backend::State::exec.getExecutionContext().frameCoreQueue;
   steps.push_back({currentVisNode++, currentVisPin++, currentVisPin++, Backend::sync.getCaller(),
-    Backend::gpuJob->commandBuffers[syncStepQueue].pendingCommandBuffers.size(), (uint32_t)syncStepQueue,
-    Backend::State::exec.getExecutionContext().frameCoreAsync, currentSyncStep, 0, currentVisPin++, currentVisPin++, currentVisPin++,
-    0, 0, 0});
+    Backend::gpuJob->commandBuffers[syncStepQueue].pendingCommandBuffers.size(), (uint32_t)syncStepQueue, currentSyncStep, 0,
+    currentVisPin++, currentVisPin++, currentVisPin++, 0, 0, 0});
   currentSyncStep++;
 }
 void ExecutionSyncCapture::addOp(ExecutionSyncTracker::OpUid uid, LogicAddress laddr, Resource *res,

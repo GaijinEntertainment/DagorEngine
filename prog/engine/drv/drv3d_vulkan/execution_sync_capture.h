@@ -19,7 +19,6 @@ struct ExecutionSyncCapture
     ExecutionSyncTracker::OpCaller caller;
     uint32_t dstBuffer;
     uint32_t dstQue;
-    bool async;
     uint32_t idx;
     uint32_t visIndepSeq;
     uint32_t visIdepSeqPin;

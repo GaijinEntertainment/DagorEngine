@@ -834,6 +834,7 @@ void ObjectEditor::setEditMode(int mode)
 
 void ObjectEditor::invalidateObjectProps()
 {
+  saveEditorPropBarSettings();
   areObjectPropsValid = false;
   IEditorCoreEngine::get()->updateViewports();
   IEditorCoreEngine::get()->invalidateViewportCache();
@@ -845,6 +846,7 @@ void ObjectEditor::updateObjectProps()
   if (!areObjectPropsValid && objectPropBar)
   {
     objectPropBar->fillPanel();
+    objectPropBar->loadSettings(objectPropSettings);
     areObjectPropsValid = true;
   }
 }
@@ -1436,6 +1438,16 @@ ObjectEditorPropPanelBar *ObjectEditor::createEditorPropBar(void *handle)
 }
 
 
+void ObjectEditor::saveEditorPropBarSettings()
+{
+  if (objectPropBar)
+  {
+    objectPropSettings.reset();
+    objectPropBar->saveSettings(objectPropSettings);
+  }
+}
+
+
 void *ObjectEditor::onWmCreateWindow(int type)
 {
   switch (type)
@@ -1447,6 +1459,7 @@ void *ObjectEditor::onWmCreateWindow(int type)
 
       objectPropBar = createEditorPropBar(nullptr);
       objectPropBar->fillPanel();
+      objectPropBar->loadSettings(objectPropSettings);
       areObjectPropsValid = true;
 
       setButton(CM_OBJED_OBJPROP_PANEL, true);
@@ -1463,6 +1476,7 @@ bool ObjectEditor::onWmDestroyWindow(void *window)
 {
   if (window == objectPropBar)
   {
+    saveEditorPropBarSettings();
     del_it(objectPropBar);
     setButton(CM_OBJED_OBJPROP_PANEL, false);
     return true;
@@ -1508,7 +1522,10 @@ void ObjectEditor::closeUi()
   G_ASSERT(manager);
 
   if (objectPropBar)
+  {
+    saveEditorPropBarSettings();
     EDITORCORE->removePropPanel(objectPropBar);
+  }
 
   manager->unregisterWindowHandler(this);
 
@@ -1557,6 +1574,21 @@ void ObjectEditor::showPanel()
     EDITORCORE->addPropPanel(PROPBAR_EDITOR_WTYPE, hdpi::_pxScaled(PROPBAR_WIDTH));
   else
     EDITORCORE->removePropPanel(objectPropBar);
+}
+
+
+void ObjectEditor::loadPropPanelSettings(const DataBlock &settings)
+{
+  objectPropSettings.setFrom(&settings);
+  if (objectPropBar)
+    objectPropBar->loadSettings(objectPropSettings);
+}
+
+
+void ObjectEditor::savePropPanelSettings(DataBlock &settings)
+{
+  saveEditorPropBarSettings();
+  settings.setFrom(&objectPropSettings);
 }
 
 

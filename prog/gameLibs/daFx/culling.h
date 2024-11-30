@@ -22,6 +22,7 @@ struct CullingState
   eastl::array<int, Config::max_render_tags> vrsRemapTags;
   eastl::array<int, Config::max_render_tags> shadingRates;
   eastl::array<float, Config::max_render_tags> discardThreshold;
+  uint32_t visibilityMask = 0xffffffff;
 };
 using CullingStates = GenerationReferencedData<CullingId, CullingState>;
 

@@ -215,14 +215,8 @@ inline void rendinst_foreachRIGenInBox(const BBox3 &box, bool test_riextra_col,
 inline void rendinst_foreachTreeInBox(const bbox3f &bbox, const das::TBlock<void, const rendinst::CollisionInfo> &block,
   das::Context *context, das::LineInfoArg *at)
 {
-  Point3_vec4 bmin;
-  Point3_vec4 bmax;
-  v_st(&bmin.x, bbox.bmin);
-  v_st(&bmax.x, bbox.bmax);
-
-  TMatrix tm = TMatrix::IDENT;
-  tm.setcol(3, (bmin + bmax) * 0.5);
-  BBox3 localBox(bmin - tm.getcol(3), bmax - tm.getcol(3));
+  BBox3 bb;
+  v_stu_bbox3(bb, bbox);
 
   vec4f args[1];
   context->invokeEx(
@@ -246,7 +240,7 @@ inline void rendinst_foreachTreeInBox(const bbox3f &bbox, const das::TBlock<void
       cb.context = context;
       cb.code = code;
 
-      rendinst::testObjToRIGenIntersection(localBox, tm, cb, rendinst::GatherRiTypeFlag::RiGenOnly);
+      rendinst::testObjToRIGenIntersection(bb, cb, rendinst::GatherRiTypeFlag::RiGenOnly);
     },
     at);
 }

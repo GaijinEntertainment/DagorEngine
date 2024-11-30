@@ -72,7 +72,9 @@ struct DragAndDropState
 BhvDragAndDrop bhv_drag_and_drop;
 
 
-BhvDragAndDrop::BhvDragAndDrop() : Behavior(STAGE_BEFORE_RENDER, F_HANDLE_MOUSE | F_HANDLE_TOUCH | F_CAN_HANDLE_CLICKS) {}
+BhvDragAndDrop::BhvDragAndDrop() :
+  Behavior(STAGE_BEFORE_RENDER, F_HANDLE_MOUSE | F_HANDLE_TOUCH | F_CAN_HANDLE_CLICKS), activeDrag(nullptr)
+{}
 
 
 bool BhvDragAndDrop::willHandleClick(Element *elem)
@@ -286,12 +288,15 @@ int BhvDragAndDrop::pointingEvent(ElementTree *etree, Element *elem, InputDevice
       return 0;
     if (accum_res & R_PROCESSED)
       return 0;
+    if (activeDrag != nullptr)
+      return 0;
 
     bool canDrag = !dropData.IsNull();
 
     if (canDrag)
     {
       ddState->startDrag(device, pointer_id, pointer_pos, pointer_pos - elem->calcTransformedBbox().leftTop());
+      activeDrag = ddState;
       elem->setGroupStateFlags(Element::S_DRAG);
 
       elem->updFlags(Element::F_ZORDER_ON_TOP, true);
@@ -357,6 +362,8 @@ int BhvDragAndDrop::pointingEvent(ElementTree *etree, Element *elem, InputDevice
 
       elem->clearGroupStateFlags(Element::S_DRAG | activeStateFlag);
 
+      if (ddState == activeDrag)
+        activeDrag = nullptr;
       ddState->resetState();
       if (elem->transform)
         elem->transform->translate.zero();
@@ -422,6 +429,8 @@ void BhvDragAndDrop::onDetach(Element *elem, DetachMode)
       callDragModeHandler(guiScene, elem, false);
     }
 
+    if (ddState == activeDrag)
+      activeDrag = nullptr;
     delete ddState;
     elem->props.storage.DeleteSlot(elem->csk->dragAndDropState);
   }
@@ -444,6 +453,8 @@ int BhvDragAndDrop::onDeactivateInput(Element *elem, InputDevice device, int poi
   elem->updFlags(Element::F_ZORDER_ON_TOP, false);
   elem->clearGroupStateFlags(Element::S_DRAG | active_state_flags_for_device(ddState->activeDeviceId));
 
+  if (ddState == activeDrag)
+    activeDrag = nullptr;
   ddState->resetState();
 
   return R_REBUILD_RENDER_AND_INPUT_LISTS;

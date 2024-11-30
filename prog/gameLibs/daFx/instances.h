@@ -117,6 +117,7 @@ enum : int
   INST_RENDER_SORT_DEPTH,
   INST_CULLING_ID,
   INST_LAST_VALID_BBOX_FRAME,
+  INST_VISIBILITY,
 
 #if DAFX_STAT
   INST_RENDERABLE_TRIS,
@@ -195,12 +196,13 @@ using InstanceStream = eastl::tuple_vector<InstanceId, // INST_RID
   eastl::vector<TextureDesc>, // INST_LOCAL_RES_VS
   eastl::vector<TextureDesc>, // INST_LOCAL_RES_PS
 
-  bbox3f,      // INST_BBOX (this should be fine, since eastl::tuple_vector have alignment-friendly allocator)
-  Point4,      // INST_POSITION
-  float,       // INST_VIEW_DIST
-  int,         // INST_RENDER_SORT_DEPTH
-  int,         // INST_CULLING_ID
-  unsigned int // INST_LAST_VALID_BBOX_FRAME
+  bbox3f,       // INST_BBOX (this should be fine, since eastl::tuple_vector have alignment-friendly allocator)
+  Point4,       // INST_POSITION
+  float,        // INST_VIEW_DIST
+  int,          // INST_RENDER_SORT_DEPTH
+  int,          // INST_CULLING_ID
+  unsigned int, // INST_LAST_VALID_BBOX_FRAME
+  unsigned int  // INST_VISIBILITY
 
 #if DAFX_STAT
   ,

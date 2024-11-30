@@ -163,7 +163,7 @@ void flush_states(RenderState &rs)
 #if DAGOR_DBGLEVEL > 0
     if (currentState->sourceShaderRenderState.forcedSampleCount > 0 && rs.nextRtState.isDepthUsed())
     {
-      DAG_FATAL("Forced sample count is used when depth RT is set! FSC will be disabled");
+      D3D_ERROR("Forced sample count is used when depth RT is set! FSC will be disabled");
       shaders::RenderState fixedState = currentState->sourceShaderRenderState;
       fixedState.forcedSampleCount = 0;
       s = render_states.get(render_states.emplaceOne(shader_render_state_to_driver_render_state(fixedState)))->rasterState;

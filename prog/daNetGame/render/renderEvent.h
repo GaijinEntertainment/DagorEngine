@@ -13,6 +13,7 @@
 #include "rendererFeatures.h"
 #include <3d/dag_texStreamingContext.h>
 #include <ecs/render/transformHolder.h>
+#include <render/heroData.h>
 #include <render/fx/fx.h>
 #include <render/daBfg/bfg.h>
 #include <ioSys/dag_dataBlock.h>
@@ -289,21 +290,10 @@ struct UpdateStageInfoRenderDistortion : public ecs::Event, public TransformHold
   {}
 };
 
-struct QueryHeroWtmAndBoxForRender : public ecs::Event
+struct QueryHeroWtmAndBoxForRender : public ecs::Event, public HeroWtmAndBox
 {
-  // result
-  mutable mat44f resWtm = {};
-  mutable vec3f resWofs = {};
-  mutable bbox3f resLbox = {};
-  mutable bool resReady = false;
   // parameters
   bool onlyWeapons = false;
-  enum
-  {
-    WEAPON = 1,
-    VEHICLE = 2
-  };
-  mutable uint8_t resFlags = 0; // WEAPON|VEHICLE
 
   ECS_UNICAST_EVENT_DECL(QueryHeroWtmAndBoxForRender)
   QueryHeroWtmAndBoxForRender(bool weap_only = false) : ECS_EVENT_CONSTRUCTOR(QueryHeroWtmAndBoxForRender), onlyWeapons(weap_only) {}

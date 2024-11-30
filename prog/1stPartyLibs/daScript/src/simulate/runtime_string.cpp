@@ -510,6 +510,25 @@ namespace das
         }
     }
 
+    int32_t levenshtein_distance ( const char * s1, const char * s2 ) {
+        int len1 = int(strlen(s1));
+        int len2 = int(strlen(s2));
+        if ( len1==0 ) return len2;
+        if ( len2==0 ) return len1;
+        int * v0 = (int *) alloca(sizeof(int)*(len2+1));
+        int * v1 = (int *) alloca(sizeof(int)*(len2+1));
+        for ( int i=0; i<=len2; ++i ) v0[i] = i;
+        for ( int i=0; i<len1; ++i ) {
+            v1[0] = i+1;
+            for ( int j=0; j<len2; ++j ) {
+                int cost = s1[i]==s2[j] ? 0 : 1;
+                v1[j+1] = min(v1[j]+1, min(v0[j+1]+1, v0[j]+cost));
+            }
+            for ( int j=0; j<=len2; ++j ) v0[j] = v1[j];
+        }
+        return v1[len2];
+    }
+
     string to_cpp_float ( float val ) {
         if ( val==FLT_MIN ) return "FLT_MIN";
         else if ( val==-FLT_MIN ) return "(-FLT_MIN)";

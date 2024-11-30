@@ -14,34 +14,39 @@ fetched, decompressed, and the required information is extracted from them.
 
 This article provides an overview of how to build assets, levels, and settings.
 
-# Parameters in .folder.blk Affecting the Building Process
+## Parameters in .folder.blk Affecting the Building Process
 
-Resource building is governed by the rules defined in `.folder.blk` files. For
-more details about `.folder.blk`, read
-[here](../../assets/all-about-blk/folder_blk.md). For instance, the following
-block specifies compression parameters for `.tiff` textures.
+Resource building is governed by the rules defined in `.folder.blk` files.
 
+```{seealso}
+For more information, see
+[.folder.blk](../../assets/all-about-blk/folder_blk.md).
 ```
+
+For example, the following block specifies compression parameters for `.tiff`
+textures.
+
+```text
 virtual_res_blk{
-  find:t="^(.*)\.tiff$" // search for any .tiff files
-  className:t="tex"    // assign the "texture" class
-  contents{            // processing details
-    convert:b=yes;fmt:t="DXT1|DXT5" // convert; use DXT1 or DXT5 format (if alpha is present)
+  find:t="^(.*)\.tiff$"  // search for any .tiff files
+  className:t="tex"      // assign the "texture" class
+  contents{              // processing details
+    convert:b=yes;fmt:t="DXT1|DXT5"  // convert; use DXT1 or DXT5 format (if alpha is present)
     mipFilter:t="filterKaiser";mipFilterAlpha:r=40;mipFilterStretch:r=2 // mipmap compression using
-                                    // the Kaiser filter (sharpens); with two parameters
-    addrU:t="wrap";addrV:t="wrap" // define texture tiling behavior, wrap = repeat for repeating textures.
-    hqMip:i=0;mqMip:i=1;lqMip:i=2 // define the displayed mip level based on graphics quality;
-                                  // hq (high quality) uses the original texture,
-                                  // mq uses mip level 1 (50% compression), lq uses mip level 2 (75% compression).
+                                     // the Kaiser filter (sharpens); with two parameters
+    addrU:t="wrap";addrV:t="wrap"    // define texture tiling behavior, wrap = repeat for repeating textures.
+    hqMip:i=0;mqMip:i=1;lqMip:i=2    // define the displayed mip level based on graphics quality;
+                                     // hq (high quality) uses the original texture,
+                                     // mq uses mip level 1 (50% compression), lq uses mip level 2 (75% compression).
   }
 }
 ```
 
-There are numerous such processing blocks. Below, we’ll examine the key ones.
+There are numerous such processing blocks. Below, we'll examine the key ones.
 
 ## Global Export Parameters
 
-```
+```text
 export{
   package:t="*" // Specify the package to which the asset will be built
                 // (a package is the highest level of asset grouping)
@@ -64,21 +69,21 @@ export{
 }
 ```
 
-These are just a few examples. Let’s delve into the primary parameters.
+These are just a few examples. Let's delve into the primary parameters.
 
-# About Packs and Packages
+## About Packs and Packages
 
 The hierarchy of resources can be illustrated as follows:
 
-![Hierarchy of Resources](_images/res_build_01.png)
+<img src="_images/resource_building_01.jpg" alt="Hierarchy of Resources" align="center" width="40em">
 
 In essence, a project can contain several packages, and each package can include
 multiple packs.
 
-## What Is a "Package"?
+### What Is a "Package"?
 
 A *package* typically serves as a container for resources that we want to
-distribute to or remove from the player's environment. For instance, we might
+distribute to or remove from the player's environment. For example, we might
 bundle a specific location and its assets into a package for a particular event.
 Players download it, enjoy the event for a week, and once the event concludes,
 the package is removed from their resources.
@@ -88,9 +93,12 @@ players to download 20 GB of resources upfront, they can start with a minimal
 setup and quickly get into the game. Later, they can purchase additional content
 and download the necessary data from the relevant package.
 
-See more details about packages [here](packages.md).
+```{seealso}
+For more information, see
+[Packages](./packages.md).
+```
 
-## What Is a "Pack"?
+### What Is a "Pack"?
 
 A *pack* is a component of a package where the assets are actually built. The
 logic for dividing assets into packs is straightforward:
@@ -109,7 +117,7 @@ If a pack becomes too large, we break it down into smaller groups. For example,
 vehicles could be further divided into packs such as `buses`, `trucks`, and
 `cars`.
 
-# Local Build
+## Local Build
 
 When you create a new asset, it needs to be tested locally in the game. The
 local client, like the player's client, only understands built resources, so
@@ -123,12 +131,12 @@ There are three types of builds:
    and efficient.
 3. **Partial Package Build**: Builds an entire package (a set of packs).
    Although this is a longer process, it can be more convenient in some cases,
-   such as in *daNetGame-based* games, where packaging the resources this way
+   such as in *daNetGame*-based games, where packaging the resources this way
    might be preferable to building individual packs.
 
-# Local Full daBuild
+## Local Full daBuild
 
-[*daBuild*](../daeditor/daeditor/daeditor.md) is a program executed via the
+The [*daBuild*](../daeditor/daeditor/daeditor.md) is a program executed via the
 `dabuild.cmd` batch file.
 
 ```{important}
@@ -137,7 +145,7 @@ you only need to build a single resource for quick testing, use
 `dabuild_test.bat` instead.
 ```
 
-## Building and Errors
+### Building and Errors
 
 In theory, all assets should be error-free. However, asset management initially
 relied heavily on manual checks, leading to human error and allowing issues to
@@ -154,14 +162,14 @@ file command to allow *daBuild* to continue building all resources while logging
 the errors.
 
 ```{note}
-This flag should not be used to ignore errors. The build process for specific
-assets will still be interrupted, but it will move on to the next asset in the
-pack rather than stopping at the first error. Once you've collected error data,
-fix the assets and run the build without this flag to ensure that *daBuild*
-completes successfully without issues.
+The `-keep_building_after_error` flag should not be used to ignore errors. The
+build process for specific assets will still be interrupted, but it will move on
+to the next asset in the pack rather than stopping at the first error. Once
+you've collected error data, fix the assets and run the build without this flag
+to ensure that *daBuild* completes successfully without issues.
 ```
 
-## Local Pack Build
+### Local Pack Build
 
 ```{important}
 Building packs with *daBuild* will compile all packs matching a specified
@@ -183,7 +191,7 @@ be named `main_vehicles`.
 To build a specific pack, open `dabuild_test.bat` in any text editor, and you
 will see a line like this:
 
-```
+```text
 ..\..\tools\dagor3_cdk\bin64\dabuild-dev.exe -target:PC ..\application.blk -packs_re:usa_gm -Q
 ```
 
@@ -191,72 +199,72 @@ Replace `usa_gm` with the name of the pack you need to build. The pack is
 determined by the nearest `.folder.blk` file to the asset, containing lines
 like:
 
-```
+```text
 export{
   ddsxTexPack:t="gm_lvl_assets.dxp.bin"
   gameResPack:t="gm_lvl_assets.grp"
 }
 ```
 
-`gm_lvl_assets` is an example of the pack name into which the resources will be
-built. It may vary – refer to your specific setup.
+The `gm_lvl_assets` is an example of the pack name into which the resources will
+be built. It may vary – refer to your specific setup.
 
 ```{important}
 Notice that there are two types of packs:
-1. `ddsxTexPack` - Exports textures.
-2. `gameResPack` - Exports models.
 
-It's possible for textures to be exported to one pack and models to another. For
-example:
+- `ddsxTexPack`: Exports textures.
+- `gameResPack`: Exports models.
 
-```
-export{
-  ddsxTexPack:t="gm_lvl_assets.dxp.bin"
-  gameResPack:t="locations.grp"
-}
-```
+It's possible for textures to be exported to one pack and models to another.
+For example:
+
+    ```
+    export{
+      ddsxTexPack:t="gm_lvl_assets.dxp.bin"
+      gameResPack:t="locations.grp"
+    }
+    ```
 
 You need to build the packs corresponding to the resources you've modified. If
 you've changed textures, build the texture pack. If you've changed models, build
 the model pack. If both were changed, build both packs.
 ```
 
-# Local Package Build
+## Local Package Build
 
 Unlike packs, packages are more comprehensive and refer to self-contained
-volumes of resources that can be enabled or disabled with a "toggle."
+volumes of resources that can be enabled or disabled with a "toggle".
 
 For example, in *War Thunder*:
 
-- `pkg_main` (or simply `*`) - The default package where all assets are
-  exported.
-- `pkg_dev` - Contains assets that should be built but not distributed to
+- `pkg_main` (or simply `*`): The default package where all assets are exported.
+- `pkg_dev`: Contains assets that should be built but not distributed to
   players.
-- `tomoe` - A package for modifying certain symbols in countries where their
+- `tomoe`: A package for modifying certain symbols in countries where their
   original form is prohibited.
 - Event packages are also occasionally used.
 
-In *daNetGame-based* games, each location is its own package, which can be
+In *daNetGame*-based games, each location is its own package, which can be
 distributed to players independently.
 
 In a `.folder.blk` file, the package entry looks like this:
 
-```
+```text
 export{
   package:t="tomoe"
 }
 ```
 
 In *War Thunder*, local package builds are not common, as there are few
-packages, and packs are usually built instead. However, in *daNetGame-based*
+packages, and packs are usually built instead. However, in *daNetGame*-based
 games, this is an extremely useful feature. There are two options for such
 builds.
 
-## Option 1 - Building a Specific Package
+### Option 1: Building a Specific Package
 
 In the `daBuild` batch file, write:
 
-```
+```text
 ..\..\tools\dagor3_cdk\bin64\dabuild-dev.exe -target:PC ..\application.blk -package:package_name -Q
 ```
 
@@ -276,15 +284,16 @@ updated.
 
 To avoid this, you should either:
 
-- Sequentially build both packages using one batch file:
-
+- sequentially build both packages using one batch file:
   `-package:package_name -package:package_name_hq`
 
-- Or create two separate batch files: one for the main resource package (non-HQ
+or
+
+- create two separate batch files: one for the main resource package (non-HQ
   textures) and another specifically for HQ textures.
 ```
 
-## Option 2 - Building a Specific Package and Its Dependencies
+### Option 2: Building a Specific Package and Its Dependencies
 
 In *daNetGame-based* games, packages often have cross-references. When something
 changes in a "common" package, you need to ensure that everything works
@@ -294,24 +303,30 @@ its dependent packages, which is much faster.
 
 To do this, write the following in the `daBuild` batch file:
 
-```
+```text
 ..\..\tools\dagor3_cdk\bin64\dabuild-dev.exe -target:PC ..\application.blk -package_and_deps:package_name -Q
 ```
 
-`package_and_deps` refers to the package and its dependencies.
+The `package_and_deps` refers to the package and its dependencies.
 
-# Toggling Packages in settings.blk
+## Toggling Packages in settings.blk
 
 Occasionally, you may need to enable or disable packages to test specific
-scenarios (for instance, disabling a package to verify that the game runs
-without it). This is configured in the `settings.blk` file. For all projects,
-after modifying the package list, you must rebuild the [`.vromfs.bin`](vromfs.md)
-files.
+scenarios (for example, disabling a package to verify that the game runs without
+it). This is configured in the `settings.blk` file.
+
+```{seealso}
+For more information, see
+[settings.blk](../../assets/all-about-blk/config_and_settings_blk).
+```
+
+For all projects, after modifying the package list, you must rebuild the
+[`.vromfs.bin`](vromfs.md) files.
 
 In *War Thunder*, packages are enabled or disabled in the file located at
-`engine_root\skyquake\develop\gameBase\_pc\settings.blk`:
+`<engine_root>/<project_name>/develop/gameBase/_pc/settings.blk`:
 
-```
+```text
 addons{
   folder:t = "content.hq/hq_tex"
   folder:t = "content.hq/pkg_cockpits"
@@ -354,24 +369,31 @@ disabling packages within the game; it does not handle the creation of packages.
 The requirement for a package to be built by *daBuild* is defined in the
 `application.blk` file within the `packages{}` block.
 
-# Local Build of a Specific Asset
+```{seealso}
+For more information, see
+[application.blk](../../assets/all-about-blk/application_blk.md).
+```
+
+## Local Build of a Specific Asset
 
 The `daBuild` command with the `-build:<asset>[:<out_file>]` parameter allows
 you to build a single asset into the specified file. This command does not
 update packages, meaning the updated asset will not be added to any package.
 
-# Local Resource Build in Asset Viewer
+## Local Resource Build in Asset Viewer
 
-Resources can also be built using the *Asset Viewer*, which often speeds up the
-process since `daBuild` via batch files can sometimes lag unpredictably.
+Resources can also be built using the [*Asset
+Viewer*](../asset-viewer/asset-viewer/asset_viewer.md), which often speeds up
+the process since `daBuild` via batch files can sometimes lag unpredictably.
 
-For instructions on how to build using *Asset Viewer*, refer to the
-documentation
-[here](../asset-viewer/asset-viewer/asset_viewer.md#building-assets).
+```{seealso}
+For more information on how to build using *Asset Viewer*, see
+[Asset Viewer: Building Assets](../asset-viewer/asset-viewer/asset_viewer.md#building-assets).
+```
 
-# Local Vromfs Build
+## Local Vromfs Build
 
-VROMFS stands for "Virtual Read-Only Memory File System". Essentially,
+*VROMFS* stands for "Virtual Read-Only Memory File System". Essentially,
 [vromfs](vromfs.md) files are the "virtual configuration disk" for our game.
 They contain all the game's operational settings that aren't hard-coded.
 
@@ -386,11 +408,11 @@ following line in the `debug{}` block: `offlineBinaries:b=yes`. Alternatively,
 you can use `disableNetwork:b=yes` if network features are irrelevant to you.
 For added security, you might want to include both.
 
-## Methods to Build Vromfs
+### Methods to Build Vromfs
 
 1. **Using `create_vrsroms.bat`**
-   - Located in the `engine_engine_root\<project_name>\develop\gameBase` directory.
-     This method is useful because it immediately indicates if there’s an issue
+   - Located in the `<engine_root>/<project_name>/develop/gameBase` directory.
+     This method is useful because it immediately indicates if there's an issue
      with the settings by throwing an error. Additionally, it provides a local
      log (`log_vrom`) in the same directory, which helps you identify and
      resolve any problems.
@@ -398,50 +420,50 @@ For added security, you might want to include both.
 2. **Using `aces_dev.exe`**
    - Technically, this tool does not build vromfs. However, if you have
      `vromfsPriority:b=no` set in the `debug{}` block of your `config.blk`, all
-     configuration files will be read directly from `develop\gameBase` instead
+     configuration files will be read directly from `develop/gameBase` instead
      of from vromfs. This approach offers several advantages: there's no need to
      wait for vromfs building after each change, and errors are logged in a more
      readable format. Additionally, this method allows you to add the powerful
      `trackEnvChanges:b=yes` line to your `config.blk`, enabling you to tweak
-     settings directly in-game. Although this doesn’t work for all settings,
-     it’s particularly helpful for adjusting weather or visual elements, as you
+     settings directly in-game. Although this doesn't work for all settings,
+     it's particularly helpful for adjusting weather or visual elements, as you
      can see the changes in real-time without restarting the client.
 
 Choose the method based on your experience. The in-game approach might be less
 convenient, but sometimes it's essential to ensure everything behaves exactly as
 it would in production.
 
-# Local Build of Resources and Vromfs in the open daEditor and Client
+## Local Build of Resources and Vromfs in the open daEditor and Client
 
 You can build resources and [vromfs](vromfs.md) while the
-[*daEditor*](../daeditor/index.rst) is open (though resource building might
-cause the *daEditor* to crash).
+[*daEditor*](../daeditor/daeditor/daeditor.md) is open (though resource building
+might cause the *daEditor* to crash).
 
 However, resources and vromfs cannot be built while the client is open.
 
-If you find that resources aren’t building after you’ve closed the client – or
-they seem to build, but the changes aren’t reflected in-game – open the Task
+If you find that resources aren't building after you've closed the client – or
+they seem to build, but the changes aren't reflected in-game – open the Task
 Manager and terminate any lingering `aces_dev.exe` processes.
 
-# Local Level Export
+## Local Level Export
 
-If you’re developing in-game vehicles that are loaded via missions, you can skip
+If you're developing in-game vehicles that are loaded via missions, you can skip
 this section.
 
-However, if you’re creating objects for maps, you’ll need to place them on the
+However, if you're creating objects for maps, you'll need to place them on the
 map and export the level to test them in-game. This process is done via the
-*daEditor*.
+[*daEditor*](../daeditor/daeditor/daeditor.md).
 
 Level export is necessary when:
 
-- You’re working with prefabs. Prefabs are only included in the game during
+- You're working with prefabs. Prefabs are only included in the game during
 level re-export.
-- You’ve added a new asset that wasn’t previously on the level or removed
+- You've added a new asset that wasn't previously on the level or removed
   something from the location.
 - Something has changed in object generation, and their placement needs to be
   updated.
 
-If you’re only modifying render instances or textures, there’s no need to
+If you're only modifying render instances or textures, there's no need to
 re-export the level – doing so would just waste time.
 
 Once you have placed all your objects, save the level and follow these steps:

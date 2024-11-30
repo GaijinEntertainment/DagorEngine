@@ -36,7 +36,8 @@ NameSpace root();
 void set_multiplexing_extents(multiplexing::Extents extents);
 
 /// \brief Executes the frame graph, possibly recompiling it.
-void run_nodes();
+/// \details Return false if run is not possible (d3d device was lost for example)
+bool run_nodes();
 
 /// \brief Initializes the daBfg backend.
 void startup();

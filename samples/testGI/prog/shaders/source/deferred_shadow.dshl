@@ -151,27 +151,25 @@ shader deferred_shadow_to_buffer
     }
   }
 
-  (ps) {
-    //todo: add later support for SW rgbe
-    /*
-    if (dagi_sp_has_exposure_assume == always_rgbe || gi_quality != screen_probes)
-    {
+  if (gi_quality != screen_probes || dagi_sp_has_exposure_assume == always_rgbe)
+  {
+    (ps) {
       screen_ambient@tex = screen_ambient hlsl { Texture2D<half3> screen_ambient@tex; };
       screen_specular@tex = screen_specular hlsl { Texture2D<half3> screen_specular@tex; };
+    }
+    if (gi_quality == screen_probes)
+    {
+      DAGI_HW_RGBE_SCREEN_ENCODING(ps)
     } else
     {
+      DAGI_NO_SCREEN_ENCODING(ps)
+    }
+  } else {
+    DAGI_SW_RGBE_SCREEN_ENCODING(ps)
+    (ps) {
       screen_ambient@tex = screen_ambient hlsl { Texture2D<uint> screen_ambient@tex; };
       screen_specular@tex = screen_specular hlsl { Texture2D<uint> screen_specular@tex; };
-    }*/
-    screen_ambient@tex = screen_ambient hlsl { Texture2D<half3> screen_ambient@tex; };
-    screen_specular@tex = screen_specular hlsl { Texture2D<half3> screen_specular@tex; };
-  }
-  if (gi_quality == screen_probes)
-  {
-    DAGI_SCREEN_ENCODING(ps)
-  } else
-  {
-    DAGI_NO_SCREEN_ENCODING(ps)
+    }
   }
 
   if (oculus == oculus_on)

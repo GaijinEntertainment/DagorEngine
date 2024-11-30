@@ -79,6 +79,8 @@ struct OrientedObjectBox
 };
 void testObjToRIGenIntersection(const BBox3 &obj_box, const TMatrix &obj_tm, RendInstCollisionCB &callback, GatherRiTypeFlags ri_types,
   const TraceMeshFaces *ri_cache = nullptr, PhysMat::MatID ray_mat = PHYSMAT_INVALID, bool unlock_in_cb = false);
+void testObjToRIGenIntersection(const Capsule &obj_capsule, RendInstCollisionCB &callback, GatherRiTypeFlags ri_types,
+  const TraceMeshFaces *ri_cache = nullptr, PhysMat::MatID ray_mat = PHYSMAT_INVALID, bool unlock_in_cb = false);
 
 inline bool testObjectToRendinstIntersection(CollisionResource *object_res, const CollisionNodeFilter &filter,
   const TMatrix &object_tm, const Point3 &velocity, Point3 *intersected_object_pos, String *intersected_object_name,

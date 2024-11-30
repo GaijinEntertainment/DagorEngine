@@ -44,6 +44,7 @@ CullingId create_culling_state(ContextId cid, const eastl::vector<CullingDesc> &
     cull.sortings[tag] = i.sortingType;
     cull.shadingRates[tag] = i.vrsRate;
     cull.discardThreshold[tag] = i.screenAreaDiscardThreshold;
+    cull.visibilityMask = i.visibilityMask;
     G_ASSERT(i.vrsRate <= 2); // basic VRS supports only 1xN - 2xN rates
     DBG_OPT("  render_tag: %s, sorting: %d", i.tag, (int)i.sortingType);
   }
@@ -98,6 +99,16 @@ void clear_culling_state(ContextId cid, CullingId cull_id)
 
   for (int i = 0; i < cull->workers.size(); ++i)
     cull->workers[i].clear();
+}
+
+uint32_t get_culling_state_visiblity_mask(ContextId cid, CullingId cullid)
+{
+  GET_CTX_RET(0);
+
+  CullingState *cull = ctx.cullingStates.get(cullid);
+  G_ASSERT_RETURN(cull, 0);
+
+  return cull->visibilityMask;
 }
 
 void remap_culling_state_tag(ContextId cid, CullingId cullid, const eastl::string &from, const eastl::string &to)
@@ -546,7 +557,10 @@ void update_culling_state(Context &ctx, CullingState *cull, const Frustum &frust
   {
     uint32_t &flags = stream.get<INST_FLAGS>(sid);
 
-    if ((flags & validationFlags) != validationFlags || (flags & SYS_EXPLICITLY_HIDDEN))
+    if ((flags & validationFlags) != validationFlags)
+      continue;
+
+    if ((stream.get<INST_VISIBILITY>(sid) & cull->visibilityMask) == 0)
       continue;
 
     if (stream.get<INST_ACTIVE_STATE>(sid).aliveCount == 0)

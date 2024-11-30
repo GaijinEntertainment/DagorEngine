@@ -272,6 +272,8 @@ void get_user_system_info(DataBlock *blk, const char *gfx_preset)
 
   cachedSysInfo.addBool("inlineRaytracingAvailable", systeminfo::get_inline_raytracing_available());
 
+  cachedSysInfo.addInt("isTablet", systeminfo::is_tablet());
+
   blk->setFrom(&cachedSysInfo);
 }
 

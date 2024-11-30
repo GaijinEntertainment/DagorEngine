@@ -53,4 +53,23 @@ p {
     margin-bottom: 14px;
 }
 
+/* Customization for icon-style numbering of menu items or objects in a picture
+for use in text */
+
+.sd-badge {
+    /* display: inline-block; */
+    padding: .25em .55em;
+    font-size: .8em;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: middle;
+    border-radius: .5rem;
+}
+
+.sd-outline-dark {
+    border-width: 0.15em !important;
+}
+
 

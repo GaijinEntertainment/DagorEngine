@@ -12,7 +12,7 @@ buffer screenspace_tile_classificator;
 
 macro NOISE(code)
   (code) {
-   sp_rand_decode@f3 = (1./(screenspace_probe_res.w*65535.), -(0.5+0.5/screenspace_probe_res.w)/screenspace_probe_res.w, 1./screenspace_probe_res.w, 0);
+   sp_rand_decode@f4 = (1./(screenspace_probe_res.w*65535.), -(0.5+0.5/screenspace_probe_res.w)/screenspace_probe_res.w, 1./screenspace_probe_res.w, 0.5/screenspace_probe_res.w);
   }
   hlsl(code) {
     #include <pcg_hash.hlsl>
@@ -21,14 +21,16 @@ macro NOISE(code)
     //[-0.5 0.5] texel (/w)
     float2 rand3D_Probe(uint3 v, uint2 oct_coord, uint frame)
     {
-      uint3 targetCoord = uint3(v.xy<<3, v.z) + uint3(oct_coord, 0);
+      uint3 targetCoord = uint3((v.xy)*13, v.z) + uint3(oct_coord, uint(screenspace_probes_temporal.y));
       uint3 rand = pcg3d_hash_16bit(targetCoord);
+      //return ((rand.xy&7) - 3.5)/8.0*sp_rand_decode.z;
       //can be optimized further, by one mul as hammersley_rand16 can produce 0...65535 range
       //todo:We can also provide fixed spatial-temporal-coherent 2d blue noise
       return hammersley_rand16( frame, SP_TOTAL_JITTER_FRAMES, rand.xy )*sp_rand_decode.z + sp_rand_decode.y;
     }
   }
 endmacro
+
 macro SP_JITTER_POS(code)
   HISTORY_ONLY_PROBE(code)
   hlsl (code) {
@@ -135,10 +137,9 @@ shader calc_screenspace_radiance_cs, calc_screenspace_selected_radiance_cs
       float2 currentScreenTileLT = screen_tile_coord*screenspace_probe_res.z + 0.5f;
       float2 probeScreenCoord = min(currentScreenTileLT + coord_ofs, screenspace_probe_screen_limit.zw);
       //fixme: temporal
-      uint jitterFrame;
-      jitterFrame = sp_decodeTagRevAge(probe.allTag);
+      uint revAge = sp_decodeTagRevAge(probe.allTag);
       //we better store probe seed in probe, instead of calculating it, as it can sigfinicantly increase convergence
-      jitterFrame = jitterFrame ? SP_TAG_MAX_AGE - jitterFrame : (uint(screenspace_probes_temporal.y)&(TEMPORAL_PROBES_FRAMES-1)); //fixme: constant on the right
+      uint jitterFrame = revAge ? SP_TAG_MAX_AGE - revAge: (uint(screenspace_probes_temporal.y)%TEMPORAL_PROBES_FRAMES); //fixme: constant on the right
       //uint jitterFrame = validTemporal ? ((uint(screenspace_probes_temporal.y))&(TEMPORAL_PROBES_FRAMES-1)) : 0; //fixme: constant
 
       //todo: replace with small buffer with offsets
@@ -157,6 +158,7 @@ shader calc_screenspace_radiance_cs, calc_screenspace_selected_radiance_cs
         float2 probeScreenUv = screenCoordToScreenUV(probeScreenCoord);
         float2 screenCoordJittered = min((returnJitterOffset(screen_tile_coord, randPos, jitterFrame))*screenspace_probe_res.z + currentScreenTileLT, screenspace_probe_screen_limit.zw);
         //try use jittered position
+        //todo: once per probe!
         {
           float rawDepth2 = loadGbufferDepth(screenCoordJittered);
           float normalizedW2 = linearize_z(rawDepth2, sp_zn_zfar.zw)/sp_zn_zfar.y;

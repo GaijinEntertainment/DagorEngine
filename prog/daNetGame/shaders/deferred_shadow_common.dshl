@@ -31,6 +31,7 @@ include "use_gi.dshl"
 include "night_light.dshl"
 include "rtao_use.dshl"
 include "rtr_use.dshl"
+include "screen_gi_encoding.dshl"
 
 float4 stereo_params = (0, 0, 0, 0);
 
@@ -191,15 +192,18 @@ macro COMMON_RESOLVE_EXTENDED(code)
     if (gi_quality == only_ao)
     {
       DAGI_SKY_VIS_SAMPLE(code)
+      DAGI_NO_SCREEN_ENCODING(code)
     } else if (gi_quality == colored)
     {
       hlsl {
         #define DAGI_IRRADIANCE_GRID_TYPE DAGI_IRRADIANCE_GRID_TYPE_IRRADIANCE
       }
       DAGI_IRRADIANCE_GRID_SAMPLE(code)
+      DAGI_NO_SCREEN_ENCODING(code)
     } else
     {
       SAMPLE_IRRADIANCE_SP(code)
+      DAGI_GAMMA2_SCREEN_ENCODING(code)
     }
   }
 
@@ -522,8 +526,12 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
       //half3 environmentAmbientUnoccludedLighting = lerp3(localLightProbeAmbient1, localLightProbeAmbient2, GetSkySHDiffuse(enviLightingNormal), ambientWeights) * gbuffer.diffuseColor;
       float fake_light_strength = 0.25;
       ##if (gi_quality != off)
-        half3 enviLight = unpack_hdr(texelFetch(current_ambient, screenpos, 0).rgb);
-      ##else
+        half3 enviLight, giSpecular;
+        decode_gi_colors(texelFetch(current_ambient, screenpos, 0). GI_ENCODED_ATTR, texelFetch(specular_tex, screenpos, 0). GI_ENCODED_ATTR, enviLight, giSpecular);
+        enviLight = unpack_hdr(enviLight);
+        giSpecular = unpack_hdr(giSpecular);
+      ##endif
+      ##if (gi_quality == off)
         half3 enviLight = GetSkySHDiffuse(enviLightingNormal);
       ##endif
 
@@ -545,7 +553,7 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
       environmentAmbientLighting *= AB.z;
       //environmentAmbientReflection *= lerp(1, enviAO, gbuffer.translucency);//g.amelihin asked for that hack
       ##if (gi_quality != off)
-        half3 totalReflection = (unpack_hdr(texelFetch(specular_tex, screenpos, 0).rgb)*(specularAOcclusion*enviSSR) + ssrReflections.rgb)*enviBRDF;
+        half3 totalReflection = (giSpecular*(specularAOcclusion*enviSSR) + ssrReflections.rgb)*enviBRDF;
       ##else
         float3 roughR = getRoughReflectionVec(lightProbeReflectionVec.xyz, gbuffer.normal, ggx_alpha);
         float roughMip = ComputeReflectionCaptureMipFromRoughness(gbuffer.linearRoughness);

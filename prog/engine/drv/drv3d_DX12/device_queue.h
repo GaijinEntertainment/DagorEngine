@@ -257,38 +257,7 @@ public:
 // Some driver/device struggle with long running frames and then suddenly
 // WaitForSingleObject returns errors that make no sense.
 // This functions handles this with some fall back strategies.
-inline DAGOR_NOINLINE bool wait_for_frame_progress_with_event_slow_path(DeviceQueueGroup &qs, uint64_t progress, HANDLE event,
-  const char *what)
-{
-#if LOCK_PROFILER_ENABLED
-  using namespace da_profiler;
-  static desc_id_t wffpdesc =
-    add_description(DA_PROFILE_FILE_NAMES ? __FILE__ : nullptr, __LINE__, IsWait, "DX12_waitForFrameProgress");
-  ScopeLockProfiler<da_profiler::NoDesc> lp(wffpdesc);
-#endif
-  if (!qs.waitForFrameProgress(progress, event))
-  {
-    return false;
-  }
-  auto result = WaitForSingleObject(event, INFINITE);
-  if (WAIT_OBJECT_0 == result)
-  {
-    return true;
-  }
-  if (DAGOR_UNLIKELY(WAIT_FAILED == result))
-  {
-    logwarn("DX12: While waiting for frame progress %u - %s, WaitForSingleObject(%p, INFINITE) "
-            "failed with 0x%08X, trying to continue with alternatives",
-      progress, what, event, GetLastError());
-  }
-  if (qs.checkFrameProgress() >= progress)
-  {
-    logdbg("DX12: Progress check allowed continuation");
-    return true;
-  }
-  logdbg("DX12: Calling SetEventOnCompletion with nullptr");
-  return qs.waitForFrameProgress(progress, nullptr);
-}
+bool wait_for_frame_progress_with_event_slow_path(DeviceQueueGroup &qs, uint64_t progress, HANDLE event, const char *what);
 
 __forceinline bool wait_for_frame_progress_with_event(DeviceQueueGroup &qs, uint64_t progress, HANDLE event, const char *what)
 {

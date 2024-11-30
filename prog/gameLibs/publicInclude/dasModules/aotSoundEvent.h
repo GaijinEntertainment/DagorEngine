@@ -13,6 +13,7 @@
 #include <soundSystem/events.h>
 #include <soundSystem/visualLabels.h>
 #include <soundSystem/eventInstanceStealing.h>
+#include <soundSystem/occlusion.h>
 #include <ecs/sound/soundComponent.h>
 #include <ecs/sound/soundGroup.h>
 
@@ -321,6 +322,15 @@ inline float get_max_distance(sndsys::EventHandle handle) { return sndsys::get_m
 inline float __get_max_distance(const SoundEvent &sound_event) { return sndsys::get_max_distance(sound_event.handle); }
 
 inline float get_max_distance_by_name(const char *name) { return sndsys::get_max_distance(name); }
+
+inline void set_occlusion_group(sndsys::EventHandle handle, sndsys::occlusion::group_id_t group_id)
+{
+  sndsys::occlusion::set_event_group(handle, group_id);
+}
+
+inline void set_occlusion_pos(sndsys::occlusion::group_id_t group_id, Point3 pos) { sndsys::occlusion::set_group_pos(group_id, pos); }
+
+inline bool is_occlusion_inited() { return sndsys::occlusion::is_inited(); }
 
 inline bool das_query_visual_labels(const das::TBlock<void, const das::TTemporary<const das::TArray<sndsys::VisualLabel>>> &block,
   das::Context *context, das::LineInfoArg *at)

@@ -187,7 +187,11 @@ public:
 
     if (const DataBlock *lodsToKeepBlk = ri_blk->getBlockByName("lodsToKeep"))
     {
-      int lodsToKeep = lodsToKeepBlk->getInt(cwr.getProfile() ? String(0, "profile.%s", cwr.getProfile()).c_str() : "profile.*", 16);
+      const char *pkname = a.getCustomPackageName(mkbindump::get_target_str(cwr.getTarget()), cwr.getProfile());
+      int lodsToKeep = lodsToKeepBlk->getInt(pkname ? String(0, "package.%s", pkname).c_str() : "package.*", -1);
+      lodsToKeep = lodsToKeep >= 0
+                     ? lodsToKeep
+                     : lodsToKeepBlk->getInt(cwr.getProfile() ? String(0, "profile.%s", cwr.getProfile()).c_str() : "profile.*", 16);
       for (int i = lodsBlk.blockCount() - 1; i >= 0; i--)
         if (lodsBlk.getBlock(i)->getBlockNameId() == lodNameId)
         {

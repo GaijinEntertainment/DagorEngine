@@ -324,6 +324,7 @@ void RenderWork::cleanup()
   commandCallers.clear();
 #endif
   generateFaultReport = false;
+  userSignalCount = 0;
 }
 
 void RenderWork::processCommands(ExecutionContext &ctx)

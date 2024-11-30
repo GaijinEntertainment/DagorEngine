@@ -570,7 +570,7 @@ void DeviceContext::shutdown()
   // no more commands can be executed after this point
   executionMode = ExecutionMode::INVALID;
   // consume semaphores that noone will wait for anymore
-  Globals::VK::que[DeviceQueueType::GRAPHICS].consumeWaitSemaphores(Backend::gpuJob.get());
+  Globals::VK::queue.consumeWaitSemaphores(Backend::gpuJob.get());
 
   Backend::bindless.shutdown(vkDev);
   Backend::pipelineCompiler.shutdown();

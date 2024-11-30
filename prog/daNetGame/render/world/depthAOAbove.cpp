@@ -148,6 +148,12 @@ bool DepthAOAboveContext::prepare(const Point3 &view_pos, float scene_min_z, flo
   return tpJobsAdded;
 }
 
+void DepthAOAboveContext::waitCullJobs()
+{
+  for (auto &j : cullJobs)
+    threadpool::wait(&j);
+}
+
 void DepthAOAboveContext::render(WorldRenderer &wr, const TMatrix &view_itm)
 {
   FRAME_LAYER_GUARD(globalFrameBlockId);

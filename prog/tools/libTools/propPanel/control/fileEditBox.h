@@ -4,6 +4,7 @@
 #include <propPanel/control/propertyControlBase.h>
 #include <propPanel/constants.h>
 #include <propPanel/imguiHelper.h>
+#include <propPanel/messageQueue.h>
 #include "../scopedImguiBeginDisabled.h"
 #include <gui/dag_imguiUtil.h>
 #include <libTools/util/strUtil.h>
@@ -14,7 +15,7 @@
 namespace PropPanel
 {
 
-class FileEditBoxPropertyControl : public PropertyControlBase
+class FileEditBoxPropertyControl : public PropertyControlBase, public IDelayedCallbackHandler
 {
 public:
   FileEditBoxPropertyControl(ControlEventHandler *event_handler, ContainerPropertyControl *parent, int id, int x, int y, hdpi::Px w,
@@ -131,8 +132,7 @@ private:
   {
     if (dialogMode == FS_DIALOG_NONE)
     {
-      PropertyControlBase::onWcClick(source);
-      onWcChange(nullptr);
+      request_delayed_callback(*this);
       return;
     }
 
@@ -183,6 +183,12 @@ private:
       controlValue = result;
       onWcChange(nullptr);
     }
+  }
+
+  virtual void onImguiDelayedCallback(void *user_data) override
+  {
+    PropertyControlBase::onWcClick(nullptr);
+    onWcChange(nullptr);
   }
 
   String controlCaption;

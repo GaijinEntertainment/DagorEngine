@@ -579,13 +579,13 @@ void append_arg(String &target, T const &, const char *type)
   result = "Cmd" #Name;                                   \
   result.aprintf(128, " (%s)", cmd.is_primary() ? "primary" : "secondary");
 
-#define DX12_BEGIN_CONTEXT_COMMAND(Name)                                                                       \
+#define DX12_BEGIN_CONTEXT_COMMAND(IsPrimary, Name)                                                            \
   const char *cmdToStr(String &result, debug::call_stack::Reporter &call_stack_reporter, const Cmd##Name &cmd) \
   {                                                                                                            \
     G_UNUSED(cmd);                                                                                             \
     DX12_STORE_CONTEXT_COMMAND_NAME_AND_PRIMACY(Name)
 
-#define DX12_BEGIN_CONTEXT_COMMAND_EXT_1(Name, Param0Type, Param0Name)                   \
+#define DX12_BEGIN_CONTEXT_COMMAND_EXT_1(IsPrimary, Name, Param0Type, Param0Name)        \
   const char *cmdToStr(String &result, debug::call_stack::Reporter &call_stack_reporter, \
     const ExtendedVariant<Cmd##Name, Param0Type> &param)                                 \
   {                                                                                      \
@@ -593,15 +593,13 @@ void append_arg(String &target, T const &, const char *type)
     G_UNUSED(cmd);                                                                       \
     DX12_STORE_CONTEXT_COMMAND_NAME_AND_PRIMACY(Name)
 
-#define DX12_BEGIN_CONTEXT_COMMAND_EXT_2(Name, Param0Type, Param0Name, Param1Type, Param1Name) \
-  const char *cmdToStr(String &result, debug::call_stack::Reporter &call_stack_reporter,       \
-    const ExtendedVariant2<Cmd##Name, Param0Type, Param1Type> &param)                          \
-  {                                                                                            \
-    auto &cmd = param.cmd;                                                                     \
-    G_UNUSED(cmd);                                                                             \
+#define DX12_BEGIN_CONTEXT_COMMAND_EXT_2(IsPrimary, Name, Param0Type, Param0Name, Param1Type, Param1Name) \
+  const char *cmdToStr(String &result, debug::call_stack::Reporter &call_stack_reporter,                  \
+    const ExtendedVariant2<Cmd##Name, Param0Type, Param1Type> &param)                                     \
+  {                                                                                                       \
+    auto &cmd = param.cmd;                                                                                \
+    G_UNUSED(cmd);                                                                                        \
     DX12_STORE_CONTEXT_COMMAND_NAME_AND_PRIMACY(Name)
-
-#define DX12_CONTEXT_COMMAND_IS_PRIMARY(isPrimary)
 
 #define DX12_CONTEXT_COMMAND_PARAM(type, name) \
   {                                            \
@@ -629,7 +627,6 @@ void append_arg(String &target, T const &, const char *type)
 #undef DX12_BEGIN_CONTEXT_COMMAND
 #undef DX12_BEGIN_CONTEXT_COMMAND_EXT_1
 #undef DX12_BEGIN_CONTEXT_COMMAND_EXT_2
-#undef DX12_CONTEXT_COMMAND_IS_PRIMARY
 #undef DX12_END_CONTEXT_COMMAND
 #undef DX12_CONTEXT_COMMAND_PARAM
 #undef DX12_CONTEXT_COMMAND_PARAM_ARRAY

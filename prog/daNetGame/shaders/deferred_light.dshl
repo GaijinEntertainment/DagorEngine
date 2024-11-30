@@ -36,14 +36,22 @@ shader deferredLight
   }
 
   hlsl(ps) {
+##if gi_quality == screen_probes
     struct MRT_OUTPUT
     {
-      float3 specular:SV_Target0;
+      GI_ENCODED_TYPE specular:SV_Target0;
+      GI_ENCODED_TYPE ambient:SV_Target1;
+      uint age:SV_Target2;
+    };
+##else
+    struct MRT_OUTPUT
+    {
+      half3 specular:SV_Target0;
 ##if gi_quality != off
-      float3 ambient:SV_Target1;
+      half3 ambient:SV_Target1;
 ##endif
     };
-
+##endif
     MRT_OUTPUT deferred_light_ps(VsOutput input HW_USE_SCREEN_POS)
     {
       float4 screenpos = GET_SCREEN_POS(input.pos);
@@ -64,12 +72,18 @@ shader deferredLight
       float3 worldPos = world_view_pos.xyz - pointToEyeOfs;
 
       float3 computedSpecular, computedAmbient;
-      ComputeDeferredLight(gbuffer, worldPos, rawDepth, input.texcoord.xy, screenpos.xy, pointToEye, computedSpecular, computedAmbient);
+      uint age;
+      ComputeDeferredLight(gbuffer, worldPos, rawDepth, input.texcoord.xy, screenpos.xy, pointToEye, computedSpecular, computedAmbient, age);
 
-      ret.specular = computedSpecular;
+      ##if gi_quality == screen_probes
+        encode_gi_colors(ret.ambient, ret.specular, computedAmbient, computedSpecular);
+        ret.age = age;
+      ##else
+        ret.specular = computedSpecular;
 ##if gi_quality != off
-      ret.ambient = computedAmbient;
+        ret.ambient = computedAmbient;
 ##endif
+      ##endif
       return ret;
     }
   }

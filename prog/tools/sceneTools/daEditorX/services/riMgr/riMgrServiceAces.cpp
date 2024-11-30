@@ -465,7 +465,7 @@ public:
 
     RendinstVertexDataCbEditor cb(vertices, indices, transparent, navmeshLayers.pools, navmeshLayers.obstaclePools,
       navmeshLayers.materialPools, navmeshLayers.obstaclesSettings, obstacles);
-    rendinst::testObjToRIGenIntersection(box, TMatrix::IDENT, cb, rendinst::GatherRiTypeFlag::RiGenAndExtra);
+    rendinst::testObjToRIGenIntersection(box, cb, rendinst::GatherRiTypeFlag::RiGenAndExtra);
     transparent.reserve(cb.transparent.size());
     vertices.reserve(cb.vertNum);
     indices.reserve(cb.indNum);
@@ -1726,7 +1726,7 @@ public:
     {
       RendinstVertexDataCbEditor cb(vertices, indices, transparent, navmeshLayers.pools, navmeshLayers.obstaclePools,
         navmeshLayers.materialPools, navmeshLayers.obstaclesSettings, obstacles);
-      rendinst::testObjToRIGenIntersection(box, TMatrix::IDENT, cb, rendinst::GatherRiTypeFlag::RiGenAndExtra);
+      rendinst::testObjToRIGenIntersection(box, cb, rendinst::GatherRiTypeFlag::RiGenAndExtra);
       cb.procFilteredCollision([&exclude_boxes](const rendinst::CollisionInfo &ci) {
         if (ci.collRes == nullptr)
           return false;

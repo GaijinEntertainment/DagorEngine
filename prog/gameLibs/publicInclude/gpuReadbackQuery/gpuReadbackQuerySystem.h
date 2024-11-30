@@ -15,6 +15,7 @@
 #include <drv/3d/dag_shaderConstants.h>
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_commands.h>
+#include <drv/3d/dag_info.h>
 #include "3d/dag_sbufferIDHolder.h"
 #include "3d/dag_ringCPUQueryLock.h"
 #include "shaders/dag_computeShaders.h"
@@ -152,6 +153,9 @@ template <typename InputT, typename ResultT>
 void GpuReadbackQuerySystem<InputT, ResultT>::update()
 {
   deleteReadQueries();
+
+  if (d3d::is_in_device_reset_now())
+    return;
   dispatchNewQueries();
   completeQueries();
 }

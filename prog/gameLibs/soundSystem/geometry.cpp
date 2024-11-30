@@ -372,6 +372,7 @@ const eastl::vector<Point3> *get_geometry_faces(int geometry_id)
 #endif
 }
 
+// debug
 Point2 get_geometry_occlusion(const Point3 &source, const Point3 &listener)
 {
   Point2 directReverb = {};

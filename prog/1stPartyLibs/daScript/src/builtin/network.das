@@ -17,12 +17,12 @@ class Server
     def init ( port : int ) : bool
         return server_init(_server,port)
     def restore ( var shared_orphan : smart_ptr<NetworkServer>& )
-        _server <- shared_orphan
+        _server |> move() <| shared_orphan
         let classInfo = class_info(self)
         unsafe
             server_restore(_server,addr(self),classInfo)
     def save ( var shared_orphan : smart_ptr<NetworkServer>& )
-        shared_orphan <- _server
+        shared_orphan |> move() <|  _server
     def has_session : bool
         return _server != null
     def is_open : bool

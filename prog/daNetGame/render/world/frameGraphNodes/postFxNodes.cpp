@@ -347,6 +347,8 @@ dabfg::NodeHandle makeDistortionFxNode()
 
     auto distortionPostfxRequired = registry.readBlob<bool>("distortion_postfx_required").handle();
 
+    registry.readTexture("depth_after_transparency").atStage(dabfg::Stage::PS).bindToShaderVar("haze_scene_depth_tex");
+
     registry.readTexture("haze_offset").atStage(dabfg::Stage::POST_RASTER).bindToShaderVar("haze_offset_tex").optional();
     registry.create("haze_default_sampler", dabfg::History::No)
       .blob(d3d::request_sampler({}))

@@ -27,23 +27,29 @@
 
 namespace drv3d_dx12
 {
-#define DX12_BEGIN_CONTEXT_COMMAND(name)            \
-  struct Cmd##name : debug::call_stack::CommandData \
-  {
+#define DX12_CONTEXT_COMMAND_COMMAND_DATA(isPrimary) \
+  eastl::conditional_t<isPrimary, debug::call_stack::CommandData, debug::call_stack::null::CommandData>
 
-#define DX12_BEGIN_CONTEXT_COMMAND_EXT_1(name, param0Type, param0Name) \
-  struct Cmd##name : debug::call_stack::CommandData                    \
-  {
-
-#define DX12_BEGIN_CONTEXT_COMMAND_EXT_2(name, param0Type, param0Name, param1Type, param1Name) \
-  struct Cmd##name : debug::call_stack::CommandData                                            \
-  {
-
-#define DX12_CONTEXT_COMMAND_IS_PRIMARY(IsPrimary) \
+#define DX12_CONTEXT_COMMAND_IS_PRIMARY(isPrimary) \
   static constexpr bool is_primary()               \
   {                                                \
-    return IsPrimary;                              \
+    return isPrimary;                              \
   }
+
+#define DX12_BEGIN_CONTEXT_COMMAND(isPrimary, name)               \
+  struct Cmd##name : DX12_CONTEXT_COMMAND_COMMAND_DATA(isPrimary) \
+  {                                                               \
+    DX12_CONTEXT_COMMAND_IS_PRIMARY(isPrimary)
+
+#define DX12_BEGIN_CONTEXT_COMMAND_EXT_1(isPrimary, name, param0Type, param0Name) \
+  struct Cmd##name : DX12_CONTEXT_COMMAND_COMMAND_DATA(isPrimary)                 \
+  {                                                                               \
+    DX12_CONTEXT_COMMAND_IS_PRIMARY(isPrimary)
+
+#define DX12_BEGIN_CONTEXT_COMMAND_EXT_2(isPrimary, name, param0Type, param0Name, param1Type, param1Name) \
+  struct Cmd##name : DX12_CONTEXT_COMMAND_COMMAND_DATA(isPrimary)                                         \
+  {                                                                                                       \
+    DX12_CONTEXT_COMMAND_IS_PRIMARY(isPrimary)
 
 #define DX12_END_CONTEXT_COMMAND \
   }                              \
@@ -55,21 +61,20 @@ namespace drv3d_dx12
 #undef DX12_BEGIN_CONTEXT_COMMAND
 #undef DX12_BEGIN_CONTEXT_COMMAND_EXT_1
 #undef DX12_BEGIN_CONTEXT_COMMAND_EXT_2
-#undef DX12_CONTEXT_COMMAND_IS_PRIMARY
 #undef DX12_END_CONTEXT_COMMAND
 #undef DX12_CONTEXT_COMMAND_PARAM
 #undef DX12_CONTEXT_COMMAND_PARAM_ARRAY
+#undef DX12_CONTEXT_COMMAND_IS_PRIMARY
 
 #if _TARGET_XBOX
 #include "device_context_xbox.h"
 #endif
 
 using AnyCommandPack = TypePack<
-#define DX12_BEGIN_CONTEXT_COMMAND(name)                               Cmd##name,
-#define DX12_BEGIN_CONTEXT_COMMAND_EXT_1(name, param0Type, param0Name) ExtendedVariant<Cmd##name, param0Type>,
-#define DX12_BEGIN_CONTEXT_COMMAND_EXT_2(name, param0Type, param0Name, param1Type, param1Name) \
+#define DX12_BEGIN_CONTEXT_COMMAND(isPrimary, name)                               Cmd##name,
+#define DX12_BEGIN_CONTEXT_COMMAND_EXT_1(isPrimary, name, param0Type, param0Name) ExtendedVariant<Cmd##name, param0Type>,
+#define DX12_BEGIN_CONTEXT_COMMAND_EXT_2(isPrimary, name, param0Type, param0Name, param1Type, param1Name) \
   ExtendedVariant2<Cmd##name, param0Type, param1Type>,
-#define DX12_CONTEXT_COMMAND_IS_PRIMARY(isPrimary)
 #define DX12_END_CONTEXT_COMMAND
 #define DX12_CONTEXT_COMMAND_PARAM(type, name)
 #define DX12_CONTEXT_COMMAND_PARAM_ARRAY(type, name, size)
@@ -77,7 +82,6 @@ using AnyCommandPack = TypePack<
 #undef DX12_BEGIN_CONTEXT_COMMAND
 #undef DX12_BEGIN_CONTEXT_COMMAND_EXT_1
 #undef DX12_BEGIN_CONTEXT_COMMAND_EXT_2
-#undef DX12_CONTEXT_COMMAND_IS_PRIMARY
 #undef DX12_END_CONTEXT_COMMAND
 #undef DX12_CONTEXT_COMMAND_PARAM
 #undef DX12_CONTEXT_COMMAND_PARAM_ARRAY

@@ -53,6 +53,15 @@ bool has_sustain_point_impl(const FMOD::Studio::EventDescription &event_descript
   return hasSustainPoint;
 }
 
+bool has_occlusion_impl(const FMOD::Studio::EventDescription &event_description)
+{
+  TIME_PROFILE_DEV(has_occlusion_impl);
+  FMOD_STUDIO_PARAMETER_DESCRIPTION paramDesc;
+  constexpr const char *occlusion_param_name = "occlusion";
+  return FMOD_OK == event_description.getParameterDescriptionByName(occlusion_param_name, &paramDesc) &&
+         is_event_3d_impl(event_description);
+}
+
 float get_event_max_distance_impl(const FMOD::Studio::EventDescription &event_description)
 {
   TIME_PROFILE_DEV(get_event_max_distance);
@@ -88,7 +97,8 @@ EventAttributes make_event_attributes(const FMOD::Studio::EventDescription &even
   G_ASSERT(banks::is_valid_event(*reinterpret_cast<FMODGUID *>(&id)));
 #endif
   return EventAttributes(get_event_max_distance_impl(event_description), is_event_oneshot_impl(event_description),
-    is_event_3d_impl(event_description), has_sustain_point_impl(event_description), get_user_label_idx(event_description));
+    is_event_3d_impl(event_description), has_sustain_point_impl(event_description), has_occlusion_impl(event_description),
+    get_user_label_idx(event_description));
 }
 
 EventAttributes find_event_attributes(const char *path, size_t path_len)

@@ -6,8 +6,8 @@ def pass_by_value_is_unsafe ( p:smart_ptr<TestObjectSmart> )    // this will fai
     pass
 
 def move_smart_ptr_is_unsafe_when_not_ref
-    var a : smart_ptr<TestObjectSmart>
-    a <- new TestObjectSmart
+    var inscope a : smart_ptr<TestObjectSmart>
+    a <- new TestObjectSmart // 31300: moving values which contain smart pointers is unsafe
 
 [export]
 def test

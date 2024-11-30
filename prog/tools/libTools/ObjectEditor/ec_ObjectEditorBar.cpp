@@ -10,13 +10,6 @@
 #include <debug/dag_debug.h>
 #include <de3_interface.h>
 
-static class DefObjectEditorPropParams
-{
-public:
-  bool commonGroupMinimized;
-  DefObjectEditorPropParams() : commonGroupMinimized(false) {}
-} defaultObjectEditorPropParams;
-
 enum
 {
   ID_NAME = 10000,
@@ -63,11 +56,7 @@ void ObjectEditorPropPanelBar::getObjects()
 
 void ObjectEditorPropPanelBar::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
-  if (pcb_id == RenderableEditableObject::PID_COMMON_GROUP)
-  {
-    ::defaultObjectEditorPropParams.commonGroupMinimized = panel->getBool(pcb_id);
-  }
-  else if (pcb_id == ID_NAME)
+  if (pcb_id == ID_NAME)
   {
     objEd->renameObject(objEd->getSelected(0), panel->getText(pcb_id).str());
   }
@@ -118,7 +107,7 @@ void ObjectEditorPropPanelBar::fillPanel()
 
   PropPanel::ContainerPropertyControl *commonGrp =
     propPanel->createGroup(RenderableEditableObject::PID_COMMON_GROUP, "Common parameters");
-  commonGrp->setBoolValue(::defaultObjectEditorPropParams.commonGroupMinimized);
+  commonGrp->setBoolValue(false);
 
   commonGrp->createEditBox(ID_NAME, "Name:", "", false);
 
@@ -147,6 +136,20 @@ void ObjectEditorPropPanelBar::fillPanel()
     else
       commonGrp->setEnabledById(ID_NAME, false);
   }
+}
+
+
+void ObjectEditorPropPanelBar::loadSettings(DataBlock &settings)
+{
+  if (propPanel)
+    propPanel->loadState(settings);
+}
+
+
+void ObjectEditorPropPanelBar::saveSettings(DataBlock &settings) const
+{
+  if (propPanel)
+    propPanel->saveState(settings);
 }
 
 

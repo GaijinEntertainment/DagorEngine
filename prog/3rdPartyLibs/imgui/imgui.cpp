@@ -7192,8 +7192,11 @@ bool ImGui::Begin(const char* name, bool* p_open, ImGuiWindowFlags flags)
         if (window_title_visible_elsewhere && !window_just_created && strcmp(name, window->Name) != 0)
         {
             size_t buf_len = (size_t)window->NameBufLen;
+            const bool syncDrawListName = window->Name == window->DrawList->_OwnerName;
             window->Name = ImStrdupcpy(window->Name, &buf_len, name);
             window->NameBufLen = (int)buf_len;
+            if (syncDrawListName)
+                window->DrawList->_OwnerName = window->Name;
         }
 
         // UPDATE CONTENTS SIZE, UPDATE HIDDEN STATUS

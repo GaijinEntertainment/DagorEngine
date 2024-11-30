@@ -17,6 +17,7 @@
 #include "scriptUtil.h"
 #include "textUtil.h"
 #include "profiler.h"
+#include <perfMon/dag_statDrv.h>
 #include "dargDebugUtils.h"
 #include "robjMask.h"
 #include "robjDasCanvas.h"
@@ -1434,6 +1435,9 @@ void RenderObjectProgressCircular::renderProgress(StdGuiRender::GuiContext &ctx,
 void RenderObjectTextArea::render(StdGuiRender::GuiContext &ctx, const Element *elem, const ElemRenderData *rdata,
   const RenderState &render_state)
 {
+  AutoProfileScope profile(GuiScene::get_from_elem(elem)->getProfiler(), M_RENDER_TEXTAREA);
+  TIME_PROFILE(bhv_render_textarea);
+
   RobjParamsTextArea *params = static_cast<RobjParamsTextArea *>(rdata->params);
   G_ASSERT(params);
   if (!params)
@@ -1828,6 +1832,9 @@ bool RobjParamsBox::load(const Element *elem)
   borderColor = elem->props.getColor(elem->csk->borderColor);
   fillColor = elem->props.getColor(elem->csk->fillColor, E3DCOLOR(0, 0, 0, 0));
   image = elem->props.getPicture(elem->csk->image);
+  keepAspect = resolve_keep_aspect(elem->props.scriptDesc.RawGetSlot(elem->csk->keepAspect));
+  imageHalign = elem->props.getInt<ElemAlign>(elem->csk->imageHalign, ALIGN_CENTER);
+  imageValign = elem->props.getInt<ElemAlign>(elem->csk->imageValign, ALIGN_CENTER);
   fallbackImage = elem->props.getPicture(elem->csk->fallbackImage);
   flipX = elem->props.getBool(elem->csk->flipX);
   flipY = elem->props.getBool(elem->csk->flipY);
@@ -2060,6 +2067,10 @@ void RenderObjectBox::render(StdGuiRender::GuiContext &ctx, const Element *elem,
       if (params->flipY)
         swap_vals(picLtTc.y, picRbTc.y);
     }
+
+    const Point2 picSz = PictureManager::get_picture_pix_size(pic.pic);
+    adjust_coord_for_image_aspect(picLt, picRb, picLtTc, picRbTc, rdata->pos, rdata->size, picSz, params->keepAspect,
+      params->imageHalign, params->imageValign);
 
     ctx.render_rounded_image(picLt, picRb, picLtTc, picRbTc, fillColor, radius);
 

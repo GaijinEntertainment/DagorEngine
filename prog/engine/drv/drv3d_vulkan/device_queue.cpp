@@ -25,6 +25,7 @@ const char *queue_type_to_name(DeviceQueueType type)
     case DeviceQueueType::GRAPHICS: return "graphics";
     case DeviceQueueType::COMPUTE: return "compute";
     case DeviceQueueType::TRANSFER: return "transfer";
+    case DeviceQueueType::ASYNC_GRAPHICS: return "async graphics";
     default: break;
   }
   return "<error unreachable>";
@@ -56,7 +57,8 @@ VkQueueFlags get_queue_flags_for_type(DeviceQueueType type)
 {
   switch (type)
   {
-    case DeviceQueueType::GRAPHICS: return VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT;
+    case DeviceQueueType::GRAPHICS:
+    case DeviceQueueType::ASYNC_GRAPHICS: return VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT;
     case DeviceQueueType::COMPUTE: return VK_QUEUE_COMPUTE_BIT;
     case DeviceQueueType::TRANSFER: return VK_QUEUE_TRANSFER_BIT;
     default: break;
@@ -72,6 +74,7 @@ DeviceQueueType get_fallback_for(DeviceQueueType type)
   switch (type)
   {
     case DeviceQueueType::GRAPHICS: return DeviceQueueType::INVALID;
+    case DeviceQueueType::ASYNC_GRAPHICS:
     case DeviceQueueType::COMPUTE: return DeviceQueueType::GRAPHICS;
     case DeviceQueueType::TRANSFER: return DeviceQueueType::COMPUTE;
     default: break;

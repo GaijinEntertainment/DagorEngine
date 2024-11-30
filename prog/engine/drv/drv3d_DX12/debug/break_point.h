@@ -35,9 +35,15 @@ class Controller : public call_stack::ExecutionContextDataStore, public call_sta
     return false;
   }
 
+#if !DX12_NULL_CALL_STACK_CAPTURE
+  bool isBreakPoint(const call_stack::null::CommandData &) { return false; }
+#endif
+
 public:
   void breakNow() { __debugbreak(); }
-  void setCommandData(const call_stack::CommandData &call_stack_info, const char *name)
+
+  template <class CommandType>
+  void setCommandData(const CommandType &call_stack_info, const char *name)
   {
     BaseType::setCommandData(call_stack_info, name);
     if (isBreakPoint(call_stack_info))

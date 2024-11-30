@@ -13,10 +13,6 @@
 //  but we can reduce a bit by sharing exponent between both colors, making it ~2.5% cost (or 50us) for encoding. decoding is just 10us
 // option 3) - use HW RGBE :)
 
-#define GI_USE_HW_RGBE 0
-#define GI_USE_GAMMA2 1
-#define GI_USE_SW_RGBE 2
-
 // by default we should use SW RGBE. It is not that expensive and gives best quality
 // however, for now, for simplicity of formats compatibility, we keep GI_USE_GAMMA2 (as it is compatible with HW RGBE as well as gamma2)
 // adding SW support _by default_ is rather easy, but requires checking of assumption and gi_quality
@@ -33,25 +29,32 @@
 
 void encode_gi_colors(out GI_ENCODED_TYPE color1, out GI_ENCODED_TYPE color2, half3 rgb1, half3 rgb2)
 {
-  color1 = pow2(half3(rgb1.xy, rgb2.x));
-  color2 = pow2(half3(rgb1.z, rgb2.zy)); // may be divide by ambient?
+  rgb1 = pow2(rgb1);
+  rgb2 = pow2(rgb2);
+  color1 = half3(rgb1.xy, rgb2.x);
+  color2 = half3(rgb1.z, rgb2.zy); // may be divide by ambient?
 }
 
 void decode_gi_colors(GI_ENCODED_TYPE color1, GI_ENCODED_TYPE color2, out half3 linear_rgb1, out half3 linear_rgb2)
 {
-  linear_rgb1 = sqrt(half3(color1.xy, color2.x));
-  linear_rgb2 = sqrt(half3(color1.z, color2.zy));
+  // safety is not needed, as we have to write everything we read in this pass
+  // however, nans are nasty!
+  color1 = sqrt(max(0, color1));
+  color2 = sqrt(max(0, color2));
+  linear_rgb1 = half3(color1.xy, color2.x);
+  linear_rgb2 = half3(color1.z, color2.zy);
 }
 
 void decode_weighted_colors(half4 r1, half4 g1, half4 b1, half4 r2, half4 g2, half4 b2, out half3 linear1, out half3 linear2, float4 weights)
 {
-  linear1.x = dot(sqrt(r1), weights);
-  linear1.y = dot(sqrt(g1), weights);
-  linear1.z = dot(sqrt(r2), weights);
+  //safety is needed as values that are read from previous are not guaranteed to be not nans (as we never write pixels with sky)
+  linear1.x = dot(sqrt(max(0, select(weights != 0, r1, half4(0,0,0,0)))), weights);
+  linear1.y = dot(sqrt(max(0, select(weights != 0, g1, half4(0,0,0,0)))), weights);
+  linear1.z = dot(sqrt(max(0, select(weights != 0, r2, half4(0,0,0,0)))), weights);
 
-  linear2.x = dot(sqrt(b1), weights);
-  linear2.y = dot(sqrt(b2), weights);
-  linear2.z = dot(sqrt(g2), weights);
+  linear2.x = dot(sqrt(max(0, select(weights != 0, b1, half4(0,0,0,0)))), weights);
+  linear2.y = dot(sqrt(max(0, select(weights != 0, b2, half4(0,0,0,0)))), weights);
+  linear2.z = dot(sqrt(max(0, select(weights != 0, g2, half4(0,0,0,0)))), weights);
 }
 
 #elif GI_PACK_ALGO == GI_USE_SW_RGBE
@@ -111,9 +114,43 @@ void decode_weighted_colors(uint4 encoded1, uint4 encoded2, out half3 linear1, o
   linear1 += a*weights.w; linear2 += b*weights.w;
 }
 
-#else
+#elif GI_PACK_ALGO == GI_USE_HW_RGBE
 
-// no encoding (probably hw rgbe5)
+// no encoding (_probably_ hw rgbe5)
+
+#define GI_ENCODED_TYPE half3
+#define GI_ENCODED_CHANNELS 3
+#define GI_ENCODED_ATTR xyz
+
+void encode_gi_colors(out GI_ENCODED_TYPE color1, out GI_ENCODED_TYPE color2, half3 rgb1, half3 rgb2)
+{
+  color1 = half3(rgb1.xy, rgb2.x);
+  color2 = half3(rgb1.z, rgb2.zy);
+  // just in case it is still r11g11b10, swap ambient so it has same bits all over
+  //color1 = rgb1;
+  //color2 = rgb2;
+}
+
+void decode_gi_colors(GI_ENCODED_TYPE color1, GI_ENCODED_TYPE color2, out half3 linear_rgb1, out half3 linear_rgb2)
+{
+  linear_rgb1 = half3(color1.xy, color2.x);
+  linear_rgb2 = half3(color1.z, color2.zy);
+}
+
+void decode_weighted_colors(half4 r1, half4 g1, half4 b1, half4 r2, half4 g2, half4 b2, out half3 linear1, out half3 linear2, float4 weights)
+{
+  // NaNs are nasty, ensure we don't have those
+  linear1.x = dot(max(0, r1), weights);
+  linear1.y = dot(max(0, g1), weights);
+  linear1.z = dot(max(0, r2), weights);
+  linear2.x = dot(max(0, b1), weights);
+  linear2.y = dot(max(0, b2), weights);
+  linear2.z = dot(max(0, g2), weights);
+}
+
+#elif GI_PACK_ALGO == GI_USE_NO_ENCODING
+
+// no encoding
 
 #define GI_ENCODED_TYPE half3
 #define GI_ENCODED_CHANNELS 3
@@ -133,12 +170,12 @@ void decode_gi_colors(GI_ENCODED_TYPE color1, GI_ENCODED_TYPE color2, out half3 
 
 void decode_weighted_colors(half4 r1, half4 g1, half4 b1, half4 r2, half4 g2, half4 b2, out half3 linear1, out half3 linear2, float4 weights)
 {
-  linear1.x = dot(r1, weights);
-  linear1.y = dot(g1, weights);
-  linear1.z = dot(b1, weights);
-  linear2.x = dot(r2, weights);
-  linear2.y = dot(g2, weights);
-  linear2.z = dot(b2, weights);
+  linear1.x = dot(max(0, r1), weights);
+  linear1.y = dot(max(0, g1), weights);
+  linear1.z = dot(max(0, b1), weights);
+  linear2.x = dot(max(0, r2), weights);
+  linear2.y = dot(max(0, g2), weights);
+  linear2.z = dot(max(0, b2), weights);
 }
 
 #endif

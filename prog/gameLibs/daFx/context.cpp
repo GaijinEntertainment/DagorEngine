@@ -407,6 +407,11 @@ void prepare_workers(Context &ctx, float dt, bool main_pass, int begin_sid, int 
     }
 
     stat_inc(ctx.stats.activeInstances);
+
+    if (flags & SYS_CPU_SIMULATION_REQ)
+      stat_add(ctx.stats.cpuElemTotalSimLods[simLod], simulationState.count);
+    else if (flags & SYS_GPU_SIMULATION_REQ)
+      stat_add(ctx.stats.gpuElemTotalSimLods[simLod], simulationState.count);
   }
 
   for (int i = 0; i < ctx.cfg.max_system_depth; ++i)
@@ -1134,6 +1139,12 @@ void finish_update_gpu_only(ContextId cid, bool update_gpu_fetch, bool beforeRen
   stat_add(ctx.stats.cpuDispatchCalls, ctx.asyncStats.cpuDispatchCalls);
   stat_add(ctx.stats.gpuDispatchCalls, ctx.asyncStats.gpuDispatchCalls);
 
+  for (int i = 0; i < Config::max_simulation_lods; ++i)
+  {
+    stat_add(ctx.stats.cpuElemProcessedByLods[i], ctx.asyncStats.cpuElemProcessedByLods[i]);
+    stat_add(ctx.stats.gpuElemProcessedByLods[i], ctx.asyncStats.gpuElemProcessedByLods[i]);
+  }
+
   gather_system_usage_stats(ctx);
   if (!ctx.simulationIsPaused)
     ctx.currentFrame++;
@@ -1333,6 +1344,20 @@ void get_stats(ContextId cid, Stats &out_s)
   out_s = ctx.stats;
 }
 
+void format_lod_list(eastl::string &out_s, eastl::array<int, Config::max_simulation_lods> &lods,
+  eastl::array<int, Config::max_simulation_lods> &padding)
+{
+  constexpr int frameHistory = 200; // to prevert stats flickering on rows count change
+
+  for (int i = 0; i < lods.size(); ++i)
+  {
+    int c = lods[i];
+    if (padding[i] > 0)
+      out_s.append_sprintf("  lod_%d: %4d\n", i, c);
+    padding[i] = c > 0 ? frameHistory : max(padding[i] - 1, 0);
+  }
+}
+
 void get_stats_as_string(ContextId cid, eastl::string &out_s)
 {
   out_s = eastl::string();
@@ -1355,7 +1380,13 @@ void get_stats_as_string(ContextId cid, eastl::string &out_s)
   ADDV(cpuRenderWorkers);
 
   ADDV(cpuElemProcessed);
+
+  static eastl::array<int, Config::max_simulation_lods> cpuElemProcessedPadding = {};
+  format_lod_list(out_s, ctx.stats.cpuElemProcessedByLods, cpuElemProcessedPadding);
+
   ADDV(gpuElemProcessed);
+  static eastl::array<int, Config::max_simulation_lods> gpuElemProcessedPadding = {};
+  format_lod_list(out_s, ctx.stats.gpuElemProcessedByLods, gpuElemProcessedPadding);
 
   ADDV(renderDrawCalls);
   ADDV(renderSwitchBuffers);
@@ -1376,6 +1407,14 @@ void get_stats_as_string(ContextId cid, eastl::string &out_s)
 
   ADDV(totalInstances);
   ADDV(activeInstances);
+
+  out_s.append_sprintf("CPU sim elems total by lods: %\n");
+  static eastl::array<int, Config::max_simulation_lods> cpuElemTotalSimLodsPadding = {};
+  format_lod_list(out_s, ctx.stats.cpuElemTotalSimLods, cpuElemTotalSimLodsPadding);
+
+  out_s.append_sprintf("GPU sim elems total by lods: %\n");
+  static eastl::array<int, Config::max_simulation_lods> gpuElemTotalSimLodsPadding = {};
+  format_lod_list(out_s, ctx.stats.gpuElemTotalSimLods, gpuElemTotalSimLodsPadding);
 
   out_s.append_sprintf("queue create: %3d / destroy: %3d / reset: %3d\n", s.queue[1].createInstance, s.queue[1].destroyInstance,
     s.queue[1].resetInstance);

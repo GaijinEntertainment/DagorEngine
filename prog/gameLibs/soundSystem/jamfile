@@ -43,6 +43,7 @@ Sources =
   eventInstanceStealing.cpp
   visualLabels.cpp
   geometry.cpp
+  occlusion.cpp
 ;
 
 if $(Config) = rel {

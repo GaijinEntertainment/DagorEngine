@@ -304,6 +304,9 @@ void ExecutionContext::nativeRenderPassChanged()
 
 void ExecutionContext::performSyncToPreviousCommandList()
 {
+  // reorder should not cross queue boundaries, should be guarantied via buffer interruption, but that's weak
+  // so ensure everything is ok via assert
+  G_ASSERTF(scratch.cmdListsToSubmit.back().queue == frameCoreQueue, "vulkan: reordering barriers over different queues");
   // When recording commands of a pass, we need to place barriers before
   // the current render pass. This is achieved by splitting the command
   // list and recording the pass commands into a new list, but submitting
@@ -318,7 +321,7 @@ void ExecutionContext::interruptFrameCoreForRenderPassStart()
     return;
   // called from applyStateChanges, so front is processed and back graphics is forced to be applied via setDirty
   // i.e. after cmd buffer switch all state should be reapplied properly
-  switchFrameCore(DeviceQueueType::GRAPHICS, false);
+  switchFrameCore(frameCoreQueue);
   // only non re-applied state is one we don't track with tracked state approach
   // invalidate them by hand
   Backend::State::exec.set<StateFieldGraphicsPipeline, StateFieldGraphicsPipeline::FullInvalidate, BackGraphicsState>({});

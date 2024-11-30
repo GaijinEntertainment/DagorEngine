@@ -70,18 +70,6 @@ inline void mark_cpu_only_cycle_end()
   }
 }
 
-inline void mark_cpu_only_cycle_pause()
-{
-  if (!cpu_only_cycle_record_enabled)
-    return;
-
-  if (ref_cpu_only_cycle_start != 0)
-  {
-    last_cpu_only_cycle_time_usec = get_time_usec(ref_cpu_only_cycle_start);
-    summed_cpu_only_cycle_time += last_cpu_only_cycle_time_usec;
-  }
-}
-
 void reset_summed_cpu_only_cycle_time();
 float get_avg_cpu_only_cycle_time_usec();
 } // namespace workcycleperf

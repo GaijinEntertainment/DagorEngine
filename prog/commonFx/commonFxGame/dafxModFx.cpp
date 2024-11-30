@@ -163,7 +163,7 @@ struct DafxModFx : BaseParticleEffect
       dafx::set_instance_pos(g_dafx_ctx, iid, pos);
     }
     else if (id == _MAKE4C('PFXV'))
-      dafx::set_instance_visibility(g_dafx_ctx, iid, value ? *(bool *)value : false);
+      dafx::set_instance_visibility(g_dafx_ctx, iid, value ? *(uint32_t *)value : 0);
     else if (id == HUID_TM)
       setTm((TMatrix *)value);
     else if (id == HUID_EMITTER_TM)

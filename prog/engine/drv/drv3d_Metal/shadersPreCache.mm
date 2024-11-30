@@ -762,7 +762,7 @@ namespace drv3d_metal
         [func retain];
 
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= 101200 && DAGOR_DBGLEVEL > 0
-        func.label = [[NSString alloc] initWithBytes:shader.entry length : strlen(shader.entry) encoding : NSUTF8StringEncoding];
+        func.label = [NSString stringWithUTF8String : name.c_str()];
 #endif
       }
       else
@@ -1071,8 +1071,17 @@ namespace drv3d_metal
       return nullptr;
     }
 
+    MTLComputePipelineDescriptor* desc = [[MTLComputePipelineDescriptor alloc] init];
+    desc.computeFunction = func;
+#if DAGOR_DBGLEVEL > 0
+    desc.label = func.label;
+#endif
+
     NSError *error = nil;
-    id<MTLComputePipelineState> csPipeline = [render.device newComputePipelineStateWithFunction : func error : &error];
+    id<MTLComputePipelineState> csPipeline = [render.device newComputePipelineStateWithDescriptor : desc
+                                                                                          options : MTLPipelineOptionNone
+                                                                                       reflection : nil
+                                                                                            error : &error];
     if (!csPipeline)
     {
       D3D_ERROR("Failed to created cs pipeline state, error %s", [[error localizedDescription] UTF8String]);

@@ -12,6 +12,7 @@
 #include <soundSystem/visualLabels.h>
 #include <soundSystem/streams.h>
 #include <soundSystem/eventInstanceStealing.h>
+#include <soundSystem/occlusion.h>
 
 class DataBlock;
 
@@ -33,6 +34,7 @@ namespace fmodapi
 {
 FMOD::System *get_system() { return nullptr; }
 FMOD::Studio::System *get_studio_system() { return nullptr; }
+eastl::pair<FMOD::System *, FMOD::Studio::System *> get_systems() { return {}; }
 FMOD::Studio::EventInstance *get_instance(EventHandle) { return nullptr; }
 FMOD::Studio::EventDescription *get_description(EventHandle) { return nullptr; }
 FMOD::Studio::EventDescription *get_description(const char *, const char *) { return nullptr; }
@@ -204,6 +206,14 @@ int get_geometry_id(int) { return -1; }
 const eastl::vector<Point3> *get_geometry_faces(int) { return nullptr; }
 void save_geometry_to_file(const char *) {}
 bool load_geometry_from_file(const char *) { return false; }
-
 Point2 get_geometry_occlusion(const Point3 &, const Point3 &) { return {}; }
+
+// occlusion.cpp
+namespace occlusion
+{
+bool is_inited() { return false; }
+void set_group_pos(group_id_t, const Point3 &) {}
+void set_event_group(EventHandle, group_id_t) {}
+} // namespace occlusion
+
 } // namespace sndsys

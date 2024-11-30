@@ -16,15 +16,14 @@ extern bool fatal_on_net_assert;
 #include <osApiWrappers/dag_stackHlp.h>
 #include "eventLog.h"
 #if _TARGET_PC_WIN
-#define NET_EVENT_STRING(str, exp_string)                                                                         \
-  String str;                                                                                                     \
-  {                                                                                                               \
-    stackhelp::CallStackCaptureStore<32> stack;                                                                   \
-    stackhelp::ext::CallStackCaptureStore extStack;                                                               \
-    stack.capture();                                                                                              \
-    extStack.capture();                                                                                           \
-    str.printf(256, "%s:%s:\nBP=%p\nST:\n%s", event_log::get_net_assert_version(), exp_string, stackhlp_get_bp(), \
-      get_call_stack_str(stack, extStack));                                                                       \
+#define NET_EVENT_STRING(str, exp_string)                                                                                     \
+  String str;                                                                                                                 \
+  {                                                                                                                           \
+    stackhelp::CallStackCaptureStore<32> stack;                                                                               \
+    stackhelp::ext::CallStackCaptureStore extStack;                                                                           \
+    stack.capture();                                                                                                          \
+    extStack.capture();                                                                                                       \
+    str.printf(256, "%s:%s:\nST:\n%s", event_log::get_net_assert_version(), exp_string, get_call_stack_str(stack, extStack)); \
   }
 #else
 #define NET_EVENT_STRING(str, exp_string)                                                                                     \

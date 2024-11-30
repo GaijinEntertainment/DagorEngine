@@ -736,6 +736,11 @@ public:
   /// Get Gizmo center type.
   ///@return Gizmo center type (see #CenterType)
   virtual CenterType getGizmoCenterType() = 0;
+
+  /// Tests whether a gizmo operation is in progress.
+  /// (For example pressing the left mouse button on the translation gizmo and moving an object.)
+  ///@return @b true if operation is in progress
+  virtual bool isGizmoOperationStarted() const = 0;
   //@}
 
 

@@ -3,6 +3,7 @@
 #include "av_viewportWindow.h"
 #include "assetStats.h"
 #include "av_cm.h"
+#include "av_appwnd.h"
 #include <EditorCore/ec_cm.h>
 #include <EditorCore/ec_ViewportWindowStatSettingsDialog.h>
 #include <gameRes/dag_collisionResource.h>
@@ -199,6 +200,11 @@ void AssetViewerViewportWindow::handleStatSettingsDialogChange(int pcb_id, bool 
     showAssetStats = value;
   else
     ViewportWindow::handleStatSettingsDialogChange(pcb_id, value);
+}
+
+bool AssetViewerViewportWindow::canStartInteractionWithViewport()
+{
+  return ViewportWindow::canStartInteractionWithViewport() && !get_app().isGizmoOperationStarted();
 }
 
 int AssetViewerViewportWindow::getAssetStatByIndex(int index)

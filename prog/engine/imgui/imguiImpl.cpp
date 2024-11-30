@@ -484,6 +484,7 @@ eastl::optional<ImGuiKey> map_dagor_key_to_imgui(int humap_key)
     case HumanInput::DKEY_RSHIFT: return ImGuiKey_RightShift;
     case HumanInput::DKEY_RCONTROL: return ImGuiKey_RightCtrl;
     case HumanInput::DKEY_RALT: return ImGuiKey_RightAlt;
+    case HumanInput::DKEY_SLASH: return ImGuiKey_Slash;
     case HumanInput::DKEY_A: return ImGuiKey_A;
     case HumanInput::DKEY_B: return ImGuiKey_B;
     case HumanInput::DKEY_C: return ImGuiKey_C;
@@ -563,6 +564,7 @@ int map_imgui_key_to_dagor(int imgui_key)
     case ImGuiKey_RightShift: return HumanInput::DKEY_RSHIFT;
     case ImGuiKey_RightCtrl: return HumanInput::DKEY_RCONTROL;
     case ImGuiKey_RightAlt: return HumanInput::DKEY_RALT;
+    case ImGuiKey_Slash: return HumanInput::DKEY_SLASH;
     case ImGuiKey_A: return HumanInput::DKEY_A;
     case ImGuiKey_B: return HumanInput::DKEY_B;
     case ImGuiKey_C: return HumanInput::DKEY_C;

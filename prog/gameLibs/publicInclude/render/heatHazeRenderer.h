@@ -66,7 +66,5 @@ private:
   Point2 hazeLuminanceScale;
 
   eastl::unique_ptr<PostFxRenderer> hazeFxRenderer;
-
-  shaders::UniqueOverrideStateId zFuncAlwaysStateId;
   shaders::UniqueOverrideStateId zDisabledBlendMinStateId;
 };

@@ -26,6 +26,7 @@
 #include "internal/events.h"
 #include "internal/streams.h"
 #include "internal/soundSystem.h"
+#include "internal/occlusion.h"
 #include "internal/debug.h"
 
 static WinCritSec g_debug_trace_cs;
@@ -629,6 +630,22 @@ static inline void draw_mem_stat(int &offset)
       fmem.currentalloced / 1024.f / 1024.f, fmem.maxalloced / 1024.f / 1024.f);
 }
 
+static int g_occlusion_offset = 0;
+static void draw_occlusion_src(FMOD::Studio::EventInstance *instance, occlusion::group_id_t group_id, const Point3 &, float value,
+  bool is_in_group, bool is_first_in_group)
+{
+  FrameStr name = "???";
+  FMOD::Studio::EventDescription *description = nullptr;
+  if (FMOD_OK == instance->getDescription(&description))
+    name = eastl::move(get_debug_name(*description));
+
+  g_occlusion_offset += print_format(g_offset.x, g_occlusion_offset, g_def_color, "%s  %d   %.2f  %s",
+    is_first_in_group ? "(*)"
+    : is_in_group     ? "(^)"
+                      : "( )",
+    group_id, value, name.c_str());
+}
+
 void debug_draw()
 {
   SNDSYS_IF_NOT_INITED_RETURN;
@@ -674,6 +691,9 @@ void debug_draw()
   print_channels();
   print_messages();
   draw_streams();
+
+  g_occlusion_offset = (StdGuiRender::get_viewport().leftTop.y + StdGuiRender::get_viewport().rightBottom.y) * 2 / 3;
+  occlusion::debug_enum_sources(&draw_occlusion_src);
 
   StdGuiRender::reset_draw_str_attr();
   StdGuiRender::flush_data();

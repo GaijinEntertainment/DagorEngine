@@ -76,7 +76,16 @@ macro USE_HEIGHTMAP_COMMON_VS()
     float getHeight(float2 worldPosXZ)
     {
       float2 tc_low = calcTcLow(worldPosXZ);
-      float height = tex2Dlod(tex_hmap_low, float4(tc_low,0,0)).r;
+
+      float2 tc_texels = tc_low * tex_hmap_low_size.xy - 0.5;
+      float2 tc_frac = frac(tc_texels);
+      float2 centerTc = (floor(tc_texels) + 1.0) * tex_hmap_low_size.zw;
+      float4 hmap4 = tex_hmap_low.GatherRed(tex_hmap_low_samplerstate, centerTc);
+
+      float4 bilW = float4(1-tc_frac, tc_frac);
+      bilW = bilW.xzzx*bilW.wwyy;
+
+      float height = dot(hmap4, bilW);
       #if has_high_texture
       float2 tc_high = worldPosXZ*world_to_hmap_high.xy + world_to_hmap_high.zw;
       float2 tc_high_sat = saturate(tc_high);
@@ -384,6 +393,9 @@ endmacro
 
 macro INIT_WORLD_HEIGHTMAP_VS()
   (vs) {
+    tex_hmap_low_size@f4 = (get_dimensions(tex_hmap_low, 0).xy,
+                            1.0 / max(get_dimensions(tex_hmap_low, 0).x, 1),
+                            1.0 / max(get_dimensions(tex_hmap_low, 0).y, 1));
     world_to_hmap_low@f4 = (world_to_hmap_low.x, world_to_hmap_low.y, world_to_hmap_low.z + 0.5*tex_hmap_inv_sizes.x, world_to_hmap_low.w+0.5*tex_hmap_inv_sizes.y);
     heightmap_region@f4 = heightmap_region;
   }

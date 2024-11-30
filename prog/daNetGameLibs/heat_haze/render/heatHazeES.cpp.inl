@@ -41,19 +41,12 @@ static dabfg::NodeHandle makeHeatHazeRenderClearNode(HeatHazeRenderer *heatHazeR
     // Only supported in WT
     G_ASSERT(!heatHazeRenderer->isHazeAppliedManual());
 
-    uint32_t flags = 0;
-    for (auto format : {TEXFMT_DEPTH24, TEXFMT_DEPTH16})
-      if (d3d::check_texformat(format | TEXCF_RTARGET | TEXCF_ESRAM_ONLY))
-      {
-        flags = format | TEXCF_RTARGET | TEXCF_ESRAM_ONLY;
-        break;
-      }
-
     auto hazeRenderedHndl = registry.createBlob<bool>("haze_rendered", dabfg::History::No).handle();
-    auto hazeDepthHndl = registry.createTexture2d("haze_depth", dabfg::History::No, {flags, hazeResolution})
-                           .atStage(dabfg::Stage::PS)
-                           .useAs(dabfg::Usage::COLOR_ATTACHMENT)
-                           .handle();
+    auto hazeDepthHndl =
+      registry.createTexture2d("haze_depth", dabfg::History::No, {TEXFMT_R16F | TEXCF_RTARGET | TEXCF_ESRAM_ONLY, hazeResolution})
+        .atStage(dabfg::Stage::PS)
+        .useAs(dabfg::Usage::COLOR_ATTACHMENT)
+        .handle();
 
     auto hazeOffsetHndl =
       registry

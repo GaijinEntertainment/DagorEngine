@@ -1,0 +1,14 @@
+hlsl {
+  half get_mix_weight(half detail1_a, half detail2_a, half mask_weight)
+  {
+    half2 weights = half2(detail1_a*(1.0-mask_weight), detail2_a*mask_weight+0.000001);
+    weights *= weights;
+    weights *= weights;
+    half weight2 = weights.y * rcp(dot(weights, 1.h));
+
+    //make it more contrast!
+    half weight2_pow2 = weight2*weight2;
+    weight2 = (-2.666666666666667h*weight2_pow2 + (4.h*weight2 - 0.333333333333333h)*weight2);
+    return saturate(weight2);
+  }
+}

@@ -143,7 +143,7 @@ struct BVHConnection : public bvh::BVHConnection
 
   void textureUsed(TEXTUREID texture_id) override
   {
-    static int reg_no = ShaderGlobal::get_int(get_shader_variable_id("dafx_modfx_bvh_meta_id_regno"));
+    static int reg_no = ShaderGlobal::get_slot_by_name("dafx_modfx_bvh_meta_id_regno");
 
     int metaAllocId = get_particle_meta(*contexts.begin(), texture_id);
     int reg[] = {metaAllocId, 0, 0, 0};

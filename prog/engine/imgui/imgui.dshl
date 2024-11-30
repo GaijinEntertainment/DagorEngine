@@ -32,6 +32,7 @@ float imgui_a_max = 1;
 
 int imgui_mip_level = 0;
 
+int custom_sampler_const_no = 5;
 int imgui_use_custom_sampler = 0;
 interval imgui_use_custom_sampler: no < 1, yes;
 
@@ -136,8 +137,11 @@ shader imgui
   }
   compile("target_vs", "imgui_vs");
 
+  (ps) {
+    custom_sampler@sampler : register(custom_sampler_const_no);
+  }
+
   hlsl(ps) {
-    SamplerState custom_sampler : register(s5);
 
     void handle_channel(inout float c, uint mask, uint index)
     {

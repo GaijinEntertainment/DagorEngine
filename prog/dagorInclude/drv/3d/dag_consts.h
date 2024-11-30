@@ -49,7 +49,8 @@ enum ShaderStage
 enum class GpuPipeline
 {
   GRAPHICS,
-  ASYNC_COMPUTE
+  ASYNC_COMPUTE,
+  TRANSFER
 };
 
 // general limitations

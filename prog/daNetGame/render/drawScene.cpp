@@ -69,7 +69,6 @@
 #include <debug/dag_memReport.h>
 #include <render/deviceResetTelemetry/deviceResetTelemetry.h>
 #include <render/world/wrDispatcher.h>
-#include <workCycle/dag_workCyclePerf.h>
 
 CONSOLE_INT_VAL("app", sleep_msec_val, 0, 0, 1000);
 CONSOLE_BOOL_VAL("app", screenshot_hide_debug, true);
@@ -117,6 +116,8 @@ public:
   }
   void doJob() override
   {
+    static bool gpuLatencyWait = dgs_get_settings()->getBlockByName("video")->getBool("pufdGpuLatencyWait", true);
+    if (gpuLatencyWait)
     {
       TIME_PROFILE(gpu_latency_wait);
       d3d::gpu_latency_wait();
@@ -144,14 +145,12 @@ public:
 
 static inline void wait_additional_game_job_done()
 {
-  workcycleperf::mark_cpu_only_cycle_pause();
   if (!interlocked_acquire_load(additional_game_job.done))
   {
     TIME_PROFILE(wait_additional_game_job_done);
     threadpool::wait(&additional_game_job);
   }
   bind_dascript::enable_thread_safe_das_ctx_region(false);
-  workcycleperf::mark_cpu_only_cycle_start();
 }
 
 void render_scene_debug(BaseTexture *target, BaseTexture *depth, const CameraParams &camera)

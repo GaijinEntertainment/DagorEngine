@@ -37,6 +37,9 @@ float haze_scene_depth_tex_lod;
 define_macro_if_not_defined DAFX_USE_CLOUD_SHADOWS()
 endmacro
 
+int dafx_modfx_g_tex_0_const_no = 10;
+int dafx_modfx_g_tex_1_const_no = 11;
+
 shader dafx_modfx_bboard_render, dafx_modfx_ribbon_render, dafx_modfx_ribbon_render_side_only, dafx_modfx_bboard_render_atest, dafx_modfx_bboard_distortion, dafx_modfx_ribbon_distortion, dafx_modfx_ribbon_distortion_side_only, dafx_modfx_bboard_thermals, dafx_modfx_bboard_render_fom, dafx_modfx_bboard_rain, dafx_modfx_bboard_rain_distortion, dafx_modfx_volshape_render, dafx_modfx_volshape_thermal, dafx_modfx_volshape_wboit_render, dafx_modfx_bboard_volfog_injection
 {
   ENABLE_ASSERT(ps)
@@ -187,11 +190,14 @@ shader dafx_modfx_bboard_render, dafx_modfx_ribbon_render, dafx_modfx_ribbon_ren
   else if ( shader == dafx_modfx_bboard_distortion || shader == dafx_modfx_ribbon_distortion || shader == dafx_modfx_ribbon_distortion_side_only || shader == dafx_modfx_bboard_rain_distortion)
   {
     z_write  =true;
-    blend_src=one;
-    blend_dst=one;
+    blend_src[0]=one;
+    blend_dst[0]=one;
 
-    blend_asrc=one;
-    blend_adst=one;
+    blend_asrc[0]=one;
+    blend_adst[0]=one;
+
+    blend_src[1] = 1; blend_dst[1] = 1;
+    blend_op[1] = max; // reverse depth
 
     (ps)
     {
@@ -209,7 +215,11 @@ shader dafx_modfx_bboard_render, dafx_modfx_ribbon_render, dafx_modfx_ribbon_ren
 
     hlsl
     {
+      #undef DAFXEX_USE_REACTIVE_MASK
+      #define DAFXEX_USE_REACTIVE_MASK 0 // Disable reactive mask for distortions, since they apply after txaa
+
       #define MODFX_SHADER_DISTORTION 1
+      #define MODFX_USE_DEPTH_OUTPUT 1
 
       #undef HAS_STATIC_SHADOW
       #undef MODFX_USE_SHADOW
@@ -387,14 +397,14 @@ shader dafx_modfx_bboard_render, dafx_modfx_ribbon_render, dafx_modfx_ribbon_ren
     #undef FX_VS
   }
 
+  (ps)
+  {
+    g_tex_0@smp2d : register(dafx_modfx_g_tex_0_const_no);
+    g_tex_1@smp2d : register(dafx_modfx_g_tex_1_const_no);
+  }
+
   hlsl(ps)
   {
-    Texture2D g_tex_0 : register(t10);
-    SamplerState g_tex_0_samplerstate:register(s10);
-
-    Texture2D g_tex_1 : register(t11);
-    SamplerState g_tex_1_samplerstate:register(s11);
-
     #define FX_PS 1
     #include "modfx/modfx_bboard_render.hlsl"
     #undef FX_PS
@@ -450,6 +460,11 @@ shader dafx_modfx_bvh
 
   DAFXEX_USE_ABOVE_DEPTH_PLACEMENT()
 
+  (vs)
+  {
+    bvh_meta_id@i1 : register(dafx_modfx_bvh_meta_id_regno);
+  }
+
   hlsl(vs)
   {
     #define MODFX_USE_FRAMEBLEND 1
@@ -465,8 +480,6 @@ shader dafx_modfx_bvh
     #define FX_VS 1
       #include "modfx/modfx_bboard_render.hlsl"
     #undef FX_VS
-
-    int bvh_meta_id : register(c32);
 
     #define ADD_SHADOW_INSTANCE 0
 

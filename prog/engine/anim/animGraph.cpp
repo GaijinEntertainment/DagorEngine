@@ -14,6 +14,7 @@
 #include <debug/dag_log.h>
 #include <util/dag_string.h>
 #include <util/dag_fastNameMapTS.h>
+#include <util/dag_lookup.h>
 #include <supp/dag_prefetch.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_rwSpinLock.h>
@@ -1722,24 +1723,102 @@ static void add_bn(AnimationGraph &graph, const DataBlock &blk, const char *nm_s
   else if (dd_stricmp(blk.getBlockName(), "footLockerIK") == 0)
     FootLockerIKCtrl::createNode(graph, blk);
 
-  else if (dd_stricmp(blk.getBlockName(), "alias") == 0)
-  {
-    IAnimBlendNode *n = graph.getBlendNodePtr(blk.getStr("origin"), nm_suffix);
-    if (!n && blk.getBool("allowSuffixless", false))
-      n = graph.getBlendNodePtr(blk.getStr("origin"));
-    graph.registerBlendNode(n, blk.getStr("name"), nm_suffix);
-  }
-
   else if (dd_stricmp(blk.getBlockName(), "animateAndProcNode") == 0)
     createNodeApbAnimateAndPostBlendProc(graph, blk, nm_suffix, add_bn);
 
-  else
+  else if (dd_stricmp(blk.getBlockName(), "alias") != 0)
   {
     logerr("unknown BlendNode class <%s>", blk.getBlockName());
     AnimBlendNodeNull::createNode(graph, blk);
   }
 
   fatal_context_pop();
+}
+
+struct ControllerDependencyLoadHelper
+{
+  Ptr<IAnimBlendNode> node;
+  const DataBlock *settings;
+  const char *nodeMaskSuffix;
+};
+
+static const char *controller_names_with_dependecy[] = {
+  "linear", "linearPoly", "randomSwitch", "paramSwitch", "paramSwitchS", "hub", "blender", "BIS"};
+
+static bool controller_has_dependency(const char *block_name)
+{
+  return lup(block_name, controller_names_with_dependecy, countof(controller_names_with_dependecy)) != -1;
+}
+
+static bool find_and_replce_alias_origin(dag::Vector<ControllerDependencyLoadHelper> &controllers, int selected_idx,
+  bool allow_suffixless = false)
+{
+  ControllerDependencyLoadHelper &controller = controllers[selected_idx];
+  const char *originName = controller.settings->getStr("origin");
+  for (int i = selected_idx + 1; i < controllers.size(); ++i)
+  {
+    // try find origin with equal name field and with allow_suffixless or bouth null or equal suffix
+    if (dd_stricmp(originName, controllers[i].settings->getStr("name")) == 0)
+      if (allow_suffixless || (!controller.nodeMaskSuffix && !controllers[i].nodeMaskSuffix) ||
+          (controller.nodeMaskSuffix && controllers[i].nodeMaskSuffix &&
+            dd_stricmp(controller.nodeMaskSuffix, controllers[i].nodeMaskSuffix) == 0))
+      {
+        ControllerDependencyLoadHelper tempController = controllers[i];
+        controllers.erase(controllers.begin() + i);
+        controllers.insert(controllers.begin() + selected_idx, tempController);
+        return true;
+      }
+  }
+
+  return false;
+}
+
+static void init_alias_controllers(dag::Vector<ControllerDependencyLoadHelper> &controllers, AnimationGraph &graph)
+{
+  int aliasChangeOrderingCount = 0;
+  for (int i = 0; i < controllers.size(); ++i)
+  {
+    const char *originName = controllers[i].settings->getStr("origin");
+    const char *nodeName = controllers[i].settings->getStr("name");
+    IAnimBlendNode *node = graph.getBlendNodePtr(originName, controllers[i].nodeMaskSuffix);
+    if (!node)
+    {
+      if (i + aliasChangeOrderingCount >= controllers.size())
+      {
+        // Skip node with loop for init other alias nodes
+        ANIM_ERR("Find loop in alias nodes, node: %s suffix: %s, with origin: %s", nodeName, controllers[i].nodeMaskSuffix,
+          originName);
+        aliasChangeOrderingCount = 0;
+        continue;
+      }
+      if (find_and_replce_alias_origin(controllers, i))
+      {
+        ++aliasChangeOrderingCount;
+        --i;
+        continue;
+      }
+    }
+
+    bool allowSuffixless = controllers[i].settings->getBool("allowSuffixless", false);
+    if (!node && allowSuffixless)
+      node = graph.getBlendNodePtr(originName);
+
+    if (node)
+    {
+      aliasChangeOrderingCount = 0;
+      graph.registerBlendNode(node, nodeName, controllers[i].nodeMaskSuffix);
+    }
+    else if (allowSuffixless)
+    {
+      if (find_and_replce_alias_origin(controllers, i, allowSuffixless))
+      {
+        ++aliasChangeOrderingCount;
+        --i;
+      }
+    }
+    else
+      ANIM_ERR("Can't find %s node for alias node with name: %s", originName, nodeName);
+  }
 }
 
 static bool load_generic_graph(AnimationGraph &graph, const DataBlock &blk, dag::ConstSpan<AnimData *> anim_list,
@@ -1932,6 +2011,8 @@ static bool load_generic_graph(AnimationGraph &graph, const DataBlock &blk, dag:
   }
 
   // append other controllers
+  dag::Vector<ControllerDependencyLoadHelper> controllersWithDependency;
+  dag::Vector<ControllerDependencyLoadHelper> aliasControllers;
   nid = blk.getNameId("AnimBlendCtrl");
   for (i = 0; i < blk.blockCount(); i++)
     if (blk.getBlock(i)->getBlockNameId() == nid)
@@ -1941,28 +2022,57 @@ static bool load_generic_graph(AnimationGraph &graph, const DataBlock &blk, dag:
         continue;
       for (j = 0; j < b->blockCount(); j++)
       {
-        AnimNodeMaskApplyFilter nmFilter(*b->getBlock(j));
-        const char *anim_name = b->getBlock(j)->getStr("name", NULL);
+        const DataBlock *settings = b->getBlock(j);
+        AnimNodeMaskApplyFilter nmFilter(*settings);
+        const char *anim_name = settings->getStr("name", nullptr);
         if (!nmFilter.isNameRejected(""))
-          add_bn(graph, *b->getBlock(j), NULL);
+        {
+          add_bn(graph, *settings, nullptr);
+          if (controller_has_dependency(settings->getBlockName()))
+            controllersWithDependency.emplace_back(
+              ControllerDependencyLoadHelper{graph.getBlendNodePtr(anim_name, nullptr), settings, nullptr});
+          else if (dd_stricmp(settings->getBlockName(), "alias") == 0)
+            aliasControllers.emplace_back(ControllerDependencyLoadHelper{nullptr, settings, nullptr});
+        }
         else if (anim_name)
           graph.registerBlendNode(nullAnim, anim_name);
 
-        bool def_split_chans =
-          strstr("linear linearPoly randomSwitch paramSwitch paramSwitchS alias", b->getBlock(j)->getBlockName()) != NULL;
-        if (b->getBlock(j)->getBool("splitChans", def_split_chans))
+        bool def_split_chans = strstr("linear linearPoly randomSwitch paramSwitch paramSwitchS alias", settings->getBlockName());
+        if (settings->getBool("splitChans", def_split_chans))
           if (int chan_cnt = graph.getStDest().size())
             for (int k = 0; k < chan_cnt; k++)
               if (graph.getStDest()[k].defNodemaskIdx >= 0)
               {
                 const char *nm_name = nodemask[graph.getStDest()[k].defNodemaskIdx]->name;
                 if (!nmFilter.isNameRejected(nm_name))
-                  add_bn(graph, *b->getBlock(j), nm_name);
+                {
+                  add_bn(graph, *settings, nm_name);
+                  if (controller_has_dependency(settings->getBlockName()))
+                    controllersWithDependency.emplace_back(
+                      ControllerDependencyLoadHelper{graph.getBlendNodePtr(anim_name, nm_name), settings, nm_name});
+                  else if (dd_stricmp(settings->getBlockName(), "alias") == 0)
+                    aliasControllers.emplace_back(ControllerDependencyLoadHelper{nullptr, settings, nm_name});
+                }
                 else if (anim_name)
                   graph.registerBlendNode(nullAnim, anim_name, nm_name);
               }
       }
     }
+
+  init_alias_controllers(aliasControllers, graph);
+
+  for (ControllerDependencyLoadHelper &controller : controllersWithDependency)
+  {
+    fatal_context_push(String(256, "ctrl: %s", controller.settings->getStr("name", "n/a")));
+    controller.node->initChilds(graph, *controller.settings, controller.nodeMaskSuffix);
+    fatal_context_pop();
+  }
+
+  eastl::bitvector<> animNodeState;
+  animNodeState.resize(graph.getAnimNodeCount(), false);
+
+  for (ControllerDependencyLoadHelper &controller : controllersWithDependency)
+    controller.node->checkHasLoop(graph, animNodeState);
 
   // clear nodemask
   clear_all_ptr_items_and_shrink(nodemask);
@@ -2260,6 +2370,7 @@ void AnimBlendNodeNull::createNode(AnimationGraph &graph, const DataBlock &blk)
 
   graph.registerBlendNode(new AnimBlendNodeNull, name);
 }
+
 void AnimBlendCtrl_1axis::createNode(AnimationGraph &graph, const DataBlock &blk, const char *nm_suffix)
 {
   const char *name = blk.getStr("name", NULL);
@@ -2278,6 +2389,11 @@ void AnimBlendCtrl_1axis::createNode(AnimationGraph &graph, const DataBlock &blk
     var_name = String("var") + name;
 
   AnimBlendCtrl_1axis *node = new AnimBlendCtrl_1axis(graph, var_name);
+  graph.registerBlendNode(node, name, nm_suffix);
+}
+
+void AnimBlendCtrl_1axis::initChilds(AnimationGraph &graph, const DataBlock &blk, const char *nm_suffix)
+{
   int child_nid = blk.getNameId("child"), i;
   if (child_nid != -1)
     for (i = 0; i < blk.blockCount(); i++)
@@ -2288,7 +2404,7 @@ void AnimBlendCtrl_1axis::createNode(AnimationGraph &graph, const DataBlock &blk
         if (!nm)
         {
           ANIM_ERR("<name> is not defined in hub child");
-          delete node;
+          graph.unregisterBlendNode(this);
           return;
         }
 
@@ -2297,12 +2413,37 @@ void AnimBlendCtrl_1axis::createNode(AnimationGraph &graph, const DataBlock &blk
         {
           if (!is_ignoring_unavailable_resources())
             ANIM_ERR("blend node <%s> (suffix=%s) not found!", nm, nm_suffix);
-          delete node;
+          graph.unregisterBlendNode(this);
           return;
         }
-        node->addBlendNode(n, cblk->getReal("start", 0), cblk->getReal("end", 1.0f));
+        addBlendNode(n, cblk->getReal("start", 0), cblk->getReal("end", 1.0f));
       }
-  graph.registerBlendNode(node, name, nm_suffix);
+}
+
+void AnimBlendCtrl_1axis::checkHasLoop(AnimationGraph &graph, eastl::bitvector<> &visited_nodes)
+{
+  int id = getAnimNodeId();
+  if (id == -1)
+    return;
+
+  visited_nodes[id] = true;
+  for (const AnimSlice &child : slice)
+  {
+    int childId = child.node->getAnimNodeId();
+    if (childId == -1)
+      continue;
+
+    if (visited_nodes[childId])
+    {
+      ANIM_ERR("Find loop in controller childs, controller: %s, parent: %s", graph.getAnimNodeName(childId),
+        graph.getAnimNodeName(id));
+      slice.clear();
+      break;
+    }
+    else
+      child.node->checkHasLoop(graph, visited_nodes);
+  }
+  visited_nodes[id] = false;
 }
 
 void AnimBlendCtrl_LinearPoly::createNode(AnimationGraph &graph, const DataBlock &blk, const char *nm_suffix)
@@ -2327,6 +2468,12 @@ void AnimBlendCtrl_LinearPoly::createNode(AnimationGraph &graph, const DataBlock
   node->enclosed = blk.getBool("enclosed", false);
   node->paramTau = blk.getReal("paramTau", 0.0f);
   node->paramSpeed = blk.getReal("paramSpeed", 0.0f);
+  graph.registerBlendNode(node, name, nm_suffix);
+}
+
+void AnimBlendCtrl_LinearPoly::initChilds(AnimationGraph &graph, const DataBlock &blk, const char *nm_suffix)
+{
+  const char *name = blk.getStr("name");
   int child_nid = blk.getNameId("child"), i;
   if (child_nid != -1)
     for (i = 0; i < blk.blockCount(); i++)
@@ -2347,9 +2494,34 @@ void AnimBlendCtrl_LinearPoly::createNode(AnimationGraph &graph, const DataBlock
             ANIM_ERR("blend node <%s> (suffix=%s) not found!", nm, nm_suffix);
           return;
         }
-        node->addBlendNode(n, cblk->getReal("val", 0), graph, name);
+        addBlendNode(n, cblk->getReal("val", 0), graph, name);
       }
-  graph.registerBlendNode(node, name, nm_suffix);
+}
+
+void AnimBlendCtrl_LinearPoly::checkHasLoop(AnimationGraph &graph, eastl::bitvector<> &visited_nodes)
+{
+  int id = getAnimNodeId();
+  if (id == -1)
+    return;
+
+  visited_nodes[id] = true;
+  for (const AnimPoint &child : poly)
+  {
+    int childId = child.node->getAnimNodeId();
+    if (childId == -1)
+      continue;
+
+    if (visited_nodes[childId])
+    {
+      ANIM_ERR("Find loop in controller childs, controller: %s, parent: %s", graph.getAnimNodeName(childId),
+        graph.getAnimNodeName(id));
+      poly.clear();
+      break;
+    }
+    else
+      child.node->checkHasLoop(graph, visited_nodes);
+  }
+  visited_nodes[id] = false;
 }
 
 void AnimBlendCtrl_Fifo3::createNode(AnimationGraph &graph, const DataBlock &blk)
@@ -2387,6 +2559,11 @@ void AnimBlendCtrl_RandomSwitcher::createNode(AnimationGraph &graph, const DataB
 
   AnimBlendCtrl_RandomSwitcher *node = new AnimBlendCtrl_RandomSwitcher(graph, var_name);
 
+  graph.registerBlendNode(node, name, nm_suffix);
+}
+
+void AnimBlendCtrl_RandomSwitcher::initChilds(AnimationGraph &graph, const DataBlock &blk, const char *nm_suffix)
+{
   // create anim list
   const DataBlock *cblk = blk.getBlockByName("weight");
   const DataBlock *rblk = blk.getBlockByName("maxrepeat");
@@ -2407,13 +2584,37 @@ void AnimBlendCtrl_RandomSwitcher::createNode(AnimationGraph &graph, const DataB
           LOGERR_CTX("blend node <%s> (suffix=%s) not found!", nm, nm_suffix);
         continue;
       }
-      node->addBlendNode(n, cblk->getReal(i), rblk ? rblk->getInt(nm, 1) : 1);
+      addBlendNode(n, cblk->getReal(i), rblk ? rblk->getInt(nm, 1) : 1);
     }
   }
 
-  node->recalcWeights();
+  recalcWeights();
+}
 
-  graph.registerBlendNode(node, name, nm_suffix);
+void AnimBlendCtrl_RandomSwitcher::checkHasLoop(AnimationGraph &graph, eastl::bitvector<> &visited_nodes)
+{
+  int id = getAnimNodeId();
+  if (id == -1)
+    return;
+
+  visited_nodes[id] = true;
+  for (const RandomAnim &child : list)
+  {
+    int childId = child.node->getAnimNodeId();
+    if (childId == -1)
+      continue;
+
+    if (visited_nodes[childId])
+    {
+      ANIM_ERR("Find loop in controller childs, controller: %s, parent: %s", graph.getAnimNodeName(childId),
+        graph.getAnimNodeName(id));
+      list.clear();
+      break;
+    }
+    else
+      child.node->checkHasLoop(graph, visited_nodes);
+  }
+  visited_nodes[id] = false;
 }
 
 void AnimBlendCtrl_ParametricSwitcher::createNode(AnimationGraph &graph, const DataBlock &blk, const char *nm_suffix)
@@ -2435,12 +2636,25 @@ void AnimBlendCtrl_ParametricSwitcher::createNode(AnimationGraph &graph, const D
 
   AnimBlendCtrl_ParametricSwitcher *node = new AnimBlendCtrl_ParametricSwitcher(graph, var_name, blk.getStr("varname_residual", NULL));
 
-  // create anim list
   node->morphTime = blk.getReal("morphTime", 0.15f);
+  graph.registerBlendNode(node, name, nm_suffix);
+}
+
+void AnimBlendCtrl_ParametricSwitcher::initChilds(AnimationGraph &graph, const DataBlock &blk, const char *nm_suffix)
+{
+  const char *name = blk.getStr("name");
+  const char *_vname = blk.getStr("varname", nullptr);
+  String var_name;
+
+  if (_vname)
+    var_name = _vname;
+  else
+    var_name = String("var") + name;
 
   const DataBlock *cblk = blk.getBlockByName("nodes");
   bool has_single = false;
 
+  // create anim list
   if (cblk)
   {
     for (int i = 0; i < cblk->blockCount(); i++)
@@ -2467,7 +2681,7 @@ void AnimBlendCtrl_ParametricSwitcher::createNode(AnimationGraph &graph, const D
           r1 = eval + 0.1f;
         }
       }
-      node->addBlendNode(n, min(r0, r1), max(r1, r0), bv, graph, name);
+      addBlendNode(n, min(r0, r1), max(r1, r0), bv, graph, name);
       if (n->isSubOf(AnimBlendNodeSingleLeafCID))
         has_single = true;
     }
@@ -2534,7 +2748,7 @@ void AnimBlendCtrl_ParametricSwitcher::createNode(AnimationGraph &graph, const D
           int eval = AnimV20::getEnumValueByName(enum_nm);
           if (eval < 0)
             ANIM_ERR("missing enum <%s>", enum_nm);
-          node->addBlendNode(n, (eval >= 0) ? eval - 0.1f : 0, (eval >= 0) ? eval + 0.1f : 0, 0, graph, var_name);
+          addBlendNode(n, (eval >= 0) ? eval - 0.1f : 0, (eval >= 0) ? eval + 0.1f : 0, 0, graph, var_name);
           if (n->isSubOf(AnimBlendNodeSingleLeafCID))
             has_single = true;
         }
@@ -2549,17 +2763,41 @@ void AnimBlendCtrl_ParametricSwitcher::createNode(AnimationGraph &graph, const D
     }
   }
   if (dd_stricmp(blk.getBlockName(), "paramSwitchS") == 0)
-    node->continuousAnimMode = false;
+    continuousAnimMode = false;
 
-  if (has_single && node->continuousAnimMode)
+  if (has_single && continuousAnimMode)
   {
     logerr("paramSwitch %s has single anims, but tuned for continuous mode", name);
-    for (int i = 0; i < node->list.size(); i++)
-      logerr("  node[%d]=%s, %s", i, graph.getBlendNodeName(node->list[i].node),
-        node->list[i].node->isSubOf(AnimBlendNodeSingleLeafCID) ? "single" : "continuous");
+    for (int i = 0; i < list.size(); i++)
+      logerr("  node[%d]=%s, %s", i, graph.getBlendNodeName(list[i].node),
+        list[i].node->isSubOf(AnimBlendNodeSingleLeafCID) ? "single" : "continuous");
   }
+}
 
-  graph.registerBlendNode(node, name, nm_suffix);
+void AnimBlendCtrl_ParametricSwitcher::checkHasLoop(AnimationGraph &graph, eastl::bitvector<> &visited_nodes)
+{
+  int id = getAnimNodeId();
+  if (id == -1)
+    return;
+
+  visited_nodes[id] = true;
+  for (const ItemAnim &child : list)
+  {
+    int childId = child.node->getAnimNodeId();
+    if (childId == -1)
+      continue;
+
+    if (visited_nodes[childId])
+    {
+      ANIM_ERR("Find loop in controller childs, controller: %s, parent: %s", graph.getAnimNodeName(childId),
+        graph.getAnimNodeName(id));
+      list.clear();
+      break;
+    }
+    else
+      child.node->checkHasLoop(graph, visited_nodes);
+  }
+  visited_nodes[id] = false;
 }
 
 void AnimBlendCtrl_Hub::createNode(AnimationGraph &graph, const DataBlock &blk, const char *nm_suffix)
@@ -2571,20 +2809,25 @@ void AnimBlendCtrl_Hub::createNode(AnimationGraph &graph, const DataBlock &blk, 
     return;
   }
 
-  String var_name = String("var") + name;
-
   AnimBlendCtrl_Hub *node = new AnimBlendCtrl_Hub;
-  int child_nid = blk.getNameId("child"), i;
-  if (child_nid != -1)
-    for (i = 0; i < blk.blockCount(); i++)
-      if (blk.getBlock(i)->getBlockNameId() == child_nid)
+  graph.registerBlendNode(node, name, nm_suffix);
+}
+
+void AnimBlendCtrl_Hub::initChilds(AnimationGraph &graph, const DataBlock &blk, const char *nm_suffix)
+{
+  const char *name = blk.getStr("name");
+  String varName = String("var") + name;
+  int childNid = blk.getNameId("child");
+  if (childNid != -1)
+    for (int i = 0; i < blk.blockCount(); i++)
+      if (blk.getBlock(i)->getBlockNameId() == childNid)
       {
         const DataBlock *cblk = blk.getBlock(i);
         const char *nm = cblk->getStr("name", NULL);
         if (!nm)
         {
-          delete node;
-          ANIM_ERR("<name> is not defined in hub child");
+          graph.unregisterBlendNode(this);
+          ANIM_ERR("field <name> is not defined in <%s> hub child", name);
           return;
         }
 
@@ -2600,7 +2843,7 @@ void AnimBlendCtrl_Hub::createNode(AnimationGraph &graph, const DataBlock &blk, 
           const bool isOptional = cblk->getBool("optional", false);
           if (!isOptional)
           {
-            delete node;
+            graph.unregisterBlendNode(this);
             if (!is_ignoring_unavailable_resources())
               ANIM_ERR("blend node <%s> (suffix=%s) not found!", nm, nm_suffix);
             return;
@@ -2608,20 +2851,43 @@ void AnimBlendCtrl_Hub::createNode(AnimationGraph &graph, const DataBlock &blk, 
           else
             continue;
         }
-        node->addBlendNode(n, cblk->getBool("enabled", true), cblk->getReal("weight", 1.0f));
+        addBlendNode(n, cblk->getBool("enabled", true), cblk->getReal("weight", 1.0f));
       }
   if (!blk.getBool("const", false))
-    node->finalizeInit(graph, var_name);
-  graph.registerBlendNode(node, name, nm_suffix);
+    finalizeInit(graph, varName);
 }
+
+void AnimBlendCtrl_Hub::checkHasLoop(AnimationGraph &graph, eastl::bitvector<> &visited_nodes)
+{
+  int id = getAnimNodeId();
+  if (id == -1)
+    return;
+
+  visited_nodes[id] = true;
+  for (const Ptr<IAnimBlendNode> child : nodes)
+  {
+    int childId = child->getAnimNodeId();
+    if (childId == -1)
+      continue;
+
+    if (visited_nodes[childId])
+    {
+      ANIM_ERR("Find loop in controller childs, controller: %s, parent: %s", graph.getAnimNodeName(childId),
+        graph.getAnimNodeName(id));
+      nodes.clear();
+      break;
+    }
+    else
+      child->checkHasLoop(graph, visited_nodes);
+  }
+  visited_nodes[id] = false;
+}
+
 void AnimBlendCtrl_Blender::createNode(AnimationGraph &graph, const DataBlock &blk)
 {
   const char *name = blk.getStr("name", NULL);
   const char *_vname = blk.getStr("varname", NULL);
   String var_name;
-
-  const char *anim;
-  IAnimBlendNode *n;
 
   if (!name)
   {
@@ -2635,6 +2901,17 @@ void AnimBlendCtrl_Blender::createNode(AnimationGraph &graph, const DataBlock &b
     var_name = String("var") + name;
 
   AnimBlendCtrl_Blender *node = new AnimBlendCtrl_Blender(graph, var_name);
+  node->setDuration(blk.getReal("duration", 1.0f));
+  node->setBlendTime(blk.getReal("morph", 1.0f));
+
+  graph.registerBlendNode(node, name);
+}
+
+void AnimBlendCtrl_Blender::initChilds(AnimationGraph &graph, const DataBlock &blk, const char * /*nm_suffix*/)
+{
+  const char *anim;
+  IAnimBlendNode *n;
+
   anim = blk.getStr("node1", NULL);
   if (anim)
   {
@@ -2642,10 +2919,10 @@ void AnimBlendCtrl_Blender::createNode(AnimationGraph &graph, const DataBlock &b
     if (!n)
     {
       ANIM_ERR("blend node <%s> not found!", anim);
-      delete node;
+      graph.unregisterBlendNode(this);
       return;
     }
-    node->setBlendNode(0, n);
+    setBlendNode(0, n);
   }
   anim = blk.getStr("node2", NULL);
   if (anim)
@@ -2654,24 +2931,46 @@ void AnimBlendCtrl_Blender::createNode(AnimationGraph &graph, const DataBlock &b
     if (!n)
     {
       ANIM_ERR("blend node <%s> not found!", anim);
-      delete node;
+      graph.unregisterBlendNode(this);
       return;
     }
-    node->setBlendNode(1, n);
+    setBlendNode(1, n);
   }
-  node->setDuration(blk.getReal("duration", 1.0f));
-  node->setBlendTime(blk.getReal("morph", 1.0f));
-
-  graph.registerBlendNode(node, name);
 }
+
+void AnimBlendCtrl_Blender::checkHasLoop(AnimationGraph &graph, eastl::bitvector<> &visited_nodes)
+{
+  int id = getAnimNodeId();
+  if (id == -1)
+    return;
+
+  visited_nodes[id] = true;
+  for (const Ptr<IAnimBlendNode> child : node)
+  {
+    int childId = child->getAnimNodeId();
+    if (childId == -1)
+      continue;
+
+    if (visited_nodes[childId])
+    {
+      ANIM_ERR("Find loop in controller childs, controller: %s, parent: %s", graph.getAnimNodeName(childId),
+        graph.getAnimNodeName(id));
+      node[0] = nullptr;
+      node[1] = nullptr;
+      break;
+    }
+    else
+      child->checkHasLoop(graph, visited_nodes);
+  }
+  visited_nodes[id] = false;
+}
+
 void AnimBlendCtrl_BinaryIndirectSwitch::createNode(AnimationGraph &graph, const DataBlock &blk)
 {
   const char *name = blk.getStr("name", NULL);
   const char *_vname = blk.getStr("varname", NULL);
   String var_name;
 
-  const char *anim;
-  IAnimBlendNode *n1, *n2, *ctrl;
 
   if (!name)
   {
@@ -2687,10 +2986,18 @@ void AnimBlendCtrl_BinaryIndirectSwitch::createNode(AnimationGraph &graph, const
   AnimBlendCtrl_BinaryIndirectSwitch *node =
     new AnimBlendCtrl_BinaryIndirectSwitch(graph, var_name, blk.getInt("maskAnd", 0), blk.getInt("maskEq", 0));
 
+  graph.registerBlendNode(node, name);
+}
+
+void AnimBlendCtrl_BinaryIndirectSwitch::initChilds(AnimationGraph &graph, const DataBlock &blk, const char * /*nm_suffix*/)
+{
+  const char *anim;
+  IAnimBlendNode *n1, *n2, *ctrl;
+
   anim = blk.getStr("node1", NULL);
   if (!anim)
   {
-    delete node;
+    graph.unregisterBlendNode(this);
     ANIM_ERR("node1 not defined!");
     return;
   }
@@ -2698,7 +3005,7 @@ void AnimBlendCtrl_BinaryIndirectSwitch::createNode(AnimationGraph &graph, const
   n1 = graph.getBlendNodePtr(anim);
   if (!n1)
   {
-    delete node;
+    graph.unregisterBlendNode(this);
     ANIM_ERR("blend node <%s> not found!", anim);
     return;
   }
@@ -2706,14 +3013,14 @@ void AnimBlendCtrl_BinaryIndirectSwitch::createNode(AnimationGraph &graph, const
   anim = blk.getStr("node2", NULL);
   if (!anim)
   {
-    delete node;
+    graph.unregisterBlendNode(this);
     ANIM_ERR("node1 not defined!");
     return;
   }
   n2 = graph.getBlendNodePtr(anim);
   if (!n2)
   {
-    delete node;
+    graph.unregisterBlendNode(this);
     ANIM_ERR("blend node <%s> not found!", anim);
     return;
   }
@@ -2721,28 +3028,53 @@ void AnimBlendCtrl_BinaryIndirectSwitch::createNode(AnimationGraph &graph, const
   anim = blk.getStr("fifo", NULL);
   if (!anim)
   {
-    delete node;
+    graph.unregisterBlendNode(this);
     ANIM_ERR("node1 not defined!");
     return;
   }
   ctrl = graph.getBlendNodePtr(anim);
   if (!ctrl)
   {
-    delete node;
+    graph.unregisterBlendNode(this);
     ANIM_ERR("blend node <%s> (fifo) not found!", anim);
     return;
   }
   if (!ctrl->isSubOf(AnimBlendCtrl_Fifo3CID))
   {
-    delete node;
+    graph.unregisterBlendNode(this);
     ANIM_ERR("blend node <%s> is not fifo3!", anim);
     return;
   }
 
-  node->setBlendNodes(n1, blk.getReal("morph1", 0.0f), n2, blk.getReal("morph2", 0.0f));
-  node->setFifoCtrl((AnimBlendCtrl_Fifo3 *)ctrl);
+  setBlendNodes(n1, blk.getReal("morph1", 0.0f), n2, blk.getReal("morph2", 0.0f));
+  setFifoCtrl((AnimBlendCtrl_Fifo3 *)ctrl);
+}
 
-  graph.registerBlendNode(node, name);
+void AnimBlendCtrl_BinaryIndirectSwitch::checkHasLoop(AnimationGraph &graph, eastl::bitvector<> &visited_nodes)
+{
+  int id = getAnimNodeId();
+  if (id == -1)
+    return;
+
+  visited_nodes[id] = true;
+  for (const Ptr<IAnimBlendNode> child : node)
+  {
+    int childId = child->getAnimNodeId();
+    if (childId == -1)
+      continue;
+
+    if (visited_nodes[childId])
+    {
+      ANIM_ERR("Find loop in controller childs, controller: %s, parent: %s", graph.getAnimNodeName(childId),
+        graph.getAnimNodeName(id));
+      node[0] = nullptr;
+      node[1] = nullptr;
+      break;
+    }
+    else
+      child->checkHasLoop(graph, visited_nodes);
+  }
+  visited_nodes[id] = false;
 }
 
 void AnimBlendCtrl_SetMotionMatchingTag::createNode(AnimationGraph &graph, const DataBlock &blk, const char *nm_suffix)

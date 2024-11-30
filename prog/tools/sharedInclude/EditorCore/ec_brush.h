@@ -188,6 +188,9 @@ public:
   /// @return @b true if brush is in repeat mode
   inline bool isRepeat() const { return autorepeat; }
 
+  /// Tests whether the brush is currently drawing (either with the left or the right mouse button).
+  /// @return @b true if drawing
+  bool isDrawingInProgress() const { return drawing || rightDrawing; }
 
   /// Set brush radius.
   /// @param[in] r - brush radius

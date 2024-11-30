@@ -121,11 +121,11 @@ macro USE_WATER_PROJECTED_EFFECTS(stage)
   }
 endmacro
 
-macro GET_WATER_COLOR()
-hlsl(ps) {
+macro GET_WATER_COLOR(code)
+hlsl(code) {
   #define INV_MIN_IOR 50
 }
-hlsl(ps) {
+hlsl(code) {
   #include "pbr/BRDF.hlsl"
 }
 endmacro
@@ -197,7 +197,6 @@ macro WATER_3D_COMMON_VS()
   supports water3d_block;
 
   DECL_POSTFX_TC_VS_RT()
-  GET_WATER_COLOR()
   INIT_WORLD_HEIGHTMAP_VS()
   USE_HEIGHTMAP_COMMON_VS()
   HEIGHTMAP_DECODE_EDGE_TESSELATION()
@@ -249,6 +248,7 @@ macro WATER_3D_COMMON_VS()
 endmacro
 
 macro WATER_3D_COMMON_PS()
+  GET_WATER_COLOR(ps)
   USE_SCREENPOS_TO_TC()
   USE_SCREENPOS_TO_LOWRES_TC()
   USE_WATER_RIPPLES()

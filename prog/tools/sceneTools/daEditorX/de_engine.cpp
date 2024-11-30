@@ -1256,6 +1256,9 @@ IDagorEd2Engine::ModeType DagorEdAppWindow::getGizmoModeType() { return gizmoEH-
 IDagorEd2Engine::CenterType DagorEdAppWindow::getGizmoCenterType() { return ged.tbManager->getCenterType(); }
 
 
+bool DagorEdAppWindow::isGizmoOperationStarted() const { return gizmoEH->isStarted(); }
+
+
 void DagorEdAppWindow::setViewportZnearZfar(real zn, real zf) { ged.setZnearZfar(zn, zf); }
 
 

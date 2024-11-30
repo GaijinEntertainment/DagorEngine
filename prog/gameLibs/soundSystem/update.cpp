@@ -14,6 +14,7 @@
 #include "internal/delayed.h"
 #include "internal/events.h"
 #include "internal/streams.h"
+#include "internal/occlusion.h"
 #include "internal/debug.h"
 #include <atomic>
 
@@ -135,7 +136,11 @@ void end_update(float dt)
 
   streams::update(dt);
 
-  SOUND_VERIFY(get_studio_system()->update());
+  const auto systemAndStudioSystem = get_systems();
+
+  occlusion::update(get_3d_listener_pos(), *systemAndStudioSystem.first);
+
+  SOUND_VERIFY(systemAndStudioSystem.second->update());
 
   banks::update();
 }

@@ -52,7 +52,7 @@ public:
   InternalRegistry &getInternalRegistry() { return registry; }
   void updateExternalState(ExternalState state) { nodeExec->externalState = state; }
   void setMultiplexingExtents(multiplexing::Extents extents);
-  void runNodes();
+  bool runNodes();
 
   void markStageDirty(CompilationStage stage)
   {

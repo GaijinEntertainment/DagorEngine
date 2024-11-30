@@ -49,16 +49,8 @@ struct ToolsHeatHazeRendererGlue
           targetHazeOffset = dag::create_tex(nullptr, offsetTextureWidth, offsetTextureHeight, TEXFMT_A16B16G16R16F | TEXCF_RTARGET, 1,
             "haze_offset_tex");
 
-          uint32_t flags = 0;
-          for (auto format : {TEXFMT_DEPTH24, TEXFMT_DEPTH16})
-            if (d3d::check_texformat(format | TEXCF_RTARGET))
-            {
-              flags = format | TEXCF_RTARGET;
-              break;
-            }
-          G_ASSERT(flags);
-
-          targetHazeDepth = dag::create_tex(nullptr, offsetTextureWidth, offsetTextureHeight, flags, 1, "haze_depth_tex");
+          targetHazeDepth =
+            dag::create_tex(nullptr, offsetTextureWidth, offsetTextureHeight, TEXFMT_R16F | TEXCF_RTARGET, 1, "haze_depth_tex");
           targetHazeColor =
             dag::create_tex(nullptr, offsetTextureWidth, offsetTextureHeight, TEXFMT_DEFAULT | TEXCF_RTARGET, 1, "haze_color_tex");
 

@@ -514,14 +514,14 @@ struct StaticShadowCullJob final : public cpujobs::IJob
 DAG_DECLARE_RELOCATABLE(StaticShadowCullJob);
 static dag::RelocatableFixedVector<StaticShadowCullJob, 8, true, framemem_allocator>
   static_shadow_jobs[ShadowsManager::MAX_NUM_STATIC_SHADOWS_CASCADES];
-static void free_overflowed_static_shadow_cull_jobs()
+void wait_static_shadows_cull_jobs()
 {
   for (auto &jobs : static_shadow_jobs)
   {
-    for ([[maybe_unused]] auto &j : jobs)
-      G_ASSERT(interlocked_relaxed_load(j.done));       // Expected to be waited on by `renderStaticShadowsRegion`
+    for (auto &j : jobs)
+      threadpool::wait(&j);
     if (DAGOR_UNLIKELY(jobs.size() > jobs.static_size)) // Overflowed?
-      jobs.clear();
+      jobs.resize(jobs.static_size);
   }
 }
 
@@ -841,7 +841,7 @@ void ShadowsManager::renderStaticShadows()
     staticShadows->render(cb);
     if (staticShadowsSetShaderVars)
       staticShadows->setShaderVars();
-    free_overflowed_static_shadow_cull_jobs();
+    wait_static_shadows_cull_jobs(); // Free overflowed jobs
   }
 }
 

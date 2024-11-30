@@ -213,6 +213,7 @@ InstanceId create_subinstance(Context &ctx, InstanceId queued_iid, const SystemT
   SETV(INST_RENDER_SORT_DEPTH, sys.renderSortDepth);
   SETV(INST_CULLING_ID, 0xffffffff);
   SETV(INST_LAST_VALID_BBOX_FRAME, ctx.currentFrame);
+  SETV(INST_VISIBILITY, 0xffffffff);
   if constexpr (INST_RENDERABLE_TRIS >= 0)
     *stream.getOpt<INST_RENDERABLE_TRIS, uint>(sid) = 0;
 
@@ -566,6 +567,7 @@ inline void reset_subinstance(Context &ctx, int sid)
   flags = stream.get<INST_REF_FLAGS>(sid);
   stream.get<INST_SYNCED_FLAGS>(sid) = flags;
   stream.get<INST_LAST_VALID_BBOX_FRAME>(sid) = ctx.currentFrame;
+  stream.get<INST_VISIBILITY>(sid) = 0xffffffff;
   if constexpr (INST_RENDERABLE_TRIS >= 0)
     *stream.getOpt<INST_RENDERABLE_TRIS, uint>(sid) = 0;
 
@@ -1118,17 +1120,17 @@ bool get_instance_status(ContextId cid, InstanceId rid)
   return flags & SYS_ENABLED;
 }
 
-void set_instance_visibility(ContextId cid, InstanceId iid, bool visible)
+void set_instance_visibility(ContextId cid, InstanceId iid, uint32_t visibility)
 {
   GET_CTX();
   G_ASSERT_RETURN(iid, );
 
   os_spinlock_lock(&ctx.queueLock);
-  ctx.commandQueueNext.instanceVisibility.push_back({iid, visible});
+  ctx.commandQueueNext.instanceVisibility.push_back({iid, visibility});
   os_spinlock_unlock(&ctx.queueLock);
 }
 
-void set_instance_visibility(Context &ctx, int sid, bool visible)
+void set_instance_visibility(Context &ctx, int sid, uint32_t visibility)
 {
   if (sid == dummy_instance_sid)
     return;
@@ -1136,15 +1138,11 @@ void set_instance_visibility(Context &ctx, int sid, bool visible)
   INST_TUPLE_LOCK_GUARD;
 
   InstanceGroups &stream = ctx.instances.groups;
-  uint32_t &flag = stream.get<INST_FLAGS>(sid); // -V758
-  G_ASSERT(flag & SYS_VALID);
-
-  flag &= ~SYS_EXPLICITLY_HIDDEN;
-  flag |= visible ? 0 : SYS_EXPLICITLY_HIDDEN;
+  stream.get<INST_VISIBILITY>(sid) = visibility;
 
   eastl::vector<int> &subinstances = stream.get<INST_SUBINSTANCES>(sid); // -V758
   for (int subSid : subinstances)
-    set_instance_visibility(ctx, subSid, visible);
+    set_instance_visibility(ctx, subSid, visibility);
 }
 
 void set_instance_visibility_from_queue(Context &ctx)
@@ -1155,7 +1153,7 @@ void set_instance_visibility_from_queue(Context &ctx)
     INST_LIST_LOCK_GUARD;
     int *sid = ctx.instances.list.get(cq.iid);
     G_ASSERT_CONTINUE(sid);
-    set_instance_visibility(ctx, *sid, cq.visible);
+    set_instance_visibility(ctx, *sid, cq.visibility);
   }
 }
 

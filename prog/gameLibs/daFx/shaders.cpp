@@ -113,6 +113,7 @@ int update_cpu_tasks(Context &ctx, const eastl::vector<int> &workers, int start,
   dispatches.reserve(count);
 
   int cpuElemProcessed = 0;
+  eastl::array<int, Config::max_simulation_lods> cpuElemProcessedByLods = {};
   InstanceGroups &stream = ctx.instances.groups;
 
   G_STATIC_ASSERT(Config::max_simulation_lods <= 8); // we can use more, but then we need to change packing, or change it to 1 << lod
@@ -146,9 +147,12 @@ int update_cpu_tasks(Context &ctx, const eastl::vector<int> &workers, int start,
     ddesc.aliveStartAndCount = inst.aliveStart | (inst.aliveCount << 16);
     ddesc.rndSeedAndCullingId = (uint32_hash(rnd + sid + ddesc.startAndCount) % 0xff) | (stream.get<INST_CULLING_ID>(sid) << 8);
     cpuElemProcessed += state.count;
+    cpuElemProcessedByLods[lod] += state.count;
   }
 
   interlocked_add(ctx.asyncStats.cpuElemProcessed, cpuElemProcessed);
+  for (int i = 0; i < cpuElemProcessedByLods.size(); ++i)
+    interlocked_add(ctx.asyncStats.cpuElemProcessedByLods[i], cpuElemProcessedByLods[i]);
 
   if (dispatches.empty())
     return 0;
@@ -232,6 +236,7 @@ void update_gpu_tasks(Context &ctx, const eastl::vector<int> &workers)
   dispatches.reserve(workers.size());
 
   int gpuElemProcessed = 0;
+  eastl::array<int, Config::max_simulation_lods> gpuElemProcessedByLods = {};
   InstanceGroups &stream = ctx.instances.groups;
 
   // prep all dispatches
@@ -264,9 +269,12 @@ void update_gpu_tasks(Context &ctx, const eastl::vector<int> &workers)
     ddesc.aliveStartAndCount = inst.aliveStart | (inst.aliveCount << 16);
     ddesc.rndSeedAndCullingId = (uint32_hash(rnd + sid + ddesc.startAndCount) % 0xff) | (stream.get<INST_CULLING_ID>(sid) << 8);
     gpuElemProcessed += state.count;
+    gpuElemProcessedByLods[lod] += state.count;
   }
 
   interlocked_add(ctx.asyncStats.gpuElemProcessed, gpuElemProcessed);
+  for (int i = 0; i < gpuElemProcessedByLods.size(); ++i)
+    interlocked_add(ctx.asyncStats.gpuElemProcessedByLods[i], gpuElemProcessedByLods[i]);
 
   if (dispatches.empty())
     return;

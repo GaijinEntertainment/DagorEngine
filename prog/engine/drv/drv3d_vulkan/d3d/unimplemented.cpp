@@ -40,11 +40,6 @@ void d3d::dispatch_mesh_indirect_count(Sbuffer * /*args*/, uint32_t /*args_strid
   G_ASSERT_RETURN(!"VK: dispatch_mesh not implemented yet", );
 }
 
-// pipe fences
-
-GPUFENCEHANDLE d3d::insert_fence(GpuPipeline /*gpu_pipeline*/) { return 0; }
-void d3d::insert_wait_on_fence(GPUFENCEHANDLE & /*fence*/, GpuPipeline /*gpu_pipeline*/) {}
-
 // multi views
 
 bool d3d::setviews(dag::ConstSpan<Viewport> /* viewports */)

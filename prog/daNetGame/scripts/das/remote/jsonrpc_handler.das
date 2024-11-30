@@ -46,7 +46,7 @@ class JsonRpcMatch : Matcher
     self->clean()
 
     if find(str, "\"jsonrpc\"") < 0
-      return <- [[MatchResult invalid = null]]
+      return <- [[MatchResult invalid = true]]
 
     let strLen = length(str)
     var start = 0
@@ -75,7 +75,7 @@ class JsonRpcMatch : Matcher
         end = strLen
 
     if length(requests) == 0
-      return <- [[MatchResult invalid = null]]
+      return <- [[MatchResult invalid = true]]
     return <- [[MatchResult success = end]]
 
   def parseReq(str : string) : bool

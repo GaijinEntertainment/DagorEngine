@@ -18,6 +18,7 @@ private:
   virtual void paint(int w, int h) override;
   virtual void fillStatSettingsDialog(ViewportWindowStatSettingsDialog &dialog) override;
   virtual void handleStatSettingsDialogChange(int pcb_id, bool value) override;
+  virtual bool canStartInteractionWithViewport() override;
 
   int getAssetStatByIndex(int index);
   static int getAssetStatIndexByName(const char *name);

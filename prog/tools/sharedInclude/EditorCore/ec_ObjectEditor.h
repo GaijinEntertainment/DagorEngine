@@ -128,6 +128,9 @@ public:
 
   bool isPanelShown() const { return objectPropBar != nullptr; }
 
+  void loadPropPanelSettings(const DataBlock &settings);
+  void savePropPanelSettings(DataBlock &settings);
+
   /// Get Edit Mode.
   virtual int getEditMode() { return editMode; }
 
@@ -401,6 +404,7 @@ protected:
   IObjectCreator *creator;
   ObjectEditorPropPanelBar *objectPropBar;
 
+  DataBlock objectPropSettings;
 
   virtual void onAddObject(RenderableEditableObject &obj);
   virtual void _addObjects(RenderableEditableObject **obj, int num, bool use_undo);
@@ -410,6 +414,8 @@ protected:
   virtual Point3 getSurfMoveGizmoPos(const Point3 &obj_pos) const;
 
   virtual ObjectEditorPropPanelBar *createEditorPropBar(void *handle);
+
+  virtual void saveEditorPropBarSettings();
 
   // IWndManagerWindowHandler
   virtual void *onWmCreateWindow(int type) override;
@@ -519,6 +525,10 @@ public:
   virtual void fillPanel();
   virtual void refillPanel();
   virtual void updateName(const char *name);
+
+  // loadSettings must be called after fillPanel.
+  virtual void loadSettings(DataBlock &settings);
+  virtual void saveSettings(DataBlock &settings) const;
 
   PropPanel::PanelWindowPropertyControl *getPanel()
   {

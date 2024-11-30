@@ -209,7 +209,7 @@ macro DYNAMIC_SIMPLE_VS_BASE_PREAMBLE()
         float3 normal                           : TEXCOORD2;
         #if HAS_BLOOD_DECAL
         float4 bloodDecalTC                     : TEXCOORD6;
-        nointerpolation float  textureIndexTime : TEXCOORD7;
+        nointerpolation float4  hitNormalTextureIndexTime : TEXCOORD7;
         #endif
         #if HAS_TORN_WOUNDS
         float4 tornWoundParams                  : TEXCOORD8;

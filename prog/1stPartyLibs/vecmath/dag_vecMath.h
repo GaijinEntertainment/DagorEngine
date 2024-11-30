@@ -1057,37 +1057,8 @@ VECTORCALL VECMATH_FINLINE quat4f v_quat_from_unit_vec_cos(vec3f v, vec4f ang_co
 VECTORCALL VECMATH_FINLINE quat4f v_quat_from_unit_arc(vec3f v0, vec3f v1);
 //! make (unnormalized) quaternion to rotate 'v0' to 'v1', both CAN be not normalized
 VECTORCALL VECMATH_FINLINE quat4f v_quat_from_arc(vec3f v0, vec3f v1);
-
-//! make (unnormalized) quaternion from euler angles. equivalent to v_quat_from_euler(angles, EULER_ORDER_XYZ)
-VECTORCALL inline quat4f v_quat_from_euler_xyz(vec3f angles);
-//! make (unnormalized) quaternion from euler angles. equivalent to v_quat_from_euler(angles, EULER_ORDER_XZY)
-VECTORCALL inline quat4f v_quat_from_euler_xzy(vec3f angles);
-//! make (unnormalized) quaternion from euler angles. equivalent to v_quat_from_euler(angles, EULER_ORDER_YZX)
-VECTORCALL inline quat4f v_quat_from_euler_yzx(vec3f angles);
-//! make (unnormalized) quaternion from euler angles. equivalent to v_quat_from_euler(angles, EULER_ORDER_YXZ)
-VECTORCALL inline quat4f v_quat_from_euler_yxz(vec3f angles);
-//! make (unnormalized) quaternion from euler angles. equivalent to v_quat_from_euler(angles, EULER_ORDER_ZXY)
-VECTORCALL inline quat4f v_quat_from_euler_zxy(vec3f angles);
-//! make (unnormalized) quaternion from euler angles. equivalent to v_quat_from_euler(angles, EULER_ORDER_ZYX)
-VECTORCALL inline quat4f v_quat_from_euler_zyx(vec3f angles);
-
-enum EulerOrder
-{
-  EULER_ORDER_XYZ,
-  EULER_ORDER_XZY,
-  EULER_ORDER_YZX,
-  EULER_ORDER_YXZ,
-  EULER_ORDER_ZXY,
-  EULER_ORDER_ZYX
-};
-//! Make (unnormalized) quaternion from euler angles with a provided order.
-//! angles.x, angles.y, angles.z are rotations around X, Y, Z axes respectively.
-//! Rotations are performed left to right according to the specified order.
-//! Keep in mind, that the last rotation in the order is the first to be applied when finally multiplying a vector,
-//! so that `quat(EULER_ORDER_XYZ) * v` is equivalent to `rotX * rotY * rotZ * v`.
-//! In other words, rotations in world space are performed in reverse order.
-VECTORCALL inline quat4f v_quat_from_euler(vec3f angles, EulerOrder order);
-
+//! make (unnormalized) quaternion from heading, attitude, bank angles in .xyz
+VECTORCALL inline quat4f v_quat_from_euler(vec3f angles);
 //! make heading, attitude, bank angles from quaternion
 VECTORCALL inline vec3f v_euler_from_quat(quat4f quat);
 

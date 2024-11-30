@@ -343,6 +343,7 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
   GDATA(dt);
   GDATA(water_level);
   GDATA(globtm);
+  GDATA(globtm_prev);
   GDATA(view_dir_x);
   GDATA(view_dir_y);
   GDATA(view_dir_z);
@@ -358,6 +359,7 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
   GDATA(sky_color);
   GDATA(zn_zfar);
   GDATA(znear_offset);
+  GDATA(proj_hk);
   GDATA(wind_dir);
   GDATA(wind_power);
   GDATA(wind_scroll);

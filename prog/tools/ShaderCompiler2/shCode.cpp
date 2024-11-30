@@ -70,6 +70,37 @@ unsigned int ShaderCode::getVertexStride() const
   return vertexStride;
 }
 
+void ShaderClass::sortStaticVarsByMode()
+{
+  Tab<eastl::pair<Var, int>> argvars{};
+  argvars.reserve(stvar.size());
+  int i = 0;
+  eastl::transform(stvar.cbegin(), stvar.cend(), argvars.begin(), [&i](const Var &var) { return eastl::make_pair(var, i++); });
+
+  // First statics, then dynamics, with as little reordering as possible
+  eastl::stable_partition(argvars.begin(), argvars.end(), [this](const auto &p) { return !stvarsAreDynamic[p.second]; });
+
+  // We don't need this data anymore, and no need to remap it
+  stvarsAreDynamic.clear();
+
+  Tab<int> remapping(argvars.size());
+  for (size_t i = 0; i < argvars.size(); ++i)
+  {
+    stvar[i] = argvars[i].first;
+    remapping[argvars[i].second] = i;
+  }
+
+  // Now patch all stvarmaps for shader codes with the new mapping
+  for (ShaderCode *shcode : code)
+  {
+    if (shcode)
+    {
+      for (ShaderCode::StVarMap &mapping : shcode->stvarmap)
+        mapping.sv = remapping[mapping.sv];
+    }
+  }
+}
+
 int ShaderClass::find_static_var(const int variable_name_id)
 {
   for (int i = 0; i < stvar.size(); ++i)

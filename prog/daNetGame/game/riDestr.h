@@ -1,6 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+class TMatrix;
+class TMatrix4;
 namespace net
 {
 class IConnection;

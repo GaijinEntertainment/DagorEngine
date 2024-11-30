@@ -612,9 +612,13 @@ bool d3d::clearview(int write_mask, E3DCOLOR c, float z_value, uint32_t stencil_
 {
   CHECK_MAIN_THREAD();
 
-  flush_all(false);
-
   RenderState &rs = g_render_state;
+  // Disable flushing of render state to avoid unnecessary validation of render state.
+  // Anyway we don't render here and can flush this part later.
+  bool rasterizerModified = rs.rasterizerModified;
+  bool depthStencilModified = rs.depthStencilModified;
+  rs.rasterizerModified = rs.depthStencilModified = false;
+  flush_all(false);
 
   int targetW = 1, targetH = 1;
 
@@ -670,6 +674,9 @@ bool d3d::clearview(int write_mask, E3DCOLOR c, float z_value, uint32_t stencil_
 
     savedRs.restore();
   }
+
+  rs.rasterizerModified = rasterizerModified;
+  rs.depthStencilModified = depthStencilModified;
 
   return true;
 }

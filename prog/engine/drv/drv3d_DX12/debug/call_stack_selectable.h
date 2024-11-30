@@ -60,6 +60,7 @@ public:
     data = update;
     lastCommandName = name;
   }
+  void setCommandData(const null::CommandData &, const char *) {}
   const char *getLastCommandName() const { return lastCommandName; }
 };
 
@@ -161,6 +162,8 @@ public:
       case CommandData::ActiveMember::AS_FULL_STACK: FullStackBaseType::append(buffer, prefix, data.asFullStack); break;
     }
   }
+
+  void append(String &, const char *, const null::CommandData &) {}
 
   eastl::string_view resolve(const CommandData &data)
   {

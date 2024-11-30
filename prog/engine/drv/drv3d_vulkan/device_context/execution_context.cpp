@@ -18,6 +18,7 @@
 #include "stacked_profile_events.h"
 #include "predicted_latency_waiter.h"
 #include "texture.h"
+#include <EASTL/sort.h>
 
 using namespace drv3d_vulkan;
 
@@ -205,19 +206,60 @@ void ExecutionContext::imageBarrier(Image *img, ResourceBarrier d3d_barrier, uin
   }
 }
 
-void ExecutionContext::switchFrameCore(DeviceQueueType target_queue, bool async)
+void ExecutionContext::waitForUploadOnCurrentBuffer()
+{
+  size_t queueBit = 1 << (uint32_t)frameCoreQueue;
+  if (queueBit & uploadQueueWaitMask)
+    return;
+
+  if (transferUploadBuffer)
+    addQueueDep(transferUploadBuffer, scratch.cmdListsToSubmit.size());
+  if (graphicsUploadBuffer)
+    addQueueDep(graphicsUploadBuffer, scratch.cmdListsToSubmit.size());
+
+  uploadQueueWaitMask |= queueBit;
+}
+
+void ExecutionContext::waitUserQueueSignal(int idx, DeviceQueueType target_queue)
+{
+  ExecutionScratch::UserQueueSignal &usignal = scratch.userQueueSignals[idx];
+  // already waited for this signal on target queue
+  if (usignal.waitedOnQueuesMask & (1 << (uint32_t)target_queue))
+    return;
+  addQueueDep(scratch.userQueueSignals[idx].bufferIdx, lastBufferIdxOnQueue[(uint32_t)target_queue]);
+  // mark waited
+  usignal.waitedOnQueuesMask |= (1 << (uint32_t)target_queue);
+}
+
+void ExecutionContext::recordUserQueueSignal(int idx, DeviceQueueType target_queue)
+{
+  G_UNUSED(idx);
+  G_ASSERTF(scratch.userQueueSignals.size() == idx, "vulkan: back to front queue signal sequencing broken expected %u, got %u",
+    scratch.userQueueSignals.size(), idx);
+  scratch.userQueueSignals.push_back({lastBufferIdxOnQueue[(uint32_t)target_queue], 0});
+}
+
+void ExecutionContext::switchFrameCoreForQueueChange(DeviceQueueType target_queue)
 {
   // override any queue to graphics if multi queue is not enabled
   if (!Globals::cfg.bits.allowMultiQueue)
-  {
     target_queue = DeviceQueueType::GRAPHICS;
-    async = false;
-  }
+  // switch buffer only if queue changes
+  if (frameCoreQueue == target_queue)
+    return;
+
+  completeSyncForQueueChange();
+  switchFrameCore(target_queue);
+  waitForUploadOnCurrentBuffer();
+}
+
+void ExecutionContext::switchFrameCore(DeviceQueueType target_queue)
+{
   // note: first switch will push empty buffer, that is used to replace later on for preFrame
-  scratch.cmdListsToSubmit.push_back({frameCoreQueue, frameCore, frameCoreAsync, false /*externalWaitPoint*/});
+  scratch.cmdListsToSubmit.push_back({frameCoreQueue, frameCore});
   frameCoreQueue = target_queue;
-  frameCoreAsync = async;
   allocFrameCore();
+  lastBufferIdxOnQueue[(uint32_t)target_queue] = scratch.cmdListsToSubmit.size();
 }
 
 void ExecutionContext::allocFrameCore()
@@ -289,7 +331,7 @@ void ExecutionContext::cleanupMemory()
   {
     TIME_PROFILE(vulkan_make_syscopy);
 
-    switchFrameCore(DeviceQueueType::GRAPHICS, false);
+    switchFrameCore(DeviceQueueType::GRAPHICS);
     {
       WinAutoLock lk(Globals::Mem::mutex);
       do
@@ -323,14 +365,24 @@ void ExecutionContext::cleanupMemory()
   frameCore = VulkanNullHandle();
 }
 
+void ExecutionContext::completeSyncForQueueChange()
+{
+  if (!Globals::cfg.bits.allowMultiQueue)
+    return;
+
+  Backend::sync.completeOnQueue(frameCore, vkDev, data.id);
+}
+
 void ExecutionContext::prepareFrameCore()
 {
+  if (size_t multiQueueOverride = Backend::interop.toggleMultiQueueSubmit.load(std::memory_order_relaxed))
+    Globals::cfg.bits.allowMultiQueue = (multiQueueOverride % 2) == 0;
+
   G_ASSERTF(is_null(frameCore), "vulkan: execution context already prepared for command execution");
   TIME_PROFILE(vulkan_pre_frame_core);
   // not tied to command buffer
   Backend::bindless.advance();
 
-  // queue fork point
   bool needGraphicsUpload = data.unorderedImageColorClears.size() || data.unorderedImageDepthStencilClears.size() ||
                             data.imageUploads.size() || data.unorderedImageCopies.size();
   bool needTransferUpload = data.bufferUploads.size() || data.orderedBufferUploads.size();
@@ -338,23 +390,29 @@ void ExecutionContext::prepareFrameCore()
   if (needGraphicsUpload)
   {
     // can't live on transfer queue (or can't always live) and followup queue should be graphics after prepare
-    switchFrameCore(DeviceQueueType::GRAPHICS, needTransferUpload);
+    switchFrameCoreForQueueChange(DeviceQueueType::GRAPHICS);
     writeExectionChekpointNonCommandStream(frameCore, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_START);
     flushUnorderedImageColorClears();
     flushUnorderedImageDepthStencilClears();
     flushImageUploads();
     flushUnorderedImageCopies();
+
+    graphicsUploadBuffer = scratch.cmdListsToSubmit.size();
   }
 
   if (needTransferUpload)
   {
-    switchFrameCore(DeviceQueueType::TRANSFER, true);
+    switchFrameCoreForQueueChange(DeviceQueueType::TRANSFER);
     writeExectionChekpointNonCommandStream(frameCore, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_START_TRANSFER_UPLOAD);
     flushBufferUploads(frameCore);
     flushOrderedBufferUploads(frameCore);
+
+    transferUploadBuffer = scratch.cmdListsToSubmit.size();
   }
-  // join point or initial frame core allocation
-  switchFrameCore(DeviceQueueType::GRAPHICS, false);
+
+  uploadQueueWaitMask = 0;
+  switchFrameCoreForQueueChange(DeviceQueueType::GRAPHICS);
+
   writeExectionChekpointNonCommandStream(frameCore, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_TIMESTAMPS_RESET_QUEUE_READBACKS);
   data.timestampQueryBlock->ensureSizesAndResetStatus(frameCore);
 
@@ -672,89 +730,229 @@ void ExecutionContext::flushPostFrameCommands()
   writeExectionChekpointNonCommandStream(postFrame, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_FRAME_END_SYNC);
 }
 
-void ExecutionContext::enqueueCommandListsToMultipleQueues(ThreadedFence *fence)
+void ExecutionContext::stackUpCommandBuffers()
 {
   FrameInfo &frame = Backend::gpuJob.get();
-
-  uint32_t submitOrder = 0;
-  DeviceQueueType activeQue = DeviceQueueType::INVALID;
-  bool activeQueList[(uint32_t)DeviceQueueType::COUNT] = {};
-  bool activeAsync = false;
+  DeviceQueueType activeQueue = DeviceQueueType::INVALID;
+  int32_t lastSubmitsOnQueues[(uint32_t)DeviceQueueType::COUNT] = {};
+  for (int32_t &i : lastSubmitsOnQueues)
+    i = -1;
+  int32_t submitIdx = 0;
   for (ExecutionScratch::CommandBufferSubmit &i : scratch.cmdListsToSubmit)
   {
+    // ignore empty buffers, that faciliate optional reordered commands
     if (is_null(i.handle))
       continue;
-    if (activeQue != i.queue || activeAsync != i.async)
-      scratch.submitGraph.push_back({{}, {}, i.queue, i.async && (activeAsync == i.async) ? submitOrder : ++submitOrder, false});
-    activeQue = i.queue;
-    activeAsync = i.async;
-    scratch.submitGraph.back().cbs.push_back(i.handle);
-    scratch.submitGraph.back().fenceWait |= i.externalWaitPoint;
+    // any queue change or signal/wait is candidate for separate queue submit
+    // in some cases we can continue "old" submit to previously seen queue, to avoid useless waits
+    if ((activeQueue != i.queue) || i.signals || i.waits || submitIdx < 0)
+    {
+      // if we don't wait on this buffer, we can append to last submit after switching queues
+      if (i.waits == 0 && lastSubmitsOnQueues[(uint32_t)i.queue] >= 0)
+      {
+        submitIdx = lastSubmitsOnQueues[(uint32_t)i.queue];
+        // patch data for dep logic
+        scratch.submitGraph[submitIdx].originalSignalId = (uint32_t)(&i - scratch.cmdListsToSubmit.begin());
+      }
+      else
+      {
+        submitIdx = scratch.submitGraph.size();
+        lastSubmitsOnQueues[(uint32_t)i.queue] = submitIdx;
+        scratch.submitGraph.push_back({{}, {}, {}, 0, i.queue, (uint32_t)(&i - scratch.cmdListsToSubmit.begin()),
+          (uint32_t)(&i - scratch.cmdListsToSubmit.begin()), false});
+      }
+    }
+    activeQueue = i.queue;
+    scratch.submitGraph[submitIdx].cbs.push_back(i.handle);
+    // if queue submit signals something, we can't add more buffers after that
+    // because it will break following waits on other queues (will happen too late)
+    G_ASSERTF(scratch.submitGraph[submitIdx].signalsCount == 0,
+      "vulkan: queue submit item should contain zero signals on append to it!");
+    scratch.submitGraph[submitIdx].signalsCount += i.signals;
+    // if we signal, we can't append followup buffers
+    if (i.signals)
+    {
+      lastSubmitsOnQueues[(uint32_t)i.queue] = -1;
+      submitIdx = -1;
+    }
   }
 
-  StaticTab<VulkanSemaphoreHandle, (uint32_t)DeviceQueueType::COUNT> frameJoinPoints;
-  DeviceQueueType fenceWaitQue = DeviceQueueType::INVALID;
+  // last submit should happen with fence, due to overall restrictions of driver
+  // completed fence = completed anything for user perspective
+  scratch.submitGraph.back().fenceWait = true;
 
+  // fill signals buffer ahead of time
+  for (ExecutionScratch::QueueSubmitItem &i : scratch.submitGraph)
+    for (int j = 0; j < i.signalsCount; ++j)
+      i.signals.push_back(frame.allocSemaphore(Globals::VK::dev));
+}
+
+void ExecutionContext::sortAndCountDependencies()
+{
+  eastl::sort(scratch.cmdListsSubmitDeps.begin(), scratch.cmdListsSubmitDeps.end(),
+    [](const ExecutionScratch::CommandBufferSubmitDeps &l, const ExecutionScratch::CommandBufferSubmitDeps &r) //
+    { return l.from < r.from; });
+
+  for (ExecutionScratch::CommandBufferSubmitDeps &i : scratch.cmdListsSubmitDeps)
+  {
+    ++scratch.cmdListsToSubmit[i.from].signals;
+    ++scratch.cmdListsToSubmit[i.to].waits;
+  }
+}
+
+// next gpu job should start after prev gpu job last work item
+// track and put semaphores for all active queues on this frame to guarantie that
+// otherwise gpu jobs can overlap
+struct FrameEndQueueJoin
+{
+  eastl::bitset<(uint32_t)DeviceQueueType::COUNT> activeQueueList;
+  uint32_t frameJoinPoints = 0;
+  DeviceQueueType fenceWaitQueue = DeviceQueueType::INVALID;
+
+  void markActiveQueue(DeviceQueueType queue) { activeQueueList.set(static_cast<uint32_t>(queue)); }
+
+  void addSignals(ExecutionScratch::QueueSubmitItem &target)
+  {
+    G_ASSERTF(frameJoinPoints == 0, "vulkan: frame joint points already populated, should not happen twice");
+    FrameInfo &frame = Backend::gpuJob.get();
+    frameJoinPoints = activeQueueList.count();
+    for (uint32_t i = 0; i < frameJoinPoints; ++i)
+      target.signals.push_back(frame.allocSemaphore(Globals::VK::dev));
+    fenceWaitQueue = target.queue;
+  }
+
+  void addWaits(ExecutionScratch::QueueSubmitItem &target)
+  {
+    if (frameJoinPoints)
+    {
+      // check for double wait or mismatch somewhere
+      G_ASSERTF(frameJoinPoints == target.signals.size(),
+        "vulkan: mismatched signals size %u vs %u, should be equal to added one in add signals", frameJoinPoints,
+        target.signals.size());
+      for (uint32_t i : LsbVisitor{activeQueueList.to_uint32()})
+      {
+        G_ASSERTF(!target.signals.empty(), "vulkan: frame queue join signaled more than it supposed to");
+        Globals::VK::queue[static_cast<DeviceQueueType>(i)].addSubmitSemaphore(target.signals.back(),
+          VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+        target.signals.pop_back();
+      }
+    }
+  }
+};
+
+void ExecutionContext::enqueueCommandListsToMultipleQueues(ThreadedFence *fence)
+{
+  TIME_PROFILE(vulkan_queue_submits);
+  FrameInfo &frame = Backend::gpuJob.get();
+
+  // sum up waits and signals for each buffer submit and sort dependencies to reduce complexity of submit logic
+  sortAndCountDependencies();
+  // generate queue submits, consisting of continous block of command lists
+  // while following dependencies
+  stackUpCommandBuffers();
+
+  FrameEndQueueJoin queueJoin;
+  ExecutionScratch::CommandBufferSubmitDeps *depPtr = scratch.cmdListsSubmitDeps.begin();
+
+  // NOTE: this logic will fail if earlier submit wants sync to later submit, hopefully triggering some of assert checks
   for (ExecutionScratch::QueueSubmitItem &i : scratch.submitGraph)
   {
-    i.semaphore.push_back(frame.allocSemaphore(vkDev));
-
-    bool consumedOn[(int)DeviceQueueType::COUNT] = {};
-    for (ExecutionScratch::QueueSubmitItem &j : scratch.submitGraph)
-    {
-      if (j.order > i.order && i.que != j.que && !consumedOn[(int)j.que])
-      {
-        i.semaphore.push_back(frame.allocSemaphore(vkDev));
-        Globals::VK::que[j.que].addSubmitSemaphore(i.semaphore.back(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-        consumedOn[(int)j.que] = true;
-      }
-    }
-
+    queueJoin.markActiveQueue(i.queue);
     if (fence && i.fenceWait)
-    {
-      for (uint32_t j = (uint32_t)DeviceQueueType::ZERO; j < (uint32_t)DeviceQueueType::COUNT; ++j)
-      {
-        if (!activeQueList[j] || static_cast<DeviceQueueType>(j) == i.que)
-          continue;
-        i.semaphore.push_back(frame.allocSemaphore(vkDev));
-        frameJoinPoints.push_back(i.semaphore.back());
-      }
-    }
+      queueJoin.addSignals(i);
 
     DeviceQueue::TrimmedSubmitInfo si = {};
     si.pCommandBuffers = ary(i.cbs.data());
     si.commandBufferCount = i.cbs.size();
-    si.pSignalSemaphores = ary(i.semaphore.data());
-    si.signalSemaphoreCount = i.semaphore.size();
-    activeQueList[static_cast<uint32_t>(i.que)] |= true;
+    si.pSignalSemaphores = ary(i.signals.data());
+    si.signalSemaphoreCount = i.signals.size();
+
+    // add submit semaphores from buffer because wait can happen after other submits on same queue
+    for (VulkanSemaphoreHandle j : i.submitSemaphores)
+      Globals::VK::queue[i.queue].addSubmitSemaphore(j, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+
     if (fence && i.fenceWait)
     {
-      Globals::VK::que[i.que].submit(vkDev, frame, si, fence->get());
+      Globals::VK::queue[i.queue].submit(vkDev, frame, si, fence->get());
       fence->setAsSubmited();
-      fenceWaitQue = i.que;
     }
     else
-    {
-      Globals::VK::que[i.que].submit(vkDev, frame, si);
-    }
+      Globals::VK::queue[i.queue].submit(vkDev, frame, si);
 
-    // affects next submit
-    Globals::VK::que[i.que].addSubmitSemaphore(i.semaphore[0], VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-  }
-
-  // join queues on frame end
-  if (frameJoinPoints.size())
-  {
-    for (uint32_t j = (uint32_t)DeviceQueueType::ZERO; j < (uint32_t)DeviceQueueType::COUNT; ++j)
+    ExecutionScratch::CommandBufferSubmitDeps *depRangeRestart = nullptr;
+    // add submit semaphores for related dst deps, using dynamic loop ranges
+    while (depPtr < scratch.cmdListsSubmitDeps.end())
     {
-      if (!activeQueList[j] || static_cast<DeviceQueueType>(j) == fenceWaitQue || frameJoinPoints.empty())
+      if (depPtr->from != i.originalSignalId)
+      {
+        if (!depRangeRestart)
+          depRangeRestart = depPtr;
+        ++depPtr;
         continue;
-      Globals::VK::que[static_cast<DeviceQueueType>(j)].addSubmitSemaphore(frameJoinPoints.back(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-      frameJoinPoints.pop_back();
+      }
+      ExecutionScratch::QueueSubmitItem *k = &i;
+      ++k;
+      while (k < scratch.submitGraph.end())
+      {
+        if (k->originalWaitId != depPtr->to)
+        {
+          ++k;
+          continue;
+        }
+        k->submitSemaphores.push_back(i.signals.back());
+        i.signals.pop_back();
+        if (i.signals.empty())
+          break;
+        ++k;
+      }
+      ++depPtr;
     }
+    // submits merged over queue switch, restart search range as it can "skip" some deps
+    if (depRangeRestart)
+      depPtr = depRangeRestart;
+    // join queues on frame end
+    // NOTE: specially inside loop, to avoid leaving some work "floating" somewhere after fence
+    queueJoin.addWaits(i);
+    // all signals on this submit must be used for related waits, otherwise something is broken
+    G_ASSERTF(i.signals.empty(), "vulkan: some signals are not consumed!");
   }
-
   scratch.submitGraph.clear();
+  scratch.cmdListsSubmitDeps.clear();
+  scratch.cmdListsToSubmit.clear();
+  scratch.userQueueSignals.clear();
+}
+
+void ExecutionContext::addQueueDep(uint32_t src_submit, uint32_t dst_submit)
+{
+  // nothing to wait in this case
+  if (src_submit == 0 || dst_submit == 0)
+    return;
+  G_ASSERTF(src_submit != dst_submit, "vulkan: wrong dependency between queues detected src equal dst %u == %u", src_submit,
+    dst_submit);
+  scratch.cmdListsSubmitDeps.push_back({src_submit, dst_submit});
+}
+
+void ExecutionContext::joinQueuesToSubmitFence()
+{
+  // all buffers that we used on gpu job, must be completed after fence wait
+  // to make sure of this
+  // add dependency for each final command buffer on every unique queue where we never "joined" workloads
+  for (uint32_t i : lastBufferIdxOnQueue)
+  {
+    // queue was fully inactive
+    if (!i)
+      continue;
+    // last queues buffer is one we will wait with fence
+    if (i == (scratch.cmdListsToSubmit.size() - 1))
+      continue;
+    // last buffer signals semaphore that is waited for someone
+    bool signaling = false;
+    for (ExecutionScratch::CommandBufferSubmitDeps &j : scratch.cmdListsSubmitDeps)
+      signaling |= j.from == i;
+    if (signaling)
+      continue;
+    addQueueDep(i, scratch.cmdListsToSubmit.size() - 1);
+  }
 }
 
 void ExecutionContext::flush(ThreadedFence *fence)
@@ -776,10 +974,16 @@ void ExecutionContext::flush(ThreadedFence *fence)
     scratch.cmdListsToSubmit[0].handle = preFrame;
   }
 
-
+  // transfer queue is very limited, not fitting for all post frame commands
+  // splitting it into different submits is also non effective
+  // so live on graphics, but with "split" for possible end frame overlapping
+  switchFrameCore(DeviceQueueType::GRAPHICS);
   flushPostFrameCommands();
   // no more command buffers after this point! so push last active one in list to submit
-  scratch.cmdListsToSubmit.push_back({frameCoreQueue, frameCore, frameCoreAsync, true /*externalWaitPoint*/});
+  scratch.cmdListsToSubmit.push_back({frameCoreQueue, frameCore});
+
+  // if work diverged around frame end, must sync it to ensure buffers are completed before fence wait
+  joinQueuesToSubmitFence();
 
   // finalize command buffers
   for (ExecutionScratch::CommandBufferSubmit &i : scratch.cmdListsToSubmit)
@@ -789,7 +993,6 @@ void ExecutionContext::flush(ThreadedFence *fence)
   }
   enqueueCommandListsToMultipleQueues(fence);
 
-  scratch.cmdListsToSubmit.clear();
   onFrameCoreReset();
   Backend::gpuJob.get().pendingTimestamps = data.timestampQueryBlock;
   Backend::gpuJob.get().replayId = data.id;
@@ -1530,7 +1733,7 @@ bool ExecutionContext::interruptFrameCore()
   Backend::State::exec.set<StateFieldActiveExecutionStage>(ActiveExecutionStage::CUSTOM);
   applyStateChanges();
 
-  switchFrameCore(DeviceQueueType::GRAPHICS, false);
+  switchFrameCore(frameCoreQueue);
   onFrameCoreReset();
 
   return true;

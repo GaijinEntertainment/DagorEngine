@@ -107,6 +107,7 @@ Sources =
   vertexDensityOverlay.cpp
   grassify.cpp
   driverNetworkManager.cpp
+  motionVectorAccess.cpp
 ;
 
 UseProgLibs +=

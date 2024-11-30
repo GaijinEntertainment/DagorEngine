@@ -371,11 +371,13 @@ public:
 
   void completeNeeded(VulkanCommandBufferHandle cmd_buffer, const VulkanDevice &dev);
   void completeAll(VulkanCommandBufferHandle cmd_buffer, const VulkanDevice &dev, size_t gpu_work_id);
+  void completeOnQueue(VulkanCommandBufferHandle cmd_buffer, const VulkanDevice &dev, size_t gpu_work_id);
   bool anyNonProcessed();
   bool allCompleted();
   void aliasSync(Resource *lobj, VkPipelineStageFlags stage);
 
 private:
+  void workItemEndBarrier(VulkanCommandBufferHandle cmd_buffer, const VulkanDevice &dev, size_t gpu_work_id);
   void addImageAccessImpl(LogicAddress laddr, Image *img, VkImageLayout layout, ImageArea area, bool nrp_attachment, bool discard);
 
   void clearOps();

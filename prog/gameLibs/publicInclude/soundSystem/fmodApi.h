@@ -33,6 +33,7 @@ using DescAndInstance = eastl::pair<FMOD::Studio::EventDescription *, FMOD::Stud
 
 FMOD::System *get_system();
 FMOD::Studio::System *get_studio_system();
+eastl::pair<FMOD::System *, FMOD::Studio::System *> get_systems();
 void setup_dagor_audiosys();
 
 typedef bool (*EventInstanceCallback)(uint32_t cb_type, FMOD::Studio::EventInstance *event_instance, void *parameters, void *cb_data);

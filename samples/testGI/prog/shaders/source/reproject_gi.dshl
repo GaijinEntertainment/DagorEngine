@@ -9,24 +9,24 @@ texture prev_ambient_age;
 float4x4 ambient_reproject_tm;
 
 macro REPROJECT_GI(code)
-  DAGI_SCREEN_ENCODING(code)
   local float4 prev_gbuffer_depth_dim = get_dimensions(prev_gbuffer_depth, 0);
-  (ps) {
-    ambient_has_history@i1 = ambient_has_history;
-
-    //todo: add later support for SW rgbe
-    /*
-    if (dagi_sp_has_exposure_assume == always_rgbe)
-    {
-      prev_ambient@tex = prev_ambient hlsl { Texture2D<float3> prev_ambient@tex; };
-      prev_specular@tex = prev_specular hlsl { Texture2D<float3> prev_specular@tex; };
-    } else
-    {
+  if (dagi_sp_has_exposure_assume == always_rgbe)
+  {
+    (ps) {
+      prev_ambient@tex = prev_ambient hlsl { Texture2D<half3> prev_ambient@tex; };
+      prev_specular@tex = prev_specular hlsl { Texture2D<half3> prev_specular@tex; };
+    }
+    DAGI_HW_RGBE_SCREEN_ENCODING(ps)
+  } else {
+    (ps) {
       prev_ambient@tex = prev_ambient hlsl { Texture2D<uint> prev_ambient@tex; };
       prev_specular@tex = prev_specular hlsl { Texture2D<uint> prev_specular@tex; };
-    }*/
-    prev_ambient@tex = prev_ambient hlsl { Texture2D<half3> prev_ambient@tex; };
-    prev_specular@tex = prev_specular hlsl { Texture2D<half3> prev_specular@tex; };
+    }
+    DAGI_SW_RGBE_SCREEN_ENCODING(ps)
+  }
+
+  (ps) {
+    ambient_has_history@i1 = ambient_has_history;
 
     prev_ambient_age@tex = prev_ambient_age hlsl { Texture2D<uint> prev_ambient_age@tex; };
 

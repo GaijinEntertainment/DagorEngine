@@ -138,9 +138,6 @@ void send_error_log(const char *error_message, ErrorLogSendParams const &params)
     stackhelp::ext::CallStackCaptureStore extStack;
     stack.capture();
     extStack.capture();
-#if _TARGET_PC_WIN
-    eventStr.append_sprintf("BP=%p\n", stackhlp_get_bp());
-#endif
     eventStr.append(get_call_stack_str(stack, extStack));
   }
 

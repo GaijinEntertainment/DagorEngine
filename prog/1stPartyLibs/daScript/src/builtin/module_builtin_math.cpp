@@ -517,11 +517,11 @@ namespace das {
     }
 
     float4 quat_from_euler_vec(float3 v) {
-        return v_quat_from_euler_yzx(v_make_vec3f(v.z, v.x, v.y));
+        return v_quat_from_euler(v_ldu(&v.x));
     }
 
     float4 quat_from_euler(float x, float y, float z) {
-        return v_quat_from_euler_yzx(v_make_vec3f(z, x, y));
+        return v_quat_from_euler(v_make_vec4f(x, y, z, 0.f));
     }
 
     float3 euler_from_quat_vec(float4 v) {

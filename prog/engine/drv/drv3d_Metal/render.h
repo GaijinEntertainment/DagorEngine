@@ -777,7 +777,8 @@ public:
     Compute,
     Acceleration
   };
-  inline void ensureHaveEncoderExceptRender(id<MTLCommandBuffer> cmdBuf, EncoderType type, bool wait = true)
+  inline void ensureHaveEncoderExceptRender(id<MTLCommandBuffer> cmdBuf, EncoderType type, bool wait = true,
+    const char *label = nullptr)
   {
 #define KILL_ENCODER(t, enc)         \
   if (type != t)                     \
@@ -806,10 +807,20 @@ public:
       need_change_rt = 1;
     }
     if (type == EncoderType::Blit && !blitEncoder)
+    {
       blitEncoder = [cmdBuf blitCommandEncoder];
+#if DAGOR_DBGLEVEL > 0
+      if (label)
+        blitEncoder.label = [NSString stringWithUTF8String:label];
+#endif
+    }
     if (type == EncoderType::Compute && !computeEncoder)
     {
       computeEncoder = [cmdBuf computeCommandEncoder];
+#if DAGOR_DBGLEVEL > 0
+      if (label)
+        computeEncoder.label = [NSString stringWithUTF8String:label];
+#endif
       stages[STAGE_CS].reset();
       prepareBindlessResourcesCompute(computeEncoder);
     }

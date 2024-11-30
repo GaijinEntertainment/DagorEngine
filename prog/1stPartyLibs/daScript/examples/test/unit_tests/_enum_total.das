@@ -14,5 +14,5 @@ class EnumTotalAnnotation : AstEnumerationAnnotation
         if itot < 0
             errors := "can't add `total` field"
             return false
-        enu.list[itot].value <- new [[ExprConstInt() at=enu.at, value=length(enu.list)-1]]
+        enu.list[itot].value |> move_new() <| new [[ExprConstInt() at=enu.at, value=length(enu.list)-1]]
         return true

@@ -585,7 +585,7 @@ struct InitCtx
       if (!device_has_all_required_extensions(Globals::VK::dev,
             [](const char *name) { logwarn("vulkan: Missing device extension %s", name); }))
         return reject("some required extensions where not loaded (broken driver)");
-      Globals::VK::que = DeviceQueueGroup(Globals::VK::dev, queueGroupInfo);
+      Globals::VK::queue = DeviceQueueGroup(Globals::VK::dev, queueGroupInfo);
       initCfg();
       initMemory();
 

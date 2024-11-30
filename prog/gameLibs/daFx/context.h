@@ -81,6 +81,9 @@ struct AsyncStats
   volatile int gpuElemProcessed;
   volatile int cpuDispatchCalls;
   volatile int gpuDispatchCalls;
+
+  eastl::array<volatile int, Config::max_simulation_lods> cpuElemProcessedByLods;
+  eastl::array<volatile int, Config::max_simulation_lods> gpuElemProcessedByLods;
 };
 
 using WorkersByDepth = eastl::array<eastl::vector<int>, Config::max_system_depth>;

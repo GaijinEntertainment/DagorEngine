@@ -1,9 +1,10 @@
 require UnitTest
 
 def inside_scope_test
-    var sptr <- new TestObjectSmart
-    verify(getTotalTestObjectSmart()==1)
-    return get_ptr(sptr)
+    unsafe
+        var sptr <- new TestObjectSmart
+        verify(getTotalTestObjectSmart()==1)
+        return get_ptr(sptr)
 
 def scope_test
     verify(getTotalTestObjectSmart()==0)
@@ -16,8 +17,8 @@ def scope_test
 
 def inside_move_test
     verify(getTotalTestObjectSmart()==0)
-    var t1 <- new TestObjectSmart
-    var t2 <- t1                            // unsafe operation
+    var inscope t1 <- new TestObjectSmart
+    var inscope t2 <- t1                            // unsafe operation
     assert(smart_ptr_use_count(t1)==0u)
     assert(smart_ptr_use_count(t2)==1u)
     verify(getTotalTestObjectSmart()==1)
@@ -25,15 +26,14 @@ def inside_move_test
 
 def move_test
     verify(getTotalTestObjectSmart()==0)
-    var t <- inside_move_test()
-    verify(getTotalTestObjectSmart()==1)
-    unsafe
-        delete t
+    if true
+        var inscope t <- inside_move_test()
+        verify(getTotalTestObjectSmart()==1)
     verify(getTotalTestObjectSmart()==0)
 
 def ref_count_test
     verify(getTotalTestObjectSmart()==0)
-    var sptr <- new TestObjectSmart         // ref_count = 1
+    var inscope sptr <- new TestObjectSmart         // ref_count = 1
     verify(getTotalTestObjectSmart()==1)
     assert(smart_ptr_use_count(sptr)==1u)
     var ptr = get_ptr(sptr)
@@ -41,13 +41,13 @@ def ref_count_test
     pptr = get_ptr(sptr)
     assert(sptr==ptr)
     assert(get_const_ptr(sptr)==ptr)
-    var qptr : smart_ptr<TestObjectSmart>
+    var inscope qptr : smart_ptr<TestObjectSmart>
     qptr := get_ptr(sptr)                   // ref_count = 2
     assert(smart_ptr_use_count(sptr)==2u)
     assert(qptr==ptr)
     assert(get_const_ptr(qptr)==ptr)
     assert(qptr==sptr)
-    var fptr := qptr                        // ref_count = 3
+    var inscope fptr := qptr                        // ref_count = 3
     assert(smart_ptr_use_count(sptr)==3u)
     assert(fptr!=null)
     assert(get_const_ptr(fptr)==sptr)
@@ -72,7 +72,7 @@ def ref_count_test
 
 def access_test
     verify(getTotalTestObjectSmart()==0)
-    var ptr <- new TestObjectSmart
+    var inscope ptr <- new TestObjectSmart
     assert(ptr.fooData == 1234)     //  .
     var t = ptr ?. fooData ?? 1     // ?? rvalue
     assert(t==1234)
@@ -94,7 +94,7 @@ def access_test
 
 def fn_test
     verify(getTotalTestObjectSmart()==0)
-    var ptr <- makeTestObjectSmart()
+    var inscope ptr <- makeTestObjectSmart()
     assert(countTestObjectSmart(ptr)==1u)
     verify(getTotalTestObjectSmart()==1)
     unsafe

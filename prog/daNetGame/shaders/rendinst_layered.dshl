@@ -6,6 +6,7 @@ include "mask_layered_inc.dshl"
 include "hmap_blend_inc.dshl"
 include "hmap_blend_use_inc.dshl"
 include "plod_inc.dshl"
+include "rendinst_top_projection_inc.dshl"
 
 shader rendinst_layered
 {
@@ -19,6 +20,8 @@ shader rendinst_layered
   {
     NO_DYNSTCODE()
   }
+
+  SETUP_TOP_PROJECTION(true)
 
   PLOD_GBUF_GEN_INIT(rendinst_render_pass == rendinst_render_pass_normal)
   ENABLE_MULTI_DRAW(rendinst_render_pass == rendinst_render_pass_to_shadow  || rendinst_render_pass == rendinst_render_pass_depth)

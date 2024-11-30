@@ -2092,6 +2092,7 @@ namespace das {
               << value.no_deprecated
               << value.no_aliasing
               << value.strict_smart_pointers
+              << value.relaxed_pointer_const
               << value.no_init
               << value.strict_unsafe_delete
               << value.no_optimizations
@@ -2195,7 +2196,7 @@ namespace das {
     }
 
     uint32_t AstSerializer::getVersion () {
-        static constexpr uint32_t currentVersion = 53;
+        static constexpr uint32_t currentVersion = 54;
         return currentVersion;
     }
 

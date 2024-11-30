@@ -97,7 +97,7 @@ macro WOUNDS_AND_BURNING_USE(samplerName)
         output.burnedEffect = getBurnedEffect();
       #endif
       #if HAS_BLOOD_DECAL
-        vs_blood_decal_function(input.pos, output.bloodDecalTC, output.textureIndexTime);
+        vs_blood_decal_function(input.pos, output.bloodDecalTC, output.hitNormalTextureIndexTime);
       #endif
       #if HAS_TORN_WOUNDS
         vs_torn_wounds_function(input.pos, output);
@@ -286,10 +286,10 @@ hlsl(vs) {
     return float2(-coords.x, -coords.y);
   }
 
-  void vs_blood_decal_function(float3 input_pos, inout float4 bloodDecalTC, inout float textureIndexTime)
+  void vs_blood_decal_function(float3 input_pos, inout float4 bloodDecalTC, inout float4 hitNormalTextureIndexTime)
   {
     bloodDecalTC = NaN;
-    textureIndexTime = 0;
+    hitNormalTextureIndexTime = float4(0, 0, 0, 0);
     uint2 dataOffsetCount = get_offset_count_additional_data(HUMAN_COMBINED_PARAMS);
     if (dataOffsetCount.y == 0)
       return;
@@ -312,7 +312,8 @@ hlsl(vs) {
         mindist = lenSq;
         bloodDecalTC.xyz = pos;
         bloodDecalTC.w = i + 1;
-        textureIndexTime = start_time;
+        hitNormalTextureIndexTime.w = start_time;
+        hitNormalTextureIndexTime.xyz = dir_depth_time.xyz;
 
         //we rotate all texture for 180 degreese, to make  floating along attachment
         bloodDecalTC.xy = rotate_on_minus_pi(bloodDecalTC.xy);
@@ -392,7 +393,27 @@ hlsl(ps) {
     }
   }
 
-  void apply_blood_decal(float4 decal_tc, float start_time, uint tex_index, float3 frag_norm, float3 normal,
+  float calc_mask(float3 frag_pos, float3 normal, float3 hitDir, float2 distance_range, float2 angle_range, float angle_free_zone)
+  {
+    float mask = 1.0;
+    float dotV = dot(normal, hitDir);
+    float distanceFactor = smoothstep(distance_range.x, distance_range.y,  (1 - length(frag_pos.xyz)));
+    float angleFact = smoothstep(angle_range.x, angle_range.y, dotV);
+
+    if (distanceFactor > angle_free_zone)
+      mask = distanceFactor;
+    else
+      mask = angleFact * distanceFactor;
+
+    return mask;
+  }
+
+  float to_border_mask(float mask)
+  {
+    return saturate(mask / 0.3);
+  }
+
+  void apply_blood_decal(float4 decal_tc, float start_time, uint tex_index, float3 frag_norm, float3 normal, float3 hitDir,
                           float3 point_to_eye, int micro_detail_layer,
                           inout float3 diffuse_color, inout float3 world_normal,
                           inout float smoothness, inout float reflectance)
@@ -404,7 +425,15 @@ hlsl(ps) {
     {
       //r - time, g - packed norm, b - intensive, a - packed norm
       //decal_tc.xyz in one-unit sphere, need to translate it to half-unit sphere, so scale = 0.5
-      float4 blood = sample_texture_from_pos(wounds_decal_array, samplerName, tex_index, decal_tc.xyz, frag_norm, 0.5);
+      float mask = calc_mask(decal_tc.xyz, normal, hitDir, blood_wound_dist_fadeoff_range, blood_wound_angle_fadeoff_range, blood_wound_angle_free_zone);
+
+      BRANCH
+      if (mask == 0.0)
+        return;
+
+      mask = to_border_mask(mask);
+
+      float4 blood = sample_texture_from_pos(wounds_decal_array, samplerName, tex_index, decal_tc.xyz, hitDir, 0.5);
       float current_time = time_wetness_bloody_time.x;
       float time = current_time - start_time;
       float bloody_time = time_wetness_bloody_time.y;
@@ -428,9 +457,12 @@ hlsl(ps) {
       float porosity = micro_detail_layer != -1 ? get_porosity_by_microdetail_base(micro_detail_layer)
                                                 : 1.0;
       float3 bloodWorldNormal = perturb_normal_precise(unpack_ag_normal(blood), normal, point_to_eye, decal_tc.xy);
+      float3 diffuseWithBlood = diffuse_color;
 
       apply_blood_material(thickness, edgeCloseness, porosity, bloodWorldNormal,
-        world_normal, diffuse_color, smoothness, reflectance);
+        world_normal, diffuseWithBlood, smoothness, reflectance);
+
+      diffuse_color = lerp(diffuse_color, diffuseWithBlood, mask);
     }
   }
 }
@@ -464,8 +496,8 @@ hlsl(ps) {
     {
       float start_time;
       uint tex_index;
-      extract_time_index(input.textureIndexTime, start_time, tex_index);
-      apply_blood_decal(input.bloodDecalTC, start_time, tex_index, input.fragNormal, input.normal, input.pointToEye,
+      extract_time_index(input.hitNormalTextureIndexTime.w, start_time, tex_index);
+      apply_blood_decal(input.bloodDecalTC, start_time, tex_index, input.fragNormal, input.normal, input.hitNormalTextureIndexTime.xyz, input.pointToEye,
         micro_detail_layer, diffuse_color, world_normal, smoothness, reflectance);
     }
   #endif

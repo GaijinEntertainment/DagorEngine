@@ -92,9 +92,12 @@ BloodPuddles::BloodPuddles() :
 {
   index_buffer::init_box();
 
+  const char *bloodQuality = dgs_get_settings()->getBlockByName("graphics")->getStr("bloodQuality", "high");
+  const bool hasPrepass = !strcmp(bloodQuality, "high");
+
   const DataBlock paramsBlk(BLOOD_PARAMS_DATA_BLOCK_NAME);
   initResources(paramsBlk);
-  useAccumulationPrepass(paramsBlk.getBool("mergeBlood", false));
+  useAccumulationPrepass(hasPrepass);
   initNodes();
   initTextureParams(paramsBlk);
   initShadingParams(paramsBlk);

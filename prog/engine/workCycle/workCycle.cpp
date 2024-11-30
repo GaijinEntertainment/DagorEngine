@@ -82,6 +82,20 @@ static void act();
 static void draw(bool enable_stereo, int elapsed_usec, float gametime_elapsed, bool call_before_render = true, bool draw_gui = true);
 static bool present(bool updateScreenNeeded);
 
+static bool is_minimized_fullscreen()
+{
+  return !workcycle_internal::application_active && dgs_get_window_mode() == WindowMode::FULLSCREEN_EXCLUSIVE;
+}
+
+bool dagor_work_cycle_is_need_to_draw()
+{
+#if _TARGET_XBOX
+  return true;
+#else
+  return !(is_minimized_fullscreen() || occluded_window);
+#endif
+}
+
 void dagor_work_cycle()
 {
   workcycleperf::mark_cpu_only_cycle_start();
@@ -120,9 +134,7 @@ void dagor_work_cycle()
 
   ::dagor_idle_cycle();
 
-  const bool minimizedFullscreen =
-    !workcycle_internal::application_active && dgs_get_window_mode() == WindowMode::FULLSCREEN_EXCLUSIVE;
-  if (DAGOR_UNLIKELY(minimizedFullscreen && ::dgs_dont_use_cpu_in_background))
+  if (DAGOR_UNLIKELY(is_minimized_fullscreen() && ::dgs_dont_use_cpu_in_background))
   {
     ResourceChecker::report();
     if (tql::on_frame_finished)
@@ -243,7 +255,7 @@ void dagor_work_cycle()
 
   // no sense in drawing something that can never be drawn and seen (unless it's XB1 in which case this assumption is not true)
 #if !_TARGET_XBOX
-  if (DAGOR_UNLIKELY(minimizedFullscreen || occluded_window))
+  if (DAGOR_UNLIKELY(!dagor_work_cycle_is_need_to_draw()))
   {
     d3d::GpuAutoLock gpuLock;
     d3d::driver_command(Drv3dCommand::PROCESS_APP_INACTIVE_UPDATE, &occluded_window);

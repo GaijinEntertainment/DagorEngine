@@ -25,14 +25,15 @@ struct ResData
   uint16_t resId, refResIdCnt;
   PatchablePtr<uint16_t> refResIdPtr;
 
-  static void cvtRecInplaceVer2to3(ResData *data, unsigned size)
+  static void cvtRecInplaceVer2to3(ResData *_data, unsigned size)
   {
-    for (ResDataV2 *old = (ResDataV2 *)data; size > 0; old++, data++, size--)
+    volatile ResData *data = _data; // we update data inplace using overlapping pointers, prevent unsafe optimizations
+    for (auto old = (volatile ResDataV2 *)data; size > 0; old++, data++, size--)
     {
       data->classId = old->classId;
       data->resId = old->resId;
       data->refResIdCnt = old->refResIdCnt;
-      data->refResIdPtr.setPtr((void *)(uintptr_t)old->refResIdOfs);
+      ((ResData *)data)->refResIdPtr.setPtr((void *)(uintptr_t)old->refResIdOfs);
     }
   }
 };

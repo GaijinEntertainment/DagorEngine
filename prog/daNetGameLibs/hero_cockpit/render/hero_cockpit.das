@@ -24,8 +24,10 @@ struct QueryHeroWtmAndBoxForRender
   resWofs : float4                                // vec3f  resWofs
   resLboxMin, resLboxMax : float4                 // bbox3f resLbox
   resReady : bool
+  resFlags : uint8
+  _paddingMid : uint8[14] // alignof(HeroWtmAndBox)==16, so we add 14 bytes padding here
   onlyWeapons : bool
-  _paddingPost : uint8[12] // alignof(QueryHeroWtmAndBoxForRender)==16, so we add 12 bytes padding here
+  _paddingPost : uint8[15] // alignof(QueryHeroWtmAndBoxForRender)==16, so we add 15 bytes padding here
 
 def get_hero_cockpit_vec_impl(hero_cockpit__gunMaxLength, hero_cockpit__traceMaxBias,
                               hero_cockpit__startFadeBeforeIntersection, hero_cockpit__fadeInterval,

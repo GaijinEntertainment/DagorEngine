@@ -190,7 +190,7 @@ template <typename T>
 struct DisablePointersInMath<T *>;
 
 template <typename T>
-INLINE T clamp(T t, const T min_val, const T max_val)
+[[nodiscard]] INLINE T clamp(T t, const T min_val, const T max_val)
 {
   DisablePointersInMath<T>();
   if (t < min_val)
@@ -198,6 +198,51 @@ INLINE T clamp(T t, const T min_val, const T max_val)
   if (t <= max_val)
     return t;
   return max_val;
+}
+
+template <typename T>
+inline void clamp_inplace(T &t, const T min_val, const T max_val)
+{
+  DisablePointersInMath<T>();
+  if (t < min_val)
+    t = min_val;
+  if (t <= max_val)
+    return;
+  t = max_val;
+}
+
+template <typename T1, typename T2>
+[[nodiscard]] inline T1 clamp_max(const T1 value, const T2 p_max)
+{
+  DisablePointersInMath<T1>();
+  if (value > (T1)p_max)
+    return (T1)p_max;
+  return value;
+}
+
+template <typename T1, typename T2>
+[[nodiscard]] inline T1 clamp_min(const T1 value, const T2 p_min)
+{
+  DisablePointersInMath<T1>();
+  if (value < (T1)p_min)
+    return (T1)p_min;
+  return value;
+}
+
+template <typename T1, typename T2>
+inline void clamp_max_inplace(T1 &value, const T2 p_max)
+{
+  DisablePointersInMath<T1>();
+  if (value > (T1)p_max)
+    value = (T1)p_max;
+}
+
+template <typename T1, typename T2>
+inline void clamp_min_inplace(T1 &value, const T2 p_min)
+{
+  DisablePointersInMath<T1>();
+  if (value < (T1)p_min)
+    value = (T1)p_min;
 }
 
 // fast versions, |Relative Error| <= 1.5 * 2^(-12)

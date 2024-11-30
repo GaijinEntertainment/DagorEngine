@@ -40,6 +40,8 @@ static constexpr float animation_distance_rate = 20;
 
 static constexpr bool showProceduralBLASBuildCount = false;
 
+static bool per_frame_processing_enabled = true;
+
 #if DAGOR_DBGLEVEL > 0
 extern bool bvh_gpuobject_enable;
 extern bool bvh_grass_enable;
@@ -279,6 +281,13 @@ static __forceinline void realign(mat43f &mat, vec4f s1, vec4f s2, vec4f s3)
   mat.row2 = v_sub(mat.row2, s3);
 }
 
+bool has_enough_vram_for_rt()
+{
+  return (d3d::driver_command(Drv3dCommand::GET_VIDEO_MEMORY_BUDGET) >=
+          dgs_get_settings()->getBlockByNameEx("graphics")->getInt("bvhMinRequiredMemoryGB", 5) * 1100 * 1000); // intentionally not
+                                                                                                                // 1024
+}
+
 bool is_available()
 {
   if (dgs_get_settings()->getBlockByNameEx("gameplay")->getBool("enableVR", false))
@@ -292,9 +301,7 @@ bool is_available()
 #elif _TARGET_PC
   if (!d3d::is_inited())
     return true;
-  static bool hasEnoughVRAM =
-    (d3d::driver_command(Drv3dCommand::GET_VIDEO_MEMORY_BUDGET) >=
-      dgs_get_settings()->getBlockByNameEx("graphics")->getInt("bvhMinRequiredMemoryGB", 5) * 1100 * 1000); // intentionally not 1024
+  static bool hasEnoughVRAM = has_enough_vram_for_rt();
 #else
   static bool hasEnoughVRAM = false;
 #endif
@@ -886,9 +893,14 @@ static void patch_per_instance_data(Context::HWInstanceMap &instances, dag::Vect
 
 void process_meshes(ContextId context_id, BuildBudget budget)
 {
+  if (!per_frame_processing_enabled)
+  {
+    logdbg("[BVH] Device is in reset mode.");
+    return;
+  }
   TIME_D3D_PROFILE_NAME(bvh_process_meshes, String(128, "bvh_process_meshes for %s", context_id->name.data()));
 
-  HANDLE_LOST_DEVICE_STATE(context_id, );
+  CHECK_LOST_DEVICE_STATE();
 
   handle_pending_mesh_actions(context_id);
 
@@ -948,9 +960,7 @@ void process_meshes(ContextId context_id, BuildBudget budget)
     RaytraceGeometryDescription desc[2];
     memset(&desc, 0, sizeof(desc));
     desc[0].type = RaytraceGeometryDescription::Type::TRIANGLES;
-    HANDLE_LOST_DEVICE_STATE(mesh.processedVertices, );
     desc[0].data.triangles.vertexBuffer = mesh.processedVertices.get();
-    HANDLE_LOST_DEVICE_STATE(mesh.processedIndices, );
     desc[0].data.triangles.indexBuffer = mesh.processedIndices.get();
     desc[0].data.triangles.vertexCount = mesh.vertexCount;
     desc[0].data.triangles.vertexStride = meta.texcoordNormalColorOffsetAndVertexStride & 255;
@@ -1150,6 +1160,11 @@ void process_meshes(ContextId context_id, BuildBudget budget)
 
 void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, const Point3 &camera_pos, const Point3 &light_direction)
 {
+  if (!per_frame_processing_enabled)
+  {
+    logdbg("[BVH] Device is in reset mode.");
+    return;
+  }
   CHECK_LOST_DEVICE_STATE();
 
   TIME_D3D_PROFILE_NAME(bvh_build, String(128, "bvh_build for %s", context_id->name.data()));
@@ -2092,5 +2107,6 @@ void finalize_async_atmosphere_update(ContextId context_id)
     upload_atmosphere(context_id);
   }
 }
+void enable_per_frame_processing(bool enable) { per_frame_processing_enabled = enable; }
 
 } // namespace bvh

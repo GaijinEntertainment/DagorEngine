@@ -1,2 +1,3 @@
-invalid {gi_quality:i = 0;ssr_alternate_reflections:i=1;}
-
+// each invalid block denotes an AND relationship between the given variants
+invalid {gi_quality:i=0;ssr_alternate_reflections:i=1;}
+invalid {motion_vector_type:i=1;}

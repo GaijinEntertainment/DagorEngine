@@ -74,7 +74,7 @@ thread_local uint32_t GlobalDriverLock::acquired = 0;
 
 VulkanLoader Globals::VK::loader;
 VulkanDevice Globals::VK::dev;
-DeviceQueueGroup Globals::VK::que;
+DeviceQueueGroup Globals::VK::queue;
 PhysicalDeviceSet Globals::VK::phy;
 FormatUtil Globals::VK::fmt;
 BufferAlignment Globals::VK::bufAlign;

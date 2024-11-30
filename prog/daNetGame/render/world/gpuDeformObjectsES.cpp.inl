@@ -4,16 +4,24 @@
 
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_info.h>
+#include <debug/dag_debug3d.h>
 #include <perfMon/dag_statDrv.h>
 #include <memory/dag_framemem.h>
 #include <generic/dag_tab.h>
 #include <generic/dag_carray.h>
 #include <math/dag_math3d.h>
 #include <math/dag_vecMathCompatibility.h>
+#include <util/dag_convar.h>
 #include "gpuDeformObjects.h"
 #include "shaders/obstacleStruct.hlsli"
 #include <gamePhys/phys/rendinstFloating.h>
 #include <ecs/core/attributeEx.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/coreEvents.h>
+#include <daECS/core/ecsQuery.h>
+#include <daECS/core/entitySystem.h>
+
+CONSOLE_BOOL_VAL("obstacles", show_obstacles, false);
 
 enum
 {
@@ -31,6 +39,17 @@ void GpuDeformObjectsManager::fillEmpty()
     return;
   deformsCB.getBuf()->updateData(0, sizeof(Point4), ZERO_PTR<float>(), VBLOCK_WRITEONLY | VBLOCK_DISCARD);
   setEmpty();
+}
+
+static BBox3 create_inflated_bbox(const BBox3 &box, const TMatrix &tm)
+{
+  BBox3 inflatedBox = box;
+  // Add 1 meter to the bbox's height
+  Point3 pt = box.center() + orthonormalized_inverse(tm).getcol(1);
+  inflatedBox += pt;
+  inflatedBox[0] -= Point3(0.25, 0.25, 0.25);
+  inflatedBox[1] += Point3(0.25, 0.25, 0.25);
+  return inflatedBox;
 }
 
 void GpuDeformObjectsManager::updateDeforms()
@@ -51,7 +70,7 @@ void GpuDeformObjectsManager::updateDeforms()
   carray<GridCrd, MAX_OBSTACLES> gridCrd;
   const float dist = float(width) * 0.5f * cellSize;
   Point2 indirection_lt;
-  indirection_lt = Point2::xz(origin) - Point2(dist, dist);
+  indirection_lt = floor(Point2::xz(origin) / cellSize) * cellSize - Point2(dist, dist);
   // box[1] = indirection_lt + Point2(totalDist, totalDist);
   ObstaclesData *deformsCBPtr = 0;
   if (!deformsCB.getBuf()->lock(0, sizeof(ObstaclesData), (void **)&deformsCBPtr, VBLOCK_WRITEONLY | VBLOCK_DISCARD) || !deformsCBPtr)
@@ -71,11 +90,7 @@ void GpuDeformObjectsManager::updateDeforms()
     if (usedObstaclesCount >= MAX_OBSTACLES || lengthSq(tm.getcol(3) - origin) > maxDistPreCheckSq)
       return;
     BBox3 box(deform_bbox__bmin, deform_bbox__bmax);
-    BBox3 inflatedBox = box;
-    Point3 pt = box.center() + orthonormalized_inverse(tm).getcol(1);
-    inflatedBox += pt;
-    inflatedBox[0] -= Point3(0.25, 0.25, 0.25);
-    inflatedBox[1] += Point3(0.25, 0.25, 0.25);
+    BBox3 inflatedBox = create_inflated_bbox(box, tm);
     // intenipnally instead of scale, use fixed grass size. Regardless of a size of objet, grass should collide with soft offset
     BBox3 oBox = tm * inflatedBox;
     IPoint2 lt = ipoint2(floor((Point2::xz(oBox[0]) - indirection_lt - Point2(0.5, 0.5)) / cellSize));
@@ -187,4 +202,17 @@ void GpuDeformObjectsManager::initIndicesBuffer(uint32_t max_indices)
   // Like `create_persistent_sr_structured` but with SBCF_DYNAMIC for VBLOCK_DISCARD to work
   unsigned sbcf = SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE | SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED;
   indices = dag::create_sbuffer(sizeof(uint32_t), width * width + max_indices, sbcf, 0, "obstacle_indices_buf");
+}
+
+ECS_TAG(render, dev)
+ECS_NO_ORDER
+static void gpu_deform_objects_manager_draw_debug_geometry_es(
+  const ecs::UpdateStageInfoRenderDebug &, const TMatrix &transform, const Point3 &deform_bbox__bmin, const Point3 &deform_bbox__bmax)
+{
+  if (!show_obstacles)
+    return;
+
+  BBox3 box(deform_bbox__bmin, deform_bbox__bmax);
+  BBox3 inflatedBox = create_inflated_bbox(box, transform);
+  draw_debug_box_buffered(inflatedBox, transform, E3DCOLOR_MAKE(0, 0, 255, 255));
 }

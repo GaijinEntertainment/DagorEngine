@@ -150,7 +150,7 @@ public:
   virtual ModeType getGizmoModeType(); //{ return MODE_Move; }
   virtual BasisType getGizmoBasisType() { return BASIS_World; }
   virtual CenterType getGizmoCenterType() { return CENTER_Pivot; }
-  bool isGizmoOperationStarted() const;
+  virtual bool isGizmoOperationStarted() const override;
 
   // brush methods
   virtual void beginBrushPaint() {}

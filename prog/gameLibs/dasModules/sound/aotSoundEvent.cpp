@@ -273,6 +273,10 @@ public:
     SND_BIND_FUN_EX(__get_max_distance, "get_max_distance", das::SideEffects::accessExternal);
     SND_BIND_FUN_EX(get_max_distance_by_name, "get_max_distance", das::SideEffects::accessExternal);
 
+    SND_BIND_FUN(set_occlusion_group, das::SideEffects::modifyExternal);
+    SND_BIND_FUN(set_occlusion_pos, das::SideEffects::modifyExternal);
+    SND_BIND_FUN(is_occlusion_inited, das::SideEffects::accessExternal);
+
     SND_BIND_FUN_EX(das_query_visual_labels, "query_visual_labels", das::SideEffects::modifyExternal);
 
     SND_BIND_FUN(create_event_instance_stealing_group, das::SideEffects::modifyExternal);

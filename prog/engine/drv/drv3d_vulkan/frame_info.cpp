@@ -14,11 +14,12 @@
 
 using namespace drv3d_vulkan;
 
-void FrameInfo::QueueCommandBuffers::init(DeviceQueueType queue)
+void FrameInfo::QueueCommandBuffers::init(DeviceQueueType target_queue)
 {
   VulkanDevice &vkDev = Globals::VK::dev;
+  queue = target_queue;
 
-  uint32_t cmdQFamily = Globals::VK::que[queue].getFamily();
+  uint32_t cmdQFamily = Globals::VK::queue[queue].getFamily();
   bool resetCmdPool = Globals::cfg.bits.resetCommandPools;
 
   VkCommandPoolCreateInfo cpci;
@@ -54,7 +55,7 @@ VulkanCommandBufferHandle FrameInfo::QueueCommandBuffers::allocateCommandBuffer(
 
   if (Globals::cfg.debugLevel > 0)
     Globals::Dbg::naming.setCommandBufferName(cmd,
-      String(32, "Frame %u Pending order %u", Backend::gpuJob->index, pendingCommandBuffers.size()));
+      String(64, "Frame %u Pending order %u Queue %u", Backend::gpuJob->index, pendingCommandBuffers.size(), (uint32_t)queue));
 
   return cmd;
 }
@@ -109,7 +110,7 @@ void FrameInfo::CommandBuffersGroup::init()
 {
   if (Globals::cfg.bits.allowMultiQueue)
   {
-    for (uint32_t i = (uint32_t)DeviceQueueType::ZERO; i < (uint32_t)DeviceQueueType::COUNT; ++i)
+    for (uint32_t i = 0; i < (uint32_t)DeviceQueueType::COUNT; ++i)
       group[i].init(static_cast<DeviceQueueType>(i));
   }
   else

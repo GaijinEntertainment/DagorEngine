@@ -14,12 +14,12 @@ class WebSocket
   def init_path(port : int; document_root : string) : bool
     return websocket_init_path(_websocket, port, document_root)
   def restore(var shared_orphan : smart_ptr<WebSocketServer>&)
-    _websocket <- shared_orphan
+    _websocket |> move() <| shared_orphan
     let classInfo = class_info(self)
     unsafe
       websocket_restore(_websocket, addr(self), classInfo)
   def save(var shared_orphan : smart_ptr<WebSocketServer>&)
-    shared_orphan <- _websocket
+    shared_orphan |> move() <| _websocket
   def has_session : bool
     return _websocket != null
   def is_open : bool

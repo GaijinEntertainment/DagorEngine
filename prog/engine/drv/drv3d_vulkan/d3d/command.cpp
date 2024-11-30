@@ -27,6 +27,7 @@
 #include "resource_upload_limit.h"
 #include "device_context.h"
 #include "timeline_latency.h"
+#include "command.h"
 
 #if DAGOR_DBGLEVEL > 0
 #include "3d/dag_resourceDump.h"
@@ -279,10 +280,10 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
     case Drv3dCommand::GET_INSTANCE: *(VkInstance *)par1 = drv3d_vulkan::Globals::VK::dev.getInstance().get(); return 1;
     case Drv3dCommand::GET_PHYSICAL_DEVICE: *(VkPhysicalDevice *)par1 = drv3d_vulkan::Globals::VK::phy.device; return 1;
     case Drv3dCommand::GET_QUEUE_FAMILY_INDEX:
-      *(uint32_t *)par1 = drv3d_vulkan::Globals::VK::que[DeviceQueueType::GRAPHICS].getFamily();
+      *(uint32_t *)par1 = drv3d_vulkan::Globals::VK::queue[DeviceQueueType::GRAPHICS].getFamily();
       return 1;
     case Drv3dCommand::GET_QUEUE_INDEX:
-      *(uint32_t *)par1 = drv3d_vulkan::Globals::VK::que[DeviceQueueType::GRAPHICS].getIndex();
+      *(uint32_t *)par1 = drv3d_vulkan::Globals::VK::queue[DeviceQueueType::GRAPHICS].getIndex();
       return 1;
     case Drv3dCommand::EXECUTE_FSR: Globals::ctx.executeFSR((amd::FSR *)par1, *(const amd::FSR::UpscalingArgs *)par2); return 1;
     case Drv3dCommand::MAKE_TEXTURE:
@@ -470,6 +471,11 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
 #else
       return 0;
 #endif
+    }
+    case Drv3dCommand::CHANGE_QUEUE:
+    {
+      d3d_command_change_queue(static_cast<GpuPipeline>((intptr_t)par1));
+      return 1;
     }
     default: break;
   };

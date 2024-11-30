@@ -105,7 +105,7 @@ dabfg::NodeHandle makeGiFeedbackNode();
 dabfg::NodeHandle makeGiScreenDebugNode();
 dabfg::NodeHandle makeGiScreenDebugDepthNode();
 
-dabfg::NodeHandle makeDeferredLightNode();
+dabfg::NodeHandle makeDeferredLightNode(bool need_reprojection);
 dabfg::NodeHandle makeResolveGbufferNode(const char *resolve_pshader_name,
   const char *resolve_cshader_name,
   const char *classify_cshader_name,

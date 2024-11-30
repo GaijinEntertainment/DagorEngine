@@ -1307,7 +1307,7 @@ namespace drv3d_metal
       for (int i = 0; i < buffers2copy.size(); ++i)
       {
         bool need_set = render.computeEncoder == nil;
-        ensureHaveEncoderExceptRender(cmdBuf, Render::EncoderType::Compute, false);
+        ensureHaveEncoderExceptRender(cmdBuf, Render::EncoderType::Compute, false, "CopyBuffer");
         if (need_set)
           [computeEncoder setComputePipelineState:copy_cs_pipeline];
 
@@ -1331,7 +1331,7 @@ namespace drv3d_metal
 
       bool needBlit = textures2upload.size() || regions2copy.size() || textures2clear.size() || buffers2clear.size();
       if (needBlit)
-        ensureHaveEncoderExceptRender(cmdBuf, Render::EncoderType::Blit, false);
+        ensureHaveEncoderExceptRender(cmdBuf, Render::EncoderType::Blit, false, "CopyTextures");
 
       for (int i = 0; i < buffers2clear.size(); ++i)
       {
@@ -2036,7 +2036,7 @@ namespace drv3d_metal
     Buffer *buf = (Buffer*)buff;
     if ((val[0] == 0 || val[0] == 0xffffffff))
     {
-      ensureHaveEncoderExceptRender(commandBuffer, Render::EncoderType::Blit);
+      ensureHaveEncoderExceptRender(commandBuffer, Render::EncoderType::Blit, false, "ClearBuffer");
       G_ASSERT(buf->getDynamicOffset() == 0);
       [blitEncoder fillBuffer : buf->getBuffer()
                         range : NSMakeRange(0, buf->bufSize)
@@ -2049,7 +2049,7 @@ namespace drv3d_metal
         stages[STAGE_CS].reset();
         current_cs_pipeline = nullptr;
       }
-      ensureHaveEncoderExceptRender(commandBuffer, Render::EncoderType::Compute);
+      ensureHaveEncoderExceptRender(commandBuffer, Render::EncoderType::Compute, false, "ClearBuffer");
 
       if (current_cs_pipeline != clear_cs_pipeline)
         [computeEncoder setComputePipelineState:clear_cs_pipeline];
@@ -2151,7 +2151,7 @@ namespace drv3d_metal
   {
     checkRenderAcquired();
 
-    ensureHaveEncoderExceptRender(commandBuffer, Render::EncoderType::Blit);
+    ensureHaveEncoderExceptRender(commandBuffer, Render::EncoderType::Blit, false, "GenerateMips");
 
     G_ASSERT(tex);
     [blitEncoder generateMipmapsForTexture : tex->apiTex->texture];
@@ -2192,7 +2192,7 @@ namespace drv3d_metal
       return;
     }
 
-    ensureHaveEncoderExceptRender(commandBuffer, Render::EncoderType::Blit);
+    ensureHaveEncoderExceptRender(commandBuffer, Render::EncoderType::Blit, false, "CopyTex");
 
     MTLOrigin origin = { 0, 0, 0 };
     MTLSize size = { 1, 1, 1 };
@@ -2257,7 +2257,7 @@ namespace drv3d_metal
     {
       checkRenderAcquired();
 
-      ensureHaveEncoderExceptRender(commandBuffer, Render::EncoderType::Blit);
+      ensureHaveEncoderExceptRender(commandBuffer, Render::EncoderType::Blit, false, "CopyTexRegion");
 
       doTexCopyRegion(region);
     }
@@ -2346,7 +2346,7 @@ namespace drv3d_metal
     Buffer* dst = (Buffer*)dstb;
     Buffer* src = (Buffer*)srcb;
 
-    ensureHaveEncoderExceptRender(commandBuffer, Render::EncoderType::Blit);
+    ensureHaveEncoderExceptRender(commandBuffer, Render::EncoderType::Blit, false, "CopyBuffer");
 
     G_ASSERT(dst);
     G_ASSERTF(dst->getDynamicOffset() == 0, "Buffer %s should have zero dynamic offset, but got %d", dst->getResName(),
@@ -3145,7 +3145,7 @@ namespace drv3d_metal
   {
     checkRenderAcquired();
 
-    ensureHaveEncoderExceptRender(commandBuffer, Render::EncoderType::Blit);
+    ensureHaveEncoderExceptRender(commandBuffer, Render::EncoderType::Blit, false, "ReadbackTexture");
 
     MTLSize size = {(uint32_t)w, (uint32_t)h, (uint32_t)d};
     MTLOrigin origin = {0, 0, 0};

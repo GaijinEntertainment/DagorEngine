@@ -970,13 +970,19 @@ struct PsOutput
 #if DAFXEX_USE_REACTIVE_MASK
   float reactive : SV_Target1;
 #endif
+#if MODFX_USE_DEPTH_OUTPUT
+  float depth : SV_Target1;
+#endif
 };
-PsOutput encode_output(float4 color)
+PsOutput encode_output(float4 color, float depth)
 {
   PsOutput output;
   output.color = color;
 #if DAFXEX_USE_REACTIVE_MASK
   output.reactive = color.a;
+#endif
+#if MODFX_USE_DEPTH_OUTPUT
+  output.depth = depth;
 #endif
   return output;
 }
@@ -988,7 +994,7 @@ PsOutput encode_output(float4 color)
 #elif MODFX_SHADER_VOLSHAPE_WBOIT
   #define fx_null (WboitData)0
 #else
-  #define fx_null encode_output(0)
+  #define fx_null encode_output(0, 0)
 #endif
 
 bool color_discard_test(float4 src, uint flags)
@@ -1019,7 +1025,7 @@ bool color_discard_test(float4 src, uint flags)
   {
 
 #if MODFX_DEBUG_RENDER_ENABLED
-    PsOutput output = encode_output(0);
+    PsOutput output = encode_output(0, 0);
 #if !MODFX_RIBBON_SHAPE // TODO: add ribbon support for debug rendering
     output.color.xyz = modfx_pack_hdr(calc_debug_color(input.delta.xy));
 #endif
@@ -1336,7 +1342,7 @@ bool color_discard_test(float4 src, uint flags)
 
     float3 col = wboit_accum.xyz / clamp(wboit_accum.w, 0.0000001f, 1000.f);
     float a = 1.f - wboit_r;
-    return encode_output(float4(col * a, a) * alpha * a);
+    return encode_output(float4(col * a, a) * alpha * a, 0);
 #endif
 
 #endif
@@ -1446,16 +1452,17 @@ bool color_discard_test(float4 src, uint flags)
       emissive_part *= alpha;
 
     float4 result = float4( emissive_part + lighting_part, alpha );
-
+    float depth = 0;
 #if MODFX_SHADER_DISTORTION
     float depthScene = tex2Dlod(haze_scene_depth_tex, float4(viewport_tc.xy,0, haze_scene_depth_tex_lod)).x;
     float depthHaze  = GET_SCREEN_POS(input.pos).z;
+    depth = depthHaze;
 
     BRANCH
     if (depthHaze <= depthScene)
     {
       discard;
-      return encode_output(0);
+      return encode_output(0, 0);
     }
 
     float distortionMod = dafx_get_1f(0, parent_data.mods_offsets[MODFX_RMOD_DISTORTION_STRENGTH]);
@@ -1514,7 +1521,7 @@ bool color_discard_test(float4 src, uint flags)
     result.xyz = modfx_pack_hdr( result.xyz );
     clip_alpha( result.w );
     result.w = 1.f;
-    return encode_output(result);
+    return encode_output(result, depth);
 
 #elif MODFX_SHADER_FOM
 
@@ -1581,7 +1588,7 @@ bool color_discard_test(float4 src, uint flags)
       wboit_res.alpha = result.w * wboit_weight(cur_depth, result.w);
       return wboit_res;
   #else
-    return encode_output(result);
+    return encode_output(result, depth);
   #endif
 #endif
 

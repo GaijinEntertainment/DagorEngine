@@ -42,7 +42,7 @@ struct CommandQueue
   struct InstanceVisibility
   {
     InstanceId iid;
-    bool visible;
+    uint32_t visibility;
   };
 
   struct InstanceValue

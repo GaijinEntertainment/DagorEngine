@@ -12,6 +12,9 @@ float4 blood_wound_meat_color_low_intensity = (0.002, 0, 0, 1);
 float4 blood_wound_skin_meat_color_high_intensity = (0.007, 0, 0, 1);
 float4 blood_wound_skin_meat_color_low_intensity = (0.002, 0, 0, 1);
 
+float4 blood_wound_angle_dist_fadeoff_range = (-0.25, 1.25, 0.25, 1.0);
+float blood_wound_angle_free_zone = 0.85;
+
 float blood_wound_dark_albedo_compensation_factor = 0.04;
 float blood_wound_low_porosity_reflectance = 0.3;
 float blood_wound_dry_edge_scale = 0.5;
@@ -68,6 +71,9 @@ local float blood_wound_puddle_edge_thickness_width = blood_wound_puddle_begin_t
   blood_wound_skin_color_high_intensity@f3 = blood_wound_skin_color_high_intensity.xyz;
   blood_wound_skin_color_low_intensity@f3 = blood_wound_skin_color_low_intensity.xyz;
 
+  blood_wound_angle_fadeoff_range@f2 = blood_wound_angle_dist_fadeoff_range.xy;
+  blood_wound_dist_fadeoff_range@f2 = blood_wound_angle_dist_fadeoff_range.zw;
+  blood_wound_angle_free_zone@f1 = blood_wound_angle_free_zone;
 }
 
 endmacro

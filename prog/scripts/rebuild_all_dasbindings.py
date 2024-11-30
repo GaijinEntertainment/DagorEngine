@@ -20,7 +20,7 @@ bindings_checks = [
     ("jam  -sPlatformArch=x86_64 -sRoot=../.. -f aot/jamfile",)
   },
   {"wdir":"../../skyquake/prog/scripts","cmds":
-    ("genDasevents.bat",)
+    ("genDasevents_x86_64.bat",)
   },
   {"wdir":"../../enlisted/prog","cmds":
     ("jam  -sPlatformArch=x86_64 -sRoot=../.. -f aot/jamfile", "genDasevents.bat")
@@ -44,6 +44,7 @@ def main():
         wdir = e["wdir"]
         with pushd(wdir):
             for cmd in e["cmds"]:
+                print("exec cmd: '", cmd, "' wdir: '", wdir, "'")
                 shell(cmd)
 
 def are_files_changed_after_format():

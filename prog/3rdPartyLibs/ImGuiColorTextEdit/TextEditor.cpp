@@ -23,6 +23,7 @@ TextEditor::TextEditor()
 
 TextEditor::~TextEditor()
 {
+	ClearHighlights();
 }
 
 void TextEditor::SetPalette(PaletteId aValue)
@@ -159,6 +160,8 @@ void TextEditor::ClearSelections()
 		mState.mCursors[c].mInteractiveEnd =
 		mState.mCursors[c].mInteractiveStart =
 		mState.mCursors[c].GetSelectionEnd();
+
+	ClearHighlights();
 }
 
 void TextEditor::SetCursorPosition(int aLine, int aCharIndex)
@@ -197,6 +200,10 @@ void TextEditor::Copy()
 			auto& line = mLines[GetActualCursorCoordinates().mLine];
 			for (auto& g : line)
 				str.push_back(g.mChar);
+#ifdef _WIN32
+			str.push_back('\r');
+#endif
+			str.push_back('\n');
 			ImGui::SetClipboardText(str.c_str());
 		}
 	}
@@ -233,6 +240,46 @@ void TextEditor::Paste()
 	const char* text = ImGui::GetClipboardText();
 	if (!text || !text[0])
 		return;
+
+	if (!mLines.empty() && !AnyCursorHasSelection())
+	{
+		auto &line = mLines[GetActualCursorCoordinates().mLine];
+		int lineLen = (int)strlen(text);
+		if (lineLen > 0 && text[lineLen - 1] == '\n')
+			lineLen--;
+		if (lineLen > 0 && text[lineLen - 1] == '\r')
+			lineLen--;
+
+		if (bool sameLine = (lineLen == line.size() && lineLen > 0))
+		{
+			for (int i = 0; i < lineLen; i++)
+				if (line[i].mChar != text[i])
+				{
+					sameLine = false;
+					break;
+				}
+
+			if (sameLine)
+			{
+				eastl::string textToInsert = "\n";
+				textToInsert += text;
+				if (textToInsert.back() == '\n')
+					textToInsert.pop_back();
+
+				auto coords = GetActualCursorCoordinates();
+				auto newCursorPos = coords;
+
+				coords.mColumn = mLines[coords.mLine].size();
+				SetCursorPosition(coords, 0);
+				PasteText(textToInsert.c_str());
+
+				newCursorPos.mLine++;
+				SetCursorPosition(newCursorPos, 0, true);
+				return;
+			}
+		}
+	}
+
 	PasteText(ImGui::GetClipboardText());
 }
 
@@ -297,6 +344,36 @@ void TextEditor::PasteText(const char * text)
 	u.mAfter = mState;
 	AddUndo(u);
 }
+
+void TextEditor::ClearHighlights()
+{
+	for (auto &h : highlights)
+	{
+		delete h;
+		h = nullptr;
+	}
+}
+
+void TextEditor::AddHighlight(int line, int start, int end)
+{
+	if (start > 32000 || end > 32000)
+		return;
+
+	if (line >= (int)highlights.size())
+	{
+		for (int i = (int)highlights.size(); i <= line; i++)
+			highlights.push_back(nullptr);
+	}
+
+	if (highlights[line] == nullptr)
+		highlights[line] = new HighlightRanges();
+
+	if (highlights[line]->size() > 20)
+		return;
+
+	highlights[line]->push_back({ start, end });
+}
+
 
 bool TextEditor::UndoRecord::isSimilarTo(const TextEditor::UndoRecord& other) const
 {
@@ -472,7 +549,11 @@ bool TextEditor::Render(const char* aTitle, bool aParentIsFocused, const ImVec2&
 	mCursorPositionChanged = false;
 
 	if (colorizeTime != 0.0 && ImGui::GetTime() > colorizeTime)
+	{
 		ColorizeAll();
+		ClearHighlights();
+		HighlightSelectedText();
+	}
 
 	ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::ColorConvertU32ToFloat4(mPalette[(int)PaletteIndex::Background]));
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
@@ -1009,6 +1090,26 @@ void TextEditor::MoveEnd(bool aSelect)
 	}
 }
 
+void TextEditor::FindPreferredIndentChar(int lineNum)
+{
+	int from = max(lineNum - 10, 0);
+	int to = min(lineNum + 10, (int)mLines.size());
+	int tabs = 0;
+	int spaces = 0;
+	for (int i = from; i < to; i++)
+	{
+		auto& line = mLines[i];
+		if (line.empty())
+			continue;
+		if (line[0].mChar == '\t')
+			tabs++;
+		else if (line[0].mChar == ' ')
+			spaces++;
+	}
+
+	preferredIndentChar = tabs > spaces ? '\t' : ' ';
+}
+
 void TextEditor::EnterCharacter(ImWchar aChar, bool aShift)
 {
 	EASTL_ASSERT(!mReadOnly);
@@ -1060,13 +1161,34 @@ void TextEditor::EnterCharacter(ImWchar aChar, bool aShift)
 			added.mText = "";
 			added.mText += (char)aChar;
 			if (mAutoIndent)
+			{
+				FindPreferredIndentChar(coord.mLine);
+				char lastIndentChar = preferredIndentChar;
+
 				for (int i = 0; i < line.size() && unsigned(line[i].mChar) < 128 && isblank(line[i].mChar); ++i)
 				{
 					if (i >= coord.mColumn)
 						break;
 					newLine.push_back(line[i]);
 					added.mText += line[i].mChar;
+					if (line[i].mChar == '\t' || line[i].mChar == ' ')
+						lastIndentChar = line[i].mChar;
 				}
+
+				eastl::string lineBeforeCursor;
+				for (int i = 0; i < coord.mColumn && i < (int)line.size(); i++)
+					lineBeforeCursor += line[i].mChar;
+
+				if (RequireIndentationAfterNewLine(lineBeforeCursor))
+				{
+					if (lastIndentChar == ' ')
+						for (int i = 0; i < mTabSize; ++i)
+							newLine.push_back(Glyph(' ', PaletteIndex::Background));
+
+					if (lastIndentChar == '\t')
+						newLine.push_back(Glyph('\t', PaletteIndex::Background));
+				}
+			}
 
 			const size_t whitespaceSize = newLine.size();
 			auto cindex = GetCharacterIndexR(coord);
@@ -1195,6 +1317,63 @@ void TextEditor::Delete(bool aWordMode, const EditorState* aEditorState)
 	}
 }
 
+void TextEditor::HighlightSelectedText()
+{
+	eastl::string sel = GetSelectedText(0);
+	bool spacesOnly = true;
+
+	for (auto c : sel)
+	{
+		if (c != ' ' && c != '\t')
+			spacesOnly = false;
+
+		if (c == '\n')
+			return;
+	}
+
+	if (spacesOnly)
+		return;
+
+	int highlightedCount = 0;
+	int highlightAroundLine = mState.mCursors[0].mInteractiveStart.mLine;
+
+	for (int pass = 0; pass < 2; pass++)
+	{
+		for (int k = 0; k < Min((int)mLines.size(), 30000); k++)
+		{
+			bool insideRange = abs(k - highlightAroundLine) < 30;
+			if ((pass == 0) != (insideRange))
+				continue;
+
+			auto & line = mLines[k];
+			for (int i = 0; i <= (int)line.size() - (int)sel.length(); i++)
+			{
+				if (line[i].mChar == sel[0])
+				{
+					bool found = true;
+					for (int j = 1; j < (int)sel.length(); j++)
+					{
+						if (line[i + j].mChar != sel[j])
+						{
+							found = false;
+							break;
+						}
+					}
+
+					if (found)
+					{
+						AddHighlight(k, i, i + (int)sel.length());
+						i += (int)sel.length() - 1;
+						highlightedCount++;
+						if (highlightedCount > 400)
+							return;
+					}
+				}
+			}
+		}
+	}
+}
+
 void TextEditor::SetSelection(Coordinates aStart, Coordinates aEnd, int aCursor)
 {
 	if (aCursor == -1)
@@ -1214,6 +1393,9 @@ void TextEditor::SetSelection(Coordinates aStart, Coordinates aEnd, int aCursor)
 
 	mState.mCursors[aCursor].mInteractiveStart = aStart;
 	SetCursorPosition(aEnd, aCursor, false);
+
+	ClearHighlights();
+	HighlightSelectedText();
 }
 
 void TextEditor::SetSelection(int aStartLine, int aStartChar, int aEndLine, int aEndChar, int aCursor)
@@ -2438,6 +2620,23 @@ void TextEditor::Render(bool aParentIsFocused)
 			Coordinates lineStartCoord(lineNo, 0);
 			Coordinates lineEndCoord(lineNo, maxColumnLimited);
 
+			// Draw highlights for the current line
+			if (lineNo < highlights.size() && highlights[lineNo])
+			{
+				HighlightRanges &ranges = *highlights[lineNo];
+				for (auto && range : ranges)
+				{
+					if (range.first < line.size() && range.second <= line.size())
+					{
+						float x1 = TextDistanceToLineStart(Coordinates(lineNo, range.first));
+						float x2 = TextDistanceToLineStart(Coordinates(lineNo, range.second));
+						drawList->AddRectFilled(ImVec2{ lineStartScreenPos.x + mTextStart + x1, lineStartScreenPos.y },
+							ImVec2{ lineStartScreenPos.x + mTextStart + x2, lineStartScreenPos.y + mCharAdvance.y },
+							mPalette[(int)PaletteIndex::HighlightedTextFill]);
+					}
+				}
+			}
+
 			// Draw selection for the current line
 			for (int c = 0; c <= mState.mCurrentCursor; c++)
 			{
@@ -2693,6 +2892,9 @@ void TextEditor::OnCursorPositionChanged()
 		mState.SortCursorsFromTopToBottom();
 		MergeCursorsIfPossible();
 	}
+
+	ClearHighlights();
+	HighlightSelectedText();
 }
 
 void TextEditor::OnLineChanged(bool aBeforeChange, int aLine, int aColumn, int aCharCount, bool aDeleted) // adjusts cursor position when other cursor writes/deletes in the same line
@@ -2998,6 +3200,7 @@ const TextEditor::Palette& TextEditor::GetDarkPalette()
 			0x00000040, // Current line fill
 			0x80808040, // Current line fill (inactive)
 			0xa0a0a040, // Current line edge
+			0xff406080, // Highlight fill
 		} };
 	return p;
 }
@@ -3027,6 +3230,7 @@ const TextEditor::Palette& TextEditor::GetMarianaPalette()
 			0x4e5a6580, // Current line fill
 			0x4e5a6530, // Current line fill (inactive)
 			0x4e5a65b0, // Current line edge
+			0xff406080, // Highlight fill
 		} };
 	return p;
 }
@@ -3056,6 +3260,7 @@ const TextEditor::Palette& TextEditor::GetLightPalette()
 			0x00000040, // Current line fill
 			0x80808040, // Current line fill (inactive)
 			0x00000040, // Current line edge
+			0xffA0A0A0, // Highlight fill
 		} };
 	return p;
 }
@@ -3084,6 +3289,7 @@ const TextEditor::Palette& TextEditor::GetRetroBluePalette()
 			0x00000040, // Current line fill
 			0x80808040, // Current line fill (inactive)
 			0xe0e0e040, // Current line edge
+			0xff404080, // Highlight fill
 		} };
 	return p;
 }

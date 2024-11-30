@@ -40,6 +40,7 @@ public:
       "STORE_RETURN_ADDRESS() call is missing on the d3d interface.",
       name);
   }
+  void setCommandData(const null::CommandData &, const char *) {}
   const char *getLastCommandName() const { return lastCommandName; }
 };
 
@@ -88,6 +89,8 @@ public:
     auto &str = doResolve(data);
     buffer.append(str.data(), str.length());
   }
+
+  void append(String &, const char *, const null::CommandData &) {}
 
   eastl::string_view resolve(const CommandData &data) { return doResolve(data); }
 };
