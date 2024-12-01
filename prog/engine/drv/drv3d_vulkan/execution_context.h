@@ -67,7 +67,6 @@ public:
 
   VulkanCommandBufferHandle frameCore = VulkanHandle();
   DeviceQueueType frameCoreQueue = DeviceQueueType::INVALID;
-  bool frameCoreAsync = false;
 
   typedef ContextedPipelineBarrier<BuiltinPipelineBarrierCache::EXECUTION_PRIMARY> PrimaryPipelineBarrier;
   typedef ContextedPipelineBarrier<BuiltinPipelineBarrierCache::EXECUTION_SECONDARY> SecondaryPipelineBarrier;
@@ -79,10 +78,19 @@ public:
   void reportMissingPipelineComponent(const char *component);
   void queueImageResidencyRestore(Image *img);
   void writeExectionChekpoint(VulkanCommandBufferHandle cb, VkPipelineStageFlagBits stage);
+  void recordUserQueueSignal(int idx, DeviceQueueType target_queue);
+  void waitUserQueueSignal(int idx, DeviceQueueType target_queue);
 
 private:
   // temporal "pooled" contents
   static ExecutionScratch scratch;
+
+  size_t lastBufferIdxOnQueue[(uint32_t)DeviceQueueType::COUNT] = {};
+  // upload mutliqueue deps
+  size_t transferUploadBuffer = 0;
+  size_t graphicsUploadBuffer = 0;
+  size_t uploadQueueWaitMask = ~0;
+  void waitForUploadOnCurrentBuffer();
 
   void finishAllGPUWorkItems();
   enum
@@ -123,6 +131,10 @@ private:
   void flushUnorderedImageCopies();
   void flushUploads();
   void flushPostFrameCommands();
+
+  void stackUpCommandBuffers();
+  void sortAndCountDependencies();
+  void joinQueuesToSubmitFence();
   void enqueueCommandListsToMultipleQueues(ThreadedFence *fence);
 
   void printMemoryStatistics();
@@ -130,14 +142,12 @@ private:
   void applyStateChanges();
   void applyQueuedDiscards();
 
-  void switchFrameCore(DeviceQueueType target_queue, bool async);
-  void onFrameCoreReset();
-
 #if VULKAN_VALIDATION_COLLECT_CALLER > 0
   static thread_local ExecutionContext *tlsDbgActiveInstance;
 #endif
 
 public:
+  void addQueueDep(uint32_t src_submit, uint32_t dst_submit);
   ExecutionContext() = delete;
   ~ExecutionContext();
   ExecutionContext(const ExecutionContext &) = delete;
@@ -157,6 +167,10 @@ public:
   void endCmd();
   FramebufferState &getFramebufferState();
 
+  void completeSyncForQueueChange();
+  void switchFrameCoreForQueueChange(DeviceQueueType target_queue);
+  void switchFrameCore(DeviceQueueType target_queue);
+  void onFrameCoreReset();
   // processes out-of-order parts of frame that can affect orderd frame
   void prepareFrameCore();
   void flush(ThreadedFence *fence);

@@ -14,6 +14,8 @@
 #include "pipeline/manager.h"
 #include "device_context.h"
 #include "execution_timings.h"
+#include "backend.h"
+#include "backend_interop.h"
 
 using namespace drv3d_vulkan;
 
@@ -471,6 +473,14 @@ void drv3d_vulkan::debug_ui_misc()
 
   if (ImGui::Button("Switch execution mode"))
     Globals::ctx.toggleWorkerThread();
+
+  size_t multiQueueOverride = Backend::interop.toggleMultiQueueSubmit.load(std::memory_order_relaxed);
+  if (Globals::cfg.bits.allowMultiQueue || multiQueueOverride)
+  {
+    ImGui::TextUnformatted(multiQueueOverride % 2 ? "MultiQueueSubmit: no" : "MultiQueueSubmit: yes");
+    if (ImGui::Button("Toggle multi queue submit"))
+      ++Backend::interop.toggleMultiQueueSubmit;
+  }
 }
 
 #endif

@@ -1,5 +1,7 @@
 include "shader_global.dshl"
 
+int gpu_hang_uav_no = 7;
+
 shader hang_gpu_cs
 {
   supports none;
@@ -9,10 +11,12 @@ shader hang_gpu_cs
   {
     dont_render;
   }
-  
-  hlsl(cs) {
-    RWTexture2D< uint > gpu_hang_uav : register(u7);
 
+  (cs) {
+    gpu_hang_uav@uav : register(gpu_hang_uav_no) hlsl { RWTexture2D<uint> gpu_hang_uav@uav; }
+  }
+
+  hlsl(cs) {
     [numthreads( 32, 32, 1 )]
     void hang_gpu()
     {

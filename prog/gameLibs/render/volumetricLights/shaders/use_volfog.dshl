@@ -480,9 +480,6 @@ macro USE_VOLUMETRIC_LIGHT_TRANSPARENT(code)
 endmacro
 
 macro USE_VOLUMETRIC_LIGHT_SKY(code)
-  hlsl(code) {
-    #define DISTANT_FOG_USE_BILINEAR_SAMPLING 1
-  }
   USE_VOLUMETRIC_LIGHT_INC(code)
   hlsl(code) {
     void apply_sky_custom_fog(inout half3 val, float2 screen_tc, float2 jittered_screen_tc)
@@ -515,6 +512,8 @@ endmacro
 macro CUSTOM_FOG_SKY(code)
   INIT_VOLUMETRIC_LIGHT_COMMON()
   INIT_VOLUMETRIC_LIGHT_BASE(code)
+  INIT_VOLUMETRIC_LIGHT_DEPTH(code)
+  INIT_VOLUMETRIC_LIGHT_BLOCK(code)
   USE_VOLUMETRIC_LIGHT_SKY(code)
 endmacro
 

@@ -11,7 +11,7 @@
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
 #include <drv/3d/dag_shaderConstants.h>
-CONSOLE_INT_VAL("gi", sp_spatial_filter_passes, 2, 1, 5);
+CONSOLE_INT_VAL("gi", sp_spatial_filter_passes, 3, 1, 5);
 CONSOLE_INT_VAL("gi", sp_placement_probes_iterations, -1, -1, 8);
 CONSOLE_BOOL_VAL("gi", sp_radiance_r11g11b10, true);
 CONSOLE_FLOAT_VAL_MINMAX("gi", sp_additional_probes_reserve, 0.75, 0.25, 4);

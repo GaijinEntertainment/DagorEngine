@@ -52,6 +52,18 @@ enum class ActiveExecutionStage
 #endif
 };
 
+enum class DeviceQueueType
+{
+  GRAPHICS,
+  COMPUTE,
+  TRANSFER,
+  ASYNC_GRAPHICS,
+
+  COUNT,
+  INVALID = COUNT,
+  ZERO = GRAPHICS
+};
+
 #if D3D_HAS_RAY_TRACING
 #define STAGE_MAX_ACTIVE STAGE_MAX_EXT
 #else

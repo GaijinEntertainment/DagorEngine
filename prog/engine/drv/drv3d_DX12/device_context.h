@@ -130,7 +130,15 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
   template <typename T, typename... Args>
   T make_command(Args &&...args)
   {
-    return T{this->generateCommandData(), eastl::forward<Args>(args)...};
+    const bool isPrimary = T::is_primary();
+    if constexpr (isPrimary)
+    {
+      return T{this->generateCommandData(), eastl::forward<Args>(args)...};
+    }
+    else
+    {
+      return T{{}, eastl::forward<Args>(args)...};
+    }
   }
 
   // Warning: intentionally not spinlock, since it has extremely bad behaviour

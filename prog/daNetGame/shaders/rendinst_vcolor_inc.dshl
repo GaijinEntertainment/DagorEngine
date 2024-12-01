@@ -22,11 +22,8 @@ endmacro
 
 macro COMMON_RENDINST_VCOLOR_PS(is_blending_hmap)
 
-  if (rendinst_render_pass != rendinst_render_pass_to_shadow)
-  {
-    USE_VCOLOR_LAYERED(ps)
-    USE_VCOLOR_LAYERED(vs)
-  }
+  USE_VCOLOR_LAYERED(ps)
+  USE_VCOLOR_LAYERED(vs)
 
   COMMON_RENDINST_PS_PREP(false)
 

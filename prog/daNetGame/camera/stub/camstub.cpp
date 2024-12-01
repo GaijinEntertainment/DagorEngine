@@ -27,6 +27,4 @@ ecs::EntityId enable_spectator_camera(const TMatrix &, int, ecs::EntityId) { ret
 void reset_all_cameras() {}
 ecs::EntityId get_cur_cam_entity() { return ecs::INVALID_ENTITY_ID; }
 ecs::EntityId set_scene_camera_entity(ecs::EntityId) { return ecs::INVALID_ENTITY_ID; }
-CameraSetup get_active_camera_setup() { return CameraSetup(); }
-void calc_camera_values(const CameraSetup &, TMatrix &viewTm, Driver3dPerspective &, int &, int &) { viewTm = TMatrix::IDENT; }
 TMatrix4 calc_active_camera_globtm() { return TMatrix4::IDENT; }

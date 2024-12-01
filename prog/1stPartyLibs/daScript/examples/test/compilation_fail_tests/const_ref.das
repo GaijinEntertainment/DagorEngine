@@ -1,6 +1,6 @@
 require UnitTest
 
-// expect 30102     // once we disable relaxed_pointer_const, we can't pass const to non-const
+expect 30102     // passThrough
 expect 30106
 expect 30303:1    // operator_not_found
 expect 30304:2    // function_not_found

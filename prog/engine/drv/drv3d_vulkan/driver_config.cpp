@@ -94,7 +94,7 @@ void DriverConfig::fillConfigBits(const DataBlock *cfg)
 void DriverConfig::fillDeviceBits()
 {
   has.gpuTimestamps = !(Globals::VK::phy.properties.limits.timestampComputeAndGraphics == VK_FALSE ||
-                        Globals::VK::que[DeviceQueueType::GRAPHICS].getTimestampBits() < 1);
+                        Globals::VK::queue[DeviceQueueType::GRAPHICS].getTimestampBits() < 1);
   has.fragmentShaderUAV = VK_FALSE != Globals::VK::phy.features.fragmentStoresAndAtomics;
   has.depthBoundsTest = VK_FALSE != Globals::VK::phy.features.depthBounds;
   has.anisotropicSampling = VK_FALSE != Globals::VK::phy.features.samplerAnisotropy;

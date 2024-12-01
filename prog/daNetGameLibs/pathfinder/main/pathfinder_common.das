@@ -12,21 +12,21 @@ require math.maybe_pos public
 
 def get_lower_navmesh_pos(position : float3; horz_extents : float; is_valid : block<(pos : float3) : bool>) : MaybePos
   var minY = FLT_MAX
-  var res = [[MaybePos invalid=null]]
+  var res = MaybePos()
   query_navmesh_projections(position, float3(horz_extents, FLT_MAX, horz_extents), /*points num*/8) <| $(positions)
     for pos in positions
       if pos.y < minY && invoke(is_valid, pos)
-        res = [[MaybePos pos=pos]]
+        res = MaybePos(pos)
         minY = pos.y
   return res
 
 def get_lower_navmesh_pos_in_radius(position : float3; radius : float; is_valid : block<(pos : float3) : bool>) : MaybePos
   var minY = FLT_MAX
-  var res = [[MaybePos invalid=null]]
+  var res = MaybePos()
   query_navmesh_projections(position, float3(radius), /*points num*/8) <| $(positions)
     for pos in positions
       if pos.y < minY && invoke(is_valid, pos)
-        res = [[MaybePos pos=pos]]
+        res = MaybePos(pos)
         minY = pos.y
   return res
 
@@ -34,7 +34,7 @@ def find_reachable_nav_point_around(start_pos, center : float3; radius : float; 
   return find_nav_point_around(start_pos, center, radius, tries, is_valid, false)
 
 def find_nav_point_around(start_pos, center : float3; radius : float; tries : int; is_valid : block<(pos : float3) : bool>; accept_partial : bool = false) : MaybePos
-  var res = [[MaybePos invalid=null]]
+  var res = MaybePos()
   // TODO: project start pos to navmesh
   using() <| $(var path_corridor : dtPathCorridor)
     path_corridor |> init_path_corridor()
@@ -56,7 +56,7 @@ def find_nav_point_around(start_pos, center : float3; radius : float; tries : in
         inp.includeFlags |= int(PolyFlag POLYFLAG_JUMP)
         let pathRes = set_path_corridor(path_corridor, inp, null)
         if pathRes != FindPathResult FPR_FAILED && (accept_partial || pathRes != FindPathResult FPR_PARTIAL)
-          res = [[MaybePos pos=pos]]
+          res = MaybePos(pos)
       if res is pos
         break
 

@@ -167,6 +167,14 @@ void skip_ui_render_job()
   StdGuiRender::reset_per_frame_dynamic_buffer_pos();
 }
 
+void update_all_gui_scenes_mainthread(float dt)
+{
+  for (darg::IGuiScene *scn : get_all_scenes())
+  {
+    scn->update(dt);
+    scn->mainThreadBeforeRender();
+  }
+}
 
 void before_render(float dt, const TMatrix &view_itm, const TMatrix &view_tm)
 {
@@ -188,13 +196,7 @@ void before_render(float dt, const TMatrix &view_itm, const TMatrix &view_tm)
     interlocked_release_store(ui_render_job.runState, ui_render_job.INITIAL);
   }
   else
-  {
-    for (darg::IGuiScene *scn : scenes)
-    {
-      scn->update(dt);
-      scn->mainThreadBeforeRender();
-    }
-  }
+    update_all_gui_scenes_mainthread(dt);
 
   for (auto &uiscn : scenes)
   {

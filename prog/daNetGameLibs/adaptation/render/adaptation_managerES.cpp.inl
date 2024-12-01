@@ -74,7 +74,7 @@ AdaptationManager::AdaptationManager()
   static constexpr int exposureNormalizationFlags = TEXCF_RTARGET | TEXCF_UNORDERED | TEXFMT_R32F;
   exposureNormalizationFactor = dag::create_tex(NULL, 1, 1, exposureNormalizationFlags, 1, "exposure_normalization_factor");
 
-  registerExposureNodeHandle = dabfg::register_node("register_adapatation_resoureces", DABFG_PP_NODE_SRC,
+  registerExposureNodeHandle = dabfg::register_node("register_adaptation_resources", DABFG_PP_NODE_SRC,
     [normFactorView = ManagedTexView(exposureNormalizationFactor)](dabfg::Registry registry) {
       registry.multiplex(dabfg::multiplexing::Mode::None);
       registry.registerTexture2d("exposure_normalization_factor", [normFactorView](auto) -> ManagedTexView { return normFactorView; });

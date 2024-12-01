@@ -623,7 +623,7 @@ int ViewportWindow::windowProc(TEcHandle h_wnd, unsigned msg, TEcWParam w_param,
       input.mouseX = GET_X_LPARAM(l_param);
       input.mouseY = GET_Y_LPARAM(l_param);
 
-      if (mouseDownOnViewportAxis == ViewportAxisId::RotatorCircle && canInteractWithViewportAxis())
+      if (mouseDownOnViewportAxis == ViewportAxisId::RotatorCircle)
       {
         processViewportAxisCameraRotation(l_param);
         return 0;
@@ -681,7 +681,7 @@ int ViewportWindow::windowProc(TEcHandle h_wnd, unsigned msg, TEcWParam w_param,
       mouseButtonDown[ImGuiMouseButton_Left] = true;
       input.lmbPressed = true;
 
-      if (highlightedViewportAxisId != ViewportAxisId::None && canInteractWithViewportAxis())
+      if (highlightedViewportAxisId != ViewportAxisId::None && canStartInteractionWithViewport())
       {
         handleViewportAxisMouseLButtonDown();
         return 0;
@@ -1979,7 +1979,7 @@ void ViewportWindow::paint(int w, int h)
     getViewportSize(viewportSize.x, viewportSize.y);
 
     const bool rotating = mouseDownOnViewportAxis == ViewportAxisId::RotatorCircle;
-    const bool allowHighlight = !rotating && canInteractWithViewportAxis();
+    const bool allowHighlight = (mouseDownOnViewportAxis != ViewportAxisId::None && !rotating) || canStartInteractionWithViewport();
     const IPoint2 mousePos(input.mouseX, input.mouseY);
     ViewportAxis viewportAxis(viewport->getViewMatrix(), viewportSize);
     highlightedViewportAxisId = viewportAxis.draw(allowHighlight ? &mousePos : nullptr, rotating);
@@ -2405,9 +2405,10 @@ void ViewportWindow::handleStatSettingsDialogChange(int pcb_id, bool value)
     handleStat3dStatSettingsDialogChange(pcb_id, value);
 }
 
-bool ViewportWindow::canInteractWithViewportAxis()
+bool ViewportWindow::canStartInteractionWithViewport()
 {
-  return isActive() && !rectSelect.active && !isMoveRotateAllowed && CCameraElem::getCamera() == CCameraElem::MAX_CAMERA;
+  return isActive() && !rectSelect.active && !isMoveRotateAllowed && mouseDownOnViewportAxis == ViewportAxisId::None &&
+         CCameraElem::getCamera() == CCameraElem::MAX_CAMERA;
 }
 
 void ViewportWindow::handleViewportAxisMouseLButtonDown()
@@ -2446,7 +2447,7 @@ void ViewportWindow::handleViewportAxisMouseLButtonUp()
 
     SetCursorPos(restoreCursorAtX, restoreCursorAtY);
   }
-  else if (highlightedViewportAxisId == mouseDownOnViewportAxis && canInteractWithViewportAxis())
+  else if (highlightedViewportAxisId == mouseDownOnViewportAxis)
   {
     switch (highlightedViewportAxisId) //-V719 (The switch statement does not cover all values of the enum.)
     {

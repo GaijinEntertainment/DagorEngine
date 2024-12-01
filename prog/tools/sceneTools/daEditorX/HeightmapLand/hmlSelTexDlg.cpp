@@ -70,9 +70,9 @@ bool HmapLandPlugin::HmlSelTexDlg::execute()
   _panel->createButton(PID_CREATE_MASK, "Create mask...");
   _panel->setFocusById(PID_TEX_LIST);
   _panel->getById(PID_TEX_LIST)->setHeight(_pxScaled(300));
-  _panel->createSeparator();
 
   _panel->setInt(PID_BPP_GROUP, reqBpp);
+  dlg->autoSize();
   int ret = dlg->showDialog();
   EDITORCORE->deleteDialog(dlg);
   return ret == PropPanel::DIALOG_ID_OK;

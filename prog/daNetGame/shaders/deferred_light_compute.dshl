@@ -1,5 +1,7 @@
 include "deferred_light_common.dshl"
 
+sampler depth_gbuf_samplerstate;
+
 shader deferred_light_compute
 {
   if (compatibility_mode == compatibility_mode_on)
@@ -23,15 +25,22 @@ shader deferred_light_compute
     current_time@f1 = (time_phase(0, 0));
     world_view_pos@f4 = world_view_pos;
     depth_bounds@f2 = depth_bounds;
+    depth_gbuf_read_samplerstate@sampler = depth_gbuf_samplerstate;
   }
 
   hlsl(cs) {
     #include <deferred_light_compute_inc.hlsli>
 
-    RWTexture2D<float3> g_specular : register(u0);
-##if gi_quality != off
-    RWTexture2D<float3> g_ambient : register(u1);
-##endif
+    ##if gi_quality == screen_probes
+      RWTexture2D<GI_ENCODED_TYPE> g_specular : register(u0);
+      RWTexture2D<GI_ENCODED_TYPE> g_ambient : register(u1);
+      RWTexture2D<uint> g_pixel_age : register(u2);
+    ##else
+        RWTexture2D<half3> g_specular : register(u0);
+      ##if gi_quality != off
+        RWTexture2D<half3> g_ambient : register(u1);
+      ##endif
+    ##endif
 
     [numthreads(DEFERRED_LIGHT_COMPUTE_GRP_SIZE_X, DEFERRED_LIGHT_COMPUTE_GRP_SIZE_Y, 1)]
     void deferred_light_cs( uint3 Groupid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint GI : SV_GroupIndex )
@@ -61,13 +70,19 @@ shader deferred_light_compute
       float3 pointToEyeOfs = pointToEye;
       float3 worldPos = world_view_pos.xyz - pointToEyeOfs;
 
-      float3 computedSpecular, computedAmbient;
-      ComputeDeferredLight(gbuffer, worldPos, rawDepth, curViewTc, screenCoordCenter, pointToEye, computedSpecular, computedAmbient);
+      half3 computedSpecular, computedAmbient;
+      uint age;
+      ComputeDeferredLight(gbuffer, worldPos, rawDepth, curViewTc, screenCoordCenter, pointToEye, computedSpecular, computedAmbient, age);
 
-      g_specular[DTid.xy] = computedSpecular;
+      ##if gi_quality == screen_probes
+        encode_gi_colors(g_ambient[DTid.xy], g_specular[DTid.xy], computedAmbient, computedSpecular);
+        g_pixel_age[DTid.xy] = age;
+      ##else
+        g_specular[DTid.xy] = computedSpecular;
 ##if gi_quality != off
-      g_ambient[DTid.xy] = computedAmbient;
+        g_ambient[DTid.xy] = computedAmbient;
 ##endif
+      ##endif
     }
   }
 

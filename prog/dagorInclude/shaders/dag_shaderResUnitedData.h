@@ -193,7 +193,7 @@ protected:
   mutable std::mutex hintsMutex;
   int noDiscardFrames = 120;
   int keepIfNeedLodFrames = 600;
-  int requestLodsByDistanceFrames = 60;
+  int requestLodsByDistanceFrames = 0;
 
   unitedvdata::BufConfig getHints() const;
 

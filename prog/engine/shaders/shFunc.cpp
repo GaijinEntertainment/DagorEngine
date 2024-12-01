@@ -104,10 +104,14 @@ void callFunction(FunctionId id, int out_reg, const int *in_regs, char *regs)
 
     case BF_GET_VIEWPORT:
     {
-      int x = 0, y = 0, w = 0, h = 0;
-      float zn = 0, zf = 0;
-      d3d::getview(x, y, w, h, zn, zf);
-      COLOROUT(x, y, w, h);
+      union
+      {
+        vec4i v;
+        int i[4];
+      } vp; // Intentionally not inited for perf reasons
+      float _1, _2;
+      G_VERIFY(d3d::getview(vp.i[0], vp.i[1], vp.i[2], vp.i[3], _1, _2));
+      set_vec_reg(v_cvti_vec4f(vp.v), regs, out_reg);
       break;
     }
 

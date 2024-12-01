@@ -365,7 +365,7 @@ struct DafxSparks : BaseParticleEffect
       ((eastl::vector<dafx::InstanceId> *)value)->push_back(iid);
     }
     else if (id == _MAKE4C('PFXV'))
-      dafx::set_instance_visibility(g_dafx_ctx, iid, value ? *(bool *)value : false);
+      dafx::set_instance_visibility(g_dafx_ctx, iid, value ? *(uint32_t *)value : 0);
     else if (id == _MAKE4C('PFXG'))
       dafx::warmup_instance(g_dafx_ctx, iid, value ? *(float *)value : 0);
     else if (id == _MAKE4C('GZTM'))

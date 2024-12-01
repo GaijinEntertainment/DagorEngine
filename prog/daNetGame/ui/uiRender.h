@@ -17,6 +17,7 @@ using all_darg_scenes_t = dag::RelocatableFixedVector<darg::IGuiScene *, 2, fals
 all_darg_scenes_t get_all_scenes();
 bool has_scenes();
 
+void update_all_gui_scenes_mainthread(float dt);
 void before_render(float dt, const TMatrix &view_itm, const TMatrix &view_tm);
 void start_ui_render_job(bool wake);
 void start_ui_before_render_job();

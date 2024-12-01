@@ -43,6 +43,7 @@
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_lock.h>
 #include <render/dag_cur_view.h>
+#include <workCycle/dag_workCycle.h> // dagor_work_cycle_is_need_to_draw
 
 #include <shaders/dag_dynSceneRes.h>
 #include <shaders/dag_rendInstRes.h>
@@ -184,7 +185,6 @@ extern void init_fx();
 extern void term_fx();
 extern void add_volfog_optional_graphs();
 extern void set_nightly_spot_lights();
-
 
 #if _TARGET_PC_WIN && DAGOR_DBGLEVEL == 0
 extern int optimus_pull_var;
@@ -1396,6 +1396,7 @@ void WorldRenderer::afterDeviceReset(bool full_reset)
     closeResetable();
     initResetable();
     resetGI();
+    delayedRenderCtx.invalidate();
     invalidateCube();
     reinitSpecularCubesContainerIfNeeded();
     onSceneLoaded(binScene);
@@ -1867,6 +1868,8 @@ void WorldRenderer::setResolution()
     ssaaNode = {};
     prepareForPostfxNoAANode = makePrepareForPostfxNoAANode();
   }
+  motion_vector_access::set_motion_vector_type(
+    needMotionVectors() ? motion_vector_access::MotionVectorType::DynamicUVZ : motion_vector_access::MotionVectorType::StaticUVZ);
   initStaticUpsample(displayResolution, postFxResolution); // Used on consoles and bareMinimum
   G_ASSERTF(!isFXAAEnabled() || resolutionScaleMode != RESOLUTION_SCALE_POSTFX,
     "FXAA must run in render resolution! video/upscaleInPostfx should be off");
@@ -2333,7 +2336,9 @@ static void hang_gpu()
   if (!gpu_hang_cs)
     gpu_hang_cs.reset((new_compute_shader("hang_gpu_cs", false)));
 
-  d3d::set_rwtex(STAGE_CS, 7, gpu_hang_uav.getBaseTex(), 0, 0, true);
+  static int gpu_hang_uav_no = ShaderGlobal::get_slot_by_name("gpu_hang_uav_no");
+
+  d3d::set_rwtex(STAGE_CS, gpu_hang_uav_no, gpu_hang_uav.getBaseTex(), 0, 0, true);
 
   gpu_hang_cs->dispatch(10, 10, 1);
 }
@@ -2593,6 +2598,15 @@ void WorldRenderer::setFilmGrainFromSettings()
 template <typename T>
 using BlobHandle = dabfg::VirtualResourceHandle<T, false, false>;
 
+void WorldRenderer::makePrepareDepthForPostFxNode()
+{
+  const bool aaNeedsHistory = antiAliasing && antiAliasing->needDepthHistory();
+  const bool giNeedsHistory = giNeedsReprojection();
+  const bool needHistory = aaNeedsHistory || giNeedsHistory;
+  if (hasDepthHistory != needHistory || !prepareDepthForPostFxNode)
+    prepareDepthForPostFxNode = ::makePrepareDepthForPostFxNode(hasDepthHistory = needHistory);
+}
+
 void WorldRenderer::createNodes()
 {
   fgNodeHandles.clear();
@@ -2633,7 +2647,7 @@ void WorldRenderer::createNodes()
     fgNodeHandles.emplace_back(factory());
   }
 
-  fgNodeHandles.emplace_back(makePrepareDepthForPostFxNode(antiAliasing && antiAliasing->needDepthHistory()));
+  makePrepareDepthForPostFxNode();
   fgNodeHandles.emplace_back(makePrepareDepthAfterTransparent());
   if (hasMotionVectors)
     fgNodeHandles.emplace_back(makePrepareMotionVectorsAfterTransparent(antiAliasing && antiAliasing->needMotionVectorHistory()));
@@ -2966,6 +2980,8 @@ void WorldRenderer::createNodes()
       Point2 jitterOffset(0, 0);
       if (antiAliasing)
         jitterOffset = antiAliasing->update(jitterPersp);
+
+      currentFrameCamera.jitterOffsetUv = jitterOffset;
       // todo: replce that with 'double' version!
       d3d::setpersp(jitterPersp, &currentFrameCamera.jitterProjTm);
       d3d::settm(TM_VIEW, currentFrameCamera.viewTm);
@@ -3009,6 +3025,125 @@ void WorldRenderer::createNodes()
       };
 
       motionVecReprojectTmHndl.ref() = get_uv_reprojection_to_prev_frame_tm_no_jitter(currentFrameCamera, prevFrameCamera);
+    };
+  }));
+
+  fgNodeHandles.emplace_back(dabfg::register_node("hero_matrix_setup_node", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
+    registry.executionHas(dabfg::SideEffects::External);
+
+    auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
+    auto prevCameraHndl = registry.readBlobHistory<CameraParams>("current_camera").handle();
+    auto heroGunOrVehicleTmHndl =
+      registry.createBlob<TMatrix>("hero_gun_or_vehicle_tm", dabfg::History::ClearZeroOnFirstFrame).handle();
+    auto prevHeroGunOrVehicleTmHndl = registry.readBlobHistory<TMatrix>("hero_gun_or_vehicle_tm").handle();
+    auto heroMatrixParamsHndl =
+      registry.createBlob<eastl::optional<motion_vector_access::HeroMatrixParams>>("hero_matrix_params", dabfg::History::No).handle();
+
+    return [this, cameraHndl, prevCameraHndl, heroGunOrVehicleTmHndl, prevHeroGunOrVehicleTmHndl, heroMatrixParamsHndl] {
+      const DPoint3 &worldPos = cameraHndl.ref().cameraWorldPos;
+      const DPoint3 &oldWorldPos = prevCameraHndl.ref().cameraWorldPos;
+      mat44f oldHeroGunOrVehicleTm;
+      v_mat44_make_from_43cu(oldHeroGunOrVehicleTm, prevHeroGunOrVehicleTmHndl.ref().array);
+
+      if (heroData.resReady)
+      {
+        heroData.resWtm.col3 =
+          v_add(heroData.resWtm.col3, v_make_vec4f(v_extract_x(heroData.resWofs) - worldPos.x,
+                                        v_extract_y(heroData.resWofs) - worldPos.y, v_extract_z(heroData.resWofs) - worldPos.z, 0));
+
+        const mat44f oldHeroGunOrVehicleNoReprojectedWposTm = oldHeroGunOrVehicleTm;
+        oldHeroGunOrVehicleTm.col3 = v_add(oldHeroGunOrVehicleTm.col3,
+          v_make_vec4f(oldWorldPos.x - worldPos.x, oldWorldPos.y - worldPos.y, oldWorldPos.z - worldPos.z, 0));
+
+        vec3f lbc = v_bbox3_center(heroData.resLbox);
+        vec3f lbsize = v_sub(heroData.resLbox.bmax, lbc);
+        ShaderGlobal::set_real(gi_hero_cockpit_distanceVarId, v_extract_x(v_length3_x(lbsize)));
+        lbsize = v_sel(lbsize, v_add(lbsize, lbsize), (vec4f)V_CI_MASK1000); // increase size in one direction, to catch hands
+
+        mat44f invHeroGun;
+        v_mat44_inverse43(invHeroGun, heroData.resWtm);
+
+        mat44f boxMatrix, heroMatrix;
+        boxMatrix.col0 = v_and(v_div(V_C_UNIT_1000, lbsize), (vec4f)V_CI_MASK1110);
+        boxMatrix.col1 = v_and(v_div(V_C_UNIT_0100, lbsize), (vec4f)V_CI_MASK1110);
+        boxMatrix.col2 = v_and(v_div(V_C_UNIT_0010, lbsize), (vec4f)V_CI_MASK1110);
+        boxMatrix.col3 = v_sel(V_C_ONE, v_sub(v_zero(), v_div(lbc, lbsize)), (vec4f)V_CI_MASK1110);
+        v_mat44_mul43(heroMatrix, boxMatrix, invHeroGun);
+
+        mat44f worldToPrev;
+        v_mat44_mul43(worldToPrev, oldHeroGunOrVehicleTm, invHeroGun);
+
+        mat43f wtm, wtmPrev;
+        v_mat44_transpose_to_mat43(wtmPrev, worldToPrev);
+        v_mat44_transpose_to_mat43(wtm, heroMatrix);
+
+        ShaderGlobal::set_color4(prev_hero_matrixXVarId, Color4((float *)&wtmPrev.row0));
+        ShaderGlobal::set_color4(prev_hero_matrixYVarId, Color4((float *)&wtmPrev.row1));
+        ShaderGlobal::set_color4(prev_hero_matrixZVarId, Color4((float *)&wtmPrev.row2));
+
+        ShaderGlobal::set_color4(hero_matrixXVarId, Color4((float *)&wtm.row0));
+        ShaderGlobal::set_color4(hero_matrixYVarId, Color4((float *)&wtm.row1));
+        ShaderGlobal::set_color4(hero_matrixZVarId, Color4((float *)&wtm.row2));
+        ShaderGlobal::set_int(hero_is_cockpitVarId, heroData.resFlags == heroData.WEAPON);
+
+        auto toTMatrix = [](const mat43f &m) {
+          Point4 rows[3];
+          v_stu(&rows[0].x, m.row0);
+          v_stu(&rows[1].x, m.row1);
+          v_stu(&rows[2].x, m.row2);
+
+          TMatrix tm;
+          tm.setcol(0, rows[0].x, rows[1].x, rows[2].x);
+          tm.setcol(1, rows[0].y, rows[1].y, rows[2].y);
+          tm.setcol(2, rows[0].z, rows[1].z, rows[2].z);
+          tm.setcol(3, rows[0].w, rows[1].w, rows[2].w);
+          return tm;
+        };
+
+        heroMatrixParamsHndl.ref() =
+          motion_vector_access::HeroMatrixParams{toTMatrix(wtm), toTMatrix(wtmPrev), heroData.resFlags == heroData.WEAPON};
+
+        mat44f worldToPrevNoReprojectedWPos;
+        mat43f wtmPrevNoReprojectedWpos;
+        v_mat44_mul43(worldToPrevNoReprojectedWPos, oldHeroGunOrVehicleNoReprojectedWposTm, invHeroGun);
+        v_mat44_transpose_to_mat43(wtmPrevNoReprojectedWpos, worldToPrevNoReprojectedWPos);
+
+        ShaderGlobal::set_color4(hero_bbox_reprojectionXVarId, Color4((float *)&wtmPrevNoReprojectedWpos.row0));
+        ShaderGlobal::set_color4(hero_bbox_reprojectionYVarId, Color4((float *)&wtmPrevNoReprojectedWpos.row1));
+        ShaderGlobal::set_color4(hero_bbox_reprojectionZVarId, Color4((float *)&wtmPrevNoReprojectedWpos.row2));
+
+        v_mat_43cu_from_mat44(heroGunOrVehicleTmHndl.ref().array, heroData.resWtm);
+      }
+      else
+      {
+        ShaderGlobal::set_real(gi_hero_cockpit_distanceVarId, 0);
+        ShaderGlobal::set_color4(hero_matrixXVarId, 0, 0, 0, 2);
+        ShaderGlobal::set_color4(hero_matrixYVarId, 0, 0, 0, 2);
+        ShaderGlobal::set_color4(hero_matrixZVarId, 0, 0, 0, 2);
+        heroGunOrVehicleTmHndl.ref() = prevHeroGunOrVehicleTmHndl.ref();
+        heroMatrixParamsHndl.ref() = eastl::nullopt;
+      }
+    };
+  }));
+
+  fgNodeHandles.emplace_back(dabfg::register_node("motion_vector_access_setup_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+    registry.executionHas(dabfg::SideEffects::External);
+
+    auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
+    auto prevCameraHndl = registry.readBlobHistory<CameraParams>("current_camera").handle();
+    auto heroMatrixParamsHndl =
+      registry.readBlob<eastl::optional<motion_vector_access::HeroMatrixParams>>("hero_matrix_params").handle();
+
+    registry.createBlob<OrderingToken>("motion_vector_access_token", dabfg::History::No); // something to use in dependent nodes
+
+    return [cameraHndl, prevCameraHndl, heroMatrixParamsHndl] {
+      motion_vector_access::CameraParams currentCamera{cameraHndl.ref().viewTm, cameraHndl.ref().viewItm,
+        cameraHndl.ref().noJitterProjTm, cameraHndl.ref().cameraWorldPos, cameraHndl.ref().znear, cameraHndl.ref().zfar};
+      motion_vector_access::CameraParams previousCamera{prevCameraHndl.ref().viewTm, prevCameraHndl.ref().viewItm,
+        prevCameraHndl.ref().noJitterProjTm, prevCameraHndl.ref().cameraWorldPos, prevCameraHndl.ref().znear,
+        prevCameraHndl.ref().zfar};
+      motion_vector_access::set_params(currentCamera, previousCamera, cameraHndl.ref().jitterOffsetUv,
+        prevCameraHndl.ref().jitterOffsetUv, heroMatrixParamsHndl.ref());
     };
   }));
 
@@ -3351,8 +3486,6 @@ WorldRenderer::WorldRenderer() :
   cameraHeight(0.f),
   waterSSRFrame(0),
   water_ssr_id(-1),
-  oldHeroGunOrVehicleTm(ZERO<mat44f>()),
-  oldWorldPos(0, 0, 0),
   debugLightProbeSpheres(nullptr)
 {
   if (d3d::get_driver_code().is(d3d::dx12))
@@ -3611,6 +3744,9 @@ void WorldRenderer::update(float dt, float, const TMatrix &itm)
 #if TIME_PROFILER_ENABLED
   render::imgui_profiler::update_profiler(dagor_frame_no());
 #endif
+
+  if (!dagor_work_cycle_is_need_to_draw()) // Note: we still have to update frp for it's side effects
+    uirender::update_all_gui_scenes_mainthread(dt);
 }
 
 void WorldRenderer::cullFrustumLights(vec3f viewPos, mat44f_cref globtm, mat44f_cref view, mat44f_cref proj, float zn)
@@ -3846,7 +3982,8 @@ void WorldRenderer::beforeRender(float scaled_dt,
     transparentPartitionSphere = PartitionSphere();
   }
 
-  updateHeroMatrix(view_pos);
+  updateHeroData();
+
   if (fomShadowManager)
   {
     float minHt, maxHt;
@@ -4583,7 +4720,7 @@ void WorldRenderer::draw(float realDt)
   d3d::setwire(false);
 
   resource_slot::resolve_access();
-  dabfg::run_nodes();
+  [[maybe_unused]] bool fgWasRun = dabfg::run_nodes();
 
   if (allsamples > 1)
     set_mip_bias(last_mip_scale);
@@ -4597,6 +4734,11 @@ void WorldRenderer::draw(float realDt)
     dynamicQuality->onFrameEnd();
   if (dynamicResolution)
     dynamicResolution->endFrame();
+
+#if _TARGET_PC   // Assume that only PC can reset
+  if (!fgWasRun) // Dev lost?
+    waitAllJobs();
+#endif
 
   // Stuff after this point is GUI and debug visualization, they don't
   // support the `global_frame` block.
@@ -4623,6 +4765,8 @@ void WorldRenderer::setDirToSun()
   Point3 newSunDir = get_daskies() ? get_daskies()->getPrimarySunDir() : Point3(0.400, -0.610, 0.684);
   dir_to_sun.realTime = newSunDir;
 
+  rendinst::setDirFromSun(-newSunDir); // it can be outdated, so we update it no matter what
+
   auto useCompression = [] { return ::dgs_get_settings()->getBlockByNameEx("graphics")->getBool("globalShadowCompression", true); };
 
   switch (dir_to_sun.sunDirectionUpdateStage)
@@ -4644,7 +4788,6 @@ void WorldRenderer::setDirToSun()
     }
     break;
     case DirToSun::RENDINST_GLOBAL_SHADOWS:
-      rendinst::setDirFromSun(-dir_to_sun.curr);
       if (!rendinst::rendinstGlobalShadows ||
           (rendinst::render::are_impostors_ready_for_depth_shadows() &&
             rendinst::render::renderRIGenGlobalShadowsToTextures(-dir_to_sun.curr, false, useCompression(), !isTimeDynamic())))
@@ -5954,72 +6097,13 @@ void WorldRenderer::renderLmeshReflection()
   ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
 }
 
-void WorldRenderer::updateHeroMatrix(const DPoint3 &world_pos)
+void WorldRenderer::updateHeroData()
 {
-  QueryHeroWtmAndBoxForRender hero_data;
+  QueryHeroWtmAndBoxForRender heroDataQuery{};
   if (const ecs::EntityId heroEid = game::get_controlled_hero())
     if (g_entity_mgr->getEntityTemplateId(heroEid) != ecs::INVALID_TEMPLATE_INDEX)
-      g_entity_mgr->sendEventImmediate(heroEid, hero_data);
-  if (hero_data.resReady)
-  {
-    hero_data.resWtm.col3 =
-      v_add(hero_data.resWtm.col3, v_make_vec4f(v_extract_x(hero_data.resWofs) - world_pos.x,
-                                     v_extract_y(hero_data.resWofs) - world_pos.y, v_extract_z(hero_data.resWofs) - world_pos.z, 0));
-
-    const mat44f oldHeroGunOrVehicleNoReprojectedWposTm = oldHeroGunOrVehicleTm;
-    oldHeroGunOrVehicleTm.col3 = v_add(oldHeroGunOrVehicleTm.col3,
-      v_make_vec4f(oldWorldPos.x - world_pos.x, oldWorldPos.y - world_pos.y, oldWorldPos.z - world_pos.z, 0));
-
-    vec3f lbc = v_bbox3_center(hero_data.resLbox);
-    vec3f lbsize = v_sub(hero_data.resLbox.bmax, lbc);
-    ShaderGlobal::set_real(gi_hero_cockpit_distanceVarId, v_extract_x(v_length3_x(lbsize)));
-    lbsize = v_sel(lbsize, v_add(lbsize, lbsize), (vec4f)V_CI_MASK1000); // increase size in one direction, to catch hands
-
-    mat44f invHeroGun;
-    v_mat44_inverse43(invHeroGun, hero_data.resWtm);
-
-    mat44f boxMatrix, heroMatrix;
-    boxMatrix.col0 = v_and(v_div(V_C_UNIT_1000, lbsize), (vec4f)V_CI_MASK1110);
-    boxMatrix.col1 = v_and(v_div(V_C_UNIT_0100, lbsize), (vec4f)V_CI_MASK1110);
-    boxMatrix.col2 = v_and(v_div(V_C_UNIT_0010, lbsize), (vec4f)V_CI_MASK1110);
-    boxMatrix.col3 = v_sel(V_C_ONE, v_sub(v_zero(), v_div(lbc, lbsize)), (vec4f)V_CI_MASK1110);
-    v_mat44_mul43(heroMatrix, boxMatrix, invHeroGun);
-
-    mat44f worldToPrev;
-    v_mat44_mul43(worldToPrev, oldHeroGunOrVehicleTm, invHeroGun);
-
-    mat43f wtm, wtmPrev;
-    v_mat44_transpose_to_mat43(wtmPrev, worldToPrev);
-    v_mat44_transpose_to_mat43(wtm, heroMatrix);
-
-    ShaderGlobal::set_color4(prev_hero_matrixXVarId, Color4((float *)&wtmPrev.row0));
-    ShaderGlobal::set_color4(prev_hero_matrixYVarId, Color4((float *)&wtmPrev.row1));
-    ShaderGlobal::set_color4(prev_hero_matrixZVarId, Color4((float *)&wtmPrev.row2));
-
-    ShaderGlobal::set_color4(hero_matrixXVarId, Color4((float *)&wtm.row0));
-    ShaderGlobal::set_color4(hero_matrixYVarId, Color4((float *)&wtm.row1));
-    ShaderGlobal::set_color4(hero_matrixZVarId, Color4((float *)&wtm.row2));
-    ShaderGlobal::set_int(hero_is_cockpitVarId, hero_data.resFlags == hero_data.WEAPON);
-
-    mat44f worldToPrevNoReprojectedWPos;
-    mat43f wtmPrevNoReprojectedWpos;
-    v_mat44_mul43(worldToPrevNoReprojectedWPos, oldHeroGunOrVehicleNoReprojectedWposTm, invHeroGun);
-    v_mat44_transpose_to_mat43(wtmPrevNoReprojectedWpos, worldToPrevNoReprojectedWPos);
-
-    ShaderGlobal::set_color4(hero_bbox_reprojectionXVarId, Color4((float *)&wtmPrevNoReprojectedWpos.row0));
-    ShaderGlobal::set_color4(hero_bbox_reprojectionYVarId, Color4((float *)&wtmPrevNoReprojectedWpos.row1));
-    ShaderGlobal::set_color4(hero_bbox_reprojectionZVarId, Color4((float *)&wtmPrevNoReprojectedWpos.row2));
-
-    oldHeroGunOrVehicleTm = hero_data.resWtm;
-    oldWorldPos = world_pos;
-  }
-  else
-  {
-    ShaderGlobal::set_real(gi_hero_cockpit_distanceVarId, 0);
-    ShaderGlobal::set_color4(hero_matrixXVarId, 0, 0, 0, 2);
-    ShaderGlobal::set_color4(hero_matrixYVarId, 0, 0, 0, 2);
-    ShaderGlobal::set_color4(hero_matrixZVarId, 0, 0, 0, 2);
-  }
+      g_entity_mgr->sendEventImmediate(heroEid, heroDataQuery);
+  heroData = heroDataQuery;
 }
 
 void WorldRenderer::renderWaterSSR(bool enabled,

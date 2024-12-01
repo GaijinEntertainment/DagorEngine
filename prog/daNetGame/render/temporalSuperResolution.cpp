@@ -160,6 +160,8 @@ TemporalSuperResolution::TemporalSuperResolution(const IPoint2 &output_resolutio
 
     auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
 
+    registry.readBlob<OrderingToken>("motion_vector_access_token");
+
     return [this, opaqueFinalTargetHndl, antialiasedHndl, antialiasedHistHndl, confidenceHndl, confidenceHistHndl, cameraHndl] {
       set_viewvecs_to_shader(cameraHndl.ref().viewTm, cameraHndl.ref().jitterProjTm);
       tsr_render(TextureIDPair{opaqueFinalTargetHndl.view().getTex2D(), opaqueFinalTargetHndl.view().getTexId()},

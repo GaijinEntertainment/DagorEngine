@@ -26,22 +26,23 @@ def sound_debug_draw_visual_labels(evt : Event)
       add_debug_text_mark(it.pos, "radius={it.radius} name={it.name}", -1, 0., E3DCOLOR(0xFFFF00FF))
 
 
-[es(no_order, tag=sound, on_event=EventSoundDrawDebug)]
-def sound_debug_draw(evt : Event;
-                     eid : EntityId;
-                     is_watched_sound : bool = false;
-                     sound_tags : Object const?;
-                     sound_event_group : SoundEventGroup const?;
-                     human_voice_effect__activeEffects : Object const?;
-                     [[shared_comp]] human_voice_effect__allOrderedEffects : StringList const?;
-                     sound_control__allowSound : bool = true;
-                     sound_control__inRange : bool = true;
-                     sound_control__soundEnabled : bool = true;
-                     human_speech__voiceIdx = -1;
-                     squad_member__memberIdx = -1;
-                     squad_member__squad : EntityId;
-                     team = -1;
-                     transform : float3x4)
+[es(no_order, tag=sound, on_event=EventSoundDrawDebug, REQUIRE=humanSound)]
+def human_sound_debug_draw(evt : Event;
+                           eid : EntityId;
+                           is_watched_sound : bool = false;
+                           sound_tags : Object const?;
+                           sound_event_group : SoundEventGroup const?;
+                           human_voice_effect__activeEffects : Object const?;
+                           [[shared_comp]] human_voice_effect__allOrderedEffects : StringList const?;
+                           sound_control__allowSound : bool = true;
+                           sound_control__inRange : bool = true;
+                           sound_control__soundEnabled : bool = true;
+                           human_speech__voiceIdx = -1;
+                           squad_member__memberIdx = -1;
+                           squad_member__squad = INVALID_ENTITY_ID;
+                           human_speech__locale = "";
+                           team = -1;
+                           transform : float3x4)
 
   if !sound_control__inRange
     return
@@ -78,6 +79,9 @@ def sound_debug_draw(evt : Event;
   if sound_event_group != null && (is_watched_sound || get_num_sounds(*sound_event_group) > 0)
     text += "sound group:{get_num_sounds(*sound_event_group)} "
 
+  if !empty(human_speech__locale)
+    text += "loc={human_speech__locale} "
+
   if human_speech__voiceIdx >= 0
     text += "voice=#{human_speech__voiceIdx} "
     text += "member=#{squad_member__memberIdx} "
@@ -99,6 +103,17 @@ def sound_debug_console_sndsys_preset_enable(name : string; enable : bool)
 [console_cmd(name="snd.play")]
 def sound_debug_console_sound_play(path : string; duration = 5.)
   var handle = soundEvent::play("", path, get_listener_pos())
+  if is_valid_handle_value(handle)
+    sound_debug("snd.play '{path}' is3d={is_3d(handle)}; maxRange={get_max_distance(handle)}; isOneshot={is_oneshot(handle)}")
+  if is_oneshot(handle)
+    abandon(handle)
+  else
+    abandon(handle, duration)
+
+
+[console_cmd(name="snd.play_pos")]
+def sound_debug_console_sound_play_pos(path : string; x, y, z : float; duration = 5.)
+  var handle = soundEvent::play("", path, float3(x, y, z))
   if is_valid_handle_value(handle)
     sound_debug("snd.play '{path}' is3d={is_3d(handle)}; maxRange={get_max_distance(handle)}; isOneshot={is_oneshot(handle)}")
   if is_oneshot(handle)

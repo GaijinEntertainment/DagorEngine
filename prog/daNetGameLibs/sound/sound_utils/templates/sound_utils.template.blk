@@ -172,11 +172,19 @@ sound_irqs{
     _tags:t="sound"
   }
 }
+
 sound_tags{
+  "sound_flags:object"{
+    _tags:t="sound"
+  }
+  "sound_mods:list<eid>"{
+    _tags:t="sound"
+  }
   "sound_tags:object"{
     _tags:t="sound"
   }
-  _tracked:t="sound_tags"
+  _tracked:t="sound_flags"
+  _tracked:t="sound_mods"
 }
 
 sound_player_components{

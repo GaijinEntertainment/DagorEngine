@@ -50,7 +50,7 @@ U &resolve(T &, U &u)
 #define DX12_CONTEXT_COMMAND_IMPLEMENTATION 1
 // mark cmd and ctx as unused to avoid errors when the implementation does not use anything
 // RenderWork is private to DeviceContext, use template to work around that
-#define DX12_BEGIN_CONTEXT_COMMAND(Name)               \
+#define DX12_BEGIN_CONTEXT_COMMAND(IsPrimary, Name)    \
   template <typename T, typename D>                    \
   void execute(const Cmd##Name &cmd, D &debug, T &ctx) \
   {                                                    \
@@ -58,7 +58,7 @@ U &resolve(T &, U &u)
     G_UNUSED(ctx);                                     \
     debug.setCommandData(cmd, "Cmd" #Name);
 
-#define DX12_BEGIN_CONTEXT_COMMAND_EXT_1(Name, Param0Type, Param0Name)                \
+#define DX12_BEGIN_CONTEXT_COMMAND_EXT_1(IsPrimary, Name, Param0Type, Param0Name)     \
   template <typename T, typename D>                                                   \
   void execute(const ExtendedVariant<Cmd##Name, Param0Type> &param, D &debug, T &ctx) \
   {                                                                                   \
@@ -69,19 +69,17 @@ U &resolve(T &, U &u)
     G_UNUSED(ctx);                                                                    \
     debug.setCommandData(cmd, "Cmd" #Name);
 
-#define DX12_BEGIN_CONTEXT_COMMAND_EXT_2(Name, Param0Type, Param0Name, Param1Type, Param1Name)     \
-  template <typename T, typename D>                                                                \
-  void execute(const ExtendedVariant2<Cmd##Name, Param0Type, Param1Type> &param, D &debug, T &ctx) \
-  {                                                                                                \
-    auto &cmd = param.cmd;                                                                         \
-    auto &Param0Name = param.p0;                                                                   \
-    auto &Param1Name = param.p1;                                                                   \
-    G_UNUSED(Param0Name);                                                                          \
-    G_UNUSED(cmd);                                                                                 \
-    G_UNUSED(ctx);                                                                                 \
+#define DX12_BEGIN_CONTEXT_COMMAND_EXT_2(IsPrimary, Name, Param0Type, Param0Name, Param1Type, Param1Name) \
+  template <typename T, typename D>                                                                       \
+  void execute(const ExtendedVariant2<Cmd##Name, Param0Type, Param1Type> &param, D &debug, T &ctx)        \
+  {                                                                                                       \
+    auto &cmd = param.cmd;                                                                                \
+    auto &Param0Name = param.p0;                                                                          \
+    auto &Param1Name = param.p1;                                                                          \
+    G_UNUSED(Param0Name);                                                                                 \
+    G_UNUSED(cmd);                                                                                        \
+    G_UNUSED(ctx);                                                                                        \
     debug.setCommandData(cmd, "Cmd" #Name);
-
-#define DX12_CONTEXT_COMMAND_IS_PRIMARY(isPrimary)
 
 #define DX12_END_CONTEXT_COMMAND }
 // make an alias so we do not need to write cmd.
@@ -95,7 +93,6 @@ U &resolve(T &, U &u)
 #undef DX12_BEGIN_CONTEXT_COMMAND
 #undef DX12_BEGIN_CONTEXT_COMMAND_EXT_1
 #undef DX12_BEGIN_CONTEXT_COMMAND_EXT_2
-#undef DX12_CONTEXT_COMMAND_IS_PRIMARY
 #undef DX12_END_CONTEXT_COMMAND
 #undef DX12_CONTEXT_COMMAND_PARAM
 #undef DX12_CONTEXT_COMMAND_PARAM_ARRAY
@@ -615,7 +612,7 @@ void DeviceContext::addDebugBreakString(eastl::string_view str)
 {
   auto cmd = make_command<CmdAddDebugBreakString>();
   DX12_LOCK_FRONT();
-  commandStream.pushBack<CmdAddDebugBreakString, const char>(cmd, str.data(), str.size());
+  commandStream.pushBack(cmd, str.data(), str.size());
   immediateModeExecute();
 }
 
@@ -623,7 +620,7 @@ void DeviceContext::removeDebugBreakString(eastl::string_view str)
 {
   auto cmd = make_command<CmdRemoveDebugBreakString>();
   DX12_LOCK_FRONT();
-  commandStream.pushBack<CmdRemoveDebugBreakString, const char>(cmd, str.data(), str.size());
+  commandStream.pushBack(cmd, str.data(), str.size());
   immediateModeExecute();
 }
 
@@ -1221,10 +1218,9 @@ void report_metrics(VariantContainerVisitMetricsCollector<A> &metrics)
   if (totalCount.value())
   {
     static const char *cmdNames[metrics.command_count]{
-#define DX12_BEGIN_CONTEXT_COMMAND(name)                                                       "Cmd" #name,
-#define DX12_BEGIN_CONTEXT_COMMAND_EXT_1(name, param0Type, param0Name)                         "Cmd" #name,
-#define DX12_BEGIN_CONTEXT_COMMAND_EXT_2(name, param0Type, param0Name, param1Type, param1Name) "Cmd" #name,
-#define DX12_CONTEXT_COMMAND_IS_PRIMARY(isPrimary)
+#define DX12_BEGIN_CONTEXT_COMMAND(isPrimary, name)                                                       "Cmd" #name,
+#define DX12_BEGIN_CONTEXT_COMMAND_EXT_1(isPrimary, name, param0Type, param0Name)                         "Cmd" #name,
+#define DX12_BEGIN_CONTEXT_COMMAND_EXT_2(isPrimary, name, param0Type, param0Name, param1Type, param1Name) "Cmd" #name,
 #define DX12_END_CONTEXT_COMMAND
 #define DX12_CONTEXT_COMMAND_PARAM(type, name)
 #define DX12_CONTEXT_COMMAND_PARAM_ARRAY(type, name, size)
@@ -1232,7 +1228,6 @@ void report_metrics(VariantContainerVisitMetricsCollector<A> &metrics)
 #undef DX12_BEGIN_CONTEXT_COMMAND
 #undef DX12_BEGIN_CONTEXT_COMMAND_EXT_1
 #undef DX12_BEGIN_CONTEXT_COMMAND_EXT_2
-#undef DX12_CONTEXT_COMMAND_IS_PRIMARY
 #undef DX12_END_CONTEXT_COMMAND
 #undef DX12_CONTEXT_COMMAND_PARAM
 #undef DX12_CONTEXT_COMMAND_PARAM_ARRAY
@@ -1370,7 +1365,7 @@ void DeviceContext::setConstBuffer(uint32_t stage, size_t unit, const ConstBuffe
 #if DX12_VALIDATE_STREAM_CB_USAGE_WITHOUT_INITIALIZATION
   nameLength = strlen(name);
 #endif
-  commandStream.pushBack<CmdSetUniformBuffer, const char>(cmd, name, nameLength);
+  commandStream.pushBack(cmd, name, nameLength);
   immediateModeExecute();
 }
 
@@ -1630,7 +1625,7 @@ void DeviceContext::pushEvent(const char *name)
 
   auto cmd = make_command<CmdPushEvent>();
   DX12_LOCK_FRONT();
-  commandStream.pushBack<CmdPushEvent, const char>(cmd, name, length);
+  commandStream.pushBack(cmd, name, length);
   immediateModeExecute();
 }
 
@@ -3234,12 +3229,12 @@ void DeviceContext::mapTileToResource(BaseTex *tex, ResourceHeap *heap, const Ti
   auto extraBatch = mapping_count % batchSize;
   for (size_t i = 0; i < fullBatches; ++i, mapping += batchSize)
   {
-    commandStream.pushBack<CmdAddTileMappings, const TileMapping>(cmd, mapping, batchSize);
+    commandStream.pushBack(cmd, mapping, batchSize);
     immediateModeExecute();
   }
   if (extraBatch)
   {
-    commandStream.pushBack<CmdAddTileMappings, const TileMapping>(cmd, mapping, extraBatch);
+    commandStream.pushBack(cmd, mapping, extraBatch);
     immediateModeExecute();
   }
 

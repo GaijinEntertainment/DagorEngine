@@ -5,10 +5,10 @@ typedef
 
 [export]
 def mks ()
-    return [[TestObjectSmartPtr]]
+    return <- [[TestObjectSmartPtr]]
 
 [export]
 def test
-    let p <- mks()
+    var inscope p <- mks()
     verify(get_ptr(p)==null)
     return true

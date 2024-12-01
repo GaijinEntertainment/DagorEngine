@@ -427,6 +427,8 @@ void render_lens_optics(
 
   ShaderGlobal::set_int(lens_detail_levelVarId, LENS_DETAIL_FULL);
   ShaderGlobal::set_int(lens_render_modeVarId, LENS_RENDER_OPTICS);
+  float lensBrightness = ECS_GET_OR(scopeAimData.entityWithScopeLensEid, gunmod__lensBrightness, 1.0f);
+  ShaderGlobal::set_real(lens_brighthnessVarId, lensBrightness);
   Point3 params = ECS_GET_OR(scopeAimData.entityWithScopeLensEid, gunmod__distortionParams, Point3(0.8f, 0.7f, 0.07f));
   ShaderGlobal::set_color4(lens_distortion_paramsVarId, Color4(params.x, params.y, params.z, 0.0f));
   Point3 lensLocalX = ECS_GET_OR(scopeAimData.entityWithScopeLensEid, gunmod__lensLocalX, Point3(1, 0, 0));

@@ -23,6 +23,7 @@
 #include <startup/dag_globalSettings.h>
 #include "render/world/parallelOcclusionRasterizer.h"
 #include "render/world/worldRendererQueries.h"
+#include "depthAOAbove.h"
 
 extern ConVarB stop_occlusion;
 extern ConVarB use_occlusion;
@@ -32,6 +33,8 @@ CONSOLE_BOOL_VAL("render", sw_occlusion, true);
 CONSOLE_BOOL_VAL("render", sw_hmap_occlusion, true);
 CONSOLE_BOOL_VAL("render", sw_animchars_occlusion, true);
 CONSOLE_BOOL_VAL("render", occlusion_async_readback_gpu, true);
+
+extern void wait_static_shadows_cull_jobs();
 
 static ShaderVariableInfo cockpit_distanceVarId("cockpit_distance", true);
 
@@ -407,7 +410,10 @@ void WorldRenderer::waitAllJobs()
   waitLights();
   waitGroundVisibility();
   waitGroundReflectionVisibility();
+  wait_static_shadows_cull_jobs();
   waitLightProbeVisibility();
+  if (depthAOAboveCtx)
+    depthAOAboveCtx->waitCullJobs();
 }
 
 void WorldRenderer::toggleProbeReflectionQuality()

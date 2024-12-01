@@ -1110,7 +1110,7 @@ void ShaderResUnitedVdata<RES>::discardUnusedResToFreeReqMemNoLock(bool forced)
         continue;
       if (res->getQlReqLodEff() <= res->getQlBestLod())
         continue;
-      if (res->getQlReqLFU() + requestLodsByDistanceFrames >= dagor_frame_no())
+      if (requestLodsByDistanceFrames > 0 && res->getQlReqLFU() + requestLodsByDistanceFrames >= dagor_frame_no())
         continue;
 
       downgradeRes(res, res->getQlReqLodEff());
@@ -1317,7 +1317,12 @@ bool ShaderResUnitedVdata<RES>::addRes(dag::Span<RES *> res)
       String _1;
       buildStatusStrNoLock(_1, /*full_res_list*/ true, resolve_game_resource_name);
     }
-    logmessage(bad_tight_detected ? LOGLEVEL_ERR : LOGLEVEL_WARN,
+#if DAGOR_DBGLEVEL > 0
+    int loglev = bad_tight_detected ? LOGLEVEL_ERR : LOGLEVEL_WARN;
+#else
+    int loglev = LOGLEVEL_WARN;
+#endif
+    logmessage(loglev,
       "unitedVdata<%s>: arranged %d res in tight buffers:%s; setup *.gameparams.blk unitedVdata.%s{} ! now %d VBs, %s",
       RES::getStaticClassName(), resList.size() - prev_res_count, tight_stats, RES::getStaticClassName(), buf.getVbCount(),
       buf.getStatStr());

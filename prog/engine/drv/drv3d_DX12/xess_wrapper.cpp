@@ -286,7 +286,7 @@ private:
   xess_2d_t m_renderResolution = {0, 0};
   XessState m_state = XessState::DISABLED;
 
-  eastl::unique_ptr<void, DagorDllCloser> libxess;
+  DagorDynLibHolder libxess;
   decltype(::xessD3D12CreateContext) *xessD3D12CreateContext;
   decltype(::xessGetProperties) *xessGetProperties;
   decltype(::xessD3D12Init) *xessD3D12Init;

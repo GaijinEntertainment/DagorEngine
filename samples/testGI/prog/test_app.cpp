@@ -181,6 +181,7 @@ typedef StrmSceneHolder scene_type_t;
   VAR(downsampled_checkerboard_depth_tex)              \
   VAR(downsampled_checkerboard_depth_tex_samplerstate) \
   VAR(sphere_time)                                     \
+  VAR(dagi_sp_has_exposure_assume)                     \
   VAR(prev_globtm_psf_0)                               \
   VAR(prev_globtm_psf_1)                               \
   VAR(prev_globtm_psf_2)                               \
@@ -663,10 +664,25 @@ public:
   void initScreenGI(int w, int h)
   {
     const bool supportRGBE_RT = d3d::check_texformat(TEXFMT_R9G9B9E5 | TEXCF_RTARGET);
-    if (supportRGBE_RT)
-      gi_fmt = supportRGBE_RT ? TEXFMT_R9G9B9E5 : TEXFMT_R11G11B10F;
+    gi_fmt = supportRGBE_RT ? TEXFMT_R9G9B9E5 : TEXFMT_R11G11B10F;
+    if (gi_panel.gi_mode == SCREEN_PROBES)
+    {
+      if (ShaderGlobal::is_var_assumed(dagi_sp_has_exposure_assumeVarId) &&
+          ShaderGlobal::get_interval_assumed_value(dagi_sp_has_exposure_assumeVarId))
+        gi_fmt = supportRGBE_RT ? TEXFMT_R9G9B9E5 : TEXFMT_R11G11B10F;
+      else
+        gi_fmt = TEXFMT_R32UI;
+    }
 
-    ambient[0].close();
+    if (ambient[0])
+    {
+      TextureInfo ti;
+      ambient[0].getTex2D()->getinfo(ti);
+      if (ti.w != w || ti.h != h || ((ti.cflg & TEXFMT_MASK) != gi_fmt))
+        ambient[0].close();
+    }
+    if (ambient[0])
+      return;
     ambient[0] = dag::create_tex(NULL, w, h, gi_fmt | TEXCF_RTARGET, 1, "screen_ambient0");
     ambient[0]->texaddr(TEXADDR_CLAMP);
     screen_specular[0].close();
@@ -687,12 +703,12 @@ public:
 
   void initGIReprojection(int w, int h)
   {
-    if (!gi_panel.reproject)
+    if (!screen_probes.reproject)
     {
       closeGIReprojection();
       return;
     }
-    if (ambient[1] && gi_panel.reproject)
+    if (ambient[1] && screen_probes.reproject)
     {
       TextureInfo ti;
       ambient[1].getTex2D()->getinfo(ti);
@@ -1605,6 +1621,7 @@ public:
         initRes(w / (div + 1), h / (div + 1));
     }
     initReflections(w, h);
+    initScreenGI(w, h);
     target->swapDepth(otherDepth);
     target->setVar();
     ShaderGlobal::set_texture(prev_gbuffer_depthVarId, otherDepth.getTexId());
@@ -1902,7 +1919,7 @@ public:
     TIME_D3D_PROFILE(ambientFixup)
     SCOPE_RENDER_TARGET;
     static TMatrix4 prevGlobTm;
-    const bool hasHistory = ambient[1] && gi_panel.reproject && validAmbientHistory;
+    const bool hasHistory = ambient[1] && screen_probes.reproject && validAmbientHistory;
 
     if (hasHistory)
     {
@@ -2202,7 +2219,6 @@ protected:
     de3_imgui_init("Test GI", "Sky properties");
 
     static GuiControlDesc skyGuiDesc[] = {
-      DECLARE_BOOL_CHECKBOX(gi_panel, reproject, false),
       DECLARE_BOOL_CHECKBOX(gi_panel, ssao, false),
       DECLARE_BOOL_CHECKBOX(gi_panel, gtao, false),
       DECLARE_INT_COMBOBOX(gi_panel, reflections, REFLECTIONS_ALL, REFLECTIONS_OFF, REFLECTIONS_SSR, REFLECTIONS_ALL),
@@ -2217,6 +2233,7 @@ protected:
       DECLARE_FLOAT_SLIDER(sdf_panel, voxel0Size, 0.1, 1., 0.15, 0.1),
       DECLARE_FLOAT_SLIDER(sdf_panel, yResScale, 0.5, 1., 0.5, 0.1),
       DECLARE_FLOAT_SLIDER(screen_probes, temporality, 0, 1., 0.5, 0.01),
+      DECLARE_BOOL_CHECKBOX(screen_probes, reproject, true),
       DECLARE_INT_COMBOBOX(screen_probes, tileSize, screen_probes.tileSize, 8, 10, 12, 14, 16, 20, 24, 32),
       DECLARE_INT_COMBOBOX(screen_probes, radianceOctRes, 8, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16),
       DECLARE_BOOL_CHECKBOX(screen_probes, angleFiltering, false),
@@ -2497,7 +2514,6 @@ protected:
     float dynamic_gi_quality = 1.0;
     float exposure = 1;
     bool fake_dynres = false;
-    bool reproject = true;
   } gi_panel;
   struct
   {
@@ -2517,6 +2533,7 @@ protected:
   {
     int tileSize = 16, radianceOctRes = 8;
     float temporality = 0.5;
+    bool reproject = true;
     bool angleFiltering;
   } screen_probes;
 

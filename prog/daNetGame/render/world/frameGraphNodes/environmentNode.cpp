@@ -13,6 +13,7 @@
 #include <util/dag_convar.h>
 
 #include "frameGraphNodes.h"
+#include <render/world/frameGraphHelpers.h>
 #include <drv/3d/dag_renderTarget.h>
 
 
@@ -67,6 +68,8 @@ eastl::fixed_vector<dabfg::NodeHandle, 3> makeEnvironmentNodes()
 
   result.push_back(dabfg::register_node("render_skies", DABFG_PP_NODE_SRC, [panorama](dabfg::Registry registry) {
     auto state = registry.requestState();
+
+    use_volfog(registry, dabfg::Stage::PS_OR_CS);
 
     // Optimization: keep the depth in RO state
     auto pass = registry.requestRenderPass()

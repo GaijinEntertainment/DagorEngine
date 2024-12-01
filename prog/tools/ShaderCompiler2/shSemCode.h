@@ -47,7 +47,7 @@ public:
     void *terminal;
     bool used, dynamic, noWarnings;
 
-    Var() : nameId(-1), used(false), dynamic(false), noWarnings(false), terminal(NULL) {}
+    Var() : nameId(-1), terminal(NULL), used(false), dynamic(false), noWarnings(false) {}
 
     inline const char *getName() const { return VarMap::getName(nameId); };
   };
@@ -227,6 +227,8 @@ public:
     eastl::optional<Pass> pass;
     Tab<ShaderStateBlock *> suppBlk;
 
+    Tab<int> varmap;
+
     PassTab() : suppBlk(codemem) {}
   };
 
@@ -251,14 +253,19 @@ public:
   ShaderSemCode();
   ~ShaderSemCode() = default;
 
-  const char *equal(ShaderSemCode &, bool compare_passes);
+  const char *equal(ShaderSemCode &, bool compare_passes_and_vars);
   void dump();
+
+  void initPassMap(int pass_id);
+  void mergeVars(Tab<Var> &&other_vars, Tab<StVarMap> &&other_stvarmap, int pass_id);
 
   ShaderCode *generateShaderCode(const ShaderVariant::VariantTableSrc &dynVariants, StcodeShader &cppcode);
 
 private:
-  void convert_passes(ShaderSemCode::Pass &semP, ShaderCode::Pass &p, Tab<int> &cvar, StcodeShader &cppcode);
-  static void convert_stcode(dag::Span<int> cod, Tab<int> &cvar, StcodeRegisters &static_regs);
+  void convert_passes(ShaderSemCode::Pass &semP, ShaderCode::Pass &p, Tab<int> &cvar, StcodeShader &cppcode, const Tab<int> &var_map);
+  static void convert_stcode(dag::Span<int> cod, Tab<int> &cvar, StcodeRegisters &static_regs, const Tab<int> &var_map);
+
+  static int find_var_in_tab(const Tab<Var> &vars, const int variable_id);
 };
 
 #undef codemem

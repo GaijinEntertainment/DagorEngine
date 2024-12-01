@@ -292,10 +292,15 @@ void HmapLandPlugin::unregistered()
 
 void HmapLandPlugin::loadSettings(const DataBlock &global_settings)
 {
+  objEd.loadPropPanelSettings(*global_settings.getBlockByNameEx("obj_prop"));
   objEd.loadOutlinerSettings(*global_settings.getBlockByNameEx("outliner"));
 }
 
-void HmapLandPlugin::saveSettings(DataBlock &global_settings) { objEd.saveOutlinerSettings(*global_settings.addNewBlock("outliner")); }
+void HmapLandPlugin::saveSettings(DataBlock &global_settings)
+{
+  objEd.savePropPanelSettings(*global_settings.addNewBlock("obj_prop"));
+  objEd.saveOutlinerSettings(*global_settings.addNewBlock("outliner"));
+}
 
 bool HmapLandPlugin::onConsoleCommand(const char *cmd, dag::ConstSpan<const char *> params)
 {

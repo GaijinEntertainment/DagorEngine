@@ -1290,6 +1290,9 @@ void denoise_ao(const AODenoiser &params)
   ReblurSharedConstants reblurSharedConstants =
     make_reblur_shared_constants(params.hitDistParams, params.antilagSettings, false, width, height, true, false);
 
+  static_assert(offsetof(ReblurSharedConstants, rotator) % 16 == 0,
+    "`Point4 rotator` vector straddles 4-vector boundary of constant buffer.");
+
   // Rotators
   Point4 rndScale = Point4(1, 1, 1, 1) + rand4sf() * 0.25f;
   Point4 rndAngle = rand4uf() * DegToRad(360.0f);
@@ -2095,8 +2098,8 @@ static void denoise_reflection_relax(const ReflectionDenoiser &params)
     struct PassData
     {
       RelaxSharedConstants relaxSharedConstants;
-      Point4 rotator;
       uint32_t padding;
+      Point4 rotator;
     } passData;
 
     float ca = cos(rndAngle.x);
@@ -2107,6 +2110,8 @@ static void denoise_reflection_relax(const ReflectionDenoiser &params)
 
     static_assert(sizeof(passData) % (4 * sizeof(float)) == 0,
       "RelaxSharedConstants size must be multiple of sizeof(float4) for d3d::set_cb0_data");
+
+    static_assert(offsetof(PassData, rotator) % 16 == 0, "`Point4 rotator` vector straddles 4-vector boundary of constant buffer.");
 
     d3d::set_sampler(STAGE_CS, 0, samplerNearestClamp);
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);

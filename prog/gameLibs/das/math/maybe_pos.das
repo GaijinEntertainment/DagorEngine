@@ -5,9 +5,25 @@ require math
 
 variant MaybePos
   pos : float3
-  invalid : void?
+  invalid : bool
+
+
+def MaybePos()
+  return MaybePos(invalid = true)
+
+
+def MaybePos(pos : float3)
+  return MaybePos(pos = pos)
 
 
 variant MaybeTm
   tm : float3x4
-  invalid : void?
+  invalid : bool
+
+
+def MaybeTm()
+  return MaybeTm(invalid = true)
+
+
+def MaybeTm(tm : float3x4)
+  return MaybeTm(tm = tm)

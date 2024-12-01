@@ -14,23 +14,25 @@ int dafx_fill_boundary_frame_id = 0;
 int dafx_use_experimental_boundary_calc = 0;
 interval dafx_use_experimental_boundary_calc: no < 1, yes;
 
+int dafx_fill_boundary_legacy_frame_boundary_result_uav_no = 0;
 
 // horribly slow, only used for debugging ->> should be deprecated if there is no problem with the optimized version
 shader fill_fx_keyframe_boundary_legacy
 {
-  (cs){
+  (cs) {
     dafx_fill_boundary_tex@tex2d = dafx_fill_boundary_tex;
     dafx_fill_boundary_params@f4 = dafx_fill_boundary_params;
     dafx_fill_boundary_offset@i1 = dafx_fill_boundary_offset;
     tile_size@f2 = (dafx_fill_boundary_params.z / dafx_fill_boundary_params.x, dafx_fill_boundary_params.w / dafx_fill_boundary_params.y);
     tile_size_inv@f2 = (dafx_fill_boundary_params.x / dafx_fill_boundary_params.z, dafx_fill_boundary_params.y / dafx_fill_boundary_params.w);
+    frame_boundary_result@uav : register(dafx_fill_boundary_legacy_frame_boundary_result_uav_no) hlsl {
+      RWStructuredBuffer<float4> frame_boundary_result@uav;
+    };
   }
 
   ENABLE_ASSERT(cs)
 
   hlsl(cs) {
-    RWStructuredBuffer<float4> frame_boundary_result : register(u0);
-
     float4 transformInverseY(float4 boundary)
     {
       boundary.yw = 1 - boundary.wy;
@@ -80,14 +82,19 @@ shader fill_fx_keyframe_boundary_legacy
   compile("target_cs", "main_cs");
 }
 
-
+int dafx_fill_boundary_opt_start_frame_boundary_tmp_uav_no = 0;
 
 shader fill_fx_keyframe_boundary_opt_start
 {
   ENABLE_ASSERT(cs)
-  hlsl(cs) {
-    RWStructuredBuffer<uint> dafx_frame_boundary_tmp : register(u0);
 
+  (cs) {
+    dafx_frame_boundary_tmp@uav : register(dafx_fill_boundary_opt_start_frame_boundary_tmp_uav_no) hlsl {
+      RWStructuredBuffer<uint> dafx_frame_boundary_tmp@uav;
+    };
+  }
+
+  hlsl(cs) {
     [numthreads( 16, 4, 1 )]
     void main_cs( uint2 dtId : SV_DispatchThreadID )
     {
@@ -99,19 +106,22 @@ shader fill_fx_keyframe_boundary_opt_start
   compile("target_cs", "main_cs");
 }
 
+int dafx_fill_boundary_approx_frame_boundary_tmp_uav_no = 0;
+
 shader fill_fx_keyframe_boundary_approx
 {
-  (cs){
+  (cs) {
     dafx_fill_boundary_tex@tex2d = dafx_fill_boundary_tex;
     dafx_fill_boundary_params@f4 = dafx_fill_boundary_params;
     tile_size@f2 = (dafx_fill_boundary_params.z / dafx_fill_boundary_params.x, dafx_fill_boundary_params.w / dafx_fill_boundary_params.y);
+    dafx_frame_boundary_tmp@uav : register(dafx_fill_boundary_approx_frame_boundary_tmp_uav_no) hlsl {
+      RWStructuredBuffer<uint> dafx_frame_boundary_tmp@uav;
+    };
   }
 
   ENABLE_ASSERT(cs)
 
   hlsl(cs) {
-    RWStructuredBuffer<uint> dafx_frame_boundary_tmp : register(u0);
-
     #define BOUNDARY_CACHE_SIZE 8
     groupshared uint tmp_boundary_cache[4];
 
@@ -174,19 +184,22 @@ shader fill_fx_keyframe_boundary_approx
   compile("target_cs", "main_cs");
 }
 
+int dafx_fill_boundary_opt_frame_boundary_tmp_uav_no = 0;
+
 shader fill_fx_keyframe_boundary_opt
 {
-  (cs){
+  (cs) {
     dafx_fill_boundary_tex@tex2d = dafx_fill_boundary_tex;
     dafx_fill_boundary_params@f4 = dafx_fill_boundary_params;
     tile_size@f2 = (dafx_fill_boundary_params.z / dafx_fill_boundary_params.x, dafx_fill_boundary_params.w / dafx_fill_boundary_params.y);
+    dafx_frame_boundary_tmp@uav : register(dafx_fill_boundary_opt_frame_boundary_tmp_uav_no) hlsl {
+      RWStructuredBuffer<uint> dafx_frame_boundary_tmp@uav;
+    };
   }
 
   ENABLE_ASSERT(cs)
 
   hlsl(cs) {
-    RWStructuredBuffer<uint> dafx_frame_boundary_tmp : register(u0);
-
     #define BOUNDARY_CACHE_SIZE 8
 
 ##if dafx_use_experimental_boundary_calc == yes
@@ -254,18 +267,23 @@ shader fill_fx_keyframe_boundary_opt
   compile("target_cs", "main_cs");
 }
 
+int dafx_fill_boundary_opt_end_frame_boundary_result_uav_no = 0;
+
 shader fill_fx_keyframe_boundary_opt_end
 {
-  (cs){
+  (cs) {
     dafx_fill_boundary_params@f4 = dafx_fill_boundary_params;
     dafx_fill_boundary_offset@i1 = dafx_fill_boundary_offset;
     tile_size_inv@f2 = (dafx_fill_boundary_params.x / dafx_fill_boundary_params.z, dafx_fill_boundary_params.y / dafx_fill_boundary_params.w);
     dafx_frame_boundary_tmp@buf = dafx_frame_boundary_tmp hlsl { StructuredBuffer<uint> dafx_frame_boundary_tmp@buf; };
+    frame_boundary_result@uav : register(dafx_fill_boundary_opt_end_frame_boundary_result_uav_no) hlsl {
+      RWStructuredBuffer<float4> frame_boundary_result@uav;
+    };
   }
-  ENABLE_ASSERT(cs)
-  hlsl(cs) {
-    RWStructuredBuffer<float4> frame_boundary_result : register(u0);
 
+  ENABLE_ASSERT(cs)
+
+  hlsl(cs) {
     float4 transformInverseY(float4 boundary)
     {
       boundary.yw = 1 - boundary.wy;
@@ -299,16 +317,20 @@ shader fill_fx_keyframe_boundary_opt_end
   compile("target_cs", "main_cs");
 }
 
+int dafx_clear_boundary_frame_boundary_result_uav_no = 0;
 
 shader clear_fx_keyframe_boundary
 {
-  (cs){
+  (cs) {
     dafx_fill_boundary_count@i1 = dafx_fill_boundary_count;
+    frame_boundary_result@uav : register(dafx_clear_boundary_frame_boundary_result_uav_no) hlsl {
+      RWStructuredBuffer<float4> frame_boundary_result@uav;
+    };
   }
-  ENABLE_ASSERT(cs)
-  hlsl(cs) {
-    RWStructuredBuffer<float4> frame_boundary_result : register(u0);
 
+  ENABLE_ASSERT(cs)
+
+  hlsl(cs) {
     [numthreads( 64, 1, 1 )]
     void main_cs( uint dtId : SV_DispatchThreadID )
     {
@@ -319,10 +341,11 @@ shader clear_fx_keyframe_boundary
   compile("target_cs", "main_cs");
 }
 
+int dafx_frame_boundary_debug_update_outputTex_uav_no = 0;
 
 shader frame_boundary_debug_update
 {
-  (cs){
+  (cs) {
     dafx_fill_boundary_tex@smp2d = dafx_fill_boundary_tex;
     dafx_fill_boundary_params@f4 = dafx_fill_boundary_params;
     dafx_fill_boundary_offset@i1 = dafx_fill_boundary_offset;
@@ -331,12 +354,12 @@ shader frame_boundary_debug_update
     tile_size_inv@f2 = (dafx_fill_boundary_params.x / dafx_fill_boundary_params.z, dafx_fill_boundary_params.y / dafx_fill_boundary_params.w);
     frames_inv@f2 = (1.0 / dafx_fill_boundary_params.x, 1.0 / dafx_fill_boundary_params.y, 0, 0);
     dafx_frame_boundary_buffer@buf = dafx_frame_boundary_buffer hlsl { StructuredBuffer<float4> dafx_frame_boundary_buffer@buf; };
+    outputTex@uav : register(dafx_frame_boundary_debug_update_outputTex_uav_no) hlsl { RWTexture2D<float4> outputTex@uav; };
   }
+
   ENABLE_ASSERT(cs)
+
   hlsl(cs) {
-
-    RWTexture2D<float4> outputTex : register(u0);
-
     float4 getTextureResult(uint2 dtId)
     {
       if (any(dtId >= (uint2)tile_size))

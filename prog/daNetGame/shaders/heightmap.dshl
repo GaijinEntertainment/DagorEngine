@@ -630,6 +630,7 @@ shader heightmap
         struct HsControlPoint
         {
           float2 pos : POSITION0;
+          half heightForPuddle : POSITION1;
         };
 
         float3 restoreWorldPosNoPatches(float2 posXZ)
@@ -671,7 +672,10 @@ shader heightmap
           uint vertexId = inputPatch[tid].vertexInstanceId_patchTessFactor >> 16;
           uint instance_id = inputPatch[tid].vertexInstanceId_patchTessFactor & ((1U << 16) - 1);
           DECODE_VERTEXID_POSXZ
-          output.pos = decodeWorldPosXZ(posXZ USED_INSTANCE_ID);
+          float2 pos_xz = decodeWorldPosXZ(posXZ USED_INSTANCE_ID);
+          pos_xz = clamp(pos_xz, heightmap_region.xy, heightmap_region.zw);;
+          output.pos = pos_xz;
+          output.heightForPuddle = get_height_for_puddle(restoreWorldPos(pos_xz));
           return output;
         }
       }
@@ -686,22 +690,31 @@ shader heightmap
           return result;
         }
 
+        float Bilerp(float v0, float v1, float v2, float v3, float2 i)
+        {
+          float bottom = lerp(v0, v3, i.x);
+          float top = lerp(v1, v2, i.x);
+          float result = lerp(bottom, top, i.y);
+          return result;
+        }
+
+        #define BILERP(input, channel, coords) Bilerp(input[0].channel, input[1].channel, input[2].channel, input[3].channel, coords)
+
         [domain("quad")]
         VsOutput hmap_tessellation_ds(HsPatchData patchData, const OutputPatch<HsControlPoint, 4> input, float2 coords : SV_DomainLocation)
         {
           VsOutput output;
-          float2 posXZ = Bilerp(input[0].pos, input[1].pos, input[2].pos, input[3].pos, coords.yx);
 
+          float2 posXZ = BILERP(input, pos, coords.yx);
+          float heightForPuddle = BILERP(input, heightForPuddle, coords.yx);
           //transform and output data
           float3 worldPos = restoreWorldPos(posXZ);
-          worldPos.xz = clamp(worldPos.xz, heightmap_region.xy, heightmap_region.zw);
           output.tcWorldPos = worldPos.xz;
           float3 worldNormal;
           float displacementEffect = 0;
           float deformAmount = 0;
           worldPos = worldPosNormalCorrection(worldPos, 0, worldNormal, displacementEffect, deformAmount);
 
-          float heightForPuddle = get_height_for_puddle(worldPos.xyz);
           float puddle, worldPosYPuddleOffset, puddleHeight;
           getPuddleData(worldPos.y, worldPos, heightForPuddle, puddle, worldPosYPuddleOffset, puddleHeight);
           output.scaledDeformedHeight = worldPos.y+(100-100*displacementEffect);

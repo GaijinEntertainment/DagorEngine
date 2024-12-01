@@ -83,7 +83,7 @@ void ExecutionMarkers::check()
   VulkanDevice &vkDev = Globals::VK::dev;
   if (vkDev.hasExtension<DiagnosticCheckpointsNV>())
   {
-    VulkanQueueHandle grQueue = Globals::VK::que[DeviceQueueType::GRAPHICS].getHandle();
+    VulkanQueueHandle grQueue = Globals::VK::queue[DeviceQueueType::GRAPHICS].getHandle();
 
     debug("Checking execution makers - VK_NV_device_diagnostic_checkpoints:");
     debug("Next id would be: %08lX", commandIndex);

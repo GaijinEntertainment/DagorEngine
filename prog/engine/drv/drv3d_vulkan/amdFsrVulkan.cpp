@@ -173,7 +173,7 @@ public:
   bool isFrameGenerationSupported() const override { return false; }
 
 private:
-  eastl::unique_ptr<void, DagorDllCloser> fsrModule;
+  DagorDynLibHolder fsrModule;
 
   PfnFfxCreateContext createContext = nullptr;
   PfnFfxDestroyContext destroyContext = nullptr;

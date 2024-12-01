@@ -13,6 +13,7 @@ interval lens_render_mode: render_optics < 1, render_frame < 2, render_depth < 3
 int render_scope_collimator = 1;
 interval render_scope_collimator: no < 1, yes;
 float lens_dof_depth = 0.5;
+float lens_brighthness = 1.0;
 // Start radius coefficient, distortion strength, aberration strength.
 float4 lens_distortion_params = (0.9, 0.7, 0.07, 0);
 // cylinder len mul, cylinder shade radius norm, cylinder fading strength, collimator fading strength
@@ -380,6 +381,7 @@ shader scope_lens, dynamic_crosshair
         screen_pos_to_texcoord@f2 = (screen_pos_to_texcoord.x, screen_pos_to_texcoord.y, 0, 0);
         scope_phys_params@f3 = (scope_radius, scope_length, 1.0 / scope_radius, 0);
         scope_lens_albedo@f4 = scope_lens_albedo;
+        lens_brighthness@f1 = lens_brighthness;
         lens_distortion_params@f3 = lens_distortion_params;
         lens_shading_params@f4 = lens_shading_params;
         lens_shading_params2@f3 = lens_shading_params2;
@@ -522,6 +524,32 @@ shader scope_lens, dynamic_crosshair
         }
       #endif
 
+        half3 apply_lens_color(half3 color, half shade_factor)
+        {
+          ##if lens_detail_level != full_night_vision && special_vision != thermal_vision
+          shade_factor = min(shade_factor, lens_brighthness);
+          ##endif
+
+          return color * shade_factor;
+        }
+
+        half3 apply_lens_reflection(half3 color, VsOutput input, float4 screenpos, half shade_factor)
+        {
+          half3 reflections = half3(0,0,0);
+          ##if lens_detail_level != full_night_vision && special_vision != thermal_vision
+          reflections = apply_glass_ps(input, screenpos, half4(0, 0, 0, 1), 1).rgb;
+          ##endif
+
+          half reflectionAlpha = 0;
+          ##if lens_detail_level == only_reflections
+          reflectionAlpha = (1 - shade_factor) * get_scope_lens_albedo().a;
+          ##else
+          reflectionAlpha = 0.005;
+          ##endif
+
+          return color + reflections * get_scope_lens_albedo().rgb * reflectionAlpha;
+        }
+
         float4 scope_lens_ps(VsOutput input HW_USE_SCREEN_POS INPUT_VFACE) : SV_Target0
         {
           #if SET_UP_MULTIDRAW
@@ -558,12 +586,9 @@ shader scope_lens, dynamic_crosshair
 
           ##endif
           ##endif
-          color *= shadeFactor;
 
-          ##if lens_detail_level != full_night_vision && special_vision != thermal_vision
-          half4 reflection = apply_glass_ps(input, screenpos, half4(0, 0, 0, 1), 1);
-          color += reflection.rgb * (1 - shadeFactor) * get_scope_lens_albedo().rgb * get_scope_lens_albedo().a;
-          ##endif
+          color = apply_lens_color(color, shadeFactor);
+          color = apply_lens_reflection(color, input, screenpos, shadeFactor);
 
           ##if (special_vision == thermal_vision && lens_detail_level == only_reflections)
             const half glass_temperature = 20.0/255.0;

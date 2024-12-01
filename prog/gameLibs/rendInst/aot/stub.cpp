@@ -41,11 +41,26 @@ int cloneRIGenExtraResIdx(const char *, const char *) { G_ASSERT_RETURN(false, 0
 bool delRIGenExtra(riex_handle_t) { G_ASSERT_RETURN(false, false); }
 void foreachRIGenInBox(const BBox3 &, GatherRiTypeFlags, ForeachCB &) { G_ASSERT(0); }
 uint32_t setMaxNumRiCollisionCb(uint32_t) { G_ASSERT_RETURN(false, 0); };
+void testObjToRIGenIntersection(const BSphere3 &, RendInstCollisionCB &, GatherRiTypeFlags, const TraceMeshFaces *, PhysMat::MatID,
+  bool)
+{
+  G_ASSERT(0);
+}
+void testObjToRIGenIntersection(const BBox3 &, RendInstCollisionCB &, GatherRiTypeFlags, const TraceMeshFaces *, PhysMat::MatID, bool)
+{
+  G_ASSERT(0);
+}
 void testObjToRIGenIntersection(const BBox3 &, const TMatrix &, RendInstCollisionCB &, GatherRiTypeFlags, const TraceMeshFaces *,
   PhysMat::MatID, bool)
 {
   G_ASSERT(0);
 }
+void testObjToRIGenIntersection(const Capsule &, RendInstCollisionCB &, GatherRiTypeFlags, const TraceMeshFaces *, PhysMat::MatID,
+  bool)
+{
+  G_ASSERT(0);
+}
+
 const CollisionResource *getRiGenCollisionResource(const RendInstDesc &) { G_ASSERT_RETURN(false, nullptr); }
 void getRIGenExtra44(riex_handle_t, mat44f &) { G_ASSERT(0); }
 const char *getRIGenResName(const RendInstDesc &) { G_ASSERT_RETURN(false, nullptr); }

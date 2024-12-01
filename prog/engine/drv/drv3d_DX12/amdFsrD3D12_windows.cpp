@@ -155,10 +155,23 @@ public:
 
   String getVersionString() const override { return upscalingVersionString; }
 
-  void recover() { initUpscaling(contextArgs); }
+  void preRecover()
+  {
+    auto tmpContextArgs = contextArgs;
+    teardownUpscaling();
+    contextArgs = tmpContextArgs;
+  }
+
+  void recover()
+  {
+    // The regular tear down resets the mode to off, but the preRecover keeps the mode
+    // and the mode isn't off here have to restore the fsr context and reinitialize the object
+    if (amd::fSRD3D12Win->getUpscalingMode() != amd::FSR::UpscalingMode::Off)
+      initUpscaling(contextArgs);
+  }
 
 private:
-  eastl::unique_ptr<void, DagorDllCloser> fsrModule;
+  DagorDynLibHolder fsrModule;
 
   PfnFfxCreateContext createContext = nullptr;
   PfnFfxDestroyContext destroyContext = nullptr;
@@ -182,7 +195,7 @@ FSR *createD3D12Win() { return new FSRD3D12Win; }
 static void fsr3_before_reset(bool full_reset)
 {
   if (full_reset && amd::fSRD3D12Win)
-    amd::fSRD3D12Win->teardownUpscaling();
+    amd::fSRD3D12Win->preRecover();
 }
 
 static void fsr3_after_reset(bool full_reset)

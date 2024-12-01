@@ -277,6 +277,7 @@ public:
   virtual ModeType getGizmoModeType();
   virtual BasisType getGizmoBasisType();
   virtual CenterType getGizmoCenterType();
+  virtual bool isGizmoOperationStarted() const override;
 
   // brush routines
   virtual void beginBrushPaint();

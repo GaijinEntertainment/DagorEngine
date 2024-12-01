@@ -174,11 +174,12 @@ static inline float w_to_depth(float w, const Point2 &zNearFar, float def)
 }
 
 #define RESOLVE_GBUFFER_SHADERVARS \
+  VAR(reproject_screen_gi, true)   \
   VAR(thin_gbuf_resolve, true)     \
   VAR(frame_tex, false)            \
   VAR(use_rtr, true)
 
-#define VAR(a, o) static int a##VarId = -1;
+#define VAR(a, o) static ShaderVariableInfo a##VarId(#a, o);
 RESOLVE_GBUFFER_SHADERVARS
 #undef VAR
 
@@ -186,13 +187,17 @@ RESOLVE_GBUFFER_SHADERVARS
 // CONSOLE_BOOL_VAL("render", deferred_light_on_compute, false);
 // deferredLightCompute = Ptr(new_compute_shader("deferred_light_compute"))
 // And instead of render target just set current_specular and current_ambient as @uav shadervars
-dabfg::NodeHandle makeDeferredLightNode()
+dabfg::NodeHandle makeDeferredLightNode(bool reprojectGI)
 {
-  return dabfg::register_node("deferred_light_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
-    auto currentSpecularHndl = registry.create("current_specular", dabfg::History::No)
-                                 .texture({TEXFMT_R11G11B10F | TEXCF_RTARGET, registry.getResolution<2>("main_view"), 1});
-    auto currentAmbientHndl = registry.create("current_ambient", dabfg::History::No)
-                                .texture({TEXFMT_R11G11B10F | TEXCF_RTARGET, registry.getResolution<2>("main_view"), 1});
+  return dabfg::register_node("deferred_light_node", DABFG_PP_NODE_SRC, [reprojectGI](dabfg::Registry registry) {
+    auto giHistory = reprojectGI ? dabfg::History::ClearZeroOnFirstFrame : dabfg::History::No;
+    const uint32_t gi_fmt = reprojectGI && d3d::check_texformat(TEXFMT_R9G9B9E5 | TEXCF_RTARGET) ? TEXFMT_R9G9B9E5 : TEXFMT_R11G11B10F;
+
+    auto currentSpecularHndl =
+      registry.create("current_specular", giHistory).texture({gi_fmt | TEXCF_RTARGET, registry.getResolution<2>("main_view"), 1});
+    auto currentAmbientHndl =
+      registry.create("current_ambient", giHistory).texture({gi_fmt | TEXCF_RTARGET, registry.getResolution<2>("main_view"), 1});
+
     d3d::SamplerInfo smpInfo;
     smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
     registry.create("current_ambient_sampler", dabfg::History::No).blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo));
@@ -203,19 +208,41 @@ dabfg::NodeHandle makeDeferredLightNode()
     registry.read("gbuf_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("normal_gbuf_samplerstate");
     registry.read("gbuf_2").texture().atStage(dabfg::Stage::PS).bindToShaderVar("material_gbuf");
     registry.read("gbuf_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("material_gbuf_samplerstate");
+    registry.read("motion_vecs").texture().atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("motion_gbuf").optional();
+    registry.read("gbuf_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("motion_gbuf_samplerstate").optional();
 
     auto stateRequest = registry.requestState().setFrameBlock("global_frame");
 
-    auto renderPass = registry.requestRenderPass().color({currentSpecularHndl, currentAmbientHndl});
-    if (depth_bounds_enabled())
+    auto depthBoundsSet = [&](dabfg::VirtualPassRequest &renderPass) {
+      if (depth_bounds_enabled())
+      {
+        shaders::OverrideState state;
+        state.set(shaders::OverrideState::Z_BOUNDS_ENABLED);
+        eastl::move(stateRequest).enableOverride(state);
+        eastl::move(renderPass).depthRoAndBindToShaderVars(gbufDepthHndl, {"depth_gbuf"});
+      }
+      else
+        eastl::move(gbufDepthHndl).atStage(dabfg::Stage::PS).bindToShaderVar("depth_gbuf");
+    };
+
+    if (reprojectGI)
     {
-      shaders::OverrideState state;
-      state.set(shaders::OverrideState::Z_BOUNDS_ENABLED);
-      eastl::move(stateRequest).enableOverride(state);
-      eastl::move(renderPass).depthRoAndBindToShaderVars(gbufDepthHndl, {"depth_gbuf"});
+      registry.historyFor("depth_for_postfx").texture().atStage(dabfg::Stage::PS).bindToShaderVar("prev_gbuf_depth");
+      auto currentAgeHndl = registry.create("current_gi_pixel_age", dabfg::History::ClearZeroOnFirstFrame)
+                              .texture({TEXFMT_R8UI | TEXCF_RTARGET, registry.getResolution<2>("main_view"), 1});
+      registry.historyFor("current_gi_pixel_age").texture().atStage(dabfg::Stage::PS).bindToShaderVar("prev_gi_pixel_age");
+      registry.historyFor("current_specular").texture().atStage(dabfg::Stage::PS).bindToShaderVar("prev_specular");
+      registry.historyFor("current_ambient").texture().atStage(dabfg::Stage::PS).bindToShaderVar("prev_ambient");
+      auto renderPass = registry.requestRenderPass().color({currentSpecularHndl, currentAmbientHndl, currentAgeHndl});
+      depthBoundsSet(renderPass);
     }
     else
-      eastl::move(gbufDepthHndl).atStage(dabfg::Stage::PS).bindToShaderVar("depth_gbuf");
+    {
+      auto renderPass = registry.requestRenderPass().color({currentSpecularHndl, currentAmbientHndl});
+      depthBoundsSet(renderPass);
+    }
+    ShaderGlobal::set_int(reproject_screen_giVarId, reprojectGI ? 1 : 0);
+
 
     registry.read("gi_before_frame_lit_token").blob<OrderingToken>().optional();
 
@@ -241,9 +268,6 @@ dabfg::NodeHandle makeResolveGbufferNode(const char *resolve_pshader_name,
   const char *classify_cshader_name,
   const ShadingResolver::PermutationsDesc &permutations_desc)
 {
-#define VAR(a, o) a##VarId = get_shader_variable_id(#a, o);
-  RESOLVE_GBUFFER_SHADERVARS
-#undef VAR
   return dabfg::register_node("resolve_gbuffer_node", DABFG_PP_NODE_SRC,
     [resolve_pshader_name, resolve_cshader_name, classify_cshader_name, permutations_desc](dabfg::Registry registry) {
       auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());

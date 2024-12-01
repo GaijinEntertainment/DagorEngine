@@ -332,10 +332,11 @@ static float tex_sliceI_val(const TextureInfo &ti)
 
 static void set_image_mode(const ImDrawList *, const ImDrawCmd *cmd)
 {
+  static int custom_sampler_const_no = ShaderGlobal::get_slot_by_name("custom_sampler_const_no");
   if ((int)(uintptr_t)cmd->UserCallbackData == -1)
   {
     ShaderGlobal::set_int(imgui_use_custom_sampler, 1);
-    d3d::set_sampler(STAGE_PS, 5, borderSampler);
+    d3d::set_sampler(STAGE_PS, custom_sampler_const_no, borderSampler);
     return;
   }
 
@@ -371,7 +372,7 @@ static void set_image_mode(const ImDrawList *, const ImDrawCmd *cmd)
   auto diffTexId = get_managed_texture_id(selectedTextureNameForDiff.data());
   ShaderGlobal::set_texture(imgui_tex_diff, diffTexId);
 
-  d3d::set_sampler(STAGE_PS, 5, pointSampler);
+  d3d::set_sampler(STAGE_PS, custom_sampler_const_no, pointSampler);
 }
 
 static void reset_image_mode(const ImDrawList *, const ImDrawCmd *)

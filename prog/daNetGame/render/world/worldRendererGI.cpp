@@ -60,7 +60,6 @@ CONSOLE_INT_VAL("render", gi_quality, GI_COLORED, GI_ONLY_AO, GI_SCREEN_PROBES);
 CONSOLE_FLOAT_VAL_MINMAX("render", min_sdf_voxel_with_lights_size, 0.35, 0, 4);
 CONSOLE_FLOAT_VAL_MINMAX("render", max_sdf_voxel_with_lights_size, 2.33, 0, 4);
 CONSOLE_FLOAT_VAL_MINMAX("render", gi_algorithm_quality, 1, 0, 1);
-CONSOLE_FLOAT_VAL_MINMAX("render", gi_temporal_quality_override, -1.0f, -1.0f, 8.0f);
 CONSOLE_BOOL_VAL("render", gi_update_pos, true);
 CONSOLE_BOOL_VAL("render", gi_update_scene, true);
 CONSOLE_BOOL_VAL("render", gi_enabled, true);
@@ -137,10 +136,19 @@ void WorldRenderer::setGIQualityFromSettings()
   giUpdatePosFrameCounter = 0;
 }
 
+bool WorldRenderer::giNeedsReprojection()
+{
+  return hasFeature(FeatureRenderFlags::DEFERRED_LIGHT) && daGI2 && gi_quality == GI_SCREEN_PROBES &&
+         daGI2->getNextSettings().screenProbes.tileSize > 8;
+}
+
 void WorldRenderer::giBeforeRender()
 {
   if (daGI2 && !gi_enabled.get())
+  {
     closeGI();
+    makePrepareDepthForPostFxNode();
+  }
 
   if (!daGI2 && gi_enabled.get())
     initGI();
@@ -150,6 +158,8 @@ void WorldRenderer::giBeforeRender()
   if (!daGI2)
     return;
   TIME_D3D_PROFILE(gi2_before_render)
+
+  const bool hadReprojection = giNeedsReprojection();
 
   int w, h, maxW, maxH;
   getRenderingResolution(w, h);
@@ -206,20 +216,26 @@ void WorldRenderer::giBeforeRender()
       return lerp(min_value, max_value, lerpS);
     };
 
+    auto remapUnclamped = [](float min_value, float max_value, float interval_min, float interval_max, float t) -> float {
+      G_ASSERT(interval_min < interval_max);
+      float lerpS = (t - interval_min) / (interval_max - interval_min);
+      return lerp(min_value, max_value, lerpS);
+    };
+
     if (gi_algorithm_quality >= 0.75f)
       giDynamicQuality = remap(0.55f, 1.0f, 0.75f, 1.0f, gi_algorithm_quality);
     else
       giDynamicQuality = remap(0.1f, 0.55f, 0.25f, 0.5f, gi_algorithm_quality);
     s.screenProbes.temporality = giDynamicQuality;
 
-    // minimum s.screenProbes.tileSize is 16 at 1080p, 20 at 1440p, 24 at 4k
+    // minimum s.screenProbes.tileSize is 20 at 1080p, 24 at 1440p, 32 at 4k
     int w, h;
     getRenderingResolution(w, h);
-    float minTileSize = clamp<float>(round(lerp(2.0f, 4.0f, h / 1080.0f - 1.0f)), 2, 6) * 4 + 8;
-    float tileSizeF = remap(minTileSize, 8, 0, 0.25f, gi_algorithm_quality);
+    float minTileSize = remapUnclamped(16, 32, 1080, 1080 * 2, h);
+    float tileSizeF = remap(minTileSize, 8, 0.25, 0.95f, gi_algorithm_quality);
     s.screenProbes.tileSize = static_cast<int>(round(tileSizeF)) & ~1;
 
-    float radianceOctResF = remap(4, 8, 0.5f, 0.75f, gi_algorithm_quality);
+    float radianceOctResF = remap(4, 8, 0.f, 0.5f, gi_algorithm_quality);
     s.screenProbes.radianceOctRes = static_cast<int>(round(radianceOctResF));
 
     s.screenProbes.angleFiltering = gi_algorithm_quality > 0.875f;
@@ -251,6 +267,9 @@ void WorldRenderer::giBeforeRender()
     const float halfDist = sdfW * sdfV * 0.5f * 1.2f; // 120% bigger
     treesAbove->init(halfDist, voxel0);
   }
+  makePrepareDepthForPostFxNode();
+  if (giNeedsReprojection() != hadReprojection)
+    createDeferredLightNode();
 }
 
 void WorldRenderer::renderGiCollision(const TMatrix &view_itm, const Frustum &)
@@ -637,6 +656,15 @@ void WorldRenderer::createGiNodes()
 #endif
 }
 
+void WorldRenderer::createDeferredLightNode()
+{
+  if (isForwardRender())
+    return;
+
+  deferredLightNode =
+    hasFeature(FeatureRenderFlags::DEFERRED_LIGHT) ? makeDeferredLightNode(giNeedsReprojection()) : dabfg::NodeHandle{};
+}
+
 void WorldRenderer::createResolveGbufferNode()
 {
   if (isForwardRender())
@@ -660,6 +688,6 @@ void WorldRenderer::createResolveGbufferNode()
     {0 /* LIGHTS_OFF */}                                                   /* shaderVarValuesToSkipClassifications */
   };
 
-  deferredLightNode = hasFeature(FeatureRenderFlags::DEFERRED_LIGHT) ? makeDeferredLightNode() : dabfg::NodeHandle{};
+  createDeferredLightNode();
   resolveGbufferNode = makeResolveGbufferNode(resolve_shader, resolve_cshader, classify_cshader, resolve_permutations);
 }

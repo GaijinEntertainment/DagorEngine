@@ -90,6 +90,8 @@ public:
   int getParamId() const { return paramId; }
 
   static void createNode(AnimationGraph &graph, const DataBlock &blk, const char *nm_suffix);
+  virtual void initChilds(AnimationGraph &graph, const DataBlock &blk, const char *nm_suffix) override;
+  virtual void checkHasLoop(AnimationGraph &graph, eastl::bitvector<> &visited_nodes) override;
 };
 
 
@@ -174,6 +176,8 @@ public:
   int getRepParamId() const { return repParamId; }
 
   static void createNode(AnimationGraph &graph, const DataBlock &blk, const char *nm_suffix);
+  virtual void initChilds(AnimationGraph &graph, const DataBlock &blk, const char *nm_suffix) override;
+  virtual void checkHasLoop(AnimationGraph &graph, eastl::bitvector<> &nodes_state) override;
 };
 
 //
@@ -233,6 +237,8 @@ public:
   int getParamId() const { return paramId; }
 
   static void createNode(AnimationGraph &graph, const DataBlock &blk, const char *nm_suffix);
+  virtual void initChilds(AnimationGraph &graph, const DataBlock &blk, const char *nm_suffix) override;
+  virtual void checkHasLoop(AnimationGraph &graph, eastl::bitvector<> &nodes_state) override;
 };
 
 //
@@ -286,6 +292,8 @@ public:
   int getParamId() const { return paramId; }
 
   static void createNode(AnimationGraph &graph, const DataBlock &blk, const char *nm_suffix);
+  virtual void initChilds(AnimationGraph &graph, const DataBlock &blk, const char *nm_suffix) override;
+  virtual void checkHasLoop(AnimationGraph &graph, eastl::bitvector<> &nodes_state) override;
 
 protected:
   inline const float *getProps(IPureAnimStateHolder &st);
@@ -336,6 +344,8 @@ public:
   int getParamId() const { return paramId; }
 
   static void createNode(AnimationGraph &graph, const DataBlock &blk);
+  virtual void initChilds(AnimationGraph &graph, const DataBlock &blk, const char *nm_suffix) override;
+  virtual void checkHasLoop(AnimationGraph &graph, eastl::bitvector<> &nodes_state) override;
 };
 
 //
@@ -373,6 +383,8 @@ public:
   int getParamId() const { return paramId; }
 
   static void createNode(AnimationGraph &graph, const DataBlock &blk);
+  virtual void initChilds(AnimationGraph &graph, const DataBlock &blk, const char *nm_suffix) override;
+  virtual void checkHasLoop(AnimationGraph &graph, eastl::bitvector<> &nodes_state) override;
 };
 
 //
@@ -427,6 +439,8 @@ public:
   int getParamId() const { return paramId; }
 
   static void createNode(AnimationGraph &graph, const DataBlock &blk, const char *nm_suffix);
+  virtual void initChilds(AnimationGraph &graph, const DataBlock &blk, const char *nm_suffix) override;
+  virtual void checkHasLoop(AnimationGraph &graph, eastl::bitvector<> &nodes_state) override;
 
 protected:
   static int anim_point_p0_cmp(const AnimPoint *p1, const AnimPoint *p2);

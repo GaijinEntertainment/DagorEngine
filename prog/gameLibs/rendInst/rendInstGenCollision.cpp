@@ -2120,6 +2120,14 @@ public:
       if (v_bbox3_test_trasformed_box_intersect(local_box_b, boundingA.bbox, tmAtoB))
         return true;
     }
+    if constexpr (eastl::is_same_v<bounding_type_t, Capsule>)
+    {
+      if (!v_bbox3_test_box_intersect(boundingA.getBoundingBox(), worldBoxB))
+        return false;
+      bbox3f extB = worldBoxB;
+      v_bbox3_extend(extB, v_splats(boundingA.r));
+      return v_test_segment_box_intersection(v_ldu(&boundingA.a.x), v_ldu(&boundingA.b.x), extB);
+    }
     return false;
   }
 
@@ -2164,7 +2172,12 @@ static CheckBoxRIResultFlags testObjToRIGenIntersectionNoCache(int layer, const 
   {
     VerifyReadLock lock(rendinst::ccExtra);
     lock.lockRead();
-    gatherRIGenExtraCollidable(riexHandles, obj_world_aabb, false /*read_lock*/);
+    if constexpr (eastl::is_same_v<bounding_type_t, BSphere3>)
+      gatherRIGenExtraCollidable(riexHandles, obj_bounding, false /*read_lock*/);
+    if constexpr (eastl::is_same_v<bounding_type_t, BBox3> || eastl::is_same_v<bounding_type_t, OrientedObjectBox>)
+      gatherRIGenExtraCollidable(riexHandles, obj_world_aabb, false /*read_lock*/);
+    if constexpr (eastl::is_same_v<bounding_type_t, Capsule>)
+      gatherRIGenExtraCollidable(riexHandles, obj_bounding, false /*read_lock*/);
     bool ignoreRi = false;
     int prevRiType = -1;
 
@@ -2221,6 +2234,9 @@ static CheckBoxRIResultFlags testObjToRIGenIntersectionNoCache(int layer, const 
       DA_PROFILE_TAG(coll_tests, ": sph r %.1f; tested %u; %u tris", obj_bounding.r, testedNum, trianglesNum);
     if constexpr (eastl::is_same_v<bounding_type_t, BBox3> || eastl::is_same_v<bounding_type_t, OrientedObjectBox>)
       DA_PROFILE_TAG(coll_tests, ": box r %.1f; tested %u; %u tris", obj_world_aabb.width().length() / 2.f, testedNum, trianglesNum);
+    if constexpr (eastl::is_same_v<bounding_type_t, Capsule>)
+      DA_PROFILE_TAG(coll_tests, ": cap %.1f r %.1f; tested %u; %u tris", length(obj_bounding.b - obj_bounding.a), obj_bounding.r,
+        testedNum, trianglesNum);
 #endif
     return result; //-V1020 The function exited without calling the 'lock.unlockRead' function.
   }
@@ -2545,6 +2561,8 @@ static void testObjToRIGenIntersectionInternal(const bounding_type_t &bounding, 
     objFullBBox = v_ldu_bbox3(bounding);
   if constexpr (eastl::is_same_v<bounding_type_t, OrientedObjectBox>)
     v_bbox3_init(objFullBBox, bounding.tm, bounding.bbox);
+  if constexpr (eastl::is_same_v<bounding_type_t, Capsule>)
+    objFullBBox = bounding.getBoundingBox();
   G_ASSERT(!v_bbox3_is_empty(objFullBBox));
 
   // To consider: extract this code path to separate function
@@ -2611,6 +2629,9 @@ static void testObjToRIGenIntersectionInternal(const bounding_type_t &bounding, 
         if constexpr (eastl::is_same_v<bounding_type_t, BSphere3> || eastl::is_same_v<bounding_type_t, OrientedObjectBox>)
           DA_PROFILE_TAG(coll_tests, ": box r %.1f; tested %u/%u; %u tris", v_extract_x(v_length3_x(v_bbox3_size(objFullBBox))) / 2.f,
             testedNum, ri_cache->rendinstCache.size(), trianglesNum);
+        if constexpr (eastl::is_same_v<bounding_type_t, Capsule>)
+          DA_PROFILE_TAG(coll_tests, ": cap %.1f r %.1f; tested %u/%u; %u tris", length(bounding.b - bounding.a), bounding.r,
+            testedNum, ri_cache->rendinstCache.size(), trianglesNum);
 #endif
       }
       else
@@ -2664,6 +2685,12 @@ void testObjToRIGenIntersection(const BBox3 &obj_box, const TMatrix &obj_tm, Ren
   v_mat44_make_from_43cu_unsafe(obb.tm, obj_tm.array);
   obb.bbox = v_ldu_bbox3(obj_box);
   testObjToRIGenIntersectionInternal(obb, callback, ri_types, ri_cache, ray_mat, unlock_in_cb);
+}
+
+void testObjToRIGenIntersection(const Capsule &obj_capsule, RendInstCollisionCB &callback, GatherRiTypeFlags ri_types,
+  const TraceMeshFaces *ri_cache, PhysMat::MatID ray_mat, bool unlock_in_cb)
+{
+  testObjToRIGenIntersectionInternal(obj_capsule, callback, ri_types, ri_cache, ray_mat, unlock_in_cb);
 }
 
 CheckBoxRIResultFlags checkBoxToRIGenIntersection(const BBox3 &box)

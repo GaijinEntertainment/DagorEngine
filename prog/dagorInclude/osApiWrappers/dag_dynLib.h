@@ -4,6 +4,7 @@
 //
 #pragma once
 
+#include <EASTL/unique_ptr.h>
 #include <supp/dag_define_KRNLIMP.h>
 
 KRNLIMP void *os_dll_load(const char *filename);
@@ -20,10 +21,12 @@ KRNLIMP bool os_dll_close(void *handle);
 // Otherwise, returns nullptr, and the buffer is not touched.
 KRNLIMP const char *os_dll_get_dll_name_from_addr(char *out_buf, size_t out_buf_size, const void *addr);
 
-struct DagorDllCloser
+struct DagorDynLibCloser
 {
   void operator()(void *handle) { handle ? (void)os_dll_close(handle) : (void)0; }
 };
+
+using DagorDynLibHolder = eastl::unique_ptr<void, DagorDynLibCloser>;
 
 #include <supp/dag_undef_KRNLIMP.h>
 

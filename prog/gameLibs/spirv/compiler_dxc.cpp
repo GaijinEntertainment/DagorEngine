@@ -363,7 +363,7 @@ CompileToSpirVResult spirv::compileHLSL_DXC(dag::ConstSpan<char> source, const c
 #elif _TARGET_PC_LINUX
   const String libPath = lookupPath + "libdxcompiler.so";
 #endif
-  eastl::unique_ptr<void, DagorDllCloser> library;
+  DagorDynLibHolder library;
   library.reset(os_dll_load_deep_bind(libPath.c_str()));
   if (!library)
   {

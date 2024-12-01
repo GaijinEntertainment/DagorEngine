@@ -460,7 +460,7 @@ void collect_rendinst(const BBox3 &box, Tab<Point3> &vertices, Tab<int> &indices
 
   RendinstVertexDataCbGame cb(vertices, indices, transparent, navmeshLayers.pools, navmeshLayers.obstaclePools,
     navmeshLayers.materialPools, navmeshLayers.obstaclesSettings, obstacles);
-  rendinst::testObjToRIGenIntersection(box, TMatrix::IDENT, cb, rendinst::GatherRiTypeFlag::RiGenAndExtra);
+  rendinst::testObjToRIGenIntersection(box, cb, rendinst::GatherRiTypeFlag::RiGenAndExtra);
   cb.procAllCollision();
 }
 

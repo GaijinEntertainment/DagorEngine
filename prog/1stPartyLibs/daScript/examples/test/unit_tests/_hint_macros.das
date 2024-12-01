@@ -28,6 +28,6 @@ class GetHintFnMacro : AstFunctionAnnotation
                 let hint = hash("{arg2.value}")
                 emplace_new(new_call.arguments, new [[ExprConstUInt64() at=arg2.at, value=hint]])
                 return new_call
-        return [[ExpressionPtr]]
+        return <-[[ExpressionPtr]]
 
 

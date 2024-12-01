@@ -117,6 +117,7 @@ struct RenderWork
 
   size_t id = 0;
   uint32_t frontFrameIndex = 0;
+  uint32_t userSignalCount = 0;
 
   eastl::vector<BufferCopyInfo> bufferUploads;
   eastl::vector<VkBufferCopy> bufferUploadCopies;

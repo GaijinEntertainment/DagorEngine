@@ -13,8 +13,8 @@ float blood_puddle_smoothness_edge = 0.9 always_referenced;
 float blood_puddle_landscape_reflectance = 0.21 always_referenced;
 float blood_puddle_landscape_smoothness_edge = 0.4 always_referenced;
 float blood_puddle_landscape_albedo_darkening = 0.5 always_referenced;
-float4 blood_puddle_high_intensity_color = (0.157, 0.012, 0.000, 1.000);
-float4 blood_puddle_low_intensity_color = (0.086, 0.024, 0.020, 0.960);
+float4 blood_puddle_high_intensity_color = (0.157, 0.012, 0.000, 1.000) always_referenced;
+float4 blood_puddle_low_intensity_color = (0.086, 0.024, 0.020, 0.960) always_referenced;
 float4 blood_decals_atlas_size = (1, 1, 0, 0);
 float blood_puddle_start_size = 0.2;
 texture blood_puddle_tex;
@@ -140,8 +140,6 @@ macro BLOOD_PUDDLES_COMMON_PS()
 
   (ps) {
     atlas_size@f2 = (blood_decals_atlas_size);
-    blood_puddle_high_intensity_color@f4 = (blood_puddle_high_intensity_color);
-    blood_puddle_low_intensity_color@f4 = (blood_puddle_low_intensity_color);
     blood_puddle_start_size@f1 = (blood_puddle_start_size);
     perlin_noise3d@smp3d = perlin_noise3d;
     blood_puddle_tex@smp2d = blood_puddle_tex;
@@ -184,29 +182,40 @@ macro BLOOD_PUDDLES_COMMON_PS()
 
     void unpack_blood(VsOutput input, float4 screen,
       out float3 normal, out float drying_time, out float intensity, out float alpha,
-      out float flow_value, out float edge_closeness, out uint decal_type__is_landscape)
+      out float flow_value, out float edge_closeness, out uint decal_type__is_landscape,
+      out uint decal_type, out bool is_landscape)
     {
       uint2 atlasSize = atlas_size;
 
       decal_type__is_landscape = input.decal_type_and_landscape__frame__rndIndex.x;
-      uint decalType = decal_type__is_landscape >> 1;
-      bool isLandscape = (decal_type__is_landscape & 0x1) == 1;
-      bool isPuddle = decalType == DecalGroup::BLOOD_DECAL_GROUP_PUDDLE;
+      decal_type = decal_type__is_landscape >> 1;
+      is_landscape = (decal_type__is_landscape & 0x1) == 1;
+
+      bool isPuddle = decal_type == DecalGroup::BLOOD_DECAL_GROUP_PUDDLE;
       uint frameNo = input.decal_type_and_landscape__frame__rndIndex.y;
       uint rndIndex = input.decal_type_and_landscape__frame__rndIndex.z;
       float3 worldNormal = normalize(input.normal_fadetime.xyz);
       float3 flow = normalize(normal * float3(1, 0.01, 1));
       float3 vecToEdge = normalize(input.vecToEdge_starttime.xyz);
       float linearTime = input.vecToEdge_starttime.w;
-      float sizeTime = easeFunc(saturate(abs(linearTime) * perGroupParams[decalType].invLifetime + blood_puddle_start_size), rndIndex);
+      float sizeTime = easeFunc(saturate(abs(linearTime) * perGroupParams[decal_type].invLifetime + blood_puddle_start_size), rndIndex);
       float strength = input.strength;
       bool mirror = frameNo & 1;
       frameNo >>= 1;
 
       const float3 eyeToPoint = get_decal_eye_to_point(screen);
       const float3 pointToEye = -eyeToPoint;
+      const float3 surfaceNormal = normalize(cross(normalize(ddx(pointToEye)), normalize(ddy(pointToEye))));
+
+      const float cos30 = 0.866;
+      const bool surfaceNormalNotWithinValidRange = dot(surfaceNormal, worldNormal) < cos30;
+
       const float3 worldPos = world_view_pos + eyeToPoint;
       float3 decalTC = get_decal_tex_coord_from_world_pos(worldPos, input.patchCenter__inv_size.xyz, worldNormal, input.tang_shrink.xyz);
+      const bool depthNotWithinValidRange = abs(decalTC.z) >= 0.05;
+
+      if (!is_landscape && (surfaceNormalNotWithinValidRange || depthNotWithinValidRange))
+        discard;
 
       decalTC.x *= input.tang_shrink.w;
       decalTC *= input.patchCenter__inv_size.w;
@@ -235,7 +244,7 @@ macro BLOOD_PUDDLES_COMMON_PS()
       clip_alpha(alpha);
 
       BRANCH
-      if (isLandscape && isPuddle)
+      if (is_landscape && isPuddle)
         normal = worldNormal;
       else
       {
@@ -244,13 +253,92 @@ macro BLOOD_PUDDLES_COMMON_PS()
       }
 
       intensity = bloodParams.b;
-      drying_time = saturate((max(linearTime, 0.0) + perGroupParams[decalType].dryingDelay) * perGroupParams[decalType].invDryingTime);
+      drying_time = saturate((max(linearTime, 0.0) + perGroupParams[decal_type].dryingDelay) * perGroupParams[decal_type].invDryingTime);
 
-      float edgeWidthScale = float(perGroupParams[decalType].bloodNormalDominanceTerm_edgeWidthScale >> 8)/255.0;
+      float edgeWidthScale = float(perGroupParams[decal_type].bloodNormalDominanceTerm_edgeWidthScale >> 8)/255.0;
       float edgeClosenessScale = lerp(16.0, 1.0, edgeWidthScale);
       edge_closeness = 1.0 - saturate((flow_value - timeThreshold - cuttingOffset) * edgeClosenessScale);
     }
  }
+endmacro
+
+macro BLOOD_PUDDLES_RESOLVE_COMMON_PS()
+  (ps) {
+    blood_puddle_high_intensity_color@f4 = (blood_puddle_high_intensity_color);
+    blood_puddle_low_intensity_color@f4 = (blood_puddle_low_intensity_color);
+    blood_puddle_reflectance@f1 = (blood_puddle_reflectance);
+    blood_puddle_smoothness@f1 = (blood_puddle_smoothness);
+    blood_puddle_smoothness_edge@f1 = (blood_puddle_smoothness_edge)
+
+    blood_puddle_landscape_reflectance@f1 = (blood_puddle_landscape_reflectance);
+    blood_puddle_landscape_smoothness_edge@f1 = (blood_puddle_landscape_smoothness_edge);
+    blood_puddle_landscape_albedo_darkening@f1 = (blood_puddle_landscape_albedo_darkening);
+  }
+
+  hlsl(ps) {
+    GBUFFER_OUTPUT apply_blood_puddle_resolve_ps(uint decal_type, bool is_landscape,
+      float thickness, float edgeCloseness, float3 normal, float alpha)
+    {
+      float reflectance;
+      float smoothness;
+      float bloodNormalBlend;
+      float3 diffuse;
+
+      diffuse = lerp(blood_puddle_low_intensity_color.xyz,
+                     blood_puddle_high_intensity_color.xyz,
+                     1.0 - thickness);
+
+      BRANCH
+      if (is_landscape)
+      {
+        reflectance = blood_puddle_landscape_reflectance;
+        smoothness = lerp(blood_puddle_smoothness, blood_puddle_landscape_smoothness_edge, edgeCloseness);
+        bloodNormalBlend = 1.0 - edgeCloseness;
+
+        diffuse *= lerp(blood_puddle_landscape_albedo_darkening, 1.0, edgeCloseness);
+        alpha *= 1.0 - pow(edgeCloseness, 4.0);
+      }
+      else
+      {
+        reflectance = blood_puddle_reflectance;
+        smoothness = lerp(blood_puddle_smoothness, blood_puddle_smoothness_edge, edgeCloseness);
+
+        float invEdgeCloseness = 1.0 - edgeCloseness;
+        float3 vecToEdge = (ddx(invEdgeCloseness) * (view_vecLT + view_vecLB) + ddy(invEdgeCloseness) * (view_vecLT + view_vecRT)).xyz;
+        if (fwidth(invEdgeCloseness) > 0.5 / 255)
+          normal = lerp(normal, vecToEdge, saturate(edgeCloseness));
+
+        float bloodNormalDominanceTerm = float(perGroupParams[decal_type].bloodNormalDominanceTerm_edgeWidthScale & 0xFF)/255.0;
+        bloodNormalBlend = max(edgeCloseness, bloodNormalDominanceTerm);
+      }
+
+      diffuse = lerp(1.0.xxx, diffuse, alpha);
+
+      float alpha3 = pow3(alpha);
+      float srcMulDstDominance = lerp(1.0, 0.96, alpha3);
+      float srcDominance = (1.0/srcMulDstDominance - 1.0);
+
+      UnpackedGbuffer output;
+      init_gbuffer(output);
+      init_albedo(output,  diffuse * srcMulDstDominance);
+      init_ao(output, srcDominance);
+      init_reflectance(output, reflectance);
+      init_metalness(output, 0.0);
+      init_smoothness(output, smoothness);
+      init_normal(output, normal);
+      ##if special_vision == thermal_vision
+        init_material(output, SHADING_SELFILLUM);
+        init_emission(output, MAX_EMISSION);
+        init_emission_color(output, half4(255, 255, 255, 255.0f));
+        output.smoothness = 0;
+      ##endif
+
+      GBUFFER_OUTPUT gbuf = encode_gbuffer(output, 0, GET_SCREEN_POS(input.pos));
+      gbuf.normal_material.w = bloodNormalBlend * alpha3;
+      gbuf.smoothness_reflectance_metallTranslucency_shadow.w = 0.9 * alpha3;
+      return gbuf;
+    }
+  }
 endmacro
 
 shader blood_puddles_accumulation
@@ -290,8 +378,10 @@ shader blood_puddles_accumulation
 
       float3 normal;
       float intensity, edgeCloseness, alpha, stub;
+      uint uiStub;
+      bool bStub;
       uint decalType__landscape;
-      unpack_blood(input, screen, normal, stub, intensity, alpha, stub, edgeCloseness, decalType__landscape);
+      unpack_blood(input, screen, normal, stub, intensity, alpha, stub, edgeCloseness, decalType__landscape, uiStub, bStub);
 
       float packedDecalTypeAndLandscape = ((float)decalType__landscape+0.1)/255.0f;
 
@@ -348,20 +438,11 @@ shader blood_puddles_resolve
   ENABLE_ASSERT(ps)
   INIT_PER_GROUP_PARAMS(ps)
   INIT_VIEW_VEC_STAGE(ps)
+  BLOOD_PUDDLES_RESOLVE_COMMON_PS()
 
   (ps) {
-    blood_acc_buf0@tex2d = blood_acc_buf0;
-    blood_acc_normal@tex2d = blood_acc_normal;
-
-    blood_puddle_high_intensity_color@f4 = (blood_puddle_high_intensity_color);
-    blood_puddle_low_intensity_color@f4 = (blood_puddle_low_intensity_color);
-    blood_puddle_reflectance@f1 = (blood_puddle_reflectance);
-    blood_puddle_smoothness@f1 = (blood_puddle_smoothness);
-    blood_puddle_smoothness_edge@f1 = (blood_puddle_smoothness_edge)
-
-    blood_puddle_landscape_reflectance@f1 = (blood_puddle_landscape_reflectance);
-    blood_puddle_landscape_smoothness_edge@f1 = (blood_puddle_landscape_smoothness_edge);
-    blood_puddle_landscape_albedo_darkening@f1 = (blood_puddle_landscape_albedo_darkening);
+    blood_acc_buf0@smp2d = blood_acc_buf0;
+    blood_acc_normal@smp2d = blood_acc_normal;
   }
 
 
@@ -380,69 +461,15 @@ shader blood_puddles_resolve
 
       float intensity = accBuf0.r;
       float thickness = 1.0 - intensity;
-
       thickness = clamp(thickness - edgeCloseness, 0.0, 0.93);
 
       float2 packedNormal = texelFetch(blood_acc_normal, input.pos.xy, 0).rg;
       float3 normal = unpack_normal_so(packedNormal);
 
-      float reflectance;
-      float smoothness;
-      float bloodNormalBlend;
       float alpha = (1.0 - invAlpha);
-      float3 diffuse = lerp(blood_puddle_low_intensity_color.xyz,
-                            blood_puddle_high_intensity_color.xyz,
-                            1.0 - thickness);
 
-      BRANCH
-      if (isLandscape)
-      {
-        reflectance = blood_puddle_landscape_reflectance;
-        smoothness = lerp(blood_puddle_smoothness, blood_puddle_landscape_smoothness_edge, edgeCloseness);
-        bloodNormalBlend = 1.0 - edgeCloseness;
-
-        diffuse *= lerp(blood_puddle_landscape_albedo_darkening, 1.0, edgeCloseness);
-        alpha *= 1.0 - pow(edgeCloseness, 4.0);
-      }
-      else
-      {
-        reflectance = blood_puddle_reflectance;
-        smoothness = lerp(blood_puddle_smoothness, blood_puddle_smoothness_edge, edgeCloseness);
-
-        float invEdgeCloseness = 1.0 - edgeCloseness;
-        float3 vecToEdge = (ddx(invEdgeCloseness) * (view_vecLT + view_vecLB) + ddy(invEdgeCloseness) * (view_vecLT + view_vecRT)).xyz;
-        if (fwidth(invEdgeCloseness) > 0.5 / 255)
-          normal = lerp(normal, vecToEdge, saturate(edgeCloseness));
-
-        float bloodNormalDominanceTerm = float(perGroupParams[decalType].bloodNormalDominanceTerm_edgeWidthScale & 0xFF)/255.0;
-        bloodNormalBlend = max(edgeCloseness, bloodNormalDominanceTerm);
-      }
-
-      diffuse = lerp(1.0.xxx, diffuse, alpha);
-      float alpha3 = pow3(alpha);
-
-      float srcMulDstDominance = lerp(1.0, 0.96, alpha3);
-      float srcDominance = (1.0/srcMulDstDominance - 1.0);
-
-      UnpackedGbuffer output;
-      init_gbuffer(output);
-      init_albedo(output,  diffuse * srcMulDstDominance);
-      init_ao(output, srcDominance);
-      init_reflectance(output, reflectance);
-      init_metalness(output, 0.0);
-      init_smoothness(output, smoothness);
-      init_normal(output, normal);
-      ##if special_vision == thermal_vision
-        init_material(output, SHADING_SELFILLUM);
-        init_emission(output, MAX_EMISSION);
-        init_emission_color(output, half4(255, 255, 255, 255.0f));
-        output.smoothness = 0;
-      ##endif
-
-      GBUFFER_OUTPUT gbuf = encode_gbuffer(output, 0, GET_SCREEN_POS(input.pos));
-      gbuf.normal_material.w = bloodNormalBlend * alpha3;
-      gbuf.smoothness_reflectance_metallTranslucency_shadow.w = 0.9 * alpha3;
-      return gbuf;
+      return apply_blood_puddle_resolve_ps(decalType, isLandscape, thickness, edgeCloseness,
+       normal, alpha);
     }
   }
 
@@ -472,6 +499,7 @@ shader blood_puddles
   WRITE_GBUFFER()
   INIT_PER_GROUP_PARAMS(ps)
   BLOOD_PUDDLES_COMMON_PS()
+  BLOOD_PUDDLES_RESOLVE_COMMON_PS()
   ENABLE_ASSERT(ps)
 
   hlsl(ps) {
@@ -484,54 +512,15 @@ shader blood_puddles
     ##endif
 
       float3 normal;
-      float dryingTime, intensity, alpha, flowValue, edgeCloseness;
-      int stub;
-      unpack_blood(input, screen, normal, dryingTime, intensity, alpha, flowValue, edgeCloseness, stub);
+      float intensity, edgeCloseness, alpha, stub;
+      uint decalType, uiStub;
+      bool isLandscape;
+      unpack_blood(input, screen, normal, stub, intensity, alpha, stub, edgeCloseness, uiStub, decalType, isLandscape);
 
-      float3 vecToEdge = (ddx(flowValue) * (view_vecLT + view_vecLB) + ddy(flowValue) * (view_vecLT + view_vecRT)).xyz;
-      if (fwidth(flowValue) > 0.5 / 255)
-        normal = lerp(normal, (normal + normalize(vecToEdge)) * 0.5, edgeCloseness);
+      float thickness = min(1.0 - intensity - edgeCloseness, 0.93);
 
-      float thicknessDrying = max(0.5, 1.0 - dryingTime);
-      float thickness = min(1.0 - intensity - edgeCloseness, 0.93) * thicknessDrying;
-
-      float3 bloodColor = lerp(blood_puddle_high_intensity_color.xyz, blood_puddle_low_intensity_color.xyz, dryingTime);
-      float3 opacityColor = lerp(bloodColor.rrr, 1.0.xxx, edgeCloseness);
-
-      float3 diffuse = lerp(bloodColor, opacityColor, edgeCloseness * dryingTime)
-                     * (1.0-thickness);
-      diffuse = lerp(1.0.xxx, diffuse, alpha);
-
-      float smoothness = lerp(1.0, 0.9, edgeCloseness);
-      float reflectance = lerp(0.19, 0.35, edgeCloseness);
-
-      float alpha3 = pow3(alpha);
-      float srcMulDstDominance = lerp(1.0, 0.96, alpha3);
-      float srcDominance = (1.0/srcMulDstDominance - 1.0);
-
-      UnpackedGbuffer output;
-      init_gbuffer(output);
-      init_albedo(output,  diffuse * srcMulDstDominance);
-      init_ao(output, srcDominance);
-      init_reflectance(output, reflectance);
-      init_metalness(output, 0.0);
-      init_smoothness(output, smoothness);
-      init_normal(output, normal);
-      ##if special_vision == thermal_vision
-        init_material(output, SHADING_SELFILLUM);
-        init_emission(output, MAX_EMISSION);
-        init_emission_color(output, half4(255, 255, 255, 255.0f));
-        output.smoothness = 0;
-      ##endif
-
-      float decalType = input.decal_type_and_landscape__frame__rndIndex.x >> 1;
-      float bloodNormalDominanceTerm = float(perGroupParams[decalType].bloodNormalDominanceTerm_edgeWidthScale & 0xFF)/255.0;
-      float bloodNormalBlend = max(edgeCloseness, bloodNormalDominanceTerm);
-
-      GBUFFER_OUTPUT gbuf = encode_gbuffer(output, 0, GET_SCREEN_POS(input.pos));//should be PointToEye
-      gbuf.normal_material.w = bloodNormalBlend * alpha3;
-      gbuf.smoothness_reflectance_metallTranslucency_shadow.w = lerp(0.9, 0.3, dryingTime) * alpha3;
-      return gbuf;
+      return apply_blood_puddle_resolve_ps(decalType, isLandscape, thickness,
+        edgeCloseness, normal, alpha);
     }
   }
   compile("target_vs", "blood_puddles_vs");
@@ -558,7 +547,9 @@ shader blood_puddles_debug
 
       float3 stub3;
       float stub, edgeCloseness;
-      unpack_blood(input, screen, stub3, stub, stub, stub, stub, edgeCloseness, stub);
+      uint uiStub;
+      bool bStub;
+      unpack_blood(input, screen, stub3, stub, stub, stub, stub, edgeCloseness, stub, uiStub, bStub);
 
       return float4(edgeCloseness.xxx, 1);
     }

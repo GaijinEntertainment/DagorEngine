@@ -227,6 +227,8 @@ int on_debug_log(int lev_tag, const char *fmt, const void *arg, int anum, const 
 
 void send_first_run_event()
 {
+  if (!dgs_get_settings()->getBool("launchCountTelemetry", true))
+    return;
   int launchCnt = dgs_get_settings()->getInt("launchCnt", 0);
   get_settings_override_blk()->setInt("launchCnt", launchCnt + 1);
   save_settings(nullptr, false);

@@ -254,14 +254,14 @@ public:
     das::addExtern<DAS_BIND_FUN(bind_dascript::use_capsule_collision)>(*this, lib, "dacoll_use_capsule_collision",
       das::SideEffects::modifyExternal, "bind_dascript::use_capsule_collision");
 
-    das::addExtern<DAS_BIND_FUN(dacoll_shape_query_frt)>(*this, lib, "dacoll_shape_query_frt", das::SideEffects::accessExternal,
-      "bind_dascript::dacoll_shape_query_frt");
-    das::addExtern<DAS_BIND_FUN(dacoll_shape_query_lmesh)>(*this, lib, "dacoll_shape_query_lmesh", das::SideEffects::accessExternal,
-      "bind_dascript::dacoll_shape_query_lmesh");
-    das::addExtern<DAS_BIND_FUN(dacoll_shape_query_ri)>(*this, lib, "dacoll_shape_query_ri", das::SideEffects::accessExternal,
-      "bind_dascript::dacoll_shape_query_ri");
-    das::addExtern<DAS_BIND_FUN(dacoll_shape_query_world)>(*this, lib, "dacoll_shape_query_world", das::SideEffects::accessExternal,
-      "bind_dascript::dacoll_shape_query_world");
+    das::addExtern<DAS_BIND_FUN(dacoll_shape_query_frt)>(*this, lib, "dacoll_shape_query_frt",
+      das::SideEffects::modifyArgumentAndAccessExternal, "bind_dascript::dacoll_shape_query_frt");
+    das::addExtern<DAS_BIND_FUN(dacoll_shape_query_lmesh)>(*this, lib, "dacoll_shape_query_lmesh",
+      das::SideEffects::modifyArgumentAndAccessExternal, "bind_dascript::dacoll_shape_query_lmesh");
+    das::addExtern<DAS_BIND_FUN(dacoll_shape_query_ri)>(*this, lib, "dacoll_shape_query_ri",
+      das::SideEffects::modifyArgumentAndAccessExternal, "bind_dascript::dacoll_shape_query_ri");
+    das::addExtern<DAS_BIND_FUN(dacoll_shape_query_world)>(*this, lib, "dacoll_shape_query_world",
+      das::SideEffects::modifyArgumentAndAccessExternal, "bind_dascript::dacoll_shape_query_world");
 
     das::addExtern<DAS_BIND_FUN(dacoll::set_hmap_step)>(*this, lib, "dacoll_set_hmap_step", das::SideEffects::modifyExternal,
       "dacoll::set_hmap_step");

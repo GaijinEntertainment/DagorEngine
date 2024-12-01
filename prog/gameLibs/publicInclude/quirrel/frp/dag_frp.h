@@ -152,7 +152,8 @@ public:
   int generation = 0;
   bool checkNestedObservable = false;
   bool forceImmutable = false;
-  bool defaultDeferred = true;
+  bool defaultDeferredComputed = true;
+  bool defaultDeferredWatched = true;
   bool doCollectSourcesRecursively = false;
   bool needRecalc = false;
 
@@ -203,6 +204,15 @@ public:
   virtual Sqrat::Object trace() { return Sqrat::Object(); }
   virtual HSQOBJECT getCurScriptInstance();
 
+  inline bool getNeedImmediate() const { return needImmediate; }
+  void updateNeedImmediate(bool certainly_immediate);
+  inline bool getDeferred() const { return isDeferred; }
+  inline void setDeferred(bool v)
+  {
+    isDeferred = v;
+    updateNeedImmediate(!v);
+  }
+
   void collectScriptSubscribers(Tab<SubscriberCall> &container) const;
 
 protected:
@@ -217,6 +227,8 @@ protected:
       bool isIteratingWatchers : 1;
       bool isInTrigger : 1;
       bool willNotify : 1;
+      bool isDeferred : 1;
+      bool needImmediate : 1;
 
       // ScriptValueObservable
       bool checkNestedObservable : 1;
@@ -230,8 +242,6 @@ protected:
       bool needRecalc : 1;
       bool maybeRecalc : 1;
       bool isUsed : 1;
-      bool isDeferred : 1;
-      bool needImmediate : 1;
       bool isShuttingDown : 1;
       bool funcAcceptsCurVal : 1;
     };
@@ -369,16 +379,8 @@ public:
   inline bool getNeedRecalc() const { return needRecalc; }
   inline bool getUsed() const { return isUsed; }
   void updateUsed(bool certainly_used);
-  inline bool getNeedImmediate() const { return needImmediate; }
-  void updateNeedImmediate(bool certainly_immediate);
 
   inline bool getMarked() const { return isMarked; }
-  inline bool getDeferred() const { return isDeferred; }
-  inline void setDeferred(bool v)
-  {
-    isDeferred = v;
-    updateNeedImmediate(!v);
-  }
 
   ComputedValue *addImplicitSource(ComputedValue *c)
   {
@@ -399,6 +401,7 @@ private:
 
 protected:
   friend class ObservablesGraph;
+  friend class BaseObservable;
   friend void graph_viewer();
   Sqrat::Function func;
   dag::Vector<ComputedSource> sources;

@@ -16,23 +16,23 @@ macro USE_FSR(code)
 
     hlsl(code)
     {
-      RegularBuffer<sce::Gnm::Texture> static_textures : BINDLESS_TEX_REGISTER;
-      RegularBuffer<sce::Gnm::Sampler> static_samplers : BINDLESS_SAMPLER_REGISTER;
+      RegularBuffer<sce::Gnm::Texture> fsr_static_textures : BINDLESS_TEX_REGISTER;
+      RegularBuffer<sce::Gnm::Sampler> fsr_static_samplers : BINDLESS_SAMPLER_REGISTER;
 
       float2 linearToDistortedTc(float2 tc)
       {
-        Texture1D<float> fsrLutH = static_textures[fsr_lut_id.x];
-        Texture1D<float> fsrLutV = static_textures[fsr_lut_id.x + 1];
-        SamplerState smp = static_samplers[0];
+        Texture1D<float> fsrLutH = fsr_static_textures[fsr_lut_id.x];
+        Texture1D<float> fsrLutV = fsr_static_textures[fsr_lut_id.x + 1];
+        SamplerState smp = fsr_static_samplers[0];
 
         return float2(fsrLutH.Sample(smp, tc.x), fsrLutV.Sample(smp, tc.y));
       }
 
       float2 distortedToLinearTc(float2 tc)
       {
-        Texture1D<float> fsrLutH = static_textures[fsr_lut_id.y];
-        Texture1D<float> fsrLutV = static_textures[fsr_lut_id.y + 1];
-        SamplerState smp = static_samplers[0];
+        Texture1D<float> fsrLutH = fsr_static_textures[fsr_lut_id.y];
+        Texture1D<float> fsrLutV = fsr_static_textures[fsr_lut_id.y + 1];
+        SamplerState smp = fsr_static_samplers[0];
 
         return float2(fsrLutH.Sample(smp, tc.x), fsrLutV.Sample(smp, tc.y));
       }

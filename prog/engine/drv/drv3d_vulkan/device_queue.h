@@ -4,22 +4,13 @@
 #include <osApiWrappers/dag_critSec.h>
 
 #include "vulkan_device.h"
+#include "driver.h"
 
 namespace drv3d_vulkan
 {
 
 struct FrameInfo;
 
-enum class DeviceQueueType
-{
-  GRAPHICS,
-  COMPUTE,
-  TRANSFER,
-
-  COUNT,
-  INVALID = COUNT,
-  ZERO = GRAPHICS
-};
 class DeviceQueue
 {
   WinCritSec mutex;
@@ -28,8 +19,8 @@ class DeviceQueue
   uint32_t index = -1;
   uint32_t timestampBits = 0;
 
-  StaticTab<VulkanSemaphoreHandle, GPU_TIMELINE_HISTORY_SIZE> submitSemaphores;
-  StaticTab<VkPipelineStageFlags, GPU_TIMELINE_HISTORY_SIZE> submitSemaphoresLocation;
+  Tab<VulkanSemaphoreHandle> submitSemaphores;
+  Tab<VkPipelineStageFlags> submitSemaphoresLocation;
 
   void clearSubmitSemaphores()
   {
@@ -123,6 +114,11 @@ public:
   DeviceQueueGroup(VulkanDevice &device, const Info &info);
   inline DeviceQueue &operator[](DeviceQueueType type) { return *group[static_cast<uint32_t>(type)]; }
   inline const DeviceQueue &operator[](DeviceQueueType type) const { return *group[static_cast<uint32_t>(type)]; }
+  void consumeWaitSemaphores(FrameInfo &gpu_frame)
+  {
+    for (DeviceQueue *i : group)
+      i->consumeWaitSemaphores(gpu_frame);
+  }
 };
 
 inline bool operator==(DeviceQueueGroup::Info::Queue l, DeviceQueueGroup::Info::Queue r)

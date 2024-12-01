@@ -548,6 +548,9 @@ shader rt_reflection
 
       float fxt = -1;
       trace_ray_fx_translucent(relPos, sampleDir, bias, isHit ? hitInfo.t : maxReflectionDistance, w, reflectionColor, fxt, 1, roughness > 0.01);
+      BRANCH
+      if (isHit)
+        calc_atmosphere(reflectionColor, hitInfo.position, hitInfo.t);
 
       if (!isHit && fxt > 0)
         reflectionDistance = fxt;
@@ -670,7 +673,9 @@ shader rt_glass_reflection
 
       float fxt = -1;
       trace_ray_fx_translucent(relPos, sampleDir, 0, isHit ? hitInfo.t : maxReflectionDistance, w, reflectionColor, fxt);
-
+      BRANCH
+      if (isHit)
+        calc_atmosphere(reflectionColor, hitInfo.position, hitInfo.t);
       texture2DAt(rt_glass_gbuffer, dtid) = float4(reflectionColor, 1);
     }
   }

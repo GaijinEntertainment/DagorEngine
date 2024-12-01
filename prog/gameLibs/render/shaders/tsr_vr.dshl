@@ -19,9 +19,6 @@ macro TSR_INCLUDES(code)
   INIT_READ_DEPTH_GBUFFER_BASE(code)
   USE_READ_DEPTH_GBUFFER_BASE(code)
 
-  INIT_READ_MOTION_BUFFER_BASE(code)
-  USE_READ_MOTION_BUFFER_BASE(code)
-
   local float4 tsr_input_color_dimensions = get_dimensions(tsr_input_color, 0);
   (code)
   {

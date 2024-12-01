@@ -38,7 +38,7 @@ void update_external_state(ExternalState state) { Runtime::get().updateExternalS
 
 void set_multiplexing_extents(multiplexing::Extents extents) { Runtime::get().setMultiplexingExtents(extents); }
 
-void run_nodes() { Runtime::get().runNodes(); }
+bool run_nodes() { return Runtime::get().runNodes(); }
 
 void startup() { Runtime::startup(); }
 

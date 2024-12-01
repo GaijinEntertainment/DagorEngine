@@ -1,0 +1,124 @@
+include "motion_vectors_type.dshl"
+include "screen_gi_encoding.dshl"
+include "hero_matrix_inc.dshl"
+int reproject_screen_gi;
+
+texture prev_ambient;
+texture prev_specular;
+texture prev_gbuf_depth;
+texture prev_gi_pixel_age;
+float4x4 jitteredCamPosToUnjitteredHistoryClip;
+
+macro REPROJECT_GI(code)
+  DAGI_GAMMA2_SCREEN_ENCODING(code)
+  local float4 prev_gbuffer_depth_dim = get_dimensions(prev_gbuf_depth, 0);
+  (code) {
+    reproject_screen_gi@i1 = reproject_screen_gi;
+
+    prev_ambient@tex = prev_ambient hlsl { Texture2D<float3> prev_ambient@tex; };
+    prev_specular@tex = prev_specular hlsl { Texture2D<float3> prev_specular@tex; };
+    /*
+    // later we need to add support (for better quality)
+    if (dagi_sp_has_exposure_assume == always_rgbe)
+    {
+      prev_ambient@tex = prev_ambient hlsl { Texture2D<float3> prev_ambient@tex; };
+      prev_specular@tex = prev_specular hlsl { Texture2D<float3> prev_specular@tex; };
+    } else
+    {
+      prev_ambient@tex = prev_ambient hlsl { Texture2D<uint> prev_ambient@tex; };
+      prev_specular@tex = prev_specular hlsl { Texture2D<uint> prev_specular@tex; };
+    }*/
+
+    prev_gi_pixel_age@tex = prev_gi_pixel_age hlsl { Texture2D<uint> prev_gi_pixel_age@tex; };
+
+    jitteredCamPosToUnjitteredHistoryClip@f44 = jitteredCamPosToUnjitteredHistoryClip;// current jittered screencoord -> history unjittered screencoord
+    prev_gbuf_depth@tex2d = prev_gbuf_depth;
+    //fixme: prev_zn_zfar
+    prev_zn_zfar@f4 = (zn_zfar.x, zn_zfar.y, zn_zfar.x/(zn_zfar.x * zn_zfar.y), (zn_zfar.y-zn_zfar.x)/(zn_zfar.x * zn_zfar.y));//fixme
+    depth_gbuf_dim@f2 = get_dimensions(depth_gbuf, 0);
+    prev_gbuffer_depth_dim@f4 = (prev_gbuffer_depth_dim.x, prev_gbuffer_depth_dim.y, 1./max(1, prev_gbuffer_depth_dim.x), 1./max(prev_gbuffer_depth_dim.y, 1));
+    current_jittered_pos_to_prev_jittered_pos_ofs@f2 = (uv_temporal_jitter.z - uv_temporal_jitter.x, uv_temporal_jitter.w - uv_temporal_jitter.y,0,0);
+    uv_temporal_jitter@f4 = uv_temporal_jitter;
+  }
+  INIT_LOAD_MOTION_BUFFER_BASE(code)
+  USE_LOAD_MOTION_BUFFER_BASE(code)
+  INIT_HERO_MATRIX_NO_GBUF(code)
+  USE_HERO_MATRIX_NO_GBUF(code)
+  MOTION_VECTORS_TYPE(code)
+
+  hlsl(code)
+  {
+    #define MOTION_TO_PREV_JITTERED_UV_OFS (current_jittered_pos_to_prev_jittered_pos_ofs)
+    bool reproject_gi(half preExposure, bool isHeroCockpitGbuf, SamplerState sampler_st, half new_specular_w, half new_diffuse_w, float3 camPos, float2 cur_view_tc, float rawDepth, float linearDepth, inout half3 ambient, inout half3 specular, out uint age)
+    {
+      age = 0;
+      if (!reproject_screen_gi)
+        return false;
+      ##if motion_gbuf != NULL
+        motion_type surface_motion = loadMotionBuffer(uint2(cur_view_tc*prev_gbuffer_depth_dim.xy)).motion_attr;
+        surface_motion.xy += MOTION_TO_PREV_JITTERED_UV_OFS;
+        float3 historyUVZ = float3(cur_view_tc, linearDepth) + surface_motion;
+      ##else
+        if (isInHero(isHeroCockpitGbuf, camPos))
+          camPos = just_apply_hero_matrix(camPos);
+        float4 historyClip = mul(float4(camPos, 1), jitteredCamPosToUnjitteredHistoryClip);
+        historyClip.xyz = historyClip.w > 1e-4 ? historyClip.xyz / historyClip.w : float3(2,2,2);
+        float3 historyUVZ = float3(historyClip.xy*float2(0.5, -0.5) + 0.5, linearize_z(historyClip.z, prev_zn_zfar.zw));
+      ##endif
+
+      half newAge = 0;
+      bool valid = all(abs(historyUVZ.xy*2 - 1) < 1);
+      {
+        float2 historyCrdf = historyUVZ.xy * prev_gbuffer_depth_dim.xy - 0.5;
+        float2 floorCrd = floor(historyCrdf);
+        float2 gatherUV = floorCrd*prev_gbuffer_depth_dim.zw + prev_gbuffer_depth_dim.zw;
+        float2 fractCrd = historyCrdf - floorCrd;
+        #ifdef MOTION_TO_PREV_JITTERED_UV_OFS
+          fractCrd = saturate(fractCrd - MOTION_TO_PREV_JITTERED_UV_OFS*prev_gbuffer_depth_dim.xy);
+        #endif
+
+        float4 prevRawZ = prev_gbuf_depth.GatherRed(sampler_st, gatherUV.xy).wzxy;
+        float4 prevLinearDepths = linearize_z4(prevRawZ, prev_zn_zfar.zw);
+        float4 bilW = float4(1-fractCrd, fractCrd);
+        bilW = bilW.xzxz*bilW.yyww;
+
+        float4 depthDiff = abs(historyUVZ.z - prevLinearDepths);
+        float threshold = 0.05*historyUVZ.z;
+        float4 weights = (depthDiff < threshold);
+        float4 spatialWeights = exp(-depthDiff * (5.0 / threshold));
+        weights *= (spatialWeights * bilW);
+        weights = select(weights > 1e-4, weights, float4(0,0,0,0));
+        float sumW = valid ? dot(weights, 1.0) : 0;
+        if (sumW > 1e-4)
+        {
+          weights /= sumW;
+          half3 prevAmbient, prevSpecular;
+          #if GI_PACK_ALGO == GI_USE_SW_RGBE
+          decode_weighted_colors(prev_ambient.GatherRed(sampler_st, gatherUV.xy).wzxy,
+                                 prev_specular.GatherRed(sampler_st, gatherUV.xy).wzxy,
+                                 prevAmbient, prevSpecular,
+                                 weights);
+          #else
+          decode_weighted_colors(prev_ambient.GatherRed(sampler_st, gatherUV.xy).wzxy,
+                                 prev_ambient.GatherGreen(sampler_st, gatherUV.xy).wzxy,
+                                 prev_ambient.GatherBlue(sampler_st, gatherUV.xy).wzxy,
+                                 prev_specular.GatherRed(sampler_st, gatherUV.xy).wzxy,
+                                 prev_specular.GatherGreen(sampler_st, gatherUV.xy).wzxy,
+                                 prev_specular.GatherBlue(sampler_st, gatherUV.xy).wzxy,
+                                 prevAmbient, prevSpecular,
+                                 weights);
+          #endif
+
+          float oldAge = dot(prev_gi_pixel_age.GatherRed(sampler_st, gatherUV.xy).wzxy, weights);
+          float newAgeF = (oldAge + 1);
+          float historyW = 1./(newAgeF + 1);
+          ambient = lerp(preExposure*prevAmbient, ambient, max(new_diffuse_w, historyW));
+          specular = lerp(preExposure*prevSpecular, specular, max(new_specular_w, historyW));
+          age = newAgeF + 0.5f;
+          return true;
+        }
+      }
+      return false;
+    }
+  }
+endmacro

@@ -4,12 +4,12 @@ require ast
 require daslib/ast_boost
 
 def private prepend_cond(var fn:FunctionPtr; cond:string)
-    var iblk <- fn.body
-    var blk <- new [[ExprBlock() at=fn.at]]
-    var ifm <- new [[ExprCall() at=fn.at, name:=cond]]
-    var ife <- new [[ExprIfThenElse() at=fn.at, cond<-ifm, if_true<-iblk]]
+    var inscope iblk <- fn.body
+    var inscope blk <- new [[ExprBlock() at=fn.at]]
+    var inscope ifm <- new [[ExprCall() at=fn.at, name:=cond]]
+    var inscope ife <- new [[ExprIfThenElse() at=fn.at, cond<-ifm, if_true<-iblk]]
     emplace(blk.list,ife)
-    fn.body <- blk
+    fn.body |> move() <| blk
 
 [function_macro(name="add_cond")]
 class AppendCondAnnotation : AstFunctionAnnotation

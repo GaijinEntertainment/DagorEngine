@@ -13,6 +13,8 @@ struct BackendInterop
   std::atomic<size_t> lastGPUCompletedReplayWorkId{0};
   // sync tracker capture request and status
   std::atomic<size_t> syncCaptureRequest{0};
+  // toggle multi queue submit support in realtime
+  std::atomic<size_t> toggleMultiQueueSubmit{0};
 };
 
 

@@ -1,3 +1,4 @@
+options strict_smart_pointers = false
 require DagorFiles
 require ecs
 require strings
@@ -72,14 +73,14 @@ typedef
   SqEventsData = table<string; string>
   EnumsData = table<string; array<string>>
 
-def get_annotation(annotations : rtti::AnnotationList; tag : string) : smart_ptr<rtti::AnnotationDeclaration>
+def get_annotation(var annotations : rtti::AnnotationList; tag : string) : smart_ptr<rtti::AnnotationDeclaration>
   for ann in annotations
     if ann.annotation.name == tag
       return ann
   return unsafe(reinterpret<smart_ptr<rtti::AnnotationDeclaration>> null)
 
 
-def has_annotation(annotations : rtti::AnnotationList; tag : string)
+def has_annotation(var annotations : rtti::AnnotationList; tag : string)
   let ann <- get_annotation(annotations, tag)
   return ann != null
 
@@ -148,7 +149,7 @@ def gen_cpp_event(cppEvents : EventsData; output, file_name : string; exclude_ev
       for eventData in process
         if verbose
           print(" ++ {eventData.fullName}")
-        let st & = eventData.st
+        var st & = eventData.st
         let ann <- st.annotations |> get_annotation("cpp_event")
         if ann != null
           let broadcast = ann.arguments |> get_bool_argument("broadcast")
@@ -289,7 +290,7 @@ def get_sq_type(typ : smart_ptr<TypeDecl>)
   return "instance" // float3, ecs::Object, etc
 
 
-def get_func_stub(name : string; fn : smart_ptr<Function>)
+def get_func_stub(name : string; var fn : smart_ptr<Function>)
   var optionalArgsNum = 0
   let n = length(fn.arguments)
   var i = n

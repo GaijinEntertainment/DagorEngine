@@ -18,5 +18,6 @@ using namespace full_stack;
 using namespace return_address;
 #else
 using namespace null;
+#define DX12_NULL_CALL_STACK_CAPTURE 1
 #endif
 } // namespace drv3d_dx12::debug::call_stack

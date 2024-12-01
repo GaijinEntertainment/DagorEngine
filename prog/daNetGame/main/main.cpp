@@ -402,7 +402,7 @@ static void post_shutdown_handler()
   DEBUG_CTX("shutdown because of '%s'!", quit_reason);
 
 #if _TARGET_PC
-  if (!dedicated::is_dedicated())
+  if (!dedicated::is_dedicated() && dgs_get_settings()->getBool("launchCountTelemetry", true))
   {
     get_settings_override_blk()->setBool("launchCorrectExit", true);
     save_settings(nullptr, false);
@@ -1035,10 +1035,13 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
       {
         send_first_run_event();
 #if _TARGET_PC
-        bool lastLaunchFailed = !dgs_get_settings()->getBool("launchCorrectExit", true);
-        get_settings_override_blk()->setBool("incorrectExitWarning", lastLaunchFailed);
-        get_settings_override_blk()->setBool("launchCorrectExit", false);
-        save_settings(nullptr, false);
+        if (dgs_get_settings()->getBool("launchCountTelemetry", true))
+        {
+          bool lastLaunchFailed = !dgs_get_settings()->getBool("launchCorrectExit", true);
+          get_settings_override_blk()->setBool("incorrectExitWarning", lastLaunchFailed);
+          get_settings_override_blk()->setBool("launchCorrectExit", false);
+          save_settings(nullptr, false);
+        }
 #endif
       }
 

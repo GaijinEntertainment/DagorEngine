@@ -1348,74 +1348,18 @@ VECTORCALL VECMATH_FINLINE quat4f v_quat_from_unit_vec_cos(vec3f v, vec4f ang_co
   return v_perm_xyzd(v_mul(v, s), ang_cos);
 }
 
-VECTORCALL inline void v_quat_from_euler_base(vec3f angles, vec4f &q1, vec4f &q2)
+// .xyz = heading, attitude, bank
+VECTORCALL inline quat4f v_quat_from_euler(vec3f angles)
 {
   vec4f s, c;
   v_sincos(v_mul(angles, V_C_HALF), s, c);
-
-  vec4f sx = v_splat_x(s), sy = v_splat_y(s), sz = v_splat_z(s);
-  vec4f cx = v_splat_x(c), cy = v_splat_y(c), cz = v_splat_z(c);
-
-  q1 = v_mul(v_mul(v_perm_ayzw(cx, sx), v_perm_xbzw(cy, sy)), v_perm_xycw(cz, sz));
-  q2 = v_mul(v_mul(v_perm_ayzw(sx, cx), v_perm_xbzw(sy, cy)), v_perm_xycw(sz, cz));
-}
-
-VECTORCALL inline quat4f v_quat_from_euler_xyz(vec3f angles)
-{
-  vec4f q1, q2;
-  v_quat_from_euler_base(angles, q1, q2);
-  return v_sel(v_add(q1, q2), v_sub(q1, q2), V_CI_MASK0101);
-}
-
-VECTORCALL inline quat4f v_quat_from_euler_xzy(vec3f angles)
-{
-  vec4f q1, q2;
-  v_quat_from_euler_base(angles, q1, q2);
-  return v_sel(v_add(q1, q2), v_sub(q1, q2), V_CI_MASK1101);
-}
-
-VECTORCALL inline quat4f v_quat_from_euler_yzx(vec3f angles)
-{
-  vec4f q1, q2;
-  v_quat_from_euler_base(angles, q1, q2);
-  return v_sel(v_add(q1, q2), v_sub(q1, q2), V_CI_MASK0011);
-}
-
-VECTORCALL inline quat4f v_quat_from_euler_yxz(vec3f angles)
-{
-  vec4f q1, q2;
-  v_quat_from_euler_base(angles, q1, q2);
-  return v_sel(v_add(q1, q2), v_sub(q1, q2), V_CI_MASK0111);
-}
-
-VECTORCALL inline quat4f v_quat_from_euler_zxy(vec3f angles)
-{
-  vec4f q1, q2;
-  v_quat_from_euler_base(angles, q1, q2);
-  return v_sel(v_add(q1, q2), v_sub(q1, q2), V_CI_MASK1001);
-}
-
-VECTORCALL inline quat4f v_quat_from_euler_zyx(vec3f angles)
-{
-  vec4f q1, q2;
-  v_quat_from_euler_base(angles, q1, q2);
-  return v_sel(v_add(q1, q2), v_sub(q1, q2), V_CI_MASK1011);
-}
-
-VECTORCALL inline quat4f v_quat_from_euler(vec3f angles, EulerOrder order)
-{
-  vec4f q1, q2;
-  v_quat_from_euler_base(angles, q1, q2);
-  switch (order)
-  {
-  default:
-  case EULER_ORDER_XYZ: return v_sel(v_add(q1, q2), v_sub(q1, q2), V_CI_MASK0101);
-  case EULER_ORDER_XZY: return v_sel(v_add(q1, q2), v_sub(q1, q2), V_CI_MASK1101);
-  case EULER_ORDER_YZX: return v_sel(v_add(q1, q2), v_sub(q1, q2), V_CI_MASK0011);
-  case EULER_ORDER_YXZ: return v_sel(v_add(q1, q2), v_sub(q1, q2), V_CI_MASK0111);
-  case EULER_ORDER_ZXY: return v_sel(v_add(q1, q2), v_sub(q1, q2), V_CI_MASK1001);
-  case EULER_ORDER_ZYX: return v_sel(v_add(q1, q2), v_sub(q1, q2), V_CI_MASK1011);
-  }
+  vec4f q1 = v_mul(v_mul(v_perm_xycd(v_splat_x(s), v_splat_x(c)),
+                         v_perm_xaxa(v_splat_y(s), v_splat_y(c))),
+                   v_splat_z(c));
+  vec4f q2 = v_mul(v_mul(v_perm_xycd(v_splat_x(c), v_splat_x(s)),
+                         v_perm_xaxa(v_splat_y(c), v_splat_y(s))),
+                   v_splat_z(s));
+  return v_perm_xycd(v_add(q1, q2), v_sub(q1, q2));
 }
 
 // .xyz = heading, attitude, bank

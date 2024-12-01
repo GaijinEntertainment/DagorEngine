@@ -44,7 +44,7 @@ void capsules_collision_on_appear_es(const ecs::Event &,
 }
 
 ECS_TAG(render)
-ECS_AFTER(animchar_before_render_es)
+ECS_NO_ORDER
 void capsules_collisions_es(const UpdateStageInfoBeforeRender &,
   ecs::EntityId &slot_attach__attachedTo,
   ecs::IntList &capsule_approximation_collisions_ids,

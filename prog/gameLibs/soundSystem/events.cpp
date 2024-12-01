@@ -24,6 +24,7 @@
 #include "internal/vars.h"
 #include "internal/events.h"
 #include "internal/pool.h"
+#include "internal/occlusion.h"
 #include "internal/debug.h"
 
 namespace sndsys
@@ -381,7 +382,7 @@ static __forceinline void set_3d_attr_impl(FMOD::Studio::EventInstance &event_in
   SOUND_VERIFY(event_instance.set3DAttributes(&attributes_3d));
 }
 
-static __forceinline void set_3d_attr_impl(EventHandle event_handle, const Attributes3D &attributes_3d)
+static __forceinline void set_3d_attr_internal(EventHandle event_handle, const Attributes3D &attributes_3d)
 {
   FMOD::Studio::EventDescription *eventDescription = nullptr;
   FMOD::Studio::EventInstance *eventInstance = nullptr;
@@ -389,7 +390,11 @@ static __forceinline void set_3d_attr_impl(EventHandle event_handle, const Attri
   if (!get_valid_event_impl(event_handle, eventDescription, eventInstance, attributes))
     return;
   if (attributes.is3d())
+  {
     set_3d_attr_impl(*eventInstance, attributes_3d);
+    if (attributes.hasOcclusion())
+      occlusion::set_pos(*eventInstance, as_point3(attributes_3d.position));
+  }
 }
 
 static bool allow_event_init(ieff_t flags, const Point3 *position, const EventAttributes &attributes)
@@ -493,6 +498,9 @@ EventHandle init_event(const char *name, const char *path, ieff_t flags, const P
     return EventHandle(INVALID_SOUND_HANDLE);
   }
 
+  if (attributes.hasOcclusion() && position)
+    occlusion::append(descAndInstance.second, descAndInstance.first, *position);
+
   return handle;
 }
 
@@ -574,7 +582,13 @@ EventHandle init_event(const FMODGUID &event_id, const Point3 *position /* = nul
   }
 
   if (position != nullptr)
+  {
     set_3d_attr(handle, *position);
+
+    if (attributes.hasOcclusion())
+      occlusion::append(descAndInstance.second, descAndInstance.first, *position);
+  }
+
   return handle;
 }
 
@@ -824,6 +838,10 @@ static void abandon_impl(FMOD::Studio::EventInstance &event_instance, const Even
       stop_impl(event_instance, true);
     }
   }
+
+  if (attributes.hasOcclusion())
+    occlusion::erase(&event_instance, true);
+
   release_event_instance(event_instance, false);
 }
 
@@ -947,6 +965,9 @@ bool play_one_shot(const char *name, const char *path, const Point3 *position, i
   }
 
   start_impl(*descAndInstance.second);
+
+  if (attributes.hasOcclusion() && position)
+    occlusion::apply_oneshot(*descAndInstance.second, *position, *get_system());
 
   abandon_impl(*descAndInstance.second, attributes);
 
@@ -1099,18 +1120,18 @@ int get_timeline_position(EventHandle event_handle)
   return -1;
 }
 
-void set_3d_attr(EventHandle event_handle, const Point3 &pos) { set_3d_attr_impl(event_handle, Attributes3D(pos)); }
+void set_3d_attr(EventHandle event_handle, const Point3 &pos) { set_3d_attr_internal(event_handle, Attributes3D(pos)); }
 void set_3d_attr(EventHandle event_handle, const Point3 &pos, const Point3 &vel, const Point3 &ori, const Point3 &up)
 {
-  set_3d_attr_impl(event_handle, Attributes3D(pos, vel, ori, up));
+  set_3d_attr_internal(event_handle, Attributes3D(pos, vel, ori, up));
 }
 void set_3d_attr(EventHandle event_handle, const TMatrix4 &tm, const Point3 &vel)
 {
-  set_3d_attr_impl(event_handle, Attributes3D(tm, vel));
+  set_3d_attr_internal(event_handle, Attributes3D(tm, vel));
 }
 void set_3d_attr(EventHandle event_handle, const TMatrix &tm, const Point3 &vel)
 {
-  set_3d_attr_impl(event_handle, Attributes3D(tm, vel));
+  set_3d_attr_internal(event_handle, Attributes3D(tm, vel));
 }
 
 bool get_3d_attr(EventHandle event_handle, TMatrix &tm, Point3 &vel)

@@ -1,3 +1,5 @@
+include "get_mix_weight_inc.dshl"
+
 macro WEIGHT_BLENDING(stage)
 hlsl(stage) {
   half3 get_blending_weights(half3 weights, half3 initialHeight)
@@ -178,17 +180,6 @@ macro LAYERED_PS(is_normal_pass)
       #define SAMPLE_TEX(tex, tc) tex2DBindless(tex, tc)
     #endif
     static const float modulation_detail2_alpha_inv_weight = 0.85;
-    half get_mix_weight(float detail1_a, float detail2_a, float mask_weight)
-    {
-      half2 weights = half2(detail1_a*(1.0-mask_weight), detail2_a*mask_weight+0.000001);
-      weights = pow4_vec2(weights);
-      half weight2 = weights.y*rcp(dot(weights,1.0));
-
-      //make it more contrast!
-      half weight2_pow2 = weight2*weight2;
-      weight2 = (-2.666666666666667*weight2_pow2 + (4*weight2 - 0.333333333333333))*weight2;
-      return saturate(weight2);
-    }
 
     #if VOXELIZE_ALBEDO_PASS
       void simple_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)

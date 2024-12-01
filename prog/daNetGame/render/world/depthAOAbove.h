@@ -20,8 +20,9 @@ public:
 
   bool prepare(const Point3 &view_pos, float scene_min_z, float scene_max_z); // Return true if some tp jobs were added
   void render(WorldRenderer &wr, const TMatrix &view_itm);
-  inline void invalidateAO(bool force) { renderer.invalidateAO(force); }
-  inline void invalidateAO(const BBox3 &box) { renderer.invalidateAO(box); }
+  void invalidateAO(bool force) { renderer.invalidateAO(force); }
+  void invalidateAO(const BBox3 &box) { renderer.invalidateAO(box); }
+  void waitCullJobs();
 
 private:
   static const int g_max_visibility_jobs = 8;

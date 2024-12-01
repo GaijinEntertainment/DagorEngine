@@ -15,6 +15,9 @@ void dagor_work_cycle();
 //! must be used before any on-screen rendering outside of work cycle
 void dagor_work_cycle_flush_pending_frame();
 
+// Return false if draw is going to be skipped (minimized fullscreen, occluded window, etc...)
+bool dagor_work_cycle_is_need_to_draw();
+
 //! process system events
 //! NOTE: it is called also from dagor_idle_cycle()
 void dagor_process_sys_messages(bool input_only = false);

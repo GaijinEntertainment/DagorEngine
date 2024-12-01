@@ -24,6 +24,7 @@
 #include "internal/streams.h"
 #include "internal/soundSystem.h"
 #include "internal/events.h"
+#include "internal/occlusion.h"
 #include "internal/debug.h"
 
 #include <math/random/dag_random.h>
@@ -530,8 +531,13 @@ bool init(const DataBlock &blk)
   }
 
   events_init(blk);
+
   streams::init(blk, settings::virtual_vol_limit, g_low_level_system);
+
   delayed::init(blk);
+
+  if (blk.getBool("occlusionEnabled", false))
+    occlusion::init(blk);
 
   eastl::basic_string<char, framemem_allocator> memoryInfo;
   if (g_fixed_mem_pool)
@@ -851,6 +857,11 @@ FMOD::Studio::System *get_studio_system()
 {
   G_ASSERT_RETURN(is_inited(), nullptr);
   return g_system;
+}
+eastl::pair<FMOD::System *, FMOD::Studio::System *> get_systems()
+{
+  G_ASSERT_RETURN(is_inited(), {});
+  return eastl::make_pair(g_low_level_system, g_system);
 }
 } // namespace fmodapi
 } // namespace sndsys

@@ -279,12 +279,16 @@ static inline void heightmap_view_process_es(const dagdp::EventViewProcess &evt,
 
   maybeMergeLastVariant();
 
-  for (auto &grid : builder.grids)
+  for (auto [i, grid] : enumerate(builder.grids))
   {
     for (const auto &variant : grid.variants)
       grid.density = max(grid.density, variant.effectiveDensity);
 
     grid.tileWorldSize = TILE_INSTANCE_COUNT_1D / sqrtf(grid.density);
+
+    // Make sure the seeds are different for different grids, even if the default seed 0 is specified.
+    // Otherwise, if the density is the same, objects may appear in exactly the same position.
+    grid.prngSeed += i;
   }
 
   for (auto &grid : builder.grids)

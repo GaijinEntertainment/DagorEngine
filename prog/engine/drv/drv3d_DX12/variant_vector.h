@@ -998,7 +998,7 @@ protected:
     using DT = typename eastl::decay<T>::type;
     using UsedTypeHandler = TypeHandler<DT, true>;
     // Prevents creation of meta types
-    G_STATIC_ASSERT(UsedTypeHandler::size != 0);
+    G_STATIC_ASSERT(UsedTypeHandler::is_valid);
     MemoryWriter m{pos};
     m.write<IndexType>(TypeIndexOf<DT, ThisTypesPack>::value);
     UsedTypeHandler::copyConstruct(m, value);
@@ -1030,7 +1030,7 @@ protected:
   }
 
   template <typename T, typename P0>
-  static void moveConstructAt(DataStoreType *pos, T &&value, P0 *p0, size_t p0_count)
+  static void moveConstructAt(DataStoreType *pos, T &&value, const P0 *p0, size_t p0_count)
   {
     using DT = typename eastl::decay<T>::type;
     using DP0 = typename eastl::decay<P0>::type;
@@ -1947,20 +1947,7 @@ public:
   }
 
   template <typename T>
-  Iterator pushBack(const T &v, bool wake_executor = true)
-  {
-    auto sizeNeeded = this->template calculateTotalSpaceForTypeSize<T>();
-
-    auto allocResult = allocateSpace(sizeNeeded);
-
-    this->template copyConstructAt<T>(&store[allocResult % size], v);
-
-    commitSpace(allocResult, sizeNeeded, wake_executor);
-    return {Iterator{*this, *allocResult}};
-  }
-
-  template <typename T>
-  Iterator pushBack(T &&v, bool wake_executor = true)
+  Iterator pushBack(T &&v, bool wake_executor = eastl::decay_t<T>::is_primary())
   {
     auto sizeNeeded = this->template calculateTotalSpaceForTypeSize<T>();
 
@@ -2098,20 +2085,7 @@ public:
   }
 
   template <typename T, typename P0>
-  Iterator pushBack(const T &v, const P0 *p0, size_t p0_count)
-  {
-    auto sizeNeeded = this->template calculateTotalSpaceForExtenedVariant<T, P0>(p0_count);
-
-    auto allocResult = allocateSpace(sizeNeeded);
-
-    this->template copyConstructAt<T, P0>(&store[allocResult % size], v, p0, p0_count);
-
-    commitSpace(allocResult, sizeNeeded);
-    return {Iterator{*this, allocResult}};
-  }
-
-  template <typename T, typename P0>
-  Iterator pushBack(T &&v, P0 *p0, size_t p0_count)
+  Iterator pushBack(T &&v, const P0 *p0, size_t p0_count)
   {
     auto sizeNeeded = this->template calculateTotalSpaceForExtenedVariant<T, P0>(p0_count);
 
@@ -2119,21 +2093,7 @@ public:
 
     this->template moveConstructAt<T, P0>(&store[allocResult % size], eastl::forward<T>(v), p0, p0_count);
 
-    commitSpace(allocResult, sizeNeeded);
-    return {Iterator{*this, allocResult}};
-  }
-
-  template <typename T, typename G0>
-  Iterator pushBack(const T &v, size_t p0_count, G0 g0)
-  {
-    using P0 = decltype(g0(0));
-    auto sizeNeeded = this->template calculateTotalSpaceForExtenedVariant<T, P0>(p0_count);
-
-    auto allocResult = allocateSpace(sizeNeeded);
-
-    this->template copyConstructDataGeneratorAt<T, P0, G0>(&store[allocResult % size], eastl::move(v), p0_count, g0);
-
-    commitSpace(allocResult, sizeNeeded);
+    commitSpace(allocResult, sizeNeeded, eastl::decay_t<T>::is_primary());
     return {Iterator{*this, allocResult}};
   }
 
@@ -2147,7 +2107,7 @@ public:
 
     this->template moveConstructDataGeneratorAt<T, P0, G0>(&store[allocResult % size], eastl::forward<T>(v), p0_count, g0);
 
-    commitSpace(allocResult, sizeNeeded);
+    commitSpace(allocResult, sizeNeeded, eastl::decay_t<T>::is_primary());
     return {Iterator{*this, allocResult}};
   }
 
@@ -2160,7 +2120,7 @@ public:
 
     this->template copyConstructAt<T, P0, P1>(&store[allocResult % size], v, p0, p0_count, p1, p1_count);
 
-    commitSpace(allocResult, sizeNeeded);
+    commitSpace(allocResult, sizeNeeded, T::is_primary());
     return {Iterator{*this, allocResult}};
   }
 
@@ -2175,7 +2135,7 @@ public:
 
     this->template copyConstructExtended2DataGenerator<T, P0, P1>(&store[allocResult % size], v, p0_count, g);
 
-    commitSpace(allocResult, sizeNeeded);
+    commitSpace(allocResult, sizeNeeded, T::is_primary());
 
     return {Iterator{*this, allocResult}};
   }

@@ -1363,3 +1363,46 @@ VULKAN_BEGIN_CONTEXT_COMMAND(DelaySyncCompletion)
   }
 #endif
 VULKAN_END_CONTEXT_COMMAND
+
+VULKAN_BEGIN_CONTEXT_COMMAND(QueueSwitch)
+  VULKAN_CONTEXT_COMMAND_PARAM(int, queue)
+#if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
+  if (!Globals::cfg.bits.allowMultiQueue)
+    return;
+  if ((int)ctx.frameCoreQueue == queue)
+    return;
+
+  VulkanCommandBufferHandle frameCoreOld = ctx.frameCore;
+  ctx.beginCustomStage("QueueSwitch");
+  G_UNUSED(frameCoreOld);
+  G_ASSERTF(frameCoreOld == ctx.frameCore, "vulkan: should have not interrupted frame core here!");
+  ctx.switchFrameCoreForQueueChange((DeviceQueueType)queue);
+  ctx.onFrameCoreReset();
+#endif
+VULKAN_END_CONTEXT_COMMAND
+
+VULKAN_BEGIN_CONTEXT_COMMAND(QueueSignal)
+  VULKAN_CONTEXT_COMMAND_PARAM(uint32_t, signalIdx)
+  VULKAN_CONTEXT_COMMAND_PARAM(int, queue)
+#if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
+  if (!Globals::cfg.bits.allowMultiQueue)
+    return;
+  ctx.recordUserQueueSignal(signalIdx, (DeviceQueueType)queue);
+#endif
+VULKAN_END_CONTEXT_COMMAND
+
+VULKAN_BEGIN_CONTEXT_COMMAND(QueueWait)
+  VULKAN_CONTEXT_COMMAND_PARAM(uint32_t, signalIdx)
+  VULKAN_CONTEXT_COMMAND_PARAM(int, queue)
+#if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
+  if (!Globals::cfg.bits.allowMultiQueue)
+    return;
+
+  // interrupt command buffer on wait, to avoid waiting for previous work together with next work
+  VulkanCommandBufferHandle frameCoreOld = ctx.frameCore;
+  ctx.beginCustomStage("QueueWait");
+  if (frameCoreOld == ctx.frameCore)
+    ctx.interruptFrameCore();
+  ctx.waitUserQueueSignal(signalIdx, (DeviceQueueType)queue);
+#endif
+VULKAN_END_CONTEXT_COMMAND

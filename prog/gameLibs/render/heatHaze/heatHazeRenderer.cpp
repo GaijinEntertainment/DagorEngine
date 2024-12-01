@@ -65,11 +65,6 @@ void HeatHazeRenderer::setUp(int haze_resolution_divisor)
   hazeFxId = ShaderGlobal::get_int_fast(haze_render_mode_id_id);
 
   shaders::OverrideState state;
-  state.set(shaders::OverrideState::Z_FUNC);
-  state.zFunc = CMPF_ALWAYS;
-  zFuncAlwaysStateId = shaders::overrides::create(state);
-
-  state = shaders::OverrideState();
   state.set(shaders::OverrideState::Z_TEST_DISABLE);
   state.set(shaders::OverrideState::Z_WRITE_DISABLE);
   state.set(shaders::OverrideState::BLEND_OP);
@@ -121,7 +116,7 @@ void HeatHazeRenderer::renderHazeParticles(Texture *haze_depth, Texture *haze_of
 
   TextureInfo hazeOffsetInfo;
   haze_offset->getinfo(hazeOffsetInfo);
-  d3d::set_render_target({haze_depth, 0, 0}, DepthAccess::RW, {{haze_offset, 0, 0}});
+  d3d::set_render_target({}, DepthAccess::RW, {{haze_offset, 0, 0}, {haze_depth, 0, 0}});
 
   ShaderGlobal::set_color4(inv_distortion_resolutionVarId, 1.0f / hazeOffsetInfo.w, 1.0f / hazeOffsetInfo.h);
   ShaderGlobal::set_int(rendering_distortion_colorVarId, 0);
@@ -129,7 +124,6 @@ void HeatHazeRenderer::renderHazeParticles(Texture *haze_depth, Texture *haze_of
   ShaderGlobal::set_real(haze_scene_depth_tex_lodVarId, depth_tex_lod);
 
   ShaderGlobal::setBlock(global_frame_block_id, ShaderGlobal::LAYER_FRAME);
-  shaders::overrides::set(zFuncAlwaysStateId);
 
   if (render_ri_haze)
     render_ri_haze();
@@ -140,7 +134,6 @@ void HeatHazeRenderer::renderHazeParticles(Texture *haze_depth, Texture *haze_of
   if (fx_render_modeVarId >= 0)
     ShaderGlobal::set_int(fx_render_modeVarId, 0);
   ShaderGlobal::setBlock(global_frame_block_id, ShaderGlobal::LAYER_FRAME);
-  shaders::overrides::reset();
 }
 
 void HeatHazeRenderer::renderColorHaze(Texture *haze_color, RenderHazeParticlesCallback render_haze_particles,

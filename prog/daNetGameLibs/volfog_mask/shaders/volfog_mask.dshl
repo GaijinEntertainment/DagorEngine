@@ -1,3 +1,3 @@
 texture volfog_mask_tex always_referenced;
-texture volfog_mask_tex_samplerstate always_referenced;
+sampler volfog_mask_tex_samplerstate;
 float4 world_to_volfog_mask always_referenced;

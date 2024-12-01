@@ -54,7 +54,7 @@ static inline T *append_data(SmallTab<T> &data, const uint32_t vecs_count)
   return data.data() + cSize;
 }
 
-// TODO: what is this? Why is it here???
+// TODO: what is this? Why is it here??? // it needs a header...
 namespace rendinst::gen
 {
 extern bool custom_trace_ray_earth(const Point3 &src, const Point3 &dir, real &dist);
@@ -498,13 +498,17 @@ bool rendinst::prepareExtraVisibilityInternal(mat44f_cref globtm_cull, const Poi
     const int forcedExtraLod = -1;
     const uint32_t useFlags = RendinstTiledScene::HAVE_SHADOWS | visibleFlag;
 
-    vec4f dirFromSun = reinterpret_cast<vec4f &>(rendinst::dir_from_sun);
+    alignas(16) Point4 dirFromSun = Point4(rendinst::dir_from_sun.x, rendinst::dir_from_sun.y, rendinst::dir_from_sun.z, 0.0f);
+    vec4f dirFromSunVec = v_ld(&dirFromSun.x);
+
     vec4f sphereExtendDirection = V_C_UNIT_0100;
-    if (fabsf(rendinst::dir_from_sun.y) < 1.0f - 1e-6f)
+    vec4f sphereExtendCorrectionRadiusMul = v_zero(); // we trace a single point, instead of a sphere, so we need to correct the radius
+    if (fabsf(rendinst::dir_from_sun.y) < 1.0f - 1e-6f) // technically always true
     {
-      vec4f shadowSpaceLeftDirection = v_norm3(v_cross3(dirFromSun, V_C_UNIT_0100));
-      vec4f shadowSpaceUpDirection = v_cross3(shadowSpaceLeftDirection, dirFromSun);
+      vec4f shadowSpaceLeftDirection = v_cross3(dirFromSunVec, V_C_UNIT_0100);
+      vec4f shadowSpaceUpDirection = v_norm3(v_cross3(shadowSpaceLeftDirection, dirFromSunVec));
       sphereExtendDirection = shadowSpaceUpDirection;
+      sphereExtendCorrectionRadiusMul = v_sub(V_C_ONE, v_abs(v_perm_xbzw(shadowSpaceUpDirection, v_zero()))); // 1 - |x0z|
     }
 
     for (const auto &tiled_scene : riExTiledScenes.cscenes(firstScene, sceneCount))
@@ -534,18 +538,20 @@ bool rendinst::prepareExtraVisibilityInternal(mat44f_cref globtm_cull, const Poi
                 tiled_scene.setDistanceMT(ni, instLightDist);
               }
 
-              vec3f lightDist = v_mul(v_cvt_vec4f(v_splatsi(instLightDist)), dirFromSun);
+              vec3f lightDist = v_mul(v_cvt_vec4f(v_splatsi(instLightDist)), dirFromSunVec);
               vec3f far_point = v_add(top_point, lightDist);
               bbox3f worldBox;
-              worldBox.bmin = v_min(far_point, v_sub(sphere, rad));
-              worldBox.bmax = v_max(far_point, v_add(sphere, rad));
+              vec4f sphereExtendCorrectionRadius = v_mul(sphereExtendCorrectionRadiusMul, rad);
+              worldBox.bmin = v_min(v_sub(far_point, sphereExtendCorrectionRadius), v_sub(sphere, rad));
+              worldBox.bmax = v_max(v_add(far_point, sphereExtendCorrectionRadius), v_add(sphere, rad));
               if (!use_occlusion->isVisibleBox(worldBox.bmin, worldBox.bmax)) // may be we should also use isOccludedBox here?
                 return;
             }
             else // dynamic object
             {
               // replace with bounding sphere
-              if (use_occlusion->isOccludedSphere(sphere, v_splat_w(v_add(sphere, sphere)))) //
+              // this seems to be a giant hack with just using 2x radius
+              if (use_occlusion->isOccludedSphere(sphere, v_splat_w(v_add(sphere, sphere))))
                 return;
             }
           }

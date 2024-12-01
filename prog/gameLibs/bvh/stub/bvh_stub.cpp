@@ -4,6 +4,8 @@
 
 namespace bvh
 {
+bool has_enough_vram_for_rt() { return false; }
+
 bool is_available() { return false; }
 
 void init(elem_rules_fn) {}
@@ -68,4 +70,5 @@ void set_grass_range(ContextId, float) {}
 
 void ChannelParser::enum_shader_channel(int, int, int, int, int, ChannelModifier, int) {}
 
+void enable_per_frame_processing(bool) {}
 } // namespace bvh

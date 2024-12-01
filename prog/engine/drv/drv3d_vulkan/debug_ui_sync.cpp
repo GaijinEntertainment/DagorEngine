@@ -47,6 +47,7 @@ bool requestCapture = false;
 bool settleNodes = false;
 bool requestedCapture = false;
 bool resetView = false;
+bool moveInputsToOutputs = true;
 
 struct GraphLayout
 {
@@ -130,6 +131,12 @@ void wnd_header()
   {
     swapCoord = swapCoord ? 0 : 1;
     activeLayout = swapCoord ? xTimeLayout : yTimeLayout;
+    settleNodes = true;
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Toggle input-to-output move"))
+  {
+    moveInputsToOutputs = !moveInputsToOutputs;
     settleNodes = true;
   }
 }
@@ -350,6 +357,7 @@ void settle_nodes()
   }
 
   // move inputs closer to outputs when possible (independant branches, branch join to bigger branch)
+  if (moveInputsToOutputs)
   {
     for (uint32_t l = 0; l < capt.steps.size() * 2; ++l)
     {
@@ -520,7 +528,7 @@ void drv3d_vulkan::debug_ui_sync()
   for (ExecutionSyncCapture::SyncStep &i : capt.steps)
   {
     NodeEditor::BeginNode(i.visNode);
-    ImGui::Text("Step %u [buffer %u, que %u] %s", i.idx, i.dstBuffer, i.dstQue, i.async ? "async" : "");
+    ImGui::Text("Step %u [buffer %u, queue %u]", i.idx, i.dstBuffer, i.dstQue);
     if (i.invalidOrdering)
       ImGui::Text("Ordering sorting failed %u", i.invalidOrdering);
     NodeEditor::BeginPin(i.visBufPin, NodeEditor::PinKind::Output);

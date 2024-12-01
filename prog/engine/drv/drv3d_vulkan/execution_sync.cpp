@@ -504,6 +504,13 @@ void ExecutionSyncTracker::clearOps()
 #endif
 }
 
+void ExecutionSyncTracker::completeOnQueue(VulkanCommandBufferHandle cmd_buffer, const VulkanDevice &dev, size_t gpu_work_id)
+{
+  completeNeeded(cmd_buffer, dev);
+  G_ASSERTF(!delayCompletion, "vulkan: sync delay must not be interrupted by GPU job change");
+
+  workItemEndBarrier(cmd_buffer, dev, gpu_work_id);
+}
 
 void ExecutionSyncTracker::completeAll(VulkanCommandBufferHandle cmd_buffer, const VulkanDevice &dev, size_t gpu_work_id)
 {
@@ -515,6 +522,13 @@ void ExecutionSyncTracker::completeAll(VulkanCommandBufferHandle cmd_buffer, con
   OpUid::frame_end();
   Backend::syncCapture.reset();
 
+  workItemEndBarrier(cmd_buffer, dev, gpu_work_id);
+
+  nativeRPIndex = 0;
+}
+
+void ExecutionSyncTracker::workItemEndBarrier(VulkanCommandBufferHandle cmd_buffer, const VulkanDevice &dev, size_t gpu_work_id)
+{
   if (allCompleted())
   {
     clearOps();
@@ -589,8 +603,6 @@ void ExecutionSyncTracker::completeAll(VulkanCommandBufferHandle cmd_buffer, con
     barrier.submit(cmd_buffer);
 
   clearOps();
-
-  nativeRPIndex = 0;
 }
 
 bool ExecutionSyncTracker::anyNonProcessed()

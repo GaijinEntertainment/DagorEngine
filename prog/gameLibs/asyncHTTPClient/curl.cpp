@@ -598,6 +598,11 @@ void abort_request(RequestId req_id)
 
 void abort_all_requests(AbortMode mode)
 {
+  // this function is called during xbox suspend.
+  // it could happen even before init or after shutdown.
+  if (!mutex)
+    return;
+
   eastl::list<RequestStatePtr> aborted;
   {
     WinAutoLock lock(*mutex);

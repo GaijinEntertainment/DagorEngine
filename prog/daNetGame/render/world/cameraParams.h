@@ -28,6 +28,8 @@ struct CameraParams
   TMatrix4_vec4 jitterProjTm = TMatrix4::IDENT;
   TMatrix4_vec4 jitterGlobtm = TMatrix4::IDENT;
 
+  Point2 jitterOffsetUv;
+
   Frustum noJitterFrustum;
   Frustum jitterFrustum;
   float znear = 0.01, zfar = 1000;

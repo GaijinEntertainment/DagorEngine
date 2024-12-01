@@ -534,3 +534,144 @@ const TextEditor::LanguageDefinition& TextEditor::LanguageDefinition::Daslang()
 	}
 	return langDef;
 }
+
+
+static eastl::string parse_first_word(const char * line, bool & is_last_word)
+{
+	eastl::string w;
+
+	int i = 0;
+	const char * p = line;
+
+	while (*p && isspace(*p))
+		p++;
+
+	while (*p && (isalnum(*p) || *p == '_'))
+	{
+		w += *p;
+		p++;
+	}
+
+	while (*p && isspace(*p))
+		p++;
+
+	is_last_word = !*p;
+	return w;
+}
+
+
+static const char * find_pair_brace(const char * p, char open, char close)
+{
+	int braceCounter = 0;
+	while (*p)
+	{
+		if (*p == open)
+			braceCounter++;
+		else if (*p == close)
+		{
+			braceCounter--;
+			if (braceCounter == 0)
+				return p;
+		}
+		p++;
+	}
+	return nullptr;
+}
+
+
+bool TextEditor::RequireIndentationAfterNewLine(const eastl::string &line) const
+{
+	int braceCounter[3] = { 0 }; // (), [], {}
+	bool inString = false;
+	char stringChar = 0;
+
+	for (int i = 0; i < line.size(); i++)
+	{
+		auto c = line[i];
+		if (inString)
+		{
+			if (c == stringChar && line[i - 1] != '\\')
+				inString = false;
+			continue;
+		}
+		else
+		{
+			if (c == '"' || c == '\'')
+			{
+				inString = true;
+				stringChar = c;
+				continue;
+			}
+		}
+
+		if (c == '/' && i < line.size() - 1)
+		{
+			if (line[i + 1] == '/')
+			{
+				if (mLanguageDefinition == &LanguageDefinition::Cpp() ||
+				    mLanguageDefinition == &LanguageDefinition::Daslang())
+					return false;
+			}
+		}
+
+		switch (c)
+		{
+		case '(': braceCounter[0]++; break;
+		case '{': braceCounter[1]++; break;
+		case '[': braceCounter[2]++; break;
+		case ')': if (braceCounter[0] > 0) braceCounter[0]--; break;
+		case '}': if (braceCounter[1] > 0) braceCounter[1]--; break;
+		case ']': if (braceCounter[2] > 0) braceCounter[2]--; break;
+		default: break;
+		}
+	}
+
+	if (braceCounter[0] > 0 || braceCounter[1] > 0 || braceCounter[2] > 0)
+		return true;
+
+
+	if (mLanguageDefinition == &LanguageDefinition::Daslang())
+	{
+		static const char * const startKeywordsIndent[] = {
+			"if", "elif", "else", "for", "while", "switch", "class", "struct", "enum", "def", "try", "except", "finally", "with", "lambda"
+		};
+
+		static const char * const singleKeywordsIndent[] = {
+			"let", "var"
+		};
+
+		bool singleWord = true;
+		eastl::string w = parse_first_word(line.c_str(), singleWord);
+
+		for (auto &k : startKeywordsIndent)
+		{
+			if (w == k)
+				return true;
+		}
+
+		if (singleWord)
+			for (auto &k : singleKeywordsIndent)
+				if (w == k)
+					return true;
+
+		// block_call() $ (arg1, arg2)
+		const char * lambdaPos = strrchr(line.c_str(), '$');
+		if (lambdaPos)
+		{
+			const char * endOfParameter = find_pair_brace(lambdaPos, '(', ')');
+			if (!endOfParameter)
+				return true;
+
+			const char * p = endOfParameter + 1;
+			while (*p && isspace(*p))
+				p++;
+
+			bool nonSpaceSymbols = *p && !isspace(*p);
+
+			if (!nonSpaceSymbols)
+				return true;
+		}
+	}
+
+	return false;
+}

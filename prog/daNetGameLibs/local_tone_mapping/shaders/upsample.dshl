@@ -20,12 +20,12 @@ shader local_tone_mapping_upsample
   bool hasAccumulated = upsample_mode != first_iter && upsample_mode != single_pass;
   local float4 tex_size = get_dimensions(exposures_tex, 0);
   (cs) {
-    weights_tex@smp2d = weights_tex;
-    exposures_tex@smp2d = exposures_tex;
+    weights_tex@tex2d = weights_tex;
+    exposures_tex@tex2d = exposures_tex;
     boostLocalContrast@i1 = boostLocalContrast;
     tex_size@f2 = tex_size;
-    accumulated_tex@smp2d = accumulated_tex;
-    coarse_exposures_tex@smp2d = coarse_exposures_tex;
+    accumulated_tex@tex2d = accumulated_tex;
+    coarse_exposures_tex@tex2d = coarse_exposures_tex;
     base_mip@i1 = base_mip;
   }
   hlsl(cs) {

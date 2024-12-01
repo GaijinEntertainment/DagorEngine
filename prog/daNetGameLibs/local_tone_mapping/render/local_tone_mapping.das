@@ -168,11 +168,9 @@ def register_upsample_nodes(var local_tone_mapping__upsample_nodes : NodeHandleV
 
       registry |> read(format("exposures_%d", srcIndex)) |> texture |> atStage(Stage COMPUTE) |> bindToShaderVar("exposures_tex")
       registry |> read(format("weights_%d", srcIndex)) |> texture |> atStage(Stage COMPUTE) |> bindToShaderVar("weights_tex")
-      registry |> read("clamp_sampler") |> blob(type<SamplerHandle>) |> bindToShaderVar("weights_tex_samplerstate") |> bindToShaderVar("exposures_tex_samplerstate")
       if !lastNode
         registry |> read(format("exposure_multiplier_%d", inversedIndex + 1)) |> texture |> atStage(Stage COMPUTE) |> bindToShaderVar("accumulated_tex")
         registry |> read(format("exposures_%d", srcIndex + 1)) |> texture |> atStage(Stage COMPUTE) |> bindToShaderVar("coarse_exposures_tex")
-        registry |> read("clamp_sampler") |> blob(type<SamplerHandle>) |> bindToShaderVar("accumulated_tex_samplerstate") |> bindToShaderVar("coarse_exposures_tex_samplerstate")
 
       var displayMip = firstNode ? local_tone_mapping__display_mip % MIPS_FOR_ONE_PASS : 0
 
@@ -210,7 +208,11 @@ def register_filter_node(var local_tone_mapping__filter_node : NodeHandle&;
   local_tone_mapping__filter_node <- (root() / "local_tone_mapping") |> registerNode("filter") <| @(var registry : Registry)
     registry |> read("exposure_multiplier_tex") |> texture |> atStage(Stage POST_RASTER) |> bindToShaderVar("exposure_tex")
     registry |> read((local_tone_mapping__hq_enabled ? "frame_for_postfx" : "downsampled_color")) |> texture |> atStage(Stage POST_RASTER) |> bindToShaderVar("frame_tex")
-    registry |> read("clamp_sampler") |> blob(type<SamplerHandle>) |> bindToShaderVar("frame_tex_samplerstate")
+    let defaultSampler <- d3d_request_sampler() <| $(var smpInfo : SamplerInfo#)
+      smpInfo.address_mode_u = AddressMode Clamp
+      smpInfo.address_mode_v = AddressMode Clamp
+      smpInfo.address_mode_w = AddressMode Clamp
+    registry |> create("clamp_sampler", History No) |> blob(defaultSampler) |> bindToShaderVar("frame_tex_samplerstate")
 
     let scale = local_tone_mapping__hq_enabled ? local_tone_mapping__hq_final_tex_scale : local_tone_mapping__lq_final_tex_scale
     let texFormat = TEXFMT_R16F | TEXCF_ESRAM_ONLY

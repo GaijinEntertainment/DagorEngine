@@ -541,7 +541,7 @@ program
     |   program global_let                      { yyextra->das_has_type_declarations = true; }
     |   program global_function_declaration     { yyextra->das_has_type_declarations = true; }
     |   program expect_declaration
-    |   program require_declaration
+    |   program require_declaration ';'
     |   program options_declaration ';'
     |   program alias_declaration               { yyextra->das_has_type_declarations = true; }
     |   program variant_alias_declaration       { yyextra->das_has_type_declarations = true; }

@@ -143,7 +143,7 @@ static void makePack(DagorAssetMgr &mgr, dag::ConstSpan<DagorAsset *> assets, da
   if (pkgBlk.paramCount() + pkgBlk.blockCount() > 0)
   {
     bool def = pkgBlk.getBool("defaultOn", true);
-    bool main = pkgBlk.getBool("::main", true);
+    bool main = pkgBlk.getBool("::main", profile ? pkgBlk.getBool(String(0, "::main.%s", profile), true) : true);
 
     for (int i = tex_pack.size() - 1; i >= tex_pack_init_cnt; i--)
     {
@@ -709,7 +709,7 @@ bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, 
       target_str, profile);
     if (pkid < 0)
     {
-      if (!pkgBlk.getBool("::main", true))
+      if (!pkgBlk.getBool("::main", profile ? pkgBlk.getBool(String(0, "::main.%s", profile), true) : true))
       {
         log.addMessage(IMPORTANT_NOTE, "  Skip exporting main assets");
         pack_list_fname = NULL;

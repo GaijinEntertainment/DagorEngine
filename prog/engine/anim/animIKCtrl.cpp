@@ -91,7 +91,7 @@ void AnimV20::LegsIKCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTre
       mat44f animcharTmCorrected = animcharTm;
       animcharTmCorrected.col0 = animcharTm.col2;
       animcharTmCorrected.col2 = animcharTm.col0;
-      vec3f dir = animcharTm.col2;
+      vec3f dir = v_norm3(animcharTm.col2);
       Point3_vec4 kneeOffset = crawlKneeOffsetVec;
       kneeOffset[2] *= i == 0 ? -1 : 1;
       vec3f pt = v_add(v_mat44_mul_vec3p(tree.getRootWtmRel(), v_and(knee_p, v_cast_vec4f(V_CI_MASK1110))), wofs);

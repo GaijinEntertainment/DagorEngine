@@ -17,6 +17,7 @@
 #include <util/dag_oaHashNameMap.h>
 #include <util/dag_fastStrMap.h>
 #include <EASTL/hash_map.h>
+#include <EASTL/bitvector.h>
 #include <util/dag_string.h>
 
 // forward declarations for external classes and structures
@@ -111,6 +112,9 @@ public:
   void setAnimNodeId(int id) { abnId = id; }
 
   virtual void debugSetIrqPos(const char * /*irq_name*/, float /*rel_pos*/) {}
+
+  virtual void initChilds(AnimationGraph & /*graph*/, const DataBlock & /*settings*/, const char * /*nm_suffix*/) {}
+  virtual void checkHasLoop(AnimationGraph & /*graph*/, eastl::bitvector<> & /*visited_nodes*/) {}
 
 private:
   int abnId;

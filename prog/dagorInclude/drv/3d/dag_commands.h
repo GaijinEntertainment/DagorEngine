@@ -414,6 +414,20 @@ enum class Drv3dCommand
   DELAY_SYNC,
   CONTINUE_SYNC,
 
+  //
+  // Changes GPU queue/pipeline where order dependant action commands will be submitted
+  // i.e. dispatches, draws, and mostly any commands that execute work on GPU and require GPU lock
+  // Represents queue+command buffer combo of low level graphics APIs
+  // Must be called under GPU lock
+  // Effect of this command do not "revert" back on some automatic basis, yet
+  // device reset/queue flush restores queue to default (graphics)
+  // GpuPipeline parameters of d3d:: API calls are ignored when this command is in effect
+  //
+  // par1: GpuPipeline - target queue/pipeline where commands will be submitted after this command
+  //
+  // returns 1 if driver switched queue, otherwise returns 0
+  CHANGE_QUEUE,
+
   USER = 1000,
 };
 

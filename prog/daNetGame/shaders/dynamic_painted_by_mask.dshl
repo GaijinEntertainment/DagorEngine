@@ -78,7 +78,7 @@ shader dynamic_painted_by_mask
         #endif
         #if HAS_BLOOD_DECAL
         float4 bloodDecalTC                     : TEXCOORD6;
-        nointerpolation float  textureIndexTime : TEXCOORD7;
+        nointerpolation float4  hitNormalTextureIndexTime : TEXCOORD7;
         #endif
         #if HAS_TORN_WOUNDS
         float4 tornWoundParams                  : TEXCOORD8;

@@ -736,7 +736,6 @@ void NamedConstBlock::buildStaticConstBufHlslDecl(String &out_text, const Merged
   {
 #if _CROSS_TARGET_C1 || _CROSS_TARGET_C2
 
-
 #elif _CROSS_TARGET_SPIRV
     bindlessProlog = "[[vk::binding(0, BINDLESS_TEXTURE_SET_META_ID)]] Texture2D static_textures[];\n"
                      "[[vk::binding(0, BINDLESS_TEXTURE_SET_META_ID)]] TextureCube static_textures_cube[];\n"

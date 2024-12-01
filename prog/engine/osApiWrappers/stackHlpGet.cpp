@@ -86,8 +86,12 @@ const char *stackhlp_get_call_stack(char *buf, int out_buf_sz, const void *const
   }
 
   unsigned stack_size = get_stack_size(stack, max_size);
-
-  lbw.aprintf("Call stack (%d frames, BP: %p):\n", stack_size, stackhlp_get_bp());
+  void *imgBase = stackhlp_get_bp();
+  IMAGE_DOS_HEADER *dos = (IMAGE_DOS_HEADER *)imgBase;
+  IMAGE_NT_HEADERS *nthdr = (IMAGE_NT_HEADERS *)((BYTE *)dos + dos->e_lfanew);
+  intptr_t delta = intptr_t(imgBase) - intptr_t(nthdr->OptionalHeader.ImageBase);
+  lbw.aprintf("Call stack (%d frames, imgbase: %zX, reloc delta %c%zX):\n", stack_size, intptr_t(imgBase), delta < 0 ? '-' : '+',
+    abs(delta));
 
   // All DbgHelp functions are single threaded.
   // https://docs.microsoft.com/en-us/windows/win32/api/dbghelp/nf-dbghelp-undecoratesymbolname
@@ -172,8 +176,13 @@ const char *stackhlp_get_call_stack(char *buf, int out_buf_sz, const void *const
   }
 
   unsigned stack_size = get_stack_size(stack, max_size);
+  void *imgBase = stackhlp_get_bp();
+  IMAGE_DOS_HEADER *dos = (IMAGE_DOS_HEADER *)imgBase;
+  IMAGE_NT_HEADERS *nthdr = (IMAGE_NT_HEADERS *)((BYTE *)dos + dos->e_lfanew);
+  intptr_t delta = intptr_t(imgBase) - intptr_t(nthdr->OptionalHeader.ImageBase);
 
-  lbw.aprintf("Call stack (%d frames, BP: %p), addresses only:\n", stack_size, stackhlp_get_bp());
+  lbw.aprintf("Call stack (%d frames, imgbase: %X, reloc delta %c%X), addresses only:\n", stack_size, imgBase, delta < 0 ? '-' : '+',
+    abs(delta));
 
   for (int i = 0; i < stack_size; i++)
   {

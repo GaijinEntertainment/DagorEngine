@@ -26,29 +26,3 @@ static ecs::EntitySystemDesc register_local_tone_mapping_for_postfx_es_es_desc
   ecs::EventSetBuilder<RegisterPostfxResources>::build(),
   0
 ,"render");
-static constexpr ecs::ComponentDesc init_local_tone_mapping_samplers_node_es_comps[] =
-{
-//start of 1 rw components at [0]
-  {ECS_HASH("local_tone_mapping__samplers_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()}
-};
-static void init_local_tone_mapping_samplers_node_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
-{
-  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
-    init_local_tone_mapping_samplers_node_es(evt
-        , ECS_RW_COMP(init_local_tone_mapping_samplers_node_es_comps, "local_tone_mapping__samplers_node", dabfg::NodeHandle)
-    );
-  while (++comp != compE);
-}
-static ecs::EntitySystemDesc init_local_tone_mapping_samplers_node_es_es_desc
-(
-  "init_local_tone_mapping_samplers_node_es",
-  "prog/daNetGameLibs/local_tone_mapping/render/localToneMappingSubscriptionES.cpp.inl",
-  ecs::EntitySystemOps(nullptr, init_local_tone_mapping_samplers_node_es_all_events),
-  make_span(init_local_tone_mapping_samplers_node_es_comps+0, 1)/*rw*/,
-  empty_span(),
-  empty_span(),
-  empty_span(),
-  ecs::EventSetBuilder<ecs::EventEntityCreated,
-                       ecs::EventComponentsAppear>::build(),
-  0
-,"render");

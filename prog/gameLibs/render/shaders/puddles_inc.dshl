@@ -10,6 +10,14 @@ macro USE_PUDDLE_DISTANCES(code)
     puddles_params@f4 = (1.0 / max(0.01, puddles_params.y - puddles_params.x),
                       -puddles_params.x / max(0.01, puddles_params.y - puddles_params.x), puddles_params.z, puddles_params.w);
   }
+
+  hlsl (code) {
+    #define WETNESS_PUDDLE_SLOPE 0.002
+    float get_puddle_slope_fade(float3 vertical_normal)
+    {
+      return ClampRange(vertical_normal.y, 1.0 - WETNESS_PUDDLE_SLOPE * 4, 1.0 - WETNESS_PUDDLE_SLOPE);
+    }
+  }
 endmacro
 
 macro USE_PUDDLES_WETNESS(code)
@@ -20,17 +28,15 @@ macro USE_PUDDLES_WETNESS(code)
   hlsl (code) {
     #include "noise/Perlin2D.hlsl"
 
-    #define WETNESS_PUDDLE_SLOPE 0.002
-
-    bool check_puddles_conditions(float puddle_level, float eye_dist)
+    bool check_puddles_conditions(float puddle_level, float eye_dist, float3 vertical_normal)
     {
-      return puddle_level > 0.0 && (eye_dist * puddles_params.x + puddles_params.y) < 1.0;
+      return puddle_level > 0.0 && get_puddle_slope_fade(vertical_normal) > 0 && (eye_dist * puddles_params.x + puddles_params.y) < 1.0;
     }
 
     float get_puddles_wetness(float3 world_pos, float3 vertical_normal, float eye_dist, float puddle_level, float land_thickness, float land_deformation, float height, out float puddle_displacement)
     {
       // slope fade for puddle level
-      puddle_level *= ClampRange(vertical_normal.y, 1.0 - WETNESS_PUDDLE_SLOPE * 4, 1.0 - WETNESS_PUDDLE_SLOPE);
+      puddle_level *= get_puddle_slope_fade(vertical_normal);
 
       // puddle level remapped between hmap_displacement_down and land_thickness + hmap_displacement_up
 
@@ -76,7 +82,7 @@ macro USE_LAND_WETNESS()
     bool check_land_wetness_conditions(float3 world_pos, float3 vertical_normal, float dist, float puddle_level, out float base_wetness, out float water_border)
     {
       base_wetness = get_base_wetness(world_pos, vertical_normal, water_border);
-      return base_wetness > 0 || (check_puddles_conditions(puddle_level, dist) && world_pos.y > get_wetness_water_level());
+      return base_wetness > 0 || (check_puddles_conditions(puddle_level, dist, vertical_normal) && world_pos.y > get_wetness_water_level());
     }
 
     float2 get_land_wetness(float3 world_pos, float3 vertical_normal, float dist, float puddle_level, float land_thickness, float land_deformation, float height, float base_wetness, float water_border)
@@ -138,7 +144,6 @@ macro USE_LANDMESH_PUDDLES(code)
   }
 
   hlsl(code) {
-    #define WETNESS_PUDDLE_SLOPE 0.002
     #define object_default_porosity porosity_params.x
     #define decal_default_porosity porosity_params.y
 
@@ -148,7 +153,7 @@ macro USE_LANDMESH_PUDDLES(code)
       float puddleLevel = saturate((sample_tor_puddle(world_pos.xz) - 0.2) * 4 * puddle_influence);
 
       // slope fade for puddle level
-      puddleLevel *= ClampRange(vertical_normal.y, 1.0 - WETNESS_PUDDLE_SLOPE * 4, 1.0 - WETNESS_PUDDLE_SLOPE);
+      puddleLevel *= get_puddle_slope_fade(vertical_normal);
 
       float wetness = saturate(3*( puddleLevel - puddle_variance));
 

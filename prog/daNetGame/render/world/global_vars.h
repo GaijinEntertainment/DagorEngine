@@ -100,6 +100,7 @@
   VAR(lens_frame_tex)                         \
   VAR(lens_frame_tex_samplerstate)            \
   VAR(lens_distortion_params)                 \
+  VAR(lens_brighthness)                       \
   VAR(jitteredCamPosToUnjitteredHistoryClip)  \
   VAR(prev_to_cur_origin_move)                \
   VAR(prevViewProjTm0)                        \

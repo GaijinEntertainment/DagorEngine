@@ -65,9 +65,10 @@ macro INIT_SIMPLE_GLASS()
   (ps) {
     tint_color@f4 = (tint_color);
     opaque_coeff@f1 = (opaque_coeff);
-    glass_specular_color@f3 = (pow(glass_specular_color.r, 2.2) * sun_color_0.r,
-                               pow(glass_specular_color.g, 2.2) * sun_color_0.g,
-                               pow(glass_specular_color.b, 2.2) * sun_color_0.b);
+    glass_specular_color@f3 = (
+      pow(glass_specular_color.r, 2.2) * sun_color_0.r / max(max(sun_color_0.r, sun_color_0.g), max(sun_color_0.b, 1.0)),
+      pow(glass_specular_color.g, 2.2) * sun_color_0.g / max(max(sun_color_0.r, sun_color_0.g), max(sun_color_0.b, 1.0)),
+      pow(glass_specular_color.b, 2.2) * sun_color_0.b / max(max(sun_color_0.r, sun_color_0.g), max(sun_color_0.b, 1.0)));
     glass_specular_power@f1 = specular_power;
   }
 

@@ -61,7 +61,7 @@ static ecs::EntitySystemDesc capsules_collisions_es_es_desc
   empty_span(),
   ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
   0
-,"render",nullptr,nullptr,"animchar_before_render_es");
+,"render",nullptr,"*");
 static constexpr ecs::ComponentDesc get_attached_to_capsules_preprocess_ecs_query_comps[] =
 {
 //start of 1 rw components at [0]

@@ -775,26 +775,26 @@ bool ObservablesGraph::updateDeferred(String &err_msg)
 
     // mark queued
     for (auto o : notifyQueueCache.container)
-      if (auto c = o->getComputed())
-      {
-        c->willNotify = true;
-        if (c->needRecalc || c->maybeRecalc)
-          SET_MARKED(c);
+    {
+      o->willNotify = true;
 
-        // notify non-Computed watchers
-        G_ASSERT(!c->isIteratingWatchers);
-        c->isIteratingWatchers = true;
-        for (IStateWatcher *w : c->watchers)
+      if (auto c = o->getComputed(); c && (c->needRecalc || c->maybeRecalc))
+        SET_MARKED(c);
+
+      // notify non-Computed watchers
+      G_ASSERT(!o->isIteratingWatchers);
+      o->isIteratingWatchers = true;
+      for (IStateWatcher *w : o->watchers)
+      {
+        G_ASSERT(w);
+        if (!w->getComputed() && !w->onSourceObservableChanged())
         {
-          G_ASSERT(w);
-          if (!w->getComputed() && !w->onSourceObservableChanged())
-          {
-            ok = false;
-            select_err_msg(err_msg, "Error notifying watchers (deferred)");
-          }
+          ok = false;
+          select_err_msg(err_msg, "Error notifying watchers (deferred)");
         }
-        c->isIteratingWatchers = false;
       }
+      o->isIteratingWatchers = false;
+    }
 
     // propagate mark to leaves
     for (auto c : sortedGraph)
@@ -1050,6 +1050,8 @@ BaseObservable::BaseObservable(ObservablesGraph *graph_, bool is_computed) : gra
   FRPDBG("@#@ BaseObservable::ctor(%p)", this);
   isComputed = is_computed; // Note: before `addObservable`
   G_ASSERT(graph);
+  isDeferred = graph ? (is_computed ? graph->defaultDeferredComputed : graph->defaultDeferredWatched) : false;
+  needImmediate = !isDeferred;
   if (graph)
     graph->addObservable(this);
 }
@@ -1171,6 +1173,8 @@ bool BaseObservable::triggerRoot(String &err_msg, bool call_subscribers)
   // first level watchers only
   for (IStateWatcher *w : watchers)
   {
+    if (!needImmediate && !w->getComputed())
+      continue;
     if (!w->onSourceObservableChanged())
     {
       ok = false;
@@ -1188,6 +1192,9 @@ bool BaseObservable::triggerRoot(String &err_msg, bool call_subscribers)
 #endif
   }
 
+  if (!needImmediate)
+    graph->deferredNotifyCache.add(this);
+
   // all dependent watchers network (mind the leaves-to-root sorting order)
   for (auto it = sorted_deps.rbegin(); it != sorted_deps.rend(); ++it)
   {
@@ -1204,7 +1211,7 @@ bool BaseObservable::triggerRoot(String &err_msg, bool call_subscribers)
   if (call_subscribers)
   {
     String subscribersErr;
-    if (!graph->callScriptSubscribers(this, subscribersErr))
+    if (!graph->callScriptSubscribers(needImmediate ? this : nullptr, subscribersErr))
     {
       ok = false;
       select_err_msg(err_msg, subscribersErr);
@@ -1252,13 +1259,13 @@ void BaseObservable::subscribeWatcher(IStateWatcher *watcher)
     if (find_value_idx(watchers, watcher) < 0)
     {
       watchers.push_back(watcher);
+      auto watcherComp = watcher->getComputed();
+      if (watcherComp && watcherComp->getNeedImmediate())
+        updateNeedImmediate(true);
       if (auto thisComp = getComputed())
       {
-        auto watcherComp = watcher->getComputed();
         if (!watcherComp || watcherComp->getUsed())
           thisComp->updateUsed(true);
-        if (watcherComp && watcherComp->getNeedImmediate())
-          thisComp->updateNeedImmediate(true);
       }
     }
   }
@@ -1271,12 +1278,12 @@ void BaseObservable::unsubscribeWatcher(IStateWatcher *watcher)
   FRPDBG("@#@ BaseObservable(%p)::unsubscribeWatcher(%p)", this, watcher);
   G_ASSERT(!isIteratingWatchers);
   erase_item_by_value(watchers, watcher);
+  if (auto watcherComp = watcher->getComputed(); watcherComp && watcherComp->getNeedImmediate())
+    updateNeedImmediate(false);
   if (auto thisComp = getComputed())
   {
     if (watchers.empty())
       thisComp->updateUsed(false);
-    if (auto watcherComp = watcher->getComputed(); watcherComp && watcherComp->getNeedImmediate())
-      thisComp->updateNeedImmediate(false);
   }
 }
 
@@ -1830,8 +1837,6 @@ ComputedValue::ComputedValue(ObservablesGraph *g, Sqrat::Function func_, dag::Ve
   FRPDBG("@#@ ComputedValue::ctor(%p | %p)", this, (IStateWatcher *)this);
   funcAcceptsCurVal = pass_cur_val_to_cb;
   isStateValid = true;
-  isDeferred = graph->defaultDeferred;
-  needImmediate = !isDeferred;
 
   value = initial_value;
   value.FreezeSelf();
@@ -2374,16 +2379,13 @@ void ComputedValue::updateUsed(bool certainly_used)
 }
 
 
-void ComputedValue::updateNeedImmediate(bool certainly_immediate)
+void BaseObservable::updateNeedImmediate(bool certainly_immediate)
 {
   if (certainly_immediate)
   {
     if (needImmediate)
       return;
     needImmediate = true;
-    for (auto &s : sources)
-      if (auto c = s.observable->getComputed())
-        c->updateNeedImmediate(true);
   }
   else
   {
@@ -2399,9 +2401,13 @@ void ComputedValue::updateNeedImmediate(bool certainly_immediate)
     if (imm == needImmediate)
       return;
     needImmediate = imm;
-    for (auto &s : sources)
-      if (auto c = s.observable->getComputed())
-        c->updateNeedImmediate(imm);
+  }
+
+  if (isComputed)
+  {
+    bool imm = needImmediate;
+    for (auto &s : static_cast<ComputedValue *>(this)->sources)
+      s.observable->updateNeedImmediate(imm);
   }
 }
 
@@ -2595,7 +2601,9 @@ static SQInteger set_default_deferred(HSQUIRRELVM vm)
   ObservablesGraph *graph = ObservablesGraph::get_from_vm(vm);
   SQBool val;
   sq_getbool(vm, 2, &val);
-  graph->defaultDeferred = val;
+  graph->defaultDeferredComputed = val;
+  sq_getbool(vm, 3, &val);
+  graph->defaultDeferredWatched = val;
   return 0;
 }
 
@@ -2657,6 +2665,8 @@ void bind_frp_classes(SqModules *module_mgr)
     .SquirrelFunc("subscribe", &BaseObservable::subscribe, 2, "xc")
     .SquirrelFunc("unsubscribe", &BaseObservable::unsubscribe, 2, "xc")
     .SquirrelFunc("dbgGetListeners", &BaseObservable::dbgGetListeners, 1, "x")
+    .Prop("deferred", &BaseObservable::getDeferred, &BaseObservable::setDeferred)
+    .Func("setDeferred", &BaseObservable::setDeferred)
     /**/;
 
   ///@class frp/Watched
@@ -2695,8 +2705,6 @@ void bind_frp_classes(SqModules *module_mgr)
     .SquirrelFunc(
       "trigger", [](HSQUIRRELVM vm) { return sq_throwerror(vm, "Triggering computed observable is not allowed"); }, 0)
     .Prop("used", &ComputedValue::getUsed)
-    .Prop("deferred", &ComputedValue::getDeferred, &ComputedValue::setDeferred)
-    .Func("setDeferred", &ComputedValue::setDeferred)
     .Func("_noComputeErrorFor", &ComputedValue::addImplicitSource)
     .SquirrelFunc("getSources", ComputedValue::get_sources, 1, "x")
     /**/;
@@ -2708,7 +2716,7 @@ void bind_frp_classes(SqModules *module_mgr)
   exports //
     .SquirrelFunc("set_nested_observable_debug", set_nested_observable_debug, 2, ".b")
     .SquirrelFunc("make_all_observables_immutable", make_all_observables_immutable, 2, ".b")
-    .SquirrelFunc("set_default_deferred", set_default_deferred, 2, ".b")
+    .SquirrelFunc("set_default_deferred", set_default_deferred, 2, ".bb")
     .SquirrelFunc("set_recursive_sources", set_recursive_sources, 2, ".b")
     .SquirrelFunc("set_slow_update_threshold_usec", set_slow_update_threshold_usec, 2, ".i")
     .SquirrelFunc("recalc_all_computed_values", recalc_all_computed_values, 1, ".")

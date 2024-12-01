@@ -487,6 +487,8 @@ struct ChannelParser : public ShaderChannelsEnumCB
     int stream) override;
 };
 
+bool has_enough_vram_for_rt();
+
 void set_enable(bool enable);
 
 bool is_available();
@@ -563,4 +565,5 @@ bool is_building(ContextId context_id);
 
 void set_grass_range(ContextId context_id, float range);
 
+void enable_per_frame_processing(bool enable);
 } // namespace bvh

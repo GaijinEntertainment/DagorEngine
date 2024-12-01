@@ -197,15 +197,6 @@ void update(float dt, float real_dt, float cur_time)
 
   imgui_update();
 
-  TMatrix viewTm;
-  TMatrix4 projTm;
-  Driver3dPerspective persp;
-  int view_w, view_h;
-  CameraSetup cameraSetup = get_active_camera_setup();
-  calc_camera_values(cameraSetup, viewTm, persp, view_w, view_h);
-  d3d::calcproj(persp, projTm);
-  TMatrix4 globTm = TMatrix4(viewTm) * projTm;
-
   {
     if (is_level_loaded())
       g_entity_mgr->update(ecs::UpdateStageInfoAct(dt, cur_time));
@@ -220,7 +211,7 @@ void update(float dt, float real_dt, float cur_time)
       if (dedicated::is_dedicated())
         g_entity_mgr->broadcastEventImmediate(ParallelUpdateFrameDelayed(dt, cur_time));
       net_send_phys_snapshots(cur_time, dt); // after all phys/anim updates
-      ridestr::update(dt, globTm);
+      ridestr::update(dt, calc_active_camera_globtm());
     }
   }
   g_entity_mgr->broadcastEventImmediate(UpdateStageGameLogic(dt, cur_time));

@@ -129,8 +129,8 @@ public:
   VirtualResourceRequest<T, RRP::None> blob() &&
   {
     Base::blob(BlobDescription{tag_for<T>(), sizeof(T), alignof(T),
-      // IMPORTANT: {} zero-initializes structs
-      +[](void *ptr) { new (ptr) T{}; }, //
+      // IMPORTANT: () zero-initializes structs
+      +[](void *ptr) { new (ptr) T(); }, //
       +[](void *ptr) { eastl::destroy_at<T>(reinterpret_cast<T *>(ptr)); },
       +[](void *ptr, const void *from) {
         if constexpr (eastl::is_copy_constructible<T>::value)

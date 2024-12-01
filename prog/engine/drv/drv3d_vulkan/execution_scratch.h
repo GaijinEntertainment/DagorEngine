@@ -32,20 +32,37 @@ struct ExecutionScratch
   {
     DeviceQueueType queue;
     VulkanCommandBufferHandle handle;
-    bool async;
-    bool externalWaitPoint;
+    uint32_t signals;
+    uint32_t waits;
   };
   eastl::vector<CommandBufferSubmit> cmdListsToSubmit;
+
+  struct CommandBufferSubmitDeps
+  {
+    uint32_t from;
+    uint32_t to;
+  };
+  eastl::vector<CommandBufferSubmitDeps> cmdListsSubmitDeps;
 
   struct QueueSubmitItem
   {
     Tab<VulkanCommandBufferHandle> cbs;
-    StaticTab<VulkanSemaphoreHandle, (uint32_t)DeviceQueueType::COUNT> semaphore;
-    DeviceQueueType que;
-    uint32_t order;
+    Tab<VulkanSemaphoreHandle> signals;
+    Tab<VulkanSemaphoreHandle> submitSemaphores;
+    uint32_t signalsCount;
+    DeviceQueueType queue;
+    uint32_t originalSignalId;
+    uint32_t originalWaitId;
     bool fenceWait;
   };
   Tab<QueueSubmitItem> submitGraph;
+
+  struct UserQueueSignal
+  {
+    size_t bufferIdx;
+    uint8_t waitedOnQueuesMask;
+  };
+  eastl::vector<UserQueueSignal> userQueueSignals;
 };
 
 } // namespace drv3d_vulkan

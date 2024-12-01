@@ -7,7 +7,7 @@ require strings
 
 typedef
   Handler = lambda < (message : string) : string >
-  MatchResult = variant<success : int; invalid : void?>
+  MatchResult = variant<success : int; invalid : bool>
 
 class Matcher
   def abstract match(str : string) : MatchResult
@@ -20,7 +20,7 @@ class StringMatch : Matcher
   def override match(str : string) : MatchResult
     if str == matchStr
       return <- [[MatchResult success = length(str)]]
-    return <- [[MatchResult invalid = null]]
+    return <- [[MatchResult invalid = true]]
 
 
 class WebServer : WebSocket

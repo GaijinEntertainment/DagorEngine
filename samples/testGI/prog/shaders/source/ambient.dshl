@@ -41,8 +41,10 @@ shader render_ambient
     screen_size@f4 = (1./screen_pos_to_texcoord.x, 1./screen_pos_to_texcoord.y,0,0);
     world_view_pos@f3 = world_view_pos;
   }
-  INIT_PRE_EXPOSURE(ps)
-  USE_PRE_EXPOSURE(ps)
+  INIT_HDR(ps)
+  USE_HDR(ps)
+  INIT_PREV_PRE_EXPOSURE(ps)
+  USE_PREV_PRE_EXPOSURE(ps)
   USE_POSTFX_VERTEX_POSITIONS()
   USE_AND_INIT_VIEW_VEC_VS()
   INIT_ZNZFAR()
@@ -64,6 +66,11 @@ shader render_ambient
   USE_ROUGH_TO_MIP()
   //SAMPLE_IRRADIANCE_GRID(ps)
   //SAMPLE_RADIANCE_GRID(ps)
+
+  if (gi_quality != screen_probes)
+  {
+    DAGI_NO_SCREEN_ENCODING(ps)
+  }
 
   if (gi_quality != off)
   {
@@ -243,15 +250,11 @@ shader render_ambient
 
       ##if (gi_quality == screen_probes)
       uint age;
-      half3 roughSpecular = specular;
-      reproject_ambient(lerp(0.05, 0.25, get_roughness_fade(linearRoughness)), 0.05, input.texcoord.xy, rawDepth, w, ambient, roughSpecular, age);
-      specular = lerp(roughSpecular, specular, saturate(smoothness*2 - 1)*0.9);
-      encode_gi_colors(output.ambient, output.specular, ambient, specular);
+      reproject_ambient(lerp(0.25, 0.1, linearRoughness), 0.1, input.texcoord.xy, rawDepth, w, ambient, specular, age);
       output.age = age;
-      ##else
-      output.ambient = ambient;
-      output.specular = specular;
       ##endif
+
+      encode_gi_colors(output.ambient, output.specular, ambient, specular);
       return output;
     }
   }

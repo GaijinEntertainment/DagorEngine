@@ -192,14 +192,16 @@ enum class SortingType : int
 
 struct CullingDesc
 {
-  CullingDesc(const eastl::string &t, SortingType s, int vrs_rate = 0, float screen_discard_threshold = 0) :
-    tag(t), sortingType(s), vrsRate(vrs_rate), screenAreaDiscardThreshold(screen_discard_threshold)
+  CullingDesc(const eastl::string &t, SortingType s, int vrs_rate = 0, float screen_discard_threshold = 0,
+    uint32_t visibility_mask = 0xffffffff) :
+    tag(t), sortingType(s), vrsRate(vrs_rate), screenAreaDiscardThreshold(screen_discard_threshold), visibilityMask(visibility_mask)
   {}
 
   int vrsRate;
   float screenAreaDiscardThreshold;
   eastl::string tag;
   SortingType sortingType;
+  uint32_t visibilityMask;
 };
 
 struct SystemDesc
@@ -272,6 +274,7 @@ void update_culling_state(ContextId cid, CullingId cullid, const Frustum &frustu
 void update_culling_state(ContextId cid, CullingId cullid, const Frustum &frustum, const mat44f &globtm, const Point3 &view_pos,
   Occlusion *(*occlusion_sync_wait_f)() = nullptr);
 void clear_culling_state(ContextId cid, CullingId cullid);
+uint32_t get_culling_state_visiblity_mask(ContextId cid, CullingId cullid);
 void remap_culling_state_tag(ContextId cid, CullingId cullid, const eastl::string &from, const eastl::string &to); // pass same values
                                                                                                                    // to reset remap
 uint32_t inverse_remap_tags_mask(ContextId cid, uint32_t tags_mask);
@@ -323,7 +326,7 @@ void set_instance_pos(ContextId cid, InstanceId iid, const Point4 &pos); // for 
 void set_instance_emission_rate(ContextId cid, InstanceId iid, float v);
 void set_instance_status(ContextId cid, InstanceId iid, bool enabled);
 bool get_instance_status(ContextId cid, InstanceId iid);
-void set_instance_visibility(ContextId cid, InstanceId iid, bool visible);
+void set_instance_visibility(ContextId cid, InstanceId iid, uint32_t visibility);
 bool is_instance_renderable_active(ContextId cid, InstanceId iid);
 bool is_instance_renderable_visible(ContextId cid, InstanceId iid);
 bool get_instance_value(ContextId cid, InstanceId iid, int offset, void *out_data, int size);
@@ -468,6 +471,12 @@ struct Stats
     int setInstanceValueTotalSize;
   };
   Queue queue[2]; // 2 last frames
+
+  eastl::array<int, Config::max_simulation_lods> cpuElemProcessedByLods;
+  eastl::array<int, Config::max_simulation_lods> gpuElemProcessedByLods;
+
+  eastl::array<int, Config::max_simulation_lods> cpuElemTotalSimLods;
+  eastl::array<int, Config::max_simulation_lods> gpuElemTotalSimLods;
 
   eastl::array<int, Config::max_render_tags> drawCallsByRenderTags;
 };

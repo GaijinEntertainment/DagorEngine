@@ -156,7 +156,7 @@ dabfg::NodeHandle createDistantHazeNode(DistantHazeManager &distant_haze__manage
     auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
     auto hazeRenderedHndl = registry.modifyBlob<bool>("haze_rendered").handle();
 
-    registry.requestRenderPass().depthRw("haze_depth").color({(type == DistantHazeNodeType::Normal) ? "haze_offset" : "haze_color"});
+    registry.requestRenderPass().color({(type == DistantHazeNodeType::Normal) ? "haze_offset" : "haze_color", "haze_depth"});
 
     auto depthForTransparencyHndl =
       registry.readTexture("depth_for_transparency").atStage(dabfg::Stage::PS).useAs(dabfg::Usage::SHADER_RESOURCE).handle();

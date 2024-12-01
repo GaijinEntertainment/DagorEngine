@@ -97,7 +97,7 @@ struct Globals
     static VulkanLoader loader;
     static VulkanDevice dev;
     static VulkanInstance inst;
-    static DeviceQueueGroup que;
+    static DeviceQueueGroup queue;
     static PhysicalDeviceSet phy;
     static FormatUtil fmt;
     static BufferAlignment bufAlign;

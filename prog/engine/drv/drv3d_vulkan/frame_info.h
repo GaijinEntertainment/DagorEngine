@@ -30,11 +30,12 @@ struct FrameInfo
 
   struct QueueCommandBuffers
   {
+    DeviceQueueType queue;
     VulkanCommandPoolHandle commandPool;
     Tab<VulkanCommandBufferHandle> freeCommandBuffers;
     Tab<VulkanCommandBufferHandle> pendingCommandBuffers;
 
-    void init(DeviceQueueType queue);
+    void init(DeviceQueueType target_queue);
     VulkanCommandBufferHandle allocateCommandBuffer();
     void shutdown();
     void finishCmdBuffers();
@@ -68,7 +69,6 @@ struct FrameInfo
   void finishDescriptorSetReset();
   void finishSemaphores();
   void finishGpuWork();
-  void finishCmdBuffers();
   void finishCleanups();
 
   // internal state

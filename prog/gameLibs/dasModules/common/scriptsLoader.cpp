@@ -117,7 +117,6 @@ bool DasScripts<TLoadedScript, TContext>::loadScriptInternal(const das::string &
   policies.no_unsafe = sandboxMode;
   policies.no_aliasing = true;
   policies.strict_unsafe_delete = true;
-  policies.strict_smart_pointers = true;
   policies.stack = 4096;
 
   das::ProgramPtr program;

@@ -16,6 +16,7 @@ include "custom_probe_inc.dshl"
 
 include "world_sdf.dshl"
 include "use_gi.dshl"
+include "reproject_gi.dshl"
 
 int shadow_frame = 0;
 
@@ -70,6 +71,7 @@ macro INIT_AND_USE_DEFERRED_LIGHT_COMMON(code)
     } else
     {
       SAMPLE_IRRADIANCE_SPECULAR_SP(code)
+      REPROJECT_GI(code)
     }
 
     hlsl(code) {
@@ -86,7 +88,7 @@ macro INIT_AND_USE_DEFERRED_LIGHT_COMMON(code)
 ##endif
 
       void ComputeDeferredLight(ProcessedGbuffer gbuffer, float3 worldPos, float rawDepth, float2 viewTexcoord, float2 viewPixcoord,
-                                float3 pointToEye, out float3 outSpecular, out float3 outAmbient)
+                                float3 pointToEye, out float3 outSpecular, out float3 outAmbient, out uint outPixelAge)
       {
         ##if gi_quality != screen_probes
         // this is incorrect even with other GI algorithms.
@@ -274,8 +276,18 @@ macro INIT_AND_USE_DEFERRED_LIGHT_COMMON(code)
             }
           }
         */
-        outSpecular = pack_hdr(totalReflection);
+        outSpecular = totalReflection;
+        outPixelAge = 0;
+
+        ##if gi_quality == screen_probes
+        half3 roughSpecular = outSpecular;
+        const half maxAmbientWeight = 1./8;
+        reproject_gi(getPrevInvExposure(), gbuffer.isHeroCockpit, depth_gbuf_read_samplerstate, lerp(0.25, maxAmbientWeight, gbuffer.linearRoughness), maxAmbientWeight,
+          -pointToEye, viewTexcoord, rawDepth, linearize_z(rawDepth, zn_zfar.zw), outAmbient, roughSpecular, outPixelAge);
+        outSpecular = lerp(roughSpecular, outSpecular, saturate(1 - 2*gbuffer.linearRoughness)*0.9);
+        ##endif
         outAmbient = pack_hdr(outAmbient);
+        outSpecular = pack_hdr(outSpecular);
       }
   }
 endmacro

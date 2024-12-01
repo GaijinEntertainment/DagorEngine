@@ -831,6 +831,11 @@ hlsl {
     ##assert(uint(tc) < dim, "[%s:%.f] Out of bounds: Buffer '%s' has size (%.f), but access to (%.f)",
                               file, ln, name, dim, tc);
   }
+  void checkBufferBoundsRange(int tc, uint range, uint dim, int file, int ln, int name)
+  {
+    ##assert(uint(tc) + range <= dim, "[%s:%.f] Out of bounds: Buffer '%s' has size (%.f), but access to [%.f, %.f) range",
+                                      file, ln, name, dim, tc, tc+range);
+  }
   void checkBufferBoundsStrided(int tc, uint dim, uint stride, int file, int ln, int name)
   {
     ##assert(uint(tc) < dim, "[%s:%.f] Out of bounds: Buffer '%s' has size (%.f) (elem stride (%.f)), but access to (%.f)",
@@ -866,6 +871,10 @@ hlsl {
   #define CHECK_BUFFER_EXPR(a, tc)                    \
     a.GetDimensions(bounds_check_dim),                \
     checkBufferBounds(tc, bounds_check_dim, _FILE_, __LINE__, -1)
+  #define CHECK_BUFFER_RANGE(range, file, ln, name)   \
+    uint dim;                                         \
+    a.GetDimensions(dim);                             \
+    checkBufferBoundsRange(tc, range, dim, file, ln, name)
   #define CHECK_STRUCTURED_BUFFER(file, ln, name)     \
     uint dim, stride;                                 \
     a.GetDimensions(dim, stride);                     \
@@ -885,6 +894,7 @@ hlsl {
   #define CHECK_TEXTURE3D_EXPR(a, tc) 0
   #define CHECK_BUFFER(file, ln, name)
   #define CHECK_BUFFER_EXPR(a, tc) 0
+  #define CHECK_BUFFER_RANGE(range, file, ln, name)
   #define CHECK_STRUCTURED_BUFFER(file, ln, name)
   #define CHECK_STRUCTURED_BUFFER_EXPR(a, tc) 0
   #define CHECK_STENCIL
@@ -938,24 +948,24 @@ hlsl {
   uint   loadBufferBase(StructuredBuffer<uint>   a, int tc, int file, int ln, int name) { CHECK_STRUCTURED_BUFFER(file, ln, name); return a[tc];}
   uint   loadBufferBase(RWStructuredBuffer<uint> a, int tc, int file, int ln, int name) { CHECK_STRUCTURED_BUFFER(file, ln, name); return a[tc];}
 
-  uint   loadBufferBase(ByteAddressBuffer a, int tc, int file, int ln, int name) { CHECK_BUFFER(file, ln, name); return a.Load(tc); }
-  uint2  loadBuffer2Base(ByteAddressBuffer a, int tc, int file, int ln, int name) { CHECK_BUFFER(file, ln, name); return a.Load2(tc); }
-  uint3  loadBuffer3Base(ByteAddressBuffer a, int tc, int file, int ln, int name) { CHECK_BUFFER(file, ln, name); return a.Load3(tc); }
-  uint4  loadBuffer4Base(ByteAddressBuffer a, int tc, int file, int ln, int name) { CHECK_BUFFER(file, ln, name); return a.Load4(tc); }
-  uint   loadBufferBase(RWByteAddressBuffer a, int tc, int file, int ln, int name) { CHECK_BUFFER(file, ln, name); return a.Load(tc); }
-  uint2  loadBuffer2Base(RWByteAddressBuffer a, int tc, int file, int ln, int name) { CHECK_BUFFER(file, ln, name); return a.Load2(tc); }
-  uint3  loadBuffer3Base(RWByteAddressBuffer a, int tc, int file, int ln, int name) { CHECK_BUFFER(file, ln, name); return a.Load3(tc); }
-  uint4  loadBuffer4Base(RWByteAddressBuffer a, int tc, int file, int ln, int name) { CHECK_BUFFER(file, ln, name); return a.Load4(tc); }
+  uint   loadBufferBase(ByteAddressBuffer a, int tc, int file, int ln, int name) { CHECK_BUFFER_RANGE(4, file, ln, name); return a.Load(tc); }
+  uint2  loadBuffer2Base(ByteAddressBuffer a, int tc, int file, int ln, int name) { CHECK_BUFFER_RANGE(8, file, ln, name); return a.Load2(tc); }
+  uint3  loadBuffer3Base(ByteAddressBuffer a, int tc, int file, int ln, int name) { CHECK_BUFFER_RANGE(12, file, ln, name); return a.Load3(tc); }
+  uint4  loadBuffer4Base(ByteAddressBuffer a, int tc, int file, int ln, int name) { CHECK_BUFFER_RANGE(16, file, ln, name); return a.Load4(tc); }
+  uint   loadBufferBase(RWByteAddressBuffer a, int tc, int file, int ln, int name) { CHECK_BUFFER_RANGE(4, file, ln, name); return a.Load(tc); }
+  uint2  loadBuffer2Base(RWByteAddressBuffer a, int tc, int file, int ln, int name) { CHECK_BUFFER_RANGE(8, file, ln, name); return a.Load2(tc); }
+  uint3  loadBuffer3Base(RWByteAddressBuffer a, int tc, int file, int ln, int name) { CHECK_BUFFER_RANGE(12, file, ln, name); return a.Load3(tc); }
+  uint4  loadBuffer4Base(RWByteAddressBuffer a, int tc, int file, int ln, int name) { CHECK_BUFFER_RANGE(16, file, ln, name); return a.Load4(tc); }
 
   #define loadBuffer(a, tc) loadBufferBase(a, tc, _FILE_, __LINE__, -1)
   #define loadBuffer2(a, tc) loadBuffer2Base(a, tc, _FILE_, __LINE__, -1)
   #define loadBuffer3(a, tc) loadBuffer3Base(a, tc, _FILE_, __LINE__, -1)
   #define loadBuffer4(a, tc) loadBuffer4Base(a, tc, _FILE_, __LINE__, -1)
 
-  void storeBufferBase(RWByteAddressBuffer a, int tc, uint value, int file, int ln, int name) { CHECK_BUFFER(file, ln, name); a.Store(tc, value); }
-  void storeBuffer2Base(RWByteAddressBuffer a, int tc, uint2 value, int file, int ln, int name) { CHECK_BUFFER(file, ln, name); a.Store2(tc, value); }
-  void storeBuffer3Base(RWByteAddressBuffer a, int tc, uint3 value, int file, int ln, int name) { CHECK_BUFFER(file, ln, name); a.Store3(tc, value); }
-  void storeBuffer4Base(RWByteAddressBuffer a, int tc, uint4 value, int file, int ln, int name) { CHECK_BUFFER(file, ln, name); a.Store4(tc, value); }
+  void storeBufferBase(RWByteAddressBuffer a, int tc, uint value, int file, int ln, int name) { CHECK_BUFFER_RANGE(4, file, ln, name); a.Store(tc, value); }
+  void storeBuffer2Base(RWByteAddressBuffer a, int tc, uint2 value, int file, int ln, int name) { CHECK_BUFFER_RANGE(8, file, ln, name); a.Store2(tc, value); }
+  void storeBuffer3Base(RWByteAddressBuffer a, int tc, uint3 value, int file, int ln, int name) { CHECK_BUFFER_RANGE(12, file, ln, name); a.Store3(tc, value); }
+  void storeBuffer4Base(RWByteAddressBuffer a, int tc, uint4 value, int file, int ln, int name) { CHECK_BUFFER_RANGE(16, file, ln, name); a.Store4(tc, value); }
 
   #define storeBuffer(a, tc, value) storeBufferBase(a, tc, value, _FILE_, __LINE__, -1)
   #define storeBuffer2(a, tc, value) storeBuffer2Base(a, tc, value, _FILE_, __LINE__, -1)
@@ -1060,7 +1070,15 @@ hlsl
 {
   ##if hardware.bindless
     ##if hardware.ps4 || hardware.ps5
-      #define BINDLESS_TEX_ARRAY(type, name, space) RegularBuffer<sce::Gnm::Texture> name : BINDLESS_TEX_REGISTER;
+      #define BINDLESS_TEX_ARRAY(type, name, space)\
+        struct StaticTexImpl ## name \
+        {\
+          type operator[](uint index) \
+          {\
+            return type(static_textures[index]);\
+          }\
+        };\
+        static StaticTexImpl ## name name
       #define BINDLESS_SMP_ARRAY(type, name, space) RegularBuffer<sce::Gnm::Sampler> name : BINDLESS_SAMPLER_REGISTER;
       #define BINDLESS_BUF_ARRAY(type, name, space)\
         RegularBuffer<sceApiBufferDesc> static_buffers_ ## space : BINDLESS_BUF_REGISTER; \

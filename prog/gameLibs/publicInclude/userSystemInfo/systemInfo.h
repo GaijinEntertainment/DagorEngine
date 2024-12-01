@@ -72,6 +72,7 @@ void dump_dll_names();
 
 ThermalStatus get_thermal_state(); // From normal (0) to the worse
 const char *to_string(ThermalStatus status);
+int is_tablet();
 int get_battery_capacity_mah();
 float get_battery();
 int get_is_charging();

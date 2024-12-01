@@ -251,6 +251,11 @@ void AssembleShaderEvalCB::eval_static(static_var_decl &s)
     sv = append_items(sclass.stvar, 1);
     sclass.stvar[sv].type = t;
     sclass.stvar[sv].nameId = varNameId;
+
+    if (sclass.stvarsAreDynamic.size() <= sv)
+      sclass.stvarsAreDynamic.resize(sv + 1);
+    sclass.stvarsAreDynamic[sv] = code.vars[v].dynamic;
+
     const bool expectingInt = t == SHVT_INT || t == SHVT_INT4;
     Color4 val = expectingInt ? Color4{bitwise_cast<float>(0), bitwise_cast<float>(0), bitwise_cast<float>(0), bitwise_cast<float>(1)}
                               : Color4{0, 0, 0, 1};

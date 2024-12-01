@@ -10,4 +10,5 @@ public:
 
 private:
   virtual bool onDropFiles(const dag::Vector<String> &files) override;
+  virtual bool canStartInteractionWithViewport() override;
 };

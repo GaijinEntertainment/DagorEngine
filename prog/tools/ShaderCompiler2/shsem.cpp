@@ -20,6 +20,7 @@
 #include <osApiWrappers/dag_miscApi.h>
 #include <util/dag_fastIntList.h>
 #include <debug/dag_debug.h>
+#include <ska_hash_map/flat_hash_map2.hpp>
 #include <atomic>
 
 using namespace ShaderParser;
@@ -188,23 +189,12 @@ bool ShaderSemCode::Pass::equal(Pass &p)
   return true;
 }
 
-const char *ShaderSemCode::equal(ShaderSemCode &c, bool compare_passes)
+const char *ShaderSemCode::equal(ShaderSemCode &c, bool compare_passes_and_vars)
 {
   if (channel.size() != c.channel.size())
     return "channel count";
   if (!mem_eq(channel, c.channel.data()))
     return "channel data";
-
-  if (vars.size() != c.vars.size())
-    return "variable count";
-  int i;
-  for (i = 0; i < vars.size(); ++i)
-  {
-    if (vars[i].type != c.vars[i].type)
-      return "variable type";
-    if (vars[i].nameId != c.vars[i].nameId)
-      return "variable name";
-  }
 
   if (regsize != c.regsize)
   {
@@ -216,13 +206,25 @@ const char *ShaderSemCode::equal(ShaderSemCode &c, bool compare_passes)
   if (!mem_eq(initcode, c.initcode.data()))
     return "initcode data";
 
+  if (!compare_passes_and_vars)
+    return NULL;
+
+  if (vars.size() != c.vars.size())
+    return "variable count";
+
+  int i;
+  for (i = 0; i < vars.size(); ++i)
+  {
+    if (vars[i].type != c.vars[i].type)
+      return "variable type";
+    if (vars[i].nameId != c.vars[i].nameId)
+      return "variable name";
+  }
+
   if (stvarmap.size() != c.stvarmap.size())
     return "stvarmap count";
   if (!mem_eq(stvarmap, c.stvarmap.data()))
     return "stvarmap data";
-
-  if (!compare_passes)
-    return NULL;
 
   if (passes.size() != c.passes.size())
     return "different number of dynamic variants";
@@ -498,38 +500,6 @@ static void shaderWarn(ShaderSyntaxParser &parser, const char *msg, Terminal *t)
   parser.get_lex_parser().set_warning(t->file_start, t->line_start, t->col_start, msg);
 }
 
-struct VarUsageInfo
-{
-  String name;
-  bool used;
-  bool noWarnings;
-  Terminal *terminal;
-
-  void fromVar(const ShaderSemCode::Var &var)
-  {
-    name = var.getName();
-    terminal = (Terminal *)var.terminal;
-    used = var.used;
-    noWarnings = var.noWarnings;
-  }
-};
-
-
-// check for variable usage
-static void checkVarsUsage(const Tab<VarUsageInfo> &info, ShaderSyntaxParser &parser, ShaderVariant::VariantSrc *staticVariant)
-{
-  for (int i = 0; i < info.size(); ++i)
-  {
-    const VarUsageInfo &var = info[i];
-    if (!var.used && !var.noWarnings)
-    {
-      if (strcmp("instancing_const_begin", var.name) != 0 && strcmp("instancing_const_end", var.name) != 0)
-        shaderWarn(parser, "variable '" + var.name + "' not used in static variant '" + staticVariant->getVarStringInfo() + "'",
-          var.terminal);
-    }
-  }
-}
-
 static bool validate_cs(ShaderClass *sclass, ShaderSemCode *ssc, int staticVariantCount)
 {
   bool has_cs = false, has_non_cs = false, has_void = false;
@@ -675,7 +645,28 @@ static void add_shader(shader_decl *sh, ShaderSyntaxParser &parser, Terminal *sh
   get_memory_stats(stats, 2048);
   debug("%s", stats.str());
 
-  Tab<VarUsageInfo> usageInfo(tmpmem);
+  struct VarUsageInfo
+  {
+    bool used;
+    bool noWarnings;
+    Terminal *terminal;
+
+    void fromVar(const ShaderSemCode::Var &var)
+    {
+      terminal = (Terminal *)var.terminal;
+      used = var.used;
+      noWarnings = var.noWarnings;
+    }
+  };
+
+  // const char * is ok cause we use ids from VarMap inside it's lifetime
+  ska::flat_hash_map<const char *, VarUsageInfo> usageInfo{};
+  auto addVarUsage = [&usageInfo](const ShaderSemCode::Var &var) {
+    auto [it, wasNew] = usageInfo.insert({var.getName(), VarUsageInfo{}});
+    G_ASSERT(wasNew);
+    it->second.fromVar(var);
+  };
+
   Tab<int> shInitCodeLast(tmpmem);
 
   if (stVarCB.shaderDebugModeEnabled)
@@ -765,42 +756,29 @@ static void add_shader(shader_decl *sh, ShaderSyntaxParser &parser, Terminal *sh
           // first dynamic variant - store it
           ssc = eastl::move(parsedSsc);
 
-          usageInfo.resize(ssc->vars.size());
-          for (int v = 0; v < usageInfo.size(); v++)
-            usageInfo[v].fromVar(ssc->vars[v]);
+          for (int v = 0; v < ssc->vars.size(); v++)
+            addVarUsage(ssc->vars[v]);
+
+          ssc->initPassMap(d);
         }
         else
         {
-          // correct & check for variable usage
-          if (parsedSsc->vars.size() != ssc->vars.size())
+          // check for variable usage
+          for (const ShaderSemCode::Var &var : parsedSsc->vars)
           {
-            sh_debug(SHLOG_ERROR, "shader(%s): illegal dynamic variants: different variable count", shname->text);
-          }
-          else
-          {
-            for (int v = 0; v < usageInfo.size(); ++v)
+            if (auto it = usageInfo.find(var.getName()); it != usageInfo.end())
             {
-              ShaderSemCode::Var &var = parsedSsc->vars[v];
-              VarUsageInfo &uv = usageInfo[v];
-
-              if (!uv.used)
-                uv.used = var.used;
+              if (!it->second.used)
+                it->second.used = var.used;
             }
+            else
+              addVarUsage(var);
           }
 
           // correct register count
           if (ssc->regsize != parsedSsc->regsize)
           {
             ssc->regsize = parsedSsc->regsize = (ssc->regsize > parsedSsc->regsize) ? ssc->regsize : parsedSsc->regsize;
-          }
-
-          // check for equal static variants
-          const char *eqDesc = ssc->equal(*parsedSsc, false);
-          if (eqDesc != NULL)
-          {
-            sh_debug(SHLOG_ERROR, "shader(%s): illegal dynamic variants: different %s", shname->text, eqDesc);
-            sh_set_current_dyn_variant(NULL);
-            continue;
           }
 
           if (ssc->passes[d])
@@ -811,6 +789,17 @@ static void add_shader(shader_decl *sh, ShaderSyntaxParser &parser, Terminal *sh
           }
 
           ssc->passes[d] = parsedSsc->passes[d];
+          ssc->mergeVars(eastl::move(parsedSsc->vars), eastl::move(parsedSsc->stvarmap), d);
+
+          // check for equal static variants
+          const char *eqDesc = ssc->equal(*parsedSsc, false);
+          if (eqDesc != NULL)
+          {
+            sh_debug(SHLOG_ERROR, "shader(%s): illegal dynamic variants: different %s", shname->text, eqDesc);
+            sh_set_current_dyn_variant(NULL);
+            continue;
+          }
+
           parsedSsc->passes[d] = NULL;
 
           parsedSsc.reset();
@@ -840,17 +829,28 @@ static void add_shader(shader_decl *sh, ShaderSyntaxParser &parser, Terminal *sh
         stVarCB.allRefStaticVars);
       render_stage_idx = (ssc->flags & SC_STAGE_IDX_MASK);
 
+      ssc->initPassMap(0);
+
       if (!needRender)
         staticVariant->codeId = -1;
 
-      usageInfo.resize(ssc->vars.size());
-      for (int v = 0; v < usageInfo.size(); v++)
-        usageInfo[v].fromVar(ssc->vars[v]);
+      for (int v = 0; v < ssc->vars.size(); v++)
+        addVarUsage(ssc->vars[v]);
     }
 
     if (needRender)
     {
-      checkVarsUsage(usageInfo, parser, staticVariant);
+      // check for variable usage
+      eastl::for_each(usageInfo.cbegin(), usageInfo.cend(), [&](const auto &pair) {
+        auto [name, var] = pair;
+        if (!var.used && !var.noWarnings)
+        {
+          if (strcmp("instancing_const_begin", name) != 0 && strcmp("instancing_const_end", name) != 0)
+            shaderWarn(parser,
+              "variable '" + String{name} + "' not used in static variant '" + staticVariant->getVarStringInfo() + "'", var.terminal);
+        }
+      });
+
       if ((ssc->flags & SC_STAGE_IDX_MASK) != render_stage_idx)
         sh_debug(SHLOG_WARNING, "shader(%s): staticvariant uses renderStageIdx=%d, while dynvariants uses %d", sclass->name.c_str(),
           (ssc->flags & SC_STAGE_IDX_MASK), render_stage_idx);
@@ -913,6 +913,8 @@ static void add_shader(shader_decl *sh, ShaderSyntaxParser &parser, Terminal *sh
   shc::prepareTestVariantShader(NULL);
   if (has_first_static_variant)
     sclass->shInitCode = shInitCodeLast;
+
+  sclass->sortStaticVarsByMode();
 
   staticVariants.fillVariantTable(sclass->staticVariants);
 

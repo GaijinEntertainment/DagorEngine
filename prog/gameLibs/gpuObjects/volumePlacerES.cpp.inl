@@ -183,8 +183,8 @@ static void adjust_transform_to_border_offset(const Point2 *offset, int axis_ind
   float adjustedLength = axisLength - offsetV.x - offsetV.y;
   if (adjustedLength <= 0.0f)
   {
-    LOGERR_ONCE("GPUObjectsPlacer: box borders are too big for the object. Axis=%@, offset=%@, pos=%@", axis_index, offsetV,
-      transform.getcol(3));
+    logerr("GPUObjectsPlacer: box borders are too big for the object. Axis=%@, length=%@, offset=%@, pos=%@", axis_index, axisLength,
+      offsetV, transform.getcol(3));
     return;
   }
   transform.setcol(axis_index, axis * (adjustedLength / axisLength));

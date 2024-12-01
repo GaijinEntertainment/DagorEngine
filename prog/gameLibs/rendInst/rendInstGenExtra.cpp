@@ -1517,17 +1517,50 @@ bool rendinst::damageRIGenExtra(riex_handle_t id, float dmg_pts, mat44f *out_des
 void rendinst::gatherRIGenExtraCollidable(riex_collidable_t &out_handles, const BBox3 &box,
   bool read_lock) DAG_TS_NO_THREAD_SAFETY_ANALYSIS
 {
-  if (read_lock)
-    rendinst::ccExtra.lockRead();
   {
+    ScopedLockRead(read_lock ? &rendinst::ccExtra : nullptr);
     TIME_PROFILE_DEV(gather_riex_collidable_box);
     rigrid_find_in_box_by_bounding(riExtraGrid, v_ldu_bbox3(box), [&](RiGridObject object) {
       out_handles.push_back(object.handle);
       return false;
     });
   }
-  if (read_lock)
-    rendinst::ccExtra.unlockRead();
+
+  if (!out_handles.empty())
+    eastl::sort(out_handles.begin(), out_handles.end());
+}
+
+void rendinst::gatherRIGenExtraCollidable(riex_collidable_t &out_handles, const BSphere3 &sphere, bool read_lock)
+{
+  {
+    ScopedLockRead(read_lock ? &rendinst::ccExtra : nullptr);
+    TIME_PROFILE_DEV(gather_riex_collidable_box);
+    rigrid_find_in_sphere_by_bounding(riExtraGrid, sphere.c, sphere.r, [&](RiGridObject object) {
+      out_handles.push_back(object.handle);
+      return false;
+    });
+  }
+
+  if (!out_handles.empty())
+    eastl::sort(out_handles.begin(), out_handles.end());
+}
+
+void rendinst::gatherRIGenExtraCollidable(riex_collidable_t &out_handles, const Capsule &capsule, bool read_lock)
+{
+  {
+    ScopedLockRead(read_lock ? &rendinst::ccExtra : nullptr);
+    TIME_PROFILE_DEV(gather_riex_collidable_ray);
+    auto collect = [&](RiGridObject object) {
+      out_handles.push_back(object.handle);
+      return false;
+    };
+    Point3 dir = capsule.b - capsule.a;
+    float len = length(dir);
+    if (DAGOR_LIKELY(len > VERY_SMALL_NUMBER))
+      rigrid_find_in_capsule_by_bounding(riExtraGrid, capsule.a, dir / len, len, capsule.r, collect);
+    else
+      rigrid_find_in_sphere_by_bounding(riExtraGrid, capsule.a, capsule.r, collect);
+  }
 
   if (!out_handles.empty())
     eastl::sort(out_handles.begin(), out_handles.end());
@@ -1537,17 +1570,14 @@ void rendinst::gatherRIGenExtraCollidable(riex_collidable_t &out_handles, const 
 void rendinst::gatherRIGenExtraCollidable(riex_collidable_t &out_handles, const TMatrix &tm, const BBox3 &box,
   bool read_lock) DAG_TS_NO_THREAD_SAFETY_ANALYSIS
 {
-  if (read_lock)
-    rendinst::ccExtra.lockRead();
   {
+    ScopedLockRead(read_lock ? &rendinst::ccExtra : nullptr);
     TIME_PROFILE_DEV(gather_riex_collidable_transformed_box);
     rigrid_find_in_transformed_box_by_bounding(riExtraGrid, tm, box, [&](RiGridObject object) {
       out_handles.push_back(object.handle);
       return false;
     });
   }
-  if (read_lock)
-    rendinst::ccExtra.unlockRead();
 
   if (!out_handles.empty())
     eastl::sort(out_handles.begin(), out_handles.end());

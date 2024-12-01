@@ -5,6 +5,7 @@
 #pragma once
 
 #include <daRg/dag_renderObject.h>
+#include <daRg/dag_guiConstants.h>
 #include <math/dag_math3d.h>
 
 
@@ -23,6 +24,9 @@ public:
   Point4 borderWidth;
   Point4 borderRadius;
   Picture *image = nullptr;
+  KeepAspectMode keepAspect = KEEP_ASPECT_NONE;
+  ElemAlign imageHalign = ALIGN_CENTER;
+  ElemAlign imageValign = ALIGN_CENTER;
   Picture *fallbackImage = nullptr;
   bool flipX = false;
   bool flipY = false;

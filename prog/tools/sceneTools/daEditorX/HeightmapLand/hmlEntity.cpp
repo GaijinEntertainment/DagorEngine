@@ -108,12 +108,8 @@ static class DefHMLEntityParams
 public:
   int placeTypeTab;
   bool placeTypeMixed;
-  bool seedGroupMinimized;
   bool splitCompRecursive;
-
-  DefHMLEntityParams() :
-    placeTypeTab(PID_PLACE_TYPE_BTN_DROPDOWN), placeTypeMixed(false), seedGroupMinimized(true), splitCompRecursive(false)
-  {}
+  DefHMLEntityParams() : placeTypeTab(PID_PLACE_TYPE_BTN_DROPDOWN), placeTypeMixed(false), splitCompRecursive(false) {}
 
 } defaultHMLEntity;
 
@@ -423,7 +419,7 @@ void LandscapeEntityObject::fillProps(PropPanel::ContainerPropertyControl &panel
     panel.createIndent();
 
     PropPanel::ContainerPropertyControl *subGrp = panel.createGroup(PID_SEED_GROUP, "Seed");
-    subGrp->setBoolValue(::defaultHMLEntity.seedGroupMinimized);
+    subGrp->setBoolValue(false);
 
     subGrp->createStatic(0, "Generate per-inst seed:");
     subGrp->createButton(PID_GENERATE_PERINST_SEED, "Individual");
@@ -799,8 +795,6 @@ void LandscapeEntityObject::onPPChange(int pid, bool edit_finished, PropPanel::C
       rePlaceAllEntities();
     }
   }
-  else if (pid == PID_SEED_GROUP)
-    ::defaultHMLEntity.seedGroupMinimized = panel.getBool(pid);
   else if (pid == PID_SEED && objects.size() == 1)
   {
     if (LandscapeEntityObject *p = RTTI_cast<LandscapeEntityObject>(objects[0]))

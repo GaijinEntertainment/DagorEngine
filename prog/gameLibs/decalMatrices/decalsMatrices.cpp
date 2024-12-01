@@ -262,7 +262,8 @@ bool DecalsMatrices::isMatrixRemoved(uint32_t matrix_id) const
   if (matrix_id == INVALID_MATRIX_ID)
     return false;
   matrix_id--;
-  G_ASSERT_RETURN(matrix_id < removedMatrices.size(), false);
+  G_ASSERTF_RETURN(matrix_id < removedMatrices.size(), false,
+    "DecalsMatrices::isMatrixRemoved oob: matrix_id >= removedMatrices.size. %d >= %d", matrix_id, removedMatrices.size());
   return removedMatrices[matrix_id];
 }
 

@@ -15,5 +15,6 @@ namespace das
         const string & fixme, CompilationError erc = CompilationError::unspecified );
     string reportError ( const char * st, uint32_t stlen, const char * fileName, int row, int col, int lrow, int lcol, int tabSize, const string & message,
         const string & extra, const string & fixme, CompilationError erc = CompilationError::unspecified );
+    int32_t levenshtein_distance ( const char * s1, const char * s2 );
 }
 

@@ -40,6 +40,8 @@
 #include <render/world/frameGraphNodes/motionBlurNode.h>
 #include <render/deferredRenderer.h>
 #include <render/resourceSlot/nodeHandleWithSlotsAccess.h>
+#include <render/motionVectorAccess.h>
+#include <render/heroData.h>
 #include "satelliteRenderer.h"
 
 #include "antiAliasingMode.h"
@@ -379,6 +381,7 @@ public:
   void createVolumetricLightsNode();
   void createGiNodes();
   void createResolveGbufferNode();
+  void createDeferredLightNode();
   void createUINodes();
 
   static WaterRenderMode determineWaterRenderMode(bool underWater, bool belowClouds);
@@ -621,6 +624,12 @@ protected:
       TMatrix itm;
     } depthAOAboveData;
 
+    void invalidate()
+    {
+      lightProbeData.render = false;
+      lightProbeData.texPtr = nullptr;
+      depthAOAboveData.render = false;
+    }
   } delayedRenderCtx;
 
   bool prepareDelayedRender(const TMatrix &itm); // Return true if some tp jobs were added
@@ -934,6 +943,9 @@ protected:
   void applyStaticUpsampleQuality();
 
   AntiAliasingMode currentAntiAliasingMode = AntiAliasingMode::TSR;
+  bool hasDepthHistory = false;
+  dabfg::NodeHandle prepareDepthForPostFxNode;
+  void makePrepareDepthForPostFxNode();
   int msaaQuality = 0;
   eastl::unique_ptr<AntiAliasing> antiAliasing;
 #if !_TARGET_PC && !_TARGET_ANDROID && !_TARGET_IOS && !_TARGET_C3
@@ -1156,6 +1168,7 @@ private:
   void drawGIDebug(const Frustum &camera_frustum);
   void invalidateGI(bool force);
   void setGIQualityFromSettings();
+  bool giNeedsReprojection();
 
   void initFsr(const IPoint2 &postfx_resolution, const IPoint2 &display_resolution);
   void closeFsr();
@@ -1176,8 +1189,9 @@ private:
   void resetLatencyMode();
   void resetPerformanceMetrics();
 
-  void updateHeroMatrix(const DPoint3 &world_pos);
+  void updateHeroData();
 
+  HeroWtmAndBox heroData;
   CameraParams currentFrameCamera;
   CameraParams prevFrameCamera;
   TexStreamingContext currentTexCtx = TexStreamingContext(0);
@@ -1206,9 +1220,6 @@ private:
   bool shouldToggleVRS(const AimRenderingData &aim_data);
 
   eastl::unique_ptr<CollisionResource> staticSceneCollisionResource;
-
-  mat44f oldHeroGunOrVehicleTm;
-  DPoint3 oldWorldPos;
 
   BBox3 worldBBox;
   BBox3 additionalBBox;

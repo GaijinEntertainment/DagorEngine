@@ -5,93 +5,83 @@ let calcKnobColor = @(sf) (sf & S_ACTIVE) ? Color(255,255,255)
                                     : Color(110, 120, 140, 160)
 
 let barWidth = sh(1)
+let minKnobSizePart = 0.005
 
 let barColor = Color(40, 40, 40, 160)
-let calcBarSize = @(axis) axis == 0 ? [flex(), barWidth] : [barWidth, flex()]
+let calcBarSize = @(isVertical) isVertical ? [barWidth, flex()] : [flex(), barWidth]
 
-let mkScrollbar = function(scroll_handler, orientation=null, needReservePlace=true) {
+function mkScrollbar(scroll_handler, orientation=null, needReservePlace=true) {
   let stateFlags = Watched(0)
-  let axis        = orientation == O_VERTICAL ? 1 : 0
+  let isVertical = orientation == O_VERTICAL
+  let elemSize = isVertical
+    ? Computed(@() (scroll_handler.elem?.getHeight() ?? 0))
+    : Computed(@() (scroll_handler.elem?.getWidth() ?? 0))
+  let maxV = isVertical
+    ? Computed(@() (scroll_handler.elem?.getContentHeight() ?? 0) - elemSize.get())
+    : Computed(@() (scroll_handler.elem?.getContentWidth() ?? 0) - elemSize.get())
+  let fValue = isVertical
+    ? Computed(@() scroll_handler.elem?.getScrollOffsY() ?? 0)
+    : Computed(@() scroll_handler.elem?.getScrollOffsX() ?? 0)
+  let isElemFit = Computed(@() maxV.get() <= 0)
+  let knob = @() {
+    watch = stateFlags
+    key = "knob"
+    size = [flex(), flex()]
+    rendObj = ROBJ_SOLID
+    color = calcKnobColor(stateFlags.get())
+  }
 
-  return function() {
-    let elem = scroll_handler.elem
-
-    if (!elem) {
-      return {
-        key = scroll_handler
-        behavior = Behaviors.Slider
-        watch = scroll_handler
-        size = needReservePlace ? calcBarSize(axis) : null
-      }
-    }
-
-    local contentSize, elemSize, scrollPos
-    if (axis == 0) {
-      contentSize = elem.getContentWidth()
-      elemSize = elem.getWidth()
-      scrollPos = elem.getScrollOffsX()
-    }
-    else {
-      contentSize = elem.getContentHeight()
-      elemSize = elem.getHeight()
-      scrollPos = elem.getScrollOffsY()
-    }
-
-    if (contentSize <= elemSize) {
-      return {
-        key = scroll_handler
-        behavior = Behaviors.Slider
-        watch = scroll_handler
-        size = needReservePlace ? calcBarSize(axis) : null
-      }
-    }
-
-
-    let minV = 0
-    let maxV = contentSize - elemSize
-    let fValue = scrollPos
-
-    let knob = {
-      size = [flex(elemSize), flex(elemSize)]
-      color = calcKnobColor(stateFlags.get())
-      key = "knob"
-      rendObj = ROBJ_SOLID
-    }
-
+  function view() {
+    let sizeMul = elemSize.get() == 0 || maxV.get() == 0 ? 1
+      : elemSize.get() <= minKnobSizePart * maxV.get() ? 1.0 / maxV.get() / minKnobSizePart
+      : 1.0 / elemSize.get()
     return {
-      key = scroll_handler
-      behavior = Behaviors.Slider
-      color = barColor
-      rendObj = ROBJ_SOLID
-
-      watch = [scroll_handler, stateFlags]
-      fValue
-
-      knob
-      min = minV
-      max = maxV
-      unit = 1
-
-      flow = axis == 0 ? FLOW_HORIZONTAL : FLOW_VERTICAL
+      watch = [elemSize, maxV, fValue]
+      size = flex()
+      flow = isVertical ? FLOW_VERTICAL : FLOW_HORIZONTAL
       halign = ALIGN_CENTER
       valign = ALIGN_CENTER
 
-      pageScroll = (axis == 0 ? -1 : 1) * (maxV - minV) / 100.0 // TODO probably needed sync with container wheelStep option
-
-      orientation
-      size = calcBarSize(axis)
-
       children = [
-        {size=[flex(fValue), flex(fValue)]}
+        { size = array(2, flex(fValue.get() * sizeMul)) }
         knob
-        {size=[flex(maxV-fValue), flex(maxV-fValue)]}
+        { size = array(2, flex((maxV.get() - fValue.get()) * sizeMul)) }
       ]
+    }
+  }
 
-      onChange = @(val) axis == 0
-        ? scroll_handler.scrollToX(val)
-        : scroll_handler.scrollToY(val)
+  return {
+    isElemFit
+    function scrollComp() {
+      if (isElemFit.get())
+        return {
+          watch = isElemFit
+          key = scroll_handler
+          behavior = Behaviors.Slider
+          size = needReservePlace ? calcBarSize(isVertical) : null
+        }
+      return {
+        watch = [isElemFit, maxV, elemSize]
+        key = scroll_handler
+        size = calcBarSize(isVertical)
 
-      onElemState = @(sf) stateFlags.set(sf)
+        behavior = Behaviors.Slider
+        orientation
+        fValue = fValue.get()
+        knob
+        min = 0
+        max = maxV.get()
+        unit = 1
+        pageScroll = (isVertical ? 1 : -1) * maxV.get() / 100.0 // TODO probably needed sync with container wheelStep option
+        onChange = @(val) isVertical ? scroll_handler.scrollToY(val)
+          : scroll_handler.scrollToX(val)
+        onElemState = @(sf) stateFlags.set(sf)
+
+        rendObj = ROBJ_SOLID
+        color = barColor
+
+        children = view
+      }
     }
   }
 }
@@ -100,25 +90,25 @@ let makeSideScroll = kwarg(function(content, scrollAlign = ALIGN_RIGHT, orientat
         size = flex(), maxWidth = null, maxHeight = null, needReservePlace = true, scrollHandler=null, behaviors = null) {
   scrollHandler = scrollHandler ?? ScrollHandler()
 
-  function contentRoot() {
-    return {
-      size = flex()
-      behavior = [].extend(behaviors ?? []).append(Behaviors.WheelScroll, Behaviors.ScrollEvent)
-      scrollHandler
-      wheelStep = 0.8
-      orientation
-      joystickScroll = true
-      maxHeight
-      maxWidth
-      children = content
-    }
+  let contentRoot = {
+    size = flex()
+    behavior = [].extend(behaviors ?? []).append(Behaviors.WheelScroll, Behaviors.ScrollEvent)
+    scrollHandler
+    wheelStep = 0.8
+    orientation
+    joystickScroll = true
+    maxHeight
+    maxWidth
+    children = content
   }
 
+  let { isElemFit, scrollComp } = mkScrollbar(scrollHandler, orientation, needReservePlace)
   let children = scrollAlign == ALIGN_LEFT || scrollAlign == ALIGN_TOP
-    ? [mkScrollbar(scrollHandler, orientation, needReservePlace), contentRoot]
-    : [contentRoot, mkScrollbar(scrollHandler, orientation, needReservePlace)]
+    ? [scrollComp, contentRoot]
+    : [contentRoot, scrollComp]
 
-  return {
+  return @() {
+    watch = isElemFit
     size
     maxHeight
     maxWidth
@@ -152,10 +142,10 @@ let makeHVScrolls = function(content, options = null ) {
         clipChildren = true
         children = [
           contentRoot
-          mkScrollbar(scrollHandler, O_VERTICAL, needReservePlace)
+          mkScrollbar(scrollHandler, O_VERTICAL, needReservePlace).scrollComp
         ]
       }
-      mkScrollbar(scrollHandler, O_HORIZONTAL, needReservePlace)
+      mkScrollbar(scrollHandler, O_HORIZONTAL, needReservePlace).scrollComp
     ]
   }
 }
@@ -174,7 +164,6 @@ let makeHorizScroll = function(content, options=null) {
 
 
 return {
-  mkScrollbar
   makeHorizScroll
   makeVertScroll
   makeHVScrolls

@@ -167,6 +167,7 @@ private:
 		CurrentLineFill,
 		CurrentLineFillInactive,
 		CurrentLineEdge,
+		HighlightedTextFill,
 		Max
 	};
 
@@ -297,6 +298,8 @@ private:
 		static const LanguageDefinition& Daslang();
 	};
 
+	bool RequireIndentationAfterNewLine(const eastl::string &line) const;
+
 	enum class UndoOperationType { Add, Delete };
 	struct UndoOperation
 	{
@@ -418,6 +421,7 @@ private:
 
 	double colorizeTime = 0.0;
 
+	char preferredIndentChar = ' ';
 	int mTabSize = 4;
 	float mLineSpacing = 1.0f;
 	bool mOverwrite = false;
@@ -464,12 +468,20 @@ private:
 	Palette mPalette;
 	LanguageDefinitionId mLanguageDefinitionId;
 	const LanguageDefinition* mLanguageDefinition = nullptr;
+
+	typedef eastl::vector<eastl::pair<short, short>> HighlightRanges;
+	eastl::vector<HighlightRanges*> highlights;
+	void ClearHighlights();
+	void AddHighlight(int line, int start, int end);
+	void HighlightSelectedText();
+
 	eastl::string mLineBuffer;
 	eastl::string tabString;
 
 	inline bool IsHorizontalScrollbarVisible() const { return mCurrentSpaceWidth > mContentWidth; }
 	inline bool IsVerticalScrollbarVisible() const { return mCurrentSpaceHeight > mContentHeight; }
 	inline int TabSizeAtColumn(int aColumn) const { return mTabSize - (aColumn % mTabSize); }
+	void FindPreferredIndentChar(int lineNum);
 
 	static const Palette& GetDarkPalette();
 	static const Palette& GetMarianaPalette();

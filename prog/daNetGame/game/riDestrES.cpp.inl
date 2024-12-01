@@ -1,7 +1,5 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <math/dag_TMatrix.h>
-
 #include "game/riDestr.h"
 #include "game/gameEvents.h"
 #include "main/level.h"
@@ -548,7 +546,7 @@ void update(float dt, const TMatrix4 &glob_tm)
     else
       flush_dirty_ri_destr_msg();
   }
-  else // FIXME: used camera matrix from previous frame
+  else
   {
     const Frustum frustum(glob_tm);
     rendinstdestr::update(dt, &frustum);

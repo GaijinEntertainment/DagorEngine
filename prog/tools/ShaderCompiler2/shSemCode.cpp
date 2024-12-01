@@ -15,6 +15,7 @@
 #include <math/random/dag_random.h>
 #include "linkShaders.h"
 #include "shCompiler.h"
+#include <dag/dag_vectorMap.h>
 
 #include <osApiWrappers/dag_stackHlp.h>
 
@@ -48,6 +49,62 @@ ShaderSemCode::ShaderSemCode() :
   renderStageIdx(-1),
   rm_alloc(4 << 20, 4 << 20)
 {}
+
+void ShaderSemCode::initPassMap(int pass_id)
+{
+  if (vars.empty() || !passes[pass_id])
+    return;
+
+  passes[pass_id]->varmap.resize(vars.size());
+  for (auto it = vars.begin(); it != vars.end(); ++it)
+  {
+    auto id = eastl::distance(vars.begin(), it);
+    passes[pass_id]->varmap[id] = id;
+  }
+}
+
+void ShaderSemCode::mergeVars(Tab<Var> &&other_vars, Tab<StVarMap> &&other_stvarmap, int pass_id)
+{
+  dag::VectorMap<int, Var *> ownedVarsByNameId{};
+  eastl::transform(vars.begin(), vars.end(), eastl::inserter(ownedVarsByNameId, ownedVarsByNameId.end()),
+    [this](Var &var) { return eastl::make_pair(var.nameId, &var); });
+
+  Tab<int> otherStvarmapDirect{};
+  otherStvarmapDirect.resize(other_stvarmap.size(), -1);
+  for (const StVarMap &mapping : other_stvarmap)
+  {
+    if (mapping.v >= otherStvarmapDirect.size())
+      otherStvarmapDirect.resize(mapping.v + 1, -1);
+    otherStvarmapDirect[mapping.v] = mapping.sv;
+  }
+
+  passes[pass_id]->varmap.reserve(passes[pass_id]->varmap.size() + other_vars.size());
+
+  for (auto it = other_vars.begin(); it != other_vars.end(); ++it)
+  {
+    auto stIt = ownedVarsByNameId.find(it->nameId);
+    Var *staticVar = nullptr;
+    if (stIt == ownedVarsByNameId.end())
+    {
+      vars.push_back(eastl::move(*it));
+      const int lastId = (int)(vars.size() - 1);
+
+      staticVarRegs.add(vars.back().getName(), lastId);
+
+      staticVar = vars.begin() + lastId;
+      int sv = otherStvarmapDirect[(int)eastl::distance(other_vars.begin(), it)];
+      if (sv >= 0)
+        stvarmap.push_back({lastId, sv});
+    }
+    else
+    {
+      staticVar = stIt->second;
+      staticVar->used = it->used ? true : staticVar->used;
+    }
+
+    passes[pass_id]->varmap.push_back(eastl::distance(vars.data(), staticVar));
+  }
+}
 
 ShaderCode *ShaderSemCode::generateShaderCode(const ShaderVariant::VariantTableSrc &dynVariants, StcodeShader &cppcode)
 {
@@ -98,12 +155,9 @@ ShaderCode *ShaderSemCode::generateShaderCode(const ShaderVariant::VariantTableS
   }
 
   // convert stvarmap
-  code->stvarmap.resize(stvarmap.size());
-  for (int i = 0; i < code->stvarmap.size(); ++i)
-  {
-    code->stvarmap[i].v = cvar[stvarmap[i].v];
-    code->stvarmap[i].sv = stvarmap[i].sv;
-  }
+  code->stvarmap.reserve(stvarmap.size());
+  for (const StVarMap &mapping : stvarmap)
+    code->stvarmap.push_back({cvar[mapping.v], mapping.sv});
 
   // convert passes
   tabutils::safeResize(code->passes, passes.size());
@@ -125,7 +179,7 @@ ShaderCode *ShaderSemCode::generateShaderCode(const ShaderVariant::VariantTableS
       if (otherPasses->pass)
       {
         ShaderCode::Pass p;
-        convert_passes(*otherPasses->pass, p, cvar, cppcode);
+        convert_passes(*otherPasses->pass, p, cvar, cppcode, otherPasses->varmap);
 
         int found = -1;
         for (int j = 0; j < all_passid.size(); j++)
@@ -157,7 +211,7 @@ ShaderCode *ShaderSemCode::generateShaderCode(const ShaderVariant::VariantTableS
   return code;
 }
 
-void ShaderSemCode::convert_stcode(dag::Span<int> cod, Tab<int> &cvar, StcodeRegisters &static_regs)
+void ShaderSemCode::convert_stcode(dag::Span<int> cod, Tab<int> &cvar, StcodeRegisters &static_regs, const Tab<int> &var_map)
 {
   for (int i = 0; i < cod.size(); i++)
   {
@@ -220,7 +274,7 @@ void ShaderSemCode::convert_stcode(dag::Span<int> cod, Tab<int> &cvar, StcodeReg
       case SHCOD_GET_INT_TOREAL:
       case SHCOD_GET_IVEC_TOREAL:
       {
-        int vi = shaderopcode::getOp2p2s(cod[i]);
+        int vi = var_map[shaderopcode::getOp2p2s(cod[i])];
         G_ASSERT(vi >= 0);
         cod[i] = shaderopcode::patchOp2p2(cod[i], cvar[vi]); // replace var id with var offset
         static_regs.patch(vi, cvar[vi]);
@@ -232,7 +286,8 @@ void ShaderSemCode::convert_stcode(dag::Span<int> cod, Tab<int> &cvar, StcodeReg
   }
 }
 
-void ShaderSemCode::convert_passes(ShaderSemCode::Pass &semP, ShaderCode::Pass &p, Tab<int> &cvar, StcodeShader &cppcode)
+void ShaderSemCode::convert_passes(ShaderSemCode::Pass &semP, ShaderCode::Pass &p, Tab<int> &cvar, StcodeShader &cppcode,
+  const Tab<int> &var_map)
 {
   if (semP.cs.size())
   {
@@ -262,7 +317,7 @@ void ShaderSemCode::convert_passes(ShaderSemCode::Pass &semP, ShaderCode::Pass &
   // convert state code
   static Tab<int> stblkcode(tmpmem);
   stblkcode = semP.stblkcode;
-  convert_stcode(make_span(stblkcode), cvar, staticVarRegs);
+  convert_stcode(make_span(stblkcode), cvar, staticVarRegs, var_map);
 
   auto [blkcodeId, blkcodeIsNew] = add_stcode(stblkcode);
   p.stblkcodeNo = blkcodeId;
@@ -271,7 +326,7 @@ void ShaderSemCode::convert_passes(ShaderSemCode::Pass &semP, ShaderCode::Pass &
 
   static Tab<int> stcode(tmpmem);
   stcode = semP.stcode;
-  convert_stcode(make_span(stcode), cvar, staticVarRegs);
+  convert_stcode(make_span(stcode), cvar, staticVarRegs, var_map);
   auto [stcodeId, stcodeIsNew] = add_stcode(stcode);
   p.stcodeNo = stcodeId;
   if (stcodeIsNew)

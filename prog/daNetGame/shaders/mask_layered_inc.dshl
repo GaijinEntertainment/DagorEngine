@@ -119,6 +119,10 @@ macro MASK_LAYERED_PS()
       half3 normalMap = unpack_ag_normal(packedNormalMap);
       half3 worldNormal = perturb_normal_precise( normalMap, normalize(input.normal.xyz), input.pointToEye.xyz, input.uv12.xy );
 
+#if USE_TOP_PROJECTION_TEXTURE
+      apply_top_projection(worldNormal, detailColor1, detailColor2, weight, weight2, baseColor.rgb);
+#endif
+
       half4 detailNormal1 = SAMPLE_TEX(get_tile1normal(), detail_uv);
       half4 detailNormal2 = SAMPLE_TEX(get_tile2normal(), detail_uv);
       half4 packedDetailNormalMap = detailNormal1*weights.x + detailNormal2*weights.y;

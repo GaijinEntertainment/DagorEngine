@@ -3,6 +3,8 @@ static constexpr ecs::component_t bindedCamera_get_type();
 static ecs::LTComponentList bindedCamera_component(ECS_HASH("bindedCamera"), bindedCamera_get_type(), "prog/daNetGameLibs/scope/render/scopeAimRenderES.cpp.inl", "", 0);
 static constexpr ecs::component_t gunmod__distortionParams_get_type();
 static ecs::LTComponentList gunmod__distortionParams_component(ECS_HASH("gunmod__distortionParams"), gunmod__distortionParams_get_type(), "prog/daNetGameLibs/scope/render/scopeAimRenderES.cpp.inl", "", 0);
+static constexpr ecs::component_t gunmod__lensBrightness_get_type();
+static ecs::LTComponentList gunmod__lensBrightness_component(ECS_HASH("gunmod__lensBrightness"), gunmod__lensBrightness_get_type(), "prog/daNetGameLibs/scope/render/scopeAimRenderES.cpp.inl", "", 0);
 static constexpr ecs::component_t gunmod__lensLocalX_get_type();
 static ecs::LTComponentList gunmod__lensLocalX_component(ECS_HASH("gunmod__lensLocalX"), gunmod__lensLocalX_get_type(), "prog/daNetGameLibs/scope/render/scopeAimRenderES.cpp.inl", "", 0);
 static constexpr ecs::component_t gunmod__lensLocalY_get_type();
@@ -607,6 +609,7 @@ inline void prepare_scope_aim_rendering_data_ecs_query(Callable function)
 }
 static constexpr ecs::component_t bindedCamera_get_type(){return ecs::ComponentTypeInfo<ecs::EntityId>::type; }
 static constexpr ecs::component_t gunmod__distortionParams_get_type(){return ecs::ComponentTypeInfo<Point3>::type; }
+static constexpr ecs::component_t gunmod__lensBrightness_get_type(){return ecs::ComponentTypeInfo<float>::type; }
 static constexpr ecs::component_t gunmod__lensLocalX_get_type(){return ecs::ComponentTypeInfo<Point3>::type; }
 static constexpr ecs::component_t gunmod__lensLocalY_get_type(){return ecs::ComponentTypeInfo<Point3>::type; }
 static constexpr ecs::component_t gunmod__lensLocalZ_get_type(){return ecs::ComponentTypeInfo<Point3>::type; }

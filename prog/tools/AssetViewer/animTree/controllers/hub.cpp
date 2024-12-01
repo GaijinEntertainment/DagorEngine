@@ -9,7 +9,7 @@
 #include <ioSys/dag_dataBlock.h>
 #include <propPanel/control/container.h>
 
-static const bool DEFAULT_SPLIT_CHANS = true;
+static const bool DEFAULT_SPLIT_CHANS = false;
 static const bool DEFAULT_OPTIONAL = false;
 static const bool DEFAULT_ENABLED = true;
 static const float DEFAULT_WEIGHT = 1.0f;

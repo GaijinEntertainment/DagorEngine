@@ -845,18 +845,17 @@ void (*scripted_shader_element_on_before_resource_used)(const ShaderElement *sel
 static void scripted_shader_element_on_before_resource_used(const ShaderElement *, const D3dResource *, const char *){};
 #endif
 
-static __forceinline void exec_stcode(dag::ConstSpan<int> cod, const shaderbindump::ShaderCode::Pass *__restrict code_cp,
+static __forceinline void exec_stcode(uint16_t stcodeId, const shaderbindump::ShaderCode::Pass *__restrict code_cp,
   const ScriptedShaderElement &__restrict this_elem)
 {
-  alignas(16) real vpr_const[32 * 4];
-  alignas(16) real fsh_const[32 * 4];
+  alignas(16) real vpr_const[64][4];
+  alignas(16) real fsh_const[64][4];
   alignas(16) real vregs[MAX_TEMP_REGS];
   char *regs = (char *)vregs;
-  uint32_t vpr_c_mask = 0;
-  uint32_t fsh_c_mask = 0;
+  uint64_t vpr_c_mask = 0, fsh_c_mask = 0;
 
-#define SHL1(y) 1 << (y)
-#define SHLF(y) 0xF << (y)
+#define SHL1(y) 1ull << (y)
+#define SHLF(y) 0xFull << (y)
 
   STCODE_PROFILE_BEGIN();
 
@@ -868,6 +867,7 @@ static __forceinline void exec_stcode(dag::ConstSpan<int> cod, const shaderbindu
   shader_assert::ScopedShaderAssert scoped_shader_assert(this_elem.shClass);
 
   const uint8_t *vars = this_elem.getVars();
+  dag::ConstSpan<int> cod = shBinDump().stcode[stcodeId];
   const int *__restrict codp = cod.data(), *__restrict codp_end = codp + cod.size();
   for (; codp < codp_end; codp++)
   {
@@ -894,10 +894,9 @@ static __forceinline void exec_stcode(dag::ConstSpan<int> cod, const shaderbindu
         const uint32_t ind = shaderopcode::getOp2p1(opc);
         const uint32_t ofs = shaderopcode::getOp2p2(opc);
         VEC_ALIGN(ofs, 4);
-        if (ind < 32)
+        if (ind < countof(vpr_const))
         {
-          //        memcpy(&vpr_const[ind<<2], get_reg_ptr<float>(regs, ofs), 4*sizeof(real));
-          v_st(&vpr_const[ind << 2], v_ld(get_reg_ptr<float>(regs, ofs)));
+          v_st(&vpr_const[ind], v_ld(get_reg_ptr<float>(regs, ofs)));
           vpr_c_mask |= SHL1(ind);
         }
         else
@@ -914,10 +913,9 @@ static __forceinline void exec_stcode(dag::ConstSpan<int> cod, const shaderbindu
         const uint32_t ind = shaderopcode::getOp2p1(opc);
         const uint32_t ofs = shaderopcode::getOp2p2(opc);
         VEC_ALIGN(ofs, 4);
-        if (ind < 32)
+        if (ind < countof(fsh_const))
         {
-          //          memcpy(&fsh_const[ind<<2], get_reg_ptr<float>(regs, ofs), 4*sizeof(real));
-          v_st(&fsh_const[ind << 2], v_ld(get_reg_ptr<float>(regs, ofs)));
+          v_st(&fsh_const[ind], v_ld(get_reg_ptr<float>(regs, ofs)));
           fsh_c_mask |= SHL1(ind);
         }
         else
@@ -1083,7 +1081,7 @@ static __forceinline void exec_stcode(dag::ConstSpan<int> cod, const shaderbindu
 #if D3D_HAS_RAY_TRACING
         d3d::set_top_acceleration_structure(ShaderStage(stage), slot, tlas);
 #else
-        logerr("exec_stcode: SHCOD_TLAS ignored for shader %s", (const char *)this_elem.shClass.name);
+        logerr("%s(%d): SHCOD_TLAS ignored for shader %s", __FUNCTION__, stcodeId, (const char *)this_elem.shClass.name);
 #endif
 
         stcode::dbg::record_set_tlas(stcode::dbg::RecordType::REFERENCE, stage, slot, tlas);
@@ -1166,9 +1164,9 @@ static __forceinline void exec_stcode(dag::ConstSpan<int> cod, const shaderbindu
 
         process_tm_for_drv_consts(gtm);
 
-        if (ind < 29)
+        if (ind <= countof(vpr_const) - 4)
         {
-          memcpy(&vpr_const[ind << 2], gtm[0], sizeof(real) * 4 * 4);
+          memcpy(&vpr_const[ind], gtm[0], sizeof(real) * 4 * 4);
           vpr_c_mask |= SHLF(ind);
         }
         else
@@ -1352,7 +1350,7 @@ static __forceinline void exec_stcode(dag::ConstSpan<int> cod, const shaderbindu
       }
       break;
       default:
-        DAG_FATAL("exec_stcode: illegal instruction %u %s (index=%d)", shaderopcode::getOp(opc),
+        DAG_FATAL("%s(%d): illegal instruction %u %s (index=%d)", __FUNCTION__, stcodeId, shaderopcode::getOp(opc),
           ShUtils::shcod_tokname(shaderopcode::getOp(opc)), codp - cod.data());
     }
   }
@@ -1360,17 +1358,19 @@ static __forceinline void exec_stcode(dag::ConstSpan<int> cod, const shaderbindu
   while (fsh_c_mask)
   {
     auto start = __ctz_unsafe(fsh_c_mask);
-    auto end = __ctz(fsh_c_mask + (1u << start));
-    fsh_c_mask &= uint64_t(eastl::numeric_limits<uint32_t>::max()) << end;
-    d3d::set_ps_const(start, fsh_const + start * 4, end - start);
+    auto tmp = fsh_c_mask + (1ull << start);
+    auto end = tmp ? __ctz_unsafe(tmp) : 64;
+    fsh_c_mask &= tmp ? (eastl::numeric_limits<uint64_t>::max() << end) : 0;
+    d3d::set_ps_const(start, fsh_const[start], end - start);
   }
 
   while (vpr_c_mask)
   {
     auto start = __ctz_unsafe(vpr_c_mask);
-    auto end = __ctz(vpr_c_mask + (1u << start));
-    vpr_c_mask &= uint64_t(eastl::numeric_limits<uint32_t>::max()) << end;
-    d3d::set_vs_const(start, vpr_const + start * 4, end - start);
+    auto tmp = vpr_c_mask + (1ull << start);
+    auto end = tmp ? __ctz_unsafe(tmp) : 64;
+    vpr_c_mask &= tmp ? (eastl::numeric_limits<uint64_t>::max() << end) : 0;
+    d3d::set_vs_const(start, vpr_const[start], end - start);
   }
 
   MEASURE_STCODE_PERF_END;
@@ -1557,14 +1557,14 @@ void ScriptedShaderElement::execute_chosen_stcode(uint16_t stcodeId, const shade
 #if VALIDATE_CPP_STCODE
   // Collect records
   if (stcode::execution_mode() == stcode::ExecutionMode::TEST_CPP_AGAINST_BYTECODE)
-    exec_stcode(shBinDump().stcode[stcodeId], cPass, *this);
+    exec_stcode(stcodeId, cPass, *this);
 #endif
 
   stcode::dbg::validate_accumulated_records(stcodeId, shClass.name.data());
 
 #else
 
-  exec_stcode(shBinDump().stcode[stcodeId], cPass, *this);
+  exec_stcode(stcodeId, cPass, *this);
 
 #endif
 }

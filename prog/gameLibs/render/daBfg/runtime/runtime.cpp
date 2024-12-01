@@ -484,12 +484,12 @@ void Runtime::updateDynamicResolution(int curr_frame)
   }
 }
 
-void Runtime::runNodes()
+bool Runtime::runNodes()
 {
-  if (d3d::device_lost(nullptr))
+  if (DAGOR_UNLIKELY(d3d::device_lost(nullptr)))
   {
     logwarn("daBfg: frame was skipped due to an ongoing device reset");
-    return;
+    return false;
   }
 
   TIME_D3D_PROFILE(ExecuteFrameGraph);
@@ -542,6 +542,8 @@ void Runtime::runNodes()
   const auto &frameEvents = allResourceEvents[currFrame];
 
   nodeExec->execute(prevFrame, currFrame, currentMultiplexingExtents, frameEvents, perNodeStateDeltas);
+
+  return true;
 }
 
 void Runtime::invalidateHistory()
