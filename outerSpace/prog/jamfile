@@ -120,6 +120,8 @@ if $(Dedicated) != yes {
     }
     include $(Root)/prog/engine/drv/drv3d_DX12/copy_bundles.jam ;
   } else if $(Platform) = linux {
+    ImportsRelativeDir = . ;
+    if $(FmodStudio) != src { FmodStaticLibs = $(OutDir)/$(FmodStaticLibs:D=:S=) ; }
   } else if $(Platform) = macOS {
     UseSharedLibs += $(FmodStudioSharedLibs) ;
     LINKopt += -framework CoreAudio -framework AudioUnit ;
@@ -232,7 +234,7 @@ if $(Dedicated) != yes {
 
 if $(FmodStudio) != src && $(HaveSound) != no {
   AddLibs += $(FmodStaticLibs) ;
-  if $(Platform) != macOS { for dll in $(FmodStudioSharedLibs) { BundleCopy += @$(dll) $(dll:D=) ; } }
+  if $(Platform) != macOS { for dll in $(FmodStudioSharedLibs) { BundleCopy += @$(dll) $(dll:D=:S=) ; } }
 }
 
 if $(Platform) in windows && $(Dedicated) != yes && $(CheckOnly) != yes {

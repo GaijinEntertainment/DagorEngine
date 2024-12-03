@@ -70,6 +70,8 @@ if $(Platform) in windows {
   Sources += platform/$(Platform)/$(Game).rc ;
   include $(Root)/prog/engine/drv/drv3d_DX12/copy_bundles.jam ;
 } else if $(Platform) = linux {
+  ImportsRelativeDir = . ;
+  if $(FmodStudio) != src { FmodStaticLibs = $(OutDir)/$(FmodStaticLibs:D=:S=) ; }
 } else if $(Platform) = macOS {
   BundleName = DngSceneViewer ;
   BundleID   = com.gaijinent.$(BundleName) ;
@@ -100,7 +102,7 @@ else {
 
 if $(FmodStudio) != src && $(HaveSound) != no {
   AddLibs += $(FmodStaticLibs) ;
-  if $(Platform) != macOS { for dll in $(FmodStudioSharedLibs) { BundleCopy += @$(dll) $(dll:D=) ; } }
+  if $(Platform) != macOS { for dll in $(FmodStudioSharedLibs) { BundleCopy += @$(dll) $(dll:D=:S=) ; } }
 }
 
 if $(CheckOnly) != yes { # different compile options are not compatible with PCH
