@@ -382,22 +382,28 @@ float BloodPuddles::addRandomToSize(int group, float size) const
   return lerp(size, rnd_float(sizeRanges[group].x, sizeRanges[group].y), additionalRandomInfl);
 }
 
-static void register_ri_matrix_data(rendinst::riex_handle_t riex_handle, uint32_t &matrix_id, TMatrix &itm)
+// static void register_ri_matrix_data(rendinst::riex_handle_t riex_handle, uint32_t &matrix_id, TMatrix &itm)
+// {
+//   if (get_blood_puddles_mgr())
+//   {
+//     DecalsMatrices *matrixMgr = get_blood_puddles_mgr()->getMatrixManager();
+//     ecs::EntityId riexEid = find_ri_extra_eid(riex_handle);
+//     const TMatrix &riexTm = matrixMgr->getBasisMatrix(riexEid);
+//     matrix_id = matrixMgr->registerMatrix(riexEid, riexTm);
+//     matrixMgr->useMatrixId(matrix_id);
+//     itm = inverse(riexTm);
+//   }
+//   else
+//   {
+//     matrix_id = 0;
+//     itm = TMatrix::IDENT;
+//   }
+// }
+
+static void register_ri_matrix_data(rendinst::riex_handle_t, uint32_t &matrix_id, TMatrix &itm)
 {
-  if (get_blood_puddles_mgr())
-  {
-    DecalsMatrices *matrixMgr = get_blood_puddles_mgr()->getMatrixManager();
-    ecs::EntityId riexEid = find_ri_extra_eid(riex_handle);
-    const TMatrix &riexTm = matrixMgr->getBasisMatrix(riexEid);
-    matrix_id = matrixMgr->registerMatrix(riexEid, riexTm);
-    matrixMgr->useMatrixId(matrix_id);
-    itm = inverse(riexTm);
-  }
-  else
-  {
-    matrix_id = 0;
-    itm = TMatrix::IDENT;
-  }
+  matrix_id = 0;
+  itm = TMatrix::IDENT;
 }
 
 int BloodPuddles::getDecalVariant(const int group) const
@@ -423,6 +429,21 @@ void BloodPuddles::addDecal(const int group,
   G_ASSERT(puddles.size() <= MAX_PUDDLES);
   if (puddles.size() >= MAX_PUDDLES || !texturesAreReady())
     return;
+
+  if (variant != INVALID_VARIANT)
+  {
+    const int varId = abs(variant);
+    const int fallbackId = variantsRanges[group].x;
+    const int variantsRangeBegin = variantsRanges[group].x;
+    const int variantsRangeEnd = variantsRanges[group].y;
+    G_ASSERTF_AND_DO(varId <= variantsRangeEnd && varId >= variantsRangeBegin, variant = fallbackId,
+      "BloodPuddles: oob variantId %d. should be in in range [%d:%d]. Please save full dump and report to render team", varId,
+      variantsRangeBegin, variantsRangeEnd);
+  }
+
+  G_ASSERTF_AND_DO(matrix_id < BLOOD_PUDDLES_MAX_MATRICES_COUNT, matrix_id = 0,
+    "BloodPuddles: oob matrix_id %d >= %d. Please save full dump and report to render team", matrix_id,
+    BLOOD_PUDDLES_MAX_MATRICES_COUNT);
 
   float rotate;
   uint32_t incident = 7;

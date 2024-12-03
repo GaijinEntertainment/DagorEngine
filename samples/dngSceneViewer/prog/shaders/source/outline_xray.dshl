@@ -1,0 +1,4 @@
+shader edge_detect, edge_detect_box
+{
+  dont_render;
+}

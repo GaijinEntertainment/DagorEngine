@@ -637,7 +637,7 @@ public:
   UniqueTex ambient_age[2];
   UniqueTex screen_specular[2];
   int cAmbientFrame = 0;
-  PostFxRenderer ambientRenderer, ambientReproject;
+  PostFxRenderer ambientRenderer;
 
   LRUCollision lruColl;
 
@@ -749,6 +749,7 @@ public:
   void initRes(int w, int h)
   {
     d3d::GpuAutoLock gpu_al;
+    otherDepth.close();
     target.reset();
     target = eastl::make_unique<DeferredRenderTarget>("deferred_shadow_to_buffer", "main", w, h,
       DeferredRT::StereoMode::MonoOrMultipass, 0, gbuf_rt, gbuf_fmts, TEXFMT_DEPTH32);
@@ -756,7 +757,6 @@ public:
     {
       TextureInfo ti;
       target->getDepth()->getinfo(ti);
-      otherDepth.close();
       otherDepth = dag::create_tex(NULL, ti.w, ti.h, ti.cflg, 1, "other_target_depth");
     }
 
@@ -865,7 +865,7 @@ public:
     if (use_snapdragon_super_resolution)
     {
       int fw, fh;
-      d3d::get_target_size(fw, fh);
+      d3d::get_render_target_size(fw, fh, nullptr);
       superResolutionOutput.close();
       superResolutionOutput = dag::create_tex(NULL, fw, fh, rtFmt | TEXCF_RTARGET, 1, "SuperResolutionOutput");
       snapdragonSuperResolutionRender.SetViewport(w, h);
@@ -909,7 +909,6 @@ public:
     combine_shadows.init("combine_shadows");
     downsample_depth::init("downsample_depth2x");
     ambientRenderer.init("render_ambient");
-    ambientReproject.init("ambient_reproject");
     {
       clusteredLights.reset(new ClusteredLights);
       clusteredLights->setResolution(w, h);
@@ -1612,6 +1611,11 @@ public:
 
     int w, h;
     d3d::get_render_target_size(w, h, nullptr);
+    if (use_snapdragon_super_resolution)
+    {
+      w = (int)((float)w * snapdragon_super_resolution_scale);
+      h = (int)((float)h * snapdragon_super_resolution_scale);
+    }
     if (gi_panel.fake_dynres)
     {
       static int sframe;
@@ -2222,7 +2226,7 @@ protected:
       DECLARE_BOOL_CHECKBOX(gi_panel, ssao, false),
       DECLARE_BOOL_CHECKBOX(gi_panel, gtao, false),
       DECLARE_INT_COMBOBOX(gi_panel, reflections, REFLECTIONS_ALL, REFLECTIONS_OFF, REFLECTIONS_SSR, REFLECTIONS_ALL),
-      DECLARE_BOOL_CHECKBOX(gi_panel, fake_dynres, false),
+      // DECLARE_BOOL_CHECKBOX(gi_panel, fake_dynres, false),
       DECLARE_INT_COMBOBOX(gi_panel, onscreen_mode, RESULT, RESULT, LIGHTING, DIFFUSE_LIGHTING, DIRECT_LIGHTING, INDIRECT_LIGHTING),
       DECLARE_INT_COMBOBOX(gi_panel, gi_mode, SCREEN_PROBES, ENVI_PROBE, ONLY_AO, SIMPLE_COLORED, SCREEN_PROBES),
       DECLARE_FLOAT_SLIDER(gi_panel, dynamic_gi_quality, 0, 4., 1.0, 0.01),

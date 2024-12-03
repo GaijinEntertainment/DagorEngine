@@ -1,0 +1,41 @@
+Camera.Move   { dev:i=31;
+  xMinBtn { dev:i=1; btn:i=30; }
+  xMaxBtn { dev:i=1; btn:i=32; }
+  yMinBtn { dev:i=1; btn:i=31; }
+  yMaxBtn { dev:i=1; btn:i=17; }
+}
+Camera.Rotate { dev:i=2; xAxis:i=0; yAxis:i=1; dzone:r=0; axisSnapAngK:r=0; nonlin:r=0; maxVal:r=1; }
+Camera.ShiftY { dev:i=31;
+  minBtn { dev:i=1; btn:i=0x2E; }
+  maxBtn { dev:i=1; btn:i=0x12; }
+}
+Camera.ZoomIn  { dev:i=1; btn:i=0x2C; }
+Camera.ZoomOut { dev:i=1; btn:i=0x10; }
+Camera.Turbo   { dev:i=3; axis:i=5; maxBtn { dev:i=1; btn:i=0x2A; } }
+Camera.LookAround { dev:i=31; maxBtn { dev:i=1; btn:i=0x2E; } }
+Camera.SpeedUp    { dev:i=2; btn:i=5; }
+Camera.SpeedDown  { dev:i=2; btn:i=6; }
+Camera.SpeedReset { dev:i=2; btn:i=2; }
+Camera.LockOri    { dev:i=1; btn:i=0x25; }
+Camera.LockOfs    { dev:i=1; btn:i=0x14; }
+Camera.OriWorld   { dev:i=1; btn:i=0x26; }
+
+MenuCamera.Rotate { dev:i=2; xAxis:i=0; yAxis:i=1; dzone:r=0; axisSnapAngK:r=0; nonlin:r=0; maxVal:r=1; }
+MenuCamera.LookAround { dev:i=2; btn:i=1; type:i=0; }
+
+Global.Screenshot      { dev:i=1; btn:i=0xB7; }
+Global.ScreenshotNoGUI { dev:i=1; btn:i=0xB7; mod { dev:i=1; btn:i=0x2A; } }
+
+CharCtrl.Move { dev:i=31;
+  xMinBtn { dev:i=1; btn:i=30; }
+  xMaxBtn { dev:i=1; btn:i=32; }
+  yMinBtn { dev:i=1; btn:i=31; }
+  yMaxBtn { dev:i=1; btn:i=17; }
+}
+CharCtrl.Look { dev:i=2; xAxis:i=0; yAxis:i=1; inverseY:b=yes; dzone:r=0; axisSnapAngK:r=0; nonlin:r=0; maxVal:r=1; }
+CharCtrl.Jump { dev:i=1; btn:i=0x39; }   // Space
+CharCtrl.Sprint { dev:i=1; btn:i=0x2A; } // LShift
+CharCtrl.Crouch { dev:i=1; btn:i=0x1D; } // Ctrl
+CharCtrl.Crawl { dev:i=1; btn:i=0x2D; }  // X
+
+HUD.GameMenu { dev:i=1; btn:i=1; }

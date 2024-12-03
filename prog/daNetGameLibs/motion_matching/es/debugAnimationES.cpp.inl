@@ -310,7 +310,7 @@ static void motion_matching_weights()
 
       MatchingResult currentState = {cur_clip, cur_frame, FLT_MAX};
       MatchingResult result =
-        motion_matching(dataBase, currentState, false, motion_matching__controller.currentTags, currentWeights, normalizedFeatures);
+        motion_matching(dataBase, currentState, motion_matching__controller.currentTags, currentWeights, normalizedFeatures);
 
       String tags;
       for (int tag_idx = 0, num_tags = dataBase.getTagsCount(); tag_idx < num_tags; ++tag_idx)

@@ -1,2 +1,4 @@
+file:t = "daGdp/shaders/dagdp_dynamic.dshl"
 file:t = "daGdp/shaders/dagdp_heightmap.dshl"
+file:t = "daGdp/shaders/dagdp_volume.dshl"
 file:t = "daGdp/shaders/dagdp_riex.dshl"

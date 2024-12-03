@@ -168,14 +168,16 @@ void WorldRenderer::giBeforeRender()
   auto s = daGI2->getNextSettings();
   constexpr float ALBEDO_MEDIA_MUL = 0.0625f;
   constexpr float LIT_SCENE_MUL = 0.0625f;
-  s.voxelScene.sdfResScale = 0.5;
+  const DataBlock *graphicsGI = dgs_get_settings()->getBlockByNameEx("graphics")->getBlockByNameEx("gi");
+  s.voxelScene.sdfResScale = graphicsGI->getReal("voxelSceneResScale", 0.5);
   const bool temporality = gi_quality == GI_SCREEN_PROBES || gi_algorithm_quality > 0.0001;
 
   const float temporalSpeed = temporality ? lerp<float>(0.05, 1, gi_algorithm_quality) : 0;
   s.mediaScene.temporalSpeed = temporalSpeed * ALBEDO_MEDIA_MUL;
   s.voxelScene.temporalSpeed = temporalSpeed * LIT_SCENE_MUL;
   s.albedoScene.temporalSpeed = temporalSpeed * ALBEDO_MEDIA_MUL;
-  s.sdf.clips = bareMinimumPreset ? 5 : 6;
+  s.sdf.clips = clamp(graphicsGI->getInt("sdfClips", bareMinimumPreset ? 5 : 6), 4, 6);
+  s.sdf.voxel0Size = clamp(graphicsGI->getReal("sdfVoxel0", 0.15), 0.065f, 0.45f);
   if (gi_quality == GI_ONLY_AO)
   {
     s.skyVisibility.clipW = bareMinimumPreset ? 64 : 56;
@@ -191,9 +193,9 @@ void WorldRenderer::giBeforeRender()
   else if (gi_quality == GI_COLORED)
   {
     s.skyVisibility.clipW = 0;
-    s.albedoScene.clips = 3;
-    s.radianceGrid.w = 28;
-    s.radianceGrid.clips = 4;
+    s.albedoScene.clips = graphicsGI->getInt("albedoClips", 3);
+    s.radianceGrid.w = graphicsGI->getInt("radianceGridClipW", 28);
+    s.radianceGrid.clips = graphicsGI->getInt("radianceGridClips", 4);
     s.radianceGrid.irradianceProbeDetail = 2.f;
     s.radianceGrid.additionalIrradianceClips = 2;
     s.screenProbes.tileSize = 0;
@@ -203,11 +205,11 @@ void WorldRenderer::giBeforeRender()
   else if (gi_quality == GI_SCREEN_PROBES)
   {
     s.skyVisibility.clipW = 0;
-    s.radianceGrid.w = 28;
-    s.radianceGrid.clips = 4;
+    s.radianceGrid.w = graphicsGI->getInt("radianceGridClipW", 28);
+    s.radianceGrid.clips = graphicsGI->getInt("radianceGridClips", 4);
     s.radianceGrid.irradianceProbeDetail = 1.f;
     s.radianceGrid.additionalIrradianceClips = 0;
-    s.albedoScene.clips = 3;
+    s.albedoScene.clips = graphicsGI->getInt("albedoClips", 3);
 
     auto remap = [](float min_value, float max_value, float interval_min, float interval_max, float t) -> float {
       G_ASSERT(interval_min < interval_max);

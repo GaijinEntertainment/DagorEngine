@@ -1,0 +1,13 @@
+float const_frame_exposure = 1;
+
+macro INIT_EXPOSURE(code)
+endmacro
+
+macro USE_EXPOSURE(code)
+  hlsl(code){
+    half getExposureScale() { return 1.0f; }
+    half getInvExposureScale() { return 1.0f; }
+    half getPrevExposureRatio() { return 1.0f; }
+    half getPrevInvExposure() { return 1.0f; } // for decoding previous frame
+  }
+endmacro

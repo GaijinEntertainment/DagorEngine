@@ -26,7 +26,7 @@ function mkScrollbar(scroll_handler, orientation=null, needReservePlace=true) {
   let knob = @() {
     watch = stateFlags
     key = "knob"
-    size = [flex(), flex()]
+    size = flex()
     rendObj = ROBJ_SOLID
     color = calcKnobColor(stateFlags.get())
   }
@@ -50,38 +50,35 @@ function mkScrollbar(scroll_handler, orientation=null, needReservePlace=true) {
     }
   }
 
-  return {
-    isElemFit
-    function scrollComp() {
-      if (isElemFit.get())
-        return {
-          watch = isElemFit
-          key = scroll_handler
-          behavior = Behaviors.Slider
-          size = needReservePlace ? calcBarSize(isVertical) : null
-        }
+  return function scrollComp() {
+    if (isElemFit.get())
       return {
-        watch = [isElemFit, maxV, elemSize]
+        watch = isElemFit
         key = scroll_handler
-        size = calcBarSize(isVertical)
-
         behavior = Behaviors.Slider
-        orientation
-        fValue = fValue.get()
-        knob
-        min = 0
-        max = maxV.get()
-        unit = 1
-        pageScroll = (isVertical ? 1 : -1) * maxV.get() / 100.0 // TODO probably needed sync with container wheelStep option
-        onChange = @(val) isVertical ? scroll_handler.scrollToY(val)
-          : scroll_handler.scrollToX(val)
-        onElemState = @(sf) stateFlags.set(sf)
-
-        rendObj = ROBJ_SOLID
-        color = barColor
-
-        children = view
+        size = needReservePlace ? calcBarSize(isVertical) : null
       }
+    return {
+      watch = [isElemFit, maxV, elemSize]
+      key = scroll_handler
+      size = calcBarSize(isVertical)
+
+      behavior = Behaviors.Slider
+      orientation
+      fValue = fValue.get()
+      knob
+      min = 0
+      max = maxV.get()
+      unit = 1
+      pageScroll = (isVertical ? 1 : -1) * maxV.get() / 100.0 // TODO probably needed sync with container wheelStep option
+      onChange = @(val) isVertical ? scroll_handler.scrollToY(val)
+        : scroll_handler.scrollToX(val)
+      onElemState = @(sf) stateFlags.set(sf)
+
+      rendObj = ROBJ_SOLID
+      color = barColor
+
+      children = view
     }
   }
 }
@@ -102,13 +99,12 @@ let makeSideScroll = kwarg(function(content, scrollAlign = ALIGN_RIGHT, orientat
     children = content
   }
 
-  let { isElemFit, scrollComp } = mkScrollbar(scrollHandler, orientation, needReservePlace)
+  let scrollComp = mkScrollbar(scrollHandler, orientation, needReservePlace)
   let children = scrollAlign == ALIGN_LEFT || scrollAlign == ALIGN_TOP
     ? [scrollComp, contentRoot]
     : [contentRoot, scrollComp]
 
-  return @() {
-    watch = isElemFit
+  return {
     size
     maxHeight
     maxWidth
@@ -142,10 +138,10 @@ let makeHVScrolls = function(content, options = null ) {
         clipChildren = true
         children = [
           contentRoot
-          mkScrollbar(scrollHandler, O_VERTICAL, needReservePlace).scrollComp
+          mkScrollbar(scrollHandler, O_VERTICAL, needReservePlace)
         ]
       }
-      mkScrollbar(scrollHandler, O_HORIZONTAL, needReservePlace).scrollComp
+      mkScrollbar(scrollHandler, O_HORIZONTAL, needReservePlace)
     ]
   }
 }

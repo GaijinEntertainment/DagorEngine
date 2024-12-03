@@ -1,7 +1,7 @@
 options no_global_variables = false
 require ecs
+require ecs.verify_common
 require DagorSystem
-require %danetlibs.verify_ecs.main.verify_events
 
 
 var

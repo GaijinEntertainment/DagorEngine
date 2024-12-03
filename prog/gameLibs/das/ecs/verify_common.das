@@ -8,6 +8,11 @@ require ECSGlobalTags
 require daslib/ast_boost public
 require daslib/strings_boost
 
+[event(broadcast)]
+struct VerifyEcsSystems {}
+
+[event(broadcast)]
+struct VerifyEcsTemplates {}
 
 def join_keys(tab)
   return build_string() <| $(str)

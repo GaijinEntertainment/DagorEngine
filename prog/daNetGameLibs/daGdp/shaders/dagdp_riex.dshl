@@ -1,12 +1,25 @@
 include "hardware_defines.dshl"
+include "dagdp_common.dshl"
 
 buffer dagdp__counters;
+buffer dagdp__dyn_allocs;
+buffer dagdp__dyn_counters;
 
 buffer dagdp_riex__draw_args;
 buffer dagdp_riex__patches;
 int dagdp_riex__num_patches;
 
-shader dagdp_riex_patch_counters
+hlsl(cs) {
+  #define SIZEOF_UINT 4
+  #define ARGS_BYTE_OFFSET_INDEX_COUNT 0 // See DrawIndexedIndirectArgs.
+  #define ARGS_BYTE_OFFSET_INSTANCE_COUNT SIZEOF_UINT
+  #define ARGS_BYTE_OFFSET_DRAW_CALL_ID (-SIZEOF_UINT)
+  #define ARGS_BYTE_OFFSET_INSTANCE_START (4 * SIZEOF_UINT)
+
+  #include <rendInst/packedMultidrawParams.hlsli>
+}
+
+shader dagdp_riex_patch_static
 {
   ENABLE_ASSERT(cs)
 
@@ -22,24 +35,23 @@ shader dagdp_riex_patch_counters
     }
 
     patches@buf = dagdp_riex__patches hlsl {
-      StructuredBuffer<uint4> patches@buf;
+      #include "dagdp_riex.hlsli"
+      StructuredBuffer<RiexPatch> patches@buf;
     }
   }
 
   hlsl(cs) {
-    #define SIZEOF_UINT 4
-    #define ARGS_BYTE_OFFSET_INDEX_COUNT 0 // See DrawIndexedIndirectArgs.
-    #define ARGS_BYTE_OFFSET_INSTANCE_COUNT SIZEOF_UINT
-
     [numthreads(64, 1, 1)]
     void main(uint3 dtid : SV_DispatchThreadID)
     {
-      if (dtid.x >= num_patches) return;
-      uint4 patch = structuredBufferAt(patches, dtid.x);
-      uint argsByteOffset = patch.x;
-      uint counterIndex = patch.y;
-      uint indexCount = patch.z;
-      uint instanceCount = structuredBufferAt(counters, counterIndex);
+      BRANCH
+      if (dtid.x >= num_patches)
+        return;
+
+      RiexPatch patch = structuredBufferAt(patches, dtid.x);
+      const uint argsByteOffset = patch.argsByteOffsetStatic;
+      const uint instanceCount = structuredBufferAt(counters, patch.localCounterIndex);
+      uint indexCount = patch.indexCount;
 
       FLATTEN
       if (instanceCount == 0)
@@ -52,6 +64,89 @@ shader dagdp_riex_patch_counters
 
       storeBuffer(draw_args, argsByteOffset + ARGS_BYTE_OFFSET_INDEX_COUNT, indexCount);
       storeBuffer(draw_args, argsByteOffset + ARGS_BYTE_OFFSET_INSTANCE_COUNT, instanceCount);
+    }
+  }
+  compile("target_cs", "main");
+}
+
+shader dagdp_riex_patch_dynamic
+{
+  ENABLE_ASSERT(cs)
+
+  (cs) {
+    num_patches@i1 = dagdp_riex__num_patches;
+
+    draw_args@uav = dagdp_riex__draw_args hlsl {
+      RWByteAddressBuffer draw_args@uav;
+    }
+
+    dyn_allocs@buf = dagdp__dyn_allocs hlsl {
+      #include "dagdp_common.hlsli"
+      StructuredBuffer<DynAlloc> dyn_allocs@buf;
+    }
+
+    dyn_counters@buf = dagdp__dyn_counters hlsl {
+      StructuredBuffer<uint> dyn_counters@buf;
+    }
+
+    patches@buf = dagdp_riex__patches hlsl {
+      #include "dagdp_riex.hlsli"
+      StructuredBuffer<RiexPatch> patches@buf;
+    }
+  }
+
+  hlsl(cs) {
+    [numthreads(64, 1, 1)]
+    void main(uint3 dtid : SV_DispatchThreadID)
+    {
+      BRANCH
+      if (dtid.x >= num_patches)
+        return;
+
+      RiexPatch patch = structuredBufferAt(patches, dtid.x);
+      const uint argsByteOffset = patch.argsByteOffsetDynamic;
+      uint instanceBaseIndex = structuredBufferAt(dyn_allocs, patch.localCounterIndex).instanceBaseIndexPlaced;
+      uint instanceCount = structuredBufferAt(dyn_counters, patch.localCounterIndex + DYN_COUNTERS_PREFIX);
+
+      if (structuredBufferAt(dyn_counters, DYN_COUNTERS_INDEX_OVERFLOW_FLAG) != 0u)
+      {
+        // Placement failed.
+        instanceBaseIndex = 0;
+        instanceCount = 0;
+      }
+
+      uint indexCount = patch.indexCount;
+
+      FLATTEN
+      if (instanceCount == 0)
+      {
+        // Workaround for AMD bug.
+        // See https://youtrack.gaijin.team/issue/RE-876/daGDP-incorrect-rendering-on-Xbox-One
+        // See https://forums.xboxlive.com/questions/51821/d3d12-executeindirect-of-a-zero-instance-draw-inde.html
+        indexCount = 0;
+      }
+
+      storeBuffer(draw_args, argsByteOffset + ARGS_BYTE_OFFSET_INDEX_COUNT, indexCount);
+      storeBuffer(draw_args, argsByteOffset + ARGS_BYTE_OFFSET_INSTANCE_COUNT, instanceCount);
+
+      BRANCH
+      if (patch.flags & RIEX_PATCH_FLAG_BIT_PACKED)
+      {
+        const uint drawCallId = (instanceBaseIndex << MATRICES_OFFSET_SHIFT) | patch.materialOffset;
+        BRANCH
+        if (patch.flags & RIEX_PATCH_FLAG_BIT_EXTENDED_ARGS)
+        {
+          storeBuffer(draw_args, argsByteOffset + ARGS_BYTE_OFFSET_DRAW_CALL_ID, drawCallId);
+        }
+        else
+        {
+          storeBuffer(draw_args, argsByteOffset + ARGS_BYTE_OFFSET_INSTANCE_START, drawCallId);
+        }
+      }
+      else
+      {
+        storeBuffer(draw_args, argsByteOffset + ARGS_BYTE_OFFSET_INSTANCE_START, instanceBaseIndex);
+      }
     }
   }
   compile("target_cs", "main");

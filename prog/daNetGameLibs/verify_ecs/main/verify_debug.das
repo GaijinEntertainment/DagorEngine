@@ -1,6 +1,6 @@
 options no_aot
 require ecs
-require %danetlibs.verify_ecs.main.verify_events
+require ecs.verify_common
 require DagorConsole
 
 

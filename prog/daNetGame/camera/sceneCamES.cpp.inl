@@ -23,16 +23,19 @@ static ecs::EntityId sphCam = ecs::INVALID_ENTITY_ID, freeCam = ecs::INVALID_ENT
 static ecs::EntityId curCam = ecs::INVALID_ENTITY_ID, lastCam = ecs::INVALID_ENTITY_ID;
 static ecs::EntityId spectateCam = ecs::INVALID_ENTITY_ID;
 
-void create_and_set_free_camera()
+bool create_and_set_free_camera()
 {
+  const DataBlock *freeCamSettings = ::dgs_get_game_params()->getBlockByNameEx("free_cam_settings");
+  if (!freeCamSettings->getBool("hasFreeCamera", true))
+    return false;
   G_ASSERT(freeCam == ecs::INVALID_ENTITY_ID);
   ecs::ComponentsInitializer amap;
   ECS_INIT(amap, transform, TMatrix::IDENT);
   ECS_INIT(amap, camera__active, true);
   ECS_INIT(amap, fov, 90.f);
-  const DataBlock *freeCamSettings = ::dgs_get_game_params()->getBlockByNameEx("free_cam_settings");
   freeCam = create_simple_entity(freeCamSettings->getStr("template_name", "free_cam"), eastl::move(amap));
-  G_ASSERT(freeCam != ecs::INVALID_ENTITY_ID);
+  G_ASSERT_RETURN(freeCam != ecs::INVALID_ENTITY_ID, false);
+  return true;
 }
 
 template <typename Callable>
@@ -68,6 +71,10 @@ static void set_camera_flag(ecs::EntityId cam_eid, bool flag)
 
 static void switch_cam(ecs::EntityId active_cam, bool take_transform)
 {
+  if (freeCam == ecs::INVALID_ENTITY_ID)
+    if (!create_and_set_free_camera())
+      return;
+
   TMatrix itm = TMatrix::IDENT;
 
   if (active_cam != ecs::INVALID_ENTITY_ID)
@@ -78,9 +85,6 @@ static void switch_cam(ecs::EntityId active_cam, bool take_transform)
   }
 
   ecs::EntityId nextCam = ecs::INVALID_ENTITY_ID;
-
-  if (freeCam == ecs::INVALID_ENTITY_ID)
-    create_and_set_free_camera();
 
   if (active_cam == freeCam) // turning off freecam, toggle last active camera
   {

@@ -1,0 +1,36 @@
+mountPoint:t=".."
+incDir:t="../../../prog/daNetGameLibs"
+
+"@override:source" {
+  file:t = "loading.dshl"
+  include "dng_libs_shaders.blk"
+  include "model_shaders_list.blk"
+
+  file:t = "wind/fluid_wind.dshl"
+  file:t = "wires.dshl"
+  file:t = "flare.dshl"
+  file:t = "rain_ripples.dshl"
+  file:t = "motion_blur.dshl"
+  file:t = "gpu_objects_volume_placer.dshl"
+  file:t = "gpu_objects_prefix_sum.dshl"
+  file:t = "antialiasing_fxaa.dshl"
+}
+
+"@override:Compile" {
+  "@override:assume_vars" {
+    "@override:blood_puddles_has_separate_flowmap":i=1
+    vhs_camera__sharpen:i=0
+    vhs_camera__noise:i=2
+    vhs_camera__chromaticAberration:i=1
+    vhs_camera__scanlines:i=2
+    photometry_textures_tex:i=1
+    "@delete-all:static_shadows_cascades":i=2
+    "@delete-all:ssr_denoiser_type":i=0
+    static_shadows_cascades:i=2
+    xray_render:i=0
+    has_wounds:i=0
+    has_burning:i=0
+    special_vision:i=0
+    render_to_icon:i=0
+  }
+}

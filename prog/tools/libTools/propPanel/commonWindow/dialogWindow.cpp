@@ -322,25 +322,36 @@ void DialogWindow::updateImguiDialog()
   if (propertiesPanel)
   {
     const ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBackground;
+    const float regionAvailYStart = ImGui::GetContentRegionAvail().y;
+    const float propertiesPanelHeight = max(regionAvailYStart - buttonPanelHeight - ImGui::GetStyle().ItemSpacing.y, 0.0f);
 
-    // Render without the child window while auto sizing to get the required size. Size determination did not work
-    // correctly with BeginChild, so using a roundabout way.
-    if (autoSizingRequestedForFrames > 0)
+    // "c" stands for child. It could be anything.
+    if (ImGui::BeginChild("c", ImVec2(0.0f, propertiesPanelHeight), ImGuiChildFlags_None, windowFlags))
     {
-      // Allocate the space for the child window too.
-      ImGui::BeginChild("c", ImVec2(1.0f, 1.0f), ImGuiChildFlags_None, windowFlags);
-      ImGui::EndChild();
+      const ImGuiWindow *childWindow = ImGui::GetCurrentWindowRead();
 
       propertiesPanel->updateImgui();
+      ImGui::EndChild();
+
+      if (autoSizingRequestedForFrames > 0)
+      {
+        // The child window's content size is the size needed for child controls. Use a Dummy to increase the size of
+        // dialog if required to that size.
+
+        // Unfortunately ImGuiWindow::ContentSize will be only available at the next frame, so we have to calculate it.
+        // See CalcWindowContentSize in imgui.cpp.
+        const ImVec2 childContentSize(
+          ceilf(max(childWindow->DC.CursorMaxPos.x, childWindow->DC.IdealMaxPos.x) - childWindow->DC.CursorStartPos.x),
+          ceilf(max(childWindow->DC.CursorMaxPos.y, childWindow->DC.IdealMaxPos.y) - childWindow->DC.CursorStartPos.y));
+
+        // For width use the total width because the Dummy's X position is at the left side of the dialog. For height
+        // use the height difference because the Dummy's Y position is at the bottom of the dialog.
+        const ImVec2 childSize = ImGui::GetItemRectSize();
+        ImGui::Dummy(ImVec2(max(childContentSize.x, childSize.x), max(childContentSize.y - childSize.y, 0.0f)));
+      }
     }
     else
     {
-      const float regionAvailYStart = ImGui::GetContentRegionAvail().y;
-      const float propertiesPanelHeight = max(regionAvailYStart - buttonPanelHeight - ImGui::GetStyle().ItemSpacing.y, 0.0f);
-
-      // "c" stands for child. It could be anything.
-      if (ImGui::BeginChild("c", ImVec2(0.0f, propertiesPanelHeight), ImGuiChildFlags_None, windowFlags))
-        propertiesPanel->updateImgui();
       ImGui::EndChild();
     }
   }

@@ -10,6 +10,7 @@ require DagorConsole
 require math.color
 require math.base
 require strings
+require RendInst
 
 
 [es(no_order, tag=sound, on_event=EventSoundDrawDebug, REQUIRE=soundDebugDrawTemplate)]
@@ -125,3 +126,33 @@ def sound_debug_console_sound_play_pos(path : string; x, y, z : float; duration 
 [console_cmd(name="snd.enum_events")]
 def sound_debug_console_enum_events()
   sound_debug_enum_events()
+
+
+[console_cmd(name="snd.debug_draw_ri")]
+def sound_debug_draw_ri_console_cmd(name : string)
+  if !empty(name)
+    var entEid : EntityId
+    query() <| $ [es] (eid : EntityId; sound_debug_draw_ri__name : string)
+      if sound_debug_draw_ri__name == name
+        entEid = eid
+    if !entEid
+      let resIdx = get_rigen_extra_res_idx(name)
+      if resIdx < 0
+        logerr("no such res idx for '{name}'")
+        return
+      createEntity("sound_debug_draw_ri") <| $(var init : ComponentsInitializer)
+        set(init, "sound_debug_draw_ri__name", name)
+    else
+      destroyEntity(entEid)
+
+
+[es(tag=sound, on_event=EventSoundDrawDebug)]
+def sound_debug_draw_ri(evt : Event;
+                        sound_debug_draw_ri__name : string)
+
+  let resIdx = get_rigen_extra_res_idx(sound_debug_draw_ri__name)
+  get_ri_gen_extra_instances(resIdx) <| $(handles : array<riex_handle_t>#)
+    for handle in handles
+      let desc = RendInstDesc(handle)
+      let tm = getRIGenMatrix(desc)
+      add_debug_text_mark(tm[3], "ri='{sound_debug_draw_ri__name}'  dist={int(distance(get_listener_pos(), tm[3]))}", -1, 0., E3DCOLOR(0xffffffff))

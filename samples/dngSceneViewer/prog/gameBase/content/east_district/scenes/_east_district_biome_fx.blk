@@ -1,0 +1,12 @@
+//floating dust
+entity{
+  _template:t="ground_effect"
+  ground_effect__fx_name:t="envir_dust_floating_emission_static_effect"
+  ground_effect__biome_group_name:t="soil"
+  ground_effect__rot_z:p2=0, 180
+  ground_effect__offset_x:p2=0, 1
+  ground_effect__offset_y:p2=0.5, 0
+  ground_effect__offset_z:p2=0, 1
+  ground_effect__grid_cell_size:r=6
+  ground_effect__vis_radius:r=40
+}

@@ -1,0 +1,10 @@
+project:t="%scripts/project.das_project"
+dasRoot:t="."
+mountPoints{
+  "%dngdas":t="../../../../prog/daNetGame/scripts/das"
+  "%daslib":t="../../../../prog/1stPartyLibs/daScript/daslib"
+  "%dasImgui":t="../../../../prog/1stPartyLibs/daScript/modules/dasImgui/daslib"
+  "%dasGameLibs":t="../../../../prog/gameLibs/das"
+  "%danetlibs":t="../../../../prog/daNetGameLibs"
+  "%scripts":t="../scripts"
+}

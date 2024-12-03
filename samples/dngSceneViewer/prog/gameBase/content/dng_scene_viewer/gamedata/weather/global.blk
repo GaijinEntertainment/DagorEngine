@@ -1,0 +1,51 @@
+shader_vars{
+  parallax_shadow_strength:r=5
+  parallax_shadow_length:r=2
+  land_bump_scale:r=1.5
+  tree_wind_branch_amp:r = 0.1
+  tree_wind_detail_amp:r = 0.1
+  tree_wind_speed:r = 0.2
+
+  fx_sun_backlight:r=0.6
+  lightmap_to_objects:r=0.4
+  cockpit_glass_sun_mul:r=1.0
+  reinard:i=0
+
+  true_gamma_22:i=1
+  glass_specular_color_mul :r = 15
+  glass_specular_power:r = 50
+
+  specular_detect_land_color:p4=0,0.15,0.3,0//default
+  land_smoothness_detect_color:p4=0.7, 0.7, 0.7, 0 // default value, disabling smoothnes by default
+  smoothness_detection_hardness:r = 4
+  translucency_detection_hardness:r = 4
+  flare_bias:r=-2.7
+
+  uncharted_white:r=3.0;U_A:r=0.45;U_B:r=0.25;U_C:r=2.05;U_D:r=1.5;U_E:r=0.02;U_F:r=1.05 //steve tonemap tweaked for not dark sun
+
+  rendinst_face_normal_mul:r = 0
+  rendinst_ao_to_sun:r = 0.1
+  rendinst_ao_to_sky:r = 0.5
+
+  postfx{
+    postfx_vignette_width:r=1
+    postfx_vignette_height:r=0.7
+    postfx_vignette_overlay:r=0.15
+    postfx_vignette_multiplier:r=0.05
+  }
+
+  default_weather{
+    max_river_width:r=250
+    water_color_noise_size:r=737
+    ocean_density:r=1
+    river_density:r=6
+
+    ocean0:p4=0.27,0.68,0.53,0
+    ocean1:p4=0.57,0.91,0.84,0
+
+    river0:p4=0.30,0.25,0.02,0
+    river1:p4=0.56,0.54,0.28,0
+  }
+}
+land_translucency:t=grassy
+windDir:p2 = 0.6, 0.8

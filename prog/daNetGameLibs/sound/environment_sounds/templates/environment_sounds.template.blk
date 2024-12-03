@@ -298,17 +298,17 @@ water_sound_field{
   _singleton:b=yes
   _group{
     _tags:t="sound"
-    "water_sound_field__cells:list<u32>"{}
+    "water_sound_field__cells:list<u8>"{}
     water_sound_field__offset:p2=0,0
     water_sound_field__eventPos:p3=0,0,0
     water_sound_field__numCells:ip2=0,0
-    water_sound_field__soundRadius:r=0
     "water_sound_field__event:SoundEvent"{}
-    water_sound_field__depthThreshold:r=0.15
     water_sound_field__worldAABB:p4=-1000,-1000,1000,1000
   }
   // setup
-  water_sound_field__cellSize:r=10
+  water_sound_field__cellSize:r=5
+  water_sound_field__extent:r=2
+  water_sound_field__depthThreshold:r=0.15
   water_sound_field__path:t="ambient/positioned/lake_mid"
 }
 

@@ -1,0 +1,5 @@
+/* in code:"clear","good","hazy","cloudy","shower","poor","blind","rain","thunder"*/
+
+clear{
+  include "_clear.blk"
+}

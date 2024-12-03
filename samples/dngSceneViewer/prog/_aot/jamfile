@@ -1,0 +1,16 @@
+Root    ?= ../../../.. ;
+Location = samples/dngSceneViewer/prog/_aot ;
+PlatformArch_windows = x86_64 ;
+
+include $(Root)/prog/_jBuild/defPlatform.jam ;
+
+OutDir = $(Root)/samples/dngSceneViewer/tools ;
+Target = dngSceneViewer-aot ;
+
+Sources =
+  samples/dngSceneViewer/prog/main/dasGameModulesList.cpp
+;
+
+include $(Root)/$(Location)/_aot_dng_libs.jam ;
+
+include $(Root)/prog/daNetGame-das-aot/jamfile ;

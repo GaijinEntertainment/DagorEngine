@@ -1,5 +1,6 @@
 hlsl {
   #include "dagdp_common.hlsli"
+  #include "noise/uint_noise1D.hlsl"
 }
 
 macro INIT_DAGDP_COMMON()

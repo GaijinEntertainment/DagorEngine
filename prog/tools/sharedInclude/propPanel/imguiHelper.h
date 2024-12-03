@@ -76,6 +76,8 @@ public:
   // Same as LabelText but without the text.
   // (Almost the same as TextUnformatted but this sets the baseline, so it looks correct beside other controls.)
   // use_text_width: if true then the control will be as wide as required by the text
+  //   if false then it uses the width returned by ImGui::CalcItemWidth() (so either the default item width or the
+  //   width set by PushItemWidth() or SetNextItemWidth())
   static void labelOnly(const char *label, const char *label_end = nullptr, bool use_text_width = false);
 
   // Simple helper method for the cases where the label is in a separate line than the control.
@@ -85,7 +87,7 @@ public:
     {
       const float verticalSpace = hdpi::_pxS(Constants::SPACE_BETWEEN_SEPARATE_LINE_LABEL_AND_CONTROL);
       ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(ImGui::GetStyle().ItemSpacing.x, verticalSpace));
-      labelOnly(label, label_end);
+      labelOnly(label, label_end, true);
       ImGui::PopStyleVar();
     }
   }

@@ -341,14 +341,10 @@ namespace drv3d_metal
 
   void Render::ConstBuffer::destroy()
   {
-    if (cbuffer)
-      free(cbuffer);
-    cbuffer = nullptr;
   }
 
   void Render::ConstBuffer::init()
   {
-    cbuffer = (uint8_t*)malloc(MAX_CBUFFER_SIZE);
     device_buffer_offset = 0;
     is_binded = nil;
     is_binded_offset = -1;
@@ -421,11 +417,19 @@ namespace drv3d_metal
       num_reg = num_strored;
     }
 
+    if (num_last_bound >= num_reg && memcmp(cbuffer, cbuffer_cache, num_reg) == 0)
+    {
+      G_ASSERT(is_binded);
+      return;
+    }
+
     id<MTLBuffer> buf = render.AllocateConstants(num_reg, device_buffer_offset);
     uint8_t* ptr = (uint8_t*)buf.contents + device_buffer_offset;
     G_ASSERT(device_buffer_offset + num_reg <= RingBufferItem::max_size);
 
     memcpy(ptr, cbuffer, num_reg);
+    memcpy(cbuffer_cache, cbuffer, num_reg);
+    num_last_bound = num_reg;
 
     bindMetalBuffer<stage>(buf, is_binded, is_binded_offset, BIND_POINT, device_buffer_offset);
 
@@ -582,6 +586,7 @@ namespace drv3d_metal
       for (int i = 0; i < BUFFER_POINT_COUNT; i++)
         resetBuffer(i);
       cbuffer.is_binded = nil;
+      cbuffer.num_last_bound = 0;
       immediate_slot = -1;
   }
 
@@ -3011,7 +3016,7 @@ namespace drv3d_metal
   {
     inited = false;
 
-    for (int i = 0; i < 5; ++i)
+    for (int i = 0; i < int(MetalImageType::Count); ++i)
     {
       blank_tex[i]->destroy();
       blank_tex_uint[i]->destroy();

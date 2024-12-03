@@ -147,6 +147,15 @@ bool HumanInput::JoyAccelGyroInpDevice::updateState()
 
   nextState.buttonsPrev = state.buttons;
   state = nextState;
+
+  if (vendorId == HumanInput::GAMEPAD_VENDOR_NINTENDO)
+  {
+    state.buttons.clr(0);
+    state.buttons.clr(1);
+    state.buttons.clr(2);
+    state.buttons.clr(3);
+  }
+
   state.buttons.clr(26);
   state.buttons.clr(27);
   if (state.buttons.get(6) && (state.buttonsPrev.get(26) || (!(state.buttons.getWord0() & (0xF << 18)) && !state.buttonsPrev.get(6))))
@@ -252,7 +261,7 @@ static void apply_stick_deadzone(float &inout_x_rel, float &inout_y_rel, float d
   inout_x_rel = x / static_cast<float>(dz);
   inout_y_rel = y / static_cast<float>(dz);
 }
-
+#define REMAP_FOR_NINTENDO_GAMEPAD(n_id, x_id) (vendorId == HumanInput::GAMEPAD_VENDOR_NINTENDO ? (n_id) : (x_id))
 IWndProcComponent::RetCode HumanInput::JoyAccelGyroInpDevice::process(void *hwnd, unsigned msg, uintptr_t wParam, intptr_t lParam,
   intptr_t &result)
 {
@@ -305,14 +314,14 @@ IWndProcComponent::RetCode HumanInput::JoyAccelGyroInpDevice::process(void *hwnd
     int btIdx = -1;
     switch (wParam)
     {
-      case 19: btIdx = 0; break;
-      case 20: btIdx = 1; break;
-      case 21: btIdx = 2; break;
-      case 22: btIdx = 3; break;
-      case 96: btIdx = (vendorId == HumanInput::GAMEPAD_VENDOR_NINTENDO ? 13 : 12); break;
-      case 97: btIdx = (vendorId == HumanInput::GAMEPAD_VENDOR_NINTENDO ? 12 : 13); break;
-      case 99: btIdx = (vendorId == HumanInput::GAMEPAD_VENDOR_NINTENDO ? 15 : 14); break;
-      case 100: btIdx = (vendorId == HumanInput::GAMEPAD_VENDOR_NINTENDO ? 14 : 15); break;
+      case 19: btIdx = REMAP_FOR_NINTENDO_GAMEPAD(0, -1); break;
+      case 20: btIdx = REMAP_FOR_NINTENDO_GAMEPAD(1, -1); break;
+      case 21: btIdx = REMAP_FOR_NINTENDO_GAMEPAD(2, -1); break;
+      case 22: btIdx = REMAP_FOR_NINTENDO_GAMEPAD(3, -1); break;
+      case 96: btIdx = REMAP_FOR_NINTENDO_GAMEPAD(13, 12); break;
+      case 97: btIdx = REMAP_FOR_NINTENDO_GAMEPAD(12, 13); break;
+      case 99: btIdx = REMAP_FOR_NINTENDO_GAMEPAD(15, 14); break;
+      case 100: btIdx = REMAP_FOR_NINTENDO_GAMEPAD(14, 15); break;
       case 102: btIdx = 8; break;
       case 103: btIdx = 9; break;
       case 104: btIdx = 16; break; // required for nintendo gamepad - triggers are not analog
@@ -330,3 +339,5 @@ IWndProcComponent::RetCode HumanInput::JoyAccelGyroInpDevice::process(void *hwnd
 
   return PROCEED_OTHER_COMPONENTS;
 }
+
+#undef REMAP_FOR_NINTENDO_GAMEPAD

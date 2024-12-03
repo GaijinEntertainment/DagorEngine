@@ -166,6 +166,7 @@ hlsl(ps)
         diffuseTerm += tintColor.xyz*tintColor.w;
         half dstAmount = saturate(surfaceOpaqueness + opaqueCoef);
         specularTerm *= glass_specular_color * get_glass_specular_power();
+        diffuseTerm *= dstAmount;
       #else
         half dstAmount = surfaceOpaqueness;
       #endif
@@ -237,7 +238,11 @@ hlsl(ps)
       if (icon_silhouette_color.a<=1)
         return half4(icon_silhouette_color.xyz, dstAmount);
     #endif
-    return half4(litColor, dstAmount);//
+    #if isSimpleGlass
+      return half4(litColor, dstAmount * (1 - fresnel) + fresnel);
+    #else
+      return half4(litColor, dstAmount);
+    #endif
   }
 
   half4 apply_glass_ps(VsOutput input, float4 screenpos, half4 diffuseColor, float smoothness_const)

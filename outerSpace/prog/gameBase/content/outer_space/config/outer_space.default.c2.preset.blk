@@ -1,0 +1,12 @@
+Camera.Move   { dev:i=31;
+  xMinBtn { dev:i=1; btn:i=0xCB; }
+  xMaxBtn { dev:i=1; btn:i=0xCD; }
+  yMinBtn { dev:i=1; btn:i=0xD0; }
+  yMaxBtn { dev:i=1; btn:i=0xC8; }
+}
+SpaceShip.AccelXZ { dev:i=31;
+  xMinBtn { dev:i=1; btn:i=0xCB; }
+  xMaxBtn { dev:i=1; btn:i=0xCD; }
+  yMinBtn { dev:i=1; btn:i=0xD0; }
+  yMaxBtn { dev:i=1; btn:i=0xC8; }
+}

@@ -1,0 +1,20 @@
+mass:r = 100
+momentOfInertia:p3=0.6, 0.3, 0.6
+centerOfMass:p3=0, 0.9, 0
+physMat:t="walkRay"
+useFutureContacts:b=yes
+logCCD:b=no
+addToWorld:b=yes
+skipUpdateOnSleep:b=yes
+sleepUpdateFrequency:i=10
+
+collisionResource{
+  props{
+    cls_body_01:t="convex_hull"
+  }
+}
+
+ccdSpheres{
+  ccd:p4=0, 0.2, 0, 0.15
+}
+

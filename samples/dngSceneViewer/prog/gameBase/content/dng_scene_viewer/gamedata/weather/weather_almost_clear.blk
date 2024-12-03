@@ -1,0 +1,46 @@
+clouds_rendering{
+  erosion_noise_size:r=45
+  erosionWindSpeed:r=50
+}
+
+strata_clouds{
+  amount:p2=0.1, 0.5
+  altitude:p2=10, 12
+}
+
+sky{
+  mie_height:p2=1.2, 1.5
+  mie_scale:p2=0.5, 1
+  mie_absorption_scale:p2=1, 1
+  multiple_scattering_factor:r=1.5
+}
+
+clouds_weather_gen{
+  "layers[0].coverage":p2=0.05, 0.15
+  "layers[0].freq":p2=3, 3
+  "layers[0].seed":p2=0, 100
+  "layers[1].coverage":p2=0.25, 0.35
+  "layers[1].freq":p2=7, 7
+  "layers[1].seed":p2=0, 100
+  epicness:r=0.35
+  cumulonimbusCoverage:p2=0, 0
+  cumulonimbusSeed:p2=0, 100
+}
+
+clouds_form{
+  "layers[0].startAt":p2=0.7, 2
+  "layers[0].thickness":p2=3, 6
+  "layers[0].density":p2=0.6, 1
+  "layers[0].clouds_type":p2=0.25, 0.5
+  "layers[0].clouds_type_variance":p2=1, 1
+  "layers[1].startAt":p2=5, 8
+  "layers[1].thickness":p2=3, 5
+  "layers[1].density":p2=0.5, 0.55
+  "layers[1].clouds_type":p2=0.1, 0.25
+  "layers[1].clouds_type_variance":p2=0.5, 0.5
+  extinction:p2=1, 2
+  turbulenceStrength:p2=0, 2
+  shapeNoiseScale:i=7
+  cumulonimbusShapeScale:i=4
+  turbulenceFreq:i=2
+}

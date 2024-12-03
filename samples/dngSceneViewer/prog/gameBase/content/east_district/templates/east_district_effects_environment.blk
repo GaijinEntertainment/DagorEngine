@@ -1,0 +1,11 @@
+envir_dust_floating_emission_static_effect{
+  _use:t="environment_effect_base"
+  _use:t="range_pauseable_effect"
+  effect__emit_range_limit:r=40.0
+  effect__spawnRate:r=0
+
+  _group{
+    _tags:t="render"
+    effect__name:t="envir_dust_floating_emission_static_cmps_fx"
+  }
+}

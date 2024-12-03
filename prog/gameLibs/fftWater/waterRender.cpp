@@ -915,6 +915,9 @@ void WaterNVRender::calculateGradients()
   }
 
   if (computeGradientsEnabled)
+    d3d::driver_command(Drv3dCommand::CHANGE_QUEUE, (void *)GpuPipeline::ASYNC_COMPUTE);
+
+  if (computeGradientsEnabled)
   {
     if (hasFoam)
     {
@@ -1058,6 +1061,9 @@ void WaterNVRender::calculateGradients()
           gradient[i].getTex2D()->generateMips();
     }
   }
+
+  if (computeGradientsEnabled)
+    d3d::driver_command(Drv3dCommand::CHANGE_QUEUE, (void *)GpuPipeline::GRAPHICS);
 
   d3d::set_render_target(prevRt);
 

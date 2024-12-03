@@ -1,0 +1,163 @@
+platform:t="PC"
+outputRoot_PC:t= "../viewer/"
+
+allowMkDir:b=yes
+pack:b=true
+
+sign_private_key:t=""
+sign_digest:t="sha256"
+
+rootFolder:t="."
+
+folder {
+  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  path:t="scripts/"
+  dest_path:t="scripts/"
+  scan_folder:b=true
+  scan_subfolders:b=true
+  wildcard:t="*.json"
+  wildcard:t="*.blk"
+  wildcard:t="*.nut"
+  wildcard:t="*.das"
+  wildcard:t="*.patch"
+  wildcard:t="*.json"
+  wildcard:t="project.das_project"
+  wildcard:t="*.svg"
+}
+
+folder {
+  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  path:t="../../../prog/scripts/sq/daRg"
+  dest_path:t="sq/darg"
+  scan_folder:b=true
+  scan_subfolders:b=true
+  wildcard:t=*.nut
+}
+
+folder {
+  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  path:t="../../../prog/scripts/sq/std"
+  dest_path:t="sq/std"
+  scan_folder:b=true
+  scan_subfolders:b=true
+  wildcard:t=*.nut
+}
+folder {
+  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  path:t="../../../prog/scripts/sq/daeditor"
+  dest_path:t="sq/daeditor"
+  scan_folder:b=true
+  scan_subfolders:b=true
+  wildcard:t=*.nut
+  wildcard:t=*.blk
+  wildcard:t=*.svg
+}
+"@clone-last:folder"{
+  "@override:path":t="../../../prog/1stPartyLibs/daScript/daslib"
+  "@override:dest_path":t="daslib"
+  "@delete-all:wildcard":t=""
+  wildcard:t=*.das
+}
+"@clone-last:folder"{
+  "@override:path":t="../../../prog/1stPartyLibs/daScript/modules/dasImgui/daslib"
+  "@override:dest_path":t="daslib"
+  "@delete-all:wildcard":t=""
+  wildcard:t=*.das
+}
+"@clone-last:folder"{
+  "@override:path":t="../../../prog/scripts/game"
+  "@override:dest_path":t="game"
+  "@delete-all:wildcard":t=""
+  wildcard:t=*.das
+}
+"@clone-last:folder"{
+  "@override:path":t="../../../prog/daNetGame/scripts/das/daslib"
+  "@override:dest_path":t="das/daslib"
+  "@delete-all:wildcard":t=""
+  wildcard:t=*.das
+}
+"@clone-last:folder"{
+  "@override:path":t="../../../prog/daNetGame/scripts/das/imgui"
+  "@override:dest_path":t="das/imgui"
+  "@delete-all:wildcard":t=""
+  wildcard:t=*.das
+}
+"@clone-last:folder" {
+  "@override:path":t="../../../prog/daNetGame/scripts/globals"
+  "@override:dest_path":t="daNetGame/qscripts"
+  "@delete-all:wildcard":t=""
+  wildcard:t=*.nut
+  wildcard:t=*.das
+}
+
+
+"@clone-last:folder"{
+  "@override:path":t="../../../prog/daNetGame/scripts/das/debug"
+  "@override:dest_path":t="das/debug"
+  "@delete-all:wildcard":t=""
+  wildcard:t=*.das
+}
+
+"@clone-last:folder"{
+  "@override:path":t="../../../prog/gameLibs/das/ecs"
+  "@override:dest_path":t="das/ecs"
+  "@delete-all:wildcard":t=""
+  wildcard:t=*.das
+}
+"@clone-last:folder"{
+  "@override:path":t="../../../prog/gameLibs/das/daBfg"
+  "@override:dest_path":t="das/daBfg"
+  "@delete-all:wildcard":t=""
+  wildcard:t=*.das
+}
+"@clone-last:folder"{
+  "@override:path":t="../../../prog/gameLibs/das/math"
+  "@override:dest_path":t="das/math"
+  "@delete-all:wildcard":t=""
+  wildcard:t=*.das
+}
+
+include "_dng_libs_prog.vromfs.blk"
+
+folder{
+  output:t="content/dng_scene_viewer/dng_scene_viewer-game.vromfs.bin"
+  path:t="gameBase/content/dng_scene_viewer/"
+  dest_path:t="./"
+  wildcard:t="*.json"
+  wildcard:t="*.blk"
+  wildcard:t="*.nut"
+  wildcard:t="*.das"
+  wildcard:t="*.patch"
+}
+
+folder{
+  output:t="content/east_district/east_district.vromfs.bin"
+  path:t="gameBase/content/east_district/"
+  dest_path:t="./"
+  wildcard:t="*.json"
+  wildcard:t="*.blk"
+  wildcard:t="*.nut"
+  wildcard:t="*.das"
+  wildcard:t="*.patch"
+}
+
+exclude {
+//  exclude:t="(gameData.*|config.*|gui.*)[/\\]_[\w\.\-]*\.blk$"
+}
+preprocess {
+  ext:t=blk
+  ext:t=txt
+  ext:t=nut
+  ext:t=css
+  ext:t=csv
+  keepLines {
+    include:t=".*\.nut$"
+  }
+}
+
+packBlk {
+  exclude:t="\.gameparams\.blk$"
+
+  include:t=".*.blk$"
+  include:t="\.settings\.blk$"
+}

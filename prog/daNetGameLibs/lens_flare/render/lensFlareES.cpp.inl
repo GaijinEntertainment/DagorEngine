@@ -106,12 +106,13 @@ void LensFlareRenderer::updateConfigsFromECS()
   gather_flare_configs_ecs_query(
     [&configs](const ecs::string &lens_flare_config__name, const float &lens_flare_config__smooth_screen_fadeout_distance,
       const Point2 &lens_flare_config__scale, const float &lens_flare_config__intensity, bool lens_flare_config__use_occlusion,
-      const ecs::Array &lens_flare_config__elements) {
+      const float &lens_flare_config__exposure_reduction, const ecs::Array &lens_flare_config__elements) {
       LensFlareConfig config;
       config.name = lens_flare_config__name;
       config.useOcclusion = lens_flare_config__use_occlusion;
       config.intensity = lens_flare_config__intensity;
       config.smoothScreenFadeoutDistance = lens_flare_config__smooth_screen_fadeout_distance;
+      config.exposureReduction = lens_flare_config__exposure_reduction;
       config.scale = lens_flare_config__scale;
       config.elements.reserve(lens_flare_config__elements.size());
       for (const auto &[elementInd, element] : enumerate(lens_flare_config__elements))
@@ -194,12 +195,14 @@ ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
 ECS_REQUIRE(const ecs::string &lens_flare_config__name,
   const float &lens_flare_config__smooth_screen_fadeout_distance,
+  const float &lens_flare_config__exposure_reduction,
   const Point2 &lens_flare_config__scale,
   const float &lens_flare_config__intensity,
   bool lens_flare_config__use_occlusion,
   const ecs::Array &lens_flare_config__elements)
 ECS_TRACK(lens_flare_config__name,
   lens_flare_config__smooth_screen_fadeout_distance,
+  lens_flare_config__exposure_reduction,
   lens_flare_config__scale,
   lens_flare_config__intensity,
   lens_flare_config__use_occlusion,

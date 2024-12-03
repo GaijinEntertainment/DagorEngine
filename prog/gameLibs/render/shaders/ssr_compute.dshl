@@ -465,7 +465,7 @@ macro RESOLVE_BY_NEIGHBOURS(code)
         {
           uint groupIndex = axis ? GTid.y*TILE_SIZE + i : i*TILE_SIZE + GTid.x;
 
-          ##assert(groupIndex < groupthreads, "[%s:%.f] Out of bounds: groupthreads size is %d, but access to %d (%d:%d max %d:%d)", _FILE_, __LINE__, groupthreads, groupIndex, x, y, maxX, maxY);
+          ##assert(groupIndex < groupthreads, "[%s:%.f] Out of bounds: groupthreads size is %d, but access to %d (%d:%d max %d:%d)", _FILE_, __LINE__, groupthreads, groupIndex, GTid.x, GTid.y, TILE_SIZE, TILE_SIZE);
 
           float4 neighboordNormalRoughness = ColorTarg[groupIndex];
           float4 neighboorWpos = wposDepthTarg[groupIndex];
@@ -494,7 +494,7 @@ macro RESOLVE_BY_NEIGHBOURS(code)
         {
           uint groupIndex = axis ? GTid.y*TILE_SIZE + i : i*TILE_SIZE + GTid.x;
 
-          ##assert(groupIndex < groupthreads, "[%s:%.f] Out of bounds: groupthreads size is %d, but access to %d (%d:%d max %d:%d)", _FILE_, __LINE__, groupthreads, groupIndex, x, y, maxX, maxY);
+          ##assert(groupIndex < groupthreads, "[%s:%.f] Out of bounds: groupthreads size is %d, but access to %d (%d:%d max %d:%d)", _FILE_, __LINE__, groupthreads, groupIndex, GTid.x, GTid.y, TILE_SIZE, TILE_SIZE);
 
           float4 neighboordNormalRoughness = ColorTarg[groupIndex];
           float4 neighboorWpos = wposDepthTarg[groupIndex];
@@ -586,7 +586,7 @@ macro RESOLVE_BY_NEIGHBOURS(code)
       {
         uint groupIndex = axis ? GTid.y*TILE_SIZE + i : i*TILE_SIZE + GTid.x;
 
-        ##assert(groupIndex < groupthreads, "[%s:%.f] Out of bounds: groupthreads size is %d, but access to %d (%d:%d max %d:%d)", _FILE_, __LINE__, groupthreads, groupIndex, x, y, maxX, maxY);
+        ##assert(groupIndex < groupthreads, "[%s:%.f] Out of bounds: groupthreads size is %d, but access to %d (%d:%d max %d:%d)", _FILE_, __LINE__, groupthreads, groupIndex, GTid.x, GTid.y, TILE_SIZE, TILE_SIZE);
 
         // calculate reflection with compensation for neighboring pixels
         float3 CurrentReflection = ReflectVecTarg[groupIndex].xyz;
@@ -655,7 +655,7 @@ macro RESOLVE_BY_NEIGHBOURS(code)
       {
         uint groupIndex = axis ? GTid.y*TILE_SIZE + i : i*TILE_SIZE + GTid.x;
 
-        ##assert(groupIndex < groupthreads, "[%s:%.f] Out of bounds: groupthreads size is %d, but access to %d (%d:%d max %d:%d)", _FILE_, __LINE__, groupthreads, groupIndex, x, y, maxX, maxY);
+        ##assert(groupIndex < groupthreads, "[%s:%.f] Out of bounds: groupthreads size is %d, but access to %d (%d:%d max %d:%d)", _FILE_, __LINE__, groupthreads, groupIndex, GTid.x, GTid.y, TILE_SIZE, TILE_SIZE);
 
         // calculate reflection with compensation for neighboring pixels
         float4 rVec = ReflectVecTarg[groupIndex];

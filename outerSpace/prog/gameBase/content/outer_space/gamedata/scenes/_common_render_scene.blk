@@ -1,0 +1,7 @@
+entity{
+  _template:t="render_settings"
+}
+
+entity{
+  _template:t="blurred_ui"
+}

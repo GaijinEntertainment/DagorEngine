@@ -1,0 +1,91 @@
+PhysMats {
+  __DefaultParams {
+    iak:r = 1.0
+    damage_k:r = 1.0
+  }
+
+  default {
+    bf_class:t = "default"
+    color:c = 255,162,0,100
+    damage_k:r = 0.3
+    deformable_width:r = 0.05
+    resistanceK:r = 0.0006
+  }
+
+  horLandMesh {
+    bf_class:t = "horLandMesh"
+    color:c = 255,162,0,100
+    iak:r = 0.2
+    damage_k:r = 0.3
+    deformable_width:r = 0.15
+    resistanceK:r = 0.0006
+  }
+
+  verLandMesh {
+    color:c = 255,162,0,100
+    damage_k:r = 0.3
+  }
+  waterPuddle {
+    color:c = 0,0,255,10
+  }
+  water3d {
+    color:c = 255,162,0,100
+  }
+  water {
+    color:c = 0,0,255,200
+  }
+  glass {
+    bf_class:t = "glass"
+    damage_k:r = 0.3
+  }
+  steel {
+    bf_class:t = "steel"
+    color:c = 0,0,255,200
+  }
+  road {
+    bf_class:t = "road"
+    vehicleSound {concrete:r=1.0;}
+  }
+  dirt {
+    bf_class:t = "dirt"
+    deformable_width:r = 0.3
+    resistanceK:r = 0.001
+  }
+  sand {
+    bf_class:t = "sand"
+    deformable_width:r = 0.2
+  }
+  snow {
+    bf_class:t = "snow"
+    deformable_width:r = 0.3
+  }
+  rocks {
+    bf_class:t = "rocks"
+  }
+  bushes{
+    bf_class:t = "bushes"
+    softCollision{
+      physViscosity:r=2.5
+    }
+  }
+  walkRay{ bf_class:t="walkRay"; }
+  cameraRay{ bf_class:t="cameraRay"; }
+  walker{
+    bf_class:t="walker";
+    softCollision{ collisionForce:r=0.8; }
+  }
+  small_debris{
+    bf_class:t = "small_debris"
+  }
+}
+
+InteractPropsList {
+  walkRay{
+    bushes{ en:b = no; }
+    small_debris{ en:b = no; }
+  }
+  cameraRay{
+    bushes{ en:b = no; }
+  }
+}
+ 

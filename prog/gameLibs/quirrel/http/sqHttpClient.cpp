@@ -82,7 +82,8 @@ static SQRESULT is_url_allowed(HSQUIRRELVM vm, const char *url)
 @param url s
 @param userAgent s : (optional)
 @param headers t : {string:string} (optional)
-@param data s|t|x|y : (optional)
+@param data s|t|x|y : (optional) : request data which is treated as from-urlencoded data. If specified, json field is omitted
+@param json s|t|x|y : (optional) : request data which is treated as json data. If specified, data field is omitted
 @param callback . : ({status, http_code, response, headers}), optional
 @param context t : user data specific for request response, optional
 @param respEventId s : (optional) : event id to send into eventbus

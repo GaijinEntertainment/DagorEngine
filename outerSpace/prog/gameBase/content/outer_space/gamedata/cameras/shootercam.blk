@@ -1,0 +1,20 @@
+inputSpd:r=4
+
+zoomedOut {
+  atPos:r=0
+  offset:p3=0, 0, 0
+  fov:r=90
+  velTau:r=0
+  velFactor:r=0
+  tau:r=0
+}
+
+
+zoomedIn {
+  atPos:r=1
+  offset:p3=0, 0, 0
+  fov:r=90
+  velTau:r=0
+  velFactor:r=0
+  tau:r=0
+}

@@ -255,10 +255,9 @@ bool d3d::clear_rt(const RenderTarget &rt, const ResourceClearValue &clear_val)
       default:
       {
         G_ASSERT_LOG(false, "Unknown texture format");
+        render.clearTex(texture, clear_val.asFloat, rt.mip_level, rt.layer);
       }
     }
-
-    render.clearTex(texture, clear_val.asFloat, rt.mip_level, rt.layer);
   }
   return true;
 }

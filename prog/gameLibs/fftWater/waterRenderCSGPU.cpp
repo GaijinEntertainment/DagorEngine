@@ -346,6 +346,8 @@ void CSGPUData::perform(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascad
   G_ASSERT(numCascades <= cascades.size());
   numCascades = min<int>(numCascades, cascades.size());
 
+  d3d::driver_command(Drv3dCommand::CHANGE_QUEUE, (void *)GpuPipeline::ASYNC_COMPUTE);
+
   TIME_D3D_PROFILE(csGPUFFT);
   updateH0(fft, numCascades);
   for (int i = 0; i < cascades.size(); ++i)
@@ -384,6 +386,7 @@ void CSGPUData::perform(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascad
 
   d3d::resource_barrier({dispArray.getBaseTex(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_VERTEX, 0, 0});
   asyncComputeFence = d3d::insert_fence(GpuPipeline::ASYNC_COMPUTE);
+  d3d::driver_command(Drv3dCommand::CHANGE_QUEUE, (void *)GpuPipeline::GRAPHICS);
 
   d3d::set_rwtex(STAGE_CS, 0, NULL, 0, 0);
   d3d::set_buffer(STAGE_CS, 0, 0);

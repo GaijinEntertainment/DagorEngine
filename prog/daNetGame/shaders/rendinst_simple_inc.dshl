@@ -44,12 +44,10 @@ macro INIT_COMMON_RENDINST_TESSELLATION()
   static float max_tessellation_distance = 2.0 no_warnings;
   static float tessellation_transition_distance = 1.0 no_warnings;
   static float tessellation_max_edge_length = 0.024 no_warnings;
-  static int enable_shadow_tessellation = 1 no_warnings;
-  interval enable_shadow_tessellation: off<1, on;
 
   bool pn_triangulation_enabled =
       (object_tess_factor == object_tess_factor_on && material_pn_triangulation != off &&
-      (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_depth || (rendinst_render_pass == rendinst_render_pass_to_shadow && enable_shadow_tessellation == on)));
+      (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_depth || rendinst_render_pass == rendinst_render_pass_to_shadow));
 
   if (pn_triangulation_enabled)
   {
@@ -67,7 +65,6 @@ macro INIT_COMMON_RENDINST_TESSELLATION()
       max_tessellation_distance@f1 = max_tessellation_distance;
       tessellation_transition_distance@f1 = tessellation_transition_distance;
       tessellation_max_edge_length@f1 = tessellation_max_edge_length;
-      enable_shadow_tessellation@i1 = enable_shadow_tessellation;
     }
     hlsl(ds)
     {

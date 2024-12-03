@@ -1,0 +1,46 @@
+;
+mount = darg=../../../../prog/scripts/sq/daRg/
+mount = daeditor=.../../../../prog/scripts/sq/daeditor/
+mount = sqstd=../../../../prog/scripts/sq/std
+mount = %dngscripts=../../../../prog/daNetGame/scripts/globals
+mount = %scripts=./
+
+base_path = .
+base_path = ../stubs/
+base_path = ../../../../prog/scripts/sq/stubs/
+base_path = ../../../../prog/daNetGame/scripts/stubs/
+
+use_modules = yes ; enable to use "require()"
+use_libs_by_default = no ; what to do if library not found in this config
+
+register_dagor_fs = yes ; dagor.scan_folder
+sqstd_register_system_lib = yes
+register_json = yes ; parse_json, string_to_json
+register_std_string_native_module = yes ; string.format, string.lstrip, string.split ...
+sqrat_bind_dagor_math_module = yes
+register_dir_extensions = yes ; dagor.scan_folder
+sqrat_bind_dagor_logsys = yes ; dagor.debug, dagor.assertf, dagor.debug_dump_stack ...
+sqrat_bind_dagor_3d = yes ; get_cur_view_itm
+register_string_extensions = yes ; String.subst()
+register_utf8 = yes ; class utf8, utf8.strtr, utf8.charCount ...
+extend_sq_base_lib = yes ; __get, __update, __merge ...
+register_base_lib_extras = yes ; ::min, ::max, ::clamp
+sqrat_bind_dagor_math = yes ; IPoint2, Point3, TMatrix, Color4 ...
+register_frp = yes
+register_base64 = yes
+sqstd_register_datetime_lib = yes
+register_dagor_time_module = yes
+sqrat_bind_datablock_module = yes
+
+sqstd_register_base_libs = yes
+
+function_result_must_be_utilized = tryLoad
+function_should_return_something_prefix = mk
+function_calls_lambda_inplace = sharedWatched combine update
+function_can_return_string = loc
+forbidden_function = dlog wdlog
+
+executeFile = ../../../../prog/daNetGame/scripts/stubs/common.stub.nut
+executeFile = ../../../../prog/daNetGame/scripts/stubs/main_ui.stub.nut
+executeFile = ../../../../prog/daNetGameLibs/scripts/stubs/main_ui.stub.nut
+executeFile = ../stubs/fonts.stub

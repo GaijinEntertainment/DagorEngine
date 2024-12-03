@@ -1,0 +1,63 @@
+texStreaming {
+  enableStreaming:b=yes
+  texLoadOnDemand:b=yes
+  hqTexPrio:i=1
+  lqTexMaxSizeKB:i=2048
+  defStubTexColor:c=80,80,80,0
+  sysMemUsageThresholdMB:i=0
+  //verboseLogs:b=yes
+
+  //forceGpuMemMB:i=512
+  //memReservePromille:i=40
+  //memReserveKB:i=128000
+
+  //minMemQuotaKB:i=
+  //maxMemQuotaKB:i=
+  //forceMemQuotaKB:i=
+
+  //defaultTexQ:t=LQ
+  //dbgBkgLoadPerTexSleepMs:i=500
+
+  stubTex {
+    tag:t="diffuse"
+    idx:i=1
+    color:c=80,82,80,255
+  }
+  stubTex {
+    tag:t="nx_ny_nz_0"
+    idx:i=2
+    color:c=128,128,255,0
+    gamma1:b=yes
+  }
+  stubTex {
+    tag:t="smooth0_nx_metal0_ny" 
+    idx:i=3
+    color:c=128,128,0,128 //not correct at all!
+    gamma1:b=yes
+  }
+  stubTex {
+    tag:t="ao"
+    idx:i=4
+    color:c=200,200,200,255
+  }
+  stubTex {
+    tag:t="black"
+    idx:i=5
+    color:c=0,0,0,0
+  }
+  stubTex {
+    tag:t="nx_ny_0_0.5"
+    idx:i=6
+    color:c=128,128,0,128
+  }
+  stubTex {
+    tag:t="mod2x"
+    idx:i=7
+    color:c=128,128,128,128
+  }
+  stubTex {
+    tag:t="nx_ny_0_0"
+    idx:i=8
+    color:c=128,128,0,0
+  }
+}

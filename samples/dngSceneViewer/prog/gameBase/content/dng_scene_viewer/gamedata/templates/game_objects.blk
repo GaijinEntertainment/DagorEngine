@@ -1,0 +1,13 @@
+game_objects{
+  _singleton:b=yes
+  nonCreatableObj:b=yes
+  game_objects__seed:i=0
+
+  game_objects{}
+  "game_objects__createChance:object"{
+  }
+}
+
+game_object{
+  "gameObject:tag"{}
+}

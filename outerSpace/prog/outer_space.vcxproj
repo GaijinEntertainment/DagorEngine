@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+  <Import Project="$(SolutionDir)prog\_jBuild\msbuild\projectConfigurations.props" />
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{f95c9957-bc51-4253-97a5-11842c8e1003}</ProjectGuid>
+    <GameName>outer_space</GameName>
+    <GameType>daNetGames</GameType>
+    <ReplaceWildcardsInProjectItems>true</ReplaceWildcardsInProjectItems>
+    <GameDir>$(MSBuildProjectDirectory)\..\game\</GameDir>
+  </PropertyGroup>
+  <Import Project="$(MSBuildToolsDir)default.props" />
+  <PropertyGroup Label="Configuration" />
+  <Import Project="$(MSBuildToolsDir)config.props" />
+  <PropertyGroup />
+  <Import Project="$(MSBuildToolsDir)common.targets" />
+  <ItemGroup Label="Wildcard">
+    <CppSource Include="**\*.cpp" />
+    <CppHeader Include="**\*.h;**\*.inl" />
+    <bat Include="**\*.bat;**\*.cmd" />
+  </ItemGroup>
+</Project>

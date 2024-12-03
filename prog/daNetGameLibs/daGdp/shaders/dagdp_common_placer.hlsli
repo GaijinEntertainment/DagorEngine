@@ -10,7 +10,7 @@ struct VariantGpuData
   uint drawRangeStartIndex;
   uint drawRangeEndIndex;
   uint renderableIndicesStartIndex; // Not a typo.
-  uint _pad;
+  float density;
 };
 
 #endif // DAGDP_COMMON_PLACER_HLSLI_INCLUDED

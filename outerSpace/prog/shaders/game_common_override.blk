@@ -1,0 +1,22 @@
+incDir:t="../../../prog/daNetGameLibs"
+
+"@override:source" {
+  file:t = "../loading.dshl"
+  file:t = "flow_map.dshl"
+}
+
+"@override:Compile" {
+  "@override:assume_vars" {
+    "@override:grassify":i=1
+    sky_space_mode:i=0
+    photometry_textures_tex:i=1
+    xray_render:i=0
+    has_wounds:i=0
+    has_burning:i=0
+    rendinst_clipmap:i=0
+    special_vision:i=0
+    render_to_icon:i=0
+    "@delete-all:static_shadows_cascades":i=2
+    static_shadows_cascades:i=2
+  }
+}

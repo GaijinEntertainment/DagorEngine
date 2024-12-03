@@ -22,8 +22,44 @@ macro INIT_DAGDP_COMMON_PLACER()
       return r <= w;
     }
 
-    void writeInstance(PlaceableGpuData placeable, float3 instancePos, int2 stablePos, float3 yawAxis, float2 xzVector, float randScale, uint instanceElementOffset)
+    void writeInstance(PlaceableGpuData placeable, float3 instancePos, float3 surfaceNormal, int2 stablePos, float randScale, uint instanceElementOffset)
     {
+      float3 yawAxis;
+      float2 xzVector;
+
+      FLATTEN
+      if (placeable.flags & ORIENTATION_Y_IS_NORMAL_BIT)
+        yawAxis = surfaceNormal;
+      else
+        yawAxis = float3(0, 1, 0); // World Y
+
+      FLATTEN
+      if (placeable.flags & ORIENTATION_X_IS_PROJECTED_BIT)
+      {
+        // Pick a projected axis.
+        xzVector = surfaceNormal.xz;
+
+        FLATTEN
+        if (length(xzVector) > 0.1)
+          xzVector = normalize(xzVector);
+        else
+        {
+          // Fallback when surface is roughly horizontal, and there is no meaningful projection.
+          xzVector = float2(1, 0); // World X.
+        }
+      }
+      else
+      {
+        // Pick a world axis.
+        if (yawAxis.x < 0.9)
+          xzVector = float2(1, 0); // World X
+        else
+        {
+          // Fallback when surface is roughly in the YZ plane.
+          xzVector = float2(0, -1); // World Z.
+        }
+      }
+
       float3x3 basis;
       basis[1] = yawAxis;
       basis[2] = normalize(cross(float3(xzVector.x, 0.0, xzVector.y), yawAxis));
@@ -101,13 +137,13 @@ macro INIT_DAGDP_COMMON_PLACER()
       return placeableIndex;
     }
 
-    uint getRenderableIndex(VariantGpuData variant, uint placeableIndex, float3 instancePos, float randScale, bool isVisible)
+    uint getRenderableIndex(VariantGpuData variant, uint placeableIndex, float3 instancePos, float3 viewportPos, float randScale, bool isVisible)
     {
       uint rangeOffset = ~0u;
 
       FLATTEN
       if (isVisible && (placeableIndex != ~0u)) {
-        float dist = distance(instancePos, viewport_pos) / randScale;
+        float dist = distance(instancePos, viewportPos) / randScale;
 
         LOOP
         for (uint i = variant.drawRangeStartIndex; i < variant.drawRangeEndIndex; ++i)
@@ -133,7 +169,7 @@ endmacro
 
 // g_storage: must be `groupshared uint[N]`, N >= 2 * threadgroup_size.
 // g_cond: must be `groupshared uint`.
-macro INIT_DAGDP_COMMON_PLACER_THREADGROUP(threadgroup_size, g_storage, g_cond)
+macro INIT_DAGDP_COMMON_PLACER_THREADGROUP(threadgroup_size, g_storage, g_cond, useTileLimits)
   hlsl(cs) {
     bool threadGroupAnyTrue(bool cond, uint tId)
     {
@@ -220,8 +256,10 @@ macro INIT_DAGDP_COMMON_PLACER_THREADGROUP(threadgroup_size, g_storage, g_cond)
           result.count = pBitCounts.x + pBitCounts.y;
           result.offset = mBitCounts.x + mBitCounts.y;
 
+          ##if useTileLimits
           uint tileLimit = structuredBufferAt(placeable_tile_limits, placeableIndex);
           result.count = min(result.count, tileLimit);
+          ##endif
         }
 
         GroupMemoryBarrierWithGroupSync();

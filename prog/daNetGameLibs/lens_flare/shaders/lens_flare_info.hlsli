@@ -24,7 +24,7 @@ struct LensFlareInfo
 
     float2 distortionScale;
     float distortionPow;
-    uint padding;
+    float exposurePowParam;
 };
 
 struct LensFLarePreparedLightSource

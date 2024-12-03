@@ -1,0 +1,24 @@
+inputSpd:r=4
+
+zoomedOut {
+  atPos:r=0
+  pivotPos:p3=0.35, 0.2, 0.07
+  offset:p3=0.17, 0.35, -4.85
+  fov:r=90
+  velTau:r=0.12
+  velFactor:r=0.1
+  tau:r=0.2
+  tmToAnimRatio:r=0.7
+  animTau:r=0.8
+}
+
+
+zoomedIn {
+  atPos:r=1
+  offset:p3=0, 0, 0
+  fov:r=90
+  velTau:r=0
+  velFactor:r=0
+  tau:r=0
+}
+

@@ -43,24 +43,22 @@ def make_color_temp(t : float) : E3DCOLOR
 
 [es(no_order, tag=sound, on_event=EventSoundDrawDebug)]
 def water_sound_field_draw_debug(evt : Event;
-                                 water_sound_field__soundRadius : float;
                                  water_sound_field__eventPos : float3;
                                  water_sound_field__cellSize : float;
                                  water_sound_field__offset : float2;
                                  water_sound_field__numCells : int2;
-                                 water_sound_field__cells : UInt32List)
+                                 water_sound_field__cells : UInt8List)
 
   assume cellSize = water_sound_field__cellSize
   assume offset = water_sound_field__offset
   assume ncells = water_sound_field__numCells
   assume cells = water_sound_field__cells
-  assume soundRadius = water_sound_field__soundRadius
 
   let cam2d = get_listener_pos().xz
   let camInCell = (cam2d - offset) / cellSize
   let cellIdx = int2(floor(camInCell))
 
-  let drawRange = 50
+  let drawRange = 25
   let mn = int2(max(0, cellIdx.x - drawRange), max(0, cellIdx.y - drawRange))
   let mx = int2(min(cellIdx.x + drawRange, ncells.x), min(cellIdx.y + drawRange, ncells.y))
 
@@ -68,10 +66,9 @@ def water_sound_field_draw_debug(evt : Event;
 
   for z in range(mn.y, mx.y)
     for x in range(mn.x, mx.x)
-      let cell = unpack_water(cells[cell_idx(x, z, ncells)], soundRadius)
-      if length_sq(cell) < square(soundRadius)
-        let t = 1. - length(cell) / soundRadius
-        draw_cell(x, z, offset, cellSize, make_color_temp(t), false)
+      let cell = float(cells[cell_idx(x, z, ncells)]) / 255.
+      if cell > 0.
+        draw_cell(x, z, offset, cellSize, make_color_temp(cell), false)
 
   if cellIdx.x >= 0 && cellIdx.x < ncells.x && cellIdx.y >= 0 && cellIdx.y < ncells.y
     draw_cell(cellIdx.x, cellIdx.y, offset, cellSize, E3DCOLOR(0xffffffff), true)

@@ -23,7 +23,7 @@ class GenericBufferInterface final : public Sbuffer
   FormatStore uavFormat;
   uint8_t lastLockFlags = 0;
   AsyncCompletionState asyncCopyEvent;
-  TempBufferHolder *pushAllocation;
+  TempBufferHolder *pushAllocation = nullptr;
 
   bool bufferLockedForRead() const { return lastLockFlags & VBLOCK_READONLY; }
   bool bufferLockedForWrite() const { return lastLockFlags & VBLOCK_WRITEONLY; }

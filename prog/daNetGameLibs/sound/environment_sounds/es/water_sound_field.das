@@ -29,13 +29,12 @@ def water_mask(var mask : array<bool>&; num_cells : int2; cell_size, depth_thres
 [es(tag=sound, on_appear, on_event=EventLevelLoaded)]
 def water_sound_field_init(evt : Event;
                            water_sound_field__cellSize : float;
+                           water_sound_field__extent : float;
                            water_sound_field__depthThreshold : float;
-                           water_sound_field__path : string;
                            water_sound_field__worldAABB : float4;
-                           var water_sound_field__soundRadius : float&;
                            var water_sound_field__offset : float2&;
                            var water_sound_field__numCells : int2&;
-                           var water_sound_field__cells : UInt32List&)
+                           var water_sound_field__cells : UInt8List&)
 
   if water_sound_field__numCells.x != 0 || !is_level_loaded()
     return
@@ -55,9 +54,7 @@ def water_sound_field_init(evt : Event;
     ncells = int2(0, 0)
     return
 
-  water_sound_field__soundRadius = max(1., get_max_distance(water_sound_field__path))
-  let extent = water_sound_field__soundRadius / cellSize
-
+  let extent = water_sound_field__extent / cellSize
   aa = max(aa - int2(extent), int2(0))
   bb = min(bb + int2(extent + 2.), ncells)
 
@@ -75,7 +72,6 @@ def water_sound_field_init(evt : Event;
     for x in range(0, ncells.x)
 
       var maxDistSq = square(maxDist)
-      var maxDir = float2(maxDist, maxDist)
       let mn = int2(max(0, x - kernel), max(0, z - kernel))
       let mx = int2(min(x + kernel + 1, ncells.x - 1), min(z + kernel + 1, ncells.y - 1))
 
@@ -86,19 +82,18 @@ def water_sound_field_init(evt : Event;
             let distSq = length_sq(dir)
             if maxDistSq > distSq
               maxDistSq = distSq
-              maxDir = dir
 
-      water_sound_field__cells[cell_idx(x, z, ncells)] = pack_water(maxDir * cellSize, water_sound_field__soundRadius)
+      let t = 1. - saturate(sqrt(maxDistSq) / water_sound_field__extent)
+      water_sound_field__cells[cell_idx(x, z, ncells)] = uint8(t * 255.)
 
 
 
 [es(no_order, tag=sound, on_event=ParallelUpdateFrameDelayed)]
 def water_sound_field_update(evt : Event;
-                             water_sound_field__soundRadius : float;
                              water_sound_field__cellSize : float;
                              water_sound_field__offset : float2;
                              water_sound_field__numCells : int2;
-                             water_sound_field__cells : UInt32List;
+                             water_sound_field__cells : UInt8List;
                              water_sound_field__path : string;
                              var water_sound_field__event : SoundEvent&;
                              var water_sound_field__eventPos : float3&)
@@ -107,26 +102,25 @@ def water_sound_field_update(evt : Event;
   assume offset = water_sound_field__offset
   assume ncells = water_sound_field__numCells
   assume cells = water_sound_field__cells
-  assume soundRadius = water_sound_field__soundRadius
 
   if ncells.x == 0
     return
 
-  var nw = float2(soundRadius, soundRadius)
+  var vol = 0.
   let cam2d = get_listener_pos().xz
   let camInCell = (cam2d - offset) / cellSize
   let cellIdx = int2(floor(camInCell))
   if cellIdx.x >= 0 && cellIdx.y >= 0 && cellIdx.x + 1 < ncells.x && cellIdx.y + 1 < ncells.y
 
-    let na = unpack_water(cells[cell_idx(cellIdx.x, cellIdx.y, ncells)], soundRadius)
-    if length_sq(na) < square(soundRadius)
-      let nb = unpack_water(cells[cell_idx(cellIdx.x + 1, cellIdx.y, ncells)], soundRadius)
-      let nc = unpack_water(cells[cell_idx(cellIdx.x, cellIdx.y + 1, ncells)], soundRadius)
-      let nd = unpack_water(cells[cell_idx(cellIdx.x + 1, cellIdx.y + 1, ncells)], soundRadius)
+    let na = float(cells[cell_idx(cellIdx.x, cellIdx.y, ncells)]) / 255.
+    let nb = float(cells[cell_idx(cellIdx.x + 1, cellIdx.y, ncells)]) / 255.
+    let nc = float(cells[cell_idx(cellIdx.x, cellIdx.y + 1, ncells)]) / 255.
+    let nd = float(cells[cell_idx(cellIdx.x + 1, cellIdx.y + 1, ncells)]) / 255.
+    let t = camInCell - float2(cellIdx)
+    vol = lerp(lerp(na, nb, t.x), lerp(nc, nd, t.x), t.y)
 
-      let t = camInCell - float2(cellIdx)
-      nw = lerp(lerp(na, nb, t.x), lerp(nc, nd, t.x), t.y)
-
-  let shouldPlay = length_sq(nw) < square(soundRadius)
-  water_sound_field__eventPos = shouldPlay ? floor_on_water(cam2d + nw) : get_listener_pos()
+  let shouldPlay = vol > 0.
+  water_sound_field__eventPos = floor_on_water(cam2d)
   play_or_abandon(water_sound_field__event, water_sound_field__path, water_sound_field__eventPos, shouldPlay)
+  if shouldPlay
+    set_volume(water_sound_field__event, vol)

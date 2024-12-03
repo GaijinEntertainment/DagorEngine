@@ -223,7 +223,7 @@ shader dagdp_heightmap_place
 
   INIT_DAGDP_COMMON()
   INIT_DAGDP_COMMON_PLACER()
-  INIT_DAGDP_COMMON_PLACER_THREADGROUP(TILE_INSTANCE_COUNT, g_storage, g_cond)
+  INIT_DAGDP_COMMON_PLACER_THREADGROUP(TILE_INSTANCE_COUNT, g_storage, g_cond, true)
 
   INIT_DEFORM_HMAP(cs)
   USE_DEFORM_HMAP(cs)
@@ -332,7 +332,7 @@ shader dagdp_heightmap_place
         return;
 
       float randScale = lerp(placeable.scaleMin, placeable.scaleMax, stableRand(stablePos, prng_seed_scale));
-      uint renderableIndex = getRenderableIndex(variant, placeableIndex, instancePos, randScale, isVisible);
+      uint renderableIndex = getRenderableIndex(variant, placeableIndex, instancePos, viewport_pos, randScale, isVisible);
       SamePlaceableInfo pInfo = getSamePlaceableInfo(placeableIndex, tId.y);
 
       // Disallow more than the specified # of instances per tile.
@@ -365,43 +365,7 @@ shader dagdp_heightmap_place
         uint instanceElementOffset = 4 * (viewport_instance_offset + instanceRegion.x + baseInstanceOffset + rInfo.offset); // TODO: float4, float4x3
         ##assert(baseInstanceOffset + rInfo.offset < instanceRegion.y, "Instance region out of bounds");
 
-        float3 yawAxis;
-        float2 xzVector;
-
-        FLATTEN
-        if (placeable.flags & ORIENTATION_Y_IS_NORMAL_BIT)
-          yawAxis = surfaceNormal;
-        else
-          yawAxis = float3(0, 1, 0); // World Y
-
-        FLATTEN
-        if (placeable.flags & ORIENTATION_X_IS_PROJECTED_BIT)
-        {
-          // Pick a projected axis.
-          xzVector = surfaceNormal.xz;
-
-          FLATTEN
-          if (length(xzVector) > 0.1)
-            xzVector = normalize(xzVector);
-          else
-          {
-            // Fallback when surface is roughly horizontal, and there is no meaningful projection.
-            xzVector = float2(1, 0); // World X.
-          }
-        }
-        else
-        {
-          // Pick a world axis.
-          if (yawAxis.x < 0.9)
-            xzVector = float2(1, 0); // World X
-          else
-          {
-            // Fallback when surface is roughly in the YZ plane.
-            xzVector = float2(0, -1); // World Z.
-          }
-        }
-
-        writeInstance(placeable, instancePos, stablePos, yawAxis, xzVector, randScale, instanceElementOffset);
+        writeInstance(placeable, instancePos, surfaceNormal, stablePos, randScale, instanceElementOffset);
       }
     }
   }

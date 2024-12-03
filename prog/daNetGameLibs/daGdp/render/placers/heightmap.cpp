@@ -3,7 +3,6 @@
 #include <EASTL/fixed_string.h>
 #include <EASTL/shared_ptr.h>
 #include <generic/dag_enumerate.h>
-#include <util/dag_convar.h>
 #include <3d/dag_resPtr.h>
 #include <3d/dag_lockSbuffer.h>
 #include <drv/3d/dag_rwResource.h>
@@ -67,15 +66,6 @@ using TmpName = eastl::fixed_string<char, 256>;
 namespace dagdp
 {
 
-CONSOLE_FLOAT_VAL("dagdp", heightmap_frustum_culling_bias, 0.0f);
-
-struct Variant
-{
-  uint32_t drawRangeStartIndex;
-  uint32_t renderableIndicesStartIndex; // Not a typo.
-  uint32_t placeableStartIndex;
-};
-
 struct Biome
 {
   uint32_t variantIndex;
@@ -84,8 +74,7 @@ struct Biome
 struct HeightmapConstants
 {
   ViewInfo viewInfo;
-  uint32_t maxInstancesPerViewport;
-  uint32_t numDrawRanges;
+  uint32_t maxStaticInstancesPerViewport;
   uint32_t numTiles;
   uint32_t numRenderables;
   uint32_t numPlaceables;
@@ -99,15 +88,12 @@ struct HeightmapConstants
 
 struct HeightmapPersistentData
 {
-  UniqueBuf drawRangesBuffer;
-  UniqueBuf placeablesBuffer;
-  UniqueBuf placeableWeightsBuffer;
+  CommonPlacerBuffers commonBuffers;
+
   UniqueBuf placeableTileLimitsBuffer;
-  UniqueBuf renderableIndicesBuffer;
   UniqueBuf instanceRegionsBuffer;
   UniqueBuf tilePositionsBuffer;
   UniqueBuf biomesBuffer;
-  UniqueBuf variantsBuffer;
   SharedTex densityMask;
 
   HeightmapConstants constants{};
@@ -213,14 +199,14 @@ static dabfg::NodeHandle create_place_node(const dabfg::NameSpace &ns,
       const auto &view = viewHandle.ref();
       G_ASSERT(view.viewports.size() <= constants.viewInfo.maxViewports);
 
-      ShaderGlobal::set_buffer(var::draw_ranges, persistentData->drawRangesBuffer.getBufId());
-      ShaderGlobal::set_buffer(var::placeables, persistentData->placeablesBuffer.getBufId());
-      ShaderGlobal::set_buffer(var::placeable_weights, persistentData->placeableWeightsBuffer.getBufId());
+      ShaderGlobal::set_buffer(var::draw_ranges, persistentData->commonBuffers.drawRangesBuffer.getBufId());
+      ShaderGlobal::set_buffer(var::placeables, persistentData->commonBuffers.placeablesBuffer.getBufId());
+      ShaderGlobal::set_buffer(var::placeable_weights, persistentData->commonBuffers.placeableWeightsBuffer.getBufId());
       ShaderGlobal::set_buffer(var::placeable_tile_limits, persistentData->placeableTileLimitsBuffer.getBufId());
-      ShaderGlobal::set_buffer(var::renderable_indices, persistentData->renderableIndicesBuffer.getBufId());
+      ShaderGlobal::set_buffer(var::renderable_indices, persistentData->commonBuffers.renderableIndicesBuffer.getBufId());
       ShaderGlobal::set_buffer(var::instance_regions, persistentData->instanceRegionsBuffer.getBufId());
       ShaderGlobal::set_buffer(var::biomes, persistentData->biomesBuffer.getBufId());
-      ShaderGlobal::set_buffer(var::variants, persistentData->variantsBuffer.getBufId());
+      ShaderGlobal::set_buffer(var::variants, persistentData->commonBuffers.variantsBuffer.getBufId());
 
       ShaderGlobal::set_texture(var::density_mask, persistentData->densityMask);
 
@@ -232,7 +218,7 @@ static dabfg::NodeHandle create_place_node(const dabfg::NameSpace &ns,
       ShaderGlobal::set_real(var::max_placeable_bounding_radius, constants.maxPlaceableBoundingRadius);
       ShaderGlobal::set_real(var::tile_pos_delta, constants.tileWorldSize);
       ShaderGlobal::set_real(var::instance_pos_delta, constants.tileWorldSize / TILE_INSTANCE_COUNT_1D);
-      ShaderGlobal::set_real(var::debug_frustum_culling_bias, heightmap_frustum_culling_bias.get());
+      ShaderGlobal::set_real(var::debug_frustum_culling_bias, get_frustum_culling_bias());
 
       ShaderGlobal::set_int(var::prng_seed_jitter_x, constants.prngSeed + 0x4272ECD4u);
       ShaderGlobal::set_int(var::prng_seed_jitter_z, constants.prngSeed + 0x86E5A4D2u);
@@ -261,7 +247,7 @@ static dabfg::NodeHandle create_place_node(const dabfg::NameSpace &ns,
         ShaderGlobal::set_color4(var::viewport_pos, viewport.worldPos);
         ShaderGlobal::set_real(var::viewport_max_distance, min(viewport.maxDrawDistance, constants.viewInfo.maxDrawDistance));
         ShaderGlobal::set_int(var::viewport_index, viewportIndex);
-        ShaderGlobal::set_int(var::viewport_instance_offset, constants.maxInstancesPerViewport * viewportIndex);
+        ShaderGlobal::set_int(var::viewport_instance_offset, constants.maxStaticInstancesPerViewport * viewportIndex);
 
         bool res = shader.dispatchIndirect(indirectArgsHandle.view().getBuf(), viewportIndex * DISPATCH_INDIRECT_BUFFER_SIZE);
         G_ASSERT(res);
@@ -290,38 +276,17 @@ static void create_grid_nodes(const ViewInfo &view_info,
 {
   FRAMEMEM_REGION;
 
-  // Draw ranges are concatenated across variants, with `drawRangeStartIndex` marking the start of entries for the variant.
-  // For a single variant, (P * R) float distances are stored, where:
-  // - P = number of placeables in the variant.
-  // - R = number of ranges in the variant.
-  DrawRangesFmem drawRangesFmem;
+  if (grid.tiles.empty())
+    return;
 
-  // Renderable indices are concatenated across variants, with `renderableIndicesStartIndex` marking the start of entries for the
-  // variant. For a single variant, (P * R) renderable indices (IDs) are stored, where:
-  // - P = number of placeables in the variant.
-  // - R = number of ranges in the variant.
-  RenderableIndicesFmem renderableIndicesFmem;
-
-  dag::RelocatableFixedVector<Variant, 16, true, framemem_allocator> perVariantFmem;
   dag::RelocatableFixedVector<Biome, 128, true, framemem_allocator> perBiomeFmem;
+  CommonPlacerBufferInit commonBufferInit;
 
-  perVariantFmem.resize(grid.variants.size());
+  for (const auto &variant : grid.variants)
+    add_variant(commonBufferInit, variant.objectGroups, variant.effectiveDensity, 1.0f - variant.effectiveDensity / grid.density);
 
-  uint32_t pIdStart = 0;
-  for (const auto [variantIndex, variant] : enumerate(grid.variants))
-  {
-    perVariantFmem[variantIndex].drawRangeStartIndex = drawRangesFmem.size();
-    perVariantFmem[variantIndex].renderableIndicesStartIndex = renderableIndicesFmem.size();
-    perVariantFmem[variantIndex].placeableStartIndex = pIdStart;
-
-    calculate_draw_ranges(pIdStart, variant.objectGroups, drawRangesFmem, renderableIndicesFmem);
-
-    uint32_t numVariantPlaceables = 0;
-    for (const auto &objectGroup : variant.objectGroups)
-      numVariantPlaceables += objectGroup.info->placeables.size();
-
-    pIdStart += numVariantPlaceables;
-  }
+  if (commonBufferInit.numPlaceables == 0)
+    return;
 
   uint32_t maxBiomeIndex = 0;
   for (const auto &variant : grid.variants)
@@ -334,20 +299,17 @@ static void create_grid_nodes(const ViewInfo &view_info,
     for (const auto biomeIndex : variant.biomes)
       perBiomeFmem[biomeIndex].variantIndex = variantIndex;
 
-  if (grid.tiles.empty())
-    return;
-
   TmpName nameSpaceName(TmpName::CtorSprintf(), "heightmap_%zu", grid_index);
+  TmpName bufferNamePrefix(TmpName::CtorSprintf(), "dagdp_%s_heightmap_%zu", view_info.uniqueName.c_str(), grid_index);
   const dabfg::NameSpace ns = dabfg::root() / "dagdp" / view_info.uniqueName.c_str() / nameSpaceName.c_str();
   auto persistentData = eastl::make_shared<HeightmapPersistentData>();
   persistentData->densityMask = density_mask;
 
   HeightmapConstants &constants = persistentData->constants;
   constants.viewInfo = view_info;
-  constants.maxInstancesPerViewport = view_builder.maxInstancesPerViewport;
-  constants.numDrawRanges = drawRangesFmem.size();
+  constants.maxStaticInstancesPerViewport = view_builder.maxStaticInstancesPerViewport;
   constants.numTiles = grid.tiles.size();
-  constants.numPlaceables = pIdStart;
+  constants.numPlaceables = commonBufferInit.numPlaceables;
   constants.numBiomes = perBiomeFmem.size();
   constants.numRenderables = view_builder.numRenderables;
   constants.tileWorldSize = grid.tileWorldSize;
@@ -361,76 +323,9 @@ static void create_grid_nodes(const ViewInfo &view_info,
   constants.gridJitter = grid.gridJitter;
   constants.lowerLevel = grid.lowerLevel;
 
-  TmpName bufferNamePrefix(TmpName::CtorSprintf(), "dagdp_%s_heightmap_%zu", view_info.uniqueName.c_str(), grid_index);
-  {
-    TmpName bufferName(TmpName::CtorSprintf(), "%s_draw_ranges", bufferNamePrefix.c_str());
-    persistentData->drawRangesBuffer =
-      dag::buffers::create_persistent_sr_structured(sizeof(float), drawRangesFmem.size(), bufferName.c_str());
-
-    bool updated = persistentData->drawRangesBuffer->updateData(0, data_size(drawRangesFmem), drawRangesFmem.data(), VBLOCK_WRITEONLY);
-
-    if (!updated)
-    {
-      logerr("daGdp: could not update buffer %s", bufferName.c_str());
-      return;
-    }
-  }
-
-  {
-    TmpName bufferName(TmpName::CtorSprintf(), "%s_placeables", bufferNamePrefix.c_str());
-    persistentData->placeablesBuffer =
-      dag::buffers::create_persistent_sr_structured(sizeof(PlaceableGpuData), constants.numPlaceables, bufferName.c_str());
-
-    auto lockedBuffer =
-      lock_sbuffer<PlaceableGpuData>(persistentData->placeablesBuffer.getBuf(), 0, constants.numPlaceables, VBLOCK_WRITEONLY);
-    if (!lockedBuffer)
-    {
-      logerr("daGdp: could not lock buffer %s", bufferName.c_str());
-      return;
-    }
-
-    uint32_t i = 0;
-    for (const auto &variant : grid.variants)
-      for (const auto &objectGroup : variant.objectGroups)
-        for (const auto &placeable : objectGroup.info->placeables)
-        {
-          auto &item = lockedBuffer[i++];
-          const auto &params = placeable.params;
-
-          item.yawRadiansMin = md_min(params.yawRadiansMidDev);
-          item.yawRadiansMax = md_max(params.yawRadiansMidDev);
-          item.pitchRadiansMin = md_min(params.pitchRadiansMidDev);
-          item.pitchRadiansMax = md_max(params.pitchRadiansMidDev);
-          item.rollRadiansMin = md_min(params.rollRadiansMidDev);
-          item.rollRadiansMax = md_max(params.rollRadiansMidDev);
-          item.scaleMin = md_min(params.scaleMidDev);
-          item.scaleMax = md_max(params.scaleMidDev);
-          item.maxBaseDrawDistance = placeable.ranges.back().baseDrawDistance;
-          item.slopeFactor = params.slopeFactor;
-          item.flags = params.flags; // TODO: little-endian assumed.
-          item.riPoolOffset = params.riPoolOffset;
-        }
-  }
-
-  {
-    TmpName bufferName(TmpName::CtorSprintf(), "%s_placeable_weights", bufferNamePrefix.c_str());
-    persistentData->placeableWeightsBuffer =
-      dag::buffers::create_persistent_sr_structured(sizeof(float), constants.numPlaceables, bufferName.c_str());
-
-    auto lockedBuffer =
-      lock_sbuffer<float>(persistentData->placeableWeightsBuffer.getBuf(), 0, constants.numPlaceables, VBLOCK_WRITEONLY);
-    if (!lockedBuffer)
-    {
-      logerr("daGdp: could not lock buffer %s", bufferName.c_str());
-      return;
-    }
-
-    uint32_t i = 0;
-    for (const auto &variant : grid.variants)
-      for (const auto &objectGroup : variant.objectGroups)
-        for (const auto &placeable : objectGroup.info->placeables)
-          lockedBuffer[i++] = placeable.params.weight * (objectGroup.effectiveDensity / grid.density);
-  }
+  bool commonSuccess = init_common_placer_buffers(commonBufferInit, bufferNamePrefix, persistentData->commonBuffers);
+  if (!commonSuccess)
+    return;
 
   {
     TmpName bufferName(TmpName::CtorSprintf(), "%s_placeable_tile_limits", bufferNamePrefix.c_str());
@@ -439,21 +334,6 @@ static void create_grid_nodes(const ViewInfo &view_info,
 
     bool updated = persistentData->placeableTileLimitsBuffer->updateData(0, data_size(grid.placeablesTileLimits),
       grid.placeablesTileLimits.data(), VBLOCK_WRITEONLY);
-
-    if (!updated)
-    {
-      logerr("daGdp: could not update buffer %s", bufferName.c_str());
-      return;
-    }
-  }
-
-  {
-    TmpName bufferName(TmpName::CtorSprintf(), "%s_renderable_indices", bufferNamePrefix.c_str());
-    persistentData->renderableIndicesBuffer =
-      dag::buffers::create_persistent_sr_structured(sizeof(uint32_t), renderableIndicesFmem.size(), bufferName.c_str());
-
-    bool updated = persistentData->renderableIndicesBuffer->updateData(0, data_size(renderableIndicesFmem),
-      renderableIndicesFmem.data(), VBLOCK_WRITEONLY);
 
     if (!updated)
     {
@@ -507,40 +387,6 @@ static void create_grid_nodes(const ViewInfo &view_info,
     }
   }
 
-  {
-    TmpName bufferName(TmpName::CtorSprintf(), "%s_variants", bufferNamePrefix.c_str());
-    persistentData->variantsBuffer =
-      dag::buffers::create_persistent_sr_structured(sizeof(VariantGpuData), grid.variants.size(), bufferName.c_str());
-
-    auto lockedBuffer =
-      lock_sbuffer<VariantGpuData>(persistentData->variantsBuffer.getBuf(), 0, grid.variants.size(), VBLOCK_WRITEONLY);
-    if (!lockedBuffer)
-    {
-      logerr("daGdp: could not lock buffer %s", bufferName.c_str());
-      return;
-    }
-
-    uint32_t i = 0;
-    for (const auto &variant : grid.variants)
-    {
-      auto &item = lockedBuffer[i];
-      const bool isLastVariant = i == grid.variants.size() - 1;
-
-      item.placeableCount = 0;
-      for (const auto &objectGroup : variant.objectGroups)
-        item.placeableCount += objectGroup.info->placeables.size();
-
-      item.placeableWeightEmpty = 1.0f - variant.effectiveDensity / grid.density;
-      item.placeableStartIndex = perVariantFmem[i].placeableStartIndex;
-      item.placeableEndIndex = item.placeableStartIndex + item.placeableCount;
-      item.drawRangeStartIndex = perVariantFmem[i].drawRangeStartIndex;
-      item.drawRangeEndIndex = isLastVariant ? drawRangesFmem.size() : perVariantFmem[i + 1].drawRangeStartIndex;
-      item.renderableIndicesStartIndex = perVariantFmem[i].renderableIndicesStartIndex;
-
-      ++i;
-    }
-  }
-
   node_inserter(create_cull_tiles_node(ns, persistentData));
   node_inserter(create_place_node(ns, persistentData));
 }
@@ -548,7 +394,7 @@ static void create_grid_nodes(const ViewInfo &view_info,
 void create_heightmap_nodes(
   const ViewInfo &view_info, const ViewBuilder &view_builder, const HeightmapManager &heightmap_manager, NodeInserter node_inserter)
 {
-  if (view_builder.maxInstancesPerViewport == 0)
+  if (view_builder.totalMaxInstances == 0)
     return; // Nothing to do, early exit.
 
   // TODO: merge these separate grid nodes into a single node/dispatch.

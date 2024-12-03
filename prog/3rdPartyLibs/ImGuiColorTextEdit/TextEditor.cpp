@@ -14,6 +14,13 @@
 // --------------------------------------- //
 // ------------- Exposed API ------------- //
 
+#define HIGHLIGHT_MAX_FILE_LINES 30000
+#define HIGHLIGHT_MAX_LINE_LENGTH 4000
+#define MAX_HIGHLIGHTS_PER_LINE 20
+#define MAX_HIGHLIGHTS_PER_FILE 400
+#define HIGHLIGHT_FIRST_PASS_LINES_DISTANCE 30
+
+
 TextEditor::TextEditor()
 {
 	SetPalette(defaultPalette);
@@ -356,7 +363,7 @@ void TextEditor::ClearHighlights()
 
 void TextEditor::AddHighlight(int line, int start, int end)
 {
-	if (start > 32000 || end > 32000)
+	if (start > HIGHLIGHT_MAX_LINE_LENGTH || end > HIGHLIGHT_MAX_LINE_LENGTH)
 		return;
 
 	if (line >= (int)highlights.size())
@@ -368,8 +375,18 @@ void TextEditor::AddHighlight(int line, int start, int end)
 	if (highlights[line] == nullptr)
 		highlights[line] = new HighlightRanges();
 
-	if (highlights[line]->size() > 20)
+	if (highlights[line]->size() > MAX_HIGHLIGHTS_PER_LINE)
 		return;
+
+	if (!highlights[line]->empty())
+	{
+		auto &back = highlights[line]->back();
+		if (back.second == start)
+		{
+			back.second = end;
+			return;
+		}
+	}
 
 	highlights[line]->push_back({ start, end });
 }
@@ -1339,9 +1356,9 @@ void TextEditor::HighlightSelectedText()
 
 	for (int pass = 0; pass < 2; pass++)
 	{
-		for (int k = 0; k < Min((int)mLines.size(), 30000); k++)
+		for (int k = 0; k < Min((int)mLines.size(), HIGHLIGHT_MAX_FILE_LINES); k++)
 		{
-			bool insideRange = abs(k - highlightAroundLine) < 30;
+			bool insideRange = abs(k - highlightAroundLine) < HIGHLIGHT_FIRST_PASS_LINES_DISTANCE;
 			if ((pass == 0) != (insideRange))
 				continue;
 
@@ -1365,7 +1382,7 @@ void TextEditor::HighlightSelectedText()
 						AddHighlight(k, i, i + (int)sel.length());
 						i += (int)sel.length() - 1;
 						highlightedCount++;
-						if (highlightedCount > 400)
+						if (highlightedCount > MAX_HIGHLIGHTS_PER_FILE)
 							return;
 					}
 				}

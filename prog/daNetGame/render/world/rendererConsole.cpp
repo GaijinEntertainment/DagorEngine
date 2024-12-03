@@ -421,6 +421,20 @@ bool RendererConsole::processCommand(const char *argv[], int argc)
       get_world_renderer()->onSettingsChanged(changed, false); // won't cause videomode change anyway
     }
   }
+  CONSOLE_CHECK_NAME("render", "on_setting_change", 1, 2)
+  {
+    if (argc < 2)
+    {
+      console::print_d("usage: on_setting_change <setting name>."
+                       " Causes setting with specific name to be reloaded (from current settings)");
+    }
+    else
+    {
+      FastNameMap changed;
+      changed.addNameId(argv[1]);
+      get_world_renderer()->onSettingsChanged(changed, false); // won't cause videomode change anyway
+    }
+  }
   CONSOLE_CHECK_NAME("skies", "switchVolumetricAndPanoramicClouds", 1, 1)
   {
     ((WorldRenderer *)get_world_renderer())->switchVolumetricAndPanoramicClouds();

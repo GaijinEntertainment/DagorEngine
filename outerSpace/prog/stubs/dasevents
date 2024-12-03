@@ -1,0 +1,10 @@
+return {
+  broadcastNetEvent = @(eventInstance, connectids = null) assert(type(eventInstance)=="instance" && ["null","array"].contains(type(connectids)))
+  sendNetEvent = @(_eid, eventInstance, connectids = null) assert(type(eventInstance)=="instance" && ["null","array"].contains(type(connectids)))
+  EventGameSessionFinished = class { disconnected = false constructor(disconnected) {
+    assert(type(disconnected) == "bool", @() $"field 'disconnected' type error, expected 'bool', got '{type(disconnected)}'") // bool
+  } }
+  EventGameSessionStarted = class {  }
+  EventSessionFinishedOnWin = class { byPlayer = null scores = null constructor() {} }
+  EventSessionFinishedOnTimeout = class { }
+}

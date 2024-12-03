@@ -237,14 +237,15 @@ public:
   class ConstBuffer
   {
   public:
-    int device_buffer_offset = 0;
     id<MTLBuffer> is_binded = nil;
+    int device_buffer_offset = 0;
     int is_binded_offset = -1;
 
-    int cbuffer_offset;
-    uint8_t *cbuffer = nullptr;
+    uint8_t cbuffer[MAX_CBUFFER_SIZE];
+    uint8_t cbuffer_cache[MAX_CBUFFER_SIZE];
 
     int num_strored = 0;
+    int num_last_bound = 0;
 
     void init();
     void destroy();

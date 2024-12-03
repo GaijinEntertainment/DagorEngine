@@ -1,0 +1,8 @@
+east_district_ambient_sound{
+  _use:t="ambient_sound"
+  _singleton:b=yes
+  _group{
+    _tags:t="sound"
+    ambient_sound__path:t="ambient/africa"
+  }
+}

@@ -332,7 +332,7 @@ public:
 #if _TARGET_PC_WIN // For Fraps and other 3rd parties that hook d3d present
       512 << 10,
 #else
-      128 << 10,
+      256 << 10,
 #endif
       // we increase priority by one step to match main thread priority
       cpujobs::DEFAULT_THREAD_PRIORITY - cpujobs::THREAD_PRIORITY_LOWER_STEP,

@@ -9,6 +9,7 @@
 #include <EASTL/type_traits.h>
 #include <EASTL/algorithm.h>
 #include <EASTL/numeric.h>
+#include <vecmath/dag_vecMathDecl.h>
 #include <debug/dag_assert.h>
 #include "dag_bitset.h"
 
@@ -85,8 +86,6 @@ class ObjectPool
 {
   // Shortcut for block search order
   using BlockSearchOrder = typename Policy::BlockSearchOrder;
-  // Shortcut for memory provider
-  using StorageUnit = typename eastl::aligned_storage<sizeof(T)>::type;
 
   // Implements constructor handler for trivially constructible types
   template <bool isTrivial = true, bool = false>
@@ -130,18 +129,38 @@ class ObjectPool
                        DestructorHandler<eastl::is_trivially_destructible<T>::value, false>
   {};
 
-  struct Block : Policy::template BlockData<T, BlockSize>
+  class Block : public Policy::template BlockData<T, BlockSize>
   {
+    using StorageUnit = typename eastl::aligned_storage<sizeof(T), alignof(T)>::type;
+
+#if !defined(DAGOR_ASAN_ENABLED)
     // Don't initialize block memory - don't waste any time for that, if possible - its perfectly fine
     StorageUnit objects[BlockSize]; //-V730
+#else
+    // Under ASAN, we want dedicated allocation to get propper use-after-free reports w/ callstacks
+    // Simply poisoning aligned_storage wouldn't work, see https://github.com/google/sanitizers/issues/191
+    StorageUnit *objects[BlockSize]{nullptr};
+#endif
 
+  public:
+#if !defined(DAGOR_ASAN_ENABLED)
     T *get(size_t index) { return reinterpret_cast<T *>(&objects[index]); }
     void *get_raw(size_t index) { return &objects[index]; }
     const T *get(size_t index) const { return reinterpret_cast<const T *>(&objects[index]); }
     const void *get_raw(size_t index) const { return &objects[index]; }
+#else
+    T *get(size_t index) { return reinterpret_cast<T *>(objects[index]); }
+    void *get_raw(size_t index) { return objects[index]; }
+    const T *get(size_t index) const { return reinterpret_cast<const T *>(objects[index]); }
+    const void *get_raw(size_t index) const { return objects[index]; }
+#endif
+
     T *acquireSlot(size_t i)
     {
       this->markAsAllocated(i);
+#if defined(DAGOR_ASAN_ENABLED)
+      objects[i] = ::new StorageUnit;
+#endif
       return get(i);
     }
     template <typename... Args>
@@ -149,14 +168,31 @@ class ObjectPool
     {
       return TypeHandler::construct(acquireSlot(i), eastl::forward<Args>(args)...);
     }
+#if !defined(DAGOR_ASAN_ENABLED)
     // Calculates offset from &objects[0] to ptr. This value can be anything, negative values and values outside of this block.
     ptrdiff_t calculate_relative_offset(const T *ptr) const { return reinterpret_cast<const StorageUnit *>(ptr) - &objects[0]; }
+#else
+    ptrdiff_t calculate_relative_offset(const T *ptr) const
+    {
+      for (size_t i = 0; i < BlockSize; ++i)
+        if (reinterpret_cast<uintptr_t>(objects[i]) == reinterpret_cast<uintptr_t>(ptr))
+          return i;
+      return -1;
+    }
+#endif
     bool isPartOf(T *ptr) const
     {
-      auto offset = calculate_relative_offset(ptr);
+      const auto offset = calculate_relative_offset(ptr);
       return offset >= 0 && offset < BlockSize;
     }
-    void release(T *ptr) { this->markAsFree(calculate_relative_offset(ptr)); }
+    void release(T *ptr)
+    {
+      const auto offset = calculate_relative_offset(ptr);
+#if defined(DAGOR_ASAN_ENABLED)
+      ::delete eastl::exchange(objects[offset], nullptr);
+#endif
+      this->markAsFree(offset);
+    }
     void free(T *ptr)
     {
       TypeHandler::destruct(ptr);

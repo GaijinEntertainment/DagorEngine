@@ -1,0 +1,272 @@
+entity{
+  _template:t="ri_gpu_object"
+//  ri_gpu_object__name:t="ground_plant_fern_a"
+  ri_gpu_object__biom_indexes:p4=5, 10, -1, -1
+  ri_gpu_object__grid_size:i=16
+  ri_gpu_object__grid_tiling:i=15
+  ri_gpu_object__cell_size:r=4
+  ri_gpu_object__incline_delta:r=5
+  ri_gpu_object__scale_range:p2=0.3, 1.7
+  ri_gpu_object__rotate_range:p2=30, 360
+  ri_gpu_object__seed:i=112
+  ri_gpu_object__is_using_normal:b=yes
+  ri_gpu_object__up_vector:p3=0, 1, 0
+  ri_gpu_object__sparse_weight:r=8
+
+  "ri_gpu_object__multiple_objects:array"{
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shard_bright_a"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shard_bright_b"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shard_bright_c"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shard_bright_d"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shard_bright_e"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shard_bright_f"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shard_bright_g"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shard_bright_h"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shard_bright_i"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shard_bright_j"
+      weight:r=1
+    }
+  }
+}
+
+
+entity{
+  _template:t="ri_gpu_object"
+//  ri_gpu_object__name:t="ground_plant_fern_a"
+  ri_gpu_object__biom_indexes:p4=16, 17, 13, -1
+  ri_gpu_object__grid_size:i=8
+  ri_gpu_object__grid_tiling:i=12
+  ri_gpu_object__cell_size:r=8
+  ri_gpu_object__incline_delta:r=30
+  ri_gpu_object__scale_range:p2=0.3, 1.5
+  ri_gpu_object__rotate_range:p2=30, 360
+  ri_gpu_object__seed:i=113
+  ri_gpu_object__is_using_normal:b=yes
+  ri_gpu_object__up_vector:p3=0, 1, 0
+  ri_gpu_object__sparse_weight:r=16
+
+  "ri_gpu_object__multiple_objects:array"{
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shard_bright_a"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shard_bright_b"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shard_bright_c"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shard_bright_d"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shard_bright_e"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shard_bright_f"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shard_bright_g"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shard_bright_h"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shard_bright_i"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shard_bright_j"
+      weight:r=1
+    }
+  }
+}
+
+entity{
+  _template:t="ri_gpu_object"
+//  ri_gpu_object__name:t="ground_plant_fern_a"
+  ri_gpu_object__biom_indexes:p4=13, 15, -1, -1
+  ri_gpu_object__grid_size:i=8
+  ri_gpu_object__grid_tiling:i=27
+  ri_gpu_object__cell_size:r=8
+  ri_gpu_object__incline_delta:r=5
+  ri_gpu_object__scale_range:p2=0.5, 1.8
+  ri_gpu_object__rotate_range:p2=70, 360
+  ri_gpu_object__seed:i=113
+  ri_gpu_object__is_using_normal:b=yes
+  ri_gpu_object__up_vector:p3=0, 1, 0
+  ri_gpu_object__sparse_weight:r=16
+
+  "ri_gpu_object__multiple_objects:array"{
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shoreline_rounded_a"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shoreline_rounded_b"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shoreline_rounded_c"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shoreline_rounded_d"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shoreline_rounded_e"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shoreline_rounded_f"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shoreline_rounded_g"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shoreline_rounded_h"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shoreline_rounded_i"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shoreline_rounded_j"
+      weight:r=1
+    }
+  }
+}
+
+entity{
+  _template:t="ri_gpu_object"
+//  ri_gpu_object__name:t="ground_plant_fern_a"
+  ri_gpu_object__biom_indexes:p4=14, -1, -1, -1
+  ri_gpu_object__grid_size:i=8
+  ri_gpu_object__grid_tiling:i=12
+  ri_gpu_object__cell_size:r=8
+  ri_gpu_object__incline_delta:r=5
+  ri_gpu_object__scale_range:p2=0.5, 1.8
+  ri_gpu_object__rotate_range:p2=70, 360
+  ri_gpu_object__seed:i=9113
+  ri_gpu_object__is_using_normal:b=yes
+  ri_gpu_object__up_vector:p3=0, 1, 0
+  ri_gpu_object__sparse_weight:r=32
+
+  "ri_gpu_object__multiple_objects:array"{
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shoreline_rounded_a"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shoreline_rounded_b"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shoreline_rounded_c"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shoreline_rounded_d"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shoreline_rounded_e"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shoreline_rounded_f"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shoreline_rounded_g"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shoreline_rounded_h"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shoreline_rounded_i"
+      weight:r=1
+    }
+
+    "ri_gpu_object__multiple_objects:object"{
+      name:t="sample_stone_small_shoreline_rounded_j"
+      weight:r=1
+    }
+  }
+}

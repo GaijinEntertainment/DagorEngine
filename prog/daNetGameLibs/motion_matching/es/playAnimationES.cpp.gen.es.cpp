@@ -200,10 +200,9 @@ static constexpr ecs::ComponentDesc motion_matching_ecs_query_comps[] =
   {ECS_HASH("motion_matching__animationBlendTime"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("motion_matching__presetBlendTimeLeft"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("motion_matching__goalFeature"), ecs::ComponentTypeInfo<FrameFeatures>()},
-//start of 6 ro components at [6]
+//start of 5 ro components at [6]
   {ECS_HASH("motion_matching__blendTimeToAnimtree"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("motion_matching__distanceFactor"), ecs::ComponentTypeInfo<float>()},
-  {ECS_HASH("motion_matching__trajectoryTolerance"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("motion_matching__presetIdx"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("motion_matching__enabled"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("animchar__visible"), ecs::ComponentTypeInfo<bool>()}
@@ -212,7 +211,7 @@ static ecs::CompileTimeQueryDesc motion_matching_ecs_query_desc
 (
   "motion_matching_ecs_query",
   make_span(motion_matching_ecs_query_comps+0, 6)/*rw*/,
-  make_span(motion_matching_ecs_query_comps+6, 6)/*ro*/,
+  make_span(motion_matching_ecs_query_comps+6, 5)/*ro*/,
   empty_span(),
   empty_span()
   , 1);
@@ -234,7 +233,6 @@ inline void motion_matching_ecs_query(Callable function)
             , ECS_RW_COMP(motion_matching_ecs_query_comps, "motion_matching__presetBlendTimeLeft", float)
             , ECS_RO_COMP(motion_matching_ecs_query_comps, "motion_matching__blendTimeToAnimtree", float)
             , ECS_RO_COMP(motion_matching_ecs_query_comps, "motion_matching__distanceFactor", float)
-            , ECS_RO_COMP(motion_matching_ecs_query_comps, "motion_matching__trajectoryTolerance", float)
             , ECS_RW_COMP(motion_matching_ecs_query_comps, "motion_matching__goalFeature", FrameFeatures)
             , ECS_RO_COMP(motion_matching_ecs_query_comps, "motion_matching__presetIdx", int)
             , ECS_RO_COMP(motion_matching_ecs_query_comps, "motion_matching__enabled", bool)

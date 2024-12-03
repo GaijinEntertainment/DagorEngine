@@ -20,10 +20,10 @@
 namespace watchdog
 {
 
-#if EA_ASAN_ENABLED || defined(__SANITIZE_ADDRESS__) // Note: octet per mode
-static constexpr uint32_t THRESHOLDS_MULTIPLIERS = 0x030305;
+#if EA_ASAN_ENABLED || defined(__SANITIZE_ADDRESS__) // Note: num-1|denom-1 (nible) per mode
+static constexpr uint32_t THRESHOLDS_MULTIPLIERS = 0x202040;
 #else
-static constexpr uint32_t THRESHOLDS_MULTIPLIERS = 0x010101;
+static constexpr uint32_t THRESHOLDS_MULTIPLIERS = 0x000021;
 #endif
 
 #if (DAGOR_DBGLEVEL > 0 || _TARGET_PC) && !DAGOR_THREAD_SANITIZER
@@ -105,10 +105,11 @@ static void enable_from_config(const DataBlock *blk)
     curMode.callstacks = (dice < chance) ? curMode.callstacks : gCallstacksThreshold;
     curMode.sleep = (dice < chance) ? curMode.sleep : gSleepTime;
 
-    int mult = (THRESHOLDS_MULTIPLIERS >> (i * CHAR_BIT)) & UCHAR_MAX;
-    curMode.trigger *= mult;
-    curMode.callstacks *= mult;
-    curMode.sleep *= mult;
+    uint8_t numdenom = (THRESHOLDS_MULTIPLIERS >> (i * CHAR_BIT)) & UCHAR_MAX;
+    auto mult = [&](uint32_t v) { return v * ((numdenom >> 4) + 1) / ((numdenom & 0b1111) + 1); };
+    curMode.trigger = mult(curMode.trigger);
+    curMode.callstacks = mult(curMode.callstacks);
+    curMode.sleep = mult(curMode.sleep);
   }
 
   do_change_mode(WatchdogMode::LOADING,

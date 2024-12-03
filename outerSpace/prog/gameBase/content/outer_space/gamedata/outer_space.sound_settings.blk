@@ -1,0 +1,42 @@
+maxChannels:i=1024
+commandQueueSize:i=65536
+maxSoftwareChannels:i=128
+maxVorbisCodecs:i=128
+streamBufferSizeKb:i=96
+randomizeSeed:b=yes
+maxEventInstances:i=64
+maxOneshotEventInstances:i=32
+rejectFarOneshots:b=yes
+memoryTrackingMode:b=no // may affect performance
+
+memoryPc:i=200
+memoryPCLowMode:i=200
+memoryPCHighMode:i=200
+memoryPS4:i=200
+
+fmodLoglevel:t="warnings" // valid values are: "errors", "warnings" and "log", default is "errors"
+loglevel:t="errors" // valid values are: "all", "errors" and "warnings", default is "errors"
+
+//fmodProfile:b=yes // disabled by default, only for setup sounds in Live mode
+//fmodLiveUpdate:b=yes // disabled by default, only for setup sounds in Live mode
+
+vca {
+  master {}
+  ui {}
+  sfx {}
+  music {}
+}
+muteableVca:t=""
+
+banks {
+  presets {
+    master {
+      Master {async:b=yes; preload:b=yes; loadToMemory:b=yes;}
+      "Master.strings" {async:b=yes; preload:b=yes; loadToMemory:b=yes;}
+    }
+  } // presets
+
+  languageToLocale {
+    default:t="en"
+  }
+} // banks

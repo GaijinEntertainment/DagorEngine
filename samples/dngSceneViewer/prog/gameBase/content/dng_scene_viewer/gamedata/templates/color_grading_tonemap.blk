@@ -1,0 +1,200 @@
+postfx_color_grading_tonemap{
+  _singleton:b=yes
+  _tracked:t="color_grading"
+  _tracked:t="tonemap"
+  _tracked:t="white_balance"
+  _use:t="replicating"
+
+  "color_grading:object"{
+    colorSaturation:p4=1, 1, 1, 1
+    colorContrast:p4=1, 1, 1, 1
+    colorGamma:p4=1, 1, 1, 1
+    colorGain:p4=1, 1, 1, 1
+    colorOffset:p4=0, 0, 0, 0
+    hueToSaturationKey:p4=1, 0, 0, 0
+    hueToSaturationKeyFalloff:r=0.001
+    hueToSaturationValueMul:p4=1, 1, 1, 1
+    hueToSaturationValueAdd:p4=0, 0, 0, 0
+    shadows_colorSaturation:p4=1, 1, 1, 1
+    shadows_colorContrast:p4=1, 1, 1, 1
+    shadows_colorGamma:p4=1, 1, 1, 1
+    shadows_colorGain:p4=1, 1, 1, 1
+    shadows_colorOffset:p4=0, 0, 0, 0
+    midtones_colorSaturation:p4=1, 1, 1, 1
+    midtones_colorContrast:p4=1, 1, 1, 1
+    midtones_colorGamma:p4=1, 1, 1, 1
+    midtones_colorGain:p4=1, 1, 1, 1
+    midtones_colorOffset:p4=0, 0, 0, 0
+    highlights_colorSaturation:p4=1, 1, 1, 1
+    highlights_colorContrast:p4=1, 1, 1, 1
+    highlights_colorGamma:p4=1, 1, 1, 1
+    highlights_colorGain:p4=1, 1, 1, 1
+    highlights_colorOffset:p4=0, 0, 0, 0
+    colorCorrectionShadowsMax:r=0.1
+    colorCorrectionHighlightsMin:r=0.8
+    _tags:t="render"
+  }
+
+  "tonemap:object"{
+    tonemapContrast:r=1.28
+    tonemapShoulder:r=0.85
+    tonemapMidIn:r=0.08
+    tonemapMidOut:r=0.18
+    tonemapHdrMax:r=4
+    _tags:t="render"
+  }
+
+  "white_balance:object"{
+    whiteTemp:r=6500
+    whiteTint:r=0
+    _tags:t="render"
+  }
+
+  "tonemapper:tag"{
+    _tags:t="render"
+  }
+
+  "tonemap_save:object"{
+    _tags:t="render"
+  }
+
+  "color_grading_items:array"{
+    _tags:t="render"
+  }
+}
+
+edit_color_grading{
+  _singleton:b=yes
+
+  "edit_color_grading:object"{
+    colorSaturation:p4=1, 1, 1, 1
+    colorContrast:p4=1, 1, 1, 1
+    colorGamma:p4=1, 1, 1, 1
+    colorGain:p4=1, 1, 1, 1
+    colorOffset:p4=0, 0, 0, 0
+    hueToSaturationKey:p4=1, 0, 0, 0
+    hueToSaturationKeyFalloff:r=0.001
+    hueToSaturationValueMul:p4=1, 1, 1, 1
+    hueToSaturationValueAdd:p4=0, 0, 0, 0
+    shadows_colorSaturation:p4=1, 1, 1, 1
+    shadows_colorContrast:p4=1, 1, 1, 1
+    shadows_colorGamma:p4=1, 1, 1, 1
+    shadows_colorGain:p4=1, 1, 1, 1
+    shadows_colorOffset:p4=0, 0, 0, 0
+    midtones_colorSaturation:p4=1, 1, 1, 1
+    midtones_colorContrast:p4=1, 1, 1, 1
+    midtones_colorGamma:p4=1, 1, 1, 1
+    midtones_colorGain:p4=1, 1, 1, 1
+    midtones_colorOffset:p4=0, 0, 0, 0
+    highlights_colorSaturation:p4=1, 1, 1, 1
+    highlights_colorContrast:p4=1, 1, 1, 1
+    highlights_colorGamma:p4=1, 1, 1, 1
+    highlights_colorGain:p4=1, 1, 1, 1
+    highlights_colorOffset:p4=0, 0, 0, 0
+    colorCorrectionShadowsMax:r=0.1
+    colorCorrectionHighlightsMin:r=0.4
+    _tags:t="render"
+  }
+
+  "edit_tonemap:object"{
+    tonemapContrast:r=1.28
+    tonemapShoulder:r=0.85
+    tonemapMidIn:r=0.08
+    tonemapMidOut:r=0.18
+    tonemapHdrMax:r=4
+    _tags:t="render"
+  }
+
+  "edit_white_balance:object"{
+    whiteTemp:r=6500
+    whiteTint:r=0
+    _tags:t="render"
+  }
+}
+
+postfx_color_grading_tonemap_death_alive{
+  _use:t="postfx_color_grading_tonemap"
+  _singleton:b=yes
+
+  "color_grading__death:object"{
+    colorSaturation:p4=1, 1, 1, 0.3
+    colorContrast:p4=1, 1, 1, 1.2
+    colorGamma:p4=5, 1.2, 0.9, 0.3
+    colorGain:p4=2, 1, 0.4, 0.4
+    _tags:t="render"
+  }
+
+  "color_grading__downed:object"{
+    colorSaturation:p4=1, 1, 1, 0.3
+    colorContrast:p4=1, 1, 1, 1.1
+    colorGamma:p4=1.2, 1, 0.9, 0.8
+    colorGain:p4=1, 1, 1, 2
+    timings:p3=0.1, 10000, 0
+    _tags:t="render"
+  }
+
+  "color_grading__alive:object"{
+    colorSaturation:p4=1, 1, 1, 1
+    colorContrast:p4=1, 1, 1, 1
+    colorGamma:p4=1, 1, 1, 1
+    colorGain:p4=1, 1, 1, 1
+    _tags:t="render"
+  }
+
+  "color_grading__is_no_vision:object"{
+    colorSaturation:p4=0.6, 0.3, 0.2, 0.3
+    colorContrast:p4=0.5, 0.4, 0.35, 0.9
+    colorGamma:p4=0.9, 0.9, 0.9, 0.3
+    colorGain:p4=2, 1, 0.4, 0.4
+    _tags:t="render"
+  }
+
+  "color_grading__burning:object"{
+    colorSaturation:p4=1, 1, 1, 0.3
+    colorContrast:p4=1, 1, 1, 1.2
+    colorGamma:p4=5, 1.2, 0.9, 0.3
+    colorGain:p4=2, 1, 0.4, 0.4
+    _tags:t="render"
+  }
+
+  "color_grading__concussion:object"{
+    colorSaturation:p4=1, 1, 1, 0.3
+    colorContrast:p4=1, 1, 1, 1.1
+    colorGamma:p4=0.9, 0.9, 0.9, 0.8
+    colorGain:p4=1, 1, 1, 2
+    timings:p3=0, 0.5, 2
+    _tags:t="render"
+  }
+}
+
+lut{
+  _use:t="postfx_color_grading_tonemap_death_alive"
+  _singleton:b=yes
+  _use:t="replicating"
+}
+
+//custom tonemaps
+postfx_color_grading_tonemap_menu{
+  _use:t="postfx_color_grading_tonemap"
+  _singleton:b=yes
+
+  "tonemap:object"{
+    tonemapMidOut:r=0.07
+    tonemapMidIn:r=0.16
+    tonemapShoulder:r=0.925
+    tonemapContrast:r=1.8
+    tonemapHdrMax:r=8
+    _tags:t="render"
+  }
+
+  "color_grading:object"{
+    colorContrast:p4=1.2, 1, 1, 1
+    _tags:t="render"
+  }
+
+  "white_balance:object"{
+    whiteTint:r=0
+    whiteTemp:r=7500
+    _tags:t="render"
+  }
+}

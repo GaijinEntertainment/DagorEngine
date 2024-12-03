@@ -1,0 +1,3 @@
+include "../../../../prog/daNetGame/shaders/_build/shaders_dx12.blk"
+include "game_common_override.blk"
+"@override:outDumpName":t="../../viewer/compiledShaders/gameDX12"

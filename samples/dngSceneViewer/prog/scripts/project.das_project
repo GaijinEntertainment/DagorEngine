@@ -1,0 +1,55 @@
+options indenting = 2
+require strings
+require %daslib/strings_boost
+
+var
+  DAS_PAK_ROOT = "."
+
+let
+  commonMountPointPrefixes <- {{
+    "ecs" => "%dasGameLibs/ecs";
+    "math" => "%dasGameLibs/math";
+    "daBfg" => "%dasGameLibs/daBfg";
+    "daslib" => "%dngdas/daslib";
+    "danetlibs" => "%danetlibs";
+    "imgui" => "%dngdas/imgui";
+    "debug" => "%dngdas/das/debug";
+    "remote" => "%dngdas/das/remote";
+
+    "sound_utils" => "%danetlibs/sound/sound_utils";
+    "sound_utils_net" => "%danetlibs/sound/sound_utils_net";
+    "common_sounds" => "%danetlibs/sound/common_sounds";
+    "environment_sounds" => "%danetlibs/sound/environment_sounds";
+  }}
+  commonAliasPath <- {{
+    "daBfg" => "%dasGameLibs/daBfg/daBfg.das"
+  }}
+
+[export]
+def module_get(req, from:string) : tuple<string;string;string> const
+  var rs <- split_by_chars(req,"./")
+
+  let mod_name = rs[length(rs)-1]
+  let path_name = join(rs,"/") + ".das"
+
+  let aliasPath = commonAliasPath?[req] ?? ""
+  if aliasPath != ""
+    return [[auto req, aliasPath, ""]]
+
+  if is_in_aot() && path_name == "daslib/debug.das"
+    return [[auto "", "", ""]]
+
+  if starts_with(req, "%")
+    return [[auto mod_name, path_name, ""]]
+
+  let alias_name = rs[length(rs)-1]
+  var prefix = unsafe(commonMountPointPrefixes?[rs[0]])
+  if prefix != null
+    rs |> erase(0)
+    return [[auto mod_name, "{*prefix}/{join(rs,"/")}.das", alias_name]]
+
+  return [[auto mod_name, "{DAS_PAK_ROOT}/{join(rs,"/")}.das", alias_name]]
+
+[export]
+def include_get(inc,from:string) : string
+  return starts_with(inc, "%") ? inc : "{DAS_PAK_ROOT}/{inc}"

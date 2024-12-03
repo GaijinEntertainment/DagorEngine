@@ -158,7 +158,6 @@ if (shader != dafx_modfx_bboard_render_fom)
   (ps) { dafx_is_water_proj@i1 = dafx_is_water_proj; }
   hlsl
   {
-    #define DO_NOT_FILTER_GI_AMBIENT_BY_NORMAL_WEIGHT 1
     #define MODFX_USE_GI 1
     #define MODFX_WATER_PROJ_IGNORES_LIGHTING 1
   }
@@ -168,7 +167,9 @@ if (shader != dafx_modfx_bboard_render_fom)
     {
       float3 pointToEye = world_view_pos - wpos;
       float3 ambientDir = normalize(pointToEye);
-      float3 ambient =  get_directional_volumetric_ambient(world_view_pos, saturate(screenPos.xy/max(1e-6, screenPos.w) * float2(0.5,-0.5) + 0.5), max(0, screenPos.w), wpos, ambientDir, ambientDir, length(pointToEye));
+      //float3 ambient = get_directional_volumetric_ambient(world_view_pos, saturate(screenPos.xy/max(1e-6, screenPos.w) * float2(0.5,-0.5) + 0.5), max(0, screenPos.w), wpos, ambientDir, -ambientDir, length(pointToEye));
+      //float3 ambient = get_undirectional_volumetric_ambient(world_view_pos.xyz, saturate(screenPos.xy/max(1e-6, screenPos.w) * float2(0.5,-0.5) + 0.5), max(0, screenPos.w), wpos, -ambientDir*0, length(pointToEye)*0);
+      float3 ambient = get_phased_volumetric_ambient(world_view_pos.xyz, saturate(screenPos.xy/max(1e-6, screenPos.w) * float2(0.5,-0.5) + 0.5), max(0, screenPos.w), wpos, ambientDir, 0.66, -ambientDir, length(pointToEye));
       ambient *= skylight_gi_weight_atten;
       return ambient;
     }

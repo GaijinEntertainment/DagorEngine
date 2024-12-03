@@ -1,0 +1,7 @@
+include "../../../../prog/daNetGame/shaders/_build/shaders_tools11.blk"
+mountPoint:t=".."
+incDir:t="../../../prog/daNetGameLibs"
+"@override:outDumpName":t="../../develop/toolShaders/tools"
+"@override:source" {
+  include "model_shaders_list.blk"
+}

@@ -1,0 +1,77 @@
+scatteringEffect:p2 = 0,0
+cloud_shadow_intensity:r=0.9
+
+sky{
+  mie_height:p2=0.9, 1.5
+  mieG:p2=0.2, 0.7
+  betaMScale:p2=0.5, 2.0
+  clouds_overcast:p2=0.1, 0.1
+}
+
+clouds_gen{
+  humidity:p2=-0.1, 0.2
+  persistence:p2=0.36, 0.5
+  asymmetry:p2=0.05, 0.12
+}
+
+clouds_position{
+  sizeX:p2=111, 111
+  sizeZ:p2=99, 99
+  start_altitude:p2=1.2, 2.5
+  thickness:p2=2.2, 5.0
+  light_extinction:p2=0.25, 0.5
+  amb_extinction_mul:p2=0.5, 1.0
+}
+
+clouds_render{
+  silver_lining:p2=0.5, 0.7
+  sun_light:p2=0.5, 0.6
+  ambient:p2=0.35, 0.5
+  silver_lining_eccentricity:p2=0.4, 0.7
+}
+
+strata_clouds{
+  amount:p2=-0.15, 0.22
+  altitude:p2=8, 11.9
+}
+
+windParams{
+  defaultWindSpeed:r = 0.1
+  height0:r = 500
+  turbulence0:r = 0.9
+  windMul0:r = 1
+  height1:r = 2000
+  turbulence1:r = 0.3
+  windMul1:r = 0.5
+  height2:r = 8000
+  turbulence2:r = 0.01
+  windMul2:r = 0.01
+  // wind spead multiplier affect on speed from previous height
+  // so windSpeed(5000) = windSpeed(2000) * windMul2 = (windSpeed(1000) * windMul1) * windMul2 =
+  // ((windSpeed(0) * windMul0) * windMul1) * windMul2
+}
+wind_strength:r = 3.9
+
+rain{probability:r=0.0;}
+
+dustMul:r = 1
+mudMul:r = 1
+
+rainSplashFxType:t = "rain_splash"
+rainSplashEnabled:b = no
+rainSound:t = "rain"
+
+skyLightFactor:r = 1
+cloudDropletsScale:r = 0.5
+cloudAircraftReflectMul:r = 4
+cloudAircraftReflectPowerMul:r = 0.5
+
+clouds_fly_cube_tex:t = "cloud_fly_cube"
+
+rainDroplets {
+  droplets_scale:r = 1
+  droplets_reflection_min:r = 0.1
+  droplets_reflection_max:r = 0.3
+  droplets_size_scale:p3 = 20, 20, 4
+  droplets_speed:r = 0.9
+}

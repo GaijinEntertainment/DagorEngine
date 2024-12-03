@@ -158,14 +158,14 @@ static SQInteger connect_to_session_sq(HSQUIRRELVM vm)
 
 static void reload_ui_scripts(bool hard_reload)
 {
-  bool hadEnlistScene = overlay_ui::gui_scene() != nullptr;
-  if (hadEnlistScene && hard_reload)
+  bool hadOverlayScene = overlay_ui::gui_scene() != nullptr;
+  if (hadOverlayScene && hard_reload)
     overlay_ui::shutdown_ui(false);
 
   // USER UI VM
   user_ui::reload_user_ui_script(hard_reload);
 
-  if (hadEnlistScene && hard_reload)
+  if (hadOverlayScene && hard_reload)
     overlay_ui::init_ui();
 }
 

@@ -73,7 +73,7 @@ unsigned int ShaderCode::getVertexStride() const
 void ShaderClass::sortStaticVarsByMode()
 {
   Tab<eastl::pair<Var, int>> argvars{};
-  argvars.reserve(stvar.size());
+  argvars.resize(stvar.size());
   int i = 0;
   eastl::transform(stvar.cbegin(), stvar.cend(), argvars.begin(), [&i](const Var &var) { return eastl::make_pair(var, i++); });
 

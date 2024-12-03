@@ -10,7 +10,7 @@
 // if allocating (and de-allocating) in order, performance will be 10X times faster than dlmalloc (for blocks of 16 bytes)
 // if de-allocating out of order, performance will be 2X times faster than dlmalloc (for blocks of 16 bytes)
 // the best property of it, is that it is allocating memory tight (no service information or padding)
-// minimum block size is 4 bytes (i.e. if you will use it for smaller blocks, it will waste space)
+// minimum block size is 2 bytes (i.e. if you will use it for smaller blocks, it will waste space)
 // NOTE! it doesn't keep alignment of 16 if block size is not 16 bytes aligned!
 // if you want to align to 16 block of different size, you can use align_to_if_bigger
 // if you want to have such alignment (probably for bigger chunks, use aligned block size)
@@ -20,11 +20,10 @@
 
 #include <memory.h>
 #include <string.h>
-#include <memory/dag_memBase.h>
-#include <util/dag_globDef.h>
-#include <util/dag_stdint.h>
 
-#define FBA_MIN_BLOCKS 4u // minimum block size should allow storing free block index
+#include <memory/dag_fixedBlockChunk.h>
+
+#define FBA_MIN_BLOCKS 2u // minimum block size should allow storing free block index
 
 #if !defined(DAGOR_PREFER_HEAP_ALLOCATION) || DAGOR_PREFER_HEAP_ALLOCATION == 0
 
@@ -44,7 +43,7 @@
 struct FixedBlockAllocator
 {
 protected:
-  struct Chunk;
+  typedef FixedBlockChunkData Chunk;
 
 public:
   void *allocateOneBlock();   // of block size
@@ -54,7 +53,10 @@ public:
   bool freeContiguousBlocks(void *b, unsigned block_cnt); // return false, if block doesn't belong to allocator. Warning, double delete
                                                           // isn't checked in dev build (would require iteration)
 
-  Chunk *isValidPtr(void *b) const; // return not nullptr if pointer resides in ranges controlled by this allocator
+  bool isValidPtr(void *b) const
+  {
+    return getChunk(b) != nullptr;
+  }; // return not nullptr if pointer resides in ranges controlled by this allocator
 
   int clear();                   // return number of blocks that was freed
   uint32_t getBlockSize() const; // return block size
@@ -77,122 +79,7 @@ public:
   bool isInited() const;                                             // return false if init or non default ctor wasn't called
 
 protected:
-  struct Chunk
-  {
-    static constexpr int MAX_CHUNK_SIZE = 32768; // there is enough bits to allocate as 17 bit used, 17 bit freeBlock, 17(or 4 for
-                                                 // pow-of-2) bit chunkSize
-    char *blocks = nullptr;
-    uint16_t used = 0;
-    uint16_t chunkSize = 0; // can be 17 : 5 for 65536 blocks
-    uint32_t freeBlock = 0;
-
-    uint32_t getChunkSize() const { return chunkSize; } // at least of size one. could be used with shifts if pow-of-2
-    uint32_t getUsedSize() const { return used; }       // at least one block should be always allocated (for 64k blocks)
-    uint32_t getFreeHead() const { return freeBlock; }
-    int spaceLeft() const { return getChunkSize() - getUsedSize(); }
-    // uint32_t getInitialEnd() const { return initialEnd; }
-    uint32_t allocateOne(uint32_t block_size) // we need to pass blocks and block_size, so we can use freelist within blocks
-    {
-      G_ASSERTF(spaceLeft() > 0, "FixedAllocator %p: chunk is full!", this);
-      used++;
-      const uint32_t chunkSz = getChunkSize();
-      // if (getInitialEnd() != getChunkSize())
-      //   return initialEnd++;
-      const uint32_t freeHead = getFreeHead();
-      G_ASSERTF(freeHead < chunkSz, "FixedAllocator %p:free linked list block in chunk is invalid (%d>=%d)", this, freeBlock, chunkSz);
-      G_ASSERTF_RETURN(freeHead != chunkSz, -1, "FixedAllocator %p:no free blocks in chunk, while chunk is not full", this);
-      freeBlock = *(uint32_t *)(blocks + block_size * freeHead);
-      G_ASSERTF(freeBlock < chunkSz || getUsedSize() == chunkSz,
-        "FixedAllocator %p:free linked list block in chunk is invalid (%d>=%d)", this, freeBlock, chunkSz);
-
-      return freeHead;
-    }
-    uint32_t allocateBlocks(uint32_t block_size, uint32_t block_cnt) // we need to pass blocks and block_size, so we can use freelist
-                                                                     // within blocks
-    {
-      G_ASSERTF(spaceLeft() >= block_cnt, "FixedAllocator %p: chunk is full!", this);
-      const uint32_t chunkSz = getChunkSize();
-      uint32_t preFirstFree = chunkSz, firstFree = getFreeHead(), lastFree = firstFree;
-      G_ASSERTF(firstFree < chunkSz, "FixedAllocator %p:free linked list block in chunk is invalid (%d>=%d)", this, freeBlock,
-        chunkSz);
-      while (lastFree - firstFree + 1 < block_cnt)
-      {
-        uint32_t next_b = *(uint32_t *)(blocks + block_size * lastFree);
-        if (next_b >= chunkSz)
-          return chunkSz;
-        else if (next_b == lastFree + 1)
-          lastFree++;
-        else
-        {
-          preFirstFree = lastFree;
-          firstFree = lastFree = next_b;
-        }
-      }
-
-      if (preFirstFree == chunkSz)
-        freeBlock = *(uint32_t *)(blocks + block_size * lastFree);
-      else
-        *(uint32_t *)(blocks + block_size * preFirstFree) = *(uint32_t *)(blocks + block_size * lastFree);
-      used += block_cnt;
-      return firstFree;
-    }
-    bool freeBlocks(uint32_t block, uint32_t block_size, uint32_t block_cnt) // we need to pass blocks and block_size, so we can use
-                                                                             // freelist within blocks
-    {
-      G_ASSERTF_RETURN(block < getChunkSize(), false, "FixedAllocator %p: block is out of range", this);
-#if FA_65536_BLOCK_ALLOWED
-      if (getUsedSize() == block_cnt) // chunks should be killed
-      {
-        used -= block_cnt; // only if below 32768
-        return true;
-      }
-#endif
-      G_ASSERTF_RETURN(getUsedSize(), false, "FixedAllocator %p: block is out of range", this);
-#if !FA_65536_BLOCK_ALLOWED && DAGOR_DBGLEVEL > 1
-      for (uint32_t check = freeBlock, chunkSz = getChunkSize(); check < chunkSz; check = *(uint32_t *)(blocks + block_size * check))
-        if (check >= block && check < block + block_cnt)
-          G_ASSERTF_RETURN(0, false, "FixedAllocator %p(blockSize=%d): block (%d;%d) is already deleted!", this, block_size, block,
-            block_cnt);
-#endif
-      // const uint32_t chunkSize = getChunkSize();
-      // const uint32_t currentInitialEnd = getInitialEnd();
-      // if (currentInitialEnd == getUsedSize() && currentInitialEnd != chunkSize)//we hadn't finished allocating, and can just pop
-      // from end
-      //{
-      //   G_ASSERT(initialEnd > 0);
-      //   initialEnd--;
-      // } else
-      used -= block_cnt;
-      block += block_cnt - 1;
-      do
-      {
-        *(uint32_t *__restrict)(blocks + block_size * block) = freeBlock; // old head of linked goes to freed block
-        freeBlock = block;                                                // change head of linked list
-        --block;
-      } while (--block_cnt);
-      return used == 0;
-    }
-
-    ~Chunk() = delete;
-    Chunk() = default;
-    Chunk(Chunk &&a)
-    {
-      memcpy(this, &a, sizeof(Chunk));
-      a.blocks = nullptr;
-    }
-    // Chunk &operator =(Chunk &&a){swap(*this, a);}
-    Chunk &operator=(const Chunk &) = delete;
-    Chunk(const Chunk &) = delete;
-    void create(char *b, uint32_t block_size, uint32_t chunk_size)
-    {
-      G_ASSERT(chunk_size <= 32768);
-      G_ASSERT(block_size >= 4);
-      blocks = b;
-      chunkSize = chunk_size;
-      for (uint32_t i = 0; i < chunk_size; ++i, b += block_size)
-        *((uint32_t *)b) = i + 1;
-    }
-  };
+  Chunk *getChunk(void *b) const; // return not nullptr if pointer resides in ranges controlled by this allocator
   Chunk *chunks = nullptr;
   uint32_t blockSize = 0;
   uint16_t chunksAllocated = 0;
@@ -350,7 +237,7 @@ inline void FixedBlockAllocator::getMemoryStats(uint32_t &chunks_count, uint32_t
   used_mem *= blockSize;
 }
 
-inline FixedBlockAllocator::Chunk *FixedBlockAllocator::isValidPtr(void *b) const
+inline FixedBlockAllocator::Chunk *FixedBlockAllocator::getChunk(void *b) const
 {
   G_FAST_ASSERT(isInited());
   for (Chunk *c = chunks, *e = chunks + chunksAllocated; c != e && c->blocks; ++c)
@@ -364,7 +251,7 @@ inline bool FixedBlockAllocator::freeContiguousBlocks(void *b, unsigned block_cn
   G_FAST_ASSERT(isInited());
   if (!block_cnt)
     return false;
-  if (Chunk *c = isValidPtr(b))
+  if (Chunk *c = getChunk(b))
   {
     const uintptr_t blockPtr = ((char *)b - c->blocks);
     G_ASSERT(blockPtr % blockSize == 0); // deallocating pointer to middle of some block;
@@ -445,7 +332,7 @@ struct FixedBlockAllocator
     memfree_anywhere(b);
     return true;
   }
-  void *isValidPtr(void *) const { return (void *)this; }
+  bool isValidPtr(void *) const { return true; }
   int clear() { return 0; }
   uint32_t getBlockSize() const { return blockSize; }
   void getMemoryStats(uint32_t &a, uint32_t &b, uint32_t &c) { a = b = c = 0; }

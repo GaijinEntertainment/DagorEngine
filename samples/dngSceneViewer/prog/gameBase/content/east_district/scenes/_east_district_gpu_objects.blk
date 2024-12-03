@@ -1,0 +1,75 @@
+
+//////////////////////////object group
+
+//debris
+entity{
+  _template:t="dagdp_object_group_riex"
+  dagdp__name:t="debris"
+  "dagdp__params:object"{
+    scale:p2=0.9,0.1
+    orientation:t="normal"
+  }
+  "dagdp__assets:object"{
+
+    "debris_bricks_a:object"{}
+    "debris_bricks_b:object"{}
+    "plastic_bag_a:object"{}
+    "plastic_bag_b:object"{}
+    "plastic_bag_c:object"{}
+    "plastic_bag_d:object"{}
+    "block_concrete_390x190x190_a_lying_a:object"{}
+    "block_concrete_390x190x190_a_lying_b:object"{}
+    "block_concrete_390x190x190_b_lying_a:object"{}
+    "block_concrete_390x190x190_b_lying_b:object"{}
+    //"garbadge_plastic_bottle_a:object"{}
+    //"garbadge_plastic_bottle_b:object"{}
+    "garbadge_pizza_box_a:object"{}
+    "garbadge_pizza_box_b:object"{}
+    //"is_store_bottle_b_turn:object"{}
+    "SM_DebrisPile03:object"{scale:p2=1.4,0.2}
+    "SM_Scatter_04_A:object"{scale:p2=1.4,0.2}
+    "SM_Scatter_04_D:object"{scale:p2=1.4,0.2}
+    "sm_Brick_06_01:object"{}
+    "sm_Brick_03_01:object"{}
+    "sm_Brick_01_06:object"{}
+  }
+}
+
+//plants
+entity{
+  _template:t="dagdp_object_group_riex"
+  dagdp__name:t="plants"
+  "dagdp__params:object"{
+    scale:p2=0.6,0.2
+    orientation:t="normal"
+  }
+  "dagdp__assets:object"{
+
+    "grass_plant_dust_a:object"{}
+    "grass_plant_dust_b:object"{}
+    "grass_plant_dust_c:object"{}
+    "grass_plant_dust_d:object"{weight:r=0.4}
+  }
+}
+
+//////////////////////////object placer
+
+//debris
+entity{
+  _template:t="dagdp_placer_heightmap"
+  dagdp__name:t="debris_placer"
+  "dagdp__biomes:list<i>"{ index:i=1; }
+  dagdp__density:r=0.4
+
+  "dagdp__object_groups:list<t>"{ item:t="debris" }
+}
+
+//plants
+entity{
+  _template:t="dagdp_placer_heightmap"
+  dagdp__name:t="plants_placer"
+  "dagdp__biomes:list<i>"{ index:i=2; }
+  dagdp__density:r=4
+
+  "dagdp__object_groups:list<t>"{ item:t="plants" }
+}

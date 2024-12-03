@@ -1,0 +1,35 @@
+session_limits {
+  _singleton:b=yes
+  _use:t=replicating
+  _group{
+    _tags:t="server"
+    "server_no_players_timer__handle:u64"{
+      value:i64=0
+      _tags:t="server"
+    }
+    timeout_on_all_players_left_sec:r=30
+    exit_on_no_players_connected_time_sec:r=30
+    "server_player_win_timer__handle:u64" {
+      value:i64=0
+      _tags:t="server"
+    }
+    "server_no_players_joined_timer__handle:u64"{
+      value:i64=0
+      _tags:t="server"
+    }
+  }
+  _group{
+    _track:b=yes
+    countdown_to_start_sec:i=-1
+  }
+  _group{
+    _replicate:b=yes
+    _track:b=yes
+    session_duration_sec:r=-1
+    countdown_duration_sec:r=-1
+    time_to_start_session_msec:i=-1
+    time_to_start_countdown_msec:i=-1
+    time_to_end_session_msec:i=-1
+  }
+}
+
