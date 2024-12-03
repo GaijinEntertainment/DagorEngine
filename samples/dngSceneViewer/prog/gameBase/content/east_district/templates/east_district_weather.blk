@@ -158,13 +158,15 @@ weather_overcast_c{
 weather_overcast_c_shades{
   _use:t="weather_overcast_c"
   sky_atmosphere__rayleigh_color:p3=1.5, 1, 1
-  sky_atmosphere__mie_height:p2=1.8, 1.8
-  sky_atmosphere__mie_scale:p2=200, 200
   clouds_form__extinction:p2=0, 0
-  sky_atmosphere__average_ground_albedo:r=0.01
   sky_atmosphere__moon_color:p3=1, 5, 10
   sky_atmosphere__sun_brightness:r=0.6
   sky_atmosphere__atmosphere_scale:r=1.1
   sky_atmosphere__moon_brightness:r=0.35
   sky_atmosphere__mie_absorption_scale:p2=0.1, 0.1
+  sky_atmosphere__average_ground_albedo:r=0.9
+  sky_atmosphere__mie_height:p2=0.5, 0.5
+  sky_atmosphere__mie_scale:p2=100, 100
+  strata_clouds__amount:p2=1.7, 1.7
+  strata_clouds__tex:t="strata_clouds_feather_a"
 }
