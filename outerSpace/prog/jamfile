@@ -101,13 +101,6 @@ if $(Dedicated) = no {
     daNetGameLibs/render_debug
   ;
 }
-if $(FmodStudio) != src && $(HaveSound) != no {
-  AddLibs += $(FmodStaticLibs) ;
-  for dll in $(FmodStudioSharedLibs) {
-    BundleCopy += @$(dll) $(dll:D=) ;
-    #ALWAYS $(dll) ;
-  }
-}
 
 if $(HaveRenderer) = yes {
   gamePulls += framework_blurred_ui_pull ;
@@ -235,6 +228,11 @@ if $(Dedicated) != yes {
   else {
     Exit unsupported Platform\=$(Platform) for Target\=$(Target) ;
   }
+}
+
+if $(FmodStudio) != src && $(HaveSound) != no {
+  AddLibs += $(FmodStaticLibs) ;
+  if $(Platform) != macOS { for dll in $(FmodStudioSharedLibs) { BundleCopy += @$(dll) $(dll:D=) ; } }
 }
 
 if $(Platform) in windows && $(Dedicated) != yes && $(CheckOnly) != yes {

@@ -22,8 +22,7 @@ void GlobalManager::imgui()
     for (int viewIndex = 0; viewIndex < views.size(); ++viewIndex)
     {
       const auto &builder = debug.builders[viewIndex];
-      const auto &view = views[viewIndex];
-      maxInstances += builder.maxInstancesPerViewport * view.info.maxViewports;
+      maxInstances += builder.totalMaxInstances;
     }
 
     uint64_t reservedBytes = maxInstances * sizeof(PerInstanceData);
@@ -47,8 +46,9 @@ void GlobalManager::imgui()
       ImGui::BulletText("View kind: %d", static_cast<int>(eastl::to_underlying(view.info.kind)));
       ImGui::BulletText("View max draw distance: %f", view.info.maxDrawDistance);
       ImGui::BulletText("Max viewports: %" PRIu32, view.info.maxViewports);
-      ImGui::BulletText("Max instances %" PRIu32, builder.maxInstancesPerViewport * view.info.maxViewports);
-      ImGui::BulletText("Max instances per viewport: %" PRIu32, builder.maxInstancesPerViewport);
+      ImGui::BulletText("Total max instances %" PRIu32, builder.totalMaxInstances);
+      ImGui::BulletText("Max static instances per viewport: %" PRIu32, builder.maxStaticInstancesPerViewport);
+      ImGui::BulletText("Max dynamic instances: %" PRIu32, builder.dynamicInstanceRegion.maxCount);
       ImGui::BulletText("Renderables: %" PRIu32, builder.numRenderables);
 
       ImGui::TreePop();

@@ -56,9 +56,7 @@ call compile_all_prog_vromfs.cmd
 cd shaders
 call compile_shaders_dx11.bat
 call compile_shaders_tools.bat
-cd ..\..\develop\gameBase
-call create_vfsroms.bat
-cd ..\gui
+cd ..\..\develop\gui
 call build_ui.cmd
 popd
 pushd outerSpace\prog\utils\dev_launcher

@@ -1,16 +1,54 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include <EASTL/shared_ptr.h>
 #include <generic/dag_enumerate.h>
 #include <debug/dag_log.h>
 #include <math/dag_vecMathCompatibility.h>
+#include <math/dag_hlsl_floatx.h>
 #include <shaders/dag_shaderResUnitedData.h>
+#include <shaders/dag_computeShaders.h>
 #include <render/daBfg/bfg.h>
-#include "globalManager.h"
+#include <3d/dag_ringCPUQueryLock.h>
 #include <drv/3d/dag_rwResource.h>
 #include <ecs/rendInst/riExtra.h>
+#include "../shaders/dagdp_common.hlsli"
+#include "../shaders/dagdp_dynamic.hlsli"
+#include "globalManager.h"
+
+namespace var
+{
+static ShaderVariableInfo dyn_region("dagdp__dyn_region");
+static ShaderVariableInfo dyn_counters_num("dagdp__dyn_counters_num");
+}; // namespace var
+
+using TmpName = eastl::fixed_string<char, 256>;
 
 namespace dagdp
 {
+
+#if DAGOR_DBGLEVEL == 0
+static constexpr float DYNAMIC_THRESHOLD_MULTIPLIER = 1.0f;
+#else
+// In debug mode, we want to be more conservative to catch issues earlier.
+static constexpr float DYNAMIC_THRESHOLD_MULTIPLIER = 0.75f;
+#endif
+
+struct ViewConstants
+{
+  dagdp::ViewInfo viewInfo;
+  uint32_t totalMaxInstances; // static for all viewports, and dynamic.
+  uint32_t maxStaticInstancesPerViewport;
+  uint32_t totalCounters; // Of each kind.
+  uint32_t numRenderables;
+  InstanceRegion dynamicInstanceRegion;
+};
+
+struct ViewPersistentData
+{
+  UniqueBuf dynAllocsBuffer;
+  RingCPUBufferLock readback;
+  ViewConstants constants;
+};
 
 void GlobalManager::reconfigure(const GlobalConfig &new_config)
 {
@@ -109,6 +147,7 @@ void GlobalManager::rebuildRules()
     return;
   }
 
+  queryLevelSettings(rulesBuilder);
   accumulateObjectGroups(rulesBuilder);
   accumulatePlacers(rulesBuilder);
 
@@ -149,22 +188,31 @@ void GlobalManager::rebuildViews()
     viewBuilder.numRenderables = numRenderables;
     viewBuilder.renderablesMaxInstances.resize(numRenderables);
 
-    // While processing, each placer will add to the total limits.
+    // While processing, each placer will add to the static limits.
     g_entity_mgr->broadcastEventImmediate(EventViewProcess(rulesBuilder, view.info, &viewBuilder));
 
-    // At this point, all view-specific limits are known, and we can calculate the instance regions.
+    // At this point, all static limits are known, and we can calculate the instance regions.
     viewBuilder.renderablesInstanceRegions.reserve(numRenderables);
 
     for (const uint32_t maxInstances : viewBuilder.renderablesMaxInstances)
     {
       InstanceRegion region;
-      region.baseIndex = viewBuilder.maxInstancesPerViewport;
+      region.baseIndex = viewBuilder.maxStaticInstancesPerViewport;
       region.maxCount = maxInstances;
       viewBuilder.renderablesInstanceRegions.push_back(region);
-      viewBuilder.maxInstancesPerViewport += maxInstances;
+      viewBuilder.maxStaticInstancesPerViewport += maxInstances;
     }
 
-    if (viewBuilder.maxInstancesPerViewport != 0)
+    viewBuilder.totalMaxInstances = viewBuilder.maxStaticInstancesPerViewport * view.info.maxViewports;
+    if (viewBuilder.hasDynamicPlacers && rulesBuilder.maxObjects > 0) // -V560
+    {
+      // Dynamic region starts after all static regions.
+      viewBuilder.dynamicInstanceRegion.baseIndex = viewBuilder.totalMaxInstances;
+      viewBuilder.dynamicInstanceRegion.maxCount = rulesBuilder.maxObjects;
+      viewBuilder.totalMaxInstances += rulesBuilder.maxObjects;
+    }
+
+    if (viewBuilder.totalMaxInstances > 0)
     {
       dabfg::NodeHandle viewProviderNode;
 
@@ -202,39 +250,164 @@ void GlobalManager::rebuildViews()
       if (viewProviderNode)
         view.nodes.push_back(eastl::move(viewProviderNode));
 
-      // Create the setup node.
-      dabfg::NodeHandle setupNode =
-        (dabfg::root() / "dagdp" / view.info.uniqueName.c_str())
-          .registerNode("setup", DABFG_PP_NODE_SRC,
-            [numRenderables, maxInstancesPerViewport = viewBuilder.maxInstancesPerViewport, info = view.info](
-              dabfg::Registry registry) {
-              view_multiplex(registry, info.kind);
-              const uint32_t totalCounters = info.maxViewports * numRenderables;
+      auto persistentData = eastl::make_shared<ViewPersistentData>();
+      persistentData->constants.viewInfo = view.info;
+      persistentData->constants.totalMaxInstances = viewBuilder.totalMaxInstances;
+      persistentData->constants.maxStaticInstancesPerViewport = viewBuilder.maxStaticInstancesPerViewport;
+      persistentData->constants.totalCounters = view.info.maxViewports * numRenderables;
+      persistentData->constants.numRenderables = numRenderables;
+      persistentData->constants.dynamicInstanceRegion = viewBuilder.dynamicInstanceRegion;
 
-              auto countersHandle = registry.create("counters", dabfg::History::No)
-                                      .structuredBufferUaSr<uint32_t>(totalCounters)
-                                      .atStage(dabfg::Stage::UNKNOWN) // TODO: d3d::clear_rwbufi semantics is not defined.
-                                      .useAs(dabfg::Usage::UNKNOWN)
-                                      .handle();
+      if (viewBuilder.dynamicInstanceRegion.maxCount > 0)
+      {
+        {
+          TmpName bufferName(TmpName::CtorSprintf(), "dagdp_%s_dyn_allocs", view.info.uniqueName.c_str());
+          persistentData->dynAllocsBuffer = dag::buffers::create_ua_sr_structured(sizeof(DynAlloc),
+            view.info.maxViewports * numRenderables, bufferName.c_str(), d3d::buffers::Init::Zero);
 
-              const size_t perInstanceFormatElementStride = get_tex_format_desc(perInstanceFormat).bytesPerElement;
-              G_ASSERT(sizeof(PerInstanceData) % perInstanceFormatElementStride == 0);
-              const size_t perInstanceElements = sizeof(PerInstanceData) / perInstanceFormatElementStride;
+          // Match last FG usage.
+          d3d::resource_barrier({persistentData->dynAllocsBuffer.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE});
+        }
 
-              registry.create("instance_data", dabfg::History::No)
-                .buffer({static_cast<uint32_t>(perInstanceFormatElementStride),
-                  static_cast<uint32_t>(info.maxViewports * maxInstancesPerViewport * perInstanceElements),
-                  SBCF_BIND_UNORDERED | SBCF_BIND_SHADER_RES, perInstanceFormat});
+        {
+          TmpName bufferName(TmpName::CtorSprintf(), "dagdp_%s_readback", view.info.uniqueName.c_str());
+          persistentData->readback.init(sizeof(uint32_t), DYN_COUNTERS_PREFIX, 4, bufferName.c_str(), SBCF_UA_STRUCTURED_READBACK, 0,
+            false);
+        }
+      }
 
-              registry.registerBuffer("per_draw_gathered_data", [](auto) { return ManagedBufView(get_per_draw_gathered_data()); })
-                .atStage(dabfg::Stage::TRANSFER);
+      const dabfg::NameSpace ns = dabfg::root() / "dagdp" / view.info.uniqueName.c_str();
 
-              return [countersHandle] {
-                uint32_t zeros[4] = {};
-                d3d::clear_rwbufi(countersHandle.get(), zeros);
-              };
-            });
+      dabfg::NodeHandle setupNode = ns.registerNode("setup", DABFG_PP_NODE_SRC, [persistentData](dabfg::Registry registry) {
+        const auto &constants = persistentData->constants;
+        view_multiplex(registry, constants.viewInfo.kind);
+
+        const size_t perInstanceFormatElementStride = get_tex_format_desc(perInstanceFormat).bytesPerElement;
+        G_ASSERT(sizeof(PerInstanceData) % perInstanceFormatElementStride == 0);
+        const size_t perInstanceElements = sizeof(PerInstanceData) / perInstanceFormatElementStride;
+
+        registry.create("instance_data", dabfg::History::No)
+          .buffer({static_cast<uint32_t>(perInstanceFormatElementStride),
+            static_cast<uint32_t>(constants.totalMaxInstances * perInstanceElements), SBCF_BIND_UNORDERED | SBCF_BIND_SHADER_RES,
+            perInstanceFormat});
+
+        registry.registerBuffer("per_draw_gathered_data", [](auto) { return ManagedBufView(get_per_draw_gathered_data()); })
+          .atStage(dabfg::Stage::TRANSFER);
+      });
+
+      dabfg::NodeHandle staticSetupNode =
+        ns.registerNode("setup_static", DABFG_PP_NODE_SRC, [persistentData](dabfg::Registry registry) {
+          const auto &constants = persistentData->constants;
+          view_multiplex(registry, constants.viewInfo.kind);
+
+          const auto countersHandle = registry.create("counters", dabfg::History::No)
+                                        .structuredBufferUaSr<uint32_t>(constants.totalCounters)
+                                        .atStage(dabfg::Stage::UNKNOWN) // TODO: d3d::clear_rwbufi semantics is not defined.
+                                        .useAs(dabfg::Usage::UNKNOWN)
+                                        .handle();
+
+          return [countersHandle] {
+            uint32_t zeros[4] = {};
+            d3d::clear_rwbufi(countersHandle.get(), zeros);
+          };
+        });
+
+      dabfg::NodeHandle dynamicSetupNode =
+        ns.registerNode("setup_dynamic", DABFG_PP_NODE_SRC, [persistentData](dabfg::Registry registry) {
+          const auto &constants = persistentData->constants;
+          view_multiplex(registry, constants.viewInfo.kind);
+
+          const auto dynCountersHandle = registry.create("dyn_counters_stage0", dabfg::History::No)
+                                           .structuredBufferUaSr<uint32_t>(constants.totalCounters + DYN_COUNTERS_PREFIX)
+                                           .atStage(dabfg::Stage::UNKNOWN) // TODO: d3d::clear_rwbufi semantics is not defined.
+                                           .useAs(dabfg::Usage::UNKNOWN)
+                                           .handle();
+
+          registry
+            .registerBuffer("dyn_allocs_stage0", [persistentData](auto) { return ManagedBufView(persistentData->dynAllocsBuffer); })
+            .atStage(dabfg::Stage::COMPUTE)
+            .useAs(dabfg::Usage::SHADER_RESOURCE);
+
+          return [dynCountersHandle] {
+            uint32_t zeros[4] = {};
+            d3d::clear_rwbufi(dynCountersHandle.get(), zeros);
+          };
+        });
+
+      dabfg::NodeHandle dynamicRecountNode = ns.registerNode("recount", DABFG_PP_NODE_SRC, [persistentData](dabfg::Registry registry) {
+        const auto &constants = persistentData->constants;
+        view_multiplex(registry, constants.viewInfo.kind);
+
+        registry.rename("dyn_allocs_stage0", "dyn_allocs_stage1", dabfg::History::No)
+          .buffer()
+          .atStage(dabfg::Stage::COMPUTE)
+          .bindToShaderVar("dagdp__dyn_allocs");
+
+        registry.rename("dyn_counters_stage0", "dyn_counters_stage1", dabfg::History::No)
+          .buffer()
+          .atStage(dabfg::Stage::COMPUTE)
+          .bindToShaderVar("dagdp__dyn_counters");
+
+        return [persistentData, shader = ComputeShader("dagdp_dynamic_recount")] {
+          const auto &constants = persistentData->constants;
+
+          // TODO: to support more, need a multi-stage prefix sum here. Not done for simplicity.
+          G_ASSERT(constants.totalCounters <= DAGDP_DYNAMIC_RECOUNT_GROUP_SIZE);
+
+          ShaderGlobal::set_int(var::dyn_counters_num, constants.totalCounters);
+          ShaderGlobal::set_int4(var::dyn_region, constants.dynamicInstanceRegion.baseIndex, constants.dynamicInstanceRegion.maxCount,
+            0, 0);
+          const bool res = shader.dispatchThreads(constants.totalCounters, 1, 1);
+          if (!res)
+            logerr("daGdp: dynamic recount dispatch failed!");
+        };
+      });
+
+      dabfg::NodeHandle dynamicReadbackNode =
+        ns.registerNode("readback", DABFG_PP_NODE_SRC, [persistentData](dabfg::Registry registry) {
+          view_multiplex(registry, persistentData->constants.viewInfo.kind);
+          registry.executionHas(dabfg::SideEffects::External);
+
+          const auto dynCountersHandle =
+            registry.read("dyn_counters_stage1").buffer().atStage(dabfg::Stage::TRANSFER).useAs(dabfg::Usage::COPY).handle();
+
+          return [persistentData, dynCountersHandle] {
+            auto &dynCounters = const_cast<Sbuffer &>(dynCountersHandle.ref());
+
+            int ignoredStride;
+            uint32_t ignoredFrameNum;
+            if (const auto *data = (uint32_t *)persistentData->readback.lock(ignoredStride, ignoredFrameNum, false))
+            {
+              const uint32_t totalPlaced = data[DYN_COUNTERS_INDEX_TOTAL_PLACED];
+              const uint32_t totalCapacity = data[DYN_COUNTERS_INDEX_TOTAL_CAPACITY];
+
+              if (totalPlaced > totalCapacity * DYNAMIC_THRESHOLD_MULTIPLIER)
+                LOGERR_ONCE("daGdp: dynamic placement overflow detected! %" PRIu32 " > %" PRIu32 " * %f", totalPlaced, totalCapacity,
+                  DYNAMIC_THRESHOLD_MULTIPLIER);
+
+              persistentData->readback.unlock();
+            }
+
+            auto *target = (Sbuffer *)persistentData->readback.getNewTarget(ignoredFrameNum);
+            if (target)
+            {
+              dynCounters.copyTo(target, 0, 0, sizeof(uint32_t) * DYN_COUNTERS_PREFIX);
+              persistentData->readback.startCPUCopy();
+            }
+          };
+        });
+
       view.nodes.push_back(eastl::move(setupNode));
+
+      if (viewBuilder.maxStaticInstancesPerViewport > 0)
+        view.nodes.push_back(eastl::move(staticSetupNode));
+
+      if (viewBuilder.dynamicInstanceRegion.maxCount > 0)
+      {
+        view.nodes.push_back(eastl::move(dynamicSetupNode));
+        view.nodes.push_back(eastl::move(dynamicRecountNode));
+        view.nodes.push_back(eastl::move(dynamicReadbackNode));
+      }
 
       const auto nodeInserter = [&nodes = view.nodes](dabfg::NodeHandle node) { nodes.push_back(eastl::move(node)); };
       g_entity_mgr->broadcastEventImmediate(EventViewFinalize(view.info, viewBuilder, nodeInserter));

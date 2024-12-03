@@ -186,6 +186,63 @@ static ecs::EntitySystemDesc dagdp_placer_changed_es_es_desc
                        ecs::EventComponentsDisappear>::build(),
   0
 ,"render","dagdp__name,dagdp__object_groups");
+static constexpr ecs::ComponentDesc dagdp_level_settings_changed_es_comps[] =
+{
+//start of 2 rq components at [0]
+  {ECS_HASH("dagdp_level_settings"), ecs::ComponentTypeInfo<ecs::Tag>()},
+  {ECS_HASH("dagdp__max_objects"), ecs::ComponentTypeInfo<int>()}
+};
+static void dagdp_level_settings_changed_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_UNUSED(components);
+  dagdp::dagdp_level_settings_changed_es(evt
+        );
+}
+static ecs::EntitySystemDesc dagdp_level_settings_changed_es_es_desc
+(
+  "dagdp_level_settings_changed_es",
+  "prog/daNetGameLibs/daGdp/render/globalManagerES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, dagdp_level_settings_changed_es_all_events),
+  empty_span(),
+  empty_span(),
+  make_span(dagdp_level_settings_changed_es_comps+0, 2)/*rq*/,
+  empty_span(),
+  ecs::EventSetBuilder<ecs::EventEntityCreated,
+                       ecs::EventComponentsAppear,
+                       ecs::EventEntityDestroyed,
+                       ecs::EventComponentsDisappear>::build(),
+  0
+,"render","dagdp__max_objects");
+static constexpr ecs::ComponentDesc level_settings_ecs_query_comps[] =
+{
+//start of 1 ro components at [0]
+  {ECS_HASH("dagdp__max_objects"), ecs::ComponentTypeInfo<int>()},
+//start of 1 rq components at [1]
+  {ECS_HASH("dagdp_level_settings"), ecs::ComponentTypeInfo<ecs::Tag>()}
+};
+static ecs::CompileTimeQueryDesc level_settings_ecs_query_desc
+(
+  "dagdp::level_settings_ecs_query",
+  empty_span(),
+  make_span(level_settings_ecs_query_comps+0, 1)/*ro*/,
+  make_span(level_settings_ecs_query_comps+1, 1)/*rq*/,
+  empty_span());
+template<typename Callable>
+inline void dagdp::level_settings_ecs_query(Callable function)
+{
+  perform_query(g_entity_mgr, level_settings_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
+        {
+          function(
+              ECS_RO_COMP(level_settings_ecs_query_comps, "dagdp__max_objects", int)
+            );
+
+        }while (++comp != compE);
+    }
+  );
+}
 static constexpr ecs::ComponentDesc object_groups_named_ecs_query_comps[] =
 {
 //start of 2 ro components at [0]

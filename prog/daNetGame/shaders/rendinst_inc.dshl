@@ -4,6 +4,7 @@ include "rotation_palette_inc.dshl"
 include "paint_details_inc.dshl"
 
 hlsl { #define RENDINST_FLOAT_POS 1 } // for debug switching between floats and halfs
+hlsl { #include "rendinst.hlsli" }
 
 int rendinst_use_cell_sbuffer = 0 always_referenced;
 interval rendinst_use_cell_sbuffer: off < 1, on;
@@ -22,6 +23,7 @@ int useBboxInCbuffer = 1 always_referenced;
 int rendinst_perinst_buff_no = 6 always_referenced;
 int rendinst_instance_buff_no = 5 always_referenced;
 int per_instance_data_no = 14;
+int ri_additional_instance_offsets_data_no = 15;
 int ri_vertex_data_no = 12 always_referenced;
 
 buffer impostor_data_buffer;
@@ -115,7 +117,23 @@ macro RENDINST_INSTANCING()
       ##if rendinst_render_type == ri_ex_only
         #define INST_OFFSET_GETTER 0
       ##else
-        #define INST_OFFSET_GETTER get_immediate_dword_0()
+        uint inst_offset_getter()
+        {
+          uint val = get_immediate_dword_0();
+
+          ##if hardware.dx11 || hardware.dx12
+            // Only needed, if startInstanceLocation is not used.
+            BRANCH
+            if (val & INST_OFFSET_FLAG_USE_INDIRECTION)
+            {
+              // Additional indirection for GPU-generated offsets.
+              return 4 * loadBuffer(ri_additional_instance_offsets, val & INST_OFFSET_MASK_VALUE);
+            }
+          ##endif
+
+          return val;
+        }
+        #define INST_OFFSET_GETTER inst_offset_getter()
       ##endif
     #endif
 
@@ -384,6 +402,14 @@ macro RENDINST_SCENE_COMMON()
     impostor_data_buffer@buf = impostor_data_buffer hlsl {
       Buffer<float4> impostor_data_buffer@buf;
     };
+
+    if (hardware.dx11 || hardware.dx12)
+    {
+      ri_additional_instance_offsets@buf : register(ri_additional_instance_offsets_data_no)
+      hlsl {
+        ByteAddressBuffer ri_additional_instance_offsets@buf;
+      }
+    }
   }
   (ps) {
     impostor_data_buffer@buf = impostor_data_buffer hlsl {

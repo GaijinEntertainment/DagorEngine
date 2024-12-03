@@ -69,8 +69,9 @@ public:
 #endif
 
 private:
-  static void accumulatePlacers(RulesBuilder &rules_builder);
+  static void queryLevelSettings(RulesBuilder &rules_builder);
   static void accumulateObjectGroups(RulesBuilder &rules_builder);
+  static void accumulatePlacers(RulesBuilder &rules_builder);
 
   void recreateViews();
   void rebuildRules();

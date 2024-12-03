@@ -45,9 +45,6 @@ popd
 pushd gameBase
 ../../../tools/dagor_cdk/linux-$ARCH/vromfsPacker-dev mk.vromfs.blk -quiet -addpath:.
 popd
-pushd ../develop/gameBase
-../../../tools/dagor_cdk/linux-$ARCH/vromfsPacker-dev gamedata.vromfs.blk -quiet
-popd
 popd
 pushd outerSpace/develop/gui
 ../../../tools/dagor_cdk/linux-$ARCH/vromfsPacker-dev input.vromfs.blk -quiet

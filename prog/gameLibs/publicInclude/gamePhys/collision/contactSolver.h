@@ -156,7 +156,7 @@ class ContactSolver
 
   BodyState groundState;
 
-  static const size_t MAX_LAYERS_NUM = 4;
+  static const size_t MAX_LAYERS_NUM = 5;
   eastl::bitset<MAX_LAYERS_NUM * MAX_LAYERS_NUM> layersMask;
 
   BodyState &getState(int index);

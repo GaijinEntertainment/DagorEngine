@@ -1,7 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <math/dag_hlsl_floatx.h>
 #include "common.h"
+#include "../shaders/dagdp_common_placer.hlsli"
 
 namespace dagdp
 {
@@ -16,15 +18,39 @@ struct PlacerObjectGroup
   float effectiveDensity = 0.0f;
 };
 
-using DrawRangesFmem = dag::RelocatableFixedVector<float, 64, true, framemem_allocator>;
-using RenderableIndicesFmem = dag::RelocatableFixedVector<uint32_t, 64, true, framemem_allocator>;
+float get_frustum_culling_bias();
 
-// Should add elements to `draw_ranges` and `renderable_indices`.
-// Number of elements added must be `R` and `R * P` respectively, where R is the resulting number of ranges, and P is the number of
-// placeables.
-void calculate_draw_ranges(uint32_t p_id_start,
-  dag::ConstSpan<PlacerObjectGroup> object_groups,
-  DrawRangesFmem &draw_ranges,
-  RenderableIndicesFmem &renderable_indices);
+struct CommonPlacerBufferInit
+{
+  // Draw ranges are concatenated across variants, with `drawRangeStartIndex` marking the start of entries for the variant.
+  // For a single variant, R float distances are stored, where:
+  // - R = number of ranges in the variant.
+  dag::RelocatableFixedVector<float, 64, true, framemem_allocator> drawRangesFmem;
+
+  // Renderable indices are concatenated across variants, with `renderableIndicesStartIndex` marking the start of entries for the
+  // variant. For a single variant, (P * R) renderable indices (IDs) are stored, where:
+  // - P = number of placeables in the variant.
+  // - R = number of ranges in the variant.
+  dag::RelocatableFixedVector<uint32_t, 64, true, framemem_allocator> renderableIndicesFmem;
+
+  dag::RelocatableFixedVector<VariantGpuData, 16, true, framemem_allocator> variantsFmem;
+  dag::RelocatableFixedVector<PlacerObjectGroup, 64, true, framemem_allocator> objectGroupsFmem;
+  uint32_t numPlaceables = 0;
+};
+
+struct CommonPlacerBuffers
+{
+  UniqueBuf drawRangesBuffer;
+  UniqueBuf renderableIndicesBuffer;
+  UniqueBuf variantsBuffer;
+  UniqueBuf placeablesBuffer;
+  UniqueBuf placeableWeightsBuffer;
+};
+
+void add_variant(
+  CommonPlacerBufferInit &init, dag::ConstSpan<PlacerObjectGroup> object_groups, float density, float placeableWeightEmpty);
+
+[[nodiscard]] bool init_common_placer_buffers(
+  const CommonPlacerBufferInit &init, eastl::string_view buffer_name_prefix, CommonPlacerBuffers &output);
 
 } // namespace dagdp

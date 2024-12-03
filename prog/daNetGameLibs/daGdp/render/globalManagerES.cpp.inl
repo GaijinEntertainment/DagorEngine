@@ -84,6 +84,15 @@ static void dagdp_on_level_unload_es(const UnloadLevel &, dagdp::GlobalManager &
 }
 
 template <typename Callable>
+static inline void level_settings_ecs_query(Callable);
+
+void GlobalManager::queryLevelSettings(RulesBuilder &rules_builder)
+{
+  level_settings_ecs_query(
+    [&](ECS_REQUIRE(ecs::Tag dagdp_level_settings) int dagdp__max_objects) { rules_builder.maxObjects = dagdp__max_objects; });
+}
+
+template <typename Callable>
 static inline void object_groups_named_ecs_query(Callable);
 
 template <typename Callable>
@@ -164,6 +173,16 @@ ECS_ON_EVENT(on_disappear)
 ECS_TRACK(dagdp__name, dagdp__object_groups)
 ECS_REQUIRE(ecs::Tag dagdp_placer, const ecs::string &dagdp__name, const ecs::StringList &dagdp__object_groups)
 static void dagdp_placer_changed_es(const ecs::Event &)
+{
+  manager_ecs_query([](dagdp::GlobalManager &dagdp__global_manager) { dagdp__global_manager.invalidateRules(); });
+}
+
+ECS_TAG(render)
+ECS_ON_EVENT(on_appear)
+ECS_ON_EVENT(on_disappear)
+ECS_TRACK(dagdp__max_objects)
+ECS_REQUIRE(ecs::Tag dagdp_level_settings, int dagdp__max_objects)
+static void dagdp_level_settings_changed_es(const ecs::Event &)
 {
   manager_ecs_query([](dagdp::GlobalManager &dagdp__global_manager) { dagdp__global_manager.invalidateRules(); });
 }

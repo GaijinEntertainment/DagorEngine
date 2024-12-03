@@ -1,10 +1,25 @@
 dagdp_manager {
   _singleton:b=true
   _use:t="replicating"
+  "dagdp_manager:tag"{}
   "dagdp__global_manager:dagdp::GlobalManager"{ _tags:t="render" }
   "dagdp__dyn_shadows_manager:dagdp::DynShadowsManager"{ _tags:t="render" }
   "dagdp__riex_manager:dagdp::RiexManager"{ _tags:t="render" }
   "dagdp__heightmap_manager:dagdp::HeightmapManager"{ _tags:t="render" }
+  "dagdp__volume_manager:dagdp::VolumeManager"{ _tags:t="render" }
+}
+
+dagdp_level_settings {
+  _singleton:b=true
+  _use:t="replicating"
+  "dagdp_level_settings:tag"{}
+  _group {
+    _track:b=yes
+    "dagdp__max_objects:i"{
+      value:i=0
+      _info { desc:t="Maximum number of objects that can be placed." }
+    }
+  }
 }
 
 dagdp_base {
@@ -113,4 +128,29 @@ dagdp_object_group_riex {
   "dagdp_object_group_riex:tag"{}
   "dagdp__riex_preload:dagdp::RiexPreload"{ _tags:t="render" }
   _info { desc:t="Will render one of the specified RendInst Extra assets, when used in a rule." }
+}
+
+dagdp_placer_volume {
+  _use:t="dagdp_placer"
+  _use:t="dagdp_has_density"
+  "dagdp_placer_volume:tag"{}
+  _info { desc:t="Will place objects on geometry inside volumes that reference this placer." }
+}
+
+dagdp_volume {
+  "box_zone:tag"{} // For daEditorE's visualization of `transform`.
+  "dagdp_volume:tag"{}
+  _group {
+    _track:b=yes
+    "transform:m"{
+      value:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+      _info { desc:t="Bounding box of the volume." }
+    }
+    "dagdp__volume_placer_name:t"{
+      value:t=""
+      _info { desc:t="Name of the placer that should be used." }
+    }
+    "dagdp_internal__volume_placer_eid:eid"{}
+  }
+  _info { desc:t="A volume, inside which a referenced placer will place objects." }
 }

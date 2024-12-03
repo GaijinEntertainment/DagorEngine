@@ -100,7 +100,7 @@ else {
 
 if $(FmodStudio) != src && $(HaveSound) != no {
   AddLibs += $(FmodStaticLibs) ;
-  for dll in $(FmodStudioSharedLibs) { BundleCopy += @$(dll) $(dll:D=) ; }
+  if $(Platform) != macOS { for dll in $(FmodStudioSharedLibs) { BundleCopy += @$(dll) $(dll:D=) ; } }
 }
 
 if $(CheckOnly) != yes { # different compile options are not compatible with PCH

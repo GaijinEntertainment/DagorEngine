@@ -107,8 +107,10 @@ static inline void heightmap_view_process_es(const dagdp::EventViewProcess &evt,
   auto &viewBuilder = *evt.get<2>();
   auto &builder = dagdp__heightmap_manager.currentBuilder;
 
-  dag::Vector<MergeEntry, framemem_allocator> entries;
+  if (rulesBuilder.maxObjects != 0)
+    logwarn("daGdp: note: heightmap placer currently does not respect the max. objects setting.");
 
+  dag::Vector<MergeEntry, framemem_allocator> entries;
   heightmap_placers_ecs_query([&](ECS_REQUIRE(ecs::Tag dagdp_placer_heightmap) ecs::EntityId eid, const ecs::List<int> &dagdp__biomes,
                                 float dagdp__density, int dagdp__seed, float dagdp__jitter, bool dagdp__heightmap_lower_level,
                                 bool dagdp__heightmap_allow_unoptimal_grids, float dagdp__heightmap_cell_size) {

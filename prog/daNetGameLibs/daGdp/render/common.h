@@ -91,14 +91,20 @@ struct RulesBuilder
   dag::VectorMap<ecs::EntityId, ObjectGroupInfo> objectGroups;
   dag::VectorMap<ecs::EntityId, PlacerInfo> placers;
   RenderableId nextRenderableId = 0;
+  uint32_t maxObjects = 0; // 0 means no limit.
 };
 
 struct ViewBuilder
 {
   dag::RelocatableFixedVector<uint32_t, 64> renderablesMaxInstances;
   dag::RelocatableFixedVector<InstanceRegion, 64> renderablesInstanceRegions;
-  uint32_t maxInstancesPerViewport = 0;
+  uint32_t totalMaxInstances = 0; // static for all viewports, and dynamic.
+  uint32_t maxStaticInstancesPerViewport = 0;
   uint32_t numRenderables = 0;
+  bool hasDynamicPlacers = false;
+
+  // Additional, GPU-suballocated memory. Located directly after static regions.
+  InstanceRegion dynamicInstanceRegion = {};
 };
 
 enum class ViewKind

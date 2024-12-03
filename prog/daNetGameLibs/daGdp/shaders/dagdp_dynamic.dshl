@@ -1,0 +1,115 @@
+include "shader_global.dshl"
+
+buffer dagdp__dyn_allocs;
+buffer dagdp__dyn_counters;
+
+int dagdp__dyn_counters_num;
+int4 dagdp__dyn_region;
+
+hlsl {
+  #include "dagdp_common.hlsli"
+  #include "dagdp_dynamic.hlsli"
+}
+
+shader dagdp_dynamic_recount
+{
+  ENABLE_ASSERT(cs)
+
+  (cs) {
+    dyn_allocs@uav = dagdp__dyn_allocs hlsl {
+      #include "dagdp_common.hlsli"
+      RWStructuredBuffer<DynAlloc> dyn_allocs@uav;
+    }
+
+    dyn_counters@uav = dagdp__dyn_counters hlsl {
+      RWStructuredBuffer<uint> dyn_counters@uav;
+    }
+
+    dyn_counters_num@i1 = dagdp__dyn_counters_num;
+    dyn_region@i2 = dagdp__dyn_region;
+  }
+
+  hlsl(cs) {
+    groupshared uint gs_data[DAGDP_DYNAMIC_RECOUNT_GROUP_SIZE];
+
+    void inclusive_prefix_sum_gs(uint tId, uint count)
+    {
+      // TODO (Performance): eliminate bank conflicts?
+      // See https://developer.nvidia.com/gpugems/gpugems3/part-vi-gpu-computing/chapter-39-parallel-prefix-sum-scan-cuda
+      gs_data[tId] = count;
+      GroupMemoryBarrierWithGroupSync();
+
+      UNROLL
+      for (uint stride = 1u; stride <= DAGDP_DYNAMIC_RECOUNT_GROUP_SIZE; stride *= 2u)
+      {
+        uint mate = 0u;
+
+        FLATTEN
+        if (tId >= stride)
+          mate = gs_data[tId - stride];
+
+        GroupMemoryBarrierWithGroupSync();
+        gs_data[tId] += mate;
+        GroupMemoryBarrierWithGroupSync();
+      }
+    }
+
+    [numthreads(DAGDP_DYNAMIC_RECOUNT_GROUP_SIZE, 1, 1)]
+    void main(uint tId : SV_GroupThreadID)
+    {
+      uint count = 0;
+
+      BRANCH
+      if (tId < dyn_counters_num)
+        count = structuredBufferAt(dyn_counters, tId.x + DYN_COUNTERS_PREFIX);
+
+      BRANCH
+      if (tId == 0)
+        gs_data[0] = 0;
+
+      GroupMemoryBarrierWithGroupSync();
+
+      BRANCH
+      if (tId < dyn_counters_num)
+        InterlockedAdd(gs_data[0], count);
+
+      GroupMemoryBarrierWithGroupSync();
+
+      const uint totalPlaced = gs_data[0];
+      const bool isOverflow = totalPlaced > dyn_region.y;
+
+      if (isOverflow)
+        count = 0;
+      else
+        count += (dyn_region.y - totalPlaced) / dyn_counters_num; // Distribute extra capacity across all counters equally.
+
+      inclusive_prefix_sum_gs(tId, count);
+      const bool isAlreadyPlaced = structuredBufferAt(dyn_counters, DYN_COUNTERS_INDEX_OVERFLOW_FLAG) == 0u;
+
+      BRANCH
+      if (tId < dyn_counters_num)
+      {
+        const uint oldIndex = structuredBufferAt(dyn_allocs, tId).instanceBaseIndex;
+        const uint newIndex = dyn_region.x + gs_data[tId] - count;
+
+        structuredBufferAt(dyn_allocs, tId).instanceBaseIndexPlaced = isAlreadyPlaced ? oldIndex : newIndex;
+        structuredBufferAt(dyn_allocs, tId).instanceBaseIndex = newIndex;
+        structuredBufferAt(dyn_allocs, tId).capacity = count;
+
+        BRANCH
+        if (!isAlreadyPlaced)
+          structuredBufferAt(dyn_counters, tId + DYN_COUNTERS_PREFIX) = 0;
+      }
+
+      BRANCH
+      if (tId == 0)
+      {
+        structuredBufferAt(dyn_counters, DYN_COUNTERS_INDEX_OVERFLOW_FLAG) = isOverflow ? ~0u : 0;
+        structuredBufferAt(dyn_counters, DYN_COUNTERS_INDEX_SKIP_PESSIMISTIC_PLACEMENT) = isAlreadyPlaced || isOverflow;
+        structuredBufferAt(dyn_counters, DYN_COUNTERS_INDEX_TOTAL_PLACED) = totalPlaced;
+        structuredBufferAt(dyn_counters, DYN_COUNTERS_INDEX_TOTAL_CAPACITY) = dyn_region.y;
+      }
+    }
+  }
+  compile("target_cs", "main");
+}

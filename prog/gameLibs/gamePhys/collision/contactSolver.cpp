@@ -353,17 +353,22 @@ void ContactSolver::addBody(IPhysBase *phys, float bounding_radius, uint32_t fla
   if (!phys)
     return;
 
+  int vacantBodyInd = -1;
   for (int i = 0; i < bodies.size(); ++i)
+  {
     if (bodies[i].phys == phys)
       return;
+    else if (!bodies[i].phys && vacantBodyInd < 0)
+      vacantBodyInd = i;
+  }
 
-  Body &b = bodies.push_back();
+  Body &b = (vacantBodyInd < 0) ? bodies.push_back() : bodies[vacantBodyInd];
   b.phys = phys;
   b.boundingRadius = bounding_radius;
   b.flags = flags;
   b.layer = layer;
 
-  BodyState &state = bodyStates.push_back();
+  BodyState &state = (vacantBodyInd < 0) ? bodyStates.push_back() : bodyStates[vacantBodyInd];
   ::memset(&state, 0, sizeof(BodyState));
 
   state.shouldCheckContactWithGround = true;

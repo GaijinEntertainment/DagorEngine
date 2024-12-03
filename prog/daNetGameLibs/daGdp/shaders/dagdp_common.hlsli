@@ -39,4 +39,18 @@ struct PlaceableGpuData
   uint riPoolOffset;
 };
 
+#define DYN_COUNTERS_PREFIX 4
+#define DYN_COUNTERS_INDEX_OVERFLOW_FLAG 0
+#define DYN_COUNTERS_INDEX_SKIP_PESSIMISTIC_PLACEMENT 1
+#define DYN_COUNTERS_INDEX_TOTAL_PLACED 2
+#define DYN_COUNTERS_INDEX_TOTAL_CAPACITY 3
+
+struct DynAlloc
+{
+  uint instanceBaseIndexPlaced;
+  uint instanceBaseIndex;
+  uint capacity;
+  uint _padding;
+};
+
 #endif // DAGDP_COMMON_HLSLI_INCLUDED
