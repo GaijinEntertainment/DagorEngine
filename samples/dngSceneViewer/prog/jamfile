@@ -80,7 +80,7 @@ if $(Platform) in windows {
   BundleCopy =
     platform/macOS/$(Game).icns ../Resources/$(BundleName).icns
   ;
-  if $(Config) != rel { BundleSymlink = ../Resources/game ../../.. ; }
+  opt on main/apple_main.mm = -D__S(X)=#X -DDAGOR_MACOSX_CONTENTS=__S(../../..) ;
 
   if $(Config) = rel {
     CopyTo = $(OutDir)/$(BundleName) ;
