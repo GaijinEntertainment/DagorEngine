@@ -2,6 +2,7 @@
 /samples/physTest
 /samples/*/develop
 /samples/*/game*
+/samples/dngSceneViewer/viewer*
 /samples/*/tools
 /samples/*/application.blk
 /outerSpace/develop

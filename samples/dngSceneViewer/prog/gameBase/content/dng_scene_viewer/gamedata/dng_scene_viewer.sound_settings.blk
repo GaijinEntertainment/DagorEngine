@@ -1,0 +1,76 @@
+maxChannels:i=1024
+commandQueueSize:i=65536
+maxSoftwareChannels:i=128
+maxVorbisCodecs:i=128
+streamBufferSizeKb:i=96
+randomizeSeed:b=yes
+maxEventInstances:i=64
+maxOneshotEventInstances:i=32
+rejectFarOneshots:b=yes
+
+fmodLoglevel:t="warnings" // valid values are: "errors", "warnings" and "log", default is "errors"
+loglevel:t="errors" // valid values are: "all", "errors" and "warnings", default is "errors"
+
+//fmodProfile:b=yes // disabled by default, only for setup sounds in Live mode
+//fmodLiveUpdate:b=yes // disabled by default, only for setup sounds in Live mode
+
+dsp {
+  pan3DDecay:r=0.05
+}
+
+vca {
+  MASTER {}
+  muteable {}
+  ambient {}
+  effects {}
+  music {}
+}
+muteableVca:t="muteable"
+
+banks {
+  folder:t="sound"
+  extension:t=".bank"
+
+  presets {
+    master {
+      master_bank {async:b=yes; preload:b=yes; loadToMemory:b=yes;}
+      "master_bank.strings" {async:b=yes; preload:b=yes; loadToMemory:b=yes;}
+      "master_bank.assets" {async:b=yes; preload:b=yes; loadToMemory:b=yes;}
+
+      // ----------------------------------
+      cmn_ambient {async:b=yes; loadToMemory:b=yes;}
+      "cmn_ambient.assets" {async:b=yes;}
+
+      cmn_ambient_battle {async:b=yes; loadToMemory:b=yes;}
+      "cmn_ambient_battle.assets" {async:b=yes;}
+
+      cmn_ambient_desert {async:b=yes; loadToMemory:b=yes;}
+      "cmn_ambient_desert.assets" {async:b=yes;}
+
+      cmn_ambient_sea {async:b=yes; loadToMemory:b=yes;}
+      "cmn_ambient_sea.assets" {async:b=yes;}
+
+      cmn_ambient_shipwreck {async:b=yes; loadToMemory:b=yes;}
+      "cmn_ambient_shipwreck.assets" {async:b=yes;}
+
+      cmn_ambient_summer {async:b=yes; loadToMemory:b=yes;}
+      "cmn_ambient_summer.assets" {async:b=yes;}
+
+      cmn_ambient_summer_pos {async:b=yes; loadToMemory:b=yes;}
+      "cmn_ambient_summer_pos.assets" {async:b=yes;}
+
+      cmn_ambient_winter {async:b=yes; loadToMemory:b=yes;}
+      "cmn_ambient_winter.assets" {async:b=yes;}
+
+      cmn_fx_fire {async:b=yes; loadToMemory:b=yes;}
+      "cmn_fx_fire.assets" {async:b=yes;}
+
+      cmn_sfx_effect {async:b=yes; loadToMemory:b=yes;}
+      "cmn_sfx_effect.assets" {async:b=yes;}
+
+      // ----------------------------------
+      ww2_walker_soldier {async:b=yes; loadToMemory:b=yes;}
+      "ww2_walker_soldier.assets" {async:b=yes; preload:b=yes;}
+    }
+  } // presets
+} // banks

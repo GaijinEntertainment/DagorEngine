@@ -1,0 +1,62 @@
+#define GAME_NAME "OuterSpaceDev"
+#define GAME_ICON "outer_space.ico"
+#define GAME_DESCRIPTION "Outer Space"
+
+#define ID_ICON       101
+
+//WindowIcon   ICON    "icon.ico"
+#define _INC_CRTDEFS
+
+#define APSTUDIO_READONLY_SYMBOLS
+#include <windows.h>
+#undef APSTUDIO_READONLY_SYMBOLS
+
+
+#ifdef _WIN32
+LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+#endif //_WIN32
+
+ID_ICON              ICON     GAME_ICON
+AppIcon              ICON     GAME_ICON
+
+#ifndef VERSION_NUM
+#define VERSION_NUM 0,0,0,0
+#endif
+
+#ifndef GAME_DESCRIPTION
+#define GAME_DESCRIPTION "Game Client"
+#endif
+
+#ifndef GAME_NAME
+#define GAME_NAME ""
+#endif
+
+#define MACRO_VA_STR(...) #__VA_ARGS__
+#define VERSION_STRINGIFY(...) MACRO_VA_STR(__VA_ARGS__)
+// Application version
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION VERSION_NUM
+ PRODUCTVERSION VERSION_NUM
+ FILEFLAGSMASK 0x17L
+ FILEOS 0x4L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "000004b0"
+        BEGIN
+            VALUE "CompanyName", "Gaijin Entertainment"
+            VALUE "FileDescription", GAME_DESCRIPTION
+            VALUE "FileVersion", VERSION_STRINGIFY(VERSION_NUM)
+            VALUE "InternalName", "Dagor Game Client"
+            VALUE "LegalCopyright", "© Gaijin Entertainment"
+            VALUE "ProductName", GAME_NAME
+            VALUE "ProductVersion", VERSION_STRINGIFY(VERSION_NUM)
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0, 1200
+    END
+END

@@ -1,0 +1,10 @@
+Camera.Move   { dev:i=3; xAxis:i=0; yAxis:i=1; dzone:r=0.1; axisSnapAngK:r=0.01; }
+Camera.Rotate { dev:i=3; xAxis:i=2; yAxis:i=3; inverseY:b=no; dzone:r=0; axisSnapAngK:r=0; nonlin:r=0; maxVal:r=1; }
+Camera.ZoomIn  { dev:i=3; btn:i=9; }
+Camera.ZoomOut { dev:i=3; btn:i=8; }
+
+MenuCamera.Rotate { dev:i=3; xAxis:i=2; yAxis:i=3; inverseY:b=yes; dzone:r=0; axisSnapAngK:r=0; nonlin:r=0; maxVal:r=1; }
+MenuCamera.LookAround { dev:i=2; btn:i=1; type:i=0; }
+
+CharCtrl.Move { dev:i=3; xAxis:i=0; yAxis:i=1; dzone:r=0.1; axisSnapAngK:r=0.01; }
+CharCtrl.Look { dev:i=3; xAxis:i=2; yAxis:i=3; dzone:r=0.1; axisSnapAngK:r=0.01; }

@@ -1,0 +1,40 @@
+omni_light_fluorescent_2_5_warm_a{
+  _use:t="omni_light"
+  light__contact_shadows:b=no
+  light__max_radius:r=2.5
+  light__offset:p3=0, 0, 0
+  light__color:c=255, 170, 80, 255
+  light__brightness:r=0.7
+}
+
+sovmod_lamp_fluorescent_a_type_a_6m_cold_light{
+  _use:t="omni_light"
+  light__max_radius:r=6
+  light__color:c=180, 255, 220, 255
+  light__brightness:r=3
+  light__texture_name:t="ies_sovmod_lamp_fluorescent_a_type_a"
+  light__direction:p3=0, 0, 1
+
+  _group{
+    _tags:t="render"
+    omni_light__inner_attenuation:r=0.1
+    omni_light__shadows:b=yes
+    omni_light__dynamic_obj_shadows:b=no
+  }
+}
+
+sovmod_lamp_fluorescent_a_type_b_6m_cold_light{
+  _use:t="omni_light"
+  light__max_radius:r=6
+  light__color:c=170, 255, 210, 255
+  light__brightness:r=3
+  light__texture_name:t="ies_sovmod_lamp_fluorescent_a_type_a"
+  light__direction:p3=0, 0, 1
+
+  _group{
+    _tags:t="render"
+    omni_light__inner_attenuation:r=0.1
+    omni_light__shadows:b=yes
+    omni_light__dynamic_obj_shadows:b=no
+  }
+}

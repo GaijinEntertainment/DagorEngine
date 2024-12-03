@@ -85,11 +85,12 @@ static ecs::EntitySystemDesc sun_flare_provider_invalidate_es_es_desc
 ,"render","sun_flare_provider__flare_config");
 static constexpr ecs::ComponentDesc lens_flare_config_on_appear_es_comps[] =
 {
-//start of 6 rq components at [0]
+//start of 7 rq components at [0]
   {ECS_HASH("lens_flare_config__use_occlusion"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("lens_flare_config__scale"), ecs::ComponentTypeInfo<Point2>()},
   {ECS_HASH("lens_flare_config__elements"), ecs::ComponentTypeInfo<ecs::Array>()},
   {ECS_HASH("lens_flare_config__name"), ecs::ComponentTypeInfo<ecs::string>()},
+  {ECS_HASH("lens_flare_config__exposure_reduction"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("lens_flare_config__intensity"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("lens_flare_config__smooth_screen_fadeout_distance"), ecs::ComponentTypeInfo<float>()}
 };
@@ -106,12 +107,12 @@ static ecs::EntitySystemDesc lens_flare_config_on_appear_es_es_desc
   ecs::EntitySystemOps(nullptr, lens_flare_config_on_appear_es_all_events),
   empty_span(),
   empty_span(),
-  make_span(lens_flare_config_on_appear_es_comps+0, 6)/*rq*/,
+  make_span(lens_flare_config_on_appear_es_comps+0, 7)/*rq*/,
   empty_span(),
   ecs::EventSetBuilder<ecs::EventEntityCreated,
                        ecs::EventComponentsAppear>::build(),
   0
-,"render","lens_flare_config__elements,lens_flare_config__intensity,lens_flare_config__name,lens_flare_config__scale,lens_flare_config__smooth_screen_fadeout_distance,lens_flare_config__use_occlusion");
+,"render","lens_flare_config__elements,lens_flare_config__exposure_reduction,lens_flare_config__intensity,lens_flare_config__name,lens_flare_config__scale,lens_flare_config__smooth_screen_fadeout_distance,lens_flare_config__use_occlusion");
 static constexpr ecs::ComponentDesc lens_flare_config_on_disappear_es_comps[] =
 {
 //start of 1 rq components at [0]
@@ -229,19 +230,20 @@ inline void prepare_sun_flares_ecs_query(Callable function)
 }
 static constexpr ecs::ComponentDesc gather_flare_configs_ecs_query_comps[] =
 {
-//start of 6 ro components at [0]
+//start of 7 ro components at [0]
   {ECS_HASH("lens_flare_config__name"), ecs::ComponentTypeInfo<ecs::string>()},
   {ECS_HASH("lens_flare_config__smooth_screen_fadeout_distance"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("lens_flare_config__scale"), ecs::ComponentTypeInfo<Point2>()},
   {ECS_HASH("lens_flare_config__intensity"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("lens_flare_config__use_occlusion"), ecs::ComponentTypeInfo<bool>()},
+  {ECS_HASH("lens_flare_config__exposure_reduction"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("lens_flare_config__elements"), ecs::ComponentTypeInfo<ecs::Array>()}
 };
 static ecs::CompileTimeQueryDesc gather_flare_configs_ecs_query_desc
 (
   "gather_flare_configs_ecs_query",
   empty_span(),
-  make_span(gather_flare_configs_ecs_query_comps+0, 6)/*ro*/,
+  make_span(gather_flare_configs_ecs_query_comps+0, 7)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
@@ -258,6 +260,7 @@ inline void gather_flare_configs_ecs_query(Callable function)
             , ECS_RO_COMP(gather_flare_configs_ecs_query_comps, "lens_flare_config__scale", Point2)
             , ECS_RO_COMP(gather_flare_configs_ecs_query_comps, "lens_flare_config__intensity", float)
             , ECS_RO_COMP(gather_flare_configs_ecs_query_comps, "lens_flare_config__use_occlusion", bool)
+            , ECS_RO_COMP(gather_flare_configs_ecs_query_comps, "lens_flare_config__exposure_reduction", float)
             , ECS_RO_COMP(gather_flare_configs_ecs_query_comps, "lens_flare_config__elements", ecs::Array)
             );
 

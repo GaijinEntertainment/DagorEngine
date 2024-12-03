@@ -1,0 +1,8 @@
+let darg = require("daRg")
+
+darg.Fonts.__update({
+  system = 0
+  fontawesome = 1
+  mon = 2
+})
+

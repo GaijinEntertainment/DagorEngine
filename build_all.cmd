@@ -46,3 +46,21 @@ call compile_shaders_metal.bat
 call compile_shaders_spirv.bat
 call compile_shaders_tools.bat
 popd
+
+pushd outerSpace\prog
+call build_aot_compiler.cmd
+jam -sNeedDasAotCompile=yes
+jam -sNeedDasAotCompile=yes -sDedicated=yes
+jam -f jamfile-decrypt
+call compile_all_prog_vromfs.cmd
+cd shaders
+call compile_shaders_dx11.bat
+call compile_shaders_tools.bat
+cd ..\..\develop\gameBase
+call create_vfsroms.bat
+cd ..\gui
+call build_ui.cmd
+popd
+pushd outerSpace\prog\utils\dev_launcher
+call create_vfsroms.bat
+popd

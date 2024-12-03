@@ -1,0 +1,27 @@
+rendinstExtraMaxCnt:i=131072
+rendinstExtraSubstFaceThres:i=0
+rendinstPreloadDistance:r=10000
+
+use_damage_model:b=no
+use_flight_model:b=no
+use_ai:b=no
+use_water_render:b=yes
+use_glass_scratch_render:b=no
+use_da_skies:b=yes
+use_blood_puddles:b=no
+use_fluid_wind:b=no
+character_micro_details {
+  micro_detail:t=microdetail_generic_noise_a_tex_n*
+  micro_detail:t=microdetail_02_fabric_tex_n*
+  micro_detail:t=microdetail_03_fabric_2_tex_n*
+  micro_detail:t=microdetail_04_wool_tex_n*
+  micro_detail:t=microdetail_05_wool_2_tex_n*
+  micro_detail:t=microdetail_06_leather_tex_n*
+  micro_detail:t=microdetail_07_metal_tex_n*
+  micro_detail:t=microdetail_08_wood_tex_n*
+}
+
+commonClientScenes{
+  scene:t="content/outer_space/gamedata/scenes/_common_render_scene.blk"//should be created before WorldRenderer
+  scene:t="content/outer_space/gamedata/scenes/_common_sound_scene.blk"//should be created before WorldRenderer
+}

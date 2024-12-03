@@ -1,0 +1,4 @@
+default_billboard_decal {
+  diffuseTex:t=""
+  normalTex:t=""
+}

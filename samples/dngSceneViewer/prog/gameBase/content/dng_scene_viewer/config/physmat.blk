@@ -1,0 +1,1567 @@
+/*
+reference Information
+default       - hard ground with grass;
+concrete      - smooth concrete road, asphalt, concrete floors;
+stone         - paving stones, stones;
+steel         - metal surfaces, metal objects;
+soil          - ground, hard ground;
+leaves        - heaps of leaves, sheet layer;
+dirt          - soft ground cover;
+roadSoil      - rolled earth road;
+roadmud       - road covered in mud;
+sand          - loose sand on a dune, increased slip;
+moon_sand     - moon sand;
+sand_slope    - sand on the slopes;
+quarrySand    - deep sand in quarries;
+roadSand      - trampled sandy road;
+snow          - snow;
+mud           - deep mud;
+ice           - clear ice;
+roadSnow      - snowy road;
+rocks         - paving stones, stones;
+rocksSlipper  - wet rocky surfaces with increased slip;
+gravel        - gravel on a railway embankment or gravel path;
+fabric        - fabrics, tarpaulin, etc. types;
+glass         - glass surfaces;
+wood          - wood surfaces;
+
+rolling resistance calculation formula:
+
+rollingFrictionK + resistanceMult * resistanceK * tank_velocity ^ 2
+
+rollingFrictionK:
+Static rolling resistance coefficient
+parameter in InteractPropsList
+
+resistanceK:
+multiplier to dynamic rolling resistance
+parameter in PhysMats
+
+resistanceMult:
+multiplier to dynamic rolling resistance
+parameter in tank tracks
+
+heightmapDeformation:
+first  - deformation (in meters) for default pressure
+second - maximum possible deformation
+
+trailDetailStrength:
+normalmap strength (0 to 1), the higher the value, the more detailed the trail
+*/
+
+PhysMats{
+  __DefaultParams{
+    iak:r=1
+    damage_k:r=1
+    is_solid:b=no
+  }
+
+  default{
+    bf_class:t="default"
+    color:c=255, 162, 0, 100
+    damage_k:r=0.3
+    deformable_width:r=0.05
+    tankTracksTexId:i=0
+    heightmapDeformation:p2=0.01, 0.01
+    trailDetailStrength:r=1
+    resistanceK:r=2.5e-05
+
+    damageModel{
+      ricochetAngleMult:r=2
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=1
+    }
+  }
+
+  horLandMesh{
+    bf_class:t="horLandMesh"
+    color:c=255, 162, 0, 100
+    iak:r=0.2
+    damage_k:r=0.3
+    deformable_width:r=0.15
+    resistanceK:r=0.0006
+
+    damageModel{
+      ricochetAngleMult:r=2
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=1
+    }
+  }
+
+  verLandMesh{
+    color:c=255, 162, 0, 100
+    damage_k:r=0.3
+
+    damageModel{
+      ricochetAngleMult:r=2
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=1
+    }
+  }
+
+  waterPuddle{
+    color:c=0, 0, 255, 10
+
+    damageModel{
+      ricochetAngleMult:r=1
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=1
+    }
+  }
+
+  water3d{
+    color:c=255, 162, 0, 100
+
+    damageModel{
+      ricochetAngleMult:r=0.5
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=1
+    }
+  }
+
+  water{
+    color:c=0, 0, 255, 200
+
+    damageModel{
+      ricochetAngleMult:r=1
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=1
+    }
+  }
+
+  concrete{
+    bf_class:t="concrete"
+    color:c=255, 255, 0, 200
+    damage_k:r=0.3
+    resistanceK:r=2.5e-05
+    is_solid:b=yes
+    tankTracksTexId:i=3
+    heightmapDeformation:p2=0.001, 0.001
+    trailDetailStrength:r=1
+
+    vehicleSound{
+      concrete:r=1
+      collDesc:t="collConcrete"
+    }
+
+    damageModel{
+      ricochetAngleMult:r=0.95
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=0.2
+    }
+  }
+
+  brick_red{
+    bf_class:t="concrete"
+    color:c=255, 255, 0, 200
+    damage_k:r=0.3
+    is_solid:b=yes
+
+    vehicleSound{
+      concrete:r=1
+      collDesc:t="collConcrete"
+    }
+
+    damageModel{
+      ricochetAngleMult:r=0.95
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=0.2
+    }
+  }
+
+  stone{
+    bf_class:t="stone"
+    color:c=255, 255, 0, 200
+    resistanceK:r=2.5e-05
+    damage_k:r=0.3
+    is_solid:b=yes
+    tankTracksTexId:i=3
+    heightmapDeformation:p2=0.001, 0.001
+    trailDetailStrength:r=0.25
+
+    vehicleSound{
+      concrete:r=1
+    }
+
+    damageModel{
+      ricochetAngleMult:r=0.6
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=0.2
+    }
+  }
+
+  buildings{
+    color:c=255, 255, 0, 200
+    damage_k:r=0.3
+
+    vehicleSound{
+      concrete:r=1
+    }
+  }
+
+  wood{
+    bf_class:t="wood"
+    damage_k:r=0.3
+    resistanceK:r=2.5e-05
+
+    vehicleSound{
+      concrete:r=0.5
+      collDesc:t="collWood"
+    }
+
+    damageModel{
+      ricochetAngleMult:r=1.5
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=0.6
+      armorThickness:r=0.1
+    }
+  }
+
+  wood_snow{
+    bf_class:t="wood"
+    damage_k:r=0.3
+
+    vehicleSound{
+      concrete:r=0.5
+      collDesc:t="collWood"
+    }
+
+    damageModel{
+      ricochetAngleMult:r=1.5
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=0.6
+      armorThickness:r=0.1
+    }
+  }
+
+  wood_fall{
+    bf_class:t="wood"
+    damage_k:r=0.3
+
+    vehicleSound{
+      concrete:r=0.5
+      collDesc:t="collWood"
+    }
+
+    damageModel{
+      ricochetAngleMult:r=1.5
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=0.6
+      armorThickness:r=0.1
+    }
+  }
+
+  wood_dead{
+    bf_class:t="wood"
+    damage_k:r=0.3
+
+    vehicleSound{
+      concrete:r=0.5
+      collDesc:t="collWood"
+    }
+
+    damageModel{
+      ricochetAngleMult:r=1.5
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=0.6
+      armorThickness:r=0.1
+    }
+  }
+
+  wood_palm{
+    bf_class:t="wood"
+    damage_k:r=0.3
+
+    vehicleSound{
+      concrete:r=0.5
+      collDesc:t="collWood"
+    }
+
+    damageModel{
+      ricochetAngleMult:r=1.5
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=0.6
+      armorThickness:r=0.1
+    }
+  }
+
+  wood_solid{
+    bf_class:t="wood"
+    damage_k:r=0.3
+
+    vehicleSound{
+      concrete:r=0.5
+      collDesc:t="collWood"
+    }
+
+    damageModel{
+      ricochetAngleMult:r=1.5
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=0.6
+      armorThickness:r=15
+    }
+  }
+
+  wood_snow_solid{
+    bf_class:t="wood"
+    damage_k:r=0.3
+
+    vehicleSound{
+      concrete:r=0.5
+      collDesc:t="collWood"
+    }
+
+    damageModel{
+      ricochetAngleMult:r=1.5
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=0.6
+      armorThickness:r=15
+    }
+  }
+
+  wood_fall_solid{
+    bf_class:t="wood"
+    damage_k:r=0.3
+
+    vehicleSound{
+      concrete:r=0.5
+      collDesc:t="collWood"
+    }
+
+    damageModel{
+      ricochetAngleMult:r=1.5
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=0.6
+      armorThickness:r=15
+    }
+  }
+
+  wood_dead_solid{
+    bf_class:t="wood"
+    damage_k:r=0.3
+
+    vehicleSound{
+      concrete:r=0.5
+      collDesc:t="collWood"
+    }
+
+    damageModel{
+      ricochetAngleMult:r=1.5
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=0.6
+      armorThickness:r=15
+    }
+  }
+
+  wood_palm_solid{
+    bf_class:t="wood"
+    damage_k:r=0.3
+
+    vehicleSound{
+      concrete:r=0.5
+      collDesc:t="collWood"
+    }
+
+    damageModel{
+      ricochetAngleMult:r=1.5
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=0.6
+      armorThickness:r=15
+    }
+  }
+
+  wood_railway{
+    bf_class:t="wood"
+    damage_k:r=0.3
+
+    vehicleSound{
+      concrete:r=0.5
+      collDesc:t="collWood"
+    }
+
+    damageModel{
+      ricochetAngleMult:r=1.5
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=0.6
+      armorThickness:r=0.1
+    }
+  }
+
+  window_wood{
+    bf_class:t="window"
+    damage_k:r=0.3
+    completelyTransparent:b=yes
+    lightTransparent:b=yes
+
+    physDestructible{
+      climbingThrough:b=yes
+      impulseSpeed:r=2.5
+    }
+
+    vehicleSound{
+      concrete:r=0.5
+      collDesc:t="collWood"
+    }
+
+    damageModel{
+      ricochetAngleMult:r=1.5
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=0.6
+      armorThickness:r=0.1
+    }
+  }
+
+  glass{
+    bf_class:t="glass"
+    damage_k:r=0.3
+    completelyTransparent:b=yes
+    lightTransparent:b=yes
+
+    vehicleSound{
+      concrete:r=0.5
+    }
+
+    damageModel{
+      ricochetAngleMult:r=0.1
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=0.2
+      armorThickness:r=0.01
+    }
+  }
+
+  steel{
+    bf_class:t="steel"
+    color:c=0, 0, 255, 200
+    resistanceK:r=0.00035
+    is_solid:b=yes
+
+    vehicleSound{
+      concrete:r=0.5
+      collDesc:t="collMetal"
+    }
+
+    damageModel{
+      ricochetAngleMult:r=0.3
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=0.1
+    }
+  }
+
+  metal{
+    bf_class:t="steel"
+    //At Enslisted metal and steel same entity
+    color:c=0, 0, 255, 200
+
+    vehicleSound{
+      concrete:r=0.5
+      collDesc:t="collMetal"
+    }
+
+    damageModel{
+      ricochetAngleMult:r=0.3
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=0.1
+    }
+  }
+
+  train{
+    bf_class:t="steel"
+    color:c=0, 0, 255, 200
+
+    vehicleSound{
+      concrete:r=0.5
+      collDesc:t="collMetal"
+    }
+
+    damageModel{
+      ricochetAngleMult:r=0.3
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=0.1
+    }
+  }
+
+  flesh{
+    bf_class:t="flesh"
+
+    vehicleSound{
+      minMaxScrape:p2=0, 0
+    }
+  }
+
+  cactus{
+    bf_class:t="wood"
+    damage_k:r=0.3
+
+    vehicleSound{
+      concrete:r=0.5
+      collDesc:t="collWood"
+    }
+
+    damageModel{
+      ricochetAngleMult:r=1.5
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=0.6
+      armorThickness:r=0.05
+    }
+  }
+
+  soil{
+    bf_class:t="soil"
+    deformable_width:r=0.2
+    resistanceK:r=0.0008
+    tankTracksTexId:i=0
+    heightmapDeformation:p2=0.04, 0.1
+    trailDetailStrength:r=1
+
+    damageModel{
+      ricochetAngleMult:r=2
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=1
+    }
+  }
+
+  hard_soil{
+    // soil for field can't diggin, but bomb holes are presents
+    bf_class:t="soil"
+    deformable_width:r=0.2
+    resistanceK:r=0.0008
+    tankTracksTexId:i=0
+    heightmapDeformation:p2=0.03, 0.06
+    trailDetailStrength:r=1
+
+    damageModel{
+      ricochetAngleMult:r=2
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=1
+    }
+  }
+
+  leaves{
+    bf_class:t="leaves"
+    deformable_width:r=0.1
+    resistanceK:r=0.0008
+    tankTracksTexId:i=0
+    heightmapDeformation:p2=0.04, 0.1
+    trailDetailStrength:r=1
+
+    damageModel{
+      ricochetAngleMult:r=2
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=1
+    }
+  }
+
+  mud{
+    bf_class:t="mud"
+    deformable_width:r=0.2
+    tankTracksTexId:i=2
+    heightmapDeformation:p2=0.1, 0.15
+    trailDetailStrength:r=1
+    resistanceK:r=0.001
+
+    damageModel{
+      ricochetAngleMult:r=2
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=1
+    }
+  }
+
+  dirt{
+    bf_class:t="dirt"
+    deformable_width:r=0.3
+    resistanceK:r=0.001
+    tankTracksTexId:i=0
+  }
+
+  roadSoil{
+    bf_class:t="roadSoil"
+    deformable_width:r=0.05
+    tankTracksTexId:i=0
+    resistanceK:r=2.5e-05
+    heightmapDeformation:p2=0.03, 0.08
+    trailDetailStrength:r=0.75
+
+    vehicleSound{
+      concrete:r=1
+    }
+  }
+
+  roadmud{
+    bf_class:t="roadmud"
+    deformable_width:r=0.05
+    tankTracksTexId:i=2
+    heightmapDeformation:p2=0.1, 0.15
+    trailDetailStrength:r=0.8
+    resistanceK:r=1.5e-05
+
+    damageModel{
+      ricochetAngleMult:r=2
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=1
+    }
+  }
+
+  sand{
+    bf_class:t="sand"
+    deformable_width:r=0.2
+    tankTracksTexId:i=1
+    heightmapDeformation:p2=0.1, 0.15
+    trailDetailStrength:r=1
+    resistanceK:r=2.5e-05
+  }
+
+  //april_fool_2022_event_moon
+  moon_sand{
+    bf_class:t="moon_sand"
+    deformable_width:r=0.2
+    tankTracksTexId:i=1
+    resistanceK:r=2.5e-05
+  }
+
+  quarrySand{
+    bf_class:t="quarrySand"
+    deformable_width:r=0.05
+    resistanceK:r=0.00015
+    tankTracksTexId:i=1
+    heightmapDeformation:p2=0.1, 0.15
+    trailDetailStrength:r=1
+
+    vehicleSound{
+      concrete:r=1
+    }
+  }
+
+  sand_slope{
+    bf_class:t="sand_slope"
+    deformable_width:r=0.05
+    resistanceK:r=0.00015
+    tankTracksTexId:i=1
+    heightmapDeformation:p2=0.1, 0.15
+    trailDetailStrength:r=1
+
+    vehicleSound{
+      concrete:r=1
+    }
+  }
+
+  roadSand{
+    bf_class:t="roadSand"
+    deformable_width:r=0.1
+    tankTracksTexId:i=1
+    heightmapDeformation:p2=0.1, 0.15
+    trailDetailStrength:r=0.8
+    resistanceK:r=2.5e-05
+
+    vehicleSound{
+      concrete:r=1
+    }
+  }
+
+  quickSand{
+    bf_class:t="sand"
+    deformable_width:r=0.6
+    tankTracksTexId:i=1
+
+    vehicleSound{
+      concrete:r=1
+    }
+  }
+
+  snow{
+    bf_class:t="snow"
+    tankTracksTexId:i=0
+    heightmapDeformation:p2=0.15, 0.25
+    trailDetailStrength:r=1
+    deformable_width:r=0.3
+    resistanceK:r=0.001
+  }
+
+  hardSnow{
+    //snow in which you can not dig
+    bf_class:t="snow"
+    tankTracksTexId:i=0
+    heightmapDeformation:p2=0.1, 0.15
+    trailDetailStrength:r=1
+    deformable_width:r=0.3
+  }
+
+  ice{
+    bf_class:t="ice"
+    resistanceK:r=2.5e-05
+    is_solid:b=yes
+    tankTracksTexId:i=2
+  }
+
+  snowLower{
+    bf_class:t="snow"
+    tankTracksTexId:i=0
+    deformable_width:r=0.2
+  }
+
+  roadSnow{
+    bf_class:t="roadSnow"
+    tankTracksTexId:i=2
+    heightmapDeformation:p2=0.1, 0.15
+    trailDetailStrength:r=1
+    deformable_width:r=0.05
+    resistanceK:r=2.5e-05
+  }
+
+  lava{
+    bf_class:t="lava"
+    color:c=255, 162, 0, 100
+    damage_k:r=0.3
+    deformable_width:r=0.05
+    resistanceK:r=0.0006
+
+    damageModel{
+      ricochetAngleMult:r=2
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=1
+    }
+  }
+
+  rocks{
+    bf_class:t="rocks"
+    resistanceK:r=2.5e-05
+    is_solid:b=yes
+    tankTracksTexId:i=3
+    heightmapDeformation:p2=0.001, 0.001
+    trailDetailStrength:r=1
+
+    vehicleSound{
+      concrete:r=1
+    }
+
+    damageModel{
+      ricochetAngleMult:r=0.3
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=0.2
+    }
+  }
+
+  rocksSlippery{
+    bf_class:t="rocksSlippery"
+    resistanceK:r=2.5e-05
+    is_solid:b=yes
+    tankTracksTexId:i=3
+
+    vehicleSound{
+      concrete:r=1
+    }
+  }
+
+  gravel{
+    bf_class:t="gravel"
+    resistanceK:r=2.5e-05
+    is_solid:b=yes
+    tankTracksTexId:i=3
+    heightmapDeformation:p2=0.02, 0.04
+    trailDetailStrength:r=1
+
+    vehicleSound{
+      concrete:r=1
+    }
+
+    damageModel{
+      ricochetAngleMult:r=1
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=0.2
+      bulletBrokenThreshold:r=150
+    }
+  }
+
+  rubber{
+    bf_class:t="rubber"
+
+    vehicleSound{
+      concrete:r=1
+    }
+  }
+
+  ceramic{
+    bf_class:t="ceramic"
+
+    vehicleSound{
+      concrete:r=1
+    }
+  }
+
+  fabric{
+    bf_class:t="fabric"
+
+    vehicleSound{
+      concrete:r=1
+    }
+
+    damageModel{
+      armorThickness:r=0.01
+    }
+  }
+
+  hay{
+    bf_class:t="wood"
+    damage_k:r=0.3
+
+    vehicleSound{
+      concrete:r=0.5
+      collDesc:t="collWood"
+    }
+
+    damageModel{
+      ricochetAngleMult:r=2.8
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=0.6
+      armorThickness:r=0.7
+    }
+  }
+
+  paper{
+    bf_class:t="paper"
+
+    vehicleSound{
+      concrete:r=1
+    }
+  }
+
+  plastic{
+    bf_class:t="plastic"
+
+    vehicleSound{
+      concrete:r=1
+    }
+  }
+
+  bushes{
+    bf_class:t="bushes"
+
+    softCollision{
+      physViscosity:r=2.5
+    }
+
+    damageModel{
+      armorThickness:r=0.01
+    }
+  }
+
+  bushes_fall{
+    bf_class:t="bushes"
+
+    softCollision{
+      physViscosity:r=2.5
+    }
+
+    damageModel{
+      armorThickness:r=0.01
+    }
+  }
+
+  bushes_snow{
+    bf_class:t="bushes"
+
+    softCollision{
+      physViscosity:r=2.5
+    }
+
+    damageModel{
+      armorThickness:r=0.01
+    }
+  }
+
+  bushes_dead{
+    bf_class:t="bushes"
+
+    softCollision{
+      physViscosity:r=2.5
+    }
+
+    damageModel{
+      armorThickness:r=0.01
+    }
+  }
+
+  bushes_palm{
+    bf_class:t="bushes"
+
+    softCollision{
+      physViscosity:r=2.5
+    }
+
+    damageModel{
+      armorThickness:r=0.01
+    }
+  }
+
+  barbwire{
+    bf_class:t="barbwire"
+    completelyTransparent:b=yes
+
+    softCollision{
+      physViscosity:r=2.5
+    }
+  }
+
+  //-------------------------------------------//
+  //missing physmats from armorclass for explmat
+  tank_structural_steel{
+    bf_class:t="steel"
+
+    vehicleSound{
+      concrete:r=0.5
+      collDesc:t="collMetal"
+    }
+  }
+
+  aluminum_armor{
+    bf_class:t="steel"
+
+    vehicleSound{
+      concrete:r=0.5
+      collDesc:t="collMetal"
+    }
+  }
+
+  //-------------------------------------------//
+  walkRay{
+    bf_class:t="walkRay"
+  }
+
+  climbAiRay{
+    bf_class:t="climbAiRay"
+  }
+
+  tankTrack{
+    bf_class:t="tankTrack"
+  }
+
+  wheel{
+    bf_class:t="wheel"
+  }
+
+  cameraRay{
+    bf_class:t="cameraRay"
+  }
+
+  bulletRay{
+    bf_class:t="bulletRay"
+  }
+
+  grenadeRay{
+    bf_class:t="grenadeRay"
+  }
+
+  aimRay{
+    bf_class:t="aimRay"
+  }
+
+  spraySpawnerRay{
+    bf_class:t="spraySpawnerRay"
+  }
+
+  walker{
+    bf_class:t="walker"
+
+    softCollision{
+      collisionForce:r=0.8
+    }
+  }
+
+  walkerBot{
+    bf_class:t="walkerBot"
+
+    softCollision{
+      collisionForce:r=0.8
+    }
+  }
+
+  softWoodDoor{
+    bf_class:t="softWoodDoor"
+    damage_k:r=0.3
+
+    vehicleSound{
+      concrete:r=0.5
+    }
+
+    softCollision{
+      collisionForce:r=0.3
+    }
+
+    damageModel{
+      armorThickness:r=0.1
+      ricochetAngleMult:r=1.5
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=1
+    }
+  }
+
+  softSteelDoor{
+    bf_class:t="softSteelDoor"
+    damage_k:r=0.3
+
+    vehicleSound{
+      concrete:r=0.5
+    }
+
+    softCollision{
+      collisionForce:r=0.3
+    }
+
+    damageModel{
+      ricochetAngleMult:r=0.3
+      ricochetAngle:r=60
+      ricochetCosinePower:r=2
+      ricochetCosineMult:r=0.2
+      armorThickness:r=40
+    }
+  }
+
+  small_debris{
+    bf_class:t="small_debris"
+  }
+
+  small_decor{
+    bf_class:t="small_decor"
+  }
+
+  bullet_transparent{
+    bf_class:t="bullet_transparent"
+  }
+
+  gunRay{
+    bf_class:t="gunRay"
+  }
+
+  build_ray{
+    bf_class:t="build_ray"
+  }
+
+  gun_effects_ray{
+    bf_class:t="gun_effects_ray"
+  }
+
+  bombCraterCast{
+    bf_class:t="bombCraterCast"
+  }
+}
+
+InteractPropsList{
+  walkRay{
+    bushes{
+      en:b=no
+    }
+
+    barbwire{
+      en:b=no
+    }
+
+    small_debris{
+      en:b=no
+    }
+
+    small_decor{
+      en:b=no
+    }
+
+    walkerBot{
+      en:b=no
+    }
+
+    glass{
+      en:b=no
+    }
+
+    window{
+      en:b=no
+    }
+
+    walker{
+      en:b=no
+    }
+  }
+
+  build_ray{
+    bushes{
+      en:b=no
+    }
+
+    barbwire{
+      en:b=no
+    }
+
+    small_debris{
+      en:b=no
+    }
+
+    small_decor{
+      en:b=no
+    }
+  }
+
+  gun_effects_ray{
+    walker{
+      en:b=no
+    }
+  }
+
+  climbAiRay{
+    bushes{
+      en:b=no
+    }
+
+    barbwire{
+      en:b=no
+    }
+
+    small_debris{
+      en:b=no
+    }
+
+    small_decor{
+      en:b=no
+    }
+
+    walker{
+      en:b=no
+    }
+
+    walkerBot{
+      en:b=no
+    }
+  }
+
+  gunRay{
+    bushes{
+      en:b=no
+    }
+
+    barbwire{
+      en:b=no
+    }
+
+    small_debris{
+      en:b=no
+    }
+
+    small_decor{
+      en:b=no
+    }
+
+    walker{
+      en:b=no
+    }
+
+    walkerBot{
+      en:b=no
+    }
+  }
+
+  walker{
+    small_debris{
+      en:b=no
+    }
+
+    small_decor{
+      en:b=no
+    }
+  }
+
+  walkerBot{
+    small_debris{
+      en:b=no
+    }
+
+    small_decor{
+      en:b=no
+    }
+  }
+
+  bulletRay{
+    barbwire{
+      en:b=no
+    }
+
+    bullet_transparent{
+      en:b=no
+    }
+  }
+
+  grenadeRay{
+    bushes{
+      en:b=no
+    }
+  }
+
+  aimRay{
+    bushes{
+      en:b=no
+    }
+
+    barbwire{
+      en:b=no
+    }
+
+    bullet_transparent{
+      en:b=no
+    }
+
+    glass{
+      en:b=no
+    }
+
+    window{
+      en:b=no
+    }
+  }
+
+  cameraRay{
+    bushes{
+      en:b=no
+    }
+
+    barbwire{
+      en:b=no
+    }
+  }
+
+  tankTrack{
+    default{
+      fk:r=1
+      rollingFrictionK:r=0.055
+    }
+
+    horLandMesh{
+      fk:r=1
+      rollingFrictionK:r=0.1
+    }
+
+    concrete{
+      fk:r=0.95
+      rollingFrictionK:r=0.05
+    }
+
+    stone{
+      fk:r=0.75
+      rollingFrictionK:r=0.05
+    }
+
+    steel{
+      fk:r=0.6
+      rollingFrictionK:r=0.02
+    }
+
+    soil{
+      fk:r=1
+      rollingFrictionK:r=0.055
+    }
+
+    leaves{
+      fk:r=1
+      rollingFrictionK:r=0.06
+    }
+
+    dirt{
+      fk:r=0.85
+      rollingFrictionK:r=0.08
+    }
+
+    roadSoil{
+      fk:r=1
+      rollingFrictionK:r=0.055
+    }
+
+    roadmud{
+      fk:r=0.9
+      rollingFrictionK:r=0.055
+    }
+
+    sand{
+      fk:r=0.9
+      rollingFrictionK:r=0.06
+    }
+
+    moon_sand{
+      fk:r=0.9
+      rollingFrictionK:r=0.06
+    }
+
+    sand_slope{
+      fk:r=0.9
+      rollingFrictionK:r=0.06
+    }
+
+    quarrySand{
+      fk:r=0.9
+      rollingFrictionK:r=0.06
+    }
+
+    roadSand{
+      fk:r=0.9
+      rollingFrictionK:r=0.06
+    }
+
+    snow{
+      fk:r=0.9
+      rollingFrictionK:r=0.06
+    }
+
+    mud{
+      fk:r=0.85
+      rollingFrictionK:r=0.08
+    }
+
+    ice{
+      fk:r=0.1
+      rollingFrictionK:r=0.045
+    }
+
+    roadSnow{
+      fk:r=0.9
+      rollingFrictionK:r=0.06
+    }
+
+    rocks{
+      fk:r=0.75
+      rollingFrictionK:r=0.05
+    }
+
+    rocksSlippery{
+      fk:r=0.7
+      rollingFrictionK:r=0.07
+    }
+
+    gravel{
+      fk:r=0.75
+      rollingFrictionK:r=0.05
+    }
+
+    fabric{
+      fk:r=0.8
+      rollingFrictionK:r=0.09
+    }
+
+    glass{
+      fk:r=0.6
+      rollingFrictionK:r=0.02
+    }
+
+    wood{
+      fk:r=0.8
+      rollingFrictionK:r=0.02
+    }
+
+    bushes{
+      en:b=no
+    }
+  }
+
+  wheel{
+    default{
+      fk:r=1
+      rollingFrictionK:r=0.045
+    }
+
+    horLandMesh{
+      fk:r=1
+      rollingFrictionK:r=0.2
+    }
+
+    concrete{
+      fk:r=0.95
+      rollingFrictionK:r=0.0166
+    }
+
+    stone{
+      fk:r=0.7
+      rollingFrictionK:r=0.07
+    }
+
+    steel{
+      fk:r=0.6
+      rollingFrictionK:r=0.02
+    }
+
+    soil{
+      fk:r=1
+      rollingFrictionK:r=0.045
+    }
+
+    leaves{
+      fk:r=1
+      rollingFrictionK:r=0.2
+    }
+
+    dirt{
+      fk:r=0.8
+      rollingFrictionK:r=0.2
+    }
+
+    roadSoil{
+      fk:r=1
+      rollingFrictionK:r=0.0166
+    }
+
+    roadmud{
+      fk:r=0.95
+      rollingFrictionK:r=0.0166
+    }
+
+    sand{
+      fk:r=0.95
+      rollingFrictionK:r=0.0166
+    }
+
+    moon_sand{
+      fk:r=0.95
+      rollingFrictionK:r=0.0166
+    }
+
+    sand_slope{
+      fk:r=0.95
+      rollingFrictionK:r=0.0166
+    }
+
+    quarrySand{
+      fk:r=0.95
+      rollingFrictionK:r=0.0166
+    }
+
+    roadSand{
+      fk:r=1
+      rollingFrictionK:r=0.0166
+    }
+
+    snow{
+      fk:r=0.9
+      rollingFrictionK:r=0.02
+    }
+
+    mud{
+      fk:r=0.8
+      rollingFrictionK:r=0.15
+    }
+
+    ice{
+      fk:r=0.15
+      rollingFrictionK:r=0.02
+    }
+
+    roadSnow{
+      fk:r=0.95
+      rollingFrictionK:r=0.0166
+    }
+
+    rocks{
+      fk:r=0.7
+      rollingFrictionK:r=0.07
+    }
+
+    rocksSlippery{
+      fk:r=0.65
+      rollingFrictionK:r=0.09
+    }
+
+    gravel{
+      fk:r=0.7
+      rollingFrictionK:r=0.014
+    }
+
+    fabric{
+      fk:r=0.8
+      rollingFrictionK:r=0.15
+    }
+
+    glass{
+      fk:r=0.6
+      rollingFrictionK:r=0.02
+    }
+
+    wood{
+      fk:r=0.8
+      rollingFrictionK:r=0.02
+    }
+
+    bushes{
+      en:b=no
+    }
+  }
+
+  spraySpawnerRay{
+    bushes{
+      en:b=no
+    }
+
+    barbwire{
+      en:b=no
+    }
+
+    small_debris{
+      en:b=no
+    }
+
+    small_decor{
+      en:b=no
+    }
+
+    walker{
+      en:b=no
+    }
+
+    walkerBot{
+      en:b=no
+    }
+  }
+
+  bombCraterCast{
+    bushes{
+      en:b=no
+    }
+
+    barbwire{
+      en:b=no
+    }
+
+    small_debris{
+      en:b=no
+    }
+
+    small_decor{
+      en:b=no
+    }
+  }
+}

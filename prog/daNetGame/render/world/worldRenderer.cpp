@@ -1245,10 +1245,10 @@ void WorldRenderer::onSettingsChanged(const FastNameMap &changed_fields, bool ap
 
   // Need to reapply settings when dynamic resolution was turned on or off because rendering
   // resolution may change and render targets should be recreated with proper size.
-  if (changed_fields.getNameId("video/dynamicResolution/targetFPS") >= 0)
+  if (changed_fields.getNameId("video/dynamicResolution/enabled") >= 0)
     shouldApplySettingsChanged = true;
-
-  if (changed_fields.getNameId("video/dynamicResolution/minResolutionScale") >= 0 && dynamicResolution)
+  else if (dynamicResolution && (changed_fields.getNameId("video/dynamicResolution/minResolutionScale") >= 0 ||
+                                  changed_fields.getNameId("video/dynamicResolution/targetFPS") >= 0))
     dynamicResolution->applySettings();
 
   if (shouldApplySettingsChanged)
@@ -1324,7 +1324,7 @@ void WorldRenderer::beforeDeviceReset(bool full_reset)
   }
   acesfx::before_reset();
   HeightmapRenderer::beforeResetDevice();
-  rendinst::render::waitAsyncRIGenExtraOpaqueRender(rendinst_main_visibility);
+  rendinst::render::waitAsyncRIGenExtraOpaqueRender(nullptr);
   clearLegacyGPUObjectsVisibility();
   if (clipmap)
     clipmap->beforeReset();

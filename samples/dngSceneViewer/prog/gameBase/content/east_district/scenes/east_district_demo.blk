@@ -1,0 +1,9 @@
+entity{
+  _template:t="static_cam"
+  camera__active:b=yes
+  transform:m=[[0.0168517, 0, 0.999858] [-0.00153809, 0.999999, 2.59232e-05] [-0.999857, -0.00153831, 0.0168517] [4.73809, -1.98781, 39.4061]]
+}
+
+import{
+  scene:t="content/east_district/scenes/_east_district_common.blk"
+}

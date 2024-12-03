@@ -8,6 +8,7 @@
 #include <util/dag_parseResolution.h>
 #include <math/dag_mathUtils.h>
 #include <util/dag_oaHashNameMap.h>
+#include <util/dag_delayedAction.h>
 #include <generic/dag_sort.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_dataBlockUtils.h>
@@ -247,7 +248,9 @@ static void apply_video_settings_sq(Sqrat::Array changed_fields)
     if (fieldName && !is_setting_overriden(fieldName))
       nameMapChanges.addNameId(fieldName);
   }
-  apply_settings_changes(nameMapChanges);
+
+  auto applySettingsChange = [nmc = eastl::move(nameMapChanges)]() { apply_settings_changes(nmc); };
+  run_action_on_main_thread(applySettingsChange);
 }
 
 static SQInteger is_fullscreen_enabled(HSQUIRRELVM vm)

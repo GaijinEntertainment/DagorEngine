@@ -16,6 +16,12 @@ lens_flare_config {
     // Distance from the screen edge, where the flare starts to fade out. Values between [0, 1)
     lens_flare_config__smooth_screen_fadeout_distance:r=0
 
+    // Artistic option that reduces flare intensity in dark rooms. Valid range: [0, 1]
+    //  0      -> No effect, flare gets more intense with more exposure (linearly)
+    //  (0, 1) -> Flare gets more intense as exposure increases, but not linearly. Flare visible in dark rooms will be less intense.
+    //  1      -> Exposure fully cancelled. The visual strength of the flare is constant, independent of exposure
+    lens_flare_config__exposure_reduction:r=0
+
     // Global scale, applied to all flare elements
     lens_flare_config__scale:p2=1,1
 

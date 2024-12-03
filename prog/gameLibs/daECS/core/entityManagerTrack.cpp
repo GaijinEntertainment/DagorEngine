@@ -483,6 +483,7 @@ inline unsigned EntityManager::trackScheduledChanges()
 
 void EntityManager::performTrackChanges(bool flush_all)
 {
+  G_ASSERT_RETURN(!isConstrainedMTMode(), );
   const uint32_t iterations = 32; // we limit maximum amount of iterations, to avoid inifinite loop (halting problem)
   for (uint32_t i = flush_all ? iterations : 1; i; --i)
     if (!trackScheduledChanges())

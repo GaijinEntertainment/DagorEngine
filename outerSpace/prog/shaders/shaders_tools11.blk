@@ -1,0 +1,2 @@
+include "../../../prog/daNetGame/shaders/_build/shaders_tools11.blk"
+"@override:outDumpName":t="../../tools/tools"

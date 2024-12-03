@@ -1,0 +1,42 @@
+Copyright (c) 2024 Gaijin Games Kft. (dba Gaijin Entertainment). All rights reserved.
+
+The redistribution of this work must include this copyright notice, along with the following summary, list of conditions, and disclaimer.
+
+---------------------------------------------------------------------------------------------------------------------------------
+LICENSE SUMMARY:
+---------------------------------------------------------------------------------------------------------------------------------
+
+This license allows non-commercial use, modification, and distribution of the licensed material(s) solely with the Dagor Engine.
+
+Derivative works are shared under the same terms (copyleft). 
+
+Any endorsement of Gaijin Entertainment without consent is prohibited.
+
+No patent or trademark rights are granted.
+
+The license and is immediately revoked if any of the conditions is violated.
+
+
+THIS SUMMARY IS NOT LEGALLY BINDING. REVIEW THE FULL LICENSE BELOW FOR COMPLETE TERMS.
+
+---------------------------------------------------------------------------------------------------------------------------------
+FULL LICENSE TEXT
+---------------------------------------------------------------------------------------------------------------------------------
+
+A worldwide, non-exclusive, royalty-free, non-sublicensable, revocable, and perpetual license is hereby granted to any person who obtains a copy of this work (the “Material”) to use, reproduce, modify, publish, or distribute the Material, provided the following conditions are met:
+
+1. You may NOT use the Material, or any derivative work based on it, for commercial purposes.
+
+2. The Material is only permitted for use in conjunction with the Dagor Engine, a video game engine developed by Gaijin Entertainment.
+
+3. If you modify, transform, remix, build upon, or otherwise alter the Material, you must distribute any resulting derivative work (including any larger work) strictly under this license, with a clear indication that modifications have been made. You are prohibited from implementing any technical, legal, or other measures that restrict others from using the Material or its derivatives as permitted under this license.
+
+4. Neither the name of Gaijin Entertainment, whether business or legal, nor the respective names of its affiliates or contributors may be used to endorse or promote products or services derived from this Material without explicit written consent from Gaijin Entertainment.
+
+5. In case the Material or its derivative (including any larger work) is software, any distribution in binary form must include the above copyright notice, this list of conditions, and the disclaimer in any accompanying documentation or materials.
+
+6. This license is automatically and immediately revoked if any of the above conditions are breached.
+
+7. No patent or trademark rights are granted under this license.
+
+THIS SOFTWARE IS PROVIDED “AS IS,” WITHOUT ANY WARRANTIES, EXPRESS OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, IMPLIED WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE. GAIJIN ENTERTAINMENT AND ITS CONTRIBUTORS SHALL NOT BE LIABLE FOR ANY DAMAGES, INCLUDING, BUT NOT LIMITED TO, DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES. THIS INCLUDES, WITHOUT LIMITATION, COSTS FOR SUBSTITUTE SERVICES, LOSS OF USE, DATA, PROFITS, OR BUSINESS INTERRUPTIONS ARISING FROM THE USE OF THE MATERIAL, REGARDLESS OF THE CAUSE OR LEGAL BASIS UNDER WHICH SUCH LIABILITY IS ASSERTED, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE).

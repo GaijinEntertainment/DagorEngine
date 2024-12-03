@@ -1,0 +1,94 @@
+entity {
+  _template:t="render_settings";
+}
+
+entity{
+  _template:t="ssss"
+}
+
+entity{
+  _template:t="muzzle_flash_manager"
+}
+
+entity{
+  _template:t="caustics"
+}
+
+entity{
+  _template:t="underwater_postfx"
+}
+
+entity{
+  _template:t="screen_droplets"
+}
+
+entity{
+  _template:t="semi_trans_render"
+}
+
+entity{
+  _template:t="distant_haze_manager"
+}
+
+entity{
+  _template:t="adaptation_manager"
+}
+
+entity{
+  _template:t="adaptation"
+}
+
+entity{
+  _template:t="puddles_manager"
+}
+
+entity{
+  _template:t="blurred_ui"
+}
+
+entity{
+  _template:t="close_geometry_occlusion_data"
+}
+
+entity{
+  _template:t="heat_haze_renderer"
+}
+
+entity{
+  _template:t="dagdp_manager"
+}
+
+entity{
+  _template:t="local_tone_mapping"
+  local_tone_mapping__hq_enabled:b=true
+  local_tone_mapping__hq_highlights_multiplier:r=2.25
+  local_tone_mapping__hq_shadows_multiplier:r=0.25
+  local_tone_mapping__hq_sigma:r=0.2
+  local_tone_mapping__lq_highlights_multiplier:r=2.5
+  local_tone_mapping__lq_shadows_multiplier:r=0.75
+  local_tone_mapping__lq_display_mip:i=3
+  local_tone_mapping__lq_sigma:r=0.2
+  local_tone_mapping__middle_luminance:r=0.1
+  local_tone_mapping__display_mip:i=4
+}
+
+entity{
+  _template:t="bvh"
+}
+
+entity{
+  _template:t="object_motion_blur"
+}
+
+entity{
+  _template:t="lens_flare_sun_settings"
+}
+
+entity{
+  _template:t="sun_lens_flare"
+  sun_flare_provider__flare_config:t="lens_flares_sun_cinematic"
+}
+
+entity{
+  _template:t="lens_flare_renderer"
+}

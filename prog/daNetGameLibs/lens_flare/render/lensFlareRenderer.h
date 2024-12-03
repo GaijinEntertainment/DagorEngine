@@ -1,5 +1,4 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
-
 #pragma once
 
 #include <EASTL/vector.h>
@@ -9,21 +8,22 @@
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/componentTypes.h>
 
-#define LENS_FLARE_VARS_LIST               \
-  VAR(lens_flare_texture)                  \
-  VAR(lens_flare_prepare_num_flares)       \
-  VAR(lens_flare_prepare_flares_offset)    \
-  VAR(lens_flare_light_source_id)          \
-  VAR(lens_flare_prepare_camera_pos)       \
-  VAR(lens_flare_prepare_is_sun)           \
-  VAR(lens_flare_rounding_type)            \
-  VAR(lens_flare_prepare_use_occlusion)    \
-  VAR(lens_flare_has_fom_shadows)          \
-  VAR(lens_flare_has_volfog)               \
-  VAR(lens_flare_prepare_sun_color)        \
-  VAR(lens_flare_prepare_fadeout_distance) \
-  VAR(lens_flare_prepare_sun_screen_tc)    \
-  VAR(lens_flare_resolution)               \
+#define LENS_FLARE_VARS_LIST                 \
+  VAR(lens_flare_texture)                    \
+  VAR(lens_flare_prepare_num_flares)         \
+  VAR(lens_flare_prepare_flares_offset)      \
+  VAR(lens_flare_light_source_id)            \
+  VAR(lens_flare_prepare_camera_pos)         \
+  VAR(lens_flare_prepare_is_sun)             \
+  VAR(lens_flare_rounding_type)              \
+  VAR(lens_flare_prepare_use_occlusion)      \
+  VAR(lens_flare_has_fom_shadows)            \
+  VAR(lens_flare_has_volfog)                 \
+  VAR(lens_flare_prepare_sun_color)          \
+  VAR(lens_flare_prepare_fadeout_distance)   \
+  VAR(lens_flare_prepare_exposure_pow_param) \
+  VAR(lens_flare_prepare_sun_screen_tc)      \
+  VAR(lens_flare_resolution)                 \
   VAR(lens_flare_global_scale)
 
 #define VAR(a) extern ShaderVariableInfo a##VarId;
@@ -73,6 +73,11 @@ struct LensFlareConfig
   Point2 scale = Point2(1, 1);
   float intensity = 1;
   bool useOcclusion = true;
+  // Exposure reduction: in range of [0, 1]
+  //  0     -> no effect, physically correct rendering, higher exposure makes flare more intense
+  //  0<x<1 -> flare gets more intense with higher exposure, but not linearly. Artistic effect.
+  //  1     -> Exposure's effect is fully negated, visual intensity of flare is constant no matter the exposure. Artistic effect.
+  float exposureReduction = 0;
   eastl::vector<Element> elements;
 };
 
@@ -132,6 +137,7 @@ private:
     {
       float smoothScreenFadeoutDistance;
       bool useOcclusion;
+      float exposurePowParam;
     };
 
     explicit LensFlareData(eastl::string config_name, const Params &params);

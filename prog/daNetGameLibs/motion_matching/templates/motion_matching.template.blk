@@ -39,7 +39,6 @@ motion_matching_animchar_component{
 
   motion_matching__updateProgress:r=0.0
   motion_matching__distanceFactor:r=1.0
-  motion_matching__trajectoryTolerance:r=0.0
   motion_matching__presetIdx:i=-1
 
   "motion_matching__dataBaseEid:eid"{}

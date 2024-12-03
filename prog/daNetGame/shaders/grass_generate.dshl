@@ -16,6 +16,7 @@ include "wind/wind_simulation_inc.dshl"
 buffer grass_eraser_instances;
 buffer grass_instances_count_readback;
 int grass_update_readback_count;
+float grass_porosity = 0.7;
 
 shader grass_create_indirect {
   ENABLE_ASSERT(cs)
@@ -705,6 +706,7 @@ shader grass_render_billboards
   if (grass_pass != depth_prepass)
   {
     (ps) {
+      grass_porosity@f1 = grass_porosity;
       grass_texture@smpArray = grass_texture;
       grass_texture_n@smpArray = grass_texture_n;
       mip_bias@f1 = (mip_bias);
@@ -814,7 +816,7 @@ shader grass_render_billboards
 
       half3 worldPos = world_view_pos - input.p2e.xyz;
     ##if mobile_render == off
-      apply_wetness_by_porosity(0.95, worldPos, grassAlbedo.rgb, worldNormal, reflectance, smoothness, ao);
+      apply_wetness_by_porosity(grass_porosity, worldPos, grassAlbedo.rgb, worldNormal, reflectance, smoothness, ao);
     ##endif
 
       init_gbuffer(gbuffer);

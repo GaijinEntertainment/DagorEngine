@@ -14,7 +14,12 @@ inline bool is_same(const MatchingResult &a, const MatchingResult &b) { return a
 
 MatchingResult motion_matching(const AnimationDataBase &dataBase,
   MatchingResult current_state,
-  bool use_brute_force,
+  const AnimationFilterTags &current_tags,
+  const FeatureWeights &weights,
+  dag::ConstSpan<FrameFeaturesData::value_type> current_feature);
+
+MatchingResult motion_matching_brute_force(const AnimationDataBase &dataBase,
+  MatchingResult current_state,
   const AnimationFilterTags &current_tags,
   const FeatureWeights &weights,
   dag::ConstSpan<FrameFeaturesData::value_type> current_feature);

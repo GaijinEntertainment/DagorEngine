@@ -1,0 +1,35 @@
+entity{
+  _template:t="sound_occlusion"
+}
+
+entity{
+  _template:t="distant_delayable_sounds"
+}
+
+entity{
+  _template:t="reverb_sound"
+}
+
+entity{
+  _template:t="rendinst_tree_sounds"
+}
+
+entity{
+  _template:t="sound_step_settings"
+}
+
+entity{
+  _template:t="global_sound_vars"
+}
+
+entity{
+  _template:t="birds_global_sound_var"
+}
+
+entity{
+  _template:t="en_biome_sound_query"
+}
+
+entity{
+  _template:t="managed_sound_control"
+}

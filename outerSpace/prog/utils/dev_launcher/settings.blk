@@ -1,0 +1,15 @@
+mountPoints {
+  darg{ forSource:t="..\..\prog\scripts\sq\daRg"; forVromfs:t="sq/darg";}
+  sqstd{ forSource:t="..\..\prog\scripts\sq\std"; forVromfs:t="sq/std";}
+}
+
+drawFps:b=no
+initScript:t="scripts/init_launcher.nut"
+script:t="scripts/script.nut"
+use_system_cursor:b=yes
+debug{
+  http_server:b=no
+}
+workcycle{
+  act_rate:i=10
+}

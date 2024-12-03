@@ -99,7 +99,7 @@ static dabfg::NodeHandle makeHeatHazeRenderParticlesNode(HeatHazeRenderer *heatH
       registry.requestState().setFrameBlock("global_frame");
 
       auto hazeDepthHndl =
-        registry.modifyTexture("haze_depth").atStage(dabfg::Stage::POST_RASTER).useAs(dabfg::Usage::DEPTH_ATTACHMENT).handle();
+        registry.modifyTexture("haze_depth").atStage(dabfg::Stage::POST_RASTER).useAs(dabfg::Usage::COLOR_ATTACHMENT).handle();
       auto hazeOffsetHndl =
         registry.modifyTexture("haze_offset").atStage(dabfg::Stage::POST_RASTER).useAs(dabfg::Usage::COLOR_ATTACHMENT).handle();
       auto hazeColorHndl = registry.modifyTexture("haze_color")

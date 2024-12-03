@@ -1,0 +1,278 @@
+Root    ?= ../.. ;
+Location = outerSpace/prog ;
+Game = outer_space ;
+TargetType  = exe ;
+Target     ?= $(Game) ;
+TargetCodeName = $(Game) ; # this will hold target name unchanged even if non-default phys engine is used
+
+NOCARE $(Root)/$(Location)/def.jam ;
+include $(Root)/$(Location)/def.jam ;
+
+UseModulesAI = no ;
+UseModulesDM = no ;
+UseModulesWeapon = no ;
+NetPeerAuth = yes ;
+
+AotJamfile = $(Root)/prog/daNetGame-das-aot/jamfile ;
+AotCompilerBaseName = $(Root)/$(Location)/../tools/das-aot/outer_space-aot ;
+include $(Root)/prog/daNetGame/setup.jam ; # Note - $(Platform) is not defined before this line unless passed in command line
+DAS_AOT_COMPILER_OPT = -- --config outer_space_aot_config.blk -sConfig $(Config) ;
+
+if $(Dedicated) != yes && $(Platform) in windows && $(PlatformArch) != arm64 {
+  VRDeviceSupport ?= yes ;
+}
+
+UseEpic = no ;
+ContentUpdater = no ;
+
+if $(Dedicated) = yes { Target = $(Game)-ded ; }
+
+SetupOutputDir ;
+
+GameDir = $(Root)/outerSpace/game ;
+OutDir = $(GameDir)/$(LegacyPlatformSuffix) ;
+
+local AllSrcFolder_CPP = ;
+local AllSrcFolder_ES = ;
+
+#fill game-specific files
+AllSrcFolder_DAS =
+  scripts/outer_space
+  scripts/outer_space/es
+;
+if $(Dedicated) = no {
+  AllSrcFolder_DAS +=
+    scripts/outer_space/es/client
+    scripts/outer_space/es/input
+  ;
+}
+if $(HaveSound) != no {
+  AllSrcFolder_DAS +=
+    scripts/outer_space/es/sound
+  ;
+}
+
+AllSrcFolder_ES  = ;
+AllSrcFolder_CPP = ;
+
+# we set auth key explicitly otherwize linux server will reject any linux client (for win/mac auth key check is skipped)
+GameAuthKey_linux    = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ;
+GameAuthKeyPlatformListPairs = linux linux ;
+#GamePublicKeyDER = ;
+include $(Root)/$(Location)/logCryptKey.jam ;
+include $(Root)/prog/daNetGame/game.jam ;
+
+SourceES = ;
+
+DasModulesFolder = ;
+DasModuleFiles = ;
+
+AllSrcFolder_CPP = main ;
+if $(HaveRenderer) = yes { AllSrcFolder_CPP += render ; }
+
+gamePulls_action = make_module_pull_cpp ;
+gamePulls = daECS/core/componentType.h game_pulls ;
+gamePulls +=
+  framework_package_physobj_pull
+  daNetGameLibs_native_dasevents_DAS_pull_AOT
+;
+if $(Dedicated) = no {
+  gamePulls +=
+    daNetGameLibs_render_debug_DAS_pull_AOT
+    daNetGameLibs_frame_graph_renderer_DAS_pull_AOT
+  ;
+  Sources += gamePulls.jamvar ;
+} else {
+  Sources += gamePullsDed.jamvar ;
+  gamePullsDed = $(gamePulls) ;
+  gamePullsDed_action = $(gamePulls_action) ;
+}
+
+AddIncludes += $(Root)/prog/daNetGameLibs ;
+UseProgLibs +=
+  daNetGame
+  daNetGameLibs/package_physobj
+  daNetGameLibs/dm/stub
+  daNetGameLibs/native_dasevents
+;
+if $(Dedicated) = no {
+  UseProgLibs +=
+    daNetGameLibs/frame_graph_renderer
+    daNetGameLibs/render_debug
+  ;
+}
+if $(FmodStudio) != src && $(HaveSound) != no {
+  AddLibs += $(FmodStaticLibs) ;
+  for dll in $(FmodStudioSharedLibs) {
+    BundleCopy += @$(dll) $(dll:D=) ;
+    #ALWAYS $(dll) ;
+  }
+}
+
+if $(HaveRenderer) = yes {
+  gamePulls += framework_blurred_ui_pull ;
+  UseProgLibs += daNetGameLibs/blurred_ui ;
+}
+
+if $(Dedicated) != yes {
+  if $(Platform) in android macOS {
+    BundleName = OuterSpace ;
+  }
+
+  if $(Platform) in windows {
+    if $(PlatformArch) = x86_64 {
+      Manifest = $(Root)/$(Location)/platform/$(Platform)/outer_space64.exe.manifest ;
+    } else {
+      Manifest = $(Root)/$(Location)/platform/$(Platform)/outer_space.exe.manifest ;
+    }
+    include $(Root)/prog/engine/drv/drv3d_DX12/copy_bundles.jam ;
+  } else if $(Platform) = linux {
+  } else if $(Platform) = macOS {
+    UseSharedLibs += $(FmodStudioSharedLibs) ;
+    LINKopt += -framework CoreAudio -framework AudioUnit ;
+
+    BundleID   = com.gaijinent.$(BundleName) ;
+    BundlePlist = @$(Root)/prog/_jBuild/macOS/generic.info.plist ../Info.plist ;
+    BundleIcon = $(BundleName) ;
+    BundleCopy =
+      platform/macOS/$(BundleName).icns ../Resources/$(BundleName).icns
+    ;
+    if $(Config) != rel { BundleSymlink = ../Resources/game ../../.. ; }
+
+    if $(Config) = rel {
+      CopyTo = $(OutDir)/$(BundleName) ;
+      OutDir = $(OutDir)/../../rel-build/$(BundleName).app/Contents/MacOS ;
+    } else {
+      CopyTo = $(OutDir) ;
+      OutDir = $(OutDir)/../$(BundleName).app/Contents/MacOS ;
+    }
+
+    if $(SignatureOpt) = none { SignatureOpt = ; }
+
+  } else if $(Platform) = android {
+    local updater_jam = $(Root)/launcher/client/updater/src/jamfile ;
+    local upd_so = $(Root)/launcher_builds/updater/android/gaijin_updater-dev.so ;
+    Depends $(upd_so) : $(updater_jam:G=JAM) ;
+
+    local JavaActivitySrcName = $(BundleName) ;
+    AndroidIcon = @$(Root)/prog/gameLibs/android/platform/android.bundle/res/default_icon.png ;
+    AndroidBanner = @$(Root)/prog/gameLibs/android/platform/android.bundle/res/default_banner.png ;
+    #AndroidStrings = @$(Root)/prog/gameLibs/android/platform/android.bundle/res/default_strings.xml ; ; # use if you need customized strings.xml. For just app_name use AndroidAppIconName
+    AndroidJavaClass = com.gaijinent.$(BundleName).$(BundleName) ;
+
+
+    if $(Config) = rel {
+      AndroidExternalLibs += fmod
+                             fmodstudio ;
+    } else {
+      AndroidExternalLibs += fmodL
+                             fmodstudioL ;
+    }
+
+    switch $(Game) {
+      case outer_space : {
+        AndroidGameID = ; #TODO - Change GameID to valid !
+        AndroidAppIconName = Outer Space ;
+      }
+      case * : Exit Unsupported Game \= $(Game) for $(Platform) ;
+    }
+
+    local AndroidCommonPackage = com.gaijinent.common ;
+    local AndroidCommonPath = com/gaijinent/common ;
+
+    AndroidGradleFile = @$(Root)/prog/gameLibs/android/platform//android.bundle/default_project.gradle ;
+    AndroidAppID = com.gaijinent.$(BundleName) ;
+    AndroidKey ?= ../../prog/_jBuild/android/gaijin.keystore ;
+    AndroidKeyAlias ?= gaijin ;
+    AndroidKeyPassw ?= Gah8Xaiv ;
+
+    AndroidStateNotNeed = false ; # false - prevent from auto restart game on crash or kill
+
+    if $(BundleCopy) != skip {
+      BundleCopy +=
+        platform/android.bundle/$(Game)/src/$(JavaActivitySrcName).java      src/com/gaijinent/$(BundleName)/$(JavaActivitySrcName).java
+        @$(Root)/prog/gameLibs/android/platform/android.bundle/src/$(AndroidCommonPackage)/DagorCommonActivity.java      src/$(AndroidCommonPath)/DagorCommonActivity.java
+        @$(Root)/prog/gameLibs/android/platform/android.bundle/src/$(AndroidCommonPackage)/DagorBaseActivity.java      src/$(AndroidCommonPath)/DagorBaseActivity.java
+        @$(Root)/prog/gameLibs/android/platform/android.bundle/src/$(AndroidCommonPackage)/DagorThermal.java      src/$(AndroidCommonPath)/DagorThermal.java
+        @$(FmodStudioLowLibPath)/../fmod.jar       libs/fmod.jar
+        @$(upd_so) libs/$(PlatformArch)/libupdater.so
+        platform/android/config.blk assets/config.blk
+        platform/android/$(Game).config-$(Config).blk assets/$(Game).config.android.blk
+      ;
+    } else {
+      BundleCopy = ;
+    }
+    if $(FmodStudio) && $(FmodStudio) != src {
+      for l in $(FmodStudioSharedLibs) { BundleCopy += @$(l) libs/$(PlatformArch)/$(l:D=) ; }
+    }
+    if $(Config) != rel {
+      local vulkan_libs = ;
+      if $(AndroidNdkVer) in r23b {
+        vulkan_libs = libVkLayer_khronos_validation.so ;
+      } else if $(AndroidNdkVer) in r25c {
+        # no more vulkan layers in ndk
+      } else {
+        vulkan_libs =
+          libVkLayer_core_validation.so
+          libVkLayer_object_tracker.so
+          libVkLayer_parameter_validation.so
+          libVkLayer_threading.so
+          libVkLayer_unique_objects.so
+        ;
+      }
+      for l in $(vulkan_libs) {
+        BundleCopy +=
+          @$(_DEVTOOL)/android-ndk-$(AndroidNdkVer)/sources/third_party/vulkan/src/build-android/jniLibs/$(PlatformArch)/$(l)
+            libs/$(PlatformArch)/$(l)
+        ;
+      }
+    }
+
+    include $(Root)/prog/engine/osApiWrappers/messageBox/android-bundle.jam ;
+
+    #AndroidCopyToDevice = default ;
+  }
+  else {
+    Exit unsupported Platform\=$(Platform) for Target\=$(Target) ;
+  }
+}
+
+if $(Platform) in windows && $(Dedicated) != yes && $(CheckOnly) != yes {
+  local rc = platform/$(Platform)/$(Game).rc ;
+  if [ GLOB $(Root)/$(Location)/$(rc:D) : $(rc:D=) ] { Sources += $(rc) ; } else { Echo Skip missing $(rc) ; }
+}
+
+if $(CheckOnly) != yes { # different compile options are not compatible with PCH
+  opt on gameVersion.jamvar += -DVERSION_DOT=$(VERSION_DOT) -DBUILD_NUMBER=$(BUILD_NUMBER) -DVERSION_NUM=$(VERSION_NUM) ;
+  opt on platform/$(Platform)/$(Game).rc = -DVERSION_NUM=$(VERSION_NUM) ;
+}
+
+
+AutoscanBuildLists $(AllSrcFolder_CPP) : *.cpp       : Sources ;
+if $(DAS_AOT_COMPILER) { AutoscanBuildLists $(AllSrcFolder_DAS) : *.das : Sources : ; }
+
+AutoscanBuildLists $(AllSrcFolder_ES)  : *ES.cpp.inl : SourceES ;
+for s in $(SourceES) { GenESSourceFile $(s) ; }
+SourceES = ;
+
+if $(VRDeviceSupport) = yes {
+  if $(Platform) = android {
+    BundleCopy +=
+      @$(OpenXrSdkPath)/$(Platform)/$(PlatformArch)/Release/libopenxr_loader.so libs/$(PlatformArch)/libopenxr_loader.so
+    ;
+  }
+  else {
+    BundleCopy +=
+      @$(OpenXrSdkPath)/$(LegacyPlatformSuffix)/bin/openxr_loader.dll openxr_loader.dll
+      @$(OpenXrSdkPath)/$(LegacyPlatformSuffix)/bin/openxr_loader.pdb openxr_loader.pdb
+    ;
+  }
+}
+
+echo building Target\=$(Target) to $(_Output) "
+  "\ using\ GlobalCPPopt\=$(GlobalCPPopt:J=" ") "
+  "\ using\ CPPopt\=$(CPPopt:J=" ") "
+  " HaveRenderer\=$(HaveRenderer) HaveFx\=$(HaveFx) HaveSound\=$(HaveSound) HaveTamVoice\=$(HaveTamVoice)
+    HaveEnlist\=$(HaveEnlist) HaveWebui\=$(HaveWebui) HaveConsole\=$(HaveConsole) HaveEditor\=$(HaveEditor) ;
+
+include $(Root)/prog/_jBuild/build.jam ;

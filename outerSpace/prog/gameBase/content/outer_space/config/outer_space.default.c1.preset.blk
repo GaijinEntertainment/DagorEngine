@@ -1,0 +1,18 @@
+Camera.Move   { dev:i=3; xAxis:i=0; yAxis:i=1; dzone:r=0.1; axisSnapAngK:r=0.01; }
+Camera.Rotate { dev:i=3; xAxis:i=2; yAxis:i=3; inverseY:b=no; dzone:r=0; axisSnapAngK:r=0; nonlin:r=0; maxVal:r=1; }
+Camera.ZoomIn  { dev:i=3; btn:i=9; }
+Camera.ZoomOut { dev:i=3; btn:i=8; }
+
+MenuCamera.Rotate { dev:i=3; xAxis:i=2; yAxis:i=3; inverseY:b=yes; dzone:r=0; axisSnapAngK:r=0; nonlin:r=0; maxVal:r=1; }
+MenuCamera.LookAround { dev:i=2; btn:i=1; type:i=0; }
+
+SpaceShip.AccelXZ { dev:i=3; xAxis:i=0; yAxis:i=1; dzone:r=0.1; axisSnapAngK:r=0.01; }
+SpaceShip.AccelY { dev:i=31;
+  minBtn { dev:i=3; btn:i=16; }
+  maxBtn { dev:i=3; btn:i=17; }
+}
+SpaceShip.AccelRx { dev:i=31;
+  minBtn { dev:i=3; btn:i=2; }
+  maxBtn { dev:i=3; btn:i=3; }
+}
+SpaceShip.AccelRyRz { dev:i=3; xAxis:i=2; yAxis:i=3; inverseY:b=yes; dzone:r=0.1; axisSnapAngK:r=0.01; }

@@ -1,0 +1,64 @@
+output_PC:t ="../../../game/dargbox.vromfs.bin"
+
+pack:b=true
+
+allowMkDir:b=yes
+
+rootFolder:t="."
+
+sign_private_key:t=""
+sign_digest:t="sha256"
+
+folder {
+  path:t="../../../../prog/scripts/sq/daRg"
+  dest_path:t="sq/darg"
+  scan_folder:b=true
+  scan_subfolders:b=true
+  wildcard:t=*.nut
+}
+
+folder {
+  path:t="../../../../prog/scripts/sq/std"
+  dest_path:t="sq/std"
+  scan_folder:b=true
+  scan_subfolders:b=true
+  wildcard:t=*.nut
+}
+
+folder {
+  path:t="./scripts/"
+  dest_path:t="scripts/"
+  scan_folder:b=true
+  scan_subfolders:b=true
+  wildcard:t=*.nut
+  wildcard:t=*.json
+}
+
+folder {
+  path:t=""
+  dest_path:t="./"
+  scan_folder:b=true
+  wildcard:t=settings.blk
+}
+
+folder {
+  path:t="../../../../tools/dargbox/fonts"
+  dest_path:t="fonts/"
+  scan_folder:b=true
+  scan_subfolders:b=true
+  wildcard:t=*.ttf
+  wildcard:t=*.blk
+}
+
+folder {
+  path:t="../../../../tools/dargbox/shaders"
+  dest_path:t="shaders/"
+  scan_folder:b=true
+  scan_subfolders:b=true
+  wildcard:t=game*.shdump.bin
+  pack:b=yes
+}
+exclude {
+  exclude:t="[/\\]_[\w\.]*\.json"
+//  exclude:t="(gameData.*|config.*|gui.*|levels.*)[/\\]_[\w\.]*\.blk$"
+}

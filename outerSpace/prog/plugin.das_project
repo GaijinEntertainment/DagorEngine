@@ -1,0 +1,6 @@
+// NOTE: this config is used only with vscode (lsp server)
+include %danetlibs/dascript_base/base_plugin.das_project
+
+let mountPointPrefixes <- {{
+                              "outerSpace" => ""
+                          }}

@@ -407,6 +407,7 @@ void WorldRenderer::waitAllJobs()
     threadpool::wait(&rendinst_visibility_job[jobId], 0, threadpool::NUM_PRIO);
     threadpool::wait(&rendinst_extra_visibility_job[jobId], 0, threadpool::NUM_PRIO);
   }
+  rendinst::render::waitAsyncRIGenExtraOpaqueRender(rendinst_main_visibility);
   waitLights();
   waitGroundVisibility();
   waitGroundReflectionVisibility();

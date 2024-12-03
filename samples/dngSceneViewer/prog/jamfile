@@ -1,0 +1,137 @@
+Game     = dng_scene_viewer ;
+Root    ?= ../../.. ;
+Location = samples/dngSceneViewer/prog ;
+PlatformArch_windows = x86_64 ;
+
+TargetType  = exe ;
+Target     ?=  $(Game) ;
+
+NOCARE $(Root)/$(Location)/def.jam ;
+include $(Root)/$(Location)/def.jam ;
+include $(Root)/prog/_jBuild/defPlatform.jam ;
+
+UseModulesAI = no ;
+UseModulesDM = no ;
+UseModulesWeapon = no ;
+if $(Platform) in windows { ExportOptimus ?= yes ; } # force using discrete GPU on start
+
+AotCompilerBaseName = $(Root)/samples/dngSceneViewer/tools/dngSceneViewer-aot ;
+AotJamfile = $(Root)/samples/dngSceneViewer/prog/_aot/jamfile ;
+DAS_AOT_COMPILER_OPT = -- --config $(Root)/$(Location)/_aot/aot_config.blk -sConfig $(Config) ;
+include $(Root)/prog/daNetGame/setup.jam ; # Note - $(Platform) is not defined before this line unless passed in command line
+
+if $(Platform) in windows && $(PlatformArch) != arm64 { VRDeviceSupport ?= yes ; }
+if $(Dedicated) = yes { Exit $(Target) is not expected to be used as dedicated server ; }
+
+SetupOutputDir ;
+
+OutDir = $(Root)/samples/dngSceneViewer/viewer/$(Platform)-$(PlatformArch) ;
+
+local AllSrcFolder_CPP = ;
+local AllSrcFolder_ES = ;
+
+#fill game-specific files
+AllSrcFolder_DAS =
+  scripts/das
+  scripts/das/character_controller
+  scripts/das/effects
+;
+if $(HaveSound) != no { AllSrcFolder_DAS += scripts/das/sound ; }
+AllSrcFolder_ES  = ;
+AllSrcFolder_CPP = ;
+
+include $(Root)/prog/daNetGame/game.jam ;
+
+SourceES = ;
+
+DasModulesFolder = ;
+DasModuleFiles = ;
+
+AllSrcFolder_CPP = main render ;
+
+gamePulls_action = make_module_pull_cpp ;
+gamePulls = daECS/core/componentType.h game_pulls
+  actInThread_pull
+;
+Sources += gamePulls.jamvar ;
+
+AddIncludes += $(Root)/prog/daNetGameLibs ;
+UseProgLibs +=
+  daNetGame
+  daNetGameLibs/dm/stub
+  gameLibs/ecs/delayedAct
+;
+
+include $(Root)/$(Location)/_dng_libs.jam ;
+
+if $(Platform) in windows {
+  if ! $(PlatformArch) in x86_64 arm64 { Exit $(Platform)-$(PlatformArch) is not supported! ; }
+  Manifest = $(Root)/$(Location)/platform/$(Platform)/$(Game).exe.manifest ;
+  Sources += platform/$(Platform)/$(Game).rc ;
+  include $(Root)/prog/engine/drv/drv3d_DX12/copy_bundles.jam ;
+} else if $(Platform) = linux {
+} else if $(Platform) = macOS {
+  BundleName = DngSceneViewer ;
+  BundleID   = com.gaijinent.$(BundleName) ;
+  BundlePlist = @$(Root)/prog/_jBuild/macOS/generic.info.plist ../Info.plist ;
+  BundleIcon = $(BundleName) ;
+  BundleCopy =
+    platform/macOS/$(Game).icns ../Resources/$(BundleName).icns
+  ;
+  if $(Config) != rel { BundleSymlink = ../Resources/game ../../.. ; }
+
+  if $(Config) = rel {
+    CopyTo = $(OutDir)/$(BundleName) ;
+    OutDir = $(OutDir)/../../rel-build/$(BundleName).app/Contents/MacOS ;
+  } else {
+    CopyTo = $(OutDir) ;
+    OutDir = $(OutDir)/../$(BundleName).app/Contents/MacOS ;
+  }
+
+  if $(SignatureOpt) = none { SignatureOpt = ; }
+  if $(HaveSound) != no {
+    UseSharedLibs += $(FmodStudioSharedLibs) ;
+    LINKopt += -framework CoreAudio -framework AudioUnit ;
+  }
+}
+else {
+  Exit unsupported Platform\=$(Platform) for Target\=$(Target) ;
+}
+
+if $(FmodStudio) != src && $(HaveSound) != no {
+  AddLibs += $(FmodStaticLibs) ;
+  for dll in $(FmodStudioSharedLibs) { BundleCopy += @$(dll) $(dll:D=) ; }
+}
+
+if $(CheckOnly) != yes { # different compile options are not compatible with PCH
+  gameVersion += //$(VERSION_DOT) //$(VERSION_NUM) //$(BUILD_NUMBER) ;
+  CPPopt += -DVERSION_DOT=$(VERSION_DOT) -DBUILD_NUMBER=$(BUILD_NUMBER) -DVERSION_NUM=$(VERSION_NUM) ;
+
+  if $(VERSION_NUM) {
+    RCopt += -DVERSION_NUM=$(VERSION_NUM) ;
+    ALWAYS $(Location)/platform/$(Platform)/$(Game).rc ;
+  }
+}
+
+
+AutoscanBuildLists $(AllSrcFolder_CPP) : *.cpp       : Sources ;
+if $(DAS_AOT_COMPILER) { AutoscanBuildLists $(AllSrcFolder_DAS) : *.das : Sources : ; }
+
+AutoscanBuildLists $(AllSrcFolder_ES)  : *ES.cpp.inl : SourceES ;
+for s in $(SourceES) { GenESSourceFile $(s) ; }
+SourceES = ;
+
+if $(VRDeviceSupport) = yes {
+  BundleCopy +=
+    @$(OpenXrSdkPath)/$(LegacyPlatformSuffix)/bin/openxr_loader.dll openxr_loader.dll
+    @$(OpenXrSdkPath)/$(LegacyPlatformSuffix)/bin/openxr_loader.pdb openxr_loader.pdb
+  ;
+}
+
+echo building Target\=$(Target) to $(_Output) "
+  "\ using\ GlobalCPPopt\=$(GlobalCPPopt:J=" ") "
+  "\ using\ CPPopt\=$(CPPopt:J=" ") "
+  " HaveRenderer\=$(HaveRenderer) HaveFx\=$(HaveFx) HaveSound\=$(HaveSound) HaveTamVoice\=$(HaveTamVoice)
+    HaveEnlist\=$(HaveEnlist) HaveWebui\=$(HaveWebui) HaveConsole\=$(HaveConsole) HaveEditor\=$(HaveEditor) ;
+
+include $(Root)/prog/_jBuild/build.jam ;

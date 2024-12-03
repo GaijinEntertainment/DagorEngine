@@ -1,0 +1,8 @@
+Root  ?= ../.. ;
+Target = log_decrypt ;
+OutDir = $(Root)/outerSpace/tools ;
+
+include $(Root)/outerSpace/prog/logCryptKey.jam ;
+logCryptKey = $(GameLogCryptKey) ;
+
+include $(Root)/prog/tools/sceneTools/clogDecrypt/jamfile ;

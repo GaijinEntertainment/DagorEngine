@@ -1,0 +1,212 @@
+electric_collet_a_light{
+  _use:t="entity_prefab"
+  _use:t="replicating"
+  _use:t="placeable_rendinst"
+  ri_extra__name:t="sovmod_electric_a_collet_b_lamp_on"
+
+  "entity_prefab__templatesToCreate:shared:object" {
+    "omni_light_fluorescent_2_5_warm_a:object" {
+      relativeTransform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, -0.508, 0]]
+      light__max_radius:r=5.5
+      light__color:c=255, 160, 80, 255
+      light__radius_scale:r=3
+      light__brightness:r=0.15
+    }
+  }
+}
+
+electric_collet_a_light_dyn_shadows{
+  _use:t="entity_prefab"
+  _use:t="replicating"
+  _use:t="placeable_rendinst"
+  ri_extra__name:t="sovmod_electric_a_collet_b_lamp_on"
+
+  "entity_prefab__templatesToCreate:shared:object" {
+    "omni_light_fluorescent_2_5_warm_a:object" {
+      relativeTransform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, -0.508, 0]]
+      omni_light__shadows:b=yes
+      omni_light__dynamic_obj_shadows:b=yes
+      light__contact_shadows:b=yes
+      light__max_radius:r=5.5
+      light__color:c=255, 160, 80, 255
+      light__radius_scale:r=3
+      light__brightness:r=0.2
+      light__use_box:b=no
+    }
+  }
+}
+
+pendant_a_light_dyn_shadows{
+  _use:t="entity_prefab"
+  _use:t="replicating"
+  _use:t="placeable_rendinst"
+  ri_extra__name:t="pendant_light_on_a"
+
+  "entity_prefab__templatesToCreate:shared:object" {
+    "spot_light:object" {
+      relativeTransform:m=[[1, 0, 0] [0, -8.52784e-05, 1] [0, -6.04338, -0.00051537] [0, -0.34393, 0]]
+      spot_light__shadows:b=yes
+      spot_light__dynamic_obj_shadows:b=yes
+      spot_light__contact_shadows:b=yes
+      light__color:c=255, 190, 120, 255
+      light__brightness:r=0.45
+      light__radius_scale:r=4
+      light__max_radius:r=8
+      light__use_box:b=no
+    }
+  }
+}
+
+lamp_fluorescent_a_cold_light_dyn_shadows{
+  _use:t="entity_prefab"
+  _use:t="replicating"
+  _use:t="placeable_rendinst"
+  ri_extra__name:t="sovmod_lamp_fluorescent_a_type_a_on"
+
+  "entity_prefab__templatesToCreate:shared:object" {
+    "sovmod_lamp_fluorescent_a_type_a_6m_cold_light:object" {
+      relativeTransform:m=[[1, 0, 0] [0, 1.19249e-08, 1] [0, -1, 1.19249e-08] [0, -0.1, 0]]
+      omni_light__shadows:b=yes
+      omni_light__dynamic_obj_shadows:b=yes
+      omni_light__shadow_shrink:i=1
+      light__contact_shadows:b=yes
+      light__radius_scale:r=3
+      light__max_radius:r=10
+      light__brightness:r=0.5
+    }
+  }
+}
+
+lamp_fluorescent_b_cold_light_dyn_shadows{
+  _use:t="entity_prefab"
+  _use:t="replicating"
+  _use:t="placeable_rendinst"
+  ri_extra__name:t="sovmod_lamp_fluorescent_a_type_b_on"
+
+  "entity_prefab__templatesToCreate:shared:object" {
+    "sovmod_lamp_fluorescent_a_type_b_6m_cold_light:object" {
+      relativeTransform:m=[[1, 0, 0] [0, 1.19249e-08, 1] [0, -1, 1.19249e-08] [0, -0.1, 0]]
+      omni_light__shadows:b=yes
+      omni_light__dynamic_obj_shadows:b=yes
+      omni_light__shadow_shrink:i=0
+      light__contact_shadows:b=yes
+      light__radius_scale:r=3
+      light__brightness:r=0.5
+      light__max_radius:r=10
+      light__use_box:b=no
+    }
+  }
+}
+
+modern_spotlight_rect_a_cold_light_dyn_shadows{
+  _use:t="entity_prefab"
+  _use:t="replicating"
+  _use:t="placeable_rendinst"
+  ri_extra__name:t="modern_spotlight_a_rect_a"
+
+  "entity_prefab__templatesToCreate:shared:object" {
+    "spot_light:object" {
+      relativeTransform:m=[[-0.00359888, 1.00063, 3.47167e-18] [-1.19248e-08, -4.28889e-11, 1] [4.27965, 0.0153922, 5.10347e-08] [0.0928459, -0.00110197, 0]]
+      spot_light__shadows:b=yes
+      spot_light__dynamic_obj_shadows:b=yes
+      spot_light__inner_attenuation:r=0.7
+      spot_light__shadow_shrink:i=1
+      spot_light__contact_shadows:b=yes
+      light__color:c=175, 250, 200, 255
+      light__brightness:r=0.7
+      light__radius_scale:r=3
+      light__max_radius:r=10
+      light__use_box:b=no
+    }
+  }
+}
+
+military_lamp_fluorescent_a_light_dyn_shadows{
+  _use:t="entity_prefab"
+  _use:t="replicating"
+  _use:t="placeable_rendinst"
+  ri_extra__name:t="military_lamp_fluorescent_a_on"
+
+  "entity_prefab__templatesToCreate:shared:object" {
+    "light_chandelier_big:object" {
+      relativeTransform:m=[[1, 0, 0] [0, 0, 1] [0, -1, 0] [0, 0, 0]]
+      omni_light__shadows:b=yes
+      omni_light__dynamic_obj_shadows:b=yes
+      omni_light__shadow_shrink:i=1
+      light__contact_shadows:b=yes
+      light__brightness:r=0.25
+      light__radius_scale:r=3
+      light__use_box:b=no
+    }
+  }
+}
+
+african_lamp_b_light_shadows{
+  _use:t="entity_prefab"
+  _use:t="replicating"
+  _use:t="placeable_rendinst"
+  ri_extra__name:t="is_african_lamp_b"
+
+  "entity_prefab__templatesToCreate:shared:object" {
+    "placeable_rendinst:object" {  //+ emissive glass RI
+      relativeTransform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+      ri_extra__name:t="is_african_lamp_b_glass_on"
+    }
+    "omni_light:object" {
+      relativeTransform:m=[[1, 0, 0] [0, 0, 1] [0, -1, 0] [0, 0.32, 0]]
+      omni_light__shadows:b=yes
+      omni_light__shadow_shrink:i=2
+      light__contact_shadows:b=yes
+      light__max_radius:r=5.5
+      light__color:c=255, 160, 80, 255
+      light__radius_scale:r=1.5
+      light__use_box:b=no
+    }
+  }
+}
+
+garage_floor_lamp_a_light_dyn_shadows{
+  _use:t="entity_prefab"
+  _use:t="replicating"
+  _use:t="placeable_rendinst"
+  ri_extra__name:t="ed_garage_floor_lamp_a"
+
+  "entity_prefab__templatesToCreate:shared:object" {
+    //"placeable_rendinst:object" {  //+ emissive glass RI
+    //  relativeTransform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+    //  ri_extra__name:t="garage_floor_lamp_a_glass_lit"
+    //}
+    "light_bunker_wall:object" {
+      relativeTransform:m=[[2e-07, 1, 7.10543e-15] [-1, 2e-07, 0] [0, 0, 1] [-0.16532, 0.224065, -0.00107574]]
+      omni_light__shadows:b=yes
+      omni_light__dynamic_obj_shadows:b=yes
+      omni_light__shadow_shrink:i=0
+      light__contact_shadows:b=yes
+      light__max_radius:r=5
+      light__brightness:r=0.2
+      light__radius_scale:r=3
+      light__use_box:b=no
+    }
+  }
+}
+
+bunker_lamp_wall_a_light_dyn_shadows{
+  _use:t="entity_prefab"
+  _use:t="replicating"
+  _use:t="placeable_rendinst"
+  ri_extra__name:t="bunker_lamp_wall_a"
+
+  "entity_prefab__templatesToCreate:shared:object" {
+    "light_bunker_wall:object" {
+     relativeTransform:m=[[1, 7.04858e-11, -9.31323e-10] [1.00209e-09, 1, 2.18279e-11] [0, 7.27596e-12, 1] [0.158092, 0.00108337, -0.000884056]]
+      omni_light__shadows:b=yes
+      omni_light__dynamic_obj_shadows:b=yes
+      omni_light__shadow_shrink:i=2
+      light__contact_shadows:b=yes
+      light__max_radius:r=5
+      light__brightness:r=0.15
+      light__radius_scale:r=2
+      light__use_box:b=no
+    }
+  }
+}

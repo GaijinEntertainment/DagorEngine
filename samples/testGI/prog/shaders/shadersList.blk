@@ -12,6 +12,7 @@
   file:t = "./source/taa.dshl"
   file:t = "giHelpers/render_lru_collision.dshl"
   file:t = "giHelpers/trees_above_process.dshl"
+  file:t = "giHelpers/trees_above_clear.dshl"
 
   file:t = "ssr_ps.dshl"
   file:t = "ssr_compute.dshl"

@@ -15,9 +15,9 @@ static inline bool is_transition_allowed(int cur_clip_idx, int target_clip_idx, 
   return cur_clip_idx != target_clip_idx || abs(target_frame - cur_frame) > IGNORE_SURROUNDING_FRAMES;
 }
 
-MatchingResult motion_matching(const AnimationDataBase &dataBase,
+template <bool use_brute_force>
+static inline MatchingResult motion_matching_impl(const AnimationDataBase &dataBase,
   MatchingResult current_state,
-  bool use_brute_force,
   const AnimationFilterTags &current_tags,
   const FeatureWeights &weights,
   dag::ConstSpan<FrameFeaturesData::value_type> current_feature)
@@ -64,7 +64,7 @@ MatchingResult motion_matching(const AnimationDataBase &dataBase,
       if (dataBase.playOnlyFromStartTag >= 0 && interval.tags.test(dataBase.playOnlyFromStartTag))
         searchEnd = interval.from + 1;
 
-      if (use_brute_force)
+      if constexpr (use_brute_force)
       {
         while (i < searchEnd)
         {
@@ -121,4 +121,23 @@ MatchingResult motion_matching(const AnimationDataBase &dataBase,
   }
 
   return MatchingResult{best_clip, best_frame, v_extract_x(bestResult)};
+}
+
+
+MatchingResult motion_matching(const AnimationDataBase &dataBase,
+  MatchingResult current_state,
+  const AnimationFilterTags &current_tags,
+  const FeatureWeights &weights,
+  dag::ConstSpan<FrameFeaturesData::value_type> current_feature)
+{
+  return motion_matching_impl<false>(dataBase, current_state, current_tags, weights, current_feature);
+}
+
+MatchingResult motion_matching_brute_force(const AnimationDataBase &dataBase,
+  MatchingResult current_state,
+  const AnimationFilterTags &current_tags,
+  const FeatureWeights &weights,
+  dag::ConstSpan<FrameFeaturesData::value_type> current_feature)
+{
+  return motion_matching_impl<true>(dataBase, current_state, current_tags, weights, current_feature);
 }

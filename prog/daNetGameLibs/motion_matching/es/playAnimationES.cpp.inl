@@ -220,8 +220,7 @@ public:
       [this, &processedMotionMatchingCount](MotionMatchingController &motion_matching__controller,
         float &motion_matching__updateProgress, float &motion_matching__metricaTolerance, float &motion_matching__animationBlendTime,
         float &motion_matching__presetBlendTimeLeft, float motion_matching__blendTimeToAnimtree, float motion_matching__distanceFactor,
-        float motion_matching__trajectoryTolerance, FrameFeatures &motion_matching__goalFeature, int motion_matching__presetIdx,
-        bool motion_matching__enabled) {
+        FrameFeatures &motion_matching__goalFeature, int motion_matching__presetIdx, bool motion_matching__enabled) {
         G_ASSERT_RETURN(!motion_matching__enabled || motion_matching__controller.dataBase, ); // don't enable until database is loaded
         update_node_weights(motion_matching__controller, motion_matching__enabled, motion_matching__blendTimeToAnimtree, dt);
         if (!motion_matching__enabled && motion_matching__controller.motionMatchingWeight <= 0.f)
@@ -259,33 +258,27 @@ public:
           const FeatureWeights &currentWeights = currentPreset.weights;
 
           int featuresSizeof = dataBase.featuresSize;
-          int cur_clip = -1;
-          int cur_frame = -1;
-          bool pathToleranceTest = false;
-          bool sameTags = false;
-          const vec3f *frameFeature = nullptr;
+          MatchingResult currentState = {-1, -1, FLT_MAX};
           bool performSearch = true;
-          if (motion_matching__controller.hasActiveAnimation())
+          if (motion_matching__controller.hasActiveAnimation() && !animFinished)
           {
-            cur_clip = motion_matching__controller.getCurrentClip();
-            cur_frame = motion_matching__controller.getCurrentFrame();
-            frameFeature = clips[cur_clip].features.data.data() + cur_frame * featuresSizeof;
+            int cur_clip = motion_matching__controller.getCurrentClip();
+            int cur_frame = motion_matching__controller.getCurrentFrame();
+            const vec4f *frameFeature = clips[cur_clip].features.data.data() + cur_frame * featuresSizeof;
             int featuresOffset = clips[cur_clip].featuresNormalizationGroup * dataBase.featuresSize;
             currentFeature = make_span(normalizedFeatures.data() + featuresOffset, dataBase.featuresSize);
             int curInterval = clips[cur_clip].getInterval(cur_frame);
+            bool suitableTags = motion_matching__controller.currentTags.isMatch(clips[cur_clip].intervals[curInterval].tags);
+            float currentMetric = suitableTags ? feature_distance_metric(currentFeature.data(), frameFeature,
+                                                   currentWeights.featureWeights.data(), featuresSizeof)
+                                               : FLT_MAX;
+            currentState.clip = cur_clip;
+            currentState.frame = cur_frame;
+            currentState.metrica = currentMetric;
 
-            float pathErrorTolerance = motion_matching__trajectoryTolerance * motion_matching__distanceFactor;
-
-            sameTags = motion_matching__controller.currentTags.isMatch(clips[cur_clip].intervals[curInterval].tags);
-
-            pathToleranceTest = // optional tags have matter in trajectory test
-              sameTags && path_metric(currentFeature.data(), frameFeature, currentWeights.featureWeights.data(),
-                            dataBase.trajectorySize) < pathErrorTolerance;
-          }
-          if (pathToleranceTest)
-          {
-            motion_matching__updateProgress -= (int)motion_matching__updateProgress;
-            performSearch = false;
+            // Current animation is good enough, we can't find better because of additional cost for transition
+            if (motion_matching__metricaTolerance > currentMetric)
+              performSearch = false;
           }
           if (maxMotionMatchingPerFrame > 0 && performSearch &&
               interlocked_increment(processedMotionMatchingCount) > maxMotionMatchingPerFrame)
@@ -304,44 +297,36 @@ public:
           {
             motion_matching__updateProgress -= (int)motion_matching__updateProgress;
             TIME_PROFILE(motion_matching);
-            float currentMetric =
-              sameTags && frameFeature && !animFinished
-                ? feature_distance_metric(currentFeature.data(), frameFeature, currentWeights.featureWeights.data(), featuresSizeof)
-                : FLT_MAX;
-            MatchingResult currentState = {cur_clip, cur_frame, currentMetric};
-            MatchingResult bestIndex = motion_matching(dataBase, currentState, false, motion_matching__controller.currentTags,
-              currentWeights, normalizedFeatures);
+            MatchingResult bestIndex =
+              motion_matching(dataBase, currentState, motion_matching__controller.currentTags, currentWeights, normalizedFeatures);
 
 #if BRUTE_FORCE_COMPARISON
-            MatchingResult bestIndex2 = motion_matching(dataBase, cur_clip, cur_frame, currentMetric, true,
-              motion_matching__controller.currentTags, currentWeights, currentFeature);
+            MatchingResult bestIndex2 = motion_matching_brute_force(dataBase, currentState, motion_matching__controller.currentTags,
+              currentWeights, normalizedFeatures);
 
             G_ASSERT(is_same(bestIndex, bestIndex2));
 #endif
-            if (!is_same(currentState, bestIndex))
+            if (bestIndex.metrica + motion_matching__metricaTolerance < currentState.metrica)
             {
-              if (currentMetric - bestIndex.metrica > motion_matching__metricaTolerance)
+              bool needTransition = motion_matching__controller.hasActiveAnimation();
+              motion_matching__metricaTolerance = currentPreset.metricaToleranceMax;
+              motion_matching__controller.playAnimation(bestIndex.clip, bestIndex.frame);
+
+              if (needTransition)
               {
-                motion_matching__metricaTolerance = currentPreset.metricaToleranceMax;
-                motion_matching__controller.playAnimation(bestIndex.clip, bestIndex.frame);
+                motion_matching__controller.lastTransitionTime = 0.f;
+                // reuse memory for nextAnimation, resultAnimation is not needed here and will be recalculated farther anyway
+                BoneInertialInfo &nextAnimation = motion_matching__controller.resultAnimation;
+                float timeInSeconds = motion_matching__controller.getFrameTimeInSeconds(bestIndex.clip, bestIndex.frame, 0.f);
+                // sample new animation in nextAnimation
+                extract_frame_info(timeInSeconds, clips[bestIndex.clip], nextAnimation);
 
-                bool needTransition = cur_clip >= 0;
-                if (needTransition)
-                {
-                  motion_matching__controller.lastTransitionTime = 0.f;
-                  // reuse memory for nextAnimation, resultAnimation is not needed here and will be recalculated farther anyway
-                  BoneInertialInfo &nextAnimation = motion_matching__controller.resultAnimation;
-                  float timeInSeconds = motion_matching__controller.getFrameTimeInSeconds(bestIndex.clip, bestIndex.frame, 0.f);
-                  // sample new animation in nextAnimation
-                  extract_frame_info(timeInSeconds, clips[bestIndex.clip], nextAnimation);
+                apply_root_motion_correction(timeInSeconds, clips[bestIndex.clip], dataBase.rootNode, nextAnimation);
 
-                  apply_root_motion_correction(timeInSeconds, clips[bestIndex.clip], dataBase.rootNode, nextAnimation);
-
-                  // caclulate offset between currentAnimation and nextAnimation
-                  // we will decay offset for smooth transition
-                  inertialize_pose_transition(motion_matching__controller.offset, motion_matching__controller.currentAnimation,
-                    nextAnimation, motion_matching__controller.perNodeWeights);
-                }
+                // caclulate offset between currentAnimation and nextAnimation
+                // we will decay offset for smooth transition
+                inertialize_pose_transition(motion_matching__controller.offset, motion_matching__controller.currentAnimation,
+                  nextAnimation, motion_matching__controller.perNodeWeights);
               }
             }
           }

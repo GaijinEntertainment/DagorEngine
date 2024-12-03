@@ -1,0 +1,185 @@
+environment_effect_base{
+  _use:t="replicating"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+
+  _group{
+    _tags:t="render"
+
+    effect{}
+  }
+
+  "staticEffect:tag"{}
+}
+
+range_pauseable_effect{
+  _group{
+    _tags:t="render"
+    effect__is_paused:b=yes
+    effect__emit_range_gap:r=0.1 // Prevent blinking near the range
+    effect__emit_range_limit_start_sq:r=0.0
+    effect__emit_range_limit_stop_sq:r=0.0
+  }
+  effect__emit_range_limit:r=0.0
+}
+
+environment_sound_effect_base{
+  _use:t="sound_effect"
+  _group{
+    _tags:t="sound"
+    sound_effect__abandonOnReset:b=yes
+  }
+}
+
+oneshot_environment_sound_effect_base{
+  _use:t="environment_sound_effect_base"
+}
+
+envir_sparks_small_continious_column_no_light_effect{
+  "destroyable_with_rendinst:tag"{}
+  _use:t="environment_effect_base"
+  _use:t="environment_sound_effect_base"
+  _use:t="range_pauseable_effect"
+  effect__emit_range_limit:r=80.0
+
+  _group{
+    _tags:t="render"
+    effect__name:t="envir_sparks_small_continious_column_no_light_cmps_fx"
+  }
+
+  _group{
+    _tags:t="sound"
+    sound_effect__path:t="env_effects/electric_continious_sparks"
+  }
+}
+
+fire_spot_1m_nosmoke_effect{
+  _use:t="environment_effect_base"
+  _use:t="environment_sound_effect_base"
+  sphere_zone__radius:r=0.5
+  _use:t="range_pauseable_effect"
+  effect__emit_range_limit:r=120
+
+  _group{
+    _tags:t="render"
+    effect__name:t="fire_spot_1m_nosmoke_cmps_fx"
+  }
+
+  _group{
+    _tags:t="sound"
+    sound_effect__path:t="env_effects/fire/fire_small"
+  }
+}
+
+camera_dust_template{
+  _use:t="dafx_dust"
+  effect{
+    _tags:t="render"
+  }
+
+  _group{
+    _tags:t="render"
+    effect__name:t="camera_dust_cmps_fx"
+  }
+}
+
+envir_misc_flies_gray_effect{
+  _use:t="environment_effect_base"
+  _use:t="range_pauseable_effect"
+  effect__emit_range_limit:r=15.0
+
+  _group{
+    _tags:t="render"
+    effect__name:t="envir_misc_flies_gray_cmps_fx"
+  }
+}
+
+envir_misc_beatles_gray_effect{
+  _use:t="environment_effect_base"
+  _use:t="range_pauseable_effect"
+  effect__emit_range_limit:r=15.0
+
+  _group{
+    _tags:t="render"
+    effect__name:t="envir_misc_beatles_gray_cmps_fx"
+  }
+}
+
+envir_misc_floating_leaves_5m_effect{
+  _use:t="environment_effect_base"
+  _use:t="range_pauseable_effect"
+  effect__emit_range_limit:r=50.0
+
+  _group{
+    _tags:t="render"
+    effect__name:t="envir_misc_floating_leaves_5m_cmps_fx"
+  }
+}
+
+envir_steam_small_effect{
+  _use:t="environment_effect_base"
+  _use:t="range_pauseable_effect"
+  effect__emit_range_limit:r=120.0
+
+  _group{
+    _tags:t="render"
+    effect__name:t="envir_smoke_static_steam_small_cmps_fx"
+  }
+}
+
+envir_water_flow_stream_small_effect{
+  _use:t="environment_effect_base"
+  _use:t="range_pauseable_effect"
+  effect__emit_range_limit:r=80.0
+
+  _group{
+    _tags:t="render"
+    effect__name:t="water_flow_stream_small_cmps_fx"
+  }
+}
+
+envir_steam_stream_effect{
+  _use:t="environment_effect_base"
+  _use:t="range_pauseable_effect"
+  _use:t="environment_sound_effect_base"
+  effect__emit_range_limit:r=120.0
+
+  _group{
+    _tags:t="render"
+    effect__name:t="envir_smoke_static_steam_stream_cmps_fx"
+  }
+
+  _group{
+    _tags:t="sound"
+    sound_effect__path:t="env_effects/steam/steam_stream"
+  }
+}
+
+envir_water_flow_stream_medium_effect{
+  "destroyable_with_rendinst:tag"{}
+  _use:t="environment_effect_base"
+  _use:t="range_pauseable_effect"
+  effect__emit_range_limit:r=150.0
+
+  _group{
+    _tags:t="render"
+    effect__name:t="water_flow_stream_medium_cmps_fx"
+  }
+}
+
+envir_sparks_small_continious_column_effect{
+  "destroyable_with_rendinst:tag"{}
+  _use:t="environment_effect_base"
+  _use:t="environment_sound_effect_base"
+  _use:t="range_pauseable_effect"
+  effect__emit_range_limit:r=80.0
+
+  _group{
+    _tags:t="render"
+    effect__name:t="envir_sparks_small_continious_column_cmps_fx"
+  }
+
+  _group{
+    _tags:t="sound"
+    sound_effect__path:t="env_effects/electric_continious_sparks"
+  }
+}

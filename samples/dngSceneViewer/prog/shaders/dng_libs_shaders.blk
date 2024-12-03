@@ -1,0 +1,23 @@
+
+//THIS FILE CREATED BY CODEGEN, DON'T CHANGE THIS!!! USE setup_dng_libs.py INSTEAD!!!
+
+include "../../../../prog/daNetGameLibs/render_debug/_shaders.blk"
+include "../../../../prog/daNetGameLibs/screen_vhs/_shaders.blk"
+include "../../../../prog/daNetGameLibs/flash_blind/_shaders.blk"
+include "../../../../prog/daNetGameLibs/outdated_effects/_shaders.blk"
+include "../../../../prog/daNetGameLibs/projectors/_shaders.blk"
+include "../../../../prog/daNetGameLibs/semi_trans_render/_shaders.blk"
+include "../../../../prog/daNetGameLibs/distant_haze/_shaders.blk"
+include "../../../../prog/daNetGameLibs/bloom/_shaders.blk"
+include "../../../../prog/daNetGameLibs/puddles_manager/_shaders.blk"
+include "../../../../prog/daNetGameLibs/water_ripples/_shaders.blk"
+include "../../../../prog/daNetGameLibs/adaptation/_shaders.blk"
+include "../../../../prog/daNetGameLibs/water_effects/_shaders.blk"
+include "../../../../prog/daNetGameLibs/puddle_query/_shaders.blk"
+include "../../../../prog/daNetGameLibs/screen_droplets/_shaders.blk"
+include "../../../../prog/daNetGameLibs/daGdp/_shaders.blk"
+include "../../../../prog/daNetGameLibs/custom_envi_probe/_shaders.blk"
+include "../../../../prog/daNetGameLibs/local_tone_mapping/_shaders.blk"
+include "../../../../prog/daNetGameLibs/lens_flare/_shaders.blk"
+include "../../../../prog/daNetGameLibs/object_motion_blur/_shaders.blk"
+include "../../../../prog/daNetGameLibs/screen_snowflakes/_shaders.blk"

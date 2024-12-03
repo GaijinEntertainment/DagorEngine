@@ -28,6 +28,7 @@ int lens_flare_has_fom_shadows = 0;
 interval lens_flare_has_fom_shadows : no<1, yes;
 int lens_flare_has_volfog = 0;
 interval lens_flare_has_volfog : no<1, yes;
+float lens_flare_prepare_exposure_pow_param;
 
 shader prepare_lens_flare
 {
@@ -36,6 +37,8 @@ shader prepare_lens_flare
   INIT_ZNZFAR_STAGE(cs)
   INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
   USE_LOAD_DEPTH_GBUFFER_BASE(cs)
+  INIT_EXPOSURE(cs)
+  USE_EXPOSURE(cs)
 
   if (lens_flare_has_volfog == yes) {
     INIT_VOLUMETRIC_LIGHT(cs)
@@ -60,6 +63,7 @@ shader prepare_lens_flare
     sun_tc@f2 = (lens_flare_prepare_sun_screen_tc);
     camera_pos@f3 = lens_flare_prepare_camera_pos;
     clouds_shadow_influence@f1 = clouds_shadow_influence;
+    exposure_pow_param@f1 = lens_flare_prepare_exposure_pow_param;
 
     preparedLights@uav = lens_flare_prepared_lights_buf hlsl {
       #include <lens_flare/shaders/lens_flare_info.hlsli>
@@ -88,9 +92,10 @@ shader prepare_lens_flare
         ? normalize(lightScreenPos)
         : float2(0, 1);
 
-      float intensity = 1;
+      float exposureIntensityModifier = pow(getExposureScale(), exposure_pow_param);
+      float intensity = exposureIntensityModifier;
       if (fadeout_distance > 0 && screenEdgeSignedDistance < fadeout_distance)
-        intensity = saturate(screenEdgeSignedDistance / fadeout_distance);
+        intensity *= saturate(screenEdgeSignedDistance / fadeout_distance);
 
 
       BRANCH

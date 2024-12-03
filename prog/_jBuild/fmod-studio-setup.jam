@@ -55,6 +55,13 @@ if $(arch_suffix) {
   FmodStudioApiLibPath = $(FmodStudioApiLibPath)/$(arch_suffix) ;
   FmodPluginResonanceAudioPath = $(FmodPluginResonanceAudioPath)/$(arch_suffix) ;
 }
+if $(Platform) = linux && $(FmodStudioSoSuffix) = " " {
+  local fn = [ GLOB $(FmodStudioLowLibPath) : libfmod.so.*.* ] ;
+  if $(fn) {
+    FmodStudioSoSuffix = [ MATCH "\.([0-9]+)\.0*([0-9]+)$" : $(fn:D=) ] ;
+    FmodStudioSoSuffix = .$(FmodStudioSoSuffix:J=.) ;
+  }
+}
 
 local libname_suffix = ;
 switch $(Platform) {

@@ -58,7 +58,8 @@ LensFlareRenderer::LensFlareData LensFlareRenderer::LensFlareData::parse_lens_fl
 {
   FRAMEMEM_REGION;
 
-  LensFlareData result = LensFlareData(config.name, {config.smoothScreenFadeoutDistance, config.useOcclusion});
+  LensFlareData result =
+    LensFlareData(config.name, {config.smoothScreenFadeoutDistance, config.useOcclusion, -config.exposureReduction});
   HashMapWithFrameMem<RenderBlockKey, int> renderBlockIds;
   eastl::vector<eastl::vector<int, framemem_allocator>, framemem_allocator> elementsPerRenderBlock;
   HashMapWithFrameMem<int, int> sideCountToVPosOffset;
@@ -164,6 +165,7 @@ LensFlareRenderer::LensFlareData LensFlareRenderer::LensFlareData::parse_lens_fl
       flareData.roundingCircleOffset = circleOffset;
       flareData.roundingCircleCos = roundnessClippingConeCos;
       flareData.distortionPow = element.radialDistortion.distortionCurvePow;
+      flareData.exposurePowParam = -config.exposureReduction;
       flareData.vertexPosBufOffset = vertexPosBufferOffset;
       int globalFlareId = flares.size();
       flares.push_back(flareData);
@@ -351,6 +353,7 @@ bool LensFlareRenderer::endPreparingLights(const Point3 &camera_pos)
     ShaderGlobal::set_int(lens_flare_prepare_use_occlusionVarId, flareData.getParams().useOcclusion ? 1 : 0);
     ShaderGlobal::set_color4(lens_flare_prepare_sun_colorVarId, preparedLight.lightColor, 0);
     ShaderGlobal::set_real(lens_flare_prepare_fadeout_distanceVarId, flareData.getParams().smoothScreenFadeoutDistance);
+    ShaderGlobal::set_real(lens_flare_prepare_exposure_pow_paramVarId, flareData.getParams().exposurePowParam);
     ShaderGlobal::set_color4(lens_flare_prepare_sun_screen_tcVarId, preparedLight.lightPos);
     ShaderGlobal::set_color4(lens_flare_prepare_camera_posVarId, camera_pos, 0);
     prepareFlaresShader->dispatch(1, 1, 1);

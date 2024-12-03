@@ -66,14 +66,14 @@ static bool glob_input_process_top_level_key_down(int key_idx, unsigned key_modi
       break;
     case HumanInput::DKEY_F7:
     {
-      bool hadEnlistScene = overlay_ui::gui_scene() != nullptr;
-      if (ctrl && alt && hadEnlistScene)
+      bool hadOverlayScene = overlay_ui::gui_scene() != nullptr;
+      if (ctrl && alt && hadOverlayScene)
         overlay_ui::shutdown_ui(false);
 
       // USER VM
       user_ui::reload_user_ui_script(ctrl);
 
-      if (ctrl && alt && hadEnlistScene)
+      if (ctrl && alt && hadOverlayScene)
         overlay_ui::init_ui();
 
       return true;

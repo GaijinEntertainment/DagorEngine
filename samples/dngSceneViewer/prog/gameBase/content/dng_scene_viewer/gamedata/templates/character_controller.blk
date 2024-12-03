@@ -1,0 +1,58 @@
+phys_global_state{
+  _use:t=replicating;
+  _ignoreInitialReplication:b=yes
+  phys_global__tick:i=-1
+  phys_global__tick_residual:r=0
+}
+
+phys_unit{
+  phys__at_tick:i=0
+  phys__pos:p3=0,0,0
+  phys__rot:p4=0,0,0,1
+  phys__vel:p3=0,0,0
+  phys__wvel:p3=0,0,0
+}
+
+character_controller{
+  _use:t=replicating
+  _use:t=phys_unit
+  "hero:tag"{}
+
+  _use:t="base_human_steps_sound"
+  _use:t="sound_tags"
+  _use:t="sound_event_group"
+  _use:t="sound_banks_state"
+  _use:t="human_steps_sound_paths"
+  "sound:tag"{}
+
+  _group{
+    _hide:b=yes
+    "charctrl_input__aMove:u16"{ value:i=0xFFFF; }
+    "charctrl_input__aLook:u16"{ value:i=0xFFFF; }
+    "charctrl_input__aJump:u16"{ value:i=0xFFFF; }
+    "charctrl_input__aSprint:u16"{ value:i=0xFFFF; }
+    "charctrl_input__aCrouch:u16"{ value:i=0xFFFF; }
+    "charctrl_input__aCrawl:u16"{ value:i=0xFFFF; }
+  }
+
+  _group{
+    _hide:b=yes
+    "charctrl_input:tag" {}
+    "input__enabled:b" {_tags:t="gameClient"; value:b=yes; _track:b=yes; }
+  }
+
+  "camera__active:b"{ _track:b=yes; }
+  "camera_view:tag"{}
+
+  updatable:b=yes
+
+  charctrl__move_vel:p2=0,0
+  charctrl__look_ang:p2=0,0
+  charctrl__jump_vel:r=0
+  charctrl__capsule_dir:p3=0,1,0
+  charctrl__capsule_ofs:p2=0,0.3
+  charctrl__view_ht:r=1.8
+  charctrl__state:ip3=0,0,0 // CCStandType, CCMoveType, CCStateFlag
+
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+}

@@ -1,0 +1,60 @@
+// basic checkpoint data for gameplay (used on server)
+base_checkpoint {
+  "check_pt:tag"{}
+  replication {_tags:t="net";}
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  initialVelocity:p3=0,0,0
+  moveToTime:r=0
+  movementSpeed:r=0
+  effect__scale:r=1
+  checkpoint__score:r=1
+  _group {
+    _replicate:b=yes
+    _track:b=yes
+    "checkpoint__visited_by_player:list<eid>" {}
+  }
+  _group{
+    _tags:t="render"
+    effect__name:t=""
+  }
+}
+// additional FX data to be added/removed on clients
+checkpoint_visible_fx {
+  _group{
+    _tags:t="render"
+    effect{}
+  }
+}
+
+orb_fx {
+  _use:t="base_checkpoint"
+  checkpoint__score:r=1
+  _group{
+    _tags:t="render"
+    effect__name:t="energy_orb_composite_fx"
+  }
+}
+small_orb_fx {
+  _use:t="base_checkpoint"
+  _group{
+    _tags:t="render"
+    effect__name:t="energy_orb_small_composite_fx"
+  }
+}
+
+mini_orb_fx {
+  _use:t="base_checkpoint"
+  _group{
+    _tags:t="render"
+    effect__name:t="energy_mini_orb_composite_fx"
+  }
+}
+
+beacon_fx {
+  _use:t="base_checkpoint"
+  checkpoint__score:r=5
+  _group{
+    _tags:t="render"
+    effect__name:t="beacon_composite_fx"
+  }
+}

@@ -1,0 +1,31 @@
+entity{
+  _template:t="static_cam"
+  camera__active:b=yes
+  transform:m=[[0, 0, -1] [0, 1, 0] [1, 0, 0] [0, 0, 0]]
+}
+
+entity{
+  _template:t="level"
+  level__blk:t="__empty__"
+  level__fpsLimit:i=60
+}
+
+entity{
+  _template:t="menu"
+}
+
+entity{
+  _template:t="teamRespawnBase"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [-253.441, 20.1, -79.1536]]
+}
+
+entity{
+  _template:t="humans_grid"
+}
+
+entity{
+  _template:t="vehicles_grid"
+}
+entity {
+  _template:t="menu_music"
+}

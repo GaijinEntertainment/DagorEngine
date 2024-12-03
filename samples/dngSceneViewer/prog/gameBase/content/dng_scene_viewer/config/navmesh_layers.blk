@@ -1,0 +1,13 @@
+filter {
+}
+
+filter_exclude {
+}
+
+doors {
+  ignoreCollision:b=yes
+}
+
+uncollidable {
+  ignoreCollision:b=yes
+}

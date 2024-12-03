@@ -847,13 +847,13 @@ inline void ShaderResUnitedVdata<RES>::doUpdateJob(UpdateModelCtx &ctx)
     ctx.tmp_smvd[i] = ShaderMatVdata::make_tmp_copy(res_smvd[i], ctx.reqLod);
 
   BufChunkTab c_new;
-  bool already_in_failed = find_value_idx(failedVdataReloadResList, ctx.res) >= 0;
   unitedvdata::BufConfig local_hints = getHints();
 
   {
     std::lock_guard<std::mutex> scopedLock(appendMutex);
-    int vb_to_free = 0, ib_to_free = 0;
+    bool already_in_failed = find_value_idx(failedVdataReloadResList, ctx.res) >= 0;
 
+    int vb_to_free = 0, ib_to_free = 0;
     while (ctx.reqLod < prev_lod)
       if (buf.arrangeVdata(make_span_const(ctx.tmp_smvd, res_smvd.size()), c_new, buf.getIB(), true, local_hints, &vb_to_free,
             &ib_to_free) &&
