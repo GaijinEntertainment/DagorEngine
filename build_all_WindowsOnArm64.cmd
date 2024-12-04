@@ -46,10 +46,10 @@ call build_aot_compiler_arm64.cmd
 jam -sNeedDasAotCompile=yes
 jam -sNeedDasAotCompile=yes -sDedicated=yes
 jam -f jamfile-decrypt
-call compile_all_prog_vromfs.cmd
+call compile_all_prog_vromfs_arm64.cmd
 cd shaders
 call compile_shaders_dx11_WOA.bat
-call compile_shaders_tools.bat
+call compile_shaders_tools_WOA.bat
 cd ..\..\develop\gui
 call build_ui.cmd
 popd
