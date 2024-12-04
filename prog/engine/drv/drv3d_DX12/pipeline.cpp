@@ -1844,6 +1844,7 @@ BasePipeline *PipelineManager::getGraphics(GraphicsProgramID program)
 {
   uint32_t index = program.getIndex();
   auto &pipelineGroup = graphicsPipelines[program.getGroup()];
+  //just neglect the error...
   //G_ASSERTF(pipelineGroup[index] != nullptr, "getGraphics called for uninitialized graphics pipeline! index was %u", index);
   return pipelineGroup[index].get();
 }

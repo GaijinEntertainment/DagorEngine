@@ -40,3 +40,19 @@ cd shaders
 call compile_shaders_dx12_WOA.bat
 call compile_shaders_dx11_WOA.bat
 popd
+
+pushd outerSpace\prog
+call build_aot_compiler_arm64.cmd
+jam -sNeedDasAotCompile=yes
+jam -sNeedDasAotCompile=yes -sDedicated=yes
+jam -f jamfile-decrypt
+call compile_all_prog_vromfs.cmd
+cd shaders
+call compile_shaders_dx11_WOA.bat
+call compile_shaders_tools.bat
+cd ..\..\develop\gui
+call build_ui.cmd
+popd
+pushd outerSpace\prog\utils\dev_launcher
+call create_vfsroms.bat
+popd
