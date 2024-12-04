@@ -8,14 +8,14 @@ postfx_color_grading_tonemap_death_alive_east_district{
     colorContrast:p4=1, 1, 1, 1.1
     colorGamma:p4=1, 1, 1, 1
     colorGain:p4=1.1, 1, 1, 1
-    shadows_colorContrast:p4=1.05, 1, 1, 0.9
+    shadows_colorContrast:p4=1.05, 1, 1, 0.85
     shadows_colorGamma:p4=1, 1, 1, 1
     midtones_colorGamma:p4=1, 1, 1, 1
-    tonemapContrast:r=2.5
-    tonemapShoulder:r=0.95
+    tonemapContrast:r=2.4
+    tonemapShoulder:r=0.935
     tonemapMidIn:r=0.13
     tonemapMidOut:r=0.24
-    tonemapHdrMax:r=2
+    tonemapHdrMax:r=4
     _tags:t="render"
   }
 
