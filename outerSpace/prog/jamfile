@@ -4,6 +4,7 @@ Game = outer_space ;
 TargetType  = exe ;
 Target     ?= $(Game) ;
 TargetCodeName = $(Game) ; # this will hold target name unchanged even if non-default phys engine is used
+UseSystemOpenSSL = no ;
 
 NOCARE $(Root)/$(Location)/def.jam ;
 include $(Root)/$(Location)/def.jam ;
@@ -120,6 +121,8 @@ if $(Dedicated) != yes {
     }
     include $(Root)/prog/engine/drv/drv3d_DX12/copy_bundles.jam ;
   } else if $(Platform) = linux {
+    ImportsRelativeDir = . ;
+    if $(FmodStudio) != src { FmodStaticLibs = $(OutDir)/$(FmodStaticLibs:D=:S=) ; }
   } else if $(Platform) = macOS {
     UseSharedLibs += $(FmodStudioSharedLibs) ;
     LINKopt += -framework CoreAudio -framework AudioUnit ;
@@ -130,7 +133,7 @@ if $(Dedicated) != yes {
     BundleCopy =
       platform/macOS/$(BundleName).icns ../Resources/$(BundleName).icns
     ;
-    if $(Config) != rel { BundleSymlink = ../Resources/game ../../.. ; }
+    opt on main/apple_main.mm = -D__S(X)=#X -DDAGOR_MACOSX_CONTENTS=__S(../../..) ;
 
     if $(Config) = rel {
       CopyTo = $(OutDir)/$(BundleName) ;
@@ -232,7 +235,7 @@ if $(Dedicated) != yes {
 
 if $(FmodStudio) != src && $(HaveSound) != no {
   AddLibs += $(FmodStaticLibs) ;
-  if $(Platform) != macOS { for dll in $(FmodStudioSharedLibs) { BundleCopy += @$(dll) $(dll:D=) ; } }
+  if $(Platform) != macOS { for dll in $(FmodStudioSharedLibs) { BundleCopy += @$(dll) $(dll:D=:S=) ; } }
 }
 
 if $(Platform) in windows && $(Dedicated) != yes && $(CheckOnly) != yes {
