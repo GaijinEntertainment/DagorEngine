@@ -27,13 +27,18 @@ If the script is not run as an administrator, installers of certain programs may
 
 After the script completes its work, the X:\develop\devtools folder will be configured with the following SDKs and tools:
 
+* Agility.SDK.1.614.1 - DirectX 12 Agility SDK
+* astcenc-4.6.1 - Adaptive Scalable Texture Compression (ASTC) Encoder
+* DXC-1.7.2207 - DirectX Compiler
 * FidelityFX_SC - a library for image quality enhancement
 * fmod-studio-2.xx.xx [optional] - FMOD sound library
+* ispc-v1.23.0-windows - Implicit SPMD Program Compiler
 * LLVM-15.0.7 - C/C++ compiler and libraries (Clang)
-* nasm - assembler
-* max2024.sdk - 3ds Max 2004 SDK
-* openxr-1.0.16 - library for AR/VR
-* vc2019_16.10.3 - C/C++ compiler and libraries (MSVC)
+* max2024.sdk - 3ds Max 2024 SDK
+* nasm - netwide assembler ver 2.x
+* openxr-1.0.27 - library for AR/VR
+* vc2019_16.11.34 - C/C++ compiler and libraries (MSVC)
+* vc2022_17.9.5 - C/C++ compiler and libraries (MSVC)
 * win.sdk.100 - Windows 10 SDK
 * win.sdk.81 - Windows 8.1 SDK
 * ducible.exe - a tool to make builds of Portable Executables (PEs) and PDBs reproducible
@@ -46,9 +51,11 @@ Restart the command line console to make the new environment variables available
 
 You will need to download and extract additional binary files from the repository [https://github.com/GaijinEntertainment/DagorEngine/releases](https://github.com/GaijinEntertainment/DagorEngine/releases) into the X:\develop\DagorEngine folder:
 
-* samples-base.7z - contains initial assets that will be compiled into binary files that will be loaded the game
-* samples-prebuilt-game.7z - contains precompiled assets
-* tools-prebuilt.7z - contains the prebuilt engine toolkit
+* [tools-base.7z](https://dagorenginedata.cdn.gaijin.net/rel-ceec7596681cd53080ae54d5c7f30f8e9a282a80/tools-base.7z) - contains initial data for tools
+* [samples-base.7z](https://dagorenginedata.cdn.gaijin.net/rel-ceec7596681cd53080ae54d5c7f30f8e9a282a80/samples-base.7z) - contains initial assets that will be compiled into binary files that will be loaded the game
+* [tools-prebuilt-windows-x86_64.7z](https://dagorenginedata.cdn.gaijin.net/rel-ceec7596681cd53080ae54d5c7f30f8e9a282a80/tools-prebuilt-windows-x86_64.7z),
+  [tools-prebuilt-linux-x86_64.tar.gz](https://dagorenginedata.cdn.gaijin.net/rel-ceec7596681cd53080ae54d5c7f30f8e9a282a80/tools-prebuilt-linux-x86_64.tar.gz),
+  [tools-prebuilt-macOS.tar.gz](https://dagorenginedata.cdn.gaijin.net/rel-ceec7596681cd53080ae54d5c7f30f8e9a282a80/tools-prebuilt-macOS.tar.gz) - contains the prebuilt engine toolkit
 
 The directory structure should look like this:
 ```
@@ -71,12 +78,33 @@ X:\develop\DagorEngine\samples\testGI\game
 
 To build the "testGI" sample, navigate to the X:\develop\DagorEngine\samples\testGI\prog folder and run the "jam" command. After building, the executable file will be placed in the testGI\game folder.
 
-Run `build_all`:
-- Windows: DagorEngine/build_all.cmd
-- MacOS: DagorEngine/build_all_macOS.sh
-- Linux: DagorEngine/build_all_linux.sh
+Run `build_all` in DagorEngine root:
+- Windows: ./build_all.cmd
+- MacOS: ./build_all_macOS.sh
+- Linux: ./build_all_linux.sh
 
 This builds the entire project toolkit from the source code. This process may take a considerable amount of time.
+
+After tools are built and ready for be used we need to build game and UI resources using daBuild.
+Run `dabuild_all` in DagorEngine root:
+- Windows: ./dabuild_all.cmd
+- MacOS: ./dabuild_all_macOS.sh
+- Linux: ./dabuild_all_linux.sh
+
+### Basic dagor samples
+
+* Offline scene viewer : **East District**<br>
+  [Code](https://github.com/GaijinEntertainment/DagorEngine/tree/main/samples/dngSceneViewer/prog) and built scene data [east_district-dagor.tar.gz](https://dagorenginedata.cdn.gaijin.net/rel-ceec7596681cd53080ae54d5c7f30f8e9a282a80/east_district-dagor.tar.gz) to be unpacked to DagorEngine root<br>
+  **east_district-dagor.tar.gz** also contains prebuilt viewer app (for windows, macOS and linux) to run sample at once<br>
+  [Demos of a new Gaijin’s game showcase Dagor Engine power](https://gaijinent.com/news/demos-of-a-new-gaijins-game-showcase-dagor-engine-power)<br>
+  [East District review on YouTube](https://youtu.be/miABl6aekBA)
+* Multiplayer sample: **Outer Space**<br>
+  [Code](https://github.com/GaijinEntertainment/DagorEngine/tree/main/outerSpace/prog) and source (develop) files [outerSpace-devsrc.7z](https://dagorenginedata.cdn.gaijin.net/rel-ceec7596681cd53080ae54d5c7f30f8e9a282a80/outerSpace-devsrc.7z) to be unpacked to DagorEngine root<br>
+  Prebuilt game (executables, shaders, vromfs, gameres) is available as [outerSpace-prebuilt-fullsrc.tar.gz](https://dagorenginedata.cdn.gaijin.net/rel-ceec7596681cd53080ae54d5c7f30f8e9a282a80/outerSpace-prebuilt-fullsrc.tar.gz)
+
+### Documentation
+  Automatically generated [Dagor Documentation](https://gaijinentertainment.github.io/DagorEngine/) contains general architecture description, API reference, tutorials and manuals.<br>
+  It is not complete yet and will be extended.
 
 ## Open-source roadmap
 
@@ -85,17 +113,5 @@ These are general and broad plans for next year, can be changed.
 
 ### Documentation
 
-* dagor render
 * how to work with dagor assets
-* dagor level editor
-* dagor reactive gui framework
-
-### Basic dagor samples
-
-* Binaries of basic render and game samples (terrain, clouds, water, grass; inputs and controls) with assets sources
-* Sources of basic game samples
-
-### The Pretty Games framework
-
-Framework with samples and documentation, based on daslang and dagor.
-Details yet to come.
+* daNetGame framework
