@@ -44,7 +44,7 @@ static void on_relem_changed(ContextId context_id, const RenderableInstanceLodsR
 
   bool hasBakedImpostor = resource->isBakedImpostor();
 
-  for (auto [lodIx, lod] : enumerate(resource->lods))
+  for (auto [lodIx, lod] : enumerate(make_span_const(resource->lods)))
   {
     int lastLod = hasBakedImpostor ? resource->lods.size() - 2 : resource->lods.size() - 1;
     if (context_id->has(Features::RIBaked) && lodIx < lastLod)
