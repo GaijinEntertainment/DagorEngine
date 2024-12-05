@@ -2,7 +2,7 @@ from "%scripts/ui/ui_library.nut" import *
 
 let {sliderWithText} = require("%scripts/ui/widgets/slider.nut")
 let {round_by_value} = require("%sqstd/math.nut")
-let {sound_set_volume} = require("sound")
+let {sound_set_volume = @(...) null} = require_optional("sound")
 let {mkSaveData, mkSettingsOption} = require("options_lib.nut")
 
 let mkRounded = @(val) round_by_value(val, 0.01)
