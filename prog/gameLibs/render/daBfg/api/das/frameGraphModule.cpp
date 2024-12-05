@@ -176,7 +176,7 @@ DaBfgCoreModule::DaBfgCoreModule() : das::Module("daBfgCore")
     {
       // Note that with this mechanism we wipe more than we need to: even
       // non das-native blobs will get emergency wiped, but we are OK with that.
-      rt.wipeBlobsBetweenFrames(*resIdsToWipe);
+      rt.wipeBlobsBetweenFrames(eastl::span<dabfg::ResNameId>(resIdsToWipe->data(), resIdsToWipe->size()));
       debug("daBfg: Wiped nodes and blobs managed by context %p", ctx);
     }
   });
