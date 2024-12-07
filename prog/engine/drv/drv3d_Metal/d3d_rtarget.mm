@@ -36,7 +36,7 @@ struct TrackDriver3dRenderTarget : public Driver3dRenderTarget
       return false;
     }
 
-    if (used&DEPTH && depth.tex != a.depth.tex)
+    if (used&DEPTH && depth.tex != a.depth.tex || depth.face != a.depth.face || depth.level != a.depth.level)
     {
       return false;
     }

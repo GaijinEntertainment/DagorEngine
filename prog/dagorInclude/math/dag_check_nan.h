@@ -20,7 +20,8 @@
 #pragma float_control(push)
 #pragma float_control(precise, on)
 #endif
-#if (__clang_major__ < 12 || (__clang_major__ >= 17 && __clang_major__ <= 18)) && defined(__clang__) && defined(__FAST_MATH__)
+#if (__clang_major__ < 12 || (__clang_major__ >= 17 && __clang_major__ <= 19) || defined(__APPLE__)) && defined(__clang__) && \
+  defined(__FAST_MATH__)
 // unfortunately older clang versions do not work with float_control, and in clang 17-18.1 it's broken
 __forceinline DAG_FINITE_MATH bool check_nan(float a)
 {
