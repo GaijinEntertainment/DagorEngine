@@ -90,7 +90,8 @@ rule SignPackageRule
   Depends $(SignTarget) : $(OutDir)/$(Target) ;
   for t in $(CopyTo) { Depends $(t)/$(Target:G=:D=) : $(SignTarget) ; }
   Depends all : $(SignTarget) ;
-  if $(Config) = rel && $(SignatureOpt) {
+  if $(ForceSignTarget_$(Platform)) = yes && ! $(SignatureOpt) { echo SignatureOpt not set when ForceSignTarget_$(Platform)=yes ; }
+  if ( $(Config) = rel || $(ForceSignTarget_$(Platform)) = yes ) && $(SignatureOpt) {
     dir on $(SignTarget) = $(OutDir)/../.. ;
     opt on $(SignTarget) = $(SignatureOpt) ;
     libs on $(SignTarget) =
