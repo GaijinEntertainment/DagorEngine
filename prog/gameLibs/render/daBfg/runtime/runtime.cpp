@@ -380,7 +380,8 @@ void Runtime::initializeHistoryOfNewResources()
                 d3d::resource_barrier({prevTex, RB_RO_COPY_SOURCE, 0, texInfo.mipLevels});
 
                 for (int i = 0; i < texInfo.mipLevels; i++)
-                  if (!tex->updateSubRegion(prevTex, i, 0, 0, 0, texInfo.w >> i, texInfo.h >> i, texInfo.d, i, 0, 0, 0))
+                  if (
+                    !tex->updateSubRegion(prevTex, i, 0, 0, 0, max(1, texInfo.w >> i), max(1, texInfo.h >> i), texInfo.d, i, 0, 0, 0))
                   {
                     logerr("failed to copy historical texture data for '%s'",
                       registry.knownNames.getName(res.frontendResources.back()));
