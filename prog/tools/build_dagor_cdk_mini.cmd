@@ -90,9 +90,16 @@ jam -s Root=../.. -sConfig=dev -sPlatformArch=x86_64 -f consoleSq/jamfile
 rem jam -s Root=../.. -f miscUtils/fastdep-0.16/jamfile
 rem   if errorlevel 1 goto error
 
-rem GUI tools
+rem GUI tools: dargbox
 jam -s Root=../.. -f dargbox/jamfile
   if errorlevel 1 goto error
+pushd dargbox
+call create_vfsroms.bat
+cd shaders
+call compile_shaders_pc11.bat
+call compile_shaders_metal.bat
+call compile_shaders_spirV.bat
+popd
 
 rem Blender plugin
 pushd dag4blend

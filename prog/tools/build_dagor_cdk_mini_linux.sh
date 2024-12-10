@@ -37,8 +37,13 @@ jam -s Root=../.. -f sceneTools/resClean/jamfile
 
 jam -s Root=../.. -sConfig=dev -f consoleSq/jamfile
 
-# GUI tools
+# GUI tools: dargbox
 jam -s Root=../.. -f dargbox/jamfile
+pushd dargbox
+../../../tools/dagor_cdk/linux-$(uname -m)/vromfsPacker-dev darg.vromfs.blk -platform:PC
+cd shaders
+./compile_shaders_spirv.sh
+popd
 
 # Blender plugin
 pushd dag4blend
