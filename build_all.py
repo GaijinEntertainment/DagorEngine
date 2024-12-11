@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # module to help building DagorEngine code, shaders and game data
 import sys
 import subprocess
