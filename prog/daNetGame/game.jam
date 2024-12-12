@@ -51,6 +51,11 @@ Sources +=
   gamePublicKeyDER.jamvar
 ;
 
+if $(Platform) in windows && $(HaveRenderer) = yes && $(ExportOptimus) = yes {
+  renderOptimus = \# include \"render/opt/optimus.cpp\" ;
+  Sources += renderOptimus.jamvar ;
+}
+
 if $(Dedicated) = yes  {
   gameAuthKeyForPlatform = "#include \"net/userid.h\"" ;
   if $(Config) in dev dbg || $(Platform) = linux {
