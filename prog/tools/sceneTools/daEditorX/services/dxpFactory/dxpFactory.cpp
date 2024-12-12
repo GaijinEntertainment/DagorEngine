@@ -522,7 +522,7 @@ public:
       if (!fp)
       {
         DAEDITOR3.conError("can't read ERR: cannot open <%s>", dds_path);
-        return NULL;
+        return false;
       }
       clear_and_resize(dds, df_length(fp));
       df_read(fp, dds.data(), data_size(dds));
