@@ -69,9 +69,16 @@ if $(Platform) in windows {
   Manifest = $(Root)/$(Location)/platform/$(Platform)/$(Game).exe.manifest ;
   Sources += platform/$(Platform)/$(Game).rc ;
   include $(Root)/prog/engine/drv/drv3d_DX12/copy_bundles.jam ;
+  if $(FmodStudio) != src && $(HaveSound) != no {
+    AddLibs += $(FmodStaticLibs) ;
+    for dll in $(FmodStudioSharedLibs) { BundleCopy += @$(dll) $(dll:D=) ; }
+  }
 } else if $(Platform) = linux {
   ImportsRelativeDir = . ;
-  if $(FmodStudio) != src { FmodStaticLibs = $(OutDir)/$(FmodStaticLibs:D=:S=) ; }
+  if $(FmodStudio) != src && $(HaveSound) != no {
+    AddLibs += $(OutDir)/$(FmodStaticLibs:D=:S=) ;
+    for dll in $(FmodStudioSharedLibs) { BundleCopy += @$(dll) $(dll:D=:S=) ; }
+  }
 } else if $(Platform) = macOS {
   BundleName = DngSceneViewer ;
   BundleID   = com.gaijinent.$(BundleName) ;
@@ -91,18 +98,14 @@ if $(Platform) in windows {
   }
 
   if $(SignatureOpt) = none { SignatureOpt = ; }
-  if $(HaveSound) != no {
+  if $(FmodStudio) != src && $(HaveSound) != no {
+    AddLibs += $(FmodStaticLibs) ;
     UseSharedLibs += $(FmodStudioSharedLibs) ;
     LINKopt += -framework CoreAudio -framework AudioUnit ;
   }
 }
 else {
   Exit unsupported Platform\=$(Platform) for Target\=$(Target) ;
-}
-
-if $(FmodStudio) != src && $(HaveSound) != no {
-  AddLibs += $(FmodStaticLibs) ;
-  if $(Platform) != macOS { for dll in $(FmodStudioSharedLibs) { BundleCopy += @$(dll) $(dll:D=:S=) ; } }
 }
 
 if $(CheckOnly) != yes { # different compile options are not compatible with PCH
