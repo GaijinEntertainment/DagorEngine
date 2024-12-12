@@ -5,6 +5,7 @@ include $(Root)/prog/_jBuild/defaults.jam ;
 
 TargetType  = lib ;
 Target      = engine/drv/drv3d_commonCode.lib ;
+if $(UseD3DMulti) = yes && $(UseD3DMultiList) = stub { Target = $(Target:S=-s.lib) ; }
 
 Sources =
   drvDecl.cpp
@@ -78,14 +79,14 @@ else {
   ;
 }
 
-if $(Platform)-$(PlatformArch) = windows-x86_64 || $(Platform) in xboxOne scarlett ps5 {
+if $(Platform) in windows xboxOne scarlett ps5 && $(PlatformArch) in x86_64 arm64 && $(UseD3DMultiList) != stub {
   Sources += amdFsr.cpp ;
 
   if $(Platform)-$(PlatformArch) = windows-x86_64 && vulkan in $(UseD3DMultiList) {
-    CPPopt += -DAMDFSR_HAS_VULKAN ;
+    opt on amdFsr.cpp += -DAMDFSR_HAS_VULKAN ;
   }
   if $(Platform) in xboxOne scarlett || ( $(Platform)-$(PlatformArch) = windows-x86_64 && DX12 in $(UseD3DMultiList) ) {
-    CPPopt += -DAMDFSR_HAS_DX12 ;
+    opt on amdFsr.cpp += -DAMDFSR_HAS_DX12 ;
   }
 }
 else {
