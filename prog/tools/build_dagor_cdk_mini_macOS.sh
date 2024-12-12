@@ -37,14 +37,6 @@ jam -s Root=../.. -f sceneTools/resClean/jamfile
 
 jam -s Root=../.. -sConfig=dev -f consoleSq/jamfile
 
-# GUI tools: dargbox
-jam -s Root=../.. -f dargbox/jamfile
-pushd dargbox
-../../../tools/dagor_cdk/macOS-x86_64/vromfsPacker-dev darg.vromfs.blk -platform:PC
-cd shaders
-./compile_shaders_metal.sh
-popd
-
 # Blender plugin
 pushd dag4blend
 python3 __build_pack.py FINAL

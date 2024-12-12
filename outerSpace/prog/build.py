@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import sys
 import shutil
+import os
 sys.path.append('../..')
 from build_all import run, run_per_platform, VROMFS_PACKER_EXE, DABUILD_CMD, FONTGEN_EXE, BUILD_COMPONENTS, DAGOR_HOST, BUILD_TARGET_ARCH
 sys.path.pop()
@@ -49,7 +50,8 @@ if 'assets' in BUILD_COMPONENTS:
 
 # build UI data (fonts, atlas, vromfs)
 if 'gui' in BUILD_COMPONENTS:
-  shutil.rmtree('../develop/gui/pc.out.ui')
+  shutil.rmtree('../develop/gui/pc.out.ui', ignore_errors=True)
+  os.makedirs('../develop/gui/pc.out.ui')
   run([FONTGEN_EXE, 'fontgenPC.blk', '-fullDynamic', '-quiet'], cwd='../develop/gui/fonts')
   run([VROMFS_PACKER_EXE, 'skin.vromfs.blk', '-quiet'], cwd='../develop/gui')
   run([VROMFS_PACKER_EXE, 'fonts.vromfs.blk', '-quiet'], cwd='../develop/gui')
