@@ -49,13 +49,11 @@ let controls = @() {
   rendObj = ROBJ_TEXT
   text = editorIsActive.get()
     ? "Press F12 to disable editor. Press Space to toggle free camera."
-    : isFreeCamera.get() ? "Press F10 to disable free camera" : null
+    : isFreeCamera.get() ? "Press F10 to disable free camera" : "Press F12 to open game-editor"
   watch = [isFreeCamera, editorIsActive]
   hplace = ALIGN_LEFT
   vplace = ALIGN_BOTTOM
 }.__update(hintStyle)
-
-console.command("camera.free 0")
 
 let hints = freeze({
   size = flex()
