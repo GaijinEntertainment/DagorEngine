@@ -49,7 +49,7 @@ rule ProcessLinkTarget
       Depends $(dest) : $(t) ;
       file on $(dest) = $(t:D=) ;
       post_copy_cmd on $(dest) = call chmod +x $(Root)/prog/_jBuild/macOS/lipo_dylib "
- " call $(Root)/prog/_jBuild/macOS/lipo_dylib x86_64 $(dest) "
+ " call $(Root)/prog/_jBuild/macOS/lipo_dylib $(PlatformArch) $(dest) "
  " set errorlevel=0 ;
       raw_copy_file $(dest) : $(t) ;
       Depends $(OutDir)/$(Target) : $(dest) ;

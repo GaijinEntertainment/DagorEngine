@@ -37,9 +37,6 @@ jam -s Root=../.. -f sceneTools/resClean/jamfile
 
 jam -s Root=../.. -sConfig=dev -f consoleSq/jamfile
 
-# GUI tools
-jam -s Root=../.. -f dargbox/jamfile
-
 # Blender plugin
 pushd dag4blend
 python3 __build_pack.py FINAL

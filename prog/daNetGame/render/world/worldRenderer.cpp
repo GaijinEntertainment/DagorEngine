@@ -186,11 +186,6 @@ extern void term_fx();
 extern void add_volfog_optional_graphs();
 extern void set_nightly_spot_lights();
 
-#if _TARGET_PC_WIN && DAGOR_DBGLEVEL == 0
-extern int optimus_pull_var;
-int loc_optimus_pull_var = optimus_pull_var;
-#endif
-
 void compute_csm_visibility(const Occlusion &occlusion, const Point3 &dir_from_sun);
 void update_csm_length(const Frustum &frustum, const Point3 &dir_from_sun, float csm_shadows_max_dist);
 void debug_draw_shadow_occlusion_bboxes(const Point3 &dir_from_sun, bool final_extend);

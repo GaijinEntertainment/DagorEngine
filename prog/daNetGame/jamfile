@@ -180,10 +180,6 @@ if $(HaveEditor) = yes {
   Sources += editor/embeddedEditorStub.cpp ;
 }
 
-if $(Platform) in windows && $(HaveRenderer) = yes && $(ExportOptimus) = yes {
-  Sources += render/opt/optimus.cpp ;
-}
-
 if $(HaveRenderer) = yes && ( $(Platform)-$(PlatformArch) = windows-x86_64 ||  $(Platform) in linux scarlett ) {
   BVHSupport = yes ;
   BVHRi = yes ;

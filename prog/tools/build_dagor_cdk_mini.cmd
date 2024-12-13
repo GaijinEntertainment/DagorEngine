@@ -90,10 +90,6 @@ jam -s Root=../.. -sConfig=dev -sPlatformArch=x86_64 -f consoleSq/jamfile
 rem jam -s Root=../.. -f miscUtils/fastdep-0.16/jamfile
 rem   if errorlevel 1 goto error
 
-rem GUI tools
-jam -s Root=../.. -f dargbox/jamfile
-  if errorlevel 1 goto error
-
 rem Blender plugin
 pushd dag4blend
 __build_pack.py FINAL
