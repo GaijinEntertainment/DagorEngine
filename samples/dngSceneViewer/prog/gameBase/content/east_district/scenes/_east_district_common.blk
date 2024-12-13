@@ -75,7 +75,7 @@ entity{
 
   "settings_override__graphicsSettings:object"{
     "graphics/chromaticAberration":b=yes
-    "cinematicEffects/chromaticAberration":p3=0.015, 0.0065, 0.5, 0
+    "cinematicEffects/chromaticAberration":p3=0.015, 0.0065, 0.8, 0
     //"graphics/filmGrain":b=yes
     "graphics/motionBlur":b=yes
     "graphics/lensFlares":b=yes
