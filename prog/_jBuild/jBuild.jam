@@ -1271,7 +1271,7 @@ rule AotCompileBatchedGeneratedDAS
     MakeDirectory $(das_list_jamfile) : $(das_list_jamfile:D) ;
 
     exec_cmd on $(das_list_jamfile) = [ MakeJamlist $(das_list_jamfile) : DAS_LIST : $(list_rel) ] ;
-    cmd_caption on $(das_list_jamfile) = echo generated DAS list ;
+    cmd_caption on $(das_list_jamfile) = echo updated DAS list: $(das_list_jamfile:D=) ;
     exec_scripted_command $(das_list_jamfile) ;
   }
   list = $(list[2-]) ;
