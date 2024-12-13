@@ -35,7 +35,7 @@
 static const int DDSX_EXP_VER = 2;
 static const char *tq_split_fn = "assets/.tex-tq-split.blk";
 static const int FORCETQ_no = 0;
-int dabuild_dxp_write_ver = 2;
+int dabuild_dxp_write_ver = 3;
 
 static void load_eff_tmd(TextureMetaData &tmd, const DagorAsset *a, int tq_nsid, const char *target_str, const char *profile)
 {

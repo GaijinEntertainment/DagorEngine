@@ -262,19 +262,19 @@ static inline const char *read_str(const DataBlock *b, const char *target_str, c
 bool setup_dxp_grp_write_ver(const DataBlock &build_blk, ILogWriter &log)
 {
   bool setup_ok = true;
-  dabuild_dxp_write_ver = build_blk.getInt("writeDdsxTexPackVer", 2);
-  dabuild_grp_write_ver = build_blk.getInt("writeGameResPackVer", 2);
+  dabuild_dxp_write_ver = build_blk.getInt("writeDdsxTexPackVer", 3);
+  dabuild_grp_write_ver = build_blk.getInt("writeGameResPackVer", 3);
 
   if (dabuild_dxp_write_ver != 2 && dabuild_dxp_write_ver != 3)
   {
     log.addMessage(log.ERROR, "invalid writeDdsxTexPackVer=%d", dabuild_dxp_write_ver);
-    dabuild_dxp_write_ver = 2;
+    dabuild_dxp_write_ver = 3;
     setup_ok = false;
   }
   if (dabuild_grp_write_ver != 2 && dabuild_grp_write_ver != 3)
   {
     log.addMessage(log.ERROR, "invalid writeGameResPackVer=%d", dabuild_grp_write_ver);
-    dabuild_grp_write_ver = 2;
+    dabuild_grp_write_ver = 3;
     setup_ok = false;
   }
   return setup_ok;
@@ -288,7 +288,7 @@ bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, 
 
   const DataBlock &expblk = *appblk.getBlockByNameEx("assets")->getBlockByNameEx("export");
   const DataBlock &build_blk = *appblk.getBlockByNameEx("assets")->getBlockByNameEx("build");
-  dabuild_dxp_write_ver = build_blk.getInt("writeDdsxTexPackVer", 2);
+  dabuild_dxp_write_ver = build_blk.getInt("writeDdsxTexPackVer", 3);
 
   if (!setup_dxp_grp_write_ver(build_blk, log))
     return false;
