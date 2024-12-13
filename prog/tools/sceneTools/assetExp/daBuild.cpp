@@ -262,22 +262,45 @@ static inline const char *read_str(const DataBlock *b, const char *target_str, c
 bool setup_dxp_grp_write_ver(const DataBlock &build_blk, ILogWriter &log)
 {
   bool setup_ok = true;
-  dabuild_dxp_write_ver = build_blk.getInt("writeDdsxTexPackVer", 2);
-  dabuild_grp_write_ver = build_blk.getInt("writeGameResPackVer", 2);
+  dabuild_dxp_write_ver = build_blk.getInt("writeDdsxTexPackVer", 3);
+  dabuild_grp_write_ver = build_blk.getInt("writeGameResPackVer", 3);
 
   if (dabuild_dxp_write_ver != 2 && dabuild_dxp_write_ver != 3)
   {
     log.addMessage(log.ERROR, "invalid writeDdsxTexPackVer=%d", dabuild_dxp_write_ver);
-    dabuild_dxp_write_ver = 2;
+    dabuild_dxp_write_ver = 3;
     setup_ok = false;
   }
   if (dabuild_grp_write_ver != 2 && dabuild_grp_write_ver != 3)
   {
     log.addMessage(log.ERROR, "invalid writeGameResPackVer=%d", dabuild_grp_write_ver);
-    dabuild_grp_write_ver = 2;
+    dabuild_grp_write_ver = 3;
     setup_ok = false;
   }
   return setup_ok;
+}
+
+static bool is_cache_outdated(AssetExportCache &gdc, const char *cache_fname, DagorAssetMgr &mgr, const char *pack_fname,
+  ILogWriter &log, bool remove_outdated = true)
+{
+  bool cache_loaded = gdc.load(cache_fname, mgr);
+  bool target_file_uptodate = cache_loaded && !gdc.checkTargetFileChanged(pack_fname);
+  if (cache_loaded && target_file_uptodate)
+    return false;
+
+  if (remove_outdated && dd_file_exist(cache_fname))
+  {
+    String reason;
+    if (!cache_loaded)
+      reason = "broken file";
+    else if (!dd_file_exist(pack_fname))
+      reason.setStrCat("missing target file ", pack_fname);
+    else
+      reason.setStrCat("target file differs ", pack_fname);
+    log.addMessage(log.WARNING, "removed outdated cache: %s (%s)", cache_fname, reason);
+    unlink(cache_fname);
+  }
+  return true;
 }
 
 bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, const char *profile,
@@ -288,7 +311,7 @@ bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, 
 
   const DataBlock &expblk = *appblk.getBlockByNameEx("assets")->getBlockByNameEx("export");
   const DataBlock &build_blk = *appblk.getBlockByNameEx("assets")->getBlockByNameEx("build");
-  dabuild_dxp_write_ver = build_blk.getInt("writeDdsxTexPackVer", 2);
+  dabuild_dxp_write_ver = build_blk.getInt("writeDdsxTexPackVer", 3);
 
   if (!setup_dxp_grp_write_ver(build_blk, log))
     return false;
@@ -521,15 +544,8 @@ bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, 
             pack_fname.printf(260, "%s%s/%s%s", dest_base.str(), addTexPfx, pack_fname_prefix.str(), tex_pack[i]->packName.str());
             simplify_fname(pack_fname);
 
-            if (!gdc.load(cache_fname, mgr) || gdc.checkTargetFileChanged(pack_fname))
-            {
-              if (dd_file_exist(cache_fname))
-              {
-                log.addMessage(log.WARNING, "removed outdated cache: %s", cache_fname.str());
-                unlink(cache_fname);
-              }
+            if (is_cache_outdated(gdc, cache_fname, mgr, pack_fname, log))
               goto process_tex_assets;
-            }
             else if (gdc.isTimeChanged())
               gdc.save(cache_fname, mgr);
 
@@ -1046,15 +1062,8 @@ bool checkUpToDate(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode,
       pack_fname.printf(260, "%s%s/%s%s", dest_base.str(), addTexPfx, pack_fname_prefix.str(), tex_pack[i]->packName.str());
       simplify_fname(pack_fname);
 
-      if (!gdc.load(cache_fname, mgr) || gdc.checkTargetFileChanged(pack_fname))
-      {
-        if (dd_file_exist(cache_fname))
-        {
-          log.addMessage(log.WARNING, "removed outdated cache: %s", cache_fname.str());
-          unlink(cache_fname);
-        }
+      if (is_cache_outdated(gdc, cache_fname, mgr, pack_fname, log))
         gdc.reset();
-      }
       else if (gdc.isTimeChanged())
         gdc.save(cache_fname, mgr);
 
@@ -1084,15 +1093,8 @@ bool checkUpToDate(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode,
       pack_fname.printf(260, "%s%s%s", dest_base.str(), pack_fname_prefix.str(), grp_pack[i]->packName.str());
       simplify_fname(pack_fname);
 
-      if (!gdc.load(cache_fname, mgr) || gdc.checkTargetFileChanged(pack_fname))
-      {
-        if (dd_file_exist(cache_fname))
-        {
-          log.addMessage(log.WARNING, "removed outdated cache: %s", cache_fname.str());
-          unlink(cache_fname);
-        }
+      if (is_cache_outdated(gdc, cache_fname, mgr, pack_fname, log))
         gdc.reset();
-      }
       else if (gdc.isTimeChanged())
         gdc.save(cache_fname, mgr);
 

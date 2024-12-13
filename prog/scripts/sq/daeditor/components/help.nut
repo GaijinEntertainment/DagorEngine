@@ -1,5 +1,5 @@
 from "%darg/ui_imports.nut" import *
-let {colors} = require("style.nut")
+from "style.nut" import colors
 let {makeVertScroll} = require("%daeditor/components/scrollbar.nut")
 let textButton = require("textButton.nut")
 
@@ -73,7 +73,7 @@ let help = @(showHelp) function(){
     behavior = Behaviors.TextArea
     text = helpText
     size = [flex(), SIZE_TO_CONTENT]
-    margin = fsh(0.5)
+    margin = fsh(1)
   }
 
 
@@ -82,10 +82,10 @@ let help = @(showHelp) function(){
     vplace = ALIGN_CENTER
     size = [sw(50), sh(80)]
     watch = showHelp
-    rendObj = ROBJ_SOLID
-    color = colors.ControlBg
+    rendObj = ROBJ_WORLD_BLUR
+    fillColor = colors.ControlBg
     behavior = Behaviors.Button
-
+    stopMouse = true
     flow = FLOW_VERTICAL
 
     children = [

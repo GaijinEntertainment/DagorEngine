@@ -395,7 +395,8 @@ void ShaderMaterialsSaver::writeMatVdata(mkbindump::BinDumpSaveCB &cwr, ShaderTe
       }
       else
       {
-        zstd_compress_data(cwr.getRawWriter(), mcrd, cwr_d.getSize());
+        zstd_compress_data(cwr.getRawWriter(), mcrd, cwr_d.getSize(), 1 << 20, ShaderMeshData::zstdCompressionLevel,
+          ShaderMeshData::zstdMaxWindowLog);
         cwr.endBlock(btag_compr::ZSTD);
       }
 

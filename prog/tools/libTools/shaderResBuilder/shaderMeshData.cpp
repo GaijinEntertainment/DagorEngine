@@ -53,6 +53,8 @@ bool ShaderMeshData::forceZlibPacking = false;
 bool ShaderMeshData::preferZstdPacking = false;
 bool ShaderMeshData::allowOodlePacking = false;
 bool ShaderMeshData::fastNoPacking = false;
+unsigned ShaderMeshData::zstdMaxWindowLog = 0;
+int ShaderMeshData::zstdCompressionLevel = 18;
 
 
 bool can_combine_elems(const ShaderMeshData::RElem &left, const ShaderMeshData::RElem &right, bool allow_32_bit,

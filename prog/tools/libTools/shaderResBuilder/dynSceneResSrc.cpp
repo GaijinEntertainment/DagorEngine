@@ -1247,7 +1247,10 @@ bool DynamicRenderableSceneLodsResSrc::save(mkbindump::BinDumpSaveCB &cwr, const
   cwr.writeInt32e(int(cwr.TAB_SZ + drsHdrAdd + lods.size() * cwr.TAB_SZ + sizeof(bbox)));
 
   // write materials
-  bool write_mat_sep = sepMatToBuildResultsBlk && buildResultsBlk != nullptr && matSaver.mats.size();
+  unsigned total_mats = matSaver.mats.size();
+  for (const auto &m : matSaverSkins)
+    total_mats += m.mats.size();
+  bool write_mat_sep = sepMatToBuildResultsBlk && buildResultsBlk != nullptr && total_mats;
   if (write_mat_sep)
   {
     matSaver.writeMatVdataCombinedNoMat(cwr);

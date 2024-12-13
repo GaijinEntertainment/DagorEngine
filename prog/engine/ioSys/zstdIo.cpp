@@ -64,9 +64,13 @@ static ZSTD_customMem const ZSTD_dagorCMem = {&zstd_alloc<tmpmem_ptr>, &zstd_fre
 static ZSTD_customMem const ZSTD_framememCMem = {&zstd_alloc<framemem_ptr>, &zstd_free<framemem_ptr>, NULL};
 
 size_t zstd_compress_bound(size_t srcSize) { return ZSTD_compressBound(srcSize); }
-size_t zstd_compress(void *dst, size_t maxDstSize, const void *src, size_t srcSize, int compressionLevel)
+size_t zstd_compress(void *dst, size_t maxDstSize, const void *src, size_t srcSize, int compressionLevel, unsigned max_window_log)
 {
-  size_t enc_sz = ZSTD_compress(dst, maxDstSize, src, srcSize, compressionLevel);
+  ZSTD_CCtx *ctx = zstd_create_cctx();
+  if (max_window_log)
+    ZSTD_CCtx_setParameter(ctx, ZSTD_c_windowLog, max_window_log);
+  size_t enc_sz = ZSTD_compressCCtx(ctx, dst, maxDstSize, src, srcSize, compressionLevel);
+  zstd_destroy_cctx(ctx);
   CHECK_ERROR(enc_sz);
   return enc_sz;
 }
@@ -89,13 +93,13 @@ size_t zstd_decompress_with_dict(ZSTD_DCtx *ctx, void *dst, size_t dstSize, cons
   return enc_sz;
 }
 
-int64_t zstd_compress_data_solid(IGenSave &dest, IGenLoad &src, const size_t sz, int compressionLevel)
+int64_t zstd_compress_data_solid(IGenSave &dest, IGenLoad &src, const size_t sz, int compressionLevel, unsigned max_window_log)
 {
   SmallTab<uint8_t, TmpmemAlloc> srcBuf, dstBuf;
   clear_and_resize(srcBuf, sz);
   clear_and_resize(dstBuf, ZSTD_compressBound(sz));
   src.readTabData(srcBuf);
-  size_t enc_sz = zstd_compress(dstBuf.data(), data_size(dstBuf), srcBuf.data(), data_size(srcBuf), compressionLevel);
+  size_t enc_sz = zstd_compress(dstBuf.data(), data_size(dstBuf), srcBuf.data(), data_size(srcBuf), compressionLevel, max_window_log);
   if (ZSTD_isError(enc_sz))
     return (int)enc_sz;
   dest.write(dstBuf.data(), enc_sz);
@@ -103,13 +107,15 @@ int64_t zstd_compress_data_solid(IGenSave &dest, IGenLoad &src, const size_t sz,
 }
 
 static int64_t zstd_stream_compress_data_base(IGenSave &dest, IGenLoad &src, const int64_t sz, int compressionLevel,
-  const ZSTD_CDict_s *dict = nullptr)
+  unsigned max_window_log, const ZSTD_CDict_s *dict = nullptr)
 {
   ZSTD_CStream *strm = ZSTD_createCStream_advanced(ZSTD_dagorCMem);
   ZSTD_inBuffer inBuf;
   ZSTD_outBuffer outBuf;
 
   ZSTD_initCStream_srcSize(strm, compressionLevel, sz >= 0 ? sz : ZSTD_CONTENTSIZE_UNKNOWN);
+  if (max_window_log)
+    ZSTD_CCtx_setParameter(strm, ZSTD_c_windowLog, max_window_log);
   const size_t outBufStoreSz = ZSTD_CStreamOutSize(), inBufStoreSz = min(sz >= 0 ? (size_t)sz : outBufStoreSz, outBufStoreSz);
   SmallTab<uint8_t, TmpmemAlloc> tempBuf;
   clear_and_resize(tempBuf, inBufStoreSz + outBufStoreSz);
@@ -178,14 +184,9 @@ static int64_t zstd_stream_compress_data_base(IGenSave &dest, IGenLoad &src, con
   return enc_sz;
 }
 
-int64_t zstd_stream_compress_data(IGenSave &dest, IGenLoad &src, const size_t sz, int compression_level)
+int64_t zstd_stream_compress_data(IGenSave &dest, IGenLoad &src, const size_t sz, int compression_level, unsigned max_window_log)
 {
-  return zstd_stream_compress_data_base(dest, src, sz, compression_level);
-}
-
-int64_t zstd_stream_compress_data(IGenSave &dest, IGenLoad &src, int compression_level)
-{
-  return zstd_stream_compress_data_base(dest, src, -1, compression_level);
+  return zstd_stream_compress_data_base(dest, src, sz, compression_level, max_window_log);
 }
 
 static int64_t zstd_stream_decompress_data_base(IGenSave &dest, IGenLoad &src, const size_t compr_sz,
@@ -302,9 +303,10 @@ void zstd_destroy_cctx(ZSTD_CCtx *ctx) { ZSTD_freeCCtx(ctx); }
 ZSTD_DCtx *zstd_create_dctx(bool tmp) { return ZSTD_createDCtx_advanced(tmp ? ZSTD_framememCMem : ZSTD_dagorCMem); }
 void zstd_destroy_dctx(ZSTD_DCtx *ctx) { ZSTD_freeDCtx(ctx); }
 
-int64_t zstd_stream_compress_data_with_dict(IGenSave &dest, IGenLoad &src, const size_t sz, int cLev, const ZSTD_CDict_s *dict)
+int64_t zstd_stream_compress_data_with_dict(IGenSave &dest, IGenLoad &src, const size_t sz, int cLev, const ZSTD_CDict_s *dict,
+  unsigned max_window_log)
 {
-  return zstd_stream_compress_data_base(dest, src, sz, cLev, dict);
+  return zstd_stream_compress_data_base(dest, src, sz, cLev, max_window_log, dict);
 }
 int64_t zstd_stream_decompress_data(IGenSave &dest, IGenLoad &src, const size_t compr_sz, const ZSTD_DDict_s *dict)
 {

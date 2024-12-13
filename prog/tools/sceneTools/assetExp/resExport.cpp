@@ -24,7 +24,7 @@
 #include <sys/stat.h>
 #include <perfMon/dag_cpuFreq.h>
 
-int dabuild_grp_write_ver = 2;
+int dabuild_grp_write_ver = 3;
 
 static void make_start_ts(String &build_ts)
 {

@@ -3,21 +3,23 @@
 from "math" import min
 from "%darg/ui_imports.nut" import *
 import "console" as console
+from "widgets/simpleComponents.nut" import normalCursor
 
 require("ui_config.nut")
 let ecs = require("%dngscripts/ecs.nut")
 ecs.clear_vm_entity_systems()
 let {licenseWnd, showLicense} = require("licenseTxt.nut")
-
 let {editor, showUIinEditor, editorIsActive} = require("editor.nut")
 let {take_screenshot_nogui, take_screenshot} = require("screencap")
 let inspectorToggle = require("%darg/helpers/inspector.nut")
 let { exit_game } =require("app")
-
+let { showGameMenu, gameMenu } = require("game_menu.nut")
+let { showSettingsMenu, settingsMenuUi } = require("settings/main_settings.nut")
 
 let eventHandlers = freeze({
   ["Global.Screenshot"] = @(...) take_screenshot(),
-  ["Global.ScreenshotNoGUI"] = @(...) take_screenshot_nogui()
+  ["Global.ScreenshotNoGUI"] = @(...) take_screenshot_nogui(),
+  ["HUD.GameMenu"] = @(_event) showGameMenu.set(true),
 })
 
 let isFreeCamera = Watched(false)
@@ -49,13 +51,11 @@ let controls = @() {
   rendObj = ROBJ_TEXT
   text = editorIsActive.get()
     ? "Press F12 to disable editor. Press Space to toggle free camera."
-    : isFreeCamera.get() ? "Press F10 to disable free camera" : null
+    : isFreeCamera.get() ? "Press F10 to disable free camera" : "'Esc' - Menu, 'F12' - game-editor"
   watch = [isFreeCamera, editorIsActive]
   hplace = ALIGN_LEFT
   vplace = ALIGN_BOTTOM
 }.__update(hintStyle)
-
-console.command("camera.free 0")
 
 let hints = freeze({
   size = flex()
@@ -65,6 +65,10 @@ let hints = freeze({
 
 return function(){
   let children = [hints]
+  if (showGameMenu.get())
+    children.append(gameMenu)
+  else if (showSettingsMenu.get())
+    children.append(settingsMenuUi)
   if (editorIsActive.get()) {
     if (!showUIinEditor.get())
       children.clear()
@@ -72,12 +76,12 @@ return function(){
   children.append(editor)
   if (showLicense.get())
     children.append(licenseWnd)
-
+  let showCursor = showLicense.get() || showGameMenu.get() || showSettingsMenu.get()
   return {
-    watch = [editorIsActive, showUIinEditor, showLicense]
+    watch = [editorIsActive, showUIinEditor, showLicense, showGameMenu, showSettingsMenu]
     size = flex()
     hotkeys = [["L.Cmd Q", @() exit_game()]]
     children
     eventHandlers
-  }
+  }.__update(showCursor ? {cursor = normalCursor} : {})
 }

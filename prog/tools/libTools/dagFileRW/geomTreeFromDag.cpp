@@ -194,7 +194,8 @@ void GeomNodeTreeBuilder::save(mkbindump::BinDumpSaveCB &final_cwr, bool compr, 
       oodle_compress_data(zcwr.getRawWriter(), mcrd, cwr.getSize());
     }
     else
-      zstd_compress_data(zcwr.getRawWriter(), mcrd, cwr.getSize());
+      // unlikely that skeleton exceeds 1M but limit window anyway
+      zstd_compress_data(zcwr.getRawWriter(), mcrd, cwr.getSize(), 1 << 20, 18, 20);
 
     if (zcwr.getSize() < cwr.getSize() * 8 / 10 && zcwr.getSize() + 256 < cwr.getSize()) // enough profit in compression
     {

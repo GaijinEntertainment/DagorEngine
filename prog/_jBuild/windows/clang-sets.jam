@@ -1,11 +1,18 @@
 #  Setup for Clang-CL C/C++ compiler for Windows (to be included from jBuild.jam)
 _OBJ_SUFFIX  = .obj ;
 
-switch $(CLangVer)
-{
-  case 15.* : _VC_DIR = $(_DEVTOOL)/vc2019_16.11.34 ; _MSC_VER = 19.29.30154 ;
-  case 16.* : _VC_DIR = $(_DEVTOOL)/vc2022_17.9.5 ;   _MSC_VER = 19.39.33523 ;
-  case *    : exit Unknown CLangVer $(CLangVer) ;
+_CLANG_LIB_FOLDER = $(CLangVer:B) ;
+_CLANG_LIB_FOLDER = $(_CLANG_LIB_FOLDER:B) ;
+
+if $(_CLANG_LIB_FOLDER) = 15 {
+  _VC_DIR         = $(_DEVTOOL)/vc2019_16.11.34 ;
+  _MSC_VER        = 19.29.30154 ;
+    _CLANG_LIB_FOLDER = $(CLangVer) ;
+} else if $(_CLANG_LIB_FOLDER) in 16 17 18 19 {
+  _VC_DIR         = $(_DEVTOOL)/vc2022_17.9.5 ;
+  _MSC_VER        = 19.39.33523 ;
+} else {
+    exit Unknown CLangVer $(CLangVer) ;
 }
 _CLANG_DIR = $(_DEVTOOL)/LLVM-$(CLangVer) ;
 
@@ -146,7 +153,7 @@ switch $(PlatformArch) {
 }
 
 _INCLUDE = $(GDK_INCLUDES) $(_UCRT_INC) $(_WIN_SDK_INC) $(_VC_DIR)/include ;
-_LIBPATH = $(GDK_LIBPATHS) $(_UCRT_LIB) $(_WIN_SDK_LIB) $(_CLANG_DIR)/lib/clang/$(CLangVer)/lib/windows $(_VC_DIR)/lib/$(_WIN_SDK_TARGET_SUFFIX) $(_UM_LIB) ;
+_LIBPATH = $(GDK_LIBPATHS) $(_UCRT_LIB) $(_WIN_SDK_LIB) $(_CLANG_DIR)/lib/clang/$(_CLANG_LIB_FOLDER)/lib/windows $(_VC_DIR)/lib/$(_WIN_SDK_TARGET_SUFFIX) $(_UM_LIB) ;
 
 # make linker cmd-line ###
 for lib in $(_LIBPATH) {
@@ -155,7 +162,7 @@ for lib in $(_LIBPATH) {
 }
 
 # make compiler cmd-line ###
-_C_BASE_INCLUDES   = -imsvc $(_CLANG_DIR)/lib/clang/$(CLangVer)/include -I$(MasterPreInclude) -I$(Root)/prog/dagorInclude -I$(Root)/prog/1stPartyLibs -I$(Root)/prog/3rdPartyLibs ;
+_C_BASE_INCLUDES   = -imsvc $(_CLANG_DIR)/lib/clang/$(_CLANG_LIB_FOLDER)/include -I$(MasterPreInclude) -I$(Root)/prog/dagorInclude -I$(Root)/prog/1stPartyLibs -I$(Root)/prog/3rdPartyLibs ;
 _CPP_BASE_INCLUDES = $(_C_BASE_INCLUDES) -I$(Root)/prog/3rdPartyLibs/eastl/include ;
 
 for inc in $(_INCLUDE) {

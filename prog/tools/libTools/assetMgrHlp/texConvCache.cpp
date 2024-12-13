@@ -174,17 +174,22 @@ bool texconvcache::init(DagorAssetMgr &mgr, const DataBlock &appblk, const char 
   if (texActype < 0)
     return false;
 
-  if (appblk.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBool("preferZSTD", false))
+  const DataBlock &build_blk = *appblk.getBlockByNameEx("assets")->getBlockByNameEx("build");
+  if (build_blk.getBool("preferZSTD", false))
   {
     ddsx::ConvertParams::preferZstdPacking = true;
-    debug("DDSx prefers ZSTD");
+    ddsx::ConvertParams::zstdMaxWindowLog = build_blk.getInt("zstdMaxWindowLog", 0);
+    ddsx::ConvertParams::zstdCompressionLevel = build_blk.getInt("zstdCompressionLevel", 18);
+    debug("DDSx prefers ZSTD (compressionLev=%d %s)", ddsx::ConvertParams::zstdCompressionLevel,
+      ddsx::ConvertParams::zstdMaxWindowLog ? String(0, "maxWindow=%u", 1 << ddsx::ConvertParams::zstdMaxWindowLog).c_str()
+                                            : "defaultWindow");
   }
-  if (appblk.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBool("allowOODLE", false))
+  if (build_blk.getBool("allowOODLE", false))
   {
     ddsx::ConvertParams::allowOodlePacking = true;
     debug("DDSx allows OODLE");
   }
-  if (appblk.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBool("preferZLIB", false))
+  if (build_blk.getBool("preferZLIB", false))
   {
     ddsx::ConvertParams::forceZlibPacking = true;
     if (!ddsx::ConvertParams::preferZstdPacking) //-V1051

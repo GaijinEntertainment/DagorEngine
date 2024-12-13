@@ -948,10 +948,7 @@ bool PhysBody::isConvexCollisionShape() const
 void PhysBody::getShapeAabb(Point3 &out_bb_min, Point3 &out_bb_max) const
 {
   btVector3 aabbMin, aabbMax;
-  if (body->getCollisionShape()->isConvex())
-    static_cast<btConvexShape *>(body->getCollisionShape())->getAabbNonVirtual(to_btTransform(TMatrix::IDENT), aabbMin, aabbMax);
-  else
-    body->getCollisionShape()->getAabb(to_btTransform(TMatrix::IDENT), aabbMin, aabbMax);
+  body->getCollisionShape()->getAabb(to_btTransform(TMatrix::IDENT), aabbMin, aabbMax);
   out_bb_min = to_point3(aabbMin), out_bb_max = to_point3(aabbMax);
 }
 

@@ -1,4 +1,4 @@
-free_cam_settings {hasFreeCamera:b=no;}
+//free_cam_settings {hasFreeCamera:b=no;}
 rendinstExtraMaxCnt:i=131072
 rendinstExtraSubstFaceThres:i=0
 rendinstPreloadDistance:r=10000

@@ -51,7 +51,8 @@ static void process_nodes_with_bitmap(NodeList &list, IPureAnimStateHolder &st, 
     }
     c(list[i].node, bitmap & bit);
   }
-  st.setParamInt(paramIdToClear, 0);
+  if (paramIdToClear >= 0)
+    st.setParamInt(paramIdToClear, 0);
 }
 
 static void set_rewind_bit(uint32_t bit_idx, IPureAnimStateHolder &st, dag::ConstSpan<int> rewind_bitmap_params_ids)
