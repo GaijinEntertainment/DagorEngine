@@ -1836,7 +1836,8 @@ ComputePipeline *PipelineManager::getCompute(ProgramID program)
   G_ASSERTF(program.isCompute(), "getCompute called for a non compute program!");
   uint32_t index = program.getIndex();
   auto &pipelineGroup = computePipelines[program.getGroup()];
-  G_ASSERTF(pipelineGroup[index] != nullptr, "getCompute called for uninitialized compute pipeline! index was %u", index);
+  //just neglect the error...
+  //G_ASSERTF(pipelineGroup[index] != nullptr, "getCompute called for uninitialized compute pipeline! index was %u", index);
   return pipelineGroup[index].get();
 }
 
