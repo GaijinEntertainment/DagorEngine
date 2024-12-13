@@ -1,8 +1,8 @@
 from "%darg/ui_imports.nut" import *
-from "simpleComponents.nut" import normalCursor, menuBtn
+from "widgets/simpleComponents.nut" import menuBtn
 from "dagor.fs" import read_text_from_file_on_disk
 
-let {makeVertScroll} = require("scrollbar.nut")
+let {makeVertScroll} = require("widgets/scrollbar.nut")
 
 let rstTagsFormat = {
   h1 = {
@@ -68,7 +68,6 @@ function licenseWnd() {
     fillColor = Color(0, 0, 0, 200)
     flow = FLOW_VERTICAL
     halign = ALIGN_CENTER
-    cursor = normalCursor
     gap = hdpx(20)
     padding = sh(8)
     onAttach = @() move_mouse_cursor(acceptKey, false)

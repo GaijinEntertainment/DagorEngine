@@ -180,6 +180,12 @@ __allowedConfigOverrides{
     __allow_all_params:b=yes
   }
 
+  sound {
+    volume {
+      __allow_all_params:b=yes
+    }
+  }
+
   aviWriter {
     __allow_all_params:b=yes
   }
@@ -192,20 +198,7 @@ __allowedConfigOverrides{
   }
 
   video {
-    resolution:t=""
-    staticResolutionScale:b=yes
-    temporalUpsamplingRatio:b=yes
-    dlssQuality:i=-1
-    mode:t=""
-    monitor:t=""
-    vsync:b=yes
-    fpsLimit:b=yes
-    safeArea:b=yes
-    driver:t=""
-    frameSkip:i=0
-    vsync_tearing_tolerance_percents:i=0
-    latency:i=0
-    perfMetrics:i=1
+    __allow_all_params:b=yes
   }
   graphics{
     __allow_all_params:b=yes
