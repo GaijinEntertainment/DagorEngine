@@ -135,13 +135,11 @@ protected:
   }
 };
 
-// if will read from src until tryRead won't return less bytes then asked. results will decompress a bit longer, then
-// zstd_stream_compress_data with sz passed
-KRNLIMP int64_t zstd_stream_compress_data(IGenSave &dest, IGenLoad &src, int compressionLevel);
-
 // will compress only sz data passed
 // compressed size will be 2-3 bytes bigger, both compression and then decompression speed will be 5-10% faster (zstd 1.4.5)
-KRNLIMP int64_t zstd_stream_compress_data(IGenSave &dest, IGenLoad &src, const size_t sz, int compression_level);
+// if max_window_log set > 0 then it is used as max window size (1<<max_window_log); 0 means using default for compression_level
+KRNLIMP int64_t zstd_stream_compress_data(IGenSave &dest, IGenLoad &src, const size_t sz, int compression_level,
+  unsigned max_window_log = 0);
 
 // if compression will read from src using tryRead until compression stream ends.compr_sz CAN NOT be zero, it is error
 KRNLIMP int64_t zstd_stream_decompress_data(IGenSave &dest, IGenLoad &src, const size_t compr_sz);
@@ -151,14 +149,16 @@ KRNLIMP int64_t zstd_stream_decompress_data(IGenSave &dest, IGenLoad &src);
 
 // will compress in one call, not using streaming. Difference in result is neglible (usually within 1-4 bytes, if any)
 // minimize calls to tryRead/write, but allocates ~2*sz memory
-KRNLIMP int64_t zstd_compress_data_solid(IGenSave &dest, IGenLoad &src, const size_t sz, int compressionLevel = 18);
+// if max_window_log set > 0 then it is used as max window size (1<<max_window_log); 0 means using default for compression_level
+KRNLIMP int64_t zstd_compress_data_solid(IGenSave &dest, IGenLoad &src, const size_t sz, int compressionLevel = 18,
+  unsigned max_window_log = 0);
 
 // legacy API, but that's how it used to be, so otherwise we will get huge patch
 inline int64_t zstd_compress_data(IGenSave &dest, IGenLoad &src, size_t sz, size_t solid_threshold = 1 << 20,
-  int compressionLevel = 18)
+  int compressionLevel = 18, unsigned max_window_log = 0)
 {
-  return (sz < solid_threshold) ? zstd_compress_data_solid(dest, src, sz, compressionLevel)
-                                : zstd_stream_compress_data(dest, src, sz, compressionLevel);
+  return (sz < solid_threshold) ? zstd_compress_data_solid(dest, src, sz, compressionLevel, max_window_log)
+                                : zstd_stream_compress_data(dest, src, sz, compressionLevel, max_window_log);
 }
 
 // old names
@@ -170,7 +170,8 @@ inline int64_t zstd_decompress_data(IGenSave &dest, IGenLoad &src) { return zstd
 
 // Maximum compressed size in worst case single-pass scenario
 KRNLIMP size_t zstd_compress_bound(size_t srcSize);
-KRNLIMP size_t zstd_compress(void *dst, size_t maxDstSize, const void *src, size_t srcSize, int compressionLevel = 18);
+KRNLIMP size_t zstd_compress(void *dst, size_t maxDstSize, const void *src, size_t srcSize, int compressionLevel = 18,
+  unsigned max_window_log = 0);
 KRNLIMP size_t zstd_decompress(void *dst, size_t maxOriginalSize, const void *src, size_t compressedSize);
 
 KRNLIMP size_t zstd_compress_with_dict(ZSTD_CCtx_s *ctx, void *dst, size_t dstSize, const void *src, size_t srcSize,
@@ -199,8 +200,9 @@ KRNLIMP ZSTD_DCtx_s *zstd_create_dctx(bool tmp = false);
 KRNLIMP void zstd_destroy_dctx(ZSTD_DCtx_s *ctx);
 
 // compresses stream using dictionary (created with zstd_create_dict)
-KRNLIMP int64_t zstd_stream_compress_data_with_dict(IGenSave &dest, IGenLoad &src, const size_t sz, int cLev,
-  const ZSTD_CDict_s *dict);
+// if max_window_log set > 0 then it is used as max window size (1<<max_window_log); 0 means using default for compression_level
+KRNLIMP int64_t zstd_stream_compress_data_with_dict(IGenSave &dest, IGenLoad &src, const size_t sz, int cLev, const ZSTD_CDict_s *dict,
+  unsigned max_window_log = 0);
 
 // decompresses stream using dictionary (created with zstd_create_dict)
 KRNLIMP int64_t zstd_stream_decompress_data(IGenSave &dest, IGenLoad &src, const size_t compr_sz, const ZSTD_DDict_s *dict);
