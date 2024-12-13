@@ -7,7 +7,7 @@
 class TMatrix;
 class SimpleString;
 
-bool create_and_set_free_camera(); // Note: not reentrant
+bool create_free_camera(); // Note: not reentrant
 
 ecs::EntityId set_scene_camera_entity(ecs::EntityId cam_eid); // returns handle to old camera
 void toggle_free_camera();
