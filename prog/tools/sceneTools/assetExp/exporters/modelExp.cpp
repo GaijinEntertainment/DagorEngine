@@ -98,17 +98,21 @@ void load_shaders_for_target(unsigned tc)
   else
     DAG_FATAL("failed to load shaders: %s", fn);
 
-  if (appBlkCopy.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBool("preferZSTD", false))
+  const DataBlock &build_blk = *appBlkCopy.getBlockByNameEx("assets")->getBlockByNameEx("build");
+  if (build_blk.getBool("preferZSTD", false))
   {
     ShaderMeshData::preferZstdPacking = true;
-    debug("ShaderMesh prefers ZSTD");
+    ShaderMeshData::zstdMaxWindowLog = build_blk.getInt("zstdMaxWindowLog", 0);
+    ShaderMeshData::zstdCompressionLevel = build_blk.getInt("zstdCompressionLevel", 18);
+    debug("ShaderMesh prefers ZSTD (compressionLev=%d %s)", ShaderMeshData::zstdCompressionLevel,
+      ShaderMeshData::zstdMaxWindowLog ? String(0, "maxWindow=%u", 1 << ShaderMeshData::zstdMaxWindowLog).c_str() : "defaultWindow");
   }
-  if (appBlkCopy.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBool("allowOODLE", false))
+  if (build_blk.getBool("allowOODLE", false))
   {
     ShaderMeshData::allowOodlePacking = true;
     debug("ShaderMesh allows OODLE");
   }
-  if (appBlkCopy.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBool("preferZLIB", false))
+  if (build_blk.getBool("preferZLIB", false))
   {
     ShaderMeshData::forceZlibPacking = true;
     if (!ShaderMeshData::preferZstdPacking) //-V1051
@@ -246,12 +250,16 @@ public:
     set_missing_texture_name("", false);
     GlobalVertexDataConnector::allowVertexMerge = true;
     GlobalVertexDataConnector::allowBaseVertex = true;
-    if (appblk.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBool("preferZSTD", false))
+    const DataBlock &build_blk = *appblk.getBlockByNameEx("assets")->getBlockByNameEx("build");
+    if (build_blk.getBool("preferZSTD", false))
     {
       ShaderMeshData::preferZstdPacking = true;
-      debug("ShaderMesh prefers ZSTD");
+      ShaderMeshData::zstdMaxWindowLog = build_blk.getInt("zstdMaxWindowLog", 0);
+      ShaderMeshData::zstdCompressionLevel = build_blk.getInt("zstdCompressionLevel", 18);
+      debug("ShaderMesh prefers ZSTD (compressionLev=%d %s)", ShaderMeshData::zstdCompressionLevel,
+        ShaderMeshData::zstdMaxWindowLog ? String(0, "maxWindow=%u", 1 << ShaderMeshData::zstdMaxWindowLog).c_str() : "defaultWindow");
     }
-    if (appblk.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBool("allowOODLE", false))
+    if (build_blk.getBool("allowOODLE", false))
     {
       ShaderMeshData::allowOodlePacking = true;
       debug("ShaderMesh allows OODLE");

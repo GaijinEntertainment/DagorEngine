@@ -73,9 +73,11 @@ struct ConvertParams
   };
 
 public:
-  static bool forceZlibPacking;  // =false by default
-  static bool preferZstdPacking; // =false by default
-  static bool allowOodlePacking; // =false by default
+  static bool forceZlibPacking;     // =false by default
+  static bool preferZstdPacking;    // =false by default
+  static bool allowOodlePacking;    // =false by default
+  static unsigned zstdMaxWindowLog; // =0 by default (to use zstd defaults for compression level)
+  static int zstdCompressionLevel;  // =18 by default
 };
 
 struct Buffer

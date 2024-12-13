@@ -18,6 +18,8 @@
 bool ddsx::ConvertParams::forceZlibPacking = false;
 bool ddsx::ConvertParams::preferZstdPacking = false;
 bool ddsx::ConvertParams::allowOodlePacking = false;
+unsigned ddsx::ConvertParams::zstdMaxWindowLog = 0;
+int ddsx::ConvertParams::zstdCompressionLevel = 18;
 
 class DdsxAlloc : public IDdsxCreatorPlugin::IAlloc
 {
@@ -145,7 +147,8 @@ bool ddsx::convert_dds(unsigned target_code, Buffer &dest, void *dds_data, int d
         if (!compr_flag && ConvertParams::preferZstdPacking && plugins[i].p->checkCompressionSupport(ddsx::Header::FLG_ZSTD))
         {
           InPlaceMemLoadCB crd((char *)dest.ptr + hdr_size, dest.len - hdr_size);
-          if (zstd_compress_data(mcwr, crd, dest.len - hdr_size) > 0)
+          if (zstd_compress_data(mcwr, crd, dest.len - hdr_size, 1 << 20, ConvertParams::zstdCompressionLevel,
+                ConvertParams::zstdMaxWindowLog) > 0)
             compr_flag = ddsx::Header::FLG_ZSTD;
           else
             logerr("failed to pack data (sz=%d) using ZSTD", dest.len - hdr_size);

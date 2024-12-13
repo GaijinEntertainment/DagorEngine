@@ -188,17 +188,21 @@ bool DaEditor3Engine::initAssetBase(const char *app_dir)
     if (assetrefs::load_plugins(assetMgr, appblk, start_dir, !minimizeDabuildUsage))
       addMessage(ILogWriter::NOTE, "asset refs plugins inited");
   }
-  if (bool zstd = appblk.getBlockByNameEx("projectDefaults")->getBool("preferZSTD", false))
+  const DataBlock &projDefBlk = *appblk.getBlockByNameEx("projectDefaults");
+  if (bool zstd = projDefBlk.getBool("preferZSTD", false))
   {
     ShaderMeshData::preferZstdPacking = zstd;
-    debug("ShaderMesh prefers ZSTD");
+    ShaderMeshData::zstdMaxWindowLog = projDefBlk.getInt("zstdMaxWindowLog", 0);
+    ShaderMeshData::zstdCompressionLevel = projDefBlk.getInt("zstdCompressionLevel", 18);
+    debug("ShaderMesh prefers ZSTD (compressionLev=%d %s)", ShaderMeshData::zstdCompressionLevel,
+      ShaderMeshData::zstdMaxWindowLog ? String(0, "maxWindow=%u", 1 << ShaderMeshData::zstdMaxWindowLog).c_str() : "defaultWindow");
   }
-  if (bool oodle = appblk.getBlockByNameEx("projectDefaults")->getBool("allowOODLE", false))
+  if (bool oodle = projDefBlk.getBool("allowOODLE", false))
   {
     ShaderMeshData::allowOodlePacking = oodle;
     debug("ShaderMesh allows OODLE");
   }
-  if (bool zlib = appblk.getBlockByNameEx("projectDefaults")->getBool("preferZLIB", false))
+  if (bool zlib = projDefBlk.getBool("preferZLIB", false))
   {
     ShaderMeshData::forceZlibPacking = zlib;
     if (!ShaderMeshData::preferZstdPacking)

@@ -3570,17 +3570,21 @@ public:
     register_png_tex_load_factory();
     register_avif_tex_load_factory();
 
-    if (appBlkCopy.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBool("preferZSTD", false))
+    const DataBlock &build_blk = *appBlkCopy.getBlockByNameEx("assets")->getBlockByNameEx("build");
+    if (build_blk.getBool("preferZSTD", false))
     {
       preferZstdPacking = true;
-      debug("texExp prefers ZSTD");
+      unsigned zstdMaxWindowLog = build_blk.getInt("zstdMaxWindowLog", 0);
+      int zstdCompressionLevel = build_blk.getInt("zstdCompressionLevel", 18);
+      debug("texExp prefers ZSTD (compressionLev=%d %s)", zstdCompressionLevel,
+        zstdMaxWindowLog ? String(0, "maxWindow=%u", 1 << zstdMaxWindowLog).c_str() : "defaultWindow");
     }
-    if (appBlkCopy.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBool("allowOODLE", false))
+    if (build_blk.getBool("allowOODLE", false))
     {
       allowOodlePacking = true;
       debug("texExp allows OODLE");
     }
-    if (auto *b = appBlkCopy.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBlockByNameEx("tex")->getBlockByName("PC"))
+    if (auto *b = build_blk.getBlockByNameEx("tex")->getBlockByName("PC"))
     {
       if (b->getBool("allowASTC", false))
       {
