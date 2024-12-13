@@ -955,6 +955,7 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
     clear_and_shrink(stCode);
     clear_and_shrink(vpr);
     clear_and_shrink(fsh);
+    clear_and_shrink(render_state);
     for (int i = 0; i < shClass.size(); i++)
     {
       ::ShaderClass &sc = *shClass[i];
