@@ -142,7 +142,10 @@ struct X11
     lastCursorY = 0;
     forceQueryCursorPosition = 0;
 
-    randrLib = os_dll_load("libXrandr.so");
+    // as we handle missing entry points, load any viable xrandr there is
+    randrLib = os_dll_load("libXrandr.so.2");
+    if (!randrLib)
+      randrLib = os_dll_load("libXrandr.so.1");
     if (randrLib)
     {
       randr.init(randrLib);
