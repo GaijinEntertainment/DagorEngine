@@ -36,7 +36,7 @@ let mapOptionsByPresetTable = {
   ["graphics/fxTarget"] = ["lowres","medres", "highres"],
   ["graphics/groundDisplacementQuality"] = [1, 2, 2],
   ["video/antiAliasingMode"] = [3, 3, 3],
-  ["video/temporalUpsamplingRatio"] = [50, 100, 100],
+  ["video/temporalUpsamplingRatio"] = [50.0, 100.0, 100.0],
 }
 let optionsRequireRestart = {
   ["graphics/texquality"] = true
