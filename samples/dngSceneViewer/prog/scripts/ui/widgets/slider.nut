@@ -1,7 +1,7 @@
 from "%scripts/ui/ui_library.nut" import *
 from "style.nut" import *
 import "math" as math
-let {sound_play} = require("%dngscripts/sound_system.nut")
+//let {sound_play} = require("%dngscripts/sound_system.nut")
 
 let calcFrameColor = @(sf) (sf & S_KB_FOCUS)
     ? BtnBgFocused
@@ -63,10 +63,10 @@ function slider(orient, var, options={}) {
   let setValue = options?.setValue ?? @(v) var.set(v)
   function onChange(factor){
     let value = orient == O_HORIZONTAL ? scaling.from(factor, minval, maxval) : scaling.from(factor, maxval, minval)
-    let oldValue = var.value
+//    let oldValue = var.value
     setValue(value)
-    if (oldValue != var.value)
-      sound_play("ui/timer_tick")
+//    if (oldValue != var.value)
+//      sound_play("ui/timer_tick")
   }
 
   let hotkeysElem = {

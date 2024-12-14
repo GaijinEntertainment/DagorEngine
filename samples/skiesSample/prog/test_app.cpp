@@ -2872,7 +2872,8 @@ void game_demo_init()
   df_close(file);*/
 
   debug("[DEMO] registering factories");
-  ::enable_tex_mgr_mt(true, 1024);
+  const DataBlock &blk = *dgs_get_settings();
+  ::enable_tex_mgr_mt(true, blk.getInt("max_tex_count", 1024));
   if (!cpujobs::is_inited())
     cpujobs::init();
   ::set_gameres_sys_ver(2);
@@ -2885,7 +2886,6 @@ void game_demo_init()
   console::init();
   add_con_proc(&test_console);
 
-  const DataBlock &blk = *dgs_get_settings();
   ::set_gameres_sys_ver(2);
 
   const char *res_vrom = "res/grp_hdr.vromfs.bin";
