@@ -3083,14 +3083,14 @@ void game_demo_init()
   df_close(file);*/
 
   debug("[DEMO] registering factories");
-  ::enable_tex_mgr_mt(true, 1024);
+  const DataBlock &blk = *dgs_get_settings();
+  ::enable_tex_mgr_mt(true, blk.getInt("max_tex_count", 1024));
   ::set_gameres_sys_ver(2);
   ::register_dynmodel_gameres_factory();
   ::register_geom_node_tree_gameres_factory();
   console::init();
   add_con_proc(&test_console);
 
-  const DataBlock &blk = *dgs_get_settings();
   ::set_gameres_sys_ver(2);
 
   enable_taa_override = dgs_get_settings()->getBlockByNameEx("render")->getBool("taa", false);

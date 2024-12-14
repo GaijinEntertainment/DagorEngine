@@ -49,8 +49,6 @@
 #include <startup/dag_linuxMain.inc.cpp>
 #endif
 
-static DataBlock *global_settings_blk = NULL;
-static const DataBlock *get_glob_settings_blk() { return global_settings_blk; }
 static InitOnDemand<De3GuiMgrDrawFps> gui_mgr;
 namespace ddsx
 {
@@ -69,8 +67,6 @@ static void post_shutdown_handler()
   shutdown_game(RESTART_INPUT);
   shutdown_game(RESTART_ALL);
   threadpool::shutdown();
-  del_it(global_settings_blk);
-  dgs_get_settings = nullptr;
   cpujobs::term(true, 1000);
 }
 
@@ -120,9 +116,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   ::dgs_post_shutdown_handler = post_shutdown_handler;
 
   // prepare global settings datablock
-  global_settings_blk = new DataBlock;
-  dgs_get_settings = &get_glob_settings_blk;
-  global_settings_blk->load("settings.blk");
+  dgs_load_settings_blk(true, "settings.blk", nullptr, true, false, false);
 
   ::register_common_game_tex_factories();
   cpujobs::init();
@@ -157,18 +151,18 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   ::startup_game(RESTART_ALL);
   shaders_register_console(true);
 
-  const char *sh_bindump_prefix = global_settings_blk->getStr("shaders", "compiledShaders/game");
+  const char *sh_bindump_prefix = dgs_get_settings()->getStr("shaders", "compiledShaders/game");
   ::startup_shaders(sh_bindump_prefix);
   ::startup_game(RESTART_ALL);
   dagor_use_reversed_depth(true);
   // ShaderGlobal::enableAutoBlockChange(true);
   ShaderGlobal::set_int(get_shader_variable_id("in_editor", true), 0);
-  ShaderGlobal::set_vars_from_blk(*global_settings_blk->getBlockByNameEx("shaderVar"), true);
-  da_profiler::set_profiling_settings(*global_settings_blk->getBlockByNameEx("debug"));
+  ShaderGlobal::set_vars_from_blk(*dgs_get_settings()->getBlockByNameEx("shaderVar"), true);
+  da_profiler::set_profiling_settings(*dgs_get_settings()->getBlockByNameEx("debug"));
 
   ::dagor_common_startup();
 
-  bool drawFps = global_settings_blk->getBool("draw_fps", false);
+  bool drawFps = dgs_get_settings()->getBool("draw_fps", false);
   ::startup_gui_base("ui/fonts.blk");
 
   ::startup_game(RESTART_ALL);
