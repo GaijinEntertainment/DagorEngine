@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import sys
 
-if not (sys.version_info.major >= 3 and sys.version_info.minor >= 8):
-  print("\nERROR: Python 3.8 or a higher version is required to run this script.")
+if not (sys.version_info.major >= 3 and sys.version_info.minor >= 5):
+  print("\nERROR: Python 3.5 or a higher version is required to run this script.")
   exit(1)
 if not sys.platform.startswith('linux'):
   print("\nERROR: script is expected to be run on linux.")
@@ -147,6 +147,9 @@ if pkg_install_cmd != '':
 else:
   print('NOTE: you have to install these (or similar) packages manually:\n  ' + ' '.join(pkg_to_install) + '\n\n')
 
+if is_rosa_linux:
+  if not pathlib.Path('/usr/lib64/libclang.so').exists() and pathlib.Path('/usr/lib64/libclang.so.12').exists():
+    run('sudo ln -s libclang.so.12 /usr/lib64/libclang.so')
 
 # python3
 python_dest_folder = dest_dir+'/python3'
@@ -274,4 +277,6 @@ if pathlib.Path("prog").exists():
       fd.write('RemoveCompilerSwitches_linux/gcc = -mno-recip -minline-all-stringops -fconserve-space ;\n')
     if is_astra_linux:
       fd.write('PlatformSpec = clang ;\n')
+    if is_astra_linux or is_rosa_linux:
+      fd.write('MArch = -default- ; #remove it to build for haswell\n') # to avoid building daNetGame for haswell arch
     fd.close()
