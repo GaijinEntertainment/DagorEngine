@@ -281,9 +281,9 @@ def get_function_info(node, file, is_es_name, all_functions, all_gets, queries_t
             # get_params_info(node)
             sortedArgs = sorted_by_loc(node.get_arguments())
             if not sortedArgs:
-                raise RuntimeError("ECS systems with no arguments are not supported!" +
-                                   f" Please, add at least a single argument to {node.spelling} "
-                                   "(could be `ecs::Event&`, `ecs::EntityMgr&` or `ecs::EntityId)")
+                raise RuntimeError("ECS systems with no arguments are not supported!"
+                                   " Please, add at least a single argument to {} "
+                                   "(could be `ecs::Event&`, `ecs::EntityMgr&` or `ecs::EntityId)".format(node.spelling))
             current_function = node.spelling
             parsedFunction = ParsedFunction(node.spelling, fully_qualified(node))
             parsedFunction.isEvent = is_event_type(sortedArgs[0])

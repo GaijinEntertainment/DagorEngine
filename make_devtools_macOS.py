@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import sys
 
-if not (sys.version_info.major >= 3 and sys.version_info.minor >= 8):
-  print("\nERROR: Python 3.8 or a higher version is required to run this script.")
+if not (sys.version_info.major >= 3 and sys.version_info.minor >= 5):
+  print("\nERROR: Python 3.5 or a higher version is required to run this script.")
   exit(1)
 if not sys.platform.startswith('darwin'):
   print("\nERROR: script is expected to be run on macOS.")
