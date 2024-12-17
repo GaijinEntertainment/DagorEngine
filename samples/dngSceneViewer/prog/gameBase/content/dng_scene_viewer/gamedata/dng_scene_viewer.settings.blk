@@ -152,6 +152,10 @@ unitedVdata.dynModel {
   canRebuild:b=yes
 }
 
+consoleGraphicalPresets {
+  include "_graphics_presets.blk"
+}
+
 __allow_force_apply_all:b=no
 __allowedConfigOverrides{
   launchCnt:i=0
