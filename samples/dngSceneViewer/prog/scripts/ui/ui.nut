@@ -15,6 +15,9 @@ let inspectorToggle = require("%darg/helpers/inspector.nut")
 let { exit_game } =require("app")
 let { showGameMenu, gameMenu } = require("game_menu.nut")
 let { showSettingsMenu, settingsMenuUi } = require("settings/main_settings.nut")
+let { graphicsPresetApply } = require("settings/graphics_options.nut")
+
+graphicsPresetApply()
 
 let eventHandlers = freeze({
   ["Global.Screenshot"] = @(...) take_screenshot(),
