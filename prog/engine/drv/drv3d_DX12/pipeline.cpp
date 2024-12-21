@@ -178,6 +178,7 @@ bool PipelineVariant::generateRasterDescription(const RenderStateSystem::StaticS
 
   if (static_state.needsViewInstancing())
   {
+    G_ASSERT(d3d::get_driver_desc().caps.hasBasicViewInstancing);
     target.append<CD3DX12_PIPELINE_STATE_STREAM_VIEW_INSTANCING>(static_state.getViewInstancingDesc());
   }
   return true;

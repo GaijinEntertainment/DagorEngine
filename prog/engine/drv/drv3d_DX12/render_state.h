@@ -400,7 +400,6 @@ public:
       }
 
       result.viewInstanceCount = def.viewInstanceCount;
-      G_ASSERT(result.viewInstanceCount == 0 || d3d::get_driver_desc().caps.hasBasicViewInstancing);
 
       result.enableConservativeRaster = def.conservativeRaster;
       result.enableAlphaToCoverage = def.alphaToCoverage;

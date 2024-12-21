@@ -1,0 +1,68 @@
+low {
+  graphics {
+    shadowsQuality:t="low"
+    dynamicShadowsQuality:t="low"
+    giAlgorithm:t="medium"
+    giAlgorithmQuality:r=0.5
+    skiesQuality:t="medium"
+    aoQuality:t="low"
+    ssrQuality:t="low"
+    ssssQuality:t="low"
+    anisotropy:i=4
+    cloudsQuality:t="default"
+    volumeFogQuality:t="close"
+    fxTarget:t="lowres"
+    groundDisplacementQuality:i=1
+    tsrQuality:i=1
+  }
+  video {
+    antiAliasingMode:i=3
+    temporalUpsamplingRatio:r=50
+  }
+}
+
+medium {
+  graphics {
+    shadowsQuality:t="low"
+    dynamicShadowsQuality:t="low"
+    giAlgorithm:t="high"
+    giAlgorithmQuality:r=0.2
+    skiesQuality:t="medium"
+    aoQuality:t="medium"
+    ssrQuality:t="medium"
+    ssssQuality:t="low"
+    anisotropy:i=8
+    cloudsQuality:t="default"
+    volumeFogQuality:t="far"
+    fxTarget:t="highres"
+    groundDisplacementQuality:i=2
+    tsrQuality:i=0
+  }
+  video {
+    antiAliasingMode:i=3
+    temporalUpsamplingRatio:r=100
+  }
+}
+
+ultra {
+  graphics {
+    shadowsQuality:t="high"
+    dynamicShadowsQuality:t="high"
+    giAlgorithm:t="high"
+    giAlgorithmQuality:r=0.75
+    skiesQuality:t="high"
+    aoQuality:t="high"
+    ssrQuality:t="high"
+    ssssQuality:t="high"
+    anisotropy:i=16
+    cloudsQuality:t="volumetric"
+    volumeFogQuality:t="close"
+    fxTarget:t="hires"
+    groundDisplacementQuality:i=2
+    tsrQuality:i=1
+  }
+  video {
+    antiAliasingMode:i=3
+    temporalUpsamplingRatio:r=100
+  }
+}

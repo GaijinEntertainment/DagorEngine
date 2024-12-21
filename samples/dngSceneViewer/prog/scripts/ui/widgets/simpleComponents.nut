@@ -1,5 +1,6 @@
 from "%darg/ui_imports.nut" import *
 from "%sqstd/underscore.nut" import flatten
+from "math" import max
 
 let dtext = @(text, style=null) {text, rendObj=ROBJ_TEXT, color = Color(180,180,180)}.__update(style ?? {})
 
@@ -146,11 +147,14 @@ function itemToOption(value){
       : (t=="table" ? value.text : val)
   }
 }
+
 function listItem(text, onClick, isCurrent) {
   let stateFlags = Watched(0)
   return @() {
     rendObj = ROBJ_BOX
     onClick
+    size = [flex(), SIZE_TO_CONTENT]
+    minWidth = SIZE_TO_CONTENT
     behavior = Behaviors.Button
     watch = stateFlags
     onElemState = @(s) stateFlags.set(s)
@@ -166,6 +170,7 @@ function listItem(text, onClick, isCurrent) {
   }
 }
 
+
 function mkCombo(opt, _group=null, _xmbNode=null) {
   let watch = opt.var
   let values = opt.values
@@ -174,6 +179,8 @@ function mkCombo(opt, _group=null, _xmbNode=null) {
   let curVal = opt?.getValue ?? @() watch.get()
   let comboOpen = Watched(false)
   let close = @() comboOpen.set(false)
+  local width = sw(3)
+
   function valueToOption(val) {
     let {value, text} = itemToOption(val)
     let cur = curVal()
@@ -183,14 +190,17 @@ function mkCombo(opt, _group=null, _xmbNode=null) {
       setValue(val)
       close()
     }
-    return listItem(text, handler, isCurrent)
+    let res = listItem(text, handler, isCurrent)
+    width  = max(width, calc_comp_size(res)[0])
+    return res
   }
 
-  function list(){
+  function list() {
     return {
       flow = FLOW_VERTICAL
       rendObj = ROBJ_SOLID
       color = Color(30,30,30)
+      minWidth = width
       watch
       children = values.map(valueToOption)
       gap = itemGap
