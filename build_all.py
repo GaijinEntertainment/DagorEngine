@@ -98,48 +98,15 @@ if __name__ == '__main__':
 
   # physTest sample
   if 'physTest' in BUILD_PROJECTS:
-    proj_dir = 'prog/samples/physTest'
-    if 'code' in BUILD_COMPONENTS:
-      run('jam', cwd=proj_dir)
-      run(['jam', '-f', 'jamfile-test-jolt'], cwd=proj_dir)
-    if 'shaders' in BUILD_COMPONENTS:
-      run_per_platform(
-        cmds_windows = ['compile_game_shaders-dx11.bat', 'compile_game_shaders-metal.bat', 'compile_game_shaders-spirv.bat'],
-        cmds_macOS   = ['./compile_shaders_metal.sh'],
-        cmds_linux   = ['./compile_shaders_spirv.sh'],
-        cwd=proj_dir+'/shaders')
+    run([sys.executable, './build.py'] + PY_ADD_CMDLINE, cwd='prog/samples/physTest')
 
   # skiesSample
   if 'skiesSample' in BUILD_PROJECTS:
-    proj_dir = 'samples/skiesSample/prog'
-    print('=== building '+proj_dir);
-    if 'code' in BUILD_COMPONENTS:
-      run('jam', cwd=proj_dir)
-    if 'shaders' in BUILD_COMPONENTS:
-      run_per_platform(
-        cmds_windows = ['compile_shaders_dx12.bat', 'compile_shaders_dx11.bat', 'compile_shaders_metal.bat', 'compile_shaders_spirv.bat',
-                        'compile_shaders_tools.bat'],
-        cmds_macOS   = ['./compile_shaders_metal.sh', './compile_tool_shaders_metal.sh'],
-        cmds_linux   = ['./compile_shaders_spirv.sh', './compile_tool_shaders_spirv.sh'],
-        cwd=proj_dir+'/shaders')
-    if 'assets' in BUILD_COMPONENTS:
-      run(DABUILD_CMD + ['../application.blk'], cwd='samples/skiesSample/develop')
+    run([sys.executable, './build.py'] + PY_ADD_CMDLINE, cwd='samples/skiesSample/prog')
 
   # testGI sample
   if 'testGI' in BUILD_PROJECTS:
-    proj_dir = 'samples/testGI/prog'
-    print('=== building '+proj_dir);
-    if 'code' in BUILD_COMPONENTS:
-      run('jam', cwd=proj_dir)
-    if 'shaders' in BUILD_COMPONENTS:
-      run_per_platform(
-        cmds_windows = ['compile_shaders_dx12.bat', 'compile_shaders_dx11.bat', 'compile_shaders_metal.bat', 'compile_shaders_spirv.bat',
-                        'compile_shaders_tools.bat'],
-        cmds_macOS   = ['./compile_shaders_metal.sh', './compile_tool_shaders_metal.sh'],
-        cmds_linux   = ['./compile_shaders_spirv.sh', './compile_tool_shaders_spirv.sh'],
-        cwd=proj_dir+'/shaders')
-    if 'assets' in BUILD_COMPONENTS:
-      run(DABUILD_CMD + ['../application.blk'], cwd='samples/testGI/develop')
+    run([sys.executable, './build.py'] + PY_ADD_CMDLINE, cwd='samples/testGI/prog')
 
   # Outer Space game sample
   if 'outerSpace' in BUILD_PROJECTS:
