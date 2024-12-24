@@ -346,7 +346,7 @@ public:
     joystick_handler = new darg::JoystickHandler();
 
     int w, h;
-    d3d::get_target_size(w, h);
+    d3d::get_render_target_size(w, h, nullptr);
     debugTexOverlay.setTargetSize(Point2(w, h));
     runScriptScene();
 

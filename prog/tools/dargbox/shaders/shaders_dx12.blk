@@ -1,0 +1,6 @@
+include "shaders_dx11.blk"
+
+"@override:outDumpName":t="../../../../tools/dargbox/shaders/gameDX12"
+"@override:Compile" {
+  "@override:fsh":t="5.0"
+}

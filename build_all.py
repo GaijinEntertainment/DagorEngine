@@ -73,6 +73,11 @@ if __name__ == '__main__':
   if len(BUILD_PROJECTS) == 0:
     BUILD_PROJECTS = ['dagorTools', 'dargbox', 'physTest', 'skiesSample', 'testGI', 'outerSpace', 'dngSceneViewer']
 
+  # build command line to run other build scripts
+  PY_ADD_CMDLINE = BUILD_COMPONENTS
+  if BUILD_TARGET_ARCH != '':
+    PY_ADD_CMDLINE += ['arch:'+BUILD_TARGET_ARCH]
+
   # core CDK (tools and dargbox)
   if 'dagorTools' in BUILD_PROJECTS and 'code' in BUILD_COMPONENTS:
     proj_dir = 'prog/tools'
@@ -89,17 +94,7 @@ if __name__ == '__main__':
 
   # dargbox tool
   if 'dargbox' in BUILD_PROJECTS:
-    proj_dir = 'prog/tools'
-    if 'code' in BUILD_COMPONENTS:
-      run(['jam', '-sRoot=../..', '-f', 'dargbox/jamfile'], cwd=proj_dir)
-    if 'shaders' in BUILD_COMPONENTS:
-      run_per_platform(
-        cmds_windows = ['compile_shaders_pc11.bat', 'compile_shaders_metal.bat', 'compile_shaders_spirV.bat'],
-        cmds_macOS   = ['./compile_shaders_metal.sh'],
-        cmds_linux   = ['./compile_shaders_spirv.sh'],
-        cwd=proj_dir+'/dargbox/shaders')
-    if 'vromfs' in BUILD_COMPONENTS:
-      run([VROMFS_PACKER_EXE, 'darg.vromfs.blk', '-platform:PC', '-quiet'], cwd=proj_dir+'/dargbox')
+    run([sys.executable, './build.py'] + PY_ADD_CMDLINE, cwd='prog/tools/dargbox')
 
   # physTest sample
   if 'physTest' in BUILD_PROJECTS:
@@ -145,11 +140,6 @@ if __name__ == '__main__':
         cwd=proj_dir+'/shaders')
     if 'assets' in BUILD_COMPONENTS:
       run(DABUILD_CMD + ['../application.blk'], cwd='samples/testGI/develop')
-
-  # build command line to run other build scripts
-  PY_ADD_CMDLINE = BUILD_COMPONENTS
-  if BUILD_TARGET_ARCH != '':
-    PY_ADD_CMDLINE += ['arch:'+BUILD_TARGET_ARCH]
 
   # Outer Space game sample
   if 'outerSpace' in BUILD_PROJECTS:
