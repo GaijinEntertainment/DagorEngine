@@ -243,6 +243,7 @@ int texmgr_internal::find_texture_rec(const char *name, bool auto_add, TextureFa
     mem_set_0(make_span(managed_tex_map_by_idx).subspan(b));
   }
   managed_tex_map_by_idx[idx] = stored_name;
+  RMGR.texSamplers[idx] = d3d::request_sampler(get_sampler_info(tmd));
 
   // debug("[TEXMGR] added texture (%s) as %d", name, idx);
 

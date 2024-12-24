@@ -57,10 +57,9 @@ public:
 
       BaseTexture *t = NULL;
       BaseTexture *ref = NULL;
-      TEXTUREID id = BAD_TEXTUREID;
       if (!tmd.baseTexName.empty())
       {
-        id = get_managed_texture_id(tmd.baseTexName);
+        TEXTUREID id = get_managed_texture_id(tmd.baseTexName);
         if (id == BAD_TEXTUREID)
           id = add_managed_texture(tmd.baseTexName);
         ref = acquire_managed_tex(id);
@@ -179,7 +178,6 @@ public:
       if (t)
       {
         apply_gen_tex_props(t, tmd);
-        set_texture_separate_sampler(id, get_sampler_info(tmd));
 
         uint8_t *data = NULL;
         int stride = 0;

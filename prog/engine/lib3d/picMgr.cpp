@@ -1970,9 +1970,11 @@ void PictureManager::AsyncPicLoadJob::loadTexPic()
   outTexId = get_managed_texture_id(name);
   if (outTexId == BAD_TEXTUREID)
     outTexId = add_managed_texture(name);
+  smpId = get_texture_separate_sampler(outTexId);
+  if (smpId == d3d::INVALID_SAMPLER_HANDLE)
+    smpId = d3d::request_sampler({});
 
   BaseTexture *tex = acquire_managed_tex(outTexId);
-  smpId = get_texture_separate_sampler(outTexId);
   TextureInfo ti;
   if (!tex || tex->restype() != RES3D_TEX || !tex->getinfo(ti))
     ti.w = ti.h = 0;
