@@ -669,7 +669,6 @@ void GradientPlotControl::drawGradientToTexture()
   lockedTexture.close();
 
   gradientTextureId = register_managed_tex(textureName, texture);
-  set_texture_separate_sampler(gradientTextureId, get_sampler_info(textureMetaData));
   G_ASSERT(gradientTextureId != BAD_TEXTUREID);
 }
 

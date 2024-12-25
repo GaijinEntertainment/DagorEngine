@@ -1129,7 +1129,6 @@ BaseTexture *DDSxTexturePack2::Factory::createTexture(TEXTUREID tid)
     RMGR.texDesc[idx].dim.stubIdx);
   G_ASSERTF_RETURN(t, nullptr, "d3d::alloc_ddsx_tex(%s) failed with error '%s'", name, d3d::get_last_error());
 
-  set_texture_separate_sampler(tid, get_sampler_info(tmd));
   // force the same addrU,addrV for all DDSx headers (may be used during texture part load)
   for (const auto &idx : RMGR.texDesc[idx].packRecIdx)
     if (idx.pack >= 0 && idx.rec != 0xFFFFu)

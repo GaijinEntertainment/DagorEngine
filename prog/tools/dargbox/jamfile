@@ -12,6 +12,7 @@ TargetType  = exe ;
 
 Target      = tools/dargbox ;
 if $(Platform)-$(PlatformArch) = windows-x86_64 { Target = $(Target)-64 ; }
+if ! $(Platform) in windows linux { ReproducibleExeBuild = no ; }
 
 if $(Config) = rel { # this is only needed to build with warnings-as-errors
   ForceLogs = yes ;
@@ -124,6 +125,7 @@ if $(Platform) in windows {
     engine/drv/hid_dinput
     engine/drv/hid_gamepad_xinput
   ;
+  include $(Root)/prog/engine/drv/drv3d_DX12/copy_bundles.jam ;
 }
 else if $(Platform) = linux {
   UseProgLibs +=
