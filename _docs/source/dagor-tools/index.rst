@@ -17,6 +17,7 @@ Essential tools for working with the Dagor Engine.
    resource-building/index.rst
    substance-designer/index.rst
    addons/index.rst
+   shader-compiler/index.rst
 
 
 

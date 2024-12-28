@@ -3,6 +3,8 @@
 
 #include <util/dag_globDef.h>
 
+// See https://gaijinentertainment.github.io/DagorEngine/dagor-tools/shader-compiler/contributing_to_compiler.html#versioning
+
 #if _CROSS_TARGET_SPIRV
 #include "ver_obj_spirv.h"
 #elif _CROSS_TARGET_DX12
