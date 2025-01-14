@@ -8,7 +8,6 @@
 #include <osApiWrappers/dag_dynLib.h>
 #include <osApiWrappers/dag_pathDelim.h>
 #include <EASTL/string.h>
-#include <concepts>
 
 
 #if _TARGET_PC_WIN
@@ -24,7 +23,6 @@ static eastl::string stcode_dir;
 static eastl::string src_dir;
 
 template <typename T>
-  requires(std::equality_comparable<T>)
 static bool item_is_in(const T &item, std::initializer_list<T> items)
 {
   for (const T &ref : items)
