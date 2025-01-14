@@ -1797,10 +1797,10 @@ bool ddsx::tex_pack2_perform_delayed_data_loading(int prio)
     for (int i = 0; i < tex_packs.size() && interlocked_acquire_load(processingTexData[prio]); i++)
       done |= tex_packs[i].pack->file->performDelayedLoad(full_prio);
     if (!is_managed_textures_streaming_load_on_demand())
-      run_action_on_main_thread_and_wait([]() {
-        d3d::GpuAutoLock lock;
-        RMGR.performAsyncTextureReplacementCompletions();
-      });
+    {
+      d3d::GpuAutoLock lock;
+      RMGR.performAsyncTextureReplacementCompletions();
+    }
 
     if (!interlocked_acquire_load(pendingTexCount[prio]) || !interlocked_acquire_load(processingTexData[prio]))
       break;
