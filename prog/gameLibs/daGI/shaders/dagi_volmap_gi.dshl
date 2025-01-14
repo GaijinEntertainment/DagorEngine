@@ -113,6 +113,13 @@ macro SSGI_INIT_VOLMAP_GI_VARS( code )
   {
     gi_ambient_volmap@smp3d = gi_ambient_volmap;
     ssgi_current_world_origin@f3 = ssgi_current_world_origin;
+  }
+endmacro
+
+macro SSGI_INIT_VOLMAP_GI_VARS_RT( code )
+  SSGI_INIT_VOLMAP_GI_VARS(code)
+  (code)
+  {
     octahedral_distances@tex = octahedral_distances hlsl { Texture2DArray<float>octahedral_distances@tex; }
     dead_probes@tex = dead_probes hlsl { Texture2DArray<float>dead_probes@tex; }
   }

@@ -343,7 +343,7 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
   GDATA(dt);
   GDATA(water_level);
   GDATA(globtm);
-  GDATA(globtm_prev);
+  GDATA(globtm_sim);
   GDATA(view_dir_x);
   GDATA(view_dir_y);
   GDATA(view_dir_z);
@@ -1596,16 +1596,16 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
     {
       ModfxDeclExternalOmnilight pp;
       pp.pos = float3(0, 0, 0);
-      pp.radius = 0;
       pp.color = float3(0, 0, 0);
+      pp.radius = 0;
       int ofs = push_system_data(renderData, pp);
 
       renOffsets[MODFX_RMOD_OMNI_LIGHT_INIT] = ofs;
       ENABLE_MOD(rmods, MODFX_RMOD_OMNI_LIGHT_INIT);
 
       ENABLE_ROFS(VAL_LIGHT_POS, ofs);
-      ENABLE_ROFS(VAL_LIGHT_RADIUS, ofs + sizeof(float3));
-      ENABLE_ROFS(VAL_LIGHT_COLOR, ofs + sizeof(float3) + sizeof(float));
+      ENABLE_ROFS(VAL_LIGHT_COLOR, ofs + sizeof(float3));
+      ENABLE_ROFS(VAL_LIGHT_RADIUS, ofs + sizeof(float3) + sizeof(float3));
     }
 
     if (parBlending.type != RBLEND_ADD)
@@ -1714,6 +1714,7 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
     ModfxDeclRenderPlacementParams pp;
     pp.flags = 0;
     pp.flags |= parPlacement.use_hmap ? MODFX_GPU_PLACEMENT_HMAP : 0;
+    pp.flags |= parPlacement.use_water ? MODFX_GPU_PLACEMENT_WATER : 0;
     pp.flags |= parPlacement.use_depth_above ? MODFX_GPU_PLACEMENT_DEPTH_ABOVE : 0;
     pp.align_normals_offset = parPlacement.align_normals_offset;
     pp.placement_threshold = parPlacement.placement_threshold;

@@ -80,7 +80,7 @@ eastl::array<dabfg::NodeHandle, 3> makeDownsampleDepthNodes(const DownsampleNode
 
 eastl::array<dabfg::NodeHandle, 2> makeSceneShadowPassNodes();
 
-dabfg::NodeHandle makeVolumetricLightsNode();
+eastl::array<dabfg::NodeHandle, 6> makeVolumetricLightsNodes();
 
 enum
 {
@@ -120,8 +120,14 @@ enum class WaterRenderMode
   EARLY_BEFORE_ENVI,
   EARLY_AFTER_ENVI,
   LATE,
-  COUNT
+  COUNT,
+  COUNT_WITH_RENAMES
 };
+extern const eastl::array<char const *, eastl::to_underlying(WaterRenderMode::COUNT_WITH_RENAMES)> WATER_SSR_DEPTH_TEX;
+extern const eastl::array<char const *, eastl::to_underlying(WaterRenderMode::COUNT_WITH_RENAMES)> WATER_SSR_COLOR_TEX;
+extern const eastl::array<char const *, eastl::to_underlying(WaterRenderMode::COUNT_WITH_RENAMES)> WATER_SSR_STRENGTH_TEX;
+extern const eastl::array<char const *, eastl::to_underlying(WaterRenderMode::COUNT)> WATER_REFLECT_DIR_TEX;
+
 dabfg::NodeHandle makeWaterNode(WaterRenderMode mode);
 dabfg::NodeHandle makeWaterSSRNode(WaterRenderMode mode);
 

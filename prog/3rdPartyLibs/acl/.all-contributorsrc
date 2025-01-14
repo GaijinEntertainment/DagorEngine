@@ -1,0 +1,165 @@
+{
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "commit": false,
+  "contributors": [
+    {
+      "login": "CodyDWJones",
+      "name": "CodyDWJones",
+      "avatar_url": "https://avatars.githubusercontent.com/u/28773740?v=4",
+      "profile": "https://github.com/CodyDWJones",
+      "contributions": [
+        "code",
+        "data",
+        "maintenance",
+        "tool",
+        "infra",
+        "ideas"
+      ]
+    },
+    {
+      "login": "Meradrin",
+      "name": "Meradrin",
+      "avatar_url": "https://avatars.githubusercontent.com/u/7066278?v=4",
+      "profile": "https://github.com/Meradrin",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "tirpidz",
+      "name": "Martin Turcotte",
+      "avatar_url": "https://avatars.githubusercontent.com/u/9991876?v=4",
+      "profile": "https://github.com/tirpidz",
+      "contributions": [
+        "code",
+        "tool",
+        "ideas"
+      ]
+    },
+    {
+      "login": "vjeffh",
+      "name": "vjeffh",
+      "avatar_url": "https://avatars.githubusercontent.com/u/22382688?v=4",
+      "profile": "https://github.com/vjeffh",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "Romain-Piquois",
+      "name": "Romain-Piquois",
+      "avatar_url": "https://avatars.githubusercontent.com/u/3689912?v=4",
+      "profile": "https://github.com/Romain-Piquois",
+      "contributions": [
+        "bug"
+      ]
+    },
+    {
+      "login": "janisozaur",
+      "name": "Michał Janiszewski",
+      "avatar_url": "https://avatars.githubusercontent.com/u/550290?v=4",
+      "profile": "https://github.com/janisozaur",
+      "contributions": [
+        "code",
+        "tool",
+        "maintenance",
+        "infra"
+      ]
+    },
+    {
+      "login": "visualphoenix",
+      "name": "Raymond Barbiero",
+      "avatar_url": "https://avatars.githubusercontent.com/u/394175?v=4",
+      "profile": "http://keybase.io/visualphoenix",
+      "contributions": [
+        "ideas"
+      ]
+    },
+    {
+      "login": "ddeadguyy",
+      "name": "ddeadguyy",
+      "avatar_url": "https://avatars.githubusercontent.com/u/42090666?v=4",
+      "profile": "https://github.com/ddeadguyy",
+      "contributions": [
+        "code",
+        "ideas"
+      ]
+    },
+    {
+      "login": "intelligide",
+      "name": "Yoann Potinet",
+      "avatar_url": "https://avatars.githubusercontent.com/u/12529837?v=4",
+      "profile": "https://gitlab.com/intelligide",
+      "contributions": [
+        "infra"
+      ]
+    },
+    {
+      "login": "jbrd-pg",
+      "name": "James Bird",
+      "avatar_url": "https://avatars.githubusercontent.com/u/100773491?v=4",
+      "profile": "https://github.com/jbrd-pg",
+      "contributions": [
+        "ideas",
+        "code"
+      ]
+    },
+    {
+      "login": "GermanAizek",
+      "name": "Herman Semenov",
+      "avatar_url": "https://avatars.githubusercontent.com/u/21138600?v=4",
+      "profile": "https://github.com/GermanAizek",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "Dreaming381",
+      "name": "Tyler",
+      "avatar_url": "https://avatars.githubusercontent.com/u/25555355?v=4",
+      "profile": "https://github.com/Dreaming381",
+      "contributions": [
+        "code",
+        "ideas"
+      ]
+    },
+    {
+      "login": "naetherm",
+      "name": "naetherm",
+      "avatar_url": "https://avatars.githubusercontent.com/u/16878712?v=4",
+      "profile": "https://github.com/naetherm",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "TetraSomia",
+      "name": "Arthur Josso",
+      "avatar_url": "https://avatars.githubusercontent.com/u/19408647?v=4",
+      "profile": "https://github.com/TetraSomia",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "Yusuf-PG",
+      "name": "Yusuf Ismail",
+      "avatar_url": "https://avatars.githubusercontent.com/u/168181217?v=4",
+      "profile": "https://github.com/Yusuf-PG",
+      "contributions": [
+        "code"
+      ]
+    }
+  ],
+  "contributorsPerLine": 7,
+  "projectName": "acl",
+  "projectOwner": "nfrechette",
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "skipCi": true,
+  "commitConvention": "angular",
+  "commitType": "docs"
+}

@@ -180,15 +180,8 @@ void backend::Swapchain::registerSwapchainView(D3DDevice *device, Image *image, 
 
 static bool is_tearing_supported(DXGIFactory *factory)
 {
-  ComPtr<IDXGIFactory5> factory5;
-  HRESULT hr = factory->QueryInterface(COM_ARGS(&factory5));
   BOOL allowTearing = FALSE;
-
-  if (SUCCEEDED(hr))
-  {
-    hr = factory5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, sizeof(allowTearing));
-  }
-
+  HRESULT hr = factory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, sizeof(allowTearing));
   return SUCCEEDED(hr) && allowTearing;
 }
 
@@ -572,6 +565,16 @@ void backend::Swapchain::changeFullscreenExclusiveMode(bool is_exclusive)
 {
   DX12_DEBUG_RESULT(swapchain->SetFullscreenState(is_exclusive, is_exclusive ? output.Get() : nullptr));
   logdbg("DX12: Swapchain full screen exclusive mode changed. is_exclusive: %s", is_exclusive ? "true" : "false");
+  if (is_exclusive)
+  {
+    // ResizeBuffers will be called later in Swapchain::bufferResize, but we need to call it here as well.
+    // Otherwise, GetDesc will return zero BufferCount.
+    DXGI_SWAP_CHAIN_DESC1 currentDesc;
+    swapchain->GetDesc1(&currentDesc);
+    swapchain->ResizeBuffers(currentDesc.BufferCount, currentDesc.Width, currentDesc.Height, currentDesc.Format, currentDesc.Flags);
+    logdbg("DX12: ResizeBuffers(%u, %u, %u, %u, 0x%08X)", currentDesc.BufferCount, currentDesc.Width, currentDesc.Height,
+      currentDesc.Format, currentDesc.Flags);
+  }
   isInExclusiveFullscreenModeEnabled = isInExclusiveFullscreenMode();
 }
 

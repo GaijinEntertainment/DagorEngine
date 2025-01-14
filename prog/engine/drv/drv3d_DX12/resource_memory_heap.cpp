@@ -5490,8 +5490,9 @@ struct ResourceHeapDumpVisitor
   void visitResourceInHeap(ValueRange<uint64_t> range, const ResourceMemoryHeap::RaytraceAccelerationStructureHeapReference &as)
   {
     ByteUnits size = range.size();
-    dumpInfo.emplace_back(resource_dump_types::ResourceType::RtAccel, (int)size.value(), as.as->GetGPUVirtualAddress(), true, false,
-      (uint64_t)resourceHeapId, range.front());
+
+    dumpInfo.emplace_back(
+      ResourceDumpRayTrace({as.as->GetGPUVirtualAddress(), (uint64_t)resourceHeapId, range.front(), (int)size.value(), true, false}));
   }
 
   void visitHeapUsedRange(ValueRange<uint64_t> range, const ResourceMemoryHeap::AnyResourceReference &res)
@@ -5634,12 +5635,12 @@ struct SbufferDumpVisitor
       heapAddress = (uint64_t)it->second.heapOffset;
     }
 
-    dumpInfo.emplace_back(resource_dump_types::ResourceType::Buffer, buffer->getBufName(), buffer->ressize(),
-      buffer->hasSystemCopy() ? buffer->ressize() : -1, buffer->getFlags(), deviceBuffer.currentDiscardIndex, -1,
-      deviceBuffer.discardCount, deviceBuffer.resourceId.index(), deviceBuffer.offset,
-      (uint64_t)deviceBuffer.currentCPUPointer() == 0 ? (uint64_t)-1 : (uint64_t)deviceBuffer.currentCPUPointer(),
-      (uint64_t)deviceBuffer.currentGPUPointer() == 0 ? (uint64_t)-1 : (uint64_t)deviceBuffer.currentGPUPointer(), heapId,
-      heapAddress);
+    dumpInfo.emplace_back(
+      ResourceDumpBuffer({(uint64_t)deviceBuffer.currentGPUPointer() == 0 ? (uint64_t)-1 : (uint64_t)deviceBuffer.currentGPUPointer(),
+        heapId, heapAddress, deviceBuffer.offset,
+        (uint64_t)deviceBuffer.currentCPUPointer() == 0 ? (uint64_t)-1 : (uint64_t)deviceBuffer.currentCPUPointer(), buffer->ressize(),
+        buffer->hasSystemCopy() ? buffer->ressize() : -1, buffer->getFlags(), (int)deviceBuffer.currentDiscardIndex, -1,
+        (int)deviceBuffer.discardCount, (int)deviceBuffer.resourceId.index(), buffer->getBufName(), ""}));
   }
 };
 
@@ -5871,8 +5872,8 @@ struct BaseTexDumpVisitor
       case RES3D_ARRTEX: type = resource_dump_types::TextureTypes::ARRTEX; break;
       case RES3D_CUBEARRTEX: type = resource_dump_types::TextureTypes::CUBEARRTEX; break;
     }
-    uint64_t heapOffset = -1;
-    uint64_t heapId = -1;
+    uint64_t heapOffset = (uint64_t)-1;
+    uint64_t heapId = (uint64_t)-1;
     Image *img = tex->getDeviceImage();
     if (img)
     {
@@ -5883,10 +5884,10 @@ struct BaseTexDumpVisitor
       }
     }
 
-    dumpInfo.emplace_back(resource_dump_types::ResourceType::Texture, tex->getResName(), tex->ressize(), type, tex->width, tex->height,
+    dumpInfo.emplace_back(ResourceDumpTexture({(uint64_t)-1, heapId, heapOffset, tex->width, tex->height, tex->level_count(),
       (tex->resType == RES3D_VOLTEX || tex->resType == RES3D_CUBEARRTEX) ? tex->depth : -1,
-      (tex->resType == RES3D_TEX || tex->resType == RES3D_VOLTEX) ? -1 : (img ? img->getArrayLayerRange().count() : -1),
-      tex->level_count(), tex->getFormat().asTexFlags(), tex->getFormat().isColor(), tex->cflg, -1, heapId, heapOffset);
+      (tex->resType == RES3D_TEX || tex->resType == RES3D_VOLTEX) ? -1 : (img ? img->getArrayLayers().count() : -1), tex->ressize(),
+      tex->cflg, tex->getFormat().asTexFlags(), type, tex->getFormat().isColor(), tex->getResName(), ""}));
   }
 };
 

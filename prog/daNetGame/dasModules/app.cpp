@@ -48,7 +48,8 @@ public:
       "::get_build_number");
 
     das::addExtern<DAS_BIND_FUN(sceneload::load_game_scene)>(*this, lib, "load_game_scene", das::SideEffects::modifyExternal,
-      "sceneload::load_game_scene");
+      "sceneload::load_game_scene")
+      ->arg_init(/*import_depth*/ 1, das::make_smart<das::ExprConstInt>(1));
     das::addExtern<DAS_BIND_FUN(das_switch_scene_1)>(*this, lib, "switch_scene", das::SideEffects::modifyExternal,
       "bind_dascript::das_switch_scene_1");
     das::addExtern<DAS_BIND_FUN(das_switch_scene_2)>(*this, lib, "switch_scene", das::SideEffects::modifyExternal,

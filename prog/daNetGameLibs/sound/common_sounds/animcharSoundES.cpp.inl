@@ -22,23 +22,32 @@ namespace cvars
 {
 static CONSOLE_BOOL_VAL("snd", irq_debug, false);
 }
+static inline bool is_watched(ecs::EntityId eid)
+{
+  if (ECS_GET_OR(eid, is_watched_sound, false))
+    return true;
+  eid = ECS_GET_OR(eid, gun__owner, ecs::INVALID_ENTITY_ID);
+  return ECS_GET_OR(eid, is_watched_sound, false);
+}
+
 static inline void debug_irq_impl(ecs::EntityId eid, int type, intptr_t p1, intptr_t p2, int offset)
 {
   if (!cvars::irq_debug.get())
     return;
-  auto isWatchedSound = [](ecs::EntityId eid) -> bool {
-    if (ECS_GET_OR(eid, is_watched_sound, false))
-      return true;
-    eid = ECS_GET_OR(eid, gun__owner, ecs::INVALID_ENTITY_ID);
-    return ECS_GET_OR(eid, is_watched_sound, false);
-  };
-  if (isWatchedSound(eid))
+  if (is_watched(eid))
     if (const auto *animchar = ECS_GET_NULLABLE(AnimV20::AnimcharBaseComponent, eid, animchar))
       if (const auto *animGraph = animchar->getAnimGraph())
         sndsys::debug_trace_warn("[%d] irq%d (%s) from \"%s\" at frame %d (tick=%d), at %.3f sec (animtime)", offset, type,
           AnimV20::getIrqName(type), animGraph->getBlendNodeName((AnimV20::IAnimBlendNode *)(void *)p1),
           p2 / (AnimV20::TIME_TicksPerSec / 30), p2,
           animchar->getAnimState() ? animchar->getAnimState()->getParam(animGraph->PID_GLOBAL_TIME) : 0);
+}
+static inline const char *debug_get_node_name(ecs::EntityId eid, intptr_t p1)
+{
+  if (const auto *animchar = ECS_GET_NULLABLE(AnimV20::AnimcharBaseComponent, eid, animchar))
+    if (const auto *animGraph = animchar->getAnimGraph())
+      return animGraph->getBlendNodeName((AnimV20::IAnimBlendNode *)(void *)p1);
+  return "";
 }
 static inline void debug_irq(ecs::EntityId eid, int type, intptr_t p1, intptr_t p2, int offset)
 {
@@ -94,11 +103,39 @@ static bool should_play(ecs::EntityId eid, int irq_id, intptr_t p1, intptr_t p2,
   return offset >= 0 || play_backward;
 }
 
+static void debug_anim_param_irq(ecs::EntityId eid, int irq_id, intptr_t p1, intptr_t p2, intptr_t p3)
+{
+#if DAGOR_DBGLEVEL > 0
+  if (irq_id == AnimV20::getDebugAnimParamIrqId())
+  {
+    if (!is_watched(eid))
+      return;
+    const float param = safediv(float(p2), float(p3));
+    // if (prevParam != param)
+    {
+      const int offset = p3;
+      debug_irq(eid, irq_id, p1, p2, offset);
+      const char *nodeName = debug_get_node_name(eid, p1);
+      // sendEventImmediate may case something like "[E] : access violation of thread context", may need to replace with sendEvent"
+      g_entity_mgr->sendEventImmediate(eid, CmdSoundDebugAnimParam(param, nodeName));
+    }
+    // prevParam = param;
+  }
+#else
+  G_UNREFERENCED(eid);
+  G_UNREFERENCED(irq_id);
+  G_UNREFERENCED(p1);
+  G_UNREFERENCED(p2);
+  G_UNREFERENCED(p3);
+#endif
+}
+
 template <typename Event>
 class GenIrqSoundHandler : public BaseSoundHandler<sound_irq_name_t>
 {
   intptr_t irq(int irq_id, intptr_t p1, intptr_t p2, intptr_t p3) override
   {
+    debug_anim_param_irq(eid, irq_id, p1, p2, p3);
     if (should_play(eid, irq_id, p1, p2, p3))
     {
       if (auto irqPtr = get(irq_id))
@@ -125,22 +162,9 @@ struct TypeIrq
 template <typename Event>
 class TypeIrqSoundHandler : public BaseSoundHandler<TypeIrq>
 {
-  float prevParam = -1.f;
   intptr_t irq(int irq_id, intptr_t p1, intptr_t p2, intptr_t p3) override
   {
-#if DAGOR_DBGLEVEL > 0
-    if (irq_id == AnimV20::getDebugAnimParamIrqId())
-    {
-      const float param = safediv(float(p2), float(p3));
-      if (prevParam != param)
-        g_entity_mgr->sendEventImmediate(eid, CmdSoundDebugAnimParam(param));
-      prevParam = param;
-      return 0;
-    }
-#else
-    G_UNREFERENCED(p3);
-#endif
-
+    debug_anim_param_irq(eid, irq_id, p1, p2, p3);
     if (const TypeIrq *irqPtr = get(irq_id))
     {
       if (should_play(eid, irq_id, p1, p2, p3, irqPtr->playBackward))
@@ -174,6 +198,7 @@ class StepIrqSoundHandler : public ecs::AnimIrqHandler
 
   intptr_t irq(int irq_id, intptr_t p1, intptr_t p2, intptr_t p3) override
   {
+    debug_anim_param_irq(eid, irq_id, p1, p2, p3);
     const auto it = map.find(irq_id);
     if (it != map.end())
     {

@@ -59,6 +59,7 @@ namespace das {
             alwaysExportInitializer = prog->options.getBoolOption("always_export_initializer", false);
             relaxedAssign = prog->options.getBoolOption("relaxed_assign", prog->policies.relaxed_assign);
             relaxedPointerConst = prog->options.getBoolOption("relaxed_pointer_const", prog->policies.relaxed_pointer_const);
+            unsafeTableLookup = prog->options.getBoolOption("unsafe_table_lookup", prog->policies.unsafe_table_lookup);
         }
         bool finished() const { return !needRestart; }
         bool verbose = true;
@@ -100,6 +101,7 @@ namespace das {
         bool                    alwaysExportInitializer = false;
         bool                    relaxedAssign = false;
         bool                    relaxedPointerConst = false;
+        bool                    unsafeTableLookup = false;
     public:
         vector<FunctionPtr>     extraFunctions;
     protected:
@@ -614,6 +616,7 @@ namespace das {
                     resT->constant = (resT->constant || decl->constant) && !decl->removeConstant;
                     resT->temporary = (resT->temporary || decl->temporary) && !decl->removeTemporary;
                     resT->implicit = (resT->implicit || decl->implicit);
+                    resT->explicitConst = (resT->explicitConst || decl->explicitConst);
                     resT->dim = decl->dim;
                     resT->aotAlias = false;
                     resT->alias.clear();
@@ -1924,7 +1927,18 @@ namespace das {
             if ( decl.type && decl.type->isExprType() ) {
                 return;
             }
-            if ( decl.parentType ) {
+            if  ( !st->parent && decl.classMethod && decl.type && decl.type->baseType==Type::autoinfer ) {
+                // if its field:auto = cast<auto>(@@fun) - we demote to @@fun; this is only possible when its sealed in the base class
+                if ( decl.init && decl.init->rtti_isCast() ) {
+                    auto castExpr = static_pointer_cast<ExprCast>(decl.init);
+                    if ( castExpr->castType && castExpr->castType->baseType==Type::autoinfer ) {
+                        decl.init = castExpr->subexpr;
+                        reportAstChanged();
+                        return;
+                    }
+                }
+            }
+            if ( decl.parentType && st->parent ) {
                 auto pf = st->parent->findField(decl.name);
                 if ( !pf->type->isAutoOrAlias() ) {
                     decl.type = make_smart<TypeDecl>(*pf->type);
@@ -2372,6 +2386,9 @@ namespace das {
             inferred = true;
             return envalue;
         }
+        bool isConstantType ( ExprConst * c ) const {
+            return !c->foldedNonConst;
+        }
         virtual ExpressionPtr visit ( ExprConst * c ) override {
             if ( c->baseType==Type::tEnumeration || c->baseType==Type::tEnumeration8 ||
                 c->baseType==Type::tEnumeration16 || c->baseType==Type::tEnumeration64 ) {
@@ -2380,7 +2397,7 @@ namespace das {
                 c->value = getEnumerationValue(cE, infE);
                 if ( infE ) {
                     c->type = cE->enumType->makeEnumType();
-                    c->type->constant = true;
+                    c->type->constant = isConstantType(c);
                 } else {
                     error("enumeration value not inferred yet " + cE->text,  "", "",
                         c->at, CompilationError::invalid_enumeration);
@@ -2394,7 +2411,7 @@ namespace das {
                 } else {
                     c->type = make_smart<TypeDecl>(Type::tBitfield);
                 }
-                c->type->constant = true;
+                c->type->constant = isConstantType(c);
             } else if ( c->baseType==Type::tPointer ) {
                 c->type = make_smart<TypeDecl>(c->baseType);
                 auto cptr = static_cast<ExprConstPtr *>(c);
@@ -2407,7 +2424,7 @@ namespace das {
                 }
             } else {
                 c->type = make_smart<TypeDecl>(c->baseType);
-                c->type->constant = true;
+                c->type->constant = isConstantType(c);;
             }
             return Visitor::visit(c);
         }
@@ -4674,6 +4691,10 @@ namespace das {
                         return pCall;
                     }
                 }
+                if ( unsafeTableLookup && !safeExpression(expr) ) {
+                    error("table index requires unsafe",  "use 'get_value', 'insert', 'insert_clone' or 'emplace' instead. consider 'get'", "",
+                        expr->at, CompilationError::unsafe);
+                }
                 expr->type = make_smart<TypeDecl>(*seT->secondType);
                 expr->type->ref = true;
                 expr->type->constant |= seT->constant;
@@ -5541,27 +5562,38 @@ namespace das {
                 if ( auto opE = inferGenericOperatorWithName("?.",expr->at,expr->value,expr->name) ) return opE;
             }
             auto valT = expr->value->type;
-            if ( !valT->isPointer() || !valT->firstType ) {
+            if ( !(valT->isPointer() && valT->firstType) && !valT->isVariant() ) {
                 if ( verbose && !expr->no_promotion ) {
                     MatchingFunctions mf;
                     collectMissingOperators("?.`"+expr->name,mf,false);
                     collectMissingOperators("?.",mf,true);
                     if ( !mf.empty() ) {
-                        reportDualFunctionNotFound("?.`"+expr->name, "can only safe dereference a pointer to a tuple, a structure or a handle " + describeType(valT),
+                        reportDualFunctionNotFound("?.`"+expr->name, "can only safe dereference a variant or a pointer to a tuple, a structure or a handle " + describeType(valT),
                                 expr->at, mf, {expr->value->type}, {expr->value->type, make_smart<TypeDecl>(Type::tString)}, true, false, true,
                             CompilationError::cant_get_field, 0, "");
                     } else {
-                        error("can only safe dereference a pointer to a tuple, a structure or a handle " + describeType(valT), "", "",
+                        error("can only safe dereference a variant or a pointer to a tuple, a structure or a handle " + describeType(valT), "", "",
                             expr->at, CompilationError::cant_get_field);
                     }
                 } else {
-                    error("can only safe dereference a pointer to a tuple, a structure or a handle " + describeType(valT), "", "",
+                    error("can only safe dereference a variant or a pointer to a tuple, a structure or a handle " + describeType(valT), "", "",
                         expr->at, CompilationError::cant_get_field);
                 }
                 return Visitor::visit(expr);
             }
             expr->value = Expression::autoDereference(expr->value);
-            if ( valT->firstType->structType ) {
+            if ( valT->isGoodVariantType() || valT->firstType->isGoodVariantType() ) {
+                int index = valT->variantFieldIndex(expr->name);
+                auto argSize = valT->isGoodVariantType() ? valT->argTypes.size() : valT->firstType->argTypes.size();
+                if ( index==-1 || index>=argSize ) {
+                    error("can't get variant field '" + expr->name + "'", "", "",
+                        expr->at, CompilationError::cant_get_field);
+                    return Visitor::visit(expr);
+                }
+                reportAstChanged();
+                auto safeAs = make_smart<ExprSafeAsVariant>(expr->at, expr->value, expr->name);
+                return safeAs;
+            } else if ( valT->firstType->structType ) {
                 expr->field = valT->firstType->structType->findField(expr->name);
                 if ( !expr->field ) {
                     error("can't safe get field '" + expr->name + "'", "", "",
@@ -5581,20 +5613,6 @@ namespace das {
                 int index = valT->tupleFieldIndex(expr->name);
                 if ( index==-1 || index>=int(valT->firstType->argTypes.size()) ) {
                     error("can't get tuple field '" + expr->name + "'", "", "",
-                        expr->at, CompilationError::cant_get_field);
-                    return Visitor::visit(expr);
-                }
-                expr->fieldIndex = index;
-                expr->type = make_smart<TypeDecl>(*valT->firstType->argTypes[expr->fieldIndex]);
-            } else if ( valT->firstType->isGoodVariantType() ) {
-                if ( !safeExpression(expr) ) {
-                    error("variant?.field requires unsafe", "", "",
-                        expr->at, CompilationError::unsafe);
-                    return Visitor::visit(expr);
-                }
-                int index = valT->variantFieldIndex(expr->name);
-                if ( index==-1 || index>=int(valT->firstType->argTypes.size()) ) {
-                    error("can't get variant field '" + expr->name + "'", "", "",
                         expr->at, CompilationError::cant_get_field);
                     return Visitor::visit(expr);
                 }
@@ -5823,6 +5841,13 @@ namespace das {
                         error(expr->op + " can't be applied to constant " + describeType(expr->subexpr->type), "", "",
                             expr->at, CompilationError::operator_not_found);
                         return Visitor::visit(expr);
+                    }
+                    if ( unsafeTableLookup && expr->subexpr->rtti_isAt() ) { // tab[expr]++ is always safe
+                        auto pAt = static_cast<ExprAt *>(expr->subexpr.get());
+                        if ( !pAt->alwaysSafe && pAt->subexpr->type && pAt->subexpr->type->isGoodTableType() ) {
+                            pAt->alwaysSafe = true;
+                            reportAstChanged();
+                        }
                     }
                 }
             }
@@ -6589,7 +6614,7 @@ namespace das {
                     }
                 }
                 inferReturnType(func->result, expr);
-                if ( func->moveOnReturn && !expr->moveSemantics ) {
+                if ( func->moveOnReturn && !expr->moveSemantics && expr->subexpr ) {
                     error("this type can't be copied; " + describeType(func->result),"","use return <- instead",
                           expr->at, CompilationError::invalid_return_semantics );
                     if ( canRelaxAssign(expr->subexpr.get()) ) {
@@ -6693,9 +6718,42 @@ namespace das {
                 auto var = static_cast<ExprVar *>(expr);
                 auto variable = var->variable;
                 if ( variable && variable->init && variable->type->isConst() && variable->type->isFoldable() ) {
-                    if ( !var->local && !var->argument && !var->block ) {
+                    if ( /*!var->local &&*/     // this is an interesting question. should we allow local const to be folded?
+                         !var->argument && !var->block ) {
                         if ( variable->init->rtti_isConstant() ) {
+                            variable->access_fold = true;
                             return variable->init;
+                        }
+                    }
+                }
+            }
+            if ( expr->rtti_isSwizzle() ) {
+                auto swz = static_cast<ExprSwizzle *>(expr);
+                if ( swz->value->type ) {
+                    if ( auto cswz = getConstExpr(swz->value.get()) ) {
+                        int dim = swz->value->type->getVectorDim();
+                        vector<uint8_t> fields;
+                        if ( TypeDecl::buildSwizzleMask(swz->mask, dim, fields) ) {
+                            auto baseType = swz->value->type->getVectorBaseType();
+                            vec4f data = static_cast<ExprConst *>(cswz.get())->value;
+                            vec4f resData = v_zero();
+                            if ( baseType!=Type::tInt64 && baseType!=Type::tUInt64 ) {
+                                int32_t * res = (int32_t *)&resData;
+                                int32_t * src = (int32_t *)&data;
+                                int outI = 0;
+                                for ( auto f : fields ) {
+                                    res[outI++] = src[f];
+                                }
+                            } else {
+                                int64_t * res = (int64_t *)&resData;
+                                int64_t * src = (int64_t *)&data;
+                                int outI = 0;
+                                for ( auto f : fields ) {
+                                    res[outI++] = src[f];
+                                }
+                            }
+                            auto vecType = swz->type->getVectorType(baseType, fields.size());
+                            return program->makeConst(expr->at, make_smart<TypeDecl>(vecType), resData);
                         }
                     }
                 }
@@ -7231,6 +7289,21 @@ namespace das {
                     if ( !safeExpression(expr) ) {
                         error("Uninitialized variable " + var->name + " is unsafe. Use initializer syntax or [safe_when_uninitialized] when intended.", "", "",
                             expr->at, CompilationError::unsafe);
+                    }
+                }
+            }
+            if ( unsafeTableLookup && var->init && var->type && !var->type->ref  ) { // we are looking for tab[at] to make it safe
+                auto pInit = var->init.get();
+                if ( pInit->rtti_isR2V() ) {
+                    pInit = static_cast<ExprRef2Value *>(pInit)->subexpr.get();
+                }
+                if ( pInit->rtti_isAt() ) {
+                    auto pAt = static_cast<ExprAt *>(pInit);
+                    if ( pAt->subexpr->type && pAt->subexpr->type->isGoodTableType() ) {
+                        if ( !pAt->alwaysSafe ) {
+                            pAt->alwaysSafe = true;
+                            reportAstChanged();
+                        }
                     }
                 }
             }
@@ -9543,8 +9616,11 @@ namespace das {
         inferTypesDirty(logs, false);
         bool anyMacrosDidWork = false;
         bool anyMacrosFailedToInfer = false;
+        int pass = 0;
+        int  maxPasses = options.getIntOption("max_infer_passes", policies.max_infer_passes);
         if ( failed() ) goto failed_to_infer;
         do {
+            if ( pass++ >= maxPasses ) goto failed_to_infer;
             anyMacrosDidWork = false;
             anyMacrosFailedToInfer = false;
             auto modMacro = [&](Module * mod) -> bool {    // we run all macros for each module
@@ -9591,6 +9667,11 @@ namespace das {
             reportingInferErrors = true;
             inferTypesDirty(logs, true);
             reportingInferErrors = false;
+        }
+        if ( pass >= maxPasses ) {
+            error("type inference exceeded maximum allowed number of passes ("+to_string(maxPasses)+")\n"
+                    "this is likely due to a macro continuesly beeing applied", "", "",
+                LineInfo(), CompilationError::too_many_infer_passes);
         }
     }
 

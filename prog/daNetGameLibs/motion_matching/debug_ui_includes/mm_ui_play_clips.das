@@ -20,30 +20,24 @@ enum AnimationPlayMode : int
 struct MMState
   rootSynchronization : bool
   rootClamping : bool
-  footLocker : bool
   valid : bool
 
-def save_mm_game_state(var state : MMState; mm_ctrl : MotionMatchingController; data_base_eid : EntityId)
+def save_mm_game_state(var state : MMState; mm_ctrl : MotionMatchingController)
   state.rootSynchronization = mm_ctrl.rootSynchronization
   state.rootClamping = mm_ctrl.rootClamping
-  query(data_base_eid) <| $ [es] (foot_ik_locker_enabled : bool)
-    state.footLocker = foot_ik_locker_enabled
 
 def restore_mm_game_state(state : MMState; var mm_ctrl : MotionMatchingController; data_base_eid : EntityId)
   mm_ctrl.rootSynchronization = state.rootSynchronization
   mm_ctrl.rootClamping = state.rootClamping
-  change_foot_locker_state(state.footLocker, data_base_eid)
+  query() <| $ [es] (mm_params__footLockerEnabled : bool)
+    change_foot_locker_state(mm_params__footLockerEnabled, data_base_eid)
 
 def change_foot_locker_state(enable : bool; data_base_eid : EntityId)
   query(data_base_eid) <| $ [es] (main_database__footLockerCtrlName : string;
-                                  var dataBase : AnimationDataBase;
-                                  var foot_ik_locker_enabled : bool&)
-    if enable == foot_ik_locker_enabled
-      return
-    foot_ik_locker_enabled = enable
+                                  var dataBase : AnimationDataBase)
     if dataBase.footLockerParamId >= 0
       let footLockerPBCIdx = get_post_blend_controller_idx(dataBase, main_database__footLockerCtrlName)
-      dataBase |> changePBCWeightOverride(footLockerPBCIdx, foot_ik_locker_enabled ? 1f : 0f)
+      dataBase |> changePBCWeightOverride(footLockerPBCIdx, enable ? 1f : 0f)
 
 def history_slider(imgui_state_eid : EntityId; data_base : AnimationDataBase const?; var clip_frame_pair : int2&)
   query(imgui_state_eid) <| $ [es] (mm_clips_history : IPoint2List;
@@ -228,7 +222,7 @@ def play_clips(character_eid : EntityId; data_base_eid : EntityId; imgui_state_e
                                     mm_clips_clipProgress, mm_clips_animationPlaySpeed, clipFramePair)
         if clipFramePair != int2(-1, -1)
           motion_matching__controller |> clearAnimations()
-          motion_matching__controller |> playAnimation(clipFramePair.x, clipFramePair.y)
+          motion_matching__controller |> playAnimation(clipFramePair.x, clipFramePair.y, false)
           mm_clips_animationPlayMode = mm_clips_animationPlaySpeed > 0.0f ? int(AnimationPlayMode CONTINUOUS) : int(AnimationPlayMode ON_PAUSE)
           console_command("app.timeSpeed {mm_clips_animationPlaySpeed}")
           if ecs_has_tag("tools") //console command for time doesn't work in tools, so just disable MM update at all
@@ -237,7 +231,7 @@ def play_clips(character_eid : EntityId; data_base_eid : EntityId; imgui_state_e
         if mm_clips_animationPlayMode != int(AnimationPlayMode DISABLED)
           motion_matching__updateProgress = 0.0f //disables MM search in next frame
           if !savedGameState.valid
-            save_mm_game_state(savedGameState, motion_matching__controller, data_base_eid)
+            save_mm_game_state(savedGameState, motion_matching__controller)
             savedGameState.valid = true
           motion_matching__controller.rootClamping = false
           motion_matching__controller.rootSynchronization = lockRootNode

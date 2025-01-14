@@ -133,6 +133,9 @@ namespace das {
         pVar->type->firstType = make_smart<TypeDecl>(*expr->subexpr->type);
         pVar->type->firstType->ref = false;
         pVar->type->firstType->constant = false;
+        if ( expr->subexpr->type->isPointer() && expr->subexpr->type->constant ) {
+            pVar->type->firstType->firstType->constant = true;
+        }
         // let temp
         auto pLet = make_smart<ExprLet>();
         pLet->at = expr->at;

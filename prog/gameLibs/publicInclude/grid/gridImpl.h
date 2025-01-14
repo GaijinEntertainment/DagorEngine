@@ -116,13 +116,13 @@ __forceinline auto grid_find_in_sphere_by_bounding_impl(const Holder &grid_holde
 }
 
 template <typename Object, typename Holder, typename Predicate>
-__forceinline auto grid_find_in_capsule_by_pos_impl(const Holder &grid_holder, vec3f from, vec3f dir, vec4f len, vec4f radius,
-  const Predicate &pred)
+__forceinline auto grid_find_in_capsule_by_pos_impl(const Holder &grid_holder, vec3f from, vec3f dir, const vec4f &len,
+  const vec4f &radius, const Predicate &pred)
 {
   struct ObjectsIterator
   {
     __forceinline bool isCapsule() const { return true; }
-    __forceinline bool checkBoxBounding(bbox3f bbox, bool is_safe, vec3f from, vec3f dir, vec4f len, vec4f radius) const
+    __forceinline bool checkBoxBounding(bbox3f bbox, bool is_safe, vec3f from, vec3f dir, const vec4f &len, const vec4f &radius) const
     {
       v_bbox3_extend(bbox, radius);
       if (is_safe)
@@ -138,7 +138,8 @@ __forceinline auto grid_find_in_capsule_by_pos_impl(const Holder &grid_holder, v
       vec4f distSq = v_length3_sq_x(v_sub(pa, v_mul(dir, segT)));
       return DAGOR_UNLIKELY(v_test_vec_x_le(distSq, v_sqr(radius)));
     }
-    __forceinline int checkFourObjectsBounding(const Object objects[4], vec3f from, vec3f dir, vec4f len, vec4f radius) const
+    __forceinline int checkFourObjectsBounding(const Object objects[4], vec3f from, vec3f dir, const vec4f &len,
+      const vec4f &radius) const
     {
       mat44f objMat = {objects[0].getWBSph(), objects[1].getWBSph(), objects[2].getWBSph(), objects[3].getWBSph()};
       v_mat44_transpose(objMat, objMat);
@@ -163,13 +164,13 @@ __forceinline auto grid_find_in_capsule_by_pos_impl(const Holder &grid_holder, v
 }
 
 template <typename Object, typename Holder, typename Predicate>
-__forceinline auto grid_find_in_capsule_by_bounding_impl(const Holder &grid_holder, vec3f from, vec3f dir, vec4f len, vec4f radius,
-  const Predicate &pred)
+__forceinline auto grid_find_in_capsule_by_bounding_impl(const Holder &grid_holder, vec3f from, vec3f dir, const vec4f &len,
+  const vec4f &radius, const Predicate &pred)
 {
   struct ObjectsIterator
   {
     __forceinline bool isCapsule() const { return true; }
-    __forceinline bool checkBoxBounding(bbox3f bbox, bool is_safe, vec3f from, vec3f dir, vec4f len, vec4f radius) const
+    __forceinline bool checkBoxBounding(bbox3f bbox, bool is_safe, vec3f from, vec3f dir, const vec4f &len, const vec4f &radius) const
     {
       v_bbox3_extend(bbox, radius);
       if (is_safe)
@@ -187,7 +188,8 @@ __forceinline auto grid_find_in_capsule_by_bounding_impl(const Holder &grid_hold
       vec4f maxDist = v_add_x(radius, objRad);
       return DAGOR_UNLIKELY(v_test_vec_x_le(distSq, v_sqr_x(maxDist)));
     }
-    __forceinline int checkFourObjectsBounding(const Object objects[4], vec3f from, vec3f dir, vec4f len, vec4f radius) const
+    __forceinline int checkFourObjectsBounding(const Object objects[4], vec3f from, vec3f dir, const vec4f &len,
+      const vec4f &radius) const
     {
       mat44f objMat = {objects[0].getWBSph(), objects[1].getWBSph(), objects[2].getWBSph(), objects[3].getWBSph()};
       v_mat44_transpose(objMat, objMat);
@@ -297,14 +299,14 @@ __forceinline auto grid_find_ray_intersections_impl(const Holder &grid_holder, v
   struct ObjectsIterator
   {
     __forceinline bool isCapsule() const { return false; }
-    __forceinline bool checkBoxBounding(bbox3f bbox, bool is_safe, vec3f from, vec3f dir, vec4f len, vec4f) const
+    __forceinline bool checkBoxBounding(bbox3f bbox, bool is_safe, vec3f from, vec3f dir, const vec4f &len, const vec4f &) const
     {
       if (is_safe)
         return v_test_ray_box_intersection_unsafe(from, dir, len, bbox);
       else
         return v_test_ray_box_intersection(from, dir, len, bbox);
     }
-    __forceinline bool checkObjectBounding(vec4f wbsph, vec3f from, vec3f dir, vec4f len, vec4f) const
+    __forceinline bool checkObjectBounding(vec4f wbsph, vec3f from, vec3f dir, const vec4f &len, const vec4f &) const
     {
       vec3f pa = v_sub(wbsph, from);
       vec4f t = v_dot3(pa, dir); // t param along line
@@ -313,7 +315,7 @@ __forceinline auto grid_find_ray_intersections_impl(const Holder &grid_holder, v
       vec4f objRad = v_splat_w(wbsph);
       return DAGOR_UNLIKELY(v_test_vec_x_le(distSq, v_sqr_x(objRad)));
     }
-    __forceinline int checkFourObjectsBounding(const Object objects[4], vec3f from, vec3f dir, vec4f len, vec4f) const
+    __forceinline int checkFourObjectsBounding(const Object objects[4], vec3f from, vec3f dir, const vec4f &len, const vec4f &) const
     {
       mat44f objMat = {objects[0].getWBSph(), objects[1].getWBSph(), objects[2].getWBSph(), objects[3].getWBSph()};
       v_mat44_transpose(objMat, objMat);

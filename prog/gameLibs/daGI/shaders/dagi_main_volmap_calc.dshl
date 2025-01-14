@@ -20,6 +20,9 @@ endmacro
 buffer frustum_visible_point_voxels;
 buffer poissonSamples;
 
+int light_ss_ambient_voxels_cs_traceResults_uav_no = 0;
+int light_ss_ambient_voxels_cs_visible_ambient_voxels_walls_planes_const_no = 14;
+
 shader light_ss_ambient_voxels_cs
 {
   SSGI_USE_VOLMAP_GI_COORD(cs)
@@ -38,14 +41,18 @@ shader light_ss_ambient_voxels_cs
     poissonSamples@buf = poissonSamples hlsl {
       Buffer<float4> poissonSamples@buf;
     }
+    traceResults@uav : register(light_ss_ambient_voxels_cs_traceResults_uav_no) hlsl {
+      RWStructuredBuffer<TraceResultAmbientVoxel> traceResults@uav;
+    };
+    visible_ambient_voxels_walls_planes@buf : register(light_ss_ambient_voxels_cs_visible_ambient_voxels_walls_planes_const_no) hlsl {
+      StructuredBuffer<AmbientVoxelsPlanes> visible_ambient_voxels_walls_planes@buf;
+    };
   }
   hlsl(cs) {
     #define __XBOX_REGALLOC_VGPR_LIMIT 16//found by pix
     #define __XBOX_ENABLE_LIFETIME_SHORTENING 1//found by pix
-    RWStructuredBuffer<TraceResultAmbientVoxel> traceResults: register(u0);
     #define POISSON_USE_CB 1
     #include <fibonacci_sphere.hlsl>
-    StructuredBuffer<AmbientVoxelsPlanes> visible_ambient_voxels_walls_planes: register(t14);
     #include <dagi_integrate_ambient_cube.hlsl>
 
     #define USE_POISSON 1
@@ -105,6 +112,11 @@ shader light_ss_ambient_voxels_cs
   }
 }
 
+int light_ss_combine_ambient_voxels_cs_visible_ambient_voxels_trace_results_const_no = 14;
+int light_ss_combine_ambient_voxels_cs_visible_ambient_voxels_const_no = 15;
+int gi_ambient_volmap_init_uav_no = 6;
+int ssgi_ambient_volmap_temporal_uav_no = 7;
+
 shader light_ss_combine_ambient_voxels_cs
 {
   hlsl(cs)
@@ -118,14 +130,25 @@ shader light_ss_combine_ambient_voxels_cs
     #define AVERAGE_CUBE_WARP_SIZE COMBINE_WARP_SIZE
     #include <parallel_average_cube.hlsl>
   }
-  (cs) { temporal_weight_limit@f1 = (ssgi_temporal_weight_limit); }
+  (cs) {
+    temporal_weight_limit@f1 = (ssgi_temporal_weight_limit);
+    visible_ambient_voxels_trace_results@buf : register(light_ss_combine_ambient_voxels_cs_visible_ambient_voxels_trace_results_const_no) hlsl {
+      #include "dagi_common_types.hlsli"
+      StructuredBuffer<TraceResultAmbientVoxel> visible_ambient_voxels_trace_results@buf;
+    };
+    visible_ambient_voxels@buf : register(light_ss_combine_ambient_voxels_cs_visible_ambient_voxels_const_no) hlsl {
+      StructuredBuffer<VisibleAmbientVoxel> visible_ambient_voxels@buf;
+    };
+    gi_ambient_volmap@uav : register(gi_ambient_volmap_init_uav_no) hlsl {
+      RWTexture3D<float3> gi_ambient_volmap@uav;
+    };
+    ssgi_ambient_volmap_temporal@uav : register(ssgi_ambient_volmap_temporal_uav_no) hlsl {
+      RWTexture3D<float> ssgi_ambient_volmap_temporal@uav;
+    };
+  }
 
 
   hlsl(cs) {
-    StructuredBuffer<VisibleAmbientVoxel> visible_ambient_voxels: register(t15);
-    StructuredBuffer<TraceResultAmbientVoxel> visible_ambient_voxels_trace_results: register(t14);
-    RWTexture3D<float3>  gi_ambient_volmap : register(u6);
-    RWTexture3D<float>   ssgi_ambient_volmap_temporal : register(u7);
     #include <dagi_brigthnes_lerp.hlsl>
     float3 RoundColor10bit( float3 rgb )
     {

@@ -237,7 +237,7 @@ public:
 #if DAGOR_DBGLEVEL > 0
           *(vec4f *)&reprojectionDebug[y * sizeX + x] = v_and(isWithinCockpit, v_splats(1)); // 0 or 1 when cockpit
 #endif
-          bool shouldReprojectAnimated = v_test_vec_mask_neq_0(isWithinCockpit) & (cockpitMode == COCKPIT_REPROJECT_ANIMATED);
+          bool shouldReprojectAnimated = v_check_xyzw_any_true(isWithinCockpit) & (cockpitMode == COCKPIT_REPROJECT_ANIMATED);
           vec4f vWorldPosX = v_madd(viewVecX, depth, viewPosX);
           vec4f vWorldPosY = v_madd(viewVecY, depth, viewPosY);
           vec4f vWorldPosZ = v_madd(viewVecZ, depth, viewPosZ);

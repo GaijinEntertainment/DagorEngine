@@ -37,6 +37,9 @@ interval bvh_process_flag_vertices_normal_offset: no < 1, yes;
 interval bvh_process_flag_vertices_wind_type: fixedWind < 1, globalWindIngoreVcol < 2, globalWind;
 interval bvh_process_flag_vertices_width_type: zero_width < 1, has_width;
 
+int bvh_process_flag_vertices_source_const_no = 6;
+int bvh_process_flag_vertices_output_uav_no = 0;
+
 shader bvh_process_flag_vertices
 {
   if (compatibility_mode == compatibility_mode_on)
@@ -74,14 +77,13 @@ shader bvh_process_flag_vertices
     stretch@f1 = bvh_process_flag_vertices_stretch;
     flag_length@f1 = bvh_process_flag_vertices_flag_length;
     sway_speed@f1 = bvh_process_flag_vertices_sway_speed;
+    source@buf : register(bvh_process_flag_vertices_source_const_no) hlsl { ByteAddressBuffer source@buf; };
+    output@uav : register(bvh_process_flag_vertices_output_uav_no) hlsl { RWByteAddressBuffer output@uav; };
   }
 
   ENABLE_ASSERT(cs)
   hlsl(cs) {
     #pragma wave32
-
-    ByteAddressBuffer source : register(t6);
-    RWByteAddressBuffer output : register(u0);
 
     #define STATIC_RADIUS 1.0f
 

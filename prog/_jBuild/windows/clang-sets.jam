@@ -24,7 +24,7 @@ if $(PlatformArch) = x86_64 { _WIN_SDK_TARGET_SUFFIX = x64 ; }
 if $(PlatformArch) = arm64 { _WIN_SDK_TARGET_SUFFIX = arm64 ; }
 
 if $(UseGDK) != no {
-  include $(Root)/prog/_jBuild/_xbox/setup.jam ;
+  include $(Root)/prog/_jBuild/_gdk/setup.jam ;
   WinSdkVer = win.sdk.100 ;
   WinSdkUpdateVer = $(GdkWinSdk) ;
 }
@@ -89,8 +89,12 @@ if $(Sanitize) != disabled {
   if $(PlatformArch) = x86 { _DEF_C_CMDLINE += -mllvm -asan-use-private-alias=1 ; }
 }
 
-if ! $(CLangVer) in 14.0.6 12.0.1 11.0.0 10.0.0 { # >= 15 implied
+if $(CLangVer) >= 15 { # Note: lex compare
   _DEF_C_CMDLINE += -Wno-deprecated-builtins ; # __has_trivial_constructor etc in EASTL. See also https://github.com/llvm/llvm-project/commit/0b89d1d59f82cf5b45c250cd5c3351e43ce35ef9
+}
+
+if $(VCMathOption) = -fp:fast && $(CLangVer) >= 18 { # Note: lex compare
+  _DEF_C_CMDLINE += -Wno-nan-infinity-disabled ;
 }
 
 if $(PlatformArch) = arm64 {

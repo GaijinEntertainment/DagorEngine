@@ -124,9 +124,6 @@ const char *drv3d_vulkan::formatShaderStage(ShaderStage stage)
     case STAGE_CS: return "CS";
     case STAGE_PS: return "PS";
     case STAGE_VS: return "VS";
-#if D3D_HAS_RAY_TRACING
-    case STAGE_RAYTRACE: return "RS";
-#endif
     default: return "UNK";
   }
   return "UNK";

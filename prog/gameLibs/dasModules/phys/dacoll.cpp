@@ -74,6 +74,20 @@ struct CollisionContactDataAnnotation final : das::ManagedStructureAnnotation<ga
   bool canBeSubstituted(TypeAnnotation *pass_type) const override { return parentType->annotation == pass_type; }
 };
 
+struct CollisionLinkDataAnnotation : das::ManagedStructureAnnotation<dacoll::CollisionLinkData, false>
+{
+  CollisionLinkDataAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("CollisionLinkData", ml)
+  {
+    cppName = " ::dacoll::CollisionLinkData";
+    addField<DAS_BIND_MANAGED_FIELD(axis)>("axis");
+    addField<DAS_BIND_MANAGED_FIELD(offset)>("offset");
+    addField<DAS_BIND_MANAGED_FIELD(capsuleRadiusScale)>("capsuleRadiusScale");
+    addField<DAS_BIND_MANAGED_FIELD(oriParamMult)>("oriParamMult");
+    addField<DAS_BIND_MANAGED_FIELD(nameId)>("nameId");
+    addField<DAS_BIND_MANAGED_FIELD(haveCollision)>("haveCollision");
+  }
+};
+
 namespace bind_dascript
 {
 static char dacoll_das[] =
@@ -100,6 +114,7 @@ public:
     addAnnotation(das::make_smart<ShapeQueryOutputAnnotation>(lib));
     addAnnotation(das::make_smart<CollisionContactDataMinAnnotation>(lib));
     addAnnotation(das::make_smart<CollisionContactDataAnnotation>(lib));
+    addAnnotation(das::make_smart<CollisionLinkDataAnnotation>(lib));
 
     das::addExtern<DAS_BIND_FUN(dacoll_traceray_normalized)>(*this, lib, "traceray_normalized", das::SideEffects::modifyArgument,
       "bind_dascript::dacoll_traceray_normalized");

@@ -44,6 +44,9 @@ float gpu_objects_min_gathered_triangle_size;
 float gpu_objects_distance_emitter__range;
 float4 gpu_objects_distance_emitter__position;
 
+float gpu_objects_cutoff_ratio = -1.0;
+interval gpu_objects_cutoff_ratio: dont_use_cutoff_ratio<1, use_cutoff_ratio;
+
 macro ADD_INSTANCE()
 (cs)
 {
@@ -382,6 +385,7 @@ shader gpu_objects_box_placer_gather_triangles_cs
       #include "gpuObjects/gpu_objects_const.hlsli"
       StructuredBuffer<GeometryMesh> meshes@buf;
     }
+    cutoff_ratio_sq@f1 = (gpu_objects_cutoff_ratio * gpu_objects_cutoff_ratio, 0, 0, 0);
   }
 
   ENABLE_ASSERT(cs)
@@ -424,6 +428,21 @@ shader gpu_objects_box_placer_gather_triangles_cs
         float3 v1 = asfloat(v1_n.xyz);
         float3 v2 = asfloat(v2_n.xyz);
         float3 v3 = asfloat(v3_n.xyz);
+
+      ##if gpu_objects_cutoff_ratio == use_cutoff_ratio
+        float3 v1v2 = v2 - v1;
+        float3 v1v3 = v3 - v1;
+        float3 v2v3 = v3 - v2;
+
+        float v1v2_dist_sq = dot(v1v2, v1v2);
+        float v1v3_dist_sq = dot(v1v3, v1v3);
+        float v2v3_dist_sq = dot(v2v3, v2v3);
+
+        float max_dist_sq = max(v1v2_dist_sq, max(v1v3_dist_sq, v2v3_dist_sq));
+        float min_dist_sq = min(v1v2_dist_sq, min(v1v3_dist_sq, v2v3_dist_sq));
+        if (max_dist_sq > min_dist_sq * cutoff_ratio_sq)
+          continue;
+      ##endif
 
         float3 area_vec = cross(v2 - v1, v3 - v1);
         float triangle_size2sq = dot(area_vec, area_vec);

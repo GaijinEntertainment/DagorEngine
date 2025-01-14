@@ -11,7 +11,7 @@ static constexpr ecs::ComponentDesc omni_light_es_comps[] =
   {ECS_HASH("omni_light"), ecs::ComponentTypeInfo<OmniLightEntity>()},
   {ECS_HASH("animchar"), ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>()},
   {ECS_HASH("light__force_max_light_radius"), ecs::ComponentTypeInfo<bool>()},
-//start of 18 ro components at [3]
+//start of 20 ro components at [3]
   {ECS_HASH("lightModTm"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("light__offset"), ecs::ComponentTypeInfo<Point3>()},
   {ECS_HASH("light__direction"), ecs::ComponentTypeInfo<Point3>()},
@@ -30,7 +30,9 @@ static constexpr ecs::ComponentDesc omni_light_es_comps[] =
   {ECS_HASH("animchar_render__enabled"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("light__affect_volumes"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("light__render_gpu_objects"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
-//start of 2 no components at [21]
+  {ECS_HASH("light__enable_lens_flares"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("light__approximate_static"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
+//start of 2 no components at [23]
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("light__use_box"), ecs::ComponentTypeInfo<bool>()}
 };
@@ -60,6 +62,8 @@ static void omni_light_es_all(const ecs::UpdateStageInfo &__restrict info, const
     , ECS_RO_COMP_OR(omni_light_es_comps, "animchar_render__enabled", bool(true))
     , ECS_RO_COMP_OR(omni_light_es_comps, "light__affect_volumes", bool(true))
     , ECS_RO_COMP_OR(omni_light_es_comps, "light__render_gpu_objects", bool(false))
+    , ECS_RO_COMP_OR(omni_light_es_comps, "light__enable_lens_flares", bool(false))
+    , ECS_RO_COMP_OR(omni_light_es_comps, "light__approximate_static", bool(false))
     );
   while (++comp != compE);
 }
@@ -69,9 +73,9 @@ static ecs::EntitySystemDesc omni_light_es_es_desc
   "prog/daNetGame/render/fx/lightES.cpp.inl",
   ecs::EntitySystemOps(omni_light_es_all),
   make_span(omni_light_es_comps+0, 3)/*rw*/,
-  make_span(omni_light_es_comps+3, 18)/*ro*/,
+  make_span(omni_light_es_comps+3, 20)/*ro*/,
   empty_span(),
-  make_span(omni_light_es_comps+21, 2)/*no*/,
+  make_span(omni_light_es_comps+23, 2)/*no*/,
   ecs::EventSetBuilder<>::build(),
   (1<<ecs::UpdateStageInfoAct::STAGE)
 ,"render",nullptr,"*");
@@ -101,7 +105,7 @@ static constexpr ecs::ComponentDesc spot_light_es_comps[] =
   {ECS_HASH("spot_light"), ecs::ComponentTypeInfo<SpotLightEntity>()},
   {ECS_HASH("animchar"), ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>()},
   {ECS_HASH("light__force_max_light_radius"), ecs::ComponentTypeInfo<bool>()},
-//start of 19 ro components at [3]
+//start of 21 ro components at [3]
   {ECS_HASH("lightModTm"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("light__offset"), ecs::ComponentTypeInfo<Point3>()},
   {ECS_HASH("light__texture_name"), ecs::ComponentTypeInfo<ecs::string>()},
@@ -121,7 +125,9 @@ static constexpr ecs::ComponentDesc spot_light_es_comps[] =
   {ECS_HASH("light__affect_volumes"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("spot_light__contact_shadows"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("light__render_gpu_objects"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
-//start of 1 no components at [22]
+  {ECS_HASH("light__enable_lens_flares"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("light__approximate_static"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
+//start of 1 no components at [24]
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()}
 };
 static void spot_light_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
@@ -151,6 +157,8 @@ static void spot_light_es_all(const ecs::UpdateStageInfo &__restrict info, const
     , ECS_RO_COMP_OR(spot_light_es_comps, "light__affect_volumes", bool(true))
     , ECS_RO_COMP_OR(spot_light_es_comps, "spot_light__contact_shadows", bool(false))
     , ECS_RO_COMP_OR(spot_light_es_comps, "light__render_gpu_objects", bool(false))
+    , ECS_RO_COMP_OR(spot_light_es_comps, "light__enable_lens_flares", bool(false))
+    , ECS_RO_COMP_OR(spot_light_es_comps, "light__approximate_static", bool(false))
     );
   while (++comp != compE);
 }
@@ -160,9 +168,9 @@ static ecs::EntitySystemDesc spot_light_es_es_desc
   "prog/daNetGame/render/fx/lightES.cpp.inl",
   ecs::EntitySystemOps(spot_light_es_all),
   make_span(spot_light_es_comps+0, 3)/*rw*/,
-  make_span(spot_light_es_comps+3, 19)/*ro*/,
+  make_span(spot_light_es_comps+3, 21)/*ro*/,
   empty_span(),
-  make_span(spot_light_es_comps+22, 1)/*no*/,
+  make_span(spot_light_es_comps+24, 1)/*no*/,
   ecs::EventSetBuilder<>::build(),
   (1<<ecs::UpdateStageInfoAct::STAGE)
 ,"render",nullptr,"*");
@@ -224,7 +232,7 @@ static ecs::EntitySystemDesc shadows_quality_changed_es_es_desc
   empty_span(),
   ecs::EventSetBuilder<OnRenderSettingsReady>::build(),
   0
-,"render","render_settings__shadowsQuality");
+,"render","render_settings__shadowsQuality",nullptr,"init_shadows_es");
 static constexpr ecs::ComponentDesc update_omni_light_es_comps[] =
 {
 //start of 4 rw components at [0]
@@ -232,7 +240,7 @@ static constexpr ecs::ComponentDesc update_omni_light_es_comps[] =
   {ECS_HASH("light__automatic_box"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("light__force_max_light_radius"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("light__box"), ecs::ComponentTypeInfo<TMatrix>()},
-//start of 22 ro components at [4]
+//start of 24 ro components at [4]
   {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("light__use_box"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("light__offset"), ecs::ComponentTypeInfo<Point3>()},
@@ -252,6 +260,8 @@ static constexpr ecs::ComponentDesc update_omni_light_es_comps[] =
   {ECS_HASH("light__affect_volumes"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("light__render_gpu_objects"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("light__is_paused"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("light__enable_lens_flares"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("light__approximate_static"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("animchar"), ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("lightModTm"), ecs::ComponentTypeInfo<TMatrix>(), ecs::CDF_OPTIONAL}
@@ -284,6 +294,8 @@ static void update_omni_light_es_all_events(const ecs::Event &__restrict evt, co
     , ECS_RO_COMP_OR(update_omni_light_es_comps, "light__affect_volumes", bool(true))
     , ECS_RO_COMP_OR(update_omni_light_es_comps, "light__render_gpu_objects", bool(false))
     , ECS_RO_COMP_OR(update_omni_light_es_comps, "light__is_paused", bool(false))
+    , ECS_RO_COMP_OR(update_omni_light_es_comps, "light__enable_lens_flares", bool(false))
+    , ECS_RO_COMP_OR(update_omni_light_es_comps, "light__approximate_static", bool(false))
     , ECS_RO_COMP_PTR(update_omni_light_es_comps, "transform", TMatrix)
     , ECS_RO_COMP_PTR(update_omni_light_es_comps, "animchar", AnimV20::AnimcharBaseComponent)
     , ECS_RO_COMP_PTR(update_omni_light_es_comps, "lightModTm", TMatrix)
@@ -296,7 +308,7 @@ static ecs::EntitySystemDesc update_omni_light_es_es_desc
   "prog/daNetGame/render/fx/lightES.cpp.inl",
   ecs::EntitySystemOps(nullptr, update_omni_light_es_all_events),
   make_span(update_omni_light_es_comps+0, 4)/*rw*/,
-  make_span(update_omni_light_es_comps+4, 22)/*ro*/,
+  make_span(update_omni_light_es_comps+4, 24)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<BeforeLoadLevel,
@@ -373,7 +385,7 @@ static constexpr ecs::ComponentDesc update_spot_light_es_comps[] =
 //start of 2 rw components at [0]
   {ECS_HASH("spot_light"), ecs::ComponentTypeInfo<SpotLightEntity>()},
   {ECS_HASH("light__force_max_light_radius"), ecs::ComponentTypeInfo<bool>()},
-//start of 23 ro components at [2]
+//start of 25 ro components at [2]
   {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("light__offset"), ecs::ComponentTypeInfo<Point3>()},
   {ECS_HASH("light__texture_name"), ecs::ComponentTypeInfo<ecs::string>()},
@@ -396,7 +408,9 @@ static constexpr ecs::ComponentDesc update_spot_light_es_comps[] =
   {ECS_HASH("light__is_paused"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("animchar"), ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>(), ecs::CDF_OPTIONAL},
-  {ECS_HASH("lightModTm"), ecs::ComponentTypeInfo<TMatrix>(), ecs::CDF_OPTIONAL}
+  {ECS_HASH("lightModTm"), ecs::ComponentTypeInfo<TMatrix>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("light__enable_lens_flares"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("light__approximate_static"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL}
 };
 static void update_spot_light_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -428,6 +442,8 @@ static void update_spot_light_es_all_events(const ecs::Event &__restrict evt, co
     , ECS_RO_COMP_PTR(update_spot_light_es_comps, "transform", TMatrix)
     , ECS_RO_COMP_PTR(update_spot_light_es_comps, "animchar", AnimV20::AnimcharBaseComponent)
     , ECS_RO_COMP_PTR(update_spot_light_es_comps, "lightModTm", TMatrix)
+    , ECS_RO_COMP_OR(update_spot_light_es_comps, "light__enable_lens_flares", bool(false))
+    , ECS_RO_COMP_OR(update_spot_light_es_comps, "light__approximate_static", bool(false))
     );
   while (++comp != compE);
 }
@@ -437,7 +453,7 @@ static ecs::EntitySystemDesc update_spot_light_es_es_desc
   "prog/daNetGame/render/fx/lightES.cpp.inl",
   ecs::EntitySystemOps(nullptr, update_spot_light_es_all_events),
   make_span(update_spot_light_es_comps+0, 2)/*rw*/,
-  make_span(update_spot_light_es_comps+2, 23)/*ro*/,
+  make_span(update_spot_light_es_comps+2, 25)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<BeforeLoadLevel,

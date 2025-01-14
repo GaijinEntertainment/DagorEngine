@@ -78,13 +78,18 @@ water_reflection_tex:i=1
 brdf_type:i=0
 water_ripples_normal:i=1
 plod_gen:i=0
+water_rt_enabled:i=0
 water_distant
 {
   water_tess_factor:i=0
   projected_on_water_effects_tex:i=0
   water_heightmap_pages:i=0
   water_flowmap_tex:i=0
-  water_refraction_tex:i=0
+  // The result of these two assumes is that neither water reflections nor static shadows get sampled in code.
+  water_reflection_tex:i=0
+  water_rt_enabled:i=1
+  water_vs_cascades:i=0
+  wfx_effects_tex_enabled:i=0
 }
 water_depth_distant
 {
@@ -114,7 +119,6 @@ dynamic_texture_hdr_pass:i=0 // Only needed if dynamic mirrors are rendered
 xray_camera_relative_skinning:i=0
 use_satellite_rendering:i=0
 allow_satellite_rendering:i=0
-rtsm_denoised_tex:i=0
 blend_apply_skies:i = 0
 apply_sky_src_depth:i = 0
 num_of_cascades:i=4
@@ -124,3 +128,4 @@ ssr_denoiser_type:i=0
 ds_motion_vectors_with_z:i=1
 detect_cockpit_by_distance:i=0
 clouds_panorama_split:i=0
+has_hero_matrix:i=1

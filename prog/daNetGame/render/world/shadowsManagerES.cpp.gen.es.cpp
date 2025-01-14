@@ -62,6 +62,29 @@ static ecs::EntitySystemDesc update_world_bbox_es_es_desc
                        ecs::EventComponentsAppear>::build(),
   0
 ,nullptr,nullptr,nullptr,"rendinst_move_es,rendinst_with_handle_move_es");
+static constexpr ecs::ComponentDesc init_shadows_es_comps[] =
+{
+//start of 1 rq components at [0]
+  {ECS_HASH("render_settings__shadowsQuality"), ecs::ComponentTypeInfo<ecs::string>()}
+};
+static void init_shadows_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_UNUSED(components);
+  init_shadows_es(evt
+        );
+}
+static ecs::EntitySystemDesc init_shadows_es_es_desc
+(
+  "init_shadows_es",
+  "prog/daNetGame/render/world/shadowsManagerES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, init_shadows_es_all_events),
+  empty_span(),
+  empty_span(),
+  make_span(init_shadows_es_comps+0, 1)/*rq*/,
+  empty_span(),
+  ecs::EventSetBuilder<OnRenderSettingsReady>::build(),
+  0
+,"render","render_settings__shadowsQuality");
 static constexpr ecs::ComponentDesc use_rgba_fmt_ecs_query_comps[] =
 {
 //start of 1 ro components at [0]

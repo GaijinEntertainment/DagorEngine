@@ -24,7 +24,7 @@ __forceinline pool_index get_node_pool(mat44f_cref node);
 __forceinline uint32_t get_node_flags(mat44f_cref node);
 __forceinline uint32_t check_node_flags(mat44f_cref node, const uint32_t flag); // if flag is compile time const, it is faster than
                                                                                 // (get_node_flags(m)&flag)
-__forceinline const float &get_node_bsphere_rad(mat44f_cref node);
+__forceinline float get_node_bsphere_rad(mat44f_cref node);
 __forceinline vec4f get_node_bsphere_vrad(mat44f_cref node);
 __forceinline vec4f get_node_bsphere(mat44f_cref node);
 __forceinline uint32_t &get_node_pool_flags_ref(mat44f &node);
@@ -107,7 +107,7 @@ public:
   template <bool use_flags, bool use_pools, bool use_occlusion, typename VisibleNodesFunctor>
   inline // VisibleNodesFunctor(scene::node_index, mat44f_cref, vec4f distsqScale)
     void
-    frustumCull(mat44f_cref globtm, vec4f pos_distscale, uint32_t test_flags, uint32_t equal_flags, Occlusion *occlusion,
+    frustumCull(mat44f_cref globtm, vec4f pos_distscale, uint32_t test_flags, uint32_t equal_flags, const Occlusion *occlusion,
       VisibleNodesFunctor visible_nodes) const;
 
   template <bool use_flags, bool use_pools, typename VisibleNodesFunctor> // VisibleNodesFunctor(scene::node_index, mat44f_cref)
@@ -227,7 +227,7 @@ __forceinline uint32_t scene::check_node_flags(mat44f_cref node, const uint32_t 
 
 inline vec4f scene::get_node_bsphere_vrad(mat44f_cref node) { return v_splat_w(node.col3); }
 
-inline const float &scene::get_node_bsphere_rad(mat44f_cref node) { return ((float *)(char *)&node.col3)[3]; }
+inline float scene::get_node_bsphere_rad(mat44f_cref node) { return v_extract_w(node.col3); }
 
 inline vec4f scene::get_node_bsphere(mat44f_cref node)
 {
@@ -379,7 +379,7 @@ void scene::SimpleScene::nodesInRange(vec4f pos_distscale, uint32_t test_flags, 
 
 template <bool use_flags, bool use_pools, bool use_occlusion, typename VisibleNodesFunctor> // CulledContainer has to have push_back
 void scene::SimpleScene::frustumCull(mat44f_cref globtm, vec4f pos_distscale, uint32_t test_flags, uint32_t equal_flags,
-  Occlusion *occlusion, VisibleNodesFunctor visible_nodes) const
+  const Occlusion *occlusion, VisibleNodesFunctor visible_nodes) const
 {
   if (use_occlusion)
   {

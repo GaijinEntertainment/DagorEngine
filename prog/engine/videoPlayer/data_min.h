@@ -16,6 +16,7 @@ struct VideoPlaybackData
     d3d::EventQuery *ev;
   };
   GenRingBuffer<OneFrame, 32> vBuf;
+  d3d::SamplerHandle sampler;
 
 public:
   void initBuffers(int q_depth) { vBuf.clear(q_depth); }
@@ -70,10 +71,13 @@ public:
       texName[0] = 'v';
       b.texIdV = register_managed_tex(texName, b.texV);
 
-      b.texY->texaddr(TEXADDR_CLAMP);
-      b.texU->texaddr(TEXADDR_CLAMP);
-      b.texV->texaddr(TEXADDR_CLAMP);
+      b.texY->disableSampler();
+      b.texU->disableSampler();
+      b.texV->disableSampler();
     }
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+    sampler = d3d::request_sampler(smpInfo);
     return true;
   }
 

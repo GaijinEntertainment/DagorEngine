@@ -21,6 +21,16 @@
 namespace drv3d_vulkan
 {
 
+struct ReorderedBufferCopy
+{
+  BufferRef src;
+  BufferRef dst;
+  uint32_t srcOffset;
+  uint32_t dstOffset;
+  uint32_t size;
+  uint32_t pass;
+};
+
 struct BufferFlushInfo
 {
   Buffer *buffer = nullptr;
@@ -124,6 +134,7 @@ struct RenderWork
 
   eastl::vector<BufferCopyInfo> orderedBufferUploads;
   eastl::vector<VkBufferCopy> orderedBufferUploadCopies;
+  eastl::vector<ReorderedBufferCopy> reorderedBufferCopies;
 
   eastl::vector<BufferCopyInfo> bufferDownloads;
   eastl::vector<VkBufferCopy> bufferDownloadCopies;
@@ -180,6 +191,7 @@ struct RenderWork
     size += CALC_VEC_BYTES(bindlessBufUpdates);
     size += CALC_VEC_BYTES(bindlessSamplerUpdates);
     size += CALC_VEC_BYTES(nativeRPDrawCounter);
+    size += CALC_VEC_BYTES(reorderedBufferCopies);
 #if D3D_HAS_RAY_TRACING && (VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query)
     size += CALC_VEC_BYTES(raytraceBuildRangeInfoKHRStore);
     size += CALC_VEC_BYTES(raytraceGeometryKHRStore);

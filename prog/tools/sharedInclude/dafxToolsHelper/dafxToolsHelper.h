@@ -137,7 +137,7 @@ inline void before_render_dafx(dafx::ContextId dafx_ctx, dafx::CullingId dafx_cu
   dafx::set_global_value(dafx_ctx, "target_size_rcp", &targetSizeRcp, 8);
   dafx::set_global_value(dafx_ctx, "zn_zfar", &znZfar, 16);
   dafx::set_global_value(dafx_ctx, "globtm", &globtm, 64);
-  dafx::set_global_value(dafx_ctx, "globtm_prev", &prevGlobTm, 64);
+  dafx::set_global_value(dafx_ctx, "globtm_sim", &prevGlobTm, 64);
   dafx::set_global_value(dafx_ctx, "view_dir_x", &itm.getcol(0), 12);
   dafx::set_global_value(dafx_ctx, "view_dir_y", &itm.getcol(1), 12);
   dafx::set_global_value(dafx_ctx, "view_dir_z", &itm.getcol(2), 12);

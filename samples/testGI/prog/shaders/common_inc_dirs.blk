@@ -24,6 +24,7 @@ incDir:t="../../../../prog/gameLibs/heightmap/shaders"
 incDir:t="../../../../prog/gameLibs/landMesh/shaders"
 incDir:t="../../../../prog/gameLibs/publicInclude/landMesh"
 incDir:t="../../../../prog/gameLibs/publicInclude/render"
+incDir:t="../../../../prog/gameLibs/publicInclude/daSkies2"
 
 incDir:t="../../../../prog/gameLibs/publicInclude/daSDF"
 incDir:t="../../../../prog/gameLibs/heightmap/shaders"

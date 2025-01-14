@@ -33,8 +33,8 @@
 
 #include <dag/dag_vector.h>
 #include <drv/3d/dag_commands.h>
+#include <drv/3d/dag_renderPass.h>
 #include <drv_returnAddrStore.h>
-#include <EASTL/fixed_vector.h>
 #include <EASTL/optional.h>
 #include <EASTL/unique_ptr.h>
 #include <osApiWrappers/dag_events.h>
@@ -45,10 +45,12 @@ struct FrameEvents;
 
 namespace drv3d_dx12
 {
+class RayTracePipeline;
 class Device;
 #if D3D_HAS_RAY_TRACING
 struct RaytraceAccelerationStructure;
 #endif
+
 
 constexpr uint32_t timing_history_length = 32;
 
@@ -62,8 +64,6 @@ inline ImageCopy make_whole_resource_copy_info()
 inline bool is_whole_resource_copy_info(const ImageCopy &copy) { return copy.srcSubresource == SubresourceIndex::make(~uint32_t{0}); }
 
 BufferImageCopy calculate_texture_subresource_copy_info(const Image &texture, uint32_t subresource_index = 0, uint64_t offset = 0);
-
-using TextureMipsCopyInfo = eastl::fixed_vector<BufferImageCopy, MAX_MIPMAPS, false>;
 
 TextureMipsCopyInfo calculate_texture_mips_copy_info(const Image &texture, uint32_t mip_levels, uint32_t array_slice = 0,
   uint32_t array_size = 1, uint64_t initial_offset = 0);
@@ -169,6 +169,7 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     ForwardRing<FrameInfo, FRAME_FRAME_BACKLOG_LENGTH> frames;
     SignatureStore drawIndirectSignatures;
     SignatureStore drawIndexedIndirectSignatures;
+    SignatureStore dispatchRaySignatures;
     ComPtr<ID3D12CommandSignature> dispatchIndirectSignature;
     BarrierBatcher uploadBarrierBatch;
     BarrierBatcher postUploadBarrierBatch;
@@ -206,17 +207,19 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
       {
         return;
       }
-      activePipeline = active_pipeline;
-      if (ActivePipeline::Graphics == active_pipeline)
+      // switching either to graphics or RT
+      if (ActivePipeline::Graphics != activePipeline)
       {
         graphicsState.invalidateResourceStates();
         stageState[STAGE_VS].invalidateResourceStates();
         stageState[STAGE_PS].invalidateResourceStates();
       }
-      else // if (ActivePipeline::Compute == active_pipeline)
+      // switching either to compute or RT
+      if (ActivePipeline::Compute != activePipeline)
       {
         stageState[STAGE_CS].invalidateResourceStates();
       }
+      activePipeline = active_pipeline;
     }
 
     void onFlush()
@@ -398,10 +401,6 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void addComputePipeline(ProgramID id, ComputeShaderModule *csm, CSPreloaded preloaded);
     void addGraphicsPipeline(GraphicsProgramID program, ShaderID vs, ShaderID ps);
 #if D3D_HAS_RAY_TRACING
-    void addRaytracePipeline(ProgramID program, uint32_t max_recursion, uint32_t shader_count, const ShaderID *shaders,
-      uint32_t group_count, const RaytraceShaderGroup *groups);
-    void copyRaytraceShaderGroupHandlesToMemory(ProgramID program, uint32_t first_group, uint32_t group_count, uint32_t size,
-      void *ptr);
     void buildBottomAccelerationStructure(uint32_t batch_size, uint32_t batch_index,
       D3D12_RAYTRACING_GEOMETRY_DESC_ListRef::RangeType geometry_descriptions,
       RaytraceGeometryDescriptionBufferResourceReferenceSetListRef::RangeType resource_refs,
@@ -412,9 +411,6 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
       BufferResourceReferenceAndAddress instance_buffer, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS flags, bool update,
       RaytraceAccelerationStructure *dst, RaytraceAccelerationStructure *src, BufferResourceReferenceAndAddress scratch);
     void copyRaytracingAccelerationStructure(RaytraceAccelerationStructure *dst, RaytraceAccelerationStructure *src, bool compact);
-    void traceRays(BufferResourceReferenceAndRange ray_gen_table, BufferResourceReferenceAndRange miss_table,
-      BufferResourceReferenceAndRange hit_table, BufferResourceReferenceAndRange callable_table, uint32_t miss_stride,
-      uint32_t hit_stride, uint32_t callable_stride, uint32_t width, uint32_t height, uint32_t depth);
 #endif
     void continuePipelineSetCompilation() const;
     void finishFrame(uint64_t progress, Drv3dTimings *timing_data, int64_t kickoff_stamp, uint32_t latency_frame, uint32_t front_frame,
@@ -442,9 +438,6 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void flushRenderTargets();
     void flushRenderTargetStates();
     void dirtyTextureStateForFramebufferAttachmentUse(Image *texture);
-#if D3D_HAS_RAY_TRACING
-    void setRaytracePipeline(ProgramID program);
-#endif
     void setGraphicsPipeline(GraphicsProgramID program);
     void setComputePipeline(ProgramID program);
     void bindVertexUserData(HostDeviceSharedMemoryRegion bsa, uint32_t stride);
@@ -467,12 +460,7 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void updatePixelShaderName(ShaderID shader, StringIndexRef::RangeType name);
     void clearUAVTextureI(Image *image, ImageViewState view, D3D12_CPU_DESCRIPTOR_HANDLE view_descriptor, const uint32_t values[4]);
     void clearUAVTextureF(Image *image, ImageViewState view, D3D12_CPU_DESCRIPTOR_HANDLE view_descriptor, const float values[4]);
-    void setComputeRootConstant(uint32_t offset, uint32_t value);
-    void setVertexRootConstant(uint32_t offset, uint32_t value);
-    void setPixelRootConstant(uint32_t offset, uint32_t value);
-#if D3D_HAS_RAY_TRACING
-    void setRaytraceRootConstant(uint32_t offset, uint32_t value);
-#endif
+    void setRootConstants(unsigned stage, const RootConstatInfo &values);
     void registerStaticRenderState(StaticRenderStateID ident, const RenderStateSystem::StaticState &state);
     void beginVisibilityQuery(Query *q);
     void endVisibilityQuery(Query *q);
@@ -598,6 +586,15 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
       DynamicArray<cacheBlk::GraphicsVariantGroup> &&graphics_with_null_override_pipelines, ShaderID null_pixel_shader);
 
     void switchActivePipeline(ActivePipeline pipeline);
+
+#if D3D_HAS_RAY_TRACING
+    void applyRaytraceState(const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt,
+      UInt32ListRef::RangeType root_constants);
+    void dispatchRays(const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt,
+      UInt32ListRef::RangeType root_constants, const RayDispatchParameters &rdp);
+    void dispatchRaysIndirect(const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt,
+      UInt32ListRef::RangeType root_constants, const RayDispatchIndirectParameters &rdip);
+#endif
   };
 
 
@@ -672,6 +669,9 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
 #endif
   WIN_MEMBER bool isPresentSynchronous = false;
   WIN_MEMBER bool isWaitForASyncPresent = false;
+#if ENABLE_GENERIC_RENDER_PASS_VALIDATION
+  eastl::optional<RenderPassArea> activeRenderPassArea;
+#endif
 
   Frontend front;
   Backend back = {};
@@ -825,9 +825,8 @@ public:
   void blitImage(Image *src, Image *dst, const ImageBlit &region);
   void resolveMultiSampleImage(Image *src, Image *dst);
   void flushDraws();
-  // Similar to flushDraws, with the exception that it will only execute a flush when no queries are active.
-  // Returns true if it executed a flush, otherwise it returns false.
-  bool flushDrawWhenNoQueries();
+  void flushDrawsNoLock();
+  bool noActiveQueriesNoLock();
   void wait();
   void beginSurvey(int name);
   void endSurvey(int name);
@@ -863,10 +862,6 @@ public:
   void raytraceCopyAccelerationStructure(RaytraceAccelerationStructure *dst, RaytraceAccelerationStructure *src, bool compact);
   void deleteRaytraceBottomAccelerationStructure(RaytraceBottomAccelerationStructure *desc);
   void deleteRaytraceTopAccelerationStructure(RaytraceTopAccelerationStructure *desc);
-  void traceRays(BufferResourceReferenceAndRange ray_gen_table, BufferResourceReferenceAndRange miss_table, uint32_t miss_stride,
-    BufferResourceReferenceAndRange hit_table, uint32_t hit_stride, BufferResourceReferenceAndRange callable_table,
-    uint32_t callable_stride, uint32_t width, uint32_t height, uint32_t depth);
-  void setRaytracePipeline(ProgramID program);
   void setRaytraceAccelerationStructure(uint32_t stage, size_t unit, RaytraceAccelerationStructure *as);
 #endif
   void beginConditionalRender(int name);
@@ -881,13 +876,6 @@ public:
   void addComputeProgram(ProgramID id, eastl::unique_ptr<ComputeShaderModule> csm, CSPreloaded preloaded);
   void removeProgram(ProgramID program);
 
-#if D3D_HAS_RAY_TRACING
-  void addRaytraceProgram(ProgramID program, uint32_t max_recursion, uint32_t shader_count, const ShaderID *shaders,
-    uint32_t group_count, const RaytraceShaderGroup *groups);
-  void copyRaytraceShaderGroupHandlesToMemory(ProgramID prog, uint32_t first_group, uint32_t group_count, uint32_t size,
-    BufferResourceReference buffer, uint32_t offset);
-#endif
-
   void placeAftermathMarker(const char *name);
   void updateVertexShaderName(ShaderID shader, const char *name);
   void updatePixelShaderName(ShaderID shader, const char *name);
@@ -895,12 +883,9 @@ public:
   void setImageResourceStateNoLock(D3D12_RESOURCE_STATES state, ValueRange<ExtendedImageGlobalSubresourceId> range);
   void clearUAVTexture(Image *image, ImageViewState view, const unsigned values[4]);
   void clearUAVTexture(Image *image, ImageViewState view, const float values[4]);
-  void setComputeRootConstant(uint32_t offset, uint32_t size);
-  void setVertexRootConstant(uint32_t offset, uint32_t size);
-  void setPixelRootConstant(uint32_t offset, uint32_t size);
-#if D3D_HAS_RAY_TRACING
-  void setRaytraceRootConstant(uint32_t offset, uint32_t size);
-#endif
+  void setRootConstants(unsigned stage, eastl::span<const uint32_t> values);
+  void beginGenericRenderPassChecks(const RenderPassArea &renderPassArea);
+  void endGenericRenderPassChecks();
 #if _TARGET_PC_WIN
   void preRecovery();
   void recover(const dag::Vector<D3D12_CPU_DESCRIPTOR_HANDLE> &unbounded_samplers);
@@ -913,8 +898,8 @@ public:
   void freeMemoryOfUploadBuffer(HostDeviceSharedMemoryRegion allocation);
   void uploadToBuffer(BufferResourceReferenceAndRange target, HostDeviceSharedMemoryRegion memory, size_t m_offset);
   void readBackFromBuffer(HostDeviceSharedMemoryRegion memory, size_t m_offset, BufferResourceReferenceAndRange source);
-  void uploadToImage(Image *target, const BufferImageCopy *regions, uint32_t region_count, HostDeviceSharedMemoryRegion memory,
-    DeviceQueueType queue, bool is_discard);
+  void uploadToImage(const BaseTex &dst_tex, const BufferImageCopy *regions, uint32_t region_count,
+    HostDeviceSharedMemoryRegion memory, DeviceQueueType queue, bool is_discard);
   // Return value is the progress the caller can wait on to ensure completion of this operation
   uint64_t readBackFromImage(HostDeviceSharedMemoryRegion memory, const BufferImageCopy *regions, uint32_t region_count, Image *source,
     DeviceQueueType queue);
@@ -954,7 +939,7 @@ public:
   void setVariableRateShadingTexture(Image *texture);
 #endif
   void registerInputLayout(InputLayoutID ident, const InputLayout &layout);
-  void initStreamline(DXGIFactory **factory, IDXGIAdapter *adapter);
+  void initStreamline(ComPtr<DXGIFactory> &factory, DXGIAdapter *adapter);
   void initXeSS();
   void initFsr2();
   void initDLSS();
@@ -964,6 +949,9 @@ public:
   void shutdownDLSS();
   XessState getXessState() const { return xessWrapper.getXessState(); }
   Fsr2State getFsr2State() const { return fsr2Wrapper.getFsr2State(); }
+
+  void preRecoverStreamline();
+  void recoverStreamline(DXGIAdapter *adapter);
 
   template <typename T>
   T *getStreamlineFeature()
@@ -1100,6 +1088,19 @@ public:
     DynamicArray<StaticRenderStateIDWithHash> &&static_render_states, const DataBlock *output_formats_set,
     const DataBlock *compute_pipeline_set, const DataBlock *full_graphics_set, const DataBlock *null_override_graphics_set,
     const DataBlock *signature, const char *default_format, ShaderID null_pixel_shader);
+
+#if D3D_HAS_RAY_TRACING
+  void dispatchRays(const ::raytrace::ResourceBindingTable &rbt, const ::raytrace::Pipeline &pipeline,
+    const ::raytrace::RayDispatchParameters &rdv);
+  void dispatchRaysIndirect(const ::raytrace::ResourceBindingTable &rbt, const ::raytrace::Pipeline &pipeline,
+    const ::raytrace::RayDispatchIndirectParameters &rdip);
+  void dispatchRaysIndirectCount(const ::raytrace::ResourceBindingTable &rbt, const ::raytrace::Pipeline &pipeline,
+    const ::raytrace::RayDispatchIndirectCountParameters &rdicp);
+
+private:
+  drv3d_dx12::ResourceBindingTable resolveResourceBindingTable(const ::raytrace::ResourceBindingTable &rbt,
+    RayTracePipeline *pipeline);
+#endif
 };
 
 class ScopedCommitLock

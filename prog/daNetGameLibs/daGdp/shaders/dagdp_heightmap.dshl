@@ -1,23 +1,9 @@
-include "shader_global.dshl"
-include "heightmap_common.dshl"
-include "frustum.dshl"
 include "biomes.dshl"
-include "rendinst_heightmap_ofs.dshl"
-include "dagdp_common_placer.dshl"
-include "deform_hmap_common.dshl"
-include "heightmap_ofs.dshl"
-
-hlsl {
-  #include "dagdp_heightmap.hlsli"
-  #include "noise/uint_noise1D.hlsl"
-}
-
-hlsl(cs)
-{
-  #define NO_GRADIENTS_IN_SHADER 1
-}
+include "dagdp_common_heightmap.dshl"
 
 buffer dagdp__instance_data;
+buffer dagdp__dyn_allocs;
+buffer dagdp__dyn_counters;
 buffer dagdp__counters;
 
 buffer dagdp_heightmap__draw_ranges;
@@ -33,6 +19,7 @@ buffer dagdp_heightmap__indirect_args;
 buffer dagdp_heightmap__visible_tile_positions;
 
 texture dagdp_heightmap__density_mask;
+float4 dagdp_heightmap__density_mask_scale_offset;
 
 int dagdp_heightmap__num_renderables;
 int dagdp_heightmap__num_placeables;
@@ -89,26 +76,39 @@ shader dagdp_heightmap_cull_tiles
     tile_pos_delta@f1 = dagdp_heightmap__tile_pos_delta;
     max_placeable_bounding_radius@f1 = dagdp_heightmap__max_placeable_bounding_radius;
     num_tiles@i1 = dagdp_heightmap__num_tiles;
+    viewport_pos@f3 = dagdp_heightmap__viewport_pos;
+    viewport_max_distance@f1 = dagdp_heightmap__viewport_max_distance;
     viewport_index@i1 = dagdp_heightmap__viewport_index;
   }
 
   hlsl(cs)
   {
+    #define SQRT_1_2 0.70710678118
     #include "dagdp_heightmap.hlsli"
     [numthreads(TILE_COUNT_PER_GROUP, 1, 1)]
-    void main(uint3 dtId : SV_DispatchThreadID)
+    void main(uint dtId : SV_DispatchThreadID)
     {
-      if (dtId.x < num_tiles)
+      BRANCH
+      if (dtId == 0)
       {
-        int2 tileIntPos = structuredBufferAt(tile_positions, dtId.x);
-        float2 tilePosXZ = base_tile_pos_xz + tile_pos_delta * tileIntPos;
-        float3 tilePos = float3(tilePosXZ.x, getWorldHeight(tilePosXZ), tilePosXZ.y) - max_placeable_bounding_radius;
-        float3 tileSize = float3(tile_pos_delta, 0, tile_pos_delta) + 2*max_placeable_bounding_radius;
+        storeBuffer(indirect_args, viewport_index * DISPATCH_INDIRECT_BYTE_SIZE + 4, 1);
+        storeBuffer(indirect_args, viewport_index * DISPATCH_INDIRECT_BYTE_SIZE + 8, 1);
+      }
 
-        // For full correctness, the height of the bbox tile should probably be tied to the y view position.
-        if (testBoxB(tilePos, tilePos + tileSize))
+      BRANCH
+      if (dtId < num_tiles)
+      {
+        const int2 tileIntPos = structuredBufferAt(tile_positions, dtId);
+        const float2 tilePosXZ = base_tile_pos_xz + tile_pos_delta * tileIntPos;
+        const float distXZ = max(0.0, distance(viewport_pos.xz, tilePosXZ + 0.5 * tile_pos_delta) - tile_pos_delta * SQRT_1_2); // Lower bound of horizontal distance to tile.
+        const float yRange = sqrt(viewport_max_distance * viewport_max_distance - distXZ * distXZ); // Higher bound of Y viewport range for the tile.
+        const float3 tilePos = float3(tilePosXZ.x, viewport_pos.y - yRange, tilePosXZ.y);
+        const float3 tileSize = float3(tile_pos_delta, 2.0 * yRange, tile_pos_delta);
+
+        BRANCH
+        if (testBoxB(tilePos - max_placeable_bounding_radius, tilePos + tileSize + 2.0 * max_placeable_bounding_radius))
         {
-          uint tileIdx = 0;
+          uint tileIdx;
           indirect_args.InterlockedAdd(viewport_index * DISPATCH_INDIRECT_BYTE_SIZE, 1, tileIdx);
           storeBuffer2(visible_tile_positions, tileIdx * TILE_POSITION_BYTE_SIZE, tileIntPos);
         }
@@ -118,7 +118,7 @@ shader dagdp_heightmap_cull_tiles
   compile("target_cs", "main");
 }
 
-shader dagdp_heightmap_place
+shader dagdp_heightmap_place, dagdp_heightmap_place_stage0, dagdp_heightmap_place_stage1
 {
   ENABLE_ASSERT(cs)
 
@@ -127,8 +127,26 @@ shader dagdp_heightmap_place
       RWBuffer<float4> instance_data@uav;
     }
 
-    counters@uav = dagdp__counters hlsl {
-      RWStructuredBuffer<uint> counters@uav;
+    if (shader == dagdp_heightmap_place)
+    {
+      counters@uav = dagdp__counters hlsl {
+        RWStructuredBuffer<uint> counters@uav;
+      }
+
+      instance_regions@buf = dagdp_heightmap__instance_regions hlsl {
+        StructuredBuffer<uint2> instance_regions@buf;
+      }
+    }
+    else
+    {
+      dyn_counters@uav = dagdp__dyn_counters hlsl {
+        RWStructuredBuffer<uint> dyn_counters@uav;
+      }
+
+      dyn_allocs@buf = dagdp__dyn_allocs hlsl {
+        #include "dagdp_common.hlsli"
+        StructuredBuffer<DynAlloc> dyn_allocs@buf;
+      }
     }
 
     draw_ranges@buf = dagdp_heightmap__draw_ranges hlsl {
@@ -146,10 +164,6 @@ shader dagdp_heightmap_place
 
     renderable_indices@buf = dagdp_heightmap__renderable_indices hlsl {
       StructuredBuffer<uint> renderable_indices@buf;
-    }
-
-    instance_regions@buf = dagdp_heightmap__instance_regions hlsl {
-      StructuredBuffer<uint2> instance_regions@buf;
     }
 
     placeable_tile_limits@buf = dagdp_heightmap__placeable_tile_limits hlsl {
@@ -171,6 +185,7 @@ shader dagdp_heightmap_place
 
     density_mask@smp2d = dagdp_heightmap__density_mask;
     density_mask_exists@i1 = (exists_tex(dagdp_heightmap__density_mask));
+    density_mask_scale_offset@f4 = dagdp_heightmap__density_mask_scale_offset;
 
     num_renderables@i1 = dagdp_heightmap__num_renderables;
     num_placeables@i1 = dagdp_heightmap__num_placeables;
@@ -180,6 +195,7 @@ shader dagdp_heightmap_place
     tile_pos_delta@f1 = dagdp_heightmap__tile_pos_delta;
     instance_pos_delta@f1 = dagdp_heightmap__instance_pos_delta;
     debug_frustum_culling_bias@f1 = dagdp_heightmap__debug_frustum_culling_bias;
+    water_level@f1 = water_level;
 
     prng_seed_jitter_x@i1 = dagdp_heightmap__prng_seed_jitter_x;
     prng_seed_jitter_z@i1 = dagdp_heightmap__prng_seed_jitter_z;
@@ -201,34 +217,9 @@ shader dagdp_heightmap_place
     viewport_instance_offset@i1 = dagdp_heightmap__viewport_instance_offset;
   }
 
-  INIT_WORLD_HEIGHTMAP(cs)
-  USE_HEIGHTMAP_COMMON(cs)
-  INIT_AND_USE_FRUSTUM_CHECK_BASE(cs)
   INIT_BIOMES(cs)
   USE_BIOMES(cs)
-  INIT_RENDINST_HEIGHTMAP_OFS(cs)
-  USE_RENDINST_HEIGHTMAP_OFS(cs)
-  INIT_HMAP_HOLES(cs)
-  USE_HMAP_HOLES(cs)
-
-  hlsl(cs) {
-    // Used with different semantics (aliased, non-overlapping):
-    // 1) thread bits per renderable (64 * 2 uint values)
-    // 2) base instance index (64 uint values)
-    groupshared uint g_storage[TILE_INSTANCE_COUNT * 2];
-
-    // TODO: can this be eliminated by reusing g_storage?
-    groupshared uint g_cond;
-  }
-
-  INIT_DAGDP_COMMON()
-  INIT_DAGDP_COMMON_PLACER()
-  INIT_DAGDP_COMMON_PLACER_THREADGROUP(TILE_INSTANCE_COUNT, g_storage, g_cond, true)
-
-  INIT_DEFORM_HMAP(cs)
-  USE_DEFORM_HMAP(cs)
-  INIT_HEIGHTMAP_OFS(cs)
-  USE_HEIGHTMAP_OFS(cs)
+  USE_DAGDP_COMMON_HEIGHTMAP(shader != dagdp_heightmap_place, shader == dagdp_heightmap_place_stage1)
 
   hlsl(cs) {
     float getDensityFromMask(float2 worldXZ, int channelToUse)
@@ -237,7 +228,7 @@ shader dagdp_heightmap_place
       if (channelToUse < 0 || channelToUse > 3 || !density_mask_exists)
         return 1.0;
 
-      float2 tc = worldXZ * world_to_hmap_low.xy + world_to_hmap_low.zw;
+      float2 tc = worldXZ * density_mask_scale_offset.xy + density_mask_scale_offset.zw;
       float4 densities = tex2Dlod(density_mask, float4(tc, 0, 0));
       return densities[channelToUse];
     }
@@ -245,61 +236,45 @@ shader dagdp_heightmap_place
     [numthreads(1, TILE_INSTANCE_COUNT, 1)]
     void main(uint3 dtId : SV_DispatchThreadID, uint3 tId : SV_GroupThreadID)
     {
+      ##if shader == dagdp_heightmap_place_stage1
+        const bool isEarlyExit = structuredBufferAt(dyn_counters, DYN_COUNTERS_INDEX_SKIP_PESSIMISTIC_PLACEMENT) != 0;
+        ##if hardware.dx11
+          // Work around compiler assuming varying flow control.
+          BRANCH
+          if (threadGroupAnyTrue(isEarlyExit, tId.y))
+            return;
+        ##else
+          BRANCH
+          if (isEarlyExit)
+            return;
+        ##endif
+      ##endif
+
       // XZ position inside the tile.
-      uint2 instanceIntPos = uint2(dtId.y / TILE_INSTANCE_COUNT_1D, dtId.y % TILE_INSTANCE_COUNT_1D);
+      const uint2 instanceIntPos = uint2(dtId.y / TILE_INSTANCE_COUNT_1D, dtId.y % TILE_INSTANCE_COUNT_1D);
 
       // XZ position of the tile itself.
-      int2 tileIntPos = loadBuffer2(visible_tile_positions, dtId.x * TILE_POSITION_BYTE_SIZE);
+      const int2 tileIntPos = loadBuffer2(visible_tile_positions, dtId.x * TILE_POSITION_BYTE_SIZE);
 
-      float2 randPosJitter = 0.5 + grid_jitter * (float2(stableRand(instanceIntPos, prng_seed_jitter_x), stableRand(instanceIntPos, prng_seed_jitter_z)) - 0.5);
-      float3 instancePos;
-      instancePos.xz = base_tile_pos_xz + tile_pos_delta * tileIntPos + instance_pos_delta * (instanceIntPos + randPosJitter);
+      const int2 stablePos = (base_tile_int_pos_xz + tileIntPos) * TILE_INSTANCE_COUNT_1D + int2(instanceIntPos);
+      const float2 randPosJitter = 0.5 + grid_jitter * (float2(stableRand(stablePos, prng_seed_jitter_x), stableRand(stablePos, prng_seed_jitter_z)) - 0.5);
+      const float2 instancePosXZ = base_tile_pos_xz + tile_pos_delta * tileIntPos + instance_pos_delta * (instanceIntPos + randPosJitter);
 
-      float3 surfaceNormal = getWorldNormal(instancePos);
-      float3 displacement = surfaceNormal * get_hmap_ofs_no_vignette(instancePos.xz);
-      instancePos.xz += displacement.xz;
-
-      // TODO: Performance: getWorldHeight, getWorldNormal, isInsideHeightmap
-      // have redundant computations inside, some of which can be eliminated.
-      instancePos.y = getWorldHeight(instancePos.xz) + displacement.y;
-
-      float originalY = instancePos.y;
-      float topY = instancePos.y;
-      apply_renderinst_hmap_ofs(instancePos.xz, topY); // topY >= originalY
-      // TODO: apply_renderinst_hmap_ofs can lead to incorrect getWorldNormal.
-
-      float deformHeight = 0;
-      if (topY == originalY)
-      {
-        deformHeight = getDeformHeight(instancePos, world_to_hmap_tex_ofs.z);
-        instancePos.y += deformHeight;
-        originalY = instancePos.y;
-        topY = instancePos.y;
-      }
+      PlacementDetails pd;
+      initPlacementDetails(instancePosXZ, pd);
 
       FLATTEN
       if (!lower_level)
-        instancePos.y = topY;
+        pd.position.y = pd.topY;
 
       uint variantIndex = ~0u;
-      int biomeIndex = getBiomeIndex(instancePos);
+      const int biomeIndex = getBiomeIndex(pd.position);
 
       FLATTEN
       if (biomeIndex < num_biomes)
         variantIndex = structuredBufferAt(biomes, biomeIndex);
 
-      bool isViewportDistanceOk = distance(instancePos, viewport_pos) - max_placeable_bounding_radius < viewport_max_distance;
-      bool isHeightmapOk = isInsideHeightmap(instancePos.xz);
-      bool isFrustumOk = testSphereB(instancePos, max_placeable_bounding_radius + debug_frustum_culling_bias);
-      bool isHolesOk = !checkHeightmapHoles(instancePos);
-      bool isVisible = isViewportDistanceOk && isHeightmapOk && isFrustumOk && isHolesOk && (variantIndex != ~0u);
-
-      BRANCH
-      if (!threadGroupAnyTrue(isVisible, tId.y)) // Whole tile is culled, can safely exit.
-        return;
-
       uint placeableIndex = ~0u;
-      int2 stablePos = (base_tile_int_pos_xz + tileIntPos) * TILE_INSTANCE_COUNT_1D + int2(instanceIntPos);
 
       VariantGpuData variant;
       FLATTEN
@@ -314,59 +289,21 @@ shader dagdp_heightmap_place
       if (placeableIndex != ~0u)
       {
         placeable = structuredBufferAt(placeables, placeableIndex);
-        bool isSlopeOk = checkSlope(placeable.slopeFactor, placeable.flags, surfaceNormal, stableRand(stablePos, prng_seed_slope));
-        bool isYOk =
-          (placeable.flags & HEIGHTMAP_IMITATORS_ARE_REJECTED_BIT) ? (instancePos.y == originalY) && !lower_level :
-          (placeable.flags & HEIGHTMAP_IMITATORS_ARE_REQUIRED_BIT) ? (instancePos.y != originalY) && !lower_level :
-          (instancePos.y == topY) ^ lower_level;
-        bool deletedByHmapDeform = !(placeable.flags & PERSIST_ON_HEIGHTMAP_DEFORM_BIT) && deformHeight < -0.01;
-        bool densityMaskRandomValueCheck = getDensityFromMask(instancePos.xz, GET_DENSITY_MASK_CHANNEL(placeable.flags)) > stableRand(stablePos, prng_seed_density);
+
+        const bool isDensityMaskOk = getDensityFromMask(pd.position.xz, GET_DENSITY_MASK_CHANNEL(placeable.flags)) > stableRand(stablePos, prng_seed_density);
 
         FLATTEN
-        if (!isSlopeOk || !isYOk || deletedByHmapDeform || !densityMaskRandomValueCheck)
+        if (!isDensityMaskOk)
           placeableIndex = ~0u;
       }
+
+      adjustPlacement(placeableIndex, placeable, stablePos, pd);
 
       BRANCH
       if (!threadGroupAnyTrue(placeableIndex != ~0u, tId.y)) // Whole tile is culled, can safely exit.
         return;
 
-      float randScale = lerp(placeable.scaleMin, placeable.scaleMax, stableRand(stablePos, prng_seed_scale));
-      uint renderableIndex = getRenderableIndex(variant, placeableIndex, instancePos, viewport_pos, randScale, isVisible);
-      SamePlaceableInfo pInfo = getSamePlaceableInfo(placeableIndex, tId.y);
-
-      // Disallow more than the specified # of instances per tile.
-      bool isInsideTileLimit = pInfo.offset < pInfo.count;
-
-      FLATTEN
-      if (!isInsideTileLimit)
-        renderableIndex = ~0u;
-
-      bool isPlaced = renderableIndex != ~0u;
-      SameRenderableInfo rInfo = getSameRenderableInfo(renderableIndex, tId.y);
-
-      BRANCH
-      if (isPlaced && (rInfo.baseThreadId == tId.y))
-      {
-        uint counterIndex = getCounterIndex(renderableIndex, viewport_index, num_renderables);
-        ##assert(rInfo.offset == 0, "must be zero for base thread");
-        uint baseInstanceOffset;
-        InterlockedAdd(structuredBufferAt(counters, counterIndex), rInfo.count, baseInstanceOffset);
-        g_storage[tId.y] = baseInstanceOffset;
-      }
-
-      GroupMemoryBarrierWithGroupSync();
-
-      BRANCH
-      if (isPlaced)
-      {
-        uint2 instanceRegion = structuredBufferAt(instance_regions, renderableIndex);
-        uint baseInstanceOffset = g_storage[rInfo.baseThreadId];
-        uint instanceElementOffset = 4 * (viewport_instance_offset + instanceRegion.x + baseInstanceOffset + rInfo.offset); // TODO: float4, float4x3
-        ##assert(baseInstanceOffset + rInfo.offset < instanceRegion.y, "Instance region out of bounds");
-
-        writeInstance(placeable, instancePos, surfaceNormal, stablePos, randScale, instanceElementOffset);
-      }
+      finishPlacement(tId.y, stablePos, pd, placeableIndex, placeable, variant);
     }
   }
   compile("target_cs", "main");

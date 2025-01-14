@@ -37,6 +37,7 @@ public:
   using SimpleScene::getNode;
   using SimpleScene::getNodeFlags;
   using SimpleScene::getNodePool;
+  using SimpleScene::getPoolSphereRad;
   using SimpleScene::isAliveNode;
   using TiledScene::allocate;
   using TiledScene::boxCull;

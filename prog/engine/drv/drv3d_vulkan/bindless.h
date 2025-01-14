@@ -72,7 +72,7 @@ public:
   uint32_t getActiveBindlessSetCount() const;
 
   void advance();
-  void bindSets(ExecutionContext &target, VkPipelineBindPoint bindPoint, VulkanPipelineLayoutHandle pipelineLayout);
+  void bindSets(VkPipelineBindPoint bindPoint, VulkanPipelineLayoutHandle pipelineLayout);
 
 private:
   void createBindlessLayout(const VulkanDevice &device, VkDescriptorType descriptorType, uint32_t descriptorCount,

@@ -102,6 +102,7 @@ lens_flare_config {
     }
 }
 
+// Entities of this type will create a lens flare based on the sun's direction and color
 sun_lens_flare {
     _tags:t="render"
 
@@ -112,4 +113,20 @@ sun_lens_flare {
 
     sun_flare_provider__cached_id:i=-1
     sun_flare_provider__cached_flare_config_id:i=-1
+}
+
+// This entity is a global configuration for all dynamic lights, which has the flares enabled.
+// Currently there is no way to have multiple configs and use them for different lights.
+// Enable this flare config on a light entity by setting:
+//   light__enable_lens_flares:b=yes
+dynamic_light_lens_flare {
+  _tags:t="render"
+  _singleton:b=true
+
+  _tracked:t="dynamic_light_lens_flare__flare_config"
+
+  dynamic_light_lens_flare__flare_config:t=""
+
+  dynamic_light_lens_flare__cached_id:i=-1
+  dynamic_light_lens_flare__cached_flare_config_id:i=-1
 }

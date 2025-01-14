@@ -6,12 +6,9 @@ hlsl{
 include "shader_global.dshl"
 include "viewVecVS.dshl"
 include "gbuffer.dshl"
-include "reprojected_motion_vectors.dshl"
-include "taa_inc.dshl"
-include "hero_matrix_inc.dshl"
+include "motion_vector_access.dshl"
 
 include "tsr.inc.dshl"
-include "tsr_game.dshl"
 
 shader tsr_cs
 {
@@ -28,11 +25,11 @@ shader tsr_cs
   INIT_READ_DEPTH_GBUFFER_BASE(cs)
   USE_READ_DEPTH_GBUFFER_BASE(cs)
 
-  INIT_REPROJECTED_MOTION_VECTORS(cs)
-  USE_REPROJECTED_MOTION_VECTORS(cs)
+  INIT_READ_DYNAMIC_FLAG(cs)
+  USE_READ_DYNAMIC_FLAG(cs)
 
-  INIT_HERO_MATRIX(cs)
-  USE_HERO_MATRIX(cs)
+  INIT_FETCH_MOTION_VECTOR(cs, resolved)
+  USE_FETCH_MOTION_VECTOR(cs, resolved)
 
   (cs)
   {
@@ -68,8 +65,6 @@ shader tsr_cs
     upsamplingRatio@f2 = (tsr_output_resolution.x/tsr_input_resolution.x, tsr_output_resolution.y/tsr_input_resolution.y, 0, 0);
     upsamplingRatioInv@f2 = (tsr_input_resolution.x/tsr_output_resolution.x, tsr_input_resolution.y/tsr_output_resolution.y, 0, 0);
   }
-
-  TSR_GAME(cs)
 
   hlsl(cs)
   {
@@ -415,6 +410,14 @@ shader tsr_cs
     RWTexture2D<float3> outDebug : register(u5);
 ##endif
 
+    float3 fetchMotionVector(float raw_depth, float2 uv)
+    {
+      float3 uvz = fetch_motion_vector(uv, raw_depth);
+      float prevLinearZ = linearize_z(raw_depth, zn_zfar.zw) + uvz.z;  // TODO: switch to rejection by linear Z
+      float prevDepth = inv_linearizeZ(prevLinearZ, zn_zfar);
+      return float3(uvz.xy, prevDepth - raw_depth);
+    }
+
     [numthreads( TSR_CS_WORKGROUP_SIZE, TSR_CS_WORKGROUP_SIZE, 1)]
     void tsr_cs(uint2 dtId : SV_DispatchThreadID, uint2 tid : SV_GroupThreadID, uint2 gId : SV_GroupID, uint flatTid : SV_GroupIndex)
     {
@@ -426,8 +429,8 @@ shader tsr_cs
 
       DepthStatistics depthStats = getDepthStatistics(jitteredInputTexelCoord);
 
-      bool currentIsDynamic;
-      float3 motionVector = fetchMotionVector(depthStats.closestDepth, depthStats.closestUv, currentIsDynamic);
+      bool currentIsDynamic = isGbufferDynamic(depthStats.closestUv);
+      float3 motionVector = fetchMotionVector(depthStats.closestDepth, depthStats.closestUv);
       float2 historyUV = screenTc + motionVector.xy;
 
       ##if tsr_reactive_mask != NULL

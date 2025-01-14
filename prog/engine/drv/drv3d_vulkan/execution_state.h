@@ -3,12 +3,9 @@
 
 // defines full draw/dispatch ready state that can be applied to execution context
 
-#include <drv/3d/rayTrace/dag_drvRayTrace.h> // for D3D_HAS_RAY_TRACING
-
 #include "util/tracked_state.h"
 #include "compute_state.h"
 #include "graphics_state2.h"
-#include "raytrace_state.h"
 #include "state_field_execution_context.h"
 #include "back_scope_state.h"
 #include "pipeline/stage_state_base.h"
@@ -20,9 +17,6 @@ struct ExecutionStateStorage
 {
   BackComputeState compute;
   BackGraphicsState graphics;
-#if D3D_HAS_RAY_TRACING
-  BackRaytraceState raytrace;
-#endif
   StateFieldActiveExecutionStage activeExecutionStage;
   BackScopeState scopes;
   PipelineStageStateBase stageState[STAGE_MAX_EXT];
@@ -50,12 +44,7 @@ struct ExecutionStateStorage
 };
 
 class ExecutionState
-  : public TrackedState<ExecutionStateStorage, StateFieldActiveExecutionStage, BackScopeState, BackComputeState, BackGraphicsState
-#if D3D_HAS_RAY_TRACING
-      ,
-      BackRaytraceState
-#endif
-      >
+  : public TrackedState<ExecutionStateStorage, StateFieldActiveExecutionStage, BackScopeState, BackComputeState, BackGraphicsState>
 {
   ExecutionContext *executionContext;
 
@@ -74,7 +63,6 @@ public:
 
       case ExtendedShaderStage::PS: return getData().stageState[ShaderStage::STAGE_PS];
       case ExtendedShaderStage::VS: return getData().stageState[ShaderStage::STAGE_VS];
-      case ExtendedShaderStage::RT: return getData().stageState[ShaderStage::STAGE_RAYTRACE];
       default: break;
     }
     G_ASSERTF(0, "vulkan: unkown extended shader stage %u:%s", (uint32_t)stage, formatExtendedShaderStage(stage));

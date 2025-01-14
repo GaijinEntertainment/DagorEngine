@@ -63,7 +63,7 @@ struct VrPointer
 };
 
 
-class GuiScene : public IGuiScene, public IEventList, public IWndProcComponent
+class GuiScene final : public IGuiScene, public IEventList, public IWndProcComponent
 {
 public:
   enum
@@ -118,7 +118,7 @@ public:
   virtual Element *traceInputHit(InputDevice device, Point2 pos) override;
 
   virtual void queueScriptHandler(BaseScriptHandler *h) override;
-  void callScriptHandlers(bool is_shutdown = false);
+  virtual void callScriptHandlers(bool is_shutdown = false) override final;
 
   virtual void setKbFocus(Element *elem) override;
 

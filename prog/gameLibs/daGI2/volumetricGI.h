@@ -22,6 +22,7 @@ struct VolumetricGI
     uint32_t spatial_passes, float irradianceProbe0Size, uint32_t irradiance_clip_w, bool reproject,
     const ZDistributionParams &zparams);
   void calc(const TMatrix &viewItm, const TMatrix4 &proj, float zn, float zf, float quality);
+  void setHistoryBlurTexelOfs(float texelOfs) { historyBlurTexelOfs = clamp(texelOfs, 0.f, 1.f); }
   // debug
   void drawDebug(int debug_type = 0);
   void afterReset();

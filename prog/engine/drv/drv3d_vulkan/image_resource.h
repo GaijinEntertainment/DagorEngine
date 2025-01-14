@@ -157,7 +157,7 @@ public:
   void restoreFromSysCopy(ExecutionContext &ctx);
   void makeSysCopy(ExecutionContext &ctx);
   bool mayAlias() { return desc.memFlags & MEM_IN_PLACED_HEAP; }
-  void delayedRestoreFromSysCopy(ExecutionContext &ctx, VulkanCommandBufferHandle cmdb);
+  void delayedRestoreFromSysCopy();
 
   template <int Tag>
   void onDelayedCleanupBackend();

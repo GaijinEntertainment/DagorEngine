@@ -55,7 +55,7 @@ static union
   };
 } riExtraGlobalWorldVersion;
 
-static Tab<Point4> riExtraPerInstanceRenderData;
+static Tab<rendinst::RiExtraPerInstanceItem> riExtraPerInstanceRenderData;
 static UniqueBufHolder riExtraPerInstanceRenderDataBuf;
 static bool riExtraPerInstanceRenderDataWasUpdated = false;
 static const uint32_t perInstanceRenderDataMaxCount = 1024;
@@ -355,6 +355,9 @@ void rendinst::requestRiExResources(const char *ri_res_name,
 
     if (const char *physRes = b->getStr("physRes", nullptr); physRes && *physRes)
       res_cb(physRes, PhysObjGameResClassId);
+
+    if (const char *physRes = b->getStr("destroyedModelName", nullptr); physRes && *physRes)
+      res_cb(physRes, PhysObjGameResClassId);
   }
 }
 
@@ -519,10 +522,17 @@ int rendinst::addRIGenExtraResIdx(const char *ri_res_name, int ri_pool_ref, int 
           riExtra[id].initialHP = blk->getReal("destructionImpulse", 0) / riConfig->getReal("hitPointsToDestrImpulseMult", 3000);
           if (blk->paramExists("debris"))
             debrisBlk = blk;
-          if (riExtra[id].initialHP <= 0 || riExtra[id].initialHP < riConfig->getReal("minRendInstHP", 30))
+          if (riExtra[id].initialHP <= 0)
           {
             riExtra[id].initialHP = -1;
             break;
+          }
+          const char *destroyedModelName = blk->getStr("destroyedModelName", nullptr);
+          if (destroyedModelName && *destroyedModelName)
+          {
+            riExtra[id].destroyedPhysRes =
+              (DynamicPhysObjectData *)get_gameres_cb(GAMERES_HANDLE_FROM_STRING(destroyedModelName), PhysObjGameResClassId);
+            riExtra[id].isDestroyedPhysResExist = riExtra[id].destroyedPhysRes != nullptr;
           }
           float regenTime = blk->getReal("hpFullRegenTime", 180);
           riExtra[id].regenHpRate = (riExtra[id].initialHP > 0 && regenTime > 0) ? riExtra[id].initialHP / regenTime : 0;
@@ -1909,11 +1919,11 @@ void rendinst::registerRiExtraDestructionCb(ri_destruction_cb cb)
 
 bool rendinst::unregisterRiExtraDestructionCb(ri_destruction_cb cb) { return erase_item_by_value(riex_destruction_callbacks, cb); }
 
-void rendinst::onRiExtraDestruction(riex_handle_t id, bool is_dynamic, int32_t user_data, const Point3 &impulse,
-  const Point3 &impulse_pos)
+void rendinst::onRiExtraDestruction(riex_handle_t id, bool is_dynamic, bool create_destr_effects, int32_t user_data,
+  const Point3 &impulse, const Point3 &impulse_pos)
 {
   for (auto cb : riex_destruction_callbacks)
-    cb(id, is_dynamic, user_data, impulse, impulse_pos);
+    cb(id, is_dynamic, create_destr_effects, user_data, impulse, impulse_pos);
 }
 
 void rendinst::registerRiExtraImpulseCb(ri_impulse_cb cb)
@@ -1970,7 +1980,7 @@ uint32_t rendinst::getRiExtraPerInstanceRenderDataOffset(riex_handle_t id)
   return 0;
 }
 
-void rendinst::setRiExtraPerInstanceRenderData(riex_handle_t id, const Point4 *data, uint32_t cnt)
+void rendinst::setRiExtraPerInstanceRenderData(riex_handle_t id, const rendinst::RiExtraPerInstanceItem *data, uint32_t cnt)
 {
   if (!riExtraPerInstanceRenderDataWasUpdated)
   {
@@ -2017,14 +2027,15 @@ void rendinst::before_render()
   {
     if (!riExtraPerInstanceRenderDataBuf)
     {
-      riExtraPerInstanceRenderDataBuf =
-        dag::buffers::create_persistent_sr_structured(sizeof(float4), perInstanceRenderDataMaxCount, "per_instance_render_data");
+      riExtraPerInstanceRenderDataBuf = dag::buffers::create_persistent_sr_structured(sizeof(rendinst::RiExtraPerInstanceItem),
+        perInstanceRenderDataMaxCount, "per_instance_render_data");
     }
 
     if (riExtraPerInstanceRenderDataBuf.getBuf())
     {
       uint32_t cnt = min(riExtraPerInstanceRenderData.size(), perInstanceRenderDataMaxCount);
-      riExtraPerInstanceRenderDataBuf->updateData(0, cnt * sizeof(Point4), riExtraPerInstanceRenderData.data(), VBLOCK_WRITEONLY);
+      riExtraPerInstanceRenderDataBuf->updateData(0, cnt * sizeof(rendinst::RiExtraPerInstanceItem),
+        riExtraPerInstanceRenderData.data(), VBLOCK_WRITEONLY);
     }
   }
 }

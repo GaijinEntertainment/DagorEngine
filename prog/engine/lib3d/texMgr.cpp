@@ -573,11 +573,11 @@ unsigned texmgr_internal::D3dResMgrDataFinal::calcTexMemSize(int idx, int target
   return total * a + (target_lev > 1 ? 4096 : 0);
 }
 TexLoadRes texmgr_internal::D3dResMgrDataFinal::readDdsxTex(TEXTUREID tid, const ddsx::Header &hdr, IGenLoad &crd, int quality_id,
-  on_tex_slice_loaded_cb_t on_tex_slice_loaded_cb)
+  dag::FixedMoveOnlyFunction<sizeof(void *), void(int) const> completion_cb, on_tex_slice_loaded_cb_t on_tex_slice_loaded_cb)
 {
-  unsigned idx = tid.index();
+  const unsigned idx = tid.index();
   bool should_skip_reading = false;
-  unsigned cur_ql = resQS[idx].getCurQL();
+  const unsigned cur_ql = resQS[idx].getCurQL();
   unsigned max_lev = resQS[idx].getMaxLev();
   unsigned rd_lev = resQS[idx].getRdLev();
   unsigned min_lev = RMGR.getLevDesc(idx, TQL_thumb);
@@ -614,6 +614,7 @@ TexLoadRes texmgr_internal::D3dResMgrDataFinal::readDdsxTex(TEXTUREID tid, const
   {
     RMGR_TRACE("%d: skip_reading(rd_lev=%d): %s", idx, rd_lev, getName(idx));
     resQS[idx].setRdLev(rd_lev = resQS[idx].getLdLev()); // skip reading, leave state as is
+    completion_cb(idx);
     return TexLoadRes::OK;
   }
   if (!(hdr.flags & (hdr.FLG_GENMIP_BOX | hdr.FLG_GENMIP_KAIZER)))
@@ -623,22 +624,24 @@ TexLoadRes texmgr_internal::D3dResMgrDataFinal::readDdsxTex(TEXTUREID tid, const
       resQS[idx].setRdLev(rd_lev = max_lev);
   }
 
-  unsigned target_lev = (texmgr_internal::is_gpu_mem_enough_to_load_hq_tex() || texDesc[idx].dim.stubIdx < 0) ? max_lev : rd_lev;
-  unsigned skip = (texDesc[idx].dim.maxLev - target_lev);
-  unsigned w = max(texDesc[idx].dim.w >> skip, 1), h = max(texDesc[idx].dim.h >> skip, 1);
-  unsigned d =
+  const unsigned target_lev = (texmgr_internal::is_gpu_mem_enough_to_load_hq_tex() || texDesc[idx].dim.stubIdx < 0) ? max_lev : rd_lev;
+  const unsigned skip = (texDesc[idx].dim.maxLev - target_lev);
+  const unsigned w = max(texDesc[idx].dim.w >> skip, 1);
+  const unsigned h = max(texDesc[idx].dim.h >> skip, 1);
+  const unsigned d =
     max((hdr.flags & hdr.FLG_VOLTEX) ? texDesc[idx].dim.d >> skip : ((hdr.flags & hdr.FLG_CUBTEX) ? 6 : texDesc[idx].dim.d), 1);
-  unsigned l = texDesc[idx].dim.l - skip;
-  TEXTUREID base_tid = pairedBaseTexId[idx];
+  const unsigned l = texDesc[idx].dim.l - skip;
+  const TEXTUREID base_tid = pairedBaseTexId[idx];
   TexLoadRes ret = TexLoadRes::ERR;
 
   if (incRefCount(idx) == 1)
     RMGR.decReadyForDiscardTex(idx);
-  unsigned cur_sz = tql::sizeInKb(calcTexMemSize(idx, target_lev, hdr));
-  unsigned full_sz = tql::sizeInKb(calcTexMemSize(idx, resQS[idx].getQLev(), hdr));
+  const unsigned cur_sz = tql::sizeInKb(calcTexMemSize(idx, target_lev, hdr));
+  const unsigned full_sz = tql::sizeInKb(calcTexMemSize(idx, resQS[idx].getQLev(), hdr));
   if (t)
     RMGR.changeTexUsedMem(idx, cur_sz, full_sz);
 
+  int newTexSize = t ? t->ressize() : 0;
   if (!t)
   {
     if ((hdr.flags & hdr.FLG_HOLD_SYSMEM_COPY) && getBaseTexUsedCount(idx) > 0)
@@ -648,40 +651,61 @@ TexLoadRes texmgr_internal::D3dResMgrDataFinal::readDdsxTex(TEXTUREID tid, const
     }
     else
       ret = TexLoadRes::OK;
+
+    if (ret == TexLoadRes::OK)
+      completion_cb(idx);
   }
   else if (cur_ql == TQL_stub || !t->ressize())
   {
     if (BaseTexture *tmp_tex = t->makeTmpTexResCopy(w, h, d, l))
     {
-      tmp_tex->texmiplevel(target_lev - rd_lev, l - 1);
       ret = d3d_load_ddsx_tex_contents(tmp_tex, tid, base_tid, hdr, crd, quality_id, target_lev - rd_lev, 0, on_tex_slice_loaded_cb);
       if (ret == TexLoadRes::OK)
-        t->replaceTexResObject(tmp_tex);
+      {
+        newTexSize = tmp_tex->ressize();
+        RMGR.completeTextureUpdateAsync(idx, t, tmp_tex, target_lev - rd_lev, l - 1, eastl::move(completion_cb));
+      }
       else
         del_d3dres(tmp_tex);
     }
     else if (!d3d::is_in_device_reset_now())
       logwarn("%p->makeTmpTexResCopy(%d, %d, %d, %d) returns null (%s), read skipped", t, w, h, d, l, getName(idx));
   }
-  else
+  else if (unsigned ld_lev = resQS[idx].getLdLev(); rd_lev > ld_lev)
   {
-    unsigned ld_lev = resQS[idx].getLdLev();
-    if (tql::resizeTexture(t, w, h, d, l, ld_lev))
+    if (auto tmp_tex = tql::makeResizedTmpTexResCopy(t, w, h, d, l, ld_lev))
     {
-      ret = rd_lev > ld_lev
-              ? d3d_load_ddsx_tex_contents(t, tid, base_tid, hdr, crd, quality_id, target_lev - rd_lev, ld_lev, on_tex_slice_loaded_cb)
-              : TexLoadRes::OK;
+      ret = d3d_load_ddsx_tex_contents(tmp_tex, tid, base_tid, hdr, crd, quality_id, target_lev - rd_lev, ld_lev,
+        on_tex_slice_loaded_cb, tmp_tex == t);
       if (ret == TexLoadRes::OK)
-        t->texmiplevel(target_lev - rd_lev, l - 1);
+      {
+        newTexSize = tmp_tex->ressize();
+        RMGR.completeTextureUpdateAsync(idx, t, tmp_tex, target_lev - rd_lev, l - 1, eastl::move(completion_cb));
+      }
+      else if (t != tmp_tex)
+        del_d3dres(tmp_tex);
     }
   }
+  else
+  {
+    if (auto tmp_tex = tql::makeResizedTmpTexResCopy(t, w, h, d, l, ld_lev))
+    {
+      newTexSize = tmp_tex->ressize();
+      ret = TexLoadRes::OK;
+      RMGR.completeTextureUpdateAsync(idx, t, tmp_tex, target_lev - rd_lev, l - 1, eastl::move(completion_cb));
+    }
+    else if (!d3d::is_in_device_reset_now())
+      logwarn("tql::resizeTexture(%p, %d, %d, %d, %d, %d) returned null (%s), downsize skipped", t, w, h, d, l, ld_lev, getName(idx));
+  }
+
   if (ret != TexLoadRes::OK)
     resQS[idx].setRdLev(rd_lev = resQS[idx].getLdLev()); // failed to read, leave state as is
+
   if (t)
   {
-    unsigned res_sz = tql::sizeInKb(t->ressize());
-    if (res_sz > cur_sz)
-      RMGR.changeTexUsedMem(idx, res_sz, max(res_sz, full_sz));
+    unsigned resSzKb = tql::sizeInKb(newTexSize);
+    if (resSzKb > cur_sz)
+      RMGR.changeTexUsedMem(idx, resSzKb, max(resSzKb, full_sz));
   }
   if (decRefCount(idx) == 0)
     RMGR.incReadyForDiscardTex(idx);
@@ -692,7 +716,7 @@ TexLoadRes texmgr_internal::D3dResMgrDataFinal::readDdsxTex(TEXTUREID tid, const
 void texmgr_internal::D3dResMgrDataFinal::finishReading(int idx)
 {
   uint8_t rd_lev = resQS[idx].getRdLev();
-  G_ASSERTF_RETURN(rd_lev != 0, , "rdLev=%d ldLev=%d", rd_lev, resQS[idx].getLdLev());
+  G_ASSERTF_RETURN(rd_lev != 0, , "rdLev=%d ldLev=%d (%d: %s)", rd_lev, resQS[idx].getLdLev(), idx, RMGR.getName(idx));
   TEXTUREID bt_tid = RMGR.pairedBaseTexId[idx];
   if (bt_tid != BAD_TEXTUREID)
   {
@@ -709,7 +733,8 @@ void texmgr_internal::D3dResMgrDataFinal::finishReading(int idx)
 }
 void texmgr_internal::D3dResMgrDataFinal::cancelReading(int idx)
 {
-  G_ASSERTF_RETURN(resQS[idx].isReading(), , "rdLev=%d ldLev=%d", resQS[idx].getRdLev(), resQS[idx].getLdLev());
+  G_ASSERTF_RETURN(resQS[idx].isReading(), , "rdLev=%d ldLev=%d (%d: %s)", //
+    resQS[idx].getRdLev(), resQS[idx].getLdLev(), idx, RMGR.getName(idx));
   TEXTUREID bt_tid = RMGR.pairedBaseTexId[idx];
   if (bt_tid != BAD_TEXTUREID && RMGR.isValidID(bt_tid, nullptr))
   {

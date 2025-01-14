@@ -661,7 +661,7 @@ float Mass::leakFuel(float amount, int tank_num)
   fuelSystem.fuelExternal = 0.0f;
   for (int i = 0; i < numTanks; ++i)
   {
-    if (fuelTanks[i].fuelSystemNum == fuelTank.fuelSystemNum)
+    if (fuelTanks[i].fuelSystemNum == fuelTank.fuelSystemNum && fuelTanks[i].available)
     {
       fuelSystem.fuel += fuelTanks[i].currentFuel;
       if (fuelTanks[i].external)
@@ -686,7 +686,7 @@ float Mass::dumpFuel(float amount)
 
   for (int i = 0; i < numTanks; ++i)
   {
-    if (fuelTanks[i].fuelSystemNum == dumpFuelSystem && fuelTanks[i].currentFuel > 0.0f)
+    if (fuelTanks[i].fuelSystemNum == dumpFuelSystem && fuelTanks[i].available && fuelTanks[i].currentFuel > 0.0f)
     {
       tanksToDumpFrom.insert({fuelTanks[i].currentFuel, i});
     }
@@ -723,7 +723,7 @@ float Mass::dumpFuel(float amount)
 
   for (int i = 0; i < numTanks; ++i)
   {
-    if (fuelTanks[i].fuelSystemNum == dumpFuelSystem)
+    if (fuelTanks[i].fuelSystemNum == dumpFuelSystem && fuelTanks[i].available)
     {
       fuelSystem.fuel += fuelTanks[i].currentFuel;
       if (fuelTanks[i].external)

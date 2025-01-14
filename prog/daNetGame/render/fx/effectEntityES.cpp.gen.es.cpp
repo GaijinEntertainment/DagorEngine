@@ -893,7 +893,7 @@ static ecs::EntitySystemDesc effect_manager_settings_es_es_desc
   empty_span(),
   ecs::EventSetBuilder<OnRenderSettingsReady>::build(),
   0
-,"render","render_settings__effectsShadows,render_settings__effects__max_active_shadows,render_settings__shadowsQuality");
+,"render","render_settings__effectsShadows,render_settings__effects__max_active_shadows,render_settings__shadowsQuality",nullptr,"init_shadows_es");
 static constexpr ecs::ComponentDesc pause_effects_ecs_query_comps[] =
 {
 //start of 2 rw components at [0]

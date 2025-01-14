@@ -8,26 +8,53 @@
 #include <vecmath/dag_vecMath.h>
 #include <util/dag_stdint.h>
 #include <anim/dag_animChannels.h>
-#include <anim/dag_animKeys.h>
+#include <debug/dag_assert.h>
+
+#if DAGOR_DBGLEVEL >= 1
+#define ACL_ON_ASSERT_CUSTOM
+#define ACL_ASSERT(expression, format, ...) G_ASSERTF(expression, format, ##__VA_ARGS__)
+#endif
+
+#include <rtm/math.h>
+#include <acl/core/compressed_tracks.h>
+#include <acl/decompression/decompress.h>
+
+template <>
+struct DebugConverter<acl::compressed_tracks_version16>
+{
+  static unsigned getDebugType(const acl::compressed_tracks_version16 &v) { return unsigned(v); }
+};
+
 
 namespace AnimV20Math
 {
 
 
-template <class KEY>
-struct AnimChan;
-typedef AnimChan<AnimV20::AnimKeyPoint3> AnimChanPoint3;
-typedef AnimChan<AnimV20::AnimKeyQuat> AnimChanQuat;
-typedef AnimChan<AnimV20::AnimKeyReal> AnimChanReal;
+inline int seconds_to_ticks(float seconds) { return seconds < VERY_BIG_NUMBER ? roundf(seconds * AnimV20::TIME_TicksPerSec) : 0; }
+inline float ticks_to_seconds(int ticks) { return ticks / float(AnimV20::TIME_TicksPerSec); }
 
 
-inline int seconds_to_ticks(float seconds) { return roundf(seconds * AnimV20::TIME_TicksPerSec); }
+struct transform_decompression_settings : public acl::default_transform_decompression_settings
+{
+  static constexpr acl::compressed_tracks_version16 version_supported() { return acl::compressed_tracks_version16::latest; }
+  static constexpr bool is_wrapping_supported() { return false; }
+};
+
+struct float3_decompression_settings : public acl::default_scalar_decompression_settings
+{
+  static constexpr acl::compressed_tracks_version16 version_supported() { return acl::compressed_tracks_version16::latest; }
+  static constexpr bool is_wrapping_supported() { return false; }
+  static constexpr bool is_track_type_supported(acl::track_type8 type) { return type == acl::track_type8::float3f; }
+};
 
 
 struct AnimSamplerConfig
 {
   // If true, sampling time must be specified in the constructor call.
   static constexpr bool is_one_shot() { return false; }
+
+  using transform_settings = transform_decompression_settings;
+  using float3_settings = float3_decompression_settings;
 };
 
 struct DefaultConfig : AnimSamplerConfig
@@ -36,6 +63,75 @@ struct DefaultConfig : AnimSamplerConfig
 struct OneShotConfig : AnimSamplerConfig
 {
   static constexpr bool is_one_shot() { return true; }
+};
+
+
+struct TransformWriter : public acl::track_writer
+{
+  static constexpr acl::default_sub_track_mode get_default_scale_mode() { return acl::default_sub_track_mode::constant; }
+};
+
+struct FullTransformWriter : public TransformWriter
+{
+  vec3f *p, *s;
+  quat4f *r;
+
+  FullTransformWriter(vec3f *p_, quat4f *r_, vec3f *s_) : p(p_), r(r_), s(s_) {}
+
+  void RTM_SIMD_CALL write_rotation(uint32_t track_index, rtm::quatf_arg0 rotation)
+  {
+    G_UNUSED(track_index);
+    if (r)
+      *r = rotation;
+  }
+
+  void RTM_SIMD_CALL write_translation(uint32_t track_index, rtm::vector4f_arg0 translation)
+  {
+    G_UNUSED(track_index);
+    if (p)
+      *p = translation;
+  }
+
+  void RTM_SIMD_CALL write_scale(uint32_t track_index, rtm::vector4f_arg0 scale)
+  {
+    G_UNUSED(track_index);
+    if (s)
+      *s = scale;
+  }
+};
+
+template <acl::animation_track_type8 ST>
+struct SubtrackWriter : public TransformWriter
+{
+  typename eastl::conditional_t<ST == acl::animation_track_type8::rotation, quat4f, vec3f> value;
+
+  static constexpr bool skip_all_rotations() { return ST != acl::animation_track_type8::rotation; }
+  static constexpr bool skip_all_translations() { return ST != acl::animation_track_type8::translation; }
+  static constexpr bool skip_all_scales() { return ST != acl::animation_track_type8::scale; }
+
+  void RTM_SIMD_CALL write_rotation(uint32_t track_index, rtm::quatf_arg0 rotation)
+  {
+    G_UNUSED(track_index);
+    G_UNUSED(rotation);
+    if (ST == acl::animation_track_type8::rotation)
+      value = rotation;
+  }
+
+  void RTM_SIMD_CALL write_translation(uint32_t track_index, rtm::vector4f_arg0 translation)
+  {
+    G_UNUSED(track_index);
+    G_UNUSED(translation);
+    if (ST == acl::animation_track_type8::translation)
+      value = translation;
+  }
+
+  void RTM_SIMD_CALL write_scale(uint32_t track_index, rtm::vector4f_arg0 scale)
+  {
+    G_UNUSED(track_index);
+    G_UNUSED(scale);
+    if (ST == acl::animation_track_type8::scale)
+      value = scale;
+  }
 };
 
 
@@ -51,45 +147,77 @@ struct OneShotConfig : AnimSamplerConfig
 template <typename CFG>
 struct PrsAnimSampler
 {
-  PrsAnimSampler(const AnimV20::AnimData *ad = nullptr) : anim(ad ? &ad->anim : nullptr) { ONE_SHOT_CTOR_CHECK(); }
-
-  explicit PrsAnimSampler(const AnimV20::AnimData *ad, int time_ticks) : anim(ad ? &ad->anim : nullptr) { setTimeTicks(time_ticks); }
-
-  explicit PrsAnimSampler(const AnimV20::AnimData *ad, float time_seconds) : anim(ad ? &ad->anim : nullptr)
+  PrsAnimSampler(const AnimV20::AnimData *ad = nullptr)
   {
-    setTimeTicks(seconds_to_ticks(time_seconds));
+    ONE_SHOT_CTOR_CHECK();
+    init(ad);
   }
 
-  void seekTicks(int ticks)
+  explicit PrsAnimSampler(const AnimV20::AnimData *ad, int time_ticks)
   {
-    ONE_SHOT_SEEK_CHECK();
-    setTimeTicks(ticks);
+    init(ad);
+    seekTicks(time_ticks);
   }
 
-  void seek(float seconds)
+  explicit PrsAnimSampler(const AnimV20::AnimData *ad, float time_seconds)
   {
-    ONE_SHOT_SEEK_CHECK();
-    setTimeTicks(seconds_to_ticks(seconds));
+    init(ad);
+    seek(time_seconds);
   }
 
-  int getTimeTicks() const { return curTime; }
-  float getTimeSeconds() const { return curTime / float(AnimV20::TIME_TicksPerSec); }
+  void seekTicks(int ticks) { seek(ticks_to_seconds(ticks)); }
 
-  // seek to each key time
+  void seek(float seconds) { ctx.seek(seconds, acl::sample_rounding_policy::none); }
+
+  // seek to each key time, callback is (PrsAnimSampler &self, float seconds) -> void
   template <typename F>
-  void forEachSclKey(dag::Index16 node_id, F callback);
+  void forEachSclKey(F callback)
+  {
+    auto tracks = ctx.get_compressed_tracks();
+    if (!tracks)
+      return;
+    const float sr = tracks->get_sample_rate();
+    for (uint32_t i = 0, n = tracks->get_num_samples_per_track(); i < n; i++)
+      callback(*this, i / sr);
+  }
 
-  vec3f samplePos(dag::Index16 node_id) const;
-  quat4f sampleRot(dag::Index16 node_id) const;
-  vec3f sampleScl(dag::Index16 node_id) const;
+  void sampleTransform(dag::Index16 track_id, vec3f *p, quat4f *r, vec3f *s)
+  {
+    FullTransformWriter wr(p, r, s);
+    ctx.decompress_track(track_id.index(), wr);
+  }
+
+  vec3f samplePosTrack(dag::Index16 track_id)
+  {
+    SubtrackWriter<acl::animation_track_type8::translation> wr;
+    ctx.decompress_track(track_id.index(), wr);
+    return wr.value;
+  }
+
+  quat4f sampleRotTrack(dag::Index16 track_id)
+  {
+    SubtrackWriter<acl::animation_track_type8::rotation> wr;
+    ctx.decompress_track(track_id.index(), wr);
+    return wr.value;
+  }
+
+  vec3f sampleSclTrack(dag::Index16 track_id)
+  {
+    SubtrackWriter<acl::animation_track_type8::scale> wr;
+    ctx.decompress_track(track_id.index(), wr);
+    return wr.value;
+  }
 
 protected:
   static constexpr bool k_one_shot = CFG::is_one_shot();
 
-  const AnimV20::AnimData::Anim *anim;
-  int curTime = 0;
+  acl::decompression_context<typename CFG::transform_settings> ctx;
 
-  void setTimeTicks(int ticks) { curTime = ticks; }
+  void init(const AnimV20::AnimData *ad)
+  {
+    if (ad && ad->anim.rot.animTracks)
+      G_VERIFY(ctx.initialize(*ad->anim.rot.animTracks));
+  }
 };
 
 
@@ -100,85 +228,131 @@ struct PrsAnimNodeSampler
   PrsAnimNodeSampler()
   {
     ONE_SHOT_CTOR_CHECK();
-    init(nullptr, dag::Index16(), dag::Index16(), dag::Index16());
+    init(nullptr, dag::Index16());
   }
 
   PrsAnimNodeSampler(const AnimV20::PrsAnimNodeRef &prs)
   {
     ONE_SHOT_CTOR_CHECK();
-    init(prs.anim, prs.posId, prs.rotId, prs.sclId);
+    init(prs.anim, prs.trackId);
   }
 
-  PrsAnimNodeSampler(const AnimV20::AnimData *a, dag::Index16 p, dag::Index16 r, dag::Index16 s)
+  PrsAnimNodeSampler(const AnimV20::AnimData *a, dag::Index16 track_id)
   {
     ONE_SHOT_CTOR_CHECK();
-    init(a ? &a->anim : nullptr, p, r, s);
+    init(a ? a->anim.rot.animTracks.get() : nullptr, track_id);
   }
 
-  PrsAnimNodeSampler(const AnimV20::AnimData *a, dag::Index16 p, dag::Index16 r, dag::Index16 s, int ticks)
+  PrsAnimNodeSampler(const AnimV20::AnimData *a, dag::Index16 track_id, int ticks)
   {
-    initOneShot(a ? &a->anim : nullptr, p, r, s, ticks);
+    initOneShot(a ? a->anim.rot.animTracks.get() : nullptr, track_id, ticks_to_seconds(ticks));
   }
 
   explicit PrsAnimNodeSampler(const AnimV20::PrsAnimNodeRef &prs, int ticks)
   {
-    initOneShot(prs.anim, prs.posId, prs.rotId, prs.sclId, ticks);
+    initOneShot(prs.anim, prs.trackId, ticks_to_seconds(ticks));
   }
 
-  explicit PrsAnimNodeSampler(const AnimV20::PrsAnimNodeRef &prs, float seconds)
-  {
-    initOneShot(prs.anim, prs.posId, prs.rotId, prs.sclId, seconds_to_ticks(seconds));
-  }
+  explicit PrsAnimNodeSampler(const AnimV20::PrsAnimNodeRef &prs, float seconds) { initOneShot(prs.anim, prs.trackId, seconds); }
 
-  void seekTicks(int ticks)
-  {
-    ONE_SHOT_SEEK_CHECK();
-    setTimeTicks(ticks);
-  }
+  void seekTicks(int ticks) { seek(ticks_to_seconds(ticks)); }
 
   void seek(float seconds)
   {
     ONE_SHOT_SEEK_CHECK();
-    setTimeTicks(seconds_to_ticks(seconds));
+    ctx.dc.seek(seconds, acl::sample_rounding_policy::none);
   }
 
-  vec3f samplePos() const;
-  quat4f sampleRot() const;
-  vec3f sampleScl() const;
-
-  void sampleTransform(vec3f &p, quat4f &r, vec3f &s) const
+  void sampleTransform(vec3f *p, quat4f *r, vec3f *s)
   {
-    p = samplePos();
-    r = sampleRot();
-    s = sampleScl();
+    if constexpr (k_one_shot)
+    {
+      *p = ctx.p;
+      *r = ctx.r;
+      *s = ctx.s;
+    }
+    else
+    {
+      FullTransformWriter wr(p, r, s);
+      ctx.dc.decompress_track(ctx.trackId.index(), wr);
+    }
+  }
+
+  vec3f samplePos()
+  {
+    if constexpr (k_one_shot)
+      return ctx.p;
+    else
+    {
+      SubtrackWriter<acl::animation_track_type8::translation> wr;
+      ctx.dc.decompress_track(ctx.trackId.index(), wr);
+      return wr.value;
+    }
+  }
+
+  quat4f sampleRot()
+  {
+    if constexpr (k_one_shot)
+      return ctx.r;
+    else
+    {
+      SubtrackWriter<acl::animation_track_type8::rotation> wr;
+      ctx.dc.decompress_track(ctx.trackId.index(), wr);
+      return wr.value;
+    }
+  }
+
+  vec3f sampleScl()
+  {
+    if constexpr (k_one_shot)
+      return ctx.s;
+    else
+    {
+      SubtrackWriter<acl::animation_track_type8::scale> wr;
+      ctx.dc.decompress_track(ctx.trackId.index(), wr);
+      return wr.value;
+    }
   }
 
 protected:
   static constexpr bool k_one_shot = CFG::is_one_shot();
 
-  struct LongCtx
+  struct Context
   {
-    const AnimChanQuat *rot;
-    const AnimChanPoint3 *pos, *scl;
-    int curTime;
+    acl::decompression_context<typename CFG::transform_settings> dc;
+    dag::Index16 trackId;
   };
 
-  struct OneShotCtx
+  struct OneShot
   {
-    const AnimV20::AnimKeyQuat *krot;
-    const AnimV20::AnimKeyPoint3 *kpos, *kscl;
-    float arot, apos, ascl;
+    vec4f p, r, s;
   };
 
-  typename eastl::conditional_t<k_one_shot, OneShotCtx, LongCtx> ctx;
+  typename eastl::conditional_t<k_one_shot, OneShot, Context> ctx;
 
-  void init(const AnimV20::AnimData::Anim *a, dag::Index16 p, dag::Index16 r, dag::Index16 s);
-  void initOneShot(const AnimV20::AnimData::Anim *a, dag::Index16 p, dag::Index16 r, dag::Index16 s, int ticks);
-
-  void setTimeTicks(int ticks)
+  void init(const AnimV20::AnimChan *a, dag::Index16 track_id)
   {
-    if constexpr (!k_one_shot)
-      ctx.curTime = ticks;
+    ctx.trackId = track_id;
+    if (a)
+      G_VERIFY(ctx.dc.initialize(*a));
+  }
+
+  void initOneShot(const AnimV20::AnimChan *a, dag::Index16 track_id, float seconds)
+  {
+    if (a)
+    {
+      acl::decompression_context<typename CFG::transform_settings> dc;
+      G_VERIFY(dc.initialize(*a));
+      dc.seek(seconds, acl::sample_rounding_policy::none);
+      FullTransformWriter wr(&ctx.p, &ctx.r, &ctx.s);
+      dc.decompress_track(track_id.index(), wr);
+    }
+    else
+    {
+      ctx.p = v_zero();
+      ctx.r = V_C_UNIT_0001;
+      ctx.s = V_C_ONE;
+    }
   }
 };
 
@@ -194,461 +368,106 @@ struct Float3AnimNodeSampler
 
   Float3AnimNodeSampler(const AnimV20::AnimDataChan &anim, int ticks, dag::Index16 node = dag::Index16(0))
   {
-    initOneShot(anim, node, ticks);
+    init(anim, node);
+    seekTicks(ticks);
   }
 
   Float3AnimNodeSampler(const AnimV20::AnimDataChan &anim, float seconds, dag::Index16 node = dag::Index16(0))
   {
-    initOneShot(anim, node, seconds_to_ticks(seconds));
+    init(anim, node);
+    seek(seconds);
   }
 
-  void seekTicks(int ticks)
+  void seekTicks(int ticks) { seek(ticks_to_seconds(ticks)); }
+
+  void seek(float seconds) { ctx.seek(seconds, acl::sample_rounding_policy::none); }
+
+  vec3f sample(vec3f default_value = v_zero())
   {
-    ONE_SHOT_SEEK_CHECK();
-    setTimeTicks(ticks);
+    Writer wr(default_value);
+    ctx.decompress_track(trackId.index(), wr);
+    return wr.value;
   }
-
-  void seek(float seconds)
-  {
-    ONE_SHOT_SEEK_CHECK();
-    setTimeTicks(seconds_to_ticks(seconds));
-  }
-
-  vec3f sample(vec3f default_value = v_zero()) const;
 
 protected:
   static constexpr bool k_one_shot = CFG::is_one_shot();
 
-  struct LongCtx
+  acl::decompression_context<typename CFG::float3_settings> ctx;
+  dag::Index16 trackId;
+
+  struct Writer : public acl::track_writer
   {
-    const AnimChanPoint3 *chan;
-    int curTime;
+    vec3f value;
+    Writer(vec3f v) : value(v) {}
+
+    void RTM_SIMD_CALL write_float3(uint32_t track_index, rtm::vector4f_arg0 v)
+    {
+      G_UNUSED(track_index);
+      value = v;
+    }
   };
 
-  struct OneShotCtx
+  void init(const AnimV20::AnimDataChan &anim, dag::Index16 node)
   {
-    const AnimV20::AnimKeyPoint3 *key;
-    float alpha;
-  };
-
-  typename eastl::conditional_t<k_one_shot, OneShotCtx, LongCtx> ctx;
-
-  void init(const AnimV20::AnimDataChan &anim, dag::Index16 node);
-  void initOneShot(const AnimV20::AnimDataChan &anim, dag::Index16 node, int ticks);
-
-  void setTimeTicks(int ticks)
-  {
-    if constexpr (!k_one_shot)
-      ctx.curTime = ticks;
+    trackId = anim.getTrackId(node);
+    if (anim.animTracks)
+      G_VERIFY(ctx.initialize(*anim.animTracks));
   }
 };
-
-
-// Implementation details:
-
-// Animations for channels as sequence of keys
-template <class KEY>
-struct AnimChan
-{
-  PatchablePtr<KEY> key;
-  PatchablePtr<uint16_t> keyTime16;
-  int keyNum;
-  int _resv;
-
-  int keyTimeFirst() const { return unsigned(keyTime16[0]) << AnimV20::TIME_SubdivExp; }
-  int keyTimeLast() const { return unsigned(keyTime16[keyNum - 1]) << AnimV20::TIME_SubdivExp; }
-  int keyTime(int idx) const { return unsigned(keyTime16[idx]) << AnimV20::TIME_SubdivExp; }
-
-  __forceinline KEY *findKey(int t32, float *out_t) const
-  {
-    if (keyNum == 1 || t32 <= keyTimeFirst())
-    {
-      *out_t = 0;
-      return &key[0];
-    }
-    if (t32 >= keyTimeLast())
-    {
-      *out_t = 0;
-      return &key[keyNum - 1];
-    }
-
-    int t = t32 >> AnimV20::TIME_SubdivExp, a = 0, b = keyNum - 1;
-    while (b - a > 1)
-    {
-      int c = (a + b) / 2;
-      if (keyTime16[c] == t)
-      {
-        if (keyTime(c) == t32)
-        {
-          *out_t = 0;
-          return &key[c];
-        }
-        *out_t = float(t32 - (t << AnimV20::TIME_SubdivExp)) / float((keyTime16[c + 1] - t) << AnimV20::TIME_SubdivExp);
-        return &key[c];
-      }
-      else if (keyTime16[c] < t)
-        a = c;
-      else
-        b = c;
-    }
-    *out_t = float(t32 - keyTime(a)) / float(keyTime(b) - keyTime(a));
-    return &key[a];
-  }
-
-  __forceinline KEY *findKeyEx(int t32, float *out_t, int &dkeys) const
-  {
-    if (keyNum == 1 || t32 <= keyTimeFirst())
-    {
-      dkeys = 0;
-      *out_t = 0;
-      return &key[0];
-    }
-    if (t32 >= keyTimeLast())
-    {
-      dkeys = 0;
-      *out_t = 0;
-      return &key[keyNum - 1];
-    }
-
-    int t = t32 >> AnimV20::TIME_SubdivExp, a = 0, b = keyNum - 1;
-    while (b - a > 1)
-    {
-      int c = (a + b) / 2;
-      if (keyTime16[c] == t)
-      {
-        if (keyTime(c) == t32)
-        {
-          dkeys = (c < keyNum - 1) ? (keyTime16[c + 1] - keyTime16[c]) : 0;
-          *out_t = 0;
-          return &key[c];
-        }
-        dkeys = keyTime16[c + 1] - keyTime16[c];
-        *out_t = float(t32 - (t << AnimV20::TIME_SubdivExp)) / float((keyTime16[c + 1] - t) << AnimV20::TIME_SubdivExp);
-        return &key[c];
-      }
-      else if (keyTime16[c] < t)
-        a = c;
-      else
-        b = c;
-    }
-    dkeys = keyTime16[b] - keyTime16[a];
-    *out_t = float(t32 - keyTime(a)) / float(keyTime(b) - keyTime(a));
-    return &key[a];
-  }
-};
-
-static_assert(sizeof(AnimChanPoint3) == sizeof(AnimChanQuat));
-
-// Key data
-
-__forceinline real interp_key(const AnimV20::AnimKeyReal &a, real t) { return ((a.k3 * t + a.k2) * t + a.k1) * t + a.p; }
-
-__forceinline vec3f interp_key(const AnimV20::AnimKeyPoint3 &a, vec4f t)
-{
-  return v_madd(v_madd(v_madd(a.k3, t, a.k2), t, a.k1), t, a.p);
-}
-
-__forceinline vec4f interp_key(const AnimV20::AnimKeyQuat &a, const AnimV20::AnimKeyQuat &b, real t)
-{
-  return v_quat_qsquad(t, a.p, a.b0, a.b1, b.p);
-}
-
-
-// Sampler implementation
-
-__forceinline const AnimChanPoint3 *get_point3_anim(const AnimV20::AnimDataChan &anim, dag::Index16 node_id)
-{
-  if (node_id.index() >= anim.nodeNum)
-    return nullptr;
-  return (const AnimChanPoint3 *)anim.nodeAnim.get() + node_id.index();
-}
-
-__forceinline const AnimChanQuat *get_quat_anim(const AnimV20::AnimDataChan &anim, dag::Index16 node_id)
-{
-  if (node_id.index() >= anim.nodeNum)
-    return nullptr;
-  return (const AnimChanQuat *)anim.nodeAnim.get() + node_id.index();
-}
-
-template <typename KEY>
-__forceinline const KEY *find_key(const AnimChan<KEY> *ch, int t, float *a)
-{
-  if (!ch || ch->keyNum == 0)
-  {
-    *a = 0;
-    return nullptr;
-  }
-  return ch->findKey(t, a);
-}
-
-__forceinline vec3f sample_anim(const AnimChanPoint3 *anim, int time, vec3f default_value)
-{
-  if (!anim)
-    return default_value;
-  float alpha = 0;
-  auto *k = anim->findKey(time, &alpha);
-  return (alpha != 0.f) ? interp_key(k[0], v_splats(alpha)) : k->p;
-}
-
-__forceinline quat4f sample_anim(const AnimChanQuat *anim, int time, quat4f default_value)
-{
-  if (!anim)
-    return default_value;
-  float alpha = 0;
-  auto *k = anim->findKey(time, &alpha);
-  return (alpha != 0.f) ? interp_key(k[0], k[1], alpha) : k->p;
-}
-
-
-template <typename CFG>
-__forceinline vec3f PrsAnimSampler<CFG>::samplePos(dag::Index16 node_id) const
-{
-  if (!anim || !node_id)
-    return v_zero();
-  return sample_anim(get_point3_anim(anim->pos, node_id), curTime, v_zero());
-}
-
-template <typename CFG>
-__forceinline vec3f PrsAnimSampler<CFG>::sampleScl(dag::Index16 node_id) const
-{
-  if (!anim || !node_id)
-    return V_C_ONE;
-  return sample_anim(get_point3_anim(anim->scl, node_id), curTime, V_C_ONE);
-}
-
-template <typename CFG>
-__forceinline quat4f PrsAnimSampler<CFG>::sampleRot(dag::Index16 node_id) const
-{
-  if (!anim || !node_id)
-    return V_C_UNIT_0001;
-  return sample_anim(get_quat_anim(anim->rot, node_id), curTime, V_C_UNIT_0001);
-}
-
-template <typename CFG>
-template <typename F>
-__forceinline void PrsAnimSampler<CFG>::forEachSclKey(dag::Index16 node_id, F callback)
-{
-  if (!anim)
-    return;
-  auto a = get_point3_anim(anim->scl, node_id);
-  if (!a)
-    return;
-  for (int ki = 0; ki < a->keyNum; ki++)
-  {
-    seekTicks(a->keyTime(ki));
-    callback();
-  }
-}
-
-
-template <typename CFG>
-void PrsAnimNodeSampler<CFG>::init(const AnimV20::AnimData::Anim *a, dag::Index16 p, dag::Index16 r, dag::Index16 s)
-{
-  if constexpr (k_one_shot)
-  {
-    G_ASSERT_EX(false, "can't init() one-shot PrsAnimNodeSampler");
-  }
-  else
-  {
-    if (a)
-    {
-      ctx.rot = get_quat_anim(a->rot, r);
-      ctx.pos = get_point3_anim(a->pos, p);
-      ctx.scl = get_point3_anim(a->scl, s);
-    }
-    else
-    {
-      ctx.rot = nullptr;
-      ctx.pos = nullptr;
-      ctx.scl = nullptr;
-    }
-    ctx.curTime = 0;
-  }
-}
-
-template <typename CFG>
-__forceinline void PrsAnimNodeSampler<CFG>::initOneShot(const AnimV20::AnimData::Anim *a, dag::Index16 p, dag::Index16 r,
-  dag::Index16 s, int ticks)
-{
-  if constexpr (k_one_shot)
-  {
-    if (a)
-    {
-      ctx.krot = find_key(get_quat_anim(a->rot, r), ticks, &ctx.arot);
-      ctx.kpos = find_key(get_point3_anim(a->pos, p), ticks, &ctx.apos);
-      ctx.kscl = find_key(get_point3_anim(a->scl, s), ticks, &ctx.ascl);
-    }
-    else
-    {
-      ctx.krot = nullptr;
-      ctx.kpos = nullptr;
-      ctx.kscl = nullptr;
-    }
-  }
-  else
-  {
-    init(a, p, r, s);
-    setTimeTicks(ticks);
-  }
-}
-
-template <typename CFG>
-__forceinline vec3f PrsAnimNodeSampler<CFG>::samplePos() const
-{
-  if constexpr (k_one_shot)
-  {
-    if (!ctx.kpos)
-      return v_zero();
-    return *(int *)&ctx.apos ? interp_key(ctx.kpos[0], v_splats(ctx.apos)) : ctx.kpos->p;
-  }
-  else
-    return sample_anim(ctx.pos, ctx.curTime, v_zero());
-}
-
-template <typename CFG>
-__forceinline vec3f PrsAnimNodeSampler<CFG>::sampleScl() const
-{
-  if constexpr (k_one_shot)
-  {
-    if (!ctx.kscl)
-      return V_C_ONE;
-    return *(int *)&ctx.ascl ? interp_key(ctx.kscl[0], v_splats(ctx.ascl)) : ctx.kscl->p;
-  }
-  else
-    return sample_anim(ctx.scl, ctx.curTime, V_C_ONE);
-}
-
-template <typename CFG>
-__forceinline quat4f PrsAnimNodeSampler<CFG>::sampleRot() const
-{
-  if constexpr (k_one_shot)
-  {
-    if (!ctx.krot)
-      return V_C_UNIT_0001;
-    return *(int *)&ctx.arot ? interp_key(ctx.krot[0], ctx.krot[1], ctx.arot) : ctx.krot->p;
-  }
-  else
-    return sample_anim(ctx.rot, ctx.curTime, V_C_UNIT_0001);
-}
-
-
-template <typename CFG>
-void Float3AnimNodeSampler<CFG>::init(const AnimV20::AnimDataChan &anim, dag::Index16 node)
-{
-  if constexpr (k_one_shot)
-  {
-    G_ASSERT_EX(false, "can't init() one-shot Float3AnimNodeSampler");
-  }
-  else
-  {
-    ctx.chan = get_point3_anim(anim, node);
-    ctx.curTime = 0;
-  }
-}
-
-template <typename CFG>
-__forceinline void Float3AnimNodeSampler<CFG>::initOneShot(const AnimV20::AnimDataChan &anim, dag::Index16 node, int ticks)
-{
-  if constexpr (k_one_shot)
-  {
-    ctx.key = find_key(get_point3_anim(anim, node), ticks, &ctx.alpha);
-  }
-  else
-  {
-    init(anim, node);
-    setTimeTicks(ticks);
-  }
-}
-
-template <typename CFG>
-__forceinline vec3f Float3AnimNodeSampler<CFG>::sample(vec3f default_value) const
-{
-  if constexpr (k_one_shot)
-  {
-    if (!ctx.key)
-      return default_value;
-    return *(int *)&ctx.alpha ? interp_key(ctx.key[0], v_splats(ctx.alpha)) : ctx.key->p;
-  }
-  else
-    return sample_anim(ctx.chan, ctx.curTime, default_value);
-}
 
 } // end of namespace AnimV20Math
 
 
-__forceinline bool AnimV20::AnimDataChan::hasKeys(dag::Index16 node_id) const
+__forceinline bool AnimV20::AnimDataChan::hasKeys() const
 {
-  if (node_id.index() >= nodeNum)
+  if (!animTracks)
     return false;
-  return ((const AnimV20Math::AnimChanPoint3 *)nodeAnim.get() + node_id.index())->keyNum > 0;
+  return animTracks->get_num_samples_per_track() > 0;
 }
 
-__forceinline bool AnimV20::AnimDataChan::hasAnimation(dag::Index16 node_id) const
+__forceinline bool AnimV20::AnimDataChan::hasAnimation() const
 {
-  if (node_id.index() >= nodeNum)
+  if (!animTracks)
     return false;
-  return ((const AnimV20Math::AnimChanPoint3 *)nodeAnim.get() + node_id.index())->keyNum > 1;
+  return animTracks->get_num_samples_per_track() > 1;
 }
 
-__forceinline unsigned AnimV20::AnimDataChan::getNumKeys(dag::Index16 node_id) const
+__forceinline unsigned AnimV20::AnimDataChan::getNumKeys() const
 {
-  if (node_id.index() >= nodeNum)
+  if (!animTracks)
     return 0;
-  return ((const AnimV20Math::AnimChanPoint3 *)nodeAnim.get() + node_id.index())->keyNum;
+  return animTracks->get_num_samples_per_track();
 }
 
-inline int AnimV20::AnimDataChan::keyTimeFirst(dag::Index16 node_id) const
+inline int AnimV20::AnimDataChan::keyTimeLast() const
 {
-  if (node_id.index() >= nodeNum)
-    return INT_MAX;
-  auto a = (const AnimV20Math::AnimChanPoint3 *)nodeAnim.get() + node_id.index();
-  if (a->keyNum == 0)
-    return INT_MAX;
-  return a->keyTimeFirst();
-}
-
-inline int AnimV20::AnimDataChan::keyTimeLast(dag::Index16 node_id) const
-{
-  if (node_id.index() >= nodeNum)
-    return INT_MIN;
-  auto a = (const AnimV20Math::AnimChanPoint3 *)nodeAnim.get() + node_id.index();
-  if (a->keyNum == 0)
-    return INT_MIN;
-  return a->keyTimeLast();
+  if (!animTracks)
+    return 0;
+  return AnimV20Math::seconds_to_ticks(animTracks->get_duration());
 }
 
 
-inline int AnimV20::PrsAnimNodeRef::keyTimeFirst() const
+inline bool AnimV20::PrsAnimNodeRef::hasAnimation() const
 {
   if (!anim)
-    return INT_MAX;
-  int t = INT_MAX;
-  if (auto a = AnimV20Math::get_point3_anim(anim->pos, posId))
-    t = min(t, a->keyTimeFirst());
-  if (auto a = AnimV20Math::get_quat_anim(anim->rot, rotId))
-    t = min(t, a->keyTimeFirst());
-  if (auto a = AnimV20Math::get_point3_anim(anim->scl, sclId))
-    t = min(t, a->keyTimeFirst());
-  return t;
+    return false;
+  return anim->is_animated(trackId.index());
 }
 
 inline int AnimV20::PrsAnimNodeRef::keyTimeLast() const
 {
   if (!anim)
-    return INT_MIN;
-  int t = INT_MIN;
-  if (auto a = AnimV20Math::get_point3_anim(anim->pos, posId))
-    t = max(t, a->keyTimeLast());
-  if (auto a = AnimV20Math::get_quat_anim(anim->rot, rotId))
-    t = max(t, a->keyTimeLast());
-  if (auto a = AnimV20Math::get_point3_anim(anim->scl, sclId))
-    t = max(t, a->keyTimeLast());
-  return t;
+    return 0;
+  if (!anim->is_animated(trackId.index()))
+    return 0;
+  return AnimV20Math::seconds_to_ticks(anim->get_duration());
 }
 
 inline float AnimV20::PrsAnimNodeRef::getDuration() const
 {
   if (!anim)
     return 0;
-  return keyTimeLast() / float(AnimV20::TIME_TicksPerSec);
+  if (!anim->is_animated(trackId.index()))
+    return 0;
+  return anim->get_duration();
 }

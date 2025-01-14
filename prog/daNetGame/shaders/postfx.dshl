@@ -1,3 +1,4 @@
+include "antialiasing_type.inc.dshl"
 include "postfx_common.dshl"
 include "dof/dof_composite.dshl"
 include "distortion_postfx_inc.dshl"
@@ -51,9 +52,6 @@ float blood_on_screen = 0;
 float4 projection_center = (0, 0, 0, 0);
 
 float4 redout_blackout_color = (0, 0, 0, 0);
-
-int antialiasing_type = 1;
-interval antialiasing_type: dlss < 1, taa < 2, tsr;
 
 int fsr_on = 1;
 

@@ -147,52 +147,59 @@ static void screen_snowflakes_on_vehicle_camera_change_es(const ecs::Event &, bo
     });
 }
 
-static float exponential_distribution(float u, float rate) { return -log(u + 1.e-3f) / rate; }
+static float exponential_distribution(float u, float rate) { return -log(u) / rate; }
+
+template <typename Callable>
+static void screen_snowflakes_before_render_ecs_query(ecs::EntityId, Callable c);
 
 ECS_TAG(render)
 ECS_REQUIRE(eastl::true_type screen_snowflakes__enabled_on_level)
 static void screen_snowflakes_before_render_es(const UpdateStageInfoBeforeRender &info,
   UniqueBufHolder &screen_snowflakes__instances_buf,
-  float screen_snowflakes__spawn_rate,
-  float screen_snowflakes__min_size,
-  float screen_snowflakes__max_size,
-  float screen_snowflakes__restricted_radius,
-  float screen_snowflakes__lifetime,
   float &screen_snowflakes__time_until_next_spawn,
   SnowflakeInstances &screen_snowflakes__instances,
   bool screen_snowflakes__camera_inside_vehicle)
 {
+  ecs::EntityId settingsEid = g_entity_mgr->getSingletonEntity(ECS_HASH("screen_snowflakes_settings"));
+  if (!settingsEid)
+    return;
+
   const Point3 SNOWFALL_DIRECTION(0, -1, 0);
   const Point3 &cameraPos = info.viewItm.getcol(3);
   float t = 25.0f;
 
   bool spawnSnowlakes = !screen_snowflakes__camera_inside_vehicle && !dacoll::rayhit_normalized_ri(cameraPos, -SNOWFALL_DIRECTION, t);
   screen_snowflakes__time_until_next_spawn -= info.dt;
-  if (spawnSnowlakes && screen_snowflakes__time_until_next_spawn < 0.f)
-  {
-    float phi = rnd_float(0.f, 2 * M_PI);
-    float cosPhi = cosf(phi);
-    float sinPhi = sinf(phi);
-    // R-coordinate of a square in polar coordinates
-    float maxR = 1.f / max(abs(cosPhi), abs(sinPhi));
-    // A random variable with the probability distribution function rising with the rising argument, which would guarantee a higher
-    // probability of snowflake spawning near the edges of the screen rather than near the center:
-    float rv = powf(rnd_float(0.f, 1.f), 0.33f);
-    float r = screen_snowflakes__restricted_radius +
-              (maxR - screen_snowflakes__max_size / sqrtf(2.f) - screen_snowflakes__restricted_radius) * rv;
-    Point2 snowflakeCenter = Point2(r * cosPhi, r * sinPhi);
-    // The closer to the edge, the bigger the snowflake:
-    float sizeX = screen_snowflakes__min_size + (screen_snowflakes__max_size - screen_snowflakes__min_size) * rv;
-    sizeX *= 2.f;                               // due to screen space coordinates being from -1 to 1
-    float sizeY = sizeX * rnd_float(0.8f, 1.f); // prefer horizontal snowflakes
-    float opacity = rnd_float(0.6f, 1.f);
-    screen_snowflakes__instances.push_back(Snowflake{snowflakeCenter, Point2(sizeX, sizeY), opacity, rnd_float(0.f, 1.e5f)});
 
-    screen_snowflakes__time_until_next_spawn = exponential_distribution(rnd_float(0.f, 1.f), screen_snowflakes__spawn_rate);
-  }
+  screen_snowflakes_before_render_ecs_query(settingsEid,
+    [&](float screen_snowflakes__spawn_rate, float screen_snowflakes__min_size, float screen_snowflakes__max_size,
+      float screen_snowflakes__restricted_radius, float screen_snowflakes__lifetime) {
+      if (spawnSnowlakes && screen_snowflakes__time_until_next_spawn < 0.f)
+      {
+        float phi = rnd_float(0.f, 2 * M_PI);
+        float cosPhi = cosf(phi);
+        float sinPhi = sinf(phi);
+        // R-coordinate of a square in polar coordinates
+        float maxR = 1.f / max(abs(cosPhi), abs(sinPhi));
+        // A random variable with the probability distribution function rising with the rising argument, which would guarantee a
+        // higher probability of snowflake spawning near the edges of the screen rather than near the center:
+        float rv = powf(rnd_float(0.f, 1.f), 0.33f);
+        float r = screen_snowflakes__restricted_radius +
+                  (maxR - screen_snowflakes__max_size / sqrtf(2.f) - screen_snowflakes__restricted_radius) * rv;
+        Point2 snowflakeCenter = Point2(r * cosPhi, r * sinPhi);
+        // The closer to the edge, the bigger the snowflake:
+        float sizeX = screen_snowflakes__min_size + (screen_snowflakes__max_size - screen_snowflakes__min_size) * rv;
+        sizeX *= 2.f;                               // due to screen space coordinates being from -1 to 1
+        float sizeY = sizeX * rnd_float(0.8f, 1.f); // prefer horizontal snowflakes
+        float opacity = rnd_float(0.6f, 1.f);
+        screen_snowflakes__instances.push_back(Snowflake{snowflakeCenter, Point2(sizeX, sizeY), opacity, rnd_float(0.f, 1.e5f)});
 
-  for (auto &snowflake : screen_snowflakes__instances)
-    snowflake.opacity -= info.dt / screen_snowflakes__lifetime;
+        screen_snowflakes__time_until_next_spawn = exponential_distribution(rnd_float(1.e-3f, 1.f), screen_snowflakes__spawn_rate);
+      }
+
+      for (auto &snowflake : screen_snowflakes__instances)
+        snowflake.opacity -= info.dt / screen_snowflakes__lifetime;
+    });
 
   screen_snowflakes__instances.erase(eastl::remove_if(begin(screen_snowflakes__instances), end(screen_snowflakes__instances),
                                        [](const Snowflake &snowflake) { return snowflake.opacity < 0.f; }),

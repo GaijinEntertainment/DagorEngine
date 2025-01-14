@@ -22,6 +22,8 @@
 #include <dxgi.h>
 #include <d3d12video.h>
 
+namespace
+{
 namespace sl_funcs
 {
 SL_FUN_DECL(slInit);
@@ -51,7 +53,7 @@ SL_FUN_DECL(slReflexSleep);
 SL_FUN_DECL(slDLSSGSetOptions);
 SL_FUN_DECL(slDLSSGGetState);
 
-void loadInterposer(void *module)
+void load_interposer(void *module)
 {
 #define LOAD_FUNC(x)                                                         \
   sl_funcs::x = reinterpret_cast<PFun_##x *>(os_dll_get_symbol(module, #x)); \
@@ -74,14 +76,33 @@ void loadInterposer(void *module)
 #undef LOAD_FUNC
 }
 
-void loadDlss()
+bool unload_interposer(void *module)
+{
+  slInit = nullptr;
+  slShutdown = nullptr;
+  slSetD3DDevice = nullptr;
+  slUpgradeInterface = nullptr;
+  slGetNativeInterface = nullptr;
+  slIsFeatureSupported = nullptr;
+  slGetFeatureFunction = nullptr;
+  slGetNewFrameToken = nullptr;
+  slSetConstants = nullptr;
+  slSetTag = nullptr;
+  slEvaluateFeature = nullptr;
+  slAllocateResources = nullptr;
+  slFreeResources = nullptr;
+  slGetFeatureVersion = nullptr;
+  return os_dll_close(module);
+}
+
+void load_dlss()
 {
   G_VERIFY(sl_funcs::slGetFeatureFunction(sl::kFeatureDLSS, "slDLSSGetOptimalSettings", (void *&)slDLSSGetOptimalSettings) ==
            sl::Result::eOk);
   G_VERIFY(sl_funcs::slGetFeatureFunction(sl::kFeatureDLSS, "slDLSSSetOptions", (void *&)slDLSSSetOptions) == sl::Result::eOk);
 }
 
-void loadReflex()
+void load_reflex()
 {
   G_VERIFY(sl_funcs::slGetFeatureFunction(sl::kFeaturePCL, "slPCLSetMarker", (void *&)slPCLSetMarker) == sl::Result::eOk);
   G_VERIFY(sl_funcs::slGetFeatureFunction(sl::kFeatureReflex, "slReflexSetOptions", (void *&)slReflexSetOptions) == sl::Result::eOk);
@@ -89,16 +110,14 @@ void loadReflex()
   G_VERIFY(sl_funcs::slGetFeatureFunction(sl::kFeatureReflex, "slReflexSleep", (void *&)slReflexSleep) == sl::Result::eOk);
 }
 
-void loadDlssG()
+void load_dlss_g()
 {
   G_VERIFY(sl_funcs::slGetFeatureFunction(sl::kFeatureDLSS_G, "slDLSSGSetOptions", (void *&)slDLSSGSetOptions) == sl::Result::eOk);
   G_VERIFY(sl_funcs::slGetFeatureFunction(sl::kFeatureDLSS_G, "slDLSSGGetState", (void *&)slDLSSGGetState) == sl::Result::eOk);
 }
-
-
 } // namespace sl_funcs
 
-static void logMessageCallback(sl::LogType type, const char *msg)
+void logMessageCallback(sl::LogType type, const char *msg)
 {
   auto toDagorLogLevel = [](auto type) {
     switch (type)
@@ -114,49 +133,74 @@ static void logMessageCallback(sl::LogType type, const char *msg)
   if (auto length = strlen(msg); length > 2)
     logmessage(toDagorLogLevel(type), "sl: %.*s", length - 1, msg); // extract the extra \n character
 }
+} // namespace
 
-eastl::optional<StreamlineAdapter> StreamlineAdapter::create(StreamlineAdapter::RenderAPI api, SupportOverrideMap support_override)
+StreamlineAdapter::InterposerHandleType StreamlineAdapter::loadInterposer()
 {
-  WindowsVersion winVersion = get_windows_version();
-  if (winVersion.MajorVersion < 10)
-    return eastl::nullopt;
-  if (::dgs_get_settings()->getBlockByNameEx("video")->getBool("disableStreamline", false))
-    return eastl::nullopt;
+  if (WindowsVersion winVersion = get_windows_version(); winVersion.MajorVersion < 10)
+    return {nullptr, nullptr};
 
-  int appId = ::dgs_get_settings()->getInt("nvidia_app_id", 0);
-  if (appId == 0)
+  auto settings = ::dgs_get_settings();
+  if (settings->getBlockByNameEx("video")->getBool("disableStreamline", false))
+    return {nullptr, nullptr};
+
+  if (int appId = settings->getInt("nvidia_app_id", 0); appId == 0)
   {
     logdbg("sl: No app ID is set for project.");
-    return eastl::nullopt;
+    return {nullptr, nullptr};
   }
 
-  StreamlineAdapter::InterposerHandleType interposer(os_dll_load("sl.interposer.dll"), &os_dll_close);
+  StreamlineAdapter::InterposerHandleType interposer(os_dll_load("sl.interposer.dll"), &sl_funcs::unload_interposer);
 
   if (!interposer)
   {
     D3D_ERROR("sl: Could not load Streamline interposer DLL");
-    return eastl::nullopt;
+    return {nullptr, nullptr};
   }
 
-  sl_funcs::loadInterposer(interposer.get());
+  sl_funcs::load_interposer(interposer.get());
+  return interposer;
+}
 
-  sl::Preferences preferences{};
-  preferences.applicationId = appId;
-  preferences.logLevel = DAGOR_DBGLEVEL > 0 ? sl::LogLevel::eVerbose : sl::LogLevel::eDefault;
-  preferences.logMessageCallback = &logMessageCallback;
-  preferences.flags = sl::PreferenceFlags::eDisableCLStateTracking | sl::PreferenceFlags::eUseManualHooking;
+void *StreamlineAdapter::getInterposerSymbol(const InterposerHandleType &interposer, const char *name)
+{
+  return os_dll_get_symbol(interposer.get(), name);
+}
 
-  eastl::fixed_vector<sl::Feature, 3> features = {sl::kFeatureDLSS, sl::kFeatureReflex, sl::kFeaturePCL};
+struct StreamlineAdapter::InitArgs
+{
+  sl::Preferences preferences;
+  eastl::fixed_vector<sl::Feature, 4> features;
+};
+
+bool StreamlineAdapter::init(eastl::optional<StreamlineAdapter> &adapter, RenderAPI api, SupportOverrideMap support_override)
+{
+  // if the sl is disabled or isn't available for any reason, the inteposer load will not load the slInit
+  if (!sl_funcs::slInit)
+  {
+    logdbg("sl: The interposer isn't loaded");
+    return false;
+  }
+
+  auto settings = ::dgs_get_settings();
+  auto initArgs = eastl::make_unique<InitArgs>();
+  initArgs->preferences = {};
+  initArgs->preferences.applicationId = settings->getInt("nvidia_app_id", 0);
+  initArgs->preferences.logLevel = DAGOR_DBGLEVEL > 0 ? sl::LogLevel::eVerbose : sl::LogLevel::eDefault;
+  initArgs->preferences.logMessageCallback = &logMessageCallback;
+  initArgs->preferences.flags = sl::PreferenceFlags::eDisableCLStateTracking | sl::PreferenceFlags::eUseManualHooking;
+
+  initArgs->features = {sl::kFeatureDLSS, sl::kFeatureReflex, sl::kFeaturePCL};
   if (api == RenderAPI::DX12)
   {
-    features.push_back(sl::kFeatureDLSS_G);
+    initArgs->features.push_back(sl::kFeatureDLSS_G);
   }
 
-  preferences.featuresToLoad = features.data();
-  preferences.numFeaturesToLoad = features.size();
-  preferences.engine = sl::EngineType::eCustom;
-  preferences.engineVersion = "6.0.0.0";
-  preferences.projectId = ::dgs_get_settings()->getStr("nvidia_project_id", "6352d1d6-3e63-4dba-8da1-c96bdc320a02");
+  initArgs->preferences.featuresToLoad = initArgs->features.data();
+  initArgs->preferences.numFeaturesToLoad = initArgs->features.size();
+  initArgs->preferences.engine = sl::EngineType::eCustom;
+  initArgs->preferences.engineVersion = "6.0.0.0";
+  initArgs->preferences.projectId = settings->getStr("nvidia_project_id", "6352d1d6-3e63-4dba-8da1-c96bdc320a02");
 
   auto toSlRenderApi = [](auto api) {
     switch (api)
@@ -167,38 +211,23 @@ eastl::optional<StreamlineAdapter> StreamlineAdapter::create(StreamlineAdapter::
     return sl::RenderAPI{};
   };
 
-  preferences.renderAPI = toSlRenderApi(api);
-  if (SL_FAILED(result, sl_funcs::slInit(preferences, sl::kSDKVersion)))
+  initArgs->preferences.renderAPI = toSlRenderApi(api);
+  if (SL_FAILED(result, sl_funcs::slInit(initArgs->preferences, sl::kSDKVersion)))
   {
     logwarn("sl: Failed to initialize Streamline: %s. DLSS and Reflex will be disabled.", getResultAsStr(result));
     // slShutdown will set PluginManager::s_status to ePluginsUnloaded to make sure we can try again later
     G_VERIFY(sl_funcs::slShutdown() == sl::Result::eOk);
-    return eastl::nullopt;
+    return false;
   }
 
-  return StreamlineAdapter{eastl::move(interposer), eastl::move(support_override)};
+  adapter.emplace(eastl::move(initArgs), eastl::move(support_override));
+  return true;
 }
 
-void *StreamlineAdapter::getInterposerSymbol(const char *name) { return os_dll_get_symbol(interposer.get(), name); }
-
-void StreamlineAdapter::setD3DDevice(void *device)
-{
-  sl::Result result = sl_funcs::slSetD3DDevice(device);
-  G_ASSERT(result == sl::Result::eOk);
-}
-
-void *StreamlineAdapter::hook(void *o)
-{
-  if (SL_FAILED(result, sl_funcs::slUpgradeInterface(&o)))
-  {
-    D3D_ERROR("sl: Failed to hook device: %s", getResultAsStr(result));
-    return nullptr;
-  }
-  return o;
-}
-
-StreamlineAdapter::StreamlineAdapter(InterposerHandleType interposer, SupportOverrideMap support_override) :
-  interposer(std::move(interposer)), supportOverride(eastl::move(support_override)), currentFrameId(lowlatency::get_current_frame())
+StreamlineAdapter::StreamlineAdapter(eastl::unique_ptr<InitArgs> &&initArgs, SupportOverrideMap support_override) :
+  initArgs{eastl::move(initArgs)}, //
+  supportOverride(eastl::move(support_override)),
+  currentFrameId(lowlatency::get_current_frame())
 {
   // start frame automatically because streamline might be reinitialized mid-frame
   auto result = sl_funcs::slGetNewFrameToken(frameTokens[currentFrameId % MAX_CONCURRENT_FRAMES], &currentFrameId);
@@ -207,11 +236,61 @@ StreamlineAdapter::StreamlineAdapter(InterposerHandleType interposer, SupportOve
 
 StreamlineAdapter::~StreamlineAdapter()
 {
-  if (interposer)
+  G_ASSERT(sl_funcs::slShutdown);
+  sl::Result result = sl_funcs::slShutdown();
+  G_ASSERT(result == sl::Result::eOk);
+}
+
+void *StreamlineAdapter::hook(IUnknown *object)
+{
+  if (!sl_funcs::slUpgradeInterface)
   {
-    sl::Result result = sl_funcs::slShutdown();
-    G_ASSERT(result == sl::Result::eOk);
+    logdbg("sl: Hook isn't available");
+    return object;
   }
+
+  void *proxy = object;
+  if (SL_FAILED(result, sl_funcs::slUpgradeInterface(&proxy)))
+  {
+    D3D_ERROR("sl: Failed to hook device: %s", getResultAsStr(result));
+    return object;
+  }
+
+  return proxy;
+}
+
+void StreamlineAdapter::setAdapterAndDevice(IDXGIAdapter1 *adapter, ID3D11Device *device)
+{
+  this->adapter = adapter;
+  sl::Result result = sl_funcs::slSetD3DDevice(device);
+  G_ASSERT(result == sl::Result::eOk);
+}
+
+void StreamlineAdapter::setAdapterAndDevice(IDXGIAdapter1 *adapter, ID3D12Device5 *device)
+{
+  this->adapter = adapter;
+  sl::Result result = sl_funcs::slSetD3DDevice(device);
+  G_ASSERT(result == sl::Result::eOk);
+}
+
+void StreamlineAdapter::preRecover()
+{
+  adapter.Reset();
+  G_ASSERT(sl_funcs::slShutdown);
+  sl::Result result = sl_funcs::slShutdown();
+  G_ASSERT(result == sl::Result::eOk);
+  dlssState = State::DISABLED;
+}
+
+void StreamlineAdapter::recover()
+{
+  if (SL_FAILED(result, sl_funcs::slInit(initArgs->preferences, sl::kSDKVersion)))
+  {
+    logwarn("sl: Failed to initialize Streamline: %s. DLSS and Reflex will be disabled.", getResultAsStr(result));
+    // slShutdown will set PluginManager::s_status to ePluginsUnloaded to make sure we can try again later
+    G_VERIFY(sl_funcs::slShutdown() == sl::Result::eOk);
+  }
+  startFrame(lowlatency::get_current_frame());
 }
 
 static nv::SupportState toSupportState(sl::Result result)
@@ -227,7 +306,7 @@ static nv::SupportState toSupportState(sl::Result result)
   }
 }
 
-static nv::SupportState isFeatureSupported(sl::Feature feature, IDXGIAdapter *adapter,
+static nv::SupportState isFeatureSupported(sl::Feature feature, IDXGIAdapter1 *adapter,
   const StreamlineAdapter::SupportOverrideMap &support_override)
 {
   if (auto it = support_override.find(feature); it != support_override.end())
@@ -255,17 +334,17 @@ static nv::SupportState isFeatureSupported(sl::Feature feature, IDXGIAdapter *ad
 
 nv::SupportState StreamlineAdapter::isDlssSupported() const
 {
-  return isFeatureSupported(sl::kFeatureDLSS, currentAdapter, supportOverride);
+  return isFeatureSupported(sl::kFeatureDLSS, adapter.Get(), supportOverride);
 }
 
 nv::SupportState StreamlineAdapter::isDlssGSupported() const
 {
-  return isFeatureSupported(sl::kFeatureDLSS_G, currentAdapter, supportOverride);
+  return isFeatureSupported(sl::kFeatureDLSS_G, adapter.Get(), supportOverride);
 }
 
 nv::SupportState StreamlineAdapter::isReflexSupported() const
 {
-  return isFeatureSupported(sl::kFeatureReflex, currentAdapter, supportOverride);
+  return isFeatureSupported(sl::kFeatureReflex, adapter.Get(), supportOverride);
 }
 
 void StreamlineAdapter::startFrame(uint32_t frame_id)
@@ -275,7 +354,7 @@ void StreamlineAdapter::startFrame(uint32_t frame_id)
   currentFrameId = frame_id;
 }
 
-void StreamlineAdapter::initializeReflexState() { sl_funcs::loadReflex(); }
+void StreamlineAdapter::initializeReflexState() { sl_funcs::load_reflex(); }
 
 static sl::PCLMarker toPCLMarker(lowlatency::LatencyMarkerType marker)
 {
@@ -496,9 +575,9 @@ void StreamlineAdapter::initializeDlssState()
       case nv::SupportState::OSOutOfDate: dlssState = State::NOT_SUPPORTED_32BIT; break;
       case nv::SupportState::Supported:
         dlssState = State::SUPPORTED;
-        sl_funcs::loadDlss();
+        sl_funcs::load_dlss();
         if (isDlssGSupported() == nv::SupportState::Supported)
-          sl_funcs::loadDlssG();
+          sl_funcs::load_dlss_g();
         break;
     }
   }
@@ -661,7 +740,7 @@ bool StreamlineAdapter::isFrameGenerationSupported() const
   return dlssState == State::READY && isDlssGSupported() == nv::SupportState::Supported;
 }
 
-static void api_error_callback(const sl::APIError &lastError) { D3D_ERROR("sl: API error: %d", lastError.hres); }
+static void api_error_callback(const sl::APIError &lastError) { logwarn("sl: API error: %d", lastError.hres); }
 
 bool StreamlineAdapter::enableDlssG(int viewportId)
 {

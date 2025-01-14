@@ -22,7 +22,14 @@
 #include <sqDebugger/scriptProfiler.h>
 #include <quirrel/sqStackChecker.h>
 
+#include <squirrel/sqpcheader.h>
 #include <sqstdaux.h>
+#include <sqastio.h>
+#include <squirrel/sqvm.h>
+#include <squirrel/sqstate.h>
+#include <squirrel/sqfuncproto.h>
+#include <squirrel/sqclosure.h>
+
 
 using namespace webui;
 
@@ -505,6 +512,34 @@ void on_sqdebug_internal(int debugger_index, RequestInfo *params)
 
       debugger.executingImmediate = immediate;
       debugger.suspended = paused;
+    }
+  }
+  else if (!strcmp(params->params[0], "disasm"))
+  {
+    HSQUIRRELVM vm = debugger.vm;
+
+    if (!vm)
+      html_response_raw(params->conn, "");
+    else if (!debugger.suspended)
+      html_response_raw(params->conn, "Program must be suspened for disasm of the current function");
+    else
+    {
+      sq_output.clear();
+      SQVM::CallInfo &ci = vm->_callsstack[0];
+      if (sq_type(ci._closure) == OT_CLOSURE)
+      {
+        SQClosure *c = _closure(ci._closure);
+        SQFunctionProto *func = c->_function;
+        int instructionIndex = int(ci._ip - func->_instructions);
+
+        MemoryOutputStream mem;
+        sq_dumpbytecode(vm, ci._closure, &mem, instructionIndex);
+
+        sq_output.setStr((const char *)mem.buffer(), mem.pos());
+      }
+
+      html_response_raw(params->conn, sq_output.str());
+      sq_output.clear();
     }
   }
   else if (!strcmp(params->params[0], "clear_coverage"))

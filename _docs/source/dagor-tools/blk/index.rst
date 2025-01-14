@@ -1,5 +1,5 @@
 
-.blk Format
+.blk File Format
 =========================================
 
 Syntax, structure, and usage of `.blk` files, including configuration examples

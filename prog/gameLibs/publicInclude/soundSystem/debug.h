@@ -13,6 +13,7 @@ namespace sndsys
 void debug_trace_info(const char *format, ...);
 void debug_trace_warn(const char *format, ...);
 void debug_trace_err(const char *format, ...);
+void debug_trace_err_once(const char *format, ...);
 void debug_trace_log(const char *format, ...);
 
 void debug_draw();

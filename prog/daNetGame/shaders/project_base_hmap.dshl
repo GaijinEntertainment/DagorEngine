@@ -15,7 +15,10 @@ macro PROJECT_BASE_HEIGHTMAP(code)
       #if PROJECT_DAGI_USE_HMAP
       if (!checkHeightmapHoles(worldPos))
         return false;
-      world_height = decode_height(getHeightLowLod(calcTcLow(worldPos.xz), 0));
+      float2 tc = calcTcLow(worldPos.xz);
+      if (any(tc != saturate(tc)))
+        return false;
+      world_height = decode_height(getHeightLowLod(tc, 0));
       return true;
       #else
       return false;

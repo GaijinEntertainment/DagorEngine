@@ -41,7 +41,9 @@ bool FpdPoint::load(const DataBlock &blk, IFpdLoad &loader)
 {
   as_point3(&localPos) = blk.getPoint3("localPos", as_point3(&localPos));
   auto &tree = loader.getGeomTree();
-  node = tree.findINodeIndex(blk.getStr("node", NULL));
+  const char *nodeName = blk.getStr("node", NULL);
+  if (nodeName && nodeName[0])
+    node = tree.findINodeIndex(nodeName);
   nodeWtm = get_node_wtm_rel_ptr(tree, node);
   groupId = blk.getInt("groupId", groupId);
   gravity = blk.getReal("gravity", gravity);

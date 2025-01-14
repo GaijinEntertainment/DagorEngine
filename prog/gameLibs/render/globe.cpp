@@ -42,7 +42,7 @@ GlobeRenderer::GlobeRenderer(Parameters &&parameters) : params(eastl::move(param
   cloudsTex = d3d::check_texformat(TEXFMT_ATI2N) ? dag::get_tex_gameres(params.cloudsTexName.c_str()) : SharedTex();
 
   G_ASSERT(textureSlices.size() > 0 && textureSlices[0].colorTex);
-  if (textureSlices.size() > 0)
+  if (textureSlices.size() > 0 && textureSlices[0].colorTex)
   {
     SharedTex &sourceTex = textureSlices[0].colorTex;
     G_ASSERT(sourceTex);

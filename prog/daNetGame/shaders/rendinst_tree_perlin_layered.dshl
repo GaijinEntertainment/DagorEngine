@@ -526,7 +526,7 @@ shader rendinst_tree_perlin_layered
     compile("target_ps", "rendinst_simple_impostor_shadow_ps");
   } else if (rendinst_render_pass == rendinst_render_pass_to_shadow)
   {
-      no_dynstcode;
+    NO_DYNSTCODE()
 
     USE_GROUND_ALIGN()
 
@@ -751,6 +751,6 @@ shader rendinst_tree_perlin_layered
       }
     }
 
-    USE_PN_TRIANGULATION_WITH_EDGE_LENGTH_BASED_TESS_FACTORS(camera_base_offset, get_max_tessellation_factor(), get_tessellation_max_edge_length(), get_min_tessellation_distance(), get_max_tessellation_distance(), get_tessellation_transition_distance())
+    USE_PN_TRIANGULATION_WITH_EDGE_LENGTH_BASED_TESS_FACTORS(camera_base_offset, get_max_tessellation_factor(), get_tessellation_max_edge_length(), get_min_tessellation_distance(), get_max_tessellation_distance(), get_tessellation_transition_distance(), rendinst_render_pass == rendinst_render_pass_to_shadow, false)
   }
 }

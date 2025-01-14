@@ -218,21 +218,6 @@ void ShaderProgramDatabase::releaseShaderDeps(DeviceContext &ctx, ShaderInfo &it
     case VK_SHADER_STAGE_COMPUTE_BIT:
       // can't delete separate compute shaders
       break;
-#if D3D_HAS_RAY_TRACING
-    case VK_SHADER_STAGE_RAYGEN_BIT_NV:
-    case VK_SHADER_STAGE_ANY_HIT_BIT_NV:
-    case VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV:
-    case VK_SHADER_STAGE_MISS_BIT_NV:
-    case VK_SHADER_STAGE_INTERSECTION_BIT_NV:
-    case VK_SHADER_STAGE_CALLABLE_BIT_NV:
-      progs.raytrace.enumerate([this, &ctx, &item](ProgramID id, const RaytraceProgram &prog) {
-        auto from = prog.shaders.get();
-        auto to = from + prog.shaderCount;
-        if (to != eastl::find(from, to, &item))
-          this->progs.raytrace.remove(ctx, id, true);
-      });
-      break;
-#endif
   }
   shaderDesc.modules.remove(ctx, item.module->id);
   shaderDesc.headers.remove(ctx, item.header->id);

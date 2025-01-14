@@ -68,7 +68,8 @@ GamePackage load_game_package();
 void load_package_files(const GamePackage &game_info, bool load_game_res = true);
 void setup_base_resources(const GamePackage &game_info, dag::ConstSpan<VromLoadInfo> extra_vroms = {}, bool load_game_res = true);
 
-void load_game_scene(const char *scene_path);
+// Note: Entities that created from scene with non zero import depth isn't saved in editor
+bool load_game_scene(const char *scene_path, int import_depth = 1);
 
 void switch_scene(eastl::string_view scene, eastl::vector<eastl::string> &&import_scenes, UserGameModeContext &&ugm_ctx = {});
 void switch_scene_and_update(eastl::string_view scene);

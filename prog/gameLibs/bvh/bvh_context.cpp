@@ -161,7 +161,8 @@ void Context::freeMetaRegion(MeshMetaAllocator::AllocId &id)
   id = -1;
 }
 
-Texture *Context::holdTexture(TEXTUREID id, uint32_t &texture_and_sampler_bindless_index, d3d::SamplerHandle sampler)
+Texture *Context::holdTexture(TEXTUREID id, uint32_t &texture_and_sampler_bindless_index, d3d::SamplerHandle sampler,
+  bool forceRefreshSrvsWhenLoaded)
 {
   if (id != BAD_TEXTUREID)
   {
@@ -181,6 +182,9 @@ Texture *Context::holdTexture(TEXTUREID id, uint32_t &texture_and_sampler_bindle
         result.first->second.samplerIndex = d3d::register_bindless_sampler(result.first->second.texture);
       else
         result.first->second.samplerIndex = d3d::register_bindless_sampler(sampler);
+
+      if (forceRefreshSrvsWhenLoaded && !check_managed_texture_loaded(id))
+        texturesWaitingForLoad.insert(id);
     }
 
     texture_and_sampler_bindless_index = (uint32_t(result.first->second.allocId) << 16) | result.first->second.samplerIndex;
@@ -203,10 +207,31 @@ bool Context::releaseTexure(TEXTUREID id)
     bindlessTextureAllocator.free(iter->second.allocId);
     usedTextures.erase(iter);
     release_managed_tex(id);
+    texturesWaitingForLoad.erase(id);
     return true;
   }
 
   return false;
+}
+
+void Context::markChangedTextures()
+{
+  for (auto it = texturesWaitingForLoad.begin(); it != texturesWaitingForLoad.end();)
+  {
+    if (!check_managed_texture_loaded(*it, true))
+    {
+      // using the texture ensures it will eventually be fully loaded
+      mark_managed_tex_lfu(*it);
+      it++;
+      continue;
+    }
+
+    // the texture loaded new mip levels so its srv must be updated
+    if (auto usedTexIt = usedTextures.find(*it); usedTexIt != usedTextures.end())
+      bindlessTextureAllocator.getHeap().set(usedTexIt->second.allocId, usedTexIt->second.texture);
+
+    it = texturesWaitingForLoad.erase(it);
+  }
 }
 
 void Context::holdBuffer(Sbuffer *buffer, uint32_t &bindless_index)

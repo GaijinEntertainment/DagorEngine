@@ -79,17 +79,16 @@ extern bool enable_measure_stcode_perf;
 #endif
 
 #if DAGOR_DBGLEVEL > 0 && defined(_M_IX86_FP) && _M_IX86_FP == 0
-static bool saved_fp_exception_state = false;
+extern void update_float_exceptions_this_thread(bool);
 static void temporary_disable_fp_exceptions()
 {
-  saved_fp_exception_state = is_float_exceptions_enabled();
-  if (saved_fp_exception_state)
-    enable_float_exceptions(false);
+  if (is_float_exceptions_enabled())
+    update_float_exceptions_this_thread(false);
 }
 static void restore_fp_exceptions_state()
 {
-  if (is_float_exceptions_enabled() != saved_fp_exception_state)
-    enable_float_exceptions(saved_fp_exception_state);
+  if (is_float_exceptions_enabled())
+    update_float_exceptions_this_thread(true);
 }
 #else
 static inline void temporary_disable_fp_exceptions() {}
@@ -108,10 +107,10 @@ template <typename F>
 static inline VPROG get_vprog(int i, F get_debug_info)
 {
   G_ASSERT(d3d::is_inited());
-  if (uint32_t(i) >= shBinDump().vprId.size())
+  if (uint32_t(i) >= shBinDumpOwner().vprId.size())
     return BAD_VPROG;
 
-  VPROG vpr = interlocked_acquire_load(shBinDump().vprId[i]);
+  VPROG vpr = interlocked_acquire_load(shBinDumpOwner().vprId[i]);
   if (vpr != BAD_VPROG)
     return vpr;
 
@@ -124,7 +123,7 @@ static inline VPROG get_vprog(int i, F get_debug_info)
 
   if (vpr != BAD_VPROG)
   {
-    VPROG pvpr = interlocked_compare_exchange(shBinDumpRW().vprId[i], vpr, BAD_VPROG);
+    VPROG pvpr = interlocked_compare_exchange(shBinDumpOwner().vprId[i], vpr, BAD_VPROG);
     if (DAGOR_LIKELY(pvpr == BAD_VPROG))
     {
 #if DAGOR_DBGLEVEL > 0
@@ -146,10 +145,10 @@ template <typename F>
 static inline FSHADER get_fshader(int i, F get_debug_info)
 {
   G_ASSERT(d3d::is_inited());
-  if (i < 0 || i >= shBinDump().fshId.size())
+  if (i < 0 || i >= shBinDumpOwner().fshId.size())
     return BAD_FSHADER;
 
-  FSHADER fsh = interlocked_acquire_load(shBinDump().fshId[i]);
+  FSHADER fsh = interlocked_acquire_load(shBinDumpOwner().fshId[i]);
   if (fsh != BAD_FSHADER)
     return fsh;
 
@@ -162,7 +161,7 @@ static inline FSHADER get_fshader(int i, F get_debug_info)
 
   if (fsh != BAD_FSHADER)
   {
-    FSHADER pfsh = interlocked_compare_exchange(shBinDumpRW().fshId[i], fsh, BAD_FSHADER);
+    FSHADER pfsh = interlocked_compare_exchange(shBinDumpOwner().fshId[i], fsh, BAD_FSHADER);
     if (DAGOR_LIKELY(pfsh == BAD_FSHADER))
     {
 #if DAGOR_DBGLEVEL > 0
@@ -185,12 +184,12 @@ template <typename F>
 static PROGRAM get_compute_prg(int i, F get_debug_info)
 {
   G_ASSERT(d3d::is_inited());
-  if (i < 0 || i >= shBinDump().fshId.size())
+  if (i < 0 || i >= shBinDumpOwner().fshId.size())
     return BAD_PROGRAM;
 
   static constexpr PROGRAM CS_FLAG_BIT = 0x10000000;
 
-  PROGRAM csh = interlocked_acquire_load(shBinDump().fshId[i]);
+  PROGRAM csh = interlocked_acquire_load(shBinDumpOwner().fshId[i]);
   if (csh != BAD_PROGRAM)
   {
     G_ASSERT(csh & CS_FLAG_BIT);
@@ -206,7 +205,7 @@ static PROGRAM get_compute_prg(int i, F get_debug_info)
 
   if (csh != BAD_PROGRAM)
   {
-    FSHADER pcsh = interlocked_compare_exchange(shBinDumpRW().fshId[i], csh | CS_FLAG_BIT, BAD_PROGRAM);
+    FSHADER pcsh = interlocked_compare_exchange(shBinDumpOwner().fshId[i], csh | CS_FLAG_BIT, BAD_PROGRAM);
     if (DAGOR_LIKELY(pcsh == BAD_FSHADER))
     {
       // TODO: set debug info for the driver object
@@ -425,6 +424,7 @@ ScriptedShaderElement::ScriptedShaderElement(const shaderbindump::ShaderCode &ma
         tmp_texVarOffsets.push_back(v);
       }
       break;
+      case SHVT_SAMPLER: *(d3d::SamplerHandle *)&vars[v] = m.get_sampler_stvar(sv); break;
       default: G_ASSERT(0);
     }
   }
@@ -832,6 +832,7 @@ void ScriptedShaderElement::update_stvar(ScriptedShaderMaterial &m, int stvarid)
         t.replace(new_texId);
     }
     break;
+    case SHVT_SAMPLER: *(d3d::SamplerHandle *)&vars[v] = m.get_sampler_stvar(stvarid); break;
     default: G_ASSERT(0);
   }
 }
@@ -1548,19 +1549,26 @@ void ScriptedShaderElement::execute_chosen_stcode(uint16_t stcodeId, const shade
 
   G_ASSERT(stcodeId < shBinDump().stcode.size());
 
-#if CPP_STCODE_PROTOTYPE
+#if CPP_STCODE
 
+#if VALIDATE_CPP_STCODE
   stcode::dbg::reset();
+#endif
 
-  stcode::run_routine(stcodeId, vars, is_compute, tex_level, shClass.name.data());
+#if STCODE_RUNTIME_CHOICE
+  if (stcode::execution_mode() == stcode::ExecutionMode::BYTECODE)
+    exec_stcode(stcodeId, cPass, *this);
+  else
+#endif
+    stcode::run_routine(stcodeId, vars, is_compute, tex_level, shClass.name.data());
 
 #if VALIDATE_CPP_STCODE
   // Collect records
   if (stcode::execution_mode() == stcode::ExecutionMode::TEST_CPP_AGAINST_BYTECODE)
     exec_stcode(stcodeId, cPass, *this);
-#endif
 
   stcode::dbg::validate_accumulated_records(stcodeId, shClass.name.data());
+#endif
 
 #else
 

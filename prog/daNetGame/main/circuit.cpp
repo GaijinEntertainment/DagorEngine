@@ -19,7 +19,7 @@
 #if _TARGET_C1 | _TARGET_C2
 
 #elif _TARGET_XBOX
-#include <xbox/xbox.h>
+#include <gdk/main.h>
 #elif _TARGET_C3
 
 #endif
@@ -76,7 +76,7 @@ bool is_submission_env()
 #if _TARGET_C1 | _TARGET_C2
 
 #elif _TARGET_XBOX
-  return !xbox::is_retail_environment();
+  return !gdk::is_retail_environment();
 #elif _TARGET_C3
 
 #elif _TARGET_ANDROID | _TARGET_IOS

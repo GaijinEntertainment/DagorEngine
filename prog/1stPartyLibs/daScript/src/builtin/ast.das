@@ -306,14 +306,17 @@ class AstVisitor
     def abstract preVisitExprOp3Left(expr:smart_ptr<ExprOp3>;left:ExpressionPtr): void
     def abstract preVisitExprOp3Right(expr:smart_ptr<ExprOp3>;right:ExpressionPtr): void
 // copy
+    def abstract isRightFirstExprCopy(expr:smart_ptr<ExprCopy>) : bool
     def abstract preVisitExprCopy(expr:smart_ptr<ExprCopy>): void
     def abstract visitExprCopy(expr:smart_ptr<ExprCopy>) : ExpressionPtr
     def abstract preVisitExprCopyRight(expr:smart_ptr<ExprCopy>;right:ExpressionPtr): void
 // move
+    def abstract isRightFirstExprMove(expr:smart_ptr<ExprMove>) : bool
     def abstract preVisitExprMove(expr:smart_ptr<ExprMove>): void
     def abstract visitExprMove(expr:smart_ptr<ExprMove>) : ExpressionPtr
     def abstract preVisitExprMoveRight(expr:smart_ptr<ExprMove>;right:ExpressionPtr) : void
 // clone
+    def abstract isRightFirstExprClone(expr:smart_ptr<ExprClone>) : bool
     def abstract preVisitExprClone(expr:smart_ptr<ExprClone>) : void
     def abstract visitExprClone(expr:smart_ptr<ExprClone>) : ExpressionPtr
     def abstract preVisitExprCloneRight(expr:smart_ptr<ExprClone>;right:ExpressionPtr) : void
@@ -591,7 +594,7 @@ class AstVisitor
 var private gc_root_AstFunctionAnnotation : array<AstFunctionAnnotation?>
 
 [macro_function]
-def make_function_annotation ( name : string; someClassPtr ) : FunctionAnnotationPtr
+def make_function_annotation ( name : string; var someClassPtr ) : FunctionAnnotationPtr
     static_if typeinfo(is_pointer someClassPtr) && typeinfo(is_class *someClassPtr)
         gc_root_AstFunctionAnnotation |> push(someClassPtr)
         let classInfo = class_info(*someClassPtr)
@@ -603,7 +606,7 @@ def make_function_annotation ( name : string; someClassPtr ) : FunctionAnnotatio
 var private gc_root_AstBlockAnnotation : array<AstBlockAnnotation?>
 
 [macro_function]
-def make_block_annotation ( name : string; someClassPtr ) : FunctionAnnotationPtr
+def make_block_annotation ( name : string; var someClassPtr ) : FunctionAnnotationPtr
     static_if typeinfo(is_pointer someClassPtr) && typeinfo(is_class *someClassPtr)
         gc_root_AstBlockAnnotation |> push(someClassPtr)
         let classInfo = class_info(*someClassPtr)
@@ -615,7 +618,7 @@ def make_block_annotation ( name : string; someClassPtr ) : FunctionAnnotationPt
 var private gc_root_AstStructureAnnotation : array<AstStructureAnnotation?>
 
 [macro_function]
-def make_structure_annotation ( name : string; someClassPtr ) : StructureAnnotationPtr
+def make_structure_annotation ( name : string; var someClassPtr ) : StructureAnnotationPtr
     static_if typeinfo(is_pointer someClassPtr) && typeinfo(is_class *someClassPtr)
         gc_root_AstStructureAnnotation |> push(someClassPtr)
         let classInfo = class_info(*someClassPtr)
@@ -627,7 +630,7 @@ def make_structure_annotation ( name : string; someClassPtr ) : StructureAnnotat
 var private gc_root_AstEnumerationAnnotation : array<AstEnumerationAnnotation?>
 
 [macro_function]
-def make_enumeration_annotation ( name : string; someClassPtr ) : EnumerationAnnotationPtr
+def make_enumeration_annotation ( name : string; var someClassPtr ) : EnumerationAnnotationPtr
     static_if typeinfo(is_pointer someClassPtr) && typeinfo(is_class *someClassPtr)
         gc_root_AstEnumerationAnnotation |> push(someClassPtr)
         let classInfo = class_info(*someClassPtr)
@@ -649,7 +652,7 @@ def make_visitor ( someClass ) : smart_ptr<VisitorAdapter>
 var private gc_root_AstReaderMacro : array<AstReaderMacro?>
 
 [macro_function]
-def make_reader_macro ( name : string; someClassPtr ) : ReaderMacroPtr
+def make_reader_macro ( name : string; var someClassPtr ) : ReaderMacroPtr
     static_if typeinfo(is_pointer someClassPtr) && typeinfo(is_class *someClassPtr)
         gc_root_AstReaderMacro |> push(someClassPtr)
         let classInfo = class_info(*someClassPtr)
@@ -661,7 +664,7 @@ def make_reader_macro ( name : string; someClassPtr ) : ReaderMacroPtr
 var private gc_root_AstCommentReader : array<AstCommentReader?>
 
 [macro_function]
-def make_comment_reader ( name : string; someClassPtr ) : CommentReaderPtr
+def make_comment_reader ( name : string; var someClassPtr ) : CommentReaderPtr
     static_if typeinfo(is_pointer someClassPtr) && typeinfo(is_class *someClassPtr)
         gc_root_AstCommentReader |> push(someClassPtr)
         let classInfo = class_info(*someClassPtr)
@@ -673,7 +676,7 @@ def make_comment_reader ( name : string; someClassPtr ) : CommentReaderPtr
 var private gc_root_AstCallMacro : array<AstCallMacro?>
 
 [macro_function]
-def make_call_macro ( name : string; someClassPtr ) : CallMacroPtr
+def make_call_macro ( name : string; var someClassPtr ) : CallMacroPtr
     static_if typeinfo(is_pointer someClassPtr) && typeinfo(is_class *someClassPtr)
         gc_root_AstCallMacro |> push(someClassPtr)
         let classInfo = class_info(*someClassPtr)
@@ -685,7 +688,7 @@ def make_call_macro ( name : string; someClassPtr ) : CallMacroPtr
 var private gc_root_AstTypeInfoMacro : array<AstTypeInfoMacro?>
 
 [macro_function]
-def make_typeinfo_macro ( name : string; someClassPtr ) : TypeInfoMacroPtr
+def make_typeinfo_macro ( name : string; var someClassPtr ) : TypeInfoMacroPtr
     static_if typeinfo(is_pointer someClassPtr) && typeinfo(is_class *someClassPtr)
         gc_root_AstTypeInfoMacro |> push(someClassPtr)
         let classInfo = class_info(*someClassPtr)
@@ -697,7 +700,7 @@ def make_typeinfo_macro ( name : string; someClassPtr ) : TypeInfoMacroPtr
 var private gc_root_AstPassMacro : array<AstPassMacro?>
 
 [macro_function]
-def make_pass_macro ( name : string; someClassPtr ) : PassMacroPtr
+def make_pass_macro ( name : string; var someClassPtr ) : PassMacroPtr
     static_if typeinfo(is_pointer someClassPtr) && typeinfo(is_class *someClassPtr)
         gc_root_AstPassMacro |> push(someClassPtr)
         let classInfo = class_info(*someClassPtr)
@@ -709,7 +712,7 @@ def make_pass_macro ( name : string; someClassPtr ) : PassMacroPtr
 var private gc_root_AstVariantMacro : array<AstVariantMacro?>
 
 [macro_function]
-def make_variant_macro ( name : string; someClassPtr ) : VariantMacroPtr
+def make_variant_macro ( name : string; var someClassPtr ) : VariantMacroPtr
     static_if typeinfo(is_pointer someClassPtr) && typeinfo(is_class *someClassPtr)
         gc_root_AstVariantMacro |> push(someClassPtr)
         let classInfo = class_info(*someClassPtr)
@@ -721,7 +724,7 @@ def make_variant_macro ( name : string; someClassPtr ) : VariantMacroPtr
 var private gc_root_AstForLoopMacro : array<AstForLoopMacro?>
 
 [macro_function]
-def make_for_loop_macro ( name : string; someClassPtr ) : ForLoopMacroPtr
+def make_for_loop_macro ( name : string; var someClassPtr ) : ForLoopMacroPtr
     static_if typeinfo(is_pointer someClassPtr) && typeinfo(is_class *someClassPtr)
         gc_root_AstForLoopMacro |> push(someClassPtr)
         let classInfo = class_info(*someClassPtr)
@@ -733,7 +736,7 @@ def make_for_loop_macro ( name : string; someClassPtr ) : ForLoopMacroPtr
 var private gc_root_AstCaptureMacro : array<AstCaptureMacro?>
 
 [macro_function]
-def make_capture_macro ( name : string; someClassPtr ) : CaptureMacroPtr
+def make_capture_macro ( name : string; var someClassPtr ) : CaptureMacroPtr
     static_if typeinfo(is_pointer someClassPtr) && typeinfo(is_class *someClassPtr)
         gc_root_AstCaptureMacro |> push(someClassPtr)
         let classInfo = class_info(*someClassPtr)
@@ -743,7 +746,7 @@ def make_capture_macro ( name : string; someClassPtr ) : CaptureMacroPtr
         return <- [[CaptureMacroPtr]]
 
 [macro_function]
-def make_type_macro ( name : string; someClassPtr ) : TypeMacroPtr
+def make_type_macro ( name : string; var someClassPtr ) : TypeMacroPtr
     static_if typeinfo(is_pointer someClassPtr) && typeinfo(is_class *someClassPtr)
         let classInfo = class_info(*someClassPtr)
         return <- make_type_macro(name, someClassPtr, classInfo)
@@ -754,7 +757,7 @@ def make_type_macro ( name : string; someClassPtr ) : TypeMacroPtr
 var private gc_root_AstSimulateMacro : array<AstSimulateMacro?>
 
 [macro_function]
-def make_simulate_macro ( name : string; someClassPtr ) : SimulateMacroPtr
+def make_simulate_macro ( name : string; var someClassPtr ) : SimulateMacroPtr
     static_if typeinfo(is_pointer someClassPtr) && typeinfo(is_class *someClassPtr)
         gc_root_AstSimulateMacro |> push(someClassPtr)
         let classInfo = class_info(*someClassPtr)
@@ -764,96 +767,96 @@ def make_simulate_macro ( name : string; someClassPtr ) : SimulateMacroPtr
         return <- [[SimulateMacroPtr]]
 
 [macro_function]
-def add_new_block_annotation ( name:string; someClassPtr )
+def add_new_block_annotation ( name:string; var someClassPtr )
     var inscope ann <- make_block_annotation(name, someClassPtr)
     this_module() |> add_function_annotation(ann)
 
 [macro_function]
-def add_new_function_annotation ( name:string; someClassPtr )
+def add_new_function_annotation ( name:string; var someClassPtr )
     var inscope ann <- make_function_annotation(name, someClassPtr)
     this_module() |> add_function_annotation(ann)
 
 [macro_function]
-def add_new_contract_annotation ( name:string; someClassPtr )
+def add_new_contract_annotation ( name:string; var someClassPtr )
     var inscope ann <- make_function_annotation(name, someClassPtr)
     this_module() |> add_function_annotation(ann)
 
 [macro_function]
-def add_new_structure_annotation ( name:string; someClassPtr )
+def add_new_structure_annotation ( name:string; var someClassPtr )
     var inscope ann <- make_structure_annotation(name, someClassPtr)
     this_module() |> add_structure_annotation(ann)
 
 [macro_function]
-def add_new_enumeration_annotation ( name:string; someClassPtr )
+def add_new_enumeration_annotation ( name:string; var someClassPtr )
     var inscope ann <- make_enumeration_annotation(name, someClassPtr)
     this_module() |> add_enumeration_annotation(ann)
 
 [macro_function]
-def add_new_variant_macro ( name:string; someClassPtr )
+def add_new_variant_macro ( name:string; var someClassPtr )
     var inscope ann <- make_variant_macro(name, someClassPtr)
     this_module() |> add_variant_macro(ann)
 
 [macro_function]
-def add_new_for_loop_macro ( name:string; someClassPtr )
+def add_new_for_loop_macro ( name:string; var someClassPtr )
     var inscope ann <- make_for_loop_macro(name, someClassPtr)
     this_module() |> add_for_loop_macro(ann)
 
 [macro_function]
-def add_new_capture_macro ( name:string; someClassPtr )
+def add_new_capture_macro ( name:string; var someClassPtr )
     var inscope ann <- make_capture_macro(name, someClassPtr)
     this_module() |> add_capture_macro(ann)
 
 [macro_function]
-def add_new_type_macro ( name:string; someClassPtr )
+def add_new_type_macro ( name:string; var someClassPtr )
     var inscope ann <- make_type_macro(name, someClassPtr)
     this_module() |> add_type_macro(ann)
 
 [macro_function]
-def add_new_simulate_macro ( name:string; someClassPtr )
+def add_new_simulate_macro ( name:string; var someClassPtr )
     var inscope ann <- make_simulate_macro(name, someClassPtr)
     this_module() |> add_simulate_macro(ann)
 
 [macro_function]
-def add_new_reader_macro ( name:string; someClassPtr )
+def add_new_reader_macro ( name:string; var someClassPtr )
     var inscope ann <- make_reader_macro(name, someClassPtr)
     this_module() |> add_reader_macro(ann)
 
-def add_new_comment_reader ( name:string; someClassPtr )
+def add_new_comment_reader ( name:string; var someClassPtr )
     var inscope ann <- make_comment_reader(name, someClassPtr)
     this_module() |> add_comment_reader(ann)
 
 [macro_function]
-def add_new_call_macro ( name:string; someClassPtr )
+def add_new_call_macro ( name:string; var someClassPtr )
     var inscope ann <- make_call_macro(name, someClassPtr)
     this_module() |> add_call_macro(ann)
 
 [macro_function]
-def add_new_typeinfo_macro ( name:string; someClassPtr )
+def add_new_typeinfo_macro ( name:string; var someClassPtr )
     var inscope ann <- make_typeinfo_macro(name, someClassPtr)
     this_module() |> add_typeinfo_macro(ann)
 
 [macro_function]
-def add_new_infer_macro ( name:string; someClassPtr )
+def add_new_infer_macro ( name:string; var someClassPtr )
     var inscope ann <- make_pass_macro(name, someClassPtr)
     this_module() |> add_infer_macro(ann)
 
 [macro_function]
-def add_new_dirty_infer_macro ( name:string; someClassPtr )
+def add_new_dirty_infer_macro ( name:string; var someClassPtr )
     var inscope ann <- make_pass_macro(name, someClassPtr)
     this_module() |> add_dirty_infer_macro(ann)
 
 [macro_function]
-def add_new_lint_macro ( name:string; someClassPtr )
+def add_new_lint_macro ( name:string; var someClassPtr )
     var inscope ann <- make_pass_macro(name, someClassPtr)
     this_module() |> add_lint_macro(ann)
 
 [macro_function]
-def add_new_global_lint_macro ( name:string; someClassPtr )
+def add_new_global_lint_macro ( name:string; var someClassPtr )
     var inscope ann <- make_pass_macro(name, someClassPtr)
     this_module() |> add_global_lint_macro(ann)
 
 [macro_function]
-def add_new_optimization_macro ( name:string; someClassPtr )
+def add_new_optimization_macro ( name:string; var someClassPtr )
     var inscope ann <- make_pass_macro(name, someClassPtr)
     this_module() |> add_optimization_macro(ann)
 

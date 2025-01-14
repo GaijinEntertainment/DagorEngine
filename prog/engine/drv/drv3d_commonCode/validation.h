@@ -23,6 +23,21 @@ inline bool is_good_buffer_structure_size(unsigned size)
   return true;
 }
 
+#define ENABLE_GENERIC_RENDER_PASS_VALIDATION (DAGOR_DBGLEVEL > 0)
+
+#if ENABLE_GENERIC_RENDER_PASS_VALIDATION
+#define VALIDATE_GENERIC_RENDER_PASS_CONDITION(condition, message) \
+  do                                                               \
+  {                                                                \
+    if (!(condition))                                              \
+    {                                                              \
+      LOGERR_ONCE(message);                                        \
+    }                                                              \
+  } while (false)
+#else
+#define VALIDATE_GENERIC_RENDER_PASS_CONDITION(condition, message) ((void)0)
+#endif
+
 #if defined(__d3dcommon_h__) || defined(__d3d11_x_h__) || defined(__d3d12_xs_h__)
 // Check is a primitive topology is valid when certain shader stages are active or not
 // NOTE For some platforms the api/driver will ignore draw calls when this returns false

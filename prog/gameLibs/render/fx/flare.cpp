@@ -5,12 +5,13 @@
 #include <ioSys/dag_dataBlock.h>
 #include <drv/3d/dag_renderTarget.h>
 
-#define GLOBAL_VARS_LIST  \
-  VAR(flare_enabled)      \
-  VAR(flare_use_covering) \
-  VAR(flareSrc)           \
-  VAR(flareSrcGlob)       \
-  VAR(texelOffset)        \
+#define GLOBAL_VARS_LIST     \
+  VAR(flare_enabled)         \
+  VAR(flare_use_covering)    \
+  VAR(flareSrc)              \
+  VAR(flareSrc_samplerstate) \
+  VAR(flareSrcGlob)          \
+  VAR(texelOffset)           \
   VAR(duv1duv2)
 
 #define VAR(a) static int a##VarId = -1;
@@ -33,6 +34,8 @@ void Flare::init(const Point2 low_res_size, const char *lense_covering_tex_name,
 
   flareCoveringTex = dag::get_tex_gameres(lense_covering_tex_name, "flareLenseCovering");
   flareColorTex = dag::get_tex_gameres(lense_radial_tex_name, "flareLenseRadial");
+  ShaderGlobal::set_sampler(::get_shader_variable_id("flareLenseRadial_samplerstate", true),
+    get_texture_separate_sampler(flareColorTex.getTexId()));
 
   // LENSE FLARES
   int flareWidth = low_res_size.x, flareHeight = low_res_size.y; // assume quarter resolution
@@ -44,8 +47,14 @@ void Flare::init(const Point2 low_res_size, const char *lense_covering_tex_name,
     flareTex[fi] = dag::create_tex(NULL, flareWidth, flareHeight, TEXFMT_R11G11B10F | TEXCF_RTARGET, 1, flareTexName);
     if (!flareTex[fi])
       flareTex[fi] = dag::create_tex(NULL, flareWidth, flareHeight, TEXFMT_A8R8G8B8 | TEXCF_RTARGET, 1, flareTexName);
-    flareTex[fi]->texaddr(TEXADDR_WRAP);
-    flareTex[fi]->texfilter(TEXFILTER_LINEAR);
+    flareTex[fi]->disableSampler();
+  }
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Wrap;
+    smpInfo.filter_mode = d3d::FilterMode::Linear;
+    flareTexSampler = d3d::request_sampler(smpInfo);
+    ShaderGlobal::set_sampler(::get_shader_variable_id("flareSrcGlob_samplerstate", true), flareTexSampler);
   }
   flareDownsample = new PostFxRenderer();
   flareDownsample->init("flare_downsample");
@@ -104,6 +113,7 @@ void Flare::apply(Texture *src_tex, TEXTUREID src_id)
     d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0.f, 0);
     flareFeature->getMat()->set_color4_param(texelOffsetVarId, texelOffset);
     flareFeature->getMat()->set_texture_param(flareSrcVarId, flareTex[0].getTexId());
+    flareFeature->getMat()->set_sampler_param(flareSrc_samplerstateVarId, flareTexSampler);
     flareFeature->render();
     d3d::resource_barrier({flareTex[1].getBaseTex(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
   }
@@ -122,6 +132,7 @@ void Flare::apply(Texture *src_tex, TEXTUREID src_id)
     flareBlur->getMat()->set_color4_param(duv3duv4VarId, Color4(du * 3.0f, dv * 3.0f, du * 4.0f, dv * 4.0f));
     flareBlur->getMat()->set_color4_param(texelOffsetVarId, texelOffset);
     flareBlur->getMat()->set_texture_param(flareSrcVarId, flareTex[1].getTexId());
+    flareBlur->getMat()->set_sampler_param(flareSrc_samplerstateVarId, flareTexSampler);
     flareBlur->render();
     d3d::resource_barrier({flareTex[0].getBaseTex(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 

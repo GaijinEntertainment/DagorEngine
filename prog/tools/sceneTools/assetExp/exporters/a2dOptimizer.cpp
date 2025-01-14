@@ -774,28 +774,55 @@ void optimize_keys(dag::Span<ChannelData> chan, float pos_eps, float rot_eps, fl
 #endif
 }
 
-vec4f interp_point3(ChannelData::Anim &a, int t)
+static inline vec4f interp_point3(int ui, ChannelData::Anim &a, int t)
 {
   OldAnimKeyPoint3 *key = reinterpret_cast<OldAnimKeyPoint3 *>(a.key);
-  int keyNum = a.keyNum;
-  if (t <= a.keyTime[0])
-    return v_ld(&key[0].p.x);
-
-  for (int i = 0; i + 1 < keyNum; i++)
-    if (a.keyTime[i] <= t && t < a.keyTime[i + 1])
-      return AnimV20Math::interp_key(key[i], v_splats(float(t - a.keyTime[i]) / (a.keyTime[i + 1] - a.keyTime[i])));
-  return v_ld(&key[keyNum - 1].p.x);
+  return AnimV20Math::interp_key(key[ui - 1], v_splats(float(t - a.keyTime[ui - 1]) / (a.keyTime[ui] - a.keyTime[ui - 1])));
 }
 
-vec4f interp_quat(ChannelData::Anim &a, int t)
+vec4f interp_point3(ChannelData::Anim &a, int t, int &hint)
+{
+  int keyNum = a.keyNum;
+
+  if (DAGOR_LIKELY(hint + 1 < keyNum && a.keyTime[hint] <= t && t <= a.keyTime[hint + 1]))
+    return interp_point3(hint + 1, a, t);
+  hint++;
+  if (DAGOR_LIKELY(hint + 1 < keyNum && a.keyTime[hint] <= t && t <= a.keyTime[hint + 1]))
+    return interp_point3(hint + 1, a, t);
+
+  OldAnimKeyPoint3 *key = reinterpret_cast<OldAnimKeyPoint3 *>(a.key);
+  auto ui = eastl::upper_bound(a.keyTime, a.keyTime + keyNum, t) - a.keyTime;
+  if (DAGOR_UNLIKELY(ui == 0))
+    return v_ld(&key[0].p.x);
+  hint = ui - 1;
+  if (DAGOR_UNLIKELY(ui == keyNum))
+    return v_ld(&key[keyNum - 1].p.x);
+
+  return interp_point3(ui, a, t);
+}
+
+static inline vec4f interp_quat(int ui, ChannelData::Anim &a, int t)
 {
   OldAnimKeyQuat *key = reinterpret_cast<OldAnimKeyQuat *>(a.key);
-  int keyNum = a.keyNum;
-  if (t <= a.keyTime[0])
-    return v_ld(&key[0].p.x);
+  return AnimV20Math::interp_key(key[ui - 1], key[ui], float(t - a.keyTime[ui - 1]) / (a.keyTime[ui] - a.keyTime[ui - 1]));
+}
 
-  for (int i = 0; i + 1 < keyNum; i++)
-    if (a.keyTime[i] <= t && t < a.keyTime[i + 1])
-      return AnimV20Math::interp_key(key[i], key[i + 1], float(t - a.keyTime[i]) / (a.keyTime[i + 1] - a.keyTime[i]));
-  return v_ld(&key[keyNum - 1].p.x);
+vec4f interp_quat(ChannelData::Anim &a, int t, int &hint)
+{
+  int keyNum = a.keyNum;
+
+  if (DAGOR_LIKELY(hint + 1 < keyNum && a.keyTime[hint] <= t && t <= a.keyTime[hint + 1]))
+    return interp_quat(hint + 1, a, t);
+  hint++;
+  if (DAGOR_LIKELY(hint + 1 < keyNum && a.keyTime[hint] <= t && t <= a.keyTime[hint + 1]))
+    return interp_quat(hint + 1, a, t);
+
+  OldAnimKeyQuat *key = reinterpret_cast<OldAnimKeyQuat *>(a.key);
+  auto ui = eastl::upper_bound(a.keyTime, a.keyTime + keyNum, t) - a.keyTime;
+  if (DAGOR_UNLIKELY(ui == 0))
+    return v_ld(&key[0].p.x);
+  if (DAGOR_UNLIKELY(ui == keyNum))
+    return v_ld(&key[keyNum - 1].p.x);
+
+  return interp_quat(ui, a, t);
 }

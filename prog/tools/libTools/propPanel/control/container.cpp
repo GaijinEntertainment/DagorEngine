@@ -235,7 +235,14 @@ void ContainerPropertyControl::createEditInt(int id, const char caption[], int v
 
 void ContainerPropertyControl::createEditFloat(int id, const char caption[], float value, int prec, bool enabled, bool new_line)
 {
-  SpinEditFloatPropertyControl *newControl = new SpinEditFloatPropertyControl(mEventHandler, this, id, caption, prec);
+  createEditFloatWidthEx(id, caption, value, prec, enabled, new_line);
+}
+
+void ContainerPropertyControl::createEditFloatWidthEx(int id, const char caption[], float value, int prec, bool enabled, bool new_line,
+  bool width_includes_label)
+{
+  SpinEditFloatPropertyControl *newControl =
+    new SpinEditFloatPropertyControl(mEventHandler, this, id, caption, prec, width_includes_label);
   newControl->setFloatValue(value);
   newControl->setEnabled(enabled);
   addControl(newControl, new_line);

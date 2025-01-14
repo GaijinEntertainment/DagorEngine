@@ -336,6 +336,45 @@ class CommandListTrace : public CommandListTraceBase
     }
   };
 
+#if D3D_HAS_RAY_TRACING
+  struct DispatchRaysTrace : OperationTraceBase, CallStackData
+  {
+    RayDispatchBasicParameters dispatchParameters;
+    ResourceBindingTable resourceBindingTable;
+    // UInt32ListRef::RangeType rootConstants;
+    RayDispatchParameters rayDispatchParameters;
+
+    static constexpr D3D12_AUTO_BREADCRUMB_OP OpCode = D3D12_AUTO_BREADCRUMB_OP_DISPATCHRAYS;
+
+    void report(call_stack::Reporter &reporter, CompletionStatus status) const
+    {
+      logdbg("DX12: %s %s", prefix(status), to_string(OpCode));
+      if (CompletionStatus::NotCompleted == status)
+      {
+        reporter.report(*this);
+      }
+    }
+  };
+
+  struct DispatchRaysIndirect : OperationTraceBase, CallStackData
+  {
+    RayDispatchBasicParameters dispatchParameters;
+    ResourceBindingTable resourceBindingTable;
+    RayDispatchIndirectParameters rayDispatchIndirectParameters;
+
+    static constexpr D3D12_AUTO_BREADCRUMB_OP OpCode = D3D12_AUTO_BREADCRUMB_OP_EXECUTEINDIRECT;
+
+    void report(call_stack::Reporter &reporter, CompletionStatus status) const
+    {
+      logdbg("DX12: %s %s", prefix(status), to_string(OpCode));
+      if (CompletionStatus::NotCompleted == status)
+      {
+        reporter.report(*this);
+      }
+    }
+  };
+#endif
+
   struct NullTrace
   {
     static constexpr D3D12_AUTO_BREADCRUMB_OP OpCode = static_cast<D3D12_AUTO_BREADCRUMB_OP>(~0ul); // -V1016
@@ -349,7 +388,12 @@ class CommandListTrace : public CommandListTraceBase
 
   using AnyTraceEvent =
     eastl::variant<NullTrace, BeginEventTrace, EndEventTrace, MarkerTrace, DrawTrace, DrawIndexedTrace, DrawIndirectTrace,
-      DrawIndexedIndirectTrace, DispatchIndirectTrace, DispatchTrace, DispatchMeshTrace, DispatchMeshIndirectTrace, BlitTrace>;
+      DrawIndexedIndirectTrace, DispatchIndirectTrace, DispatchTrace, DispatchMeshTrace, DispatchMeshIndirectTrace, BlitTrace
+#if D3D_HAS_RAY_TRACING
+      ,
+      DispatchRaysTrace, DispatchRaysIndirect
+#endif
+      >;
 
   dag::Vector<AnyTraceEvent> traces;
 
@@ -365,7 +409,8 @@ class CommandListTrace : public CommandListTraceBase
       case D3D12_AUTO_BREADCRUMB_OP_DRAWINDEXEDINSTANCED:
       case D3D12_AUTO_BREADCRUMB_OP_EXECUTEINDIRECT:
       case D3D12_AUTO_BREADCRUMB_OP_DISPATCH:
-      case D3D12_AUTO_BREADCRUMB_OP_DISPATCHMESH: return true;
+      case D3D12_AUTO_BREADCRUMB_OP_DISPATCHMESH:
+      case D3D12_AUTO_BREADCRUMB_OP_DISPATCHRAYS: return true;
     }
   }
 
@@ -538,6 +583,18 @@ public:
   {
     traces.emplace_back(BlitTrace{otd, debug_info});
   }
+#if D3D_HAS_RAY_TRACING
+  void dispatchRays(const OperationTraceData &otd, const call_stack::CommandData &debug_info,
+    const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchParameters &rdp)
+  {
+    traces.emplace_back(DispatchRaysTrace{otd, debug_info, dispatch_parameters, rbt, rdp});
+  }
+  void dispatchRaysIndirect(const OperationTraceData &otd, const call_stack::CommandData &debug_info,
+    const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchIndirectParameters &rdip)
+  {
+    traces.emplace_back(DispatchRaysIndirect{otd, debug_info, dispatch_parameters, rbt, rdip});
+  }
+#endif
   void reset() { traces.clear(); }
 
   struct VisitorContext

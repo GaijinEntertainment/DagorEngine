@@ -94,47 +94,58 @@ namespace das {
                 src +=2;
                 wb = true;
                 continue;
-            } else if ( wb && ((src+8)<src_end) && (src[0]=='r' || src[0]=='i') ) {   // need space for 'require ' || 'include '
-                bool isReq = memcmp(src, "require", 7)==0;
-                bool isInc = !isReq && (memcmp(src, "include", 7)==0);
-                if ( isReq || isInc ) {
-                    src += 7;
-                    if ( isspace(src[0]) ) {
-                        while ( src < src_end && isspace(src[0]) ) {
-                            src ++;
+            } else if (wb) {
+                auto incInfo = fi;
+                if ( access->parseCustomRequire(src, src_end, incInfo, access, req, chain) ) {
+                    if ( incInfo != fi && incInfo ) {
+                        if ( collected.find(incInfo)==collected.end() ) {
+                            collected.insert(incInfo);
+                            getAllRequireReq(incInfo, access, req, chain, collected);
                         }
-                        if ( src >= src_end ) {
-                            continue;
-                        }
-                        if ( src[0]=='_' || isalphaE(src[0]) || src[0] == '%' || src[0] == '.' || src[0]=='/' ) {
-                            string mod;
-                            mod += *src++;
-                            while ( src < src_end && (isalnumE(src[0]) || src[0]=='_' || src[0]=='.' || src[0]=='/') ) {
-                                mod += *src ++;
+                    }
+                    continue;
+                } else if ( ((src+8)<src_end) && (src[0]=='r' || src[0]=='i') ) {   // need space for 'require ' || 'include '
+                    bool isReq = memcmp(src, "require", 7)==0;
+                    bool isInc = !isReq && (memcmp(src, "include", 7)==0);
+                    if ( isReq || isInc ) {
+                        src += 7;
+                        if ( isspace(src[0]) ) {
+                            while ( src < src_end && isspace(src[0]) ) {
+                                src ++;
                             }
-                            if ( isReq ) {
-                                req.push_back({mod,chain});
-                            } else if ( isInc ) {
-                                string incFileName = access->getIncludeFileName(fi->name,mod);
-                                auto info = access->getFileInfo(incFileName);
-                                if ( info ) {
-                                    if ( collected.find(info)==collected.end() ) {
-                                        collected.insert(info);
-                                        getAllRequireReq(info, access, req, chain, collected);
+                            if ( src >= src_end ) {
+                                continue;
+                            }
+                            if ( src[0]=='_' || isalphaE(src[0]) || src[0] == '%' || src[0] == '.' || src[0]=='/' ) {
+                                string mod;
+                                mod += *src++;
+                                while ( src < src_end && (isalnumE(src[0]) || src[0]=='_' || src[0]=='.' || src[0]=='/') ) {
+                                    mod += *src ++;
+                                }
+                                if ( isReq ) {
+                                    req.push_back({mod,chain});
+                                } else if ( isInc ) {
+                                    string incFileName = access->getIncludeFileName(fi->name,mod);
+                                    auto info = access->getFileInfo(incFileName);
+                                    if ( info ) {
+                                        if ( collected.find(info)==collected.end() ) {
+                                            collected.insert(info);
+                                            getAllRequireReq(info, access, req, chain, collected);
+                                        }
                                     }
                                 }
+                                continue;
+                            } else {
+                                wb = true;
+                                goto nextChar;
                             }
-                            continue;
                         } else {
-                            wb = true;
+                            wb = false;
                             goto nextChar;
                         }
                     } else {
-                        wb = false;
                         goto nextChar;
                     }
-                } else {
-                    goto nextChar;
                 }
             }
         nextChar:
@@ -925,4 +936,3 @@ namespace das {
         }
     }
 }
-

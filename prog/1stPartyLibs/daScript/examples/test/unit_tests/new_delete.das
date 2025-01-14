@@ -24,8 +24,8 @@ def test_delete_array
 def test_delete_table
     var a : table<int;int>
     let w0 = heap_bytes_allocated()
-    a[0] = 1
-    a[1] = 2
+    a |> insert(0,1)
+    a |> insert(1,2)
     let w1 = heap_bytes_allocated()
     delete a
     let w2 = heap_bytes_allocated()

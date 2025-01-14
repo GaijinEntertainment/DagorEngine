@@ -16,7 +16,7 @@ texture clouds_color_close;
 texture clouds_target_depth_gbuf;
 float4 clouds_target_depth_gbuf_transform = (1, 1, 0, 0);
 texture clouds_depth_gbuf;
-float4 clouds2_resolution;
+int4 clouds2_resolution;
 int clouds_has_close_sequence = 1;
 int clouds_apply_simple_ztest = 1;
 
@@ -113,7 +113,7 @@ shader clouds2_apply, clouds2_apply_has_empty, clouds2_apply_no_empty
     clouds_color@smp2d = clouds_color;
     clouds_color_close@smp2d = clouds_color_close;
     clouds2_far_res@f4 = (clouds2_resolution.xy, 1/clouds2_resolution.xy);
-    clouds2_far_res_minus_1@f2 = (clouds2_resolution.x - 1, clouds2_resolution.y - 1);
+    clouds2_far_resI@u2 = (clouds2_resolution.xy);
     clouds2_close_res@f2 = (clouds2_resolution.zw,0,0);
     clouds_has_close_sequence@f1 = (clouds_has_close_sequence);
 
@@ -186,7 +186,7 @@ shader clouds2_apply, clouds2_apply_has_empty, clouds2_apply_no_empty
         float2 lowResCoords = tc*clouds2_far_res.xy - ofs;\
         int4 lowResCoordsI;\
         lowResCoordsI.xy = int2(lowResCoords);\
-        lowResCoordsI.zw = min(lowResCoordsI.xy+int2(1,1), (int2)clouds2_far_res_minus_1);
+        lowResCoordsI.zw = min(lowResCoordsI.xy+int2(1,1), int2(clouds2_far_resI) - 1);
 
       #if HAS_GATHER
         float4 lowResRawDepth = clouds_depth_gbuf.GatherRed(clouds_depth_gbuf_samplerstate, depth_texcoord).wzxy;

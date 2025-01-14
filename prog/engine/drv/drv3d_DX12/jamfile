@@ -29,6 +29,7 @@ Sources =
   resource_manager/host_shared_components.cpp
   resource_update_buffer.cpp
   pipeline/blk_cache.cpp
+  ray_trace_pipeline.cpp
 ;
 
 CPPopt = -DINSIDE_DRIVER ;
@@ -61,10 +62,15 @@ if $(Platform) in windows {
     CPPopt += -DHAS_GF_AFTERMATH ;
     Sources += debug/gpu_postmortem_nvidia_aftermath.cpp ;
   }
-  if [ GLOB $(Root)/prog/3rdPartyLibs/ags_sdk : * ] && $(Platform)-$(PlatformArch) = windows-x86_64 && $(AgsEnabled) = yes {
+  local AgsSdkDir = $(_DEVTOOL)/AGS.SDK.$(AgsSdkVer) ;
+  if [ GLOB $(AgsSdkDir) : * ] && $(Platform)-$(PlatformArch) = windows-x86_64 && $(AgsEnabled) = yes {
     CPPopt += -DHAS_AMD_GPU_SERVICES ;
-    Sources += debug/gpu_postmortem_ags_trace.cpp ;
-    AddLibs += $(Root)/prog/3rdPartyLibs/ags_sdk/lib/amd_ags_x64.lib ;
+    Sources +=
+      debug/amd_ags_init.cpp
+      debug/gpu_postmortem_ags_trace.cpp
+    ;
+    AddIncludes += $(AgsSdkDir)/include ;
+    AddLibs += $(AgsSdkDir)/lib/amd_ags_x64.lib ;
   }
 } else if $(Platform) in xboxOne scarlett {
   CPPopt += /wd4062 ; # enumerator 'XXX' in switch of enum 'YYY' is not handled
@@ -85,7 +91,7 @@ if $(Platform) in windows xboxOne scarlett {
   CPPopt += -DUSE_RESOURCE_HEAPS=1 ;
 }
 
-AddIncludes =
+AddIncludes +=
   $(Root)/prog/engine/sharedInclude
   $(Root)/prog/engine/drv/drv3d_commonCode
   $(Root)/prog/engine/drv/drv3d_DX12

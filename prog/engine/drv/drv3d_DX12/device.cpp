@@ -412,6 +412,14 @@ void Device::setupNullViews()
     desc.TextureCubeArray.ResourceMinLODClamp = 0.f;
     nullResourceTable.table[NullResourceTable::SRV_TEX_CUBE_ARRAY] = resources.allocateTextureSRVDescriptor(device.get());
     device->CreateShaderResourceView(nullptr, &desc, nullResourceTable.table[NullResourceTable::SRV_TEX_CUBE_ARRAY]);
+
+#ifdef D3D_HAS_RAY_TRACING
+    desc.Format = DXGI_FORMAT_UNKNOWN;
+    desc.ViewDimension = D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
+    desc.RaytracingAccelerationStructure.Location = 0;
+    nullResourceTable.table[NullResourceTable::SRV_TLAS] = resources.allocateBufferSRVDescriptor(device.get());
+    device->CreateShaderResourceView(nullptr, &desc, nullResourceTable.table[NullResourceTable::SRV_TLAS]);
+#endif
   }
 
   {
@@ -553,24 +561,27 @@ bool Device::createD3d12DeviceWithCheck(const Direct3D12Enviroment &d3d_env, D3D
   });
 }
 
-bool Device::init(DXGIFactory *factory, AdapterInfo &&adapterInfo, D3D_FEATURE_LEVEL feature_level,
-  const Direct3D12Enviroment &d3d_env, SwapchainCreateInfo swapchain_create_info, debug::GlobalState &debug_state, const Config &cfg,
-  const DataBlock *dxCfg)
+bool Device::init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug_state, ComPtr<DXGIFactory> &factory,
+  AdapterInfo &&adapter_info, D3D_FEATURE_LEVEL feature_level, SwapchainCreateInfo swapchain_create_info, const Config &cfg,
+  const DataBlock *dx_cfg)
 {
-  logdbg("DX12: IDXGIAdapter1::QueryInterface IDXGIAdapter4...");
-  if (FAILED(adapterInfo.adapter.As(&adapter)))
-  {
-    logdbg("DX12: Failed...");
-    return false;
-  }
+  adapter = eastl::move(adapter_info.adapter);
+
   logdbg("DX12: D3D12CreateDevice...");
-  const bool isPostmortemToolDevice = device.autoQuery([&debug_state, this, feature_level](auto, auto ptr) {
-    // Some debug tools require the device to be created with special API functions (e.g. AGS)
-    return debug_state.postmortemTrace().tryCreateDevice(this->adapter.Get(), feature_level, ptr);
+  bool isToolDevice = device.autoQuery([&debug_state, this, feature_level](auto uuid, auto ptr) {
+    return debug_state.captureTool().tryCreateDevice(this->adapter.Get(), uuid, feature_level, ptr);
   });
-  if (isPostmortemToolDevice)
-    logdbg("DX12: Device has been created with postmortem tool");
-  else if (!createD3d12DeviceWithCheck(d3d_env, feature_level))
+
+  if (!isToolDevice)
+  {
+    isToolDevice = device.autoQuery([&debug_state, this, feature_level](auto uuid, auto ptr) {
+      // Some debug tools require the device to be created with special API functions (e.g. AGS)
+      return debug_state.postmortemTrace().tryCreateDevice(this->adapter.Get(), uuid, feature_level, ptr);
+    });
+  }
+  if (isToolDevice)
+    logdbg("DX12: Device has been created with debug tools");
+  if (!isToolDevice && !createD3d12DeviceWithCheck(d3d_env, feature_level))
   {
     logdbg("DX12: Failed...");
     shutdown({});
@@ -581,10 +592,10 @@ bool Device::init(DXGIFactory *factory, AdapterInfo &&adapterInfo, D3D_FEATURE_L
   {
     D3D12_FEATURE_DATA_ARCHITECTURE data = {};
     if (SUCCEEDED(device->CheckFeatureSupport(D3D12_FEATURE_ARCHITECTURE, &data, sizeof(data))))
-      adapterInfo.integrated = data.UMA;
+      adapter_info.integrated = data.UMA;
   }
 
-  config = update_config_for_vendor(cfg, dxCfg, adapterInfo);
+  config = update_config_for_vendor(cfg, dx_cfg, adapter_info);
 
   const bool validationLayerAvailable = debug::DeviceState::setup(debug_state, device.get(), d3d_env);
 
@@ -621,7 +632,7 @@ bool Device::init(DXGIFactory *factory, AdapterInfo &&adapterInfo, D3D_FEATURE_L
 
   // initStreamline will hook the factory in order to inject it's own swapchain
   // which means this have to precede swapchain setup
-  context.initStreamline(&factory, this->adapter.Get());
+  context.initStreamline(factory, adapter.Get());
 
   logdbg("DX12: Creating queues...");
   if (!queues.init(device.get(), shouldNameObjects()))
@@ -632,7 +643,7 @@ bool Device::init(DXGIFactory *factory, AdapterInfo &&adapterInfo, D3D_FEATURE_L
   }
 
   logdbg("DX12: Creating swapchain...");
-  if (!context.back.swapchain.setup(*this, context.front.swapchain, factory, queues[DeviceQueueType::GRAPHICS].getHandle(),
+  if (!context.back.swapchain.setup(*this, context.front.swapchain, factory.Get(), queues[DeviceQueueType::GRAPHICS].getHandle(),
         eastl::move(swapchain_create_info)))
   {
     logdbg("DX12: Failed...");
@@ -640,7 +651,7 @@ bool Device::init(DXGIFactory *factory, AdapterInfo &&adapterInfo, D3D_FEATURE_L
     return false;
   }
 
-  driverVersion = get_driver_version_from_registry(adapterInfo.info.AdapterLuid);
+  driverVersion = get_driver_version_from_registry(adapter_info.info.AdapterLuid);
 
   DXGI_ADAPTER_DESC2 adapterDesc = {};
   adapter->GetDesc2(&adapterDesc);
@@ -878,7 +889,7 @@ void Device::adjustCaps(Driver3dDesc &capabilities)
   auto op7 = checkFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS7>();
   // auto op8 = checkFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS8>();
   auto op9 = checkFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS9>();
-  auto sm = checkFeatureSupport<D3D12_FEATURE_DATA_SHADER_MODEL>(shader_model_to_dx(d3d::smMax));
+  auto sm = get_shader_model(device.get());
 
   capabilities.shaderModel = shader_model_from_dx(sm.HighestShaderModel);
   logdbg("DX12: GPU has support for Shader Model %u.%u", capabilities.shaderModel.major, capabilities.shaderModel.minor);
@@ -921,6 +932,7 @@ void Device::adjustCaps(Driver3dDesc &capabilities)
   capabilities.caps.hasSkipPrimitiveTypeInRayTracingShaders =
     D3D12_RAYTRACING_TIER_1_1 <= op5.RaytracingTier && (capabilities.shaderModel >= 6.5_sm);
   capabilities.caps.hasNativeRayTracePipelineExpansion = D3D12_RAYTRACING_TIER_1_1 <= op5.RaytracingTier;
+  capabilities.caps.hasPersistentShaderHandles = capabilities.caps.hasRayDispatch;
 
   if (D3D12_RAYTRACING_TIER_1_0 <= op5.RaytracingTier)
   {
@@ -937,6 +949,7 @@ void Device::adjustCaps(Driver3dDesc &capabilities)
       capabilities.caps.hasGeometryIndexInRayAccelerationStructure = false;
       capabilities.caps.hasSkipPrimitiveTypeInRayTracingShaders = false;
       capabilities.caps.hasNativeRayTracePipelineExpansion = false;
+      capabilities.caps.hasPersistentShaderHandles = false;
     }
   }
 
@@ -1368,11 +1381,6 @@ void Device::enumerateActiveMonitors(Tab<String> &result)
     result.push_back(get_monitor_name_from_output(activeOutput.Get()));
 }
 
-ComPtr<IDXGIOutput> Device::getOutputMonitorByNameOrDefault(IDXGIFactory *factory, const char *displayName)
-{
-  return get_output_monitor_by_name_or_default(factory, displayName);
-}
-
 HRESULT Device::findClosestMatchingMode(DXGI_MODE_DESC *out_desc)
 {
   DXGI_SWAP_CHAIN_DESC desc;
@@ -1445,24 +1453,19 @@ LUID Device::preRecovery()
   DXGI_ADAPTER_DESC desc = {};
   adapter->GetDesc(&desc);
   adapter.Reset();
-  context.shutdownStreamline();
+  context.preRecoverStreamline();
   bindlessManager.preRecovery();
   return desc.AdapterLuid;
 }
 
-bool Device::recover(DXGIFactory *factory, ComPtr<IDXGIAdapter1> input_adapter, D3D_FEATURE_LEVEL feature_level,
-  const Direct3D12Enviroment &d3d_env, HWND wnd, SwapchainCreateInfo &&sci)
+bool Device::recover(const Direct3D12Enviroment &d3d_env, DXGIFactory *factory, ComPtr<DXGIAdapter> &&input_adapter,
+  D3D_FEATURE_LEVEL feature_level, SwapchainCreateInfo &&sci, HWND wnd)
 {
   enterRecoveringState();
   logdbg("DX12: Entering recovering state...");
 
-  logdbg("DX12: IDXGIAdapter1::QueryInterface IDXGIAdapter4...");
-  if (FAILED(input_adapter.As(&adapter)))
-  {
-    logdbg("DX12: Failed...");
-    enterErrorState();
-    return false;
-  }
+  adapter = eastl::move(input_adapter);
+
   logdbg("DX12: D3D12CreateDevice...");
   if (!createD3d12DeviceWithCheck(d3d_env, feature_level))
   {
@@ -1472,7 +1475,7 @@ bool Device::recover(DXGIFactory *factory, ComPtr<IDXGIAdapter1> input_adapter, 
   }
   logdbg("DX12: ...Device has been successfully recreated");
 
-  context.initStreamline(&factory, adapter.Get());
+  context.recoverStreamline(adapter.Get());
 
   debug::DeviceState::recover(device.get(), d3d_env);
   startDeviceErrorObserver(device.get());
@@ -1810,11 +1813,11 @@ Device::Config drv3d_dx12::get_device_config(const DataBlock *cfg)
 }
 
 #if _TARGET_PC_WIN
-Device::Config drv3d_dx12::update_config_for_vendor(Device::Config config, const DataBlock *cfg, Device::AdapterInfo &adapterInfo)
+Device::Config drv3d_dx12::update_config_for_vendor(Device::Config config, const DataBlock *cfg, Device::AdapterInfo &adapter_info)
 {
   const char *defeault_mode = concurrent_execution_name;
   // intel randomly resets the device or has internal driver errors when using worker thread
-  if (0x8086 == adapterInfo.info.VendorId && adapterInfo.integrated)
+  if (0x8086 == adapter_info.info.VendorId && adapter_info.integrated)
   {
     defeault_mode = immediate_exection_name;
   }
@@ -1920,5 +1923,44 @@ drv3d_dx12::ShaderLibrary *Device::createShaderLibrary(const ::ShaderLibraryCrea
     return nullptr;
   }
   return drv3d_dx12::ShaderLibrary::build(d5, info);
+}
+#endif
+
+#if D3D_HAS_RAY_TRACING
+#if _TARGET_PC_WIN
+RayTracePipeline *Device::createPipeline(const Direct3D12Enviroment &env, const ::raytrace::PipelineCreateInfo &pci)
+{
+  if (!device.is<ID3D12Device5>())
+  {
+    return nullptr;
+  }
+  bool hasNativeExpand = false;
+  auto pipe = eastl::make_unique<RayTracePipeline>();
+  if (!pipe->build(device, hasNativeExpand, env.D3D12SerializeRootSignature, nullptr, pci))
+  {
+    return nullptr;
+  }
+  return pipe.release();
+}
+#else
+RayTracePipeline *Device::createPipeline(const ::raytrace::PipelineCreateInfo &pci)
+{
+  auto pipe = eastl::make_unique<RayTracePipeline>();
+  if (!pipe->build(device, true, D3D12SerializeRootSignature, nullptr, pci))
+  {
+    return nullptr;
+  }
+  return pipe.release();
+}
+#endif
+
+RayTracePipeline *Device::expandPipeline(RayTracePipeline *base, const ::raytrace::PipelineExpandInfo &pei)
+{
+  auto d7 = device.as<ID3D12Device7>();
+  if (!d7)
+  {
+    return nullptr;
+  }
+  return base->expand(d7, pei);
 }
 #endif

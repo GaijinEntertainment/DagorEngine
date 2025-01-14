@@ -1,6 +1,6 @@
 
   #if defined(CHECK_SPOT_LIGHT_MASK)
-    if ( !check_spot_light(spot_light_index))
+    if ( !check_spot_light(spot_light_index, CHECK_SPOT_LIGHT_MASK))
       continue;
   #endif
   RenderSpotLight sl = spot_lights_cb[spot_light_index];

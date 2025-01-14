@@ -162,7 +162,7 @@ public:
   void setControlsForged(bool val) { isForged = val; }
   bool isControlsForged() const { return isForged; }
   bool isControlBitSet(HumanPhysControlType ct) const { return (packedState & (1 << ct)) != 0; }
-  void setControlBit(HumanPhysControlType ct, bool val)
+  DAGOR_NOINLINE void setControlBit(HumanPhysControlType ct, bool val) // workaround clang x64 bug
   {
     if (val)
       packedState |= 1 << ct;

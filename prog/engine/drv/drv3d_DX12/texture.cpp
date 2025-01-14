@@ -139,7 +139,7 @@ bool upload_initial_data_texture2d(BaseTex &tex, ImageInfo &desc, BaseTex::Image
     TextureMipsCopyInfo copies =
       calculate_texture_mips_copy_info(*tex.image, desc.mips.count(), i.index(), desc.arrays.count(), flushStart);
     stage.flushRegion(ValueRange<uint64_t>{flushStart, offset});
-    DX12_UPLOAD_TO_IMAGE_AND_CHECK_DEST(get_device().getContext(), "upload_initial_data_texture2d", tex.image, copies.data(),
+    DX12_UPLOAD_TO_IMAGE_AND_CHECK_DEST(get_device().getContext(), "upload_initial_data_texture2d", tex, copies.data(),
       desc.mips.count(), stage, DeviceQueueType::UPLOAD, false);
   }
 
@@ -198,7 +198,7 @@ bool upload_initial_data_texture3d(BaseTex &tex, ImageInfo &desc, BaseTex::Image
   stage.flush();
 
   TextureMipsCopyInfo copies = calculate_texture_mips_copy_info(*tex.image, desc.mips.count());
-  DX12_UPLOAD_TO_IMAGE_AND_CHECK_DEST(get_device().getContext(), "upload_initial_data_texture3d", tex.image, copies.data(),
+  DX12_UPLOAD_TO_IMAGE_AND_CHECK_DEST(get_device().getContext(), "upload_initial_data_texture3d", tex, copies.data(),
     desc.mips.count(), stage, DeviceQueueType::UPLOAD, false);
   get_device().getContext().freeMemory(stage);
 
@@ -376,7 +376,7 @@ bool create_tex2d(BaseTex &tex, uint32_t w, uint32_t h, uint32_t levels, bool cu
           for (auto j : desc.mips)
             copies[j.index()] = calculate_texture_subresource_copy_info(*tex.image,
               calculate_subresource_index(j.index(), i.index(), 0, desc.mips.count(), desc.arrays.count()));
-          DX12_UPLOAD_TO_IMAGE_AND_CHECK_DEST(get_device().getContext(), "create_tex2d", tex.image, copies, desc.mips.count(), stage,
+          DX12_UPLOAD_TO_IMAGE_AND_CHECK_DEST(get_device().getContext(), "create_tex2d", tex, copies, desc.mips.count(), stage,
             DeviceQueueType::UPLOAD, false);
         }
         if (!tex.stagingMemory)
@@ -522,7 +522,7 @@ bool create_tex3d(BaseTex &tex, uint32_t w, uint32_t h, uint32_t d, uint32_t flg
           for (auto j : desc.mips)
             copies[j.index()] =
               calculate_texture_subresource_copy_info(*tex.image, calculate_subresource_index(j.index(), 0, 0, desc.mips.count(), 1));
-          DX12_UPLOAD_TO_IMAGE_AND_CHECK_DEST(get_device().getContext(), "create_tex3d", tex.image, copies, levels, stage,
+          DX12_UPLOAD_TO_IMAGE_AND_CHECK_DEST(get_device().getContext(), "create_tex3d", tex, copies, levels, stage,
             DeviceQueueType::UPLOAD, false);
           ctx.freeMemory(stage);
         }
@@ -701,6 +701,8 @@ void BaseTex::setTexName(const char *name)
 
 bool BaseTex::copyAllSubresourcesToStaging(void **pointer, uint32_t flags, uint32_t prev_flags)
 {
+  if (!image)
+    return false;
   if (!stagingMemory)
     stagingMemory = allocate_read_write_staging_memory(image, SubresourceRange::make(0, mipLevels));
   if (!stagingMemory)
@@ -913,6 +915,9 @@ BaseTexture *BaseTex::makeTmpTexResCopy(int w, int h, int d, int l, bool staging
 }
 void BaseTex::replaceTexResObject(BaseTexture *&other_tex)
 {
+  if (this == other_tex)
+    return;
+
   {
     // need to take the lock here to keep consistent ordering
     ScopedCommitLock ctxLock{get_device().getContext()};
@@ -946,16 +951,21 @@ void BaseTex::replaceTexResObject(BaseTexture *&other_tex)
   del_d3dres(other_tex);
 }
 
-bool BaseTex::downSize(int new_width, int new_height, int new_depth, int new_mips, unsigned start_src_level, unsigned level_offset)
+BaseTexture *BaseTex::downSize(int new_width, int new_height, int new_depth, int new_mips, unsigned start_src_level,
+  unsigned level_offset)
 {
   auto rep = makeTmpTexResCopy(new_width, new_height, new_depth, new_mips, false);
   if (!rep)
   {
     D3D_ERROR("DX12: Failed to create temporary texture for downSize for texture %p <%s>", this, getResName());
-    return false;
+    return nullptr;
   }
 
   auto repTex = getbasetex(rep);
+  Image *src = getDeviceImage();
+  Image *dst = repTex->getDeviceImage();
+  if (!src || !dst)
+    return nullptr;
 
   unsigned sourceLevel = max<unsigned>(level_offset, start_src_level);
   unsigned sourceLevelEnd = min<unsigned>(mipLevels, new_mips + level_offset);
@@ -963,23 +973,27 @@ bool BaseTex::downSize(int new_width, int new_height, int new_depth, int new_mip
   rep->texmiplevel(sourceLevel - level_offset, sourceLevelEnd - level_offset - 1);
 
   STORE_RETURN_ADDRESS();
-  get_device().getContext().resizeImageMipMapTransfer(getDeviceImage(), repTex->getDeviceImage(),
-    MipMapRange::make(sourceLevel, sourceLevelEnd - sourceLevel), 0, level_offset);
+  get_device().getContext().resizeImageMipMapTransfer(src, dst, MipMapRange::make(sourceLevel, sourceLevelEnd - sourceLevel), 0,
+    level_offset);
 
-  replaceTexResObject(rep);
-  return true;
+  return rep;
 }
 
-bool BaseTex::upSize(int new_width, int new_height, int new_depth, int new_mips, unsigned start_src_level, unsigned level_offset)
+BaseTexture *BaseTex::upSize(int new_width, int new_height, int new_depth, int new_mips, unsigned start_src_level,
+  unsigned level_offset)
 {
   auto rep = makeTmpTexResCopy(new_width, new_height, new_depth, new_mips, false);
   if (!rep)
   {
     D3D_ERROR("DX12: Failed to create temporary texture for upSize for texture %p <%s>", this, getResName());
-    return false;
+    return nullptr;
   }
 
   auto repTex = getbasetex(rep);
+  Image *src = getDeviceImage();
+  Image *dst = repTex->getDeviceImage();
+  if (!src || !dst)
+    return nullptr;
 
   unsigned destinationLevel = level_offset + start_src_level;
   unsigned destinationLevelEnd = min<unsigned>(mipLevels + level_offset, new_mips);
@@ -987,11 +1001,10 @@ bool BaseTex::upSize(int new_width, int new_height, int new_depth, int new_mips,
   rep->texmiplevel(destinationLevel, destinationLevelEnd - 1);
 
   STORE_RETURN_ADDRESS();
-  get_device().getContext().resizeImageMipMapTransfer(getDeviceImage(), repTex->getDeviceImage(),
+  get_device().getContext().resizeImageMipMapTransfer(src, dst,
     MipMapRange::make(destinationLevel, destinationLevelEnd - destinationLevel), level_offset, 0);
 
-  replaceTexResObject(rep);
-  return true;
+  return rep;
 }
 
 bool BaseTex::allocateTex()
@@ -1161,6 +1174,8 @@ void BaseTex::destroyObject()
   get_device().getContext().deleteTexture(this);
 }
 
+void BaseTex::preRecovery() { image = nullptr; }
+
 #if DAGOR_DBGLEVEL < 1
 #define G_ASSERT_RETURN_AND_LOG(expression, rv, ...) \
   do                                                 \
@@ -1325,7 +1340,7 @@ int BaseTex::updateSubRegion(BaseTexture *src, int src_subres_idx, int src_x, in
   if ((RES3D_TEX != resType) && (RES3D_CUBETEX != resType) && (RES3D_VOLTEX != resType) && (RES3D_ARRTEX != resType))
     return 0;
 
-  if (stex->image == nullptr)
+  if (stex->image == nullptr || image == nullptr)
     return 0;
 
   if (!validate_update_sub_region_params(src, src_subres_idx, src_x, src_y, src_z, src_w, src_h, src_d, this, dest_subres_idx, dest_x,
@@ -1407,6 +1422,8 @@ void BaseTex::destroy()
 
 int BaseTex::generateMips()
 {
+  if (!image)
+    return 0;
   STORE_RETURN_ADDRESS();
   if (mipLevels > 1)
   {
@@ -1659,7 +1676,7 @@ int BaseTex::unlockimg()
       stagingMemory.flush();
       // Allow upload happen on the upload queue as a discard upload. If the driver can not safely
       // execute the upload on the upload queue, it will move it to the graphics queue.
-      DX12_UPLOAD_TO_IMAGE_AND_CHECK_DEST(ctx, "BaseTex::unlockimg", image, &copy, 1, stagingMemory, DeviceQueueType::UPLOAD,
+      DX12_UPLOAD_TO_IMAGE_AND_CHECK_DEST(ctx, "BaseTex::unlockimg", *this, &copy, 1, stagingMemory, DeviceQueueType::UPLOAD,
         0 != (lockFlags & TEXLOCK_DISCARD));
     }
     free_and_reset_staging_memory(stagingMemory);
@@ -1678,7 +1695,7 @@ void BaseTex::unlockimgRes3d()
   {
     stagingMemory.flush();
     TextureMipsCopyInfo copies = calculate_texture_mips_copy_info(*image, mipLevels);
-    DX12_UPLOAD_TO_IMAGE_AND_CHECK_DEST(get_device().getContext(), "BaseTex::unlockimgRes3d, TEXLOCK_COPY_STAGING", image,
+    DX12_UPLOAD_TO_IMAGE_AND_CHECK_DEST(get_device().getContext(), "BaseTex::unlockimgRes3d, TEXLOCK_COPY_STAGING", *this,
       copies.data(), mipLevels, stagingMemory, DeviceQueueType::UPLOAD, false);
     return;
   }
@@ -1713,7 +1730,7 @@ void BaseTex::unlockimgRes3d()
       // execute the upload on the upload queue, it will move it to the graphics queue.
       stagingMemory.flush();
       auto copy = calculate_texture_subresource_copy_info(*image, lockedSubRes);
-      DX12_UPLOAD_TO_IMAGE_AND_CHECK_DEST(get_device().getContext(), "BaseTex::unlockimgRes3d, TEXLOCK_DISCARD", image, &copy, 1,
+      DX12_UPLOAD_TO_IMAGE_AND_CHECK_DEST(get_device().getContext(), "BaseTex::unlockimgRes3d, TEXLOCK_DISCARD", *this, &copy, 1,
         stagingMemory, DeviceQueueType::UPLOAD, true);
 
       free_and_reset_staging_memory(stagingMemory);
@@ -1729,7 +1746,7 @@ void BaseTex::unlockimgRes3d()
       const eastl::span<BufferImageCopy> fullResource{copies};
       const eastl::span<BufferImageCopy> oneSubresource{&copies[calculate_mip_slice_from_index(lockedSubRes, mipLevels)], 1};
       const auto uploadRegions = stateBitSet.test(unlock_image_is_upload_skipped) ? fullResource : oneSubresource;
-      DX12_UPLOAD_TO_IMAGE_AND_CHECK_DEST(ctx, "BaseTex::unlockimgRes3d, TEXLOCK_RWMASK", image, uploadRegions.data(),
+      DX12_UPLOAD_TO_IMAGE_AND_CHECK_DEST(ctx, "BaseTex::unlockimgRes3d, TEXLOCK_RWMASK", *this, uploadRegions.data(),
         uploadRegions.size(), stagingMemory, DeviceQueueType::UPLOAD, false);
       stateBitSet.set(unlock_image_is_upload_skipped, false);
     }
@@ -1764,6 +1781,7 @@ int BaseTex::lockimg(void **pointer, int &stride, int face, int level, unsigned 
 
   if ((flags & TEXLOCK_RWMASK) == 0)
     return 0;
+  G_ASSERT_RETURN(image, 0);
 
   lockFlags = flags;
 
@@ -1864,6 +1882,7 @@ int BaseTex::lockbox(void **data, int &row_pitch, int &slice_pitch, int level, u
     lockFlags = flags;
 
     G_ASSERT(!stagingMemory);
+    G_ASSERT_RETURN(image, 0);
 
     auto subResInfo = calculate_texture_subresource_info(*image, SubresourceIndex::make(lockedSubRes));
     // only get a buffer large enough to hold the locked level
@@ -1945,7 +1964,7 @@ int BaseTex::unlockbox()
       BufferImageCopy copy = calculate_texture_subresource_copy_info(*image, lockedSubRes);
       // Allow upload happen on the upload queue as a discard upload. If the driver can not safely
       // execute the upload on the upload queue, it will move it to the graphics queue.
-      DX12_UPLOAD_TO_IMAGE_AND_CHECK_DEST(ctx, "BaseTex::unlockbox", image, &copy, 1, stagingMemory, DeviceQueueType::UPLOAD,
+      DX12_UPLOAD_TO_IMAGE_AND_CHECK_DEST(ctx, "BaseTex::unlockbox", *this, &copy, 1, stagingMemory, DeviceQueueType::UPLOAD,
         0 != (lockFlags & TEXLOCK_DISCARD));
     }
 

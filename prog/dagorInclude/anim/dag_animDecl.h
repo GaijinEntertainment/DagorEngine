@@ -7,6 +7,11 @@
 //
 // forward declarations for all AnimV20 namespaces and classes
 //
+namespace acl
+{
+class compressed_tracks;
+}
+
 namespace AnimV20
 {
 // general anim data holder structs
@@ -14,7 +19,7 @@ struct AnimKeyPoint3;
 struct AnimKeyQuat;
 struct AnimKeyReal;
 
-struct AnimChan;
+typedef acl::compressed_tracks AnimChan;
 struct AnimKeyLabel;
 
 // shareable animation (a2d)

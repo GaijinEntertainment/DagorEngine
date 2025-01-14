@@ -6,29 +6,35 @@
 #include "../placer.h"
 #include "../riexProcessor.h"
 #include "../../shaders/dagdp_volume.hlsli"
+#include "../../shaders/dagdp_volume_terrain.hlsli"
 
 
 namespace dagdp
 {
 
-static constexpr uint32_t ESTIMATED_RELEVANT_MESHES_PER_FRAME = 64;
+static constexpr uint32_t ESTIMATED_RELEVANT_MESHES_PER_FRAME = 256;
+static constexpr uint32_t ESTIMATED_RELEVANT_TILES_PER_FRAME = 256;
+static constexpr uint32_t ESTIMATED_RELEVANT_VOLUMES_PER_FRAME = 16;
 
 struct VolumeVariant
 {
   dag::RelocatableFixedVector<PlacerObjectGroup, 4> objectGroups;
-  float density = 0.0;
+  float density = 0.0f;
+  float minTriangleArea = 0.0f;
 };
 
-struct VolumeMapping
+struct VolumeMappingItem
 {
-  dag::VectorMap<ecs::EntityId, uint32_t> variantIds;
+  uint32_t variantIndex;
+  float density;
 };
+
+using VolumeMapping = dag::VectorMap<ecs::EntityId, VolumeMappingItem>;
 
 struct VolumeBuilder
 {
   dag::Vector<VolumeVariant> variants;
   VolumeMapping mapping;
-  uint32_t dynamicRegionIndex;
 };
 
 struct VolumeManager
@@ -49,13 +55,17 @@ struct MeshToProcess
 };
 
 using RelevantMeshes = dag::RelocatableFixedVector<MeshIntersection, ESTIMATED_RELEVANT_MESHES_PER_FRAME>;
+using RelevantTiles = dag::RelocatableFixedVector<VolumeTerrainTile, ESTIMATED_RELEVANT_TILES_PER_FRAME>;
+using RelevantVolumes = dag::RelocatableFixedVector<VolumeGpuData, ESTIMATED_RELEVANT_VOLUMES_PER_FRAME>;
 
-void gather_meshes(const VolumeMapping &volume_mapping,
+void gather(const VolumeMapping &volume_mapping,
   const ViewInfo &view_info,
   const Viewport &viewport,
   float max_bounding_radius,
   RiexProcessor &riex_processor,
-  RelevantMeshes &out_result);
+  RelevantMeshes &out_meshes,
+  RelevantTiles &out_tiles,
+  RelevantVolumes &out_volumes);
 
 } // namespace dagdp
 

@@ -148,6 +148,7 @@ bool ScriptExtContainer::onMessage(int pid, int msg, void *arg)
     if (msg == MSG_APPEND_ITEM)
     {
       insertExBlock(mPid);
+      updateMenuFlags();
       if (mExtItemPids.size() >= itemsCountMax)
         return false;
       const char *text = (const char *)arg;

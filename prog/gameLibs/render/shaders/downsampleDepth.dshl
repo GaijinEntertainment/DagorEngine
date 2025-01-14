@@ -77,7 +77,7 @@ macro DOWNSAMPLE_DEPTH2X_CORE(code)
       hlsl { #define HAS_NORMAL 1 }
       INIT_LOAD_GBUFFER_BASE(code)
       hlsl {#define decodeEmissionColor(a) float3(0,0,0)}
-      USE_LOAD_GBUFFER_BASE(code, 0)
+      USE_LOAD_GBUFFER_BASE(code, false)
     }
   }
   MOTION_VECTORS_TYPE(code)
@@ -108,7 +108,7 @@ macro DOWNSAMPLE_DEPTH2X_CORE(code)
     if (downsample_depth_type == mip_far_close)
     {
       hlsl { #define DEDICATED_CLOSEST_INPUT 1 }
-      (code) { downsample_closest_depth_from@smp2d = downsample_closest_depth_from; }
+      (code) { downsample_closest_depth_from@tex2d = downsample_closest_depth_from; }
     }
   }
   if (has_checkerboard_depth == yes)
@@ -140,8 +140,8 @@ macro DOWNSAMPLE_DEPTH2X_CORE(code)
     downsample_uv_transform@f4 = downsample_uv_transform;
     downsample_uv_transformi@i2 = downsample_uv_transformi;
     //prev_zn_zfar@f4 = (prev_zn_zfar.x, prev_zn_zfar.y, prev_zn_zfar.x/(prev_zn_zfar.x * prev_zn_zfar.y), (prev_zn_zfar.y-prev_zn_zfar.x)/(prev_zn_zfar.x * prev_zn_zfar.y));
-    prev_zn_zfar@f4 = (zn_zfar.x, zn_zfar.y, zn_zfar.x/(zn_zfar.x * zn_zfar.y), (zn_zfar.y-zn_zfar.x)/(zn_zfar.x * zn_zfar.y));
-    zn_zfar@f4 = (zn_zfar.x, zn_zfar.y, zn_zfar.x/(zn_zfar.x * zn_zfar.y), (zn_zfar.y-zn_zfar.x)/(zn_zfar.x * zn_zfar.y));
+    prev_zn_zfar@f4 = (zn_zfar.x, zn_zfar.y, 1/zn_zfar.y, (zn_zfar.y-zn_zfar.x)/(zn_zfar.x * zn_zfar.y));
+    zn_zfar@f4 = (zn_zfar.x, zn_zfar.y, 1/zn_zfar.y, (zn_zfar.y-zn_zfar.x)/(zn_zfar.x * zn_zfar.y));
   }
 
   //fixme: that is only correct if we downsample from exactly 2x size of current rt.

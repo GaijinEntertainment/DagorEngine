@@ -9,6 +9,16 @@
 #error "Dx12 driver is not supported on targets other than PC and Xbox"
 #endif
 
+#include "versioned_com_ptr.h"
+
+#if _TARGET_PC_WIN
+typedef VersionedComPtr<D3DDevice, ID3D12Device7> AnyDeviceComPtr;
+using AnyDevicePtr = VersionedPtr<D3DDevice, ID3D12Device7>;
+#else
+typedef VersionedComPtr<D3DDevice> AnyDeviceComPtr;
+using AnyDevicePtr = VersionedPtr<D3DDevice>;
+#endif
+
 
 #if DX12_USE_AUTO_PROMOTE_AND_DECAY
 inline constexpr D3D12_RESOURCE_STATES D3D12_RESOURCE_STATE_COPY_QUEUE_TARGET = D3D12_RESOURCE_STATE_COMMON;

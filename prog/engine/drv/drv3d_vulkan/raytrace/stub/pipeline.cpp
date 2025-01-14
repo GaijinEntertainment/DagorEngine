@@ -32,7 +32,7 @@ RaytracePipeline::RaytracePipeline(VulkanDevice &, ProgramID, VulkanPipelineCach
   BasePipeline(l)
 {}
 
-void RaytracePipeline::bind(VulkanDevice &, VulkanCommandBufferHandle) {}
+void RaytracePipeline::bind() {}
 
 void RaytracePipeline::copyRaytraceShaderGroupHandlesToMemory(VulkanDevice &, uint32_t, uint32_t, uint32_t, void *)
 {

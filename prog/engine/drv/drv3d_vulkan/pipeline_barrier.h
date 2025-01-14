@@ -54,7 +54,6 @@ public:
   static bool dbgUseSplitSubmits;
 
 private:
-  const VulkanDevice &device;
   BarrierCache &cache;
 
   struct
@@ -86,11 +85,10 @@ private:
   } barriersCount;
 
   void reset();
-  void submitSplitted(VulkanCommandBufferHandle cmd_buffer);
+  void submitSplitted();
 
 public:
-  PipelineBarrier(const VulkanDevice &in_device, BarrierCache &cache, VkPipelineStageFlags src_stages = 0,
-    VkPipelineStageFlags dst_stages = 0);
+  PipelineBarrier(BarrierCache &cache, VkPipelineStageFlags src_stages = 0, VkPipelineStageFlags dst_stages = 0);
   ~PipelineBarrier();
 
   // primary barrier adders
@@ -134,7 +132,7 @@ public:
   // merge any suitable image barriers if possible
   // void merge();
 
-  void submit(VulkanCommandBufferHandle cmd_buffer, bool keep_cache = false);
+  void submit(bool keep_cache = false);
   bool empty();
   VkPipelineStageFlags getStagesSrc();
 
@@ -189,8 +187,8 @@ class ContextedPipelineBarrier : public PipelineBarrier
   static_assert(builtinCacheIdx < BuiltinPipelineBarrierCache::BUILTIN_ELEMENTS, "builtin cache index is out of bounds");
 
 public:
-  ContextedPipelineBarrier(const VulkanDevice &in_device, VkPipelineStageFlags src_stages = 0, VkPipelineStageFlags dst_stages = 0) :
-    PipelineBarrier(in_device, BuiltinPipelineBarrierCache::data[builtinCacheIdx], src_stages, dst_stages)
+  ContextedPipelineBarrier(VkPipelineStageFlags src_stages = 0, VkPipelineStageFlags dst_stages = 0) :
+    PipelineBarrier(BuiltinPipelineBarrierCache::data[builtinCacheIdx], src_stages, dst_stages)
   {}
 };
 

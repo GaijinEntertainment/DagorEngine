@@ -541,7 +541,7 @@ void GenericEditorAppWindow::startWith()
 
 void GenericEditorAppWindow::fillCommonToolbar(PropPanel::ContainerPropertyControl &tb)
 {
-  tb.createButton(CM_ZOOM_AND_CENTER, "Zoom and center (Ctrl+Shift+Z)");
+  tb.createButton(CM_ZOOM_AND_CENTER, "Zoom and center (Z or Ctrl+Shift+Z)");
   tb.setButtonPictures(CM_ZOOM_AND_CENTER, "zoom_and_center");
 
   tb.createButton(CM_NAVIGATE, "Navigate");

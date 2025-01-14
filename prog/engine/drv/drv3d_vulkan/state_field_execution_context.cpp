@@ -35,19 +35,15 @@ void StateFieldActiveExecutionStage::applyTo(ExecutionStateStorage &state, Execu
     {
       state.graphics.makeDirty();
       state.compute.makeDirty();
-#if D3D_HAS_RAY_TRACING
-      state.raytrace.makeDirty();
-#endif
     }
     return;
   }
 
   switch (data)
   {
-    case ActiveExecutionStage::COMPUTE: state.compute.disableApply(false); state.graphics.disableApply(true);
-#if D3D_HAS_RAY_TRACING
-      state.raytrace.disableApply(true);
-#endif
+    case ActiveExecutionStage::COMPUTE:
+      state.compute.disableApply(false);
+      state.graphics.disableApply(true);
       break;
     case ActiveExecutionStage::GRAPHICS:
       // needed to properly restart render pass after interrupt if it was not changed since interruption
@@ -57,23 +53,11 @@ void StateFieldActiveExecutionStage::applyTo(ExecutionStateStorage &state, Execu
       state.graphics.disableApply(false);
       state.compute.makeDirty();
       state.compute.disableApply(true);
-#if D3D_HAS_RAY_TRACING
-      state.raytrace.makeDirty();
-      state.raytrace.disableApply(true);
-#endif
       break;
-#if D3D_HAS_RAY_TRACING
-    case ActiveExecutionStage::RAYTRACE:
+    case ActiveExecutionStage::FRAME_BEGIN:
+    case ActiveExecutionStage::CUSTOM:
       state.compute.disableApply(true);
       state.graphics.disableApply(true);
-      state.raytrace.disableApply(false);
-      break;
-#endif
-    case ActiveExecutionStage::FRAME_BEGIN:
-    case ActiveExecutionStage::CUSTOM: state.compute.disableApply(true); state.graphics.disableApply(true);
-#if D3D_HAS_RAY_TRACING
-      state.raytrace.disableApply(true);
-#endif
       break;
     default: G_ASSERTF(false, "vulkan: wrong active execution stage selected"); return;
   }

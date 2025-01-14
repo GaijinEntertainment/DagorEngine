@@ -14,6 +14,11 @@ int ssgi_current_frame;
 buffer frustum_visible_ambient_voxels;
 buffer frustum_visible_point_voxels;
 
+int random_point_occlusion_ambient_voxels_cs_prev_probability_const_no = 15;
+int random_point_occlusion_ambient_voxels_cs_frustum_visible_ambient_voxels_count_const_no = 13;
+int random_point_occlusion_ambient_voxels_cs_visible_ambient_voxels_uav_no = 0;
+int random_point_occlusion_ambient_voxels_cs_voxelsWeightHistogram_uav_no = 1;
+
 shader random_point_occlusion_ambient_voxels_cs
 {
   SSGI_USE_VOLMAP_GI_COORD(cs)
@@ -24,19 +29,25 @@ shader random_point_occlusion_ambient_voxels_cs
     frustum_visible_ambient_voxels@buf = frustum_visible_ambient_voxels hlsl{
       StructuredBuffer<uint> frustum_visible_ambient_voxels@buf;
     }
+    prev_probability@buf : register(random_point_occlusion_ambient_voxels_cs_prev_probability_const_no) hlsl {
+      StructuredBuffer<float> prev_probability@buf;
+    }; //todo: use it to better bin handling
+    frustum_visible_ambient_voxels_count@buf : register(random_point_occlusion_ambient_voxels_cs_frustum_visible_ambient_voxels_count_const_no) hlsl {
+      StructuredBuffer<uint> frustum_visible_ambient_voxels_count@buf;
+    };
+    visible_ambient_voxels@uav : register(random_point_occlusion_ambient_voxels_cs_visible_ambient_voxels_uav_no) hlsl {
+      #include "dagi_common_types.hlsli"
+      RWStructuredBuffer<VisibleAmbientVoxelPoint> visible_ambient_voxels@uav;
+    };
+    voxelsWeightHistogram@uav : register(random_point_occlusion_ambient_voxels_cs_voxelsWeightHistogram_uav_no) hlsl {
+      RWStructuredBuffer<uint> voxelsWeightHistogram@uav;
+    };
   }
   //INIT_READ_DEPTH_GBUFFER()
   //USE_READ_DEPTH_GBUFFER_BASE(cs)
   ENABLE_ASSERT(cs)
 
   hlsl(cs) {
-
-    StructuredBuffer<float> prev_probability: register(t15);//todo: use it to better bin handling
-    StructuredBuffer<uint> frustum_visible_ambient_voxels_count: register(t13);
-
-    RWStructuredBuffer<VisibleAmbientVoxelPoint> visible_ambient_voxels: register(u0);
-    RWStructuredBuffer<uint> voxelsWeightHistogram: register(u1);
-
     void add_pos(uint voxel, uint to)
     {
       VisibleAmbientVoxelPoint addVoxel;
@@ -111,16 +122,32 @@ shader random_point_occlusion_ambient_voxels_cs
   compile("cs_5_0", "cull_voxels_cs");
 }
 
+int ssgi_change_probability_cs_prev_probability_const_no = 15;
+int ssgi_change_probability_cs_next_probability_uav_no = 0;
+int ssgi_change_probability_cs_dispatchIndirectBuffer_uav_no = 1;
+int ssgi_change_probability_cs_voxelsWeightHistogram_uav_no = 2;
+
 shader ssgi_change_probability_cs
 {
   SSGI_USE_VOLMAP_GI_COORD(cs)
   ENABLE_ASSERT(cs)
-  hlsl(cs) {
-    StructuredBuffer<float> prev_probability: register(t15);//todo: use it to better bin handling
 
-    RWStructuredBuffer<float> next_probability: register(u0);
-    RWByteAddressBuffer dispatchIndirectBuffer : register( u1 );
-    RWStructuredBuffer<uint> voxelsWeightHistogram: register(u2);
+  (cs) {
+    prev_probability@buf : register(ssgi_change_probability_cs_prev_probability_const_no) hlsl {
+      StructuredBuffer<float> prev_probability@buf;
+    }; //todo: use it to better bin handling
+    next_probability@uav : register(ssgi_change_probability_cs_next_probability_uav_no) hlsl {
+      RWStructuredBuffer<float> next_probability@uav;
+    };
+    dispatchIndirectBuffer@uav : register(ssgi_change_probability_cs_dispatchIndirectBuffer_uav_no) hlsl {
+      RWByteAddressBuffer dispatchIndirectBuffer@uav;
+    };
+    voxelsWeightHistogram@uav : register(ssgi_change_probability_cs_voxelsWeightHistogram_uav_no) hlsl {
+      RWStructuredBuffer<uint> voxelsWeightHistogram@uav;
+    };
+  }
+
+  hlsl(cs) {
     float get_probability(uint max_voxels, uint cur_voxels, uint cur_should, float cur_probability)
     {
       //float linear_probability = float(cur_voxels+1)/max_voxels;
@@ -179,6 +206,10 @@ shader ssgi_change_probability_cs
   compile("cs_5_0", "select_bins_cs");
 }
 
+int temporal_ambient_voxels_cs_voxelsWeightHistogram_const_no = 14;
+int temporal_ambient_voxels_cs_visible_ambient_voxels_uav_no = 0;
+int temporal_ambient_voxels_cs_visible_ambient_voxels_walls_planes_uav_no = 1;
+
 shader temporal_ambient_voxels_cs
 {
   SSGI_USE_VOLMAP_GI_COORD(cs)
@@ -191,16 +222,21 @@ shader temporal_ambient_voxels_cs
       #include "dagi_common_types.hlsli"
       StructuredBuffer<VisibleAmbientVoxelPoint> frustum_visible_ambient_voxels@buf;
     }
+    voxelsWeightHistogram@buf : register(temporal_ambient_voxels_cs_voxelsWeightHistogram_const_no) hlsl {
+      StructuredBuffer<uint> voxelsWeightHistogram@buf;
+    };
+    visible_ambient_voxels@uav : register(temporal_ambient_voxels_cs_visible_ambient_voxels_uav_no) hlsl {
+      RWStructuredBuffer<VisibleAmbientVoxel> visible_ambient_voxels@uav;
+    };
+    visible_ambient_voxels_walls_planes@uav : register(temporal_ambient_voxels_cs_visible_ambient_voxels_walls_planes_uav_no) hlsl {
+      RWStructuredBuffer<AmbientVoxelsPlanes> visible_ambient_voxels_walls_planes@uav;
+    };
   }
   //INIT_READ_DEPTH_GBUFFER()
   //USE_READ_DEPTH_GBUFFER_BASE(cs)
   CALC_CLOSEST_PLANES()
   ENABLE_ASSERT(cs)
   hlsl(cs) {
-    StructuredBuffer<uint> voxelsWeightHistogram: register(t14);
-    RWStructuredBuffer<VisibleAmbientVoxel> visible_ambient_voxels: register(u0);
-    RWStructuredBuffer<AmbientVoxelsPlanes> visible_ambient_voxels_walls_planes: register(u1);
-
     void add_pos(uint at, VisibleAmbientVoxelPoint pt)
     {
       VisibleAmbientVoxel addVoxel;

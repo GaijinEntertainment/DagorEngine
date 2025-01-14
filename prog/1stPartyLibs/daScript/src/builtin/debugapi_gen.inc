@@ -876,14 +876,14 @@ public:
   __forceinline Func get_WalkEnumeration16 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_WalkEnumeration16]);
   }
-  __forceinline Func get_WalkEnumeration64 ( void * self ) const {
-    return getDasClassMethod(self,_das_class_method_offset[__fn_WalkEnumeration64]);
-  }
   __forceinline void invoke_WalkEnumeration16 ( Context * __context__, Func __funcCall__, void * self, int16_t & value, EnumInfo const  & ei ) const {
     das_invoke_function<void>::invoke
       <void *,int16_t &,EnumInfo const  &>
         (__context__,nullptr,__funcCall__,
           self,value,ei);
+  }
+  __forceinline Func get_WalkEnumeration64 ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_WalkEnumeration64]);
   }
   __forceinline void invoke_WalkEnumeration64 ( Context * __context__, Func __funcCall__, void * self, int64_t & value, EnumInfo const  & ei ) const {
     das_invoke_function<void>::invoke

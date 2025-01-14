@@ -44,6 +44,7 @@ macro INIT_COMMON_RENDINST_TESSELLATION()
   static float max_tessellation_distance = 2.0 no_warnings;
   static float tessellation_transition_distance = 1.0 no_warnings;
   static float tessellation_max_edge_length = 0.024 no_warnings;
+  static int shadow_tessellation = 1 no_warnings;
 
   bool pn_triangulation_enabled =
       (object_tess_factor == object_tess_factor_on && material_pn_triangulation != off &&
@@ -65,6 +66,7 @@ macro INIT_COMMON_RENDINST_TESSELLATION()
       max_tessellation_distance@f1 = max_tessellation_distance;
       tessellation_transition_distance@f1 = tessellation_transition_distance;
       tessellation_max_edge_length@f1 = tessellation_max_edge_length;
+      shadow_tessellation@i1 = shadow_tessellation;
     }
     hlsl(ds)
     {
@@ -94,6 +96,7 @@ macro INIT_COMMON_RENDINST_TESSELLATION_CHANNELS() // for some reason it depends
   if (material_pn_triangulation == with_dominant_uv)
   {
     channel float4 tc[1] = extra[56];
+    channel float4 tc[2] = extra[57];
   }
 endmacro
 
@@ -172,7 +175,7 @@ endmacro
 macro USE_COMMON_RENDINST_TESSELLATION()
   if (pn_triangulation_enabled)
   {
-    USE_PN_TRIANGULATION_WITH_EDGE_LENGTH_BASED_TESS_FACTORS(camera_base_offset, get_max_tessellation_factor(), get_tessellation_max_edge_length(), get_min_tessellation_distance(), get_max_tessellation_distance(), get_tessellation_transition_distance())
+    USE_PN_TRIANGULATION_WITH_EDGE_LENGTH_BASED_TESS_FACTORS(camera_base_offset, get_max_tessellation_factor(), get_tessellation_max_edge_length(), get_min_tessellation_distance(), get_max_tessellation_distance(), get_tessellation_transition_distance(), rendinst_render_pass == rendinst_render_pass_to_shadow, get_shadow_tessellation() == 1)
   }
 endmacro
 
@@ -404,7 +407,8 @@ macro COMMON_RENDINST_VS_INPUT()
         float3 vcolMask             : COLOR0;
       #endif
       #if HAS_DOMINANT_UV
-        float4 packedDominantData : TEXCOORD1;
+        float4 domVertexTc : TEXCOORD1;
+        float4 domEdgeTc : TEXCOORD2;
       #endif
     };
   }
@@ -429,22 +433,6 @@ macro COMMON_RENDINST_VS()
       return colorMul.rgb;
     }
     ##endif
-
-    void unpackDominantData(float4 packed_data, out float2 dom_vertex_uv, out float4 dom_edges_uv)
-    {
-      const float DOMINANT_DATA_UV_TRANSFORM_BOUND = 16.0; // must be the same in shader and cpp code
-
-      uint4 packedDataRaw = asuint(packed_data);
-      float4 unpackedData0 = packedDataRaw & 0xFFFF;
-      float4 unpackedData1 = (packedDataRaw >> 16) & 0xFFFF;
-      dom_vertex_uv = unpackedData1.xy / 0xFFFF;
-      dom_edges_uv = unpackedData0 / 0xFFFF;
-
-      // unfortunately, we can't tranform it to [0, 1] like texture addressing does (addressing mode can vary), so we have to map it to reasonable bounds
-      // artists shouldn't use uvs outside of these
-      dom_vertex_uv = dom_vertex_uv * 2 * DOMINANT_DATA_UV_TRANSFORM_BOUND - DOMINANT_DATA_UV_TRANSFORM_BOUND;
-      dom_edges_uv = dom_edges_uv * 2 * DOMINANT_DATA_UV_TRANSFORM_BOUND - DOMINANT_DATA_UV_TRANSFORM_BOUND;
-    }
 
     #ifndef VS_OUTPUT
       #define VS_OUTPUT VsOutput
@@ -503,7 +491,8 @@ macro COMMON_RENDINST_VS()
       #endif
 
       #if HAS_DOMINANT_UV
-        unpackDominantData(input.packedDominantData, output.domVertexTc, output.domEdgeTc);
+      output.domVertexTc = input.domVertexTc.xy;
+      output.domEdgeTc = input.domEdgeTc;
         #if RANDOMIZE_TC
           // apply the same randomization to dominant data to keep it
           float2 uvDiff = output.diffuseTexcoord.xy - input.diffuseTexcoord.xy;

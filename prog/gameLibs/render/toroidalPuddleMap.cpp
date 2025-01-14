@@ -36,6 +36,7 @@ void ToroidalPuddles::invalidate()
 static ShaderVariableInfo toroidalPuddles_world2uv_1VarId("toroidalPuddles_world2uv_1", true);
 static ShaderVariableInfo toroidalPuddles_world2uv_2VarId("toroidalPuddles_world2uv_2", true);
 static ShaderVariableInfo toroidalPuddles_world_offsetsVarId("toroidalPuddles_world_offsets", true);
+static ShaderVariableInfo toroidalPuddles_texarray_samplerVarId("toroidal_puddles_texarray_samplerstate", true);
 
 int ToroidalPuddles::getBufferSize() { return puddlesCacheSize; }
 
@@ -50,6 +51,7 @@ void ToroidalPuddles::init(int puddles_size, float near_lod_size, float far_lod_
 
   toroidalPuddles =
     dag::create_array_tex(puddlesCacheSize, puddlesCacheSize, LOD_COUNT, TEXFMT_R8 | TEXCF_RTARGET, 1, "toroidal_puddles_texarray");
+  toroidalPuddles_texarray_samplerVarId.set_sampler(d3d::request_sampler({}));
 
   for (int j = 0; j < LOD_COUNT; ++j)
   {

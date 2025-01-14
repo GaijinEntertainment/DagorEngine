@@ -6,9 +6,6 @@
 #include <osApiWrappers/dag_spinlock.h>
 #include <3d/dag_amdFsr.h>
 
-#if D3D_HAS_RAY_TRACING
-#include "raytrace_state.h"
-#endif
 #include "os.h"
 #include "render_state_system.h"
 #include "util/scoped_timer.h"
@@ -123,7 +120,6 @@ class DeviceContext //-V553
 
   // misc
   void reportAlliveObjects(FaultReportDump &dump);
-  WinCritSec stubSwapGuard;
   void executeDebugFlush(const char *caller);
 
   void setPipelineState();
@@ -213,6 +209,15 @@ public:
   void clearView(int clear_flags);
   void allowOpLoad();
   void nativeRenderPassChanged();
+  // workaround for pass splits
+  //   will auto reorder copy before native render pass if copy requested inside native render pass
+  //   this must be avoided, but higher level code can't provide proper usage due to old api / legacy reasons
+  //   right now only in rare situations we have such issues, so every reorder is logged
+  //   this reorder is batched, so if copy ranges overlap, error is generated
+  //   yet if range is used twice before and after copy command inside render pass - rendering will be broken
+  //   using more safe solution with discard is too greedy on memory
+  void copyBufferDiscardReorderable(const BufferRef &source, BufferRef &dest, uint32_t src_offset, uint32_t dst_offset,
+    uint32_t data_size);
   void copyBuffer(const BufferRef &source, const BufferRef &dest, uint32_t src_offset, uint32_t dst_offset, uint32_t data_size);
   void pushEvent(const char *name);
   void clearDepthStencilImage(Image *image, const VkImageSubresourceRange &area, const VkClearDepthStencilValue &value);
@@ -237,6 +242,8 @@ public:
   BufferRef discardBuffer(const BufferRef &srcRef, DeviceMemoryClass memory_class, FormatStore view_format, uint32_t bufFlags,
     uint32_t dynamic_size);
   BufferRef uploadToFrameMem(DeviceMemoryClass memory_class, uint32_t size, const void *src);
+  // upload to framemem with memory class that is optimal to be used for device reads
+  BufferRef uploadToDeviceFrameMem(uint32_t size, const void *src);
   void destroyRenderPassResource(RenderPassResource *rp);
   void destroyImageDelayed(Image *img);
   void destroyImage(Image *img);
@@ -280,20 +287,11 @@ public:
   void addComputeProgram(ProgramID program, eastl::unique_ptr<ShaderModuleBlob> shdr_module, const ShaderModuleHeader &header);
   void removeProgram(ProgramID program);
 
-#if D3D_HAS_RAY_TRACING
-  void addRaytraceProgram(ProgramID program, uint32_t max_recursion, uint32_t shader_count, const ShaderModuleUse *shaders,
-    uint32_t group_count, const RaytraceShaderGroup *groups);
-  void copyRaytraceShaderGroupHandlesToMemory(ProgramID prog, uint32_t first_group, uint32_t group_count, uint32_t size,
-    const BufferRef &buffer, uint32_t offset);
-#endif
-
 #if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
   void attachComputeProgramDebugInfo(ProgramID program, eastl::unique_ptr<ShaderDebugInfo> dbg);
 #endif
 
   void placeAftermathMarker(const char *name);
-
-  WinCritSec &getStubSwapGuard() { return stubSwapGuard; }
 
   int getFramerateLimitingFactor();
 

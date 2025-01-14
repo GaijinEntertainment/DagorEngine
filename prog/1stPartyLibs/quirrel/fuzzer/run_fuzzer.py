@@ -146,7 +146,7 @@ def print_usage():
           "  --singletest=<seed> - run single test with specified seed\n" +
           "  --retain - retain files that caused errors\n"
           "\nExample:\n" +
-          "  python run_fuzzer.py --numtests=10000 --csq=D:/dagor2/tools/dagor_cdk/windows-x86_64/csq-dev.exe --retain\n" +
+          "  python run_fuzzer.py --numtests=10000 --csq=D:/dagor/tools/dagor_cdk/windows-x86_64/csq-dev.exe --retain\n" +
           "  python run_fuzzer.py --singletest=12345 --csq=csq-dev.exe --csq2=csq-old-dev.exe --retain\n"
           )
     exit(0)

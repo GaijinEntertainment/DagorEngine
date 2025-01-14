@@ -33,7 +33,7 @@ void initialize(int width, int height, RenderMode render_mode, bool dynamic_ligh
 void teardown();
 
 void render(bvh::ContextId context_id, const Point3 &view_pos, const TMatrix4 &proj_tm, bool has_nuke = false,
-  bool has_dynamic_lights = false, Texture *csm_texture = nullptr);
+  bool has_dynamic_lights = false, Texture *csm_texture = nullptr, d3d::SamplerHandle csm_sampler = d3d::INVALID_SAMPLER_HANDLE);
 
 void render_dynamic_light_shadows(bvh::ContextId context_id, const Point3 &view_pos, bool has_nuke = false);
 

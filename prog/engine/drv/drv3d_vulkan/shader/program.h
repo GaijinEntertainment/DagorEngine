@@ -15,7 +15,6 @@ constexpr uint32_t program_type_bits = 2;
 constexpr uint32_t program_type_mask = 1 | 2;
 constexpr uint32_t program_type_graphics = 0;
 constexpr uint32_t program_type_compute = 1;
-constexpr uint32_t program_type_raytrace = 2;
 
 inline int get_program_type(ProgramID id) { return id.get() & program_type_mask; }
 
@@ -114,45 +113,5 @@ struct ComputeProgram : ProgramIDWrapper<program_type_compute>, BaseProgram
   void onDuplicateAddition() {}
   void addToContext(DeviceContext &ctx, ProgramID prog, const CreationInfo &info);
 };
-
-#if D3D_HAS_RAY_TRACING
-
-struct RaytraceProgram : ProgramIDWrapper<program_type_raytrace>, BaseProgram
-{
-  eastl::unique_ptr<ShaderInfo *[]> shaders;
-  eastl::unique_ptr<RaytraceShaderGroup[]> shaderGroups;
-  uint32_t groupCount = 0;
-  uint32_t shaderCount = 0;
-  uint32_t maxRecursionDepth = 0;
-
-  struct CreationInfo
-  {
-    ShaderProgramDatabaseStorage<ShaderInfo, ShaderID> &shaders;
-    const ShaderID *shader_ids;
-    uint32_t shader_count;
-    const RaytraceShaderGroup *shader_groups;
-    uint32_t group_count;
-    uint32_t max_recursion_depth;
-
-    CreationInfo() = delete;
-
-    uint32_t getHash32() const { return 0; }
-  };
-
-  RaytraceProgram(const CreationInfo &info) :
-    shaderCount(info.shader_count), groupCount(info.group_count), maxRecursionDepth(info.max_recursion_depth)
-  {
-    shaders.reset(new ShaderInfo *[shaderCount]);
-    shaderGroups.reset(new RaytraceShaderGroup[groupCount]);
-  }
-
-  static constexpr bool alwaysUnique() { return true; }
-  bool isSame(const CreationInfo &) { return false; }
-  bool release() { return true; }
-  void onDuplicateAddition() {}
-  void addToContext(DeviceContext &ctx, ProgramID prog, const CreationInfo &info);
-};
-
-#endif
 
 } // namespace drv3d_vulkan

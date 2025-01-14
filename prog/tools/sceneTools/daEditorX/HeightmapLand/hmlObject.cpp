@@ -32,6 +32,7 @@
 #include <libTools/dagFileRW/dagFileShapeObj.h>
 #include <EditorCore/ec_ObjectCreator.h>
 #include <EditorCore/ec_outliner.h>
+#include <propPanel/commonWindow/dialogWindow.h>
 
 #include <math/dag_math2d.h>
 #include <math/dag_mathBase.h>
@@ -1071,6 +1072,135 @@ void HmapLandObjectEditor::updateSelection()
 }
 
 
+void HmapLandObjectEditor::fillSelectionMenu(IGenViewportWnd *wnd, PropPanel::IMenu *menu)
+{
+  wnd->setMenuEventHandler(this);
+
+  int type = -1;
+  int oneLayer = -1;
+  int perTypeLayerCount = 0;
+  bool enabledMoveToLayer = selection.size() > 0;
+  HeightmapLandOutlinerInterface outliner(*this);
+  for (auto obj : selection)
+  {
+    RenderableEditableObject *object = obj;
+    if (SplinePointObject *p = RTTI_cast<SplinePointObject>(object))
+      if (p->spline)
+        object = p->spline;
+
+    int objType;
+    int perTypeLayerIndex;
+    const bool supported = outliner.getObjectTypeAndPerTypeLayerIndex(*object, objType, perTypeLayerIndex);
+    if (supported && (type == objType || type == -1))
+    {
+      type = objType;
+      if (oneLayer == perTypeLayerIndex || oneLayer == -1)
+        oneLayer = perTypeLayerIndex;
+      else
+        oneLayer = -2;
+    }
+    else
+    {
+      type = -2;
+      oneLayer = -2;
+      enabledMoveToLayer = false;
+    }
+
+    if (type > -1)
+    {
+      perTypeLayerCount = outliner.getLayerCount(type);
+      enabledMoveToLayer = perTypeLayerCount > 1;
+    }
+  }
+
+  menu->addSubMenu(ROOT_MENU_ITEM, CM_MOVE_TO_LAYER, "Move to layer");
+  menu->setEnabledById(CM_MOVE_TO_LAYER, enabledMoveToLayer);
+  if (enabledMoveToLayer)
+  {
+    for (int layerIdx = 0; layerIdx < perTypeLayerCount; ++layerIdx)
+    {
+      const char *layerName = outliner.getLayerName(type, layerIdx);
+      const int id = CM_MOVE_TO_LAYER_FIRST + layerIdx;
+      menu->addItem(CM_MOVE_TO_LAYER, id, layerName);
+      if (layerIdx == oneLayer)
+        menu->setEnabledById(id, false);
+    }
+  }
+
+  menu->addItem(ROOT_MENU_ITEM, CM_EXPORT_AS_COMPOSIT, "Export as composit");
+  menu->addItem(ROOT_MENU_ITEM, CM_SPLIT_COMPOSIT, "Split composites");
+}
+
+
+int HmapLandObjectEditor::onMenuItemClick(unsigned id)
+{
+  if (CM_MOVE_TO_LAYER_FIRST <= id && id <= CM_MOVE_TO_LAYER_LAST)
+  {
+    HeightmapLandOutlinerInterface outliner(*this);
+
+    int type = -1;
+    const int destinationLayerIndex = id - CM_MOVE_TO_LAYER_FIRST;
+    dag::Vector<RenderableEditableObject *> objectsToMove;
+    for (auto obj : selection)
+    {
+      RenderableEditableObject *object = obj;
+      if (SplinePointObject *p = RTTI_cast<SplinePointObject>(object))
+        if (p->spline)
+        {
+          object = p->spline;
+        }
+        else
+        {
+          objectsToMove.clear();
+          break;
+        }
+
+      int objType, objLayerIndex;
+      if (outliner.getObjectTypeAndPerTypeLayerIndex(*object, objType, objLayerIndex))
+      {
+        if (type == objType || type == -1)
+        {
+          type = objType;
+          if (objLayerIndex != destinationLayerIndex && find_value_idx(objectsToMove, object) < 0)
+            objectsToMove.push_back(object);
+        }
+        else
+        {
+          objectsToMove.clear();
+          break;
+        }
+      }
+    }
+
+    const int amount = objectsToMove.size();
+    if (amount > 0)
+    {
+      outliner.moveObjectsToLayer(make_span(objectsToMove), type, destinationLayerIndex);
+
+      eastl::unique_ptr<PropPanel::DialogWindow> dialog(
+        DAGORED2->createDialog(hdpi::_pxScaled(360), hdpi::_pxScaled(100), "Move to layer"));
+      dialog->removeDialogButton(PropPanel::DIALOG_ID_CANCEL);
+      PropPanel::ContainerPropertyControl *panel = dialog->getPanel();
+      const char *layerName = outliner.getLayerName(type, destinationLayerIndex);
+      panel->createStatic(0, String(0, "%d node(s) moved to layer \"%s\"", amount, layerName));
+      dialog->showDialog();
+
+      return 1;
+    }
+  }
+  else if (id == CM_EXPORT_AS_COMPOSIT)
+  {
+    exportAsComposit();
+  }
+  else if (id == CM_SPLIT_COMPOSIT)
+  {
+    splitComposits();
+  }
+
+  return 0;
+}
+
+
 void HmapLandObjectEditor::removeSpline(SplineObject *s)
 {
   for (int i = 0; i < splines.size(); i++)
@@ -1714,7 +1844,7 @@ void HmapLandObjectEditor::onAvClose()
     ObjectEditor::setEditMode(CM_OBJED_MODE_SELECT);
   }
 }
-void HmapLandObjectEditor::onAvSelectAsset(const char *asset_name)
+void HmapLandObjectEditor::onAvSelectAsset(DagorAsset *asset, const char *asset_name)
 {
   if (getEditMode() == CM_CREATE_ENTITY)
     selectNewObjEntity(asset_name);

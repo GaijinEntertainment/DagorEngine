@@ -165,6 +165,22 @@ static bool set_params(const ecs::Object &object, const L &get_desc, PlaceablePa
     }
   }
 
+  if (const auto iter = object.find_as("water_placement"); iter != object.end())
+  {
+    const bool *ptr = iter->second.getNullable<bool>();
+
+    if (!ptr)
+    {
+      const auto desc = get_desc();
+      logerr("daGdp: %.*s must have bool water_placement", desc.size(), desc.data());
+      return false;
+    }
+
+    result.flags &= ~WATER_PLACEMENT_BIT;
+    if (*ptr)
+      result.flags |= WATER_PLACEMENT_BIT;
+  }
+
   if (const auto iter = object.find_as("delete_on_deform"); iter != object.end())
   {
     const bool *ptr = iter->second.getNullable<bool>();

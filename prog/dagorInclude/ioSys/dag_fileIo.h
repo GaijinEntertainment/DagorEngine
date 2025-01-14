@@ -79,7 +79,7 @@ public:
   KRNLIMP bool open(const char *fname, int mode);
   KRNLIMP void close();
   KRNLIMP void beginFullFileBlock();
-  KRNLIMP virtual const char *getTargetName() { return targetFilename.str(); }
+  KRNLIMP const char *getTargetName() override { return targetFilename.str(); }
   KRNLIMP int64_t getTargetDataSize() override { return targetDataSz; }
   KRNLIMP dag::ConstSpan<char> getTargetRomData() const override;
 };

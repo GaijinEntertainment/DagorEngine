@@ -7,5 +7,8 @@ bvh{
   "rtsm_node:dabfg::NodeHandle"{}
   "rtr_node:dabfg::NodeHandle"{}
   "rtao_node:dabfg::NodeHandle"{}
+  "water_rt_early_before_envi_node:dabfg::NodeHandle"{}
+  "water_rt_early_after_envi_node:dabfg::NodeHandle"{}
+  "water_rt_late_node:dabfg::NodeHandle"{}
   "bvh__rendinst_visibility:RiGenVisibilityECS"{}
 }

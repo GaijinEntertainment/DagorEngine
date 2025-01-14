@@ -33,12 +33,6 @@ shader rendinst_distortion
     cull_mode = none;
   }
 
-  z_write    = true;
-  blend_src  = one;
-  blend_dst  = one;
-  blend_asrc = one;
-  blend_adst = one;
-
   ENABLE_MULTI_DRAW(false)
   RENDINST_BLOCK()
   RENDINST_INSTANCING()

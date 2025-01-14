@@ -65,7 +65,8 @@ public:
   const char *resTypeString() { return "RaytracePipeline"; }
 
   RaytracePipeline(VulkanDevice &dev, ProgramID prog, VulkanPipelineCacheHandle cache, LayoutType *l, const CreationInfo &info);
-  void bind(VulkanDevice &vk_dev, VulkanCommandBufferHandle cmd_buffer);
+
+  VulkanPipelineHandle getHandleForUse();
   void copyRaytraceShaderGroupHandlesToMemory(VulkanDevice &dev, uint32_t first_group, uint32_t group_count, uint32_t size, void *ptr);
 
 #if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA

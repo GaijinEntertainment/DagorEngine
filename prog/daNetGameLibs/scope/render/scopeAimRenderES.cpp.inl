@@ -372,7 +372,8 @@ void prepare_scope_vrs_mask(ComputeShaderElement *scope_vrs_mask_cs, Texture *sc
   TIME_D3D_PROFILE(prepare_scope_vrs_mask);
   TextureInfo info;
   scope_vrs_mask_tex->getinfo(info);
-  STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 0, VALUE, 0, 0), scope_vrs_mask_tex);
+  static int scope_vrs_mask_tex_uav_no = ShaderGlobal::get_slot_by_name("scope_vrs_mask_tex_uav_no");
+  STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, scope_vrs_mask_tex_uav_no, VALUE, 0, 0), scope_vrs_mask_tex);
   ShaderGlobal::set_texture(scope_maskVarId, depth);
   scope_vrs_mask_cs->dispatch((info.w - 1) / SCOPE_MASK_NUMTHREADS + 1, (info.h - 1) / SCOPE_MASK_NUMTHREADS + 1, 1);
 }

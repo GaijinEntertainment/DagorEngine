@@ -10,7 +10,6 @@ void close_blood_puddles_mgr() { G_ASSERT(0); }
 void add_hit_blood_effect(const Point3 &, const Point3 &) { G_ASSERT(0); }
 void create_blood_puddle_emitter(const ecs::EntityId, const int) { G_ASSERT(0); }
 void DecalsMatrices::clearItems() { G_ASSERT(0); }
-void BloodPuddles::initBiomeDependantData() { G_ASSERT(0); }
 void BloodPuddles::update() { G_ASSERT(0); }
 void BloodPuddles::beforeRender() { G_ASSERT(0); }
 void BloodPuddles::addSplashEmitter(

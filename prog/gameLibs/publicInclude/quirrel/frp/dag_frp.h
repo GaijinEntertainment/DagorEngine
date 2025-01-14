@@ -5,6 +5,7 @@
 #pragma once
 
 #include "dag_frpStateWatcher.h"
+#include <util/dag_compilerDefs.h>
 #include <generic/dag_tab.h>
 #include <generic/dag_fixedVectorSet.h>
 #include <EASTL/hash_set.h>
@@ -148,7 +149,11 @@ public:
 
   ComputedValue *inRecalc = nullptr;
 
+#if DAGOR_THREAD_SANITIZER
+  int slowUpdateThresholdUsec = 1500 * 100;
+#else
   int slowUpdateThresholdUsec = 1500;
+#endif
   int generation = 0;
   bool checkNestedObservable = false;
   bool forceImmutable = false;
@@ -201,6 +206,7 @@ public:
   virtual void fillInfo(Sqrat::Table &) const = 0;
   virtual void fillInfo(String &s) const { clear_and_shrink(s); }
   virtual const ScriptSourceInfo *getInitInfo() const { return nullptr; }
+  virtual void setName(const char *name);
   virtual Sqrat::Object trace() { return Sqrat::Object(); }
   virtual HSQOBJECT getCurScriptInstance();
 
@@ -307,6 +313,7 @@ public:
   static SQInteger _tostring(HSQUIRRELVM vm);
 
   const ScriptSourceInfo *getInitInfo() const override final { return initInfo.get(); }
+  virtual void setName(const char *name) override;
 
   void whiteListMutatorClosure(Sqrat::Object closure);
 

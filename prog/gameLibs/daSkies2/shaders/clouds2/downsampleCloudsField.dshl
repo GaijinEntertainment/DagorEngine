@@ -116,6 +116,13 @@ include "clouds_weather.dshl"
 include "viewVecVS.dshl"
 include "frustum.dshl"
 
+float4 nuke_pos;
+// x - radius, y - blend distance, z - fade, w - cloud extinction radius
+float4 nuke_wave;
+
+int nuke_in_atmosphere = 0;
+interval nuke_in_atmosphere: off<1, on;
+
 texture clouds_field_volume_low;
 
 shader clouds_close_layer_outside
@@ -170,6 +177,11 @@ shader clouds_close_layer_outside
       float3 bminWp = clouds_start_trace.xyz+viewVecMin*dist, bmaxWp = clouds_start_trace.xyz+viewVecMax*dist;
       if (bmaxWp.y < clouds_layer_size.x || bminWp.y > clouds_layer_size.y)
         return 1;
+
+      ##if nuke_in_atmosphere == on
+        // todo: optimize
+        return 0;
+      ##endif
       //bminWp -= texel_size.zwz;//we use floor for min
       //bmaxWp += texel_size.zwz;// we use <= for max
       bminWp.y = clamp(bminWp.y, clouds_layer_size.x, clouds_layer_size.y);
@@ -258,13 +270,6 @@ shader clouds_close_layer_clear
   compile("cs_5_0", "cs_main")
 }
 
-float4 nuke_pos;
-// x - radius, y - blend distance, z - fade, w - cloud extinction radius
-float4 nuke_wave;
-
-int nuke_in_atmosphere = 0;
-interval nuke_in_atmosphere: off<1, on;
-
 macro GET_TILED_DISTANCE(code)
   DISTANCE_TO_CLOUDS2(code)
   local float4 offseted_view_pos = (skies_world_view_pos.x+clouds_origin_offset.x, max(skies_world_view_pos.y, 10.-min_ground_offset), skies_world_view_pos.z+clouds_origin_offset.y,0);
@@ -300,17 +305,25 @@ macro GET_TILED_DISTANCE(code)
     }
 
     ##if nuke_in_atmosphere == on
+      // TODO:
+      // 1. unify code with density sampling
+      // 2. optimize for extinction
       bool checkNuke(float3 p)
       {
         float waveDistance = nuke_wave.x;
-        float inversion = 1-saturate(0.2*nuke_wave.y*abs(waveDistance-length(p - nuke_pos.xyz)));
+        // we have symmetrical transition zone around shockwave
+        float waveProfile = abs(nuke_wave.y* (length(p - nuke_pos.xyz) - waveDistance));
         float waveFade = nuke_wave.z;
+        // inversion zone expands 3 times as wave fading
+        float inversion = saturate(1 - 0.15 * waveProfile - 0.35 * waveProfile *  waveFade);
+
         inversion*=waveFade;
         return inversion>0;
       }
     ##else
       #define checkNuke(param) false
     ##endif
+
     float getTiledDistance(float3 view)
     {
       float distanceToClouds0, distanceToClouds1;
@@ -363,7 +376,7 @@ shader clouds_tile_dist_prepare_cs
     view_vecLT@f3 = view_vecLT;
     view_vecRT_minus_view_vecLT@f3 = (view_vecRT-view_vecLT);
     view_vecLB_minus_view_vecLT@f3 = (view_vecLB-view_vecLT);
-    clouds_tiled_res@f4 = (1./clouds_tiled_res.x, 1./clouds_tiled_res.y, 0.5/clouds_tiled_res.x, 0.5/clouds_tiled_res.y);
+    clouds_tiled_resInv@f4 = (1./clouds_tiled_res.x, 1./clouds_tiled_res.y, 0.5/clouds_tiled_res.x, 0.5/clouds_tiled_res.y);
   }
   GET_TILED_DISTANCE(cs)
 
@@ -372,7 +385,7 @@ shader clouds_tile_dist_prepare_cs
     [numthreads(8, 8, 1)]//downsample 4 times, and +2 times in each thread
     void cs_main(uint2 tid : SV_DispatchThreadID)
     {
-      float2 texcoord = tid*clouds_tiled_res.xy + clouds_tiled_res.zw;
+      float2 texcoord = tid*clouds_tiled_resInv.xy + clouds_tiled_resInv.zw;
       float3 viewVect = view_vecLT + (view_vecRT_minus_view_vecLT)*texcoord.x + (view_vecLB_minus_view_vecLT)*texcoord.y;
       texture2DAt(tiledDist, tid) = getTiledDistance(normalize(viewVect));
     }
@@ -496,7 +509,10 @@ shader clouds_tile_dist_count_cs
 {
   USE_CLOUDS_DISTANCE(cs)
   ENABLE_ASSERT(cs)
-  (cs) { clouds_tiled_res@f2 = clouds_tiled_res;}
+  (cs)
+  {
+    clouds_tiled_res@u2 = clouds_tiled_res;
+  }
 
   hlsl(cs) {
     RWStructuredBuffer<uint> non_empty_count:register(u0);
@@ -506,7 +522,7 @@ shader clouds_tile_dist_count_cs
     void cs_main(uint2 dtid : SV_DispatchThreadID, uint flatIdx : SV_GroupIndex)
     {
       uint2 p = dtid;
-      uint ret = (clouds_tile_distance[p].x == 1 || any(p >= uint2(clouds_tiled_res.xy))) ? 0 : 1;//todo: downsample 4 times
+      uint ret = (texture2DAt(clouds_tile_distance, p).x == 1 || any(p >= clouds_tiled_res.xy)) ? 0 : 1;//todo: downsample 4 times
       thread_result[flatIdx] = ret;
       GroupMemoryBarrierWithGroupSync();
       const int WARP_SIZE = 32;

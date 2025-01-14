@@ -307,7 +307,7 @@ water_sound_field{
   }
   // setup
   water_sound_field__cellSize:r=5
-  water_sound_field__extent:r=2
+  water_sound_field__extent:r=5
   water_sound_field__depthThreshold:r=0.15
   water_sound_field__path:t="ambient/positioned/lake_mid"
 }
@@ -455,4 +455,18 @@ game_object_sound_effect_generator{
     game_object_sound_effect_generator__pathComponentName:t="sound_effect__path"
   }
   _singleton:b=yes
+}
+
+sound_occlusion{
+  _use:t="replicating"
+  _singleton:b=yes
+  _group{
+    _tags:t="sound"
+    "soundOcclusion:tag"{}
+    sound_occlusion__indoorMul:r=1 // INSIDE (listener AND source)
+    sound_occlusion__outdoorMul:r=0.6 // OUTSIDE (listener AND source)
+    sound_occlusion__sourceIndoorMul:r=1 // source is INSIDE, listener is OUTSIDE
+    sound_occlusion__sourceOutdoorMul:r=0.8 // source is OUTSIDE, listener is INSIDE
+    sound_occlusion__undergroundDepthDist:r=3 // suppress when underground
+  }
 }

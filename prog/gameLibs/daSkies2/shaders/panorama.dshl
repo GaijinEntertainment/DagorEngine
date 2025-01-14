@@ -68,17 +68,10 @@ endmacro
 
 macro USE_PANORAMA_CLOUDS_DIST_BASE(code)
   hlsl(code) {
+    #include "panorama_util.hlsli"
     float distanceToClouds0(float3 origin, float3 view)
     {
-      float planet_radius = clouds_params.z;
-      float cloud_radius = clouds_params.x;
-      float originInKm = origin.y*0.001f;
-      float radius_to_camera_offseted = (planet_radius+originInKm);
-      float Rh = min(radius_to_camera_offseted, cloud_radius);
-      float b=Rh*view.y;
-      float c=radius_to_camera_offseted*radius_to_camera_offseted-clouds_params.y;//Rh*Rh-RH*RH
-      float b24c=b*b-c;
-      return (-b+sqrt(b24c))*1000;//km to meters
+      return distance_to_clouds(origin, view, clouds_params.x, clouds_params.y, clouds_params.z);
     }
   }
 endmacro
@@ -101,11 +94,15 @@ macro USE_CLOUDS_PANORAMA_UV_BASE(code)
   hlsl(code) {
     float2 get_panorama_uv(float3 origin, float3 view)
     {
-      float cloudDist = max(1000, distanceToClouds0(origin, view));
-      float3 currentViewDirection = normalize(view*cloudDist + (origin - cloudsAlphaPanoramaWorldPos.xyz)*cloudsAlphaPanoramaWorldPos.w);//reprojection
+      float3 currentViewDirection = get_panorama_reprojected_view(origin, view, cloudsAlphaPanoramaWorldPos.xyz, cloudsAlphaPanoramaWorldPos.w, clouds_params.x, clouds_params.y, clouds_params.z);
       float theta = atan2( currentViewDirection.x, currentViewDirection.z );
       float2 sky_uv = float2(theta * (0.5/PI)+0.5, PANORAMA_TC_FROM_VIEW(currentViewDirection.y));
       return sky_uv;
+    }
+
+    float3 get_panorama_inv_reprojection(float3 origin, float3 inv_view)
+    {
+      return get_panorama_inv_reprojection(origin, inv_view, cloudsAlphaPanoramaWorldPos.xyz, cloudsAlphaPanoramaWorldPos.w, clouds_params.x, clouds_params.y, clouds_params.z);
     }
   }
 endmacro

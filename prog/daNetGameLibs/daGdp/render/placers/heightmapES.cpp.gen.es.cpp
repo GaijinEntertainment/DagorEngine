@@ -168,17 +168,18 @@ inline void dagdp::manager_ecs_query(Callable function)
 }
 static constexpr ecs::ComponentDesc heightmap_density_masks_ecs_query_comps[] =
 {
-//start of 1 ro components at [0]
+//start of 2 ro components at [0]
   {ECS_HASH("dagdp__density_mask_res"), ecs::ComponentTypeInfo<ecs::string>()},
-//start of 1 rq components at [1]
+  {ECS_HASH("dagdp__density_mask_left_top_right_bottom"), ecs::ComponentTypeInfo<Point4>()},
+//start of 1 rq components at [2]
   {ECS_HASH("dagdp_density_mask"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static ecs::CompileTimeQueryDesc heightmap_density_masks_ecs_query_desc
 (
   "dagdp::heightmap_density_masks_ecs_query",
   empty_span(),
-  make_span(heightmap_density_masks_ecs_query_comps+0, 1)/*ro*/,
-  make_span(heightmap_density_masks_ecs_query_comps+1, 1)/*rq*/,
+  make_span(heightmap_density_masks_ecs_query_comps+0, 2)/*ro*/,
+  make_span(heightmap_density_masks_ecs_query_comps+2, 1)/*rq*/,
   empty_span());
 template<typename Callable>
 inline void dagdp::heightmap_density_masks_ecs_query(Callable function)
@@ -190,6 +191,7 @@ inline void dagdp::heightmap_density_masks_ecs_query(Callable function)
         {
           function(
               ECS_RO_COMP(heightmap_density_masks_ecs_query_comps, "dagdp__density_mask_res", ecs::string)
+            , ECS_RO_COMP(heightmap_density_masks_ecs_query_comps, "dagdp__density_mask_left_top_right_bottom", Point4)
             );
 
         }while (++comp != compE);
@@ -198,7 +200,7 @@ inline void dagdp::heightmap_density_masks_ecs_query(Callable function)
 }
 static constexpr ecs::ComponentDesc heightmap_placers_ecs_query_comps[] =
 {
-//start of 8 ro components at [0]
+//start of 9 ro components at [0]
   {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("dagdp__biomes"), ecs::ComponentTypeInfo<ecs::List<int>>()},
   {ECS_HASH("dagdp__density"), ecs::ComponentTypeInfo<float>()},
@@ -207,15 +209,16 @@ static constexpr ecs::ComponentDesc heightmap_placers_ecs_query_comps[] =
   {ECS_HASH("dagdp__heightmap_lower_level"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("dagdp__heightmap_allow_unoptimal_grids"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("dagdp__heightmap_cell_size"), ecs::ComponentTypeInfo<float>()},
-//start of 1 rq components at [8]
+  {ECS_HASH("dagdp__name"), ecs::ComponentTypeInfo<ecs::string>()},
+//start of 1 rq components at [9]
   {ECS_HASH("dagdp_placer_heightmap"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static ecs::CompileTimeQueryDesc heightmap_placers_ecs_query_desc
 (
   "dagdp::heightmap_placers_ecs_query",
   empty_span(),
-  make_span(heightmap_placers_ecs_query_comps+0, 8)/*ro*/,
-  make_span(heightmap_placers_ecs_query_comps+8, 1)/*rq*/,
+  make_span(heightmap_placers_ecs_query_comps+0, 9)/*ro*/,
+  make_span(heightmap_placers_ecs_query_comps+9, 1)/*rq*/,
   empty_span());
 template<typename Callable>
 inline void dagdp::heightmap_placers_ecs_query(Callable function)
@@ -234,6 +237,7 @@ inline void dagdp::heightmap_placers_ecs_query(Callable function)
             , ECS_RO_COMP(heightmap_placers_ecs_query_comps, "dagdp__heightmap_lower_level", bool)
             , ECS_RO_COMP(heightmap_placers_ecs_query_comps, "dagdp__heightmap_allow_unoptimal_grids", bool)
             , ECS_RO_COMP(heightmap_placers_ecs_query_comps, "dagdp__heightmap_cell_size", float)
+            , ECS_RO_COMP(heightmap_placers_ecs_query_comps, "dagdp__name", ecs::string)
             );
 
         }while (++comp != compE);

@@ -5,6 +5,7 @@
 #include <shaders/stcode/scalarTypes.h>
 #include <shaders/stcode/callbackTable.h>
 #include <shaders/shInternalTypes.h>
+#include <shaders/stcodeHash.h>
 
 #include "stcode/stcodeCallbacksImpl.h"
 #include "profileStcode.h"
@@ -44,16 +45,26 @@ static bool load_dll(const char *shbindump_path_base)
 
 #if _TARGET_C1 | _TARGET_C2
 
+#elif _TARGET_ANDROID | _TARGET_IOS
+  auto it = dllPath.rfind('/');
+  if (it != eastl::string::npos)
+    dllPath.erase(0, it + 1);
+  dll_handle = os_dll_load(dllPath.c_str());
 #else
   dll_handle = os_dll_load(dllPath.c_str());
 #endif
 
   if (!dll_handle)
   {
-    logerr("Failed to load stcode dll from %s", dllPath.c_str());
+#if STCODE_RUNTIME_CHOICE
+    debug("[SH] Failed to load stcode dll from '%s', falling back to bytecode", dllPath.c_str());
+#else
+    logerr("[SH] Failed to load stcode dll from '%s'", dllPath.c_str());
+#endif
     return false;
   }
 
+  debug("[SH] Successfully loaded stcode dll from '%s'", dllPath.c_str());
   return true;
 }
 
@@ -61,6 +72,7 @@ static void unload_dll()
 {
   os_dll_close(dll_handle);
   dll_handle = nullptr;
+  debug("[SH] Unloaded stcode dll");
 }
 
 template <typename TFptr, typename... TArgs>
@@ -76,18 +88,27 @@ static auto fetch_and_run_dll_func(const char *func_name, TArgs &&...args)
   return (*routine)(eastl::forward<TArgs>(args)...);
 }
 
-// For use in INVOKE macro to have fptr type
-using init_dll_and_get_routines_t = const RoutinePtr *(*)(void *);
-
-#define INVOKE_STCODE_FUNC(funcname, ...) fetch_and_run_dll_func<funcname##_t>(#funcname, ##__VA_ARGS__)
-
-static void init();
+static bool init();
 bool load(const char *shbindump_path_base)
 {
-  if (!load_dll(shbindump_path_base))
-    return false;
+#if STCODE_RUNTIME_CHOICE
+  if (::dgs_get_settings()->getBlockByNameEx("stcode")->getBool("useBytecode", false))
+  {
+    ex_mode = ExecutionMode::BYTECODE;
+    return true;
+  }
+#endif
 
-  init();
+  if (!load_dll(shbindump_path_base) || !init())
+  {
+#if STCODE_RUNTIME_CHOICE
+    ex_mode = ExecutionMode::BYTECODE;
+    return true;
+#else
+    return false;
+#endif
+  }
+
   return true;
 }
 
@@ -117,15 +138,31 @@ void run_routine(size_t id, const void *vars, bool is_compute, int req_tex_level
 
 void set_on_before_resource_used_cb(OnBeforeResourceUsedCb new_cb) { cpp::on_before_resource_used_cb = new_cb; }
 
-void init()
+static bool init()
 {
+#if VALIDATE_CPP_STCODE
   if (::dgs_get_settings()->getBlockByNameEx("stcode")->getBlockByNameEx("debug")->getBool("validate", false))
     ex_mode = ExecutionMode::TEST_CPP_AGAINST_BYTECODE;
+#endif
 
-  const RoutinePtr *routineArray = INVOKE_STCODE_FUNC(init_dll_and_get_routines, (void *)&cpp::cb_table_impl);
-  G_VERIFYF(routineArray, "Failed to init stcode dll");
+  // @TODO: replace live calculation with bindump field (once perf is needed enough to break dump format)
+  // @TODO: for "enable" mode replace this hash with stored-in-bindump hash of cpp sources, so that it does not require bytecode.
+  uint64_t stcodeHash = calc_stcode_hash(shBinDump().stcode);
+
+  const RoutinePtr *routineArray = fetch_and_run_dll_func<const RoutinePtr *(*)(void *, uint64_t)>("init_dll_and_get_routines",
+    (void *)&cpp::cb_table_impl, stcodeHash);
+  if (!routineArray)
+  {
+#if STCODE_RUNTIME_CHOICE
+    debug("[SH] Stcode hash from dll (see sources) does not match the has from bindump (=%lu), falling back to bytecode", stcodeHash);
+#else
+    logerr("[SH] Stcode hash from dll (see sources) does not match the hash from bindump (=%lu)", stcodeHash);
+#endif
+    return false;
+  }
 
   routine_storage_ref = {routineArray, (intptr_t)shBinDump().stcode.size()};
+  return true;
 }
 
 void set_custom_const_setter(shaders_internal::ConstSetter *setter) { cpp::custom_const_setter = setter; }

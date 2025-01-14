@@ -249,7 +249,8 @@ static void play_movie(const char *fname, const char *audio_fname, const char *s
   {
     check_and_process_reset_device(player);
     TEXTUREID texIdY, texIdU, texIdV;
-    if (player->getFrame(texIdY, texIdU, texIdV))
+    d3d::SamplerHandle smp;
+    if (player->getFrame(texIdY, texIdU, texIdV, smp))
       if (!have_frame)
       {
         if (movie_sound)
@@ -280,7 +281,7 @@ static void play_movie(const char *fname, const char *audio_fname, const char *s
     if (have_frame)
     {
       yuvframerender::startRender();
-      yuvframerender::render(texIdY, texIdU, texIdV);
+      yuvframerender::render(texIdY, texIdU, texIdV, smp);
 
       if (show_subtitles)
         subPlayer.render(player->getPosition());
@@ -416,7 +417,8 @@ static void play_movie_ogg(const char *fname, const char *audio_fname, const cha
   {
     check_and_process_reset_device(player);
     TEXTUREID texIdY, texIdU, texIdV;
-    if (player->getFrame(texIdY, texIdU, texIdV))
+    d3d::SamplerHandle smp;
+    if (player->getFrame(texIdY, texIdU, texIdV, smp))
       if (!have_frame)
       {
         if (movie_sound)
@@ -438,7 +440,7 @@ static void play_movie_ogg(const char *fname, const char *audio_fname, const cha
     if (have_frame)
     {
       yuvframerender::startRender();
-      yuvframerender::render(texIdY, texIdU, texIdV);
+      yuvframerender::render(texIdY, texIdU, texIdV, smp);
 
       if (show_subtitles)
         subPlayer.render(player->getPosition());

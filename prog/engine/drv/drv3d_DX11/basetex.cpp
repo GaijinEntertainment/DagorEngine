@@ -29,6 +29,7 @@
 #include <util/dag_watchdog.h>
 #include <math/dag_mathUtils.h>
 #include <validateUpdateSubRegion.h>
+#include <validation.h>
 
 #include "driver.h"
 #include <d3d9types.h>
@@ -92,7 +93,6 @@ extern void set_tex_params(BaseTex *tex, int w, int h, int d, uint32_t flg, int 
 extern bool create_tex2d(BaseTex::D3DTextures &tex, BaseTex *bt_in, uint32_t w, uint32_t h, uint32_t levels, bool cube,
   D3D11_SUBRESOURCE_DATA *initial_data, int array_size = 1);
 extern void clear_texture(BaseTex *tex);
-extern bool is_float_format(uint32_t cflg);
 extern bool mark_dirty_texture_in_states(const BaseTexture *tex);
 extern bool create_tex3d(BaseTex::D3DTextures &tex, BaseTex *bt_in, uint32_t w, uint32_t h, uint32_t d, uint32_t flg, uint32_t levels,
   D3D11_SUBRESOURCE_DATA *initial_data);
@@ -527,6 +527,8 @@ int BaseTex::update(BaseTexture *base_src)
     {
       ContextAutoLock contextLock;
       disable_conditional_render_unsafe();
+      VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
+        "DX11: BaseTex::update uses CopyResource in an active generic render pass");
       dx_context->CopyResource(tex.texRes, src->tex.texRes);
     }
     return 1;
@@ -607,6 +609,8 @@ int BaseTex::updateSubRegionImpl(BaseTexture *base_src, int src_subres_idx, int 
 
       ContextAutoLock contextLock;
       disable_conditional_render_unsafe();
+      VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
+        "DX11: BaseTex::updateSubRegionImpl uses CopySubresourceRegion inside a generic render pass");
       dx_context->CopySubresourceRegion(tex.texRes, dest_subres_idx, dest_x, dest_y, dest_z, src->tex.texRes, src_subres_idx,
         boxInput);
     }
@@ -628,13 +632,12 @@ int BaseTex::updateSubRegion(BaseTexture *base_src, int src_subres_idx, int src_
     dest_z);
 }
 
-bool BaseTex::downSize(int new_width, int new_height, int new_depth, int new_mips, unsigned start_src_level, unsigned level_offset)
+BaseTexture *BaseTex::downSize(int new_width, int new_height, int new_depth, int new_mips, unsigned start_src_level,
+  unsigned level_offset)
 {
   auto rep = makeTmpTexResCopy(new_width, new_height, new_depth, new_mips, false);
   if (!rep)
-  {
-    return false;
-  }
+    return nullptr;
 
   TextureInfo selfInfo;
   getinfo(selfInfo, 0);
@@ -653,17 +656,15 @@ bool BaseTex::downSize(int new_width, int new_height, int new_depth, int new_mip
     }
   }
 
-  replaceTexResObject(rep);
-  return true;
+  return rep;
 }
 
-bool BaseTex::upSize(int new_width, int new_height, int new_depth, int new_mips, unsigned start_src_level, unsigned level_offset)
+BaseTexture *BaseTex::upSize(int new_width, int new_height, int new_depth, int new_mips, unsigned start_src_level,
+  unsigned level_offset)
 {
   auto rep = makeTmpTexResCopy(new_width, new_height, new_depth, new_mips, false);
   if (!rep)
-  {
-    return false;
-  }
+    return nullptr;
 
   TextureInfo selfInfo;
   getinfo(selfInfo, 0);
@@ -682,8 +683,7 @@ bool BaseTex::upSize(int new_width, int new_height, int new_depth, int new_mips,
     }
   }
 
-  replaceTexResObject(rep);
-  return true;
+  return rep;
 }
 
 void BaseTex::clear()
@@ -1010,6 +1010,9 @@ BaseTexture *BaseTex::makeTmpTexResCopy(int w, int h, int d, int l, bool staging
 }
 void BaseTex::replaceTexResObject(BaseTexture *&other_tex)
 {
+  if (this == other_tex)
+    return;
+
   {
     ResAutoLock resLock;
     BaseTex *other = (BaseTex *)other_tex;
@@ -1276,6 +1279,8 @@ int BaseTex::lockimg(void **p, int &stride, int lev, unsigned flags)
       {
         ContextAutoLock contextLock;
         disable_conditional_render_unsafe();
+        VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
+          "DX11: BaseTex::lockimg uses CopyResource in an active generic render pass");
         dx_context->CopyResource(tex.stagingTex2D, tex.tex2D);
         lockFlags = TEXLOCK_COPY_STAGING;
         return 1;
@@ -1284,6 +1289,8 @@ int BaseTex::lockimg(void **p, int &stride, int lev, unsigned flags)
       {
         ContextAutoLock contextLock;
         disable_conditional_render_unsafe();
+        VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
+          "DX11: BaseTex::lockimg uses CopyResource in an active generic render pass");
         dx_context->CopyResource(tex.stagingTex2D, tex.tex2D);
       }
     }
@@ -1469,6 +1476,8 @@ int BaseTex::lockimg(void **p, int &stride, int face, int level, unsigned flags)
     {
       ContextAutoLock contextLock;
       disable_conditional_render_unsafe();
+      VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
+        "DX11: BaseTex::lockimg uses CopyResource in an active generic render pass");
       dx_context->CopyResource(tex.stagingTex2D, tex.tex2D);
       lockFlags = TEXLOCK_COPY_STAGING;
       return 1;
@@ -1477,6 +1486,8 @@ int BaseTex::lockimg(void **p, int &stride, int face, int level, unsigned flags)
     {
       ContextAutoLock contextLock;
       disable_conditional_render_unsafe();
+      VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
+        "DX11: BaseTex::lockimg uses CopyResource in an active generic render pass");
       dx_context->CopyResource(tex.stagingTex2D, tex.tex2D);
       wasCopiedToStage = 1;
     }
@@ -1537,6 +1548,8 @@ int BaseTex::unlockimg()
       {
         ContextAutoLock contextLock;
         disable_conditional_render_unsafe();
+        VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
+          "DX11: BaseTex::unlockimg uses CopyResource in an active generic render pass");
         dx_context->CopyResource(tex.tex2D, tex.stagingTex2D);
       }
 
@@ -1604,6 +1617,8 @@ int BaseTex::unlockimg()
           dx_context->CopySubresourceRegion(tex.tex2D, mappedSubresource, 0, 0, 0, tex.stagingTex2D, mappedSubresource, NULL);
         }
 #else
+        VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
+          "DX11: BaseTex::unlockimg uses CopyResource in an active generic render pass");
         dx_context->CopyResource(tex.tex2D, tex.stagingTex2D);
 #endif
       }
@@ -1627,6 +1642,8 @@ int BaseTex::unlockimg()
       {
         ContextAutoLock contextLock;
         disable_conditional_render_unsafe();
+        VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
+          "DX11: BaseTex::unlockimg uses CopyResource in an active generic render pass");
         dx_context->CopyResource(tex.tex2D, tex.stagingTex2D);
       }
 
@@ -1725,6 +1742,8 @@ int BaseTex::lockbox(void **data, int &row_pitch, int &slice_pitch, int level, u
         {
           ContextAutoLock contextLock;
           disable_conditional_render_unsafe();
+          VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
+            "DX11: BaseTex::lockbox uses CopyResource in an active generic render pass");
           dx_context->CopyResource(tex.stagingTex3D, tex.tex3D);
         }
       }
@@ -1734,6 +1753,8 @@ int BaseTex::lockbox(void **data, int &row_pitch, int &slice_pitch, int level, u
     {
       ContextAutoLock contextLock;
       disable_conditional_render_unsafe();
+      VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
+        "DX11: BaseTex::lockbox uses CopyResource in an active generic render pass");
       dx_context->CopyResource(tex.stagingTex3D, tex.tex3D);
     }
 
@@ -1800,6 +1821,8 @@ int BaseTex::unlockbox()
   {
     ContextAutoLock contextLock;
     disable_conditional_render_unsafe();
+    VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
+      "BaseTex::unlockbox uses CopyResource in an active generic render pass");
     dx_context->CopyResource(tex.tex3D, tex.stagingTex3D);
   }
 
@@ -1811,6 +1834,46 @@ int BaseTex::unlockbox()
 
   lockFlags = 0;
   return 1;
+}
+
+bool BaseTex::isSampledAsFloat() const
+{
+  switch (cflg & TEXFMT_MASK)
+  {
+    case TEXFMT_DEFAULT:
+    case TEXFMT_A2R10G10B10:
+    case TEXFMT_A2B10G10R10:
+    case TEXFMT_A16B16G16R16:
+    case TEXFMT_A16B16G16R16F:
+    case TEXFMT_A32B32G32R32F:
+    case TEXFMT_G16R16:
+    case TEXFMT_G16R16F:
+    case TEXFMT_G32R32F:
+    case TEXFMT_R16F:
+    case TEXFMT_R32F:
+    case TEXFMT_DXT1:
+    case TEXFMT_DXT3:
+    case TEXFMT_DXT5:
+    case TEXFMT_L16:
+    case TEXFMT_A8:
+    case TEXFMT_R8:
+    case TEXFMT_A1R5G5B5:
+    case TEXFMT_A4R4G4B4:
+    case TEXFMT_R5G6B5:
+    case TEXFMT_A16B16G16R16S:
+    case TEXFMT_ATI1N:
+    case TEXFMT_ATI2N:
+    case TEXFMT_R8G8B8A8:
+    case TEXFMT_R11G11B10F:
+    case TEXFMT_R9G9B9E5:
+    case TEXFMT_R8G8:
+    case TEXFMT_R8G8S:
+    case TEXFMT_DEPTH24:
+    case TEXFMT_DEPTH16:
+    case TEXFMT_DEPTH32:
+    case TEXFMT_DEPTH32_S8: return true;
+  }
+  return false;
 }
 
 void BaseTex::D3DTextures::release()

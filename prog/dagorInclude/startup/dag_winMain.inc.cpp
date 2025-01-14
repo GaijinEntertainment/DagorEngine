@@ -23,7 +23,7 @@
 #include <eh.h>
 
 #if _TARGET_GDK
-#include <osApiWrappers/xbox/app.h>
+#include <osApiWrappers/gdk/app.h>
 #endif
 
 #include "dag_addBasePathDef.h"
@@ -119,7 +119,7 @@ static int dagor_program_exec(int nCmdShow, int debugmode, WinDeferredStartupLog
   dagor_change_root_directory(::dgs_get_argv("rootdir"));
 
 #if _TARGET_GDK
-  xbox::initialize_runtime();
+  gdk::initialize_runtime();
 #endif
 
 #if defined(__DEBUG_FILEPATH)
@@ -143,7 +143,7 @@ static int dagor_program_exec(int nCmdShow, int debugmode, WinDeferredStartupLog
   }
 
 #if _TARGET_GDK
-  if (!xbox::app_initialize())
+  if (!gdk::app_initialize())
   {
     logerr("Failed to initialize GDK application");
     return 1;

@@ -559,7 +559,7 @@ public:
       }
     }
     entity = (asset && !riex.res && !bad_ri) ? DAEDITOR3.createEntity(*asset) : NULL;
-    skeletonRef = asset->props.getStr("ref_skeleton", NULL);
+    skeletonRef = asset ? asset->props.getStr("ref_skeleton", NULL) : NULL;
 
     matEditor.begin(asset, entity ? entity : riex.vEntity);
     objPropEditor.begin(asset, entity ? entity : riex.vEntity);
@@ -578,24 +578,27 @@ public:
     if (IRendInstGenService *rigenSrv = EDITORCORE->queryEditorInterface<IRendInstGenService>())
       rigenSrv->discardRIGenRect(0, 0, 64, 64);
 
-    if (riex.res && riex.impostor.enabled && riex.res->lods.size())
+    if (asset && riex.res && riex.impostor.enabled && riex.res->lods.size())
     {
       riex.impostor.textureId_ar = ::get_tex_gameres(String(0, "%s_as", asset->getName()), false);
       riex.impostor.textureId_nt = ::get_tex_gameres(String(0, "%s_nt", asset->getName()), false);
       riex.impostor.textureId_asad = ::get_tex_gameres(String(0, "%s_adas", asset->getName()), false);
     }
 
-    const DagorAssetMgr &assetMgr = asset->getMgr();
-    static int collisionAtype = assetMgr.getAssetTypeId("collision");
-    eastl::string collisionAssetName(asset->getName());
-    collisionAssetName.append("_collision");
-    if (DagorAsset *collisionAsset = assetMgr.findAsset(collisionAssetName.c_str(), collisionAtype))
+    if (asset && asset->getType() == rendInstEntityClassId)
     {
-      InitCollisionResource(*collisionAsset, &collisionResource, &collisionResourceNodeTree);
-      DAEDITOR3.conNote("Found and inited collision '%s'", collisionAssetName.c_str());
+      const DagorAssetMgr &assetMgr = asset->getMgr();
+      static int collisionAtype = assetMgr.getAssetTypeId("collision");
+      eastl::string collisionAssetName(asset->getName());
+      collisionAssetName.append("_collision");
+      if (DagorAsset *collisionAsset = assetMgr.findAsset(collisionAssetName.c_str(), collisionAtype))
+      {
+        InitCollisionResource(*collisionAsset, &collisionResource, &collisionResourceNodeTree);
+        DAEDITOR3.conNote("Found and inited collision '%s'", collisionAssetName.c_str());
+      }
+      else
+        DAEDITOR3.conNote("Tried to init collision but no asset '%s' was found.", collisionAssetName.c_str());
     }
-    else
-      DAEDITOR3.conNote("Tried to init collision but no asset '%s' was found.", collisionAssetName.c_str());
 
     if (entity)
     {
@@ -615,6 +618,10 @@ public:
                 lastForceAnimSet = i + 1;
                 break;
               }
+
+      if (IRandomSeedHolder *irsh = entity->queryInterface<IRandomSeedHolder>())
+        irsh->setPerInstanceSeed(auto_inst_seed0);
+
       fillPluginPanel();
     }
     else if (riex.res)
@@ -1012,13 +1019,17 @@ public:
     viewport->getCameraTransform(cameraTm);
     const Point3 cameraPos = cameraTm.getcol(3);
 
+    AssetStatsFiller assetStatsFiller(stats);
+
     if (entity)
-      AssetStatsFiller::fillAssetStatsFromObjEntity(stats, *entity, cameraPos);
+      assetStatsFiller.fillAssetStatsFromObjEntity(*entity, cameraPos);
     else if (riex.res)
-      stats.currentLod = AssetStatsFiller::fillAssetStatsFromRenderableInstanceLodsResource(stats, *riex.res, cameraPos.length());
+      stats.currentLod = assetStatsFiller.fillAssetStatsFromRenderableInstanceLodsResource(*riex.res, cameraPos.length());
 
     if (collisionResource)
-      AssetStatsFiller::fillAssetCollisionStats(stats, *collisionResource);
+      assetStatsFiller.fillAssetCollisionStats(*collisionResource);
+
+    assetStatsFiller.finalizeStats();
   }
 
   virtual void renderObjects()

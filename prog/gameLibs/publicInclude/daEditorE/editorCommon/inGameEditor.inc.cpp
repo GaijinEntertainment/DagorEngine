@@ -460,7 +460,7 @@ static bool is_asset_wnd_shown() { return objEd && objEd->getEditMode() == CM_OB
 static const char *get_scene_filepath() { return objEd ? objEd->getSceneFilePath() : objEd_sceneFilePath.c_str(); }
 
 static void clear_entity_save_order() { objEd_saveOrderRules.clear(); }
-static void add_entity_save_order_comp(const char *comp_name_start) { objEd_saveOrderRules.push_back({"comp", comp_name_start}); }
+static void add_entity_save_order_comp(const char *comp_name_start) { objEd_saveOrderRules.emplace_back(comp_name_start); }
 
 static void clear_groups() { objEd_groupsRules.clear(); }
 static void add_group_require(const char *group_name, const char *require)

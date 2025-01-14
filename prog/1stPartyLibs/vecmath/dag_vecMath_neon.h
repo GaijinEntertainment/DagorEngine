@@ -90,7 +90,7 @@ VECTORCALL VECMATH_FINLINE bool v_test_all_bits_zeros(vec4f a)
 
 VECTORCALL VECMATH_FINLINE bool v_test_all_bits_ones(vec4f a)
 {
-  return v_test_any_bit_set(v_not(a));
+  return (vgetq_lane_s64(a, 0) & vgetq_lane_s64(a, 1)) == int64_t(-1);
 }
 
 VECTORCALL VECMATH_FINLINE bool v_test_any_bit_set(vec4f a)
@@ -98,24 +98,18 @@ VECTORCALL VECMATH_FINLINE bool v_test_any_bit_set(vec4f a)
   return !v_test_all_bits_zeros(a);
 }
 
-VECTORCALL VECMATH_FINLINE bool v_check_xyzw_all_not_zeroi(vec4f a)
-{
-  return v_test_all_bits_zeros(v_cmp_eq(a, v_zero()));
-}
+VECTORCALL VECMATH_FINLINE bool v_check_xyzw_all_true(vec4f a) { return v_test_all_bits_ones(a); }
+VECTORCALL VECMATH_FINLINE bool v_check_xyzw_all_false(vec4f a) { return v_test_all_bits_zeros(a); }
+VECTORCALL VECMATH_FINLINE bool v_check_xyzw_any_true(vec4f a) { return v_test_any_bit_set(a); }
 
-VECTORCALL VECMATH_FINLINE bool v_check_xyz_all_zeroi(vec4f a)
-{
-  return v_test_all_bits_zeros(v_perm_xyzz(a));
-}
+VECTORCALL VECMATH_FINLINE bool v_check_xyz_all_true(vec4f a) { return v_check_xyzw_all_true(v_perm_xyzz(a)); }
+VECTORCALL VECMATH_FINLINE bool v_check_xyz_all_false(vec4f a) { return v_check_xyzw_all_false(v_perm_xyzz(a)); }
+VECTORCALL VECMATH_FINLINE bool v_check_xyz_any_true(vec4f a) { return v_check_xyzw_any_true(v_perm_xyzz(a)); }
 
-VECTORCALL VECMATH_FINLINE bool v_check_xyz_all_not_zeroi(vec4f a)
+VECTORCALL VECMATH_FINLINE vec4f is_neg_special(vec4f a)
 {
-  return v_check_xyzw_all_not_zeroi(v_perm_xyzz(a));
-}
-
-VECTORCALL VECMATH_FINLINE bool v_check_xyz_any_not_zeroi(vec4f a)
-{
-  return v_test_any_bit_set(v_perm_xyzz(a));
+  vec4f msbit = v_msbit();
+  return v_cmp_eqi(v_and(a, msbit), msbit);
 }
 
 VECTORCALL VECMATH_FINLINE vec4f v_cmp_eq(vec4f a, vec4f b) { return (vec4f)vceqq_f32(a, b); }

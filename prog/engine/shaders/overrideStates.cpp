@@ -4,6 +4,7 @@
 #include <util/dag_generationReferencedData.h>
 #include <EASTL/optional.h>
 #include <EASTL/vector_map.h>
+#include <osApiWrappers/dag_spinlock.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <hash/xxh3.h>
 #include <debug/dag_log.h>
@@ -26,27 +27,36 @@ struct OverrideStateRefCounted : OverrideState
   uint32_t refCount = 1;
 };
 
-static ska::flat_hash_map</*hash*/ uint64_t, OverrideStateId, ska::power_of_two_std_hash<uint64_t>> overrideStatesHash;
-static ska::flat_hash_map</*hash*/ uint64_t, OverrideStateId, ska::power_of_two_std_hash<uint64_t>> masterOverrideStatesHash;
+static OSSpinlock spinlock;
 
-static GenerationReferencedData<OverrideStateId, OverrideStateRefCounted> overrideStates;
+using StateIdCache = ska::flat_hash_map</*hash*/ uint64_t, OverrideStateId, ska::power_of_two_std_hash<uint64_t>>;
+static StateIdCache overrideStatesHash DAG_TS_GUARDED_BY(spinlock);
+static StateIdCache masterOverrideStatesHash;
+
+static GenerationReferencedData<OverrideStateId, OverrideStateRefCounted> overrideStates DAG_TS_GUARDED_BY(spinlock);
 
 static eastl::optional<OverrideState> overrideMaster;
 
 OverrideState get(OverrideStateId override_id)
 {
+  OSSpinlockScopedLock lock{spinlock};
   const OverrideStateRefCounted *state = overrideStates.cget(override_id);
   return state ? OverrideState(*state) : OverrideState();
 }
 OverrideState get(const UniqueOverrideStateId &id) { return get(id.get()); }
 
-bool exists(OverrideStateId id) { return overrideStates.doesReferenceExist(id); }
+bool exists(OverrideStateId id)
+{
+  OSSpinlockScopedLock lock{spinlock};
+  return overrideStates.doesReferenceExist(id);
+}
 
 OverrideStateId create(const OverrideState &s_)
 {
   OverrideState state = s_;
   state.validate();
   uint64_t hash = XXH3_64bits(&state, sizeof(state));
+  OSSpinlockScopedLock lock{spinlock};
   auto it = overrideStatesHash.find(hash);
   if (it == overrideStatesHash.end() || !overrideStates.doesReferenceExist(it->second))
   {
@@ -58,10 +68,11 @@ OverrideStateId create(const OverrideState &s_)
   return it->second;
 }
 
-bool destroy(OverrideStateId &override_id_)
+// NOTE: our apple clang version is bugged here w.r.t. thread safety
+bool destroy(OverrideStateId &override_id_) DAG_TS_NO_THREAD_SAFETY_ANALYSIS
 {
-  OverrideStateId override_id = override_id_;
-  override_id_ = OverrideStateId(); // destroy reference
+  OverrideStateId override_id = eastl::exchange(override_id_, OverrideStateId()); // destroy reference
+  OSSpinlockScopedLock lock{spinlock};
   OverrideStateRefCounted *s = overrideStates.get(override_id);
   if (!s)
     return false;
@@ -80,8 +91,13 @@ OverrideStateId get_current() { return current_override; }
 
 bool set(OverrideStateId override_id)
 {
-  const OverrideStateRefCounted *oldState = overrideStates.get(current_override);
-  const OverrideStateRefCounted *state = overrideStates.get(override_id);
+  const OverrideStateRefCounted *oldState;
+  const OverrideStateRefCounted *state;
+  {
+    OSSpinlockScopedLock lock{spinlock};
+    oldState = overrideStates.get(current_override);
+    state = overrideStates.get(override_id);
+  }
   if (!state && !!override_id)
   {
     logerr("override <%d> already destroyed", uint32_t(override_id));
@@ -97,13 +113,12 @@ bool set(OverrideStateId override_id)
   return true;
 }
 
-OverrideStateId add_master_override(OverrideStateId override_id)
+static OverrideStateId add_master_override(OverrideStateId override_id)
 {
   if (!overrideMaster)
     return override_id;
 
   OverrideState state = get(override_id);
-  OverrideState nakedState = state;
 
   state.bits |= overrideMaster->bits;
 
@@ -159,7 +174,7 @@ void reset_master_state()
   masterToCurrent.clear();
 }
 
-void destroy_all_managed_master_states()
+void destroy_all_managed_master_states() DAG_TS_NO_THREAD_SAFETY_ANALYSIS
 {
   G_ASSERT(!overrideMaster);
 

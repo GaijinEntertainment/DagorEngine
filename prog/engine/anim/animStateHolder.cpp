@@ -90,14 +90,14 @@ void AnimCommonStateHolder::reset()
 
 void AnimCommonStateHolder::setParamFlags(int id, int flags, int mask)
 {
-  G_ASSERT(id >= 0 && id < val.size());
+  G_ASSERTF_RETURN(id >= 0 && id < val.size(), , "id=%d val.size()=%d", id, val.size());
   G_ASSERTF(isBasicType(paramTypes[id]), "paramTypes[%d]=%d", id, paramTypes[id]);
   val[id].flags &= ~mask;
   val[id].flags |= flags & mask;
 }
 int AnimCommonStateHolder::getParamFlags(int id, int mask) const
 {
-  G_ASSERT(id >= 0 && id < val.size());
+  G_ASSERTF_RETURN(id >= 0 && id < val.size(), 0, "id=%d val.size()=%d", id, val.size());
   G_ASSERTF(isBasicType(paramTypes[id]), "paramTypes[%d]=%d", id, paramTypes[id]);
   return val[id].flags & mask;
 }
@@ -105,7 +105,7 @@ int AnimCommonStateHolder::getParamFlags(int id, int mask) const
 
 real *AnimCommonStateHolder::getParamScalarPtr(int id)
 {
-  G_ASSERT(id >= 0 && id < val.size());
+  G_ASSERTF_RETURN(id >= 0 && id < val.size(), nullptr, "id=%d val.size()=%d", id, val.size());
   G_ASSERT(paramTypes[id] == PT_ScalarParam || paramTypes[id] == PT_TimeParam);
   return &val[id].scalar;
 }
@@ -113,7 +113,7 @@ real *AnimCommonStateHolder::getParamScalarPtr(int id)
 
 int AnimCommonStateHolder::getTimeScaleParamId(int id) const
 {
-  G_ASSERT(id >= 0 && id < val.size());
+  G_ASSERTF_RETURN(id >= 0 && id < val.size(), -1, "id=%d val.size()=%d", id, val.size());
   G_ASSERT(paramTypes[id] == PT_TimeParam);
   return val[id].timeScaleId;
 }
@@ -121,7 +121,7 @@ int AnimCommonStateHolder::getTimeScaleParamId(int id) const
 
 void AnimCommonStateHolder::setTimeScaleParamId(int id, int tspid)
 {
-  G_ASSERT(id >= 0 && id < val.size());
+  G_ASSERTF_RETURN(id >= 0 && id < val.size(), , "id=%d val.size()=%d", id, val.size());
   G_ASSERT(paramTypes[id] == PT_TimeParam);
   val[id].timeScaleId = tspid;
 }
@@ -129,13 +129,13 @@ void AnimCommonStateHolder::setTimeScaleParamId(int id, int tspid)
 
 int AnimCommonStateHolder::getParamInt(int id) const
 {
-  G_ASSERT(id >= 0 && id < val.size());
+  G_ASSERTF_RETURN(id >= 0 && id < val.size(), 0, "id=%d val.size()=%d", id, val.size());
   G_ASSERT(paramTypes[id] == PT_ScalarParamInt);
   return val[id].scalarInt;
 }
 void AnimCommonStateHolder::setParamInt(int id, int value)
 {
-  G_ASSERT(id >= 0 && id < val.size());
+  G_ASSERTF_RETURN(id >= 0 && id < val.size(), , "id=%d val.size()=%d", id, val.size());
   G_ASSERT(paramTypes[id] == PT_ScalarParamInt);
   if (val[id].scalarInt != value)
     val[id].flags |= PF_Changed;
@@ -144,7 +144,7 @@ void AnimCommonStateHolder::setParamInt(int id, int value)
 
 float AnimCommonStateHolder::getParamEffTimeScale(int id) const
 {
-  G_ASSERT(id >= 0 && id < val.size());
+  G_ASSERTF_RETURN(id >= 0 && id < val.size(), 1.0f, "id=%d val.size()=%d", id, val.size());
   G_ASSERT(paramTypes[id] == PT_TimeParam);
   int tspid = val[id].timeScaleId;
   if (tspid > 0)

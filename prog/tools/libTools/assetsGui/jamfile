@@ -7,6 +7,8 @@ Target      = tools/libTools/assetsGui.lib ;
 AddIncludes = $(Root)/prog/tools/sharedInclude ;
 
 Sources =
+  av_allAssetsTree.cpp
+  av_assetSelectorCommon.cpp
   av_globalState.cpp
   av_selObjDlg.cpp
   av_view.cpp

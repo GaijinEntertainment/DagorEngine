@@ -1,14 +1,33 @@
 TargetType = dll ;
+Exceptions = no ;
+Config ?= dev ; # @TODO: make generalizable (currently, no way to choose in compiler or in game)
 
 include $(Root)/prog/_jBuild/defPlatform.jam ;
 
-if $(Platform) in windows xboxOne scarlett ps4 ps5 macOS {
+if $(Platform) in windows xboxOne scarlett ps4 ps5 android nswitch macOS iOS {
   PlatformSpec = clang ;
   CPPopt += -Wno-unused-command-line-argument ;
 } else if $(Platform) in linux {
   PlatformSpec = gcc ;
 } else {
   Exit Platform=$(Platform) is not supported yet! ;
+}
+
+if $(Platform) = iOS {
+  if $(BuildAsFramework) = yes {
+    local frameworkName = $(Target:B) ;
+    if $(Config) != rel {
+      frameworkName = $(frameworkName)-$(Config) ;
+    }
+    BuildAsFramework = $(frameworkName).framework ;
+  }
+
+  BundlePlist =
+    @$(Root)/prog/_jBuild/iOS/generic.framework.plist Info.plist
+  ;
+  BundleName = $(Target:B) ;
+  BundleTitle = $(BundleName) ;
+  BundleID = $(BundleName) ;
 }
 
 BuildDagorEngineIndependentCode = yes ;

@@ -22,9 +22,12 @@ struct BVHConnection : public ::BVHConnection
   UniqueBuf instances;
   EventQueryHolder counterQuery;
 
+  int nameCounter = 1;
+
   UniqueBuf metainfoMappings;
 
   bool queryInProgress = false;
+  bool waitOneFrame = false;
 
   int maxCount = 2;
 
@@ -38,23 +41,35 @@ struct BVHConnection : public ::BVHConnection
     // Read back the number of instances. The instance buffer is resized to fit the maximum number of instances.
     // This will only help the next frame, but in a few frames the buffer will be resized to fit the actual number of instances.
 
+    UniqueBuf instancesThisFrame;
+
     if (queryInProgress && d3d::get_event_query_status(counterQuery.get(), false))
     {
-      int instanceCount = 0;
-      if (auto bufferData = lock_sbuffer<const uint32_t>(counterReadback.getBuf(), 0, 0, VBLOCK_READONLY))
-        instanceCount = bufferData[0];
+      // This is a workaround. Without it, the counter will have a random value, usually 0.
+      // Possibly due to a synchronization issue in our drivers.
+      if (waitOneFrame)
+        waitOneFrame = false;
+      else
+      {
+        int instanceCount = 0;
+        if (auto bufferData = lock_sbuffer<const uint32_t>(counterReadback.getBuf(), 0, 0, VBLOCK_READONLY))
+          instanceCount = bufferData[0];
 
-      maxCount = max(maxCount, instanceCount);
+        maxCount = max(maxCount, instanceCount);
 
-      if (instances && maxCount > instances->getNumElements())
-        instances.close();
+        // If the buffer is to be grown, stash the current results, make the new buffer later, clear it, then copy
+        // the results of this frame.
+        if (instances && maxCount > instances->getNumElements())
+          instancesThisFrame = eastl::move(instances);
 
-      queryInProgress = false;
+        queryInProgress = false;
+      }
     }
 
     if (!instances)
     {
-      instances = dag::buffers::create_ua_sr_structured(sizeof(HWInstance), maxCount, String(0, "bvh_%s_instances", name.data()));
+      instances = dag::buffers::create_ua_sr_structured(sizeof(HWInstance), maxCount,
+        String(0, "bvh_%s_instances_%d", name.data(), nameCounter++));
       HANDLE_LOST_DEVICE_STATE(instances, false);
     }
 
@@ -76,6 +91,9 @@ struct BVHConnection : public ::BVHConnection
     d3d::clear_rwbufi(counter.getBuf(), zero);
     d3d::clear_rwbufi(instances.getBuf(), zero);
 
+    if (instancesThisFrame)
+      instancesThisFrame->copyTo(instances.getBuf());
+
     return true;
   }
   void done() override
@@ -90,6 +108,7 @@ struct BVHConnection : public ::BVHConnection
       d3d::issue_event_query(counterQuery.get());
 
       queryInProgress = true;
+      waitOneFrame = true;
     }
   }
   const UniqueBuf &getInstanceCounter() override { return counter; }

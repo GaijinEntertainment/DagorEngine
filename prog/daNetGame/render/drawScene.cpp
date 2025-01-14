@@ -473,6 +473,8 @@ void draw_scene(const TMatrix &view_itm)
 
 #endif
 
+  screencap::start_pending_request();
+
   CameraSetup cameraSetup = get_active_camera_setup();
   TMatrix viewTm;
   TMatrix4 globTm;

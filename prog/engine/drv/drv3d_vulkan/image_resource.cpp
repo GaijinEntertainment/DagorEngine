@@ -11,6 +11,7 @@
 #include "execution_scratch.h"
 #include "execution_sync.h"
 #include "bindless.h"
+#include "wrapped_command_buffer.h"
 
 using namespace drv3d_vulkan;
 
@@ -291,21 +292,21 @@ void Image::restoreFromSysCopy(ExecutionContext &ctx)
   ctx.queueImageResidencyRestore(this);
 }
 
-void Image::delayedRestoreFromSysCopy(ExecutionContext &ctx, VulkanCommandBufferHandle cmdb)
+void Image::delayedRestoreFromSysCopy()
 {
   G_ASSERT(hostCopy);
   carray<VkBufferImageCopy, MAX_MIPMAPS> copies;
   fillImage2BufferCopyData(copies, hostCopy);
 
 
-  ExecutionContext::PrimaryPipelineBarrier layoutSwitch(ctx.vkDev, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+  ExecutionContext::PrimaryPipelineBarrier layoutSwitch(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
   layoutSwitch.modifyImageTemplate(this);
   layoutSwitch.modifyImageTemplate({VK_ACCESS_NONE, VK_ACCESS_TRANSFER_WRITE_BIT});
   layoutSwitch.modifyImageTemplate(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
   layoutSwitch.modifyImageTemplate(0, (uint8_t)desc.ici.mipLevels, 0, (uint8_t)desc.ici.arrayLayers);
   layoutSwitch.addImageByTemplate();
-  layoutSwitch.submit(cmdb);
-  VULKAN_LOG_CALL(ctx.vkDev.vkCmdCopyBufferToImage(cmdb, hostCopy->getHandle(), getHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+  layoutSwitch.submit();
+  VULKAN_LOG_CALL(Backend::cb.wCmdCopyBufferToImage(hostCopy->getHandle(), getHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
     desc.ici.mipLevels, copies.data()));
 
   // TODO: make sure usage barrier is correct after this operation (should be generated srcless due to layout change)

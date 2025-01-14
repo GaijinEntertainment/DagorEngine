@@ -26,13 +26,6 @@ using TmpName = eastl::fixed_string<char, 256>;
 namespace dagdp
 {
 
-#if DAGOR_DBGLEVEL == 0
-static constexpr float DYNAMIC_THRESHOLD_MULTIPLIER = 1.0f;
-#else
-// In debug mode, we want to be more conservative to catch issues earlier.
-static constexpr float DYNAMIC_THRESHOLD_MULTIPLIER = 0.75f;
-#endif
-
 struct ViewConstants
 {
   dagdp::ViewInfo viewInfo;
@@ -104,7 +97,7 @@ void GlobalManager::invalidateViews()
 
   viewIndependentNodes.clear();
 
-#if DAGOR_DBGLEVEL != 0
+#if DAGDP_DEBUG
   debug.builders.clear();
 #endif
 
@@ -364,14 +357,14 @@ void GlobalManager::rebuildViews()
       });
 
       dabfg::NodeHandle dynamicReadbackNode =
-        ns.registerNode("readback", DABFG_PP_NODE_SRC, [persistentData](dabfg::Registry registry) {
+        ns.registerNode("readback", DABFG_PP_NODE_SRC, [persistentData, &view](dabfg::Registry registry) {
           view_multiplex(registry, persistentData->constants.viewInfo.kind);
           registry.executionHas(dabfg::SideEffects::External);
 
           const auto dynCountersHandle =
             registry.read("dyn_counters_stage1").buffer().atStage(dabfg::Stage::TRANSFER).useAs(dabfg::Usage::COPY).handle();
 
-          return [persistentData, dynCountersHandle] {
+          return [persistentData, dynCountersHandle, &view] {
             auto &dynCounters = const_cast<Sbuffer &>(dynCountersHandle.ref());
 
             int ignoredStride;
@@ -380,6 +373,10 @@ void GlobalManager::rebuildViews()
             {
               const uint32_t totalPlaced = data[DYN_COUNTERS_INDEX_TOTAL_PLACED];
               const uint32_t totalCapacity = data[DYN_COUNTERS_INDEX_TOTAL_CAPACITY];
+
+#if DAGDP_DEBUG
+              view.dynamicInstanceCounter = totalPlaced;
+#endif
 
               if (totalPlaced > totalCapacity * DYNAMIC_THRESHOLD_MULTIPLIER)
                 LOGERR_ONCE("daGdp: dynamic placement overflow detected! %" PRIu32 " > %" PRIu32 " * %f", totalPlaced, totalCapacity,
@@ -413,7 +410,7 @@ void GlobalManager::rebuildViews()
       g_entity_mgr->broadcastEventImmediate(EventViewFinalize(view.info, viewBuilder, nodeInserter));
     }
 
-#if DAGOR_DBGLEVEL != 0
+#if DAGDP_DEBUG
     debug.builders.emplace_back(eastl::move(viewBuilder));
 #endif
   }

@@ -2,14 +2,13 @@
 
 #include "cppStcode.h"
 #include "shLog.h"
+#include "fast_isalnum.h"
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_dynLib.h>
 #include <osApiWrappers/dag_pathDelim.h>
 #include <EASTL/string.h>
 
-
-// @TODO crossplatform everything
 
 #if _TARGET_PC_WIN
 #include <windows.h>
@@ -23,33 +22,15 @@ StcodeShader g_cppstcode;
 static eastl::string stcode_dir;
 static eastl::string src_dir;
 
-bool set_stcode_arch_from_arg(const char *str, shc::CompilerConfig &config_rw)
+template <typename T>
+static bool item_is_in(const T &item, std::initializer_list<T> items)
 {
-  StcodeTargetArch res;
-  if (strcmp(str, "x86") == 0)
-    res = StcodeTargetArch::X86;
-  else if (strcmp(str, "x86_64") == 0)
-    res = StcodeTargetArch::X86_64;
-  else if (strcmp(str, "arm64") == 0)
-    res = StcodeTargetArch::ARM64;
-  else
-    return false;
-
-#if _CROSS_TARGET_DX12
-  if (shc::config().targetPlatform != dx12::dxil::Platform::PC && res != StcodeTargetArch::X86_64)
-    return false;
-#elif _CROSS_TARGET_C1 | _CROSS_TARGET_C2
-
-
-#endif
-
-  config_rw.cppStcodeArch = res;
-  return true;
-}
-
-static bool current_arch_is_valid(StcodeTargetArch desired)
-{
-  return shc::config().cppStcodeArch == StcodeTargetArch::DEFAULT || shc::config().cppStcodeArch == desired;
+  for (const T &ref : items)
+  {
+    if (ref == item)
+      return true;
+  }
+  return false;
 }
 
 static const char *arch_name(StcodeTargetArch arch)
@@ -60,8 +41,154 @@ static const char *arch_name(StcodeTargetArch arch)
     case StcodeTargetArch::X86: return "x86";
     case StcodeTargetArch::X86_64: return "x86_64";
     case StcodeTargetArch::ARM64: return "arm64";
+    case StcodeTargetArch::ARM64_E: return "arm64e";
+    case StcodeTargetArch::ARM_V7: return "armv7";
+    case StcodeTargetArch::ARM_V7S: return "armv7s";
+    case StcodeTargetArch::ARMEABI_V7A: return "armeabi-v7a";
+    case StcodeTargetArch::ARM64_V8A: return "arm64-v8a";
+    case StcodeTargetArch::I386: return "i386";
+    case StcodeTargetArch::E2K: return "e2k";
   }
   return nullptr;
+}
+
+static bool validate_arch(const shc::CompilerConfig &config)
+{
+#if _CROSS_TARGET_DX12
+  if (shc::config().targetPlatform != dx12::dxil::Platform::PC)
+    return config.cppStcodeArch == StcodeTargetArch::X86_64;
+  else
+    return item_is_in(config.cppStcodeArch, {StcodeTargetArch::X86, StcodeTargetArch::X86_64, StcodeTargetArch::ARM64});
+#elif _CROSS_TARGET_DX11
+  return item_is_in(config.cppStcodeArch, {StcodeTargetArch::X86, StcodeTargetArch::X86_64, StcodeTargetArch::ARM64});
+#elif _CROSS_TARGET_C1 | _CROSS_TARGET_C2
+
+#elif _CROSS_TARGET_SPIRV
+#if _TARGET_PC_WIN
+  return item_is_in(config.cppStcodeArch,
+    {StcodeTargetArch::DEFAULT, StcodeTargetArch::X86, StcodeTargetArch::X86_64, StcodeTargetArch::E2K, StcodeTargetArch::ARM64,
+      StcodeTargetArch::ARMEABI_V7A, StcodeTargetArch::ARM64_V8A});
+#elif _TARGET_PC_LINUX
+  return item_is_in(config.cppStcodeArch, {StcodeTargetArch::DEFAULT, StcodeTargetArch::X86_64, StcodeTargetArch::E2K,
+                                            StcodeTargetArch::ARM64, StcodeTargetArch::ARMEABI_V7A, StcodeTargetArch::ARM64_V8A});
+#elif _TARGET_PC_MACOSX
+  return item_is_in(config.cppStcodeArch, {StcodeTargetArch::ARMEABI_V7A, StcodeTargetArch::ARM64_V8A});
+#endif
+#elif _CROSS_TARGET_METAL
+  return item_is_in(config.cppStcodeArch,
+    {StcodeTargetArch::DEFAULT, StcodeTargetArch::X86_64, StcodeTargetArch::ARM64, StcodeTargetArch::ARM64_E, StcodeTargetArch::ARM_V7,
+      StcodeTargetArch::ARM_V7S, StcodeTargetArch::I386});
+#else
+#error Unknown target
+#endif
+}
+
+static bool validate_arch_for_platform(const shc::CompilerConfig &config);
+
+#if _CROSS_TARGET_SPIRV
+
+static bool validate_arch_for_platform(const shc::CompilerConfig &config)
+{
+  return config.cppStcodeArch == StcodeTargetArch::DEFAULT || config.cppStcodePlatform == StcodeTargetPlatform::DEFAULT ||
+         (config.cppStcodePlatform == StcodeTargetPlatform::NSWITCH && config.cppStcodeArch == StcodeTargetArch::ARM64) ||
+         (config.cppStcodePlatform == StcodeTargetPlatform::ANDROID &&
+           item_is_in(config.cppStcodeArch, {StcodeTargetArch::ARMEABI_V7A, StcodeTargetArch::ARM64_V8A})) ||
+#if _TARGET_PC_WIN
+         (config.cppStcodePlatform == StcodeTargetPlatform::PC &&
+           item_is_in(config.cppStcodeArch, {StcodeTargetArch::X86, StcodeTargetArch::X86_64, StcodeTargetArch::ARM64}));
+#elif _TARGET_PC_LINUX
+         (config.cppStcodePlatform == StcodeTargetPlatform::PC &&
+           item_is_in(config.cppStcodeArch, {StcodeTargetArch::X86_64, StcodeTargetArch::E2K}));
+#elif _TARGET_PC_MACOSX
+         false; // android and {armv7a, armv8a} is already listed in common code above
+#endif
+}
+
+bool set_stcode_platform_from_arg(const char *str, shc::CompilerConfig &config)
+{
+  if (strcmp(str, "pc") == 0)
+    config.cppStcodePlatform = StcodeTargetPlatform::PC;
+  else if (strcmp(str, "android") == 0)
+    config.cppStcodePlatform = StcodeTargetPlatform::ANDROID;
+  else if (strcmp(str, "nswitch") == 0)
+    config.cppStcodePlatform = StcodeTargetPlatform::NSWITCH;
+  else
+    return false;
+
+  return validate_arch_for_platform(config);
+}
+
+template <typename T>
+static T platform_switch(T &&if_pc, T &&if_android, T &&if_nswitch)
+{
+  switch (shc::config().cppStcodePlatform)
+  {
+    case StcodeTargetPlatform::DEFAULT:
+    case StcodeTargetPlatform::PC: return eastl::forward<T>(if_pc);
+    case StcodeTargetPlatform::ANDROID: return eastl::forward<T>(if_android);
+    case StcodeTargetPlatform::NSWITCH: return eastl::forward<T>(if_nswitch);
+  }
+}
+
+#elif _CROSS_TARGET_METAL
+
+static bool validate_arch_for_platform(const shc::CompilerConfig &config)
+{
+  return config.cppStcodeArch == StcodeTargetArch::DEFAULT || config.cppStcodePlatform == StcodeTargetPlatform::DEFAULT ||
+         (config.cppStcodePlatform == StcodeTargetPlatform::MACOSX &&
+           item_is_in(config.cppStcodeArch, {StcodeTargetArch::X86_64, StcodeTargetArch::ARM64})) ||
+         (config.cppStcodePlatform == StcodeTargetPlatform::IOS &&
+           item_is_in(config.cppStcodeArch, {StcodeTargetArch::ARM64, StcodeTargetArch::ARM64_E, StcodeTargetArch::ARM_V7,
+                                              StcodeTargetArch::ARM_V7S, StcodeTargetArch::I386}));
+}
+
+bool set_stcode_platform_from_arg(const char *str, shc::CompilerConfig &config)
+{
+  if (strcmp(str, "macosx") == 0)
+    config.cppStcodePlatform = StcodeTargetPlatform::MACOSX;
+  else if (strcmp(str, "ios") == 0)
+    config.cppStcodePlatform = StcodeTargetPlatform::IOS;
+  else
+    return false;
+
+  return validate_arch_for_platform(config);
+}
+
+static bool is_ios() { return shc::config().cppStcodePlatform == StcodeTargetPlatform::IOS; }
+
+template <typename T>
+static T if_ios(T &&if_true, T &&if_false)
+{
+  if (is_ios())
+    return eastl::forward<T>(if_true);
+  else
+    return eastl::forward<T>(if_false);
+}
+
+#else
+
+static bool validate_arch_for_platform(const shc::CompilerConfig &) { return true; }
+
+#endif
+
+bool set_stcode_arch_from_arg(const char *str, shc::CompilerConfig &config_rw)
+{
+  StcodeTargetArch res = StcodeTargetArch::DEFAULT;
+  for (StcodeTargetArch arch : ALL_STCODE_ARCHS)
+  {
+    if (arch != StcodeTargetArch::DEFAULT && strcmp(str, arch_name(arch)) == 0)
+    {
+      res = arch;
+      break;
+    }
+  }
+  if (res == StcodeTargetArch::DEFAULT) // Not found or invalid
+    return false;
+
+
+  config_rw.cppStcodeArch = res;
+
+  return validate_arch(config_rw) && validate_arch_for_platform(config_rw);
 }
 
 static void replace_char(char *str, size_t len, char old_ch, char new_ch)
@@ -141,7 +268,23 @@ void save_compiled_cpp_stcode(StcodeShader &&cpp_shader)
   write_file(cppFileName.c_str(), cppSource.c_str(), cppSource.length());
 }
 
-void save_stcode_dll_main(StcodeInterface &&cpp_interface)
+void save_stcode_global_vars(StcodeGlobalVars &&cpp_globvars)
+{
+  RET_IF_SHOULD_NOT_COMPILE();
+
+  constexpr char cppTemplate[] =
+#include "_stcodeTemplates/globVars.cpp.fmt"
+    ;
+
+  StcodeGlobalVars::Strings code = cpp_globvars.releaseAssembledCode();
+
+  const eastl::string cppFileName(eastl::string::CtorSprintf{}, "%s/glob_shadervars.stcode.gen.cpp", stcode_dir.c_str());
+  const eastl::string cppSource(eastl::string::CtorSprintf{}, cppTemplate, code.cppCode.c_str(), code.fetchersOrFwdCppCode.c_str());
+
+  write_file(cppFileName.c_str(), cppSource.c_str(), cppSource.length());
+}
+
+void save_stcode_dll_main(StcodeInterface &&cpp_interface, uint64_t stcode_hash)
 {
   RET_IF_SHOULD_NOT_COMPILE();
 
@@ -166,23 +309,7 @@ void save_stcode_dll_main(StcodeInterface &&cpp_interface)
     while (dd_find_next(&ff));
   }
 
-  const eastl::string cppSource(eastl::string::CtorSprintf{}, cppTemplate, includes.c_str(), code.c_str());
-
-  write_file(cppFileName.c_str(), cppSource.c_str(), cppSource.length());
-}
-
-void save_stcode_global_vars(StcodeGlobalVars &&cpp_globvars)
-{
-  RET_IF_SHOULD_NOT_COMPILE();
-
-  constexpr char cppTemplate[] =
-#include "_stcodeTemplates/globVars.cpp.fmt"
-    ;
-
-  StcodeGlobalVars::Strings code = cpp_globvars.releaseAssembledCode();
-
-  const eastl::string cppFileName(eastl::string::CtorSprintf{}, "%s/glob_shadervars.stcode.gen.cpp", stcode_dir.c_str());
-  const eastl::string cppSource(eastl::string::CtorSprintf{}, cppTemplate, code.cppCode.c_str(), code.fetchersOrFwdCppCode.c_str());
+  const eastl::string cppSource(eastl::string::CtorSprintf{}, cppTemplate, includes.c_str(), code.c_str(), stcode_hash);
 
   write_file(cppFileName.c_str(), cppSource.c_str(), cppSource.length());
 }
@@ -293,6 +420,12 @@ static eastl::string get_dynlib_jam_out_dir(const char *out_dir, int root_depth)
   return outDirRel;
 }
 
+static eastl::string remove_lowest_dir(const char *path, size_t path_len)
+{
+  const char *p = strchr(path, '/');
+  return p ? eastl::string{p + 1, path_len - (path - p) - 1} : eastl::string{path, path_len};
+}
+
 static eastl::string get_cpp_filename_from_source_name(const char *shader_source_name, size_t name_len)
 {
   const char *begin = dd_get_fname(shader_source_name);
@@ -305,15 +438,115 @@ static eastl::string get_cpp_filename_from_source_name(const char *shader_source
   return eastl::string("src/") + eastl::string(begin, end - begin) + eastl::string(".stcode.gen.cpp");
 }
 
+static bool path_is_abs(const char *path)
+{
+  G_ASSERT(path);
+#if _TARGET_PC_WIN
+  if (strchr(path, ':'))
+    return true;
+#endif
+  return path[0] == '/';
+}
+
+struct JamCompilationDirs
+{
+  eastl::string root;
+  eastl::string location;
+  eastl::string outDir;
+};
+
+JamCompilationDirs generate_dirs_with_provided_root(const char *engine_root, const char *out_dir)
+{
+  const eastl::string cwd = get_cwd();
+
+  auto toAbs = [&cwd](const char *src) {
+    eastl::string res{src};
+    if (!path_is_abs(src))
+      res = cwd + "/" + res;
+    dd_simplify_fname_c(res.data());
+    res.resize(strlen(res.c_str()));
+    if (res.back() == '/' && res.size() > 0)
+      res.pop_back();
+    return res;
+  };
+
+  auto tracebackPathFrom = [](const char *from) {
+    int dirCount = 0;
+    for (const char *p = from; p; p = strchr(p, '/'))
+    {
+      ++dirCount;
+      ++p;
+    }
+
+    constexpr char UNIT[] = "../";
+    constexpr size_t UNIT_LEN = sizeof(UNIT) - 1;
+    eastl::string res{};
+    res.resize(UNIT_LEN * dirCount);
+    for (int i = 0; i < dirCount; ++i)
+      memcpy(res.data() + UNIT_LEN * i, UNIT, UNIT_LEN);
+
+    res.pop_back();
+    return res;
+  };
+
+  auto makeRelPath = [&](const char *from, const char *to) {
+    const char *pf = from, *pt = to;
+    for (; *pf && *pt && *pf == *pt; ++pf, ++pt)
+      ;
+
+    if (*pf == '\0' && *pt == '\0')
+      return eastl::string{"./"};
+    else if (*pf == '\0' && *pt == '/')
+      return eastl::string{pt + 1};
+    else if (*pf == '/' && *pt == '\0')
+      return tracebackPathFrom(pf + 1);
+    else
+    {
+      do
+      {
+        --pf, --pt;
+      } while (*pf != '/' && *pt != '/');
+      return tracebackPathFrom(pf + 1) + "/" + eastl::string{pt + 1};
+    }
+  };
+
+  const eastl::string outDirAbs = toAbs(out_dir);
+  const eastl::string engineRootAbs = toAbs(engine_root);
+  const eastl::string stcodeDirAbs = toAbs(stcode_dir.c_str());
+
+  JamCompilationDirs res{};
+  res.root = makeRelPath(stcodeDirAbs.c_str(), engineRootAbs.c_str());
+  res.location = makeRelPath(engineRootAbs.c_str(), stcodeDirAbs.c_str());
+  res.outDir = makeRelPath(engineRootAbs.c_str(), outDirAbs.c_str());
+  return res;
+}
+
+JamCompilationDirs generate_dirs_with_inferred_root_from_rel_path(const char *out_dir)
+{
+  sh_debug(SHLOG_NORMAL,
+    "[WARNING] engineRootDir var not found in blk, trying to generate stcode compilation paths from output path (%s). Note that "
+    "this path must be relative to cwd and passing through engine root, or the build will fail!",
+    stcode_dir.c_str());
+
+  if (path_is_abs(stcode_dir.c_str()))
+  {
+    sh_debug(SHLOG_FATAL, "output path (%s) can not be absolute when inferring root path", stcode_dir.c_str());
+    return {};
+  }
+
+  const auto [rootDepthFromCwd, rootDepthFromOutput, stcodeRelPath] = get_dir_root_info(stcode_dir.c_str());
+  return {build_root_rel_path(rootDepthFromOutput), eastl::move(stcodeRelPath), get_dynlib_jam_out_dir(out_dir, rootDepthFromCwd)};
+}
+
 dag::Expected<proc::ProcessTask, StcodeMakeTaskError> make_stcode_compilation_task(const char *out_dir, const char *lib_name,
   const ShVariantName &variant)
 {
   RET_IF_SHOULD_NOT_COMPILE(dag::Unexpected(StcodeMakeTaskError::DISABLED));
 
   // Calculate root path, stcode path relative to root and output dir relative to root
-  const auto [rootDepthFromCwd, rootDepthFromOutput, stcodeRelPath] = get_dir_root_info(stcode_dir.c_str());
-  const eastl::string rootRelPath = build_root_rel_path(rootDepthFromOutput);
-  const eastl::string outDirRelPath = get_dynlib_jam_out_dir(out_dir, rootDepthFromCwd);
+  const char *engineRoot = shc::config().engineRootDir.empty() ? nullptr : shc::config().engineRootDir.c_str();
+  auto [rootRelPath, stcodeRelPath, outDirRelPath] =
+    engineRoot ? generate_dirs_with_provided_root(engineRoot, out_dir) : generate_dirs_with_inferred_root_from_rel_path(out_dir);
 
   eastl::string sourcesList;
 
@@ -337,23 +570,50 @@ dag::Expected<proc::ProcessTask, StcodeMakeTaskError> make_stcode_compilation_ta
   }
 
   // Write jamfile
-  const char jamTemplate[] =
+  constexpr char jamTemplate[] =
 #include "_stcodeTemplates/jamfile.fmt"
     ;
 
-  constexpr char extension[] =
-#if _TARGET_PC_WIN && (_CROSS_TARGET_C1 | _CROSS_TARGET_C2)
-    ".prx"
-#else // @TODO: compile .so on win too? .dylib definitely should not work, but maybe too
-    DAGOR_OS_DLL_SUFFIX
+  // Override inappropriate target mangling when autocompleting target for linux pc and macos
+  const char *extension =
+#if _TARGET_PC_LINUX & _CROSS_TARGET_SPIRV
+    platform_switch<const char *>(".so", "", "")
+#elif _TARGET_PC_MACOSX & _CROSS_TARGET_METAL
+    if_ios<const char *>("", ".dylib")
+#else
+    ""
 #endif
     ;
+
+  eastl::string targetRelName{};
+
+  // @HACK Due to jam limits on string size, the name needs to be mangled to be shortened
+  {
+    String targetRelNameBase{remove_lowest_dir(stcodeRelPath.c_str(), stcodeRelPath.length()).c_str()};
+    targetRelNameBase.replace("/stcode", "");
+    replace_char(targetRelNameBase.data(), targetRelNameBase.length(), '/', '~');
+
+    // Now reduce each word to first three letters
+    constexpr int REDUCED_TOKEN_SIZE = 3;
+
+    targetRelName.reserve(targetRelNameBase.size());
+    int charStreak = 0;
+    for (char c : targetRelNameBase)
+    {
+      if (fast_isalnum(c))
+        ++charStreak;
+      else
+        charStreak = 0;
+      if (charStreak < REDUCED_TOKEN_SIZE)
+        targetRelName.push_back(c);
+    }
+  }
 
   const char *customCppOpts = shc::config().cppStcodeUnityBuild ? "-DROUTINE_VISIBILITY=static" : "-DROUTINE_VISIBILITY=extern";
 
   const eastl::string jamPath(eastl::string::CtorSprintf{}, "%s/jamfile", stcode_dir.c_str());
   const eastl::string jamContent(eastl::string::CtorSprintf{}, jamTemplate, rootRelPath.c_str(), stcodeRelPath.c_str(),
-    outDirRelPath.c_str(), lib_name, extension, sourcesList.c_str(), customCppOpts);
+    outDirRelPath.c_str(), targetRelName.c_str(), lib_name, extension, sourcesList.c_str(), customCppOpts);
   write_file(jamPath.c_str(), jamContent.c_str(), jamContent.length());
 
   proc::ProcessTask task{};
@@ -368,9 +628,13 @@ dag::Expected<proc::ProcessTask, StcodeMakeTaskError> make_stcode_compilation_ta
   // Start proc
 #if _TARGET_PC_WIN
 
-  // @TODO: win32 w/ a compile flag
   const char *jamPlatform = nullptr;
+
+#if _CROSS_TARGET_SPIRV
+  SET_ARCH_WITH_DEF(platform_switch(StcodeTargetArch::X86_64, StcodeTargetArch::ARM64_V8A, StcodeTargetArch::ARM64));
+#else
   SET_ARCH_WITH_DEF(StcodeTargetArch::X86_64);
+#endif
 
 #if _CROSS_TARGET_DX12
   switch (shc::config().targetPlatform)
@@ -379,8 +643,10 @@ dag::Expected<proc::ProcessTask, StcodeMakeTaskError> make_stcode_compilation_ta
     case dx12::dxil::Platform::XBOX_ONE: jamPlatform = "xboxOne"; break;
     case dx12::dxil::Platform::XBOX_SCARLETT: jamPlatform = "scarlett"; break;
   }
-#elif _CROSS_TARGET_DX11 | _CROSS_TARGET_SPIRV
+#elif _CROSS_TARGET_DX11
   jamPlatform = "windows";
+#elif _CROSS_TARGET_SPIRV
+  jamPlatform = platform_switch<const char *>("windows", "android", "nswitch");
 #elif _CROSS_TARGET_C1
 
 #elif _CROSS_TARGET_C2
@@ -410,17 +676,27 @@ dag::Expected<proc::ProcessTask, StcodeMakeTaskError> make_stcode_compilation_ta
 #endif
 
 #if _TARGET_PC_LINUX
-  constexpr char jamPlatform[] = "linux";
-  SET_ARCH_WITH_DEF(StcodeTargetArch::X86_64);
+  const char *jamPlatform = platform_switch<const char *>("linux", "android", "nswitch");
+  SET_ARCH_WITH_DEF(platform_switch(StcodeTargetArch::X86_64, StcodeTargetArch::ARM64_V8A, StcodeTargetArch::ARM64));
 #else
-  constexpr char jamPlatform[] = "macOS";
-  SET_ARCH_WITH_DEF(StcodeTargetArch::ARM64);
+#if _CROSS_TARGET_METAL
+  const char *jamPlatform = if_ios<const char *>("iOS", "macOS");
+  SET_ARCH_WITH_DEF(if_ios(StcodeTargetArch::ARM64, StcodeTargetArch::X86_64));
+#else
+  const char *jamPlatform = "android";
+  SET_ARCH_WITH_DEF(StcodeTargetArch::ARM64_V8A);
+#endif
 #endif
 
   task.argv.emplace_back("jam");
   task.argv.push_back(eastl::string(eastl::string::CtorSprintf{}, "-sPlatform=%s", jamPlatform));
   task.argv.push_back(eastl::string(eastl::string::CtorSprintf{}, "-sPlatformArch=%s", arch_name(arch)));
   task.argv.push_back(eastl::string(eastl::string::CtorSprintf{}, "-sTargetType=%s", targetType));
+
+#if _TARGET_PC_MACOSX && _CROSS_TARGET_METAL
+  if (is_ios())
+    task.argv.push_back(eastl::string("-sBuildAsFramework=yes"));
+#endif
 
   task.cwd.emplace(stcode_dir);
 
@@ -434,4 +710,33 @@ dag::Expected<proc::ProcessTask, StcodeMakeTaskError> make_stcode_compilation_ta
 #undef SET_ARCH_WITH_DEF
 
   return task;
+}
+
+void cleanup_after_stcode_compilation(const char *out_dir, const char *lib_name)
+{
+  G_UNUSED(out_dir);
+  G_UNUSED(lib_name);
+
+  constexpr char DEBINFO_EXT[] =
+#if _TARGET_PC_WIN
+    ".pdb"
+#elif _TARGET_PC_LINUX
+    ".so.debuginfo"
+#else // _TARGET_PC_MACOSX
+    ".dSYM"
+#endif
+    ;
+
+#if !(_CROSS_TARGET_C1 | _CROSS_TARGET_C2)
+#if _CROSS_TARGET_SPIRV
+  if (shc::config().cppStcodeDeleteDebugInfo && shc::config().usePcToken)
+#else
+  if (shc::config().cppStcodeDeleteDebugInfo)
+#endif
+  {
+    // @TODO: add more configurations, now it's hardcoded dev anyway
+    eastl::string pdbPath = eastl::string{out_dir} + "/" + eastl::string{lib_name} + "-dev" + DEBINFO_EXT;
+    dd_erase(pdbPath.c_str());
+  }
+#endif
 }

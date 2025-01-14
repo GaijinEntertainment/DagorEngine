@@ -547,11 +547,13 @@ void HumanPhys::applyStandingImpulse(const gamephys::CollisionContactData &conta
 {
   const float slideThreshold = currentState.isCrawl() ? crawlSlideAngle : standSlideAngle;
   Point3 appliedNormal = contact.wnormB;
-  if (contact.wnormB.y > slideThreshold)
+  Point3 gravDir = -currentState.gravDirection;
+  float angleWithGravity = appliedNormal * gravDir;
+  if (angleWithGravity > slideThreshold)
   {
-    float vertOffset = max(-contact.wnormB.y * contact.depth - pos_offs.y, 0.f);
-    pos_offs += Point3(0.f, vertOffset, 0.f);
-    appliedNormal.set(0.f, 1.f, 0.f);
+    float vertOffset = max(contact.wnormB * -gravDir * contact.depth - pos_offs * gravDir, 0.f);
+    pos_offs += gravDir * vertOffset;
+    appliedNormal = gravDir;
   }
   else
     applyPush(contact, pos_offs);
@@ -1641,7 +1643,8 @@ HumanPhys::TorsoCollisionResults HumanPhys::processTorsoCollision(TMatrix &tm, i
         meanCollisionNormal += contact.wnormB;
         collCount++;
         {
-          if (contact.wnormB.y > slideThreshold)
+          float angleWithGravity = contact.wnormB * -currentState.gravDirection;
+          if (angleWithGravity > slideThreshold)
           {
             res.isInAir = false;
             res.isSliding = false;
@@ -2039,7 +2042,8 @@ void HumanPhys::updatePhys(float at_time, float dt, bool /*is_for_real*/)
                     canCrawl && !isDowned && !currentState.attachedToLadder;
   bool isCrouching = appliedCT.isControlBitSet(HCT_CROUCH) && !isCrawling && canCrouch && !isDowned && !currentState.attachedToLadder;
   bool isTimeForDelayedJump = currentState.jumpStartTime > 0.f && at_time > currentState.jumpStartTime + beforeJumpDelay;
-  bool isJumping = !isDowned && !currentState.isAttached && (appliedCT.isControlBitSet(HCT_JUMP) || isTimeForDelayedJump);
+  bool isJumping = !isDowned && !currentState.isAttached && !currentState.attachedToLadder &&
+                   (appliedCT.isControlBitSet(HCT_JUMP) || isTimeForDelayedJump);
   bool shouldStopCrawling = isJumping && currentState.isCrawl();
   int wasJumpingState = -1; // not inited
   auto wasJumping = [&wasJumpingState, this]() {
@@ -2078,7 +2082,7 @@ void HumanPhys::updatePhys(float at_time, float dt, bool /*is_for_real*/)
 
   {
     float wishHeight = isCrawling ? -1.f : isCrouching || isDowned ? 0.f : 1.f;
-    if (currentState.isClimbing || currentState.climbThrough)
+    if (currentState.isClimbing && currentState.climbThrough)
       wishHeight = 0.f;
     if (DAGOR_UNLIKELY(beforeJumpDelay > 0.f && currentState.jumpStartTime >= 0.f && at_time > currentState.jumpStartTime))
       wishHeight = at_time < currentState.jumpStartTime + beforeJumpDelay * .5f ? beforeJumpCrouchHeight : 1.f;
@@ -3242,6 +3246,14 @@ void HumanPhys::drawDebug()
     draw_debug_line_buffered(currentState.climbToPos, currentState.climbToPos + currentState.climbNorm);
     if (currentState.climbThrough)
       add_debug_text_mark(currentState.climbToPos, "climbing through", -1, 1);
+    if (currentState.isFastClimbing)
+      add_debug_text_mark(currentState.climbToPos + Point3(0.0, 0.1, 0.0), "fast climb", -1, 1);
+    if (currentState.isClimbingOverObstacle)
+    {
+      draw_debug_box_buffered(BBox3(currentState.climbPosBehindObstacle, 0.1f));
+      draw_debug_line_buffered(currentState.climbFromPos, currentState.climbPosBehindObstacle);
+      add_debug_text_mark(currentState.climbToPos + Point3(0.0, 0.2, 0.0), "climbing over", -1, 1);
+    }
   }
   if (draw_climb_on_pos)
   {

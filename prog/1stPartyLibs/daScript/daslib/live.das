@@ -80,8 +80,8 @@ def private live_lookup(fn)
     if appPtr==null
         return false
     if !liveFunctionLookup |> key_exists(fn)
-        liveFunctionLookup[fn] = *appPtr |> has_function(fn)
-    return liveFunctionLookup[fn]
+        liveFunctionLookup |> insert(fn, *appPtr |> has_function(fn))
+    return liveFunctionLookup |> get_value(fn)
 
 def public invoke_live ( fn:string )
     if live_lookup(fn)
@@ -142,9 +142,9 @@ def public watch_files
         if stat(fileName,st)
             if st.is_reg
                 if appTime |> key_exists(fname)
-                    if appTime[fname] != st.mtime
+                    if appTime |> get_value(fname) != st.mtime
                         any = true
-                appTime[fname] = st.mtime
+                appTime |> insert(fname, st.mtime)
     return any
 
 [export]

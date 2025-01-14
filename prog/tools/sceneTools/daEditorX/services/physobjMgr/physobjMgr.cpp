@@ -8,6 +8,7 @@
 #include <de3_baseInterfaces.h>
 #include <de3_writeObjsToPlaceDump.h>
 #include <de3_entityUserData.h>
+#include <de3_randomSeed.h>
 #include <oldEditor/de_common_interface.h>
 #include <assets/assetChangeNotify.h>
 #include <assets/assetMgr.h>
@@ -154,11 +155,17 @@ public:
   SmallTab<DynamicRenderableSceneInstance *, MidmemAlloc> scenes;
 };
 
-class PhysObjEntity : public VirtualPhysObjEntity
+class PhysObjEntity : public VirtualPhysObjEntity, public IRandomSeedHolder
 {
 public:
   PhysObjEntity(int cls) : VirtualPhysObjEntity(cls), idx(MAX_ENTITIES), nodeTree(NULL) { tm.identity(); }
   ~PhysObjEntity() { clear(); }
+
+  virtual void *queryInterfacePtr(unsigned huid)
+  {
+    RETURN_INTERFACE(huid, IRandomSeedHolder);
+    return NULL;
+  }
 
   void clear()
   {
@@ -260,8 +267,12 @@ public:
   }
   void render()
   {
+    dynrend::PerInstanceRenderData renderData;
+    Point4 &params = renderData.params.emplace_back();
+    memcpy(&params.x, &instanceSeed, sizeof(instanceSeed));
+
     for (int n = 0; n < scenes.size(); n++)
-      if (!dynrend::render_in_tools(scenes[n], dynrend::RenderMode::Opaque))
+      if (!dynrend::render_in_tools(scenes[n], dynrend::RenderMode::Opaque, &renderData))
         scenes[n]->render();
   }
   void renderTrans()
@@ -324,6 +335,12 @@ public:
     end_draw_cached_debug_lines();
   }
 
+  // IRandomSeedHolder
+  virtual void setSeed(int new_seed) {}
+  virtual int getSeed() { return 0; }
+  virtual void setPerInstanceSeed(int seed) { instanceSeed = seed; }
+  virtual int getPerInstanceSeed() { return instanceSeed; }
+
 public:
   enum
   {
@@ -334,6 +351,7 @@ public:
   unsigned idx;
   TMatrix tm;
   GeomNodeTree *nodeTree;
+  int instanceSeed = 0;
 };
 
 

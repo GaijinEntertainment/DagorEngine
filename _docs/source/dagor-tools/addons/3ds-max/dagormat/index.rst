@@ -2,7 +2,7 @@
 DagorMat
 =========================================
 
-DagorMat - Shader set for 3ds Max.
+Shader set for 3ds Max.
 
 .. toctree::
    :maxdepth: 2

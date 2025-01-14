@@ -19,4 +19,11 @@ if $(Platform) in windows && ( DX12 in $(UseD3DMultiList) || $(UseD3DMultiList) 
       @$(AgilitySdkDir)/bin/arm64/d3d12SDKLayers.dll  $(AgilitySdkDest)/d3d12SDKLayers.dll
     ;
   }
+
+  local AgsSdkDir = $(_DEVTOOL)/AGS.SDK.$(AgsSdkVer) ;
+  if [ GLOB $(AgsSdkDir) : * ] && $(AgsEnabled) = yes {
+    BundleCopy +=
+      @$(AgsSdkDir)/lib/amd_ags_x64.dll amd_ags_x64.dll
+    ;
+  }
 }

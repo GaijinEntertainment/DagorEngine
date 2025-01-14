@@ -50,6 +50,7 @@ public:
   void prepareCollisions(daphys::SolverBodyInfo &,
     daphys::SolverBodyInfo &,
     bool,
+    float,
     dag::Span<gamephys::CollisionContactData>,
     dag::Span<gamephys::SeqImpulseInfo>) const override{};
   const gamephys::Loc &getVisualStateLoc() const override { return loc; };

@@ -118,12 +118,15 @@ static __forceinline void ri_extra_gen_mark_dynamic_es_event_handler(const ecs::
 
 ECS_TAG(server)
 ECS_ON_EVENT(EventLevelLoaded, EventRIGenExtraRequested)
-static __forceinline void ri_extra_gen_blk_es_event_handler(const ecs::Event &,
+static __forceinline void ri_extra_gen_blk_es_event_handler(const ecs::Event &evt,
   ecs::EntityId eid,
   RiExtraGen &ri_extra_gen,
   const ecs::string &ri_extra_gen__blk,
   const ecs::string *ri_extra_gen__createEntityWhenDone = nullptr)
 {
+  debug("ri_extra_gen: %@ <%@>: on event <%@> (ri_extra_gen.loaded=%@)", (ecs::entity_id_t)eid,
+    g_entity_mgr->getEntityTemplateName(eid), evt.getName(), ri_extra_gen.loaded);
+
   if (ri_extra_gen.loaded)
     return;
 
@@ -131,7 +134,10 @@ static __forceinline void ri_extra_gen_blk_es_event_handler(const ecs::Event &,
   bool res = blk.load(ri_extra_gen__blk.c_str());
   G_ASSERTF(res, "Cannot load %s", ri_extra_gen__blk.c_str());
   if (!res)
+  {
+    logerr("Cannot load %s", ri_extra_gen__blk.c_str());
     return;
+  }
 
   Point2 zonePos(0.f, 0.f);
   float zoneRadiusSq = 0.0f;

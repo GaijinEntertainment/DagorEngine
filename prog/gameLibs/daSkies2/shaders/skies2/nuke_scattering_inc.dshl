@@ -1,0 +1,78 @@
+float4 nuke_light_pos;
+float4 nuke_light_color;
+
+int nuke_in_atmosphere = 0;
+interval nuke_in_atmosphere: off<1, on;
+
+macro INIT_NUKE_FOG_LIGHT(code)
+  (code)
+  {
+    nuke_light_fog_color@f4 = (0.00005*nuke_light_color.x, 0.00005*nuke_light_color.y, 0.00005*nuke_light_color.z, 0.4*nuke_light_color.w);
+    nuke_light_pos@f4 = nuke_light_pos;
+    timePhase@f3 = (time_phase(0, 10) * 0.05, time_phase(0, 20)*0.05, time_phase(0, 5)*0.2);
+  }
+endmacro
+
+macro USE_NUKE_FOG_LIGHT(code)
+  hlsl(code) {
+    float3 get_nuke_fog_step(float3 cur_world_pos, float3 throughput, float3 extinction, float3 sample_transmittance, float3 view)
+    {
+      float lightDist = length(cur_world_pos - nuke_light_pos.xyz);
+      float radFade = pow2(saturate((nuke_light_fog_color.w-lightDist)/nuke_light_fog_color.w));
+
+      // Attempt to add variance to nuke lighting, looks good
+      float3 angs = (normalize(nuke_light_pos.xyz - cur_world_pos) + timePhase) * 2.0f * 3.1415926f;
+      radFade *= max(1.0f + 0.75*cos(3*angs.y) *(sin(2*angs.x) + 0.75*sin(2*angs.z)), 0.0f);
+
+      // we assume that light propagates only in horisontal direction, so light fade is calculated
+      // from current density of fog and distance  (it's not not physical, but very simple)
+      float3 transmitFade = exp(- extinction * lightDist *0.001);
+      transmitFade *= 0.6f + 0.4f*dot(view, normalize(nuke_light_pos.xyz - cur_world_pos));
+      return (1 - sample_transmittance)*nuke_light_fog_color.rgb* radFade * transmitFade * throughput / extinction;
+    }
+  }
+endmacro
+
+
+macro USE_NUKE_FOG_LIGHT_RAYMARCH(code)
+  USE_NUKE_FOG_LIGHT(code)
+
+  hlsl(code) {
+    float3 get_nuke_fog_raymarch(uint sample_count, float r, float3 viewVect, float3 worldPos)
+    {
+      // Ray march the atmosphere to integrate optical depth
+      IrradianceSpectrum L = IrradianceSpectrum(0.0f,0.0f,0.0f);
+      DimensionlessSpectrum throughput = DimensionlessSpectrum(1.0,1.0,1.0);
+
+      float4 prepare_resolution = 0;
+
+      float tMax = 90; // 90 km maximum, BUT needs oprimization
+      float prevD = 0;
+      Number mu = viewVect.y;
+      Direction worldDir = viewVect*1000;
+      float shadow_offset = 0;
+
+      for (uint i = 0; i < sample_count; i++)
+      {
+        float texcoordZ = max(float(i), 0.5)/float(sample_count);
+        Length realD = pow2(texcoordZ)*tMax;
+        Length dt = realD - prevD;
+        Length d = realD;
+
+        Length r_d = ClampRadius(theAtmosphere, SafeSqrt(d * d + 2.0 * r * mu * d + r * r));
+
+        Position curWorldPos = worldPos + (prevD + shadow_offset*dt) * worldDir;
+        prevD = realD;
+        MediumSampleRGB medium = SampleMediumFull(theAtmosphere, r_d-theAtmosphere.bottom_radius, curWorldPos);
+
+        float3 sampleOpticalDepth = medium.extinction * dt;
+        float3 sampleTransmittance = exp(-sampleOpticalDepth);
+
+        L += get_nuke_fog_step(curWorldPos, throughput, medium.extinction, sampleTransmittance, viewVect);
+
+        throughput *=sampleTransmittance;
+      }
+      return L*theAtmosphere.solar_irradiance;
+    }
+  }
+endmacro

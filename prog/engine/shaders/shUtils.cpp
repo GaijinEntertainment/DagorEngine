@@ -113,6 +113,7 @@ const char *shcod_tokname(int t)
     case SHCOD_TMWORLD: return "WTM";
     case SHCOD_MAKE_VEC: return "MAKE_VEC";
     case SHCOD_GLOB_SAMPLER: return "GLOB_SAMPLER";
+    case SHCOD_SAMPLER: return "SAMPLER";
     case SHCOD_TEXTURE: return "TEXTURE";
     case SHCOD_TEXTURE_VS: return "TEXTURE_VS";
     case SHCOD_VPR_CONST: return "VPR_CONST";
@@ -322,6 +323,23 @@ void shcod_dump(dag::ConstSpan<int> cod, const shaderbindump::VarList *globals, 
         int ind = shaderopcode::getOp2p1(cod[i]);
         int ofs = shaderopcode::getOp2p2(cod[i]);
         str.aprintf(128, "ind=%d ofs=%d", ind, ofs);
+      }
+      break;
+      case SHCOD_SAMPLER:
+      {
+        int ro = shaderopcode::getOpStageSlot_Slot(cod[i]);
+        int ofs = shaderopcode::getOpStageSlot_Reg(cod[i]);
+#if DAGOR_DBGLEVEL > 0
+        int v = locals ? resolve_local_var(ofs, stVarMap, *locals) : -1;
+        if (v >= 0)
+        {
+          debug_("%sreg=%d var_ofs=%d  |", str.str(), ro, ofs);
+          shaderbindump::dumpVar(*locals, v);
+          continue;
+        }
+        else
+#endif
+          str.aprintf(128, "reg=%d var_ofs=%d", ro, ofs);
       }
       break;
       case SHCOD_GLOB_SAMPLER:

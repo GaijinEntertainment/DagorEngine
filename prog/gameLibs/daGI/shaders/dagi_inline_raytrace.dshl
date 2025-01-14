@@ -9,6 +9,7 @@ include "csm.dshl"
 int ssgi_total_scene_mark_dipatch = 8192;
 int ssgi_current_frame;
 int inlineRTBindlessRange;
+int dagi_accelerationStructure_const_no = 23;
 
 macro RAY_CAST_INLINE_RT(code)
   RAY_CAST_VOXELS_CASCADE(code)
@@ -29,7 +30,7 @@ macro RAY_CAST_INLINE_RT(code)
 
   GI_DYNAMIC_LIGHT_HELPER(cs)
 
-  SSGI_INIT_VOLMAP_GI_VARS(code)
+  SSGI_INIT_VOLMAP_GI_VARS_RT(code)
   SSGI_JUST_USE_VOLMAP_GI_AMBIENT_VOLMAP(code)
   ENABLE_ASSERT(code)
 
@@ -39,6 +40,9 @@ macro RAY_CAST_INLINE_RT(code)
     ssgi_current_frame@f2 = (ssgi_current_frame * ssgi_total_scene_mark_dipatch, ssgi_total_scene_mark_dipatch,0,0);
     globtm@f44[] = {globtm_psf_0, globtm_psf_1, globtm_psf_2, globtm_psf_3};
     bindlessRange@i1 = (inlineRTBindlessRange);
+    accelerationStructure@tlas : register(dagi_accelerationStructure_const_no) hlsl {
+      RaytracingAccelerationStructure accelerationStructure@tlas;
+    };
   }
 
   hlsl(code) {
@@ -46,7 +50,6 @@ macro RAY_CAST_INLINE_RT(code)
     struct Vertex {
       float4 pos;
     };
-    RaytracingAccelerationStructure accelerationStructure : register(t23);
     BINDLESS_BUF_ARRAY(ByteAddressBuffer, indices, 1);
     BINDLESS_BUF_ARRAY(StructuredBuffer<Vertex>, vertices, 2);
 

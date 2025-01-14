@@ -24,7 +24,7 @@ struct FileTextEdit
 		OnFocusedCallback onFocusedCallback = nullptr,
 		OnShowInFolderViewCallback onShowInFolderViewCallback = nullptr);
 	~FileTextEdit();
-	bool OnImGui(bool windowIsOpen);
+	bool OnImGui(bool windowIsOpen, uint32_t &currentDockId);
 	void SetCursorPosition(int line, int column);
 	void SetSelection(int startLine, int startChar, int endLine, int endChar);
 	void CenterViewAtLine(int line);

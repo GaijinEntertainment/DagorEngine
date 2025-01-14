@@ -77,7 +77,7 @@ public:
   ZstdLoadCB(IGenLoad &in_crd, int in_size, const ZSTD_DDict_s *dict = nullptr, bool tmp = false) { open(in_crd, in_size, dict, tmp); }
   ~ZstdLoadCB() { close(); }
 
-  const char *getTargetName() { return loadCb ? loadCb->getTargetName() : NULL; }
+  const char *getTargetName() override { return loadCb ? loadCb->getTargetName() : NULL; }
 
   KRNLIMP void open(IGenLoad &in_crd, int in_size, const ZSTD_DDict_s *dict = nullptr, bool tmp = false);
   KRNLIMP void close();
@@ -101,22 +101,22 @@ public:
   KRNLIMP void write(const void *ptr, int size) override;
   KRNLIMP void finish();
 
-  virtual int tell()
+  int tell() override
   {
     issueFatal();
     return 0;
   }
-  virtual void seekto(int) { issueFatal(); }
-  virtual void seektoend(int) { issueFatal(); }
-  virtual void beginBlock() { issueFatal(); }
-  virtual void endBlock(unsigned) { issueFatal(); }
-  virtual int getBlockLevel()
+  void seekto(int) override { issueFatal(); }
+  void seektoend(int) override { issueFatal(); }
+  void beginBlock() override { issueFatal(); }
+  void endBlock(unsigned) override { issueFatal(); }
+  int getBlockLevel() override
   {
     issueFatal();
     return 0;
   }
-  virtual const char *getTargetName() { return cwrDest ? cwrDest->getTargetName() : NULL; }
-  virtual void flush();
+  const char *getTargetName() override { return cwrDest ? cwrDest->getTargetName() : NULL; }
+  void flush() override;
 
 protected:
   static constexpr int BUFFER_SIZE = (32 << 10);
@@ -134,6 +134,53 @@ protected:
     wrBufUsed = 0;
   }
 };
+
+
+class ZstdDecompressSaveCB : public IGenSave
+{
+public:
+  explicit KRNLIMP ZstdDecompressSaveCB(IGenSave &dest_cwr, const ZSTD_DDict_s *dict = nullptr, bool tmp = false,
+    bool multiframe = true);
+  ~ZstdDecompressSaveCB();
+
+  KRNLIMP void write(const void *ptr, int size) override;
+  KRNLIMP void finish();
+
+  int tell() override
+  {
+    issueFatal();
+    return 0;
+  }
+  void seekto(int) override { issueFatal(); }
+  void seektoend(int) override { issueFatal(); }
+  void beginBlock() override { issueFatal(); }
+  void endBlock(unsigned) override { issueFatal(); }
+  int getBlockLevel() override
+  {
+    issueFatal();
+    return 0;
+  }
+  const char *getTargetName() override { return cwrDest.getTargetName(); }
+  void flush() override;
+
+private:
+  bool doProcessStep(void *opaqueInBuf);
+
+protected:
+  static constexpr int RD_BUFFER_SIZE = (16 << 10);
+  IGenSave &cwrDest;
+  ZSTD_DCtx_s *zstdStream = nullptr;
+  int processedIn = 0;
+  int processedOut = 0;
+  bool isFrameFinished = true;
+  bool isFinished = false;
+  bool isBroken = false;
+  bool allowMultiFrame = false;
+  alignas(16) char rdBuf[RD_BUFFER_SIZE]; //-V730_NOINIT
+
+  KRNLIMP void issueFatal();
+};
+
 
 // will compress only sz data passed
 // compressed size will be 2-3 bytes bigger, both compression and then decompression speed will be 5-10% faster (zstd 1.4.5)

@@ -57,7 +57,6 @@ eastl::array<dabfg::NodeHandle, 2> makeSceneShadowPassNodes()
     auto volumesHndl =
       registry.createBlob<dynamic_shadow_render::VolumesVector>("scene_shadow_volumes_to_render", dabfg::History::No).handle();
     auto updatesHndl = registry.createBlob<dynamic_shadow_render::FrameUpdates>("scene_shadow_updates", dabfg::History::No).handle();
-    registry.readBlob<OrderingToken>("volfog_token");
 
     return [cameraHndl, volumesHndl, updatesHndl] {
       auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
@@ -173,97 +172,222 @@ dabfg::NodeHandle makePrepareTiledLightsNode()
   });
 }
 
-dabfg::NodeHandle makeVolumetricLightsNode()
+
+eastl::array<dabfg::NodeHandle, 6> makeVolumetricLightsNodes()
 {
-  return dabfg::register_node("volumetric_lights_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
-    registry.orderMeAfter("prepare_lights_node");
-    registry.orderMeBefore("combine_shadows_node");
+  auto bindShaderVarBase = [](auto &&res_request, const char *shader_var_name) {
+    return eastl::move(res_request).texture().atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar(shader_var_name);
+  };
+  auto bindShaderVar = [&bindShaderVarBase](dabfg::Registry registry, const char *res_name, const char *shader_var_name) {
+    return bindShaderVarBase(registry.read(res_name), shader_var_name);
+  };
 
-    auto bindShaderVarBase = [](auto &&res_request, const char *shader_var_name) {
-      return eastl::move(res_request).texture().atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar(shader_var_name);
-    };
-    auto bindShaderVar = [&registry, &bindShaderVarBase](const char *res_name, const char *shader_var_name) {
-      return bindShaderVarBase(registry.read(res_name), shader_var_name);
-    };
+  auto volfog_ff_occlusion_node =
+    dabfg::register_node("volfog_ff_occlusion_node", DABFG_PP_NODE_SRC, [&bindShaderVar](dabfg::Registry registry) {
+      registry.createBlob<OrderingToken>("volfog_ff_occlusion_token", dabfg::History::No);
 
+      bindShaderVar(registry, "far_downsampled_depth", "downsampled_far_depth_tex");
+      registry.read("far_downsampled_depth_sampler")
+        .blob<d3d::SamplerHandle>()
+        .bindToShaderVar("downsampled_far_depth_tex_samplerstate");
 
-    registry.createBlob<OrderingToken>("volfog_token", dabfg::History::No);
+      auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
+      registry.requestState().setFrameBlock("global_frame");
+      return [cameraHndl] {
+        auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
+        const auto &camera = cameraHndl.ref();
 
-    registry.readTexture("checkerboard_depth")
-      .atStage(dabfg::Stage::PS_OR_CS)
-      .bindToShaderVar("downsampled_checkerboard_depth_tex")
-      .optional();
-    registry.read("checkerboard_depth_sampler")
-      .blob<d3d::SamplerHandle>()
-      .bindToShaderVar("downsampled_checkerboard_depth_tex_samplerstate")
-      .optional();
+        float volFogRange =
+          cvt(wr.cameraHeight, wr.volumeLightLowHeight, wr.volumeLightHighHeight, wr.volumeLightLowRange, wr.volumeLightHighRange);
 
-    registry.readTexture("close_depth").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("downsampled_close_depth_tex").optional();
-    registry.read("close_depth_sampler")
-      .blob<d3d::SamplerHandle>()
-      .bindToShaderVar("downsampled_close_depth_tex_samplerstate")
-      .optional();
+        wr.volumeLight->setRange(volFogRange);
 
-    registry.historyFor("far_downsampled_depth")
-      .texture()
-      .atStage(dabfg::Stage::PS_OR_CS)
-      .bindToShaderVar("prev_downsampled_far_depth_tex")
-      .optional();
-    {
-      d3d::SamplerInfo smpInfo;
-      smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
-      smpInfo.filter_mode = d3d::FilterMode::Point;
-      registry.create("volfog_hist_far_downsampled_depth_sampler", dabfg::History::No)
-        .blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo))
-        .bindToShaderVar("prev_downsampled_far_depth_tex_samplerstate")
-        .bindToShaderVar("effects_depth_tex_samplerstate");
-    }
+        if (volfog_force_invalidate)
+        {
+          wr.invalidateVolumeLight();
+          if (volfog_force_invalidate == 1)
+            volfog_force_invalidate = 0;
+        }
 
-    bindShaderVar("far_downsampled_depth", "downsampled_far_depth_tex");
-    registry.read("far_downsampled_depth_sampler")
-      .blob<d3d::SamplerHandle>()
-      .bindToShaderVar("downsampled_far_depth_tex_samplerstate");
+        wr.volumeLight->performStartFrame(camera.viewTm, camera.jitterProjTm, camera.jitterGlobtm, camera.viewItm.getcol(3));
+        wr.volumeLight->performFroxelFogOcclusion();
+      };
+    });
 
-    bindShaderVar("downsampled_shadows", "downsampled_shadows").optional();
-    registry.read("downsampled_shadows_sampler")
-      .blob<d3d::SamplerHandle>()
-      .bindToShaderVar("downsampled_shadows_samplerstate")
-      .optional();
+  auto volfog_ff_fill_media_node = dabfg::register_node("volfog_ff_fill_media_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+    registry.createBlob<OrderingToken>("volfog_ff_media_token", dabfg::History::No);
 
-    bindShaderVar("fom_shadows_sin", "fom_shadows_sin").optional();
-    bindShaderVar("fom_shadows_cos", "fom_shadows_cos").optional();
-    registry.read("fom_shadows_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("fom_shadows_cos_samplerstate").optional();
+    registry.readBlob<OrderingToken>("volfog_ff_occlusion_token");
 
-    auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
-    auto hasDynLightsHndl = registry.readBlob<bool>("has_any_dynamic_lights").handle();
     registry.requestState().setFrameBlock("global_frame");
-    return [cameraHndl, hasDynLightsHndl] {
+    return [] {
       auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
-      const auto &camera = cameraHndl.ref();
 
-      // TODO: refactor everything here
-      float volFogRange =
-        cvt(wr.cameraHeight, wr.volumeLightLowHeight, wr.volumeLightHighHeight, wr.volumeLightLowRange, wr.volumeLightHighRange);
-
-      wr.volumeLight->setRange(volFogRange);
-
-      TIME_D3D_PROFILE(volume_light);
-      if (volfog_force_invalidate)
-      {
-        wr.invalidateVolumeLight();
-        if (volfog_force_invalidate == 1)
-          volfog_force_invalidate = 0;
-      }
-      if (wr.lights.hasClusteredLights() && hasDynLightsHndl.ref())
-        wr.lights.setBuffersToShader();
-
-      if (wr.volumeLight->perform(camera.viewTm, camera.jitterProjTm, camera.jitterGlobtm, camera.viewItm.getcol(3)))
-      {
-        CascadeShadows *csm = wr.shadowsManager.getCascadeShadows();
-        csm->setCascadesToShader();
-        wr.prepareVolumeMedia();
-        wr.volumeLight->performIntegration();
-      }
+      wr.volumeLight->performFroxelFogFillMedia();
+      wr.performVolfogMediaInjection();
     };
   });
+
+  auto volfog_shadow_node = dabfg::register_node("volfog_shadow_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
+    registry.orderMeBefore("combine_shadows_node");
+
+    registry.createBlob<OrderingToken>("volfog_shadow_token", dabfg::History::No);
+
+    registry.readBlob<OrderingToken>("volfog_ff_occlusion_token");
+
+    registry.requestState().setFrameBlock("global_frame");
+    return [] {
+      auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
+
+      wr.volumeLight->performVolfogShadow();
+    };
+  });
+
+  auto volfog_df_raymarch_node =
+    dabfg::register_node("volfog_df_raymarch_node", DABFG_PP_NODE_SRC, [&bindShaderVar](dabfg::Registry registry) {
+      registry.createBlob<OrderingToken>("volfog_df_raymarch_token", dabfg::History::No);
+
+      registry.readBlob<OrderingToken>("volfog_ff_occlusion_token"); // for performStartFrame only, but it's better not to create a
+                                                                     // separate node for that
+
+      registry.readTexture("checkerboard_depth")
+        .atStage(dabfg::Stage::PS_OR_CS)
+        .bindToShaderVar("downsampled_checkerboard_depth_tex")
+        .optional();
+      registry.read("checkerboard_depth_sampler")
+        .blob<d3d::SamplerHandle>()
+        .bindToShaderVar("downsampled_checkerboard_depth_tex_samplerstate")
+        .optional();
+
+      registry.readTexture("close_depth").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("downsampled_close_depth_tex").optional();
+      registry.read("close_depth_sampler")
+        .blob<d3d::SamplerHandle>()
+        .bindToShaderVar("downsampled_close_depth_tex_samplerstate")
+        .optional();
+
+      registry.historyFor("far_downsampled_depth")
+        .texture()
+        .atStage(dabfg::Stage::PS_OR_CS)
+        .bindToShaderVar("prev_downsampled_far_depth_tex")
+        .optional();
+      {
+        d3d::SamplerInfo smpInfo;
+        smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+        smpInfo.filter_mode = d3d::FilterMode::Point;
+        registry.create("volfog_hist_far_downsampled_depth_sampler_1", dabfg::History::No)
+          .blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo))
+          .bindToShaderVar("prev_downsampled_far_depth_tex_samplerstate")
+          .bindToShaderVar("effects_depth_tex_samplerstate");
+      }
+
+      bindShaderVar(registry, "far_downsampled_depth", "downsampled_far_depth_tex");
+      registry.read("far_downsampled_depth_sampler")
+        .blob<d3d::SamplerHandle>()
+        .bindToShaderVar("downsampled_far_depth_tex_samplerstate");
+
+      registry.requestState().setFrameBlock("global_frame");
+      return [] {
+        auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
+
+        wr.volumeLight->performDistantFogRaymarch();
+      };
+    });
+
+  auto volfog_ff_result_node =
+    dabfg::register_node("volfog_ff_result_node", DABFG_PP_NODE_SRC, [&bindShaderVar](dabfg::Registry registry) {
+      registry.orderMeAfter("prepare_lights_node");
+
+      registry.createBlob<OrderingToken>("volfog_ff_result_token", dabfg::History::No);
+
+      registry.readBlob<OrderingToken>("volfog_ff_occlusion_token");
+      registry.readBlob<OrderingToken>("volfog_ff_media_token");
+      registry.readBlob<OrderingToken>("volfog_shadow_token");
+
+      bindShaderVar(registry, "far_downsampled_depth", "downsampled_far_depth_tex");
+      registry.read("far_downsampled_depth_sampler")
+        .blob<d3d::SamplerHandle>()
+        .bindToShaderVar("downsampled_far_depth_tex_samplerstate");
+
+      bindShaderVar(registry, "downsampled_shadows", "downsampled_shadows").optional();
+      registry.read("downsampled_shadows_sampler")
+        .blob<d3d::SamplerHandle>()
+        .bindToShaderVar("downsampled_shadows_samplerstate")
+        .optional();
+
+      bindShaderVar(registry, "fom_shadows_sin", "fom_shadows_sin").optional();
+      bindShaderVar(registry, "fom_shadows_cos", "fom_shadows_cos").optional();
+      registry.read("fom_shadows_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("fom_shadows_cos_samplerstate").optional();
+
+      auto hasDynLightsHndl = registry.readBlob<bool>("has_any_dynamic_lights").handle();
+      registry.requestState().setFrameBlock("global_frame");
+      return [hasDynLightsHndl] {
+        auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
+
+        if (wr.lights.hasClusteredLights() && hasDynLightsHndl.ref())
+          wr.lights.setBuffersToShader();
+
+        CascadeShadows *csm = wr.shadowsManager.getCascadeShadows();
+        csm->setCascadesToShader();
+
+        wr.volumeLight->performFroxelFogPropagate();
+      };
+    });
+
+  auto volfog_df_result_node =
+    dabfg::register_node("volfog_df_result_node", DABFG_PP_NODE_SRC, [&bindShaderVar](dabfg::Registry registry) {
+      registry.createBlob<OrderingToken>("volfog_df_result_token", dabfg::History::No);
+
+      registry.readBlob<OrderingToken>("volfog_df_raymarch_token");
+
+      registry.readTexture("checkerboard_depth")
+        .atStage(dabfg::Stage::PS_OR_CS)
+        .bindToShaderVar("downsampled_checkerboard_depth_tex")
+        .optional();
+      registry.read("checkerboard_depth_sampler")
+        .blob<d3d::SamplerHandle>()
+        .bindToShaderVar("downsampled_checkerboard_depth_tex_samplerstate")
+        .optional();
+
+      registry.readTexture("close_depth").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("downsampled_close_depth_tex").optional();
+      registry.read("close_depth_sampler")
+        .blob<d3d::SamplerHandle>()
+        .bindToShaderVar("downsampled_close_depth_tex_samplerstate")
+        .optional();
+
+      registry.historyFor("far_downsampled_depth")
+        .texture()
+        .atStage(dabfg::Stage::PS_OR_CS)
+        .bindToShaderVar("prev_downsampled_far_depth_tex")
+        .optional();
+      {
+        d3d::SamplerInfo smpInfo;
+        smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+        smpInfo.filter_mode = d3d::FilterMode::Point;
+        registry.create("volfog_hist_far_downsampled_depth_sampler_2", dabfg::History::No)
+          .blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo))
+          .bindToShaderVar("prev_downsampled_far_depth_tex_samplerstate")
+          .bindToShaderVar("effects_depth_tex_samplerstate");
+      }
+
+      bindShaderVar(registry, "far_downsampled_depth", "downsampled_far_depth_tex");
+      registry.read("far_downsampled_depth_sampler")
+        .blob<d3d::SamplerHandle>()
+        .bindToShaderVar("downsampled_far_depth_tex_samplerstate");
+
+      registry.requestState().setFrameBlock("global_frame");
+      return [] {
+        auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
+
+        wr.volumeLight->performDistantFogReconstruct();
+      };
+    });
+
+  return {
+    eastl::move(volfog_ff_occlusion_node),
+    eastl::move(volfog_ff_fill_media_node),
+    eastl::move(volfog_shadow_node),
+    eastl::move(volfog_df_raymarch_node),
+    eastl::move(volfog_ff_result_node),
+    eastl::move(volfog_df_result_node),
+  };
 }

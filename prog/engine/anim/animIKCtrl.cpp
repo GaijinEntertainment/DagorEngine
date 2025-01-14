@@ -120,7 +120,7 @@ void AnimV20::LegsIKCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTre
       if (leg_diff > 0.f)
       {
         float maxDist = rec[i].maxFootUp + 0.15f;
-        float footUpOfs = min(rec[i].maxFootUp, (leg_diff - 0.15f) * 0.9f);
+        float footUpOfs = min(rec[i].maxFootUp, (leg_diff + 0.15f) * 0.9f);
         vec3f tr1 =
           v_madd(vup, v_splats(footUpOfs), v_add(v_mat44_mul_vec3p(animcharTm, v_and(foot_p1, v_cast_vec4f(V_CI_MASK1010))), wofs));
         vec3f tr2 =
@@ -161,7 +161,7 @@ void AnimV20::LegsIKCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTre
       if (traceRes == GIRQR_TraceOK && traces[i * 2].t >= 0)
       {
         float maxDist = rec[i].maxFootUp + 0.15f;
-        float footUpOfs = min(rec[i].maxFootUp, (traces[i * 2].legsDiff - 0.15f) * 0.9f);
+        float footUpOfs = min(rec[i].maxFootUp, (traces[i * 2].legsDiff + 0.15f) * 0.9f);
         float t1 = traces[i * 2 + 0].t;
         float t2 = traces[i * 2 + 1].t;
         trace_h1 = (t1 != maxDist ? t1 : t2) - footUpOfs;

@@ -3,20 +3,23 @@
 #include <3d/tql.h>
 #include <drv/3d/dag_tex3d.h>
 #include <math/dag_adjpow2.h>
+#include <util/dag_delayedAction.h>
+#include <osApiWrappers/dag_miscApi.h>
 
 // #define TRACE debug  // trace resource manager's DDSx loads
 #ifndef TRACE
 #define TRACE(...) ((void)0)
 #endif
 
-bool tql::resizeTexture(BaseTexture *t, unsigned w, unsigned h, unsigned d, unsigned l, unsigned tex_ld_lev)
+BaseTexture *tql::makeResizedTmpTexResCopy(BaseTexture *t, unsigned w, unsigned h, unsigned d, unsigned l, unsigned tex_ld_lev)
 {
   TextureInfo ti;
   t->getinfo(ti, 0);
 
-  unsigned tex_w = ti.w, tex_h = ti.h, tex_d = ti.d, tex_a = ti.a, tex_l = ti.mipLevels, a = 1;
-  unsigned tex_lev = get_log2i(max(max(ti.w, ti.h), ti.d));
-  unsigned start_src_level = tex_ld_lev >= tex_lev ? 0 : tex_lev - tex_ld_lev;
+  const unsigned tex_w = ti.w, tex_h = ti.h, tex_d = ti.d, tex_a = ti.a, tex_l = ti.mipLevels;
+  const unsigned tex_lev = get_log2i(max(max(ti.w, ti.h), ti.d));
+  const unsigned start_src_level = tex_ld_lev >= tex_lev ? 0 : tex_lev - tex_ld_lev;
+  unsigned a = 1;
 
   if (t->restype() == RES3D_CUBETEX)
   {
@@ -29,12 +32,12 @@ bool tql::resizeTexture(BaseTexture *t, unsigned w, unsigned h, unsigned d, unsi
     d = 1;
   }
 
-  G_ASSERTF_RETURN(tex_a == a, false, "restype=%d a=%d tex_a=%d tex=%dx%dx%d,L%d -> %dx%dx%d,L%d", t->restype(), a, tex_a, tex_w,
+  G_ASSERTF_RETURN(tex_a == a, nullptr, "restype=%d a=%d tex_a=%d tex=%dx%dx%d,L%d -> %dx%dx%d,L%d", t->restype(), a, tex_a, tex_w,
     tex_h, max(tex_d, tex_a), tex_l, w, h, max(d, a), l);
 
   if (tex_w == w && tex_h == h && tex_d == d && tex_l == l)
-    return true;
-  if (tex_w >= w && tex_h >= h && tex_d >= d && tex_l >= l)
+    return t;
+  else if (tex_w >= w && tex_h >= h && tex_d >= d && tex_l >= l)
   {
     // resize down
     unsigned lev_ofs = 0;
@@ -45,13 +48,10 @@ bool tql::resizeTexture(BaseTexture *t, unsigned w, unsigned h, unsigned d, unsi
     {
       logerr("can't resize tex=%p(%s) %dx%dx%d,L%d  to %dx%dx%d,L%d", t, t->getTexName(), tex_w, tex_h, max(tex_d, tex_a), tex_l, w, h,
         max(d, a), l);
-      return false;
+      return nullptr;
     }
 
-    if (!t->downSize(w, h, d, l, start_src_level, lev_ofs))
-    {
-      return false;
-    }
+    return t->downSize(w, h, d, l, start_src_level, lev_ofs);
   }
   else
   {
@@ -64,13 +64,11 @@ bool tql::resizeTexture(BaseTexture *t, unsigned w, unsigned h, unsigned d, unsi
     {
       logerr("can't resize tex=%p(%s) %dx%dx%d,L%d  to %dx%dx%d,L%d", t, t->getTexName(), tex_w, tex_h, max(tex_d, tex_a), tex_l, w, h,
         max(d, a), l);
-      return false;
+      return nullptr;
     }
 
-    if (!t->upSize(w, h, d, l, start_src_level, lev_ofs))
-    {
-      return false;
-    }
+    return t->upSize(w, h, d, l, start_src_level, lev_ofs);
   }
-  return true;
+
+  return nullptr;
 }

@@ -54,7 +54,7 @@ class TemporalAA
 public:
   typedef TemporalAAParams Params;
 
-  TemporalAA(const char *shader, const IPoint2 &output_resolution, const IPoint2 &input_resolution, int resolve_tex_fmt,
+  TemporalAA(const char *shader, const IPoint2 &input_resolution, const IPoint2 &output_resolution, int resolve_tex_fmt,
     bool low_quality = false, bool req_dynamic_tex = false, bool hist_fmt_match_resolve = false, const char *name = nullptr);
 
   void loadParamsFromBlk(const DataBlock *blk);

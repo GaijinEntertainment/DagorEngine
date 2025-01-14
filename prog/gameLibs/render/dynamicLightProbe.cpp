@@ -133,7 +133,7 @@ bool DynamicLightProbe::refresh(float total_blend_time)
 void DynamicLightProbe::invalidate() { valid = 0; }
 
 
-void DynamicLightProbe::update(float dt, IRenderLightProbeFace *cb, bool cockpit, const TMatrix4 &cockpitTm)
+void DynamicLightProbe::update(float dt, IRenderLightProbeFace *cb, bool cockpit, const TMatrix4 &cockpitTm, bool force_flush)
 {
   if (!probe[0])
     return;
@@ -333,6 +333,8 @@ void DynamicLightProbe::update(float dt, IRenderLightProbeFace *cb, bool cockpit
   else
   {
     TIME_D3D_PROFILE(update_face);
+    if (force_flush)
+      d3d::driver_command(Drv3dCommand::FLUSH_STATES);
     if (mode == Mode::Separated)
     {
       if (cockpit)
@@ -354,6 +356,8 @@ void DynamicLightProbe::update(float dt, IRenderLightProbeFace *cb, bool cockpit
       CubeTexture *target = light_probe::getManagedTex(probe[1 - currentProbeId])->getCubeTex();
       cb->renderLightProbeFace(target, cubeIndex, state, IRenderLightProbeFace::Element::All, TMatrix4::IDENT);
     }
+    if (force_flush)
+      d3d::driver_command(Drv3dCommand::FLUSH_STATES);
     state++;
   }
   d3d::set_render_target(prevRt);

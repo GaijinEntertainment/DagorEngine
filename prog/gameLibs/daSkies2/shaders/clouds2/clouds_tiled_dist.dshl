@@ -1,4 +1,4 @@
-float4 clouds_tiled_res;
+int4 clouds_tiled_res;
 texture clouds_tile_distance;
 
 int clouds_use_fullres = 0;

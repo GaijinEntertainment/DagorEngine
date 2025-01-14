@@ -11,8 +11,11 @@ macro PROJECT_WORLD_SDF(code)
   hlsl(code) {
     float get_project_world_sdf(float3 worldPos, float maxDist) {
       ##if tex_hmap_low != NULL
-      float height = decode_height(getHeightLowLod(calcTcLow(worldPos.xz), 0));
-      return max(worldPos.y-height, -0.99*maxDist);
+      float2 tc = saturate(calcTcLow(worldPos.xz));
+      float2 worldPosXZClamped = hmapTcToWorldXZ(tc);
+      float distToHmap = length(worldPosXZClamped - worldPos.xz);
+      float height = decode_height(getHeightLowLod(tc, 0));
+      return distToHmap + max(worldPos.y-height, -0.99*maxDist);
       ##else
       return 1e3;
       ##endif

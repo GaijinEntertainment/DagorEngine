@@ -907,6 +907,7 @@ public:
   real placement_threshold;
   bool use_hmap;
   bool use_depth_above;
+  bool use_water;
   real align_normals_offset;
 
 
@@ -915,12 +916,13 @@ public:
   void load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION(ptr, len, 2);
+    CHECK_FX_VERSION(ptr, len, 3);
 
     enabled = readType<int>(ptr, len);
     placement_threshold = readType<real>(ptr, len);
     use_hmap = readType<int>(ptr, len);
     use_depth_above = readType<int>(ptr, len);
+    use_water = readType<int>(ptr, len);
     align_normals_offset = readType<real>(ptr, len);
   }
 };

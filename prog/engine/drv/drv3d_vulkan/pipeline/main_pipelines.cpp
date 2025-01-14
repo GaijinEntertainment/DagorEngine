@@ -8,6 +8,7 @@
 #include "execution_context.h"
 #include "physical_device_set.h"
 #include "backend.h"
+#include "wrapped_command_buffer.h"
 
 using namespace drv3d_vulkan;
 
@@ -74,14 +75,14 @@ ComputePipeline::ComputePipeline(VulkanDevice &, ProgramID prog, VulkanPipelineC
     compile();
 }
 
-void ComputePipeline::bind(VulkanDevice &vk_dev, VulkanCommandBufferHandle cmd_buffer)
+VulkanPipelineHandle ComputePipeline::getHandleForUse()
 {
   if (!checkCompiled())
     Backend::pipelineCompiler.waitFor(this);
 #if VULKAN_LOG_PIPELINE_ACTIVITY > 1
   debug("vulkan: bind compute cs %s", debugInfo.cs().name);
 #endif
-  VULKAN_LOG_CALL(vk_dev.vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, getHandle()));
+  return getHandle();
 }
 
 void ComputePipeline::compile()
@@ -151,11 +152,14 @@ void ComputePipeline::compile()
   if (compileScratch->allocated)
   {
     delete compileScratch;
+    compileScratch = nullptr; // must do writes before setting pipeline as compiled
     setCompiledHandle(retHandle);
   }
   else
+  {
     setHandle(retHandle);
-  compileScratch = nullptr;
+    compileScratch = nullptr;
+  }
 }
 
 bool ComputePipeline::pendingCompilation() { return !checkCompiled(); }
@@ -536,11 +540,6 @@ GraphicsPipeline::GraphicsPipeline(VulkanDevice &device, VulkanPipelineCacheHand
   csd.parentPipe = info.parentPipeline;
 }
 
-void GraphicsPipeline::bind(VulkanDevice &vk_dev, VulkanCommandBufferHandle cmd_buffer) const
-{
-  VULKAN_LOG_CALL(vk_dev.vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, getHandle()));
-}
-
 void GraphicsPipeline::compile()
 {
   int64_t compilationTime = 0;
@@ -599,14 +598,15 @@ void GraphicsPipeline::compile()
   if (compileScratch->allocated)
   {
     delete compileScratch;
+    compileScratch = nullptr; // must do writes before setting pipeline as compiled
     setCompiledHandle(retHandle);
   }
   else
   {
     setCompiledHandle(retHandle);
     setHandle(retHandle);
+    compileScratch = nullptr;
   }
-  compileScratch = nullptr;
 }
 
 VulkanPipelineHandle GraphicsPipeline::createPipelineObject(CreationFeedback &cr_feedback)

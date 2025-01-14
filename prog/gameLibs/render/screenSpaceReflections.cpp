@@ -18,6 +18,7 @@
 
 #define GLOBAL_VARS_LIST            \
   VAR(ssr_target)                   \
+  VAR(ssr_target_samplerstate)      \
   VAR(ssr_prev_target)              \
   VAR(ssr_prev_target_samplerstate) \
   VAR(ssr_target_size)              \
@@ -103,6 +104,12 @@ ScreenSpaceReflections::ScreenSpaceReflections(const int ssr_w, const int ssr_h,
       smpInfo.filter_mode = d3d::FilterMode::Point;
     ShaderGlobal::set_sampler(ssr_prev_target_samplerstateVarId, d3d::request_sampler(smpInfo));
   }
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+    ShaderGlobal::set_sampler(ssr_target_samplerstateVarId, d3d::request_sampler(smpInfo));
+  }
+  updateSamplers();
 }
 
 ScreenSpaceReflections::~ScreenSpaceReflections()
@@ -206,7 +213,6 @@ void ScreenSpaceReflections::render(const TMatrix &view_tm, const TMatrix4 &proj
     // is rendered in target_tex. It is happended where there is no separate previous frame texture
     d3d::resource_barrier({target_tex.getTex2D(), RB_RO_COPY_SOURCE, 0, 1});
     ssr_tex.getTex2D()->updateSubRegion(target_tex.getTex2D(), 0, 0, 0, 0, ssrW, ssrH, 1, 0, 0, 0, 0);
-    ssr_tex.getTex2D()->texaddr(TEXADDR_BORDER);
   }
 
   d3d::resource_barrier({ssr_tex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 1});
@@ -249,6 +255,7 @@ void ScreenSpaceReflections::enablePrevTarget(int num_views)
     return;
 
   hasPrevTarget = true;
+  updateSamplers();
 
   uint32_t flags = TEXCF_SRGBREAD | TEXCF_SRGBWRITE;
   if (ssrflags & TEXFMT_A16B16G16R16F)
@@ -270,6 +277,7 @@ void ScreenSpaceReflections::disablePrevTarget()
   if (!hasPrevTarget)
     return;
   hasPrevTarget = false;
+  updateSamplers();
 
   ssrPrevTarget.forEach([](auto &t) { t.close(); });
 }
@@ -278,4 +286,14 @@ void ScreenSpaceReflections::changeDynamicResolution(int new_width, int new_heig
 {
   ssrW = new_width;
   ssrH = new_height;
+}
+
+void ScreenSpaceReflections::updateSamplers() const
+{
+  d3d::SamplerInfo smpInfo;
+  if (!hasPrevTarget && ownTextures)
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Border;
+  else
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+  ShaderGlobal::set_sampler(ssr_target_samplerstateVarId, d3d::request_sampler(smpInfo));
 }

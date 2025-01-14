@@ -37,6 +37,7 @@
 namespace
 {
 uint64_t lastGpuTimeStamp = 0;
+Tab<drv3d_vulkan::PipelineManager::AsyncMask> asyncCompileStack;
 } // namespace
 
 using namespace drv3d_vulkan;
@@ -111,14 +112,29 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
 
       break;
     }
-    case Drv3dCommand::SET_PIPELINE_COMPILATION_TIME_BUDGET:
+    case Drv3dCommand::ASYNC_PIPELINE_COMPILE_RANGE_BEGIN:
     {
+      VERIFY_GLOBAL_LOCK_ACQUIRED();
+
       PipelineManager::AsyncMask mask = PipelineManager::ASYNC_MASK_NONE;
       if (par1 == nullptr)
         mask = par2 == nullptr ? PipelineManager::ASYNC_MASK_ALL : PipelineManager::ASYNC_MASK_RENDER;
+
       CmdPipelineCompilationTimeBudget cmd{mask};
       Globals::ctx.dispatchCommand(cmd);
-      break;
+      asyncCompileStack.push_back(mask);
+      return 1;
+    }
+    case Drv3dCommand::ASYNC_PIPELINE_COMPILE_RANGE_END:
+    {
+      VERIFY_GLOBAL_LOCK_ACQUIRED();
+
+      asyncCompileStack.pop_back();
+      PipelineManager::AsyncMask mask = asyncCompileStack.size() ? asyncCompileStack.back() : PipelineManager::ASYNC_MASK_NONE;
+
+      CmdPipelineCompilationTimeBudget cmd{mask};
+      Globals::ctx.dispatchCommand(cmd);
+      return 1;
     }
     case Drv3dCommand::GET_PIPELINE_COMPILATION_QUEUE_LENGTH:
       if (par1)
@@ -422,10 +438,10 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
           heapOffset = img->getMemory().offset;
         }
 
-        dumpInfo.emplace_back(resource_dump_types::ResourceType::Texture, tex->getResName(), tex->ressize(), type, tex->width,
-          tex->height, (tex->resType == RES3D_VOLTEX || tex->resType == RES3D_CUBEARRTEX) ? tex->depth : -1,
-          (tex->resType == RES3D_TEX || tex->resType == RES3D_VOLTEX) ? -1 : (img ? img->getArrayLayers() : -1), tex->level_count(),
-          tex->getFormat().asTexFlags(), color, tex->cflg, -1, heapID, heapOffset);
+        dumpInfo.emplace_back(ResourceDumpTexture({(uint64_t)-1, heapID, heapOffset, tex->width, tex->height, tex->level_count(),
+          (tex->resType == RES3D_VOLTEX || tex->resType == RES3D_CUBEARRTEX) ? tex->depth : -1,
+          (tex->resType == RES3D_TEX || tex->resType == RES3D_VOLTEX) ? -1 : (img ? img->getArrayLayers() : -1), tex->ressize(),
+          tex->cflg, tex->getFormat().asTexFlags(), type, color, tex->getResName(), ""}));
       });
 
       // Buffers
@@ -454,17 +470,18 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
           heapID = (uint64_t)bufferPtr->getMemoryId();
           heapOffset = bufferPtr->getMemory().offset;
         }
-        dumpInfo.emplace_back(resource_dump_types::ResourceType::Buffer, buff->getResName(), buff->ressize(), -1, buff->getFlags(), -1,
-          bufferPtr ? (int)bufferPtr->getCurrentDiscardOffset() : -1, bufferPtr ? (int)bufferPtr->getDiscardBlocks() : -1, -1, -1,
-          cpuAddress, gpuAddress, heapID, heapOffset);
+
+        dumpInfo.emplace_back(ResourceDumpBuffer({gpuAddress, heapID, heapOffset, (uint64_t)-1, cpuAddress, buff->ressize(), -1,
+          buff->getFlags(), -1, bufferPtr ? (int)bufferPtr->getCurrentDiscardOffset() : -1,
+          bufferPtr ? (int)bufferPtr->getDiscardBlocks() : -1, -1, buff->getResName(), ""}));
       });
 
       // Ray Acceleration Structures
 #if D3D_HAS_RAY_TRACING
 
       Globals::Mem::res.iterateAllocated<RaytraceAccelerationStructure>([&](RaytraceAccelerationStructure *rayAS) {
-        dumpInfo.emplace_back(resource_dump_types::ResourceType::RtAccel, rayAS->getDescription().size, -1,
-          rayAS->getDescription().isTopLevel);
+        dumpInfo.emplace_back(ResourceDumpRayTrace(
+          {(uint64_t)-1, (uint64_t)-1, (uint64_t)-1, (int)rayAS->getDescription().size, rayAS->getDescription().isTopLevel, true}));
       });
 #endif
       return 1;

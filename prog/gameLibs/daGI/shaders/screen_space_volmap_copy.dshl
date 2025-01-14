@@ -15,6 +15,10 @@ float4 ssgi_copy_indices;
 buffer frustum_visible_ambient_voxels;
 buffer gi_ambient_cube;
 
+int ssgi_copy_to_volmap_cs_gi_ambient_volmap_uav_no = 6;
+int ssgi_copy_to_volmap_cs_ssgi_ambient_volmap_temporal_uav_no = 7;
+int ssgi_copy_from_volmap_cs_voxelColors_uav_no = 6;
+
 shader ssgi_copy_to_volmap_cs, ssgi_copy_from_volmap_cs
 {
   ENABLE_ASSERT(cs)
@@ -32,6 +36,9 @@ shader ssgi_copy_to_volmap_cs, ssgi_copy_from_volmap_cs
     (cs) {
       gi_ambient_volmap@smp3d = gi_ambient_volmap;
       ssgi_ambient_volmap_temporal@smp3d = ssgi_ambient_volmap_temporal;
+      voxelColors@uav : register(ssgi_copy_from_volmap_cs_voxelColors_uav_no) hlsl {
+        RWStructuredBuffer<uint> voxelColors@uav;
+      };
     }
   }
   else
@@ -46,17 +53,17 @@ shader ssgi_copy_to_volmap_cs, ssgi_copy_from_volmap_cs
         #include <dagi_envi_cube_consts.hlsli>
         StructuredBuffer<AmbientCube> gi_ambient_cube@buf;
       }
+      gi_ambient_volmap@uav : register(ssgi_copy_to_volmap_cs_gi_ambient_volmap_uav_no) hlsl {
+        RWTexture3D<float3> gi_ambient_volmap@uav;
+      };
+      ssgi_ambient_volmap_temporal@uav : register(ssgi_copy_to_volmap_cs_ssgi_ambient_volmap_temporal_uav_no) hlsl {
+        RWTexture3D<float> ssgi_ambient_volmap_temporal@uav;
+      };
     }
   }
 
   hlsl(cs) {
     #include <pixelPacking/PixelPacking_R11G11B10.hlsl>
-    ##if (shader == ssgi_copy_to_volmap_cs)
-      RWTexture3D<float3>  gi_ambient_volmap : register(u6);
-      RWTexture3D<float>   ssgi_ambient_volmap_temporal : register(u7);
-    ##else
-      RWStructuredBuffer<uint> voxelColors: register(u6);
-    ##endif
 
     void ssgi_filter_normal_trilinear(inout float3 tcFrac, float3 normal, float minNormalW)
     {

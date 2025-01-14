@@ -144,6 +144,8 @@ struct Context
   dag::RelocatableFixedVector<AsyncCpuComputeJob, 10> asyncCpuComputeJobs;
   dag::RelocatableFixedVector<AsyncCpuCullJob, 10> asyncCpuCullJobs;
 
+  dag::Vector<bool> activeQueryContainer;
+
   volatile int asyncCounter = -1;
 
   unsigned int currentFrame = 0;

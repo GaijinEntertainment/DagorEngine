@@ -330,7 +330,7 @@ void TreesAboveDepth::invalidateTrees2d(const BBox3 &box, const TMatrix &tm)
   bbox3f bbox;
   v_bbox3_init(bbox, mat, v_ldu_bbox3(box));
   BBox2 box2;
-  v_st(box2, v_perm_xzac(bbox.bmin, bbox.bmax));
+  v_stu(&box2.lim[0].x, v_perm_xzac(bbox.bmin, bbox.bmax));
 
   const float fullDistance = 2 * trees2dDist;
   const float texelSize = (fullDistance / trees2dHelper.texSize);

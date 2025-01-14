@@ -10,7 +10,10 @@ macro PROJECT_BASE_HEIGHTMAP(code)
     bool dagi_project_get_base_heightmap(float3 worldPos, inout float world_height, float dist_of_interest)
     {
       #if PROJECT_DAGI_USE_HMAP
-      world_height = decode_height(getHeightLowLod(calcTcLow(worldPos.xz), 0));
+      float2 tc = calcTcLow(worldPos.xz);
+      if (any(abs(tc*2 - 1) > 1))
+        return false;
+      world_height = decode_height(getHeightLowLod(tc, 0));
       return true;
       #else
       return false;

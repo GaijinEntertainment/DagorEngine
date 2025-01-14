@@ -541,11 +541,14 @@ shader rendinst_clipmap, rendinst_landclass
         return tessFactor;
       }
 
-      float calc_tess_factor(inout HsPatchData patch, OutputPatch<HsControlPoint, 3> controlPoints, uint tid)
+      float calc_tess_factor(const HsPatchData patch, OutputPatch<HsControlPoint, 3> controlPoints, uint tid)
       {
         int next = (1U << tid) & 3; // (tid + 1) % 3
         next = (1U << next) & 3;
-        return max(1, min(edgeLod(controlPoints[tid].pos1, controlPoints[next].pos1), get_max_tessellation_factor()));
+        return max(1, min(edgeLod(
+          get_absolute_control_point_position(controlPoints, tid),
+          get_absolute_control_point_position(controlPoints, next)),
+          get_max_tessellation_factor()));
       }
 
       void proxy_struct_fields(HsInput input, inout HsControlPoint output)
@@ -625,6 +628,6 @@ shader rendinst_clipmap, rendinst_landclass
       }
     }
 
-    USE_PN_TRIANGULATION(camera_base_offset, get_min_displacement_distance(), get_max_dispacement_distance(), get_tessellation_transition_distance())
+    USE_PN_TRIANGULATION(camera_base_offset, get_min_displacement_distance(), get_max_dispacement_distance(), get_tessellation_transition_distance(), rendinst_render_pass == rendinst_render_pass_to_shadow, true)
   }
 }

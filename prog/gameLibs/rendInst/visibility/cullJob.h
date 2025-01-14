@@ -83,13 +83,21 @@ public:
           G_UNUSED(ni);
           const scene::pool_index poolId = scene::get_node_pool(m);
           const auto &riPool = poolInfo[poolId];
-          float dist = v_extract_x(distSqScaled);
+
+          float poolRad = tiled_scene.getPoolSphereRad(poolId);
+          float poolRad2 = poolRad * poolRad;
+          float rad = scene::get_node_bsphere_rad(m);
+          float rad2 = rad * rad;
+          float sdist = v_extract_x(distSqScaled) / rad2;
+          float distSqScaledNormalized = sdist * poolRad2; // = distSqScaled * (poolRad / rad)^2. Estimation of distSq where a
+                                                           // non-scaled object of the pool has the same screensize as the node.
+
           const unsigned llm = riPool.lodLimits >> ((ri_game_render_mode + 1) * 8);
           const unsigned min_lod = llm & 0xF, max_lod = (llm >> 4) & 0xF;
-          if (riPool.distSqLOD[max_lod] <= dist * rendinst::render::riExtraLodsShiftDistMulForCulling)
+          if (riPool.distSqLOD[max_lod] <= distSqScaledNormalized * rendinst::render::riExtraLodsShiftDistMulForCulling)
             return;
 
-          unsigned lod = find_lod<rendinst::RiExtraPool::MAX_LODS>(riPool.distSqLOD, dist);
+          unsigned lod = find_lod<rendinst::RiExtraPool::MAX_LODS>(riPool.distSqLOD, distSqScaledNormalized);
           lod = clamp(lod, min_lod, max_lod);
           int cnt_idx = poolId * rendinst::RiExtraPool::MAX_LODS + lod;
           int new_sz = riexDataCnt[cnt_idx].fetch_add(RIEXTRA_VECS_COUNT) + RIEXTRA_VECS_COUNT;
@@ -100,16 +108,15 @@ public:
             return;
           }
 
-          vec4f rad = scene::get_node_bsphere_vrad(m);
-          float floatRad = v_extract_w(rad);
-          if (floatRad > texStreamingLargeRiRad && dist > 0)
+          if (rad > texStreamingLargeRiRad && distSqScaledNormalized > 0)
           {
-            float texLevelDist = max(0.0f, sqrt(dist) - floatRad);
-            dist = texLevelDist * texLevelDist;
+            float texLevelDist = max(0.0f, sqrt(distSqScaledNormalized) - poolRad); // = (sqrt(distSqScaled) - rad) * (poolRad / rad)
+            distSqScaledNormalized = texLevelDist * texLevelDist;
           }
           const uint32_t curDistSq = interlocked_relaxed_load(*(const uint32_t *)(v.minSqDistances[lod].data() + poolId));
-          const uint32_t distI = bitwise_cast<uint32_t>(dist); // since squared distance is positive, it is fine to compare in ints
-                                                               // (bitwise representation of floats will still be in same order)
+          const uint32_t distI = bitwise_cast<uint32_t>(distSqScaledNormalized); // since squared distance is positive, it is fine to
+                                                                                 // compare in ints (bitwise representation of floats
+                                                                                 // will still be in same order)
           if (distI < curDistSq)
           {
             // while we could make CAS min (in loop), or parallel sum (different arrays per thread), it is not important distance, and
@@ -120,8 +127,6 @@ public:
           rendinst::render::write_ri_extra_per_instance_data(addData, tiled_scene, poolId, ni, m, riPool.isDynamic);
 
           const uint32_t id = new_sz / RIEXTRA_VECS_COUNT - 1;
-          rad = v_div_x(distSqScaled, v_mul_x(rad, rad));
-          float sdist = v_extract_x(rad);
           if (sortLarge && lod < LARGE_LOD_CNT && (scene::check_node_flags(m, RendinstTiledScene::LARGE_OCCLUDER)))
           {
             cnt_idx = poolId * LARGE_LOD_CNT + lod;

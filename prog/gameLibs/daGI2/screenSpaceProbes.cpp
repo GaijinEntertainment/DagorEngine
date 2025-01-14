@@ -530,8 +530,9 @@ void ScreenSpaceProbes::calc_probe_radiance(float quality, bool angle_filtering)
 
   {
     TIME_D3D_PROFILE(spatial);
-    for (int i = 1, ie = sp_spatial_filter_passes; i < ie; ++i)
+    for (int i = 0, ie = sp_spatial_filter_passes - 1; i < ie; ++i)
     {
+      ShaderGlobal::set_int4(sp_placement_iterationVarId, i, ie, 1 << (ie - 1 - i), i == ie - 1);
       ShaderGlobal::set_texture(screenprobes_current_radianceVarId, screenspaceRadiance[radianceFrame].getTexId());
       radianceFrame = 1 - radianceFrame;
       filter_probe_radiance(*filter_screenspace_radiance_cs, screenspaceRadiance[radianceFrame].getTex2D());
@@ -633,7 +634,7 @@ void ScreenSpaceProbes::calcProbesPlacement(const DPoint3 &world_pos, const TMat
   setCurrentScreenRes(next);
   setPrevScreenRes(prev);
   uint32_t prob64k = clamp(65536.f * currentTemporality, 0.f, 65536.f);
-  ShaderGlobal::set_int4(screenspace_probes_temporalVarId, validHistory ? 1 : 0, frame, validHistory ? prob64k : 65536, 0);
+  ShaderGlobal::set_int4(screenspace_probes_temporalVarId, validHistory ? 1 : 0, frame, validHistory ? prob64k : 65536, frame % 8);
   auto cFrameInfo = get_frame_info(world_pos, viewItm, proj, zn, zf);
   set_prev_frame_info(cFrameInfo, prevFrameInfo);
   set_frame_info(cFrameInfo);

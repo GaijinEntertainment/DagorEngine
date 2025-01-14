@@ -8,11 +8,15 @@
 #include <3d/ddsxTex.h>
 #include <DXGIFormat.h>
 #include "generic/dag_tabExt.h"
+#include <EASTL/variant.h>
 
 #define MAX_STAT_NAME 64
 #define MAX_MIPLEVELS 16
 
-struct ResourceDumpInfo;
+struct ResourceDumpTexture;
+struct ResourceDumpBuffer;
+struct ResourceDumpRayTrace;
+typedef eastl::variant<ResourceDumpTexture, ResourceDumpBuffer, ResourceDumpRayTrace> ResourceDumpInfo;
 
 namespace ddsx
 {

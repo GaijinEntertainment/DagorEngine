@@ -243,10 +243,6 @@ static bool fill_ddsx_hdr(ddsx::Header &hdr, int cflg, int w, int h, int d, int 
       hdr.bitsPerPixel = 8;
       hdr.d3dFormat = D3DFMT_L8;
       break;
-    case TEXFMT_A8L8:
-      hdr.bitsPerPixel = 16;
-      hdr.d3dFormat = D3DFMT_A8L8;
-      break;
     case TEXFMT_G16R16F:
       hdr.bitsPerPixel = 32;
       hdr.d3dFormat = D3DFMT_G16R16F;

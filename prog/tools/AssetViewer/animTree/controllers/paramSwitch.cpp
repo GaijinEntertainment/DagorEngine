@@ -66,19 +66,23 @@ const char *param_switch_get_child_name_by_idx(const DataBlock &settings, int id
 String param_switch_get_child_prefix_name(const DataBlock &settings, int idx)
 {
   const DataBlock *nodes = settings.getBlockByNameEx("nodes");
-  return String(0, "%s: ", nodes->getBlock(idx)->getBlockName());
+  return String(0, "[%s] ", nodes->getBlock(idx)->getBlockName());
 }
 
 static void fill_param_switch_enum_list(PropPanel::ContainerPropertyControl *panel, const DataBlock *nodes)
 {
   Tab<String> nodeNames;
   const int defBlockIdx = 0;
-  const DataBlock *defBlock = nodes->getBlock(defBlockIdx);
+  const DataBlock *defBlock = nullptr;
   for (int i = 0; i < nodes->blockCount(); ++i)
   {
     const DataBlock *settings = nodes->getBlock(i);
     if (settings->paramExists("name"))
+    {
       nodeNames.emplace_back(settings->getBlockName());
+      if (!defBlock)
+        defBlock = settings;
+    }
   }
   panel->createList(PID_CTRLS_NODES_LIST, "Nodes", nodeNames, defBlockIdx);
   panel->createButton(PID_CTRLS_NODES_LIST_ADD, "Add");

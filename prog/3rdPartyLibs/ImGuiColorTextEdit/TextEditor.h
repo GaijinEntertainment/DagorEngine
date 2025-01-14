@@ -10,6 +10,7 @@
 #include <EASTL/set.h>
 #include <EASTL/unordered_map.h>
 #include <imgui.h>
+#include "TextEditorFuzzer.h"
 
 class IMGUI_API TextEditor
 {
@@ -184,10 +185,10 @@ private:
 		Coordinates() : mLine(0), mColumn(0) {}
 		Coordinates(int aLine, int aColumn) : mLine(aLine), mColumn(aColumn)
 		{
-			EASTL_ASSERT(aLine >= 0);
-			EASTL_ASSERT(aColumn >= 0);
+			EASTL_ASSERT(aLine >= 0 || aLine == INT_MIN);
+			EASTL_ASSERT(aColumn >= 0 || aColumn == INT_MIN);
 		}
-		static Coordinates Invalid() { static Coordinates invalid(-1, -1); return invalid; }
+		static Coordinates Invalid() { static Coordinates invalid(INT_MIN, INT_MIN); return invalid; }
 
 		bool operator ==(const Coordinates& o) const
 		{
@@ -299,6 +300,9 @@ private:
 	};
 
 	bool RequireIndentationAfterNewLine(const eastl::string &line) const;
+	char RequiredCloseChar(char charBefore, char openChar, char charAfter);
+	void CancelCloseChars() { closeCharCoords = Coordinates::Invalid(); }
+	Coordinates closeCharCoords = Coordinates::Invalid();
 
 	enum class UndoOperationType { Add, Delete };
 	struct UndoOperation
@@ -477,6 +481,10 @@ private:
 
 	eastl::string mLineBuffer;
 	eastl::string tabString;
+
+#if ENABLE_EDITOR_FUZZING
+	TextEditorFuzzer fuzzer;
+#endif
 
 	inline bool IsHorizontalScrollbarVisible() const { return mCurrentSpaceWidth > mContentWidth; }
 	inline bool IsVerticalScrollbarVisible() const { return mCurrentSpaceHeight > mContentHeight; }

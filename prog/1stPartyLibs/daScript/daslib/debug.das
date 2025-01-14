@@ -124,7 +124,7 @@ def private resolve_path_cache(path: string; paths: array<string>; aliases: tabl
     if cache |> key_exists(path)
         return cache?[path] ?? ""
     let absPath = resolve_path(path, paths, aliases)
-    cache[path] = absPath
+    cache |> insert(path,absPath)
     return absPath
 
 def private bytes_hr(value : uint64)
@@ -760,7 +760,7 @@ class private DAgent: DapiDebugAgent
 
         pathAliases |> clear()
         for k, v in keys(aliases), values(aliases)
-            pathAliases[k] = v
+            pathAliases |> insert(k,v)
 
     def override onUninstall(agent:DebugAgent?)
         if agent == thisAgent
@@ -784,13 +784,13 @@ class private DAgent: DapiDebugAgent
 
         if withInstruments
             for c in contexts
-                if !c.ctx.category.debug_context && !ctx.ctx.category.debugger_tick
+                if !c.ctx.category.debug_context && !ctx.ctx.category.debugger_tick && !ctx.ctx.category.dead
                     *c.ctx |> set_single_step(true)
 
     def reqResume(var exclude: DAContext)
         if withInstruments
             for ctx in contexts
-                if ctx.id != exclude.id && !ctx.ctx.category.debug_context
+                if ctx.id != exclude.id && !ctx.ctx.category.debug_context && !ctx.ctx.category.dead
                     *ctx.ctx |> set_single_step(false)
 
     def onBreakpointsChanged(ini: SetBreakpointsArguments): SetBreakpointsResponse
@@ -821,7 +821,7 @@ class private DAgent: DapiDebugAgent
             resBr.message = "{path}: instrumentation wasn't initined"
 
         for ctx in contexts
-            if ctx.ctx.category.debug_context || ctx.ctx.category.debugger_tick
+            if ctx.ctx.category.debug_context || ctx.ctx.category.debugger_tick || ctx.ctx.category.dead
                 continue
             *ctx.ctx |> clear_instruments()
             *ctx.ctx |> instrument_node(true) <| $(ati)
@@ -1091,9 +1091,7 @@ class private DAgent: DapiDebugAgent
         for fileBr, brs in keys(breakpoints), values(breakpoints)
             let baseName = fileBr |> base_name()
             for br in brs
-                let wasVerified = br.prevState == DABreakpointState Instrumented
-                let isVerified = br.state == DABreakpointState Instrumented
-                if wasVerified != isVerified
+                if br.prevState != br.state
                     server->sendEvent("breakpoint", JV([[BreakpointEvent
                         reason="changed",
                         breakpoint=[[Breakpoint
@@ -1336,7 +1334,7 @@ class private DAServer: Server
                 let aliasesList & = unsafe(aliases as _object)
                 for k, v in keys(aliasesList), values(aliasesList)
                     if v is _string
-                        pathAliases[k] = v as _string
+                        pathAliases |> insert(k, v as _string)
         agent->setPaths(resPaths, pathAliases)
 
     def setDebuggerSettings(data: JsonValue?)
@@ -1674,7 +1672,7 @@ class private DAServer: Server
                         ctxData.stack[frame] |> iter_top_child_var() <| $(child)
                             if child.typeInfo != null
                                 let tInfo & = unsafe(*child.typeInfo)
-                                vars[child.name] <- [[Result tinfo=tInfo, value=child.rawValue, data=unsafe(reinterpret<void?>child.address)]]
+                                vars |> emplace(child.name, [[Result tinfo=tInfo, value=child.rawValue, data=unsafe(reinterpret<void?>child.address)]])
                         --frame
 
                     var result = debug_eval(vars, ini.expression)
@@ -1798,7 +1796,6 @@ def wait_for_debugger() : bool
         sleep(10u)
     return true
 
-[unused_argument(ctx)]
 def private start_debug_agent(var ctx: Context)
     g```dAgent = new DAgent()
     g```dAgent->initAgent(ctx)
@@ -1841,12 +1838,12 @@ def private auto_start_debug()
 
 def private use_instruments() // or stepping debugger
     let args <- get_command_line_arguments()
-    return args |> find_index("--das-stepping-debugger") < 0
+    return args |> has_value("--das-stepping-debugger")
 
 
 def private wait_debugger(): bool
     let args <- get_command_line_arguments()
-    return args |> find_index("--das-wait-debugger") >= 0
+    return args |> has_value("--das-wait-debugger")
 
 
 def private loads_itself(): bool

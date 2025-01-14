@@ -35,6 +35,7 @@ dabfg::NodeHandle makeObjectMotionBlurNode(objectmotionblur::MotionBlurSettings 
     objectmotionblur::on_settings_changed(settings);
 
     registry.readTexture("depth_for_transparency").atStage(dabfg::Stage::CS).bindToShaderVar("depth_gbuf");
+    registry.readTexture("gbuf_2").atStage(dabfg::Stage::CS).bindToShaderVar("material_gbuf").optional();
     registry.readTexture("motion_vecs").atStage(dabfg::Stage::CS).bindToShaderVar("resolved_motion_vectors").optional();
 
     auto sourceTargetHndl = registry.readTexture("color_target").atStage(dabfg::Stage::POST_RASTER).useAs(dabfg::Usage::BLIT).handle();

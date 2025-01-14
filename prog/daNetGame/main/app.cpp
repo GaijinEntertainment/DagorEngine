@@ -32,6 +32,7 @@
 #include <util/dag_localization.h>
 #include <util/dag_threadPool.h>
 #include <util/dag_fileMd5Validate.h>
+#include <supp/dag_cpuControl.h>
 #include <workCycle/dag_gameScene.h>
 #include <workCycle/dag_gameSettings.h>
 #include <workCycle/dag_workCycle.h>
@@ -113,7 +114,7 @@
 #if _TARGET_C1 | _TARGET_C2
 
 #elif _TARGET_GDK
-#include <xbox/xbox.h>
+#include <gdk/main.h>
 #elif _TARGET_C3
 
 
@@ -149,6 +150,7 @@ CONSOLE_BOOL_VAL("mem", memreport_gpu, true);
 
 static InitOnDemand<WebVromfsDataCache> webVromfs;
 extern void unload_localization();
+extern void update_float_exceptions();
 
 namespace game_scene
 {
@@ -179,7 +181,7 @@ void update(float dt, float real_dt, float cur_time)
 #if _TARGET_C1 | _TARGET_C2
 
 #elif _TARGET_GDK
-    xbox::update();
+    gdk::update();
 #elif _TARGET_C3
 
 #endif
@@ -474,7 +476,7 @@ static void send_dedicated_exit_metrics()
   }
 }
 
-static void init_main_thread();
+static void init_main_thread(void *);
 static void init_threads(const DataBlock &cfg)
 {
   int coreCount = cpujobs::get_core_count();
@@ -489,13 +491,13 @@ static void init_threads(const DataBlock &cfg)
 #endif
   threadpool::init(num_workers, 2048, stack_size);
   debug("threadpool inited for %d workers", num_workers);
-  delayed_call([] { init_main_thread(); });
+  add_delayed_callback(init_main_thread, nullptr);
 }
 
 #if _TARGET_C1
 
 #endif
-static void init_main_thread()
+static void init_main_thread(void *)
 {
 #if _TARGET_PC_WIN || _TARGET_XBOX
   const DataBlock &cfg = *dgs_get_settings()->getBlockByNameEx("debug");
@@ -511,6 +513,8 @@ static void init_main_thread()
 
 
 #endif
+  if (is_float_exceptions_enabled())
+    update_float_exceptions();
 }
 
 

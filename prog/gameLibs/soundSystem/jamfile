@@ -42,7 +42,6 @@ Sources =
   userCreatedSound.cpp
   eventInstanceStealing.cpp
   visualLabels.cpp
-  geometry.cpp
   occlusion.cpp
 ;
 

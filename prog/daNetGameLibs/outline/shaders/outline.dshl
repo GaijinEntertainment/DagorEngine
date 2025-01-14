@@ -8,6 +8,8 @@ float4 outline_blur;
 float outline_brighness;
 float4 outline_scale;
 
+int outline_final_render_AllColors_const_no = 1;
+
 shader outline_final_render
 {
   z_test=false;
@@ -25,6 +27,12 @@ shader outline_final_render
     outline_brighness@f1 = (outline_brighness);
     outline_depth_tex_size@f2 = get_dimensions(outline_depth, 0);
     outline_scale@f4 = (outline_scale);
+    AllColors@cbuf : register(outline_final_render_AllColors_const_no) hlsl {
+      #include <outline_buffer_size.hlsli>
+      cbuffer AllColors@cbuf {
+        float4 outline_colors[COLOR_BUF_SIZE];
+      };
+    };
   }
 
   USE_EMISSION_DECODE_COLOR_MAP(ps)
@@ -32,11 +40,6 @@ shader outline_final_render
   USE_READ_GBUFFER()
 
   hlsl(ps) {
-    cbuffer AllColors : register(b1)
-    {
-      #include <outline_buffer_size.hlsli>
-      float4 outline_colors[COLOR_BUF_SIZE];
-    };
     float4 OutlineBlur(int2 uv)
     {
       float4 color = 0;

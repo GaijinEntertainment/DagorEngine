@@ -55,7 +55,8 @@ public:
   ~DynamicLightProbe();
 
   bool refresh(float total_blend_time); // return true, if refresh started
-  void update(float dt, IRenderLightProbeFace *cb, bool cockpit = false, const TMatrix4 &cockpitTm = TMatrix4::IDENT);
+  void update(float dt, IRenderLightProbeFace *cb, bool cockpit = false, const TMatrix4 &cockpitTm = TMatrix4::IDENT,
+    bool force_flush = false);
   Mode getMode() const { return mode; }
   const ManagedTex *getCurrentProbe() const { return currentProbe; }
   // void beforeRender(float blend_to_next, IRenderDynamicCubeFace *render);

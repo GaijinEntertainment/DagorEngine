@@ -35,6 +35,7 @@ public:
   Buffers buffers[BUFFER_POINT_COUNT];
   int num_buffers = 0;
   int immediate_slot = -1;
+  uint64_t buffer_mask = 0;
 
   int num_reg;
   int shd_type;
@@ -50,10 +51,12 @@ public:
   EncodedMetalImageType tex_type[g_max_textures_in_shader];
   uint8_t tex_binding[g_max_textures_in_shader];
   uint8_t tex_remap[g_max_textures_in_shader];
+  uint64_t texture_mask = 0;
 
   int num_samplers = 0;
   uint8_t sampler_binding[g_max_textures_in_shader];
   uint8_t sampler_remap[g_max_textures_in_shader];
+  uint64_t sampler_mask = 0;
 
   int accelerationStructureCount = 0;
   // acceleration structures share bind points with buffers

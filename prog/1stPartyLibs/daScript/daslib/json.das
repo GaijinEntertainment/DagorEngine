@@ -246,7 +246,7 @@ def private parse_value ( var itv : iterator<TokenAt>; var error : string & ) : 
                 if !allow_duplicate_keys && key_exists(tab,key)
                     error = "duplicate key {key} at {ahead.line}:{ahead.row}"
                     return null
-                tab[key] = value
+                tab |> insert(key,value)
                 if !expect_token(itv, ahead, Token_symbol, error)
                     return null
                 let sepsym = ahead.value as _symbol

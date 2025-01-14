@@ -160,8 +160,8 @@ template <typename Callable>
 ECS_REQUIRE(ecs::Tag riExtraAuthority)
 void check_extra_authority_ecs_query(ecs::EntityId, Callable);
 
-static void on_riex_destruction_cb(rendinst::riex_handle_t handle, bool is_dynamic, int32_t user_data, const Point3 & /*impulse*/,
-  const Point3 & /*impulse_pos*/)
+static void on_riex_destruction_cb(rendinst::riex_handle_t handle, bool is_dynamic, bool /*create_destr_effects*/, int32_t user_data,
+  const Point3 & /*impulse*/, const Point3 & /*impulse_pos*/)
 {
   auto it = handles2eid.find(handle);
   const bool destroysEntity = is_dynamic; // Only dynamic RI entities should be destroyed, we have a separate system which destroys it

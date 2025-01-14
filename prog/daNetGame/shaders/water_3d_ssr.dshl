@@ -4,6 +4,14 @@ include "force_ignore_history.dshl"
 include "prev_screen_tc.dshl"
 include "heightmap_common.dshl"
 include "ssr_use.dshl"
+include "bvh.dshl"
+include "rt/rt_lighting.dshl"
+include "rtsm_sun_dir.dshl"
+include "ffx_sssr.dshl"
+
+int water_rt_enabled = 0;
+interval water_rt_enabled: no<1, yes;
+int water_rt_frame_index;
 
 define_macro_if_not_defined GET_ALTERNATE_REFLECTIONS_WATER(code)
   (code) { SSRParams@f4 = (SSRParams.x, SSRParams.y, ssr_frameNo.z, ssr_frameNo.y) }
@@ -11,26 +19,46 @@ define_macro_if_not_defined GET_ALTERNATE_REFLECTIONS_WATER(code)
   GET_ALTERNATE_REFLECTIONS(code)
 endmacro
 
+int water_ssr_enabled_prev_frame;
 texture prev_frame_tex;
 texture water_planar_reflection_terrain;
 texture water_planar_reflection_terrain_depth;
 float water_planar_reflection_terrain_distortion_mul = 0.04;
 float4 ambient_wind__speed__current_time__previous_time = (1.811, 0, 0, 0);
 
+float4 rtr_water_hit_dist_params;
+texture water_reflect_dir;
+texture water_reflection_tex_uav;
+texture water_reflection_strength_tex_uav;
+texture downsampled_depth;
+
+sampler water_ssr_point_clamp_samplerstate;
 
 macro WATER_SSR()
+  INIT_SAMPLE_DEPTH_TEX()
+  USE_SAMPLE_DEPTH_TEX()
   GET_ALTERNATE_REFLECTIONS_WATER(ps)
   USE_BRUNETON_FOG()
+  FFX_RAYMARCH(ps)
+
+  local float4 water_reflection_tex_dimensions = get_dimensions(water_reflection_tex, 0);
+  (ps) {
+    water_reflection_tex_res@f4 = (water_reflection_tex_dimensions.xy, 1.0 / water_reflection_tex_dimensions.xy);
+    water_ssr_point_clamp_samplerstate@sampler = water_ssr_point_clamp_samplerstate;
+  }
   if (shader == water_ssr_nv2 && water_planar_reflection_terrain != NULL)
   {
     (ps)
     {
-      water_planar_reflection_terrain@smp2d = water_planar_reflection_terrain;
+      water_planar_reflection_terrain@tex2d = water_planar_reflection_terrain;
       water_planar_reflection_terrain_depth@tex2d = water_planar_reflection_terrain_depth;
       water_planar_reflection_terrain_distortion_mul@f1 = water_planar_reflection_terrain_distortion_mul;
       planar_reflection_distortion_strength@f1 = (ambient_wind__speed__current_time__previous_time.x);
   }
-    hlsl (ps) { #define water_planar_reflection_terrain_depth_samplerstate water_planar_reflection_terrain_samplerstate }
+    hlsl (ps) {
+      #define water_planar_reflection_terrain_depth_samplerstate water_ssr_point_clamp_samplerstate
+      #define water_planar_reflection_terrain_samplerstate water_ssr_point_clamp_samplerstate
+    }
     INIT_WORLD_HEIGHTMAP_PS()
     USE_HEIGHTMAP_COMMON_PS()
   }
@@ -50,7 +78,7 @@ macro WATER_SSR()
     #define SECOND_SAMPLE_MIP 0
     #define FALLBACK_MIP 1
     #define BASE_PLANAR_REFLECTION_DISTORTION_STRENGTH 1
-    #define prev_frame_tex_samplerstate material_gbuf_read_samplerstate
+    #define prev_frame_tex_samplerstate water_ssr_point_clamp_samplerstate
 
     #define HIT_INVALID 2
     #define HIT_SKY 3
@@ -226,10 +254,7 @@ macro WATER_SSR()
       return result;
     }
 
-    #define FFX_SSSR_INVERTED_DEPTH_RANGE
-    #include "../../3rdPartyLibs/ssr/ffx_sssr.h"
-
-    float4 rayMarchHigh(float3 world_pos, float3 reflect_dir, float4x4 mat)
+    float4 rayMarchHigh(float3 world_pos, float3 reflect_dir, float4x4 mat, out float4 backSurfaceBeginPos, out float3 backSurfaceEndPos)
     {
       float4 nearCoord = mul(float4(world_pos, 1), mat);
       float4 farCoord = mul(float4(world_pos + reflect_dir, 1), mat);
@@ -244,15 +269,16 @@ macro WATER_SSR()
       float2 screen_size = lowres_rt_params.xy;
       int most_detailed_mip = 0;
       uint max_traversal_intersections = 128;
-      bool valid_hit = false;
 
-      float3 result = FFX_SSSR_HierarchicalRaymarch(origin, direction, screen_size, most_detailed_mip, max_traversal_intersections, valid_hit);
-      if (!valid_hit)
-        return float4(0, 0, 0, encode_invalid_hit(result.z)); //high fade to signify unsuccessful ray march
-      return float4(result, 0);
+      FFX_RaymarchResult result = FFX_Raymarch(origin, direction, true, screen_size, most_detailed_mip, max_traversal_intersections);
+      backSurfaceBeginPos = result.backSurfaceBeginUVZw;
+      backSurfaceEndPos = result.backSurfaceEndUVZ;
+      if (result.hitUVZw.w < 1)
+        return float4(result.hitUVZw.rgb, encode_invalid_hit(result.hitUVZw.z)); //high fade to signify unsuccessful ray march
+      return float4(result.hitUVZw.rgb, 0);
     }
 
-    float4 rayMarch(float3 world_pos, float3 reflect_dir, float4x4 mat)
+    float4 rayMarch(float3 world_pos, float3 reflect_dir, float4x4 mat, out float4 backSurfaceBeginPos, out float3 backSurfaceEndPos)
     {
       float4 result = float4(0, 0, 0, HIT_INVALID);
       BRANCH
@@ -261,7 +287,7 @@ macro WATER_SSR()
       else if (water_quality == water_quality_medium)
         result = rayMarchMedium(world_pos, reflect_dir, mat);
       else
-        result = rayMarchHigh(world_pos, reflect_dir, mat);
+        result = rayMarchHigh(world_pos, reflect_dir, mat, backSurfaceBeginPos, backSurfaceEndPos);
 
       // rayMarchHigh doesn't rely on sample interpolating, so it looks good without the need for discarding
       BRANCH
@@ -280,11 +306,10 @@ macro WATER_SSR()
         return float4(0, 0, 0, HIT_INVALID);
     }
 
-    half4 sample_vignetted_color( float3 hit_uv_z, float fade, float linear_roughness )
+    half3 sample_vignetted_color(float2 hit_uv)
     {
-      half4 result;
-      hit_uv_z.xy = saturate(hit_uv_z.xy);
-      result.rgb = tex2Dlod( prev_frame_tex, float4(hit_uv_z.xy, 0,1) ).rgb;
+      hit_uv = saturate(hit_uv);
+      half3 result = tex2Dlod(prev_frame_tex, float4(hit_uv, 0,1)).rgb;
       return result;
     }
 
@@ -296,19 +321,77 @@ macro WATER_SSR()
       color = color*loss + add;
     }
 
+    void applyBackSurfaceColorFix(inout float4 color, float3 from, float3 to)
+    {
+      #define SAMPLE_BATCH_SIZE 4
+
+      float4 backSurfaceColor = 0;
+      int MaxIteration = 8;
+
+      to.z = linearize_z(to.z, zn_zfar.zw);
+      from.z = linearize_z(from.z, zn_zfar.zw);
+
+      float3 rayStep = (to.xyz - from) / (MaxIteration + 1);
+      float weight = 1e-5f;
+
+      UNROLL
+      for (uint i = 0; i < MaxIteration; i += SAMPLE_BATCH_SIZE)
+      {
+        float3 UVZ[SAMPLE_BATCH_SIZE];
+        float4 sampleDepth;
+        float4 sampleWeight;
+        uint j;
+
+        UNROLL
+        for (j = 0; j < SAMPLE_BATCH_SIZE; j++)
+          UVZ[j] = from + float(i + j) * rayStep;
+
+        UNROLL
+        for (j = 0; j < SAMPLE_BATCH_SIZE; j++)
+          sampleDepth[j] = linearize_z(sample_close_depth_tex(UVZ[j].xy, 0), zn_zfar.zw);
+
+        UNROLL
+        for (j = 0; j < SAMPLE_BATCH_SIZE; j++)
+        {
+          sampleWeight[j] = (sampleDepth[j] < UVZ[j].z); // Sample above ray
+          sampleWeight[j] *= (from.z*2 <= sampleDepth[j] + UVZ[j].z); // Sample should be farther than origin
+          //sampleWeight[j] *= (from.z - float(i + j) * rayStep  < sampleDepth[j]);  // Sample should be farther than origin
+
+           // Disable back surface ssr from object really close to camera.
+          /*float linearSampleDepth = linearize_z(sampleDepth[j], zn_zfar.zw);
+          sampleWeight[j] *= smoothstep(1.0f, 15.0f, linearSampleDepth);*/
+        }
+
+        UNROLL
+        for (j = 0; j < SAMPLE_BATCH_SIZE; j++)
+          backSurfaceColor += float4(sample_vignetted_color(UVZ[j].xy).rgb * sampleWeight[j], sampleWeight[j]);
+
+        #if SAMPLE_BATCH_SIZE == 4
+          weight += dot(sampleWeight, 1);
+        #else
+          UNROLL
+          for (j = 0; j < SAMPLE_BATCH_SIZE; j++)
+            weight += sampleWeight[j]
+        #endif
+      }
+
+      color = float4(backSurfaceColor.rgb / weight, backSurfaceColor.a / MaxIteration);
+    }
+
     float4 water_ssr(PS_INPUT In, float4 screenpos, float2 screenTc, float3 worldPos, float3 worldNormal, float3 pointToEye, float3 reflectSampleDir)
     {
       float4 objectReflection = 0;
 
       // Getting planar reflection
-      float4 hit_uv_z_fade = rayMarch(worldPos, reflectSampleDir, globtm_psf);
+      float4 backSurfaceBeginPos = 0;
+      float3 backSurfaceEndPos = 0;
+      float4 hit_uv_z_fade = rayMarch(worldPos, reflectSampleDir, globtm_psf, backSurfaceBeginPos, backSurfaceEndPos);
       bool hitSky = IS_HIT_INVALID(hit_uv_z_fade) && hit_uv_z_fade.w == HIT_SKY;
 
       BRANCH
       if( hit_uv_z_fade.w < 1 && all(abs(hit_uv_z_fade.xy - 0.5) < 0.5))
       {
-        float4 SampleColor = sample_vignetted_color( hit_uv_z_fade.xyz, hit_uv_z_fade.w, 0 );
-        objectReflection.rgb = SampleColor.rgb;
+        objectReflection.rgb = sample_vignetted_color(hit_uv_z_fade.xy);
         objectReflection.a = 1-hit_uv_z_fade.w;
       }
       else
@@ -355,15 +438,17 @@ macro WATER_SSR()
       {
         float3 cameraToPoint = -pointToEye;
         float rayHitDist = 0;
-        float3 R = reflect(-pointToEye, worldNormal);
-        get_alternate_reflections(objectReflection, rayHitDist, screenpos.xy, R, cameraToPoint, worldNormal, false, false);
+        get_alternate_reflections(objectReflection, rayHitDist, screenpos.xy, reflectSampleDir, cameraToPoint, worldNormal, false, false);
         if (objectReflection.a > 0)
         {
-          float3 cameraToReflection = (rayHitDist*R + cameraToPoint);
+          float3 cameraToReflection = (rayHitDist*reflectSampleDir + cameraToPoint);
           float cameraToReflectionLen = length(cameraToReflection);
           applyFogToReflection(cameraToReflection*rcp(max(1e-6,cameraToReflectionLen)), cameraToReflectionLen, objectReflection.rgb);
         }
       }
+      if (backSurfaceBeginPos.w > 0 && !hitSky && objectReflection.a == 0)
+        applyBackSurfaceColorFix(objectReflection, backSurfaceBeginPos.xyz, backSurfaceEndPos);
+
       return objectReflection;
     }
   }
@@ -380,32 +465,22 @@ shader water_ssr_nv2, water_ssr_nv2_heightmap
   WATER_3D_COMMON()
   VIEW_VEC_OPTIMIZED(ps)
   USE_PREV_TC(ps)
-  USE_IGNORE_HISTORY(ps)
+  // force_ignore_history = force_ignore_history || !water_ssr_enabled_prev_frame
+  (ps){force_ignore_history@f1 = (force_ignore_history + 1.0 - water_ssr_enabled_prev_frame,0,0,0);}
 
-  INIT_SAMPLE_DEPTH_TEX()
-  USE_SAMPLE_DEPTH_TEX()
   WATER_3D_DEFERRED_COMMON()
-
-  INIT_READ_GBUFFER_MATERIAL_DYNAMIC()
-  USE_READ_GBUFFER_MATERIAL_DYNAMIC()
 
   INIT_HDR(ps)
   USE_HDR(ps)
 
-  local float4 water_reflection_tex_dimensions = get_dimensions(water_reflection_tex, 0);
-  (ps) {
-    water_reflection_tex_res@f4 = (water_reflection_tex_dimensions.xy, 1.0 / water_reflection_tex_dimensions.xy);
-  }
-
-  WATER_SSR()
+  if (water_rt_enabled == no) {WATER_SSR()}
 
   hlsl(ps) {
-    half4 water_reflect_dir(float3 worldNormal, float3 pointToEye, float vface)
+    half4 water_reflect_dir(float3 worldNormal, float3 pointToEyeNormalized)
     {
-      float3 reflectSampleDir = reflect(-pointToEye, worldNormal);
-      reflectSampleDir.y = abs(reflectSampleDir.y)*vface;
+      float3 reflectSampleDir = reflect(-pointToEyeNormalized, worldNormal);
 
-      float NdotV = dot(worldNormal, pointToEye);
+      float NdotV = dot(worldNormal, pointToEyeNormalized);
       float NoV = abs(NdotV)+1e-5;
       float linearRoughness = sqrt(0.02);
       half enviBRDF = EnvBRDFApprox( 0.02, linearRoughness, NoV).x;//fixme: optimize for water
@@ -415,11 +490,20 @@ shader water_ssr_nv2, water_ssr_nv2_heightmap
 
       return half4(reflectSampleDir, 1);
     }
+
+    ##if water_rt_enabled == no
     struct WaterOutput
     {
       float3 color : SV_Target0;
       float2 alpha__strength : SV_Target1;
     };
+    ##else
+    struct WaterOutput
+    {
+      float4 reflectSampleDir : SV_Target0;
+      float4 alpha_mask_weight_shadowStrength : SV_Target1; // .rg is for relfection, ba is for shadow
+    };
+    ##endif
 
     WaterOutput water_nv_ps(PS_INPUT In HW_USE_SCREEN_POS INPUT_VFACE)
     {
@@ -432,7 +516,7 @@ shader water_ssr_nv2, water_ssr_nv2_heightmap
       float distSq = dot(pointToEye, pointToEye);
       float invDist = rsqrt(distSq);
       float dist = distSq*invDist;
-      pointToEye *= invDist;
+      float3 pointToEyeNormalized = pointToEye*invDist;
       CascadesTex csc;
       ##if water_flowmap_tex == NULL || mobile_render != off
         get_cascades(In.pos_world_undisplaced.xy, csc.nvsf_tex_coord_cascade01, csc.nvsf_tex_coord_cascade23, csc.nvsf_tex_coord_cascade45);
@@ -444,48 +528,59 @@ shader water_ssr_nv2, water_ssr_nv2_heightmap
       float4 nvsf_blendfactors0123 = 1;
       float4 nvsf_blendfactors4567 = 1;
       GFSDK_WAVEWORKS_SURFACE_ATTRIBUTES surfaceAttributes = GFSDK_WaveWorks_GetSurfaceAttributes(In, csc, nvsf_blendfactors0123,
-                                                                                                  nvsf_blendfactors4567, pointToEye);
+                                                                                                  nvsf_blendfactors4567, pointToEyeNormalized);
 
       float4 water_projection_pos = mul(float4(In.pos_world_undisplaced.xzy, 1), water_effects_proj_tm);
       float3 worldNormal = get_water_normal(In, shoreData, worldPos, surfaceAttributes.normal.xzy, normalize_wfx_tc(water_projection_pos).xy,
                                             nvsf_blendfactors0123, nvsf_blendfactors4567);
 
       ##if water_heightmap_pages != NULL
-        float3x3 tangentSpace = float3x3(In.tangent, cross(In.tangent, In.bitangent), In.bitangent);
+        float3x3 tangentSpace = float3x3(In.tangent, cross(In.bitangent, In.tangent), In.bitangent);
         worldNormal = mul(worldNormal, tangentSpace);
       ##endif
+      worldNormal = MUL_VFACE(worldNormal);
 
 
       float3 prevScreen;
       float2 oldUv = getPrevTc(worldPos, prevScreen); // TODO: this is actually volfog stuff, but it's always enabled in DNG
-      bool offscreen = checkOffscreenTc2d(oldUv);
 
       //todo: invalidate pixels which were too far in world space
-      oldUv = (floor(oldUv * water_reflection_tex_res.xy)+0.5) * water_reflection_tex_res.zw;
-      half2 oldAlphaStrength = tex2Dlod(water_reflection_strenght_tex, float4(oldUv, 0,0)).rg;
-      half oldStrength = oldAlphaStrength.g;
+      half4 oldAlphaStrength = tex2Dlod(water_reflection_strength_tex, float4(oldUv, 0,0));
 
-      bool discardHistory = offscreen || (isGbufferDynamic(oldUv) && (prevScreen.z < sample_close_depth_tex(oldUv, 0))) || force_ignore_history > 0;
+      bool discardHistory = force_ignore_history > 0;
       half newStrength = 0.1;
       const float2 invalidateScale = float2(10, 20);
-      oldStrength = discardHistory ? 0 : oldStrength * pow4(saturate(1-dot(invalidateScale, abs(refractionTC - oldUv))));
+      ##if water_rt_enabled == no
+        half oldStrength = oldAlphaStrength.g;
+        oldStrength = discardHistory ? 0 : oldStrength * pow4(saturate(1-dot(invalidateScale, abs(refractionTC - oldUv))));
+      ##else
+        half oldStrength = oldAlphaStrength.a;
+        oldStrength = discardHistory ? 0 : oldStrength; // Interpolate soft shadow, mirror reflections don't need temporality!
+      ##endif
 
       float weight = newStrength / (newStrength + oldStrength);
-      half4 reflectSampleDir = water_reflect_dir(worldNormal, pointToEye, MUL_VFACE(1.0));
+      half4 reflectSampleDir = water_reflect_dir(worldNormal, pointToEyeNormalized);
 
-      float4 newTarget = 0;
-      if (reflectSampleDir.w > 0)
-        newTarget = water_ssr(In, screenpos, refractionTC, worldPos, worldNormal, pointToEye, reflectSampleDir.xyz);
-      half3 oldColor = tex2Dlod(water_reflection_tex, float4(oldUv, 0,0)).rgb;
-      half4 oldTarget = half4(oldColor.rgb, oldAlphaStrength.r);
-      half4 result = lerp(oldTarget, newTarget, weight);
-      // Increase alpha slightly to counteract R8 texture rounding down, causing ghosting
-      result.a = result.a*256.0/255.0;
+      ##if water_rt_enabled == no
+        float4 newTarget = 0;
+        if (reflectSampleDir.w > 0)
+          newTarget = water_ssr(In, screenpos, refractionTC, worldPos, worldNormal, pointToEye, reflectSampleDir.xyz);
+        half3 oldColor = tex2Dlod(water_reflection_tex, float4(oldUv, 0,0)).rgb;
+        half4 oldTarget = half4(oldColor.rgb, oldAlphaStrength.r);
+        half4 result = lerp(oldTarget, newTarget, weight);
+        // Increase alpha slightly to counteract R8 texture rounding down, causing ghosting
+        result.a = result.a*256.0/255.0;
 
-      WaterOutput output;
-      output.color = h3nanofilter(result.rgb);
-      output.alpha__strength = half2(result.a, newStrength + oldStrength);
-      return output; //NaNs catched on PS4
+        WaterOutput output;
+        output.color = h3nanofilter(result.rgb);
+        output.alpha__strength = half2(result.a, newStrength + oldStrength);
+        return output; //NaNs catched on PS4
+      ##else
+        WaterOutput output;
+        output.reflectSampleDir = half4(reflectSampleDir.xyz * 0.5 + 0.5, reflectSampleDir.w);
+        output.alpha_mask_weight_shadowStrength = half4(0, 1, weight, newStrength + oldStrength);
+        return output;
+      ##endif
     }
   }
 
@@ -497,4 +592,128 @@ shader water_ssr_nv2, water_ssr_nv2_heightmap
   {
     WATER_3D_HEIGHTMAP_RENDER()
   }
+}
+
+shader raytraced_water_reflections
+{
+  supports global_const_block;
+  if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing) { dont_render; }
+  ENABLE_ASSERT(cs)
+
+  INIT_ZNZFAR_STAGE(cs)
+  VIEW_VEC_OPTIMIZED(cs)
+  USE_PREV_TC(cs)
+  INIT_BVH(cs, 0, true)
+  USE_BVH_FOR_REFLECTION(cs)
+  USE_BVH_FX_RENDER(cs)
+  USE_EMISSION_DECODE_COLOR_MAP(cs)
+  PACK_UNPACK_GBUFFER_BASE(cs)
+  INIT_RT_LIGHTING(cs, true, false)
+  USE_RT_LIGHTING(cs, 1)
+  INIT_ENVI_SPECULAR_SAMPLE(cs)
+  USE_ENVI_SPECULAR_SAMPLE(cs)
+  RTSM_SUN_DIR()
+  local float4 output_resolution = get_dimensions(water_reflection_tex_uav, 0);
+  (cs)
+  {
+    world_view_pos@f3 = world_view_pos;
+    hit_dist_params@f4 = rtr_water_hit_dist_params;
+    water_reflection_tex@smp2d = water_reflection_tex;
+    water_reflection_strength_tex@tex2d = water_reflection_strength_tex;
+    water_reflect_dir@tex2d = water_reflect_dir;
+    water_reflection_tex_uav@uav = water_reflection_tex_uav hlsl{RWTexture2D<float3> water_reflection_tex_uav@uav;};
+    water_reflection_strength_tex_uav@uav = water_reflection_strength_tex_uav hlsl{RWTexture2D<float4> water_reflection_strength_tex_uav@uav;};
+    downsampled_depth@tex2d = downsampled_depth;
+    output_resolution@f4 = (output_resolution.xy, 1.0 / output_resolution.xy);
+    frame_index@i1 = water_rt_frame_index;
+  }
+  hlsl(cs)
+  {
+    #define water_reflection_strength_tex_samplerstate water_reflection_tex_samplerstate
+
+    float4 water_rt(float3 cameraToPoint, float3 reflectionVec)
+    {
+      float maxReflectionDistance = hit_dist_params.x;
+      float worldDist = length(cameraToPoint);
+
+      HitInfo hitInfo;
+      bool isHit = trace_ray(bvhMain, cameraToPoint, reflectionVec, 0, maxReflectionDistance, worldDist, bvhGroupRender, hitInfo);
+
+      if (!isHit)
+        isHit = trace_ray(bvhTerrain, cameraToPoint, reflectionVec, maxReflectionDistance, 100000, worldDist, bvhGroupRender, hitInfo);
+
+      float3 reflectionColor;
+      if (isHit)
+        reflectionColor = light_hit_surface(hitInfo, reflectionVec, worldDist, hit_dist_params.x);
+      else
+        reflectionColor = sample_envi_probe(half4(reflectionVec, 0)).rgb;
+
+      float fxt = -1;
+      trace_ray_fx_translucent(cameraToPoint, reflectionVec, 0, isHit ? hitInfo.t : maxReflectionDistance, worldDist, reflectionColor, fxt);
+      isHit = isHit || fxt > 0;
+
+      BRANCH
+      if (isHit)
+        calc_atmosphere(reflectionColor, hitInfo.position, hitInfo.t);
+
+      float4 objectReflection = float4(reflectionColor, isHit ? 1 : 0);
+      return objectReflection;
+    }
+
+    float noise(float2 n) {
+      return frac(sin(dot(n, float2(12.9898, 4.1414))) * 43758.5453);
+    }
+    float2 get_noise(uint2 dtid, float2 random_vec)
+    {
+      float2 rnd = float2(noise(random_vec.xy + dtid),
+                          noise(random_vec.yx + frame_index));
+      return rnd;
+    }
+
+    [numthreads(8, 8, 1 )]
+    void main(uint2 dtId : SV_DispatchThreadID)
+    {
+      if (any(dtId >= uint2(output_resolution.xy)))
+        return;
+
+      half4 weightSample = texture2DAt(water_reflection_strength_tex_uav, dtId);
+      half weight = weightSample.b;
+      half mask = weightSample.g;
+      if (mask == 0) // Where we have water it's minimum 0.1
+      {
+        texture2DAt(water_reflection_tex_uav, dtId) = 0;
+        texture2DAt(water_reflection_strength_tex_uav, dtId) = 0;
+        return;
+      }
+
+      float rawDepth = texelFetch(downsampled_depth, dtId, 0).r;
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+      float3 viewVec = getViewVecOptimized((dtId.xy + 0.5) * output_resolution.zw);
+      float3 cameraToPoint = w * viewVec;
+      float3 worldPos = world_view_pos + cameraToPoint;
+
+      half4 reflectSampleDir = texture2DAt(water_reflect_dir, dtId);
+      reflectSampleDir = half4(reflectSampleDir.xyz * 2 - 1, reflectSampleDir.w);
+      float4 reflection = 0;
+      BRANCH
+      if (reflectSampleDir.w > 0)
+      {
+        float3 reflectionVec = reflectSampleDir.xyz;
+        reflection = water_rt(cameraToPoint, reflectionVec);
+      }
+
+      float2 oldUv = getPrevTc(worldPos);
+      half4 oldShadowStrength = tex2Dlod(water_reflection_strength_tex, float4(oldUv, 0,0));
+
+      float2 rnd = get_noise(dtId, worldPos.xz + reflectSampleDir.xz);
+      float3 direction = get_sun_direction(rnd);
+      half newShadow = is_obstructed(bvhMain, cameraToPoint, direction, 0, 100000, w, bvhGroupAll & ~bvhGroupGrass) ? 0 : 1;
+      half oldShadow = oldShadowStrength.b;
+      half shadow = lerp(oldShadow, newShadow, weight);
+
+      texture2DAt(water_reflection_tex_uav, dtId) = reflection.rgb;
+      texture2DAt(water_reflection_strength_tex_uav, dtId).rb = half2(reflection.a, shadow); // mask and strength is calculated in prepass already
+    }
+  }
+  compile("cs_6_5", "main");
 }

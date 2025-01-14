@@ -60,6 +60,7 @@
   file:t = "prefilter_gf.dshl"
   file:t = "light_probe.dshl"
   file:t = "octahedral_shadow.dshl"
+  file:t = "trace_sdf_shadow.dshl"
   file:t = "../dynamic_simple.dshl"
   file:t = "../dynamic_transparent.dshl"
   file:t = "../dynamic_simple_painted.dshl"

@@ -132,6 +132,7 @@ void init_das_entry_point()
       bind_dascript::start_multiple_scripts_loading();
       bind_dascript::load_entry_script(dasEntryPoint, &init_das, bind_dascript::LoadEntryScriptCtx{int64_t(memUsed)});
       bind_dascript::drop_multiple_scripts_loading(); // unset das_is_in_init_phase, es_reset_order calls in the end of function
+      bind_dascript::main_thread_post_load();
     }
     else
     {

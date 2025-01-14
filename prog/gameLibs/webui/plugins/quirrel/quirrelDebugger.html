@@ -18,6 +18,7 @@
 <button type="button" onclick="onClearCoverage()">Clear Coverage</button>
 <button type="button" onclick="onBreakOnEvent()" id="break_on_event">event</button>
 <button type="button" onclick="onStartProfiler()" id="start_stop_profiler">Start Profiler</button>
+<button type="button" onclick="onDisasm()" id="show_disasm">Disasm</button>
 <div id="attached_state">...</div> <div id="full_file_name">...</div>
 <table style="height:600px; border: 1px solid black;">
   <tr>
@@ -381,11 +382,16 @@ async function onClearCoverage()
     await currentSource.updateCoverage();
 }
 
+function base64escaped(text)
+{
+  return window.btoa(text).replace(/\+/g, "%2B");
+}
+
 async function onRunImmediate()
 {
   var text = document.getElementById("immediate").value;
-  var result = await query('immediate=' + window.btoa(text.trim()) +
-                     '&cmd=' + window.btoa('%s'));
+  var result = await query('immediate=' + base64escaped(text.trim()) +
+                     '&cmd=' + base64escaped('%s'));
   if (result === null)
     return;
 
@@ -401,6 +407,17 @@ async function setImmediateExpression(expression)
   await onRunImmediate();
 }
 
+async function onDisasm()
+{
+  var result = await query('disasm');
+  if (result === null)
+    return;
+
+  result = result.replace(/&/g, '&amp;');
+  result = result.replace(/</g, '&lt;');
+  result = result.replace(/>/g, '&gt;');
+  document.getElementById("immediate_result").innerHTML = result;
+}
 
 function isAlphaNumeric(str)
 {
@@ -500,8 +517,8 @@ async function onTraceVar()
   var res = splitToContainerAndKey(text);
   console.log('tracevar: container:' + res.container + ' key:' + res.key);
 
-  var result = await query('immediate=' + window.btoa(res.container + ', ' + res.key) +
-                     '&cmd=' + window.btoa('tracevar(%s)'));
+  var result = await query('immediate=' + base64escaped(res.container + ', ' + res.key) +
+                     '&cmd=' + base64escaped('tracevar(%s)'));
   if (result === null)
     return;
 

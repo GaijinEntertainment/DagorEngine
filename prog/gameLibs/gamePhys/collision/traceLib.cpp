@@ -138,6 +138,12 @@ bool dacoll::rayhit_normalized_transparency(const Point3 &p, const Point3 &dir, 
   return rendinst::traceTransparencyRayRIGenNormalized(p, dir, t, threshold, ray_mat_id);
 }
 
+bool dacoll::rayhit_normalized_sound_occlusion(const Point3 &p, const Point3 &dir, float t, int ray_mat_id,
+  float &accumulated_occlusion, float &max_occlusion)
+{
+  return rendinst::traceSoundOcclusionRayRIGenNormalized(p, dir, t, ray_mat_id, accumulated_occlusion, max_occlusion);
+}
+
 bool dacoll::traceray_normalized_ri(const Point3 &p, const Point3 &dir, real &t, int *out_pmid, Point3 *out_norm,
   rendinst::TraceFlags additional_trace_flags, rendinst::RendInstDesc *out_desc, int ray_mat_id, const TraceMeshFaces *handle,
   rendinst::riex_handle_t skip_riex_handle)

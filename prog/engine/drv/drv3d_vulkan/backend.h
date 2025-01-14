@@ -24,6 +24,7 @@ class GpuExecuteTimelineSpan;
 struct ImmediateConstBuffers;
 struct BackendInterop;
 class AliasedMemoryStorage;
+struct WrappedCommandBuffer;
 
 struct Backend
 {
@@ -40,6 +41,7 @@ struct Backend
   static GpuExecuteTimelineSpan gpuJob;
   static BackendInterop interop;
   static AliasedMemoryStorage aliasedMemory;
+  static WrappedCommandBuffer cb;
 
   struct State
   {

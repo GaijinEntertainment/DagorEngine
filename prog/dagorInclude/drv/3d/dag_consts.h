@@ -40,7 +40,6 @@ enum ShaderStage
   // keep as is, don't bloat other backends when they can't support it
   STAGE_MAX,
 
-  STAGE_RAYTRACE = STAGE_MAX,
   STAGE_CS_ASYNC_STATE = STAGE_MAX, // STAGE_CS_ASYNC_STATE is only supported in DX11, and STAGE_RAYTRACE is not supported there.
 
   STAGE_MAX_EXT
@@ -737,6 +736,12 @@ struct DeviceDriverCapabilitiesBase
    *following \platformtable{hasWaveOps,c,a,c,a,c,c,r,r,c,r,r} \brief supports waveOps
    **/
   bool hasWaveOps : 1;
+  /**
+   * \capbrief hasPersistentShaderHandles indicates that shader handles of pipeline objects, that are used for shader binding tables,
+   * are persistent and are the same for derived pipelines and pipelines that use the same shader from the same shader library.
+   * \platformtable{hasNativeRayTracePipelineExpansion,c,c,c,a,r,r,c,r,r,r,r}
+   */
+  bool hasPersistentShaderHandles : 1;
   /* !!!!! TO ADD NEW VALUES, FOLOW THE STEPS DESCRIBED AT THE REMARK SECTION, KEEP THIS AT THE END OF THIS STRUCT !!!!! */
 };
 /**
@@ -873,6 +878,8 @@ struct DeviceDriverCapabilitiesXboxOne : DeviceDriverCapabilitiesBase
   static constexpr bool hasNativeRayTracePipelineExpansion = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasWaveOps}
   static constexpr bool hasWaveOps = true;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasPersistentShaderHandles}
+  static constexpr bool hasPersistentShaderHandles = false;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for \scarlett
@@ -918,6 +925,8 @@ struct DeviceDriverCapabilitiesScarlett : DeviceDriverCapabilitiesXboxOne
   static constexpr bool castingFullyTypedFormatsSupported = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasNativeRayTracePipelineExpansion}
   static constexpr bool hasNativeRayTracePipelineExpansion = true;
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasPersistentShaderHandles}
+  static constexpr bool hasPersistentShaderHandles = true;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1052,6 +1061,8 @@ struct DeviceDriverCapabilitiesPS4 : DeviceDriverCapabilitiesBase
   static constexpr bool hasNativeRayTracePipelineExpansion = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasWaveOps}
   static constexpr bool hasWaveOps = true;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasPersistentShaderHandles}
+  static constexpr bool hasPersistentShaderHandles = false;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1196,6 +1207,8 @@ struct DeviceDriverCapabilitiesIOS : DeviceDriverCapabilitiesBase
   static constexpr bool castingFullyTypedFormatsSupported = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasWaveOps}
   static constexpr bool hasWaveOps = true;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasPersistentShaderHandles}
+  static constexpr bool hasPersistentShaderHandles = false;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1316,6 +1329,8 @@ struct DeviceDriverCapabilitiesTVOS : DeviceDriverCapabilitiesBase
   static constexpr bool castingFullyTypedFormatsSupported = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasWaveOps}
   static constexpr bool hasWaveOps = true;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasPersistentShaderHandles}
+  static constexpr bool hasPersistentShaderHandles = false;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1445,6 +1460,8 @@ struct DeviceDriverCapabilitiesNintendoSwitch : DeviceDriverCapabilitiesBase
   static constexpr bool castingFullyTypedFormatsSupported = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasNativeRayTracePipelineExpansion}
   static constexpr bool hasNativeRayTracePipelineExpansion = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasPersistentShaderHandles}
+  static constexpr bool hasPersistentShaderHandles = false;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1543,6 +1560,8 @@ struct DeviceDriverCapabilitiesAndroid : DeviceDriverCapabilitiesBase
   static constexpr bool hasBaseVertexSupport = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::castingFullyTypedFormatsSupported}
   static constexpr bool castingFullyTypedFormatsSupported = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasPersistentShaderHandles}
+  static constexpr bool hasPersistentShaderHandles = false;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1662,6 +1681,8 @@ struct DeviceDriverCapabilitiesMacOSX : DeviceDriverCapabilitiesBase
   static constexpr bool castingFullyTypedFormatsSupported = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasWaveOps}
   static constexpr bool hasWaveOps = true;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasPersistentShaderHandles}
+  static constexpr bool hasPersistentShaderHandles = false;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1764,6 +1785,8 @@ struct DeviceDriverCapabilitiesLinux : DeviceDriverCapabilitiesBase
   static constexpr bool hasBaseVertexSupport = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::castingFullyTypedFormatsSupported}
   static constexpr bool castingFullyTypedFormatsSupported = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasPersistentShaderHandles}
+  static constexpr bool hasPersistentShaderHandles = false;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for

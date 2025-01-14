@@ -64,8 +64,8 @@ def test
     if true
         var a:table<string;int>
         var b:table<string;int> const
-        a["key"]++
-        b["key"]++      // 30106: can't index in the constant table, use find instead
+        unsafe(a["key"])++
+        unsafe(b["key"])++      // 30106: can't index in the constant table, use find instead
     if true
         var a:int?
         var b:int const?

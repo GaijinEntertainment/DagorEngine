@@ -22,6 +22,15 @@ static TMatrix look_down_vtm = TMatrix::IDENT;
 static int clipmapShadowTexVarId = -1;
 static int clipmapShadowFadeOutVarId = -1;
 
+void ClipmapShadow::setUpSampler() const
+{
+  d3d::SamplerInfo smpInfo;
+  smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+  smpInfo.border_color = d3d::BorderColor::Color::OpaqueWhite;
+  smpInfo.anisotropic_max = 1;
+  ShaderGlobal::set_sampler(get_shader_variable_id("clipmap_shadow_tex_samplerstate"), d3d::request_sampler(smpInfo));
+}
+
 void ClipmapShadow::init(int shadowSize)
 {
   look_down_vtm.setcol(0, 1, 0, 0);
@@ -46,9 +55,8 @@ void ClipmapShadow::init(int shadowSize)
 
   d3d_err(clipmapShadowTex.getTex2D());
 
-  clipmapShadowTex.getTex2D()->texbordercolor(0xFFFFFFFF);
-  clipmapShadowTex.getTex2D()->texaddr(TEXADDR_CLAMP);
-  clipmapShadowTex.getTex2D()->setAnisotropy(1);
+  clipmapShadowTex->disableSampler();
+  setUpSampler();
 
   clipmapShadowTexVarId = get_shader_variable_id("clipmap_shadow_tex");
   worldToClipmapShadowVarId[0] = get_shader_variable_id("world_to_far_clipmap_shadow");
@@ -109,8 +117,10 @@ void ClipmapShadow::switchOff()
   img[0].w = img[0].h = 1;
   img[1].w = img[1].h = -1;
   clipmapShadowTex = dag::create_tex(img, 1, 1, TEXFMT_A8R8G8B8, 1, "clipmapShadowWhiteTex");
+  clipmapShadowTex->disableSampler();
   clipmapShadowSize = 0;
   d3d_err(clipmapShadowTex.getTex2D());
+  setUpSampler();
 
   clipmapShadowTexVarId = get_shader_variable_id("clipmap_shadow_tex", true);
   ShaderGlobal::set_texture(clipmapShadowTexVarId, clipmapShadowTex.getTexId());

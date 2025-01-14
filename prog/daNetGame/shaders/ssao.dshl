@@ -773,7 +773,8 @@ shader ssao
     viewProjectionMatrixNoOfs@f44 = { globtm_no_ofs_psf_0, globtm_no_ofs_psf_1, globtm_no_ofs_psf_2, globtm_no_ofs_psf_3 };
     ssao_frame_no@f4 = ssao_frame_no;
     screen_pos_to_texcoord@f2 = screen_pos_to_texcoord;
-    shadow_params@f2 = (temporal_shadow_frame.x, contact_shadow_len,0, 0);
+    shadow_frame@f1 = temporal_shadow_frame.x;
+    contact_shadow_len@f1 = contact_shadow_len;
     contact_shadow_min_len@f1 = (contact_shadow_min_len);
     ssao_strength@f1 = (ssao_strength);
     contact_shadows_num_steps@i1 = (contact_shadows_num_steps,0,0,0);
@@ -830,8 +831,6 @@ shader ssao
 
   hlsl(ps) {
     #define csm_distance 0
-    #define shadow_frame shadow_params.x
-    #define contact_shadow_len shadow_params.y
   }
 
   CONTACT_SHADOWS()
@@ -918,7 +917,7 @@ shader ssao
         if (shadow_strength > 0)
         {
           half contactShadows = 1;
-          contactShadows = contactShadowRayCast(half_res_close_depth, half_res_close_depth_samplerstate, cameraToPoint, -from_sun_direction, max(w*contact_shadow_len, min(w, contact_shadow_min_len)), contact_shadows_num_steps, dither-0.5, projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV, float2(100, 99));
+          contactShadows = contactShadowRayCast(half_res_close_depth, half_res_close_depth_samplerstate, cameraToPoint, -from_sun_direction, max(w*contact_shadow_len, min(w, contact_shadow_min_len)), contact_shadows_num_steps, dither-0.5, projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV);
           ssao.CONTACT_SHADOWS_ATTR = lerp(1, contactShadows, shadow_strength);
         } else
           ssao.CONTACT_SHADOWS_ATTR = 1;
@@ -937,7 +936,7 @@ shader ssao
       ssao = setSSAO(ssao);
 
       ##if ssao_mode == temporal
-        reproject_ssao(ssao, cameraToPoint, screenTC, depth1);
+        reproject_ssao(ssao, cameraToPoint, screenTC, rawDepth);
       ##endif
 
       return ssao;

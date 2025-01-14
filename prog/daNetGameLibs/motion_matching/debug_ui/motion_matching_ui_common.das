@@ -104,8 +104,7 @@ def edit_params(characterEid, dataBaseEid : EntityId)
                                  var mm_trajectory__angularVelocityViscosity : float&)
     if imgui::BeginTabItem("params")
       query(dataBaseEid) <| $ [es] (main_database__footLockerCtrlName : string;
-                                    var dataBase : AnimationDataBase;
-                                    var foot_ik_locker_enabled : bool&)
+                                    var dataBase : AnimationDataBase)
         safe_slider("blend time", dataBase.tagsPresets[max(motion_matching__presetIdx, 0)].animationBlendTime, 0f, 1f)
         safe_slider("velocity viscosity", mm_trajectory__linearVelocityViscosity, 0f, 1f)
         safe_slider("rotation viscosity", mm_trajectory__angularVelocityViscosity, 0f, 1f)
@@ -113,12 +112,10 @@ def edit_params(characterEid, dataBaseEid : EntityId)
 
         edit_root_update_params(motion_matching__controller)
 
-        if dataBase.footLockerParamId >= 0
-          if safe_checkbox("Foot IK locker (animTree)", foot_ik_locker_enabled)
+        query() <| $ [es] (var mm_params__footLockerEnabled : bool&)
+          if dataBase.footLockerParamId >= 0 && safe_checkbox("Foot IK locker (animTree)", mm_params__footLockerEnabled)
             let footLockerPBCIdx = get_post_blend_controller_idx(dataBase, main_database__footLockerCtrlName)
-            dataBase |> changePBCWeightOverride(footLockerPBCIdx, foot_ik_locker_enabled ? 1f : 0f)
-        else
-          safe_checkbox("Foot IK locker", foot_ik_locker_enabled)
+            dataBase |> changePBCWeightOverride(footLockerPBCIdx, mm_params__footLockerEnabled ? 1f : 0f)
 
       imgui::EndTabItem()
 
@@ -129,8 +126,7 @@ def debug_visualization_tab(imgui_state_eid : EntityId)
                                       var mm_visualization_show_skeleton : bool&;
                                       var mm_visualization_show_skeleton_original : bool&;
                                       var mm_visualization_show_skeleton_node_labels : bool&;
-                                      var mm_visualization_show_foot_ik_locked_positions : bool&;
-                                      var mm_visualization_show_foot_ik_target_positions : bool&)
+                                      var mm_visualization_show_foot_locker_positions : bool&)
       safe_checkbox("Show featured nodes", mm_visualization_show_feature_nodes)
       safe_checkbox("Show trajectory", mm_visualization_show_trajectory)
       safe_checkbox("Show skeleton", mm_visualization_show_skeleton)
@@ -140,9 +136,8 @@ def debug_visualization_tab(imgui_state_eid : EntityId)
         safe_checkbox("Show node labels", mm_visualization_show_skeleton_node_labels)
         imgui::Unindent();
       imgui::Separator()
-      imgui::Text("Foot IK locker")
-      safe_checkbox("Show locked position", mm_visualization_show_foot_ik_locked_positions)
-      safe_checkbox("Show IK target position", mm_visualization_show_foot_ik_target_positions)
+      imgui::Text("Foot locker IK")
+      safe_checkbox("Show locked position", mm_visualization_show_foot_locker_positions)
     imgui::EndTabItem()
 
 def edit_presets_weights(dataBaseEid : EntityId)
@@ -274,7 +269,7 @@ def edit_presets(dataBaseEid : EntityId)
 
     imgui::EndTabItem()
 
-def motion_matching_imgui(eid : EntityId)
+def motion_matching_imgui(eid : EntityId; imgui_state_eid : EntityId)
 
   imgui::PushItemWidth(150f);
   imgui::BeginTabBar("Tabs")
@@ -287,15 +282,9 @@ def motion_matching_imgui(eid : EntityId)
       return
     edit_params(eid, motion_matching__dataBaseEid)
 
-    var imguiStateEid = getSingletonEntity("motion_matching_imgui_state")
-    if imguiStateEid == INVALID_ENTITY_ID
-      imguiStateEid = createEntity("motion_matching_imgui_state")
-    query(imguiStateEid) <| $ [es] (var mm_imguiAnimcharEid : EntityId&)
-      mm_imguiAnimcharEid = eid
-
-    debug_visualization_tab(imguiStateEid)
+    debug_visualization_tab(imgui_state_eid)
     edit_tags(eid, *dataBase, motion_matching__controller)
     edit_presets(motion_matching__dataBaseEid)
-    play_clips(eid, motion_matching__dataBaseEid, imguiStateEid)
+    play_clips(eid, motion_matching__dataBaseEid, imgui_state_eid)
 
   imgui::EndTabBar()

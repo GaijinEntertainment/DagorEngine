@@ -232,6 +232,20 @@ void DeviceRemovedExtendedData::blit(const call_stack::CommandData &debug_info, 
   commandListTable.getList(cmd).blit({}, debug_info);
 }
 
+#if D3D_HAS_RAY_TRACING
+void DeviceRemovedExtendedData::dispatchRays(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+  const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchParameters &rdp)
+{
+  commandListTable.getList(cmd).dispatchRays({}, debug_info, dispatch_parameters, rbt, rdp);
+}
+
+void DeviceRemovedExtendedData::dispatchRaysIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+  const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchIndirectParameters &rdip)
+{
+  commandListTable.getList(cmd).dispatchRaysIndirect({}, debug_info, dispatch_parameters, rbt, rdip);
+}
+#endif
+
 void DeviceRemovedExtendedData::onDeviceRemoved(D3DDevice *device, HRESULT reason, call_stack::Reporter &reporter)
 {
   if (DXGI_ERROR_INVALID_CALL == reason)

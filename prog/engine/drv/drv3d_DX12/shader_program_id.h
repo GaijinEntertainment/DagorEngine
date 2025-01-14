@@ -88,11 +88,9 @@ public:
 
   static constexpr uint32_t type_graphics = 0;
   static constexpr uint32_t type_compute = 1;
-  static constexpr uint32_t type_raytrace = 2;
 
   bool isGraphics() const { return type_graphics == type; }
   bool isCompute() const { return type_compute == type; }
-  bool isRaytrace() const { return type_raytrace == type; }
 
   static ProgramID Null()
   {
@@ -121,15 +119,6 @@ public:
   {
     ProgramID result;
     result.type = type_compute;
-    result.group = group;
-    result.index = index;
-    return result;
-  }
-
-  static ProgramID asRaytraceProgram(uint32_t group, uint32_t index)
-  {
-    ProgramID result;
-    result.type = type_raytrace;
     result.group = group;
     result.index = index;
     return result;

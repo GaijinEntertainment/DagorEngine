@@ -17,6 +17,7 @@
 #include <animation/motion_matching.h>
 #include <animation/feature_normalization.h>
 #include <animation/motion_matching_metrics.h>
+#include <animation/animation_sampling.h>
 #include <util/dag_console.h>
 
 template <class T>
@@ -45,32 +46,11 @@ static void draw_skeleton_links(const GeomNodeTree &tree, dag::Index16 n, const 
 template <class T>
 inline void imgui_visualization_skeleton_ecs_query(T);
 
-ECS_TAG(render, dev)
-ECS_NO_ORDER
-ECS_REQUIRE(eastl::true_type motion_matching__enabled)
-static void debug_motion_matching_skeleton_es(const ecs::UpdateStageInfoRenderDebug &,
-  const MotionMatchingController &motion_matching__controller,
-  AnimV20::AnimcharBaseComponent &animchar)
+static void get_current_mm_pose(GeomNodeTree &mm_animated_tree,
+  eastl::bitvector<> &nodemask,
+  const MotionMatchingController &controller,
+  const AnimV20::AnimcharBaseComponent &animchar)
 {
-  bool showSkeleton = false;
-  bool showSkeletonOriginal = false;
-  bool showLabels = false;
-  imgui_visualization_skeleton_ecs_query([&](bool mm_visualization_show_skeleton, bool mm_visualization_show_skeleton_original,
-                                           bool mm_visualization_show_skeleton_node_labels) {
-    showSkeleton = mm_visualization_show_skeleton;
-    showSkeletonOriginal = mm_visualization_show_skeleton_original;
-    showLabels = mm_visualization_show_skeleton_node_labels;
-  });
-  if (!showSkeleton)
-    return;
-  wait_motion_matching_job();
-  if (!motion_matching__controller.hasActiveAnimation())
-    return;
-
-  const GeomNodeTree &tree = animchar.getNodeTree();
-  GeomNodeTree mmAnimatedTree = tree;
-  mmAnimatedTree.invalidateWtm();
-
   const Tab<AnimV20::AnimMap> &animMap = animchar.getAnimMap();
   int animNodesCount = 0;
   for (const auto &map : animMap)
@@ -88,41 +68,98 @@ static void debug_motion_matching_skeleton_es(const ecs::UpdateStageInfoRenderDe
   tlsAnimCtx.wtPos = wtPos.data();
   tlsAnimCtx.wtRot = wtRot.data();
   tlsAnimCtx.wtScl = wtScl.data();
-  eastl::bitvector<> nodeMask(mmAnimatedTree.nodeCount());
 
-  motion_matching__controller.getPose(tlsAnimCtx, animMap);
+  controller.getPose(tlsAnimCtx, animMap);
   for (int i = 0, e = animMap.size(); i < e; i++)
   {
     vec3f pos, scl;
     quat4f rot;
-    v_mat4_decompose(tree.getNodeTm(animMap[i].geomId), pos, rot, scl);
+    v_mat4_decompose(mm_animated_tree.getNodeTm(animMap[i].geomId), pos, rot, scl);
     int16_t animId = animMap[i].animId;
     uint16_t geomId = animMap[i].geomId.index();
     if (tlsAnimCtx.wtPos[animId].totalNum)
     {
-      nodeMask.set(geomId, true);
+      nodemask.set(geomId, true);
       pos = tlsAnimCtx.chPrs[animId].pos;
     }
     if (tlsAnimCtx.wtRot[animId].totalNum)
     {
-      nodeMask.set(geomId, true);
+      nodemask.set(geomId, true);
       rot = tlsAnimCtx.chPrs[animId].rot;
     }
     if (tlsAnimCtx.wtScl[animId].totalNum)
     {
-      nodeMask.set(geomId, true);
+      nodemask.set(geomId, true);
       scl = tlsAnimCtx.chPrs[animId].scl;
     }
-    v_mat44_compose(mmAnimatedTree.getNodeTm(animMap[i].geomId), pos, rot, scl);
+    v_mat44_compose(mm_animated_tree.getNodeTm(animMap[i].geomId), pos, rot, scl);
   }
-  mmAnimatedTree.calcWtm();
+}
 
-  begin_draw_cached_debug_lines(false, true);
-  if (showSkeletonOriginal)
-    draw_skeleton_links(tree, dag::Index16(0), nullptr, showLabels);
-  else
-    draw_skeleton_links(mmAnimatedTree, dag::Index16(0), &nodeMask, showLabels);
-  end_draw_cached_debug_lines();
+static void get_selected_anim_pose(GeomNodeTree &mm_animated_tree,
+  eastl::bitvector<> &nodemask,
+  int clip_idx,
+  int frame_idx,
+  const MotionMatchingController &controller)
+{
+  float timeInSeconds = controller.getFrameTimeInSeconds(clip_idx, frame_idx, 0.f);
+  const AnimationClip &clip = controller.dataBase->clips[clip_idx];
+  NodeTSRFixedArray nodes(mm_animated_tree.nodeCount());
+  set_identity(nodes, mm_animated_tree);
+  sample_animation(timeInSeconds, clip, nodes);
+  int rootId = controller.dataBase->rootNode.index();
+  if (clip.inPlaceAnimation)
+    nodes[0].changeBit = 0;
+  else if (nodes[rootId].changeBit)
+  {
+    RootMotion rootTm = lerp_root_motion(clip, timeInSeconds);
+    quat4f invRot = v_quat_conjugate(rootTm.rotation);
+    nodes[rootId].translation = v_quat_mul_vec3(invRot, v_sub(nodes[rootId].translation, rootTm.translation));
+    nodes[rootId].rotation = v_norm4(v_quat_mul_quat(invRot, nodes[rootId].rotation));
+  }
+  update_tree(nodes, mm_animated_tree);
+  for (int i = 0; i < nodes.size(); ++i)
+    if (nodes[i].changeBit != 0)
+      nodemask.set(i, true);
+}
+
+ECS_TAG(render, dev)
+ECS_NO_ORDER
+ECS_REQUIRE(eastl::true_type motion_matching__enabled)
+static void debug_motion_matching_skeleton_es(const ecs::UpdateStageInfoRenderDebug &,
+  const MotionMatchingController &motion_matching__controller,
+  AnimV20::AnimcharBaseComponent &animchar)
+{
+  imgui_visualization_skeleton_ecs_query(
+    [&](bool mm_visualization_show_skeleton, bool mm_visualization_show_skeleton_original,
+      bool mm_visualization_show_skeleton_node_labels, int mm_visualization__selectedClipIdx, int mm_visualization__selectedFrameIdx) {
+      if (!mm_visualization_show_skeleton)
+        return;
+      wait_motion_matching_job();
+      if (!motion_matching__controller.hasActiveAnimation())
+        return;
+      begin_draw_cached_debug_lines(false, true);
+      if (mm_visualization_show_skeleton_original)
+      {
+        const GeomNodeTree &tree = animchar.getNodeTree();
+        draw_skeleton_links(tree, dag::Index16(0), nullptr, mm_visualization_show_skeleton_node_labels);
+      }
+      else
+      {
+        const GeomNodeTree &tree = animchar.getNodeTree();
+        GeomNodeTree mmAnimatedTree = tree;
+        mmAnimatedTree.invalidateWtm();
+        eastl::bitvector<> nodeMask(mmAnimatedTree.nodeCount());
+        if (mm_visualization__selectedClipIdx < 0)
+          get_current_mm_pose(mmAnimatedTree, nodeMask, motion_matching__controller, animchar);
+        else
+          get_selected_anim_pose(mmAnimatedTree, nodeMask, mm_visualization__selectedClipIdx, mm_visualization__selectedFrameIdx,
+            motion_matching__controller);
+        mmAnimatedTree.calcWtm();
+        draw_skeleton_links(mmAnimatedTree, dag::Index16(0), &nodeMask, mm_visualization_show_skeleton_node_labels);
+      }
+      end_draw_cached_debug_lines();
+    });
 }
 
 template <class T>
@@ -157,15 +194,13 @@ static void debug_motion_matching_es(const ecs::UpdateStageInfoRenderDebug &,
   int cur_frame = motion_matching__controller.getCurrentFrame();
   bool curClipOverride = false;
   get_clip_for_debug_trajectory_ecs_query(
-    [&](ecs::EntityId mm_imguiAnimcharEid, int &mm_visualization__trajectoryClipIdx, int &mm_visualization__trajectoryFrameIdx) {
-      if (mm_visualization__trajectoryClipIdx < 0 || eid != mm_imguiAnimcharEid)
+    [&](ecs::EntityId mm_imguiAnimcharEid, int mm_visualization__selectedClipIdx, int mm_visualization__selectedFrameIdx) {
+      if (mm_visualization__selectedClipIdx < 0 || eid != mm_imguiAnimcharEid)
         return;
-      G_ASSERT(mm_visualization__trajectoryFrameIdx >= 0);
-      cur_clip = mm_visualization__trajectoryClipIdx;
-      cur_frame = mm_visualization__trajectoryFrameIdx;
+      G_ASSERT(mm_visualization__selectedFrameIdx >= 0);
+      cur_clip = mm_visualization__selectedClipIdx;
+      cur_frame = mm_visualization__selectedFrameIdx;
       curClipOverride = true;
-      mm_visualization__trajectoryClipIdx = -1;
-      mm_visualization__trajectoryFrameIdx = -1;
     });
 
   // create temporal copy for denormalized features
@@ -279,7 +314,10 @@ static void motion_matching_weights()
     [](const AnimV20::AnimcharBaseComponent &animchar, MotionMatchingController &motion_matching__controller,
       const FrameFeatures &motion_matching__goalFeature, int motion_matching__presetIdx) {
       if (!motion_matching__controller.hasActiveAnimation())
+      {
+        ImGui::Text("No active animation");
         return;
+      }
       const AnimationDataBase &dataBase = *motion_matching__controller.dataBase;
       dag::Vector<vec4f, framemem_allocator> normalizedFeatures(dataBase.featuresSize * dataBase.normalizationGroupsCount);
       for (int i = 0; i < dataBase.normalizationGroupsCount; ++i)
@@ -485,9 +523,9 @@ static void motion_matching_weights()
               tooltipMessage.aprintf(0, "velocity: %@\n", clipNodeFeatures.nodeVelocities[i]);
             }
             update_clip_for_debug_trajectory_ecs_query(
-              [clip_idx, frame](int &mm_visualization__trajectoryClipIdx, int &mm_visualization__trajectoryFrameIdx) {
-                mm_visualization__trajectoryClipIdx = clip_idx;
-                mm_visualization__trajectoryFrameIdx = frame;
+              [clip_idx, frame](int &mm_visualization__selectedClipIdx, int &mm_visualization__selectedFrameIdx) {
+                mm_visualization__selectedClipIdx = clip_idx;
+                mm_visualization__selectedFrameIdx = frame;
               });
           }
           if (cur_clip == clip_idx && cur_frame == frame)
@@ -508,6 +546,14 @@ static void motion_matching_weights()
         ImGui::BeginTooltip();
         ImGui::TextUnformatted(tooltipMessage);
         ImGui::EndTooltip();
+      }
+      else
+      {
+        update_clip_for_debug_trajectory_ecs_query(
+          [](int &mm_visualization__selectedClipIdx, int &mm_visualization__selectedFrameIdx) {
+            mm_visualization__selectedClipIdx = -1;
+            mm_visualization__selectedFrameIdx = -1;
+          });
       }
     });
 }

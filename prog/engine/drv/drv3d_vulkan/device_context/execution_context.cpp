@@ -19,6 +19,8 @@
 #include "predicted_latency_waiter.h"
 #include "texture.h"
 #include <EASTL/sort.h>
+#include "wrapped_command_buffer.h"
+#include "execution_sync_capture.h"
 
 using namespace drv3d_vulkan;
 
@@ -76,24 +78,23 @@ void ExecutionContext::invalidateActiveGraphicsPipeline()
   Backend::State::exec.set<StateFieldGraphicsPipeline, StateFieldGraphicsPipeline::Invalidate, BackGraphicsState>(1);
 }
 
-void ExecutionContext::writeExectionChekpointNonCommandStream(VulkanCommandBufferHandle cb, VkPipelineStageFlagBits stage,
-  uint32_t key)
+void ExecutionContext::writeExectionChekpointNonCommandStream(VkPipelineStageFlagBits stage, uint32_t key)
 {
-  Backend::gpuJob.get().execTracker.addMarker(cb, &key, sizeof(key));
+  Backend::gpuJob.get().execTracker.addMarker(&key, sizeof(key));
 
   if (!Globals::cfg.bits.commandMarkers)
     return;
 
   uintptr_t ptrKey = key;
-  Globals::gpuExecMarkers.write(cb, stage, data.id, (void *)ptrKey);
+  Globals::gpuExecMarkers.write(stage, data.id, (void *)ptrKey);
 }
 
-void ExecutionContext::writeExectionChekpoint(VulkanCommandBufferHandle cb, VkPipelineStageFlagBits stage)
+void ExecutionContext::writeExectionChekpoint(VkPipelineStageFlagBits stage)
 {
   if (!Globals::cfg.bits.commandMarkers)
     return;
 
-  Globals::gpuExecMarkers.write(cb, stage, data.id, cmd);
+  Globals::gpuExecMarkers.write(stage, data.id, cmd);
 }
 
 // barrier is not always describing DST OP
@@ -248,6 +249,10 @@ void ExecutionContext::switchFrameCoreForQueueChange(DeviceQueueType target_queu
   if (frameCoreQueue == target_queue)
     return;
 
+  // reorder should not cross queue boundaries, should be guarantied via buffer interruption, but that's weak
+  // so ensure everything is ok via assert
+  Backend::cb.verifyReorderEmpty();
+
   completeSyncForQueueChange();
   switchFrameCore(target_queue);
   waitForUploadOnCurrentBuffer();
@@ -255,11 +260,17 @@ void ExecutionContext::switchFrameCoreForQueueChange(DeviceQueueType target_queu
 
 void ExecutionContext::switchFrameCore(DeviceQueueType target_queue)
 {
+  // avoid unclosed ranges to not break markers spreading cross list/queue/submit
+  // finish them and start anew after allocating new command buffer
+  finishDebugEventRanges();
+
   // note: first switch will push empty buffer, that is used to replace later on for preFrame
   scratch.cmdListsToSubmit.push_back({frameCoreQueue, frameCore});
   frameCoreQueue = target_queue;
   allocFrameCore();
   lastBufferIdxOnQueue[(uint32_t)target_queue] = scratch.cmdListsToSubmit.size();
+
+  restoreDebugEventRanges();
 }
 
 void ExecutionContext::allocFrameCore()
@@ -271,6 +282,7 @@ void ExecutionContext::allocFrameCore()
   cbbi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
   cbbi.pInheritanceInfo = nullptr;
   VULKAN_EXIT_ON_FAIL(vkDev.vkBeginCommandBuffer(frameCore, &cbbi));
+  Backend::cb.set(frameCore);
 }
 
 void ExecutionContext::flushUnorderedImageColorClears()
@@ -279,7 +291,7 @@ void ExecutionContext::flushUnorderedImageColorClears()
   for (const CmdClearColorTexture &t : data.unorderedImageColorClears)
   {
     clearColorImage(t.image, t.area, t.value);
-    writeExectionChekpointNonCommandStream(frameCore, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_UNORDERED_COLOR_CLEAR);
+    writeExectionChekpointNonCommandStream(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_UNORDERED_COLOR_CLEAR);
   }
 }
 
@@ -289,7 +301,7 @@ void ExecutionContext::flushUnorderedImageDepthStencilClears()
   for (const CmdClearDepthStencilTexture &t : data.unorderedImageDepthStencilClears)
   {
     clearDepthStencilImage(t.image, t.area, t.value);
-    writeExectionChekpointNonCommandStream(frameCore, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_UNORDERED_DEPTH_CLEAR);
+    writeExectionChekpointNonCommandStream(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_UNORDERED_DEPTH_CLEAR);
   }
 }
 
@@ -300,7 +312,7 @@ void ExecutionContext::flushUnorderedImageCopies()
   for (CmdCopyImage &i : data.unorderedImageCopies)
   {
     copyImage(i.src, i.dst, i.srcMip, i.dstMip, i.mipCount, i.regionCount, i.regionIndex);
-    writeExectionChekpointNonCommandStream(frameCore, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_UNORDERED_IMAGE_COPY);
+    writeExectionChekpointNonCommandStream(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_UNORDERED_IMAGE_COPY);
   }
 }
 
@@ -370,7 +382,7 @@ void ExecutionContext::completeSyncForQueueChange()
   if (!Globals::cfg.bits.allowMultiQueue)
     return;
 
-  Backend::sync.completeOnQueue(frameCore, vkDev, data.id);
+  Backend::sync.completeOnQueue(data.id);
 }
 
 void ExecutionContext::prepareFrameCore()
@@ -391,7 +403,7 @@ void ExecutionContext::prepareFrameCore()
   {
     // can't live on transfer queue (or can't always live) and followup queue should be graphics after prepare
     switchFrameCoreForQueueChange(DeviceQueueType::GRAPHICS);
-    writeExectionChekpointNonCommandStream(frameCore, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_START);
+    writeExectionChekpointNonCommandStream(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_START);
     flushUnorderedImageColorClears();
     flushUnorderedImageDepthStencilClears();
     flushImageUploads();
@@ -403,9 +415,9 @@ void ExecutionContext::prepareFrameCore()
   if (needTransferUpload)
   {
     switchFrameCoreForQueueChange(DeviceQueueType::TRANSFER);
-    writeExectionChekpointNonCommandStream(frameCore, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_START_TRANSFER_UPLOAD);
-    flushBufferUploads(frameCore);
-    flushOrderedBufferUploads(frameCore);
+    writeExectionChekpointNonCommandStream(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_START_TRANSFER_UPLOAD);
+    flushBufferUploads();
+    flushOrderedBufferUploads();
 
     transferUploadBuffer = scratch.cmdListsToSubmit.size();
   }
@@ -413,11 +425,11 @@ void ExecutionContext::prepareFrameCore()
   uploadQueueWaitMask = 0;
   switchFrameCoreForQueueChange(DeviceQueueType::GRAPHICS);
 
-  writeExectionChekpointNonCommandStream(frameCore, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_TIMESTAMPS_RESET_QUEUE_READBACKS);
-  data.timestampQueryBlock->ensureSizesAndResetStatus(frameCore);
+  writeExectionChekpointNonCommandStream(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_TIMESTAMPS_RESET_QUEUE_READBACKS);
+  data.timestampQueryBlock->ensureSizesAndResetStatus();
 
   // pre frame completion marker
-  writeExectionChekpointNonCommandStream(frameCore, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_END);
+  writeExectionChekpointNonCommandStream(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_END);
 
   // not tied to command buffer, but tied to layout changes order on CPU-worker timeline so do after all other uploads
   processBindlessUpdates();
@@ -455,10 +467,10 @@ void ExecutionContext::processBindlessUpdates()
   }
 }
 
-void ExecutionContext::restoreImageResidencies(VulkanCommandBufferHandle cmd_b)
+void ExecutionContext::restoreImageResidencies()
 {
   for (Image *img : scratch.imageResidenceRestores)
-    img->delayedRestoreFromSysCopy(*this, cmd_b);
+    img->delayedRestoreFromSysCopy();
   scratch.imageResidenceRestores.clear();
 }
 
@@ -475,13 +487,10 @@ VulkanCommandBufferHandle ExecutionContext::allocAndBeginCommandBuffer(DeviceQue
   return ncmd;
 }
 
-VulkanCommandBufferHandle ExecutionContext::flushImageDownloads(VulkanCommandBufferHandle cmd_b)
+void ExecutionContext::flushImageDownloads()
 {
   if (data.imageDownloads.empty())
-    return cmd_b;
-
-  if (is_null(cmd_b))
-    cmd_b = allocAndBeginCommandBuffer(frameCoreQueue);
+    return;
 
   for (auto &&download : data.imageDownloads)
   {
@@ -503,28 +512,23 @@ VulkanCommandBufferHandle ExecutionContext::flushImageDownloads(VulkanCommandBuf
     }
   }
 
-  Backend::sync.completeNeeded(cmd_b, vkDev);
+  Backend::sync.completeNeeded();
 
   for (auto &&download : data.imageDownloads)
   {
     // do the copy
-    VULKAN_LOG_CALL(vkDev.vkCmdCopyImageToBuffer(cmd_b, download.image->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+    VULKAN_LOG_CALL(Backend::cb.wCmdCopyImageToBuffer(download.image->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
       download.buffer->getHandle(), download.copyCount, data.imageDownloadCopies.data() + download.copyIndex));
   }
-
-  return cmd_b;
 }
 
-VulkanCommandBufferHandle ExecutionContext::flushBufferDownloads(VulkanCommandBufferHandle cmd_b)
+void ExecutionContext::flushBufferDownloads()
 {
   if (data.bufferDownloads.empty())
-    return cmd_b;
+    return;
 
   if (Globals::cfg.bits.optimizeBufferUploads)
     BufferCopyInfo::optimizeBufferCopies(data.bufferDownloads, data.bufferDownloadCopies);
-
-  if (is_null(cmd_b))
-    cmd_b = allocAndBeginCommandBuffer(frameCoreQueue);
 
   for (auto &&download : data.bufferDownloads)
   {
@@ -542,26 +546,24 @@ VulkanCommandBufferHandle ExecutionContext::flushBufferDownloads(VulkanCommandBu
     }
   }
 
-  Backend::sync.completeNeeded(cmd_b, vkDev);
+  Backend::sync.completeNeeded();
 
   for (auto &&download : data.bufferDownloads)
   {
-    VULKAN_LOG_CALL(vkDev.vkCmdCopyBuffer(cmd_b, download.src->getHandle(), download.dst->getHandle(), download.copyCount,
+    VULKAN_LOG_CALL(Backend::cb.wCmdCopyBuffer(download.src->getHandle(), download.dst->getHandle(), download.copyCount,
       data.bufferDownloadCopies.data() + download.copyIndex));
   }
-
-  return cmd_b;
 }
 
 void ExecutionContext::flushImageUploadsIter(uint32_t start, uint32_t end)
 {
-  Backend::sync.completeNeeded(frameCore, vkDev);
+  Backend::sync.completeNeeded();
   for (uint32_t i = start; i < end; ++i)
   {
     ImageCopyInfo &upload = data.imageUploads[i];
-    VULKAN_LOG_CALL(vkDev.vkCmdCopyBufferToImage(frameCore, upload.buffer->getHandle(), upload.image->getHandle(),
+    VULKAN_LOG_CALL(Backend::cb.wCmdCopyBufferToImage(upload.buffer->getHandle(), upload.image->getHandle(),
       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, upload.copyCount, data.imageUploadCopies.data() + upload.copyIndex));
-    writeExectionChekpointNonCommandStream(frameCore, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_IMAGE_UPLOAD);
+    writeExectionChekpointNonCommandStream(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_IMAGE_UPLOAD);
   }
 }
 
@@ -589,7 +591,7 @@ void ExecutionContext::flushImageUploads()
     }
   }
 
-  Backend::sync.completeNeeded(frameCore, vkDev);
+  Backend::sync.completeNeeded();
 
   uint32_t mergedRangeStart = 0;
   for (uint32_t i = 0; i < data.imageUploads.size(); ++i)
@@ -627,10 +629,10 @@ void ExecutionContext::flushImageUploads()
     }
   }
   if (anyBindless)
-    Backend::sync.completeNeeded(frameCore, vkDev);
+    Backend::sync.completeNeeded();
 }
 
-void ExecutionContext::flushOrderedBufferUploads(VulkanCommandBufferHandle cmd_b)
+void ExecutionContext::flushOrderedBufferUploads()
 {
   if (data.orderedBufferUploads.empty())
     return;
@@ -653,14 +655,14 @@ void ExecutionContext::flushOrderedBufferUploads(VulkanCommandBufferHandle cmd_b
         {iter->dstOffset, iter->size});
     }
 
-    Backend::sync.completeNeeded(cmd_b, vkDev);
+    Backend::sync.completeNeeded();
 
-    VULKAN_LOG_CALL(vkDev.vkCmdCopyBuffer(cmd_b, upload.src->getHandle(), upload.dst->getHandle(), upload.copyCount,
+    VULKAN_LOG_CALL(Backend::cb.wCmdCopyBuffer(upload.src->getHandle(), upload.dst->getHandle(), upload.copyCount,
       data.orderedBufferUploadCopies.data() + upload.copyIndex));
-    writeExectionChekpointNonCommandStream(frameCore, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_BUFFER_UPLOAD_ORDERED);
+    writeExectionChekpointNonCommandStream(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_BUFFER_UPLOAD_ORDERED);
   }
 }
-void ExecutionContext::flushBufferUploads(VulkanCommandBufferHandle cmd_b)
+void ExecutionContext::flushBufferUploads()
 {
   if (data.bufferUploads.empty())
     return;
@@ -687,47 +689,41 @@ void ExecutionContext::flushBufferUploads(VulkanCommandBufferHandle cmd_b)
     }
   }
 
-  Backend::sync.completeNeeded(cmd_b, vkDev);
+  Backend::sync.completeNeeded();
 
   for (auto &&upload : data.bufferUploads)
   {
     // sadly no way to batch those together...
-    VULKAN_LOG_CALL(vkDev.vkCmdCopyBuffer(cmd_b, upload.src->getHandle(), upload.dst->getHandle(), upload.copyCount,
+    VULKAN_LOG_CALL(Backend::cb.wCmdCopyBuffer(upload.src->getHandle(), upload.dst->getHandle(), upload.copyCount,
       data.bufferUploadCopies.data() + upload.copyIndex));
-    writeExectionChekpointNonCommandStream(frameCore, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_BUFFER_UPLOAD);
+    writeExectionChekpointNonCommandStream(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_BUFFER_UPLOAD);
   }
 }
 
-VulkanCommandBufferHandle ExecutionContext::flushBufferToHostFlushes(VulkanCommandBufferHandle cmd_b)
+void ExecutionContext::flushBufferToHostFlushes()
 {
   if (data.bufferToHostFlushes.empty())
-    return cmd_b;
-
-  if (is_null(cmd_b))
-    cmd_b = allocAndBeginCommandBuffer(frameCoreQueue);
-
+    return;
 
   for (auto &&flush : data.bufferToHostFlushes)
   {
     verifyResident(flush.buffer);
     Backend::sync.addBufferAccess({VK_PIPELINE_STAGE_HOST_BIT, VK_ACCESS_HOST_READ_BIT}, flush.buffer, {flush.offset, flush.range});
   }
-  Backend::sync.completeNeeded(cmd_b, vkDev);
-
-  return cmd_b;
+  Backend::sync.completeNeeded();
 }
 
 void ExecutionContext::flushPostFrameCommands()
 {
-  auto postFrame = flushBufferDownloads(frameCore);
-  writeExectionChekpointNonCommandStream(postFrame, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_DOWNLOAD_BUFFERS);
-  postFrame = flushImageDownloads(postFrame);
-  writeExectionChekpointNonCommandStream(postFrame, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_DOWNLOAD_IMAGES);
-  postFrame = flushBufferToHostFlushes(postFrame);
-  writeExectionChekpointNonCommandStream(postFrame, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_BUFFER_HOST_FLUSHES);
+  flushBufferDownloads();
+  writeExectionChekpointNonCommandStream(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_DOWNLOAD_BUFFERS);
+  flushImageDownloads();
+  writeExectionChekpointNonCommandStream(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_DOWNLOAD_IMAGES);
+  flushBufferToHostFlushes();
+  writeExectionChekpointNonCommandStream(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_BUFFER_HOST_FLUSHES);
 
-  Backend::sync.completeAll(postFrame, vkDev, data.id);
-  writeExectionChekpointNonCommandStream(postFrame, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_FRAME_END_SYNC);
+  Backend::sync.completeAll(data.id);
+  writeExectionChekpointNonCommandStream(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_FRAME_END_SYNC);
 }
 
 void ExecutionContext::stackUpCommandBuffers()
@@ -845,6 +841,12 @@ void ExecutionContext::enqueueCommandListsToMultipleQueues(ThreadedFence *fence)
   TIME_PROFILE(vulkan_queue_submits);
   FrameInfo &frame = Backend::gpuJob.get();
 
+#if EXECUTION_SYNC_DEBUG_CAPTURE > 0
+  for (ExecutionScratch::CommandBufferSubmitDeps &i : scratch.cmdListsSubmitDeps)
+    Backend::syncCapture.bufferLinks.push_back(
+      {(uint32_t)scratch.cmdListsToSubmit[i.from].queue, i.from, (uint32_t)scratch.cmdListsToSubmit[i.to].queue, i.to});
+#endif
+
   // sum up waits and signals for each buffer submit and sort dependencies to reduce complexity of submit logic
   sortAndCountDependencies();
   // generate queue submits, consisting of continous block of command lists
@@ -859,7 +861,11 @@ void ExecutionContext::enqueueCommandListsToMultipleQueues(ThreadedFence *fence)
   {
     queueJoin.markActiveQueue(i.queue);
     if (fence && i.fenceWait)
+    {
       queueJoin.addSignals(i);
+      if (!is_null(presentSignal))
+        i.signals.push_back(presentSignal);
+    }
 
     DeviceQueue::TrimmedSubmitInfo si = {};
     si.pCommandBuffers = ary(i.cbs.data());
@@ -874,6 +880,8 @@ void ExecutionContext::enqueueCommandListsToMultipleQueues(ThreadedFence *fence)
     if (fence && i.fenceWait)
     {
       Globals::VK::queue[i.queue].submit(vkDev, frame, si, fence->get());
+      if (!is_null(presentSignal))
+        i.signals.pop_back();
       fence->setAsSubmited();
     }
     else
@@ -914,6 +922,7 @@ void ExecutionContext::enqueueCommandListsToMultipleQueues(ThreadedFence *fence)
     // NOTE: specially inside loop, to avoid leaving some work "floating" somewhere after fence
     queueJoin.addWaits(i);
     // all signals on this submit must be used for related waits, otherwise something is broken
+
     G_ASSERTF(i.signals.empty(), "vulkan: some signals are not consumed!");
   }
   scratch.submitGraph.clear();
@@ -963,15 +972,15 @@ void ExecutionContext::flush(ThreadedFence *fence)
 
   Backend::immediateConstBuffers.flush();
 
-  auto preFrame = VulkanCommandBufferHandle{};
   if (scratch.imageResidenceRestores.size())
   {
     scratch.cmdListsToSubmit[0].queue = DeviceQueueType::GRAPHICS;
-    preFrame = allocAndBeginCommandBuffer(scratch.cmdListsToSubmit[0].queue);
+    scratch.cmdListsToSubmit[0].handle = allocAndBeginCommandBuffer(scratch.cmdListsToSubmit[0].queue);
+    Backend::cb.set(scratch.cmdListsToSubmit[0].handle);
 
-    restoreImageResidencies(preFrame);
-    writeExectionChekpointNonCommandStream(preFrame, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_IMAGE_RESIDENCY_RESTORE);
-    scratch.cmdListsToSubmit[0].handle = preFrame;
+    restoreImageResidencies();
+    writeExectionChekpointNonCommandStream(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_IMAGE_RESIDENCY_RESTORE);
+    Backend::cb.set(frameCore);
   }
 
   // transfer queue is very limited, not fitting for all post frame commands
@@ -999,6 +1008,8 @@ void ExecutionContext::flush(ThreadedFence *fence)
 
   Backend::pipelineCompiler.processQueued();
   flushProcessed = true;
+  Backend::cb.verifyReorderEmpty();
+  scratch.debugEventStack.clear();
 }
 
 void ExecutionContext::insertEvent(const char *marker, uint32_t color /*=0xFFFFFFFF*/)
@@ -1017,7 +1028,7 @@ void ExecutionContext::insertEvent(const char *marker, uint32_t color /*=0xFFFFF
     ;
     info.color[2] = (0xFF & (color >> 16)) / 255.0f;
     info.color[3] = (0xFF & (color >> 24)) / 255.0f;
-    VULKAN_LOG_CALL(vkDev.vkCmdDebugMarkerInsertEXT(frameCore, &info));
+    VULKAN_LOG_CALL(Backend::cb.wCmdDebugMarkerInsertEXT(&info));
     return;
   }
 #endif
@@ -1032,16 +1043,13 @@ void ExecutionContext::insertEvent(const char *marker, uint32_t color /*=0xFFFFF
     ;
     info.color[2] = (0xFF & (color >> 16)) / 255.0f;
     info.color[3] = (0xFF & (color >> 24)) / 255.0f;
-    VULKAN_LOG_CALL(vkDev.getInstance().vkCmdInsertDebugUtilsLabelEXT(frameCore, &info));
+    VULKAN_LOG_CALL(Backend::cb.wCmdInsertDebugUtilsLabelEXT(&info));
   }
 #endif
 }
 
-void ExecutionContext::pushEventRaw(const char *marker, uint32_t color /*=0xFFFFFFFF*/)
+void ExecutionContext::pushEventRaw(const char *marker, uint32_t color)
 {
-  if (!Globals::cfg.bits.allowDebugMarkers)
-    return;
-
 #if VK_EXT_debug_marker
   if (vkDev.hasExtension<DebugMarkerEXT>())
   {
@@ -1054,7 +1062,7 @@ void ExecutionContext::pushEventRaw(const char *marker, uint32_t color /*=0xFFFF
     ;
     info.color[2] = (0xFF & (color >> 16)) / 255.0f;
     info.color[3] = (0xFF & (color >> 24)) / 255.0f;
-    VULKAN_LOG_CALL(vkDev.vkCmdDebugMarkerBeginEXT(frameCore, &info));
+    VULKAN_LOG_CALL(Backend::cb.wCmdDebugMarkerBeginEXT(&info));
     return;
   }
 #endif
@@ -1070,20 +1078,17 @@ void ExecutionContext::pushEventRaw(const char *marker, uint32_t color /*=0xFFFF
     ;
     info.color[2] = (0xFF & (color >> 16)) / 255.0f;
     info.color[3] = (0xFF & (color >> 24)) / 255.0f;
-    VULKAN_LOG_CALL(instance.vkCmdBeginDebugUtilsLabelEXT(frameCore, &info));
+    VULKAN_LOG_CALL(Backend::cb.wCmdBeginDebugUtilsLabelEXT(&info));
   }
 #endif
 }
 
 void ExecutionContext::popEventRaw()
 {
-  if (!Globals::cfg.bits.allowDebugMarkers)
-    return;
-
 #if VK_EXT_debug_marker
   if (vkDev.hasExtension<DebugMarkerEXT>())
   {
-    VULKAN_LOG_CALL(vkDev.vkCmdDebugMarkerEndEXT(frameCore));
+    VULKAN_LOG_CALL(Backend::cb.wCmdDebugMarkerEndEXT());
     return;
   }
 #endif
@@ -1091,33 +1096,65 @@ void ExecutionContext::popEventRaw()
   auto &instance = vkDev.getInstance();
   if (instance.hasExtension<DebugUtilsEXT>())
   {
-    VULKAN_LOG_CALL(instance.vkCmdEndDebugUtilsLabelEXT(frameCore));
+    VULKAN_LOG_CALL(Backend::cb.wCmdEndDebugUtilsLabelEXT());
   }
 #endif
+}
+
+void ExecutionContext::finishDebugEventRanges()
+{
+  for (size_t i = 0; i < scratch.debugEventStack.size(); ++i)
+    popEventRaw();
+}
+
+void ExecutionContext::restoreDebugEventRanges()
+{
+  for (const ExecutionScratch::DebugEvent &i : scratch.debugEventStack)
+    pushEventRaw(i.name, i.color);
+}
+
+void ExecutionContext::pushEventTracked(const char *marker, uint32_t color /* = 0xFFFFFFFF*/)
+{
+  if (!Globals::cfg.bits.allowDebugMarkers)
+    return;
+
+  scratch.debugEventStack.push_back({color, marker});
+  pushEventRaw(marker, color);
+}
+
+void ExecutionContext::popEventTracked()
+{
+  if (!Globals::cfg.bits.allowDebugMarkers)
+    return;
+
+  // avoid issues on markers that live over frame
+  if (scratch.debugEventStack.size())
+    scratch.debugEventStack.pop_back();
+  popEventRaw();
 }
 
 void ExecutionContext::pushEvent(StringIndexRef name)
 {
   Backend::profilerStack.pushInterruptChain(data.charStore.data() + name.get());
-  pushEventRaw(data.charStore.data() + name.get());
+  pushEventTracked(data.charStore.data() + name.get());
 }
 
 void ExecutionContext::popEvent()
 {
   Backend::profilerStack.popInterruptChain();
-  popEventRaw();
+  popEventTracked();
 }
 
 void ExecutionContext::beginQuery(VulkanQueryPoolHandle pool, uint32_t index, VkQueryControlFlags flags)
 {
-  VULKAN_LOG_CALL(vkDev.vkCmdBeginQuery(frameCore, pool, index, flags));
+  VULKAN_LOG_CALL(Backend::cb.wCmdBeginQuery(pool, index, flags));
   directDrawCountInSurvey = directDrawCount;
 }
 
 void ExecutionContext::endQuery(VulkanQueryPoolHandle pool, uint32_t index)
 {
   directDrawCountInSurvey = directDrawCount - directDrawCountInSurvey;
-  VULKAN_LOG_CALL(vkDev.vkCmdEndQuery(frameCore, pool, index));
+  VULKAN_LOG_CALL(Backend::cb.wCmdEndQuery(pool, index));
 }
 
 void ExecutionContext::wait(ThreadedFence *fence) { fence->wait(vkDev); }
@@ -1227,7 +1264,7 @@ void ExecutionContext::buildAccelerationStructure(const RaytraceStructureBuildDa
     rangeInfo.primitiveCount = build_data.tlas.instanceCount;
 
     const VkAccelerationStructureBuildRangeInfoKHR *build_range = &rangeInfo;
-    VULKAN_LOG_CALL(vkDev.vkCmdBuildAccelerationStructuresKHR(frameCore, 1, &buildInfo, &build_range));
+    VULKAN_LOG_CALL(Backend::cb.wCmdBuildAccelerationStructuresKHR(1, &buildInfo, &build_range));
   }
   else
   {
@@ -1238,7 +1275,7 @@ void ExecutionContext::buildAccelerationStructure(const RaytraceStructureBuildDa
     buildInfo.pGeometries = data.raytraceGeometryKHRStore.data() + build_data.blas.firstGeometry;
 
     const VkAccelerationStructureBuildRangeInfoKHR *build_range = &data.raytraceBuildRangeInfoKHRStore[build_data.blas.firstGeometry];
-    VULKAN_LOG_CALL(vkDev.vkCmdBuildAccelerationStructuresKHR(frameCore, 1, &buildInfo, &build_range));
+    VULKAN_LOG_CALL(Backend::cb.wCmdBuildAccelerationStructuresKHR(1, &buildInfo, &build_range));
 
     if (build_data.blas.compactionSizeBuffer)
     {
@@ -1264,10 +1301,10 @@ void ExecutionContext::queryAccelerationStructureCompationSizes(const RaytraceSt
 
   // do blocking-like size query for now, if not efficient - redo with per frame query pool copy
   constexpr VkDeviceSize querySize = sizeof(uint64_t);
-  VULKAN_LOG_CALL(vkDev.vkCmdResetQueryPool(frameCore, Globals::rtSizeQueryPool.getPool(), 0, 1));
-  VULKAN_LOG_CALL(vkDev.vkCmdWriteAccelerationStructuresPropertiesKHR(frameCore, 1, &dstAc,
+  VULKAN_LOG_CALL(Backend::cb.wCmdResetQueryPool(Globals::rtSizeQueryPool.getPool(), 0, 1));
+  VULKAN_LOG_CALL(Backend::cb.wCmdWriteAccelerationStructuresPropertiesKHR(1, &dstAc,
     VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_KHR, Globals::rtSizeQueryPool.getPool(), 0));
-  VULKAN_LOG_CALL(vkDev.vkCmdCopyQueryPoolResults(frameCore, Globals::rtSizeQueryPool.getPool(), 0, 1, compactSizeBuf.getHandle(),
+  VULKAN_LOG_CALL(Backend::cb.wCmdCopyQueryPoolResults(Globals::rtSizeQueryPool.getPool(), 0, 1, compactSizeBuf.getHandle(),
     compactSizeBuf.bufOffset(0), querySize, VK_QUERY_RESULT_WAIT_BIT | VK_QUERY_RESULT_64_BIT));
 }
 
@@ -1276,10 +1313,10 @@ void ExecutionContext::buildAccelerationStructures(RaytraceStructureBuildData *b
   auto dataRange = make_span(build_data, count);
   for (RaytraceStructureBuildData &itr : dataRange)
     accumulateRaytraceBuildAccesses(itr);
-  Backend::sync.completeNeeded(frameCore, vkDev);
+  Backend::sync.completeNeeded();
   for (RaytraceStructureBuildData &itr : dataRange)
     buildAccelerationStructure(itr);
-  Backend::sync.completeNeeded(frameCore, vkDev);
+  Backend::sync.completeNeeded();
   for (RaytraceStructureBuildData &itr : dataRange)
     queryAccelerationStructureCompationSizes(itr);
   for (RaytraceStructureBuildData &itr : dataRange)
@@ -1377,8 +1414,9 @@ void ExecutionContext::present()
 
   beginCustomStage("present");
 
-  swapchain.prePresent(*this);
-  writeExectionChekpointNonCommandStream(frameCore, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_PRE_PRESENT);
+  swapchain.prePresent();
+  writeExectionChekpointNonCommandStream(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, MARKER_NCMD_PRE_PRESENT);
+  presentSignal = frame.allocSemaphore(Globals::VK::dev);
   flush(frame.frameDone);
 
   int64_t frameCallbacksDurationTicks = 0;
@@ -1389,7 +1427,8 @@ void ExecutionContext::present()
 
   {
     ScopedTimerTicks watch(Backend::timings.presentWaitDuration);
-    swapchain.present(*this);
+    swapchain.present(presentSignal);
+    presentSignal = VulkanNullHandle();
   }
 
   Globals::timelines.get<TimelineManager::GpuExecute>().advance();
@@ -1449,8 +1488,8 @@ void ExecutionContext::dispatch(uint32_t x, uint32_t y, uint32_t z)
 {
   flushComputeState();
 
-  VULKAN_LOG_CALL(vkDev.vkCmdDispatch(frameCore, x, y, z));
-  writeExectionChekpoint(frameCore, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+  VULKAN_LOG_CALL(Backend::cb.wCmdDispatch(x, y, z));
+  writeExectionChekpoint(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 }
 
 void ExecutionContext::dispatchIndirect(BufferRef buffer, uint32_t offset)
@@ -1458,16 +1497,16 @@ void ExecutionContext::dispatchIndirect(BufferRef buffer, uint32_t offset)
   trackIndirectArgAccesses(buffer, offset, 1, sizeof(VkDispatchIndirectCommand));
   flushComputeState();
 
-  VULKAN_LOG_CALL(vkDev.vkCmdDispatchIndirect(frameCore, buffer.getHandle(), buffer.bufOffset(offset)));
-  writeExectionChekpoint(frameCore, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+  VULKAN_LOG_CALL(Backend::cb.wCmdDispatchIndirect(buffer.getHandle(), buffer.bufOffset(offset)));
+  writeExectionChekpoint(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 }
 
 void ExecutionContext::fillBuffer(Buffer *buffer, uint32_t offset, uint32_t size, uint32_t value)
 {
   verifyResident(buffer);
   Backend::sync.addBufferAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, buffer, {offset, size});
-  Backend::sync.completeNeeded(frameCore, vkDev);
-  VULKAN_LOG_CALL(vkDev.vkCmdFillBuffer(frameCore, buffer->getHandle(), offset, size, value));
+  Backend::sync.completeNeeded();
+  VULKAN_LOG_CALL(Backend::cb.wCmdFillBuffer(buffer->getHandle(), offset, size, value));
 }
 
 void ExecutionContext::clearDepthStencilImage(Image *image, const VkImageSubresourceRange &area, const VkClearDepthStencilValue &value)
@@ -1482,10 +1521,9 @@ void ExecutionContext::clearDepthStencilImage(Image *image, const VkImageSubreso
 
   Backend::sync.addImageWriteDiscard({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, image,
     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, {area.baseMipLevel, area.levelCount, area.baseArrayLayer, area.layerCount});
-  Backend::sync.completeNeeded(frameCore, vkDev);
+  Backend::sync.completeNeeded();
 
-  VULKAN_LOG_CALL(
-    vkDev.vkCmdClearDepthStencilImage(frameCore, image->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &value, 1, &area));
+  VULKAN_LOG_CALL(Backend::cb.wCmdClearDepthStencilImage(image->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &value, 1, &area));
 }
 
 void ExecutionContext::beginCustomStage(const char *why)
@@ -1501,7 +1539,7 @@ void ExecutionContext::beginCustomStage(const char *why)
   if (enteringCustomStage)
   {
     if (Globals::cfg.bits.enableDeviceExecutionTracker)
-      Backend::gpuJob.get().execTracker.addMarker(frameCore, why, strlen(why));
+      Backend::gpuJob.get().execTracker.addMarker(why, strlen(why));
     insertEvent(why, 0xFFFF00FF);
   }
 }
@@ -1533,7 +1571,7 @@ void ExecutionContext::clearView(int what)
   applyStateChanges();
   invalidateActiveGraphicsPipeline();
 
-  writeExectionChekpoint(frameCore, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT);
+  writeExectionChekpoint(VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT);
 
   getFramebufferState().clearMode = 0;
 }
@@ -1549,9 +1587,9 @@ void ExecutionContext::clearColorImage(Image *image, const VkImageSubresourceRan
 
   Backend::sync.addImageWriteDiscard({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, image,
     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, {area.baseMipLevel, area.levelCount, area.baseArrayLayer, area.layerCount});
-  Backend::sync.completeNeeded(frameCore, vkDev);
+  Backend::sync.completeNeeded();
 
-  VULKAN_LOG_CALL(vkDev.vkCmdClearColorImage(frameCore, image->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &value, 1, &area));
+  VULKAN_LOG_CALL(Backend::cb.wCmdClearColorImage(image->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &value, 1, &area));
 }
 
 void ExecutionContext::copyImageToBufferOrdered(Buffer *dst, Image *src, const VkBufferImageCopy *regions, int count)
@@ -1568,10 +1606,10 @@ void ExecutionContext::copyImageToBufferOrdered(Buffer *dst, Image *src, const V
       VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
       {region.imageSubresource.mipLevel, 1, region.imageSubresource.baseArrayLayer, region.imageSubresource.layerCount});
   }
-  Backend::sync.completeNeeded(frameCore, vkDev);
+  Backend::sync.completeNeeded();
 
   VULKAN_LOG_CALL(
-    vkDev.vkCmdCopyImageToBuffer(frameCore, src->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dst->getHandle(), count, regions));
+    Backend::cb.wCmdCopyImageToBuffer(src->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dst->getHandle(), count, regions));
 }
 
 void ExecutionContext::copyImage(Image *src, Image *dst, uint32_t src_mip, uint32_t dst_mip, uint32_t mip_count, uint32_t region_count,
@@ -1584,9 +1622,9 @@ void ExecutionContext::copyImage(Image *src, Image *dst, uint32_t src_mip, uint3
     VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, {src_mip, mip_count, 0, src->getArrayLayers()});
   Backend::sync.addImageAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, dst,
     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, {dst_mip, mip_count, 0, dst->getArrayLayers()});
-  Backend::sync.completeNeeded(frameCore, vkDev);
+  Backend::sync.completeNeeded();
 
-  VULKAN_LOG_CALL(vkDev.vkCmdCopyImage(frameCore, src->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dst->getHandle(),
+  VULKAN_LOG_CALL(Backend::cb.wCmdCopyImage(src->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dst->getHandle(),
     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, region_count, data.imageCopyInfos.data() + first_region));
 
   if (dst->isSampledSRV())
@@ -1596,7 +1634,7 @@ void ExecutionContext::copyImage(Image *src, Image *dst, uint32_t src_mip, uint3
   if (dst->isUsedInBindless())
   {
     trackBindlessRead(dst);
-    Backend::sync.completeNeeded(frameCore, vkDev);
+    Backend::sync.completeNeeded();
   }
 }
 
@@ -1616,9 +1654,9 @@ void ExecutionContext::copyQueryResult(VulkanQueryPoolHandle pool, uint32_t inde
 
   verifyResident(dst);
   Backend::sync.addBufferAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, dst, {ofs, sz});
-  Backend::sync.completeNeeded(frameCore, vkDev);
+  Backend::sync.completeNeeded();
 
-  VULKAN_LOG_CALL(vkDev.vkCmdCopyQueryPoolResults(frameCore, pool, index, count, dst->getHandle(), ofs, sz, VK_QUERY_RESULT_WAIT_BIT));
+  VULKAN_LOG_CALL(Backend::cb.wCmdCopyQueryPoolResults(pool, index, count, dst->getHandle(), ofs, sz, VK_QUERY_RESULT_WAIT_BIT));
 }
 
 void ExecutionContext::bindVertexUserData(const BufferRef &ref)
@@ -1633,7 +1671,10 @@ void ExecutionContext::bindVertexUserData(const BufferRef &ref)
 void ExecutionContext::drawIndirect(BufferRef buffer, uint32_t offset, uint32_t count, uint32_t stride)
 {
   if (!renderAllowed)
+  {
+    insertEvent("drawIndirect: async compile", 0xFF0000FF);
     return;
+  }
 
   trackIndirectArgAccesses(buffer, offset, count, stride);
 
@@ -1642,22 +1683,25 @@ void ExecutionContext::drawIndirect(BufferRef buffer, uint32_t offset, uint32_t 
     // emulate multi draw indirect
     for (uint32_t i = 0; i < count; ++i)
     {
-      VULKAN_LOG_CALL(vkDev.vkCmdDrawIndirect(frameCore, buffer.getHandle(), buffer.bufOffset(offset), 1, stride));
-      writeExectionChekpoint(frameCore, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+      VULKAN_LOG_CALL(Backend::cb.wCmdDrawIndirect(buffer.getHandle(), buffer.bufOffset(offset), 1, stride));
+      writeExectionChekpoint(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
       offset += stride;
     }
   }
   else
   {
-    VULKAN_LOG_CALL(vkDev.vkCmdDrawIndirect(frameCore, buffer.getHandle(), buffer.bufOffset(offset), count, stride));
-    writeExectionChekpoint(frameCore, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+    VULKAN_LOG_CALL(Backend::cb.wCmdDrawIndirect(buffer.getHandle(), buffer.bufOffset(offset), count, stride));
+    writeExectionChekpoint(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
   }
 }
 
 void ExecutionContext::drawIndexedIndirect(BufferRef buffer, uint32_t offset, uint32_t count, uint32_t stride)
 {
   if (!renderAllowed)
+  {
+    insertEvent("drawIndexedIndirect: async compile", 0xFF0000FF);
     return;
+  }
 
   trackIndirectArgAccesses(buffer, offset, count, stride);
 
@@ -1666,37 +1710,43 @@ void ExecutionContext::drawIndexedIndirect(BufferRef buffer, uint32_t offset, ui
     // emulate multi draw indirect
     for (uint32_t i = 0; i < count; ++i)
     {
-      VULKAN_LOG_CALL(vkDev.vkCmdDrawIndexedIndirect(frameCore, buffer.getHandle(), buffer.bufOffset(offset), 1, stride));
-      writeExectionChekpoint(frameCore, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+      VULKAN_LOG_CALL(Backend::cb.wCmdDrawIndexedIndirect(buffer.getHandle(), buffer.bufOffset(offset), 1, stride));
+      writeExectionChekpoint(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
       offset += stride;
     }
   }
   else
   {
-    VULKAN_LOG_CALL(vkDev.vkCmdDrawIndexedIndirect(frameCore, buffer.getHandle(), buffer.bufOffset(offset), count, stride));
-    writeExectionChekpoint(frameCore, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+    VULKAN_LOG_CALL(Backend::cb.wCmdDrawIndexedIndirect(buffer.getHandle(), buffer.bufOffset(offset), count, stride));
+    writeExectionChekpoint(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
   }
 }
 
 void ExecutionContext::draw(uint32_t count, uint32_t instance_count, uint32_t start, uint32_t first_instance)
 {
   if (!renderAllowed)
+  {
+    insertEvent("draw: async compile", 0xFF0000FF);
     return;
+  }
 
   ++directDrawCount;
-  VULKAN_LOG_CALL(vkDev.vkCmdDraw(frameCore, count, instance_count, start, first_instance));
-  writeExectionChekpoint(frameCore, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+  VULKAN_LOG_CALL(Backend::cb.wCmdDraw(count, instance_count, start, first_instance));
+  writeExectionChekpoint(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 }
 
 void ExecutionContext::drawIndexed(uint32_t count, uint32_t instance_count, uint32_t index_start, int32_t vertex_base,
   uint32_t first_instance)
 {
   if (!renderAllowed)
+  {
+    insertEvent("drawIndexed: async compile", 0xFF0000FF);
     return;
+  }
 
   ++directDrawCount;
-  VULKAN_LOG_CALL(vkDev.vkCmdDrawIndexed(frameCore, count, instance_count, index_start, vertex_base, first_instance));
-  writeExectionChekpoint(frameCore, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+  VULKAN_LOG_CALL(Backend::cb.wCmdDrawIndexed(count, instance_count, index_start, vertex_base, first_instance));
+  writeExectionChekpoint(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 }
 
 void ExecutionContext::flushGrahpicsState(VkPrimitiveTopology top)
@@ -1898,7 +1948,7 @@ void ExecutionContext::executeFSR(amd::FSR *fsr, const FSRUpscalingArgs &params)
   args.reactiveTexture = &reactiveTexture;
   args.transparencyAndCompositionTexture = &transparencyAndCompositionTexture;
 
-  Backend::sync.completeNeeded(frameCore, vkDev);
+  Backend::sync.completeNeeded();
 
   fsr->doApplyUpscaling(args, frameCore);
 }

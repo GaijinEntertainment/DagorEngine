@@ -10,6 +10,7 @@
 #include <de3_lodController.h>
 #include <de3_entityGatherTex.h>
 #include <de3_entityGetSceneLodsRes.h>
+#include <de3_randomSeed.h>
 #include <oldEditor/de_common_interface.h>
 #include <assets/assetChangeNotify.h>
 #include <assets/assetMgr.h>
@@ -229,7 +230,11 @@ public:
 };
 
 
-class DynModelEntity : public VirtualDynModelEntity, public ILodController, public IEntityGatherTex, public IDataBlockIdHolder
+class DynModelEntity : public VirtualDynModelEntity,
+                       public ILodController,
+                       public IEntityGatherTex,
+                       public IDataBlockIdHolder,
+                       public IRandomSeedHolder
 {
 public:
   DynModelEntity(int cls) : VirtualDynModelEntity(cls), idx(MAX_ENTITIES)
@@ -246,6 +251,7 @@ public:
     RETURN_INTERFACE(huid, IEntityGatherTex);
     RETURN_INTERFACE(huid, IEntityGetDynSceneLodsRes);
     RETURN_INTERFACE(huid, IDataBlockIdHolder);
+    RETURN_INTERFACE(huid, IRandomSeedHolder);
     return NULL;
   }
 
@@ -320,7 +326,12 @@ public:
 
   void render()
   {
-    if (getSubtype() == decal3dSubtype || noDynRender || !dynrend::render_in_tools(sceneInstance, dynrend::RenderMode::Opaque))
+    dynrend::PerInstanceRenderData renderData;
+    Point4 &params = renderData.params.emplace_back();
+    memcpy(&params.x, &instanceSeed, sizeof(instanceSeed));
+
+    if (getSubtype() == decal3dSubtype || noDynRender ||
+        !dynrend::render_in_tools(sceneInstance, dynrend::RenderMode::Opaque, &renderData))
       sceneInstance->render();
   }
 
@@ -400,6 +411,12 @@ public:
     return out_tex_id.size() - st_cnt;
   }
 
+  // IRandomSeedHolder
+  virtual void setSeed(int new_seed) {}
+  virtual int getSeed() { return 0; }
+  virtual void setPerInstanceSeed(int seed) { instanceSeed = seed; }
+  virtual int getPerInstanceSeed() { return instanceSeed; }
+
 public:
   static const int STEP = 512;
   static const int MAX_ENTITIES = 0xFFFFFFFF;
@@ -409,6 +426,7 @@ public:
   int texQ;
   CollisionResource *collision;
   bool collisionTried;
+  int instanceSeed = 0;
   unsigned short dataBlockId = IDataBlockIdHolder::invalid_id;
 };
 

@@ -9,6 +9,7 @@
 #include <daScript/ast/ast_typedecl.h>
 #include <gamePhys/collision/collisionLib.h>
 #include <gamePhys/collision/contactData.h>
+#include <gamePhys/collision/collisionLinks.h>
 #include <gamePhys/collision/collisionCache.h>
 #include <gamePhys/collision/rendinstCollision.h>
 #include <math/dag_vecMathCompatibility.h>
@@ -23,6 +24,7 @@ MAKE_TYPE_FACTORY(CollisionObject, CollisionObject);
 MAKE_TYPE_FACTORY(ShapeQueryOutput, dacoll::ShapeQueryOutput);
 MAKE_TYPE_FACTORY(CollisionContactDataMin, gamephys::CollisionContactDataMin);
 MAKE_TYPE_FACTORY(CollisionContactData, gamephys::CollisionContactData);
+MAKE_TYPE_FACTORY(CollisionLinkData, dacoll::CollisionLinkData);
 
 namespace bind_dascript
 {
@@ -192,29 +194,18 @@ inline bool dacoll_sphere_query_ri(const Point3 &from, const Point3 &to, float r
   return result;
 }
 
-struct SphereQueryRIFilter : dacoll::RIFilterCB
-{
-  const das::TBlock<bool, const rendinst::RendInstDesc &, float> &block;
-  das::Context *context;
-  das::LineInfoArg *at;
-  SphereQueryRIFilter(const das::TBlock<bool, const rendinst::RendInstDesc &, float> &_block, das::Context *_context,
-    das::LineInfoArg *_at) :
-    block(_block), context(_context), at(_at)
-  {}
-  virtual bool onFilter(const rendinst::RendInstDesc &desc, float t)
-  {
-    vec4f args[] = {das::cast<rendinst::RendInstDesc *>::from(&desc), das::cast<float>::from(t)};
-    vec4f res = context->invoke(block, args, nullptr, at);
-    return das::cast<bool>::to(res);
-  }
-};
 
 inline bool dacoll_sphere_query_ri_filtered(const Point3 &from, const Point3 &to, float rad, dacoll::ShapeQueryOutput &out,
   int cast_mat_id, TraceMeshFaces *handle, const das::TBlock<bool, const rendinst::RendInstDesc &, float> &block,
   das::Context *context, das::LineInfoArg *at)
 {
-  SphereQueryRIFilter filter(block, context, at);
-  return dacoll::sphere_query_ri(from, to, rad, out, cast_mat_id, nullptr, handle, &filter);
+  auto filter = [&](const rendinst::RendInstDesc &desc, float t) {
+    vec4f args[] = {das::cast<rendinst::RendInstDesc *>::from(&desc), das::cast<float>::from(t)};
+    vec4f res = context->invoke(block, args, nullptr, at);
+    return das::cast<bool>::to(res);
+  };
+  dacoll::RIFilterCB filterCB(filter);
+  return dacoll::sphere_query_ri(from, to, rad, out, cast_mat_id, nullptr, handle, &filterCB);
 }
 
 inline void dacoll_add_dynamic_collision_from_coll_resource(CollisionObject &co, const CollisionResource &coll_res,

@@ -38,7 +38,7 @@ macro BLOOD_PUDDLES_VS()
       float4 vecToEdge_starttime : TEXCOORD0;
       nointerpolation float4 patchCenter__inv_size : TEXCOORD1;
       nointerpolation float4 tang_shrink : TEXCOORD2;
-      nointerpolation uint3 decal_type_and_landscape__frame__rndIndex : TEXCOORD3;
+      nointerpolation uint2 decal_type_and_landscape__frame : TEXCOORD3;
       nointerpolation float strength : TEXCOORD4;
     };
   }
@@ -84,11 +84,10 @@ macro BLOOD_PUDDLES_VS()
       float strength = float(puddles_data[puddle_id].starttime__strength & 0xFF) / 255.0;
 
       uint matrixId = (puddles_data[puddle_id].matrix_frame_incident_type >> 16) & MATRIX_MASK;
-      bool noDrying = (puddles_data[puddle_id].matrix_frame_incident_type & (1u << NO_DRYING_SHIFT)) != 0;
       bool isLandscape = (puddles_data[puddle_id].matrix_frame_incident_type & (1u << LANDSCAPE_SHIFT)) != 0;
       VsOutput output;
 
-      float width = isLandscape ? current_time__depth.y + 0.1 : current_time__depth.y;
+      float width = current_time__depth.y + 0.4;
       ProjectiveDecalData decal;
       decal.pos_size = float4(puddlePos, size);
       decal.normal_width = float4(normal, width);
@@ -105,10 +104,10 @@ macro BLOOD_PUDDLES_VS()
       output.normal_fadetime.xyz = worldNormal;
       output.normal_fadetime.w = fadeTime > 1e-5 ? 1 - saturate((currentTime - fadeTime) / SECONDS_TO_FADE) : 1;
       output.vecToEdge_starttime.xyz = worldPos - worldDecalPos.xyz;
-      output.vecToEdge_starttime.w = noDrying ? -linearTime : linearTime;
+      output.vecToEdge_starttime.w = linearTime;
       output.patchCenter__inv_size.xyz = worldDecalPos;
       output.patchCenter__inv_size.w = 1.0 / size;
-      output.decal_type_and_landscape__frame__rndIndex = uint3(packedTypeAndLandscape, frameNo, (puddle_id % 4) + 2);
+      output.decal_type_and_landscape__frame = uint2(packedTypeAndLandscape, frameNo);
       output.strength = strength;
       return output;
     }
@@ -155,9 +154,9 @@ macro BLOOD_PUDDLES_COMMON_PS()
     #include <psh_tangent.hlsl>
     #include <normaldetail.hlsl>
 
-    float easeFunc(float x, int y)
+    float easeFunc(float x)
     {
-      return (1 - pow(1.0 - x, y));
+      return (1 - pow3(1.0 - x));
     }
 
     float4 get_blood_params(float2 decal_tc)
@@ -181,24 +180,23 @@ macro BLOOD_PUDDLES_COMMON_PS()
     }
 
     void unpack_blood(VsOutput input, float4 screen,
-      out float3 normal, out float drying_time, out float intensity, out float alpha,
+      out float3 normal, out float intensity, out float alpha,
       out float flow_value, out float edge_closeness, out uint decal_type__is_landscape,
       out uint decal_type, out bool is_landscape)
     {
       uint2 atlasSize = atlas_size;
 
-      decal_type__is_landscape = input.decal_type_and_landscape__frame__rndIndex.x;
+      decal_type__is_landscape = input.decal_type_and_landscape__frame.x;
       decal_type = decal_type__is_landscape >> 1;
       is_landscape = (decal_type__is_landscape & 0x1) == 1;
 
       bool isPuddle = decal_type == DecalGroup::BLOOD_DECAL_GROUP_PUDDLE;
-      uint frameNo = input.decal_type_and_landscape__frame__rndIndex.y;
-      uint rndIndex = input.decal_type_and_landscape__frame__rndIndex.z;
+      uint frameNo = input.decal_type_and_landscape__frame.y;
       float3 worldNormal = normalize(input.normal_fadetime.xyz);
       float3 flow = normalize(normal * float3(1, 0.01, 1));
       float3 vecToEdge = normalize(input.vecToEdge_starttime.xyz);
       float linearTime = input.vecToEdge_starttime.w;
-      float sizeTime = easeFunc(saturate(abs(linearTime) * perGroupParams[decal_type].invLifetime + blood_puddle_start_size), rndIndex);
+      float sizeTime = easeFunc(saturate(linearTime * perGroupParams[decal_type].invLifetime + blood_puddle_start_size));
       float strength = input.strength;
       bool mirror = frameNo & 1;
       frameNo >>= 1;
@@ -207,19 +205,22 @@ macro BLOOD_PUDDLES_COMMON_PS()
       const float3 pointToEye = -eyeToPoint;
       const float3 surfaceNormal = normalize(cross(normalize(ddx(pointToEye)), normalize(ddy(pointToEye))));
 
-      const float cos30 = 0.866;
-      const bool surfaceNormalNotWithinValidRange = dot(surfaceNormal, worldNormal) < cos30;
-
       const float3 worldPos = world_view_pos + eyeToPoint;
       float3 decalTC = get_decal_tex_coord_from_world_pos(worldPos, input.patchCenter__inv_size.xyz, worldNormal, input.tang_shrink.xyz);
-      const bool depthNotWithinValidRange = abs(decalTC.z) >= 0.05;
 
-      if (!is_landscape && (surfaceNormalNotWithinValidRange || depthNotWithinValidRange))
+      const float angularBorderBetweenDecalAndSurfaceNormals = is_landscape ? 0.4 : 0.2;
+      const float heightBorderBetweenDecalAndSurface = is_landscape ? 0.05 : 0.15;
+
+      const bool surfaceNormalNotWithinValidRange = dot(surfaceNormal, worldNormal) < angularBorderBetweenDecalAndSurfaceNormals;
+      if (surfaceNormalNotWithinValidRange || abs(decalTC.z) >= 1.0)
         discard;
+
+      const float edgeClosenessHeightBase = is_landscape ? -decalTC.z*0.7 : decalTC.z*0.5;
+      float edgeClosenessHeightScale = 1.0 - saturate(edgeClosenessHeightBase / heightBorderBetweenDecalAndSurface);
+      float alphaHeightScale = is_landscape ? 1.0 : edgeClosenessHeightScale * edgeClosenessHeightScale;
 
       decalTC.x *= input.tang_shrink.w;
       decalTC *= input.patchCenter__inv_size.w;
-      decalTC.xy += normalize(decalTC.xy)*abs(decalTC.z);
       decalTC.xy = 0.5f*(decalTC.xy + 1.0f);
       decalTC.xy = saturate(decalTC.xy);
       if (mirror)
@@ -240,7 +241,7 @@ macro BLOOD_PUDDLES_COMMON_PS()
       if (timeThreshold >= flow_value - cuttingOffset)
         discard;
       float zeroStrengthAlpha = 0.6; // looks too transparent below this
-      alpha = input.normal_fadetime.w * lerp(1, zeroStrengthAlpha, pow2(1-strength));
+      alpha = alphaHeightScale * input.normal_fadetime.w * lerp(1, zeroStrengthAlpha, pow2(1-strength));
       clip_alpha(alpha);
 
       BRANCH
@@ -253,11 +254,10 @@ macro BLOOD_PUDDLES_COMMON_PS()
       }
 
       intensity = bloodParams.b;
-      drying_time = saturate((max(linearTime, 0.0) + perGroupParams[decal_type].dryingDelay) * perGroupParams[decal_type].invDryingTime);
 
       float edgeWidthScale = float(perGroupParams[decal_type].bloodNormalDominanceTerm_edgeWidthScale >> 8)/255.0;
       float edgeClosenessScale = lerp(16.0, 1.0, edgeWidthScale);
-      edge_closeness = 1.0 - saturate((flow_value - timeThreshold - cuttingOffset) * edgeClosenessScale);
+      edge_closeness = 1.0 - saturate((flow_value - timeThreshold - cuttingOffset) * edgeClosenessScale) * edgeClosenessHeightScale;
     }
  }
 endmacro
@@ -381,7 +381,7 @@ shader blood_puddles_accumulation
       uint uiStub;
       bool bStub;
       uint decalType__landscape;
-      unpack_blood(input, screen, normal, stub, intensity, alpha, stub, edgeCloseness, decalType__landscape, uiStub, bStub);
+      unpack_blood(input, screen, normal, intensity, alpha, stub, edgeCloseness, decalType__landscape, uiStub, bStub);
 
       float packedDecalTypeAndLandscape = ((float)decalType__landscape+0.1)/255.0f;
 
@@ -477,7 +477,7 @@ shader blood_puddles_resolve
   compile("target_ps", "blood_puddles_resolve_ps");
 }
 
-shader blood_puddles
+shader blood_puddles_forward
 {
   if (compatibility_mode == compatibility_mode_on)
   {
@@ -504,7 +504,7 @@ shader blood_puddles
 
   hlsl(ps) {
 
-    GBUFFER_OUTPUT blood_puddles_ps(VsOutput input HW_USE_SCREEN_POS)
+    GBUFFER_OUTPUT blood_puddles_forward_ps(VsOutput input HW_USE_SCREEN_POS)
     {
       float4 screen = GET_SCREEN_POS(input.pos);
     ##if mobile_render == deferred
@@ -515,7 +515,7 @@ shader blood_puddles
       float intensity, edgeCloseness, alpha, stub;
       uint decalType, uiStub;
       bool isLandscape;
-      unpack_blood(input, screen, normal, stub, intensity, alpha, stub, edgeCloseness, uiStub, decalType, isLandscape);
+      unpack_blood(input, screen, normal, intensity, alpha, stub, edgeCloseness, uiStub, decalType, isLandscape);
 
       float thickness = min(1.0 - intensity - edgeCloseness, 0.93);
 
@@ -524,7 +524,7 @@ shader blood_puddles
     }
   }
   compile("target_vs", "blood_puddles_vs");
-  compile("target_ps", "blood_puddles_ps");
+  compile("target_ps", "blood_puddles_forward_ps");
 }
 
 shader blood_puddles_debug
@@ -549,7 +549,7 @@ shader blood_puddles_debug
       float stub, edgeCloseness;
       uint uiStub;
       bool bStub;
-      unpack_blood(input, screen, stub3, stub, stub, stub, stub, edgeCloseness, stub, uiStub, bStub);
+      unpack_blood(input, screen, stub3, stub, stub, stub, edgeCloseness, stub, uiStub, bStub);
 
       return float4(edgeCloseness.xxx, 1);
     }

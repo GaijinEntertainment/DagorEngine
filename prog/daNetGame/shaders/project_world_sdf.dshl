@@ -14,8 +14,10 @@ macro PROJECT_WORLD_SDF(code)
       ##if tex_hmap_low != NULL
       if (checkHeightmapHoles(worldPos))
         return 1e3;
-
-      float height = decode_height(getHeightLowLod(calcTcLow(worldPos.xz), 0));
+      float2 tc = calcTcLow(worldPos.xz);
+      if (any(tc != saturate(tc)))
+        return 1e3;
+      float height = decode_height(getHeightLowLod(tc, 0));
       float relHeight = worldPos.y-height;
       float ret;
       FLATTEN

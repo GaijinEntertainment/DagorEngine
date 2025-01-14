@@ -23,7 +23,7 @@ float4 prev_view_vecLB;
 float4 prev_view_vecRB;
 float4 move_world_view_pos;
 
-float4 clouds2_resolution;
+int4 clouds2_resolution;
 float4 clouds2_dispatch_groups;
 
 texture clouds_color;

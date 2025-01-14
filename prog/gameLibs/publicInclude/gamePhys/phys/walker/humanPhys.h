@@ -669,6 +669,7 @@ public:
   virtual dag::ConstSpan<CollisionObject> getCollisionObjects() const override;
   TMatrix getCollisionObjectsMatrix() const override;
   uint64_t getActiveCollisionObjectsBitMask() const override { return isTorsoInWorld ? ALL_COLLISION_OBJECTS : 0ull; }
+  dacoll::CollisionLinks &getCollisionLinks(HUStandState state) { return collisionLinks[state]; };
   void applyPseudoVelOmegaDelta(const DPoint3 &add_pos, const DPoint3 &add_ori) override final
   {
     applyPseudoVelOmegaDeltaImpl(add_pos, add_ori, &ccdMove);

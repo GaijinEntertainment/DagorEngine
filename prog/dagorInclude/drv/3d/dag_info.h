@@ -122,6 +122,7 @@ public:
 enum class APISupport
 {
   FULL_SUPPORT,       ///< Full support for the API
+  OUTDATED_OS,        ///< The Windows version is outdated
   OUTDATED_DRIVER,    ///< The driver is outdated
   BLACKLISTED_DRIVER, ///< The driver is blacklisted (we know about bugs in the driver)
   NO_DEVICE_FOUND     ///< No compatible device found

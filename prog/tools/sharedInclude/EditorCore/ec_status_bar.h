@@ -49,6 +49,10 @@ public:
   /// Get Gizmo's basis type
   /// @return Gizmo's basis type (see IEditorCoreEngine::BasisType)
   IEditorCoreEngine::BasisType getBasisType() const;
+
+  /// Get Gizmo's basis type for a specific mode
+  /// @return Gizmo's basis type for a specific mode (see IEditorCoreEngine::BasisType and see IEditorCoreEngine::ModeType)
+  IEditorCoreEngine::BasisType getGizmoBasisTypeForMode(IEditorCoreEngine::ModeType tp) const;
   //@}
 
 

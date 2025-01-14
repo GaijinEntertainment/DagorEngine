@@ -25,6 +25,7 @@
   file:t = "copy_depth_region.dshl"
   file:t = "find_max_depth_2d.dshl"
   file:t = "octahedral_shadow.dshl"
+  file:t = "trace_sdf_shadow.dshl"
 
   file:t = "./source/dynamicSpheresMat.dshl"
 

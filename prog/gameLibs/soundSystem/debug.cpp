@@ -15,6 +15,7 @@
 #include <soundSystem/fmodApi.h>
 #include <soundSystem/events.h>
 #include <soundSystem/streams.h>
+#include <soundSystem/strHash.h>
 #include <soundSystem/debug.h>
 #include <drv/3d/dag_lock.h>
 #include <shaders/dag_shaderBlock.h>
@@ -38,6 +39,7 @@ using namespace fmodapi;
 
 static const Point2 g_offset = {10, 70};
 static const E3DCOLOR g_def_color = E3DCOLOR_MAKE(255, 255, 255, 255);
+static const E3DCOLOR g_update_color = E3DCOLOR_MAKE(255, 200, 0, 255);
 static const E3DCOLOR g_loading_color = E3DCOLOR_MAKE(255, 0, 255, 255);
 static const E3DCOLOR g_shadow_color = E3DCOLOR_MAKE(0, 0, 60, 255);
 static const E3DCOLOR g_empty_color = E3DCOLOR_MAKE(190, 190, 190, 255);
@@ -86,20 +88,26 @@ static constexpr TraceLevel def_log_level = TraceLevel::err;
 static TraceLevel g_log_level = def_log_level;
 static eastl::array<DebugMessage, 24> debug_messages;
 
+static const E3DCOLOR g_background_none = E3DCOLOR(0, 0, 0, 0);
+static const E3DCOLOR g_background_def = E3DCOLOR(0, 0, 0, 200);
+static const E3DCOLOR g_background_err = E3DCOLOR(0xff, 0x40, 0, 0xff);
+
 static inline int print(int x, int y, const E3DCOLOR &color, const char *text, int len = -1, int line_index = 0,
-  bool background = false)
+  E3DCOLOR background = g_background_none)
 {
   if (text && *text)
   {
-    if (background)
+    if (background != g_background_none)
     {
-      StdGuiRender::set_color(E3DCOLOR(0, 0, 0, 200));
+      StdGuiRender::set_draw_str_attr(FFT_NONE, 0, 0, g_shadow_color, 24);
+      StdGuiRender::set_color(background);
       const Point2 htsz = StdGuiRender::get_str_bbox(text, len).width();
       StdGuiRender::render_box(x - g_box_extent_x, y - g_box_extent_y + line_index * g_font_height + g_box_offset,
         x + htsz.x + g_box_extent_x, y + htsz.y + g_box_extent_y + line_index * g_font_height + g_box_offset);
     }
     else
     {
+      StdGuiRender::set_draw_str_attr(FFT_SHADOW, 0, 0, g_shadow_color, 24);
       const int offset = max(1, g_font_height / 16);
       StdGuiRender::set_color(E3DCOLOR(0, 0, 0, 0xff));
       StdGuiRender::goto_xy(x - offset, y + offset);
@@ -114,13 +122,13 @@ static inline int print(int x, int y, const E3DCOLOR &color, const char *text, i
 
 template <typename String>
 static inline int print(int x, int y, const E3DCOLOR &color, const String &text, int len = -1, int line_index = 0,
-  bool background = false)
+  E3DCOLOR background = g_background_none)
 {
   return print(x, y, color, text.c_str(), len, line_index, background);
 }
 
 template <typename String, bool Print = true>
-static inline int print_multiline_impl(int x, int y, const E3DCOLOR &color, const String &text)
+static inline int print_multiline_impl(int x, int y, const E3DCOLOR &color, const String &text, E3DCOLOR background)
 {
   G_UNREFERENCED(x);
   G_UNREFERENCED(y);
@@ -135,27 +143,28 @@ static inline int print_multiline_impl(int x, int y, const E3DCOLOR &color, cons
     if (!separator)
       break;
     if constexpr (Print)
-      print(x, y + height, color, ptr, separator - ptr);
+      print(x, y + height, color, ptr, separator - ptr, 0, background);
     height += g_interligne;
     ptr = separator + 1;
   }
   if constexpr (Print)
-    print(x, y + height, color, ptr, text.end() - ptr);
+    print(x, y + height, color, ptr, text.end() - ptr, 0, background);
   height += g_interligne;
   return height;
 }
 
 template <typename String>
-static inline int print_multiline(int x, int y, const E3DCOLOR &color, const String &text)
+static inline int print_multiline(int x, int y, const E3DCOLOR &color, const String &text, E3DCOLOR background = g_background_none)
 {
-  return print_multiline_impl(x, y, color, text);
+  return print_multiline_impl(x, y, color, text, background);
 }
 
 template <typename String>
-static inline int print_multiline_bottom_align(int x, int y, const E3DCOLOR &color, const String &text)
+static inline int print_multiline_bottom_align(int x, int y, const E3DCOLOR &color, const String &text,
+  E3DCOLOR background = g_background_none)
 {
-  const int height = print_multiline_impl<String, false>(x, y, color, text);
-  print_multiline_impl(x, y - height, color, text);
+  const int height = print_multiline_impl<String, false>(x, y, color, text, background);
+  print_multiline_impl(x, y - height, color, text, background);
   return height;
 }
 
@@ -447,7 +456,7 @@ static inline void print_samples_instances(int offset)
             get_name_audibility(*instance, *evtDesc, text);
           else
             get_event_name(*instance, *evtDesc, text);
-          print(int(pointOnScreen.x), int(pointOnScreen.y), color, text.c_str(), -1, lineIndex, true);
+          print(int(pointOnScreen.x), int(pointOnScreen.y), color, text.c_str(), -1, lineIndex, g_background_def);
         }
 
         if (lengthSq(sndsys::as_point3(attributes.position)) == 0.f)
@@ -515,14 +524,20 @@ static inline void print_samples_instances(int offset)
     if (it.numDuplicated > 1)
       text.append_sprintf(" (--DUPLICATED IN BANKS (%d)--) ", it.numDuplicated);
 
-    offset += print(g_offset.x, offset, g_instances.getColor(it), text, -1, 0, true);
+    offset += print(g_offset.x, offset, g_instances.getColor(it), text, -1, 0, g_background_def);
 
     if (offset >= bottom)
       break;
   }
 }
 
-static inline void print_channels()
+static inline int get_channels_x()
+{
+  constexpr int rightOffset = 400;
+  return StdGuiRender::get_viewport().rightBottom.x - rightOffset;
+}
+
+static inline void print_channels(int max_y)
 {
   int numChannelsPlaying = 0;
   SOUND_VERIFY(get_system()->getChannelsPlaying(&numChannelsPlaying));
@@ -541,15 +556,13 @@ static inline void print_channels()
       ++numVirtualChannels;
   }
 
-  const int rightOffset = 400;
-  const int left = StdGuiRender::get_viewport().rightBottom.x - rightOffset;
-  const int bottom = StdGuiRender::get_viewport().rightBottom.y;
   int offset = g_offset.y;
-  offset += print(left, offset, (numPlayingChannels || numVirtualChannels) ? g_def_color : g_empty_color, "[CHANNELS]");
+  const int x = get_channels_x();
+  offset += print(x, offset, (numPlayingChannels || numVirtualChannels) ? g_def_color : g_empty_color, "[CHANNELS]");
 
   if (numPlayingChannels || numVirtualChannels)
   {
-    offset += print_format(left, offset, g_def_color, "playing: %d\nvirtual: %d\n", numPlayingChannels, numVirtualChannels);
+    offset += print_format(x, offset, g_def_color, "playing: %d\nvirtual: %d\n", numPlayingChannels, numVirtualChannels);
     for (int i = 0; i < get_max_channels(); ++i)
     {
       FMOD::Channel *channel = nullptr;
@@ -568,15 +581,15 @@ static inline void print_channels()
       if (channel->getCurrentSound(&sound) != FMOD_OK || !sound || sound->getName(name, sizeof(name)) != FMOD_OK)
         SNPRINTF(name, sizeof(name), "(unknown)");
 
-      offset += print_format(left, offset, isVirtual ? g_virtual_color : g_def_color, "%d: %s", i, name);
-      if (offset >= bottom)
+      offset += print_format(x, offset, isVirtual ? g_virtual_color : g_def_color, "%d: %s", i, name);
+      if (offset >= max_y)
         break;
     }
   }
 }
 
 static constexpr uint32_t g_warn_color = 0xffffffff;
-static constexpr uint32_t g_err_color = 0xff804000;
+static constexpr uint32_t g_err_color = 0xff000000;
 static constexpr uint32_t g_log_color = 0xffffd000;
 
 static inline void print_messages()
@@ -587,13 +600,14 @@ static inline void print_messages()
   {
     const DebugMessage &msg = debug_messages[(i + g_first_message_id) % debug_messages.count];
     const uint32_t color = (msg.level == TraceLevel::warn) ? g_warn_color : (msg.level == TraceLevel::err) ? g_err_color : g_log_color;
+    const auto background = msg.level == TraceLevel::err ? g_background_err : g_background_none;
     if (msg.count <= 1)
-      offset -= print_multiline_bottom_align(g_offset.x, offset, color, msg.text);
+      offset -= print_multiline_bottom_align(g_offset.x, offset, color, msg.text, background);
     else
     {
       FrameStr text;
       text.sprintf("%s (%d messages)", msg.text.c_str(), msg.count);
-      offset -= print_multiline_bottom_align(g_offset.x, offset, color, text);
+      offset -= print_multiline_bottom_align(g_offset.x, offset, color, text, background);
     }
   }
 }
@@ -630,20 +644,45 @@ static inline void draw_mem_stat(int &offset)
       fmem.currentalloced / 1024.f / 1024.f, fmem.maxalloced / 1024.f / 1024.f);
 }
 
-static int g_occlusion_offset = 0;
+static int g_occlusion_x = 0;
+static int g_occlusion_y = 0;
+static int g_occlusion_max_y = 0;
 static void draw_occlusion_src(FMOD::Studio::EventInstance *instance, occlusion::group_id_t group_id, const Point3 &, float value,
-  bool is_in_group, bool is_first_in_group)
+  bool is_in_group, bool is_first_in_group, bool debug_update, const Point3 &pos)
 {
+  if (g_occlusion_y >= g_occlusion_max_y)
+    return;
   FrameStr name = "???";
   FMOD::Studio::EventDescription *description = nullptr;
   if (FMOD_OK == instance->getDescription(&description))
     name = eastl::move(get_debug_name(*description));
 
-  g_occlusion_offset += print_format(g_offset.x, g_occlusion_offset, g_def_color, "%s  %d   %.2f  %s",
-    is_first_in_group ? "(*)"
-    : is_in_group     ? "(^)"
-                      : "( )",
-    group_id, value, name.c_str());
+  const char *shortName = nullptr;
+  for (const char *ptr = name.c_str(); ptr && *ptr; ++ptr)
+    if (*ptr == '/' || *ptr == '\\')
+      shortName = ptr + 1;
+
+  g_occlusion_y +=
+    print_format(g_occlusion_x, g_occlusion_y, debug_update ? g_update_color : g_def_color, "%s  %d   %.2f  %s  {%.1f, %.1f}",
+      is_first_in_group ? "(*)"
+      : is_in_group     ? "(^)"
+                        : "( )",
+      group_id, value, shortName, pos.x, pos.z);
+}
+
+static void print_occlusion(int y, int max_y)
+{
+  g_occlusion_x = get_channels_x();
+  g_occlusion_y = y;
+  g_occlusion_y += print(g_occlusion_x, g_occlusion_y, g_def_color, "[OCCLUSION]");
+  g_occlusion_max_y = max_y;
+
+  int totalTraces = 0;
+  int maxTraces = 0;
+  occlusion::get_debug_info(totalTraces, maxTraces);
+  g_occlusion_y += print_format(g_occlusion_x, g_occlusion_y, g_def_color, "traces total/max: %d/%d", totalTraces, maxTraces);
+
+  occlusion::debug_enum_sources(&draw_occlusion_src);
 }
 
 void debug_draw()
@@ -662,7 +701,6 @@ void debug_draw()
   g_box_extent_y = 0;
   g_box_offset = -0.8f * g_font_height;
   g_interligne = g_font_height + g_box_extent_y * 2;
-  StdGuiRender::set_draw_str_attr(FFT_SHADOW, 0, 0, g_shadow_color, 24);
 
   size_t usedHandles = 0, totalHandles = 0;
   sndsys::get_info(usedHandles, totalHandles);
@@ -688,12 +726,15 @@ void debug_draw()
   offset += g_interligne;
 
   print_samples_instances(offset);
-  print_channels();
+
+  const int screenTop = StdGuiRender::get_viewport().leftTop.y;
+  const int screenBottom = StdGuiRender::get_viewport().rightBottom.y;
+  const int occlusionY = (screenTop + screenBottom) / 2;
+  print_channels(occlusionY - g_interligne);
+  print_occlusion(occlusionY, screenBottom);
+
   print_messages();
   draw_streams();
-
-  g_occlusion_offset = (StdGuiRender::get_viewport().leftTop.y + StdGuiRender::get_viewport().rightBottom.y) * 2 / 3;
-  occlusion::debug_enum_sources(&draw_occlusion_src);
 
   StdGuiRender::reset_draw_str_attr();
   StdGuiRender::flush_data();
@@ -805,7 +846,23 @@ void debug_enum_events(const char *bank_name, eastl::function<void(const char *)
   }
 }
 
-static inline void debug_trace_impl(TraceLevel cur_level, const char *format, va_list args)
+static constexpr size_t g_max_log_message_types = 32;
+static eastl::fixed_vector<str_hash_t, g_max_log_message_types, false> g_log_message_types;
+static bool g_suppress_logerr_once = false;
+
+static inline bool can_log_once(const char *text)
+{
+  const str_hash_t hash = SND_HASH_SLOW(text);
+  auto it = eastl::find(g_log_message_types.begin(), g_log_message_types.end(), hash);
+  if (it != g_log_message_types.end())
+    return false;
+  if (g_log_message_types.size() >= g_max_log_message_types)
+    g_log_message_types.erase(g_log_message_types.begin());
+  g_log_message_types.push_back(hash);
+  return true;
+}
+
+static inline void debug_trace_impl(TraceLevel cur_level, bool log_once, const char *format, va_list args)
 {
   G_ASSERT_RETURN(format, );
   SNDSYS_DEBUG_TRACE_BLOCK;
@@ -816,17 +873,21 @@ static inline void debug_trace_impl(TraceLevel cur_level, const char *format, va
 
   if (int(cur_level) >= int(g_log_level))
   {
+    const char *fmt = log_once ? "[SNDSYS] (log_once) %s" : "[SNDSYS] %s";
     if (cur_level == TraceLevel::err)
     {
-      logerr("[SNDSYS] %s", text.begin());
+      if (!log_once || (!g_suppress_logerr_once && can_log_once(text.c_str())))
+        logerr(fmt, text.c_str());
     }
     else if (cur_level == TraceLevel::warn)
     {
-      logwarn("[SNDSYS] %s", text.begin());
+      if (!log_once || can_log_once(text.c_str()))
+        logwarn(fmt, text.c_str());
     }
     else
     {
-      debug("[SNDSYS] %s", text.begin());
+      if (!log_once || can_log_once(text.c_str()))
+        debug(fmt, text.c_str());
     }
   }
 
@@ -848,19 +909,20 @@ static inline void debug_trace_impl(TraceLevel cur_level, const char *format, va
   msg.count = 1;
 }
 
-#define DEBUG_TRACE_IMPL(TYPE)                        \
-  void debug_trace_##TYPE(const char *format, ...)    \
-  {                                                   \
-    va_list args;                                     \
-    va_start(args, format);                           \
-    debug_trace_impl(TraceLevel::TYPE, format, args); \
-    va_end(args);                                     \
+#define DEBUG_TRACE_IMPL(FUN, TYPE, ONCE)                   \
+  void FUN(const char *format, ...)                         \
+  {                                                         \
+    va_list args;                                           \
+    va_start(args, format);                                 \
+    debug_trace_impl(TraceLevel::TYPE, ONCE, format, args); \
+    va_end(args);                                           \
   }
 
-DEBUG_TRACE_IMPL(info)
-DEBUG_TRACE_IMPL(warn)
-DEBUG_TRACE_IMPL(err)
-DEBUG_TRACE_IMPL(log)
+DEBUG_TRACE_IMPL(debug_trace_info, info, false)
+DEBUG_TRACE_IMPL(debug_trace_warn, warn, false)
+DEBUG_TRACE_IMPL(debug_trace_err, err, false)
+DEBUG_TRACE_IMPL(debug_trace_err_once, err, true)
+DEBUG_TRACE_IMPL(debug_trace_log, log, false)
 
 void debug_init(const DataBlock &blk)
 {
@@ -873,5 +935,6 @@ void debug_init(const DataBlock &blk)
     g_log_level = TraceLevel::err;
   else
     g_log_level = def_log_level;
+  g_suppress_logerr_once = blk.getBool("suppressLogerrOnce", false);
 }
 } // namespace sndsys

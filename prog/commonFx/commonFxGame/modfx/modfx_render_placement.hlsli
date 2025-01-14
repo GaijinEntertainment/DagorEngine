@@ -31,6 +31,13 @@ BBox modfx_apply_placement_to_culling( DAFX_CREF(ModfxParentRenData) parent_rdat
       bbox.bmin.y -= pp.placement_threshold;
       bbox.bmax.y += pp.placement_threshold;
     }
+    else
+    {
+      // technically, we could use min/max height of hmap, depth above (ri?) and water height, but it's not worth it
+      const float INF_HEIGHT = 100000;
+      bbox.bmin.y = -INF_HEIGHT;
+      bbox.bmax.y = +INF_HEIGHT;
+    }
   }
 
   return bbox;

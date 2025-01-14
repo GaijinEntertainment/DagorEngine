@@ -58,7 +58,7 @@ endmacro
 
 macro HISTORY_ONLY_PROBE(code)
   (code){
-    screenspace_probes_temporal@i3 = screenspace_probes_temporal;
+    screenspace_probes_temporal@i4 = screenspace_probes_temporal;
   }
   hlsl(code) {
     #include <pcg_hash.hlsl>

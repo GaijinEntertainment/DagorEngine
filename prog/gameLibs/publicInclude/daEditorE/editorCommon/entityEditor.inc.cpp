@@ -655,53 +655,43 @@ struct EntityObjSaveRec
   int priority;
   bool operator<(const EntityObjSaveRec &rhs) const
   {
-    if (priority < rhs.priority)
-      return true;
-    if (priority > rhs.priority)
-      return false;
+    if (priority != rhs.priority)
+      return priority < rhs.priority;
     return erec->order < rhs.erec->order;
   }
 };
-static int calcSavePriority(const char *template_name, const EntityObjEditor::SaveOrderRules &rules)
+
+static int calc_save_priority(const char *template_name, const EntityObjEditor::SaveOrderRules &rules)
 {
-  const int numRules = rules.size();
-  for (int i = 0; i < numRules; ++i)
+  for (auto &prefix : rules)
   {
-    const auto &rule = rules[i];
-    if (rule.first == "comp")
-    {
-      bool found = false;
-      const eastl::string &prefix = rule.second;
-      for_each_sub_template_name(template_name, [&found, &prefix](const char *tpl_name) {
+    bool found = false;
+    for_each_sub_template_name(template_name, [&](const char *tpl_name) {
+      if (found)
+        return;
+      const auto &db = g_entity_mgr->getTemplateDB();
+      const ecs::Template *pTemplate = db.getTemplateByName(tpl_name);
+      if (!pTemplate)
+        return;
+      db.data().iterate_template_parents(*pTemplate, [&](const ecs::Template &tmpl) {
         if (found)
           return;
-        const auto &db = g_entity_mgr->getTemplateDB();
-        const ecs::Template *pTemplate = db.getTemplateByName(tpl_name);
-        if (!pTemplate)
-          return;
-        db.data().iterate_template_parents(*pTemplate, [&](const ecs::Template &tmpl) {
-          if (found)
-            return;
-          const auto &comps = tmpl.getComponentsMap();
-          for (const auto &c : comps)
+        const auto &comps = tmpl.getComponentsMap();
+        for (const auto &c : comps)
+        {
+          const char *compName = db.getComponentName(c.first);
+          if (compName && strncmp(prefix.c_str(), compName, prefix.length()) == 0)
           {
-            const char *compName = db.getComponentName(c.first);
-            if (!compName)
-              continue;
-            const int compNameLen = strlen(compName);
-            if (compNameLen >= prefix.length() && strncmp(prefix.c_str(), compName, prefix.length()) == 0)
-            {
-              found = true;
-              return;
-            }
+            found = true;
+            return;
           }
-        });
+        }
       });
-      if (found)
-        return i;
-    }
+    });
+    if (found)
+      return eastl::distance(rules.begin(), &prefix);
   }
-  return numRules;
+  return rules.size();
 }
 
 void EntityObjEditor::saveEntityToBlk(ecs::EntityId eid, DataBlock &blk) const
@@ -730,10 +720,9 @@ int EntityObjEditor::saveObjectsInternal(const char *fpath)
   const ecs::Scene &saveScene = ecs::g_scenes->getActiveScene();
 
   eastl::vector<EntityObjSaveRec, framemem_allocator> saveEntities;
-  saveEntities.reserve(objects.size());
+  saveEntities.reserve(saveScene.getNumToBeSavedEntities());
   const ecs::TemplateDB &templates = g_entity_mgr->getTemplateDB();
-  const SaveOrderRules &rules = saveOrderRules;
-  forEachEntityObj([&saveScene, &saveEntities, &rules, &templates](EntityObj *o) {
+  forEachEntityObj([&](EntityObj *o) {
     if (o->isValid())
     {
       eastl::vector<eastl::string, framemem_allocator> subTemplsToRemove;
@@ -748,9 +737,8 @@ int EntityObjEditor::saveObjectsInternal(const char *fpath)
         remove_sub_template_async(o->getEid(), subTempl.c_str());
     }
 
-    if (auto erec = saveScene.findEntityRecord(o->getEid()))
-      if (erec->toBeSaved)
-        saveEntities.push_back(EntityObjSaveRec{o, erec, calcSavePriority(erec->templateName.c_str(), rules)});
+    if (auto erec = saveScene.findEntityRecord(o->getEid()); erec && erec->toBeSaved)
+      saveEntities.push_back(EntityObjSaveRec{o, erec, calc_save_priority(erec->templateName.c_str(), saveOrderRules)});
   });
   g_entity_mgr->tick();                                  // so we apply all remove sub template
   eastl::sort(saveEntities.begin(), saveEntities.end()); // sort by save priority and scene order, new entites go last
@@ -759,7 +747,7 @@ int EntityObjEditor::saveObjectsInternal(const char *fpath)
 
   const ecs::Scene::ImportScenesList &importsRecords = saveScene.getImportsRecordList();
   const auto importsEnd = importsRecords.end();
-  const int minPriority = rules.size();
+  const int minPriority = saveOrderRules.size();
   auto importsIt = importsRecords.begin();
   for (auto &sr : saveEntities)
   {

@@ -17,23 +17,26 @@ class EventDescription;
 
 namespace sndsys::occlusion
 {
-void apply_oneshot(FMOD::Studio::EventInstance &instance, const Point3 &pos, FMOD::System &low_level_system);
+void oneshot(FMOD::Studio::EventInstance &instance, const Point3 &pos);
 
 void set_pos(FMOD::Studio::EventInstance &instance, const Point3 &pos);
 
-void set_pos(group_id_t group_id, const Point3 &pos);
-
-void set_group(FMOD::Studio::EventInstance *instance, group_id_t group_id);
-
 void append(FMOD::Studio::EventInstance *instance, const FMOD::Studio::EventDescription *description, const Point3 &pos);
 
-void erase(FMOD::Studio::EventInstance *instance, bool apply_occlusion);
+bool release(FMOD::Studio::EventInstance *instance);
 
-void update(const Point3 &listener, FMOD::System &low_level_system);
+void update(const Point3 &listener);
 
-typedef void (*debug_enum_sources_t)(FMOD::Studio::EventInstance *, group_id_t, const Point3 &, float, bool, bool);
+typedef void (*debug_enum_sources_t)(FMOD::Studio::EventInstance *, group_id_t, const Point3 &, float, bool, bool, bool,
+  const Point3 &);
+
+void get_debug_info(int &total_traces, int &max_traces);
 
 void debug_enum_sources(debug_enum_sources_t);
 
-void init(const DataBlock &blk);
+void init(const DataBlock &blk, FMOD::System *low_level_system);
+
+void close();
+
+const char *get_occlusion_param_name();
 } // namespace sndsys::occlusion

@@ -42,6 +42,7 @@ public:
     uint32_t swapchainCount;
     const VkSwapchainKHR *pSwapchains;
     const uint32_t *pImageIndices;
+    VulkanSemaphoreHandle presentSignal;
   };
 
   DeviceQueue() = delete;

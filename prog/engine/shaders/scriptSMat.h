@@ -83,12 +83,14 @@ public:
   bool set_real_param(const int variable_id, const real v) override;
   bool set_color4_param(const int variable_id, const Color4 &val) override;
   bool set_texture_param(const int variable_id, const TEXTUREID v) override;
+  bool set_sampler_param(const int variable_id, d3d::SamplerHandle v) override;
 
   bool hasVariable(const int variable_id) const override;
   bool getColor4Variable(const int variable_id, Color4 &value) const override;
   bool getRealVariable(const int variable_id, real &value) const override;
   bool getIntVariable(const int variable_id, int &value) const override;
   bool getTextureVariable(const int variable_id, TEXTUREID &value) const override;
+  bool getSamplerVariable(const int variable_id, d3d::SamplerHandle &value) const override;
 
   int get_flags() const override { return props.matflags; };
 
@@ -109,6 +111,7 @@ public:
   real get_real_stvar(int i) const;
   int get_int_stvar(int i) const;
   TEXTUREID get_tex_stvar(int i) const;
+  d3d::SamplerHandle get_sampler_stvar(int i) const;
 
   /*virtual*/ inline int get_num_textures() const { return MAXMATTEXNUM; };
 

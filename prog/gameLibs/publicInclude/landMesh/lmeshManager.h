@@ -123,6 +123,9 @@ protected:
   TEXTUREID vertTexId;
   TEXTUREID vertNmTexId;
   TEXTUREID vertDetTexId;
+  d3d::SamplerHandle vertTexSmp = d3d::INVALID_SAMPLER_HANDLE;
+  d3d::SamplerHandle vertNmTexSmp = d3d::INVALID_SAMPLER_HANDLE;
+  d3d::SamplerHandle vertDetTexSmp = d3d::INVALID_SAMPLER_HANDLE;
   LandRayTracer *landTracer;
   bool useVertTexforHMAP;
   bool toolsInternal;

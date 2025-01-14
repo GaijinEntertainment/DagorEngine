@@ -69,7 +69,6 @@ struct LCTexturesLoaded
 static int draw_landmesh_combined_gvid = -1;
 static int specularColorGvId = -1, specularPowerGvId = -1;
 static int worldViewPosVarId = -1;
-static int tileTexGvId = -1, tileXGvId = -1, tileYGvId = -1;
 static int vertTexGvId = -1;
 static int vertNmTexGvId = -1;
 static int vertDetTexGvId = -1;
@@ -488,8 +487,11 @@ shaders::OverrideStateId LandMeshRenderer::MirroredCellState::currentCullFlipped
 shaders::OverrideStateId LandMeshRenderer::MirroredCellState::currentCullFlippedCurStateId;
 
 LandMeshRenderer::LandMeshRenderer(LandMeshManager &provider, dag::ConstSpan<LandClassDetailTextures> land_classes,
-  TEXTUREID vert_tex_id, TEXTUREID vert_nm_tex_id, TEXTUREID vert_det_tex_id, TEXTUREID tile_tex, real tile_x, real tile_y) :
+  TEXTUREID vert_tex_id, d3d::SamplerHandle vert_tex_smp, TEXTUREID vert_nm_tex_id, d3d::SamplerHandle vert_nm_tex_smp,
+  TEXTUREID vert_det_tex_id, d3d::SamplerHandle vert_det_tex_smp, TEXTUREID tile_tex, d3d::SamplerHandle tile_smp, real tile_x,
+  real tile_y) :
   tileTexId(tile_tex),
+  tileTexSmp(tile_smp),
   tileXSize(tile_x),
   tileYSize(tile_y),
   shouldForceLowQuality(false),
@@ -535,13 +537,13 @@ LandMeshRenderer::LandMeshRenderer(LandMeshManager &provider, dag::ConstSpan<Lan
   num_detail_textures_gvid = ::get_shader_glob_var_id("num_detail_textures", true);
 
   worldViewPosVarId = ::get_shader_glob_var_id("world_view_pos");
-  tileTexGvId = ::get_shader_glob_var_id("landTileTex", true);
-  tileXGvId = ::get_shader_glob_var_id("landTileXSize", true);
-  tileYGvId = ::get_shader_glob_var_id("landTileYSize", true);
 
   vertTexGvId = ::get_shader_glob_var_id("vertical_tex", true);
+  ShaderGlobal::set_sampler(::get_shader_glob_var_id("vertical_tex_samplerstate", true), vert_tex_smp);
   vertNmTexGvId = ::get_shader_glob_var_id("vertical_nm_tex", true);
+  ShaderGlobal::set_sampler(::get_shader_glob_var_id("vertical_nm_tex_samplerstate", true), vert_nm_tex_smp);
   vertDetTexGvId = ::get_shader_glob_var_id("vertical_det_tex", true);
+  ShaderGlobal::set_sampler(::get_shader_glob_var_id("vertical_det_tex_samplerstate", true), vert_det_tex_smp);
   indicestexDimensionsVarId = ::get_shader_glob_var_id("indicestexDimensions", true);
 
   landmesh_debug_cells_scale_gvid = provider.isInTools() ? ::get_shader_glob_var_id("landmesh_debug_cells_scale", true) : -1;
@@ -615,7 +617,6 @@ LandMeshRenderer::LandMeshRenderer(LandMeshManager &provider, dag::ConstSpan<Lan
   detMapTcScale = detMapElemSize / (size * cellSize);
   detMapTcOfs = 0.5f * cellSize / size;
 
-  ShaderGlobal::set_texture_fast(tileTexGvId, tileTexId);
   has_detailed_land_classes = false;
   for (int i = 0; i < landClasses.size(); ++i)
   {
@@ -625,9 +626,6 @@ LandMeshRenderer::LandMeshRenderer(LandMeshManager &provider, dag::ConstSpan<Lan
       break;
     }
   }
-  tileScale = Point2((tileXSize > 0 ? tileXSize : 1.f), (tileYSize > 0 ? tileYSize : 1.f));
-  ShaderGlobal::set_real_fast(tileXGvId, tileScale.x);
-  ShaderGlobal::set_real_fast(tileYGvId, tileScale.y);
 
   int default_objectid = ShaderGlobal::getBlockId("land_mesh_game_scene");
   for (int i = 0; i < RENDER_TYPES_COUNT; ++i)
@@ -685,7 +683,6 @@ LandMeshRenderer::~LandMeshRenderer()
   delete[] optScn;
   resetTextures();
 
-  ShaderGlobal::set_texture_fast(tileTexGvId, BAD_TEXTUREID);
   ShaderGlobal::set_texture_fast(vertTexGvId, BAD_TEXTUREID);
   ShaderGlobal::set_texture_fast(vertNmTexGvId, BAD_TEXTUREID);
   ShaderGlobal::set_texture_fast(vertDetTexGvId, BAD_TEXTUREID);
@@ -2082,8 +2079,6 @@ void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype,
     float scaleMicroDetail = undetailedLCMicroDetail;
     if (!shouldRenderTrivially && has_detailed_land_classes)
       scaleMicroDetail = detailedLCMicroDetail;
-    ShaderGlobal::set_real_fast(tileXGvId, tileScale.x * scaleMicroDetail);
-    ShaderGlobal::set_real_fast(tileYGvId, tileScale.y * scaleMicroDetail);
   }
 
   // int opt_vs = (!renderInBBox.isempty() && renderInBBox.width().length() > big_clipmap_criterio);

@@ -6,6 +6,10 @@ int bvh_hwinstance_copy_instance_slots;
 int bvh_hwinstance_copy_mode;
 interval bvh_hwinstance_copy_mode: copy < 1, clear;
 
+int bvh_hwinstance_copy_source_const_no = 0;
+int bvh_hwinstance_copy_instance_count_const_no = 1;
+int bvh_hwinstance_copy_output_uav_no = 0;
+
 shader bvh_hwinstance_copy
 {
   if (compatibility_mode == compatibility_mode_on)
@@ -18,17 +22,18 @@ shader bvh_hwinstance_copy
     start_instance@i1 = bvh_hwinstance_copy_start_instance;
     instance_slots@i1 = bvh_hwinstance_copy_instance_slots;
     world_view_pos@f3 = world_view_pos;
+    output@uav : register(bvh_hwinstance_copy_output_uav_no) hlsl {
+      #include <RTHWInstance.hlsli>
+      RWStructuredBuffer<RTHWInstance> output@uav;
+    };
+    if (bvh_hwinstance_copy_mode == copy)
+    {
+      source@buf : register(bvh_hwinstance_copy_source_const_no) hlsl { StructuredBuffer<RTHWInstance> source@buf; };
+      instance_count@buf : register(bvh_hwinstance_copy_instance_count_const_no) hlsl { ByteAddressBuffer instance_count@buf; };
+    }
   }
 
   hlsl (cs) {
-    #include <RTHWInstance.hlsli>
-
-    ##if bvh_hwinstance_copy_mode == copy
-      StructuredBuffer<RTHWInstance> source : register(t0);
-      ByteAddressBuffer instance_count : register(t1);
-    ##endif
-    RWStructuredBuffer<RTHWInstance> output : register(u0);
-
     [numthreads(64, 1, 1)]
     void bvh_hwinstance_copy_cs(uint3 dtId : SV_DispatchThreadID)
     {

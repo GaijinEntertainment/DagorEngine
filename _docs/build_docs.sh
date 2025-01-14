@@ -5,4 +5,4 @@ source .venv/Scripts/activate
 echo "virtualenv activated"
 
 
-python3 -m sphinx -b html -d _build/doctrees . build
+sphinx-build -c . -b html source _build

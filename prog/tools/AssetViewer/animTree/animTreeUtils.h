@@ -68,7 +68,7 @@ void remove_param_if_default_bool(dag::Vector<AnimParamData> &params, PropPanel:
   bool default_value = false);
 void remove_params_if_default_target_node_wt(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel);
 
-void remove_fields(PropPanel::ContainerPropertyControl *panel, int field_start, int field_end, bool break_if_not_found);
+void remove_fields(PropPanel::ContainerPropertyControl *panel, int field_start, int field_end, bool break_if_not_found = false);
 void remove_nodes_fields(PropPanel::ContainerPropertyControl *panel);
 void remove_ctrls_fields(PropPanel::ContainerPropertyControl *panel, int last_param_pid);
 void remove_target_node(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel);

@@ -15,7 +15,7 @@ using namespace AnimV20;
 struct AnimData::AnimDataHeader
 {
   unsigned label;    // MAKE4C('A','N','I','M')
-  unsigned ver;      // 0x220
+  unsigned ver;      // 0x300
   unsigned hdrSize;  // =sizeof(AnimDataHeader)
   unsigned dumpSize; // total dump size
 };
@@ -64,15 +64,16 @@ static void cloneAnimDataChan(AnimDataChan &d, const NameMap &nodes, const AnimD
     return;
   }
 
-  d.nodeAnim.setPtr(regAlloc(remap_count * sizeof(AnimV20Math::AnimChanPoint3), allocPtr, 8));
+  d.animTracks.setPtr(s.animTracks);
   d.nodeName.setPtr(regAlloc(remap_count * sizeof(d.nodeName[0]), allocPtr, 8));
   d.nodeWt.setPtr(regAlloc(remap_count * sizeof(d.nodeWt[0]), allocPtr, 4));
+  d.nodeTrack.setPtr(regAlloc(remap_count * sizeof(d.nodeTrack[0]), allocPtr, 2));
   d.nodeNum = remap_count;
   d.channelType = s.channelType;
 
   for (int i = 0; i < remap_count; i++)
   {
-    ((AnimV20Math::AnimChanPoint3 *)d.nodeAnim.get())[i] = ((AnimV20Math::AnimChanPoint3 *)s.nodeAnim.get())[remap_storage[i]];
+    d.nodeTrack[i] = s.nodeTrack[remap_storage[i]];
     d.nodeName[i] = s.nodeName[remap_storage[i]];
     d.nodeWt[i] = s.nodeWt[remap_storage[i]];
   }
@@ -90,21 +91,21 @@ AnimData::AnimData(AnimData *src_anim, const NameMap &node_list, IMemAlloc *ma) 
   // compute size of data to be duplicated and altered
   DumpData &d = src->dumpData;
   int dataSize = data_size(d.chanPoint3) + data_size(d.chanQuat) + data_size(d.chanReal);
-  int add_per_node = sizeof(PatchablePtr<char>) + sizeof(float);
+  int add_per_node = sizeof(PatchablePtr<char>) + sizeof(float) + sizeof(dag::Index16);
   for (int i = 0; i < d.chanPoint3.size(); i++)
   {
     int remapped_nodes = count_remapped_nodes(d.chanPoint3[i].nodeName, d.chanPoint3[i].nodeNum, node_list);
-    dataSize += (remapped_nodes * (add_per_node + sizeof(AnimV20Math::AnimChanPoint3)) + 7) & ~7;
+    dataSize += (remapped_nodes * add_per_node + 7) & ~7;
   }
   for (int i = 0; i < d.chanQuat.size(); i++)
   {
     int remapped_nodes = count_remapped_nodes(d.chanQuat[i].nodeName, d.chanQuat[i].nodeNum, node_list);
-    dataSize += (remapped_nodes * (add_per_node + sizeof(AnimV20Math::AnimChanQuat)) + 7) & ~7;
+    dataSize += (remapped_nodes * add_per_node + 7) & ~7;
   }
   for (int i = 0; i < d.chanReal.size(); i++)
   {
     int remapped_nodes = count_remapped_nodes(d.chanReal[i].nodeName, d.chanReal[i].nodeNum, node_list);
-    dataSize += (remapped_nodes * (add_per_node + sizeof(AnimV20Math::AnimChanReal)) + 7) & ~7;
+    dataSize += (remapped_nodes * add_per_node + 7) & ~7;
   }
 
   extraData = ma->alloc(dataSize);
@@ -155,16 +156,17 @@ AnimData::~AnimData()
 
 void AnimDataChan::patchData(void *base)
 {
-  nodeAnim.patch(base);
+  animTracks.patch(base);
+  animTracks = acl::make_compressed_tracks(animTracks.get());
+  G_ASSERT_EX(animTracks, "invalid ACL compressed tracks");
+  G_ASSERTF(animTracks->get_track_type() == acl::track_type8::qvvf || animTracks->get_num_tracks() == nodeNum,
+    "expected %d tracks in ACL data, got %d", nodeNum, animTracks->get_num_tracks());
+
+  nodeTrack.patch(base);
   nodeName.patch(base);
   nodeWt.patch(base);
-  auto anim = (AnimV20Math::AnimChanPoint3 *)nodeAnim.get();
   for (int i = 0; i < nodeNum; i++)
-  {
     nodeName[i].patch(base);
-    anim[i].key.patch(base);
-    anim[i].keyTime16.patch(base);
-  }
 }
 
 void AnimData::DumpData::patchData(void *base)
@@ -211,10 +213,8 @@ AnimDataChan *AnimData::DumpData::getChanReal(unsigned channel_type)
 PrsAnimNodeRef AnimData::getPrsAnim(const char *node_name)
 {
   PrsAnimNodeRef prs;
-  prs.anim = &anim;
-  prs.posId = anim.pos.getNodeId(node_name);
-  prs.rotId = anim.rot.getNodeId(node_name);
-  prs.sclId = anim.scl.getNodeId(node_name);
+  prs.anim = anim.rot.animTracks;
+  prs.trackId = anim.rot.getTrackId(node_name);
   return prs;
 }
 
@@ -245,7 +245,7 @@ bool AnimData::load(IGenLoad &crd, class IMemAlloc *ma)
     LOGERR_CTX("unrecognized label %c%c%c%c", _DUMP4C(hdr.label));
     return false;
   }
-  else if (hdr.ver != 0x220 && hdr.ver != 0x221)
+  else if (hdr.ver != 0x300 && hdr.ver != 0x301)
   {
     LOGERR_CTX("unsupported version 0x%08x", hdr.ver);
     return false;
@@ -263,9 +263,17 @@ bool AnimData::load(IGenLoad &crd, class IMemAlloc *ma)
 
   crd.read(&dumpData, sizeof(dumpData));
   dumpData.patchData(dump);
-  animAdditive = (hdr.ver == 0x221);
+  animAdditive = (hdr.ver == 0x301);
 
   anim.setup(dumpData);
+  if ((anim.pos.animTracks && anim.pos.animTracks != anim.rot.animTracks) ||
+      (anim.scl.animTracks && anim.scl.animTracks != anim.rot.animTracks))
+  {
+    LOGERR_CTX("PRS channels don't share the same animation data: p=%p r=%p s=%p", anim.pos.animTracks, anim.rot.animTracks,
+      anim.scl.animTracks);
+    return false;
+  }
+
   return true;
 }
 

@@ -14,17 +14,16 @@ class ConstSetter;
 namespace stcode
 {
 
-#if CPP_STCODE_PROTOTYPE
-
-// @TODO: crossplatform
-#if !_TARGET_PC && !_TARGET_XBOX && !_TARGET_C1 && !_TARGET_C2
-#error Currently cpp stcode is only supported for pc (any os), xbox and ps4/5
-#endif
+#if CPP_STCODE
 
 enum class ExecutionMode
 {
   CPP,
-  TEST_CPP_AGAINST_BYTECODE
+#if VALIDATE_CPP_STCODE
+  TEST_CPP_AGAINST_BYTECODE,
+#elif STCODE_RUNTIME_CHOICE
+  BYTECODE,
+#endif
 };
 
 ExecutionMode execution_mode();

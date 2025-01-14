@@ -274,21 +274,23 @@ bool d3d::fill_interface_table(D3dInterfaceTable &d3dit)
   FILL_ENTRY(create_raytrace_top_acceleration_structure);
   FILL_ENTRY(delete_raytrace_top_acceleration_structure);
   FILL_ENTRY(set_top_acceleration_structure);
-  FILL_ENTRY(create_raytrace_program);
-  FILL_ENTRY(create_raytrace_shader);
-  FILL_ENTRY(delete_raytrace_shader);
-  FILL_ENTRY(trace_rays);
   FILL_ENTRY(build_bottom_acceleration_structure);
   FILL_ENTRY(build_bottom_acceleration_structures);
   FILL_ENTRY(build_top_acceleration_structure);
   FILL_ENTRY(build_top_acceleration_structures);
-  FILL_ENTRY(copy_raytrace_shader_handle_to_memory);
   FILL_ENTRY(write_raytrace_index_entries_to_memory);
   FILL_ENTRY(get_raytrace_acceleration_structure_size);
   FILL_ENTRY(get_raytrace_acceleration_structure_gpu_handle);
   FILL_ENTRY(copy_raytrace_acceleration_structure);
 
   FILL_NAMESPACE_ENTRY(raytrace, check_vertex_format_support_for_acceleration_structure_build);
+  FILL_NAMESPACE_ENTRY(raytrace, create_pipeline);
+  FILL_NAMESPACE_ENTRY(raytrace, expand_pipeline);
+  FILL_NAMESPACE_ENTRY(raytrace, destroy_pipeline);
+  FILL_NAMESPACE_ENTRY(raytrace, get_shader_binding_table_buffer_properties);
+  FILL_NAMESPACE_ENTRY(raytrace, dispatch);
+  FILL_NAMESPACE_ENTRY(raytrace, dispatch_indirect);
+  FILL_NAMESPACE_ENTRY(raytrace, dispatch_indirect_count);
   // <- raytrace interface
 #endif
 

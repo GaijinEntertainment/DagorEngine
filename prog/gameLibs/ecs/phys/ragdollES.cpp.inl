@@ -108,7 +108,7 @@ inline void ragdoll_start_es_event_handler(const ParallelUpdateFrameDelayed &inf
   bool ragdoll__isSingleBody = false, float projectile_impulse__impulseSaveDeltaTime = 0.5f,
   float projectile_impulse__cinematicArtistryMult = 0.01f, float projectile_impulse__cinematicArtistrySpeedMult = 0.1f,
   float projectile_impulse__maxSingleImpulse = 0.01f, float projectile_impulse__maxVelocity = -1.0f,
-  float projectile_impulse__maxOmega = -1.0f)
+  float projectile_impulse__maxOmega = -1.0f, int projectile_impulse__maxCount = -1)
 {
   PhysSystemInstance *physSys = ragdoll.getPhysSys();
   if (!ragdoll__applyParams || !physSys || !physSys->getBodyCount())
@@ -125,7 +125,9 @@ inline void ragdoll_start_es_event_handler(const ParallelUpdateFrameDelayed &inf
   if (!projectile_impulse.data.empty())
   {
     Point3 impulse(0.f, 0.f, 0.f);
-    for (int i = projectile_impulse.data.size() - 1; i >= 0; i--)
+    const int minIndex =
+      projectile_impulse__maxCount > 0 ? max(0, (int)projectile_impulse.data.size() - projectile_impulse__maxCount) : 0;
+    for (int i = projectile_impulse.data.size() - 1; i >= minIndex; i--)
     {
       const auto &t = projectile_impulse.data[i];
       if (t.first < curTime - projectile_impulse__impulseSaveDeltaTime)

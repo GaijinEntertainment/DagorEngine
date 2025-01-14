@@ -5,7 +5,7 @@
 [Install the script](installation.md) following the provided instructions.
 
 ```{important}
-This script requires *3ds Max 2010* or newer version to run.
+This script requires 3ds Max 2010 or newer version to run.
 ```
 ## Overview
 
@@ -17,18 +17,20 @@ vertex color channels.
 
 Below is an example of the tool's output:
 
-![Transfer Vertex Position to Vertex Color Tool](_images/transfer_vertex_00.gif)
+<img src="_images/transfer_vertex_01.gif" alt="Transfer Vertex Position to Vertex Color Tool" align="center" width="50em">
 
 ## Accessing the Transfer Vertex Position to Vertex Color Tool
 
-1. Navigate to **Gaijin Tools (1)** ▸ **Dagor Vertex Pos to VColor...**. This
-   will open the main window of the *Dagor Vertex Position to VColor Tool*.
+1. Navigate to **Gaijin Tools** {bdg-dark-line}`1` **> Dagor Vertex Pos to
+   VColor...**. This will open the main window of the Dagor Vertex Position to
+   VColor Tool.
 
-2. To verify the version **(3)** of the script, go to **Gaijin Tools (1)** ▸
-   **About (2)**. The **About** window will display the current version. It's
-   important to check this regularly to ensure your script is up to date.
+2. To verify the version {bdg-dark-line}`3` of the script, go to **Gaijin
+   Tools** {bdg-dark-line}`1` **> About** {bdg-dark-line}`2`. The **About**
+   window will display the current version. It's important to check this
+   regularly to ensure your script is up to date.
 
-![Transfer Vertex Position to Vertex Color Tool](_images/transfer_vertex_01.png)
+   <img src="_images/transfer_vertex_02.png" alt="Transfer Vertex Position to Vertex Color Tool" align="center" width="50em">
 
 ```{note}
 Make sure that the plugin version is at least `1.6`.
@@ -36,13 +38,14 @@ Make sure that the plugin version is at least `1.6`.
 
 ## Using the Transfer Vertex Position to Vertex Color Tool
 
-To begin, open the tool panel by navigating to **Gaijin Tools** ▸ **Dagor
-Vertex Pos to VColor**.
+To begin, open the tool panel by navigating to **Gaijin Tools > Dagor Vertex Pos
+to VColor**.
 
-Download the following test scene: [VColorMorphDemo.max](https://drive.google.com/file/d/1Pg0i3dlRwNEhajSwK_RiIO-m_TT13-KY/view?usp=drive_link).
+Download the following test scene:
+{download}`VColorMorphDemo.max <https://drive.google.com/file/d/1Pg0i3dlRwNEhajSwK_RiIO-m_TT13-KY/view?usp=drive_link>`.
 
 ```{important}
-This scene requires *3ds Max 2024* or a newer version.
+This scene requires 3ds Max 2024 or a newer version.
 ```
 
 ### Use Case: Bent Metal Effect
@@ -55,7 +58,8 @@ both the original and deformed models are identical.
 
 ### Encoding Process
 
-1. **Channel Assignment:**
+1. **Channel Assignment**
+
    - The **Red** channel stores the X-axis offset.
    - The **Green** channel stores the Y-axis offset.
    - The **Blue** channel stores the Z-axis offset.
@@ -65,14 +69,16 @@ both the original and deformed models are identical.
    systems like DirectX, the Y-axis is considered upward.
    ```
 
-2. **Brightness Range:**
+2. **Brightness Range**
+
    - The brightness range is split into two intervals: `0-127` and `127-255`.
    - `127` represents zero offset, meaning no positional change between the
      original and deformed model.
    - Values `0-126` represent negative offsets, while `128-255` represent
      positive offsets.
 
-3. **Normalization:**
+3. **Normalization**
+
    - To fit the positional offsets within the 128-step brightness range,
      normalization is applied.
    - The script identifies the maximum distance between corresponding vertices
@@ -83,54 +89,63 @@ both the original and deformed models are identical.
      automatically calculated after the script processes the models, as shown in
      the following example:
 
-   ![Transfer Vertex Position to Vertex Color Tool](_images/transfer_vertex_02.png)
+     <img src="_images/transfer_vertex_03.png" alt="Transfer Vertex Position to Vertex Color Tool" align="center">
 
 ### Script Interface Overview
 
 The script interface is divided into three main sections:
 
-1. **Base Object Selection (Block 1):**
+1. **Base Object Selection (Block 1)**
+
    - Select the base object, which remains unchanged and serves as the reference
      for positional comparison.
    - Choose the target object where the vertex color (vColor) data will be
      written.
 
-2. **Calculation and Output (Block 2):**
-   - Initiate the calculation and output of the positional differences.
+2. **Calculation and Output (Block 2)**
 
-3. **Inverse Transformation (Block 3):**
-   - Optionally, verify the accuracy of the process by performing an inverse
-     transformation, converting the vertex color data back into vertex positions
-     to check for consistency.
+   Initiate the calculation and output of the positional differences.
 
-![Transfer Vertex Position to Vertex Color Tool](_images/transfer_vertex_03.png)
+3. **Inverse Transformation (Block 3)**
+
+   Optionally, verify the accuracy of the process by performing an inverse
+   transformation, converting the vertex color data back into vertex positions
+   to check for consistency.
+
+   <img src="_images/transfer_vertex_04.png" alt="Transfer Vertex Position to Vertex Color Tool" align="center" width="50em">
 
 ### Example Workflow
 
-To illustrate, let’s transfer the vertex position differences from an object
+To illustrate, let's transfer the vertex position differences from an object
 named `StartMorph` to another named `EndMorph`. As `EndMorph` has a point offset
 along the X-axis, the Red channel will reflect this shift – positive values on
 one side and negative values on the other. A gray color `(127, 127, 127)`
 indicates no positional change.
 
-1. **Select the Source Object:**
-   - Choose `StartMorph` using the **Source Object (1)** button.
+1. **Select the Source Object**
 
-2. **Select the Target Object:**
-   - Select `EndMorph` **(3)**, the object to which vColor data will be applied.
+   Choose `StartMorph` using the **Source Object** {bdg-dark-line}`1` button.
 
-3. **Display the Result:**
-   - Check the **Show VColor Result (4)** option to display the vColor in the
-     Viewport.
-   - If needed, specify a different channel **(5)** for the output, such as
-     channel 8 (used for Ambient Occlusion in *Dagor Engine*).
+2. **Select the Target Object**
 
-4. **Start the Process:**
-   - Click the **Transfer Vertex Position to VColor (6)** button to begin the
-     transfer. The resulting vColor will illustrate the deformation, as shown by
-     the color changes in the sphere, examples **(9)** and **(10)**.
+   Select `EndMorph` {bdg-dark-line}`3`, the object to which vColor data will be
+   applied.
 
-![Transfer Vertex Position to Vertex Color Tool](_images/transfer_vertex_04.png)
+3. **Display the Result**
+
+   Check the **Show VColor Result** {bdg-dark-line}`4` option to display the
+   vColor in the **Viewport**. If needed, specify a different channel
+   {bdg-dark-line}`5` for the output, such as channel 8 (used for Ambient
+   Occlusion in Dagor Engine).
+
+4. **Start the Process**
+
+   Click the **Transfer Vertex Position to VColor** {bdg-dark-line}`6` button to
+   begin the transfer. The resulting vColor will illustrate the deformation, as
+   shown by the color changes in the sphere, examples {bdg-dark-line}`9` and
+   {bdg-dark-line}`10`.
+
+   <img src="_images/transfer_vertex_05.png" alt="Transfer Vertex Position to Vertex Color Tool" align="center" width="50em">
 
 This is an illustrative example when deformation of an object where the vColor
 has changed. In a real task, we need to transfer the position the other way
@@ -143,11 +158,11 @@ To verify the accuracy of the transformation:
 
 **Inverse Transformation:**
 
-1. Set the **Global Distance Multiplier (11)** to the value calculated during
-   the initial process.
+1. Set the **Global Distance Multiplier** {bdg-dark-line}`11` to the value
+   calculated during the initial process.
 2. Select the model with the generated vColor.
-3. Click **Restore VertexPos to Start Pos (12)** button to revert the vColor
-   back into vertex positions.
+3. Click **Restore VertexPos to Start Pos** {bdg-dark-line}`12` button to revert
+   the vColor back into vertex positions.
 
 The process may introduce minor distortions due to the limited precision
 available within the 128-step brightness range.
@@ -155,69 +170,82 @@ available within the 128-step brightness range.
 ## Prototype Car Destruction in Unreal Engine
 
 This section demonstrates a practical application of the script for simulating
-car damage in *Unreal Engine*. You can download the *Unreal Engine* project from
-the following link:
-
-[Download Unreal Project](https://cloud.gaijin.team/s/qsRsGFY82CTBpQt)
+car damage in Unreal Engine:
+{download}`Unreal Engine project <https://cloud.gaijin.team/s/qsRsGFY82CTBpQt>`.
 
 ```{note}
-The minimum supported version for this project is *Unreal Engine* `4.27`.
+The minimum supported version for this project is Unreal Engine `4.27`.
 ```
 
 To view the results directly, you can run the executable file
-`CarDeformExampleWin64x\CarDeformExample.exe`, example: [transfer_vertex_05.gif](https://drive.google.com/file/d/1e1t_BrkvtiZP7vddbPzxufcjcVDA54Gn/view?usp=drive_link).
+`CarDeformExampleWin64x\CarDeformExample.exe`:
+
+```{eval-rst}
+.. video:: _images/transfer_vertex_05.webm
+   :width: 90%
+```
 
 ### Nissan Car Damage Example
 
 For a hands-on example, you can download the scene files for a damaged Nissan
 car from the links below:
 
-- [Scene 1: NewDestrCarTest.zip.001](https://drive.google.com/file/d/1zJKHehTbUvyEKfMqLyOYai9GRZdThFrP/view?usp=drive_link)
+- {download}`Scene 1: NewDestrCarTest.zip.001 <https://drive.google.com/file/d/1zJKHehTbUvyEKfMqLyOYai9GRZdThFrP/view?usp=drive_link>`
 
-- [Scene 2: NewDestrCarTest.zip.002](https://drive.google.com/file/d/1AxNpfBGYRhsc0FfyY9aX8jO9hEDU8KFP/view?usp=drive_link)
+- {download}`Scene 2: NewDestrCarTest.zip.002 <https://drive.google.com/file/d/1AxNpfBGYRhsc0FfyY9aX8jO9hEDU8KFP/view?usp=drive_link>`
 
 ```{note}
-The minimum supported version for this scene is *3ds Max 2024*.
+The minimum supported version for this scene is 3ds Max 2024.
 ```
 
 #### Step-by-Step Instructions
 
-1. **Open the Scene in 3ds Max:**
-   - The scene contains two versions of the car: a dented version **(2)** and an
-     undamaged version **(1)**.
+1. **Open the Scene in 3ds Max**
 
-![Transfer Vertex Position to Vertex Color Tool](_images/transfer_vertex_06.png)
+   The scene contains two versions of the car: a dented version
+   {bdg-dark-line}`2` and an undamaged version {bdg-dark-line}`1`.
 
-2. **Select the Undamaged Car:**
-   - Begin by selecting the undamaged car model **(1)**.
+   <img src="_images/transfer_vertex_06.png" alt="Transfer Vertex Position to Vertex Color Tool" align="center" width="50em">
 
-3. **Specify the Dented Car as the Target:**
-   - With the undamaged car still selected, press the selection button **(3)**
-     to specify the dented car as the target for the transformation.
+2. **Select the Undamaged Car**
 
-4. **Run the Script:**
-   - Press the execute button **(4)** and wait for the script to complete its
-     process.
+   Begin by selecting the undamaged car model {bdg-dark-line}`1`.
+
+3. **Specify the Dented Car as the Target**
+
+   With the undamaged car still selected, press the selection button
+   {bdg-dark-line}`3` to specify the dented car as the target for the
+   transformation.
+
+4. **Run the Script**
+
+   Press the execute button {bdg-dark-line}`4` and wait for the script to
+   complete its process.
 
    The car should now display a vertex color indicative of the deformation
    process, similar to the example shown below:
 
-   ![Transfer Vertex Position to Vertex Color Tool](_images/transfer_vertex_07.png)
+   <img src="_images/transfer_vertex_07.png" alt="Transfer Vertex Position to Vertex Color Tool" align="center" width="50em">
 
-5. **Verify the Results:**
-   - To verify the process, make a copy of the undamaged car **(1)** and press
-     the button **(2)** to apply the vertex color transformation.
+5. **Verify the Results**
+
+   To verify the process, make a copy of the undamaged car {bdg-dark-line}`1`
+   and press the button {bdg-dark-line}`2` to apply the vertex color
+   transformation.
+
+   <img src="_images/transfer_vertex_08.png" alt="Transfer Vertex Position to Vertex Color Tool" align="center" width="50em">
 
    The result should closely resemble the dented car model, as illustrated here:
 
-   ![Transfer Vertex Position to Vertex Color Tool](_images/transfer_vertex_09.png)
+   <img src="_images/transfer_vertex_09.png" alt="Transfer Vertex Position to Vertex Color Tool" align="center" width="50em">
 
-6. **Inspect for Artifacts:**
-   - Upon closer inspection, particularly around the steering wheel, you may
-     notice minor artifacts. These artifacts are a result of compressing vertex
-     positions into the vertex color space, as shown below:
+6. **Inspect for Artifacts**
 
-   ![Transfer Vertex Position to Vertex Color Tool](_images/transfer_vertex_10.png)
+   Upon closer inspection, particularly around the steering wheel, you may
+   notice minor artifacts. These artifacts are a result of compressing vertex
+   positions into the vertex color space, as shown below:
+
+   <img src="_images/transfer_vertex_10.png" alt="Transfer Vertex Position to Vertex Color Tool" align="center" width="33em">
 
    Unfortunately, these artifacts are inherent to the technology used for
    encoding vertex positions in the vertex color channels. However, they are
@@ -226,9 +254,9 @@ The minimum supported version for this scene is *3ds Max 2024*.
 
 ### Additional Resources
 
-- **Documentation:** Button **Visit to Learning Web Site (7)** will open this
-  article.
-- **Contact Information:** Button **Contact with Developer (8)** provides the
-  developer's contacts.
+- **Documentation:** Button **Visit to Learning Web Site** {bdg-dark-line}`7`
+  will open this article.
+- **Contact Information:** Button **Contact with Developer** {bdg-dark-line}`8`
+  provides the developer's contacts.
 
 

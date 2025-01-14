@@ -55,6 +55,15 @@ void quat_to_axis_angle(const Quat &q, Point3 &axis, float &ang);
 
 INLINE real norm_ang_deg(real a) { return fmodf(a, 360.f); }
 
+// normalize angle to the range [0;360)
+// regular norm_ang_deg returns (-360;+360)
+INLINE real norm_ang_deg_positive(real a)
+{
+  const float res = fmodf(a, 360.f);
+  const bool neg = a < 0.0f;
+  return res + neg * 360.0f;
+}
+
 INLINE real norm_s_ang_deg(real a)
 {
   a = fmodf(a, 360.f);

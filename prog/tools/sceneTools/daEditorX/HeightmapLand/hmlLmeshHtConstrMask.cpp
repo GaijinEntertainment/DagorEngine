@@ -164,6 +164,8 @@ bool HmapLandPlugin::applyHtConstraintBitmask(Mesh &mesh)
   mem_set_0(vshift);
   bool changed = false;
   exportType = -1;
+  BBox2 landBoundsXZ(Point2::xz(landMeshMap.getEditorLandRayTracer()->getBBox()[0]),
+    Point2::xz(landMeshMap.getEditorLandRayTracer()->getBBox()[1]));
   for (int y = 0; y < h; y++)
     for (int x = 0; x < w; x++)
       if (bmLmeshHtConstr->get(x, y))
@@ -172,6 +174,9 @@ bool HmapLandPlugin::applyHtConstraintBitmask(Mesh &mesh)
         float t = aboveHt;
         getHeightmapPointHt(p, NULL);
         p.y += t;
+
+        if (!(landBoundsXZ & Point2::xz(p)))
+          continue;
 
         // int fi = rt.traceray(p, Point3(0,-1,0), t);
 

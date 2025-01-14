@@ -326,16 +326,20 @@ void SmokeTracerManager::renderTrans()
   ShaderGlobal::set_real(smoke_trace_current_timeVarId, cTime);
   headRenderer.shader->setStates(0, true);
   d3d::setvsrc(0, 0, 0);
-  d3d::set_buffer(STAGE_VS, 8, culledTracerHeads.get());
+  static int smoke_tracers_head_culledTracers_const_no = ShaderGlobal::get_slot_by_name("smoke_tracers_head_culledTracers_const_no");
+  d3d::set_buffer(STAGE_VS, smoke_tracers_head_culledTracers_const_no, culledTracerHeads.get());
   d3d::draw_indirect(PRIM_TRISTRIP, drawIndirectBuffer.get(), 0);
+  d3d::set_buffer(STAGE_VS, smoke_tracers_head_culledTracers_const_no, 0);
 
   tailRenderer.shader->setStates(0, true);
-  d3d::set_buffer(STAGE_VS, 12, culledTracerTails.get());
-  d3d::set_buffer(STAGE_VS, 13, tracerVertsBuffer.get());
+  static int smoke_tracers_tail_tracers_const_no = ShaderGlobal::get_slot_by_name("smoke_tracers_tail_tracers_const_no");
+  static int smoke_tracers_tail_tracerVerts_const_no = ShaderGlobal::get_slot_by_name("smoke_tracers_tail_tracerVerts_const_no");
+  d3d::set_buffer(STAGE_VS, smoke_tracers_tail_tracers_const_no, culledTracerTails.get());
+  d3d::set_buffer(STAGE_VS, smoke_tracers_tail_tracerVerts_const_no, tracerVertsBuffer.get());
   d3d::draw_indirect(PRIM_TRISTRIP, drawIndirectBuffer.get(), sizeof(uint32_t) * DRAW_INDIRECT_NUM_ARGS);
   // d3d::draw(PRIM_TRISTRIP, 0, 32);
-  d3d::set_buffer(STAGE_VS, 12, 0);
-  d3d::set_buffer(STAGE_VS, 13, 0);
+  d3d::set_buffer(STAGE_VS, smoke_tracers_tail_tracers_const_no, 0);
+  d3d::set_buffer(STAGE_VS, smoke_tracers_tail_tracerVerts_const_no, 0);
   // d3d::set_buffer(STAGE_VS, 1, 0);
   // d3d::set_buffer(STAGE_VS, 2, 0);
 }

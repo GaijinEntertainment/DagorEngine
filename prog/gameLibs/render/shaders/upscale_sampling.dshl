@@ -15,6 +15,7 @@ macro UPSCALE_SAMPLING_CORE(code)
 
   (code) {
     lowres_size@f2 = lowres_size;
+    gbuffer_size@f2 = gbuffer_size;
     inv_gbuffer_size@f2 = (0.5/max(1,lowres_size.x), 0.5/max(1,lowres_size.y),0,0);
     // todo: we actually need to use this:
     //inv_gbuffer_size@f2 = (1./max(1,gbuffer_size.x), 1./max(1,gbuffer_size.y),0,0);
@@ -84,7 +85,7 @@ shader upscale_sampling_cs
     [numthreads( 8, 8, 1 )]
     void upscale_sampling_cs(uint3 DTid : SV_DispatchThreadID)
     {
-      if (any(DTid.xy >= lowres_size.xy))
+      if (any(DTid.xy >= gbuffer_size.xy))
         return;
 
       texture2DAt(target, DTid.xy) = upscale_sampling(DTid.xy + 0.5);

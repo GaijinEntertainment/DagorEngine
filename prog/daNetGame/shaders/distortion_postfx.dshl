@@ -1,8 +1,10 @@
+include "antialiasing_type.inc.dshl"
 include "distortion_postfx_inc.dshl"
 include "heatHazeOffset.dshl"
 include "postfx_common.dshl"
 
 shader distortion_postfx {
+  color_write = rgba;
 
   INIT_HEAT_HAZE_OFFSET()
   USE_HEAT_HAZE_OFFSET()
@@ -12,6 +14,10 @@ shader distortion_postfx {
     half3 sampleSceneColor(float2 uv)
     {
       return tex2Dlod(frame_tex, float4(uv,0,0)).rgb;
+    }
+    float sampleSceneAlpha(float2 uv)
+    {
+      return tex2Dlod(frame_tex, float4(uv,0,0)).a;
     }
   }
 
@@ -28,8 +34,15 @@ shader distortion_postfx {
   hlsl(ps) {
     float4 distortion_postfx_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
     {
+    ##if antialiasing_type == tsr
+      float pseudoDepth = sampleSceneAlpha(input.tc);
+      float alpha = pseudoDepth;
+    ##else
+      float alpha = 1.0;
+    ##endif
+
       float3 frame = apply_distortion_postfx(input);
-      return float4(frame, 1.0);
+      return float4(frame, alpha);
     }
   }
 

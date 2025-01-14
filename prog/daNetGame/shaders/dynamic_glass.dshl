@@ -8,7 +8,6 @@ include "gbuffer_to_temperature.dshl"
 
 float4 glass_specular_color = (1, 1, 1, 0);
 float glass_specular_color_mul = 10;
-float glass_specular_power = 200;
 float glass_shadow_k = 0.5;
 float cockpit_radius = 0;
 
@@ -179,10 +178,9 @@ shader glass_crack, dynamic_masked_glass_chrome, dynamic_glass_chrome
         (ps) { material_diffuse_and_opacity@f4 = (0.06, 0.06, 0.06, opacity); }
       }
       (ps) {
-        glass_specular_color@f3 = (pow(glass_specular_color.r, 2.2) * sun_color_0.r * glass_specular_color_mul,
-                                   pow(glass_specular_color.g, 2.2) * sun_color_0.g * glass_specular_color_mul,
-                                   pow(glass_specular_color.b, 2.2) * sun_color_0.b * glass_specular_color_mul);
-        glass_specular_power@f1 = glass_specular_power;
+        glass_specular_color@f3 = (pow(glass_specular_color.r, 2.2) * glass_specular_color_mul,
+                                   pow(glass_specular_color.g, 2.2) * glass_specular_color_mul,
+                                   pow(glass_specular_color.b, 2.2) * glass_specular_color_mul);
       }
 
       hlsl(ps) {

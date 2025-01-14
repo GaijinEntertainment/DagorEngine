@@ -3,15 +3,15 @@ include "frustum.dshl"
 
 texture spline_gen_texture_d;
 texture spline_gen_texture_n;
-int spline_gen_vertex_buffer_const_no = 0 always_referenced;
+int spline_gen_vertex_buffer_uav_no = 0;
 
 int spline_gen_instance_count;
 int spline_gen_active_instance_count;
-int spline_gen_culled_buffer_const_no = 0 always_referenced;
-int spline_gen_params_buffer_const_no = 1 always_referenced;
+int spline_gen_culled_buffer_uav_no = 0;
+int spline_gen_params_buffer_uav_no = 1;
 
 int spline_gen_obj_elem_count;
-int spline_gen_attachment_data_const_no = 0 always_referenced;
+int spline_gen_attachment_data_uav_no = 0;
 
 shader spline_gen_generator, spline_gen_normal_calculator
 {
@@ -20,10 +20,12 @@ shader spline_gen_generator, spline_gen_normal_calculator
   USE_SPLINE_GEN_INSTANTIATION(cs)
   ENABLE_ASSERT(cs)
 
-  hlsl (cs)
+  (cs)
   {
-    #include "spline_gen_buffer.hlsli"
-    RWStructuredBuffer<SplineGenVertex> spline_gen_vertex_buffer : register(u0);
+    spline_gen_vertex_buffer@uav : register(spline_gen_vertex_buffer_uav_no) hlsl {
+      #include "spline_gen_buffer.hlsli"
+      RWStructuredBuffer<SplineGenVertex> spline_gen_vertex_buffer@uav;
+    };
   }
 
   if (shader == spline_gen_generator)
@@ -175,14 +177,15 @@ shader spline_gen_obj_attacher
       #include "spline_gen_buffer.hlsli"
       StructuredBuffer<SplineGenVertex> spline_gen_vertex_buffer@buf;
     }
+    spline_gen_attachment_data@uav : register(spline_gen_attachment_data_uav_no) hlsl {
+      #include "spline_gen_attachment.hlsl"
+      RWStructuredBuffer<AttachmentData> spline_gen_attachment_data@uav;
+    };
   }
 
   hlsl (cs)
   {
     #include <hammersley.hlsl>
-    #include "spline_gen_attachment.hlsl"
-
-    RWStructuredBuffer<AttachmentData> spline_gen_attachment_data : register(u0);
 
     struct CoordEx
     {
@@ -343,6 +346,12 @@ shader dynamic_spline_gen_culler
     spline_gen_instance_count@i1 = (spline_gen_instance_count);
     spline_gen_attachment_max_no@i1 = (spline_gen_attachment_max_no);
     spline_gen_obj_elem_count@i1 = (spline_gen_obj_elem_count);
+    spline_gen_culled_buffer@uav : register(spline_gen_culled_buffer_uav_no) hlsl {
+      RWStructuredBuffer<uint> spline_gen_culled_buffer@uav;
+    };
+    spline_gen_params_buffer@uav : register(spline_gen_params_buffer_uav_no) hlsl {
+      RWByteAddressBuffer spline_gen_params_buffer@uav;
+    };
   }
   hlsl (cs)
   {
@@ -365,9 +374,6 @@ shader dynamic_spline_gen_culler
       result.lim[1] = spline_gen_instancing_buffer[source_index].bbox_lim1;
       return result;
     }
-
-    RWStructuredBuffer<uint> spline_gen_culled_buffer : register(u0);
-    RWByteAddressBuffer spline_gen_params_buffer: register(u1);
 
     [numthreads(SPLINE_GEN_COMPUTE_DIM, 1, 1)]
     void main(uint dispatch_thread_id : SV_DispatchThreadID)

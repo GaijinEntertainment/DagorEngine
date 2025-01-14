@@ -102,7 +102,7 @@ const eastl::string FileTextEdit::GetText()
 } */
 
 
-bool FileTextEdit::OnImGui(bool windowIsOpen)
+bool FileTextEdit::OnImGui(bool windowIsOpen, uint32_t &currentDockId)
 {
 	ImFont* codeFontEditor = FontManager::GetCodeFont();
 	ImFont* codeFontTopBar = FontManager::GetCodeFont();
@@ -119,6 +119,8 @@ bool FileTextEdit::OnImGui(bool windowIsOpen)
 
 	if (ImGui::IsWindowFocused() && onFocusedCallback != nullptr)
 		onFocusedCallback(this->createdFromFolderView);
+
+	currentDockId = ImGui::GetWindowDockID();
 
 	bool isFocused = ImGui::IsWindowFocused();
 	bool requestingGoToLinePopup = false;
@@ -147,16 +149,17 @@ bool FileTextEdit::OnImGui(bool windowIsOpen)
 		if (ImGui::BeginMenu("Edit"))
 		{
 			bool ro = editor->IsReadOnlyEnabled();
-			if (ImGui::MenuItem("Read only mode enabled", nullptr, &ro))
-				editor->SetReadOnlyEnabled(ro);
+			if (ro)
+				ImGui::MenuItem("Read only mode", nullptr, false);
+
 			bool ai = editor->IsAutoIndentEnabled();
 			if (ImGui::MenuItem("Auto indent on enter enabled", nullptr, &ai))
 				editor->SetAutoIndentEnabled(ai);
 			ImGui::Separator();
 
-			if (ImGui::MenuItem("Undo", "ALT-Backspace", nullptr, !ro && editor->CanUndo()))
+			if (ImGui::MenuItem("Undo", "Ctrl+Z", nullptr, !ro && editor->CanUndo()))
 				editor->Undo(true);
-			if (ImGui::MenuItem("Redo", "Ctrl+Y", nullptr, !ro && editor->CanRedo()))
+			if (ImGui::MenuItem("Redo", "Ctrl+Shift+Z", nullptr, !ro && editor->CanRedo()))
 				editor->Redo(true);
 
 			ImGui::Separator();

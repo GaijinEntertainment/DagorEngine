@@ -180,6 +180,7 @@ struct RendInstGenData
     float canopyTopPart;
     float canopyWidthPart;
     float canopyOpacity;
+    float soundOcclusion;
     rendinstdestr::TreeDestr::BranchDestr treeBranchDestrFromDamage;
     rendinstdestr::TreeDestr::BranchDestr treeBranchDestrOther;
   };

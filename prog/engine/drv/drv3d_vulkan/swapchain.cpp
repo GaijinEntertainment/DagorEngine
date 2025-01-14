@@ -9,6 +9,7 @@
 #include "device_queue.h"
 #include "backend.h"
 #include "execution_context.h"
+#include "wrapped_command_buffer.h"
 
 #if _TARGET_ANDROID
 #include <osApiWrappers/dag_progGlobals.h>
@@ -67,6 +68,17 @@ void Swapchain::destroySwapchainHandle(VulkanSwapchainKHRHandle &sc_handle)
     sc_handle = VulkanNullHandle();
   }
 }
+
+#if VK_EXT_full_screen_exclusive
+bool Swapchain::isFullscreenExclusiveAllowed()
+{
+  // probably need to use vkGetPhysicalDeviceSurfaceCapabilities2KHR for checking support of exclusive modes, but that's not documented
+  // well and EXT sample not using it, so just ask it as is without bothering with capability query
+  bool fineToUse = Globals::VK::phy.hasExtension<FullScreenExclusiveEXT>();
+  fineToUse &= activeMode.fullscreen > 0;
+  return fineToUse;
+}
+#endif
 
 VkSurfaceCapabilitiesKHR Swapchain::querySurfaceCaps()
 {
@@ -392,6 +404,15 @@ Swapchain::ChangeResult Swapchain::changeSwapchain(FrameInfo &frame)
 
   activeMode.presentMode = sci.presentMode;
 
+#if VK_EXT_full_screen_exclusive
+  VkSurfaceFullScreenExclusiveInfoEXT fsei = {
+    VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT, nullptr, VK_FULL_SCREEN_EXCLUSIVE_ALLOWED_EXT};
+  if (isFullscreenExclusiveAllowed())
+  {
+    chain_structs(sci, fsei);
+    debug("vulkan: swapchain: full screen exclusive allowed");
+  }
+#endif
   VulkanSwapchainKHRHandle oldHandle = handle;
 
   VkResult createResult = Globals::VK::dev.vkCreateSwapchainKHR(Globals::VK::dev.get(), &sci, nullptr, ptr(handle));
@@ -485,9 +506,9 @@ bool Swapchain::updateSwapchainImageList(const VkSwapchainCreateInfoKHR &sci)
   return true;
 }
 
-void Swapchain::doBlit(ExecutionContext &ctx, Image *from, Image *to)
+void Swapchain::doBlit(Image *from, Image *to)
 {
-  makeReadyForBlit(ctx, from, to);
+  makeReadyForBlit(from, to);
 
   VkImageBlit blit;
   blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -513,11 +534,11 @@ void Swapchain::doBlit(ExecutionContext &ctx, Image *from, Image *to)
   blit.dstOffsets[1].y = dstExtent.height;
   blit.dstOffsets[1].z = 1;
 
-  VULKAN_LOG_CALL(Globals::VK::dev.vkCmdBlitImage(ctx.frameCore, from->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-    to->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR));
+  VULKAN_LOG_CALL(Backend::cb.wCmdBlitImage(from->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, to->getHandle(),
+    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR));
 }
 
-void Swapchain::makeReadyForBlit(ExecutionContext &ctx, Image *from, Image *to)
+void Swapchain::makeReadyForBlit(Image *from, Image *to)
 {
   Backend::sync.addImageAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT}, from,
     VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, {0, 1, 0, 1});
@@ -525,10 +546,10 @@ void Swapchain::makeReadyForBlit(ExecutionContext &ctx, Image *from, Image *to)
   Backend::sync.addImageWriteDiscard({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, to,
     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, {0, 1, 0, 1});
 
-  Backend::sync.completeNeeded(ctx.frameCore, Globals::VK::dev);
+  Backend::sync.completeNeeded();
 }
 
-void Swapchain::makeReadyForPresent(ExecutionContext &ctx, Image *img)
+void Swapchain::makeReadyForPresent(Image *img)
 {
   // handle case when we are not rendering, but presenting
   // fill screen with dummy black or last rendered image if it exists
@@ -536,10 +557,10 @@ void Swapchain::makeReadyForPresent(ExecutionContext &ctx, Image *img)
   {
     bool useDummy = (lastRenderedImage == nullptr) || (lastRenderedImage->layout.get(0, 0) == VK_IMAGE_LAYOUT_UNDEFINED);
     Image *fallbackImage = useDummy ? Globals::dummyResources.getSRV2DImage() : lastRenderedImage;
-    doBlit(ctx, fallbackImage, img);
+    doBlit(fallbackImage, img);
   }
   else if (lastRenderedImage)
-    doBlit(ctx, img, lastRenderedImage);
+    doBlit(img, lastRenderedImage);
 
   // present barrier is very special, as vkQueuePresent does all visibility ops
   // ref: vkQueuePresentKHR spec notes, quote
@@ -553,7 +574,7 @@ void Swapchain::makeReadyForPresent(ExecutionContext &ctx, Image *img)
   Backend::sync.addImageAccess({VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_ACCESS_NONE}, img, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
     {0, 1, 0, 1});
 
-  Backend::sync.completeNeeded(ctx.frameCore, Globals::VK::dev);
+  Backend::sync.completeNeeded();
 }
 
 void Swapchain::createLastRenderedImage(const VkSwapchainCreateInfoKHR &sci)
@@ -753,7 +774,7 @@ void Swapchain::preRotateStart(uint32_t offscreen_binding_idx, FrameInfo &frame,
   }
 }
 
-void Swapchain::prePresent(ExecutionContext &ctx)
+void Swapchain::prePresent()
 {
   if (currentState == SWP_DELAYED_ACQUIRE)
   {
@@ -777,7 +798,7 @@ void Swapchain::prePresent(ExecutionContext &ctx)
         // do not blit from offscreen buffer if it was not populated with content
         // followup code will handle this case filling swapchain image with dummy tex
         if (offscreenBuffer->layout.get(0, 0) != VK_IMAGE_LAYOUT_UNDEFINED)
-          doBlit(ctx, offscreenBuffer, swapImages[colorTargetIndex]);
+          doBlit(offscreenBuffer, swapImages[colorTargetIndex]);
       }
       // tell the device we do not need the contents any more and make layout transition fast
       offscreenBuffer->layout.set(0, 0, VK_IMAGE_LAYOUT_UNDEFINED);
@@ -804,21 +825,30 @@ void Swapchain::prePresent(ExecutionContext &ctx)
 
   if (currentState == SWP_PRE_PRESENT)
   {
-    makeReadyForPresent(ctx, swapImages[colorTargetIndex]);
+    makeReadyForPresent(swapImages[colorTargetIndex]);
     changeSwapState(SWP_PRESENT);
   }
 }
 
-void Swapchain::present(ExecutionContext &)
+void Swapchain::present(VulkanSemaphoreHandle present_signal)
 {
   G_ASSERT((currentState == SWP_HEADLESS) || (currentState == SWP_PRESENT));
   FrameInfo &frame = Backend::gpuJob.get();
 
+  // other queue can be used here, if we can get benefit from that
+  // with current pattern of submissions, using other queue gives more overhead instead
+  DeviceQueueType targetQueue = DeviceQueueType::GRAPHICS;
+
   // signaled semaphores must be waited on to avoid bad reuse
   if (currentState == SWP_HEADLESS)
   {
-    DeviceQueue::TrimmedSubmitInfo si = {};
-    Globals::VK::queue[DeviceQueueType::GRAPHICS].submit(Globals::VK::dev, frame, si);
+    DeviceQueue::TrimmedPresentInfo pi;
+    pi.swapchainCount = 0;
+    pi.pSwapchains = nullptr;
+    pi.pImageIndices = &colorTargetIndex;
+    pi.presentSignal = present_signal;
+
+    Globals::VK::queue[targetQueue].present(Globals::VK::dev, frame, pi);
   }
 
   if (currentState == SWP_PRESENT)
@@ -827,11 +857,12 @@ void Swapchain::present(ExecutionContext &)
     pi.swapchainCount = 1;
     pi.pSwapchains = ptr(handle);
     pi.pImageIndices = &colorTargetIndex;
+    pi.presentSignal = present_signal;
 
     VkResult result;
     {
       TIME_PROFILE(vulkan_swapchain_present);
-      result = Globals::VK::queue[DeviceQueueType::GRAPHICS].present(Globals::VK::dev, frame, pi);
+      result = Globals::VK::queue[targetQueue].present(Globals::VK::dev, frame, pi);
     }
 
     if (checkVkSwapchainError(result, "vkQueuePresent"))

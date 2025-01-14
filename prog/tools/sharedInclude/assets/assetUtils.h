@@ -6,6 +6,8 @@
 #include <util/dag_string.h>
 
 class DagorAsset;
+class DagorAssetFolder;
 
 void dag_reveal_in_explorer(const DagorAsset *asset);
+void dag_reveal_in_explorer(const DagorAssetFolder *folder);
 void dag_reveal_in_explorer(String file_path);

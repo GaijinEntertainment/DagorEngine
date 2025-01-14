@@ -23,6 +23,21 @@ static const int INDICIES_PER_PARTICLE = 6 * 6;
 
 static int decal_bufferVarId = -1;
 
+#define PROJECTIVE_DECALS_CONST_LIST     \
+  VAR(projective_decals_to_update_count) \
+  VAR(projective_decals_to_update)       \
+  VAR(projective_decals_original_count)
+#define VAR(a) static ShaderVariableInfo a##_const_no = -1;
+PROJECTIVE_DECALS_CONST_LIST
+#undef VAR
+
+#define PROJECTIVE_DECALS_UAV_LIST    \
+  VAR(projective_decals_target)       \
+  VAR(projective_decals_target_count) \
+  VAR(projective_decals_original)
+#define VAR(a) static ShaderVariableInfo a##_uav_no = -1;
+PROJECTIVE_DECALS_UAV_LIST
+#undef VAR
 
 bool ProjectiveDecals::init(const char *generator_shader_name, const char *decal_shader_name, const char *decal_cull_shader,
   const char *decal_create_indirect)
@@ -43,6 +58,14 @@ bool ProjectiveDecals::init(const char *generator_shader_name, const char *decal
   decal_bufferVarId = ::get_shader_variable_id("decal_buffer");
 
   index_buffer::init_box();
+
+#define VAR(a) a##_const_no = get_shader_variable_id(#a "_const_no");
+  PROJECTIVE_DECALS_CONST_LIST
+#undef VAR
+
+#define VAR(a) a##_uav_no = get_shader_variable_id(#a "_uav_no");
+  PROJECTIVE_DECALS_UAV_LIST
+#undef VAR
 
   return true;
 }
@@ -116,21 +139,22 @@ void ProjectiveDecals::prepareRender(const Frustum &frustum)
   if (decalsToRender == 0 && decalsToUpdate.size() == 0) // there are no decals
     return;
 
-  STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, 0, VALUE), buffer.decalInstances.get());
+  STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, projective_decals_original_uav_no.get_int(), VALUE), buffer.decalInstances.get());
   while (!decalsToUpdate.empty())
   {
     uint numToUpdate = min<uint>(decalsToUpdate.size(), MAX_DECALS_TO_UPDATE);
     uint startIndex = decalsToUpdate.size() - numToUpdate;
     IPoint4 params(numToUpdate, 0, 0, 0);
-    d3d::set_cs_const(0, (float *)&params.x, 1);
-    d3d::set_cs_const(1, (float *)&decalsToUpdate[startIndex], numToUpdate * ((elem_size(decalsToUpdate) + 15) / 16));
+    d3d::set_cs_const(projective_decals_to_update_count_const_no.get_int(), (float *)&params.x, 1);
+    d3d::set_cs_const(projective_decals_to_update_const_no.get_int(), (float *)&decalsToUpdate[startIndex],
+      numToUpdate * ((elem_size(decalsToUpdate) + 15) / 16));
     decalUpdater->dispatch(1, 1, 1);
     d3d::resource_barrier({buffer.decalInstances.get(), RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE});
 
     decalsToUpdate.resize(startIndex);
   }
 
-  STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, 2, VALUE), indirectBuffer.get());
+  STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, projective_decals_target_count_uav_no.get_int(), VALUE), indirectBuffer.get());
   decalCreator->dispatch(1, 1, 1); // clear
 
   set_frustum_planes(frustum);
@@ -139,8 +163,8 @@ void ProjectiveDecals::prepareRender(const Frustum &frustum)
 
   int decalsCount = decalsToRender;
   IPoint4 params{decalsCount, 0, 0, 0};
-  d3d::set_cs_const(10, (float *)&params.x, 1);
-  STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, 1, VALUE), buffer.culledInstances.getBuf());
+  d3d::set_cs_const(projective_decals_original_count_const_no.get_int(), (float *)&params.x, 1);
+  STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, projective_decals_target_uav_no.get_int(), VALUE), buffer.culledInstances.getBuf());
   decalCuller->dispatch((decalsCount + DECALS_MAX_CULL_X - 1) / DECALS_MAX_CULL_X, 1, 1);
 }
 

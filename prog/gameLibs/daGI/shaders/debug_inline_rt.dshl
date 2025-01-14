@@ -8,6 +8,8 @@ interval debug_inline_rt_raydist: off<1, on;
 
 buffer debug_inline_rt_constants;
 
+int debug_inline_rt_cs_outputImage_uav_no = 0;
+
 shader debug_inline_rt_cs
 {
   USE_AND_INIT_VIEW_VEC_CS()
@@ -27,10 +29,11 @@ shader debug_inline_rt_cs
       };
       ConstantBuffer<ConstantValues> constants@cbuf;
     }
+    outputImage@uav : register(debug_inline_rt_cs_outputImage_uav_no) hlsl {
+      RWTexture2D<float4> outputImage@uav;
+    };
   }
   hlsl(cs) {
-    RWTexture2D<float4> outputImage : register(u0);
-
     [numthreads(8, 8, 1)]
     void main(uint gId : SV_GroupIndex, uint3 dtId : SV_DispatchThreadID)
     {

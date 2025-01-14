@@ -150,6 +150,7 @@ SQVM::SQVM(SQSharedState *ss) :
     _compile_line_hook = NULL;
     _current_thread = -1;
     _get_current_thread_id_func = NULL;
+    _sq_call_hook = NULL;
     _openouters = NULL;
     ci = NULL;
     _releasehook = NULL;
@@ -171,6 +172,7 @@ void SQVM::Finalize()
     _compile_line_hook = NULL;
     _debughook_closure.Null();
     _get_current_thread_id_func = NULL;
+    _sq_call_hook = NULL;
     temp_reg.Null();
     _callstackdata.resize(0);
     SQInteger size=_stack.size();
@@ -495,6 +497,7 @@ bool SQVM::Init(SQVM *friendvm, SQInteger stacksize)
         _compile_line_hook = friendvm->_compile_line_hook;
         _current_thread = friendvm->_current_thread;
         _get_current_thread_id_func = friendvm->_get_current_thread_id_func;
+        _sq_call_hook = friendvm->_sq_call_hook;
     }
 
 
@@ -1627,6 +1630,7 @@ bool SQVM::CreateClassInstance(SQClass *theclass, SQObjectPtr &__restrict out_in
 
 void SQVM::CallErrorHandler(SQObjectPtr &error)
 {
+  ci->_ip--;
   if (_debughook_native)
   {
     if (ci->_closure._type == OT_NATIVECLOSURE)
@@ -1654,6 +1658,8 @@ void SQVM::CallErrorHandler(SQObjectPtr &error)
         Call(_errorhandler, 2, _top-2, out,SQFalse);
         Pop(2);
     }
+
+  ci->_ip++;
 }
 
 

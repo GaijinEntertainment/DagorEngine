@@ -5,6 +5,7 @@
 #include <math.h>
 
 #include "TextEditor.h"
+#include "TextEditorFuzzer.h"
 
 #define IMGUI_SCROLLBAR_WIDTH 14.0f
 #define POS_TO_COORDS_COLUMN_OFFSET 0.33f
@@ -426,6 +427,8 @@ void TextEditor::Undo(bool group)
 		while (CanUndo() && mUndoBuffer[mUndoIndex - 1].isSimilarTo(mUndoBuffer[mUndoIndex]))
 			mUndoBuffer[--mUndoIndex].Undo(this);
 	}
+
+	CancelCloseChars();
 }
 
 void TextEditor::Redo(bool group)
@@ -443,6 +446,8 @@ void TextEditor::Redo(bool group)
 
 	while (redoLen--)
 		mUndoBuffer[mUndoIndex++].Redo(this);
+
+	CancelCloseChars();
 }
 
 void TextEditor::SetText(const eastl::string& aText)
@@ -468,6 +473,7 @@ void TextEditor::SetText(const eastl::string& aText)
 	mUndoIndex = 0;
 
 	ColorizeAll();
+	CancelCloseChars();
 }
 
 eastl::string TextEditor::GetText(const Coordinates& aStart, const Coordinates& aEnd) const
@@ -562,8 +568,12 @@ eastl::vector<eastl::string> TextEditor::GetTextLines() const
 bool TextEditor::Render(const char* aTitle, bool aParentIsFocused, const ImVec2& aSize, bool aBorder)
 {
 	if (mCursorPositionChanged)
+	{
+		mCursorPositionChanged = false;
 		OnCursorPositionChanged();
-	mCursorPositionChanged = false;
+		ClearHighlights();
+		HighlightSelectedText();
+	}
 
 	if (colorizeTime != 0.0 && ImGui::GetTime() > colorizeTime)
 	{
@@ -833,6 +843,8 @@ void TextEditor::SetCursorPosition(const Coordinates& aPosition, int aCursor, bo
 		mState.mCursors[aCursor].mInteractiveEnd = aPosition;
 		EnsureCursorVisible();
 	}
+
+	CancelCloseChars();
 }
 
 int TextEditor::InsertTextAt(Coordinates& /* inout */ aWhere, const char* aValue)
@@ -1158,6 +1170,8 @@ void TextEditor::EnterCharacter(ImWchar aChar, bool aShift)
 		}
 	}
 
+	char closeChar = 0;
+
 	eastl::vector<Coordinates> coords;
 	for (int c = mState.mCurrentCursor; c > -1; c--) // order important here for typing \n in the same line at the same time
 	{
@@ -1168,6 +1182,41 @@ void TextEditor::EnterCharacter(ImWchar aChar, bool aShift)
 		added.mStart = coord;
 
 		EASTL_ASSERT(!mLines.empty());
+
+		if (mState.mCurrentCursor == 0 && (aChar == '{' || aChar == '(' || aChar == '[' || aChar == '\"' || aChar == '\''))
+		{
+			auto& line = mLines[coord.mLine];
+			char charBefore = coord.mColumn > 0 ? line[coord.mColumn - 1].mChar : 0;
+			char charAfter = coord.mColumn < (int)line.size() ? line[coord.mColumn].mChar : 0;
+
+			bool insideString = false;
+			bool insideChar = false;
+			bool insideComment = false; // single line comment
+			for (int i = 0; i < coord.mColumn; i++)
+			{
+				if (line[i].mChar == '\"' && (i == 0 || line[i - 1].mChar != '\\'))
+					insideString = !insideString;
+				if (line[i].mChar == '\'' && (i == 0 || line[i - 1].mChar != '\\'))
+					insideChar = !insideChar;
+				if (line[i].mChar == '/' && i > 0 && line[i - 1].mChar == '/')
+					insideComment = true;
+			}
+
+			if ((!insideString && !insideChar && !insideComment) || aChar == '{' || aChar == '(' || aChar == '[')
+				closeChar = RequiredCloseChar(charBefore, aChar, charAfter);
+		}
+
+		if (mState.mCurrentCursor == 0 && closeCharCoords != Coordinates::Invalid() && GetActualCursorCoordinates(0) == closeCharCoords)
+		{
+			auto& line = mLines[coord.mLine];
+			char charAfter = coord.mColumn < (int)line.size() ? line[coord.mColumn].mChar : 0;
+			if (charAfter == aChar)
+			{
+				closeCharCoords = Coordinates::Invalid();
+				MoveRight(false, false);
+				continue;
+			}
+		}
 
 		if (aChar == '\n')
 		{
@@ -1267,6 +1316,13 @@ void TextEditor::EnterCharacter(ImWchar aChar, bool aShift)
 	u.mAfter = mState;
 	AddUndo(u);
 
+	if (closeChar)
+	{
+		EnterCharacter(closeChar, false);
+		MoveLeft(false, false);
+		closeCharCoords = GetActualCursorCoordinates(0);
+	}
+
 	for (const auto& coord : coords)
 		ColorizeLine(coord.mLine);
 	EnsureCursorVisible();
@@ -1283,6 +1339,16 @@ void TextEditor::Backspace(bool aWordMode)
 		Delete(aWordMode);
 	else
 	{
+		if (!aWordMode && mState.mCurrentCursor == 0 && closeCharCoords != Coordinates::Invalid() &&
+			GetActualCursorCoordinates(0) == closeCharCoords)
+		{
+			closeCharCoords = Coordinates::Invalid();
+			MoveRight(false, false);
+			Backspace(false);
+			Backspace(false);
+			return;
+		}
+
 		EditorState stateBeforeDeleting = mState;
 		MoveLeft(true, aWordMode);
 		if (!AllCursorsHaveSelection()) // can't do backspace if any cursor at {0,0}
@@ -1747,6 +1813,7 @@ void TextEditor::MoveDownCurrentLines()
 	eastl::set<int> affectedLines;
 	int minLine = -1;
 	int maxLine = -1;
+	int maxSelectionLine = -1;
 	for (int c = 0; c <= mState.mCurrentCursor; c++) // cursors are expected to be sorted from top to bottom
 	{
 		for (int currentLine = mState.mCursors[c].GetSelectionEnd().mLine; currentLine >= mState.mCursors[c].GetSelectionStart().mLine; currentLine--)
@@ -1756,9 +1823,11 @@ void TextEditor::MoveDownCurrentLines()
 			affectedLines.insert(currentLine);
 			minLine = minLine == -1 ? currentLine : (currentLine < minLine ? currentLine : minLine);
 			maxLine = maxLine == -1 ? currentLine : (currentLine > maxLine ? currentLine : maxLine);
+			maxSelectionLine = Max(maxSelectionLine, mState.mCursors[c].mInteractiveStart.mLine);
+			maxSelectionLine = Max(maxSelectionLine, mState.mCursors[c].mInteractiveEnd.mLine);
 		}
 	}
-	if (maxLine == mLines.size() - 1) // can't move down anymore
+	if (maxLine >= mLines.size() - 1 || maxSelectionLine >= mLines.size() - 1) // can't move down anymore
 		return;
 
 	Coordinates start = { minLine, 0 };
@@ -1847,6 +1916,8 @@ void TextEditor::ToggleLineComment()
 
 	u.mAfter = mState;
 	AddUndo(u);
+
+	CancelCloseChars();
 }
 
 void TextEditor::RemoveCurrentLines()
@@ -2259,6 +2330,13 @@ void TextEditor::DeleteRange(const Coordinates& aStart, const Coordinates& aEnd)
 					break;
 				else if (mState.mCursors[c].mInteractiveEnd.mLine != aEnd.mLine)
 					continue;
+
+				if (mState.mCursors[c].mInteractiveStart == aStart && mState.mCursors[c].mInteractiveEnd == aEnd)
+				{
+					SetCursorPosition(aStart, c, false);
+					continue;
+				}
+
 				int otherCursorEndCharIndex = GetCharacterIndexR(mState.mCursors[c].mInteractiveEnd);
 				int otherCursorStartCharIndex = GetCharacterIndexR(mState.mCursors[c].mInteractiveStart);
 				int otherCursorNewEndCharIndex = GetCharacterIndexR(aStart) + otherCursorEndCharIndex;
@@ -2445,6 +2523,75 @@ void TextEditor::HandleKeyboardInputs(bool aParentIsFocused)
 			}
 			io.InputQueueCharacters.resize(0);
 		}
+
+
+#if ENABLE_EDITOR_FUZZING
+		if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Keypad5))
+			fuzzer.enabled = !fuzzer.enabled;
+
+		if (fuzzer.enabled)
+			for (int t = 0; t < 500; t++)
+			{
+				fuzzer.newIteration();
+
+				if (fuzzer.prob(30))
+					Undo(true);
+				if (fuzzer.prob(30))
+					Redo(true);
+				if (fuzzer.prob(30))
+					Delete(fuzzer.prob(2));
+				if (fuzzer.prob(30))
+					ChangeCurrentLinesIndentation(fuzzer.prob(2));
+				if (fuzzer.prob(30))
+					Backspace(fuzzer.prob(2));
+				if (fuzzer.prob(30))
+					RemoveCurrentLines();
+				if (fuzzer.prob(30))
+					MoveUpCurrentLines();
+				if (fuzzer.prob(30))
+					MoveDownCurrentLines();
+				if (fuzzer.prob(30))
+					ToggleLineComment();
+				if (fuzzer.prob(30))
+					mOverwrite ^= true;
+				if (fuzzer.prob(30))
+					Copy();
+				if (fuzzer.prob(30))
+					Paste();
+				if (fuzzer.prob(30))
+					Cut();
+				if (fuzzer.prob(30))
+					SelectAll();
+				if (fuzzer.prob(30))
+					EnterCharacter('\n', false);
+				if (fuzzer.prob(8))
+					MoveUp(1, fuzzer.prob(2));
+				if (fuzzer.prob(8))
+					MoveDown(1, fuzzer.prob(2));
+				if (fuzzer.prob(8))
+					MoveLeft(fuzzer.prob(2), fuzzer.prob(2));
+				if (fuzzer.prob(8))
+					MoveRight(fuzzer.prob(2), fuzzer.prob(2));
+				if (fuzzer.prob(8))
+					MoveTop(fuzzer.prob(2));
+				if (fuzzer.prob(8))
+					MoveBottom(fuzzer.prob(2));
+				if (fuzzer.prob(8))
+					MoveHome(fuzzer.prob(2));
+				if (fuzzer.prob(8))
+					MoveEnd(fuzzer.prob(2));
+				if (fuzzer.prob(10))
+					EnterCharacter('\t', fuzzer.prob(2));
+
+				for (int i = 0; i < 5; i++)
+				{
+					if (fuzzer.prob(2))
+						break;
+					EnterCharacter(fuzzer.prob(10) ? ' ' : fuzzer.getKey(), fuzzer.prob(2));
+				}
+			}
+#endif
+
 	}
 }
 
@@ -2909,9 +3056,6 @@ void TextEditor::OnCursorPositionChanged()
 		mState.SortCursorsFromTopToBottom();
 		MergeCursorsIfPossible();
 	}
-
-	ClearHighlights();
-	HighlightSelectedText();
 }
 
 void TextEditor::OnLineChanged(bool aBeforeChange, int aLine, int aColumn, int aCharCount, bool aDeleted) // adjusts cursor position when other cursor writes/deletes in the same line

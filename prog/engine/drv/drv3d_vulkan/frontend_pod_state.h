@@ -17,6 +17,8 @@ struct FrontendPODState
   uint32_t summaryAsyncPipelineCompilationFeedback = 0;
   // draw actions counter, always incrementing for simplicity
   uint32_t drawsCount = 0;
+  // counts passed native render passes, always incrementing for simplicity
+  uint32_t nativeRenderPassesCount = 0;
 };
 
 } // namespace drv3d_vulkan

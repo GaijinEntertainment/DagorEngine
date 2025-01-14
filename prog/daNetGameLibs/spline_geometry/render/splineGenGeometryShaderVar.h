@@ -27,13 +27,3 @@ extern int dynamicSceneBlockId, dynamicDepthSceneBlockId;
 #define VAR(a) extern int a##VarId;
 SPLINE_GEN_VARS_LIST
 #undef VAR
-
-#define SPLINE_GEN_CONST_LIST     \
-  VAR(spline_gen_vertex_buffer)   \
-  VAR(spline_gen_attachment_data) \
-  VAR(spline_gen_culled_buffer)   \
-  VAR(spline_gen_params_buffer)
-
-#define VAR(a) extern int a##_const_no;
-SPLINE_GEN_CONST_LIST
-#undef VAR

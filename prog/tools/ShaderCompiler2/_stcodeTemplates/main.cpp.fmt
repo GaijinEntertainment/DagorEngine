@@ -23,8 +23,13 @@ static const RoutinePtr routines[] = {
 %s
 };
 
-CPPSTCODE_DLL_EXPORT const RoutinePtr *init_dll_and_get_routines(void *cb_table)
+static constexpr uint64_t HASH_VALUE = %lluULL; // For matching on load
+
+CPPSTCODE_DLL_EXPORT const RoutinePtr *init_dll_and_get_routines(void *cb_table, uint64_t stcode_hash)
 {
+  if (HASH_VALUE != stcode_hash)
+    return nullptr;
+
   // Set the callbacks for internal use @TODO: validate
   CallbackTable &src = *reinterpret_cast<CallbackTable *>(cb_table);
   internalCbTable = src;

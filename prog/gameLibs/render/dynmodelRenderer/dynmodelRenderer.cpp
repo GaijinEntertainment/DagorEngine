@@ -343,6 +343,7 @@ void add(ContextId context_id, const DynamicRenderableSceneInstance *instance, c
   const dynrend::PerInstanceRenderData *optional_render_data, dag::Span<int> *node_list, const TMatrix4 *customProj)
 {
   G_ASSERT(instance);
+  G_ASSERTF_RETURN((int)context_id >= 0 && (int)context_id < contexts.size(), , "Uninitialized dynrend context was used");
   G_ASSERT(context_id != ContextId::IMMEDIATE || is_main_thread());
 
   if (optional_initial_nodes && optional_initial_nodes->nodesModelTm.size() == 0) // Uninitialized.
@@ -817,6 +818,7 @@ void prepare_render(ContextId context_id, const TMatrix4 &view, const TMatrix4 &
 {
   TIME_PROFILE(dynrend_prepare_render);
 
+  G_ASSERTF_RETURN((int)context_id >= 0 && (int)context_id < contexts.size(), , "Uninitialized dynrend context was used");
   G_ASSERT(context_id != ContextId::IMMEDIATE || is_main_thread());
 
   ContextData &ctx = contexts[(int)context_id];
@@ -1051,6 +1053,7 @@ const Point4 *get_per_instance_render_data(ContextId contextId, int indexToPerIn
 void render(ContextId context_id, int shader_mesh_stage)
 {
   G_ASSERT(is_main_thread());
+  G_ASSERTF_RETURN((int)context_id >= 0 && (int)context_id < contexts.size(), , "Uninitialized dynrend context was used");
 
   ContextData &ctx = contexts[(int)context_id];
   const auto &dipChunks = ctx.dipChunksByStage[shader_mesh_stage];
@@ -1210,6 +1213,8 @@ void render(ContextId context_id, int shader_mesh_stage)
 
 void clear(ContextId context_id)
 {
+  G_ASSERTF_RETURN((int)context_id >= 0 && (int)context_id < contexts.size(), , "Uninitialized dynrend context was used");
+
   ContextData &ctx = contexts[(int)context_id];
   if (dynrendLog.get() && ::dagor_frame_no() % 100 == 0 && !ctx.instances.empty())
     debug("%d     clear %s", ::dagor_frame_no(), ctx.name.c_str());
@@ -1248,10 +1253,24 @@ void replace_shader(ShaderElement *element) { replacement_shader = element; }
 const Tab<const char *> &get_filtered_material_names() { return filtered_material_names; }
 void set_material_filters_by_name(Tab<const char *> &&material_names) { filtered_material_names = std::move(material_names); }
 
+
+void verify_is_empty(ContextId context_id)
+{
+  static bool verifyDynrendContexts = ::dgs_get_settings()->getBlockByNameEx("debug")->getBool("verifyDynrendContexts", false);
+  if (verifyDynrendContexts)
+  {
+    ContextData &ctx = contexts[(int)context_id];
+    G_ASSERTF(ctx.instances.empty(), "dynrend: context '%s' is already in use", ctx.name.c_str());
+    G_UNUSED(ctx);
+  }
+}
+
+
 void render_one_instance(const DynamicRenderableSceneInstance *instance, RenderMode mode, TexStreamingContext texCtx,
   const InitialNodes *optional_initial_nodes, const dynrend::PerInstanceRenderData *optional_render_data)
 {
   G_ASSERT(is_main_thread());
+  verify_is_empty(ContextId::IMMEDIATE);
 
   add(ContextId::IMMEDIATE, instance, optional_initial_nodes, optional_render_data);
   TMatrix4 viewTm, projTm;
@@ -1324,12 +1343,13 @@ bool can_render(const DynamicRenderableSceneInstance *instance)
 }
 
 
-bool render_in_tools(const DynamicRenderableSceneInstance *instance, RenderMode mode)
+bool render_in_tools(const DynamicRenderableSceneInstance *instance, RenderMode mode,
+  const dynrend::PerInstanceRenderData *optional_render_data)
 {
   if (!dynrend::can_render(instance))
     return false;
 
-  dynrend::render_one_instance(instance, mode, TexStreamingContext(FLT_MAX));
+  dynrend::render_one_instance(instance, mode, TexStreamingContext(FLT_MAX), nullptr, optional_render_data);
   return true;
 }
 

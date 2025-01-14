@@ -19,15 +19,12 @@ struct ParallelUpdateFrameDelayed
 
 [cpp_event(unicast)]
 struct QueryHeroWtmAndBoxForRender
-  _paddingPre : uint8[8] // sizeof(ecs::Event)==8 and alignof(resWtm)==16, so we add 8 bytes padding here
-  resWtmC0, resWtmC1, resWtmC2, resWtmC3 : float4 // mat44f resWtm
-  resWofs : float4                                // vec3f  resWofs
-  resLboxMin, resLboxMax : float4                 // bbox3f resLbox
+  resWtm : float3x4
+  resWofs : float3
+  resLboxMin, resLboxMax : float3
   resReady : bool
   resFlags : uint8
-  _paddingMid : uint8[14] // alignof(HeroWtmAndBox)==16, so we add 14 bytes padding here
   onlyWeapons : bool
-  _paddingPost : uint8[15] // alignof(QueryHeroWtmAndBoxForRender)==16, so we add 15 bytes padding here
 
 def get_hero_cockpit_vec_impl(hero_cockpit__gunMaxLength, hero_cockpit__traceMaxBias,
                               hero_cockpit__startFadeBeforeIntersection, hero_cockpit__fadeInterval,
@@ -60,10 +57,10 @@ def get_hero_cockpit_vec_impl(hero_cockpit__gunMaxLength, hero_cockpit__traceMax
   if inVehicle
     return false
 
-  shootTm[0] = -gun_data.resWtmC2.xyz
-  shootTm[1] = gun_data.resWtmC1.xyz
-  shootTm[2] = gun_data.resWtmC0.xyz
-  shootTm[3] = gun_data.resWtmC3.xyz + gun_data.resWofs.xyz
+  shootTm[0] = -gun_data.resWtm[2]
+  shootTm[1] = gun_data.resWtm[1]
+  shootTm[2] = gun_data.resWtm[0]
+  shootTm[3] = gun_data.resWtm[3] + gun_data.resWofs
 
   let back = shootTm * float3(0, 0, -1)
   let front = shootTm * float3(0, 0, 1)

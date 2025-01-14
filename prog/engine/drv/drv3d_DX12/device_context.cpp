@@ -17,7 +17,7 @@
 #include <util/dag_watchdog.h>
 
 #if _TARGET_XBOX
-#include <osApiWrappers/xbox/app.h> // make_thread_time_sensitive
+#include <osApiWrappers/gdk/app.h> // make_thread_time_sensitive
 #else
 #include <d3d12video.h>
 #endif
@@ -32,11 +32,6 @@ using namespace drv3d_dx12;
 #else
 #define PTR_LIKE_HEX_FMT "%08X"
 #endif
-
-namespace workcycle_internal
-{
-extern bool application_active;
-}
 
 namespace
 {
@@ -446,7 +441,7 @@ void DeviceContext::manageLatchedState(TidyFrameMode tidy_mode)
 #if DX12_REPORT_LONG_FRAMES
 #if _TARGET_XBOX
   // There is no need to report long frames when game is in constrained state
-  if (workcycle_internal::application_active)
+  if (::dgs_app_active)
   {
 #endif
 
@@ -978,9 +973,11 @@ void DeviceContext::shutdownWorkerThread()
   if (ExecutionMode::CONCURRENT == executionMode)
 #endif
   {
+    DX12_LOCK_FRONT();
     if (worker)
     {
       commandStream.pushBack(make_command<CmdTerminate>());
+      waitInternal();
       // tell the worker to terminate
       // it will execute all pending commands
       // and then clean up and shutdown
@@ -993,6 +990,261 @@ void DeviceContext::shutdownWorkerThread()
 #endif
   }
 }
+
+#if D3D_HAS_RAY_TRACING
+void DeviceContext::dispatchRays(const ::raytrace::ResourceBindingTable &rbt, const ::raytrace::Pipeline &pipeline,
+  const ::raytrace::RayDispatchParameters &rdv)
+{
+  auto pipe = RayTracePipelineWrapper{pipeline}.get();
+
+  RayDispatchBasicParameters basicParams;
+  basicParams.rootSignature = &pipe->getSignature();
+  basicParams.pipeline = pipe->get();
+
+  drv3d_dx12::RayDispatchParameters dispatchParams;
+
+  auto rayGenBuffer = (GenericBufferInterface *)rdv.shaderBindingTableSet.rayGenGroup.bindingTableBuffer;
+  dispatchParams.rayGenTable = {get_any_buffer_ref(rayGenBuffer), rdv.shaderBindingTableSet.rayGenGroup.offsetInBytes,
+    rdv.shaderBindingTableSet.rayGenGroup.sizeInBytes};
+
+  auto missBuffer = (GenericBufferInterface *)rdv.shaderBindingTableSet.missGroup.bindingTableBuffer;
+  dispatchParams.missTable = {get_any_buffer_ref(missBuffer), rdv.shaderBindingTableSet.missGroup.offsetInBytes,
+    rdv.shaderBindingTableSet.missGroup.sizeInBytes};
+  dispatchParams.missStride = rdv.shaderBindingTableSet.missGroup.strideInBytes;
+
+  auto hitBuffer = (GenericBufferInterface *)rdv.shaderBindingTableSet.hitGroup.bindingTableBuffer;
+  dispatchParams.hitTable = {
+    get_any_buffer_ref(hitBuffer), rdv.shaderBindingTableSet.hitGroup.offsetInBytes, rdv.shaderBindingTableSet.hitGroup.sizeInBytes};
+  dispatchParams.hitStride = rdv.shaderBindingTableSet.hitGroup.strideInBytes;
+
+  if (rdv.shaderBindingTableSet.callableGroup.bindingTableBuffer)
+  {
+    auto callableBuffer = (GenericBufferInterface *)rdv.shaderBindingTableSet.callableGroup.bindingTableBuffer;
+    dispatchParams.callableTable = {get_any_buffer_ref(callableBuffer), rdv.shaderBindingTableSet.callableGroup.offsetInBytes,
+      rdv.shaderBindingTableSet.callableGroup.sizeInBytes};
+    dispatchParams.callableStride = rdv.shaderBindingTableSet.callableGroup.strideInBytes;
+  }
+
+  dispatchParams.width = rdv.width;
+  dispatchParams.height = rdv.height;
+  dispatchParams.depth = rdv.depth;
+
+  DX12_LOCK_FRONT();
+  // resolve_resource_binding_table has to be locked by DX12_LOCK_FRONT
+  commandStream.pushBack(make_command<CmdDispatchRays>(basicParams, dispatchParams, resolveResourceBindingTable(rbt, pipe)),
+    rbt.immediateConstants.data(), rbt.immediateConstants.size());
+  immediateModeExecute();
+}
+
+void DeviceContext::dispatchRaysIndirect(const ::raytrace::ResourceBindingTable &rbt, const ::raytrace::Pipeline &pipeline,
+  const ::raytrace::RayDispatchIndirectParameters &rdip)
+{
+  auto pipe = RayTracePipelineWrapper{pipeline}.get();
+
+  RayDispatchBasicParameters basicParams;
+  basicParams.rootSignature = &pipe->getSignature();
+  basicParams.pipeline = pipe->get();
+
+  GenericBufferInterface *argsBuffer = (GenericBufferInterface *)rdip.indirectBuffer;
+  argsBuffer->updateDeviceBuffer([](auto &buf) { buf.resourceId.markUsedAsIndirectBuffer(); });
+
+  RayDispatchIndirectParameters indirectParams;
+  indirectParams.argumentBuffer = {get_any_buffer_ref(argsBuffer), rdip.indirectByteOffset};
+  indirectParams.argumentStrideInBytes = rdip.indirectByteStride;
+  indirectParams.maxCount = rdip.count;
+
+  DX12_LOCK_FRONT();
+  // resolve_resource_binding_table has to be locked by DX12_LOCK_FRONT
+  commandStream.pushBack(make_command<CmdDispatchRaysIndirect>(basicParams, indirectParams, resolveResourceBindingTable(rbt, pipe)),
+    rbt.immediateConstants.data(), rbt.immediateConstants.size());
+  immediateModeExecute();
+}
+
+void DeviceContext::dispatchRaysIndirectCount(const ::raytrace::ResourceBindingTable &rbt, const ::raytrace::Pipeline &pipeline,
+  const ::raytrace::RayDispatchIndirectCountParameters &rdicp)
+{
+  auto pipe = RayTracePipelineWrapper{pipeline}.get();
+
+  RayDispatchBasicParameters basicParams;
+  basicParams.rootSignature = &pipe->getSignature();
+  basicParams.pipeline = pipe->get();
+
+  GenericBufferInterface *argsBuffer = (GenericBufferInterface *)rdicp.indirectBuffer;
+  GenericBufferInterface *countBuffer = (GenericBufferInterface *)rdicp.countBuffer;
+
+  argsBuffer->updateDeviceBuffer([](auto &buf) { buf.resourceId.markUsedAsIndirectBuffer(); });
+  countBuffer->updateDeviceBuffer([](auto &buf) { buf.resourceId.markUsedAsIndirectBuffer(); });
+
+  RayDispatchIndirectParameters indirectParams;
+  indirectParams.argumentBuffer = {get_any_buffer_ref(argsBuffer), rdicp.indirectByteOffset};
+  indirectParams.countBuffer = {get_any_buffer_ref(countBuffer), rdicp.countByteOffset};
+  indirectParams.argumentStrideInBytes = rdicp.indirectByteStride;
+  indirectParams.maxCount = rdicp.maxCount;
+
+  DX12_LOCK_FRONT();
+  // resolve_resource_binding_table has to be locked by DX12_LOCK_FRONT
+  commandStream.pushBack(make_command<CmdDispatchRaysIndirect>(basicParams, indirectParams, resolveResourceBindingTable(rbt, pipe)),
+    rbt.immediateConstants.data(), rbt.immediateConstants.size());
+  immediateModeExecute();
+}
+
+namespace
+{
+template <typename T>
+const T *find_slot(uint32_t slot, dag::ConstSpan<const T> values)
+{
+  for (auto &value : values)
+  {
+    if (value.slot == slot)
+    {
+      return &value;
+    }
+  }
+  return nullptr;
+}
+template <typename T, typename U>
+void in_slot_order_visit(uint32_t visitation_mask, dag::ConstSpan<const T> values, U clb)
+{
+  for (auto visitSlot : LsbVisitor{visitation_mask})
+  {
+    auto e = find_slot(visitSlot, values);
+    if (!e)
+    {
+      continue;
+    }
+    clb(visitSlot, *e);
+  }
+}
+template <typename T>
+void visit_const_buffer_reads(const ::raytrace::ResourceBindingTable &rbt, uint16_t visitation_mask, T clb)
+{
+  in_slot_order_visit(visitation_mask, rbt.constantBufferReads,
+    [&clb](uint32_t slot, auto &e) { clb(slot, e.buffer, e.offsetInBytes, e.sizeInBytes); });
+}
+template <typename T>
+void visit_reads(const ::raytrace::ResourceBindingTable &rbt, uint32_t visitation_mask, T clb)
+{
+  for (auto visitSlot : LsbVisitor{visitation_mask})
+  {
+    auto bSlot = find_slot(visitSlot, rbt.bufferReads);
+    Sbuffer *b = bSlot ? bSlot->buffer : nullptr;
+    BaseTexture *t = nullptr;
+    if (!b)
+    {
+      auto tSlot = find_slot(visitSlot, rbt.textureReads);
+      t = tSlot ? tSlot->texture : nullptr;
+    }
+    RaytraceTopAccelerationStructure *s = nullptr;
+    if (!b && !t)
+    {
+      auto sSlot = find_slot(visitSlot, rbt.accelerationStructureReads);
+      s = sSlot ? sSlot->structure : nullptr;
+    }
+    clb(visitSlot, b, t, s);
+  }
+}
+template <typename T>
+void visit_writes(const ::raytrace::ResourceBindingTable &rbt, uint16_t visitation_mask, T clb)
+{
+  for (auto visitSlot : LsbVisitor{visitation_mask})
+  {
+    auto bSlot = find_slot(visitSlot, rbt.bufferWrites);
+    Sbuffer *b = bSlot ? bSlot->buffer : nullptr;
+    BaseTexture *t = nullptr;
+    uint8_t textureMipIndex = 0;
+    uint16_t textureArrayIndex = 0;
+    bool textureViewAsUI32 = false;
+    if (!b)
+    {
+      auto tSlot = find_slot(visitSlot, rbt.textureWrites);
+      if (tSlot)
+      {
+        t = tSlot->texture;
+        textureMipIndex = tSlot->mipIndex;
+        textureArrayIndex = tSlot->arrayIndex;
+        textureViewAsUI32 = tSlot->viewAsUI32;
+      }
+    }
+    clb(visitSlot, b, t, textureMipIndex, textureArrayIndex, textureViewAsUI32);
+  }
+}
+template <typename T>
+void visit_samplers(const ::raytrace::ResourceBindingTable &rbt, uint32_t visitation_mask, T clb)
+{
+  in_slot_order_visit(visitation_mask, rbt.samples, [&clb](uint32_t slot, auto &e) { clb(slot, e.sampler); });
+}
+} // namespace
+
+drv3d_dx12::ResourceBindingTable DeviceContext::resolveResourceBindingTable(const ::raytrace::ResourceBindingTable &rbt,
+  RayTracePipeline *pipeline)
+{
+
+  auto &signture = pipeline->getSignature();
+  auto &registers = signture.def.registers;
+  drv3d_dx12::ResourceBindingTable result{};
+  visit_const_buffer_reads(rbt, registers.bRegisterUseMask, [&](uint32_t, Sbuffer *buffer, uint32_t offset, uint32_t size) {
+    result.constBuffers[result.contBufferCount++] = {get_any_buffer_ref((GenericBufferInterface *)buffer), offset, size};
+#if 0
+// do validation if frame mem buffers
+#if DX12_VALIDATE_STREAM_CB_USAGE_WITHOUT_INITIALIZATION
+    target.lastDiscardFrameIdx = gbuf->getDiscardFrame();
+    target.isStreamBuffer = gbuf->isStreamBuffer();
+#endif
+    target.constBufferName[index] = gbuf->getResName();
+#endif
+  });
+  visit_reads(rbt, registers.tRegisterUseMask,
+    [&](uint32_t, Sbuffer *buffer, BaseTexture *texture, RaytraceTopAccelerationStructure *tlas) {
+      if (buffer)
+      {
+        BufferResourceReferenceAndShaderResourceView refAndView = ((GenericBufferInterface *)buffer)->getDeviceBuffer();
+        result.readResources[result.readCount].bufferRef = refAndView;
+        result.readResourceViews[result.readCount++] = refAndView.srv;
+      }
+      else if (texture)
+      {
+        auto tex = cast_to_texture_base(texture);
+        if (tex->isStub())
+        {
+          tex = tex->getStubTex();
+        }
+
+        auto &target = result.readResources[result.readCount];
+        target.image = tex->getDeviceImage();
+        target.imageView = tex->getViewInfo();
+        target.isConstDepthRead = false; // does this even make sense?
+        result.readResourceViews[result.readCount++] = device.getImageView(target.image, target.imageView);
+      }
+      else if (tlas)
+      {
+        result.readResources[result.readCount].tlas = (RaytraceAccelerationStructure *)tlas;
+        result.readResourceViews[result.readCount++] = ((RaytraceAccelerationStructure *)tlas)->descriptor;
+      }
+    });
+  visit_writes(rbt, registers.uRegisterUseMask,
+    [&](uint32_t, Sbuffer *buffer, BaseTexture *texture, uint32_t mip, uint32_t ary, bool as_ui32) {
+      if (buffer)
+      {
+        BufferResourceReferenceAndUnorderedResourceView refAndView = ((GenericBufferInterface *)buffer)->getDeviceBuffer();
+        result.writeResources[result.writeCount].bufferRef = refAndView;
+        result.writeResourceViews[result.writeCount++] = refAndView.uav;
+      }
+      else if (texture)
+      {
+        auto tex = cast_to_texture_base(texture);
+        auto &target = result.writeResources[result.writeCount];
+        target.image = tex->getDeviceImage();
+        target.imageView = tex->getViewInfoUav(MipMapIndex::make(mip), ArrayLayerIndex::make(ary), as_ui32);
+        result.writeResourceViews[result.writeCount++] = device.getImageView(target.image, target.imageView);
+      }
+    });
+  visit_samplers(rbt, registers.sRegisterUseMask, [&](uint32_t, d3d::SamplerHandle sampler) {
+    auto &target = result.samplers[result.samplerCount++];
+    target = device.getSampler(sampler);
+  });
+  return result;
+}
+#endif
 
 void DeviceContext::resizeSwapchain(Extent2D size)
 {
@@ -1072,6 +1324,7 @@ void DeviceContext::blitImageInternal(Image *src, Image *dst, const ImageBlit &r
   cmd.srcRect.right = region.srcOffsets[1].x;
   cmd.srcRect.bottom = region.srcOffsets[1].y;
 
+  VALIDATE_GENERIC_RENDER_PASS_CONDITION(!activeRenderPassArea, "DX12: CmdBlitImage used during a generic render pass");
   commandStream.pushBack(cmd);
   immediateModeExecute();
 }
@@ -1448,6 +1701,7 @@ void DeviceContext::bindVertexBuffer(uint32_t stream, BufferResourceReferenceAnd
 void DeviceContext::dispatch(uint32_t x, uint32_t y, uint32_t z)
 {
   auto cmd = make_command<CmdDispatch>(x, y, z);
+  VALIDATE_GENERIC_RENDER_PASS_CONDITION(!activeRenderPassArea, "DX12: CmdDispatch used during a generic render pass");
   commandStream.pushBack(cmd);
   immediateModeExecute(true);
 }
@@ -1455,6 +1709,7 @@ void DeviceContext::dispatch(uint32_t x, uint32_t y, uint32_t z)
 void DeviceContext::dispatchIndirect(BufferResourceReferenceAndOffset buffer)
 {
   auto cmd = make_command<CmdDispatchIndirect>(buffer);
+  VALIDATE_GENERIC_RENDER_PASS_CONDITION(!activeRenderPassArea, "DX12: CmdDispatchIndirect used during a generic render pass");
   commandStream.pushBack(cmd);
   immediateModeExecute(true);
 }
@@ -1568,6 +1823,7 @@ void DeviceContext::copyBuffer(BufferResourceReferenceAndOffset source, BufferRe
     DX12_LOCK_FRONT();
     auto scratchBuffer = device.resources.getTempScratchBufferSpace(device.getDXGIAdapter(), device, data_size, 1);
     auto cmd = make_command<CmdTwoPhaseCopyBuffer>(source, dest.offset, scratchBuffer, data_size);
+    VALIDATE_GENERIC_RENDER_PASS_CONDITION(!activeRenderPassArea, "DX12: CmdTwoPhaseCopyBuffer used during a generic render pass");
     commandStream.pushBack(cmd);
     immediateModeExecute();
   }
@@ -1575,6 +1831,7 @@ void DeviceContext::copyBuffer(BufferResourceReferenceAndOffset source, BufferRe
   {
     auto cmd = make_command<CmdCopyBuffer>(source, dest, data_size);
     DX12_LOCK_FRONT();
+    VALIDATE_GENERIC_RENDER_PASS_CONDITION(!activeRenderPassArea, "DX12: CmdCopyBuffer used during a generic render pass");
     commandStream.pushBack(cmd);
     immediateModeExecute();
   }
@@ -1594,6 +1851,8 @@ void DeviceContext::updateBuffer(HostDeviceSharedMemoryRegion update, BufferReso
 
   auto cmd = make_command<CmdUpdateBuffer>(update, dest);
   DX12_LOCK_FRONT();
+  VALIDATE_GENERIC_RENDER_PASS_CONDITION(!activeRenderPassArea,
+    "DX12: CmdUpdateBuffer (updateBuffer) used during a generic render pass");
   commandStream.pushBack(cmd);
   immediateModeExecute();
 }
@@ -1604,6 +1863,7 @@ void DeviceContext::clearBufferFloat(BufferResourceReferenceAndClearView buffer,
   memcpy(cmd.values, values, sizeof(cmd.values));
 
   DX12_LOCK_FRONT();
+  VALIDATE_GENERIC_RENDER_PASS_CONDITION(!activeRenderPassArea, "DX12: CmdClearBufferFloat used during a generic render pass");
   commandStream.pushBack(cmd);
   immediateModeExecute();
 }
@@ -1614,6 +1874,7 @@ void DeviceContext::clearBufferInt(BufferResourceReferenceAndClearView buffer, c
   memcpy(cmd.values, values, sizeof(cmd.values));
 
   DX12_LOCK_FRONT();
+  VALIDATE_GENERIC_RENDER_PASS_CONDITION(!activeRenderPassArea, "DX12: CmdClearBufferInt used during a generic render pass");
   commandStream.pushBack(cmd);
   immediateModeExecute();
 }
@@ -1640,6 +1901,18 @@ void DeviceContext::popEvent()
 
 void DeviceContext::updateViewports(dag::ConstSpan<ViewportState> viewports)
 {
+#if ENABLE_GENERIC_RENDER_PASS_VALIDATION
+  if (activeRenderPassArea)
+  {
+    for (const auto viewport : viewports)
+    {
+      G_ASSERT(viewport.x >= activeRenderPassArea->left);
+      G_ASSERT(viewport.y >= activeRenderPassArea->top);
+      G_ASSERT(viewport.width + viewport.x <= activeRenderPassArea->left + activeRenderPassArea->width);
+      G_ASSERT(viewport.height + viewport.y <= activeRenderPassArea->top + activeRenderPassArea->height);
+    }
+  }
+#endif
   commandStream.pushBack(make_command<CmdSetViewports>(), viewports.data(), viewports.size());
   immediateModeExecute();
 }
@@ -1700,8 +1973,10 @@ void DeviceContext::clearColorImage(Image *image, const ImageSubresourceRange &a
 
 void DeviceContext::copyImage(Image *src, Image *dst, const ImageCopy &copy)
 {
+  if (!src || !dst)
+    return;
   auto cmd = make_command<CmdCopyImage>(src, dst, copy);
-
+  VALIDATE_GENERIC_RENDER_PASS_CONDITION(!activeRenderPassArea, "DX12: CmdCopyImage used during a generic render pass");
   commandStream.pushBack(cmd);
   immediateModeExecute();
 }
@@ -1720,32 +1995,22 @@ void DeviceContext::resolveMultiSampleImage(Image *src, Image *dst)
   immediateModeExecute();
 }
 
+void DeviceContext::flushDrawsNoLock()
+{
+  auto cmd = make_command<CmdFlushWithFence>(front.recordingWorkItemProgress);
+  commandStream.pushBack(cmd);
+  immediateModeExecute();
+  frontFlush(TidyFrameMode::SyncPoint);
+}
+
 void DeviceContext::flushDraws()
 {
   DX12_LOCK_FRONT();
 
-  auto cmd = make_command<CmdFlushWithFence>(front.recordingWorkItemProgress);
-  commandStream.pushBack(cmd);
-  immediateModeExecute();
-  frontFlush(TidyFrameMode::SyncPoint);
+  flushDrawsNoLock();
 }
 
-bool DeviceContext::flushDrawWhenNoQueries()
-{
-  DX12_LOCK_FRONT();
-  // If any query is active we don't flush
-  if (front.activeRangedQueries > 0)
-  {
-    return false;
-  }
-
-  auto cmd = make_command<CmdFlushWithFence>(front.recordingWorkItemProgress);
-  commandStream.pushBack(cmd);
-  immediateModeExecute();
-  frontFlush(TidyFrameMode::SyncPoint);
-
-  return true;
-}
+bool DeviceContext::noActiveQueriesNoLock() { return front.activeRangedQueries == 0; }
 
 void DeviceContext::wait()
 {
@@ -1939,6 +2204,7 @@ void DeviceContext::changePresentMode(PresentationMode mode)
   logdbg("DX12: Swapchain present mode changed to %u, sending mode change to backend...", (uint32_t)mode);
   auto cmd = make_command<CmdChangePresentMode>(mode);
   DX12_LOCK_FRONT();
+  VALIDATE_GENERIC_RENDER_PASS_CONDITION(!activeRenderPassArea, "DX12: CmdChangePresentMode used during a generic render pass");
   commandStream.pushBack(cmd);
   immediateModeExecute();
   front.swapchain.changePresentMode(mode);
@@ -2064,6 +2330,7 @@ void DeviceContext::generateMipmaps(Image *img)
       blit.dstOffsets[1].y = max(1, blit.srcOffsets[1].y >> 1);
 
       // this will transition the src for the blit into pixel sampling state
+      VALIDATE_GENERIC_RENDER_PASS_CONDITION(!activeRenderPassArea, "DX12: CmdMipMapGenSource used during a generic render pass");
       commandStream.pushBack(make_command<CmdMipMapGenSource>(img, blit.srcSubresource.mipLevel, a));
       immediateModeExecute();
 
@@ -2074,6 +2341,7 @@ void DeviceContext::generateMipmaps(Image *img)
     }
 
     // to have a uniform state after mip gen, also transition the last mip level to pixel sampling state
+    VALIDATE_GENERIC_RENDER_PASS_CONDITION(!activeRenderPassArea, "DX12: CmdMipMapGenSource used during a generic render pass");
     commandStream.pushBack(make_command<CmdMipMapGenSource>(img, blit.srcSubresource.mipLevel, a));
     immediateModeExecute();
   }
@@ -2109,6 +2377,8 @@ void DeviceContext::raytraceBuildBottomAccelerationStructure(uint32_t batch_size
   }
 
   DX12_LOCK_FRONT();
+  VALIDATE_GENERIC_RENDER_PASS_CONDITION(!activeRenderPassArea,
+    "DX12: CmdRaytraceBuildBottomAccelerationStructure used during a generic render pass");
   commandStream.pushBack<CmdRaytraceBuildBottomAccelerationStructure, D3D12_RAYTRACING_GEOMETRY_DESC,
     RaytraceGeometryDescriptionBufferResourceReferenceSet>(
     make_command<CmdRaytraceBuildBottomAccelerationStructure>(scratch_buf, compacted_size,
@@ -2144,6 +2414,8 @@ void DeviceContext::raytraceBuildTopAccelerationStructure(uint32_t batch_size, u
   cmd.batchIndex = batch_index;
 
   DX12_LOCK_FRONT();
+  VALIDATE_GENERIC_RENDER_PASS_CONDITION(!activeRenderPassArea,
+    "DX12: CmdRaytraceBuildTopAccelerationStructure used during a generic render pass");
   commandStream.pushBack(cmd);
   immediateModeExecute();
 }
@@ -2157,6 +2429,8 @@ void DeviceContext::raytraceCopyAccelerationStructure(RaytraceAccelerationStruct
   cmd.compact = compact;
 
   DX12_LOCK_FRONT();
+  VALIDATE_GENERIC_RENDER_PASS_CONDITION(!activeRenderPassArea,
+    "DX12: CmdRaytraceCopyAccelerationStructure used during a generic render pass");
   commandStream.pushBack(cmd);
   immediateModeExecute();
 }
@@ -2173,30 +2447,6 @@ void DeviceContext::deleteRaytraceTopAccelerationStructure(RaytraceTopAccelerati
   device.resources.deleteRaytraceTopAccelerationStructureOnFrameCompletion(reinterpret_cast<RaytraceAccelerationStructure *>(desc));
 }
 
-void DeviceContext::traceRays(BufferResourceReferenceAndRange ray_gen_table, BufferResourceReferenceAndRange miss_table,
-  uint32_t miss_stride, BufferResourceReferenceAndRange hit_table, uint32_t hit_stride, BufferResourceReferenceAndRange callable_table,
-  uint32_t callable_stride, uint32_t width, uint32_t height, uint32_t depth)
-{
-  auto cmd = make_command<CmdTraceRays>();
-  cmd.rayGenTable = ray_gen_table;
-  cmd.missTable = miss_table;
-  cmd.hitTable = hit_table;
-  cmd.callableTable = callable_table;
-  cmd.missStride = miss_stride;
-  cmd.hitStride = hit_stride;
-  cmd.callableStride = callable_stride;
-  cmd.width = width;
-  cmd.height = height;
-  cmd.depth = depth;
-  commandStream.pushBack(cmd);
-  immediateModeExecute();
-}
-void DeviceContext::setRaytracePipeline(ProgramID program)
-{
-  auto cmd = make_command<CmdSetRaytraceProgram>(program);
-  commandStream.pushBack(cmd);
-  immediateModeExecute();
-}
 void DeviceContext::setRaytraceAccelerationStructure(uint32_t stage, size_t unit, RaytraceAccelerationStructure *as)
 {
   auto cmd = make_command<CmdSetRaytraceAccelerationStructure>(stage, static_cast<uint32_t>(unit), as);
@@ -2278,55 +2528,6 @@ void DeviceContext::removeProgram(ProgramID program)
   immediateModeExecute();
 }
 
-#if D3D_HAS_RAY_TRACING
-void DeviceContext::addRaytraceProgram(ProgramID program, uint32_t max_recursion, uint32_t shader_count, const ShaderID *shaders,
-  uint32_t group_count, const RaytraceShaderGroup *groups)
-{
-  auto cmd = make_command<CmdAddRaytraceProgram>(program);
-  DX12_LOCK_FRONT();
-
-  cmd.shaders = shaders;
-  cmd.shaderGroups = groups;
-  cmd.shaderCount = shader_count;
-  cmd.groupCount = group_count;
-  cmd.maxRecursion = max_recursion;
-  commandStream.pushBack(cmd);
-  immediateModeExecute();
-}
-
-void DeviceContext::copyRaytraceShaderGroupHandlesToMemory(ProgramID prog, uint32_t first_group, uint32_t group_count, uint32_t size,
-  BufferResourceReference buffer, uint32_t offset)
-{
-  // TODO
-  G_UNUSED(prog);
-  G_UNUSED(first_group);
-  G_UNUSED(group_count);
-  G_UNUSED(size);
-  G_UNUSED(buffer);
-  G_UNUSED(offset);
-  /*  BufferSubAllocation tempBuffer;
-    void *memory;
-    if (buffer->hasMappedMemory())
-    {
-      memory = buffer->dataPointer(offset);
-    }
-    else
-    {
-      // if memory is not host visible then use update buffer temp memory for it
-      tempBuffer = allocateTempUpdateBufferBuffer(size);
-      memory = tempBuffer.buffer->dataPointer(tempBuffer.offset);
-    }
-    auto cmd = make_command<CmdCopyRaytraceShaderGroupHandlesToMemory>(prog, first_group, group_count, size, memory);
-    commandStream.pushBack(cmd);
-    immediateModeExecute();
-
-    if (tempBuffer)
-    {
-      copyBuffer(tempBuffer.buffer, buffer, tempBuffer.offset, offset, size);
-    }*/
-}
-#endif
-
 void DeviceContext::placeAftermathMarker(const char *name)
 {
   auto length = strlen(name) + 1;
@@ -2369,6 +2570,7 @@ void DeviceContext::clearUAVTexture(Image *image, ImageViewState view, const uns
   DX12_LOCK_FRONT();
   auto cmd = make_command<CmdClearUAVTextureI>(image, view, device.getImageView(image, view));
   memcpy(cmd.values, values, sizeof(cmd.values));
+  VALIDATE_GENERIC_RENDER_PASS_CONDITION(!activeRenderPassArea, "DX12: CmdClearUAVTextureI used during a generic render pass");
   commandStream.pushBack(cmd);
   immediateModeExecute();
 }
@@ -2377,44 +2579,35 @@ void DeviceContext::clearUAVTexture(Image *image, ImageViewState view, const flo
 {
   DX12_LOCK_FRONT();
   auto cmd = make_command<CmdClearUAVTextureF>(image, view, device.getImageView(image, view));
+  VALIDATE_GENERIC_RENDER_PASS_CONDITION(!activeRenderPassArea, "DX12: CmdClearUAVTextureF used during a generic render pass");
   memcpy(cmd.values, values, sizeof(cmd.values));
   commandStream.pushBack(cmd);
   immediateModeExecute();
 }
 
-void DeviceContext::setComputeRootConstant(uint32_t offset, uint32_t size)
+void DeviceContext::setRootConstants(unsigned stage, eastl::span<const uint32_t> values)
 {
-  auto cmd = make_command<CmdSetComputeRootConstant>(offset, size);
+  auto cmd = make_command<CmdSetRootConstants>(stage, RootConstatInfo{values.begin(), values.end()});
   DX12_LOCK_FRONT();
   commandStream.pushBack(cmd, false /*wake executor*/);
   immediateModeExecute();
 }
 
-void DeviceContext::setVertexRootConstant(uint32_t offset, uint32_t size)
+void DeviceContext::beginGenericRenderPassChecks([[maybe_unused]] const RenderPassArea &renderPassArea)
 {
-  auto cmd = make_command<CmdSetVertexRootConstant>(offset, size);
-  DX12_LOCK_FRONT();
-  commandStream.pushBack(cmd, false /*wake executor*/);
-  immediateModeExecute();
-}
-
-void DeviceContext::setPixelRootConstant(uint32_t offset, uint32_t size)
-{
-  auto cmd = make_command<CmdSetPixelRootConstant>(offset, size);
-  DX12_LOCK_FRONT();
-  commandStream.pushBack(cmd, false /*wake executor*/);
-  immediateModeExecute();
-}
-
-#if D3D_HAS_RAY_TRACING
-void DeviceContext::setRaytraceRootConstant(uint32_t offset, uint32_t size)
-{
-  auto cmd = make_command<CmdSetRaytraceRootConstant>(offset, size);
-  DX12_LOCK_FRONT();
-  commandStream.pushBack(cmd);
-  immediateModeExecute();
-}
+#if ENABLE_GENERIC_RENDER_PASS_VALIDATION
+  VALIDATE_GENERIC_RENDER_PASS_CONDITION(!activeRenderPassArea, "DX12: Nested generic render pass detected");
+  activeRenderPassArea = renderPassArea;
 #endif
+}
+
+void DeviceContext::endGenericRenderPassChecks()
+{
+#if ENABLE_GENERIC_RENDER_PASS_VALIDATION
+  VALIDATE_GENERIC_RENDER_PASS_CONDITION(activeRenderPassArea, "DX12: End generic render pass called without a begin call");
+  activeRenderPassArea.reset();
+#endif
+}
 
 #if _TARGET_PC_WIN
 void DeviceContext::preRecovery()
@@ -2540,10 +2733,11 @@ void DeviceContext::readBackFromBuffer(HostDeviceSharedMemoryRegion memory, size
   immediateModeExecute();
 }
 
-void DeviceContext::uploadToImage(Image *target, const BufferImageCopy *regions, uint32_t region_count,
+void DeviceContext::uploadToImage(const BaseTex &dst_tex, const BufferImageCopy *regions, uint32_t region_count,
   HostDeviceSharedMemoryRegion memory, DeviceQueueType queue, bool is_discard)
 {
   DX12_LOCK_FRONT();
+  Image *target = dst_tex.getDeviceImage();
   G_ASSERT(target);
   G_ASSERT(target->getHandle());
   G_ASSERT(memory.buffer);
@@ -2819,12 +3013,12 @@ void DeviceContext::shutdownDLSS()
 #endif
 }
 
-void DeviceContext::initStreamline([[maybe_unused]] DXGIFactory **factory, [[maybe_unused]] IDXGIAdapter *adapter)
+void DeviceContext::initStreamline([[maybe_unused]] ComPtr<DXGIFactory> &factory, [[maybe_unused]] DXGIAdapter *adapter)
 {
 #if !_TARGET_XBOX
   D3D12_FEATURE_DATA_VIDEO_EXTENSION_COMMAND_COUNT extensionCommandCount{};
   ComPtr<ID3D12VideoDevice> videoDevice;
-  bool hasVideoExtensionCommands = SUCCEEDED(device.device.as<ID3D12Device5>()->QueryInterface(COM_ARGS(&videoDevice))) &&
+  bool hasVideoExtensionCommands = SUCCEEDED(device.device->QueryInterface(COM_ARGS(&videoDevice))) &&
                                    SUCCEEDED(videoDevice->CheckFeatureSupport(D3D12_FEATURE_VIDEO_EXTENSION_COMMAND_COUNT,
                                      &extensionCommandCount, sizeof(extensionCommandCount))) &&
                                    extensionCommandCount.CommandCount > 0;
@@ -2833,14 +3027,34 @@ void DeviceContext::initStreamline([[maybe_unused]] DXGIFactory **factory, [[may
   constexpr uint32_t kFeatureDLSS_G = 1000;
   if (!hasVideoExtensionCommands)
     supportOverride[kFeatureDLSS_G] = nv::SupportState::NotSupported;
+  if (StreamlineAdapter::init(streamlineAdapter, StreamlineAdapter::RenderAPI::DX12, supportOverride))
+  {
+    factory = StreamlineAdapter::hook(factory);
+    device.device = StreamlineAdapter::hook(device.device.get());
+    streamlineAdapter->setAdapterAndDevice(adapter, device.device.get());
+    streamlineAdapter->initializeDlssState();
+  }
+#endif
+}
 
-  streamlineAdapter = StreamlineAdapter::create(StreamlineAdapter::RenderAPI::DX12, supportOverride);
+void DeviceContext::preRecoverStreamline()
+{
+#if !_TARGET_XBOX
   if (streamlineAdapter)
   {
-    device.device = streamlineAdapter->hook(device.device.as<ID3D12Device5>());
-    *factory = streamlineAdapter->hook(*factory);
-    streamlineAdapter->setD3DDevice(device.device.as<ID3D12Device5>());
-    streamlineAdapter->setCurrentAdapter(adapter);
+    streamlineAdapter->preRecover();
+  }
+#endif
+}
+
+void DeviceContext::recoverStreamline([[maybe_unused]] DXGIAdapter *adapter)
+{
+#if !_TARGET_XBOX
+  if (streamlineAdapter)
+  {
+    streamlineAdapter->recover();
+    device.device = StreamlineAdapter::hook(device.device.get());
+    streamlineAdapter->setAdapterAndDevice(adapter, device.device.get());
     streamlineAdapter->initializeDlssState();
   }
 #endif
@@ -2881,6 +3095,7 @@ void DeviceContext::executeDlss(const nv::DlssParams<BaseTexture> &dlss_params, 
   auto cmd = make_command<CmdExecuteDlss>(dlssParams, view_index, streamlineAdapter->getFrameId());
 
   DX12_LOCK_FRONT();
+  VALIDATE_GENERIC_RENDER_PASS_CONDITION(!activeRenderPassArea, "DX12: CmdExecuteDlss used during a generic render pass");
   commandStream.pushBack(cmd);
   immediateModeExecute();
 }
@@ -2893,6 +3108,7 @@ void DeviceContext::executeDlssG(const nv::DlssGParams<BaseTexture> &dlss_g_para
   auto cmd = make_command<CmdExecuteDlssG>(dlssGParams, view_index);
 
   DX12_LOCK_FRONT();
+  VALIDATE_GENERIC_RENDER_PASS_CONDITION(!activeRenderPassArea, "DX12: CmdExecuteDlssG used during a generic render pass");
   commandStream.pushBack(cmd);
   immediateModeExecute();
 }
@@ -2914,6 +3130,7 @@ void DeviceContext::executeXess(const XessParams &params)
   auto cmd = make_command<CmdExecuteXess>(xessParams);
 
   DX12_LOCK_FRONT();
+  VALIDATE_GENERIC_RENDER_PASS_CONDITION(!activeRenderPassArea, "DX12: CmdExecuteXess used during a generic render pass");
   commandStream.pushBack(cmd);
   immediateModeExecute();
 }
@@ -2937,6 +3154,7 @@ void DeviceContext::executeFSR(amd::FSR *fsr, const amd::FSR::UpscalingArgs &par
 
   DX12_LOCK_FRONT();
   auto cmd = make_command<CmdDispatchFSR>(fsr, args);
+  VALIDATE_GENERIC_RENDER_PASS_CONDITION(!activeRenderPassArea, "DX12: CmdDispatchFSR used during a generic render pass");
   commandStream.pushBack(cmd);
   immediateModeExecute();
 }
@@ -2966,6 +3184,7 @@ void DeviceContext::executeFSR2(const Fsr2Params &params)
   paramsDx12.cameraFovAngleVertical = params.cameraFovAngleVertical;
   DX12_LOCK_FRONT();
   auto cmd = make_command<CmdDispatchFSR2>(paramsDx12);
+  VALIDATE_GENERIC_RENDER_PASS_CONDITION(!activeRenderPassArea, "DX12: CmdDispatchFSR2 used during a generic render pass");
   commandStream.pushBack(cmd);
   immediateModeExecute();
 }
@@ -3165,6 +3384,8 @@ void DeviceContext::pushBufferUpdate(BufferResourceReferenceAndOffset buffer, co
   }
   memcpy(update.pointer, data, data_size);
   update.flush();
+  VALIDATE_GENERIC_RENDER_PASS_CONDITION(!activeRenderPassArea,
+    "DX12: CmdUpdateBuffer (pushBufferUpdate) used during a generic render pass");
   auto cmd = make_command<CmdUpdateBuffer>(update, buffer);
   commandStream.pushBack(cmd);
   immediateModeExecute();
@@ -3416,7 +3637,7 @@ void DeviceContext::WorkerThread::execute()
 {
   TIME_PROFILE_THREAD(getCurrentThreadName());
 #if _TARGET_XBOX
-  xbox::make_thread_time_sensitive();
+  gdk::make_thread_time_sensitive();
 #endif
 
   ctx.replayCommandsConcurrently(terminating);
@@ -4164,27 +4385,6 @@ void DeviceContext::ExecutionContext::registerStaticRenderState(StaticRenderStat
 }
 
 #if D3D_HAS_RAY_TRACING
-void DeviceContext::ExecutionContext::addRaytracePipeline(ProgramID program, uint32_t max_recursion, uint32_t shader_count,
-  const ShaderID *shaders, uint32_t group_count, const RaytraceShaderGroup *groups)
-{ // TODO
-  G_UNUSED(program);
-  G_UNUSED(max_recursion);
-  G_UNUSED(shader_count);
-  G_UNUSED(shaders);
-  G_UNUSED(group_count);
-  G_UNUSED(groups);
-  G_ASSERTF(false, "ExecutionContext::addRaytracePipeline called on API without support");
-}
-void DeviceContext::ExecutionContext::copyRaytraceShaderGroupHandlesToMemory(ProgramID program, uint32_t first_group,
-  uint32_t group_count, uint32_t size, void *ptr)
-{ // TODO
-  G_UNUSED(program);
-  G_UNUSED(first_group);
-  G_UNUSED(group_count);
-  G_UNUSED(size);
-  G_UNUSED(ptr);
-  G_ASSERTF(false, "ExecutionContext::copyRaytraceShaderGroupHandlesToMemory called on API without support");
-}
 void DeviceContext::ExecutionContext::buildBottomAccelerationStructure(uint32_t batch_size, uint32_t batch_index,
   D3D12_RAYTRACING_GEOMETRY_DESC_ListRef::RangeType geometry_descriptions,
   RaytraceGeometryDescriptionBufferResourceReferenceSetListRef::RangeType resource_refs,
@@ -4383,62 +4583,6 @@ void DeviceContext::ExecutionContext::copyRaytracingAccelerationStructure(Raytra
     compact ? D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE_COMPACT : D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE_CLONE);
 
   contextState.graphicsCommandListBarrierBatch.flushUAV(dst->asHeapResource);
-}
-
-void DeviceContext::ExecutionContext::traceRays(BufferResourceReferenceAndRange ray_gen_table,
-  BufferResourceReferenceAndRange miss_table, BufferResourceReferenceAndRange hit_table,
-  BufferResourceReferenceAndRange callable_table, uint32_t miss_stride, uint32_t hit_stride, uint32_t callable_stride, uint32_t width,
-  uint32_t height, uint32_t depth)
-{ // TODO
-  G_UNUSED(ray_gen_table);
-  G_UNUSED(miss_table);
-  G_UNUSED(hit_table);
-  G_UNUSED(callable_table);
-  G_UNUSED(miss_stride);
-  G_UNUSED(hit_stride);
-  G_UNUSED(callable_stride);
-  G_UNUSED(width);
-  G_UNUSED(height);
-  G_UNUSED(depth);
-
-  if (!readyCommandList())
-  {
-    return;
-  }
-
-  tranistionPredicationBuffer();
-
-  // auto &registers = contextState.raytraceState.pipeline->getSignature().registers;
-  // raytrace is basically compute, so flush uav too
-  contextState.resourceStates.flushPendingUAVActions(contextState.graphicsCommandListBarrierBatch, device.currentEventPath().data(),
-    false);
-  contextState.graphicsCommandListBarrierBatch.execute(contextState.cmdBuffer);
-
-  applyPredicationBuffer();
-  /*
-    contextState.stageState[STAGE_RAYTRACE].apply(
-      device->device, device->dummyResourceTable, self->getDescriptorSetMode(),
-      contextState.frameIndex % array_size(contextState.frames),
-      contextState.raytraceState.pipeline->getLayout()->registers,
-      contextState.raytraceStageRefTable,
-      [=](VulkanDescriptorSetHandle set, const uint32_t *offsets, uint32_t offset_count) //
-      {
-        this->contextState.cmdBuffer.bindRaytraceDescriptorSet(set, offsets,
-    offset_count);
-      });
-
-    auto callableBufferHandle = callable_table ? callable_table.getHandle() : VulkanBufferHandle{};
-    auto callableBufferOffset = callable_table ? callable_table.dataOffset(callable_offset) : 0;
-
-    contextState.cmdBuffer.traceRays(
-      device->device, ray_gen_table.getHandle(), ray_gen_table.dataOffset(ray_gen_offset),
-      miss_table.getHandle(), miss_table.dataOffset(miss_offset), miss_stride,
-    hit_table.getHandle(), hit_table.dataOffset(hit_offset), hit_stride, callableBufferHandle,
-    callableBufferOffset, callable_stride, width, height, depth); if
-    (contextState.cmdBufferDebug)
-    {
-      // TODO record draw command
-    }*/
 }
 #endif
 
@@ -5050,26 +5194,6 @@ void DeviceContext::ExecutionContext::dirtyTextureStateForFramebufferAttachmentU
   }
 }
 
-#if D3D_HAS_RAY_TRACING
-void DeviceContext::ExecutionContext::setRaytracePipeline(ProgramID program)
-{ // TODO
-  auto &newPipeline = device.pipeMan.getRaytraceProgram(program);
-  auto oldPipeline = contextState.raytraceState.pipeline;
-  contextState.raytraceState.pipeline = &newPipeline;
-  auto &newSignature = newPipeline.getSignature();
-  // if layout did change, we need to submit all descriptor sets
-  // if layout did not change, we only need to submit changed descriptor sets
-  if (!oldPipeline || (&newSignature != &oldPipeline->getSignature()))
-  { /*
-     contextState.raytraceStageRefTable =
-       contextState.stageState[STAGE_RAYTRACE].getRegisterRefTable(newSignature->registers.header);*/
-    contextState.stageState[STAGE_RAYTRACE].invalidateState();
-  }
-
-  contextState.cmdBuffer.bindRaytracePipeline(&newSignature, newPipeline.getHandle());
-}
-#endif
-
 void DeviceContext::ExecutionContext::setGraphicsPipeline(GraphicsProgramID program)
 {
   auto newPipeline = device.pipeMan.getGraphics(program);
@@ -5680,27 +5804,26 @@ void DeviceContext::ExecutionContext::clearUAVTextureF(Image *image, ImageViewSt
   dirtyTextureState(image);
 }
 
-void DeviceContext::ExecutionContext::setComputeRootConstant(uint32_t offset, uint32_t value)
+void DeviceContext::ExecutionContext::setRootConstants(const unsigned stage, const RootConstatInfo &values)
 {
-  contextState.cmdBuffer.updateComputeRootConstant(offset, value);
+  uint32_t offset = 0;
+  for (uint32_t value : values)
+  {
+    if (STAGE_CS == stage)
+    {
+      contextState.cmdBuffer.updateComputeRootConstant(offset, value);
+    }
+    else if (STAGE_PS == stage)
+    {
+      contextState.cmdBuffer.updatePixelRootConstant(offset, value);
+    }
+    else if (STAGE_VS == stage)
+    {
+      contextState.cmdBuffer.updateVertexRootConstant(offset, value);
+    }
+    offset++;
+  }
 }
-
-void DeviceContext::ExecutionContext::setVertexRootConstant(uint32_t offset, uint32_t value)
-{
-  contextState.cmdBuffer.updateVertexRootConstant(offset, value);
-}
-
-void DeviceContext::ExecutionContext::setPixelRootConstant(uint32_t offset, uint32_t value)
-{
-  contextState.cmdBuffer.updatePixelRootConstant(offset, value);
-}
-
-#if D3D_HAS_RAY_TRACING
-void DeviceContext::ExecutionContext::setRaytraceRootConstant(uint32_t offset, uint32_t value)
-{
-  contextState.cmdBuffer.updateRaytraceRootConstant(offset, value);
-}
-#endif
 
 void DeviceContext::ExecutionContext::beginVisibilityQuery(Query *q)
 {
@@ -7141,3 +7264,228 @@ void DeviceContext::ExecutionContext::compilePipelineSet(DynamicArray<InputLayou
 }
 
 void DeviceContext::ExecutionContext::switchActivePipeline(ActivePipeline pipeline) { contextState.switchActivePipeline(pipeline); }
+
+#if D3D_HAS_RAY_TRACING
+void DeviceContext::ExecutionContext::applyRaytraceState(const RayDispatchBasicParameters &dispatch_parameters,
+  const ResourceBindingTable &rbt, UInt32ListRef::RangeType root_constants)
+{
+  if (!readyCommandList())
+  {
+    return;
+  }
+
+  auto &frame = contextState.getFrameData();
+
+  auto constBufferMode = dispatch_parameters.rootSignature->def.csLayout.usesConstBufferRootDescriptors()
+                           ? PipelineStageStateBase::ConstantBufferPushMode::ROOT_DESCRIPTOR
+                           : PipelineStageStateBase::ConstantBufferPushMode::DESCRIPTOR_HEAP;
+
+  // TODO needs only top be done if the shaders use bindless
+  uint32_t bindlessCount = contextState.bindlessSetManager.getResourceDescriptorCount();
+  uint32_t bindlessRev = contextState.bindlessSetManager.getResourceDescriptorRevision();
+
+  frame.resourceViewHeaps.reserveSpace(device.device.get(), rbt.contBufferCount, rbt.readCount, rbt.writeCount, bindlessCount,
+    bindlessRev);
+
+  // TODO needs only top be done if the shaders use bindless
+  contextState.bindlessSetManager.reserveSamplerHeap(device.device.get(), frame.samplerHeaps);
+
+  auto sRegisterDescriptorIndex = frame.samplerHeaps.findInScratchSegment(rbt.samplers, rbt.samplerCount);
+  if (!sRegisterDescriptorIndex)
+  {
+    frame.samplerHeaps.ensureScratchSegmentSpace(device.device.get(), rbt.samplerCount);
+    sRegisterDescriptorIndex = frame.samplerHeaps.appendToScratchSegment(device.device.get(), rbt.samplers, rbt.samplerCount);
+  }
+  auto sRegisterDescriptorRange = DescriptorHeapRange::make(sRegisterDescriptorIndex, rbt.samplerCount);
+
+  DescriptorHeapIndex tRegisterDescriptorIndex;
+#if DX12_REUSE_SHADER_RESOURCE_VIEW_DESCRIPTOR_RANGES
+  if (frame.resourceViewHeaps.highSRVScratchSegmentUsage())
+  {
+    tRegisterDescriptorIndex = frame.resourceViewHeaps.findInSRVScratchSegment(rbt.readResourceViews, rbt.readCount);
+  }
+  else
+  {
+    tRegisterDescriptorIndex = DescriptorHeapIndex::make_invalid();
+  }
+  if (!tRegisterDescriptorIndex)
+#endif
+  {
+    tRegisterDescriptorIndex =
+      frame.resourceViewHeaps.appendToSRVScratchSegment(device.device.get(), rbt.readResourceViews, rbt.readCount);
+  }
+  auto tRegisterDescriptorRange = DescriptorHeapRange::make(tRegisterDescriptorIndex, rbt.readCount);
+
+  DescriptorHeapIndex uRegisterDescriptorIndex;
+#if DX12_REUSE_UNORDERD_ACCESS_VIEW_DESCRIPTOR_RANGES
+  uRegisterDescriptorIndex = frame.resourceViewHeaps.findInUAVScratchSegment(rbt.writeResourceViews, rbt.writeCount);
+  if (!uRegisterDescriptorIndex)
+#endif
+  {
+    uRegisterDescriptorIndex =
+      frame.resourceViewHeaps.appendToUAVScratchSegment(device.device.get(), rbt.writeResourceViews, rbt.writeCount);
+  }
+  auto uRegisterDescriptorRange = DescriptorHeapRange::make(uRegisterDescriptorIndex, rbt.writeCount);
+
+  // TODO needs only top be done if the shaders use bindless
+  contextState.bindlessSetManager.pushToSamplerHeap(device.device.get(), frame.samplerHeaps);
+  contextState.bindlessSetManager.pushToResourceHeap(device.device.get(), frame.resourceViewHeaps);
+
+  contextState.cmdBuffer.bindRaytracePipeline(dispatch_parameters.rootSignature, dispatch_parameters.pipeline);
+
+  DescriptorHeapRange bRegisterDescribtorRange;
+  if (PipelineStageStateBase::ConstantBufferPushMode::DESCRIPTOR_HEAP == constBufferMode)
+  {
+    const auto base = self.back.constBufferStreamDescriptors.getDescriptors(device.device.get(), rbt.contBufferCount);
+    const auto width = self.back.constBufferStreamDescriptors.getDescriptorSize();
+    auto pos = base;
+
+    for (uint32_t i = 0; i < rbt.contBufferCount; ++i)
+    {
+      D3D12_CONSTANT_BUFFER_VIEW_DESC viewDesc;
+      viewDesc.BufferLocation = rbt.constBuffers[i].gpuPointer;
+      viewDesc.SizeInBytes = rbt.constBuffers[i].size;
+      device.device->CreateConstantBufferView(&viewDesc, pos);
+      pos.ptr += width;
+    }
+
+    auto index = frame.resourceViewHeaps.appendToConstScratchSegment(device.device.get(), base, rbt.contBufferCount);
+    bRegisterDescribtorRange = DescriptorHeapRange::make(index, rbt.contBufferCount);
+  }
+  else
+  {
+    for (uint32_t i = 0; i < rbt.contBufferCount; ++i)
+    {
+      contextState.cmdBuffer.setRaytraceConstantBuffer(i, rbt.constBuffers[i].gpuPointer);
+    }
+  }
+
+  sRegisterDescriptorRange = frame.samplerHeaps.migrateToActiveScratchSegment(device.device.get(), sRegisterDescriptorRange);
+
+  contextState.cmdBuffer.setSamplerHeap(frame.samplerHeaps.getActiveHandle(), frame.samplerHeaps.getBindlessGpuAddress());
+  contextState.cmdBuffer.setResourceHeap(frame.resourceViewHeaps.getActiveHandle(), frame.resourceViewHeaps.getBindlessGpuAddress());
+
+  contextState.cmdBuffer.setRaytraceSamplers(frame.samplerHeaps.getGpuAddress(sRegisterDescriptorRange));
+  contextState.cmdBuffer.setRaytraceSRVs(frame.resourceViewHeaps.getGpuAddress(tRegisterDescriptorRange));
+  contextState.cmdBuffer.setRaytraceUAVs(frame.resourceViewHeaps.getGpuAddress(uRegisterDescriptorRange));
+
+#if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
+  if (PipelineStageStateBase::ConstantBufferPushMode::DESCRIPTOR_HEAP == constBufferMode)
+  {
+    contextState.cmdBuffer.setRaytraceConstantBufferDescriptors(frame.resourceViewHeaps.getGpuAddress(bRegisterDescribtorRange));
+  }
+#endif
+
+  // NOTE that for state, STAGE_CS is correct here as RT is executed on the CS unit on the queue.
+  for (uint32_t i = 0; i < rbt.contBufferCount; ++i)
+  {
+    contextState.resourceStates.useBufferAsCBV(contextState.graphicsCommandListBarrierBatch, STAGE_CS, rbt.constBuffers[i]);
+  }
+
+  for (uint32_t i = 0; i < rbt.readCount; ++i)
+  {
+    auto &srv = rbt.readResources[i];
+    if (srv.image)
+    {
+      contextState.resourceStates.useTextureAsSRV(contextState.graphicsCommandListBarrierBatch,
+        contextState.graphicsCommandListSplitBarrierTracker, STAGE_CS, srv.image, srv.imageView, srv.isConstDepthRead);
+    }
+    else if (srv.bufferRef)
+    {
+      contextState.resourceStates.useBufferAsSRV(contextState.graphicsCommandListBarrierBatch, STAGE_CS, srv.bufferRef);
+    }
+    // RT structures do not need any state tracking
+  }
+
+  for (uint32_t i = 0; i < rbt.writeCount; ++i)
+  {
+    auto &uav = rbt.writeResources[i];
+    if (uav.image)
+    {
+      contextState.resourceStates.useTextureAsUAV(contextState.graphicsCommandListBarrierBatch,
+        contextState.graphicsCommandListSplitBarrierTracker, STAGE_CS, uav.image, uav.imageView);
+      contextState.resourceStates.beginImplicitUAVAccess(uav.image->getHandle());
+    }
+    else if (uav.bufferRef)
+    {
+      contextState.resourceStates.useBufferAsUAV(contextState.graphicsCommandListBarrierBatch, STAGE_CS, uav.bufferRef);
+      contextState.resourceStates.beginImplicitUAVAccess(uav.bufferRef.buffer);
+    }
+  }
+
+  for (uint32_t i = 0; i < root_constants.size(); ++i)
+  {
+    contextState.cmdBuffer.updateRaytraceRootConstant(i, root_constants[i]);
+  }
+}
+
+void DeviceContext::ExecutionContext::dispatchRays(const RayDispatchBasicParameters &dispatch_parameters,
+  const ResourceBindingTable &rbt, UInt32ListRef::RangeType root_constants, const RayDispatchParameters &rdp)
+{
+  if (!readyCommandList())
+  {
+    return;
+  }
+
+  switchActivePipeline(ActivePipeline::Raytrace);
+
+  applyRaytraceState(dispatch_parameters, rbt, root_constants);
+
+  tranistionPredicationBuffer();
+
+  contextState.resourceStates.flushPendingUAVActions(contextState.graphicsCommandListBarrierBatch, device.currentEventPath().data(),
+    device.validatesUserBarriers());
+  contextState.graphicsCommandListBarrierBatch.execute(contextState.cmdBuffer);
+
+  applyPredicationBuffer();
+
+  contextState.cmdBuffer.traceRays(rdp.rayGenTable.gpuPointer, rdp.rayGenTable.size, rdp.missTable.gpuPointer, rdp.missTable.size,
+    rdp.missStride, rdp.hitTable.gpuPointer, rdp.hitTable.size, rdp.hitStride, rdp.callableTable.gpuPointer, rdp.callableTable.size,
+    rdp.callableStride, rdp.width, rdp.height, rdp.depth);
+
+  contextState.debugDispatchRays(device, contextState.cmdBuffer.getHandle(), dispatch_parameters, rbt, rdp);
+}
+
+void DeviceContext::ExecutionContext::dispatchRaysIndirect(const RayDispatchBasicParameters &dispatch_parameters,
+  const ResourceBindingTable &rbt, UInt32ListRef::RangeType root_constants, const RayDispatchIndirectParameters &rdip)
+{
+  if (!readyCommandList())
+  {
+    return;
+  }
+
+  switchActivePipeline(ActivePipeline::Raytrace);
+
+  applyRaytraceState(dispatch_parameters, rbt, root_constants);
+
+  contextState.resourceStates.useBufferAsIA(contextState.graphicsCommandListBarrierBatch, rdip.argumentBuffer);
+  contextState.bufferAccessTracker.updateLastFrameAccess(rdip.argumentBuffer.resourceId);
+
+  if (rdip.countBuffer)
+  {
+    contextState.resourceStates.useBufferAsIA(contextState.graphicsCommandListBarrierBatch, rdip.countBuffer);
+    contextState.bufferAccessTracker.updateLastFrameAccess(rdip.countBuffer.resourceId);
+  }
+
+  tranistionPredicationBuffer();
+
+  contextState.resourceStates.flushPendingUAVActions(contextState.graphicsCommandListBarrierBatch, device.currentEventPath().data(),
+    device.validatesUserBarriers());
+  contextState.graphicsCommandListBarrierBatch.execute(contextState.cmdBuffer);
+
+  applyPredicationBuffer();
+
+  auto indirectSignature = contextState.dispatchRaySignatures.getSignatureForStride(device.device.get(), rdip.argumentStrideInBytes,
+    D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_RAYS);
+  if (!indirectSignature)
+  {
+    // error while trying to create a signature
+    return;
+  }
+
+  contextState.cmdBuffer.dispatchaysIndirect(indirectSignature, rdip.argumentBuffer.buffer, rdip.argumentBuffer.offset,
+    rdip.countBuffer.buffer, rdip.countBuffer.offset, rdip.maxCount);
+
+  contextState.debugDispatchRaysIndirect(device, contextState.cmdBuffer.getHandle(), dispatch_parameters, rbt, rdip);
+}
+#endif

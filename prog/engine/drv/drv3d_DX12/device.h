@@ -30,6 +30,8 @@
 #include <mutex>
 
 
+#include "ray_trace_pipeline.h"
+
 namespace drv3d_dx12
 {
 class Device;
@@ -85,13 +87,6 @@ struct VirtualAllocFree
 {
   void operator()(void *ptr) { VirtualFree(ptr, 0, MEM_RELEASE); }
 };
-
-#if _TARGET_PC_WIN
-// min requirement is device3 right now, 5 is optional to raytracing
-typedef VersionedComPtr<D3DDevice, ID3D12Device5> AnyDeviceComPtr;
-#else
-typedef VersionedComPtr<D3DDevice> AnyDeviceComPtr;
-#endif
 
 #if _TARGET_PC_WIN
 class DeviceErrorState
@@ -377,12 +372,6 @@ struct FeatureID<D3D12_FEATURE_DATA_D3D12_OPTIONS11>
 };
 #endif
 
-template <>
-struct FeatureID<D3D12_FEATURE_DATA_SHADER_MODEL>
-{
-  static constexpr D3D12_FEATURE value = D3D12_FEATURE_SHADER_MODEL;
-};
-
 // Availability of this defines is inconsistent between SDKs, so we have copy here for now
 #define D3D_SHADER_REQUIRES_DOUBLES                                                        0x00000001
 #define D3D_SHADER_REQUIRES_EARLY_DEPTH_STENCIL                                            0x00000002
@@ -427,6 +416,25 @@ inline T check_feature_support(ID3D12Device *device, As &&...as)
   return result;
 }
 
+// wrapper to query for available shader model version, this need some probing to properly support OS versions without Agility SDK
+// support.
+inline D3D12_FEATURE_DATA_SHADER_MODEL get_shader_model(ID3D12Device *device)
+{
+  auto RaytraceMinSM = 6.5_sm;
+  d3d::shadermodel::Version shaderModelToCheck[] = {d3d::smMax, RaytraceMinSM, 6.4_sm, 6.3_sm, 6.2_sm, 6.1_sm, 6.0_sm};
+  D3D12_FEATURE_DATA_SHADER_MODEL sm{};
+  for (auto &shaderModel : shaderModelToCheck)
+  {
+    sm.HighestShaderModel = shader_model_to_dx(shaderModel);
+    if (S_OK == device->CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &sm, sizeof(sm)))
+    {
+      return sm;
+    }
+  }
+  sm.HighestShaderModel = (D3D_SHADER_MODEL)0;
+  return sm;
+}
+
 class Device : public DeviceErrorState, public DeviceErrorObserver<Device>, protected debug::DeviceState
 {
   friend class DeviceContext;
@@ -445,7 +453,7 @@ public:
 #if _TARGET_PC_WIN
   struct AdapterInfo
   {
-    ComPtr<IDXGIAdapter1> adapter;
+    ComPtr<DXGIAdapter> adapter;
     DXGI_ADAPTER_DESC1 info;
     bool integrated;
   };
@@ -555,8 +563,9 @@ public:
   Device() : context(*this) {}
   ~Device();
 #if _TARGET_PC_WIN
-  bool init(DXGIFactory *factory, AdapterInfo &&adapterInfo, D3D_FEATURE_LEVEL feature_level, const Direct3D12Enviroment &d3d_env,
-    SwapchainCreateInfo swapchain_create_info, debug::GlobalState &debug_state, const Config &cfg, const DataBlock *dxCfg);
+  bool init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug_state, ComPtr<DXGIFactory> &factory,
+    AdapterInfo &&adapter_info, D3D_FEATURE_LEVEL feature_level, SwapchainCreateInfo swapchain_create_info, const Config &cfg,
+    const DataBlock *dx_cfg);
 #elif _TARGET_XBOX
   bool init(SwapchainCreateInfo swapchain_create_info, const Config &cfg);
 #endif
@@ -634,7 +643,6 @@ public:
   void enumerateDisplayModes(Tab<String> &list);
   void enumerateDisplayModesFromOutput(IDXGIOutput *dxgi_output, Tab<String> &list);
   void enumerateActiveMonitors(Tab<String> &result);
-  ComPtr<IDXGIOutput> getOutputMonitorByNameOrDefault(IDXGIFactory *factory, const char *monitorName);
   HRESULT findClosestMatchingMode(DXGI_MODE_DESC *out_desc);
 #endif
 
@@ -678,8 +686,8 @@ public:
   // almost as normal shutdown, but keeps some things
 #if _TARGET_PC_WIN
   LUID preRecovery();
-  bool recover(DXGIFactory *factory, ComPtr<IDXGIAdapter1> input_adapter, D3D_FEATURE_LEVEL feature_level,
-    const Direct3D12Enviroment &d3d_env, HWND wnd, SwapchainCreateInfo &&swapchain_create_info);
+  bool recover(const Direct3D12Enviroment &d3d_env, DXGIFactory *factory, ComPtr<DXGIAdapter> &&input_adapter,
+    D3D_FEATURE_LEVEL feature_level, SwapchainCreateInfo &&swapchain_create_info, HWND wnd);
   bool finalizeRecovery();
 
   using debug::DeviceState::sendGPUCrashDump;
@@ -975,6 +983,14 @@ public:
 
 #if !_TARGET_XBOXONE
   ShaderLibrary *createShaderLibrary(const ::ShaderLibraryCreateInfo &info);
+#endif
+#if D3D_HAS_RAY_TRACING
+#if _TARGET_PC_WIN
+  RayTracePipeline *createPipeline(const Direct3D12Enviroment &env, const ::raytrace::PipelineCreateInfo &pci);
+#else
+  RayTracePipeline *createPipeline(const ::raytrace::PipelineCreateInfo &pci);
+#endif
+  RayTracePipeline *expandPipeline(RayTracePipeline *base, const ::raytrace::PipelineExpandInfo &pei);
 #endif
 };
 
@@ -1796,8 +1812,9 @@ inline bool BufferInterfaceConfigCommon::allowsStreamBuffer(uint32_t flags)
   }
 }
 
-#if _TARGET_PC_WIN
 inline bool PlatformBufferInterfaceConfig::isMapable(BufferConstReferenceType buf) { return buf.cpuPointer != nullptr; }
+
+#if _TARGET_PC_WIN
 Device::Config update_config_for_vendor(Device::Config config, const DataBlock *cfg, Device::AdapterInfo &adapterInfo);
 #endif
 

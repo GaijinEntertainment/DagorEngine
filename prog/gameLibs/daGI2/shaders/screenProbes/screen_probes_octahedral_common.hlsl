@@ -25,7 +25,8 @@ float3 screenspace_probe_dir_decode(float2 tc)
 #define SP_DEPTH_BITS_MASK ((1<<SP_DEPTH_BITS)-1)
 #define SP_TAG_BITS_SHIFT (SP_DEPTH_BITS)
 
-bool sp_is_moving_or_new(uint tag) {return (tag>>SP_TAG_MOVING_SHIFT) != 0;}
+bool sp_is_relatively_new(uint tag) {return tag>>SP_TAG_AGE_SHIFT;} // age is below SP_TAG_MAX_AGE
+bool sp_is_moving_or_new(uint tag) {return (tag>>SP_TAG_MOVING_SHIFT) != 0;} // age is below SP_TAG_MAX_AGE or moving
 bool sp_is_newborn_tag(uint tag) {return (tag&SP_TAG_AGE_MASK) == SP_TAG_AGE_BORN;}
 bool sp_is_moving_tag(uint tag) {return tag&SP_TAG_MOVING_PROBE;}
 bool sp_has_additinal_probes(uint tag) {return tag&SP_TAG_HAS_ADDITIONAL;}

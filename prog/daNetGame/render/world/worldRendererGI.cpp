@@ -232,7 +232,7 @@ void WorldRenderer::giBeforeRender()
 
     // minimum s.screenProbes.tileSize is 20 at 1080p, 24 at 1440p, 32 at 4k
     int w, h;
-    getRenderingResolution(w, h);
+    getPostFxInternalResolution(w, h);
     float minTileSize = remapUnclamped(16, 32, 1080, 1080 * 2, h);
     float tileSizeF = remap(minTileSize, 8, 0.25, 0.95f, gi_algorithm_quality);
     s.screenProbes.tileSize = static_cast<int>(round(tileSizeF)) & ~1;

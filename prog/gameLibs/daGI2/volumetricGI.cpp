@@ -13,27 +13,28 @@
 #include <drv/3d/dag_vertexIndexBuffer.h>
 #include <drv/3d/dag_lock.h>
 
-#define GLOBAL_VARS_LIST                        \
-  VAR(gi_current_froxels_radiance)              \
-  VAR(gi_current_froxels_radiance_samplerstate) \
-  VAR(gi_froxels_world_view_pos)                \
-  VAR(gi_froxels_zn_zfar)                       \
-  VAR(gi_froxels_view_vecLT)                    \
-  VAR(gi_froxels_view_vecRT)                    \
-  VAR(gi_froxels_view_vecLB)                    \
-  VAR(gi_froxels_prev_globtm)                   \
-  VAR(gi_prev_froxels_sph0)                     \
-  VAR(gi_prev_froxels_sph1)                     \
-  VAR(gi_prev_froxels_sph0_samplerstate)        \
-  VAR(gi_prev_froxels_sph1_samplerstate)        \
-  VAR(gi_froxels_sph0)                          \
-  VAR(gi_froxels_sph1)                          \
-  VAR(gi_froxels_sph1_samplerstate)             \
-  VAR(gi_froxels_temporal_frame)                \
-  VAR(gi_froxels_debug_type)                    \
-  VAR(gi_froxels_sizei)                         \
-  VAR(gi_froxels_history_blur_ofs)              \
-  VAR(gi_froxels_atlas_sizei)                   \
+#define GLOBAL_VARS_LIST                                 \
+  VAR(gi_current_froxels_radiance)                       \
+  VAR(gi_current_froxels_radiance_samplerstate)          \
+  VAR(gi_froxels_world_view_pos)                         \
+  VAR(gi_froxels_zn_zfar)                                \
+  VAR(gi_froxels_prev_zn_zfar)                           \
+  VAR(gi_froxels_view_vecLT)                             \
+  VAR(gi_froxels_view_vecRT)                             \
+  VAR(gi_froxels_view_vecLB)                             \
+  VAR(gi_froxels_jittered_current_to_unjittered_history) \
+  VAR(gi_prev_froxels_sph0)                              \
+  VAR(gi_prev_froxels_sph1)                              \
+  VAR(gi_prev_froxels_sph0_samplerstate)                 \
+  VAR(gi_prev_froxels_sph1_samplerstate)                 \
+  VAR(gi_froxels_sph0)                                   \
+  VAR(gi_froxels_sph1)                                   \
+  VAR(gi_froxels_sph1_samplerstate)                      \
+  VAR(gi_froxels_temporal_frame)                         \
+  VAR(gi_froxels_debug_type)                             \
+  VAR(gi_froxels_sizei)                                  \
+  VAR(gi_froxels_history_blur_ofs)                       \
+  VAR(gi_froxels_atlas_sizei)                            \
   VAR(gi_froxels_dist)
 
 #define VAR(a) static ShaderVariableInfo a##VarId(#a);
@@ -58,11 +59,13 @@ void VolumetricGI::afterReset()
   d3d::clear_rwtexf(gi_froxels_sph1[temporalFrame & 1].getVolTex(), ResourceClearValue{}.asFloat, 0, 0);
 }
 
-static void set_prev_frame_info(const VolumetricGI::FrameInfo &fi, float blur_texel, int d)
+static void set_prev_frame_info(const VolumetricGI::FrameInfo &prev, const VolumetricGI::FrameInfo &cur, float blur_texel, int d)
 {
-  TMatrix4 globTm = fi.globTm.transpose();
-  ShaderGlobal::set_float4x4(gi_froxels_prev_globtmVarId, globTm);
-  ShaderGlobal::set_color4(gi_froxels_history_blur_ofsVarId, blur_texel / fi.res.w, blur_texel / fi.res.h, blur_texel / d, 0);
+  TMatrix4 globTm = get_reprojection_campos_to_unjittered_history(cur, prev).transpose();
+  ShaderGlobal::set_float4x4(gi_froxels_jittered_current_to_unjittered_historyVarId, globTm);
+  ShaderGlobal::set_color4(gi_froxels_history_blur_ofsVarId, blur_texel / prev.res.w, blur_texel / prev.res.h, blur_texel / d, 0);
+  ShaderGlobal::set_color4(gi_froxels_prev_zn_zfarVarId, prev.znear, prev.zfar, 1.f / prev.zfar,
+    (prev.zfar - prev.znear) / (prev.znear * prev.zfar));
 }
 
 void VolumetricGI::allocate(uint32_t tile_sz, uint32_t max_sw_, uint32_t max_sh_, uint32_t res_, uint32_t spatial_passes_,
@@ -218,12 +221,13 @@ void VolumetricGI::calc(const TMatrix &viewItm, const TMatrix4 &projTm, float zn
       w * radianceRes * h * radianceRes);
   }
   set_frame_info(cFrameInfo);
-  set_prev_frame_info(validHistory ? prevFrameInfo : cFrameInfo, historyBlurTexelOfs, d);
+  set_prev_frame_info(validHistory ? prevFrameInfo : cFrameInfo, cFrameInfo, historyBlurTexelOfs, d);
 
   prevFrameInfo = cFrameInfo;
   ShaderGlobal::set_color4(gi_froxels_distVarId, 1.f / zParams.zMul, -zParams.zAdd / zParams.zMul, 1.f / zParams.zExpMul,
     1.f / (zParams.zExpMul * d));
-  ShaderGlobal::set_int4(gi_froxels_temporal_frameVarId, temporalFrame & 7, validHistory, 0, 0);
+  const uint32_t frames = 8;
+  ShaderGlobal::set_int4(gi_froxels_temporal_frameVarId, temporalFrame % frames, validHistory, frames, temporalFrame);
   if (useReprojection)
   {
     if (gi_froxels_radiance[0].getVolTex())

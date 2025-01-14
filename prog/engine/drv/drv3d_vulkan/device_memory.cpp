@@ -197,7 +197,11 @@ void DeviceMemoryPool::init(const VkPhysicalDeviceMemoryProperties &mem_info)
   }
 
 #if !_TARGET_C3
-  if (heaps.size() > 1)
+  bool nonDeviceLocalHeapsPresent = false;
+  for (const Heap &i : heaps)
+    nonDeviceLocalHeapsPresent |= (i.flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) == 0;
+
+  if (nonDeviceLocalHeapsPresent)
   {
     memoryConfig = DeviceMemoryConfiguration::DEDICATED_DEVICE_MEMORY;
   }

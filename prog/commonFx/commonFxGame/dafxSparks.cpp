@@ -151,7 +151,7 @@ struct DafxSparks : BaseParticleEffect
 
     GDATA(dt);
     GDATA(globtm);
-    GDATA(globtm_prev);
+    GDATA(globtm_sim);
     GDATA(world_view_pos);
     GDATA(gravity_zone_count);
     GDATA(proj_hk);

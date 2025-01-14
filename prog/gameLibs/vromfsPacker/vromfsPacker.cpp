@@ -1418,38 +1418,43 @@ bool repackVromfs(const char *fname, const char *dest_fname, bool store_packed, 
     }
   }
 
-  VirtualRomFsPack &fs_view = *(VirtualRomFsPack *)(fs.data() - FS_OFFS);
-  // file layout of PatchableTab may differ from memory layout, do patch!
-  fs_view.files.map.patch(nullptr);
-  fs_view.data.patch(nullptr);
-  int files_count = fs_view.files.map.size();
-  int fs_names_ofs = mkbindump::le2be32_cond(ptrdiff_t(fs_view.files.map.data()), read_be);
-  int fs_data_ofs = mkbindump::le2be32_cond(ptrdiff_t(fs_view.data.data()), read_be);
-  int fs_hash_ofs = mkbindump::le2be32_cond(ptrdiff_t(fs_view.ptr), read_be);
   int sz = hdr.fullSz;
-  if (index_only && fs_names_ofs >= sizeof(fs_view) - FS_OFFS && fs_hash_ofs > 0 &&
-      fs_hash_ofs + C_SHA1_RECSZ * mkbindump::le2be32_cond(fs_view.data.size(), read_be) <=
-        mkbindump::le2be32_cond(fs_view.hdrSz, read_be))
+  int index_only_files_count = 0;
+  if (index_only)
   {
-    sz = mkbindump::le2be32_cond(fs_view.hdrSz, read_be);
-    for (int ofs = fs_data_ofs, c = mkbindump::le2be32_cond(fs_view.data.size(), read_be); c > 0; ofs += elem_size(fs_view.data), c--)
-      *(unsigned *)&fs[ofs] = 0;
-    fs_view.data.init(fs_view.data.data(), 0);
-    clear_and_shrink(digitalSignature);
+    VirtualRomFsPack &fs_view = *(VirtualRomFsPack *)(fs.data() - FS_OFFS);
+    // file layout of PatchableTab may differ from memory layout, do patch!
+    fs_view.files.map.patch(nullptr);
+    fs_view.data.patch(nullptr);
+    index_only_files_count = fs_view.files.map.size();
+    int fs_names_ofs = mkbindump::le2be32_cond(ptrdiff_t(fs_view.files.map.data()), read_be);
+    int fs_data_ofs = mkbindump::le2be32_cond(ptrdiff_t(fs_view.data.data()), read_be);
+    int fs_hash_ofs = mkbindump::le2be32_cond(ptrdiff_t(fs_view.ptr), read_be);
+    if (fs_names_ofs >= sizeof(fs_view) - FS_OFFS && fs_hash_ofs > 0 &&
+        fs_hash_ofs + C_SHA1_RECSZ * mkbindump::le2be32_cond(fs_view.data.size(), read_be) <=
+          mkbindump::le2be32_cond(fs_view.hdrSz, read_be))
+    {
+      sz = mkbindump::le2be32_cond(fs_view.hdrSz, read_be);
+      for (int ofs = fs_data_ofs, c = mkbindump::le2be32_cond(fs_view.data.size(), read_be); c > 0;
+           ofs += elem_size(fs_view.data), c--)
+        *(unsigned *)&fs[ofs] = 0;
+      fs_view.data.init(fs_view.data.data(), 0);
+      clear_and_shrink(digitalSignature);
 #if _TARGET_64BIT // file layout of PatchableTab differs from memory layout in 64 bit!
-    fs_view.files.map.init((uint64_t(fs_view.files.map.size()) << 32) + (char *)fs_view.files.map.data(), 0);
-    fs_view.data.init((uint64_t(fs_view.data.size()) << 32) + (char *)fs_view.data.data(), 0);
+      fs_view.files.map.init((uint64_t(fs_view.files.map.size()) << 32) + (char *)fs_view.files.map.data(), 0);
+      fs_view.data.init((uint64_t(fs_view.data.size()) << 32) + (char *)fs_view.data.data(), 0);
 #endif
 
-    MD5_CONTEXT md5s;
-    MD5_INIT(&md5s);
-    MD5_UPDATE(&md5s, (const unsigned char *)fs.data(), sz);
-    MD5_FINAL(&md5s, md5_digest);
-  }
-  else if (index_only)
-  {
-    printf("ERR: obsolete vrom format (or missing content-SHA1) in %s, cannot build index-only", fname);
-    return false;
+      MD5_CONTEXT md5s;
+      MD5_INIT(&md5s);
+      MD5_UPDATE(&md5s, (const unsigned char *)fs.data(), sz);
+      MD5_FINAL(&md5s, md5_digest);
+    }
+    else
+    {
+      printf("ERR: obsolete vrom format (or missing content-SHA1) in %s, cannot build index-only", fname);
+      return false;
+    }
   }
 
   FullFileSaveCB cwr(dest_fname);
@@ -1492,8 +1497,8 @@ bool repackVromfs(const char *fname, const char *dest_fname, bool store_packed, 
 
   cwr.writeInt(mkbindump::le2be32_cond(hw32, read_be));
   if (index_only)
-    printf("built vromfs-index for %d files (packed size=%d, memory size=%d)\n", mkbindump::le2be32_cond(files_count, read_be),
-      packed_sz, sz);
+    printf("built vromfs-index for %d files (packed size=%d, memory size=%d)\n",
+      mkbindump::le2be32_cond(index_only_files_count, read_be), packed_sz, sz);
   return true;
 }
 

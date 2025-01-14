@@ -285,7 +285,8 @@ void CloudsField::renderCloudVolume(VolTexture *cloud_volume, float max_dist, co
   TextureInfo tinfo;
   cloud_volume->getinfo(tinfo);
   set_viewvecs_to_shader(view_tm, proj_tm);
-  ShaderGlobal::set_color4(cloud_volume_resVarId, tinfo.w, tinfo.h, tinfo.d, max_dist);
+  ShaderGlobal::set_int4(cloud_volume_resVarId, tinfo.w, tinfo.h, tinfo.d, 0);
+  ShaderGlobal::set_real(cloud_volume_distVarId, max_dist);
   if ((tinfo.cflg & TEXCF_UNORDERED) && build_dacloud_volume_cs.get())
   {
     STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 0, VALUE, 0, 0), cloud_volume);

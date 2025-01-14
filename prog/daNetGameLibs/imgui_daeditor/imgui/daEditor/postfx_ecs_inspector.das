@@ -7,7 +7,7 @@ require daslib/safe_addr
 
 
 [unused_argument(level)]
-def draw_float4_as_color(eid : array<EntityId> implicit; name, typeName : string; refs : array<EntityComponentRef#>#; level : int; var changed : bool?; sub_menu : block<(var changed : bool?) : bool>) : void
+def draw_float4_as_color(eid : array<EntityId> implicit; name, typeName : string; refs : array<ComponentRenderInfo#>#; level : int; var changed : bool?; sub_menu : block<(var changed : bool?) : bool>) : void
   var val = unsafe(reinterpret<float4?> refs[0].rawData)
   var color = [[float[4] (*val).x; (*val).y; (*val).z; (*val).w]]
   SetNextItemWidth(-FLT_MIN)
@@ -21,10 +21,10 @@ def draw_float4_as_color(eid : array<EntityId> implicit; name, typeName : string
 
 
 [ecs_inspector(type_name="Point4", tag="color_grading")]
-def draw_postfx_vectors(eid : array<EntityId> implicit; flags : uint; name : string; refs : array<EntityComponentRef#>#; level : int; var changed : bool?; sub_menu : block<(var changed : bool?) : bool>) : void
+def draw_postfx_vectors(eid : array<EntityId> implicit; flags : uint; name : string; refs : array<ComponentRenderInfo#>#; level : int; var changed : bool?; sub_menu : block<(var changed : bool?) : bool>) : void
   draw_float4_as_color(eid, name, "Point4", refs, level, changed, sub_menu)
 
 
 [ecs_inspector(type_name="Point4", tag="edit_color_grading")]
-def draw_edit_color_grading_vectors(eid : array<EntityId> implicit; flags : uint; name : string; refs : array<EntityComponentRef#>#; level : int; var changed : bool?; sub_menu : block<(var changed : bool?) : bool>) : void
+def draw_edit_color_grading_vectors(eid : array<EntityId> implicit; flags : uint; name : string; refs : array<ComponentRenderInfo#>#; level : int; var changed : bool?; sub_menu : block<(var changed : bool?) : bool>) : void
   draw_float4_as_color(eid, name, "Point4", refs, level, changed, sub_menu)

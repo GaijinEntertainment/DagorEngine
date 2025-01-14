@@ -359,7 +359,7 @@ def match_or ( what:TypeDeclPtr; wth:ExprOp2?; access:ExpressionPtr; var to:Matc
         to.errors |> match_error("mismatching variable declarations in ||", wth.at)
         return false
     for k,vL in keys(toL.declarations),values(toL.declarations)
-        if describe(vL) != describe(toR.declarations[k])
+        if describe(vL) != describe(unsafe(toR.declarations[k]))
             to.errors |> match_error("mismatching variable {k} declaration in ||", wth.at)
             return false
     delete to.declarations
@@ -384,7 +384,7 @@ def match_tag ( what:TypeDeclPtr; wth:Expression?; access:ExpressionPtr; var to:
         if to.declarations |> key_exists(tname)
             to.errors |> match_error("duplicate variable {tname}", tag.at)
             return false
-        move_new(to.declarations[tname]) <| clone_expression(access)
+        move_new(unsafe(to.declarations[tname])) <| clone_expression(access)
         log_m("\tadd variable {tname} as {describe(access)}\n")
         return true
     else

@@ -224,7 +224,7 @@ namespace das {
             :  AstExpressionAnnotation<ExprMakeBlock> ("ExprMakeBlock", ml) {
             addField<DAS_BIND_MANAGED_FIELD(block)>("_block","block");
             addField<DAS_BIND_MANAGED_FIELD(stackTop)>("stackTop");
-            addField<DAS_BIND_MANAGED_FIELD(capture)>("_capture");
+            addField<DAS_BIND_MANAGED_FIELD(capture)>("_capture", "capture");
             addFieldEx ( "mmFlags", "mmFlags", offsetof(ExprMakeBlock, mmFlags), makeExprMakeBlockFlags() );
         }
     };
@@ -233,7 +233,7 @@ namespace das {
         AstExprMakeGeneratorAnnotation(ModuleLibrary & ml)
             :  AstExprLooksLikeCallAnnotation<ExprMakeGenerator> ("ExprMakeGenerator", ml) {
             addField<DAS_BIND_MANAGED_FIELD(iterType)>("iterType");
-            addField<DAS_BIND_MANAGED_FIELD(capture)>("_capture");
+            addField<DAS_BIND_MANAGED_FIELD(capture)>("_capture", "capture");
         }
     };
 

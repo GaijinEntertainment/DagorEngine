@@ -350,6 +350,17 @@ void RenderableInstanceLodsResource::loadImpostorData(const char *name)
   DataBlock *impostorBlk = impostorData->getBlockByName(name);
   Tab<ShaderMaterial *> mats;
   gatherUsedMat(mats);
+
+  static bool impostorPreshadowForceDisable = false;
+  if (!mats.empty()) // Do not access shader dump on dedicated
+  {
+    static const int baked_impostor_preshadowsVarId = get_shader_variable_id("baked_impostor_preshadows", true);
+    if (ShaderGlobal::has_associated_interval(baked_impostor_preshadowsVarId) &&
+        ShaderGlobal::is_var_assumed(baked_impostor_preshadowsVarId) &&
+        ShaderGlobal::get_interval_assumed_value(baked_impostor_preshadowsVarId) == 0)
+      impostorPreshadowForceDisable = true;
+  }
+
   bool runtimeImpostor = false;
   bool bakedImpostor = false;
   for (const auto &itr : mats)
@@ -381,7 +392,7 @@ void RenderableInstanceLodsResource::loadImpostorData(const char *name)
 
         Point2 scale = impostorBlk->getPoint2("scale", Point2{0, 0});
 
-        params.preshadowEnabled = impostorBlk->getBool("preshadowEnabled", true);
+        params.preshadowEnabled = impostorBlk->getBool("preshadowEnabled", true) && !impostorPreshadowForceDisable;
         params.bottomGradient = impostorBlk->getReal("bottomGradient", 0.0);
         params.scale = Point4(scale.x, scale.y, 1.0f / scale.x, 1.0f / scale.y);
         params.boundingSphere = Point4(bsphCenter.x, bsphCenter.y, bsphCenter.z, bsphRad);
@@ -511,7 +522,6 @@ void RenderableInstanceLodsResource::prepareTextures(const char *name, uint32_t 
     {
       if (BaseTexture *tex = D3dResManagerData::getD3dTex<RES3D_TEX>(impostorTextures.albedo_alpha))
       {
-        static const bool compatibilityMode = ::dgs_get_settings()->getBlockByNameEx("video")->getBool("compatibilityMode", false);
         add_anisotropy_exception(impostorTextures.albedo_alpha);
         tex->disableSampler();
         TextureInfo texInfo;

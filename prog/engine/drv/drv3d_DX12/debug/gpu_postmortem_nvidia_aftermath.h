@@ -5,6 +5,7 @@
 #include "command_list_storage.h"
 #include "configuration.h"
 #include <driver.h>
+#include <pipeline.h>
 
 #include <EASTL/span.h>
 #include <osApiWrappers/dag_critSec.h>
@@ -138,12 +139,18 @@ public:
     const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
     const BufferResourceReferenceAndOffset &args, const BufferResourceReferenceAndOffset &count, uint32_t max_count);
   void blit(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd);
+#if D3D_HAS_RAY_TRACING
+  void dispatchRays(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+    const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchParameters &rdp);
+  void dispatchRaysIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+    const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchIndirectParameters &rdip);
+#endif
   void onDeviceRemoved(D3DDevice *device, HRESULT reason, call_stack::Reporter &reporter);
   bool sendGPUCrashDump(const char *type, const void *data, uintptr_t size);
   void onDeviceShutdown();
   bool onDeviceSetup(ID3D12Device *device, const Configuration &config, const Direct3D12Enviroment &d3d_env);
 
-  bool tryCreateDevice(IUnknown *, D3D_FEATURE_LEVEL, void **) { return false; }
+  constexpr bool tryCreateDevice(DXGIAdapter *, UUID, D3D_FEATURE_LEVEL, void **) { return false; }
 
   template <typename T>
   static bool load(const Configuration &config, const Direct3D12Enviroment &, T &target)

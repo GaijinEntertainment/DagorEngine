@@ -586,11 +586,14 @@ static void noisetex_after_reset(bool)
   init_argb8_64_noise(noiseTex[NOISE_TEX_ARGB]);
   init_l8_64_noise(noiseTex[NOISE_TEX_L8]);
 
-  // we need close this texture because we have check if (t) return true; inside generate_perlin_noise_3d
-  noiseTex[NOISE_PERLIN].close();
+  if (noiseTex[NOISE_PERLIN])
+  {
+    // we need close this texture because we have check if (t) return true; inside generate_perlin_noise_3d
+    noiseTex[NOISE_PERLIN].close();
 
-  Point3 pmin, pmax;
-  generate_perlin_noise_3d(noiseTex[NOISE_PERLIN], pmin, pmax);
+    Point3 pmin, pmax;
+    generate_perlin_noise_3d(noiseTex[NOISE_PERLIN], pmin, pmax);
+  }
 }
 
 REGISTER_D3D_AFTER_RESET_FUNC(noisetex_after_reset);

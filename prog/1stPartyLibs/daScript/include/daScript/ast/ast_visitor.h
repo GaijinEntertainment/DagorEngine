@@ -132,10 +132,13 @@ namespace das {
         virtual void preVisitLeft  ( ExprOp3 *, Expression * ) {}
         virtual void preVisitRight ( ExprOp3 *, Expression * ) {}
         // COPY
+        virtual bool isRightFirst ( ExprCopy * ) { return false; }
         virtual void preVisitRight ( ExprCopy *, Expression * ) {}
         // MOVE
+        virtual bool isRightFirst ( ExprMove * ) { return false; }
         virtual void preVisitRight ( ExprMove *, Expression * ) {}
         // CLONE
+        virtual bool isRightFirst ( ExprClone * ) { return false; }
         virtual void preVisitRight ( ExprClone *, Expression * ) {}
         // WITH
         virtual void preVisitWithBody ( ExprWith *, Expression * ) {}

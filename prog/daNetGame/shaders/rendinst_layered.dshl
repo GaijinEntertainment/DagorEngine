@@ -21,7 +21,7 @@ shader rendinst_layered
     NO_DYNSTCODE()
   }
 
-  SETUP_TOP_PROJECTION(true)
+  SETUP_TOP_PROJECTION()
 
   PLOD_GBUF_GEN_INIT(rendinst_render_pass == rendinst_render_pass_normal)
   ENABLE_MULTI_DRAW(rendinst_render_pass == rendinst_render_pass_to_shadow  || rendinst_render_pass == rendinst_render_pass_depth)
@@ -266,6 +266,8 @@ shader rendinst_mask_layered
   ENABLE_MULTI_DRAW(rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth)
   INIT_MASK_LAYERED(rendinst_render_pass == rendinst_render_pass_normal)
   INIT_HMAP_BLEND_STATIC()
+
+  SETUP_TOP_PROJECTION()
 
   RENDINST_BLOCK()
   RI_VOXELIZE_ALBEDO()

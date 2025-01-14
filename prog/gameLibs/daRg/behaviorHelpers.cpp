@@ -235,6 +235,28 @@ void call_hotkey_handler(IGuiScene *scene, Element *elem, Sqrat::Function &handl
   }
 }
 
+float move_click_threshold(GuiScene *scene)
+{
+  if (scene->config.moveClickThreshold > 0)
+    return scene->config.moveClickThreshold;
+  IPoint2 screenSize = scene->getDeviceScreenSize();
+  return min(screenSize.x, screenSize.y) * 0.03f;
+}
+
+float double_click_range(GuiScene *scene)
+{
+  IPoint2 screenSize = scene->getDeviceScreenSize();
+  return 20.0f * min(screenSize.x, screenSize.y) / 1080;
+}
+
+float double_touch_range(GuiScene *scene)
+{
+  // TODO: this should be changed to use Centimeters -> Pixels convertion
+  // using DPI to calculate range independent from device physical size
+  IPoint2 screenSize = scene->getDeviceScreenSize();
+  return 100.0f * min(screenSize.x, screenSize.y) / 1080;
+}
+
 int active_state_flags_for_device(InputDevice device)
 {
   if (device == DEVID_MOUSE)

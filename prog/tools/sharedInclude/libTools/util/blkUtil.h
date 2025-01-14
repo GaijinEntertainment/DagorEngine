@@ -13,6 +13,6 @@ namespace blk_util
 bool copyBlkParam(const DataBlock &source, const int s_ind, DataBlock &dest, const char *new_name = NULL);
 bool cmpBlkParam(const DataBlock &source, const int s_ind, DataBlock &dest, const int d_ind);
 SimpleString paramStrValue(const DataBlock &source, const int s_ind, const bool with_param_name = true);
-SimpleString blockStrValue(const DataBlock &source); // show user this
-SimpleString blkTextData(const DataBlock &source);   // save or transmit this
-};                                                   // namespace blk_util
+SimpleString blockStrValue(const DataBlock &source, const char *line_separator = "\r\n"); // show user this
+SimpleString blkTextData(const DataBlock &source);                                        // save or transmit this
+};                                                                                        // namespace blk_util

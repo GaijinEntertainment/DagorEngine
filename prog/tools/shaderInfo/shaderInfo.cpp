@@ -76,8 +76,8 @@ int DagorWinMain(bool debugmode)
   printf("loaded binary dump %s (memSize=%uK), dumping contents to: \"%s\" [VARS SHADERS %s %s %s], %d shaders, %d total vars, %d "
          "globvars\n",
     __argv[1], (uint32_t)(shBinDumpOwner().getDumpSize() >> 10), output_log_fn, out_variants ? "VARIANT_TABLES" : "",
-    out_asm ? "ASM" : "", out_stcode ? "STCODE" : "", (int)shBinDump().classes.size(), shBinDump().varMap.size(),
-    shBinDump().globVars.v.size());
+    out_asm ? "ASM" : "", out_stcode ? "STCODE" : "", (int)shBinDump().classes.size(), (int)shBinDump().varMap.size(),
+    (int)shBinDump().globVars.v.size());
   if (out_shaders)
     printf("(dumping shaders with content-like names to folder: %s/ )\n", out_shaders);
   if (single_shader)
@@ -230,14 +230,17 @@ static void dumpCurrentShaders(bool dump_asm, bool dump_variants, bool dump_stco
 
   debug("\nmaxreg count = %d\n", shBinDump().maxRegSize);
 
+  const auto vprIdCount = shBinDump().vprCount;
+  const auto fshIdCount = shBinDump().fshCount;
+
   if (!dump_asm && !sh_dir)
-    debug("\n******* %d vertex shaders\n******* %d pixel shaders", shBinDump().vprId.size(), shBinDump().fshId.size());
+    debug("\n******* %d vertex shaders\n******* %d pixel shaders", vprIdCount, fshIdCount);
   else if (sh_dir)
   {
     ShaderBytecode tmpbuf;
     debug("");
     dd_mkdir(String::mk_str_cat(sh_dir, "/vs"));
-    for (int i = 0; i < shBinDump().vprId.size(); i++)
+    for (int i = 0; i < vprIdCount; i++)
     {
       String sha1 = calc_sha1(shBinDumpOwner().getCode(i, ShaderCodeType::VERTEX, tmpbuf));
       debug("Vertex shader --v%d-- %s/vs/%s (%d bytes)", i, sh_dir, sha1, data_size(tmpbuf));
@@ -248,7 +251,7 @@ static void dumpCurrentShaders(bool dump_asm, bool dump_variants, bool dump_stco
     }
 
     dd_mkdir(String::mk_str_cat(sh_dir, "/ps"));
-    for (int i = 0; i < shBinDump().fshId.size(); i++)
+    for (int i = 0; i < fshIdCount; i++)
     {
       String sha1 = calc_sha1(shBinDumpOwner().getCode(i, ShaderCodeType::PIXEL, tmpbuf));
       debug("Pixel shader --p%d-- %s/ps/%s (%d bytes)", i, sh_dir, sha1, data_size(tmpbuf));
@@ -261,14 +264,14 @@ static void dumpCurrentShaders(bool dump_asm, bool dump_variants, bool dump_stco
   else
   {
     ShaderBytecode tmpbuf;
-    for (int i = 0; i < shBinDump().vprId.size(); i++)
+    for (int i = 0; i < vprIdCount; i++)
     {
       debug("\n******* Vertex shader --v%d--", i);
 
       disassembleShader(shBinDumpOwner().getCode(i, ShaderCodeType::VERTEX, tmpbuf));
     }
 
-    for (int i = 0; i < shBinDump().fshId.size(); i++)
+    for (int i = 0; i < fshIdCount; i++)
     {
       debug("\n******* Pixel shader --p%d--", i);
 

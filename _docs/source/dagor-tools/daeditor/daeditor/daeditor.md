@@ -1,166 +1,158 @@
-
 ## Overview
 
-*daEditor* (*DagorEditor*) is one of the two primary tools for working with
+*daEditor* (*Dagor Editor*) is one of the two primary tools for working with
 assets, and in some cases, for creating them. It offers a vast array of
-parameters and features.In this article, we will cover the basic principles of
-using *daEditor*, aimed at helping new users get started.
+parameters and features. In this article, we will cover the basic principles of
+using daEditor, aimed at helping new users get started.
 
-## Basic Workflow in daEditor
+## Navigation
 
-### Navigation
+The navigation within daEditor closely mirrors the controls in 3ds Max. The key
+combinations and shortcuts are directly carried over. You can get a hint window
+with navigation shortcuts within daEditor by clicking on the **Eye** icon in the
+control panel:
 
-The navigation within *daEditor* closely mirrors the controls in *3ds Max*. The
-key combinations and shortcuts are directly carried over. You can get a hint
-window with navigation shortcuts within *daEditor* by clicking on the **Eye**
-icon in the control panel:
+<img src="_images/daeditor_01.jpg" alt="Navigation info" align="center" width="60em">
 
-![Navigation Info](_images/daedit_control_panel_0.jpg)
-
-### Working with Assets on the Landscape
+## Working with Assets on the Landscape
 
 All asset-related work is performed within the **Landscape** tab. This is the
 central workspace for placing, editing, and managing assets on the terrain or
-environment you’re developing.
+environment you're developing.
 
-![Control Panel](_images/daedit_landscape_tab.jpg)
+<img src="_images/daeditor_02.jpg" alt="Control panel" align="center" width="60em">
 
-### Basic Logic and Controls
+## Basic Logic and Controls
 
-The logic in *daEditor* is largely similar to that of *3ds Max*. Below is an
-overview of the essential controls and buttons, all of which come with
-tooltips – be sure to read them for more detailed information.
+The logic in daEditor is largely similar to that of 3ds Max. Below is an
+overview of the essential controls and buttons, all of which come with tooltips
+– be sure to read them for more detailed information.
 
-**Create Entity**
+### Create Entity
 
 This button allows you to place an object onto the map.
 
-![Control Panel](_images/daedit_control_panel_1.jpg)
+<img src="_images/daeditor_03.jpg" alt="Control panel" align="center" width="60em">
 
-**Console**
+### Console
 
 If something isn't working as expected, or if something isn't working at all,
 check the console for errors (look for red text).
 
-![Control Panel](_images/daedit_control_panel_2.jpg)
+<img src="_images/daeditor_04.jpg" alt="Control panel" align="center" width="60em">
 
-**Object Movement Controls**
+### Object Movement Controls
 
 These buttons control the movement of objects. The hotkeys are the same as in
-*3ds Max*.
+3ds Max.
 
-![Control Panel](_images/daedit_control_panel_3.jpg)
+<img src="_images/daeditor_05.jpg" alt="Control panel" align="center" width="60em">
 
-**Snap Settings**
+### Snap Settings
 
 This button allows you to snap objects to the landscape grid (for object
 movement), as well as snap rotation and scale.
 
-![Control Panel](_images/daedit_control_panel_4.jpg)
+<img src="_images/daeditor_06.jpg" alt="Control panel" align="center" width="60em">
 
-**Drop Pivot to Ground**
+### Drop Pivot to Ground
 
 Use this to "drop" the pivot point to the ground if you've accidentally placed
-it in the air. If your object has the "Place on collision" property, this will
+it in the air. If your object has the **Place on collision** property, this will
 only affect the pivot, while the object itself will always remain on the
 landscape.
 
-![Control Panel](_images/daedit_control_panel_5.jpg)
+<img src="_images/daeditor_07.jpg" alt="Control panel" align="center" width="60em">
 
-**Move to Selected Object**
+### Move to Selected Object
 
 This button will move your camera to the currently selected object.
 
-![Control Panel](_images/daedit_control_panel_6.jpg)
+<img src="_images/daeditor_08.jpg" alt="Control panel" align="center" width="60em">
 
-**Select Object by Name**
+### Select Object by Name
 
 This allows you to select an object by its name.
 
-![Control Panel](_images/daedit_control_panel_7.jpg)
+<img src="_images/daeditor_09.jpg" alt="Control panel" align="center" width="60em">
 
-**Export Group as Composite**
+### Export Group as Composite
 
 This button lets you export a group of objects as a composite entity.
 
-![Control Panel](_images/daedit_control_panel_8.jpg)
+<img src="_images/daeditor_10.jpg" alt="Control panel" align="center" width="60em">
 
-**Break Composite into Individual Entities**
+### Break Composite into Individual Entities
 
 Use this button to break down a composite entity into its individual components
-(DAGs).
+(`.dag` files).
 
-![Control Panel](_images/daedit_control_panel_9.jpg)
+<img src="_images/daeditor_11.jpg" alt="Control panel" align="center" width="60em">
 
-### Working with Object Properties
+## Working with Object Properties
 
-When an object is selected, you can access its properties by pressing the letter
-`P` (for "Properties") on your keyboard.
+When an object is selected, you can access its properties by pressing `P` (for
+"Properties") on your keyboard.
 
-![Object Properties](_images/daedit_obj_properties.jpg)
+<img src="_images/daeditor_12.jpg" alt="Object properties" align="left" width="17em">
 
-**1: Object Name in Scene**
+{bdg-dark-line}`1`  **Object Name in Scene** This field displays the name of the
+object within the scene. It is often helpful to have the scene names match the
+asset names. You can use the **Landscape > Unify object names** command to
+accomplish this.
 
-This field displays the name of the object within the scene. It is often helpful
-to have the scene names match the asset names. You can use the **Unify object
-names** command to accomplish this:
+{bdg-dark-line}`2`  **Collision Placement Settings** This property defines how
+the object interacts with landscape collision:
 
-![Object Properties](_images/daedit_unify_obj_names.jpg)
-
-**2: Collision Placement Settings**
-
-This property defines how the object interacts with landscape collision:
-- **Ignore Collision**: The object's height matches its pivot point.
-- **Place Pivot**: The pivot point (typically the origin point of
-  the asset in the *3ds Max* scene) is placed directly on the collision surface.
-- **Place Pivot and Use Normal**: The object’s pivot aligns to the normal of the
-  landscape, useful for placing objects like houses on hills so that they tilt
-  naturally.
-- **Place 3-Point (bbox)**: A bounding box is created around the object, and the
-  object is placed so that at least three points of the bounding box align with
-  the collision surface.
-- **Place Foundation (bbox)**: All four points of the bounding box base align
+- **Ignore Collision**: the object's height matches its pivot point.
+- **Place Pivot**: the pivot point (typically the origin point of the asset in
+  the 3ds Max scene) is placed directly on the collision surface.
+- **Place Pivot and Use Normal**: the object's pivot aligns to the normal of
+  the landscape, useful for placing objects like houses on hills so that they
+  tilt naturally.
+- **Place 3-Point (bbox)**: a bounding box is created around the object, and
+  the object is placed so that at least three points of the bounding box align
   with the collision surface.
-- **Place on Water (floatable)**: Specifically for floating objects, this option
-places the object on a water surface.
-- **Place Pivot with RendInst Collision**: This option aligns the object's pivot
-  with the collision of the corresponding Render Instance.
+- **Place Foundation (bbox)**: all four points of the bounding box base align
+  with the collision surface.
+- **Place on Water (floatable)**: specifically for floating objects, this
+  option places the object on a water surface.
+- **Place Pivot with RendInst Collision**: this option aligns the object's
+  pivot with the collision of the corresponding rendinst.
 
-**3: Actual Object Name**
+{bdg-dark-line}`3`  **Actual Object Name** This property shows the real name of
+the object placed on the map. You can select a different object here instead of
+placing a new one.
 
-This property shows the real name of the object placed on the map. You can
-select a different object here instead of placing a new one.
+{bdg-dark-line}`4`  **Shader Parameter Seed Generation** This option generates
+seeds for the shader parameters of selected objects, including those within
+composite entities (as they contain many sub-objects):
 
-**4: Shader Parameter Seed Generation**
-
-This option generates seeds for the shader parameters of selected objects,
-including those within composite entities (as they contain many sub-objects):
-- **Individual**: Generates a unique seed for each selected object.
-- **Equal**: Generates the same seed for all selected objects.
-- **Seed Slider**: Adjust the seed value for the previously selected seed type
+- **Individual**: generates a unique seed for each selected object.
+- **Equal**: generates the same seed for all selected objects.
+- **Seed Slider**: adjust the seed value for the previously selected seed type
   (either individual or equal).
 
-    ```{note}
-    These seeds affect only shader parameters, not other aspects of composites.
-    Currently, this feature is used solely for procedural painting.
-    ```
+  ```{note}
+  These seeds affect only shader parameters, not other aspects of composites.
+  Currently, this feature is used solely for procedural painting.
+  ```
 
-**5: Object Seed Generation on the Map**
+{bdg-dark-line}`5`  **Object Seed Generation on the Map** This is similar to the
+previous property but operates on a larger scale, generating seeds for entire
+composite entities rather than individual shader parameters:
 
-This is similar to the previous property but operates on a larger scale,
-generating seeds for entire composite entities rather than individual shader
-parameters:
-- **Individual**: Generates a unique seed for each selected object.
-- **Equal**: Generates the same seed for all selected objects.
-- **Seed Slider**: Adjust the seed value for the previously selected seed type
+- **Individual**: generates a unique seed for each selected object.
+- **Equal**: generates the same seed for all selected objects.
+- **Seed Slider**: adjust the seed value for the previously selected seed type
   (either individual or equal).
 
-### Exporting a Location
+## Exporting a Location
 
-To export a location, navigate to the menu **Project**▸**Export to Game (PC
+To export a location, navigate to the menu **Project > Export to Game (PC
 format)**.
 
-![Object Properties](_images/daedit_export_location.jpg)
+<img src="_images/daeditor_13.jpg" alt="Exporting a location" align="center" width="60em">
 
 After selecting this option, a series of dialogs will appear, allowing you to
 choose whether to export all elements of the created location. The default
@@ -175,6 +167,5 @@ to check whether you're replacing the existing binary file. If you're prompted
 with a message indicating that you're about to overwrite an existing file, and
 given the option to "replace" or "rename", then you're exporting to the correct
 directory.
-
 
 

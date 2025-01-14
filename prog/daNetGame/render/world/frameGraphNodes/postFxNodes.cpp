@@ -227,7 +227,10 @@ resource_slot::NodeHandleWithSlotsAccess makePostFxNode()
         registry.modifyTexture("postfxed_frame").atStage(dabfg::Stage::POST_RASTER).useAs(dabfg::Usage::COLOR_ATTACHMENT).handle();
 
       registry.readTexture("blood_texture").atStage(dabfg::Stage::PS).bindToShaderVar("blood_texture").optional();
-      registry.read("blood_on_screen_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("blood_texture_samplerstate").optional();
+      // in shader we use this sampler for two textures, so bind it without optional logic
+      registry.create("postfx_common_wrap_linear_sampler", dabfg::History::No)
+        .blob(d3d::request_sampler({}))
+        .bindToShaderVar("blood_texture_samplerstate");
 
       auto closeupsNs = registry.root() / "opaque" / "closeups";
       postfx_bind_additional_textures_from_namespace(closeupsNs);
@@ -318,7 +321,7 @@ dabfg::NodeHandle makeFrameBeforeDistortionProducerNode()
 
     auto dstFrameHndl = registry
                           .createTexture2d("frame_before_distortion", dabfg::History::No,
-                            {TEXFMT_R11G11B10F | TEXCF_RTARGET, registry.getResolution<2>("post_fx")})
+                            {TEXFMT_A16B16G16R16F | TEXCF_RTARGET, registry.getResolution<2>("post_fx")})
                           .atStage(dabfg::Stage::TRANSFER)
                           .useAs(dabfg::Usage::BLIT)
                           .handle();

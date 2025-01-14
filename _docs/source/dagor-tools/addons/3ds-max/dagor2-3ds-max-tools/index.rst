@@ -2,7 +2,7 @@
 Dagor 2 3ds Max Tools
 =========================================
 
-Dagor 2 3ds Max Tools - Additional Toolset for 3ds Max.
+Additional Toolset for 3ds Max.
 
 .. toctree::
    :maxdepth: 2

@@ -1,8 +1,8 @@
 include "volfog_common.dshl"
+include "use_volfog_common.dshl"
 
 
 texture volfog_shadow;
-float4 volfog_froxel_range_params = (1,1,0,0); // (range, 1/range, froxel_fog_use, distant_fog_use)
 
 macro INIT_VOLFOG_SHADOW(code)
   if (volfog_shadow != NULL)

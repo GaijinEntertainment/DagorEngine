@@ -145,7 +145,8 @@ void SplineGenGeometryManager::generate()
 
     setInstancingShaderVars();
     SCOPED_SET_TEXTURE(spline_gen_texture_dVarId, diffuseTex);
-    STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, spline_gen_vertex_buffer_const_no, VALUE), vertexBuffer[currentVbIndex].getBuf());
+    static int spline_gen_vertex_buffer_uav_no = ShaderGlobal::get_slot_by_name("spline_gen_vertex_buffer_uav_no");
+    STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, spline_gen_vertex_buffer_uav_no, VALUE), vertexBuffer[currentVbIndex].getBuf());
 
     int instanceVertexCnt = getInstanceVertexCount();
     int activeInstanceCnt = getActiveInstanceCount();
@@ -188,8 +189,11 @@ void SplineGenGeometryManager::render(bool render_color)
       ShaderGlobal::set_int(spline_gen_obj_elem_countVarId, paramsData.size() - 1);
       uploadIndirectParams(paramsData);
 
-      STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, spline_gen_params_buffer_const_no, VALUE), paramsBuffer.getBuf());
-      STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, spline_gen_culled_buffer_const_no, VALUE), culledBuffer.getBuf());
+      static int spline_gen_params_buffer_uav_no = ShaderGlobal::get_slot_by_name("spline_gen_params_buffer_uav_no");
+      static int spline_gen_culled_buffer_uav_no = ShaderGlobal::get_slot_by_name("spline_gen_culled_buffer_uav_no");
+
+      STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, spline_gen_params_buffer_uav_no, VALUE), paramsBuffer.getBuf());
+      STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, spline_gen_culled_buffer_uav_no, VALUE), culledBuffer.getBuf());
 
       cullerCs->dispatchThreads(getCurrentInstanceCount(), 1, 1);
     }

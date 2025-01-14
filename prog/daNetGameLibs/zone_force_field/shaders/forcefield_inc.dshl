@@ -19,10 +19,16 @@ macro FORCEFIELD_HALF_RES_DEPTH_TEX_USE()
   }
 endmacro
 
+int forcefield_vs_spheres_const_no = 16;
+int SPHERES_ARRAY_REG_COUNT = 16;
+
 macro FORCEFIELD_VS()
   channel float3 pos = pos;
 
-  (vs) { globtm@f44 = globtm; }
+  (vs) {
+    globtm@f44 = globtm;
+    spheres@f4[SPHERES_ARRAY_REG_COUNT] : register(forcefield_vs_spheres_const_no);
+  }
 
   hlsl {
     struct VsOutput
@@ -39,8 +45,6 @@ macro FORCEFIELD_VS()
     {
       float3 pos: POSITION;
     };
-    float4 spheres[16]:register(c16);
-    float4 last_reg :register(c33);
 
     VsOutput forcefield_vs(VsInput input HW_USE_INSTANCE_ID)
     {
@@ -57,6 +61,8 @@ macro FORCEFIELD_VS()
     }
   }
 endmacro
+
+int forcefield_vs_sphere_const_no = 16;
 
 macro FORCEFIELD_APPLY(get_forcefield_color_fn, is_fullscreen, forcefield_pack_hdr)
   supports global_frame;
@@ -103,9 +109,10 @@ macro FORCEFIELD_APPLY(get_forcefield_color_fn, is_fullscreen, forcefield_pack_h
   }
   else
   {
+    (vs) {
+      forcefield_sphere@f4 : register(forcefield_vs_sphere_const_no);
+    }
     hlsl(vs) {
-      float4 forcefield_sphere:register(c16);
-
       VsOutput forcefield_apply_vs(float3 pos : POSITION)
       {
         VsOutput output;

@@ -1,17 +1,20 @@
 include "shader_global.dshl"
 include "frustum.dshl"
 include "dagdp_common_placer.dshl"
+include "dagdp_volume_utils.dshl"
 
 buffer dagdp__instance_data;
 buffer dagdp__dyn_allocs;
 buffer dagdp__dyn_counters;
 
+buffer dagdp_volume__volumes;
 buffer dagdp_volume__meshes;
 buffer dagdp_volume__draw_ranges;
 buffer dagdp_volume__placeables;
 buffer dagdp_volume__placeable_weights;
 buffer dagdp_volume__renderable_indices;
 buffer dagdp_volume__variants;
+buffer dagdp_volume__volume_variants;
 buffer dagdp_volume__areas;
 buffer dagdp_volume__dispatch_args;
 
@@ -170,9 +173,9 @@ shader dagdp_volume_mesh_process_tri
       BRANCH
       if (dtId < numFaces)
       {
-        float3 v1, v2, v3;
-        load_mesh_triangle(startIndex, dtId, baseVertex, stride, v1, v2, v3);
-        area = 0.5 * length(cross(v1 - v3, v2 - v3));
+        float3 v0, v1, v2;
+        load_mesh_triangle(startIndex, dtId, baseVertex, stride, v0, v1, v2);
+        area = 0.5 * length(cross(v1 - v0, v2 - v0));
       }
 
       inclusive_prefix_sum_gs(tId, area);
@@ -273,9 +276,14 @@ shader dagdp_volume_set_args
       StructuredBuffer<MeshIntersection> meshes@buf;
     }
 
-    variants@buf = dagdp_volume__variants hlsl {
-      #include "dagdp_common_placer.hlsli"
-      StructuredBuffer<VariantGpuData> variants@buf;
+    volumes@buf = dagdp_volume__volumes hlsl {
+      #include "dagdp_volume.hlsli"
+      StructuredBuffer<VolumeGpuData> volumes@buf;
+    }
+
+    volume_variants@buf = dagdp_volume__volume_variants hlsl {
+      #include "dagdp_volume.hlsli"
+      StructuredBuffer<VolumeVariantGpuData> volume_variants@buf;
     }
 
     num_dispatches@i1 = dagdp_volume__num_dispatches;
@@ -293,8 +301,9 @@ shader dagdp_volume_set_args
 
       const MeshIntersection mesh = structuredBufferAt(meshes, dtId);
       const float totalArea = structuredBufferAt(areas, mesh.areasIndex + mesh.numFaces - 1);
-      const VariantGpuData variant = structuredBufferAt(variants, mesh.variantIndex);
-      const uint groupCount = (uint(totalArea * variant.density) + GROUP_SIZE - 1) / GROUP_SIZE;
+      const VolumeGpuData volume = structuredBufferAt(volumes, mesh.volumeIndex);
+      const VolumeVariantGpuData volumeVariant = structuredBufferAt(volume_variants, volume.variantIndex);
+      const uint groupCount = (uint(totalArea * volumeVariant.density) + GROUP_SIZE - 1) / GROUP_SIZE;
       const uint argsByteOffset = dtId * 12; // 3 * sizeof(uint)
 
       storeBuffer(dispatch_args, argsByteOffset, groupCount);
@@ -317,9 +326,10 @@ shader dagdp_volume_place_stage0, dagdp_volume_place_stage1
     groupshared uint g_cond;
   }
 
-  INIT_DAGDP_COMMON()
-  INIT_DAGDP_COMMON_PLACER()
-  INIT_DAGDP_COMMON_PLACER_THREADGROUP(GROUP_SIZE, g_storage, g_cond, false)
+  USE_DAGDP_COMMON()
+  USE_DAGDP_COMMON_PLACER()
+  USE_DAGDP_COMMON_PLACER_THREADGROUP(GROUP_SIZE, g_storage, g_cond, false)
+  USE_DAGDP_VOLUME_UTILS()
 
   (cs) {
     areas@buf = dagdp_volume__areas hlsl {
@@ -333,6 +343,11 @@ shader dagdp_volume_place_stage0, dagdp_volume_place_stage1
     meshes@buf = dagdp_volume__meshes hlsl {
       #include "dagdp_volume.hlsli"
       StructuredBuffer<MeshIntersection> meshes@buf;
+    }
+
+    volumes@buf = dagdp_volume__volumes hlsl {
+      #include "dagdp_volume.hlsli"
+      StructuredBuffer<VolumeGpuData> volumes@buf;
     }
 
     dyn_allocs@buf = dagdp__dyn_allocs hlsl {
@@ -364,6 +379,11 @@ shader dagdp_volume_place_stage0, dagdp_volume_place_stage1
     variants@buf = dagdp_volume__variants hlsl {
       #include "dagdp_common_placer.hlsli"
       StructuredBuffer<VariantGpuData> variants@buf;
+    }
+
+    volume_variants@buf = dagdp_volume__volume_variants hlsl {
+      #include "dagdp_volume.hlsli"
+      StructuredBuffer<VolumeVariantGpuData> volume_variants@buf;
     }
 
     debug_frustum_culling_bias@f1 = dagdp_volume__debug_frustum_culling_bias;
@@ -417,9 +437,11 @@ shader dagdp_volume_place_stage0, dagdp_volume_place_stage1
 
       const MeshIntersection mesh = structuredBufferAt(meshes, mesh_index);
       const float totalArea = structuredBufferAt(areas, mesh.areasIndex + mesh.numFaces - 1);
-      const VariantGpuData variant = structuredBufferAt(variants, mesh.variantIndex);
-      const uint instanceCount = uint(totalArea * variant.density);
-      const float targetSumArea = dtId / variant.density;
+      const VolumeGpuData volume = structuredBufferAt(volumes, mesh.volumeIndex);
+      const VariantGpuData variant = structuredBufferAt(variants, volume.variantIndex);
+      const VolumeVariantGpuData volumeVariant = structuredBufferAt(volume_variants, volume.variantIndex);
+      const uint instanceCount = uint(totalArea * volumeVariant.density);
+      const float targetSumArea = dtId / volumeVariant.density;
       const bool isInstanceValid = dtId < instanceCount;
 
       uint faceIndex;
@@ -457,6 +479,7 @@ shader dagdp_volume_place_stage0, dagdp_volume_place_stage1
 
       float3 instancePos;
       float3 surfaceNormal;
+      float area2;
       BRANCH
       if (isInstanceValid)
       {
@@ -466,6 +489,7 @@ shader dagdp_volume_place_stage0, dagdp_volume_place_stage1
         float3 n0, n1, n2;
         float3 v0, v1, v2;
         load_mesh_triangle(mesh.startIndex, faceIndex, mesh.baseVertex, mesh.stride, v0, v1, v2, n0, n1, n2);
+        area2 = length(cross(v1 - v0, v2 - v0));
 
         FLATTEN
         if (a1 + a2 > 1.0)
@@ -477,18 +501,17 @@ shader dagdp_volume_place_stage0, dagdp_volume_place_stage1
         // https://mathworld.wolfram.com/TrianglePointPicking.html
         const float4 v = float4(v0 + (v1 - v0) * a1 + (v2 - v0) * a2, 1.0);
         const float3 n = normalize(n0 + (n1 - n0) * a1 + (n2 - n0) * a2);
-        instancePos = float3(dot(v, mesh.tmRow0), dot(v, mesh.tmRow1), dot(v, mesh.tmRow2));
-        surfaceNormal = float3(dot(n, mesh.tmRow0.xyz), dot(n, mesh.tmRow1.xyz), dot(n, mesh.tmRow2.xyz));
+        instancePos = float3(dot(v, mesh.meshTmRow0), dot(v, mesh.meshTmRow1), dot(v, mesh.meshTmRow2));
+        surfaceNormal = float3(dot(n, mesh.meshTmRow0.xyz), dot(n, mesh.meshTmRow1.xyz), dot(n, mesh.meshTmRow2.xyz));
       }
 
+      const bool isAreaOk = area2 >= volumeVariant.minTriangleArea2;
       const bool isViewportDistanceOk = distance(instancePos, viewport_pos) - max_placeable_bounding_radius < viewport_max_distance;
       const bool isFrustumOk = testSphereB(instancePos, max_placeable_bounding_radius + debug_frustum_culling_bias);
-      const float4 ip4 = float4(instancePos, 1.0);
-      const bool isBoxOk = all(abs(float3(dot(ip4, mesh.bboxItmRow0), dot(ip4, mesh.bboxItmRow1), dot(ip4, mesh.bboxItmRow2))) <= 0.5);
+      const bool isVolumeOk = isInsideVolume(volume.volumeType, instancePos, volume);
+      const bool isVisible = isAreaOk && isInstanceValid && isViewportDistanceOk && isFrustumOk && isVolumeOk;
 
-      const bool isVisible = isInstanceValid && isViewportDistanceOk && isFrustumOk && isBoxOk;
       uint placeableIndex = ~0u;
-
       FLATTEN
       if (isVisible)
         placeableIndex = getPlaceableIndex(variant, stableRand(stablePos, prng_seed_placeable));
@@ -506,7 +529,7 @@ shader dagdp_volume_place_stage0, dagdp_volume_place_stage1
       }
 
       const float randScale = lerp(placeable.scaleMin, placeable.scaleMax, stableRand(stablePos, prng_seed_scale));
-      const uint renderableIndex = getRenderableIndex(variant, placeableIndex, instancePos, viewport_pos, randScale, isVisible);
+      const uint renderableIndex = getRenderableIndex(variant, placeableIndex, instancePos, viewport_pos, randScale);
 
       bool isPlaced = renderableIndex != ~0u;
       const SameRenderableInfo rInfo = getSameRenderableInfo(renderableIndex, tId);

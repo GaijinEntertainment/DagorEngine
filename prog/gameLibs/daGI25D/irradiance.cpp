@@ -53,7 +53,7 @@ void Irradiance::init(bool scalar_ao, float xz_size, float y_size)
   {
     warpSize = d3d::get_driver_desc().minWarpSize;
     gi_mark_intersected_25d_cs.reset(
-      new_compute_shader(warpSize == 32 ? "gi_mark_intersected_25d_cs_2" : "gi_mark_intersected_25d_cs_4"));
+      new_compute_shader(warpSize == 64 ? "gi_mark_intersected_25d_cs_4" : "gi_mark_intersected_25d_cs_2"));
     gi_compute_light_25d_cs_4_4.reset(new_compute_shader("gi_compute_light_25d_cs_4_4"));
     gi_compute_light_25d_cs_4_8.reset(new_compute_shader("gi_compute_light_25d_cs_4_8"));
     gi_compute_light_25d_cs_8_4.reset(new_compute_shader("gi_compute_light_25d_cs_8_4"));

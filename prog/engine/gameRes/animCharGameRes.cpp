@@ -460,7 +460,10 @@ public:
       ::release_game_resource(ref_ids[0]);
     }
     if (gr.charData.graph)
+    {
+      gr.charData.graph->resId = res_id;
       gr.charData.graph->addRef();
+    }
 
     {
       WinAutoLock lock2(cs);

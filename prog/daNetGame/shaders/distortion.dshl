@@ -21,6 +21,16 @@ macro DISTORTION_PS()
 
   texture normal = material.texture[2];
 
+  z_write  =true;
+  blend_src[0]=one;
+  blend_dst[0]=one;
+
+  blend_asrc[0]=one;
+  blend_adst[0]=one;
+
+  blend_src[1] = 1; blend_dst[1] = 1;
+  blend_op[1] = max; // reverse depth
+
   (ps)
   {
     normal_tex@static            = normal;
@@ -41,8 +51,13 @@ macro DISTORTION_PS()
     #define distortion_strength  (get_distortion_strength_twist().x)
     #define distortion_twist_sin (get_distortion_strength_twist().y)
     #define distortion_twist_cos (get_distortion_strength_twist().z)
+    struct PsOutput
+    {
+      float4 distortion : SV_Target0;
+      float depth : SV_Target1;
+    };
 
-    float4 distortion_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
+    PsOutput distortion_ps(VsOutput input HW_USE_SCREEN_POS)
     {
       #if SET_UP_MULTIDRAW
         SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
@@ -53,10 +68,7 @@ macro DISTORTION_PS()
 
       BRANCH
       if (depthHaze <= depthScene)
-      {
         discard;
-        return 0;
-      }
 
       ##if normal != NULL
         float4 packedNormalMap = tex2DBindless(get_normal_tex(), input.texcoord);
@@ -80,25 +92,29 @@ macro DISTORTION_PS()
       float  distortionScreenX = dot(camera_right, distortionWorld);
       float  distortionScreenY = dot(camera_up,    distortionWorld);
 
-      float4 result;
+      float4 distortion;
 
-      result.x = distortionScreenX * distortion_twist_cos - distortionScreenY * distortion_twist_sin;
-      result.y = distortionScreenX * distortion_twist_sin + distortionScreenY * distortion_twist_cos;
-      result.z = hazeNoise;
-      result.w = hazeBlur;
+      distortion.x = distortionScreenX * distortion_twist_cos - distortionScreenY * distortion_twist_sin;
+      distortion.y = distortionScreenX * distortion_twist_sin + distortionScreenY * distortion_twist_cos;
+      distortion.z = hazeNoise;
+      distortion.w = hazeBlur;
 
       if ((get_distortion_fade_range() * get_distortion_fade_power()) > 0)
       {
         float dist = GET_SCREEN_POS(input.pos).w;
         float rate = saturate(dist / get_distortion_fade_range());
         float t    = 1.0 - pow(rate, (100 - pow(get_distortion_fade_power(), 0.015) * 100));
-        result    *= t;
+        distortion    *= t;
       }
 
       ##if rendering_distortion_color == yes
-        result.xyz = lerp(1, get_distortion_rgb(), saturate(max(abs(result.x), abs(result.y)) * get_distortion_rgb_strength()));
-        result.w   = 0;
+        distortion.xyz = lerp(1, get_distortion_rgb(), saturate(max(abs(distortion.x), abs(distortion.y)) * get_distortion_rgb_strength()));
+        distortion.w   = 0;
       ##endif
+
+      PsOutput result;
+      result.distortion = distortion;
+      result.depth = GET_SCREEN_POS(input.pos).z;
 
       return result;
     }

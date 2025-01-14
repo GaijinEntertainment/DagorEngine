@@ -36,6 +36,7 @@
 #include <sqstdsystem.h>
 #include <sqstdio.h>
 #include <sqstdblob.h>
+#include <sqastio.h>
 
 #include <osApiWrappers/dag_basePath.h>
 #include <osApiWrappers/dag_fileIoErr.h>
@@ -71,7 +72,7 @@
 using namespace sqimportparser;
 
 
-#define APP_VERSION "1.0.24"
+#define APP_VERSION "1.0.25"
 
 // Stubs
 
@@ -97,6 +98,8 @@ static bool use_debug_file = false;
 static bool check_fname_case = false;
 static bool do_static_analysis = false;
 static bool flip_diagnostic_state = false;
+static bool dump_bytecode = false;
+static bool dump_ast = false;
 static String sqconfig_dir;
 
 static HSQUIRRELVM sqvm = nullptr;
@@ -436,6 +439,24 @@ static void compiler_error_cb(HSQUIRRELVM v, SQMessageSeverity severity, const S
 }
 
 
+static void dump_ast_callback(HSQUIRRELVM vm, SQCompilation::SqASTData *ast_data, void *opts)
+{
+  G_UNUSED(opts);
+  if (!ast_data)
+    return;
+  FileOutputStream fos(stdout);
+  sq_dumpast(vm, ast_data, &fos);
+}
+
+
+static void dump_bytecode_callback(HSQUIRRELVM vm, HSQOBJECT obj, void *opts)
+{
+  G_UNUSED(opts);
+  FileOutputStream fos(stdout);
+  sq_dumpbytecode(vm, obj, &fos);
+}
+
+
 static bool process_file(const char *filename, const char *code, const KeyValueFile &config_blk, int moduleIndex,
   String &out_module_name, bool &is_execute)
 {
@@ -461,6 +482,16 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
   if (do_static_analysis)
   {
     sq_enablesyntaxwarnings(true);
+  }
+
+  if (dump_ast)
+  {
+    module_manager->onAST_cb = &dump_ast_callback;
+  }
+
+  if (dump_bytecode)
+  {
+    module_manager->onBytecode_cb = &dump_bytecode_callback;
   }
 
   int iterator = 0;
@@ -773,6 +804,8 @@ static void print_usage()
   printf("  --W:<id> - disable diagnostic by numeric id\n");
   printf("  --D:<diagnostic_id> - disable diagnostic by text id\n");
   printf("  --inverse-warnings - flip warning diagnostic state (enabled -> disabled and vice versa)\n");
+  printf("  --dump-bytecode - dump bytecode and line infos of compiled script\n");
+  printf("  --dump-ast - dump AST of compiled script\n");
   printf("  --sqversion - print version of quirrel\n");
   printf("  --version - print version of csq\n");
   printf("  --ignore-unknown-args - ignore unknown command line arguments\n");
@@ -1043,6 +1076,16 @@ int DagorWinMain(bool debugmode)
   if (::dgs_get_argv("check-fname-case"))
   {
     check_fname_case = true;
+  }
+
+  if (::dgs_get_argv("dump-bytecode"))
+  {
+    dump_bytecode = true;
+  }
+
+  if (::dgs_get_argv("dump-ast"))
+  {
+    dump_ast = true;
   }
 
   if (const char *dir = ::dgs_get_argv("set-blk-root"))

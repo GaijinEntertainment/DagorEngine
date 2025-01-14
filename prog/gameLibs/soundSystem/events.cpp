@@ -196,7 +196,7 @@ static inline FMOD::Studio::EventDescription *get_event_description_impl(const F
   FMOD_RESULT fmodResult = get_studio_system()->getEventByID((FMOD_GUID *)&event_id, &eventDescription);
   if (FMOD_OK != fmodResult)
   {
-    debug_trace_warn("get event %s failed: '%s'", guid_to_str(event_id).c_str(), FMOD_ErrorString(fmodResult));
+    debug_trace_err_once("get event %s failed: '%s'", guid_to_str(event_id).c_str(), FMOD_ErrorString(fmodResult));
     return nullptr;
   }
   G_ASSERT(eventDescription != nullptr);
@@ -209,7 +209,7 @@ static inline FMOD::Studio::EventDescription *get_event_description_impl(const c
   const FMOD_RESULT fmodResult = get_studio_system()->getEvent(full_path, &eventDescription);
   if (FMOD_OK != fmodResult)
   {
-    debug_trace_warn("get event '%s' failed: '%s'", full_path, FMOD_ErrorString(fmodResult));
+    debug_trace_err_once("get event '%s' failed: '%s'", full_path, FMOD_ErrorString(fmodResult));
     return nullptr;
   }
   G_ASSERT(eventDescription != nullptr);
@@ -238,17 +238,36 @@ static inline bool get_valid_event_impl(EventHandle event_handle, FMOD::Studio::
   return false;
 }
 
+static inline bool get_valid_event_attributes_impl(EventHandle event_handle, EventAttributes &attributes)
+{
+  SNDSYS_POOL_BLOCK;
+  Event *event = all_events.get((sound_handle_t)event_handle);
+  if (event && event->eventInstance.isValid())
+  {
+    attributes = event->attributes;
+    return true;
+  }
+  return false;
+}
+
 static inline void stop_impl(FMOD::Studio::EventInstance &event_instance, bool allow_fadeout = false)
 {
   SOUND_VERIFY(event_instance.stop(allow_fadeout ? FMOD_STUDIO_STOP_ALLOWFADEOUT : FMOD_STUDIO_STOP_IMMEDIATE));
 }
 
-static inline void release_event_instance(FMOD::Studio::EventInstance &event_instance, bool is_stop)
+static inline void release_event_instance(const EventAttributes *attributes, FMOD::Studio::EventInstance &event_instance, bool is_stop)
 {
   if (event_instance.isValid())
   {
     if (is_stop)
       stop_impl(event_instance);
+
+    if (attributes && attributes->hasOcclusion())
+    {
+      if (occlusion::release(&event_instance))
+        return;
+    }
+
     event_instance.release();
   }
 }
@@ -295,7 +314,8 @@ static FMOD::Studio::EventInstance *create_event_instance(FMOD::Studio::EventDes
   {
     if (numInstances >= g_max_event_instances)
     {
-      debug_trace_err("create instance of \"%s\" failed: max instances limit (%d) exceeded", debug_full_path, g_max_event_instances);
+      debug_trace_err_once("create instance of \"%s\" failed: max instances limit (%d) exceeded", debug_full_path,
+        g_max_event_instances);
       return nullptr;
     }
   }
@@ -427,7 +447,7 @@ static DescAndInstance init_event_impl(const FrameStr &full_path, ieff_t flags, 
   {
     if (!banks::is_valid_event(full_path.c_str()))
     {
-      debug_trace_warn("init event '%s' failed: event is not valid", full_path.c_str());
+      debug_trace_err_once("init event '%s' failed: event is not valid", full_path.c_str());
       return {};
     }
     eventDescription = get_event_description_impl(full_path.c_str());
@@ -494,7 +514,7 @@ EventHandle init_event(const char *name, const char *path, ieff_t flags, const P
   if (!handle)
   {
     if (descAndInstance.second)
-      release_event_instance(*descAndInstance.second, true);
+      release_event_instance(nullptr, *descAndInstance.second, true);
     return EventHandle(INVALID_SOUND_HANDLE);
   }
 
@@ -577,7 +597,7 @@ EventHandle init_event(const FMODGUID &event_id, const Point3 *position /* = nul
   if (!handle)
   {
     if (descAndInstance.second)
-      release_event_instance(*descAndInstance.second, true);
+      release_event_instance(nullptr, *descAndInstance.second, true);
     return EventHandle(INVALID_SOUND_HANDLE);
   }
 
@@ -623,12 +643,13 @@ bool get_event_id(const char *name, const char *path, bool is_snapshot, FMODGUID
   return true;
 }
 
-static inline FMOD::Studio::EventInstance *release_event_impl(EventHandle event_handle)
+static inline FMOD::Studio::EventInstance *release_event_impl(EventHandle event_handle, EventAttributes &attributes)
 {
   SNDSYS_POOL_BLOCK;
   Event *event = all_events.get((sound_handle_t)event_handle);
   if (!event)
     return nullptr;
+  attributes = event->attributes;
   FMOD::Studio::EventInstance *eventInstance = &event->eventInstance;
   all_events.reject((sound_handle_t)event_handle);
   return eventInstance;
@@ -658,11 +679,6 @@ static const char *get_property_impl(const FMOD::Studio::EventDescription &event
   return def_val;
 }
 
-static inline bool is_delayable(const FMOD::Studio::EventDescription &event_description, const Point3 &pos)
-{
-  return delayed::is_far_enough_for_distant_delay(pos) && get_property_impl(event_description, "dstdel", -1.f) == 1.f;
-}
-
 static inline bool should_delay(EventHandle event_handle, float delay)
 {
   if (delay > 0.f || delayed::is_delayed(event_handle))
@@ -675,12 +691,12 @@ static inline bool should_delay(EventHandle event_handle, float delay)
   EventAttributes attributes;
   if (!get_valid_event_impl(event_handle, eventDescription, eventInstance, attributes))
     return false;
-  if (!attributes.is3d())
+  if (!attributes.isDelayable())
     return false;
   Attributes3D attributes3d;
   SOUND_VERIFY_AND_DO(eventInstance->get3DAttributes(&attributes3d), return false);
   const Point3 pos = as_point3(attributes3d.position);
-  return is_delayable(*eventDescription, pos);
+  return delayed::is_far_enough_for_distant_delay(pos);
 }
 
 static inline bool should_delay(EventHandle event_handle, const Point3 &pos, float delay)
@@ -689,21 +705,29 @@ static inline bool should_delay(EventHandle event_handle, const Point3 &pos, flo
     return true;
   if (!delayed::is_enable_distant_delay())
     return false;
-  if (const FMOD::Studio::EventDescription *eventDescription = get_event_description_impl(event_handle))
-    return is_delayable(*eventDescription, pos);
-  return false;
+  if (!delayed::is_far_enough_for_distant_delay(pos))
+    return false;
+  EventAttributes attributes;
+  if (!get_valid_event_attributes_impl(event_handle, attributes))
+    return false;
+  return attributes.isDelayable();
 }
-static inline bool should_delay_oneshot(const FMOD::Studio::EventDescription &event_description, const Point3 &pos)
+static inline bool should_delay_oneshot(const EventAttributes &attributes, const Point3 &pos)
 {
-  return delayed::is_enable_distant_delay() && is_delayable(event_description, pos);
+  if (!delayed::is_enable_distant_delay())
+    return false;
+  if (!attributes.isDelayable())
+    return false;
+  return delayed::is_far_enough_for_distant_delay(pos);
 }
 
 void release_immediate(EventHandle &event_handle, bool is_stop /*= true*/)
 {
-  FMOD::Studio::EventInstance *eventInstance = release_event_impl(event_handle);
+  EventAttributes attributes;
+  FMOD::Studio::EventInstance *eventInstance = release_event_impl(event_handle, attributes);
   event_handle.reset();
   if (eventInstance)
-    release_event_instance(*eventInstance, is_stop);
+    release_event_instance(&attributes, *eventInstance, is_stop);
 }
 void release_delayed(EventHandle &event_handle, float delay /* = 0.f*/)
 {
@@ -839,10 +863,7 @@ static void abandon_impl(FMOD::Studio::EventInstance &event_instance, const Even
     }
   }
 
-  if (attributes.hasOcclusion())
-    occlusion::erase(&event_instance, true);
-
-  release_event_instance(event_instance, false);
+  release_event_instance(&attributes, event_instance, false);
 }
 
 void abandon_immediate(EventHandle &event_handle)
@@ -948,14 +969,14 @@ bool play_one_shot(const char *name, const char *path, const Point3 *position, i
   set_vars_fmt(name, {EventHandle(), fullPath.c_str()}, *descAndInstance.second);
   set_vars_fmt(path, {EventHandle(), fullPath.c_str()}, *descAndInstance.second);
 
-  if (delay > 0.f || (position != nullptr && should_delay_oneshot(*descAndInstance.first, *position)))
+  if (delay > 0.f || (position != nullptr && should_delay_oneshot(attributes, *position)))
   {
     EventHandle handle = create_event_handle(descAndInstance, attributes);
 
     if (!handle)
     {
       if (descAndInstance.second)
-        release_event_instance(*descAndInstance.second, true);
+        release_event_instance(nullptr, *descAndInstance.second, true);
       return false;
     }
 
@@ -967,7 +988,7 @@ bool play_one_shot(const char *name, const char *path, const Point3 *position, i
   start_impl(*descAndInstance.second);
 
   if (attributes.hasOcclusion() && position)
-    occlusion::apply_oneshot(*descAndInstance.second, *position, *get_system());
+    occlusion::append(descAndInstance.second, descAndInstance.first, *position);
 
   abandon_impl(*descAndInstance.second, attributes);
 
@@ -980,7 +1001,25 @@ bool play_one_shot(const char *name, const char *path, const Point3 *position, i
 bool is_one_shot(EventHandle event_handle)
 {
   const EventAttributes attributes = get_event_attributes_impl(event_handle);
-  return attributes.isOneshot() && !attributes.hasSustainPoint();
+#if DAGOR_DBGLEVEL > 0
+  // result should match value from attributes https://cvs1.gaijin.lan/c/dagor4/+/535697
+  if ((attributes.isOneshot() && !attributes.hasSustainPoint()) != attributes.isOneshot())
+    logerr("events.cpp::is_one_shot(): event treated as oneshot has sustain pt '%s'",
+      get_description(event_handle) ? get_debug_name(*get_description(event_handle)).c_str() : "");
+#endif
+  return attributes.isOneshot();
+}
+
+bool is_delayable(EventHandle event_handle)
+{
+  const EventAttributes attributes = get_event_attributes_impl(event_handle);
+  return attributes.isDelayable();
+}
+
+bool has_occlusion(EventHandle event_handle)
+{
+  const EventAttributes attributes = get_event_attributes_impl(event_handle);
+  return attributes.hasOcclusion();
 }
 
 bool is_one_shot(const FMODGUID &event_id)
@@ -1537,7 +1576,7 @@ void events_close()
   dbg_sample_data_verify_ref_count();
   auto instances = events_close_impl();
   for (FMOD::Studio::EventInstance *instance : instances)
-    release_event_instance(*instance, true);
+    release_event_instance(nullptr, *instance, true);
 }
 
 void events_update(float dt) { update_visual_labels(dt); }

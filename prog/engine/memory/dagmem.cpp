@@ -333,7 +333,7 @@ struct MemUsageStats
 
     int cur_ptr = interlocked_increment(ptr_in_use);
     int max_ptr = interlocked_acquire_load(max_ptr_in_use);
-    while (cur_mem > max_mem)
+    while (cur_ptr > max_ptr)
       if (interlocked_compare_exchange(max_ptr_in_use, cur_ptr, max_ptr) == max_ptr)
         break;
       else
@@ -463,7 +463,11 @@ static bool _dlmalloc_critsec_inited = false;
 static CritSecStorage _dlmalloc_critsec;
 #endif
 
+#if DAGOR_ADDRESS_SANITIZER
+bool g_destroy_init_on_demand_in_dtor = true;
+#else
 bool g_destroy_init_on_demand_in_dtor = false;
+#endif
 
 bool (*dgs_on_out_of_memory)(size_t sz) = NULL;
 

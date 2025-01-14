@@ -140,8 +140,7 @@ static inline int get_bytes_per_pixel(unsigned fmt)
     case TEXFMT_R8: return 1;
     case TEXFMT_A1R5G5B5:
     case TEXFMT_A4R4G4B4:
-    case TEXFMT_R5G6B5:
-    case TEXFMT_A8L8: return 2;
+    case TEXFMT_R5G6B5: return 2;
     // Block size in bytes for BC formats
     case TEXFMT_DXT1:
     case TEXFMT_ATI1N: return 8;

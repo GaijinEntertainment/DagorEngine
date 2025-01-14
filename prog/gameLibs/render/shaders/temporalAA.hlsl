@@ -74,7 +74,7 @@
 #endif
 
 #ifndef TAA_GET_DYNAMIC_FUNC
-#define TAA_GET_DYNAMIC_FUNC getDynamic
+#define TAA_GET_DYNAMIC_FUNC isGbufferDynamic
 #endif
 
 #if TAA_COLOR_ALPHA

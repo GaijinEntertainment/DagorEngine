@@ -83,6 +83,36 @@ static ecs::EntitySystemDesc sun_flare_provider_invalidate_es_es_desc
                        ecs::EventComponentsAppear>::build(),
   0
 ,"render","sun_flare_provider__flare_config");
+static constexpr ecs::ComponentDesc point_light_flare_provider_invalidate_es_comps[] =
+{
+//start of 2 rw components at [0]
+  {ECS_HASH("dynamic_light_lens_flare__cached_id"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("dynamic_light_lens_flare__cached_flare_config_id"), ecs::ComponentTypeInfo<int>()},
+//start of 1 rq components at [2]
+  {ECS_HASH("dynamic_light_lens_flare__flare_config"), ecs::ComponentTypeInfo<ecs::string>()}
+};
+static void point_light_flare_provider_invalidate_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    point_light_flare_provider_invalidate_es(evt
+        , ECS_RW_COMP(point_light_flare_provider_invalidate_es_comps, "dynamic_light_lens_flare__cached_id", int)
+    , ECS_RW_COMP(point_light_flare_provider_invalidate_es_comps, "dynamic_light_lens_flare__cached_flare_config_id", int)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc point_light_flare_provider_invalidate_es_es_desc
+(
+  "point_light_flare_provider_invalidate_es",
+  "prog/daNetGameLibs/lens_flare/render/lensFlareES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, point_light_flare_provider_invalidate_es_all_events),
+  make_span(point_light_flare_provider_invalidate_es_comps+0, 2)/*rw*/,
+  empty_span(),
+  make_span(point_light_flare_provider_invalidate_es_comps+2, 1)/*rq*/,
+  empty_span(),
+  ecs::EventSetBuilder<ecs::EventEntityCreated,
+                       ecs::EventComponentsAppear>::build(),
+  0
+,nullptr,"dynamic_light_lens_flare__flare_config");
 static constexpr ecs::ComponentDesc lens_flare_config_on_appear_es_comps[] =
 {
 //start of 7 rq components at [0]
@@ -222,6 +252,39 @@ inline void prepare_sun_flares_ecs_query(Callable function)
             , ECS_RO_COMP(prepare_sun_flares_ecs_query_comps, "sun_flare_provider__flare_config", ecs::string)
             , ECS_RW_COMP(prepare_sun_flares_ecs_query_comps, "sun_flare_provider__cached_id", int)
             , ECS_RW_COMP(prepare_sun_flares_ecs_query_comps, "sun_flare_provider__cached_flare_config_id", int)
+            );
+
+        }while (++comp != compE);
+    }
+  );
+}
+static constexpr ecs::ComponentDesc prepare_point_light_flares_ecs_query_comps[] =
+{
+//start of 2 rw components at [0]
+  {ECS_HASH("dynamic_light_lens_flare__cached_id"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("dynamic_light_lens_flare__cached_flare_config_id"), ecs::ComponentTypeInfo<int>()},
+//start of 1 ro components at [2]
+  {ECS_HASH("dynamic_light_lens_flare__flare_config"), ecs::ComponentTypeInfo<ecs::string>()}
+};
+static ecs::CompileTimeQueryDesc prepare_point_light_flares_ecs_query_desc
+(
+  "prepare_point_light_flares_ecs_query",
+  make_span(prepare_point_light_flares_ecs_query_comps+0, 2)/*rw*/,
+  make_span(prepare_point_light_flares_ecs_query_comps+2, 1)/*ro*/,
+  empty_span(),
+  empty_span());
+template<typename Callable>
+inline void prepare_point_light_flares_ecs_query(Callable function)
+{
+  perform_query(g_entity_mgr, prepare_point_light_flares_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
+        {
+          function(
+              ECS_RO_COMP(prepare_point_light_flares_ecs_query_comps, "dynamic_light_lens_flare__flare_config", ecs::string)
+            , ECS_RW_COMP(prepare_point_light_flares_ecs_query_comps, "dynamic_light_lens_flare__cached_id", int)
+            , ECS_RW_COMP(prepare_point_light_flares_ecs_query_comps, "dynamic_light_lens_flare__cached_flare_config_id", int)
             );
 
         }while (++comp != compE);

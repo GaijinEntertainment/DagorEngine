@@ -51,8 +51,8 @@ struct BicubicSharpenWeights
   // X   uv4  X
 
   float2 uv0, uv1, uv2, uv3, uv4;
-  float w0,w1,w2,w3,w4;
-  float weightsSum;
+  half w0,w1,w2,w3,w4;
+  half weightsSum;
 };
 
 void compute_bicubic_sharpen_weights(
@@ -84,11 +84,11 @@ void compute_bicubic_sharpen_weights(
   weights.uv3 = float2(tc3.x, tc12.y);
   weights.uv4 = float2(tc12.x, tc3.y);
 
-  weights.w0 = (w12.x * w0.y);
-  weights.w1 = (w0.x  * w12.y);
-  weights.w2 = (w12.x * w12.y);
-  weights.w3 = (w3.x  * w12.y);
-  weights.w4 = (w12.x * w3.y);
+  weights.w0 = half(w12.x * w0.y);
+  weights.w1 = half(w0.x  * w12.y);
+  weights.w2 = half(w12.x * w12.y);
+  weights.w3 = half(w3.x  * w12.y);
+  weights.w4 = half(w12.x * w3.y);
 
   weights.weightsSum = weights.w0 + weights.w1 + weights.w2 + weights.w3 + weights.w4;
 }

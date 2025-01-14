@@ -244,12 +244,17 @@ if (compatibility_mode == compatibility_mode_off)
 endmacro
 
 
-macro INIT_READ_GBUFFER_MATERIAL_DYNAMIC_BASE(code)
+macro INIT_READ_GBUFFER_MATERIAL(code)
+  BEGIN_ONCE(material_gbuf_read_included)
   (code) { material_gbuf_read@smp2d = material_gbuf; }
+  END_ONCE()
 endmacro
 
-macro INIT_READ_GBUFFER_MATERIAL_DYNAMIC()
-  INIT_READ_GBUFFER_MATERIAL_DYNAMIC_BASE(ps)
+macro INIT_READ_DYNAMIC_FLAG(code)
+  INIT_READ_GBUFFER_MATERIAL(code)
+endmacro
+
+macro INIT_READ_IS_HERO_COCKPIT(code)
 endmacro
 
 macro INIT_READ_GBUFFER_SIMPLE_BASE(code)
@@ -265,7 +270,7 @@ endmacro
 
 macro INIT_READ_GBUFFER_BASE(code)
   INIT_READ_GBUFFER_SIMPLE_BASE(code)
-  INIT_READ_GBUFFER_MATERIAL_DYNAMIC_BASE(code)
+  INIT_READ_GBUFFER_MATERIAL(code)
 endmacro
 
 macro INIT_READ_GBUFFER()
@@ -361,6 +366,10 @@ hlsl(code) {
 }
 endmacro
 
+macro USE_READ_IS_HERO_COCKPIT(code)
+bool gbuffer_has_hero_cockpit = false;
+endmacro
+
 macro INIT_LOAD_GBUFFER_BASE(code)
   (code) {
     albedo_gbuf_load@tex2d = albedo_gbuf;
@@ -422,11 +431,6 @@ endmacro
 
 macro USE_READ_MOTION_BUFFER_BASE(code)
   hlsl(code) {
-    uint getDynamic(float2 uv)
-    {
-      float2 m = tex2Dlod(motion_gbuf_read, float4(uv,0,0)).rg;
-      return isinf(m.x) ? 0 : 1;
-    }
     float3 readMotionBuffer(float2 tc)
     {
       return tex2Dlod(motion_gbuf_read, float4(tc,0,0)).xyz;

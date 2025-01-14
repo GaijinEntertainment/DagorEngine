@@ -58,7 +58,7 @@ static inline bool operator<(const char *fn, const MountVromfsRec &rhs) { return
 static eastl::vector_set<MountVromfsRec> mnt_vromfs;
 static eastl::vector_set<MountVromfsRec> mnt_single_file;
 static eastl::bitvector<> changed_vromfs;
-static verify_signature_cb vromfs_sig_check;
+static signature_checker_factory_cb vromfs_sig_check;
 
 // Init the value in setup_update_folder_for_early_vromfs_load() call
 updater::Version mounted_vroms_version;
@@ -444,7 +444,7 @@ int remount_changed_vroms()
 }
 
 
-void install_vromfs_signature_check(verify_signature_cb sig) { vromfs_sig_check = sig; }
+void install_vromfs_signature_check(signature_checker_factory_cb sig) { vromfs_sig_check = sig; }
 
 static bool is_valid_ugm_vromfs(dag::ConstSpan<char> data)
 {

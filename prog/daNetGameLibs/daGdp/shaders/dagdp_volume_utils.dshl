@@ -1,0 +1,18 @@
+include "dagdp_common_placer.dshl"
+
+macro USE_DAGDP_VOLUME_UTILS()
+  hlsl(cs) {
+    bool isInsideVolume(uint volumeIndex, float3 instancePos, const VolumeGpuData volume)
+    {
+      const float4 ip4 = float4(instancePos, 1.0);
+      const float3 internalVolumePos = float3(dot(ip4, volume.itmRow0), dot(ip4, volume.itmRow1), dot(ip4, volume.itmRow2));
+      const bool isVolumeTypeOk[VOLUME_TYPE_COUNT] = {
+        all(abs(internalVolumePos) <= 1.0),
+        length(internalVolumePos.xz) <= 1.0 && abs(internalVolumePos.y) <= 1.0,
+        length(internalVolumePos) <= 1.0,
+      };
+      ##assert(mesh.volumeType < VOLUME_TYPE_COUNT, "Invalid volume type: %d", _.volumeType);
+      return isVolumeTypeOk[volume.volumeType];
+    }
+  }
+endmacro

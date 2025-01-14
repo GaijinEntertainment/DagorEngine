@@ -7,6 +7,7 @@
 #include <startup/dag_inpDevClsDrv.h>
 #include <startup/dag_startupTex.h>
 #include <startup/dag_fatalHandler.inc.cpp>
+#include <startup/dag_loadSettings.h>
 #include <gameRes/dag_gameResSystem.h>
 #include <workCycle/dag_startupModules.h>
 #include <workCycle/dag_gameSettings.h>

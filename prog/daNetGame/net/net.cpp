@@ -28,7 +28,7 @@
 #include <statsd/statsd.h>
 #include <ioSys/dag_dataBlock.h>
 #if _TARGET_XBOX
-#include <xbox/user.h>
+#include <gdk/user.h>
 #endif
 #include <ecs/core/entityManager.h>
 #include <daECS/core/coreEvents.h>
@@ -679,7 +679,7 @@ bool net_init_early()
 static eastl::string get_platform_uid()
 {
 #if _TARGET_XBOX
-  return xbox::active_user::get_xuid_str();
+  return gdk::active_user::get_xuid_str();
 #else
   // To consider: what about ps4/5, nswitch?
   return eastl::string{};

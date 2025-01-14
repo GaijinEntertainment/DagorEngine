@@ -70,7 +70,7 @@ updater::Version get_game_build_version();
 bool check_vromfs_version_newer(updater::Version base_ver, updater::Version upd_ver);
 
 bool init_expected_vromfs_version();
-void install_vromfs_signature_check(verify_signature_cb sig);
+void install_vromfs_signature_check(signature_checker_factory_cb sig);
 
 namespace updater
 {

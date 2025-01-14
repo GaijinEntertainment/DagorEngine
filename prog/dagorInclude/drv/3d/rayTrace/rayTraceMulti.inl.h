@@ -28,23 +28,6 @@ static inline void set_top_acceleration_structure(ShaderStage stage, uint32_t in
 {
   d3di.set_top_acceleration_structure(stage, index, as);
 }
-static inline PROGRAM create_raytrace_program(const int *shaders, uint32_t shader_count, const RaytraceShaderGroup *shader_groups,
-  uint32_t shader_group_count, uint32_t max_recursion_depth)
-{
-  return d3di.create_raytrace_program(shaders, shader_count, shader_groups, shader_group_count, max_recursion_depth);
-}
-static inline int create_raytrace_shader(RaytraceShaderType stage, const uint32_t *data, uint32_t data_size)
-{
-  return d3di.create_raytrace_shader(stage, data, data_size);
-}
-static inline void delete_raytrace_shader(int shader) { d3di.delete_raytrace_shader(shader); }
-static inline void trace_rays(Sbuffer *ray_gen_table, uint32_t ray_gen_offset, Sbuffer *miss_table, uint32_t miss_offset,
-  uint32_t miss_stride, Sbuffer *hit_table, uint32_t hit_offset, uint32_t hit_stride, Sbuffer *callable_table,
-  uint32_t callable_offset, uint32_t callable_stride, uint32_t width, uint32_t height, uint32_t depth)
-{
-  d3di.trace_rays(ray_gen_table, ray_gen_offset, miss_table, miss_offset, miss_stride, hit_table, hit_offset, hit_stride,
-    callable_table, callable_offset, callable_stride, width, height, depth);
-}
 static inline void build_bottom_acceleration_structure(RaytraceBottomAccelerationStructure *as,
   const ::raytrace::BottomAccelerationStructureBuildInfo &basbi)
 {
@@ -63,11 +46,6 @@ static inline void build_top_acceleration_structure(RaytraceTopAccelerationStruc
 static inline void build_top_acceleration_structures(::raytrace::BatchedTopAccelerationStructureBuildInfo *as_array, uint32_t as_count)
 {
   d3di.build_top_acceleration_structures(as_array, as_count);
-}
-static inline void copy_raytrace_shader_handle_to_memory(PROGRAM prog, uint32_t first_group, uint32_t group_count, uint32_t size,
-  Sbuffer *buffer, uint32_t offset)
-{
-  d3di.copy_raytrace_shader_handle_to_memory(prog, first_group, group_count, size, buffer, offset);
 }
 static inline void write_raytrace_index_entries_to_memory(uint32_t count, const RaytraceGeometryInstanceDescription *desc, void *ptr)
 {
@@ -93,6 +71,41 @@ namespace raytrace
 static inline bool check_vertex_format_support_for_acceleration_structure_build(uint32_t format)
 {
   return d3di.raytrace.check_vertex_format_support_for_acceleration_structure_build(format);
+}
+
+static inline ::raytrace::Pipeline create_pipeline(const ::raytrace::PipelineCreateInfo &pci)
+{
+  return d3di.raytrace.create_pipeline(pci);
+}
+
+static inline ::raytrace::Pipeline expand_pipeline(const ::raytrace::Pipeline &pipeline, const ::raytrace::PipelineExpandInfo &pei)
+{
+  return d3di.raytrace.expand_pipeline(pipeline, pei);
+}
+
+static inline void destroy_pipeline(::raytrace::Pipeline &p) { d3di.raytrace.destroy_pipeline(p); }
+
+static inline ::raytrace::ShaderBindingTableBufferProperties get_shader_binding_table_buffer_properties(
+  const ::raytrace::ShaderBindingTableDefinition &sbtci, const ::raytrace::Pipeline &pipeline)
+{
+  return d3di.raytrace.get_shader_binding_table_buffer_properties(sbtci, pipeline);
+}
+
+static inline void dispatch(const ::raytrace::ResourceBindingTable &rbt, const ::raytrace::Pipeline &pipeline,
+  const ::raytrace::RayDispatchParameters &rdp, GpuPipeline gpu_pipeline = GpuPipeline::GRAPHICS)
+{
+  d3di.raytrace.dispatch(rbt, pipeline, rdp, gpu_pipeline);
+}
+
+static inline void dispatch_indirect(const ::raytrace::ResourceBindingTable &rbt, const ::raytrace::Pipeline &pipeline,
+  const ::raytrace::RayDispatchIndirectParameters &rdip, GpuPipeline gpu_pipeline = GpuPipeline::GRAPHICS)
+{
+  d3di.raytrace.dispatch_indirect(rbt, pipeline, rdip, gpu_pipeline);
+}
+static inline void dispatch_indirect_count(const ::raytrace::ResourceBindingTable &rbt, const ::raytrace::Pipeline &pipeline,
+  const ::raytrace::RayDispatchIndirectCountParameters &rdicp, GpuPipeline gpu_pipeline = GpuPipeline::GRAPHICS)
+{
+  d3di.raytrace.dispatch_indirect_count(rbt, pipeline, rdicp, gpu_pipeline);
 }
 } // namespace raytrace
 // <- raytrace interface

@@ -4,6 +4,7 @@ include "sky_shader_global.dshl"
 include "brunetonSkies.dshl"
 include "statistical_clouds_shadow.dshl"
 include "skies_rainmap.dshl"
+include "nuke_scattering_inc.dshl"
 
 float4 prepare_origin;
 float4 prepare_sun_light_dir;
@@ -136,8 +137,9 @@ float4 move_world_view_pos;
 macro FROXELS_SCATTERING(code)
   (code) {
     use_camera_altitude@f1 = (max(0.01, (prepare_origin.y-min_ground_offset)/1000), prepare_origin.y,0,0);//prepare_origin.y
-    prepare_resolution@f4 = (1./skies_froxels_resolution.x,1./skies_froxels_resolution.y,1./skies_froxels_resolution.z,skies_froxels_resolution.w);
-    skies_froxels_resolution@f4  = skies_froxels_resolution;
+    prepare_resolution@f3 = (1./skies_froxels_resolution.x,1./skies_froxels_resolution.y,1./skies_froxels_resolution.z);
+    skies_froxels_dist@f1 = skies_froxels_dist;
+    skies_froxels_resolutionI@u3  = skies_froxels_resolution.xyz;
     skies_transmittance_texture@smp2d = skies_transmittance_texture;
     //preparedLoss@smp2d = preparedLoss;
     skies_ms_texture@smp2d = skies_ms_texture;
@@ -158,7 +160,7 @@ macro FROXELS_SCATTERING(code)
     prev_view_vecLB_minus_view_vecLT@f3 = (prev_view_vecLB-prev_view_vecLT);
     skies_panoramic_scattering@f1 = (skies_panoramic_scattering);
     move_world_view_pos@f3 = move_world_view_pos;
-    skies_froxels_prev_dist@f3 =(1./skies_froxels_prev_dist, skies_froxels_resolution.w/skies_froxels_prev_dist, skies_froxels_prev_dist,0);
+    skies_froxels_prev_dist@f3 =(1./skies_froxels_prev_dist, skies_froxels_dist/skies_froxels_prev_dist, skies_froxels_prev_dist);
     skies_frustum_scattering_last_tz@f1 = (skies_frustum_scattering_last_tz);
   }
   if (skies_render_panorama_scattering == on)
@@ -211,7 +213,7 @@ shader skies_integrate_froxel_scattering_ps
           viewVect = normalize(getViewVecOptimized(texcoord.xy));
       #endif
       Length r = use_camera_altitude + theAtmosphere.bottom_radius;
-      Length d = pow2(texcoord.z)*(prepare_resolution.w/1000/skies_frustum_scattering_last_tz);//3 consts mul. todo: move to preshader
+      Length d = pow2(texcoord.z)*(skies_froxels_dist/1000/skies_frustum_scattering_last_tz);//3 consts mul. todo: move to preshader
       if (texcoord.z >= skies_frustum_scattering_last_tz)
         d = 245000;
       if (abs(r - theAtmosphere.top_radius) < 0.01)
@@ -299,6 +301,9 @@ shader skies_integrate_froxel_scattering_cs
   ENABLE_ASSERT(cs)
   USE_PS5_WAVE32_MODE()
   FROXELS_SCATTERING(cs)
+  INIT_NUKE_FOG_LIGHT(cs)
+  USE_NUKE_FOG_LIGHT(cs)
+
   hlsl(cs) {
     RWTexture3D<float4> output : register(u0);
     groupshared uint use_double_sampling;
@@ -307,8 +312,11 @@ shader skies_integrate_froxel_scattering_cs
 ##else
     [numthreads(8, 8, 1)]
 ##endif
-    void skies_gen_cs(uint2 dtId : SV_DispatchThreadID, uint flatIdx : SV_GroupIndex)
+    void skies_gen_cs(uint2 dtId : SV_DispatchThreadID)
     {
+      if (any(dtId >= skies_froxels_resolutionI.xy))
+        return;
+
       float2 texcoord = (dtId+0.5)*prepare_resolution.xy;
       #if RENDER_PANORAMA_SCATTERING
         GENERATE_PANORAMA_VIEWVECT(texcoord)//panorama
@@ -362,11 +370,11 @@ shader skies_integrate_froxel_scattering_cs
       {
       // Compute next intersection with atmosphere or ground
       //float tMax = DistanceToNearestAtmosphereBoundary(theAtmosphere, r, mu, false);
-      //tMax = min(tMax, prepare_resolution.w/1000);
+      //tMax = min(tMax, skies_froxels_dist/1000);
 
       // Sample count
       ##assert(skies_frustum_scattering_last_tz != 0.0);
-      float tMax = prepare_resolution.w/1000/max(skies_frustum_scattering_last_tz, 0.1);
+      float tMax = skies_froxels_dist/1000/max(skies_frustum_scattering_last_tz, 0.1);
       float prevD = 0;
 
       // Phase functions
@@ -380,8 +388,8 @@ shader skies_integrate_froxel_scattering_cs
       IrradianceSpectrum L = IrradianceSpectrum(0.0f,0.0f,0.0f);
       DimensionlessSpectrum throughput = DimensionlessSpectrum(1.0,1.0,1.0);
 
-      ##assert(all(skies_froxels_resolution != 0.0));
-      uint sampleCount = (skies_frustum_scattering_last_tz < 1) ? max(uint(skies_froxels_resolution.z), 1)-1 : uint(skies_froxels_resolution.z);
+      ##assert(all(skies_froxels_resolutionI != 0));
+      uint sampleCount = (skies_frustum_scattering_last_tz < 1) ? max(skies_froxels_resolutionI.z, 1)-1 : skies_froxels_resolutionI.z;
       sampleCount <<= DOUBLE_SAMPLING;
 
       for (uint i = 0; i < sampleCount; i++)
@@ -420,6 +428,11 @@ shader skies_integrate_froxel_scattering_cs
           primaryTransmittanceToSun *= finalShadowFromShadowTerm(primaryShadow);
           secondaryTransmittanceToSun *= finalShadowFromShadowTerm(secondaryShadow);
         #endif
+
+        ##if nuke_in_atmosphere == on
+          L += get_nuke_fog_step(curWorldPos, throughput, medium.extinction, sampleTransmittance, viewVect);
+        ##endif
+
         float3 primaryPhaseTimesScattering = medium.scatteringMie * primaryMiePhaseValue + medium.scatteringRay * primaryRayleighPhaseValue;
 
         float3 primaryMultiScatteredLuminance = GetMultipleScattering(theAtmosphere, multiple_scattering_approx, r_d, primaryMu_s_d) * medium.scattering;
@@ -450,7 +463,7 @@ shader skies_integrate_froxel_scattering_cs
             float3 prevUV = float3(texcoord, (writeTo.z+0.5)*prepare_resolution.z);
             if (!skies_panoramic_scattering)
             {
-              float3 camPos = viewVect*(pow2(prevUV.z)*prepare_resolution.w);
+              float3 camPos = viewVect*(pow2(prevUV.z)*skies_froxels_dist);
               float prevLinearDist = length(camPos - move_world_view_pos);
               float prevLinearUVZ = saturate(prevLinearDist*skies_froxels_prev_dist.x);
               prevUV.z = sqrt(prevLinearUVZ);
@@ -477,7 +490,7 @@ shader skies_integrate_froxel_scattering_cs
               float2 prevScreen = prevClip.w > 0 ? prevClip.xy/prevClip.w : float2(2, 2);
               prevUV.xy = float2(prevScreen.xy*float2(0.5, -0.5) + float2(0.5, 0.5));
               //float prevDepth = prevClip.w*length(getPrevViewVecOptimized(prevUV.xy));
-              //prevUV.z = sqrt(prevDepth/prepare_resolution.w);
+              //prevUV.z = sqrt(prevDepth/skies_froxels_dist);
               //canReproject = max(abs(prevUV.x*2-1), abs(prevUV.y*2-1)) < skies_continue_temporal;
             }
             if (max(abs(prevUV.x*2-1), abs(prevUV.y*2-1)) < skies_continue_temporal)
@@ -576,7 +589,7 @@ shader skies_integrate_froxel_scattering_cs
           float3 prevUV = float3(texcoord, 1);
           if (!skies_panoramic_scattering)
           {
-            float3 camPos = viewVect*(pow2(prevUV.z)*prepare_resolution.w);
+            float3 camPos = viewVect*(pow2(prevUV.z)*skies_froxels_dist);
             float prevLinearDist = length(camPos - move_world_view_pos);
             float prevLinearUVZ = saturate(prevLinearDist*skies_froxels_prev_dist.x);
             prevUV.z = sqrt(prevLinearUVZ);
@@ -585,7 +598,7 @@ shader skies_integrate_froxel_scattering_cs
             float2 prevScreen = prevClip.w > 0 ? prevClip.xy/prevClip.w : float2(2, 2);
             prevUV.xy = float2(prevScreen.xy*float2(0.5, -0.5) + float2(0.5, 0.5));
             //float prevDepth = prevClip.w*length(getPrevViewVecOptimized(prevUV.xy));
-            //prevUV.z = sqrt(prevDepth/prepare_resolution.w);
+            //prevUV.z = sqrt(prevDepth/skies_froxels_dist);
             //canReproject = max(abs(prevUV.x*2-1), abs(prevUV.y*2-1)) < skies_continue_temporal;
           }
           if (max(abs(prevUV.x*2-1), abs(prevUV.y*2-1)) < skies_continue_temporal)
@@ -605,7 +618,7 @@ shader skies_integrate_froxel_scattering_cs
             ret = fp16_aware_lerp_filtered(old, ret, 0.06);
           }
         #endif
-        texture3DAt(output, uint3(dtId, uint(skies_froxels_resolution.z)-1)) = ret;
+        texture3DAt(output, uint3(dtId, skies_froxels_resolutionI.z-1)) = ret;
       }
       }//
     }

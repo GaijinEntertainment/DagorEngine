@@ -39,6 +39,13 @@ static constexpr bool doDebugDelay(BaseTexture *) { return false; }
 
 #endif
 
+namespace
+{
+static thread_local bool force_no_fail = false;
+} // namespace
+
+void ResourceUploadLimit::setNoFailOnThread(bool val) { force_no_fail = val; }
+
 void ResourceUploadLimit::reset()
 {
   uint32_t oldSize = allocatedSize.exchange(0);
@@ -52,6 +59,12 @@ void ResourceUploadLimit::reset()
 
 bool ResourceUploadLimit::consume(uint32_t size, BaseTexture *bt)
 {
+  if (force_no_fail)
+  {
+    allocatedSize.fetch_add(size);
+    return true;
+  }
+
   if (doDebugDelay(bt))
     return false;
 

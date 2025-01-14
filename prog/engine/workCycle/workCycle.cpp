@@ -82,10 +82,7 @@ static void act();
 static void draw(bool enable_stereo, int elapsed_usec, float gametime_elapsed, bool call_before_render = true, bool draw_gui = true);
 static bool present(bool updateScreenNeeded);
 
-static bool is_minimized_fullscreen()
-{
-  return !workcycle_internal::application_active && dgs_get_window_mode() == WindowMode::FULLSCREEN_EXCLUSIVE;
-}
+static bool is_minimized_fullscreen() { return !::dgs_app_active && dgs_get_window_mode() == WindowMode::FULLSCREEN_EXCLUSIVE; }
 
 bool dagor_work_cycle_is_need_to_draw()
 {
@@ -325,7 +322,7 @@ void dagor_draw_scene_and_gui(bool call_before_render, bool draw_gui)
 
 void dagor_enable_idle_priority(bool enable)
 {
-  workcycle_internal::set_priority(!enable ? true : workcycle_internal::application_active);
+  workcycle_internal::set_priority(!enable ? true : ::dgs_app_active);
   interlocked_release_store(workcycle_internal::enable_idle_priority, enable);
 }
 

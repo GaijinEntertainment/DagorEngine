@@ -1,0 +1,2 @@
+int antialiasing_type = 1;
+interval antialiasing_type: dlss < 1, taa < 2, tsr;

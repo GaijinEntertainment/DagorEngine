@@ -28,6 +28,30 @@ namespace das
         }
     };
 
+    template <typename PT>
+    struct prune<vec4f, PT> {
+        static __forceinline vec4f from(const PT & v) {
+            static_assert(sizeof(PT) <= sizeof(vec4f), "type too big to be pruned");
+#ifdef __clang__ // Clang does the right thing without need to micro-optimize stuff
+            vec4f r = v_zero();
+            memcpy(&r, &v, sizeof(PT));
+            return r;
+#else
+            if constexpr (sizeof(PT) == sizeof(vec4f))
+              return v_ldu((const float*)&v);
+            else if constexpr (sizeof(PT) == sizeof(float) * 3)
+              return v_ldu_p3_safe((const float*)&v);
+            else if constexpr (sizeof(PT) == sizeof(float) * 2)
+              return v_ldu_half((const float*)&v);
+            else
+            {
+              static_assert(sizeof(PT) == sizeof(float));
+              return v_set_x(*(const float*)&v);
+            }
+#endif
+        }
+    };
+
     template <typename PT, typename VT>
     struct das_alias_ref {
         static __forceinline VT & from ( PT & value ) {
@@ -341,15 +365,7 @@ namespace das
             return prune<TT,vec4f>::from(x);
         }
         static __forceinline vec4f from ( const TT & x )       {
-#if __SANITIZE_THREAD__
-            if ( sizeof(TT) != sizeof(float) * 4 )
-            {
-              vec4f v;
-              memcpy(&v, &x, sizeof(x));
-              return v;
-            }
-#endif
-            return v_ldu((const float*)&x);
+            return prune<vec4f,TT>::from(x);
         }
     };
 
@@ -359,7 +375,7 @@ namespace das
             return prune<TT,vec4f>::from(x);
         }
         static __forceinline vec4f from ( const TT & x )       {
-            return v_ldu_half((const float*)&x);
+            return prune<vec4f,TT>::from(x);
         }
     };
 
@@ -373,15 +389,7 @@ namespace das
             return prune<TT,vec4f>::from(x);
         }
         static __forceinline vec4f from ( const TT & x ) {
-#if __SANITIZE_THREAD__
-            if ( sizeof(TT) != sizeof(int) * 4 )
-            {
-              vec4f v;
-              memcpy(&v, &x, sizeof(x));
-              return v;
-            }
-#endif
-            return  v_cast_vec4f(v_ldui((const int*)&x));
+            return prune<vec4f,TT>::from(x);
         }
     };
 
@@ -391,7 +399,7 @@ namespace das
             return prune<TT,vec4f>::from(x);
         }
         static __forceinline vec4f from ( const TT & x ) {
-            return  v_cast_vec4f(v_ldui_half((const int*)&x));
+            return prune<vec4f,TT>::from(x);
         }
     };
 

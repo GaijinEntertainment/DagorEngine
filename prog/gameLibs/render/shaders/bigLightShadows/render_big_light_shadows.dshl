@@ -3,8 +3,8 @@ include "viewVecVS.dshl"
 include "gbuffer.dshl"
 include "contact_shadows.dshl"
 include "depth_above.dshl"
-include "ssao_reprojection.dshl"
 include "dagi_reflections.dshl"
+include "motion_vector_access.dshl"
 
 
 float4 globtm_no_ofs_psf_0;
@@ -17,6 +17,14 @@ float4 big_light_pos_rad_2;
 float4 big_light_pos_rad_3;
 
 float big_light_min_shadow_len = 1.5;
+
+float4 prev_view_vecLT;
+float4 prev_view_vecRT;
+float4 prev_view_vecLB;
+float4 move_world_view_pos;
+
+texture prev_downsampled_close_depth_tex;
+texture ssao_prev_tex;
 
 shader render_big_light_shadows
 {
@@ -38,7 +46,8 @@ shader render_big_light_shadows
     //downsampled_normals@smp2d = downsampled_normals;
     //blurred_depth@smp2d = blurred_depth;
 
-    shadow_params@f3 = (0, shadow_frame, contact_shadow_len, 0);
+    shadow_frame@f1 = shadow_frame;
+    contact_shadow_len@f1 = contact_shadow_len;
 
     viewProjectionMatrixNoOfs@f44 = { globtm_no_ofs_psf_0, globtm_no_ofs_psf_1, globtm_no_ofs_psf_2, globtm_no_ofs_psf_3 };
 
@@ -54,10 +63,7 @@ shader render_big_light_shadows
 
   INIT_ZNZFAR()
   hlsl(ps) {
-    #define shadow_frame shadow_params.y
-    #define contact_shadow_len shadow_params.z
     #define OMNI_CONTACT_SHADOWS 1
-    //#define USE_LINEAR_THRESHOLD 1
   }
 
   CONTACT_SHADOWS()
@@ -132,7 +138,7 @@ shader render_big_light_shadows
         return 0;//?? no light, but not nesessarily shadow
       float3 lightDir = lightToPoint*max(1e-6, rcp(distToLight));
       float2 hitUV;
-      float dither = interleavedGradientNoiseFramed(scrpos.xy, floor(shadow_params.y));//if we have temporal aa
+      float dither = interleavedGradientNoiseFramed(scrpos.xy, floor(shadow_frame));//if we have temporal aa
       float shadow = 1;
       float len = 0, maxLen = 32;
       shadow = voxel_conesampled_shadow(worldPos, lightDir, len, maxLen);
@@ -169,8 +175,7 @@ shader render_big_light_shadows
         contactShadow = contactShadowRayCast(
             downsampled_close_depth_tex, downsampled_close_depth_tex_samplerstate,
             cameraToPoint,
-            lightDir, max(w*0.3, big_light_min_shadow_len), 20, dither-0.5, projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV,
-            float2(3,2));
+            lightDir, max(w*0.3, big_light_min_shadow_len), 20, dither-0.5, projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV);
       return shadow*contactShadow;
     }
 
@@ -221,14 +226,15 @@ shader temporal_big_light_shadows
     //big_shadows_prev_tex@smp2d = big_shadows_prev_tex;
     big_light_pos_rads2@f4[] = {big_light_pos_rad_0, big_light_pos_rad_1, big_light_pos_rad_2, big_light_pos_rad_3};
     viewProjectionMatrixNoOfs@f44 = { globtm_no_ofs_psf_0, globtm_no_ofs_psf_1, globtm_no_ofs_psf_2, globtm_no_ofs_psf_3 };
+
+    prev_view_vecLT@f3 = prev_view_vecLT;
+    prev_view_vecRT_minus_view_vecLT@f3 = (prev_view_vecRT-prev_view_vecLT);
+    prev_view_vecLB_minus_view_vecLT@f3 = (prev_view_vecLB-prev_view_vecLT);
+    prev_move_world_view_pos@f3= (-move_world_view_pos.xyz,0);
+    prev_downsampled_close_depth_tex@smp2d = prev_downsampled_close_depth_tex;
+    ssao_prev_tex@smp2d = ssao_prev_tex;
   }
   hlsl {
-    #undef SSAO_TYPE
-    #undef SSAO_ATTRS
-    #undef SSAO_HAS_GREEN
-    #undef SSAO_HAS_BLUE
-    #define SSAO_TYPE float
-    #define SSAO_ATTRS x
     ##if big_shadows_cnt == one
     #define SHADOWS_CNT 1
     ##elif big_shadows_cnt == two
@@ -240,11 +246,19 @@ shader temporal_big_light_shadows
       #define VALIDATE_HISTORY_UV 0
     ##endif
   }
-  SSAO_REPROJECTION(ps, big_shadows_prev_tex)
+
+  INIT_FETCH_MOTION_VECTOR(ps, downsampled)
+  USE_FETCH_MOTION_VECTOR(ps, downsampled)
 
   INIT_ZNZFAR()
 
   hlsl(ps) {
+    #include <fp16_aware_lerp.hlsl>
+
+    float3 getPrevViewVecOptimized(float2 tc)
+    {
+      return prev_view_vecLT + prev_view_vecRT_minus_view_vecLT*tc.x + prev_view_vecLB_minus_view_vecLT*tc.y;
+    }
 
     float4 get_weight(float viewVecLen, float invRadius, float linearW, float4 ldepth)
     {
@@ -336,7 +350,7 @@ shader temporal_big_light_shadows
       float4 ret = retV*rcp(max(totalWeight,1e-6));
       //ret = tex2Dlod(big_shadows_tex, float4(input.texcoord.xy,0,0));
       float2 screenTC = input.texcoord.xy;
-      float2 motionVector = get_motion_vector(float3(screenTC, linearDepth), input.viewVect * w);
+      float2 motionVector = fetch_motion_vector(screenTC, rawDepth).xy;
       float2 historyUV = screenTC + motionVector;
       bool bOffscreen = abs(historyUV.x*2-1) >= 1 || abs(historyUV.y*2-1) >= 1;
 

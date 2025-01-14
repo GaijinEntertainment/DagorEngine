@@ -230,9 +230,9 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
 
   static constexpr int MAX_PER_INSTANCE_CELLS = 7;
   vec3f v_cell_add[MAX_PER_INSTANCE_CELLS], v_cell_mul[MAX_PER_INSTANCE_CELLS];
-  static constexpr int MAX_INSTANCES_TO_SORT = 256;
-  carray<carray<IPoint2, MAX_INSTANCES_TO_SORT>, rendinst::MAX_LOD_COUNT> perInstanceDistance;
-  carray<carray<vec4f, MAX_INSTANCES_TO_SORT>, rendinst::MAX_LOD_COUNT> sortedInstances;
+  static constexpr unsigned MAX_INSTANCES_TO_SORT = 256;
+  dag::Vector<carray<IPoint2, MAX_INSTANCES_TO_SORT>, framemem_allocator, false> perInstanceDistance(rendinst::MAX_LOD_COUNT);
+  dag::Vector<carray<vec4f, MAX_INSTANCES_TO_SORT>, framemem_allocator, false> sortedInstances(rendinst::MAX_LOD_COUNT);
   if (rendinst::render::per_instance_visibility)
   {
     for (int vi = 0; vi < min<int>(MAX_PER_INSTANCE_CELLS, visData.cells.size()); ++vi)

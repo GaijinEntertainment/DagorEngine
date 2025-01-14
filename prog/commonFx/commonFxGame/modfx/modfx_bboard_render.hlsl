@@ -294,9 +294,9 @@
     {
       static const int shadowBroadSampleCnt = 2;
 
-      float3 shadowSampleDirFwd = (pos - wpos) / shadowBroadSampleCnt;
+      float3 shadowSampleDirFwd = (pos - wpos) * (1./ shadowBroadSampleCnt);
 
-      float sunHackRadius = radius / shadowBroadSampleCnt;
+      float sunHackRadius = radius * (1./ shadowBroadSampleCnt);
       float3 sunHackUp = normalize( cross( from_sun_direction, float3(1,0,0) ) ) * sunHackRadius;
       float3 sunHackRight = normalize(cross( view_dir_norm, sunHackUp )) * sunHackRadius;
 
@@ -304,19 +304,19 @@
       half staticShadowSum = 0;
       UNROLL for (int i = 0; i < shadowBroadSampleCnt; ++i)
       {
-        staticShadowSum += getStaticShadow(shadowPos + sunHackUp*-1. + sunHackRight*-1);
-        staticShadowSum += getStaticShadow(shadowPos + sunHackUp*+1. + sunHackRight*-1);
-        staticShadowSum += getStaticShadow(shadowPos + sunHackUp*+1. + sunHackRight*+1);
-        staticShadowSum += getStaticShadow(shadowPos + sunHackUp*-1. + sunHackRight*+1);
+        staticShadowSum += getStaticShadow(shadowPos - sunHackUp - sunHackRight);
+        staticShadowSum += getStaticShadow(shadowPos + sunHackUp - sunHackRight);
+        staticShadowSum += getStaticShadow(shadowPos + sunHackUp + sunHackRight);
+        staticShadowSum += getStaticShadow(shadowPos - sunHackUp + sunHackRight);
         shadowPos += shadowSampleDirFwd;
       }
-      return staticShadowSum / shadowBroadSampleCnt / 4;
+      return staticShadowSum * (0.25 / shadowBroadSampleCnt);
     }
 #endif
 
-  float get_placement_height(float3 pos, float placement_threshold, bool terrainOnly)
+  float get_placement_height(float3 pos, float placement_threshold, uint flags)
   {
-    place_fx_above(pos, placement_threshold, terrainOnly);
+    place_fx_above(pos, placement_threshold, flags);
     return pos.y;
   }
 
@@ -444,8 +444,7 @@
     if ( parent_data.mods_offsets[MODFX_RMOD_RENDER_PLACEMENT_PARAMS] )
     {
       ModfxDeclRenderPlacementParams placementParams = ModfxDeclRenderPlacementParams_load(0, parent_data.mods_offsets[MODFX_RMOD_RENDER_PLACEMENT_PARAMS]);
-      bool terrainOnly = placementParams.flags & MODFX_GPU_PLACEMENT_HMAP; // TODO: make it more dynamic
-      if (!place_fx_above(rdata.pos, placementParams.placement_threshold, terrainOnly))
+      if (!place_fx_above(rdata.pos, placementParams.placement_threshold, placementParams.flags))
         is_dead = true;
       else
         placementNormalOffset = placementParams.align_normals_offset;
@@ -688,12 +687,11 @@
     if ( placementNormalOffset > 0 )
     {
       ModfxDeclRenderPlacementParams placementParams = ModfxDeclRenderPlacementParams_load(0, parent_data.mods_offsets[MODFX_RMOD_RENDER_PLACEMENT_PARAMS]);
-      bool terrainOnly = placementParams.flags & MODFX_GPU_PLACEMENT_HMAP; // TODO: make it more dynamic
 
-      half W = get_placement_height(rdata.pos + float3(-placementNormalOffset, 0, 0), placementParams.placement_threshold, terrainOnly);
-      half E = get_placement_height(rdata.pos + float3(+placementNormalOffset, 0, 0), placementParams.placement_threshold, terrainOnly);
-      half N = get_placement_height(rdata.pos + float3(0, 0, -placementNormalOffset), placementParams.placement_threshold, terrainOnly);
-      half S = get_placement_height(rdata.pos + float3(0, 0, +placementNormalOffset), placementParams.placement_threshold, terrainOnly);
+      half W = get_placement_height(rdata.pos + float3(-placementNormalOffset, 0, 0), placementParams.placement_threshold, placementParams.flags);
+      half E = get_placement_height(rdata.pos + float3(+placementNormalOffset, 0, 0), placementParams.placement_threshold, placementParams.flags);
+      half N = get_placement_height(rdata.pos + float3(0, 0, -placementNormalOffset), placementParams.placement_threshold, placementParams.flags);
+      half S = get_placement_height(rdata.pos + float3(0, 0, +placementNormalOffset), placementParams.placement_threshold, placementParams.flags);
       float3 placementWorldNormal = float3(W-E, 2*placementNormalOffset, N-S); // no need to normalize it on its own
 
       // particle "forward direction" (parallel to velocity dir) is up_vec, so we need that to align with the projected world normal
@@ -917,6 +915,7 @@
 
   float wboit_weight(float z, float a)
   {
+    z += modfx_wboit_depth_offset;
     // https://jcgt.org/published/0002/02/09/paper.pdf
     //return a * max(pow(10.f, -2.f), min(3*pow(10.f, 3.f), 10.f / (pow(10.f, -5.f) + pow(abs(z)/5.f, 2.f) + pow(abs(z)/200.f, 6.f))));
     return a * max(0.00001, min(1000.f, 10.f / (1e-05 + pow((z)/5.f, 2.f) + pow((z)/200.f, 6.f))));

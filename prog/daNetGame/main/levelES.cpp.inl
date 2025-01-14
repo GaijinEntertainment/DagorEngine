@@ -87,7 +87,7 @@ static eastl::unique_ptr<crashlytics::AppState> androidLevelStatus;
 #endif
 
 #define LEVEL_BIN_NAME "levelBin"
-#define ASYNC_LOADING  1
+extern const char *const EMPTY_LEVEL_NAME = "__empty__";
 
 ECS_REGISTER_EVENT(EventLevelLoaded)
 ECS_REGISTER_EVENT(EventGameObjectsCreated)
@@ -224,7 +224,7 @@ public:
   uint32_t dataNeeded = 0;
   bool needLmeshLoadedCall = false;
   bool waterHeightmapLoaded = false;
-  eastl::unique_ptr<DataBlock> levelBlk; // Shall be accessed only during loading
+  eastl::unique_ptr<DataBlock> levelBlk; // Warn: can be accessed only during loading (null after)
   Tab<ObjectsToPlace *> objectsToPlace, efxToPlace;
   DataBlock riGenExtraConfig;
 
@@ -260,10 +260,8 @@ public:
   virtual void bdlSceneLoaded(unsigned bindump_id, RenderScene *scene)
   {
     BaseStreamingSceneHolder::bdlSceneLoaded(bindump_id, scene);
-#if ASYNC_LOADING
     if (get_world_renderer())
       get_world_renderer()->onSceneLoaded(this);
-#endif
   }
   void bdlTextureMap(unsigned /*bindump_id*/, dag::ConstSpan<TEXTUREID> texId)
   {
@@ -412,7 +410,6 @@ public:
 
         dacoll::add_collision_hmap(lmeshMgr.get(), /* restitution */ 0.f, /* margin */ 0.f);
         lmeshMgr->getHmapHandler()->pushHmapModificationOnPrepare = false;
-#if ASYNC_LOADING
         if (get_world_renderer())
         {
           const char *fname = levelBlk->getStr(LEVEL_BIN_NAME, "undefined");
@@ -422,7 +419,6 @@ public:
             lmeshMirror.numBorderCellsZPos, lmeshMirror.numBorderCellsZNeg);
           needLmeshLoadedCall = false;
         }
-#endif
         return true;
       }
       else
@@ -610,14 +606,6 @@ public:
 #endif
     if (get_world_renderer())
     {
-#if !ASYNC_LOADING
-      LmeshMirroringParams lmeshMirror = load_lmesh_mirroring(*levelBlk);
-      dacoll::set_landmesh_mirroring(lmeshMirror.numBorderCellsXPos, lmeshMirror.numBorderCellsXNeg, lmeshMirror.numBorderCellsZPos,
-        lmeshMirror.numBorderCellsZNeg);
-      const char *fname = levelBlk->getStr(LEVEL_BIN_NAME, "undefined");
-      get_world_renderer()->onLandmeshLoaded(*levelBlk, fname, lmeshMgr.get());
-      get_world_renderer()->onSceneLoaded(scn);
-#else
       if (needLmeshLoadedCall)
       {
         LmeshMirroringParams lmeshMirror = load_lmesh_mirroring(*levelBlk);
@@ -625,7 +613,6 @@ public:
           lmeshMirror.numBorderCellsZNeg);
         get_world_renderer()->onLandmeshLoaded(*levelBlk, levelBlk->getStr(LEVEL_BIN_NAME, "undefined"), lmeshMgr.get());
       }
-#endif
       if (FFTWater *water = dacoll::get_water(); waterHeightmapLoaded)
       {
         fft_water::reset_render(water);
@@ -646,7 +633,7 @@ public:
     g_entity_mgr->broadcastEventImmediate(EventDoFinishLocationDataLoad());
 
     G_ASSERT(levelBlk);
-    g_entity_mgr->broadcastEvent(EventLevelLoaded());
+    g_entity_mgr->broadcastEvent(EventLevelLoaded(*levelBlk.release())); // Note: freed by `level_es`
 
     if (!::dgs_app_active)
       flash_window();
@@ -687,7 +674,7 @@ private:
   {
     G_ASSERT(!levelBlk);
     debug("loading level <%s>", level_fn);
-    if (strcmp(level_fn, "__empty__") == 0) // special case. Level is intentionally omitted (login screen)
+    if (strcmp(level_fn, EMPTY_LEVEL_NAME) == 0) // Special case. Level is intentionally omitted (login screen)
     {
       set_level_status(LEVEL_EMPTY);
       return;
@@ -1018,7 +1005,13 @@ void OnLevelLoadedAction::performAction()
   // else assume edge case of level entity already destroyed (unload/shutdown code path?)
 }
 
-static inline void level_es_event_handler(const EventLevelLoaded &, bool &level__loaded) { level__loaded = true; }
+ECS_REQUIRE(LocationHolder level)
+static inline void level_es(const EventLevelLoaded &evt, bool *level__loaded)
+{
+  if (level__loaded)
+    *level__loaded = true;
+  add_delayed_callback_buffered([](void *b) { delete (DataBlock *)b; }, (void *)&evt.get<0>());
+}
 
 ECS_REQUIRE(ecs::Tag world_renderer_tag)
 ECS_ON_EVENT(on_appear)
@@ -1098,7 +1091,7 @@ void select_weather_preset(const char *preset_name)
 {
   ecs::EntityId levelEid = get_current_level_eid();
   const char *currentPresetName = (g_entity_mgr->get<ecs::string>(levelEid, ECS_HASH("level__weather"))).c_str();
-  if (currentPresetName && strcmp(currentPresetName, preset_name) == 0)
+  if (currentPresetName && preset_name && strcmp(currentPresetName, preset_name) == 0)
     return;
 
   delete_weather_choice_entities();

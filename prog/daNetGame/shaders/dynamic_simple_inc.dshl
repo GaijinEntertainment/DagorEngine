@@ -318,7 +318,6 @@ macro DYNAMIC_SIMPLE_VS_BASE_SHADERBODY()
         worldDu,
         worldDv);
 
-      float4 unpackedOutputPos = output.pos;
       #if NEED_TC
       SET_DIFFUSETC(output.diffuseTexcoord.xy, diffuseTexcoord);
       #if RANDOMIZE_TC

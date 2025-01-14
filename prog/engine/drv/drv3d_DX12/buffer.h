@@ -153,7 +153,7 @@ struct PlatformBufferInterfaceConfig : BufferInterfaceConfigCommon
   constexpr static bool HAS_STRICT_LOCKING_RULES = false;
   constexpr static bool TRACK_GPU_WRITES = false;
 
-  static constexpr bool isMapable(BufferConstReferenceType) { return true; }
+  static bool isMapable(BufferConstReferenceType buf);
 
   static D3D12_RESOURCE_FLAGS getResourceFlags(uint32_t flags)
   {

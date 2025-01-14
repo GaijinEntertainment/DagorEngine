@@ -87,12 +87,12 @@ public:
   MemGeneralLoadCB &operator=(MemGeneralLoadCB &&) = default;
   KRNLIMP virtual ~MemGeneralLoadCB(void);
 
-  KRNLIMP void read(void *ptr, int size);
-  KRNLIMP int tryRead(void *ptr, int size);
-  KRNLIMP int tell(void);
-  KRNLIMP void seekto(int ofs);
-  KRNLIMP void seekrel(int ofs);
-  KRNLIMP virtual const char *getTargetName() { return "(mem)"; }
+  KRNLIMP void read(void *ptr, int size) override;
+  KRNLIMP int tryRead(void *ptr, int size) override;
+  KRNLIMP int tell(void) override;
+  KRNLIMP void seekto(int ofs) override;
+  KRNLIMP void seekrel(int ofs) override;
+  KRNLIMP const char *getTargetName() override { return "(mem)"; }
   KRNLIMP int64_t getTargetDataSize() override { return datasize; }
   dag::ConstSpan<char> getTargetRomData() const override { return make_span_const((const char *)dataptr, datasize); }
 

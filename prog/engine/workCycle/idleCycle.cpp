@@ -11,9 +11,10 @@
 #include <debug/dag_debug.h>
 #include "workCyclePriv.h"
 #include <3d/dag_lowLatency.h>
+#include <startup/dag_globalSettings.h>
 
 #if _TARGET_GDK
-#include <osApiWrappers/xbox/queues.h>
+#include <osApiWrappers/gdk/queues.h>
 #endif
 
 #if _TARGET_PC_WIN
@@ -55,14 +56,14 @@ static bool pump_messages(bool input_only)
   return were_events;
 }
 #elif _TARGET_XBOX
-namespace xbox
+namespace gdk
 {
 extern bool process_main_thread_messages();
 }
 static bool pump_messages(bool)
 {
   TIME_PROFILE(pump_messages);
-  return xbox::process_main_thread_messages();
+  return gdk::process_main_thread_messages();
 }
 #endif
 
@@ -81,10 +82,10 @@ void dagor_process_sys_messages(bool input_only)
   }
 
 #if _TARGET_GDK
-  xbox::dispatch_queue(xbox::get_default_queue());
+  gdk::dispatch_queue(gdk::get_default_queue());
 #endif
 
-  if (::dgs_dont_use_cpu_in_background && !workcycle_internal::application_active)
+  if (::dgs_dont_use_cpu_in_background && !::dgs_app_active)
   {
     TIME_PROFILE(application_inactive_sleep);
     sleep_msec(100);

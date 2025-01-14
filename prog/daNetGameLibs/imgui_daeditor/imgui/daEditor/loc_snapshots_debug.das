@@ -16,7 +16,7 @@ require daslib/defer
 
 
 [ecs_inspector(type_name="LocSnapshotsList", no_aot)]
-def draw_LocSnapshotList(eid : array<EntityId> implicit; flags : uint; name : string; refs : array<EntityComponentRef#>#; level : int; var changed : bool?; sub_menu : block<(var changed : bool?) : bool>) : void
+def draw_LocSnapshotList(eid : array<EntityId> implicit; flags : uint; name : string; refs : array<ComponentRenderInfo#>#; level : int; var changed : bool?; sub_menu : block<(var changed : bool?) : bool>) : void
   var val = unsafe(reinterpret<LocSnapshotsList?> refs[0].rawData)
   assume list = *val
 

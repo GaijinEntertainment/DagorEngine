@@ -48,11 +48,11 @@ void AuroraBorealis::setParams(const AuroraBorealisParams &parameters, int targe
     int skyW = targetW / AURORA_BOREALIS_LEVEL, skyH = targetH / AURORA_BOREALIS_LEVEL;
     auroraBorealisTex = dag::create_tex(NULL, skyW, skyH, TEXCF_RTARGET | noAlphaSkyHdrFmt, 1, "aurora_borealis_tex");
     auroraBorealisTex.setVar();
-    if (auroraBorealisTex.getTex2D())
-    {
-      auroraBorealisTex.getTex2D()->texfilter(TEXFILTER_LINEAR);
-      auroraBorealisTex.getTex2D()->texaddr(TEXADDR_CLAMP);
-    }
+    auroraBorealisTex->disableSampler();
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = d3d::AddressMode::Clamp;
+    smpInfo.filter_mode = d3d::FilterMode::Linear;
+    ShaderGlobal::set_sampler(get_shader_variable_id("aurora_borealis_tex_samplerstate"), d3d::request_sampler(smpInfo));
   }
 }
 

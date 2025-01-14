@@ -2,6 +2,7 @@
 #pragma once
 
 #include "call_stack.h"
+#include <pipeline.h>
 
 #include <EASTL/unordered_map.h>
 #include <EASTL/variant.h>
@@ -238,6 +239,26 @@ public:
     }
   }
 
+#if D3D_HAS_RAY_TRACING
+  void dispatchRays(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+    const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchParameters &rdp)
+  {
+    if (isAnyActive())
+    {
+      eastl::visit([&](auto &tracer) { tracer.dispatchRays(debug_info, cmd, dispatch_parameters, rbt, rdp); }, tracer);
+    }
+  }
+
+  void dispatchRaysIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+    const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchIndirectParameters &rdip)
+  {
+    if (isAnyActive())
+    {
+      eastl::visit([&](auto &tracer) { tracer.dispatchRaysIndirect(debug_info, cmd, dispatch_parameters, rbt, rdip); }, tracer);
+    }
+  }
+#endif
+
   void onDeviceRemoved(D3DDevice *device, HRESULT reason, call_stack::Reporter &reporter)
   {
     eastl::visit([&](auto &tracer) { tracer.onDeviceRemoved(device, reason, reporter); }, tracer);
@@ -248,9 +269,9 @@ public:
   {
     return eastl::holds_alternative<T>(tracer);
   }
-  bool tryCreateDevice(IUnknown *adapter, D3D_FEATURE_LEVEL minimum_feature_level, void **ptr)
+  bool tryCreateDevice(DXGIAdapter *adapter, UUID uuid, D3D_FEATURE_LEVEL minimum_feature_level, void **ptr)
   {
-    return eastl::visit([=](auto &tracer) { return tracer.tryCreateDevice(adapter, minimum_feature_level, ptr); }, tracer);
+    return eastl::visit([=](auto &tracer) { return tracer.tryCreateDevice(adapter, uuid, minimum_feature_level, ptr); }, tracer);
   }
   bool sendGPUCrashDump(const char *type, const void *data, uintptr_t size)
   {

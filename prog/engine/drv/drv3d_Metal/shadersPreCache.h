@@ -63,7 +63,7 @@ class ShadersPreCache
 
     struct Attr
     {
-      uint32_t format = 0;
+      MTLVertexFormat format = MTLVertexFormatInvalid;
       uint8_t stream = 0;
       uint8_t offset = 0;
       uint8_t slot = 0;

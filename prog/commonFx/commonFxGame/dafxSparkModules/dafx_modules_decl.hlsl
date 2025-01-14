@@ -234,7 +234,7 @@
   DAFX_MODULE_DATA_DECL(3 * PARTICLES_REN_MODULE_VELOCITY, PARTICLES_REN_MODULE_VELOCITY_DECL(float3 velocity;), PARTICLES_REN_MODULE_VELOCITY_DECL(p.velocity = dafx_load_3f(buf, ofs);), PARTICLES_REN_MODULE_VELOCITY_DECL(dafx_store_3f(p.velocity, buf, ofs);)) \
   DAFX_MODULE_DATA_DECL(1 * SPAWN_MODULE_WIDTH, SPAWN_MODULE_WIDTH_DECL(float width;), SPAWN_MODULE_WIDTH_DECL(p.width = dafx_load_1f(buf, ofs);), SPAWN_MODULE_WIDTH_DECL(dafx_store_1f(p.width, buf, ofs);)) \
   DAFX_MODULE_DATA_DECL(1 * SIM_MODULE_WIDTH_MODIFIER, SIM_MODULE_WIDTH_MODIFIER_DECL(float widthModifier;), SIM_MODULE_WIDTH_MODIFIER_DECL(p.widthModifier = dafx_load_1f(buf, ofs);), SIM_MODULE_WIDTH_MODIFIER_DECL(dafx_store_1f(p.widthModifier, buf, ofs);)) \
-  DAFX_MODULE_DATA_DECL(5 * SIM_MODULE_COLOR, SIM_MODULE_COLOR_DECL(float4 color; float hdrScale;), SIM_MODULE_COLOR_DECL(p.color = dafx_load_4f(buf, ofs); p.hdrScale = dafx_load_1f(buf, ofs);), SIM_MODULE_COLOR_DECL(dafx_store_4f(p.color, buf, ofs); dafx_store_1f(p.hdrScale, buf, ofs);))
+  DAFX_MODULE_DATA_DECL(2 * SIM_MODULE_COLOR, SIM_MODULE_COLOR_DECL(uint color; float hdrScale;), SIM_MODULE_COLOR_DECL(p.color = dafx_load_1ui(buf, ofs); p.hdrScale = dafx_load_1f(buf, ofs);), SIM_MODULE_COLOR_DECL(dafx_store_1ui(p.color, buf, ofs); dafx_store_1f(p.hdrScale, buf, ofs);))
 
 
 //--- Dafx Internal Declarations

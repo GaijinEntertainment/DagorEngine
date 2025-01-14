@@ -364,6 +364,7 @@ namespace das
                 bool    access_ref : 1;
                 bool    access_init : 1;
                 bool    access_pass : 1;
+                bool    access_fold : 1;
             };
             uint32_t access_flags = 0;
         };
@@ -735,6 +736,7 @@ namespace das
         virtual void serialize ( AstSerializer & ser ) override;
         Type    baseType = Type::none;
         vec4f   value = v_zero();
+        bool    foldedNonConst = false;
       };
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -1398,6 +1400,7 @@ namespace das
         bool        export_all = false;                 // when user compiles, export all (public?) functions
         bool        serialize_main_module = true;       // if false, then we recompile main module each time
         bool        keep_alive = false;                 // produce keep-alive noodes
+        bool        very_safe_context = false;          // context is very safe (does not release old memory from array or table grow, leaves it to GC)
     // error reporting
         int32_t     always_report_candidates_threshold = 6; // always report candidates if there are less than this number
     // infer passes
@@ -1419,6 +1422,7 @@ namespace das
     // rtti
         bool rtti = false;                              // create extended RTTI
     // language
+        bool unsafe_table_lookup = true;                // table lookup (tab[key]) to be unsafe
         bool relaxed_pointer_const = false;             // allow const correctness to be relaxed on pointers
         bool version_2_syntax = false;                  // use syntax version 2
         bool gen2_make_syntax = false;                  // only new make syntax is allowed (no [[...]] or [{...}])
@@ -1673,11 +1677,6 @@ namespace das
     ProgramPtr compileDaScriptSerialize ( const string & fileName, const FileAccessPtr & access,
         TextWriter & logs, ModuleGroup & libGroup, CodeOfPolicies policies = CodeOfPolicies() );
 
-    struct RequireRecord {
-        string              name;
-        vector<FileInfo *>  chain;
-    };
-
     // collect script prerequisits
     bool getPrerequisits ( const string & fileName,
                           const FileAccessPtr & access,
@@ -1755,5 +1754,3 @@ namespace das
         }
     };
 }
-
-

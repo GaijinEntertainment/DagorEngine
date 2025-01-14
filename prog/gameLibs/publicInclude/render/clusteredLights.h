@@ -21,6 +21,7 @@
 #include <shaders/dag_overrideStates.h>
 #include <render/dynamicShadowRender.h>
 #include <render/dynamicShadowRenderExtensions.h>
+#include <render/shadowCastersFlags.h>
 #include <3d/dag_resPtr.h>
 
 class ShaderMaterial;
@@ -129,11 +130,21 @@ struct ClusteredLights
   // (max_shadow_size>>shadow_size_srl).
   //  shadow_size_srl - maximum size degradation (shft right bits count for max shadow. If shadow is 256 maximum, and srl is 2, than
   //  maximum size will be 64)
-  bool addShadowToLight(uint32_t id, bool only_static_casters, bool hint_dynamic, uint16_t quality, uint8_t priority,
+
+  bool addShadowToLight(uint32_t id, ShadowCastersFlag casters_flags, bool hint_dynamic, uint16_t quality, uint8_t priority,
     uint8_t shadow_size_srl, DynamicShadowRenderGPUObjects render_gpu_objects);
+
+  bool addShadowToLight(uint32_t id, bool only_static_casters, bool hint_dynamic, uint16_t quality, uint8_t priority,
+    uint8_t shadow_size_srl, DynamicShadowRenderGPUObjects render_gpu_objects)
+  {
+    return addShadowToLight(id, only_static_casters ? DYNAMIC_CASTERS : STATIC_CASTERS, hint_dynamic, quality, priority,
+      shadow_size_srl, render_gpu_objects);
+  }
+
   void removeShadow(uint32_t id);
-  bool getShadowProperties(uint32_t id, bool &only_static_casters, bool &hint_dynamic, uint16_t &quality, uint8_t &priority,
-    uint8_t &shadow_size_srl, DynamicShadowRenderGPUObjects &render_gpu_objects) const;
+
+  bool getShadowProperties(uint32_t id, ShadowCastersFlag &only_static_casters, bool &hint_dynamic, uint16_t &quality,
+    uint8_t &priority, uint8_t &shadow_size_srl, DynamicShadowRenderGPUObjects &render_gpu_objects) const;
   enum
   {
     SPOT_LIGHT_FLAG = (1 << 30),

@@ -62,6 +62,7 @@ struct AnimationDataBase
   dag::Vector<eastl::pair<int, float>> pbcWeightOverrides; // pairs (pbcId, pbcWeight)
 
   dag::Vector<uint32_t> animGraphNodeTagsRemap;
+  dag::Vector<dag::Index16> footLockerNodes;
   Ptr<AnimV20::AnimationGraph> referenceAnimGraph;
   int animGraphTagsParamId = -1;
   int footLockerParamId = -1;

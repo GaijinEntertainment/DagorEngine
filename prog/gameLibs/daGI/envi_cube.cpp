@@ -27,19 +27,22 @@ void GI3D::VolmapCommonData::calcEnviCube()
   if (enviCubeValid || !ssgi_calc_envi_ambient_cube_cs)
     return;
   TIME_D3D_PROFILE(ssgi_calc_envi_cube);
-
-  d3d::set_rwbuffer(STAGE_CS, 0, enviCubes.getBuf());
-  // todo: we can make it temporal, one group per frame as well
-  // currently it is pretty fast, but it make sense if there are rare envi changes
-  // if we have gradual envi chane (i.e. time of day), it is better temporarily blend in new each frame
-  ssgi_calc_envi_ambient_cube_cs->dispatch(NUM_ENVI_CALC_CUBES, 1, 1);
+  {
+    static int ambient_cubes_uav_no = ShaderGlobal::get_slot_by_name("ssgi_calc_envi_ambient_cube_cs_ambient_cubes_uav_no");
+    d3d::set_rwbuffer(STAGE_CS, ambient_cubes_uav_no, enviCubes.getBuf());
+    // todo: we can make it temporal, one group per frame as well
+    // currently it is pretty fast, but it make sense if there are rare envi changes
+    // if we have gradual envi chane (i.e. time of day), it is better temporarily blend in new each frame
+    ssgi_calc_envi_ambient_cube_cs->dispatch(NUM_ENVI_CALC_CUBES, 1, 1);
+    d3d::set_rwbuffer(STAGE_CS, ambient_cubes_uav_no, 0);
+  }
   d3d::resource_barrier({enviCubes.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE});
-
-  d3d::set_rwbuffer(STAGE_CS, 0, enviCube.getBuf());
-  d3d::set_buffer(STAGE_CS, 15, enviCubes.getBuf());
-  ssgi_average_ambient_cube_cs->dispatch(1, 1, 1);
-  d3d::set_buffer(STAGE_CS, 15, 0);
-  d3d::set_rwbuffer(STAGE_CS, 0, 0);
+  {
+    static int ambient_cubes_uav_no = ShaderGlobal::get_slot_by_name("ssgi_average_ambient_cube_cs_ambient_cubes_uav_no");
+    d3d::set_rwbuffer(STAGE_CS, ambient_cubes_uav_no, enviCube.getBuf());
+    ssgi_average_ambient_cube_cs->dispatch(1, 1, 1);
+    d3d::set_rwbuffer(STAGE_CS, ambient_cubes_uav_no, 0);
+  }
   d3d::resource_barrier({enviCube.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE});
   enviCubeValid = true;
 }

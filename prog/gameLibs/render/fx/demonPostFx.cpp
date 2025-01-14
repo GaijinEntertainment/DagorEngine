@@ -76,7 +76,7 @@ static inline Color4 quadCoeffs0001(0.5f, -0.5f, 0.50001f, 0.50001f);
 static inline Color4 quadCoeffs(0.5f, -0.5f, 0.5000f, 0.5000f);
 
 DemonPostFx::DemonPostFx(const DataBlock &main_blk, const DataBlock &adaptation_blk, int target_w, int target_h,
-  unsigned rtarget_flags, bool initPostfxGlow, bool initSunVolfog) :
+  unsigned rtarget_flags, bool initPostfxGlow, bool initSunVolfog, bool initUIBlur) :
   paramColorMatrix(1),
   preColorMatrix(1),
   postColorMatrix(1),
@@ -164,9 +164,12 @@ DemonPostFx::DemonPostFx(const DataBlock &main_blk, const DataBlock &adaptation_
       lowResLumTexB->texaddr(TEXADDR_MIRROR);
     }
 
-    uiBlurTex = dag::create_tex(NULL, lowResSize.x, lowResSize.y, sky_fmt | TEXCF_RTARGET, 1, "postfx_uiBlur");
-    d3d_err(uiBlurTex.getTex2D());
-    uiBlurTex->texaddr(TEXADDR_CLAMP);
+    if (initUIBlur)
+    {
+      uiBlurTex = dag::create_tex(NULL, lowResSize.x, lowResSize.y, sky_fmt | TEXCF_RTARGET, 1, "postfx_uiBlur");
+      d3d_err(uiBlurTex.getTex2D());
+      uiBlurTex->texaddr(TEXADDR_CLAMP);
+    }
 
     uint32_t usageFlag = useCompute ? TEXCF_UNORDERED : TEXCF_RTARGET;
 

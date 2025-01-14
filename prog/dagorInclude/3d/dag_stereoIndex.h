@@ -10,6 +10,7 @@ enum class StereoIndex
   Left,
   Right,
   Bounding = Mono,
+  Current = -1,
 };
 
 constexpr uint32_t operator*(StereoIndex index) noexcept { return static_cast<uint32_t>(index); }

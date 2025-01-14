@@ -189,6 +189,20 @@ void DeviceState::blit(const call_stack::CommandData &debug_info, D3DGraphicsCom
   globalState->postmortemTrace().blit(debug_info, cmd);
 }
 
+#if D3D_HAS_RAY_TRACING
+void DeviceState::dispatchRays(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+  const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchParameters &rdp)
+{
+  globalState->postmortemTrace().dispatchRays(debug_info, cmd, dispatch_parameters, rbt, rdp);
+}
+
+void DeviceState::dispatchRaysIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+  const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchIndirectParameters &rdip)
+{
+  globalState->postmortemTrace().dispatchRaysIndirect(debug_info, cmd, dispatch_parameters, rbt, rdip);
+}
+#endif
+
 void DeviceState::onDeviceRemoved(D3DDevice *device, HRESULT remove_reason)
 {
   if (DXGI_ERROR_INVALID_CALL == remove_reason)

@@ -8,7 +8,7 @@
 
 #include <d3d11.h>
 #define IDXGI_SWAP_CHAIN           IDXGISwapChain
-#define IDXGI_FACTORY              IDXGIFactory
+#define IDXGI_FACTORY              IDXGIFactory1
 #define ID3D11_DEV                 ID3D11Device
 #define ID3D11_DEV1                ID3D11Device1
 #define ID3D11_DEV3                ID3D11Device3
@@ -28,6 +28,7 @@ struct RENDERDOC_API_1_5_0;
 #include <math/dag_mathBase.h>
 #include <generic/dag_carray.h>
 #include <generic/dag_tab.h>
+#include <validation.h>
 
 #include "frameStateTM.inc.h"
 #include <perfMon/dag_graphStat.h>
@@ -43,6 +44,7 @@ struct RENDERDOC_API_1_5_0;
 #include "streamline_adapter.h"
 #include "winapi_helpers.h"
 #include <EASTL/optional.h>
+#include "memory_metrics.h"
 
 /*
 #include "drvdesc.h"
@@ -94,6 +96,8 @@ struct ID3D11DeviceContext1;
 #define PC_BACKBUFFER_DXGI_FORMAT DXGI_FORMAT_B8G8R8A8_UNORM
 
 #define IMMEDIATE_CB_NAMESPACE namespace drv3d_dx11
+
+#define DEBUG_MEMORY_METRICS DAGOR_DBGLEVEL > 0
 
 namespace drv3d_dx11
 {
@@ -198,6 +202,7 @@ extern bool use_gpu_dt;
 extern bool hdr_enabled;
 extern bool int10_hdr_buffer;
 extern bool command_list_wa;
+extern eastl::optional<MemoryMetrics> memory_metrics;
 
 extern bool window_occlusion_check_enabled;
 extern bool immutable_textures;
@@ -294,8 +299,6 @@ struct DriverState
   bool createSurfaces(uint32_t screenWidth, uint32_t screenHeight);
 };
 
-const uint32_t BLEND_FACTORS_COUNT = 4;
-
 // per thread state
 struct RenderState : public FrameStateTM
 {
@@ -310,6 +313,9 @@ struct RenderState : public FrameStateTM
   bool rasterizerModified;
   bool alphaBlendModified;
   bool depthStencilModified;
+#if ENABLE_GENERIC_RENDER_PASS_VALIDATION
+  bool isGenericRenderPassActive = false;
+#endif
 
   bool srgb_bb_write;
   uint8_t hdgBits;      // flag bits HS(0x1), DS(0x2), GS(0x4) for current compound VS prog (and dirty(0x80) for faster cmp)

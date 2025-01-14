@@ -9,4 +9,6 @@ return {
   open_url = @(_url) null
   get_app_id = @() 0
   get_my_id = @() "-1"
+  steam_add_instantaneous_timeline_event = @(...) null
+  steam_set_video_timeline_game_mode = @(...) null
 }

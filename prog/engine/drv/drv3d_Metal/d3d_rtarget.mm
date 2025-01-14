@@ -722,10 +722,11 @@ RenderPass *create_render_pass(const RenderPassDesc &rp_desc)
         RenderPass::Subpass::PassInput input;
         input.dst_slot = bind.slot + rp_desc.subpassBindingOffset;
         input.src_slot = bind.target;
-        pass.inputs.push_back(input);
 
         if (bind.slot == RenderPassExtraIndexes::RP_SLOT_DEPTH_STENCIL)
           pass.depth_stencil = attach;
+        else
+          pass.inputs.push_back(input);
       }
       else if (subpass_action == RP_TA_SUBPASS_RESOLVE)
       {

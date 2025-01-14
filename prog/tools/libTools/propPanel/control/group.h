@@ -52,7 +52,9 @@ public:
     DataBlock *_block = datablk.addNewBlock(String(64, "group_%d", this->getID()).str());
     _block->addBool("minimize", this->getBoolValue());
 
-    ContainerPropertyControl::saveState(datablk);
+    for (PropertyControlBase *control : mControlArray)
+      control->saveState(*_block);
+
     return 0;
   }
 
@@ -60,9 +62,13 @@ public:
   {
     DataBlock *_block = datablk.getBlockByName(String(64, "group_%d", this->getID()).str());
     if (_block)
+    {
       this->setBoolValue(_block->getBool("minimize", true));
 
-    ContainerPropertyControl::loadState(datablk);
+      for (PropertyControlBase *control : mControlArray)
+        control->loadState(*_block);
+    }
+
     return 0;
   }
 

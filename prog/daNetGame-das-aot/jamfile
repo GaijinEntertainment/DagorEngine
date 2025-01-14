@@ -16,8 +16,12 @@ TargetCodeName = _aot ;
 if ! $(OutDir) { Exit OutDir not set ; }
 
 include $(Root)/prog/_jBuild/defPlatform.jam ;
-if $(Platform)-$(PlatformArch) = windows-x86_64 {
-  PlatformSpec ?= clang ;
+if $(Platform) = windows {
+  if $(PlatformArch) = x86_64 {
+    PlatformSpec ?= clang ;
+  } else {
+    PlatformSpec ?= vc17 ;
+  }
 }
 
 if $(Platform)-$(PlatformArch) = linux-x86_64 { # same build cfg as linux dedicated (to be able share build output)

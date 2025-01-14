@@ -6,6 +6,8 @@
 
 #include <RenderDoc/renderdoc_app.h>
 
+#include "amd_ags_init.h"
+
 #if USE_PIX
 // PROFILE_BUILD will enable USE_PIX in pix3.h if architecture is supported
 #define PROFILE_BUILD
@@ -270,4 +272,78 @@ void nvidia::NSight::marker(ID3D12GraphicsCommandList *cmd, eastl::span<const ch
 {
   cmd->SetMarker(PIX_EVENT_ANSI_VERSION, text.data(), text.size());
 }
+
+#if HAS_AMD_GPU_SERVICES
+void amd::RadeonGPUProfiler::configure() {}
+void amd::RadeonGPUProfiler::beginCapture(const wchar_t *) {}
+void amd::RadeonGPUProfiler::endCapture() {}
+void amd::RadeonGPUProfiler::onPresent() {}
+void amd::RadeonGPUProfiler::captureFrames(const wchar_t *, int) {}
+void amd::RadeonGPUProfiler::beginEvent(ID3D12GraphicsCommandList *command_list, eastl::span<const char> text)
+{
+  G_ASSERT_RETURN(command_list, );
+  G_ASSERT_RETURN(agsContext, );
+
+  if (!deviceInitialized)
+    return;
+
+  const auto agsResult = agsDriverExtensionsDX12_PushMarker(agsContext, command_list, eastl::string(text.cbegin()).c_str());
+  if (EASTL_LIKELY(agsResult == AGS_SUCCESS))
+    return;
+  logwarn("DX12: Failed to push AGS marker %s. Result = %d", eastl::string(text.data(), text.size()).c_str(), agsResult);
+}
+void amd::RadeonGPUProfiler::endEvent(ID3D12GraphicsCommandList *command_list)
+{
+  G_ASSERT_RETURN(command_list, );
+  G_ASSERT_RETURN(agsContext, );
+
+  if (!deviceInitialized)
+    return;
+
+  const auto agsResult = agsDriverExtensionsDX12_PopMarker(agsContext, command_list);
+  if (EASTL_LIKELY(agsResult == AGS_SUCCESS))
+    return;
+  logwarn("DX12: Failed to pop AGS marker. Result = %d", agsResult);
+}
+void amd::RadeonGPUProfiler::marker(ID3D12GraphicsCommandList *command_list, eastl::span<const char> text)
+{
+  G_ASSERT_RETURN(command_list, );
+  G_ASSERT_RETURN(agsContext, );
+
+  if (!deviceInitialized)
+    return;
+
+  const auto agsResult = agsDriverExtensionsDX12_SetMarker(agsContext, command_list, eastl::string(text.cbegin()).c_str());
+  if (EASTL_LIKELY(agsResult == AGS_SUCCESS))
+    return;
+  logwarn("DX12: Failed to set AGS marker %s. Result = %d", eastl::string(text.data(), text.size()).c_str(), agsResult);
+}
+
+bool amd::RadeonGPUProfiler::try_connect_interface()
+{
+#if _TARGET_64BIT
+  logdbg("DX12: Looking for amd_ags_x64.dll...");
+  if (GetModuleHandleW(L"amd_ags_x64.dll"))
+  {
+    logdbg("DX12: ...found...");
+    return true;
+  }
+#else
+  logdbg("DX12: Looking for amd_ags_x86.dll...");
+  if (GetModuleHandleW(L"amd_ags_x86.dll"))
+  {
+    logdbg("DX12: ...found...");
+    return true;
+  }
+#endif
+  return false;
+}
+
+bool amd::RadeonGPUProfiler::tryCreateDevice(DXGIAdapter *adapter, UUID uuid, D3D_FEATURE_LEVEL minimum_feature_level, void **ptr)
+{
+  deviceInitialized = debug::ags::create_device_with_user_markers(agsContext, adapter, uuid, minimum_feature_level, ptr);
+  return deviceInitialized;
+}
+#endif
+
 } // namespace drv3d_dx12::debug::gpu_capture

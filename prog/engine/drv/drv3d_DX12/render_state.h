@@ -5,6 +5,7 @@
 #include "driver.h"
 #include "dynamic_array.h"
 #include "tagged_handles.h"
+#include "format_store.h"
 
 #include <drv/3d/dag_consts.h>
 #include <drv/3d/dag_decl.h>
@@ -430,9 +431,21 @@ public:
       return colorWriteMask & frame_buffer_render_target_mask;
     }
 
-    uint32_t calculateMissingShaderOutputMask(uint32_t frame_buffer_render_target_mask, uint32_t pipeline_output_mask) const
+    uint32_t calculateMissingShaderOutputMask(uint32_t frame_buffer_render_target_mask, eastl::span<const FormatStore> rt_formats,
+      uint32_t pipeline_output_mask) const
     {
       auto finalColorTargetMask = adjustColorTargetMask(frame_buffer_render_target_mask);
+
+      // https://microsoft.github.io/DirectX-Specs/d3d/D3D12R9G9B9E5Format.html#interaction-with-rendertargetwritemask
+      uint32_t alphaMask = 0x8;
+      const auto r9g9b9e5Store = FormatStore::fromDXGIFormat(DXGI_FORMAT_R9G9B9E5_SHAREDEXP);
+      for (const auto format : rt_formats)
+      {
+        if (format == r9g9b9e5Store)
+          finalColorTargetMask &= ~alphaMask;
+        alphaMask <<= 4;
+      }
+
       return finalColorTargetMask ^ (finalColorTargetMask & pipeline_output_mask);
     }
 

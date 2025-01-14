@@ -4,6 +4,7 @@
 
 #include "util/dag_baseDef.h"
 
+// Increase this number if changes in the compiler invalidate .obj for dx12
 extern const int VER_OBJ_DXC_VAL = _MAKE4C('12.4');
 
 #if _CROSS_TARGET_DX12

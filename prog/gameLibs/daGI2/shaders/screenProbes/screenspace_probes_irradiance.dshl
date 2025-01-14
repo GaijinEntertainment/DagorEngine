@@ -378,11 +378,11 @@ shader calc_screenspace_irradiance_sph3_cs
 
     ##if (sp_irradiance_oct_quality == same_as_radiance_8 || sp_irradiance_oct_quality == radiance_downsample)
       #define MAX_PROBES_PER_WARP 1
-      ##if sp_irradiance_oct_quality == radiance_downsample
+      #if !SP_ONE_IRRADIANCE_PROBE_PER_WARP
+        #error unsupported
+      #endif
       #define RADIANCE_DOWNSAMPLED_RES 8
-      ##endif
     ##else
-
       #undef DAGI_IRRADIANCE_ONE_WARP // not nessessarily needed. we can calculate n probes in n waves. and for 4x4 and 5x5 and 32 warp we can do 32 warps with 1..2 probes per warp
       #define MAX_PROBES_PER_WARP (SP_IRRADIANCE_WARP_SIZE/(IRRADIANCE_RES_LOWEST*IRRADIANCE_RES_LOWEST))
       #define SHARED_RAD_DIRS_SIZE (SP_RADIANCE_RES_UP_USE*SP_RADIANCE_RES_UP_USE)
@@ -579,15 +579,18 @@ shader calc_screenspace_irradiance_sph3_cs
       uint irradianceProbeResolutionWithBorder = sp_irradiance_res.y;
       #endif
 
-      #if RADIANCE_DOWNSAMPLED_RES
+      #if SP_RADIANCE_DOWNSAMPLE
       uint sourceRadianceRes = RADIANCE_DOWNSAMPLED_RES;
       uint sourceRadianceResArea = sourceRadianceRes*sourceRadianceRes;
+      const float fixed_solid_angle = 4./sourceRadianceResArea;
       #elif SP_RADIANCE_SIZE_IS_CONST
       const uint sourceRadianceRes = SP_RADIANCE_OCT_W;
       const uint sourceRadianceResArea = sourceRadianceRes*sourceRadianceRes;
+      float fixed_solid_angle = 4./sourceRadianceResArea;
       #else
       uint sourceRadianceRes = sp_getRadianceRes();
       uint sourceRadianceResArea = sp_radiance_area;
+      float fixed_solid_angle = sp_fixed_solid_angle.y;
       #endif
 
       #if SP_ONE_IRRADIANCE_PROBE_PER_WARP
@@ -609,8 +612,6 @@ shader calc_screenspace_irradiance_sph3_cs
             readRadiance = sp_decode_texture_radiance(texture2DAt(screenprobes_current_radiance, atlasProbeCoord*sourceRadianceRes + gtId).xyz);
             #if !DAGI_USE_EQUAL_AREA_OCTAHEDRAL
             readRadiance *= dagi_octahedral_solid_angle_fast(gtId*screenspace_probe_radiance_res_decode.x + screenspace_probe_radiance_res_decode.y, screenspace_probe_radiance_res_decode.x);
-            //#else
-            //readRadiance *= sp_fixed_solid_angle.x;
             #endif
           }
         }
@@ -710,7 +711,7 @@ shader calc_screenspace_irradiance_sph3_cs
       float currentExposure = 1;
       #if DAGI_USE_EQUAL_AREA_OCTAHEDRAL
       //we apply * sp_fixed_solid_angle now
-      float irrMul = currentExposure * normalization * sp_fixed_solid_angle.y;
+      float irrMul = currentExposure * normalization * fixed_solid_angle;
       #else
       //solid angle is 4 pi, we keep result divided by PI
       float irrMul = currentExposure * normalization * (1. / PI);

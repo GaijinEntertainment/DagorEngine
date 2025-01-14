@@ -193,7 +193,7 @@ struct SweepCollisionCB
     ShapeQueryOutput prev = out;
     out.t = 1.0f;
     get_phys_world()->shapeQuery(castShape, from, to, make_span_const(&contact.body, 1), out);
-    if (out.t >= 1.f || (filterCB && !filterCB->onFilter(in_desc, out.t)))
+    if (out.t >= 1.f || (filterCB && !(*filterCB)(in_desc, out.t)))
       out = prev;
     else
     {

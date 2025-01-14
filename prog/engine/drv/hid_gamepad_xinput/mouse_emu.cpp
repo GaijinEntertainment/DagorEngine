@@ -15,7 +15,7 @@
 #include <osApiWrappers/dag_miscApi.h>
 
 #if _TARGET_XBOX
-#include <osApiWrappers/xbox/gameinput.h>
+#include <osApiWrappers/gdk/gameinput.h>
 #endif
 
 
@@ -281,14 +281,14 @@ protected:
     int currentHwWheel = 0;
   };
 
-  MouseState mouse_states[xbox::gameinput::MAX_DEVICES_PER_TYPE] = {};
+  MouseState mouse_states[gdk::gameinput::MAX_DEVICES_PER_TYPE] = {};
 
   void updateMouseState(MouseState &state, IGameInputDevice *device)
   {
     if (!device)
       return;
 
-    xbox::gameinput::Reading reading = xbox::gameinput::get_current_reading(GameInputKindMouse, device);
+    gdk::gameinput::Reading reading = gdk::gameinput::get_current_reading(GameInputKindMouse, device);
     if (reading)
     {
       GameInputMouseState mouseState;
@@ -337,10 +337,10 @@ protected:
 
   void updateHWMouse()
   {
-    xbox::gameinput::DevicesList mouses;
-    xbox::gameinput::get_devices(GameInputKindMouse, mouses);
+    gdk::gameinput::DevicesList mouses;
+    gdk::gameinput::get_devices(GameInputKindMouse, mouses);
 
-    G_ASSERT(mouses.size() <= xbox::gameinput::MAX_DEVICES_PER_TYPE);
+    G_ASSERT(mouses.size() <= gdk::gameinput::MAX_DEVICES_PER_TYPE);
 
     for (size_t mouseNo = 0; mouseNo < mouses.size(); ++mouseNo)
       updateMouseState(mouse_states[mouseNo], mouses[mouseNo]);

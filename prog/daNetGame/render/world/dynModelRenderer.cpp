@@ -73,6 +73,9 @@ void DynModelRenderingState::process_animchar(uint32_t start_stage,
   G_ASSERT(scene->getLodsResource()->getInstanceRefCount() > 0);
   int lodNo = max(scene->getCurrentLodNo(), 0);
 
+  const bool forceNodeCollapser = render_mask & UpdateStageInfoRender::RenderPass::FORCE_NODE_COLLAPSER_ON;
+  render_mask = render_mask & ~UpdateStageInfoRender::RenderPass::FORCE_NODE_COLLAPSER_ON; // for safety
+
   const bool addPreviousMatrices = need_previous_matrices;
   matrixStride = addPreviousMatrices ? MATRIX_ROWS * 2 : MATRIX_ROWS; // 3 rows for matrix and 3 for previous matrix
   float distSq = scene->getDistSq();
@@ -179,7 +182,7 @@ void DynModelRenderingState::process_animchar(uint32_t start_stage,
       memcpy(instanceDataPtr, bones_additional_data, sizeof(Point4) * additional_data_size);
     instanceDataPtr += additional_data_size;
 
-    if (render_mask == UpdateStageInfoRender::RenderPass::RENDER_SHADOW)
+    if (!forceNodeCollapser && (render_mask & UpdateStageInfoRender::RenderPass::RENDER_SHADOW))
       memset(instanceDataPtr, 0, ADDITIONAL_BONE_MTX_OFFSET * sizeof(Point4));
     else
       fill_node_collapser_data(scene, eastl::span(reinterpret_cast<Point4 *__restrict>(instanceDataPtr), ADDITIONAL_BONE_MTX_OFFSET));

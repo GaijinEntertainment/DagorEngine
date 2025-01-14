@@ -99,18 +99,23 @@ VECTORCALL static inline void v_mat_rotate_with_quat(mat44f &m, quat4f q)
 
 void AnimV20::FootLockerIKCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
 {
-  if (wt < 1e-3f)
-    return;
-
   TIME_PROFILE_DEV(FootLockerIKCtrl);
 
+  int numLegs = legsNodeNames.size();
   LegData *legsData = static_cast<LegData *>(st.getInlinePtr(legsDataVarId));
+  if (wt < 1e-3f)
+  {
+    for (int i = 0; i < numLegs; ++i)
+      legsData[i].isLocked = false;
+    return;
+  }
+
   float hipMoveDown = hipMoveDownVarId >= 0 ? st.getParam(hipMoveDownVarId) : 0.f;
   if (hipMoveDown > 0.f)
   {
     dag::Index16 pelvisNode = tree.getParentNodeIdx(legsData[0].hipNodeId);
     mat44f &pelvis = tree.getNodeWtmRel(pelvisNode);
-    pelvis.col3 = v_madd(V_C_UNIT_0100, v_splats(-hipMoveDown), pelvis.col3);
+    pelvis.col3 = v_madd(V_C_UNIT_0100, v_splats(-hipMoveDown * wt), pelvis.col3);
     tree.markNodeTmInvalid(pelvisNode);
     tree.validateTm();
     tree.invalidateWtm(pelvisNode);
@@ -118,7 +123,6 @@ void AnimV20::FootLockerIKCtrl::process(IPureAnimStateHolder &st, real wt, GeomN
   tree.calcWtm();
   vec3f worldOffset = v_add(ctx.worldTranslate, ctx.ac->getWtmOfs());
 
-  int numLegs = legsNodeNames.size();
   dag::RelocatableFixedVector<AnimCharV20::LegsIkRay, 4, true /*OF*/, framemem_allocator> traces;
   traces.resize(numLegs * 2);
   memset(traces.data(), 0, sizeof(AnimCharV20::LegsIkRay) * traces.size());
@@ -260,6 +264,11 @@ void AnimV20::FootLockerIKCtrl::process(IPureAnimStateHolder &st, real wt, GeomN
     vec3f anklePos;
     solve_ik_two_bones(hip, knee, ankle, ankleTargetPos, knee.col1, len0, len1, maxReachScale, hipRotate, kneeRotate, anklePos);
 
+    if (wt < 1)
+    {
+      hipRotate = v_quat_qslerp(wt, V_C_UNIT_0001, hipRotate);
+      kneeRotate = v_quat_qslerp(wt, V_C_UNIT_0001, kneeRotate);
+    }
     v_mat_rotate_with_quat(hip, hipRotate);
     v_mat_rotate_with_quat(knee, v_quat_mul_quat(hipRotate, kneeRotate));
     knee.col3 = v_mat44_mul_vec3p(hip, tree.getNodeTm(leg.kneeNodeId).col3);
@@ -267,6 +276,11 @@ void AnimV20::FootLockerIKCtrl::process(IPureAnimStateHolder &st, real wt, GeomN
     vec3f ankleToToeTarget = v_norm3(v_sub(targetPos, anklePos));
     vec3f ankleToToe = v_div(v_sub(toe.col3, ankle.col3), v_splats(len2));
     quat4f ankleRotate = v_quat_from_unit_arc(ankleToToe, ankleToToeTarget);
+    if (wt < 1)
+    {
+      ankleRotate = v_quat_qslerp(wt, V_C_UNIT_0001, ankleRotate);
+      anklePos = v_mat44_mul_vec3p(knee, tree.getNodeTm(leg.ankleNodeId).col3);
+    }
     v_mat_rotate_with_quat(ankle, ankleRotate);
     ankle.col3 = anklePos;
 

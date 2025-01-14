@@ -205,8 +205,6 @@ public:
     das::addExtern<DAS_BIND_FUN(commit_feature_weights)>(*this, lib, "commit_feature_weights", das::SideEffects::modifyArgument,
       "commit_feature_weights");
     das::addExtern<DAS_BIND_FUN(get_features_sizes)>(*this, lib, "get_features_sizes", das::SideEffects::none, "get_features_sizes");
-    das::addExtern<DAS_BIND_FUN(iterate_foot_ik_locker_states)>(*this, lib, "iterate_foot_ik_locker_states",
-      das::SideEffects::worstDefault, "iterate_foot_ik_locker_states");
 
     das::addExtern<DAS_BIND_FUN(bind_dascript::anim_state_holder_get_foot_locker_legs)>(*this, lib,
       "anim_state_holder_get_foot_locker_legs", das::SideEffects::worstDefault,

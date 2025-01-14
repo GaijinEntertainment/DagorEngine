@@ -83,7 +83,9 @@ void FpdClipper::save(DataBlock &blk, const GeomNodeTree &tree)
 bool FpdClipper::load(const DataBlock &blk, IFpdLoad &loader)
 {
   auto &tree = loader.getGeomTree();
-  node = tree.findINodeIndex(blk.getStr("node", NULL));
+  const char *nodeName = blk.getStr("node", NULL);
+  if (nodeName && nodeName[0])
+    node = tree.findINodeIndex(nodeName);
   nodeWtm = get_node_wtm_rel_ptr(tree, node);
 
   localTm.setcol(0, blk.getPoint3("tm0", localTm.getcol(0)));

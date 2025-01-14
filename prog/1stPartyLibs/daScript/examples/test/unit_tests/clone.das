@@ -62,13 +62,13 @@ def test_clone_array
 def test_clone_table
     var x, y : table<int;string>
     for t in range(3)
-        x[t] = string(t)
+        x |> insert(t, string(t))
     y := x
     for t in range(3)
-        x[t] = string(t+1)
+        x |> insert(t, string(t+1))
     assert(length(y)==3)
     for t in range(3)
-        verify(y[t]==string(t))
+        verify(y |> get_value(t)==string(t))
 
 [export]
 def test

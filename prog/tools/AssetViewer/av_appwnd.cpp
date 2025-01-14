@@ -8,6 +8,7 @@
 #include "av_appwnd.h"
 #include "av_plugin.h"
 #include "av_cm.h"
+#include "av_mainAssetSelector.h"
 #include "av_viewportWindow.h"
 
 #include "assetUserFlags.h"
@@ -20,6 +21,7 @@
 #include <assets/assetMsgPipe.h>
 #include <assets/assetHlp.h>
 #include <assets/assetRefs.h>
+#include <assetsGui/av_allAssetsTree.h>
 #include <assetsGui/av_globalState.h>
 #include <generic/dag_sort.h>
 
@@ -54,6 +56,8 @@
 #include <EditorCore/ec_selwindow.h>
 #include <EditorCore/ec_viewportSplitter.h>
 
+#include <daECS/core/entityManager.h>
+#include <daECS/core/event.h>
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_info.h>
@@ -108,6 +112,9 @@
 using hdpi::_pxActual;
 using hdpi::_pxScaled;
 
+ECS_BROADCAST_EVENT_TYPE(ImGuiStage);
+ECS_REGISTER_EVENT(ImGuiStage)
+
 extern String fx_devres_base_path;
 
 static String assetFile;
@@ -132,7 +139,6 @@ extern void init_csg_mgr_service();
 extern void init_spline_gen_mgr_service();
 extern void init_ecs_mgr_service(const DataBlock &app_blk, const char *app_dir);
 extern void init_webui_service();
-extern void init_imgui_mgr_service(const DataBlock &app_blk);
 extern void init_das_mgr_service(const DataBlock &app_blk);
 
 extern void mount_efx_assets(DagorAssetMgr &aMgr, const char *fx_blk_fname);
@@ -294,6 +300,10 @@ AssetViewerApp::~AssetViewerApp()
   ged.curEH = NULL;
   ged.setEH(appEH);
 
+  // Do not show the VR controls window at the next application start.
+  if (imgui_window_is_visible("VR", "VR controls"))
+    imgui_window_set_visible("VR", "VR controls", false);
+
   mManager->unregisterWindowHandler(this);
   editor_core_save_imgui_settings();
   PropPanel::remove_delayed_callback(*this);
@@ -307,7 +317,7 @@ AssetViewerApp::~AssetViewerApp()
   ::term_dabuild_cache();
   extern void console_close();
   console_close();
-  imgui_shutdown(); // This must be after terminateInterface. ImGuiManager's dtor runs from there, which uses dag_imgui.
+  imgui_shutdown();
 
   del_it(appEH);
 }
@@ -348,26 +358,30 @@ void AssetViewerApp::addAccelerators()
 {
   mManager->clearAccelerators();
 
+  mManager->addAccelerator(CM_CAMERAS_FREE, ' ');
+  mManager->addAccelerator(CM_CAMERAS_FPS, ' ', true);
+  mManager->addAccelerator(CM_CAMERAS_TPS, ' ', true, false, true);
+  mManager->addAccelerator(CM_ZOOM_AND_CENTER, 'Z', true, false, true); // For fly mode.
+
+  mManager->addAccelerator(CM_DEBUG_FLUSH, 'F', true, true, false);
+  mManager->addAccelerator(CM_DEBUG_FLUSH, 'F', true, false, true);
+
+  if (CCameraElem::getCamera() != CCameraElem::MAX_CAMERA)
+    return;
+
   mManager->addAccelerator(CM_SAVE_CUR_ASSET, 'S', true);
   mManager->addAccelerator(CM_SAVE_ASSET_BASE, 'S', true, false, true);
   mManager->addAccelerator(CM_RELOAD_SHADERS, 'R', true);
 
-  mManager->addAccelerator(CM_ZOOM_AND_CENTER, 'Z', true, false, true);
+  mManager->addAccelerator(CM_ZOOM_AND_CENTER, 'Z'); // For normal mode.
   mManager->addAccelerator(CM_WINDOW_PPANEL_ACCELERATOR, 'P');
   mManager->addAccelerator(CM_WINDOW_COMPOSITE_EDITOR_ACCELERATOR, 'C');
 
   mManager->addAccelerator(CM_CREATE_SCREENSHOT, 'P', true);
   mManager->addAccelerator(CM_CREATE_CUBE_SCREENSHOT, 'P', true, false, true);
 
-  mManager->addAccelerator(CM_CAMERAS_FREE, ' ');
-  mManager->addAccelerator(CM_CAMERAS_FPS, ' ', true);
-  mManager->addAccelerator(CM_CAMERAS_TPS, ' ', true, false, true);
-
   mManager->addAccelerator(CM_NEXT_ASSET, wingw::V_ENTER, true);
   mManager->addAccelerator(CM_PREV_ASSET, wingw::V_ENTER, true, false, true);
-
-  mManager->addAccelerator(CM_DEBUG_FLUSH, 'F', true, true, false);
-  mManager->addAccelerator(CM_DEBUG_FLUSH, 'F', true, false, true);
 
   mManager->addAccelerator(CM_UNDO, 'Z', true);
   mManager->addAccelerator(CM_REDO, 'Y', true);
@@ -400,17 +414,14 @@ void AssetViewerApp::makeDefaultLayout()
 }
 
 
-void AssetViewerApp::refillTree()
-{
-  DataBlock assetDataBlk;
-  mTreeView->saveTreeData(assetDataBlk);
-  mTreeView->fill(&assetMgr, assetDataBlk);
-}
+void AssetViewerApp::refillTree() { mTreeView->getAllAssetsTab().refillTree(); }
 
 void AssetViewerApp::fillTree()
 {
+  mTreeView->setAssetMgr(assetMgr);
+
   DataBlock assetDataBlk(assetFile);
-  mTreeView->fill(&assetMgr, assetDataBlk);
+  mTreeView->getAllAssetsTab().fillTree(assetMgr, &assetDataBlk);
   ::dagor_idle_cycle();
   ::check_assets_base_up_to_date({}, true, true);
   AssetExportCache::saveSharedData();
@@ -418,14 +429,7 @@ void AssetViewerApp::fillTree()
 }
 
 
-void AssetViewerApp::selectAsset(const DagorAsset &asset, bool reset_filter_if_needed)
-{
-  if (!mTreeView->selectAsset(&asset) && reset_filter_if_needed)
-  {
-    mTreeView->resetFilter();
-    mTreeView->selectAsset(&asset);
-  }
-}
+void AssetViewerApp::selectAsset(const DagorAsset &asset) { mTreeView->goToAsset(asset); }
 
 
 void *AssetViewerApp::onWmCreateWindow(int type)
@@ -439,7 +443,7 @@ void *AssetViewerApp::onWmCreateWindow(int type)
 
       getMainMenu()->setEnabledById(CM_WINDOW_TREE, false);
 
-      mTreeView = new AvTree(this, nullptr, 0, 0, 0, 0, "");
+      mTreeView = new MainAssetSelector(*this, *this);
 
       return mTreeView;
     }
@@ -982,10 +986,9 @@ bool AssetViewerApp::resolveTextureName(const char *src_name, String &out_str)
 void AssetViewerApp::onAssetRemoved(int asset_name_id, int asset_type)
 {
   if (curAsset && curAsset->getNameId() == asset_name_id && curAsset->getType() == asset_type)
-  {
     switchToPlugin(-1);
-    mTreeView->setSelectedItem(NULL);
-  }
+
+  mTreeView->onAssetRemoved();
 }
 
 static bool check_asset_depends_on_asset(const DagorAsset *amain, const DagorAsset *a)
@@ -1178,23 +1181,18 @@ void AssetViewerApp::saveTreeState()
   if (!mTreeView || assetFile.empty())
     return;
 
-  Tab<int> types(midmem);
-  mTreeView->getFilterAssetTypes(types);
-  SimpleString filterAssetString(mTreeView->getFilterString());
+  MainAssetSelector::MainAllAssetsTab &allAssetsTab = mTreeView->getAllAssetsTab();
 
-  mTreeView->resetFilter();
+  Tab<int> types(midmem);
+  types = allAssetsTab.getShownAssetTypeIndexes();
+  SimpleString filterAssetString(allAssetsTab.getFilterStr());
 
   DataBlock assetDataBlk;
-  mTreeView->saveTreeData(assetDataBlk);
-  if (PropPanel::TLeafHandle h = mTreeView->getSelectedItem())
+  allAssetsTab.saveTreeData(assetDataBlk);
+  if (const DagorAsset *a = allAssetsTab.getSelectedAsset())
   {
-    void *data = mTreeView->getItemData(h);
-    DagorAsset *a = get_dagor_asset_folder(data) ? NULL : (DagorAsset *)data;
-    if (a)
-    {
-      assetDataBlk.setStr("lastSelAsset", a->getName());
-      assetDataBlk.setStr("lastSelAssetType", a->getTypeStr());
-    }
+    assetDataBlk.setStr("lastSelAsset", a->getName());
+    assetDataBlk.setStr("lastSelAssetType", a->getTypeStr());
   }
   assetDataBlk.setStr("a2d_lastUsedModelAsset", a2d_last_ref_model);
 
@@ -1912,22 +1910,8 @@ bool AssetViewerApp::loadProject(const char *app_dir)
 
   queryEditorInterface<ISceneLightService>()->reset();
 
-  assetLtData.createSun();
-  assetDefaultLtData.loadDefaultSettings(appblk);
-
-  bool needRenderGrid = false;
-  environment::load_settings(assetDataBlk, &assetLtData, &assetDefaultLtData, needRenderGrid);
-  grid.setVisible(needRenderGrid, 0);
-
-  assetLtData.setReflectionTexture();
-  assetLtData.setEnvironmentTexture();
-  assetLtData.applyMicrodetailFromLevelBlk();
-
-
   ShaderGlobal::set_texture_fast(get_shader_glob_var_id("lightmap_tex", true),
     add_managed_texture(String(260, "%s%s", sgg::get_exe_path_full(), "../commonData/tex/lmesh_ltmap.tga")));
-  ShaderGlobal::set_texture_fast(get_shader_glob_var_id("landTileTex", true),
-    add_managed_texture(String(260, "%s%s", sgg::get_exe_path_full(), "../commonData/tex/lmesh_tile.tga")));
 
   const DataBlock &b = *appblk.getBlockByNameEx("tex_shader_globvar");
   for (int i = 0; i < b.paramCount(); i++)
@@ -1987,7 +1971,6 @@ bool AssetViewerApp::loadProject(const char *app_dir)
     ::init_webui_service();
   else
     debug("webUi disabled with game{ enable_webui_av2:b=no;");
-  init_imgui_mgr_service(appblk);
 
   init_das_mgr_service(appblk);
 
@@ -1996,14 +1979,23 @@ bool AssetViewerApp::loadProject(const char *app_dir)
 
 #undef INIT_SERVICE
 
+  assetLtData.createSun();
+  assetDefaultLtData.loadDefaultSettings(appblk);
+
+  bool needRenderGrid = false;
+  environment::load_settings(assetDataBlk, &assetLtData, &assetDefaultLtData, needRenderGrid);
+  grid.setVisible(needRenderGrid, 0);
+
+  assetLtData.setReflectionTexture();
+  assetLtData.setEnvironmentTexture();
+  assetLtData.applyMicrodetailFromLevelBlk();
+
   const DataBlock &pluginsRootSettings = *setBlk.getBlockByNameEx("plugins");
   for (int i = 0; i < plugin.size(); ++i)
   {
     const DataBlock &pluginSettings = *pluginsRootSettings.getBlockByNameEx(plugin[i]->getInternalName());
     plugin[i]->loadSettings(pluginSettings);
   }
-
-  mTreeView->loadSelectedItem();
 
   DataBlock *assetsFiltersBlk = assetDataBlk.getBlockByName("assets_filter");
   if (assetsFiltersBlk)
@@ -2035,13 +2027,13 @@ bool AssetViewerApp::loadProject(const char *app_dir)
           if (allTypesSaved.getNameId(name) == -1)
             types.push_back(assetMgr.getAssetTypeId(name));
         });
-        mTreeView->setFilterAssetTypes(types);
+        mTreeView->getAllAssetsTab().setShownAssetTypeIndexes(types);
       }
     }
 
     const char *str = assetsFiltersBlk->getStr("string");
     if (str && *str)
-      mTreeView->setFilterString(str);
+      mTreeView->getAllAssetsTab().setFilterStr(str);
   }
 
   de3_spawn_event(HUID_BeforeMainLoop, nullptr);
@@ -2128,7 +2120,7 @@ void AssetViewerApp::blockModifyRoutine(bool block) { blockSave = block; }
 void AssetViewerApp::afterUpToDateCheck(bool changed)
 {
   DEBUG_CP();
-  mTreeView->markExportedTree(mTreeView->getItemNode(mTreeView->getRoot()), allUpToDateFlags);
+  mTreeView->getAllAssetsTab().markExportedTree(allUpToDateFlags);
   DEBUG_CP();
 }
 
@@ -2190,7 +2182,7 @@ void AssetViewerApp::onClick(int pcb_id, PropPanel::ContainerPropertyControl *pa
   }
 }
 
-static void build_currently_assets(AvTree *tree, dag::ConstSpan<unsigned> tc)
+static void build_currently_assets(AllAssetsTree *tree, dag::ConstSpan<unsigned> tc)
 {
   PropPanel::TLeafHandle sel = tree->getSelectedItem();
 
@@ -2200,7 +2192,7 @@ static void build_currently_assets(AvTree *tree, dag::ConstSpan<unsigned> tc)
 }
 
 
-static void build_currently_assets(AvTree *tree)
+static void build_currently_assets(AllAssetsTree *tree)
 {
   Tab<unsigned> tc(get_app().getWorkspace().getAdditionalPlatforms(), tmpmem);
   tc.push_back(_MAKE4C('PC'));
@@ -2209,7 +2201,7 @@ static void build_currently_assets(AvTree *tree)
 }
 
 
-static inline void make_hierarchical_list(AvTree *tree, PropPanel::TLeafHandle item, Tab<PropPanel::TLeafHandle> &items)
+static inline void make_hierarchical_list(AllAssetsTree *tree, PropPanel::TLeafHandle item, Tab<PropPanel::TLeafHandle> &items)
 {
   int count = tree->getChildrenCount(item);
   for (int i = 0; i < count; ++i)
@@ -2237,7 +2229,7 @@ static int find_folder_idx(const DagorAssetFolder *f)
 }
 
 
-static void create_folder_idx_list(AvTree *tree, bool hierarchical, Tab<int> &fld_idx)
+static void create_folder_idx_list(AllAssetsTree *tree, bool hierarchical, Tab<int> &fld_idx)
 {
   PropPanel::TLeafHandle selItem = tree->getSelectedItem();
 
@@ -2284,7 +2276,7 @@ void AssetViewerApp::generate_point_cloud(DagorAsset *asset)
   ::post_base_update_notify_dabuild();
 }
 
-static void build_folder_for_platform(AvTree *tree, bool hierarchical, bool tex, bool res, unsigned platform)
+static void build_folder_for_platform(AllAssetsTree *tree, bool hierarchical, bool tex, bool res, unsigned platform)
 {
   Tab<int> fldIdx;
   ::create_folder_idx_list(tree, hierarchical, fldIdx);
@@ -2293,7 +2285,7 @@ static void build_folder_for_platform(AvTree *tree, bool hierarchical, bool tex,
 }
 
 
-static void build_folder_all_platform(AvTree *tree, bool hierarchical, bool tex, bool res)
+static void build_folder_all_platform(AllAssetsTree *tree, bool hierarchical, bool tex, bool res)
 {
   Tab<unsigned> p(get_app().getWorkspace().getAdditionalPlatforms());
   p.push_back(_MAKE4C('PC'));
@@ -2451,7 +2443,7 @@ static void showAssetBackRefs(DagorAsset &asset, CoolConsole &console, DagorAsse
     DAEDITOR3.conNote("  %s", currentAsset->getNameTypified().c_str());
 }
 
-static void createNewCompositeAsset(AvTree &tree)
+static void createNewCompositeAsset(AllAssetsTree &tree)
 {
   PropPanel::TLeafHandle selection = tree.getSelectedItem();
   const DagorAssetFolder *folder = get_dagor_asset_folder(tree.getItemData(selection));
@@ -2469,7 +2461,7 @@ static void createNewCompositeAsset(AvTree &tree)
 
   DagorAsset *newAsset = CompositeAssetCreator::create(assetName, assetFullPath);
   if (newAsset)
-    get_app().selectAsset(*newAsset, true);
+    get_app().selectAsset(*newAsset);
   else
     wingw::message_box(wingw::MBS_EXCL | wingw::MBS_OK, "Error", "Failed to create new asset file '%s'.", assetFullPath.str());
 }
@@ -2653,17 +2645,19 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
 
       // tree context menu
 
-    case CM_INC_BUILD_RESOURCES: ::build_folder_for_platform(mTreeView, false, false, true, p); return 1;
+    case CM_INC_BUILD_RESOURCES: ::build_folder_for_platform(&mTreeView->getAllAssetsTab().getTree(), false, false, true, p); return 1;
 
-    case CM_INC_BUILD_TEXTURES: ::build_folder_for_platform(mTreeView, false, true, false, p); return 1;
+    case CM_INC_BUILD_TEXTURES: ::build_folder_for_platform(&mTreeView->getAllAssetsTab().getTree(), false, true, false, p); return 1;
 
-    case CM_INC_BUILD_RESOURCES_H: ::build_folder_for_platform(mTreeView, true, false, true, p); return 1;
+    case CM_INC_BUILD_RESOURCES_H:
+      ::build_folder_for_platform(&mTreeView->getAllAssetsTab().getTree(), true, false, true, p);
+      return 1;
 
-    case CM_INC_BUILD_TEXTURES_H: ::build_folder_for_platform(mTreeView, true, true, false, p); return 1;
+    case CM_INC_BUILD_TEXTURES_H: ::build_folder_for_platform(&mTreeView->getAllAssetsTab().getTree(), true, true, false, p); return 1;
 
-    case CM_INC_BUILD_ALL: ::build_folder_for_platform(mTreeView, false, true, true, p); return 1;
+    case CM_INC_BUILD_ALL: ::build_folder_for_platform(&mTreeView->getAllAssetsTab().getTree(), false, true, true, p); return 1;
 
-    case CM_INC_BUILD_ALL_H: ::build_folder_for_platform(mTreeView, true, true, true, p); return 1;
+    case CM_INC_BUILD_ALL_H: ::build_folder_for_platform(&mTreeView->getAllAssetsTab().getTree(), true, true, true, p); return 1;
 
     case CM_INC_BUILD_ALL_PLATFORM_TEX:
     case CM_INC_BUILD_ALL_PLATFORM_RES:
@@ -2678,7 +2672,7 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
         res = (id == CM_INC_BUILD_ALL_PLATFORM_RES);
       }
 
-      ::build_folder_all_platform(mTreeView, false, tex, res);
+      ::build_folder_all_platform(&mTreeView->getAllAssetsTab().getTree(), false, tex, res);
       return 1;
     }
     case CM_INC_BUILD_ALL_PLATFORM_TEX_H:
@@ -2694,7 +2688,7 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
         res = (id == CM_INC_BUILD_ALL_PLATFORM_RES_H);
       }
 
-      ::build_folder_all_platform(mTreeView, true, tex, res);
+      ::build_folder_all_platform(&mTreeView->getAllAssetsTab().getTree(), true, tex, res);
       return 1;
     }
     case CM_INC_BUILD_CUR_PACK:
@@ -2702,40 +2696,37 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
       Tab<unsigned> tc(tmpmem);
       tc.push_back(p);
 
-      ::build_currently_assets(mTreeView, tc);
+      ::build_currently_assets(&mTreeView->getAllAssetsTab().getTree(), tc);
       return 1;
     }
 
     case CM_INC_BUILD_CUR_PACK_BQ_HQ_UHQ_PC:
-      if (void *data = mTreeView->getItemData(mTreeView->getSelectedItem()))
-        if (!get_dagor_asset_folder(data))
-        {
-          unsigned tc = _MAKE4C('PC');
-          StaticTab<DagorAsset *, 3> a;
-          a.push_back((DagorAsset *)data);
-          DagorAssetMgr &mgr = a[0]->getMgr();
-          if (DagorAsset *a_hq = mgr.findAsset(String(0, "%s$hq", a[0]->getName()), a[0]->getType()))
-            a.push_back(a_hq);
-          if (DagorAsset *a_uhq = mgr.findAsset(String(0, "%s$uhq", a[0]->getName()), a[0]->getType()))
-            a.push_back(a_uhq);
-          ::build_assets(make_span_const(&tc, 1), a);
-        }
+      if (DagorAsset *asset = mTreeView->getAllAssetsTab().getSelectedAsset())
+      {
+        unsigned tc = _MAKE4C('PC');
+        StaticTab<DagorAsset *, 3> a;
+        a.push_back(asset);
+        DagorAssetMgr &mgr = a[0]->getMgr();
+        if (DagorAsset *a_hq = mgr.findAsset(String(0, "%s$hq", a[0]->getName()), a[0]->getType()))
+          a.push_back(a_hq);
+        if (DagorAsset *a_uhq = mgr.findAsset(String(0, "%s$uhq", a[0]->getName()), a[0]->getType()))
+          a.push_back(a_uhq);
+        ::build_assets(make_span_const(&tc, 1), a);
+      }
       return 1;
     case CM_INC_BUILD_CUR_PACK_TQ_PC:
-      if (void *data = mTreeView->getItemData(mTreeView->getSelectedItem()))
-        if (!get_dagor_asset_folder(data))
-        {
-          unsigned tc = _MAKE4C('PC');
-          DagorAsset *a = (DagorAsset *)data;
-          DagorAssetMgr &mgr = a->getMgr();
-          if (DagorAsset *a_tq = mgr.findAsset(String(0, "%s$tq", a->getName()), a->getType()))
-            ::build_assets(make_span_const(&tc, 1), make_span(&a_tq, 1));
-        }
+      if (DagorAsset *a = mTreeView->getAllAssetsTab().getSelectedAsset())
+      {
+        unsigned tc = _MAKE4C('PC');
+        DagorAssetMgr &mgr = a->getMgr();
+        if (DagorAsset *a_tq = mgr.findAsset(String(0, "%s$tq", a->getName()), a->getType()))
+          ::build_assets(make_span_const(&tc, 1), make_span(&a_tq, 1));
+      }
       return 1;
 
 
     case CM_INC_BUILD_ALL_PLATFORM_CUR_PACK:
-      ::build_currently_assets(mTreeView);
+      ::build_currently_assets(&mTreeView->getAllAssetsTab().getTree());
       return 1;
 
       // settings
@@ -2901,16 +2892,12 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
         vp->activate();
         vp->handleCommand(id);
 
-        if (CCameraElem::getCamera() == CCameraElem::MAX_CAMERA)
-        {
-          mToolPanel->setBool(CM_CAMERAS_FREE, false);
-          mToolPanel->setBool(CM_CAMERAS_FPS, false);
-          mToolPanel->setBool(CM_CAMERAS_TPS, false);
-        }
-        else
-        {
-          mToolPanel->setBool(id, true);
-        }
+        mToolPanel->setBool(CM_CAMERAS_FREE, CCameraElem::getCamera() == CCameraElem::FREE_CAMERA);
+        mToolPanel->setBool(CM_CAMERAS_FPS, CCameraElem::getCamera() == CCameraElem::FPS_CAMERA);
+        mToolPanel->setBool(CM_CAMERAS_TPS, CCameraElem::getCamera() == CCameraElem::TPS_CAMERA);
+
+        // Refill the accelerators to limit them in fly mode.
+        addAccelerators();
 
         return 1;
       }
@@ -2985,8 +2972,7 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
     case CM_COPY_FOLDER_LOD_ASSETS_PROPS_BLK:
       if (!curAsset)
       {
-        PropPanel::TLeafHandle sel = mTreeView->getSelectedItem();
-        if (const DagorAssetFolder *f = get_dagor_asset_folder(mTreeView->getItemData(sel)))
+        if (const DagorAssetFolder *f = mTreeView->getAllAssetsTab().getSelectedAssetFolder())
         {
           for (int fidx = 0; assetMgr.getFolderPtr(fidx); fidx++)
             if (assetMgr.getFolderPtr(fidx) == f)
@@ -3024,8 +3010,7 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
       }
       else
       {
-        PropPanel::TLeafHandle sel = mTreeView->getSelectedItem();
-        const DagorAssetFolder *f = get_dagor_asset_folder(mTreeView->getItemData(sel));
+        const DagorAssetFolder *f = mTreeView->getAllAssetsTab().getSelectedAssetFolder();
         if (f)
         {
           String path(f->folderPath);
@@ -3041,28 +3026,45 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
       }
       else
       {
-        PropPanel::TLeafHandle sel = mTreeView->getSelectedItem();
-        const DagorAssetFolder *f = get_dagor_asset_folder(mTreeView->getItemData(sel));
+        const DagorAssetFolder *f = mTreeView->getAllAssetsTab().getSelectedAssetFolder();
         if (f)
-        {
-          String path(f->folderPath);
-          os_shell_execute("open", path, NULL, NULL);
-        }
+          dag_reveal_in_explorer(f);
       }
       return 1;
 
     case CM_CREATE_NEW_COMPOSITE_ASSET:
       if (mTreeView)
-        createNewCompositeAsset(*mTreeView);
+        createNewCompositeAsset(mTreeView->getAllAssetsTab().getTree());
+      return 1;
+
+    case CM_ADD_ASSET_TO_FAVORITES:
+      if (const DagorAsset *asset = mTreeView->getAllAssetsTab().getSelectedAsset())
+        mTreeView->addAssetToFavorites(*asset);
       return 1;
 
     case CM_CREATE_SCREENSHOT: createScreenshot(); return 1;
 
     case CM_CREATE_CUBE_SCREENSHOT: createCubeScreenshot(); return 1;
 
-    case CM_PREV_ASSET: mTreeView->searchNext("", false); return 1;
+    case CM_PREV_ASSET: mTreeView->selectNextItemInActiveTree(false); return 1;
 
-    case CM_NEXT_ASSET: mTreeView->searchNext("", true); return 1;
+    case CM_NEXT_ASSET: mTreeView->selectNextItemInActiveTree(true); return 1;
+
+    case CM_EXPAND_CHILDREN:
+    case CM_COLLAPSE_CHILDREN:
+    {
+      AllAssetsTree &tree = mTreeView->getAllAssetsTab().getTree();
+      const PropPanel::TLeafHandle selectedItem = tree.getSelectedItem();
+      if (tree.isFolder(selectedItem))
+      {
+        const bool expand = id == CM_EXPAND_CHILDREN;
+        const int childCount = tree.getChildrenCount(selectedItem);
+        for (int i = 0; i < childCount; ++i)
+          tree.expandRecursive(tree.getChild(selectedItem, i), expand);
+      }
+
+      return 1;
+    }
 
     default: break;
   }
@@ -3071,10 +3073,8 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
 }
 
 
-void AssetViewerApp::onTvSelectionChange(PropPanel::TreeBaseWindow &tree, PropPanel::TLeafHandle new_sel)
+void AssetViewerApp::onAssetSelectionChanged(DagorAsset *asset, DagorAssetFolder *asset_folder)
 {
-  void *data = tree.getItemData(new_sel);
-
   DagorAsset *prev = curAsset;
   if (prev && getTypeSupporter(prev) && getTypeSupporter(prev)->supportEditing())
   {
@@ -3084,7 +3084,7 @@ void AssetViewerApp::onTvSelectionChange(PropPanel::TreeBaseWindow &tree, PropPa
       changedAssetsList.delPtr(prev);
   }
 
-  curAsset = get_dagor_asset_folder(data) ? NULL : (DagorAsset *)data;
+  curAsset = asset;
   fillPropPanelHasBeenCalled = false;
 
   wingw::set_busy(true);
@@ -3117,6 +3117,15 @@ void AssetViewerApp::onTvSelectionChange(PropPanel::TreeBaseWindow &tree, PropPa
     fillPropPanel();
   repaint();
   wingw::set_busy(false);
+}
+
+
+void AssetViewerApp::onAvSelectAsset(DagorAsset *asset, const char *asset_name) { onAssetSelectionChanged(asset, nullptr); }
+
+
+void AssetViewerApp::onAvSelectFolder(DagorAssetFolder *asset_folder, const char *asset_folder_name)
+{
+  onAssetSelectionChanged(nullptr, asset_folder);
 }
 
 
@@ -3228,7 +3237,7 @@ static inline void create_popup_build_assets_menu(PropPanel::IMenu &menu, DagorA
 }
 
 
-bool AssetViewerApp::onTvContextMenu(PropPanel::TreeBaseWindow &tree_base_window, PropPanel::ITreeInterface &tree)
+bool AssetViewerApp::onAssetSelectorContextMenu(PropPanel::TreeBaseWindow &tree_base_window, PropPanel::ITreeInterface &tree)
 {
   void *data = tree_base_window.getItemData(tree_base_window.getSelectedItem());
   const DagorAssetFolder *g = get_dagor_asset_folder(data);
@@ -3242,11 +3251,15 @@ bool AssetViewerApp::onTvContextMenu(PropPanel::TreeBaseWindow &tree_base_window
   {
     DagorAsset *e = (DagorAsset *)data;
 
+    menu.addItem(ROOT_MENU_ITEM, CM_ADD_ASSET_TO_FAVORITES, "Add to favorites");
+    menu.addSeparator(ROOT_MENU_ITEM);
+
     // curAssetPackName
+    const int oldMenuItemCount = menu.getItemCount(ROOT_MENU_ITEM);
     if (::is_asset_exportable(e))
       ::create_popup_build_assets_menu(menu, e);
 
-    if (menu.getItemCount(ROOT_MENU_ITEM) > 0)
+    if (menu.getItemCount(ROOT_MENU_ITEM) != oldMenuItemCount)
       menu.addSeparator(ROOT_MENU_ITEM);
 
     menu.addItem(ROOT_MENU_ITEM, CM_COPY_ASSET_FILEPATH, "Copy filepath");
@@ -3261,12 +3274,16 @@ bool AssetViewerApp::onTvContextMenu(PropPanel::TreeBaseWindow &tree_base_window
   }
   else
   {
-    bool exported = false;
-    if (mTreeView->isFolderExportable(tree_base_window.getSelectedItem(), &exported))
-      ::create_popup_build_menu(menu, exported);
+    menu.addItem(ROOT_MENU_ITEM, CM_EXPAND_CHILDREN, "Expand children");
+    menu.addItem(ROOT_MENU_ITEM, CM_COLLAPSE_CHILDREN, "Collapse children");
+    menu.addSeparator(ROOT_MENU_ITEM);
 
-    if (menu.getItemCount(ROOT_MENU_ITEM) > 0)
+    bool exported = false;
+    if (mTreeView->getAllAssetsTab().isSelectedFolderExportable(&exported))
+    {
+      ::create_popup_build_menu(menu, exported);
       menu.addSeparator(ROOT_MENU_ITEM);
+    }
 
     menu.addItem(ROOT_MENU_ITEM, CM_COPY_FOLDERPATH, "Copy folder path");
     menu.addItem(ROOT_MENU_ITEM, CM_COPY_FOLDER_ASSETS_PROPS_BLK, "Copy assets BLK data (whole folder)");
@@ -3579,7 +3596,7 @@ bool AssetViewerApp::runShadersReload(dag::ConstSpan<const char *> params)
 void AssetViewerApp::onImguiDelayedCallback(void *user_data)
 {
   const unsigned highestCommandBit = 1 << ((sizeof(unsigned) * 8) - 1);
-  const unsigned commandId = (unsigned)user_data;
+  const unsigned commandId = (unsigned)(uintptr_t)user_data;
 
   if ((commandId & highestCommandBit) == 0)
   {
@@ -3797,6 +3814,8 @@ void AssetViewerApp::renderUI()
   IGenEditorPlugin *currentPlugin = curPlugin();
   if (currentPlugin)
     currentPlugin->updateImgui();
+
+  g_entity_mgr->broadcastEventImmediate(ImGuiStage());
 
   PropPanel::render_dialogs();
 

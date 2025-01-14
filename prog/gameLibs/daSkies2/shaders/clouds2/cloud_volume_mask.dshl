@@ -1,11 +1,12 @@
 texture cloud_volume;
-float4 cloud_volume_res = (32, 16, 32, 50000);//last one is distance
+int4 cloud_volume_res = (32, 16, 32, 0);
+float cloud_volume_dist = 50000;
 
 
 macro INIT_CLOUD_VOLUME_MASK(code)
   (code) {
     cloud_volume@smp3d = cloud_volume;
-    cloud_volume_remap@f1 = (1./cloud_volume_res.w,0,0,0);
+    cloud_volume_remap@f1 = (1./cloud_volume_dist);
   }
 endmacro
 macro USE_CLOUD_VOLUME_MASK(code)

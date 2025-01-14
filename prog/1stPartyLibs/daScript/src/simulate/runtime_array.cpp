@@ -24,7 +24,13 @@ namespace das
     void array_reserve(Context & context, Array & arr, uint32_t newCapacity, uint32_t stride, LineInfo * at) {
         if ( arr.isLocked() ) context.throw_error_at(at, "can't change capacity of a locked array");
         if ( arr.capacity >= newCapacity ) return;
-        auto newData = (char *)context.reallocate(arr.data, arr.capacity*stride, newCapacity*stride, at);
+        char * newData = nullptr;
+        if ( context.verySafeContext ) {
+            newData = (char *)context.allocate(newCapacity*stride, at);
+            memcpy(newData, arr.data, arr.size*stride);
+        } else {
+            newData = (char *)context.reallocate(arr.data, arr.capacity*stride, newCapacity*stride, at);
+        }
         if ( !newData ) context.throw_out_of_memory(false, newCapacity*stride, at);
         context.heap->mark_comment(newData, "array");
         if ( newData != arr.data ) {

@@ -23,6 +23,9 @@ interval bvh_process_heli_rotor_vertices_texcoord_size: zero < 1, four < 8, eigh
 interval bvh_process_heli_rotor_vertices_normal_offset: no < 1, yes;
 interval bvh_process_heli_rotor_vertices_color_offset: no < 1, yes;
 
+int bvh_process_heli_rotor_vertices_source_const_no = 6;
+int bvh_process_heli_rotor_vertices_output_uav_no = 0;
+
 shader bvh_process_heli_rotor_vertices
 {
   if (compatibility_mode == compatibility_mode_on)
@@ -45,14 +48,13 @@ shader bvh_process_heli_rotor_vertices
     wtm@f44 = bvh_process_heli_rotor_vertices_wtm;
     params@f4 = bvh_process_heli_rotor_vertices_params;
     secondary_params@f4 = bvh_process_heli_rotor_vertices_sec_params;
+    source@buf : register(bvh_process_heli_rotor_vertices_source_const_no) hlsl { ByteAddressBuffer source@buf; };
+    output@uav : register(bvh_process_heli_rotor_vertices_output_uav_no) hlsl { RWByteAddressBuffer output@uav; };
   }
 
   ENABLE_ASSERT(cs)
   hlsl(cs) {
     #pragma wave32
-
-    ByteAddressBuffer source : register(t6);
-    RWByteAddressBuffer output : register(u0);
 
     #define STATIC_RADIUS 1.0f
 

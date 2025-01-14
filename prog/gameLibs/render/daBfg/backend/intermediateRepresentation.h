@@ -94,13 +94,13 @@ struct Node
 
 struct ScheduledResource
 {
-  eastl::variant<ResourceDescription, const BlobDescription *> description;
+  eastl::variant<ResourceDescription, BlobDescription> description;
   ResourceType resourceType;
   eastl::optional<AutoResolutionData> resolutionType;
   History history;
 
   bool isGpuResource() const { return eastl::holds_alternative<ResourceDescription>(description); }
-  bool isCpuResource() const { return eastl::holds_alternative<const BlobDescription *>(description); }
+  bool isCpuResource() const { return eastl::holds_alternative<BlobDescription>(description); }
 
   const ResourceDescription &getGpuDescription() const
   {
@@ -110,7 +110,7 @@ struct ScheduledResource
   const BlobDescription &getCpuDescription() const
   {
     G_ASSERT(isCpuResource());
-    return *eastl::get<const BlobDescription *>(description);
+    return eastl::get<BlobDescription>(description);
   }
 };
 

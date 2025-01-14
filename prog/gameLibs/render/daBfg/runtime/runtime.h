@@ -24,7 +24,7 @@
 #include <runtime/compilationStage.h>
 
 
-template <typename, bool>
+template <typename, bool, typename>
 struct InitOnDemand;
 
 namespace dabfg

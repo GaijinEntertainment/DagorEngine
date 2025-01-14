@@ -26,7 +26,7 @@ public:
   };
 
   VromfsCompression();
-  VromfsCompression(verify_signature_cb callback, const char *fname);
+  VromfsCompression(signature_checker_factory_cb callback, const char *fname);
 
   int getRequiredCompressionBufferLength(int plainDataLen, int level) const override;
   int getRequiredDecompressionBufferLength(const void *data_, int dataLen) const override;
@@ -38,7 +38,7 @@ public:
   const char *compress(const void *in_, int inLen, void *out_, int &outLen, int level) const override;
   const char *decompress(const void *in_, int inLen, void *out_, int &outLen) const override;
 
-  void setVerifySignatureCallback(verify_signature_cb callback) { verifySignatureCb = callback; }
+  void setVerifySignatureCallback(signature_checker_factory_cb callback) { checkerFactoryCb = callback; }
 
   void setVromFileName(const char *fname) { fileName = fname; }
 
@@ -46,6 +46,6 @@ public:
   bool extractVersion(const char *data, int size, unsigned &version) const;
 
 private:
-  verify_signature_cb verifySignatureCb;
+  signature_checker_factory_cb checkerFactoryCb;
   SimpleString fileName;
 };

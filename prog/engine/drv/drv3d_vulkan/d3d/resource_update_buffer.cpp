@@ -19,6 +19,7 @@ using namespace drv3d_vulkan;
 struct ResUpdateBufferImp
 {
   BaseTex *destTex;
+  Image *originalImg;
   Buffer *stagingBuffer;
   VkBufferImageCopy uploadInfo;
   size_t pitch;
@@ -69,6 +70,7 @@ d3d::ResUpdateBuffer *d3d::allocate_update_buffer_for_tex_region(BaseTexture *de
   ResUpdateBufferImp *rub = (ResUpdateBufferImp *)memalloc(sizeof(ResUpdateBufferImp), tmpmem);
 
   rub->destTex = dest_tex;
+  rub->originalImg = dest_tex->getDeviceImage();
   rub->stagingBuffer = stagingBuffer;
   rub->pitch = fmt.calculateRowPitch(width);
   rub->slicePitch = slicePitch;
@@ -107,6 +109,7 @@ d3d::ResUpdateBuffer *d3d::allocate_update_buffer_for_tex(BaseTexture *dest_base
   ResUpdateBufferImp *rub = (ResUpdateBufferImp *)memalloc(sizeof(ResUpdateBufferImp), tmpmem);
 
   rub->destTex = dest_tex;
+  rub->originalImg = dest_tex->getDeviceImage();
   rub->stagingBuffer = stagingBuffer;
   rub->pitch = fmt.calculateRowPitch(level_w);
   rub->slicePitch = size;
@@ -169,6 +172,12 @@ bool d3d::update_texture_and_release_update_buffer(d3d::ResUpdateBuffer *&rub)
   ResUpdateBufferImp *&rub_imp = reinterpret_cast<ResUpdateBufferImp *&>(rub);
 
   rub_imp->stagingBuffer->markNonCoherentRangeLoc(0, rub_imp->stagingBuffer->getBlockSize(), true);
+
+  if (rub_imp->destTex->tex.image != rub_imp->originalImg)
+    D3D_ERROR("vulkan: image changed between RUB allocation and update. original %p:%s current %p:%s", rub_imp->originalImg,
+      rub_imp->originalImg ? rub_imp->originalImg->getDebugName() : "<null>", rub_imp->destTex->tex.image,
+      rub_imp->destTex->tex.image ? rub_imp->destTex->tex.image->getDebugName() : "<null>");
+
   drv3d_vulkan::Globals::ctx.copyBufferToImage(rub_imp->stagingBuffer, rub_imp->destTex->tex.image, 1, &rub_imp->uploadInfo, true);
 
   d3d::release_update_buffer(rub);

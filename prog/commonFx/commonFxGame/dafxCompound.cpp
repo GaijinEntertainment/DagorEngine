@@ -505,8 +505,9 @@ struct DafxCompound : BaseParticleEffect
         if (it != sinfo->valueOffsets.end())
         {
           offsets.lightPos = sinfo->valueOffsets[dafx_ex::SystemInfo::VAL_LIGHT_POS];
-          offsets.lightRadius = sinfo->valueOffsets[dafx_ex::SystemInfo::VAL_LIGHT_RADIUS];
           offsets.lightColor = sinfo->valueOffsets[dafx_ex::SystemInfo::VAL_LIGHT_COLOR];
+          offsets.lightRadius = sinfo->valueOffsets[dafx_ex::SystemInfo::VAL_LIGHT_RADIUS];
+          G_ASSERT(offsets.lightRadius == offsets.lightColor + sizeof(float) * 3); // to allow batch set
         }
 
         it = sinfo->valueOffsets.find(dafx_ex::SystemInfo::VAL_VELOCITY_START_MIN);
@@ -791,19 +792,13 @@ struct DafxCompound : BaseParticleEffect
       lightFx->update(dt);
 
       Color4 *params = nullptr;
-      Point3 *pos = nullptr;
       params = (Color4 *)lightFx->getParam(HUID_LIGHT_PARAMS, params);
-      pos = (Point3 *)lightFx->getParam(HUID_LIGHT_POS, pos);
-      G_ASSERT_RETURN(params && pos, );
+      G_ASSERT_RETURN(params, );
 
       for (int i = 0; i < subTransforms.size(); ++i)
       {
         if (valueOffsets[i].lightPos >= 0)
-        {
-          dafx::set_subinstance_value(g_dafx_ctx, iid, i, valueOffsets[i].lightPos, pos, sizeof(Point3));
-          dafx::set_subinstance_value(g_dafx_ctx, iid, i, valueOffsets[i].lightRadius, &params->a, sizeof(float));
-          dafx::set_subinstance_value(g_dafx_ctx, iid, i, valueOffsets[i].lightColor, params, sizeof(Point3));
-        }
+          dafx::set_subinstance_value(g_dafx_ctx, iid, i, valueOffsets[i].lightColor, params, sizeof(Point4));
       }
     }
   }
@@ -987,7 +982,12 @@ struct DafxCompound : BaseParticleEffect
     if (lightFx)
     {
       TMatrix tm = value * lightTm;
-      lightFx->setTm(&tm);
+      Point3 lightPos = tm.getcol(3);
+      for (int i = 0; i < subTransforms.size(); ++i)
+      {
+        if (valueOffsets[i].lightPos >= 0)
+          dafx::set_subinstance_value(g_dafx_ctx, iid, i, valueOffsets[i].lightPos, &lightPos, sizeof(Point3));
+      }
     }
   }
 

@@ -37,6 +37,7 @@ private:
     const Point2 &pointer_pos, int accum_res);
   void applyPointerMove(const Point2 &pointer_pos, darg::DragAndDropState *ddState, darg::Element *elem, darg::ElementTree *etree,
     int activeStateFlag);
+  void startVisualDrag(ElementTree *etree, darg::Element *elem);
 
   DragAndDropState *activeDrag;
 };

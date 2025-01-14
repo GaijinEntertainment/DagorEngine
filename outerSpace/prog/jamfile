@@ -152,7 +152,9 @@ if $(Dedicated) != yes {
     if $(FmodStudio) != src && $(HaveSound) != no {
       AddLibs += $(FmodStaticLibs) ;
       UseSharedLibs += $(FmodStudioSharedLibs) ;
-      LINKopt += -framework CoreAudio -framework AudioUnit ;
+    }
+    if $(HaveSound) != no {
+      LINKopt += -framework AudioUnit -framework CoreAudio ;
     }
   } else if $(Platform) = android {
     local updater_jam = $(Root)/launcher/client/updater/src/jamfile ;

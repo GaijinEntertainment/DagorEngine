@@ -207,6 +207,7 @@ struct VRDevice
 
   using StateChangeListerer = void (*)(State);
   State setStateChangeListener(StateChangeListerer listener);
+  State getCurrentState() const { return currentState; }
 
   virtual void setStereoIndex(StereoIndex index) { G_UNUSED(index); };
 

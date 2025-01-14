@@ -49,7 +49,7 @@ void LRUCollisionVoxelization::init()
   voxelize_collision_cs.reset(new_compute_shader("world_sdf_voxelize_collision_cs"));
 }
 
-void LRUCollisionVoxelization::rasterize(LRURendinstCollision &lruColl, dag::Span<uint64_t> handles, VolTexture *world_sdf,
+void LRUCollisionVoxelization::rasterize(LRURendinstCollision &lruColl, dag::ConstSpan<uint64_t> handles, VolTexture *world_sdf,
   VolTexture *world_sdf_alpha, ShaderElement *e, int instMul, bool prim)
 {
   if (!e)
@@ -59,12 +59,12 @@ void LRUCollisionVoxelization::rasterize(LRURendinstCollision &lruColl, dag::Spa
   lruColl.draw(handles, world_sdf, world_sdf_alpha, instMul, *e, prim);
 }
 
-void LRUCollisionVoxelization::rasterizeSDF(LRURendinstCollision &lruColl, dag::Span<uint64_t> handles, bool prim)
+void LRUCollisionVoxelization::rasterizeSDF(LRURendinstCollision &lruColl, dag::ConstSpan<uint64_t> handles, bool prim)
 {
   rasterize(lruColl, handles, nullptr, nullptr, voxelizeCollisionElem, 3, prim);
 }
 
-void LRUCollisionVoxelization::voxelizeSDFCompute(LRURendinstCollision &lruColl, dag::Span<uint64_t> handles)
+void LRUCollisionVoxelization::voxelizeSDFCompute(LRURendinstCollision &lruColl, dag::ConstSpan<uint64_t> handles)
 {
   if (!voxelize_collision_cs)
     return;

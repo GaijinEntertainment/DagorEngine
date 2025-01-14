@@ -418,20 +418,15 @@ void VolumeLight::enableOptionalShader(const String &shader_name, bool enable)
     nodeBasedFogShadowCs->enableOptionalGraph(shader_name, enable);
 }
 
-VolumeLight::VolfogMediaInjectionGuard::VolfogMediaInjectionGuard(BaseTexture *tex) : tex(tex)
+void VolumeLight::volfogMediaInjectionStart(uint32_t shader_stage)
 {
-  d3d::set_rwtex(STAGE_PS, volfog_ff_initial_media_const_no, tex, 0, 0);
+  d3d::set_rwtex(shader_stage, volfog_ff_initial_media_const_no, initialMedia.getVolTex(), 0, 0);
 }
 
-VolumeLight::VolfogMediaInjectionGuard::~VolfogMediaInjectionGuard()
+void VolumeLight::volfogMediaInjectionEnd(uint32_t shader_stage)
 {
-  d3d::set_rwtex(STAGE_PS, volfog_ff_initial_media_const_no, nullptr, 0, 0);
-  d3d::resource_barrier({tex, RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
-}
-
-VolumeLight::VolfogMediaInjectionGuard VolumeLight::StartVolfogMediaInjection()
-{
-  return VolfogMediaInjectionGuard(initialMedia.getVolTex());
+  d3d::set_rwtex(shader_stage, volfog_ff_initial_media_const_no, nullptr, 0, 0);
+  d3d::resource_barrier({initialMedia.getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
 }
 
 static bool gpuHasUMA()
@@ -842,19 +837,19 @@ bool VolumeLight::canUseLinearAccumulation() const { return froxel_fog_enable_li
 bool VolumeLight::canUsePixelShader() const { return canUseLinearAccumulation() && froxel_fog_enable_pixel_shader; }
 bool VolumeLight::canUseVolfogShadow() const { return !!volfogShadowCs; }
 
-bool VolumeLight::perform(const TMatrix4 &view_tm, const TMatrix4 &proj_tm, const TMatrix4_vec4 &glob_tm, const Point3 &camera_pos)
+bool VolumeLight::performStartFrame(const TMatrix4 &view_tm, const TMatrix4 &proj_tm, const TMatrix4_vec4 &glob_tm,
+  const Point3 &camera_pos)
 {
-  bool useNodeBasedInput = !disable_node_based_input && nodeBasedFroxelFogFillMediaCs && nodeBasedFroxelFogFillMediaCs->isValid();
+  // view vecs are stored here for all volfog passes
+  set_viewvecs_to_shader(froxelFogViewVecLT, froxelFogViewVecRT, froxelFogViewVecLB, froxelFogViewVecRB, tmatrix(view_tm), proj_tm);
+
+  useNodeBasedInput = !disable_node_based_input && nodeBasedFroxelFogFillMediaCs && nodeBasedFroxelFogFillMediaCs->isValid();
 
   if (!isReady)
   {
     switchOff();
     return false;
   }
-
-  ShaderGlobal::set_int(var::distant_fog_use_static_shadows, has_distant_fog_static_shadows());
-
-  ShaderGlobal::set_int(var::volfog_hardcoded_input_type, disable_node_based_input ? 0 : -1);
 
   if (hasDistantFog() && useNodeBasedInput && !(nodeBasedDistantFogRaymarchCs && nodeBasedDistantFogRaymarchCs->isValid()))
   {
@@ -868,9 +863,9 @@ bool VolumeLight::perform(const TMatrix4 &view_tm, const TMatrix4 &proj_tm, cons
 
   switchOn(); // set range params early for volfog passes
 
-  TIME_D3D_PROFILE(volume_light_perform);
+  Point4 local_view_z = view_tm.getcol(2);
+  ShaderGlobal::set_color4(var::distant_fog_local_view_z, Color4(local_view_z.x, local_view_z.y, local_view_z.z, 0));
 
-  set_viewvecs_to_shader(tmatrix(view_tm), proj_tm);
   ShaderGlobal::set_color4(var::prev_globtm_psf_0, Color4(prevGlobTm.current()[0]));
   ShaderGlobal::set_color4(var::prev_globtm_psf_1, Color4(prevGlobTm.current()[1]));
   ShaderGlobal::set_color4(var::prev_globtm_psf_2, Color4(prevGlobTm.current()[2]));
@@ -880,9 +875,9 @@ bool VolumeLight::perform(const TMatrix4 &view_tm, const TMatrix4 &proj_tm, cons
   const int jitter_y_samples = 6;
 
   static const int MAX_FRAME_OFFSET = 64; // to avoid precision loss from int -> float, should be >= blue noise sample cnt
-  frameId = (frameId + 1) % 64;
+  frameId = (frameId + 1) % MAX_FRAME_OFFSET;
 
-  Point3 posDiff = camera_pos - prevCameraPos;
+  distantFogOcclusionPosDiff = camera_pos - prevCameraPos;
   prevCameraPos = camera_pos;
 
   int frameRnd = frameId;
@@ -902,8 +897,6 @@ bool VolumeLight::perform(const TMatrix4 &view_tm, const TMatrix4 &proj_tm, cons
       ? Color4(0, 1, 0, 0)
       : Color4(-1.0f / (currentRange * froxel_fog_fading_range_ratio), 1.0f / froxel_fog_fading_range_ratio, 0, 0));
 
-  ShaderGlobal::set_int(var::volfog_gi_sampling_mode, volfog_gi_sampling_disable ? 1 : (volfog_gi_sampling_use_filter ? 2 : 0));
-
   int blendedSliceCnt = getBlendedSliceCnt();
   ShaderGlobal::set_int(var::volfog_blended_slice_cnt, blendedSliceCnt);
   ShaderGlobal::set_real(var::volfog_blended_slice_start_depth, calcBlendedStartDepth(blendedSliceCnt));
@@ -914,17 +907,23 @@ bool VolumeLight::perform(const TMatrix4 &view_tm, const TMatrix4 &proj_tm, cons
   // TODO: set shadervars when params change, use pullValueChange
   ShaderGlobal::set_real(var::volfog_media_fog_input_mul, volfog_media_fog_input_mul);
 
-  int prevChannelSwizzleFrameId = froxelChannelSwizzleFrameId;
-  froxelChannelSwizzleFrameId = (froxelChannelSwizzleFrameId + 1) % 3;
-  ShaderGlobal::set_int4(var::channel_swizzle_indices, IPoint4(froxelChannelSwizzleFrameId, prevChannelSwizzleFrameId, 0, 0));
+  prevGlobTm.current() = glob_tm.transpose();
+  prevRange = currentRange;
+  return true;
+}
+
+void VolumeLight::performFroxelFogOcclusion()
+{
+  if (!isReady)
+    return;
+
+  set_viewvecs_to_shader(froxelFogViewVecLT, froxelFogViewVecRT, froxelFogViewVecLB, froxelFogViewVecRB);
 
   const int nextFrame = frameId & 1;
   const int prevFrame = 1 - nextFrame;
-
   const ResourceBarrier flags = RB_RO_SRV | (canUsePixelShader() ? RB_STAGE_PIXEL : RB_STAGE_COMPUTE);
-
   {
-    TIME_D3D_PROFILE(occlusion);
+    TIME_D3D_PROFILE(volfog_ff_occlusion);
     STATE_GUARD(ShaderGlobal::set_texture(var::volfog_occlusion_rw, VALUE), volfogOcclusion[nextFrame].getTexId(), BAD_TEXTUREID);
     STATE_GUARD(ShaderGlobal::set_texture(var::volfog_occlusion_shadow_rw, VALUE), volfogShadowOcclusion.getTexId(), BAD_TEXTUREID);
     froxelFogOcclusionCs->dispatchThreads(froxelResolution.x, froxelResolution.y, 1);
@@ -936,9 +935,20 @@ bool VolumeLight::perform(const TMatrix4 &view_tm, const TMatrix4 &proj_tm, cons
 
   ShaderGlobal::set_texture(var::prev_volfog_occlusion, volfogOcclusion[prevFrame].getTexId());
   ShaderGlobal::set_texture(var::volfog_occlusion, volfogOcclusion[nextFrame].getTexId());
+}
 
+void VolumeLight::performFroxelFogFillMedia()
+{
+  if (!isReady)
+    return;
+
+  ShaderGlobal::set_int(var::volfog_hardcoded_input_type, disable_node_based_input ? 0 : -1);
+
+  set_viewvecs_to_shader(froxelFogViewVecLT, froxelFogViewVecRT, froxelFogViewVecLB, froxelFogViewVecRB);
+
+  const ResourceBarrier flags = RB_RO_SRV | (canUsePixelShader() ? RB_STAGE_PIXEL : RB_STAGE_COMPUTE);
   {
-    TIME_D3D_PROFILE(fill_media);
+    TIME_D3D_PROFILE(volfog_ff_fill_media);
     IPoint3 dispatchRes =
       IPoint3(froxelResolution.x / MEDIA_WARP_SIZE_X, froxelResolution.y / MEDIA_WARP_SIZE_Y, froxelResolution.z / MEDIA_WARP_SIZE_Z);
     STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, volfog_ff_initial_media_const_no, VALUE, 0, 0), initialMedia.getVolTex());
@@ -948,9 +958,20 @@ bool VolumeLight::perform(const TMatrix4 &view_tm, const TMatrix4 &proj_tm, cons
       froxelFogFillMediaCs->dispatch(dispatchRes.x, dispatchRes.y, dispatchRes.z);
   }
   d3d::resource_barrier({initialMedia.getVolTex(), flags, 0, 0});
+}
+
+void VolumeLight::performVolfogShadow()
+{
+  if (!isReady)
+    return;
 
   if (hasVolfogShadows())
   {
+    const int nextFrame = frameId & 1;
+    const int prevFrame = 1 - nextFrame;
+
+    set_viewvecs_to_shader(froxelFogViewVecLT, froxelFogViewVecRT, froxelFogViewVecLB, froxelFogViewVecRB);
+
     TIME_D3D_PROFILE(volfog_shadow);
 
     IPoint3 volfogShadowRes = getVolfogShadowRes();
@@ -977,19 +998,17 @@ bool VolumeLight::perform(const TMatrix4 &view_tm, const TMatrix4 &proj_tm, cons
   {
     ShaderGlobal::set_texture(var::volfog_shadow, BAD_TEXTUREID);
   }
-
-  if (isDistantFogEnabled())
-    performRaymarching(useNodeBasedInput, view_tm, posDiff);
-
-  prevGlobTm.current() = glob_tm.transpose();
-  prevRange = currentRange;
-  return true;
 }
 
-void VolumeLight::performRaymarching(bool use_node_based_input, const TMatrix4 &view_tm, const Point3 &pos_diff)
+void VolumeLight::performDistantFogRaymarch()
 {
-  Point4 local_view_z = view_tm.getcol(2);
-  ShaderGlobal::set_color4(var::distant_fog_local_view_z, Color4(local_view_z.x, local_view_z.y, local_view_z.z, 0));
+  if (!isReady)
+    return;
+
+  if (!isDistantFogEnabled())
+    return;
+
+  ShaderGlobal::set_int(var::distant_fog_use_static_shadows, has_distant_fog_static_shadows());
 
   static constexpr float RAW_DEPTH_PRE_SCALE = 0.0001f; // TODO: use non-linear params instead (needs a wrapper to avoid calling pow
                                                         // every frame)
@@ -997,7 +1016,7 @@ void VolumeLight::performRaymarching(bool use_node_based_input, const TMatrix4 &
   float texelChangePerDiff = empty_ray_occlusion_weight_mip_scale * (DEBUG_DISTANT_FOG_DISABLE_4_WAY_RECONSTRUCTION ? 2 : 4);
 
   float occlusionWeightSampleOffset =
-    clamp(length(pos_diff) / texelChangePerDiff, 1.0f, DISTANT_FOG_OCCLUSION_WEIGHT_MAX_SAMPLE_OFFSET);
+    clamp(length(distantFogOcclusionPosDiff) / texelChangePerDiff, 1.0f, DISTANT_FOG_OCCLUSION_WEIGHT_MAX_SAMPLE_OFFSET);
   float occlusionWeightMip = log2(occlusionWeightSampleOffset) + empty_ray_occlusion_weight_mip_bias;
 
   ShaderGlobal::set_color4(var::distant_fog_raymarch_params_0, enable_raymarch_opt_empty_ray, enable_raymarch_opt_ray_start,
@@ -1028,7 +1047,7 @@ void VolumeLight::performRaymarching(bool use_node_based_input, const TMatrix4 &
   const int prevFrame = 1 - nextFrame;
 
   {
-    TIME_D3D_PROFILE(distant_fog_raymarch);
+    TIME_D3D_PROFILE(volfog_df_raymarch);
 
     ShaderGlobal::set_texture(var::prev_distant_fog_raymarch_start_weights, distantFogRaymarchStartWeights[prevFrame].getTexId());
 
@@ -1048,7 +1067,7 @@ void VolumeLight::performRaymarching(bool use_node_based_input, const TMatrix4 &
 
     IPoint2 dispatchRes =
       IPoint2(raymarchFrameRes.x + RAYMARCH_WARP_SIZE - 1, raymarchFrameRes.y + RAYMARCH_WARP_SIZE - 1) / RAYMARCH_WARP_SIZE;
-    if (use_node_based_input)
+    if (useNodeBasedInput)
       nodeBasedDistantFogRaymarchCs->dispatch(dispatchRes.x, dispatchRes.y, 1);
     else
       distantFogRaymarchCs->dispatch(dispatchRes.x, dispatchRes.y, 1);
@@ -1064,7 +1083,7 @@ void VolumeLight::performRaymarching(bool use_node_based_input, const TMatrix4 &
 #endif
 
   {
-    TIME_D3D_PROFILE(distant_fog_raymarch_mip_gen);
+    TIME_D3D_PROFILE(volfog_df_raymarch_mip_gen);
 
     const UniqueTex &mipTex = distantFogRaymarchStartWeights[nextFrame];
     ShaderGlobal::set_texture(var::mip_gen_input_tex, mipTex.getTexId());
@@ -1091,60 +1110,75 @@ void VolumeLight::performRaymarching(bool use_node_based_input, const TMatrix4 &
   }
 }
 
-void VolumeLight::performIntegration()
+void VolumeLight::performFroxelFogPropagate()
 {
+  if (!isReady)
+    return;
+
   const int nextFrame = frameId & 1;
   const int prevFrame = 1 - nextFrame;
 
+  set_viewvecs_to_shader(froxelFogViewVecLT, froxelFogViewVecRT, froxelFogViewVecLB, froxelFogViewVecRB);
+
+  int prevChannelSwizzleFrameId = froxelChannelSwizzleFrameId;
+  froxelChannelSwizzleFrameId = (froxelChannelSwizzleFrameId + 1) % 3;
+  ShaderGlobal::set_int4(var::channel_swizzle_indices, IPoint4(froxelChannelSwizzleFrameId, prevChannelSwizzleFrameId, 0, 0));
+  ShaderGlobal::set_texture(var::prev_initial_inscatter, initialInscatter[prevFrame].getTexId());
+
+  ShaderGlobal::set_int(var::volfog_gi_sampling_mode, volfog_gi_sampling_disable ? 1 : (volfog_gi_sampling_use_filter ? 2 : 0));
+
+  ShaderGlobal::set_texture(var::prev_initial_extinction, initialExtinction[prevFrame].getTexId());
+  if (volfogWeight[prevFrame])
+    ShaderGlobal::set_texture(var::prev_volfog_weight, volfogWeight[prevFrame].getTexId());
+
+  ShaderGlobal::set_int(var::froxel_fog_dispatch_mode, canUseLinearAccumulation() ? 1 : 0);
+
   {
-    TIME_D3D_PROFILE(froxel_fog);
-
-    ShaderGlobal::set_texture(var::prev_initial_inscatter, initialInscatter[prevFrame].getTexId());
-    ShaderGlobal::set_texture(var::prev_initial_extinction, initialExtinction[prevFrame].getTexId());
-    if (volfogWeight[prevFrame])
-      ShaderGlobal::set_texture(var::prev_volfog_weight, volfogWeight[prevFrame].getTexId());
-
-    ShaderGlobal::set_int(var::froxel_fog_dispatch_mode, canUseLinearAccumulation() ? 1 : 0);
-
+    TIME_D3D_PROFILE(volfog_ff_combined_light_calc);
     {
-      TIME_D3D_PROFILE(combined_light_calc);
+      // somehow igpus (especially Intel) are much faster with fully linear accumulation, it's the opposite for dgpus
+      bool usePixelShader = canUsePixelShader();
+      int stage = usePixelShader ? STAGE_PS : STAGE_CS;
+
+      STATE_GUARD_NULLPTR(d3d::set_rwtex(stage, volfog_ff_weight_const_no, VALUE, 0, 0), volfogWeight[nextFrame].getVolTex());
+      STATE_GUARD_NULLPTR(d3d::set_rwtex(stage, volfog_ff_accumulated_inscatter_const_no, VALUE, 0, 0), resultInscatter.getVolTex());
+      STATE_GUARD_NULLPTR(d3d::set_rwtex(stage, volfog_ff_initial_inscatter_const_no, VALUE, 0, 0),
+        initialInscatter[nextFrame].getVolTex());
+      STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, volfog_ff_initial_extinction_const_no, VALUE, 0, 0),
+        initialExtinction[nextFrame].getVolTex());
+
+      if (usePixelShader)
       {
-        // somehow igpus (especially Intel) are much faster with fully linear accumulation, it's the opposite for dgpus
-        bool usePixelShader = canUsePixelShader();
-        int stage = usePixelShader ? STAGE_PS : STAGE_CS;
-
-        STATE_GUARD_NULLPTR(d3d::set_rwtex(stage, volfog_ff_weight_const_no, VALUE, 0, 0), volfogWeight[nextFrame].getVolTex());
-        STATE_GUARD_NULLPTR(d3d::set_rwtex(stage, volfog_ff_accumulated_inscatter_const_no, VALUE, 0, 0), resultInscatter.getVolTex());
-        STATE_GUARD_NULLPTR(d3d::set_rwtex(stage, volfog_ff_initial_inscatter_const_no, VALUE, 0, 0),
-          initialInscatter[nextFrame].getVolTex());
-        STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, volfog_ff_initial_extinction_const_no, VALUE, 0, 0),
-          initialExtinction[nextFrame].getVolTex());
-
-        if (usePixelShader)
-        {
-          SCOPE_RENDER_TARGET;
-          d3d::set_render_target({}, DepthAccess::RW, {});
-          d3d::setview(0, 0, froxelResolution.x, froxelResolution.y, 0, 1);
-          froxelFogLightCalcPropagatePs.render();
-        }
-        else
-        {
-          froxelFogLightCalcPropagateCs->dispatchThreads(1, froxelResolution.x, froxelResolution.y);
-        }
-        d3d::resource_barrier({initialExtinction[nextFrame].getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
-        d3d::resource_barrier({initialInscatter[nextFrame].getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
-        if (volfogWeight[nextFrame])
-          d3d::resource_barrier({volfogWeight[nextFrame].getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
+        SCOPE_RENDER_TARGET;
+        d3d::set_render_target({}, DepthAccess::RW, {});
+        d3d::setview(0, 0, froxelResolution.x, froxelResolution.y, 0, 1);
+        froxelFogLightCalcPropagatePs.render();
       }
+      else
+      {
+        froxelFogLightCalcPropagateCs->dispatchThreads(1, froxelResolution.x, froxelResolution.y);
+      }
+      d3d::resource_barrier({initialExtinction[nextFrame].getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
+      d3d::resource_barrier({initialInscatter[nextFrame].getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
+      if (volfogWeight[nextFrame])
+        d3d::resource_barrier({volfogWeight[nextFrame].getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
     }
   }
 
   d3d::resource_barrier({resultInscatter.getVolTex(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_VERTEX | RB_STAGE_COMPUTE, 0, 0});
 
-  if (isDistantFogEnabled())
+  fogIsValid = true;
+}
+
+void VolumeLight::performDistantFogReconstruct()
+{
+  if (isReady && isDistantFogEnabled())
   {
+    const int nextFrame = frameId & 1;
+    const int prevFrame = 1 - nextFrame;
+
     {
-      TIME_D3D_PROFILE(distant_fog_reconstruct);
+      TIME_D3D_PROFILE(volfog_df_reconstruct);
 
       ShaderGlobal::set_texture(var::prev_distant_fog_inscatter, distantFogFrameReconstruct[prevFrame].getTexId());
       ShaderGlobal::set_texture(var::prev_distant_fog_reconstruction_weight,
@@ -1165,7 +1199,7 @@ void VolumeLight::performIntegration()
 
     ShaderGlobal::set_texture(var::distant_fog_result_inscatter, distantFogFrameReconstruct[nextFrame].getTexId());
     {
-      TIME_D3D_PROFILE(distant_fog_fx_helper_mip_generation);
+      TIME_D3D_PROFILE(volfog_df_recontruct_fx_mip_gen);
 
       int mip = 1;
       int prevMip = mip - 1;
@@ -1200,8 +1234,6 @@ void VolumeLight::performIntegration()
   {
     ShaderGlobal::set_texture(var::distant_fog_result_inscatter, BAD_TEXTUREID);
   }
-
-  fogIsValid = true;
 }
 
 void VolumeLight::setCurrentView(int view) { prevGlobTm.setCurrentView(view); }

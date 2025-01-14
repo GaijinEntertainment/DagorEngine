@@ -175,12 +175,7 @@ static constexpr ecs::ComponentDesc screen_snowflakes_before_render_es_comps[] =
   {ECS_HASH("screen_snowflakes__instances_buf"), ecs::ComponentTypeInfo<UniqueBufHolder>()},
   {ECS_HASH("screen_snowflakes__time_until_next_spawn"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("screen_snowflakes__instances"), ecs::ComponentTypeInfo<SnowflakeInstances>()},
-//start of 7 ro components at [3]
-  {ECS_HASH("screen_snowflakes__spawn_rate"), ecs::ComponentTypeInfo<float>()},
-  {ECS_HASH("screen_snowflakes__min_size"), ecs::ComponentTypeInfo<float>()},
-  {ECS_HASH("screen_snowflakes__max_size"), ecs::ComponentTypeInfo<float>()},
-  {ECS_HASH("screen_snowflakes__restricted_radius"), ecs::ComponentTypeInfo<float>()},
-  {ECS_HASH("screen_snowflakes__lifetime"), ecs::ComponentTypeInfo<float>()},
+//start of 2 ro components at [3]
   {ECS_HASH("screen_snowflakes__camera_inside_vehicle"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("screen_snowflakes__enabled_on_level"), ecs::ComponentTypeInfo<bool>()}
 };
@@ -193,11 +188,6 @@ static void screen_snowflakes_before_render_es_all_events(const ecs::Event &__re
       continue;
     screen_snowflakes_before_render_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
           , ECS_RW_COMP(screen_snowflakes_before_render_es_comps, "screen_snowflakes__instances_buf", UniqueBufHolder)
-      , ECS_RO_COMP(screen_snowflakes_before_render_es_comps, "screen_snowflakes__spawn_rate", float)
-      , ECS_RO_COMP(screen_snowflakes_before_render_es_comps, "screen_snowflakes__min_size", float)
-      , ECS_RO_COMP(screen_snowflakes_before_render_es_comps, "screen_snowflakes__max_size", float)
-      , ECS_RO_COMP(screen_snowflakes_before_render_es_comps, "screen_snowflakes__restricted_radius", float)
-      , ECS_RO_COMP(screen_snowflakes_before_render_es_comps, "screen_snowflakes__lifetime", float)
       , ECS_RW_COMP(screen_snowflakes_before_render_es_comps, "screen_snowflakes__time_until_next_spawn", float)
       , ECS_RW_COMP(screen_snowflakes_before_render_es_comps, "screen_snowflakes__instances", SnowflakeInstances)
       , ECS_RO_COMP(screen_snowflakes_before_render_es_comps, "screen_snowflakes__camera_inside_vehicle", bool)
@@ -210,7 +200,7 @@ static ecs::EntitySystemDesc screen_snowflakes_before_render_es_es_desc
   "prog/daNetGameLibs/screen_snowflakes/render/screenSnowflakesES.cpp.inl",
   ecs::EntitySystemOps(nullptr, screen_snowflakes_before_render_es_all_events),
   make_span(screen_snowflakes_before_render_es_comps+0, 3)/*rw*/,
-  make_span(screen_snowflakes_before_render_es_comps+3, 7)/*ro*/,
+  make_span(screen_snowflakes_before_render_es_comps+3, 2)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
@@ -380,5 +370,41 @@ inline void screen_snowflakes_on_vehicle_camera_change_ecs_query(Callable functi
 
         }while (++comp != compE);
       }
+  );
+}
+static constexpr ecs::ComponentDesc screen_snowflakes_before_render_ecs_query_comps[] =
+{
+//start of 5 ro components at [0]
+  {ECS_HASH("screen_snowflakes__spawn_rate"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("screen_snowflakes__min_size"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("screen_snowflakes__max_size"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("screen_snowflakes__restricted_radius"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("screen_snowflakes__lifetime"), ecs::ComponentTypeInfo<float>()}
+};
+static ecs::CompileTimeQueryDesc screen_snowflakes_before_render_ecs_query_desc
+(
+  "screen_snowflakes_before_render_ecs_query",
+  empty_span(),
+  make_span(screen_snowflakes_before_render_ecs_query_comps+0, 5)/*ro*/,
+  empty_span(),
+  empty_span());
+template<typename Callable>
+inline void screen_snowflakes_before_render_ecs_query(ecs::EntityId eid, Callable function)
+{
+  perform_query(g_entity_mgr, eid, screen_snowflakes_before_render_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        constexpr size_t comp = 0;
+        {
+          function(
+              ECS_RO_COMP(screen_snowflakes_before_render_ecs_query_comps, "screen_snowflakes__spawn_rate", float)
+            , ECS_RO_COMP(screen_snowflakes_before_render_ecs_query_comps, "screen_snowflakes__min_size", float)
+            , ECS_RO_COMP(screen_snowflakes_before_render_ecs_query_comps, "screen_snowflakes__max_size", float)
+            , ECS_RO_COMP(screen_snowflakes_before_render_ecs_query_comps, "screen_snowflakes__restricted_radius", float)
+            , ECS_RO_COMP(screen_snowflakes_before_render_ecs_query_comps, "screen_snowflakes__lifetime", float)
+            );
+
+        }
+    }
   );
 }

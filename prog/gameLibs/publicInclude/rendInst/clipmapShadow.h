@@ -33,6 +33,7 @@ protected:
 
   ToroidalGatherCallback::RegionTab regions[NUM_CLIPMAP_SHADOW_CASCADES];
   Tab<ToroidalQuadRegion> quadRegions[NUM_CLIPMAP_SHADOW_CASCADES];
+  void setUpSampler() const;
 
 public:
   ClipmapShadow() {}

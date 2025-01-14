@@ -182,12 +182,6 @@ public:
     SND_BIND_FUN_EX(play_sound_with_name_pos_vol, "play", das::SideEffects::modifyArgumentAndExternal);
     SND_BIND_FUN_EX(play_sound_with_name_pos_delayed, "delayed_play", das::SideEffects::modifyArgumentAndExternal);
 
-    SND_BIND_FUN_EX(play_or_release_sound_with_name_pos, "play_or_release", das::SideEffects::modifyArgumentAndExternal);
-    SND_BIND_FUN_EX(play_or_abandon_sound_with_name_pos, "play_or_abandon", das::SideEffects::modifyArgumentAndExternal);
-
-    SND_BIND_FUN_EX(play_or_release_sound_with_name, "play_or_release", das::SideEffects::modifyArgumentAndExternal);
-    SND_BIND_FUN_EX(play_or_abandon_sound_with_name, "play_or_abandon", das::SideEffects::modifyArgumentAndExternal);
-
     SND_BIND_FUN_EX(oneshot_with_name_pos, "oneshot", das::SideEffects::modifyExternal);
     SND_BIND_FUN_EX(oneshot_with_name, "oneshot", das::SideEffects::modifyExternal);
     SND_BIND_FUN_EX(oneshot_with_name_pos_far, "oneshot", das::SideEffects::modifyExternal);
@@ -199,6 +193,12 @@ public:
 
     SND_BIND_FUN_EX(is_oneshot, "is_oneshot", das::SideEffects::accessExternal);
     SND_BIND_FUN_EX(__is_oneshot, "is_oneshot", das::SideEffects::accessExternal);
+
+    SND_BIND_FUN_EX(is_delayable, "is_delayable", das::SideEffects::accessExternal);
+    SND_BIND_FUN_EX(__is_delayable, "is_delayable", das::SideEffects::accessExternal);
+
+    SND_BIND_FUN_EX(has_occlusion, "has_occlusion", das::SideEffects::accessExternal);
+    SND_BIND_FUN_EX(__has_occlusion, "has_occlusion", das::SideEffects::accessExternal);
 
     SND_BIND_FUN_EX(is_playing, "is_playing", das::SideEffects::accessExternal);
     SND_BIND_FUN_EX(__is_playing, "is_playing", das::SideEffects::accessExternal);
@@ -274,7 +274,11 @@ public:
     SND_BIND_FUN_EX(get_max_distance_by_name, "get_max_distance", das::SideEffects::accessExternal);
 
     SND_BIND_FUN(set_occlusion_group, das::SideEffects::modifyExternal);
+    SND_BIND_FUN_EX(set_occlusion_group_eid, "set_occlusion_group", das::SideEffects::modifyExternal);
+
     SND_BIND_FUN(set_occlusion_pos, das::SideEffects::modifyExternal);
+    SND_BIND_FUN_EX(set_occlusion_pos_eid, "set_occlusion_pos", das::SideEffects::modifyExternal);
+
     SND_BIND_FUN(is_occlusion_inited, das::SideEffects::accessExternal);
 
     SND_BIND_FUN_EX(das_query_visual_labels, "query_visual_labels", das::SideEffects::modifyExternal);

@@ -232,6 +232,10 @@ void Variance::init(int w, int h, VsmType vsmTypeIn)
   bool filter = (d3d::get_texformat_usage(flags_vsm) & d3d::USAGE_FILTER);
   ShaderGlobal::set_int_fast(vsm_hw_filterVarId, filter ? 1 : 0);
 
+  d3d::SamplerInfo smpInfo;
+  smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Border;
+  smpInfo.border_color = d3d::BorderColor::Color::OpaqueWhite;
+
   // todo: check on non- hw filter supported!
   if (!filter)
   {
@@ -239,8 +243,11 @@ void Variance::init(int w, int h, VsmType vsmTypeIn)
     temp_tex->texmipmap(TEXMIPMAP_POINT);
     targ_tex->texfilter(TEXFILTER_POINT); ///< just to be sure, that result still valid
     targ_tex->texmipmap(TEXMIPMAP_POINT);
+    smpInfo.filter_mode = d3d::FilterMode::Point;
+    smpInfo.mip_map_mode = d3d::MipMapMode::Point;
     debug("non filtered vsm map");
   }
+  ShaderGlobal::set_sampler(::get_shader_glob_var_id("vsm_shadowmap_samplerstate", true), d3d::request_sampler(smpInfo));
 
 
   ShaderGlobal::set_color4_fast(vsm_shadow_tex_sizeVarId, Color4(width, height, 1.0 / width, 1.0 / height));

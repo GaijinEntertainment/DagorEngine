@@ -108,9 +108,10 @@ half static_shadow_sample_8_tap(float2 pos, float z, STATIC_SHADOW_TEXTURE_REF t
 #endif
 
 
-half getStaticShadow(float3 worldPos, float dither, out uint cascade_id, float radius_scale)
+half getStaticShadowMask(float3 worldPos, float dither, out uint cascade_id, out half mask, float radius_scale)
 {
   cascade_id = 2;
+  mask = 0.h;
   half ret = half(1.h);
 #if STATIC_SHADOW_USE_CASCADE_0
   bool hardVignette0 = false;
@@ -143,11 +144,20 @@ half getStaticShadow(float3 worldPos, float dither, out uint cascade_id, float r
   {
     cascade_id = layer;
     ret = 1.h - static_shadow_sample_opt(
-      tc.xy, tc.z, static_shadow_tex, static_shadow_tex_cmpSampler, layer, texel_size, dither, radius_scale) * half(tc.w);
+      tc.xy, tc.z, static_shadow_tex, static_shadow_tex_cmpSampler, layer, texel_size, dither, radius_scale);
+    mask = half(tc.w);
   }
 #endif
 
   return ret;
+}
+
+
+half getStaticShadow(float3 worldPos, float dither, out uint cascade_id, float radius_scale)
+{
+  half mask;
+  half ret = getStaticShadowMask(worldPos, dither, cascade_id, mask, radius_scale);
+  return (1.h - 1.h*mask) + ret*mask;
 }
 
 

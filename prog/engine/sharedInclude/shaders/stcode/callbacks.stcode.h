@@ -25,7 +25,7 @@ __forceinline void get_globtm(float4x4 *out) { internalCbTable.getGlobTm(out); }
 __forceinline void get_projtm(float4x4 *out) { internalCbTable.getProjTm(out); }
 __forceinline void get_viewprojtm(float4x4 *out) { internalCbTable.getViewProjTm(out); }
 __forceinline void get_lview(int component, float4 *out) { internalCbTable.getLocalViewComponent(component, out); }
-__forceinline void get_lworld(int component, float4 *out) { internalCbTable.getLocalViewComponent(component, out); }
+__forceinline void get_lworld(int component, float4 *out) { internalCbTable.getLocalWorldComponent(component, out); }
 __forceinline real get_shader_global_time_phase(float period, float offset)
 {
   return internalCbTable.getShaderGlobalTimePhase(period, offset);

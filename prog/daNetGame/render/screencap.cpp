@@ -408,10 +408,13 @@ eastl::optional<CameraSetupPerspPair> screencap::get_camera()
   return eastl::nullopt;
 }
 
-void screencap::start_video360(int resolution, int convergence_frames)
+void screencap::start_video360(int resolution, int convergence_frames, float fixed_exposure)
 {
   console::command("app.timeSpeed 0");
-  console::command("postfx.fixedExposure 1");
+  {
+    eastl::string fixedExposureCmd{eastl::string::CtorSprintf{}, "postfx.fixedExposure %f", fixed_exposure};
+    console::command(fixedExposureCmd.c_str());
+  }
   auto cam = get_active_camera_setup();
   video360 = eastl::make_unique<Video360>(resolution, convergence_frames, cam.znear, cam.zfar, cam.transform);
   d3d::GpuAutoLock gpuLock;
@@ -454,12 +457,13 @@ static bool screencap_console_handler(const char *argv[], int argc)
   {
     screencap::schedule_screenshot(console::to_bool(argv[1]), console::to_int(argv[2]), argv[3]);
   }
-  CONSOLE_CHECK_NAME("screencap", "take_screenshot_360", 1, 3)
+  CONSOLE_CHECK_NAME_EX("screencap", "take_screenshot_360", 1, 4, "take screenshot 360 and cubemap",
+    "[resolution=2048] [convergenceFrames=100] [fixedExposure=1.0]")
   {
-    console::print("Usage:\nscreencap.take_screenshot_360 (resolution=2048) (convergenceFrames=100)");
     int resolution = argc > 1 ? console::to_int(argv[1]) : 2048;
     int convergenceFrames = argc > 2 ? console::to_int(argv[2]) : 100;
-    screencap::start_video360(resolution, convergenceFrames);
+    float fixedExposure = argc > 3 ? console::to_real(argv[3]) : 1.0;
+    screencap::start_video360(resolution, convergenceFrames, fixedExposure);
   }
   CONSOLE_CHECK_NAME("screencap", "take_screenshot_gbuffer", 1, 1) { capture_gbuffer::schedule_gbuffer_capture(); }
   return found;

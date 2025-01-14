@@ -93,16 +93,18 @@ void add_variant(
   for (const auto &objectGroup : object_groups)
   {
     numVariantPlaceables += objectGroup.info->placeables.size();
-    init.objectGroupsFmem.push_back(objectGroup);
+    auto &item = init.objectGroupsFmem.push_back();
+    item.info = objectGroup.info;
+    item.weightFactor = (1.0 - placeableWeightEmpty) * (objectGroup.effectiveDensity / density);
   }
 
+  // TODO: rename placeableWeightEmpty.
   gpuData.placeableWeightEmpty = placeableWeightEmpty;
   gpuData.placeableStartIndex = init.numPlaceables;
   gpuData.placeableCount = numVariantPlaceables;
   gpuData.placeableEndIndex = init.numPlaceables + numVariantPlaceables;
   gpuData.drawRangeStartIndex = init.drawRangesFmem.size();
   gpuData.renderableIndicesStartIndex = init.renderableIndicesFmem.size();
-  gpuData.density = density;
 
   calculate_draw_ranges(init, object_groups);
   gpuData.drawRangeEndIndex = init.drawRangesFmem.size();
@@ -193,6 +195,7 @@ bool init_common_placer_buffers(const CommonPlacerBufferInit &init, eastl::strin
   }
 
   {
+    // TODO: these are not weights, but probabilities, and should be renamed for clarity.
     TmpName bufferName(TmpName::CtorSprintf(), "%.*s_placeable_weights", buffer_name_prefix.size(), buffer_name_prefix.data());
     output.placeableWeightsBuffer =
       dag::buffers::create_persistent_sr_structured(sizeof(float), init.numPlaceables, bufferName.c_str());
@@ -207,7 +210,7 @@ bool init_common_placer_buffers(const CommonPlacerBufferInit &init, eastl::strin
     uint32_t i = 0;
     for (const auto &objectGroup : init.objectGroupsFmem)
       for (const auto &placeable : objectGroup.info->placeables)
-        lockedBuffer[i++] = placeable.params.weight;
+        lockedBuffer[i++] = placeable.params.weight * objectGroup.weightFactor;
 
     G_ASSERT(i == init.numPlaceables);
   }

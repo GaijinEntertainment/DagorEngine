@@ -80,7 +80,7 @@ void ToolBarManager::init(int toolbar_id)
   tb2->setBool(CM_VIEW_GRID_ANGLE_SNAP, grid.getRotateSnap());
   tb2->setBool(CM_VIEW_GRID_SCALE_SNAP, grid.getScaleSnap());
 
-  tb2->createButton(CM_ZOOM_AND_CENTER, "Zoom and center (Z)");
+  tb2->createButton(CM_ZOOM_AND_CENTER, "Zoom and center (Z or Ctrl+Shift+Z)");
   tb2->setButtonPictures(CM_ZOOM_AND_CENTER, "zoom_and_center");
 
   tb2->createButton(CM_NAVIGATE, "Navigate");
@@ -193,6 +193,30 @@ IEditorCoreEngine::BasisType ToolBarManager::getBasisType() const
 {
   if (gizmoBasisType != -1)
     return (IEditorCoreEngine::BasisType)gizmoBasisType;
+
+  return IEditorCoreEngine::BASIS_None;
+}
+
+
+IEditorCoreEngine::BasisType ToolBarManager::getGizmoBasisTypeForMode(IEditorCoreEngine::ModeType tp) const
+{
+  if (type == tp)
+  {
+    if (gizmoBasisType != -1)
+      return (IEditorCoreEngine::BasisType)gizmoBasisType;
+  }
+
+  switch (tp)
+  {
+    case IEditorCoreEngine::MODE_Move: return (IEditorCoreEngine::BasisType)(moveGizmo & IEditorCoreEngine::GIZMO_MASK_Basis);
+
+    case IEditorCoreEngine::MODE_MoveSurface:
+      return (IEditorCoreEngine::BasisType)(moveSurfGizmo & IEditorCoreEngine::GIZMO_MASK_Basis);
+
+    case IEditorCoreEngine::MODE_Scale: return (IEditorCoreEngine::BasisType)(scaleGizmo & IEditorCoreEngine::GIZMO_MASK_Basis);
+
+    case IEditorCoreEngine::MODE_Rotate: return (IEditorCoreEngine::BasisType)(rotateGizmo & IEditorCoreEngine::GIZMO_MASK_Basis);
+  }
 
   return IEditorCoreEngine::BASIS_None;
 }

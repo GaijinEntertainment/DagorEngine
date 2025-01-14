@@ -238,4 +238,5 @@ bool can_combine_elems(const ShaderMeshData::RElem &left, const ShaderMeshData::
   int additional_verices_num = 0, int additional_faces_num = 0);
 
 void create_vertex_color_data(Mesh &m, int usage, int usage_index);
-void add_per_vertex_domain_uv(Mesh &m, int usage, int usage_index);
+
+void add_per_vertex_domain_uv(Mesh &m, int usage, int usage_index_0, int usage_index_1);

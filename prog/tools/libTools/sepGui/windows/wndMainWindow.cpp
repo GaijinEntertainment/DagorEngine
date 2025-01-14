@@ -10,7 +10,6 @@
 #include <startup/dag_globalSettings.h>
 namespace workcycle_internal
 {
-extern bool application_active;
 extern bool enable_idle_priority;
 void set_priority(bool foreground);
 } // namespace workcycle_internal
@@ -130,20 +129,18 @@ intptr_t MainWindow::winProc(void *h_wnd, unsigned msg, TSgWParam w_param, TSgLP
     {
       using namespace workcycle_internal;
       BOOL n_app_active = LOWORD(w_param);
-      if (n_app_active && !application_active)
+      if (n_app_active && !::dgs_app_active)
       {
         set_priority(true);
         SetCursor(NULL);
-        application_active = true;
         debug("---- APP  Active  --->");
         dgs_app_active = true;
         _fpreset();
       }
-      else if (!n_app_active && application_active)
+      else if (!n_app_active && ::dgs_app_active)
       {
         if (workcycle_internal::enable_idle_priority)
           set_priority(false);
-        application_active = false;
         debug("<--- APP inactive ----");
         dgs_app_active = false;
       }

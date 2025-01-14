@@ -200,6 +200,24 @@ void Trace::blit(const call_stack::CommandData &call_stack, D3DGraphicsCommandLi
   list.traceList.blit(id, call_stack);
 }
 
+#if D3D_HAS_RAY_TRACING
+void Trace::dispatchRays(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+  const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchParameters &rdp)
+{
+  auto &list = commandListTable.getList(cmd);
+  auto id = list.traceRecodring.record(cmd);
+  list.traceList.dispatchRays(id, debug_info, dispatch_parameters, rbt, rdp);
+}
+
+void Trace::dispatchRaysIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+  const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchIndirectParameters &rdip)
+{
+  auto &list = commandListTable.getList(cmd);
+  auto id = list.traceRecodring.record(cmd);
+  list.traceList.dispatchRaysIndirect(id, debug_info, dispatch_parameters, rbt, rdip);
+}
+#endif
+
 void Trace::onDeviceRemoved(D3DDevice *device, HRESULT reason, call_stack::Reporter &reporter)
 {
   if (DXGI_ERROR_INVALID_CALL == reason)

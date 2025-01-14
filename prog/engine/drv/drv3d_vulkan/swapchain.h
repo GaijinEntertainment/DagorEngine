@@ -22,8 +22,7 @@ struct SwapchainMode
   FormatStore colorFormat;
   uint32_t recreateRequest;
   uint8_t enableSrgb : 1;
-  // TODO: VK_EXT_full_screen_exclusive support
-  // uint8_t fullscreen : 1;
+  uint8_t fullscreen : 1;
 
   bool isVsyncOn() const { return VK_PRESENT_MODE_IMMEDIATE_KHR != presentMode; }
 
@@ -144,6 +143,7 @@ private:
   typedef eastl::fixed_vector<VkSurfaceFormatKHR, usualSwapchainFormatCount, true> SurfaceFormatStore;
   typedef eastl::fixed_vector<FormatStore, usualSwapchainFormatCount, true> SwapchainFormatStore;
 
+  bool isFullscreenExclusiveAllowed();
   VkSurfaceCapabilitiesKHR querySurfaceCaps();
   PresentModeStore queryPresentModeList();
   SwapchainFormatStore queryPresentFormats();
@@ -156,9 +156,9 @@ private:
   bool updateSwapchainImageList(const VkSwapchainCreateInfoKHR &sci);
 
   // NOTE: if from and to have same extent, then blit is a copy per vulkan spec
-  void doBlit(ExecutionContext &ctx, Image *from, Image *to);
-  void makeReadyForBlit(ExecutionContext &ctx, Image *from, Image *to);
-  void makeReadyForPresent(ExecutionContext &ctx, Image *img);
+  void doBlit(Image *from, Image *to);
+  void makeReadyForBlit(Image *from, Image *to);
+  void makeReadyForPresent(Image *img);
 
   void createOffscreenBuffer();
   void destroyOffscreenBuffer(FrameInfo &frame);
@@ -198,8 +198,8 @@ public:
 
   // methods that can change internal swapchain state
   void changeSwapchainMode(ExecutionContext &ctx, const SwapchainMode &new_mode);
-  void prePresent(ExecutionContext &ctx);
-  void present(ExecutionContext &ctx);
+  void prePresent();
+  void present(VulkanSemaphoreHandle present_signal);
   void onFrameBegin(ExecutionContext &ctx);
 };
 

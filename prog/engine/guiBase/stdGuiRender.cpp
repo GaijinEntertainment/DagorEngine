@@ -3146,6 +3146,67 @@ void GuiContext::render_rectangle_aa(Point2 lt, Point2 rb, float line_width, E3D
   }
 }
 
+void StdGuiRender::GuiContext::render_line_gradient_out(Point2 from, Point2 to, E3DCOLOR center_col, float center_width,
+  float outer_width, E3DCOLOR outer_col)
+{
+  reset_textures();
+
+  // 0 --------- 3
+  // | \       / |
+  // |   1 - 2   |
+  // |   |   |   |
+  // |   |   |   |
+  // |   |   |   |
+  // |   |   |   |
+  // |   |   |   |
+  // |   5 - 6   |
+  // | /       \ |
+  // 4 ----------7
+
+  Point2 y = to - from;
+  y.normalize();
+
+  Point2 x = Point2(y.y, -y.x);
+  x.normalize();
+
+  carray<Point2, 16> p;
+  p[0] = to - x * (center_width + outer_width) + y * outer_width;
+  p[1] = to - x * (center_width);
+  p[2] = to + x * (center_width);
+  p[3] = to + x * (center_width + outer_width) + y * outer_width;
+  p[4] = from - x * (center_width + outer_width) - y * outer_width;
+  p[5] = from - x * (center_width);
+  p[6] = from + x * (center_width);
+  p[7] = from + x * (center_width + outer_width) - y * outer_width;
+
+  GuiVertex *qv = qCacheAllocT<GuiVertex>(5);
+
+  MAKEDATA(0, 0, outer_col, p[0]);
+  MAKEDATA(0, 1, center_col, p[1]);
+  MAKEDATA(0, 2, center_col, p[5]);
+  MAKEDATA(0, 3, outer_col, p[4]);
+
+  MAKEDATA(1, 0, center_col, p[1]);
+  MAKEDATA(1, 1, center_col, p[2]);
+  MAKEDATA(1, 2, center_col, p[6]);
+  MAKEDATA(1, 3, center_col, p[5]);
+
+  MAKEDATA(2, 0, center_col, p[2]);
+  MAKEDATA(2, 1, outer_col, p[3]);
+  MAKEDATA(2, 2, outer_col, p[7]);
+  MAKEDATA(2, 3, center_col, p[6]);
+
+  MAKEDATA(3, 0, outer_col, p[0]);
+  MAKEDATA(3, 1, outer_col, p[3]);
+  MAKEDATA(3, 2, center_col, p[2]);
+  MAKEDATA(3, 3, center_col, p[1]);
+
+  MAKEDATA(4, 0, center_col, p[5]);
+  MAKEDATA(4, 1, center_col, p[6]);
+  MAKEDATA(4, 2, outer_col, p[7]);
+  MAKEDATA(4, 3, outer_col, p[4]);
+}
+
 void GuiContext::render_rectangle_aa(Point2 lt, Point2 rb, float line_width, E3DCOLOR color, E3DCOLOR fill_color)
 {
   render_rectangle_aa(lt, rb, line_width, color, color, fill_color);

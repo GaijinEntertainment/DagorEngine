@@ -1,3 +1,6 @@
+#ifndef SMOKE_TRACERS_HLSLI_INCLUDED
+#define SMOKE_TRACERS_HLSLI_INCLUDED
+
 #define MAX_TRACERS 2048
 
 #define TRACER_RIBBON_SEGMENTS_COUNT 512
@@ -12,7 +15,7 @@
 #define TRACER_SMOKE_MAX_CREATE_COMMANDS (TRACER_CMD_BUF_MAX_SIZE / TRACER_SMOKE_CREATE_COMMAND_SIZE)
 #define TRACER_MAX_CULL_COMMANDS (CONST_BUF_MAX_SIZE-14)
 
-#ifndef GPU_TARGET
+#ifdef __cplusplus
 #pragma pack(push, 1)
 #endif
 
@@ -58,7 +61,7 @@ struct TracerUpdateCommand
 {
   float3 pos;
   uint id;
-  #ifndef GPU_TARGET
+  #ifdef __cplusplus
   TracerUpdateCommand() = default;
   TracerUpdateCommand(int id_, const Point3 &p):id(id_), pos(p){}
   #endif
@@ -93,14 +96,14 @@ struct TracerCreateCommand
   float4 smoke_color;
   float4 head_color__burnTime;
   float3 start_head_color; float start_mult;
-  #ifndef GPU_TARGET
+  #ifdef __cplusplus
   TracerCreateCommand() = default;
   TracerCreateCommand(int id_, const float3 &p0, const float3 &d, float ttl_, const float4 &smoke_color_, const float4 &head_color_, const float3 &start_head_color_, float start_mult_):
     id(id_), pos0(p0), dir(d), ttl(ttl_), smoke_color(smoke_color_), head_color__burnTime(head_color_), start_head_color(start_head_color_), start_mult(start_mult_){}
   #endif
 };
 
-#ifdef GPU_TARGET
+#ifndef __cplusplus
 float get_tracers_max_turbulence_radius(float radiusStart) {return (radiusStart*2+0.25);}
 
 #define TRACERS_WIND_RADIUS_STR 0.1
@@ -113,6 +116,8 @@ float3 get_tracers_wind(float time)
 
 #endif
 
-#ifndef GPU_TARGET
+#ifdef __cplusplus
 #pragma pack(pop)
+#endif
+
 #endif

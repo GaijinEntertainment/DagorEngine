@@ -2,6 +2,8 @@
 
 #include "frameGraphModule.h"
 
+#include <EASTL/shared_ptr.h>
+
 #include <api/das/typeInterop.h>
 #include <daScript/include/daScript/simulate/aot_builtin_ast.h>
 #include <daScript/src/builtin/module_builtin_ast.h>
@@ -95,8 +97,8 @@ void setBlobDescriptionDefValue(dabfg::ResourceData &res, const char *mangled_na
   G_ASSERT(align > 0 && size > 0);
   G_ASSERT_RETURN(ctor, );
 
-  auto callCtor = [ctx, ctor = das::GcRootLambda(eastl::move(ctor), ctx), type_info](void *p) {
-    const auto call = [ctx, &ctor, p]() { das::das_invoke_lambda<void>::invoke<void *>(ctx, nullptr, ctor, p); };
+  auto callCtor = [ctx, ctor = eastl::make_shared<das::GcRootLambda>(eastl::move(ctor), ctx), type_info](void *p) {
+    const auto call = [ctx, &ctor, p]() { das::das_invoke_lambda<void>::invoke<void *>(ctx, nullptr, *ctor.get(), p); };
     callDasFunction(ctx, call);
     ctx->addGcRoot(p, type_info);
   };
@@ -119,7 +121,7 @@ void setBlobDescriptionDefValue(dabfg::ResourceData &res, const char *mangled_na
     };
 
     res.creationInfo =
-      dabfg::BlobDescription{tag, static_cast<size_t>(size), static_cast<size_t>(align), eastl::move(callCtor), callDtor, callCopy};
+      dabfg::BlobDescription{tag, static_cast<size_t>(size), static_cast<size_t>(align), callCtor, callDtor, callCopy};
   }
   else if (type_info->isPod())
   {
@@ -130,7 +132,7 @@ void setBlobDescriptionDefValue(dabfg::ResourceData &res, const char *mangled_na
     };
 
     res.creationInfo =
-      dabfg::BlobDescription{tag, static_cast<size_t>(size), static_cast<size_t>(align), eastl::move(callCtor), callDtor, callCopy};
+      dabfg::BlobDescription{tag, static_cast<size_t>(size), static_cast<size_t>(align), callCtor, callDtor, callCopy};
   }
   else if (type_info->isRawPod())
   {
@@ -138,7 +140,7 @@ void setBlobDescriptionDefValue(dabfg::ResourceData &res, const char *mangled_na
     const auto callCopy = [size](void *p, const void *from) { ::memcpy(p, from, size); };
 
     res.creationInfo =
-      dabfg::BlobDescription{tag, static_cast<size_t>(size), static_cast<size_t>(align), eastl::move(callCtor), callDtor, callCopy};
+      dabfg::BlobDescription{tag, static_cast<size_t>(size), static_cast<size_t>(align), callCtor, callDtor, callCopy};
   }
   else
   {

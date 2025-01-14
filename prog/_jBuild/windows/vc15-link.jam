@@ -25,7 +25,12 @@ rule ProcessLinkTarget
   {
     _LINK_OPT = -nologo $(FileAlignLinkOption):512 -base:$(BaseAddress) -incremental:no ;
     if $(PlatformArch) = x86 { _LINK_OPT += /LARGEADDRESSAWARE ; }
-    if $(Sanitize) != disabled { _LINK_OPT += /FUNCTIONPADMIN ; }
+    if $(Sanitize) != disabled {
+      _LINK_OPT += /FUNCTIONPADMIN ;
+      if $(Sanitize) = address && $(PlatformSpec) = clang && $(CLangVer:B) in 16.0 17.0 18.1 19.1 {
+        _LINK_OPT += -inferasanlibs:no ; # to avoid duplicate simbols linker error https://learn.microsoft.com/en-us/cpp/sanitizers/asan-building?view=msvc-170#inferasanlibsno-linker-option
+      }
+    }
 
     local __sstype = windows ; local __ssver = 5.02 ;
     if $(ConsoleExe) = yes { __sstype = console ; }

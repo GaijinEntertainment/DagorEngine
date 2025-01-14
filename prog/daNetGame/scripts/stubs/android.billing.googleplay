@@ -7,7 +7,8 @@ return {
   getItemPriceCurrency = @(_sku) ""
   checkPurchases = @() null
   getPurchaseHistory = @() null
-
+  manageSubscription = @(_) null
+  upgradeSubscription = @(_,__) null
   GP_EMPTY_RESPONSE_PURCHASE_DATA = -13
   GP_NOT_INITED = -12
   GP_EMPTY_RESPONSE_SKU_DATA = -11

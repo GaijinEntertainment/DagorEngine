@@ -1,12 +1,13 @@
 
-Resource Building
+Building Resources
 =========================================
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-   resource_building.md
+   building_resources.md
+   packages.md
    vromfs.md
 
 

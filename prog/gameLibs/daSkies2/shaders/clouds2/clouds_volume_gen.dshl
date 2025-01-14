@@ -5,7 +5,8 @@ include "writeToTex.dshl"
 
 int skies_has_clouds=1;
 
-float4 cloud_volume_res = (32, 16, 32, 50000);//last one is distance
+int4 cloud_volume_res = (32, 16, 32, 0);
+float cloud_volume_dist = 50000;
 
 macro WRITE_BUILD_VOLUME(code)
   local float4 offseted_view_pos = (world_view_pos.x+clouds_origin_offset.x, world_view_pos.y, world_view_pos.z+clouds_origin_offset.y,0);
@@ -14,7 +15,8 @@ macro WRITE_BUILD_VOLUME(code)
   VIEW_VEC_OPTIMIZED(code)
   (code) {
     invres@f4 = (1./cloud_volume_res.x, 1./cloud_volume_res.y, 0.5/cloud_volume_res.x, 0.5/cloud_volume_res.y);
-    cloud_volume_res@f4=cloud_volume_res;
+    cloud_volume_res_z_minus_half_inv@f1 = (1./(cloud_volume_res.z - 0.5));
+    cloud_volume_dist@f1 = cloud_volume_dist;
     clouds_start_trace@f3 = (offseted_view_pos);
     skies_has_clouds@f1 = (skies_has_clouds);
   }
@@ -27,8 +29,8 @@ macro WRITE_BUILD_VOLUME(code)
       float3 clouds_hole_offset = get_clouds_hole_pos_vec();
       for (int i = 1; i < slice_end; ++i)
       {
-        float p = (i+0.5)/(cloud_volume_res.z-0.5);
-        float cDist = pow2(p)*cloud_volume_res.w;
+        float p = (i+0.5) * cloud_volume_res_z_minus_half_inv;
+        float cDist = pow2(p)*cloud_volume_dist;
         const int subDivision = 4;
         float dx = (cDist-lastDist)/subDivision;
         float sigmaDs = CLOUDS_SIGMA*dx;
@@ -55,6 +57,7 @@ endmacro
 
 shader build_dacloud_volume_cs
 {
+  (cs) { slices@u1 = cloud_volume_res.z; }
   hlsl(cs) {
     RWTexture3D<float> cloudsVolumeTransmittance:register(u0);
     #define EACH_ITERATION(i, t) texture3DAt(cloudsVolumeTransmittance, int3(scri, i)) = t;
@@ -71,13 +74,13 @@ shader build_dacloud_volume_cs
 ##endif
     void cs_main(uint2 dtid : SV_DispatchThreadID)
     {
-      texture3DAt(cloudsVolumeTransmittance, int3(dtid.xy,0)) = 1;
+      texture3DAt(cloudsVolumeTransmittance, uint3(dtid.xy,0)) = 1;
       if (skies_has_clouds)
-        iterateTransmittance(dtid*invres.xy + invres.zw, dtid, cloud_volume_res.z);
+        iterateTransmittance(dtid*invres.xy + invres.zw, dtid, slices);
       else
       {
-        for (int i = 1; i < cloud_volume_res.z; ++i)
-          texture3DAt(cloudsVolumeTransmittance, int3(dtid.xy,i)) = 1;
+        for (uint i = 1; i < slices; ++i)
+          texture3DAt(cloudsVolumeTransmittance, uint3(dtid.xy,i)) = 1;
       }
     }
   }

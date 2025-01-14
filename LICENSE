@@ -73,6 +73,7 @@ We recommend consulting the respective LICENSE.txt or equivalent files for your
 guidance. You can find them in the respective directories of each
 third-party component as follows:
 
+  prog/3rdPartyLibs/acl/LICENSE
   prog/3rdPartyLibs/arc/brotli/LICENSE
   prog/3rdPartyLibs/arc/fastlz/LICENSE
   prog/3rdPartyLibs/arc/libzip/LICENSE
@@ -105,6 +106,7 @@ third-party component as follows:
   prog/3rdPartyLibs/eastl/LICENSE
   prog/3rdPartyLibs/enet/LICENSE
   prog/3rdPartyLibs/fast_float/LICENSE
+  prog/3rdPartyLibs/ffx/LICENSE
   prog/3rdPartyLibs/fileWatcher/License.txt
   prog/3rdPartyLibs/flatbuffers/LICENSE.txt
   prog/3rdPartyLibs/fmt/LICENSE

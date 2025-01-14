@@ -39,16 +39,16 @@ public:
   KRNLIMP FastSeqReader();
   ~FastSeqReader() { closeData(); }
 
-  virtual void read(void *ptr, int size)
+  void read(void *ptr, int size) override
   {
     if (tryRead(ptr, size) != size)
       DAGOR_THROW(LoadException("read error", file.pos));
   }
-  KRNLIMP virtual int tryRead(void *ptr, int size);
-  virtual int tell() { return file.pos; }
-  KRNLIMP virtual void seekto(int pos);
-  virtual void seekrel(int ofs) { seekto(file.pos + ofs); }
-  KRNLIMP virtual const char *getTargetName() { return targetFilename.str(); }
+  KRNLIMP int tryRead(void *ptr, int size) override;
+  int tell() override { return file.pos; }
+  KRNLIMP void seekto(int pos) override;
+  void seekrel(int ofs) override { seekto(file.pos + ofs); }
+  KRNLIMP const char *getTargetName() override { return targetFilename.str(); }
   KRNLIMP int64_t getTargetDataSize() override { return file.size; }
 
   //! assigns async file handle to read data from

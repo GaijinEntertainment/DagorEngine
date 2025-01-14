@@ -578,7 +578,7 @@ void CompositeEditor::onDelayedSelectAsset(const DagorAsset *asset)
 {
   G_ASSERT(asset);
   if (asset)
-    get_app().selectAsset(*asset, true);
+    get_app().selectAsset(*asset);
 }
 
 bool CompositeEditor::onTvContextMenu(PropPanel::TreeBaseWindow &tree_base_window, PropPanel::ITreeInterface &tree)

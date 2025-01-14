@@ -199,7 +199,7 @@ def decode_unicode_escape ( str:string )
             while i < llen
                 if p[i]==0x5cu8
                     var j = i + 1
-                    var jlen = min(llen, j+8)
+                    let jlen = min(llen, j+8)
                     bang |> resize(0)
                     while j<jlen && is_hex(int(p[j]))
                         bang |> push(p[j])

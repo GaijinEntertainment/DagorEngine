@@ -83,15 +83,22 @@ if $(CppStcode) = enable {
     stcode.cpp
     stcode/stcodeCallbacksImpl.cpp
   ;
-  CPPopt += -DCPP_STCODE_PROTOTYPE=1 ;
+  CPPopt += -DCPP_STCODE=1 ;
+} else if $(CppStcode) = both {
+  Target = $(Target:S=-stboth.lib) ;
+  Sources +=
+    stcode.cpp
+    stcode/stcodeCallbacksImpl.cpp
+  ;
+  CPPopt += -DCPP_STCODE=1 -DSTCODE_RUNTIME_CHOICE=1 ;
 } else if $(CppStcode) = validate {
-  Target = $(Target:S=-stcpp_val.lib) ;
+  Target = $(Target:S=-stcpp-val.lib) ;
   Sources +=
     stcode.cpp
     stcode/stcodeCallbacksImpl.cpp
     stcode/compareStcode.cpp
   ;
-  CPPopt += -DCPP_STCODE_PROTOTYPE=1 -DVALIDATE_CPP_STCODE=1 ;
+  CPPopt += -DCPP_STCODE=1 -DVALIDATE_CPP_STCODE=1 ;
 }
 
 if $(CamStub) = yes {

@@ -35,7 +35,7 @@ shader downsample_depth_hzb
     depth_source_sz@f2 = depth_source_sz;
     depth_target_sz@f2 = depth_target_sz;
     depth_source_rcp@f2 = (1.0 / depth_source_sz.x, 1.0 / depth_source_sz.y);
-    half_target_rcp@f2 = (0.5 / depth_source_sz.x, 0.5 / depth_source_sz.y);
+    half_target_rcp@f2 = (0.5 / depth_target_sz.x, 0.5 / depth_target_sz.y);
   }
   if (occlusionExclusionMask!=NULL)
   {
@@ -47,8 +47,8 @@ shader downsample_depth_hzb
   }
   else if (material_gbuf!=NULL)
   {
-    INIT_READ_GBUFFER_MATERIAL_DYNAMIC()
-    USE_READ_GBUFFER_MATERIAL_DYNAMIC()
+    INIT_READ_IS_HERO_COCKPIT(ps)
+    USE_READ_IS_HERO_COCKPIT(ps)
   }
   PS4_DEF_TARGET_FMT_32_AR()
 
@@ -61,12 +61,11 @@ shader downsample_depth_hzb
       ##if downsampleTypeId == down4x4 || downsampleTypeId == final4x4
         float2 posFloored = floor(pos.xy);
         float2 lt = (floor(posFloored*(depth_source_sz/depth_target_sz)) + 0.5)/depth_source_sz;
-        float2 rb = lt + 2./depth_source_sz;
 
         float4 src = downsample_depth_from.GatherRed(downsample_depth_from_samplerstate, lt);
-        src = depth_max(src, (downsample_depth_from.GatherRed(downsample_depth_from_samplerstate, float2(rb.x, lt.y), int2(2, 0) )));
-        src = depth_max(src, (downsample_depth_from.GatherRed(downsample_depth_from_samplerstate, float2(lt.x, rb.y), int2(0, 2) )));
-        src = depth_max(src, (downsample_depth_from.GatherRed(downsample_depth_from_samplerstate, rb, int2(2, 2) )));
+        src = depth_max(src, (downsample_depth_from.GatherRed(downsample_depth_from_samplerstate, lt, int2(2, 0) )));
+        src = depth_max(src, (downsample_depth_from.GatherRed(downsample_depth_from_samplerstate, lt, int2(0, 2) )));
+        src = depth_max(src, (downsample_depth_from.GatherRed(downsample_depth_from_samplerstate, lt, int2(2, 2) )));
         float src0 = src.x, src1 = src.y, src2 = src.z, src3=src.w;
       ##else
         float2 tc = floor((IN.tc.xy + half_target_rcp) * depth_source_sz) * depth_source_rcp;

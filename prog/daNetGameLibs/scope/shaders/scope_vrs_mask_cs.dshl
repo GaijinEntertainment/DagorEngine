@@ -3,6 +3,7 @@ include "hardware_defines.dshl"
 int scope_vrs_mask_tile_x = 8;
 int scope_vrs_mask_tile_y = 8;
 int scope_vrs_mask_rate = 5; // 2x2
+int scope_vrs_mask_tex_uav_no = 0;
 texture scope_mask;
 texture scope_lens_mask;
 
@@ -18,11 +19,13 @@ shader scope_vrs_mask_cs
     scope_mask@smp2d = scope_mask;
     scope_lens_mask@smp2d = scope_lens_mask;
     scope_mask_tex_size@f2 = get_dimensions(scope_mask, 0);
+    scopeVRSMaskTex@uav : register(scope_vrs_mask_tex_uav_no) hlsl {
+      RWTexture2D<uint> scopeVRSMaskTex@uav;
+    };
   }
   ENABLE_ASSERT(cs)
   hlsl(cs) {
     #include "scope_mask_common.hlsli"
-    RWTexture2D<uint> scopeVRSMaskTex : register(u0);
 
     [numthreads(SCOPE_MASK_NUMTHREADS, SCOPE_MASK_NUMTHREADS, 1 )]
     void main(uint gId : SV_GroupIndex, uint3 dtId : SV_DispatchThreadID )

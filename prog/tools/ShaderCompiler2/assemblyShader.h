@@ -173,6 +173,9 @@ private:
 
   void manuallyReleaseRegister(int reg);
 
+  bool buildArrayOfStructsHlslDeclarationInplace(String &hlsl_src, NamedConstSpace name_space, Terminal *var, int reg_count);
+  bool buildResourceArrayHlslDeclarationInplace(String &hlsl_src, NamedConstSpace name_space, Terminal *var, int reg_count);
+
   void evalHlslCompileClass(HlslCompile *comp);
 
   bool validateDynamicConstsForMultidraw();

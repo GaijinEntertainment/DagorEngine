@@ -10,8 +10,9 @@ macro USE_SPOT_LIGHT_MASK(code)
   (code) {spot_lights_flags@buf = spot_lights_flags hlsl {StructuredBuffer<uint> spot_lights_flags@buf;}; }
   hlsl(code) {
     #define CHECK_SPOT_LIGHT_MASK 1U
+    #define SPOT_LIGHT_MASK_LENS_FLARE 2U
 
-    bool check_spot_light(uint light_index){ return check_byte_buffer_by_mask(spot_lights_flags, light_index, CHECK_SPOT_LIGHT_MASK); }
+    bool check_spot_light(uint light_index, uint mask){ return check_byte_buffer_by_mask(spot_lights_flags, light_index, mask); }
   }
 endmacro
 
@@ -19,7 +20,8 @@ macro USE_OMNI_LIGHT_MASK(code)
   (code) {omni_lights_flags@buf = omni_lights_flags hlsl {StructuredBuffer<uint> omni_lights_flags@buf;}; }
   hlsl(code) {
     #define CHECK_OMNI_LIGHT_MASK 1U
+    #define OMNI_LIGHT_MASK_LENS_FLARE 2U
 
-    bool check_omni_light(uint light_index){ return check_byte_buffer_by_mask(omni_lights_flags, light_index, CHECK_OMNI_LIGHT_MASK); }
+    bool check_omni_light(uint light_index, uint mask){ return check_byte_buffer_by_mask(omni_lights_flags, light_index, mask); }
   }
 endmacro

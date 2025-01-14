@@ -19,6 +19,10 @@ dagdp_level_settings {
       value:i=0
       _info { desc:t="Maximum number of objects that can be placed." }
     }
+    "dagdp__use_heightmap_dynamic_objects:b"{
+      value:b=no
+      _info { desc:t="Use dynamic memory allocations for heightmap placement with respect to dagdp__max_objects. Allows to reduce memory consumption but memory budget must be controlled manually." }
+    }
   }
 }
 
@@ -45,7 +49,7 @@ dagdp_object_group {
   "dagdp_object_group:tag"{}
   _track:b=yes
   "dagdp__params:object"{
-    _info { desc:t="An object with the following (optional) fields:\n- weight:r=1\n- scale:p2=1,0 // Scale: base value and deviation.\n- rot_y:p2=0,180 // Yaw (first rotation, around object axis Y): base value and deviation. Unit: degrees.\n- rot_x:p2=0,0 // Pitch (second rotation, around object axis X): base value and deviation. Unit: degrees.\n- rot_z:p2=0,0 // Roll (third rotation, around object axis Z): base value and deviation. Unit: degrees.\n- orientation:t='world' // One of: 'world', 'world_xz', 'normal', 'normal_xz'. Selects initial orientation: object axis Y will be either world Y, or surface normal. Object axis X will be either world X, or looking toward the surface downward slope.\n- heightmap_imitators:t='allow' // One of: 'allow' (no restriction), 'require' (placement only on imitator), 'reject' (placement only on the original heightmap).\n- slope_factor:r=0 // Control the strength of slope effect: skip objects for more vertical (or horizontal, when inverted) surfaces.\n- slope_invert:b=no // Invert the slope effect.\n- delete_on_deform:b=yes // Delete the object when ridden over by a vehicle. \n- density_mask_channel:t='red' // If the density mask is set, which channel to use for this object. ('invalid' -> do not use mask, 'red', 'green', 'blue', 'alpha')" }
+    _info { desc:t="An object with the following (optional) fields:\n- weight:r=1\n- scale:p2=1,0 // Scale: base value and deviation.\n- rot_y:p2=0,180 // Yaw (first rotation, around object axis Y): base value and deviation. Unit: degrees.\n- rot_x:p2=0,0 // Pitch (second rotation, around object axis X): base value and deviation. Unit: degrees.\n- rot_z:p2=0,0 // Roll (third rotation, around object axis Z): base value and deviation. Unit: degrees.\n- orientation:t='world' // One of: 'world', 'world_xz', 'normal', 'normal_xz'. Selects initial orientation: object axis Y will be either world Y, or surface normal. Object axis X will be either world X, or looking toward the surface downward slope.\n- heightmap_imitators:t='allow' // One of: 'allow' (no restriction), 'require' (placement only on imitator), 'reject' (placement only on the original heightmap).\n- water_placement:b=no // Placement on water instead of terrain. Terrain related params like 'slope_factor' or 'heightmap_imitators' will be ignored.\n- slope_factor:r=0 // Control the strength of slope effect: skip objects for more vertical (or horizontal, when inverted) surfaces.\n- slope_invert:b=no // Invert the slope effect.\n- delete_on_deform:b=yes // Delete the object when ridden over by a vehicle. \n- density_mask_channel:t='red' // If the density mask is set, which channel to use for this object. ('invalid' -> do not use mask, 'red', 'green', 'blue', 'alpha')" }
   }
 }
 
@@ -71,6 +75,7 @@ dagdp_density_mask {
     value:t=""
     _info { desc:t="Name of the texture to be used as a density mask." }
   }
+  dagdp__density_mask_left_top_right_bottom:p4=-2048, 2048, 2048, -2048
 }
 
 dagdp_has_density {
@@ -134,23 +139,49 @@ dagdp_placer_volume {
   _use:t="dagdp_placer"
   _use:t="dagdp_has_density"
   "dagdp_placer_volume:tag"{}
+  _group {
+    _track:b=yes
+    "dagdp__volume_min_triangle_area:r"{
+      value:r=0
+      _info { desc:t="Minimum area of the mesh triangles used for placement." }
+    }
+  }
   _info { desc:t="Will place objects on geometry inside volumes that reference this placer." }
 }
 
 dagdp_volume {
-  "box_zone:tag"{} // For daEditorE's visualization of `transform`.
+  _use:t="replicating"
   "dagdp_volume:tag"{}
   _group {
     _track:b=yes
-    "transform:m"{
-      value:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
-      _info { desc:t="Bounding box of the volume." }
-    }
+    transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
     "dagdp__volume_placer_name:t"{
       value:t=""
       _info { desc:t="Name of the placer that should be used." }
     }
-    "dagdp_internal__volume_placer_eid:eid"{}
   }
-  _info { desc:t="A volume, inside which a referenced placer will place objects." }
+
+  "dagdp_internal__volume_placer_eid:eid"{}
+}
+
+dagdp_volume_box {
+  _use:t="dagdp_volume"
+  "dagdp_volume_box:tag"{}
+  "box_zone:tag"{} // For daEditorE's visualization as a box.
+  _info { desc:t="A box volume, inside which a referenced placer will place objects." }
+}
+
+dagdp_volume_sphere {
+  _use:t="dagdp_volume"
+  "dagdp_volume_sphere:tag"{}
+  _track:b=yes
+  sphere_zone__radius:r=0.5 // For daEditorE's visualization as a sphere.
+  _info { desc:t="A spherical (more precisely, an ellipsoid) volume, inside which a referenced placer will place objects." }
+}
+
+dagdp_volume_cylinder {
+  _use:t="dagdp_volume"
+  "dagdp_volume_cylinder:tag"{}
+  "box_zone:tag"{} // For daEditorE's visualization as a box (cylinder is approximated by a box).
+  _info { desc:t="A cylindrical volume, inside which a referenced placer will place objects." }
 }

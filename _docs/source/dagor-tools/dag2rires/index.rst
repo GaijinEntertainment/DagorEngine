@@ -1,11 +1,11 @@
+
 dag2riRes
 =========================================
 
-Contents:
-
 .. toctree::
    :maxdepth: 2
-   :glob:
+   :caption: Contents:
 
    dag2rires.md
+
 

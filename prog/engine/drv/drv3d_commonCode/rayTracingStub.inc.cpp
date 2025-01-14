@@ -12,12 +12,6 @@ RaytraceTopAccelerationStructure *d3d::create_raytrace_top_acceleration_structur
 }
 void d3d::delete_raytrace_top_acceleration_structure(RaytraceTopAccelerationStructure *) {}
 void d3d::set_top_acceleration_structure(ShaderStage, uint32_t, RaytraceTopAccelerationStructure *) {}
-PROGRAM d3d::create_raytrace_program(const int *, uint32_t, const RaytraceShaderGroup *, uint32_t, uint32_t) { return -1; }
-int d3d::create_raytrace_shader(RaytraceShaderType, const uint32_t *, uint32_t) { return -1; }
-void d3d::delete_raytrace_shader(int) {}
-void d3d::trace_rays(Sbuffer *, uint32_t, Sbuffer *, uint32_t, uint32_t, Sbuffer *, uint32_t, uint32_t, Sbuffer *, uint32_t, uint32_t,
-  uint32_t, uint32_t, uint32_t)
-{}
 void d3d::build_bottom_acceleration_structure(RaytraceBottomAccelerationStructure *,
   const ::raytrace::BottomAccelerationStructureBuildInfo &)
 {}
@@ -25,7 +19,6 @@ void d3d::build_bottom_acceleration_structures(::raytrace::BatchedBottomAccelera
 void d3d::build_top_acceleration_structure(RaytraceTopAccelerationStructure *, const ::raytrace::TopAccelerationStructureBuildInfo &)
 {}
 void d3d::build_top_acceleration_structures(::raytrace::BatchedTopAccelerationStructureBuildInfo *, uint32_t) {}
-void d3d::copy_raytrace_shader_handle_to_memory(PROGRAM, uint32_t, uint32_t, uint32_t, Sbuffer *, uint32_t) {}
 void d3d::write_raytrace_index_entries_to_memory(uint32_t, const RaytraceGeometryInstanceDescription *, void *) {}
 uint64_t d3d::get_raytrace_acceleration_structure_size(RaytraceAnyAccelerationStructure) { return 0; }
 RaytraceAccelerationStructureGpuHandle d3d::get_raytrace_acceleration_structure_gpu_handle(RaytraceAnyAccelerationStructure)
@@ -34,4 +27,24 @@ RaytraceAccelerationStructureGpuHandle d3d::get_raytrace_acceleration_structure_
 }
 void d3d::copy_raytrace_acceleration_structure(RaytraceAnyAccelerationStructure, RaytraceAnyAccelerationStructure, bool) {}
 bool d3d::raytrace::check_vertex_format_support_for_acceleration_structure_build(uint32_t) { return false; }
+::raytrace::Pipeline d3d::raytrace::create_pipeline(const ::raytrace::PipelineCreateInfo &) { return ::raytrace::InvalidPipeline; }
+::raytrace::Pipeline d3d::raytrace::expand_pipeline(const ::raytrace::Pipeline &, const ::raytrace::PipelineExpandInfo &)
+{
+  return ::raytrace::InvalidPipeline;
+}
+void d3d::raytrace::destroy_pipeline(::raytrace::Pipeline &) {}
+::raytrace::ShaderBindingTableBufferProperties d3d::raytrace::get_shader_binding_table_buffer_properties(
+  const ::raytrace::ShaderBindingTableDefinition &, const ::raytrace::Pipeline &)
+{
+  return {};
+}
+void d3d::raytrace::dispatch(const ::raytrace::ResourceBindingTable &, const ::raytrace::Pipeline &,
+  const ::raytrace::RayDispatchParameters &, GpuPipeline)
+{}
+void d3d::raytrace::dispatch_indirect(const ::raytrace::ResourceBindingTable &, const ::raytrace::Pipeline &,
+  const ::raytrace::RayDispatchIndirectParameters &, GpuPipeline)
+{}
+void d3d::raytrace::dispatch_indirect_count(const ::raytrace::ResourceBindingTable &, const ::raytrace::Pipeline &,
+  const ::raytrace::RayDispatchIndirectCountParameters &, GpuPipeline)
+{}
 #endif

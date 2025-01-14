@@ -270,7 +270,7 @@ def parse_token(var ctx: FormatterCtx)
                     match = false
                     break
             if match
-                for i in range(0, tt.length)
+                for _ in range(0, tt.length)
                     ctx |> next_char()
                 ctx |> push_token(from, ctx.pos, ctx.spaceCounter, ctx.newLineCounter, ctx.srcLine, fromColumn, TokenType UNKNOWN)
                 return
@@ -308,7 +308,7 @@ def parse_all_tokens(var ctx: FormatterCtx)
     while !ctx.eof
         ctx |> parse_token()
 
-    for i in range(8)
+    for _ in range(8)
         ctx.tokens |> push(emptyToken)
 
 
@@ -512,8 +512,7 @@ def mark_token_context(var ctx: FormatterCtx)
     // type macros  $t(identifier)
     for i in range(0, length(ctx.tokens) - 3)
         if ctx |> eq(i, "$") && ctx |> eq(i + 1, "t") && ctx |> eq(i + 2, "(")
-            var beginParams = i + 2
-            var endParams = ctx |> find_pair_paren(i + 2)
+            let endParams = ctx |> find_pair_paren(i + 2)
             for j in range(i, endParams + 1)
                 ctx.tokens[j].isInType = true
             for j in range(endParams + 1, length(ctx.tokens))
@@ -550,18 +549,17 @@ def mark_token_context(var ctx: FormatterCtx)
                         break
                     if (ctx.tokens[j].spaces <= ident)
                         break
-                    var colonPos = ctx |> search_token_in_line(j, ctx |> eq(i, "typedef") ? "=" : ":")
+                    let colonPos = ctx |> search_token_in_line(j, ctx |> eq(i, "typedef") ? "=" : ":")
                     if colonPos > 0
                         ctx |> mark_tokens_as_type(colonPos + 1)
 
     // oneline typedefs
     for i in range(0, length(ctx.tokens) - 3)
         if ctx |> new_line_before(i) && (ctx |> eq(i, "typedef") && !ctx |> new_line_before(i + 1))
-            let ident = ctx.tokens[i].spaces
             for j in range(i + 1, length(ctx.tokens) - 3)
                 if ctx |> new_line_before(j)
                     break
-                var colonPos = ctx |> search_token_in_line(j, ctx |> eq(i, "typedef") ? "=" : ":")
+                let colonPos = ctx |> search_token_in_line(j, ctx |> eq(i, "typedef") ? "=" : ":")
                 if colonPos > 0
                     ctx |> mark_tokens_as_type(colonPos + 1)
 
@@ -588,13 +586,13 @@ def mark_token_context(var ctx: FormatterCtx)
         if ctx |> eq(pos + 1, ":") // def [const | private | public] name:
             ctx |> mark_tokens_as_type(i + 2)
         elif ctx |> eq(pos + 1, "(") // def [const | private | public] name(
-            var beginParams = pos + 1
+            let beginParams = pos + 1
             ctx.tokens[beginParams].dontAddSpacesAround = true
-            var endParams = ctx |> find_pair_paren(pos + 1)
+            let endParams = ctx |> find_pair_paren(pos + 1)
             for j in range(beginParams, endParams + 1)
                 ctx.tokens[j].isInFunctionParam = true
                 if j - 1 == beginParams || ctx |> eq(j - 1, ";")
-                    var colonPos = ctx |> search_token_in_line(j, ":")
+                    let colonPos = ctx |> search_token_in_line(j, ":")
                     if colonPos > 0
                         ctx |> mark_tokens_as_type(colonPos + 1)
             if endParams < length(ctx.tokens) - 1
@@ -671,7 +669,7 @@ def generate_source(ctx: FormatterCtx): string
     var column: int = 0
 
     for t in ctx.tokens
-        for i in range(t.newLines)
+        for _ in range(t.newLines)
             if (useCrLf)
                 res |> push(uint8('\r'))
             res |> push(uint8('\n'))
@@ -681,7 +679,7 @@ def generate_source(ctx: FormatterCtx): string
         if t.tokenType == TokenType COMMENT && t.str |> starts_with("//")
             spaces = max(t.column - column, 0)
 
-        for i in range(spaces)
+        for _ in range(spaces)
             res |> push(uint8(' '))
             column++
 
@@ -816,7 +814,7 @@ def fmt_function_call_param_paren_call(var ctx: FormatterCtx)
     for i in range(1, length(ctx.tokens) - 1)
         if ctx |> eq(i, "(") && !new_line_before(ctx, i) && ctx.tokens[i - 1].tokenType == TokenType KEYWORD_OR_IDENTIFIER
             ctx |> remove_spaces_around(i)
-            var closingParen = ctx |> find_pair_paren(i)
+            let closingParen = ctx |> find_pair_paren(i)
             ctx |> remove_space_before(closingParen)
 
 
@@ -913,7 +911,7 @@ def fmt_space_after_cast_type(var ctx: FormatterCtx)
         if ctx.tokens[i].tokenType == TokenType KEYWORD_OR_IDENTIFIER
             if (type_after_keyword |> find_index(ctx.tokens[i].str) >= 0)
                 for j in range(i + 2, length(ctx.tokens))
-                    if !ctx.tokens[j].isInType
+                    if !ctx.tokens[j].isInType && ctx.tokens[j].tokenType != TokenType COMMENT
                         ctx |> add_space_before(j)
                         break
 

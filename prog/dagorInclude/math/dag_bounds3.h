@@ -55,8 +55,6 @@ public:
 
   INLINE const Point3 &operator[](int i) const { return lim[i]; }
   INLINE Point3 &operator[](int i) { return lim[i]; }
-  INLINE operator const Point3 *() const { return lim; }
-  INLINE operator Point3 *() { return lim; }
 
   INLINE const Point3 &boxMin() const { return lim[0]; }
   INLINE Point3 &boxMin() { return lim[0]; }

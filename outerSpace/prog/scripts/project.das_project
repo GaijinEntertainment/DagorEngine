@@ -14,7 +14,9 @@ let
     "danetlibs" => "%danetlibs";
     "imgui" => "%dngdas/imgui";
     "debug" => "%dngdas/das/debug";
-    "remote" => "%dngdas/das/remote"
+    "remote" => "%dngdas/das/remote";
+
+    "sound_utils_net" => "%danetlibs/sound/sound_utils_net";
   }}
   commonAliasPath <- {{
     "daBfg" => "%dasGameLibs/daBfg/daBfg.das"

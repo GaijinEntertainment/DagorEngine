@@ -215,13 +215,13 @@ class JsonRpcHandler
     return errors
 
   def addCall(name : string; var call : RpcCall?)
-    calls[name] <- call
+    insert(calls, name, call)
 
   def addNotification(name : string; var notification : RpcCall?)
-    notifications[name] <- notification
+    insert(notifications, name, notification)
 
   def addResponseHander(id : uint64; var handler : RpcCall?)
-    handlers[id] <- handler
+    insert(handlers, id, handler)
 
   def addErrorHandler(var handler : RpcCall?)
     errorHandlers |> emplace(handler)
@@ -271,9 +271,9 @@ class JsonRpcHandler
   def getError(error : string; code : double; var data : JsonValue? = null; id : uint64 = 0ul) : JsonValue?
     var res <- {{ "jsonrpc" => JV("2.0"); "error" => JV({{ "code" => JV(code); "message" => JV(error) }}) }}
     if id != 0ul
-      res["id"] = JV(double(id))
+      insert(res, "id", JV(double(id)))
     if data != null
-      res["data"] = data
+      insert(res, "data", data)
     return JV(res)
 
   def sendError(var server : WebServer?; error : string; code : double; var data : JsonValue? = null; id : uint64 = 0ul)

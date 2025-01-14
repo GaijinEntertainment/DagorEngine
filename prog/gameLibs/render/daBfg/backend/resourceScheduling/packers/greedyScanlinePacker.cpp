@@ -368,6 +368,8 @@ Allocation GreedyAllocator::allocate(const PackerInput::Resource &res, TimePoint
       currentHeapSize += res.sizeWithHint(result.offset) - result.size;
       result.size = res.sizeWithHint(result.offset);
       result.availableUntil = res.start;
+
+      totalHeapSize = eastl::max(currentHeapSize, totalHeapSize);
       return result;
     }
 

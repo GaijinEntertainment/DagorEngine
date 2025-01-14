@@ -77,6 +77,7 @@ Sources =
   execution_sync_image.cpp
   execution_sync_acceleration_structure.cpp
   device_execution_tracker.cpp
+  wrapped_command_buffer.cpp
 
   #shader
   shader/program.cpp
@@ -130,7 +131,6 @@ Sources =
   compute_state.cpp
   pipeline_state.cpp
   pipeline_state_pending_references.cpp
-  raytrace_state.cpp
   dynamic_graphics_state.cpp
   front_framebuffer_state.cpp
   front_render_pass_state.cpp
@@ -141,7 +141,6 @@ Sources =
   state_field_compute.cpp
   state_field_graphics.cpp
   state_field_execution_context.cpp
-  state_field_raytrace.cpp
   state_field_resource_binds.cpp
   state_field_framebuffer.cpp
   state_field_render_pass.cpp

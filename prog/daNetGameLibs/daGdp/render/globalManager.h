@@ -14,10 +14,20 @@
 namespace dagdp
 {
 
+#if DAGDP_DEBUG
+// In debug mode, we want to be more conservative to catch issues earlier.
+inline constexpr float DYNAMIC_THRESHOLD_MULTIPLIER = 0.75f;
+#else
+inline constexpr float DYNAMIC_THRESHOLD_MULTIPLIER = 1.0f;
+#endif
+
 struct View
 {
   ViewInfo info;
   dag::Vector<dabfg::NodeHandle> nodes;
+#if DAGDP_DEBUG
+  uint32_t dynamicInstanceCounter;
+#endif
 };
 
 struct GlobalConfig
@@ -27,7 +37,7 @@ struct GlobalConfig
   dynamic_shadow_render::QualityParams dynamicShadowQualityParams = {};
 };
 
-#if DAGOR_DBGLEVEL != 0
+#if DAGDP_DEBUG
 struct GlobalDebug
 {
   dag::Vector<ViewBuilder> builders;
@@ -46,7 +56,7 @@ class GlobalManager
   bool viewsAreCreated = false;
   bool viewsAreBuilt = false;
 
-#if DAGOR_DBGLEVEL != 0
+#if DAGDP_DEBUG
   GlobalDebug debug;
 #endif
 
@@ -64,7 +74,7 @@ public:
   void update();
   const ViewInfo &getViewInfo(int view_index) const { return views[view_index].info; }
 
-#if DAGOR_DBGLEVEL != 0
+#if DAGDP_DEBUG
   void imgui();
 #endif
 

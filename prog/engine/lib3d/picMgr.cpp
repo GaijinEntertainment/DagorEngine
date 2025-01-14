@@ -1618,6 +1618,11 @@ bool PictureManager::TexRec::initAtlas()
 
     ad->atlas.init(sz, texBlk.getInt("picReserve", 16), margin, texBlk.getStr("name", NULL),
       tex_fmt | TEXCF_CLEAR_ON_CREATE | TEXCF_LINEAR_LAYOUT);
+    if (!ad->atlas.tex.first.getTex2D())
+    {
+      del_it(ad);
+      return false;
+    }
     bool bc_format = ad->fmt == ad->FMT_DXT5 || ad->fmt == ad->FMT_none;
     G_UNUSED(bc_format);
     G_ASSERT(!bc_format || ad->atlas.getMargin() == margin);

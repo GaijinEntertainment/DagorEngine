@@ -233,11 +233,21 @@ VULKAN_DECLARE_EXTENSION(DebugReport, EXT_DEBUG_REPORT);
 #endif
 
 #if VK_GOOGLE_surfaceless_query
-
 VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
 VULKAN_END_EXTENSION_FUCTION_PACK(SurfacelessQueryGOOGLE);
 VULKAN_DECLARE_EXTENSION(SurfacelessQueryGOOGLE, GOOGLE_SURFACELESS_QUERY);
+#endif
 
+#if VK_KHR_get_surface_capabilities2
+
+VULKAN_MAKE_EXTENSION_FUNCTION_DEF(vkGetPhysicalDeviceSurfaceCapabilities2KHR)
+VULKAN_MAKE_EXTENSION_FUNCTION_DEF(vkGetPhysicalDeviceSurfaceFormats2KHR)
+
+VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
+VULKAN_EXTENSION_FUNCTION_PACK_ENTRY(vkGetPhysicalDeviceSurfaceCapabilities2KHR)
+VULKAN_EXTENSION_FUNCTION_PACK_ENTRY(vkGetPhysicalDeviceSurfaceFormats2KHR)
+VULKAN_END_EXTENSION_FUCTION_PACK(GetSurfaceCapabilities2KHR);
+VULKAN_DECLARE_EXTENSION(GetSurfaceCapabilities2KHR, KHR_GET_SURFACE_CAPABILITIES_2);
 #endif
 
 // Implements vulkan core instance handling
@@ -450,6 +460,10 @@ class VulkanInstance : public VulkanInstanceCore<SurfaceKHR
 #if VK_GOOGLE_surfaceless_query
                          ,
                          SurfacelessQueryGOOGLE
+#endif
+#if VK_KHR_get_surface_capabilities2
+                         ,
+                         GetSurfaceCapabilities2KHR
 #endif
                          >
 {

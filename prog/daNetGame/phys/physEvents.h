@@ -17,7 +17,7 @@ struct UpdatePhysEvent : public ecs::Event
 struct QueryPhysActorsNotCollidable : public ecs::Event
 {
   // result
-  mutable bool shouldCollide = true;
+  bool shouldCollide = true;
   // parameters
   ecs::EntityId otherEid;
 
@@ -28,7 +28,7 @@ struct QueryPhysActorsNotCollidable : public ecs::Event
 struct QueryPhysActorsOneSideCollidable : public ecs::Event
 {
   // result
-  mutable bool oneSideCollidable = false;
+  bool oneSideCollidable = false;
   // parameters
   ecs::EntityId otherEid;
 

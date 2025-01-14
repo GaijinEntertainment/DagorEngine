@@ -166,7 +166,7 @@ shader sponza, simple_aces
 
         write_world_sdf(sdfI);
         half3 worldNormal = normalize(input.normal);
-        project_world_sdf_rasterize_albedo(sdfI, worldNormal, true, diffuseColor.xyz);
+        project_world_sdf_rasterize_albedo(sdfI, worldNormal, true, diffuseColor.xyz + 0.04h);
       }
     ##elif scene_mode == voxelize_albedo
       void main_ps_simple_aces(VsOutput input)
@@ -185,7 +185,7 @@ shader sponza, simple_aces
         ##endif
 
         float3 worldPos = input.worldPos;
-        dagi_write_updated_albedo_legacy(worldPos, diffuseColor.rgb, 0.5);
+        dagi_write_updated_albedo_legacy(worldPos, saturate(diffuseColor.rgb + 0.04), 0.5);
       }
     ##elif scene_mode == normal
       GBUFFER_OUTPUT main_ps_simple_aces(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)

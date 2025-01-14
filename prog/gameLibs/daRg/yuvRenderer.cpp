@@ -20,6 +20,9 @@ bool YuvRenderer::init()
   textureYVarId = VariableMap::getVariableId("texY");
   textureUVarId = VariableMap::getVariableId("texU");
   textureVVarId = VariableMap::getVariableId("texV");
+  samplerYVarId = VariableMap::getVariableId("texY_samplerstate");
+  samplerUVarId = VariableMap::getVariableId("texU_samplerstate");
+  samplerVVarId = VariableMap::getVariableId("texV_samplerstate");
   alphaVarId = get_shader_variable_id("transparent", true);
 
   return true;
@@ -40,17 +43,20 @@ void YuvRenderer::startRender(StdGuiRender::GuiContext &ctx, bool *own_render)
     "currentShader=%u shadersPool.size()=%u (%d max)", currentShader, shadersPool.size(), shadersPool.capacity());
 }
 
-void YuvRenderer::render(StdGuiRender::GuiContext &ctx, TEXTUREID texIdY, TEXTUREID texIdU, TEXTUREID texIdV, float l, float t,
-  float r, float b, const Point2 &tc_lt, const Point2 &tc_rb, E3DCOLOR color, BlendMode blend_mode, float saturate)
+void YuvRenderer::render(StdGuiRender::GuiContext &ctx, TEXTUREID texIdY, TEXTUREID texIdU, TEXTUREID texIdV, d3d::SamplerHandle smp,
+  float l, float t, float r, float b, const Point2 &tc_lt, const Point2 &tc_rb, E3DCOLOR color, BlendMode blend_mode, float saturate)
 {
   auto &shader = shadersPool[currentShader];
   shader.material->set_texture_param(textureYVarId, texIdY);
+  shader.material->set_sampler_param(samplerYVarId, smp);
   shader.material->set_texture_param(textureUVarId, texIdU);
+  shader.material->set_sampler_param(samplerUVarId, smp);
   shader.material->set_texture_param(textureVVarId, texIdV);
+  shader.material->set_sampler_param(samplerVVarId, smp);
   ShaderGlobal::set_int(alphaVarId, blend_mode);
   ctx.setShader(&shader);
   ctx.set_color(color);
-  ctx.set_texture(texIdY, d3d::INVALID_SAMPLER_HANDLE); // TODO: Use actual sampler IDs
+  ctx.set_texture(texIdY, smp);
   if (saturate != 1.0f)
     ctx.set_picquad_color_matrix_saturate(saturate);
 

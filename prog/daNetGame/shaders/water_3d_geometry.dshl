@@ -62,15 +62,8 @@ macro USE_SAMPLE_DEPTH_TEX()
   }
 endmacro
 
-macro INIT_SAMPLE_WFX_NORMALS(sampler_name)
-  if (shader == water_ssr_nv2)
-  {
-    (ps) { wfx_normals@tex2d = wfx_normals; }
-    hlsl (ps) { #define wfx_normals_samplerstate sampler_name }
-  } else
-  {
-    (ps) { wfx_normals@smp2d = wfx_normals; }
-  }
+macro INIT_SAMPLE_WFX_NORMALS()
+  (ps) { wfx_normals@smp2d = wfx_normals; }
 endmacro
 
 macro USE_SAMPLE_WFX_NORMALS()
@@ -159,7 +152,7 @@ block(frame) water3d_block
 
 texture clouds_panorama_mip;
 texture water_reflection_tex;
-texture water_reflection_strenght_tex;
+texture water_reflection_strength_tex;
 float4 water_reflection_size = (1,1,1,1);
 float water_depth_above = 0;
 texture water_flowmap_tex;
@@ -293,7 +286,7 @@ macro WATER_3D_COMMON_PS()
     };
 
     GFSDK_WAVEWORKS_SURFACE_ATTRIBUTES GFSDK_WaveWorks_GetSurfaceAttributes(PS_INPUT In, CascadesTex csc, float4 nvsf_blend_factor_cascade0123,
-                                                                           float4 nvsf_blend_factor_cascade4567, float3 pointToEye)
+                                                                           float4 nvsf_blend_factor_cascade4567, float3 pointToEyeNormalized)
     {
       float fadeNormal = 1;
       ##if water_flowmap_tex == NULL || mobile_render != off
@@ -325,7 +318,7 @@ macro WATER_3D_COMMON_PS()
 
       GFSDK_WAVEWORKS_SURFACE_ATTRIBUTES Output;
       Output.normal = nvsf_normal;
-      Output.eye_dir = pointToEye.xzy;
+      Output.eye_dir = pointToEyeNormalized.xzy;
       Output.foam_surface_folding = nvsf_foam_surface_folding;
       Output.foam_turbulent_energy = log(1.0 + nvsf_foam_turbulent_energy);
       Output.foam_wave_hats = nvsf_foam_wave_hats;
@@ -648,17 +641,17 @@ macro WATER_3D_DEFERRED_COMMON_PS()
     inv_zfar@f1 = (1.0 / zn_zfar.y, 0, 0, 0);
     water_heightmap_min_max@f4 = water_heightmap_min_max;
     water_reflection_tex@smp2d = water_reflection_tex;
-    water_reflection_strenght_tex@tex2d = water_reflection_strenght_tex;
+    water_reflection_strength_tex@tex2d = water_reflection_strength_tex;
     water_rain_ripples_enabled_special_vision@i2 = (water_rain_ripples_enabled, special_vision);
   }
   hlsl(ps) {
-    #define water_reflection_strenght_tex_samplerstate water_reflection_tex_samplerstate
+    #define water_reflection_strength_tex_samplerstate water_reflection_tex_samplerstate
     #define water_rain_ripples_enabled water_rain_ripples_enabled_special_vision.x
     #define special_vision water_rain_ripples_enabled_special_vision.y
   }
   if (wfx_effects_tex_enabled == yes)
   {
-    INIT_SAMPLE_WFX_NORMALS(material_gbuf_read_samplerstate)
+    INIT_SAMPLE_WFX_NORMALS()
     USE_SAMPLE_WFX_NORMALS()
   }
   USE_CUBE_RAIN_DROPLETS(1)
@@ -779,9 +772,9 @@ macro WATER_3D_DEFERRED_SHADERS_COMMON()
           t = pow4(one4 - dists);
         float4 distFade = (t * max(0, water_tess_factor - 6)) + 1;
 
-        float3 boxHeightExpand = float3(0, 1, 0);
-        float3 minPoint   = min(min(positions[0], positions[1]), min(positions[2], positions[3])) ;
-        float3 maxPoint   = max(max(positions[0], positions[1]), max(positions[2], positions[3])) + boxHeightExpand;
+        float3 boxExtentExpansion = float3(0, 1, 0);
+        float3 minPoint   = min(min(positions[0], positions[1]), min(positions[2], positions[3])) - boxExtentExpansion;
+        float3 maxPoint   = max(max(positions[0], positions[1]), max(positions[2], positions[3])) + boxExtentExpansion;
         float  tessFactor = testBoxB(minPoint, maxPoint) ? water_tess_factor : 0;
 
         float4 minTessFactor = min(tessFactor.xxxx, distFade);

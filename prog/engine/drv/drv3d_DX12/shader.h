@@ -498,8 +498,8 @@ void inspect_scripted_shader_bin_dump(ScriptedShadersBinDumpOwner *dump, T inspe
   {
     return;
   }
-  inspector.vertexShaderCount(v2->vprId.size());
-  inspector.pixelOrComputeShaderCount(v2->fshId.size());
+  inspector.vertexShaderCount(v2->vprCount);
+  inspector.pixelOrComputeShaderCount(v2->fshCount);
   eastl::conditional_t<VisitOnce, dag::VectorSet<uint32_t, eastl::less<uint32_t>, framemem_allocator>, uint32_t> visited;
   for (auto &cls : v2->classes)
   {
@@ -1300,9 +1300,6 @@ class PipelineCache;
 class ShaderProgramDatabase
 {
   mutable OSReadWriteLock dataGuard;
-#if D3D_HAS_RAY_TRACING
-  dag::Vector<RaytraceProgram> raytracePrograms;
-#endif
   dag::Vector<InputLayout> publicImputLayoutTable;
 
   ProgramID debugProgram = ProgramID::Null();
@@ -1334,10 +1331,6 @@ public:
   void updateVertexShaderName(DeviceContext &ctx, ShaderID shader, const char *name);
   void updatePixelShaderName(DeviceContext &ctx, ShaderID shader, const char *name);
 
-#if D3D_HAS_RAY_TRACING
-  ProgramID newRaytraceProgram(DeviceContext &ctx, const ShaderID *shader_ids, uint32_t shader_count,
-    const RaytraceShaderGroup *shader_groups, uint32_t group_count, uint32_t max_recursion_depth);
-#endif
   void registerShaderBinDump(DeviceContext &ctx, ScriptedShadersBinDumpOwner *dump, const char *name);
   void getBindumpShader(DeviceContext &ctx, uint32_t index, ShaderCodeType type, void *ident);
   DynamicArray<InputLayoutIDWithHash> loadInputLayoutFromBlk(DeviceContext &ctx, const DataBlock *blk, const char *default_format);
@@ -1475,7 +1468,7 @@ public:
         {
           continue;
         }
-        if (!reciever(gi, si, v2->vprId.size()))
+        if (!reciever(gi, si, v2->vprCount))
         {
           break;
         }
@@ -1577,7 +1570,7 @@ public:
       {
         continue;
       }
-      auto shaderCount = v2->vprId.size();
+      auto shaderCount = v2->vprCount;
       for (uint32_t shaderIndex = 0; shaderIndex < shaderCount; ++shaderIndex)
       {
         if (v2->shaderHashes[shaderIndex] == hash)
@@ -1609,7 +1602,7 @@ public:
       {
         continue;
       }
-      auto shaderIndexOffset = v2->vprId.size();
+      auto shaderIndexOffset = v2->vprCount;
       auto shaderCount = v2->shGroupsMapping.size() - shaderIndexOffset;
       for (uint32_t shaderIndex = 0; shaderIndex < shaderCount; ++shaderIndex)
       {

@@ -1,5 +1,8 @@
 options persistent_heap
 
+// OLD das restrictions
+options unsafe_table_lookup = false
+
 require _framework
 require daslib/hash_map
 

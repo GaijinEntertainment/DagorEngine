@@ -17,12 +17,20 @@
 #include <util/dag_oaHashNameMap.h>
 #include <util/dag_fastStrMap.h>
 #include <EASTL/hash_map.h>
-#include <EASTL/bitvector.h>
 #include <util/dag_string.h>
 
 // forward declarations for external classes and structures
 class DataBlock;
 class GeomNodeTree;
+
+namespace eastl
+{
+class allocator;
+template <typename T, typename A>
+class vector;
+template <typename A, typename T, typename C>
+class bitvector;
+} // namespace eastl
 
 namespace AnimResManagerV20
 {
@@ -114,7 +122,9 @@ public:
   virtual void debugSetIrqPos(const char * /*irq_name*/, float /*rel_pos*/) {}
 
   virtual void initChilds(AnimationGraph & /*graph*/, const DataBlock & /*settings*/, const char * /*nm_suffix*/) {}
-  virtual void checkHasLoop(AnimationGraph & /*graph*/, eastl::bitvector<> & /*visited_nodes*/) {}
+  virtual void checkHasLoop(AnimationGraph & /*graph*/,
+    eastl::bitvector<eastl::allocator, uint32_t, eastl::vector<uint32_t, eastl::allocator>> & /*visited_nodes*/)
+  {}
 
 private:
   int abnId;
@@ -510,6 +520,7 @@ private:
 
 public:
   Tab<AnimResManagerV20::NodeMask> dbgNodeMask;
+  int resId = -1;
 
 public:
   AnimationGraph();

@@ -984,7 +984,11 @@ bool RenderAnimCharIcon::renderInternal(Texture *to, int x, int y, int dstw, int
     const bool recalcAnimation = info.getBool("recalcAnimation", false);
     if (recalcAnimation)
       for (size_t i = 1; i < iconAnimchar.size(); ++i)
-        iconAnimchar[0].animchar->setAttachedChar(iconAnimchar[i].slotId, 0, &iconAnimchar[i].animchar->baseComp(), false);
+      {
+        const int charUid = 1; // Some post blend controllers rely on this uid to run expensive logic once when attachment changes. By
+                               // default it is 0, so we need any non 0 number here to run that logic.
+        iconAnimchar[0].animchar->setAttachedChar(iconAnimchar[i].slotId, charUid, &iconAnimchar[i].animchar->baseComp(), false);
+      }
     if (strcmp(animation, "") != 0)
     {
       int stateIdx = iconAnimchar[0].animchar->getAnimGraph()->getStateIdx(animation);

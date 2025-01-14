@@ -391,6 +391,14 @@ void create_instances_from_queue(Context &ctx)
 
     adjust_buffer_size_by_quality(ctx, *sys, cpuDataSize, gpuDataSize, false);
 
+    if (cpuDataSize > ctx.cfg.data_buffer_size || gpuDataSize > ctx.cfg.data_buffer_size)
+    {
+      logerr("total data size of fx: %s is exceeding buffer limit (%d | %d) > %d", sys->name.c_str(), cpuDataSize, gpuDataSize,
+        ctx.cfg.data_buffer_size);
+      cpuDataSize = 0;
+      gpuDataSize = 0;
+    }
+
     if (gpuDataSize > 0)
     {
       if (!create_gpu_buffer(ctx.gpuBufferPool, gpuDataSize, gpuBuf))
@@ -1289,6 +1297,31 @@ bool is_instance_renderable_active(ContextId cid, InstanceId rid)
   int sid;
   G_ASSERT_RETURN(get_sid_safe(ctx, rid, sid), false);
   return is_instance_renderable_active(ctx, sid);
+}
+
+dag::ConstSpan<bool> query_instances_renderable_active(ContextId cid, dag::ConstSpan<InstanceId> iids)
+{
+  GET_CTX_RET(make_span_const<bool>(nullptr, 0));
+
+  ctx.activeQueryContainer.resize(iids.size());
+  dag::Vector<int, framemem_allocator> sids;
+  sids.resize(iids.size());
+  os_spinlock_lock(&ctx.queueLock);
+  {
+    INST_LIST_LOCK_GUARD;
+    int *psid = nullptr;
+    for (int i = 0; i < iids.size(); ++i)
+    {
+      psid = ctx.instances.list.get(iids[i]);
+      sids[i] = psid ? *psid : dummy_instance_sid;
+    }
+  }
+  os_spinlock_unlock(&ctx.queueLock);
+
+  for (int i = 0; i < sids.size(); ++i)
+    ctx.activeQueryContainer[i] = is_instance_renderable_active(ctx, sids[i]);
+
+  return make_span_const(ctx.activeQueryContainer);
 }
 
 bool is_instance_renderable_visible(Context &ctx, int sid)

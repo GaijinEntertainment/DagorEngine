@@ -65,3 +65,15 @@ static void update_world_bbox_es(
   WRDispatcher::updateWorldBBox(worldSpaceBBox);
   WRDispatcher::getShadowsManager().markWorldBBoxDirty();
 }
+
+ECS_TAG(render)
+ECS_ON_EVENT(OnRenderSettingsReady)
+ECS_TRACK(render_settings__shadowsQuality)
+ECS_REQUIRE(const ecs::string &render_settings__shadowsQuality)
+static void init_shadows_es(const ecs::Event &)
+{
+  auto &shadowsManager = WRDispatcher::getShadowsManager();
+  shadowsManager.initShadows();
+  // Static shadows is re-created, so world size has to be passed to it (it's only passed on level load otherwise)
+  shadowsManager.staticShadowsSetWorldSize();
+}

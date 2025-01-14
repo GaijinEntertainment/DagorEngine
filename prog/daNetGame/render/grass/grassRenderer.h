@@ -31,7 +31,7 @@ struct GrassRenderer
   void setGrassErasers(int count, const Point4 *erasers);
   void addGrassEraser(const Point3 &world_pos, float radius);
   void clearGrassErasers();
-  void initGrass(const DataBlock &grass_settings);
+  void initGrass(const DataBlock &grass_settings_fallback);
   void initGrassRendinstClipmap();
   void invalidateGrass(bool regenerate);
   void invalidateGrassBoxes(const dag::ConstSpan<BBox2> &boxes);

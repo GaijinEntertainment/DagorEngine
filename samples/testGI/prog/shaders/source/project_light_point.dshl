@@ -122,7 +122,8 @@ macro PROJECT_LIGHT_POINT_SCREEN_VOXEL(code) // when updating radiance from gbuf
       //todo:
       // * add SSAO for ambient?
       float sunShadow = dagi_get_on_screen_simple_sun_shadow(tc);
-      float3 litColor = (ambient*gbuf.ao + dagi_get_on_screen_simple_sun_light_with_shadow(gbuf.normal, sunShadow))*gbuf.albedo +
+      half3 albedo = gbuf.diffuseColor + gbuf.specularColor;
+      float3 litColor = (ambient*gbuf.ao + dagi_get_on_screen_simple_sun_light_with_shadow(gbuf.normal, sunShadow))*albedo +
                         (backAmbient*gbuf.ao + dagi_get_on_screen_simple_sun_light_with_shadow(-gbuf.normal, sunShadow))*gbuf.translucencyColor;
       //fixme: add direct lights from camera
       return litColor;
@@ -143,7 +144,8 @@ macro PROJECT_LIGHT_POINT_SCREEN_VOXEL(code) // when updating radiance from gbuf
       }
       //todo:
       // * add SSAO for ambient?
-      float3 litColor = (ambient*gbuf.ao + dagi_get_on_screen_simple_sun_light(worldPos, tc, gbuf.normal))*gbuf.albedo;
+      half3 albedo = gbuf.diffuseColor + gbuf.specularColor;
+      float3 litColor = (ambient*gbuf.ao + dagi_get_on_screen_simple_sun_light(worldPos, tc, gbuf.normal))*albedo;
       #if GI_HAS_DYNAMIC_LIGHTS
         litColor += getGiDynamicLighting(gbuf, worldPos, screenpos, tc, linearDepth);
       #endif

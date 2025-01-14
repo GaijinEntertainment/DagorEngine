@@ -462,62 +462,58 @@ bool d3d::raytrace::check_vertex_format_support_for_acceleration_structure_build
 
 /// unimplemented
 
-PROGRAM d3d::create_raytrace_program(const int *shaders, uint32_t shader_count, const RaytraceShaderGroup *shader_groups,
-  uint32_t shader_group_count, uint32_t max_recursion_depth)
+::raytrace::Pipeline d3d::raytrace::create_pipeline(const ::raytrace::PipelineCreateInfo &pci)
 {
-  G_UNUSED(shaders);
-  G_UNUSED(shader_count);
-  G_UNUSED(shader_groups);
-  G_UNUSED(shader_group_count);
-  G_UNUSED(max_recursion_depth);
-  G_ASSERTF(false, "d3d::create_raytrace_program called on API without support");
-  return -1;
+  G_UNUSED(pci);
+  G_ASSERTF(false, "d3d::raytrace::create_pipeline called on API without support");
+  return ::raytrace::InvalidPipeline;
 }
 
-void d3d::trace_rays(Sbuffer *ray_gen_table, uint32_t ray_gen_offset, Sbuffer *miss_table, uint32_t miss_offset, uint32_t miss_stride,
-  Sbuffer *hit_table, uint32_t hit_offset, uint32_t hit_stride, Sbuffer *callable_table, uint32_t callable_offset,
-  uint32_t callable_stride, uint32_t width, uint32_t height, uint32_t depth)
+::raytrace::Pipeline d3d::raytrace::expand_pipeline(const ::raytrace::Pipeline &pipeline, const ::raytrace::PipelineExpandInfo &pei)
 {
-  G_UNUSED(ray_gen_table);
-  G_UNUSED(ray_gen_offset);
-  G_UNUSED(miss_table);
-  G_UNUSED(miss_offset);
-  G_UNUSED(miss_stride);
-  G_UNUSED(hit_table);
-  G_UNUSED(hit_offset);
-  G_UNUSED(hit_stride);
-  G_UNUSED(callable_table);
-  G_UNUSED(callable_offset);
-  G_UNUSED(callable_stride);
-  G_UNUSED(width);
-  G_UNUSED(height);
-  G_UNUSED(depth);
-  G_ASSERTF(false, "d3d::trace_rays called on API without support");
+  G_UNUSED(pipeline);
+  G_UNUSED(pei);
+  G_ASSERTF(false, "d3d::raytrace::expand_pipeline called on API without support");
+  return ::raytrace::InvalidPipeline;
 }
 
-int d3d::create_raytrace_shader(RaytraceShaderType type, const uint32_t *data, uint32_t data_size)
+void d3d::raytrace::destroy_pipeline(::raytrace::Pipeline &p) { G_UNUSED(p); }
+
+::raytrace::ShaderBindingTableBufferProperties d3d::raytrace::get_shader_binding_table_buffer_properties(
+  const ::raytrace::ShaderBindingTableDefinition &sbtci, const ::raytrace::Pipeline &pipeline)
 {
-  G_UNUSED(type);
-  G_UNUSED(data);
-  G_UNUSED(data_size);
-  G_ASSERTF(false, "d3d::create_raytrace_shader called on API without support");
-  return -1;
+  G_UNUSED(sbtci);
+  G_UNUSED(pipeline);
+  G_ASSERTF(false, "d3d::raytrace::destroy_pipeline called on API without support");
+  return {};
 }
 
-void d3d::delete_raytrace_shader(int shader)
+void d3d::raytrace::dispatch(const ::raytrace::ResourceBindingTable &rbt, const ::raytrace::Pipeline &pipeline,
+  const ::raytrace::RayDispatchParameters &rdp, GpuPipeline gpu_pipeline)
 {
-  G_UNUSED(shader);
-  G_ASSERTF(false, "d3d::delete_raytrace_shader called on API without support");
+  G_UNUSED(rbt);
+  G_UNUSED(pipeline);
+  G_UNUSED(rdp);
+  G_UNUSED(gpu_pipeline);
+  G_ASSERTF(false, "d3d::raytrace::dispatch called on API without support");
 }
 
-void d3d::copy_raytrace_shader_handle_to_memory(PROGRAM prog, uint32_t first_group, uint32_t group_count, uint32_t size,
-  Sbuffer *buffer, uint32_t offset)
+void d3d::raytrace::dispatch_indirect(const ::raytrace::ResourceBindingTable &rbt, const ::raytrace::Pipeline &pipeline,
+  const ::raytrace::RayDispatchIndirectParameters &rdip, GpuPipeline gpu_pipeline)
 {
-  G_UNUSED(prog);
-  G_UNUSED(first_group);
-  G_UNUSED(group_count);
-  G_UNUSED(size);
-  G_UNUSED(buffer);
-  G_UNUSED(offset);
-  G_ASSERTF(false, "d3d::copy_raytrace_shader_handle_to_memory called on API without support");
+  G_UNUSED(rbt);
+  G_UNUSED(pipeline);
+  G_UNUSED(rdip);
+  G_UNUSED(gpu_pipeline);
+  G_ASSERTF(false, "d3d::raytrace::dispatch_indirect called on API without support");
+}
+
+void d3d::raytrace::dispatch_indirect_count(const ::raytrace::ResourceBindingTable &rbt, const ::raytrace::Pipeline &pipeline,
+  const ::raytrace::RayDispatchIndirectCountParameters &rdicp, GpuPipeline gpu_pipeline)
+{
+  G_UNUSED(rbt);
+  G_UNUSED(pipeline);
+  G_UNUSED(rdicp);
+  G_UNUSED(gpu_pipeline);
+  G_ASSERTF(false, "d3d::raytrace::dispatch_indirect_count called on API without support");
 }

@@ -31,7 +31,11 @@ public:
     pos += w_str.length();
   }
   void append(wchar_t wc) { target[pos++] = wc; }
-  void append(const char *str, size_t len) { eastl::copy(str, str + len, target.data() + pos); }
+  void append(const char *str, size_t len)
+  {
+    eastl::copy(str, str + len, target.data() + pos);
+    pos += len;
+  }
 };
 
 template <>

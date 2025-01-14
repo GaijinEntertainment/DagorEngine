@@ -34,27 +34,6 @@ namespace darg
 CONSOLE_FLOAT_VAL("darg", touch_hold_time, 1.0f);
 CONSOLE_BOOL_VAL("darg", button_margin_debug, false);
 
-const int double_click_interval_ms = 400;
-
-static float move_click_threshold(GuiScene *scene)
-{
-  IPoint2 screenSize = scene->getDeviceScreenSize();
-  return min(screenSize.x, screenSize.y) * 0.03f;
-}
-
-static float double_click_range(GuiScene *scene)
-{
-  IPoint2 screenSize = scene->getDeviceScreenSize();
-  return 20.0f * min(screenSize.x, screenSize.y) / 1080;
-}
-
-static float double_touch_range(GuiScene *scene)
-{
-  // TODO: this should be changed to use Centimeters -> Pixels convertion
-  // using DPI to calculate range independent from device physical size
-  IPoint2 screenSize = scene->getDeviceScreenSize();
-  return 100.0f * min(screenSize.x, screenSize.y) / 1080;
-}
 
 struct BhvButtonData
 {

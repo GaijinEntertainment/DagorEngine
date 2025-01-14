@@ -308,15 +308,23 @@ void NativeResourceScheduler::placeResource(int frame, intermediate::ResourceInd
   if (desc.resType == RES3D_SBUF)
   {
     auto createBuf = [this, &key, &heap_idx, &placedResName, &offset, &properties]() -> UniqueBuf {
-      return UniqueBuf(dag::place_buffer_in_resource_heap(heaps[heap_idx], key.desc, offset, properties, placedResName.c_str()));
+      auto buf = dag::place_buffer_in_resource_heap(heaps[heap_idx], key.desc, offset, properties, placedResName.c_str());
+      if (!buf)
+        logerr("Failed to place buffer %s in resource heap %d (%p) at offset %d! Description was: %s", placedResName.c_str(),
+          eastl::to_underlying(heap_idx), heaps[heap_idx], offset, key.desc.toDebugString());
+      return UniqueBuf(eastl::move(buf));
     };
     placeResource<UniqueBuf>(frame, res_idx, heap_idx, offset, key, createBuf);
   }
   else
   {
     auto createTex = [this, &key, &heap_idx, &placedResName, &offset, &properties]() -> UniqueTex {
-      return UniqueTex(
-        dag::place_texture_in_resource_heap(heaps[heap_idx], fixup_description(key.desc), offset, properties, placedResName.c_str()));
+      const auto fixedDesc = fixup_description(key.desc);
+      auto tex = dag::place_texture_in_resource_heap(heaps[heap_idx], fixedDesc, offset, properties, placedResName.c_str());
+      if (!tex)
+        logerr("Failed to place texture %s in resource heap %d (%p) at offset %d! Description was: %s", placedResName.c_str(),
+          eastl::to_underlying(heap_idx), heaps[heap_idx], offset, fixedDesc.toDebugString());
+      return UniqueTex(eastl::move(tex));
     };
     placeResource<UniqueTex>(frame, res_idx, heap_idx, offset, key, createTex);
 

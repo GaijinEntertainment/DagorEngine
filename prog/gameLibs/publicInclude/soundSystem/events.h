@@ -125,7 +125,11 @@ const char *debug_event_state(EventHandle event_handle);
 
 bool is_valid_handle(EventHandle event_handle);
 bool is_valid_event_instance(EventHandle event_handle);
+
 bool is_one_shot(EventHandle event_handle);
+bool is_delayable(EventHandle event_handle);
+bool has_occlusion(EventHandle event_handle);
+
 bool is_one_shot(const FMODGUID &event_id);
 bool is_snapshot(const FMODGUID &event_id);
 

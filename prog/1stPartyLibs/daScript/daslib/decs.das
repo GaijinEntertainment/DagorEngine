@@ -565,7 +565,7 @@ def private update_entity_imm ( eid:EntityId; blk : lambda<(eid:EntityId; var cm
     if lookup.generation != eid.generation
         return
     var cmp : ComponentMap
-    let arch_index = decsState.archetypeLookup[lookup.archetype]-1
+    let arch_index = unsafe(decsState.archetypeLookup[lookup.archetype])-1
     let eidx = decsState.entityLookup[eid.id].index
     var old_ahash = 0ul
     if true // note - this scope is for arch &
@@ -612,7 +612,7 @@ def private delete_entity_imm ( eid:EntityId )
         let di = decsState.entityLookup[eid.id].index
         decsState.entityLookup[eid.id].generation = 0
         decsState.entityFreeList |> push(eid)
-        remove_entity(decsState.allArchetypes[decsState.archetypeLookup[lookup.archetype]-1], di)
+        remove_entity(decsState.allArchetypes[unsafe(decsState.archetypeLookup[lookup.archetype])-1], di)
 
 def public update_entity ( entityid:EntityId implicit; var blk : lambda<(eid:EntityId; var cmp:ComponentMap):void> )
     //! Creates deferred action to update entity specified by id.

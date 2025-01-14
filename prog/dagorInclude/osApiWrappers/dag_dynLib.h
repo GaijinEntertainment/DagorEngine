@@ -32,10 +32,12 @@ using DagorDynLibHolder = eastl::unique_ptr<void, DagorDynLibCloser>;
 
 #if _TARGET_PC_WIN | _TARGET_XBOX
 #define DAGOR_OS_DLL_SUFFIX ".dll"
-#elif _TARGET_PC_LINUX
+#elif _TARGET_PC_LINUX | _TARGET_ANDROID
 #define DAGOR_OS_DLL_SUFFIX ".so"
-#elif _TARGET_PC_MACOSX
+#elif _TARGET_PC_MACOSX | _TARGET_IOS
 #define DAGOR_OS_DLL_SUFFIX ".dylib"
 #elif _TARGET_C1 | _TARGET_C2
+
+#elif _TARGET_C3
 
 #endif

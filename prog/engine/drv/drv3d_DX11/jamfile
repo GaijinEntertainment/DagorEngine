@@ -20,6 +20,8 @@ Sources =
   basetex.cpp
   immediateConst.cpp
   helpers.cpp
+  memory_metrics.cpp
+  clear.cpp
 ;
 
 

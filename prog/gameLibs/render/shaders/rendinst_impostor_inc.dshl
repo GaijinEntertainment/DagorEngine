@@ -3,7 +3,7 @@ include "rendinst_rotation_palette.dshl"
 int baked_impostor_multisample = 0;
 interval baked_impostor_multisample: no < 1, yes;
 
-int baked_impostor_preshadows = 1;
+int baked_impostor_preshadows = 1 always_referenced;
 interval baked_impostor_preshadows: preshadow_off < 1, preshadow_dynamic < 2, preshadow_on;
 
 float4 impostor_options = float4(1, 1, 0, 0);
@@ -545,7 +545,7 @@ macro INIT_AND_USE_BAKED_IMPOSTOR_PROPERTIES()
   {
     float encode_impostor_vertex_output(uint palette_id, bool has_preshadow)
     {
-      float value = palette_id;
+      float value = palette_id + 1;
       if (!has_preshadow)
         value = -value;
       return value;
@@ -555,7 +555,7 @@ macro INIT_AND_USE_BAKED_IMPOSTOR_PROPERTIES()
   {
     void decode_impostor_vertex_output(float value, out uint palette_id, out bool has_preshadow)
     {
-      palette_id = (uint)abs(value);
+      palette_id = (uint)abs(value) - 1;
       has_preshadow = value > 0;
     }
 

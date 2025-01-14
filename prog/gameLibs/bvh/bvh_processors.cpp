@@ -75,6 +75,9 @@ void IndexProcessor::process(Sbuffer *source, UniqueBVHBufferWithOffset &process
 #undef VAR
 #undef GLOBAL_VARS_LIST
 
+  static int source_const_no = ShaderGlobal::get_slot_by_name("bvh_process_dynrend_indices_source_const_no");
+  static int output_uav_no = ShaderGlobal::get_slot_by_name("bvh_process_dynrend_indices_output_uav_no");
+
   PROFILE_PROCESSOR(IndexProcessor);
 
   G_ASSERT(index_format == 2);
@@ -92,8 +95,8 @@ void IndexProcessor::process(Sbuffer *source, UniqueBVHBufferWithOffset &process
   Sbuffer *indexProcessorOutput = outputs[ringCursor].get();
   ringCursor = (ringCursor + 1) % countof(outputs);
 
-  d3d::set_buffer(STAGE_CS, 6, source);
-  d3d::set_rwbuffer(STAGE_CS, 0, indexProcessorOutput);
+  d3d::set_buffer(STAGE_CS, source_const_no, source);
+  d3d::set_rwbuffer(STAGE_CS, output_uav_no, indexProcessorOutput);
 
   set_offset(processed_buffer);
   ShaderGlobal::set_int(bvh_process_dynrend_indices_startVarId, index_start);
@@ -156,8 +159,11 @@ bool SkinnedVertexProcessor::process(ContextId context_id, Sbuffer *source, Uniq
 
   if (!skip_processing)
   {
-    d3d::set_buffer(STAGE_CS, 6, source);
-    d3d::set_rwbuffer(STAGE_CS, 0, processed_buffer.get());
+    static int source_const_no = ShaderGlobal::get_slot_by_name("bvh_process_skinned_vertices_source_const_no");
+    static int output_uav_no = ShaderGlobal::get_slot_by_name("bvh_process_skinned_vertices_output_uav_no");
+
+    d3d::set_buffer(STAGE_CS, source_const_no, source);
+    d3d::set_rwbuffer(STAGE_CS, output_uav_no, processed_buffer.get());
 
     args.setTransformsFn();
 
@@ -268,8 +274,11 @@ bool TreeVertexProcessor::process(ContextId context_id, Sbuffer *source, UniqueO
   {
     G_ASSERT(args.positionFormat == VSDT_FLOAT3);
 
-    d3d::set_buffer(STAGE_CS, 6, source);
-    d3d::set_rwbuffer(STAGE_CS, 0, processed_buffer.get());
+    static int source_const_no = ShaderGlobal::get_slot_by_name("bvh_process_tree_vertices_source_const_no");
+    static int output_uav_no = ShaderGlobal::get_slot_by_name("bvh_process_tree_vertices_output_uav_no");
+
+    d3d::set_buffer(STAGE_CS, source_const_no, source);
+    d3d::set_rwbuffer(STAGE_CS, output_uav_no, processed_buffer.get());
 
     TMatrix4_vec4 worldTm;
     v_mat43_transpose_to_mat44((mat44f &)worldTm, args.worldTm);
@@ -369,8 +378,11 @@ bool ImpostorVertexProcessor::process(ContextId context_id, Sbuffer *source, Uni
 
   if (!skip_processing)
   {
-    d3d::set_buffer(STAGE_CS, 6, source);
-    d3d::set_rwbuffer(STAGE_CS, 0, processed_buffer.get());
+    static int source_const_no = ShaderGlobal::get_slot_by_name("bvh_process_impostor_vertices_source_const_no");
+    static int output_uav_no = ShaderGlobal::get_slot_by_name("bvh_process_impostor_vertices_output_uav_no");
+
+    d3d::set_buffer(STAGE_CS, source_const_no, source);
+    d3d::set_rwbuffer(STAGE_CS, output_uav_no, processed_buffer.get());
 
     set_offset(processed_buffer);
     ShaderGlobal::set_int(bvh_process_impostor_vertices_startVarId, args.baseVertex + args.startVertex);
@@ -443,8 +455,11 @@ bool BakeTextureToVerticesProcessor::process(ContextId context_id, Sbuffer *sour
 
   if (!skip_processing)
   {
-    d3d::set_buffer(STAGE_CS, 6, source);
-    d3d::set_rwbuffer(STAGE_CS, 0, processed_buffer.get());
+    static int source_const_no = ShaderGlobal::get_slot_by_name("bvh_process_bake_texture_to_vertices_source_const_no");
+    static int output_uav_no = ShaderGlobal::get_slot_by_name("bvh_process_bake_texture_to_vertices_output_uav_no");
+
+    d3d::set_buffer(STAGE_CS, source_const_no, source);
+    d3d::set_rwbuffer(STAGE_CS, output_uav_no, processed_buffer.get());
 
     if (args.setTransformsFn)
       args.setTransformsFn();
@@ -538,8 +553,11 @@ bool LeavesVertexProcessor::process(ContextId context_id, Sbuffer *source, Uniqu
 
   if (!skip_processing)
   {
-    d3d::set_buffer(STAGE_CS, 6, source);
-    d3d::set_rwbuffer(STAGE_CS, 0, processed_buffer.get());
+    static int source_const_no = ShaderGlobal::get_slot_by_name("bvh_process_leaves_vertices_source_const_no");
+    static int output_uav_no = ShaderGlobal::get_slot_by_name("bvh_process_leaves_vertices_output_uav_no");
+
+    d3d::set_buffer(STAGE_CS, source_const_no, source);
+    d3d::set_rwbuffer(STAGE_CS, output_uav_no, processed_buffer.get());
 
     TMatrix4_vec4 worldTm;
     v_mat43_transpose_to_mat44((mat44f &)worldTm, args.worldTm);
@@ -611,8 +629,11 @@ bool HeliRotorVertexProcessor::process(ContextId context_id, Sbuffer *source, Un
 
   if (!skip_processing)
   {
-    d3d::set_buffer(STAGE_CS, 6, source);
-    d3d::set_rwbuffer(STAGE_CS, 0, processed_buffer.get());
+    static int source_const_no = ShaderGlobal::get_slot_by_name("bvh_process_heli_rotor_vertices_source_const_no");
+    static int output_uav_no = ShaderGlobal::get_slot_by_name("bvh_process_heli_rotor_vertices_output_uav_no");
+
+    d3d::set_buffer(STAGE_CS, source_const_no, source);
+    d3d::set_rwbuffer(STAGE_CS, output_uav_no, processed_buffer.get());
 
     Point4 params = Point4::ZERO, secParams = Point4::ZERO;
     args.getHeliParamsFn(params, secParams);
@@ -724,8 +745,11 @@ bool FlagVertexProcessor::process(ContextId context_id, Sbuffer *source, UniqueO
 
   if (!skip_processing)
   {
-    d3d::set_buffer(STAGE_CS, 6, source);
-    d3d::set_rwbuffer(STAGE_CS, 0, processed_buffer.get());
+    static int source_const_no = ShaderGlobal::get_slot_by_name("bvh_process_flag_vertices_source_const_no");
+    static int output_uav_no = ShaderGlobal::get_slot_by_name("bvh_process_flag_vertices_output_uav_no");
+
+    d3d::set_buffer(STAGE_CS, source_const_no, source);
+    d3d::set_rwbuffer(STAGE_CS, output_uav_no, processed_buffer.get());
 
     TMatrix4_vec4 worldTm;
     v_mat43_transpose_to_mat44((mat44f &)worldTm, args.worldTm);
@@ -845,8 +869,11 @@ bool DeformedVertexProcessor::process(ContextId context_id, Sbuffer *source, Uni
 
   if (!skip_processing)
   {
-    d3d::set_buffer(STAGE_CS, 6, source);
-    d3d::set_rwbuffer(STAGE_CS, 0, processed_buffer.get());
+    static int source_const_no = ShaderGlobal::get_slot_by_name("bvh_process_deformed_vertices_source_const_no");
+    static int output_uav_no = ShaderGlobal::get_slot_by_name("bvh_process_deformed_vertices_output_uav_no");
+
+    d3d::set_buffer(STAGE_CS, source_const_no, source);
+    d3d::set_rwbuffer(STAGE_CS, output_uav_no, processed_buffer.get());
 
     TMatrix4_vec4 worldTm;
     v_mat43_transpose_to_mat44((mat44f &)worldTm, args.worldTm);

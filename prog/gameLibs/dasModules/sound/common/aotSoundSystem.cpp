@@ -32,20 +32,6 @@ public:
     SND_BIND_FUN(sound_debug_enum_events, das::SideEffects::accessExternal);
     SND_BIND_FUN(sound_debug_enum_events_in_bank, das::SideEffects::modifyArgumentAndAccessExternal);
 
-    // geometry
-    SND_BIND_FUN(sound_add_geometry, das::SideEffects::modifyExternal);
-    SND_BIND_FUN(sound_remove_geometry, das::SideEffects::modifyExternal);
-    SND_BIND_FUN(sound_remove_all_geometry, das::SideEffects::modifyExternal);
-    SND_BIND_FUN(sound_add_polygons, das::SideEffects::modifyExternal);
-    SND_BIND_FUN(sound_add_polygon, das::SideEffects::modifyExternal);
-    SND_BIND_FUN(sound_set_geometry_position, das::SideEffects::modifyExternal);
-    SND_BIND_FUN(sound_get_geometry_position, das::SideEffects::accessExternal);
-    SND_BIND_FUN(sound_enum_geometry, das::SideEffects::accessExternal);
-    SND_BIND_FUN(sound_enum_geometry_faces, das::SideEffects::accessExternal);
-    SND_BIND_FUN(sound_save_geometry_to_file, das::SideEffects::modifyExternal);
-    SND_BIND_FUN(sound_load_geometry_from_file, das::SideEffects::modifyExternal);
-    SND_BIND_FUN(sound_get_geometry_occlusion, das::SideEffects::modifyExternal);
-
     verifyAotReady();
   }
 

@@ -9,6 +9,9 @@ namespace das {
 
     class CollectLocalVariables : public Visitor {
     public:
+        virtual bool canVisitStructureFieldInit ( Structure * ) override { return false; }
+        virtual bool canVisitArgumentInit ( Function * , const VariablePtr &, Expression * ) override { return false; }
+        virtual bool canVisitQuoteSubexpression ( ExprQuote * ) override { return false; }
         virtual void preVisit ( ExprLet * expr ) override {
             for ( const auto & var : expr->variables) {
                 locals.push_back(make_tuple(var,expr->visibility,bool(var->type->ref)));

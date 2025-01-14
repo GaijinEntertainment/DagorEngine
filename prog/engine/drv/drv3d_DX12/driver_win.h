@@ -10,9 +10,9 @@
 
 
 typedef IDXGISwapChain3 DXGISwapChain;
-typedef IDXGIFactory4 DXGIFactory;
+typedef IDXGIFactory7 DXGIFactory;
 typedef IDXGIAdapter4 DXGIAdapter;
-typedef ID3D12Device3 D3DDevice;
+typedef ID3D12Device5 D3DDevice;
 typedef ID3D12GraphicsCommandList2 D3DGraphicsCommandList;
 using D3DCopyCommandList = ID3D12GraphicsCommandList;
 

@@ -10,6 +10,7 @@ bool is_bvh_enabled();
 bool is_rtsm_enabled();
 bool is_rtr_enabled();
 bool is_rtao_enabled();
+bool is_rt_water_enabled();
 bool is_denoiser_enabled();
 void draw_rtr_validation();
 void bvh_cables_changed();

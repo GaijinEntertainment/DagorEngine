@@ -6,15 +6,18 @@ This lib adds lens flares really similar to what Unity3D is capable of. Features
 * Configure lens flares in ECS (configuration is documented here: lens_flare/templates/lens_flare.template.blk)
 * Add lens flare provider light sources in ECS (reference the lens flare config by name)
   * This can be added to the sun
-  * Planned: And omni- and spotlights
+  * And omni- and spotlights (these are restricted to a single global lens flare config. Two different lights can't have two different flares)
 * Draw the lens flare components:
   * Draw regular shapes with optional rounding on the vertices
   * Apply gradient and texture to the shapes
   * Use the light source's brightness and color
-* Occlusion is calculated from
+* Occlusion/attenuation is calculated from
   * Solid objects (using gbuf depth)
   * Volumetric fog
   * Sun only: Transparent effects (based on fom shadows)
+  * Dynamic lights: IES textures
+  * Spotlights: angular attenuation
+  * Any point light: Distance attenuation (uses a formula without radius limitation)
 
 ## How it works (Overview)
 
@@ -37,6 +40,31 @@ The rendering phase issues the draws calls. All flare components (shapes) are ap
 Currently, the RT is a separate texture at half resolution. It is later applied in the postfx shader. The shader uses pre-exposure and outputs linear values. It could be directly applied to the frame between the TAA/TSR resolution and the postfx shader (but that's used as a history for the TAA/TSR).
 
 ## Implementation details
+
+### Preparation
+
+The preparation phase is divided into two parts:
+
+#### Pre-culling
+
+Pre-culling treats light sources as single points are runs all checks accordingly. The depth test is done based on downsampled far depth. The mip level is selected based on the occlusion area used later.
+This step is done separately for manual and dynamic lights:
+
+##### Manual flares
+
+These flares come from manually provided sources, meaning that the C++ code knows all data of the light source (like the sun) and it is provided there.
+
+These light sources are collected into a buffer, grouped by the flare config id. A single compute shader pass is dispatched to prepare/cull them at once.
+
+##### Dynamic lights
+
+These lights are pre-culled by the lights manager and are available in a buffer on the GPU, along with their masks (which contains a bit to mark lights to use flares).
+
+The compute shader is dispatched two times: one for the omnilights and one for the spotlights (if such lights are present in the view frustum and a lens flare config is available for them). The shader checks all visible lights, but culls those whose mask doesn't contain the lens flare bit.
+
+#### Occlusion test
+
+The occlusion check uses a compute shader on **only** the pre-culled instances and tests depth in an area of 16x16 around the light. The flares intensity is scaled proportional to the number of pixels that passed the depth test.
 
 ### Vertex buffers
 

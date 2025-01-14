@@ -28,8 +28,6 @@ shader deferred_shadow_compute
   USE_DEFERRED_SHADOW_PER_SAMPLE(cs)
 
   (cs) {
-    sun_color_1@f3 = sun_color_0;
-
     world_view_pos@f4 = world_view_pos;
     depth_bounds@f2 = depth_bounds;
     tile_coordinates@buf = tile_coordinates hlsl { ByteAddressBuffer tile_coordinates@buf; };

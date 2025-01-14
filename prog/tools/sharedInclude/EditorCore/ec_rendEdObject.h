@@ -272,7 +272,9 @@ public:
   /// Property Panel common group and property PID values
   enum
   {
-    PID_COMMON_GROUP = 100000
+    PID_COMMON_GROUP = 100000,
+    PID_TRANSFORM_GROUP = 200000,
+    PID_SEED_GROUP = 300000,
   };
 
   /// Fill Property Panel with object properties.

@@ -1,5 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include <drv/3d/dag_lock.h>
 #include "texMgrData.h"
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_info.h>
@@ -189,10 +190,22 @@ static void do_stop_bkg_tex_loading(int sleep_quant)
     }
   }
 }
+
+static void flush_streaming_actions_to_d3d()
+{
+  // Applying texture replacements cannot be done concurrently with rendering.
+  // When called on main, this acquire is a no-op, but this function is also called
+  // from other threads whenever we wait for resources synchronously (rare but happens).
+  d3d::GpuAutoLock lock;
+  RMGR.performAsyncTextureReplacementCompletions();
+}
+
 static void unload_on_drv_shutdown()
 {
   using namespace texmgr_internal;
   do_stop_bkg_tex_loading(10);
+
+  flush_streaming_actions_to_d3d();
 
   acquire_texmgr_lock();
   TEX_REC_LOCK();
@@ -227,6 +240,8 @@ static void on_frame_finished()
   using namespace texmgr_internal;
 
   TIME_PROFILE(tql_on_frame_finished);
+
+  flush_streaming_actions_to_d3d();
 
   static WinCritSec critSec(__FUNCTION__);
   WinAutoLock lock(critSec);
@@ -734,6 +749,9 @@ void init_managed_textures_streaming_support(int _reload_jobmgr_id)
 
   if (reload_jobmgr_id >= 0 && texmgr_internal::texq_load_on_demand)
     tql::on_frame_finished = &on_frame_finished;
+  else
+    register_regular_action_to_idle_cycle(
+      +[](void *) { flush_streaming_actions_to_d3d(); }, nullptr);
 #undef READ_PROP
 }
 
@@ -768,12 +786,16 @@ bool texmgr_internal::D3dResMgrDataFinal::downgradeTexQuality(int idx, BaseTextu
     unsigned w = max(texDesc[idx].dim.w >> skip, 1), h = max(texDesc[idx].dim.h >> skip, 1);
     unsigned d = max(this_tex.restype() == RES3D_VOLTEX ? texDesc[idx].dim.d >> skip : texDesc[idx].dim.d, 1);
     unsigned l = texDesc[idx].dim.l - skip;
-    tql::resizeTexture(&this_tex, w, h, d, l, ld_lev);
+
+    if (auto tmpTex = tql::makeResizedTmpTexResCopy(&this_tex, w, h, d, l, ld_lev))
+      RMGR.completeTextureUpdateAsync(idx, &this_tex, tmpTex, 0, l - 1, [req_lev](int idx) {
+        resQS[idx].setCurQL(req_lev < resQS[idx].getQLev() ? calcCurQL(idx, req_lev) : resQS[idx].getMaxQL());
+        resQS[idx].setLdLev(req_lev);
+        resQS[idx].setMaxReqLev(req_lev);
+      });
+
     RMGR.changeTexUsedMem(idx, tql::sizeInKb(this_tex.ressize()), (getTexMemSize4K(idx) + getTexAddMemSizeNeeded4K(idx)) * 4);
 
-    resQS[idx].setCurQL(req_lev < resQS[idx].getQLev() ? calcCurQL(idx, req_lev) : resQS[idx].getMaxQL());
-    resQS[idx].setLdLev(req_lev);
-    resQS[idx].setMaxReqLev(req_lev);
     if (decRefCount(idx) == 0)
       RMGR.incReadyForDiscardTex(idx);
 

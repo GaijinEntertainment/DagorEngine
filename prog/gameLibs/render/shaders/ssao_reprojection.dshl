@@ -2,25 +2,13 @@ include "taa_inc.dshl"
 include "ssao_use.dshl"
 include "reprojected_motion_vectors.dshl"
 include "force_ignore_history.dshl"
-include "hero_matrix_inc.dshl"
+include "motion_vector_access.dshl"
 
-float4 prev_globtm_no_ofs_psf_0;
-float4 prev_globtm_no_ofs_psf_1;
-float4 prev_globtm_no_ofs_psf_2;
-float4 prev_globtm_no_ofs_psf_3;
-
-float4 prev_view_vecLT;
-float4 prev_view_vecRT;
-float4 prev_view_vecLB;
-float4 prev_view_vecRB;
-
-texture downsampled_motion_vectors_tex;
 texture prev_downsampled_motion_vectors_tex;
-
-float4 move_world_view_pos;
 
 float ssao_reprojection_neighborhood_bias_tight = 0.0;
 float ssao_reprojection_neighborhood_bias_wide = 0.05;
+float ssao_dissocclusion_depth_threshold = 0.05;
 float ssao_reprojection_neighborhood_velocity_difference_scale = 100;
 texture prev_downsampled_close_depth_tex;
 
@@ -28,16 +16,10 @@ macro SSAO_REPROJECTION(stage, prev_tex_name)
 local float4 prev_downsampled_close_depth_tex_dim = get_dimensions(prev_downsampled_close_depth_tex, 0);
 (stage) {
   ssao_prev_tex@smp2d = prev_tex_name;
-  prev_globtm_no_ofs_psf@f44 = { prev_globtm_no_ofs_psf_0, prev_globtm_no_ofs_psf_1, prev_globtm_no_ofs_psf_2, prev_globtm_no_ofs_psf_3 };
   prev_downsampled_close_depth_tex@smp2d = prev_downsampled_close_depth_tex;
-  prev_view_vecLT@f3 = prev_view_vecLT;
-  prev_view_vecRT_minus_view_vecLT@f3 = (prev_view_vecRT-prev_view_vecLT);
-  prev_view_vecLB_minus_view_vecLT@f3 = (prev_view_vecLB-prev_view_vecLT);
-  prev_view_vecRT@f3 = prev_view_vecRT;
-  prev_view_vecLB@f3 = prev_view_vecLB;
-  prev_view_vecRB@f3 = prev_view_vecRB;
+  prev_downsampled_motion_vectors_tex@smp2d = prev_downsampled_motion_vectors_tex;
 
-  prev_move_world_view_pos@f3= (-move_world_view_pos.x, -move_world_view_pos.y, -move_world_view_pos.z,0);
+  ssao_dissocclusion_depth_threshold@f1 = ssao_dissocclusion_depth_threshold;
   prev_downsampled_close_depth_tex_target_size@f4 = (prev_downsampled_close_depth_tex_dim.x, prev_downsampled_close_depth_tex_dim.y, 1/max(1, prev_downsampled_close_depth_tex_dim.x), 1/max(1, prev_downsampled_close_depth_tex_dim.y));
   neighborhood_params@f3 = (ssao_reprojection_neighborhood_bias_tight,
                             ssao_reprojection_neighborhood_bias_wide,
@@ -52,22 +34,10 @@ hlsl(stage) {
   #define neighborhood_velocity_difference_scale neighborhood_params.z
 }
 
-if (downsampled_motion_vectors_tex != NULL)
-{
-  (stage) {
-    downsampled_motion_vectors_tex@smp2d = downsampled_motion_vectors_tex;
-    prev_downsampled_motion_vectors_tex@smp2d = prev_downsampled_motion_vectors_tex;
-  }
-  bool has_prev_motion_vectors = prev_downsampled_motion_vectors_tex != NULL;
-} else if (motion_gbuf != NULL)
-{
-  (stage) { motion_gbuf@smp2d = motion_gbuf; }
-}
-
-INIT_HERO_MATRIX(stage)
-USE_HERO_MATRIX(stage)
 INIT_REPROJECTED_MOTION_VECTORS(stage)
-USE_REPROJECTED_MOTION_VECTORS(stage)
+INIT_FETCH_MOTION_VECTOR(stage, downsampled)
+USE_FETCH_MOTION_VECTOR(stage, downsampled)
+
 USE_IGNORE_HISTORY(stage)
 
 hlsl(stage) {
@@ -82,36 +52,17 @@ hlsl(stage) {
 hlsl(stage) {
   #include <fp16_aware_lerp.hlsl>
 
-  float3 getPrevViewVecOptimized(float2 tc)
-  {
-    return prev_view_vecLT + prev_view_vecRT_minus_view_vecLT*tc.x + prev_view_vecLB_minus_view_vecLT*tc.y;
-  }
-
-  float2 get_motion_vector(float3 uvz, float3 eye_to_point)
-  {
-##if downsampled_motion_vectors_tex != NULL
-    return tex2Dlod(downsampled_motion_vectors_tex, float4(uvz.xy, 0, 0)).rg;
-##else
-    float2 ret = get_reprojected_motion_vector1(uvz, eye_to_point, prev_globtm_no_ofs_psf).xy;
-##if motion_gbuf != NULL
-    float2 motionVector = tex2Dlod(motion_gbuf, float4(uvz.xy, 0, 0)).rg;
-    if (motionVector.x != 0)
-      ret = motionVector;
-##endif
-    return ret;
-##endif
-  }
-  void get_ssao_disocclusion_weight(float2 historyUV, float prev_linear_depth, inout SSAO_TYPE historySample, inout float newFrameWeight)
+  void get_ssao_disocclusion_weight(float3 historyUVZ, inout SSAO_TYPE historySample, inout float newFrameWeight)
   {
 #if FIX_DISCONTINUTIES
-    float2 historyCrdf = historyUV * prev_downsampled_close_depth_tex_target_size.xy - 0.5;
+    float2 historyCrdf = historyUVZ.xy * prev_downsampled_close_depth_tex_target_size.xy - 0.5;
     float2 floorCrd = floor(historyCrdf);
     float2 gatherUV = floorCrd*prev_downsampled_close_depth_tex_target_size.zw + prev_downsampled_close_depth_tex_target_size.zw;
     float2 fractCrd = historyCrdf - floorCrd;
     float4 depths = prev_downsampled_close_depth_tex.GatherRed(prev_downsampled_close_depth_tex_samplerstate, gatherUV).wzxy;
     float4 linearDepths = linearize_z4(depths, prev_zn_zfar.zw);
-    float4 depthDiff = abs(linearDepths - prev_linear_depth);
-    float threshold = 0.05*prev_linear_depth;
+    float4 depthDiff = abs(linearDepths - historyUVZ.z);
+    float threshold = ssao_dissocclusion_depth_threshold*historyUVZ.z;
     bool4 mask = depthDiff < threshold;
 
     if (!any(mask))
@@ -139,27 +90,22 @@ hlsl(stage) {
     historySample.z = dot(ssao_prev_tex.GatherBlue(prev_downsampled_close_depth_tex_samplerstate, uv).wzxy, weights);
     #endif
 #else
-    historySample = tex2Dlod(ssao_prev_tex, float4(historyUV, 0, 0)).SSAO_ATTRS;
+    historySample = tex2Dlod(ssao_prev_tex, float4(historyUVZ.xy, 0, 0)).SSAO_ATTRS;
 #endif
   }
 
-  void reproject_ssao(inout SSAO_TYPE ssao, float3 cameraToOrigin, float2 screenTC, float linear_depth)
+  void reproject_ssao(inout SSAO_TYPE ssao, float3 cameraToOrigin, float2 screenTC, float depth)
   {
-    bool isHero = apply_hero_matrix(screenTC, cameraToOrigin);
-
-    float2 motionVector = get_motion_vector(float3(screenTC, linear_depth), cameraToOrigin);
-    float2 historyUV = screenTC + motionVector;
-
-    float4 prevClip = mul(float4(cameraToOrigin, 1), prev_globtm_no_ofs_psf);
-    float linearPrevDepth = linearize_z(prevClip.w > 1e-5 ? prevClip.z/prevClip.w : 0, prev_zn_zfar.zw);
+    float3 motionVector = fetch_motion_vector(screenTC, depth);
+    float3 historyUVZ = float3(screenTC, linearize_z(depth, zn_zfar.zw)) + motionVector;
 
     float newFrameWeight = 0.07;
     SSAO_TYPE ssaoHistory = 1;
-    get_ssao_disocclusion_weight(historyUV, linearPrevDepth, ssaoHistory, newFrameWeight);
+    get_ssao_disocclusion_weight(historyUVZ, ssaoHistory, newFrameWeight);
 
     //if previous history is invalid or current pixel is inside safe margin (filter) and previous was not
-    newFrameWeight = any(abs(historyUV * 2 - 1) >= 1) ? 1 : newFrameWeight;
-    newFrameWeight = any(abs(screenTC * 2 - 1) < 0.99 && abs(historyUV * 2 - 1) >= 0.99) ? saturate(newFrameWeight + 0.5) : newFrameWeight;
+    newFrameWeight = any(abs(historyUVZ.xy * 2 - 1) >= 1) ? 1 : newFrameWeight;
+    newFrameWeight = any(abs(screenTC * 2 - 1) < 0.99 && abs(historyUVZ.xy * 2 - 1) >= 0.99) ? saturate(newFrameWeight + 0.5) : newFrameWeight;
 
 
 #if DIFFERENCE_CLAMPING
@@ -186,30 +132,24 @@ hlsl(stage) {
   {
     if (force_ignore_history == 1)
       return;
-##if downsampled_motion_vectors_tex == NULL && motion_gbuf == NULL
-    apply_hero_matrix(uv, eye_to_point);
-##endif
 
-    float4 prevClip = mul(float4(eye_to_point, 1), prev_globtm_no_ofs_psf);
-    float linearPrevDepth = linearize_z(prevClip.w > 1e-5 ? prevClip.z/prevClip.w : 0, prev_zn_zfar.zw);
-
-    float2 mv = get_motion_vector(float3(uv, linearize_z(depth, zn_zfar.zw)), eye_to_point);
-    float2 historyUV = uv + mv;
+    float3 mv = fetch_motion_vector(uv, depth);
+    float3 historyUVZ = float3(uv, linearize_z(depth, zn_zfar.zw)) + mv;
     //historyUV = uv;
 
     SSAO_TYPE ssaoHistory = 1;
     float newFrameWeight = 0;
-    get_ssao_disocclusion_weight(historyUV, linearPrevDepth, ssaoHistory, newFrameWeight);
+    get_ssao_disocclusion_weight(historyUVZ, ssaoHistory, newFrameWeight);
 
-    newFrameWeight = any(abs(historyUV * 2 - 1) >= 1) ? 1 : newFrameWeight;
-    newFrameWeight = any(abs(uv * 2 - 1) < 0.99 && abs(historyUV * 2 - 1) >= 0.99) ? saturate(newFrameWeight + 0.5) : newFrameWeight;
+    newFrameWeight = any(abs(historyUVZ.xy * 2 - 1) >= 1) ? 1 : newFrameWeight;
+    newFrameWeight = any(abs(uv * 2 - 1) < 0.99 && abs(historyUVZ.xy * 2 - 1) >= 0.99) ? saturate(newFrameWeight + 0.5) : newFrameWeight;
 
     // Neighborhood clamp
     {
-      ##if maybe(has_prev_motion_vectors)
+      ##if prev_downsampled_motion_vectors_tex != NULL
         // Velocity weighting if motion vectors history is available
-        float2 currentVelocity = mv;
-        float2 rawHistoryVelocity = tex2Dlod(prev_downsampled_motion_vectors_tex, float4(historyUV, 0, 0)).rg;
+        float2 currentVelocity = mv.xy;
+        float2 rawHistoryVelocity = tex2Dlod(prev_downsampled_motion_vectors_tex, float4(historyUVZ.xy, 0, 0)).rg;
         float2 historyVelocity = rawHistoryVelocity;
         float velocityWeight = get_velocity_weight(currentVelocity, historyVelocity);
         float neighborhoodBiasWeight = velocityWeight;

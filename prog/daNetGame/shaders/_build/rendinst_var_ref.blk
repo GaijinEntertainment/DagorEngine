@@ -7,7 +7,6 @@
   ref:t=dynamic_impostor_texture_const_no
   ref:t=rendinst_ao_mul
   ref:t=rendinst_inv_lod0_range
-  ref:t=rendinst_shadow_tex
 
   ref:t=impostor_view_y
   ref:t=impostor_view_x

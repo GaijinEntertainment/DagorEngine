@@ -264,21 +264,32 @@ VkResult DeviceQueue::present(VulkanDevice &device, FrameInfo &gpu_frame, const 
 {
   WinAutoLock lock{mutex};
 
-  for (VulkanSemaphoreHandle i : submitSemaphores)
-    gpu_frame.addPendingSemaphore(i);
+  gpu_frame.addPendingSemaphore(presentInfo.presentSignal);
+  VkResult ret;
 
-  VkPresentInfoKHR pi = {};
-  pi.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-  pi.pWaitSemaphores = ary(submitSemaphores.data());
-  pi.waitSemaphoreCount = submitSemaphores.size();
+  if (presentInfo.swapchainCount)
+  {
+    VkPresentInfoKHR pi = {};
+    pi.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    pi.pWaitSemaphores = ary(&presentInfo.presentSignal);
+    pi.waitSemaphoreCount = 1;
 
-  pi.swapchainCount = presentInfo.swapchainCount;
-  pi.pSwapchains = presentInfo.pSwapchains;
-  pi.pImageIndices = presentInfo.pImageIndices;
+    pi.swapchainCount = presentInfo.swapchainCount;
+    pi.pSwapchains = presentInfo.pSwapchains;
+    pi.pImageIndices = presentInfo.pImageIndices;
 
-  VkResult ret = VULKAN_LOG_CALL_R(device.vkQueuePresentKHR(handle, &pi));
-  // TODO: check if it considered waited on error or not, as it can bug out sync pretty easily
-  clearSubmitSemaphores();
+    ret = VULKAN_LOG_CALL_R(device.vkQueuePresentKHR(handle, &pi));
+  }
+  else
+  {
+    VkSubmitInfo si = {};
+    si.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    si.pWaitSemaphores = ary(&presentInfo.presentSignal);
+    si.waitSemaphoreCount = 1;
+    si.pWaitDstStageMask = submitSemaphoresLocation.data();
+    ret = VULKAN_LOG_CALL_R(device.vkQueueSubmit(handle, 1, &si, 0));
+  }
+
   return ret;
 }
 

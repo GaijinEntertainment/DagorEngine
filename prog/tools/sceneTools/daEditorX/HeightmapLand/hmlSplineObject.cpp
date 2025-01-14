@@ -639,7 +639,6 @@ void SplineObject::fillProps(PropPanel::ContainerPropertyControl &op, DClassID f
 {
   PropPanel::ContainerPropertyControl *commonGrp = op.getContainerById(PID_COMMON_GROUP);
 
-  bool one_type = true;
   int one_type_idx = -1;
   int one_layer = -1;
 
@@ -664,7 +663,6 @@ void SplineObject::fillProps(PropPanel::ContainerPropertyControl &op, DClassID f
     else
     {
       one_layer = -2;
-      one_type = false;
       one_type_idx = -2;
       targetLayerEnabled = false;
       break;
@@ -687,7 +685,7 @@ void SplineObject::fillProps(PropPanel::ContainerPropertyControl &op, DClassID f
   commonGrp->createStatic(-1, "Edit layer:");
   commonGrp->createCombo(PID_SPLINE_LAYERS, "", targetLayers, targetLayerValue, targetLayerEnabled);
 
-  if (one_type)
+  if (one_type_idx >= 0)
   {
     commonGrp->createStatic(PID_SPLINE_LEN, String(128, "Length: %.1f m", bezierSpline.getLength()));
     commonGrp->createEditBox(PID_NOTES, "Notes", props.notes);
@@ -727,9 +725,6 @@ void SplineObject::fillProps(PropPanel::ContainerPropertyControl &op, DClassID f
     commonGrp->createCheckBox(PID_USE_FOR_NAVMESH, "Use for NavMesh", props.useForNavMesh);
     commonGrp->createEditFloat(PID_NAVMESH_STRIPE_WIDTH, "Width", props.navMeshStripeWidth);
 
-    if (objects.size() == 1)
-      commonGrp->createTrackInt(PID_PERINST_SEED, "Per-instance seed", props.perInstSeed, 0, 32767, 1);
-
     createMaterialControls(op);
 
     PropPanel::ContainerPropertyControl &cornerGrp = *commonGrp->createRadioGroup(PID_CORNER_TYPE, "Spline knots corner type");
@@ -737,6 +732,12 @@ void SplineObject::fillProps(PropPanel::ContainerPropertyControl &op, DClassID f
     cornerGrp.createRadio(0, "Smooth tangent");
     cornerGrp.createRadio(1, "Smooth curvature");
     commonGrp->setInt(PID_CORNER_TYPE, props.cornerType);
+
+    if (objects.size() == 1)
+    {
+      PropPanel::ContainerPropertyControl *seedGrp = getObjEditor()->createPanelGroup(RenderableEditableObject::PID_SEED_GROUP);
+      seedGrp->createTrackInt(PID_PERINST_SEED, "Per-instance seed", props.perInstSeed, 0, 32767, 1);
+    }
 
     PropPanel::ContainerPropertyControl *modGroup = op.createGroup(PID_MODIF_GRP, "Modify");
 

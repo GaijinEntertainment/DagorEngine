@@ -43,7 +43,7 @@ class ESFunction:
     self.rw_params = []
     self.rq_params = []
     self.no_params = []
-    self.stage_param = []
+    self.stage_param = {}
     self.context_param = []
     self.call_params = []
     self.stagesNames = []
@@ -497,11 +497,11 @@ def gen_es_event_handler(esFunction):
 #  if (len(esFunction.eventHandlers) > 1):
 #  print ("Warning: currently ECS codegen supports only one event handler, because Events are untyped!")
   funcName = esFunction.eventHandlers[0].funcName
+  mbConst = '' if any([eh.stage_param['mutable'] for eh in esFunction.eventHandlers]) else 'const '
   simdFuncName = getEventHandlerFuncName(esFunction.funcName)
 
-  genCode = 'static void {eventHandlerFuncName}(const {generic_event_type} &__restrict evt, const ecs::QueryView &__restrict components)\n{{\n'.\
-            format(eventHandlerFuncName=simdFuncName,
-                   generic_event_type=generic_event_type)
+  genCode = 'static void {eventHandlerFuncName}({mbConst}{generic_event_type} &__restrict evt, const ecs::QueryView &__restrict components)\n{{\n'.\
+            format(eventHandlerFuncName=simdFuncName, mbConst=mbConst, generic_event_type=generic_event_type)
   hasGenericEvent = False
   if len([x for x in esFunction.eventHandlers if len(x.call_params) != 0]) == 0:
     genCode += '  G_UNUSED(components);\n'
@@ -513,7 +513,7 @@ def gen_es_event_handler(esFunction):
     elseStatement = '} else ' if index != 0 else ''
     event = '*event' if eventType != generic_event_type else 'evt'
     if eventType != generic_event_type:
-      event = 'static_cast<const {eventType}&>(evt)'.format(**locals())
+      event = 'static_cast<{mbConst}{eventType}&>(evt)'.format(**locals())
     call_indent = indent + '    ' + ('  ' if len(esFunction.condition) else '')
     call_ = gen_call_params(esFunction, call_indent, esFunction.eventHandlers[index].call_params)
     if (eventType != 'ecs::Event'):

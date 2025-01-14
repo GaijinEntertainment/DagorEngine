@@ -21,6 +21,7 @@
 #include <render/ssao.h>
 #include <render/screenSpaceReflections.h>
 #include <render/downsampleDepth.h>
+#include <render/motionVectorAccess.h>
 #include <render/viewVecs.h>
 #include <render/sphHarmCalc.h>
 #include <render/preIntegratedGF.h>
@@ -227,7 +228,7 @@ static int parseTexFmt(const char *sfmt, int def_fmt)
   else if (strcmp(sfmt, "R8G8") == 0)
     fmt = TEXFMT_R8G8;
   else if (strcmp(sfmt, "A8L8") == 0)
-    fmt = TEXFMT_A8L8;
+    fmt = TEXFMT_R8G8;
   else if (strcmp(sfmt, "L8") == 0 || strcmp(sfmt, "R8") == 0)
     fmt = TEXFMT_L8;
   else
@@ -622,6 +623,19 @@ public:
     return sceneRt;
   }
 
+  void setupMotionParams(const ViewportWindow &vpw)
+  {
+    TMatrix viewItm;
+    vpw.getCameraTransform(viewItm);
+    float zn, zf;
+    vpw.getZnearZfar(zn, zf);
+    motion_vector_access::CameraParams currentCamera{vpw.getViewTm(), viewItm, vpw.getProjTm(), viewItm.getcol(3), zn, zf};
+    motion_vector_access::set_motion_vector_type(motion_vector_access::MotionVectorType::StaticUVZ);
+    motion_vector_access::set_params(currentCamera, previousCamera.has_value() ? previousCamera.value() : currentCamera, {}, {},
+      eastl::nullopt);
+    previousCamera = currentCamera;
+  }
+
   void renderViewportFrame(ViewportWindow *vpw, bool cached_render = false)
   {
     G_ASSERT(ec_cached_viewports->getCurRenderVp() >= 0);
@@ -691,7 +705,10 @@ public:
       classicRenderTrans();
     }
     else if (rtype == RTYPE_DYNAMIC_DEFERRED)
+    {
+      setupMotionParams(*vpw);
       deferredRender(vpw->getViewTm(), vpw->getProjTm(), false);
+    }
 
     if (use_heat_haze)
       heat_haze_glue.render();
@@ -2600,6 +2617,7 @@ private:
   UniqueTex blackTex;
   eastl::unique_ptr<UpscaleSamplingTex> upscaleSamplingRenderer;
   PostFxRenderer applyLowResFx;
+  eastl::optional<motion_vector_access::CameraParams> previousCamera;
 
   PostFxUserSettings pfx;
   const DataBlock *pfxLevelBlk;

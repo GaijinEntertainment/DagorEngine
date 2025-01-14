@@ -187,7 +187,8 @@ public:
   virtual void onCollisionDamage(dag::Span<gamephys::SeqImpulseInfo> collisions,
     dag::Span<gamephys::CollisionContactData> contacts,
     int offender_id,
-    double collision_impulse_damage_multiplier) = 0;
+    double collision_impulse_damage_multiplier,
+    float at_time) = 0;
 
   template <typename T>
   T *cast()
@@ -257,7 +258,8 @@ struct DummyCustomPhys
     dag::Span<gamephys::SeqImpulseInfo> /*collisions*/,
     dag::Span<gamephys::CollisionContactData> /*contacts*/,
     int /*offender_id*/,
-    double /*collision_impulse_damage_multiplier*/)
+    double /*collision_impulse_damage_multiplier*/,
+    float /*at_time*/)
   {}
   dag::Span<NetWeapon *> getAllWeapons() const { return {}; }
   NetAutopilot *getAutopilot() const { return NULL; }
@@ -395,7 +397,8 @@ public:
   virtual void onCollisionDamage(dag::Span<gamephys::SeqImpulseInfo> collisions,
     dag::Span<gamephys::CollisionContactData> contacts,
     int offender_id,
-    double collision_impulse_damage_multiplier) override;
+    double collision_impulse_damage_multiplier,
+    float at_time) override;
 
   virtual dag::ConstSpan<NetWeapon *> getAllWeapons() const override;
   virtual NetAutopilot *getAutopilot() const override;

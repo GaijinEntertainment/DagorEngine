@@ -10,7 +10,6 @@
 #include <soundSystem/debug.h>
 #include <soundSystem/delayed.h>
 #include <soundSystem/vars.h>
-#include <soundSystem/geometry.h>
 
 namespace soundsystem_bind_dascript
 {
@@ -45,68 +44,6 @@ inline void sound_debug_enum_events_in_bank(const char *bank_name, const das::TB
     vec4f arg = das::cast<const char *const>::from(event_name);
     context->invoke(block, &arg, nullptr, at);
   });
-}
-
-// geometry
-inline int sound_add_geometry(int max_polygons, int max_vertices) { return sndsys::add_geometry(max_polygons, max_vertices); }
-
-inline void sound_remove_geometry(int geometry_id) { sndsys::remove_geometry(geometry_id); }
-
-inline void sound_remove_all_geometry() { sndsys::remove_all_geometry(); }
-
-inline void sound_add_polygons(int geometry_id, const das::TArray<Point3> &vertices, int num_verts_per_poly, float direct_occlusion,
-  float reverb_occlusion, bool doublesided)
-{
-  sndsys::add_polygons(geometry_id, make_span_const((const Point3 *)vertices.data, vertices.size), num_verts_per_poly,
-    direct_occlusion, reverb_occlusion, doublesided);
-}
-
-inline void sound_add_polygon(int geometry_id, const Point3 &a, const Point3 &b, const Point3 &c, float direct_occlusion,
-  float reverb_occlusion, bool doublesided)
-{
-  sndsys::add_polygon(geometry_id, a, b, c, direct_occlusion, reverb_occlusion, doublesided);
-}
-
-inline void sound_set_geometry_position(int geometry_id, const Point3 &position)
-{
-  sndsys::set_geometry_position(geometry_id, position);
-}
-
-inline Point3 sound_get_geometry_position(int geometry_id) { return sndsys::get_geometry_position(geometry_id); }
-
-inline void sound_enum_geometry(const das::TBlock<void, int /*id*/> &block, das::Context *context, das::LineInfoArg *at)
-{
-  const int count = sndsys::get_geometry_count();
-  for (int idx = 0; idx < count; ++idx)
-  {
-    const int id = sndsys::get_geometry_id(idx);
-    vec4f arg = das::cast<int>::from(id);
-    context->invoke(block, &arg, nullptr, at);
-  }
-}
-
-// debug
-inline void sound_enum_geometry_faces(int geometry_id,
-  const das::TBlock<void, const das::TTemporary<const das::TArray<Point3>>> &block, das::Context *context, das::LineInfoArg *at)
-{
-  const auto *faces = sndsys::get_geometry_faces(geometry_id);
-
-  das::Array arr;
-  arr.data = (char *)(faces ? faces->data() : nullptr);
-  arr.size = uint32_t(faces ? faces->size() : 0);
-  arr.capacity = arr.size;
-  arr.lock = 1;
-  arr.flags = 0;
-  vec4f arg = das::cast<das::Array *>::from(&arr);
-  context->invoke(block, &arg, nullptr, at);
-}
-
-inline void sound_save_geometry_to_file(const char *filename) { sndsys::save_geometry_to_file(filename); }
-inline bool sound_load_geometry_from_file(const char *filename) { return sndsys::load_geometry_from_file(filename); }
-
-inline Point2 sound_get_geometry_occlusion(const Point3 &source, const Point3 &listener)
-{
-  return sndsys::get_geometry_occlusion(source, listener);
 }
 
 } // namespace soundsystem_bind_dascript

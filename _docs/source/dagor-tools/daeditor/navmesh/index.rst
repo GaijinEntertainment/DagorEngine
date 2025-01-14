@@ -2,11 +2,9 @@
 Navigation Mesh
 =========================================
 
-Contents:
-
 .. toctree::
    :maxdepth: 2
-   :glob:
+   :caption: Contents:
 
    navmesh.md
 

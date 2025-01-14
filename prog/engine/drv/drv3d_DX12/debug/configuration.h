@@ -24,6 +24,7 @@ union Configuration
     bool enableCPUValidation : 1;
     bool enableGPUValidation : 1;
     bool enableAgsTrace : 1;
+    bool enableAgsProfile : 1;
   };
 
   bool anyValidation() const { return enableGPUValidation || enableCPUValidation; }
@@ -45,6 +46,7 @@ union Configuration
     loadPIXCapturer = false;
     enableAftermath = true;
     enableAgsTrace = false;
+    enableAgsProfile = false;
     enableDagorGPUTrace = false;
     trackPageFaults = false;
     enableShaderErrorReporting = false;
@@ -63,6 +65,7 @@ union Configuration
     loadPIXCapturer = !gfx->getBool("enableBVH", false) && stricmp(gfx->getStr("bvhMode", "off"), "off") == 0;
     enableAftermath = true;
     enableAgsTrace = false;
+    enableAgsProfile = false;
     enableDagorGPUTrace = false;
     trackPageFaults = true;
     enableShaderErrorReporting = false;
@@ -81,6 +84,7 @@ union Configuration
     loadPIXCapturer = !gfx->getBool("enableBVH", false) && stricmp(gfx->getStr("bvhMode", "off"), "off") == 0;
     enableAftermath = true;
     enableAgsTrace = false;
+    enableAgsProfile = false;
     enableDagorGPUTrace = true;
     trackPageFaults = true;
     enableShaderErrorReporting = true;
@@ -115,6 +119,7 @@ union Configuration
   {
     enableAftermath = true;
     enableAgsTrace = true;
+    enableAgsProfile = false;
     enableDagorGPUTrace = true;
     trackPageFaults = true;
     enableShaderErrorReporting = true;
@@ -129,6 +134,7 @@ union Configuration
   {
     enableAftermath = true;
     enableAgsTrace = false;
+    enableAgsProfile = false;
     enableDagorGPUTrace = false;
     trackPageFaults = true;
     enableShaderErrorReporting = true;
@@ -143,6 +149,7 @@ union Configuration
   {
     enableAftermath = false;
     enableAgsTrace = false;
+    enableAgsProfile = false;
     enableDagorGPUTrace = false;
     trackPageFaults = true;
     enableDRED = true;
@@ -154,6 +161,7 @@ union Configuration
   {
     enableAftermath = false;
     enableAgsTrace = false;
+    enableAgsProfile = false;
     enableDagorGPUTrace = true;
     trackPageFaults = true;
     enableDRED = false;
@@ -164,7 +172,8 @@ union Configuration
   void applyAgsProfile()
   {
     enableAftermath = false;
-    enableAgsTrace = true;
+    enableAgsTrace = false;
+    enableAgsProfile = true;
     enableDagorGPUTrace = false;
     trackPageFaults = true;
     enableDRED = false;
@@ -267,6 +276,7 @@ union Configuration
     int debugLevel = modernSettings->getInt("level", 0);
     enableAftermath = modernSettings->getBool("aftermath", enableAftermath);
     enableAgsTrace = modernSettings->getBool("agsTrace", enableAgsTrace);
+    enableAgsProfile = modernSettings->getBool("agsProfile", enableAgsProfile);
     trackPageFaults = modernSettings->getBool("pageFaults", trackPageFaults || debugLevel > 0 || enableAftermath);
     enableDRED = modernSettings->getBool("DRED", enableDRED);
     enableGPUCapturers = modernSettings->getBool("gpuCapturers", enableGPUCapturers);

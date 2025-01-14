@@ -7,7 +7,9 @@
 
 #include <propPanel/control/container.h>
 #include <propPanel/control/panelWindow.h>
+#include <propPanel/control/menu.h>
 #include <sepGui/wndPublic.h>
+#include <sepGui/wndMenuInterface.h>
 
 #include <util/dag_globDef.h>
 
@@ -35,6 +37,7 @@ class ObjectEditor : public IGizmoClient,
                      public IGenEventHandler,
                      public IObjectsList,
                      public IWndManagerWindowHandler,
+                     public IMenuEventHandler,
                      public PropPanel::ControlEventHandler
 {
   friend class ObjectEditorWrap;
@@ -128,14 +131,28 @@ public:
 
   bool isPanelShown() const { return objectPropBar != nullptr; }
 
+  /// Create custom groups on visible panel with a given pid.
+  /// Property panel implementation handles the creation.
+  PropPanel::ContainerPropertyControl *createPanelGroup(int pid);
+
+  /// Create editable object transform controls on the panel for a given edit mode.
+  /// Property panel implementation handles the creation.
+  virtual void createPanelTransform(int mode);
+
   void loadPropPanelSettings(const DataBlock &settings);
   void savePropPanelSettings(DataBlock &settings);
 
   /// Get Edit Mode.
   virtual int getEditMode() { return editMode; }
 
+  static IEditorCoreEngine::ModeType editModeToModeType(int editMode);
+
   /// Update Gizmo state.
   virtual void updateGizmo(int basis = IEditorCoreEngine::BASIS_None);
+
+  /// Get/set the flag indicating viewport state invalidation of gizmo on state update
+  virtual bool getUpdateViewportGizmo() const { return updateViewportGizmo; }
+  virtual void setUpdateViewportGizmo(bool update) { updateViewportGizmo = update; }
 
   /// Make from n (if needed) and set uniq name for object o
   virtual bool setUniqName(RenderableEditableObject *o, const char *n);
@@ -382,6 +399,9 @@ public:
 
   virtual void registerViewportAccelerators(IWndManager &wndManager);
 
+  // IMenuEventHandler
+  virtual int onMenuItemClick(unsigned id) { return 0; }
+
 protected:
   String objListOwnerName;
 
@@ -426,6 +446,8 @@ protected:
   virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
 
   virtual void moveObjects(PtrTab<RenderableEditableObject> &obj, const Point3 &delta, IEditorCoreEngine::BasisType basis);
+
+  virtual void fillSelectionMenu(IGenViewportWnd *wnd, PropPanel::IMenu *menu) {}
 
   class UndoAddObjects : public UndoRedoObject
   {
@@ -501,6 +523,7 @@ private:
   real createScale;
   bool canTransformOnCreate;
   bool justCreated;
+  bool updateViewportGizmo = true;
 
   int suffixDigitsCount;
   String filterString;
@@ -524,7 +547,10 @@ public:
 
   virtual void fillPanel();
   virtual void refillPanel();
+  virtual PropPanel::ContainerPropertyControl *createPanelGroup(int pid);
+  virtual void createPanelTransform(int mode);
   virtual void updateName(const char *name);
+  virtual void updateTransform();
 
   // loadSettings must be called after fillPanel.
   virtual void loadSettings(DataBlock &settings);
@@ -543,6 +569,15 @@ protected:
   PropPanel::PanelWindowPropertyControl *propPanel;
 
   void getObjects();
+
+  void onTransformChange(int pcb_id, PropPanel::ContainerPropertyControl *panel, int mode);
+
+  Point3 getObjectTransform(int mode);
+  void setObjectTransform(int mode, Point3 val);
+
+  void updateTransformPart(int mode);
+
+  static int getPidForEditMode(int mode);
 };
 
 // ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ//

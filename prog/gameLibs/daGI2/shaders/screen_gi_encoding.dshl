@@ -1,4 +1,4 @@
-int dagi_sp_has_exposure_assume = 1;
+int dagi_sp_has_exposure_assume = 1 always_referenced;
 interval dagi_sp_has_exposure_assume : always_rgbe < 1, can_be_r11g11b10;
 
 hlsl {

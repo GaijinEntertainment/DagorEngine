@@ -173,7 +173,7 @@ void WorldRenderer::renderDynamicOpaqueForward(const TMatrix &itm)
   render_grass();
 }
 
-void WorldRenderer::initForward()
+void WorldRenderer::ctorForward()
 {
   const DataBlock *graphicsBlk = ::dgs_get_settings()->getBlockByNameEx("graphics");
 
@@ -295,8 +295,7 @@ void WorldRenderer::createNodesForward()
   else
   {
     emplace_back_to<mk_opaque_setup_forward_node, mk_static_opaque_forward_node, mk_rename_depth_opaque_forward_node,
-      mk_dynamic_opaque_forward_node, mk_decals_on_dynamic_forward_node, mk_restore_pipeline_budgetting_forward_node,
-      mk_panorama_apply_forward_node>(fgNodeHandles);
+      mk_dynamic_opaque_forward_node, mk_decals_on_dynamic_forward_node, mk_panorama_apply_forward_node>(fgNodeHandles);
   }
 
   emplace_back_to<mk_after_world_render_node, mk_water_prepare_mobile_node, mk_water_mobile_node, mk_under_water_fog_mobile_node,
@@ -364,7 +363,6 @@ void WorldRenderer::setResolutionForward()
 
   initTarget();
 
-  waterSSRFrame = 0;
 
   setFxQuality();
 

@@ -28,12 +28,6 @@ float4 globtm_no_ofs_psf_3;
 
 float contact_shadow_min_len = 0.25;
 
-define_macro_if_not_defined USE_READ_GBUFFER_MATERIAL_DYNAMIC_BASE(stage)
-endmacro
-
-define_macro_if_not_defined INIT_READ_GBUFFER_MATERIAL_DYNAMIC_BASE(stage)
-endmacro
-
 hlsl{
   float decode_depth(float depth, float2 decode_depth)
   {
@@ -63,7 +57,10 @@ macro GTAO_MAIN_CORE(code)
     local_view_y@f3 = local_view_y;
     local_view_z@f3 = local_view_z;
 
-    shadow_params@f4 = (temporal_shadow_frame.x, contact_shadow_len, contact_shadow_min_len, contact_shadow_step_offset);
+    shadow_frame@f1 = temporal_shadow_frame.x;
+    contact_shadow_len@f1 = contact_shadow_len;
+    contact_shadow_min_len@f1 = contact_shadow_min_len;
+    contact_shadow_step_offset@f1 = contact_shadow_step_offset;
 
     viewProjectionMatrixNoOfs@f44 = { globtm_no_ofs_psf_0, globtm_no_ofs_psf_1, globtm_no_ofs_psf_2, globtm_no_ofs_psf_3 };
 
@@ -82,19 +79,13 @@ macro GTAO_MAIN_CORE(code)
   INIT_HALF_RES_CLOSE_DEPTH(code)
   INIT_HALF_RES_CLOSE_DEPTH_NORMALS(code)
   INIT_ZNZFAR_STAGE(code)
-  hlsl(code) {
-    #define shadow_frame shadow_params.x
-    #define contact_shadow_len shadow_params.y
-    #define contact_shadow_min_len shadow_params.z
-    #define contact_shadow_step_offset shadow_params.w
-  }
 
   CONTACT_SHADOWS_BASE(code)
   APPLY_ADDITIONAL_AO(code)
   APPLY_ADDITIONAL_SHADOWS(code)
   USE_PACK_SSAO_BASE(code)
-  INIT_READ_GBUFFER_MATERIAL_DYNAMIC_BASE(code)
-  USE_READ_GBUFFER_MATERIAL_DYNAMIC_BASE(code)
+  INIT_READ_IS_HERO_COCKPIT(code)
+  USE_READ_IS_HERO_COCKPIT(code)
   ENABLE_ASSERT(code)
 
   hlsl(code) {
@@ -287,7 +278,7 @@ macro GTAO_MAIN_CORE(code)
             cameraToPoint, -from_sun_direction,
             max(w * contact_shadow_len, min(contact_shadow_min_len, w)),
             shadow_steps, dither + contact_shadow_step_offset * saturate(pow2(dot(wsNormal, -from_sun_direction))),
-            projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV, float2(100, 99)
+            projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV
           );
 
           gtao_value.CONTACT_SHADOWS_ATTR = lerp (1, gtao_value.CONTACT_SHADOWS_ATTR, shadow_strength);
@@ -300,7 +291,7 @@ macro GTAO_MAIN_CORE(code)
       ##endif
 
 
-      #ifdef GBUFFER_HAS_HERO_COCKPIT_BIT
+      ##if gbuffer_has_hero_cockpit
         BRANCH
         if (isGbufferHeroCockpit(texcoord))
         {
@@ -310,7 +301,7 @@ macro GTAO_MAIN_CORE(code)
             gtao_value.CONTACT_SHADOWS_ATTR = lerp(gtao_value.CONTACT_SHADOWS_ATTR, 1.0f, fade);
           ##endif
         }
-      #endif
+      ##endif
 
       ##if maybe(ssao_wsao)
         gtao_value.WSAO_ATTR = getWsao(cameraToPoint + world_view_pos, wsNormal);
@@ -532,7 +523,7 @@ macro GTAO_TEMPORAL_CORE(code)
       minAo = lerp(0, minAo, neighborWeights);
       maxAo = lerp(1, maxAo, neighborWeights);
 
-      reproject_ssao_with_neighborhood(ao, minAo, maxAo, cameraToPoint, texcoord, depth);
+      reproject_ssao_with_neighborhood(ao, minAo, maxAo, cameraToPoint, texcoord, rawDepth);
 
       return ao;
     }

@@ -47,14 +47,11 @@ static int anim_max_time(const AnimV20::AnimData::Anim &anim)
 
 static dag::Index16 find_anim_channel(const eastl::string &channel_name, const AnimV20::AnimDataChan &chan)
 {
+  if (!chan.hasKeys())
+    return dag::Index16();
   for (int i = 0, n = chan.nodeNum; i < n; i++)
     if (!strcmp(chan.nodeName[i].get(), channel_name.c_str()))
-    {
-      auto id = dag::Index16(i);
-      if (!chan.hasKeys(id))
-        return dag::Index16();
-      return id;
-    }
+      return chan.nodeTrack[i];
   return dag::Index16();
 }
 
@@ -103,13 +100,14 @@ static void load_and_validate_root_scale(AnimationClip &clip, dag::Index16 root_
   for (const AnimationClip::Point3Channel &nodeScale : clip.channelScale)
   {
     sampler.seekTicks(0);
-    vec3f scale = sampler.sampleScl(nodeScale.first);
+    vec3f scale = sampler.sampleSclTrack(nodeScale.first);
     if (nodeScale.second == root_node)
       clip.rootScale = scale;
     else
       valid &= v_extract_x(v_length3_sq_x(v_sub(scale, V_C_ONE))) < 0.001;
-    sampler.forEachSclKey(nodeScale.first, [&valid, &sampler, &nodeScale, scale] {
-      vec3f scale2 = sampler.sampleScl(nodeScale.first);
+    sampler.forEachSclKey([&valid, &nodeScale, scale](decltype(sampler) &smp, float time) {
+      smp.seek(time);
+      vec3f scale2 = smp.sampleSclTrack(nodeScale.first);
       valid &= v_extract_x(v_length3_sq_x(v_sub(scale, scale2))) < 0.001;
     });
   }
@@ -235,7 +233,7 @@ static bool load_root_motion_from_a2d_node(AnimationClip &clip, const eastl::str
     return false;
   }
 
-  AnimV20Math::PrsAnimNodeSampler<AnimV20Math::DefaultConfig> sampler(clip.animation, rootMotionPos, rootMotionRot, dag::Index16());
+  AnimV20Math::PrsAnimNodeSampler<AnimV20Math::DefaultConfig> sampler(clip.animation, rootMotionRot);
   for (int tick = 0; tick <= clip.tickDuration; tick++)
   {
     sampler.seek(clip.duration * tick / clip.tickDuration);
@@ -496,8 +494,7 @@ void validate_clips_duplication(const AnimationDataBase &data_base, const char *
     }
 }
 
-static void load_animations(
-  AnimationDataBase &dataBase, ecs::EntityId data_base_eid, const DataBlock &node_masks, const eastl::string &path)
+static void load_animations(AnimationDataBase &dataBase, const DataBlock &node_masks, const eastl::string &path)
 {
   FATAL_CONTEXT_AUTO_SCOPE(path.c_str());
   DataBlock source(path.c_str());
@@ -562,7 +559,7 @@ static void load_animations(
       copy_animation(*animData, clip, *dataBase.getReferenceSkeleton(), *nodeMask);
       load_and_validate_root_scale(clip, dataBase.rootNode);
       load_root_motion(dataBase, clip, *clipBlock);
-      load_foot_ik_locker_states(data_base_eid, clip.footLockerStates, clip, *clipBlock, *dataBase.getReferenceSkeleton());
+      load_foot_locker_states(dataBase, clip.footLockerStates, clip, *clipBlock);
       load_animation_features(dataBase, clip, *clipBlock);
       load_animation_tags(dataBase, *animData, clip, clipBlock, defaultTags);
       load_anim_tree_timer(dataBase, clip, *clipBlock);
@@ -694,7 +691,6 @@ AnimationRootMotionConfig load_root_motion_config(const ecs::string &root_node,
 }
 
 void load_animations(AnimationDataBase &dataBase,
-  ecs::EntityId data_base_eid,
   const AnimationRootMotionConfig &rootMotionConfig,
   const DataBlock &node_masks,
   const ecs::StringList &clips_path)
@@ -708,7 +704,7 @@ void load_animations(AnimationDataBase &dataBase,
 
   dataBase.normalizationGroupsCount = 1;
   for (const ecs::string &path : clips_path)
-    load_animations(dataBase, data_base_eid, node_masks, path);
+    load_animations(dataBase, node_masks, path);
   dataBase.playOnlyFromStartTag = dataBase.tags.getNameId("play_only_from_start");
   resolve_next_clips(dataBase.clips, dataBase);
   calculate_normalization(dataBase.clips, dataBase.featuresAvg, dataBase.featuresStd, dataBase.featuresSize,

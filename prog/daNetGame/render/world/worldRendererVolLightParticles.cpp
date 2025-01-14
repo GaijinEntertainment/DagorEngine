@@ -20,29 +20,28 @@
 #include "global_vars.h"
 #include "private_worldRenderer.h"
 
-void WorldRenderer::prepareVolumeMedia()
+void WorldRenderer::performVolfogMediaInjection()
 {
-  TIME_D3D_PROFILE(volumetrics_media)
+  TIME_D3D_PROFILE(volfog_ff_media_injection)
   if (!volumeLight)
     return;
-  int w, h, d;
-  volumeLight->getResolution(w, h, d);
-  SCOPE_RENDER_TARGET;
-  d3d::set_render_target(nullptr, 0);
-  d3d::set_depth(nullptr, DepthAccess::RW);
-  d3d::setview(0, 0, w, h, 0., 1.);
 
-  auto volfogGuard = volumeLight->StartVolfogMediaInjection();
+  volumeLight->renderIntoVolfogMedia(STAGE_PS, [this](const IPoint3 &froxel_res) {
+    SCOPE_RENDER_TARGET;
+    d3d::set_render_target(nullptr, 0);
+    d3d::set_depth(nullptr, DepthAccess::RW);
+    d3d::setview(0, 0, froxel_res.x, froxel_res.y, 0., 1.);
 
-  ShaderGlobal::setBlock(globalFrameBlockId, ShaderGlobal::LAYER_FRAME);
-  ShaderGlobal::set_int(fx_render_modeVarId, FX_RENDER_MODE_VOLMEDIA); // legacy
+    ShaderGlobal::setBlock(globalFrameBlockId, ShaderGlobal::LAYER_FRAME);
+    ShaderGlobal::set_int(fx_render_modeVarId, FX_RENDER_MODE_VOLMEDIA); // legacy
 
-  shaders::overrides::set(depthClipState);
-  renderParticlesSpecial(ERT_TAG_VOLMEDIA);         // legacy
-  renderParticlesSpecial(ERT_TAG_VOLFOG_INJECTION); // modfx-based
-  shaders::overrides::reset();
+    shaders::overrides::set(depthClipState);
+    renderParticlesSpecial(ERT_TAG_VOLMEDIA);         // legacy
+    renderParticlesSpecial(ERT_TAG_VOLFOG_INJECTION); // modfx-based
+    shaders::overrides::reset();
 
-  ShaderGlobal::set_int(fx_render_modeVarId, FX_RENDER_MODE_NORMAL);
-  ShaderGlobal::setBlock(globalFrameBlockId, ShaderGlobal::LAYER_FRAME); // this restore can be removed, if we will
-                                                                         // rely on "everyone set for themselves"
+    ShaderGlobal::set_int(fx_render_modeVarId, FX_RENDER_MODE_NORMAL);
+    ShaderGlobal::setBlock(globalFrameBlockId, ShaderGlobal::LAYER_FRAME); // this restore can be removed, if we will rely on "everyone
+                                                                           // set for themselves"
+  });
 }

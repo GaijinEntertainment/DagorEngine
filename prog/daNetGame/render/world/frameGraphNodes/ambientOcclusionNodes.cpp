@@ -25,6 +25,8 @@ static dabfg::NodeHandle gen_gtao_node(int w, int h, uint32_t gtao_flags)
     registry.orderMeAfter("prepare_lights_node");
     registry.orderMeBefore("combine_shadows_node");
 
+    use_volfog_shadow(registry, dabfg::Stage::PS); // volfog shadow is integrated into SSAO/GTAO pass as additional shadow
+
     auto bindShaderVar = [&registry](const char *shader_var_name, const char *tex_name) {
       return registry.read(tex_name).texture().atStage(dabfg::Stage::PS).bindToShaderVar(shader_var_name);
     };
@@ -103,6 +105,8 @@ static dabfg::NodeHandle gen_ssao_node(int w, int h, uint32_t ssao_flags)
   return dabfg::register_node("ssao_node", DABFG_PP_NODE_SRC, [ssao_flags, w, h](dabfg::Registry registry) {
     registry.orderMeAfter("prepare_lights_node");
     registry.orderMeBefore("combine_shadows_node");
+
+    use_volfog_shadow(registry, dabfg::Stage::PS); // volfog shadow is integrated into SSAO/GTAO pass as additional shadow
 
     auto bindShaderVar = [&registry](const char *shader_var_name, const char *tex_name) {
       return registry.read(tex_name).texture().atStage(dabfg::Stage::PS).bindToShaderVar(shader_var_name);

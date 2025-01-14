@@ -71,7 +71,6 @@ struct FrontendState
   {
     enum Bits
     {
-      RAYTRACE_PROGRAM,
       COMPUTE_PROGRAM,
       GRAPHICS_PROGRAM,
 
@@ -213,9 +212,6 @@ struct FrontendState
   ToggleState::Type toggleBits = ToggleState::Type(toggle_init_mask);
 
   ProgramID computeProgram = ProgramID::Null();
-#if D3D_HAS_RAY_TRACING
-  ProgramID raytraceProgram = ProgramID::Null();
-#endif
   // current sizes of the register space sections (eg what needs uploading)
   uint32_t registerSpaceSizes[STAGE_MAX] = {MIN_COMPUTE_CONST_REGISTERS, PIXEL_SHADER_REGISTERS, VERTEX_SHADER_MIN_REGISTERS};
   // one big chunk to provide memory for register backing
@@ -674,9 +670,11 @@ struct FrontendState
       texture->dirtyBoundRtvsNoLock();
     }
 
-
-    if (auto maybeTex = target.tRegisterResources.getIf<BaseTex *>(index))
-      (*maybeTex)->setSrvBinding(stage, index, false);
+    if (auto maybeUTex = target.uRegisterResources.getIf<URegisterTexture>(index))
+    {
+      G_ASSERT_RETURN(maybeUTex->tex, );
+      maybeUTex->tex->setUavBinding(stage, index, false);
+    }
 
     target.markDirtyU(index, target.uRegisterResources[index] != URegisterTexture{texture, view});
 
@@ -974,6 +972,7 @@ struct FrontendState
     DRAW,
     DRAW_INDEXED,
     DISPATCH_MESH,
+    DRAW_OR_DRAW_INDEXED,
     DRAW_UP = DRAW,
     DRAW_INDEXED_UP = DRAW,
     ALL = DRAW_INDEXED
@@ -990,7 +989,6 @@ struct FrontendState
     // TODO: move those defs somewhere else
     unchangedMask.set(DirtyState::COMPUTE_CONST_REGISTERS);
     unchangedMask.set(DirtyState::COMPUTE_PROGRAM);
-    unchangedMask.set(DirtyState::RAYTRACE_PROGRAM);
 
     if (dirtyState.test(DirtyState::GRAPHICS_PROGRAM))
     {
@@ -1033,7 +1031,9 @@ struct FrontendState
       unchangedMask.set(DirtyState::SCISSOR_RECT);
     }
 
-    if (resourceDirtyState.test(ResourceDirtyState::INDEX_BUFFER) && (GraphicsMode::DRAW_INDEXED == mode))
+    // DRAW_OR_DRAW_INDEXED is basically like DRAW_INDEXED. But it does not require an index buffer.
+    if (resourceDirtyState.test(ResourceDirtyState::INDEX_BUFFER) &&
+        ((GraphicsMode::DRAW_INDEXED == mode) || (mode == GraphicsMode::DRAW_OR_DRAW_INDEXED && indexBuffer != nullptr)))
     {
       G_ASSERTF(indexBuffer != nullptr, "flush with index buffer, but index buffer was null!");
       G_ANALYSIS_ASSUME(indexBuffer != nullptr);
@@ -1086,7 +1086,7 @@ struct FrontendState
       }
     }
 
-    if ((GraphicsMode::DRAW == mode) || (GraphicsMode::DRAW_INDEXED == mode))
+    if ((GraphicsMode::DRAW == mode) || (GraphicsMode::DRAW_INDEXED == mode) || (mode == GraphicsMode::DRAW_OR_DRAW_INDEXED))
     {
       if (dirtyState.test(DirtyState::INPUT_LAYOUT))
       {
@@ -1211,12 +1211,6 @@ struct FrontendState
   }
 
 #if D3D_HAS_RAY_TRACING
-  void setRaytraceProgram(ProgramID p)
-  {
-    markDirty(DirtyState::RAYTRACE_PROGRAM, raytraceProgram != p);
-    raytraceProgram = p;
-  }
-
   void setStageTRegisterRaytraceAccelerationStructure(uint32_t stage, uint32_t index, RaytraceAccelerationStructure *as)
   {
     G_ASSERT(stage < countof(stageResources));
@@ -1233,27 +1227,6 @@ struct FrontendState
       target.tRegisterResources.emplace<RaytraceAccelerationStructure *>(index, as);
     else
       target.tRegisterResources.emplace<Vacant>(index);
-  }
-
-  void flushRaytrace(DeviceContext &ctx)
-  {
-    if (raytraceProgram == ProgramID::Null())
-      return;
-    DirtyState::Type raytraceMask;
-    raytraceMask.set(DirtyState::RAYTRACE_PROGRAM);
-
-    if (dirtyState.test(DirtyState::RAYTRACE_PROGRAM))
-      ctx.setRaytracePipeline(raytraceProgram);
-
-    OSSpinlockScopedLock resourceBindingLock(resourceBindingGuard);
-    // check returns always false, raytrace shader can not conflict with framebuffer
-    // also no check needed for const depth stencil target, pass has to end
-    flushResources(
-      ctx, STAGE_RAYTRACE,                                                  //
-      [](auto &buf) { buf.resourceId.markUsedAsNonPixelShaderResource(); }, //
-      [](BaseTex *, ImageViewState) { return false; });
-
-    dirtyState &= ~raytraceMask;
   }
 #endif
 

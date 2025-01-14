@@ -244,8 +244,8 @@ void RenderableInstanceLodsResSrc::addMeshNode(Lod &lod, Node *n_, Node *key_nod
       if (find_value_idx(extra_chans_used.extraIdx, 53) >= 0)
         create_vertex_color_data(mesh, SCUSAGE_EXTRA, 53);
 
-      if (find_value_idx(extra_chans_used.extraIdx, 56) >= 0)
-        add_per_vertex_domain_uv(mesh, SCUSAGE_EXTRA, 56);
+      if (find_value_idx(extra_chans_used.extraIdx, 56) >= 0 && find_value_idx(extra_chans_used.extraIdx, 57) >= 0)
+        add_per_vertex_domain_uv(mesh, SCUSAGE_EXTRA, 56, 57);
 
 
       for (i = 0; i < mesh.getVert().size(); ++i)

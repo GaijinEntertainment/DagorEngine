@@ -443,22 +443,15 @@ void WorldRenderer::initRendinstVisibility()
 
 void WorldRenderer::closeRendinstVisibility()
 {
+  RiGenVisibility *rmv = eastl::exchange(rendinst_main_visibility, nullptr);
   waitAllJobs();
-  if (rendinst_main_visibility)
-    rendinst::destroyRIGenVisibility(rendinst_main_visibility);
-  rendinst_main_visibility = 0;
-  if (rendinst_cube_visibility)
-    rendinst::destroyRIGenVisibility(rendinst_cube_visibility);
-  rendinst_cube_visibility = 0;
-  for (int i = 0; i < rendinst_shadows_visibility.size(); ++i)
-  {
-    rendinst::destroyRIGenVisibility(rendinst_shadows_visibility[i]);
-    rendinst_shadows_visibility[i] = 0;
-  }
-  rendinst::destroyRIGenVisibility(rendinstHmapPatchesVisibility);
-  rendinstHmapPatchesVisibility = 0;
-  rendinst::destroyRIGenVisibility(rendinst_dynamic_shadow_visibility);
-  rendinst_dynamic_shadow_visibility = 0;
+  rendinst::destroyRIGenVisibility(rmv);
+  if (auto rcv = eastl::exchange(rendinst_cube_visibility, nullptr))
+    rendinst::destroyRIGenVisibility(rcv);
+  for (auto &rsv : rendinst_shadows_visibility)
+    rendinst::destroyRIGenVisibility(eastl::exchange(rsv, nullptr));
+  rendinst::destroyRIGenVisibility(eastl::exchange(rendinstHmapPatchesVisibility, nullptr));
+  rendinst::destroyRIGenVisibility(eastl::exchange(rendinst_dynamic_shadow_visibility, nullptr));
 }
 
 void WorldRenderer::startVisibility(const TMatrix &itm,
@@ -645,7 +638,7 @@ void WorldRenderer::startGroundVisibility(const Frustum &frustum, const TMatrix 
 
 void WorldRenderer::startGroundReflectionVisibility()
 {
-  if (!isWaterPlanarReflectionEnabled())
+  if (!isWaterPlanarReflectionTerrainEnabled())
     return;
 
   // Non-oblique culling frustum is safe from nearly parallel planes.

@@ -3,19 +3,24 @@ screen_snowflakes_renderer{
   _tags:t="render"
 
   screen_snowflakes__max_count:i=32
-  // Proportion of the height of the frame:
-  screen_snowflakes__min_size:r=0.1
-  screen_snowflakes__max_size:r=0.2
-
   screen_snowflakes__enabled_on_level:b=false
   screen_snowflakes__camera_inside_vehicle:b=false
-
-  screen_snowflakes__spawn_rate:r=2.0
-  screen_snowflakes__restricted_radius:r=0.5
-  screen_snowflakes__lifetime:r=5.0
   screen_snowflakes__time_until_next_spawn:r=0.0
 
   "screen_snowflakes__instances_buf:UniqueBufHolder"{}
   "screen_snowflakes__instances:SnowflakeInstances"{}
   "screen_snowflakes__node:dabfg::NodeHandle"{}
+}
+
+screen_snowflakes_settings{
+  _singleton:b=yes
+  _tags:t="render"
+
+  // Proportion of the height of the frame:
+  screen_snowflakes__min_size:r=0.1
+  screen_snowflakes__max_size:r=0.2
+
+  screen_snowflakes__spawn_rate:r=2.0
+  screen_snowflakes__restricted_radius:r=0.5
+  screen_snowflakes__lifetime:r=5.0
 }

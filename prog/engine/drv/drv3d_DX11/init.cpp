@@ -226,6 +226,7 @@ bool view_resizing_related_logging_enabled = true;
 bool hdr_enabled = false;
 bool command_list_wa = false;
 bool use_wait_object = true;
+eastl::optional<MemoryMetrics> memory_metrics;
 
 HWND main_window_hwnd = NULL;
 HWND render_window_hwnd = NULL;
@@ -269,6 +270,7 @@ uint8_t override_max_anisotropy_level = 0;
 DXGI_SWAP_CHAIN_DESC scd = {0};
 bool used_flip_model_before = false;
 bool conditional_render_enabled = false;
+StreamlineAdapter::InterposerHandleType streamlineInterposer = {nullptr, nullptr};
 eastl::optional<StreamlineAdapter> streamlineAdapter;
 HandlePointer waitableObject;
 
@@ -663,6 +665,15 @@ void set_aftermath_marker(const char *, bool) {}
 void get_aftermath_status() {}
 #endif
 
+void init_memory_report()
+{
+#if DEBUG_MEMORY_METRICS
+  G_ASSERT_RETURN(dx_device, );
+  memory_metrics = MemoryMetrics(dx_device);
+  memory_metrics->registerReportCallback();
+#endif
+}
+
 void create_dlss_feature(IPoint2 output_resolution)
 {
   streamlineAdapter->initializeDlssState();
@@ -694,10 +705,10 @@ static bool is_tearing_supported()
 {
   HMODULE dxgi_dll = LoadLibraryA("dxgi.dll");
   FINALLY([=] { FreeLibrary(dxgi_dll); });
-  using CreateDXGIFactoryFunc = HRESULT(WINAPI *)(REFIID, void **);
-  CreateDXGIFactoryFunc pCreateDXGIFactory = (CreateDXGIFactoryFunc)GetProcAddress(dxgi_dll, "CreateDXGIFactory");
+  using CreateDXGIFactory1Func = HRESULT(WINAPI *)(REFIID, void **);
+  CreateDXGIFactory1Func pCreateDXGIFactory1 = (CreateDXGIFactory1Func)GetProcAddress(dxgi_dll, "CreateDXGIFactory1");
   ComPtr<IDXGIFactory5> factory;
-  HRESULT hr = pCreateDXGIFactory(COM_ARGS(&factory));
+  HRESULT hr = pCreateDXGIFactory1(COM_ARGS(&factory));
   BOOL allowTearing = FALSE;
   if (SUCCEEDED(hr))
   {
@@ -738,12 +749,12 @@ static HRESULT recreate_swapchain(DXGI_SWAP_CHAIN_DESC &new_scd)
   hres = dx_device->QueryInterface(__uuidof(IDXGIDevice), (void **)&pDXGIDevice);
   G_ASSERT(SUCCEEDED(hres));
 
-  IDXGIAdapter *pDXGIAdapter;
-  hres = pDXGIDevice->GetParent(__uuidof(IDXGIAdapter), (void **)&pDXGIAdapter);
+  IDXGIAdapter1 *pDXGIAdapter;
+  hres = pDXGIDevice->GetParent(__uuidof(IDXGIAdapter1), (void **)&pDXGIAdapter);
   G_ASSERT(SUCCEEDED(hres));
 
-  IDXGIFactory *pIDXGIFactory;
-  hres = pDXGIAdapter->GetParent(__uuidof(IDXGIFactory), (void **)&pIDXGIFactory);
+  IDXGIFactory1 *pIDXGIFactory;
+  hres = pDXGIAdapter->GetParent(__uuidof(IDXGIFactory1), (void **)&pIDXGIFactory);
   G_ASSERT(SUCCEEDED(hres));
 
   hres = pIDXGIFactory->CreateSwapChain(dx_device, &new_scd, &swap_chain);
@@ -852,11 +863,12 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
 
   ::QueryPerformanceFrequency(&qpc_freq);
 
+  streamlineInterposer = StreamlineAdapter::loadInterposer();
   PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN create_dx11_device = nullptr;
-  streamlineAdapter = StreamlineAdapter::create(StreamlineAdapter::RenderAPI::DX11);
+  StreamlineAdapter::init(streamlineAdapter, StreamlineAdapter::RenderAPI::DX11);
   if (streamlineAdapter)
-    create_dx11_device =
-      (PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN)streamlineAdapter->getInterposerSymbol("D3D11CreateDeviceAndSwapChain");
+    create_dx11_device = (PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN)StreamlineAdapter::getInterposerSymbol(streamlineInterposer,
+      "D3D11CreateDeviceAndSwapChain");
   else
     create_dx11_device = (PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN)GetProcAddress(dx11_dllh, "D3D11CreateDeviceAndSwapChain");
 
@@ -905,8 +917,9 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
       used_flip_model_before = true;
       swapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
     }
-    use_tearing = _no_vsync && is_tearing_supported() && inWin; // The flag DXGI_PRESENT_ALLOW_TEARING is only allowed for windowed
-                                                                // swapchains.
+    use_tearing = _no_vsync && is_tearing_supported() && is_flip_model(swapEffect) && inWin; // The flag DXGI_PRESENT_ALLOW_TEARING
+                                                                                             // is only allowed for windowed
+                                                                                             // swapchains.
   }
   else
   {
@@ -980,17 +993,17 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
   if (dxgi_dll)
   {
 #if ENUMERATE_ADAPTERS
-    typedef HRESULT(WINAPI * LPCREATEDXGIFACTORY)(REFIID, void **);
-    LPCREATEDXGIFACTORY s_DynamicCreateDXGIFactory = NULL;
-    s_DynamicCreateDXGIFactory = (LPCREATEDXGIFACTORY)GetProcAddress(dxgi_dll, "CreateDXGIFactory");
-    IDXGIFactory *pFactory = NULL;
+    typedef HRESULT(WINAPI * LPCREATEDXGIFACTORY1)(REFIID, void **);
+    LPCREATEDXGIFACTORY1 s_DynamicCreateDXGIFactory = NULL;
+    s_DynamicCreateDXGIFactory = (LPCREATEDXGIFACTORY1)GetProcAddress(dxgi_dll, "CreateDXGIFactory1");
+    IDXGIFactory1 *pFactory = NULL;
     if (s_DynamicCreateDXGIFactory &&
-        SUCCEEDED(s_DynamicCreateDXGIFactory(__uuidof(IDXGIFactory), (void **)&s_DynamicCreateDXGIFactory)) && pFactory)
+        SUCCEEDED(s_DynamicCreateDXGIFactory(__uuidof(IDXGIFactory1), (void **)&s_DynamicCreateDXGIFactory)) && pFactory)
     {
       for (int index = 0;; ++index)
       {
-        IDXGIAdapter *pAdapter = NULL;
-        if (FAILED(pFactory->EnumAdapters(index, &pAdapter)) || !pAdapter)
+        IDXGIAdapter1 *pAdapter = NULL;
+        if (FAILED(pFactory->EnumAdapters1(index, &pAdapter)) || !pAdapter)
           break;
 
         DXGI_ADAPTER_DESC adapterDesc;
@@ -1030,7 +1043,7 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
 
   // Find display by name.
 
-  IDXGIAdapter *targetAdapter = NULL;
+  IDXGIAdapter1 *targetAdapter = NULL;
   target_output = NULL;
   if (!inWin || opt_adapter_luid || preferiGPU)
   {
@@ -1083,17 +1096,17 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
       HRESULT hr = tmpDevice->QueryInterface(__uuidof(IDXGIDevice), (void **)&pDXGIDevice);
       G_ASSERT(SUCCEEDED(hr));
 
-      IDXGIAdapter *pDXGIAdapter;
-      hr = pDXGIDevice->GetParent(__uuidof(IDXGIAdapter), (void **)&pDXGIAdapter);
+      IDXGIAdapter1 *pDXGIAdapter;
+      hr = pDXGIDevice->GetParent(__uuidof(IDXGIAdapter1), (void **)&pDXGIAdapter);
       G_ASSERT(SUCCEEDED(hr));
 
-      IDXGIFactory *pIDXGIFactory;
-      hr = pDXGIAdapter->GetParent(__uuidof(IDXGIFactory), (void **)&pIDXGIFactory);
+      IDXGIFactory1 *pIDXGIFactory;
+      hr = pDXGIAdapter->GetParent(__uuidof(IDXGIFactory1), (void **)&pIDXGIFactory);
       G_ASSERT(SUCCEEDED(hr));
 
       uint32_t adapterIndex = 0;
-      IDXGIAdapter *pAdapter;
-      while (pIDXGIFactory->EnumAdapters(adapterIndex, &pAdapter) != DXGI_ERROR_NOT_FOUND)
+      IDXGIAdapter1 *pAdapter;
+      while (pIDXGIFactory->EnumAdapters1(adapterIndex, &pAdapter) != DXGI_ERROR_NOT_FOUND)
       {
         if (opt_adapter_luid)
         {
@@ -1394,8 +1407,7 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
 
   if (streamlineAdapter)
   {
-    streamlineAdapter->setD3DDevice(dx_device);
-    streamlineAdapter->setCurrentAdapter(targetAdapter);
+    streamlineAdapter->setAdapterAndDevice(targetAdapter, dx_device);
 
     if (streamlineAdapter->isDlssSupported() == nv::SupportState::Supported)
     {
@@ -1718,8 +1730,8 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
     HRESULT hr = dx_device->QueryInterface(__uuidof(IDXGIDevice), (void **)&pDXGIDevice);
     G_ASSERT(SUCCEEDED(hr));
 
-    IDXGIAdapter *pDXGIAdapter;
-    hr = pDXGIDevice->GetParent(__uuidof(IDXGIAdapter), (void **)&pDXGIAdapter);
+    IDXGIAdapter1 *pDXGIAdapter;
+    hr = pDXGIDevice->GetParent(__uuidof(IDXGIAdapter1), (void **)&pDXGIAdapter);
     G_ASSERT(SUCCEEDED(hr));
 
     hr = pDXGIAdapter->GetParent(__uuidof(IDXGI_FACTORY), (void **)&dx11_DXGIFactory);
@@ -1734,17 +1746,11 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
 
   if (dgs_get_window_mode() == WindowMode::FULLSCREEN_EXCLUSIVE)
   {
-    IDXGIAdapter *pAdapter;
-    if (pDXGIDevice && SUCCEEDED(pDXGIDevice->GetAdapter(&pAdapter)))
+    if (IDXGIOutput *output = get_output_monitor_by_name_or_default(dx11_DXGIFactory, opt_display_name).Detach(); output)
     {
-      IDXGIOutput *output = get_output_monitor_by_name_or_default(dx11_DXGIFactory, opt_display_name).Detach();
-      if (output)
-      {
-        if (target_output && target_output != output)
-          target_output->Release();
-        target_output = output;
-      }
-      pAdapter->Release();
+      if (target_output && target_output != output)
+        target_output->Release();
+      target_output = output;
     }
 
     // http://msdn.microsoft.com/en-us/library/windows/desktop/ee417025%28v=vs.85%29.aspx
@@ -1800,13 +1806,13 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
 
   if (pDXGIDevice) // Disable Alt-Enter processing and PrintScreen.
   {
-    IDXGIAdapter *pDXGIAdapter;
-    HRESULT hr = pDXGIDevice->GetParent(__uuidof(IDXGIAdapter), (void **)&pDXGIAdapter);
+    IDXGIAdapter1 *pDXGIAdapter;
+    HRESULT hr = pDXGIDevice->GetParent(__uuidof(IDXGIAdapter1), (void **)&pDXGIAdapter);
 
     if (SUCCEEDED(hr))
     {
-      IDXGIFactory *pIDXGIFactory;
-      hr = pDXGIAdapter->GetParent(__uuidof(IDXGIFactory), (void **)&pIDXGIFactory);
+      IDXGIFactory1 *pIDXGIFactory;
+      hr = pDXGIAdapter->GetParent(__uuidof(IDXGIFactory1), (void **)&pIDXGIFactory);
       if (SUCCEEDED(hr))
       {
         hr = pIDXGIFactory->MakeWindowAssociation(window_hwnd, DXGI_MWA_NO_ALT_ENTER | DXGI_MWA_NO_PRINT_SCREEN);
@@ -1825,13 +1831,13 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
     G_ASSERT(SUCCEEDED(hr));
     if (SUCCEEDED(hr))
     {
-      IDXGIAdapter *pDXGIAdapter;
-      hr = pDXGIDevice->GetParent(__uuidof(IDXGIAdapter), (void **)&pDXGIAdapter);
+      IDXGIAdapter1 *pDXGIAdapter;
+      hr = pDXGIDevice->GetParent(__uuidof(IDXGIAdapter1), (void **)&pDXGIAdapter);
       G_ASSERT(SUCCEEDED(hr));
       if (SUCCEEDED(hr))
       {
-        IDXGIFactory *pIDXGIFactory;
-        hr = pDXGIAdapter->GetParent(__uuidof(IDXGIFactory), (void **)&pIDXGIFactory);
+        IDXGIFactory1 *pIDXGIFactory;
+        hr = pDXGIAdapter->GetParent(__uuidof(IDXGIFactory1), (void **)&pIDXGIFactory);
         G_ASSERT(SUCCEEDED(hr));
         if (SUCCEEDED(hr))
         {
@@ -1914,6 +1920,8 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
   g_driver_state.createSurfaces(screen_wdt, screen_hgt);
 
   nvlowlatency::init();
+
+  init_memory_report();
 
   _in_win_started = inWin;
 
@@ -2063,8 +2071,9 @@ static void close_device(bool is_reset)
     {
       release_dlss_feature();
     }
-    streamlineAdapter = {};
+    streamlineAdapter.reset();
   }
+  streamlineInterposer.reset();
 
   is_nvapi_initialized = false;
 
@@ -2328,7 +2337,7 @@ bool d3d::is_in_device_reset_now() { return device_is_lost != S_OK || device_is_
 static IDXGIOutput *get_output_monitor_by_name_or_default(const char *monitorName)
 {
   IDXGIOutput *output = nullptr;
-  IDXGIAdapter *dxgiAdapter = get_active_adapter(dx_device);
+  IDXGIAdapter1 *dxgiAdapter = get_active_adapter(dx_device);
   if (dxgiAdapter)
   {
     output = get_output_monitor_by_name_or_default(dx11_DXGIFactory, monitorName).Detach();
@@ -2498,12 +2507,11 @@ bool d3d::reset_device()
     }
 
     streamlineAdapter.reset();
-    streamlineAdapter = StreamlineAdapter::create(StreamlineAdapter::RenderAPI::DX11);
+    StreamlineAdapter::init(streamlineAdapter, StreamlineAdapter::RenderAPI::DX11);
     if (streamlineAdapter)
     {
       dx_device = streamlineAdapter->hook(dx_device);
-      streamlineAdapter->setD3DDevice(dx_device);
-      streamlineAdapter->setCurrentAdapter(get_active_adapter(dx_device));
+      streamlineAdapter->setAdapterAndDevice(get_active_adapter(dx_device), dx_device);
       streamlineAdapter->initializeDlssState();
       if (streamlineAdapter->isDlssSupported() == nv::SupportState::Supported)
       {

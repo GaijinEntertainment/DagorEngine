@@ -347,6 +347,8 @@ public:
     das::addExtern<DAS_BIND_FUN(sph_ang_to_dir)>(*this, lib, "sph_ang_to_dir", das::SideEffects::none, "::sph_ang_to_dir");
     das::addExtern<DAS_BIND_FUN(norm_s_ang)>(*this, lib, "norm_s_ang", das::SideEffects::none, "::norm_s_ang");
     das::addExtern<DAS_BIND_FUN(norm_s_ang_deg)>(*this, lib, "norm_s_ang_deg", das::SideEffects::none, "::norm_s_ang_deg");
+    das::addExtern<DAS_BIND_FUN(norm_ang_deg_positive)>(*this, lib, "norm_ang_deg", das::SideEffects::none, "::norm_ang_deg_positive");
+    das::addExtern<DAS_BIND_FUN(norm_ang)>(*this, lib, "norm_ang", das::SideEffects::none, "::norm_ang");
     das::addExtern<DAS_BIND_FUN(mat_rotxTM)>(*this, lib, "rotxTM", das::SideEffects::modifyArgument, "bind_dascript::mat_rotxTM");
     das::addExtern<DAS_BIND_FUN(mat_rotyTM)>(*this, lib, "rotyTM", das::SideEffects::modifyArgument, "bind_dascript::mat_rotyTM");
     das::addExtern<DAS_BIND_FUN(mat_rotzTM)>(*this, lib, "rotzTM", das::SideEffects::modifyArgument, "bind_dascript::mat_rotzTM");

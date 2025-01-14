@@ -583,5 +583,100 @@ void ZstdSaveCB::flush()
   cwrDest->flush();
 }
 
+
+ZstdDecompressSaveCB::ZstdDecompressSaveCB(IGenSave &dest_cwr, const ZSTD_DDict_s *dict, bool tmp, bool multiframe) :
+  cwrDest(dest_cwr), allowMultiFrame(multiframe)
+{
+  zstdStream = ZSTD_createDStream_advanced(tmp ? ZSTD_framememCMem : ZSTD_dagorCMem);
+  G_VERIFY(zstdStream);
+  G_VERIFY(ZSTD_initDStream(zstdStream) != 0);
+  if (dict)
+    ZSTD_DCtx_refDDict(zstdStream, dict);
+}
+
+ZstdDecompressSaveCB::~ZstdDecompressSaveCB()
+{
+  if (zstdStream)
+    ZSTD_freeDStream(zstdStream);
+}
+
+void ZstdDecompressSaveCB::flush()
+{
+  ZSTD_inBuffer inBuf;
+  inBuf.src = nullptr;
+  inBuf.size = 0;
+  inBuf.pos = 0;
+
+  bool haveMore = true;
+  while (haveMore)
+    haveMore = doProcessStep(&inBuf);
+  cwrDest.flush();
+}
+
+void ZstdDecompressSaveCB::write(const void *ptr, int size)
+{
+  G_ASSERT_RETURN(size >= 0, );
+  ZSTD_inBuffer inBuf;
+  inBuf.src = ptr;
+  inBuf.size = (size_t)size;
+  inBuf.pos = 0;
+
+  while (inBuf.pos < inBuf.size)
+  {
+    if (!doProcessStep(&inBuf))
+      break;
+  }
+}
+
+void ZstdDecompressSaveCB::finish()
+{
+  flush();
+
+  isFinished = isFinished || (allowMultiFrame && isFrameFinished);
+
+  if (!isFinished && !isBroken)
+    logerr("Zstd stream wasn't finished, processedId=%d, processedOut=%d", processedIn, processedOut);
+}
+
+bool ZstdDecompressSaveCB::doProcessStep(void *opaqueInBuf)
+{
+  if (isBroken || isFinished)
+    return false;
+
+  ZSTD_inBuffer &inBuf = *reinterpret_cast<ZSTD_inBuffer *>(opaqueInBuf);
+  ZSTD_outBuffer outBuf;
+  outBuf.dst = &rdBuf[0];
+  outBuf.size = RD_BUFFER_SIZE;
+  outBuf.pos = 0;
+
+  if (isFrameFinished && inBuf.size > inBuf.pos)
+    isFrameFinished = false;
+  int oldPos = inBuf.pos;
+  size_t ret = ZSTD_decompressStream(zstdStream, &outBuf, &inBuf);
+  int stepProcessedIn = inBuf.pos - oldPos;
+  processedIn += stepProcessedIn;
+  if (ZSTD_isError(ret))
+  {
+    logerr("Zstd decode error: %08X %s, processedIn: %d, processedOut: %d", ret, ZSTD_getErrorName(ret), processedIn, processedOut);
+    isBroken = true;
+    return false;
+  }
+  if (outBuf.pos > 0)
+  {
+    cwrDest.write(outBuf.dst, outBuf.pos);
+    processedOut += outBuf.pos;
+  }
+
+  if (ret == 0)
+  {
+    isFrameFinished = true;
+    if (!allowMultiFrame)
+      isFinished = true;
+    return false;
+  }
+
+  return stepProcessedIn > 0 || outBuf.pos > 0;
+}
+
 #define EXPORT_PULL dll_pull_iosys_zstdIo
 #include <supp/exportPull.h>

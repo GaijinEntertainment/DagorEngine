@@ -234,7 +234,7 @@ static void iterate_instances(dynrend::ContextId dynrend_context_id, const Dynam
           auto iter = bvh_context_id->camoTextures.find((uint32_t)camoTexture);
           if (iter == bvh_context_id->camoTextures.end())
           {
-            bvh_context_id->holdTexture(camoTexture, camoTexBindless);
+            bvh_context_id->holdTexture(camoTexture, camoTexBindless, d3d::SamplerHandle::Invalid, true);
             bvh_context_id->camoTextures.emplace((uint32_t)camoTexture, camoTexBindless);
           }
           else

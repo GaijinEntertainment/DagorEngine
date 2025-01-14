@@ -153,7 +153,7 @@ bool GenericBufferInterface::copyTo(Sbuffer *dst)
     ref.buffer->getBlockSize(), bufSize);
   // reorder buffer update if we running it from external thread
   if (Globals::lock.isAcquired())
-    context.copyBuffer(ref, dest->ref, 0, 0, bufSize);
+    context.copyBufferDiscardReorderable(ref, dest->ref, 0, 0, bufSize);
   else
     context.uploadBufferOrdered(ref, dest->ref, 0, 0, bufSize);
   return true;
@@ -165,7 +165,7 @@ bool GenericBufferInterface::copyTo(Sbuffer *dst, uint32_t dst_offset, uint32_t 
   auto &context = Globals::ctx;
   // reorder buffer update if we running it from external thread
   if (Globals::lock.isAcquired())
-    context.copyBuffer(ref, dest->ref, src_offset, dst_offset, size_bytes);
+    context.copyBufferDiscardReorderable(ref, dest->ref, src_offset, dst_offset, size_bytes);
   else
     context.uploadBufferOrdered(ref, dest->ref, src_offset, dst_offset, size_bytes);
   return true;

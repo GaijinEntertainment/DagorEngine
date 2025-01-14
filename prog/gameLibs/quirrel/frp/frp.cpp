@@ -1404,6 +1404,9 @@ void BaseObservable::onGraphShutdown(bool is_closing_vm, Tab<Sqrat::Object> &cle
 HSQOBJECT BaseObservable::getCurScriptInstance() { return get_observable_instance(graph->vm, this); }
 
 
+void BaseObservable::setName(const char *) {}
+
+
 ScriptValueObservable::ScriptValueObservable(ObservablesGraph *graph_) :
   BaseObservable(graph_), initInfo(eastl::make_unique<ScriptSourceInfo>()) // To consider: separate pool for it?
 {
@@ -1753,6 +1756,11 @@ void ScriptValueObservable::fillInfo(String &s) const
   sq_pop(vm, 1);
 }
 
+void ScriptValueObservable::setName(const char *name)
+{
+  if (initInfo)
+    initInfo->initFuncName = name;
+}
 
 void ScriptValueObservable::whiteListMutatorClosure(Sqrat::Object closure)
 {
@@ -1853,6 +1861,7 @@ ComputedValue::ComputedValue(ObservablesGraph *g, Sqrat::Function func_, dag::Ve
   {
     FRPDBG("@#@ %p (%s)->subscribeWatcher(%p | %p)", src.observable, src.varName.c_str(), this, (IStateWatcher *)this);
     src.observable->subscribeWatcher(this);
+    src.observable->setName(src.varName.c_str());
 #if FRP_DEBUG_MODE
     if (auto c = src.observable->getComputed())
       FRPDBG("@#! INIT [%s:%d %s] => [%s:%d %s]", c->initInfo->initSourceFileName.c_str(), c->initInfo->initSourceLine,

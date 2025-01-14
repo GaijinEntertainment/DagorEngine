@@ -340,15 +340,19 @@ static void on_sweep_rendinst_server_cb(const rendinst::RendInstDesc &desc)
 template <typename Callable>
 inline void riextra_eid_ecs_query(ecs::EntityId eid, Callable c);
 
-static void on_riex_destruction_cb(
-  rendinst::riex_handle_t handle, bool /*is_dynamic*/, int32_t /*user_data*/, const Point3 &impulse, const Point3 &impulse_pos)
+static void on_riex_destruction_cb(rendinst::riex_handle_t handle,
+  bool /*is_dynamic*/,
+  bool create_destr_effects,
+  int32_t /*user_data*/,
+  const Point3 &impulse,
+  const Point3 &impulse_pos)
 {
   riextra_eid_ecs_query(find_ri_extra_eid(handle),
-    [handle, impulse, impulse_pos](
+    [handle, impulse, impulse_pos, create_destr_effects](
       const TMatrix &transform ECS_REQUIRE(ecs::Tag isRendinstDestr, eastl::false_type ri_extra__destroyed = false),
       bool ri_extra__destrFx = true) {
       if (ri_extra__destrFx)
-        rendinstdestr::destroyRiExtra(handle, transform, impulse, impulse_pos);
+        rendinstdestr::destroyRiExtra(handle, transform, create_destr_effects, impulse, impulse_pos);
     });
   rendinst::removeRIGenExtraFromGrid(handle);
 }
@@ -414,8 +418,8 @@ void init(bool have_render)
   else
     rendinstdestr::set_on_rendinst_destroyed_cb(on_ri_destroyed_net_client_cb);
 
-  rendinst::registerRiExtraDestructionCb([](rendinst::riex_handle_t handle, bool /*is_dynamic*/, int32_t user_data,
-                                           const Point3 & /*impulse*/, const Point3 & /*impulse_pos*/) {
+  rendinst::registerRiExtraDestructionCb([](rendinst::riex_handle_t handle, bool /*is_dynamic*/, bool /*create_destr_effects*/,
+                                           int32_t user_data, const Point3 & /*impulse*/, const Point3 & /*impulse_pos*/) {
     ecs::EntityId riexEid = find_ri_extra_eid(handle);
     ecs::EntityId offenderEid = user_data != -1 ? ecs::EntityId(user_data) : ECS_GET_OR(riexEid, riOffender, ecs::INVALID_ENTITY_ID);
     bool *ri_extra__destroyed = ECS_GET_NULLABLE_RW(bool, riexEid, ri_extra__destroyed);

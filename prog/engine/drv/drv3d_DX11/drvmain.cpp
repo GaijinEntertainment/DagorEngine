@@ -690,6 +690,27 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       return 1;
     }
 
+    case Drv3dCommand::BEGIN_GENERIC_RENDER_PASS_CHECKS:
+    {
+#if ENABLE_GENERIC_RENDER_PASS_VALIDATION
+      ContextAutoLock contextLock;
+      VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive, "DX11: Nested generic render pass detected");
+      g_render_state.isGenericRenderPassActive = true;
+#endif
+      return 1;
+    }
+
+    case Drv3dCommand::END_GENERIC_RENDER_PASS_CHECKS:
+    {
+#if ENABLE_GENERIC_RENDER_PASS_VALIDATION
+      ContextAutoLock contextLock;
+      VALIDATE_GENERIC_RENDER_PASS_CONDITION(g_render_state.isGenericRenderPassActive,
+        "DX11: End generic render pass called without a begin call");
+      g_render_state.isGenericRenderPassActive = false;
+#endif
+      return 1;
+    }
+
     case Drv3dCommand::D3D_FLUSH:
     {
       TIME_D3D_PROFILE(Drv3dCommand::D3D_FLUSH);
@@ -729,19 +750,19 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       if (dxgiDll)
       {
         HRESULT hr;
-        typedef HRESULT(WINAPI * LPCREATEDXGIFACTORY)(REFIID, void **);
-        LPCREATEDXGIFACTORY pCreateDXGIFactory = NULL;
-        pCreateDXGIFactory = (LPCREATEDXGIFACTORY)GetProcAddress(dxgiDll, "CreateDXGIFactory");
-        if (pCreateDXGIFactory)
+        typedef HRESULT(WINAPI * LPCREATEDXGIFACTORY1)(REFIID, void **);
+        LPCREATEDXGIFACTORY1 pCreateDXGIFactory1 = NULL;
+        pCreateDXGIFactory1 = (LPCREATEDXGIFACTORY1)GetProcAddress(dxgiDll, "CreateDXGIFactory1");
+        if (pCreateDXGIFactory1)
         {
-          IDXGIFactory *dxgiFactory = NULL;
-          hr = pCreateDXGIFactory(__uuidof(IDXGIFactory), (void **)&dxgiFactory);
+          IDXGIFactory1 *dxgiFactory = NULL;
+          hr = pCreateDXGIFactory1(__uuidof(IDXGIFactory1), (void **)&dxgiFactory);
           if (SUCCEEDED(hr) && dxgiFactory)
           {
             for (uint32_t adapterIndex = 0;; adapterIndex++)
             {
-              IDXGIAdapter *dxgiAdapter = NULL;
-              hr = dxgiFactory->EnumAdapters(adapterIndex, &dxgiAdapter);
+              IDXGIAdapter1 *dxgiAdapter = NULL;
+              hr = dxgiFactory->EnumAdapters1(adapterIndex, &dxgiAdapter);
               if (FAILED(hr))
                 break;
 
@@ -877,7 +898,7 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       Tab<String> &monitorList = *reinterpret_cast<Tab<String> *>(par1);
       clear_and_shrink(monitorList);
 
-      IDXGIAdapter *dxgiAdapter = get_active_adapter(dx_device);
+      IDXGIAdapter1 *dxgiAdapter = get_active_adapter(dx_device);
       if (dxgiAdapter)
       {
         IDXGIOutput *output;
@@ -907,11 +928,7 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
 
       clear_and_shrink(resolutions);
 
-      ComPtr<IDXGIOutput> dxgiOutput;
-      ComPtr<IDXGIAdapter> dxgiAdapter = get_active_adapter(dx_device);
-      if (dxgiAdapter)
-        dxgiOutput = get_output_monitor_by_name_or_default(dx11_DXGIFactory, monitorName);
-
+      ComPtr<IDXGIOutput> dxgiOutput = get_output_monitor_by_name_or_default(dx11_DXGIFactory, monitorName);
       if (!dxgiOutput && FAILED(swap_chain->GetContainingOutput(&dxgiOutput)))
         return 0;
 
@@ -1127,6 +1144,11 @@ bool d3d::update_screen(bool app_active)
   g_render_state.resetDipCounter();
   d3d::set_render_target(); // Render target is unbound on each present with some presentation modes on PC as well.
 
+#if DEBUG_MEMORY_METRICS
+  if (memory_metrics)
+    memory_metrics->update();
+#endif
+
   return true;
 }
 
@@ -1271,6 +1293,8 @@ void *d3d::fast_capture_screen(int &w, int &h, int &stride_bytes, int &format)
     ContextAutoLock contextLock;
     disable_conditional_render_unsafe();
     dx_context->ResolveSubresource(backBufferResolved, 0, backBuffer, 0, stagingDesc.Format);
+    VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
+      "DX11: fast_capture_screen uses CopyResource inside a generic render pass");
     dx_context->CopyResource(backBufferStaging, backBufferResolved);
 
     backBufferResolved->Release();
@@ -1279,6 +1303,8 @@ void *d3d::fast_capture_screen(int &w, int &h, int &stride_bytes, int &format)
   {
     ContextAutoLock contextLock;
     disable_conditional_render_unsafe();
+    VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
+      "DX11: fast_capture_screen uses CopyResource inside a generic render pass");
     dx_context->CopyResource(backBufferStaging, backBuffer);
   }
 

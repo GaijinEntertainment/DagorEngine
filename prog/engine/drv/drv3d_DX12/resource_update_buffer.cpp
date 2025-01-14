@@ -151,7 +151,7 @@ bool d3d::update_texture_and_release_update_buffer(d3d::ResUpdateBuffer *&rub)
   ResUpdateBufferImp *&rubImp = reinterpret_cast<ResUpdateBufferImp *&>(rub);
   rubImp->stagingBuffer.flush();
   DX12_UPLOAD_TO_IMAGE_AND_CHECK_DEST(drv3d_dx12::get_device().getContext(), "d3d::update_texture_and_release_update_buffer",
-    rubImp->destTex->getDeviceImage(), &rubImp->uploadInfo, 1, rubImp->stagingBuffer, DeviceQueueType::UPLOAD, false);
+    *(rubImp->destTex), &rubImp->uploadInfo, 1, rubImp->stagingBuffer, DeviceQueueType::UPLOAD, false);
   d3d::release_update_buffer(rub);
   return true;
 }

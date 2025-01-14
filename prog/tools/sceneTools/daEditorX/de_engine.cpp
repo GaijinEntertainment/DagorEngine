@@ -1250,6 +1250,12 @@ IGenViewportWnd *DagorEdAppWindow::getCurrentViewport() { return ged.getCurrentV
 IDagorEd2Engine::BasisType DagorEdAppWindow::getGizmoBasisType() { return ged.tbManager->getBasisType(); }
 
 
+IDagorEd2Engine::BasisType DagorEdAppWindow::getGizmoBasisTypeForMode(ModeType tp)
+{
+  return ged.tbManager->getGizmoBasisTypeForMode(tp);
+}
+
+
 IDagorEd2Engine::ModeType DagorEdAppWindow::getGizmoModeType() { return gizmoEH->getGizmoType(); }
 
 

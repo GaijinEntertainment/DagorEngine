@@ -18,6 +18,7 @@ struct Flare
   void toggleCovering(bool enabled);
 
   UniqueTex flareTex[2];
+  d3d::SamplerHandle flareTexSampler = d3d::INVALID_SAMPLER_HANDLE;
   SharedTexHolder flareCoveringTex;
   SharedTexHolder flareColorTex;
   PostFxRenderer *flareDownsample = nullptr;

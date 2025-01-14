@@ -43,11 +43,7 @@ struct PhysShapeQueryOutput;
 namespace dacoll
 {
 typedef ::PhysShapeQueryResult ShapeQueryOutput;
-struct RIFilterCB
-{
-  virtual ~RIFilterCB() {}
-  virtual bool onFilter(const rendinst::RendInstDesc &, float) { return true; }
-};
+typedef eastl::fixed_function<64, bool(const rendinst::RendInstDesc &, float)> RIFilterCB;
 
 enum CollType : uint32_t
 {
@@ -121,6 +117,8 @@ bool rayhit_normalized_ri(const Point3 &p, const Point3 &dir, real t, rendinst::
 bool rayhit_normalized(const Point3 &p, const Point3 &dir, real t, int flags = ETF_DEFAULT, int ray_mat_id = -1,
   const TraceMeshFaces *handle = nullptr, rendinst::riex_handle_t skip_riex_handle = rendinst::RIEX_HANDLE_NULL);
 bool rayhit_normalized_transparency(const Point3 &p, const Point3 &dir, float t, float threshold = 1.f, int ray_mat_id = -1);
+bool rayhit_normalized_sound_occlusion(const Point3 &p, const Point3 &dir, float t, int ray_mat_id, float &accumulated_occlusion,
+  float &max_occlusion);
 
 bool traceray_normalized_multiray(dag::Span<Trace> traces, dag::Span<rendinst::RendInstDesc> ri_desc, int flags = ETF_DEFAULT,
   int ray_mat_id = -1, const TraceMeshFaces *handle = nullptr);

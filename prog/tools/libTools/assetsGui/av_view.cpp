@@ -4,235 +4,141 @@
 #include <assets/asset.h>
 #include <assets/assetMgr.h>
 #include <assets/assetFolder.h>
-#include "av_ids.h"
+#include <assetsGui/av_allAssetsTree.h>
+#include <assetsGui/av_assetSelectorCommon.h>
+#include <assetsGui/av_assetTypeFilterButtonGroupControl.h>
+#include <assetsGui/av_assetTypeFilterControl.h>
+#include <assetsGui/av_ids.h>
+#include <assetsGui/av_selObjDlg.h>
 
 #include <libTools/util/strUtil.h>
 #include <debug/dag_debug.h>
 #include <osApiWrappers/dag_direct.h>
 #include <propPanel/control/listBoxInterface.h>
 #include <propPanel/control/menu.h>
+#include <propPanel/control/treeInterface.h>
+#include <propPanel/focusHelper.h>
+#include <propPanel/imguiHelper.h>
+#include <propPanel/propPanel.h>
 #include <sepGui/wndMenuInterface.h>
+
+#include <imgui/imgui.h>
 
 using PropPanel::TLeafHandle;
 
 //==============================================================================
 // AssetBaseView
 //==============================================================================
-AssetBaseView::AssetBaseView(IAssetBaseViewClient *client, IMenuEventHandler *menu_event_h, void *handle, int l, int t, int w, int h) :
-  eh(client),
-  menuEventHandler(menu_event_h),
-  curMgr(NULL),
-  curFilter(midmem),
-  filter(midmem),
-  mAssetList(midmem),
-  canNotifySelChange(true),
-  doShowEmptyGroups(true)
+AssetBaseView::AssetBaseView(IAssetBaseViewClient *client, IAssetSelectorContextMenuHandler *menu_event_handler) :
+  eh(client), menuEventHandler(menu_event_handler), curMgr(NULL), curFilter(midmem), filter(midmem), canNotifySelChange(true)
 {
-  mSelBuf[0] = 0;
-  mTreeList = new PropPanel::TreeListWindow(this, handle, l, t, hdpi::_pxActual(w), hdpi::_pxActual(h), "");
+  assetsTree.reset(new AllAssetsTree(this));
+  assetTypeFilterControl.reset(new AssetTypeFilterControl());
+  closeIcon = (ImTextureID)((unsigned)PropPanel::load_icon("close_editor"));
+  searchIcon = (ImTextureID)((unsigned)PropPanel::load_icon("search"));
+  settingsIcon = (ImTextureID)((unsigned)PropPanel::load_icon("filter_default"));
+  settingsOpenIcon = (ImTextureID)((unsigned)PropPanel::load_icon("filter_active"));
 }
 
 
-AssetBaseView::~AssetBaseView() { del_it(mTreeList); }
+AssetBaseView::~AssetBaseView() {}
 
 
 //==============================================================================
 
-void AssetBaseView::connectToAssetBase(DagorAssetMgr *mgr)
+void AssetBaseView::connectToAssetBase(DagorAssetMgr *mgr, dag::ConstSpan<int> allowed_type_indexes, const DataBlock *expansion_state)
 {
   curMgr = mgr;
 
-  // asset types filter
-  Tab<String> vals(midmem);
-  if (mgr)
-  {
-    for (int i = 0; i < filter.size(); ++i)
-      vals.push_back() = mgr->getAssetTypeName(filter[i]);
-  }
-  mTreeList->setFilterAssetNames(vals);
+  filter = allowed_type_indexes;
   curFilter = filter;
+  allowedTypes.clear();
+  shownTypes.clear();
 
   if (mgr)
   {
-    fill(filter);
+    allowedTypes.resize(mgr->getAssetTypesCount());
+    shownTypes.resize(mgr->getAssetTypesCount());
 
-    PropPanel::TLeafHandle _sel = mTreeList->getSelectedItem();
+    for (int i = 0; i < mgr->getAssetTypesCount(); ++i)
+    {
+      const bool allowed = eastl::find(allowed_type_indexes.begin(), allowed_type_indexes.end(), i) != allowed_type_indexes.end();
+      allowedTypes[i] = shownTypes[i] = allowed;
+    }
 
-    if (_sel && eh)
-      eh->onAvSelectFolder(mTreeList->getItemName(_sel).str());
+    fill(expansion_state);
+    onShownTypeFilterChanged();
   }
 }
 
 
 //==============================================================================
-void AssetBaseView::reloadBase() { connectToAssetBase(curMgr); }
-
-
-//==============================================================================
-void AssetBaseView::fill(dag::ConstSpan<int> types)
+void AssetBaseView::fill(const DataBlock *expansion_state)
 {
   if (!curMgr)
     return;
-
-  dag::ConstSpan<int> folderIdx = curMgr->getFilteredFolders(types);
 
   if (!curMgr->getRootFolder())
     return;
 
-  mTreeList->clear();
-  clear_and_shrink(mAssetList);
-  TLeafHandle root = addAsset("\\", NULL, 0);
-  fillGroups(root, 0, folderIdx);
-  mTreeList->expand(root);
-  mTreeList->setSelectedItem(root);
-
-  fillObjects(root);
-}
-
-//==============================================================================
-
-TLeafHandle AssetBaseView::addAsset(const char *name, TLeafHandle parent, int idx)
-{
-  TLeafHandle _leaf = mTreeList->addItem(name, 0, parent, (void *)idx);
-  AssetTreeRec _a_rec = {_leaf, idx};
-  mAssetList.push_back(_a_rec);
-
-  return _leaf;
-}
-
-
-void AssetBaseView::fillGroups(TLeafHandle parent, int folder_idx, dag::ConstSpan<int> only_folders)
-{
-  Tab<short> f(curMgr->getFolder(folder_idx).subFolderIdx);
-  if (!f.size())
-    return;
-
-  //== bubble sort for folder names
-  for (int i = 0; i + 1 < f.size(); ++i)
-    for (int j = i + 1; j < f.size(); ++j)
-      if (stricmp(curMgr->getFolder(f[i]).folderName, curMgr->getFolder(f[j]).folderName) > 0)
-      {
-        short t = f[i];
-        f[i] = f[j];
-        f[j] = t;
-      }
-
-  for (int i = 0; i < f.size(); ++i)
-  {
-    int idx = f[i];
-    bool found = false;
-    for (int j = 0; j < only_folders.size(); j++)
-      if (only_folders[j] == idx)
-      {
-        found = true;
-        break;
-      }
-    if (!found)
-      continue;
-
-    TLeafHandle leaf = addAsset(curMgr->getFolder(idx).folderName, parent, idx);
-
-    fillGroups(leaf, idx, only_folders);
-    // mTreeList->expand(leaf);
-    fillObjects(leaf);
-  }
-}
-
-//==============================================================================
-
-const char *AssetBaseView::getSelGroupName()
-{
-  TLeafHandle _sel = mTreeList->getSelectedItem();
-
-  if (_sel)
-    return mTreeList->getItemName(_sel).str();
-
-  return "\\";
+  assetsTree->fill(*curMgr, expansion_state);
 }
 
 
 //==============================================================================
-
-int AssetBaseView::getSelGroupId()
-{
-  TLeafHandle _sel = mTreeList->getSelectedItem();
-
-  if (_sel)
-    return (int)(intptr_t)mTreeList->getItemData(_sel);
-
-  return -1;
-}
+DagorAsset *AssetBaseView::getSelectedAsset() const { return assetsTree->getSelectedAsset(); }
 
 
-//==============================================================================
+DagorAssetFolder *AssetBaseView::getSelectedAssetFolder() const { return assetsTree->getSelectedAssetFolder(); }
+
+
 const char *AssetBaseView::getSelObjName()
 {
-  mTreeList->getListSelText(mSelBuf, sizeof(mSelBuf));
-  return mSelBuf;
+  const DagorAsset *asset = assetsTree->getSelectedAsset();
+  if (asset)
+    selectionBuffer = SelectAssetDlg::getAssetNameWithTypeIfNeeded(*asset, filter);
+  else
+    selectionBuffer.clear();
+
+  return selectionBuffer.c_str();
 }
 
 
-//==============================================================================
-void AssetBaseView::fillObjects(TLeafHandle parent)
+void AssetBaseView::onTvSelectionChange(PropPanel::TreeBaseWindow &tree, PropPanel::TLeafHandle new_sel)
 {
-  if (!curMgr)
+  if (assetsTree->isFolder(new_sel))
     return;
 
-  int folder_idx = (int)(intptr_t)mTreeList->getItemData(parent);
-
-  dag::ConstSpan<int> a_idx = curMgr->getFilteredAssets(curFilter, folder_idx);
-
-  for (int i = 0; i < a_idx.size(); ++i)
-  {
-    const DagorAsset &a = curMgr->getAsset(a_idx[i]);
-    if (curMgr->isAssetNameUnique(a, curFilter))
-      mTreeList->addChildName(a.getName(), parent);
-    else
-      mTreeList->addChildName(a.getNameTypified(), parent);
-  }
-
-  // libObjects->sort(&items_compare, true);
-  // libObjects->select(-1);
+  eh->onAvSelectAsset(getSelectedAsset(), getSelObjName());
 }
 
-
-void AssetBaseView::onTvSelectionChange(PropPanel::TreeBaseWindow &tree, TLeafHandle new_sel)
+void AssetBaseView::onTvDClick(PropPanel::TreeBaseWindow &tree, PropPanel::TLeafHandle node)
 {
-  mTreeList->setListSelIndex(0);
-  onTvListSelection(tree, 0);
-}
+  if (assetsTree->isFolder(node))
+    return;
 
-void AssetBaseView::onTvListSelection(PropPanel::TreeBaseWindow &tree, int index) { eh->onAvSelectAsset(getSelObjName()); }
-
-void AssetBaseView::onTvListDClick(PropPanel::TreeBaseWindow &tree, int index) { eh->onAvAssetDblClick(getSelObjName()); }
-
-void AssetBaseView::onTvAssetTypeChange(PropPanel::TreeBaseWindow &tree, const Tab<String> &vals)
-{
-  String objName(getSelObjName());
-
-  if (vals.size() == curMgr->getAssetTypesCount())
-  {
-    curFilter = filter;
-    fill(filter);
-  }
-  else
-  {
-    Tab<int> simpleFilter(tmpmem);
-    for (int i = 0; i < vals.size(); ++i)
-      simpleFilter.push_back(curMgr->getAssetTypeId(vals[i]));
-
-    curFilter = simpleFilter;
-    fill(simpleFilter);
-  }
-
-  selectObjInBase(objName.str());
+  eh->onAvAssetDblClick(getSelectedAsset(), getSelObjName());
 }
 
 //==============================================================================
+
+bool AssetBaseView::selectAsset(const DagorAsset &asset, bool reset_filter_if_needed)
+{
+  bool selected = assetsTree->selectAsset(&asset);
+
+  if (!selected && reset_filter_if_needed)
+  {
+    resetFilter();
+    assetsTree->refilter();
+    selected = assetsTree->selectAsset(&asset);
+  }
+
+  return selected;
+}
 
 bool AssetBaseView::selectObjInBase(const char *_name)
 {
-  const DagorAsset *asset = NULL;
+  DagorAsset *asset = nullptr;
 
   String name(dd_get_fname(_name));
   remove_trailing_string(name, ".res.blk");
@@ -253,32 +159,10 @@ bool AssetBaseView::selectObjInBase(const char *_name)
         }
   }
 
-
   if (asset)
   {
-    int idx = asset->getFolderIndex();
-    for (int i = 0; i < mAssetList.size(); ++i)
-      if (mAssetList[i].index == idx)
-      {
-        mTreeList->setSelectedItem(mAssetList[i].handle);
-        break;
-      }
-
-    dag::ConstSpan<int> a_idx = curMgr->getFilteredAssets(curFilter, idx);
-    int _sel = -1;
-
-    for (int i = 0; i < a_idx.size(); ++i)
-    {
-      const DagorAsset &a = curMgr->getAsset(a_idx[i]);
-      if (asset->getNameId() == a.getNameId())
-      {
-        _sel = i;
-        break;
-      }
-    }
-
-    mTreeList->setListSelIndex(_sel);
-    eh->onAvSelectAsset(_name);
+    assetsTree->selectAsset(asset);
+    eh->onAvSelectAsset(asset, _name);
     return true;
   }
 
@@ -286,14 +170,34 @@ bool AssetBaseView::selectObjInBase(const char *_name)
 }
 
 
+void AssetBaseView::saveTreeData(DataBlock &blk)
+{
+  const String originalTextToSearch = textToSearch;
+  const Tab<int> originalCurFilter = curFilter;
+  const Tab<bool> originalShownTypes = shownTypes;
+
+  resetFilter();
+  assetsTree->refilter();
+  assetsTree->saveTreeData(blk);
+
+  textToSearch = originalTextToSearch;
+  curFilter = originalCurFilter;
+  shownTypes = originalShownTypes;
+
+  assetsTree->setSearchText(textToSearch);
+  assetsTree->setShownTypes(shownTypes);
+  assetsTree->refilter();
+}
+
+
 void AssetBaseView::getTreeNodesExpand(Tab<bool> &exps)
 {
   clear_and_shrink(exps);
   TLeafHandle leaf, root;
-  leaf = root = mTreeList->getRoot();
-  exps.push_back(mTreeList->isOpen(leaf));
-  while ((leaf = mTreeList->getNextNode(leaf, true)) && (leaf != root))
-    exps.push_back(mTreeList->isOpen(leaf));
+  leaf = root = assetsTree->getRoot();
+  exps.push_back(assetsTree->isOpen(leaf));
+  while ((leaf = assetsTree->getNextNode(leaf, true)) && (leaf != root))
+    exps.push_back(assetsTree->isOpen(leaf));
 }
 
 
@@ -303,18 +207,59 @@ void AssetBaseView::setTreeNodesExpand(dag::ConstSpan<bool> exps)
     return;
 
   TLeafHandle leaf, root;
-  leaf = root = mTreeList->getRoot();
+  leaf = root = assetsTree->getRoot();
   if (exps[0] && leaf)
-    mTreeList->expand(leaf);
+    assetsTree->expand(leaf);
   else
-    mTreeList->collapse(leaf);
+    assetsTree->collapse(leaf);
 
   int i = 0;
-  while ((leaf = mTreeList->getNextNode(leaf, true)) && (leaf != root) && (++i < exps.size()))
+  while ((leaf = assetsTree->getNextNode(leaf, true)) && (leaf != root) && (++i < exps.size()))
     if (exps[i])
-      mTreeList->expand(leaf);
+      assetsTree->expand(leaf);
     else
-      mTreeList->collapse(leaf);
+      assetsTree->collapse(leaf);
+}
+
+
+void AssetBaseView::setFilterStr(const char *str)
+{
+  textToSearch = str;
+  assetsTree->setSearchText(str);
+  assetsTree->refilter();
+}
+
+
+void AssetBaseView::resetFilter()
+{
+  textToSearch.clear();
+  curFilter = filter;
+  shownTypes = allowedTypes;
+
+  assetsTree->setSearchText("");
+  assetsTree->setShownTypes(allowedTypes);
+}
+
+
+void AssetBaseView::setShownAssetTypeIndexes(dag::ConstSpan<int> shown_type_indexes)
+{
+  if (shown_type_indexes.size() == curFilter.size() && mem_eq(shown_type_indexes, curFilter.data()))
+    return;
+
+  curFilter.clear();
+
+  for (bool &shown : shownTypes)
+    shown = false;
+
+  for (int type : shown_type_indexes)
+    if (type >= 0 && type < allowedTypes.size() && allowedTypes[type])
+    {
+      curFilter.push_back(type);
+      shownTypes[type] = true;
+    }
+
+  assetsTree->setShownTypes(shownTypes);
+  assetsTree->refilter();
 }
 
 
@@ -329,13 +274,117 @@ void AssetBaseView::addCommonMenuItems(PropPanel::IMenu &menu)
 }
 
 
-bool AssetBaseView::onTvListContextMenu(PropPanel::TreeBaseWindow &tree, PropPanel::IListBoxInterface &list_box)
+bool AssetBaseView::onTvContextMenu(PropPanel::TreeBaseWindow &tree_base_window, PropPanel::ITreeInterface &tree)
 {
-  PropPanel::IMenu &menu = list_box.createContextMenu();
-  menu.setEventHandler(menuEventHandler);
-  menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::AddToFavoritesMenuItem, "Add to favorites");
-  addCommonMenuItems(menu);
-  return true;
+  return menuEventHandler->onAssetSelectorContextMenu(tree_base_window, tree);
 }
 
-void AssetBaseView::updateImgui(float control_height) { mTreeList->updateImgui(control_height); }
+void AssetBaseView::onShownTypeFilterChanged()
+{
+  assetsTree->setShownTypes(shownTypes);
+  assetsTree->refilter();
+}
+
+void AssetBaseView::showSettingsPanel(const char *popup_id)
+{
+  ImGui::PushStyleColor(ImGuiCol_PopupBg, ImGui::GetStyleColorVec4(ImGuiCol_WindowBg));
+  const bool popupIsOpen = ImGui::BeginPopup(popup_id, ImGuiWindowFlags_NoMove);
+  ImGui::PopStyleColor();
+
+  if (!popupIsOpen)
+  {
+    settingsPanelOpen = false;
+    return;
+  }
+
+  ImGui::TextUnformatted("Select filter");
+
+  if (assetTypeFilterControl->updateImgui(*curMgr, make_span(allowedTypes), make_span(shownTypes)))
+    onShownTypeFilterChanged();
+
+  ImGui::EndPopup();
+}
+
+void AssetBaseView::updateImgui(float control_height)
+{
+  ImGui::PushID(this);
+
+  const ImVec2 fontSizedIconSize = PropPanel::ImguiHelper::getFontSizedIconSize();
+  const ImVec2 settingsButtonSize = PropPanel::ImguiHelper::getImageButtonWithDownArrowSize(fontSizedIconSize);
+
+  ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - (ImGui::GetStyle().ItemSpacing.x + settingsButtonSize.x));
+
+  bool inputFocused;
+  ImGuiID inputId;
+  const bool searchInputChanged = PropPanel::ImguiHelper::searchInput(&searchInputFocusId, "##searchInput", "Filter and search",
+    textToSearch, searchIcon, closeIcon, &inputFocused, &inputId);
+
+  PropPanel::set_previous_imgui_control_tooltip((const void *)inputId, AssetSelectorCommon::searchTooltip);
+
+  if (inputFocused)
+  {
+    if (ImGui::Shortcut(ImGuiKey_Enter, ImGuiInputFlags_None, inputId) ||
+        ImGui::Shortcut(ImGuiKey_DownArrow, ImGuiInputFlags_None, inputId))
+    {
+      // The ImGui text input control reacts to Enter by making it inactive. Keep it active.
+      ImGui::SetActiveID(inputId, ImGui::GetCurrentWindow());
+
+      assetsTree->selectNextItem();
+    }
+    else if (ImGui::Shortcut(ImGuiMod_Shift | ImGuiKey_Enter, ImGuiInputFlags_None, inputId) ||
+             ImGui::Shortcut(ImGuiKey_UpArrow, ImGuiInputFlags_None, inputId))
+    {
+      ImGui::SetActiveID(inputId, ImGui::GetCurrentWindow());
+      assetsTree->selectNextItem(/*forward = */ false);
+    }
+  }
+
+  if (searchInputChanged)
+  {
+    assetsTree->setSearchText(textToSearch);
+    assetsTree->refilter();
+  }
+
+  ImGui::SameLine();
+  const char *popupId = "settingsPopup";
+  const ImTextureID settingsButtonIcon = settingsPanelOpen ? settingsOpenIcon : settingsIcon;
+  bool settingsButtonPressed =
+    PropPanel::ImguiHelper::imageButtonWithArrow("settingsButton", settingsButtonIcon, fontSizedIconSize, settingsPanelOpen);
+  PropPanel::set_previous_imgui_control_tooltip((const void *)ImGui::GetItemID(), "Settings");
+
+  if (settingsPanelOpen)
+    showSettingsPanel(popupId);
+
+  if (AssetTypeFilterButtonGroupControl::updateImgui(*curMgr, allowedTypes, make_span(shownTypes), settingsButtonPressed))
+    onShownTypeFilterChanged();
+
+  if (settingsButtonPressed)
+  {
+    ImGui::OpenPopup(popupId);
+    settingsPanelOpen = true;
+  }
+
+  const char *expandAllTitle = "Expand all";
+  const char *collapseAllTitle = "Collapse all";
+  const ImVec2 expandAllSize = PropPanel::ImguiHelper::getButtonSize(expandAllTitle);
+  const ImVec2 collapseAllSize = PropPanel::ImguiHelper::getButtonSize(collapseAllTitle);
+  const ImVec2 expandButtonRegionAvailable = ImGui::GetContentRegionAvail();
+  const ImVec2 expandButtonCursorPos = ImGui::GetCursorPos();
+
+  ImGui::SetCursorPosX(
+    expandButtonCursorPos.x + expandButtonRegionAvailable.x - (expandAllSize.x + ImGui::GetStyle().ItemSpacing.x + collapseAllSize.x));
+  if (ImGui::Button(expandAllTitle))
+    assetsTree->expandRecursive(assetsTree->getRoot(), true);
+
+  ImGui::SameLine();
+  ImGui::SetCursorPosX(expandButtonCursorPos.x + expandButtonRegionAvailable.x - collapseAllSize.x);
+  if (ImGui::Button(collapseAllTitle))
+    assetsTree->expandRecursive(assetsTree->getRoot(), false);
+
+  if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_F))
+    PropPanel::focus_helper.requestFocus(&searchInputFocusId);
+
+  assetsTree->updateImgui();
+
+  ImGui::PopID();
+}

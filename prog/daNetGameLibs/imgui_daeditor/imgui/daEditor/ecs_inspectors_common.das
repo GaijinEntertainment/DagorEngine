@@ -17,7 +17,7 @@ class ContextInspectorFn
       ctx = addr(context)
     fn <- f
 
-  [unused_argument(id)] def call(eid : array < EntityId > const implicit; flags : uint; name : string; refs : array < EntityComponentRef# > #; level : int; var changed : bool ?; sub_menu : block < (var changed : bool ?) : bool >) : void
+  def call(eid : array < EntityId > const implicit; flags : uint; name : string; refs : array < ComponentRenderInfo# >#; level : int; var changed : bool?; sub_menu : block < (var changed : bool?) : bool >) : void
     unsafe
       lock_debug_agent() <| $()
         ctx |> invoke_in_context(fn, eid, flags, name, refs, level, changed, sub_menu)
@@ -31,7 +31,7 @@ class ContextEditorFn
       ctx = addr(context)
     fn <- f
 
-  [unused_argument(id)] def call(eid : array < EntityId > const#) : void
+  def call(eid : array < EntityId > const#) : void
     unsafe
       lock_debug_agent() <| $()
         ctx |> invoke_in_context(fn, eid)
@@ -64,7 +64,7 @@ class ContextUnselectedInspectorFn
       ctx = addr(context)
     fn <- f
 
-  [unused_argument(id)] def call() : void
+  def call() : void
     unsafe
       lock_debug_agent() <| $()
         ctx |> invoke_in_context(fn)
@@ -81,8 +81,20 @@ struct EditorDesc
   tags : array<uint>
   fn : ContextEditorFn?
 
+struct ComponentRenderInfo
+  rawData : void? // Pointer to raw data to handle randering with custom renderes
+  typeName : string
+  // When no ecs type can be inferred contains das generated read only display string
+  // If not empty idx and componentId are invalid.
+  roVal : string
+  // In case described above stores das type string to display as additional info in inspector, can be useful.
+  // typeName will contain a placeholder value so inspectors know to display it a specific way
+  dasTypeName : string
+  idx : uint
+  componentId : uint16
+
 typedef
-  InspectorFn = function<(eid : array<EntityId> implicit; flags : uint; name : string; refs : array<EntityComponentRef#>#; level : int; var changed : bool?; sub_menu : block<(var changed : bool?) : bool>) : void>
+  InspectorFn = function<(eid : array<EntityId> implicit; flags : uint; name : string; refs : array<ComponentRenderInfo#>#; level : int; var changed : bool?; sub_menu : block<(var changed : bool?) : bool>) : void>
   EditorFn = function<(eid : array<EntityId>#) : void>
   EntityNameDescFn = function<(eid : EntityId; var out_string : string?) : void>
   UnselectedInspectorFn = function<() : void>
@@ -179,7 +191,7 @@ def has_inspector(type_name : string implicit) : bool
 
 
 [apply_in_context(ecs_inspectors)]
-def call_inspector(type_name : string implicit; eid : array<EntityId> implicit; flags : uint; field_name : string implicit; refs : array<EntityComponentRef#>#; level : int; var changed : bool? implicit; sub_menu : block<(var changed : bool?) : bool> implicit) : bool
+def call_inspector(type_name : string implicit; eid : array<EntityId> implicit; flags : uint; field_name : string implicit; refs : array<ComponentRenderInfo#>#; level : int; var changed : bool? implicit; sub_menu : block<(var changed : bool?) : bool> implicit) : bool
   var res = false
   inspectors |> get(type_name) <| $(list)
     res = true

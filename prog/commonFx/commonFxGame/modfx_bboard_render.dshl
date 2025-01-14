@@ -34,6 +34,8 @@ texture wboit_alpha;
 texture haze_scene_depth_tex;
 float haze_scene_depth_tex_lod;
 
+float modfx_wboit_depth_offset = 20;
+
 define_macro_if_not_defined DAFX_USE_CLOUD_SHADOWS()
 endmacro
 
@@ -173,6 +175,11 @@ shader dafx_modfx_bboard_render, dafx_modfx_ribbon_render, dafx_modfx_ribbon_ren
       #define MODFX_SHADER_VOLSHAPE_WBOIT 1
       #define MODFX_WBOIT_ENABLED 1
       #undef MODFX_USE_DEPTH_MASK
+    }
+
+    (ps)
+    {
+      modfx_wboit_depth_offset@f1 = (modfx_wboit_depth_offset);
     }
   }
   else if ( shader == dafx_modfx_bboard_render_atest )
@@ -315,7 +322,7 @@ shader dafx_modfx_bboard_render, dafx_modfx_ribbon_render, dafx_modfx_ribbon_ren
     }
   }
 
-  DAFXEX_USE_ABOVE_DEPTH_PLACEMENT()
+  DAFXEX_USE_PARTICLE_PLACEMENT()
 
   if (shader == dafx_modfx_bboard_rain || shader == dafx_modfx_bboard_rain_distortion)
   {
@@ -458,7 +465,7 @@ shader dafx_modfx_bvh
 
   DAFX_USE_CLOUD_SHADOWS()
 
-  DAFXEX_USE_ABOVE_DEPTH_PLACEMENT()
+  DAFXEX_USE_PARTICLE_PLACEMENT()
 
   (vs)
   {

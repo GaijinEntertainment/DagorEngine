@@ -189,6 +189,12 @@ shader land_mesh//, land_mesh_combined
     {
       supports land_mesh_with_clipmap_reflection;
       supports global_const_block;
+      hlsl
+      {
+        // TODO: check if a fully forward rendering pipeline needs it
+        #define DISABLE_FAKE_SIMPLE_TONEMAPPING 1
+      }
+      INIT_AND_USE_CLOUD_SHADOW_FORWARD()
       USE_CLIPMAP_LAST()
       NO_UAV_RENDERING_FEEDBACK()
       PACK_UNPACK_GBUFFER_BASE(ps)

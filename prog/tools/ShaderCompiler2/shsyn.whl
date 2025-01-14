@@ -347,8 +347,9 @@ sampler-decl(sampler_decl) ->
   "sampler"=nothing ident=name [
     "{"=nothing
       (ident=state_name "="=nothing ((ident=state)|(arithmetic-expr=expr)) ";"=nothing)+
-    "}"=nothing
-  ] ";"=nothing
+    "}"=nothing ]
+  ["always_referenced"=is_always_referenced]
+  ";"=nothing
   {add_sampler(n);};
 
 interval-var-decl(interval_var) ->

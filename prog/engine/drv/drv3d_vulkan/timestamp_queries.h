@@ -31,7 +31,7 @@ struct TimestampQueryBlock
 
   static const int POOL_SIZE_STEP = 64;
 
-  void ensureSizesAndResetStatus(VulkanCommandBufferHandle cmd_b);
+  void ensureSizesAndResetStatus();
   void cleanup();
   void fillDataFromPool();
 

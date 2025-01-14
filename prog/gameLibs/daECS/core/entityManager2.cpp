@@ -1361,6 +1361,15 @@ bool EntityManager::validateResources(EntityId eid, archetype_t old_archetype, t
   return true;
 }
 
+void EntityManager::DelayedEntityCreation::clear()
+{
+  compInit.clear();
+  decltype(compMap)().swap(compMap);
+  cb = nullptr;
+  templateName.clear();
+  templateName.shrink_to_fit();
+}
+
 bool EntityManager::createQueuedEntitiesOOL()
 {
   if (createOrDestroyGen == INVALID_CREATION_QUEUE_GEN)

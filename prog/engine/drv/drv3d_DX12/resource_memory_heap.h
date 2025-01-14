@@ -23,8 +23,10 @@
 #include "resource_manager/buffer_components.h"
 #include "resource_manager/rtx_components.h"
 
-
-struct ResourceDumpInfo;
+struct ResourceDumpTexture;
+struct ResourceDumpBuffer;
+struct ResourceDumpRayTrace;
+typedef eastl::variant<ResourceDumpTexture, ResourceDumpBuffer, ResourceDumpRayTrace> ResourceDumpInfo;
 
 namespace drv3d_dx12
 {

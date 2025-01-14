@@ -23,3 +23,14 @@ def motion_matching_debug_foot_locker_es(evt : ParallelUpdateFrameDelayed;
       leg.isLocked = true
       leg.posOffset = float3(0, 0, 0)
       leg.ankleTargetMove = foot_locker_debug__ankleTargetMove
+
+[es(tag=(dev, render))]
+def motion_matching_clear_foot_locker_es(evt : ParallelUpdateFrameDelayed;
+                                         mm_params__footLockerEnabled : bool)
+  if !mm_params__footLockerEnabled
+    query() <| $ [es] (var animchar : AnimcharBaseComponent;
+                       motion_matching__controller : MotionMatchingController)
+      assume db = motion_matching__controller.dataBase
+      anim_state_holder_get_foot_locker_legs(animchar.animState, *db) <| $(var legs : array<FootLockerIKCtrlLegData>)
+        for leg in legs
+          leg.isLocked = false

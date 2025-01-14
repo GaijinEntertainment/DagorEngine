@@ -143,7 +143,7 @@ def play_footstep(desc : Object;
     var pathStr : string
     if sound_player_common::get_option_path(path, sound_tags, true, pathStr)
       let offsetedPos = raise_pos_above_collision(pos)
-      var handle = sound_player_common::play_desc_path(desc, apply_watched_prefix(pathStr, true), offsetedPos, false)
+      var handle = sound_player_common::play_desc_path(desc, apply_watched_prefix(pathStr, true), true, offsetedPos, false)
       set_volume(handle, volume)
       set_var(handle, "mat", step_material_id)
       pass_steps_occlusion_var(handle, occlusion)

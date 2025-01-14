@@ -241,27 +241,33 @@ shader heightmap
     compile("target_vs", "heightmap_vsm_vs");
   } else if (lmesh_rendering_mode == rendering_reflection || lmesh_rendering_mode == rendering_landmesh)
   {
-    bool use_hw_tessellation = lmesh_rendering_mode == rendering_landmesh && hmap_tess_factor == hmap_tess_factor_on;
     if (lmesh_rendering_mode == rendering_reflection)
     {
+      bool use_hw_tessellation = false;
       supports land_mesh_with_clipmap_reflection;
       supports global_const_block;
     } else if (lmesh_rendering_mode == rendering_landmesh)
     {
+      bool use_hw_tessellation = hmap_tess_factor == hmap_tess_factor_on;
+      if (use_hw_tessellation)
+      {
+        INIT_AND_USE_FRUSTUM_CHECK_BASE(vs)
+      }
+
       supports land_mesh_with_clipmap;
       INIT_HEIGHTMAP_OFS(vs)
       USE_HEIGHTMAP_OFS(vs)
-
-      if (hmap_tess_factor == hmap_tess_factor_on)
-      {
-        INIT_AND_USE_FRUSTUM_CHECK_BASE(vs)
-        // then `use_hw_tessellation = true`.
-      }
     }
     NO_VERTICAL_TEX_USE()
     VIEW_VEC_SCREENPOS(ps)
     if (lmesh_rendering_mode == rendering_reflection)
     {
+      hlsl
+      {
+        // TODO: check if a fully forward rendering pipeline needs it
+        #define DISABLE_FAKE_SIMPLE_TONEMAPPING 1
+      }
+      INIT_AND_USE_CLOUD_SHADOW_FORWARD()
       USE_CLIPMAP_LAST()
       NO_UAV_RENDERING_FEEDBACK()
       PACK_UNPACK_GBUFFER_BASE(ps)

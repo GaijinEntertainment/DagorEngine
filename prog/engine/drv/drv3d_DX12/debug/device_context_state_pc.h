@@ -93,6 +93,19 @@ public:
 
   void debugBlit(DeviceState &dds, D3DGraphicsCommandList *cmd) { dds.blit(getCommandData(), cmd); }
 
+#if D3D_HAS_RAY_TRACING
+  void debugDispatchRays(DeviceState &dds, D3DGraphicsCommandList *cmd, const RayDispatchBasicParameters &dispatch_parameters,
+    const ResourceBindingTable &rbt, const RayDispatchParameters &rdp)
+  {
+    dds.dispatchRays(getCommandData(), cmd, dispatch_parameters, rbt, rdp);
+  }
+  void debugDispatchRaysIndirect(DeviceState &dds, D3DGraphicsCommandList *cmd, const RayDispatchBasicParameters &dispatch_parameters,
+    const ResourceBindingTable &rbt, const RayDispatchIndirectParameters &rdip)
+  {
+    dds.dispatchRaysIndirect(getCommandData(), cmd, dispatch_parameters, rbt, rdip);
+  }
+#endif
+
   void debugOnDeviceRemoved(DeviceState &dds, D3DDevice *device, HRESULT remove_reason) { dds.onDeviceRemoved(device, remove_reason); }
 };
 } // namespace debug::pc

@@ -11,6 +11,9 @@ interval bvh_process_dynrend_indices_size: two < 4, four;
 
 interval bvh_process_dynrend_indices_start_aligned: no < 1, yes;
 
+int bvh_process_dynrend_indices_source_const_no = 6;
+int bvh_process_dynrend_indices_output_uav_no = 0;
+
 shader bvh_process_dynrend_indices
 {
   if (compatibility_mode == compatibility_mode_on)
@@ -22,13 +25,12 @@ shader bvh_process_dynrend_indices
     start_index@i1 = bvh_process_dynrend_indices_start;
     vertex_base@i1 = bvh_process_dynrend_indices_vertex_base;
     item_count@i1 = bvh_process_dynrend_indices_count;
+    source@buf : register(bvh_process_dynrend_indices_source_const_no) hlsl { ByteAddressBuffer source@buf; };
+    output@uav : register(bvh_process_dynrend_indices_output_uav_no) hlsl { RWByteAddressBuffer output@uav; };
   }
 
   ENABLE_ASSERT(cs)
   hlsl(cs) {
-    ByteAddressBuffer source : register(t6);
-    RWByteAddressBuffer output : register(u0);
-
     [numthreads( 64, 1, 1 )]
     void bvh_process_dynrend_indices(uint3 dtId : SV_DispatchThreadID)
     {

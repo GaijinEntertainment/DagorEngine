@@ -1,5 +1,5 @@
 
-Substance Designer
+Substance Designer Mip Generator
 =========================================
 
 .. toctree::

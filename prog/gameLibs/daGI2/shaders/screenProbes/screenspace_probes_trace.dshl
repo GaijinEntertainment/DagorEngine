@@ -21,7 +21,7 @@ macro NOISE(code)
     //[-0.5 0.5] texel (/w)
     float2 rand3D_Probe(uint3 v, uint2 oct_coord, uint frame)
     {
-      uint3 targetCoord = uint3((v.xy)*13, v.z) + uint3(oct_coord, uint(screenspace_probes_temporal.y));
+      uint3 targetCoord = uint3((v.xy)*13, v.z) + uint3(oct_coord, TEMPORAL_PROBES_FRAMES > 1 ? uint(screenspace_probes_temporal.y) : 0);
       uint3 rand = pcg3d_hash_16bit(targetCoord);
       //return ((rand.xy&7) - 3.5)/8.0*sp_rand_decode.z;
       //can be optimized further, by one mul as hammersley_rand16 can produce 0...65535 range
@@ -139,7 +139,6 @@ shader calc_screenspace_radiance_cs, calc_screenspace_selected_radiance_cs
       //fixme: temporal
       uint revAge = sp_decodeTagRevAge(probe.allTag);
       //we better store probe seed in probe, instead of calculating it, as it can sigfinicantly increase convergence
-      uint jitterFrame = revAge ? SP_TAG_MAX_AGE - revAge: (uint(screenspace_probes_temporal.y)%TEMPORAL_PROBES_FRAMES); //fixme: constant on the right
       //uint jitterFrame = validTemporal ? ((uint(screenspace_probes_temporal.y))&(TEMPORAL_PROBES_FRAMES-1)) : 0; //fixme: constant
 
       //todo: replace with small buffer with offsets
@@ -150,13 +149,13 @@ shader calc_screenspace_radiance_cs, calc_screenspace_selected_radiance_cs
       //  worldPos += rayDir*0.25;
       //startClip = world_sdf_find_clip(worldPos);//to reduce divirgence between threads
       {
-        uint jitteredFrame = jitterFrame;
-        float2 randomProbe = rand3D_Probe(uint3(screen_tile_coord, isScreenProbe), octCoord, jitteredFrame);
+        uint hammersleyFrame = revAge ? uint(SP_TAG_MAX_AGE - revAge) : uint(screenspace_probes_temporal.w);
+        float2 randomProbe = rand3D_Probe(uint3(screen_tile_coord, isScreenProbe), octCoord, hammersleyFrame);
         uint2 randPos = 0;
         float2 jitteredOctTC = octTC + randomProbe.xy;
         float3 rayDir = screenspace_probe_dir_decode(jitteredOctTC*2-1);
         float2 probeScreenUv = screenCoordToScreenUV(probeScreenCoord);
-        float2 screenCoordJittered = min((returnJitterOffset(screen_tile_coord, randPos, jitterFrame))*screenspace_probe_res.z + currentScreenTileLT, screenspace_probe_screen_limit.zw);
+        float2 screenCoordJittered = min((returnJitterOffset(screen_tile_coord, randPos, hammersleyFrame))*screenspace_probe_res.z + currentScreenTileLT, screenspace_probe_screen_limit.zw);
         //try use jittered position
         //todo: once per probe!
         {
@@ -210,7 +209,7 @@ shader calc_screenspace_radiance_cs, calc_screenspace_selected_radiance_cs
           #if SP_SCREENSPACE_TRACE && HAS_PREV_FRAME_RADIANCE
           //if !insideSDF we'd better have screen trace always
           //screen_ray_trace = + ~10% of performance, but increases quality and stability
-          float noise = interleavedGradientNoiseFramed(targetCoord + 0.5f, jitteredFrame);
+          float noise = interleavedGradientNoiseFramed(targetCoord + 0.5f, screenspace_probes_temporal.w);
           result = screen_ray_trace(sceneLinearDepth*probeViewVect, rayDir, maxT, sceneLinearDepth, noise, radiance, t, rayInsideSDF, (radGridClip < DAGI_MAX_RAD_GRID_CLIPS) ? 0.25 : 32);
           #else
           result = SCREEN_RAY_CAST_SURE_MISS;
@@ -303,7 +302,7 @@ shader calc_screenspace_radiance_cs, calc_screenspace_selected_radiance_cs
         }
         #else
           #if SP_SCREENSPACE_TRACE && HAS_PREV_FRAME_RADIANCE
-          float noise = interleavedGradientNoiseFramed(targetCoord + 0.5f, jitteredFrame);
+          float noise = interleavedGradientNoiseFramed(targetCoord + 0.5f, screenspace_probes_temporal.w);
           uint result = screen_ray_trace(sceneLinearDepth*probeViewVect, rayDir, maxT, sceneLinearDepth, noise, final_radiance, t, true, radGridClip < DAGI_MAX_RAD_GRID_CLIPS ? 2 : 32);
           if (result != SCREEN_RAY_CAST_SURE_HIT)//mark screenprobes for insideSDF explicitly
           #endif

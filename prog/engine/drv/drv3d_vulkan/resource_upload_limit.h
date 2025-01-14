@@ -17,6 +17,10 @@ struct ResourceUploadLimit
 {
   void reset();
   bool consume(uint32_t size, BaseTexture *bt);
+  // controls consume logic to always no fail or work arbitrary on caller thread (thread local)
+  // default is "arbitrary", i.e. no fail is disabled
+  // note: this will lead to allocation over limit
+  void setNoFailOnThread(bool val);
 
 private:
   uint32_t peakSize = 0;

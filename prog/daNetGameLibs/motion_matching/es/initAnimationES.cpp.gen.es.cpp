@@ -133,7 +133,7 @@ static constexpr ecs::ComponentDesc get_data_base_ecs_query_comps[] =
 //start of 2 rw components at [0]
   {ECS_HASH("main_database__loaded"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("dataBase"), ecs::ComponentTypeInfo<AnimationDataBase>()},
-//start of 13 ro components at [2]
+//start of 14 ro components at [2]
   {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("data_bases_paths"), ecs::ComponentTypeInfo<ecs::StringList>()},
   {ECS_HASH("main_database__availableTags"), ecs::ComponentTypeInfo<ecs::StringList>()},
@@ -146,13 +146,14 @@ static constexpr ecs::ComponentDesc get_data_base_ecs_query_comps[] =
   {ECS_HASH("main_database__center_of_mass_params"), ecs::ComponentTypeInfo<ecs::Point4List>()},
   {ECS_HASH("main_database__nodeMasksPath"), ecs::ComponentTypeInfo<ecs::string>()},
   {ECS_HASH("main_database__pbcWeightOverrides"), ecs::ComponentTypeInfo<ecs::Object>()},
-  {ECS_HASH("main_database__footLockerCtrlName"), ecs::ComponentTypeInfo<ecs::string>()}
+  {ECS_HASH("main_database__footLockerCtrlName"), ecs::ComponentTypeInfo<ecs::string>()},
+  {ECS_HASH("main_database__footLockerNodes"), ecs::ComponentTypeInfo<ecs::StringList>()}
 };
 static ecs::CompileTimeQueryDesc get_data_base_ecs_query_desc
 (
   "get_data_base_ecs_query",
   make_span(get_data_base_ecs_query_comps+0, 2)/*rw*/,
-  make_span(get_data_base_ecs_query_comps+2, 13)/*ro*/,
+  make_span(get_data_base_ecs_query_comps+2, 14)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
@@ -178,6 +179,7 @@ inline void get_data_base_ecs_query(Callable function)
             , ECS_RO_COMP(get_data_base_ecs_query_comps, "main_database__nodeMasksPath", ecs::string)
             , ECS_RO_COMP(get_data_base_ecs_query_comps, "main_database__pbcWeightOverrides", ecs::Object)
             , ECS_RO_COMP(get_data_base_ecs_query_comps, "main_database__footLockerCtrlName", ecs::string)
+            , ECS_RO_COMP(get_data_base_ecs_query_comps, "main_database__footLockerNodes", ecs::StringList)
             , ECS_RW_COMP(get_data_base_ecs_query_comps, "dataBase", AnimationDataBase)
             );
 

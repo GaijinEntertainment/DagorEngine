@@ -83,7 +83,7 @@ static ecs::EntitySystemDesc water_level_es_event_handler_es_desc
   ecs::EventSetBuilder<ecs::EventEntityCreated,
                        ecs::EventComponentsAppear>::build(),
   0
-,nullptr,"water__level");
+,nullptr,"water__level",nullptr,"set_water_on_level_loaded_es");
 static constexpr ecs::ComponentDesc water_fft_resolution_es_event_handler_comps[] =
 {
 //start of 1 rw components at [0]
@@ -264,14 +264,16 @@ static ecs::EntitySystemDesc water_shore_setup_es_event_handler_es_desc
 ,nullptr,",shore__enabled,shore__hmap_size,shore__rivers_width,shore__significant_wave_threshold,shore__texture_size");
 static constexpr ecs::ComponentDesc water_shore_surf_setup_es_event_handler_comps[] =
 {
-//start of 6 ro components at [0]
+//start of 8 ro components at [0]
   {ECS_HASH("shore__wave_height_to_amplitude"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("shore__amplitude_to_length"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("shore__parallelism_to_wind"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("shore__width_k"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("shore__waves_dist"), ecs::ComponentTypeInfo<Point4>()},
+  {ECS_HASH("shore__waves_depth_min"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("shore__waves_depth_fade_interval"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("shore__wave_gspeed"), ecs::ComponentTypeInfo<float>()},
-//start of 1 rq components at [6]
+//start of 1 rq components at [8]
   {ECS_HASH("water"), ecs::ComponentTypeInfo<FFTWater>()}
 };
 static void water_shore_surf_setup_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -283,6 +285,8 @@ static void water_shore_surf_setup_es_event_handler_all_events(const ecs::Event 
     , ECS_RO_COMP(water_shore_surf_setup_es_event_handler_comps, "shore__parallelism_to_wind", float)
     , ECS_RO_COMP(water_shore_surf_setup_es_event_handler_comps, "shore__width_k", float)
     , ECS_RO_COMP(water_shore_surf_setup_es_event_handler_comps, "shore__waves_dist", Point4)
+    , ECS_RO_COMP(water_shore_surf_setup_es_event_handler_comps, "shore__waves_depth_min", float)
+    , ECS_RO_COMP(water_shore_surf_setup_es_event_handler_comps, "shore__waves_depth_fade_interval", float)
     , ECS_RO_COMP(water_shore_surf_setup_es_event_handler_comps, "shore__wave_gspeed", float)
     );
   while (++comp != compE);
@@ -293,14 +297,14 @@ static ecs::EntitySystemDesc water_shore_surf_setup_es_event_handler_es_desc
   "prog/daNetGame/main/waterES.cpp.inl",
   ecs::EntitySystemOps(nullptr, water_shore_surf_setup_es_event_handler_all_events),
   empty_span(),
-  make_span(water_shore_surf_setup_es_event_handler_comps+0, 6)/*ro*/,
-  make_span(water_shore_surf_setup_es_event_handler_comps+6, 1)/*rq*/,
+  make_span(water_shore_surf_setup_es_event_handler_comps+0, 8)/*ro*/,
+  make_span(water_shore_surf_setup_es_event_handler_comps+8, 1)/*rq*/,
   empty_span(),
   ecs::EventSetBuilder<EventLevelLoaded,
                        ecs::EventEntityCreated,
                        ecs::EventComponentsAppear>::build(),
   0
-,nullptr,"shore__amplitude_to_length,shore__parallelism_to_wind,shore__wave_gspeed,shore__wave_height_to_amplitude,shore__waves_dist,shore__width_k");
+,nullptr,"shore__amplitude_to_length,shore__parallelism_to_wind,shore__wave_gspeed,shore__wave_height_to_amplitude,shore__waves_depth_fade_interval,shore__waves_depth_min,shore__waves_dist,shore__width_k");
 static constexpr ecs::ComponentDesc water_strength_es_event_handler_comps[] =
 {
 //start of 1 rw components at [0]

@@ -4,8 +4,10 @@ hlsl {
   #include "dagdp_common_placer.hlsli"
 }
 
-macro INIT_DAGDP_COMMON_PLACER()
+macro USE_DAGDP_COMMON_PLACER()
   hlsl(cs) {
+    #define NO_GRADIENTS_IN_SHADER 1
+
     uint getCounterIndex(uint renderableIndex, uint viewportIndex, uint numRenderables)
     {
       return viewportIndex * numRenderables + renderableIndex;
@@ -137,12 +139,12 @@ macro INIT_DAGDP_COMMON_PLACER()
       return placeableIndex;
     }
 
-    uint getRenderableIndex(VariantGpuData variant, uint placeableIndex, float3 instancePos, float3 viewportPos, float randScale, bool isVisible)
+    uint getRenderableIndex(VariantGpuData variant, uint placeableIndex, float3 instancePos, float3 viewportPos, float randScale)
     {
       uint rangeOffset = ~0u;
 
       FLATTEN
-      if (isVisible && (placeableIndex != ~0u)) {
+      if (placeableIndex != ~0u) {
         float dist = distance(instancePos, viewportPos) / randScale;
 
         LOOP
@@ -159,7 +161,7 @@ macro INIT_DAGDP_COMMON_PLACER()
       uint renderableIndex = ~0u;
 
       FLATTEN
-      if (isVisible && (rangeOffset != ~0u))
+      if (rangeOffset != ~0u)
         renderableIndex = structuredBufferAt(renderable_indices, variant.renderableIndicesStartIndex + rangeOffset * variant.placeableCount + placeableIndex - variant.placeableStartIndex);
 
       return renderableIndex;
@@ -169,7 +171,7 @@ endmacro
 
 // g_storage: must be `groupshared uint[N]`, N >= 2 * threadgroup_size.
 // g_cond: must be `groupshared uint`.
-macro INIT_DAGDP_COMMON_PLACER_THREADGROUP(threadgroup_size, g_storage, g_cond, useTileLimits)
+macro USE_DAGDP_COMMON_PLACER_THREADGROUP(threadgroup_size, g_storage, g_cond, useTileLimits)
   hlsl(cs) {
     bool threadGroupAnyTrue(bool cond, uint tId)
     {

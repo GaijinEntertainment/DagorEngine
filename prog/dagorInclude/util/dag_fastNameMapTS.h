@@ -64,7 +64,7 @@ public:
     return it;
   }
   int addNameId(const char *name, size_t name_len) { return addNameId(name, name_len, BaseNameMap::string_hash(name, name_len)); }
-  int addNameId(const char *name) { return addNameId(name, strlen(name)); }
+  int addNameId(const char *name) { return name ? addNameId(name, strlen(name)) : -1; }
 
   // almost full copy paste of addNameId
   // it is same as getName(addNameId(name)), but saves one lock (which can be expensive, especially in case of contention)
@@ -127,6 +127,7 @@ public:
     interlocked_relaxed_store(namesCount, 0);
     unlockWr();
   }
+  void clear() { reset(false); }
   void shrink_to_fit()
   {
     lockWr();

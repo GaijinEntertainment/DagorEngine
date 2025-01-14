@@ -791,6 +791,7 @@ namespace das
         bool                            alwaysStackWalkOnException = false;
         bool                            instrumentAllocations = false;
         bool                            failed = false;
+        bool                            verySafeContext = false;    // when true, array and table reserves don't free memory
     public:
         string                          name;
         Bitfield                        category = 0;
@@ -814,8 +815,8 @@ namespace das
         int totalVariables = 0;
         int totalFunctions = 0;
         int totalInitFunctions = 0;
-        bool     globalsOwner = true;
-        bool     sharedOwner = true;
+        bool    globalsOwner = true;
+        bool    sharedOwner = true;
     public:
         SimNode * aotInitScript = nullptr;
         bool skipLockChecks = false;

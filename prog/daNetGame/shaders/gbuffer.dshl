@@ -124,7 +124,6 @@ hlsl(code) {
     uint autoMotionVecs;
     uint sss_profile;//&SSS_PROFILE_MASK!. Currently SSS_PROFILE_EYE || 0
     uint isLandscape;
-#define GBUFFER_HAS_HERO_COCKPIT_BIT
     uint isHeroCockpit;
 
     // Dummy
@@ -522,13 +521,22 @@ macro WRITE_GBUFFER_ALBEDO_NORMAL_DECAL()
 
 endmacro
 
-
-macro INIT_READ_GBUFFER_MATERIAL_DYNAMIC_BASE(code)
+macro INIT_READ_GBUFFER_MATERIAL(code)
+  BEGIN_ONCE(material_gbuf_read_included)
   (code) { material_gbuf_read@smp2d = material_gbuf; }
+  END_ONCE()
 endmacro
 
-macro INIT_READ_GBUFFER_MATERIAL_DYNAMIC()
-  INIT_READ_GBUFFER_MATERIAL_DYNAMIC_BASE(ps)
+macro INIT_READ_DYNAMIC_FLAG(code)
+  INIT_READ_GBUFFER_MATERIAL(code)
+endmacro
+
+macro INIT_READ_AUTOGEN_MOTION_VECTOR(code)
+  INIT_READ_GBUFFER_MATERIAL(code)
+endmacro
+
+macro INIT_READ_IS_HERO_COCKPIT(code)
+  INIT_READ_GBUFFER_MATERIAL(code)
 endmacro
 
 macro INIT_READ_GBUFFER_SIMPLE_BASE(code)
@@ -544,7 +552,7 @@ endmacro
 
 macro INIT_READ_GBUFFER_BASE(code)
   INIT_READ_GBUFFER_SIMPLE_BASE(code)
-  INIT_READ_GBUFFER_MATERIAL_DYNAMIC_BASE(code)
+  INIT_READ_GBUFFER_MATERIAL(code)
 endmacro
 
 macro INIT_READ_GBUFFER()
@@ -674,8 +682,8 @@ macro USE_READ_GBUFFER_NORMAL()
   USE_READ_GBUFFER_NORMAL_BASE(ps)
 endmacro
 
-macro USE_READ_GBUFFER_MATERIAL_DYNAMIC_BASE(code)
-hlsl(code){
+macro USE_READ_DYNAMIC_FLAG(code)
+hlsl(code) {
   uint isGbufferDynamic(float2 uv)
   {
     float shadow = tex2Dlod(material_gbuf_read, float4(uv, 0, 0)).w;
@@ -683,19 +691,29 @@ hlsl(code){
     uint dynamic = shadowAndDynamic & 1;
     return dynamic;
   }
+}
+endmacro
+
+macro USE_READ_AUTOGEN_MOTION_VECTOR(code)
+hlsl(code) {
   uint autoGenMotionVectorGbuffer(float2 uv)
   {
     float shadow = tex2Dlod(material_gbuf_read, float4(uv, 0, 0)).w;
     uint shadowAndDynamic = uint(shadow * 255 + 0.1);
     return (shadowAndDynamic & 3) != 1;
   }
+}
+endmacro
+
+macro USE_READ_IS_HERO_COCKPIT(code)
+bool gbuffer_has_hero_cockpit = true;
+hlsl(code) {
   uint isGbufferHeroCockpit(float2 uv)
   {
     float shadow = tex2Dlod(material_gbuf_read, float4(uv, 0, 0)).w;
     uint shadowAndDynamic = uint(shadow * 255 + 0.1);
     return (shadowAndDynamic & 4) >> 2;
   }
-  #define GBUFFER_HAS_HERO_COCKPIT_BIT
 }
 endmacro
 

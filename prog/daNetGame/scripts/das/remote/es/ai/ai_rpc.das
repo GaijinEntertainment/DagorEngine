@@ -71,15 +71,15 @@ def get_beh_tree(eid : uint; id : uint64)
       var jv = JV({{ "name" => JV(node.name);  "typeName" => JV(node.typeName); "isReaction" => JV(node.getType == BN_REACTION)}})
       if node.getType == BN_REACTION
         let reaction = ReactionNode(*node)
-        (jv as _object)["reactionName"] = JV(*reaction |> reaction_getEventId() |> get_reaction_name())
+        insert((jv as _object), "reactionName", JV(*reaction |> reaction_getEventId() |> get_reaction_name()))
       var describe : array<JsonValue?>
       *node |> beh_node_describeDebug() <| $(name; value)
         describe |> push(JV([{JsonValue? JV(name); JV(value)}]))
-      (jv as _object)["describe"] = JV(describe)
+      insert((jv as _object), "describe", JV(describe))
       let wrapper = DebugWrapperNode(*node)
       if wrapper != null
-        (jv as _object)["id"] = JV(wrapper.id)
-        (jv as _object)["forceResult"] = JV(wrapper.forceResult)
+        insert((jv as _object), "id", JV(wrapper.id))
+        insert((jv as _object), "forceResult", JV(wrapper.forceResult))
       nodes |> push([[auto node, jv]])
 
       if node.parent == null
@@ -98,7 +98,7 @@ def get_beh_tree(eid : uint; id : uint64)
           found = true
           val as _array |> push(jv)
         if !found
-          (parentJv as _object)["children"] = JV([{auto[] jv}])
+          insert((parentJv as _object), "children", JV([{auto[] jv}]))
       return false
 
     send_response(nodes[0].jv, id)

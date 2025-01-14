@@ -48,7 +48,7 @@ public:
   virtual uint64_t getActiveCollisionObjectsBitMask() const = 0;
   virtual TMatrix getCollisionObjectsMatrix() const = 0;
   virtual dag::Span<CollisionObject> getMutableCollisionObjects() const = 0;
-  virtual void prepareCollisions(daphys::SolverBodyInfo &body1, daphys::SolverBodyInfo &body2, bool first_body,
+  virtual void prepareCollisions(daphys::SolverBodyInfo &body1, daphys::SolverBodyInfo &body2, bool first_body, float friction,
     dag::Span<gamephys::CollisionContactData> contacts, dag::Span<gamephys::SeqImpulseInfo> collisions) const = 0;
   virtual const gamephys::Loc &getVisualStateLoc() const = 0;
   virtual const gamephys::Loc &getCurrentStateLoc() const = 0;

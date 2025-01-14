@@ -754,7 +754,8 @@ public:
 
   virtual void addCollisionToWorld() {}
   virtual void prepareCollisions(daphys::SolverBodyInfo & /*body1*/, daphys::SolverBodyInfo & /*body2*/, bool /*first_body*/,
-    dag::Span<gamephys::CollisionContactData> /*contacts*/, dag::Span<gamephys::SeqImpulseInfo> /*collisions*/) const
+    float /*friction*/, dag::Span<gamephys::CollisionContactData> /*contacts*/,
+    dag::Span<gamephys::SeqImpulseInfo> /*collisions*/) const
   {}
 
   void saveProducedCTAsUnapproved(int tick)

@@ -7,6 +7,8 @@
 #include "buffer_resource.h"
 #include "image_resource.h"
 #include "vk_to_string.h"
+#include "backend.h"
+#include "wrapped_command_buffer.h"
 
 using namespace drv3d_vulkan;
 
@@ -30,9 +32,8 @@ RetStructType &nextCacheElement(Tab<RetStructType> &cacheArr, uint32_t &index, c
 
 } // namespace
 
-PipelineBarrier::PipelineBarrier(const VulkanDevice &in_device, BarrierCache &in_cache, VkPipelineStageFlags src_stages,
-  VkPipelineStageFlags dst_stages) :
-  device(in_device), pipeStages({src_stages, dst_stages}), cache(in_cache), dependencyFlags(0)
+PipelineBarrier::PipelineBarrier(BarrierCache &in_cache, VkPipelineStageFlags src_stages, VkPipelineStageFlags dst_stages) :
+  pipeStages({src_stages, dst_stages}), cache(in_cache), dependencyFlags(0)
 {
 #if DAGOR_DBGLEVEL > 0
   G_ASSERT(!cache.inUse);
@@ -201,44 +202,44 @@ void PipelineBarrier::revertImageBarriers(AccessFlags mask, VkImageLayout shared
   }
 }
 
-void PipelineBarrier::submitSplitted(VulkanCommandBufferHandle cmd_buffer)
+void PipelineBarrier::submitSplitted()
 {
   if (barriersCount.mem)
   {
     TIME_PROFILE(vulkan_barrier_s_mem);
-    device.vkCmdPipelineBarrier(cmd_buffer, pipeStages.src, pipeStages.dst, dependencyFlags, barriersCount.mem, safe_at(cache.mem, 0),
-      0, nullptr, 0, nullptr);
+    Backend::cb.wCmdPipelineBarrier(pipeStages.src, pipeStages.dst, dependencyFlags, barriersCount.mem, safe_at(cache.mem, 0), 0,
+      nullptr, 0, nullptr);
   }
 
   if (barriersCount.buffer)
   {
     TIME_PROFILE(vulkan_barrier_s_buf);
     for (int i = 0; i < barriersCount.buffer; ++i)
-      device.vkCmdPipelineBarrier(cmd_buffer, pipeStages.src, pipeStages.dst, dependencyFlags, 0, nullptr, 1, safe_at(cache.buffer, i),
-        0, nullptr);
+      Backend::cb.wCmdPipelineBarrier(pipeStages.src, pipeStages.dst, dependencyFlags, 0, nullptr, 1, safe_at(cache.buffer, i), 0,
+        nullptr);
   }
 
   if (barriersCount.image)
   {
     TIME_PROFILE(vulkan_barrier_s_img);
     for (int i = 0; i < barriersCount.image; ++i)
-      device.vkCmdPipelineBarrier(cmd_buffer, pipeStages.src, pipeStages.dst, dependencyFlags, 0, nullptr, 0, nullptr, 1,
+      Backend::cb.wCmdPipelineBarrier(pipeStages.src, pipeStages.dst, dependencyFlags, 0, nullptr, 0, nullptr, 1,
         safe_at(cache.image, i));
   }
 }
 
-void PipelineBarrier::submit(VulkanCommandBufferHandle cmd_buffer, bool keep_cache)
+void PipelineBarrier::submit(bool keep_cache)
 {
   // don't check src, src none barrier is ok
   G_ASSERT(pipeStages.dst);
 
 #if DAGOR_DBGLEVEL > 0
   if (dbgUseSplitSubmits)
-    submitSplitted(cmd_buffer);
+    submitSplitted();
   else
 #endif
   {
-    device.vkCmdPipelineBarrier(cmd_buffer, pipeStages.src, pipeStages.dst, dependencyFlags, barriersCount.mem, safe_at(cache.mem, 0),
+    Backend::cb.wCmdPipelineBarrier(pipeStages.src, pipeStages.dst, dependencyFlags, barriersCount.mem, safe_at(cache.mem, 0),
       barriersCount.buffer, safe_at(cache.buffer, 0), barriersCount.image, safe_at(cache.image, 0));
   }
 

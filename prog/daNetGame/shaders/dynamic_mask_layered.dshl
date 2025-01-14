@@ -109,9 +109,7 @@ shader dynamic_mask_layered
       void vs_post_function(VsInput input, inout VsOutput output)
       {
         #if COLOR_NEEDED
-          float4 hashval;
-          get_per_instance_data(hashval, 1);
-          output.colorMul = getColorMul(asuint(hashval.x));
+          output.colorMul = getColorMul(get_per_instance_hashval());
         #endif
         output.pointToEye.w = 1.0;
         output.uv12.xy = input.uv0 * (1.0 / 4096.0);

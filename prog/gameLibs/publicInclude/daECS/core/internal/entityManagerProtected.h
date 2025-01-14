@@ -826,13 +826,7 @@ struct DelayedEntityCreation
     G_FAST_ASSERT(!isToDestroy());
   }
   DelayedEntityCreation(EntityId eid_) : eid(eid_) {}
-  void clear()
-  {
-    decltype(compInit)().swap(compInit);
-    decltype(compMap)().swap(compMap);
-    decltype(cb)().swap(cb);
-    templateName.clear();
-  }
+  void clear();
 };
 struct DelayedEntityCreationChunk
 {

@@ -90,7 +90,8 @@ public:
       return true;
 
     TEXTUREID texIdY, texIdU, texIdV;
-    if (player->getFrame(texIdY, texIdU, texIdV))
+    d3d::SamplerHandle smp;
+    if (player->getFrame(texIdY, texIdU, texIdV, smp))
     {
       yuvframerender::l = obj->re->pos.x + obj->re->padding.left;
       yuvframerender::t = obj->re->pos.y + obj->re->padding.top;
@@ -98,7 +99,7 @@ public:
       yuvframerender::b = obj->re->pos.y + obj->re->padding.bottom + obj->re->size.y;
 
       yuvframerender::startRender();
-      yuvframerender::render(texIdY, texIdU, texIdV);
+      yuvframerender::render(texIdY, texIdU, texIdV, smp);
       StdGuiRender::flush_data();
       yuvframerender::endRender();
       player->onCurrentFrameDispatched();

@@ -46,7 +46,6 @@ using ScriptedShadersBinDumpV2 = bindump::Mapper<shader_layout::ScriptedShadersB
 using ScriptedShadersBinDumpV3 = bindump::Mapper<shader_layout::ScriptedShadersBinDumpV3>;
 using StrHolder = bindump::Mapper<bindump::StrHolder>;
 
-static constexpr size_t MAX_BINDUMP_SHADERVARS = 4096;
 static constexpr uint32_t SHADERVAR_IDX_ABSENT = 0xFFFE;
 static constexpr uint32_t SHADERVAR_IDX_INVALID = 0xFFFF;
 
@@ -81,12 +80,23 @@ struct ScriptedShadersBinDumpOwner
   Tab<int16_t> globVarIntervalIdx;
   Tab<uint8_t> globIntervalNormValues;
 
+  dag::Vector<int> vprId;
+  dag::Vector<int> fshId;
+
   // Runtime map name id -> internal dump id
-  eastl::array<uint16_t, MAX_BINDUMP_SHADERVARS> varIndexMap, globvarIndexMap;
+  // @NOTE: have to set size on construction, cause das AOT accesses these arrays in funciton simulation without intializing the
+  // bindump, which is quite weird
+  //
+  // @TODO: fix aot sim instead
+  Tab<uint16_t> varIndexMap = Tab<uint16_t>(DEFAULT_MAX_SHVARS);
+  Tab<uint16_t> globvarIndexMap = Tab<uint16_t>(DEFAULT_MAX_SHVARS);
 
   auto getDecompressionDict() { return mDictionary.get(); }
+  size_t maxShadervarCnt() const { return varIndexMap.size(); }
 
 private:
+  static constexpr size_t DEFAULT_MAX_SHVARS = 4096;
+
   struct DecompressedGroup
   {
     Tab<uint8_t> decompressed_data;
@@ -107,7 +117,7 @@ private:
   void loadDecompressedShader(uint16_t group_id, uint16_t index_in_group, ShaderBytecode &tmpbuf);
   void storeDecompressedGroup(uint16_t group_id, DecompressedGroup &&decompressed_group);
 
-  void initVarIndexMaps();
+  void initVarIndexMaps(size_t max_shadervar_cnt);
 
   struct ZstdDictionaryDeleter
   {

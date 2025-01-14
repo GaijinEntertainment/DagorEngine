@@ -15,15 +15,20 @@ namespace ecs
 {
 
 typedef void (*UpdateFuncType)(const UpdateStageInfo &info, const QueryView &components);
-// typedef void (*EventFuncType)(const Event &evt, const QueryView& components);
 typedef void (*EventFuncType)(const Event &evt, const QueryView &components);
+typedef void (*RWEventFuncType)(Event &evt, const QueryView &components);
 
 struct EntitySystemOps
 {
   UpdateFuncType onUpdate;
-  EventFuncType onEvent;
+  union
+  {
+    EventFuncType onEvent;
+    RWEventFuncType onRWEvent;
+  };
 
   EntitySystemOps(UpdateFuncType upf, EventFuncType evf = NULL) : onUpdate(upf), onEvent(evf) {}
+  EntitySystemOps(UpdateFuncType upf, RWEventFuncType evf) : onUpdate(upf), onRWEvent(evf) {}
 
   bool empty() const { return !onUpdate && !onEvent; }
 };

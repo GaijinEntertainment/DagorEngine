@@ -146,7 +146,7 @@ half3 fresnelFresnel( half3 specularColor, half VoH )
 
 half3 getRoughReflectionVec(half3 R, half3 normal, half ggx_alpha)//alpha = pow2(linear_roughness)
 {
-  return lerp( normal, R, (1 - ggx_alpha) * ( sqrt(1 - ggx_alpha) + ggx_alpha ) );
+  return lerp( normal, R, (1.h - ggx_alpha) * ( sqrt(1.h - ggx_alpha) + ggx_alpha ) );
 }
 
 #endif

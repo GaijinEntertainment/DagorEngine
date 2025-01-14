@@ -27,10 +27,8 @@ class EachBitfieldMacro : AstFunctionAnnotation
     //!         return false
     def override transform ( var call : smart_ptr<ExprCallFunc>; var errors : das_string ) : ExpressionPtr
         var inscope yields : array<ExpressionPtr>
-        let field_names = build_string <| $(wr)
-            for name in call.arguments[0]._type.argNames
-                wr |> write("`") |> write(name)
-                yields |> emplace_new <| qmacro_expr(${ yield $v(string(name)); })
+        for name in call.arguments[0]._type.argNames
+            yields |> emplace_new <| qmacro_expr(${ yield $v(string(name)); })
         let call_name = "field`names"
         var inscope qfn <- qmacro_function(call_name) <|
             return <- generator<string>() <|

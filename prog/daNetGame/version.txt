@@ -1,0 +1,4 @@
+# When you need to force rebuild of all dng-based projects after your commit is merged - just increase version here.
+# And build-server will do all magic for you.
+
+Version = 1

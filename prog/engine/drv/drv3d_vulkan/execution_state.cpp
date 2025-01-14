@@ -20,9 +20,6 @@ void ExecutionStateStorage::clearDirty()
   graphics.clearDirty();
   compute.clearDirty();
   scopes.clearDirty();
-#if D3D_HAS_RAY_TRACING
-  raytrace.clearDirty();
-#endif
 }
 
 void ExecutionStateStorage::makeDirty()
@@ -30,9 +27,6 @@ void ExecutionStateStorage::makeDirty()
   graphics.makeDirty();
   compute.makeDirty();
   scopes.makeDirty();
-#if D3D_HAS_RAY_TRACING
-  raytrace.makeDirty();
-#endif
   invalidateResBinds();
 }
 

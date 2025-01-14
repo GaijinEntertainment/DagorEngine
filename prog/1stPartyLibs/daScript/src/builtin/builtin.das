@@ -99,7 +99,19 @@ def pop(var Arr:array<auto(numT)>)
     unsafe(resize(Arr, length(Arr)-1))  // resize will throw if negative
 
 [unused_argument(Arr, value)]
-def push(var Arr:array<auto(numT)>;value:numT-# const;at:int)
+def push(var Arr:array<auto(numT)>;value:numT-# const ==const;at:int)
+    static_if typeinfo(can_copy value)
+        static_if typeinfo(need_lock_check type<numT>)
+            _builtin_verify_locks(Arr)
+        static_if typeinfo(can_clone_from_const value)
+            Arr[__builtin_array_push(Arr,at,typeinfo(sizeof Arr[0]))] = value
+        else
+            concept_assert(false,"can't push value, which can't be cloned from const")
+    else
+        concept_assert(false,"can't push value, which can't be copied")
+
+[unused_argument(Arr, value)]
+def push(var Arr:array<auto(numT)>;var value:numT-# ==const;at:int)
     static_if typeinfo(can_copy value)
         static_if typeinfo(need_lock_check type<numT>)
             _builtin_verify_locks(Arr)
@@ -108,16 +120,41 @@ def push(var Arr:array<auto(numT)>;value:numT-# const;at:int)
         concept_assert(false,"can't push value, which can't be copied")
 
 [unused_argument(Arr, value)]
-def push(var Arr:array<auto(numT)>;value:numT-# const)
+def push(var Arr:array<auto(numT)>;value:numT-# const ==const)
     static_if typeinfo(can_copy value)
         static_if typeinfo(need_lock_check type<numT>)
             _builtin_verify_locks(Arr)
-        Arr[__builtin_array_push_back(Arr,typeinfo(sizeof Arr[0]))] = unsafe(reinterpret<numT-#-const>(value))
+        static_if typeinfo(can_clone_from_const value)
+            Arr[__builtin_array_push_back(Arr,typeinfo(sizeof Arr[0]))] = value
+        else
+            concept_assert(false,"can't push value, which can't be cloned from const")
     else
         concept_assert(false,"can't push value, which can't be copied")
 
 [unused_argument(Arr, value)]
-def push(var Arr:array<auto(numT)>; varr:array<numT>-#)
+def push(var Arr:array<auto(numT)>;var value:numT-# ==const)
+    static_if typeinfo(can_copy value)
+        static_if typeinfo(need_lock_check type<numT>)
+            _builtin_verify_locks(Arr)
+        Arr[__builtin_array_push_back(Arr,typeinfo(sizeof Arr[0]))] = value
+    else
+        concept_assert(false,"can't push value, which can't be copied")
+
+[unused_argument(Arr, value)]
+def push(var Arr:array<auto(numT)>; varr:array<numT-#> ==const)
+    static_if typeinfo(can_copy type<numT>)
+        static_if typeinfo(need_lock_check type<numT>)
+            _builtin_verify_locks(Arr)
+        static_if typeinfo(can_clone_from_const varr[0])
+            for t in varr
+                Arr[__builtin_array_push_back(Arr,typeinfo(sizeof Arr[0]))] = t
+        else
+            concept_assert(false,"can't push value, which can't be cloned from const")
+    else
+        concept_assert(false,"can't push value, which can't be copied")
+
+[unused_argument(Arr, value)]
+def push(var Arr:array<auto(numT)>; var varr:array<numT-#> ==const)
     static_if typeinfo(can_copy type<numT>)
         static_if typeinfo(need_lock_check type<numT>)
             _builtin_verify_locks(Arr)
@@ -137,7 +174,22 @@ def push(var Arr:array<auto(numT)>; varr:numT[]-#)
         concept_assert(false,"can't push value, which can't be copied")
 
 [unused_argument(Arr, value)]
-def push(var Arr:array<auto(numT)[]>; varr:numT[]-#)
+def push(var Arr:array<auto(numT)[]>; varr:numT[]-# ==const)
+    static_if typeinfo(can_copy type<numT>)
+        static_if typeinfo(sizeof Arr[0])==typeinfo(sizeof varr)
+            static_if typeinfo(need_lock_check type<numT>)
+                _builtin_verify_locks(Arr)
+            static_if typeinfo(can_clone_from_const varr)
+                Arr[__builtin_array_push_back(Arr,typeinfo(sizeof Arr[0]))] = varr
+            else
+                concept_assert(false,"can't push array of different size")
+        else
+            concept_assert(false,"can't push array of different size")
+    else
+        concept_assert(false,"can't push value, which can't be copied")
+
+[unused_argument(Arr, value)]
+def push(var Arr:array<auto(numT)[]>; var varr:numT[]-# ==const)
     static_if typeinfo(can_copy type<numT>)
         static_if typeinfo(sizeof Arr[0])==typeinfo(sizeof varr)
             static_if typeinfo(need_lock_check type<numT>)
@@ -188,7 +240,20 @@ def emplace(var Arr:array<auto(numT)[]>;var value:numT[]-#)
     else
         concept_assert(false,"can't emplace value, which can't be moved")
 
-def push_clone(var Arr:array<auto(numT)>;value:numT|#;at:int)
+[unused_argument(Arr, value, at)]
+def push_clone(var Arr:array<auto(numT)>;value:numT ==const|#;at:int)
+    static_if typeinfo(can_clone value)
+        static_if typeinfo(need_lock_check type<numT>)
+            _builtin_verify_locks(Arr)
+        static_if typeinfo(can_clone_from_const value)
+            Arr[__builtin_array_push_zero(Arr,at,typeinfo(sizeof Arr[0]))] := value
+        else
+            concept_assert(false,"can't push-clone value, which can't be cloned from const")
+    else
+        concept_assert(false,"can't push-clone value, which can't be cloned")
+
+[unused_argument(Arr, value, at)]
+def push_clone(var Arr:array<auto(numT)>;var value:numT ==const|#;at:int)
     static_if typeinfo(can_clone value)
         static_if typeinfo(need_lock_check type<numT>)
             _builtin_verify_locks(Arr)
@@ -196,7 +261,20 @@ def push_clone(var Arr:array<auto(numT)>;value:numT|#;at:int)
     else
         concept_assert(false,"can't push-clone value, which can't be cloned")
 
-def push_clone(var Arr:array<auto(numT)>;value:numT|#)
+[unused_argument(Arr, value)]
+def push_clone(var Arr:array<auto(numT)>;value:numT ==const|#)
+    static_if typeinfo(can_clone value)
+        static_if typeinfo(need_lock_check type<numT>)
+            _builtin_verify_locks(Arr)
+        static_if typeinfo(can_clone_from_const value)
+            Arr[__builtin_array_push_back_zero(Arr,typeinfo(sizeof Arr[0]))] := value
+        else
+            concept_assert(false,"can't push-clone value, which can't be cloned from const")
+    else
+        concept_assert(false,"can't push-clone value, which can't be cloned")
+
+[unused_argument(Arr, value)]
+def push_clone(var Arr:array<auto(numT)>;var value:numT ==const|#)
     static_if typeinfo(can_clone value)
         static_if typeinfo(need_lock_check type<numT>)
             _builtin_verify_locks(Arr)
@@ -204,7 +282,21 @@ def push_clone(var Arr:array<auto(numT)>;value:numT|#)
     else
         concept_assert(false,"can't push-clone value, which can't be cloned")
 
-def push_clone(var Arr:array<auto(numT)>; varr:numT[])
+[unused_argument(Arr, value)]
+def push_clone(var Arr:array<auto(numT)>; varr:numT[] ==const)
+    static_if typeinfo(can_clone type<numT>)
+        static_if typeinfo(need_lock_check type<numT>)
+            _builtin_verify_locks(Arr)
+        static_if typeinfo(can_clone_from_const varr[0])
+            for t in varr
+                Arr[__builtin_array_push_back(Arr,typeinfo(sizeof Arr[0]))] := t
+        else
+            concept_assert(false,"can't push-clone value, which can't be cloned from const")
+    else
+        concept_assert(false,"can't push_clone value, which can't be cloned")
+
+[unused_argument(Arr, value)]
+def push_clone(var Arr:array<auto(numT)>; var varr:numT[] ==const)
     static_if typeinfo(can_clone type<numT>)
         static_if typeinfo(need_lock_check type<numT>)
             _builtin_verify_locks(Arr)
@@ -213,7 +305,24 @@ def push_clone(var Arr:array<auto(numT)>; varr:numT[])
     else
         concept_assert(false,"can't push_clone value, which can't be cloned")
 
-def push_clone(var Arr:array<auto(numT)[]>; varr:numT[])
+[unused_argument(Arr, value)]
+def push_clone(var Arr:array<auto(numT)[]>; varr:numT[] ==const)
+    static_if typeinfo(can_copy type<numT>)
+        static_if typeinfo(sizeof Arr[0])==typeinfo(sizeof varr)
+            static_if typeinfo(need_lock_check type<numT>)
+                _builtin_verify_locks(Arr)
+            if typeinfo(can_clone_from_const varr)
+                for t in varr
+                    Arr[__builtin_array_push_back(Arr,typeinfo(sizeof Arr[0]))] := t
+            else
+                concept_assert(false,"can't push-clone value, which can't be cloned from const")
+        else
+            concept_assert(false,"can't push_clone array of different size")
+    else
+        concept_assert(false,"can't push value, which can't be cloned")
+
+[unused_argument(Arr, value)]
+def push_clone(var Arr:array<auto(numT)[]>; var varr:numT[])
     static_if typeinfo(can_copy type<numT>)
         static_if typeinfo(sizeof Arr[0])==typeinfo(sizeof varr)
             static_if typeinfo(need_lock_check type<numT>)
@@ -387,6 +496,29 @@ def get(Tab:table<auto(keyT)>;at:keyT|#;blk:block<(var p:void?):void>)
     concept_assert(false,"get(table<keyT>, ...) is not supported; use 'key_exists' instead")
     return false
 
+def get_value(Tab:table<auto(keyT);auto(valT)> ==const;at:keyT|#):valT
+    concept_assert(false,"can't get value from const table, use Tab?[key] or 'get' instead")
+    return type<valT>
+
+def get_value(var Tab:table<auto(keyT);smart_ptr<auto(valT)>>;at:keyT|#):smart_ptr<valT>
+    concept_assert(false,"can't get smart_ptr value from table, use clone_value instead")
+    return <- [[smart_ptr<valT>]]
+
+def get_value(var Tab:table<auto(keyT);auto(valT)>;at:keyT|#):valT
+    static_if typeinfo(is_void type<valT>)
+        concept_assert(false,"can't get value, which is void")
+        return type<valT>
+    static_elif typeinfo(can_copy type<valT>)
+        return unsafe(Tab[at])
+    else
+        concept_assert(false,"can't get value, which can't be copied")
+        return type<valT>
+
+def clone_value(var Tab:table<auto(keyT);smart_ptr<auto(valT)>>;at:keyT|#):smart_ptr<valT>
+    unsafe
+        var t := Tab[at]
+        return <- t
+
 // find if exists
 
 [deprecated(message="use tab?[key] or 'get' instead")]
@@ -489,6 +621,52 @@ def erase(var Tab:table<auto(keyT);auto(valT)>;at:keyT|#):bool
 def insert(var Tab:table<auto(keyT)>;at:keyT|#)
     __builtin_table_set_insert(Tab,at)
 
+def insert_clone(var Tab:table<auto(keyT);auto(valT)>;at:keyT|#;var val:valT ==const|#)
+    static_if typeinfo(can_clone val)
+        unsafe(Tab[at]) := val
+    else
+        concept_assert(false,"can't insert value, which can't be cloned")
+
+def insert_clone(var Tab:table<auto(keyT);auto(valT)>;at:keyT|#;val:valT ==const|#)
+    static_if typeinfo(can_clone val)
+        if typeinfo(can_clone_from_const val)
+            unsafe(Tab[at]) := val
+        else
+            concept_assert(false,"can't insert value, which can't be cloned from const")
+    else
+        concept_assert(false,"can't insert value, which can't be cloned")
+
+def insert(var Tab:table<auto(keyT);auto(valT)>;at:keyT|#;var val:valT ==const|#)
+    static_if typeinfo(can_copy type<valT>)
+        unsafe(Tab[at]) = val
+    else
+        concept_assert(false,"can't insert value, which can't be copied")
+
+def insert(var Tab:table<auto(keyT);auto(valT)>;at:keyT|#;val:valT ==const|#)
+    static_if typeinfo(can_copy type<valT>)
+        static_if typeinfo(can_clone_from_const val)
+            unsafe(Tab[at]) = val
+        else
+            concept_assert(false,"can't insert value, which can't be cloned from const")
+    else
+        concept_assert(false,"can't insert value, which can't be copied")
+
+def emplace(var Tab:table<auto(keyT);auto(valT)>;at:keyT|#;var val:valT-#&)
+    static_if typeinfo(can_move val)
+        unsafe(Tab[at]) <- val
+    else
+        concept_assert(false,"can't emplace value, which can't be moved")
+
+def emplace(var Tab:table<auto(keyT);smart_ptr<auto(valT)>>;at:keyT|#;var val:smart_ptr<valT>&)
+    static_if typeinfo(can_move val)
+        unsafe
+            Tab[at] <- val
+    else
+        concept_assert(false,"can't emplace value, which can't be moved")
+
+def emplace_new ( var tab : table<auto(kT); smart_ptr<auto(vT)>>; key : kT; var value : smart_ptr<vT> )
+    unsafe(tab[key]) |> move_new <| value
+
 def key_exists(Tab:table<auto(keyT);auto(valT)>|#;at:string#):bool
     let at_nt := at
     return __builtin_table_key_exists(Tab,at_nt)
@@ -569,13 +747,13 @@ def clone(var a:table<string>;b:table<string>|#)
 def clone(var a:table<auto(KT);auto(VT)>;b:table<KT;VT>|#)
     clear(a)
     for k,v in keys(b),values(b)
-        a[k] := v
+        unsafe(a[k]) := v
 
 def clone(var a:table<string;auto(VT)>;b:table<string;VT>|#)
     clear(a)
     for k,v in keys(b),values(b)
         let kk := k
-        a[kk] := v
+        unsafe(a[kk]) := v
 
 [unsafe_outside_of_for,nodiscard]
 def keys(a:table<auto(keyT);auto(valT)>|#) : iterator<keyT - const>
@@ -780,7 +958,7 @@ def to_array_move(var a:auto(TT) ==const) : array<TT -const>
 def to_table(a:tuple<auto(keyT);auto(valT)>[]) : table<keyT -const;valT>
     var tab : table<keyT -const;valT>
     for x in a
-        tab[x._0] := x._1
+        unsafe(tab[x._0]) := x._1
     return <- tab
 
 [skip_lock_check]
@@ -814,9 +992,9 @@ def to_table_move(a:auto(keyT)) : table<keyT -const>
 def to_table_move(var a:tuple<auto(keyT);auto(valT)>) : table<keyT -const;valT>
     var tab : table<keyT -const;valT>
     static_if typeinfo(can_copy type<valT>)
-        tab[a._0] = a._1
+        unsafe(tab[a._0]) = a._1
     static_elif typeinfo(can_move type<valT>)
-        tab[a._0] <- a._1
+        unsafe(tab[a._0]) <- a._1
     else
         concept_assert(false,"this array can't be copied or moved")
     return <- tab
@@ -826,10 +1004,10 @@ def to_table_move(var a:tuple<auto(keyT);auto(valT)>[]) : table<keyT -const;valT
     var tab : table<keyT -const;valT>
     static_if typeinfo(can_copy type<valT>)
         for x in a
-            tab[x._0] = x._1
+            unsafe(tab[x._0]) = x._1
     static_elif typeinfo(can_move type<valT>)
         for x in a
-            tab[x._0] <- x._1
+            unsafe(tab[x._0]) <- x._1
     else
         concept_assert(false,"this array can't be copied or moved")
     return <- tab
@@ -839,10 +1017,10 @@ def to_table_move(var a:array<tuple<auto(keyT);auto(valT)>>) : table<keyT -const
     var tab : table<keyT -const;valT>
     static_if typeinfo(can_copy type<valT>)
         for x in a
-            tab[x._0] = x._1
+            unsafe(tab[x._0]) = x._1
     static_elif typeinfo(can_move type<valT>)
         for x in a
-            tab[x._0] <- x._1
+            unsafe(tab[x._0]) <- x._1
     else
         concept_assert(false,"this array can't be copied or moved")
     return <- tab

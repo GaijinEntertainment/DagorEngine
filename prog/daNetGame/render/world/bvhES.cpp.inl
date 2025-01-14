@@ -21,6 +21,7 @@
 #include <render/fx/fxRenderTags.h>
 #include <render/cables.h>
 #include <shaders/dag_shaderBlock.h>
+#include "frameGraphNodes/frameGraphNodes.h"
 
 #include <daECS/core/coreEvents.h>
 #include <daECS/core/entitySystem.h>
@@ -191,27 +192,36 @@ bool is_bvh_enabled()
 {
   // Allow for debugging in the ImGUI window, even with no render features
   constexpr bool isDebug = DAGOR_DBGLEVEL > 0;
-  static bool isEnabled = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("enableBVH", false) && isDebug;
-  return (bvh::is_available() && isEnabled) || is_rtsm_enabled() || is_rtr_enabled() || is_rtao_enabled();
+  static bool isEnabled =
+    isDebug && bvh::is_available() && dgs_get_settings()->getBlockByNameEx("graphics")->getBool("enableBVH", false);
+  return isEnabled || is_rtsm_enabled() || is_rtr_enabled() || is_rtao_enabled() || is_rt_water_enabled();
 }
 
 bool is_rtsm_enabled()
 {
-  const char *rtsmSetting = dgs_get_settings()->getBlockByNameEx("graphics")->getStr("enableRTSM", "off");
-  static bool isEnabled = strcmp(rtsmSetting, "sun_and_dynamic") == 0 || strcmp(rtsmSetting, "sun") == 0;
-  return bvh::is_available() && isEnabled;
+  static bool isEnabled = [] {
+    const char *rtsmSetting = dgs_get_settings()->getBlockByNameEx("graphics")->getStr("enableRTSM", "off");
+    return bvh::is_available() && (strcmp(rtsmSetting, "sun_and_dynamic") == 0 || strcmp(rtsmSetting, "sun") == 0);
+  }();
+  return isEnabled;
 }
 
 bool is_rtr_enabled()
 {
-  static bool isEnabled = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("enableRTR", false);
-  return bvh::is_available() && isEnabled;
+  static bool isEnabled = bvh::is_available() && dgs_get_settings()->getBlockByNameEx("graphics")->getBool("enableRTR", false);
+  return isEnabled;
 }
 
 bool is_rtao_enabled()
 {
-  static bool isEnabled = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("enableRTAO", false);
-  return bvh::is_available() && isEnabled;
+  static bool isEnabled = bvh::is_available() && dgs_get_settings()->getBlockByNameEx("graphics")->getBool("enableRTAO", false);
+  return isEnabled;
+}
+
+bool is_rt_water_enabled()
+{
+  static bool isEnabled = bvh::is_available() && dgs_get_settings()->getBlockByNameEx("graphics")->getBool("RTRWater", false);
+  return isEnabled;
 }
 
 bool is_denoiser_enabled() { return is_rtsm_enabled() || is_rtr_enabled() || is_rtao_enabled(); }
@@ -223,6 +233,7 @@ void bvh_cables_changed() { cablesChanged = true; }
 static void update_fx_for_bvh()
 {
   TIME_D3D_PROFILE(bvh_fx)
+  d3d::set_render_target(Driver3dRenderTarget{});
   fxBvhConnection->prepare();
   dafx::render(acesfx::get_dafx_context(), acesfx::get_cull_bvh_id(), render_tags[ERT_TAG_BVH], 0,
     [](TEXTUREID id) { fxBvhConnection->textureUsed(id); });
@@ -239,9 +250,9 @@ static dabfg::NodeHandle makeBVHUpdateNode()
     auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
     registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
     registry.readBlob<OrderingToken>("acesfx_update_token");
-    auto dummyTex = registry.createTexture2d("bvh_fx_dummy_target", dabfg::History::No, {TEXFMT_R8 | TEXCF_RTARGET, IPoint2(1, 1)});
-    registry.requestRenderPass().color({dummyTex});
-    return [cameraHndl]() {
+    auto rtWaterHndl = registry.createBlob<int>("water_rt_enabled", dabfg::History::No).handle();
+    return [cameraHndl, rtWaterHndl]() {
+      rtWaterHndl.ref() = is_rt_water_enabled();
       RiGenVisibility *visibility = get_bvh_rigen_visibility();
       Point3 cameraPos = Point3::xyz(cameraHndl.ref().cameraWorldPos);
       set_viewvecs_to_shader(cameraHndl.ref().viewTm, cameraHndl.ref().jitterProjTm);
@@ -389,6 +400,62 @@ static dabfg::NodeHandle makeRTAONode()
   });
 }
 
+static ShaderVariableInfo water_rt_frame_indexVarId = ShaderVariableInfo("water_rt_frame_index", true);
+
+const eastl::array<char const *, eastl::to_underlying(WaterRenderMode::COUNT)> WATER_RT_NODE_NAMES = {
+  "water_rt_early_before_envi_node", "water_rt_early_after_envi_node", "water_rt_late_node"};
+
+dabfg::NodeHandle makeWaterRTNode(WaterRenderMode mode)
+{
+  if (!is_rt_water_enabled())
+    return {};
+  const uint32_t modeIdx = eastl::to_underlying(mode);
+  return dabfg::register_node(WATER_RT_NODE_NAMES[modeIdx], DABFG_PP_NODE_SRC, [mode, modeIdx](dabfg::Registry registry) {
+    registry.readBlob<OrderingToken>("bvh_ready_token");
+    auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
+    registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
+
+    auto waterModeHndl = registry.readBlob<WaterRenderMode>("water_render_mode").handle();
+
+    registry.read(WATER_REFLECT_DIR_TEX[modeIdx]).texture().atStage(dabfg::Stage::CS).bindToShaderVar("water_reflect_dir");
+    registry.modify(WATER_SSR_COLOR_TEX[modeIdx + 1]).texture().atStage(dabfg::Stage::CS).bindToShaderVar("water_reflection_tex_uav");
+    registry.modify(WATER_SSR_STRENGTH_TEX[modeIdx + 1])
+      .texture()
+      .atStage(dabfg::Stage::CS)
+      .bindToShaderVar("water_reflection_strength_tex_uav");
+
+    registry.historyFor(WATER_SSR_COLOR_TEX[eastl::to_underlying(WaterRenderMode::COUNT)])
+      .texture()
+      .atStage(dabfg::Stage::CS)
+      .bindToShaderVar("water_reflection_tex");
+    registry.historyFor(WATER_SSR_STRENGTH_TEX[eastl::to_underlying(WaterRenderMode::COUNT)])
+      .texture()
+      .atStage(dabfg::Stage::CS)
+      .bindToShaderVar("water_reflection_strength_tex");
+    registry.read("water_ssr_linear_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("water_reflection_tex_samplerstate");
+
+    registry.read(WATER_SSR_DEPTH_TEX[modeIdx + 1]).texture().atStage(dabfg::Stage::CS).bindToShaderVar("downsampled_depth");
+
+    auto resHndl = registry.getResolution<2>("main_view", 0.5f);
+
+    return [mode, waterModeHndl, resHndl, cameraHndl, water_rt = Ptr(new_compute_shader("raytraced_water_reflections")),
+             rtr_shadowVarId = get_shader_variable_id("rtr_shadow"), rtr_use_csmVarId = get_shader_variable_id("rtr_use_csm")]() {
+      if (waterModeHndl.ref() != mode)
+        return;
+      static int frameIdx = 0;
+      ShaderGlobal::set_int(water_rt_frame_indexVarId, (frameIdx++) % 32);
+      ShaderGlobal::set_color4(sun_dir_for_shadowsVarId, ShaderGlobal::get_color4(from_sun_directionVarId)); // For WT compatibility
+      set_viewvecs_to_shader(cameraHndl.ref().viewTm, cameraHndl.ref().jitterProjTm);
+      ShaderGlobal::set_int(rtr_shadowVarId, rtr_shadow ? 1 : 0);
+      ShaderGlobal::set_int(rtr_use_csmVarId, rtr_use_csm ? 1 : 0);
+      IPoint2 res = resHndl.get();
+      bvh::bind_resources(bvhRenderingContextId, res.x);
+      rtr::set_water_params();
+      water_rt->dispatchThreads(res.x, res.y, 1);
+    };
+  });
+}
+
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
 static void init_bvh_scene_es(const ecs::Event &,
@@ -397,6 +464,9 @@ static void init_bvh_scene_es(const ecs::Event &,
   dabfg::NodeHandle &rtsm_node,
   dabfg::NodeHandle &rtr_node,
   dabfg::NodeHandle &rtao_node,
+  dabfg::NodeHandle &water_rt_early_before_envi_node,
+  dabfg::NodeHandle &water_rt_early_after_envi_node,
+  dabfg::NodeHandle &water_rt_late_node,
   RiGenVisibilityECS &bvh__rendinst_visibility)
 {
   bvh__update_node = makeBVHUpdateNode();
@@ -404,6 +474,9 @@ static void init_bvh_scene_es(const ecs::Event &,
   rtsm_node = makeRTSMNode();
   rtr_node = makeRTRNode();
   rtao_node = makeRTAONode();
+  water_rt_early_before_envi_node = makeWaterRTNode(WaterRenderMode::EARLY_BEFORE_ENVI);
+  water_rt_early_after_envi_node = makeWaterRTNode(WaterRenderMode::EARLY_AFTER_ENVI);
+  water_rt_late_node = makeWaterRTNode(WaterRenderMode::LATE);
   bvh__rendinst_visibility.visibility = rendinst::createRIGenVisibility(midmem);
 }
 

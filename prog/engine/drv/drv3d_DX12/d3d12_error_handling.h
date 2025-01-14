@@ -16,7 +16,6 @@ namespace drv3d_dx12
 
 void report_oom_info();
 void set_last_error(HRESULT error);
-HRESULT get_last_error_code();
 inline const char *dxgi_error_code_to_string(HRESULT ec)
 {
 #define ENUM_CASE(Name) \

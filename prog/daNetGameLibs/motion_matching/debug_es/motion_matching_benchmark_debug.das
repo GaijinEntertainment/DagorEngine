@@ -26,7 +26,7 @@ def spawn_dev_soldier(pos : float3; templateName : string; init_block : block<(v
 
 def spawn_dev_soldier(pos : float3; templateName : string)
   return spawn_dev_soldier(pos, templateName) <| $ [unused_argument(init)] (var init)
-    return
+    pass
 
 def set_weapon(var init : ComponentsInitializer; primary_weapon : string)
   using() <| $(var obj : Object)

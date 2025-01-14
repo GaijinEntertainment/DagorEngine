@@ -32,39 +32,9 @@ struct SoundComponent
     handle = new_value;
   }
 
-  inline bool play(const char *name, const char *path, Point3 pos, bool play, bool abandon_on_reset)
-  {
-    if (enabled != play)
-    {
-      enabled = play;
-      abandonOnReset = abandon_on_reset;
-      if (play)
-        reset(sndsys::play(name, path, pos));
-      else
-        reset();
-    }
-    else if (play)
-      sndsys::set_pos(handle, pos);
-    return enabled;
-  }
-
-  inline bool play(const char *name, bool play, bool abandon_on_reset)
-  {
-    if (enabled != play)
-    {
-      enabled = play;
-      abandonOnReset = abandon_on_reset;
-      if (play)
-        reset(sndsys::play(name));
-      else
-        reset();
-    }
-    return enabled;
-  }
-
   Handle handle;
   bool abandonOnReset = false;
-  // game code specific, useful to store event state
+  // game code specific(tag), useful to store event state
   bool enabled = false;
 };
 

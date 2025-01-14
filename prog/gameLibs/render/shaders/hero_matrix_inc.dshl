@@ -12,12 +12,6 @@ float4 hero_bbox_reprojectionY = (0,1,0,0);
 float4 hero_bbox_reprojectionZ = (0,0,1,0);
 int hero_is_cockpit = 0;
 
-
-define_macro_if_not_defined INIT_READ_GBUFFER_MATERIAL_DYNAMIC_BASE(code)
-endmacro
-define_macro_if_not_defined USE_READ_GBUFFER_MATERIAL_DYNAMIC_BASE(code)
-endmacro
-
 macro INIT_HERO_MATRIX_NO_GBUF(code)
   (code) {
     hero_matrixX@f4 = hero_matrixX;
@@ -34,7 +28,7 @@ macro INIT_HERO_MATRIX_NO_GBUF(code)
 endmacro
 
 macro INIT_HERO_MATRIX(code)
-  INIT_READ_GBUFFER_MATERIAL_DYNAMIC_BASE(code)
+  INIT_READ_IS_HERO_COCKPIT(code)
   INIT_HERO_MATRIX_NO_GBUF(code)
 endmacro
 
@@ -66,11 +60,11 @@ macro USE_HERO_MATRIX_WITH_GBUF(code)
   hlsl(code) {
     bool apply_hero_matrix(float2 uv, inout float3 eye_to_point)
     {
-#ifdef GBUFFER_HAS_HERO_COCKPIT_BIT
+##if gbuffer_has_hero_cockpit
       bool ret = isInHero(isGbufferHeroCockpit(uv), eye_to_point);
-#else
+##else
       bool ret = is_inside_hero_bbox(eye_to_point);
-#endif
+##endif
       eye_to_point = ret ? just_apply_hero_matrix(eye_to_point) : eye_to_point;
       return ret;
     }
@@ -78,6 +72,6 @@ macro USE_HERO_MATRIX_WITH_GBUF(code)
 endmacro
 
 macro USE_HERO_MATRIX(code)
-  USE_READ_GBUFFER_MATERIAL_DYNAMIC_BASE(code)
+  USE_READ_IS_HERO_COCKPIT(code)
   USE_HERO_MATRIX_WITH_GBUF(code)
 endmacro

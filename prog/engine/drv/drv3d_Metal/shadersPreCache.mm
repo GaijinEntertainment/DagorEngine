@@ -15,7 +15,7 @@
 
 namespace drv3d_metal
 {
-  static const uint32_t PRECACHE_VERSION = _MAKE4C('2.8');
+  static const uint32_t PRECACHE_VERSION = _MAKE4C('2.9');
 
   std::thread g_saver;
   std::thread g_compiler;
@@ -844,7 +844,7 @@ namespace drv3d_metal
     for (uint32_t i = 0 ; i < desc.attr_count; ++i)
     {
       int reg = desc.attributes[i].slot;
-      desc.descriptor.attributes[reg].format = (MTLVertexFormat)desc.attributes[i].format;
+      desc.descriptor.attributes[reg].format = desc.attributes[i].format;
       desc.descriptor.attributes[reg].bufferIndex = desc.attributes[i].stream;
       desc.descriptor.attributes[reg].offset = desc.attributes[i].offset;
     }
@@ -852,7 +852,7 @@ namespace drv3d_metal
     {
       int reg = desc.streams[i].stream;
       desc.descriptor.layouts[reg].stride = desc.streams[i].stride;
-      desc.descriptor.layouts[reg].stepFunction = (MTLVertexStepFunction)desc.streams[i].step;
+      desc.descriptor.layouts[reg].stepFunction = desc.streams[i].step == MTLVertexStepFunctionPerVertex ? MTLVertexStepFunctionPerVertex : MTLVertexStepFunctionPerInstance;
       G_ASSERT(desc.streams[i].stride);
     }
 

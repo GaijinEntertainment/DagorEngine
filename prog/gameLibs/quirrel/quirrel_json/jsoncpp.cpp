@@ -1,7 +1,11 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <quirrel/quirrel_json/jsoncpp.h>
+#include <sqstdblob.h>
 #include <json/json.h>
+
+
+#define BLOB_KEY "!blob!"
 
 
 static eastl::string json_val_to_string(Json::Value const &value)
@@ -25,10 +29,22 @@ Sqrat::Object jsoncpp_to_quirrel(HSQUIRRELVM vm, const Json::Value &obj)
     return Sqrat::Object(vm);
   if (obj.isObject())
   {
-    Sqrat::Table sqobj(vm);
-    for (auto it = obj.begin(), ite = obj.end(); it != ite; ++it)
-      sqobj.SetValue(it.memberName(), jsoncpp_to_quirrel(vm, *it));
-    return sqobj;
+    if (obj.isMember(BLOB_KEY))
+    {
+      auto s = obj[BLOB_KEY].asString();
+      auto p = sqstd_createblob(vm, s.size());
+      memcpy(p, s.c_str(), s.size());
+      Sqrat::Var<Sqrat::Object> blob(vm, -1);
+      sq_pop(vm, 1);
+      return blob.value;
+    }
+    else
+    {
+      Sqrat::Table sqobj(vm);
+      for (auto it = obj.begin(), ite = obj.end(); it != ite; ++it)
+        sqobj.SetValue(it.memberName(), jsoncpp_to_quirrel(vm, *it));
+      return sqobj;
+    }
   }
   if (obj.isArray())
   {
@@ -40,7 +56,10 @@ Sqrat::Object jsoncpp_to_quirrel(HSQUIRRELVM vm, const Json::Value &obj)
   if (obj.isBool()) // isBool should be checked before isIntegral
     return Sqrat::Object(obj.asBool(), vm);
   if (obj.isString())
-    return Sqrat::Object(obj.asCString(), vm);
+  {
+    auto s = obj.asString();
+    return Sqrat::Object(s.c_str(), vm, s.size());
+  }
   if (obj.isIntegral())
     return Sqrat::Object(obj.asLargestInt(), vm);
   if (obj.isDouble())
@@ -93,21 +112,58 @@ Json::Value quirrel_to_jsoncpp(Sqrat::Object obj)
   {
     Json::Value jobj(Json::objectValue);
 
-    Sqrat::Object::iterator iter;
-    while (obj.Next(iter))
+    const char *ptr = nullptr;
+    SQInteger size = 0;
+    Sqrat::Var<Sqrat::Object>::push(vm, obj);
+    sqstd_getblob(vm, -1, (SQUserPointer *)&ptr);
+    if (ptr)
+      size = sqstd_getblobsize(vm, -1);
+    sq_pop(vm, 1);
+
+    if (ptr && size >= 0)
     {
-      Sqrat::Object sqKey(iter.getKey(), vm);
-      if (sqKey.GetType() == OT_STRING) // fast path (without key copy)
+      // export blob
+      jobj[BLOB_KEY] = Json::Value(ptr, ptr + size);
+    }
+    else
+    {
+      Sqrat::Object::iterator iter;
+      bool reportedInvalidKey = false;
+      while (obj.Next(iter))
       {
-        const char *jkey = iter.getName();
-        jobj[jkey] = sqval_to_json(Sqrat::Object(iter.getValue(), vm));
-      }
-      else
-      {
-        eastl::string jkey = json_val_to_string(sqval_to_json(eastl::move(sqKey)));
-        jobj[jkey] = sqval_to_json(Sqrat::Object(iter.getValue(), vm));
+        Sqrat::Object sqKey(iter.getKey(), vm);
+        if (sqKey.GetType() == OT_STRING) // fast path (without key copy)
+        {
+          const char *jkey = iter.getName();
+          jobj[jkey] = sqval_to_json(Sqrat::Object(iter.getValue(), vm));
+        }
+        else
+        {
+          auto type = sqKey.GetType();
+          eastl::string jkey = json_val_to_string(sqval_to_json(eastl::move(sqKey)));
+          if (!reportedInvalidKey)
+          {
+            reportedInvalidKey = true;
+
+            const SQChar *stack = nullptr;
+            if (SQ_SUCCEEDED(sqstd_formatcallstackstring(vm)))
+            {
+              G_VERIFY(SQ_SUCCEEDED(sq_getstring(vm, -1, &stack)));
+              if (!stack)
+                stack = "[no quirrel stack]";
+            }
+
+            logerr("non-string (%s '%s') key in quirrel_to_jsoncpp()\n%s", sq_objtypestr(type), jkey.c_str(),
+              stack ? stack : "[no quirrel stack]");
+
+            if (stack)
+              sq_pop(vm, 1);
+          }
+          jobj[jkey] = sqval_to_json(Sqrat::Object(iter.getValue(), vm));
+        }
       }
     }
+
     return jobj;
   }
   return sqval_to_json(obj);

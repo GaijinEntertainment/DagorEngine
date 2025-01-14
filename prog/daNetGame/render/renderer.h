@@ -114,6 +114,8 @@ public:
     float parallelism_to_wind,
     float width_k,
     const Point4 &waves_dist,
+    float depth_min,
+    float depth_fade_interval,
     float gerstner_speed) = 0;
 
   virtual dynamic_shadow_render::QualityParams getShadowRenderQualityParams() const = 0;
@@ -146,6 +148,7 @@ void destroy_world_renderer();
 void close_world_renderer(); // after destroy, static shutdowns of factories
 
 IRenderWorld *get_world_renderer();
+IRenderWorld *get_world_renderer_unsafe(); // UB if WR wasn't inited or already destroyed (i.e. can't return nullptr)
 
 webui::HttpPlugin *get_renderer_http_plugins();
 void init_fog_shader_graph_plugin();

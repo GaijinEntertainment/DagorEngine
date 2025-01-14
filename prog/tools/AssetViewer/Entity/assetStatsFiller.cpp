@@ -11,6 +11,8 @@
 
 extern int rimgr_get_force_lod_no();
 
+AssetStatsFiller::AssetStatsFiller(AssetStats &in_stats) : stats(in_stats) {}
+
 int AssetStatsFiller::getLodFromDistance(const RenderableInstanceLodsResource &res, float distance)
 {
   for (int i = 0; i < res.lods.size(); ++i)
@@ -28,8 +30,7 @@ float AssetStatsFiller::getLodDistance(const Point3 &camera_pos, const IObjEntit
   return (camera_pos - entityPos).length();
 }
 
-int AssetStatsFiller::fillAssetStatsFromRenderableInstanceLodsResource(AssetStats &stats, const RenderableInstanceLodsResource &res,
-  float distance)
+int AssetStatsFiller::fillAssetStatsFromRenderableInstanceLodsResource(const RenderableInstanceLodsResource &res, float distance)
 {
   if (res.lods.empty())
     return -1;
@@ -53,19 +54,79 @@ int AssetStatsFiller::fillAssetStatsFromRenderableInstanceLodsResource(AssetStat
     return -1;
 
   stats.trianglesRenderable += mesh->calcTotalFaces();
-
-  Tab<ShaderMaterial *> materials;
   mesh->gatherUsedMat(materials);
-  stats.materialCount += materials.size();
-
-  TextureIdSet textures;
   mesh->gatherUsedTex(textures);
-  stats.textureCount += textures.size();
 
   return lod;
 }
 
-void AssetStatsFiller::fillCompisiteAssetStats(AssetStats &stats, ICompositObj &composite, const Point3 &camera_pos, bool &firstLodSet)
+int AssetStatsFiller::fillAssetStatsFromDynamicRenderableSceneInstance(DynamicRenderableSceneInstance &scene_instance)
+{
+  DynamicRenderableSceneLodsResource *res = scene_instance.getLodsResource();
+  if (!res || res->lods.empty())
+    return -1;
+
+  int lod = scene_instance.getCurrentLodNo();
+  if (lod < 0) // no need to draw
+    return -1;
+  else if (lod >= res->lods.size())
+    lod = res->lods.size() - 1;
+
+  DynamicRenderableSceneResource *meshResource = res->lods[lod].scene;
+  if (!meshResource)
+    return -1;
+
+  Tab<ShaderMeshResource *> rigidMeshes;
+  Tab<int> rigidNodeIds;
+  meshResource->getMeshes(rigidMeshes, rigidNodeIds, nullptr);
+  G_ASSERT(rigidNodeIds.size() == rigidMeshes.size());
+
+  for (int i = 0; i < rigidMeshes.size(); ++i)
+  {
+    if (scene_instance.isNodeHidden(rigidNodeIds[i]))
+      continue;
+
+    const ShaderMeshResource *shaderMeshResource = rigidMeshes[i];
+    if (!shaderMeshResource)
+      continue;
+
+    const ShaderMesh *shaderMesh = shaderMeshResource->getMesh();
+    if (!shaderMesh)
+      continue;
+
+    stats.trianglesRenderable += shaderMesh->calcTotalFaces();
+    shaderMesh->gatherUsedMat(materials);
+    shaderMesh->gatherUsedTex(textures);
+  }
+
+  const dag::ConstSpan<PatchablePtr<ShaderSkinnedMeshResource>> skins = meshResource->getSkins();
+  const dag::ConstSpan<int> skinNodeIds = meshResource->getSkinNodes();
+  G_ASSERT(skinNodeIds.size() == skins.size());
+
+  for (int i = 0; i < skins.size(); ++i)
+  {
+    if (scene_instance.isNodeHidden(skinNodeIds[i]))
+      continue;
+
+    const ShaderSkinnedMeshResource *shaderSkinnedMeshResource = skins[i];
+    if (!shaderSkinnedMeshResource)
+      continue;
+
+    const ShaderSkinnedMesh *shaderSkinnedMesh = shaderSkinnedMeshResource->getMesh();
+    if (!shaderSkinnedMesh)
+      continue;
+
+    const ShaderMesh &shaderMesh = shaderSkinnedMesh->getShaderMesh();
+
+    stats.trianglesRenderable += shaderMesh.calcTotalFaces();
+    shaderMesh.gatherUsedMat(materials);
+    shaderMesh.gatherUsedTex(textures);
+  }
+
+  return lod;
+}
+
+void AssetStatsFiller::fillCompositeAssetStats(ICompositObj &composite, const Point3 &camera_pos, bool &firstLodSet)
 {
   const int subEntityCount = composite.getCompositSubEntityCount();
   for (int subEntityIndex = 0; subEntityIndex < subEntityCount; ++subEntityIndex)
@@ -75,13 +136,14 @@ void AssetStatsFiller::fillCompisiteAssetStats(AssetStats &stats, ICompositObj &
       continue;
 
     if (ICompositObj *compositeSubEntity = subEntity->queryInterface<ICompositObj>())
-      fillCompisiteAssetStats(stats, *compositeSubEntity, camera_pos, firstLodSet);
+      fillCompositeAssetStats(*compositeSubEntity, camera_pos, firstLodSet);
 
     if (const IEntityGetRISceneLodsRes *sceneLodRes = subEntity->queryInterface<IEntityGetRISceneLodsRes>())
+    {
       if (const RenderableInstanceLodsResource *res = sceneLodRes->getSceneLodsRes())
       {
         const float distance = getLodDistance(camera_pos, *subEntity);
-        const int lod = fillAssetStatsFromRenderableInstanceLodsResource(stats, *res, distance);
+        const int lod = fillAssetStatsFromRenderableInstanceLodsResource(*res, distance);
         if (firstLodSet)
         {
           if (lod != stats.currentLod)
@@ -93,6 +155,24 @@ void AssetStatsFiller::fillCompisiteAssetStats(AssetStats &stats, ICompositObj &
           stats.currentLod = lod;
         }
       }
+    }
+    else if (IEntityGetDynSceneLodsRes *dynSceneLodsRes = subEntity->queryInterface<IEntityGetDynSceneLodsRes>())
+    {
+      if (DynamicRenderableSceneInstance *sceneInstance = dynSceneLodsRes->getSceneInstance())
+      {
+        const int lod = fillAssetStatsFromDynamicRenderableSceneInstance(*sceneInstance);
+        if (firstLodSet)
+        {
+          if (lod != stats.currentLod)
+            stats.mixedLod = true;
+        }
+        else
+        {
+          firstLodSet = true;
+          stats.currentLod = lod;
+        }
+      }
+    }
   }
 }
 
@@ -123,7 +203,7 @@ void AssetStatsFiller::fillAssetCollisionNodeStats(AssetStats::GeometryStat &geo
   }
 }
 
-void AssetStatsFiller::fillAssetCollisionStats(AssetStats &stats, CollisionResource &collision_resource)
+void AssetStatsFiller::fillAssetCollisionStats(CollisionResource &collision_resource)
 {
   for (const CollisionNode &collisionNode : collision_resource.getAllNodes())
   {
@@ -134,21 +214,34 @@ void AssetStatsFiller::fillAssetCollisionStats(AssetStats &stats, CollisionResou
   }
 }
 
-void AssetStatsFiller::fillAssetStatsFromObjEntity(AssetStats &stats, IObjEntity &entity, const Point3 &camera_pos)
+void AssetStatsFiller::fillAssetStatsFromObjEntity(IObjEntity &entity, const Point3 &camera_pos)
 {
   ICompositObj *compositObj = entity.queryInterface<ICompositObj>();
   if (compositObj)
   {
     bool firstLodSet = false;
-    fillCompisiteAssetStats(stats, *compositObj, camera_pos, firstLodSet);
+    fillCompositeAssetStats(*compositObj, camera_pos, firstLodSet);
   }
   else
   {
     if (IEntityGetRISceneLodsRes *sceneLodRes = entity.queryInterface<IEntityGetRISceneLodsRes>())
+    {
       if (const RenderableInstanceLodsResource *res = sceneLodRes->getSceneLodsRes())
       {
         const float distance = getLodDistance(camera_pos, entity);
-        stats.currentLod = fillAssetStatsFromRenderableInstanceLodsResource(stats, *res, distance);
+        stats.currentLod = fillAssetStatsFromRenderableInstanceLodsResource(*res, distance);
       }
+    }
+    else if (IEntityGetDynSceneLodsRes *dynSceneLodsRes = entity.queryInterface<IEntityGetDynSceneLodsRes>())
+    {
+      if (DynamicRenderableSceneInstance *sceneInstance = dynSceneLodsRes->getSceneInstance())
+        stats.currentLod = fillAssetStatsFromDynamicRenderableSceneInstance(*sceneInstance);
+    }
   }
+}
+
+void AssetStatsFiller::finalizeStats()
+{
+  stats.materialCount += materials.size();
+  stats.textureCount += textures.size();
 }

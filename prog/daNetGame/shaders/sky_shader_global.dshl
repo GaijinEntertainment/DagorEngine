@@ -1,5 +1,5 @@
 float4 sun_light_color;//ground
-float cloud_shadow_intensity = 1;
+
 float clouds_shadow_influence = 0.7;
 
 int skies_render_screen_split = 0;

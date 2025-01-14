@@ -65,17 +65,43 @@ static void sun_flare_provider_invalidate_es(
   sun_flare_provider__cached_flare_config_id = invalidId.flareConfigId;
 }
 
+ECS_ON_EVENT(on_appear)
+ECS_TRACK(dynamic_light_lens_flare__flare_config)
+ECS_REQUIRE(const ecs::string &dynamic_light_lens_flare__flare_config)
+static void point_light_flare_provider_invalidate_es(
+  const ecs::Event &, int &dynamic_light_lens_flare__cached_id, int &dynamic_light_lens_flare__cached_flare_config_id)
+{
+  // Invalidate flare config id cache if the config name changes
+  LensFlareRenderer::CachedFlareId invalidId = {};
+  dynamic_light_lens_flare__cached_id = invalidId.cacheId;
+  dynamic_light_lens_flare__cached_flare_config_id = invalidId.flareConfigId;
+}
 
 template <typename Callable>
 static void prepare_sun_flares_ecs_query(Callable);
+template <typename Callable>
+static void prepare_point_light_flares_ecs_query(Callable);
 
-void LensFlareRenderer::collectAndPrepareECSSunFlares(
-  const TMatrix4 &view_proj, const Point3 &camera_pos, const Point3 &camera_dir, const Point3 &sun_dir, const Point3 &color)
+void LensFlareRenderer::collectAndPrepareECSFlares(
+  const Point3 &camera_dir, const TMatrix4 &view_proj, const Point3 &sun_dir, const Point3 &sun_color)
 {
+  if (lensFlares.empty())
+    return; // if there are no lens flare configs, no need to look for entities that use them
+
   prepare_sun_flares_ecs_query([&, this](bool enabled, const ecs::string &sun_flare_provider__flare_config,
                                  int &sun_flare_provider__cached_id, int &sun_flare_provider__cached_flare_config_id) {
     if (!enabled)
       return;
+
+    if (dot(camera_dir, Point3::xyz(sun_dir)) <= 0)
+      return;
+    Point4 projectedLightPos = Point4::xyz0(sun_dir) * view_proj;
+    if (fabsf(projectedLightPos.w) < 0.0000001f)
+      return;
+    projectedLightPos /= projectedLightPos.w;
+    if (max(fabsf(projectedLightPos.x), fabsf(projectedLightPos.y)) >= 1.f)
+      return;
+
     CachedFlareId cachedFlareId = {sun_flare_provider__cached_id, sun_flare_provider__cached_flare_config_id};
     if (!isCachedFlareIdValid(cachedFlareId))
     {
@@ -84,8 +110,21 @@ void LensFlareRenderer::collectAndPrepareECSSunFlares(
       sun_flare_provider__cached_flare_config_id = cachedFlareId.flareConfigId;
     }
     if (cachedFlareId.isValid())
-      prepareFlare(view_proj, camera_pos, camera_dir, cachedFlareId, Point4::xyz0(sun_dir), color, true);
+      prepareManualFlare(cachedFlareId, Point4::xyz0(sun_dir), sun_color, true);
   });
+  prepare_point_light_flares_ecs_query(
+    [&, this](const ecs::string &dynamic_light_lens_flare__flare_config, int &dynamic_light_lens_flare__cached_id,
+      int &dynamic_light_lens_flare__cached_flare_config_id) {
+      CachedFlareId cachedFlareId = {dynamic_light_lens_flare__cached_id, dynamic_light_lens_flare__cached_flare_config_id};
+      if (!isCachedFlareIdValid(cachedFlareId))
+      {
+        cachedFlareId = cacheFlareId(dynamic_light_lens_flare__flare_config.c_str());
+        dynamic_light_lens_flare__cached_id = cachedFlareId.cacheId;
+        dynamic_light_lens_flare__cached_flare_config_id = cachedFlareId.flareConfigId;
+      }
+      if (cachedFlareId.isValid())
+        prepareDynamicLightFlares(cachedFlareId);
+    });
 }
 
 template <typename Callable>
@@ -178,7 +217,8 @@ void LensFlareRenderer::updateConfigsFromECS()
 
         config.elements.push_back(eastl::move(elementConfig));
       }
-      configs.push_back(eastl::move(config));
+      if (config.elements.size() > 0)
+        configs.push_back(eastl::move(config));
     });
   prepareConfigBuffers(eastl::move(configs));
 }

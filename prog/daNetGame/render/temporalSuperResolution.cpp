@@ -131,8 +131,11 @@ TemporalSuperResolution::TemporalSuperResolution(const IPoint2 &output_resolutio
                                    .useAs(dabfg::Usage::SHADER_RESOURCE)
                                    .handle();
     read_gbuffer(registry, dabfg::Stage::PS_OR_CS);
-    registry.readTexture("motion_vecs_after_transparency").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("motion_gbuf").optional();
-    registry.read("gbuf_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("motion_gbuf_samplerstate").optional();
+    registry.readTexture("motion_vecs_after_transparency")
+      .atStage(dabfg::Stage::PS_OR_CS)
+      .bindToShaderVar("resolved_motion_vectors")
+      .optional();
+    registry.read("gbuf_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("resolved_motion_vectors_samplerstate").optional();
     registry.readTexture("depth_after_transparency").atStage(dabfg::Stage::PS_OR_CS).bindToShaderVar("depth_gbuf");
     registry.read("gbuf_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("depth_gbuf_samplerstate");
 

@@ -338,6 +338,7 @@ void move_ri_instance(const rendinst::RendInstDesc &, const Point3 &, const Poin
 void enable_disable_ri_instance(const rendinst::RendInstDesc &, bool) { G_ASSERT(0); }
 void flush_ri_instances() { G_ASSERT(0); }
 bool is_ri_instance_enabled(const CollisionInstances *, const rendinst::RendInstDesc &) { G_ASSERT_RETURN(false, true); }
+int get_link_name_id(const char *) { G_ASSERT_RETURN(false, -1); }
 
 } // namespace dacoll
 bool LandMeshHolesCell::check(const Point2 &, const HeightmapHandler *) const { return false; }
@@ -511,8 +512,6 @@ const char *get_gun_stat_type_by_props_id(int gun_props_id) { G_ASSERT_RETURN(fa
 const char *get_shell_template_by_shell_id(int) { G_ASSERT_RETURN(false, nullptr); }
 const char *get_gun_template_by_props_id(int) { G_ASSERT_RETURN(false, nullptr); }
 Tab<const char *> ecs_get_global_tags_context() { return {}; }
-
-int get_fire_params_id(const char *) { G_ASSERT_RETURN(false, 0); }
 
 void TheEffect::reset() { G_ASSERT(0); }
 
@@ -755,7 +754,11 @@ void load_regions_from_splines(LevelRegions &, dag::ConstSpan<levelsplines::Spli
 bool rayhit_smoke_occluders(const Point3 &, const Point3 &) { G_ASSERT_RETURN(false, false); }
 
 #include <main/gameLoad.h>
-void sceneload::load_game_scene(const char *) { G_ASSERT(0); }
+bool sceneload::load_game_scene(const char *, int)
+{
+  G_ASSERT(0);
+  return false;
+}
 void sceneload::switch_scene(eastl::string_view, eastl::vector<eastl::string> &&, UserGameModeContext &&) { G_ASSERT(0); }
 void sceneload::switch_scene_and_update(eastl::string_view) { G_ASSERT(0); }
 void sceneload::connect_to_session(net::ConnectParams &&, UserGameModeContext &&) { G_ASSERT(0); }
@@ -902,6 +905,8 @@ bool is_level_loaded_not_empty() { G_ASSERT_RETURN(false, false); }
 bool is_level_unloading() { G_ASSERT_RETURN(false, false); }
 
 ecs::EntityId get_current_level_eid() { G_ASSERT_RETURN(false, ecs::INVALID_ENTITY_ID); }
+
+void select_weather_preset(const char *) { G_ASSERT(0); }
 
 #include "net/netPropsRegistry.h"
 namespace propsreg

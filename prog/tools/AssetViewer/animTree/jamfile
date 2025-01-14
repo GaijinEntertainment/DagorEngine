@@ -16,6 +16,11 @@ Sources =
   animTreeUtils.cpp
   animTreeAnimationPlayer.cpp
   animStates/animStatesTreeEventHandler.cpp
+  animStates/stateDesc.cpp
+  animStates/chan.cpp
+  animStates/stateAlias.cpp
+  animStates/animStatesType.cpp
+  animStates/state.cpp
   controllers/ctrlTreeEventHandler.cpp
   controllers/ctrlChildsDialog.cpp
   controllers/ctrlType.cpp

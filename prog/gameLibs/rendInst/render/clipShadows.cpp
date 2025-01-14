@@ -152,6 +152,11 @@ void initClipmapShadows()
   blurOffset45VarId = get_shader_variable_id("blur_offset_4_5");
   blurOffset67VarId = get_shader_variable_id("blur_offset_6_7");
   sourceTexVarId = ::get_shader_glob_var_id("source_tex");
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+    ShaderGlobal::set_sampler(::get_shader_glob_var_id("source_tex_samplerstate", true), d3d::request_sampler(smpInfo));
+  }
 
   allocate_clipmap_shadows();
 }
@@ -216,12 +221,12 @@ void allocate_clipmap_shadows()
   blurTemp = dag::create_tex(nullptr, rendinstClipmapShadowTexSize, rendinstClipmapShadowTexSize, shadow_rt_texFmt | TEXCF_RTARGET, 1,
     "clipmapshadow_blurTempTex");
   d3d_err(blurTemp.getTex2D());
-  blurTemp.getTex2D()->texaddr(TEXADDR_CLAMP);
+  blurTemp.getTex2D()->disableSampler();
   rtTemp.close();
   rtTemp = dag::create_tex(nullptr, rendinstClipmapShadowTexSize, rendinstClipmapShadowTexSize, shadow_rt_texFmt | TEXCF_RTARGET, 1,
     "clipmapshadow_rtTempTex");
   d3d_err(rtTemp.getTex2D());
-  rtTemp.getTex2D()->texaddr(TEXADDR_CLAMP);
+  rtTemp.getTex2D()->disableSampler();
 
   blurRenderer.init("blur");
 }
@@ -264,9 +269,12 @@ bool render_clipmap_shadow_pool(rendinst::render::RtPoolData &pool, RenderableIn
       pool.rendinstClipmapShadowTex =
         d3d::create_tex(nullptr, rendinstClipmapShadowTexSize, rendinstClipmapShadowTexSize, shadow_texFmt, numMips, name);
 
-      pool.rendinstClipmapShadowTex->texaddr(TEXADDR_BORDER);
-      pool.rendinstClipmapShadowTex->texbordercolor(0);
+      pool.rendinstClipmapShadowTex->disableSampler();
       pool.rendinstClipmapShadowTexId = register_managed_tex(name, pool.rendinstClipmapShadowTex);
+      d3d::SamplerInfo smpInfo;
+      smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Border;
+      smpInfo.border_color = d3d::BorderColor::Color::TransparentBlack;
+      ShaderGlobal::set_sampler(::get_shader_glob_var_id("rendinst_shadow_tex_samplerstate", true), d3d::request_sampler(smpInfo));
     }
   }
 
@@ -705,7 +713,11 @@ void RendInstGenData::renderRendinstShadowsToClipmap(const BBox2 &region, int ne
           G_ASSERT(crt.cellVbId);
           const uint32_t ofs = resultRanges[rangeI][0];
           if (crt.heapGen != currentHeapGen) // driver is incapable of copy in thread
+          {
             updateVb(crt, cellI);
+            // updateVb reallocates cellsVb buffer
+            d3d::set_buffer(STAGE_VS, rendinst::render::instancingTexRegNo, rtData->cellsVb.getHeap().getBuf());
+          }
           auto vbInfo = rtData->cellsVb.get(crt.cellVbId);
           int count = (resultRanges[rangeI][1] - resultRanges[rangeI][0]) / stride;
           uint32_t impostorOffset = pool.hasImpostor() ? rendinst::gen::get_rotation_palette_manager()->getImpostorDataBufferOffset(

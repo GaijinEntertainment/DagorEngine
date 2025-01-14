@@ -136,7 +136,7 @@ void PowerOfTwoBinPack::freeUsedRectInternal(Rect rect, uint32_t logSize)
   sizeBucket[logSize].push_back(rect);//hadn't found such quad. insert as late, as possible to reduce mem moves
 }
 
-bool PowerOfTwoBinPack::intersectsWithFree(const Rect &rect, Rect &with, int ci, int id)
+bool PowerOfTwoBinPack::intersectsWithFree(const Rect &rect, Rect &with, int ci, int id) const
 {
   for (int i = 0; i < sizeBucket.size(); ++i)
   {
@@ -183,7 +183,7 @@ bool PowerOfTwoBinPack::validate()
   return true;
 }
 
-bool PowerOfTwoBinPack::intersectsWithFree(const Rect &rect, Rect &with)
+bool PowerOfTwoBinPack::intersectsWithFree(const Rect &rect, Rect &with) const
 {
   return intersectsWithFree(rect, with, -1, -1);
 }

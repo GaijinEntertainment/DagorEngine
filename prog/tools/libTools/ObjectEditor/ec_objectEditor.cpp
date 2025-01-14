@@ -581,7 +581,8 @@ void ObjectEditor::changed(const Point3 &delta)
     getUndoSystem()->begin();
   }
 
-  IEditorCoreEngine::BasisType basis = IEditorCoreEngine::get()->getGizmoBasisType();
+  IEditorCoreEngine::ModeType gt = editModeToModeType(editMode);
+  IEditorCoreEngine::BasisType basis = IEditorCoreEngine::get()->getGizmoBasisTypeForMode(gt);
 
   Point3 origin = gizmoOrigin;
 
@@ -733,6 +734,19 @@ int ObjectEditor::getAvailableTypes()
 }
 
 
+IEditorCoreEngine::ModeType ObjectEditor::editModeToModeType(int editMode)
+{
+  switch (editMode)
+  {
+    case CM_OBJED_MODE_MOVE: return IEditorCoreEngine::MODE_Move;
+    case CM_OBJED_MODE_SURF_MOVE: return IEditorCoreEngine::MODE_MoveSurface;
+    case CM_OBJED_MODE_ROTATE: return IEditorCoreEngine::MODE_Rotate;
+    case CM_OBJED_MODE_SCALE: return IEditorCoreEngine::MODE_Scale;
+    default: return IEditorCoreEngine::MODE_None;
+  }
+}
+
+
 void ObjectEditor::updateGizmo(int basis)
 {
   if (isGizmoValid)
@@ -741,16 +755,7 @@ void ObjectEditor::updateGizmo(int basis)
   if (basis == IEditorCoreEngine::BASIS_None)
     basis = IEditorCoreEngine::get()->getGizmoBasisType();
 
-  IEditorCoreEngine::ModeType gt;
-
-  switch (editMode)
-  {
-    case CM_OBJED_MODE_MOVE: gt = IEditorCoreEngine::MODE_Move; break;
-    case CM_OBJED_MODE_SURF_MOVE: gt = IEditorCoreEngine::MODE_MoveSurface; break;
-    case CM_OBJED_MODE_ROTATE: gt = IEditorCoreEngine::MODE_Rotate; break;
-    case CM_OBJED_MODE_SCALE: gt = IEditorCoreEngine::MODE_Scale; break;
-    default: gt = IEditorCoreEngine::MODE_None;
-  }
+  IEditorCoreEngine::ModeType gt = editModeToModeType(editMode);
 
   // calc gizmoPt
   if (selection.size())
@@ -794,11 +799,14 @@ void ObjectEditor::updateGizmo(int basis)
   else
     gt = IEditorCoreEngine::MODE_None;
 
-  if (IEditorCoreEngine::get()->getGizmoModeType() != (gt & IEditorCoreEngine::GIZMO_MASK_Mode))
+  if (updateViewportGizmo)
   {
-    IEditorCoreEngine::get()->setGizmo(gt == IEditorCoreEngine::MODE_None ? NULL : this, gt);
-    IEditorCoreEngine::get()->updateViewports();
-    IEditorCoreEngine::get()->invalidateViewportCache();
+    if (IEditorCoreEngine::get()->getGizmoModeType() != (gt & IEditorCoreEngine::GIZMO_MASK_Mode))
+    {
+      IEditorCoreEngine::get()->setGizmo(gt == IEditorCoreEngine::MODE_None ? NULL : this, gt);
+      IEditorCoreEngine::get()->updateViewports();
+      IEditorCoreEngine::get()->invalidateViewportCache();
+    }
   }
 }
 
@@ -843,11 +851,18 @@ void ObjectEditor::invalidateObjectProps()
 
 void ObjectEditor::updateObjectProps()
 {
-  if (!areObjectPropsValid && objectPropBar)
+  if (objectPropBar)
   {
-    objectPropBar->fillPanel();
-    objectPropBar->loadSettings(objectPropSettings);
-    areObjectPropsValid = true;
+    if (areObjectPropsValid)
+    {
+      objectPropBar->updateTransform();
+    }
+    else
+    {
+      objectPropBar->fillPanel();
+      objectPropBar->loadSettings(objectPropSettings);
+      areObjectPropsValid = true;
+    }
   }
 }
 
@@ -1157,7 +1172,13 @@ bool ObjectEditor::handleMouseRBRelease(IGenViewportWnd *wnd, int x, int y, bool
   EcRect rect;
   int type;
 
-  wnd->endRectangularSelection(&rect, &type);
+  bool rectSelectionActive = wnd->endRectangularSelection(&rect, &type);
+  if (!rectSelectionActive)
+  {
+    auto *menu = wnd->getContextMenu();
+    if (menu)
+      fillSelectionMenu(wnd, menu);
+  }
 
   return true;
 }
@@ -1574,6 +1595,19 @@ void ObjectEditor::showPanel()
     EDITORCORE->addPropPanel(PROPBAR_EDITOR_WTYPE, hdpi::_pxScaled(PROPBAR_WIDTH));
   else
     EDITORCORE->removePropPanel(objectPropBar);
+}
+
+
+PropPanel::ContainerPropertyControl *ObjectEditor::createPanelGroup(int pid)
+{
+  return isPanelShown() ? objectPropBar->createPanelGroup(pid) : nullptr;
+}
+
+
+void ObjectEditor::createPanelTransform(int mode)
+{
+  if (isPanelShown())
+    objectPropBar->createPanelTransform(mode);
 }
 
 

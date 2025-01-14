@@ -101,7 +101,9 @@ if $(Platform) in windows {
   if $(FmodStudio) != src && $(HaveSound) != no {
     AddLibs += $(FmodStaticLibs) ;
     UseSharedLibs += $(FmodStudioSharedLibs) ;
-    LINKopt += -framework CoreAudio -framework AudioUnit ;
+  }
+  if $(HaveSound) != no {
+    LINKopt += -framework AudioUnit -framework CoreAudio ;
   }
 }
 else {

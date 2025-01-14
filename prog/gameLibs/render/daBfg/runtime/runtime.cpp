@@ -279,7 +279,7 @@ void Runtime::scheduleResources()
         case 1: d3d::deactivate_buffer(eastl::get<1>(deactivation)); break;
         case 2:
           auto [f, x] = eastl::get<2>(deactivation);
-          (*f)(x);
+          f(x);
           break;
       }
   }
@@ -561,7 +561,14 @@ void Runtime::requestCompleteResourceRescheduling()
 
 void Runtime::wipeBlobsBetweenFrames(eastl::span<ResNameId> resources)
 {
-  resourceScheduler->emergencyDeactivateBlobs(frameIndex % ResourceScheduler::SCHEDULE_FRAME_WINDOW, resources);
+  dag::VectorSet<ResNameId, eastl::less<ResNameId>, framemem_allocator> resourcesSet(resources.begin(), resources.end());
+  resourceScheduler->emergencyWipeBlobs(frameIndex % ResourceScheduler::SCHEDULE_FRAME_WINDOW, resourcesSet);
+  // We need to free captured activate methods, because default blobs in das hold shared ptr on GC root
+  for (auto [resIdx, res] : intermediateGraph.resources.enumerate())
+    if (res.isScheduled() && res.asScheduled().isCpuResource() && resourcesSet.count(res.frontendResources.front()))
+    {
+      eastl::get<BlobDescription>(res.asScheduled().description).activate = {};
+    }
 }
 
 void before_reset(bool)

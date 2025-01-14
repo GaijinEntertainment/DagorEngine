@@ -528,7 +528,7 @@ void drv3d_vulkan::debug_ui_sync()
   for (ExecutionSyncCapture::SyncStep &i : capt.steps)
   {
     NodeEditor::BeginNode(i.visNode);
-    ImGui::Text("Step %u [buffer %u, queue %u]", i.idx, i.dstBuffer, i.dstQue);
+    ImGui::Text("Step %u [buffer %u, queue %u]", i.idx, i.dstBuffer, i.dstQueue);
     if (i.invalidOrdering)
       ImGui::Text("Ordering sorting failed %u", i.invalidOrdering);
     NodeEditor::BeginPin(i.visBufPin, NodeEditor::PinKind::Output);
@@ -613,11 +613,9 @@ void drv3d_vulkan::debug_ui_sync()
   // setup links between sync steps
   {
     ska::flat_hash_map<uint32_t, uint32_t> uniqueSrc; // src for step = follows
-    ska::flat_hash_map<uint32_t, uint32_t> uniqueDst; // dst for step = preceedes
     for (ExecutionSyncCapture::SyncStep &i : capt.steps)
     {
       uniqueSrc.clear();
-      uniqueDst.clear();
       for (ExecutionSyncCapture::SyncOp &j : capt.ops)
       {
         if (j.step != i.idx)
@@ -626,22 +624,34 @@ void drv3d_vulkan::debug_ui_sync()
           continue;
         for (ExecutionSyncCapture::SyncOpLink &k : capt.links)
         {
-          if (k.srcOpUid == j.uid)
-            uniqueDst[capt.ops[k.dstOpUid].step] = 1;
           if (k.dstOpUid == j.uid)
             uniqueSrc[capt.ops[k.srcOpUid].step] = 1;
         }
       }
-      // non branching sequence
-      bool linSeq = uniqueSrc.size() == 1 && uniqueDst.size() == 1;
       for (auto j : uniqueSrc)
-        NodeEditor::Link(linkId++, capt.steps[j.first].visNextDepPin, i.visPrevDepPin,
-          linSeq ? ImVec4(1, 0, 0, 1) : ImVec4(0, 1, 0, 1));
+        NodeEditor::Link(linkId++, capt.steps[j.first].visNextDepPin, i.visPrevDepPin, ImVec4(0, 1, 0, 1));
     }
   }
 
   for (ExecutionSyncCapture::SyncOpLink &i : capt.links)
     NodeEditor::Link(linkId++, capt.ops[i.srcOpUid].visSrcPin, capt.ops[i.dstOpUid].visDstPin, ImVec4(0, 0, 1, 1));
+
+  for (ExecutionSyncCapture::SyncBufferLink &i : capt.bufferLinks)
+  {
+    uint32_t lastStepOnSrcBuffer = ~0;
+    uint32_t firstStepOnDstBuffer = ~0;
+    for (ExecutionSyncCapture::SyncStep &j : capt.steps)
+    {
+      if (j.dstBuffer == i.srcBuffer && j.dstQueue == i.srcQueue)
+        lastStepOnSrcBuffer = j.idx;
+      if (j.dstBuffer == i.dstBuffer && j.dstQueue == i.dstQueue && firstStepOnDstBuffer == ~0)
+        firstStepOnDstBuffer = j.idx;
+    }
+    if (lastStepOnSrcBuffer == ~0 || firstStepOnDstBuffer == ~0)
+      continue;
+    NodeEditor::Link(linkId++, capt.steps[lastStepOnSrcBuffer].visNextDepPin, capt.steps[firstStepOnDstBuffer].visPrevDepPin,
+      ImVec4(1, 0, 0, 1));
+  }
 
   // set positions for nodes after all nodes are "drawn"
   if (settleNodes)

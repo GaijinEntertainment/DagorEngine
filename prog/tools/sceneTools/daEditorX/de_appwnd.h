@@ -276,6 +276,7 @@ public:
   virtual void startGizmo(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
   virtual ModeType getGizmoModeType();
   virtual BasisType getGizmoBasisType();
+  virtual BasisType getGizmoBasisTypeForMode(ModeType tp);
   virtual CenterType getGizmoCenterType();
   virtual bool isGizmoOperationStarted() const override;
 

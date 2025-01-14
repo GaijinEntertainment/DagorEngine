@@ -28,6 +28,7 @@ class EventAttributes
     FLAG_HAS_SUSTAIN_POINT = (1 << 1),
     FLAG_3D = (1 << 2),
     FLAG_HAS_OCCLUSION = (1 << 3),
+    FLAG_IS_DELAYABLE = (1 << 4),
     FLAG_VALID = (1 << 7), // Bit to distinguish valid EventAttributes from invalid one (can be omitted if e.g. maxDistance can't be 0)
   };
 
@@ -44,6 +45,7 @@ class EventAttributes
   inline void set3d(bool is_3d) { setFlag(FLAG_3D, is_3d); }
   inline void setHasSustainPoint(bool has_cue) { setFlag(FLAG_HAS_SUSTAIN_POINT, has_cue); }
   inline void setHasOcclusion(bool has_occlusion) { setFlag(FLAG_HAS_OCCLUSION, has_occlusion); }
+  inline void setIsDelayable(bool is_delayable) { setFlag(FLAG_IS_DELAYABLE, is_delayable); }
 
   inline void setVisualLabel(int idx)
   {
@@ -62,18 +64,20 @@ public:
   inline bool is3d() const { return (flags & FLAG_3D) != 0; }
   inline bool hasSustainPoint() const { return (flags & FLAG_HAS_SUSTAIN_POINT) != 0; }
   inline bool hasOcclusion() const { return (flags & FLAG_HAS_OCCLUSION) != 0; }
+  inline bool isDelayable() const { return (flags & FLAG_IS_DELAYABLE) != 0; }
   inline int getVisualLabelIdx() const { return labelIdx; }
 
   EventAttributes() = default;
   inline EventAttributes(float max_distance, bool is_oneshot, bool is_3d, bool has_sustain_point, bool has_occlusion,
-    int visual_label_idx)
+    bool is_delayable, int visual_label_idx)
   {
     flags = FLAG_VALID;
     setMaxDistance(max_distance);
     setOneshot(is_oneshot);
+    set3d(is_3d);
     setHasSustainPoint(has_sustain_point);
     setHasOcclusion(has_occlusion);
-    set3d(is_3d);
+    setIsDelayable(is_delayable);
     setVisualLabel(visual_label_idx);
   }
 
@@ -84,6 +88,7 @@ bool is_event_oneshot_impl(const FMOD::Studio::EventDescription &event_descripti
 bool is_event_3d_impl(const FMOD::Studio::EventDescription &event_description);
 bool has_sustain_point_impl(const FMOD::Studio::EventDescription &event_description);
 bool has_occlusion_impl(const FMOD::Studio::EventDescription &event_description);
+bool is_delayable_impl(const FMOD::Studio::EventDescription &event_description);
 float get_event_max_distance_impl(const FMOD::Studio::EventDescription &event_description);
 
 EventAttributes find_event_attributes(const char *path, size_t path_len);

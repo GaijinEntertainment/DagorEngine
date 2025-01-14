@@ -32,7 +32,7 @@ def draw_popup(name : string; value : string)
     imgui::EndPopup()
 
 [ecs_inspector(type_name="PhysVars")]
-def draw_phys_vars_edit(eid : array<EntityId> implicit; flags : uint; name : string; refs : array<EntityComponentRef#>#; level : int; var changed : bool?; sub_menu : block<(var changed : bool?) : bool>) : void
+def draw_phys_vars_edit(eid : array<EntityId> implicit; flags : uint; name : string; refs : array<ComponentRenderInfo#>#; level : int; var changed : bool?; sub_menu : block<(var changed : bool?) : bool>) : void
   var val = unsafe(reinterpret<PhysVars?> refs[0].rawData)
   assume phys_vars = *val
 

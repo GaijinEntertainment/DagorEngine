@@ -157,7 +157,7 @@ struct RiExtraBVHJob : public cpujobs::IJob
   {
     TIME_PROFILE(bvh::update_ri_extra_instances);
 
-    auto viewPositionVec = v_make_vec4f(viewPosition.x, viewPosition.y, viewPosition.z, 0);
+    vec4f viewPositionVec = v_make_vec4f(viewPosition.x, viewPosition.y, viewPosition.z, 0);
 
     bool overMaxLod;
 
@@ -178,16 +178,24 @@ struct RiExtraBVHJob : public cpujobs::IJob
       for (auto handle : handles)
       {
         uint32_t hashVal;
-        mat43f transform = rendinst::getRIGenExtra43(handle, hashVal);
-        auto riPosition = v_make_vec4f(v_extract_w(transform.row0), v_extract_w(transform.row1), v_extract_w(transform.row2), 0);
-        auto difference = v_sub(riPosition, viewPositionVec);
+        const mat43f &transform = rendinst::getRIGenExtra43(handle, hashVal);
+
+        vec4f bsph = rendinst::getRIGenExtraBSphere(handle);
+        vec4f center = v_make_vec4f(v_extract_x(bsph), v_extract_y(bsph), v_extract_z(bsph), 0);
+        float radius = abs(v_extract_w(bsph));
+        vec4f difference = v_sub(center, viewPositionVec);
+
         if (contextId->riExtraRange > 0)
         {
-          auto absDiff = v_abs(difference);
+          vec4f absDiff = v_abs(difference);
           if (v_extract_x(absDiff) > contextId->riExtraRange || v_extract_z(absDiff) > contextId->riExtraRange)
             continue;
         }
-        auto distSq = v_extract_x(v_dot3(difference, difference));
+
+        float distSq = v_extract_x(v_dot3(difference, difference));
+        distSq += radius * radius - 2 * radius * sqrtf(distSq);
+        if (distSq < 0)
+          distSq = 0;
 
 #if DAGOR_DBGLEVEL > 0
         if (bvh_ri_extra_range_enable && sqr(bvh_ri_extra_range) < distSq)

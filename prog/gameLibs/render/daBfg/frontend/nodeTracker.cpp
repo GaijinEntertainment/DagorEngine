@@ -52,7 +52,7 @@ void NodeTracker::unregisterNode(NodeNameId nodeId, uint16_t gen)
     return;
 
   if (auto ctx = nodeToContext.get(nodeId))
-    collectWipeSet(nodeId, deferredResourceWipeSets[ctx]);
+    collectCreatedBlobs(nodeId, deferredResourceWipeSets[ctx]);
 
   nodesChanged = true;
   invalidate_graph_visualization();
@@ -99,23 +99,13 @@ void NodeTracker::unregisterNode(NodeNameId nodeId, uint16_t gen)
   nodeToContext.set(nodeId, {});
 }
 
-void NodeTracker::collectWipeSet(NodeNameId node_id, ResourceWipeSet &into) const
+void NodeTracker::collectCreatedBlobs(NodeNameId node_id, ResourceWipeSet &into) const
 {
   for (const auto resId : registry.nodes[node_id].createdResources)
   {
     if (registry.resources[resId].type != ResourceType::Blob)
       continue;
-
-    // Note that if registry violates the invariant that only the
-    // last resource in the renaming chain has history, we would have
-    // thrown out the chain entirely starting with the "bad" resource
-    // and we won't need to wipe anything.
-    auto lastRenameId = resId;
-    while (depData.renamingChains[lastRenameId] != lastRenameId)
-      lastRenameId = depData.renamingChains[lastRenameId];
-
-    if (registry.resources[lastRenameId].history != History::No)
-      into.insert(resId);
+    into.insert(resId);
   }
 }
 
@@ -135,7 +125,7 @@ eastl::optional<NodeTracker::ResourceWipeSet> NodeTracker::wipeContextNodes(void
     if (ctx != context)
       continue;
 
-    collectWipeSet(nodeId, result);
+    collectCreatedBlobs(nodeId, result);
 
     unregisterNode(nodeId, registry.nodes[nodeId].generation);
     debug("daBfg: Wiped node %s with context %p", registry.knownNames.getName(nodeId), ctx);

@@ -192,9 +192,6 @@ void DeviceContext::generateFaultReport()
 
     pipeMan.enumerate<ComputePipeline>(PipelineInfoDumpCb{dump});
     pipeMan.enumerate<VariatedGraphicsPipeline>(PipelineInfoDumpCb{dump});
-#if D3D_HAS_RAY_TRACING
-    pipeMan.enumerate<RaytracePipeline>(PipelineInfoDumpCb{dump});
-#endif
   }
 #endif
 

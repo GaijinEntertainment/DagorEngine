@@ -434,7 +434,6 @@ void DagorEdAppWindow::addEditorAccelerators()
   mManager->addAccelerator(CM_SWITCH_PLUGIN_SF11, wingw::V_F11, false, false, true);
   mManager->addAccelerator(CM_SWITCH_PLUGIN_SF12, wingw::V_F12, false, false, true);
 
-
   mManager->addAccelerator(CM_NEXT_PLUGIN, wingw::V_TAB, true);
   mManager->addAccelerator(CM_PREV_PLUGIN, wingw::V_TAB, true, false, true);
 
@@ -442,6 +441,7 @@ void DagorEdAppWindow::addEditorAccelerators()
   mManager->addAcceleratorUp(CM_TAB_RELEASE, wingw::V_TAB);
 
   mManager->addAccelerator(CM_CHANGE_VIEWPORT, 'W', true);
+  mManager->addAccelerator(CM_ZOOM_AND_CENTER, 'Z'); // For normal mode.
 
   if (auto *p = curPlugin())
     p->registerMenuAccelerators();
@@ -460,6 +460,8 @@ void DagorEdAppWindow::addCameraAccelerators()
   mManager->addAccelerator(CM_CAMERAS_FPS, ' ', true);
   mManager->addAccelerator(CM_CAMERAS_TPS, ' ', true, false, true);
   // mManager->addAccelerator(CM_CAMERAS_CAR, ' ', false, false, true);
+
+  mManager->addAccelerator(CM_ZOOM_AND_CENTER, 'Z', true, false, true); // For fly mode.
 
   mManager->addAccelerator(CM_DEBUG_FLUSH, 'F', true, true, false);
   mManager->addAccelerator(CM_DEBUG_FLUSH, 'F', true, false, true);
@@ -1199,19 +1201,15 @@ int DagorEdAppWindow::onMenuItemClick(unsigned id)
         vpw->activate();
         vpw->handleCommand(id);
 
+        mToolPanel->setBool(CM_CAMERAS_FREE, CCameraElem::getCamera() == CCameraElem::FREE_CAMERA);
+        mToolPanel->setBool(CM_CAMERAS_FPS, CCameraElem::getCamera() == CCameraElem::FPS_CAMERA);
+        mToolPanel->setBool(CM_CAMERAS_TPS, CCameraElem::getCamera() == CCameraElem::TPS_CAMERA);
+        mToolPanel->setBool(CM_CAMERAS_CAR, CCameraElem::getCamera() == CCameraElem::CAR_CAMERA);
+
         if (CCameraElem::getCamera() == CCameraElem::MAX_CAMERA)
-        {
-          mToolPanel->setBool(CM_CAMERAS_FREE, false);
-          mToolPanel->setBool(CM_CAMERAS_FPS, false);
-          mToolPanel->setBool(CM_CAMERAS_TPS, false);
-          mToolPanel->setBool(CM_CAMERAS_CAR, false);
           addEditorAccelerators();
-        }
         else
-        {
-          mToolPanel->setBool(id, true);
           addCameraAccelerators();
-        }
 
         if (id == CM_CAMERAS_FREE)
         {
@@ -3090,7 +3088,7 @@ void DagorEdAppWindow::setAnimateViewports(bool animate)
 void DagorEdAppWindow::onImguiDelayedCallback(void *user_data)
 {
   const unsigned highestCommandBit = 1 << ((sizeof(unsigned) * 8) - 1);
-  const unsigned commandId = (unsigned)user_data;
+  const unsigned commandId = (unsigned)(uintptr_t)user_data;
 
   if ((commandId & highestCommandBit) == 0)
   {

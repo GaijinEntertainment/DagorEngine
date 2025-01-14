@@ -2,6 +2,7 @@ include "sky_shader_global.dshl"
 include "dagi_scene_voxels_common.dshl"
 
 //int current_walls_count;
+int fill_walls_grid_range_cs_grid_uav_no = 0;
 
 shader fill_walls_grid_range_cs
 {
@@ -9,10 +10,13 @@ shader fill_walls_grid_range_cs
   supports global_frame;
   USE_WALLS_BASE(cs)
   ENABLE_ASSERT(cs)
+  (cs) {
+    grid@uav : register(fill_walls_grid_range_cs_grid_uav_no) hlsl {
+      #include <gi_walls.hlsli>
+      RWStructuredBuffer<WallGridType> grid@uav;
+    };
+  }
   hlsl(cs) {
-    #include <gi_walls.hlsli>
-    RWStructuredBuffer<WallGridType>  grid : register(u0);
-    //RWStructuredBuffer<uint>  gridCnt : register(u1);
     [numthreads(4, 4, 4)]
     void grid_walls_cs(uint3 dtId : SV_DispatchThreadID)
     {

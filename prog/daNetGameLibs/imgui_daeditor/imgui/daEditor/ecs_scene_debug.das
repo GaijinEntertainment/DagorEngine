@@ -142,7 +142,7 @@ def ecs_scene_window()
             if length(typ) > 0
               excludeTypes |> push(typ)
           else
-            filters[filterString] = filterStringLength
+            filters.insert(filterString, filterStringLength)
 
       delete shingles
       totalFilterLength = 0

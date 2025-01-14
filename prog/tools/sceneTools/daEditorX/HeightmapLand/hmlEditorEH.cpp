@@ -643,6 +643,7 @@ bool HmapLandObjectEditor::handleMouseRBPress(IGenViewportWnd *wnd, int x, int y
 
   bool l_result = false;
 
+  const int prevEditMode = getEditMode();
   if (getEditMode() == CM_CREATE_SPLINE || getEditMode() == CM_CREATE_POLYGON)
   {
     if (pointsCnt > 0)
@@ -708,7 +709,11 @@ bool HmapLandObjectEditor::handleMouseRBPress(IGenViewportWnd *wnd, int x, int y
   del_it(debugP2);
 
   setEditMode(CM_OBJED_MODE_SELECT);
-  return (l_result) ? true : ObjectEditor::handleMouseRBPress(wnd, x, y, inside, buttons, key_modif);
+
+  if (l_result)
+    return true;
+
+  return ObjectEditor::handleMouseRBPress(wnd, x, y, inside, buttons, key_modif) || prevEditMode != getEditMode();
 }
 
 

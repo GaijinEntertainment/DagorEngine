@@ -17,7 +17,8 @@ static StdGuiRender::StdGuiShader shader;
 static float l, t, r, b;
 static bool ownRender = false;
 static int textureYVarId, textureUVarId, textureVVarId;
-static void render(TEXTUREID texIdY, TEXTUREID texIdU, TEXTUREID texIdV);
+static int samplerYVarId, samplerUVarId, samplerVVarId;
+static void render(TEXTUREID texIdY, TEXTUREID texIdU, TEXTUREID texIdV, d3d::SamplerHandle smp);
 extern bool prewarm_done;
 
 static bool init(const IPoint2 &frameSize, bool native)
@@ -50,6 +51,9 @@ static bool init(const IPoint2 &frameSize, bool native)
   textureYVarId = VariableMap::getVariableId("texY");
   textureUVarId = VariableMap::getVariableId("texU");
   textureVVarId = VariableMap::getVariableId("texV");
+  samplerYVarId = VariableMap::getVariableId("texY_samplerstate");
+  samplerUVarId = VariableMap::getVariableId("texU_samplerstate");
+  samplerVVarId = VariableMap::getVariableId("texV_samplerstate");
 
   if (!shader.init("yuv_movie"))
     return false;
@@ -67,15 +71,18 @@ static void startRender()
   }
 }
 
-static void render(TEXTUREID texIdY, TEXTUREID texIdU, TEXTUREID texIdV)
+static void render(TEXTUREID texIdY, TEXTUREID texIdU, TEXTUREID texIdV, d3d::SamplerHandle smp)
 {
   ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
   shader.material->set_texture_param(textureYVarId, texIdY);
+  shader.material->set_sampler_param(samplerYVarId, smp);
   shader.material->set_texture_param(textureUVarId, texIdU);
+  shader.material->set_sampler_param(samplerUVarId, smp);
   shader.material->set_texture_param(textureVVarId, texIdV);
+  shader.material->set_sampler_param(samplerVVarId, smp);
   StdGuiRender::set_shader(&shader);
   StdGuiRender::set_color(0xFFFFFFFF);
-  StdGuiRender::set_texture(texIdY, d3d::INVALID_SAMPLER_HANDLE); // TODO: Use actual sampler IDs
+  StdGuiRender::set_texture(texIdY, smp);
   StdGuiRender::render_rect(l, t, r, b);
   StdGuiRender::reset_shader();
 }

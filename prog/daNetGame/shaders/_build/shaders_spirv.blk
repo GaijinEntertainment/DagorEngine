@@ -1,5 +1,4 @@
 include shader_compiler_config.blk
-include "raytracing.blk"
 
 outDumpName:t="../../game/compiledShaders/gameSpirV"
 
@@ -48,3 +47,5 @@ explicit_var_ref
   include common_var_ref.blk
   include game_var_ref.blk
 }
+
+include "raytracing.blk"

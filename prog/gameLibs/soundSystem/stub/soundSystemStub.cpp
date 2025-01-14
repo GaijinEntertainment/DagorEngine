@@ -99,6 +99,8 @@ bool get_property(const FMODGUID &, int, int &) { return false; }
 bool is_valid_handle(EventHandle) { return false; }
 bool is_valid_event_instance(EventHandle) { return false; }
 bool is_one_shot(EventHandle) { return false; }
+bool is_delayable(EventHandle) { return false; }
+bool has_occlusion(EventHandle) { return false; }
 bool is_3d(EventHandle) { return false; }
 bool is_virtual(EventHandle) { return false; }
 const char *debug_event_state(EventHandle) { return ""; }
@@ -193,27 +195,17 @@ TMatrix get_3d_listener() { return {}; }
 int create_event_instance_stealing_group(const char *, int, float) { return -1; }
 void update_event_instance_stealing(EventHandle, int, float) {}
 
-// geometry.cpp
-int add_geometry(int, int) { return -1; }
-void remove_geometry(int) {}
-void remove_all_geometry() {}
-void add_polygons(int, dag::ConstSpan<Point3>, int, float, float, bool) {}
-void add_polygon(int, const Point3 &, const Point3 &, const Point3 &, float, float, bool) {}
-void set_geometry_position(int, const Point3 &) {}
-Point3 get_geometry_position(int) { return {}; }
-int get_geometry_count() { return 0; }
-int get_geometry_id(int) { return -1; }
-const eastl::vector<Point3> *get_geometry_faces(int) { return nullptr; }
-void save_geometry_to_file(const char *) {}
-bool load_geometry_from_file(const char *) { return false; }
-Point2 get_geometry_occlusion(const Point3 &, const Point3 &) { return {}; }
-
 // occlusion.cpp
 namespace occlusion
 {
 bool is_inited() { return false; }
+bool is_enabled() { return false; }
+bool is_valid() { return false; }
+void enable(bool) {}
 void set_group_pos(group_id_t, const Point3 &) {}
 void set_event_group(EventHandle, group_id_t) {}
+void set_trace_proc(trace_proc_t) {}
+void set_before_trace_proc(before_trace_proc_t) {}
 } // namespace occlusion
 
 } // namespace sndsys

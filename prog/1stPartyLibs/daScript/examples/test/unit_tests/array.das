@@ -136,6 +136,7 @@ def test:bool
     testIntArray()
     testConstInArray()
     testInterop()
+    testMultiPush()
     return true
 
 // this test bellow is only here to make sure AOT compiles and runs for array<blah const>
@@ -160,3 +161,29 @@ def testConstInArray
     var b : Foo const[10]
     testAccept(a, b)
 
+[sideeffects]
+def testMultiPush()
+    var a : array<Foo>
+    var b : array<Foo>
+    push(b, a)
+    verify(length(a)==0)
+    verify(length(b)==0)
+
+    a <- [Foo(bar=1), Foo(bar=2)]
+    push(b, a)
+    verify(length(a)==2)
+    verify(length(b)==2)
+    verify(a[0].bar==1)
+    verify(a[1].bar==2)
+    verify(b[0].bar==1)
+    verify(b[1].bar==2)
+
+    var c = fixed_array(Foo(bar=3))
+    push(b, c)
+    verify(length(b)==3)
+    verify(b[2].bar==3)
+    verify(c[0].bar==3)
+
+    push_clone(b, c)
+    verify(length(b)==4)
+    verify(b[3].bar==3)

@@ -96,7 +96,7 @@ public:
   template <bool use_flags, bool use_pools, bool use_occlusion, typename VisibleNodesF>
   __forceinline // VisibleNodesF is [](scene::node_index, mat44f_cref, vec4f dist)
     void
-    frustumCull(mat44f_cref globtm, vec4f pos_distscale, uint32_t test_flags, uint32_t equal_flags, Occlusion *occlusion,
+    frustumCull(mat44f_cref globtm, vec4f pos_distscale, uint32_t test_flags, uint32_t equal_flags, const Occlusion *occlusion,
       VisibleNodesF visible_nodes) const;
 
   bool lockForRead() const DAG_TS_TRY_ACQUIRE_SHARED(true, mRWLock)
@@ -118,12 +118,12 @@ public:
 
   template <bool use_flags, bool use_pools, bool use_occlusion>
   __forceinline void frustumCullTilesPass(mat44f_cref globtm, vec4f pos_distscale, uint32_t test_flags, uint32_t equal_flags,
-    Occlusion *occlusion, TiledSceneCullContext &out_context) const;
+    const Occlusion *occlusion, TiledSceneCullContext &out_context) const;
 
   template <bool use_flags, bool use_pools, bool use_occlusion, typename VisibleNodesF>
   __forceinline // VisibleNodesF is [](scene::node_index, mat44f_cref, vec4f dist)
     void
-    frustumCullOneTile(const scene::TiledSceneCullContext &ctx, mat44f_cref globtm, vec4f pos_distscale, Occlusion *occlusion,
+    frustumCullOneTile(const scene::TiledSceneCullContext &ctx, mat44f_cref globtm, vec4f pos_distscale, const Occlusion *occlusion,
       int tile_idx, VisibleNodesF visible_nodes) const;
 
   // VisibleNodesFunctor(scene::node_index, mat44f_cref)
@@ -361,12 +361,12 @@ protected:
   template <bool use_dist, bool use_flags, bool use_pools, bool use_occlusion, typename VisibleNodesF>
   void internalFrustumCull(mat44f_cref globtm, vec3f plane03X, vec3f plane03Y, vec3f plane03Z, const vec3f &plane03W,
     const vec3f &plane47X, const vec3f &plane47Y, const vec3f &plane47Z, const vec3f &plane47W, const vec4f &pos_distscale,
-    uint32_t test_flags, uint32_t equal_flags, Occlusion *occlusion, int regions[4], VisibleNodesF visible_nodes) const;
+    uint32_t test_flags, uint32_t equal_flags, const Occlusion *occlusion, int regions[4], VisibleNodesF visible_nodes) const;
 
   template <bool use_dist, bool use_flags, bool use_pools, bool use_occlusion, typename VisibleNodesF>
   __forceinline void internalFrustumCull(bbox3f_cref bbox, const TileCullData &tile, vec3f plane03X, vec3f plane03Y, vec3f plane03Z,
     const vec3f &plane03W, const vec3f &plane47X, const vec3f &plane47Y, const vec3f &plane47Z, const vec3f &plane47W,
-    mat44f_cref globtm, const vec4f &pos_distscale, uint32_t test_flags, uint32_t equal_flags, Occlusion *occlusion,
+    mat44f_cref globtm, const vec4f &pos_distscale, uint32_t test_flags, uint32_t equal_flags, const Occlusion *occlusion,
     VisibleNodesF visible_nodes) const;
 
   template <bool use_flags, bool use_pools, typename VisibleNodesFunctor> // VisibleNodesFunctor(scene::node_index, mat44f_cref)
@@ -453,7 +453,7 @@ protected:
 template <bool use_dist, bool use_flags, bool use_pools, bool use_occlusion, typename VisibleNodesF>
 __forceinline void scene::TiledScene::internalFrustumCull(bbox3f_cref bbox, const TileCullData &tile, vec3f plane03X, vec3f plane03Y,
   vec3f plane03Z, const vec3f &plane03W, const vec3f &plane47X, const vec3f &plane47Y, const vec3f &plane47Z, const vec3f &plane47W,
-  mat44f_cref globtm, const vec4f &pos_distscale, uint32_t test_flags, uint32_t equal_flags, Occlusion *occlusion,
+  mat44f_cref globtm, const vec4f &pos_distscale, uint32_t test_flags, uint32_t equal_flags, const Occlusion *occlusion,
   VisibleNodesF visible_nodes) const
 {
   const uint32_t flags_and_kdtreenodes_count = getKdTreeCountFlags(bbox);
@@ -472,7 +472,7 @@ __forceinline void scene::TiledScene::internalFrustumCull(bbox3f_cref bbox, cons
   // debug("tileVis = %d" , tileVis);
 
   // check tile visibility by max sphere radius
-  if (use_dist)
+  if constexpr (use_dist)
   {
     vec4f sqDistScaled = v_mul_x(v_distance_sq_to_bbox_x(bbox.bmin, bbox.bmax, pos_distscale), v_splat_w(pos_distscale));
     if (v_test_vec_x_lt(v_splat_w(bbox.bmax), sqDistScaled))
@@ -483,14 +483,15 @@ __forceinline void scene::TiledScene::internalFrustumCull(bbox3f_cref bbox, cons
     //  check_dist = false;//none of hbv need to check distance
   }
 
-  if (use_occlusion && !occlusion->isVisibleBox(bbox.bmin, bbox.bmax))
-    return;
+  if constexpr (use_occlusion)
+    if (!occlusion->isVisibleBox(bbox.bmin, bbox.bmax))
+      return;
   // float invMinOcclusionSphereRad2 = MAX_REAL;
   // if (use_occlusion)
   //   invMinOcclusionSphereRad2 = (256/0.5f)*(256/0.5f)*v_extract_w(pos_distscale);
   const bool intersectFrustum = (tileVis == Frustum::INTERSECT);
 
-  eastl::fixed_vector<kdtree::VisibleLeaf, 256, true> visible; // 2kb size
+  eastl::fixed_vector<kdtree::VisibleLeaf, 256, true, framemem_allocator> visible; // 2kb size
   const uint16_t kdTreeNodeCount = flags_and_kdtreenodes_count & 0xFFFF;
   if (kdTreeNodeCount)
   {
@@ -510,9 +511,10 @@ __forceinline void scene::TiledScene::internalFrustumCull(bbox3f_cref bbox, cons
         start + count, tileData[&tile - tileCull.data()].nodes.size(), kdTreeLeftNode, kdTreeNodeCount);
 #endif
 
-      if (use_flags && ((flags_nodes_count & equal_flags) != equal_flags)) //-V1051
-        continue;
-      if (use_dist)
+      if constexpr (use_flags)
+        if (((flags_nodes_count & equal_flags) != equal_flags)) //-V1051
+          continue;
+      if constexpr (use_dist)
       {
         vec4f sqDistScaled =
           v_mul_x(v_distance_sq_to_bbox_x(kdNode.getBox().bmin, kdNode.getBox().bmax, pos_distscale), v_splat_w(pos_distscale));
@@ -529,8 +531,9 @@ __forceinline void scene::TiledScene::internalFrustumCull(bbox3f_cref bbox, cons
         if (!vis)
           continue;
       }
-      if (use_occlusion && !occlusion->isVisibleBox(kdNode.getBox().bmin, kdNode.getBox().bmax))
-        continue;
+      if constexpr (use_occlusion)
+        if (!occlusion->isVisibleBox(kdNode.getBox().bmin, kdNode.getBox().bmax))
+          continue;
       // const int start = kdNode.getStart(), count = kdNode.getCount();
       const uint32_t fully_inside = (vis == Frustum::INSIDE ? kdtree::fully_inside_node_flag : 0);
       if (visible.size()) // optimize reallocation by collapsing node
@@ -554,7 +557,7 @@ __forceinline void scene::TiledScene::internalFrustumCull(bbox3f_cref bbox, cons
     const int32_t kdTreeRightNode = tile.kdTreeRightNode; // kdTreeLeftNode + tile.kdTreeRightNodeOffset;
     workingSet.push(kdTreeRightNode | (intersectFrustum ? 0 : kdtree::fully_inside_node_flag));
     G_FAST_ASSERT(kdTreeLeftNode + kdTreeNodeCount <= kdNodes.size());
-    if (use_dist)
+    if constexpr (use_dist)
     {
       G_FAST_ASSERT(kdNodesDistance.size() == kdNodes.size());
       if (use_occlusion)
@@ -593,7 +596,12 @@ __forceinline void scene::TiledScene::internalFrustumCull(bbox3f_cref bbox, cons
   {
     const bool intersectFrustum = !(vl.count & kdtree::fully_inside_node_flag);
     const int end = (vl.count & ~kdtree::fully_inside_node_flag) + vl.start;
-    if (!use_dist && !intersectFrustum)
+    bool checkNoIntersection;
+    if constexpr (use_dist)
+      checkNoIntersection = false;
+    else
+      checkNoIntersection = !intersectFrustum;
+    if (checkNoIntersection)
     {
       for (int i = vl.start; i < end; ++i)
       {
@@ -606,19 +614,20 @@ __forceinline void scene::TiledScene::internalFrustumCull(bbox3f_cref bbox, cons
 #endif
 
         uint32_t poolFlags = get_node_pool_flags(m);
-        if (use_flags && ((test_flags & poolFlags) != equal_flags))
-          continue;
+        if constexpr (use_flags)
+          if (((test_flags & poolFlags) != equal_flags))
+            continue;
         poolFlags &= 0xFFFF;
-        if (use_occlusion)
+        if constexpr (use_occlusion)
         {
-          if (use_pools)
+          if constexpr (use_pools)
           {
             G_FAST_ASSERT(poolFlags < poolBox.size());
             // narrow check
             mat44f clipTm;
             v_mat44_mul43(clipTm, globtm, m);
             bbox3f pool = poolBox.data()[poolFlags];
-            if (use_occlusion)
+            if constexpr (use_occlusion)
             {
               if (!occlusion->isVisibleBox(pool.bmin, pool.bmax, clipTm))
                 continue;
@@ -647,15 +656,21 @@ __forceinline void scene::TiledScene::internalFrustumCull(bbox3f_cref bbox, cons
 #endif
 
         uint32_t poolFlags = get_node_pool_flags(m);
-        if (use_flags && ((test_flags & poolFlags) != equal_flags))
-          continue;
+        if constexpr (use_flags)
+          if ((test_flags & poolFlags) != equal_flags)
+            continue;
         vec4f sphere = get_node_bsphere(m); // broad phase
         vec4f sphereRad = v_splat_w(sphere);
 
         int sphereVis = 1;
         if (intersectFrustum) // may be move this if outside loop?
         {
-          if (!use_pools || use_occlusion)
+          bool checkSphere;
+          if constexpr (use_occlusion)
+            checkSphere = true;
+          else
+            checkSphere = !use_pools;
+          if (checkSphere)
             sphereVis =
               v_is_visible_sphere(sphere, sphereRad, plane03X, plane03Y, plane03Z, plane03W, plane47X, plane47Y, plane47Z, plane47W);
           else
@@ -666,7 +681,7 @@ __forceinline void scene::TiledScene::internalFrustumCull(bbox3f_cref bbox, cons
         }
 
         vec3f distToSphereSqScaled;
-        if (use_dist)
+        if constexpr (use_dist)
         {
           distToSphereSqScaled = v_mul_x(v_length3_sq_x(v_sub(pos_distscale, sphere)), v_splat_w(pos_distscale)); // more correct is
                                                                                                                   // using z-distance,
@@ -679,7 +694,7 @@ __forceinline void scene::TiledScene::internalFrustumCull(bbox3f_cref bbox, cons
             continue;
         }
 
-        if (use_pools) // can be if poolFlags < poolBox.size(), but less optimal. assume it never happen
+        if constexpr (use_pools) // can be if poolFlags < poolBox.size(), but less optimal. assume it never happen
         {
           // narrow check
           if (use_occlusion || sphereVis == 2) //(use_dist && v_test_vec_x_lt(v_splats(min_dist_scale_sq), invClipSpaceRadius)))
@@ -689,7 +704,7 @@ __forceinline void scene::TiledScene::internalFrustumCull(bbox3f_cref bbox, cons
             // precise distance check
             bbox3f pool = poolBox.data()[poolFlags];
 
-            if (use_occlusion)
+            if constexpr (use_occlusion)
             {
               // if sphereVis==1 and use_occlusion, first check sphere screen size (based on radius and distance).
               // It can be, that size is less than occlusion pixel (which is fixed 1./256), and so there is no reason to transform
@@ -717,10 +732,11 @@ __forceinline void scene::TiledScene::internalFrustumCull(bbox3f_cref bbox, cons
         }
         else
         {
-          if (use_occlusion && !occlusion->isVisibleSphere(sphere, v_splat_w(sphere)))
-            continue;
+          if constexpr (use_occlusion)
+            if (!occlusion->isVisibleSphere(sphere, v_splat_w(sphere)))
+              continue;
         }
-        if (use_dist)
+        if constexpr (use_dist)
         {
           visible_nodes(ni, m, distToSphereSqScaled);
         }
@@ -735,7 +751,7 @@ __forceinline void scene::TiledScene::internalFrustumCull(bbox3f_cref bbox, cons
 template <bool use_dist, bool use_flags, bool use_pools, bool use_occlusion, typename VisibleNodesF>
 void scene::TiledScene::internalFrustumCull(mat44f_cref globtm, vec3f plane03X, vec3f plane03Y, vec3f plane03Z, const vec3f &plane03W,
   const vec3f &plane47X, const vec3f &plane47Y, const vec3f &plane47Z, const vec3f &plane47W, const vec4f &pos_distscale,
-  uint32_t test_flags, uint32_t equal_flags, Occlusion *occlusion, int regions[4], VisibleNodesF visible_nodes) const
+  uint32_t test_flags, uint32_t equal_flags, const Occlusion *occlusion, int regions[4], VisibleNodesF visible_nodes) const
 {
   const int tilesInGrid = (regions[2] - regions[0] + 1) * (regions[3] - regions[1] + 1);
   checkSoA();
@@ -790,9 +806,9 @@ __forceinline void scene::TiledScene::getBoxRegion(int *__restrict regions, vec4
 
 template <bool use_flags, bool use_pools, bool use_occlusion, typename VisibleNodesF>
 void scene::TiledScene::frustumCull(mat44f_cref globtm, vec4f pos_distscale, uint32_t test_flags, uint32_t equal_flags,
-  Occlusion *occlusion, VisibleNodesF visible_nodes) const
+  const Occlusion *occlusion, VisibleNodesF visible_nodes) const
 {
-  if (use_occlusion)
+  if constexpr (use_occlusion)
   {
     G_ASSERT_RETURN(occlusion, );
   }
@@ -872,7 +888,7 @@ struct scene::TiledSceneCullContext
 
 template <bool use_flags, bool use_pools, bool use_occlusion>
 void scene::TiledScene::frustumCullTilesPass(mat44f_cref globtm, vec4f pos_distscale, uint32_t test_flags, uint32_t equal_flags,
-  Occlusion *occlusion, scene::TiledSceneCullContext &octx) const
+  const Occlusion *occlusion, scene::TiledSceneCullContext &octx) const
 {
   if (use_occlusion)
   {
@@ -958,7 +974,7 @@ void scene::TiledScene::frustumCullTilesPass(mat44f_cref globtm, vec4f pos_dists
 
 template <bool use_flags, bool use_pools, bool use_occlusion, typename VisibleNodesF>
 void scene::TiledScene::frustumCullOneTile(const scene::TiledSceneCullContext &ctx, mat44f_cref globtm, vec4f pos_distscale,
-  Occlusion *occlusion, int tile_idx, VisibleNodesF visible_nodes) const
+  const Occlusion *occlusion, int tile_idx, VisibleNodesF visible_nodes) const
 {
   if (tile_idx == OUTER_TILE_INDEX - 1)
     return SimpleScene::frustumCull<use_flags, use_pools, use_occlusion, VisibleNodesF>(globtm, pos_distscale, ctx.test_flags,

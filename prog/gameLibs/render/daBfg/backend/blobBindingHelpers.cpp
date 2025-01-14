@@ -17,6 +17,7 @@ bool dabfg::set_vec4f_helper(int var, vec4f val)
   v_st(&p4.x, val);
   return ShaderGlobal::set_color4(var, p4.x, p4.y, p4.z, p4.w);
 }
+bool dabfg::set_bool_helper(int var, bool val) { return ShaderGlobal::set_int(var, static_cast<int>(val)); }
 
 Color3 dabfg::get_color3_helper(int var)
 {
@@ -37,6 +38,12 @@ Point4 dabfg::get_point4_helper(int var)
 {
   const auto value = ShaderGlobal::get_color4(var);
   return {value.r, value.g, value.b, value.a};
+}
+bool dabfg::get_bool_helper(int var)
+{
+  const auto value = ShaderGlobal::get_int(var);
+  G_ASSERT(value == 0 || value == 1);
+  return static_cast<bool>(value);
 }
 E3DCOLOR dabfg::get_e3dcolor_helper(int var)
 {

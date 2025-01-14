@@ -63,7 +63,7 @@ public:
   int freeSpaceArea() const
   {
     int freeArea = 0;
-    for (int i = 0; i < sizeBucket.size(); ++i)
+    for (int i = 0, e = sizeBucket.size(); i < e; ++i)
       freeArea += (int)sizeBucket[i].size()<<(i+i);
     return freeArea;
   }
@@ -72,10 +72,10 @@ public:
 
 
   bool validate();//calls assert, and returns false if N^2 checks show not disjoint rects
-  bool intersectsWithFree(const Rect &rect, Rect &with);
+  bool intersectsWithFree(const Rect &rect, Rect &with) const;
 private:
   Rect insertLogSize(unsigned logSize);
-  bool intersectsWithFree(const Rect &rect, Rect &with, int ci, int id);
+  bool intersectsWithFree(const Rect &rect, Rect &with, int ci, int id) const;
   void freeUsedRectInternal(Rect rect, uint32_t logSize);
   /// Stores a list of rectangles that represents the free area of the bin. This rectangles in this list are disjoint.
   //from bigger to smaller size. Biggest one is never coalesced

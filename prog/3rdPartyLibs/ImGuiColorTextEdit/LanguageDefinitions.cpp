@@ -579,6 +579,36 @@ static const char * find_pair_brace(const char * p, char open, char close)
 }
 
 
+char TextEditor::RequiredCloseChar(char charBefore, char openChar, char charAfter)
+{
+ 	if (mLanguageDefinition == &LanguageDefinition::Cpp() ||
+ 	    mLanguageDefinition == &LanguageDefinition::Daslang())
+	{
+		if (strchr(" \t)]}=;,.\"\'<>|", charAfter))
+		{
+			if (openChar == '\'' || openChar == '\"')
+			{
+				if (strchr(" \t=+-*/([{><:?,|.~;", charBefore) == nullptr)
+					return 0;
+
+				if ((!charBefore || (strchr("\"\'\\", charBefore) == nullptr) && (!charAfter || strchr("\"\'", charAfter) == nullptr)))
+					return openChar;
+			}
+
+			switch (openChar)
+			{
+				case '{': return '}';
+				case '[': return ']';
+				case '(': return ')';
+				default: return 0;
+			}
+		}
+	}
+
+	return 0;
+}
+
+
 bool TextEditor::RequireIndentationAfterNewLine(const eastl::string &line) const
 {
 	int braceCounter[3] = { 0 }; // (), [], {}

@@ -83,8 +83,9 @@ void d3d::begin_render_pass(d3d::RenderPass *drv_rp, const RenderPassArea area, 
 
   {
     OSSpinlockScopedLock lockedFront(Globals::ctx.getFrontLock());
+    Frontend::State::pod.nativeRenderPassesCount = Frontend::replay->nativeRPDrawCounter.size();
     la.pipeState.set<StateFieldRenderPassIndex, int, FrontGraphicsState, FrontRenderPassState>(
-      Frontend::replay->nativeRPDrawCounter.size());
+      Frontend::State::pod.nativeRenderPassesCount);
     Frontend::replay->nativeRPDrawCounter.push_back(Frontend::State::pod.drawsCount);
   }
 

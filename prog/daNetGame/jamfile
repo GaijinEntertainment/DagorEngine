@@ -340,6 +340,8 @@ UseProgLibs =
   gameLibs/render/rtr
   gameLibs/render/rtao
   gameLibs/render/objectMotionBlur
+
+  gameLibs/gpuMemoryDumper
 ;
 
 if $(Sanitize) && $(Sanitize) != disabled {
@@ -655,14 +657,18 @@ if $(Dedicated) = yes {
       gameLibs/android/ads
       gameLibs/android/billing
       gameLibs/android/platform
-      gameLibs/android/account
+      gameLibs/android/account/googleplay
+      gameLibs/android/account/facebook
+      gameLibs/android/account/firebaseguest
       gameLibs/android/webview
       gameLibs/android/pushnotifications
       gameLibs/android/localnotifications
       gameLibs/quirrel/android/ads
       gameLibs/quirrel/android/platform
       gameLibs/quirrel/android/billing
-      gameLibs/quirrel/android/account
+      gameLibs/quirrel/android/account/googleplay
+      gameLibs/quirrel/android/account/facebook
+      gameLibs/quirrel/android/account/firebaseguest
       gameLibs/quirrel/android/localnotifications
       gameLibs/quirrel/appsFlyer
       gameLibs/quirrel/clevertap
@@ -742,9 +748,9 @@ if $(Dedicated) = yes {
 
   if $(UseGDK) != no {
     UseProgLibs +=
-      daNetGame/platform/xbox
-      gameLibs/quirrel/xbox
-      gameLibs/xbox
+      daNetGame/platform/gdk
+      gameLibs/quirrel/gdk
+      gameLibs/gdk
     ;
   }
 

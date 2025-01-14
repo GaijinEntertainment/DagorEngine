@@ -16,6 +16,7 @@ struct ShaderMatData
     real r;
     int i;
     TEXTUREID texId;
+    d3d::SamplerHandle samplerHnd;
 
     Color4 &c4() { return reinterpret_cast<Color4 &>(c); }
     const Color4 &c4() const { return const_cast<VarValue *>(this)->c4(); }

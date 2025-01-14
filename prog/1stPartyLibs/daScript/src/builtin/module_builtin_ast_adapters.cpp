@@ -814,6 +814,17 @@ namespace das {
             }
         }
         // COPY
+        virtual bool isRightFirst ( ExprCopy * expr ) override {
+            if ( auto fnIsFirst = get_isRightFirstExprCopy(classPtr) ) {
+                bool result = true;
+                runMacroFunction(context, "isRightFirst", [&]() {
+                    result = invoke_isRightFirstExprCopy(context,fnIsFirst,classPtr,expr);
+                });
+                return result;
+            } else {
+                return false;
+            }
+        }
         virtual void preVisitRight ( ExprCopy * expr, Expression * right ) override {
             if ( auto fnPreVisit = get_preVisitExprCopyRight(classPtr) ) {
                 runMacroFunction(context, "preVisitRight", [&]() {
@@ -822,6 +833,17 @@ namespace das {
             }
         }
         // MOVE
+        virtual bool isRightFirst ( ExprMove * expr ) override {
+            if ( auto fnIsFirst = get_isRightFirstExprMove(classPtr) ) {
+                bool result = true;
+                runMacroFunction(context, "isRightFirst", [&]() {
+                    result = invoke_isRightFirstExprMove(context,fnIsFirst,classPtr,expr);
+                });
+                return result;
+            } else {
+                return false;
+            }
+        }
         virtual void preVisitRight ( ExprMove * expr, Expression * right ) override {
             if ( auto fnPreVisit = get_preVisitExprMoveRight(classPtr) ) {
                 runMacroFunction(context, "preVisitRight", [&]() {
@@ -830,6 +852,17 @@ namespace das {
             }
         }
         // CLONE
+        virtual bool isRightFirst ( ExprClone * expr ) override {
+            if ( auto fnIsFirst = get_isRightFirstExprClone(classPtr) ) {
+                bool result = true;
+                runMacroFunction(context, "isRightFirst", [&]() {
+                    result = invoke_isRightFirstExprClone(context,fnIsFirst,classPtr,expr);
+                });
+                return result;
+            } else {
+                return false;
+            }
+        }
         virtual void preVisitRight ( ExprClone * expr, Expression * right ) override {
             if ( auto fnPreVisit = get_preVisitExprCloneRight(classPtr) ) {
                 runMacroFunction(context, "preVisitRight", [&]() {

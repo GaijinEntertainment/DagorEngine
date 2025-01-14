@@ -7,6 +7,7 @@
 #include <3d/dag_resPtr.h>
 #include <math/integer/dag_IPoint2.h>
 #include <dag/dag_vectorMap.h>
+#include <dag/dag_vectorSet.h>
 #include <memory/dag_framemem.h>
 
 #include <generic/dag_fixedVectorMap.h>
@@ -37,7 +38,7 @@ public:
 
   struct BlobDeactivationRequest
   {
-    const TypeErasedCall *destructor;
+    TypeErasedCall destructor;
     void *blob;
   };
 
@@ -55,7 +56,7 @@ public:
   const D3dResource *getD3dResource(int frame, intermediate::ResourceIndex res_idx) const;
   bool isResourcePreserved(int frame, intermediate::ResourceIndex res_idx) const;
 
-  void emergencyDeactivateBlobs(int frame, eastl::span<ResNameId> resources);
+  void emergencyWipeBlobs(int frame, dag::VectorSet<ResNameId, eastl::less<ResNameId>, framemem_allocator> resources);
 
   void shutdown(int frame);
 

@@ -58,7 +58,6 @@ AnimationRootMotionConfig load_root_motion_config(const ecs::string &root_node,
   const ecs::Point4List &center_of_mass_params);
 
 void load_animations(AnimationDataBase &dataBase,
-  ecs::EntityId data_base_eid,
   const AnimationRootMotionConfig &rootMotionConfig,
   const DataBlock &node_masks,
   const ecs::StringList &clips_path);
@@ -103,6 +102,20 @@ static void load_post_blend_controller_weight_overrides(
   }
 }
 
+static void load_foot_locker_nodes(AnimationDataBase &dataBase, const ecs::StringList &node_names)
+{
+  dataBase.footLockerNodes.clear();
+  const GeomNodeTree &tree = *dataBase.getReferenceSkeleton();
+  for (const ecs::string &node_name : node_names)
+  {
+    dag::Index16 nodeId = tree.findNodeIndex(node_name.c_str());
+    if (nodeId)
+      dataBase.footLockerNodes.push_back(nodeId);
+    else
+      logerr("Motion Matching: can't find foot locker node '%s'", node_name);
+  }
+}
+
 template <class T>
 inline void get_data_base_ecs_query(T);
 
@@ -142,7 +155,8 @@ static void init_animations_es(const ecs::Event &,
       const ecs::StringList &main_database__direction_nodes, const ecs::FloatList &main_database__direction_weights,
       const ecs::StringList &main_database__center_of_mass_nodes, const ecs::Point4List &main_database__center_of_mass_params,
       const ecs::string &main_database__nodeMasksPath, const ecs::Object &main_database__pbcWeightOverrides,
-      const ecs::string &main_database__footLockerCtrlName, AnimationDataBase &dataBase) {
+      const ecs::string &main_database__footLockerCtrlName, const ecs::StringList main_database__footLockerNodes,
+      AnimationDataBase &dataBase) {
       // current data base entity can be with daeditor_selected subtemplate
       if (!find_sub_template_name(g_entity_mgr->getEntityTemplateName(eid), dbTemplateName))
         return;
@@ -153,10 +167,11 @@ static void init_animations_es(const ecs::Event &,
         DataBlock nodeMasks(main_database__nodeMasksPath.c_str());
         dataBase.rootMotionA2dNode = main_database__root_motion_a2d_node;
         dataBase.setReferenceSkeleton(animchar.getOriginalNodeTree());
+        load_foot_locker_nodes(dataBase, main_database__footLockerNodes);
         load_tags(dataBase.tags, main_database__availableTags);
         resolve_tags_for_presets(main_database__presetsTagsName, dataBase);
         load_motion_matching_animgraph_nodes(dataBase, animchar.getAnimGraph());
-        load_animations(dataBase, eid, rootMotionConfig, nodeMasks, data_bases_paths);
+        load_animations(dataBase, rootMotionConfig, nodeMasks, data_bases_paths);
         load_post_blend_controller_weight_overrides(dataBase, main_database__pbcWeightOverrides, animchar.getAnimGraph());
         if (!main_database__footLockerCtrlName.empty())
         {
@@ -165,7 +180,7 @@ static void init_animations_es(const ecs::Event &,
             animchar.getAnimGraph()->getParamId(footLockerParamName, AnimV20::AnimCommonStateHolder::PT_InlinePtr);
           int footLockerNumLegs =
             animchar.getAnimState()->getInlinePtrMaxSz(dataBase.footLockerParamId) / sizeof(AnimV20::FootLockerIKCtrl::LegData);
-          if (footLockerNumLegs != FootIKLockerNodes::NUM_LEGS)
+          if (footLockerNumLegs != dataBase.footLockerNodes.size())
           {
             logerr("Motion Matching: FootLockerIKCtrl has different number of legs");
             dataBase.footLockerParamId = -1;

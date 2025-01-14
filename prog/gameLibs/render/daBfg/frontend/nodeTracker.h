@@ -72,7 +72,7 @@ private:
 
   void checkChangesLock() const;
 
-  void collectWipeSet(NodeNameId node_id, ResourceWipeSet &into) const;
+  void collectCreatedBlobs(NodeNameId node_id, ResourceWipeSet &into) const;
 
 #if DAGOR_DBGLEVEL > 0
   uint32_t getProfileToken(NodeNameId nodeId) const;

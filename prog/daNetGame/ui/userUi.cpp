@@ -47,8 +47,6 @@
 #include <platform/android/android_bind.h>
 #elif _TARGET_IOS
 #include <platform/ios/ios_bind.h>
-#elif _TARGET_XBOX
-#include <quirrel/xbox/xbox.h>
 #endif
 #include <quirrel/clientLog/clientLog.h>
 #include <quirrel/base64/base64.h>

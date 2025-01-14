@@ -106,7 +106,7 @@ static void custom_cube_texture_before_render_es(const UpdateStageInfoBeforeRend
 
   if (!custom_envi_probe__needs_render)
     return;
-  if (check_managed_texture_loaded(custom_envi_probe__cubemap.getTexId(), true))
+  if (prefetch_and_check_managed_texture_loaded(custom_envi_probe__cubemap.getTexId(), true))
   {
     int frameBlock = ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME);
     ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
@@ -114,6 +114,11 @@ static void custom_cube_texture_before_render_es(const UpdateStageInfoBeforeRend
     custom_envi_probe__needs_render = false;
     ShaderGlobal::setBlock(frameBlock, ShaderGlobal::LAYER_FRAME);
   }
+}
+
+static void custom_envi_probe_after_reset_es(const AfterDeviceReset &, bool &custom_envi_probe__needs_render)
+{
+  custom_envi_probe__needs_render = true;
 }
 
 ECS_TAG(render)
@@ -162,13 +167,11 @@ static void custom_envi_probe_render_es_event_handler(const CustomEnviProbeRende
 }
 
 ECS_TAG(render)
-static void custom_envi_probe_get_spherical_harmonics_es_event_handler(const CustomEnviProbeGetSphericalHarmonics &cevt,
+static void custom_envi_probe_get_spherical_harmonics_es_event_handler(CustomEnviProbeGetSphericalHarmonics &evt,
   const ecs::Point4List &custom_envi_probe__spherical_harmonics_outside,
   const ecs::Point4List &custom_envi_probe__spherical_harmonics_inside,
   bool custom_envi_probe__is_inside)
 {
-  // ECS code gen always tries to pass const reference, so need to work around that...
-  CustomEnviProbeGetSphericalHarmonics &evt = const_cast<CustomEnviProbeGetSphericalHarmonics &>(cevt);
   eastl::vector<Color4> &sphHarm = evt.get<0>();
   if (custom_envi_probe__spherical_harmonics_outside.size() != SphHarmCalc::SPH_COUNT ||
       custom_envi_probe__spherical_harmonics_inside.size() != SphHarmCalc::SPH_COUNT)

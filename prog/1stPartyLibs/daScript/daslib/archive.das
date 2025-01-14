@@ -169,7 +169,7 @@ def public serialize ( var arch:Archive; var value : table<auto(KT);auto(VT)> )
         for _ in range(len)
             var k : KT-const-&-#
             arch |> _::serialize(k)
-            arch |> _::serialize(value[k])
+            arch |> _::serialize(unsafe(value[k]))
     else
         var len = length(value)
         arch |> write_raw(len)

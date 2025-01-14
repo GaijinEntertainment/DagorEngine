@@ -34,7 +34,14 @@ struct CommonPlacerBufferInit
   dag::RelocatableFixedVector<uint32_t, 64, true, framemem_allocator> renderableIndicesFmem;
 
   dag::RelocatableFixedVector<VariantGpuData, 16, true, framemem_allocator> variantsFmem;
-  dag::RelocatableFixedVector<PlacerObjectGroup, 64, true, framemem_allocator> objectGroupsFmem;
+
+  struct Group
+  {
+    const ObjectGroupInfo *info = nullptr;
+    float weightFactor = 0.0f;
+  };
+  dag::RelocatableFixedVector<Group, 64, true, framemem_allocator> objectGroupsFmem;
+
   uint32_t numPlaceables = 0;
 };
 

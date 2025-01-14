@@ -1,0 +1,16 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/gpuMemoryDumper ;
+
+TargetType  = lib ;
+Target      = gameLibs/gpuMemoryDumper.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/$(Location)
+;
+
+Sources =
+  gpuMemoryDumper.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

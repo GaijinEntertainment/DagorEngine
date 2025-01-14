@@ -10,23 +10,10 @@
 SPLINE_GEN_VARS_LIST
 #undef VAR
 
-#define VAR(a) int a##_const_no = -1;
-SPLINE_GEN_CONST_LIST
-#undef VAR
-
 SplineGenGeometryRepository::SplineGenGeometryRepository()
 {
 #define VAR(a) a##VarId = get_shader_variable_id(#a);
   SPLINE_GEN_VARS_LIST
-#undef VAR
-
-#define VAR(a)                                        \
-  {                                                   \
-    int tmp = get_shader_variable_id(#a "_const_no"); \
-    if (tmp >= 0)                                     \
-      a##_const_no = ShaderGlobal::get_int_fast(tmp); \
-  }
-  SPLINE_GEN_CONST_LIST
 #undef VAR
 }
 

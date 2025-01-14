@@ -10,14 +10,15 @@ static constexpr ecs::ComponentDesc ragdoll_start_es_event_handler_comps[] =
   {ECS_HASH("collres"), ecs::ComponentTypeInfo<CollisionResource>()},
   {ECS_HASH("ragdoll__massMatrix"), ecs::ComponentTypeInfo<Point4>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("ragdoll__applyParams"), ecs::ComponentTypeInfo<bool>()},
-//start of 7 ro components at [5]
+//start of 8 ro components at [5]
   {ECS_HASH("ragdoll__isSingleBody"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("projectile_impulse__impulseSaveDeltaTime"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("projectile_impulse__cinematicArtistryMult"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("projectile_impulse__cinematicArtistrySpeedMult"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("projectile_impulse__maxSingleImpulse"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("projectile_impulse__maxVelocity"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
-  {ECS_HASH("projectile_impulse__maxOmega"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL}
+  {ECS_HASH("projectile_impulse__maxOmega"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("projectile_impulse__maxCount"), ecs::ComponentTypeInfo<int>(), ecs::CDF_OPTIONAL}
 };
 static void ragdoll_start_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -36,6 +37,7 @@ static void ragdoll_start_es_event_handler_all_events(const ecs::Event &__restri
     , ECS_RO_COMP_OR(ragdoll_start_es_event_handler_comps, "projectile_impulse__maxSingleImpulse", float(0.01f))
     , ECS_RO_COMP_OR(ragdoll_start_es_event_handler_comps, "projectile_impulse__maxVelocity", float(-1.0f))
     , ECS_RO_COMP_OR(ragdoll_start_es_event_handler_comps, "projectile_impulse__maxOmega", float(-1.0f))
+    , ECS_RO_COMP_OR(ragdoll_start_es_event_handler_comps, "projectile_impulse__maxCount", int(-1))
     );
   while (++comp != compE);
 }
@@ -45,7 +47,7 @@ static ecs::EntitySystemDesc ragdoll_start_es_event_handler_es_desc
   "prog/gameLibs/ecs/phys/ragdollES.cpp.inl",
   ecs::EntitySystemOps(nullptr, ragdoll_start_es_event_handler_all_events),
   make_span(ragdoll_start_es_event_handler_comps+0, 5)/*rw*/,
-  make_span(ragdoll_start_es_event_handler_comps+5, 7)/*ro*/,
+  make_span(ragdoll_start_es_event_handler_comps+5, 8)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<ParallelUpdateFrameDelayed>::build(),

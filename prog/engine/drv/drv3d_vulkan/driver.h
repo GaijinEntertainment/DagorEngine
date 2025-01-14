@@ -64,11 +64,7 @@ enum class DeviceQueueType
   ZERO = GRAPHICS
 };
 
-#if D3D_HAS_RAY_TRACING
-#define STAGE_MAX_ACTIVE STAGE_MAX_EXT
-#else
 #define STAGE_MAX_ACTIVE STAGE_MAX
-#endif
 
 template <typename H, H NullValue, typename T>
 class TaggedHandle

@@ -46,6 +46,7 @@ private:
     const dag::Vector<MatVarDesc> &vars, const dag::Vector<int> &var_indices = {});
   void addShaderPropsCategories(int mat_gui_elements_baseid, PropPanel::ContainerPropertyControl &mat_panel,
     const dag::Vector<MatVarDesc> &vars, const ShaderSeparatorToPropsType &shaderSeparatorToProps);
+  void updateAssetShaderMaterialInternal(int lod, int mat_id);
   void updateAssetShaderMaterial(int lod, int mat_id);
   bool applyMaterialOverride(int lod, int mat_id);
   void clearMaterialOverrides(int lod);

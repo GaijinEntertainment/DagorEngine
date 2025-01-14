@@ -37,8 +37,11 @@ MAKE_TYPE_FACTORY(ConnectionId, net::ConnectionId)
 namespace das
 {
 template <>
-struct cast<net::ConnectionId> : cast_fVec<net::ConnectionId>
-{};
+struct cast<net::ConnectionId>
+{
+  static net::ConnectionId to(vec4f x) { return {das::cast<int>::to(x)}; }
+  static vec4f from(net::ConnectionId x) { return das::cast<int>::from(x.value); }
+};
 
 template <>
 struct WrapType<net::ConnectionId>

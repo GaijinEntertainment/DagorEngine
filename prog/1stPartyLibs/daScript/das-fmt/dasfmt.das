@@ -22,7 +22,7 @@ def private collect_files(input_paths : array<string>; var files : array<string>
     for path in input_paths
         if path |> ends_with(".das")
             if !cache |> key_exists(path)
-                cache[path] = null
+                cache.insert(path, null)
                 files |> push <| path
         else
             if !fs::scan_dir(path, cache, files, ".das")

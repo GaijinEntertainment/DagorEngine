@@ -21,3 +21,5 @@ static_shadows_cascades:i=2
 froxel_fog_use_experimental_offscreen_reprojection:i = 0
 froxel_fog_use_self_shadowing:i = 0
 lens_zoom_factor:r=1.0
+water_rt_enabled:i=0
+clouds_panorama_mip:i=1

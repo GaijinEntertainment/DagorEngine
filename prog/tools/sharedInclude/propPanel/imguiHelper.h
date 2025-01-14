@@ -162,7 +162,7 @@ public:
   // A search input with an search icon (typically a magnifying glass) and clear icon (typically an X). The latter is
   // only displayed when text_to_search is not empty. Clicking on it clears text_to_search.
   static bool searchInput(const void *focus_id, const char *label, const char *hint, String &text_to_search, ImTextureID search_icon,
-    ImTextureID clear_icon);
+    ImTextureID clear_icon, bool *input_focused = nullptr, ImGuiID *input_id = nullptr);
 
   // Same as ImGui::BeginMenuEx but meant to be used along with menuItemExWithLeftSideCheckmark. It aligns sub-menu
   // items the same way as menuItemExWithLeftSideCheckmark.

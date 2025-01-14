@@ -17,7 +17,7 @@ enum class RecordType
   CPP
 };
 
-#if CPP_STCODE_PROTOTYPE && VALIDATE_CPP_STCODE && DAGOR_DBGLEVEL > 0
+#if CPP_STCODE && VALIDATE_CPP_STCODE && DAGOR_DBGLEVEL > 0
 
 void reset();
 

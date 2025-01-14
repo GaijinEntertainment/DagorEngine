@@ -15,14 +15,17 @@ class IObject;
 class Message;
 
 typedef uint16_t ObjectID;
+typedef uint32_t ObjectExtUID;
 typedef uint16_t MessageID;
 typedef uint8_t SystemID;
 
-typedef IObject *(*object_dispatcher)(ObjectID);
+typedef IObject *(*object_dispatcher)(ObjectID, ObjectExtUID);
 
 #define INVALID_OBJECT_ID  ObjectID(-1)
 #define INVALID_MESSAGE_ID MessageID(-1)
 #define INVALID_SYSTEM_ID  SystemID(-1)
+
+constexpr ObjectExtUID INVALID_OBJECT_EXT_UID = ObjectExtUID(~0u);
 
 enum TransmissionType
 {
@@ -44,6 +47,8 @@ protected:
   ObjectID mpiObjectUID;
 
 public:
+  ObjectExtUID mpiObjectExtUID = INVALID_OBJECT_EXT_UID;
+
   virtual ~IObject() {}
   IObject(ObjectID uid = INVALID_OBJECT_ID) : mpiObjectUID(uid) {}
   ObjectID getUID() const { return mpiObjectUID; }
@@ -58,10 +63,53 @@ public:
     return tt;                                                  \
   }
 
+inline void write_object_ext_uid(danet::BitStream &bs, ObjectID oid, ObjectExtUID ext)
+{
+  // Because MPI is only used in WT-based games we can abuse the fact, that oid is
+  // type and index packed, and this bit is not used. This way we can write normal
+  constexpr ObjectID EXT_BIT = ObjectID(1) << ObjectID(10);
+  if (oid == mpi::INVALID_OBJECT_ID)
+  {
+    bs.Write(oid);
+    return;
+  }
+  G_ASSERT((oid & EXT_BIT) == 0);
+  if (ext == INVALID_OBJECT_EXT_UID)
+  {
+    oid &= ~EXT_BIT;
+    bs.Write(oid);
+  }
+  else
+  {
+    oid |= EXT_BIT;
+    bs.Write(oid);
+    bs.WriteCompressed(ext);
+  }
+}
+
+inline bool read_object_ext_uid(const danet::BitStream &bs, ObjectID &oid, ObjectExtUID &ext)
+{
+  // see write_object_ext_uid
+  constexpr ObjectID EXT_BIT = ObjectID(1) << ObjectID(10);
+  ext = INVALID_OBJECT_EXT_UID;
+  if (!bs.Read(oid))
+  {
+    oid = INVALID_OBJECT_ID;
+    return false;
+  }
+  if (bool(oid & EXT_BIT) && oid != INVALID_OBJECT_ID)
+  {
+    oid &= ~EXT_BIT;
+    return bs.ReadCompressed(ext);
+  }
+  return true;
+}
+
 class Message // base class for all messages
 {
 public:
   mpi::IObject *obj; // recepient of this message, can't be NULL
+  uint32_t extUID = ~0u;
   IMemAlloc *allocator;
   MessageID id;             // identificator of this message
   SystemID senderId;        // system that sended this message (relevant only for multiplayer messages)
@@ -114,7 +162,7 @@ public:
   }
   void serialize(danet::BitStream &bs) const // full serialize of this message
   {
-    bs.Write(obj->getUID());
+    write_object_ext_uid(bs, obj->getUID(), obj->mpiObjectExtUID);
     bs.Write(id);
     bs.Write((const char *)payload.GetData(), payload.GetNumberOfBytesUsed());
   }
@@ -147,7 +195,7 @@ inline void send(Message *m) { sendto(m, INVALID_SYSTEM_ID); }
 void register_listener(IMessageListener *l);           // register listener for message handling
 void unregister_listener(IMessageListener *l);         // invert operation
 void register_object_dispatcher(object_dispatcher od); // register function for dispatch objects
-IObject *dispatch_object(mpi::ObjectID oid);
+IObject *dispatch_object(mpi::ObjectID oid, ObjectExtUID ext_uid);
 
 template <typename T>
 inline void write_type_proxy(danet::BitStream &bs, const T &t)
@@ -155,7 +203,10 @@ inline void write_type_proxy(danet::BitStream &bs, const T &t)
   bs.Write(t);
 }
 
-inline void write_type_proxy(danet::BitStream &bs, const IObject *t) { bs.Write(t ? t->getUID() : INVALID_OBJECT_ID); }
+inline void write_type_proxy(danet::BitStream &bs, const IObject *t)
+{
+  write_object_ext_uid(bs, t ? t->getUID() : mpi::INVALID_OBJECT_ID, t ? t->mpiObjectExtUID : INVALID_OBJECT_EXT_UID);
+}
 template <typename T>
 inline bool read_type_proxy(const danet::BitStream &bs, T &t)
 {
@@ -164,9 +215,10 @@ inline bool read_type_proxy(const danet::BitStream &bs, T &t)
 inline bool read_type_proxy(const danet::BitStream &bs, IObject *&t)
 {
   ObjectID oid = INVALID_OBJECT_ID;
-  if (bs.Read(oid))
+  ObjectExtUID extUid = INVALID_OBJECT_EXT_UID;
+  if (read_object_ext_uid(bs, oid, extUid))
   {
-    t = dispatch_object(oid);
+    t = dispatch_object(oid, extUid);
     return true;
   }
   return false;

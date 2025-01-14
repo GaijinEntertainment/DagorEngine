@@ -9,13 +9,23 @@ hlsl {
   #include "dagi_common_types.hlsli"
 }
 
+int create_debug_render_cs_frustum_visible_ambient_voxels_count_const_no = 1;
+int create_debug_render_cs_drawIndirectBuffer_uav_no = 0;
+
 shader create_debug_render_cs
 {
   ENABLE_ASSERT(cs)
 
+  (cs) {
+    frustum_visible_ambient_voxels_count@buf : register(create_debug_render_cs_frustum_visible_ambient_voxels_count_const_no) hlsl {
+      StructuredBuffer<uint> frustum_visible_ambient_voxels_count@buf;
+    };
+    drawIndirectBuffer@uav : register(create_debug_render_cs_drawIndirectBuffer_uav_no) hlsl {
+      RWByteAddressBuffer drawIndirectBuffer@uav;
+    };
+  }
+
   hlsl(cs) {
-    StructuredBuffer<uint> frustum_visible_ambient_voxels_count: register(t1);
-    RWByteAddressBuffer drawIndirectBuffer : register( u0 );
     [numthreads(1, 1, 1)]
     void create_debug_render_cs()
     {
@@ -143,9 +153,8 @@ shader debug_render_all_volmap
       //float3 cz:  TEXCOORD4;
     };
   }
-  hlsl(vs) {
-    StructuredBuffer<VisibleAmbientVoxel> visible_voxels:register(t8);
 
+  hlsl(vs) {
     VsOutput test_vs(uint iId : SV_InstanceID, uint vertId : SV_VertexID)
     {
       VsOutput output;

@@ -76,9 +76,9 @@ void extract_frame_info(float t, const AnimationClip &clip, BoneInertialInfo &in
   for (const AnimationClip::Point3Channel &channel : clip.channelTranslation)
   {
     sampler.seekTicks(a2dTime1);
-    vec3f p1 = sampler.samplePos(channel.first);
+    vec3f p1 = sampler.samplePosTrack(channel.first);
     sampler.seekTicks(a2dTime2);
-    vec3f p2 = sampler.samplePos(channel.first);
+    vec3f p2 = sampler.samplePosTrack(channel.first);
 
     int nodeIdx = channel.second.index();
     info.position[nodeIdx] = p1;
@@ -88,9 +88,9 @@ void extract_frame_info(float t, const AnimationClip &clip, BoneInertialInfo &in
   for (const AnimationClip::QuaternionChannel &channel : clip.channelRotation)
   {
     sampler.seekTicks(a2dTime1);
-    vec3f r1 = sampler.sampleRot(channel.first);
+    vec3f r1 = sampler.sampleRotTrack(channel.first);
     sampler.seekTicks(a2dTime2);
-    vec3f r2 = sampler.sampleRot(channel.first);
+    vec3f r2 = sampler.sampleRotTrack(channel.first);
 
     int nodeIdx = channel.second.index();
     info.rotation[nodeIdx] = r1;

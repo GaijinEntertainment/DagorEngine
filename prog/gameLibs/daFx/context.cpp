@@ -300,9 +300,11 @@ void prepare_sim_lods(Context &ctx, float dt, int begin_sid, int end_sid)
     {
       uint32_t flags = stream.get<INST_FLAGS>(i);
       uint32_t m = flags & allSimMask;
-      if (m == cpuSimMask || m == gpuSimMask)
+      const SimulationState &simulationState = stream.get<INST_SIMULATION_STATE>(i);
+      if (simulationState.count > 0 && (m == cpuSimMask || m == gpuSimMask))
       {
-        stream.get<INST_LOD>(i) = flags & SYS_VISIBLE ? 0 : (uint8_t)maxAllowedLod;
+        // invalid box could mean that inst is in-between part spawning, so it should be not lod-ed out
+        stream.get<INST_LOD>(i) = flags & SYS_VISIBLE ? 0 : (flags & SYS_BBOX_VALID ? (uint8_t)maxAllowedLod : 0);
       }
     }
   }
@@ -1408,11 +1410,11 @@ void get_stats_as_string(ContextId cid, eastl::string &out_s)
   ADDV(totalInstances);
   ADDV(activeInstances);
 
-  out_s.append_sprintf("CPU sim elems total by lods: %\n");
+  out_s.append_sprintf("CPU sim elems total by lods:\n");
   static eastl::array<int, Config::max_simulation_lods> cpuElemTotalSimLodsPadding = {};
   format_lod_list(out_s, ctx.stats.cpuElemTotalSimLods, cpuElemTotalSimLodsPadding);
 
-  out_s.append_sprintf("GPU sim elems total by lods: %\n");
+  out_s.append_sprintf("GPU sim elems total by lods:\n");
   static eastl::array<int, Config::max_simulation_lods> gpuElemTotalSimLodsPadding = {};
   format_lod_list(out_s, ctx.stats.gpuElemTotalSimLods, gpuElemTotalSimLodsPadding);
 

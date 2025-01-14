@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <dasModules/aotVideoPlayer.h>
+#include <dasModules/aotDagorDriver3d.h>
 
 
 namespace bind_dascript
@@ -21,6 +22,7 @@ struct VideoPlayer final : public das::Module
     das::ModuleLibrary lib(this);
     lib.addBuiltInModule();
     addBuiltinDependency(lib, require("DagorShaders"));
+    addBuiltinDependency(lib, require("DagorDriver3D"));
 
     addAnnotation(das::make_smart<IGenVideoPlayerAnnotation>(lib));
 

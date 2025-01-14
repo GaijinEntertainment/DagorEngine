@@ -58,11 +58,14 @@ void ToroidalHeightmap::init(int heightmap_size, float near_lod_size, float far_
 
   toroidalHeightmap = dag::create_array_tex(heightmapCacheSize, heightmapCacheSize, LOD_COUNT, heightmapFormat | TEXCF_RTARGET, 1,
     "toroidal_heightmap_texarray");
+  toroidalHeightmap.getArrayTex()->disableSampler();
 
   // shader variables
   toroidalClipmap_world2uv_1VarId = ::get_shader_glob_var_id("toroidalClipmap_world2uv_1", true);
   toroidalClipmap_world2uv_2VarId = ::get_shader_glob_var_id("toroidalClipmap_world2uv_2", true);
   toroidalClipmap_world_offsetsVarId = ::get_shader_glob_var_id("toroidalClipmap_world_offsets", true);
+  toroidalHeightmapSamplerVarId = ::get_shader_glob_var_id("toroidal_heightmap_texarray_samplerstate", true);
+  setTexFilter(d3d::FilterMode::Default);
 
   for (int j = 0; j < LOD_COUNT; ++j)
   {
@@ -90,7 +93,11 @@ void ToroidalHeightmap::setHeightmapTex()
   toroidalHeightmap.setVar();
 }
 
-void ToroidalHeightmap::setTexFilter(int filter) { toroidalHeightmap.getArrayTex()->texfilter(filter); }
+void ToroidalHeightmap::setTexFilter(d3d::FilterMode filter)
+{
+  heightmapSampler.filter_mode = filter;
+  ShaderGlobal::set_sampler(toroidalHeightmapSamplerVarId, d3d::request_sampler(heightmapSampler));
+}
 
 void ToroidalHeightmap::addRegionToRender(const ToroidalQuadRegion &reg, int cascade) { append_items(quadRegions[cascade], 1, &reg); }
 

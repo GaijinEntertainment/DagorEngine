@@ -58,10 +58,11 @@ static bool check_md5_hash(const char *data, int size, const char *hash)
 }
 
 
-VromfsCompression::VromfsCompression() : verifySignatureCb(NULL) { defaultLevel = DEFAULT_ZSTD_COMPRESSION_LEVEL; }
+VromfsCompression::VromfsCompression() : checkerFactoryCb(NULL) { defaultLevel = DEFAULT_ZSTD_COMPRESSION_LEVEL; }
 
 
-VromfsCompression::VromfsCompression(verify_signature_cb callback, const char *fname) : verifySignatureCb(callback), fileName(fname)
+VromfsCompression::VromfsCompression(signature_checker_factory_cb callback, const char *fname) :
+  checkerFactoryCb(callback), fileName(fname)
 {
   defaultLevel = DEFAULT_ZSTD_COMPRESSION_LEVEL;
 }
@@ -114,18 +115,24 @@ VromfsCompression::InputDataType VromfsCompression::getDataType(const char *data
   unsigned plainSize = header->fullSz;
   IS_NOT_VROM_IF_TRUE(packedSize > Compression::MAX_PLAIN_DATA_SIZE);
   IS_NOT_VROM_IF_TRUE(plainSize > Compression::MAX_PLAIN_DATA_SIZE);
+  unsigned srcBodySize = packedSize ? packedSize : plainSize;
+
+  int signatureOffset = totalHeaderSize + srcBodySize + MD5_HASH_SIZE;
+  IS_NOT_VROM_IF_TRUE(size < signatureOffset);
+  int signatureSize = size - signatureOffset;
+  G_ASSERT(signatureSize >= 0);
+  if (checkerFactoryCb)
+  {
+    IS_NOT_VROM_IF_TRUE(signatureSize == 0);
+    IS_NOT_VROM_IF_TRUE(signatureSize > REASONABLE_SIGNATURE_SIZE);
+    IS_NOT_VROM_IF_TRUE(!header->signedContents());
+  }
+
+  if (checkType == CHECK_LAZY)
+    return packedSize ? IDT_VROM_COMPRESSED : IDT_VROM_PLAIN;
 
   if (packedSize)
   {
-    int signatureOffset = 0;
-    if (verifySignatureCb)
-    {
-      signatureOffset = totalHeaderSize + packedSize + MD5_HASH_SIZE;
-      IS_NOT_VROM_IF_TRUE(size < signatureOffset || size > signatureOffset + REASONABLE_SIGNATURE_SIZE);
-      IS_NOT_VROM_IF_TRUE(!header->signedContents());
-    }
-    if (checkType == CHECK_LAZY)
-      return IDT_VROM_COMPRESSED;
     Tab<char> plainData(tmpmem);
     plainData.resize(plainSize);
     if (header->zstdPacked())
@@ -153,15 +160,18 @@ VromfsCompression::InputDataType VromfsCompression::getDataType(const char *data
       inflateEnd(&zlibStream);
       IS_NOT_VROM_IF_TRUE(r != Z_STREAM_END || availOutAfterInflate != 0);
     }
-    if (verifySignatureCb)
+    if (checkerFactoryCb)
     {
-      int signatureSize = size - signatureOffset;
-      if (!signatureSize)
-        return IDT_DATA;
       G_ASSERT(signatureSize > 0);
-      const void *buffers[3] = {plainData.data(), fileName.empty() ? NULL : fileName.str(), NULL};
-      unsigned bufferSizes[3] = {plainSize, (unsigned)fileName.length(), 0};
-      IS_NOT_VROM_IF_TRUE(!verifySignatureCb(buffers, bufferSizes, (const unsigned char *)&data[signatureOffset], signatureSize));
+      VromfsDumpSections sections;
+      sections.header = make_span_const((uint8_t *)reconstructedHeader, sizeof(reconstructedHeader));
+      sections.headerExt = make_span_const((uint8_t *)&data[VROM_HEADER_SIZE], extHeaderSize);
+      sections.body = make_span_const((uint8_t *)plainData.data(), plainSize);
+      sections.md5 = make_span_const((uint8_t *)&data[totalHeaderSize + packedSize], MD5_HASH_SIZE);
+      sections.signature = make_span_const((uint8_t *)&data[signatureOffset], signatureSize);
+      auto checker = checkerFactoryCb();
+      dag::ConstSpan<uint8_t> fileNameSpan = make_span_const((uint8_t *)fileName.str(), fileName.length());
+      IS_NOT_VROM_IF_TRUE(!check_vromfs_dump_signature(*checker, sections, &fileNameSpan));
     }
     else
     {
@@ -171,25 +181,20 @@ VromfsCompression::InputDataType VromfsCompression::getDataType(const char *data
   }
 
   // non-packed vrom
-  int signatureOffset = 0;
-  if (verifySignatureCb)
-  {
-    signatureOffset = totalHeaderSize + plainSize + MD5_HASH_SIZE;
-    IS_NOT_VROM_IF_TRUE(size < signatureOffset || size > signatureOffset + REASONABLE_SIGNATURE_SIZE);
-    IS_NOT_VROM_IF_TRUE(!header->signedContents());
-  }
-  if (checkType == CHECK_LAZY)
-    return IDT_VROM_PLAIN;
   const char *storedMd5Hash = &data[totalHeaderSize + plainSize];
   const char *dataToCheck = &data[totalHeaderSize];
-  if (verifySignatureCb)
+  if (checkerFactoryCb)
   {
-    int signatureSize = size - signatureOffset;
-    IS_NOT_VROM_IF_TRUE(!signatureSize);
     G_ASSERT(signatureSize > 0);
-    const void *buffers[3] = {&data[totalHeaderSize], fileName.empty() ? NULL : fileName.str(), NULL};
-    unsigned bufferSizes[3] = {plainSize, (unsigned)fileName.length(), 0};
-    IS_NOT_VROM_IF_TRUE(!verifySignatureCb(buffers, bufferSizes, (const unsigned char *)&data[signatureOffset], signatureSize));
+    VromfsDumpSections sections;
+    sections.header = make_span_const((uint8_t *)reconstructedHeader, sizeof(reconstructedHeader));
+    sections.headerExt = make_span_const((uint8_t *)&data[VROM_HEADER_SIZE], extHeaderSize);
+    sections.body = make_span_const((uint8_t *)&data[totalHeaderSize], plainSize);
+    sections.md5 = make_span_const((uint8_t *)&data[totalHeaderSize + plainSize], MD5_HASH_SIZE);
+    sections.signature = make_span_const((uint8_t *)&data[signatureOffset], signatureSize);
+    auto checker = checkerFactoryCb();
+    dag::ConstSpan<uint8_t> fileNameSpan = make_span_const((uint8_t *)fileName.str(), fileName.length());
+    IS_NOT_VROM_IF_TRUE(!check_vromfs_dump_signature(*checker, sections, &fileNameSpan));
   }
   else
   {
@@ -220,7 +225,7 @@ int VromfsCompression::getRequiredDecompressionBufferLength(const void *data_, i
     case IDT_VROM_PLAIN: return dataLen + 1; // the 'V' letter in front
     case IDT_VROM_COMPRESSED:
     {
-      G_ASSERT(dataLen >= VROM_HEADER_SIZE);
+      G_ASSERT_RETURN(dataLen >= VROM_HEADER_SIZE, -1);
       char reconstructedHeader[FULL_VROM_HEADER_SIZE];
       memcpy(&reconstructedHeader[1], data, VROM_HEADER_SIZE);
       reconstructedHeader[0] = 'V';
@@ -233,10 +238,10 @@ int VromfsCompression::getRequiredDecompressionBufferLength(const void *data_, i
       }
       unsigned totalHeaderSize = VROM_HEADER_SIZE + extHeaderSize;
       unsigned signatureOffset = totalHeaderSize + header->packedSz() + MD5_HASH_SIZE;
-      G_ASSERT(dataLen >= signatureOffset);
-      unsigned signatureSize = dataLen - signatureOffset;
-      G_ASSERT(!verifySignatureCb || signatureSize > 0);
-      G_ASSERT(!verifySignatureCb || signatureSize <= REASONABLE_SIGNATURE_SIZE);
+      G_ASSERT_RETURN(dataLen >= signatureOffset, -1);
+      int signatureSize = dataLen - signatureOffset;
+      G_ASSERT_RETURN(!checkerFactoryCb || signatureSize > 0, -1);
+      G_ASSERT_RETURN(!checkerFactoryCb || signatureSize <= REASONABLE_SIGNATURE_SIZE, -1);
       return (int)(FULL_VROM_HEADER_SIZE + extHeaderSize + header->fullSz + MD5_HASH_SIZE + signatureSize);
     }
     case IDT_DATA:
@@ -279,10 +284,14 @@ const char *VromfsCompression::compress(const void *in_, int inLen, void *out_, 
         extHeaderSize = extHdr->size;
       }
       unsigned signatureOffset = FULL_VROM_HEADER_SIZE + extHeaderSize + inVromHeader->fullSz + MD5_HASH_SIZE;
-      G_ASSERT(inLen >= signatureOffset);
-      unsigned signatureSize = inLen - signatureOffset;
-      G_ASSERT(!verifySignatureCb || signatureSize > 0);
-      G_ASSERT(!verifySignatureCb || signatureSize <= REASONABLE_SIGNATURE_SIZE);
+      if (inLen < signatureOffset)
+      {
+        logwarn("%s: signature offset is out of file, %u > %d", __FUNCTION__, signatureOffset, inLen);
+        return NULL;
+      }
+      int signatureSize = inLen - signatureOffset;
+      G_ASSERT(!checkerFactoryCb || signatureSize > 0);
+      G_ASSERT(!checkerFactoryCb || signatureSize <= REASONABLE_SIGNATURE_SIZE);
       const char *signaturePtr = &in[signatureOffset];
 
       // do vrom compression
@@ -380,10 +389,14 @@ const char *VromfsCompression::decompress(const void *in_, int inLen, void *out_
           extHeaderSize = extHdr->size;
         }
         unsigned signatureOffset = VROM_HEADER_SIZE + extHeaderSize + inVromHeader->packedSz() + MD5_HASH_SIZE;
-        G_ASSERT(inLen >= signatureOffset);
-        unsigned signatureSize = inLen - signatureOffset;
-        G_ASSERT(!verifySignatureCb || signatureSize > 0);
-        G_ASSERT(!verifySignatureCb || signatureSize <= REASONABLE_SIGNATURE_SIZE);
+        if (inLen < signatureOffset)
+        {
+          logwarn("%s: signature offset is out of file, %u > %d", __FUNCTION__, signatureOffset, inLen);
+          return NULL;
+        }
+        int signatureSize = inLen - signatureOffset;
+        G_ASSERT(!checkerFactoryCb || signatureSize > 0);
+        G_ASSERT(!checkerFactoryCb || signatureSize <= REASONABLE_SIGNATURE_SIZE);
         unsigned uncompressedLen = FULL_VROM_HEADER_SIZE + extHeaderSize + inVromHeader->fullSz + MD5_HASH_SIZE + signatureSize;
         if (uncompressedLen > MAX_PLAIN_DATA_SIZE)
         {

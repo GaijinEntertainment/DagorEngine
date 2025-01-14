@@ -241,8 +241,16 @@ struct StcodeShader
 
 struct StcodeInterface
 {
-  dag::Vector<eastl::string> routines;
+  static constexpr int ROUTINE_NOT_PRESENT = -1;
+
+  struct RoutineData
+  {
+    eastl::string namespacedName{};
+    int id = ROUTINE_NOT_PRESENT;
+  };
+  dag::Vector<RoutineData> routines;
 
   void addRoutine(int global_routine_idx, int local_routine_idx, const char *fn);
+  void patchRoutineGlobalId(int prev_id, int new_id);
   eastl::string releaseAssembledCode();
 };

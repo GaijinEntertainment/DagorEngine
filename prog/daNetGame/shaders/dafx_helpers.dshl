@@ -196,7 +196,7 @@ macro DAFXEX_USE_HMAP(stage)
   }
 endmacro
 
-macro DAFXEX_USE_ABOVE_DEPTH_PLACEMENT()
+macro DAFXEX_USE_PARTICLE_PLACEMENT()
   (vs)
   {
     water_level@f1 = (water_level);
@@ -206,32 +206,35 @@ macro DAFXEX_USE_ABOVE_DEPTH_PLACEMENT()
   DAFXEX_USE_HMAP(vs)
   hlsl (vs)
   {
-    bool place_fx_above(inout float3 wpos, float placement_threshold, bool terrain_only) // TODO: use flags directly
+    #include "modfx/modfx_gpu_placement_flags.hlsl"
+
+    bool place_fx_above(inout float3 wpos, float placement_threshold, uint flags)
     {
+      float height = water_level;
 #if DAFX_USE_HMAP
-      if (terrain_only)
-      {
-        wpos.y = getWorldHeight(float2(wpos.x, wpos.z));
-        return true;
-      }
-      else // ugly style due to spir-v compiler bug
+      if (flags & MODFX_GPU_PLACEMENT_HMAP)
+        height = getWorldHeight(float2(wpos.x, wpos.z));
 #endif
+
+#if DAFX_USE_DEPTH_ABOVE
+      if (flags & MODFX_GPU_PLACEMENT_DEPTH_ABOVE)
       {
+        float vignette = 0;
+        float suggestedHeight = getWorldBlurredDepth(wpos, vignette);
+        height = lerp(suggestedHeight, height, vignette);
+      }
+#endif
+
+      if (flags & MODFX_GPU_PLACEMENT_WATER)
+        height = max(height, water_level);
 
       float defaultHeight = wpos.y;
-      float depthVignette = 0; // When depthVignette = 1 we sample depth as "clamp".
-      float suggestedHeight = getWorldBlurredDepth(float3(wpos.x, 0.0f, wpos.z), depthVignette);
-      float height = lerp(suggestedHeight, defaultHeight, depthVignette);
-      height = max(height, water_level);
-
       FLATTEN if (placement_threshold <= 0 || (abs(height - defaultHeight) < placement_threshold)) // apply placement in threshold range
       {
         wpos.y = height;
         return true;
       }
       return height > defaultHeight; // remove FX below -threshold, but keep placement above +threshold
-
-      }
     }
   }
 endmacro

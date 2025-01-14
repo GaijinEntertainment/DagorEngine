@@ -90,9 +90,11 @@ public:
           d3d::SamplerInfo smpInfo;
           smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
           tex.second = d3d::request_sampler(smpInfo);
+          if (tex_fmt & TEXCF_RTARGET)
+            d3d::resource_barrier({tex.first.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
         }
-        if (tex_fmt & TEXCF_RTARGET)
-          d3d::resource_barrier({tex.first.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+        else
+          logerr("failed to allocate dynamic atlas texture, name='%s'", tex_name);
       }
     }
   }

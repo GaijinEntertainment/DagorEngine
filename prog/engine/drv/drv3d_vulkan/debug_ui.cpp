@@ -82,12 +82,9 @@ struct ProgramTypeData
   bool show = true;
 };
 
-eastl::array<ProgramTypeData, 1 << program_type_bits> progTypeDatas
-{
-  ProgramTypeData{"G", program_type_graphics}, ProgramTypeData{"C", program_type_compute},
-#if D3D_HAS_RAY_TRACING
-    ProgramTypeData{"RT", program_type_raytrace},
-#endif
+eastl::array<ProgramTypeData, 1 << program_type_bits> progTypeDatas{
+  ProgramTypeData{"G", program_type_graphics},
+  ProgramTypeData{"C", program_type_compute},
 };
 } // namespace pipeline_ui
 
@@ -301,9 +298,6 @@ void drv3d_vulkan::debug_ui_update_pipelines_data()
 
   pipeMan.enumerate<ComputePipeline>(UniversalPipeInfoCb{});
   pipeMan.enumerate<VariatedGraphicsPipeline>(UniversalPipeInfoCb{});
-#if D3D_HAS_RAY_TRACING
-  pipeMan.enumerate<RaytracePipeline>(UniversalPipeInfoCb{});
-#endif
 #endif
 }
 

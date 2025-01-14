@@ -74,7 +74,7 @@
 #if _TARGET_C1 | _TARGET_C2
 
 #elif _TARGET_XBOX
-#include <xbox/package.h>
+#include <gdk/package.h>
 #endif
 #include <statsd/statsd.h>
 #include "net/netMsg.h"
@@ -194,7 +194,7 @@ const GamePackage &get_current_game() { return current_game; }
 
 void set_scene_blk_path(const char *lblk_path) { current_game.levelBlkPath = lblk_path; }
 
-static void load_common_game_client_scenes();
+static void load_common_game_client_scenes(bool (*load_scene_cb)(const char *, int) = nullptr);
 void apply_scene_level(eastl::string &&name, eastl::string &&lblk_path)
 {
   current_game.sceneName = eastl::move(name);
@@ -466,7 +466,7 @@ GamePackage load_game_package()
           {
             uint32_t chunkId = it->second;
 #if _TARGET_XBOX
-            bool chunkAvailable = xbox::is_game_chunk_available(chunkId);
+            bool chunkAvailable = gdk::is_game_chunk_available(chunkId);
 #elif _TARGET_C1 | _TARGET_C2
 
 
@@ -500,6 +500,7 @@ void unload_current_game()
   reset_all_cameras();
   if (ecs::g_scenes)
     ecs::g_scenes->clearScene();
+  ecs::SceneManager::resetEntityCreationCounter();
 
   if (!current_game.ugmContentMount.empty())
   {
@@ -554,59 +555,53 @@ void unload_current_game()
   unload_in_progress = false;
 }
 
-static bool load_game_scene_blk(const char *scene_path)
-{
-  DataBlock blk(framemem_ptr());
-  bool res = dblk::load(blk, scene_path, dblk::ReadFlag::ROBUST_IN_REL); // not ROBUST in dev to see syntax errors
-  if (res)
-    ecs::create_entities_blk(*g_entity_mgr, blk, scene_path);
-  return res;
-}
-
-static void load_game_scene(const DataBlock &scene_blk, const char *scene_path, bool res)
+// Note: only entities created with import depth 0 added to scene
+static bool load_game_scene(const DataBlock &scene_blk, const char *scene_path, bool res, int import_depth)
 {
   if (res)
   {
-    if (has_in_game_editor())
-    {
+    if (!ecs::g_scenes && has_in_game_editor())
       ecs::g_scenes.demandInit();
-      ecs::g_scenes->loadScene(scene_blk, scene_path);
-    }
-    else
-      ecs::create_entities_blk(*g_entity_mgr, scene_blk, scene_path);
+    ecs::SceneManager::loadScene(ecs::g_scenes.get(), scene_blk, scene_path, &ecs::SceneManager::entityCreationCounter, import_depth);
   }
-  G_ASSERT_LOG(res, "Failed to load scene from '%s'", scene_path);
-  if (!res)
-    exit_game("Failed to load scene");
+  return res;
 }
 
-void load_game_scene(const char *scene_path)
+bool load_game_scene(const char *scene_path, int import_depth)
 {
-  DataBlock blk(framemem_ptr());
-  bool res = dblk::load(blk, scene_path, dblk::ReadFlag::ROBUST_IN_REL); // not ROBUST in dev to see syntax errors
-  return load_game_scene(blk, scene_path, res);
+  DataBlock blk;
+  // not ROBUST in dev to see syntax errors
+  return load_game_scene(blk, scene_path, dblk::load(blk, scene_path, dblk::ReadFlag::ROBUST_IN_REL), import_depth);
 }
 
 static void load_common_game_scenes()
 {
   const DataBlock &blk = *::dgs_get_game_params()->getBlockByNameEx("commonScenes");
   for (int i = 0; i < blk.paramCount(); ++i)
-    if (!load_game_scene_blk(blk.getStr(i)))
+    if (!load_game_scene(blk.getStr(i)))
       logerr("Failed to load scene from '%s'", blk.getStr(i));
 }
 
-static void load_common_game_client_scenes()
+static void load_common_game_client_scenes(bool (*load_scene_cb)(const char *, int))
 {
+  if (!load_scene_cb)
+    load_scene_cb = [](const char *scene_path, int) {
+      DataBlock blk;
+      if (dblk::load(blk, scene_path, dblk::ReadFlag::ROBUST_IN_REL))
+        return ecs::create_entities_blk(*g_entity_mgr, blk, scene_path), true;
+      return false;
+    };
+  ecs::SceneManager::CounterGuard cntg; // Protects against sending event on first empty scene
   const DataBlock &blk = *::dgs_get_game_params()->getBlockByNameEx("commonClientScenes");
   for (int i = 0; i < blk.paramCount(); ++i)
-    if (!load_game_scene_blk(blk.getStr(i)))
+    if (!load_scene_cb(blk.getStr(i), /*import_depth*/ 1))
       logerr("Failed to load client scene from '%s'", blk.getStr(i));
 }
 
 static void load_import_scenes(const eastl::vector<eastl::string> &imports)
 {
   for (const eastl::string &name : imports)
-    if (!load_game_scene_blk(name.c_str()))
+    if (!load_game_scene(name.c_str()))
       logerr("Failed to load scene from '%s'", name.c_str());
 }
 
@@ -623,16 +618,23 @@ static void load_scene(const char *name, const eastl::vector<eastl::string> &imp
     apply_united_vdata_settings(sceneLoaded ? &sceneBlk : nullptr);
   }
   if (app_profile::get().haveGraphicsWindow && (is_server() || !app_profile::get().replay.playFile.empty()))
-    load_common_game_client_scenes(); // Otherwise it will be loaded on connect to server (see `apply_scene_level`)
+    load_common_game_client_scenes(&load_game_scene); // Otherwise it will be loaded on connect to server (see `apply_scene_level`)
   if (!is_server() || !app_profile::get().replay.playFile.empty())
     return;
 
   da_editor4_setup_scene(df_get_real_name(name));
   debug("scene selected <%s>", name);
 
-  load_common_game_scenes();
-  load_import_scenes(imports);
-  load_game_scene(sceneBlk, name, sceneLoaded);
+  {
+    ecs::SceneManager::CounterGuard cntg; // Protects against sending event on first empty scene
+    load_common_game_scenes();
+    load_import_scenes(imports);
+    if (DAGOR_UNLIKELY(!load_game_scene(sceneBlk, name, sceneLoaded, /*import_depth*/ 0)))
+    {
+      G_ASSERT_LOG(sceneLoaded, "Failed to load scene from '%s'", name);
+      exit_game("Failed to load scene");
+    }
+  }
 
   // should it be really to be placed here?
   // TODO: add is_local_game flag to network module
@@ -921,7 +923,7 @@ static void load_scene_impl(const eastl::string_view &scene_name,
   hdrrender::init(width, height, true, fsrEnabled);
 
   g_entity_mgr->broadcastEventImmediate(
-    EventOnGameSceneLoad(SimpleString(current_game.sceneName.c_str()), &current_game.gameSettings));
+    EventOnBeforeSceneLoad(current_game.sceneName.c_str(), current_game.importScenes, current_game.gameSettings));
 
   load_scene(current_game.sceneName.c_str(), current_game.importScenes);
   net_replay_rewind();

@@ -4,9 +4,6 @@
 #include <drv/3d/dag_commands.h>
 #include <drv/3d/rayTrace/dag_drvRayTrace.h> // for D3D_HAS_RAY_TRACING
 
-#if D3D_HAS_RAY_TRACING
-#include "raytrace_state.h"
-#endif
 #include "render_state_system.h"
 #include "util/scoped_timer.h"
 #include "pipeline_barrier.h"
@@ -63,10 +60,13 @@ public:
   // increments on any "action"-like (draw,dispatch,custom op) command
   uint32_t actionIdx = 0;
   // tracks last timestamp action index, to skip empty timestamp requests (they are slowing GPU down)
-  uint32_t lastTimestampActionIdx = 0;
+  uint32_t lastTimestampActionIdx = -1;
+  // consume offset for NRP reordered buffer copies
+  uint32_t reorderedBufferCopyOffset = 0;
 
   VulkanCommandBufferHandle frameCore = VulkanHandle();
   DeviceQueueType frameCoreQueue = DeviceQueueType::INVALID;
+  size_t lastBufferIdxOnQueue[(uint32_t)DeviceQueueType::COUNT] = {};
 
   typedef ContextedPipelineBarrier<BuiltinPipelineBarrierCache::EXECUTION_PRIMARY> PrimaryPipelineBarrier;
   typedef ContextedPipelineBarrier<BuiltinPipelineBarrierCache::EXECUTION_SECONDARY> SecondaryPipelineBarrier;
@@ -77,7 +77,7 @@ public:
   uint64_t getCurrentCmdCallerHash();
   void reportMissingPipelineComponent(const char *component);
   void queueImageResidencyRestore(Image *img);
-  void writeExectionChekpoint(VulkanCommandBufferHandle cb, VkPipelineStageFlagBits stage);
+  void writeExectionChekpoint(VkPipelineStageFlagBits stage);
   void recordUserQueueSignal(int idx, DeviceQueueType target_queue);
   void waitUserQueueSignal(int idx, DeviceQueueType target_queue);
 
@@ -85,12 +85,12 @@ private:
   // temporal "pooled" contents
   static ExecutionScratch scratch;
 
-  size_t lastBufferIdxOnQueue[(uint32_t)DeviceQueueType::COUNT] = {};
   // upload mutliqueue deps
   size_t transferUploadBuffer = 0;
   size_t graphicsUploadBuffer = 0;
   size_t uploadQueueWaitMask = ~0;
   void waitForUploadOnCurrentBuffer();
+  VulkanSemaphoreHandle presentSignal = VulkanHandle();
 
   void finishAllGPUWorkItems();
   enum
@@ -114,16 +114,15 @@ private:
     MARKER_NCMD_FRAME_END_SYNC,
     MARKER_NCMD_END
   };
-  void writeExectionChekpointNonCommandStream(VulkanCommandBufferHandle cb, VkPipelineStageFlagBits stage, uint32_t key);
+  void writeExectionChekpointNonCommandStream(VkPipelineStageFlagBits stage, uint32_t key);
 
-  void restoreImageResidencies(VulkanCommandBufferHandle cmd);
+  void restoreImageResidencies();
   VulkanCommandBufferHandle allocAndBeginCommandBuffer(DeviceQueueType queue);
-  VulkanCommandBufferHandle flushTimestampQueryResets(VulkanCommandBufferHandle cmd);
-  VulkanCommandBufferHandle flushImageDownloads(VulkanCommandBufferHandle cmd);
-  VulkanCommandBufferHandle flushBufferDownloads(VulkanCommandBufferHandle cmd);
-  void flushBufferUploads(VulkanCommandBufferHandle cmd);
-  void flushOrderedBufferUploads(VulkanCommandBufferHandle cmd);
-  VulkanCommandBufferHandle flushBufferToHostFlushes(VulkanCommandBufferHandle cmd);
+  void flushImageDownloads();
+  void flushBufferDownloads();
+  void flushBufferUploads();
+  void flushOrderedBufferUploads();
+  void flushBufferToHostFlushes();
   void flushImageUploads();
   void flushImageUploadsIter(uint32_t start, uint32_t end);
   void flushUnorderedImageColorClears();
@@ -140,7 +139,6 @@ private:
   void printMemoryStatistics();
 
   void applyStateChanges();
-  void applyQueuedDiscards();
 
 #if VULKAN_VALIDATION_COLLECT_CALLER > 0
   static thread_local ExecutionContext *tlsDbgActiveInstance;
@@ -148,6 +146,8 @@ private:
 
 public:
   void addQueueDep(uint32_t src_submit, uint32_t dst_submit);
+  void applyQueuedDiscards();
+
   ExecutionContext() = delete;
   ~ExecutionContext();
   ExecutionContext(const ExecutionContext &) = delete;
@@ -180,9 +180,13 @@ public:
   void endVertexUserData(uint32_t stride);
   void invalidateActiveGraphicsPipeline();
 
+  void finishDebugEventRanges();
+  void restoreDebugEventRanges();
   void insertEvent(const char *marker, uint32_t color = 0xFFFFFFFF);
-  void pushEventRaw(const char *marker, uint32_t color = 0xFFFFFFFF);
+  void pushEventRaw(const char *marker, uint32_t color);
   void popEventRaw();
+  void pushEventTracked(const char *marker, uint32_t color = 0xFFFFFFFF);
+  void popEventTracked();
   void pushEvent(StringIndexRef name);
   void popEvent();
   void beginQuery(VulkanQueryPoolHandle pool, uint32_t index, VkQueryControlFlags flags);
@@ -231,16 +235,16 @@ public:
   void imageBarrier(Image *img, ResourceBarrier d3d_barrier, uint32_t res_index, uint32_t res_range);
   void bufferBarrier(const BufferRef &b_ref, ResourceBarrier d3d_barrier);
   void clearView(int what);
+  void processBufferCopyReorders(uint32_t pass_index);
   void nativeRenderPassChanged();
-  void performSyncToPreviousCommandList();
+  void finishReorderAndPerformSync();
+  void interruptFrameCoreForRenderPassStart();
 
   void registerFrameEventsCallback(FrameEvents *callback);
 
   // stops write to current frameCore command buffer and starts new one, safely
   // false returned when interrupt is not possible
   bool interruptFrameCore();
-  // pass start happens inside state apply, so interrupt must be treated differently
-  void interruptFrameCoreForRenderPassStart();
   // tracks current execution "node" which is sequence of state set and sequental action command
   // no stop node for now, as it is not yet needed (redo with RAII if needed)
   void startNode(ExecutionNode cp);

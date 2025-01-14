@@ -3,13 +3,16 @@
 #include <syncVroms/vromHash.h>
 
 
-using HasherImpl = SHA1Hasher;
+using HasherImpl = VromHasher::SHA1VromHashCalculator;
 
 
 VromHasher::VromHasher() { new (buffer.data()) HasherImpl; }
+VromHasher::~VromHasher() { ((HasherImpl *)buffer.data())->~HasherImpl(); }
+
+void VromHasher::update(const uint8_t *data, size_t size)
+{
+  ((HasherImpl *)buffer.data())->update(make_span_const((const char *)data, size));
+}
 
 
-void VromHasher::update(const uint8_t *data, size_t size) { ((HasherImpl *)buffer.data())->update(data, size); }
-
-
-VromHasher::Value VromHasher::finalize() { return ((HasherImpl *)buffer.data())->finalize(); }
+VromHasher::Value VromHasher::finalize() { return ((HasherImpl *)buffer.data())->finalizeRaw(); }

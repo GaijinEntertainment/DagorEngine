@@ -37,6 +37,8 @@ if $(Platform) in windows {
   Sources += xboxMessageBox.cpp ;
 } else if $(Platform) in android {
   Sources += and_MessageBox.cpp ;
+  AndroidSources = MessageBoxWrapper.java src/com/gaijinent/MessageBox/MessageBoxWrapper.java ;
+  AndroidLibProguard = android_mb.proguard ;
 } else if $(Platform) in iOS tvOS {
   Sources += iosMessageBox.mm ;
 }

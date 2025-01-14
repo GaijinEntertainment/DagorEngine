@@ -106,14 +106,15 @@ shader scope_lens, dynamic_crosshair
       float3 eyeToLens              : TEXCOORD2;
       float2 lensScrPos             : TEXCOORD3;
       float3 lensNormal             : TEXCOORD4;
+      float scopeShadowStrength     : TEXCOORD5;
     ##endif
 
-      float4 clipPos                : TEXCOORD5;
-      float3 fogMul                 : TEXCOORD6;
-      float3 fogAdd                 : TEXCOORD7;
+      float4 clipPos                : TEXCOORD6;
+      float3 fogMul                 : TEXCOORD7;
+      float3 fogAdd                 : TEXCOORD8;
 
     ##if shader == dynamic_crosshair
-      float2 texcoord               : TEXCOORD8;
+      float2 texcoord               : TEXCOORD9;
     ##endif
 
       #if SET_UP_MULTIDRAW
@@ -198,13 +199,21 @@ shader scope_lens, dynamic_crosshair
       SkinningOut lensOut = calcSkinning(modifiedInput, scope_lens_local_x, scope_lens_local_z);
       lensOut.worldNormal = normalize(lensOut.worldNormal);
 
+      float4 lensCenterOnParallaxPlane = mulPointTm(lensOut.eyeToPoint + lensOut.worldNormal * CROSSHAIR_DISTANCE, viewProjTm);
+
       ##if shader == scope_lens
         output.eyeToLens = lensOut.eyeToPoint;
         float2 lensScrTc = lensOut.pos.xy / lensOut.pos.w * float2(1, -1);
         output.lensScrPos = (lensScrTc + float2(1, 1)) * 0.5 * screen_size;
         output.lensNormal = lensOut.worldNormal;
+
+        lensCenterOnParallaxPlane.xy /= lensCenterOnParallaxPlane.w * float2(1, -1);
+        const float lensCenterToParallaxCenterRadiusUV = length(lensScrTc - lensCenterOnParallaxPlane.xy);
+        const float scopeShadowMaxDistanceRadius = 0.25;
+        output.scopeShadowStrength = saturate(lensCenterToParallaxCenterRadiusUV/scopeShadowMaxDistanceRadius);
+
       ##else
-        float4 collimatorPos = mulPointTm(lensOut.eyeToPoint + lensOut.worldNormal * CROSSHAIR_DISTANCE, viewProjTm);
+        float4 collimatorPos = lensCenterOnParallaxPlane;
         output.pos.xy /= output.pos.w;
         output.pos.xy += collimatorPos.xy / collimatorPos.w - lensOut.pos.xy / lensOut.pos.w;
         output.pos.xy *= output.pos.w;
@@ -507,13 +516,11 @@ shader scope_lens, dynamic_crosshair
           return eyeToPoint - rCollim * rcm;
         }
 
-        half raycastScopeCollimator(half shadeRadiusNorm, half shadeFadingStrength, half3 rFront)
+        half raycastScopeCollimator(half3 rFront)
         {
           half scopeInvRadius = get_scope_phys_params().z;
           half dist = sqrt(dot(rFront, rFront));
-          half radiusNorm = dist * scopeInvRadius;
-
-          return shadeSmooth(radiusNorm, shadeRadiusNorm, shadeFadingStrength);
+          return dist * scopeInvRadius;
         }
 
       #if NEED_RETICLE
@@ -540,12 +547,13 @@ shader scope_lens, dynamic_crosshair
           reflections = apply_glass_ps(input, screenpos, half4(0, 0, 0, 1), 1).rgb;
           ##endif
 
-          half reflectionAlpha = 0;
-          ##if lens_detail_level == only_reflections
-          reflectionAlpha = (1 - shade_factor) * get_scope_lens_albedo().a;
-          ##else
-          reflectionAlpha = 0.005;
-          ##endif
+          const float shadowedLensAlpha = (1 - shade_factor) * get_scope_lens_albedo().a;
+        ##if lens_detail_level == only_reflections
+          const float reflectionAlpha = shadowedLensAlpha;
+        ##else
+          const float unshadowedLensAlpha = 0.005;
+          const float reflectionAlpha = lerp(shadowedLensAlpha, unshadowedLensAlpha, shade_factor);
+        ##endif
 
           return color + reflections * get_scope_lens_albedo().rgb * reflectionAlpha;
         }
@@ -573,7 +581,10 @@ shader scope_lens, dynamic_crosshair
             shadeFactor *= raycastScopeCylinder(input.eyeToLens, eyeToPoint, -lensNormal,
               lens_shading_params2.x, lens_shading_params2.y, lens_shading_params2.z);
             ##if render_scope_collimator == yes
-              shadeFactor *= raycastScopeCollimator(1.0, lens_shading_params.w, collimatorRFront);
+              float radiusNorm = raycastScopeCollimator(collimatorRFront);
+              float maxScopeShadow = shadeSmooth(radiusNorm, 1.0, 1.0);
+              float minScopeShadow = shadeSmooth(radiusNorm, 1.0, lens_shading_params.w);
+              shadeFactor *= lerp(minScopeShadow, maxScopeShadow, input.scopeShadowStrength);
             ##endif
             #if NEED_RETICLE
               shadeFactor *= sampleScopeReticle(collimatorRFront, input.reticleDu, input.reticleDv);

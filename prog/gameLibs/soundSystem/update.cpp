@@ -136,11 +136,9 @@ void end_update(float dt)
 
   streams::update(dt);
 
-  const auto systemAndStudioSystem = get_systems();
+  occlusion::update(get_3d_listener_pos());
 
-  occlusion::update(get_3d_listener_pos(), *systemAndStudioSystem.first);
-
-  SOUND_VERIFY(systemAndStudioSystem.second->update());
+  SOUND_VERIFY(get_studio_system()->update());
 
   banks::update();
 }

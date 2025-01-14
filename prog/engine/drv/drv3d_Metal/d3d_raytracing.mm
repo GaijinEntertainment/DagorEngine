@@ -152,66 +152,6 @@ void d3d::copy_raytrace_acceleration_structure(RaytraceAnyAccelerationStructure,
   G_ASSERT(false); // Not implemented yet!
 }
 
-void d3d::trace_rays(Sbuffer *ray_gen_table, uint32_t ray_gen_offset, Sbuffer *miss_table, uint32_t miss_offset, uint32_t miss_stride,
-  Sbuffer *hit_table, uint32_t hit_offset, uint32_t hit_stride, Sbuffer *callable_table, uint32_t callable_offset,
-  uint32_t callable_stride, uint32_t width, uint32_t height, uint32_t depth)
-{
-  G_UNUSED(ray_gen_table);
-  G_UNUSED(ray_gen_offset);
-  G_UNUSED(miss_table);
-  G_UNUSED(miss_offset);
-  G_UNUSED(miss_stride);
-  G_UNUSED(hit_table);
-  G_UNUSED(hit_offset);
-  G_UNUSED(hit_stride);
-  G_UNUSED(callable_table);
-  G_UNUSED(callable_offset);
-  G_UNUSED(callable_stride);
-  G_UNUSED(width);
-  G_UNUSED(height);
-  G_UNUSED(depth);
-  G_ASSERTF(false, "d3d::trace_rays called on API without support");
-}
-
-void d3d::copy_raytrace_shader_handle_to_memory(PROGRAM prog, uint32_t first_group, uint32_t group_count, uint32_t size,
-  Sbuffer *buffer, uint32_t offset)
-{
-  G_UNUSED(prog);
-  G_UNUSED(first_group);
-  G_UNUSED(group_count);
-  G_UNUSED(size);
-  G_UNUSED(buffer);
-  G_UNUSED(offset);
-  G_ASSERTF(false, "d3d::copy_raytrace_shader_handle_to_memory called on API without support");
-}
-
-PROGRAM d3d::create_raytrace_program(const int *shaders, uint32_t shader_count, const RaytraceShaderGroup *shader_groups,
-  uint32_t shader_group_count, uint32_t max_recursion_depth)
-{
-  G_UNUSED(shaders);
-  G_UNUSED(shader_count);
-  G_UNUSED(shader_groups);
-  G_UNUSED(shader_group_count);
-  G_UNUSED(max_recursion_depth);
-  G_ASSERTF(false, "d3d::create_raytrace_program called on API without support");
-  return -1;
-}
-
-int d3d::create_raytrace_shader(RaytraceShaderType type, const uint32_t *data, uint32_t data_size)
-{
-  G_UNUSED(type);
-  G_UNUSED(data);
-  G_UNUSED(data_size);
-  G_ASSERTF(false, "d3d::create_raytrace_shader called on API without support");
-  return -1;
-}
-
-void d3d::delete_raytrace_shader(int shader)
-{
-  G_UNUSED(shader);
-  G_ASSERTF(false, "d3d::delete_raytrace_shader called on API without support");
-}
-
 bool d3d::raytrace::check_vertex_format_support_for_acceleration_structure_build(uint32_t format)
 {
   switch (format)
@@ -252,3 +192,27 @@ bool d3d::raytrace::check_vertex_format_support_for_acceleration_structure_build
     default: return false;
   }
 }
+
+::raytrace::Pipeline d3d::raytrace::create_pipeline(const ::raytrace::PipelineCreateInfo &) { return ::raytrace::InvalidPipeline; }
+::raytrace::Pipeline d3d::raytrace::expand_pipeline(const ::raytrace::Pipeline &, const ::raytrace::PipelineExpandInfo &)
+{
+  return ::raytrace::InvalidPipeline;
+}
+void d3d::raytrace::destroy_pipeline(::raytrace::Pipeline &) {}
+::raytrace::ShaderBindingTableBufferProperties d3d::raytrace::get_shader_binding_table_buffer_properties(
+  const ::raytrace::ShaderBindingTableDefinition &, const ::raytrace::Pipeline &)
+{
+  return {};
+}
+
+void d3d::raytrace::dispatch(const ::raytrace::ResourceBindingTable &, const ::raytrace::Pipeline &,
+  const ::raytrace::RayDispatchParameters &, GpuPipeline)
+{}
+
+void d3d::raytrace::dispatch_indirect(const ::raytrace::ResourceBindingTable &, const ::raytrace::Pipeline &,
+  const ::raytrace::RayDispatchIndirectParameters &, GpuPipeline)
+{}
+
+void d3d::raytrace::dispatch_indirect_count(const ::raytrace::ResourceBindingTable &, const ::raytrace::Pipeline &,
+  const ::raytrace::RayDispatchIndirectCountParameters &, GpuPipeline)
+{}

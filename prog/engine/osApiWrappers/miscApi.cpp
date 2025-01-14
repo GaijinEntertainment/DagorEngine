@@ -22,7 +22,7 @@
 #elif _TARGET_C1 | _TARGET_C2
 
 #elif _TARGET_XBOX
-#include "xbox/misc_api.h"
+#include "gdk/misc_api.h"
 #elif _TARGET_PC_WIN
 #include <windows.h>
 #elif _TARGET_ANDROID

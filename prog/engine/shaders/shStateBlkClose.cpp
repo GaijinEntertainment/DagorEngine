@@ -45,26 +45,28 @@ void shaders_internal::close_stateblocks()
 
 void shaders_internal::close_fshader()
 {
-  for (int i = 0; i < shBinDump().fshId.size(); ++i)
-    if (shBinDump().fshId[i] != BAD_FSHADER)
+  auto &shOwner = shBinDumpOwner();
+  for (int i = 0; i < shOwner.fshId.size(); ++i)
+    if (shOwner.fshId[i] != BAD_FSHADER)
     {
       G_ASSERT(d3d::is_inited());
-      if (shBinDump().fshId[i] & 0x10000000)
-        d3d::delete_program(shBinDump().fshId[i] & 0x0FFFFFFF);
+      if (shOwner.fshId[i] & 0x10000000)
+        d3d::delete_program(shOwner.fshId[i] & 0x0FFFFFFF);
       else
-        d3d::delete_pixel_shader(shBinDump().fshId[i]);
-      shBinDumpRW().fshId[i] = BAD_FSHADER;
+        d3d::delete_pixel_shader(shOwner.fshId[i]);
+      shOwner.fshId[i] = BAD_FSHADER;
     }
 }
 
 
 void shaders_internal::close_vprog()
 {
-  for (int i = 0; i < shBinDump().vprId.size(); ++i)
-    if (shBinDump().vprId[i] != BAD_VPROG)
+  auto &shOwner = shBinDumpOwner();
+  for (int i = 0; i < shOwner.vprId.size(); ++i)
+    if (shOwner.vprId[i] != BAD_VPROG)
     {
       G_ASSERT(d3d::is_inited());
-      d3d::delete_vertex_shader(shBinDump().vprId[i]);
-      shBinDumpRW().vprId[i] = BAD_VPROG;
+      d3d::delete_vertex_shader(shOwner.vprId[i]);
+      shOwner.vprId[i] = BAD_VPROG;
     }
 }

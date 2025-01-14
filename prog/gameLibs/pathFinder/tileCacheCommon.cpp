@@ -458,6 +458,19 @@ bool TileCacheMeshProcess::checkOverLink(const float *from, const float *to, uns
   return false;
 }
 
+void TileCacheMeshProcess::remove(int tx, int ty, int tlayer)
+{
+  const dtMeshTile *tile = mesh->getTileAt(tx, ty, tlayer);
+  if (!tile)
+    return;
+
+  if (tileCacheRemoveCbEnabled && tileCacheRemoveCb)
+  {
+    uint32_t tileId = mesh->decodePolyIdTile(mesh->getTileRef(tile));
+    tileCacheRemoveCb(tileId, tx, ty, tlayer);
+  }
+}
+
 void TileCacheMeshProcess::process(struct dtNavMeshCreateParams *params, unsigned char *polyAreas, unsigned short *polyFlags,
   dtCompressedTileRef ref)
 {

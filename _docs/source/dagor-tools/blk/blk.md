@@ -1,15 +1,15 @@
-# .blk File Format
+# `.blk` File Format
 
-The `.blk` ("block") is a *Data Block*, the primary configuration format in
-*Dagor Engine*. It is a configuration file similar to `.ini`, `.cfg`, and other
+The `.blk` ("block") is a *data block*, the primary configuration format in
+Dagor Engine. It is a configuration file similar to `.ini`, `.cfg`, and other
 configuration files you may have encountered in other systems.
 
-The *Dagor Engine* uses `.blk` files for storing settings, parameters, and other
+The Dagor Engine uses `.blk` files for storing settings, parameters, and other
 essential information.
 
 There are two types of `.blk` files: *text* and *binary*.
 
-## Text Format of .blk File
+## Text Format of `.blk` File
 
 Text `.blk` files are regular text files with proprietary syntax.
 
@@ -26,11 +26,11 @@ curly braces.
 
 where
 
-- `<block name>`: The name of the block, which must start with a Latin letter or
+- `<block_name>`: the name of the block, which must start with a Latin letter or
 an underscore and consist of Latin letters, digits, or underscores.
-- `<parameter_name>`: The name of the parameter, which must start with a Latin
+- `<parameter_name>`: the name of the parameter, which must start with a Latin
   letter or an underscore and consist of Latin letters, digits, or underscores.
-- `<type>`: The type of the parameter, which is mandatory and can be one of the
+- `<type>`: the type of the parameter, which is mandatory and can be one of the
   following:
     - **`t`**: *string*, the `<value>` is a text string in quotes. If the string
       consists of only one word, quotes may be omitted. The string should not
@@ -57,8 +57,8 @@ an underscore and consist of Latin letters, digits, or underscores.
       numbers defining x,y vector.
     - **`ip3`**: *IPoint3 vector*, the `<value>` is comma-separated integer
       numbers defining x,y,z vector.
-- `<value>`: The value of the parameter, can be in quotes.
-- `[;]`: If a semicolon is placed after the parameter, the next parameter may be
+- `<value>`: the value of the parameter, can be in quotes.
+- `[;]`: if a semicolon is placed after the parameter, the next parameter may be
   on the same line. If the semicolon is omitted, the next parameter should be on
   a new line.
 
@@ -70,13 +70,14 @@ an underscore and consist of Latin letters, digits, or underscores.
 Parameters can be defined as an array:
 
 ```text
-<Parameter name>:<type>[] = [<values>]
+<parameter_name>:<type>[] = [<values>]
 ```
 
-where:
+where
 
-- `<type>`: The type of parameter,
-- `<values>`: A list of values of the corresponding type separated by a
+- `<parameter_name>`: the name of the parameter.
+- `<type>`: the type of parameter.
+- `<values>`: a list of values of the corresponding type separated by a
   semicolon or a new line.
 
 **Example:**
@@ -94,7 +95,7 @@ param2:t[]=[
 
 `.blk` files may contain *parser directives* and *comments*.
 
-#### Directive @include
+#### Directive `@include`
 
 All parameters of the file will be included as if they were initially presented
 in the current file. Included files may contain other `include` files.
@@ -105,20 +106,21 @@ Including another `.blk` file:
 include <file_name>
 ```
 
-where `file name` is a path to the included `.blk` file relative to the current
-`.blk` file path. If the `file_name` starts with a slash (`/`), the path is
-considered from the root of the engine, otherwise from the directory where the
-`.blk` file is located. In tools, starting with `#` means from the `develop`
-directory.
+where `<file_name>` is a path to the included `.blk` file relative to the
+current `.blk` file path. If the `<file_name>` starts with a slash (`/`), the
+path is considered from the root of the engine, otherwise from the directory
+where the `.blk` file is located. In tools, starting with `#` means from the
+`develop/` directory.
 
-#### Directive @override
+#### Directive `@override`
 
 ```text
-"@override:<name of block or parameter>"
+"@override:<name_of_block_or_parameter>"
 "@override:block"{
   "@override:parameter"i=10`
 }
 ```
+
 There are rules to follow when *overriding*:
 
 - Overriding a value that has not been declared before results in a log error.
@@ -140,22 +142,22 @@ before, it will be deleted; if not, then no action is taken. After that, `vsync`
 does not need to be overridden and can be added normally, regardless of the
 presence of `vsync` before it.
 
-#### Directive @delete
+#### Directive `@delete`
 
 ```text
-"@delete:<name of block or parameter>"
+"@delete:<name_of_block_or_parameter>"
 ```
 
-#### Directive @clone-last
+#### Directive `@clone-last`
 
 ```text
-"@clone-last:<name of block or parameter>"
+"@clone-last:<name_of_block_or_parameter>"
 ```
 
 #### Comments
 
-- `//` – single-line comment
-- `/* ... */` – multi-line comment
+- `//`: single-line comment
+- `/* ... */`: multi-line comment
 
 ### Block Types
 
@@ -232,7 +234,7 @@ contents{
 }
 ```
 
-## Binary Format of .blk File
+## Binary Format of `.blk` File
 
 Binary `.blk` files are optimized for performance with a defined structure for
 efficient data storage and retrieval.
@@ -243,8 +245,8 @@ The data in a binary `.blk` file consists of *header*, *name* and *string maps*,
 *parameters*, and *blocks*. The data is ordered as follows:
 
 - **Header**
-- **Name map** (parameter and block names)
-- **String map** (string parameters)
+- **Name map**: parameter and block names
+- **String map**: string parameters
 - **Root parameters:** (may be nested)
   - `paramCnt`
   - `paramNameId_1`
@@ -279,8 +281,8 @@ The data in a binary `.blk` file consists of *header*, *name* and *string maps*,
 
 The `dagor3_cdk` has some useful tools for working with `.blk`:
 
-- `binBlk.exe`: Converts binary and text `.blk` files to and from each other.
-- `blkDiff.exe`: Performs a syntactic diff between two `.blk` files.
+- `binBlk.exe`: converts binary and text `.blk` files to and from each other.
+- `blkDiff.exe`: performs a syntactic diff between two `.blk` files.
 - `blkEditor-dev.exe`: Facilitates the creation of a GUI editor with dynamic
   views for `.blk` files.
 

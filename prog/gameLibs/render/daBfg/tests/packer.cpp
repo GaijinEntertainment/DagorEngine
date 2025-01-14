@@ -218,3 +218,19 @@ OFFSET_HINT_TEST(100, 1000, 0.5);
 OFFSET_HINT_TEST(1000, 10000, 0.8);
 
 #undef OFFSET_HINT_TEST
+
+TEST_FIXTURE(PackerFixture, TestPreservationEdgeCase)
+{
+  input.timelineSize = 300;
+  input.maxHeapSize = 0x4000000;
+
+  resources = {
+    {100, 281, 0x2B60000, 0x10000, 0},
+    {281, 89, 0X1FE0000, 0x10000, 0},
+    {281, 89, 0X1FE0000, 0x10000, 0X1FE0000},
+  };
+
+  input.resources = resources;
+
+  pack();
+}

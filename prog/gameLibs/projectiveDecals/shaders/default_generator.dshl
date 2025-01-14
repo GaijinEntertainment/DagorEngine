@@ -8,10 +8,17 @@ buffer spray_decal_matrices;
 
 shader projective_decal_decals_generator
 {
+  (cs) {
+    decalsToUpdateCount@u4 : register(projective_decals_to_update_count_const_no);
+    decals@uav : register(projective_decals_original_uav_no) hlsl {
+      #include <projectiveDecals/projective_decals.hlsli>
+      RWStructuredBuffer<ProjectiveDecalInstance> decals@uav;
+    };
+  }
+
   hlsl(cs) {
-    uint4 decalsToUpdateCount:register(c0);
+    // TODO: move it to (cs) when related compiler feature will be done
     ProjectiveToUpdate decalsToUpdate[MAX_DECALS_TO_UPDATE] : register(c1);
-    RWStructuredBuffer<ProjectiveDecalInstance> decals : register(u0);
 ##if !hardware.metal
     #if !SHADER_COMPILER_DXC
     float4 last:register(c61);//compiler inability to determ size of arrays workaround
@@ -49,9 +56,13 @@ shader projective_decal_decals_generator
 shader projective_decal_create_indirect
 {
   ENABLE_ASSERT(cs)
-  hlsl(cs) {
-    RWByteAddressBuffer count : register(u2);
+  (cs) {
+    count@uav : register(projective_decals_target_count_uav_no) hlsl {
+      RWByteAddressBuffer count@uav;
+    };
+  }
 
+  hlsl(cs) {
     [numthreads( 1, 1, 1 )]
     void main()
     {
@@ -66,12 +77,21 @@ shader projective_decal_cull
   INIT_AND_USE_FRUSTUM_CHECK_CS()
   PROJECTIVE_DECALS_MATRICES(spray_decal_matrices, SPRAY_DECALS_MAX_MATRICES_COUNT, cs)
   ENABLE_ASSERT(cs)
-  hlsl(cs) {
-    uint4 numDecals:register(c10);
-    RWStructuredBuffer<ProjectiveDecalInstance> original : register( u0 );
-    RWStructuredBuffer<ProjectiveDecalInstance> target : register( u1 );
-    RWByteAddressBuffer count : register(u2);
+  (cs) {
+    numDecals@u4 : register(projective_decals_original_count_const_no);
+    original@uav : register(projective_decals_original_uav_no) hlsl {
+      #include <projectiveDecals/projective_decals.hlsli>
+      RWStructuredBuffer<ProjectiveDecalInstance> original@uav;
+    };
+    target@uav : register(projective_decals_target_uav_no) hlsl {
+      RWStructuredBuffer<ProjectiveDecalInstance> target@uav;
+    };
+    count@uav : register(projective_decals_target_count_uav_no) hlsl {
+      RWByteAddressBuffer count@uav;
+    };
+  }
 
+  hlsl(cs) {
     [numthreads( DECALS_MAX_CULL_X, 1, 1 )]
     void main(uint3 dtId : SV_DispatchThreadID)
     {

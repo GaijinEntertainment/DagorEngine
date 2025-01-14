@@ -80,18 +80,20 @@ void TreeBaseWindow::changeItemImage(TLeafHandle item, TEXTUREID new_id) { mTree
 
 void TreeBaseWindow::changeItemStateImage(TLeafHandle item, TEXTUREID new_id) { mTree->setStateIcon(item, new_id); }
 
-int TreeBaseWindow::getChildrenCount(TLeafHandle parent) { return mTree->getChildCount(parent); }
+int TreeBaseWindow::getChildrenCount(TLeafHandle parent) const { return mTree->getChildCount(parent); }
 
-TLeafHandle TreeBaseWindow::getNextNode(TLeafHandle item, bool forward)
+TLeafHandle TreeBaseWindow::getNextNode(TLeafHandle item, bool forward) const
 {
   return forward ? mTree->getNextLeaf(item) : mTree->getPrevLeaf(item);
 }
 
-TLeafHandle TreeBaseWindow::getChild(TLeafHandle parent, int i) { return mTree->getChildLeaf(parent, i); }
+TLeafHandle TreeBaseWindow::getChild(TLeafHandle parent, int i) const { return mTree->getChildLeaf(parent, i); }
 
 TTreeNode *TreeBaseWindow::getItemNode(TLeafHandle p) { return mTree->getItemNode(p); }
 
-String TreeBaseWindow::getItemName(TLeafHandle item)
+const TTreeNode *TreeBaseWindow::getItemNode(TLeafHandle p) const { return mTree->getItemNode(p); }
+
+String TreeBaseWindow::getItemName(TLeafHandle item) const
 {
   const String *title = mTree->getItemTitle(item);
   return title ? *title : String();
@@ -101,9 +103,9 @@ bool TreeBaseWindow::isOpen(TLeafHandle item) const { return mTree->isExpanded(i
 
 bool TreeBaseWindow::isSelected(TLeafHandle item) const { return mTree->isLeafSelected(item); }
 
-void *TreeBaseWindow::getItemData(TLeafHandle item) { return mTree->getItemData(item); }
+void *TreeBaseWindow::getItemData(TLeafHandle item) const { return mTree->getItemData(item); }
 
-Tab<String> TreeBaseWindow::getChildNames(TLeafHandle item) { return mTree->getChildNames(item); }
+Tab<String> TreeBaseWindow::getChildNames(TLeafHandle item) const { return mTree->getChildNames(item); }
 
 void TreeBaseWindow::startFilter() { mTree->filter(this, TreeBaseWindowFilterStub); }
 
@@ -122,9 +124,9 @@ void TreeBaseWindow::expandRecursive(TLeafHandle leaf, bool open) { mTree->setEx
 
 void TreeBaseWindow::ensureVisible(TLeafHandle item) { mTree->ensureVisible(item); }
 
-TLeafHandle TreeBaseWindow::getRoot() { return mTree->getRootLeaf(); }
+TLeafHandle TreeBaseWindow::getRoot() const { return mTree->getRootLeaf(); }
 
-TLeafHandle TreeBaseWindow::getSelectedItem() { return mTree->getSelectedLeaf(); }
+TLeafHandle TreeBaseWindow::getSelectedItem() const { return mTree->getSelectedLeaf(); }
 
 void TreeBaseWindow::setSelectedItem(TLeafHandle item) { mTree->setSelectedLeaf(item); }
 
@@ -244,9 +246,9 @@ void TreeListWindow::onWcRightClick(WindowBase *source)
     TreeViewWindow::onWcRightClick(source);
 }
 
-int TreeListWindow::getListSelIndex() { return listBox->getSelectedIndex(); }
+int TreeListWindow::getListSelIndex() const { return listBox->getSelectedIndex(); }
 
-void TreeListWindow::getListSelText(char *buffer, int buflen)
+void TreeListWindow::getListSelText(char *buffer, int buflen) const
 {
   const String *text = listBox->getSelectedText();
   if (text)

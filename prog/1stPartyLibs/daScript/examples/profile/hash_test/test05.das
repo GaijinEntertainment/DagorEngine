@@ -13,7 +13,7 @@ def test ( hmap : auto(HashMapType); dummy )
         hashMap <- HashMapType()
     for i in range(250)
         for j in range(300000)
-            hashMap[3] = 3
+            unsafe(hashMap[3]) = 3
 
 [export]
 def main

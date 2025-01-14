@@ -68,22 +68,3 @@ void ComputeProgram::addToContext(DeviceContext &ctx, ProgramID prog, const Crea
     eastl::make_unique<ShaderDebugInfo>(spirv_extractor::getDebugInfo(info.chunks, info.chunk_data, 0)));
 #endif
 }
-
-#if D3D_HAS_RAY_TRACING
-
-void RaytraceProgram::addToContext(DeviceContext &ctx, ProgramID prog, const CreationInfo &info)
-{
-  eastl::unique_ptr<RaytraceShaderGroup[]> groupUses(new RaytraceShaderGroup[groupCount]);
-  eastl::unique_ptr<ShaderModuleUse[]> uses(new ShaderModuleUse[shaderCount]);
-  for (uint32_t i = 0; i < shaderCount; ++i)
-  {
-    shaders[i] = info.shaders.get(info.shader_ids[i]);
-    uses[i] = shaders[i]->getUseInfo();
-  }
-  eastl::copy(info.shader_groups, info.shader_groups + groupCount, shaderGroups.get());
-  eastl::copy(info.shader_groups, info.shader_groups + groupCount, groupUses.get());
-
-  ctx.addRaytraceProgram(prog, maxRecursionDepth, shaderCount, uses.release(), groupCount, groupUses.release());
-}
-
-#endif

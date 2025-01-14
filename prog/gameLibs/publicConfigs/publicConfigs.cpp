@@ -26,14 +26,23 @@ void init(const char *cache_dir, const char *default_public_configs_url)
   G_ASSERT(!public_configs_webcache);
 
   const char *url = dgs_get_settings()->getBlockByNameEx("network")->getStr("publicConfigsUrl", default_public_configs_url);
-  if (url == NULL || url[0] == '\0') // if empty url - no init
-    return;
+
   DataBlock settings(framemem_ptr());
   DataBlock *urlsBlk = settings.addBlock("baseUrls");
-
   *urlsBlk = *dgs_get_settings()->getBlockByNameEx("network")->getBlockByNameEx("publicConfigsUrls");
-  if (strcmp(urlsBlk->getStr("url", ""), url) != 0)
-    urlsBlk->addStr("url", url);
+
+  if (url && *url)
+  {
+    bool duplicate_url = false;
+    dblk::iterate_params_by_name_and_type(*urlsBlk, "url", DataBlock::TYPE_STRING, [urlsBlk, &duplicate_url, url](int param_idx) {
+      if (!duplicate_url && strcmp(urlsBlk->getStr(param_idx), url) == 0)
+        duplicate_url = true;
+    });
+    if (!duplicate_url)
+      urlsBlk->addStr("url", url);
+  }
+  if (urlsBlk->isEmpty()) // if empty urls list - no init
+    return;
 
   settings.setBool("noIndex", true);
   settings.setBool("allowReturnStaleData", false);

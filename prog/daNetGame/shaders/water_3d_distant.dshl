@@ -23,11 +23,11 @@ shader water_distant
   USE_WATER_3D_DEFERRED_COLOR()
 
   hlsl(ps) {
-    float4 water_nv_ps(VsOutput input HW_USE_SCREEN_POS INPUT_VFACE) : SV_Target0
+    float4 water_nv_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
     {
       half3 worldNormal;
       PS_INPUT In = get_spoofed_ps_input(input, worldNormal);
-      return calc_water_color_from_ps_input(In, vface, worldNormal);
+      return calc_water_color_from_ps_input(In, 1, worldNormal);
     }
   }
 

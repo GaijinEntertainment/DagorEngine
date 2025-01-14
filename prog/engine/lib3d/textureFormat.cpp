@@ -34,10 +34,6 @@ static const TextureFormatDesc format_descs[] = {
   {TEXFMT_A4R4G4B4, 2, false, 1, 1, ChannelDType::UNORM, {}, {4, 8, 0, 0, 1}, {4, 4, 0, 0, 1}, {4, 0, 0, 0, 1}, {4, 12, 0, 0, 1}, {},
     {}},
   {TEXFMT_R5G6B5, 2, false, 1, 1, ChannelDType::UNORM, {}, {5, 11, 0, 0, 1}, {6, 5, 0, 0, 1}, {5, 0, 0, 0, 1}, {}, {}, {}},
-  {TEXFMT_A8L8, 2, false, 1, 1, ChannelDType::UNORM, {},
-    // NOTE: support for this was dropped in dx10. Both dx12 and vulkan
-    // drivers actually use TEXFMT_R8G8 for this.
-    {8, 0, 0, 0, 0}, {8, 8, 0, 0, 0}, {}, {}, {}, {}},
   {TEXFMT_A16B16G16R16S, 8, false, 1, 1, ChannelDType::SNORM, {}, {16, 0, 0, 1, 1}, {16, 16, 0, 1, 1}, {16, 32, 0, 1, 1},
     {16, 48, 0, 1, 1}, {}, {}},
   {TEXFMT_A16B16G16R16UI, 8, false, 1, 1, ChannelDType::UINT, {}, {16, 0, 0, 1, 1}, {16, 16, 0, 1, 1}, {16, 32, 0, 1, 1},
@@ -102,7 +98,6 @@ static const TextureFormatName format_names[] = {
   {TEXFMT_A1R5G5B5, "A1R5G5B5", nullptr},
   {TEXFMT_A4R4G4B4, "A4R4G4B4", nullptr},
   {TEXFMT_R5G6B5, "R5G6B5", nullptr},
-  {TEXFMT_A8L8, "A8L8", nullptr},
   {TEXFMT_A16B16G16R16S, "A16B16G16R16S", nullptr},
   {TEXFMT_A16B16G16R16UI, "A16B16G16R16UI", nullptr},
   {TEXFMT_A32B32G32R32UI, "A32B32G32R32UI", nullptr},
@@ -277,11 +272,12 @@ float channel_bits_to_float(uint32_t bits, ChannelDType type, const TextureChann
   // Conversion is done as per section 3.9 of vulkan API specification
   // The hope is that no other platform is crazy enough to implement
   // these formats in a fundamentally different way.
+  G_ASSERT(channel.bits <= 32);
 
-  const uint32_t mask = ((1 << channel.bits) - 1);
+  const uint32_t mask = (uint64_t{1} << channel.bits) - 1;
   switch (type)
   {
-    case ChannelDType::UNORM: return static_cast<float>(bits & mask) / ((1 << channel.bits) - 1);
+    case ChannelDType::UNORM: return static_cast<float>(bits & mask) / ((uint64_t{1} << channel.bits) - 1);
 
     case ChannelDType::SNORM:
     {

@@ -30,6 +30,7 @@
 #include <ecs/scripts/sqAttrMap.h>
 #include <daECS/core/internal/performQuery.h>
 #include <daECS/core/sharedComponent.h>
+#include <daECS/scene/scene.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <util/dag_strUtil.h>
 #include "queryExpression.h"
@@ -3528,7 +3529,7 @@ void ecs_register_sq_binding(SqModules *module_mgr, bool create_systems, bool cr
     ECS_DECL_ALL_CORE_EVENTS
 #undef ECS_DECL_CORE_EVENT
       ecs::sq::Timer,
-    EventScriptReloaded>::bind(vm, tblEcs);
+    EventScriptReloaded, ecs::EventOnLocalSceneEntitiesCreated>::bind(vm, tblEcs);
   {
     ///@class ecs/SchemelessEvent
     ///@extends Event
