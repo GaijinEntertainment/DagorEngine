@@ -17,7 +17,7 @@ require daslib/apply
 require daslib/macro_boost
 
 
-def operator ?[] ( a : json::JsonValue? == const; key:string ) : JsonValue? const
+def operator ?[] ( a : json::JsonValue const? == const; key:string ) : JsonValue? const
     //! Returns the value of the key in the JSON object, if it exists.
     return a != null && a.value is _object ? (a.value as _object)?[key] ?? JVNull() : JVNull()
 
@@ -25,7 +25,7 @@ def operator ?[] ( var a : json::JsonValue? == const; key:string ) : JsonValue?
     //! Returns the value of the key in the JSON object, if it exists.
     return a != null && a.value is _object ? (a.value as _object)?[key] ?? JVNull() : JVNull()
 
-def operator ?. ( a : json::JsonValue? == const; key:string ) : JsonValue? const
+def operator ?. ( a : json::JsonValue const? == const; key:string ) : JsonValue? const
     //! Returns the value of the key in the JSON object, if it exists.
     return a != null && a.value is _object ? (a.value as _object)?[key] ?? JVNull() : JVNull()
 
@@ -33,7 +33,7 @@ def operator ?. ( var a : json::JsonValue? == const; key:string ) : JsonValue?
     //! Returns the value of the key in the JSON object, if it exists.
     return a != null && a.value is _object ? (a.value as _object)?[key] ?? JVNull() : JVNull()
 
-def operator ?[] ( a : json::JsonValue? == const; idx:int ) : JsonValue? const
+def operator ?[] ( a : json::JsonValue const? == const; idx:int ) : JsonValue? const
     //! Returns the value of the index in the JSON array, if it exists.
     return a != null && a.value is _array ? (a.value as _array)?[idx] ?? JVNull() : JVNull()
 
@@ -41,55 +41,55 @@ def operator ?[] ( var a : json::JsonValue? == const; idx:int ) : JsonValue?
     //! Returns the value of the index in the JSON array, if it exists.
     return a != null && a.value is _array ? (a.value as _array)?[idx] ?? JVNull() : JVNull()
 
-def operator ?? ( a : json::JsonValue?; val:double ) : double
+def operator ?? ( a : json::JsonValue const?; val:double ) : double
     //! Returns the value of the JSON object, if it exists, otherwise returns the default value.
     return a != null && a.value is _number ? a.value as _number : val
 
-def operator ?? ( a : json::JsonValue?; val:float ) : float
+def operator ?? ( a : json::JsonValue const?; val:float ) : float
     //! Returns the value of the JSON object, if it exists, otherwise returns the default value.
     return a != null && a.value is _number ? float(a.value as _number) : val
 
-def operator ?? ( a : json::JsonValue?; val:int8 ) : int8
+def operator ?? ( a : json::JsonValue const?; val:int8 ) : int8
     //! Returns the value of the JSON object, if it exists, otherwise returns the default value.
     return a != null && a.value is _number ? int8(a.value as _number) : val
 
-def operator ?? ( a : json::JsonValue?; val:int16 ) : int16
+def operator ?? ( a : json::JsonValue const?; val:int16 ) : int16
     //! Returns the value of the JSON object, if it exists, otherwise returns the default value.
     return a != null && a.value is _number ? int16(a.value as _number) : val
 
-def operator ?? ( a : json::JsonValue?; val:int ) : int
+def operator ?? ( a : json::JsonValue const?; val:int ) : int
     //! Returns the value of the JSON object, if it exists, otherwise returns the default value.
     return a != null && a.value is _number ? int(a.value as _number) : val
 
-def operator ?? ( a : json::JsonValue?; val:int64 ) : int64
+def operator ?? ( a : json::JsonValue const?; val:int64 ) : int64
     //! Returns the value of the JSON object, if it exists, otherwise returns the default value.
     return a != null && a.value is _number ? int64(a.value as _number) : val
 
-def operator ?? ( a : json::JsonValue?; val:uint8 ) : uint8
+def operator ?? ( a : json::JsonValue const?; val:uint8 ) : uint8
     //! Returns the value of the JSON object, if it exists, otherwise returns the default value.
     return a != null && a.value is _number ? uint8(a.value as _number) : val
 
-def operator ?? ( a : json::JsonValue?; val:uint16 ) : uint16
+def operator ?? ( a : json::JsonValue const?; val:uint16 ) : uint16
     //! Returns the value of the JSON object, if it exists, otherwise returns the default value.
     return a != null && a.value is _number ? uint16(a.value as _number) : val
 
-def operator ?? ( a : json::JsonValue?; val:uint ) : uint
+def operator ?? ( a : json::JsonValue const?; val:uint ) : uint
     //! Returns the value of the JSON object, if it exists, otherwise returns the default value.
     return a != null && a.value is _number ? uint(a.value as _number) : val
 
-def operator ?? ( a : json::JsonValue?; val:uint64 ) : uint64
+def operator ?? ( a : json::JsonValue const?; val:uint64 ) : uint64
     //! Returns the value of the JSON object, if it exists, otherwise returns the default value.
     return a != null && a.value is _number ? uint64(a.value as _number) : val
 
-def operator ?? ( a : json::JsonValue?; val:bool ) : bool
+def operator ?? ( a : json::JsonValue const?; val:bool ) : bool
     //! Returns the value of the JSON object, if it exists, otherwise returns the default value.
     return a != null && a.value is _bool ? a.value as _bool : val
 
-def operator ?? ( a : json::JsonValue?; val:string ) : string
+def operator ?? ( a : json::JsonValue const?; val:string ) : string
     //! Returns the value of the JSON object, if it exists, otherwise returns the default value.
     return a != null && a.value is _string ? a.value as _string : val
 
-def operator ?. value ( a : JsonValue? == const ) : JsValue const?
+def operator ?. value ( a : JsonValue const? == const ) : JsValue const?
     //! Returns the value of the JSON object, if it exists.
     return a . ?. value
 
@@ -165,7 +165,7 @@ class private JsonReader : AstReaderMacro
         return <- convert_to_expression(json,expr.at)
 
 [expect_any_enum(ent), template(ent)]
-def from_JV ( v:JsonValue explicit?; ent : auto(EnumT); defV : EnumT = [[EnumT]] ) : EnumT
+def from_JV ( v:JsonValue const explicit?; ent : auto(EnumT); defV : EnumT = [[EnumT]] ) : EnumT
     //! Parse a JSON value and return the corresponding native value.
     if v==null || !((v.value is _string) || (v.value is _number))
         return defV
@@ -188,49 +188,49 @@ def from_JV ( v:JsonValue explicit?; ent : auto(EnumT); defV : EnumT = [[EnumT]]
     return defV
 
 [generic,template(ent)]
-def from_JV ( var v : JsonValue explicit?; ent:string; defV:string="" )
+def from_JV ( v : JsonValue const explicit?; ent:string; defV:string="" )
     if v==null || !(v.value is _string)
         return defV
     else
         return v.value as _string
 
 [generic,template(ent)]
-def from_JV ( var v : JsonValue explicit?; ent:bool; defV:bool=false )
+def from_JV ( v : JsonValue const explicit?; ent:bool; defV:bool=false )
     if v==null || !(v.value is _bool)
         return defV
     else
         return v.value as _bool
 
 [generic,template(ent)]
-def from_JV ( var v : JsonValue explicit?; ent:float; defV:float=0. )
+def from_JV ( v : JsonValue const explicit?; ent:float; defV:float=0. )
     if v==null || !(v.value is _number)
         return defV
     else
         return float(v.value as _number)
 
 [generic,template(ent)]
-def from_JV ( var v : JsonValue explicit?; ent:double; defV:double=0.lf )
+def from_JV ( v : JsonValue const explicit?; ent:double; defV:double=0.lf )
     if v==null || !(v.value is _number)
         return defV
     else
         return v.value as _number
 
 [generic,template(ent)]
-def from_JV ( var v : JsonValue explicit?; ent:int; defV:int=0 )
+def from_JV ( v : JsonValue const explicit?; ent:int; defV:int=0 )
     if v==null || !(v.value is _number)
         return defV
     else
         return int(v.value as _number)
 
 [generic,template(ent)]
-def from_JV ( var v : JsonValue explicit?; ent:uint; defV:uint=0u )
+def from_JV ( v : JsonValue const explicit?; ent:uint; defV:uint=0u )
     if v==null || !(v.value is _number)
         return defV
     else
         return uint(v.value as _number)
 
 [generic,template(ent)]
-def from_JV ( var v : JsonValue explicit?; ent:int64; defV:int64=0l )
+def from_JV ( v : JsonValue const explicit?; ent:int64; defV:int64=0l )
     if v == null
         return defV
     elif v.value is _number
@@ -241,7 +241,7 @@ def from_JV ( var v : JsonValue explicit?; ent:int64; defV:int64=0l )
         return defV
 
 [generic,template(ent)]
-def from_JV ( var v : JsonValue explicit?; ent:uint64; defV:uint64=0ul )
+def from_JV ( v : JsonValue const explicit?; ent:uint64; defV:uint64=0ul )
     if v == null
         return defV
     elif v.value is _number
@@ -252,35 +252,35 @@ def from_JV ( var v : JsonValue explicit?; ent:uint64; defV:uint64=0ul )
         return defV
 
 [generic,template(ent)]
-def from_JV ( var v : JsonValue explicit?; ent:int8; defV:int8=int8(0) )
+def from_JV ( v : JsonValue const explicit?; ent:int8; defV:int8=int8(0) )
     if v==null || !(v.value is _number)
         return defV
     else
         return int8(v.value as _number)
 
 [generic,template(ent)]
-def from_JV ( var v : JsonValue explicit?; ent:uint8; defV:uint8=uint8(0) )
+def from_JV ( v : JsonValue const explicit?; ent:uint8; defV:uint8=uint8(0) )
     if v==null || !(v.value is _number)
         return defV
     else
         return uint8(v.value as _number)
 
 [generic,template(ent)]
-def from_JV ( var v : JsonValue explicit?; ent:int16; defV:int16=int16(0) )
+def from_JV ( v : JsonValue const explicit?; ent:int16; defV:int16=int16(0) )
     if v==null || !(v.value is _number)
         return defV
     else
         return int16(v.value as _number)
 
 [generic,template(ent)]
-def from_JV ( var v : JsonValue explicit?; ent:uint16; defV:uint16=uint16(0) )
+def from_JV ( v : JsonValue const explicit?; ent:uint16; defV:uint16=uint16(0) )
     if v==null || !(v.value is _number)
         return defV
     else
         return uint16(v.value as _number)
 
 [generic,template(ent)]
-def from_JV ( var v : JsonValue explicit?; ent:bitfield; defV:bitfield=[[bitfield]] )
+def from_JV ( v : JsonValue const explicit?; ent:bitfield; defV:bitfield=[[bitfield]] )
     if v==null || !(v.value is _number)
         return defV
     else
@@ -297,45 +297,36 @@ def JV ( v : auto(VecT) )
         return JV({{"x" => JV(v.x); "y" => JV(v.y); "z" => JV(v.z); "w" => JV(v.w)}})
 
 [expect_any_vector_type(ent),template(ent)]
-def from_JV ( var v : JsonValue explicit?; ent: auto(VecT); defV:VecT=[[VecT]]  )
+def from_JV ( v : JsonValue const explicit?; ent: auto(VecT); defV:VecT=[[VecT]]  )
     if v==null
         return defV
     let VecV : auto(VecTT) = VecT()
-    var vo & = unsafe(v.value as _object)
+    assume vo = v
     static_if typeinfo(vector_dim VecV)==2
-        return VecTT(
-            vo["x"].value as _number,
-            vo["y"].value as _number)
+        return VecTT(vo?["x"] ?? defV.x, vo?["y"] ?? defV.y)
     static_elif typeinfo(vector_dim VecV)==3
-        return VecTT(
-            vo["x"].value as _number,
-            vo["y"].value as _number,
-            vo["z"].value as _number)
+        return VecTT(vo?["x"] ?? defV.x, vo?["y"] ?? defV.y, vo?["z"] ?? defV.z)
     static_elif typeinfo(vector_dim VecV)==4
-        return VecTT(
-            vo["x"].value as _number,
-            vo["y"].value as _number,
-            vo["z"].value as _number,
-            vo["w"].value as _number)
+        return VecTT(vo?["x"] ?? defV.x, vo?["y"] ?? defV.y, vo?["z"] ?? defV.z, vo?["w"] ?? defV.w)
 
 [template(anything)]
-def from_JV ( var v:JsonValue explicit?; anything : table< auto(KT);auto(VT) > )
+def from_JV ( v:JsonValue const explicit?; anything : table< auto(KT);auto(VT) > )
     var ret : table<KT;VT>
     if v==null || !(v.value is _object)
         return <- ret
     unsafe
-        var tab & = v.value as _object
+        let tab & = v.value as _object
         for k,vv in keys(tab),values(tab)
             move_to_ref ( ret[k], _::from_JV(vv, type<VT-&>) )
     return <- ret
 
-def from_JV ( var v:JsonValue explicit?; anything : auto(TT) )
+def from_JV ( v:JsonValue const explicit?; anything : auto(TT) )
     static_if typeinfo(is_dim anything)
         var ret : TT[typeinfo(dim anything)]
         if v==null || !(v.value is _array)
             return <- ret
         unsafe
-            var arr & = v.value as _array
+            let arr & = v.value as _array
             if arr |> length != typeinfo(dim anything)
                 return <- ret
             for i in 0..typeinfo(dim anything)
@@ -346,14 +337,15 @@ def from_JV ( var v:JsonValue explicit?; anything : auto(TT) )
         if v==null || !(v.value is _object)
             return <- ret
         apply(ret) <| $ ( name:string; var field )
-            move_to_ref ( field, _::from_JV((v as _object)[name], decltype_noref(field)) )
+            (v as _object) |> get(name) <| $(val)
+                move_to_ref ( field, _::from_JV(val, decltype_noref(field)) )
         return <- ret
     static_elif typeinfo(is_array anything)
         var ret : TT
         if v==null || !(v.value is _array)
             return <- ret
         unsafe
-            var arr & = v.value as _array
+            let arr & = v.value as _array
             for i in range(arr |> length)
                 if typeinfo(can_copy anything[0])
                     ret |> push_clone <| _::from_JV(arr[i], decltype_noref(anything[0]))
@@ -364,13 +356,14 @@ def from_JV ( var v:JsonValue explicit?; anything : auto(TT) )
         var ret : TT
         if v==null || !(v.value is _object)
             return <- ret
-        var vv : JsonValue? = (v.value as _object)?["$variant"] ?? [[JsonValue?]]
+        let vv : JsonValue? = (v.value as _object)?["$variant"] ?? [[JsonValue?]]
         if vv==null || !(vv.value is _number)
             return <- ret
         unsafe
             set_variant_index(ret, int(vv.value as _number))
         apply(ret) <| $ ( name:string; var field )
-            move_to_ref ( field, _::from_JV((v as _object)[name], decltype_noref(field)) )
+            (v as _object) |> get(name) <| $(val)
+                move_to_ref ( field, _::from_JV(val, decltype_noref(field)) )
         return <- ret
     else
         concept_assert(false, "unsupported json serialization type. missing 'fromJV")
@@ -434,14 +427,14 @@ def JV(value): JsonValue?
                 pass // skip void?
             static_elif typeinfo(is_pointer field)
                 if field != null
-                    map[name] = _::JV(field)
+                    map |> insert(name, _::JV(field))
             else
-                map[name] = _::JV(field)
+                map |> insert(name, _::JV(field))
         return _::JV(map)
     static_elif typeinfo(is_table value)
         var map: table<string; JsonValue?>
         for k, v in keys(value), values(value)
-            map[k] = _::JV(v)
+            map |> insert(k, _::JV(v))
         return _::JV(map)
     static_elif typeinfo(is_iterable value)
         var arr: array<JsonValue?>
@@ -450,9 +443,9 @@ def JV(value): JsonValue?
         return _::JV(arr)
     static_elif typeinfo(is_variant value)
         var map: table<string; JsonValue?>
-        map["$variant"] = _::JV(variant_index(value))
+        map |> insert("$variant", _::JV(variant_index(value)))
         apply(value) <| $(name: string; field)
-            map[name] = _::JV(field)
+            map |> insert(name, _::JV(field))
         return _::JV(map)
     else
         to_log(LOG_ERROR, "JSON: unsupported type {typeinfo(typename value)}\n")

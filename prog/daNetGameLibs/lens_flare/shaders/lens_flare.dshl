@@ -4,129 +4,491 @@ include "use_volfog.dshl"
 include "fom_shadows.dshl"
 include "clouds_shadow.dshl"
 include "sky_shader_global.dshl"
+include "brunetonSky.dshl"
+include "light_mask_helpers.dshl"
+include "clusteredViewLights.dshl"
+include "draw_indirect_buffer_layout.dshl"
 
+// Used by the compute shader to prepare the instances
+int lens_flare_prepare_flare_type;
+interval lens_flare_prepare_flare_type : manual_flares < 1, omni_light_flares < 2, spot_light_flares;
+buffer lens_flare_prepare_manual_lights_buf;
+buffer lens_flare_prepare_indirect_draw_buf;
+buffer lens_flare_prepare_indirect_dispatch_buf;
+buffer lens_flare_prepare_pre_culled_instance_indices_buf;
+int lens_flare_prepare_max_num_instance = 0;
+buffer lens_flare_prepare_draw_indices_buf;
+int lens_flare_prepare_num_manual_flares = 0;
+int lens_flare_prepare_num_omni_light_flares = 0;
+int lens_flare_prepare_num_spot_light_flares = 0;
+float4 lens_flare_prepare_camera_pos;
+float4 lens_flare_prepare_camera_dir;
+int lens_flare_prepare_has_fom_shadows = 0;
+interval lens_flare_prepare_has_fom_shadows : no<1, yes;
+float lens_flare_prepare_dynamic_lights_fadeout_distance = 0;
+int lens_flare_prepare_dynamic_lights_use_occlusion = 0;
+float lens_flare_prepare_dynamic_lights_exposure_pow_param = 0;
+float4x4 lens_flare_perpare_globtm;
+float lens_flare_prepare_exposure_pow_param;
+int lens_flare_prepare_far_depth_mip = 0;
+
+// Used by the rendering shader
 texture lens_flare_texture;
 buffer lens_flare_info_buf;
 buffer lens_flare_vertex_positions_buf;
-buffer lens_flare_prepared_lights_buf;
 float4 lens_flare_resolution;
 float4 lens_flare_global_scale;
-int lens_flare_light_source_id;
 int lens_flare_rounding_type;
 interval lens_flare_rounding_type : sharp < 1, rounded < 2, circle;
 
-
-int lens_flare_prepare_flares_offset = 0;
-int lens_flare_prepare_num_flares = 0;
-int lens_flare_prepare_use_occlusion = 0;
-int lens_flare_prepare_is_sun = 0;
-float4 lens_flare_prepare_sun_color;
-float lens_flare_prepare_fadeout_distance;
-float4 lens_flare_prepare_sun_screen_tc;
-float4 lens_flare_prepare_camera_pos;
-int lens_flare_has_fom_shadows = 0;
-interval lens_flare_has_fom_shadows : no<1, yes;
-int lens_flare_has_volfog = 0;
-interval lens_flare_has_volfog : no<1, yes;
-float lens_flare_prepare_exposure_pow_param;
+// Used by both shaders
+buffer lens_flare_instances_buf;
 
 shader prepare_lens_flare
+{
+  if (dynamic_lights_count == lights_off && (lens_flare_prepare_flare_type == omni_light_flares || lens_flare_prepare_flare_type == spot_light_flares))
+  {
+    dont_render;
+  }
+
+  ENABLE_ASSERT(cs)
+
+  USE_DRAW_INDIRECT_BUFFER_LAYOUT()
+  INIT_ZNZFAR_STAGE(cs)
+  INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
+  USE_LOAD_DEPTH_GBUFFER_BASE(cs)
+  USE_EMISSION_DECODE_COLOR_MAP(cs)
+  PACK_UNPACK_GBUFFER_BASE(cs)
+  INIT_EXPOSURE(cs)
+  USE_EXPOSURE(cs)
+
+  if (lens_flare_prepare_flare_type == manual_flares)
+  {
+    INIT_CLOUDS_SHADOW_BASE(-from_sun_direction.y, cs)
+    USE_CLOUDS_SHADOW_BASE(cs)
+  }
+  else if (lens_flare_prepare_flare_type == omni_light_flares)
+  {
+    USE_OMNI_LIGHT_MASK(cs)
+    INIT_AND_USE_CLUSTERED_VIEW_LIGHTS(cs)
+  }
+  else if (lens_flare_prepare_flare_type == spot_light_flares)
+  {
+    USE_SPOT_LIGHT_MASK(cs)
+    INIT_AND_USE_CLUSTERED_VIEW_LIGHTS(cs)
+  }
+
+  INIT_BRUNETON_FOG(cs)
+  BASE_USE_BRUNETON_FOG(cs)
+  INIT_VOLUMETRIC_LIGHT_TRANSPARENT(cs)
+  USE_VOLUMETRIC_LIGHT_TRANSPARENT(cs)
+
+  if (lens_flare_prepare_has_fom_shadows == yes)
+  {
+    INIT_FOM_SHADOWS(cs)
+    USE_FOM_SHADOWS(cs)
+  }
+
+  (cs) {
+    globtm@f44 = lens_flare_perpare_globtm;
+    num_manual_flares@i1 = (lens_flare_prepare_num_manual_flares);
+    num_omni_light_flares@i1 = (lens_flare_prepare_num_omni_light_flares);
+    num_spot_light_flares@i1 = (lens_flare_prepare_num_spot_light_flares);
+    camera_pos@f3 = lens_flare_prepare_camera_pos;
+    camera_dir@f3 = lens_flare_prepare_camera_dir;
+    max_num_instance@i1 = (lens_flare_prepare_max_num_instance);
+    dynamic_lights_fadeout_distance@f1 = (lens_flare_prepare_dynamic_lights_fadeout_distance);
+    dynamic_lights_use_occlusion@i1 = (lens_flare_prepare_dynamic_lights_use_occlusion);
+    dynamic_lights_exposure_pow_param@f1 = (lens_flare_prepare_dynamic_lights_exposure_pow_param);
+    clouds_shadow_influence@f1 = clouds_shadow_influence;
+    exposure_pow_param@f1 = lens_flare_prepare_exposure_pow_param;
+    downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex;
+    far_depth_mip@i1 = lens_flare_prepare_far_depth_mip;
+    far_depth_mip_resolution@f2 = get_dimensions(downsampled_far_depth_tex, lens_flare_prepare_far_depth_mip);
+
+    preCulledInstanceIndices@uav = lens_flare_prepare_pre_culled_instance_indices_buf hlsl {
+      RWStructuredBuffer<uint> preCulledInstanceIndices@uav;
+    };
+
+    occlusionDispatchArgs@uav = lens_flare_prepare_indirect_dispatch_buf hlsl {
+      RWByteAddressBuffer occlusionDispatchArgs@uav;
+    };
+
+    lensFlareDrawArguments@uav = lens_flare_prepare_indirect_draw_buf hlsl {
+      RWByteAddressBuffer lensFlareDrawArguments@uav;
+    }
+
+    lensFlareInstances@uav = lens_flare_instances_buf hlsl {
+      #include <lens_flare/shaders/lens_flare_info.hlsli>
+      RWStructuredBuffer<LensFlareInstanceData> lensFlareInstances@uav;
+    }
+
+    lensFlareDrawIndices@buf = lens_flare_prepare_draw_indices_buf hlsl {
+      StructuredBuffer<uint> lensFlareDrawIndices@buf;
+    };
+
+    manualLightDataBuffer@buf = lens_flare_prepare_manual_lights_buf hlsl {
+      #include <lens_flare/shaders/lens_flare_info.hlsli>
+      StructuredBuffer<ManualLightFlareData> manualLightDataBuffer@buf;
+    };
+  }
+
+  hlsl(cs) {
+    #include <lens_flare/shaders/lens_flare_info.hlsli>
+
+    #define INVALID_DRAW_CALL_INDEX (~0u)
+    ##if lens_flare_prepare_flare_type == manual_flares
+      #define NUM_FLARES (num_manual_flares)
+    ##elif lens_flare_prepare_flare_type == omni_light_flares
+      #define NUM_FLARES (num_omni_light_flares)
+    ##elif lens_flare_prepare_flare_type == spot_light_flares
+      #define NUM_FLARES (num_spot_light_flares)
+    ##endif
+
+    float getDownsampledFarDepth(int2 coord, int2 dim)
+    {
+      if (any(coord < 0 || coord >= dim))
+        return 1;
+      return texelFetch(downsampled_far_depth_tex, coord, far_depth_mip).x;
+    }
+
+    LensFlareInstanceData calculateFlareInstanceData(float4 light_pos, float base_intensity, float3 light_color, float fadeout_distance, bool use_occlusion, bool is_sun, float exposure_pow_param)
+    {
+      float exposureIntensityModifier = pow(getExposureScale(), exposure_pow_param);
+      float intensity = base_intensity * exposureIntensityModifier;
+      float4 cameraToLight = light_pos - float4(camera_pos, 1) * light_pos.w;
+      if (dot(camera_dir, cameraToLight.xyz) <= 0)
+        intensity = 0;
+      float4 projectedLightPos = mul(globtm, light_pos);
+      if (abs(projectedLightPos.w) > 0.0000001)
+        projectedLightPos /= projectedLightPos.w;
+      else
+        intensity = 0;
+      float2 lightScreenPos = projectedLightPos.xy;
+      float radialCenterDistance = max(abs(lightScreenPos.x), abs(lightScreenPos.y));
+      float screenEdgeSignedDistance = 1.0-radialCenterDistance;
+      if (screenEdgeSignedDistance <= 0)
+        intensity = 0;
+      float lightRawDepth = saturate(projectedLightPos.z);
+
+      if (fadeout_distance > 0 && screenEdgeSignedDistance < fadeout_distance)
+        intensity *= saturate(screenEdgeSignedDistance / fadeout_distance);
+
+      float2 screenTc = (lightScreenPos*float2(1, -1)*0.5+0.5);
+      float2 angleSinCos = lengthSq(lightScreenPos) > 0.000001
+        ? normalize(lightScreenPos)
+        : float2(0, 1);
+
+
+      BRANCH
+      if (use_occlusion > 0 && intensity > 0) {
+        // These 4 samples must contain the entire area used for occlusion test
+        // A texel in downsampled depth at mip level (far_depth_mip) covers the maximum area
+        // If the area is not perfectly aligned with the downsampled depth texel, 4 samples are needed to cover it
+        int2 depthMipResolution = int2(far_depth_mip_resolution); //gbuffer_depth_size_load >> (far_depth_mip+1);
+        float2 mipTexCoord = screenTc * depthMipResolution;
+        int2 topLeftCorner = int2(mipTexCoord - float2(0.5, 0.5));
+        float4 farDepths = float4(
+          getDownsampledFarDepth(topLeftCorner + int2( 0, 0), depthMipResolution),
+          getDownsampledFarDepth(topLeftCorner + int2(+1, 0), depthMipResolution),
+          getDownsampledFarDepth(topLeftCorner + int2( 0,+1), depthMipResolution),
+          getDownsampledFarDepth(topLeftCorner + int2(+1,+1), depthMipResolution)
+        );
+
+        float farDepth = min4(farDepths.x, farDepths.y, farDepths.z, farDepths.w);
+        if (farDepth > lightRawDepth)
+          intensity = 0;
+
+        BRANCH
+        if (intensity > 0 && abs(light_pos.w) < 0.00001)
+        {
+          // This implementation works with directional lights
+          intensity *= get_volumetric_light_sky(screenTc, screenTc).a;
+        }
+        else if (intensity > 0)
+        {
+          float3 cameraToLight = light_pos.xyz/light_pos.w - camera_pos;
+          float dist = length(cameraToLight);
+          float3 view = cameraToLight / dist;
+          intensity *= dot(get_volfog_with_scattering_loss(screenTc, screenTc, view, dist, linearize_z(lightRawDepth, zn_zfar.zw)), 1.0/3);
+        }
+
+        ##if lens_flare_prepare_flare_type == manual_flares
+          if (is_sun) {
+            intensity *= saturate(pow(clouds_shadow(camera_pos), clouds_shadow_influence));
+            ##if lens_flare_prepare_has_fom_shadows == yes
+              // The shadow is rendered from the sun's direction, so it only makes sense to apply to the sun.
+              intensity *= getFOMShadow(camera_pos);
+            ##endif
+          }
+        ##endif
+      }
+
+      LensFlareInstanceData result;
+      result.color_intensity = float4(light_color, intensity);
+      result.light_screen_pos = lightScreenPos;
+      result.rotation_sin_cos = angleSinCos;
+      result.radial_distances = float2(radialCenterDistance, 1-screenEdgeSignedDistance);
+      result.raw_depth = lightRawDepth;
+      result.padding = 0;
+      return result;
+    }
+
+    void preCullAndWriteLight(LensFlareInstanceData instanceData, uint drawCallIndicesEntryIndex, bool useOcclusion)
+    {
+      uint firstDataIndex = lensFlareDrawIndices[drawCallIndicesEntryIndex];
+      uint firstDrawCallIndex = lensFlareDrawIndices[firstDataIndex];
+      BRANCH
+      if (instanceData.color_intensity.w > 0 && firstDrawCallIndex != INVALID_DRAW_CALL_INDEX)
+      {
+        uint firstOriginalValue;
+        uint originalValue;
+        uint instanceBaseId = lensFlareDrawArguments.Load((DRAW_INDIRECT_ARGS_SIZEOF * firstDrawCallIndex + START_INSTANCE_LOCATION_OFFSET) * 4);
+        lensFlareDrawArguments.InterlockedAdd((DRAW_INDIRECT_ARGS_SIZEOF * firstDrawCallIndex + INSTANCE_COUNT_OFFSET) * 4, 1, firstOriginalValue);
+        uint dataIndex = firstDataIndex+1;
+        uint drawCallIndex = lensFlareDrawIndices[dataIndex];
+        LOOP
+        while (drawCallIndex != INVALID_DRAW_CALL_INDEX)
+        {
+          lensFlareDrawArguments.InterlockedAdd((DRAW_INDIRECT_ARGS_SIZEOF * drawCallIndex + INSTANCE_COUNT_OFFSET) * 4, 1, originalValue);
+          drawCallIndex = lensFlareDrawIndices[++dataIndex];
+        }
+
+        uint instanceId = firstOriginalValue + instanceBaseId;
+        BRANCH
+        if (instanceId < max_num_instance)
+        {
+          structuredBufferAt(lensFlareInstances, instanceId) = instanceData;
+
+          BRANCH
+          if (useOcclusion)
+          {
+            uint preCullInd;
+            occlusionDispatchArgs.InterlockedAdd(0, 1, preCullInd);
+            preCulledInstanceIndices[preCullInd] = instanceId;
+          }
+        }
+        else
+        {
+          // This should not happen often
+          lensFlareDrawArguments.InterlockedAdd((DRAW_INDIRECT_ARGS_SIZEOF * firstDrawCallIndex + INSTANCE_COUNT_OFFSET) * 4, -1, firstOriginalValue);
+          dataIndex = firstDataIndex+1;
+          drawCallIndex = lensFlareDrawIndices[dataIndex];
+          LOOP
+          while (drawCallIndex != INVALID_DRAW_CALL_INDEX)
+          {
+            lensFlareDrawArguments.InterlockedAdd((DRAW_INDIRECT_ARGS_SIZEOF * drawCallIndex + INSTANCE_COUNT_OFFSET) * 4, -1, originalValue);
+            drawCallIndex = lensFlareDrawIndices[++dataIndex];
+          }
+        }
+      }
+    }
+
+    struct LightData
+    {
+      float4 pos;
+      float3 color;
+      float intensity;
+      float fadeoutDistance;
+      uint drawCallIndicesEntryIndex;
+      bool useOcclusion;
+      bool isSun;
+      float exposurePowParam;
+    };
+
+    ##if lens_flare_prepare_flare_type == manual_flares
+      bool get_manual_flare_intensity(uint light_id, inout LightData result)
+      {
+        ManualLightFlareData lightData = structuredBufferAt(manualLightDataBuffer, light_id);
+        bool useOcclusion = lightData.flags & MANUAL_LIGHT_FLARE_DATA_FLAGS__USE_OCCLUSION;
+        bool isSun = lightData.flags & MANUAL_LIGHT_FLARE_DATA_FLAGS__IS_SUN;
+        uint flareConfigId = lightData.flareConfigId;
+        float3 color = lightData.color;
+        float fadeoutDistance = lightData.fadeoutDistance;
+        float4 lightPos = lightData.lightPos;
+        float exposurePowParam = lightData.exposurePowParam;
+
+        result.pos = lightPos;
+        result.intensity = 1;
+        result.color = color;
+        result.fadeoutDistance = fadeoutDistance;
+        result.useOcclusion = useOcclusion;
+        result.isSun = isSun;
+        result.drawCallIndicesEntryIndex = flareConfigId+1;
+        result.exposurePowParam = exposurePowParam;
+        return true;
+      }
+    ##endif
+
+    ##if lens_flare_prepare_flare_type == omni_light_flares
+      bool get_omni_light_intensity(uint light_id, inout LightData result)
+      {
+        BRANCH
+        if (!check_omni_light(light_id, OMNI_LIGHT_MASK_LENS_FLARE))
+          return false;
+
+        RenderOmniLight ol = omni_lights_cb[light_id];
+
+        float3 dirFromLight = camera_pos - ol.posRadius.xyz;
+        const float sqrDistanceOffset = 0.5*0.5; // add offset to avoid really intense flare close up
+        float intensity = rcp(dot(dirFromLight, dirFromLight) + sqrDistanceOffset);
+        intensity *= getOmniLightIntensity(ol, camera_pos);
+
+        result.pos = float4(ol.posRadius.xyz, 1);
+        result.intensity = intensity;
+        result.color = ol.colorFlags.rgb;
+        result.fadeoutDistance = dynamic_lights_fadeout_distance;
+        result.useOcclusion = dynamic_lights_use_occlusion;
+        result.exposurePowParam = dynamic_lights_exposure_pow_param;
+        result.isSun = false;
+        result.drawCallIndicesEntryIndex = 0;
+        return true;
+      }
+    ##endif
+
+    ##if lens_flare_prepare_flare_type == spot_light_flares
+      bool get_spot_light_intensity(uint light_id, inout LightData result)
+      {
+        BRANCH
+        if (!check_spot_light(light_id, SPOT_LIGHT_MASK_LENS_FLARE))
+          return false;
+
+        RenderSpotLight sl = spot_lights_cb[light_id];
+        float2 texId_scale = sl.texId_scale_shadow_contactshadow.xy;
+        float3 lightDir = sl.lightDirectionAngleOffset.xyz;
+        float lightAngleScale = sl.lightColorAngleScale.a;
+        float lightAngleOffset = sl.lightDirectionAngleOffset.a;
+
+        float3 dirFromLight = camera_pos - sl.lightPosRadius.xyz;
+        const float sqrDistanceOffset = 0.5*0.5; // add offset to avoid really intense flare close up
+        float intensity = rcp(dot(dirFromLight, dirFromLight) + sqrDistanceOffset);
+        float3 dirFromLightNormalized = normalize(dirFromLight);
+        intensity *= getAngleAtt(dirFromLightNormalized, lightDir, lightAngleScale, lightAngleOffset);
+        intensity = applyPhotometryIntensity(dirFromLightNormalized, lightDir, texId_scale.x, texId_scale.y, intensity);
+
+        result.pos = float4(sl.lightPosRadius.xyz, 1);
+        result.intensity = intensity;
+        result.color = sl.lightColorAngleScale.rgb;
+        result.fadeoutDistance = dynamic_lights_fadeout_distance;
+        result.useOcclusion = dynamic_lights_use_occlusion;
+        result.exposurePowParam = dynamic_lights_exposure_pow_param;
+        result.isSun = false;
+        result.drawCallIndicesEntryIndex = 0;
+        return true;
+      }
+    ##endif
+
+    ##if lens_flare_prepare_flare_type == manual_flares
+      [numthreads(LENS_FLARE_MANUAL_LIGHT_THREADS, 1, 1)]
+    ##else
+      [numthreads(LENS_FLARE_DYNAMIC_LIGHT_THREADS, 1, 1)]
+    ##endif
+    void main(uint3 dtId : SV_DispatchThreadID, uint GI : SV_GroupIndex)
+    {
+      uint light_id = dtId.x;
+      if (light_id >= NUM_FLARES)
+        return;
+
+      LightData lightData;
+      lightData.pos = 0;
+      lightData.intensity = 0;
+      lightData.color = 0;
+      lightData.fadeoutDistance = 0;
+      lightData.useOcclusion = false;
+      lightData.exposurePowParam = 0;
+      lightData.isSun = false;
+      lightData.drawCallIndicesEntryIndex = 0;
+
+      ##if lens_flare_prepare_flare_type == manual_flares
+        bool lightHasFlares = get_manual_flare_intensity(light_id, lightData);
+      ##elif lens_flare_prepare_flare_type == omni_light_flares
+        bool lightHasFlares = get_omni_light_intensity(light_id, lightData);
+      ##elif lens_flare_prepare_flare_type == spot_light_flares
+        bool lightHasFlares = get_spot_light_intensity(light_id, lightData);
+      ##endif
+
+      if (lightHasFlares && lightData.intensity > 0)
+      {
+        LensFlareInstanceData instanceData =
+          calculateFlareInstanceData(lightData.pos, lightData.intensity, lightData.color, lightData.fadeoutDistance, lightData.useOcclusion, lightData.isSun, lightData.exposurePowParam);
+        preCullAndWriteLight(instanceData, lightData.drawCallIndicesEntryIndex, lightData.useOcclusion);
+      }
+    }
+  }
+  compile("target_cs", "main");
+}
+
+shader lens_flare_occlusion
 {
   ENABLE_ASSERT(cs)
 
   INIT_ZNZFAR_STAGE(cs)
   INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
   USE_LOAD_DEPTH_GBUFFER_BASE(cs)
-  INIT_EXPOSURE(cs)
-  USE_EXPOSURE(cs)
-
-  if (lens_flare_has_volfog == yes) {
-    INIT_VOLUMETRIC_LIGHT(cs)
-    USE_VOLUMETRIC_LIGHT(cs)
-  }
-
-  if (lens_flare_has_fom_shadows == yes) {
-    INIT_FOM_SHADOWS(cs)
-    USE_FOM_SHADOWS(cs)
-  }
-
-  INIT_CLOUDS_SHADOW_BASE(-from_sun_direction.y, cs)
-  USE_CLOUDS_SHADOW_BASE(cs)
 
   (cs) {
-    num_flares@i1 = (lens_flare_prepare_num_flares);
-    flares_offset@i1 = (lens_flare_prepare_flares_offset);
-    use_occlusion@i1 = (lens_flare_prepare_use_occlusion);
-    is_sun@i1 = (lens_flare_prepare_is_sun);
-    sun_color@f3 = (lens_flare_prepare_sun_color);
-    fadeout_distance@f1 = (lens_flare_prepare_fadeout_distance);
-    sun_tc@f2 = (lens_flare_prepare_sun_screen_tc);
-    camera_pos@f3 = lens_flare_prepare_camera_pos;
-    clouds_shadow_influence@f1 = clouds_shadow_influence;
-    exposure_pow_param@f1 = lens_flare_prepare_exposure_pow_param;
-
-    preparedLights@uav = lens_flare_prepared_lights_buf hlsl {
+    lensFlareInstances@uav = lens_flare_instances_buf hlsl {
       #include <lens_flare/shaders/lens_flare_info.hlsli>
-      RWStructuredBuffer<LensFLarePreparedLightSource> preparedLights@uav;
+      RWStructuredBuffer<LensFlareInstanceData> lensFlareInstances@uav;
     }
+
+    preCulledInstanceIndices@buf = lens_flare_prepare_pre_culled_instance_indices_buf hlsl {
+      StructuredBuffer<uint> preCulledInstanceIndices@buf;
+    };
   }
 
-  hlsl(cs) {
+  hlsl(cs)
+  {
     #include <lens_flare/shaders/lens_flare_info.hlsli>
 
-    [numthreads(LENS_FLARE_THREADS, 1, 1)]
-    void main(uint3 dtId : SV_DispatchThreadID)
+    groupshared uint visiblePixels;
+    groupshared uint pixelCount;
+
+    [numthreads(LENS_FLARE_OCCLUSION_DEPTH_TEXELS, LENS_FLARE_OCCLUSION_DEPTH_TEXELS, 1)]
+    void main(uint pre_cull_instance_index : SV_GroupIndex, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex)
     {
-      uint id = dtId.x;
-      if (id >= num_flares)
-        return;
-      uint preparedLightId = id + flares_offset;
+      int2 texelOffset = int2(GTid.xy) - LENS_FLARE_OCCLUSION_DEPTH_TEXELS/2;
 
-      float2 screenTc = (sun_tc*float2(1, -1)*0.5+0.5);
+      uint instanceId = preCulledInstanceIndices[pre_cull_instance_index];
+      LensFlareInstanceData instanceData = structuredBufferAt(lensFlareInstances, instanceId);
 
-      float2 lightScreenPos = sun_tc;
-      float radialCenterDistance = max(abs(lightScreenPos.x), abs(lightScreenPos.y));
-      float screenEdgeSignedDistance = 1.f-radialCenterDistance;
+      float2 screenTc = (instanceData.light_screen_pos*float2(1, -1)*0.5+0.5);
+      int2 texCoord = screenTc * gbuffer_depth_size_load + texelOffset;
 
-      float2 angleSinCos = lengthSq(lightScreenPos) > 0.000001f
-        ? normalize(lightScreenPos)
-        : float2(0, 1);
-
-      float exposureIntensityModifier = pow(getExposureScale(), exposure_pow_param);
-      float intensity = exposureIntensityModifier;
-      if (fadeout_distance > 0 && screenEdgeSignedDistance < fadeout_distance)
-        intensity *= saturate(screenEdgeSignedDistance / fadeout_distance);
-
-
+      uint pixelVisible = 0;
+      bool validTc = all(texCoord >= 0) && all(texCoord < gbuffer_depth_size_load);
+      bool inRadius = dot(texelOffset, texelOffset) <= LENS_FLARE_OCCLUSION_DEPTH_TEXELS/2;
+      uint pixelWeight = inRadius ? 1 : 0;
       BRANCH
-      if (use_occlusion > 0 && intensity > 0) {
-        float rawDepth = loadGbufferDepth(screenTc * gbuffer_depth_size_load);
-        float depth = linearize_z(rawDepth, zn_zfar.zw);
-        if (depth < zn_zfar.y)
-          intensity = 0;
+      if (instanceData.color_intensity.w > 0.0 && pixelWeight > 0 && validTc)
+      {
+        pixelVisible = 1;
 
-        BRANCH
-        if (intensity > 0)
-        {
-          ##if lens_flare_has_volfog == yes
-            // TODO: implement this for point lights. (intensity *= get_volfog_with_scattering_loss(screenTc, screenTc, view, dist, w);)
-            intensity *= get_volumetric_light_sky(screenTc, screenTc).a;
-          ##endif
-
-          if (is_sun) {
-            intensity *= saturate(pow(clouds_shadow(camera_pos), clouds_shadow_influence));
-            ##if lens_flare_has_fom_shadows == yes
-              // The shadow is rendered from the sun's direction, so it only makes sense to apply to the sun.
-              intensity *= getFOMShadow(camera_pos);
-            ##endif
-          }
-        }
+        float rawDepth = loadGbufferDepth(texCoord);
+        if (rawDepth > instanceData.raw_depth)
+          pixelVisible = 0;
       }
 
-      structuredBufferAt(preparedLights, preparedLightId).color_intensity = float4(sun_color, intensity);
-      structuredBufferAt(preparedLights, preparedLightId).light_screen_pos = lightScreenPos;
-      structuredBufferAt(preparedLights, preparedLightId).rotation_sin_cos = angleSinCos;
-      structuredBufferAt(preparedLights, preparedLightId).radial_distances = float2(radialCenterDistance, 1-screenEdgeSignedDistance);
+      BRANCH
+      if (GI < 1)
+      {
+        visiblePixels = 0;
+        pixelCount = 0;
+      }
+      GroupMemoryBarrierWithGroupSync();
+
+      InterlockedAdd(visiblePixels, pixelVisible);
+      InterlockedAdd(pixelCount, pixelWeight);
+
+      GroupMemoryBarrierWithGroupSync();
+
+      float visibility = pixelCount > 0
+        ? float(visiblePixels) / float(pixelCount)
+        : 0.0;
+
+       BRANCH
+       if (GI < 1)
+         structuredBufferAt(lensFlareInstances, instanceId).color_intensity.w = instanceData.color_intensity.w * visibility;
     }
   }
   compile("target_cs", "main");
@@ -149,13 +511,12 @@ shader lens_flare
       #include <lens_flare/shaders/lens_flare_info.hlsli>
       StructuredBuffer<LensFlareInfo> lens_flare_info@buf;
     };
-    lens_flare_prepared_lights@buf = lens_flare_prepared_lights_buf hlsl {
+    lensFlareInstances@buf = lens_flare_instances_buf hlsl {
       #include <lens_flare/shaders/lens_flare_info.hlsli>
-      StructuredBuffer<LensFLarePreparedLightSource> lens_flare_prepared_lights@buf;
+      StructuredBuffer<LensFlareInstanceData> lensFlareInstances@buf;
     }
     resolution@f2 = (lens_flare_resolution);
     global_scale@f2 = (lens_flare_global_scale);
-    light_source_id@i1 = (lens_flare_light_source_id);
   }
 
   (ps) {
@@ -206,13 +567,35 @@ shader lens_flare
   USE_HDR(vs)
 
   hlsl(vs) {
-    VsOutput lens_flare_vs(VsInput input)
+    VsOutput lens_flare_vs(VsInput input HW_USE_INSTANCE_ID)
     {
       VsOutput output;
 
+      LensFlareInstanceData instanceData = structuredBufferAt(lensFlareInstances, instance_id);
+
+      // Early exit / discard
+
+      BRANCH
+      if (instanceData.color_intensity.w < 0.000001)
+      {
+        output.pos = 0; // discard vertices
+        output.color_intensity = 0;
+        ##if lens_flare_rounding_type == sharp
+          output.tc_gradientIntensity_invFalloff = 0;
+          output.edgeGradientIntensity = 0;
+        ##elif lens_flare_rounding_type == rounded
+          output.tc_pos = 0;
+          output.edgeDistance_vertexId_invMaxDist = 0;
+          output.roundness_radius_offset_cos = 0;
+          output.invGradient_invFalloff_invEdgeGradient_vposOffset = 0;
+        ##elif lens_flare_rounding_type == circle
+          output.tc_normalizedPos = 0;
+          output.invGradient_invFalloff_invEdgeGradient = 0;
+        ##endif
+        return output;
+      }
 
       // --- Reading parameters ---
-
 
       uint flareId = uint(input.flareId__vertexId.x);
       bool isCenter = input.flareId__vertexId.y < 0;
@@ -239,8 +622,6 @@ shader lens_flare
       bool useLightColor = flags & LENS_FLARE_DATA_FLAGS__USE_LIGHT_COLOR;
       bool autoRotation = flags & LENS_FLARE_DATA_FLAGS__AUTO_ROTATION;
 
-      LensFLarePreparedLightSource lightSource = structuredBufferAt(lens_flare_prepared_lights, light_source_id);
-
 
       // --- These depend on the flare component, but not the specific vertex ---
 
@@ -249,18 +630,18 @@ shader lens_flare
       if (flags & LENS_FLARE_DATA_FLAGS__RADIAL_DISTORTION)
       {
         float distortionDistance = flags & LENS_FLARE_DATA_FLAGS__RADIAL_DISTORTION_REL_TO_CENTER
-          ? lightSource.radial_distances.x
-          : lightSource.radial_distances.y;
+          ? instanceData.radial_distances.x
+          : instanceData.radial_distances.y;
         distortionFactor = pow(distortionDistance, distortionPow);
       }
       float2x2 rotation = float2x2(
         float2( rotationOffsetSinCos.y, rotationOffsetSinCos.x),
         float2(-rotationOffsetSinCos.x, rotationOffsetSinCos.y)
       );
-      float intensity = componentIntensity * lightSource.color_intensity.w;
-      float2 flarePos = lerp(lightSource.light_screen_pos, float2(0, 0), axisOffset2) + offset;
+      float intensity = componentIntensity * instanceData.color_intensity.w;
+      float2 flarePos = lerp(instanceData.light_screen_pos, float2(0, 0), axisOffset2) + offset;
 
-      float3 lightColor = lightSource.color_intensity.rgb;
+      float3 lightColor = instanceData.color_intensity.rgb;
       if (!useLightColor)
         lightColor.xyz = max3(lightColor.x, lightColor.y, lightColor.z);
       float3 preExposedColor = pack_hdr(lightColor*tint); // it will be modulated by texture rgb in ps
@@ -279,8 +660,8 @@ shader lens_flare
       if (autoRotation)
       {
         float2x2 autoRotationTm = float2x2(
-          float2( lightSource.rotation_sin_cos.y, lightSource.rotation_sin_cos.x),
-          float2(-lightSource.rotation_sin_cos.x, lightSource.rotation_sin_cos.y)
+          float2( instanceData.rotation_sin_cos.y, instanceData.rotation_sin_cos.x),
+          float2(-instanceData.rotation_sin_cos.x, instanceData.rotation_sin_cos.y)
         );
         localPos = mul(autoRotationTm, localPos);
       }

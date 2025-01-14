@@ -784,7 +784,8 @@ shader ssao
     ssao_frame_no@f4 = ssao_frame_no;
     screen_pos_to_texcoord@f2 = screen_pos_to_texcoord;
     from_sun_direction@f3 = from_sun_direction;
-    shadow_params@f3 = (0, shadow_frame, contact_shadow_len, 0);
+    shadow_frame@f1 = shadow_frame;
+    contact_shadow_len@f1 = contact_shadow_len;
     contact_shadow_min_len@f1 = (contact_shadow_min_len);
   }
   INIT_ZNZFAR()
@@ -829,9 +830,7 @@ shader ssao
   SSAO_REPROJECTION(ps, ssao_prev_tex)
 
   hlsl(ps) {
-    #define csm_distance shadow_params.x
-    #define shadow_frame shadow_params.y
-    #define contact_shadow_len shadow_params.z
+    #define csm_distance 0
   }
 
   CONTACT_SHADOWS()
@@ -913,13 +912,13 @@ shader ssao
           float sunNdotL = 0.25;
           float3 wsNormal = 0;
         ##endif
-        ssao.y = contactShadowRayCast(half_res_close_depth, half_res_close_depth_samplerstate, cameraToPoint - normalize(viewVect)*(w*offset+0.005), -from_sun_direction, max(w*contact_shadow_len, min(w, contact_shadow_min_len)), 20, dither-0.5, projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV, float2(100, 99));
+        ssao.y = contactShadowRayCast(half_res_close_depth, half_res_close_depth_samplerstate, cameraToPoint, -from_sun_direction, max(w*contact_shadow_len, min(w, contact_shadow_min_len)), 20, dither-0.5, projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV);
         ssao.x *= lerp(ssao.y*0.2+0.8, 1, saturate(sunNdotL*2));//assume that sky is brighter towards the sun
         ssao.y = getAdditionalShadow(ssao.y, cameraToPoint, wsNormal);
       }
       #endif
 
-      reproject_ssao(ssao, cameraToPoint, screenTC, depth1);
+      reproject_ssao(ssao, cameraToPoint, screenTC, rawDepth);
 
       return ssao;
     }

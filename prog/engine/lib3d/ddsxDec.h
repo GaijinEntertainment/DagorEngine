@@ -13,12 +13,17 @@
 #include <osApiWrappers/dag_spinlock.h>
 #include <osApiWrappers/dag_events.h>
 #include <osApiWrappers/dag_atomic.h>
+#include <3d/dag_texPackMgr2.h>
+#include <drv/3d/dag_info.h>
 #include <math/dag_bits.h>
 #include <stdio.h>
 #include "texMgrData.h"
 
 static constexpr int DXP_PRIO_COUNT = 3;
 
+#ifndef RMGR_TRACE
+#define RMGR_TRACE(...) ((void)0)
+#endif
 
 struct DDSxDecodeCtxBase //-V730
 {
@@ -78,6 +83,8 @@ struct DDSxDecodeCtx : DDSxDecodeCtxBase
 
     virtual void doJob()
     {
+      using texmgr_internal::RMGR;
+
       if (hdr->flags & hdr->FLG_NEED_PAIRED_BASETEX)
       {
         TEXTUREID bt_tid = RMGR.pairedBaseTexId[tid.index()];
@@ -107,28 +114,33 @@ struct DDSxDecodeCtx : DDSxDecodeCtxBase
       SNPRINTF(metaName, sizeof(metaName), "%s/%s", packName, texName);
       NamedInPlaceMemLoadCB crd(data, dataSize, metaName);
 
+      const auto completeReading = [](int idx) {
+        {
+          texmgr_internal::TexMgrAutoLock lock;
+          RMGR.markUpdatedAfterLoad(idx);
+        }
+        if (!is_managed_textures_streaming_load_on_demand())
+          RMGR.scheduleReading(idx, RMGR.getFactory(idx));
+      };
+
       RMGR_TRACE("loading tex %s (req=%d rd=%d) %dx%d baseTid=0x%x(has_bd=%d)", RMGR.getName(tid.index()),
         RMGR.resQS[tid.index()].getMaxReqLev(), RMGR.resQS[tid.index()].getRdLev(), hdr->w, hdr->h, RMGR.pairedBaseTexId[tid.index()],
         RMGR.hasTexBaseData(RMGR.pairedBaseTexId[tid.index()]));
       {
         d3d::LoadingAutoLock loadingLock;
 
-        TexLoadRes ldRet = RMGR.readDdsxTex(tid, *hdr, crd, texQ);
+        TexLoadRes ldRet = RMGR.readDdsxTex(tid, *hdr, crd, texQ, completeReading);
         if (ldRet == TexLoadRes::ERR)
           if (!d3d::is_in_device_reset_now())
             logerr("failed loading tex '%s' from pack '%s'", texName, packName);
+
+        if (ldRet != TexLoadRes::OK)
+          completeReading(RMGR.toIndex(tid));
       }
 
       tmpmem->free(data);
       data = NULL;
       texName = packName = NULL;
-
-      {
-        texmgr_internal::TexMgrAutoLock lock;
-        RMGR.markUpdatedAfterLoad(RMGR.toIndex(tid));
-      }
-      if (!is_managed_textures_streaming_load_on_demand())
-        RMGR.scheduleReading(tid.index(), RMGR.getFactory(tid.index()));
     }
   };
 
@@ -279,7 +291,7 @@ struct DDSxDecodeCtx : DDSxDecodeCtxBase
   }
   static bool isTexReading(TEXTUREID tid, int prio)
   {
-    if (!RMGR.resQS[tid.index()].isReading() || !dCtx)
+    if (!texmgr_internal::RMGR.resQS[tid.index()].isReading() || !dCtx)
       return false;
     TexCreateJob *jobs = dCtx->jobs;
     for (int i = 0, ie = dCtx->numWorkers * 2; i < ie; i++)

@@ -84,7 +84,7 @@ macro RI_VOXELIZE_ALBEDO()
         { \
           VOXELIZE_DISCARD_LATER; \
           float4 emissionColor = emisCol; \
-          dagi_write_updated_albedo_legacy(worldPos.xyz, voxelAlbedo + emisStr*emissionColor.rgb*lerp(1, voxelAlbedo.rgb, emissionColor.a), 0.5);\
+          dagi_write_updated_albedo_legacy(worldPos.xyz, 0.04h + voxelAlbedo + emisStr*emissionColor.rgb*lerp(1, voxelAlbedo.rgb, emissionColor.a), 0.5);\
         }
     }
     //VOXELIZE_GS(0, 1)

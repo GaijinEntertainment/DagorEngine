@@ -17,8 +17,8 @@ enum
   SHADER_CACHE_EOF = _MAKE4C('eof')
 };
 
-// Increase this number if changes in the compiler affect all APIs
-static const int SHADER_CACHE_COMMON_VER = 23;
+// Increase this number if changes in the compiler invalidate .obj for all APIs,
+static const int SHADER_CACHE_COMMON_VER = 25;
 
 static int make_shader_cache_ver(int ver)
 {

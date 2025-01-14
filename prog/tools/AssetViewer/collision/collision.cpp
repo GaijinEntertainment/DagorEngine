@@ -569,7 +569,11 @@ void CollisionPlugin::fillAssetStats()
   stats.assetType = AssetStats::AssetType::Collision;
 
   if (collisionRes)
-    AssetStatsFiller::fillAssetCollisionStats(stats, *collisionRes);
+  {
+    AssetStatsFiller assetStatsFiller(stats);
+    assetStatsFiller.fillAssetCollisionStats(*collisionRes);
+    assetStatsFiller.finalizeStats();
+  }
 }
 
 void CollisionPlugin::updateFaceOrientationRenderDepthFromCurRT()

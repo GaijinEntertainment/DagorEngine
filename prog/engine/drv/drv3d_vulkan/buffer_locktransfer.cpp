@@ -93,8 +93,9 @@ bool GenericBufferInterface::updateData(uint32_t ofs_bytes, uint32_t size_bytes,
   auto &ctx = Globals::ctx;
   // reorder buffer update if we running it from external thread
   if (Globals::lock.isAcquired())
-    ctx.copyBuffer(ctx.uploadToFrameMem(DeviceMemoryClass::HOST_RESIDENT_HOST_WRITE_ONLY_BUFFER, size_bytes, (void *)src), ref, 0,
-      ofs_bytes, size_bytes);
+    ctx.copyBufferDiscardReorderable(
+      ctx.uploadToFrameMem(DeviceMemoryClass::HOST_RESIDENT_HOST_WRITE_ONLY_BUFFER, size_bytes, (void *)src), ref, 0, ofs_bytes,
+      size_bytes);
   else
   {
     auto buf = TempBufferHolder(size_bytes, (void *)src);
@@ -175,7 +176,7 @@ void GenericBufferInterface::unlockWritePush()
   if (!bufferGpuTimelineUpdate())
     ctx.uploadBuffer(pushAllocation->getRef(), ref, 0, lockRange.front(), lockRange.size());
   else if (Globals::lock.isAcquired())
-    ctx.copyBuffer(pushAllocation->getRef(), ref, 0, lockRange.front(), lockRange.size());
+    ctx.copyBufferDiscardReorderable(pushAllocation->getRef(), ref, 0, lockRange.front(), lockRange.size());
   else
     ctx.uploadBufferOrdered(pushAllocation->getRef(), ref, 0, lockRange.front(), lockRange.size());
   Frontend::tempBuffers.freePooled(pushAllocation);

@@ -456,13 +456,13 @@ void ExecutionSyncTracker::ScratchData::clear()
   dst.clear();
 }
 
-void ExecutionSyncTracker::completeNeeded(VulkanCommandBufferHandle cmd_buffer, const VulkanDevice &dev)
+void ExecutionSyncTracker::completeNeeded()
 {
   // early exit if nothing to be done or delay is enabled
   if (!anyNonProcessed() || delayCompletion)
     return;
 
-  InternalPipelineBarrier barrier(dev);
+  InternalPipelineBarrier barrier(0, 0);
 
   if (bufOps.lastProcessed != bufOps.arr.size())
   {
@@ -490,7 +490,7 @@ void ExecutionSyncTracker::completeNeeded(VulkanCommandBufferHandle cmd_buffer, 
   if (!barrier.empty())
   {
     PROFILE_SYNC(vulkan_sync_barrier);
-    barrier.submit(cmd_buffer);
+    barrier.submit();
   }
   Backend::syncCapture.addSyncStep();
 }
@@ -504,17 +504,17 @@ void ExecutionSyncTracker::clearOps()
 #endif
 }
 
-void ExecutionSyncTracker::completeOnQueue(VulkanCommandBufferHandle cmd_buffer, const VulkanDevice &dev, size_t gpu_work_id)
+void ExecutionSyncTracker::completeOnQueue(size_t gpu_work_id)
 {
-  completeNeeded(cmd_buffer, dev);
+  completeNeeded();
   G_ASSERTF(!delayCompletion, "vulkan: sync delay must not be interrupted by GPU job change");
 
-  workItemEndBarrier(cmd_buffer, dev, gpu_work_id);
+  workItemEndBarrier(gpu_work_id);
 }
 
-void ExecutionSyncTracker::completeAll(VulkanCommandBufferHandle cmd_buffer, const VulkanDevice &dev, size_t gpu_work_id)
+void ExecutionSyncTracker::completeAll(size_t gpu_work_id)
 {
-  completeNeeded(cmd_buffer, dev);
+  completeNeeded();
   G_ASSERTF(!delayCompletion, "vulkan: sync delay must not be interrupted by GPU job change");
 
   // ending current block, so increment in advance
@@ -522,12 +522,12 @@ void ExecutionSyncTracker::completeAll(VulkanCommandBufferHandle cmd_buffer, con
   OpUid::frame_end();
   Backend::syncCapture.reset();
 
-  workItemEndBarrier(cmd_buffer, dev, gpu_work_id);
+  workItemEndBarrier(gpu_work_id);
 
   nativeRPIndex = 0;
 }
 
-void ExecutionSyncTracker::workItemEndBarrier(VulkanCommandBufferHandle cmd_buffer, const VulkanDevice &dev, size_t gpu_work_id)
+void ExecutionSyncTracker::workItemEndBarrier(size_t gpu_work_id)
 {
   if (allCompleted())
   {
@@ -596,11 +596,11 @@ void ExecutionSyncTracker::workItemEndBarrier(VulkanCommandBufferHandle cmd_buff
   }
 #endif
 
-  InternalPipelineBarrier barrier(dev, srcLA.stage, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+  InternalPipelineBarrier barrier(srcLA.stage, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
   barrier.addMemory({srcLA.access, VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_MEMORY_READ_BIT});
   // can be empty due to native RP sync exclusion
   if (srcLA.stage != VK_PIPELINE_STAGE_NONE)
-    barrier.submit(cmd_buffer);
+    barrier.submit();
 
   clearOps();
 }

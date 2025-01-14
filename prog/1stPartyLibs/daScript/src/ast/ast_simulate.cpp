@@ -3215,6 +3215,7 @@ namespace das
         }
         isSimulating = true;
         context.failed = true;
+        context.verySafeContext = options.getBoolOption("very_safe_context",policies.very_safe_context);
         astTypeInfo.clear();    // this is to be filled via typeinfo(ast_typedecl and such)
         auto disableInit = options.getBoolOption("no_init", policies.no_init);
         context.thisProgram = this;

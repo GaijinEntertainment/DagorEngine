@@ -171,9 +171,6 @@ public:
 
     progs.graphics.shutdown();
     progs.compute.shutdown();
-#if D3D_HAS_RAY_TRACING
-    progs.raytrace.shutdown();
-#endif
     shaders.shutdown();
     shaderDesc.headers.shutdown();
     shaderDesc.modules.shutdown();
@@ -186,9 +183,6 @@ public:
 
     progs.graphics.clear(ctx);
     progs.compute.clear(ctx);
-#if D3D_HAS_RAY_TRACING
-    progs.raytrace.clear(ctx);
-#endif
     shaders.clear(ctx);
     shaderDesc.headers.clear(ctx);
     shaderDesc.modules.clear(ctx);
@@ -202,9 +196,6 @@ public:
     WinAutoLock lock(dataGuard);
     switch (get_program_type(prog))
     {
-#if D3D_HAS_RAY_TRACING
-      case program_type_raytrace: progs.raytrace.reuseId(prog); return;
-#endif
       case program_type_graphics: progs.graphics.reuseId(prog); return;
       case program_type_compute: progs.compute.reuseId(prog); return;
     }
@@ -216,9 +207,6 @@ public:
 
     switch (get_program_type(prog))
     {
-#if D3D_HAS_RAY_TRACING
-      case program_type_raytrace: progs.raytrace.remove(ctx, prog); return;
-#endif
       case program_type_graphics: progs.graphics.remove(ctx, prog); return;
       case program_type_compute: progs.compute.remove(ctx, prog); return;
     }
@@ -249,15 +237,6 @@ public:
   }
 
   ProgramID getDebugProgram() const { return debugProgId; }
-
-#if D3D_HAS_RAY_TRACING
-  ProgramID newRaytraceProgram(DeviceContext &ctx, const ShaderID *shader_ids, uint32_t shader_count,
-    const RaytraceShaderGroup *shader_groups, uint32_t group_count, uint32_t max_recursion_depth)
-  {
-    WinAutoLock lock(dataGuard);
-    return progs.raytrace.add(ctx, {shaders, shader_ids, shader_count, shader_groups, group_count, max_recursion_depth});
-  }
-#endif
 
   // ----- shaders
 
@@ -309,9 +288,6 @@ private:
   {
     ShaderProgramDatabaseStorage<GraphicsProgram, ProgramID> graphics;
     ShaderProgramDatabaseStorage<ComputeProgram, ProgramID> compute;
-#if D3D_HAS_RAY_TRACING
-    ShaderProgramDatabaseStorage<RaytraceProgram, ProgramID> raytrace;
-#endif
   } progs;
 
   struct

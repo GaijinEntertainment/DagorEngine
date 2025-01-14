@@ -124,6 +124,8 @@ static void screen_effect_node_enable_es(const ecs::Event &, resource_slot::Node
         {TEXFMT_R11G11B10F | TEXCF_RTARGET, registry.getResolution<2>("post_fx")});
       registry.requestRenderPass().color({slotsState.resourceToCreateFor("postfx_input_slot")});
       registry.readTexture(slotsState.resourceToReadFrom("postfx_input_slot")).atStage(dabfg::Stage::PS).bindToShaderVar("frame_tex");
+      registry.read("downsampled_depth_with_late_water").texture().atStage(dabfg::Stage::PS).bindToShaderVar("downsampled_depth");
+      registry.read("prev_frame_tex").texture().atStage(dabfg::Stage::PS).bindToShaderVar();
 
       return [shader = PostFxRenderer("screen_effect")] { shader.render(); };
     });

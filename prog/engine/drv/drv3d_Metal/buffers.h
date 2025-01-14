@@ -68,6 +68,9 @@ public:
   int dynamic_offset = 0;
   uint64_t dynamic_frame = 0;
 
+  // slot mask where buffer is bound
+  uint64_t bound_slots = 0;
+
   int locked_offset;
   int locked_size;
   uint64_t last_locked_submit = ~0ull;
@@ -93,7 +96,6 @@ public:
   virtual bool copyTo(Sbuffer * /*dest*/, uint32_t /*dst_ofs_bytes*/, uint32_t /*src_ofs_bytes*/, uint32_t /*size_bytes*/);
 
   int getDynamicOffset() const;
-  static void apply(id<MTLBuffer> buffer, int stage, int slot, int offset);
 
   id<MTLBuffer> getBuffer();
   Texture *getTexture();

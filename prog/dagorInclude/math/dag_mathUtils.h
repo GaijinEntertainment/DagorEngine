@@ -239,7 +239,7 @@ inline float angle_approach(float from_radians, float to_radians, float dt, floa
   return approach(from_radians, from_radians + angleD, dt, viscosity);
 }
 
-__forceinline bbox3f v_ldu_bbox3(const BBox3 &bbox) { return bbox3f{v_ldu_p3(&bbox.lim[0].x), v_ldu_p3(&bbox.lim[1].x)}; }
+__forceinline bbox3f v_ldu_bbox3(const BBox3 &bbox) { return bbox3f{v_ldu(&bbox.lim[0].x), v_ldu_p3(&bbox.lim[1].x)}; }
 
 __forceinline void v_stu_bbox3(BBox3 &out, bbox3f_cref box)
 {

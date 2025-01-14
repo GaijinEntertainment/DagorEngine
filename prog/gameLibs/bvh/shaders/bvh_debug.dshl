@@ -12,14 +12,13 @@ float4 view_vecLB;
 float4 view_vecRB;
 
 int bvh_debug_mode = 0;
-interval bvh_debug_mode: lit < 1, texture_color < 2, world_normal < 3, texcoord < 4, secTexcoord < 5, camoTexcoord < 6, vertex_color < 7, gi < 8, twosided < 9, paint;
 
 define_macro_if_not_defined USE_EMISSION_DECODE_COLOR_MAP(code)
 endmacro
 
 shader bvh_debug
 {
-  if (compatibility_mode == compatibility_mode_on)
+  if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing)
   {
     dont_render;
   }
@@ -33,11 +32,23 @@ shader bvh_debug
     view_vecLB@f3 = view_vecLB;
     view_vecRB@f3 = view_vecRB;
     world_view_pos@f3 = world_view_pos;
+    bvh_debug_mode@i1 = bvh_debug_mode;
   }
 
   hlsl (cs) {
     #include <Include/NRDEncoding.hlsli>
     #include <Include/NRD.hlsli>
+
+    #define BVH_DEBUG_MODE_LIT 0
+    #define BVH_DEBUG_MODE_TEXTURE_COLOR 1
+    #define BVH_DEBUG_MODE_WORLD_NORMAL 2
+    #define BVH_DEBUG_MODE_TEXCOORD 3
+    #define BVH_DEBUG_MODE_SEC_TEXCOORD 4
+    #define BVH_DEBUG_MODE_CAMO_TEXCOORD 5
+    #define BVH_DEBUG_MODE_VERTEX_COLOR 6
+    #define BVH_DEBUG_MODE_GI 7
+    #define BVH_DEBUG_MODE_TWOSIDED 8
+    #define BVH_DEBUG_MODE_PAINT 9
   }
 
   INIT_BVH(cs, 0, true)
@@ -79,9 +90,12 @@ shader bvh_debug
       HitInfo hitInfo;
       if (trace_ray(bvhMain, 0, direction, 0, 100000, 0, bvhGroupRender, hitInfo))
       {
-        ##if bvh_debug_mode == lit
+        if (bvh_debug_mode == BVH_DEBUG_MODE_LIT)
+        {
           result = light_hit_surface(hitInfo, -direction, 0, 100000);
-        ##elif bvh_debug_mode == texture_color
+        }
+        else if (bvh_debug_mode == BVH_DEBUG_MODE_TEXTURE_COLOR)
+        {
           if (get_material_type(hitInfo.material) == bvhMaterialTerrain)
           {
             Vtex textures = sample_clipmaps(hitInfo.position + bvh_origin, 0, 0);
@@ -104,16 +118,24 @@ shader bvh_debug
           }
           else
             result = float3(1, 0, 0);
-        ##elif bvh_debug_mode == world_normal
+        }
+        else if (bvh_debug_mode == BVH_DEBUG_MODE_WORLD_NORMAL)
+        {
           if (get_material_type(hitInfo.material) == bvhMaterialTerrain)
             result = get_land_normal_from_normalmap(hitInfo.position + bvh_origin) * 0.5 + 0.5;
           else
             result = hitInfo.normal * 0.5 + 0.5;
-        ##elif bvh_debug_mode == texcoord
+        }
+        else if (bvh_debug_mode == BVH_DEBUG_MODE_TEXCOORD)
+        {
           result = float3(hitInfo.texcoord, 0);
-        ##elif bvh_debug_mode == secTexcoord
+        }
+        else if (bvh_debug_mode == BVH_DEBUG_MODE_SEC_TEXCOORD)
+        {
           result = float3(hitInfo.secTexcoord, 0);
-        ##elif bvh_debug_mode == camoTexcoord
+        }
+        else if (bvh_debug_mode == BVH_DEBUG_MODE_CAMO_TEXCOORD)
+        {
           uint camoArgsPacked = asuint(hitInfo.perInstanceData.z);
           float2 unpack;
           unpack.x = f16tof32(camoArgsPacked);
@@ -124,9 +146,13 @@ shader bvh_debug
           camoTexcoord.y = dot(camoTexcoord, camoSinCos.yz);
           camoTexcoord.xy += 0.5;
           result = float3(camoTexcoord, 0);
-        ##elif bvh_debug_mode == vertex_color
+        }
+        else if (bvh_debug_mode == BVH_DEBUG_MODE_VERTEX_COLOR)
+        {
           result = hitInfo.color;
-        ##elif bvh_debug_mode == gi
+        }
+        else if (bvh_debug_mode == BVH_DEBUG_MODE_GI)
+        {
           if (get_material_type(hitInfo.material) == bvhMaterialTerrain)
           {
             Vtex textures = sample_clipmaps(hitInfo.position + bvh_origin, 0, 0);
@@ -138,7 +164,9 @@ shader bvh_debug
           }
           else
             result = hitInfo.color;
-        ##elif bvh_debug_mode == twosided
+        }
+        else if (bvh_debug_mode == BVH_DEBUG_MODE_TWOSIDED)
+        {
           #ifdef BVH_TWO_SIDED
             float2 bvhResolution;
             bvh_gbuf_load.GetDimensions(bvhResolution.x, bvhResolution.y);
@@ -147,7 +175,9 @@ shader bvh_debug
           #else
             result = float3(1, 0, 0);
           #endif
-        ##elif bvh_debug_mode == paint
+        }
+        else if (bvh_debug_mode == BVH_DEBUG_MODE_PAINT)
+        {
           if (get_material_type(hitInfo.material) == bvhMaterialRendinst && !hitInfo.isLayered && hitInfo.albedoTextureIndex != 0xFFFF)
           {
             SamplerState bvh_sampler = bvh_samplers[hitInfo.albedoSamplerIndex];
@@ -155,23 +185,27 @@ shader bvh_debug
             apply_painting(hitInfo, texel.a, texel.rgb);
             result = texel.rgb;
           }
-        ##endif
+        }
       }
       else
       {
-        ##if bvh_debug_mode == lit
+        if (bvh_debug_mode == BVH_DEBUG_MODE_LIT)
+        {
           result = texCUBElod(envi_probe_specular, float4(direction, 0)).rgb;
-        ##else
+        }
+        else
+        {
           result = float3(0, 0, 1);
-        ##endif
+        }
       }
 
       float translucentT;
       trace_ray_fx_translucent(0, direction, 0, hitInfo.t, 0, result, translucentT);
 
-      ##if bvh_debug_mode == lit
+      if (bvh_debug_mode == BVH_DEBUG_MODE_LIT)
+      {
         result = performLUTTonemap(result);
-      ##endif
+      }
 
       debug_target[thread] = float4(result, 1);
     }

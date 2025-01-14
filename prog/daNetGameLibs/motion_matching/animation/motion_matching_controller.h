@@ -6,7 +6,6 @@
 #include "inertial_blending.h"
 #include "animation_clip.h"
 #include "animation_data_base.h"
-#include "foot_ik_locker.h"
 
 // it's usefull ot disable mm work while debug new animations
 #define DISABLE_MOTION_MATCHING 0
@@ -27,8 +26,6 @@ public:
     float linearBlendProgress = 0.f;
   };
   const AnimationDataBase *dataBase = nullptr; // set by setup
-  CurrentClipInfo currentClipInfo;
-  float lastTransitionTime = 0.0f;
   vec3f rootPosition = v_zero();
   quat4f rootRotation = V_C_UNIT_0001;
   NodePRS rootPRS; // applied to actual animchar transform which can be not same as `rootPosition` + `rootRotation`
@@ -36,14 +33,15 @@ public:
   BoneInertialInfo currentAnimation;
   BoneInertialInfo resultAnimation;
   dag::Vector<float> perNodeWeights;
-  FootIKLockerControllerState footLockState;
   AnimationFilterTags currentTags;
+  CurrentClipInfo currentClipInfo;
   unsigned nodeCount = 0;
-  float motionMatchingWeight = 0; // max of perNodeWeights
+  float motionMatchingWeight = 0.0f; // max of perNodeWeights
+  float lastTransitionTime = 0.0f;
+  float transitionBlendTime = 0.0f;
+  float playSpeedMult = 1.0f;
 
   bool useTagsFromAnimGraph = false;
-
-  float playSpeedMult = 1.0f;
 
   // customizable parameters to keep the animation root node close to the actual animchar transform,
   // but at the same time follow the movements from the animation clip as much as possible.
@@ -66,9 +64,9 @@ public:
 
   bool getPose(AnimV20::AnimBlender::TlsContext &tls, const Tab<AnimV20::AnimMap> &anim_map) const override;
 
-  void playAnimation(int clip_index, int frame_index);
+  void playAnimation(int clip_index, int frame_index, bool need_transition);
 
-  bool updateAnimationProgress(float dt); // return true when end of animation is reached
+  void updateAnimationProgress(float dt);
   void updateRoot(float dt,
     const AnimV20::AnimcharBaseComponent &animchar,
     const Point3 &animchar_velocity,
@@ -78,6 +76,7 @@ public:
   int getCurrentClip() const { return currentClipInfo.clip; }
   int getCurrentFrame() const { return currentClipInfo.frame; }
   float getCurrentFrameProgress() const { return currentClipInfo.linearBlendProgress; }
+  bool willCurrentAnimationEnd(float dt);
 
   float getFrameTimeInSeconds(uint32_t clip_idx, uint32_t frame, float blend_progress) const
   {

@@ -43,6 +43,10 @@ shader deferredLight
       GI_ENCODED_TYPE ambient:SV_Target1;
       uint age:SV_Target2;
     };
+
+    ##if hardware.ps4 || hardware.ps5
+      #pragma PSSL_target_output_format(target 2 FMT_32_R) // age : SV_Target2 compatible format
+    ##endif
 ##else
     struct MRT_OUTPUT
     {

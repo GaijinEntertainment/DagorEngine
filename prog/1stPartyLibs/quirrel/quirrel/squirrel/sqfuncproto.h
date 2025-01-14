@@ -144,7 +144,8 @@ public:
     }
 
     const SQChar* GetLocal(SQVM *v,SQUnsignedInteger stackbase,SQUnsignedInteger nseq,SQUnsignedInteger nop);
-    SQInteger GetLine(SQInstruction *curr, int *hint = nullptr, bool *is_line_op = nullptr);
+    static SQInteger GetLine(SQLineInfo * lineinfos, int nlineinfos, int instruction_index, int *hint, bool *is_line_op = nullptr);
+    SQInteger GetLine(const SQInstruction *curr, int *hint = nullptr, bool *is_line_op = nullptr);
     bool Save(SQVM *v,SQUserPointer up,SQWRITEFUNC write);
     static bool Load(SQVM *v,SQUserPointer up,SQREADFUNC read,SQObjectPtr &ret);
 #ifndef NO_GARBAGE_COLLECTOR
@@ -187,7 +188,7 @@ public:
     SQInstruction _instructions[1];
 };
 
-void Dump(SQFunctionProto *func);
-void Dump(OutputStream *stream, SQFunctionProto *func, bool deep = false);
+void Dump(SQFunctionProto *func, int instruction_index = -1);
+void Dump(OutputStream *stream, SQFunctionProto *func, bool deep = false, int instruction_index = -1);
 
 #endif //_SQFUNCTION_H_

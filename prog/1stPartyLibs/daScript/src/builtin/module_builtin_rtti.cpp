@@ -697,6 +697,7 @@ namespace das {
             addField<DAS_BIND_MANAGED_FIELD(export_all)>("export_all");
             addField<DAS_BIND_MANAGED_FIELD(serialize_main_module)>("serialize_main_module");
             addField<DAS_BIND_MANAGED_FIELD(keep_alive)>("keep_alive");
+            addField<DAS_BIND_MANAGED_FIELD(very_safe_context)>("very_safe_context");
         // reporting
             addField<DAS_BIND_MANAGED_FIELD(always_report_candidates_threshold)>("always_report_candidates_threshold");
         // infer passes
@@ -717,6 +718,7 @@ namespace das {
         // rtti
             addField<DAS_BIND_MANAGED_FIELD(rtti)>("rtti");
         // language
+            addField<DAS_BIND_MANAGED_FIELD(unsafe_table_lookup)>("unsafe_table_lookup");
             addField<DAS_BIND_MANAGED_FIELD(relaxed_pointer_const)>("relaxed_pointer_const");
             addField<DAS_BIND_MANAGED_FIELD(version_2_syntax)>("version_2_syntax");
             addField<DAS_BIND_MANAGED_FIELD(gen2_make_syntax)>("gen2_make_syntax");

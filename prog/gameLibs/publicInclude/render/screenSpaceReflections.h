@@ -63,6 +63,8 @@ protected:
   bool ownTextures;
   bool denoiser;
 
+  void updateSamplers() const;
+
 public:
   ScreenSpaceReflections(int ssr_w, int ssr_h, int num_views = 1, uint32_t fmt = 0, SSRQuality ssr_quality = SSRQuality::Low,
     SSRFlags flags = SSRFlag::CreateTextures);

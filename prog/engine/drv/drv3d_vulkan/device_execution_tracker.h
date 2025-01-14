@@ -28,9 +28,10 @@ struct DeviceExecutionTracker
   void init();
   void shutdown();
 
-  void addMarker(VulkanCommandBufferHandle cmd_buf, const void *data, size_t data_sz);
+  void addMarker(const void *data, size_t data_sz);
   void restart(size_t job_id);
   void dumpFaultData(FaultReportDump &dump) const;
+  void verify();
 
   uint64_t getPrevJobHash() const { return interlocked_acquire_load(prevJobHash); }
 

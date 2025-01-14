@@ -45,6 +45,7 @@ public:
   {
     uint16_t slices = 16, tileSize = 64;
     uint8_t spatialFilters = 0, radianceRes = 3;
+    float historyBlurTexelOfs = 0.125;
     float zDist = 0, zStart = 0.5, zLogMul = 6; // the bigger zLogMul the more linear distribution is
   };
 

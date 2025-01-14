@@ -2,6 +2,7 @@
 #pragma once
 
 #include "call_stack.h"
+#include <pipeline.h>
 #include <EASTL/span.h>
 
 
@@ -55,11 +56,19 @@ public:
     const BufferResourceReferenceAndOffset &, uint32_t)
   {}
   constexpr void blit(const call_stack::CommandData &, D3DGraphicsCommandList *) {}
+#if D3D_HAS_RAY_TRACING
+  constexpr void dispatchRays(const call_stack::CommandData &, D3DGraphicsCommandList *, const RayDispatchBasicParameters &,
+    const ResourceBindingTable &, const RayDispatchParameters &)
+  {}
+  constexpr void dispatchRaysIndirect(const call_stack::CommandData &, D3DGraphicsCommandList *, const RayDispatchBasicParameters &,
+    const ResourceBindingTable &, const RayDispatchIndirectParameters &)
+  {}
+#endif
   void onDeviceRemoved(D3DDevice *, HRESULT, call_stack::Reporter &)
   {
     logdbg("DX12: Device reset detected, no postmortem data available...");
   }
-  constexpr bool tryCreateDevice(IUnknown *, D3D_FEATURE_LEVEL, void **) { return false; }
+  constexpr bool tryCreateDevice(DXGIAdapter *, UUID, D3D_FEATURE_LEVEL, void **) { return false; }
   constexpr bool sendGPUCrashDump(const char *, const void *, uintptr_t) { return false; }
   constexpr void onDeviceShutdown() {}
   constexpr bool onDeviceSetup(ID3D12Device *, const Configuration &, const Direct3D12Enviroment &) { return true; }

@@ -6,15 +6,14 @@
 
 #include <EASTL/fixed_function.h>
 
-#include <generic/dag_fixedMoveOnlyFunction.h>
-
 #include <render/daBfg/detail/resourceType.h>
 
 
 namespace dabfg
 {
 
-using TypeErasedCall = dag::FixedMoveOnlyFunction<sizeof(void *) * 4, void(void *) const>;
+// Intentionally copyable
+using TypeErasedCall = eastl::fixed_function<sizeof(void *) * 4, void(void *)>;
 using TypeErasedCopyCall = eastl::fixed_function<sizeof(void *) * 3, void(void *, const void *)>;
 
 struct BlobDescription

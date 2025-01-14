@@ -11,7 +11,7 @@
 #include <dasModules/aotDm.h>
 #include <ecs/scripts/dasEcsEntity.h>
 #include <ecs/game/dm/fire.h>
-#include <damageModel/fireParams.h>
+#include <damageModel/fireDamage.h>
 #include <EASTL/vector.h>
 #include <dasModules/dasManagedTab.h>
 
@@ -22,7 +22,7 @@ MAKE_TYPE_FACTORY(FireDamageStateState, dm::FireDamageState::State);
 MAKE_TYPE_FACTORY(FireDamageState, dm::FireDamageState);
 DAS_BIND_VECTOR(FireDamageStates, FireDamageStates, dm::FireDamageState::State, " FireDamageStates");
 
-MAKE_TYPE_FACTORY(FireParams, FireParams);
+MAKE_TYPE_FACTORY(FireParams, dm::fire::Properties);
 MAKE_TYPE_FACTORY(FireData, dm::FireData);
 MAKE_TYPE_FACTORY(FireDamageComponent, dm::FireDamageComponent);
 MAKE_TYPE_FACTORY(StartBurnDesc, dm::StartBurnDesc);

@@ -57,19 +57,17 @@ eastl::pair<bool, intptr_t> main_wnd_proc(void *hwnd, unsigned message, uintptr_
 
       if (!window_initing)
       {
-        if (!application_active && (fActive == WA_ACTIVE || fActive == WA_CLICKACTIVE))
+        if (!::dgs_app_active && (fActive == WA_ACTIVE || fActive == WA_CLICKACTIVE))
         {
           set_priority(true);
-          application_active = true;
           dgs_app_active = true;
           if (!is_float_exceptions_enabled())
             _fpreset();
         }
-        else if (application_active && (fActive == WA_INACTIVE))
+        else if (::dgs_app_active && (fActive == WA_INACTIVE))
         {
           if (interlocked_relaxed_load(enable_idle_priority))
             set_priority(false);
-          application_active = false;
           dgs_app_active = false;
           debug_flush(false);
         }
@@ -81,21 +79,19 @@ eastl::pair<bool, intptr_t> main_wnd_proc(void *hwnd, unsigned message, uintptr_
       if (!window_initing)
       {
         BOOL n_app_active = IsIconic((HWND)hwnd) ? false : LOWORD(wParam);
-        if (!application_active && n_app_active)
+        if (!::dgs_app_active && n_app_active)
         {
           set_priority(true);
           if (::global_cls_drv_pnt && ::global_cls_drv_pnt->isMouseCursorHidden())
             SetCursor((HCURSOR)win32_empty_mouse_cursor);
-          application_active = true;
           dgs_app_active = true;
           if (!is_float_exceptions_enabled())
             _fpreset();
         }
-        else if (application_active && !n_app_active)
+        else if (::dgs_app_active && !n_app_active)
         {
           if (interlocked_relaxed_load(enable_idle_priority))
             set_priority(false);
-          application_active = false;
           dgs_app_active = false;
         }
       }
@@ -268,20 +264,18 @@ static intptr_t wnd_proc([[maybe_unused]] void *hwnd, unsigned message, uintptr_
 
       if (!window_initing)
       {
-        if (!application_active && (fActive == GPCMP1_Activate || fActive == GPCMP1_ClickActivate))
+        if (!::dgs_app_active && (fActive == GPCMP1_Activate || fActive == GPCMP1_ClickActivate))
         {
           set_priority(true);
-          application_active = true;
           dgs_app_active = true;
           debug("activate");
           // if (!is_float_exceptions_enabled())
           //   _fpreset();
         }
-        else if (application_active && (fActive == GPCMP1_Inactivate))
+        else if (::dgs_app_active && (fActive == GPCMP1_Inactivate))
         {
           if (interlocked_relaxed_load(enable_idle_priority))
             set_priority(false);
-          application_active = false;
           dgs_app_active = false;
           debug("activate-");
           debug_flush(false);

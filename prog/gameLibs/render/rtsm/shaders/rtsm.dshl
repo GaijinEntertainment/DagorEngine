@@ -2,10 +2,10 @@ include "shader_global.dshl"
 include "gbuffer.dshl"
 include "viewVecVS.dshl"
 include "bvh.dshl"
+include "rtsm_sun_dir.dshl"
 
 float4x4 inv_proj_tm;
 
-float4 sun_dir_for_shadows = (0, 1, 0, 0);
 float4 rt_shadow_resolution;
 int4 rt_shadow_resolutionI;
 
@@ -22,8 +22,6 @@ texture denoiser_view_z;
 texture rtsm_dynamic_lights;
 
 texture perlin_noise3d;
-
-float rtsm_sun_angle_multiplier = 0.5;
 
 int rtsm_frame_index;
 
@@ -46,17 +44,16 @@ interval rtsm_is_half_precision : no < 1, yes;
 
 shader rt_shadows
 {
-  if (compatibility_mode == compatibility_mode_on) { dont_render; }
+  if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing) { dont_render; }
   ENABLE_ASSERT(cs)
 
+  RTSM_SUN_DIR()
   (cs) {
     inv_proj_tm@f44 = inv_proj_tm;
     world_view_pos@f3 = world_view_pos;
-    sun_dir_for_shadows@f3 = (sun_dir_for_shadows.x, sun_dir_for_shadows.y, sun_dir_for_shadows.z);
     resolution@u2 = rt_shadow_resolutionI;
     inv_resolution@f2 = (1.0 / rt_shadow_resolution.x, 1.0 / rt_shadow_resolution.y);
     frame_index@i1 = rtsm_frame_index;
-    sun_angle_multiplier@f1 = rtsm_sun_angle_multiplier;
     scrambling_ranking_texture@tex = scrambling_ranking_texture hlsl { Texture2D< float3 > scrambling_ranking_texture@tex; };
     sobol_texture@tex = sobol_texture hlsl { Texture2D< float4 > sobol_texture@tex; };
     viewZTexture@uav = denoiser_view_z hlsl { RWTexture2D<float> viewZTexture@uav; };
@@ -120,7 +117,7 @@ shader rt_shadows
   INIT_LOAD_GBUFFER_BASE(cs)
   INIT_LOAD_BVH_FLAGS_BASE(cs)
   USE_LOAD_BVH_FLAGS_BASE(cs)
-  USE_LOAD_GBUFFER_BASE(cs, 1)
+  USE_LOAD_GBUFFER_BASE(cs, true)
   INIT_BVH(cs, 1, true)
   USE_BVH_FOR_SHADOW(cs)
 
@@ -131,9 +128,6 @@ shader rt_shadows
 
   hlsl(cs)
   {
-    static const float solViewRadialAngle    = 0.0093f / 2;
-    static const float solViewTanRadialAngle = tan( solViewRadialAngle );
-
     // Blue noise from NVDenoiser
 
     uint ReverseBits4( uint x )
@@ -175,35 +169,6 @@ shader rt_shadows
       blue += ( dither.xyxy - 0.5 ) * ( 1.0 / 256.0 );
 
       return saturate( blue.xy );
-    }
-
-    float3 GetRay( float2 rnd )
-    {
-      float phi = rnd.x * 2 * PI;
-
-      float cosTheta = sqrt( saturate( rnd.y ) );
-      float sinTheta = sqrt( saturate( 1.0 - cosTheta * cosTheta ) );
-
-      float3 ray;
-      ray.x = sinTheta * cos( phi );
-      ray.y = sinTheta * sin( phi );
-      ray.z = cosTheta;
-
-      return ray;
-    }
-
-    float3x3 GetBasis( float3 N )
-    {
-      float sz = sign( N.z );
-      float a  = 1.0 / ( sz + N.z );
-      float ya = N.y * a;
-      float b  = N.x * ya;
-      float c  = N.x * sz;
-
-      float3 T = float3( c * N.x * a - 1.0, sz * b, c );
-      float3 B = float3( b, N.y * ya - sz, N.y );
-
-      return float3x3( T, B, N );
     }
 
     void write_no_shadow(uint2 dtid, float4 view_depth, float sol_radial_angle)
@@ -285,11 +250,7 @@ shader rt_shadows
         float3 direction = -sun_dir_for_shadows;
       ##else
         float2 rnd = GetBlueNoise( dtid, false, 0, 0 );
-        rnd  = GetRay( rnd ).xy;
-        rnd *= solRadialAngle;
-
-        float3x3 sunBasis = GetBasis( -sun_dir_for_shadows );
-        float3 direction = normalize( sunBasis[ 0 ] * rnd.x + sunBasis[ 1 ] * rnd.y + sunBasis[ 2 ] );
+        float3 direction = get_sun_direction(rnd);
       ##endif
 
       bool isImpostor = gbuffer.impostorMask > 0.5;
@@ -392,7 +353,7 @@ endmacro
 
 shader rt_direct_lights
 {
-  if (compatibility_mode == compatibility_mode_on) { dont_render; }
+  if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing) { dont_render; }
   ENABLE_ASSERT(cs)
   ASSUME_NO_SSSS()
 
@@ -431,7 +392,7 @@ shader rt_direct_lights
   INIT_LOAD_GBUFFER_BASE(cs)
   INIT_LOAD_BVH_FLAGS_BASE(cs)
   USE_LOAD_BVH_FLAGS_BASE(cs)
-  USE_LOAD_GBUFFER_BASE(cs, 1)
+  USE_LOAD_GBUFFER_BASE(cs, true)
   INIT_BVH(cs, 0, true)
   USE_BVH_FOR_SHADOW(cs)
 
@@ -476,7 +437,7 @@ shader rt_direct_lights
       if (is_in_nuke_range(context.relPos))
         return;
 
-      bool isObstructed = is_obstructed(bvhMain, context.relPos, normalize(light_direction), context.minT, length(light_direction), context.w, context.groupMask);
+      bool isObstructed = is_obstructed(bvhMain, context.relPos, normalize(light_direction), context.minT + 0.006, length(light_direction), context.w, context.groupMask);
       if (isObstructed)
         result = 0;
     }

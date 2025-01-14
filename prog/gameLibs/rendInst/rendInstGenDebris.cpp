@@ -145,7 +145,8 @@ static int sweepRIGenInBoxByMask(RendInstGenData *rgl, const BBox3 &_box, unsign
                     rgl->rtData->riRwCs.unlockRead(); // Note: add_destroyed_data that called in doRiGenDestr acquires write lock
                                                       // within
                     rendinst::riex_handle_t destroyedRiexHandle;
-                    rendinst::doRIGenDestr(riDesc, riBuffer, nullptr /*callback*/, destroyedRiexHandle, 0 /*userdata*/);
+                    rendinst::doRIGenDestr(riDesc, riBuffer, true /*create_destr_effects*/, nullptr /*callback*/, destroyedRiexHandle,
+                      0 /*userdata*/);
                     rgl->rtData->riRwCs.lockRead();
                   }
                   rendinst::destroy_pos_rendinst_data(data, mrange);
@@ -373,10 +374,10 @@ void rendinst::updateTreeDestrRenderData(const TMatrix &original_tm, riex_handle
                    : tree_inst_data.branchDestr;
 
   Point2 impulseXZ = tree_inst_data.impactXZ * branch.impulseMul;
-  Point4 perInstanceData[5];
+  rendinst::RiExtraPerInstanceItem perInstanceData[5];
 
-  auto fnPack = [](float v, float maxValue, int bits, int offset) -> int {
-    return clamp((int)(v / maxValue * ((1 << bits) - 1)), 0, (1 << bits) - 1) << offset;
+  auto fnPack = [](float v, float maxValue, int bits, int offset) -> uint32_t {
+    return clamp((uint32_t)(v / maxValue * ((1 << bits) - 1)), 0u, (1u << bits) - 1u) << offset;
   };
 
   float impulseMagnitude = impulseXZ.length();
@@ -384,31 +385,35 @@ void rendinst::updateTreeDestrRenderData(const TMatrix &original_tm, riex_handle
   if (branchFallingChance <= 0.0f)
     return;
 
-  int randSeed = tree_inst_data.rndSeed % (1 << 8);
-  int randSeed_branchFallingChance = randSeed << 16 | fnPack(branchFallingChance, 1.0f, 16, 0);
+  uint32_t randSeed = tree_inst_data.rndSeed % (1 << 8);
+  uint32_t randSeed_branchFallingChance = randSeed << 16 | fnPack(branchFallingChance, 1.0f, 16, 0);
 
   float branchRangeInv = 1.0f / (branch.branchSizeMax - branch.branchSizeMin);
-  int branchSizeData =
+  uint32_t branchSizeData =
     fnPack(branch.branchSizeSlowDown, 1.0f, 8, 16) | fnPack(branch.branchSizeMin, 100.0f, 8, 8) | fnPack(branchRangeInv, 5.0f, 8, 0);
 
-  perInstanceData[0] = {(float &)randSeed_branchFallingChance, (float &)branchSizeData, impulseXZ.x, impulseXZ.y};
+  perInstanceData[0] = {
+    randSeed_branchFallingChance, branchSizeData, bitwise_cast<uint32_t>(impulseXZ.x), bitwise_cast<uint32_t>(impulseXZ.y)};
 
   float timerSec = (tree_inst_data.timer + (tree_inst_debug_data ? tree_inst_debug_data->timer_offset : 0.0f));
   float disappearTimerSec = tree_inst_data.disappearStartTime < 0.0f ? timerSec : (int)tree_inst_data.disappearStartTime;
 
-  int timersData = fnPack(timerSec, 50.0f, 16, 16) | fnPack(disappearTimerSec, 50.0f, 16, 0);
+  uint32_t timersData = fnPack(timerSec, 50.0f, 16, 16) | fnPack(disappearTimerSec, 50.0f, 16, 0);
 
-  int rotationData = fnPack(branch.rotateRandomAngleSpread, 10.0f, 8, 24) | fnPack(branch.rotateRandomSpeedMulX, 10.0f, 8, 16) |
-                     fnPack(branch.rotateRandomSpeedMulY, 10.0f, 8, 8) | fnPack(branch.rotateRandomSpeedMulZ, 10.0f, 8, 0);
+  uint32_t rotationData = fnPack(branch.rotateRandomAngleSpread, 10.0f, 8, 24) | fnPack(branch.rotateRandomSpeedMulX, 10.0f, 8, 16) |
+                          fnPack(branch.rotateRandomSpeedMulY, 10.0f, 8, 8) | fnPack(branch.rotateRandomSpeedMulZ, 10.0f, 8, 0);
 
-  int speedData = fnPack(branch.fallingSpeedMul, 2.0f, 8, 16) | fnPack(branch.fallingSpeedRnd, 1.0f, 8, 8) |
-                  fnPack(branch.horizontalSpeedMul, 20.0f, 8, 0);
+  uint32_t speedData = fnPack(branch.fallingSpeedMul, 2.0f, 8, 16) | fnPack(branch.fallingSpeedRnd, 1.0f, 8, 8) |
+                       fnPack(branch.horizontalSpeedMul, 20.0f, 8, 0);
 
-  perInstanceData[1] = {(float &)timersData, (float &)speedData, (float &)rotationData, 0.0f};
+  perInstanceData[1] = {timersData, speedData, rotationData, 0};
 
-  perInstanceData[2] = {original_tm.m[0][0], original_tm.m[0][1], original_tm.m[0][2], original_tm.m[1][0]};
-  perInstanceData[3] = {original_tm.m[1][1], original_tm.m[1][2], original_tm.m[2][0], original_tm.m[2][1]};
-  perInstanceData[4] = {original_tm.m[2][2], original_tm.m[3][0], original_tm.m[3][1], original_tm.m[3][2]};
+  perInstanceData[2] = {bitwise_cast<uint32_t>(original_tm.m[0][0]), bitwise_cast<uint32_t>(original_tm.m[0][1]),
+    bitwise_cast<uint32_t>(original_tm.m[0][2]), bitwise_cast<uint32_t>(original_tm.m[1][0])};
+  perInstanceData[3] = {bitwise_cast<uint32_t>(original_tm.m[1][1]), bitwise_cast<uint32_t>(original_tm.m[1][2]),
+    bitwise_cast<uint32_t>(original_tm.m[2][0]), bitwise_cast<uint32_t>(original_tm.m[2][1])};
+  perInstanceData[4] = {bitwise_cast<uint32_t>(original_tm.m[2][2]), bitwise_cast<uint32_t>(original_tm.m[3][0]),
+    bitwise_cast<uint32_t>(original_tm.m[3][1]), bitwise_cast<uint32_t>(original_tm.m[3][2])};
 
   uint32_t perInstanceDataSize = countof(perInstanceData);
   rendinst::setRiExtraPerInstanceRenderData(ri_handle, perInstanceData, perInstanceDataSize);
@@ -640,9 +645,9 @@ static void play_riextra_destroy_effect(rendinst::riex_handle_t id, mat44f_cref 
   }
 }
 
-DynamicPhysObjectData *rendinst::doRIGenDestr(const RendInstDesc &desc, RendInstBufferData &out_buffer, ri_damage_effect_cb effect_cb,
-  riex_handle_t &out_destroyed_riex, int32_t user_data, const Point3 *coll_point, bool *ri_removed, DestrOptionFlags destroy_flags,
-  const Point3 &impulse, const Point3 &impulse_pos)
+DynamicPhysObjectData *rendinst::doRIGenDestr(const RendInstDesc &desc, RendInstBufferData &out_buffer, bool create_destr_effects,
+  ri_damage_effect_cb effect_cb, riex_handle_t &out_destroyed_riex, int32_t user_data, const Point3 *coll_point, bool *ri_removed,
+  DestrOptionFlags destroy_flags, const Point3 &impulse, const Point3 &impulse_pos)
 {
   RendInstGenData *rgl = RendInstGenData::getGenDataByLayer(desc);
   rendinst::RendInstDesc restorableDesc = desc;
@@ -654,7 +659,7 @@ DynamicPhysObjectData *rendinst::doRIGenDestr(const RendInstDesc &desc, RendInst
     const int cellId = riExtra[desc.pool].riUniqueData[desc.idx].cellId;
     riex_handle_t id = rendinst::make_handle(desc.pool, desc.idx);
     bool isDynamicRi = riExtra[desc.pool].isDynamicRendinst || cellId < 0;
-    rendinst::onRiExtraDestruction(id, isDynamicRi, user_data, impulse, impulse_pos);
+    rendinst::onRiExtraDestruction(id, isDynamicRi, create_destr_effects, user_data, impulse, impulse_pos);
     if (isDynamicRi)
       return nullptr;
 
@@ -732,14 +737,15 @@ DynamicPhysObjectData *rendinst::doRIGenDestr(const RendInstDesc &desc, RendInst
   return res;
 }
 
-DynamicPhysObjectData *rendinst::doRIGenDestrEx(const RendInstDesc &desc, ri_damage_effect_cb effect_cb, int user_data)
+DynamicPhysObjectData *rendinst::doRIGenDestrEx(const RendInstDesc &desc, bool create_destr_effects, ri_damage_effect_cb effect_cb,
+  int user_data)
 {
   RendInstGenData *rgl = RendInstGenData::getGenDataByLayer(desc);
   if (desc.isRiExtra())
   {
     const RiExtraPool::ElemUniqueData *uniqueData = safe_at(riExtra[desc.pool].riUniqueData, desc.idx);
     bool isDynamicRi = riExtra[desc.pool].isDynamicRendinst || (uniqueData && uniqueData->cellId < 0);
-    rendinst::onRiExtraDestruction(rendinst::make_handle(desc.pool, desc.idx), isDynamicRi, user_data);
+    rendinst::onRiExtraDestruction(rendinst::make_handle(desc.pool, desc.idx), isDynamicRi, create_destr_effects, user_data);
     if (isDynamicRi)
       return nullptr;
 
@@ -1213,6 +1219,20 @@ void RendInstGenData::RtData::initDebris(const DataBlock &ri_blk, int (*get_fx_t
       }
     }
   }
+
+  if (const DataBlock *soundOccludersBlk = ri_blk.getBlockByName("soundOccluders"))
+    if (const DataBlock *soundOccluderTypesBlk = ri_blk.getBlockByName("soundOccluderTypes"))
+    {
+      G_ASSERT(riResName.size() == riProperties.size());
+      const int ricount = riResName.size();
+      for (int i = 0; i < ricount; ++i)
+      {
+        float value = 0.f;
+        if (const char *type = soundOccludersBlk->getStr(riResName[i], nullptr))
+          value = soundOccluderTypesBlk->getReal(type, 0.f);
+        riProperties[i].soundOcclusion = value;
+      }
+    }
 
   if (rendinst::isRgLayerPrimary(layerIdx))
     addDebrisForRiExtraRange(ri_blk, 0, rendinst::riExtra.size());

@@ -122,6 +122,7 @@ public:
     real r;
     int i;
     unsigned texId;
+    d3d::SamplerInfo samplerInfo;
     StVarValue() : i4{0, 0, 0, 0} {}
   };
 

@@ -71,13 +71,14 @@ public:
   virtual bool set_real_param(const int variable_id, const real v) = 0;
   virtual bool set_color4_param(const int variable_id, const struct Color4 &) = 0;
   virtual bool set_texture_param(const int variable_id, const TEXTUREID v) = 0;
+  virtual bool set_sampler_param(const int variable_id, d3d::SamplerHandle v) = 0;
 
   virtual bool hasVariable(const int variable_id) const = 0;
   virtual bool getColor4Variable(const int variable_id, Color4 &value) const = 0;
   virtual bool getRealVariable(const int variable_id, real &value) const = 0;
   virtual bool getIntVariable(const int variable_id, int &value) const = 0;
   virtual bool getTextureVariable(const int variable_id, TEXTUREID &value) const = 0;
-
+  virtual bool getSamplerVariable(const int variable_id, d3d::SamplerHandle &value) const = 0;
 
   // returns false if shader is not renderable in specified mode (if pi==NULL - default rm)
   virtual bool enum_channels(ShaderChannelsEnumCB &, int &ret_code_flags) const = 0;

@@ -192,12 +192,17 @@ static void kbd_allow_accessibility_shortcut_keys(bool allow_accessibility)
     }
   }
 }
+
+static unsigned get_locks_mask()
+{
+  return ::GetKeyState(VK_CAPITAL) & 0x0001 | ((::GetKeyState(VK_NUMLOCK) & 0x0001) << 1) | ((::GetKeyState(VK_SCROLL) & 0x0001) << 2);
+}
 #endif
 
 
 using namespace HumanInput;
 
-WinKeyboardDevice::WinKeyboardDevice() : pendingKeyDownCode(0), layoutChangeTracked(false), locksChangeTracked(false), locksDownMask(0)
+WinKeyboardDevice::WinKeyboardDevice() : pendingKeyDownCode(0), layoutChangeTracked(false), locksChangeTracked(false)
 {
   add_wnd_proc_component(this);
 
@@ -239,8 +244,7 @@ WinKeyboardDevice::WinKeyboardDevice() : pendingKeyDownCode(0), layoutChangeTrac
   enableIme(false);
   kbd_allow_accessibility_shortcut_keys(false);
 
-  locks =
-    ::GetKeyState(VK_CAPITAL) & 0x0001 | ((::GetKeyState(VK_NUMLOCK) & 0x0001) << 1) | ((::GetKeyState(VK_SCROLL) & 0x0001) << 2);
+  locks = get_locks_mask();
 #elif _TARGET_PC_LINUX
   display = ::XOpenDisplay((char *)0);
   if (display)
@@ -363,16 +367,9 @@ void WinKeyboardDevice::updateLayout(bool notify_when_not_changed)
     onLayoutChanged();
 }
 
-static unsigned get_locks_down_mask()
-{
-  return ((::GetAsyncKeyState(VK_CAPITAL) & 0x8000) >> 15) | ((::GetAsyncKeyState(VK_NUMLOCK) & 0x8000) >> 14) |
-         ((::GetAsyncKeyState(VK_SCROLL) & 0x8000) >> 13);
-}
-
 void WinKeyboardDevice::updateLocks(bool notify_when_not_changed)
 {
-  unsigned prevLocksDownMask = eastl::exchange(locksDownMask, get_locks_down_mask());
-  unsigned newLocks = locks ^ (~prevLocksDownMask & locksDownMask);
+  unsigned newLocks = get_locks_mask();
   bool changed = locks != newLocks;
   if (changed)
     locks = newLocks;
@@ -650,8 +647,6 @@ IWndProcComponent::RetCode WinKeyboardDevice::process(void *hwnd, unsigned msg, 
     {
       DEBUG_TRACE_INPDEV("onKeyUp: %X", ri.data.keyboard.MakeCode);
       onKeyUp(ri.data.keyboard.MakeCode);
-      if (locksChangeTracked)
-        locksDownMask = get_locks_down_mask();
     }
     else
       pendingKeyDownCode = ri.data.keyboard.MakeCode;
@@ -662,12 +657,12 @@ IWndProcComponent::RetCode WinKeyboardDevice::process(void *hwnd, unsigned msg, 
     OnChar(wParam);
   else if (msg == 0)
   {
+    if (locksChangeTracked)
+      updateLocks();
     if (pendingKeyDownCode)
     {
       DEBUG_TRACE_INPDEV("onKeyDown: %X", pendingKeyDownCode);
       onKeyDown(pendingKeyDownCode, 0);
-      if (locksChangeTracked)
-        updateLocks();
       pendingKeyDownCode = 0;
     }
   }

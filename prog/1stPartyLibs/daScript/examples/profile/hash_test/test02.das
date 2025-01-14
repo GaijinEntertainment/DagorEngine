@@ -11,7 +11,7 @@ def test ( hmap : auto(HashMapType); dummy )
     for i in range(25)
         hashMap |> clear()
         for j in range(600000)
-            hashMap[j] = -j
+            unsafe(hashMap[j]) = -j
 
 %spoof_instance~TCuckooHashMap(CuckooHashMap_test,int,int)%%;
 %spoof_instance~TFlatHashMap(FlatHashMap_test,int,int)%%;

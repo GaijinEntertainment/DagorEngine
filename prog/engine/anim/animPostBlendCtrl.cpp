@@ -1307,7 +1307,7 @@ void ApbAnimateCtrl::process(IPureAnimStateHolder &st, real /*w*/, GeomNodeTree 
         continue;
 
       AnimV20Math::PrsAnimNodeSampler<AnimV20Math::OneShotConfig> sampler(anim[j].prs, t);
-      sampler.sampleTransform(p, r, s);
+      sampler.sampleTransform(&p, &r, &s);
 
       v_mat44_compose(tree.getNodeTm(n_idx), p, r, s);
       tree.invalidateWtm(n_idx.preceeding());

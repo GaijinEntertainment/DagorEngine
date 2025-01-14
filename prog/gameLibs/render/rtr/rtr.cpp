@@ -120,7 +120,7 @@ void initialize(bool half_res, bool checkerboard_, float cockpit_reflection_powe
   rtr_fom_shadowVarId = get_shader_variable_id("rtr_fom_shadow", true);
   rtr_checkerboardVarId = get_shader_variable_id("rtr_checkerboard", true);
   rt_nrVarId = get_shader_variable_id("rt_nr");
-  rt_cockpit_relfection_powerVarId = get_shader_variable_id("rt_cockpit_relfection_power");
+  rt_cockpit_relfection_powerVarId = get_shader_variable_id("rt_cockpit_relfection_power", true);
   downsampled_close_depth_texVarId = get_shader_variable_id("downsampled_close_depth_tex");
   denoiser_glass_history_confidence_tweakVarId = get_shader_variable_id("denoiser_glass_history_confidence_tweak", true);
   denoiser_view_zVarId = get_shader_variable_id("denoiser_view_z", true);

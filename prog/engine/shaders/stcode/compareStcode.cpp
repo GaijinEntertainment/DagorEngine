@@ -112,6 +112,7 @@ struct ObservedEffect
       case STAGE_VS: stageName = "vs"; break;
       case STAGE_PS: stageName = "ps"; break;
       case STAGE_CS: stageName = "cs"; break;
+      default: stageName = "<invalid stage>"; break;
     }
 
     switch (type)
@@ -224,6 +225,9 @@ bool StcodeEffects::compare(StcodeEffects &first, StcodeEffects &second)
       return false;
     }
   }
+
+  if (!(f == fend && s == send))
+    logwarn("Stcode effects length mismatch: %ld left in first, %ld left in second", fend - f, send - s);
 
   return f == fend && s == send;
 }

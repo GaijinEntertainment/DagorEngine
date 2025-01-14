@@ -788,14 +788,26 @@ namespace das
 template <class DasType, class EcsType>
 struct EcsToDas
 {
-  static __forceinline DasType &get(EcsType &v) { return (DasType &)v; }
-  static __forceinline const DasType &get(const EcsType &v) { return (const DasType &)v; }
+  template <typename T = EcsType>
+  static auto &get(T &&v) // Both l and r-values
+  {
+    static_assert(!eastl::is_pointer_v<eastl::remove_reference_t<T>>); // Pointers should use it's own EcsToDas<> specialization
+    static_assert(eastl::is_convertible_v<EcsType, DasType> || sizeof(DasType) == sizeof(EcsType));
+    if constexpr (eastl::is_const_v<eastl::remove_reference_t<T>>)
+      return (const DasType &)v;
+    else
+      return (DasType &)v;
+  }
 };
 
 template <class DasType, class EcsType>
 struct EcsToDas<DasType *, EcsType *>
 {
-  static __forceinline DasType *get(const EcsType *const v) { return (DasType *)v; }
+  static DasType *get(const EcsType *v)
+  {
+    static_assert(eastl::is_convertible_v<EcsType, DasType> || sizeof(DasType) == sizeof(EcsType));
+    return (DasType *)v;
+  }
 };
 
 template <class DasType, class EcsType>
@@ -806,24 +818,24 @@ template <class DasType, class EcsType>
 struct EcsToDas<DasType *const, EcsType *const> : EcsToDas<DasType *, EcsType *>
 {};
 
-template <>
-struct EcsToDas<char *&, ecs::string>
+struct EcsToDasStr
 {
-  static __forceinline char *get(const ecs::string &v) { return (char *)v.c_str(); }
-  static __forceinline char *get(const ecs::string *v, char *def_val) { return v ? (char *)v->c_str() : def_val; }
+  static char *get(const ecs::string &v) { return (char *)v.c_str(); }
+  static char *get(const ecs::string *v, char *def_val) { return v ? (char *)v->c_str() : def_val; }
 };
 
 template <>
-struct EcsToDas<char *const &, ecs::string>
-{
-  static __forceinline char *get(const ecs::string &v) { return (char *)v.c_str(); }
-  static __forceinline char *get(const ecs::string *v, char *def_val) { return v ? (char *)v->c_str() : def_val; }
-};
+struct EcsToDas<char *&, ecs::string> : EcsToDasStr
+{};
+
+template <>
+struct EcsToDas<char *const &, ecs::string> : EcsToDasStr
+{};
 
 template <class DasType, class EcsType>
-struct EcsToDas<DasType *const, ecs::SharedComponent<EcsType> *const>
+struct EcsToDas<const DasType *, const ecs::SharedComponent<EcsType> *>
 {
-  static __forceinline DasType *get(const ecs::SharedComponent<EcsType> *const v) { return v ? (*v).get() : nullptr; }
+  static const DasType *get(const ecs::SharedComponent<EcsType> *v) { return v ? v->get() : nullptr; }
 };
 
 inline const char *get_immutable_string(const ecs::string &v) { return v.c_str(); }

@@ -21,9 +21,19 @@ hlsl {
     structuredBufferAt(ambient_cubes, gId).col[5].rgb = col5;\
   }
 }
+
+int ssgi_calc_envi_ambient_cube_cs_ambient_cubes_uav_no = 0;
+
 shader ssgi_calc_envi_ambient_cube_cs
 {
-  (cs) { envi_probe_specular@smpCube = envi_probe_specular; }
+  (cs) {
+    envi_probe_specular@smpCube = envi_probe_specular;
+    ambient_cubes@uav : register(ssgi_calc_envi_ambient_cube_cs_ambient_cubes_uav_no) hlsl {
+      #include "dagi_envi_cube_consts.hlsli"
+      RWStructuredBuffer<AmbientCube> ambient_cubes@uav;
+    };
+  }
+
   hlsl {
     #define THREADS_PER_GROUP 64
     #define AVERAGE_CUBE_WARP_SIZE THREADS_PER_GROUP
@@ -40,7 +50,6 @@ shader ssgi_calc_envi_ambient_cube_cs
     #include <hammersley.hlsl>
     #include <monteCarlo.hlsl>
     #include <dagi_integrate_ambient_cube.hlsl>
-    RWStructuredBuffer<AmbientCube> ambient_cubes: register(u0);
 
     [numthreads(THREADS_PER_GROUP, 1, 1)]
     void light_voxels_cs( uint gId : SV_GroupID, uint tid: SV_GroupIndex, uint dtId : SV_DispatchThreadID )//uint3 gId : SV_GroupID,
@@ -71,6 +80,8 @@ shader ssgi_calc_envi_ambient_cube_cs
   compile("cs_5_0", "light_voxels_cs");
 }
 
+int ssgi_average_ambient_cube_cs_ambient_cubes_uav_no = 0;
+
 buffer gi_ambient_cubes;
 shader ssgi_average_ambient_cube_cs//32 group is minimum for 2-stage reduction, 8192 rays
 {
@@ -84,13 +95,14 @@ shader ssgi_average_ambient_cube_cs//32 group is minimum for 2-stage reduction, 
       #include <dagi_envi_cube_consts.hlsli>
       StructuredBuffer<AmbientCube> gi_ambient_cubes@buf;
     }
+    ambient_cubes@uav: register(ssgi_average_ambient_cube_cs_ambient_cubes_uav_no) hlsl {
+      RWStructuredBuffer<AmbientCube> ambient_cubes@uav;
+    };
   }
 
   ENABLE_ASSERT(cs)
 
   hlsl(cs) {
-    RWStructuredBuffer<AmbientCube> ambient_cubes: register(u0);
-
     [numthreads(THREADS_PER_GROUP, 1, 1)]
     void light_voxels_cs( uint tid: SV_GroupIndex )//uint3 gId : SV_GroupID,
     {

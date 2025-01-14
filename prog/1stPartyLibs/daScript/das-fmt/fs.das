@@ -67,6 +67,6 @@ def scan_dir(path : string; var cache : table<string; void?>; var res : array<st
         if fStat.is_dir
             f |> scan_dir(cache, res)
         elif fStat.is_reg && f |> ends_with(suffix) && !cache |> key_exists(f)
-            cache[f] = null
+            cache.insert(f, null)
             res |> push(f)
     return true

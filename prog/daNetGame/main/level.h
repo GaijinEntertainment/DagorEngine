@@ -2,7 +2,7 @@
 #pragma once
 
 #include <daECS/core/event.h>
-#include <EASTL/shared_ptr.h> // FIXME: Sqrat is not well integrated with non-copyable types (e.g. unique_ptr<>)
+#include <ioSys/dag_dataBlock.h>
 
 class DataBlock;
 class LandMeshManager;
@@ -15,6 +15,8 @@ bool is_level_loading();
 bool is_level_unloading();
 ecs::EntityId get_current_level_eid();
 
+void select_weather_preset(const char *preset_name);
+
 const char *get_rendinst_dmg_blk_fn();
 
 const LandMeshManager *get_landmesh_manager();
@@ -22,7 +24,7 @@ RenderScene *get_rivers();
 
 void save_weather_settings_to_screenshot(DataBlock &blk);
 
-ECS_BROADCAST_EVENT_TYPE(EventLevelLoaded);
+ECS_BROADCAST_EVENT_TYPE(EventLevelLoaded, const DataBlock & /*level_blk*/);
 ECS_BROADCAST_EVENT_TYPE(EventGameObjectsCreated, ecs::EntityId); /* EntityId of game_objects entity */
 ECS_BROADCAST_EVENT_TYPE(EventGameObjectsEntitiesScheduled, int); /* count of scheduled (or created if synced) entities */
 // all Game Objects that are not needed anymore, can be destroyed

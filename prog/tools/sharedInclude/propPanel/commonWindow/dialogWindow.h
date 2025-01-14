@@ -51,6 +51,7 @@ public:
   virtual void clickDialogButton(int id);
   virtual SimpleString getDialogButtonText(int id) const;
   virtual void setDialogButtonText(int id, const char *text);
+  virtual bool removeDialogButton(int id);
 
   virtual IPoint2 getWindowPosition() const;
   virtual void setWindowPosition(const IPoint2 &position, const Point2 &pivot = Point2::ZERO);

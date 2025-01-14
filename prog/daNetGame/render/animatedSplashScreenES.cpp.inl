@@ -44,7 +44,6 @@ CONSOLE_BOOL_VAL("render", forceLoadingHalfRes, true);
 CONSOLE_BOOL_VAL("app", useTitleLogoForSplash, false);
 
 extern bool grs_draw_wire;
-extern volatile unsigned char world_renderer_created;
 
 static uint32_t splash_start_time = 0;
 static int8_t splash_id = -1;
@@ -147,8 +146,10 @@ void animated_splash_screen_start(bool do_encode)
 
   paper_white_nits = dgs_get_settings()->getBlockByName("video")->getInt("paperWhiteNits", paper_white_nits);
 
-  if (!interlocked_acquire_load(world_renderer_created))
+  if (!get_world_renderer())
     splash_id = 0; // clouds
+
+  ShaderElement::invalidate_cached_state_block();
 }
 
 bool is_animated_splash_screen_encoding() { return is_encoding; }
@@ -200,9 +201,9 @@ void animated_splash_screen_draw(Texture *target_frame)
     Texture *rt = nullptr;
     if (loadingHalfRes)
     {
-      if (interlocked_acquire_load(world_renderer_created) && !hdrrender::is_hdr_enabled())
+      if (auto wr = get_world_renderer(); wr && !hdrrender::is_hdr_enabled())
       {
-        target_frame = get_world_renderer()->getFinalTargetTex2D();
+        target_frame = wr->getFinalTargetTex2D();
       }
       rt = halfTargetTex;
       if (!rt)
@@ -297,7 +298,6 @@ static void splash_render()
   d3d::clearview(CLEAR_TARGET, 0, 0, 0);
   animated_splash_screen_draw(d3d::get_backbuffer_tex());
 
-  ShaderElement::invalidate_cached_state_block();
   d3d::update_screen();
 }
 

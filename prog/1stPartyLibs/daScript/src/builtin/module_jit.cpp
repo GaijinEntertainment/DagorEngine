@@ -326,6 +326,7 @@ extern "C" {
 
     template <typename KeyType>
     int32_t jit_table_at ( Table * tab, KeyType key, int32_t valueTypeSize, Context * context, LineInfoArg * at ) {
+        if ( tab->lock ) context->throw_error_at(at, "can't insert to a locked table");
         TableHash<KeyType> thh(context,valueTypeSize);
         auto hfn = hash_function(*context, key);
         return thh.reserve(*tab, key, hfn, at);

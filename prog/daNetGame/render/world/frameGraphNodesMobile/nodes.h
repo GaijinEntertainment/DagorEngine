@@ -23,7 +23,6 @@ dabfg::NodeHandle mk_rename_depth_opaque_forward_node();
 dabfg::NodeHandle mk_static_opaque_forward_node();
 dabfg::NodeHandle mk_dynamic_opaque_forward_node();
 dabfg::NodeHandle mk_decals_on_dynamic_forward_node();
-dabfg::NodeHandle mk_restore_pipeline_budgetting_forward_node();
 
 dabfg::NodeHandle mk_decals_mobile_node();
 

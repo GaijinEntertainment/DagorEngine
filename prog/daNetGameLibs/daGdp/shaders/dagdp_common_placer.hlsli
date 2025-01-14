@@ -7,10 +7,11 @@ struct VariantGpuData
   uint placeableStartIndex;
   uint placeableEndIndex;
   uint placeableCount;
+
   uint drawRangeStartIndex;
   uint drawRangeEndIndex;
   uint renderableIndicesStartIndex; // Not a typo.
-  float density;
+  uint _padding;
 };
 
 #endif // DAGDP_COMMON_PLACER_HLSLI_INCLUDED

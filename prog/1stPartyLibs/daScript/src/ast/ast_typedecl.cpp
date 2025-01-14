@@ -311,8 +311,14 @@ namespace das
                 return nullptr;
         }
         // auto? can't be inferred from non-pointer
-        if ( autoT->isPointer() && (!initT->isPointer() || !initT->firstType) )
-            return nullptr;
+        if ( autoT->isPointer() ) {
+            if ( !initT->isPointer() || !initT->firstType ) {
+                return nullptr;
+            }
+            if ( autoT->smartPtr != initT->smartPtr ) {
+                return nullptr;
+            }
+        }
         // array has to match array
         if ( autoT->baseType==Type::tArray && (initT->baseType!=Type::tArray || !initT->firstType) )
             return nullptr;

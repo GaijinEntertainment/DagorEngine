@@ -341,7 +341,7 @@ if __name__ == "__main__":
     parser.add_argument('-i', '--inverse-warnings', default = False, action="store_true", help = "check only specified warnings. Ignored work with --use-configs")
     parser.add_argument('-gc', '--changeid', action="store", default = os.environ.get('GERRIT_CHANGE_ID'), type = str)
     parser.add_argument('-gb', '--branch', action="store", default = os.environ.get('GERRIT_BRANCH',"master"), type = str)
-    parser.add_argument('-gp', '--project', action="store", default = os.environ.get('GERRIT_PROJECT',"dagor4"), type = str)
+    parser.add_argument('-gp', '--project', action="store", default = os.environ.get('GERRIT_PROJECT',"dagor"), type = str)
     parser.add_argument('-gr', '--revisionid', action="store", default = os.environ.get('GERRIT_PATCHSET_REVISION'), type = str)
     args = parser.parse_args()
     if len(sys.argv[1:])==0:

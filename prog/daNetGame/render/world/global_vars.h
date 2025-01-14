@@ -47,7 +47,9 @@
   VAR(shore_wave_height_to_amplitude)   \
   VAR(shore_amplitude_to_length)        \
   VAR(shore_parallelism_to_wind)        \
-  VAR(shore_waves_dist)                 \
+  VAR(shore__waves_dist)                \
+  VAR(shore__waves_depth_min)           \
+  VAR(shore__waves_depth_fade_interval) \
   VAR(shore_width_k)                    \
   VAR(shore_gerstner_speed)             \
   VAR(clipmap_writes_height_only)       \
@@ -68,9 +70,6 @@
   VAR(interleave_pixels)                      \
   VAR(super_pixels)                           \
   VAR(super_screenshot_tex)                   \
-  VAR(water_reflection_tex)                   \
-  VAR(water_reflection_tex_samplerstate)      \
-  VAR(water_reflection_strenght_tex)          \
   VAR(water_refraction_tex)                   \
   VAR(fom_shadows_tm_x)                       \
   VAR(fom_shadows_tm_y)                       \

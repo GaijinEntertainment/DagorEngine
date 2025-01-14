@@ -37,6 +37,7 @@
 #include "global_lock.h"
 #include <destroyEvent.h>
 #include <osApiWrappers/dag_direct.h>
+#include "wrapped_command_buffer.h"
 
 using namespace drv3d_vulkan;
 
@@ -274,6 +275,7 @@ struct InitCtx
     StaticTab<const char *, VulkanDevice::ExtensionCount> enabledDeviceExtensions;
 
     StaticTab<VkDeviceQueueCreateInfo, uint32_t(DeviceQueueType::COUNT)> qci;
+    StaticTab<VkDeviceQueueGlobalPriorityCreateInfoKHR, uint32_t(DeviceQueueType::COUNT)> qgpri;
     VkDeviceCreateInfo dci = {VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO, nullptr};
 
     VkPhysicalDeviceFeatures features = {};
@@ -317,6 +319,30 @@ struct InitCtx
       set->enableExtendedFeatures(dci, featuresExt);
     }
 
+#if VK_KHR_global_priority
+    void setupQueuesGlobalPriority()
+    {
+      qgpri.clear();
+      if (!set->hasGlobalPriority || !Globals::cfg.bits.highPriorityQueues)
+        return;
+      debug("vulkan: using high priority queues");
+      qgpri.resize(qci.size());
+      for (VkDeviceQueueGlobalPriorityCreateInfoKHR &qprio : qgpri)
+      {
+        size_t idx = &qprio - qgpri.data();
+        qprio.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_GLOBAL_PRIORITY_CREATE_INFO_KHR;
+        qprio.pNext = nullptr;
+        qprio.globalPriority = VK_QUEUE_GLOBAL_PRIORITY_MEDIUM_KHR;
+        for (uint32_t i = 0; i < set->queuesGlobalPriorityProperties[idx].priorityCount; ++i)
+          if (set->queuesGlobalPriorityProperties[idx].priorities[i] == VK_QUEUE_GLOBAL_PRIORITY_HIGH_KHR)
+            qprio.globalPriority = VK_QUEUE_GLOBAL_PRIORITY_HIGH_KHR;
+        chain_structs(qci[idx], qprio);
+      }
+    }
+#else
+    void setupQueuesGlobalPriority() {}
+#endif
+
     void setupQueues()
     {
       if (!queueGroupInfo.init(Globals::VK::inst, set->device, surface, set->queueFamilyProperties))
@@ -324,6 +350,7 @@ struct InitCtx
       qci = build_queue_create_info(queueGroupInfo, prio.data());
       dci.pQueueCreateInfos = qci.data();
       dci.queueCreateInfoCount = qci.size();
+      setupQueuesGlobalPriority();
     }
 
     void setupExtensions()
@@ -566,20 +593,37 @@ struct InitCtx
       return false;
     }
 
+#if VK_KHR_global_priority
+    bool initDeviceWithoutQueuePriority()
+    {
+      if (!set->hasGlobalPriority || !Globals::cfg.bits.highPriorityQueues)
+        return false;
+      logwarn("vulkan: retrying init without queue priority");
+      for (VkDeviceQueueCreateInfo &i : qci)
+        i.pNext = nullptr;
+      return Globals::VK::dev.init(&Globals::VK::inst, Globals::VK::phy.device, dci);
+    }
+#else
+    bool initDeviceWithoutQueuePriority() { return false; }
+#endif
+
     void initDevice()
     {
       // may be modified with extension disable logic, so need to update it
       Globals::VK::phy = *set;
       if (!Globals::VK::dev.init(&Globals::VK::inst, Globals::VK::phy.device, dci)) //-V1051
       {
-        if (d3d::get_last_error_code() == (uint32_t)VK_ERROR_FEATURE_NOT_PRESENT)
+        if (!initDeviceWithoutQueuePriority())
         {
-          logwarn("vulkan: retrying init with iterative feature downgrade");
-          if (!initDeviceWithFeatureDowngrade())
-            return reject("create or proc addr getting failed at non present feature but feature downgrade did not helped");
+          if (d3d::get_last_error_code() == (uint32_t)VK_ERROR_FEATURE_NOT_PRESENT)
+          {
+            logwarn("vulkan: retrying init with iterative feature downgrade");
+            if (!initDeviceWithFeatureDowngrade())
+              return reject("create or proc addr getting failed at non present feature but feature downgrade did not helped");
+          }
+          else
+            return reject("create or proc addr getting failed");
         }
-        else
-          return reject("create or proc addr getting failed");
       }
       dumpDeviceExtensions();
       if (!device_has_all_required_extensions(Globals::VK::dev,
@@ -596,6 +640,8 @@ struct InitCtx
       swapchainMode.extent.width = Globals::window.settings.resolutionX;
       swapchainMode.extent.height = Globals::window.settings.resolutionY;
       swapchainMode.setPresentModeFromConfig();
+      swapchainMode.fullscreen =
+        dgs_get_window_mode() == WindowMode::WINDOWED_NO_BORDER || dgs_get_window_mode() == WindowMode::WINDOWED_FULLSCREEN;
       if (!Globals::swapchain.init(swapchainMode))
         return reject("unable to create swapchain");
     }
@@ -691,6 +737,7 @@ void shutdown_device()
   Globals::surveys.shutdownPools();
   Globals::timestamps.shutdown();
   BuiltinPipelineBarrierCache::clear();
+  Backend::cb.shutdown();
   Globals::VK::dev.shutdown();
   Globals::VK::bufAlign.shutdown();
 }

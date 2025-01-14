@@ -56,67 +56,70 @@
 
    <!-- Numbers -->
    <regexp match="/\b0x|X[\da-fA-F]+\B/" region0="dNumber"/>
-   <regexp match="/\b[0-9.]+(e|E[\-+]?\d+)?\B/" region0="dNumber"/>
+   <regexp match="/\b[0-9._]+(e|E[\-+]?\d+)?\B/" region0="dNumber"/>
    <regexp match="/\b(0)([0-7]+)\B/" region0="dNumber"/>
 
    <!-- Default delegates -->
-   <regexp match="/\.(__merge)/" region1 = "dLabel"/>
-   <regexp match="/\.(__update)/" region1 = "dLabel"/>
-   <regexp match="/\.(tostring)\s*\(\)/" region1 = "dLabel"/>
-   <regexp match="/\.(tofloat)\s*\(\)/" region1 = "dLabel"/>
-   <regexp match="/\.(tointeger)\s*\(\)/" region1 = "dLabel"/>
-   <regexp match="/\.(tochar)\s*\(\)/" region1 = "dLabel"/>
-   <regexp match="/\.(weakref)\s*\(\)/" region1 = "dLabel"/>
-   <regexp match="/\.(len)\s*\(\)/" region1 = "dLabel"/>
-   <regexp match="/\.(slice)/" region1 = "dLabel"/>
-   <regexp match="/\.(tolower)\s*\(\)/" region1 = "dLabel"/>
-   <regexp match="/\.(toupper)\s*\(\)/" region1 = "dLabel"/>
-   <regexp match="/\.(rawget)/" region1 = "dLabel"/>
-   <regexp match="/\.(rawset)/" region1 = "dLabel"/>
-   <regexp match="/\.(rawdelete)/" region1 = "dLabel"/>
-   <regexp match="/\.(rawin)/" region1 = "dLabel"/>
-   <regexp match="/\.(clear)\s*\(\)/" region1 = "dLabel"/>
-   <regexp match="/\.(filter)/" region1 = "dLabel"/>
-   <regexp match="/\.(append)/" region1 = "dLabel"/>
-   <regexp match="/\.(push)/" region1 = "dLabel"/>
-   <regexp match="/\.(extend)/" region1 = "dLabel"/>
-   <regexp match="/\.(pop)/" region1 = "dLabel"/>
-   <regexp match="/\.(top)\s*\(\)/" region1 = "dLabel"/>
-   <regexp match="/\.(insert)/" region1 = "dLabel"/>
-   <regexp match="/\.(remove)/" region1 = "dLabel"/>
-   <regexp match="/\.(contains)/" region1 = "dLabel"/>
-   <regexp match="/\.(indexof)/" region1 = "dLabel"/>
-   <regexp match="/\.(findindex)/" region1 = "dLabel"/>
-   <regexp match="/\.(findvalue)/" region1 = "dLabel"/>
-   <regexp match="/\.(resize)/" region1 = "dLabel"/>
-   <regexp match="/\.(sort)/" region1 = "dLabel"/>
-   <regexp match="/\.(reverse)/" region1 = "dLabel"/>
-   <regexp match="/\.(clear)/" region1 = "dLabel"/>
-   <regexp match="/\.(map)/" region1 = "dLabel"/>
-   <regexp match="/\.(apply)/" region1 = "dLabel"/>
-   <regexp match="/\.(join)/" region1 = "dLabel"/>
-   <regexp match="/\.(concat)/" region1 = "dLabel"/>
-   <regexp match="/\.(split)/" region1 = "dLabel"/>
-   <regexp match="/\.(split)/" region1 = "dLabel"/>
-   <regexp match="/\.(reduce)/" region1 = "dLabel"/>
-   <regexp match="/\.(filter)/" region1 = "dLabel"/>
-   <regexp match="/\.(each)/" region1 = "dLabel"/>
-   <regexp match="/\.(call)/" region1 = "dLabel"/>
-   <regexp match="/\.(pcall)/" region1 = "dLabel"/>
-   <regexp match="/\.(acall)/" region1 = "dLabel"/>
-   <regexp match="/\.(pacall)/" region1 = "dLabel"/>
-   <regexp match="/\.(bindenv)/" region1 = "dLabel"/>
-   <regexp match="/\.(getfuncinfos)/" region1 = "dLabel"/>
-   <regexp match="/\.(instance)\s*\(\)/" region1 = "dLabel"/>
-   <regexp match="/\.(getattributes)/" region1 = "dLabel"/>
-   <regexp match="/\.(setattributes)/" region1 = "dLabel"/>
-   <regexp match="/\.(newmember)/" region1 = "dLabel"/>
-   <regexp match="/\.(getclass)\s*\(\)/" region1 = "dLabel"/>
-   <regexp match="/\.(getstatus)/" region1 = "dLabel"/>
-   <regexp match="/\.(wakeup)/" region1 = "dLabel"/>
-   <regexp match="/\.(wakeupthrow)/" region1 = "dLabel"/>
-   <regexp match="/\.(getstackinfos)/" region1 = "dLabel"/>
-   <regexp match="/\.(ref)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(keys)\(\)/" region1 = "dLabel"/>
+   <regexp match="/\??\?\.\$?(values)\(\)/" region1 = "dLabel"/>
+   <regexp match="/\??\?\.\$?(pairs)\(\)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(__merge)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(__update)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(tostring)\s*\(\)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(tofloat)\s*\(\)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(tointeger)\s*\(\)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(tochar)\s*\(\)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(weakref)\s*\(\)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(len)\s*\(\)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(slice)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(tolower)\s*\(\)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(toupper)\s*\(\)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(rawget)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(rawset)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(rawdelete)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(rawin)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(clear)\s*\(\)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(filter)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(replace)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(append)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(push)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(extend)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(top)\s*\(\)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(insert)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(remove)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(contains)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(indexof)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(findindex)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(findvalue)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(resize)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(sort)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(reverse)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(clear)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(map)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(apply)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(join)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(concat)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(split)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(reduce)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(filter)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(each)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(call)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(pcall)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(acall)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(pacall)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(bindenv)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(getfuncinfos)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(instance)\s*\(\)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(getattributes)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(setattributes)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(newmember)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(rawnewmember)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(getclass)\s*\(\)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(getstatus)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(wakeup)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(wakeupthrow)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(getstackinfos)/" region1 = "dLabel"/>
+   <regexp match="/\??\.\$?(ref)/" region1 = "dLabel"/>
 
    <!-- Strings -->
    <inherit scheme="sqStringMultiline"/>
@@ -129,7 +132,6 @@
       <word name="break"/>
       <word name="base"/>
       <word name="catch"/>
-      <word name="case"/>
       <word name="class"/>
       <word name="clone"/>
       <word name="const"/>
@@ -137,9 +139,7 @@
       <word name="constructor"/>
       <word name="continue"/>
       <word name="do"/>
-      <word name="default"/>
       <word name="delete"/>
-      <word name="else"/>
       <word name="else"/>
       <word name="enum"/>
       <word name="for"/>
@@ -154,7 +154,6 @@
       <word name="resume"/>
       <word name="return"/>
       <word name="static"/>
-      <word name="switch"/>
       <word name="this"/>
       <word name="throw"/>
       <word name="try"/>
@@ -211,12 +210,14 @@
       <symb name="."/>
       <symb name="?."/>
    </keywords>
+
    <keywords region="dLabel">
       <word name="require"/>
       <word name="array"/>
       <word name="seterrorhandler"/>
       <word name="callee"/>
       <word name="setdebughook"/>
+      <word name="enabledebuginfo"/>
       <word name="getroottable"/>
       <word name="getconsttable"/>
       <word name="assert"/>
@@ -231,9 +232,6 @@
       <word name="getstackinfos"/>
       <word name="newthread"/>
       <word name="suspend"/>
-      <word name="min"/>
-      <word name="max"/>
-      <word name="clamp"/>
       <word name="getobjflags"/>
       <word name="freeze"/>
       <word name="getbuildinfo"/>

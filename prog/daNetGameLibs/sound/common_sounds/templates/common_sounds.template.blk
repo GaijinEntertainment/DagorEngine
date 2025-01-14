@@ -72,13 +72,14 @@ sound_effect_2d{
 phys_obj_collision_sound{
   _group{
     _tags:t="sound"
+    phys_obj_collision_sound__maxImpulse:r=0
+    phys_obj_collision_sound__time:r=-0.25
+    // setup
     phys_obj_collision_sound__path:t=""
     phys_obj_collision_sound__threshold:p2=5, 80
     phys_obj_collision_sound__omegaMul:r=1
     phys_obj_collision_sound__maxRange:r=40
     phys_obj_collision_sound__lifetime:r=1
-    phys_obj_collision_sound__time:r=0
-    phys_obj_collision_sound__maxImpulse:r=0
     "phys_obj_collision_sound__event:SoundEvent"{}
   }
 }
@@ -108,69 +109,6 @@ on_disappear_sound{
     on_disappear_sound__path:t=""
   }
   transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
-}
-
-occluded_sound{
-  _group{
-    _tags:t="sound"
-    occluded_sound__radius:r=0.2
-    occluded_sound__localOffset:p3=0, 0, 0
-    occluded_sound__secondaryOffset:p3=0, 0, 0
-    occluded_sound__nearFarRange:p2=37.5, 50
-    occluded_sound__numSamples:i=0
-    occluded_sound__sumTimeResult:p3=0, 0, 1
-    occluded_sound__viscosity:r=0.1
-    occluded_sound__occlusion:r=0
-    occluded_sound__enabled:b=no
-  }
-}
-
-occluded_sound_effect{
-  _use:t="occluded_sound"
-  _group{
-    _tags:t="sound"
-    occluded_sound_effect__rangeMul:r=1
-    occluded_sound_effect__nearFarAttenuation:p2=0.75, 1
-    occluded_sound_effect__occlusionToVolume:p2=0.3, 2
-  }
-}
-
-test_occluded_sound{
-  _use:t="occluded_sound"
-  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
-  _group{
-    _tags:t="sound"
-    occluded_sound__enabled:b=yes
-    occluded_sound__localOffset:p3=0, 0.5, 0
-    occluded_sound__secondaryOffset:p3=0, 1.5, 0
-    occluded_sound__radius:r=0
-  }
-}
-
-human_occluded_sound{
-  _use:t="occluded_sound"
-  _group{
-    _tags:t="sound"
-    occluded_sound__enabled:b=yes
-    occluded_sound__localOffset:p3=0, 0.5, 0
-    occluded_sound__secondaryOffset:p3=0, 1.5, 0
-    occluded_sound__nearFarRange:p2=30, 40
-    occluded_sound__radius:r=0
-  }
-}
-
-sound_occlusion{
-  _use:t="replicating"
-  _group{
-    _tags:t="sound"
-    sound_occlusion__targetId:i=0
-    sound_occlusion__numTargets:i=0
-    // setup
-    sound_occlusion__maxFullTime:r=4
-    sound_occlusion__maxTargetTime:r=0.5
-    sound_occlusion__maxSamplesPerTarget:i=16
-  }
-  _singleton:b=yes
 }
 
 sound_physmat{

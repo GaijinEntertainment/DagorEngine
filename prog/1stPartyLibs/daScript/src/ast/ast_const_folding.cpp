@@ -38,6 +38,9 @@ namespace das {
 
     class NoSideEffectVisitor : public Visitor {
     protected:
+        // virtual bool canVisitStructureFieldInit ( Structure * ) override { return false; }
+        // virtual bool canVisitArgumentInit ( Function * , const VariablePtr &, Expression * ) override { return false; }
+        // virtual bool canVisitQuoteSubexpression ( ExprQuote * ) override { return false; }
     // make block
         virtual void preVisit ( ExprMakeBlock * expr ) override {
             Visitor::preVisit(expr);
@@ -313,6 +316,7 @@ namespace das {
                 sim->constexpression = true;
                 sim->at = encloseAt(expr);
                 sim->value = value;
+                sim->foldedNonConst = !expr->type->constant;
                 reportFolding();
                 return sim;
             } else {
@@ -322,6 +326,7 @@ namespace das {
                 expr->type->ref = wasRef;
                 sim->type = make_smart<TypeDecl>(*expr->type);
                 sim->constexpression = true;
+                ((ExprConst *)sim.get())->foldedNonConst = !expr->type->constant;
                 sim->at = encloseAt(expr);
                 reportFolding();
                 return sim;
@@ -341,6 +346,7 @@ namespace das {
             auto sim = make_smart<ExprConstString>(expr->at, res);
             sim->type = make_smart<TypeDecl>(Type::tString);
             sim->constexpression = true;
+            sim->foldedNonConst = !expr->type->constant;
             sim->at = encloseAt(expr);
             reportFolding();
             return sim;
@@ -382,11 +388,13 @@ namespace das {
             auto estr = make_smart<ExprConstString>(expr->at,"");
             estr->type = make_smart<TypeDecl>(Type::tString);
             estr->constexpression = true;
+            estr->foldedNonConst = !expr->type->constant;
             reportFolding();
             return estr;
         } else if ( expr->elements.size()==1 && expr->elements[0]->rtti_isStringConstant() ) {
             // string builder with one string constant is that constant
             reportFolding();
+            ((ExprConstString *)expr->elements[0].get())->foldedNonConst = !expr->type->constant;
             return expr->elements[0];
         } else {
             return expr;
@@ -445,6 +453,9 @@ namespace das {
             return nullptr;
         }
     protected:
+        // virtual bool canVisitStructureFieldInit ( Structure * ) override { return false; }
+        // virtual bool canVisitArgumentInit ( Function * , const VariablePtr &, Expression * ) override { return false; }
+        // virtual bool canVisitQuoteSubexpression ( ExprQuote * ) override { return false; }
     // swizzle
         virtual ExpressionPtr visit ( ExprSwizzle * expr ) override {
             if ( expr->type->baseType == expr->value->type->baseType ) {

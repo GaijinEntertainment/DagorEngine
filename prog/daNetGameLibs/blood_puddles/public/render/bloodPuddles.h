@@ -44,9 +44,8 @@ private:
   uint32_t splashesThisFrame = 0;
 
   int puddlesToRemoveCount = 0;
-  bool dryingEnabled = true;
 
-  bool hasAccumulationPrepass = false;
+  bool isDeferredMode = false;
   dabfg::NodeHandle prepassNode;
   dabfg::NodeHandle resolveNode;
   uint32_t updateOffset, updateLength;
@@ -74,15 +73,6 @@ private:
 #include <blood_puddles/private/shaders/per_group_params.hlsli>
   eastl::array<PerGroupParams, BLOOD_DECAL_GROUPS_COUNT> perGroupPackedParams;
   eastl::vector<IPoint2> footprintsRanges;
-  struct BiomeQuery
-  {
-    int decalId = 0;
-    uint32_t queryId = 0;
-    BiomeQuery() = default;
-    BiomeQuery(int decal_id, uint32_t query_id) : decalId(decal_id), queryId(query_id) {}
-  };
-  eastl::vector<BiomeQuery> biomeQueries;
-  eastl::bitvector<> biomesWithoutDry;
 
   void initResources(const DataBlock &blk);
   void closeResources();
@@ -160,10 +150,6 @@ public:
   void erasePuddles(const F &pred)
   {
     eastl::vector<int, framemem_allocator> queryIndices;
-    if (!biomeQueries.empty())
-      queryIndices.assign(puddles.size(), -1);
-    for (uint32_t queryIdx = 0; queryIdx < biomeQueries.size(); ++queryIdx)
-      queryIndices[biomeQueries[queryIdx].decalId] = queryIdx;
     const int oldSize = puddles.size();
     int removedCount = 0;
     for (int i = 0, j = 0; i < oldSize; ++i)
@@ -171,8 +157,6 @@ public:
       if (!pred(puddles[i]))
       {
         puddles[j] = puddles[i];
-        if (!queryIndices.empty() && queryIndices[i] != -1)
-          biomeQueries[queryIndices[i]].decalId = j;
         ++j;
       }
       else
@@ -180,8 +164,6 @@ public:
         removedCount++;
         if (i < puddlesToRemoveCount)
           puddlesToRemoveCount--;
-        if (!queryIndices.empty() && queryIndices[i] != -1)
-          biomeQueries[queryIndices[i]].decalId = -1;
       }
     }
     if (removedCount)
@@ -189,9 +171,6 @@ public:
       puddles.resize(puddles.size() - removedCount);
       updateOffset = 0;
       updateLength = puddles.size();
-      for (int queryId = biomeQueries.size() - 1; queryId >= 0; --queryId)
-        if (biomeQueries[queryId].decalId < 0)
-          biomeQueries.erase(biomeQueries.begin() + queryId);
     }
   }
   void erasePuddles()
@@ -200,7 +179,6 @@ public:
     puddlesToRemoveCount = 0;
     updateLength = updateOffset = 0;
     matrixManager.clearItems();
-    biomeQueries.clear();
   }
 
   void putDecal(int group,
@@ -234,10 +212,9 @@ public:
   float getBloodFreshness(const Point3 &pos) const;
 
   DecalsMatrices *getMatrixManager() { return &matrixManager; }
-  void initBiomeDependantData();
 
   void reinitShadingParams();
-  void useAccumulationPrepass(const bool v) { hasAccumulationPrepass = v; }
+  void useDeferredMode(const bool v) { isDeferredMode = v; }
 };
 
 BloodPuddles *get_blood_puddles_mgr();

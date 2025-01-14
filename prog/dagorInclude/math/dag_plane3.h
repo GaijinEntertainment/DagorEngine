@@ -118,9 +118,6 @@ public:
   INLINE bool operator==(const Plane3 &p) const { return n == p.n && d == p.d; }
 
   INLINE bool operator!=(const Plane3 &p) const { return n != p.n || d != p.d; }
-
-
-  INLINE operator const real *() const { return &n.x; }
 };
 
 

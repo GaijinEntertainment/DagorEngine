@@ -378,7 +378,7 @@ rule ProcessLinkTarget
         if ! $(sign_opt) && $(Config) = rel { build_cfg_suffix = release-unsigned ; }
 
         apk_name = $(proj)-$(build_cfg_suffix).apk ;
-        apk_name_full = $(stage_dir)/$(apk_name) ;
+        apk_name_full = $(stage_dir)/build/outputs/apk/release/android-release.apk ;
 
         bundle_name = android-$(build_cfg_suffix).aab ;
         bundle_name_full = $(stage_dir)/build/outputs/bundle/$(build_cfg_suffix)/$(bundle_name) ;
@@ -401,7 +401,7 @@ rule ProcessLinkTarget
           postlink +=
             copyfile $(jbuild_dir)/gradle/build.gradle $(stage_dir)/build.gradle "
 "
-        ;
+		;
         }
 
         if $(AndroidProguard) && $(Config) = rel {
@@ -416,7 +416,7 @@ rule ProcessLinkTarget
         }
 
         postlink +=
-          call $(PYTHON_EXE) $(jbuild_dir)/gradle/make_gradle_cfg.py $(stage_dir) $(_A_ADK_DIR) $(apk_name) $(AndroidGradleFile) $(ver_code) $(ver_name) $(AndroidApiMinVer) $(AndroidSdkTarget) $(sign_opt) "
+          call $(PYTHON_EXE) $(jbuild_dir)/gradle/make_gradle_cfg.py $(stage_dir) $(_A_ADK_DIR) $(AndroidAppID) $(AndroidGradleFile) $(ver_code) $(ver_name) $(AndroidApiMinVer) $(AndroidSdkTarget) $(sign_opt) "
 "
         ;
 
@@ -426,6 +426,11 @@ rule ProcessLinkTarget
 "
           ;
         }
+
+        postlink +=
+          call $(PYTHON_EXE) $(jbuild_dir)/gradle/inject_gradle_libs.py $(stage_dir) "
+"
+        ;
 
         build_command = call $(_A_GRADLE_CMD) $(build_cfg) --quiet --no-daemon --project-dir=$(stage_dir) ;
         build_command_bundle = call $(_A_GRADLE_CMD) $(build_cfg_bundle) --quiet --no-daemon --project-dir=$(stage_dir) ;
@@ -606,6 +611,21 @@ rule ProcessAndroidLibProguard
   raw_copy_file $(out)/$(dest) : $(src) ;
 
   if $(1[2]) { ProcessAndroidLibProguard $(1[2-]) ; }
+}
+
+rule ProcessAndroidLibs
+{
+  local src = [ LocationBasedToAbsPath $(1[1]) ] ;
+  local dest = $(1[1]:D=:S=)_$(Target:D=:S=).libs ;
+  local out = $(AndroidGradleOutDir) ;
+
+  MakeDirectory $(out)/$(dest) : $(out)/$(dest:D) ;
+  Depends $(OutDir)/$(Target) : $(out)/$(dest) ;
+  Depends $(out)/$(dest) : $(src) ;
+  file on $(out)/$(dest) = $(dest) ;
+  raw_copy_file $(out)/$(dest) : $(src) ;
+
+  if $(1[2]) { ProcessAndroidLibs $(1[2-]) ; }
 }
 
 actions together quietly link_target

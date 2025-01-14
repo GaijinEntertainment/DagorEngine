@@ -206,9 +206,9 @@ macro READ_WORLD_SDF_USE(code)
       float maxT,
       out float t,
       float stepBiasK = 1,
-      bool reflectionRay = false)
+      bool reflectionRay = false,
+      float surfaceBiasScale = 1)
     {
-      const int MAX_WORLD_SDF_STEPS = 256;
       float surfaceBias = world_sdf_get_surface_bias(clip);
       float maxEncodedDist = sample_world_sdf_lt(clip).w * MAX_WORLD_SDF_VOXELS_BAND;
 
@@ -217,21 +217,20 @@ macro READ_WORLD_SDF_USE(code)
       float distanceStepBias = stepBiasK*surfaceBias;
       //-customization
 
-      int i = 0;
       float atT = minT;
       float3 rayStartTc = world_pos_to_world_sdf_tc(clip, rayStart);
       float3 rayDirTc = (world_pos_to_world_sdf_tc(clip, rayStart + rayDir*maxT) - rayStartTc)/maxT;
-      float2 decode = get_decode_world_sdf_distance(clip);
       float maxSurfaceDistance = 0;
       LOOP
-      for (; i < MAX_WORLD_SDF_STEPS; ++i)
+      for(;;)
       {
-        float3 atlasTC = world_sdf_clip_tc_to_atlas_tc(clip, rayStartTc + rayDirTc*atT);
-        float distance = sample_world_sdf_value_atlas_tc(atlasTC)*decode.x + decode.y;
+        float v = sample_world_sdf_value_atlas_tc(world_sdf_clip_tc_to_atlas_tc(clip, rayStartTc + rayDirTc*atT));
+        float distance = decode_world_sdf_distance(clip, v);
         //this is more accurate, as it is with tri-linear filtering across clips border
         //float distance = sample_world_sdf_value_safe_clip_tc(clip, rayStartTc + rayDirTc*atT)*decode.x + decode.y;
         maxSurfaceDistance = max(maxSurfaceDistance, distance);//avoid self occlusion in reflections
         float expandSurfaceT = reflectionRay ? maxSurfaceDistance : atT;//
+        float surfaceBias = surfaceBiasScale*world_sdf_get_surface_bias(clip);
         float expandSurfaceFalloff = 2.0f * surfaceBias;
         float expandSurfaceAmount = surfaceBias * saturate(expandSurfaceT / expandSurfaceFalloff);
         if (distance < expandSurfaceAmount)
@@ -249,16 +248,77 @@ macro READ_WORLD_SDF_USE(code)
       return false;
     }
 
+    bool world_sdf_trace_clip_gradient_bias(
+      uint clip,
+      float3 rayStart,
+      float3 rayDir,
+      inout float minT,
+      float maxT,
+      out float t,
+      float stepBiasK = 1)
+    {
+      bool reflectionRay = false;
+      float surfaceBias = world_sdf_get_surface_bias(clip);
+      float maxEncodedDist = sample_world_sdf_lt(clip).w * MAX_WORLD_SDF_VOXELS_BAND;
+
+      //customization.
+      float minStepDistance = .25*sample_world_sdf_lt(clip).w;//don't step less than 0.25 voxel
+      float distanceStepBias = stepBiasK*surfaceBias;
+      //-customization
+
+      float atT = minT;
+      float3 rayStartTc = world_pos_to_world_sdf_tc(clip, rayStart);
+      float3 rayDirTc = (world_pos_to_world_sdf_tc(clip, rayStart + rayDir*maxT) - rayStartTc)/maxT;
+      float maxSurfaceDistance = 0;
+      LOOP
+      for(;;)
+      {
+        float3 atlasTC = world_sdf_clip_tc_to_atlas_tc(clip, rayStartTc + rayDirTc*atT);
+        float v = sample_world_sdf_value_atlas_tc(atlasTC);
+        float distance = decode_world_sdf_distance(clip, v);
+        //this is more accurate, as it is with tri-linear filtering across clips border
+        //float distance = sample_world_sdf_value_safe_clip_tc(clip, rayStartTc + rayDirTc*atT)*decode.x + decode.y;
+        maxSurfaceDistance = max(maxSurfaceDistance, distance);//avoid self occlusion in reflections
+        float expandSurfaceT = reflectionRay ? maxSurfaceDistance : atT;//
+        float surfaceBias = world_sdf_get_surface_bias(clip);
+        float expandSurfaceFalloff = 2.0f * surfaceBias;
+        float expandSurfaceAmount = surfaceBias * saturate(expandSurfaceT / expandSurfaceFalloff);
+        if (distance < expandSurfaceAmount)
+        {
+          float expandGradAmount = expandSurfaceAmount * 0.5;
+          BRANCH
+          if (distance >= expandSurfaceAmount*0.5)
+          {
+            float3 atlasTC = world_sdf_clip_tc_to_atlas_tc(clip, rayStartTc + rayDirTc*atT);
+            float3 gradient = world_sdf_sample_gradient_with_atlas_tc(atlasTC);
+            float gradLen2 = max(dot(gradient, gradient), 1e-9);
+            expandGradAmount = expandSurfaceAmount * ( 0.5 + 0.5 * abs (dot(rayDir, gradient.xzy))*rsqrt(gradLen2) );
+          }
+          if (distance < expandGradAmount)
+          {
+            t = max(atT + distance - expandGradAmount, minT);
+            return true;
+          }
+        }
+
+        atT += max(distance - distanceStepBias, minStepDistance);
+        if (atT >= maxT)
+          break;
+      }
+      t = max(atT, minT);
+      minT = max(minT, atT - sample_world_sdf_lt(clip).w);//step back one voxel size, as coarse clip will probably have intersection earlier
+      return false;
+    }
+
     #include <ray_box_intersect.hlsl>
-    bool world_sdf_trace_start(uint start,
+    bool world_sdf_trace_start_gradient_bias(uint start,
       float3 rayStart,
       float3 rayDir,
       float maxT,
       out float t,
       inout uint clip,
       float stepBiasK = 1,
-      float minT = 0,
-      bool reflectionRay = false)
+      float minT = 0)
     {
       t = 0;
       uint i = start;
@@ -274,7 +334,50 @@ macro READ_WORLD_SDF_USE(code)
         {
           float2 dd = rayBoxIntersect(b0, b1, rayStart, rayDir);
           float endAt = min(maxT, dd.y);
-          if (world_sdf_trace_clip(i, rayStart, rayDir, minT, endAt, t, stepBiasK, reflectionRay))
+          if (world_sdf_trace_clip_gradient_bias(i, rayStart, rayDir, minT, endAt, t, stepBiasK))
+          {
+            clip = i;
+            ret = true;
+            break;
+          }
+        }
+        ++i;// moving that to while () causes invalid sahder compilation on dx11
+        if (i >= world_sdf_num_cascades() || minT >= maxT)
+        {
+          t = min(minT, maxT);
+          ret = false;
+          break;
+        }
+      }
+      return ret;
+    }
+
+    bool world_sdf_trace_start(uint start,
+      float3 rayStart,
+      float3 rayDir,
+      float maxT,
+      out float t,
+      inout uint clip,
+      float stepBiasK = 1,
+      float minT = 0,
+      bool reflectionRay = false,
+      float surfaceBiasScale = 1)
+    {
+      t = 0;
+      uint i = start;
+      bool ret;
+      LOOP
+      for(;;)
+      {
+        // todo: use explicit const for that
+        // we use decreased by voxel size sdf, so gradients are not broken. If we don't need gradients, we can decrease by just half voxel (trilinear filtering)
+        // todo: we can find better intersection, but than use gradient in different mip (find clip again, it can only be this one or above, so shouldn't be expensive)
+        float3 b0 = sample_world_sdf_lt(i).xyz + sample_world_sdf_lt(i).w, b1 = sample_world_sdf_lt(i).xyz + sample_world_sdf_lt(i).w*float3(world_sdf_res.xyx-2);//limit by full texel from each side, so gradient works correctly
+        if (all(and(rayStart > b0, rayStart < b1))) // this check is required if not all clips are nested
+        {
+          float2 dd = rayBoxIntersect(b0, b1, rayStart, rayDir);
+          float endAt = min(maxT, dd.y);
+          if (world_sdf_trace_clip(i, rayStart, rayDir, minT, endAt, t, stepBiasK, reflectionRay, surfaceBiasScale))
           {
             clip = i;
             ret = true;
@@ -396,7 +499,6 @@ macro READ_WORLD_SDF_USE(code)
       #if IMPROVED_SHADOW
         k *= 0.5;
       #endif
-      const int MAX_WORLD_SDF_STEPS = 256;
       float surfaceBias = .5*sample_world_sdf_lt(clip).w;
       float maxEncodedDist = sample_world_sdf_lt(clip).w * MAX_WORLD_SDF_VOXELS_BAND;
 
@@ -410,19 +512,21 @@ macro READ_WORLD_SDF_USE(code)
       #endif
       //-customization
 
-      int i = 0;
       float ph = 1e6;
       float atT = minT;
       float3 rayStartTc = world_pos_to_world_sdf_tc(clip, rayStart);
       float3 rayDirTc = (world_pos_to_world_sdf_tc(clip, rayStart + rayDir*maxT) - rayStartTc)/maxT;
-      float2 decode = get_decode_world_sdf_distance(clip);
       float maxSurfaceDistance = 0;
       LOOP
-      for (; i < MAX_WORLD_SDF_STEPS; ++i)
+      for(;;)
       {
-        float distance = sample_world_sdf_distance_clip_tc(clip, rayStartTc + rayDirTc*atT, decode);
+
+        float3 atlasTC = world_sdf_clip_tc_to_atlas_tc(clip, rayStartTc + rayDirTc*atT);
+        float distance = decode_world_sdf_distance(clip, sample_world_sdf_value_atlas_tc(atlasTC));
+
         maxSurfaceDistance = max(maxSurfaceDistance, distance);//avoid self occlusion in reflections
         float expandSurfaceT = reflectionRay ? maxSurfaceDistance : atT;//
+        float surfaceBias = world_sdf_get_surface_bias(clip);
         float expandSurfaceFalloff = 2.0f * surfaceBias;
         float expandSurfaceAmount = surfaceBias * saturate(expandSurfaceT / expandSurfaceFalloff);
         #if THICKER_SHADOW
@@ -515,6 +619,32 @@ macro READ_WORLD_SDF_USE(code)
       float3 worldNormal = 0;
       if (gradLen > 0)
         worldNormal = -gradient.xzy/gradLen;
+
+      return world_sdf_trace_softshadow(i, rayStart, worldNormal, rayDir, maxT, t,
+        normalStepVoxels,
+        rayStepVoxels,
+        k,
+        (dither*borderVoxels+0.5));
+    }
+
+    float world_sdf_trace_shadow_normal(
+      uint start,
+      float3 rayStart,
+      float3 rayDir,
+      float3 worldNormal,
+      float maxT,
+      inout float t,
+      float normalStepVoxels,
+      float rayStepVoxels,
+      float k = 8,
+      float dither = 0,
+      float borderVoxels = 4)
+    {
+      // + 1 as we need gradient for normal
+      uint i = world_sdf_find_clip(rayStart, dither*borderVoxels + 1, start);//to reduce divirgence between threads
+      if (i >= MAX_WORLD_SDF_CLIPS)
+        return 1;
+      rayStart += rayDir*(0.5*sample_world_sdf_lt(i).w*dither);
 
       return world_sdf_trace_softshadow(i, rayStart, worldNormal, rayDir, maxT, t,
         normalStepVoxels,

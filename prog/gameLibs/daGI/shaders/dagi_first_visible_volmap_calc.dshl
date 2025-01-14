@@ -21,6 +21,8 @@ endmacro
 
 buffer frustum_visible_point_voxels;
 
+int calc_initial_ambient_walls_dist_cs_visible_ambient_voxels_walls_planes_uav_no = 0;
+
 shader calc_initial_ambient_walls_dist_cs
 {
   CALC_CLOSEST_PLANES()
@@ -31,9 +33,11 @@ shader calc_initial_ambient_walls_dist_cs
       #include "dagi_common_types.hlsli"
       StructuredBuffer<VisibleAmbientVoxelPoint> visible_ambient_voxels@buf;
     };
+    visible_ambient_voxels_walls_planes@uav : register(calc_initial_ambient_walls_dist_cs_visible_ambient_voxels_walls_planes_uav_no) hlsl {
+      RWStructuredBuffer<AmbientVoxelsPlanes> visible_ambient_voxels_walls_planes@uav;
+    };
   }
   hlsl(cs) {
-    RWStructuredBuffer<AmbientVoxelsPlanes> visible_ambient_voxels_walls_planes: register(u0);
     [numthreads(INITIAL_WALLS_DIST_WARP, 1, 1)]
     void walls_voxels_cs( uint dtId : SV_DispatchThreadID )
     {
@@ -48,9 +52,9 @@ shader calc_initial_ambient_walls_dist_cs
   compile("cs_5_0", "walls_voxels_cs");
 }
 
-int visible_ambient_voxels_walls_planes_no = 14;
-int ssgi_ambient_volmap_temporal_no = 7;
-int gi_ambient_volmap_init_no = 6;
+int light_initial_ambient_voxels_cs_visible_ambient_voxels_walls_planes_const_no = 14;
+int gi_ambient_volmap_init_uav_no = 6;
+int ssgi_ambient_volmap_temporal_uav_no = 7;
 
 shader light_initial_ambient_voxels_cs
 {
@@ -67,13 +71,13 @@ shader light_initial_ambient_voxels_cs
       #include "dagi_common_types.hlsli"
       StructuredBuffer<VisibleAmbientVoxelPoint> visible_ambient_voxels@buf;
     };
-    ssgi_ambient_volmap_temporal@uav: register(ssgi_ambient_volmap_temporal_no) hlsl {
+    ssgi_ambient_volmap_temporal@uav: register(ssgi_ambient_volmap_temporal_uav_no) hlsl {
       RWTexture3D<float> ssgi_ambient_volmap_temporal@uav;
     }
-    gi_ambient_volmap_init@uav: register(gi_ambient_volmap_init_no) hlsl {
+    gi_ambient_volmap_init@uav: register(gi_ambient_volmap_init_uav_no) hlsl {
       RWTexture3D<float3> gi_ambient_volmap_init@uav;
     }
-    visible_ambient_voxels_walls_planes@buf: register(visible_ambient_voxels_walls_planes_no) hlsl {
+    visible_ambient_voxels_walls_planes@buf: register(light_initial_ambient_voxels_cs_visible_ambient_voxels_walls_planes_const_no) hlsl {
       #include "dagi_common_types.hlsli"
       StructuredBuffer<AmbientVoxelsPlanes> visible_ambient_voxels_walls_planes@buf;
     }

@@ -28,6 +28,12 @@ macro INIT_PER_INSTANCE_DATA(code)
         uint offset_id = INST_OFFSET_GETTER;
         bone1 = bufferAt(instance_data_buffer, offset_id-at);
       }
+      uint get_per_instance_hashval()
+      {
+        float4 hashval;
+        get_per_instance_data(hashval, 1);
+        return asuint(hashval.x);
+      }
     }
   }
   else
@@ -38,6 +44,27 @@ macro INIT_PER_INSTANCE_DATA(code)
         //will return 0 for a while since it not used in tools
         bone1 = float4(0,0,0,0);
       }
+
+      #ifdef OFFSET_TO_CHUNK
+        uint get_per_instance_hashval()
+        {
+          uint rigid_index = 0;
+          uint offsetToChunk = max((int)OFFSET_TO_CHUNK(rigid_index), 0);
+          float4 opacity__offset__extra = loadBuffer(INSTANCE_DATA_BUFFER, offsetToChunk + 8);
+          float2 opacity__offset = opacity__offset__extra.xy;
+          uint instanceChunkOffset = uint(max(offsetToChunk + opacity__offset.y, 0));
+          float4 pos_ofs__cnt = loadBuffer(INSTANCE_DATA_BUFFER, instanceChunkOffset + 1);
+          float2 dynrend_params_offset_count = float2(instanceChunkOffset + 2.5, pos_ofs__cnt.w);
+          uint param_no = 0;
+          float4 paramValue = loadBuffer(INSTANCE_DATA_BUFFER, max(dynrend_params_offset_count.x + param_no, 0));
+          return asuint(paramValue.x);
+        }
+      #else
+        uint get_per_instance_hashval()
+        {
+          return 0;
+        }
+      #endif
     }
   }
 endmacro
@@ -221,26 +248,33 @@ hlsl(vs)
     node_collapser_bits[1] = asuint(SKINNING_BONE_ROW_GETTER(INST_OFFSET_GETTER + 1));
   }
 
-  bool checkBoneToCollapse(uint bi, float bw, uint4 node_collapser_bits[2])
+  bool checkBoneToCollapse(uint bi, uint4 node_collapser_bits[2])
   {
     uint4 bits = (bi < 128) ? node_collapser_bits[0] : node_collapser_bits[1];
-    return bw == 0 || (bits[bi >> 5] & (1u << (bi & 31))) != 0;
+    return (bits[bi >> 5] & (1u << (bi & 31))) != 0;
+  }
+  float calcBoneToCollapseWeight(uint bi, float bw, uint4 node_collapser_bits[2])
+  {
+    return checkBoneToCollapse(bi, node_collapser_bits) ? bw : 0;
   }
 
   bool checkAllBonesToCollapse(uint4 bi, float4 bw)
   {
+    static const float NODE_COLLAPSER_BONE_WEIGHT_THRESHOLD = 0.15; // TODO: 0.49 should be enough, but there is a bug with dynamic shadow delay
     uint4 nodeCollapserBits[2];
     get_node_collapser_bits(nodeCollapserBits);
-    return checkBoneToCollapse(bi.x, bw.x, nodeCollapserBits) &&
-           checkBoneToCollapse(bi.y, bw.y, nodeCollapserBits) &&
-           checkBoneToCollapse(bi.z, bw.z, nodeCollapserBits) &&
-           checkBoneToCollapse(bi.w, bw.w, nodeCollapserBits);
+    float boneCollapserWeight =
+      calcBoneToCollapseWeight(bi.x, bw.x, nodeCollapserBits) +
+      calcBoneToCollapseWeight(bi.y, bw.y, nodeCollapserBits) +
+      calcBoneToCollapseWeight(bi.z, bw.z, nodeCollapserBits) +
+      calcBoneToCollapseWeight(bi.w, bw.w, nodeCollapserBits);
+    return boneCollapserWeight > NODE_COLLAPSER_BONE_WEIGHT_THRESHOLD;
   }
   bool checkSingleBoneToCollapse(uint bi)
   {
     uint4 nodeCollapserBits[2];
     get_node_collapser_bits(nodeCollapserBits);
-    return checkBoneToCollapse(bi, 1, nodeCollapserBits);
+    return checkBoneToCollapse(bi, nodeCollapserBits);
   }
 ##endif
 
@@ -323,6 +357,9 @@ hlsl(vs)
     world_du = world_dv = 0;
     #endif
     output_pos = mulPointTm(eye_to_point, viewProjTm);
+
+    if (all(skinnedTm.r0 == 0 && skinnedTm.r1 == 0 && skinnedTm.r2 == 0))
+      output_pos = NaN;
   ##endif
   }
 }

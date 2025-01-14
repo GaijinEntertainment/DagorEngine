@@ -22,6 +22,7 @@
 #include "execution_sync.h"
 #include "bindless.h"
 #include "vk_to_string.h"
+#include "wrapped_command_buffer.h"
 
 using namespace drv3d_vulkan;
 
@@ -312,6 +313,7 @@ void RenderWork::cleanup()
   bindlessBufUpdates.clear();
   bindlessSamplerUpdates.clear();
   nativeRPDrawCounter.clear();
+  reorderedBufferCopies.clear();
 #if D3D_HAS_RAY_TRACING && (VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query)
   raytraceBuildRangeInfoKHRStore.clear();
   raytraceGeometryKHRStore.clear();

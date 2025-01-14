@@ -75,15 +75,30 @@ bool MotionMatchingController::getPose(AnimV20::AnimBlender::TlsContext &tls, co
 }
 
 
-void MotionMatchingController::playAnimation(int clip_index, int frame_index)
+void MotionMatchingController::playAnimation(int clip_index, int frame_index, bool need_transition)
 {
   currentClipInfo.clip = clip_index;
   currentClipInfo.frame = frame_index;
   currentClipInfo.linearBlendProgress = 0.f;
 
+  const AnimationClip &nextClip = dataBase->clips[clip_index];
   // We probably want blending here, but it looks like all clips will have (1,1,-1) scale.
   // And I also don't understand why we need scale in animations at all, such constants can be premultiplied.
-  rootPRS.scale = dataBase->clips[clip_index].rootScale;
+  rootPRS.scale = nextClip.rootScale;
+
+  if (need_transition)
+  {
+    lastTransitionTime = 0.f;
+    // reuse memory for nextAnimation, resultAnimation is not needed here and will be recalculated in `updateAnimationProgress()`
+    BoneInertialInfo &nextAnimation = resultAnimation;
+    float timeInSeconds = getFrameTimeInSeconds(clip_index, frame_index, 0.f);
+    extract_frame_info(timeInSeconds, nextClip, nextAnimation);
+    apply_root_motion_correction(timeInSeconds, nextClip, dataBase->rootNode, nextAnimation);
+
+    // caclulate offset between currentAnimation and nextAnimation
+    // we will decay offset for smooth transition
+    inertialize_pose_transition(offset, currentAnimation, nextAnimation, perNodeWeights);
+  }
 }
 
 
@@ -113,22 +128,38 @@ static bool next_frame(int &clip_idx, int &frame, int delta, const AnimationData
   return false;
 }
 
-bool MotionMatchingController::updateAnimationProgress(float dt)
+bool MotionMatchingController::willCurrentAnimationEnd(float dt)
 {
-  if (currentClipInfo.clip < 0)
+  if (!hasActiveAnimation())
     return true;
-  bool animationFinished = false;
+  int framesPassed = int(getCurrentFrameProgress() + dt * TICKS_PER_SECOND * playSpeedMult);
+  const AnimationClip &curClip = dataBase->clips[getCurrentClip()];
+  if (curClip.nextClip == -1 && getCurrentFrame() + framesPassed >= curClip.tickDuration)
+    return true;
+  return false;
+}
+
+void MotionMatchingController::updateAnimationProgress(float dt)
+{
+  if (!hasActiveAnimation())
+    return;
   currentClipInfo.linearBlendProgress += dt * TICKS_PER_SECOND * playSpeedMult;
+  lastTransitionTime += dt;
   if (currentClipInfo.linearBlendProgress >= 1.f)
   {
     int skipFrames = (int)currentClipInfo.linearBlendProgress;
     currentClipInfo.linearBlendProgress -= skipFrames;
-    animationFinished = next_frame(currentClipInfo.clip, currentClipInfo.frame, skipFrames, *dataBase);
+    bool animationFinished = next_frame(currentClipInfo.clip, currentClipInfo.frame, skipFrames, *dataBase);
     if (animationFinished)
       currentClipInfo.linearBlendProgress = 1.f;
   }
 
-  return animationFinished;
+  int curClipIdx = currentClipInfo.clip;
+  float timeInSeconds = getFrameTimeInSeconds(curClipIdx, currentClipInfo.frame, currentClipInfo.linearBlendProgress);
+  extract_frame_info(timeInSeconds, dataBase->clips[curClipIdx], currentAnimation);
+  apply_root_motion_correction(timeInSeconds, dataBase->clips[curClipIdx], dataBase->rootNode, currentAnimation);
+  // decay offset here. Result animation is offset + currentAnimation
+  inertialize_pose_update(resultAnimation, offset, currentAnimation, perNodeWeights, transitionBlendTime * 0.5f, dt);
 }
 
 void MotionMatchingController::updateRoot(

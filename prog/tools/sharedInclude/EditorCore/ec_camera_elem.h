@@ -75,12 +75,9 @@ public:
   //*****************************************************************
   /// @name Keyboard / mouse events.
   //@{
-  /// Handle key press.
-  /// @param[in] vk - virtual key code (see #CtlVirtualKeys)
-  virtual void handleKeyPress(int vk);
-  /// Handle key release.
-  /// @param[in] vk - virtual key code (see #CtlVirtualKeys)
-  virtual void handleKeyRelease(int vk);
+  /// Handle keyboard input using polling.
+  // @param[in] viewport_id - ImGuiID of the viewport handling the input
+  virtual void handleKeyboardInput(unsigned viewport_id);
   /// Handle mouse move.
   /// @param[in] x,y - x,y mouse coordinates in viewport
   void handleMouseMove(int x, int y)
@@ -185,7 +182,7 @@ class MaxCameraElem : public CCameraElem
 public:
   MaxCameraElem() : CCameraElem(MAX_CAMERA) {}
 
-  virtual void handleKeyPress(int vk);
+  virtual void handleKeyboardInput(unsigned viewport_id) override {}
 
   virtual void handleMouseWheel(int delta) override
   {
@@ -205,8 +202,7 @@ public:
   virtual void actInternal();
   virtual void render() {}
   virtual void clear();
-  virtual void handleKeyPress(int vk);
-  virtual void handleKeyRelease(int vk);
+  virtual void handleKeyboardInput(unsigned viewport_id) override;
   virtual void moveForward(real deltaZ, bool multiplySencetive, IGenViewportWnd *wnd);
   virtual void strife(real dx, real dy, bool multiply_sencetive, bool config_sencetive);
   virtual void moveOn(const Point3 &dpos);
@@ -229,8 +225,7 @@ public:
   virtual void actInternal();
   virtual void render();
   virtual void clear();
-  virtual void handleKeyPress(int vk);
-  virtual void handleKeyRelease(int vk);
+  virtual void handleKeyboardInput(unsigned viewport_id) override;
   virtual void rotate(real dX, real dY, bool multiplySencetive, bool aroundSelection);
   virtual void moveForward(real deltaZ, bool multiply_sensitive, IGenViewportWnd *wnd);
   virtual void strife(real dx, real dy, bool multiply_sensitive, bool config_sensitive);

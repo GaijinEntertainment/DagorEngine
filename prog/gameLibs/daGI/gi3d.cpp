@@ -40,7 +40,7 @@
 CONSOLE_BOOL_VAL("render", debug_inline_rt, false);
 
 #if D3D_HAS_RAY_TRACING
-static const int TOP_ACC_STRUCTURE_REGISTER = 23;
+static int TOP_ACC_STRUCTURE_REGISTER = -1;
 static const int OCTAHEDRAL_DISTANCES_REGISTER = 7;
 static const int DEAD_PROBES_REGISTER = 8;
 #endif
@@ -164,11 +164,15 @@ void GI3D::drawDebug(int cascade, DebugVolmapType debug_volmap)
 
   if (debugVolmapNonIntersected)
   {
-    d3d::set_rwbuffer(STAGE_CS, 0, debugVolmapDrawIndirect.get());
-    d3d::set_buffer(STAGE_CS, 1, common.frustumVisibleAmbientVoxelsCount.get());
+    static int frustum_visible_ambient_voxels_count_const_no =
+      ShaderGlobal::get_slot_by_name("create_debug_render_cs_frustum_visible_ambient_voxels_count_const_no");
+    static int drawIndirectBuffer_uav_no = ShaderGlobal::get_slot_by_name("create_debug_render_cs_drawIndirectBuffer_uav_no");
+
+    d3d::set_rwbuffer(STAGE_CS, drawIndirectBuffer_uav_no, debugVolmapDrawIndirect.get());
+    d3d::set_buffer(STAGE_CS, frustum_visible_ambient_voxels_count_const_no, common.frustumVisibleAmbientVoxelsCount.get());
     create_debug_render_cs->dispatch(1, 1, 1);
-    d3d::set_buffer(STAGE_CS, 1, 0);
-    d3d::set_rwbuffer(STAGE_CS, 0, 0);
+    d3d::set_buffer(STAGE_CS, frustum_visible_ambient_voxels_count_const_no, 0);
+    d3d::set_rwbuffer(STAGE_CS, drawIndirectBuffer_uav_no, 0);
     // uint bins2[5] = {0};
     // load_data(bins2, debugVolmapDrawIndirect.get(), sizeof(bins2));
     // debug("debug visible probes %d %d %d %d %d", bins2[0], bins2[1], bins2[2], bins2[3], bins2[4]);
@@ -337,6 +341,9 @@ void GI3D::VolmapCommonData::RT::initShaders(QualitySettings quality)
   octahedral_distances_cs.reset(new_compute_shader("octahedral_distances_cs"));
   move_y_octahderal_distances_cs.reset(new_compute_shader("move_y_octahderal_distances_cs"));
   move_y_dead_probes_cs.reset(new_compute_shader("move_y_dead_probes_cs"));
+#if D3D_HAS_RAY_TRACING
+  TOP_ACC_STRUCTURE_REGISTER = ShaderGlobal::get_slot_by_name("dagi_accelerationStructure_const_no");
+#endif
 }
 
 void GI3D::VolmapCommonData::RT::createTextures(QualitySettings quality, int xz_dimensions, int y_dim)
@@ -652,20 +659,27 @@ void GI3D::VolmapCascade::copyFromNext(VolmapCommonData &common)
   {
     d3d::resource_barrier({common.cube.getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
     ShaderGlobal::set_color4(ssgi_start_copy_sliceVarId, 0, 0, i, 0);
-    d3d::set_rwbuffer(STAGE_CS, 6, common.frustumVisibleAmbientVoxels.getBuf());
+
+    static int voxelColors_uav_no = ShaderGlobal::get_slot_by_name("ssgi_copy_from_volmap_cs_voxelColors_uav_no");
+    d3d::set_rwbuffer(STAGE_CS, voxelColors_uav_no, common.frustumVisibleAmbientVoxels.getBuf());
     common.ssgi_copy_from_volmap_cs->dispatch((getDimXZ() + 3) / 4, (getDimXZ() + 3) / 4, 1);
     d3d::resource_barrier({common.frustumVisibleAmbientVoxels.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE});
-
+    d3d::set_rwbuffer(STAGE_CS, voxelColors_uav_no, 0);
 
     d3d::resource_barrier({common.ssgiTemporalWeight.getVolTex(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE, 0, 0});
-    d3d::set_rwtex(STAGE_CS, 6, common.cube.getVolTex(), 0, 0);
-    d3d::set_rwtex(STAGE_CS, 7, common.ssgiTemporalWeight.getVolTex(), 0, 0);
+
+    static int gi_ambient_volmap_uav_no = ShaderGlobal::get_slot_by_name("ssgi_copy_to_volmap_cs_gi_ambient_volmap_uav_no");
+    static int ssgi_ambient_volmap_temporal_uav_no =
+      ShaderGlobal::get_slot_by_name("ssgi_copy_to_volmap_cs_ssgi_ambient_volmap_temporal_uav_no");
+
+    d3d::set_rwtex(STAGE_CS, gi_ambient_volmap_uav_no, common.cube.getVolTex(), 0, 0);
+    d3d::set_rwtex(STAGE_CS, ssgi_ambient_volmap_temporal_uav_no, common.ssgiTemporalWeight.getVolTex(), 0, 0);
 
     // todo: call copy only where needed, not full box
     common.ssgi_copy_to_volmap_cs->dispatch((getDimXZ() + 3) / 4, (getDimXZ() + 3) / 4, 1);
 
-    d3d::set_rwtex(STAGE_CS, 6, 0, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 7, 0, 0, 0);
+    d3d::set_rwtex(STAGE_CS, gi_ambient_volmap_uav_no, 0, 0, 0);
+    d3d::set_rwtex(STAGE_CS, ssgi_ambient_volmap_temporal_uav_no, 0, 0, 0);
   }
 }
 
@@ -984,51 +998,74 @@ void GI3D::VolmapCascade::render(VolmapCommonData &common, mat44f_cref globtm)
     cull(common, globtm);
     {
       TIME_D3D_PROFILE(choose_random_points);
-      //
-      d3d::resource_barrier({common.frustumVisibleAmbientVoxels.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE});
-      d3d::resource_barrier({voxelChoiceProbability[currentProbability].get(), RB_RO_SRV | RB_STAGE_COMPUTE});
-      d3d::set_buffer(STAGE_CS, 15, voxelChoiceProbability[currentProbability].get());
-      d3d::set_buffer(STAGE_CS, 13, common.frustumVisibleAmbientVoxelsCount.get());
-      d3d::set_rwbuffer(STAGE_CS, 1, voxelsWeightHistogram.get());
-      d3d::set_rwbuffer(STAGE_CS, 0, common.frustumVisiblePointVoxels.getBuf());
-
-      common.random_point_occlusion_ambient_voxels_cs->dispatch_indirect(common.visibleAmbientVoxelsIndirect.get(), 0);
-
-      const int nextProbability = 1 - currentProbability;
-      d3d::set_rwbuffer(STAGE_CS, 0, voxelChoiceProbability[nextProbability].get());
-      d3d::set_rwbuffer(STAGE_CS, 1, common.visibleAmbientVoxelsIndirect.get());
-      d3d::resource_barrier({voxelsWeightHistogram.get(), RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE});
-      d3d::set_rwbuffer(STAGE_CS, 2, voxelsWeightHistogram.get());
-
-#if GI3D_VERBOSE_DEBUG
-      // debug
       {
-        uint bins[MAX_BINS * 2 + 2] = {0};
-        load_data(bins, voxelsWeightHistogram.get(), sizeof(bins));
+        d3d::resource_barrier({common.frustumVisibleAmbientVoxels.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE});
+        d3d::resource_barrier({voxelChoiceProbability[currentProbability].get(), RB_RO_SRV | RB_STAGE_COMPUTE});
 
-        debug("histogram, all passed = %d: initialize = %d, bin0: passed = %d(from %d), bin1: passed = %d(from %d)",
-          bins[2 * MAX_BINS], bins[INITIALIZE_VOXELS_INDEX], bins[0], bins[MAX_BINS + 0], bins[1], bins[MAX_BINS + 1]);
+        static int prev_probability_const_no =
+          ShaderGlobal::get_slot_by_name("random_point_occlusion_ambient_voxels_cs_prev_probability_const_no");
+        static int frustum_visible_ambient_voxels_count_const_no =
+          ShaderGlobal::get_slot_by_name("random_point_occlusion_ambient_voxels_cs_frustum_visible_ambient_voxels_count_const_no");
+        static int visible_ambient_voxels_uav_no =
+          ShaderGlobal::get_slot_by_name("random_point_occlusion_ambient_voxels_cs_visible_ambient_voxels_uav_no");
+        static int voxelsWeightHistogram_uav_no =
+          ShaderGlobal::get_slot_by_name("random_point_occlusion_ambient_voxels_cs_voxelsWeightHistogram_uav_no");
+
+        d3d::set_buffer(STAGE_CS, prev_probability_const_no, voxelChoiceProbability[currentProbability].get());
+        d3d::set_buffer(STAGE_CS, frustum_visible_ambient_voxels_count_const_no, common.frustumVisibleAmbientVoxelsCount.get());
+        d3d::set_rwbuffer(STAGE_CS, voxelsWeightHistogram_uav_no, voxelsWeightHistogram.get());
+        d3d::set_rwbuffer(STAGE_CS, visible_ambient_voxels_uav_no, common.frustumVisiblePointVoxels.getBuf());
+        common.random_point_occlusion_ambient_voxels_cs->dispatch_indirect(common.visibleAmbientVoxelsIndirect.get(), 0);
+        d3d::set_rwbuffer(STAGE_CS, visible_ambient_voxels_uav_no, 0);
+        d3d::set_rwbuffer(STAGE_CS, voxelsWeightHistogram_uav_no, 0);
+        d3d::set_buffer(STAGE_CS, frustum_visible_ambient_voxels_count_const_no, 0);
+        d3d::set_buffer(STAGE_CS, prev_probability_const_no, 0);
       }
-#endif
 
-      d3d::set_buffer(STAGE_CS, 15, voxelChoiceProbability[currentProbability].get());
-      d3d::set_buffer(STAGE_CS, 13, 0);
+      {
+        const int nextProbability = 1 - currentProbability;
 
-      common.ssgi_change_probability_cs->dispatch(1, 1, 1);
-      d3d::set_rwbuffer(STAGE_CS, 3, 0);
-      d3d::set_rwbuffer(STAGE_CS, 2, 0);
-      d3d::set_rwbuffer(STAGE_CS, 1, 0);
-      d3d::resource_barrier({common.visibleAmbientVoxelsIndirect.get(), RB_RO_INDEX_BUFFER});
-      currentProbability = nextProbability;
+        static int prev_probability_const_no = ShaderGlobal::get_slot_by_name("ssgi_change_probability_cs_prev_probability_const_no");
+        static int next_probability_uav_no = ShaderGlobal::get_slot_by_name("ssgi_change_probability_cs_next_probability_uav_no");
+        static int dispatchIndirectBuffer_uav_no =
+          ShaderGlobal::get_slot_by_name("ssgi_change_probability_cs_dispatchIndirectBuffer_uav_no");
+        static int voxelsWeightHistogram_uav_no =
+          ShaderGlobal::get_slot_by_name("ssgi_change_probability_cs_voxelsWeightHistogram_uav_no");
+
+        d3d::set_rwbuffer(STAGE_CS, next_probability_uav_no, voxelChoiceProbability[nextProbability].get());
+        d3d::set_rwbuffer(STAGE_CS, dispatchIndirectBuffer_uav_no, common.visibleAmbientVoxelsIndirect.get());
+        d3d::resource_barrier({voxelsWeightHistogram.get(), RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE});
+        d3d::set_rwbuffer(STAGE_CS, voxelsWeightHistogram_uav_no, voxelsWeightHistogram.get());
+        d3d::set_buffer(STAGE_CS, prev_probability_const_no, voxelChoiceProbability[currentProbability].get());
+
 #if GI3D_VERBOSE_DEBUG
-      uint bins[5 * 3] = {0};
-      load_data(bins, common.visibleAmbientVoxelsIndirect.get(), sizeof(bins));
-      debug("dispatch indirect for temporal copy (%d %d %d), re-light (%d %d %d), combine (%d %d %d)"
-            "inital light (%d %d %d)(planes %d %d %d)",
-        bins[3 * 0 + 0], bins[3 * 0 + 1], bins[3 * 0 + 2], bins[3 * 1 + 0], bins[3 * 1 + 1], bins[3 * 1 + 2], bins[3 * 2 + 0],
-        bins[3 * 2 + 1], bins[3 * 2 + 2], bins[3 * 3 + 0], bins[3 * 3 + 1], bins[3 * 3 + 2], bins[3 * 4 + 0], bins[3 * 4 + 1],
-        bins[3 * 4 + 2]);
+        // debug
+        {
+          uint bins[MAX_BINS * 2 + 2] = {0};
+          load_data(bins, voxelsWeightHistogram.get(), sizeof(bins));
+
+          debug("histogram, all passed = %d: initialize = %d, bin0: passed = %d(from %d), bin1: passed = %d(from %d)",
+            bins[2 * MAX_BINS], bins[INITIALIZE_VOXELS_INDEX], bins[0], bins[MAX_BINS + 0], bins[1], bins[MAX_BINS + 1]);
+        }
 #endif
+
+        common.ssgi_change_probability_cs->dispatch(1, 1, 1);
+        d3d::set_rwbuffer(STAGE_CS, next_probability_uav_no, 0);
+        d3d::set_rwbuffer(STAGE_CS, dispatchIndirectBuffer_uav_no, 0);
+        d3d::set_rwbuffer(STAGE_CS, voxelsWeightHistogram_uav_no, 0);
+        d3d::set_buffer(STAGE_CS, prev_probability_const_no, 0);
+        d3d::resource_barrier({common.visibleAmbientVoxelsIndirect.get(), RB_RO_INDEX_BUFFER});
+        currentProbability = nextProbability;
+#if GI3D_VERBOSE_DEBUG
+        uint bins[5 * 3] = {0};
+        load_data(bins, common.visibleAmbientVoxelsIndirect.get(), sizeof(bins));
+        debug("dispatch indirect for temporal copy (%d %d %d), re-light (%d %d %d), combine (%d %d %d)"
+              "inital light (%d %d %d)(planes %d %d %d)",
+          bins[3 * 0 + 0], bins[3 * 0 + 1], bins[3 * 0 + 2], bins[3 * 1 + 0], bins[3 * 1 + 1], bins[3 * 1 + 2], bins[3 * 2 + 0],
+          bins[3 * 2 + 1], bins[3 * 2 + 2], bins[3 * 3 + 0], bins[3 * 3 + 1], bins[3 * 3 + 2], bins[3 * 4 + 0], bins[3 * 4 + 1],
+          bins[3 * 4 + 2]);
+#endif
+      }
     }
 
     {
@@ -1040,20 +1077,32 @@ void GI3D::VolmapCascade::render(VolmapCommonData &common, mat44f_cref globtm)
       }
       d3d::resource_barrier({voxelsWeightHistogram.get(), RB_RO_SRV | RB_STAGE_COMPUTE});
       d3d::resource_barrier({common.frustumVisiblePointVoxels.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE});
-      d3d::set_buffer(STAGE_CS, 14, voxelsWeightHistogram.get());
-      d3d::set_rwbuffer(STAGE_CS, 0, common.selectedAmbientVoxels.get());
-      d3d::set_rwbuffer(STAGE_CS, 1, common.selectedAmbientVoxelsPlanes.get());
+
+      static int voxelsWeightHistogram_const_no =
+        ShaderGlobal::get_slot_by_name("temporal_ambient_voxels_cs_voxelsWeightHistogram_const_no");
+      static int visible_ambient_voxels_uav_no =
+        ShaderGlobal::get_slot_by_name("temporal_ambient_voxels_cs_visible_ambient_voxels_uav_no");
+      static int visible_ambient_voxels_walls_planes_uav_no =
+        ShaderGlobal::get_slot_by_name("temporal_ambient_voxels_cs_visible_ambient_voxels_walls_planes_uav_no");
+
+      d3d::set_buffer(STAGE_CS, voxelsWeightHistogram_const_no, voxelsWeightHistogram.get());
+      d3d::set_rwbuffer(STAGE_CS, visible_ambient_voxels_uav_no, common.selectedAmbientVoxels.get());
+      d3d::set_rwbuffer(STAGE_CS, visible_ambient_voxels_walls_planes_uav_no, common.selectedAmbientVoxelsPlanes.get());
       common.temporal_ambient_voxels_cs->dispatch_indirect(common.visibleAmbientVoxelsIndirect.get(), 0 * 12);
-      d3d::set_buffer(STAGE_CS, 14, 0);
-      d3d::set_rwbuffer(STAGE_CS, 1, 0);
-      d3d::set_rwbuffer(STAGE_CS, 0, 0);
+      d3d::set_buffer(STAGE_CS, voxelsWeightHistogram_const_no, 0);
+      d3d::set_rwbuffer(STAGE_CS, visible_ambient_voxels_walls_planes_uav_no, 0);
+      d3d::set_rwbuffer(STAGE_CS, visible_ambient_voxels_uav_no, 0);
     }
 
     {
       TIME_D3D_PROFILE(lit_voxels_cs);
-      d3d::set_rwbuffer(STAGE_CS, 0, common.traceRayResults.get());
+      static int traceResults_uav_no = ShaderGlobal::get_slot_by_name("light_ss_ambient_voxels_cs_traceResults_uav_no");
+      static int visible_ambient_voxels_walls_planes_const_no =
+        ShaderGlobal::get_slot_by_name("light_ss_ambient_voxels_cs_visible_ambient_voxels_walls_planes_const_no");
+
+      d3d::set_rwbuffer(STAGE_CS, traceResults_uav_no, common.traceRayResults.get());
       d3d::resource_barrier({common.selectedAmbientVoxelsPlanes.get(), RB_RO_SRV | RB_STAGE_COMPUTE});
-      d3d::set_buffer(STAGE_CS, 14, common.selectedAmbientVoxelsPlanes.get());
+      d3d::set_buffer(STAGE_CS, visible_ambient_voxels_walls_planes_const_no, common.selectedAmbientVoxelsPlanes.get());
 #if D3D_HAS_RAY_TRACING
       if (common.quality == RAYTRACING)
       {
@@ -1067,27 +1116,35 @@ void GI3D::VolmapCascade::render(VolmapCommonData &common, mat44f_cref globtm)
         d3d::set_top_acceleration_structure(STAGE_CS, TOP_ACC_STRUCTURE_REGISTER, 0);
       }
 #endif
-      d3d::set_buffer(STAGE_CS, 14, 0);
-      d3d::set_rwbuffer(STAGE_CS, 0, 0);
+      d3d::set_buffer(STAGE_CS, visible_ambient_voxels_walls_planes_const_no, 0);
+      d3d::set_rwbuffer(STAGE_CS, traceResults_uav_no, 0);
     }
 
     {
       if (common.calc_initial_ambient_walls_dist_cs)
       {
         TIME_D3D_PROFILE(initial_voxels_planes_cs);
-        d3d::set_rwbuffer(STAGE_CS, 0, common.selectedAmbientVoxelsPlanes.get());
-        common.calc_initial_ambient_walls_dist_cs->dispatch_indirect(common.visibleAmbientVoxelsIndirect.get(), 4 * 12);
+        static int visible_ambient_voxels_walls_planes_uav_no =
+          ShaderGlobal::get_slot_by_name("calc_initial_ambient_walls_dist_cs_visible_ambient_voxels_walls_planes_uav_no");
 
-        d3d::set_rwbuffer(STAGE_CS, 0, 0);
+        d3d::set_rwbuffer(STAGE_CS, visible_ambient_voxels_walls_planes_uav_no, common.selectedAmbientVoxelsPlanes.get());
+        common.calc_initial_ambient_walls_dist_cs->dispatch_indirect(common.visibleAmbientVoxelsIndirect.get(), 4 * 12);
+        d3d::set_rwbuffer(STAGE_CS, visible_ambient_voxels_walls_planes_uav_no, 0);
         d3d::resource_barrier({common.selectedAmbientVoxelsPlanes.get(), RB_RO_SRV | RB_STAGE_COMPUTE});
       }
 
-      d3d::set_rwtex(STAGE_CS, 6, common.cube.getVolTex(), 0, 0);
-      d3d::set_rwtex(STAGE_CS, 7, common.ssgiTemporalWeight.getVolTex(), 0, 0);
+      static int gi_ambient_volmap_init_uav_no = ShaderGlobal::get_slot_by_name("gi_ambient_volmap_init_uav_no");
+      static int ssgi_ambient_volmap_temporal_uav_no = ShaderGlobal::get_slot_by_name("ssgi_ambient_volmap_temporal_uav_no");
+
+      d3d::set_rwtex(STAGE_CS, gi_ambient_volmap_init_uav_no, common.cube.getVolTex(), 0, 0);
+      d3d::set_rwtex(STAGE_CS, ssgi_ambient_volmap_temporal_uav_no, common.ssgiTemporalWeight.getVolTex(), 0, 0);
 
       {
         TIME_D3D_PROFILE(initial_lit_voxels_cs);
-        d3d::set_buffer(STAGE_CS, 14, common.selectedAmbientVoxelsPlanes.get());
+        static int visible_ambient_voxels_walls_planes_const_no =
+          ShaderGlobal::get_slot_by_name("light_initial_ambient_voxels_cs_visible_ambient_voxels_walls_planes_const_no");
+
+        d3d::set_buffer(STAGE_CS, visible_ambient_voxels_walls_planes_const_no, common.selectedAmbientVoxelsPlanes.get());
 #if D3D_HAS_RAY_TRACING
         if (common.quality == RAYTRACING)
         {
@@ -1101,6 +1158,7 @@ void GI3D::VolmapCascade::render(VolmapCommonData &common, mat44f_cref globtm)
           d3d::set_top_acceleration_structure(STAGE_CS, TOP_ACC_STRUCTURE_REGISTER, 0);
         }
 #endif
+        d3d::set_buffer(STAGE_CS, visible_ambient_voxels_walls_planes_const_no, 0);
       }
 
       {
@@ -1109,11 +1167,18 @@ void GI3D::VolmapCascade::render(VolmapCommonData &common, mat44f_cref globtm)
                                                                          // (initial or main)
         d3d::resource_barrier({common.ssgiTemporalWeight.getVolTex(), RB_NONE, 0, 0});
         d3d::resource_barrier({common.selectedAmbientVoxels.get(), RB_RO_SRV | RB_STAGE_COMPUTE});
-        d3d::set_buffer(STAGE_CS, 15, common.selectedAmbientVoxels.get());
+
+        static int visible_ambient_voxels_const_no =
+          ShaderGlobal::get_slot_by_name("light_ss_combine_ambient_voxels_cs_visible_ambient_voxels_const_no");
+        static int visible_ambient_voxels_trace_results_const_no =
+          ShaderGlobal::get_slot_by_name("light_ss_combine_ambient_voxels_cs_visible_ambient_voxels_trace_results_const_no");
+
+        d3d::set_buffer(STAGE_CS, visible_ambient_voxels_const_no, common.selectedAmbientVoxels.get());
         d3d::resource_barrier({common.traceRayResults.get(), RB_RO_SRV | RB_STAGE_COMPUTE});
-        d3d::set_buffer(STAGE_CS, 14, common.traceRayResults.get());
+        d3d::set_buffer(STAGE_CS, visible_ambient_voxels_trace_results_const_no, common.traceRayResults.get());
         common.light_ss_combine_ambient_voxels_cs->dispatch_indirect(common.visibleAmbientVoxelsIndirect.get(), 2 * 12);
-        d3d::set_buffer(STAGE_CS, 14, 0);
+        d3d::set_buffer(STAGE_CS, visible_ambient_voxels_trace_results_const_no, 0);
+        d3d::set_buffer(STAGE_CS, visible_ambient_voxels_const_no, 0);
       }
       // we never write to same probes in different cascades
       if (cascadeId == 0) // we render last->0, so in the end we need to insert barrier
@@ -1128,13 +1193,10 @@ void GI3D::VolmapCascade::render(VolmapCommonData &common, mat44f_cref globtm)
         d3d::resource_barrier({common.ssgiTemporalWeight.getVolTex(), RB_NONE, 0, 0});
       }
 
-      d3d::set_rwtex(STAGE_CS, 6, 0, 0, 0);
-      d3d::set_rwtex(STAGE_CS, 7, 0, 0, 0);
+      d3d::set_rwtex(STAGE_CS, gi_ambient_volmap_init_uav_no, 0, 0, 0);
+      d3d::set_rwtex(STAGE_CS, ssgi_ambient_volmap_temporal_uav_no, 0, 0, 0);
     }
-    d3d::set_buffer(STAGE_CS, 15, 0);
-    d3d::set_rwbuffer(STAGE_CS, 0, 0);
   }
-  d3d::set_const_buffer(STAGE_CS, 7, NULL);
 
 #if GI3D_VERBOSE_DEBUG
   // debug
@@ -1313,7 +1375,8 @@ void GI3D::DebugInlineRt(const TMatrix &view_tm, const TMatrix4 &proj_tm)
   cData->iResolution[1] = 1.0f / info.h;
   debugInlineRtConstants->unlock();
 
-  STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 0, VALUE, 0, 0), debugInlineRtTarget.getTex2D());
+  static int outputImage_uav_no = ShaderGlobal::get_slot_by_name("debug_inline_rt_cs_outputImage_uav_no");
+  STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, outputImage_uav_no, VALUE, 0, 0), debugInlineRtTarget.getTex2D());
 #if D3D_HAS_RAY_TRACING
   STATE_GUARD_NULLPTR(d3d::set_top_acceleration_structure(STAGE_CS, TOP_ACC_STRUCTURE_REGISTER, VALUE), common.rt.sceneTop);
   STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, DEAD_PROBES_REGISTER, VALUE, 0, 0), common.rt.deadProbes.getArrayTex());

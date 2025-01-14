@@ -7,7 +7,7 @@
 #include <anim/dag_animChannels.h> //AnimV20::AnimData::Anim
 #include "motion_matching_features.h"
 #include "motion_matching_tags.h"
-#include "foot_ik_locker.h"
+#include "foot_locker.h"
 #include <util/dag_index16.h>
 
 struct RootMotion
@@ -67,7 +67,7 @@ struct AnimationClip
 
 
   dag::Vector<RootMotion> rootMotion;
-  FootIKLockerClipData footLockerStates;
+  FootLockerClipData footLockerStates;
 
   FrameFeatures features;
   dag::Vector<vec4f> boundsSmallMin; // features.size() / BOUNDS_SMALL_SIZE

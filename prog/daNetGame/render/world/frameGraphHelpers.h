@@ -265,10 +265,20 @@ inline void use_no_jitter_frustum_plane_shader_vars(dabfg::Registry registry)
 
 inline void use_volfog(dabfg::Registry registry, dabfg::Stage stage)
 {
-  // the rest of the volfog resources are outside of FG
-  registry.readTexture("checkerboard_depth").atStage(stage).bindToShaderVar("downsampled_checkerboard_depth_tex").optional();
-  registry.read("checkerboard_depth_sampler")
-    .blob<d3d::SamplerHandle>()
-    .bindToShaderVar("downsampled_checkerboard_depth_tex_samplerstate")
-    .optional();
+  registry.readBlob<OrderingToken>("volfog_ff_result_token").optional();
+  registry.readBlob<OrderingToken>("volfog_df_result_token").optional();
+  {
+    // for DF upscaling // ideally, we would only check these if DF is on
+    registry.readTexture("checkerboard_depth").atStage(stage).bindToShaderVar("downsampled_checkerboard_depth_tex").optional();
+    registry.read("checkerboard_depth_sampler")
+      .blob<d3d::SamplerHandle>()
+      .bindToShaderVar("downsampled_checkerboard_depth_tex_samplerstate")
+      .optional();
+  }
+}
+
+inline void use_volfog_shadow(dabfg::Registry registry, dabfg::Stage stage)
+{
+  G_UNUSED(stage); // currently volfog shadow resources are fully outside of FG
+  registry.readBlob<OrderingToken>("volfog_shadow_token").optional();
 }

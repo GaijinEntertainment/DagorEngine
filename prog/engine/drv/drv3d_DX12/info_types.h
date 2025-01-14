@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "constants.h"
 #include "driver.h"
 #include "extents.h"
 #include "host_device_shared_memory_region.h"
@@ -9,6 +10,7 @@
 
 #include <drv/3d/rayTrace/dag_drvRayTrace.h>
 #include <value_range.h>
+#include <EASTL/fixed_vector.h>
 
 
 namespace drv3d_dx12
@@ -120,5 +122,8 @@ struct RaytraceGeometryDescriptionBufferResourceReferenceSet
   BufferResourceReference transformBuffer;
 };
 #endif
+
+using TextureMipsCopyInfo = eastl::fixed_vector<BufferImageCopy, MAX_MIPMAPS, false>;
+using RootConstatInfo = eastl::fixed_vector<uint32_t, MAX_ROOT_CONSTANTS, false>;
 
 } // namespace drv3d_dx12

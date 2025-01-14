@@ -1,0 +1,14 @@
+[submodule "external/sjson-cpp"]
+	path = external/sjson-cpp
+	url = https://github.com/nfrechette/sjson-cpp
+	branch = develop
+[submodule "external/catch2"]
+	path = external/catch2
+	url = https://github.com/catchorg/Catch2
+[submodule "external/rtm"]
+	path = external/rtm
+	url = https://github.com/nfrechette/rtm.git
+	branch = develop
+[submodule "external/benchmark"]
+	path = external/benchmark
+	url = https://github.com/google/benchmark

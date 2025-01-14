@@ -73,28 +73,24 @@ def gather ( ch:Channel?; blk:block<(arg:auto(TT)#):void>)
     //! reads input from the channel (in order it was pushed) and invokes the block on each input.
     //! afterwards input is consumed
     _builtin_channel_gather(ch) <| $ ( var data : void?  )
-        var pv = unsafe(reinterpret<int?> data)
         invoke(blk, *(unsafe(reinterpret<TT?#> data)))
 
 def gather_ex ( ch:Channel?; blk:block<(arg:auto(TT)#; info:TypeInfo const?; var ctx:Context):void>)
     //! reads input from the channel (in order it was pushed) and invokes the block on each input.
     //! afterwards input is consumed
     _builtin_channel_gather_ex(ch) <| $ ( var data : void?; info:TypeInfo const?; var ctx:Context )
-        var pv = unsafe(reinterpret<int?> data)
         invoke(blk, *(unsafe(reinterpret<TT?#> data)), info, ctx)
 
 def gather_and_forward ( ch,toCh:Channel?; blk:block<(arg:auto(TT)#):void>)
     //! reads input from the channel (in order it was pushed) and invokes the block on each input.
     //! afterwards input is consumed
     _builtin_channel_gather_and_forward(ch,toCh) <| $ ( var data : void?  )
-        var pv = unsafe(reinterpret<int?> data)
         invoke(blk, *(unsafe(reinterpret<TT?#> data)))
 
 def peek ( ch:Channel?; blk:block<(arg:auto(TT)#):void>)
     //! reads input from the channel (in order it was pushed) and invokes the block on each input.
     //! afterwards input is not consumed
     _builtin_channel_peek(ch) <| $ ( var data : void?  )
-        var pv = unsafe(reinterpret<int?> data)
         invoke(blk, *(unsafe(reinterpret<TT?#> data)))
 
 

@@ -122,15 +122,20 @@ VECTORCALL VECMATH_FINLINE bool v_test_all_bits_zeros(vec4f a);
 VECTORCALL VECMATH_FINLINE bool v_test_all_bits_ones(vec4f a);
 VECTORCALL VECMATH_FINLINE bool v_test_any_bit_set(vec4f a);
 
-//! component-wise integer check x!=0 && y!=0 && z!=0 && w!=0
-VECTORCALL VECMATH_FINLINE bool v_check_xyzw_all_not_zeroi(vec4f a);
+//! component-wise check that ALL selected components set to true (0xFFFFFFFF), not to false (0). Result for values between is UB!
+VECTORCALL VECMATH_FINLINE bool v_check_xyzw_all_true(vec4f a);
+VECTORCALL VECMATH_FINLINE bool v_check_xyz_all_true(vec4f a);
+VECTORCALL VECMATH_FINLINE bool v_check_xy_all_true(vec4f a);
 
-//! component-wise integer check !x && !y && !z
-VECTORCALL VECMATH_FINLINE bool v_check_xyz_all_zeroi(vec4f a);
-//! component-wise integer check x && y && z
-VECTORCALL VECMATH_FINLINE bool v_check_xyz_all_not_zeroi(vec4f a);
-//! component-wise integer check x || y || z
-VECTORCALL VECMATH_FINLINE bool v_check_xyz_any_not_zeroi(vec4f a);
+//! component-wise check that ANY of selected components set to true (0xFFFFFFFF), not to false (0). Result for values between is UB!
+VECTORCALL VECMATH_FINLINE bool v_check_xyzw_any_true(vec4f a);
+VECTORCALL VECMATH_FINLINE bool v_check_xyz_any_true(vec4f a);
+VECTORCALL VECMATH_FINLINE bool v_check_xy_any_true(vec4f a);
+
+//! component-wise check that ALL selected components set to false (0), not to true (0xFFFFFFFF). Result for values between is UB!
+VECTORCALL VECMATH_FINLINE bool v_check_xyzw_all_false(vec4f a);
+VECTORCALL VECMATH_FINLINE bool v_check_xyz_all_false(vec4f a);
+VECTORCALL VECMATH_FINLINE bool v_check_xy_all_false(vec4f a);
 
 //! component-wise comparison: for C={xyzw}  .C = a.C==b.C ? 0xFFFFFFFF : 0
 VECTORCALL VECMATH_FINLINE vec4f v_cmp_eq(vec4f a, vec4f b);
@@ -583,16 +588,25 @@ VECTORCALL VECMATH_FINLINE vec4f v_norm4_safe(vec4f a, vec4f def);
 VECTORCALL VECMATH_FINLINE vec4f v_norm3_safe(vec3f a, vec3f def);
 VECTORCALL VECMATH_FINLINE vec4f v_norm2_safe(vec4f a, vec4f def);
 
+//! reset NaN values to 0.f component-wise
 VECTORCALL VECMATH_FINLINE vec4f v_remove_nan(vec4f a);
 //! check for NaN component-wise
 VECTORCALL VECMATH_FINLINE vec4f v_is_nan(vec4f a);
-//! check for negative value component-wise
+//! check that values are finite numbers and not NaN component-wise
+VECTORCALL VECMATH_FINLINE vec4f v_is_finite(vec4f a);
+VECTORCALL VECMATH_FINLINE vec4f v_is_not_finite(vec4f a);
+  //! check for negative value component-wise
 VECTORCALL VECMATH_FINLINE vec4f v_is_neg(vec4f a);
 //! check for NaN in any of component
 VECTORCALL VECMATH_FINLINE bool v_test_xyzw_nan(vec4f a);
 VECTORCALL VECMATH_FINLINE bool v_test_xyz_nan(vec3f a);
 VECTORCALL VECMATH_FINLINE bool v_test_mat43_nan(mat44f m);
 VECTORCALL VECMATH_FINLINE bool v_test_mat44_nan(mat44f m);
+//! check for finite value all selected components
+VECTORCALL VECMATH_FINLINE bool v_test_xyzw_finite(vec4f a);
+VECTORCALL VECMATH_FINLINE bool v_test_xyz_finite(vec3f a);
+VECTORCALL VECMATH_FINLINE bool v_test_xy_finite(vec4f a);
+VECTORCALL VECMATH_FINLINE bool v_test_x_finite(vec4f a);
 //! nans and infs converted to zero
 VECTORCALL VECMATH_FINLINE vec4f v_remove_not_finite(vec4f a);
 //! test that all of .xyz less than limit by absolute value

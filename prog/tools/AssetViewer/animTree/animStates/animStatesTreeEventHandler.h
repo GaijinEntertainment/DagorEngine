@@ -3,6 +3,7 @@
 
 #include "animStatesData.h"
 #include <propPanel/control/treeInterface.h>
+#include <propPanel/c_control_event_handler.h>
 #include <sepGui/wndMenuInterface.h>
 
 class DagorAsset;
@@ -15,6 +16,7 @@ public:
     PropPanel::ITreeInterface &tree_interface) override;
   virtual int onMenuItemClick(unsigned id) override;
   void setAsset(DagorAsset *cur_asset);
+  void setPluginEventHandler(PropPanel::ContainerPropertyControl *panel, PropPanel::ControlEventHandler *event_handler);
 
 private:
   PropPanel::TLeafHandle selLeaf = nullptr;
@@ -22,4 +24,7 @@ private:
   DagorAsset *asset = nullptr;
   dag::Vector<AnimStatesData> &states;
   dag::Vector<String> &paths;
+
+  PropPanel::ContainerPropertyControl *pluginPanel = nullptr;
+  PropPanel::ControlEventHandler *pluginEventHandler = nullptr;
 };

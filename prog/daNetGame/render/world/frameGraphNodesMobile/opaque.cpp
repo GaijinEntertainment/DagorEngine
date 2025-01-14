@@ -370,9 +370,6 @@ dabfg::NodeHandle mk_opaque_begin_rp_node()
 
     const auto gbufferResolution = registry.getResolution<2>("main_view");
     return [renderPassTex, aimDataHndl, cameraHndl, gbufferResolution, lensRendererEnabledGlobally] {
-      // compile only one pipeline inside gbuffer pass, to reduce spikes and allow async compilation
-      d3d::driver_command(Drv3dCommand::SET_PIPELINE_COMPILATION_TIME_BUDGET, (void *)0);
-
       const auto &aimData = aimDataHndl.ref();
       if (aimData.lensRenderEnabled && lensRendererEnabledGlobally)
         return;
@@ -461,9 +458,6 @@ dabfg::NodeHandle mk_opaque_resolve_mobile_node()
     registry.requestState().setFrameBlock("global_frame");
 
     return [] {
-      // restore pipeline budgetting before resolving gbuffer
-      d3d::driver_command(Drv3dCommand::SET_PIPELINE_COMPILATION_TIME_BUDGET, (void *)-1);
-
       d3d::next_subpass();
       auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
       wr.mobileRp.deferredResolve->render();
@@ -586,9 +580,6 @@ dabfg::NodeHandle mk_opaque_setup_forward_node()
 
       const Point3 viewPos = camera.viewItm.getcol(3);
       g_entity_mgr->broadcastEventImmediate(HideNodesEvent(viewPos));
-
-      // compile only one pipeline inside gbuffer pass, to reduce spikes and allow async compilation
-      d3d::driver_command(Drv3dCommand::SET_PIPELINE_COMPILATION_TIME_BUDGET, (void *)0);
     };
   });
 }
@@ -654,22 +645,13 @@ dabfg::NodeHandle mk_decals_on_dynamic_forward_node()
   return dabfg::register_node("decals_on_dynamic_forward", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
     registry.requestState().allowWireframe().setFrameBlock("global_frame");
     registry.requestRenderPass().depthRoAndBindToShaderVars("depth_opaque_dynamic", {"depth_gbuf"});
+    registry.orderMeBefore("panorama_apply_mobile");
 
     return []() {
       if (!renderer_has_feature(FeatureRenderFlags::DECALS))
         return;
       g_entity_mgr->broadcastEventImmediate(RenderDecalsOnDynamic());
     };
-  });
-}
-
-dabfg::NodeHandle mk_restore_pipeline_budgetting_forward_node()
-{
-  return dabfg::register_node("restore_pipeline_budgetting_forward", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
-    registry.orderMeAfter("decals_on_dynamic_forward");
-    registry.orderMeBefore("panorama_apply_mobile");
-
-    return []() { d3d::driver_command(Drv3dCommand::SET_PIPELINE_COMPILATION_TIME_BUDGET, (void *)-1); };
   });
 }
 

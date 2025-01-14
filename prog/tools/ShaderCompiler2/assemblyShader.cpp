@@ -1392,14 +1392,29 @@ void AssembleShaderEvalCB::handle_external_block_stat(state_block_stat &state_bl
         break;
       case VariableType::uav:
       {
-        G_ASSERT(shader_var);
-        if (!state_block.reg)
+        if (state_block.var)
         {
           bool is_global;
           int vi = get_state_var(*shader_var, shtype, is_global);
           G_ASSERT(vi > -1);
           if (shtype != SHVT_TEXTURE && shtype != SHVT_BUFFER)
             error("@uav should be declared with texture or buffer only", var);
+        }
+        else if (state_block.arr)
+        {
+          bool is_global;
+          int vi = get_state_var(*state_block.arr->arr0->expr->lhs->lhs->var_name, shtype, is_global);
+          G_ASSERT(vi > -1);
+          if (shtype != SHVT_TEXTURE && shtype != SHVT_BUFFER)
+            error("@uav should be declared with texture or buffer only", var);
+          for (const auto *elem : state_block.arr->arrN)
+          {
+            int elemType;
+            vi = get_state_var(*elem->expr->lhs->lhs->var_name, elemType, is_global);
+            G_ASSERT(vi > -1);
+            if (elemType == shtype)
+              error("@uav array can not be declared with different element types", var);
+          }
         }
         shcod = shtype == SHVT_TEXTURE ? SHCOD_RWTEX : SHCOD_RWBUF;
         name_space = stage == STAGE_VS ? NamedConstSpace::vs_uav : NamedConstSpace::uav;
@@ -1481,12 +1496,19 @@ void AssembleShaderEvalCB::handle_external_block_stat(state_block_stat &state_bl
       }
       registers_count = initializer.size() > 4 ? initializer.size() : 4;
     }
+    // @TODO: enable and test for other types if need be
     if (type != VariableType::f4 && type != VariableType::i4 && type != VariableType::u4 && type != VariableType::f44 &&
-        (initializer.size() > 1 || (state_block.arr && state_block.arr->par) || state_block.reg_arr))
+        type != VariableType::uav && (initializer.size() > 1 || (state_block.arr && state_block.arr->par) || state_block.reg_arr))
     {
-      error(String(64, "variable <%s> is of type <%s> and not @f4, @f44, @i4, @u4 and so can't be array ", var->text, nameSpace->text),
+      error(String(64, "variable <%s> is of type <%s> and not @f4, @f44, @i4, @u4, @uav and so can't be array ", var->text,
+              nameSpace->text),
         var);
     }
+
+    def_hlsl.clear();
+    if (hlsl)
+      def_hlsl = hlsl->text;
+    bool needHlslBuild = true;
 
     int hardcoded_reg = -1;
     if (state_block.reg || state_block.reg_arr)
@@ -1512,6 +1534,31 @@ void AssembleShaderEvalCB::handle_external_block_stat(state_block_stat &state_bl
 
       hardcoded_reg = getConstIntFromShadervar(shader_var);
       registers_count = state_block.reg ? 1 : getConstIntFromShadervar(size_var);
+      if (state_block.reg_arr && state_block.reg_arr->hlsl_var_text)
+      {
+        if (type == VariableType::f4)
+        {
+          // @TODO: enable once implemented
+          error("Hardcoded register arrays with custom hlsl for type @f4 (arrays of structs) are not implemented yet",
+            state_block.reg_arr->var);
+          return;
+#if 0
+          // This is a special case, and we don't want to run any more hlsl build code
+          buildArrayOfStructsHlslDeclarationInplace(def_hlsl, name_space, var, registers_count);
+          needHlslBuild = false;
+#endif
+        }
+        else if (type != VariableType::uav)
+        {
+          // @TODO: enable and test for other types if need be
+          error(String(0,
+                  "Hardcoded register arrays with custom hlsl not supported for type %s. For arrays of structs, use @f4 (not "
+                  "implemented yet)",
+                  state_block.reg_arr->var->nameSpace->text),
+            state_block.reg_arr->var);
+          return;
+        }
+      }
     }
 
     const char *var_type_str = nullptr;
@@ -1556,120 +1603,122 @@ void AssembleShaderEvalCB::handle_external_block_stat(state_block_stat &state_bl
       case VariableType::shd: var_type_str = "Texture2D"; break;
       case VariableType::tlas: var_type_str = "RaytracingAccelerationStructure"; break;
     }
-    def_hlsl.clear();
-    if (hlsl)
-      def_hlsl = hlsl->text;
 
-    const char *found_namespace = def_hlsl.find(nameSpace->text);
+    if (needHlslBuild)
+    {
+      const char *found_namespace = def_hlsl.find(nameSpace->text);
+      if ((state_block.arr || state_block.reg_arr) && type == VariableType::uav)
+        buildResourceArrayHlslDeclarationInplace(def_hlsl, name_space, var, registers_count);
 
-    while (char *p = strstr(def_hlsl, "@buf"))
-      def_hlsl.insert(p - def_hlsl.data() + 1, String(0, "%s_", profiles[stage]));
-    while (char *p = strstr(def_hlsl, "@cbuf"))
-      def_hlsl.insert(p - def_hlsl.data() + 1, String(0, "%s_", profiles[stage]));
-    while (char *p = strstr(def_hlsl, "@tex"))
-      def_hlsl.insert(p - def_hlsl.data() + 1, String(0, "%s_", profiles[stage]));
-    if (stage == STAGE_VS)
-      while (char *p = strstr(def_hlsl, "@uav"))
+      while (char *p = strstr(def_hlsl, "@buf"))
         def_hlsl.insert(p - def_hlsl.data() + 1, String(0, "%s_", profiles[stage]));
+      while (char *p = strstr(def_hlsl, "@cbuf"))
+        def_hlsl.insert(p - def_hlsl.data() + 1, String(0, "%s_", profiles[stage]));
+      while (char *p = strstr(def_hlsl, "@tex"))
+        def_hlsl.insert(p - def_hlsl.data() + 1, String(0, "%s_", profiles[stage]));
+      if (stage == STAGE_VS)
+        while (char *p = strstr(def_hlsl, "@uav"))
+          def_hlsl.insert(p - def_hlsl.data() + 1, String(0, "%s_", profiles[stage]));
 
-    if (var_type_str)
-    {
-      if (!def_hlsl.empty())
-        def_hlsl += '\n';
-      char tempbuf[512];
-      tempbuf[0] = 0;
-      if ((type == VariableType::i4 || type == VariableType::u4 || type == VariableType::f4) && registers_count > 1)
-        SNPRINTF(tempbuf, sizeof(tempbuf), "%s %s[%d]: register($%s%s);", var_type_str, var->text, (int)registers_count, var->text,
-          NamedConstBlock::nameSpaceToStr(name_space));
-      else if (type == VariableType::f44 && state_block.arr && registers_count > 4)
-        SNPRINTF(tempbuf, sizeof(tempbuf), "%s %s[%d]: register($%s%s);", var_type_str, var->text, (int)registers_count / 4, var->text,
-          NamedConstBlock::nameSpaceToStr(name_space));
-      else if (type == VariableType::f44 && state_block.arr && initializer.size() == 4)
-        SNPRINTF(tempbuf, sizeof(tempbuf), "%s %s: register($%s%s);", var_type_str, var->text, var->text,
-          NamedConstBlock::nameSpaceToStr(name_space));
-      else if ((type == VariableType::staticSampler || type == VariableType::staticCube || type == VariableType::staticTexArray) &&
-               isBindless)
-        SNPRINTF(tempbuf, sizeof(tempbuf), "uint2 %s: register($%s%s);", varName.c_str(), var->text,
-          NamedConstBlock::nameSpaceToStr(name_space));
-      else
+      if (var_type_str)
       {
-        if (type == VariableType::tex2d || type == VariableType::texArray || type == VariableType::tex3d ||
-            type == VariableType::texCube || type == VariableType::texCubeArray)
-          SNPRINTF(tempbuf, sizeof(tempbuf), "%s %s%s;", var_type_str, var->text, String(0, "@%s_tex", profiles[stage]).c_str());
-        else
-          SNPRINTF(tempbuf, sizeof(tempbuf), "%s %s%s;", var_type_str, var->text, NamedConstBlock::nameSpaceToStr(name_space));
-        def_hlsl += tempbuf;
+        if (!def_hlsl.empty())
+          def_hlsl += '\n';
+        char tempbuf[512];
         tempbuf[0] = 0;
+        if ((type == VariableType::i4 || type == VariableType::u4 || type == VariableType::f4) && registers_count > 1)
+          SNPRINTF(tempbuf, sizeof(tempbuf), "%s %s[%d]: register($%s%s);", var_type_str, var->text, (int)registers_count, var->text,
+            NamedConstBlock::nameSpaceToStr(name_space));
+        else if (type == VariableType::f44 && state_block.arr && registers_count > 4)
+          SNPRINTF(tempbuf, sizeof(tempbuf), "%s %s[%d]: register($%s%s);", var_type_str, var->text, (int)registers_count / 4,
+            var->text, NamedConstBlock::nameSpaceToStr(name_space));
+        else if (type == VariableType::f44 && state_block.arr && initializer.size() == 4)
+          SNPRINTF(tempbuf, sizeof(tempbuf), "%s %s: register($%s%s);", var_type_str, var->text, var->text,
+            NamedConstBlock::nameSpaceToStr(name_space));
+        else if ((type == VariableType::staticSampler || type == VariableType::staticCube || type == VariableType::staticTexArray) &&
+                 isBindless)
+          SNPRINTF(tempbuf, sizeof(tempbuf), "uint2 %s: register($%s%s);", varName.c_str(), var->text,
+            NamedConstBlock::nameSpaceToStr(name_space));
+        else
+        {
+          if (type == VariableType::tex2d || type == VariableType::texArray || type == VariableType::tex3d ||
+              type == VariableType::texCube || type == VariableType::texCubeArray)
+            SNPRINTF(tempbuf, sizeof(tempbuf), "%s %s%s;", var_type_str, var->text, String(0, "@%s_tex", profiles[stage]).c_str());
+          else
+            SNPRINTF(tempbuf, sizeof(tempbuf), "%s %s%s;", var_type_str, var->text, NamedConstBlock::nameSpaceToStr(name_space));
+          def_hlsl += tempbuf;
+          tempbuf[0] = 0;
 
-        if (type == VariableType::shd || type == VariableType::shdArray)
-          def_hlsl.aprintf(0, "SamplerComparisonState %s_cmpSampler:register($%s@shd);", var->text, var->text);
+          if (type == VariableType::shd || type == VariableType::shdArray)
+            def_hlsl.aprintf(0, "SamplerComparisonState %s_cmpSampler:register($%s@shd);", var->text, var->text);
 
-        if (type == VariableType::staticSampler)
-          def_hlsl.aprintf(0,
-            "TextureSampler get_%s()\n"
-            "{\n"
-            "  TextureSampler texSamp;\n"
-            "  texSamp.tex = %s;\n"
-            "  texSamp.smp = %s_samplerstate;\n"
-            "  return texSamp;\n"
-            "}\n",
-            var->text, var->text, var->text, var->text, var->text);
-        if (type == VariableType::staticCube)
-          def_hlsl.aprintf(0,
-            "TextureSamplerCube get_%s()\n"
-            "{\n"
-            "  TextureSamplerCube texSamp;\n"
-            "  texSamp.tex = %s;\n"
-            "  texSamp.smp = %s_samplerstate;\n"
-            "  return texSamp;\n"
-            "}\n",
-            var->text, var->text, var->text);
-        if (type == VariableType::staticCubeArray)
-          def_hlsl.aprintf(0,
-            "TextureCubeArraySampler get_%s()\n"
-            "{\n"
-            "  TextureCubeArraySampler texSamp;\n"
-            "  texSamp.tex = %s;\n"
-            "  texSamp.smp = %s_samplerstate;\n"
-            "  return texSamp;\n"
-            "}\n",
-            var->text, var->text, var->text);
-        if (type == VariableType::staticTexArray)
-          def_hlsl.aprintf(0,
-            "TextureArraySampler get_%s()\n"
-            "{\n"
-            "  TextureArraySampler texSamp;\n"
-            "  texSamp.tex = %s;\n"
-            "  texSamp.smp = %s_samplerstate;\n"
-            "  return texSamp;\n"
-            "}\n",
-            var->text, var->text, var->text);
-        if (type == VariableType::staticTex3D)
-          def_hlsl.aprintf(0,
-            "Texture3DSampler get_%s()\n"
-            "{\n"
-            "  Texture3DSampler texSamp;\n"
-            "  texSamp.tex = %s;\n"
-            "  texSamp.smp = %s_samplerstate;\n"
-            "  return texSamp;\n"
-            "}\n",
-            var->text, var->text, var->text);
+          if (type == VariableType::staticSampler)
+            def_hlsl.aprintf(0,
+              "TextureSampler get_%s()\n"
+              "{\n"
+              "  TextureSampler texSamp;\n"
+              "  texSamp.tex = %s;\n"
+              "  texSamp.smp = %s_samplerstate;\n"
+              "  return texSamp;\n"
+              "}\n",
+              var->text, var->text, var->text, var->text, var->text);
+          if (type == VariableType::staticCube)
+            def_hlsl.aprintf(0,
+              "TextureSamplerCube get_%s()\n"
+              "{\n"
+              "  TextureSamplerCube texSamp;\n"
+              "  texSamp.tex = %s;\n"
+              "  texSamp.smp = %s_samplerstate;\n"
+              "  return texSamp;\n"
+              "}\n",
+              var->text, var->text, var->text);
+          if (type == VariableType::staticCubeArray)
+            def_hlsl.aprintf(0,
+              "TextureCubeArraySampler get_%s()\n"
+              "{\n"
+              "  TextureCubeArraySampler texSamp;\n"
+              "  texSamp.tex = %s;\n"
+              "  texSamp.smp = %s_samplerstate;\n"
+              "  return texSamp;\n"
+              "}\n",
+              var->text, var->text, var->text);
+          if (type == VariableType::staticTexArray)
+            def_hlsl.aprintf(0,
+              "TextureArraySampler get_%s()\n"
+              "{\n"
+              "  TextureArraySampler texSamp;\n"
+              "  texSamp.tex = %s;\n"
+              "  texSamp.smp = %s_samplerstate;\n"
+              "  return texSamp;\n"
+              "}\n",
+              var->text, var->text, var->text);
+          if (type == VariableType::staticTex3D)
+            def_hlsl.aprintf(0,
+              "Texture3DSampler get_%s()\n"
+              "{\n"
+              "  Texture3DSampler texSamp;\n"
+              "  texSamp.tex = %s;\n"
+              "  texSamp.smp = %s_samplerstate;\n"
+              "  return texSamp;\n"
+              "}\n",
+              var->text, var->text, var->text);
+        }
+        if (tempbuf[0])
+          def_hlsl += tempbuf;
       }
-      if (tempbuf[0])
-        def_hlsl += tempbuf;
-    }
-    else if (!found_namespace)
-    {
-      error(String(32, "named const <%s> must contain the namespace `%s`", var->text, nameSpace->text), var);
-    }
+      else if (!found_namespace)
+      {
+        error(String(32, "named const <%s> must contain the namespace `%s`", var->text, nameSpace->text), var);
+      }
 
-    if (type == VariableType::smp2d && shader_var)
-    {
-      int vt;
-      bool is_global;
-      int var_id = get_state_var(*shader_var, vt, is_global);
-      if (!is_global && !code.vars[var_id].dynamic)
-        error(String(0, "Texture %s in material should use @static.", shader_var->text), var);
+      if (type == VariableType::smp2d && shader_var)
+      {
+        int vt;
+        bool is_global;
+        int var_id = get_state_var(*shader_var, vt, is_global);
+        if (!is_global && !code.vars[var_id].dynamic)
+          error(String(0, "Texture %s in material should use @static.", shader_var->text), var);
+      }
     }
 
     if (!def_hlsl.empty())
@@ -1929,7 +1978,6 @@ void AssembleShaderEvalCB::handle_external_block_stat(state_block_stat &state_bl
       }
       else
       {
-        G_ASSERT(initI == 0);
         G_ASSERT(value->expr->lhs->lhs->var_name);
         int var_type;
         bool is_global;
@@ -1943,10 +1991,19 @@ void AssembleShaderEvalCB::handle_external_block_stat(state_block_stat &state_bl
           continue;
         }
 
+        auto getTextureSamplerInfo = [](VariableType tex_type) {
+          const bool isShadowSampler = tex_type == VariableType::shd || tex_type == VariableType::shdArray;
+          const bool needSampler = (tex_type == VariableType::smp || tex_type == VariableType::smp2d ||
+                                    tex_type == VariableType::smp3d || tex_type == VariableType::smpCube ||
+                                    tex_type == VariableType::smpArray || tex_type == VariableType::smpCubeArray || isShadowSampler);
+          return eastl::make_pair(needSampler, isShadowSampler);
+        };
+
         if (is_global)
         {
           if (shtype == SHVT_SAMPLER)
           {
+            G_ASSERT(initI == 0);
             const char *samplerName = value->expr->lhs->lhs->var_name->text;
             Sampler *smp = g_sampler_table.get(samplerName);
             if (!smp)
@@ -2124,20 +2181,18 @@ void AssembleShaderEvalCB::handle_external_block_stat(state_block_stat &state_bl
           curpass->push_stcode(shaderopcode::makeOp2(gc, int(reg), var_id));
           if (shcod == SHCOD_BUFFER || shcod == SHCOD_CONST_BUFFER || shcod == SHCOD_TLAS)
           {
+            G_ASSERT(initI == 0);
             curpass->push_stcode(shaderopcode::makeOpStageSlot(shcod, stage, id, int(reg)));
           }
           else
           {
-            curpass->push_stcode(shaderopcode::makeOp3(shcod, id, 0, int(reg)));
-            const bool isShadowSampler = type == VariableType::shd || type == VariableType::shdArray;
-            const bool needSampler = (type == VariableType::smp || type == VariableType::smp2d || type == VariableType::smp3d ||
-                                      type == VariableType::smpCube || type == VariableType::smpArray ||
-                                      type == VariableType::smpCubeArray || isShadowSampler);
+            curpass->push_stcode(shaderopcode::makeOp3(shcod, id, initI, int(reg)));
+            const auto [needSampler, isShadowSampler] = getTextureSamplerInfo(type);
             if (shtype == SHVT_FLOAT4X4)
             {
-              curpass->push_stcode(shaderopcode::makeOp3(shcod, id, 1, int(reg) + 1 * 4));
-              curpass->push_stcode(shaderopcode::makeOp3(shcod, id, 2, int(reg) + 2 * 4));
-              curpass->push_stcode(shaderopcode::makeOp3(shcod, id, 3, int(reg) + 3 * 4));
+              curpass->push_stcode(shaderopcode::makeOp3(shcod, id, initI + 1, int(reg) + 1 * 4));
+              curpass->push_stcode(shaderopcode::makeOp3(shcod, id, initI + 2, int(reg) + 2 * 4));
+              curpass->push_stcode(shaderopcode::makeOp3(shcod, id, initI + 3, int(reg) + 3 * 4));
 
               StcodeExpression expr;
               expr.specifyNextExprElement(StcodeExpression::ElementType::GLOBVAR, value->expr->lhs->lhs->var_name->text);
@@ -2146,12 +2201,13 @@ void AssembleShaderEvalCB::handle_external_block_stat(state_block_stat &state_bl
             }
             else if (shtype == SHVT_TEXTURE && needSampler)
             {
-              ShaderTerminal::sampler_decl fakeSamplerDeclaration;
+              ShaderTerminal::sampler_decl fakeSamplerDeclaration{};
               const char *bindSuffix = isShadowSampler ? "_cmpSampler" : "_samplerstate";
               const String samplerName(0, "%s_samplerstate", shader_var->text);
               SHTOK_ident samplerNameIdent;
               fakeSamplerDeclaration.name = &samplerNameIdent;
               fakeSamplerDeclaration.name->text = samplerName.c_str();
+              fakeSamplerDeclaration.is_always_referenced = nullptr;
               g_sampler_table.add(fakeSamplerDeclaration, parser);
               int var_type;
               bool is_global;
@@ -2175,9 +2231,33 @@ void AssembleShaderEvalCB::handle_external_block_stat(state_block_stat &state_bl
           if (!dyn)
             shConst.markStatic(id, name_space);
 
+          const auto [needSampler, isShadowSampler] = getTextureSamplerInfo(type);
+          if (dyn && needSampler)
+          {
+            ShaderTerminal::sampler_decl fakeSamplerDeclaration;
+            const char *bindSuffix = isShadowSampler ? "_cmpSampler" : "_samplerstate";
+            const String samplerName(0, "%s_samplerstate", shader_var->text);
+            SHTOK_ident samplerNameIdent;
+            fakeSamplerDeclaration.name = &samplerNameIdent;
+            fakeSamplerDeclaration.name->text = samplerName.c_str();
+
+            add_dynamic_sampler_for_stcode(code, sclass, fakeSamplerDeclaration, parser);
+
+            int var_type;
+            bool is_global;
+            int samplerVarId = get_state_var(*fakeSamplerDeclaration.name, var_type, is_global);
+
+            // Stage is not used for non-global sampler
+            curpass->push_stcode(shaderopcode::makeOpStageSlot(SHCOD_SAMPLER, 0, id, samplerVarId));
+
+            const String samplerBindPointName(0, "%s%s", var->text, bindSuffix);
+            curpass->get_alt_curcppcode(true).addShaderResource(orig_stage, StcodeRoutine::ResourceType::SAMPLER,
+              samplerBindPointName.c_str(), samplerName.c_str(), id);
+          }
+
           Register reg = add_reg(shtype);
           buffer[0] = shaderopcode::makeOp2(SHCOD_GET_TEX, int(reg), var_id);
-          buffer[1] = shaderopcode::makeOp3(shcod, id, 0, int(reg));
+          buffer[1] = shaderopcode::makeOp3(shcod, id, initI, int(reg));
 
           curpass->append_alt_stcode(dyn, make_span_const(buffer, 2));
           // @NOTE: stage gets manually changed to PS for bindless textures higher as a hack
@@ -2189,6 +2269,94 @@ void AssembleShaderEvalCB::handle_external_block_stat(state_block_stat &state_bl
     if (curpass->get_alt_curstcode(true).size() > stcode_size)
       stcode_vars.push_back(var);
   }
+}
+
+bool AssembleShaderEvalCB::buildArrayOfStructsHlslDeclarationInplace(String &hlsl_src, NamedConstSpace name_space, Terminal *var,
+  int reg_count)
+{
+  return false; // Not implemented
+
+// @NOTE: dx11's hlsl doesn't know sizeof, so this approach does not work. @TODO: reimplement with c++ codegen & run for validation and
+// sizeof calc.
+#if 0
+  G_ASSERT(name_space == NamedConstSpace::vsf || name_space == NamedConstSpace::psf || name_space == NamedConstSpace::csf);
+  const char *hlsl = hlsl_src.c_str();
+  const char *ns = NamedConstBlock::nameSpaceToStr(name_space);
+  const char *placeholder = strstr(hlsl, ns);
+  const size_t placeholderLen = strlen(ns);
+  if (!placeholder)
+  {
+    error("Hardcoded register arrays with custom hlsl for numeric constant has to have a @vsf/@csf/@psf placeholder", var);
+    return false;
+  }
+  else if (placeholder == hlsl)
+  {
+    error("Invalid hlsl snippet", var);
+    return false;
+  }
+
+  auto consumeTokenInReverse = [](const char *&from, const char *lower_bound) {
+    const char *end = from - 1;
+    while (fast_isspace(*end) && end >= lower_bound)
+      --end;
+    const char *begin = end;
+    while (fast_isalnum_or_(*begin) && begin >= lower_bound)
+      --begin;
+    ++begin;
+    ++end;
+    from = begin;
+    return eastl::string_view{begin, (size_t)(end - begin)};
+  };
+
+  const char *p = placeholder;
+  const auto varName = consumeTokenInReverse(p, hlsl);
+  // @TODO: validate varName == stcode var name, and better error messages
+  if (varName.empty())
+  {
+    error("Invalid hlsl snippet", var);
+    return false;
+  }
+  const auto typeName = consumeTokenInReverse(p, hlsl);
+  if (typeName.empty())
+  {
+    error("Invalid hlsl snippet", var);
+    return false;
+  }
+
+  eastl::string customHardcodedArraySizeExpr{eastl::string::CtorSprintf{},
+    "[%d / ((sizeof(%.*s) - 1) / sizeof(float4) + 1)] : register($%s%s);", reg_count, typeName.length(), typeName.data(), var->text,
+    ns};
+
+  // We abuse the fact that different-length arrays can't share the same base register in hlsl for validation. There two declarations
+  // are not to be used from code, but they only match the original one if the struct size is a multiple of 16 bytes, and the amount of
+  // registers provided exactly fist a whole number of structs. The error message is not the clearest, but without hlsl parsing it's
+  // the best we can get.
+  eastl::string innerCheckerDecl{eastl::string::CtorSprintf{},
+    "%.*s %.*s_inner_size_checker__[%d / (sizeof(%.*s) / sizeof(float4))] : register($%s%s);", typeName.length(), typeName.data(),
+    varName.length(), varName.data(), reg_count, typeName.length(), typeName.data(), var->text, ns};
+  eastl::string outerCheckerDecl{eastl::string::CtorSprintf{},
+    " %.*s %.*s_outer_size_checker__[(%d - 1) / (sizeof(%.*s) / sizeof(float4)) + 1] : register($%s%s);", typeName.length(),
+    typeName.data(), varName.length(), varName.data(), reg_count, typeName.length(), typeName.data(), var->text, ns};
+
+  hlsl_src.replace(ns, (customHardcodedArraySizeExpr + " " + innerCheckerDecl + " " + outerCheckerDecl).c_str());
+  return true;
+#endif
+}
+
+bool AssembleShaderEvalCB::buildResourceArrayHlslDeclarationInplace(String &hlsl_src, NamedConstSpace name_space, Terminal *var,
+  int reg_count)
+{
+  G_ASSERT(name_space != NamedConstSpace::vsf || name_space != NamedConstSpace::psf || name_space != NamedConstSpace::csf);
+  const char *hlsl = hlsl_src.c_str();
+  const char *ns = NamedConstBlock::nameSpaceToStr(name_space);
+  const char *placeholder = strstr(hlsl, ns);
+  if (!placeholder)
+  {
+    error("Invalid hlsl snippet", var);
+    return false;
+  }
+  hlsl_src.replace(ns, String(0, "[%d] : register($%s%s)", reg_count, var->text, ns).c_str());
+  return true;
 }
 
 void AssembleShaderEvalCB::eval_supports(supports_stat &s)
@@ -2347,13 +2515,20 @@ bool AssembleShaderEvalCB::compareHWToken(int hw_token, const ShHardwareOptions 
     case SHADER_TOKENS::SHTOK_fsh_6_6: return opt.fshVersion >= 6.6_sm;
 
     case SHADER_TOKENS::SHTOK_pc: // backward comp
-#if _CROSS_TARGET_DX11
+#if _CROSS_TARGET_DX12
+      return shc::config().targetPlatform == dx12::dxil::Platform::PC;
+#elif _CROSS_TARGET_DX11
       return true;
+#elif _CROSS_TARGET_SPIRV
+      return shc::config().usePcToken;
+#elif _CROSS_TARGET_METAL
+      return !shc::config().useIosToken;
 #else
       return false;
 #endif
       break;
 
+    // @TODO: exclude _CROSS_TARGET_DX12 from here (but some obscure stuff could break, so careful)
     case SHADER_TOKENS::SHTOK_dx11:
 #if _CROSS_TARGET_DX11 | _CROSS_TARGET_EMPTY
       return true;
@@ -3256,6 +3431,11 @@ public:
     profile = hlsl.profile;
     hlsl_compile_token = hlsl.compile->profile;
     enableFp16 = ascb->curpass->enableFp16;
+#if _CROSS_TARGET_METAL || _CROSS_TARGET_SPIRV
+    // we can't rely on curpass cause its shared between vs and ps
+    if (str_ends_with_c(profile, "_half"))
+      enableFp16 = true;
+#endif
     curpass = ascb->curpass;
     parser = &ascb->parser.get_lex_parser();
     shaderName = ascb->shname_token->text;
@@ -3266,7 +3446,7 @@ public:
     String src_predefines;
     src_predefines.printf(0, "#define _SHADER_STAGE_%cS 1\n", toupper(profile[0]));
     src_predefines += AssembleShaderEvalCB::getBuiltHwDefines();
-    if (ascb->curpass->enableFp16)
+    if (enableFp16)
       src_predefines += "#define _USE_HALFS 1\n";
 
     CodeSourceBlocks &code = *getSourceBlocks(profile);
@@ -3721,13 +3901,13 @@ void CompileShaderJob::doJobBody()
 
 
 #elif _CROSS_TARGET_METAL
-  compile_result = compileShaderMetal(source, profile, entry, !shc::config().hlslNoDisassembly, shc::config().enableFp16,
+  compile_result = compileShaderMetal(source, profile, entry, !shc::config().hlslNoDisassembly, enableFp16,
     shc::config().hlslSkipValidation, localHlslOptimizationLevel ? true : false, max_constants_no, shaderName,
     shc::config().useIosToken, shc::config().useBinaryMsl, shader_variant_hash);
 #elif _CROSS_TARGET_SPIRV
-  compile_result = compileShaderSpirV(source, profile, entry, !shc::config().hlslNoDisassembly, shc::config().enableFp16,
+  compile_result = compileShaderSpirV(source, profile, entry, !shc::config().hlslNoDisassembly, enableFp16,
     shc::config().hlslSkipValidation, localHlslOptimizationLevel ? true : false, max_constants_no, shaderName,
-    shc::config().compilerDXC      ? CompilerMode::DXC
+    shc::config().compilerDXC ? CompilerMode::DXC
     : shc::config().compilerHlslCc ? CompilerMode::HLSLCC
                                    : CompilerMode::DEFAULT,
     shader_variant_hash, shc::config().enableBindless, shc::config().hlslDebugLevel != DebugLevel::NONE);

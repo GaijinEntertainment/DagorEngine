@@ -667,7 +667,7 @@ __forceinline bool CollisionResource::forEachIntersectedNode(mat44f original_tm,
     const float eps = eastl::min(0.008f, 0.1f / getBoundingSphereRad());
     // Scaled tm requires more complicated norm calculation code and additional T conversion from world to local basis and back
     vec3f otmMask = v_and(v_cmp_gt(xyzzScaleSq, v_splats(1.f - eps)), v_cmp_lt(xyzzScaleSq, v_splats(1.f + eps)));
-    bool bIsOrthonormalizedTm = v_check_xyzw_all_not_zeroi(otmMask);
+    bool bIsOrthonormalizedTm = v_check_xyzw_all_true(otmMask);
 
 #if VERIFY_TRACE_RESULTS
     dag::Vector<CollisionTrace> initialTraces(traces.begin(), traces.end());
@@ -2427,19 +2427,18 @@ bool CollisionResource::testInclusion(const CollisionNode &node_to_test, const T
 }
 
 VECTORCALL bool CollisionResource::rayHit(const mat44f &tm, const Point3 &from, const Point3 &dir, float in_t, int ray_mat_id,
-  int &out_mat_id) const
+  int &out_mat_id, uint8_t behavior_filter) const
 {
-  uint8_t behaviorFilter = CollisionNode::TRACEABLE;
-
   auto nodeFilter = [&](const CollisionNode *node) -> bool {
-    return ray_mat_id == PHYSMAT_INVALID || PhysMat::isMaterialsCollide(ray_mat_id, node->physMatId);
+    return node->checkBehaviorFlags(behavior_filter) &&
+           (ray_mat_id == PHYSMAT_INVALID || PhysMat::isMaterialsCollide(ray_mat_id, node->physMatId));
   };
   auto callback = [&](int /*trace_id*/, const CollisionNode *node, float /*t*/, vec3f /*normal*/, vec3f /*pos*/) {
     out_mat_id = node->physMatId;
   };
 
   return forEachIntersectedNode<ANY_ONE_INTERSECTION, CollisionTraceType::RAY_HIT>(tm, nullptr /*geom_node_tree*/, v_ldu(&from.x),
-    v_ldu(&dir.x), in_t, false /*out_normal*/, 1.f /*bsphere_scale*/, behaviorFilter, nodeFilter, callback, nullptr /*stats*/,
+    v_ldu(&dir.x), in_t, false /*out_normal*/, 1.f /*bsphere_scale*/, behavior_filter, nodeFilter, callback, nullptr /*stats*/,
     false /*force_no_cull*/);
 }
 
@@ -2451,7 +2450,7 @@ VECTORCALL bool CollisionResource::rayHit(const TMatrix &instance_tm, const Geom
   uint8_t behaviorFilter = CollisionNode::TRACEABLE;
 
   auto nodeFilter = [&](const CollisionNode *node) -> bool {
-    return (!collision_node_mask || collision_node_mask->test(node->nodeIndex, true));
+    return node->checkBehaviorFlags(behaviorFilter) && (!collision_node_mask || collision_node_mask->test(node->nodeIndex, true));
   };
 
   auto callback = [out_mat_id](int /*trace_id*/, const CollisionNode *node, float /*t*/, vec3f /*normal*/, vec3f /*pos*/) {

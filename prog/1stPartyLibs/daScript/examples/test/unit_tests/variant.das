@@ -94,6 +94,8 @@ def test
     assert(t2[0] is i_value && t2[0] as i_value==1u)
     assert(t2[1] is f_value && t2[1] as f_value==2.0)
 
+    // with the latest changes ?. is now same as ?as
+    /*
     var f : Foo
     var fp : Foo?
     unsafe
@@ -103,6 +105,7 @@ def test
         f.t = addr(t)
         assert ( fp?.t?.i_value ?? 15u == 0x3f800000 )                  // unsafe ?.i_value
         assert ( fp?.t ?as i_value ?? 15u == 15u )
+    */
 
     var x : IorA
     unsafe

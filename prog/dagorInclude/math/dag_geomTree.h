@@ -269,7 +269,7 @@ public:
   static void TMatrix_to_mat44f(const TMatrix &m, mat44f &out_m) { v_mat44_make_from_43cu(out_m, m.array); }
   static bool is_valid_pos(vec3f pos, float valid_world_rad = 1e6f)
   {
-    return !v_test_xyz_nan(pos) && v_check_xyz_all_not_zeroi(v_cmp_lt(v_abs(pos), v_splats(valid_world_rad)));
+    return !v_test_xyz_nan(pos) && v_check_xyz_all_true(v_cmp_lt(v_abs(pos), v_splats(valid_world_rad)));
   }
   static bool is_valid_tm(mat44f m) { return is_valid_pos(v_add(v_add(m.col0, m.col1), v_add(m.col2, m.col3)), 4 * 1e6f); }
 

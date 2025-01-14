@@ -52,27 +52,28 @@ public:
   void removeItem(TLeafHandle item);
 
   virtual void addChildName(const char *name, TLeafHandle parent);
-  int getChildrenCount(TLeafHandle parent);
-  TLeafHandle getChild(TLeafHandle parent, int i);
+  int getChildrenCount(TLeafHandle parent) const;
+  TLeafHandle getChild(TLeafHandle parent, int i) const;
 
-  TLeafHandle getNextNode(TLeafHandle item, bool forward);
+  TLeafHandle getNextNode(TLeafHandle item, bool forward) const;
 
   TEXTUREID addImage(const char *filename);
 
   void changeItemImage(TLeafHandle item, TEXTUREID new_id);
   void changeItemStateImage(TLeafHandle item, TEXTUREID new_id);
 
-  String getItemName(TLeafHandle item);
-  void *getItemData(TLeafHandle item);
-  Tab<String> getChildNames(TLeafHandle item);
+  String getItemName(TLeafHandle item) const;
+  void *getItemData(TLeafHandle item) const;
+  Tab<String> getChildNames(TLeafHandle item) const;
   TTreeNode *getItemNode(TLeafHandle item);
+  const TTreeNode *getItemNode(TLeafHandle item) const;
 
   bool isOpen(TLeafHandle item) const;
   bool isSelected(TLeafHandle item) const;
 
-  TLeafHandle getSelectedItem();
+  TLeafHandle getSelectedItem() const;
   void setSelectedItem(TLeafHandle item);
-  TLeafHandle getRoot();
+  TLeafHandle getRoot() const;
 
   void clear();
   TLeafHandle search(const char *text, TLeafHandle first, bool forward, bool use_wildcard_search = false);
@@ -113,8 +114,6 @@ public:
   TreeViewWindow(ITreeViewEventHandler *event_handler, void *phandle, int x, int y, hdpi::Px w, hdpi::Px h, hdpi::Px ph,
     const char *caption, bool icons_show = true);
 
-  static constexpr const char *tooltipWildcard =
-    "Wildcard characters are supported. '*' matches zero or more characters, '?' matches exactly one character.";
   static constexpr const char *tooltipSearch = "- Up arrow: go to the previous match\n"
                                                "- Down arrow: go to the next match\n"
                                                "- Enter: go to the next match";
@@ -128,9 +127,9 @@ public:
 
   ~TreeListWindow();
 
-  int getListSelIndex();
+  int getListSelIndex() const;
   void setListSelIndex(int index);
-  void getListSelText(char *buffer, int buflen);
+  void getListSelText(char *buffer, int buflen) const;
 
   void setFilterAssetNames(const Tab<String> &vals);
   void setFilterStr(const char *str);

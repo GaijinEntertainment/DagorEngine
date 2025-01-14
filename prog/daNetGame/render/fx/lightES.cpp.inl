@@ -145,9 +145,55 @@ void set_up_omni_lights()
   g_entity_mgr->broadcastEvent(UpdateEffectRestrictionBoxes());
 }
 
+enum class LightUseBox
+{
+  Off = 0,
+  On = 1
+};
+enum class LightDynamicLight
+{
+  Off = 0,
+  On = 1
+};
+enum class LightContactShadows
+{
+  Off = 0,
+  On = 1
+};
+enum class LightHasShadows
+{
+  Off = 0,
+  On = 1
+};
+enum class LightHasDynamicCasters
+{
+  Off = 0,
+  On = 1
+};
+enum class LightApproximateStatic
+{
+  Off = 0,
+  On = 1
+};
+enum class LightRenderGpuObjects
+{
+  Off = 0,
+  On = 1
+};
+enum class LightAffectVolumes
+{
+  Off = 0,
+  On = 1
+};
+enum class LightLensFlares
+{
+  Off = 0,
+  On = 1
+};
+
 static __forceinline void omni_light_set(OmniLightEntity &omni_light,
   const TMatrix &transform,
-  bool light__use_box,
+  LightUseBox light__use_box,
   bool &light__automatic_box,
   bool &light__force_max_light_radius,
   TMatrix &light__box,
@@ -156,17 +202,19 @@ static __forceinline void omni_light_set(OmniLightEntity &omni_light,
   const ecs::string &light__texture_name,
   const E3DCOLOR light__color,
   float light__brightness,
-  bool omni_light__shadows,
-  bool omni_light__dynamic_obj_shadows,
+  LightHasShadows omni_light__shadows,
+  LightHasDynamicCasters omni_light__dynamic_obj_shadows,
   int omni_light__shadow_quality,
   int omni_light__priority,
   int omni_light__shadow_shrink,
   float light__radius_scale,
   float light__max_radius,
-  bool light__dynamic_light, // TODO: use a shared one with spot lights
-  bool light__contact_shadows,
-  bool light__affect_volumes,
-  bool light__render_gpu_objects)
+  LightDynamicLight light__dynamic_light, // TODO: use a shared one with spot lights
+  LightContactShadows light__contact_shadows,
+  LightApproximateStatic light__approximate_static_shadows,
+  LightAffectVolumes light__affect_volumes,
+  LightRenderGpuObjects light__render_gpu_objects,
+  LightLensFlares light__enable_lens_flares)
 {
   if (!get_renderer())
     return;
@@ -175,15 +223,16 @@ static __forceinline void omni_light_set(OmniLightEntity &omni_light,
 
   ShadowsQuality shadowQuality = get_renderer()->getSettingsShadowsQuality();
   LightShadowParams shadowParams;
-  shadowParams.isEnabled = omni_light__shadows;
-  shadowParams.isDynamic = light__dynamic_light;
+  shadowParams.isEnabled = bool(omni_light__shadows);
+  shadowParams.approximateStatic = bool(light__approximate_static_shadows);
+  shadowParams.isDynamic = bool(light__dynamic_light);
   shadowParams.supportsDynamicObjects =
-    shadowQuality >= ShadowsQuality::SHADOWS_MEDIUM || light__dynamic_light ? omni_light__dynamic_obj_shadows : false;
-  shadowParams.supportsGpuObjects = shadowQuality >= ShadowsQuality::SHADOWS_HIGH ? light__render_gpu_objects : false;
+    shadowQuality >= ShadowsQuality::SHADOWS_MEDIUM || bool(light__dynamic_light) ? bool(omni_light__dynamic_obj_shadows) : false;
+  shadowParams.supportsGpuObjects = shadowQuality >= ShadowsQuality::SHADOWS_HIGH ? bool(light__render_gpu_objects) : false;
   shadowParams.quality = omni_light__shadow_quality;
   shadowParams.shadowShrink = omni_light__shadow_shrink;
   shadowParams.priority = omni_light__priority;
-  bool contact_shadows = shadowQuality >= ShadowsQuality::SHADOWS_HIGH ? light__contact_shadows : false;
+  bool contact_shadows = shadowQuality >= ShadowsQuality::SHADOWS_HIGH ? bool(light__contact_shadows) : false;
 
   get_renderer()->updateLightShadow(omni_light.lightId, shadowParams);
   Color3 color = color3(light__color) * light__brightness;
@@ -207,7 +256,7 @@ static __forceinline void omni_light_set(OmniLightEntity &omni_light,
 
   const Point3 position = transform * light__offset;
   const Point3 direction = normalize(transform % light__direction);
-  if (!light__use_box)
+  if (light__use_box == LightUseBox::Off)
   {
     const float defaultBoxSize = radius * 3.0f;
     light__box.setcol(0, Point3{defaultBoxSize, 0, 0});
@@ -251,18 +300,24 @@ static __forceinline void omni_light_set(OmniLightEntity &omni_light,
   if (photometryTextures && tex_idx != -1)
     data = photometryTextures->getTextureData(tex_idx);
   OmniLight omniLight =
-    OmniLight(position, direction, color, radius, contact_shadows ? 1.0f : 0.f, tex_idx, data.zoom, data.rotated, light__box);
-  get_renderer()->setLightWithMask(omni_light.lightId, eastl::move(omniLight),
-    ~(light__dynamic_light || !light__affect_volumes ? OmniLightsManager::GI_LIGHT_MASK : 0), true);
+    OmniLight(position, direction, color, radius, bool(contact_shadows) ? 1.0f : 0.f, tex_idx, data.zoom, data.rotated, light__box);
+  OmniLightsManager::mask_type_t mask = ~OmniLightsManager::mask_type_t(0);
+  if (light__dynamic_light == LightDynamicLight::On || light__affect_volumes == LightAffectVolumes::Off)
+    mask &= ~OmniLightsManager::GI_LIGHT_MASK;
+  if (light__enable_lens_flares == LightLensFlares::Off)
+    mask &= ~OmniLightsManager::MASK_LENS_FLARE;
+  get_renderer()->setLightWithMask(omni_light.lightId, eastl::move(omniLight), mask, true);
 }
 
 ECS_TAG(render)
 ECS_ON_EVENT(OnRenderSettingsReady)
 ECS_TRACK(render_settings__shadowsQuality)
 ECS_REQUIRE(const ecs::string &render_settings__shadowsQuality)
+ECS_AFTER(init_shadows_es)
 static void shadows_quality_changed_es(const ecs::Event &, ecs::EntityManager &manager)
 {
   manager.broadcastEventImmediate(RecreateOmniLights());
+  manager.broadcastEventImmediate(RecreateSpotLights());
 }
 
 static inline TMatrix light_tm(ecs::EntityId eid,
@@ -317,6 +372,8 @@ static __forceinline void update_omni_light_es(const ecs::Event &evt,
   bool light__affect_volumes = true,
   bool light__render_gpu_objects = false,
   bool light__is_paused = false,
+  bool light__enable_lens_flares = false,
+  bool light__approximate_static = false,
   const TMatrix *transform = nullptr,
   const AnimV20::AnimcharBaseComponent *animchar = nullptr,
   const TMatrix *lightModTm = nullptr)
@@ -333,10 +390,14 @@ static __forceinline void update_omni_light_es(const ecs::Event &evt,
     return;
 
   const TMatrix tm = light_tm(eid, manager, transform, animchar, lightModTm);
-  omni_light_set(omni_light, tm, light__use_box, light__automatic_box, light__force_max_light_radius, light__box, light__offset,
-    light__direction, light__texture_name, light__color, light__brightness, omni_light__shadows, omni_light__dynamic_obj_shadows,
-    omni_light__shadow_quality, omni_light__priority, omni_light__shadow_shrink, light__radius_scale, light__max_radius,
-    light__dynamic_light, light__contact_shadows, light__affect_volumes, light__render_gpu_objects);
+
+  omni_light_set(omni_light, tm, LightUseBox(light__use_box), light__automatic_box, light__force_max_light_radius, light__box,
+    light__offset, light__direction, light__texture_name, light__color, light__brightness, LightHasShadows(omni_light__shadows),
+    LightHasDynamicCasters(omni_light__dynamic_obj_shadows), omni_light__shadow_quality, omni_light__priority,
+    omni_light__shadow_shrink, light__radius_scale, light__max_radius, LightDynamicLight(light__dynamic_light),
+    LightContactShadows(light__contact_shadows), LightApproximateStatic(light__approximate_static),
+    LightAffectVolumes(light__affect_volumes), LightRenderGpuObjects(light__render_gpu_objects),
+    LightLensFlares(light__enable_lens_flares));
 }
 
 ECS_TAG(render)
@@ -364,17 +425,22 @@ static __forceinline void omni_light_es(const ecs::UpdateStageInfoAct &,
   bool light__contact_shadows = true,
   bool animchar_render__enabled = true,
   bool light__affect_volumes = true,
-  bool light__render_gpu_objects = false)
+  bool light__render_gpu_objects = false,
+  bool light__enable_lens_flares = false,
+  bool light__approximate_static = false)
 {
   TMatrix transform = TMatrix::IDENT;
   animchar.getTm(transform);
   transform = transform * lightModTm;
   TMatrix emptyBoxDummy = TMatrix::ZERO;
   bool isAutomaticBoxDummy = false;
-  omni_light_set(omni_light, transform, false, isAutomaticBoxDummy, light__force_max_light_radius, emptyBoxDummy, light__offset,
-    light__direction, light__texture_name, light__color, animchar_render__enabled ? light__brightness : 0.f, omni_light__shadows,
-    omni_light__dynamic_obj_shadows, omni_light__shadow_quality, omni_light__priority, omni_light__shadow_shrink, light__radius_scale,
-    light__max_radius, light__dynamic_light, light__contact_shadows, light__affect_volumes, light__render_gpu_objects);
+  omni_light_set(omni_light, transform, LightUseBox::Off, isAutomaticBoxDummy, light__force_max_light_radius, emptyBoxDummy,
+    light__offset, light__direction, light__texture_name, light__color, animchar_render__enabled ? light__brightness : 0.f,
+    LightHasShadows(omni_light__shadows), LightHasDynamicCasters(omni_light__dynamic_obj_shadows), omni_light__shadow_quality,
+    omni_light__priority, omni_light__shadow_shrink, light__radius_scale, light__max_radius, LightDynamicLight(light__dynamic_light),
+    LightContactShadows(light__contact_shadows), LightApproximateStatic(light__approximate_static),
+    LightAffectVolumes(light__affect_volumes), LightRenderGpuObjects(light__render_gpu_objects),
+    LightLensFlares(light__enable_lens_flares));
 }
 
 static __forceinline void spot_light_set(SpotLightEntity &spot_light,
@@ -383,9 +449,9 @@ static __forceinline void spot_light_set(SpotLightEntity &spot_light,
   const ecs::string &light__texture_name,
   const E3DCOLOR light__color,
   float light__brightness,
-  bool spot_light__dynamic_light,
-  bool spot_light__shadows,
-  bool spot_light__dynamic_obj_shadows,
+  LightDynamicLight spot_light__dynamic_light,
+  LightHasShadows spot_light__shadows,
+  LightHasDynamicCasters spot_light__dynamic_obj_shadows,
   bool &light__force_max_light_radius,
   int spot_light__shadow_quality,
   int spot_light__priority,
@@ -394,37 +460,31 @@ static __forceinline void spot_light_set(SpotLightEntity &spot_light,
   float spot_light__inner_attenuation,
   float light__radius_scale,
   float light__max_radius,
-  bool light__affect_volumes,
-  bool spot_light__contact_shadows,
-  bool light__render_gpu_objects)
+  LightAffectVolumes light__affect_volumes,
+  LightContactShadows spot_light__contact_shadows,
+  LightApproximateStatic light__approximate_static_shadows,
+  LightRenderGpuObjects light__render_gpu_objects,
+  LightLensFlares light__enable_lens_flares)
 {
   if (!get_renderer())
     return;
   if (!spot_light.lightId)
     return;
 
-  bool need_shadows = spot_light__shadows;
-  bool old_only_static_casters, old_hint_dynamic;
-  uint8_t old_priority, old_shadow_size_srl;
-  uint16_t old_quality;
-  DynamicShadowRenderGPUObjects render_gpu_objects, old_render_gpu_objects;
-  render_gpu_objects = light__render_gpu_objects ? DynamicShadowRenderGPUObjects::YES : DynamicShadowRenderGPUObjects::NO;
-  bool had_shadows = get_renderer()->getShadowProperties(spot_light.lightId, old_only_static_casters, old_hint_dynamic, old_quality,
-    old_priority, old_shadow_size_srl, old_render_gpu_objects);
-  bool shadows_changed = (had_shadows != need_shadows);
-  if (!shadows_changed && had_shadows)
-    shadows_changed = (!spot_light__dynamic_obj_shadows != old_only_static_casters) || old_hint_dynamic != spot_light__dynamic_light ||
-                      old_quality != spot_light__shadow_quality || old_priority != spot_light__priority ||
-                      old_shadow_size_srl != spot_light__shadow_shrink || old_render_gpu_objects != render_gpu_objects;
+  ShadowsQuality shadowQuality = get_renderer()->getSettingsShadowsQuality();
+  LightShadowParams shadowParams;
+  shadowParams.isEnabled = bool(spot_light__shadows);
+  shadowParams.approximateStatic = bool(light__approximate_static_shadows);
+  shadowParams.isDynamic = bool(spot_light__dynamic_light);
+  shadowParams.supportsDynamicObjects =
+    shadowQuality >= ShadowsQuality::SHADOWS_MEDIUM || bool(spot_light__dynamic_light) ? bool(spot_light__dynamic_obj_shadows) : false;
+  shadowParams.supportsGpuObjects = shadowQuality >= ShadowsQuality::SHADOWS_HIGH ? bool(light__render_gpu_objects) : false;
+  shadowParams.quality = spot_light__shadow_quality;
+  shadowParams.shadowShrink = spot_light__shadow_shrink;
+  shadowParams.priority = spot_light__priority;
+  bool contact_shadows = shadowQuality >= ShadowsQuality::SHADOWS_HIGH ? bool(spot_light__contact_shadows) : false;
 
-  if (shadows_changed)
-  {
-    if (had_shadows)
-      get_renderer()->removeShadow(spot_light.lightId);
-    if (need_shadows)
-      get_renderer()->addShadowToLight(spot_light.lightId, !spot_light__dynamic_obj_shadows, spot_light__dynamic_light,
-        spot_light__shadow_quality, spot_light__priority, spot_light__shadow_shrink, render_gpu_objects);
-  }
+  get_renderer()->updateLightShadow(spot_light.lightId, shadowParams);
   Color3 color = color3(light__color) * light__brightness;
 
   float auto_radius = light__radius_scale * rgbsum(color) * (4.47f / 3); // 4.47 = 1/sqrt(0.05)/ (3 for rgbsum), i.e. 95% of brightness
@@ -470,9 +530,13 @@ static __forceinline void spot_light_set(SpotLightEntity &spot_light,
     data = photometryTextures->getTextureData(tex_idx);
   SpotLight spotLight =
     SpotLight(transform * light__offset, color, light__brightness > 0 ? radius : -1, attCos, transform.getcol(2) / col_length, halfTan,
-      spot_light__contact_shadows && need_shadows, need_shadows, tex_idx, data.zoom, data.rotated);
-  get_renderer()->setLight(spot_light.lightId, eastl::move(spotLight),
-    ~(spot_light__dynamic_light || !light__affect_volumes ? SpotLightsManager::GI_LIGHT_MASK : 0), true);
+      bool(contact_shadows) && bool(spot_light__shadows), bool(spot_light__shadows), tex_idx, data.zoom, data.rotated);
+  SpotLightsManager::mask_type_t mask = ~SpotLightsManager::mask_type_t(0);
+  if (spot_light__dynamic_light == LightDynamicLight::On || light__affect_volumes == LightAffectVolumes::Off)
+    mask &= ~SpotLightsManager::GI_LIGHT_MASK;
+  if (light__enable_lens_flares == LightLensFlares::Off)
+    mask &= ~SpotLightsManager::MASK_LENS_FLARE;
+  get_renderer()->setLight(spot_light.lightId, eastl::move(spotLight), mask, true);
 }
 
 ECS_TAG(render)
@@ -565,7 +629,9 @@ static __forceinline void update_spot_light_es(const ecs::Event &evt,
   bool light__is_paused = false,
   const TMatrix *transform = nullptr,
   const AnimV20::AnimcharBaseComponent *animchar = nullptr,
-  const TMatrix *lightModTm = nullptr)
+  const TMatrix *lightModTm = nullptr,
+  bool light__enable_lens_flares = false,
+  bool light__approximate_static = false)
 {
   if (auto evtRenderFeatures = evt.cast<ChangeRenderFeatures>())
   {
@@ -579,10 +645,14 @@ static __forceinline void update_spot_light_es(const ecs::Event &evt,
     return;
 
   const TMatrix tm = light_tm(eid, manager, transform, animchar, lightModTm);
-  spot_light_set(spot_light, tm, light__offset, light__texture_name, light__color, light__brightness, spot_light__dynamic_light,
-    spot_light__shadows, spot_light__dynamic_obj_shadows, light__force_max_light_radius, spot_light__shadow_quality,
+
+  spot_light_set(spot_light, tm, light__offset, light__texture_name, light__color, light__brightness,
+    LightDynamicLight(spot_light__dynamic_light), LightHasShadows(spot_light__shadows),
+    LightHasDynamicCasters(spot_light__dynamic_obj_shadows), light__force_max_light_radius, spot_light__shadow_quality,
     spot_light__priority, spot_light__shadow_shrink, spot_light__cone_angle, spot_light__inner_attenuation, light__radius_scale,
-    light__max_radius, light__affect_volumes, spot_light__contact_shadows, light__render_gpu_objects);
+    light__max_radius, LightAffectVolumes(light__affect_volumes), LightContactShadows(spot_light__contact_shadows),
+    LightApproximateStatic(light__approximate_static), LightRenderGpuObjects(light__render_gpu_objects),
+    LightLensFlares(light__enable_lens_flares));
 }
 
 ECS_TAG(render)
@@ -610,16 +680,21 @@ static __forceinline void spot_light_es(const ecs::UpdateStageInfoAct &,
   bool animchar_render__enabled = true,
   bool light__affect_volumes = true,
   bool spot_light__contact_shadows = false,
-  bool light__render_gpu_objects = false)
+  bool light__render_gpu_objects = false,
+  bool light__enable_lens_flares = false,
+  bool light__approximate_static = false)
 {
   TMatrix transform = TMatrix::IDENT;
   animchar.getTm(transform);
   transform = transform * lightModTm;
+
   spot_light_set(spot_light, transform, light__offset, light__texture_name, light__color,
-    animchar_render__enabled ? light__brightness : 0.f, spot_light__dynamic_light, spot_light__shadows,
-    spot_light__dynamic_obj_shadows, light__force_max_light_radius, spot_light__shadow_quality, spot_light__priority,
-    spot_light__shadow_shrink, spot_light__cone_angle, spot_light__inner_attenuation, light__radius_scale, light__max_radius,
-    light__affect_volumes, spot_light__contact_shadows, light__render_gpu_objects);
+    animchar_render__enabled ? light__brightness : 0.f, LightDynamicLight(spot_light__dynamic_light),
+    LightHasShadows(spot_light__shadows), LightHasDynamicCasters(spot_light__dynamic_obj_shadows), light__force_max_light_radius,
+    spot_light__shadow_quality, spot_light__priority, spot_light__shadow_shrink, spot_light__cone_angle, spot_light__inner_attenuation,
+    light__radius_scale, light__max_radius, LightAffectVolumes(light__affect_volumes),
+    LightContactShadows(spot_light__contact_shadows), LightApproximateStatic(light__approximate_static),
+    LightRenderGpuObjects(light__render_gpu_objects), LightLensFlares(light__enable_lens_flares));
 }
 
 template <typename Callable>

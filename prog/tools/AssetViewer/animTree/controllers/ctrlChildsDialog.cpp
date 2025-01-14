@@ -27,6 +27,7 @@ namespace ContextMenu
 enum
 {
   EDIT = 0,
+  EDIT_IN_PARENT,
 };
 }
 
@@ -47,12 +48,15 @@ bool CtrlChildsDialog::onTreeContextMenu(PropPanel::ContainerPropertyControl &tr
 {
   if (pcb_id == PID_CHILDS_TREE)
   {
-    String name = tree.getCaption(tree.getSelLeaf());
+    PropPanel::TLeafHandle selectedLeaf = tree.getSelLeaf();
+    String name = tree.getCaption(selectedLeaf);
     if (strstr(name.c_str(), "not found"))
       return false;
 
     PropPanel::IMenu &menu = tree_interface.createContextMenu();
     menu.addItem(ROOT_MENU_ITEM, ContextMenu::EDIT, "Edit");
+    if (selectedLeaf != tree.getRootLeaf())
+      menu.addItem(ROOT_MENU_ITEM, ContextMenu::EDIT_IN_PARENT, "Edit in parent");
     menu.setEventHandler(this);
     return true;
   }
@@ -64,6 +68,7 @@ int CtrlChildsDialog::onMenuItemClick(unsigned id)
   switch (id)
   {
     case ContextMenu::EDIT: editSelectedNode(); break;
+    case ContextMenu::EDIT_IN_PARENT: editInParentSelectedNode(); break;
   }
   return 0;
 }
@@ -225,15 +230,22 @@ const char *CtrlChildsDialog::getChildNameFromSettings(const DataBlock &settings
   return nullptr;
 }
 
+static const char *get_name_for_search(const char *leaf_name)
+{
+  const char *name = strstr(leaf_name, "] ");
+  if (name)
+    name += 2; // Skip "[optional_hint] " part
+  else
+    name = leaf_name;
+
+  return name;
+}
+
 void CtrlChildsDialog::editSelectedNode()
 {
   PropPanel::ContainerPropertyControl *tree = DialogWindow::getPanel()->getById(PID_CHILDS_TREE)->getContainer();
   String leafName = tree->getCaption(tree->getSelLeaf());
-  const char *name = strstr(leafName.c_str(), ": ");
-  if (name)
-    name += 2; // Skip ": " part
-  else
-    name = leafName.c_str();
+  const char *name = get_name_for_search(leafName.c_str());
 
   AnimCtrlData *ctrlData = eastl::find_if(controllers.begin(), controllers.end(),
     [ctrlsTree = ctrlsTree, name](const AnimCtrlData &data) { return ctrlsTree->getCaption(data.handle) == name; });
@@ -259,5 +271,34 @@ void CtrlChildsDialog::editSelectedNode()
       PropPanel::focus_helper.requestFocus(pluginPanel->getById(PID_ANIM_BLEND_NODES_GROUP)->getContainer());
       pluginEventHandler->onChange(PID_ANIM_BLEND_NODES_TREE, pluginPanel);
     }
+  }
+}
+
+void CtrlChildsDialog::editInParentSelectedNode()
+{
+  PropPanel::ContainerPropertyControl *tree = DialogWindow::getPanel()->getById(PID_CHILDS_TREE)->getContainer();
+  PropPanel::TLeafHandle selectedLeaf = tree->getSelLeaf();
+  PropPanel::TLeafHandle parent = tree->getParentLeaf(selectedLeaf);
+  String leafName = tree->getCaption(parent);
+  const char *parentName = get_name_for_search(leafName.c_str());
+  AnimCtrlData *ctrlData = eastl::find_if(controllers.begin(), controllers.end(),
+    [ctrlsTree = ctrlsTree, parentName](const AnimCtrlData &data) { return ctrlsTree->getCaption(data.handle) == parentName; });
+  if (ctrlData != controllers.end())
+  {
+    // Check if group minimized and open it
+    if (pluginPanel->getBool(PID_ANIM_BLEND_CTRLS_GROUP))
+      pluginPanel->setBool(PID_ANIM_BLEND_CTRLS_GROUP, false);
+    ctrlsTree->setSelLeaf(ctrlData->handle);
+    pluginEventHandler->onChange(PID_ANIM_BLEND_CTRLS_TREE, pluginPanel);
+    PropPanel::focus_helper.requestFocus(pluginPanel->getById(PID_ANIM_BLEND_CTRLS_SETTINGS_GROUP)->getContainer());
+    for (int i = 0; i < ctrlsTree->getChildCount(parent); ++i)
+    {
+      if (ctrlsTree->getChildLeaf(parent, i) == selectedLeaf)
+      {
+        pluginPanel->setInt(PID_CTRLS_NODES_LIST, i);
+        break;
+      }
+    }
+    pluginEventHandler->onChange(PID_CTRLS_NODES_LIST, pluginPanel);
   }
 }

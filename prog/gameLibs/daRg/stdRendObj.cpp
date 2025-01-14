@@ -1351,7 +1351,7 @@ void RenderObjectProgressCircular::renderProgress(StdGuiRender::GuiContext &ctx,
   TEXTUREID texId = BAD_TEXTUREID;
   d3d::SamplerHandle smpId = d3d::INVALID_SAMPLER_HANDLE;
   Point2 tcLt(0, 0), tcRb(0, 0);
-  BlendMode blendMode = NONPREMULTIPLIED;
+  BlendMode blendMode = PREMULTIPLIED;
 
   if (image)
   {
@@ -2138,7 +2138,8 @@ void RenderObjectMovie::render(StdGuiRender::GuiContext &ctx, const Element *ele
   YuvRenderer &yuvRenderer = scene->yuvRenderer;
 
   TEXTUREID texIdY, texIdU, texIdV;
-  if (player->getFrame(texIdY, texIdU, texIdV))
+  d3d::SamplerHandle smp;
+  if (player->getFrame(texIdY, texIdU, texIdV, smp))
   {
     const Offsets &padding = elem->layout.padding;
 
@@ -2158,7 +2159,7 @@ void RenderObjectMovie::render(StdGuiRender::GuiContext &ctx, const Element *ele
 
       bool ownRender;
       yuvRenderer.startRender(ctx, &ownRender);
-      yuvRenderer.render(ctx, texIdY, texIdU, texIdV, lt.x, lt.y, rb.x, rb.y, tcLt, tcRb, color,
+      yuvRenderer.render(ctx, texIdY, texIdU, texIdV, smp, lt.x, lt.y, rb.x, rb.y, tcLt, tcRb, color,
         color.a == 255 ? NO_BLEND : PREMULTIPLIED, params->saturateFactor);
       ctx.execCommand(
         5309, ZERO<Point2>(), ZERO<Point2>(),

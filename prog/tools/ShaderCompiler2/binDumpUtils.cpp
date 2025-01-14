@@ -116,6 +116,7 @@ static void addRefsFromStCode(Tab<int> &refsTable)
         case SHCOD_CS_CONST:
         case SHCOD_TEXTURE:
         case SHCOD_TEXTURE_VS:
+        case SHCOD_SAMPLER:
         case SHCOD_REG_BINDLESS:
         case SHCOD_RWTEX:
         case SHCOD_RWBUF:
@@ -206,6 +207,7 @@ void bindumphlp::patchStCode(dag::Span<int> code, dag::ConstSpan<int> remapTable
       case SHCOD_CS_CONST:
       case SHCOD_TEXTURE:
       case SHCOD_TEXTURE_VS:
+      case SHCOD_SAMPLER:
       case SHCOD_BUFFER:
       case SHCOD_CONST_BUFFER:
       case SHCOD_TLAS:
@@ -290,7 +292,7 @@ static void patchStCode(dag::ConstSpan<int> remapTable)
   }
 }
 
-void bindumphlp::sortShaders(dag::ConstSpan<ShaderStateBlock *> blocks, bool sort_stcode)
+void bindumphlp::sortShaders(dag::ConstSpan<ShaderStateBlock *> blocks, StcodeInterface *stcode_interface)
 {
   using loadedshaders::fsh;
   using loadedshaders::shClass;
@@ -316,8 +318,7 @@ void bindumphlp::sortShaders(dag::ConstSpan<ShaderStateBlock *> blocks, bool sor
   for (int i = 0; i < stCode.size(); i++)
     stIndexes.push_back(TabInd<int>(stCode[i], i));
 
-  if (sort_stcode) // Disabled for cpp stcode compilation
-    sort(stIndexes, &cmpTabInd);
+  sort(stIndexes, &cmpTabInd);
 
   for (int i = 0; i < stIndexes.size(); i++)
     stCode[i] = stIndexes[i].slice;
@@ -376,6 +377,12 @@ void bindumphlp::sortShaders(dag::ConstSpan<ShaderStateBlock *> blocks, bool sor
         blocks[i]->stcodeId = j;
         break;
       }
+  }
+
+  if (stcode_interface)
+  {
+    for (int i = 0; i < stIndexes.size(); i++)
+      stcode_interface->patchRoutineGlobalId(stIndexes[i].index, i);
   }
 }
 

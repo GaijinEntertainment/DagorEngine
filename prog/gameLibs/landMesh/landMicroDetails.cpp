@@ -7,12 +7,64 @@
 #include <math/dag_color.h>
 #include <render/blkToConstBuffer.h>
 #include <shaders/dag_shaders.h>
-#include <stdio.h> // snprintf
+#include <daECS/core/entityManager.h>
+#include <daECS/core/componentTypes.h>
 
 extern TEXTUREID load_texture_array_immediate(const char *name, const char *param_name, const DataBlock &blk, int &count);
 
-TEXTUREID load_land_micro_details(const DataBlock &micro)
+DataBlock load_microdetail_settings(ecs::EntityId eid)
 {
+  const ecs::Array &microDetailTextures = g_entity_mgr->get<ecs::Array>(eid, ECS_HASH("micro_details"));
+  if (microDetailTextures.size() == 0)
+    return DataBlock();
+
+  DataBlock microdetailBlock;
+  if (g_entity_mgr->has(eid, ECS_HASH("land_micro_details_uv_scale")))
+    microdetailBlock.setReal("land_micro_details_uv_scale", g_entity_mgr->get<float>(eid, ECS_HASH("land_micro_details_uv_scale")));
+
+  for (auto &entry : microDetailTextures)
+  {
+    const ecs::Object &obj = entry.get<ecs::Object>();
+    microdetailBlock.addStr("micro_detail", obj[ECS_HASH("texture_name")].getOr(""));
+  }
+  for (auto &entry : microDetailTextures)
+  {
+    const ecs::Object &obj = entry.get<ecs::Object>();
+    const char *textureName = obj[ECS_HASH("texture_name")].getOr("");
+
+    // we use the params from the first block (if more exists, they are placeholders anyway)
+    if (microdetailBlock.blockExists(textureName))
+      continue;
+
+    DataBlock *microDetailBlock = microdetailBlock.addNewBlock(textureName);
+
+    if (!obj[ECS_HASH("coloring")].isNull())
+      microDetailBlock->setReal("coloring", obj[ECS_HASH("coloring")].get<float>());
+    if (!obj[ECS_HASH("porosity")].isNull())
+      microDetailBlock->setReal("porosity", obj[ECS_HASH("porosity")].get<float>());
+    if (!obj[ECS_HASH("puddles")].isNull())
+      microDetailBlock->setReal("puddles", obj[ECS_HASH("puddles")].get<float>());
+    if (!obj[ECS_HASH("sparkles")].isNull())
+      microDetailBlock->setReal("sparkles", obj[ECS_HASH("sparkles")].get<float>());
+  }
+
+  return microdetailBlock;
+}
+
+TEXTUREID load_land_micro_details(const DataBlock &microdetail_settings_fallback)
+{
+  DataBlock loadedMicrodetailSettings;
+  ecs::EntityId microdetailSettingsEid = g_entity_mgr->getSingletonEntity(ECS_HASH("microdetail_settings"));
+  if (microdetailSettingsEid != ecs::INVALID_ENTITY_ID)
+  {
+    loadedMicrodetailSettings = load_microdetail_settings(microdetailSettingsEid);
+  }
+  else
+  {
+    logwarn("No microdetail entity found! Loading microdetail from level blk fallback.");
+  }
+  const DataBlock &micro = loadedMicrodetailSettings.isEmpty() ? microdetail_settings_fallback : loadedMicrodetailSettings;
+
   const int land_micro_detailsVarId = get_shader_variable_id("land_micro_details", true);
   if (land_micro_detailsVarId < 0)
   {

@@ -10,8 +10,6 @@ float4 heightmap_min_max = (0, 0, 0, 0);
 
 texture lightmap_tex;
 float4 world_to_lightmap = (1 / 60000, 1 / 60000, 0.5, 0.5);
-texture landTileTex;
-float landTileXSize = 1;
 float4 specular_detect_land_color = (1, 0, 0, 0);
 
 float4 landCellShortDecodeXZ=(1,1,0,0);

@@ -7,13 +7,18 @@
 #include "zlibInline.h"
 
 
+static z_stream *get_zstream(unsigned char (&buf)[SIZE_OF_Z_STREAM])
+{
+  G_STATIC_ASSERT(SIZE_OF_Z_STREAM >= sizeof(z_stream));
+  return std::launder(reinterpret_cast<z_stream *>(buf));
+}
+
 //-----------------------------------------------------------------------
 // ZlibLoadCB
 //-----------------------------------------------------------------------
 void ZlibLoadCB::open(IGenLoad &in_crd, int in_size, bool raw_inflate)
 {
   G_ASSERT(!loadCb && "already opened?");
-  G_STATIC_ASSERT(SIZE_OF_Z_STREAM >= sizeof(z_stream));
 
   G_ASSERT(in_size > 0);
   loadCb = &in_crd;
@@ -21,11 +26,12 @@ void ZlibLoadCB::open(IGenLoad &in_crd, int in_size, bool raw_inflate)
   isStarted = false;
   isFinished = false;
   rawInflate = raw_inflate;
-  ((z_stream *)&strm)->zalloc = Z_NULL;
-  ((z_stream *)&strm)->zfree = Z_NULL;
-  ((z_stream *)&strm)->opaque = tmpmem;
-  ((z_stream *)&strm)->next_in = Z_NULL;
-  ((z_stream *)&strm)->avail_in = 0;
+  z_stream *zs = get_zstream(strm);
+  zs->zalloc = Z_NULL;
+  zs->zfree = Z_NULL;
+  zs->opaque = tmpmem;
+  zs->next_in = Z_NULL;
+  zs->avail_in = 0;
 }
 void ZlibLoadCB::close()
 {
@@ -51,8 +57,9 @@ unsigned ZlibLoadCB::fetchInput(void *handle, void *strm)
     return 0;
   sz = zcrd.loadCb->tryRead(zcrd.buffer, sz);
   G_ASSERT(!zcrd.fatalErrors || sz > 0);
-  ((z_stream *)strm)->next_in = zcrd.buffer;
-  ((z_stream *)strm)->avail_in = sz;
+  z_stream *zs = reinterpret_cast<z_stream *>(strm);
+  zs->next_in = zcrd.buffer;
+  zs->avail_in = sz;
   zcrd.inBufLeft -= sz;
   return sz;
 }
@@ -62,9 +69,10 @@ inline int ZlibLoadCB::tryReadImpl(void *ptr, int size)
   if (!size || isFinished)
     return 0;
 
+  z_stream *zs = get_zstream(strm);
   if (!isStarted)
   {
-    int err = rawInflate ? inflateInit2((z_stream *)&strm, -MAX_WBITS) : inflateInit((z_stream *)&strm);
+    int err = rawInflate ? inflateInit2(zs, -MAX_WBITS) : inflateInit(zs);
     if (err != Z_OK)
     {
       if (fatalErrors)
@@ -78,10 +86,10 @@ inline int ZlibLoadCB::tryReadImpl(void *ptr, int size)
     isStarted = true;
   }
 
-  ((z_stream *)&strm)->avail_out = size;
-  ((z_stream *)&strm)->next_out = (Bytef *)ptr;
+  zs->avail_out = size;
+  zs->next_out = (Bytef *)ptr;
 
-  int res = inflateEx((z_stream *)&strm, Z_SYNC_FLUSH, (in_fetch_func)fetchInput, this);
+  int res = inflateEx(zs, Z_SYNC_FLUSH, (in_fetch_func)fetchInput, this);
 
   if (res != Z_OK && res != Z_STREAM_END)
   {
@@ -90,11 +98,11 @@ inline int ZlibLoadCB::tryReadImpl(void *ptr, int size)
       if (dag_on_zlib_error_cb)
         dag_on_zlib_error_cb(getTargetName(), 0x20000 | ((unsigned)res & 0xFF));
 
-      DAG_FATAL("zlib error %d (%s) in %s\nsource: '%s'\n", res, ((z_stream *)&strm)->msg, "inflate", getTargetName());
+      DAG_FATAL("zlib error %d (%s) in %s\nsource: '%s'\n", res, zs->msg, "inflate", getTargetName());
     }
     return -1;
   }
-  size -= ((z_stream *)&strm)->avail_out;
+  size -= zs->avail_out;
 
   if (res == Z_STREAM_END && !ceaseReading())
     return -1;
@@ -145,9 +153,10 @@ bool ZlibLoadCB::ceaseReading()
   if (isFinished || !isStarted)
     return true;
 
-  loadCb->seekrel(inBufLeft > 0x70000000 ? -int(((z_stream *)&strm)->avail_in) : inBufLeft);
+  z_stream *zs = get_zstream(strm);
+  loadCb->seekrel(inBufLeft > 0x70000000 ? -int(zs->avail_in) : inBufLeft);
 
-  int err = inflateEnd((z_stream *)&strm);
+  int err = inflateEnd(zs);
 
   bool ret = err == Z_OK;
   if (!ret && fatalErrors)
@@ -253,6 +262,120 @@ void ZlibSaveCB::finish()
   isFinished = true;
 }
 
+float ZlibSaveCB::getCompressionRatio() { return zlibWriter->getCompressionRatio(); }
+
+
+//-----------------------------------------------------------------------
+// ZlibDecompressSaveCB
+//-----------------------------------------------------------------------
+ZlibDecompressSaveCB::ZlibDecompressSaveCB(IGenSave &in_save_cb, bool raw_inflate, bool fatal_errors) :
+  saveCb(in_save_cb), fatalErrors(fatal_errors)
+{
+  z_stream *zs = get_zstream(strm);
+  zs->zalloc = Z_NULL;
+  zs->zfree = Z_NULL;
+  zs->opaque = tmpmem;
+  zs->next_in = Z_NULL;
+  zs->avail_in = 0;
+  int err = raw_inflate ? inflateInit2(zs, -MAX_WBITS) : inflateInit(zs);
+  if (err != Z_OK)
+  {
+    if (fatalErrors)
+    {
+      if (dag_on_zlib_error_cb)
+        dag_on_zlib_error_cb(getTargetName(), 0x10000 | ((unsigned)err & 0xFF));
+      DAG_FATAL("zlib error %d in %s\nsource: '%s'\n", err, "inflateInit", getTargetName());
+    }
+    isBroken = true;
+  }
+}
+
+
+ZlibDecompressSaveCB::~ZlibDecompressSaveCB()
+{
+  z_stream *zs = get_zstream(strm);
+  int err = inflateEnd(zs);
+  if (err != Z_OK && fatalErrors)
+  {
+    if (dag_on_zlib_error_cb)
+      dag_on_zlib_error_cb(getTargetName(), 0x30000 | ((unsigned)err & 0xFF));
+
+    DAG_FATAL("zlib error %d in %s\nsource: '%s'\n", err, "inflateEnd", getTargetName());
+  }
+}
+
+
+bool ZlibDecompressSaveCB::doProcessStep()
+{
+  if (isBroken || isFinished)
+    return false;
+  z_stream *zs = get_zstream(strm);
+  zs->next_out = buffer;
+  zs->avail_out = ZLIB_LOAD_BUFFER_SIZE;
+  int wasAvailIn = zs->avail_in;
+  int res = inflate(zs, Z_SYNC_FLUSH);
+  if (res != Z_OK && res != Z_STREAM_END)
+  {
+    isBroken = true;
+    if (fatalErrors)
+    {
+      if (dag_on_zlib_error_cb)
+        dag_on_zlib_error_cb(getTargetName(), 0x20000 | ((unsigned)res & 0xFF));
+      DAG_FATAL("zlib error %d in %s\nsource: '%s'\n", res, "inflate", getTargetName());
+    }
+    return false;
+  }
+
+  int processedBytes = wasAvailIn - zs->avail_in;
+  int outputBytes = ZLIB_LOAD_BUFFER_SIZE - zs->avail_out;
+  if (outputBytes > 0)
+    saveCb.write(buffer, outputBytes);
+
+  if (res == Z_STREAM_END)
+  {
+    isFinished = true;
+    return false;
+  }
+
+  return processedBytes > 0 || outputBytes > 0;
+}
+
+
+void ZlibDecompressSaveCB::write(const void *ptr, int size)
+{
+  z_stream *zs = get_zstream(strm);
+  zs->next_in = (unsigned char *)ptr;
+  zs->avail_in = size;
+  while (zs->avail_in > 0)
+  {
+    if (!doProcessStep())
+      break;
+  }
+}
+
+
+void ZlibDecompressSaveCB::syncFlush()
+{
+  bool haveMore = true;
+  while (haveMore)
+    haveMore = doProcessStep();
+}
+
+
+void ZlibDecompressSaveCB::finish()
+{
+  flush();
+
+  if (!isFinished && !isBroken && fatalErrors)
+  {
+    int err = Z_DATA_ERROR;
+    if (dag_on_zlib_error_cb)
+      dag_on_zlib_error_cb(getTargetName(), 0x20000 | ((unsigned)err & 0xFF));
+    DAG_FATAL("zlib error %d in %s\nsource: '%s'\n", err, "finish", getTargetName());
+  }
+}
+
+
 int zlib_compress_data(IGenSave &dest, int compression_level, IGenLoad &src, int sz)
 {
   static constexpr int BUF_SZ = 64 << 10;
@@ -271,7 +394,6 @@ int zlib_compress_data(IGenSave &dest, int compression_level, IGenLoad &src, int
   return zlibWriter.compressedTotal;
 }
 
-float ZlibSaveCB::getCompressionRatio() { return zlibWriter->getCompressionRatio(); }
 
 #define EXPORT_PULL dll_pull_iosys_zlibIo
 #include <supp/exportPull.h>

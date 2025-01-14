@@ -1,8 +1,4 @@
 entity{
-  _template:t="sound_occlusion"
-}
-
-entity{
   _template:t="distant_delayable_sounds"
 }
 

@@ -43,7 +43,19 @@ namespace tql
 {
 extern void initTexStubs();
 extern void termTexStubs();
-extern bool resizeTexture(BaseTexture *t, unsigned w, unsigned h, unsigned d, unsigned l, unsigned tex_ld_lev);
+/// @brief Returns either a new texture with same properties & contents as the provided one
+/// but new width/height/depth/mips, or the original texture. If some data becomes redundant after
+/// a resize (mips), it is discarded. If some data (mips) is missing, it is left uninitialized.
+/// @warning May return the original texture if the resize operation is a no-op, but if it returns a
+/// new texture, the caller is responsible for freeing it.
+/// @param t Texture to resize.
+/// @param w New width.
+/// @param h New height.
+/// @param d New depth.
+/// @param l New mip count.
+/// @param tex_ld_lev New level of detail.
+[[nodiscard]] extern BaseTexture *makeResizedTmpTexResCopy(BaseTexture *t, unsigned w, unsigned h, unsigned d, unsigned l,
+  unsigned tex_ld_lev);
 
 inline bool updateSkipLev(const ddsx::Header &hdr, int &levels, int &skip_levels, int w, int h, int d)
 {

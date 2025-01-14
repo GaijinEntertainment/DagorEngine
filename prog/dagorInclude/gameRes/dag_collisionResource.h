@@ -175,7 +175,7 @@ private:
 
 public:
   CollisionNode() = default;
-  CollisionNode(const CollisionNode &n) : CollisionNode() { operator=(n); }
+  explicit CollisionNode(const CollisionNode &n) : CollisionNode() { operator=(n); }
   CollisionNode(CollisionNode &&n) : CollisionNode() { operator=((CollisionNode &&) n); }
   ~CollisionNode()
   {
@@ -362,7 +362,8 @@ public:
   VECTORCALL bool traceRayMeshNodeLocalAllHits(const CollisionNode &node, const Point3 &from, const Point3 &dir, float in_t,
     CollResIntersectionsType &intersected_nodes_list, bool sort_intersections, bool force_no_cull = false) const;
 
-  VECTORCALL bool rayHit(const mat44f &tm, const Point3 &from, const Point3 &dir, float in_t, int ray_mat_id, int &out_mat_id) const;
+  VECTORCALL bool rayHit(const mat44f &tm, const Point3 &from, const Point3 &dir, float in_t, int ray_mat_id, int &out_mat_id,
+    uint8_t behavior_filter = CollisionNode::TRACEABLE) const;
 
   VECTORCALL bool rayHit(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from, const Point3 &dir,
     float in_t, float bsphere_scale = 1.f, const CollisionNodeMask *collision_node_mask = nullptr, int *out_mat_id = nullptr) const;

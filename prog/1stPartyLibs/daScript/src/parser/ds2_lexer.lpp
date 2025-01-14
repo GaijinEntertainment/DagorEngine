@@ -31,11 +31,11 @@
             (yytext[yyleng - 1] == '\n' || yytext[yyleng - 1] == '\r') ? yylineno - 1 : yylineno; \
         yylloc_param->first_column = yyextra->das_yycolumn; \
         yylloc_param->last_column = yyextra->das_yycolumn + yyleng; \
-        YYCOLUMN (yyextra->das_yycolumn += yyleng, "YY_USER_ACTION");
+        /* YYCOLUMN (yyextra->das_yycolumn += yyleng, "YY_USER_ACTION"); */
 
 #ifdef FLEX_DEBUG
-    void YYCOLUMN ( int, const char * comment ) {
-        printf("%i:%i %s\n", yyextra->das_yycolumn, yylineno, comment ? comment : "");
+    void YYCOLUMN ( int lno, const char * comment ) {
+        printf("%i %s\n", lno, comment ? comment : "");
     }
 #else
     #define YYCOLUMN(expr,comment)  ((expr))
@@ -695,66 +695,27 @@ void das_accept_cpp_comment ( vector<CommentReader *> & crdi, yyscan_t scanner, 
 <normal>"\=\>"                              return MAPTO;
 <normal>[ \r\t]                             /* skip white space */
 
-<normal>";"([ \t\n\r]*|[\/][*][^*]*[*]+([^*\/][^*]*[*]+)*[\/]|\/\/.*\n)*"}}" {
-    if ( yyextra->das_nested_curly_braces < 2 ) {
-        das2_yyfatalerror(yylloc_param,yyscanner,"mismatching curly braces", CompilationError::mismatching_parentheses);
-        return LEXER_ERROR;
-    }
-    yyextra->das_nested_curly_braces -= 2;
-    return SEMICOLON_CUR_CUR;
-}
-
-<normal>";"([ \t\n\r]*|[\/][*][^*]*[*]+([^*\/][^*]*[*]+)*[\/]|\/\/.*\n)*"}]" {
-    if ( !yyextra->das_nested_curly_braces ) {
-        das2_yyfatalerror(yylloc_param,yyscanner,"mismatching curly braces", CompilationError::mismatching_parentheses);
-        return LEXER_ERROR;
-    }
-    if ( !yyextra->das_nested_square_braces ) {
-        das2_yyfatalerror(yylloc_param,yyscanner,"mismatching square braces", CompilationError::mismatching_parentheses);
-        return LEXER_ERROR;
-    }
-    yyextra->das_nested_curly_braces --;
-    yyextra->das_nested_square_braces --;
-    return SEMICOLON_CUR_SQR;
-}
-
-<normal>","([ \t\n\r]*|[\/][*][^*]*[*]+([^*\/][^*]*[*]+)*[\/]|\/\/.*\n)*"}]" {
-    if ( !yyextra->das_nested_curly_braces ) {
-        das2_yyfatalerror(yylloc_param,yyscanner,"mismatching curly braces", CompilationError::mismatching_parentheses);
-        return LEXER_ERROR;
-    }
-    if ( !yyextra->das_nested_square_braces ) {
-        das2_yyfatalerror(yylloc_param,yyscanner,"mismatching square braces", CompilationError::mismatching_parentheses);
-        return LEXER_ERROR;
-    }
-    yyextra->das_nested_curly_braces --;
-    yyextra->das_nested_square_braces --;
-    return COMMA_CUR_SQR;
-}
-
-<normal>";"([ \t\n\r]*|[\/][*][^*]*[*]+([^*\/][^*]*[*]+)*[\/]|\/\/.*\n)*"]]" {
-    if ( yyextra->das_nested_square_braces < 2) {
-        das2_yyfatalerror(yylloc_param,yyscanner,"mismatching square braces", CompilationError::mismatching_parentheses);
-        return LEXER_ERROR;
-    }
-    yyextra->das_nested_square_braces -= 2;
-    return SEMICOLON_SQR_SQR;
-}
-
-<normal>","([ \t\n\r]*|[\/][*][^*]*[*]+([^*\/][^*]*[*]+)*[\/]|\/\/.*\n)*"]]" {
-    if ( yyextra->das_nested_square_braces < 2) {
-        das2_yyfatalerror(yylloc_param,yyscanner,"mismatching square braces", CompilationError::mismatching_parentheses);
-        return LEXER_ERROR;
-    }
-    yyextra->das_nested_square_braces -= 2;
-    return COMMA_SQR_SQR;
-}
 <normal>\\([ \t\r])*\n {
-    YYCOLUMN(yyextra->das_yycolumn = 0, "NEW LINE");
+    YYCOLUMN(yyextra->das_yycolumn = 0, "NEW LINE (with line break)");
 }
 <normal>(\/\/.*)*\n {
-    YYCOLUMN(yyextra->das_yycolumn = 0, "NEW LINE");
+    YYCOLUMN(yyextra->das_yycolumn = 0, "NEW LINE (with tail end)");
     das_accept_cpp_comment(yyextra->g_CommentReaders, yyscanner, *yylloc_param, yytext);
+    #ifdef FLEX_DEBUG
+        printf("char:%c indent:%i parentheses:%i squares:%i keyword:%s\n",
+            yyextra->das_indent_char, yyextra->das_indent_level, yyextra->das_nested_parentheses, yyextra->das_nested_square_braces,
+            yyextra->das_keyword ? "true" : "false");
+    #endif
+    if ( /*yyextra->das_indent_level &&*/ !yyextra->das_keyword ) {
+        if  ( !yyextra->das_nested_parentheses && !yyextra->das_nested_square_braces ) {
+            // here, we may need to emit ; if we are in a block
+            // yyextra->das_nested_curly_braces is set, but we need to know if we are in the emit block
+            #ifdef FLEX_DEBUG
+            printf("emit %i at EOL, line %i\n", yyextra->das_indent_char, yylineno);
+            #endif
+            return yyextra->das_indent_char;
+        }
+    }
 }
 <normal><<EOF>>         {
     if ( yyextra->g_FileAccessStack.size()==1 ) {
@@ -777,7 +738,7 @@ void das2_accept_sequence ( yyscan_t yyscanner, const char * seq, size_t seqLen,
     yyextra->g_FileAccessStack.push_back(infoPtr);
     yyextra->das_line_no.push_back(yylineno);
     yypush_buffer_state(YY_CURRENT_BUFFER, yyscanner);
-    yy_scan_bytes(seq, seqLen, yyscanner);
+    yy_scan_bytes(seq, (int)seqLen, yyscanner);
     yylineno = lineNo;
     BEGIN(normal);
 }
@@ -821,6 +782,10 @@ void das2_collect_keywords ( Module * mod, yyscan_t yyscanner ) {
 
 void das2_yybegin(const char * str, uint32_t len, yyscan_t yyscanner ) {
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
+    // ENABLE TO DEBUG FLEX
+#ifdef FLEX_DEBUG
+    yy_flex_debug = true;
+#endif
     yyextra->g_thisStructure = nullptr;
     yyextra->das_module_alias.clear();
     yyextra->das_already_include.clear();
@@ -830,6 +795,7 @@ void das2_yybegin(const char * str, uint32_t len, yyscan_t yyscanner ) {
 #endif
     yyextra->das_line_no.clear();
     YYCOLUMN(yyextra->das_yycolumn = 0,"YYBEGIN");
+    yyextra->das_indent_char = DAS_EMIT_SEMICOLON;
     yyextra->das_nested_parentheses = 0;
     yyextra->das_nested_curly_braces = 0;
     yyextra->das_nested_square_braces = 0;

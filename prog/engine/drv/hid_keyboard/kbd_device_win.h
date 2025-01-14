@@ -47,7 +47,6 @@ public:
 #endif
 
 private:
-  unsigned locksDownMask;
 #if _TARGET_PC_WIN | _TARGET_XBOX
   void OnChar(uintptr_t wParam);
   void OnKeyUpKeyDown(unsigned msg, uintptr_t wParam, intptr_t lParam);

@@ -73,8 +73,6 @@ enum
   PID_DECAL_MATERIAL_LAST = PID_DECAL_MATERIAL_FIRST + decal_material_max_count,
   PID_DECAL_MATERIAL_SAVE,
 
-  PID_SEED_GROUP,
-
   PID_GENERATE_PERINST_SEED,
   PID_GENERATE_EQUAL_PERINST_SEED,
   PID_PERINST_SEED,
@@ -375,14 +373,21 @@ void LandscapeEntityObject::fillProps(PropPanel::ContainerPropertyControl &panel
     commonGrp->createIndent();
     commonGrp->createButton(PID_ENTITYNAME, entName);
 
-    PropPanel::ContainerPropertyControl &placeContainer = *panel.createContainer(PID_PLACE_TYPE);
+    PropPanel::ContainerPropertyControl *transformGrp =
+      getObjEditor()->createPanelGroup(RenderableEditableObject::PID_TRANSFORM_GROUP);
+
+    getObjEditor()->createPanelTransform(CM_OBJED_MODE_MOVE);
+    getObjEditor()->createPanelTransform(CM_OBJED_MODE_ROTATE);
+    getObjEditor()->createPanelTransform(CM_OBJED_MODE_SCALE);
+
+    PropPanel::ContainerPropertyControl &placeContainer = *transformGrp->createContainer(PID_PLACE_TYPE);
     placeContainer.setHorizontalSpaceBetweenControls(hdpi::Px(0));
     placeContainer.createStatic(0, "Place on collision:");
     const bool placeTypeRadio = ::defaultHMLEntity.placeTypeTab == PID_PLACE_TYPE_BTN_RADIO;
     placeContainer.createButton(PID_PLACE_TYPE_BTN_RADIO, "Radiobuttons", !placeTypeRadio);
     placeContainer.createButton(PID_PLACE_TYPE_BTN_DROPDOWN, "Dropdown", placeTypeRadio, false);
 
-    PropPanel::ContainerPropertyControl &placeTabs = *panel.createContainer(PID_PLACE_TYPE_TABS);
+    PropPanel::ContainerPropertyControl &placeTabs = *transformGrp->createContainer(PID_PLACE_TYPE_TABS);
     int placeTypeValue = plColl < 0 ? Props::PT_count : plColl;
     if (placeTypeRadio)
     {
@@ -402,8 +407,7 @@ void LandscapeEntityObject::fillProps(PropPanel::ContainerPropertyControl &panel
       placeTabs.createCombo(PID_PLACE_TYPE_DROPDOWN, "", placeTypes, placeTypeValue, true);
     }
 
-    panel.createCheckBox(PID_PLACE_TYPE_OVERRIDE, "Override placement type for composit", props.overridePlaceTypeForComposit);
-    panel.createSeparator();
+    transformGrp->createCheckBox(PID_PLACE_TYPE_OVERRIDE, "Override placement type for composit", props.overridePlaceTypeForComposit);
 
     if (entity)
     {
@@ -412,46 +416,38 @@ void LandscapeEntityObject::fillProps(PropPanel::ContainerPropertyControl &panel
         panel.createCheckBox(PID_ENTITY_COLLISION, "Has collision", isCollidable);
     }
 
-    panel.createIndent();
-
     fillMaterialProps(panel);
 
-    panel.createIndent();
+    PropPanel::ContainerPropertyControl *seedGrp = getObjEditor()->createPanelGroup(RenderableEditableObject::PID_SEED_GROUP);
 
-    PropPanel::ContainerPropertyControl *subGrp = panel.createGroup(PID_SEED_GROUP, "Seed");
-    subGrp->setBoolValue(false);
-
-    subGrp->createStatic(0, "Generate per-inst seed:");
-    subGrp->createButton(PID_GENERATE_PERINST_SEED, "Individual");
-    subGrp->createButton(PID_GENERATE_EQUAL_PERINST_SEED, "Equal", true, false);
+    seedGrp->createStatic(0, "Generate per-inst seed:");
+    seedGrp->createButton(PID_GENERATE_PERINST_SEED, "Individual");
+    seedGrp->createButton(PID_GENERATE_EQUAL_PERINST_SEED, "Equal", true, false);
     if (entity && objects.size() == 1)
       if (IRandomSeedHolder *irsh = entity->queryInterface<IRandomSeedHolder>())
-        subGrp->createTrackInt(PID_PERINST_SEED, "Per-instance seed", irsh->getPerInstanceSeed() & 0x7FFF, 0, 32767, 1);
+        seedGrp->createTrackInt(PID_PERINST_SEED, "Per-instance seed", irsh->getPerInstanceSeed() & 0x7FFF, 0, 32767, 1);
 
-    subGrp->createIndent();
+    seedGrp->createIndent();
 
-    subGrp->createStatic(0, "Generate seed:");
-    subGrp->createButton(PID_GENERATE_SEED, "Individual");
-    subGrp->createButton(PID_GENERATE_EQUAL_SEED, "Equal", true, false);
+    seedGrp->createStatic(0, "Generate seed:");
+    seedGrp->createButton(PID_GENERATE_SEED, "Individual");
+    seedGrp->createButton(PID_GENERATE_EQUAL_SEED, "Equal", true, false);
     if (entity && objects.size() == 1)
       if (IRandomSeedHolder *irsh = entity->queryInterface<IRandomSeedHolder>())
         if (irsh->isSeedSetSupported())
-          subGrp->createTrackInt(PID_SEED, "Random seed", irsh->getSeed() & 0x7FFF, 0, 32767, 1);
+          seedGrp->createTrackInt(PID_SEED, "Random seed", irsh->getSeed() & 0x7FFF, 0, 32767, 1);
 
-    panel.createIndent();
     objParam.fillParams(panel, objects);
 
-    panel.createIndent();
-
-    subGrp = panel.createGroup(PID_ENTITY_CASTER_GRP, "Entity casters");
+    PropPanel::ContainerPropertyControl *casterGrp = panel.createGroup(PID_ENTITY_CASTER_GRP, "Entity casters");
 
     Tab<String> def_place_type_nm(tmpmem);
     def_place_type_nm.insert(def_place_type_nm.end(), eastl::begin(place_types_full),
       eastl::begin(place_types_full) + Props::PT_count);
-    subGrp->createCombo(PID_DEF_PLACE_TYPE, "Def. place type:", def_place_type_nm, default_place_type, true);
+    casterGrp->createCombo(PID_DEF_PLACE_TYPE, "Def. place type:", def_place_type_nm, default_place_type, true);
 
-    subGrp->createEditFloat(PID_TRACEOFFSET, "Tracert up offset", colliders.tracertUpOffset);
-    subGrp->createIndent();
+    casterGrp->createEditFloat(PID_TRACEOFFSET, "Tracert up offset", colliders.tracertUpOffset);
+    casterGrp->createIndent();
 
     const int colCnt = DAGORED2->getCustomCollidersCount();
     G_ASSERT(colCnt < PID_ENTITY_CASTER_LAST - PID_ENTITY_CASTER_FIRST);
@@ -462,16 +458,15 @@ void LandscapeEntityObject::fillProps(PropPanel::ContainerPropertyControl &panel
 
       if (collider)
       {
-        subGrp->createCheckBox(PID_ENTITY_CASTER_FIRST + i, collider->getColliderName(), isColliderEnabled(collider));
+        casterGrp->createCheckBox(PID_ENTITY_CASTER_FIRST + i, collider->getColliderName(), isColliderEnabled(collider));
       }
     }
 
-    panel.createIndent();
     panel.createCheckBox(PID_ENTITY_USE_FILTER, "Apply Filters", colliders.useFilters);
 
     if (colliders.useFilters)
     {
-      subGrp = panel.createGroup(PID_ENTITY_FILTER_GRP, "Entity filters");
+      PropPanel::ContainerPropertyControl *filterGrp = panel.createGroup(PID_ENTITY_FILTER_GRP, "Entity filters");
 
       unsigned old_mask = 0;
 
@@ -487,7 +482,7 @@ void LandscapeEntityObject::fillProps(PropPanel::ContainerPropertyControl &panel
         if (filter && filter->allowFiltering(IObjEntityFilter::STMASK_TYPE_COLLISION))
         {
           const bool val = filter->isFilteringActive(IObjEntityFilter::STMASK_TYPE_COLLISION);
-          subGrp->createCheckBox(PID_ENTITY_FILTER_FIRST + i, plugin->getMenuCommandName(), val);
+          filterGrp->createCheckBox(PID_ENTITY_FILTER_FIRST + i, plugin->getMenuCommandName(), val);
         }
       }
 

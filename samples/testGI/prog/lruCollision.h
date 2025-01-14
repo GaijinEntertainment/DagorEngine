@@ -5,6 +5,8 @@
 #include <render/lruCollision.h>
 #include <daGI2/lruCollisionVoxelization.h>
 #include <scene/dag_tiledScene.h>
+#include <execution>
+#include <algorithm>
 
 // todo: add tiledScene or something
 struct LRUCollision
@@ -141,32 +143,72 @@ struct LRUCollision
       }
     }
   }
+  void doMaintenance()
+  {
+    if (!lruColl)
+      return;
+    DA_PROFILE;
+    scene.doMaintenance(ref_time_ticks(), 10000000);
+  }
 
+  void rasterizePrepared(mat44f_cref viewproj, const uint64_t *handles, uint32_t cnt)
+  {
+    if (!lruColl || !cnt)
+      return;
+    DA_PROFILE;
+    const int old = ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME);
+    ShaderGlobal::setBlock(ShaderGlobal::getBlockId("global_frame", ShaderGlobal::LAYER_FRAME), ShaderGlobal::LAYER_FRAME);
+    voxelize.rasterize(*lruColl, dag::ConstSpan<uint64_t>(handles, cnt), nullptr, nullptr, voxelize.renderCollisionElem, 1, false);
+    ShaderGlobal::setBlock(old, ShaderGlobal::LAYER_FRAME);
+  }
   void rasterize(mat44f_cref viewproj)
   {
     if (!lruColl)
       return;
     DA_PROFILE;
-
-    dag::Vector<uint64_t, framemem_allocator> handles;
-    scene.doMaintenance(ref_time_ticks(), 10000000);
-    scene.frustumCull<false, false, false>(viewproj, v_zero(), 0, 0, nullptr, [&](scene::node_index ni, mat44f_cref node, vec4f) {
-      handles.push_back((uint64_t(scene::get_node_pool(node)) << 32UL) | uint64_t(scene::get_node_flags(node)));
-    });
-    stlsort::sort(handles.begin(), handles.end(),
-      [](auto a, auto b) { return rendinst::handle_to_ri_type(a) < rendinst::handle_to_ri_type(b); });
-    if (handles.size())
+    FRAMEMEM_REGION;
+    dag::Vector<uint32_t, framemem_allocator> poolsCount, poolsOfs;
+    poolsCount.resize(scene.getPoolsCount());
+    poolsOfs.resize(scene.getPoolsCount());
+    dag::Vector<uint64_t, framemem_allocator> handles, handles2;
+    uint64_t *handlesPtr = nullptr;
+    uint32_t handlesCnt = 0;
     {
-      const int old = ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME);
-      ShaderGlobal::setBlock(ShaderGlobal::getBlockId("global_frame", ShaderGlobal::LAYER_FRAME), ShaderGlobal::LAYER_FRAME);
-      voxelize.rasterize(*lruColl, dag::Span<uint64_t>(handles.data(), handles.size()), nullptr, nullptr, voxelize.renderCollisionElem,
-        1, false);
-      ShaderGlobal::setBlock(old, ShaderGlobal::LAYER_FRAME);
+      scene.frustumCull<false, false, false>(viewproj, v_zero(), 0, 0, nullptr, [&](scene::node_index ni, mat44f_cref node, vec4f) {
+        uint32_t pool = scene::get_node_pool(node), inst = scene::get_node_flags(node);
+        poolsCount.data()[pool]++;
+        handles.push_back((uint64_t(pool) << 32UL) | uint64_t(inst));
+      });
+      if (handles.size() > poolsCount.size() * 2) // use radix sort
+      {
+        uint32_t ofs = 0, pool = 0;
+        for (auto p : poolsCount)
+        {
+          poolsOfs.data()[pool++] = ofs;
+          ofs += p;
+        }
+        handles2.resize(handles.size());
+        for (auto i : handles)
+        {
+          const uint32_t pool = i >> 32UL;
+          handles2.data()[poolsOfs.data()[pool]++] = i;
+        }
+        handlesPtr = handles2.data();
+        handlesCnt = handles2.size();
+      }
+      else
+      {
+        stlsort::sort(handles.begin(), handles.end(),
+          [](auto a, auto b) { return rendinst::handle_to_ri_type(a) < rendinst::handle_to_ri_type(b); });
+        handlesPtr = handles.data();
+        handlesCnt = handles.size();
+      }
     }
+    rasterizePrepared(viewproj, handlesPtr, handlesCnt);
   }
   void buildScene()
   {
-    scene.init(128);
+    scene.init(256);
     scene.reserve(count);
     scene.doMaintenance(ref_time_ticks(), 10000000);
     for (size_t i = 0, e = instances.size(); i != e; ++i)

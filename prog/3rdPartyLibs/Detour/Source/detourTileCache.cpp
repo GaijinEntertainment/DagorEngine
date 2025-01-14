@@ -723,6 +723,11 @@ dtStatus dtTileCache::buildNavMeshTile(const dtCompressedTileRef ref, dtNavMesh*
 	// Early out if the mesh tile is empty.
 	if (!bc.lmesh->npolys)
 	{
+		if (m_tmproc)
+		{
+			m_tmproc->remove(tile->header->tx, tile->header->ty, tile->header->tlayer);
+		}
+
 		// Remove existing tile.
 		navmesh->removeTile(navmesh->getTileRefAt(tile->header->tx,tile->header->ty,tile->header->tlayer),0,0);
 		return DT_SUCCESS;

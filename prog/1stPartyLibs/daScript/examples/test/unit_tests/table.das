@@ -40,13 +40,13 @@ def test : bool
     i = 0
     while i!=total
         // tab[string(i)] = i++
-        tab[string(i)] = i
+        tab |> insert(string(i),i)
         i++
     assert(length(tab)==total)
     // debug(tab)
     i = 0
     while i!=total
-        verify(tab[string(i)]==i)
+        verify(tab |>get_value(string(i))==i)
         i++
     assert(length(tab)==total)
     // debug(tab)
@@ -99,13 +99,13 @@ def test : bool
     // debug(tab)
     i = 0
     while i < total
-        tab[string(i)] = i
+        tab|>insert(string(i),i)
         i += 7
     assert(length(tab)==total)
     // debug(tab)
     i = 0
     while i!=total
-        verify(tab[string(i)]==i)
+        verify(tab |> get_value(string(i))==i)
         i++
     assert(length(tab)==total)
     // debug(tab)
@@ -123,32 +123,32 @@ def test : bool
     var tab_bool:table<bool;int>
     assert(!key_exists(tab_bool, false))
     assert(!key_exists(tab_bool, true))
-    tab_bool[true] = 0
+    tab_bool |> insert(true,0)
     assert(key_exists(tab_bool, true))
-    tab_bool[false] = -1
+    tab_bool |> insert(false,-1)
     assert(key_exists(tab_bool, false))
 
     var tab_int:table<int;int>
     assert(!key_exists(tab_int, -1))
-    tab_int[-1] = -1
+    tab_int |> insert(-1,-1)
     assert(key_exists(tab_int, -1))
     erase(tab_int, -1)
     assert(!key_exists(tab_int, -1))
 
     var tab_string:table<string;int>
     assert(!key_exists(tab_string, "---"))
-    tab_string["---"] = -1
+    tab_string |> insert("---",-1)
     assert(key_exists(tab_string, "---"))
     erase(tab_string, "---")
     assert(!key_exists(tab_string, "---"))
     assert(!key_exists(tab_string, " "))
-    tab_string[" "] = -1
+    tab_string |> insert(" ",-1)
     assert(key_exists(tab_string, " "))
     erase(tab_string, " ")
     assert(!key_exists(tab_string, " "))
-    tab_string[""] = -2
+    tab_string |> insert("",-2)
     assert(key_exists(tab_string, ""))
-    verify(tab_string[""] == -2)
+    verify(tab_string |> get_value("") == -2)
     erase(tab_string, "")
     assert(!key_exists(tab_string, ""))
 
@@ -164,7 +164,7 @@ def test_lock_panic
     try
         find(tab,"one") <| $(t)
             assert(t!=null)
-            tab["three"] = 3
+            tab |> insert("three",3)
     recover
         failed = true
     assert(failed)
@@ -197,7 +197,7 @@ def check(var t : TableContainer; deletedEntries : array<int>)
         if deleted
             continue
         let n = "name_{i}"
-        if t.t[n].test != n
+        if t.t |> get_value(n).test != n
             return false
     return true
 
@@ -208,7 +208,7 @@ def test_erase_collision
     for i in range(1, TOTAL)
         push(names, "name_{i}")
     for n in names
-        t.t[n] <- [[TestStruct test = n ]]
+        t.t |> emplace(n,[[TestStruct test = n ]])
     var deletedEntries : array<int>
     verify(check(t, deletedEntries))
     for i in range(1, TOTAL)

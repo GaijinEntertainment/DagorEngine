@@ -6,7 +6,6 @@
 #include <dag/dag_vectorSet.h>
 #include <util/dag_stlqsort.h>
 #include <math/dag_hlsl_floatx.h>
-#include <generic/dag_enumerate.h>
 #include <generic/dag_span.h>
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
@@ -140,6 +139,7 @@ struct ProtoDrawCall
 
   int stage; // ShaderMesh::STG_*
   int drawOrder;
+  bool isTree;
   ScriptedShaderElement *sElem;
   shaders::CombinedDynVariantState dvState;
   int vbIndex;
@@ -157,6 +157,7 @@ struct MultiDrawCall
 
   // All of the draw calls share the below state:
   int stage; // ShaderMesh::STG_*
+  bool isTree;
   ScriptedShaderElement *sElem;
   shaders::CombinedDynVariantState dvState;
   int vbIndex;
@@ -166,6 +167,7 @@ struct MultiDrawCall
 #define COMPARE_FIELDS     \
   CMP(stage)               \
   CMP(drawOrder)           \
+  CMP(isTree)              \
   CMP(sElem)               \
   CMP(dvState.program)     \
   CMP(dvState.variant)     \
@@ -289,8 +291,10 @@ void update_draw_calls(LockedBuffer<Args> &locked_buffer,
     for (uint32_t viewportIndex = 0; viewportIndex < constants.viewInfo.maxViewports; ++viewportIndex)
     {
       uint32_t baseIndex = (viewportIndex + counterKind * constants.viewInfo.maxViewports) * proto_draw_calls.size();
-      for (auto [i, call] : enumerate(proto_draw_calls))
+      int j = 0;
+      for (auto &call : proto_draw_calls)
       {
+        const int i = j++;
         DrawIndexedIndirectArgs *args;
         if constexpr (eastl::is_same_v<Args, ExtendedDrawIndexedIndirectArgs>)
           args = &locked_buffer[baseIndex + i].args;
@@ -384,8 +388,10 @@ void update_draw_calls(LockedBuffer<Args> &locked_buffer,
       const uint32_t baseIndex = viewportIndex * proto_draw_calls.size();
       const uint32_t baseIndexDynamic =
         (viewportIndex + COUNTER_KIND_DYNAMIC * constants.viewInfo.maxViewports) * proto_draw_calls.size();
-      for (auto [i, call] : enumerate(proto_draw_calls))
+      int j = 0;
+      for (auto &call : proto_draw_calls)
       {
+        const int i = j++;
         const bool isPacked = is_packed_material(call.dvState.const_state);
 
         RiexPatch &patch = lockedBuffer[baseIndex + i];
@@ -469,6 +475,7 @@ static void rebuild_cache(RiexPersistentData &persistent_data)
           call.stage = stage;
           call.drawOrder = 0;
           rElem.mat->getIntVariable(material_var::draw_order.get_var_id(), call.drawOrder);
+          call.isTree = renderable.info.isTree;
           call.sElem = &sElem;
           call.dvState = dvState;
           call.vbIndex = rElem.vertexData->getVbIdx();
@@ -498,6 +505,7 @@ static void rebuild_cache(RiexPersistentData &persistent_data)
         multiCall.staticInstanceRegion = call.staticInstanceRegion;
 
         multiCall.stage = call.stage;
+        multiCall.isTree = call.isTree;
         multiCall.sElem = call.sElem;
         multiCall.dvState = call.dvState;
         multiCall.vbIndex = call.vbIndex;
@@ -607,7 +615,13 @@ static void render(SubPass sub_pass,
   shaders::CombinedDynVariantState lastDvState{};
   ScriptedShaderElement *lastSElem = nullptr;
   bool lastShaderOverride = false;
-  uint32_t lastImmediate = ~0u;
+  uint32_t lastVsImmediate = ~0u;
+  bool lastIsTree = false;
+
+  // Note: naming is a bit confusing, but these constants are only used for vegetation ("trees").
+  // See prog/daNetGame/shaders/vegetation.dshl
+  const auto treeConsts = rendinst::render::getCommonImmediateConstants();
+  const uint32_t treeImmediateConsts[3] = {0u, treeConsts[0], treeConsts[1]};
 
   const auto &multiCallSpan = persistent_data.cache.multiCallSpans[eastl::to_underlying(sub_pass)];
 
@@ -671,18 +685,26 @@ static void render(SubPass sub_pass,
       const uint32_t viewportByteOffset = persistent_data.cache.numCallsPerViewport * constants.argsStride * viewport_index;
       const uint32_t totalByteOffset = call.byteOffset + kindByteOffset + viewportByteOffset + additionalByteOffset;
 
-      uint32_t immediate = 0u;
+      uint32_t vsImmediate = 0u;
       if (call.isForcedSingle && constants.isNonMultidrawIndirectionNeeded)
       {
         const uint32_t offset = (totalByteOffset + offsetof(DrawIndexedIndirectArgs, startInstanceLocation));
         G_ASSERT(offset <= INST_OFFSET_MASK_VALUE);
-        immediate |= INST_OFFSET_FLAG_USE_INDIRECTION | offset;
+        vsImmediate |= INST_OFFSET_FLAG_USE_INDIRECTION | offset;
       }
 
-      if (immediate != lastImmediate)
+      if (vsImmediate != lastVsImmediate)
       {
-        d3d::set_immediate_const(STAGE_VS, &immediate, 1);
-        lastImmediate = immediate;
+        d3d::set_immediate_const(STAGE_VS, &vsImmediate, 1);
+        lastVsImmediate = vsImmediate;
+      }
+
+      if (call.isTree != lastIsTree)
+      {
+        if (call.isTree)
+          d3d::set_immediate_const(STAGE_PS, treeImmediateConsts, countof(treeImmediateConsts));
+        else
+          d3d::set_immediate_const(STAGE_PS, nullptr, 0);
       }
 
       d3d::multi_draw_indexed_indirect(PRIM_TRILIST, draw_args_buf, call.count, constants.argsStride, totalByteOffset);
@@ -693,6 +715,7 @@ static void render(SubPass sub_pass,
   rendinst::render::endRenderInstancing();
 
   d3d::set_immediate_const(STAGE_VS, nullptr, 0);
+  d3d::set_immediate_const(STAGE_PS, nullptr, 0);
   shaders::overrides::reset();
 }
 

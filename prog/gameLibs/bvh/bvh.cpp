@@ -288,6 +288,13 @@ bool has_enough_vram_for_rt()
                                                                                                                 // 1024
 }
 
+static bool has_enough_vram_for_rt_initial_check()
+{
+  bool ret = has_enough_vram_for_rt();
+  logdbg("bvh: VRAM check %s", ret ? "OK" : "FAILED");
+  return ret;
+}
+
 bool is_available()
 {
   if (dgs_get_settings()->getBlockByNameEx("gameplay")->getBool("enableVR", false))
@@ -301,7 +308,7 @@ bool is_available()
 #elif _TARGET_PC
   if (!d3d::is_inited())
     return true;
-  static bool hasEnoughVRAM = has_enough_vram_for_rt();
+  static bool hasEnoughVRAM = has_enough_vram_for_rt_initial_check();
 #else
   static bool hasEnoughVRAM = false;
 #endif
@@ -695,6 +702,9 @@ static void do_add_mesh(ContextId context_id, uint64_t mesh_id, const MeshInfo &
 
   if (info.isLayered)
     mesh.materialType |= MeshMeta::bvhMaterialLayered;
+
+  if (info.isEmissive)
+    mesh.materialType |= MeshMeta::bvhMaterialEmissive;
 
   auto &meta = mesh.createAndGetMeta(context_id);
 
@@ -1649,15 +1659,19 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
       static int bvh_hwinstance_copy_instance_slotsVarId = get_shader_variable_id("bvh_hwinstance_copy_instance_slots");
       static int bvh_hwinstance_copy_modeVarId = get_shader_variable_id("bvh_hwinstance_copy_mode");
 
+      static int source_const_no = ShaderGlobal::get_slot_by_name("bvh_hwinstance_copy_source_const_no");
+      static int instance_count_const_no = ShaderGlobal::get_slot_by_name("bvh_hwinstance_copy_instance_count_const_no");
+      static int output_uav_no = ShaderGlobal::get_slot_by_name("bvh_hwinstance_copy_output_uav_no");
+
       TIME_D3D_PROFILE_NAME(copy_hwinstances, String(64, "copy hw instance: %d", bufferSize));
 
       ShaderGlobal::set_int(bvh_hwinstance_copy_start_instanceVarId, startInstance);
       ShaderGlobal::set_int(bvh_hwinstance_copy_instance_slotsVarId, bufferSize);
       ShaderGlobal::set_int(bvh_hwinstance_copy_modeVarId, 0);
 
-      d3d::set_buffer(STAGE_CS, 0, instances);
-      d3d::set_buffer(STAGE_CS, 1, instanceCount);
-      d3d::set_rwbuffer(STAGE_CS, 0, uploadBuffer);
+      d3d::set_buffer(STAGE_CS, source_const_no, instances);
+      d3d::set_buffer(STAGE_CS, instance_count_const_no, instanceCount);
+      d3d::set_rwbuffer(STAGE_CS, output_uav_no, uploadBuffer);
 
       get_hw_instance_copy_shader().dispatchThreads(bufferSize, 1, 1);
     }
@@ -1808,6 +1822,7 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
 
   d3d::build_top_acceleration_structures(tlasUpdate, tlasCount);
 
+  context_id->markChangedTextures();
   context_id->bindlessTextureAllocator.getHeap().updateBindings();
   context_id->bindlessBufferAllocator.getHeap().updateBindings();
 

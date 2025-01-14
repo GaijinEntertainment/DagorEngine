@@ -750,7 +750,7 @@ public:
         assetDlg->selectObj(mSelectedEntityName.str());
 
       if (cli)
-        cli->onAvSelectAsset(assetDlg->getSelObjName());
+        cli->onAvSelectAsset(assetDlg->getSelectedAsset(), assetDlg->getSelObjName());
 
       last_filter = types;
       assetTreeStateCache.getState(tree_exps, types);

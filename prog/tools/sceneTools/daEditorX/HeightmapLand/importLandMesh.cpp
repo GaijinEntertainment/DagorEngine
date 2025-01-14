@@ -612,8 +612,8 @@ static bool delaunayGenerateCached(LandMeshMap &land, HeightMapStorage &heightma
 
       // add land boundary points first to force proper sides
       for (const auto &v : mesh_out.vert)
-        if (fabsf(v.x - boundary[0].x) < 1e-6f || fabsf(v.z - boundary[0].y) < 1e-6f || //
-            fabsf(v.x - boundary[2].x) < 1e-6f || fabsf(v.z - boundary[2].y) < 1e-6f)
+        if (fabs(v.x - boundary[0].x) < 1e-6 || fabs(v.z - boundary[0].y) < 1e-6 || //
+            fabs(v.x - boundary[2].x) < 1e-6 || fabs(v.z - boundary[2].y) < 1e-6)
           dt.InsertConstrainedPoint({v.x, v.z, v.y});
 
       ctl::PointList poly_pts;
@@ -2106,6 +2106,7 @@ int HmapLandPlugin::markUndergroundFaces(MeshData &mesh, Bitarray &facesAbove, T
   }
   dag::Span<Point3> vert(vertPtr, mesh.vert.size());
   HMDetTR2 det_hm;
+  BBox2 landBoundsXZ(Point2::xz(tracer->getBBox()[0]), Point2::xz(tracer->getBBox()[1]));
   for (int vi = 0; vi < mesh.vert.size(); ++vi)
   {
     if (wtm)
@@ -2122,7 +2123,7 @@ int HmapLandPlugin::markUndergroundFaces(MeshData &mesh, Bitarray &facesAbove, T
           vertsBelowCnt++;
         }
     }
-    else if (tracer->getHeightBelow(Point3::xVz(vert[vi], maxHeight), det_ht, NULL))
+    else if ((landBoundsXZ & Point2::xz(vert[vi])) && tracer->getHeightBelow(Point3::xVz(vert[vi], maxHeight), det_ht, NULL))
     {
       if (det_ht >= ht)
       {

@@ -41,9 +41,19 @@ enum class Drv3dCommand
 
   GET_VSYNC_REFRESH_RATE,
 
-  // set time limit (in usecs) per frame for pipeline compilation
-  // par2 - if not null, disables compute pipeline async compilation (only graphics pipeline are async compiled)
-  SET_PIPELINE_COMPILATION_TIME_BUDGET,
+  // async pipeline compilation range
+  // both commands require GPU lock to avoid affecting unrelated draws/dispatches
+  //
+  // starts range, returns 1 if supported by driver
+  //  par1 - if not null, disables async for graphics & compute (regardless of par2)
+  //  par2 - if not null, disables async for compute
+  // i.e. default arguments enable async for graphics & compute
+  ASYNC_PIPELINE_COMPILE_RANGE_BEGIN,
+  // ends range, returns 1 if supported by driver
+  //  last async pipeline range is continued after ending,
+  //  or if there is no active range after end, async pipeline compilation is disabled
+  ASYNC_PIPELINE_COMPILE_RANGE_END,
+
   // recives current amount of pipelines in compilation queue
   GET_PIPELINE_COMPILATION_QUEUE_LENGTH,
   // forms async pipeline compilation feeedback in range of draw commands executed between begin&end
@@ -300,6 +310,12 @@ enum class Drv3dCommand
   // Starts special BB rotate transform pass
   PRE_ROTATE_PASS,
 
+  // Indicates generic render pass start for validation
+  BEGIN_GENERIC_RENDER_PASS_CHECKS,
+
+  // Indicates generic render pass end for validation
+  END_GENERIC_RENDER_PASS_CHECKS,
+
   // par1 is a pointer to an os_event_t, which is going to be
   // signaled once the rendering of the current frame is completed
   // on the GPU.
@@ -427,6 +443,9 @@ enum class Drv3dCommand
   //
   // returns 1 if driver switched queue, otherwise returns 0
   CHANGE_QUEUE,
+
+  // Returns whether PIX Capturer is loaded
+  IS_PIX_CAPTURE_LOADED,
 
   USER = 1000,
 };

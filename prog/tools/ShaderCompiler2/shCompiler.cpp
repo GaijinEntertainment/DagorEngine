@@ -430,7 +430,8 @@ CompilerAction should_recompile(const ShVariantName &variant_name)
 }
 
 // compile shader files & generate variants to disk. return false, if error occurs
-void compileShader(const ShVariantName &variant_name, bool no_save, bool should_rebuild, CompilerAction compiler_action)
+void compileShader(const ShVariantName &variant_name, eastl::optional<StcodeInterface> &stcode_interface, bool no_save,
+  bool should_rebuild, CompilerAction compiler_action)
 {
   // Sanity check, args should be validated before calling the function
   G_ASSERT(!should_rebuild || (compiler_action != CompilerAction::NOTHING && compiler_action != CompilerAction::LINK_ONLY));
@@ -520,8 +521,8 @@ void compileShader(const ShVariantName &variant_name, bool no_save, bool should_
   if (!no_save)
   {
     int64_t reft = ref_time_ticks();
+    stcode_interface.emplace();
 
-    StcodeInterface linkedStcodeInterface;
     for (unsigned int sourceFileNo = 0; sourceFileNo < variant_name.sourceFilesList.size(); sourceFileNo++)
     {
       const String &sourceFileName = variant_name.sourceFilesList[sourceFileNo];
@@ -532,7 +533,7 @@ void compileShader(const ShVariantName &variant_name, bool no_save, bool should_
 
       int mmaped_len = 0;
       const void *mmaped = df_mmap(objFile, &mmaped_len);
-      bool res = link_scripted_shaders((const uint8_t *)mmaped, mmaped_len, objFileName, sourceFileName, linkedStcodeInterface);
+      bool res = link_scripted_shaders((const uint8_t *)mmaped, mmaped_len, objFileName, sourceFileName, stcode_interface.value());
       df_unmap(mmaped, mmaped_len);
       G_ASSERT(res);
 #if SHOW_MEM_STAT
@@ -542,8 +543,6 @@ void compileShader(const ShVariantName &variant_name, bool no_save, bool should_
       df_close(objFile);
     }
     sh_debug(SHLOG_NORMAL, "[INFO] linked in %gms", get_time_usec(reft) / 1000.);
-
-    save_stcode_dll_main(eastl::move(linkedStcodeInterface));
 
     reft = ref_time_ticks();
     sh_debug(SHLOG_NORMAL, "[INFO] Saving...");
@@ -555,7 +554,8 @@ void compileShader(const ShVariantName &variant_name, bool no_save, bool should_
   }
 }
 
-bool buildShaderBinDump(const char *bindump_fn, const char *sh_fn, bool forceRebuild, bool minidump, BindumpPackingFlags packing_flags)
+bool buildShaderBinDump(const char *bindump_fn, const char *sh_fn, bool forceRebuild, bool minidump, BindumpPackingFlags packing_flags,
+  StcodeInterface *stcode_interface)
 {
   if (!forceRebuild)
   {
@@ -584,7 +584,7 @@ bool buildShaderBinDump(const char *bindump_fn, const char *sh_fn, bool forceReb
   }
   String tempbindump_fn(bindump_fn);
   tempbindump_fn += ".tmp.bin";
-  if (!make_scripted_shaders_dump(tempbindump_fn, sh_fn, minidump, packing_flags))
+  if (!make_scripted_shaders_dump(tempbindump_fn, sh_fn, minidump, packing_flags, stcode_interface))
   {
     sh_debug(SHLOG_ERROR, "Can't build binary %sdump from: '%s'\n", minidump ? "mini" : "", sh_fn);
     dd_erase(bindump_fn);

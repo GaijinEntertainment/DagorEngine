@@ -320,6 +320,9 @@ namespace das {
             return flags;
         }
     protected:
+        virtual bool canVisitStructureFieldInit ( Structure * ) override { return false; }
+        virtual bool canVisitArgumentInit ( Function * , const VariablePtr &, Expression * ) override { return false; }
+        virtual bool canVisitQuoteSubexpression ( ExprQuote * ) override { return false; }
     // Variable initializatoin
         virtual void preVisitLetInit ( ExprLet * let, const VariablePtr & var, Expression * init ) override {
             Visitor::preVisitLetInit(let, var, init);
@@ -609,6 +612,9 @@ namespace das {
 
     class RemoveUnusedLocalVariables : public PassVisitor {
     protected:
+        virtual bool canVisitStructureFieldInit ( Structure * ) override { return false; }
+        virtual bool canVisitArgumentInit ( Function * , const VariablePtr &, Expression * ) override { return false; }
+        virtual bool canVisitQuoteSubexpression ( ExprQuote * ) override { return false; }
     // ExprLet
         virtual VariablePtr visitLet ( ExprLet * let, const VariablePtr & var, bool last ) override {
             if ( !var->access_get && !var->access_ref && !var->access_init && !var->access_pass ) {

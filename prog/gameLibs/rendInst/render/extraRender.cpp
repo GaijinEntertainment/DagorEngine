@@ -1460,6 +1460,8 @@ void rendinst::render::renderRIGenExtra(const RiGenVisibility &vbase, RenderPass
       riexr.setNewStages(ShaderMesh::STG_atest, ShaderMesh::STG_atest);
     else if (layer & LayerFlag::Opaque && atest_stage == AtestStage::AtestAndImmDecal)
       riexr.setNewStages(ShaderMesh::STG_atest, ShaderMesh::STG_imm_decal);
+    else if (layer & LayerFlag::Opaque && atest_stage == AtestStage::NoImmDecal)
+      riexr.setNewStages(ShaderMesh::STG_opaque, ShaderMesh::STG_atest);
 
     riexr.addObjectsToRender(v, riResOrder, texCtx, optimization_depth_prepass, ignore_optimization_instances_limits);
     riexr.sortMeshesByMaterial();

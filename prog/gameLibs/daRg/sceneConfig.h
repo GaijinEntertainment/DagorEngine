@@ -32,6 +32,7 @@ public:
   float gamepadCursorHoverMaxTime = 1.0f;
   float gamepadCursorHoverMinMul = 0.15f;
   float gamepadCursorHoverMaxMul = 0.8f;
+  float moveClickThreshold = -1.0f;
 
   E3DCOLOR defSceneBgColor = E3DCOLOR(10, 10, 10, 160);
   E3DCOLOR defTextColor = E3DCOLOR(160, 160, 160, 160);

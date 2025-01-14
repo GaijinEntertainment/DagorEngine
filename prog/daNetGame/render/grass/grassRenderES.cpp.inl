@@ -194,8 +194,8 @@ void GrassRenderer::renderGrass()
 void GrassRenderer::generateGrass(const TMatrix &itm, const Driver3dPerspective &perspective)
 {
   auto *lmeshRenderer = WRDispatcher::getLandMeshRenderer();
-  auto *lmeshManagerer = WRDispatcher::getLandMeshManager();
-  if (!grassRender.get() || !lmeshManagerer)
+  auto *lmeshManager = WRDispatcher::getLandMeshManager();
+  if (!grassRender.get() || !lmeshManager)
     return;
   float rendInstHeightmapMaxHt = -10000.0f;
   if (rendInstHeightmap)
@@ -224,7 +224,7 @@ void GrassRenderer::generateGrass(const TMatrix &itm, const Driver3dPerspective 
   if (grassColorIgnoreTerrainDetail.pullValueChange())
     grass.invalidate();
 
-  RandomGrassRenderHelper rhlp(*lmeshRenderer, *lmeshManagerer, rendInstHeightmapMaxHt, min(grassErasersActualSize, MAX_GRASS_ERASERS),
+  RandomGrassRenderHelper rhlp(*lmeshRenderer, *lmeshManager, rendInstHeightmapMaxHt, min(grassErasersActualSize, MAX_GRASS_ERASERS),
     grassEraserBuffer.getBuf(), grassEraserShader.shader);
 
   grass.generate(itm.getcol(3), itm.getcol(2), rhlp);
@@ -312,15 +312,122 @@ void render_grass()
   get_grass_render_ecs_query([&](GrassRenderer &grass_render) { grass_render.renderGrass(); });
 }
 
-
-void init_grass(const DataBlock *grass_settings_from_level)
+DataBlock load_grass_settings(ecs::EntityId eid)
 {
-  if (!grass_settings_from_level)
+  const ecs::Array &entityGrassTypes = g_entity_mgr->get<ecs::Array>(eid, ECS_HASH("grass_types"));
+  if (entityGrassTypes.size() == 0)
+    return DataBlock();
+
+  DataBlock grassBlock;
+  grassBlock.setReal("grass_grid_size", g_entity_mgr->getOr(eid, ECS_HASH("grass_grid_size"), 0.5f));
+  grassBlock.setReal("grass_distance", g_entity_mgr->getOr(eid, ECS_HASH("grass_distance"), 100.0f));
+  grassBlock.setInt("grassMaskResolution", g_entity_mgr->getOr(eid, ECS_HASH("grassMaskResolution"), 512));
+  grassBlock.setReal("hor_size_mul", g_entity_mgr->getOr(eid, ECS_HASH("hor_size_mul"), 1.0f));
+
+  if (g_entity_mgr->getOr(eid, ECS_HASH("grassify"), false))
+  {
+    // its blk params are deprecated, only its existence is checked
+    grassBlock.addNewBlock("grassify");
+  }
+
+  DataBlock *grassTypesBlock = grassBlock.addNewBlock("grass_types");
+
+  for (auto &grassType : entityGrassTypes)
+  {
+    const ecs::Object &obj = grassType.get<ecs::Object>();
+    DataBlock *typeBlock = grassTypesBlock->addNewBlock(obj[ECS_HASH("name")].get<ecs::string>().c_str());
+    if (!obj[ECS_HASH("diffuse")].isNull())
+      typeBlock->setStr("diffuse", obj[ECS_HASH("diffuse")].getStr());
+    if (!obj[ECS_HASH("normal")].isNull())
+      typeBlock->setStr("normal", obj[ECS_HASH("normal")].getStr());
+    if (!obj[ECS_HASH("height")].isNull())
+      typeBlock->setReal("height", obj[ECS_HASH("height")].get<float>());
+    if (!obj[ECS_HASH("size_lod_mul")].isNull())
+      typeBlock->setReal("size_lod_mul", obj[ECS_HASH("size_lod_mul")].get<float>());
+    if (!obj[ECS_HASH("size_lod_wide_mul")].isNull())
+      typeBlock->setReal("size_lod_wide_mul", obj[ECS_HASH("size_lod_wide_mul")].get<float>());
+    if (!obj[ECS_HASH("ht_rnd_add")].isNull())
+      typeBlock->setReal("ht_rnd_add", obj[ECS_HASH("ht_rnd_add")].get<float>());
+    if (!obj[ECS_HASH("hor_size")].isNull())
+      typeBlock->setReal("hor_size", obj[ECS_HASH("hor_size")].get<float>());
+    if (!obj[ECS_HASH("hor_size_rnd_add")].isNull())
+      typeBlock->setReal("hor_size_rnd_add", obj[ECS_HASH("hor_size_rnd_add")].get<float>());
+    if (!obj[ECS_HASH("height_rnd_add")].isNull())
+      typeBlock->setReal("height_rnd_add", obj[ECS_HASH("height_rnd_add")].get<float>());
+    if (!obj[ECS_HASH("height_from_weight_mul")].isNull())
+      typeBlock->setReal("height_from_weight_mul", obj[ECS_HASH("height_from_weight_mul")].get<float>());
+    if (!obj[ECS_HASH("height_from_weight_add")].isNull())
+      typeBlock->setReal("height_from_weight_add", obj[ECS_HASH("height_from_weight_add")].get<float>());
+    if (!obj[ECS_HASH("density_from_weight_mul")].isNull())
+      typeBlock->setReal("density_from_weight_mul", obj[ECS_HASH("density_from_weight_mul")].get<float>());
+    if (!obj[ECS_HASH("density_from_weight_add")].isNull())
+      typeBlock->setReal("density_from_weight_add", obj[ECS_HASH("density_from_weight_add")].get<float>());
+    if (!obj[ECS_HASH("vertical_angle_add")].isNull())
+      typeBlock->setReal("vertical_angle_add", obj[ECS_HASH("vertical_angle_add")].get<float>());
+    if (!obj[ECS_HASH("vertical_angle_mul")].isNull())
+      typeBlock->setReal("vertical_angle_mul", obj[ECS_HASH("vertical_angle_mul")].get<float>());
+    if (!obj[ECS_HASH("color_mask_r_from")].isNull())
+      typeBlock->setE3dcolor("color_mask_r_from", obj[ECS_HASH("color_mask_r_from")].get<E3DCOLOR>());
+    if (!obj[ECS_HASH("color_mask_r_to")].isNull())
+      typeBlock->setE3dcolor("color_mask_r_to", obj[ECS_HASH("color_mask_r_to")].get<E3DCOLOR>());
+    if (!obj[ECS_HASH("color_mask_g_from")].isNull())
+      typeBlock->setE3dcolor("color_mask_g_from", obj[ECS_HASH("color_mask_g_from")].get<E3DCOLOR>());
+    if (!obj[ECS_HASH("color_mask_g_to")].isNull())
+      typeBlock->setE3dcolor("color_mask_g_to", obj[ECS_HASH("color_mask_g_to")].get<E3DCOLOR>());
+    if (!obj[ECS_HASH("color_mask_b_from")].isNull())
+      typeBlock->setE3dcolor("color_mask_b_from", obj[ECS_HASH("color_mask_b_from")].get<E3DCOLOR>());
+    if (!obj[ECS_HASH("color_mask_b_to")].isNull())
+      typeBlock->setE3dcolor("color_mask_b_to", obj[ECS_HASH("color_mask_b_to")].get<E3DCOLOR>());
+    if (!obj[ECS_HASH("tile_tc_x")].isNull())
+      typeBlock->setReal("tile_tc_x", obj[ECS_HASH("tile_tc_x")].get<float>());
+    if (!obj[ECS_HASH("stiffness")].isNull())
+      typeBlock->setReal("stiffness", obj[ECS_HASH("stiffness")].get<float>());
+    if (!obj[ECS_HASH("horizontal_grass")].isNull())
+      typeBlock->setBool("horizontal_grass", obj[ECS_HASH("horizontal_grass")].get<bool>());
+    if (!obj[ECS_HASH("underwater")].isNull())
+      typeBlock->setBool("underwater", obj[ECS_HASH("underwater")].get<bool>());
+    if (!obj[ECS_HASH("variations")].isNull())
+      typeBlock->setInt("variations", obj[ECS_HASH("variations")].get<int>());
+  }
+
+  DataBlock *decalsBlock = grassBlock.addNewBlock("decals");
+  const ecs::Array &entityDecals = g_entity_mgr->get<ecs::Array>(eid, ECS_HASH("decals"));
+  for (auto &decal : entityDecals)
+  {
+    const ecs::Object &obj = decal.get<ecs::Object>();
+    DataBlock *decalBlock = decalsBlock->addNewBlock(obj[ECS_HASH("name")].get<ecs::string>().c_str());
+    decalBlock->setInt("id", obj[ECS_HASH("id")].get<int>());
+    const ecs::Array &decalWeights = obj[ECS_HASH("weights")].get<ecs::Array>();
+    for (auto &weight : decalWeights)
+    {
+      const ecs::Object weightObject = weight.get<ecs::Object>();
+      decalBlock->setReal(weightObject[ECS_HASH("type")].get<ecs::string>().c_str(), weightObject[ECS_HASH("weight")].get<float>());
+    }
+  }
+  return grassBlock;
+}
+
+void init_grass(const DataBlock *grass_settings_from_level_fallback)
+{
+  ecs::EntityId grassSettingsEid = g_entity_mgr->getSingletonEntity(ECS_HASH("grass_settings"));
+  DataBlock loadedGrassSettings;
+  if (grassSettingsEid != ecs::INVALID_ENTITY_ID)
+  {
+    loadedGrassSettings = load_grass_settings(grassSettingsEid);
+  }
+  else
+  {
+    logwarn("No grass entity found! Loading grass_render from level blk fallback.");
+  }
+
+  const DataBlock *grassSettings = loadedGrassSettings.isEmpty() ? grass_settings_from_level_fallback : &loadedGrassSettings;
+
+  if (!grassSettings)
     return;
   g_entity_mgr->createEntitySync("grass_render");
 
   init_grass_render_ecs_query([&](GrassRenderer &grass_render, dabfg::NodeHandle &grass_node) {
-    grass_render.initGrass(*grass_settings_from_level);
+    grass_render.initGrass(*grassSettings);
     grass_render.invalidateGrass(true);
 
     if (renderer_has_feature(FeatureRenderFlags::FORWARD_RENDERING))

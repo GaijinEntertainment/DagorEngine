@@ -91,6 +91,7 @@ namespace das {
     Expression * ast_makeBlock ( yyscan_t scanner, int bal, AnnotationList * annL, vector<CaptureEntry> * clist,
         vector<VariableDeclaration*> * list, TypeDecl * result, Expression * block, const LineInfo & blockAt, const LineInfo & annLAt );
     Expression * ast_Let ( yyscan_t scanner, bool kwd_let, bool inScope, VariableDeclaration * decl, const LineInfo & kwd_letAt, const LineInfo & declAt );
+    Expression * ast_LetList ( yyscan_t scanner, bool kwd_let, bool inScope, vector<VariableDeclaration *> & decl, const LineInfo & kwd_letAt, const LineInfo & declAt );
     Function * ast_functionDeclarationHeader ( yyscan_t scanner, string * name, vector<VariableDeclaration*> * list,
         TypeDecl * result, const LineInfo & nameAt );
     void ast_requireModule ( yyscan_t scanner, string * name, string * modalias, bool pub, const LineInfo & atName );

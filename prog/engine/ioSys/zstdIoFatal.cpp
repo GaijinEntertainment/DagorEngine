@@ -5,3 +5,4 @@
 
 void ZstdLoadFromMemCB::issueFatal() { G_ASSERT(0 && "restricted by design"); }
 void ZstdSaveCB::issueFatal() { G_ASSERT(0 && "restricted by design"); }
+void ZstdDecompressSaveCB::issueFatal() { G_ASSERT(0 && "restricted by design"); }

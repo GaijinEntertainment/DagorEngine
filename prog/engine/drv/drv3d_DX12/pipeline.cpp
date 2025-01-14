@@ -86,8 +86,8 @@ bool PipelineVariant::calculateColorWriteMask(const eastl::string &pipeline_name
   // slots by the shader implicitly.
   uint32_t fbColorWriteMask = fb_layout.getColorWriteMask();
   color_write_mask = fbColorWriteMask & basicShaderTargetMask;
-  uint32_t missingShaderOutputMask =
-    static_state.calculateMissingShaderOutputMask(color_write_mask, base.psModule.header.header.inOutSemanticMask);
+  uint32_t missingShaderOutputMask = static_state.calculateMissingShaderOutputMask(color_write_mask, fb_layout.colorFormats,
+    base.psModule.header.header.inOutSemanticMask);
   if (missingShaderOutputMask)
   {
     D3D_ERROR("DX12: Pipeline <%s> does not write all enabled color target components. "
@@ -304,6 +304,7 @@ bool PipelineVariant::create(ID3D12Device2 *device, backend::ShaderModuleManager
   }
 
   desc.BlendState = static_state.getBlendDesc(fbFinalColorWriteMask);
+  succeeded = succeeded && validate_blend_desc(desc.BlendState, fb_layout, fbFinalColorWriteMask);
 
   uint32_t inputCount = 0;
   D3D12_INPUT_ELEMENT_DESC elemDesc[MAX_VERTEX_ATTRIBUTES];
@@ -495,6 +496,18 @@ bool PipelineVariant::validate_blend_desc(const D3D12_BLEND_DESC &blend_desc, co
         logerr("DX12: Blend enabled for render target %u with format %s that does not support blending", i,
           fb_layout.colorFormats[i].getNameString());
       }
+    }
+    if (fb_layout.colorFormats[i] == FormatStore::fromDXGIFormat(DXGI_FORMAT_R9G9B9E5_SHAREDEXP) &&
+        blend_desc.RenderTarget[i].RenderTargetWriteMask != D3D12_COLOR_WRITE_ENABLE_ALL)
+    {
+      // https://microsoft.github.io/DirectX-Specs/d3d/D3D12R9G9B9E5Format.html#interaction-with-rendertargetwritemask
+      // Whenever a 999E5 render target is used, the accompanying D3D12_RENDER_TARGET_BLEND_DESC::RenderTargetWriteMask must be set to
+      // D3D12_COLOR_WRITE_ENABLE_ALL. Partial updates to some component is not supported. While 999E5 does not support alpha writing,
+      // setting COLOR_WRITE_ENABLE_ALPHA is required for the exponent component to be written.
+      isOk = false;
+      logerr(
+        "DX12: Write mask 0x%x for render target %u with format TEXFMT_R9G9B9E5 (partial updates to some component is not supported)",
+        blend_desc.RenderTarget[i].RenderTargetWriteMask, i);
     }
   }
 #endif
@@ -2014,10 +2027,6 @@ void PipelineManager::removeProgram(ProgramID program)
     [=](const PrepedForDelete &pfd) { return pfd.program == program; });
   if (program.isCompute())
     ; // no-op
-#if D3D_HAS_RAY_TRACING
-  else if (program.isRaytrace())
-    ; // no-op
-#endif
   else
   {
     G_ASSERTF(false, "Invalid program type");
@@ -2049,12 +2058,6 @@ void PipelineManager::prepareForRemove(ProgramID program)
   {
     info.compute = eastl::move(computePipelines[group][index]);
   }
-#if D3D_HAS_RAY_TRACING
-  else if (program.isRaytrace())
-  {
-    info.raytrace = eastl::move(raytracePipelines[index]);
-  }
-#endif
   else
   {
     G_ASSERTF(false, "Invalid program type");
@@ -2954,7 +2957,7 @@ void PipelineStageStateBase::setUAVNull(uint32_t unit)
 namespace
 {
 template <typename T, typename U, typename V>
-uint32_t maching_object_mask(const T &obj, U &container, V extractor)
+uint32_t matching_object_mask(const T &obj, U &container, V extractor)
 {
   uint32_t mask = 0;
   for (uint32_t i = 0; i < countof(container); ++i)
@@ -2967,9 +2970,9 @@ uint32_t maching_object_mask(const T &obj, U &container, V extractor)
 
 void PipelineStageStateBase::dirtyBufferState(BufferGlobalId id)
 {
-  bRegisterStateDirtyMask |= maching_object_mask(id, bRegisterBuffers, [](auto &ref) { return ref.buffer.resourceId; });
-  tRegisterStateDirtyMask |= maching_object_mask(id, tRegisters, [](auto &ref) { return ref.buffer.resourceId; });
-  uRegisterStateDirtyMask |= maching_object_mask(id, uRegisters, [](auto &ref) { return ref.buffer.resourceId; });
+  bRegisterStateDirtyMask |= matching_object_mask(id, bRegisterBuffers, [](auto &ref) { return ref.buffer.resourceId; });
+  tRegisterStateDirtyMask |= matching_object_mask(id, tRegisters, [](auto &ref) { return ref.buffer.resourceId; });
+  uRegisterStateDirtyMask |= matching_object_mask(id, uRegisters, [](auto &ref) { return ref.buffer.resourceId; });
 }
 
 void PipelineStageStateBase::dirtyTextureState(Image *texture)
@@ -2978,8 +2981,8 @@ void PipelineStageStateBase::dirtyTextureState(Image *texture)
   {
     return;
   }
-  tRegisterStateDirtyMask |= maching_object_mask(texture, tRegisters, [](auto &ref) { return ref.image; });
-  uRegisterStateDirtyMask |= maching_object_mask(texture, uRegisters, [](auto &ref) { return ref.image; });
+  tRegisterStateDirtyMask |= matching_object_mask(texture, tRegisters, [](auto &ref) { return ref.image; });
+  uRegisterStateDirtyMask |= matching_object_mask(texture, uRegisters, [](auto &ref) { return ref.image; });
 }
 
 void PipelineStageStateBase::flushResourceStates(uint32_t b_register_mask, uint32_t t_register_mask, uint32_t u_register_mask,
@@ -3042,7 +3045,7 @@ void ShaderDeviceRequirementChecker::init(ID3D12Device *device)
   auto op9 = check_feature_support<D3D12_FEATURE_DATA_D3D12_OPTIONS9>(device);
   // auto op10 = check_feature_support<D3D12_FEATURE_DATA_D3D12_OPTIONS10>(device);
   auto op11 = check_feature_support<D3D12_FEATURE_DATA_D3D12_OPTIONS11>(device);
-  auto sm = check_feature_support<D3D12_FEATURE_DATA_SHADER_MODEL>(device, shader_model_to_dx(d3d::smMax));
+  auto sm = get_shader_model(device);
 
   supportedRequirement.shaderModel = static_cast<uint8_t>(sm.HighestShaderModel);
   uint64_t combinedFlags = 0;

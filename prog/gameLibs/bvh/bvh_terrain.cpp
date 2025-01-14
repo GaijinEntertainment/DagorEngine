@@ -5,7 +5,6 @@
 #include <drv/3d/dag_buffers.h>
 #include <3d/dag_lockSbuffer.h>
 #include <3d/dag_resPtr.h>
-#include <generic/dag_enumerate.h>
 #include <perfMon/dag_statDrv.h>
 #include <memory/dag_framemem.h>
 
@@ -328,8 +327,10 @@ static void update_terrain(ContextId context_id, const Point2 &location)
   Point2 leftBottomOrigin = context_id->terrainMiddlePoint - Point2(3 * terrain_cell_size / 2, 3 * terrain_cell_size / 2);
   int lodGridSize = 1;
 
-  for (auto [lodIx, lod] : enumerate(context_id->terrainLods))
+  int li = 0;
+  for (auto &lod : context_id->terrainLods)
   {
+    int lodIx = li++;
     threadpool::wait(&terrain_bvh_jobs[lodIx]);
 
     auto &job = terrain_bvh_jobs[lodIx];
@@ -418,7 +419,7 @@ static void update_terrain(ContextId context_id, const Point2 &location)
 
   lodGridSize = 1;
   leftBottomOrigin = context_id->terrainMiddlePoint - Point2(3 * terrain_cell_size / 2, 3 * terrain_cell_size / 2);
-  for (auto [lodIx, lod] : enumerate(context_id->terrainLods))
+  for (int lodIx = 0; lodIx < context_id->terrainLods.size(); ++lodIx)
   {
     auto &job = terrain_bvh_jobs[lodIx];
     job.contextId = context_id;
@@ -466,9 +467,9 @@ dag::Vector<eastl::tuple<uint64_t, uint32_t, Point2>> get_blases(ContextId conte
   int lodGridSize = 1;
 
   dag::Vector<eastl::tuple<uint64_t, uint32_t, Point2>> blases;
-  for (auto [lodIx, lod] : enumerate(context_id->terrainLods))
+  for (int lodIx = 0; lodIx < context_id->terrainLods.size(); ++lodIx)
   {
-    for (auto &patch : lod.patches)
+    for (auto &patch : context_id->terrainLods[lodIx].patches)
       blases.push_back({patch.blas.getGPUAddress(), patch.metaAllocId, patch.position});
 
     lodGridSize *= 3;
@@ -495,7 +496,7 @@ void add_terrain(ContextId context_id, HeightProvider *height_provider)
 
 void remove_terrain(ContextId context_id)
 {
-  for (auto [lodIx, lod] : enumerate(context_id->terrainLods))
+  for (int lodIx = 0; lodIx < context_id->terrainLods.size(); ++lodIx)
   {
     auto &job = terrain::terrain_bvh_jobs[lodIx];
     threadpool::wait(&job);

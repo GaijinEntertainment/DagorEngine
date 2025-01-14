@@ -806,7 +806,7 @@ ImVec2 ImguiHelper::getButtonSize(const char *label, bool hide_text_after_double
 }
 
 bool ImguiHelper::searchInput(const void *focus_id, const char *label, const char *hint, String &text_to_search,
-  ImTextureID search_icon, ImTextureID clear_icon)
+  ImTextureID search_icon, ImTextureID clear_icon, bool *input_focused, ImGuiID *input_id)
 {
   const ImVec2 fontSizedIconSize = getFontSizedIconSize();
   const float iconPaddingX = ImGui::GetStyle().ItemInnerSpacing.x;
@@ -819,8 +819,13 @@ bool ImguiHelper::searchInput(const void *focus_id, const char *label, const cha
   // Extend padding so we can fit the icons in it. This is not perfect but better than copying the entire ImGui::InputTextEx.
   const ImVec2 originalFramePadding = ImGui::GetStyle().FramePadding;
   ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(originalFramePadding.x + inputPaddingX, originalFramePadding.y));
-  bool inputChanged = ImGuiDagor::InputTextWithHint("##searchInput", "Search", &text_to_search);
+  bool inputChanged = ImGuiDagor::InputTextWithHint(label, hint, &text_to_search);
   ImGui::PopStyleVar();
+
+  if (input_focused)
+    *input_focused = ImGui::IsItemFocused();
+  if (input_id)
+    *input_id = ImGui::GetItemID();
 
   const ImVec2 inputRectMin = ImGui::GetItemRectMin();
   const ImVec2 inputRectMax = ImGui::GetItemRectMax();

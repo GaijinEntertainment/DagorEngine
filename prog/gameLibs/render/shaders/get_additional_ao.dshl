@@ -5,12 +5,21 @@ include "dagi_quality.dshl"
 
 texture esm_ao_target_tex; 
 
+define_macro_if_not_defined INIT_HERO_AO(stage)
+endmacro
+
+define_macro_if_not_defined  USE_HERO_AO(stage)
+endmacro
+
 macro APPLY_ADDITIONAL_AO(code)
   if (in_editor_assume == no)
   {
     INIT_DEPTH_AO_STAGE(code)
     USE_DEPTH_AO_STAGE(code)
     USE_CAPSULE_AO(code)
+
+    INIT_HERO_AO(code)
+    USE_HERO_AO(code)
   }
   if (esm_ao_target_tex != NULL)
   {
@@ -28,6 +37,21 @@ macro APPLY_ADDITIONAL_AO(code)
           ##if esm_ao_target_tex != NULL
             ao = min(ao, tex2Dlod(esm_ao_target_tex, float4(screenTc, 0, 0)).r);
           ##endif
+
+          #if USE_HERO_AO
+            BRANCH if ( under_hero_ssao_shadow > 0)
+            {
+              float3 cameraToPoint = worldPos - world_view_pos;
+              float3 pointToHero = getPointToHero(cameraToPoint, world_view_pos);
+
+              float distanceY, fadeDownEffect;
+              getHeroAOFadeParams(cameraToPoint, world_view_pos, distanceY, fadeDownEffect);
+
+              float heroAo = getHeroAO(cameraToPoint, world_view_pos, fadeDownEffect);
+              heroAo = lerp (pow2(heroAo), heroAo,  saturate(dot(worldNormal, normalize(pointToHero))));
+              ao = blendHeroAO(ao, heroAo, distanceY, fadeDownEffect);
+            }
+          #endif
         ##endif
       #endif
       return ao;

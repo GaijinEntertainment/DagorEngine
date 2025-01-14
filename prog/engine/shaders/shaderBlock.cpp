@@ -170,20 +170,29 @@ static void execute_chosen_stcode(uint16_t stcodeId, int blockId, shaders_intern
 
   G_ASSERT(stcodeId < shBinDump().stcode.size());
 
-#if CPP_STCODE_PROTOTYPE
+#if CPP_STCODE
 
+#if VALIDATE_CPP_STCODE
   stcode::dbg::reset();
+#endif
 
-  stcode::ScopedCustomConstSetter csetOverride(c_setter);
-  stcode::run_routine(stcodeId, nullptr, false);
+#if STCODE_RUNTIME_CHOICE
+  if (stcode::execution_mode() == stcode::ExecutionMode::BYTECODE)
+    exec_stcode(shBinDump().stcode[stcodeId], blockId, c_setter);
+  else
+#endif
+  {
+    stcode::ScopedCustomConstSetter csetOverride(c_setter);
+    stcode::run_routine(stcodeId, nullptr, false);
+  }
 
 #if VALIDATE_CPP_STCODE
   // Collect records
   if (stcode::execution_mode() == stcode::ExecutionMode::TEST_CPP_AGAINST_BYTECODE)
     exec_stcode(shBinDump().stcode[stcodeId], blockId, c_setter);
-#endif
 
   stcode::dbg::validate_accumulated_records(stcodeId, "<block>");
+#endif
 
 #else
 

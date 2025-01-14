@@ -22,15 +22,15 @@ void sample_animation(float t, const AnimationClip &clip, NodeTSRFixedArray &nod
 
   for (const AnimationClip::Point3Channel &translation : clip.channelTranslation)
   {
-    nodes[translation.second.index()].set_translation(sampler.samplePos(translation.first));
+    nodes[translation.second.index()].set_translation(sampler.samplePosTrack(translation.first));
   }
   for (const AnimationClip::QuaternionChannel &rotation : clip.channelRotation)
   {
-    nodes[rotation.second.index()].set_rotation(sampler.sampleRot(rotation.first));
+    nodes[rotation.second.index()].set_rotation(sampler.sampleRotTrack(rotation.first));
   }
   for (const AnimationClip::Point3Channel &scale : clip.channelScale)
   {
-    nodes[scale.second.index()].set_scale(sampler.sampleScl(scale.first));
+    nodes[scale.second.index()].set_scale(sampler.sampleSclTrack(scale.first));
   }
   if (clip.inPlaceAnimation)
   {

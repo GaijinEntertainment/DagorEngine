@@ -63,6 +63,7 @@ namespace das
         __forceinline char * compute ( Context & context ) {
             DAS_PROFILE_NODE
             Table * tab = (Table *) tabExpr->evalPtr(context);
+            if ( tab->lock ) context.throw_error_at(debugInfo, "can't insert to a locked table");
             auto key = EvalTT<KeyType>::eval(context,keyExpr);
             TableHash<KeyType> thh(&context,valueTypeSize);
             auto hfn = hash_function(context, key);

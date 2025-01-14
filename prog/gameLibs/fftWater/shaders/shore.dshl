@@ -21,9 +21,57 @@ float shore_wave_height_to_amplitude = 0.25;
 float shore_amplitude_to_length = 30;        // Physically correct is 14, was 25.
 float shore_parallelism_to_wind = 0.1;       // Was 0.2, to much of parallelism.
 float shore_width_k = 3;
-float4 shore_waves_dist = (0, 200, 0, 50);
 float shore_gerstner_speed = 1.0;
-float shore_depth_scale = 1;
+
+// We have 2 filters for shore waves:
+float4 shore__waves_dist = (0, 200, 0, 50); // Distance to shoreline in meters
+// 1. Distance filter: max wave height
+//   based on distance to shoreline (from 0% to 100%)
+//
+//           /~~~~~~~~~~~~~~~~~~~\ <-------- wave height = 100%
+//          /|         |         |\
+//         / |         |         | \
+//        /  |         |         |  \
+// ------/   |         |         |   \-- <-- wave height = 0%
+//       |   |         |         |   |
+//       |   |<-- x -->|<-- z -->|   | <---- Distance to shoreline
+//       |<---- y ---->|<---- w ---->|
+//                     |
+//           shoreline = average water level equals to ground height
+//                     |
+//                     |               /---- Ground height
+//                     |          /---/
+//                     |     /---/
+//                     |/---/
+// ~~~~~~~~~~~~~~~~~~~~X~~~~~~~~~~~~~~~~~~~~ Water
+//                /---/
+//            /--/
+//           /
+//       /--/
+//   /--/
+// -/ <-- Ocean bottom
+float shore__waves_depth_min = 0.25; // of wave length
+float shore__waves_depth_fade_interval = 2.0; // meters
+// 2. Depth filter: max wave height
+//   based on depth (from 0% to 100%)
+//
+//                /~~~~~~~~~~~~~~~~~~~~ <-- wave height = 100%
+//            /--/|
+//           /    |
+//       /--/     |
+// -----/ <-- 0%  |
+//      |         |
+//      |         |                    /--- Ground height
+//      |         |               /---/
+//      |         |          /---/
+//      |         |     /---/
+// ~~~~~-~~~~~~~~~|~~~~/~~~~~~~~~~~~~~~~~~~ Water
+//      ^         /---/--
+// depth_min  /--/      ^
+//      |    /     fade_interval
+//      V/--/           V
+//   /--/----------------
+// -/ <-- Ocean bottom
 
 // for compatibility with old code
 macro USE_SHORE_DISPLACEMENT_VS()
@@ -34,7 +82,8 @@ macro INIT_SHORE(stage)
 INIT_WATER_HEIGHTMAP(stage)
 (stage) {
   shore_damp@f4 = (1.0 / (shore_damp.y - shore_damp.x), -shore_damp.x / (shore_damp.y - shore_damp.x), 0.5 * distance_field_texture_size, 2 / distance_field_texture_size);
-  shore_gspeed__depth_scale@f4 = (shore_gerstner_speed, shore_depth_scale, shore_waves_on, 1.0 / world_to_heightmap.x);
+  shore_waves_on@i1 = shore_waves_on;
+  gspeed__hmap_size@f2 = (shore_gerstner_speed, 1.0 / world_to_heightmap.x);
 
   ftime_cscale_hmap@f4 = (foam_time, 0, water_heightmap_min_max.z, water_heightmap_min_max.w);
   shore_distance_field_tex@smp2d = shore_distance_field_tex;
@@ -43,9 +92,14 @@ INIT_WATER_HEIGHTMAP(stage)
   wind_dir_speed@f3 = (wind_dir_x, wind_dir_y, wind_speed, 0);
 
   shore_params@f4 = (shore_wave_height_to_amplitude, shore_amplitude_to_length, shore_parallelism_to_wind, shore_width_k);
-  shore_waves_dist@f4 = (
-    1.0 / (shore_waves_dist.y - shore_waves_dist.x), -shore_waves_dist.x / (shore_waves_dist.y - shore_waves_dist.x),
-    1.0 / (shore_waves_dist.w - shore_waves_dist.z), -shore_waves_dist.z / (shore_waves_dist.w - shore_waves_dist.z));
+  shore__waves_dist@f4 = (
+    1.0 / (shore__waves_dist.x - shore__waves_dist.y),
+    shore__waves_dist.y / (shore__waves_dist.y - shore__waves_dist.x),
+    1.0 / (shore__waves_dist.w - shore__waves_dist.z),
+    shore__waves_dist.w / (shore__waves_dist.w - shore__waves_dist.z));
+  shore__waves_depth@f2 = (
+    1.0 / shore__waves_depth_fade_interval,
+    shore__waves_depth_min * max_wave_height * shore_wave_height_to_amplitude * shore_amplitude_to_length / (world_to_heightmap.x * 16384.0 * shore__waves_depth_fade_interval));
 }
 
 endmacro
@@ -71,8 +125,7 @@ DECLARE_SHORE_DATA(stage)
 USE_SAMPLE_BICUBIC(stage)
 hlsl(stage) {
   #define water_heightmap_pages_samplerstate shore_distance_field_tex_samplerstate
-  #define shore_waves_on (shore_gspeed__depth_scale.z == 1)
-  #define world_heightmap_size shore_gspeed__depth_scale.w
+  #define world_heightmap_size gspeed__hmap_size.y
 
   // to compensate a possible difference in the level of detalization
   // when the texel size increases we make more rare and bigger waves otherwise
@@ -128,7 +181,7 @@ void GetShoreSurfaceAttributes(float wave_height, float time, float sdf_size, fl
   float g_BaseGerstnerAmplitude = shore_params.x * wave_height;
   float g_BaseGerstnerWavelength = shore_params.y * g_BaseGerstnerAmplitude * dist_field_shore_scale;// gerstner wave is breaking when it is 7X of wave height (2 amplitudes)
   float g_BaseGerstnerParallelness = shore_params.z;
-  float g_BaseGerstnerSpeed = sqrt(9.81f*g_BaseGerstnerWavelength*(1/TWOPI)) * shore_gspeed__depth_scale.x;
+  float g_BaseGerstnerSpeed = sqrt(9.81f*g_BaseGerstnerWavelength*(1/TWOPI)) * gspeed__hmap_size.x;
   float kBackWaveSpeed = 1.5;     // water/foam roll back on the terrain with this speed, meters/sec
 
   // getting SDF texture 
@@ -154,13 +207,14 @@ void GetShoreSurfaceAttributes(float wave_height, float time, float sdf_size, fl
   float sdfInMeters = -sdf_size*sdf.w;
   float sdfPhase = sdfInMeters; // need meters
   float shoreDist = sdf_size * 2 * (0.5 - sdf.w);
+  // Positive = under shore, negative = above shore
+  // There are limits for positive and negative part - more code in preshader
   float distanceMultiplier = inLandMul
-    * (1.0 - saturate(shoreDist * shore_waves_dist.x + shore_waves_dist.y))
-    * (1.0 - saturate(-shoreDist * shore_waves_dist.z + shore_waves_dist.w))
+    * saturate(shoreDist * shore__waves_dist.x + shore__waves_dist.y)
+    * saturate(shoreDist * shore__waves_dist.z + shore__waves_dist.w)
     * saturate(sdf.w*shore_params.w); // Shore waves linearly fade in 50 meters or in edges of sdf
   float depth = sdf.r*decode_hmap.x + decode_hmap.y;
-  depth *= shore_gspeed__depth_scale.y;
-  float depthMultiplier = saturate((g_BaseGerstnerWavelength*0.25 + depth)*0.5); // Shore waves fade in when depth is less than quarter the wave length, we use 0.5 as this parameter also allows shore waves to heighten as the depth decreases
+  float depthMultiplier = saturate(depth * shore__waves_depth.x + shore__waves_depth.y);
   float worldSpacePosMultiplier = 0.75+0.25*sin(phaseShift*0.3 + 1.0*worldspaceXY.x/g_BaseGerstnerWavelength)*sin(phaseShift*0.4 + 1.0*worldspaceXY.y/g_BaseGerstnerWavelength); // slowly crawling worldspace aligned checkerboard pattern that damps gerstner waves further
   shoreWavesMultiplierOut = distanceMultiplier*depthMultiplier*riverFactor*(0.5 + 0.5*oceanShadowFactor)*saturate(oceanShadowFactor*8-0.5);
 

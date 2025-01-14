@@ -236,7 +236,7 @@ void workcycle_internal::idle_loop()
       cache_cursor_position();
       --x11.forceQueryCursorPosition;
     }
-    if (workcycle_internal::application_active)
+    if (::dgs_app_active)
       workcycle_internal::main_window_proc(&x11.mainWindow, GPCM_MouseMove, 0, 0);
   }
 }

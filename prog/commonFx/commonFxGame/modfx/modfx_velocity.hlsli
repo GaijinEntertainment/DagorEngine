@@ -30,7 +30,7 @@ bool modfx_scene_collision_sample( float3 wpos, GlobalData_cref gdata, uint flag
   if (!(flags & MODFX_COLLIDE_WITH_DEPTH))
     return false;
 
-  float4 spos = mul( float4( wpos, 1 ), gdata.globtm_prev );
+  float4 spos = mul( float4( wpos, 1 ), gdata.globtm_sim );
   spos.xyz /= spos.w;
 
   o_stc = float2( spos.xy * float2( 0.5, -0.5 ) + float2( 0.5, 0.5 ) );

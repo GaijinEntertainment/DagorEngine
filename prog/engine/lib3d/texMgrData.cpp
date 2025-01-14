@@ -281,7 +281,7 @@ int hq_tex_priority = 0;
 }
 
 static TexLoadRes skip_load_ddsx_tex_contents(BaseTexture *, TEXTUREID, TEXTUREID, const ddsx::Header &hdr, IGenLoad &crd, int, int,
-  unsigned, on_tex_slice_loaded_cb_t)
+  unsigned, on_tex_slice_loaded_cb_t, bool)
 {
   crd.seekrel(hdr.compressionType() ? hdr.packedSz : hdr.memSz);
   return TexLoadRes::OK;
@@ -293,7 +293,7 @@ static TexLoadRes skip_load_ddsx_to_slice(BaseTexture *, int, const ddsx::Header
 static TexLoadRes skip_load_genmip_sysmemcopy(TEXTUREID, TEXTUREID, const ddsx::Header &, IGenLoad &, int) { return TexLoadRes::OK; }
 
 TexLoadRes (*d3d_load_ddsx_tex_contents_impl)(BaseTexture *, TEXTUREID, TEXTUREID, const ddsx::Header &, IGenLoad &, int, int,
-  unsigned, on_tex_slice_loaded_cb_t) = &skip_load_ddsx_tex_contents;
+  unsigned, on_tex_slice_loaded_cb_t, bool) = &skip_load_ddsx_tex_contents;
 TexLoadRes (*d3d_load_ddsx_to_slice)(BaseTexture *, int, const ddsx::Header &, IGenLoad &, int, int,
   unsigned) = &skip_load_ddsx_to_slice;
 TexLoadRes (*texmgr_internal::d3d_load_genmip_sysmemcopy)(TEXTUREID, TEXTUREID, const ddsx::Header &, IGenLoad &,

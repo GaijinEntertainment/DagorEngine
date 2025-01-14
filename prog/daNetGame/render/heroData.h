@@ -1,18 +1,20 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <vecmath/dag_vecMathDecl.h>
+#include <math/dag_TMatrix.h>
+#include <math/dag_bounds3.h>
 
 struct HeroWtmAndBox
 {
-  mutable mat44f resWtm = {};
-  mutable vec3f resWofs = {};
-  mutable bbox3f resLbox = {};
-  mutable bool resReady = false;
+  TMatrix resWtm = TMatrix::IDENT;
+  Point3 resWofs = {};
+  BBox3 resLbox;
+  bool resReady = false;
   enum
   {
     WEAPON = 1,
     VEHICLE = 2
   };
-  mutable uint8_t resFlags = 0; // WEAPON|VEHICLE
+  uint8_t resFlags = 0; // WEAPON|VEHICLE
+  bool onlyWeapons = false;
 };

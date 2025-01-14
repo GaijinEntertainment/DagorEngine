@@ -8,6 +8,7 @@
 #include <osApiWrappers/dag_rwLock.h>
 #include <generic/dag_tabFwd.h>
 #include <supp/dag_define_KRNLIMP.h>
+#include <EASTL/unique_ptr.h>
 #include <EASTL/utility.h>
 
 class IMemAlloc;
@@ -48,6 +49,14 @@ enum EVirtualRomFsFileAttributes : uint8_t
   EVFSFA_TYPE_MASK = 0x03
 };
 
+struct VirtualRomFsFileAttributes
+{
+  EVirtualRomFsFileAttributes *attrData = nullptr;
+  uint8_t version = 0;
+};
+
+KRNLIMP EVirtualRomFsFileAttributes guess_vromfs_file_type(const char *fileName, const dag::ConstSpan<const char> &fileData);
+
 struct VirtualRomFsExtHdr
 {
   uint16_t size = 0, flags = 0;
@@ -56,6 +65,7 @@ struct VirtualRomFsExtHdr
 
 struct VirtualRomFsDataBase
 {
+  VirtualRomFsFileAttributes attr;
   int64_t mtime = -1;
   uint32_t version = 0;
   uint16_t flags = 0;
@@ -113,14 +123,51 @@ struct VirtualRomFsSingleFile : public VirtualRomFsPack
     bool copy_data = true);
 };
 
+struct VromfsDumpSections
+{
+  dag::ConstSpan<uint8_t> header;
+  dag::ConstSpan<uint8_t> headerExt;
+  dag::ConstSpan<uint8_t> body;
+  dag::ConstSpan<uint8_t> md5;
+  dag::ConstSpan<uint8_t> signature;
+  bool isPacked = false;
+};
 
-//! callback, that called on signature verification (both if signature exist or not),
-//! if it returns false load considered failed
-//! buffers is NULL terminated list of buffers that require verification (NULL if signature not found)
-typedef bool (*verify_signature_cb)(const void **buffers, const unsigned *buf_sizes, const unsigned char *sigbuf, int siglen);
+KRNLIMP bool dissect_vromfs_dump(dag::ConstSpan<char> dump, VromfsDumpSections &result);
+
+struct VromfsDumpBodySections
+{
+  dag::ConstSpan<uint8_t> tables;
+  dag::ConstSpan<uint8_t> sha1Hashes;
+  dag::ConstSpan<uint8_t> attributes;
+  dag::ConstSpan<uint8_t> data;
+  int filesCount = 0;
+};
+
+KRNLIMP bool dissect_vromfs_dump_body(const VromfsDumpSections &sections, VromfsDumpBodySections &result);
+
+KRNLIMP bool init_vromfs_file_attr(VirtualRomFsFileAttributes &fsAttr, const VromfsDumpBodySections &bodySections);
+
+//! callback interface that is used for signature verification (both if signature exist or not),
+//! if its check() method returns false load is considered to be failed
+//! data is fed into checker by calling append() method one or multiple times
+//! the allowAbsentSignature() method should return true if vroms without signatures are considered valid
+class VromfsSignatureChecker
+{
+public:
+  virtual ~VromfsSignatureChecker() = default;
+  virtual bool append(const void *buf, int len) = 0;
+  virtual bool check(const void *sigbuf, int siglen) = 0;
+  virtual bool allowAbsentSignature() const { return false; }
+};
+typedef eastl::unique_ptr<VromfsSignatureChecker> VromfsSignatureCheckerPtr;
+typedef VromfsSignatureCheckerPtr (*signature_checker_factory_cb)();
+
+KRNLIMP bool check_vromfs_dump_signature(VromfsSignatureChecker &checker, const VromfsDumpSections &vfsdump,
+  const dag::ConstSpan<uint8_t> *to_verify = NULL);
 
 //! loads vromfs dump from file into memory (to be released with mem->free(fs))
-KRNLIMP VirtualRomFsData *load_vromfs_dump(const char *fname, IMemAlloc *mem, verify_signature_cb sigcb = NULL,
+KRNLIMP VirtualRomFsData *load_vromfs_dump(const char *fname, IMemAlloc *mem, signature_checker_factory_cb checker_cb = NULL,
   const dag::ConstSpan<uint8_t> *to_verify = NULL, int file_flags = 0);
 
 //! loads vromfs dump from cryped file into memory (to be released with mem->free(fs))
@@ -142,6 +189,8 @@ KRNLIMP VirtualRomFsData *load_vromfs_dump_from_mem(dag::ConstSpan<char> data, I
 //! optionally returns size of header part of dump and offset of signature (if any) in dump
 KRNLIMP VirtualRomFsData *make_non_intrusive_vromfs(dag::ConstSpan<char> dump, IMemAlloc *mem, unsigned *out_hdr_sz = nullptr,
   int *out_signature_ofs = nullptr);
+KRNLIMP VirtualRomFsData *make_non_intrusive_vromfs(const VromfsDumpSections &sections, const VromfsDumpBodySections &body_sections,
+  IMemAlloc *mem, unsigned *out_hdr_sz = nullptr);
 
 //! opens vromfs dump from file into memory (to be released with close_vromfs_pack)
 KRNLIMP VirtualRomFsPack *open_vromfs_pack(const char *fname, IMemAlloc *mem, int file_flags = 0);

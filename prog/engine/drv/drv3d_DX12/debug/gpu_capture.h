@@ -9,6 +9,8 @@
 #include <supp/dag_comPtr.h>
 #include <winapi_helpers.h>
 
+#include "amd_ags_init.h"
+
 
 interface DECLSPEC_UUID("9f251514-9d4d-4902-9d60-18988ab7d4b5") DECLSPEC_NOVTABLE IDXGraphicsAnalysis : public IUnknown
 {
@@ -36,6 +38,7 @@ public:
   constexpr void beginEvent(ID3D12GraphicsCommandList *, eastl::span<const char>) {}
   constexpr void endEvent(ID3D12GraphicsCommandList *) {}
   constexpr void marker(ID3D12GraphicsCommandList *, eastl::span<const char>) {}
+  constexpr bool tryCreateDevice(DXGIAdapter *, UUID, D3D_FEATURE_LEVEL, void **) { return false; };
 };
 
 class RenderDoc
@@ -55,6 +58,7 @@ public:
   void beginEvent(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text);
   void endEvent(ID3D12GraphicsCommandList *cmd);
   void marker(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text);
+  constexpr bool tryCreateDevice(DXGIAdapter *, UUID, D3D_FEATURE_LEVEL, void **) { return false; };
 
   template <typename T>
   static bool connect(const Configuration &config, Direct3D12Enviroment &, T &target)
@@ -97,6 +101,7 @@ public:
   void beginEvent(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text);
   void endEvent(ID3D12GraphicsCommandList *cmd);
   void marker(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text);
+  constexpr bool tryCreateDevice(DXGIAdapter *, UUID, D3D_FEATURE_LEVEL, void **) { return false; };
 
   template <typename T>
   static bool connect(const Configuration &config, Direct3D12Enviroment &d3d_env, T &target)
@@ -141,6 +146,7 @@ public:
   void beginEvent(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text);
   void endEvent(ID3D12GraphicsCommandList *cmd);
   void marker(ID3D12GraphicsCommandList *cmd, eastl::span<const char> text);
+  constexpr bool tryCreateDevice(DXGIAdapter *, UUID, D3D_FEATURE_LEVEL, void **) { return false; };
 
   template <typename T>
   static bool connect(const Configuration &config, Direct3D12Enviroment &, T &target)
@@ -210,6 +216,7 @@ public:
   void beginEvent(ID3D12GraphicsCommandList *, eastl::span<const char>);
   void endEvent(ID3D12GraphicsCommandList *);
   void marker(ID3D12GraphicsCommandList *, eastl::span<const char>);
+  constexpr bool tryCreateDevice(DXGIAdapter *, UUID, D3D_FEATURE_LEVEL, void **) { return false; };
 
   template <typename T>
   static bool connect(const Configuration &config, Direct3D12Enviroment &, T &target)
@@ -232,27 +239,59 @@ public:
 };
 } // namespace nvidia
 
+#if HAS_AMD_GPU_SERVICES
 namespace amd
 {
 class RadeonGPUProfiler
 {
+  RadeonGPUProfiler(AGSContext *ags_context) : agsContext(ags_context) {}
+
 public:
-  void configure() {}
-  void beginCapture(const wchar_t *) {}
-  void endCapture() {}
-  void onPresent() {}
-  void captureFrames(const wchar_t *, int) {}
-  void beginEvent(ID3D12GraphicsCommandList *, eastl::span<const char>) {}
-  void endEvent(ID3D12GraphicsCommandList *) {}
-  void marker(ID3D12GraphicsCommandList *, eastl::span<const char>) {}
+  void configure();
+  void beginCapture(const wchar_t *);
+  void endCapture();
+  void onPresent();
+  void captureFrames(const wchar_t *, int);
+  void beginEvent(ID3D12GraphicsCommandList *, eastl::span<const char>);
+  void endEvent(ID3D12GraphicsCommandList *);
+  void marker(ID3D12GraphicsCommandList *, eastl::span<const char>);
+  bool tryCreateDevice(DXGIAdapter *adapter, UUID uuid, D3D_FEATURE_LEVEL minimum_feature_level, void **ptr);
 
   template <typename T>
-  static bool connect(const Configuration &, Direct3D12Enviroment &, T &)
+  static bool connect(const Configuration &config, Direct3D12Enviroment &, T &target)
   {
-    return false;
+    if (!config.enableAgsProfile)
+    {
+      logdbg("DX12: Ags Profiler is disabled by configuration...");
+      return false;
+    }
+
+    logdbg("DX12: Looking for AGS...");
+    if (!try_connect_interface())
+    {
+      logdbg("DX12: ...nothing found");
+      return false;
+    }
+    logdbg("DX12: ...found");
+
+    AGSContext *agsContext = debug::ags::get_context();
+    if (EASTL_UNLIKELY(!agsContext))
+      return false;
+
+    target = RadeonGPUProfiler{agsContext};
+    logdbg("DX12: Initialized profiler with AMD GPU Services API");
+    return true;
   }
+
+private:
+  AGSContext *agsContext = nullptr;
+  bool deviceInitialized = false;
+
+  static bool try_connect_interface();
+  static AGSContext *initialize_context();
 };
 } // namespace amd
+#endif
 
 namespace intel
 {
@@ -267,6 +306,7 @@ public:
   void beginEvent(ID3D12GraphicsCommandList *, eastl::span<const char>) {}
   void endEvent(ID3D12GraphicsCommandList *) {}
   void marker(ID3D12GraphicsCommandList *, eastl::span<const char>) {}
+  bool tryCreateDevice(DXGIAdapter *, UUID, D3D_FEATURE_LEVEL, void **) { return false; };
 
   template <typename T>
   static bool connect(const Configuration &, Direct3D12Enviroment &, T &)
@@ -313,10 +353,12 @@ private:
 
 class GpuCapture
 {
-  using ToolTableType = detail::ToolSet<              //
-    gpu_capture::NoTool,                              //
-    gpu_capture::nvidia::NSight,                      //
-    gpu_capture::amd::RadeonGPUProfiler,              //
+  using ToolTableType = detail::ToolSet< //
+    gpu_capture::NoTool,                 //
+    gpu_capture::nvidia::NSight,         //
+#if HAS_AMD_GPU_SERVICES
+    gpu_capture::amd::RadeonGPUProfiler, //
+#endif
     gpu_capture::intel::GraphicsPerformanceAnalyzers, //
     gpu_capture::RenderDoc,                           //
     gpu_capture::PIX,                                 //
@@ -403,6 +445,11 @@ public:
   bool isAnyActive() const { return !eastl::holds_alternative<gpu_capture::NoTool>(tool); }
   // PIX has current and legacy mode, to make it easier to check if any is active, have this meta method.
   bool isAnyPIXActive() const { return isActive<gpu_capture::PIX>() || isActive<gpu_capture::LegacyPIX>(); }
+
+  bool tryCreateDevice(DXGIAdapter *adapter, UUID uuid, D3D_FEATURE_LEVEL minimum_feature_level, void **ptr)
+  {
+    return eastl::visit([=](auto &tool) { return tool.tryCreateDevice(adapter, uuid, minimum_feature_level, ptr); }, tool);
+  }
 };
 } // namespace debug
 } // namespace drv3d_dx12

@@ -50,7 +50,10 @@ static void init_static_flares_es(const ecs::Event &,
     SBCF_MISC_STRUCTURED | SBCF_BIND_SHADER_RES, 0, "static_flares_buf");
 
   static_flares__node = dabfg::register_node("static_flares_node", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
-    registry.read("downsampled_depth").texture().atStage(dabfg::Stage::PS).bindToShaderVar();
+    registry.read("downsampled_depth_with_early_after_envi_water")
+      .texture()
+      .atStage(dabfg::Stage::PS)
+      .bindToShaderVar("downsampled_depth");
 
     render_transparency_published(registry);
 

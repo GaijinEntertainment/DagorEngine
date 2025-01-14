@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "av_appwnd.h"
+#include "av_mainAssetSelector.h"
 #include "av_plugin.h"
 #include "assetBuildCache.h"
 
@@ -445,7 +446,7 @@ void AssetViewerApp::actObjects(real dt)
         const DagorAsset *asset = DAEDITOR3.getAssetByName(assetToInitiallySelect);
         assetToInitiallySelect.clear();
         if (asset)
-          mTreeView->selectAsset(asset);
+          selectAsset(*asset);
       }
     }
   }

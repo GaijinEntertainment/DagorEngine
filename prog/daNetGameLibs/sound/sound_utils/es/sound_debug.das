@@ -2,6 +2,7 @@ options no_aot
 require ecs
 require ecs.safe
 require ecs.common
+require ecs.ecs_template
 require soundSystem
 require soundEvent
 require DagorSystem
@@ -126,6 +127,11 @@ def sound_debug_console_sound_play_pos(path : string; x, y, z : float; duration 
 [console_cmd(name="snd.enum_events")]
 def sound_debug_console_enum_events()
   sound_debug_enum_events()
+
+
+[ecs_template]
+struct sound_debug_draw_ri
+  sound_debug_draw_ri__name : string
 
 
 [console_cmd(name="snd.debug_draw_ri")]

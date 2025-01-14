@@ -48,6 +48,10 @@ VECTORCALL VECMATH_FINLINE vec4f v_make_vec4f_mask(uint8_t bitmask)
   return v_cast_vec4f(v_cmp_eqi(isolated, lookup));
 }
 
+VECTORCALL VECMATH_FINLINE bool v_check_xy_all_true(vec4f a) { return v_extract_xi64(v_cast_vec4i(a)) == int64_t(-1); }
+VECTORCALL VECMATH_FINLINE bool v_check_xy_all_false(vec4f a) { return v_extract_xi64(v_cast_vec4i(a)) == 0; }
+VECTORCALL VECMATH_FINLINE bool v_check_xy_any_true(vec4f a) { return v_extract_xi64(v_cast_vec4i(a)) != 0; }
+
 VECTORCALL VECMATH_FINLINE vec4f v_bool_to_mask(bool bool_mask) { return v_cast_vec4f(v_splatsi(bool_mask ? -1 : 0)); }
 VECTORCALL VECMATH_FINLINE vec4f v_bool_to_msbit(bool param) { return v_cast_vec4f(v_splatsi((param ? 1 : 0) << 31)); }
 VECTORCALL VECMATH_FINLINE vec4f v_sel_b(vec4f a, vec4f b, bool c) { return v_sel(a, b, v_bool_to_mask(c)); }
@@ -88,12 +92,12 @@ VECTORCALL VECMATH_FINLINE vec4f v_cmp_relative_equal(vec4f a, vec4f b, vec4f ma
 
 VECTORCALL VECMATH_FINLINE bool v_is_relative_equal_vec3f(vec4f a, vec4f b)
 {
-  return v_check_xyz_all_not_zeroi(v_cmp_relative_equal(a, b));
+  return v_check_xyz_all_true(v_cmp_relative_equal(a, b));
 }
 
 VECTORCALL VECMATH_FINLINE bool v_is_relative_equal_vec4f(vec4f a, vec4f b)
 {
-  return v_check_xyzw_all_not_zeroi(v_cmp_relative_equal(a, b));
+  return v_check_xyzw_all_true(v_cmp_relative_equal(a, b));
 }
 
 VECTORCALL VECMATH_FINLINE vec4f v_is_unsafe_positive_divisor(vec4f a)
@@ -319,38 +323,49 @@ VECTORCALL VECMATH_FINLINE void v_mat44_transpose_to_mat33(mat33f &dest, vec3f c
 
 VECTORCALL VECMATH_FINLINE vec4f v_remove_not_finite(vec4f a)
 {
-  static vec4i_const infMask = DECL_VECUINT4( 0x7F800000, 0x7F800000, 0x7F800000, 0x7F800000 );
-  vec4i ai = v_cast_vec4i(a);
-  return v_cast_vec4f(v_andnoti(v_cmp_eqi(v_andi(ai, infMask), infMask), ai));
+  return v_andnot(v_is_not_finite(a), a);
 }
 
-#if defined(__FINITE_MATH_ONLY__) && __FINITE_MATH_ONLY__ > 0 // Clang/GCC
 VECTORCALL VECMATH_FINLINE vec4f v_remove_nan(vec4f a)
 {
-  static vec4i_const minNan = DECL_VECUINT4( 0x7F800001, 0x7F800001, 0x7F800001, 0x7F800001 );
-  vec4i am = v_andi(v_cast_vec4i(a), V_CI_INV_SIGN_MASK);
-  return v_cast_vec4f(v_andi(v_cast_vec4i(a), v_cmp_lti(am, minNan)));
+  volatile vec4f v = a;
+  return v_and(a, v_cmp_eq(a, (vec4f &)v));
 }
-#else
-VECTORCALL VECMATH_FINLINE vec4f v_remove_nan(vec4f a) {return v_and(a, v_cmp_eq(a,a)); }
-#endif
+
 VECTORCALL VECMATH_FINLINE vec4f v_is_nan(vec4f a)
 {
   volatile vec4f v = a;
+#if !defined(_MSC_VER) || defined(__clang__)
+  return v_cmp_neq(a, v);
+#else
   return v_cmp_neq(a, (vec4f &)v);
+#endif
 }
+// Note: intentionally not const since some compliers (e.g. clang>=19) optimizes it off otherwise
+alignas(16) inline volatile int __infMask[4] = {0x7F800000, 0x7F800000, 0x7F800000, 0x7F800000};
+VECTORCALL VECMATH_FINLINE vec4f v_is_not_finite(vec4f a)
+{
+  vec4i ai = v_cast_vec4i(a);
+  vec4i im = v_ldi((int *)__infMask);
+  return v_cast_vec4f(v_cmp_eqi(v_andi(ai, im), im));
+}
+VECTORCALL VECMATH_FINLINE vec4f v_is_finite(vec4f a) { return v_not(v_is_not_finite(a)); }
 VECTORCALL VECMATH_FINLINE vec4f v_is_neg(vec4f a) { return v_cast_vec4f(v_srai(v_cast_vec4i(a), 31)); }
 VECTORCALL VECMATH_FINLINE bool v_test_xyzw_nan(vec4f a) { return v_test_any_bit_set(v_is_nan(a)); }
-VECTORCALL VECMATH_FINLINE bool v_test_xyz_nan(vec3f a) { return v_check_xyz_any_not_zeroi(v_is_nan(a)); }
+VECTORCALL VECMATH_FINLINE bool v_test_xyz_nan(vec3f a) { return v_check_xyz_any_true(v_is_nan(a)); }
 VECTORCALL VECMATH_FINLINE bool v_test_mat43_nan(mat44f m)
 {
   return v_test_xyz_nan(v_add(v_add(m.col0, m.col1), v_add(m.col2, m.col3)));
 }
+VECTORCALL VECMATH_FINLINE bool v_test_xyzw_finite(vec4f a) { return v_check_xyzw_all_false(v_is_not_finite(a)); }
+VECTORCALL VECMATH_FINLINE bool v_test_xyz_finite(vec3f a) { return v_check_xyz_all_false(v_is_not_finite(a)); }
+VECTORCALL VECMATH_FINLINE bool v_test_xy_finite(vec4f a) {return v_check_xy_all_false(v_is_not_finite(a)); }
+VECTORCALL VECMATH_FINLINE bool v_test_x_finite(vec4f a) { return !v_extract_xi(v_cast_vec4i(v_is_not_finite(a))); }
 VECTORCALL VECMATH_FINLINE bool v_test_mat44_nan(mat44f m)
 {
   return v_test_xyzw_nan(v_add(v_add(m.col0, m.col1), v_add(m.col2, m.col3)));
 }
-VECTORCALL VECMATH_FINLINE bool v_test_xyz_abs_lt(vec3f a, vec3f limit) { return v_check_xyz_all_not_zeroi(v_cmp_lt(v_abs(a), limit)); }
+VECTORCALL VECMATH_FINLINE bool v_test_xyz_abs_lt(vec3f a, vec3f limit) { return v_check_xyz_all_true(v_cmp_lt(v_abs(a), limit)); }
 
 VECTORCALL VECMATH_FINLINE void v_mat33_transpose(mat33f &dest, mat33f_cref src)
 {
@@ -360,20 +375,8 @@ VECTORCALL VECMATH_FINLINE void v_mat33_transpose(mat33f &dest, mat33f_cref src)
 VECTORCALL VECMATH_FINLINE void v_mat33_make_from_look(mat33f &dest, vec4f look_dir)
 {
   vec4f vx = v_cross3(V_C_UNIT_0100, look_dir);
-  vec4f vxlsq = v_length3_sq(vx);
-
-#if _TARGET_SIMD_SSE
-  if (v_extract_x(vxlsq) < 1.42e-12F)
-    vx = v_norm3(v_cross3(v_btsel(V_C_UNIT_0010, look_dir, v_msbit()), look_dir));
-  else
-    vx = v_mul(vx, v_rsqrt(vxlsq));
-#else
-  vec4f vx1 = v_norm3(v_cross3(v_btsel(V_C_UNIT_0010, look_dir, v_msbit()), look_dir));
-  vec4f vx2 = v_mul(vx, v_rsqrt(vxlsq));
-  vx = v_sel(vx1, vx2, v_cmp_gt(vxlsq, v_zero()));
-#endif
-
-  dest.col0 = vx;
+  vec4f def = v_norm3(v_cross3(v_btsel(V_C_UNIT_0010, look_dir, v_msbit()), look_dir));
+  dest.col0 = v_norm3_safe(vx, def);
   dest.col1 = v_norm3(v_cross3(look_dir, vx));
   dest.col2 = look_dir;
 }
@@ -858,30 +861,30 @@ VECTORCALL VECMATH_FINLINE bbox3f v_bbox3_scale(bbox3f b, vec4f size_factor)
 VECTORCALL VECMATH_FINLINE bool v_bbox3_is_empty(bbox3f bbox)
 {
   vec4f invalid = v_cmp_gt(bbox.bmin, bbox.bmax);
-  return v_check_xyz_any_not_zeroi(invalid);
+  return v_check_xyz_any_true(invalid);
 }
 VECTORCALL VECMATH_FINLINE bool v_bbox3_test_pt_inside(bbox3f b, vec3f p)
 {
   vec3f inside = v_and(v_cmp_ge(p, b.bmin), v_cmp_ge(b.bmax, p));
-  return v_check_xyz_all_not_zeroi(inside);
+  return v_check_xyz_all_true(inside);
 }
 VECTORCALL VECMATH_FINLINE bool v_bbox3_test_box_inside(bbox3f b1, bbox3f b2)
 {
   vec3f insideMin = v_and(v_cmp_ge(b2.bmin, b1.bmin), v_cmp_ge(b1.bmax, b2.bmin));
   vec3f insideMax = v_and(v_cmp_ge(b2.bmax, b1.bmin), v_cmp_ge(b1.bmax, b2.bmax));
-  return v_check_xyz_all_not_zeroi(v_and(insideMin, insideMax));
+  return v_check_xyz_all_true(v_and(insideMin, insideMax));
 }
 
 VECTORCALL VECMATH_FINLINE bool v_bbox3_test_box_intersect(bbox3f b1, bbox3f b2)
 {
   vec3f m = v_and(v_cmp_ge(b2.bmax, b1.bmin), v_cmp_ge(b1.bmax, b2.bmin));
-  return v_check_xyz_all_not_zeroi(m);
+  return v_check_xyz_all_true(m);
 }
 VECTORCALL VECMATH_FINLINE bool v_bbox3_test_box_intersect_safe(bbox3f b1, bbox3f b2)
 {
   vec3f m = v_and(v_and(v_cmp_ge(b1.bmax, b1.bmin), v_cmp_ge(b2.bmax, b2.bmin)),
     v_and(v_cmp_ge(b2.bmax, b1.bmin), v_cmp_ge(b1.bmax, b2.bmin)));
-  return v_check_xyz_all_not_zeroi(m);
+  return v_check_xyz_all_true(m);
 }
 VECTORCALL VECMATH_FINLINE bool v_bbox3_test_pt_inside_xz(bbox3f b, vec3f p)
 {
@@ -934,7 +937,7 @@ VECTORCALL inline bool v_bbox3_test_trasformed_box_intersect_no_check(bbox3f box
                                 v_cmp_lt(v_sub(depth, length), nwidth));
 
         vec3f validMask = v_or(selectPi1, selectPi2);
-        if (v_check_xyz_all_zeroi(validMask))
+        if (v_check_xyz_all_false(validMask))
           continue;
 
         vec3f selectMask = v_xor(selectPi1, dirGE0);
@@ -2032,30 +2035,6 @@ VECTORCALL VECMATH_FINLINE int v_box_frustum_intersect_extent2(vec3f center, vec
                   vec4f plane03X, const vec4f& plane03Y, const vec4f& plane03Z, const vec4f& plane03W2,
                   const vec4f& plane47X, const vec4f& plane47Y, const vec4f& plane47Z, const vec4f& plane47W2)
 {
-  /*
-  vec4f signmask = v_cast_vec4f(V_CI_SIGN_MASK);
-  vec4f res03, res47;
-  res03 = v_madd(v_add(v_splat_x(center), v_xor(v_splat_x(extent), v_and(plane03X, signmask))), plane03X, plane03W2);
-  res03 = v_madd(v_add(v_splat_y(center), v_xor(v_splat_y(extent), v_and(plane03Y, signmask))), plane03Y, res03);
-  res03 = v_madd(v_add(v_splat_z(center), v_xor(v_splat_z(extent), v_and(plane03Z, signmask))), plane03Z, res03);
-
-  res47 = v_madd(v_add(v_splat_x(center), v_xor(v_splat_x(extent), v_and(plane47X, signmask))), plane47X, plane47W2);
-  res47 = v_madd(v_add(v_splat_y(center), v_xor(v_splat_y(extent), v_and(plane47Y, signmask))), plane47Y, res47);
-  res47 = v_madd(v_add(v_splat_z(center), v_xor(v_splat_z(extent), v_and(plane47Z, signmask))), plane47Z, res47);
-
-  int result = v_signmask(v_or(res03, res47));
-  if ((unsigned(-result))>>31)
-    return 0;
-  res03 = v_madd(v_sub(v_splat_x(center), v_xor(v_splat_x(extent), v_and(plane03X, signmask))), plane03X, plane03W2);
-  res03 = v_madd(v_sub(v_splat_y(center), v_xor(v_splat_y(extent), v_and(plane03Y, signmask))), plane03Y, res03);
-  res03 = v_madd(v_sub(v_splat_z(center), v_xor(v_splat_z(extent), v_and(plane03Z, signmask))), plane03Z, res03);
-
-  res47 = v_madd(v_sub(v_splat_x(center), v_xor(v_splat_x(extent), v_and(plane47X, signmask))), plane47X, plane47W2);
-  res47 = v_madd(v_sub(v_splat_y(center), v_xor(v_splat_y(extent), v_and(plane47Y, signmask))), plane47Y, res47);
-  res47 = v_madd(v_sub(v_splat_z(center), v_xor(v_splat_z(extent), v_and(plane47Z, signmask))), plane47Z, res47);
-  result = v_signmask(v_or(res03, res47));
-  return ((unsigned(-result))>>31) + 1;
-  /*/
   vec4f signmask = v_cast_vec4f(V_CI_SIGN_MASK);
   vec4f res03Base, res47Base, res03Add, res47Add;
   res03Base = v_madd(v_splat_x(center), plane03X, plane03W2);
@@ -2534,7 +2513,7 @@ VECTORCALL inline int v_segment_box_intersection_side(vec3f start, vec3f end, bb
 
     vec3f at = v_div(numerator, fullDir);
     valid = v_and(valid, v_cmp_ge(at, v_zero()));
-    if (v_check_xyz_all_zeroi(valid))
+    if (v_check_xyz_all_false(valid))
       continue;
 
     vec3f p0 = v_madd(fullDir, v_splat_x(at), start);
@@ -2560,7 +2539,7 @@ VECTORCALL inline int v_segment_box_intersection_side(vec3f start, vec3f end, bb
     b2valid = v_and(b2valid, v_rot_2(b2valid));
     vec3f b012valid = v_perm_xyab(v_perm_xaxa(b0valid, b1valid), b2valid);
     valid = v_and(valid, b012valid);
-    if (v_check_xyz_all_zeroi(valid))
+    if (v_check_xyz_all_false(valid))
       continue;
 
     out_at_max = v_extract_x(v_hmax(v_and(at, valid)));
@@ -2689,11 +2668,6 @@ VECTORCALL VECMATH_FINLINE void v_mat44_make_from_44ca(mat44f &tmV, const float 
 }
 
 VECTORCALL VECMATH_FINLINE vec4f v_div_est(vec4f a, vec4f b) {return v_mul(a, v_rcp_est(b));}
-#if _TARGET_SIMD_SSE
-VECTORCALL VECMATH_FINLINE vec4f is_neg_special(vec4f a) {return v_cast_vec4f(v_srai(v_cast_vec4i(a), 31));}
-#else
-VECTORCALL VECMATH_FINLINE vec4f is_neg_special(vec4f a) {vec4f msbit = v_msbit(); return v_cmp_eqi(v_and(a, msbit), msbit);}
-#endif
 
 #define POLY0(x, c0) v_splats(c0)
 #define POLY1(x, c0, c1) v_add(v_mul(POLY0(x, c1), x), v_splats(c0))

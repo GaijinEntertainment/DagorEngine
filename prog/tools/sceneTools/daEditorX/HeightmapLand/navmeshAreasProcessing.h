@@ -2,9 +2,11 @@
 #pragma once
 
 #include <dag/dag_vector.h>
+#include <propPanel/control/treeInterface.h>
+#include <sepGui/wndMenuInterface.h>
 #include "hmlSplineObject.h"
 
-class NavmeshAreasProcessing
+class NavmeshAreasProcessing : public IMenuEventHandler, public PropPanel::ITreeControlEventHandler
 {
 public:
   void init(HmapLandObjectEditor *obj_ed, const DataBlock *navmesh_props, int navmesh_idx);
@@ -22,6 +24,13 @@ private:
     PropPanel::TLeafHandle leafHandle;
   };
 
+  enum class MenuItemId
+  {
+    HideAreas,
+    ShowAreas,
+    DeleteArea,
+  };
+
   int navmeshIdx = -1;
   int baseOfs = -1;
   dag::Vector<AreaData> areasData;
@@ -34,9 +43,14 @@ private:
   void createArea();
   void deleteSelectedAreas();
   void selectAreas();
+  void updateHiddenSplines();
   void updateTree();
   void updateButtons();
   void updateSplines();
   int getAreaIndexByLeaf(PropPanel::TLeafHandle leafHandle);
   int getAreaIndexByName(const char *name);
+
+  virtual bool onTreeContextMenu(PropPanel::ContainerPropertyControl &tree_panel, int pcb_id,
+    PropPanel::ITreeInterface &tree_interface) override;
+  virtual int onMenuItemClick(unsigned id) override;
 };

@@ -66,6 +66,10 @@ void WorldRenderer::initWaterPlanarReflection()
         ShaderGlobal::set_int(use_custom_fogVarId, 1);
       };
     });
+}
+
+void WorldRenderer::initWaterPlanarReflectionTerrainNode()
+{
   waterPlanarReflectionTerrainNode =
     dabfg::register_node("water_planar_reflection_terrain_node", DABFG_PP_NODE_SRC, [this](dabfg::Registry registry) {
       registry.setPriority(dabfg::PRIO_AS_LATE_AS_POSSIBLE); // Avoid waiting in renderLmeshReflection();
@@ -78,12 +82,6 @@ void WorldRenderer::initWaterPlanarReflection()
                                      .atStage(dabfg::Stage::POST_RASTER)
                                      .useAs(dabfg::Usage::COLOR_ATTACHMENT)
                                      .handle();
-      {
-        d3d::SamplerInfo smpInfo;
-        smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
-        smpInfo.filter_mode = d3d::FilterMode::Point;
-        registry.create("water_planar_reflection_terrain_sampler", dabfg::History::No).blob(d3d::request_sampler(smpInfo));
-      }
       auto waterPlanarReflectionDepth = registry
                                           .createTexture2d("water_planar_reflection_terrain_depth", dabfg::History::No,
                                             {TEXFMT_DEPTH16 | TEXCF_RTARGET, registry.getResolution<2>("main_view", 0.5f), 1})
@@ -107,20 +105,19 @@ void WorldRenderer::initWaterPlanarReflection()
     });
 }
 
+
 void WorldRenderer::closeWaterPlanarReflection()
 {
   get_daskies()->destroy_skies_data(refl_pov_data);
   refl_pov_data = nullptr;
   waterPlanarReflectionCloudsNode = {};
-  waterPlanarReflectionTerrainNode = {};
   planarReflectionMipRenderer.reset();
 }
 
-bool WorldRenderer::isWaterPlanarReflectionEnabled() const { return get_daskies() && !get_daskies()->panoramaEnabled(); }
-
 void WorldRenderer::calcWaterPlanarReflectionMatrix()
 {
-  if (!isWaterPlanarReflectionEnabled())
+  bool volumtetricClouds = get_daskies() && !get_daskies()->panoramaEnabled();
+  if (!isWaterPlanarReflectionTerrainEnabled() && !volumtetricClouds)
     return;
 
   TMatrix reflection;

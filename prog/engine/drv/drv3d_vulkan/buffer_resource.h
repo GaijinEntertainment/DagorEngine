@@ -30,6 +30,8 @@ struct BufferDescription
   uint32_t discardBlocks;
   BufferMemoryFlags memFlags;
 
+  static DeviceMemoryClass getDeviceReadDynamicBuffersMemoryClass();
+
   void fillAllocationDesc(AllocationDesc &alloc_desc) const;
   static DeviceMemoryClass memoryClassFromCflags(uint32_t cflag)
   {
@@ -48,8 +50,9 @@ struct BufferDescription
 
       // CB and indirect buffers are surprisingly slower to read on GPUs from shared / CPU memory
       // batch copy from temp/staging memory is faster
+      // in case of dedicated memory, otherwise using shared memory class is better
       if (cflag & (SBCF_BIND_CONSTANT | SBCF_INDIRECT))
-        return DeviceMemoryClass::DEVICE_RESIDENT_BUFFER;
+        return getDeviceReadDynamicBuffersMemoryClass();
 
       return DeviceMemoryClass::HOST_RESIDENT_HOST_WRITE_ONLY_BUFFER;
     }

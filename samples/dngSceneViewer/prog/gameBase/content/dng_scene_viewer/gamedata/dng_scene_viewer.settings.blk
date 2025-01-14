@@ -37,6 +37,10 @@ directx{
   debug:b=0
 }
 
+dx12 {
+  pso_cache_enabled:b=no
+}
+
 phys{
   fixedTimeStepHz:i=30
   maxSubSteps:i=1

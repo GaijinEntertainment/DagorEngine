@@ -1176,6 +1176,7 @@ static inline void copy_interlaced_buf(int cnt, uint8_t *dest_top, int dest_stri
 
 RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
 {
+  TIME_PROFILE_DEV(generateCell);
   int cellId = x + z * cellNumW;
   RendInstGenData::Cell &cell = cells[cellId];
   CellRtData *crt_ptr = cell.rtData;

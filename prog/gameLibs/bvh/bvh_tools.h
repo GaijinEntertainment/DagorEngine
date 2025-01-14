@@ -114,13 +114,13 @@ inline void process_relem(ContextId context_id, const ShaderMesh::RElem &elem, u
   meshInfo.startVertex = elem.sv;
   meshInfo.positionFormat = parser.positionFormat;
   meshInfo.positionOffset = parser.positionOffset;
-  meshInfo.indicesOffset = parser.indicesOffset;
-  meshInfo.weightsOffset = parser.weightsOffset;
-  meshInfo.normalOffset = parser.normalOffset;
+  meshInfo.indicesOffset = parser.indicesFormat != -1 ? parser.indicesOffset : MeshInfo::invalidOffset;
+  meshInfo.weightsOffset = parser.weightsFormat != -1 ? parser.weightsOffset : MeshInfo::invalidOffset;
+  meshInfo.normalOffset = parser.normalFormat == VSDT_E3DCOLOR ? parser.normalOffset : MeshInfo::invalidOffset;
   meshInfo.colorOffset = parser.colorFormat == VSDT_E3DCOLOR ? parser.colorOffset : MeshInfo::invalidOffset;
   meshInfo.texcoordFormat = parser.texcoordFormat;
-  meshInfo.texcoordOffset = parser.texcoordOffset;
-  meshInfo.secTexcoordOffset = parser.secTexcoordOffset;
+  meshInfo.texcoordOffset = parser.texcoordFormat != -1 ? parser.texcoordOffset : MeshInfo::invalidOffset;
+  meshInfo.secTexcoordOffset = parser.secTexcoordFormat != -1 ? parser.secTexcoordOffset : MeshInfo::invalidOffset;
   meshInfo.vertexProcessor = vertex_processor;
   meshInfo.posMul = pos_mul;
   meshInfo.posAdd = pos_add;

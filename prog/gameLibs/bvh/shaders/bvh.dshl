@@ -236,6 +236,7 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
     static const uint bvhMaterialCamo = 1 << 21;
     static const uint bvhMaterialLayered = 1 << 22;
     static const uint bvhMaterialGrass = 1 << 23;
+    static const uint bvhMaterialEmissive = 1 << 24;
 
     static const uint bvhMaterialTypeMask = (1 << 16) - 1;
 
@@ -289,6 +290,10 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
     bool is_grass(uint material)
     {
       return material & bvhMaterialGrass;
+    }
+    bool is_emissive(uint material)
+    {
+      return material & bvhMaterialEmissive;
     }
     bool has_second_texcoord(uint material)
     {
@@ -428,6 +433,7 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
       bool isCamo;
       bool isLayered;
       bool isGrass;
+      bool isEmissive;
 
       uint4 rawLayerData;
 
@@ -546,6 +552,7 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
       hitInfo.isCamo = is_camo(meta.materialType);
       hitInfo.isLayered = is_layered(meta.materialType);
       hitInfo.isGrass = is_grass(meta.materialType);
+      hitInfo.isEmissive = is_emissive(meta.materialType);
       hitInfo.perInstanceData = hasPerInstanceData ? structuredBufferAt(bvh_per_instance_data, instanceContributionToHitGroupIndex) : 0;
       hitInfo.rawLayerData = meta.layerData;
 

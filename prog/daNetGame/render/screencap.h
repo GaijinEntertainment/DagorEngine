@@ -46,7 +46,7 @@ float fixed_act_rate();
 
 eastl::optional<CameraSetupPerspPair> get_camera();
 
-void start_video360(int resolution, int convergence_frames);
+void start_video360(int resolution, int convergence_frames, float fixed_exposure);
 void cleanup_video360();
 Video360 *get_video360();
 }; // namespace screencap

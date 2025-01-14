@@ -182,6 +182,7 @@ typedef StrmSceneHolder scene_type_t;
   VAR(downsampled_checkerboard_depth_tex_samplerstate) \
   VAR(sphere_time)                                     \
   VAR(dagi_sp_has_exposure_assume)                     \
+  VAR(gi_debug_froxels)                                \
   VAR(prev_globtm_psf_0)                               \
   VAR(prev_globtm_psf_1)                               \
   VAR(prev_globtm_psf_2)                               \
@@ -667,7 +668,7 @@ public:
     if (gi_panel.gi_mode == SCREEN_PROBES)
     {
       if (ShaderGlobal::is_var_assumed(dagi_sp_has_exposure_assumeVarId) &&
-          ShaderGlobal::get_interval_assumed_value(dagi_sp_has_exposure_assumeVarId))
+          ShaderGlobal::get_interval_assumed_value(dagi_sp_has_exposure_assumeVarId) == 0)
         gi_fmt = supportRGBE_RT ? TEXFMT_R9G9B9E5 : TEXFMT_R11G11B10F;
       else
         gi_fmt = TEXFMT_R32UI;
@@ -911,7 +912,7 @@ public:
     {
       clusteredLights.reset(new ClusteredLights);
       clusteredLights->setResolution(w, h);
-      clusteredLights->init(8, 4096, false);
+      clusteredLights->init(8, 6, false);
       clusteredLights->setMaxClusteredDist(128);
       clusteredLights->setMaxShadowDist(128);
       Point4 bias(-0.00006f, -0.1f, 0.01f, 0.015f);
@@ -1008,6 +1009,7 @@ public:
 
   virtual void actScene()
   {
+    cpujobs::release_done_jobs();
     samplebenchmark::quitIfBenchmarkHasEnded();
     webui::update();
 
@@ -1482,7 +1484,9 @@ public:
       s.radianceGrid.irradianceProbeDetail = 2.f;
       s.radianceGrid.additionalIrradianceClips = 2;
       s.screenProbes.tileSize = 0;
-      s.volumetricGI.tileSize = 64;
+      s.volumetricGI.tileSize = volumetric_gi.tileSize;
+      s.volumetricGI.slices = volumetric_gi.slices;
+      s.volumetricGI.zLogMul = volumetric_gi.zLogMul;
     }
     else if (gi_panel.gi_mode == SCREEN_PROBES)
     {
@@ -1493,17 +1497,22 @@ public:
       s.screenProbes.temporality = screen_probes.temporality;
       s.screenProbes.radianceOctRes = screen_probes.radianceOctRes;
       s.screenProbes.angleFiltering = screen_probes.angleFiltering;
-      s.volumetricGI.tileSize = 0; // autodetect
+      s.volumetricGI.tileSize = volumetric_gi.tileSize;
+      s.volumetricGI.slices = volumetric_gi.slices;
+      s.volumetricGI.zLogMul = volumetric_gi.zLogMul;
     }
+    s.volumetricGI.historyBlurTexelOfs = volumetric_gi.blurTexelOfs;
     s.sdf.voxel0Size = sdf_panel.voxel0Size;
     s.sdf.clips = sdf_panel.clips;
     s.sdf.texWidth = sdf_panel.texWidth;
     s.sdf.yResScale = sdf_panel.yResScale;
+    ShaderGlobal::set_int(gi_debug_froxelsVarId, (gi_panel.gi_mode != ONLY_AO && volumetric_gi.debugUse) ? 1 : 0);
     if (gi_panel.gi_mode != ENVI_PROBE)
       daGI2->setSettings(s);
   }
   virtual void beforeDrawScene(int realtime_elapsed_usec, float gametime_elapsed_sec)
   {
+    lruColl.doMaintenance();
     giQualitySet();
     if (gi_reset)
     {
@@ -2246,6 +2255,12 @@ protected:
 
       DECLARE_INT_SLIDER(albedo_scene_panel, clips, 2, 4, 3),
 
+      DECLARE_INT_SLIDER(volumetric_gi, slices, 8, 64, 16),
+      DECLARE_INT_SLIDER(volumetric_gi, tileSize, 0, 256, 64),
+      DECLARE_FLOAT_SLIDER(volumetric_gi, zLogMul, 1., 16, 6, 0.01),
+      DECLARE_FLOAT_SLIDER(volumetric_gi, blurTexelOfs, 0., 1., 0.125, 0.01),
+      DECLARE_BOOL_CHECKBOX(volumetric_gi, debugUse, false),
+
       ////DECLARE_BOOL_BUTTON(gi_panel, calc_ground_truth, false),
       // DECLARE_BOOL_CHECKBOX(gi_panel, show_ground_truth, false),
 
@@ -2539,6 +2554,12 @@ protected:
     bool reproject = true;
     bool angleFiltering;
   } screen_probes;
+  struct
+  {
+    int tileSize = 64, slices = 16;
+    float zLogMul = 6, blurTexelOfs = 0.124;
+    bool debugUse = true;
+  } volumetric_gi;
 
   enum
   {
@@ -2651,18 +2672,15 @@ protected:
 
         reset_required_res_list_restriction();
         prefetch_managed_textures_by_textag(TEXTAG_DYNMODEL);
-        ddsx::tex_pack2_perform_delayed_data_loading();
+        if (!is_managed_textures_streaming_load_on_demand())
+          ddsx::tex_pack2_perform_delayed_data_loading();
 
         struct UpdatePtr : public DelayedAction
         {
           DemoGameScene *s;
           DynamicRenderableSceneInstance *val;
           UpdatePtr(DemoGameScene *_s, DynamicRenderableSceneInstance *_val) : s(_s), val(_val) {}
-          virtual void performAction()
-          {
-            s->setModel(val);
-            cpujobs::release_done_jobs();
-          }
+          void performAction() override { s->setModel(val); }
         };
         add_delayed_action(new UpdatePtr(s, val));
       }

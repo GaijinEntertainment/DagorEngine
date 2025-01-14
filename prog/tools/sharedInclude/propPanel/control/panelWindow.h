@@ -44,13 +44,15 @@ public:
 private:
   virtual void onWcRightClick(WindowBase *source) override;
 
-  void fillJumpToGroupContextMenu(ContainerPropertyControl &container, int menu_id);
-
   String controlCaption;
   int scrollingRequestedPositionY = -1;
   int scrollingRequestedForFrames = 0;
   eastl::unique_ptr<IMenu> contextMenu;
   eastl::unique_ptr<PanelWindowContextMenuEventHandler> contextMenuEventHandler;
+
+  static PanelWindowPropertyControl *middleMouseDragWindow;
+  static ImVec2 middleMouseDragStartPos;
+  static float middleMouseDragStartScrollY;
 };
 
 } // namespace PropPanel

@@ -95,6 +95,8 @@ public:
     das::addExtern<DAS_BIND_FUN(get_buf)>(*this, lib, "get_buf", das::SideEffects::modifyExternal, "::ShaderGlobal::get_buf");
     das::addExtern<DAS_BIND_FUN(get_shader_global_time_phase)>(*this, lib, "get_shader_global_time_phase",
       das::SideEffects::accessExternal, "::get_shader_global_time_phase");
+    das::addExtern<DAS_BIND_FUN(get_slot_by_name)>(*this, lib, "get_slot_by_name", das::SideEffects::modifyExternal,
+      "::ShaderGlobal::get_slot_by_name");
 
     das::addExtern<DAS_BIND_FUN(ShaderGlobal::getBlockId)>(*this, lib, "getBlockId", das::SideEffects::accessExternal,
       "ShaderGlobal::getBlockId")

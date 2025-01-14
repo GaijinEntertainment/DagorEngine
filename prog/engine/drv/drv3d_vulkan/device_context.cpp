@@ -308,6 +308,26 @@ void DeviceContext::allowOpLoad()
   VULKAN_DISPATCH_COMMAND(cmd);
 }
 
+void DeviceContext::copyBufferDiscardReorderable(const BufferRef &source, BufferRef &dest, uint32_t src_offset, uint32_t dst_offset,
+  uint32_t data_size)
+{
+  RenderPassResource *rp =
+    Frontend::State::pipe.getRO<StateFieldRenderPassResource, RenderPassResource *, FrontGraphicsState, FrontRenderPassState>();
+  if (!rp)
+  {
+    copyBuffer(source, dest, src_offset, dst_offset, data_size);
+    return;
+  }
+  logerr("vulkan: reordering buffer copy to %p:%s out of nrp %p:%s", dest.buffer, dest.buffer->getDebugName(), rp, rp->getDebugName());
+  // discarding buffer with followup restore of its contents, viable logic, but consumes too much memory
+  // BufferRef oldDest = dest;
+  // dest = discardBuffer(dest, memory_class, uav_format, buf_flags, 0);
+  // Frontend::replay->reorderedBufferCopies.push_back({oldDest, dest, 0, 0, dest.visibleDataSize,
+  // Frontend::State::pod.nativeRenderPassesCount});
+  Frontend::replay->reorderedBufferCopies.push_back(
+    {source, dest, src_offset, dst_offset, data_size, Frontend::State::pod.nativeRenderPassesCount});
+}
+
 void DeviceContext::copyBuffer(const BufferRef &source, const BufferRef &dest, uint32_t src_offset, uint32_t dst_offset,
   uint32_t data_size)
 {
@@ -657,6 +677,16 @@ void DeviceContext::destroyRenderPassResource(RenderPassResource *rp)
   VULKAN_DISPATCH_COMMAND(cmd);
 }
 
+BufferRef DeviceContext::uploadToDeviceFrameMem(uint32_t size, const void *src)
+{
+  // use device resident memory in dedicated configuration to avoid minor device slowdown
+  // otherwise use shared host/device memory to avoid issues (PowerVR) and unnecesary memory usage and operations
+  return uploadToFrameMem(Globals::Mem::pool.getMemoryConfiguration() == DeviceMemoryConfiguration::DEDICATED_DEVICE_MEMORY
+                            ? DeviceMemoryClass::DEVICE_RESIDENT_BUFFER
+                            : DeviceMemoryClass::DEVICE_RESIDENT_HOST_WRITE_ONLY_BUFFER,
+    size, src);
+}
+
 BufferRef DeviceContext::uploadToFrameMem(DeviceMemoryClass memory_class, uint32_t size, const void *src)
 {
   BufferRef ret = Frontend::frameMemBuffers.acquire(size, memory_class);
@@ -680,16 +710,17 @@ BufferRef DeviceContext::discardBuffer(const BufferRef &src_ref, DeviceMemoryCla
 {
   BufferRef ret;
 
-  uint32_t frontFrameIndex = Frontend::State::pod.frameIndex;
-
   if (bufFlags & SBCF_FRAMEMEM)
   {
     G_ASSERTF(dynamic_size, "vulkan: framemem discard size must be > 0");
     ret = Frontend::frameMemBuffers.acquire(dynamic_size, bufFlags);
     if (ret.buffer != src_ref.buffer)
       Frontend::frameMemBuffers.swapRefCounters(src_ref.buffer, ret.buffer);
-    G_ASSERTF(frontFrameIndex == Frontend::State::pod.frameIndex,
-      "vulkan: submitting frames and doing discard at same time for framemem buffer is invalid!");
+    if (src_ref)
+    {
+      CmdNotifyBufferDiscard cmd{src_ref, ret, bufFlags};
+      VULKAN_DISPATCH_COMMAND(cmd);
+    }
   }
   else
   {
@@ -707,6 +738,11 @@ BufferRef DeviceContext::discardBuffer(const BufferRef &src_ref, DeviceMemoryCla
       reallocated_size = dynamic_size;
     }
 
+    // lock ahead of time to avoid errors on frontFrameIndex increments from other thread
+    // this is valid pattern for background thread data uploads,
+    // but we must not corrupt memory if same happens for other reasons
+    VULKAN_LOCK_FRONT();
+    uint32_t frontFrameIndex = Frontend::State::pod.frameIndex;
     if (!buf->onDiscard(frontFrameIndex, reallocated_size))
     {
       uint32_t discardCount = buf->getDiscardBlocks();
@@ -724,13 +760,11 @@ BufferRef DeviceContext::discardBuffer(const BufferRef &src_ref, DeviceMemoryCla
       Globals::Dbg::naming.setBufName(buf, src_ref.buffer->getDebugName());
     }
     ret = BufferRef{buf};
-  }
-
-  if (src_ref)
-  {
-    // FIXME: ensure discard is not called for active buffer from another thread
-    CmdNotifyBufferDiscard cmd{src_ref, ret, bufFlags};
-    VULKAN_DISPATCH_COMMAND(cmd);
+    if (src_ref)
+    {
+      CmdNotifyBufferDiscard cmd{src_ref, ret, bufFlags};
+      VULKAN_DISPATCH_COMMAND_NO_LOCK(cmd);
+    }
   }
 
   G_ASSERTF(ret.buffer, "vulkan: discard failed for %p:%s", src_ref.buffer, src_ref.buffer->getDebugName());
@@ -1086,46 +1120,6 @@ void DeviceContext::removeProgram(ProgramID program)
   CmdRemoveProgram cmd{program};
   VULKAN_DISPATCH_COMMAND(cmd);
 }
-
-#if D3D_HAS_RAY_TRACING
-void DeviceContext::addRaytraceProgram(ProgramID program, uint32_t max_recursion, uint32_t shader_count,
-  const ShaderModuleUse *shaders, uint32_t group_count, const RaytraceShaderGroup *groups)
-{
-  CmdAddRaytraceProgram cmd{program};
-  VULKAN_LOCK_FRONT();
-
-  cmd.shaders = shaders;
-  cmd.groups = groups;
-  cmd.shaderCount = shader_count;
-  cmd.groupCount = group_count;
-  cmd.maxRecursion = max_recursion;
-
-  VULKAN_DISPATCH_COMMAND_NO_LOCK(cmd);
-}
-
-void DeviceContext::copyRaytraceShaderGroupHandlesToMemory(ProgramID prog, uint32_t first_group, uint32_t group_count, uint32_t size,
-  const BufferRef &buffer, uint32_t offset)
-{
-  CmdCopyRaytraceShaderGroupHandlesToMemory cmd{prog, first_group, group_count, size, nullptr};
-
-  if (buffer.buffer->hasMappedMemory())
-  {
-    cmd.ptr = buffer.ptrOffset(offset);
-    VULKAN_DISPATCH_COMMAND(cmd);
-  }
-  else
-  {
-    auto tempBuffer = TempBufferHolder(size);
-    cmd.ptr = tempBuffer.getPtr();
-
-    // if memory is not host visible then use update buffer temp memory for it
-    VULKAN_LOCK_FRONT();
-    VULKAN_DISPATCH_COMMAND_NO_LOCK(cmd);
-
-    copyBuffer(tempBuffer.getRef(), buffer, 0, offset, size);
-  }
-}
-#endif
 
 #if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
 void DeviceContext::attachComputeProgramDebugInfo(ProgramID program, eastl::unique_ptr<ShaderDebugInfo> dbg)

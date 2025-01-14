@@ -536,8 +536,8 @@ bool init(const DataBlock &blk)
 
   delayed::init(blk);
 
-  if (blk.getBool("occlusionEnabled", false))
-    occlusion::init(blk);
+  if (blk.getBool("occlusionInit", false))
+    occlusion::init(blk, g_low_level_system);
 
   eastl::basic_string<char, framemem_allocator> memoryInfo;
   if (g_fixed_mem_pool)
@@ -567,6 +567,8 @@ void shutdown()
 
   delayed::close();
   events_close();
+
+  occlusion::close();
 
   // debug fmod memory usage
   int used = 0, used_max = 0;

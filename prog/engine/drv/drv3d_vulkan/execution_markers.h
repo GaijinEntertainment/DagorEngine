@@ -34,7 +34,7 @@ public:
 
   void check();
   bool hasPassed(size_t id, const void *ptr);
-  void write(VulkanCommandBufferHandle cb, VkPipelineStageFlagBits stage, size_t work_idx, const void *cmd);
+  void write(VkPipelineStageFlagBits stage, size_t work_idx, const void *cmd);
 };
 
 } // namespace drv3d_vulkan

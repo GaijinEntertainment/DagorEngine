@@ -271,9 +271,9 @@ enum GraphicFeature
 void enable_graphic_feature(FFTWater *handle, GraphicFeature feature, bool enable);
 void get_cascade_period(FFTWater *handle, int cascade_no, float &out_period, float &out_window_in, float &out_window_out);
 
+// if detect_rivers_width <= 0 or reiversCB == 0, it won't be used
 void build_distance_field(UniqueTexHolder &, int texture_size, int heightmap_texture_size, float detect_rivers_width,
-  RiverRendererCB *riversCB, bool high_precision_distance_field = true); // if reiversCB == 0, it won't be used. if
-                                                                         // detect_rivers_width<=0 it won't be used
+  RiverRendererCB *riversCB, bool high_precision_distance_field = true, bool shore_waves_on = true);
 void build_flowmap(FFTWater *handle, int flowmap_texture_size, int heightmap_texture_size, const Point3 &camera_pos, int cascade,
   bool obstacles);
 void set_flowmap_tex(FFTWater *handle);

@@ -100,7 +100,7 @@ float2 FFX_SSSR_GetMipResolution(float2 screen_dimensions, int mip_level) {
 
 bool is_ray_inside_borders(float3 position)
 {
-    return all(position.xy >= 0) && all(position.xy < 1);
+    return all(position >= 0) && all(position < 1);
 }
 
 // Requires origin and direction of the ray to be in screen space [0, 1] x [0, 1]
@@ -126,6 +126,15 @@ float3 FFX_SSSR_HierarchicalRaymarch(float3 origin, float3 direction, float2 scr
     float current_t;
     float3 position;
     FFX_SSSR_InitialAdvanceRay(origin, direction, inv_direction, current_mip_resolution, current_mip_resolution_inv, floor_offset, uv_offset, position, current_t);
+
+    {
+        float surface_z = texelFetch(downsampled_close_depth_tex, int2(screen_size * position.xy), 0).r;
+        // Check if we was above surface on origin and then go under, then we intersect surface and we could not trace at all.
+        // This is could be case in ssr water tracing, since origin point always located on water surface and not downsampled depth tex.
+        if (!linear_biased_comparison_of_rawdepth_use(origin.z, surface_z) &&
+            linear_biased_comparison_of_rawdepth_use(position.z, surface_z))
+          current_mip = -1;
+    }
 
     float surface_z = 1.0;
     uint i = 0;

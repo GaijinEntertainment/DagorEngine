@@ -24,13 +24,6 @@ sound_debug_draw_template{
   "soundDebugDrawTemplate:tag"{_tags:t="sound";}
 }
 
-sound_debug_draw_ri{
-  _group{
-    _tags:t="sound"
-    sound_debug_draw_ri__name:t=""
-  }
-}
-
 sound_banks_state{
   _group{
     _tags:t="sound"

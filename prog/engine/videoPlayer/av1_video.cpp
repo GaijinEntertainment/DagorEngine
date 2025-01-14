@@ -340,8 +340,9 @@ public:
     } while (get_time_usec_qpc(referenceTime) < endTime);
   }
 
-  virtual bool getFrame(TEXTUREID &idY, TEXTUREID &idU, TEXTUREID &idV)
+  virtual bool getFrame(TEXTUREID &idY, TEXTUREID &idU, TEXTUREID &idV, d3d::SamplerHandle &smp)
   {
+    smp = sampler;
     if (vBuf.used)
     {
       int targetTime = get_time_usec_qpc(referenceTime) + frameTime / 2;

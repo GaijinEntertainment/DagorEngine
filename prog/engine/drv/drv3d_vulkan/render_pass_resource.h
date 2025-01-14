@@ -200,7 +200,7 @@ private:
 
   void updateImageStatesForCurrentSubpass(ExecutionContext &ctx);
 
-  void performSelfDepsForSubpass(uint32_t subpass, VulkanCommandBufferHandle cmd_b);
+  void performSelfDepsForSubpass(uint32_t subpass);
 
   VulkanFramebufferHandle compileFB();
   VulkanFramebufferHandle compileOrGetFB();

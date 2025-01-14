@@ -1,6 +1,6 @@
 
   #if defined(CHECK_OMNI_LIGHT_MASK)
-    if ( !check_omni_light(omni_light_index))
+    if ( !check_omni_light(omni_light_index, CHECK_OMNI_LIGHT_MASK))
       continue;
   #endif
   RenderOmniLight ol = omni_lights_cb[omni_light_index];

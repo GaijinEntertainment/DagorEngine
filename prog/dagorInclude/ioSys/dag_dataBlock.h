@@ -849,6 +849,9 @@ KRNLIMP ZSTD_DDict_s *get_vromfs_blk_ddict(const VirtualRomFsData *fs);
 //! releases reference to ZSTD decoder dictionary; returns residual ref count
 KRNLIMP int release_vromfs_blk_ddict(ZSTD_DDict_s *ddict);
 
+//! returns the hash of ZSTD dictionary corresponding to given shared namemap
+KRNLIMP dag::ConstSpan<char> get_vromfs_dict_hash(dag::ConstSpan<char> shared_nm_data);
+
 //! discard unused shared name maps (that were allocated in get_vromfs_shared_name_map() calls); return residual used count
 KRNLIMP int discard_unused_shared_name_maps();
 //! discard unused ZSTD decoder dictionaries (that were allocated in get_vromfs_blk_ddict() calls); return residual used count

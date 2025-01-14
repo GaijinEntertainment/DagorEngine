@@ -81,7 +81,8 @@ namespace gpu_objects
   VAR(gpu_objects_distance_emitter__range)              \
   VAR(gpu_objects_distance_emitter__position)           \
   VAR(gpu_objects_remove_box_min)                       \
-  VAR(gpu_objects_remove_box_max)
+  VAR(gpu_objects_remove_box_max)                       \
+  VAR(gpu_objects_cutoff_ratio)
 
 
 #define VAR(a) static int a##VarId = -1;
@@ -202,7 +203,8 @@ void VolumePlacer::performPlacing(const Point3 &camera_pos)
   gpu_object_placer_fill_ecs_query(
     [&](ecs::EntityId eid, int gpu_object_placer__ri_asset_idx, float gpu_object_placer__visible_distance_squared,
       bool gpu_object_placer__place_on_geometry, float gpu_object_placer__min_gathered_triangle_size,
-      float &gpu_object_placer__current_distance_squared, bool &gpu_object_placer__filled, int &gpu_object_placer__buffer_offset,
+      float gpu_object_placer__triangle_edge_length_ratio_cutoff, float &gpu_object_placer__current_distance_squared,
+      bool &gpu_object_placer__filled, int &gpu_object_placer__buffer_offset,
       int &gpu_object_placer__distance_emitter_decal_buffer_size, int &gpu_object_placer__distance_emitter_buffer_size,
       int &gpu_object_placer__buffer_size, int &gpu_object_placer__on_rendinst_geometry_count,
       int &gpu_object_placer__on_terrain_geometry_count, float gpu_object_placer__object_density,
@@ -259,9 +261,10 @@ void VolumePlacer::performPlacing(const Point3 &camera_pos)
       if (gpu_object_placer__buffer_size == -1)
       {
         int objCount = calculateObjectCount(eid, gpu_object_placer__object_density, transform, gpu_object_placer__place_on_geometry,
-          gpu_object_placer__min_gathered_triangle_size, gpu_object_placer__object_up_vector_threshold,
-          gpu_object_placer__object_max_count, gpu_object_placer__on_rendinst_geometry_count,
-          gpu_object_placer__on_terrain_geometry_count, gpu_object_placer__surface_riex_handles);
+          gpu_object_placer__min_gathered_triangle_size, gpu_object_placer__triangle_edge_length_ratio_cutoff,
+          gpu_object_placer__object_up_vector_threshold, gpu_object_placer__object_max_count,
+          gpu_object_placer__on_rendinst_geometry_count, gpu_object_placer__on_terrain_geometry_count,
+          gpu_object_placer__surface_riex_handles);
 
         if (objCount <= 0)
         {
@@ -298,12 +301,13 @@ void VolumePlacer::performPlacing(const Point3 &camera_pos)
             gpu_object_placer__buffer_offset))
         return;
 
-      gpu_object_placer__filled = placeInBox(gpu_object_placer__buffer_size, gpu_object_placer__ri_asset_idx,
-        gpu_object_placer__buffer_offset, transform, gpu_object_placer__object_scale_range,
-        gpu_object_placer__object_up_vector_threshold, gpu_object_placer__distance_based_scale, gpu_object_placer__min_scale_radius,
-        gpu_object_placer__place_on_geometry, gpu_object_placer__min_gathered_triangle_size,
-        gpu_object_placer__on_rendinst_geometry_count, gpu_object_placer__on_terrain_geometry_count, gpu_object_placer__object_density,
-        gpu_object_placer__surface_riex_handles, needGeometryGather);
+      gpu_object_placer__filled =
+        placeInBox(gpu_object_placer__buffer_size, gpu_object_placer__ri_asset_idx, gpu_object_placer__buffer_offset, transform,
+          gpu_object_placer__object_scale_range, gpu_object_placer__object_up_vector_threshold,
+          gpu_object_placer__distance_based_scale, gpu_object_placer__min_scale_radius, gpu_object_placer__place_on_geometry,
+          gpu_object_placer__min_gathered_triangle_size, gpu_object_placer__triangle_edge_length_ratio_cutoff,
+          gpu_object_placer__on_rendinst_geometry_count, gpu_object_placer__on_terrain_geometry_count,
+          gpu_object_placer__object_density, gpu_object_placer__surface_riex_handles, needGeometryGather);
       updateDistanceEmitterMatrix(gpu_object_placer__buffer_offset, gpu_object_placer__distance_emitter_buffer_size,
         gpu_object_placer__buffer_size, gpu_object_placer__distance_emitter_eid, gpu_object_placer__distance_to_scale_from,
         gpu_object_placer__distance_to_scale_to, gpu_object_placer__distance_to_rotation_from,
@@ -479,12 +483,13 @@ static void set_placer_transform(const TMatrix4 &transform)
 
 bool VolumePlacer::placeInBox(int count, int ri_idx, int buf_offset, const TMatrix &transform, const Point2 &scale_range,
   const Point4 &up_vector_threshold, const Point2 &distance_based_scale, float min_scale_radius, bool on_geometry,
-  float min_triangle_size, int on_rendinst_geometry_count, int on_terrain_geometry_count, float density,
-  riex_handles &surface_riex_handles, bool need_geometry_gather)
+  float min_triangle_size, float triangle_edge_length_ratio_cutoff, int on_rendinst_geometry_count, int on_terrain_geometry_count,
+  float density, riex_handles &surface_riex_handles, bool need_geometry_gather)
 {
   if (on_geometry && need_geometry_gather)
   {
-    if (!gatherGeometryInBox(transform, min_triangle_size, up_vector_threshold, density, surface_riex_handles))
+    if (!gatherGeometryInBox(transform, min_triangle_size, triangle_edge_length_ratio_cutoff, up_vector_threshold, density,
+          surface_riex_handles))
       return false;
   }
   if (on_geometry)
@@ -552,8 +557,8 @@ int VolumePlacer::getMaxTerrainObjectsCount(const TMatrix &transform, float dens
   return clamp(result, 0, ON_TERRAIN_OBJECT_COUNT_CLAMP);
 }
 
-bool VolumePlacer::gatherGeometryInBox(const TMatrix &transform, float min_triangle_size, const Point4 &up_vector_threshold,
-  float density, riex_handles &surface_riex_handles)
+bool VolumePlacer::gatherGeometryInBox(const TMatrix &transform, float min_triangle_size, float triangle_edge_length_ratio_cutoff,
+  const Point4 &up_vector_threshold, float density, riex_handles &surface_riex_handles)
 {
   if (waitReadbackEntity)
     return false;
@@ -659,6 +664,7 @@ bool VolumePlacer::gatherGeometryInBox(const TMatrix &transform, float min_trian
   STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, 1, VALUE), counterBuffer.getBuf());
 
   ShaderGlobal::set_real(gpu_objects_min_gathered_triangle_sizeVarId, min_triangle_size);
+  ShaderGlobal::set_real(gpu_objects_cutoff_ratioVarId, triangle_edge_length_ratio_cutoff);
   ShaderGlobal::set_color4(gpu_objects_up_vectorVarId, Color4::xyzw(up_vector_threshold));
   set_placer_transform(TMatrix4(transform));
 
@@ -703,8 +709,8 @@ Point2 VolumePlacer::getBboxYMinMax(const TMatrix &transform) const
 }
 
 int VolumePlacer::calculateObjectCount(ecs::EntityId eid, float density, const TMatrix &transform, bool on_geometry,
-  float min_triangle_size, const Point4 &up_vector_threshold, int object_max_count, int &on_rendinst_geometry_count,
-  int &on_terrain_geometry_count, riex_handles &surface_riex_handles)
+  float min_triangle_size, float triangle_edge_length_ratio_cutoff, const Point4 &up_vector_threshold, int object_max_count,
+  int &on_rendinst_geometry_count, int &on_terrain_geometry_count, riex_handles &surface_riex_handles)
 {
   if (!on_geometry)
   {
@@ -740,7 +746,8 @@ int VolumePlacer::calculateObjectCount(ecs::EntityId eid, float density, const T
       auto readbackFinish = lock_sbuffer<const uint>(counterBuffer.getBuf(), 0, COUNTERS_NUM, 0);
       readbackPending = false;
     }
-    if (!gatherGeometryInBox(transform, min_triangle_size, up_vector_threshold, density, surface_riex_handles))
+    if (!gatherGeometryInBox(transform, min_triangle_size, triangle_edge_length_ratio_cutoff, up_vector_threshold, density,
+          surface_riex_handles))
       return 0;
     if (counterBuffer->lock(0, 0, static_cast<void **>(nullptr), VBLOCK_READONLY))
       counterBuffer->unlock();
@@ -757,10 +764,11 @@ void VolumePlacer::resetReadbackEntity(ecs::EntityId eid)
     waitReadbackEntity.reset();
 }
 
-void VolumePlacer::drawDebugGeometry(const TMatrix &transform, float min_triangle_size, const Point4 &up_vector_threshold,
-  float density, riex_handles &surface_riex_handles)
+void VolumePlacer::drawDebugGeometry(const TMatrix &transform, float min_triangle_size, float triangle_edge_length_ratio_cutoff,
+  const Point4 &up_vector_threshold, float density, riex_handles &surface_riex_handles)
 {
-  if (!gatherGeometryInBox(transform, min_triangle_size, up_vector_threshold, density, surface_riex_handles))
+  if (!gatherGeometryInBox(transform, min_triangle_size, triangle_edge_length_ratio_cutoff, up_vector_threshold, density,
+        surface_riex_handles))
     return;
   if (!debugGatheredTrianglesRenderer.shader)
   {
@@ -1153,13 +1161,14 @@ ECS_TAG(render, dev)
 ECS_NO_ORDER
 ECS_REQUIRE(ecs::Tag box_zone, eastl::true_type gpu_object_placer__show_geometry)
 static __forceinline void gpu_object_placer_draw_debug_geometry_es(const ecs::UpdateStageInfoRenderDebug &,
-  float gpu_object_placer__min_gathered_triangle_size, const Point4 &gpu_object_placer__object_up_vector_threshold,
-  const TMatrix &transform, float gpu_object_placer__object_density,
+  float gpu_object_placer__min_gathered_triangle_size, float gpu_object_placer__triangle_edge_length_ratio_cutoff,
+  const Point4 &gpu_object_placer__object_up_vector_threshold, const TMatrix &transform, float gpu_object_placer__object_density,
   gpu_objects::riex_handles &gpu_object_placer__surface_riex_handles)
 {
   G_ASSERT(gpu_objects::volume_placer_mgr);
   gpu_objects::volume_placer_mgr->drawDebugGeometry(transform, gpu_object_placer__min_gathered_triangle_size,
-    gpu_object_placer__object_up_vector_threshold, gpu_object_placer__object_density, gpu_object_placer__surface_riex_handles);
+    gpu_object_placer__triangle_edge_length_ratio_cutoff, gpu_object_placer__object_up_vector_threshold,
+    gpu_object_placer__object_density, gpu_object_placer__surface_riex_handles);
 }
 
 ECS_TAG(render)

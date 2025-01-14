@@ -203,6 +203,7 @@ public:
   void invalidate();
 
   bool isPrepareRequired() const;
+  bool isCloudsReady() const;
   void prepare(const Point3 &dir_to_sun, bool force_update_cpu, float dt);
 
   void cloudsLayersHeightsBarrier();
@@ -349,7 +350,7 @@ public:
   }
   bool isPanoramaInitialized() { return bool(cloudsPanoramaTex[0]) || bool(compressedCloudsPanoramaTex); }
   void temporarilyDisablePanorama(bool disable) { panoramaTemporarilyDisabled = disable; }
-  bool isPanoramaValid() { return panoramaValid == PANORAMA_VALID; }
+  bool isPanoramaValid() const { return panoramaValid == PANORAMA_VALID; }
 
   bool currentSunSkyColor(float ht, float &sun_cos, float &moon_cos, Color3 &sun_color, Color3 &sun_sky_color, Color3 &moon_color,
     Color3 &moon_sky_color) const;
@@ -379,6 +380,8 @@ public:
   void setMoonDir(const Point3 &moon_dir) { moonDir = moon_dir; }
   const Point3 &getMoonDir() const { return moonDir; }
   const Point3 &getSunDir() const { return real_skies_sun_light_dir; }
+  // Returns where the sun is visible on the panorama sky viewed from camera_pos, after the panorama reprojection
+  const Point3 calcPanoramaSunDir(const Point3 &camera_pos) const;
 
   const Point3 &getPrimarySunDir() const { return primarySunDir; }     //
   const Point3 &getSecondarySunDir() const { return secondarySunDir; } //

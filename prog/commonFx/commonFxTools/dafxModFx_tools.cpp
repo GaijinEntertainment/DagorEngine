@@ -615,15 +615,16 @@ ScriptHelpers::TunedElement *FxVelocity::createTunedElement(const char *name)
 ScriptHelpers::TunedElement *FxPlacement::createTunedElement(const char *name)
 {
   Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
-  elems.reserve(5);
+  elems.reserve(6);
 
   elems.push_back(ScriptHelpers::create_tuned_bool_param("enabled", false));
   elems.push_back(ScriptHelpers::create_tuned_real_param("placement_threshold", -1));
   elems.push_back(ScriptHelpers::create_tuned_bool_param("use_hmap", false));
   elems.push_back(ScriptHelpers::create_tuned_bool_param("use_depth_above", true));
+  elems.push_back(ScriptHelpers::create_tuned_bool_param("use_water", true));
   elems.push_back(ScriptHelpers::create_tuned_real_param("align_normals_offset", -1));
 
-  return ScriptHelpers::create_tuned_struct(name, 2, elems);
+  return ScriptHelpers::create_tuned_struct(name, 3, elems);
 }
 
 

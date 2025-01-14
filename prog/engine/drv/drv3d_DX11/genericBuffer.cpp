@@ -385,6 +385,8 @@ bool GenericBuffer::copyTo(Sbuffer *dest, uint32_t dst_ofs_bytes, uint32_t src_o
   box.front = 0;
   box.back = 1;
   ContextAutoLock contextLock;
+  VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
+    "DX11: GenericBuffer::copyTo uses CopySubresourceRegion inside a generic render pass");
   disable_conditional_render_unsafe();
   dx_context->CopySubresourceRegion(destvb->buffer, 0, dst_ofs_bytes, 0, 0, buffer, 0, &box);
   destvb->internalState = UPDATED_BY_COPYTO;
@@ -398,6 +400,8 @@ bool GenericBuffer::copyTo(Sbuffer *dest)
   if (!destvb->buffer)
     return false;
   ContextAutoLock contextLock;
+  VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
+    "DX11: GenericBuffer::copyTo uses CopyResource inside a generic render pass");
   disable_conditional_render_unsafe();
   dx_context->CopyResource(destvb->buffer, buffer);
   destvb->internalState = UPDATED_BY_COPYTO;
@@ -442,6 +446,8 @@ bool GenericBuffer::updateData(uint32_t ofs_bytes, uint32_t size_bytes, const vo
   box.front = 0;
   box.back = 1;
   disable_conditional_render_unsafe();
+  VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
+    "DX11: GenericBuffer::updateData uses UpdateSubresource inside a generic render pass");
   dx_context->UpdateSubresource(buffer, 0, &box, src, 0, 0);
   return true;
 }
@@ -610,6 +616,8 @@ void *GenericBuffer::lock(uint32_t ofs_bytes, uint32_t size_bytes, int flags)
     {
       ContextAutoLock contextLock;
       disable_conditional_render_unsafe();
+      VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
+    "DX11: GenericBuffer::lock uses CopyResource inside a generic render pass");
       dx_context->CopyResource(stagingBuffer, buffer);
       internalState = BUFFER_COPIED;
     }
@@ -682,6 +690,8 @@ int GenericBuffer::unlock()
       if (internalState == STAGING_BUFFER_LOCKED_SHOULD_BE_COPIED)
       {
         disable_conditional_render_unsafe();
+        VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
+          "DX11: GenericBuffer::unlock uses CopyResource inside a generic render pass");
         dx_context->CopyResource(buffer, stagingBuffer); // only if locked for writing
       }
       internalState = BUFFER_INVALID;

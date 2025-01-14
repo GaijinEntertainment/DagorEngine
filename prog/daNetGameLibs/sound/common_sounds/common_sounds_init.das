@@ -12,7 +12,5 @@ def load_common_sounds(base_path : string) : bool
   if ecs_has_tag("sound") || app::get_game_name() == "aot"
     ok = load_sub_folder(base_path, "modules") && ok
     ok = load_sub_folder(base_path, "es") && ok
-    if typeinfo(builtin_module_exists DngPhysObj)
-      ok = load_sub_folder(base_path, "es/physobj_sounds") && ok
 
   return ok

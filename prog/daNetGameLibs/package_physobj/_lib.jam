@@ -1,2 +1,3 @@
 gamePulls += framework_package_physobj_pull ;
+if $(HaveSound) = yes { gamePulls += daNetGameLibs_package_physobj_DAS_pull_AOT ; }
 UseProgLibs += daNetGameLibs/package_physobj ;

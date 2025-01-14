@@ -143,12 +143,15 @@ void SamplerTable::add(ShaderTerminal::sampler_decl &smp_decl, ShaderTerminal::S
   }
   mSamplers.back().mId = sampler_id;
   mSamplers.back().mNameId = id;
+
+  // @TODO: when the sampler decl is fake, this is a useless and expired pointer registration
   parser.get_lex_parser().register_symbol(id, SymbolType::GLOBAL_VARIABLE, smp_decl.name);
 
   v = append_items(variable_list, 1);
   variable_list[v].type = SHVT_SAMPLER;
   variable_list[v].nameId = id;
   variable_list[v].value.samplerInfo = mSamplers.back().mSamplerInfo;
+  variable_list[v].isAlwaysReferenced = smp_decl.is_always_referenced ? true : false;
 
   g_cppstcode.globVars.setVar(SHVT_SAMPLER, smp_decl.name->text);
 }
@@ -193,4 +196,56 @@ Tab<Sampler> SamplerTable::releaseSamplers()
 {
   auto released = eastl::move(mSamplers);
   return released;
+}
+
+void add_dynamic_sampler_for_stcode(ShaderSemCode &sh_sem_code, ShaderClass &sclass, ShaderTerminal::sampler_decl &smp_decl,
+  ShaderTerminal::ShaderSyntaxParser &parser)
+{
+  int id = VarMap::addVarId(smp_decl.name->text);
+  int v = sh_sem_code.find_var(id);
+  if (v >= 0)
+  {
+    ShaderParser::error(
+      eastl::string{eastl::string::CtorSprintf{}, "Shader variable '%s' already declared in ", smp_decl.name->text}.c_str(),
+      smp_decl.name, parser);
+    return;
+  }
+
+  Sampler sampler{smp_decl, parser};
+
+  // @TODO: when the sampler decl is fake, this is a useless and expired pointer registration
+  parser.get_lex_parser().register_symbol(id, SymbolType::STATIC_VARIABLE, smp_decl.name);
+
+  v = append_items(sh_sem_code.vars, 1);
+  sh_sem_code.vars[v].type = SHVT_SAMPLER;
+  sh_sem_code.vars[v].nameId = id;
+  sh_sem_code.vars[v].terminal = smp_decl.name;
+  sh_sem_code.vars[v].dynamic = true;
+  sh_sem_code.vars[v].noWarnings = false;
+  sh_sem_code.vars[v].used = true;
+
+  sh_sem_code.staticVarRegs.add(smp_decl.name->text, v);
+
+  int sv = sclass.find_static_var(id);
+  if (sv < 0)
+  {
+    sv = append_items(sclass.stvar, 1);
+    sclass.stvar[sv].type = SHVT_SAMPLER;
+    sclass.stvar[sv].nameId = id;
+    sclass.stvar[sv].defval.samplerInfo = sampler.mSamplerInfo;
+  }
+  else
+  {
+    if (sclass.stvar[sv].type != SHVT_SAMPLER || sclass.stvar[sv].defval.samplerInfo != sampler.mSamplerInfo)
+    {
+      ShaderParser::error(String("static var '") + smp_decl.name->text + "' defined with different type/value", smp_decl.name, parser);
+      return;
+    }
+  }
+
+  {
+    int i = append_items(sh_sem_code.stvarmap, 1);
+    sh_sem_code.stvarmap[i].v = v;
+    sh_sem_code.stvarmap[i].sv = sv;
+  }
 }

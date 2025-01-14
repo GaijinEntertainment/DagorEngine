@@ -90,8 +90,32 @@ static inline void heightmap_initialize_density_mask_es(const dagdp::EventInitia
 {
   auto &currentBuilder = dagdp__heightmap_manager.currentBuilder;
 
-  heightmap_density_masks_ecs_query([&](ECS_REQUIRE(ecs::Tag dagdp_density_mask) const ecs::string &dagdp__density_mask_res) {
+  heightmap_density_masks_ecs_query([&](ECS_REQUIRE(ecs::Tag dagdp_density_mask) const ecs::string &dagdp__density_mask_res,
+                                      const Point4 &dagdp__density_mask_left_top_right_bottom) {
     currentBuilder.densityMask = dag::get_tex_gameres(dagdp__density_mask_res.c_str());
+
+    // The default left top right bottom values are (-2048, 2048, 2048, -2048), this results
+    // in us using negative height when calculating scale and offset for the mask (with the default values).
+    // This is intentional as it's needed for the mask to be mirrored.
+    float texWidth = dagdp__density_mask_left_top_right_bottom.z - dagdp__density_mask_left_top_right_bottom.x;
+    float texHeight = dagdp__density_mask_left_top_right_bottom.w - dagdp__density_mask_left_top_right_bottom.y;
+    if (abs(texWidth) <= FLT_EPSILON || abs(texHeight) <= FLT_EPSILON)
+    {
+      logerr("daGdp: density mask %s has invalid left_top_right_bottom var, calculated width: %f, calculated height: %f",
+        dagdp__density_mask_res.c_str(), texWidth, texHeight);
+
+      Point4 defaultLeftTopRightBottom(-2048.0, 2048.0, 2048.0, -2048.0);
+      texWidth = defaultLeftTopRightBottom.z - defaultLeftTopRightBottom.x;
+      texHeight = defaultLeftTopRightBottom.w - defaultLeftTopRightBottom.y;
+      currentBuilder.maskScaleOffset =
+        Point4(1.0 / texWidth, 1.0 / texHeight, -defaultLeftTopRightBottom.x / texWidth, -defaultLeftTopRightBottom.y / texHeight);
+    }
+    else
+    {
+      currentBuilder.maskScaleOffset = Point4(1.0 / texWidth, 1.0 / texHeight, -dagdp__density_mask_left_top_right_bottom.x / texWidth,
+        -dagdp__density_mask_left_top_right_bottom.y / texHeight);
+    }
+
     if (currentBuilder.densityMask.getTexId() == BAD_TEXTUREID)
       logerr("daGdp: density mask texture %s not found", dagdp__density_mask_res.c_str());
   });
@@ -107,102 +131,104 @@ static inline void heightmap_view_process_es(const dagdp::EventViewProcess &evt,
   auto &viewBuilder = *evt.get<2>();
   auto &builder = dagdp__heightmap_manager.currentBuilder;
 
-  if (rulesBuilder.maxObjects != 0)
-    logwarn("daGdp: note: heightmap placer currently does not respect the max. objects setting.");
+  if (!rulesBuilder.useHeightmapDynamicObjects && rulesBuilder.maxObjects != 0)
+    logwarn("daGdp: note: heightmap placer won't respect the max. objects setting (dagdp__use_heightmap_dynamic_objects is not set).");
 
   dag::Vector<MergeEntry, framemem_allocator> entries;
-  heightmap_placers_ecs_query([&](ECS_REQUIRE(ecs::Tag dagdp_placer_heightmap) ecs::EntityId eid, const ecs::List<int> &dagdp__biomes,
-                                float dagdp__density, int dagdp__seed, float dagdp__jitter, bool dagdp__heightmap_lower_level,
-                                bool dagdp__heightmap_allow_unoptimal_grids, float dagdp__heightmap_cell_size) {
-    auto iter = rulesBuilder.placers.find(eid);
-    if (iter == rulesBuilder.placers.end())
-      return;
+  heightmap_placers_ecs_query(
+    [&](ECS_REQUIRE(ecs::Tag dagdp_placer_heightmap) ecs::EntityId eid, const ecs::List<int> &dagdp__biomes, float dagdp__density,
+      int dagdp__seed, float dagdp__jitter, bool dagdp__heightmap_lower_level, bool dagdp__heightmap_allow_unoptimal_grids,
+      float dagdp__heightmap_cell_size, const ecs::string &dagdp__name) {
+      auto iter = rulesBuilder.placers.find(eid);
+      if (iter == rulesBuilder.placers.end())
+        return;
 
-    auto &placer = iter->second;
+      auto &placer = iter->second;
 
-    if (dagdp__biomes.size() == 0)
-    {
-      logerr("daGdp: placer with EID %u should have at least one biome index in dagdp__biomes. Skipping it.",
-        static_cast<unsigned int>(eid));
-      return;
-    }
+      if (dagdp__biomes.size() == 0)
+      {
+        logerr("daGdp: %s should have at least one biome index in dagdp__biomes. Skipping it.", dagdp__name);
+        return;
+      }
 
-    if (dagdp__density <= 0.0f)
-    {
-      logerr("daGdp: placer with EID %u has invalid density", static_cast<unsigned int>(eid));
-      return;
-    }
+      if (dagdp__density <= 0.0f)
+      {
+        logerr("daGdp: %s has invalid density", dagdp__name);
+        return;
+      }
 
-    if (dagdp__heightmap_cell_size <= 0.0f)
-    {
-      logerr("daGdp: placer with EID %u has invalid heightmap cell size", static_cast<unsigned int>(eid));
-      return;
-    }
+      if (dagdp__heightmap_cell_size <= 0.0f)
+      {
+        logerr("daGdp: %s has invalid heightmap cell size", dagdp__name);
+        return;
+      }
 
-    if (dagdp__jitter < 0.0f || dagdp__jitter > 1.0f)
-    {
-      logerr("daGdp: placer with EID %u has invalid jitter", static_cast<unsigned int>(eid));
-      return;
-    }
+      if (dagdp__jitter < 0.0f || dagdp__jitter > 1.0f)
+      {
+        logerr("daGdp: %s has invalid jitter", dagdp__name);
+        return;
+      }
 
-    if (!dagdp__heightmap_allow_unoptimal_grids && dagdp__heightmap_lower_level)
-    {
-      logerr("daGdp: placer with EID %u has non-default dagdp__heightmap_lower_level, which may prevent using optimal grids, but "
-             "allow_unoptimal_grids is not set.",
-        static_cast<unsigned int>(eid));
-      return;
-    }
+      if (!dagdp__heightmap_allow_unoptimal_grids && dagdp__heightmap_lower_level)
+      {
+        logerr("daGdp: %s has non-default dagdp__heightmap_lower_level, which may prevent using optimal grids, but "
+               "allow_unoptimal_grids is not set.",
+          dagdp__name);
+        return;
+      }
 
-    if (!dagdp__heightmap_allow_unoptimal_grids && dagdp__seed != 0)
-    {
-      logerr(
-        "daGdp: placer with EID %u has non-default seed, which may prevent using optimal grids, but allow_unoptimal_grids is not set.",
-        static_cast<unsigned int>(eid));
-      return;
-    }
+      if (!dagdp__heightmap_allow_unoptimal_grids && dagdp__seed != 0)
+      {
+        logerr("daGdp: %s has non-default seed, which may prevent using optimal grids, but allow_unoptimal_grids is not set.",
+          dagdp__name);
+        return;
+      }
 
-    if (!dagdp__heightmap_allow_unoptimal_grids && dagdp__jitter != 1.0)
-    {
-      logerr("daGdp: placer with EID %u has non-default jitter, which may prevent using optimal grids, but allow_unoptimal_grids is "
-             "not set.",
-        static_cast<unsigned int>(eid));
-      return;
-    }
+      if (!dagdp__heightmap_allow_unoptimal_grids && dagdp__jitter != 1.0)
+      {
+        logerr("daGdp: %s has non-default jitter, which may prevent using optimal grids, but allow_unoptimal_grids is "
+               "not set.",
+          dagdp__name);
+        return;
+      }
 
-    // This is shared between object groups to make sure they are forced into the same grid, and thus there is
-    // no inter-grid collisions (accidental close placements) between objects. This is not really optimal,
-    // because with large draw distance disparity between objects, it's better to split them into separate grids.
-    // Maybe this should be configurable.
-    float viewIndependentMaxDrawDistance = 0.0f;
-    for (const auto objectGroupEid : placer.objectGroupEids)
-    {
-      auto iter = rulesBuilder.objectGroups.find(objectGroupEid);
-      if (iter == rulesBuilder.objectGroups.end())
-        continue;
-
-      // Note: don't use the view maxDrawDistance here, because the grids must be consistent between views.
-      viewIndependentMaxDrawDistance = eastl::max(viewIndependentMaxDrawDistance, iter->second.maxDrawDistance);
-    }
-
-    MergeEntry entry;
-    entry.jitter = dagdp__jitter;
-    entry.seed = dagdp__seed;
-    entry.lowerLevel = dagdp__heightmap_lower_level;
-    entry.drawRangeLogFloor = floor(log(viewIndependentMaxDrawDistance) / log(dagdp__heightmap_manager.config.drawRangeLogBase));
-    entry.effectiveDensity = dagdp__density / pow2f(dagdp__heightmap_cell_size);
-    for (const auto biomeIndex : dagdp__biomes)
-    {
-      entry.biomeIndex = biomeIndex;
+      // This is shared between object groups to make sure they are forced into the same grid, and thus there is
+      // no inter-grid collisions (accidental close placements) between objects. This is not really optimal,
+      // because with large draw distance disparity between objects, it's better to split them into separate grids.
+      // Maybe this should be configurable.
+      float viewIndependentMaxDrawDistance = 0.0f;
       for (const auto objectGroupEid : placer.objectGroupEids)
       {
         auto iter = rulesBuilder.objectGroups.find(objectGroupEid);
         if (iter == rulesBuilder.objectGroups.end())
           continue;
-        entry.objectGroupInfo = &iter->second;
-        entries.push_back(entry);
+
+        // Note: don't use the view maxDrawDistance here, because the grids must be consistent between views.
+        viewIndependentMaxDrawDistance = eastl::max(viewIndependentMaxDrawDistance, iter->second.maxDrawDistance);
       }
-    }
-  });
+
+      MergeEntry entry;
+      entry.jitter = dagdp__jitter;
+      entry.seed = dagdp__seed;
+      entry.lowerLevel = dagdp__heightmap_lower_level;
+      entry.drawRangeLogFloor = floor(log(viewIndependentMaxDrawDistance) / log(dagdp__heightmap_manager.config.drawRangeLogBase));
+      entry.effectiveDensity = dagdp__density / pow2f(dagdp__heightmap_cell_size);
+
+      for (const auto biomeIndex : dagdp__biomes)
+      {
+        entry.biomeIndex = biomeIndex;
+        for (const auto objectGroupEid : placer.objectGroupEids)
+        {
+          auto iter = rulesBuilder.objectGroups.find(objectGroupEid);
+          if (iter == rulesBuilder.objectGroups.end())
+            continue;
+          entry.objectGroupInfo = &iter->second;
+          entries.push_back(entry);
+        }
+      }
+
+      viewBuilder.hasDynamicPlacers |= rulesBuilder.useHeightmapDynamicObjects && !entries.empty();
+    });
 
   stlsort::sort(entries.begin(), entries.end());
 
@@ -288,6 +314,7 @@ static inline void heightmap_view_process_es(const dagdp::EventViewProcess &evt,
 
     grid.tileWorldSize = TILE_INSTANCE_COUNT_1D / sqrtf(grid.density);
 
+    grid.useDynamicAllocation = rulesBuilder.useHeightmapDynamicObjects;
     // Make sure the seeds are different for different grids, even if the default seed 0 is specified.
     // Otherwise, if the density is the same, objects may appear in exactly the same position.
     grid.prngSeed += i;
@@ -323,7 +350,7 @@ static inline void heightmap_view_process_es(const dagdp::EventViewProcess &evt,
           uint32_t tileLimit = ceilf(TILE_LIMIT_MULTIPLIER * expectedInstancesPerTile);
 
           tileLimit = eastl::min(static_cast<uint32_t>(TILE_INSTANCE_COUNT), eastl::max(1u, tileLimit));
-          grid.placeablesTileLimits[pId] = tileLimit;
+          grid.placeablesTileLimits[pId] = grid.useDynamicAllocation ? 0 /*unlimited*/ : tileLimit;
 
           float minScale = md_min(placeable.params.scaleMidDev);
           float maxScale = md_max(placeable.params.scaleMidDev);
@@ -391,10 +418,10 @@ ECS_NO_ORDER static inline void heightmap_view_finalize_es(const dagdp::EventVie
   create_heightmap_nodes(viewInfo, viewBuilder, dagdp__heightmap_manager, nodes);
 
   // Cleanup.
-#if DAGOR_DBGLEVEL == 0
-  dagdp__heightmap_manager.currentBuilder = {}; // Reset the state.
-#else
+#if DAGDP_DEBUG
   dagdp__heightmap_manager.debug.builders.emplace_back(eastl::move(dagdp__heightmap_manager.currentBuilder));
+#else
+  dagdp__heightmap_manager.currentBuilder = {}; // Reset the state.
 #endif
 }
 

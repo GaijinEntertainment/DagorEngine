@@ -1,5 +1,3 @@
-texture rendinst_shadow_tex;
-
 int branch_mask_render = 0;
 interval branch_mask_render : no < 1, yes;
 
@@ -282,40 +280,35 @@ macro INIT_VEGETATION_INTERACTIONS()
   if (interactions == interactionsTrees || interactions == interactionsBushes)
   {
     static float interaction_strength = 1.0;
+    static float interaction_force_max = 15.0;
   }
 endmacro
 
 macro USE_VEGETATION_INTERACTIONS()
   if (interactions == interactionsTrees || interactions == interactionsBushes)
   {
-    (vs) { interaction_strength@f1 = (interaction_strength); }
+    (vs) {
+      interaction_strength@f1 = (interaction_strength);
+      interaction_force_max@f1 = (interaction_force_max);
+    }
   }
 
   if (interactions == interactionsTrees || interactions == interactionsBushes) {
     hlsl(vs){
-      float4 sdBoxNorm(float3 localPos, float3 boxExt)
+      float sdBox(float3 localPos, float3 boxExt)
       {
         float3 dist = abs(localPos) - boxExt;
         float insideDist = min(max(max(dist.x, dist.y), dist.z), 0);
         float3 ptOnBox = max(dist, 0);
         float outsideDist = length(ptOnBox);
         float signedDist = outsideDist + insideDist;
-        float3 norm;
-        FLATTEN
-        if (signedDist <= 0)
-          norm = (float3(insideDist == dist.x, insideDist == dist.y, insideDist == dist.z));
-        else
-          norm = ptOnBox / (outsideDist + 1e-6);
-        norm = (localPos < 0 ? -norm : norm);
-        return float4(signedDist, norm);
+        return signedDist;
       }
 
       void calculate_obstacles_interaction_force(
         float3 worldPivot, float height, inout float2 affect_direction, inout float affect_force,
         uint obstIndStart, uint obstIndEnd, uint index)
       {
-        float inverse_height = 1.0 / height;
-
         // Getting resultant force from all obstacles
         for (uint i = obstIndStart; i < obstIndEnd; ++i)
         {
@@ -327,15 +320,40 @@ macro USE_VEGETATION_INTERACTIONS()
                                       obstacles.obstacles[index].dir_y.xyz,
                                       obstacles.obstacles[index].dir_z.xyz);
           float3 local_pos = mul(dir_mat, delta);
-          float4 distToBoxNorm = sdBoxNorm(local_pos, 0.5 * (obstacles.obstacles[index].box.xyz + height));
-          if (distToBoxNorm.x < 0)
+
+          // Approximated and combined vegetation-obstacle bbox
+          float3 halfBbox = 0.5 * (obstacles.obstacles[index].box.xyz + height);
+          float interaction_range = length(halfBbox.xz);
+
+          // Distance to a wall of the box. Negative if inside.
+          float distToBox = sdBox(local_pos, halfBbox);
+          if (distToBox < 0)
           {
-            float radDist = (-distToBoxNorm.x * inverse_height * 2);
-            affect_direction += lerp(-obstacles.obstacles[index].dir_x.xz, delta.xz, length(delta.xz));
-            affect_force += (radDist);
+            float inv_interaction_range = 1.0 / interaction_range;
+            float normalized_dist = -distToBox * inv_interaction_range;
+
+            // interactions_strength is the maximum magnitude of the force
+            // The actual magnitude is calculated as a linear interpolation between 0 and interactions_strength
+            // based on the normalized distance (0 - outside, 1 - furthest inside) to the box wall.
+          ##if (is_pivoted == yes)
+            float force_magnitude = get_interaction_force_max() * normalized_dist;
+          ##else
+            float force_magnitude = get_interaction_strength() * normalized_dist;
+          ##endif
+
+            // Affect direction is the actual force vector.
+            // delta is the vector pointing from the pivot to the obstacle center,
+            // which is normalized, then multiplied by the calculated force.
+            float2 normalized_acting_force = delta.xz * inv_interaction_range;
+            affect_direction += force_magnitude * normalized_acting_force;
           }
         }
-        affect_force *= get_interaction_strength();
+
+      ##if (is_pivoted == yes)
+        affect_force = min(length(affect_direction), get_interaction_force_max());
+      ##else
+        affect_force = min(length(affect_direction), get_interaction_strength());
+      ##endif
       }
 
     ##if (is_pivoted == yes)
@@ -355,21 +373,10 @@ macro USE_VEGETATION_INTERACTIONS()
         uint obstIndStart = obstIndCount >> OBSTACLE_OFFSET_BIT_SHIFT;
         uint obstIndEnd = (obstIndCount & ((1U << OBSTACLE_OFFSET_BIT_SHIFT) - 1)) + obstIndStart;
 
-        float2 affect_direction = float2(0,0);
-        float affect_force = 0;
-
-        calculate_obstacles_interaction_force(worldPivot, height, affect_direction, affect_force, obstIndStart, obstIndEnd, index);
-        BRANCH
-        if (affect_force <= 0.0001)
-          return float3(0, 0, 0);
-
-        affect_direction = -normalize(affect_direction);
-
         float parentAngleAnimation = 0.0;
-        float3 offset = 0.0;
+        float3 offset = float3(0,0,0);
         float rotationAngleAnimation = 0.0;
         float4 unusedRotQuat = float4(0, 0, 0, 1);
-        float3 direction = float3(affect_direction.x, 0, affect_direction.y);
 
         // Iterate starting from trunk at 0
         for(int idx=0; idx <= input.maxHierarchyLevel; ++idx)
@@ -383,7 +390,15 @@ macro USE_VEGETATION_INTERACTIONS()
 
           float3 branchTipPos = branchPivotPos + branchDir*branchExtent;
 
-          offset += evaluate_wind_animation(direction, affect_force, idx, branchPivotPos,
+          float2 affect_direction = float2(0,0);
+          float affect_force = 0;
+          calculate_obstacles_interaction_force(branchTipPos, height, affect_direction, affect_force, obstIndStart, obstIndEnd, index);
+          BRANCH
+          if (affect_force <= 0.0001)
+            continue;
+
+          float3 used_direction = -normalize(float3(affect_direction.x, 0, affect_direction.y));
+          offset += evaluate_wind_animation(used_direction, affect_force, idx, branchPivotPos,
                                             branchDir, branchExtent, worldPos, parentAngleAnimation,
                                             rotationAngleAnimation, unusedRotQuat);
 

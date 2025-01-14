@@ -162,8 +162,11 @@ dabfg::NodeHandle ZoneForceFieldRenderer::createRenderingNode(const char *render
       eastl::optional<dabfg::VirtualResourceHandle<const Texture, true, false>> maybeDownsampledDepthHndl;
       if (!renderer_has_feature(FeatureRenderFlags::FORWARD_RENDERING))
       {
-        maybeDownsampledDepthHndl =
-          registry.read("downsampled_depth").texture().atStage(dabfg::Stage::PS).useAs(dabfg::Usage::DEPTH_ATTACHMENT).handle();
+        maybeDownsampledDepthHndl = registry.read("downsampled_depth_with_early_after_envi_water")
+                                      .texture()
+                                      .atStage(dabfg::Stage::PS)
+                                      .useAs(dabfg::Usage::DEPTH_ATTACHMENT)
+                                      .handle();
       }
 
       // shader does not use half_res_depth_tex on mobile
@@ -328,10 +331,11 @@ void ZoneForceFieldRenderer::render(const Point4 *sph, int count) const
   {
     MAX_INSTANCING = 16
   }; // limit amount of max spheres to 16
+  static int forcefield_vs_spheres_const_no = ShaderGlobal::get_slot_by_name("forcefield_vs_spheres_const_no");
   for (int i = 0; i < count; i += MAX_INSTANCING, sph += MAX_INSTANCING)
   {
     int renderCount = min(count, (int)MAX_INSTANCING);
-    d3d::set_vs_const(16, &sph->x, renderCount);
+    d3d::set_vs_const(forcefield_vs_spheres_const_no, &sph->x, renderCount);
     d3d::drawind_instanced(PRIM_TRILIST, 0, f_count, 0, renderCount);
   }
 }
@@ -339,7 +343,8 @@ void ZoneForceFieldRenderer::render(const Point4 *sph, int count) const
 void ZoneForceFieldRenderer::applyOne(const Point4 &sph, bool cull_ccw) const
 {
   shaders::overrides::set(cull_ccw ? zonesOutState : zonesInState);
-  d3d::set_vs_const(16, &sph.x, 1);
+  static int forcefield_vs_sphere_const_no = ShaderGlobal::get_slot_by_name("forcefield_vs_sphere_const_no");
+  d3d::set_vs_const(forcefield_vs_sphere_const_no, &sph.x, 1);
   forceFieldApplierShader.shader->setStates();
   d3d::setind(sphereIb.getBuf());
   d3d::setvsrc(0, sphereVb.getBuf(), sizeof(Point3));

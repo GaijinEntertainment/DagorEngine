@@ -61,7 +61,7 @@
 
 
 #elif _TARGET_GDK
-#include <quirrel/xbox/xbox.h>
+#include <quirrel/gdk/main.h>
 #endif
 #include <quirrel/sqDataCache/datacache.h>
 #if _TARGET_C3
@@ -202,7 +202,7 @@ static void bind_overlay_ui_script_apis(SqModules *moduleMgr, HSQUIRRELVM vm)
   watchdog::bind_sq(moduleMgr);
 
 #if _TARGET_GDK
-  bindquirrel::xbox::bind_sq(moduleMgr);
+  bindquirrel::gdk::bind_sq(moduleMgr);
 #elif _TARGET_C1 | _TARGET_C2
 
 #elif _TARGET_C3
@@ -269,7 +269,7 @@ void init_network_services()
   fps_profile::initPerfProfile();
 
 #if _TARGET_GDK
-  bindquirrel::xbox::init();
+  bindquirrel::gdk::init();
 #endif
   g_entity_mgr->broadcastEventImmediate(EventScriptUiInitNetworkServices());
 }
@@ -340,7 +340,8 @@ void shutdown_ui(bool quit)
 
   HSQUIRRELVM vm = dargScene->getScriptVM();
 
-  sqeventbus::process_events(vm); // flush queue, ensure all events are processed
+  sqeventbus::process_events(vm);                      // flush queue, ensure all events are processed
+  dargScene->callScriptHandlers(/*is_shutdown*/ true); // Ditto (before ecs vm shutdown)
   sqeventbus::unbind(vm);
 
   destroy_script_console_processor(vm);
@@ -380,7 +381,7 @@ void shutdown_network_services()
     return;
   g_entity_mgr->broadcastEventImmediate(EventScriptUiTermNetworkServices());
 #if _TARGET_GDK
-  bindquirrel::xbox::shutdown();
+  bindquirrel::gdk::shutdown();
 #endif
 }
 

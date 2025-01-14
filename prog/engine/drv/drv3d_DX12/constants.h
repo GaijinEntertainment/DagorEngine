@@ -37,6 +37,9 @@ inline constexpr uint32_t INITIAL_UPDATE_BUFFER_BLOCK_SIZE = 1024 * 1024 * 2;
 inline constexpr uint32_t MAX_ROOT_CONSTANTS = 4;
 inline constexpr uint32_t ROOT_CONSTANT_BUFFER_INDEX = 8;
 
+inline constexpr uint32_t MAX_MIPMAPS = 16;
+inline constexpr uint32_t TEXTURE_TILE_SIZE = 64 * 1024;
+
 inline constexpr uint32_t MAX_OBJECT_NAME_LENGTH = 512;
 
 // After half a second we give up and assume lockup because of an error

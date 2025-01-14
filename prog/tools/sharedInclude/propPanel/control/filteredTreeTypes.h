@@ -8,7 +8,7 @@
 #include <drv/3d/dag_resId.h>
 #include <generic/dag_tab.h>
 #include <math/dag_e3dColor.h>
-#include <util/dag_simpleString.h>
+#include <util/dag_string.h>
 
 namespace PropPanel
 {
@@ -21,7 +21,9 @@ struct TTreeNode
 
   ~TTreeNode() { clear_all_ptr_items(nodes); }
 
-  SimpleString name;
+  TTreeNode *getFirstChild() const { return nodes.empty() ? nullptr : nodes[0]; }
+
+  String name;
   TEXTUREID icon;
   bool isExpand;
   E3DCOLOR textColor;

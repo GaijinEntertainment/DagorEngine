@@ -311,6 +311,11 @@ void AnimBlendNodeContinuousLeaf::buildBlendingList(BlendCtx &bctx, real w)
         bctx.irq(irqs[i].irqId, (intptr_t)this, curTime, 0);
   }
 
+#if DAGOR_DBGLEVEL > 0
+  if (getDebugAnimParam())
+    bctx.irq(getDebugAnimParamIrqId(), (intptr_t)this, curTime - t0, dt);
+#endif
+
   wt[bnlId] += w;
   bctx.cKeyPos[bnlId] = curTime;
 
@@ -574,10 +579,10 @@ void AnimBlendNodeParametricLeaf::buildBlendingList(BlendCtx &bctx, real w)
       param = 1.0f;
   }
 
-  const int curTime = int(t0 + (param)*dt);
+  const int curTime = int(t0 + param * dt);
 
 #if DAGOR_DBGLEVEL > 0
-  if (param > 0.f && param < 1.f && getDebugAnimParam())
+  if (getDebugAnimParam())
     bctx.irq(getDebugAnimParamIrqId(), (intptr_t)this, curTime - t0, dt);
 #endif
 

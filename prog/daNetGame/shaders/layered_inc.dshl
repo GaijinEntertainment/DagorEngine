@@ -244,6 +244,10 @@ macro LAYERED_PS(is_normal_pass)
       }
       #endif
 
+      #if USE_TOP_PROJECTION
+        apply_top_projection(worldNormal, detailColor1, detailColor2, weight, weight2, baseColor.rgb);
+      #endif
+
       half4 detailColor = lerp(detailColor1, detailColor2, weight2);
       //half3 diffuseColor = overlay_linear_gamma22(baseColor, detailColor);
       //half3 diffuseColor = overlay_srgb_midpoint_linear(baseColor, detailColor);

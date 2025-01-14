@@ -22,6 +22,13 @@ enum class HWFeedbackMode
   INVALID = -1,
 };
 
+enum class UpdateFeedbackThreadPolicy
+{
+  SAME_THREAD = 0, // Prevent running update job in a separate worker thread.
+  PRIO_NORMAL = 1,
+  PRIO_LOW = 2
+};
+
 enum
 {
   MIN_TEX_TILE_BORDER = 1,
@@ -125,7 +132,7 @@ public:
   void prepareRender(ClipmapRenderer &render, bool turn_off_decals_on_fallback = false);
   void prepareFeedback(const Point3 &viewer_pos, const TMatrix &view_itm, const TMatrix4 &globtm, float height, float maxDist0 = 0.f,
     float maxDist1 = 0.f, float approx_ht = 0.f, bool force_update = false,
-    bool low_tpool_prio = true); // for software feeback only
+    UpdateFeedbackThreadPolicy thread_policy = UpdateFeedbackThreadPolicy::PRIO_LOW); // for software feeback only
   void renderFallbackFeedback(ClipmapRenderer &renderer, const TMatrix4 &globtm);
   void finalizeFeedback();
 

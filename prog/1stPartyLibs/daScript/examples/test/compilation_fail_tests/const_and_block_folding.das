@@ -45,7 +45,7 @@ def test:bool
     else
         3 + ( 2>3 ? 0 : 1 )
     // static_assert(false,"this static assert always fails")
-    let x,y:int = 3
+    var x,y:int = 3
     x
     x + y                   // 40209: top level no side effect operation +
     hash(x) + hash(y)       // 40209: top level no side effect operation +

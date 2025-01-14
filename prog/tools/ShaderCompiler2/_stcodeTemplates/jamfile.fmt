@@ -2,7 +2,7 @@ R"(Root = %s ; # Root relative to dir in _output
 Location = %s ; # _ouptut dir relative to root
 OutDir   = $(Root)/%s ; # output dir
 
-Target = %s%s ; # Part of name to identify platform/shader model + extension
+Target = %s/%s%s ; # Path/dynlib name
 
 Sources =
   %s # full list of sources for shader files (only used for non-unity build)

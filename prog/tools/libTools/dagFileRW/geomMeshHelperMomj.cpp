@@ -248,7 +248,7 @@ static void compFaceIntegrals(GeomMeshHelper &m, int fi)
   compProjectionIntegrals(m, fi);
 
   w = fd.w;
-  n = fd.norm;
+  n = &fd.norm.x;
   k1 = 1 / n[C];
   k2 = k1 * k1;
   k3 = k2 * k1;

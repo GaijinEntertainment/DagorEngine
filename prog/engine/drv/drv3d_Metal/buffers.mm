@@ -277,9 +277,12 @@ namespace drv3d_metal
       }
       else
 #endif
-        dynamic_buffer = render.AllocateConstants(locked_size, dynamic_offset, bufSize);
+        dynamic_buffer = render.AllocateDynamicBuffer(locked_size, dynamic_offset, bufSize);
       G_ASSERT(dynamic_buffer);
       dynamic_frame = render.frame;
+
+      if (render.acquire_depth.load())
+        render.markBufferDirty(this);
 
       cur_render_buffer = cur_buffer;
 
@@ -313,6 +316,9 @@ namespace drv3d_metal
           buf->next = cur_buffer;
 
           cur_buffer = buf;
+
+          if (render.acquire_depth.load())
+            render.markBufferDirty(this);
         }
         else if (render.submits_completed < cur_buffer->last_submit)
         {
@@ -324,6 +330,8 @@ namespace drv3d_metal
           render.flush(true);
           render.releaseOwnerShip();
         }
+        else if (render.acquire_depth.load())
+          render.markBufferDirty(this);
       }
 
       cur_buffer->last_submit = render.submits_scheduled;
@@ -363,7 +371,7 @@ namespace drv3d_metal
           upload_buffer_offset = 0;
         }
         else
-          upload_buffer = [render.AllocateConstants(locked_size, upload_buffer_offset, locked_size) retain];
+          upload_buffer = [render.AllocateDynamicBuffer(locked_size, upload_buffer_offset, locked_size) retain];
       }
       G_ASSERT((upload_buffer_offset & 3) == 0);
       G_ASSERT((offset_bytes & 3) == 0);
@@ -432,7 +440,7 @@ namespace drv3d_metal
         tempBuffer = render.createBuffer(size_bytes, MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeShared, name);
       }
       else
-        tempBuffer = [render.AllocateConstants(size_bytes, tempOffset) retain];
+        tempBuffer = [render.AllocateDynamicBuffer(size_bytes, tempOffset) retain];
     }
 
     G_ASSERT(tempBuffer);
@@ -477,30 +485,11 @@ namespace drv3d_metal
     return cur_render_buffer ? cur_render_buffer->texture : nullptr;
   }
 
-  void Buffer::apply(id<MTLBuffer> buffer, int stage, int slot, int offset)
-  {
-    if (buffer == nil)
-      offset = 0;
-    if (stage == STAGE_VS)
-    {
-      [render.renderEncoder setVertexBuffer : buffer offset : offset atIndex : slot];
-    }
-    else
-    if (stage == STAGE_PS)
-    {
-      [render.renderEncoder setFragmentBuffer : buffer offset : offset atIndex : slot];
-    }
-    else
-    if (stage == STAGE_CS)
-    {
-      [render.computeEncoder setBuffer : buffer offset : offset atIndex : slot];
-    }
-  }
-
   void Buffer::destroy()
   {
     render.deleteBuffer(this);
   }
+
   void Buffer::release()
   {
     if (!isDynamic || fast_discard)

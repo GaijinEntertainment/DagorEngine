@@ -147,7 +147,9 @@ void FramememBufferManager::shutdown()
 
 BufferRef FramememBufferManager::acquire(uint32_t size, DeviceMemoryClass mem_class)
 {
-  uint32_t frame = Frontend::State::pod.frameIndex;
+  // will also trigger TSAN warning if we try to present in parallel to discard, see assert below,
+  // that's invalid for framemem buffer! fix in user code!
+  volatile uint32_t frame = Frontend::State::pod.frameIndex;
   size = Globals::VK::bufAlign.alignSize(size);
 
   WinAutoLock lock(writeLock);
@@ -178,6 +180,9 @@ BufferRef FramememBufferManager::acquire(uint32_t size, DeviceMemoryClass mem_cl
   // make acquires unique over multiple frames as some framemem buffers may be leaved bound, yet not updated
   // causing discard state replacement to fail, due to non unique buf+offset combos
   ret.frameReference = frame;
+  // invalid because no one can read data reliably from buffer under such conditions
+  G_ASSERTF(frame == Frontend::State::pod.frameIndex,
+    "vulkan: submitting frames and doing discard at same time for framemem buffer is invalid!");
   return ret;
 }
 

@@ -1,12 +1,12 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 ext.signedRelease = project.findProperty("RELEASE_SIGN") ?: false
-ext.apkName = project.findProperty("APK_NAME") ?: null
 ext.minSdkV = project.findProperty("MIN_SDK").toInteger() ?: 24
 ext.targetSdkV = project.findProperty("TARGET_SDK").toInteger() ?: 26
 
 ext.versionCode = project.findProperty("VERSION_CODE") ?: 1
 ext.versionName = project.findProperty("VERSION_NAME") ?: "1.0"
+ext.namespaceV = project.findProperty("NAMESPACE")
 
 def hasProjectGradle = project.hasProperty("PROJECT_FILE") ?: false
 
@@ -21,14 +21,11 @@ buildscript {
     repositories {
         google()
         mavenCentral()
-        maven {
-          url "https://android-sdk.is.com/"
-        }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.0.0'
-        classpath 'com.google.gms:google-services:4.3.13'
-        classpath 'com.google.firebase:firebase-crashlytics-gradle:2.9.1'
+        classpath 'com.android.tools.build:gradle:8.2.2'
+        //classpath 'com.google.gms:google-services:4.4.2'
+        //classpath 'com.google.firebase:firebase-crashlytics-gradle:2.9.9'
     }
 }
 
@@ -36,9 +33,6 @@ allprojects {
     repositories {
         google()
         mavenCentral()
-        maven {
-          url "https://android-sdk.is.com/"
-        }
     }
 
     gradle.projectsEvaluated {
@@ -49,44 +43,20 @@ allprojects {
 }
 
 apply plugin: 'com.android.application'
+//apply plugin: 'com.google.gms.google-services'
+//apply plugin: 'com.google.firebase.crashlytics'
 
 android {
-  compileSdkVersion targetSdkV
-  buildToolsVersion "30.0.2"
+  namespace("${namespaceV}")
+  compileSdk targetSdkV
 
-  lintOptions {
-    // suppres android:debuggable=true error in our maifest file
+  lint {
     checkReleaseBuilds false
   }
 
   compileOptions {
     sourceCompatibility JavaVersion.VERSION_1_8
     targetCompatibility JavaVersion.VERSION_1_8
-  }
-
-  if (apkName != null) {
-    // copy from gradle's output dir to project's root for easer jam access
-    applicationVariants.all { variant ->
-      variant.outputs.all { output ->
-        outputFileName = apkName
-        def taskSuffix = variant.name.capitalize()
-        def assembleTaskName = "assemble${taskSuffix}"
-        if (tasks.findByName(assembleTaskName)) {
-            def copyAPKFolderTask = tasks.create(name: "copy${taskSuffix}", type: org.gradle.api.tasks.Copy) {
-                description "Archive/copy APK folder to a root dir."
-                def sourceFolder = "${buildDir}/outputs/apk/${output.baseName.replace("-", "/")}"
-                def destinationFolder = projectDir
-                from(sourceFolder)
-                into destinationFolder
-                eachFile { file ->
-                    file.path = file.name // so we have a "flat" copy
-                }
-                includeEmptyDirs = false
-            }
-            tasks[assembleTaskName].finalizedBy = [copyAPKFolderTask]
-        }
-      }
-    }
   }
 
   sourceSets {

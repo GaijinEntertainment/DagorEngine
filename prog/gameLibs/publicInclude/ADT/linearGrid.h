@@ -565,7 +565,7 @@ VECTORCALL DAGOR_NOINLINE static leaf_id_t leaf_insert_object(LinearGrid<ObjectT
           VB3D(bbox), obj.getDebugName(), obj.handle, V3D(obj.getWBSph()));
       }
 #endif
-      debug("riGrid: creating branch on leaf %i", leaf_idx);
+      // debug("riGrid: creating branch on leaf %i", leaf_idx);
       leaf_idx = grid->createBranchOnLeaf(leaf_idx, eastl::move(objects), bboxesSum);
       bbox3f prevBox = v_bbox3_sum(old_parent_leaf_box, wbb);
       v_bbox3_extend(prevBox, v_splats(0.0001f));
@@ -688,11 +688,11 @@ template <typename ObjectType>
 VECTORCALL DAGOR_NOINLINE static leaf_id_t leaf_rebuild(LinearGrid<ObjectType> *__restrict grid, leaf_id_t leaf_idx,
   bbox3f &bboxes_sum)
 {
-  debug("riGrid: rebuilding leaf %i", leaf_idx);
+  // debug("riGrid: rebuilding leaf %i", leaf_idx);
   LG_VERIFY(leaf_idx != EMPTY_LEAF);
   dag::Vector<ObjectType, MidmemAlloc> objects;
   leaf_free_all(grid, leaf_idx, objects);
-  eastl::sort(objects.begin(), objects.end());
+  stlsort::sort_branchless(objects.begin(), objects.end());
 #if VERIFY_ALL
   auto objectsCopy = objects;
 #endif
@@ -1255,7 +1255,7 @@ public:
 #endif
     freeLeafs.push_back(leaf);
   }
-  void sortFreeLeafs() { eastl::sort(freeLeafs.begin(), freeLeafs.end()); }
+  void sortFreeLeafs() { stlsort::sort_branchless(freeLeafs.begin(), freeLeafs.end()); }
   __forceinline UnpackedBranch unpackBranch(leaf_id_t leaf_idx) const
   {
     LG_VERIFY(isBranch(leaf_idx));
@@ -1495,7 +1495,7 @@ public:
     eastl::fixed_function<8, bool(object_t, object_t)> lessRadFunc = [](object_t lhs, object_t rhs) {
       return v_extract_w(lhs.getWBSph()) > v_extract_w(rhs.getWBSph());
     };
-    eastl::sort(objects.begin(), objects.end(), use_ext ? lessExtFunc : lessRadFunc);
+    stlsort::sort(objects.begin(), objects.end(), use_ext ? lessExtFunc : lessRadFunc);
     for (object_t obj : objects)
       print_func("\t%s " FMT_P3 " rad=%.2f ext=%.2f", obj.getDebugName(), V3D(obj.getWBSph()), v_extract_w(obj.getWBSph()),
         calcMaxMainCellExtForObject(obj));
@@ -1559,7 +1559,10 @@ public:
     return &getCellByIds(cellIds);
   };
 
-  bool needCreateBranch(uint32_t leaf_objects_count) const { return false && leaf_objects_count > configMaxLeafObjects; }
+  bool needCreateBranch(uint32_t leaf_objects_count) const
+  {
+    return DAGOR_DBGLEVEL && optimized && leaf_objects_count > configMaxLeafObjects;
+  }
 
   VECTORCALL DAGOR_NOINLINE leaf_id_t createBranchOnLeaf(leaf_id_t leaf_idx, dag::Vector<ObjectType, MidmemAlloc> &&objects,
     bbox3f &bboxes_sum)
@@ -1851,7 +1854,7 @@ private:
     OptimizationStats &stats)
   {
     stats.totalObjects += objects.size();
-    eastl::sort(objects.begin(), objects.end());
+    stlsort::sort_branchless(objects.begin(), objects.end());
 
     dag::Vector<eastl::pair<ObjectType, bbox3f>, framemem_allocator> bboxes;
     unsigned bboxesCount = 0;

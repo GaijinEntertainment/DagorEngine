@@ -16,11 +16,13 @@ bool set_color3_helper(int var, const Color3 &val);
 bool set_point2_helper(int var, const Point2 &val);
 bool set_point3_helper(int var, const Point3 &val);
 bool set_vec4f_helper(int var, vec4f val);
+bool set_bool_helper(int var, bool val);
 
 Color3 get_color3_helper(int var);
 Point2 get_point2_helper(int var);
 Point3 get_point3_helper(int var);
 Point4 get_point4_helper(int var);
+bool get_bool_helper(int var);
 E3DCOLOR get_e3dcolor_helper(int var);
 DirectX::XMFLOAT4 get_xmfloat4_helper(int var);
 DirectX::XMFLOAT4X4 get_xmfloat4x4_helper(int var);
@@ -117,6 +119,7 @@ struct ShaderVarBindingValidationHelper<DirectX::XMMATRIX, DirectX::XMMATRIX>
 #define SHV_BIND_BLOB_LIST                                                                                                           \
   SHV_CASE(SHVT_INT)                                                                                                                 \
   TAG_CASE(int, static_cast<bool (*)(int, int)>(&ShaderGlobal::set_int), static_cast<int (*)(int)>(&ShaderGlobal::get_int))          \
+  TAG_CASE(bool, static_cast<bool (*)(int, bool)>(&set_bool_helper), static_cast<bool (*)(int)>(&get_bool_helper))                   \
   SHV_CASE_END(SHVT_INT)                                                                                                             \
   SHV_CASE(SHVT_REAL)                                                                                                                \
   TAG_CASE(float, static_cast<bool (*)(int, float)>(&ShaderGlobal::set_real), static_cast<float (*)(int)>(&ShaderGlobal::get_real))  \

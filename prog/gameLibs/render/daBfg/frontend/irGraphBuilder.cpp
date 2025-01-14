@@ -266,7 +266,7 @@ void IrGraphBuilder::addResourcesToGraph(intermediate::Graph &graph, intermediat
       }
       else if (auto blobDesc = eastl::get_if<BlobDescription>(&resData.creationInfo))
       {
-        intermediate::ScheduledResource res{blobDesc, resData.type, eastl::nullopt, resData.history};
+        intermediate::ScheduledResource res{*blobDesc, resData.type, eastl::nullopt, resData.history};
         for (multiplexing::Index i = {}; index_inside_extents(i, extents); i = next_index(i, extents))
           processResource(resId, i, res);
       }

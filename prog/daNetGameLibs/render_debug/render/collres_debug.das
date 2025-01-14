@@ -20,6 +20,7 @@ enum CollresDrawAllMode
   NONE
   DEFAULT
   NORMALS
+  BBOX
   MODES_COUNT
 
 
@@ -29,23 +30,26 @@ struct collres_draw_all_debug
   drawCollisionResourceDist : float
 
 
-[console_cmd(name="collres.draw_all", hint="draws collision geometry near camera, 0 - NONE, 1 - DEFAULT, 2 - NORMALS")]
+[console_cmd(name="collres.draw_all", hint="draws collision geometry near camera, 0 - NONE, 1 - COLLIDERS, 2 - COLLIDERS and NORMALS, 3 - BBOX")]
 def console_draw_coll_res(mode : int = 1;
                           dist : float = 16.0)
-  let requiredMode = clamp(mode, 0, int(CollresDrawAllMode MODES_COUNT))
+  if mode < 0 || mode >= int(CollresDrawAllMode MODES_COUNT)
+    console_print("Unknown draw mode for collres.draw_all {mode}")
+    return
+
   let found = find_query() <| $ [es] (eid : EntityId;
                                       var drawCollisionResourceMode : int&;
                                       var drawCollisionResourceDist : float&)
-    let isEqual = (requiredMode == int(drawCollisionResourceMode) && dist == drawCollisionResourceDist)
-    if isEqual || requiredMode == int(CollresDrawAllMode NONE) || dist <= 0.0
+    let isEqual = (mode == int(drawCollisionResourceMode) && dist == drawCollisionResourceDist)
+    if isEqual || mode == int(CollresDrawAllMode NONE) || dist <= 0.0
       destroyEntity(eid)
     else
-      drawCollisionResourceMode = requiredMode
+      drawCollisionResourceMode = mode
       drawCollisionResourceDist = dist
     return true
-  if !found && requiredMode != int(CollresDrawAllMode NONE) && dist > 0.0
+  if !found && mode != int(CollresDrawAllMode NONE) && dist > 0.0
     createEntity("collres_draw_all_debug") <| $(var init : ComponentsInitializer)
-      init |> set("drawCollisionResourceMode", requiredMode)
+      init |> set("drawCollisionResourceMode", mode)
       init |> set("drawCollisionResourceDist", dist)
 
 
@@ -155,8 +159,13 @@ def debug_dynamic_collision(info : UpdateStageInfoRenderDebug;
     if !camera__active
       return false
     let drawNodeCollisionGeometry <- $ <| (collres : CollisionResource; tm : float3x4; animchar : AnimcharBaseComponent const ?; color : E3DCOLOR)
-      let drawNormals = (drawCollisionResourceMode == int(CollresDrawAllMode NORMALS))
-      draw_node_collision_geometry(collres, tm, animchar, color, camera_transform[2], drawNormals)
+      if drawCollisionResourceMode == int(CollresDrawAllMode BBOX)
+        set_cached_debug_lines_wtm(tm)
+        draw_cached_debug_box(collres.boundingBox, E3DCOLOR(0xFFFFFFFF))
+        set_cached_debug_lines_wtm(IDENT_TM)
+      else
+        let drawNormals = (drawCollisionResourceMode == int(CollresDrawAllMode NORMALS))
+        draw_node_collision_geometry(collres, tm, animchar, color, camera_transform[2], drawNormals)
     for_each_collres_near_camera(drawNodeCollisionGeometry, drawCollisionResourceDist)
     return true
 

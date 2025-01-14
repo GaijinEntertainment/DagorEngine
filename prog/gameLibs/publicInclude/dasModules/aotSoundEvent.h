@@ -186,26 +186,6 @@ inline void play_sound_with_name_pos_delayed(SoundEvent &sound_event, const char
   sound_event.reset(sndsys::delayed_play(name, nullptr, pos, delay));
 }
 
-inline bool play_or_release_sound_with_name_pos(SoundEvent &sound_event, const char *name, Point3 pos, bool play)
-{
-  return sound_event.play(name, nullptr, pos, play, false);
-}
-
-inline bool play_or_abandon_sound_with_name_pos(SoundEvent &sound_event, const char *name, Point3 pos, bool play)
-{
-  return sound_event.play(name, nullptr, pos, play, true);
-}
-
-inline bool play_or_release_sound_with_name(SoundEvent &sound_event, const char *name, bool play)
-{
-  return sound_event.play(name, play, false);
-}
-
-inline bool play_or_abandon_sound_with_name(SoundEvent &sound_event, const char *name, bool play)
-{
-  return sound_event.play(name, play, true);
-}
-
 inline void oneshot_with_name_pos(const char *name, Point3 pos) { sndsys::play_one_shot(name, pos); }
 inline void oneshot_with_name_pos_far(const char *name, Point3 pos, bool allow_far_oneshots)
 {
@@ -223,6 +203,13 @@ inline bool should_play_ex(Point3 pos, float dist_threshold) { return sndsys::sh
 
 inline bool is_oneshot(sndsys::EventHandle handle) { return sndsys::is_one_shot(handle); }
 inline bool __is_oneshot(const SoundEvent &sound_event) { return sndsys::is_one_shot(sound_event.handle); }
+
+inline bool is_delayable(sndsys::EventHandle handle) { return sndsys::is_delayable(handle); }
+inline bool __is_delayable(const SoundEvent &sound_event) { return sndsys::is_delayable(sound_event.handle); }
+
+inline bool has_occlusion(sndsys::EventHandle handle) { return sndsys::has_occlusion(handle); }
+inline bool __has_occlusion(const SoundEvent &sound_event) { return sndsys::has_occlusion(sound_event.handle); }
+
 inline bool is_playing(sndsys::EventHandle handle) { return sndsys::is_playing(handle); }
 inline bool __is_playing(const SoundEvent &sound_event) { return sndsys::is_playing(sound_event.handle); }
 inline bool is_valid_event(sndsys::EventHandle handle) { return sndsys::is_valid_handle(handle); }
@@ -328,7 +315,16 @@ inline void set_occlusion_group(sndsys::EventHandle handle, sndsys::occlusion::g
   sndsys::occlusion::set_event_group(handle, group_id);
 }
 
+inline void set_occlusion_group_eid(sndsys::EventHandle handle, ecs::EntityId eid)
+{
+  sndsys::occlusion::set_event_group(handle, sndsys::occlusion::group_id_t(eid));
+}
+
 inline void set_occlusion_pos(sndsys::occlusion::group_id_t group_id, Point3 pos) { sndsys::occlusion::set_group_pos(group_id, pos); }
+inline void set_occlusion_pos_eid(ecs::EntityId eid, Point3 pos)
+{
+  sndsys::occlusion::set_group_pos(sndsys::occlusion::group_id_t(eid), pos);
+}
 
 inline bool is_occlusion_inited() { return sndsys::occlusion::is_inited(); }
 

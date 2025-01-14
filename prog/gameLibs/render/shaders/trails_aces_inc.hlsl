@@ -582,7 +582,6 @@
         sun_color_0.rgb * shadow * (lerp(viewDot * saturate(dot(worldNormal, -from_sun_direction.xyz)), 1, fx_sun_backlight)) + ambient +
         atten * input.light_color.xyz;
 
-    float4 unpackedOutputPos = output.pos;
     float distToZn = viewDirDist; // good enough, stable during camera rotation and allows to discard whole quads
     distToZn -= effects_znear_offset;
 

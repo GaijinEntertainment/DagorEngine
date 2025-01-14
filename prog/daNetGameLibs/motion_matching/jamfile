@@ -12,6 +12,7 @@ AddIncludes =
   $(Root)/prog/daNetGame
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/1stPartyLibs/daScript/include
+  $(Root)/prog/3rdPartyLibs/acl/includes
 ;
 local AllSrcFolder_ES = ;
 local AllSrcFolder_CPP = ;

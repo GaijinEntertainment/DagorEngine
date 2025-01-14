@@ -99,8 +99,8 @@ struct GlobalConstBuffer
   template <typename ContextClass>
   void setGlobalCbToStage(ContextClass &ctx, uint32_t stage)
   {
-    ctx.setConstRegisterBuffer(ctx.uploadToFrameMem(DeviceMemoryClass::DEVICE_RESIDENT_BUFFER,
-                                 registerSpaceSizes[stage] * SHADER_REGISTER_SIZE, getRegisterSectionStart(stage)),
+    ctx.setConstRegisterBuffer(
+      ctx.uploadToDeviceFrameMem(registerSpaceSizes[stage] * SHADER_REGISTER_SIZE, getRegisterSectionStart(stage)),
       (ShaderStage)stage);
   }
 

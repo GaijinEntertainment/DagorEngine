@@ -21,7 +21,10 @@ UseProgLibs =
   engine/phys/fastPhys
 ;
 
-AddIncludes = $(Root)/prog/engine/sharedInclude ;
+AddIncludes =
+  $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/3rdPartyLibs/acl/includes
+;
 
 if $(PlatformSpec) = clang
 {

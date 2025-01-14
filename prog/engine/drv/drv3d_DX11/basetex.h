@@ -42,6 +42,8 @@ static bool is_signed_format(DXGI_FORMAT fmt)
   return false;
 }
 
+bool is_float_format(uint32_t cflg);
+
 struct TextureView
 {
   typedef uint32_t Key;
@@ -164,9 +166,11 @@ public:
   int updateSubRegion(BaseTexture *src, int src_subres_idx, int src_x, int src_y, int src_z, int src_w, int src_h, int src_d,
     int dest_subres_idx, int dest_x, int dest_y, int dest_z) override;
   // Only difference between this and ref implementation is the use of updateSubRegionImpl to bypass copy dest flag check.
-  bool downSize(int new_width, int new_height, int new_depth, int new_mips, unsigned start_src_level, unsigned level_offset) override;
+  BaseTexture *downSize(int new_width, int new_height, int new_depth, int new_mips, unsigned start_src_level,
+    unsigned level_offset) override;
   // Only difference between this and ref implementation is the use of updateSubRegionImpl to bypass copy dest flag check.
-  bool upSize(int new_width, int new_height, int new_depth, int new_mips, unsigned start_src_level, unsigned level_offset) override;
+  BaseTexture *upSize(int new_width, int new_height, int new_depth, int new_mips, unsigned start_src_level,
+    unsigned level_offset) override;
   void clear();
 
   void destroyObject();
@@ -215,6 +219,7 @@ public:
     G_ASSERT(shader_stage >= 0 && shader_stage < STAGE_MAX_EXT);
     return modified & (1 << shader_stage);
   }
+  bool isSampledAsFloat() const;
 
 private:
   BaseTex(uint32_t cflg_, int type_);

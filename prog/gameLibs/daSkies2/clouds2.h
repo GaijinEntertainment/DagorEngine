@@ -63,6 +63,7 @@ struct Clouds2
     const Point4 &target_depth_transform, const TMatrix &view_tm, const TMatrix4 &proj_tm);
 
   bool isPrepareRequired() const { return noises.isPrepareRequired(); }
+  bool isReady() const { return noises.isReady(); }
 
   CloudsChangeFlags prepareLighting(const Point3 &main_light_dir, const Point3 &second_light_dir);
   void renderCloudVolume(VolTexture *cloud_volume, float max_dist, const TMatrix &view_tm, const TMatrix4 &proj_tm);

@@ -23,6 +23,11 @@
 #include "blendNodes/parametric.h"
 
 #include "animStates/animStatesType.h"
+#include "animStates/stateDesc.h"
+#include "animStates/chan.h"
+#include "animStates/stateAlias.h"
+#include "animStates/state.h"
+
 #include "nodeMasks/nodeMaskType.h"
 
 #include <util/dag_lookup.h>
@@ -402,9 +407,9 @@ void AnimTreePlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *pa
       update_play_animation_text(panel, animPlayer.isAnimInProgress());
       break;
     case PID_ANIM_STATES_ADD_ENUM: addEnumToAnimStatesTree(panel); break;
-    case PID_ANIM_STATES_ADD_ENUM_ITEM: addEnumItemToAnimStatesTree(panel); break;
+    case PID_ANIM_STATES_ADD_ITEM: addItemToAnimStatesTree(panel); break;
     case PID_ANIM_STATES_REMOVE_NODE: removeNodeFromAnimStatesTree(panel); break;
-    case PID_ANIM_STATES_SAVE: saveSettingsAnimStatesTree(panel); break;
+    case PID_STATES_SETTINGS_SAVE: saveSettingsAnimStatesTree(panel); break;
     case PID_NODE_MASKS_ADD_MASK: addMaskToNodeMasksTree(panel); break;
     case PID_NODE_MASKS_ADD_NODE: addNodeToNodeMasksTree(panel); break;
     case PID_NODE_MASKS_REMOVE_NODE: removeNodeFromNodeMasksTree(panel); break;
@@ -423,6 +428,9 @@ void AnimTreePlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *pa
     case PID_ANIM_BLEND_CTRLS_ADD_INCLUDE:
     case PID_ANIM_BLEND_CTRLS_ADD_INNER_INCLUDE: addIncludeToCtrlTree(panel, pcb_id); break;
     case PID_ANIM_BLEND_CTRLS_REMOVE_NODE: removeNodeFromCtrlsTree(panel); break;
+    case PID_ANIM_STATES_ADD_CHAN: addStateDescItem(panel, AnimStatesType::CHAN, "new_channel"); break;
+    case PID_ANIM_STATES_ADD_STATE: addStateDescItem(panel, AnimStatesType::STATE, "new_state"); break;
+    case PID_ANIM_STATES_ADD_STATE_ALIAS: addStateDescItem(panel, AnimStatesType::STATE_ALIAS, "new_state_alias"); break;
   }
 }
 
@@ -487,6 +495,7 @@ void AnimTreePlugin::onChange(int pcb_id, PropPanel::ContainerPropertyControl *p
     case PID_ANIM_STATES_FILTER: setTreeFilter(panel, PID_ANIM_STATES_TREE, pcb_id); break;
     case PID_NODES_SETTINGS_NODE_TYPE_COMBO_SELECT: changeAnimNodeType(panel); break;
     case PID_CTRLS_TYPE_COMBO_SELECT: changeCtrlType(panel); break;
+    case PID_STATES_STATE_DESC_TYPE_COMBO_SELECT: changeStateDescType(panel); break;
   }
 
   if (pcb_id >= PID_NODES_PARAMS_FIELD && pcb_id <= PID_NODES_PARAMS_FIELD_SIZE)
@@ -708,7 +717,7 @@ void AnimTreePlugin::fillAnimStatesTreeNode(PropPanel::ContainerPropertyControl 
       else if (stateNode->getBlockNameId() == stateNid)
         statesData.emplace_back(AnimStatesData{leaf, AnimStatesType::STATE});
       else if (stateNode->getBlockNameId() == stateAliasNid)
-        statesData.emplace_back(AnimStatesData{leaf, AnimStatesType::STATE_DESC});
+        statesData.emplace_back(AnimStatesData{leaf, AnimStatesType::STATE_ALIAS});
     }
   }
   else if (!strcmp(blockName, "initAnimState"))
@@ -835,7 +844,7 @@ void AnimTreePlugin::fillTreePanels(PropPanel::ContainerPropertyControl *panel)
   G_ASSERT(ctrl_type.size() == ctrl_type_size);
 
   auto *masksGroup = panel->createGroup(PID_NODE_MASKS_GROUP, "Node masks");
-  masksGroup->createEditBox(PID_NODE_MASKS_FILTER, "Filter", "", /*enabled*/ false);
+  masksGroup->createEditBox(PID_NODE_MASKS_FILTER, "Filter");
   auto *masksTree = masksGroup->createTree(PID_NODE_MASKS_TREE, "Skeleton node masks", /*height*/ _pxScaled(300));
   masksTree->setTreeEventHandler(&nodeMaskTreeEventHandler);
   masksGroup->createButton(PID_NODE_MASKS_ADD_MASK, "Add mask");
@@ -854,7 +863,7 @@ void AnimTreePlugin::fillTreePanels(PropPanel::ContainerPropertyControl *panel)
   nodesGroup->createButton(PID_ANIM_BLEND_NODES_REMOVE_NODE, "Remove selected");
   nodesGroup->createGroup(PID_ANIM_BLEND_NODES_SETTINGS_GROUP, "Selected settings");
   auto *crtlsGroup = panel->createGroup(PID_ANIM_BLEND_CTRLS_GROUP, "Anim blend controllers");
-  crtlsGroup->createEditBox(PID_ANIM_BLEND_CTRLS_FILTER, "Filter", "", /*enabled*/ false);
+  crtlsGroup->createEditBox(PID_ANIM_BLEND_CTRLS_FILTER, "Filter");
   auto *ctrlsTree = crtlsGroup->createTree(PID_ANIM_BLEND_CTRLS_TREE, "Anim blend controllers", /*height*/ _pxScaled(300));
   ctrlsTree->setTreeEventHandler(&ctrlTreeEventHandler);
   crtlsGroup->createButton(PID_ANIM_BLEND_CTRLS_ADD_NODE, "Add node");
@@ -863,15 +872,15 @@ void AnimTreePlugin::fillTreePanels(PropPanel::ContainerPropertyControl *panel)
   crtlsGroup->createButton(PID_ANIM_BLEND_CTRLS_REMOVE_NODE, "Remove selected");
   crtlsGroup->createGroup(PID_ANIM_BLEND_CTRLS_SETTINGS_GROUP, "Selected settings");
   auto *statesGroup = panel->createGroup(PID_ANIM_STATES_GROUP, "Anim states");
-  statesGroup->createEditBox(PID_ANIM_STATES_FILTER, "Filter", "", /*enabled*/ false);
+  statesGroup->createEditBox(PID_ANIM_STATES_FILTER, "Filter");
   auto *statesTree = statesGroup->createTree(PID_ANIM_STATES_TREE, "Anim states", /*height*/ _pxScaled(300));
   statesTree->setTreeEventHandler(&animStatesTreeEventHandler);
   statesGroup->createButton(PID_ANIM_STATES_ADD_ENUM, "Add enum");
-  statesGroup->createButton(PID_ANIM_STATES_ADD_ENUM_ITEM, "Add item", /*enabled*/ false, /*new_line*/ false);
+  statesGroup->createButton(PID_ANIM_STATES_ADD_ITEM, "Add item", /*enabled*/ false, /*new_line*/ false);
   statesGroup->createButton(PID_ANIM_STATES_REMOVE_NODE, "Remove selected");
   auto *statesSettingGroup = statesGroup->createGroup(PID_ANIM_STATES_SETTINGS_GROUP, "Selected settings");
   statesSettingGroup->createEditBox(PID_ANIM_STATES_NAME_FIELD, "Field name", "");
-  statesSettingGroup->createButton(PID_ANIM_STATES_SAVE, "Save");
+  statesSettingGroup->createButton(PID_STATES_SETTINGS_SAVE, "Save");
   TLeafHandle masksRoot = masksTree->createTreeLeaf(0, "Root", FOLDER_ICON);
   TLeafHandle nodesRoot = nodesTree->createTreeLeaf(0, "Root", FOLDER_ICON);
   TLeafHandle ctrlsRoot = ctrlsTree->createTreeLeaf(0, "Root", FOLDER_ICON);
@@ -891,6 +900,7 @@ void AnimTreePlugin::fillTreePanels(PropPanel::ContainerPropertyControl *panel)
   DataBlock::parseIncludesAsParams = curParseIncludesAsParams;
 
   ctrlChildsDialog.setTreePanels(panel, curAsset, this);
+  animStatesTreeEventHandler.setPluginEventHandler(panel, this);
   masksTree->setBool(masksRoot, /*open*/ true);
   nodesTree->setBool(nodesRoot, /*open*/ true);
   ctrlsTree->setBool(ctrlsRoot, /*open*/ true);
@@ -1665,7 +1675,7 @@ void AnimTreePlugin::addEnumToAnimStatesTree(PropPanel::ContainerPropertyControl
 
   if (create_new_leaf(enumLeaf, tree, panel, "enum_name", ENUM_ICON, PID_ANIM_STATES_NAME_FIELD))
   {
-    panel->setEnabledById(PID_ANIM_STATES_ADD_ENUM_ITEM, /*enabled*/ true);
+    panel->setEnabledById(PID_ANIM_STATES_ADD_ITEM, /*enabled*/ true);
     props.addBlock("initAnimState")->addBlock("enum")->addBlock("enum_name");
     savePropsWithoutReload(props, fullPath);
     statesData.emplace_back(AnimStatesData{tree->getSelLeaf(), AnimStatesType::ENUM});
@@ -1673,28 +1683,41 @@ void AnimTreePlugin::addEnumToAnimStatesTree(PropPanel::ContainerPropertyControl
   }
 }
 
-void AnimTreePlugin::addEnumItemToAnimStatesTree(PropPanel::ContainerPropertyControl *panel)
+void AnimTreePlugin::addItemToAnimStatesTree(PropPanel::ContainerPropertyControl *panel)
 {
   PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_STATES_TREE)->getContainer();
   TLeafHandle leaf = tree->getSelLeaf();
-  if (!leaf || !isEnumOrEnumItem(leaf, tree))
+  if (!leaf)
     return;
-
-  TLeafHandle parent = tree->getParentLeaf(leaf);
-  if (parent == enumsRootLeaf)
-    parent = leaf;
 
   String fullPath;
   DataBlock props = get_props_from_include_leaf(includePaths, *curAsset, tree, tree->getRootLeaf(), fullPath);
   if (fullPath.empty())
     return;
 
-  if (create_new_leaf(parent, tree, panel, "leaf_item", ENUM_ITEM_ICON, PID_ANIM_STATES_NAME_FIELD))
+  AnimStatesData *data = find_data_by_handle(statesData, leaf);
+
+  if (isEnumOrEnumItem(leaf, tree))
   {
-    const String parentName = tree->getCaption(parent);
-    props.addBlock("initAnimState")->addBlock("enum")->addBlock(parentName.c_str())->addBlock("leaf_item");
-    savePropsWithoutReload(props, fullPath);
-    statesData.emplace_back(AnimStatesData{tree->getSelLeaf(), AnimStatesType::ENUM_ITEM});
+    TLeafHandle parent = tree->getParentLeaf(leaf);
+    if (parent == enumsRootLeaf)
+      parent = leaf;
+
+    if (create_new_leaf(parent, tree, panel, "leaf_item", ENUM_ITEM_ICON, PID_ANIM_STATES_NAME_FIELD))
+    {
+      const String parentName = tree->getCaption(parent);
+      props.addBlock("initAnimState")->addBlock("enum")->addBlock(parentName.c_str())->addBlock("leaf_item");
+      savePropsWithoutReload(props, fullPath);
+      statesData.emplace_back(AnimStatesData{tree->getSelLeaf(), AnimStatesType::ENUM_ITEM});
+    }
+  }
+  else if (data->type == AnimStatesType::CHAN || data->type == AnimStatesType::STATE_ALIAS || data->type == AnimStatesType::STATE ||
+           data->type == AnimStatesType::STATE_DESC)
+  {
+    TLeafHandle stateDescLeaf = leaf;
+    if (data->type != AnimStatesType::STATE_DESC)
+      stateDescLeaf = tree->getParentLeaf(leaf);
+    addStateDescItem(panel, props, fullPath, stateDescLeaf, AnimStatesType::STATE, "new_node");
   }
 }
 
@@ -1803,6 +1826,19 @@ void AnimTreePlugin::removeNodeFromAnimStatesTree(PropPanel::ContainerPropertyCo
     statesData.clear();
     change_include_leaf(tree, "Root", leaf);
   }
+  else if (data->type == AnimStatesType::CHAN || data->type == AnimStatesType::STATE_ALIAS || data->type == AnimStatesType::STATE)
+  {
+    const String name = tree->getCaption(leaf);
+    DataBlock *stateDescProps = props.getBlockByName("stateDesc");
+    for (int i = 0; i < stateDescProps->blockCount(); ++i)
+    {
+      DataBlock *settings = stateDescProps->getBlock(i);
+      if (name == settings->getStr("name", ""))
+        stateDescProps->removeBlock(i);
+    }
+    statesData.erase(data);
+    tree->removeLeaf(leaf);
+  }
 
   savePropsWithoutReload(props, fullPath);
 }
@@ -1858,6 +1894,63 @@ void AnimTreePlugin::saveSettingsAnimStatesTree(PropPanel::ContainerPropertyCont
     savePropsWithoutReload(props, fullPath);
     tree->setCaption(leaf, name);
   }
+  else if (data->type == AnimStatesType::STATE_DESC)
+  {
+    DataBlock *settings = props.addBlock("stateDesc");
+    saveStatesParamsSettings(panel, settings, data->type, *settings);
+    savePropsWithoutReload(props, fullPath);
+  }
+  else if (data->type == AnimStatesType::CHAN || data->type == AnimStatesType::STATE_ALIAS || data->type == AnimStatesType::STATE)
+  {
+    DataBlock *stateDesc = props.addBlock("stateDesc");
+    const String oldName = tree->getCaption(leaf);
+    if (DataBlock *settings = find_block_by_name(stateDesc, oldName))
+    {
+      const char *newTypeName = get_state_desc_cbox_block_name(panel->getInt(PID_STATES_STATE_DESC_TYPE_COMBO_SELECT));
+      // If state desc type changed we need change block name
+      if (settings->getBlockName() != newTypeName)
+      {
+        settings->changeBlockName(newTypeName);
+        AnimStatesType newType = get_state_desc_cbox_enum_value(panel->getInt(PID_STATES_STATE_DESC_TYPE_COMBO_SELECT));
+        data->type = newType;
+      }
+      saveStatesParamsSettings(panel, settings, data->type, *stateDesc);
+      const char *newName = settings->getStr("name");
+      if (oldName != newName)
+        tree->setCaption(leaf, newName);
+    }
+    savePropsWithoutReload(props, fullPath);
+  }
+}
+
+void AnimTreePlugin::saveStatesParamsSettings(PropPanel::ContainerPropertyControl *panel, DataBlock *settings, AnimStatesType type,
+  const DataBlock &props)
+{
+  // Make copy, becuse we can don't save optinal fields
+  dag::Vector<AnimParamData> params = stateParams;
+
+  // Prepare params, before save we need remove unchanged default params based on AnimStatesType
+  switch (type)
+  {
+    case AnimStatesType::STATE_DESC: state_desc_prepare_params(params, panel); break;
+    case AnimStatesType::CHAN: chan_prepare_params(params, panel); break;
+    case AnimStatesType::STATE_ALIAS: state_alias_prepare_params(params, panel); break;
+    case AnimStatesType::STATE: state_prepare_params(params, panel, props); break;
+  }
+
+  save_params_blk(settings, make_span_const(params), panel);
+}
+
+static void fill_states_params_settings(PropPanel::ContainerPropertyControl *panel, AnimStatesType type, int field_idx,
+  dag::Vector<AnimParamData> &params, const DataBlock &props)
+{
+  switch (type)
+  {
+    case AnimStatesType::STATE_DESC: state_desc_init_panel(params, panel, field_idx); break;
+    case AnimStatesType::CHAN: chan_init_panel(params, panel, field_idx); break;
+    case AnimStatesType::STATE_ALIAS: state_alias_init_panel(params, panel, field_idx); break;
+    case AnimStatesType::STATE: state_init_panel(params, panel, field_idx, props); break;
+  }
 }
 
 void AnimTreePlugin::selectedChangedAnimStatesTree(PropPanel::ContainerPropertyControl *panel)
@@ -1865,15 +1958,25 @@ void AnimTreePlugin::selectedChangedAnimStatesTree(PropPanel::ContainerPropertyC
   PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_STATES_TREE)->getContainer();
   PropPanel::ContainerPropertyControl *group = panel->getById(PID_ANIM_STATES_SETTINGS_GROUP)->getContainer();
   group->removeById(PID_ANIM_STATES_NAME_FIELD);
+  remove_fields(group, PID_STATES_PARAMS_FIELD, PID_STATES_PARAMS_FIELD_SIZE);
+  remove_fields(group, PID_STATES_ACTION_FIELD, PID_STATES_ACTION_FIELD_SIZE);
   TLeafHandle leaf = tree->getSelLeaf();
   if (!leaf)
   {
-    panel->setEnabledById(PID_ANIM_STATES_ADD_ENUM_ITEM, /*enabled*/ false);
+    panel->setEnabledById(PID_ANIM_STATES_ADD_ITEM, /*enabled*/ false);
     return;
   }
+  String fullPath;
+  DataBlock props = get_props_from_include_leaf(includePaths, *curAsset, tree, tree->getRootLeaf(), fullPath);
+  if (fullPath.empty())
+    return;
+  AnimStatesData *data = find_data_by_handle(statesData, leaf);
+  stateParams.clear();
 
   const bool isEnumSelected = isEnumOrEnumItem(leaf, tree);
-  panel->setEnabledById(PID_ANIM_STATES_ADD_ENUM_ITEM, isEnumSelected);
+  const bool isStateDescItemSelected = data->type == AnimStatesType::CHAN || data->type == AnimStatesType::STATE_ALIAS ||
+                                       data->type == AnimStatesType::STATE || data->type == AnimStatesType::STATE_DESC;
+  panel->setEnabledById(PID_ANIM_STATES_ADD_ITEM, isEnumSelected || isStateDescItemSelected);
   if (isEnumSelected)
     group->createEditBox(PID_ANIM_STATES_NAME_FIELD, "Field name", tree->getCaption(leaf));
   else if (leaf == tree->getRootLeaf())
@@ -1888,7 +1991,90 @@ void AnimTreePlugin::selectedChangedAnimStatesTree(PropPanel::ContainerPropertyC
 
     group->createCombo(PID_ANIM_STATES_NAME_FIELD, "Root include", names, tree->getCaption(leaf), statesData.empty());
   }
-  group->moveById(PID_ANIM_STATES_SAVE);
+  else if (data->type == AnimStatesType::STATE_DESC)
+  {
+    int fieldIdx = PID_STATES_PARAMS_FIELD;
+    DataBlock *settings = props.getBlockByName("stateDesc");
+    fill_params_from_settings(settings, group, stateParams, fieldIdx);
+    fill_states_params_settings(group, data->type, fieldIdx, stateParams, *settings);
+  }
+  else if (data->type == AnimStatesType::CHAN || data->type == AnimStatesType::STATE_ALIAS || data->type == AnimStatesType::STATE)
+  {
+    int fieldIdx = PID_STATES_PARAMS_FIELD;
+    DataBlock *stateProps = props.getBlockByName("stateDesc");
+    if (DataBlock *settings = find_block_by_name(stateProps, tree->getCaption(leaf)))
+    {
+      group->createCombo(PID_STATES_STATE_DESC_TYPE_COMBO_SELECT, "State description type", state_desc_combo_box_types,
+        get_state_desc_cbox_index(data->type));
+      fill_params_from_settings(settings, group, stateParams, fieldIdx);
+      fill_states_params_settings(group, data->type, fieldIdx, stateParams, *stateProps);
+    }
+  }
+  group->moveById(PID_STATES_SETTINGS_SAVE);
+}
+
+void AnimTreePlugin::changeStateDescType(PropPanel::ContainerPropertyControl *panel)
+{
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_STATES_TREE)->getContainer();
+  PropPanel::ContainerPropertyControl *group = panel->getById(PID_ANIM_STATES_SETTINGS_GROUP)->getContainer();
+  TLeafHandle leaf = tree->getSelLeaf();
+  String fullPath;
+  DataBlock props = get_props_from_include_leaf(includePaths, *curAsset, tree, tree->getRootLeaf(), fullPath);
+  if (fullPath.empty())
+    return;
+  const AnimStatesType type = get_state_desc_cbox_enum_value(panel->getInt(PID_STATES_STATE_DESC_TYPE_COMBO_SELECT));
+  remove_fields(panel, PID_STATES_PARAMS_FIELD, PID_STATES_PARAMS_FIELD_SIZE);
+  remove_fields(panel, PID_STATES_ACTION_FIELD + 1, PID_STATES_ACTION_FIELD_SIZE);
+  stateParams.clear();
+
+  int fieldIdx = PID_STATES_PARAMS_FIELD;
+  DataBlock *stateDescProps = props.getBlockByName("stateDesc");
+  fill_states_params_settings(group, type, fieldIdx, stateParams, *stateDescProps);
+
+  // Before fill block settings we need check new and old types, if they different use emptyBlock for fill
+  const DataBlock *blocksSettings = &DataBlock::emptyBlock;
+  if (DataBlock *settings = find_block_by_name(stateDescProps, tree->getCaption(leaf)))
+  {
+    AnimStatesType oldType = get_state_desc_cbox_enum_value(settings->getBlockName());
+    if (oldType == type)
+      blocksSettings = settings;
+    fill_values_if_exists(group, settings, stateParams);
+  }
+  group->createButton(PID_STATES_SETTINGS_SAVE, "Save");
+}
+
+void AnimTreePlugin::addStateDescItem(PropPanel::ContainerPropertyControl *panel, AnimStatesType type, const char *name)
+{
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_STATES_TREE)->getContainer();
+  String fullPath;
+  DataBlock props = get_props_from_include_leaf(includePaths, *curAsset, tree, tree->getRootLeaf(), fullPath);
+  if (fullPath.empty())
+    return;
+
+  TLeafHandle leaf = tree->getSelLeaf();
+  AnimStatesData *data = find_data_by_handle(statesData, leaf);
+  TLeafHandle stateDescLeaf = leaf;
+  if (data->type != AnimStatesType::STATE_DESC)
+    stateDescLeaf = tree->getParentLeaf(leaf);
+
+  addStateDescItem(panel, props, fullPath, stateDescLeaf, type, name);
+}
+
+void AnimTreePlugin::addStateDescItem(PropPanel::ContainerPropertyControl *panel, DataBlock &props, String &full_path,
+  TLeafHandle state_desc_leaf, AnimStatesType type, const char *name)
+{
+  if (const char *blockName = get_state_desc_cbox_block_name(type))
+  {
+    PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_STATES_TREE)->getContainer();
+    DataBlock *stateDescProps = props.addBlock("stateDesc");
+    TLeafHandle newLeaf = tree->createTreeLeaf(state_desc_leaf, name, STATE_LEAF_ICON);
+    statesData.emplace_back(AnimStatesData{newLeaf, type});
+    DataBlock *settings = stateDescProps->addNewBlock(blockName);
+    settings->setStr("name", name);
+    savePropsWithoutReload(props, full_path);
+    tree->setSelLeaf(newLeaf);
+    selectedChangedAnimStatesTree(panel);
+  }
 }
 
 void AnimTreePlugin::addNodeToCtrlTree(PropPanel::ContainerPropertyControl *panel)
@@ -2349,10 +2535,12 @@ void AnimTreePlugin::selectedChangedNodeMasksTree(PropPanel::ContainerPropertyCo
     }
 
     if (!isEditEnabled)
+    {
       if (try_find_mask_node_with_override(fullPath, nodeMaskName))
         logerr("Node %s overrided in blk, can't edit this node. Edit it manual in %s", tree->getCaption(leaf), fullPath.c_str());
       else
         logerr("Can't find node %s in blk", tree->getCaption(leaf));
+    }
 
     group->setText(PID_NODE_MASKS_NAME_FIELD, tree->getCaption(leaf));
     panel->setCaption(PID_NODE_MASKS_ADD_NODE, "Add node");

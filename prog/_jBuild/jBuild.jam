@@ -541,6 +541,12 @@ rule ProcessTargetVariables
       AndroidLibProguard = ;
     }
 
+   if $(AndroidLibs) {
+      if $(AndroidGradleOutDir) { ProcessAndroidLibs $(AndroidLibs) ; }
+      AndroidLibs = ;
+    }
+
+
     $(Target)__RC_OPT = $(RCopt) ;
 
     $(Target)__AddLibs = $(AddLibs) ;

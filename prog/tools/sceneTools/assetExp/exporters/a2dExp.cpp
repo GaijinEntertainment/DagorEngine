@@ -21,15 +21,25 @@
 #include <generic/dag_tab.h>
 #include <osApiWrappers/dag_files.h>
 #include <debug/dag_debug.h>
+#include <util/dag_finally.h>
+#include <perfMon/dag_perfTimer.h>
 #include <libTools/dagFileRW/dagFileNode.h>
 #include "exp_skeleton_tools.h"
 #include <ioSys/dag_oodleIo.h>
 #include <ioSys/dag_btagCompr.h>
+#include <anim/dag_animKeyInterp.h>
+#include <ioSys/dag_dataBlockUtils.h>
+
+#include <acl/compression/pre_process.h>
+#include <acl/compression/compress.h>
 
 BEGIN_DABUILD_PLUGIN_NAMESPACE(a2d)
 static const char *TYPE = "a2d";
 static bool preferZstdPacking = false;
 static bool allowOodlePacking = false;
+static bool logExportTime = false;
+static bool errorOnDuplicateNames = false;
+static bool errorOnOldParams = false;
 
 static TMatrix make_scale_tm(const TMatrix &tm, const Point3 &scale)
 {
@@ -42,6 +52,22 @@ static TMatrix make_scale_tm(const TMatrix &tm, const Point3 &scale)
 
 static Point3 get_tm_scale(const TMatrix &tm) { return Point3(tm.getcol(0).length(), tm.getcol(1).length(), tm.getcol(2).length()); }
 
+class AclAllocator : public acl::iallocator
+{
+  IMemAlloc *mem;
+
+public:
+  AclAllocator(IMemAlloc *m) : mem(m) {}
+
+  virtual void *allocate(size_t size, size_t alignment) { return mem->allocAligned(size, alignment); }
+
+  virtual void deallocate(void *ptr, size_t size)
+  {
+    G_UNUSED(size);
+    mem->freeAligned(ptr);
+  }
+};
+
 class A2dExporter : public IDagorAssetExporter
 {
 public:
@@ -51,7 +77,7 @@ public:
   virtual unsigned __stdcall getGameResClassId() const { return Anim2DataGameResClassId; }
   virtual unsigned __stdcall getGameResVersion() const
   {
-    static constexpr const int base_ver = 4;
+    static constexpr const int base_ver = 5;
     return base_ver * 3 + (!preferZstdPacking ? 0 : (allowOodlePacking ? 2 : 1 + 3));
   }
 
@@ -68,6 +94,8 @@ public:
 
   virtual bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log)
   {
+    auto startTime = profile_ref_ticks();
+
     String fname(a.getTargetFilePath());
     FullFileLoadCB crd(fname);
     if (!crd.fileHandle)
@@ -83,17 +111,21 @@ public:
     }
 
     const DataBlock &props = a.getProfileTargetProps(cwr.getTarget(), cwr.getProfile());
-    float pos_eps = -1, rot_eps = -1, scl_eps = -1;
-    int rot_resample_freq = 0;
-    if (props.getBool("opt", a.props.getBool("opt", false)))
+    if (props.paramExists("opt") || props.paramExists("posEps") || props.paramExists("rotEps") || props.paramExists("sclEps") ||
+        props.paramExists("rotResampleFreq") || a.props.paramExists("opt") || a.props.paramExists("posEps") ||
+        a.props.paramExists("rotEps") || a.props.paramExists("sclEps") || a.props.paramExists("rotResampleFreq"))
     {
-      pos_eps = props.getReal("posEps", a.props.getReal("posEps", -1));
-      rot_eps = props.getReal("rotEps", a.props.getReal("rotEps", -1));
-      scl_eps = props.getReal("sclEps", a.props.getReal("sclEps", -1));
-      rot_resample_freq = props.getInt("rotResampleFreq", a.props.getInt("rotResampleFreq", 0));
-      debug("%s: will optimize tracks, PRSeps=%.5fm, %.5fdeg, %.5f,  resampleR=%d fps", a.getName(), pos_eps, rot_eps, scl_eps,
-        rot_resample_freq);
+      log.addMessage(errorOnOldParams ? ILogWriter::ERROR : ILogWriter::WARNING, "%s: obsolete a2d export parameters in blk",
+        a.getName());
+      debug_print_datablock("target props", &props);
+      debug_print_datablock("asset props", &a.props);
     }
+
+    float posPrecision = props.getReal("posPrecision", a.props.getReal("posPrecision", 0.0001f));
+    float velPrecision = props.getReal("velPrecision", a.props.getReal("velPrecision", 0.001f));
+    float shellDistance = props.getReal("shellDistance", a.props.getReal("shellDistance", 0.150f));
+    float sampleRate = props.getReal("sampleRate", a.props.getReal("sampleRate", 0));
+    debug("%s: posPrec=%.5fm velPrec=%.5f shell=%.5fm sr=%.2fHz", a.getName(), posPrecision, velPrecision, shellDistance, sampleRate);
 
     FastNameMap reqNodeMask, charDepNodes;
     bool strip_char_dep = false;
@@ -127,7 +159,7 @@ public:
 
     mkbindump::BinDumpSaveCB cwrDump(128 << 10, cwr.getTarget(), cwr.WRITE_BE);
     bool failed = false;
-    if (!convert(crd, cwrDump, pos_eps, rot_eps, scl_eps, rot_resample_freq, props.getBool("makeAdditive", false),
+    if (!convert(crd, cwrDump, posPrecision, velPrecision, shellDistance, sampleRate, props.getBool("makeAdditive", false),
           props.getStr("additiveRefPose", NULL), reqNodeMask, origSkeletonScene.root,
           autoCompleted ? autoCompletedSkeletonScene.root : nullptr, strip_char_dep, charDepNodes, a, log))
     {
@@ -168,6 +200,8 @@ public:
       cwr.endBlock(btag_compr::NONE);
     }
 
+    if (logExportTime)
+      log.addMessage(ILogWriter::NOTE, "%s: exported in %d ms", a.getNameTypified(), profile_time_usec(startTime) / 1000);
     return true;
   }
 
@@ -240,11 +274,44 @@ protected:
   };
 
 
-  static bool convert(IGenLoad &crd, mkbindump::BinDumpSaveCB &cwr, float pos_eps, float rot_eps, float scl_eps, int rot_resample_freq,
-    bool make_additive, const char *additive_key_suffix, FastNameMap &req_node_mask, Node *original_skeleton,
+  static inline bool rot_equal(quat4f a, quat4f b, vec4f tcos)
+  {
+    return v_test_any_bit_set(
+      v_or(v_cmp_ge(v_dot4(a, b), tcos), v_cmp_ge(v_max(v_sub(V_C_TWO, v_add(tcos, tcos)), V_C_EPS_VAL), v_length4_sq(v_sub(a, b)))));
+  }
+
+  static int find_node_index(const ChannelData *ch, const char *name, int index)
+  {
+    if (!ch)
+      return -1;
+    if (index < ch->nodeNum && ch->nodeName[index] == name)
+      return index;
+    for (int i = 0; i < ch->nodeNum; i++)
+      if (ch->nodeName[i] == name)
+        return i;
+    return -1;
+  }
+
+  static bool convert(IGenLoad &crd, mkbindump::BinDumpSaveCB &cwr, float pos_prec, float vel_prec, float shell_dist,
+    float sample_rate, bool make_additive, const char *additive_key_suffix, FastNameMap &req_node_mask, Node *original_skeleton,
     Node *auto_completed_skeleton, bool strip_for_char_dep, FastNameMap &char_dep_nodes, const DagorAsset &a, ILogWriter &log)
   {
     AnimDataHeader hdr;
+
+    if (pos_prec <= 0)
+      pos_prec = 1e-5f;
+    if (vel_prec <= 0)
+      vel_prec = 1e-5f;
+    if (shell_dist <= 0)
+      shell_dist = 1e-5f;
+
+    const float shellDistance = shell_dist;
+    const float qvvfPrecision = pos_prec;
+
+    const float quatEps = cosf(pos_prec / shell_dist);
+    const float sclPrecision = pos_prec / shell_dist;
+
+    const float angVelPrecision = vel_prec / shell_dist;
 
     // read header and check integrity
     crd.read(&hdr, sizeof(hdr));
@@ -337,14 +404,19 @@ protected:
         }
 
     // find minimax timing
-    int mint = 0, maxt = 0;
+    int mint = 0, maxt = 0, minStep = 4800 * 60; // 1 minute step max
     if (hdrV200.timeNum)
       mint = maxt = timePool[0];
     for (int i = 1; i < hdrV200.timeNum; i++)
+    {
       if (mint > timePool[i])
         mint = timePool[i];
       else if (maxt < timePool[i])
         maxt = timePool[i];
+      int dt = timePool[i] - timePool[i - 1];
+      if (dt > 0 && minStep > dt)
+        minStep = dt;
+    }
 
     // complement notetrack with default keys
     if (const DataBlock *b = a.props.getBlockByName("defaultKeys"))
@@ -390,7 +462,6 @@ protected:
       noteTrackPool[i].time -= mint;
     for (int i = 0; i < namedKey.getMapRaw().size(); i++)
       const_cast<int &>(namedKey.getMapRaw()[i].id) -= mint;
-    G_ASSERT(unsigned(maxt - mint) / RATE_DIV < 65536);
 
     // read data of animation
     Tab<ChannelData> chan(tmpmem);
@@ -417,12 +488,24 @@ protected:
         for (int i = 0; i < ch.nodeNum; i++)
         {
           int keyNum = crd.readInt();
-          ch.nodeAnim[i].keyOfs = ch.nodeAnim[i].keyTimeOfs = -1;
-          ch.nodeAnim[i].keyNum = keyNum;
-          ch.nodeAnim[i].key = keyPool;
-          ch.nodeAnim[i].keyTime = timePool;
+          auto &anim = ch.nodeAnim[i];
+          anim.keyOfs = anim.keyTimeOfs = -1;
+          anim.keyNum = keyNum;
+          anim.key = keyPool;
+          anim.keyTime = timePool;
           keyPool += keyNum * keysz;
           timePool += keyNum;
+
+          if (ch.dataType == AnimV20::DATATYPE_QUAT)
+          {
+            auto keys = (OldAnimKeyQuat *)anim.key;
+            for (int j = 0; j < keyNum; j++)
+            {
+              keys[j].p = keys[j].p.normalize();
+              keys[j].b0 = keys[j].b0.normalize();
+              keys[j].b1 = keys[j].b1.normalize();
+            }
+          }
         }
 
         for (int i = 0; i < ch.nodeNum; i++)
@@ -453,8 +536,6 @@ protected:
           {
             // strip and remap nodes
             // debug("dataTypeId=%d channelId=%d stripping %d nodes -> %d", dataTypeId, channelId, ch.nodeNum, ch2.nodeNum);
-            ch2.dataType = ch.dataType;
-            ch2.channelType = ch.channelType;
             ch2.alloc(ch2.nodeNum);
 
             for (int i = 0; i < ch.nodeNum; i++)
@@ -467,10 +548,8 @@ protected:
               ch2.nodeWt[j] = ch.nodeWt[i];
             }
 
-            ch.clear();
-            memcpy(&ch, &ch2, sizeof(ch)); //-V780
+            ch.moveDataFrom(ch2);
           }
-          memset(&ch2, 0, sizeof(ch2)); //-V780
         }
       }
     }
@@ -535,6 +614,8 @@ protected:
               break;
           }
 
+          int thint = INITIAL_INTERP_HINT;
+
           for (int ai = 0; ai < addAnimRangeTriple.size(); ai += 3)
           {
             Point3_vec4 base_p;
@@ -546,7 +627,7 @@ protected:
             switch (ch.dataType)
             {
               case AnimV20::DATATYPE_POINT3X:
-                v_st(&base_p, interp_point3(anim, tref));
+                v_st(&base_p, interp_point3(anim, tref, thint));
                 if (ch.channelType == AnimV20::CHTYPE_POSITION)
                   for (int i = 0; i < pt3x.size(); i++)
                   {
@@ -568,7 +649,7 @@ protected:
                 break;
 
               case AnimV20::DATATYPE_QUAT:
-                v_st(&base_q, interp_quat(anim, tref));
+                v_st(&base_q, interp_quat(anim, tref, thint));
                 base_q = normalize(inverse(base_q));
 
                 for (int i = 0; i < quat.size(); i++)
@@ -630,10 +711,128 @@ protected:
       }
     }
 
-    //
-    // optimize ANIM tracks
-    //
-    optimize_keys(make_span(chan), pos_eps, rot_eps, scl_eps, rot_resample_freq);
+    // optimize tracks
+    int timeLength = 0;
+    const int timeStep = sample_rate > 0 ? roundf(4800.0f / sample_rate) : minStep;
+
+    for (auto &ch : chan)
+      for (int i = 0; i < ch.nodeNum; i++)
+      {
+        auto &anim = ch.nodeAnim[i];
+        if (anim.keyNum <= 0)
+          continue;
+
+        int tlen = anim.keyTime[anim.keyNum - 1];
+
+        switch (ch.dataType)
+        {
+          case AnimV20::DATATYPE_POINT3X:
+          {
+            auto keys = (OldAnimKeyPoint3 *)anim.key;
+            auto p0 = v_ldu_p3(&keys[0].p.x);
+            auto thr = v_sqr(v_splats(ch.channelType == AnimV20::CHTYPE_SCALE ? sclPrecision : pos_prec));
+            bool isConst = true;
+            int hint = INITIAL_INTERP_HINT;
+            for (int t = timeStep / 2; t <= tlen; t += timeStep / 2)
+              if (!v_test_vec_x_eqi_0(v_cmp_gt(v_length3_sq(v_sub(interp_point3(anim, t, hint), p0)), thr)))
+              {
+                isConst = false;
+                break;
+              }
+
+            if (isConst)
+            {
+              debug("removing ~const %s keys for %s", (ch.channelType == AnimV20::CHTYPE_SCALE ? "scl" : "pos"),
+                namePool.data() + (intptr_t)ch.nodeName[i]);
+              anim.keyNum = 1;
+            }
+            break;
+          }
+          case AnimV20::DATATYPE_QUAT:
+          {
+            auto keys = (OldAnimKeyQuat *)anim.key;
+            auto q0 = v_ldu(&keys[0].p.x);
+            q0 = v_norm4_safe(q0, V_C_UNIT_0001);
+
+            auto thr = v_splats(quatEps);
+            bool isConst = true;
+            int hint = INITIAL_INTERP_HINT;
+            for (int t = timeStep / 2; t <= tlen; t += timeStep / 2)
+            {
+              auto q = interp_quat(anim, t, hint);
+              q = v_norm4_safe(q, V_C_UNIT_0001);
+              if (!rot_equal(q, q0, thr))
+              {
+                isConst = false;
+                break;
+              }
+            }
+
+            if (isConst)
+            {
+              debug("removing ~const rot keys for %s", namePool.data() + (intptr_t)ch.nodeName[i]);
+              anim.keyNum = 1;
+            }
+            break;
+          }
+        }
+
+        int t = anim.keyTime[anim.keyNum - 1];
+        if (timeLength < t)
+          timeLength = t;
+      }
+
+    // compute sample rate and length
+    const float sampleRate = 4800.0f / timeStep;
+    const int numSamples = (timeLength + timeStep / 2) / timeStep + 1;
+    debug("ACL length: %d sample rate: %g, number of samples: %d", timeLength, sampleRate, numSamples);
+    if ((numSamples - 1) * timeStep != timeLength)
+      debug("WARNING: last sample doesn't match original end time exactly");
+
+    // find PRS tracks
+    ChannelData *posCh = nullptr;
+    ChannelData *rotCh = nullptr;
+    ChannelData *sclCh = nullptr;
+
+    for (auto &ch : chan)
+      switch (ch.channelType)
+      {
+        case AnimV20::CHTYPE_POSITION:
+          if (posCh)
+            log.addMessage(ILogWriter::ERROR, "two or more channels of 'position' type found");
+          else if (ch.dataType != AnimV20::DATATYPE_POINT3X)
+            log.addMessage(ILogWriter::ERROR, "'position' channel has invalid data type %d", ch.dataType);
+          else
+          {
+            posCh = &ch;
+            debug("got pos channel");
+          }
+          break;
+
+        case AnimV20::CHTYPE_ROTATION:
+          if (rotCh)
+            log.addMessage(ILogWriter::ERROR, "two or more channels of 'rotation' type found");
+          else if (ch.dataType != AnimV20::DATATYPE_QUAT)
+            log.addMessage(ILogWriter::ERROR, "'rotation' channel has invalid data type %d", ch.dataType);
+          else
+          {
+            rotCh = &ch;
+            debug("got rot channel");
+          }
+          break;
+
+        case AnimV20::CHTYPE_SCALE:
+          if (sclCh)
+            log.addMessage(ILogWriter::ERROR, "two or more channels of 'scale' type found");
+          else if (ch.dataType != AnimV20::DATATYPE_POINT3X)
+            log.addMessage(ILogWriter::ERROR, "'scale' channel has invalid data type %d", ch.dataType);
+          else
+          {
+            sclCh = &ch;
+            debug("got scl channel");
+          }
+          break;
+      }
 
     // repack names
     FastStrMap new_names;
@@ -676,50 +875,34 @@ protected:
       new_names.reset();
     }
 
+    for (auto &ch : chan)
+      for (int i = 1; i < ch.nodeNum; i++)
+        for (int j = 0; j < i; j++)
+          if (ch.nodeName[i] == ch.nodeName[j])
+            log.addMessage(errorOnDuplicateNames ? ILogWriter::ERROR : ILogWriter::WARNING, "%s: duplicate node name '%s'",
+              a.getNameTypified(), namePool.data() + (intptr_t)ch.nodeName[i]);
+
     //
-    // write ANIM v210 dump
+    // write ANIM v300 dump
     //
-    Tab<unsigned short> tmpTimeKeys(tmpmem);
     Tab<float> tmpKeys(tmpmem);
     int start_ofs, name_add_ofs, chan_hdr_ofs, note_ofs, dumpSz;
     int has_non_even_time = 0;
 
     start_ofs = cwr.tell();
     cwr.writeFourCC(hdr.label);
-    cwr.writeInt32e(make_additive ? 0x221 : 0x220);
+    cwr.writeInt32e(make_additive ? 0x301 : 0x300);
     cwr.writeInt32e(16);
     cwr.writeInt32e(0);
 
     cwr.setOrigin();
-    for (int channelId = 0; channelId < chan.size(); channelId++)
-    {
-      ChannelData &ch = chan[channelId];
-      for (int i = 0; i < ch.nodeNum; i++)
-      {
-        tmpTimeKeys.resize(ch.nodeAnim[i].keyNum);
-        for (int j = 0; j < ch.nodeAnim[i].keyNum; j++)
-        {
-          tmpTimeKeys[j] = (ch.nodeAnim[i].keyTime[j] + RATE_DIV / 2) / RATE_DIV;
-          G_ASSERTF(j == 0 || tmpTimeKeys[j] != tmpTimeKeys[j - 1], "tmpTimeKeys[%d]=%d tmpTimeKeys[%d]=%d", j, tmpTimeKeys[j], j - 1,
-            tmpTimeKeys[j - 1]);
-          if (ch.nodeAnim[i].keyTime[j] != tmpTimeKeys[j] * RATE_DIV)
-            has_non_even_time++;
-        }
-        ch.nodeAnim[i].keyTimeOfs = cwr.tell();
-        cwr.writeTabData16ex(tmpTimeKeys);
-
-        if ((void *)ch.nodeAnim[i].keyTime < timeKeyPool.data() ||
-            (void *)ch.nodeAnim[i].keyTime >= timeKeyPool.data() + timeKeyPool.size())
-          memfree(ch.nodeAnim[i].keyTime, tmpmem);
-        ch.nodeAnim[i].keyTime = nullptr;
-      }
-    }
-    cwr.align16();
 
     // clear extra data in the last key
     for (int channelId = 0; channelId < chan.size(); channelId++)
     {
       ChannelData &ch = chan[channelId];
+      ch.nodeAnimOfs = -1;
+
       for (int i = 0; i < ch.nodeNum; i++)
       {
         int last = ch.nodeAnim[i].keyNum - 1;
@@ -744,161 +927,401 @@ protected:
     }
 
     // use original skeleton to convert all animation transformations from parent node tm to node tm
-    for (int channelId = 0; channelId < chan.size(); channelId++)
+    AclAllocator alloc(tmpmem);
+
+    auto checkNeedConvert = [original_skeleton, auto_completed_skeleton](const char *nodeName, bool &convertAnim,
+                              TMatrix &origParentTm, TMatrix &parentTmInv) {
+      if (original_skeleton != nullptr && auto_completed_skeleton != nullptr)
+      {
+        if (const Node *origNode = original_skeleton->find_node(nodeName))
+          if (const Node *origParentNode = origNode->parent)
+          {
+            origParentTm = origParentNode->wtm;
+            if (const Node *node = auto_completed_skeleton->find_node(nodeName))
+              if (const Node *parentNode = node->parent)
+              {
+                if (strcmp(origParentNode->name.str(), parentNode->name.str()) != 0)
+                {
+                  parentTmInv = inverse(parentNode->wtm);
+                  convertAnim = true;
+                }
+              }
+          }
+      }
+    };
+
+    auto freeNodeAnim = [&timeKeyPool](ChannelData::Anim &anim) {
+      if ((void *)anim.keyTime < timeKeyPool.data() || (void *)anim.keyTime >= timeKeyPool.data() + timeKeyPool.size())
+        memfree(anim.keyTime, tmpmem);
+      anim.keyTime = nullptr;
+
+      if (anim.key < timeKeyPool.data() || anim.key >= timeKeyPool.data() + timeKeyPool.size())
+        memfree(anim.key, tmpmem);
+      anim.key = nullptr;
+    };
+
+    // compress Quat channels first
+    int qstart, qnum;
+    ChannelData::findDataTypeRange(AnimV20::DATATYPE_QUAT, chan, qstart, qnum);
+    for (int channelId = qstart; channelId < qstart + qnum; channelId++)
     {
-      ChannelData &ch = chan[channelId];
+      auto &ch = chan[channelId];
+      acl::track_array_qvvf trackArray(alloc, ch.nodeNum);
 
       for (int i = 0; i < ch.nodeNum; i++)
       {
-        const char *nodeName = namePool.data() + (intptr_t)ch.nodeName[i];
-
         bool convertAnim = false;
         TMatrix origParentTm = TMatrix::IDENT;
         TMatrix parentTmInv = TMatrix::IDENT;
+        const char *nodeName = namePool.data() + (intptr_t)ch.nodeName[i];
+        checkNeedConvert(nodeName, convertAnim, origParentTm, parentTmInv);
 
-        if (original_skeleton != nullptr && auto_completed_skeleton != nullptr)
-        {
-          if (const Node *origNode = original_skeleton->find_node(nodeName))
-            if (const Node *origParentNode = origNode->parent)
+        int parentIndex = -1;
+        auto findParentIndex = [&parentIndex, &ch, &namePool](const Node *parent) {
+          if (!parent)
+            return;
+          for (int pi = 0; pi < ch.nodeNum; pi++)
+            if (strcmp(parent->name.str(), namePool.data() + (intptr_t)ch.nodeName[pi]) == 0)
             {
-              origParentTm = origParentNode->wtm;
-              if (const Node *node = auto_completed_skeleton->find_node(nodeName))
-                if (const Node *parentNode = node->parent)
-                {
-                  if (strcmp(origParentNode->name.str(), parentNode->name.str()) != 0)
-                  {
-                    parentTmInv = inverse(parentNode->wtm);
-                    convertAnim = true;
-                  }
-                }
+              parentIndex = pi;
+              break;
             }
-        }
+        };
+
+        if (auto_completed_skeleton)
+          if (auto node = auto_completed_skeleton->find_node(nodeName))
+            findParentIndex(node->parent);
+
+        if (parentIndex == -1 && original_skeleton)
+          if (auto node = original_skeleton->find_node(nodeName))
+            findParentIndex(node->parent);
 
         int keyNum = ch.nodeAnim[i].keyNum;
-        ch.nodeAnim[i].keyOfs = cwr.tell();
+
+        ChannelData::Anim rotAnim = ch.nodeAnim[i];
+        ChannelData::Anim posAnim, sclAnim;
+        memset(&posAnim, 0, sizeof(posAnim));
+        memset(&sclAnim, 0, sizeof(sclAnim));
+
+        ch.nodeAnim[i].keyOfs = i;
+
+        if (&ch == rotCh)
+        {
+          if (int j = find_node_index(posCh, ch.nodeName[i], i); j >= 0)
+          {
+            posAnim = posCh->nodeAnim[j];
+            posCh->nodeAnim[j].keyOfs = i;
+          }
+          if (int j = find_node_index(sclCh, ch.nodeName[i], i); j >= 0)
+          {
+            sclAnim = sclCh->nodeAnim[j];
+            sclCh->nodeAnim[j].keyOfs = i;
+          }
+        }
 
         if (convertAnim)
         {
-          switch (ch.dataType)
+          // convert all PRS tracks at once
+          int dataSize = keyNum * sizeof(OldAnimKeyQuat) / sizeof(tmpKeys[0]);
+          if (posAnim.keyNum > 0)
+            dataSize += posAnim.keyNum * sizeof(OldAnimKeyPoint3) / sizeof(tmpKeys[0]);
+          if (sclAnim.keyNum > 0)
+            dataSize += sclAnim.keyNum * sizeof(OldAnimKeyPoint3) / sizeof(tmpKeys[0]);
+          tmpKeys.resize(dataSize);
+
+          auto rotKeys = make_span((OldAnimKeyQuat *)tmpKeys.data(), keyNum);
+          mem_set_0(rotKeys);
+          rotAnim.key = rotKeys.data();
+
+          for (int j = 0; j < keyNum; j++)
           {
-            case AnimV20::DATATYPE_POINT3X:
-              tmpKeys.resize(keyNum * 4 * 4);
-              mem_set_0(tmpKeys);
-              for (int j = 0; j < keyNum; j++)
-              {
-                const OldAnimKeyPoint3 &old = ((OldAnimKeyPoint3 *)ch.nodeAnim[i].key)[j];
+            const OldAnimKeyQuat &old = ((OldAnimKeyQuat *)ch.nodeAnim[i].key)[j];
 
-                Point3 p = old.p, k1 = old.k1, k2 = old.k2, k3 = old.k3;
-                if (ch.channelType == AnimV20::CHTYPE_POSITION)
-                {
-                  p = parentTmInv * (origParentTm * old.p);
-                  k1 = parentTmInv % (origParentTm % old.k1);
-                  k2 = parentTmInv % (origParentTm % old.k2);
-                  k3 = parentTmInv % (origParentTm % old.k3);
-                }
-                else if (ch.channelType == AnimV20::CHTYPE_ORIGIN_LINVEL || ch.channelType == AnimV20::CHTYPE_ORIGIN_ANGVEL)
-                {
-                  p = parentTmInv % (origParentTm % old.p);
-                  k1 = parentTmInv % (origParentTm % old.k1);
-                  k2 = parentTmInv % (origParentTm % old.k2);
-                  k3 = parentTmInv % (origParentTm % old.k3);
-                }
-                else if (ch.channelType == AnimV20::CHTYPE_SCALE)
-                {
-                  p = get_tm_scale(parentTmInv % (origParentTm % make_scale_tm(TMatrix::IDENT, old.p)));
-                  k1 = get_tm_scale(parentTmInv % (origParentTm % make_scale_tm(TMatrix::IDENT, old.k1)));
-                  k2 = get_tm_scale(parentTmInv % (origParentTm % make_scale_tm(TMatrix::IDENT, old.k2)));
-                  k3 = get_tm_scale(parentTmInv % (origParentTm % make_scale_tm(TMatrix::IDENT, old.k3)));
-                }
+            OldAnimKeyQuat &newKey = rotKeys[j];
+            TMatrix ptm;
+            ptm.makeTM(old.p);
+            TMatrix b0tm;
+            b0tm.makeTM(old.b0);
+            TMatrix b1tm;
+            b1tm.makeTM(old.b1);
 
-                memcpy(&tmpKeys[j * 16], &p, 3 * 4);
-                memcpy(&tmpKeys[j * 16 + 4], &k1, 3 * 4);
-                memcpy(&tmpKeys[j * 16 + 8], &k2, 3 * 4);
-                memcpy(&tmpKeys[j * 16 + 12], &k3, 3 * 4);
-              }
-              // scale origin vel due to sampling rate changed from 4800 to (4800/RATE_DIV)<<TIME_SubdivExp
-              if (ch.channelType == AnimV20::CHTYPE_ORIGIN_LINVEL || ch.channelType == AnimV20::CHTYPE_ORIGIN_ANGVEL)
-                for (int j = 0; j < tmpKeys.size(); j++)
-                  tmpKeys[j] = tmpKeys[j] * RATE_DIV / (1 << AnimV20::TIME_SubdivExp);
+            TMatrix tm1 = (parentTmInv % (origParentTm % ptm));
+            tm1.orthonormalize();
 
-              cwr.writeTabData32ex(tmpKeys);
-              break;
-            case AnimV20::DATATYPE_QUAT:
-              tmpKeys.resize(keyNum * 3 * 4);
-              mem_set_0(tmpKeys);
-              for (int j = 0; j < keyNum; j++)
-              {
-                const OldAnimKeyQuat &old = ((OldAnimKeyQuat *)ch.nodeAnim[i].key)[j];
+            TMatrix tm2 = (parentTmInv % (origParentTm % b0tm));
+            tm2.orthonormalize();
 
-                OldAnimKeyQuat newKey;
-                TMatrix ptm;
-                ptm.makeTM(old.p);
-                TMatrix b0tm;
-                b0tm.makeTM(old.b0);
-                TMatrix b1tm;
-                b1tm.makeTM(old.b1);
+            TMatrix tm3 = (parentTmInv % (origParentTm % b1tm));
+            tm3.orthonormalize();
 
-                TMatrix tm1 = (parentTmInv % (origParentTm % ptm));
-                tm1.orthonormalize();
-
-                TMatrix tm2 = (parentTmInv % (origParentTm % b0tm));
-                tm2.orthonormalize();
-
-                TMatrix tm3 = (parentTmInv % (origParentTm % b1tm));
-                tm3.orthonormalize();
-
-                newKey.p = Quat(tm1);
-                newKey.b0 = Quat(tm2);
-                newKey.b1 = Quat(tm3);
-
-                memcpy(&tmpKeys[j * 12], &newKey.p, 3 * 4 * 4); // copy quats from newKey //-V512
-              }
-              cwr.writeTabData32ex(tmpKeys);
-              break;
-            case AnimV20::DATATYPE_REAL: cwr.write32ex(ch.nodeAnim[i].key, keyNum * sizeof(OldAnimKeyReal)); break;
-            default: DAG_FATAL("unsupported dataType=%d", ch.dataType);
+            newKey.p = Quat(tm1);
+            newKey.b0 = Quat(tm2);
+            newKey.b1 = Quat(tm3);
           }
+
+          void *end = rotKeys.end();
+          if (posAnim.keyNum > 0)
+          {
+            auto keys = make_span((OldAnimKeyPoint3 *)end, posAnim.keyNum);
+            end = keys.end();
+
+            for (int j = 0; j < posAnim.keyNum; j++)
+            {
+              const OldAnimKeyPoint3 &old = ((OldAnimKeyPoint3 *)posAnim.key)[j];
+
+              Point3 p = old.p, k1 = old.k1, k2 = old.k2, k3 = old.k3;
+              p = parentTmInv * (origParentTm * old.p);
+              k1 = parentTmInv % (origParentTm % old.k1);
+              k2 = parentTmInv % (origParentTm % old.k2);
+              k3 = parentTmInv % (origParentTm % old.k3);
+
+              keys[j].p = p;
+              keys[j].k1 = k1;
+              keys[j].k2 = k2;
+              keys[j].k3 = k3;
+            }
+
+            posAnim.key = keys.data();
+          }
+
+          if (sclAnim.keyNum > 0)
+          {
+            auto keys = make_span((OldAnimKeyPoint3 *)end, sclAnim.keyNum);
+
+            for (int j = 0; j < sclAnim.keyNum; j++)
+            {
+              const OldAnimKeyPoint3 &old = ((OldAnimKeyPoint3 *)sclAnim.key)[j];
+
+              Point3 p = old.p, k1 = old.k1, k2 = old.k2, k3 = old.k3;
+              p = get_tm_scale(parentTmInv % (origParentTm % make_scale_tm(TMatrix::IDENT, old.p)));
+              k1 = get_tm_scale(parentTmInv % (origParentTm % make_scale_tm(TMatrix::IDENT, old.k1)));
+              k2 = get_tm_scale(parentTmInv % (origParentTm % make_scale_tm(TMatrix::IDENT, old.k2)));
+              k3 = get_tm_scale(parentTmInv % (origParentTm % make_scale_tm(TMatrix::IDENT, old.k3)));
+
+              keys[j].p = p;
+              keys[j].k1 = k1;
+              keys[j].k2 = k2;
+              keys[j].k3 = k3;
+            }
+
+            sclAnim.key = keys.data();
+          }
+        }
+
+        // make ACL track
+        acl::track_desc_transformf desc;
+        desc.output_index = i;
+        if (parentIndex != -1)
+          desc.parent_index = parentIndex;
+        desc.shell_distance = shellDistance;
+        desc.precision = qvvfPrecision;
+
+        auto tr = acl::track_qvvf::make_reserve(desc, alloc, numSamples, sampleRate);
+
+        int posHint = INITIAL_INTERP_HINT;
+        int rotHint = INITIAL_INTERP_HINT;
+        int sclHint = INITIAL_INTERP_HINT;
+        for (int si = 0; si < numSamples; si++)
+        {
+          int t = si * timeStep;
+          auto q = interp_quat(rotAnim, t, rotHint);
+          auto p = v_zero();
+          auto s = V_C_ONE;
+          if (posAnim.keyNum > 0)
+            p = interp_point3(posAnim, t, posHint);
+          if (sclAnim.keyNum > 0)
+            s = interp_point3(sclAnim, t, sclHint);
+          tr[si].rotation = q;
+          tr[si].translation = p;
+          tr[si].scale = s;
+        }
+
+        trackArray[i] = eastl::move(tr);
+
+        freeNodeAnim(ch.nodeAnim[i]);
+      }
+
+      // compress
+      acl::qvvf_transform_error_metric errorMetric;
+      {
+        acl::pre_process_settings_t settings;
+        settings.precision_policy = acl::pre_process_precision_policy::lossy;
+        settings.error_metric = &errorMetric;
+        pre_process_track_list(alloc, settings, trackArray);
+      }
+
+      {
+        acl::compression_settings settings;
+        settings.level = acl::compression_level8::highest;
+        settings.rotation_format = acl::rotation_format8::quatf_drop_w_variable;
+        settings.translation_format = acl::vector_format8::vector3f_variable;
+        settings.scale_format = acl::vector_format8::vector3f_variable;
+        settings.error_metric = &errorMetric;
+
+        acl::output_stats stats;
+        acl::compressed_tracks *compressedTracks = nullptr;
+        FINALLY([&] {
+          if (compressedTracks)
+            alloc.deallocate(compressedTracks, compressedTracks->get_size());
+        });
+
+        acl::error_result result = acl::compress_track_list(alloc, trackArray, settings, compressedTracks, stats);
+        if (result.any() || compressedTracks == nullptr)
+        {
+          log.addMessage(ILogWriter::ERROR, "error ACL-compressing: %s", result.c_str());
+          return false;
+        }
+
+        cwr.align16();
+        ch.nodeAnimOfs = cwr.tell();
+        cwr.writeRaw(compressedTracks, compressedTracks->get_size());
+
+        if (&ch == rotCh)
+        {
+          if (posCh)
+            posCh->nodeAnimOfs = ch.nodeAnimOfs;
+          if (sclCh)
+            sclCh->nodeAnimOfs = ch.nodeAnimOfs;
+        }
+      }
+    }
+
+    // compress Point3 channels
+    int p3start, p3num;
+    ChannelData::findDataTypeRange(AnimV20::DATATYPE_POINT3X, chan, p3start, p3num);
+    for (int channelId = p3start; channelId < p3start + p3num; channelId++)
+    {
+      ChannelData &ch = chan[channelId];
+      if (ch.nodeAnimOfs != -1)
+        continue;
+
+      acl::track_array_float3f trackArray3f(alloc, ch.nodeNum);
+
+      for (int i = 0; i < ch.nodeNum; i++)
+      {
+        bool convertAnim = false;
+        TMatrix origParentTm = TMatrix::IDENT;
+        TMatrix parentTmInv = TMatrix::IDENT;
+        checkNeedConvert(namePool.data() + (intptr_t)ch.nodeName[i], convertAnim, origParentTm, parentTmInv);
+
+        int keyNum = ch.nodeAnim[i].keyNum;
+        ch.nodeAnim[i].keyOfs = i;
+
+        dag::Span<OldAnimKeyPoint3> keys;
+
+        if (convertAnim)
+        {
+          tmpKeys.resize(keyNum * sizeof(OldAnimKeyPoint3) / sizeof(tmpKeys[0]));
+          keys = make_span((OldAnimKeyPoint3 *)tmpKeys.data(), keyNum);
+
+          for (int j = 0; j < keyNum; j++)
+          {
+            const OldAnimKeyPoint3 &old = ((OldAnimKeyPoint3 *)ch.nodeAnim[i].key)[j];
+
+            Point3 p = old.p, k1 = old.k1, k2 = old.k2, k3 = old.k3;
+            if (ch.channelType == AnimV20::CHTYPE_POSITION)
+            {
+              p = parentTmInv * (origParentTm * old.p);
+              k1 = parentTmInv % (origParentTm % old.k1);
+              k2 = parentTmInv % (origParentTm % old.k2);
+              k3 = parentTmInv % (origParentTm % old.k3);
+            }
+            else if (ch.channelType == AnimV20::CHTYPE_ORIGIN_LINVEL || ch.channelType == AnimV20::CHTYPE_ORIGIN_ANGVEL)
+            {
+              p = parentTmInv % (origParentTm % old.p);
+              k1 = parentTmInv % (origParentTm % old.k1);
+              k2 = parentTmInv % (origParentTm % old.k2);
+              k3 = parentTmInv % (origParentTm % old.k3);
+            }
+            else if (ch.channelType == AnimV20::CHTYPE_SCALE)
+            {
+              p = get_tm_scale(parentTmInv % (origParentTm % make_scale_tm(TMatrix::IDENT, old.p)));
+              k1 = get_tm_scale(parentTmInv % (origParentTm % make_scale_tm(TMatrix::IDENT, old.k1)));
+              k2 = get_tm_scale(parentTmInv % (origParentTm % make_scale_tm(TMatrix::IDENT, old.k2)));
+              k3 = get_tm_scale(parentTmInv % (origParentTm % make_scale_tm(TMatrix::IDENT, old.k3)));
+            }
+
+            keys[j].p = p;
+            keys[j].k1 = k1;
+            keys[j].k2 = k2;
+            keys[j].k3 = k3;
+          }
+          // scale origin vel due to sampling rate changed from 4800 to (4800/RATE_DIV)<<TIME_SubdivExp
+          if (ch.channelType == AnimV20::CHTYPE_ORIGIN_LINVEL || ch.channelType == AnimV20::CHTYPE_ORIGIN_ANGVEL)
+            for (int j = 0; j < tmpKeys.size(); j++)
+              tmpKeys[j] = tmpKeys[j] * RATE_DIV / (1 << AnimV20::TIME_SubdivExp);
+        }
+        else if (ch.channelType == AnimV20::CHTYPE_ORIGIN_LINVEL || ch.channelType == AnimV20::CHTYPE_ORIGIN_ANGVEL)
+        {
+          tmpKeys.resize(keyNum * sizeof(OldAnimKeyPoint3) / sizeof(tmpKeys[0]));
+          keys = make_span((OldAnimKeyPoint3 *)tmpKeys.data(), keyNum);
+          mem_copy_from(tmpKeys, ch.nodeAnim[i].key);
+
+          // scale origin vel due to sampling rate changed from 4800 to (4800/RATE_DIV)<<TIME_SubdivExp
+          for (int j = 0; j < tmpKeys.size(); j++)
+            tmpKeys[j] = tmpKeys[j] * RATE_DIV / (1 << AnimV20::TIME_SubdivExp);
         }
         else
         {
-          switch (ch.dataType)
-          {
-            case AnimV20::DATATYPE_POINT3X:
-              tmpKeys.resize(keyNum * 4 * 4);
-              mem_set_0(tmpKeys);
-              for (int j = 0; j < keyNum; j++)
-              {
-                const OldAnimKeyPoint3 &old = ((OldAnimKeyPoint3 *)ch.nodeAnim[i].key)[j];
-                memcpy(&tmpKeys[j * 16], &old.p, 3 * 4);
-                memcpy(&tmpKeys[j * 16 + 4], &old.k1, 3 * 4);
-                memcpy(&tmpKeys[j * 16 + 8], &old.k2, 3 * 4);
-                memcpy(&tmpKeys[j * 16 + 12], &old.k3, 3 * 4);
-              }
-              // scale origin vel due to sampling rate changed from 4800 to (4800/RATE_DIV)<<TIME_SubdivExp
-              if (ch.channelType == AnimV20::CHTYPE_ORIGIN_LINVEL || ch.channelType == AnimV20::CHTYPE_ORIGIN_ANGVEL)
-                for (int j = 0; j < tmpKeys.size(); j++)
-                  tmpKeys[j] = tmpKeys[j] * RATE_DIV / (1 << AnimV20::TIME_SubdivExp);
-
-              cwr.writeTabData32ex(tmpKeys);
-              break;
-            case AnimV20::DATATYPE_QUAT:
-              tmpKeys.resize(keyNum * 3 * 4);
-              mem_set_0(tmpKeys);
-              for (int j = 0; j < keyNum; j++)
-              {
-                const OldAnimKeyQuat &old = ((OldAnimKeyQuat *)ch.nodeAnim[i].key)[j];
-                memcpy(&tmpKeys[j * 12], &old.p, 3 * 4 * 4);
-              }
-              cwr.writeTabData32ex(tmpKeys);
-              break;
-            case AnimV20::DATATYPE_REAL: cwr.write32ex(ch.nodeAnim[i].key, keyNum * sizeof(OldAnimKeyReal)); break;
-            default: DAG_FATAL("unsupported dataType=%d", ch.dataType);
-          }
+          keys = make_span((OldAnimKeyPoint3 *)ch.nodeAnim[i].key, keyNum);
         }
 
-        if (ch.nodeAnim[i].key < timeKeyPool.data() || ch.nodeAnim[i].key >= timeKeyPool.data() + timeKeyPool.size())
-          memfree(ch.nodeAnim[i].key, tmpmem);
-        ch.nodeAnim[i].key = nullptr;
+        // make ACL track
+        acl::track_desc_scalarf desc;
+        desc.output_index = i;
+
+        if (ch.channelType == AnimV20::CHTYPE_ORIGIN_LINVEL)
+          desc.precision = vel_prec;
+        else if (ch.channelType == AnimV20::CHTYPE_ORIGIN_ANGVEL)
+          desc.precision = angVelPrecision;
+        else if (ch.channelType == AnimV20::CHTYPE_SCALE)
+          desc.precision = sclPrecision;
+        else
+          desc.precision = pos_prec;
+
+        auto tr = acl::track_float3f::make_reserve(desc, alloc, numSamples, sampleRate);
+        ChannelData::Anim anim = ch.nodeAnim[i];
+        anim.key = keys.data();
+
+        int hint = INITIAL_INTERP_HINT;
+        for (int si = 0; si < numSamples; si++)
+        {
+          rtm::vector_store3(interp_point3(anim, si * timeStep, hint), &tr[si]);
+        }
+
+        trackArray3f[i] = eastl::move(tr);
+
+        freeNodeAnim(ch.nodeAnim[i]);
+      }
+
+      // compress
+      {
+        acl::pre_process_settings_t settings;
+        settings.precision_policy = acl::pre_process_precision_policy::lossy;
+        pre_process_track_list(alloc, settings, trackArray3f);
+      }
+
+      {
+        acl::compression_settings settings;
+        settings.level = acl::compression_level8::highest;
+
+        acl::output_stats stats;
+        acl::compressed_tracks *compressedTracks = nullptr;
+        FINALLY([&] {
+          if (compressedTracks)
+            alloc.deallocate(compressedTracks, compressedTracks->get_size());
+        });
+
+        acl::error_result result = acl::compress_track_list(alloc, trackArray3f, settings, compressedTracks, stats);
+        if (result.any() || compressedTracks == nullptr)
+        {
+          log.addMessage(ILogWriter::ERROR, "error ACL-compressing: %s", result.c_str());
+          return false;
+        }
+
+        cwr.align16();
+        ch.nodeAnimOfs = cwr.tell();
+        cwr.writeRaw(compressedTracks, compressedTracks->get_size());
       }
     }
 
@@ -916,18 +1339,19 @@ protected:
       }
     }
 
+    cwr.align8();
+    for (int channelId = 0; channelId < chan.size(); channelId++)
+    {
+      ChannelData &ch = chan[channelId];
+      ch.nodeTrackOfs = cwr.tell();
+      for (int i = 0; i < ch.nodeNum; i++)
+        cwr.writeInt16e(ch.nodeAnim[i].keyOfs);
+    }
+
     cwr.align16();
     for (int channelId = 0; channelId < chan.size(); channelId++)
     {
       ChannelData &ch = chan[channelId];
-      ch.nodeAnimOfs = cwr.tell();
-      for (int i = 0; i < ch.nodeNum; i++)
-      {
-        cwr.writePtr64e(ch.nodeAnim[i].keyOfs);
-        cwr.writePtr64e(ch.nodeAnim[i].keyTimeOfs);
-        cwr.writeInt32e(ch.nodeAnim[i].keyNum);
-        cwr.writeInt32e(0);
-      }
       ch.nodeWtOfs = cwr.tell();
       cwr.write32ex(ch.nodeWt, ch.nodeNum * sizeof(float));
     }
@@ -938,6 +1362,7 @@ protected:
     {
       ChannelData &ch = chan[channelId];
       cwr.writePtr64e(ch.nodeAnimOfs);
+      cwr.writePtr64e(ch.nodeTrackOfs);
       cwr.writeInt32e(ch.nodeNum);
       cwr.writeInt32e(ch.channelType);
       cwr.writePtr64e(ch.nodeWtOfs);
@@ -963,16 +1388,15 @@ protected:
     cwr.popOrigin();
     cwr.writeInt32eAt(dumpSz, start_ofs + 12);
 
-    static const int CHAN_REC_SZ = mkbindump::BinDumpSaveCB::PTR_SZ * 3 + 4 * 2;
+    static const int CHAN_REC_SZ = mkbindump::BinDumpSaveCB::PTR_SZ * 4 + 4 * 2;
+    cwr.writeRef(p3num ? chan_hdr_ofs + p3start * CHAN_REC_SZ : -1, p3num);
+    cwr.writeRef(qnum ? chan_hdr_ofs + qstart * CHAN_REC_SZ : -1, qnum);
+
     int dt_start, dt_num;
-    ChannelData::findDataTypeRange(AnimV20::DATATYPE_POINT3X, chan, dt_start, dt_num);
-    cwr.writeRef(dt_num ? chan_hdr_ofs + dt_start * CHAN_REC_SZ : -1, dt_num);
-
-    ChannelData::findDataTypeRange(AnimV20::DATATYPE_QUAT, chan, dt_start, dt_num);
-    cwr.writeRef(dt_num ? chan_hdr_ofs + dt_start * CHAN_REC_SZ : -1, dt_num);
-
     ChannelData::findDataTypeRange(AnimV20::DATATYPE_REAL, chan, dt_start, dt_num);
     cwr.writeRef(dt_num ? chan_hdr_ofs + dt_start * CHAN_REC_SZ : -1, dt_num);
+    if (dt_num > 0)
+      log.addMessage(ILogWriter::ERROR, "real-typed channels are not supported by ACL exporter yet");
 
     cwr.writeRef(note_ofs, hdrV200.totalAnimLabelNum);
 
@@ -987,14 +1411,23 @@ class A2dExporterPlugin : public IDaBuildPlugin
 public:
   virtual bool __stdcall init(const DataBlock &appblk)
   {
-    const DataBlock *collisionBlk = appblk.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBlockByNameEx("a2d");
+    const DataBlock *a2dBlk = appblk.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBlockByNameEx("a2d");
 
-    preferZstdPacking = collisionBlk->getBool("preferZSTD", false);
+    preferZstdPacking = a2dBlk->getBool("preferZSTD", false);
     if (preferZstdPacking)
       debug("a2d prefers ZSTD");
-    allowOodlePacking = collisionBlk->getBool("allowOODLE", false);
+    allowOodlePacking = a2dBlk->getBool("allowOODLE", false);
     if (allowOodlePacking)
       debug("a2d allows OODLE");
+    logExportTime = a2dBlk->getBool("logExportTime", false);
+    if (logExportTime)
+      debug("a2d logExportTime");
+    errorOnDuplicateNames = a2dBlk->getBool("errorOnDuplicateNames", false);
+    if (errorOnDuplicateNames)
+      debug("a2d errorOnDuplicateNames");
+    errorOnOldParams = a2dBlk->getBool("errorOnOldParams", false);
+    if (errorOnOldParams)
+      debug("a2d errorOnOldParams");
     return true;
   }
   virtual void __stdcall destroy() { delete this; }

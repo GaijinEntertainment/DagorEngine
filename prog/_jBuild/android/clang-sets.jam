@@ -9,19 +9,11 @@ switch $(OS) {
 _OBJ_SUFFIX  = .o ;
 
 _NV_CLANG_VER = 3.8 ;
-if $(AndroidApiVer) in 28 29 30 {
-  _A_JAVA_HOME = $(_DEVTOOL)/jdk1.8.x ;
-} else {
-  _A_JAVA_HOME = $(_DEVTOOL)/jdk19 ;
-}
+_A_JAVA_HOME = $(_DEVTOOL)/jdk19 ;
 _A_ANT_HOME = $(_DEVTOOL)/apache-ant-1.8.2 ;
 _A_NDK_DIR = $(_DEVTOOL)/android-ndk-$(AndroidNdkVer) ;
 _A_ADK_DIR = $(_DEVTOOL)/android-sdk ;
-if $(AndroidApiVer) in 28 29 30 {
-  _A_GRADLE_HOME = $(_DEVTOOL)/gradle-5.6.2 ;
-} else {
-  _A_GRADLE_HOME = $(_DEVTOOL)/gradle-7.6 ;
-}
+_A_GRADLE_HOME = $(_DEVTOOL)/gradle-8.2 ;
 if $(OS) = MACOSX {
   _A_JAVA_HOME = $(_A_JAVA_HOME)-mac ;
   _A_NDK_DIR = $(_A_NDK_DIR)-mac ;

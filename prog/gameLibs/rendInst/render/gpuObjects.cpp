@@ -38,8 +38,8 @@ void init_r()
   if (!manager && started)
   {
     manager = eastl::make_unique<gpu_objects::GpuObjects>();
-    rendinst::registerRiExtraDestructionCb([](rendinst::riex_handle_t handle, bool /*is_dynamic*/, int32_t /*user_data*/,
-                                             const Point3 & /*impulse*/, const Point3 & /*impulse_pos*/) {
+    rendinst::registerRiExtraDestructionCb([](rendinst::riex_handle_t handle, bool /*is_dynamic*/, bool /*create_destr_effects*/,
+                                             int32_t /*user_data*/, const Point3 & /*impulse*/, const Point3 & /*impulse_pos*/) {
       TMatrix tm;
       mat44f m;
       rendinst::getRIGenExtra44(handle, m);

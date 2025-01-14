@@ -52,10 +52,6 @@ shader deferred_shadow_to_buffer
     }
   }
 
-  (ps) {
-    sun_color_1@f3 = sun_color_0;
-  }
-
   USE_DEFERRED_SHADOW_PER_SAMPLE(ps)
 
   hlsl(ps) {

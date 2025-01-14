@@ -11,6 +11,8 @@
 namespace drv3d_dx11
 {
 
+constexpr inline int BLEND_FACTORS_COUNT = 4;
+
 enum
 {
   VIEWMOD_NOCHANGES = 0,
@@ -500,6 +502,23 @@ struct TextureFetchState
 
   void flush(bool force, uint32_t hdg_bits);
   void flush_cs(bool force, bool async = false);
+};
+
+struct MiniRenderStateUnsafe
+{
+  BaseTexture *tex0; // Must be protected with resources CS while stored.
+
+  Driver3dRenderTarget rt;
+  shaders::DriverRenderStateId renderState;
+
+  RasterizerState nextRasterizerState;
+  uint8_t stencilRef;
+  float blendFactor[BLEND_FACTORS_COUNT];
+  int l, t, w, h;
+  float zn, zf;
+
+  void store();
+  void restore();
 };
 
 } // namespace drv3d_dx11

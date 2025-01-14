@@ -5,7 +5,7 @@
 #include "configuration.h"
 #include <driver.h>
 
-#include <ags_sdk/include/amd_ags.h>
+#include "amd_ags_init.h"
 #include <EASTL/span.h>
 
 
@@ -65,6 +65,14 @@ public:
     const BufferResourceReferenceAndOffset &, uint32_t)
   {}
   constexpr void blit(const call_stack::CommandData &, ID3D12GraphicsCommandList2 *) {}
+#if D3D_HAS_RAY_TRACING
+  constexpr void dispatchRays(const call_stack::CommandData &, D3DGraphicsCommandList *, const RayDispatchBasicParameters &,
+    const ResourceBindingTable &, const RayDispatchParameters &)
+  {}
+  constexpr void dispatchRaysIndirect(const call_stack::CommandData &, D3DGraphicsCommandList *, const RayDispatchBasicParameters &,
+    const ResourceBindingTable &, const RayDispatchIndirectParameters &)
+  {}
+#endif
   void onDeviceRemoved(D3DDevice *, HRESULT, call_stack::Reporter &);
   constexpr bool sendGPUCrashDump(const char *, const void *, uintptr_t) { return false; }
   constexpr void onDeviceShutdown() {}
@@ -79,27 +87,20 @@ public:
       return false;
     }
 
-    AGSContext *agsContext = nullptr;
-    AGSGPUInfo gpuInfo = {};
-    AGSConfiguration agsConfig = {};
-
-    logdbg("DX12: Ags initialization...");
-    const auto agsResult = agsInit(&agsContext, &agsConfig, &gpuInfo);
-    if (agsResult != AGS_SUCCESS)
-    {
-      logwarn("DX12: ...failed (%d)", agsResult);
+    AGSContext *agsContext = debug::ags::get_context();
+    if (DAGOR_UNLIKELY(!agsContext))
       return false;
-    }
 
     target.template emplace<AgsTrace>(agsContext);
     logdbg("DX12: ...using AMD GPU Services API for GPU postmortem trace");
     return true;
   }
 
-  bool tryCreateDevice(IUnknown *adapter, D3D_FEATURE_LEVEL minimum_feature_level, void **ptr);
+  bool tryCreateDevice(DXGIAdapter *adapter, UUID uuid, D3D_FEATURE_LEVEL minimum_feature_level, void **ptr);
 
 private:
   AGSContext *agsContext = nullptr;
+  bool deviceInitialized = false;
 };
 } // namespace gpu_postmortem::ags
 } // namespace debug

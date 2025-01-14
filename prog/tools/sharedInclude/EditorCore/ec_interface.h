@@ -7,6 +7,7 @@
 
 #include <EditorCore/ec_decl.h>
 #include <sepGui/wndCommon.h>
+#include <sepGui/wndMenuInterface.h>
 #include <libTools/util/hdpiUtil.h>
 
 // forward declarations for external classes
@@ -230,6 +231,13 @@ public:
 
   virtual void captureMouse() = 0;
   virtual void releaseMouse() = 0;
+
+  /// Sets a custom menu event handler for the custom context menu
+  /// of the viewport.
+  virtual void setMenuEventHandler(IMenuEventHandler *meh) = 0;
+
+  /// Retrieves the custom context menu of the viewport if it's active/open.
+  virtual PropPanel::IMenu *getContextMenu() = 0;
 };
 
 
@@ -732,6 +740,10 @@ public:
   /// Get Gizmo basis.
   ///@return Gizmo basis (see #BasisType)
   virtual BasisType getGizmoBasisType() = 0;
+
+  /// Get Gizmo basis for a specific mode.
+  ///@return Gizmo basis for a specific mode (see #BasisType and see #ModeType)
+  virtual BasisType getGizmoBasisTypeForMode(ModeType tp) = 0;
 
   /// Get Gizmo center type.
   ///@return Gizmo center type (see #CenterType)

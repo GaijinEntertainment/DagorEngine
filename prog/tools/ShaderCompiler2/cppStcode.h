@@ -13,6 +13,10 @@ extern StcodeShader g_cppstcode;
 
 bool set_stcode_arch_from_arg(const char *str, shc::CompilerConfig &config_rw);
 
+#if _CROSS_TARGET_SPIRV | _CROSS_TARGET_METAL
+bool set_stcode_platform_from_arg(const char *str, shc::CompilerConfig &config_rw);
+#endif
+
 #define RET_IF_SHOULD_NOT_COMPILE(_ret)  \
   do                                     \
   {                                      \
@@ -23,8 +27,8 @@ bool set_stcode_arch_from_arg(const char *str, shc::CompilerConfig &config_rw);
 void prepare_stcode_directory(const char *dest_dir);
 
 void save_compiled_cpp_stcode(StcodeShader &&cpp_shader);
-void save_stcode_dll_main(StcodeInterface &&cpp_interface);
 void save_stcode_global_vars(StcodeGlobalVars &&cpp_globvars);
+void save_stcode_dll_main(StcodeInterface &&cpp_interface, uint64_t stcode_hash);
 
 enum class StcodeMakeTaskError
 {
@@ -34,3 +38,5 @@ enum class StcodeMakeTaskError
 
 dag::Expected<proc::ProcessTask, StcodeMakeTaskError> make_stcode_compilation_task(const char *out_dir, const char *lib_name,
   const ShVariantName &variant);
+
+void cleanup_after_stcode_compilation(const char *out_dir, const char *lib_name);

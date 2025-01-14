@@ -32,7 +32,7 @@ bool should_use_compute_for_image_processing(std::initializer_list<unsigned> for
 }
 
 bool check_texformat(int cflg) { return d3di.check_texformat(cflg); }
-int d3d::get_max_sample_count(int cflg) { return d3di.get_max_sample_count(cflg); }
+int get_max_sample_count(int cflg) { return d3di.get_max_sample_count(cflg); }
 unsigned get_texformat_usage(int cflg, int restype) { return d3di.get_texformat_usage(cflg, restype); }
 bool issame_texformat(int cflg1, int cflg2) { return d3di.issame_texformat(cflg1, cflg2); }
 bool check_cubetexformat(int cflg) { return d3di.check_cubetexformat(cflg); }

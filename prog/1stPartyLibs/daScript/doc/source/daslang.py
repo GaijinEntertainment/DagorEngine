@@ -14,10 +14,15 @@
 from docutils import nodes
 from docutils.parsers.rst import directives
 
+from sphinx import version_info
+
 from sphinx import addnodes
 from sphinx.directives import ObjectDescription
 from sphinx.domains import Domain, ObjType
-from sphinx.domains.python import _pseudo_parse_arglist
+if version_info >= (7, 3, 0):
+    from sphinx.domains.python._annotations import _pseudo_parse_arglist
+else:
+    from sphinx.domains.python import _pseudo_parse_arglist
 from sphinx.locale import _
 from sphinx.roles import XRefRole
 from sphinx.util.docfields import Field, GroupedField, TypedField
@@ -114,9 +119,8 @@ class DASObject(ObjectDescription):
             objects = self.env.domaindata['das']['objects']
             if fullname in objects:
                 self.state_machine.reporter.warning(
-                    'duplicate object description of %s, ' % fullname +
-                    'other instance in ' +
-                    self.env.doc2path(objects[fullname][0]),
+                    f'duplicate object description of {fullname}, ' +
+                    f'other instance in {self.env.doc2path(objects[fullname][0])}',
                     line=self.lineno)
             objects[fullname] = self.env.docname, self.objtype
 

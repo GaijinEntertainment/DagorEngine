@@ -149,7 +149,8 @@ int ReflectableObject::serialize(BitStream &bs, uint16_t flags_to_have, bool fth
       {
         bs.Write((uint16_t)0); // reserve space for data size (for skip in case if deserialization fails)
         data_size_pos = bs.GetWriteOffset();
-        bs.Write(getUID());
+        mpi::write_object_ext_uid(bs, getUID(), mpiObjectExtUID);
+        bs.AlignWriteToByteBoundary();
         numVarsPos = bs.GetWriteOffset();
         bs.Write((uint16_t)0);                                 // reserve space for offset to sizes
         bs.Write(static_cast<IdFieldSerializer255::Index>(0)); // reserve space for vars count
@@ -311,7 +312,7 @@ int forceFullSyncForAllReflectables()
   return ret;
 }
 
-bool ReflectableObject::deserialize(BitStream &bs)
+bool ReflectableObject::deserialize(BitStream &bs, int /* data_size */)
 {
   checkWatermark();
 
@@ -432,8 +433,13 @@ int deserializeReflectables(BitStream &bs, mpi::object_dispatcher resolver)
 
     BitSize_t start_pos = bs.GetReadOffset();
     mpi::ObjectID oid = mpi::INVALID_OBJECT_ID;
-    bs.Read(oid);
-    ReflectableObject *refl = (oid == mpi::INVALID_OBJECT_ID) ? NULL : static_cast<ReflectableObject *>(resolver(oid));
+    mpi::ObjectExtUID extUid = mpi::INVALID_OBJECT_EXT_UID;
+    mpi::read_object_ext_uid(bs, oid, extUid);
+    bs.AlignReadToByteBoundary();
+    BitSize_t startPosAfterId = bs.GetReadOffset();
+    ReflectableObject *refl = (oid == mpi::INVALID_OBJECT_ID && extUid == mpi::INVALID_OBJECT_EXT_UID)
+                                ? NULL
+                                : static_cast<ReflectableObject *>(resolver(oid, extUid));
     if (refl && refl->debugWatermark != DANET_WATERMARK)
       debug("%s can't resolve (or bad reflection object) 0x%p by oid 0x%x", __FUNCTION__, refl, oid);
 #if DAGOR_DBGLEVEL > 0
@@ -441,7 +447,8 @@ int deserializeReflectables(BitStream &bs, mpi::object_dispatcher resolver)
       debug("%s 0x%x(%s) %d(+2) bytes", __FUNCTION__, oid, refl ? refl->getClassName() : "<unknown>", data_written);
 #endif
     bool read_fail = false;
-    if (!refl || refl->debugWatermark != DANET_WATERMARK || !refl->deserialize(bs))
+    if (!refl || refl->debugWatermark != DANET_WATERMARK ||
+        !refl->deserialize(bs, int(data_written) - BITS_TO_BYTES(int(startPosAfterId - start_pos))))
       read_fail = true;
     else
     {

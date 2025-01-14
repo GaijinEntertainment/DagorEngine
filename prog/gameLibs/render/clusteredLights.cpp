@@ -28,7 +28,7 @@
 
 static constexpr int CLUSTERS_PER_GRID = CLUSTERS_W * CLUSTERS_H * (CLUSTERS_D + 1); // one more slice so we can sample zero for it,
                                                                                      // instead of branch in shader
-static const uint32_t MAX_SHADOWS_QUALITY = 4u;
+static const uint32_t MAX_SHADOWS_QUALITY = 8u;
 
 const float ClusteredLights::MARK_SMALL_LIGHT_AS_FAR_LIMIT = 0.03;
 
@@ -472,8 +472,8 @@ void ClusteredLights::cullFrustumLights(vec4f cur_view_pos, mat44f_cref globtm, 
   renderSpotLights.resize(visibleSpotLightsId.size());
   renderOmniLights.resize(visibleOmniLightsId.size());
   visibleSpotLightsBounds.resize(visibleSpotLightsId.size());
-  visibleSpotLightsMasks.resize(visibleSpotLightsId.size());
-  visibleOmniLightsMasks.resize(visibleOmniLightsId.size());
+  visibleSpotLightsMasks.resize((visibleSpotLightsId.size() + 3) & ~3);
+  visibleOmniLightsMasks.resize((visibleOmniLightsId.size() + 3) & ~3);
   visibleOmniLightsBounds.resize(renderOmniLights.size());
   for (int i = 0, e = visibleSpotLightsId.size(); i < e; ++i)
   {
@@ -483,13 +483,17 @@ void ClusteredLights::cullFrustumLights(vec4f cur_view_pos, mat44f_cref globtm, 
     renderSpotLights[i] = spotLights.getRenderLight(id);
     visibleSpotLightsMasks[i] = spotLights.getLightMask(id);
   }
-  for (int i = 0; i < visibleOmniLightsId.size(); ++i)
+  for (int i = visibleSpotLightsId.size(), e = (visibleSpotLightsId.size() + 3) & ~3; i < e; ++i)
+    visibleSpotLightsMasks[i] = 0;
+  for (int i = 0, e = visibleOmniLightsId.size(); i < e; ++i)
   {
     uint32_t id = visibleOmniLightsId[i];
     renderOmniLights[i] = omniLights.getRenderLight(id);
     visibleOmniLightsBounds[i] = v_ldu(reinterpret_cast<float *>(&renderOmniLights[i].posRadius));
     visibleOmniLightsMasks[i] = omniLights.getLightMask(id);
   }
+  for (int i = visibleOmniLightsId.size(), e = (visibleOmniLightsId.size() + 3) & ~3; i < e; ++i)
+    visibleOmniLightsMasks[i] = 0;
 
   visibleFarSpotLightsId.resize(min<int>(visibleFarSpotLightsId.size(), MAX_VISIBLE_FAR_LIGHTS));
   renderFarSpotLights.resize(visibleFarSpotLightsId.size());
@@ -578,7 +582,7 @@ void ClusteredLights::fillBuffers()
   const SpotLightsManager::mask_type_t stubMask[1] = {0};
   if (visibleOmniLightsMasksSB) // todo: only update if something changed (which won't happen very often)
   {
-    G_ASSERT(visibleOmniLightsMasks.size() <= MAX_OMNI_LIGHTS);
+    G_ASSERT(visibleOmniLightsMasks.size() <= ((MAX_OMNI_LIGHTS + 3) & ~3));
     dag::Span<const SpotLightsManager::mask_type_t> masks =
       renderOmniLights.size() ? make_span_const(visibleOmniLightsMasks) : make_span_const(stubMask);
     // bound & used framemem buffer must be updated every frame
@@ -594,7 +598,7 @@ void ClusteredLights::fillBuffers()
   if (visibleSpotLightsMasksSB) // todo: only update if something changed (which won't happen very often)
   {
     // do that only when needed
-    G_ASSERT(visibleSpotLightsMasks.size() <= MAX_SPOT_LIGHTS);
+    G_ASSERT(visibleSpotLightsMasks.size() <= ((MAX_SPOT_LIGHTS + 3) & ~3));
     dag::Span<const SpotLightsManager::mask_type_t> masks =
       renderSpotLights.size() ? make_span_const(visibleSpotLightsMasks) : make_span_const(stubMask);
     // bound & used framemem buffer must be updated every frame
@@ -683,10 +687,11 @@ void ClusteredLights::changeResolution(uint32_t width, uint32_t height)
 
 void ClusteredLights::changeShadowResolutionByQuality(uint32_t shadow_quality, bool dynamic_shadow_32bit)
 {
-  shadow_quality = min(shadow_quality, MAX_SHADOWS_QUALITY);
-  // using shadow_quality / 2, so that medium and high will have the same values (2/2 = 3/2 integer wise)
-  int shift_val = shadow_quality / 2;
-  lightShadows->changeResolution(1024 * shadow_quality, 256 << shift_val, 64 << shift_val, 64 << shift_val, dynamic_shadow_32bit);
+  const Driver3dDesc &d = d3d::get_driver_desc();
+  const uint32_t res = min<uint32_t>(1024 * shadow_quality, min(d.maxtexw, d.maxtexh));
+  const uint32_t qMul = clamp<uint32_t>(res / 1024, 1, MAX_SHADOWS_QUALITY);
+
+  lightShadows->changeResolution(res, 256 * qMul, 64 * qMul, 64 * qMul, dynamic_shadow_32bit);
 }
 
 void ClusteredLights::resetShadows()
@@ -1126,7 +1131,7 @@ uint32_t ClusteredLights::addSpotLight(const SpotLight &light, SpotLightsManager
   return id | SPOT_LIGHT_FLAG;
 }
 
-bool ClusteredLights::addShadowToLight(uint32_t id, bool only_static_casters, bool hint_dynamic, uint16_t quality, uint8_t priority,
+bool ClusteredLights::addShadowToLight(uint32_t id, ShadowCastersFlag casters, bool hint_dynamic, uint16_t quality, uint8_t priority,
   uint8_t max_size_srl, DynamicShadowRenderGPUObjects render_gpu_objects)
 {
   DecodedLightId typeId = decode_light_id(id);
@@ -1145,8 +1150,7 @@ bool ClusteredLights::addShadowToLight(uint32_t id, bool only_static_casters, bo
     case LightType::Spot:
     {
       G_ASSERTF_RETURN(dynamicSpotLightsShadows[typeId.id] == INVALID_VOLUME, false, "spot light %d already has shadow", typeId.id);
-      int shadowId =
-        lightShadows->allocateVolume(only_static_casters, hint_dynamic, quality, priority, max_size_srl, render_gpu_objects);
+      int shadowId = lightShadows->allocateVolume(casters, hint_dynamic, quality, priority, max_size_srl, render_gpu_objects);
       if (shadowId < 0)
         return false;
       dynamicSpotLightsShadows[typeId.id] = shadowId;
@@ -1156,8 +1160,7 @@ bool ClusteredLights::addShadowToLight(uint32_t id, bool only_static_casters, bo
     case LightType::Omni:
     {
       G_ASSERTF_RETURN(dynamicOmniLightsShadows[typeId.id] == INVALID_VOLUME, false, "omni light %d already has shadow", typeId.id);
-      int shadowId =
-        lightShadows->allocateVolume(only_static_casters, hint_dynamic, quality, priority, max_size_srl, render_gpu_objects);
+      int shadowId = lightShadows->allocateVolume(casters, hint_dynamic, quality, priority, max_size_srl, render_gpu_objects);
       if (shadowId < 0)
         return false;
       dynamicOmniLightsShadows[typeId.id] = shadowId;
@@ -1170,7 +1173,7 @@ bool ClusteredLights::addShadowToLight(uint32_t id, bool only_static_casters, bo
   return true;
 }
 
-bool ClusteredLights::getShadowProperties(uint32_t id, bool &only_static_casters, bool &hint_dynamic, uint16_t &quality,
+bool ClusteredLights::getShadowProperties(uint32_t id, ShadowCastersFlag &casters, bool &hint_dynamic, uint16_t &quality,
   uint8_t &priority, uint8_t &shadow_size_srl, DynamicShadowRenderGPUObjects &render_gpu_objects) const
 {
   if (!lightShadows)
@@ -1185,8 +1188,7 @@ bool ClusteredLights::getShadowProperties(uint32_t id, bool &only_static_casters
   if (lightShadow == INVALID_VOLUME)
     return false;
 
-  return lightShadows->getShadowProperties(lightShadow, only_static_casters, hint_dynamic, quality, priority, shadow_size_srl,
-    render_gpu_objects);
+  return lightShadows->getShadowProperties(lightShadow, casters, hint_dynamic, quality, priority, shadow_size_srl, render_gpu_objects);
 }
 
 void ClusteredLights::removeShadow(uint32_t id)
@@ -1339,12 +1341,12 @@ void ClusteredLights::frameRenderShadows(const dag::ConstSpan<uint16_t> &volumes
           mat44f globTm;
           v_mat44_mul(globTm, proj, view);
 
-          bool only_static_casters, hint_dynamic;
+          bool hint_dynamic;
+          ShadowCastersFlag casters;
           uint8_t priority, shadow_size_srl;
           uint16_t quality;
           DynamicShadowRenderGPUObjects render_gpu_objects;
-          lightShadows->getShadowProperties(id, only_static_casters, hint_dynamic, quality, priority, shadow_size_srl,
-            render_gpu_objects);
+          lightShadows->getShadowProperties(id, casters, hint_dynamic, quality, priority, shadow_size_srl, render_gpu_objects);
 
           // Note: indexing must match frameUpdateShadows!
           renderStatic(globTm, viewItmS, staticUpdateIndex, viewId, render_gpu_objects);
@@ -1454,12 +1456,13 @@ void ClusteredLights::updateShadowBuffers()
         Point4 shadowUvMinMax = lightShadows->getShadowUvMinMax(shadowId);
         shadowDesc.uvMinMax = shadowUvMinMax;
 
-        bool onlyStaticCasters, hintDynamic;
+        bool hintDynamic;
+        ShadowCastersFlag casters;
         uint16_t quality;
         uint8_t priority, size;
         DynamicShadowRenderGPUObjects renderGPUObjects;
-        lightShadows->getShadowProperties(shadowId, onlyStaticCasters, hintDynamic, quality, priority, size, renderGPUObjects);
-        shadowDesc.hasDynamic = static_cast<float>(!onlyStaticCasters);
+        lightShadows->getShadowProperties(shadowId, casters, hintDynamic, quality, priority, size, renderGPUObjects);
+        shadowDesc.hasDynamic = static_cast<float>(bool(casters & DYNAMIC_CASTERS));
       }
       else
       {

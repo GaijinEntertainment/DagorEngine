@@ -18,7 +18,6 @@ int dgctrl_print_screen_shot_multiplier = 3;
 
 IGeneralGuiManager *dagor_gui_manager = NULL;
 
-bool workcycle_internal::application_active = true;
 bool workcycle_internal::window_initing = true;
 bool workcycle_internal::enable_idle_priority = true;
 bool workcycle_internal::is_window_in_thread = false;

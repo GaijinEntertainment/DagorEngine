@@ -6,6 +6,7 @@
 #include <3d/dag_lowLatency.h>
 #include <util/dag_localization.h>
 #include <util/dag_convar.h>
+#include <drv/3d/dag_commands.h>
 
 #if _TARGET_XBOX
 #include "aggregator_xbox.h"
@@ -26,6 +27,9 @@ void FrameTimeMetricsAggregator::update(const float current_time_msec, const uin
   {
     displayMode = display_mode;
     const uint64_t newTime = current_time_msec;
+
+    if (!isPixCapturerLoaded.has_value())
+      isPixCapturerLoaded = (bool)d3d::driver_command(Drv3dCommand::IS_PIX_CAPTURE_LOADED);
 
     lastAverageFrameTime = (float)(newTime - lastTimeMsec) / (frame_no - lastFrameNo + 0.001f);
 
@@ -63,8 +67,8 @@ void FrameTimeMetricsAggregator::update(const float current_time_msec, const uin
     else if (displayMode == PerfDisplayMode::COMPACT)
       fpsText.sprintf("FPS:%5.1f", lastAverageFps);
     else
-      fpsText.sprintf("%s FPS:%5.1f (%4.1f<%4.1f %4.1f)", d3d::get_driver_name(), lastAverageFps, lastMinFrameTime, lastMaxFrameTime,
-        lastAverageFrameTime);
+      fpsText.sprintf("%s%s FPS:%5.1f (%4.1f<%4.1f %4.1f)", d3d::get_driver_name(), isPixCapturerLoaded.value() ? "(PIX)" : "",
+        lastAverageFps, lastMinFrameTime, lastMaxFrameTime, lastAverageFrameTime);
     switch (display_mode)
     {
       case PerfDisplayMode::OFF:

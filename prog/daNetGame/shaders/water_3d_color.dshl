@@ -22,6 +22,9 @@ float angle_to_roughness_scale = 0.1;
 texture water_planar_reflection_clouds;
 float4 ambient_wind__speed__current_time__previous_time = (1.811, 0, 0, 0);
 
+int water_rt_enabled = 0;
+interval water_rt_enabled: no<1, yes;
+
 macro INIT_WATER_3D_DEFERRED_COLOR()
   (ps) {
     foam_tex@tex = foam_tex hlsl{ Texture2D<float>foam_tex@tex; };
@@ -135,8 +138,11 @@ macro USE_WATER_3D_DEFERRED_COLOR()
   }
   WATER_3D_DEFERRED_COMMON()
 
-  INIT_STATIC_SHADOW()
-  USE_STATIC_SHADOW()
+  if (water_rt_enabled == no)
+  {
+    INIT_STATIC_SHADOW()
+    USE_STATIC_SHADOW()
+  }
 
   hlsl(ps) {
 
@@ -159,7 +165,7 @@ macro USE_WATER_3D_DEFERRED_COLOR()
       float dist = distSq*invDist;
       float distLog2 = log2(dist);
       float distToZfar = saturate(dist/zn_zfar.y);
-      pointToEye *= invDist;
+      float3 pointToEyeNormalized = pointToEye * invDist;
       float4 result;
       half3 finalLitRefraction = half3(0,0,0);
       half3 finalReflection = half3(1,1,1);
@@ -182,19 +188,16 @@ macro USE_WATER_3D_DEFERRED_COLOR()
         float4 nvsf_blendfactors0123 = 1;
         float4 nvsf_blendfactors4567 = 1;
         GFSDK_WAVEWORKS_SURFACE_ATTRIBUTES surfaceAttributes = GFSDK_WaveWorks_GetSurfaceAttributes(In, csc, nvsf_blendfactors0123,
-                                                                                                    nvsf_blendfactors4567, pointToEye);
+                                                                                                    nvsf_blendfactors4567, pointToEyeNormalized);
 
         worldNormal = get_water_normal(In, shoreData, worldPos, surfaceAttributes.normal.xzy, wfxTc, nvsf_blendfactors0123, nvsf_blendfactors4567);
-        worldNormal.y = MUL_VFACE(worldNormal.y);
       ##endif
 
       ##if water_heightmap_pages != NULL
-        float3x3 tangentSpace = float3x3(In.tangent, cross(In.tangent, In.bitangent), In.bitangent);
+        float3x3 tangentSpace = float3x3(In.tangent, cross(In.bitangent, In.tangent), In.bitangent);
         worldNormal = mul(worldNormal, tangentSpace);
       ##endif
-
-      // Getting pixel to eye vector and distance
-      float3 pointToEyeNormalized = pointToEye;
+      worldNormal = MUL_VFACE(worldNormal);
 
       // Getting texcoords
       half bubblesFactor = 2.0*shoreData.gerstnerFoamFactor;
@@ -226,19 +229,24 @@ macro USE_WATER_3D_DEFERRED_COLOR()
 
       float2 refractionTC = lowresTc;
 
+      float waterRTShadow = 1;
       float4 objectReflection = 0;
       ##if (in_editor_assume == no) && (water_reflection_tex != NULL)
       BRANCH
       if (water_ssr_intensity > 0)
       {
         float SSR_VALID_TRESHOLD = 0; // green channel is 0 where water SSR wasn't rendered, and minimum 0.1 elsewhere
-        bool4 strengthMask = water_reflection_strenght_tex.GatherGreen(water_reflection_strenght_tex_samplerstate, refractionTC) > SSR_VALID_TRESHOLD;
+        bool4 strengthMask = water_reflection_strength_tex.GatherGreen(water_reflection_strength_tex_samplerstate, refractionTC) > SSR_VALID_TRESHOLD;
         if (all(strengthMask))
         {
+          float4 strengthSample = tex2D(water_reflection_strength_tex, refractionTC);
           objectReflection = float4(
             tex2D(water_reflection_tex, refractionTC).rgb,
-            tex2D(water_reflection_strenght_tex, refractionTC).r * water_ssr_intensity
+            strengthSample.r * water_ssr_intensity
           );
+          ##if water_rt_enabled == yes
+            waterRTShadow = strengthSample.b;
+          ##endif
         }
         else
         {
@@ -248,16 +256,21 @@ macro USE_WATER_3D_DEFERRED_COLOR()
           objectReflection.r = dot(water_reflection_tex.GatherRed(water_reflection_tex_samplerstate, refractionTC), strengthMul);
           objectReflection.g = dot(water_reflection_tex.GatherGreen(water_reflection_tex_samplerstate, refractionTC), strengthMul);
           objectReflection.b = dot(water_reflection_tex.GatherBlue(water_reflection_tex_samplerstate, refractionTC), strengthMul);
-          objectReflection.a = dot(water_reflection_strenght_tex.GatherRed(water_reflection_strenght_tex_samplerstate, refractionTC), strengthMul) * water_ssr_intensity;
+          objectReflection.a = dot(water_reflection_strength_tex.GatherRed(water_reflection_strength_tex_samplerstate, refractionTC), strengthMul) * water_ssr_intensity;
+          ##if water_rt_enabled == yes
+            waterRTShadow = dot(water_reflection_strength_tex.GatherBlue(water_reflection_strength_tex_samplerstate, refractionTC), strengthMul);
+          ##endif
         }
-        objectReflection.rgb = unpack_hdr(objectReflection.rgb);
+        ##if water_rt_enabled == no
+          objectReflection.rgb = unpack_hdr(objectReflection.rgb);
+        ##endif
       }
       ##endif
 
       // Getting water depth and opacity for blending
       float floorZ = linearize_z(tex2Dlod(downsampled_far_depth_tex, float4(lowresTc, 0, 0)), zn_zfar.zw);
 
-      float3 viewVect = -pointToEye;
+      float3 viewVect = -pointToEyeNormalized;
 
       float ocean_part = shoreData.riverMultiplier;
 
@@ -298,7 +311,11 @@ macro USE_WATER_3D_DEFERRED_COLOR()
       fresnelView *= shore_blending_coeff;
 
       half3 underwater_loss, underwater_inscatter;
-      half vsmShadow = getStaticShadow(worldPos);
+      ##if water_rt_enabled == no
+        half vsmShadow = getStaticShadow(worldPos);
+      ##else
+        half vsmShadow = waterRTShadow;
+      ##endif
       half cloudShadow = clouds_shadow(worldPos);
       half shadow = min(vsmShadow, cloudShadow);
 

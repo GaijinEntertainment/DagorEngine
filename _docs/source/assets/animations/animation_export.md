@@ -11,7 +11,7 @@ follow these steps:
 2. **Export Settings:** Specify the starting and ending frames for the animation
    in the export settings. **Automatic frame detection does not work**.
 
-3. **Add Note Tracks:** In the **Track View**▸**Dope Sheet**, add a Note Track
+3. **Add Note Tracks:** In the **Track View > Dope Sheet**, add a Note Track
    to any of the animated bones.
 
    ```{seealso}

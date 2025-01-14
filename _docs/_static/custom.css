@@ -72,4 +72,18 @@ for use in text */
     border-width: 0.15em !important;
 }
 
+/* Set colors for "check" and "x" icons*/
+
+.sd-octicon-check {
+    display: inline-block;
+    fill: #28a745;
+    vertical-align: middle;
+}
+
+.sd-octicon-x {
+    display: inline-block;
+    fill: #dc3545;
+    vertical-align: middle;
+}
+
 

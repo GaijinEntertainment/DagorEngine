@@ -1,5 +1,5 @@
 
-Collision Generation for Assets
+Collision Generation for Assets in Asset Viewer
 =========================================
 
 .. toctree::

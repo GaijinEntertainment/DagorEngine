@@ -650,17 +650,6 @@ void ShaderProgramDatabase::shutdown(DeviceContext &ctx)
 
   shaderProgramGroups.iterateAllGraphicsPrograms([&](GraphicsProgramID gp) { ctx.removeGraphicsProgram(gp); });
 
-#if D3D_HAS_RAY_TRACING
-  for (size_t rti = 0; rti < raytracePrograms.size(); ++rti)
-  {
-    if (raytracePrograms[rti].shaders)
-    {
-      ctx.removeProgram(ProgramID::asRaytraceProgram(0, rti));
-    }
-  }
-  raytracePrograms.clear();
-#endif
-
   shaderProgramGroups.iterateAllComputeShaders([&](ProgramID prog) { ctx.removeProgram(prog); });
 
   shaderProgramGroups.itarateAllVertexShaders([&](ShaderID shader) { ctx.removeVertexShader(shader); });
@@ -727,15 +716,6 @@ void ShaderProgramDatabase::removeProgram(DeviceContext &ctx, ProgramID prog)
       ctx.removeProgram(prog);
     }
   }
-#if D3D_HAS_RAY_TRACING
-  else if (prog.isRaytrace())
-  {
-    auto &target = raytracePrograms[prog.getIndex()];
-    target.shaders.reset();
-    target.shaderGroups.reset();
-    ctx.removeProgram(prog);
-  }
-#endif
 }
 
 void ShaderProgramDatabase::deleteVertexShader(DeviceContext &ctx, ShaderID shader)
@@ -790,39 +770,6 @@ void ShaderProgramDatabase::updatePixelShaderName(DeviceContext &ctx, ShaderID s
 {
   ctx.updatePixelShaderName(shader, name);
 }
-
-#if D3D_HAS_RAY_TRACING
-ProgramID ShaderProgramDatabase::newRaytraceProgram(DeviceContext &ctx, const ShaderID *shader_ids, uint32_t shader_count,
-  const RaytraceShaderGroup *shader_groups, uint32_t group_count, uint32_t max_recursion_depth)
-{
-  ScopedLockWriteTemplate<OSReadWriteLock> lock(dataGuard);
-
-  auto ref = eastl::find_if(begin(raytracePrograms), end(raytracePrograms), [](const RaytraceProgram &rp) {
-    // no shaders indicate empty slot
-    return nullptr == rp.shaders.get();
-  });
-  if (ref == end(raytracePrograms))
-  {
-    ref = raytracePrograms.insert(ref, RaytraceProgram{});
-  }
-
-  // hm, may only store used id and move everything over, currently this is
-  // only used to back addRaytraceProgram command of ctx
-  auto &target = *ref;
-  target.shaders.reset(new ShaderID[shader_count]);
-  eastl::copy(shader_ids, shader_ids + shader_count, target.shaders.get());
-  target.shaderGroups.reset(new RaytraceShaderGroup[group_count]);
-  eastl::copy(shader_groups, shader_groups + group_count, target.shaderGroups.get());
-  target.groupCount = group_count;
-  target.shaderCount = shader_count;
-  target.maxRecursionDepth = max_recursion_depth;
-  auto id = ProgramID::asRaytraceProgram(0, ref - begin(raytracePrograms));
-
-  ctx.addRaytraceProgram(id, max_recursion_depth, shader_count, target.shaders.get(), group_count, target.shaderGroups.get());
-
-  return id;
-}
-#endif
 
 void ShaderProgramDatabase::registerShaderBinDump(DeviceContext &ctx, ScriptedShadersBinDumpOwner *dump, const char *name)
 {

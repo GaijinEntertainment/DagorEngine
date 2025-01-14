@@ -5,12 +5,11 @@ hlsl{
 
 include "shader_global.dshl"
 include "gbuffer.dshl"
-include "reprojected_motion_vectors.dshl"
 include "taa_inc.dshl"
 include "tonemapHelpers/lottesSCurve.dshl"
+include "motion_vector_access.dshl"
 
 include "tsr.inc.dshl"
-include "tsr_game.dshl"
 
 macro TSR_INCLUDES(code)
 
@@ -18,6 +17,12 @@ macro TSR_INCLUDES(code)
 
   INIT_READ_DEPTH_GBUFFER_BASE(code)
   USE_READ_DEPTH_GBUFFER_BASE(code)
+
+  INIT_READ_DYNAMIC_FLAG(code)
+  USE_READ_DYNAMIC_FLAG(code)
+
+  INIT_FETCH_MOTION_VECTOR(code, resolved)
+  USE_FETCH_MOTION_VECTOR(code, resolved)
 
   local float4 tsr_input_color_dimensions = get_dimensions(tsr_input_color, 0);
   (code)
@@ -71,8 +76,6 @@ macro TSR_INCLUDES(code)
       #define upsamplingRatioInv 1
     }
   }
-
-  TSR_GAME(cs)
 
   hlsl(code)
   {
@@ -454,6 +457,14 @@ macro TSR_INCLUDES(code)
         rejection = 0;
       }
     }
+
+    float3 fetchMotionVector(float raw_depth, float2 uv)
+    {
+      float3 uvz = fetch_motion_vector(uv * uv_transform.xy + uv_transform.zw, raw_depth);
+      float prevLinearZ = linearize_z(raw_depth, zn_zfar.zw) + uvz.z;  // TODO: switch to rejection by linear Z
+      float prevDepth = inv_linearizeZ(prevLinearZ, zn_zfar);
+      return float3(uvz.xy, prevDepth - raw_depth);
+    }
   }
 endmacro
 
@@ -494,8 +505,8 @@ shader tsr_vr_cs
 
       DepthStatistics depthStats = getDepthStatistics(jitteredInputTexelCoord);
 
-      uint currentIsDynamic;
-      float3 motionVector = fetchMotionVector(depthStats.closestDepth, depthStats.closestUv, currentIsDynamic);
+      uint currentIsDynamic = isGbufferDynamic(depthStats.closestUv);
+      float3 motionVector = fetchMotionVector(depthStats.closestDepth, depthStats.closestUv);
       float2 historyUV = screenTc + motionVector.xy;
 
       float historyConfidence;

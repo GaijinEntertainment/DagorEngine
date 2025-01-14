@@ -6,6 +6,7 @@ include "screenspace_probes_reprojection.dshl"
 include "project_gi_motion_vecs.dshl"
 
 include "sp_spatial_filter_probes.dshl"
+include "screen_gi_encoding.dshl"
 
 buffer screenspace_tile_classificator;
 
@@ -49,9 +50,6 @@ macro SAMPLE_PREV_RADIANCE_SP(code)
     }
   }
 endmacro
-
-int dagi_sp_has_exposure_assume = 1;
-interval dagi_sp_has_exposure_assume : always_rgbe < 1, can_be_r11g11b10;
 
 macro COMMON_RADIANCE_FILTER(code)
   SCREENSPACE_PROBES_POSITIONS(code)
@@ -288,7 +286,7 @@ shader temporal_filter_screenspace_radiance_cs, temporal_only_filter_screenspace
       ##else
         float3 rad_distance = read_texture_radiance(atlasProbeIndex, atlasProbeCoord*sp_getRadianceRes(), octCoord);
         float3 encodedRadiance = sp_encode_texture_radiance(rad_distance.xyz);
-        #if TEMPORAL_PROBES_FRAMES
+        #if TEMPORAL_PROBES_FRAMES > 1
         //if (onlyHistoryProbe)
         //  encodedRadiance = float3(1,!isScreenProbe,0);
         if (validHistory)
@@ -322,6 +320,7 @@ shader temporal_filter_screenspace_radiance_cs, temporal_only_filter_screenspace
 }
 
 
+int4 sp_placement_iteration;
 shader filter_screenspace_radiance_cs
 {
   //SP_JITTER_POS(cs)
@@ -332,6 +331,9 @@ shader filter_screenspace_radiance_cs
     #define SP_FILTERED_RADIANCE 1
   }
   SP_SPATIAL_FILTER_PROBES(cs)
+  (cs) {
+    sp_placement_iteration@i3 = sp_placement_iteration;
+  }
 
   hlsl(cs) {
     uint get_history_probe_unsafe(uint i) {return i;}
@@ -412,21 +414,23 @@ shader filter_screenspace_radiance_cs
         float w1 = 1, w2 = 1, w3 = 1;
         float invNormalizedW = rcp(probe.normalizedW);
         int2 tcoordI = screen_tile_coord;
-        get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2( 0,-1), octCoord, rad_distance, cWeight, w2, s);
-        get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2( 0,+1), octCoord, rad_distance, cWeight, w2, s);
-        get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(-1, 0), octCoord, rad_distance, cWeight, w2, s);
-        get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(+1, 0), octCoord, rad_distance, cWeight, w2, s);
+        int ofs = sp_is_relatively_new(probe.allTag) ? sp_placement_iteration.z : 1;
+        get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2( 0,-ofs), octCoord, rad_distance, cWeight, w2, s);
+        get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2( 0,+ofs), octCoord, rad_distance, cWeight, w2, s);
+        get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(-ofs, 0), octCoord, rad_distance, cWeight, w2, s);
+        get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(+ofs, 0), octCoord, rad_distance, cWeight, w2, s);
 
         if (sp_is_moving_or_new(probe.allTag))//moving or relatively new probes to be smoothed more
         {
-          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(-1,-1), octCoord, rad_distance, cWeight, w1, s);
-          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(+1,-1), octCoord, rad_distance, cWeight, w1, s);
-          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(-1,+1), octCoord, rad_distance, cWeight, w1, s);
-          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(+1,+1), octCoord, rad_distance, cWeight, w1, s);
-          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2( 0,-2), octCoord, rad_distance, cWeight, w3, s);
-          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2( 0,+2), octCoord, rad_distance, cWeight, w3, s);
-          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(-2, 0), octCoord, rad_distance, cWeight, w3, s);
-          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(+2, 0), octCoord, rad_distance, cWeight, w3, s);
+          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(-ofs,-ofs), octCoord, rad_distance, cWeight, w1, s);
+          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(+ofs,-ofs), octCoord, rad_distance, cWeight, w1, s);
+          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(-ofs,+ofs), octCoord, rad_distance, cWeight, w1, s);
+          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(+ofs,+ofs), octCoord, rad_distance, cWeight, w1, s);
+          int ofs2 = ofs + ofs;
+          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2( 0,-ofs2), octCoord, rad_distance, cWeight, w3, s);
+          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2( 0,+ofs2), octCoord, rad_distance, cWeight, w3, s);
+          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(-ofs2, 0), octCoord, rad_distance, cWeight, w3, s);
+          get_neighboor_radiance(atlasProbeIndex, scenePlaneScaled, invNormalizedW, probeCamPos, rayDir, tcoordI + int2(+ofs2, 0), octCoord, rad_distance, cWeight, w3, s);
         }
         rad_distance.xyz /= cWeight;
       }

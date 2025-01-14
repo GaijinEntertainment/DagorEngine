@@ -1,11 +1,11 @@
+
 Impostor Baker
 =========================================
 
-Contents:
-
 .. toctree::
    :maxdepth: 2
-   :glob:
+   :caption: Contents:
 
    impostor_baker.md
+
 

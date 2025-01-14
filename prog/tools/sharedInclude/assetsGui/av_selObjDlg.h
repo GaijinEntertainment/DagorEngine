@@ -18,6 +18,8 @@ class RecentlyUsedTab;
 
 class SelectAssetDlg : public PropPanel::DialogWindow,
                        public IAssetBaseViewClient,
+                       public IAssetSelectorContextMenuHandler,
+                       public IAssetSelectorFavoritesRecentlyUsedHost,
                        public IMenuEventHandler,
                        public PropPanel::ICustomControl
 {
@@ -36,23 +38,16 @@ public:
   virtual int closeReturn() override { return PropPanel::DIALOG_ID_CLOSE; }
 
   void selectObj(const char *name) { view->selectObjInBase(name); }
+  DagorAsset *getSelectedAsset() const;
   const char *getSelObjName();
 
   void getTreeNodesExpand(Tab<bool> &exps) { view->getTreeNodesExpand(exps); }
   void setTreeNodesExpand(dag::ConstSpan<bool> exps) { view->setTreeNodesExpand(exps); }
   void setFilterStr(const char *str) { view->setFilterStr(str); }
-  SimpleString getFilterStr() const { return view->getFilterStr(); }
-  dag::ConstSpan<int> getAllowedTypes() const { return view->getFilter(); }
+  const String &getFilterStr() const { return view->getFilterStr(); }
 
   bool changeFilters(DagorAssetMgr *_mgr, dag::ConstSpan<int> type_filter);
-  void addAssetToFavorites(const DagorAsset &asset);
   void addAssetToRecentlyUsed(const char *asset_name);
-  void goToAsset(const DagorAsset &asset);
-
-  void onFavoriteSelectionChanged(const DagorAsset *asset);
-  void onFavoriteSelectionDoubleClicked(const DagorAsset *asset);
-  void onRecentlyUsedSelectionChanged(const DagorAsset *asset);
-  void onRecentlyUsedSelectionDoubleClicked(const DagorAsset *asset);
 
   const DagorAsset *getAssetByName(const char *_name, dag::ConstSpan<int> asset_types) const;
 
@@ -61,22 +56,28 @@ public:
   // IAssetBaseViewClient
 
   virtual void onAvClose() override {}
-  virtual void onAvAssetDblClick(const char *asset_name) override;
-  virtual void onAvSelectAsset(const char *asset_name) override {}
-  virtual void onAvSelectFolder(const char *asset_folder_name) override {}
+  virtual void onAvAssetDblClick(DagorAsset *asset, const char *asset_name) override;
+  virtual void onAvSelectAsset(DagorAsset *asset, const char *asset_name) override {}
+  virtual void onAvSelectFolder(DagorAssetFolder *asset_folder, const char *asset_folder_name) override {}
+
+  // IAssetSelectorFavoritesRecentlyUsedHost
+
+  virtual dag::ConstSpan<int> getAllowedTypes() const override { return view->getFilter(); }
+  virtual void addAssetToFavorites(const DagorAsset &asset) override;
+  virtual void goToAsset(const DagorAsset &asset) override;
+  virtual void onSelectionChanged(const DagorAsset *asset) override;
+  virtual void onSelectionDoubleClicked(const DagorAsset *asset) override;
 
   TEXTUREID getFolderTextureId() const { return folderTextureId; }
 
-  static void getAssetImageName(String &image_name, const DagorAsset *asset);
-  static void revealInExplorer(const DagorAsset &asset);
-  static void copyAssetFilePathToClipboard(const DagorAsset &asset);
-  static void copyAssetFolderPathToClipboard(const DagorAsset &asset);
-  static void copyAssetNameToClipboard(const DagorAsset &asset);
-  static bool matchesSearchText(const char *haystack, const char *needle);
+  static String getAssetNameWithTypeIfNeeded(const DagorAsset &asset, dag::ConstSpan<int> allowed_type_indexes);
 
 private:
   // ControlEventHandler
   virtual void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+
+  // IAssetSelectorContextMenuHandler
+  virtual bool onAssetSelectorContextMenu(PropPanel::TreeBaseWindow &tree_base_window, PropPanel::ITreeInterface &tree) override;
 
   // IMenuEventHandler
   virtual int onMenuItemClick(unsigned id) override;

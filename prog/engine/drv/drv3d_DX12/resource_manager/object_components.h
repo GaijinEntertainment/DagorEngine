@@ -246,6 +246,12 @@ protected:
     BaseType::shutdown();
   }
 
+  void preRecovery()
+  {
+    texturePool.access()->iterateAllocated([](auto tex) { tex->preRecovery(); });
+    BaseType::preRecovery();
+  }
+
   void completeFrameExecution(const CompletedFrameExecutionInfo &info, PendingForCompletedFrameData &data)
   {
     if (!data.freedTextureObjects.empty())

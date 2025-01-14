@@ -123,12 +123,12 @@ RaytracePipeline::RaytracePipeline(VulkanDevice &dev, ProgramID prog, VulkanPipe
   }
 }
 
-void RaytracePipeline::bind(VulkanDevice &vk_dev, VulkanCommandBufferHandle cmd_buffer)
+VulkanPipelineHandle RaytracePipeline::getHandleForUse()
 {
 #if VULKAN_LOG_PIPELINE_ACTIVITY > 1
   debug("vulkan: bind raytrace prog %i", program.get());
 #endif
-  VULKAN_LOG_CALL(vk_dev.vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, handle));
+  return getHandle();
 }
 
 void RaytracePipeline::copyRaytraceShaderGroupHandlesToMemory(VulkanDevice &dev, uint32_t first_group, uint32_t group_count,

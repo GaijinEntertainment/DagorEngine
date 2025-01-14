@@ -18,6 +18,11 @@ class IGenLoad;
 class DataBlock;
 class IMemAlloc;
 
+namespace acl
+{
+class compressed_tracks;
+}
+
 
 namespace AnimV20
 {
@@ -59,15 +64,15 @@ struct AnimKeyLabel
   void patchData(void *base) { name.patch(base); }
 };
 
-struct AnimChan
-{};
+typedef acl::compressed_tracks AnimChan;
 
 //
 // Generic channels for distinct animation keys
 //
 struct AnimDataChan
 {
-  PatchablePtr<AnimChan> nodeAnim;
+  PatchablePtr<AnimChan> animTracks;
+  PatchablePtr<dag::Index16> nodeTrack;
   unsigned nodeNum;
   unsigned channelType;
   PatchablePtr<real> nodeWt;
@@ -77,7 +82,7 @@ struct AnimDataChan
 
   void patchData(void *base);
 
-  dag::Index16 getNodeId(const char *node_name)
+  dag::Index16 getNodeId(const char *node_name) const
   {
     for (unsigned id = 0; id < nodeNum; id++)
       if (dd_stricmp(node_name, nodeName[id]) == 0)
@@ -85,36 +90,25 @@ struct AnimDataChan
     return dag::Index16();
   }
 
+  dag::Index16 getTrackId(dag::Index16 node_id) const
+  {
+    if (node_id.index() >= nodeNum)
+      return dag::Index16();
+    return nodeTrack[node_id.index()];
+  }
+
+  dag::Index16 getTrackId(const char *node_name) const { return getTrackId(getNodeId(node_name)); }
+
   // has one or more keys
-  bool hasKeys(dag::Index16 node_id) const;
+  bool hasKeys() const;
 
   // has more than one key
-  bool hasAnimation(dag::Index16 node_id) const;
+  bool hasAnimation() const;
 
-  unsigned getNumKeys(dag::Index16 node_id) const;
+  unsigned getNumKeys() const;
 
-  int keyTimeFirst(dag::Index16 node_id) const;
-  int keyTimeLast(dag::Index16 node_id) const;
-
-  int keyTimeFirst() const
-  {
-    if (nodeNum == 0)
-      return INT_MAX;
-    int t = keyTimeFirst(dag::Index16(0));
-    for (unsigned i = 1; i < nodeNum; i++)
-      t = min(t, keyTimeFirst(dag::Index16(i)));
-    return t;
-  }
-
-  int keyTimeLast() const
-  {
-    if (nodeNum == 0)
-      return INT_MIN;
-    int t = keyTimeLast(dag::Index16(0));
-    for (unsigned i = 1; i < nodeNum; i++)
-      t = max(t, keyTimeLast(dag::Index16(i)));
-    return t;
-  }
+  int keyTimeFirst() const { return 0; }
+  int keyTimeLast() const;
 };
 
 struct PrsAnimNodeRef;
@@ -182,20 +176,14 @@ private:
 
 struct PrsAnimNodeRef
 {
-  const AnimData::Anim *anim = nullptr;
-  dag::Index16 posId;
-  dag::Index16 rotId;
-  dag::Index16 sclId;
+  const AnimChan *anim = nullptr;
+  dag::Index16 trackId;
 
-  inline bool valid() const { return anim && (posId || rotId || sclId); }
-  inline bool allValid() const { return anim && posId && rotId && sclId; }
+  inline bool valid() const { return anim && trackId; }
 
-  inline bool hasAnimation() const
-  {
-    return anim && (anim->pos.hasAnimation(posId) || anim->rot.hasAnimation(rotId) || anim->scl.hasAnimation(sclId));
-  }
+  inline bool hasAnimation() const;
 
-  int keyTimeFirst() const;
+  int keyTimeFirst() const { return 0; }
   int keyTimeLast() const;
   float getDuration() const; // in seconds
 };

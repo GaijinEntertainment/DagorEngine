@@ -18,7 +18,7 @@ struct ExecutionSyncCapture
     uint32_t visOpsPin;
     ExecutionSyncTracker::OpCaller caller;
     uint32_t dstBuffer;
-    uint32_t dstQue;
+    uint32_t dstQueue;
     uint32_t idx;
     uint32_t visIndepSeq;
     uint32_t visIdepSeqPin;
@@ -51,6 +51,14 @@ struct ExecutionSyncCapture
     uint32_t dstOpUid;
   };
 
+  struct SyncBufferLink
+  {
+    uint32_t srcQueue;
+    uint32_t srcBuffer;
+    uint32_t dstQueue;
+    uint32_t dstBuffer;
+  };
+
   struct IndepSeq
   {
     uint32_t visIndepSeq;
@@ -79,6 +87,7 @@ struct ExecutionSyncCapture
   Tab<SyncOpLink> links;
   Tab<NodePos> reformedPositions;
   Tab<IndepSeq> indepSeqs;
+  Tab<SyncBufferLink> bufferLinks;
   uint32_t currentSyncStep = 0;
   uint32_t currentVisNode = 1;
   uint32_t currentLocalSyncStepOpIdx = 0;

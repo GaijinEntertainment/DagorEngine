@@ -102,53 +102,53 @@ static ecs::EntitySystemDesc pair_collision_init_grid_holders_es_event_handler_e
                        ecs::EventComponentsAppear>::build(),
   0
 );
-static constexpr ecs::ComponentDesc deny_collision_by_ignore_list_es_event_handler_comps[] =
+static constexpr ecs::ComponentDesc deny_collision_by_ignore_list_es_comps[] =
 {
 //start of 1 ro components at [0]
   {ECS_HASH("collidable_ignore_list"), ecs::ComponentTypeInfo<ecs::EidList>()}
 };
-static void deny_collision_by_ignore_list_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+static void deny_collision_by_ignore_list_es_all_events(ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   G_FAST_ASSERT(evt.is<QueryPhysActorsNotCollidable>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
-    deny_collision_by_ignore_list_es_event_handler(static_cast<const QueryPhysActorsNotCollidable&>(evt)
-        , ECS_RO_COMP(deny_collision_by_ignore_list_es_event_handler_comps, "collidable_ignore_list", ecs::EidList)
+    deny_collision_by_ignore_list_es(static_cast<QueryPhysActorsNotCollidable&>(evt)
+        , ECS_RO_COMP(deny_collision_by_ignore_list_es_comps, "collidable_ignore_list", ecs::EidList)
     );
   while (++comp != compE);
 }
-static ecs::EntitySystemDesc deny_collision_by_ignore_list_es_event_handler_es_desc
+static ecs::EntitySystemDesc deny_collision_by_ignore_list_es_es_desc
 (
   "deny_collision_by_ignore_list_es",
   "prog/daNetGame/phys/netPhysES.cpp.inl",
-  ecs::EntitySystemOps(nullptr, deny_collision_by_ignore_list_es_event_handler_all_events),
+  ecs::EntitySystemOps(nullptr, deny_collision_by_ignore_list_es_all_events),
   empty_span(),
-  make_span(deny_collision_by_ignore_list_es_event_handler_comps+0, 1)/*ro*/,
+  make_span(deny_collision_by_ignore_list_es_comps+0, 1)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<QueryPhysActorsNotCollidable>::build(),
   0
 ,nullptr,nullptr,"*");
-static constexpr ecs::ComponentDesc deny_collision_for_disabled_paircoll_es_event_handler_comps[] =
+static constexpr ecs::ComponentDesc deny_collision_for_disabled_paircoll_es_comps[] =
 {
 //start of 1 ro components at [0]
   {ECS_HASH("havePairCollision"), ecs::ComponentTypeInfo<bool>()}
 };
-static void deny_collision_for_disabled_paircoll_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+static void deny_collision_for_disabled_paircoll_es_all_events(ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   G_FAST_ASSERT(evt.is<QueryPhysActorsNotCollidable>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
-    deny_collision_for_disabled_paircoll_es_event_handler(static_cast<const QueryPhysActorsNotCollidable&>(evt)
-        , ECS_RO_COMP(deny_collision_for_disabled_paircoll_es_event_handler_comps, "havePairCollision", bool)
+    deny_collision_for_disabled_paircoll_es(static_cast<QueryPhysActorsNotCollidable&>(evt)
+        , ECS_RO_COMP(deny_collision_for_disabled_paircoll_es_comps, "havePairCollision", bool)
     );
   while (++comp != compE);
 }
-static ecs::EntitySystemDesc deny_collision_for_disabled_paircoll_es_event_handler_es_desc
+static ecs::EntitySystemDesc deny_collision_for_disabled_paircoll_es_es_desc
 (
   "deny_collision_for_disabled_paircoll_es",
   "prog/daNetGame/phys/netPhysES.cpp.inl",
-  ecs::EntitySystemOps(nullptr, deny_collision_for_disabled_paircoll_es_event_handler_all_events),
+  ecs::EntitySystemOps(nullptr, deny_collision_for_disabled_paircoll_es_all_events),
   empty_span(),
-  make_span(deny_collision_for_disabled_paircoll_es_event_handler_comps+0, 1)/*ro*/,
+  make_span(deny_collision_for_disabled_paircoll_es_comps+0, 1)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<QueryPhysActorsNotCollidable>::build(),

@@ -38,7 +38,7 @@ public:
 
   void setHeightmapTex();
   void setBlackTex(TEXTUREID black_tex_array);
-  void setTexFilter(int filter);
+  void setTexFilter(d3d::FilterMode filter);
   Point2 getWorldSize();
   int getBufferSize();
 
@@ -50,6 +50,7 @@ public:
     toroidalClipmap_world2uv_1VarId(-1),
     toroidalClipmap_world2uv_2VarId(-1),
     toroidalClipmap_world_offsetsVarId(-1),
+    toroidalHeightmapSamplerVarId(-1),
     invalidated(false),
     flushRegions(false),
     clearValue(0)
@@ -71,6 +72,7 @@ protected:
   bool invalidated;
   bool flushRegions;
   int toroidalClipmap_world2uv_1VarId, toroidalClipmap_world2uv_2VarId, toroidalClipmap_world_offsetsVarId;
+  int toroidalHeightmapSamplerVarId;
   static constexpr int LOD_COUNT = 2;
   E3DCOLOR clearValue;
 
@@ -84,4 +86,5 @@ protected:
   Tab<IBBox2> invalidRegions[LOD_COUNT];
 
   UniqueTexHolder toroidalHeightmap;
+  d3d::SamplerInfo heightmapSampler = {};
 };

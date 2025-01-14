@@ -228,6 +228,9 @@ def use_this(blk : block<(val : int64#) : void>) { blk |> invoke(0l); }
 // TODO: move this to ecs_inspector annotation
 def is_cont_type(user_type : uint) : bool
   let typeName = getComponentTypes() |> component_types_findTypeName(user_type)
+  return is_cont_type(typeName)
+
+def is_cont_type(typeName : string) : bool
   return (
          typeName == "ecs::Object"
       || typeName == "ecs::Array"
@@ -280,30 +283,32 @@ def compare_eids(a, b : array<EntityId>) : int
 
   return 0
 
-
-def render_item(eid : array<EntityId> implicit; flags : uint; name : string implicit; refs : array<EntityComponentRef#>#; level : int; var changed : bool? implicit; sub_menu : block<(var changed : bool?) : bool>) : void
-  let typeName = getComponentTypes() |> component_types_findTypeName(refs[0].userType)
+def render_item(eid : array<EntityId> implicit; flags : uint; name : string implicit; refs : array<ComponentRenderInfo#>#; level : int; var changed : bool? implicit; sub_menu : block<(var changed : bool?) : bool>) : void
+  let typeName = refs[0].typeName
   render_item(eid, flags, name, typeName, refs, level, changed, sub_menu)
 
-def render_item(eid : array<EntityId> implicit; flags : uint; name, type_name : string implicit; refs : array<EntityComponentRef#>#; level : int; var changed : bool? implicit; sub_menu : block<(var changed : bool?) : bool>) : void
+[no_aot]
+def render_item(eid : array<EntityId> implicit; flags : uint; name, type_name : string implicit; refs : array<ComponentRenderInfo#>#; level : int; var changed : bool? implicit; sub_menu : block<(var changed : bool?) : bool>) : void
   var hasInspector = false
   if has_inspector(type_name)
     hasInspector = call_inspector(type_name, eid, flags, name, refs, level, changed, sub_menu)
-  if !hasInspector
+  if !hasInspector && refs[0].roVal != ""
     hasInspector = get_ecs_enum_values(type_name) <| $(enumValues)
-      var curItem = find_enum_idx(type_name, refs[0])
+      let mgr & = getEntityManager()
+      let compRef = mgr |> getEntityComponentRef(eid[0], refs[0].idx)
+      var curItem = find_enum_idx(type_name, compRef)
       imgui::Text("{type_name} {enumValues[curItem]}")
       if ListBox("##{name}", safe_addr(curItem), enumValues)
         update_enum_value(type_name, unsafe(reinterpret<EntityComponentRef> refs[0]), curItem)
         *changed = true
 
   if !hasInspector
-    imgui::Text("{type_name} <{refs[0].userType}>")
+    imgui::Text("{type_name}")
     default_menu(eid, name, type_name, changed) <| $ [unused_argument(sub_changed)] (sub_changed)
 
-      if imgui::Button("copy type id##{name}")
+      if imgui::Button("copy type name##{name}")
         imgui::CloseCurrentPopup()
-        imgui::SetClipboardText("{refs[0].userType}")
+        imgui::SetClipboardText("{refs[0].typeName}")
 
       return sub_menu |> invoke(changed)
 
@@ -357,6 +362,55 @@ def open_inspector(idx : int; eid : EntityId; filter_str : string)
   imgui_set_blk_val("ecs_inspector_{idx}", "eid", int(uint(eid)))
   imgui_set_blk_val("ecs_inspector_{idx}", "filter", filter_str)
   imgui_window_set_visible("Editor", "Inspector {idx+1}", true)
+
+def das_type_to_ecs_type_str(typ : rtti::Type)
+  if typ == Type tBool
+    return "bool"
+  if typ == Type tInt8
+    return "int8_t"
+  if typ == Type tUInt8
+    return "uint8_t"
+  if typ == Type tUInt16
+    return "uint16"
+  if typ == Type tInt64
+    return "int64_t"
+  if typ == Type tUInt64
+    return "uint64_t"
+  if typ == Type tInt
+    return "int"
+  if typ == Type tInt2
+    return "IPoint2"
+  if typ == Type tInt3
+    return "IPoint3"
+  if typ == Type tInt4
+    return "IPoint4"
+  if typ == Type tFloat
+    return "float"
+  if typ == Type tFloat2
+    return "Point2"
+  if typ == Type tFloat3
+    return "Point3"
+  if typ == Type tFloat4
+    return "Point4"
+  if typ == Type tString
+    return "ecs::string"
+  return "UnknownBindedStructureFieldType"
+
+def collect_struct_components(prefix : string; data : uint8?; type_name : string; var comps : array<tuple<name : string; cri : ComponentRenderInfo>>; var annotations : table<string; rtti::BasicStructureAnnotation?>)
+  let ann = annotations |> get_value(type_name)
+  if ann == null
+    return
+
+  *ann |> basic_struct_for_each_field <| $ [unused_argument(cppName)] (field_name, cppName, ti, offset)
+    let field_data = unsafe(data + offset)
+    if ti.isPod || ti.isConst
+      let typ = das_type_to_ecs_type_str(ti.basicType)
+      var roVal = ""
+      if typ == "UnknownBindedStructureFieldType"
+        roVal = "{sprint_data(field_data, unsafe(addr(ti)), [[print_flags]])}"
+      comps |> emplace([[auto "{prefix}.{field_name}", ComponentRenderInfo(rawData=field_data, roVal=roVal, dasTypeName="{ti.basicType}", typeName=typ, idx=0u, componentId=uint16(0))]])
+    elif ti.isRefType && ti.annotation != null
+      collect_struct_components("{prefix}.{field_name}", field_data, "{ti.annotation.name}", comps, annotations)
 
 [no_aot]
 def inspect_item(uid : int; var filter : ImGuiTextFilter; eids : array<EntityId>#; new_selection : bool)
@@ -493,19 +547,36 @@ def inspect_item(uid : int; var filter : ImGuiTextFilter; eids : array<EntityId>
     TableSetupColumn("value", ImGuiTableColumnFlags WidthStretch)
     TableSetupColumn("menu", ImGuiTableColumnFlags WidthFixed, TEXT_BASE_WIDTH * 2f)
 
+    // TODO: We can collect theese once per hot reload and store in a global variable to avoid extra work.
+    var basicStructAnnotations : table<string; rtti::BasicStructureAnnotation?>
+    program_for_each_registered_module() <| $(mod)
+      mod |> module_for_each_annotation <| $(ann)
+        if ann.isBasicStructureAnnotation
+          unsafe
+            basicStructAnnotations |> insert("{ann.name}") <| addr(reinterpret<BasicStructureAnnotation> ann)
+
     let componentsNum = mgr |> getNumComponents(eid)
-    var comps : array<tuple<name : string; cid : uint>>
+    var inscope comps : array<tuple<name : string; cri : ComponentRenderInfo>>
     for idx in urange(componentsNum >= 0 ? componentsNum : 0)
-      let name = dataComps |> data_components_getComponentNameById((mgr |> getEntityComponentRef(eid, idx)).componentId)
-      comps |> emplace([[auto name, idx]])
+      let compRef = mgr |> getEntityComponentRef(eid, idx)
+      let compTypeName = compTypes |> component_types_findTypeName(compRef.userType)
+      let name = dataComps |> data_components_getComponentNameById(compRef.componentId)
+      if basicStructAnnotations |> key_exists(compTypeName) && !has_inspector(compTypeName)
+        let t = compTypes |> component_types_getTypeInfo(compRef.typeId)
+        let data = (uint(t.flags) & uint(ComponentTypeFlags COMPONENT_TYPE_BOXED)) != 0u ? *unsafe(reinterpret<uint8 ??> compRef.rawData) : unsafe(reinterpret<uint8?> compRef.rawData)
+        collect_struct_components(name, data, compTypeName, comps, basicStructAnnotations)
+
+      let comp = dataComps |> data_components_getComponentById(compRef.componentId)
+      if (uint(comp.flags) & uint(IS_COPY)) == 0u
+        comps |> emplace([[auto name, ComponentRenderInfo(rawData=compRef.rawData, roVal="", dasTypeName="", typeName=compTypeName, idx=idx, componentId=compRef.componentId)]])
 
     comps |> sort() <| $(left; right)
       return left.name < right.name
 
-    var filters : array<string>
-    var excludeFilters : array<string>
-    var typeFilters : array<string>
-    var excludeTypeFilters : array<string>
+    var inscope filters : array<string>
+    var inscope excludeFilters : array<string>
+    var inscope typeFilters : array<string>
+    var inscope excludeTypeFilters : array<string>
     for filterRange in filter.Filters
       if filterRange |> empty()
         continue
@@ -530,13 +601,6 @@ def inspect_item(uid : int; var filter : ImGuiTextFilter; eids : array<EntityId>
         TableNextColumn()
         continue
 
-      let type_info <- mgr |> getEntityComponentRef(eid, c.cid)
-      let comp = dataComps |> data_components_getComponentById(type_info.componentId)
-      if (uint(comp.flags) & uint(IS_COPY)) != 0u
-        // if skipItems > 0
-        //   skipItems -= 1
-        continue
-
       let name = c.name
       let lowerName = name |> to_lower()
       if (length(filters) > 0 && !match(filters, lowerName)) || (length(excludeFilters) > 0 && match(excludeFilters, lowerName))
@@ -544,7 +608,7 @@ def inspect_item(uid : int; var filter : ImGuiTextFilter; eids : array<EntityId>
         //   skipItems -= 1
         continue
 
-      let typeName = compTypes |> component_types_findTypeName(type_info.userType)
+      let typeName = c.cri.typeName
       let lowerTypeName = typeName |> to_lower()
       if (length(typeFilters) > 0 && !match(typeFilters, lowerTypeName)) || (length(excludeTypeFilters) > 0 && match(excludeTypeFilters, lowerTypeName))
         // if skipItems > 0
@@ -561,7 +625,7 @@ def inspect_item(uid : int; var filter : ImGuiTextFilter; eids : array<EntityId>
 
       let flags = tmp != null && !empty(name) ? getRegExpInheritedFlags(mgr, tmp, name) : 0u
       let idxBefore = TableGetRowIndex()
-      if !is_cont_type(type_info.userType)
+      if !is_cont_type(typeName)
         TableNextRow()
         TableNextColumn()
         imgui::Text(item_flags(flags, name))
@@ -569,11 +633,11 @@ def inspect_item(uid : int; var filter : ImGuiTextFilter; eids : array<EntityId>
         TableNextColumn()
 
       var changed = false
-      let refs <- [{auto[] clone(type_info) }]
-      render_item(eids, flags, name, typeName, unsafe(reinterpret<array<EntityComponentRef#>#> refs), 0, safe_addr(changed)) <| $ [unused_argument(_)] (_) => true
+      let refs <- [{auto[] clone(c.cri) }]
+      render_item(eids, flags, name, typeName, unsafe(reinterpret<array<ComponentRenderInfo#>#> refs), 0, safe_addr(changed)) <| $ [unused_argument(_)] (_) => true
       if changed
         entity_obj_editor_saveComponent(eid, name)
-        invalidate_item(eid, unsafe(reinterpret<array<EntityComponentRef#>#> refs))
+        invalidate_item(eid, unsafe(reinterpret<array<ComponentRenderInfo#>#> refs))
 
       let rowsNum = TableGetRowIndex() - idxBefore
       inflateListNum += rowsNum > 1 ? rowsNum + 5 : 0 // + 5 works, maybe + 10 works too
@@ -588,8 +652,10 @@ def inspect_item(uid : int; var filter : ImGuiTextFilter; eids : array<EntityId>
 
 
 [no_aot]
-def invalidate_item(eid : EntityId; refs : array<EntityComponentRef#>#)
+def invalidate_item(eid : EntityId; refs : array<ComponentRenderInfo#>#)
   for ref in refs
+    if ref.roVal != ""
+      continue
     nada(getEntityManagerRW() |> getComponentRefRW(eid, ref.componentId))
 
 

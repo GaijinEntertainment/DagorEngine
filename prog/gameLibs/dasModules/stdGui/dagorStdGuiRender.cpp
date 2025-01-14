@@ -227,6 +227,7 @@ struct DagorStdGuiRender final : public das::Module
     BIND_MEMBER_SIGNATURE(::StdGuiRender::GuiContext, goto_xy, "goto_xy", das::SideEffects::modifyArgument,
       void(::StdGuiRender::GuiContext::*)(real, real));
 
+    BIND_MEMBER(::StdGuiRender::GuiContext, get_text_pos, "get_text_pos", das::SideEffects::none);
     BIND_MEMBER(::StdGuiRender::GuiContext, set_spacing, "set_spacing", das::SideEffects::modifyArgument);
     BIND_MEMBER(::StdGuiRender::GuiContext, set_mono_width, "set_mono_width", das::SideEffects::modifyArgument);
     BIND_MEMBER(::StdGuiRender::GuiContext, get_spacing, "get_spacing", das::SideEffects::none);

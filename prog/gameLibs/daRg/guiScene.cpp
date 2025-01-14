@@ -4817,6 +4817,8 @@ void GuiScene::bindScriptClasses()
     V(defaultCursor)
     ///@var clickPriority
     V(actionClickByBehavior)
+    ///@var moveClickThreshold
+    V(moveClickThreshold)
     .Prop("defSceneBgColor", &SceneConfig::getDefSceneBgColor, &SceneConfig::setDefSceneBgColor)
     .Prop("defTextColor", &SceneConfig::getDefTextColor, &SceneConfig::setDefTextColor)
     .SquirrelFunc("setClickButtons", &SceneConfig::setClickButtons, 2, "xa")

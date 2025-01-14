@@ -66,15 +66,18 @@ public:
   virtual void createObjectBySample(RenderableEditableObject *sample);
   virtual void registerViewportAccelerators(IWndManager &wndManager) override;
 
+  // IMenuEventHandler
+  virtual int onMenuItemClick(unsigned id) override;
+
   virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
   void autoAttachSplines();
   void makeBottomSplines();
 
   // IAssetBaseViewClient
-  virtual void onAvClose();
-  virtual void onAvAssetDblClick(const char *asset_name) {}
-  virtual void onAvSelectAsset(const char *asset_name);
-  virtual void onAvSelectFolder(const char *asset_folder_name) {}
+  virtual void onAvClose() override;
+  virtual void onAvAssetDblClick(DagorAsset *asset, const char *asset_name) override {}
+  virtual void onAvSelectAsset(DagorAsset *asset, const char *asset_name) override;
+  virtual void onAvSelectFolder(DagorAssetFolder *asset_folder, const char *asset_folder_name) override {}
 
 
   // IAssetUpdateNotify interface
@@ -236,6 +239,7 @@ protected:
   virtual void _addObjects(RenderableEditableObject **obj, int num, bool use_undo);
   virtual void onObjectFlagsChange(RenderableEditableObject *obj, int changed_flags) override;
   virtual void updateSelection() override;
+  virtual void fillSelectionMenu(IGenViewportWnd *wnd, PropPanel::IMenu *menu) override;
 
   bool findTargetPos(IGenViewportWnd *wnd, int x, int y, Point3 &out, bool place_on_ri_collision = false);
   void selectNewObjEntity(const char *name);

@@ -93,7 +93,7 @@ dabfg::NodeHandle makeTransparentParticlesLowresPrepareNode(bool is_early)
                                  .optional()
                                  .handle();
 
-    auto downsampledDepthHndl = registry.read("downsampled_depth")
+    auto downsampledDepthHndl = registry.read("downsampled_depth_with_early_after_envi_water")
                                   .texture()
                                   .atStage(dabfg::Stage::PS)
                                   .useAs(dabfg::Usage::DEPTH_ATTACHMENT_AND_SHADER_RESOURCE)

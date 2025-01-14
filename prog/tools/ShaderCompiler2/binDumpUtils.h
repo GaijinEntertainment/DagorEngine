@@ -4,6 +4,8 @@
 #include <generic/dag_span.h>
 #include <generic/dag_tab.h>
 
+#include "cppStcodeAssembly.h"
+
 // forwards
 class ShaderStateBlock;
 class ShaderClass;
@@ -16,7 +18,7 @@ class GatherNameMap;
 // binary dump utility functions
 namespace bindumphlp
 {
-void sortShaders(dag::ConstSpan<ShaderStateBlock *> blocks, bool sort_stcode);
+void sortShaders(dag::ConstSpan<ShaderStateBlock *> blocks, StcodeInterface *stcode_interface);
 void patchStCode(dag::Span<int> code, dag::ConstSpan<int> remapTable, dag::ConstSpan<int> smpTable);
 
 // builds global variables remapping table

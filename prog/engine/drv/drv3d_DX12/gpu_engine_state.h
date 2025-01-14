@@ -18,7 +18,8 @@ class Image;
 enum class ActivePipeline
 {
   Graphics,
-  Compute
+  Compute,
+  Raytrace
 };
 
 struct GraphicsState

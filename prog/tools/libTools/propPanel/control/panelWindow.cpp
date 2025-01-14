@@ -6,6 +6,7 @@
 #include <ioSys/dag_dataBlock.h>
 #include <sepGui/wndMenuInterface.h>
 #include <imgui/imgui_internal.h>
+#include <ska_hash_map/flat_hash_map2.hpp>
 
 namespace PropPanel
 {
@@ -17,25 +18,73 @@ public:
 
   virtual int onMenuItemClick(unsigned id) override
   {
-    PropertyControlBase *control = panelWindow.getById(id, false);
-    if (control)
-    {
-      ContainerPropertyControl *container = control->getContainer();
-      while (container && container != &panelWindow)
-      {
-        container->setBoolValue(false); // Open the group.
-        container = container->getParent();
-      }
+    auto it = menuIdToContainerMap.find(id);
+    if (it == menuIdToContainerMap.end())
+      return 0;
 
-      focus_helper.requestFocus(control);
-    }
+    for (ContainerPropertyControl *container = it->second; container && container != &panelWindow; container = container->getParent())
+      container->setBoolValue(false); // Open the group.
+
+    focus_helper.requestFocus(it->second);
 
     return 0;
   }
 
+  ska::flat_hash_map<int, ContainerPropertyControl *> menuIdToContainerMap;
+
 private:
   PanelWindowPropertyControl &panelWindow;
 };
+
+static void fill_jump_to_group_context_menu(IMenu &context_menu, ContainerPropertyControl &container, int menu_id, int &next_unique_id,
+  ska::flat_hash_map<int, ContainerPropertyControl *> &menu_id_to_container_map)
+{
+  if (!container.isRealContainer())
+    return;
+
+  for (int childIndex = 0; childIndex < container.getChildCount(); ++childIndex)
+  {
+    ContainerPropertyControl *childContainer = container.getByIndex(childIndex)->getContainer();
+    if (!childContainer)
+      continue;
+
+    bool hasGrandChildContainer = false;
+    for (int grandChildIndex = 0; grandChildIndex < childContainer->getChildCount(); ++grandChildIndex)
+    {
+      ContainerPropertyControl *graindChild = childContainer->getByIndex(grandChildIndex)->getContainer();
+      if (graindChild && graindChild->isRealContainer())
+      {
+        hasGrandChildContainer = true;
+        break;
+      }
+    }
+
+    const SimpleString caption = childContainer->getCaption();
+
+    if (hasGrandChildContainer)
+    {
+      const int subMenuId = next_unique_id++;
+      const int menuItemId = next_unique_id++;
+      menu_id_to_container_map.insert({menuItemId, childContainer});
+
+      context_menu.addSubMenu(menu_id, subMenuId, caption);
+      context_menu.addItem(subMenuId, menuItemId, caption);
+      context_menu.addSeparator(subMenuId);
+      fill_jump_to_group_context_menu(context_menu, *childContainer, subMenuId, next_unique_id, menu_id_to_container_map);
+    }
+    else if (childContainer->isRealContainer() && !caption.empty())
+    {
+      const int menuItemId = next_unique_id++;
+      menu_id_to_container_map.insert({menuItemId, childContainer});
+
+      context_menu.addItem(menu_id, menuItemId, caption);
+    }
+  }
+}
+
+PanelWindowPropertyControl *PanelWindowPropertyControl::middleMouseDragWindow = nullptr;
+ImVec2 PanelWindowPropertyControl::middleMouseDragStartPos;
+float PanelWindowPropertyControl::middleMouseDragStartScrollY;
 
 PanelWindowPropertyControl::PanelWindowPropertyControl(int id, ControlEventHandler *event_handler, ContainerPropertyControl *parent,
   int x, int y, hdpi::Px w, hdpi::Px h, const char caption[]) :
@@ -82,56 +131,20 @@ int PanelWindowPropertyControl::loadState(DataBlock &datablk)
   return 0;
 }
 
-void PanelWindowPropertyControl::fillJumpToGroupContextMenu(ContainerPropertyControl &container, int menu_id)
-{
-  if (!container.isRealContainer())
-    return;
-
-  for (int childIndex = 0; childIndex < container.getChildCount(); ++childIndex)
-  {
-    ContainerPropertyControl *childContainer = container.getByIndex(childIndex)->getContainer();
-    if (!childContainer)
-      continue;
-
-    bool hasGrandChildContainer = false;
-    for (int grandChildIndex = 0; grandChildIndex < childContainer->getChildCount(); ++grandChildIndex)
-    {
-      ContainerPropertyControl *graindChild = childContainer->getByIndex(grandChildIndex)->getContainer();
-      if (graindChild && graindChild->isRealContainer())
-      {
-        hasGrandChildContainer = true;
-        break;
-      }
-    }
-
-    const SimpleString caption = childContainer->getCaption();
-    const int menuId = childContainer->getID();
-    const int subMenuIdOffset = 100000;
-    G_ASSERT(menuId < subMenuIdOffset);
-
-    if (hasGrandChildContainer)
-    {
-      const int subMenuId = menuId + subMenuIdOffset;
-      contextMenu->addSubMenu(menu_id, subMenuId, caption);
-      contextMenu->addItem(subMenuId, menuId, caption);
-      contextMenu->addSeparator(subMenuId);
-      fillJumpToGroupContextMenu(*childContainer, subMenuId);
-    }
-    else if (childContainer->isRealContainer() && !caption.empty())
-    {
-      contextMenu->addItem(menu_id, menuId, caption);
-    }
-  }
-}
-
 void PanelWindowPropertyControl::onWcRightClick(WindowBase *source)
 {
   ImGui::FocusWindow(ImGui::GetCurrentWindow());
 
-  contextMenuEventHandler.reset(new PanelWindowContextMenuEventHandler(*this));
+  PanelWindowContextMenuEventHandler *panelWindowContextMenuEventHandler = new PanelWindowContextMenuEventHandler(*this);
+  ska::flat_hash_map<int, ContainerPropertyControl *> &menuIdToContainerMap = panelWindowContextMenuEventHandler->menuIdToContainerMap;
+
+  contextMenuEventHandler.reset(panelWindowContextMenuEventHandler);
   contextMenu.reset(new ContextMenu());
   contextMenu->setEventHandler(contextMenuEventHandler.get());
-  fillJumpToGroupContextMenu(*this, ROOT_MENU_ITEM);
+
+  int nextIdToUse = 1;
+  fill_jump_to_group_context_menu(*contextMenu, *this, ROOT_MENU_ITEM, nextIdToUse, menuIdToContainerMap);
+
   if (contextMenu->getItemCount(ROOT_MENU_ITEM) == 0)
   {
     contextMenu.reset();
@@ -155,9 +168,22 @@ void PanelWindowPropertyControl::updateImgui()
 {
   ContainerPropertyControl::updateImgui();
 
-  if (ImGui::IsWindowHovered() && !ImGui::IsAnyItemActive() && !ImGui::IsAnyItemHovered() &&
-      ImGui::IsMouseReleased(ImGuiMouseButton_Right))
-    onWcRightClick(nullptr);
+  if (ImGui::IsWindowHovered() && !ImGui::IsAnyItemActive())
+  {
+    if (ImGui::Shortcut(ImGuiKey_MouseMiddle))
+    {
+      middleMouseDragWindow = this;
+      middleMouseDragStartPos = ImGui::GetMousePos();
+      middleMouseDragStartScrollY = ImGui::GetScrollY();
+
+      // The window's ID is not really an item ID, but it will work, we could use any ID (beside 0) here.
+      ImGui::SetActiveID(ImGui::GetCurrentWindow()->ID, ImGui::GetCurrentWindow());
+    }
+    else if (!ImGui::IsAnyItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right))
+    {
+      onWcRightClick(nullptr);
+    }
+  }
 
   if (contextMenu)
   {
@@ -166,6 +192,32 @@ void PanelWindowPropertyControl::updateImgui()
     {
       contextMenu.reset();
       contextMenuEventHandler.reset();
+    }
+  }
+  else if (middleMouseDragWindow == this)
+  {
+    const ImGuiWindow *window = ImGui::GetCurrentWindowRead();
+    const float sizeVisible = window->InnerRect.GetHeight();
+    const float sizeContent = window->ContentSize.y + (window->WindowPadding.y * 2.0f); // From ImGui::Scrollbar().
+    if (sizeContent > sizeVisible && sizeVisible > 0.0f)
+    {
+      const float scrollRatio = sizeContent / sizeVisible;
+      const float scrollAmount = (ImGui::GetMousePos().y - middleMouseDragStartPos.y) * scrollRatio;
+      const float newScrollY = clamp(middleMouseDragStartScrollY - scrollAmount, 0.0f, ImGui::GetScrollMaxY());
+      if (newScrollY != ImGui::GetScrollY())
+        ImGui::SetScrollY(newScrollY);
+    }
+
+    if (ImGui::IsMouseDown(ImGuiMouseButton_Middle))
+    {
+      // Because the ID is not a real item ID (not added with ItemAdd), we have to keep it alive.
+      ImGui::KeepAliveID(ImGui::GetCurrentWindow()->ID);
+
+      ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+    }
+    else
+    {
+      middleMouseDragWindow = nullptr;
     }
   }
 }

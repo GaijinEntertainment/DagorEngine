@@ -660,7 +660,7 @@ static void do_make_shadow_maps(UniqueTex &shadow_value, UniqueTex &denoised_sha
 {
   shadow_value = dag::create_tex(nullptr, shadow_width, shadow_height, TEXCF_UNORDERED | TEXFMT_G16R16F, 1, "rtsm_value");
   denoised_shadow = dag::create_tex(nullptr, shadow_width, shadow_height,
-    TEXCF_UNORDERED | TEXCF_RTARGET | (translucent ? TEXFMT_A8R8G8B8 : TEXFMT_R8), 1, "rtsm_shadows");
+    TEXCF_UNORDERED | TEXCF_RTARGET | (translucent ? TEXFMT_A8R8G8B8 : TEXFMT_R8), 1, "rtsm_shadows_denoised");
 
   transient_textures.clear();
   clear_history_textures();
@@ -1174,7 +1174,7 @@ void denoise_shadow(const ShadowDenoiser &params)
   {
     d3d::update_bindless_resource(bindless_range + csm_bindless_index, params.csmTexture);
     ShaderGlobal::set_int(csm_bindless_slotVarId, bindless_range + csm_bindless_index);
-    auto samplerIx = d3d::register_bindless_sampler(params.csmTexture);
+    auto samplerIx = d3d::register_bindless_sampler(params.csmSampler);
     ShaderGlobal::set_int(csm_sampler_bindless_slotVarId, samplerIx);
   }
 }

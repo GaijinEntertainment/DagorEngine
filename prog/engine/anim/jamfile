@@ -27,6 +27,7 @@ if $(PlatformSpec) = clang
 
 AddIncludes =
   $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/3rdPartyLibs/acl/includes
 ;
 
 if $(DagorAnim_MEASURE_PERF) {

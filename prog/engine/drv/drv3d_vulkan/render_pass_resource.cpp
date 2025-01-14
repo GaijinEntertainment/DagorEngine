@@ -10,6 +10,7 @@
 #include "backend.h"
 #include "execution_context.h"
 #include "execution_sync.h"
+#include "wrapped_command_buffer.h"
 
 using namespace drv3d_vulkan;
 
@@ -214,16 +215,16 @@ void RenderPassResource::updateImageStatesForCurrentSubpass(ExecutionContext &ct
   }
 }
 
-void RenderPassResource::performSelfDepsForSubpass(uint32_t subpass, VulkanCommandBufferHandle cmd_b)
+void RenderPassResource::performSelfDepsForSubpass(uint32_t subpass)
 {
   VkSubpassDependency &selfDep = desc.selfDeps[subpass];
   if (!selfDep.dependencyFlags)
     return;
 
-  PipelineBarrier barrier(Globals::VK::dev, barrierCache, selfDep.srcStageMask, selfDep.dstStageMask);
+  PipelineBarrier barrier(barrierCache, selfDep.srcStageMask, selfDep.dstStageMask);
   barrier.addMemory({selfDep.srcAccessMask, selfDep.dstAccessMask});
   barrier.addDependencyFlags(selfDep.dependencyFlags);
-  barrier.submit(cmd_b);
+  barrier.submit();
 }
 
 void RenderPassResource::bindInputAttachments(ExecutionContext &ctx, PipelineStageStateBase &tgt, uint32_t input_index,
@@ -249,9 +250,9 @@ void RenderPassResource::advanceSubpass(ExecutionContext &ctx)
 {
   G_ASSERTF(state && bakedAttachments, "vulkan: render pass %p [ %p ] <%s> is not used in any execution context", this,
     getBaseHandle(), getDebugName());
-  performSelfDepsForSubpass(activeSubpass, ctx.frameCore);
+  performSelfDepsForSubpass(activeSubpass);
   ++activeSubpass;
-  ctx.popEventRaw();
+  ctx.popEventTracked();
   Backend::sync.setCurrentRenderSubpass(activeSubpass);
 
   if (activeSubpass != desc.subpasses)
@@ -264,13 +265,12 @@ void RenderPassResource::beginPass(ExecutionContext &ctx)
     getBaseHandle(), getDebugName());
   G_ASSERTF(activeSubpass == 0, "vulkan: render pass %p [ %p ] <%s> started twice", this, getBaseHandle(), getDebugName());
 
-  if (Globals::cfg.bits.allowDebugMarkers)
-    ctx.pushEventRaw(String(64, "NRP: <%s>", getDebugName()), nativePassDebugMarkerColor);
+  ctx.pushEventTracked(getDebugName(), nativePassDebugMarkerColor);
 
   Backend::sync.setCurrentRenderSubpass(0);
   updateImageStatesForCurrentSubpass(ctx);
 
-  Backend::gpuJob.get().execTracker.addMarker(ctx.frameCore, &desc.hash, sizeof(desc.hash));
+  Backend::gpuJob.get().execTracker.addMarker(&desc.hash, sizeof(desc.hash));
 
   VkRenderPassBeginInfo rpbi = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, nullptr};
 
@@ -291,8 +291,9 @@ void RenderPassResource::beginPass(ExecutionContext &ctx)
   // set render pass area execution state for proper viewport change checking
   Backend::State::exec.set<StateFieldGraphicsRenderPassArea, VkRect2D, BackGraphicsState>(rpbi.renderArea);
 
-  ctx.vkDev.vkCmdBeginRenderPass(ctx.frameCore, &rpbi, VK_SUBPASS_CONTENTS_INLINE);
-  ctx.pushEventRaw("subpass 0", subpassDebugMarkerColor);
+  Backend::cb.startReorder();
+  Backend::cb.wCmdBeginRenderPass(&rpbi, VK_SUBPASS_CONTENTS_INLINE);
+  ctx.pushEventTracked("subpass", subpassDebugMarkerColor);
 }
 
 void RenderPassResource::nextSubpass(ExecutionContext &ctx)
@@ -300,10 +301,9 @@ void RenderPassResource::nextSubpass(ExecutionContext &ctx)
   advanceSubpass(ctx);
   G_ASSERTF(activeSubpass < desc.subpasses, "vulkan: there is only %u subpasses in RP %p [ %p ] <%s>, but asking for %u",
     desc.subpasses, this, getBaseHandle(), getDebugName(), activeSubpass);
-  ctx.vkDev.vkCmdNextSubpass(ctx.frameCore, VK_SUBPASS_CONTENTS_INLINE);
+  Backend::cb.wCmdNextSubpass(VK_SUBPASS_CONTENTS_INLINE);
 
-  if (Globals::cfg.bits.allowDebugMarkers)
-    ctx.pushEventRaw(String(16, "subpass %u", activeSubpass), subpassDebugMarkerColor);
+  ctx.pushEventTracked("subpass", subpassDebugMarkerColor);
 }
 
 void RenderPassResource::endPass(ExecutionContext &ctx)
@@ -312,12 +312,12 @@ void RenderPassResource::endPass(ExecutionContext &ctx)
   G_ASSERTF(activeSubpass == desc.subpasses,
     "vulkan: there is %u subpasses in RP %p [ %p ] <%s>, but we ending it at activeSubpass %u", desc.subpasses, this, getBaseHandle(),
     getDebugName(), activeSubpass);
-  ctx.vkDev.vkCmdEndRenderPass(ctx.frameCore);
+  Backend::cb.wCmdEndRenderPass();
   Backend::sync.setCurrentRenderSubpass(ExecutionSyncTracker::SUBPASS_NON_NATIVE);
 
   state = nullptr;
   bakedAttachments = nullptr;
   activeSubpass = 0;
 
-  ctx.popEventRaw();
+  ctx.popEventTracked();
 }

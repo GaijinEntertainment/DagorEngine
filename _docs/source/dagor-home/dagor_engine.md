@@ -1,33 +1,33 @@
 ## Introduction
 
-The *Dagor Engine* is an open-source game engine by
-[*Gaijin*](https://gaijinent.com/), continuously updated since 2002 for
+The Dagor Engine is an open-source game engine by
+[Gaijin](https://gaijinent.com/), continuously updated since 2002 for
 high-performance gaming and realistic graphics.
 
 ## Platform Support
 
-Supports *Windows PC*, *Linux*, *iOS*, *Android*, *Nintendo Switch*,
-*PlayStation 4*, *PlayStation 5*, *Xbox One*, *Xbox Series X/S*.
+Supports Windows PC, Linux, iOS, Android, Nintendo Switch, PlayStation 4,
+PlayStation 5, Xbox One, Xbox Series X/S.
 
 ## Games Created with the Dagor Engine
 
 Powers games with detailed physics and large-scale environments, including:
 
-- [**War Thunder**](https://warthunder.com/): Vehicular combat game with air,
+- [**War Thunder**](https://warthunder.com/): vehicular combat game with air,
   land, and sea battles across historical eras.
-- [**Enlisted**](https://enlisted.net/): Squad-based WWII first-person shooter
+- [**Enlisted**](https://enlisted.net/): squad-based WWII first-person shooter
   with large-scale battles.
-- [**War Thunder Mobile**](https://www.wtmobile.com/): Mobile adaptation of *War
-  Thunder* for iOS and Android.
+- [**War Thunder Mobile**](https://www.wtmobile.com/): mobile adaptation of War
+  Thunder for iOS and Android.
 
 ## Key Features
 
-- **Graphics Engine**: Supports *DirectX 12*, *Vulkan*, and *Metal* APIs.
+- **Graphics Engine**: supports DirectX 12, Vulkan, and Metal APIs.
 
-- **Physics Engine**: *Dagor* supports third party open source industry
-standard solutions for physics simulation: [**Jolt
-Physics**](https://github.com/jrouwe/JoltPhysics) (preferable) and [**Bullet
-Physics**](https://github.com/bulletphysics).
+- **Physics Engine**: Dagor supports third party open source industry standard
+solutions for physics simulation: [Jolt
+Physics](https://github.com/jrouwe/JoltPhysics) (preferable) and [Bullet
+Physics](https://github.com/bulletphysics).
 
 - **DaGI (Dagor Global Illumination)**
 
@@ -41,7 +41,7 @@ Physics**](https://github.com/bulletphysics).
 - **[Darg (Dagor Reactive GUI)](../api-references/quirrel-modules/quirrel-modules/darg_framework/index.rst)**
 
   - Reactive UI framework based on
-    [*Quirrel*](../api-references/quirrel-modules/dargbox/index.rst) scripting.
+    [Quirrel](../api-references/quirrel-modules/dargbox/index.rst) scripting.
   - Supports stateful components and modular development with native code
     integration.
 
@@ -75,16 +75,15 @@ Physics**](https://github.com/bulletphysics).
 
 - [**Toolset**](../dagor-tools/index.rst)
 
-  - [**Dagor Editor**](../dagor-tools/daeditor/daeditor/daeditor.md): Level
-    editor with terrain editing, prefab placement, and plugin support.
-  - [**Asset
-    Viewer**](../dagor-tools/asset-viewer/asset-viewer/asset_viewer.md):
-    Resource editor and viewer for special effects, particle systems, and
+  - [daEditor](../dagor-tools/daeditor/daeditor/daeditor.md): level editor with
+    terrain editing, prefab placement, and plugin support.
+  - [Asset Viewer](../dagor-tools/asset-viewer/asset-viewer/asset_viewer.md):
+    resource editor and viewer for special effects, particle systems, and
     animations.
-  - [**Impostor Baker**](../dagor-tools/impostor-baker/impostor_baker.md): Tool
-    for optimizing rendering with simplified 3D object representations.
-  - [**Importers and Exporters**](../dagor-tools/addons/index.rst): Integration
-    with *3ds Max*, *Maya*, and *Blender*.
+  - [Impostor Baker](../dagor-tools/impostor-baker/impostor_baker.md): tool for
+    optimizing rendering with simplified 3D object representations.
+  - [Importers and Exporters](../dagor-tools/addons/index.rst): integration with
+    3ds Max, Maya, and Blender.
 
 - **Networking Subsystem**
 

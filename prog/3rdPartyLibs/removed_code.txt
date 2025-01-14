@@ -1,3 +1,6 @@
+removed on 2024/12/26:
+  dagor4/prog/3rdPartyLibs/fmod4
+
 removed on 2023/10/29:
   dagor4/prog/3rdPartyLibs/wtl-8.1
 

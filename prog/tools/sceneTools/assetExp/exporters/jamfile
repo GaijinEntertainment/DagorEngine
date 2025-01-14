@@ -54,6 +54,7 @@ AddIncludes =
   $(Root)/prog/tools/sceneTools/daEditorX/include
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/3rdPartyLibs/math/vhacd
+  $(Root)/prog/3rdPartyLibs/acl/includes
 ;
 
 

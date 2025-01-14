@@ -20,6 +20,7 @@
 #include "backend_interop.h"
 #include "resource_manager.h"
 #include "execution_sync_capture.h"
+#include "wrapped_command_buffer.h"
 
 using namespace drv3d_vulkan;
 
@@ -36,6 +37,7 @@ ShaderModuleStorage Backend::shaderModules;
 GpuExecuteTimelineSpan Backend::gpuJob(Globals::timelines);
 BackendInterop Backend::interop;
 AliasedMemoryStorage Backend::aliasedMemory;
+WrappedCommandBuffer Backend::cb;
 
 ExecutionPODState Backend::State::pod;
 ExecutionState Backend::State::exec;

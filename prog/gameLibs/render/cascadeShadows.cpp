@@ -169,6 +169,7 @@ public:
 
 
   BaseTexture *getShadowsCascade() const { return internalCascades.getTex2D(); }
+  d3d::SamplerHandle getShadowsCascadeSampler() const { return internalCascadesSampler; }
   const TextureInfo &getShadowCascadeTexInfo() const { return shadowCascadesTexInfo; }
 
   void setNeedSsss(bool need_ssss) { needSsss = need_ssss; }
@@ -204,6 +205,7 @@ private:
 
   UniqueTexHolder internalCascades;
   TextureInfo shadowCascadesTexInfo;
+  d3d::SamplerHandle internalCascadesSampler = d3d::INVALID_SAMPLER_HANDLE;
 
   UniqueTexHolder shadowCascadesFakeRT;
   d3d::RenderPass *mobileAreaUpdateRP;
@@ -326,7 +328,8 @@ void CascadeShadowsPrivate::createDepthShadow(int splits_w, int splits_h, int wi
       d3d::SamplerInfo smpInfo;
       smpInfo.filter_mode = d3d::FilterMode::Compare;
       smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
-      ShaderGlobal::set_sampler(get_shader_variable_id("shadow_cascade_depth_tex_samplerstate", true), d3d::request_sampler(smpInfo));
+      internalCascadesSampler = d3d::request_sampler(smpInfo);
+      ShaderGlobal::set_sampler(get_shader_variable_id("shadow_cascade_depth_tex_samplerstate", true), internalCascadesSampler);
     }
     internalCascades->disableSampler();
 
@@ -1191,6 +1194,7 @@ void CascadeShadows::setDepthBiasSettings(const CascadeShadows::Settings &set) {
 void CascadeShadows::setCascadeWidth(int width) { return d->setCascadeWidth(width); }
 
 BaseTexture *CascadeShadows::getShadowsCascade() const { return d->getShadowsCascade(); }
+d3d::SamplerHandle CascadeShadows::getShadowsCascadeSampler() const { return d->getShadowsCascadeSampler(); }
 const TextureInfo &CascadeShadows::getShadowCascadeTexInfo() const { return d->getShadowCascadeTexInfo(); }
 
 const Point2 &CascadeShadows::getZnZf(int cascade_no) const { return d->getZnZf(cascade_no); }

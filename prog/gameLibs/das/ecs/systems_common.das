@@ -20,7 +20,6 @@ def find_system_names(str : string)
   return <- templateNames
 
 
-[unused_argument(str)]
 def find_system_names_sorted(str : string)
   var systemNames <- find_system_names(str)
 

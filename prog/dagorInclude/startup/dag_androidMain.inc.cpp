@@ -62,7 +62,6 @@ extern void android_init_soft_input(android_app *state);
 namespace workcycle_internal
 {
 extern intptr_t main_window_proc(void *, unsigned, uintptr_t, intptr_t);
-extern bool application_active;
 } // namespace workcycle_internal
 
 const char *dagor_android_internal_path = NULL;
@@ -595,11 +594,11 @@ static void dagor_android_handle_cmd(struct android_app *app, int32_t cmd)
     case APP_CMD_GAINED_FOCUS:
       // When our app gains focus, we start monitoring the accelerometer.
       debug("CMD: gained focus");
-      workcycle_internal::application_active = dgs_app_active = true;
+      dgs_app_active = true;
       break;
     case APP_CMD_LOST_FOCUS:
       debug("CMD: lost focus");
-      workcycle_internal::application_active = dgs_app_active = false;
+      dgs_app_active = false;
       break;
     case APP_CMD_DESTROY:
       debug("CMD: destroy: %s", dagor_fast_shutdown ? "fast" : "normal");

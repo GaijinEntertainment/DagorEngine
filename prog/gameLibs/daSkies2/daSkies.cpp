@@ -179,6 +179,8 @@ static inline void set_resolution_var(int, int) {}
 
 bool DaSkies::isPrepareRequired() const { return clouds && clouds->isPrepareRequired(); }
 
+bool DaSkies::isCloudsReady() const { return clouds && clouds->isReady(); }
+
 void DaSkies::prepare(const Point3 &dir_to_sun, bool force_update, float dt)
 {
   prepareFrame++;

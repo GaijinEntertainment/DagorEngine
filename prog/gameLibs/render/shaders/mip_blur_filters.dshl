@@ -175,6 +175,9 @@ shader gaussian_mipchain_alpha_cs
     [numthreads( 8, 8, 1 )]
     void gauss_mip_cs(uint3 DTid : SV_DispatchThreadID)
     {
+      if(any(DTid.xy >= mip_target_size.xy))
+        return;
+
       ##if gaussian_mipchain_srgb == yes
         texture2DAt(mip_target, DTid.xy) = ApplySRGBCurve(gauss_mip_alpha(mip_target_size.zw * (DTid.xy + 0.5)));
       ##else

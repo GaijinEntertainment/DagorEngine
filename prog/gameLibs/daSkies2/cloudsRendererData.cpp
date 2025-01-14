@@ -79,8 +79,8 @@ void CloudsRendererData::setVars()
 {
   const int dw = bool(clouds_tile_distance) ? (w + tileX - 1) / tileX : 0, dh = dw != 0 ? (h + tileY - 1) / tileY : 0;
   G_ASSERT(w > 0 && h > 0);
-  ShaderGlobal::set_color4(clouds_tiled_resVarId, dw, dh, 0, 0);
-  ShaderGlobal::set_color4(clouds2_resolutionVarId, w, h, lowresCloseClouds ? w / 2 : w, lowresCloseClouds ? h / 2 : h);
+  ShaderGlobal::set_int4(clouds_tiled_resVarId, dw, dh, 0, 0);
+  ShaderGlobal::set_int4(clouds2_resolutionVarId, w, h, lowresCloseClouds ? w / 2 : w, lowresCloseClouds ? h / 2 : h);
   ShaderGlobal::set_texture(clouds_colorVarId, cloudsTextureColor[2]);
   ShaderGlobal::set_texture(clouds_color_closeVarId, clouds_color_close);
   ShaderGlobal::set_texture(clouds_tile_distanceVarId, clouds_tile_distance);

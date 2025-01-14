@@ -9,7 +9,7 @@
 #include <EASTL/type_traits.h>
 #include <EASTL/algorithm.h>
 #include <EASTL/numeric.h>
-#include <vecmath/dag_vecMathDecl.h>
+#include <util/dag_compilerDefs.h>
 #include <debug/dag_assert.h>
 #include "dag_bitset.h"
 
@@ -133,7 +133,7 @@ class ObjectPool
   {
     using StorageUnit = typename eastl::aligned_storage<sizeof(T), alignof(T)>::type;
 
-#if !defined(DAGOR_ASAN_ENABLED)
+#if !defined(DAGOR_ADDRESS_SANITIZER)
     // Don't initialize block memory - don't waste any time for that, if possible - its perfectly fine
     StorageUnit objects[BlockSize]; //-V730
 #else
@@ -143,7 +143,7 @@ class ObjectPool
 #endif
 
   public:
-#if !defined(DAGOR_ASAN_ENABLED)
+#if !defined(DAGOR_ADDRESS_SANITIZER)
     T *get(size_t index) { return reinterpret_cast<T *>(&objects[index]); }
     void *get_raw(size_t index) { return &objects[index]; }
     const T *get(size_t index) const { return reinterpret_cast<const T *>(&objects[index]); }
@@ -158,7 +158,7 @@ class ObjectPool
     T *acquireSlot(size_t i)
     {
       this->markAsAllocated(i);
-#if defined(DAGOR_ASAN_ENABLED)
+#if defined(DAGOR_ADDRESS_SANITIZER)
       objects[i] = ::new StorageUnit;
 #endif
       return get(i);
@@ -168,7 +168,7 @@ class ObjectPool
     {
       return TypeHandler::construct(acquireSlot(i), eastl::forward<Args>(args)...);
     }
-#if !defined(DAGOR_ASAN_ENABLED)
+#if !defined(DAGOR_ADDRESS_SANITIZER)
     // Calculates offset from &objects[0] to ptr. This value can be anything, negative values and values outside of this block.
     ptrdiff_t calculate_relative_offset(const T *ptr) const { return reinterpret_cast<const StorageUnit *>(ptr) - &objects[0]; }
 #else
@@ -188,7 +188,7 @@ class ObjectPool
     void release(T *ptr)
     {
       const auto offset = calculate_relative_offset(ptr);
-#if defined(DAGOR_ASAN_ENABLED)
+#if defined(DAGOR_ADDRESS_SANITIZER)
       ::delete eastl::exchange(objects[offset], nullptr);
 #endif
       this->markAsFree(offset);
@@ -205,7 +205,12 @@ class ObjectPool
       // for trivial this should end up to be a no-op
       for (size_t i = 0; i < BlockSize; ++i)
         if (this->isAllocated(i))
+        {
           TypeHandler::destruct(get(i));
+#if defined(DAGOR_ADDRESS_SANITIZER)
+          ::delete eastl::exchange(objects[i], nullptr);
+#endif
+        }
       this->markAllAsFree();
     }
   };

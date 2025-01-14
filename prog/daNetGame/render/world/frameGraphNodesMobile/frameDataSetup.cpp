@@ -95,14 +95,19 @@ dabfg::NodeHandle mk_frame_data_setup_node()
         wr.updateTransformations(jitterOffset, wr.currentFrameCamera.cameraWorldPos - wr.prevFrameCamera.cameraWorldPos);
       }
 
+      const Point3 camPos = wr.currentFrameCamera.viewItm.getcol(3);
+
       occlusionHndl.ref() = current_occlusion;
       cameraHndl.ref() = wr.currentFrameCamera;
-      sunParamsHndl.ref() = {wr.dir_to_sun.curr, wr.sun};
+      Point3 panoramaDirToSun = wr.dir_to_sun.curr;
+      auto skies = get_daskies();
+      if (skies != nullptr)
+        panoramaDirToSun = skies->calcPanoramaSunDir(camPos);
+      sunParamsHndl.ref() = {wr.dir_to_sun.curr, wr.sun, panoramaDirToSun};
       riVisibilityHndl.ref() = wr.rendinst_main_visibility;
       texCtxHndl.ref() = wr.currentTexCtx;
 
       {
-        const Point3 camPos = wr.currentFrameCamera.viewItm.getcol(3);
         const float water_level = wr.water ? fft_water::get_level(wr.water) : -10000;
         const bool belowClouds = get_daskies() ? max(camPos.y, water_level) < get_daskies()->getCloudsStartAlt() - 10.0f : true;
         waterLevelHndl.ref() = water_level;

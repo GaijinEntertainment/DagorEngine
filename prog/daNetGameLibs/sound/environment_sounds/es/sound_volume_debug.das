@@ -1,5 +1,6 @@
 options no_aot
 require ecs
+require ecs.ecs_template
 require math.color
 require math.base
 require DagorMath
@@ -86,29 +87,31 @@ def debug_draw_shape(shape : uint; norm_tm : float3x4; extent : float3; wire_col
       draw_cached_debug_trilist(BOX_FACES, SOLID_COLOR)
 
 
-[es(no_order, tag=sound, on_event=EventSoundDrawDebug)]
-def volume_ambient_sound_debug(evt : Event;
-                               eid : EntityId;
-                               game_object_sound__name : string;
-                               sound_shape__type : string;
-                               var volume_ambient_sound__transform : float3x4&;
-                               var volume_ambient_sound__extent_maxRadiusSq : float4&)
-  query(eid) <| $ [es(REQUIRE=soundShapeDebug)] (transform : float3x4)
-    volume_ambient_sound__transform = transform
-    volume_ambient_sound__extent_maxRadiusSq.xyz = make_sound_shape(volume_ambient_sound__transform, sound_hash(sound_shape__type))
+[es(no_order, tag=sound, on_event=EventSoundDrawDebug, REQUIRE=soundDebugDrawVolumes)]
+def volume_ambient_sound_debug(evt : Event)
 
-  add_debug_text_mark(volume_ambient_sound__transform[3], "{game_object_sound__name} {getEntityTemplateName(eid)}", -1, 0., MARK_COLOR)
+  query() <| $ [es] (eid : EntityId;
+                     game_object_sound__name : string;
+                     sound_shape__type : string;
+                     var volume_ambient_sound__transform : float3x4&;
+                     var volume_ambient_sound__extent_maxRadiusSq : float4&)
 
-  begin_draw_cached_debug_lines(false, false, false)
-  debug_draw_shape(sound_hash(sound_shape__type), volume_ambient_sound__transform, volume_ambient_sound__extent_maxRadiusSq.xyz, WIRE_UNDERCOLOR, false)
-  end_draw_cached_debug_lines()
+    query(eid) <| $ [es(REQUIRE=soundShapeDebug)] (transform : float3x4)
+      volume_ambient_sound__transform = transform
+      volume_ambient_sound__extent_maxRadiusSq.xyz = make_sound_shape(volume_ambient_sound__transform, sound_hash(sound_shape__type))
 
-  begin_draw_cached_debug_lines(true, false, false)
-  debug_draw_shape(sound_hash(sound_shape__type), volume_ambient_sound__transform, volume_ambient_sound__extent_maxRadiusSq.xyz, WIRE_COLOR, true)
-  end_draw_cached_debug_lines()
+    add_debug_text_mark(volume_ambient_sound__transform[3], "{game_object_sound__name} {getEntityTemplateName(eid)}", -1, 0., MARK_COLOR)
+
+    begin_draw_cached_debug_lines(false, false, false)
+    debug_draw_shape(sound_hash(sound_shape__type), volume_ambient_sound__transform, volume_ambient_sound__extent_maxRadiusSq.xyz, WIRE_UNDERCOLOR, false)
+    end_draw_cached_debug_lines()
+
+    begin_draw_cached_debug_lines(true, false, false)
+    debug_draw_shape(sound_hash(sound_shape__type), volume_ambient_sound__transform, volume_ambient_sound__extent_maxRadiusSq.xyz, WIRE_COLOR, true)
+    end_draw_cached_debug_lines()
 
 
-[es(no_order, tag=sound, on_event=EventSoundDrawDebug, REQUIRE=msg_sink)]
+[es(no_order, tag=sound, on_event=EventSoundDrawDebug, REQUIRE=soundDebugDrawVolumes)]
 def compound_ambient_sound_type_debug(evt : Event)
 /*
   let debugObjectName = "sfx_point_transformator_a"
@@ -140,7 +143,7 @@ def compound_ambient_sound_type_debug(evt : Event)
   begin_draw_cached_debug_lines(false, false, false)
 
   query() <| $ [es] (eid : EntityId; compound_ambient_sound_type__soundType : string)
-    enum_sounds_in_box(box, sound_hash(compound_ambient_sound_type__soundType)) <| $ [unused_argument(sound_shape)] (sound_shape : uint; extents : float3; tm : float3x4#)
+    enum_sounds_in_box(box, sound_hash(compound_ambient_sound_type__soundType)) <| $(sound_shape : uint; extents : float3; tm : float3x4#)
       set_cached_debug_lines_wtm(tm)
       debug_draw_shape(sound_shape, get_norm_tm(tm, extents), extents, WIRE_UNDERCOLOR, false)
       let shape = sound_shape == sound_hash("box") ? "box" : sound_shape == sound_hash("capsule") ? "capsule" : sound_shape == sound_hash("sphere") ? "sphere" : "???";
@@ -151,7 +154,7 @@ def compound_ambient_sound_type_debug(evt : Event)
   begin_draw_cached_debug_lines(true, false, false)
 
   query() <| $ [es] (eid : EntityId; compound_ambient_sound_type__soundType : string)
-    enum_sounds_in_box(box, sound_hash(compound_ambient_sound_type__soundType)) <| $ [unused_argument(sound_shape)] (sound_shape : uint; extents : float3; tm : float3x4#)
+    enum_sounds_in_box(box, sound_hash(compound_ambient_sound_type__soundType)) <| $(sound_shape : uint; extents : float3; tm : float3x4#)
       set_cached_debug_lines_wtm(tm)
       debug_draw_shape(sound_shape, get_norm_tm(tm, extents), extents, SOLID_COLOR, true)
       let shape = sound_shape == sound_hash("box") ? "box" : sound_shape == sound_hash("capsule") ? "capsule" : sound_shape == sound_hash("sphere") ? "sphere" : "???";
@@ -172,18 +175,33 @@ def sound_debug_print_sound_volumes()
   logerr(text)
 
 
-[es(no_order, tag=sound, on_event=EventSoundDrawDebug, REQUIRE=msg_sink)]
+[es(no_order, tag=sound, on_event=EventSoundDrawDebug, REQUIRE=soundDebugDrawVolumes)]
 def generated_sound_effect_debug(evt : Event)
   begin_draw_cached_debug_lines(false, false, false)
-
   var tm = IDENT_TM
   tm[0] *= 0.15
   tm[1] *= 0.15
   tm[2] *= 0.15
-
   query() <| $ [es(REQUIRE=generatedSoundEffect)] (transform : float3x4)
     tm[3] = transform[3]
     set_cached_debug_lines_wtm(tm)
     draw_cached_debug_trilist(BOX_FACES, POINT_COLOR)
-
   end_draw_cached_debug_lines()
+
+
+[ecs_template]
+struct sound_debug_draw_volumes
+  soundDebugDrawVolumes : bool
+
+[console_cmd(name="snd.debug_draw_volumes")]
+def sound_debug_draw_volumes_console_cmd()
+  var entEid : EntityId
+  find_query() <| $ [es(REQUIRE=soundDebugDrawVolumes)] (eid : EntityId)
+    entEid = eid
+    return true
+  if !entEid
+    createEntity("sound_debug_draw_volumes")
+    sound_debug("snd.debug_draw_volumes=1")
+  else
+    destroyEntity(entEid)
+    sound_debug("snd.debug_draw_volumes=0")

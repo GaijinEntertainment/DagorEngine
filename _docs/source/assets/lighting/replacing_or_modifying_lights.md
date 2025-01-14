@@ -223,8 +223,8 @@ any *daNetGame*-based project.
 
    ![](./_images/replacing_or_modifying_lights_35.jpg)
 
-2. **Export to Game**: Select **Project** ▸ **Export to game (PC format)**,
-   leave the settings unchanged, and confirm.
+2. **Export to Game**: Select **Project > Export to game (PC format)**, leave
+   the settings unchanged, and confirm.
 
    ![](./_images/replacing_or_modifying_lights_36.jpg)
 

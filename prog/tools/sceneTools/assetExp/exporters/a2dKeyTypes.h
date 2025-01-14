@@ -62,6 +62,7 @@ struct ChannelData
   int nodeAnimOfs = 0;
   int nodeNameOfs = 0;
   int nodeWtOfs = 0;
+  int nodeTrackOfs = 0;
 
   ~ChannelData() { clear(); }
 
@@ -78,6 +79,18 @@ struct ChannelData
     del_it(nodeName);
     del_it(nodeWt);
     nodeNum = 0;
+  }
+  void moveDataFrom(ChannelData &from)
+  {
+    clear();
+    nodeAnim = from.nodeAnim;
+    from.nodeAnim = nullptr;
+    nodeName = from.nodeName;
+    from.nodeName = nullptr;
+    nodeWt = from.nodeWt;
+    from.nodeWt = nullptr;
+    nodeNum = from.nodeNum;
+    from.nodeNum = 0;
   }
   static int cmp(const ChannelData *a, const ChannelData *b)
   {
@@ -98,8 +111,9 @@ struct ChannelData
 };
 DAG_DECLARE_RELOCATABLE(ChannelData);
 
-vec4f interp_point3(ChannelData::Anim &a, int t);
-vec4f interp_quat(ChannelData::Anim &a, int t);
+static constexpr int INITIAL_INTERP_HINT = 0;
+vec4f interp_point3(ChannelData::Anim &a, int t, int &hint);
+vec4f interp_quat(ChannelData::Anim &a, int t, int &hint);
 
 namespace animopt
 {

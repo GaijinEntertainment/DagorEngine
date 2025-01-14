@@ -241,65 +241,76 @@ const SQChar* SQFunctionProto::GetLocal(SQVM *vm,SQUnsignedInteger stackbase,SQU
 }
 
 
-SQInteger SQFunctionProto::GetLine(SQInstruction *curr, int *hint, bool *is_line_op)
+SQInteger SQFunctionProto::GetLine(SQLineInfo* lineinfos, int nlineinfos, int instruction_index, int* hint, bool* is_line_op)
 {
-    int op = (int)(curr-_instructions);
-    int high = _nlineinfos - 1;
+    int pos = nlineinfos - 1;
+    int low = 0;
+    int high = nlineinfos - 1;
+    int tryCount = 20;
 
-    if (hint && *hint < high) {
-        int pos = *hint;
-        if (op > _lineinfos[pos]._op && op <= _lineinfos[pos + 1]._op) {
+    if (hint && unsigned(*hint) < unsigned(high)) {
+        int h = *hint;
+        if (instruction_index >= lineinfos[h]._op && instruction_index < lineinfos[h + 1]._op) {
             if (is_line_op)
-                *is_line_op = _lineinfos[pos]._is_line_op;
-            return _lineinfos[pos]._line;
+                *is_line_op = lineinfos[h]._is_line_op;
+            return lineinfos[h]._line;
         }
-        if (op == _lineinfos[pos + 1]._op + 1) {
-            *hint = ++pos;
+        else if (instruction_index >= lineinfos[h + 1]._op && instruction_index < lineinfos[h + 2]._op) {
+            h++;
+            *hint = h;
             if (is_line_op)
-                *is_line_op = _lineinfos[pos]._is_line_op;
-            return _lineinfos[pos]._line;
+                *is_line_op = lineinfos[h]._is_line_op;
+            return lineinfos[h]._line;
         }
-        if (!op) {
-            if (is_line_op)
-                *is_line_op = _lineinfos[pos]._is_line_op;
-            return _lineinfos[0]._line;
+        else if (instruction_index == 0) {
+            for (int i = 0; i < nlineinfos - 1; i++)
+                if (instruction_index >= lineinfos[i]._op && instruction_index < lineinfos[i + 1]._op) {
+                    *hint = i;
+                    if (is_line_op)
+                        *is_line_op = lineinfos[i]._is_line_op;
+                    return lineinfos[i]._line;
+                }
         }
     }
 
-    int line = 0;
-    int low = 0;
-    int mid = 0;
-    while(low <= high)
-    {
-        mid = low + ((high - low) >> 1);
-        int curop = _lineinfos[mid]._op;
-        if(curop > op) {
+    while (high >= low && --tryCount) {
+        int mid = (high + low) / 2;
+
+        if (instruction_index < lineinfos[mid]._op)
             high = mid - 1;
-        }
-        else if(curop < op) {
-            if(mid < (_nlineinfos - 1)
-                && _lineinfos[mid + 1]._op >= op) {
-                break;
-            }
+        else if (instruction_index >= lineinfos[mid + 1]._op)
             low = mid + 1;
-        }
-        else { //equal
+        else {
+            pos = mid;
             break;
         }
     }
 
-    while(mid > 0 && _lineinfos[mid]._op >= op) mid--;
-
-    line = _lineinfos[mid]._line;
+    if (tryCount == 0) {
+        // TODO: failsafe pass, to be reomved later
+        assert(0);
+        for (int i = 0; i < nlineinfos - 1; i++)
+            if (instruction_index >= lineinfos[i]._op && instruction_index < lineinfos[i + 1]._op) {
+                pos = i;
+                break;
+            }
+    }
 
     if (is_line_op)
-        *is_line_op = _lineinfos[mid]._is_line_op;
+        *is_line_op = lineinfos[pos]._is_line_op;
 
     if (hint)
-        *hint = mid;
+        *hint = pos;
 
-    return line;
+    return lineinfos[pos]._line;
 }
+
+
+SQInteger SQFunctionProto::GetLine(const SQInstruction *curr, int *hint, bool *is_line_op)
+{
+    return GetLine(_lineinfos, _nlineinfos, int(curr - _instructions), hint, is_line_op);
+}
+
 
 SQClosure::~SQClosure()
 {

@@ -134,7 +134,7 @@ shader water_nv2
       float  distToZfar = saturate(dist / zn_zfar.y);
       float4 result;
 
-      pointToEye *= invDist;
+      float3 pointToEyeNormalized = pointToEye * invDist;
 
       CascadesTex csc;
       ##if water_flowmap_tex == NULL || mobile_render != off
@@ -146,12 +146,11 @@ shader water_nv2
       float4 nvsf_blendfactors0123 = 1;
       float4 nvsf_blendfactors4567 = 1;
       GFSDK_WAVEWORKS_SURFACE_ATTRIBUTES surfaceAttributes = GFSDK_WaveWorks_GetSurfaceAttributes(In, csc, nvsf_blendfactors0123,
-                                                                                                  nvsf_blendfactors4567, pointToEye);
+                                                                                                  nvsf_blendfactors4567, pointToEyeNormalized);
 
       half3 worldNormal = surfaceAttributes.normal.xzy;
       worldNormal.y = MUL_VFACE(worldNormal.y);
 
-      float3 pointToEyeNormalized = pointToEye;
       float3 reflectDirNormalized = reflect(-pointToEyeNormalized, worldNormal);
 
       float3 reflectSampleDir = reflectDirNormalized;
@@ -189,7 +188,7 @@ shader water_nv2
       #if PBR_FORWARD_SHADING
         half3 reflectionColor = pack_hdr(enviReflection * enviBRDF + sunReflection);
 
-        float3 viewSH = GetSHFunctionValueSimple(pointToEye, gbuffer_enviSPH0, gbuffer_enviSPH1, gbuffer_enviSPH2);
+        float3 viewSH = GetSHFunctionValueSimple(pointToEyeNormalized, gbuffer_enviSPH0, gbuffer_enviSPH1, gbuffer_enviSPH2);
         half4 fog = get_exp_fog(distSq, viewSH);
         reflectionColor.rgb = apply_fog(reflectionColor, fog);
 

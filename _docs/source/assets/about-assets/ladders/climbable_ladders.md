@@ -136,7 +136,7 @@ behave incorrectly.
 2. Scale it to match the ladder’s dimensions.
 
 3. Export the composite object (or the entire building) using the menu option
-   **Landscape** ▸ **Export as composite**.
+   **Landscape > Export as composite**.
 
    <img src="_images/climbable_ladders_06.jpg" width="80%" align="center" class="bg-primary">
 

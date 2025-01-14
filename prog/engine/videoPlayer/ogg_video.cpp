@@ -316,8 +316,9 @@ public:
   virtual void destroy() { delete this; }
   virtual void advance(int max_usec) { mainLoop(max_usec); }
 
-  virtual bool getFrame(TEXTUREID &idY, TEXTUREID &idU, TEXTUREID &idV)
+  virtual bool getFrame(TEXTUREID &idY, TEXTUREID &idU, TEXTUREID &idV, d3d::SamplerHandle &smp)
   {
+    smp = sampler;
     if (!vBuf.used)
     {
     no_new_frames:

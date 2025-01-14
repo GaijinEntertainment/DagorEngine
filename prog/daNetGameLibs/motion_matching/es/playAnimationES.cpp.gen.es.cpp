@@ -107,11 +107,10 @@ static ecs::EntitySystemDesc mm_update_goal_features_es_es_desc
 ,"render",nullptr,"motion_matching_job_es");
 static constexpr ecs::ComponentDesc update_tag_changes_es_comps[] =
 {
-//start of 8 rw components at [0]
+//start of 7 rw components at [0]
   {ECS_HASH("motion_matching__controller"), ecs::ComponentTypeInfo<MotionMatchingController>()},
   {ECS_HASH("animchar"), ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>()},
   {ECS_HASH("motion_matching__presetIdx"), ecs::ComponentTypeInfo<int>()},
-  {ECS_HASH("motion_matching__animationBlendTime"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("motion_matching__presetBlendTimeLeft"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("mm_trajectory__linearVelocityViscosity"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("mm_trajectory__angularVelocityViscosity"), ecs::ComponentTypeInfo<float>()},
@@ -125,7 +124,6 @@ static void update_tag_changes_es_all_events(const ecs::Event &__restrict evt, c
         , ECS_RW_COMP(update_tag_changes_es_comps, "motion_matching__controller", MotionMatchingController)
     , ECS_RW_COMP(update_tag_changes_es_comps, "animchar", AnimV20::AnimcharBaseComponent)
     , ECS_RW_COMP(update_tag_changes_es_comps, "motion_matching__presetIdx", int)
-    , ECS_RW_COMP(update_tag_changes_es_comps, "motion_matching__animationBlendTime", float)
     , ECS_RW_COMP(update_tag_changes_es_comps, "motion_matching__presetBlendTimeLeft", float)
     , ECS_RW_COMP(update_tag_changes_es_comps, "mm_trajectory__linearVelocityViscosity", float)
     , ECS_RW_COMP(update_tag_changes_es_comps, "mm_trajectory__angularVelocityViscosity", float)
@@ -138,7 +136,7 @@ static ecs::EntitySystemDesc update_tag_changes_es_es_desc
   "update_tag_changes_es",
   "prog/daNetGameLibs/motion_matching/es/playAnimationES.cpp.inl",
   ecs::EntitySystemOps(nullptr, update_tag_changes_es_all_events),
-  make_span(update_tag_changes_es_comps+0, 8)/*rw*/,
+  make_span(update_tag_changes_es_comps+0, 7)/*rw*/,
   empty_span(),
   empty_span(),
   empty_span(),
@@ -193,14 +191,13 @@ static ecs::EntitySystemDesc wait_motion_matching_job_es_es_desc
 ,"render",nullptr,"animchar_es","after_net_phys_sync");
 static constexpr ecs::ComponentDesc motion_matching_ecs_query_comps[] =
 {
-//start of 6 rw components at [0]
+//start of 5 rw components at [0]
   {ECS_HASH("motion_matching__controller"), ecs::ComponentTypeInfo<MotionMatchingController>()},
   {ECS_HASH("motion_matching__updateProgress"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("motion_matching__metricaTolerance"), ecs::ComponentTypeInfo<float>()},
-  {ECS_HASH("motion_matching__animationBlendTime"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("motion_matching__presetBlendTimeLeft"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("motion_matching__goalFeature"), ecs::ComponentTypeInfo<FrameFeatures>()},
-//start of 5 ro components at [6]
+//start of 5 ro components at [5]
   {ECS_HASH("motion_matching__blendTimeToAnimtree"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("motion_matching__distanceFactor"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("motion_matching__presetIdx"), ecs::ComponentTypeInfo<int>()},
@@ -210,8 +207,8 @@ static constexpr ecs::ComponentDesc motion_matching_ecs_query_comps[] =
 static ecs::CompileTimeQueryDesc motion_matching_ecs_query_desc
 (
   "motion_matching_ecs_query",
-  make_span(motion_matching_ecs_query_comps+0, 6)/*rw*/,
-  make_span(motion_matching_ecs_query_comps+6, 5)/*ro*/,
+  make_span(motion_matching_ecs_query_comps+0, 5)/*rw*/,
+  make_span(motion_matching_ecs_query_comps+5, 5)/*ro*/,
   empty_span(),
   empty_span()
   , 1);
@@ -229,7 +226,6 @@ inline void motion_matching_ecs_query(Callable function)
               ECS_RW_COMP(motion_matching_ecs_query_comps, "motion_matching__controller", MotionMatchingController)
             , ECS_RW_COMP(motion_matching_ecs_query_comps, "motion_matching__updateProgress", float)
             , ECS_RW_COMP(motion_matching_ecs_query_comps, "motion_matching__metricaTolerance", float)
-            , ECS_RW_COMP(motion_matching_ecs_query_comps, "motion_matching__animationBlendTime", float)
             , ECS_RW_COMP(motion_matching_ecs_query_comps, "motion_matching__presetBlendTimeLeft", float)
             , ECS_RO_COMP(motion_matching_ecs_query_comps, "motion_matching__blendTimeToAnimtree", float)
             , ECS_RO_COMP(motion_matching_ecs_query_comps, "motion_matching__distanceFactor", float)

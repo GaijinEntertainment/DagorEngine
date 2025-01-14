@@ -47,6 +47,8 @@ public:
   virtual void createTargetButton(int id, const char caption[], const char text[] = "", bool enabled = true, bool new_line = true);
   virtual void createEditInt(int id, const char caption[], int value = 0, bool enabled = true, bool new_line = true);
   virtual void createEditFloat(int id, const char caption[], float value = 0, int prec = 2, bool enabled = true, bool new_line = true);
+  virtual void createEditFloatWidthEx(int id, const char caption[], float value = 0, int prec = 2, bool enabled = true,
+    bool new_line = true, bool width_includes_label = true);
   virtual void createTrackInt(int id, const char caption[], int value, int min, int max, int step, bool enabled = true,
     bool new_line = true);
   virtual void createTrackFloat(int id, const char caption[], float value, float min, float max, float step, bool enabled = true,

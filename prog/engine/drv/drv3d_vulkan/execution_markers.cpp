@@ -5,6 +5,7 @@
 #include "debug_naming.h"
 #include "device_context.h"
 #include "device_queue.h"
+#include "wrapped_command_buffer.h"
 
 using namespace drv3d_vulkan;
 
@@ -161,9 +162,8 @@ bool ExecutionMarkers::hasPassed(size_t id, const void *ptr)
   return true;
 }
 
-void ExecutionMarkers::write(VulkanCommandBufferHandle cb, VkPipelineStageFlagBits stage, size_t work_idx, const void *cmd)
+void ExecutionMarkers::write(VkPipelineStageFlagBits stage, size_t work_idx, const void *cmd)
 {
-  G_UNUSED(cb);
   G_UNUSED(stage);
 
 #if VK_AMD_buffer_marker | VK_NV_device_diagnostic_checkpoints
@@ -182,7 +182,7 @@ void ExecutionMarkers::write(VulkanCommandBufferHandle cb, VkPipelineStageFlagBi
     dbgInfo.commandPtr = cmd;
     dbgInfo.commandIndex = indexValue;
 
-    VULKAN_LOG_CALL(vkDev.vkCmdWriteBufferMarkerAMD(cb, stage, executionMarkerBuffer->getHandle(),
+    VULKAN_LOG_CALL(Backend::cb.wCmdWriteBufferMarkerAMD(stage, executionMarkerBuffer->getHandle(),
       executionMarkerBuffer->bufOffsetLoc((indexValue % MAX_DEBUG_MARKER_BUFFER_ENTRIES) * sizeof(uint32_t)), indexValue));
 
     return;
@@ -200,7 +200,7 @@ void ExecutionMarkers::write(VulkanCommandBufferHandle cb, VkPipelineStageFlagBi
     dbgInfo.commandPtr = cmd;
     dbgInfo.commandIndex = indexValue;
 
-    VULKAN_LOG_CALL(vkDev.vkCmdSetCheckpointNV(cb, (void *)(uintptr_t)indexValue));
+    VULKAN_LOG_CALL(Backend::cb.wCmdSetCheckpointNV((void *)(uintptr_t)indexValue));
     return;
   }
 #endif

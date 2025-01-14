@@ -13,6 +13,8 @@
 
 ECS_REGISTER_EVENT(OnRenderSettingsReady)
 
+extern const char *const EMPTY_LEVEL_NAME;
+
 namespace ecs
 {
 extern bool ecs_is_in_init_phase;
@@ -181,7 +183,7 @@ void apply_united_vdata_settings(const DataBlock *scene_blk)
           applied = true;
           DataBlock levelBlk;
           const char *levelPath = eblk->getStr(pid);
-          bool ok = strcmp(levelPath, "__empty__") != 0 && dblk::load(levelBlk, levelPath, dblk::ReadFlag::ROBUST_IN_REL);
+          bool ok = strcmp(levelPath, EMPTY_LEVEL_NAME) != 0 && dblk::load(levelBlk, levelPath, dblk::ReadFlag::ROBUST_IN_REL);
           prepare_united_vdata_setup(ok ? &levelBlk : nullptr);
         }
       });

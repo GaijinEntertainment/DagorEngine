@@ -26,6 +26,8 @@
 #include "resource_manager.h"
 #include "vk_format_utils.h"
 #include "device_context.h"
+#include "global_lock.h"
+#include "resource_upload_limit.h"
 
 #if 0
 #define VERBOSE_DEBUG debug
@@ -612,8 +614,10 @@ BaseTexture *BaseTex::makeTmpTexResCopy(int w, int h, int d, int l, bool staging
 }
 void BaseTex::replaceTexResObject(BaseTexture *&other_tex)
 {
+  if (this == other_tex)
+    return;
+
   {
-    WinAutoLock lock(Globals::ctx.getStubSwapGuard());
     BaseTex *other = getbasetex(other_tex);
     G_ASSERT_RETURN(other, );
 
@@ -1350,24 +1354,15 @@ ArrayTexture *d3d::create_cube_array_tex(int side, int d, int flg, int levels, c
 static BaseTexture *retry_load_ddsx_tex_contents(BaseTexture *tex, const ddsx::Header &hdr, int quality_id, const void *ptr, int sz,
   const char *stat_name)
 {
-  TexLoadRes ldRet = TexLoadRes::ERR;
-  for (unsigned attempt = 0, tries = 5, f = dagor_frame_no(); attempt < tries;)
-    if (dagor_frame_no() < f + 1)
-      sleep_msec(1);
-    else
-    {
-      InPlaceMemLoadCB mcrd(ptr, sz);
-      ldRet = d3d::load_ddsx_tex_contents(tex, hdr, mcrd, quality_id);
-      if (ldRet == TexLoadRes::OK)
-      {
-        debug("finally loaded %s (attempt=%d)", stat_name, attempt + 1);
-        return tex;
-      }
-      f = dagor_frame_no();
-      attempt++;
-    }
-  if (ldRet != TexLoadRes::ERR_RUB)
-    D3D_ERROR("vulkan: retry failure at texture %s ddsx load", stat_name);
+  // this retry should always complete with OK status, as there is no higher level retry logic on use places
+  // so just use RUB overallocation
+  Frontend::resUploadLimit.setNoFailOnThread(true);
+  InPlaceMemLoadCB mcrd(ptr, sz);
+  TexLoadRes ldRet = d3d::load_ddsx_tex_contents(tex, hdr, mcrd, quality_id);
+  Frontend::resUploadLimit.setNoFailOnThread(false);
+  if (ldRet != TexLoadRes::OK)
+    D3D_ERROR("vulkan: retry failure at texture %s ddsx load code %u", stat_name, (int)ldRet);
+  // caller don't expect nullptr, so complain, but not crash!
   return tex;
 }
 
@@ -1405,8 +1400,7 @@ BaseTexture *d3d::create_ddsx_tex(IGenLoad &crd, int flg, int quality_id, int le
       if (ldRet == TexLoadRes::OK)
         return tex;
 
-      if (!is_main_thread())
-        return retry_load_ddsx_tex_contents(tex, hdr, quality_id, bt->texCopy.data() + sizeof(hdr), data_sz, stat_name);
+      return retry_load_ddsx_tex_contents(tex, hdr, quality_id, bt->texCopy.data() + sizeof(hdr), data_sz, stat_name);
     }
     else
     {
@@ -1427,10 +1421,8 @@ BaseTexture *d3d::create_ddsx_tex(IGenLoad &crd, int flg, int quality_id, int le
       if (ldRet == TexLoadRes::OK)
         return tex;
 
-      if (!is_main_thread())
-        return retry_load_ddsx_tex_contents(tex, hdr, quality_id, tmpBuffer.get(), dataSz, stat_name);
+      return retry_load_ddsx_tex_contents(tex, hdr, quality_id, tmpBuffer.get(), dataSz, stat_name);
     }
-    del_d3dres(tex);
   }
   return nullptr;
 }

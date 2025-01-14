@@ -139,6 +139,7 @@ static eastl::vector<EffectManager *> fx_managers;
 StaticTab<int, ERT_TAG_COUNT> particles_block_id;
 
 ECS_REGISTER_EVENT(StartEffectEvent);
+ECS_REGISTER_EVENT(StartEffectPosNormEvent);
 
 eastl::unique_ptr<HudPrimitives> fx_labels_immediate_context_debug;
 
@@ -613,7 +614,7 @@ void finish_update(const TMatrix4 &tm)
   bool finished = dafx::update_finished(g_dafx_ctx);
 
   dafx::set_global_value(g_dafx_ctx, "globtm", &tm, 64);
-  dafx::set_global_value(g_dafx_ctx, "globtm_prev", g_globtm_prev_valid ? &g_globtm_prev : &tm, 64);
+  dafx::set_global_value(g_dafx_ctx, "globtm_sim", g_globtm_prev_valid ? &g_globtm_prev : &tm, 64);
   g_globtm_prev = tm;
   g_globtm_prev_valid = true;
 
@@ -1117,3 +1118,10 @@ void rifx_composite::startEffect(int type, const TMatrix &fx_tm, AcesEffect **lo
 }
 
 void rifx_composite::stopEffect(AcesEffect *fx_handle) { acesfx::stop_effect(fx_handle); }
+
+
+ECS_TAG(render)
+static inline void start_effect_pos_norm_es(const acesfx::StartEffectPosNormEvent &evt)
+{
+  acesfx::start_effect_pos_norm(evt.get<0>(), evt.get<1>(), evt.get<2>(), evt.get<3>(), evt.get<4>());
+}

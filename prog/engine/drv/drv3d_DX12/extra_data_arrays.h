@@ -30,4 +30,5 @@ using BufferImageCopyListRef = ExtraDataArray<const BufferImageCopy>;
 using BufferResourceReferenceAndShaderResourceViewListRef = ExtraDataArray<const BufferResourceReferenceAndShaderResourceView>;
 using ViewportListRef = ExtraDataArray<const ViewportState>;
 using ScissorRectListRef = ExtraDataArray<const D3D12_RECT>;
+using UInt32ListRef = ExtraDataArray<const uint32_t>;
 } // namespace drv3d_dx12

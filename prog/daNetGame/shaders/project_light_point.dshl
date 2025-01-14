@@ -14,15 +14,14 @@ macro SUN_LIGHT_POINT_TRACE_HIT(code)//at trace hit when calculating probes
   }
   USE_STATIC_SHADOW_BASE(code)
   (code) {
-    csm_shadow_params@f2 = (csm_distance, clouds_shadow_influence, 0, 0);
+    csm_distance@f1 = csm_distance;
+    clouds_shadow_influence@f1 = clouds_shadow_influence;
     tr_to_sun_direction@f3 = (-from_sun_direction.x, -from_sun_direction.y, -from_sun_direction.z, 0);
     base_sun_color_0@f3 = (sun_color_0.r, sun_color_0.g, sun_color_0.b, 0);
     current_world_view_pos@f3 = world_view_pos;
     csm_world_view_pos@f3 = csm_world_view_pos;
   }
   hlsl(code) {
-    #define csm_distance csm_shadow_params.x
-    #define clouds_shadow_influence csm_shadow_params.y
     float3 dagi_get_sun_color(float3 worldPos, float3 worldNormal, float shadow_offset = 0)
     {
       float NoL = saturate(dot(worldNormal, tr_to_sun_direction));
@@ -154,8 +153,9 @@ macro PROJECT_LIGHT_POINT_SCREEN_VOXEL(code) // when updating radiance from gbuf
       //add back light from foliage
       //todo:
       // * add SSAO for ambient?
+      half3 albedo = gbuf.diffuseColor + gbuf.specularColor;
       float sunShadow = dagi_get_on_screen_simple_sun_shadow(tc);
-      float3 litColor = (ambient*gbuf.ao + dagi_get_on_screen_simple_sun_light_with_shadow(gbuf.normal, sunShadow))*gbuf.albedo +
+      float3 litColor = (ambient*gbuf.ao + dagi_get_on_screen_simple_sun_light_with_shadow(gbuf.normal, sunShadow))*albedo +
                         (backAmbient*gbuf.ao + dagi_get_on_screen_simple_sun_light_with_shadow(-gbuf.normal, sunShadow))*gbuf.translucencyColor;
       //fixme: add direct lights from camera
       return litColor;
@@ -179,7 +179,8 @@ macro PROJECT_LIGHT_POINT_SCREEN_VOXEL(code) // when updating radiance from gbuf
       }
       //todo:
       // * add SSAO for ambient?
-      float3 litColor = (ambient*gbuf.ao + dagi_get_on_screen_simple_sun_light(worldPos, tc, gbuf.normal))*gbuf.albedo;
+      half3 albedo = gbuf.diffuseColor + gbuf.specularColor;
+      float3 litColor = (ambient*gbuf.ao + dagi_get_on_screen_simple_sun_light(worldPos, tc, gbuf.normal))*albedo;
       #if GI_HAS_DYNAMIC_LIGHTS
         litColor += getGiDynamicLighting(gbuf, worldPos, screenpos, tc, linearDepth);
       #endif
@@ -264,10 +265,11 @@ macro PROJECT_GET_SKY_RADIANCE_AT(code)
     {
       float darkening = 1;
       #if PROJECT_DAGI_USE_HMAP
+      float2 tc = calcTcLow(worldPosAt.xz);
       BRANCH
-      if (worldPosAt.y < heightmap_scale.x+heightmap_scale.y)//if worldPosAt.y is lower than maximum height
+      if (worldPosAt.y < heightmap_scale.x+heightmap_scale.y && all(tc == saturate(tc)))//if worldPosAt.y is lower than maximum height
       {
-        darkening = exp2(min(0, 0.25*(worldPosAt.y-decode_height(getHeightLowLod(calcTcLow(worldPosAt.xz), 0)))));//twice darker each 4 meters
+        darkening = exp2(min(0, 0.25*(worldPosAt.y-decode_height(getHeightLowLod(tc, 0)))));//twice darker each 4 meters
         //todo: probably check holes? not really that needed, if holes are supposed to be small enough.
       }
       #endif

@@ -13,7 +13,7 @@ def test ( hmap : auto(HashMapType); randomNumbers )
         static_if !typeinfo(is_table type<HashMapType>)
             hashMap <- HashMapType()
         for num in randomNumbers
-            hashMap[num] = -num
+            unsafe(hashMap[num]) = -num
         delete hashMap
 
 [export]

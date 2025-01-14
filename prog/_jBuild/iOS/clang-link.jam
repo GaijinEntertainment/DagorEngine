@@ -59,27 +59,29 @@ rule ProcessLinkTarget
       }
     }
 
-    local ExportSymbols =
-      _dagor_ios_main_init
-      _dagor_ios_delegate_init
-      _dagor_ios_delegate_main
-      _dagor_ios_delegate_createDisplayLink
-      _dagor_ios_delegate_step
-      _dagor_ios_delegate_applicationWillFinishLaunching
-      _dagor_ios_delegate_applicationDidFinishLaunching
-      _dagor_ios_delegate_applicationWillTerminate
-      _dagor_ios_delegate_applicationWillResignActive
-      _dagor_ios_delegate_applicationDidBecomeActive
-      _dagor_ios_delegate_applicationDidReceiveMemoryWarning
-      _dagor_ios_delegate_openURL
-      _dagor_ios_delegate_didRegisterForRemoteNotificationsWithDeviceToken
-      _dagor_ios_delegate_didFailToRegisterForRemoteNotificationsWithError
-      _dagor_ios_delegate_didReceiveRemoteNotification
-      _dagor_ios_delegate_didFinishLaunchingWithOptions
-      _dagor_ios_delegate_dealloc
-    ;
-    for symbol in $(ExportSymbols) {
-      _LINK_OPT += -Wl,-exported_symbol,$(symbol) ;
+    if $(BuildDagorEngineIndependentCode) != yes {
+      local ExportSymbols =
+        _dagor_ios_main_init
+        _dagor_ios_delegate_init
+        _dagor_ios_delegate_main
+        _dagor_ios_delegate_createDisplayLink
+        _dagor_ios_delegate_step
+        _dagor_ios_delegate_applicationWillFinishLaunching
+        _dagor_ios_delegate_applicationDidFinishLaunching
+        _dagor_ios_delegate_applicationWillTerminate
+        _dagor_ios_delegate_applicationWillResignActive
+        _dagor_ios_delegate_applicationDidBecomeActive
+        _dagor_ios_delegate_applicationDidReceiveMemoryWarning
+        _dagor_ios_delegate_openURL
+        _dagor_ios_delegate_didRegisterForRemoteNotificationsWithDeviceToken
+        _dagor_ios_delegate_didFailToRegisterForRemoteNotificationsWithError
+        _dagor_ios_delegate_didReceiveRemoteNotification
+        _dagor_ios_delegate_didFinishLaunchingWithOptions
+        _dagor_ios_delegate_dealloc
+      ;
+      for symbol in $(ExportSymbols) {
+        _LINK_OPT += -Wl,-exported_symbol,$(symbol) ;
+      }
     }
   
     if $(CheckOnly) = yes { _LINK_OPT += -Wl,-S -Wl,-x ; }

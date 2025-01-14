@@ -1,0 +1,12 @@
+
+macro USE_SHADOW_MODIFICATIONS(code)
+  hlsl(code)
+  {
+    float apply_shadow_modifications(float shadow, float NoL)
+    {
+      // reduce shadow artifacts in specular (supposedly)
+      shadow *= saturate(NoL * 6 - 0.2);
+      return shadow;
+    }
+  }
+endmacro

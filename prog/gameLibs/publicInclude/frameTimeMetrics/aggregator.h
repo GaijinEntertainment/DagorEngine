@@ -41,6 +41,7 @@ class FrameTimeMetricsAggregator
   float lastAverageLatencyR = 0.f;
   PerfDisplayMode displayMode = PerfDisplayMode::OFF;
   bool achtung = false;
+  eastl::optional<bool> isPixCapturerLoaded;
   eastl::optional<IPoint2> renderingResolution;
 
 public:

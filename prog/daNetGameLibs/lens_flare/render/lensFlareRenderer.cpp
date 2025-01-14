@@ -8,11 +8,14 @@
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <EASTL/string.h>
 #include <shaders/dag_computeShaders.h>
-#include <drv/3d/dag_shaderConstants.h>
 #include <math/dag_hlsl_floatx.h>
+#include <drv/3d/dag_draw.h>
+#include <EASTL/algorithm.h>
+#include <EASTL/numeric.h>
+#include <3d/dag_multidrawInfo.h>
+#include <generic/dag_enumerate.h>
 
 #include <lens_flare/shaders/lens_flare_info.hlsli>
-#include <generic/dag_enumerate.h>
 
 
 #define VAR(a) ShaderVariableInfo a##VarId(#a);
@@ -49,6 +52,10 @@ struct eastl::hash<RenderBlockKey>
 
 template <typename K, typename V>
 using HashMapWithFrameMem = ska::flat_hash_map<K, V, eastl::hash<K>, eastl::equal_to<K>, framemem_allocator>;
+
+LensFlareRenderer::RenderBlock::RenderBlock(SharedTex texture, RoundingType rounding_type) :
+  texture(eastl::move(texture)), roundingType(rounding_type)
+{}
 
 LensFlareRenderer::LensFlareData LensFlareRenderer::LensFlareData::parse_lens_flare_config(const LensFlareConfig &config,
   eastl::vector<uint16_t> &ib,
@@ -105,7 +112,7 @@ LensFlareRenderer::LensFlareData LensFlareRenderer::LensFlareData::parse_lens_fl
         G_ASSERTF(tex.getBaseTex() != nullptr, "Couldn't find texture: <%s>", element.texture);
       }
 
-      result.renderBlocks.push_back({0, 0, eastl::move(tex), roundingType});
+      result.renderBlocks.emplace_back(eastl::move(tex), roundingType);
       elementsPerRenderBlock.emplace_back();
       renderBlockIds.insert_or_assign(key, renderBlockId);
     }
@@ -201,17 +208,27 @@ LensFlareRenderer::LensFlareData LensFlareRenderer::LensFlareData::parse_lens_fl
   return result;
 }
 
-
-const eastl::vector<LensFlareRenderer::LensFlareRenderBlock> &LensFlareRenderer::LensFlareData::getRenderBlocks() const
+void LensFlareRenderer::LensFlareData::setRenderConfigIndices(const eastl::vector_set<RenderConfig> &global_render_configs)
 {
-  return renderBlocks;
+  globalToLocalRenderBlockId.resize(global_render_configs.size());
+  eastl::fill(globalToLocalRenderBlockId.begin(), globalToLocalRenderBlockId.end(), -1);
+  for (auto [renderBlockIndex, renderBlock] : enumerate(renderBlocks))
+  {
+    renderBlock.globalRenderConfigId =
+      eastl::distance(global_render_configs.begin(), global_render_configs.find(renderBlock.getRenderConfig()));
+    globalToLocalRenderBlockId[renderBlock.globalRenderConfigId] = renderBlockIndex;
+  }
 }
+
+
+const eastl::vector<LensFlareRenderer::RenderBlock> &LensFlareRenderer::LensFlareData::getRenderBlocks() const { return renderBlocks; }
 
 LensFlareRenderer::LensFlareRenderer() {}
 
 void LensFlareRenderer::init()
 {
   prepareFlaresShader = new_compute_shader("prepare_lens_flare");
+  prepareFlaresOcclusionShader = new_compute_shader("lens_flare_occlusion");
 
   lensShaderMaterial = new_shader_material_by_name("lens_flare");
   if (lensShaderMaterial.get())
@@ -241,31 +258,92 @@ void LensFlareRenderer::prepareConfigBuffers(const eastl::vector<LensFlareConfig
 {
   lensFlareBuf.close();
   vertexPositionsBuf.close();
+  manualLightDataBuf.close();
+  drawCallIndicesBufferBuf.close();
   flareIB.close();
   flareVB.close();
   lensFlares.clear();
+  globalRenderConfigs.clear();
+  usedFlareConfigIds.clear();
+  usedFlareConfigs.clear();
+  indirectDrawArguments.clear();
+  manualFlareDrawCallIndicesPerLensFlareId.clear();
+  dynamicLightDrawIndices.clear();
+  multiDrawCountPerRenderConfig.clear();
+  indirectDispatchBuf.close();
+  preCulledInstanceIndicesBuf.close();
   currentConfigCacheId++;
+
+  manualPreparedLightsPerFlareId.resize(configs.size());
+  usedFlareConfigIds.resize(configs.size());
+  usedFlareConfigs.resize(configs.size());
+  flareIdToInstanceRange.resize(configs.size());
+  manualFlareDrawCallIndicesPerLensFlareId.resize(configs.size());
 
   if (configs.empty())
     return;
+
+  // A single texel at this mip level should cover the area in gbuffer depth, that's used by the occlusion test
+  const int depthMipLevel = get_bigger_log2(LENS_FLARE_OCCLUSION_DEPTH_TEXELS);
+  const int farDepthMipLevel = depthMipLevel - 1;
+  ShaderGlobal::set_int(lens_flare_prepare_far_depth_mipVarId, farDepthMipLevel);
 
   eastl::vector<uint16_t> indexBufferContent;
   eastl::vector<LensFlareVertex> vertexBufferContent;
   eastl::vector<LensFlareInfo> flaresBufferContent;
   eastl::vector<Point2> vertexPositionsBufferContent;
   lensFlares.reserve(configs.size());
-  for (const auto &config : configs)
-    lensFlares.emplace_back(LensFlareData::parse_lens_flare_config(config, indexBufferContent, vertexBufferContent,
+  int totalNumRenderBlocks = 0;
+  int maxNumRenderBlocks = 1;
+  for (const auto [configId, config] : enumerate(configs))
+  {
+    G_ASSERT(config.elements.size() > 0);
+    const auto &data = lensFlares.emplace_back(LensFlareData::parse_lens_flare_config(config, indexBufferContent, vertexBufferContent,
       flaresBufferContent, vertexPositionsBufferContent));
+    manualFlareDrawCallIndicesPerLensFlareId[configId].reserve(data.getRenderBlocks().size());
+    totalNumRenderBlocks += data.getRenderBlocks().size();
+    maxNumRenderBlocks = max(maxNumRenderBlocks, int(data.getRenderBlocks().size()));
+    for (const auto &renderBlock : data.getRenderBlocks())
+    {
+      const auto renderConfig = renderBlock.getRenderConfig();
+      if (globalRenderConfigs.count(renderConfig) == 0)
+        globalRenderConfigs.insert(renderConfig);
+    }
+  }
+  for (auto &lensFlareData : lensFlares)
+    lensFlareData.setRenderConfigIndices(globalRenderConfigs);
+  usedRenderConfigs.resize(globalRenderConfigs.size());
 
-  numTotalVertices = vertexBufferContent.size();
+  int maxNumIndirectDrawCalls = totalNumRenderBlocks + // for manual flares, like sun
+                                maxNumRenderBlocks;    // for dynamic flares (only one config is supported at a time)
+
+  indirectDrawArguments.reserve(maxNumIndirectDrawCalls);
+  // buffer:
+  //  [dynamic light id's entry; 0..configs.size()-1;]: index of first entry;
+  //  {<indices of draw calls>..., terminating -1}*(configs.size())
+  int drawCallIndicesBufSize = maxNumIndirectDrawCalls + (configs.size() + 1) * 2;
+  dynamicLightDrawIndices.reserve(maxNumRenderBlocks);
+  multiDrawCountPerRenderConfig.resize(globalRenderConfigs.size());
+
+  ShaderGlobal::set_int(lens_flare_prepare_max_num_instanceVarId, maxNumInstances);
+
 
   lensFlareBuf =
     dag::buffers::create_persistent_sr_structured(sizeof(flaresBufferContent[0]), flaresBufferContent.size(), "lens_flare_info_buf");
-  preparedLightsBuf = dag::buffers::create_ua_sr_structured(sizeof(LensFLarePreparedLightSource), maxNumPreparedLights,
-    "lens_flare_prepared_lights_buf");
+  manualLightDataBuf = dag::buffers::create_one_frame_sr_structured(sizeof(ManualLightFlareData), maxNumManualPreparedLights,
+    "lens_flare_prepare_manual_lights_buf");
+  lensFlareInstancesBuf =
+    dag::buffers::create_ua_sr_structured(sizeof(LensFlareInstanceData), maxNumInstances, "lens_flare_instances_buf");
   vertexPositionsBuf = dag::buffers::create_persistent_sr_structured(sizeof(Point2), vertexPositionsBufferContent.size(),
     "lens_flare_vertex_positions_buf");
+  indirectDrawBuf = dag::buffers::create_ua_indirect(dag::buffers::Indirect::DrawIndexed, max(maxNumIndirectDrawCalls, 1),
+    "lens_flare_prepare_indirect_draw_buf");
+  indirectDispatchBuf =
+    dag::buffers::create_ua_indirect(dag::buffers::Indirect::Dispatch, 1, "lens_flare_prepare_indirect_dispatch_buf");
+  preCulledInstanceIndicesBuf = dag::buffers::create_one_frame_sr_structured(sizeof(uint32_t), maxNumInstances,
+    "lens_flare_prepare_pre_culled_instance_indices_buf");
+  drawCallIndicesBufferBuf =
+    dag::buffers::create_one_frame_sr_structured(sizeof(uint32_t), drawCallIndicesBufSize, "lens_flare_prepare_draw_indices_buf");
   flareVB = dag::create_vb(data_size(vertexBufferContent), SBCF_BIND_VERTEX, "LensFlareVertices");
   flareIB = dag::create_ib(lensShaderElement.stride * indexBufferContent.size(), SBCF_BIND_INDEX, "LensFlareIndices");
   lensFlareBuf->updateData(0, flaresBufferContent.size() * sizeof(flaresBufferContent[0]), flaresBufferContent.data(),
@@ -274,6 +352,8 @@ void LensFlareRenderer::prepareConfigBuffers(const eastl::vector<LensFlareConfig
     VBLOCK_WRITEONLY);
   flareIB->updateData(0, data_size(indexBufferContent), indexBufferContent.data(), VBLOCK_WRITEONLY);
   flareVB->updateData(0, data_size(vertexBufferContent), vertexBufferContent.data(), VBLOCK_WRITEONLY);
+  ShaderGlobal::set_buffer(lens_flare_prepare_indirect_draw_bufVarId, indirectDrawBuf);
+  ShaderGlobal::set_buffer(lens_flare_prepare_indirect_dispatch_bufVarId, indirectDispatchBuf);
 }
 
 LensFlareRenderer::~LensFlareRenderer() {}
@@ -298,74 +378,268 @@ void LensFlareRenderer::startPreparingLights()
     isDirty = false;
     updateConfigsFromECS();
   }
-  preparedLights.clear();
+  numPreparedManualInstances = 0;
+  for (auto &instances : manualPreparedLightsPerFlareId)
+    instances.clear();
+  for (auto &drawCallIndices : manualFlareDrawCallIndicesPerLensFlareId)
+    drawCallIndices.clear();
+  eastl::fill(usedRenderConfigs.begin(), usedRenderConfigs.end(), false);
+  usedRenderConfigIds.clear();
+  eastl::fill(usedFlareConfigs.begin(), usedFlareConfigs.end(), false);
+  eastl::fill(flareIdToInstanceRange.begin(), flareIdToInstanceRange.end(), IPoint2(0, 0));
+  usedFlareConfigIds.clear();
+  dynamicLightsFlareId = -1;
+  hadDynamicLights = false;
+  indirectDrawArguments.clear();
+  dynamicLightDrawIndices.clear();
 }
 
-void LensFlareRenderer::prepareFlare(const TMatrix4 &view_proj,
-  const Point3 &camera_pos,
-  const Point3 &camera_dir,
-  const CachedFlareId &cached_flare_config_id,
-  const Point4 &light_pos,
-  const Point3 &color,
-  bool is_sun)
+bool LensFlareRenderer::prepareUseLensFlareConfig(const CachedFlareId &id)
 {
-  G_ASSERT_RETURN(cached_flare_config_id.cacheId == currentConfigCacheId, );
-  G_ASSERT_RETURN(cached_flare_config_id.flareConfigId < lensFlares.size(), );
+  G_ASSERT_RETURN(id.cacheId == currentConfigCacheId, false);
+  G_ASSERT_RETURN(id.flareConfigId < lensFlares.size(), false);
 
-  if (preparedLights.size() >= maxNumPreparedLights)
+  const auto &flareData = lensFlares[id.flareConfigId];
+
+  for (const auto &renderBlock : flareData.getRenderBlocks())
+  {
+    if (usedRenderConfigs[renderBlock.globalRenderConfigId])
+      continue;
+    usedRenderConfigs[renderBlock.globalRenderConfigId] = true;
+    usedRenderConfigIds.push_back(renderBlock.globalRenderConfigId);
+  }
+  if (!usedFlareConfigs[id.flareConfigId])
+  {
+    usedFlareConfigs[id.flareConfigId] = true;
+    usedFlareConfigIds.push_back(id.flareConfigId);
+  }
+
+  return true;
+}
+
+void LensFlareRenderer::prepareDynamicLightFlares(const CachedFlareId &cached_flare_config_id)
+{
+  G_ASSERTF_RETURN(dynamicLightsFlareId == -1, , "Multiple active flare configs for dynamic lights are currently not supported");
+
+  if (!prepareUseLensFlareConfig(cached_flare_config_id))
+    return;
+
+  dynamicLightsFlareId = cached_flare_config_id.flareConfigId;
+}
+
+void LensFlareRenderer::prepareManualFlare(
+  const CachedFlareId &cached_flare_config_id, const Point4 &light_pos, const Point3 &color, bool is_sun)
+{
+  if (!prepareUseLensFlareConfig(cached_flare_config_id))
+    return;
+
+  const auto &flareData = lensFlares[cached_flare_config_id.flareConfigId];
+  auto &flareConfigInstances = manualPreparedLightsPerFlareId[cached_flare_config_id.flareConfigId];
+
+  if (flareConfigInstances.size() >= maxNumInstances)
   {
     LOGERR_ONCE("There are too many lens flares visible at once. Increase the limit to allow this. Current limit: %d",
-      maxNumPreparedLights);
+      maxNumInstances);
     return;
   }
 
-  // TODO this logic should be moved to the compute shader later when multiple light sources are used; use with indirect rendering
-  const Point4 cameraToLight = light_pos - Point4::xyz1(camera_pos) * light_pos.w;
-  if (dot(camera_dir, Point3::xyz(cameraToLight)) <= 0)
-    return;
-  Point4 projectedLightPos = light_pos * view_proj;
-  if (fabsf(projectedLightPos.w) < 0.0000001f)
-    return;
-  projectedLightPos /= projectedLightPos.w;
-  float screenEdgeSignedDistance = 1.f - max(fabsf(projectedLightPos.x), fabsf(projectedLightPos.y));
-  if (screenEdgeSignedDistance <= 0)
-    return;
-
-  preparedLights.push_back(
-    PreparedLight{color, Point2(projectedLightPos.x, projectedLightPos.y), cached_flare_config_id.flareConfigId, is_sun});
+  ManualLightFlareData data;
+  data.color = color;
+  data.fadeoutDistance = flareData.getParams().smoothScreenFadeoutDistance;
+  data.exposurePowParam = flareData.getParams().exposurePowParam;
+  data.flareConfigId = cached_flare_config_id.flareConfigId;
+  data.lightPos = light_pos;
+  data.flags = 0;
+  if (is_sun)
+    data.flags |= MANUAL_LIGHT_FLARE_DATA_FLAGS__IS_SUN;
+  if (flareData.getParams().useOcclusion)
+    data.flags |= MANUAL_LIGHT_FLARE_DATA_FLAGS__USE_OCCLUSION;
+  flareConfigInstances.push_back(eastl::move(data));
+  numPreparedManualInstances++;
 }
 
-bool LensFlareRenderer::endPreparingLights(const Point3 &camera_pos)
+bool LensFlareRenderer::endPreparingLights(
+  const Point3 &camera_pos, const Point3 &camera_dir, int omni_light_count, int spot_light_count)
 {
-  if (preparedLights.empty())
+  if (usedRenderConfigIds.empty() || usedFlareConfigIds.empty())
+    return false;
+  if (dynamicLightsFlareId >= 0 && (omni_light_count > 0 || spot_light_count > 0))
+    hadDynamicLights = true;
+  if (numPreparedManualInstances == 0 && !hadDynamicLights)
     return false;
 
-  // TODO:
-  //  Improve/refactor this when flares are added to multiple light sources.
-  //  For now only the sun can have flares. This for loop is fine for now.
-  for (auto [i, preparedLight] : enumerate(preparedLights))
+  int numManualFlareDrawCalls = 0;
+  if (numPreparedManualInstances > 0)
   {
-    const auto &flareData = lensFlares[preparedLight.flareConfigId];
+    int startInstanceIndex = 0;
+    if (auto bufferData = lock_sbuffer<ManualLightFlareData>(manualLightDataBuf.getBuf(), 0, numPreparedManualInstances,
+          VBLOCK_DISCARD | VBLOCK_WRITEONLY))
+    {
+      for (const auto flareConfigId : usedFlareConfigIds)
+      {
+        const auto &flareData = lensFlares[flareConfigId];
+        const auto &flareConfigInstances = manualPreparedLightsPerFlareId[flareConfigId];
+        if (flareConfigInstances.empty())
+          continue;
 
-    ShaderGlobal::set_int(lens_flare_prepare_flares_offsetVarId, i);
-    ShaderGlobal::set_int(lens_flare_prepare_num_flaresVarId, 1);
-    ShaderGlobal::set_int(lens_flare_prepare_is_sunVarId, preparedLight.isSun ? 1 : 0);
-    ShaderGlobal::set_int(lens_flare_prepare_use_occlusionVarId, flareData.getParams().useOcclusion ? 1 : 0);
-    ShaderGlobal::set_color4(lens_flare_prepare_sun_colorVarId, preparedLight.lightColor, 0);
-    ShaderGlobal::set_real(lens_flare_prepare_fadeout_distanceVarId, flareData.getParams().smoothScreenFadeoutDistance);
-    ShaderGlobal::set_real(lens_flare_prepare_exposure_pow_paramVarId, flareData.getParams().exposurePowParam);
-    ShaderGlobal::set_color4(lens_flare_prepare_sun_screen_tcVarId, preparedLight.lightPos);
-    ShaderGlobal::set_color4(lens_flare_prepare_camera_posVarId, camera_pos, 0);
-    prepareFlaresShader->dispatch(1, 1, 1);
+        memcpy(&bufferData[startInstanceIndex], flareConfigInstances.data(), data_size(flareConfigInstances));
+
+        flareIdToInstanceRange[flareConfigId] = IPoint2(startInstanceIndex, flareConfigInstances.size());
+        startInstanceIndex += flareConfigInstances.size();
+        numManualFlareDrawCalls += flareData.getRenderBlocks().size();
+      }
+    }
+    G_ASSERT(startInstanceIndex == numPreparedManualInstances);
+    d3d::resource_barrier({manualLightDataBuf.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE});
   }
-  d3d::resource_barrier({preparedLightsBuf.getBuf(), RB_RO_SRV | RB_STAGE_VERTEX});
+  const LensFlareData *dynamicLightsLensFlare = hadDynamicLights ? &lensFlares[dynamicLightsFlareId] : nullptr;
 
+  int numTotalDrawCalls =
+    numManualFlareDrawCalls + (dynamicLightsLensFlare != nullptr ? dynamicLightsLensFlare->getRenderBlocks().size() : 0);
+  indirectDrawArguments.resize(numTotalDrawCalls);
+
+  // Preparing indirect draw arguments
+  {
+    int indirectDrawIndex = 0;
+    for (const auto renderConfigId : usedRenderConfigIds)
+    {
+      int renderConfigStartDrawIndex = indirectDrawIndex;
+      for (const auto flareConfigId : usedFlareConfigIds)
+      {
+        const auto &flareData = lensFlares[flareConfigId];
+        if (flareIdToInstanceRange[flareConfigId].y > 0)
+        {
+          int localRenderBlockId = flareData.getLocalRenderBlockId(renderConfigId);
+          if (localRenderBlockId >= 0)
+          {
+            const auto &renderBlock = flareData.getRenderBlocks()[localRenderBlockId];
+            DrawArguments manualLensFlareArgs;
+            manualLensFlareArgs.baseVertexLocation = 0;
+            manualLensFlareArgs.indexCountPerInstance = renderBlock.numTriangles * 3;
+            manualLensFlareArgs.startIndexLocation = renderBlock.indexOffset;
+            manualLensFlareArgs.startInstanceLocation = flareIdToInstanceRange[flareConfigId].x;
+            manualFlareDrawCallIndicesPerLensFlareId[flareConfigId].push_back(indirectDrawIndex);
+            indirectDrawArguments[indirectDrawIndex++] = manualLensFlareArgs;
+          }
+        }
+      }
+      if (dynamicLightsLensFlare != nullptr)
+      {
+        int localRenderBlockId = dynamicLightsLensFlare->getLocalRenderBlockId(renderConfigId);
+        if (localRenderBlockId >= 0)
+        {
+          const auto &renderBlock = dynamicLightsLensFlare->getRenderBlocks()[localRenderBlockId];
+          DrawArguments dynamicLightLensFlareArgs;
+          dynamicLightLensFlareArgs.baseVertexLocation = 0;
+          dynamicLightLensFlareArgs.indexCountPerInstance = renderBlock.numTriangles * 3;
+          dynamicLightLensFlareArgs.startIndexLocation = renderBlock.indexOffset;
+          dynamicLightLensFlareArgs.startInstanceLocation = numPreparedManualInstances; // dynamic instances start after manually
+                                                                                        // placed ones
+          dynamicLightDrawIndices.push_back(indirectDrawIndex);
+          indirectDrawArguments[indirectDrawIndex++] = dynamicLightLensFlareArgs;
+        }
+      }
+      multiDrawCountPerRenderConfig[renderConfigId] = indirectDrawIndex - renderConfigStartDrawIndex;
+    }
+    if (MultiDrawInfo::usesExtendedMultiDrawStruct())
+    {
+      if (auto indirectDrawBufferData =
+            lock_sbuffer<ExtendedDrawIndexedIndirectArgs>(indirectDrawBuf.getBuf(), 0, indirectDrawArguments.size(), VBLOCK_WRITEONLY))
+      {
+        for (auto [index, drawCallInfo] : enumerate(indirectDrawArguments))
+        {
+          indirectDrawBufferData[index].drawcallId = index;
+          indirectDrawBufferData[index].args = drawCallInfo;
+        }
+      }
+    }
+    else
+    {
+      if (auto indirectDrawBufferData =
+            lock_sbuffer<DrawIndexedIndirectArgs>(indirectDrawBuf.getBuf(), 0, indirectDrawArguments.size(), VBLOCK_WRITEONLY))
+      {
+        for (auto [index, drawCallInfo] : enumerate(indirectDrawArguments))
+          indirectDrawBufferData[index] = drawCallInfo;
+      }
+    }
+    d3d::resource_barrier({indirectDrawBuf.getBuf(), RB_RW_UAV | RB_STAGE_COMPUTE});
+    if (auto indirectDispatchBufferData = lock_sbuffer<uint32_t>(indirectDispatchBuf.getBuf(), 0, 3, VBLOCK_WRITEONLY))
+    {
+      indirectDispatchBufferData[0] = 0; // filled in compute shader
+      indirectDispatchBufferData[1] = 1;
+      indirectDispatchBufferData[2] = 1;
+    }
+    d3d::resource_barrier({indirectDispatchBuf.getBuf(), RB_RW_UAV | RB_STAGE_COMPUTE});
+  }
+  int drawIndicesDataSize = (lensFlares.size() + 1) * 2 + numTotalDrawCalls;
+  int currentDataIndex = lensFlares.size() + 1;
+  if (auto drawIndicesData =
+        lock_sbuffer<uint32_t>(drawCallIndicesBufferBuf.getBuf(), 0, drawIndicesDataSize, VBLOCK_WRITEONLY | VBLOCK_DISCARD))
+  {
+    if (dynamicLightsLensFlare != nullptr)
+    {
+      drawIndicesData[0] = currentDataIndex;
+      for (const auto drawCallIndex : dynamicLightDrawIndices)
+        drawIndicesData[currentDataIndex++] = drawCallIndex;
+      drawIndicesData[currentDataIndex++] = ~0u;
+    }
+    for (const auto flareConfigId : usedFlareConfigIds)
+    {
+      drawIndicesData[flareConfigId + 1] = currentDataIndex;
+      for (const auto drawCallIndex : manualFlareDrawCallIndicesPerLensFlareId[flareConfigId])
+        drawIndicesData[currentDataIndex++] = drawCallIndex;
+      drawIndicesData[currentDataIndex++] = ~0u;
+    }
+  }
+  G_ASSERT(currentDataIndex <= drawIndicesDataSize);
+  d3d::resource_barrier({drawCallIndicesBufferBuf.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE});
+
+  ShaderGlobal::set_color4(lens_flare_prepare_camera_posVarId, camera_pos, 0);
+  ShaderGlobal::set_color4(lens_flare_prepare_camera_dirVarId, camera_dir, 0);
+  ShaderGlobal::set_int(lens_flare_prepare_num_manual_flaresVarId, numPreparedManualInstances);
+  ShaderGlobal::set_int(lens_flare_prepare_num_omni_light_flaresVarId, omni_light_count);
+  ShaderGlobal::set_int(lens_flare_prepare_num_spot_light_flaresVarId, spot_light_count);
+  if (hadDynamicLights)
+  {
+    const auto &flareData = lensFlares[dynamicLightsFlareId];
+    ShaderGlobal::set_real(lens_flare_prepare_dynamic_lights_fadeout_distanceVarId, flareData.getParams().smoothScreenFadeoutDistance);
+    ShaderGlobal::set_int(lens_flare_prepare_dynamic_lights_use_occlusionVarId, flareData.getParams().useOcclusion ? 1 : 0);
+    ShaderGlobal::set_real(lens_flare_prepare_dynamic_lights_exposure_pow_paramVarId, flareData.getParams().exposurePowParam);
+  }
+
+  if (numPreparedManualInstances > 0)
+  {
+    ShaderGlobal::set_int(lens_flare_prepare_flare_typeVarId, 0);
+    prepareFlaresShader->dispatchThreads(numPreparedManualInstances, 1, 1);
+  }
+
+  if (hadDynamicLights)
+  {
+    if (omni_light_count > 0)
+    {
+      ShaderGlobal::set_int(lens_flare_prepare_flare_typeVarId, 1);
+      prepareFlaresShader->dispatchThreads(omni_light_count, 1, 1);
+    }
+    if (spot_light_count > 0)
+    {
+      ShaderGlobal::set_int(lens_flare_prepare_flare_typeVarId, 2);
+      prepareFlaresShader->dispatchThreads(spot_light_count, 1, 1);
+    }
+  }
+
+  d3d::resource_barrier({indirectDispatchBuf.getBuf(), RB_RO_INDIRECT_BUFFER | RB_STAGE_COMPUTE});
+  d3d::resource_barrier({lensFlareInstancesBuf.getBuf(), RB_RW_UAV | RB_STAGE_COMPUTE});
+  d3d::resource_barrier({indirectDrawBuf.getBuf(), RB_RO_INDIRECT_BUFFER | RB_STAGE_ALL_GRAPHICS});
+
+  prepareFlaresOcclusionShader->dispatch_indirect(indirectDispatchBuf.getBuf(), 0);
+
+  d3d::resource_barrier({lensFlareInstancesBuf.getBuf(), RB_RO_SRV | RB_STAGE_VERTEX});
   return true;
 }
 
 void LensFlareRenderer::render(const Point2 &resolution) const
 {
-  if (preparedLights.empty())
+  if (usedRenderConfigIds.empty() || usedFlareConfigIds.empty() || (numPreparedManualInstances == 0 && !hadDynamicLights))
     return;
   const auto vb = flareVB.getBuf();
   const auto ib = flareIB.getBuf();
@@ -381,21 +655,41 @@ void LensFlareRenderer::render(const Point2 &resolution) const
   d3d::setvsrc(0, vb, lensShaderElement.stride);
   d3d::setind(ib);
 
-  for (auto [preparedLightId, preparedLight] : enumerate(preparedLights))
+
+  int indirectDrawIndex = 0;
+  for (const auto renderConfigId : usedRenderConfigIds)
   {
-    const auto &flareData = lensFlares[preparedLight.flareConfigId];
-    const auto &renderBlocks = flareData.getRenderBlocks();
-    if (renderBlocks.empty())
+    if (multiDrawCountPerRenderConfig[renderConfigId] == 0)
       continue;
+    const auto &renderConfig = globalRenderConfigs[renderConfigId];
+    ShaderGlobal::set_texture(lens_flare_textureVarId, renderConfig.textureId);
+    ShaderGlobal::set_int(lens_flare_rounding_typeVarId, static_cast<int>(renderConfig.roundingType));
+    lensShaderElement.shElem->setStates();
 
-    ShaderGlobal::set_int(lens_flare_light_source_idVarId, preparedLightId);
-
-    for (const auto &renderBlock : renderBlocks)
+    const bool multiDrawIndirectSupported = d3d::get_driver_desc().caps.hasWellSupportedIndirect;
+    if (multiDrawIndirectSupported)
     {
-      ShaderGlobal::set_texture(lens_flare_textureVarId, renderBlock.texture.getTexId());
-      ShaderGlobal::set_int(lens_flare_rounding_typeVarId, static_cast<int>(renderBlock.roundingType));
-      lensShaderElement.shElem->setStates();
-      lensShaderElement.shElem->render(0, numTotalVertices, renderBlock.indexOffset, renderBlock.numTriangles, 0, PRIM_TRILIST);
+      d3d::multi_draw_indexed_indirect(PRIM_TRILIST, indirectDrawBuf.getBuf(), multiDrawCountPerRenderConfig[renderConfigId],
+        MultiDrawInfo::bytesCountPerDrawcall, indirectDrawIndex * uint32_t(MultiDrawInfo::bytesCountPerDrawcall));
     }
+    else
+    {
+      for (int i = 0; i < multiDrawCountPerRenderConfig[renderConfigId]; ++i)
+      {
+        d3d::draw_indexed_indirect(PRIM_TRILIST, indirectDrawBuf.getBuf(),
+          (indirectDrawIndex + i) * uint32_t(MultiDrawInfo::bytesCountPerDrawcall));
+      }
+    }
+    indirectDrawIndex += multiDrawCountPerRenderConfig[renderConfigId];
   }
+}
+LensFlareRenderer::DrawArguments::operator DrawIndexedIndirectArgs() const
+{
+  DrawIndexedIndirectArgs result = {};
+  result.indexCountPerInstance = indexCountPerInstance;
+  result.startIndexLocation = startIndexLocation;
+  result.baseVertexLocation = baseVertexLocation;
+  result.startInstanceLocation = startInstanceLocation;
+  result.instanceCount = 0;
+  return result;
 }

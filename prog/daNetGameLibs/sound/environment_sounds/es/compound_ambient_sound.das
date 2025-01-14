@@ -31,7 +31,7 @@ def find_closest_volume(box : BBox3; sound_type_hash : uint; listener : float3; 
 
   closest_dist_sq = max_range_sq
 
-  enum_sounds_in_box(box, sound_type_hash) <| $ [unused_argument(sound_shape)] (sound_shape : uint; extents : float3; tm : float3x4#)
+  enum_sounds_in_box(box, sound_type_hash) <| $(sound_shape : uint; extents : float3; tm : float3x4#)
 
     let clampedPos = place_game_object_sound(listener, extents, sound_shape, get_norm_tm(tm, extents))
 

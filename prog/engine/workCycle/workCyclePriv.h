@@ -16,7 +16,6 @@ extern DagorGameScene *game_scene;
 extern DagorGameScene *secondary_game_scene;
 extern IDagorGameSceneRenderer *game_scene_renderer;
 extern volatile int64_t last_wc_time, last_draw_time;
-extern bool application_active;
 extern bool window_initing;
 extern bool enable_idle_priority;
 extern bool is_window_in_thread;

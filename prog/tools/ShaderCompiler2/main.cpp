@@ -206,10 +206,13 @@ static void showUsage()
     "  -logExactTiming - enable logging of compilation times with 0.001s (1ms) precision\n"
     "  -perFileAllLogs - enable logging of compilation times for all files with additional info\n"
     "  -saveDumpOnCrash - save a dump for the proccess if there is a critical issue during compilation (could cause a process hung)\n"
-    "  -cppStcode       - compile cpp stcode, test feat, only works for win64 & xbox now.\n"
+    "  -cppStcode       - compile cpp stcode along with bytecode (overrides compileCppStcode:b from blk).\n"
+    "  -noCppStcode     - complie only bytecode stcode (overrides compileCppStcode:b from blk).\n"
     "  -useCpujobsBackend - Use old cpujobs as the mt backend. Shows worse cpu utilizaiton, kept as a fallback for now.\n"
     "  -cppUnityBuild   - use unity build for cpp stcode.\n"
-    "  -cppStcodeArch   - Arch for stcode compilation. Default is chosen when it is not specified. Current opts: x86|x86_64|arm64.\n"
+    "  -cppStcodeArch   - Arch for stcode compilation. Default is chosen when it is not specified. Opts: "
+    "x86|x86_64|arm64|arm64e|armv7|armv7s|armeabi-v7a|arm64-v8a|i386|e2k.\n"
+    "  -cppStcodePlatform - Platform for stcode compilation. Win is chosen when it is not specified. Current opts: pc|android.\n"
 #if _CROSS_TARGET_DX12
     "  -localTimestamp - use filesystem timestamps for shader classes instead of git commit timestamps\n"
     "  -autotestMode - disables some features for test speed. Currently disables phase 2 of xbox compilation\n"
@@ -270,6 +273,8 @@ static bool doCompileModulesAsync(const ShVariantName &sv)
   for (int i = 1; i < __argc; i++)
     commonArgv.emplace_back(__argv[i]);
   commonArgv.emplace_back("-r");
+  if (shc::config().compileCppStcode)
+    commonArgv.emplace_back("-cppStcode");
 
   if (sv.sourceFilesList.size() < 2)
     return false;
@@ -439,8 +444,15 @@ static void compile(Tab<String> &source_files, const char *fn, const char *bindu
     blk.removeParam("outMiniDumpName");
     blk.removeParam("packBin");
     blk.removeParam("packShGroups");
+    blk.removeParam("compileCppStcode"); // This will be added back in with possible override
     if (shc::config().addTextureType)
       blk.addBool("addTextureType", true);
+    if (shc::config().compileCppStcode)
+      blk.addBool("compileCppStcode", true);
+    if (shc::config().cppStcodeUnityBuild)
+      blk.addBool("cppStcodeUnityBuild", true);
+    if (shc::config().cppStcodeArch != StcodeTargetArch::DEFAULT)
+      blk.addInt("cppStcodeArch", (int)shc::config().cppStcodeArch);
     blk.saveToTextStream(*hasher);
     get_computed_hash(hasher, blkHash.data(), blkHash.size());
     destory_hash_computer_cb(hasher);
@@ -557,6 +569,7 @@ static void compile(Tab<String> &source_files, const char *fn, const char *bindu
   }
 
   prepare_stcode_directory(sv.intermediateDir);
+  eastl::optional<StcodeInterface> stcodeMainInterface{}; // Only gets inited if linkage takes place
 
   CompilerAction compAction = shc::config().forceRebuild ? CompilerAction::COMPILE_AND_LINK : shc::should_recompile(sv);
   if (shc::config().singleCompilationShName)
@@ -592,7 +605,7 @@ static void compile(Tab<String> &source_files, const char *fn, const char *bindu
           compAction = CompilerAction::NOTHING;
       }
     }
-    shc::compileShader(sv, shc::config().noSave, shc::config().forceRebuild, compAction);
+    shc::compileShader(sv, stcodeMainInterface, shc::config().noSave, shc::config().forceRebuild, compAction);
     if (!shc::config().suppressLogs)
       ShaderCompilerStat::printReport((proc::is_multiproc() || shc::config().singleCompilationShName)
                                         ? nullptr
@@ -609,7 +622,8 @@ static void compile(Tab<String> &source_files, const char *fn, const char *bindu
   if (strcmp(bindump_fnprefix, "*") != 0)
   {
     dd_mkpath(bindump_fn);
-    if (!shc::buildShaderBinDump(bindump_fn, sv.dest, shc::config().forceRebuild, false, packing_flags))
+    if (!shc::buildShaderBinDump(bindump_fn, sv.dest, shc::config().forceRebuild, false, packing_flags,
+          stcodeMainInterface.has_value() ? &stcodeMainInterface.value() : nullptr))
     {
       sh_debug(SHLOG_FATAL, "Failed to build bindump at '%s' from combined obj at '%s'", bindump_fn, sv.dest.c_str());
       return;
@@ -620,7 +634,8 @@ static void compile(Tab<String> &source_files, const char *fn, const char *bindu
   {
     _snprintf(bindump_fn, 260, "%s.%s%s.shdump.bin", binminidump_fnprefix, verStr, shc::config().autotestMode ? ".autotest" : "");
     dd_mkpath(bindump_fn);
-    if (!shc::buildShaderBinDump(bindump_fn, sv.dest, dd_stricmp(binminidump_fnprefix, bindump_fnprefix) == 0, true, packing_flags))
+    if (!shc::buildShaderBinDump(bindump_fn, sv.dest, dd_stricmp(binminidump_fnprefix, bindump_fnprefix) == 0, true, packing_flags,
+          nullptr))
     {
       sh_debug(SHLOG_FATAL, "Failed to build minidump %s at '%s' from combined obj at '%s'", binminidump_fnprefix, bindump_fn,
         sv.dest.c_str());
@@ -645,6 +660,8 @@ static void compile(Tab<String> &source_files, const char *fn, const char *bindu
       sh_debug(SHLOG_FATAL, "Failed to compile stcode");
       return;
     }
+
+    cleanup_after_stcode_compilation(bindump_path.c_str(), stcode_lib_fn);
   }
   else if (stcodeCompTaskMaybe.error() == StcodeMakeTaskError::FAILED)
   {
@@ -989,6 +1006,7 @@ int DagorWinMain(bool debugmode)
     globalConfigRW.singleBuild = true;
   }
   bool shouldCancelRunningProcsOnFail = true;
+  eastl::optional<bool> useCppStcodeOverride{};
   for (int i = 2; i < __argc; i++)
   {
     const char *s = __argv[i];
@@ -1259,6 +1277,12 @@ int DagorWinMain(bool debugmode)
       if (i >= __argc)
         goto usage_err;
       globalConfigRW.hlslDefines.aprintf(128, "#define %s %s\n", __argv[i - 1], __argv[i]);
+
+// @TODO: replace w/ dedicated arg, hardware. token, and make this define in hardware_defines.dshl
+#if _CROSS_TARGET_SPIRV
+      if (dd_stricmp(__argv[i - 1], "MOBILE_DEVICE") == 0 && dd_stricmp(__argv[i], "1") == 0)
+        globalConfigRW.usePcToken = false;
+#endif
     }
     else if (dd_stricmp(s, "-optionalAsBranches") == 0)
     {
@@ -1284,11 +1308,29 @@ int DagorWinMain(bool debugmode)
     }
     else if (strnicmp("-cppStcode", __argv[i], 11) == 0)
     {
-      globalConfigRW.compileCppStcode = true;
+      if (useCppStcodeOverride.has_value() && !useCppStcodeOverride.value())
+      {
+        printf("Can't combine -cppStcode and -noCppStcode flags\n");
+        goto usage_err;
+      }
+      useCppStcodeOverride.emplace(true);
+    }
+    else if (strnicmp("-noCppStcode", __argv[i], 13) == 0)
+    {
+      if (useCppStcodeOverride.has_value() && useCppStcodeOverride.value())
+      {
+        printf("Can't combine -cppStcode and -noCppStcode flags\n");
+        goto usage_err;
+      }
+      useCppStcodeOverride.emplace(false);
     }
     else if (strnicmp("-cppUnityBuild", __argv[i], 15) == 0)
     {
       globalConfigRW.cppStcodeUnityBuild = true;
+    }
+    else if (strnicmp("-cppStcodePdb", __argv[i], 14) == 0)
+    {
+      globalConfigRW.cppStcodeDeleteDebugInfo = false;
     }
     else if (strnicmp("-cppStcodeArch", s, 15) == 0)
     {
@@ -1298,6 +1340,16 @@ int DagorWinMain(bool debugmode)
       if (!set_stcode_arch_from_arg(__argv[i], globalConfigRW))
         goto usage_err;
     }
+#if _CROSS_TARGET_SPIRV | _CROSS_TARGET_METAL
+    else if (strnicmp("-cppStcodePlatform", s, 20) == 0)
+    {
+      ++i;
+      if (i >= __argc)
+        goto usage_err;
+      if (!set_stcode_platform_from_arg(__argv[i], globalConfigRW))
+        goto usage_err;
+    }
+#endif
 #if _CROSS_TARGET_DX12
     else if (dd_stricmp(s, "-localTimestamp") == 0)
     {
@@ -1434,6 +1486,9 @@ int DagorWinMain(bool debugmode)
     if (blk.getStr("outDumpName", NULL))
       defShBindDumpPrefix = blk.getStr("outDumpName", NULL);
 
+    globalConfigRW.compileCppStcode =
+      useCppStcodeOverride.has_value() ? useCppStcodeOverride.value() : blk.getBool("compileCppStcode", false);
+
     Tab<String> sourceFiles(midmem);
     DataBlock *sourceBlk = blk.getBlockByName("source");
     const char *shader_root = blk.getStr("shader_root_dir", NULL);
@@ -1445,6 +1500,8 @@ int DagorWinMain(bool debugmode)
              "Headers should NOT be copied.");
       return 13;
     }
+
+    globalConfigRW.engineRootDir = blk.getStr("engineRootDir", nullptr);
 
     int fileParamId = sourceBlk->getNameId("file");
     int includePathId = sourceBlk->getNameId("includePath");

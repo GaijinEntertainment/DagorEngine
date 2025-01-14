@@ -140,6 +140,8 @@ struct StartEffectEvent : public ecs::Event
   {}
 };
 
+ECS_BROADCAST_EVENT_TYPE(StartEffectPosNormEvent, int /*type*/, Point3 /*pos*/, Point3 /*norm*/, bool /*is_player*/, float /*scale*/);
+
 struct SoundDesc
 {
   const char *parameter = nullptr;

@@ -203,9 +203,6 @@ public:
 
     PROCESS_PIPELINE_STORAGE_ENTRY(VariatedGraphicsPipeline);
     PROCESS_PIPELINE_STORAGE_ENTRY(ComputePipeline);
-#if D3D_HAS_RAY_TRACING
-    PROCESS_PIPELINE_STORAGE_ENTRY(RaytracePipeline);
-#endif
 
 #undef PROCESS_PIPELINE_STORAGE_ENTRY
 
@@ -218,13 +215,6 @@ public:
     const ShaderModule &fs_module, const ShaderModuleHeader &fs_header, const ShaderModule *gs_module,
     const ShaderModuleHeader *gs_header, const ShaderModule *tc_module, const ShaderModuleHeader *tc_header,
     const ShaderModule *te_module, const ShaderModuleHeader *te_header);
-#if D3D_HAS_RAY_TRACING
-  void addRaytrace(VulkanDevice &device, VulkanPipelineCacheHandle cache, ProgramID id, uint32_t max_recursion, uint32_t shader_count,
-    const ShaderModuleUse *shaders, uint32_t group_count, const RaytraceShaderGroup *groups,
-    const eastl::unique_ptr<ShaderModule> *module_set);
-  void copyRaytraceShaderGroupHandlesToMemory(VulkanDevice &device, ProgramID prog, uint32_t first_group, uint32_t group_count,
-    uint32_t size, void *ptr);
-#endif
   void unloadAll(VulkanDevice &device);
   void prepareRemoval(ProgramID program);
   void setAsyncCompile(AsyncMask allowed) { asyncCompileAllowed = allowed; }

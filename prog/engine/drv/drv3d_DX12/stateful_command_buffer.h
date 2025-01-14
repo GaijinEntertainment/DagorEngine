@@ -70,7 +70,7 @@ class StatefulCommandBuffer
     Bitset<MAX_ROOT_CONSTANTS> rootConstantDirtyState = {};
     ShaderStageState raygenShader;
     ID3D12StateObject *pipeline = nullptr;
-    RaytracePipelineSignature *rootSignature = nullptr;
+    const RaytracePipelineSignature *rootSignature = nullptr;
   };
 #endif
   struct ComputeState
@@ -425,30 +425,45 @@ public:
   }
 
 #if D3D_HAS_RAY_TRACING
-  void bindRaytracePipeline(RaytracePipelineSignature *signature, ID3D12StateObject *pipeline)
+  void bindRaytracePipeline(const RaytracePipelineSignature *signature, ID3D12StateObject *pipeline)
   {
     raytraceState.markChange(RaytraceState::DirtySet::PIPELINE, raytraceState.pipeline != pipeline);
     raytraceState.markChange(RaytraceState::DirtySet::SIGNATURE, raytraceState.rootSignature != signature);
     raytraceState.pipeline = pipeline;
     raytraceState.rootSignature = signature;
   }
-  void bindRaytraceDescriptorSet(const D3D12_GPU_VIRTUAL_ADDRESS *cb, uint32_t cb_count, D3D12_GPU_DESCRIPTOR_HANDLE sampler_range,
-    D3D12_GPU_DESCRIPTOR_HANDLE srv_range, D3D12_GPU_DESCRIPTOR_HANDLE uav_range)
+
+  void setRaytraceConstantBuffer(uint32_t slot, D3D12_GPU_VIRTUAL_ADDRESS cbv)
   {
-    // TODO: implement const buffer descriptors
-    for (uint32_t i = 0; i < cb_count && i < dxil::MAX_B_REGISTERS; ++i)
-    {
-      raytraceState.constBufferDirtyState.set(i, raytraceState.raygenShader.cbvRange[i] != cb[i]);
-      raytraceState.raygenShader.cbvRange[i] = cb[i];
-    }
+    raytraceState.constBufferDirtyState.set(slot, raytraceState.raygenShader.cbvRange[slot] != cbv);
+    raytraceState.raygenShader.cbvRange[slot] = cbv;
+  }
 
-    raytraceState.markChange(RaytraceState::DirtySet::SAMPLER_DESCRIPTORS, raytraceState.raygenShader.samplerRange != sampler_range);
-    raytraceState.markChange(RaytraceState::DirtySet::SRV_DESCRIPTORS, raytraceState.raygenShader.srvRange != srv_range);
-    raytraceState.markChange(RaytraceState::DirtySet::UAV_DESCRIPTORS, raytraceState.raygenShader.uavRange != uav_range);
+#if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
+  void setRaytraceConstantBufferDescriptors(D3D12_GPU_DESCRIPTOR_HANDLE ptr)
+  {
+    raytraceState.markChange(ComputeState::DirtySet::CBV_DESCRIPTORS, raytraceState.raygenShader.cbvExtraRange != ptr);
+    raytraceState.raygenShader.cbvExtraRange = ptr;
+  }
+#endif
 
-    raytraceState.raygenShader.samplerRange = sampler_range;
-    raytraceState.raygenShader.srvRange = srv_range;
-    raytraceState.raygenShader.uavRange = uav_range;
+  void setRaytraceSamplers(D3D12_GPU_DESCRIPTOR_HANDLE samplers)
+  {
+    raytraceState.markChange(ComputeState::DirtySet::SAMPLER_DESCRIPTORS, raytraceState.raygenShader.samplerRange != samplers);
+    raytraceState.raygenShader.samplerRange = samplers;
+  }
+
+  void setRaytraceUAVs(D3D12_GPU_DESCRIPTOR_HANDLE uavs)
+  {
+    raytraceState.markChange(ComputeState::DirtySet::UAV_DESCRIPTORS, raytraceState.raygenShader.uavRange != uavs);
+    raytraceState.raygenShader.uavRange = uavs;
+  }
+
+  void setRaytraceSRVs(D3D12_GPU_DESCRIPTOR_HANDLE srvs)
+  {
+    raytraceState.markChange(ComputeState::DirtySet::SRV_DESCRIPTORS, raytraceState.raygenShader.srvRange != srvs);
+
+    raytraceState.raygenShader.srvRange = srvs;
   }
 
   void updateRaytraceRootConstant(uint32_t offset, uint32_t value)
@@ -500,8 +515,9 @@ public:
 #endif
     if (raytraceState.constBufferDirtyState.any() || cbvDescriptorsDirty)
     {
+      // const buffer array is compacted
       raytraceState.rootSignature->updateCBVRange(cmd, raytraceState.raygenShader.cbvRange, cbvDescriptors,
-        raytraceState.constBufferDirtyState, cbvDescriptorsDirty);
+        raytraceState.constBufferDirtyState, cbvDescriptorsDirty, true);
       raytraceState.constBufferDirtyState.reset();
     }
 
@@ -541,6 +557,14 @@ public:
     G_ASSERTF(cmd.is<ID3D12GraphicsCommandList4>(), "Trying to execute raytrace commands on unsupported command list version");
     flushRaytrace();
     cmd.dispatchRays(&def);
+  }
+
+  void dispatchaysIndirect(ID3D12CommandSignature *signature, ID3D12Resource *args_buffer, uint64_t args_offset,
+    ID3D12Resource *count_buffer, uint64_t count_offset, uint32_t max_count)
+  {
+    G_ASSERTF(cmd.is<ID3D12GraphicsCommandList4>(), "Trying to execute raytrace commands on unsupported command list version");
+    flushRaytrace();
+    cmd.executeIndirect(signature, max_count, args_buffer, args_offset, count_buffer, count_offset);
   }
 #endif
 
@@ -634,8 +658,9 @@ public:
 #endif
     if (computeState.constBufferDirtyState.any() || cbvDescriptorsDirty)
     {
+      // const buffer array is not compacted (eg slots match the usage mask)
       computeState.rootSignature->updateCBVRange(cmd, computeState.computeShader.cbvRange, cbvDescriptors,
-        computeState.constBufferDirtyState, cbvDescriptorsDirty);
+        computeState.constBufferDirtyState, cbvDescriptorsDirty, false);
       computeState.constBufferDirtyState.reset();
     }
     if (computeState.dirtyState.test(ComputeState::DirtySet::SRV_DESCRIPTORS))

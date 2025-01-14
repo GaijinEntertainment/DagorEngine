@@ -10,7 +10,7 @@ require RendInst
 
 
 [ecs_inspector(type_name="RiExtraComponent")]
-def draw_RiExtraComponent(eid : array<EntityId> implicit; flags : uint; name : string; refs : array<EntityComponentRef#>#; level : int; var changed : bool?; sub_menu : block<(var changed : bool?) : bool>) : void
+def draw_RiExtraComponent(eid : array<EntityId> implicit; flags : uint; name : string; refs : array<ComponentRenderInfo#>#; level : int; var changed : bool?; sub_menu : block<(var changed : bool?) : bool>) : void
   var val = unsafe(reinterpret<RiExtraComponent?> refs[0].rawData)
   let desc = RendInstDesc(val.handle)
   let riName = desc.isValid ? getRIGenResName(desc) : "<invalid>"

@@ -74,6 +74,7 @@ static void imgui(GlobalManager &globalManager, HeightmapManager &self)
           ImGui::BulletText("Tile world size: %f", grid.tileWorldSize);
           ImGui::BulletText("Grid world range: %f", grid.tileWorldSize * xMax);
           ImGui::BulletText("Lower level: %d", grid.lowerLevel);
+          ImGui::BulletText("Use dynamic allocation: %s", grid.useDynamicAllocation ? "yes" : "no");
           for (const auto [variantIndex, variant] : enumerate(grid.variants))
             if (ImGui::TreeNode(reinterpret_cast<void *>(variantIndex), "Variant #%zu", variantIndex))
             {

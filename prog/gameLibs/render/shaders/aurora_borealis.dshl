@@ -77,7 +77,9 @@ shader aurora_borealis
         layerWeights[i] = saturate(15.0 * step) * exp(-5.0 * step) / 5.053f; // calculated for LOOP_COUNT = 30 (see commit message)
       }
 
+#if !_HARDWARE_METAL
       UNROLL
+#endif
       for (i = 0; i < LOOP_COUNT; ++i)
       {
         float step = float(i + 1) / LOOP_COUNT;

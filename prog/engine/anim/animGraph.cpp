@@ -25,7 +25,10 @@
 #include <regExp/regExp.h>
 #include <ctype.h>
 #include <EASTL/hash_map.h>
+#include <EASTL/bitvector.h>
 #include <memory/dag_framemem.h>
+
+// #define DUMP_ANIM_BLENDING 1
 
 using namespace AnimV20;
 
@@ -34,16 +37,14 @@ static constexpr int PROFILE_BLENDING = 0;
 
 struct AnimBlender::NodeSamplers
 {
-  struct SamplerParams
-  {
-    dag::Index16 posNode, sclNode, rotNode;
-  };
-
   union Entry
   {
     AnimV20Math::PrsAnimNodeSampler<AnimV20Math::OneShotConfig> sampler;
-    SamplerParams sp;
+    dag::Index16 trackId;
+    ~Entry() = delete;
   };
+
+  ~NodeSamplers() = delete;
 
   Entry samplers[MAX_ANIMS_IN_NODE];
   uint32_t totalNum : 8;
@@ -63,6 +64,90 @@ PerformanceTimer2 perf_tm;
 static int perf_cnt = 0, perf_tm_cnt = 0;
 static int perf_frameno_start = 0;
 using perfanimgblend::perf_tm;
+#endif
+
+#if DUMP_ANIM_BLENDING
+#include <osApiWrappers/dag_spinlock.h>
+#include <osApiWrappers/dag_files.h>
+#include <ioSys/dag_fileIo.h>
+#include <ioSys/dag_zstdIo.h>
+#include <gameRes/dag_gameResSystem.h>
+static FullFileSaveCB blending_file;
+static ZstdSaveCB *blending_zstd = nullptr;
+static OSSpinlock blending_lock;
+static PtrTab<AnimationGraph> blending_graphs;
+static int blending_count = 0;
+static int blending_last_frame = -1;
+
+static void finish_blending_dump()
+{
+  blending_zstd->finish();
+  delete blending_zstd;
+  blending_zstd = nullptr;
+
+  int graphOfs = blending_file.tell();
+  for (auto &p : blending_graphs)
+  {
+    String name;
+    get_game_resource_name(p->resId, name);
+    blending_file.writeShortString(name);
+  }
+
+  blending_file.seekto(4);
+  blending_file.writeInt(blending_graphs.size());
+  blending_file.writeInt(graphOfs);
+  blending_file.writeInt(blending_count);
+  blending_file.close();
+  clear_and_shrink(blending_graphs);
+}
+
+static void write_blending(IPureAnimStateHolder &st)
+{
+  OSSpinlockScopedLock guard(blending_lock);
+
+  if (!blending_file.fileHandle)
+  {
+    blending_file.open("anim_blending.bin", DF_CREATE | DF_WRITE | DF_REALFILE_ONLY);
+    blending_file.writeInt(_MAKE4C('ABLD'));
+    blending_file.writeInt(0);
+    blending_file.writeInt(0);
+    blending_file.writeInt(0);
+    blending_count = 0;
+    G_ASSERT(blending_graphs.empty());
+    blending_zstd = new ZstdSaveCB(blending_file, 9);
+  }
+
+  int frame = ::dagor_frame_no();
+  if (blending_last_frame != frame)
+  {
+    blending_last_frame = frame;
+    blending_zstd->writeIntP<2>(-1);
+    blending_count++;
+  }
+
+  auto graph = &st.getGraph();
+  int graphId;
+  if (auto it = eastl::find(blending_graphs.begin(), blending_graphs.end(), graph); it != blending_graphs.end())
+    graphId = it - blending_graphs.begin();
+  else
+  {
+    graphId = blending_graphs.size();
+    blending_graphs.push_back(graph);
+  }
+
+  blending_zstd->writeIntP<2>(graphId);
+  st.saveState(*blending_zstd);
+  blending_count++;
+
+  if (blending_count % 1000 == 0)
+    logerr("blending_count = %d", blending_count);
+
+  if (blending_count >= 100000)
+  {
+    finish_blending_dump();
+    DAG_FATAL("Blending dump saved");
+  }
+}
 #endif
 
 //
@@ -865,6 +950,10 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
   const AnimationGraph &graph)
 {
   G_UNUSED(graph);
+  TIME_PROFILE(AnimationGraph__blend);
+#if DUMP_ANIM_BLENDING
+  write_blending(st);
+#endif
 #if MEASURE_PERF
   perf_tm.go();
 #endif
@@ -948,9 +1037,7 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
   }
 
   auto add_sampler = [](NodeSamplers &smp, int i, int j, int targetChN, const AnimDataChan &chan) {
-    G_UNUSED(j);
     G_UNUSED(targetChN);
-    G_UNUSED(chan);
     if (DAGOR_UNLIKELY(smp.totalNum >= MAX_ANIMS_IN_NODE))
     {
 #if DAGOR_DBGLEVEL > 0
@@ -960,9 +1047,7 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
       return false;
     }
     auto &s = smp.samplers[smp.totalNum];
-    s.sp.posNode = dag::Index16();
-    s.sp.sclNode = dag::Index16();
-    s.sp.rotNode = dag::Index16();
+    s.trackId = chan.nodeTrack[j];
     smp.totalNum++;
     smp.lastBnl = i;
     return true;
@@ -1021,7 +1106,6 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
       if (smp.lastBnl != i)
         if (!add_sampler(smp, i, j, targetChN, pos))
           continue;
-      smp.samplers[smp.totalNum - 1].sp.posNode = dag::Index16(j);
 
       ch.blendWt[ch_w.totalNum] = w;
       ch.blendMod[ch_w.totalNum] = bmod | (smp.totalNum - 1);
@@ -1070,7 +1154,6 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
       if (smp.lastBnl != i)
         if (!add_sampler(smp, i, j, targetChN, scl))
           continue;
-      smp.samplers[smp.totalNum - 1].sp.sclNode = dag::Index16(j);
 
       ch.blendWt[ch_w.totalNum] = w;
       ch.blendMod[ch_w.totalNum] = bmod | (smp.totalNum - 1);
@@ -1115,7 +1198,6 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
       if (smp.lastBnl != i)
         if (!add_sampler(smp, i, j, targetChN, rot))
           continue;
-      smp.samplers[smp.totalNum - 1].sp.rotNode = dag::Index16(j);
 
       ch.blendWt[ch_w.totalNum] = w;
       ch.blendMod[ch_w.totalNum] = (bmod & ~BMOD_CHARDEP) | (smp.totalNum - 1);
@@ -1134,7 +1216,7 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
       if (smp.lastBnl != i)
         continue;
       auto &s = smp.samplers[smp.totalNum - 1];
-      new (&s.sampler, _NEW_INPLACE) decltype(s.sampler)(anim, s.sp.posNode, s.sp.rotNode, s.sp.sclNode, wa_pos);
+      new (&s.sampler, _NEW_INPLACE) decltype(s.sampler)(anim, s.trackId, wa_pos);
     }
   }
   if (PROFILE_BLENDING)
@@ -2068,7 +2150,7 @@ static bool load_generic_graph(AnimationGraph &graph, const DataBlock &blk, dag:
     fatal_context_pop();
   }
 
-  eastl::bitvector<> animNodeState;
+  eastl::bitvector<eastl::allocator, uint32_t, eastl::vector<uint32_t, eastl::allocator>> animNodeState;
   animNodeState.resize(graph.getAnimNodeCount(), false);
 
   for (ControllerDependencyLoadHelper &controller : controllersWithDependency)
@@ -2420,7 +2502,8 @@ void AnimBlendCtrl_1axis::initChilds(AnimationGraph &graph, const DataBlock &blk
       }
 }
 
-void AnimBlendCtrl_1axis::checkHasLoop(AnimationGraph &graph, eastl::bitvector<> &visited_nodes)
+void AnimBlendCtrl_1axis::checkHasLoop(AnimationGraph &graph,
+  eastl::bitvector<eastl::allocator, uint32_t, eastl::vector<uint32_t, eastl::allocator>> &visited_nodes)
 {
   int id = getAnimNodeId();
   if (id == -1)
@@ -2498,7 +2581,8 @@ void AnimBlendCtrl_LinearPoly::initChilds(AnimationGraph &graph, const DataBlock
       }
 }
 
-void AnimBlendCtrl_LinearPoly::checkHasLoop(AnimationGraph &graph, eastl::bitvector<> &visited_nodes)
+void AnimBlendCtrl_LinearPoly::checkHasLoop(AnimationGraph &graph,
+  eastl::bitvector<eastl::allocator, uint32_t, eastl::vector<uint32_t, eastl::allocator>> &visited_nodes)
 {
   int id = getAnimNodeId();
   if (id == -1)
@@ -2591,7 +2675,8 @@ void AnimBlendCtrl_RandomSwitcher::initChilds(AnimationGraph &graph, const DataB
   recalcWeights();
 }
 
-void AnimBlendCtrl_RandomSwitcher::checkHasLoop(AnimationGraph &graph, eastl::bitvector<> &visited_nodes)
+void AnimBlendCtrl_RandomSwitcher::checkHasLoop(AnimationGraph &graph,
+  eastl::bitvector<eastl::allocator, uint32_t, eastl::vector<uint32_t, eastl::allocator>> &visited_nodes)
 {
   int id = getAnimNodeId();
   if (id == -1)
@@ -2774,7 +2859,8 @@ void AnimBlendCtrl_ParametricSwitcher::initChilds(AnimationGraph &graph, const D
   }
 }
 
-void AnimBlendCtrl_ParametricSwitcher::checkHasLoop(AnimationGraph &graph, eastl::bitvector<> &visited_nodes)
+void AnimBlendCtrl_ParametricSwitcher::checkHasLoop(AnimationGraph &graph,
+  eastl::bitvector<eastl::allocator, uint32_t, eastl::vector<uint32_t, eastl::allocator>> &visited_nodes)
 {
   int id = getAnimNodeId();
   if (id == -1)
@@ -2857,7 +2943,8 @@ void AnimBlendCtrl_Hub::initChilds(AnimationGraph &graph, const DataBlock &blk, 
     finalizeInit(graph, varName);
 }
 
-void AnimBlendCtrl_Hub::checkHasLoop(AnimationGraph &graph, eastl::bitvector<> &visited_nodes)
+void AnimBlendCtrl_Hub::checkHasLoop(AnimationGraph &graph,
+  eastl::bitvector<eastl::allocator, uint32_t, eastl::vector<uint32_t, eastl::allocator>> &visited_nodes)
 {
   int id = getAnimNodeId();
   if (id == -1)
@@ -2938,7 +3025,8 @@ void AnimBlendCtrl_Blender::initChilds(AnimationGraph &graph, const DataBlock &b
   }
 }
 
-void AnimBlendCtrl_Blender::checkHasLoop(AnimationGraph &graph, eastl::bitvector<> &visited_nodes)
+void AnimBlendCtrl_Blender::checkHasLoop(AnimationGraph &graph,
+  eastl::bitvector<eastl::allocator, uint32_t, eastl::vector<uint32_t, eastl::allocator>> &visited_nodes)
 {
   int id = getAnimNodeId();
   if (id == -1)
@@ -3050,7 +3138,8 @@ void AnimBlendCtrl_BinaryIndirectSwitch::initChilds(AnimationGraph &graph, const
   setFifoCtrl((AnimBlendCtrl_Fifo3 *)ctrl);
 }
 
-void AnimBlendCtrl_BinaryIndirectSwitch::checkHasLoop(AnimationGraph &graph, eastl::bitvector<> &visited_nodes)
+void AnimBlendCtrl_BinaryIndirectSwitch::checkHasLoop(AnimationGraph &graph,
+  eastl::bitvector<eastl::allocator, uint32_t, eastl::vector<uint32_t, eastl::allocator>> &visited_nodes)
 {
   int id = getAnimNodeId();
   if (id == -1)

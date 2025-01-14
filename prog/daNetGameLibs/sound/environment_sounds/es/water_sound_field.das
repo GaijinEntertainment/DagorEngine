@@ -4,6 +4,7 @@ require DagorMath
 require soundSystem
 require soundEvent
 require environment_sounds.modules.sound_field_common
+require sound_utils.modules.sound_player_common
 require level
 
 

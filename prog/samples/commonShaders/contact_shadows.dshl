@@ -5,10 +5,15 @@ float4 projtm_psf_3;
 int shadow_frame = 0;
 float contact_shadow_len = 0.2;
 float contact_shadow_step_offset = 0.2;
+float contact_shadow_treshold_mul = 0.0045;
 
 macro CONTACT_SHADOWS_BASE(code)
-  (code) { projectionMatrix@f44 = {projtm_psf_0, projtm_psf_1, projtm_psf_2, projtm_psf_3}; }
+  (code){
+    projectionMatrix@f44 = {projtm_psf_0, projtm_psf_1, projtm_psf_2, projtm_psf_3};
+    contact_shadow_treshold_mul@f1 = contact_shadow_treshold_mul;
+  }
   hlsl(code) {
+    #define COMPARE_TOLERANCE_SCALE (contact_shadow_treshold_mul)
     #include "interleavedGradientNoise.hlsl"
     #include "contactShadows.hlsl"
   }

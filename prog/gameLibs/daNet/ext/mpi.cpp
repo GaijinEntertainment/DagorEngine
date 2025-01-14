@@ -11,18 +11,19 @@ static IMessageListener *message_listeners = NULL;
 static object_dispatcher obj_dispatcher = NULL;
 static thread_local int curr_call_depth = 0;
 
-IObject *dispatch_object(ObjectID oid)
+IObject *dispatch_object(ObjectID oid, ObjectExtUID ext)
 {
-  return static_cast<IObject *>((oid != INVALID_OBJECT_ID && obj_dispatcher) ? obj_dispatcher(oid) : NULL);
+  return static_cast<IObject *>((oid != INVALID_OBJECT_ID && obj_dispatcher) ? obj_dispatcher(oid, ext) : NULL);
 }
 
 Message *dispatch(const BitStream &bs, bool copy_payload)
 {
   ObjectID oid;
+  ObjectExtUID extUid;
   MessageID mid;
-  if (obj_dispatcher && bs.Read(oid) && bs.Read(mid))
+  if (obj_dispatcher && read_object_ext_uid(bs, oid, extUid) && bs.Read(mid))
   {
-    IObject *o = dispatch_object(oid);
+    IObject *o = dispatch_object(oid, extUid);
     if (o)
     {
       Message *m = (mid != INVALID_MESSAGE_ID) ? o->dispatchMpiMessage(mid) : NULL;

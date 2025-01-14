@@ -108,6 +108,8 @@ struct DriverConfig
     uint64_t enableDeviceExecutionTracker : 1;
     // enables multi queue submit scheme
     uint64_t allowMultiQueue : 1;
+    // sets queue priorities to high if possible
+    uint64_t highPriorityQueues : 1;
   };
 
   struct DeviceBits

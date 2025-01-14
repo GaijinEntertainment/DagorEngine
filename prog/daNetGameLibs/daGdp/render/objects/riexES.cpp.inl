@@ -7,9 +7,10 @@
 #include <gameRes/dag_gameResources.h>
 #include <gameRes/dag_stdGameResId.h>
 #include <shaders/dag_rendInstRes.h>
+#include <rendInst/riShaderConstBuffers.h>
+#include <riGen/riGenExtra.h>
 #include "../globalManager.h"
 #include "riex.h"
-#include <rendInst/riShaderConstBuffers.h>
 
 namespace material_var
 {
@@ -130,6 +131,7 @@ static inline void riex_object_group_process_es(const dagdp::EventObjectGroupPro
         builder.resourceAssetNameMap.addNameId(assetName.data(), assetName.size(), assetNameHash);
         resource = &builder.resources.push_back();
         resource->gameRes = eastl::move(gameRes);
+        resource->riExId = riExId;
 
         // PoolOffset is calculated by: poolIdx * (sizeof(rendinst::render::RiShaderConstBuffers) / sizeof(vec4f)) + 1;
         // Where RiShaderConstBuffers is a struct with all extra data for a single RI (type).
@@ -153,6 +155,7 @@ static inline void riex_object_group_process_es(const dagdp::EventObjectGroupPro
         RiexRenderableInfo rInfo;
         rInfo.lodsRes = lodsRes;
         rInfo.lodIndex = lodIndex;
+        rInfo.isTree = rendinst::riExtra[resource->riExId].isTree;
 
         const RenderableId rId = resource->lods_rId[lodIndex];
         builder.renderablesInfo.emplace(rId, rInfo);

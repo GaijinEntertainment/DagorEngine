@@ -114,6 +114,8 @@ struct SMProps : public ShaderMaterialProperties
 
         case SHVT_TEXTURE: stvar[i].texId = t; break;
 
+        case SHVT_SAMPLER: stvar[i].samplerHnd = d3d::INVALID_SAMPLER_HANDLE; break;
+
         default: G_ASSERT(0);
       }
   }
@@ -241,7 +243,7 @@ public:
     if (!gpuLocked)
     {
       d3d::driver_command(Drv3dCommand::ACQUIRE_OWNERSHIP);
-      d3d::driver_command(Drv3dCommand::SET_PIPELINE_COMPILATION_TIME_BUDGET);
+      d3d::driver_command(Drv3dCommand::ASYNC_PIPELINE_COMPILE_RANGE_BEGIN);
 
       gpuLocked = true;
 
@@ -297,7 +299,7 @@ private:
     if (gpuLocked)
     {
       gpuLocked = false;
-      d3d::driver_command(Drv3dCommand::SET_PIPELINE_COMPILATION_TIME_BUDGET, (void *)-1);
+      d3d::driver_command(Drv3dCommand::ASYNC_PIPELINE_COMPILE_RANGE_END);
       d3d::driver_command(Drv3dCommand::RELEASE_OWNERSHIP);
     }
   }

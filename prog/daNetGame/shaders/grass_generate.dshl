@@ -17,6 +17,7 @@ buffer grass_eraser_instances;
 buffer grass_instances_count_readback;
 int grass_update_readback_count;
 float grass_porosity = 0.7;
+float4 grass_smoothness_fade_params = float4(1.0, 30.0, 0.0, 0.0); // X - fade start, Y - fade end distance, ZW - unused
 
 shader grass_create_indirect {
   ENABLE_ASSERT(cs)
@@ -710,9 +711,11 @@ shader grass_render_billboards
       grass_texture@smpArray = grass_texture;
       grass_texture_n@smpArray = grass_texture_n;
       mip_bias@f1 = (mip_bias);
+      smoothnessfadeParams@f2 = (grass_smoothness_fade_params.x, 1.0 / max(grass_smoothness_fade_params.y - grass_smoothness_fade_params.x, 0.001) );
     }
 
     USE_PIXEL_TANGENT_SPACE()
+    INIT_ZNZFAR_STAGE(ps)
 
     INIT_STATIC_SHADOW_PS()
     WRITE_GBUFFER()
@@ -792,26 +795,13 @@ shader grass_render_billboards
       //return grassAlbedo;
 
       UnpackedGbuffer gbuffer;
-      //reflectance = 0;
-      //translucency = 1;
-      //this is filtering reflectance and smoothness based on mip lod.
+      //this is filtering reflectance and smoothness based on distance
       //can be done in mipmap chain (so much faster, using Hardware).
       //but will require separate reflectance in texture
-##if hardware.metal
-      float4 gradients = float4(ddx(tc.xy), ddy(tc.xy));//fixme: use fwidth?
-      float2 dtex = gradients.xz*gradients.xz + gradients.yw*gradients.yw;
-      float minLod = log2(max((128*128)*max(dtex.x,dtex.y), 1.));
-##else
-      float minLod = max(0, grass_texture_n.CalculateLevelOfDetailUnclamped(grass_texture_n_samplerstate, tc.xy) - mip_bias);
-##endif
-      //to avoid mipmapping of specular (it is incorrect due to alpha test)
-      //pre 4.1 shaders code
-      //float4 gradients = float4(ddx(tc.xy), ddy(tc.xy));//fixme: use fwidth?
-      //float2 dtex = gradients.xz*gradients.xz + gradients.yw*gradients.yw;
-      //float minLod = log2(max((128*128)*max(dtex.x,dtex.y), 1.));
-      float lodscale = rcp(1+minLod);
-      smoothness *= lodscale;
-      reflectance *= lodscale;
+      float distance = linearize_z(input.pos.z, zn_zfar.zw);
+      float smoothnessfade = 1.0 - saturate((distance - smoothnessfadeParams.x) * smoothnessfadeParams.y);
+      smoothness *= smoothnessfade;
+      reflectance *= smoothnessfade;
       //end of filter
 
       half3 worldPos = world_view_pos - input.p2e.xyz;

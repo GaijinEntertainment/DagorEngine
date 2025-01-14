@@ -32,6 +32,7 @@ include "night_light.dshl"
 include "rtao_use.dshl"
 include "rtr_use.dshl"
 include "screen_gi_encoding.dshl"
+include "apply_shadow_modifications.dshl"
 
 float4 stereo_params = (0, 0, 0, 0);
 
@@ -69,7 +70,7 @@ macro COMMON_RESOLVE_SIMPLE(code)
     blood_ss_profile@f3 = blood_ss_profile;
     water_heightmap_lowres@smp2d = water_heightmap_lowres;
     sheen_color@f3 = sheen_color;
-    shadow_params__shadow_frame@f1 = (shadow_frame, 0, 0, 0);
+    shadow_frame@f1 = shadow_frame;
   }
   INIT_WORLD_TO_WATER_HEIGHTMAP(code)
   hlsl(code) {
@@ -82,7 +83,6 @@ macro COMMON_RESOLVE_SIMPLE(code)
     #define BLOOD_SSS_FACTOR blood_ss_profile
     #define LEAVES_SSS_FACTOR leaves_ss_profile
     #define SHEEN_SSS_FACTOR sheen_ss_profile
-    #define shadow_frame shadow_params__shadow_frame
   }
 
   INIT_HDR(code)
@@ -253,6 +253,7 @@ macro SPECIAL_RESOLVE_EXTENDED(code)
 endmacro
 
 macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
+  USE_SHADOW_MODIFICATIONS(code)
   hlsl(code) {
     #define __XBOX_WAVESIM_ITERATION 1
     #define __XBOX_IMPROVE_MAD 1
@@ -373,7 +374,7 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
       half3 specularColor = gbuffer.specularColor*specularAOcclusion;
       //SUN
       float3 lightDir = -from_sun_direction.xyz;
-      half3 lightColor = sun_color_1.rgb;
+      half3 lightColor = sun_color_0.rgb;
 
       float3 verticalUnderwaterMul = float3(1.0, 1.0, 1.0);
       ##if water_heightmap_lowres != NULL
@@ -416,7 +417,7 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
       SSSshadow *= lerp(contactShadows, contactShadows*0.75 + 0.25, translucencyStrength);
       ##endif
 
-      half shadow = csmShadow*saturate(NoL * 6 - 0.2);//fake: reduce shadow artifacts in specular!
+      half shadow = apply_shadow_modifications(csmShadow, NoL);
       //if ssr disabled, envi probe reflection should be dimmed when objects are in shadow
       ##if ssr_target == NULL
         #define MIN_ENVI_SSR 0.25

@@ -252,10 +252,11 @@ hlsl (ps) {
 
       float alpha = saturate(bloodIntensity * blood_brightness);
 
-      float3 bloodColor = blood_wound_color_high_intensity * distFactor;
+      float3 bloodColor = blood_wound_color_low_intensity * distFactor;
 
       diffuse_color = lerp(diffuse_color,  diffuse_color * bloodColor, alpha);
-      float porosity = get_porosity_by_microdetail_base(micro_detail_layer);
+      float porosity = micro_detail_layer != -1 ? get_porosity_by_microdetail_base(micro_detail_layer)
+                                                : 1.0;
       smoothness = lerp(smoothness, 0.9, (1.0 - porosity) * alpha);
 ##endif
     }

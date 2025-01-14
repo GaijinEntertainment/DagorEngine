@@ -1579,9 +1579,8 @@ void create_vertex_color_data(Mesh &m, int usage, int usage_index)
   m.optimize_extra(chId, 0);
 }
 
-void add_per_vertex_domain_uv(Mesh &m, int usage, int usage_index)
+void add_per_vertex_domain_uv(Mesh &m, int usage, int usage_index_0, int usage_index_1)
 {
-  static constexpr float DOMINANT_DATA_UV_TRANSFORM_BOUND = 16.0f; // must be the same in shader and cpp code
   static constexpr float VERTEX_POS_DIFF_TOLERANCE_SQ = 1e-20f;
 
   if (!m.tface[0].size())
@@ -1589,18 +1588,28 @@ void add_per_vertex_domain_uv(Mesh &m, int usage, int usage_index)
   if (m.face.size() != m.tface[0].size())
     return;
 
-  int chId = m.add_extra_channel(Mesh::CHT_FLOAT4, usage, usage_index);
-  if (chId < 0)
+  int chId0 = m.add_extra_channel(Mesh::CHT_FLOAT4, usage, usage_index_0);
+  if (chId0 < 0)
+    return;
+  int chId1 = m.add_extra_channel(Mesh::CHT_FLOAT4, usage, usage_index_1);
+  if (chId1 < 0)
     return;
 
   const int vertCount = m.face.size() * 3;
 
-  Mesh::ExtraChannel &vcolChan = m.extra[chId];
-  vcolChan.resize_verts(vertCount);
-  vcolChan.fc.resize(m.face.size());
+  Mesh::ExtraChannel &vcolChan0 = m.extra[chId0];
+  vcolChan0.resize_verts(vertCount);
+  vcolChan0.fc.resize(m.face.size());
 
-  dag::Span<TFace> vcolface = make_span(vcolChan.fc);
-  Point4 *vcolvert = (Point4 *)vcolChan.vt.data();
+  Mesh::ExtraChannel &vcolChan1 = m.extra[chId1];
+  vcolChan1.resize_verts(vertCount);
+  vcolChan1.fc.resize(m.face.size());
+
+  dag::Span<TFace> vcolface0 = make_span(vcolChan0.fc);
+  Point4 *vcolvert0 = (Point4 *)vcolChan0.vt.data();
+
+  dag::Span<TFace> vcolface1 = make_span(vcolChan1.fc);
+  Point4 *vcolvert1 = (Point4 *)vcolChan1.vt.data();
 
   struct DomVertex
   {
@@ -1640,22 +1649,6 @@ void add_per_vertex_domain_uv(Mesh &m, int usage, int usage_index)
       uniqueVertexIndices[flatIndex] = uniqueVertId;
     }
   }
-
-  auto normalizeUvData = [](float v) -> float {
-    if (v < -DOMINANT_DATA_UV_TRANSFORM_BOUND || v > DOMINANT_DATA_UV_TRANSFORM_BOUND)
-    {
-      LOGERR_ONCE("Loss of data for dominant uv! %f is out of safety bounds.", v);
-    }
-    return (v + DOMINANT_DATA_UV_TRANSFORM_BOUND) / (2 * DOMINANT_DATA_UV_TRANSFORM_BOUND);
-  };
-
-  auto packUvPair = [&normalizeUvData](float v0, float v1) -> float {
-    v0 = normalizeUvData(v0);
-    v1 = normalizeUvData(v1);
-    uint32_t data0 = (uint32_t)clamp((int)(v0 * 0xFFFF), 0, 0xFFFF);
-    uint32_t data1 = (uint32_t)clamp((int)(v1 * 0xFFFF), 0, 0xFFFF);
-    return bitwise_cast<float>(data0 | (data1 << 16));
-  };
 
   struct DomEdge
   {
@@ -1710,11 +1703,14 @@ void add_per_vertex_domain_uv(Mesh &m, int usage, int usage_index)
       Point4 domEdgeUv = domEdge.uniqueIndex0 == uniqueIndex0 ? Point4(domEdge.uv0.x, domEdge.uv0.y, domEdge.uv1.x, domEdge.uv1.y)
                                                               : Point4(domEdge.uv1.x, domEdge.uv1.y, domEdge.uv0.x, domEdge.uv0.y);
 
-      vcolface[faceId].t[inFaceVertId] = flatIndex;
-      vcolvert[flatIndex] = Point4(packUvPair(domEdgeUv.x, domVertexUv.x), packUvPair(domEdgeUv.y, domVertexUv.y),
-        packUvPair(domEdgeUv.z, 0), packUvPair(domEdgeUv.w, 0));
+      vcolface0[faceId].t[inFaceVertId] = flatIndex;
+      vcolface1[faceId].t[inFaceVertId] = flatIndex;
+
+      vcolvert0[flatIndex] = Point4(domVertexUv.x, domVertexUv.y, 0, 0);
+      vcolvert1[flatIndex] = domEdgeUv;
     }
   }
 
-  m.optimize_extra(chId, 0);
+  m.optimize_extra(chId0, 0);
+  m.optimize_extra(chId1, 0);
 }

@@ -58,9 +58,7 @@ shader dynamic_perlin_layered
         float4 initialTm0;
         float4 initialTm1;
         float4 initialTm2;
-        float4 hashval;
-        get_per_instance_data(hashval, 1);
-        output.colorMul = getColorMul(asuint(hashval.x));
+        output.colorMul = getColorMul(get_per_instance_hashval());
         ##if in_editor_assume == yes
           initialTm0 = float4(1, 0, 0, 0);
           initialTm1 = float4(0, 1, 0, 0);

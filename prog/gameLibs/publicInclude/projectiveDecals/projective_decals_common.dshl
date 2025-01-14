@@ -6,6 +6,13 @@ include "heightmap_common.dshl"
 
 buffer decal_buffer;
 
+int projective_decals_to_update_count_const_no = 0 always_referenced;
+int projective_decals_to_update_const_no = 1 always_referenced; // TODO: use it instead register(c1) for all related shaders
+int projective_decals_original_count_const_no = 10 always_referenced;
+int projective_decals_original_uav_no = 0 always_referenced;
+int projective_decals_target_uav_no = 1 always_referenced;
+int projective_decals_target_count_uav_no = 2 always_referenced;
+
 hlsl {
   #include <projectiveDecals/projective_decals.hlsli>
   #include <projectiveDecals/projective_decals_const.hlsli>

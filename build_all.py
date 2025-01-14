@@ -28,10 +28,22 @@ DABUILD_EXE = os.path.realpath('{0}/daBuild-dev{1}'.format(DAGOR_TOOLS_FOLDER, '
 DABUILD_CMD = [DABUILD_EXE, '-jobs:{}'.format(multiprocessing.cpu_count()), '-q']
 FONTGEN_EXE = os.path.realpath('{0}/fontgen2-dev{1}'.format(DAGOR_TOOLS_FOLDER, '.exe' if DAGOR_HOST == 'windows' else ''))
 
+# detect dry run
+DRY_RUN = False
+
+def is_s_dry_run(s):
+  if s == '--dry-run' or s == '-dry-run':
+    return True
+
+for s in sys.argv[1:]:
+  if is_s_dry_run(s):
+    DRY_RUN = True
+    break
+
 # gather build components from commandline (to allow partial builds)
 BUILD_COMPONENTS = []
 for s in sys.argv[1:]:
-  if not s.startswith('project:') and not s.startswith('arch:'):
+  if not s.startswith('project:') and not s.startswith('arch:') and not is_s_dry_run(s):
     BUILD_COMPONENTS += [s]
 # when no components specified we build all of them
 if len(BUILD_COMPONENTS) == 0:
@@ -45,6 +57,9 @@ for s in sys.argv[1:]:
     break
 
 def run(cmd, cwd='.'):
+  if DRY_RUN:
+    print(f"DRY_RUN: {cwd} > {cmd}")
+    return True
   try:
     print('--- Running: {0}  in  {1}'.format(cmd, cwd)); sys.stdout.flush()
     subprocess.run(cmd, shell = True if type(cmd)==str else False, check = True, cwd = cwd)

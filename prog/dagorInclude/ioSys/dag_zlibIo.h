@@ -205,6 +205,52 @@ protected:
 };
 
 
+class ZlibDecompressSaveCB : public IGenSave
+{
+public:
+  explicit KRNLIMP ZlibDecompressSaveCB(IGenSave &in_save_cb, bool raw_inflate = false, bool fatal_errors = true);
+  KRNLIMP ~ZlibDecompressSaveCB();
+
+  KRNLIMP void write(const void *ptr, int size) override;
+  KRNLIMP void finish();
+
+  int tell() override
+  {
+    issueFatal();
+    return 0;
+  }
+  void seekto(int) override { issueFatal(); }
+  void seektoend(int /*ofs*/ = 0) override { issueFatal(); }
+  void beginBlock() override { issueFatal(); }
+  void endBlock(unsigned /*block_flags*/) override { issueFatal(); }
+  int getBlockLevel() override
+  {
+    issueFatal();
+    return 0;
+  }
+  const char *getTargetName() override { return saveCb.getTargetName(); }
+  KRNLIMP void syncFlush();
+  void flush() override
+  {
+    syncFlush();
+    saveCb.flush();
+  }
+
+private:
+  bool doProcessStep();
+
+protected:
+  IGenSave &saveCb;
+  bool isFinished = false;
+  bool isBroken = false;
+  bool fatalErrors;
+  alignas(16) unsigned char strm[SIZE_OF_Z_STREAM]; // z_stream strm;
+  unsigned char buffer[ZLIB_LOAD_BUFFER_SIZE];
+
+  KRNLIMP void issueFatal();
+};
+
+
 KRNLIMP int zlib_compress_data(IGenSave &dest, int compression_level, IGenLoad &src, int sz);
 
 #include <supp/dag_undef_KRNLIMP.h>

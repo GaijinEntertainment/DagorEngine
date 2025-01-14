@@ -1,7 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include "av_tree.h"
 #include "av_environment.h"
 #include "Entity/compositeEditor.h"
 
@@ -18,6 +17,7 @@
 
 #include <assets/assetMgr.h>
 #include <assets/assetChangeNotify.h>
+#include <assetsGui/av_client.h>
 
 #include <util/dag_string.h>
 #include <util/dag_simpleString.h>
@@ -43,6 +43,7 @@ struct ImpostorOptions;
 
 class CompositeEditor;
 class ColorDialogAppMat;
+class MainAssetSelector;
 
 class AssetViewerApp;
 AssetViewerApp &get_app();
@@ -53,7 +54,8 @@ class AssetViewerApp : public GenericEditorAppWindow,
                        public ITextureNameResolver,
                        public IDagorAssetChangeNotify,
                        public PropPanel::ControlEventHandler,
-                       public PropPanel::ITreeViewEventHandler,
+                       public IAssetBaseViewClient,
+                       public IAssetSelectorContextMenuHandler,
                        public IConsoleCmd,
                        public IWndManagerWindowHandler,
                        public PropPanel::IDelayedCallbackHandler,
@@ -149,6 +151,7 @@ public:
   virtual void startGizmo(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif);
   virtual ModeType getGizmoModeType(); //{ return MODE_Move; }
   virtual BasisType getGizmoBasisType() { return BASIS_World; }
+  virtual BasisType getGizmoBasisTypeForMode(ModeType tp) { return BASIS_World; }
   virtual CenterType getGizmoCenterType() { return CENTER_Pivot; }
   virtual bool isGizmoOperationStarted() const override;
 
@@ -219,7 +222,7 @@ public:
   const DagorAsset *getCurAsset() const { return curAsset; }
   bool reloadAsset(const DagorAsset &asset, int asset_name_id, int asset_type);
   void refillTree();
-  void selectAsset(const DagorAsset &asset, bool reset_filter_if_needed);
+  void selectAsset(const DagorAsset &asset);
 
   CompositeEditor &getCompositeEditor() { return compositeEditor; }
   ImpostorGenerator *getImpostorGenerator() const { return impostorApp.get(); }
@@ -257,9 +260,16 @@ protected:
   // ControlEventHandler
   virtual void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel);
 
-  // ITreeViewEventHandler
-  virtual void onTvSelectionChange(PropPanel::TreeBaseWindow &tree, PropPanel::TLeafHandle new_sel) override;
-  virtual bool onTvContextMenu(PropPanel::TreeBaseWindow &tree_base_window, PropPanel::ITreeInterface &tree) override;
+  // IAssetBaseViewClient
+  virtual void onAvClose() override {}
+  virtual void onAvAssetDblClick(DagorAsset *asset, const char *asset_name) override {}
+  virtual void onAvSelectAsset(DagorAsset *asset, const char *asset_name) override;
+  virtual void onAvSelectFolder(DagorAssetFolder *asset_folder, const char *asset_folder_name) override;
+
+  // IAssetSelectorContextMenuHandler
+  virtual bool onAssetSelectorContextMenu(PropPanel::TreeBaseWindow &tree_base_window, PropPanel::ITreeInterface &tree) override;
+
+  void onAssetSelectionChanged(DagorAsset *asset, DagorAssetFolder *asset_folder);
 
   // Menu
   int onMenuItemClick(unsigned id);
@@ -286,7 +296,7 @@ private:
 
   int allUpToDateFlags;
 
-  AvTree *mTreeView;
+  MainAssetSelector *mTreeView;
   DataBlock propPanelState;
   PropPanel::PanelWindowPropertyControl *mPropPanel;
   PropPanel::ContainerPropertyControl *mToolPanel;

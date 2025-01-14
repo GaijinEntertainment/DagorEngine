@@ -4,6 +4,7 @@
 #include "backend.h"
 #include "execution_scratch.h"
 #include "execution_sync.h"
+#include "wrapped_command_buffer.h"
 
 using namespace drv3d_vulkan;
 
@@ -16,10 +17,10 @@ PipelineBarrier::BarrierCache barrierCache;
 
 void ExecutionContext::syncConstDepthReadWithInternalStore()
 {
-  PipelineBarrier barrier(vkDev, barrierCache, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT);
+  PipelineBarrier barrier(barrierCache, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT);
   barrier.addMemory({VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT});
   barrier.addDependencyFlags(VK_DEPENDENCY_BY_REGION_BIT);
-  barrier.submit(frameCore);
+  barrier.submit();
 }
 
 void ExecutionContext::ensureStateForColorAttachments(VkRect2D area)
@@ -160,13 +161,15 @@ void ExecutionContext::beginPassInternal(RenderPassClass *pass_class, VulkanFram
     chain_structs(rpbi, rpabi);
   }
 #endif
-  Backend::gpuJob.get().execTracker.addMarker(frameCore, &passIdent, sizeof(RenderPassClass::Identifier));
+  Backend::gpuJob.get().execTracker.addMarker(&passIdent, sizeof(RenderPassClass::Identifier));
   rpbi.renderPass = pass_class->getPass(vkDev, fbs.clearMode);
   rpbi.framebuffer = fb_handle;
   rpbi.renderArea = area;
   rpbi.clearValueCount = clearValues.size();
   rpbi.pClearValues = clearValues.data();
-  VULKAN_LOG_CALL(vkDev.vkCmdBeginRenderPass(frameCore, &rpbi, VK_SUBPASS_CONTENTS_INLINE));
+
+  Backend::cb.startReorder();
+  VULKAN_LOG_CALL(Backend::cb.wCmdBeginRenderPass(&rpbi, VK_SUBPASS_CONTENTS_INLINE));
 
   // save resulting state
   Backend::State::exec.set<StateFieldGraphicsRenderPassArea, VkRect2D, BackGraphicsState>(area);
@@ -194,8 +197,8 @@ void ExecutionContext::endPass(const char *why)
           .hasRoDepth() &&
         !Globals::cfg.has.attachmentNoStoreOp)
       syncConstDepthReadWithInternalStore();
-    VULKAN_LOG_CALL(vkDev.vkCmdEndRenderPass(frameCore));
-    performSyncToPreviousCommandList();
+    VULKAN_LOG_CALL(Backend::cb.wCmdEndRenderPass());
+    finishReorderAndPerformSync();
   }
   else
     G_ASSERTF(false, "vulkan: pass end without active pass");
@@ -224,7 +227,9 @@ void ExecutionContext::nextNativeSubpass()
   // recorded while starting/ending/advancing have to be mixed with
   // the operations that are performed by the commands inside the
   // subpass itself.
-  performSyncToPreviousCommandList();
+  Backend::cb.pauseReorder();
+  Backend::sync.completeNeeded();
+  Backend::cb.continueReorder();
 
   rpRes->nextSubpass(*this);
 }
@@ -257,24 +262,74 @@ void ExecutionContext::endNativePass()
 
   RenderPassResource *rpRes = Backend::State::exec.getRO<StateFieldRenderPassResource, RenderPassResource *, BackGraphicsState>();
 
-  performSyncToPreviousCommandList();
+  finishReorderAndPerformSync();
   if (rpRes)
     rpRes->endPass(*this);
   else
   {
     // frame IS corrupted, game will render garbage or trigger device lost, but we give it one more chance
     D3D_ERROR("vulkan: native rp close missing native rp resource while native rp is active, caller\n%s", getCurrentCmdCaller());
-    vkDev.vkCmdEndRenderPass(frameCore);
+    Backend::cb.wCmdEndRenderPass();
   }
 
   Backend::State::exec.set<StateFieldRenderPassResource, RenderPassResource *, BackGraphicsState>(nullptr);
   Backend::State::exec.set<StateFieldGraphicsInPass, InPassStateFieldType, BackGraphicsState>(InPassStateFieldType::NONE);
 }
 
+void ExecutionContext::processBufferCopyReorders(uint32_t pass_index)
+{
+  bool inCustomStage = false;
+  uint32_t startOffset = reorderedBufferCopyOffset;
+  for (; reorderedBufferCopyOffset < data.reorderedBufferCopies.size(); ++reorderedBufferCopyOffset)
+  {
+    ReorderedBufferCopy &i = data.reorderedBufferCopies[reorderedBufferCopyOffset];
+    if (i.pass != pass_index)
+      break;
+
+    if (!inCustomStage)
+    {
+      beginCustomStage("ReorderedBufferCopies");
+      inCustomStage = true;
+    }
+    verifyResident(i.src.buffer);
+    verifyResident(i.dst.buffer);
+
+    uint32_t sourceBufOffset = i.src.bufOffset(i.srcOffset);
+    uint32_t destBufOffset = i.dst.bufOffset(i.dstOffset);
+
+    Backend::sync.addBufferAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT}, i.src.buffer,
+      {sourceBufOffset, i.size});
+    Backend::sync.addBufferAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, i.dst.buffer,
+      {destBufOffset, i.size});
+  }
+
+  if (!inCustomStage)
+    return;
+
+  // use batch sync, to avoid overwriting content that we reordered (will complain if we do that)
+  Backend::sync.completeNeeded();
+
+  for (uint32_t iter = startOffset; iter < reorderedBufferCopyOffset; ++iter)
+  {
+    ReorderedBufferCopy &i = data.reorderedBufferCopies[iter];
+    VkBufferCopy bc;
+    bc.srcOffset = i.src.bufOffset(i.srcOffset);
+    bc.dstOffset = i.dst.bufOffset(i.dstOffset);
+    bc.size = i.size;
+    VULKAN_LOG_CALL(Backend::cb.wCmdCopyBuffer(i.src.buffer->getHandle(), i.dst.buffer->getHandle(), 1, &bc));
+  }
+}
+
 void ExecutionContext::nativeRenderPassChanged()
 {
   // try to skip RP if there is no draws
   uint32_t index = Backend::State::pipe.getRO<StateFieldRenderPassIndex, uint32_t, FrontGraphicsState, FrontRenderPassState>();
+  uint32_t nextSubpass =
+    Backend::State::pipe.getRO<StateFieldRenderPassSubpassIdx, uint32_t, FrontGraphicsState, FrontRenderPassState>();
+
+  if (nextSubpass == 0)
+    processBufferCopyReorders(index);
+
   if (data.nativeRPDrawCounter[index] == 0)
   {
     RenderPassResource *fRP =
@@ -288,8 +343,6 @@ void ExecutionContext::nativeRenderPassChanged()
       return;
   }
 
-  uint32_t nextSubpass =
-    Backend::State::pipe.getRO<StateFieldRenderPassSubpassIdx, uint32_t, FrontGraphicsState, FrontRenderPassState>();
   if (nextSubpass == StateFieldRenderPassSubpassIdx::InvalidSubpass)
     // transit into custom stage to avoid starting FB pass right after native one
     beginCustomStage("endNativeRP");
@@ -302,16 +355,15 @@ void ExecutionContext::nativeRenderPassChanged()
   invalidateActiveGraphicsPipeline();
 }
 
-void ExecutionContext::performSyncToPreviousCommandList()
+void ExecutionContext::finishReorderAndPerformSync()
 {
-  // reorder should not cross queue boundaries, should be guarantied via buffer interruption, but that's weak
-  // so ensure everything is ok via assert
-  G_ASSERTF(scratch.cmdListsToSubmit.back().queue == frameCoreQueue, "vulkan: reordering barriers over different queues");
-  // When recording commands of a pass, we need to place barriers before
-  // the current render pass. This is achieved by splitting the command
-  // list and recording the pass commands into a new list, but submitting
-  // barriers to the previous list.
-  Backend::sync.completeNeeded(scratch.cmdListsToSubmit.back().handle, vkDev);
+  // barrier then reordered work
+  Backend::cb.stopReorder();
+  if (!Backend::cb.isInReorder())
+  {
+    Backend::sync.completeNeeded();
+    Backend::cb.flush();
+  }
 }
 
 void ExecutionContext::interruptFrameCoreForRenderPassStart()

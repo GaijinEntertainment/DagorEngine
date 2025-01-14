@@ -117,7 +117,7 @@ block(frame) water3d_block
   (ps) {
     world_view_pos@f3 = world_view_pos;
 
-    sun_color_0__shadow_intens@f3 = (sun_color_0.r, sun_color_0.g, sun_color_0.b, cloud_shadow_intensity);
+    sun_color_0@f3 = sun_color_0;
     sky_color@f3 = sky_color;
     foam_tiling_bdamp_srough@f4 = (foam_tiling/(height_tiling+1), water_depth_hardness*(2-height_tiling), 1.0 / bump_dist_damp, sun_roughness_for_water_to_cube);
     water_fresnel_reflectance@f4 = water_fresnel_reflectance;

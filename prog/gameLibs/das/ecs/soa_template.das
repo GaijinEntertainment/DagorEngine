@@ -23,7 +23,7 @@ def has_annotation(annotations : rtti::AnnotationList; tag : string)
 def fn_or_block_apply(var func; body; var errors : das_string)
   if show_completion && is_in_completion()
     return true
-  var usedTypes : table<string; bool>
+  var usedTypes : table<string>
   var toReplace : array<tuple<name : string; fields : array<string>>>
   var i = 0
   while i < length(func.arguments)
@@ -33,7 +33,7 @@ def fn_or_block_apply(var func; body; var errors : das_string)
       if usedTypes |> key_exists(desc)
         errors := "Multiple arguments with same soa type '{desc}'"
         return false
-      usedTypes[desc] = true
+      insert(usedTypes, desc)
       for field in arg._type.structType.fields
         if true
           var inscope fieldType <- clone_type(field._type)
@@ -526,14 +526,14 @@ class SoaTemplateStructMacro : AstStructureAnnotation
 [macro_interface]
 class CollectAndReplaceIteratorFields : AstVisitor
   prefix : string
-  names : table<string; bool>
+  names : table<string>
   def CollectAndReplaceIteratorFields(prefix_ : string)
     prefix = prefix_
   def override visitExprField(var expr : smart_ptr<ExprField>) : ExpressionPtr
     if expr.value is ExprVar
       if (expr.value as ExprVar).name == prefix
         let ename = string(expr.name)
-        names[ename] = true
+        insert(names, ename)
         return <- new [[ExprVar() at=expr.at, name := "{prefix}_{ename}"]]
     return <- expr
 

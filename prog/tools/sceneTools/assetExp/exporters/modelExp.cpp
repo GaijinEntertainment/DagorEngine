@@ -264,7 +264,8 @@ public:
       ShaderMeshData::allowOodlePacking = true;
       debug("ShaderMesh allows OODLE");
     }
-    enable_tex_mgr_mt(true, 64 << 10);
+    if (first_managed_d3dres() == BAD_TEXTUREID)
+      enable_tex_mgr_mt(true, 64 << 10);
     return true;
   }
   virtual void __stdcall destroy() { delete this; }

@@ -868,7 +868,8 @@ void load_templates_blk(ecs::EntityManager &mgr, dag::ConstSpan<SimpleString> fn
 }
 
 void create_entities_blk(ecs::EntityManager &mgr, const DataBlock &blk, const char *blk_path,
-  const on_entity_created_cb_t &on_entity_created_cb, const on_import_beginend_cb_t &on_import_beginend_cb)
+  const on_entity_creation_scheduled_t &on_creation_scheduled_cb, const create_entity_async_cb_t &on_entity_created_cb,
+  const on_import_beginend_cb_t &on_import_beginend_cb)
 {
   int enid = blk.getNameId("entity"), tnid = blk.getNameId("_template"), impnid = blk.getNameId("import"),
       scnid = blk.getNameId("scene");
@@ -902,7 +903,7 @@ void create_entities_blk(ecs::EntityManager &mgr, const DataBlock &blk, const ch
       lctx.load(eb, nullptr);
 
       ComponentsMap cmap; // todo: replace with ComponentsInitializer
-      if (on_entity_created_cb)
+      if (on_creation_scheduled_cb)
       {
         for (auto &a : clistTemp)
           cmap[ECS_HASH_SLOW(a.first.c_str())] = ChildComponent(a.second);
@@ -928,11 +929,14 @@ void create_entities_blk(ecs::EntityManager &mgr, const DataBlock &blk, const ch
         mgr.addTemplate(eastl::move(templD));
       }
       if (*templName)
-        eid = mgr.createEntityAsync(templName, ComponentsInitializer(eastl::move(cmap)));
+      {
+        create_entity_async_cb_t ccb(on_entity_created_cb);
+        eid = mgr.createEntityAsync(templName, ComponentsInitializer(eastl::move(cmap)), eastl::move(ccb));
+      }
       if (eid)
       {
-        if (on_entity_created_cb)
-          on_entity_created_cb(eid, templName, eastl::move(clistTemp));
+        if (on_creation_scheduled_cb)
+          on_creation_scheduled_cb(eid, templName, eastl::move(clistTemp));
       }
       else
         logerr("Creation entity of template '%s' failed!", templName);
@@ -950,7 +954,7 @@ void create_entities_blk(ecs::EntityManager &mgr, const DataBlock &blk, const ch
           {
             DataBlock importBlk;
             if (dblk::load(importBlk, importScene, dblk::ReadFlag::ROBUST_IN_REL)) // not ROBUST in dev to see syntax errors
-              create_entities_blk(mgr, importBlk, importScene, on_entity_created_cb, on_import_beginend_cb);
+              create_entities_blk(mgr, importBlk, importScene, on_creation_scheduled_cb, on_entity_created_cb, on_import_beginend_cb);
           }
           else
             logerr("Missing import scene <%s> in <%s>", importScene, blk_path);

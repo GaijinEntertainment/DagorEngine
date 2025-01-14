@@ -15,6 +15,9 @@ float4 bvh_process_impostor_vertices_sliceClippingLines2;
 
 float4 bvh_process_impostor_vertices_vertex_offsets[4];
 
+int bvh_process_impostor_vertices_source_const_no = 6;
+int bvh_process_impostor_vertices_output_uav_no = 0;
+
 shader bvh_process_impostor_vertices
 {
   if (compatibility_mode == compatibility_mode_on)
@@ -35,12 +38,11 @@ shader bvh_process_impostor_vertices
     slice_clipping_lines1@f4 = bvh_process_impostor_vertices_sliceClippingLines1;
     slice_clipping_lines2@f4 = bvh_process_impostor_vertices_sliceClippingLines2;
     vertex_offsets@f4[] = bvh_process_impostor_vertices_vertex_offsets;
+    source@buf : register(bvh_process_impostor_vertices_source_const_no) hlsl { ByteAddressBuffer source@buf; };
+    output@uav : register(bvh_process_impostor_vertices_output_uav_no) hlsl { RWByteAddressBuffer output@uav; };
   }
 
   hlsl(cs) {
-    ByteAddressBuffer source : register(t6);
-    RWByteAddressBuffer output : register(u0);
-
     float2 get_vertex_offset(int vertex_id)
     {
       float4 offsets = vertex_offsets[vertex_id >> 1];

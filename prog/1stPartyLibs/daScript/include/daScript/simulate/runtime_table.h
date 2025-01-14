@@ -208,7 +208,7 @@ namespace das
                     }
                 }
             }
-            if (tab.capacity) {
+            if (tab.capacity && !context->verySafeContext) {
                 uint32_t oldSize = tab.capacity*(valueTypeSize + sizeof(KeyType) + sizeof(TableHashKey));
                 context->free(tab.data, oldSize, at);
             }

@@ -67,6 +67,8 @@ int get_num_event_instances(const char *name)
   return 0;
 }
 
+bool is_preset_loaded(const char *preset_name) { return preset_name && sndsys::banks::is_loaded(preset_name); }
+
 void debug_trace(const char *text) { sndsys::debug_trace_info("%s", text); }
 
 void play_one_shot_3d(const char *name, const Point3 &pos)
@@ -284,6 +286,8 @@ SQ_DEF_AUTO_BINDING_MODULE(bind_sound, "sound") // To consider: split client & s
   soundTbl //
     .Func("sound_debug_trace", debug_trace)
     .Func("sound_play_one_shot_3d", play_one_shot_3d)
+    .Func("sound_get_num_event_instances", get_num_event_instances)
+    .Func("sound_is_preset_loaded", is_preset_loaded)
     .Func("sound_play_one_shot", play_one_shot)
     .Func("sound_release_all_instances", release_all_instances)
     .SquirrelFunc("sound_play", play_sound_sq, -2, ".s")

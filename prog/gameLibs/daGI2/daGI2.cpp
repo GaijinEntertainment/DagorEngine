@@ -722,6 +722,7 @@ void DaGIImpl::beforeRender(uint32_t sw, uint32_t sh, uint32_t maxW, uint32_t ma
     // todo: provide min dist in settings
     volumetricGI->init(currentSettings.volumetricGI.tileSize, view.sw, view.sh, maxSW, maxSH, currentSettings.volumetricGI.radianceRes,
       currentSettings.volumetricGI.spatialFilters, probe0, clipW, bool(radianceGrid), zParams);
+    volumetricGI->setHistoryBlurTexelOfs(currentSettings.volumetricGI.historyBlurTexelOfs);
   }
   G_ASSERT(!screenProbes || radianceGrid);
   G_ASSERT(bool(skyVisibility) != bool(radianceGrid));

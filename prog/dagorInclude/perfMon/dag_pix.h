@@ -77,18 +77,22 @@ typedef enum D3D11X_PIX_CAPTURE_FLAGS
 
 #include <drv/3d/dag_commands.h>
 #include <util/dag_preprocessor.h>
+#include <workCycle/dag_gameSettings.h>
 
 #define PIX_GPU_BEGIN_CAPTURE(flags, output_filename)                                                  \
+  dgctrl_need_screen_shot = true;                                                                      \
   d3d::driver_command(Drv3dCommand::PIX_GPU_BEGIN_CAPTURE, reinterpret_cast<void *>(uintptr_t(flags)), \
     const_cast<wchar_t *>(output_filename));
 
 #define PIX_GPU_END_CAPTURE() d3d::driver_command(Drv3dCommand::PIX_GPU_END_CAPTURE);
 
 #define PIX_GPU_CAPTURE_NEXT_FRAME(flags, output_filename)                                                   \
+  dgctrl_need_screen_shot = true;                                                                            \
   d3d::driver_command(Drv3dCommand::PIX_GPU_CAPTURE_NEXT_FRAMES, reinterpret_cast<void *>(uintptr_t(flags)), \
     const_cast<wchar_t *>(output_filename), reinterpret_cast<void *>(uintptr_t(1)));
 
 #define PIX_GPU_CAPTURE_NEXT_FRAMES(flags, output_filename, frame_count)                                     \
+  dgctrl_need_screen_shot = true;                                                                            \
   d3d::driver_command(Drv3dCommand::PIX_GPU_CAPTURE_NEXT_FRAMES, reinterpret_cast<void *>(uintptr_t(flags)), \
     const_cast<wchar_t *>(output_filename), reinterpret_cast<void *>(uintptr_t(frame_count)));
 
@@ -119,7 +123,9 @@ struct PixGpuCaptureScope
   PixGpuCaptureScope(uintptr_t flags, const wchar_t *output_filename, bool enabled = true) : enabled(enabled)
   {
     if (enabled)
+    {
       PIX_GPU_BEGIN_CAPTURE(flags, output_filename);
+    }
   }
   ~PixGpuCaptureScope()
   {

@@ -404,9 +404,10 @@ TEMPLATE_PHYS_ACTOR
 void PHYS_ACTOR::onCollisionDamage(dag::Span<gamephys::SeqImpulseInfo> collisions,
   dag::Span<gamephys::CollisionContactData> contacts,
   int offender_id,
-  double collision_impulse_damage_multiplier)
+  double collision_impulse_damage_multiplier,
+  float at_time)
 {
-  customPhys.onCollisionDamage(eid, *this, collisions, contacts, offender_id, collision_impulse_damage_multiplier);
+  customPhys.onCollisionDamage(eid, *this, collisions, contacts, offender_id, collision_impulse_damage_multiplier, at_time);
 }
 
 TEMPLATE_PHYS_ACTOR
@@ -1096,8 +1097,8 @@ static inline void net_phys_collision_es_impl(const UpdatePhysEvent &info,
     for (int i = collisionsNum + collisionsNum1; i < collisions.size(); ++i)
       collisions[i].contactIndex += contactsNum + contactsNum1;
 
-    actor.getPhys().prepareCollisions(curBodyInfo, testBodyInfo, true, make_span(contacts), make_span(collisions));
-    testPhys->prepareCollisions(curBodyInfo, testBodyInfo, false, make_span(contacts), make_span(collisions));
+    actor.getPhys().prepareCollisions(curBodyInfo, testBodyInfo, true, 0.7f, make_span(contacts), make_span(collisions));
+    testPhys->prepareCollisions(curBodyInfo, testBodyInfo, false, 0.7f, make_span(contacts), make_span(collisions));
 
     Point3 lastCollisionPos = curPhysTm.getcol(3);
     float maxImpulse = 0.f;
@@ -1150,9 +1151,9 @@ static inline void net_phys_collision_es_impl(const UpdatePhysEvent &info,
 
     if (is_server())
     {
-      actor.onCollisionDamage(make_span(collisions), make_span(contacts), eid.index(), 1.0);
+      actor.onCollisionDamage(make_span(collisions), make_span(contacts), eid.index(), 1.0, info.curTime);
       if (testActor != nullptr)
-        testActor->onCollisionDamage(make_span(collisions), make_span(contacts), actor.eid.index(), 1.0);
+        testActor->onCollisionDamage(make_span(collisions), make_span(contacts), actor.eid.index(), 1.0, info.curTime);
     }
   });
 

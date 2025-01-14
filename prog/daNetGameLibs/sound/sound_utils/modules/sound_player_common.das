@@ -101,13 +101,11 @@ def get_path_by_name(paths : Object; path_name : string)
 def get_path_by_desc_nullable(desc : Object; paths : Object)
   return get_path_by_name(paths, desc.path ?? "")
 
-
 def is_valid(obj : Object)
-  return has(obj, "name") || has(obj, "path")
+  return has(obj, "name") || has(obj, "hero") || has(obj, "enemy") || has(obj, "path")
 
 def is_valid(obj : Object; all_tags : Object)
   return is_valid(obj) && test_tags(obj, all_tags)
-
 
 def play_name_path_impl(name : string; path : string; id : uint; pos : float3; var group : SoundEventGroup&)
   let handle = soundEvent::play(name, path, pos)
@@ -137,24 +135,31 @@ def play_name_path(name : string;
     return play_name_path_impl(name, path, pos, is_abandon)
   return invalid_sound_event_handle()
 
+
+def get_name(desc : Object; is_watched_sound : bool; def_ = "")
+  return is_watched_sound ? (desc.hero ?? desc.name ?? def_) : (desc.enemy ?? desc.name ?? def_)
+
+
 def play_desc_path(desc : Object;
                    path : string;
+                   is_watched_sound : bool;
                    id : uint;
                    pos : float3;
                    var group : SoundEventGroup&)
   reject_sound(group, id)
   if !empty(path) && is_valid(desc)
-    let name = desc.name ?? ""
+    let name = get_name(desc, is_watched_sound)
     if !empty(name)
       return play_name_path_impl(name, path, id, pos, group)
   return invalid_sound_event_handle()
 
 def play_desc_path(desc : Object;
                    path : string;
+                   is_watched_sound : bool;
                    pos : float3;
                    is_abandon : bool = true)
   if !empty(path) && is_valid(desc)
-    let name = desc.name ?? ""
+    let name = get_name(desc, is_watched_sound)
     if !empty(name)
       return play_name_path_impl(name, path, pos, is_abandon)
   return invalid_sound_event_handle()
@@ -277,8 +282,9 @@ def play(desc_id : string;
     if is_valid(*desc, tags)
       var path = ""
       if get_option_path(path_obj, tags, is_watched_sound, path)
-        let name = (*desc).name ?? desc_id
-        return play_name_path(name, path, pos, is_abandon)
+        let name = get_name(*desc, is_watched_sound, desc_id)
+        if !empty(name)
+          return play_name_path(name, path, pos, is_abandon)
     return invalid_sound_event_handle()
   sound_debug("no desc '{desc_id}' exists")
   return invalid_sound_event_handle()
@@ -298,8 +304,9 @@ def play(desc_id : string;
     if is_valid(*desc, tags)
       var path = ""
       if get_option_path(path_obj, tags, is_watched_sound, path)
-        let name = (*desc).name ?? desc_id
-        return play_name_path(name, path, id, pos, group)
+        let name = get_name(*desc, is_watched_sound, desc_id)
+        if !empty(name)
+          return play_name_path(name, path, id, pos, group)
     return invalid_sound_event_handle()
   sound_debug("no desc '{desc_id}' exists")
   return invalid_sound_event_handle()
@@ -316,7 +323,9 @@ def play_desc(desc_obj : Object;
   if is_valid(desc_obj, tags)
     var path = ""
     if get_option_path(path_obj, tags, is_watched_sound, path)
-      return play_name_path(desc_obj.name ?? "", path, id, pos, group)
+      let name = get_name(desc_obj, is_watched_sound)
+      if !empty(name)
+        return play_name_path(name, path, id, pos, group)
   return invalid_sound_event_handle()
 
 
@@ -329,7 +338,9 @@ def play_desc(desc_obj : Object;
   if is_valid(desc_obj, tags)
     var path = ""
     if get_option_path(path_obj, tags, is_watched_sound, path)
-      return play_name_path(desc_obj.name ?? "", path, pos, is_abandon)
+      let name = get_name(desc_obj, is_watched_sound)
+      if !empty(name)
+        return play_name_path(name, path, pos, is_abandon)
   return invalid_sound_event_handle()
 
 
@@ -365,3 +376,47 @@ def play_parameterized(var sound : SoundEvent&; param : float; var max_param : f
     abandon(sound)
     play_time = -1.
   set_pos(sound, pos)
+
+
+def private play_or_release_impl(var event : SoundEvent&; name : string; pos : float3; should_play : bool; is_abandon : bool)
+  if event.enabled != should_play
+    event.enabled = should_play
+    event.abandonOnReset = is_abandon
+    if should_play
+      event |> reset(play(name, pos))
+    elif is_abandon
+      event |> abandon()
+    else
+      event |> release()
+  elif should_play
+    event |> set_pos(pos)
+  return event.enabled
+
+def private play_or_release_impl(var event : SoundEvent&; name : string; should_play : bool; is_abandon : bool)
+  if event.enabled != should_play
+    event.enabled = should_play
+    event.abandonOnReset = is_abandon
+    if should_play
+      event |> reset(play(name))
+    elif is_abandon
+      event |> abandon()
+    else
+      event |> release()
+  return event.enabled
+
+
+// for use from update()
+// event.enabled is a user state(tag)
+// event.enabled SHOULD NOT depend from sound state (cvs1.gaijin.lan/c/dagor4/+/540012)
+
+def play_or_release(var event : SoundEvent&; name : string; pos : float3; should_play : bool)
+  return play_or_release_impl(event, name, pos, should_play, false)
+
+def play_or_release(var event : SoundEvent&; name : string; should_play : bool)
+  return play_or_release_impl(event, name, should_play, false)
+
+def play_or_abandon(var event : SoundEvent&; name : string; pos : float3; should_play : bool)
+  return play_or_release_impl(event, name, pos, should_play, true)
+
+def play_or_abandon(var event : SoundEvent&; name : string; should_play : bool)
+  return play_or_release_impl(event, name, should_play, true)

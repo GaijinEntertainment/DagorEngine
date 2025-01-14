@@ -738,11 +738,12 @@ static void create_outline_node_es(const ecs::Event &, dabfg::NodeHandle &outlin
         outline_renderer.setClippedViewport();
 
         outline_depth->setReadStencil(true);
-        d3d::set_const_buffer(STAGE_PS, 1, outline_renderer.colorsCB.getBuf());
+        static int outline_final_render_AllColors_const_no = ShaderGlobal::get_slot_by_name("outline_final_render_AllColors_const_no");
+        d3d::set_const_buffer(STAGE_PS, outline_final_render_AllColors_const_no, outline_renderer.colorsCB.getBuf());
 
         outline_renderer.finalRender.render();
 
-        d3d::set_const_buffer(STAGE_PS, 1, NULL);
+        d3d::set_const_buffer(STAGE_PS, outline_final_render_AllColors_const_no, NULL);
         outline_depth->setReadStencil(false);
       });
     };

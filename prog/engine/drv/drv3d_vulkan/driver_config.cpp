@@ -89,6 +89,7 @@ void DriverConfig::fillConfigBits(const DataBlock *cfg)
   bits.allowAssertOnValidationFail = cfg->getBool("allowAssertOnValidationFail", false);
   bits.enableRenderDocLayer = cfg->getBool("enableRenderDocLayer", false);
   bits.robustBufferAccess = cfg->getBool("robustBufferAccess", false);
+  bits.highPriorityQueues = cfg->getBool("highPriorityQueues", false);
 }
 
 void DriverConfig::fillDeviceBits()
@@ -657,17 +658,19 @@ void DriverConfig::setBindlessConfig()
     Globals::VK::phy.properties.limits.maxBoundDescriptorSets >= spirv::graphics::MAX_SETS + spirv::bindless::MAX_SETS;
 
   bindlessSetLimits[spirv::bindless::TEXTURE_DESCRIPTOR_SET_ACTUAL_INDEX] = {
-    256 * 1024, Globals::VK::phy.maxBindlessTextures, "bindlessTextureCount", "textures", false};
+    256 * 1024, 0, 0, Globals::VK::phy.maxBindlessTextures, "bindlessTextureCountMin", "bindlessTextureCountMax", "textures", false};
   bindlessSetLimits[spirv::bindless::SAMPLER_DESCRIPTOR_SET_ACTUAL_INDEX] = {
-    2048, Globals::VK::phy.maxBindlessSamplers, "bindlessSamplerCount", "samplers", false};
+    2048, 0, 0, Globals::VK::phy.maxBindlessSamplers, "bindlessSamplerCountMin", "bindlessSamplerCountMax", "samplers", false};
   bindlessSetLimits[spirv::bindless::BUFFER_DESCRIPTOR_SET_ACTUAL_INDEX] = {
-    256 * 1024, Globals::VK::phy.maxBindlessBuffers, "bindlessBufferCount", "buffers", false};
+    256 * 1024, 0, 0, Globals::VK::phy.maxBindlessBuffers, "bindlessBufferCountMin", "bindlessBufferCountMax", "buffers", false};
 
   bool allLimitsFit = true;
   for (BindlessSetLimit &i : bindlessSetLimits)
   {
-    i.req = propsBlk->getInt(i.configPath, i.req);
-    i.fits = i.max >= i.req;
+    i.maxReq = propsBlk->getInt(i.configPathMax, i.maxReq);
+    i.minReq = propsBlk->getInt(i.configPathMin, i.maxReq);
+    i.fits = i.max >= i.minReq;
+    i.slots = min(i.max, i.maxReq);
     allLimitsFit &= i.fits;
   }
 
@@ -677,7 +680,7 @@ void DriverConfig::setBindlessConfig()
   {
     debug("vulkan: bindless enabled");
     for (BindlessSetLimit &i : bindlessSetLimits)
-      debug("vulkan: bindless %s limit: %u req %u max", i.limitName, i.req, i.max);
+      debug("vulkan: bindless %s limit: %u (inside %u-%u range) slots, %u max", i.limitName, i.slots, i.minReq, i.maxReq, i.max);
   }
   else
   {
@@ -686,7 +689,7 @@ void DriverConfig::setBindlessConfig()
     if (!allLimitsFit)
       for (BindlessSetLimit &i : bindlessSetLimits)
         if (!i.fits)
-          debug("vulkan: bindless limit %s not fitting to req %u (max %u)", i.limitName, i.req, i.max);
+          debug("vulkan: bindless limit %s not fitting to req (%u-%u) (max %u)", i.limitName, i.minReq, i.maxReq, i.max);
   }
 }
 

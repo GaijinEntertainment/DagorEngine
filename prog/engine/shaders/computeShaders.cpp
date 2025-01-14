@@ -65,11 +65,16 @@ bool ComputeShaderElement::set_int_param(const int var_id, const int v) { return
 bool ComputeShaderElement::set_real_param(const int var_id, const real v) { return mat->set_real_param(var_id, v); }
 bool ComputeShaderElement::set_color4_param(const int var_id, const struct Color4 &v) { return mat->set_color4_param(var_id, v); }
 bool ComputeShaderElement::set_texture_param(const int var_id, const TEXTUREID v) { return mat->set_texture_param(var_id, v); }
+bool ComputeShaderElement::set_sampler_param(const int var_id, d3d::SamplerHandle v) { return mat->set_sampler_param(var_id, v); }
 bool ComputeShaderElement::hasVariable(const int var_id) const { return mat->hasVariable(var_id); }
 bool ComputeShaderElement::getColor4Variable(const int var_id, Color4 &v) const { return mat->getColor4Variable(var_id, v); }
 bool ComputeShaderElement::getRealVariable(const int var_id, real &v) const { return mat->getRealVariable(var_id, v); }
 bool ComputeShaderElement::getIntVariable(const int var_id, int &v) const { return mat->getIntVariable(var_id, v); }
 bool ComputeShaderElement::getTextureVariable(const int var_id, TEXTUREID &v) const { return mat->getTextureVariable(var_id, v); }
+bool ComputeShaderElement::getSamplerVariable(const int var_id, d3d::SamplerHandle &v) const
+{
+  return mat->getSamplerVariable(var_id, v);
+}
 
 bool ComputeShaderElement::setStates() const { return elem->setStatesDispatch(); }
 eastl::array<uint16_t, 3> ComputeShaderElement::getThreadGroupSizes() const { return elem->getThreadGroupSizes(); }

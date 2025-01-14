@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "constants.h"
 #include "device_memory_class.h"
 #include "extents.h"
 #include "format_store.h"
@@ -29,9 +30,6 @@ void dirty_sampler(BaseTex *texture, uint32_t stage, Bitset<dxil::MAX_T_REGISTER
 void dirty_srv_and_sampler_no_lock(BaseTex *texture, uint32_t stage, Bitset<dxil::MAX_T_REGISTERS> slots);
 void dirty_uav_no_lock(BaseTex *texture, uint32_t stage, Bitset<dxil::MAX_U_REGISTERS> slots);
 void dirty_rendertarget_no_lock(BaseTex *texture, Bitset<Driver3dRenderTarget::MAX_SIMRT> slots);
-
-inline constexpr uint32_t MAX_MIPMAPS = 16;
-inline constexpr uint32_t TEXTURE_TILE_SIZE = 64 * 1024;
 
 class BaseTex final : public BaseTexture
 {
@@ -124,8 +122,10 @@ public:
   BaseTexture *makeTmpTexResCopy(int w, int h, int d, int l, bool staging_tex) override;
   void replaceTexResObject(BaseTexture *&other_tex) override;
 
-  bool downSize(int new_width, int new_height, int new_depth, int new_mips, unsigned start_src_level, unsigned level_offset) override;
-  bool upSize(int new_width, int new_height, int new_depth, int new_mips, unsigned start_src_level, unsigned level_offset) override;
+  BaseTexture *downSize(int new_width, int new_height, int new_depth, int new_mips, unsigned start_src_level,
+    unsigned level_offset) override;
+  BaseTexture *upSize(int new_width, int new_height, int new_depth, int new_mips, unsigned start_src_level,
+    unsigned level_offset) override;
 
   static uint32_t update_flags_for_linear_layout(uint32_t cflags, FormatStore format);
   static DeviceMemoryClass get_memory_class(uint32_t cflags);
@@ -134,6 +134,8 @@ public:
   // If expected matches the current Image object it gets replace with replacement and true is returned
   // Otherwise false is returned
   bool swapTextureNoLock(Image *expected, Image *replacement);
+
+  void preRecovery();
 
   SmallTab<uint8_t, MidmemAlloc> texCopy; //< ddsx::Header + ddsx data; sysCopyQualityId stored in hdr.hqPartLevel
 
@@ -257,7 +259,7 @@ typedef BaseTex TextureInterfaceBase;
 #define DX12_UPLOAD_TO_IMAGE_AND_CHECK_DEST(CTX, DEBUG_INFO, IMAGE, ...)                                 \
   do                                                                                                     \
   {                                                                                                      \
-    if ((IMAGE)->getHandle() != nullptr)                                                                 \
+    if ((IMAGE).getDeviceImage()->getHandle() != nullptr)                                                \
       (CTX).uploadToImage((IMAGE), __VA_ARGS__);                                                         \
     else                                                                                                 \
       D3D_ERROR("DX12: ctx.uploadToImage error: tex.image->getHandle() is equal to 0 (" DEBUG_INFO ")"); \

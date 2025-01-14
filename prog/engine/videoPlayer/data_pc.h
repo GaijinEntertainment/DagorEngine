@@ -26,6 +26,7 @@ struct VideoPlaybackData
     TEXTUREID texIdY, texIdU, texIdV;
   };
   OneVideoFrame useVideo[VIDEO_BUFFER_SIZE];
+  d3d::SamplerHandle sampler;
   int useVideoFramePos[VIDEO_BUFFER_SIZE];
   int currentVideoFrame;
 
@@ -39,6 +40,9 @@ public:
     currentVideoFrame = 0;
     memset(useVideo, 0, sizeof(useVideo));
     memset(useVideoFramePos, 0xff, sizeof(useVideoFramePos));
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+    sampler = d3d::request_sampler(smpInfo);
   }
   void termBuffers() { vBuf.clear(0); }
   static inline bool memsetTexture(Texture *tex)
@@ -98,9 +102,9 @@ public:
       }
       if (avoid_tex_update)
       {
-        b.texY->texaddr(TEXADDR_CLAMP);
-        b.texU->texaddr(TEXADDR_CLAMP);
-        b.texV->texaddr(TEXADDR_CLAMP);
+        b.texY->disableSampler();
+        b.texU->disableSampler();
+        b.texV->disableSampler();
 
         snprintf(texName, sizeof(texName), "y%04d_ogv", ++counter);
         b.texIdY = register_managed_tex(texName, b.texY);
@@ -154,9 +158,9 @@ public:
       texName[0] = 'v';
       b.texIdV = register_managed_tex(texName, b.texV);
 
-      b.texY->texaddr(TEXADDR_CLAMP);
-      b.texU->texaddr(TEXADDR_CLAMP);
-      b.texV->texaddr(TEXADDR_CLAMP);
+      b.texY->disableSampler();
+      b.texU->disableSampler();
+      b.texV->disableSampler();
       memsetTexture(b.texY);
       memsetTexture(b.texU);
       memsetTexture(b.texV);

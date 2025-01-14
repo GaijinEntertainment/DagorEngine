@@ -25,6 +25,7 @@ public:
     opacityRangeViewDistance,
     opacityRangeX,
     opacityRangeY,
+    opacityIgnoreFov,
     worldPos,
     yOffs,
     markerFlags,

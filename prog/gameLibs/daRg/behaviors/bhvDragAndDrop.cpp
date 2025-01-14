@@ -24,46 +24,71 @@ struct DragAndDropState
 {
   InputDevice activeDeviceId = DEVID_NONE;
   int activePointerId = -1;
+  int activeButtonId = -1;
   Point2 startPointerPos = ZERO<Point2>();
   Point2 startPointerOffs = ZERO<Point2>();
   bool isDragMode = false;
+  bool waitForDragEnable = false;
   float maxMoveDistance = 0;
   Sqrat::Object targetHandler;
   int lastClickTime = 0;
   bool needDelayedRecalcAfterWheel = false;
 
   bool isClicked() const { return activeDeviceId != DEVID_NONE; }
-
-  bool isDragging() const { return isDragMode && isClicked(); }
-
   bool isClicked(InputDevice device, int pointer_id) const { return activeDeviceId == device && activePointerId == pointer_id; }
-
-  bool isDragging(InputDevice device, int pointer_id) const { return isDragMode && isClicked(device, pointer_id); }
-
-  void startDrag(InputDevice device, int pointer_id, const Point2 &pos, const Point2 &offs)
+  bool isClicked(InputDevice device, int pointer_id, int button_id) const
   {
-    startClick(device, pointer_id, pos, offs);
-    isDragMode = true;
+    return activeButtonId == button_id && isClicked(device, pointer_id);
   }
 
-  void startClick(InputDevice device, int pointer_id, const Point2 &pos, const Point2 &offs)
+  bool isWaitingForDragEnable() const { return waitForDragEnable && isClicked(); }
+  bool isWaitingForDragEnable(InputDevice device, int pointer_id) const { return waitForDragEnable && isClicked(device, pointer_id); }
+  void startWaitForDragEnable(InputDevice device, int pointer_id, int button_id, const Point2 &pos, const Point2 &offs)
+  {
+    startClick(device, pointer_id, button_id, pos, offs);
+    waitForDragEnable = true;
+  }
+
+  bool isDragging() const { return isDragMode && isClicked(); }
+  bool isDragging(InputDevice device, int pointer_id) const { return isDragMode && isClicked(device, pointer_id); }
+  void startDrag(InputDevice device, int pointer_id, int button_id, const Point2 &pos, const Point2 &offs)
+  {
+    startClick(device, pointer_id, button_id, pos, offs);
+    startDrag();
+  }
+  void startDrag()
+  {
+    isDragMode = true;
+    waitForDragEnable = false;
+  }
+
+  bool isDraggingOrWaitingForDragEnable(InputDevice device, int pointer_id) const
+  {
+    return (isDragMode || waitForDragEnable) && isClicked(device, pointer_id);
+  }
+
+  void startClick(InputDevice device, int pointer_id, int button_id, const Point2 &pos, const Point2 &offs)
   {
     activeDeviceId = device;
     activePointerId = pointer_id;
+    activeButtonId = button_id;
     startPointerPos = pos;
     startPointerOffs = offs;
     isDragMode = false;
+    waitForDragEnable = false;
   }
 
   void resetState()
   {
     activeDeviceId = DEVID_NONE;
     activePointerId = -1;
+    activeButtonId = -1;
     startPointerPos = ZERO<Point2>();
     startPointerOffs = ZERO<Point2>();
     targetHandler.Release();
     maxMoveDistance = 0;
     isDragMode = false;
+    waitForDragEnable = false;
     needDelayedRecalcAfterWheel = false;
   }
 };
@@ -245,13 +270,6 @@ void BhvDragAndDrop::callDragModeHandler(IGuiScene *scene, Element *elem, bool m
 }
 
 
-static float click_move_distance_threshold(Element *elem)
-{
-  IPoint2 res = GuiScene::get_from_elem(elem)->getDeviceScreenSize();
-  return 10.0f * ::min(res.x, res.y) / 1080.0f;
-}
-
-
 int BhvDragAndDrop::mouseEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int pointer_id, int data,
   short mx, short my, int /*buttons*/, int accum_res)
 {
@@ -295,14 +313,8 @@ int BhvDragAndDrop::pointingEvent(ElementTree *etree, Element *elem, InputDevice
 
     if (canDrag)
     {
-      ddState->startDrag(device, pointer_id, pointer_pos, pointer_pos - elem->calcTransformedBbox().leftTop());
+      ddState->startWaitForDragEnable(device, pointer_id, button_id, pointer_pos, pointer_pos - elem->calcTransformedBbox().leftTop());
       activeDrag = ddState;
-      elem->setGroupStateFlags(Element::S_DRAG);
-
-      elem->updFlags(Element::F_ZORDER_ON_TOP, true);
-      callDragModeHandler(etree->guiScene, elem, true);
-
-      etree->updateSceneStateFlags(ElementTree::F_DRAG_ACTIVE, true);
       // etree->guiScene->updateHover(pointer_pos);
       result |= R_PROCESSED | R_REBUILD_RENDER_AND_INPUT_LISTS;
     }
@@ -313,7 +325,7 @@ int BhvDragAndDrop::pointingEvent(ElementTree *etree, Element *elem, InputDevice
 
       if (canClick)
       {
-        ddState->startClick(device, pointer_id, pointer_pos, pointer_pos - elem->calcTransformedBbox().leftTop());
+        ddState->startClick(device, pointer_id, button_id, pointer_pos, pointer_pos - elem->calcTransformedBbox().leftTop());
         elem->setGroupStateFlags(activeStateFlag);
         result |= R_PROCESSED;
       }
@@ -321,7 +333,7 @@ int BhvDragAndDrop::pointingEvent(ElementTree *etree, Element *elem, InputDevice
   }
   else if (event == INP_EV_RELEASE)
   {
-    if (ddState->isClicked(device, pointer_id))
+    if (ddState->isClicked(device, pointer_id, button_id))
     {
       Element *target = nullptr;
       if (ddState->isDragMode)
@@ -347,12 +359,12 @@ int BhvDragAndDrop::pointingEvent(ElementTree *etree, Element *elem, InputDevice
 
       if (!target && elem->hitTest(pointer_pos))
       {
-        if (ddState->maxMoveDistance < click_move_distance_threshold(elem))
+        if (ddState->maxMoveDistance < move_click_threshold(etree->guiScene))
         {
           bool isDouble = false;
 
           int curTime = ::get_time_msec();
-          if (ddState->lastClickTime != 0 && (curTime - ddState->lastClickTime <= 400))
+          if (ddState->lastClickTime != 0 && (curTime - ddState->lastClickTime <= double_click_interval_ms))
             isDouble = true;
           ddState->lastClickTime = curTime;
 
@@ -373,7 +385,7 @@ int BhvDragAndDrop::pointingEvent(ElementTree *etree, Element *elem, InputDevice
   }
   else if (event == INP_EV_POINTER_MOVE)
   {
-    if (ddState->isDragging(device, pointer_id))
+    if (ddState->isDraggingOrWaitingForDragEnable(device, pointer_id))
     {
       applyPointerMove(pointer_pos, ddState, elem, etree, activeStateFlag);
 
@@ -382,7 +394,7 @@ int BhvDragAndDrop::pointingEvent(ElementTree *etree, Element *elem, InputDevice
   }
   else if (event == INP_EV_MOUSE_WHEEL)
   {
-    if (ddState->isDragging(device, pointer_id))
+    if (ddState->isDraggingOrWaitingForDragEnable(device, pointer_id))
     {
       // handle hierarchic scroll
       ddState->needDelayedRecalcAfterWheel = true;
@@ -392,12 +404,29 @@ int BhvDragAndDrop::pointingEvent(ElementTree *etree, Element *elem, InputDevice
   return result;
 }
 
+void BhvDragAndDrop::startVisualDrag(ElementTree *etree, darg::Element *elem)
+{
+  elem->setGroupStateFlags(Element::S_DRAG);
+  elem->updFlags(Element::F_ZORDER_ON_TOP, true);
+  callDragModeHandler(etree->guiScene, elem, true);
+  etree->updateSceneStateFlags(ElementTree::F_DRAG_ACTIVE, true);
+}
+
 void BhvDragAndDrop::applyPointerMove(const Point2 &pointer_pos, darg::DragAndDropState *ddState, darg::Element *elem,
   darg::ElementTree *etree, int activeStateFlag)
 {
   Point2 dPos = pointer_pos - ddState->startPointerPos;
 
   ddState->maxMoveDistance = ::max(ddState->maxMoveDistance, ::max(fabsf(dPos.x), fabsf(dPos.y)));
+
+  if (ddState->isWaitingForDragEnable())
+  {
+    if (ddState->maxMoveDistance < move_click_threshold(etree->guiScene))
+      return;
+
+    ddState->startDrag();
+    startVisualDrag(etree, elem);
+  }
 
   if (elem->transform)
   {

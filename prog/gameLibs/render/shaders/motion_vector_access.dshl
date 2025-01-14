@@ -3,28 +3,32 @@ include "gbuffer.dshl"
 include "assert.dshl"
 
 texture downsampled_motion_vectors_tex;
+texture resolved_motion_vectors;
 
 float4x4 uvz_to_prev_frame_uvz;
 float4x4 uvz_to_prev_frame_hero_bbox;
 float4x4 uvz_to_prev_frame_hero_uvz;
 float4 jitter_offset_uv;
-float4 zn_zfar_current_prev;
+float4 zn_zfar_current_prev = (1, 1, 1, 1);
 
 int can_ignore_bbox = 0;
+
+int has_hero_matrix = 0;
+interval has_hero_matrix: no < 1, yes;
 
 int motion_vector_type = 0;
 interval motion_vector_type: static_uvz<1, dynamic_uv_static_z<2,  dynamic_uvz;
 
-interval motion_vector_texture_size_to_use: not_set < 1, full<2, downsampled;
-assume motion_vector_texture_size_to_use = not_set;
+interval motion_vector_source_to_use: not_set < 1, gbuffer<2, downsampled<3, resolved;
+assume motion_vector_source_to_use = not_set;
 
 /*
  * This module is responsible for handing out motion vectors.
  * These motion vectors are always 3D regardless of the actual motion vector texture.
  * No motion vector case is taken care of automatically, and so is the hero matrix.
  * Usage:
- * INIT_FETCH_MOTION_VECTOR(cs, full)
- * USE_FETCH_MOTION_VECTOR(cs, full)  // full or downsampled
+ * INIT_FETCH_MOTION_VECTOR(cs, gbuffer)
+ * USE_FETCH_MOTION_VECTOR(cs, gbuffer)  // gbuffer, downsampled or resolved
  * hlsl(cs){
  *   ...
  *   float3 motion_vector = fetch_motion_vector_jittered(uv, depth);
@@ -36,21 +40,27 @@ assume motion_vector_texture_size_to_use = not_set;
  */
 
 macro INIT_FETCH_MOTION_VECTOR(stage, source)
-  G_ASSERT(motion_vector_texture_size_to_use == not_set || motion_vector_texture_size_to_use == source,
+  G_ASSERT(motion_vector_source_to_use == not_set || motion_vector_source_to_use == source,
   "You are trying to motion vector access with different texture size than you initialized it with.")
 
-  assume motion_vector_texture_size_to_use = source;
+  assume motion_vector_source_to_use = source;
 
   if (motion_vector_type == dynamic_uv_static_z || motion_vector_type == dynamic_uvz)
   {
-    if (motion_vector_texture_size_to_use == full)
+    if (motion_vector_source_to_use == gbuffer)
     {
       INIT_READ_MOTION_BUFFER_BASE(stage)
+    }
+    else if (motion_vector_source_to_use == downsampled)
+    {
+      (stage) {
+        downsampled_motion_vectors_tex@smp2d = downsampled_motion_vectors_tex;
+      }
     }
     else
     {
       (stage) {
-        downsampled_motion_vectors_tex@smp2d = downsampled_motion_vectors_tex;
+        resolved_motion_vectors@smp2d = resolved_motion_vectors;
       }
     }
   }
@@ -59,11 +69,18 @@ macro INIT_FETCH_MOTION_VECTOR(stage, source)
   {
     (stage) {
       uvz_to_prev_frame_uvz@f44 = {uvz_to_prev_frame_uvz};
-      uvz_to_prev_frame_hero_bbox@f44 = {uvz_to_prev_frame_hero_bbox};
-      uvz_to_prev_frame_hero_uvz@f44 = {uvz_to_prev_frame_hero_uvz};
       depth_linearization_slope@f2 = (1.0/zn_zfar_current_prev.yw);
       depth_linearization_offset@f2 = (zn_zfar_current_prev.yw-zn_zfar_current_prev.xz)/(zn_zfar_current_prev.xz * zn_zfar_current_prev.yw);
-      can_ignore_bbox@i1 = can_ignore_bbox;
+    }
+
+    if (has_hero_matrix == yes)
+    {
+      INIT_READ_IS_HERO_COCKPIT(stage)
+      (stage) {
+        uvz_to_prev_frame_hero_bbox@f44 = {uvz_to_prev_frame_hero_bbox};
+        uvz_to_prev_frame_hero_uvz@f44 = {uvz_to_prev_frame_hero_uvz};
+        can_ignore_bbox@i1 = can_ignore_bbox;
+      }
     }
   }
 
@@ -74,42 +91,54 @@ macro INIT_FETCH_MOTION_VECTOR(stage, source)
   }
 endmacro
 
-// source is either full or downsampled
+// source is either full, downsampled or resolved
 macro USE_FETCH_MOTION_VECTOR(stage, source)
-  G_ASSERT(motion_vector_texture_size_to_use == not_set || motion_vector_texture_size_to_use == source,
+  G_ASSERT(motion_vector_source_to_use == not_set || motion_vector_source_to_use == source,
   "You are trying to motion vector access with different texture size than you initialized it with.")
 
-  assume motion_vector_texture_size_to_use = source;
+  assume motion_vector_source_to_use = source;
 
-  if ((motion_vector_type == dynamic_uv_static_z || motion_vector_type == dynamic_uvz) && motion_vector_texture_size_to_use == full)
+  if ((motion_vector_type == dynamic_uv_static_z || motion_vector_type == dynamic_uvz) && motion_vector_source_to_use == gbuffer)
   {
     USE_READ_MOTION_BUFFER_BASE(stage)
+  }
+
+  if ((motion_vector_type == static_uvz || motion_vector_type == dynamic_uv_static_z) && has_hero_matrix == yes)
+  {
+    USE_READ_IS_HERO_COCKPIT(stage)
   }
 
   hlsl(stage) {
 
     ##if motion_vector_type == static_uvz || motion_vector_type == dynamic_uv_static_z
-      bool is_in_hero_bbox(float2 uv, float depth)
-      {
-        float4 posRelToBBox = mul(uvz_to_prev_frame_hero_bbox, float4(uv, depth, 1));
-        return all(abs(posRelToBBox / posRelToBBox.w) < 1);
-      }
 
-      bool is_subject_to_hero_reprojection(float2 uv, float depth)
-      {
-        #ifdef GBUFFER_HAS_HERO_COCKPIT_BIT
-          bool result = isGbufferHeroCockpit(uv);
-          if (!can_ignore_bbox)
-            result = result | is_in_hero_bbox(uv, depth);
-          return result;
-        #else
-          return is_in_hero_bbox(uv, depth);
-        #endif
-      }
+      ##if has_hero_matrix == yes
+        bool is_in_hero_bbox(float2 uv, float depth)
+        {
+          float4 posRelToBBox = mul(uvz_to_prev_frame_hero_bbox, float4(uv, depth, 1));
+          return all(abs(posRelToBBox / posRelToBBox.w) < 1);
+        }
+
+        bool is_subject_to_hero_reprojection(float2 uv, float depth)
+        {
+          ##if gbuffer_has_hero_cockpit
+            bool result = isGbufferHeroCockpit(uv);
+            if (!can_ignore_bbox)
+              result = result | is_in_hero_bbox(uv, depth);
+            return result;
+          ##else
+            return is_in_hero_bbox(uv, depth);
+          ##endif
+        }
+      ##endif
 
       float3 calculate_reprojected_motion_vector(float2 uv, float depth)
       {
-        float4x4 reprojection = is_subject_to_hero_reprojection(uv, depth) ? uvz_to_prev_frame_hero_uvz : uvz_to_prev_frame_uvz;
+        ##if has_hero_matrix == yes
+          float4x4 reprojection = is_subject_to_hero_reprojection(uv, depth) ? uvz_to_prev_frame_hero_uvz : uvz_to_prev_frame_uvz;
+        ##else
+          float4x4 reprojection = uvz_to_prev_frame_uvz;
+        ##endif
         float4 prevUVDepth = mul(reprojection, float4(uv, depth, 1));
         prevUVDepth /= prevUVDepth.w;
         float2 depths = float2(depth, prevUVDepth.z);
@@ -118,39 +147,54 @@ macro USE_FETCH_MOTION_VECTOR(stage, source)
       }
     ##endif
 
-    float3 fetch_motion_vector_unjittered(float2 uv, float depth)
+    float3 fetch_motion_vector(float2 uv, float depth)
     {
       ##if motion_vector_type == static_uvz
         return calculate_reprojected_motion_vector(uv, depth);
       ##elif motion_vector_type == dynamic_uv_static_z
-        ##if motion_vector_texture_size_to_use == full
+        ##if motion_vector_source_to_use == gbuffer
           float3 mv = readMotionBuffer(uv).xyz;
-        ##else
+        ##elif motion_vector_source_to_use == downsampled
           float3 mv = tex2Dlod(downsampled_motion_vectors_tex, float4(uv, 0, 0)).xyz;
+        ##else
+          float3 mv = tex2Dlod(resolved_motion_vectors, float4(uv, 0, 0)).xyz;
         ##endif
         return float3(mv.xy, calculate_reprojected_motion_vector(uv, depth).z);
       ##else
-        ##if motion_vector_texture_size_to_use == full
+        ##if motion_vector_source_to_use == gbuffer
           return readMotionBuffer(uv).xyz;
-        ##else
+        ##elif motion_vector_source_to_use == downsampled
           return tex2Dlod(downsampled_motion_vectors_tex, float4(uv, 0, 0)).xyz;
+        ##else
+          return tex2Dlod(resolved_motion_vectors, float4(uv, 0, 0)).xyz;
         ##endif
       ##endif
     }
 
-    float3 fetch_motion_vector_jittered(float2 uv, float depth)
+    float3 unjittered_to_jittered(float3 motion_vector)
     {
-      return fetch_motion_vector_unjittered(uv, depth) + float3(currentToPrevFrameJitter, 0);
+      return motion_vector + float3(currentFrameJitter, 0);
     }
 
-    float3 fetch_motion_vector_unjittered_to_jittered(float2 uv, float depth)
+    float3 jittered_to_unjittered(float3 motion_vector)
     {
-      return fetch_motion_vector_unjittered(uv, depth) + float3(currentFrameJitter, 0);
+      return motion_vector - float3(currentFrameJitter, 0);
     }
 
-    float3 fetch_motion_vector_jittered_to_unjittered(float2 uv, float depth)
+    float3 unjittered_to_prev_jittered(float3 motion_vector)
     {
-      return fetch_motion_vector_unjittered(uv, depth) - float3(currentFrameJitter, 0);
+      return motion_vector + float3(prevFrameJitter, 0);
+    }
+
+    float3 jittered_to_prev_jittered(float3 motion_vector)
+    {
+      return motion_vector + float3(currentToPrevFrameJitter, 0);
+    }
+
+    // just for the sake of completeness
+    float3 unjittered_to_unjittered(float3 motion_vector)
+    {
+      return motion_vector;
     }
 
   }

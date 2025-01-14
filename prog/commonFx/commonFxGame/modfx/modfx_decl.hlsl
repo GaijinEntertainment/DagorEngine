@@ -1,3 +1,5 @@
+#include "modfx_gpu_placement_flags.hlsl"
+
 #ifndef DAFX_MODFX_DECL_HLSL
 #define DAFX_MODFX_DECL_HLSL
 
@@ -228,17 +230,13 @@ struct ModfxDeclPosInitSphereSector
 
 struct ModfxDeclPosInitGpuPlacement
 {
-  uint flags;
+  uint flags; // MODFX_GPU_PLACEMENT_ flags
   float height_threshold;
 };
 
-#define MODFX_GPU_PLACEMENT_HMAP (1 << 0)
-#define MODFX_GPU_PLACEMENT_WATER (1 << 1)
-#define MODFX_GPU_PLACEMENT_DEPTH_ABOVE (1 << 2)
-
 struct ModfxDeclRenderPlacementParams
 {
-  uint flags;
+  uint flags; // MODFX_GPU_PLACEMENT_ flags
   float placement_threshold;
   float align_normals_offset;
 };
@@ -448,8 +446,8 @@ struct ModfxForceFieldNoise
 struct ModfxDeclExternalOmnilight
 {
   float3 pos;
-  float radius;
   float3 color;
+  float radius;
 };
 
 #define MODFX_TRAIL_FLAG_LAST_POS_VALID 1

@@ -192,6 +192,7 @@ SQ_DEF_AUTO_BINDING_MODULE_EX(bind_app, "app", sq::VM_ALL)
 
   tbl //
     .Func("get_game_name", get_game_name)
+    .Func("get_current_scene", []() { return sceneload::get_current_game().sceneName.c_str(); })
     .Func("get_app_id", app_profile_get_app_id)
     .Func("get_matching_invite_data", [vm]() { return rapidjson_to_quirrel(vm, app_profile::get().matchingInviteData); })
     // client only feature for apply matching info in offline mode

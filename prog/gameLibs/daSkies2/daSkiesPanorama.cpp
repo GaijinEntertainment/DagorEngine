@@ -24,6 +24,9 @@
 #include "render/downsampleDepth.h"
 #include <render/viewVecs.h>
 #include <drv/3d/dag_info.h>
+#include <math/dag_hlsl_floatx.h>
+
+#include <daSkies2/panorama_util.hlsli>
 
 static const int panorma_temporal_upsample = PANORAMA_TEMPORAL_SAMPLES; // more than 32 can decrease quality, but due to lack of bits
                                                                         // in TEXFMT_R11G11B10F will cause banding on blending (1/32 =
@@ -779,6 +782,18 @@ bool DaSkies::updatePanorama(const Point3 &origin_, const TMatrix &view_tm, cons
   return true;
 }
 
+const Point3 DaSkies::calcPanoramaSunDir(const Point3 &camera_pos) const
+{
+  if (!panoramaEnabled() || !isPanoramaValid() || clouds == nullptr)
+    return primarySunDir;
+  float skies_planet_radius = skies.getEarthRadius();
+  float clouds_start_altitude2 = clouds->minimalStartAlt();
+  float clouds_thickness2 = clouds->maximumTopAlt() - clouds->minimalStartAlt();
+  float clouds_layer = skies_planet_radius + min(1000.0f, clouds_start_altitude2 + clouds_thickness2 * 0.5f);
+  return get_panorama_inv_reprojection(camera_pos, panorama_sun_light_dir, panorama_render_origin, panoramaReprojectionWeight,
+    clouds_layer, clouds_layer * clouds_layer, skies_planet_radius);
+}
+
 void DaSkies::createPanoramaDepthTexHelper(UniqueTex &depth, const char *depth_name, UniqueTexHolder &downsampled_depth,
   const char *downsampled_depth_name, int w, int h, int addru, int addrv)
 {
@@ -837,7 +852,12 @@ void DaSkies::downsamplePanoramaDepth(UniqueTex &depth, UniqueTexHolder &downsam
 void DaSkies::invalidatePanorama(bool force, bool waitResourcesLoaded)
 {
   panoramaShouldWaitResourcesLoaded = waitResourcesLoaded;
-
+  if (panoramaShouldWaitResourcesLoaded)
+  {
+    Tab<TEXTUREID> waitTex{};
+    getCloudsTextureResourceDependencies(waitTex);
+    prefetch_managed_textures(waitTex);
+  }
   // Cannot be more invalid than it already is.
   if (panoramaValid == PANORAMA_INVALID) //-V1051
     return;

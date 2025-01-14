@@ -8,6 +8,7 @@
 #include <assets/asset.h>
 #include <de3_interface.h>
 #include <de3_objEntity.h>
+#include <de3_randomSeed.h>
 #include <EditorCore/ec_workspace.h>
 #include <generic/dag_initOnDemand.h>
 #include <util/dag_simpleString.h>
@@ -39,6 +40,7 @@ static const int MAX_PHYSOBJ_MAT = 50;
 
 static unsigned collisionMask = 0;
 static unsigned rendGeomMask = 0;
+static const int auto_inst_seed0 = mem_hash_fnv1(ZERO_PTR<const char>(), 12); // same as entity.cpp
 
 struct PhysSimulationStats
 {
@@ -89,6 +91,7 @@ public:
     PID_PHYSOBJ_DRAW_C_MASS,
     PID_PHYSOBJ_DRAW_CONSTR,
     PID_PHYSOBJ_DRAW_CONSTR_RS,
+    PID_PHYSOBJ_PER_INSTANCE_SEED,
 
     PID_PHYSOBJ_BODY_GLOBAL_GRP,
 
@@ -164,6 +167,9 @@ public:
 
     entity->setSubtype(DAEDITOR3.registerEntitySubTypeId("single_ent"));
     entity->setTm(TMatrix::IDENT);
+
+    if (IRandomSeedHolder *irsh = entity->queryInterface<IRandomSeedHolder>())
+      irsh->setPerInstanceSeed(auto_inst_seed0);
 
     dynPhysObjData = (DynamicPhysObjectData *)get_game_resource_ex(GAMERES_HANDLE_FROM_STRING(name), PhysObjGameResClassId);
 
@@ -302,6 +308,11 @@ public:
     panel.createCheckBox(PID_PHYSOBJ_DRAW_C_MASS, "draw center mass", drawCmass);
     panel.createCheckBox(PID_PHYSOBJ_DRAW_CONSTR, "draw constraints", drawConstraints);
     panel.createCheckBox(PID_PHYSOBJ_DRAW_CONSTR_RS, "draw constraints refSys", drawConstraintRefsys);
+    if (IRandomSeedHolder *irsh = entity->queryInterface<IRandomSeedHolder>())
+    {
+      panel.createTrackInt(PID_PHYSOBJ_PER_INSTANCE_SEED, "Per-instance seed", irsh->getPerInstanceSeed(), 0, 32767, 1);
+      panel.createIndent();
+    }
 
     panel.createSeparator();
     PropPanel::ContainerPropertyControl &sceneTypeGrp = *panel.createRadioGroup(PID_PHYSOBJ_SCENE_TYPE_GRP, "Place physobjs as:");
@@ -457,6 +468,12 @@ public:
       drawConstraints = panel->getBool(pcb_id);
     if (pcb_id == PID_PHYSOBJ_DRAW_CONSTR_RS)
       drawConstraintRefsys = panel->getBool(pcb_id);
+    else if (pcb_id == PID_PHYSOBJ_PER_INSTANCE_SEED)
+    {
+      if (entity)
+        if (IRandomSeedHolder *irsh = entity->queryInterface<IRandomSeedHolder>())
+          irsh->setPerInstanceSeed(panel->getInt(pcb_id));
+    }
     else if (pcb_id == PID_PHYSOBJ_PHYS_TYPE_GRP)
     {
       physType = panel->getInt(pcb_id);

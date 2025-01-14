@@ -98,7 +98,7 @@ if $(Platform)-$(PlatformArch) = windows-x86_64 {
 }
 
 if $(Platform) in windows && $(PlatformSpec) != clang {
-  PlatformSpec ?= vc16 ;
+  PlatformSpec ?= vc17 ;
 }
 
 # both clang & msvc gerenate bugggy code in win32 (mostly das/das-aot related) which we workaround with out-of-line

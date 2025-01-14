@@ -24,13 +24,22 @@ shader blood_projective_decal_cull
 {
   ENABLE_ASSERT(cs)
   INIT_AND_USE_FRUSTUM_CHECK_CS()
+  (cs) {
+    numDecals@u4 : register(projective_decals_original_count_const_no);
+    original@uav : register(projective_decals_original_uav_no) hlsl {
+      #include <projectiveDecals/projective_decals.hlsli>
+      RWStructuredBuffer<ProjectiveDecalInstance> original@uav;
+    };
+    target@uav : register(projective_decals_target_uav_no) hlsl {
+      RWStructuredBuffer<ProjectiveDecalInstance> target@uav;
+    };
+    count@uav : register(projective_decals_target_count_uav_no) hlsl {
+      RWByteAddressBuffer count@uav;
+    };
+  }
+
   hlsl(cs) {
     #include "projectiveDecals/blood_decals_const.hlsli"
-
-    uint4 numDecals:register(c10);
-    RWStructuredBuffer<ProjectiveDecalInstance> original : register( u0 );
-    RWStructuredBuffer<ProjectiveDecalInstance> target : register( u1 );
-    RWByteAddressBuffer count : register(u2);
 
     [numthreads( DECALS_MAX_CULL_X, 1, 1 )]
     void main(uint3 dtId : SV_DispatchThreadID)

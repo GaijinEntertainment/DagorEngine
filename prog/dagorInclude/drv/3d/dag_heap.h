@@ -188,7 +188,9 @@ struct ResourceDescription
     HashT hashValue = resType;
     switch (resType)
     {
-      case RES3D_SBUF: return hashPack(hashValue, asBufferRes.elementCount, asBufferRes.elementSizeInBytes, asBufferRes.viewFormat);
+      case RES3D_SBUF:
+        return hashPack(hashValue, asBufferRes.cFlags, asBufferRes.elementCount, asBufferRes.elementSizeInBytes,
+          asBufferRes.viewFormat);
       case RES3D_TEX:
         return hashPack(hashValue, eastl::to_underlying(asTexRes.activation), asTexRes.cFlags, asTexRes.mipLevels, asTexRes.height,
           asTexRes.width, asTexRes.clearValue.asUint[0], asTexRes.clearValue.asUint[1], asTexRes.clearValue.asUint[2],
@@ -211,6 +213,56 @@ struct ResourceDescription
           asArrayCubeTexRes.clearValue.asUint[1], asArrayCubeTexRes.clearValue.asUint[2], asArrayCubeTexRes.clearValue.asUint[3]);
     }
     return hashValue;
+  }
+
+  String toDebugString() const
+  {
+    switch (resType)
+    {
+      case RES3D_SBUF:
+        return String(0,
+          "Buffer { .cFlags = %u, .activation = %u, .clearValue = (%u, %u, %u, %u),"
+          " .elementSizeInBytes = %u, .elementCount = %u, .viewFormat = %u }",
+          asBufferRes.cFlags, eastl::to_underlying(asBufferRes.activation), asBufferRes.clearValue.asUint[0],
+          asBufferRes.clearValue.asUint[1], asBufferRes.clearValue.asUint[2], asBufferRes.clearValue.asUint[3],
+          asBufferRes.elementSizeInBytes, asBufferRes.elementCount, asBufferRes.viewFormat);
+      case RES3D_TEX:
+        return String(0,
+          "Texture { .cFlags = %u, .activation = %u, .clearValue = (%u, %u, %u, %u),"
+          " .mipLevels = %u, .width = %u, .height = %u }",
+          asTexRes.cFlags, eastl::to_underlying(asTexRes.activation), asTexRes.clearValue.asUint[0], asTexRes.clearValue.asUint[1],
+          asTexRes.clearValue.asUint[2], asTexRes.clearValue.asUint[3], asTexRes.mipLevels, asTexRes.width, asTexRes.height);
+      case RES3D_VOLTEX:
+        return String(0,
+          "VolumeTexture { .cFlags = %u, .activation = %u, .clearValue = (%u, %u, %u, %u),"
+          " .mipLevels = %u, .width = %u, .height = %u, .depth = %u }",
+          asVolTexRes.cFlags, eastl::to_underlying(asVolTexRes.activation), asVolTexRes.clearValue.asUint[0],
+          asVolTexRes.clearValue.asUint[1], asVolTexRes.clearValue.asUint[2], asVolTexRes.clearValue.asUint[3], asVolTexRes.mipLevels,
+          asVolTexRes.width, asVolTexRes.height, asVolTexRes.depth);
+      case RES3D_ARRTEX:
+        return String(0,
+          "ArrayTexture { .cFlags = %u, .activation = %u, .clearValue = (%u, %u, %u, %u),"
+          " .mipLevels = %u, .width = %u, .height = %u, .arrayLayers = %u }",
+          asArrayTexRes.cFlags, eastl::to_underlying(asArrayTexRes.activation), asArrayTexRes.clearValue.asUint[0],
+          asArrayTexRes.clearValue.asUint[1], asArrayTexRes.clearValue.asUint[2], asArrayTexRes.clearValue.asUint[3],
+          asArrayTexRes.mipLevels, asArrayTexRes.width, asArrayTexRes.height, asArrayTexRes.arrayLayers);
+      case RES3D_CUBETEX:
+        return String(0,
+          "CubeTexture { .cFlags = %u, .activation = %u, .clearValue = (%u, %u, %u, %u),"
+          " .mipLevels = %u, .extent = %u }",
+          asCubeTexRes.cFlags, eastl::to_underlying(asCubeTexRes.activation), asCubeTexRes.clearValue.asUint[0],
+          asCubeTexRes.clearValue.asUint[1], asCubeTexRes.clearValue.asUint[2], asCubeTexRes.clearValue.asUint[3],
+          asCubeTexRes.mipLevels, asCubeTexRes.extent);
+      case RES3D_CUBEARRTEX:
+        return String(0,
+          "ArrayCubeTexture { .cFlags = %u, .activation = %u, .clearValue = (%u, %u, %u, %u),"
+          " .mipLevels = %u, .extent = %u, .cubes = %u }",
+          asArrayCubeTexRes.cFlags, eastl::to_underlying(asArrayCubeTexRes.activation), asArrayCubeTexRes.clearValue.asUint[0],
+          asArrayCubeTexRes.clearValue.asUint[1], asArrayCubeTexRes.clearValue.asUint[2], asArrayCubeTexRes.clearValue.asUint[3],
+          asArrayCubeTexRes.mipLevels, asArrayCubeTexRes.extent, asArrayCubeTexRes.cubes);
+      default: break;
+    }
+    return String("INVALID");
   }
 
 private:

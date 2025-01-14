@@ -221,13 +221,15 @@ class Resource
   bool managed : 1;
   bool resident : 1;
   bool evicting : 1;
-#if DAGOR_DBGLEVEL > 0
-  bool usedInRendering : 1;
-#endif
   bool sharedHandle : 1;
 #if VULKAN_TRACK_DEAD_RESOURCE_USAGE
   bool markedDead : 1;
 #endif
+
+#if DAGOR_DBGLEVEL > 0
+  uint32_t usedInRendering;
+#endif
+
 #if VULKAN_RESOURCE_DEBUG_NAMES
   // names are not always come from const memory
   String debugName;
@@ -245,10 +247,11 @@ public:
     managed(manage),
     resident(false),
     evicting(false),
-#if DAGOR_DBGLEVEL > 0
-    usedInRendering(false),
-#endif
     sharedHandle(false)
+#if DAGOR_DBGLEVEL > 0
+    ,
+    usedInRendering(0)
+#endif
 #if VULKAN_TRACK_DEAD_RESOURCE_USAGE
     ,
     markedDead(false)
@@ -284,9 +287,9 @@ public:
   bool isHandleShared() const { return sharedHandle; }
   bool isEvicting() const { return evicting; }
 #if DAGOR_DBGLEVEL > 0
-  void setUsedInRendering() { usedInRendering = true; }
-  void clearUsedInRendering() { usedInRendering = false; }
-  bool isUsedInRendering() { return usedInRendering; }
+  void setUsedInRendering() { usedInRendering++; }
+  void clearUsedInRendering() { usedInRendering = 0; }
+  bool isUsedInRendering() { return usedInRendering > 1; }
 #else
   void setUsedInRendering() {}
   void clearUsedInRendering() {}

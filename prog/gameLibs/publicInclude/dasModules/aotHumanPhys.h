@@ -243,6 +243,30 @@ inline bool human_phys_processCcdOffset(HumanPhys &phys, das::float3x4 &tm, cons
     ccd_pos);
 }
 
+inline bool human_phys_getCollisionLinkData(HumanPhys &phys, HUStandState state, const char *nodeSlot,
+  const das::TBlock<bool, dacoll::CollisionLinkData &> &block, das::Context *context, das::LineInfoArg *at)
+{
+  dacoll::CollisionLinks &links = phys.getCollisionLinks(state);
+  int nodeSlotId = dacoll::get_link_name_id(nodeSlot ? nodeSlot : "");
+  for (int i = 0; i < links.size(); ++i)
+  {
+    dacoll::CollisionLinkData &link = links[i];
+    if (link.nameId == nodeSlotId)
+    {
+      vec4f arg;
+      context->invokeEx(
+        block, &arg, nullptr,
+        [&](das::SimNode *code) {
+          arg = das::cast<dacoll::CollisionLinkData &>::from(const_cast<dacoll::CollisionLinkData &>(link));
+          code->eval(*context);
+        },
+        at);
+      return true;
+    }
+  }
+  return false;
+}
+
 inline void human_phys_setCollisionMatId(HumanPhys &phys, int mat_id) { phys.setCollisionMatId(mat_id); }
 
 inline bool human_phys_state_get_isMount(const HumanPhysState &phys) { return phys.isMount; }

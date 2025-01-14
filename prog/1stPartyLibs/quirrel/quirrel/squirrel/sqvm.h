@@ -195,6 +195,7 @@ public:
     SQInteger _current_thread;
     SQGETTHREAD _get_current_thread_id_func;
     SQCOMPILELINEHOOK _compile_line_hook;
+    SQSQCALLHOOK _sq_call_hook;
 
     SQObjectPtr temp_reg;
 

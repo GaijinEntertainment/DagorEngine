@@ -3,10 +3,12 @@
 #include <generic/dag_relocatableFixedVector.h>
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_renderPass.h>
+#include <drv/3d/dag_commands.h>
 #include <EASTL/fixed_string.h>
 #include <debug/dag_debug.h>
 #include <debug/dag_assert.h>
 #include <EASTL/span.h>
+#include <ioSys/dag_dataBlock.h>
 
 
 namespace rp_impl
@@ -74,8 +76,9 @@ void RenderPass::execute(uint32_t idx)
   RenderPassBind &bind = actions[idx];
   RenderPassTarget &target = rp_impl::targets[bind.target];
 
-  TextureInfo ti;
-  target.resource.tex->getinfo(ti);
+  TextureInfo ti{};
+  if (target.resource.tex)
+    target.resource.tex->getinfo(ti);
 
   resource_barrier({target.resource.tex, bind.dependencyBarrier, target.resource.layer * ti.mipLevels + target.resource.mip_level, 1});
 
@@ -87,7 +90,8 @@ void RenderPass::execute(uint32_t idx)
   {
     if (bind.slot != RenderPassExtraIndexes::RP_SLOT_DEPTH_STENCIL)
     {
-      target.resource.tex->texmiplevel(target.resource.mip_level, target.resource.mip_level);
+      if (target.resource.tex)
+        target.resource.tex->texmiplevel(target.resource.mip_level, target.resource.mip_level);
       set_tex(STAGE_PS, activeRP->bindingOffset + bind.slot, target.resource.tex);
     }
     else
@@ -241,6 +245,18 @@ void next_subpass()
   rp_impl::subpass++;
 }
 
+namespace
+{
+bool is_generic_render_pass_validation_enabled()
+{
+#if DAGOR_DBGLEVEL == 0
+  return false;
+#endif
+  static bool isEnabled = dgs_get_settings()->getBlockByNameEx("video")->getBool("enableGenericRenderPassValidation", false);
+  return isEnabled;
+}
+} // namespace
+
 void begin_render_pass(RenderPass *rp, const RenderPassArea area, const RenderPassTarget *targets)
 {
   G_ASSERTF(!activeRP, "render pass %s already started", activeRP->getDebugName());
@@ -249,14 +265,24 @@ void begin_render_pass(RenderPass *rp, const RenderPassArea area, const RenderPa
   rp_impl::activeRenderArea = area;
   activeRP = rp;
   for (auto &target : dag::Span{targets, rp->targetCnt})
+  {
+    if (!target.resource.tex)
+      logerr("begin_render_pass for %s received a nullptr texture!", activeRP->getDebugName());
     rp_impl::targets.push_back(target);
+  }
 
   next_subpass();
+
+  if (is_generic_render_pass_validation_enabled())
+    d3d::driver_command(Drv3dCommand::BEGIN_GENERIC_RENDER_PASS_CHECKS, (void *)&area);
 }
 
 void end_render_pass()
 {
   G_ASSERTF(activeRP, "render pass was not started");
+
+  if (is_generic_render_pass_validation_enabled())
+    d3d::driver_command(Drv3dCommand::END_GENERIC_RENDER_PASS_CHECKS);
 
   if (rp_impl::subpass + 1 < activeRP->sequence.size())
     next_subpass();

@@ -540,7 +540,8 @@ bool RendInstGenData::RtData::updateImpostorsPreshadow(int poolNo, const Point3 
   if (riRes[poolNo]->getQlBestLod() > riRes[poolNo]->getQlMinAllowedLod())
     return false;
   if (riRes[poolNo]->isBakedImpostor() &&
-      !prefetch_and_check_managed_texture_loaded(riRes[poolNo]->getImpostorTextures().albedo_alpha, true))
+      (!prefetch_and_check_managed_texture_loaded(riRes[poolNo]->getImpostorTextures().albedo_alpha, true) ||
+        !riRes[poolNo]->getImpostorParams().preshadowEnabled))
     return false;
   if (!riPaletteRotation[poolNo] || !rendinst::gen::get_rotation_palette_manager()->hasPalette({layerIdx, poolNo}))
     return updateImpostorsPreshadow(poolNo, sunDir0, -1, {});
@@ -751,7 +752,7 @@ void RendInstGenData::RtData::updateImpostors(float shadowDistance, const Point3
     float unscaledRange = pool.lodRange[sourceLodNo];
     float range = get_trees_range(unscaledRange);
     d3d::set_render_target(); // Remove other MRTs
-    bool hasShadow = shadowDistance > unscaledRange;
+    bool hasShadow = shadowDistance > range;
     // debug("impostor range = %g, original range =%g shadowD=%g", range, pool.lodRange[sourceLodNo], shadowDistance);
     if (hasShadow && !pool.hasUpdatedShadowImpostor)
       pool.hasUpdatedShadowImpostor = updateImpostorsPreshadow(poolNo, sunDir0);

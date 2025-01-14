@@ -7,6 +7,8 @@
 dag::Vector<String> AssetSelectorGlobalState::favorites;
 dag::Vector<String> AssetSelectorGlobalState::recentlyUsed;
 bool AssetSelectorGlobalState::showHierarchyInFavorites = true;
+int AssetSelectorGlobalState::favoritesGenerationId = 0;
+int AssetSelectorGlobalState::recentlyUsedGenerationId = 0;
 
 void AssetSelectorGlobalState::load(const DataBlock &block)
 {
@@ -61,7 +63,10 @@ void AssetSelectorGlobalState::save(DataBlock &block)
 void AssetSelectorGlobalState::addFavorite(const String &asset)
 {
   if (!asset.empty() && eastl::find(favorites.begin(), favorites.end(), asset) == favorites.end())
+  {
     favorites.push_back(asset);
+    ++favoritesGenerationId;
+  }
 }
 
 bool AssetSelectorGlobalState::removeFavorite(const String &asset)
@@ -71,6 +76,7 @@ bool AssetSelectorGlobalState::removeFavorite(const String &asset)
     return false;
 
   favorites.erase(it);
+  ++favoritesGenerationId;
   return true;
 }
 
@@ -94,5 +100,6 @@ bool AssetSelectorGlobalState::addRecentlyUsed(const char *asset)
 
   recentlyUsed.emplace_back(String(asset));
 
+  ++recentlyUsedGenerationId;
   return true;
 }

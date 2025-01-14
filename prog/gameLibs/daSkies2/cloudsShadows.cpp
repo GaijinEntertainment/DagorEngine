@@ -20,8 +20,11 @@ void CloudsShadows::initTemporal()
   cloudsShadowsTemp.close();
   copy_cloud_shadows_volume.initVoltex(cloudsShadowsTemp, CLOUDS_MAX_SHADOW_TEMPORAL_XZ_WD, CLOUDS_MAX_SHADOW_TEMPORAL_XZ_WD,
     CLOUDS_MAX_SHADOW_TEMPORAL_Y_WD, TEXFMT_R32UI, 1, "cloud_shadows_old_values");
-  cloudsShadowsTemp->texfilter(TEXFILTER_POINT);
-  cloudsShadowsTemp->texmipmap(TEXFILTER_POINT);
+  d3d::SamplerInfo smpInfo;
+  smpInfo.filter_mode = d3d::FilterMode::Point;
+  smpInfo.mip_map_mode = d3d::MipMapMode::Point;
+  ShaderGlobal::set_sampler(::get_shader_variable_id("cloud_shadows_old_values_samplerstate"), d3d::request_sampler(smpInfo));
+  cloudsShadowsTemp->disableSampler();
 
   ShaderGlobal::set_color4(clouds_compute_widthVarId, CLOUDS_MAX_SHADOW_TEMPORAL_XZ_WD, CLOUDS_MAX_SHADOW_TEMPORAL_XZ_WD,
     CLOUDS_MAX_SHADOW_TEMPORAL_Y_WD, 0);

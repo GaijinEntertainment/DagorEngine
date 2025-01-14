@@ -1,7 +1,7 @@
 include "shader_global.dshl"
 include "get_mix_weight_inc.dshl"
 
-macro SETUP_TOP_PROJECTION(use_top_projection_texture)
+macro SETUP_TOP_PROJECTION_IF(use_top_projection_texture)
   static int top_projection = 0;
   interval top_projection : top_projection_off < 1, top_projection_on;
 
@@ -14,18 +14,22 @@ macro SETUP_TOP_PROJECTION(use_top_projection_texture)
       hlsl {
         #define USE_TOP_PROJECTION_TEXTURE 1
       }
-    }
-    (ps) { top_projection_params@f4 = (1.0 / (top_projection_to-top_projection_from + 0.01), -top_projection_from / (top_projection_to-top_projection_from + 0.01), 1.0-top_projection_detail2_modulate, 0.0); }
+      (ps) { top_projection_params@f4 = (1.0 / (top_projection_to-top_projection_from + 0.01), -top_projection_from / (top_projection_to-top_projection_from + 0.01), 1.0-top_projection_detail2_modulate, 0.0); }
 
-    hlsl {
-      void apply_top_projection(half3 world_normal, half4 detail_color1, half4 detail_color2, half weight, out half weight2, inout half3 base_color)
-      {
-        float detail2_a_fade = saturate(world_normal.y*get_top_projection_params().x + get_top_projection_params().y);
-        weight2 = get_mix_weight(detail_color1.a, half(detail_color2.a * detail2_a_fade), weight);
+      hlsl {
+        void apply_top_projection(half3 world_normal, half4 detail_color1, half4 detail_color2, half weight, out half weight2, inout half3 base_color)
+        {
+          float detail2_a_fade = saturate(world_normal.y*get_top_projection_params().x + get_top_projection_params().y);
+          weight2 = get_mix_weight(detail_color1.a, half(detail_color2.a * detail2_a_fade), weight);
 
-        float modulate_koef = weight2 * get_top_projection_params().z;
-        base_color = lerp(base_color, half(DETAIL_TEX_MULTIPLIER_RCP).xxx, half(modulate_koef));
+          float modulate_koef = weight2 * get_top_projection_params().z;
+          base_color = lerp(base_color, half(DETAIL_TEX_MULTIPLIER_RCP).xxx, half(modulate_koef));
+        }
       }
     }
   }
+endmacro
+
+macro SETUP_TOP_PROJECTION()
+  SETUP_TOP_PROJECTION_IF(true)
 endmacro

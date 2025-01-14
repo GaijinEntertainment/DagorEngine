@@ -200,9 +200,6 @@ bool d3d::set_program(PROGRAM prog_id)
   {
     switch (get_program_type(prog))
     {
-#if D3D_HAS_RAY_TRACING
-      case program_type_raytrace: la.pipeState.set<StateFieldRaytraceProgram, ProgramID, FrontRaytraceState>(prog); break;
-#endif
       case program_type_graphics:
       {
         bool layoutOvChanged =

@@ -3,6 +3,7 @@
 
 #define CLOUDS_VARS_LIST                                                                  \
   VAR(cloud_volume_res, false)                                                            \
+  VAR(cloud_volume_dist, false)                                                           \
   VAR(clouds2_current_frame, true)                                                        \
   VAR(clouds2_dispatch_groups, false)                                                     \
   VAR(clouds2_resolution, true)                                                           \

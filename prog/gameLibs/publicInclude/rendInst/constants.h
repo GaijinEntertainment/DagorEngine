@@ -112,7 +112,8 @@ enum class AtestStage
   All,
   NoAtest,
   Atest,
-  AtestAndImmDecal
+  AtestAndImmDecal,
+  NoImmDecal
 };
 // end of to consider
 

@@ -14,7 +14,3 @@ struct CmdSoundVoicefxIrq
 [cpp_event(unicast)]
 struct CmdSoundStepIrq
   objIdx : int
-
-[cpp_event(unicast)]
-struct CmdSoundDebugAnimParam
-  param : float

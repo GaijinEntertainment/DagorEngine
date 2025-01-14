@@ -100,7 +100,7 @@
 #if _TARGET_C1 | _TARGET_C2
 
 #elif _TARGET_GDK
-#include "platform/xbox/xboxServices.h"
+#include "platform/gdk/gdkServices.h"
 #elif _TARGET_C3
 
 #elif _TARGET_ANDROID
@@ -362,7 +362,7 @@ void DagorWinMainInit(int, bool)
 #if _TARGET_ANDROID
   restoreConfigIfNotExist("config.blk");
 #elif _TARGET_GDK
-  init_xbox_services();
+  init_gdk_services();
 #elif _TARGET_C3
 
 #endif
@@ -399,6 +399,8 @@ static void post_shutdown_handler()
   // non zero ptr might be used as threads interruption condition
   interlocked_compare_exchange_ptr(quit_reason, (const char *)"null", (const char *)nullptr);
   dgs_app_active = true; // Otherwise watchdog isn't working
+  watchdog::change_mode(watchdog::/*UN*/ LOADING);
+
   DEBUG_CTX("shutdown because of '%s'!", quit_reason);
 
 #if _TARGET_PC
@@ -422,7 +424,7 @@ static void post_shutdown_handler()
   app_close();
 
 #if _TARGET_GDK
-  shutdown_xbox_services();
+  shutdown_gdk_services();
 #endif
 
   stop_webui();
@@ -807,6 +809,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 
   if (!init_critical())
     return 2;
+  verify_nan_finite_checks();
 #if _TARGET_C1 | _TARGET_C2
 
 #endif
@@ -1090,12 +1093,14 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
       {
         ::dgs_draw_fps = true;
       }
-#if _TARGET_PC_WIN && DAGOR_DBGLEVEL > 0
-      bool defFloatExceptions = true;
-#else
-      bool defFloatExceptions = false;
-#endif
+
       const DataBlock *debugBlock = ::dgs_get_settings()->getBlockByNameEx("debug");
+
+#if _TARGET_PC_WIN && DAGOR_DBGLEVEL > 0 && defined(_M_IX86_FP) && _M_IX86_FP == 0
+      constexpr bool defFloatExceptions = true;
+#else
+      constexpr bool defFloatExceptions = false;
+#endif
       if (debugBlock->getBool("floatExceptions", defFloatExceptions))
       {
         enable_float_exceptions(true);

@@ -542,6 +542,8 @@ public:
 
     das::addExtern<DAS_BIND_FUN(bind_dascript::human_phys_processCcdOffset)>(*this, lib, "human_phys_processCcdOffset",
       das::SideEffects::accessExternal, "bind_dascript::human_phys_processCcdOffset");
+    das::addExtern<DAS_BIND_FUN(bind_dascript::human_phys_getCollisionLinkData)>(*this, lib, "human_phys_getCollisionLinkData",
+      das::SideEffects::modifyArgument, "bind_dascript::human_phys_getCollisionLinkData");
     using method_isAiming = DAS_CALL_MEMBER(HumanPhys::isAiming);
     das::addExtern<DAS_CALL_METHOD(method_isAiming)>(*this, lib, "human_phys_isAiming", das::SideEffects::none,
       DAS_CALL_MEMBER_CPP(HumanPhys::isAiming));

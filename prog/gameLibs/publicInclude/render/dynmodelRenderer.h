@@ -54,10 +54,10 @@ struct InitialNodes
 
 enum class ContextId
 {
-  MAIN,
-  IMMEDIATE,
-  FIRST_USER_CONTEXT, // User contexts follow.
-  COUNT = FIRST_USER_CONTEXT + 1
+  INVALID = -1,
+  MAIN = 0,
+  IMMEDIATE = 1,
+  FIRST_USER_CONTEXT = 2, // User contexts follow.
 };
 
 
@@ -189,6 +189,7 @@ bool set_instance_data_buffer(unsigned stage, ContextId contextId, int baseOffse
 
 const Point4 *get_per_instance_render_data(ContextId contextId, int indexToPerInstanceRenderData);
 
+void verify_is_empty(ContextId context_id);
 void render_one_instance(const DynamicRenderableSceneInstance *instance, RenderMode mode, TexStreamingContext texCtx,
   const InitialNodes *optional_initial_nodes = NULL, const dynrend::PerInstanceRenderData *optional_render_data = NULL);
 
@@ -198,7 +199,8 @@ void set_shaders_forced_render_order(const eastl::vector<eastl::string> &shader_
 
 bool can_render(const DynamicRenderableSceneInstance *instance);
 
-bool render_in_tools(const DynamicRenderableSceneInstance *instance, RenderMode mode);
+bool render_in_tools(const DynamicRenderableSceneInstance *instance, RenderMode mode,
+  const dynrend::PerInstanceRenderData *optional_render_data = nullptr);
 
 Statistics &get_statistics();
 void reset_statistics();

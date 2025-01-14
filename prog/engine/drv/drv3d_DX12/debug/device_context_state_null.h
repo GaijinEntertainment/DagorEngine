@@ -74,6 +74,15 @@ public:
 
   constexpr void debugBlit(DeviceState &, D3DGraphicsCommandList *) {}
 
+#if D3D_HAS_RAY_TRACING
+  constexpr void debugDispatchRays(DeviceState &, D3DGraphicsCommandList *, const RayDispatchBasicParameters &,
+    const ResourceBindingTable &, const RayDispatchParameters &)
+  {}
+  constexpr void debugDispatchRaysIndirect(DeviceState &, D3DGraphicsCommandList *, const RayDispatchBasicParameters &,
+    const ResourceBindingTable &, const RayDispatchIndirectParameters &)
+  {}
+#endif
+
   constexpr void debugOnDeviceRemoved(DeviceState &, D3DDevice *, HRESULT) {}
 };
 } // namespace debug::null

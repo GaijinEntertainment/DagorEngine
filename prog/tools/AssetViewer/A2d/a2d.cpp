@@ -140,35 +140,26 @@ static A2dNodeStats getNodesParamsFromA2d(AnimV20::AnimData *a2d)
   if (adcPos)
   {
     s.pos_cnt = adcPos->nodeNum;
-    for (int i = 0; i < adcPos->nodeNum; ++i)
-    {
-      auto n = adcPos->getNumKeys(dag::Index16(i));
-      if (s.pos_max_keys < n)
-        s.pos_max_keys = n;
-      s.pos_total_keys += n;
-    }
+    auto n = adcPos->getNumKeys();
+    if (s.pos_max_keys < n)
+      s.pos_max_keys = n;
+    s.pos_total_keys += n * adcPos->nodeNum;
   }
   if (adcRot)
   {
     s.rot_cnt = adcRot->nodeNum;
-    for (int i = 0; i < adcRot->nodeNum; ++i)
-    {
-      auto n = adcRot->getNumKeys(dag::Index16(i));
-      if (s.rot_max_keys < n)
-        s.rot_max_keys = n;
-      s.rot_total_keys += n;
-    }
+    auto n = adcRot->getNumKeys();
+    if (s.rot_max_keys < n)
+      s.rot_max_keys = n;
+    s.rot_total_keys += n * adcRot->nodeNum;
   }
   if (adcScl)
   {
     s.scl_cnt = adcScl->nodeNum;
-    for (int i = 0; i < adcScl->nodeNum; ++i)
-    {
-      auto n = adcScl->getNumKeys(dag::Index16(i));
-      if (s.scl_max_keys < n)
-        s.scl_max_keys = n;
-      s.scl_total_keys += n;
-    }
+    auto n = adcScl->getNumKeys();
+    if (s.scl_max_keys < n)
+      s.scl_max_keys = n;
+    s.scl_total_keys += n * adcScl->nodeNum;
   }
 
   return s;

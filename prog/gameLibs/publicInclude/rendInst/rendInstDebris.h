@@ -43,14 +43,15 @@ struct RendInstBufferData
   carray<int16_t, 12> data;
 };
 
-DynamicPhysObjectData *doRIGenDestr(const RendInstDesc &desc, RendInstBufferData &out_buffer, ri_damage_effect_cb effect_cb,
-  riex_handle_t &out_destroyed_riex_handle, int32_t user_data = -1, const Point3 *coll_point = nullptr, bool *ri_removed = nullptr,
-  DestrOptionFlags destroy_flags = DestrOptionFlag::AddDestroyedRi | DestrOptionFlag::ForceDestroy,
+DynamicPhysObjectData *doRIGenDestr(const RendInstDesc &desc, RendInstBufferData &out_buffer, bool create_destr_effects,
+  ri_damage_effect_cb effect_cb, riex_handle_t &out_destroyed_riex_handle, int32_t user_data = -1, const Point3 *coll_point = nullptr,
+  bool *ri_removed = nullptr, DestrOptionFlags destroy_flags = DestrOptionFlag::AddDestroyedRi | DestrOptionFlag::ForceDestroy,
   const Point3 &impulse = Point3::ZERO, const Point3 &impulse_pos = Point3::ZERO);
 
 // This one ignores subcells and doesn't return buffer (as we use it when we don't need to restore it)
 // As well it doesn't updateVb, as it's used in batches, so you'll updateVb only once, when you need it
-DynamicPhysObjectData *doRIGenDestrEx(const RendInstDesc &desc, ri_damage_effect_cb effect_cb = nullptr, int32_t user_data = -1);
+DynamicPhysObjectData *doRIGenDestrEx(const RendInstDesc &desc, bool create_destr_effects, ri_damage_effect_cb effect_cb = nullptr,
+  int32_t user_data = -1);
 DynamicPhysObjectData *doRIExGenDestrEx(rendinst::riex_handle_t riex_handle, ri_damage_effect_cb effect_cb = nullptr);
 
 bool restoreRiGen(const RendInstDesc &desc, const RendInstBufferData &buffer);

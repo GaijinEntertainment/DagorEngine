@@ -82,15 +82,28 @@ void Dump(SQFunctionProto *func) {
     Dump(&fos, func, false);
 }
 
-void DumpInstructions(OutputStream *stream, const SQInstruction *ii, SQInt32 i_count, const SQObjectPtr *_literals, SQInt32 _nliterals)
+static uint64_t GetUInt64FromPtr(const void *ptr)
+{
+    uint64_t res = 0;
+    for (int i = 0; i < 8; i++)
+        res += uint64_t(((const uint8_t *)ptr)[i]) << (i * 8);
+    return res;
+}
+
+void DumpInstructions(OutputStream *stream, SQLineInfo * lineinfos, int nlineinfos, const SQInstruction *ii, SQInt32 i_count,
+    const SQObjectPtr *_literals, SQInt32 _nliterals, int instruction_index)
 {
     SQInt32 n = 0;
+    int lineHint = 0;
     for (int i = 0; i < i_count; i++) {
         const SQInstruction &inst = ii[i];
+        bool isLineOp = false;
+        char curInstr = instruction_index == i ? '>' : ' ';
+        SQInteger line = SQFunctionProto::GetLine(lineinfos, nlineinfos, i, &lineHint, &isLineOp);
         if (inst.op == _OP_LOAD || inst.op == _OP_DLOAD || inst.op == _OP_PREPCALLK || inst.op == _OP_GETK) {
-
             SQInteger lidx = inst._arg1;
-            streamprintf(stream, _SC("[%03d] %15s %d "), (SQInt32)n, g_InstrDesc[inst.op].name, inst._arg0);
+            streamprintf(stream, _SC("[line%c%03d]%c[op %03d] %15s %d "), isLineOp ? '-' : ' ', (SQInt32)line, curInstr, (SQInt32)n,
+                g_InstrDesc[inst.op].name, inst._arg0);
             if (lidx >= 0xFFFFFFFF) //-V547
                 streamprintf(stream, _SC("null"));
             else {
@@ -134,9 +147,20 @@ void DumpInstructions(OutputStream *stream, const SQInstruction *ii, SQInt32 i_c
             }
             bool arg1F = inst.op == _OP_JCMPF || inst.op == _OP_LOADFLOAT;
             if (arg1F)
-                streamprintf(stream, _SC("[%03d] %15s %d %f %d %d"), (SQInt32)n, g_InstrDesc[inst.op].name, inst._arg0, inst._farg1, inst._arg2, inst._arg3);
+                streamprintf(stream, _SC("[line%c%03d]%c[op %03d] %15s %d %f %d %d"), isLineOp ? '-' : ' ', (SQInt32)line, curInstr, (SQInt32)n,
+                    g_InstrDesc[inst.op].name, inst._arg0, inst._farg1, inst._arg2, inst._arg3);
             else
-                streamprintf(stream, _SC("[%03d] %15s %d %d %d %d"), (SQInt32)n, g_InstrDesc[inst.op].name, inst._arg0, inst._arg1, inst._arg2, inst._arg3);
+            {
+                if (i > 0 && (ii[i - 1].op == _OP_SET_LITERAL || ii[i - 1].op == _OP_GET_LITERAL))
+                    streamprintf(stream, _SC("[line%c%03d]%c[op %03d] HINT (0x%") _SC(PRIx64) _SC(")"), isLineOp ? '-' : ' ', (SQInt32)line, curInstr, (SQInt32)n,
+                        GetUInt64FromPtr(ii + i));
+                else if (inst.op < sizeof(g_InstrDesc) / sizeof(g_InstrDesc[0]))
+                    streamprintf(stream, _SC("[line%c%03d]%c[op %03d] %15s %d %d %d %d"), isLineOp ? '-' : ' ', (SQInt32)line, curInstr, (SQInt32)n,
+                        g_InstrDesc[inst.op].name, inst._arg0, inst._arg1, inst._arg2, inst._arg3);
+                else
+                    streamprintf(stream, _SC("[line%c%03d]%c[op %03d] INVALID INSTRUNCTION (%d)"), isLineOp ? '-' : ' ', (SQInt32)line, curInstr, (SQInt32)n,
+                        int(inst.op));
+            }
             if (jumpLabel != 0x7FFFFFFF)
                 streamprintf(stream, _SC("  jump to %d"), jumpLabel);
             streamprintf(stream, _SC("\n"));
@@ -173,7 +197,7 @@ void DumpLineInfo(OutputStream *stream, const SQLineInfo *_lineinfos, SQInt32 _n
     }
 }
 
-void Dump(OutputStream *stream, SQFunctionProto *func, bool deep)
+void Dump(OutputStream *stream, SQFunctionProto *func, bool deep, int instruction_index)
 {
 
     //if (!dump_enable) return ;
@@ -183,7 +207,7 @@ void Dump(OutputStream *stream, SQFunctionProto *func, bool deep)
         for (i = 0; i < func->_nfunctions; ++i) {
             SQObjectPtr &f = func->_functions[i];
             assert(sq_isfunction(f));
-            Dump(stream, _funcproto(f), deep);
+            Dump(stream, _funcproto(f), deep, -1);
         }
     }
     streamprintf(stream, _SC("SQInstruction sizeof %d\n"), (SQInt32)sizeof(SQInstruction));
@@ -204,13 +228,14 @@ void Dump(OutputStream *stream, SQFunctionProto *func, bool deep)
     DumpLocals(stream, func->_localvarinfos, func->_nlocalvarinfos);
     DumpLineInfo(stream, func->_lineinfos, func->_nlineinfos);
     streamprintf(stream, _SC("-----dump\n"));
-    DumpInstructions(stream, func->_instructions, func->_ninstructions, func->_literals, func->_nliterals);
+    DumpInstructions(stream, func->_lineinfos, func->_nlineinfos,
+        func->_instructions, func->_ninstructions, func->_literals, func->_nliterals, instruction_index);
     streamprintf(stream, _SC("-----\n"));
     streamprintf(stream, _SC("stack size[%d]\n"), (SQInt32)func->_stacksize);
     streamprintf(stream, _SC("--------------------------------------------------------------------\n\n"));
 }
 
-void Dump(OutputStream *stream, const SQFuncState *fState)
+void Dump(OutputStream *stream, const SQFuncState *fState, int instruction_index)
 {
     streamprintf(stream, _SC("*****FUNCTION [%s]\n"), sq_type(fState->_name) == OT_STRING ? _stringval(fState->_name) : _SC("unknown"));
     SQObjectPtrVec literals(fState->_sharedstate->_alloc_ctx);
@@ -227,13 +252,14 @@ void Dump(OutputStream *stream, const SQFuncState *fState)
     DumpLocals(stream, fState->_localvarinfos.begin(), fState->_localvarinfos.size());
     DumpLineInfo(stream, fState->_lineinfos.begin(), fState->_lineinfos.size());
     streamprintf(stream, _SC("-----dump\n"));
-    DumpInstructions(stream, fState->_instructions.begin(), fState->_instructions.size(), literals.begin(), literals.size());
+    DumpInstructions(stream, &fState->_lineinfos[0], fState->_lineinfos.size(),
+        fState->_instructions.begin(), fState->_instructions.size(), literals.begin(), literals.size(), instruction_index);
 }
 
 void Dump(const SQFuncState *fState)
 {
     FileOutputStream fos(stdout);
-    Dump(&fos, fState);
+    Dump(&fos, fState, -1);
 }
 
 SQInteger SQFuncState::GetNumericConstant(const SQInteger cons)

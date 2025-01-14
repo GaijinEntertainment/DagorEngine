@@ -56,6 +56,8 @@ public:
       "is_level_unloading");
     das::addExtern<DAS_BIND_FUN(get_current_level_eid)>(*this, lib, "get_current_level_eid", das::SideEffects::accessExternal,
       "get_current_level_eid");
+    das::addExtern<DAS_BIND_FUN(select_weather_preset)>(*this, lib, "select_weather_preset", das::SideEffects::modifyExternal,
+      "select_weather_preset");
     das::addExtern<DAS_BIND_FUN(das_get_points_on_road_splines)>(*this, lib, "get_points_on_road_splines",
       das::SideEffects::accessExternal, "::bind_dascript::das_get_points_on_road_splines");
     das::addExtern<DAS_BIND_FUN(das_add_region_to_list)>(*this, lib, "add_region_to_list", das::SideEffects::modifyArgument,

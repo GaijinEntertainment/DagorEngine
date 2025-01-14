@@ -188,6 +188,12 @@ int BhvProjection::update(UpdateStage /*stage*/, darg::Element *elem, float /*dt
         if (tmp)
           opacityRangeY = *tmp;
 
+        if (data.RawGetSlotValue(strings->opacityIgnoreFov, false))
+        {
+          opacityRangeX /= persp.wk;
+          opacityRangeY /= persp.hk;
+        }
+
         if (opacityRangeX[0] > 0 && opacityRangeX[1] > 0 && opacityRangeY[0] > 0 && opacityRangeY[1] > 0)
         {
           opacity *= cvt(fabsf(safediv(sp.x, sp.z)), opacityRangeX[0], opacityRangeX[1], 1.0f, 0.0f) *

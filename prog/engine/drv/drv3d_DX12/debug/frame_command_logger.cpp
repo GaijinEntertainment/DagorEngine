@@ -172,8 +172,6 @@ void append_arg(String &target, ProgramID const &arg, const char *)
         return "graphics";
       if (arg.isCompute())
         return "compute";
-      if (arg.isRaytrace())
-        return "raytrace";
       return "INVALID";
     }(),
     arg.getType(), arg.getGroup(), arg.getIndex());

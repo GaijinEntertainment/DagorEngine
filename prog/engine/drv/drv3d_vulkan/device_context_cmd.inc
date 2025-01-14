@@ -131,10 +131,10 @@ VULKAN_BEGIN_CONTEXT_COMMAND(CopyBufferToImageOrdered)
   Backend::sync.addImageAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, dst,
     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
     {region.imageSubresource.mipLevel, 1, region.imageSubresource.baseArrayLayer, region.imageSubresource.layerCount});
-  Backend::sync.completeNeeded(ctx.frameCore, ctx.vkDev);
+  Backend::sync.completeNeeded();
 
-  VULKAN_LOG_CALL(ctx.vkDev.vkCmdCopyBufferToImage(ctx.frameCore, src->getHandle(), dst->getHandle(),
-    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region));
+  VULKAN_LOG_CALL(
+    Backend::cb.wCmdCopyBufferToImage(src->getHandle(), dst->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region));
 #endif
 VULKAN_END_CONTEXT_COMMAND
 
@@ -281,7 +281,7 @@ VULKAN_BEGIN_CONTEXT_COMMAND(DrawIndexedUserData)
   ctx.flushGrahpicsState(top);
   ctx.bindVertexUserData(vertexData);
 
-  ctx.vkDev.vkCmdBindIndexBuffer(ctx.frameCore, indexData.getHandle(), indexData.bufOffset(0), VK_INDEX_TYPE_UINT16);
+  Backend::cb.wCmdBindIndexBuffer(indexData.getHandle(), indexData.bufOffset(0), VK_INDEX_TYPE_UINT16);
   // set state dirty to restore after this intervention
   Backend::State::exec.set<StateFieldGraphicsIndexBuffer, uint32_t, BackGraphicsState>(1);
 
@@ -325,13 +325,13 @@ VULKAN_BEGIN_CONTEXT_COMMAND(CopyBuffer)
     {sourceBufOffset, dataSize});
   Backend::sync.addBufferAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, dest.buffer,
     {destBufOffset, dataSize});
-  Backend::sync.completeNeeded(ctx.frameCore, ctx.vkDev);
+  Backend::sync.completeNeeded();
 
   VkBufferCopy bc;
   bc.srcOffset = sourceBufOffset;
   bc.dstOffset = destBufOffset;
   bc.size = dataSize;
-  VULKAN_LOG_CALL(ctx.vkDev.vkCmdCopyBuffer(ctx.frameCore, source.buffer->getHandle(), dest.buffer->getHandle(), 1, &bc));
+  VULKAN_LOG_CALL(Backend::cb.wCmdCopyBuffer(source.buffer->getHandle(), dest.buffer->getHandle(), 1, &bc));
 #endif
 VULKAN_END_CONTEXT_COMMAND
 
@@ -500,11 +500,11 @@ VULKAN_BEGIN_CONTEXT_COMMAND(BlitImage)
     Backend::sync.addImageAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, dstI,
       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
       {region.dstSubresource.mipLevel, 1, region.dstSubresource.baseArrayLayer, region.dstSubresource.layerCount});
-  Backend::sync.completeNeeded(ctx.frameCore, ctx.vkDev);
+  Backend::sync.completeNeeded();
 
-  VULKAN_LOG_CALL(ctx.vkDev.vkCmdBlitImage(ctx.frameCore, srcI->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dstI->getHandle(),
+  VULKAN_LOG_CALL(Backend::cb.wCmdBlitImage(srcI->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dstI->getHandle(),
     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region, VK_FILTER_LINEAR));
-  ctx.writeExectionChekpoint(ctx.frameCore, VK_PIPELINE_STAGE_TRANSFER_BIT);
+  ctx.writeExectionChekpoint(VK_PIPELINE_STAGE_TRANSFER_BIT);
 #endif
 VULKAN_END_CONTEXT_COMMAND
 
@@ -514,7 +514,7 @@ VULKAN_BEGIN_CONTEXT_COMMAND(BeginSurvey)
 
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
   ctx.beginCustomStage("BeginSurvey");
-  VULKAN_LOG_CALL(ctx.vkDev.vkCmdResetQueryPool(ctx.frameCore, pool, index, 1));
+  VULKAN_LOG_CALL(Backend::cb.wCmdResetQueryPool(pool, index, 1));
 #endif
 VULKAN_END_CONTEXT_COMMAND
 
@@ -569,9 +569,15 @@ VULKAN_CONTEXT_COMMAND_PARAM(TimestampQueryIndex, queryIndex)
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
 TimestampQueryBlock &qb = *ctx.data.timestampQueryBlock;
 
+if (ctx.frameCoreQueue != DeviceQueueType::GRAPHICS)
+{
+  qb.dataIndexes.push_back(qb.data.size() - 1);
+  return;
+}
+
 if (ctx.actionIdx > ctx.lastTimestampActionIdx || qb.data.empty())
 {
-  VULKAN_LOG_CALL(ctx.vkDev.vkCmdWriteTimestamp(ctx.frameCore, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, qb.pool, qb.data.size()));
+  VULKAN_LOG_CALL(Backend::cb.wCmdWriteTimestamp(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, qb.pool, qb.data.size()));
   qb.data.push_back(0);
 }
 qb.dataIndexes.push_back(qb.data.size() - 1);
@@ -606,7 +612,7 @@ VULKAN_BEGIN_CONTEXT_COMMAND(GenerateMipmaps)
     VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, {0, 1, 0, img->getArrayLayers()});
   Backend::sync.addImageWriteDiscard({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, img,
     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, {1, 1, 0, img->getArrayLayers()});
-  Backend::sync.completeNeeded(ctx.frameCore, ctx.vkDev);
+  Backend::sync.completeNeeded();
 
   // blit mip 0 into mip 1
   VkImageBlit blit;
@@ -632,7 +638,7 @@ VULKAN_BEGIN_CONTEXT_COMMAND(GenerateMipmaps)
   blit.dstOffsets[1].y = mipExtent.height;
   blit.dstOffsets[1].z = 1;
 
-  VULKAN_LOG_CALL(ctx.vkDev.vkCmdBlitImage(ctx.frameCore, img->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, img->getHandle(),
+  VULKAN_LOG_CALL(Backend::cb.wCmdBlitImage(img->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, img->getHandle(),
     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR));
 
   if (img->getMipLevels() > 2)
@@ -644,7 +650,7 @@ VULKAN_BEGIN_CONTEXT_COMMAND(GenerateMipmaps)
         VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, {(uint32_t)(m - 1), 1, 0, img->getArrayLayers()});
       Backend::sync.addImageWriteDiscard({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, img,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, {(uint32_t)m, 1, 0, img->getArrayLayers()});
-      Backend::sync.completeNeeded(ctx.frameCore, ctx.vkDev);
+      Backend::sync.completeNeeded();
 
       // blit mip M-1 into mip M
       blit.srcSubresource.mipLevel = m - 1;
@@ -655,19 +661,19 @@ VULKAN_BEGIN_CONTEXT_COMMAND(GenerateMipmaps)
       blit.dstSubresource.mipLevel = m;
       blit.dstOffsets[1].x = mipExtent.width;
       blit.dstOffsets[1].y = mipExtent.height;
-      VULKAN_LOG_CALL(ctx.vkDev.vkCmdBlitImage(ctx.frameCore, img->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, img->getHandle(),
+      VULKAN_LOG_CALL(Backend::cb.wCmdBlitImage(img->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, img->getHandle(),
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR));
 
       lastMipExtent = mipExtent;
     }
   }
-  ctx.writeExectionChekpoint(ctx.frameCore, VK_PIPELINE_STAGE_TRANSFER_BIT);
+  ctx.writeExectionChekpoint(VK_PIPELINE_STAGE_TRANSFER_BIT);
 
   // we can't know is it readed or not, so assume readed
   if (img->isUsedInBindless())
   {
     ctx.trackBindlessRead(img);
-    Backend::sync.completeNeeded(ctx.frameCore, ctx.vkDev);
+    Backend::sync.completeNeeded();
   }
 #endif
 VULKAN_END_CONTEXT_COMMAND
@@ -693,9 +699,9 @@ VULKAN_BEGIN_CONTEXT_COMMAND(ResolveMultiSampleImage)
   Backend::sync.addImageWriteDiscard({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, dst,
     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, {0, 1, 0, 1});
 
-  Backend::sync.completeNeeded(ctx.frameCore, ctx.vkDev);
+  Backend::sync.completeNeeded();
 
-  VULKAN_LOG_CALL(ctx.vkDev.vkCmdResolveImage(ctx.frameCore, src->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dst->getHandle(),
+  VULKAN_LOG_CALL(Backend::cb.wCmdResolveImage(src->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dst->getHandle(),
     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &area));
 #endif
 VULKAN_END_CONTEXT_COMMAND
@@ -792,9 +798,9 @@ VULKAN_BEGIN_CONTEXT_COMMAND(CaptureScreen)
     VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, {0, 1, 0, 1});
   Backend::sync.addBufferAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, buffer, {copy.bufferOffset, copySize});
 
-  Backend::sync.completeNeeded(ctx.frameCore, ctx.vkDev);
-  VULKAN_LOG_CALL(ctx.vkDev.vkCmdCopyImageToBuffer(ctx.frameCore, colorImage->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-    buffer->getHandle(), 1, &copy));
+  Backend::sync.completeNeeded();
+  VULKAN_LOG_CALL(
+    Backend::cb.wCmdCopyImageToBuffer(colorImage->getHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, buffer->getHandle(), 1, &copy));
 #endif
 VULKAN_END_CONTEXT_COMMAND
 
@@ -896,7 +902,7 @@ VULKAN_BEGIN_CONTEXT_COMMAND(PlaceAftermathMarker)
     dul.color[1] = 1.f;
     dul.color[2] = 1.f;
     dul.color[3] = 1.f;
-    VULKAN_LOG_CALL(ctx.vkDev.getInstance().vkCmdInsertDebugUtilsLabelEXT(ctx.frameCore, &dul));
+    VULKAN_LOG_CALL(Backend::cb.wCmdInsertDebugUtilsLabelEXT(&dul));
   }
 #endif
 #endif
@@ -939,14 +945,6 @@ VULKAN_BEGIN_CONTEXT_COMMAND(TraceRays)
 #endif
 VULKAN_END_CONTEXT_COMMAND
 
-VULKAN_BEGIN_CONTEXT_COMMAND_TRANSIT(SetRaytraceProgram)
-VULKAN_CONTEXT_COMMAND_PARAM(ProgramID, program)
-
-#if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
-Backend::State::pipe.set_raw<StateFieldRaytraceProgram, ProgramID, FrontRaytraceState>(program);
-#endif
-VULKAN_END_CONTEXT_COMMAND
-
 VULKAN_BEGIN_CONTEXT_COMMAND(RaytraceBuildStructures)
   VULKAN_CONTEXT_COMMAND_PARAM(size_t, index)
   VULKAN_CONTEXT_COMMAND_PARAM(uint32_t, count)
@@ -970,44 +968,15 @@ VULKAN_BEGIN_CONTEXT_COMMAND(CopyRaytraceAccelerationStructure)
     {VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR}, src);
   Backend::sync.addAccelerationStructureAccess(
     {VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR}, dst);
-  Backend::sync.completeNeeded(ctx.frameCore, ctx.vkDev);
+  Backend::sync.completeNeeded();
 
   VkCopyAccelerationStructureInfoKHR ci{VK_STRUCTURE_TYPE_COPY_ACCELERATION_STRUCTURE_INFO_KHR, nullptr};
   ci.mode = compact ? VK_COPY_ACCELERATION_STRUCTURE_MODE_COMPACT_KHR : VK_COPY_ACCELERATION_STRUCTURE_MODE_CLONE_KHR;
   ci.src = src->getHandle();
   ci.dst = dst->getHandle();
-  VULKAN_LOG_CALL(ctx.vkDev.vkCmdCopyAccelerationStructureKHR(ctx.frameCore, &ci));
+  VULKAN_LOG_CALL(Backend::cb.wCmdCopyAccelerationStructureKHR(&ci));
 #endif
 
-#endif
-VULKAN_END_CONTEXT_COMMAND
-
-
-VULKAN_BEGIN_CONTEXT_COMMAND(AddRaytraceProgram)
-  VULKAN_CONTEXT_COMMAND_PARAM(ProgramID, program)
-  VULKAN_CONTEXT_COMMAND_PARAM(const ShaderModuleUse *, shaders)
-  VULKAN_CONTEXT_COMMAND_PARAM(const RaytraceShaderGroup *, groups)
-  VULKAN_CONTEXT_COMMAND_PARAM(uint32_t, shaderCount)
-  VULKAN_CONTEXT_COMMAND_PARAM(uint32_t, groupCount)
-  VULKAN_CONTEXT_COMMAND_PARAM(uint32_t, maxRecursion)
-
-#if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
-  eastl::unique_ptr<const ShaderModuleUse[]> shaderModules(shaders);
-  eastl::unique_ptr<const RaytraceShaderGroup[]> shaderGroups(groups);
-  Globals::pipelines.addRaytrace(ctx.vkDev, Globals::pipeCache.getHandle(), program, maxRecursion, shaderCount, shaderModules.get(),
-    groupCount, shaderGroups.get(), Backend::shaderModules.getData());
-#endif
-VULKAN_END_CONTEXT_COMMAND
-
-VULKAN_BEGIN_CONTEXT_COMMAND(CopyRaytraceShaderGroupHandlesToMemory)
-  VULKAN_CONTEXT_COMMAND_PARAM(ProgramID, program)
-  VULKAN_CONTEXT_COMMAND_PARAM(uint32_t, firstGroup)
-  VULKAN_CONTEXT_COMMAND_PARAM(uint32_t, groupCount)
-  VULKAN_CONTEXT_COMMAND_PARAM(uint32_t, size)
-  VULKAN_CONTEXT_COMMAND_PARAM(void *, ptr)
-
-#if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
-  G_ASSERTF(false, "CmdCopyRaytraceShaderGroupHandlesToMemory called on API without support");
 #endif
 VULKAN_END_CONTEXT_COMMAND
 
@@ -1119,6 +1088,10 @@ VULKAN_END_CONTEXT_COMMAND
 VULKAN_BEGIN_CONTEXT_COMMAND(CleanupPendingReferences)
   VULKAN_CONTEXT_COMMAND_PARAM(PipelineState, state)
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
+  // apply queued discards before syncing state and scrapping resources
+  // otherwise chain of discards may be corrupted
+  // by removal of buffer in its tail
+  ctx.applyQueuedDiscards();
   Backend::State::pendingCleanups.cleanupAllNonUsed(state, Backend::State::pipe);
 #endif
 VULKAN_END_CONTEXT_COMMAND
@@ -1347,19 +1320,14 @@ VULKAN_BEGIN_CONTEXT_COMMAND(DelaySyncCompletion)
 #if VULKAN_CONTEXT_COMMAND_IMPLEMENTATION
   if (enable)
   {
-    // we need to interrupt frame core, but only once and only after that enable sync delay
-    VulkanCommandBufferHandle frameCoreOld = ctx.frameCore;
-
     ctx.beginCustomStage("DelayedSyncStart");
-    if (frameCoreOld == ctx.frameCore)
-      ctx.interruptFrameCore();
     Backend::sync.setCompletionDelay(enable);
-    G_ASSERTF(frameCoreOld != ctx.frameCore, "vulkan: failed to interrupt frame core!");
+    Backend::cb.startReorder();
   }
   else
   {
     Backend::sync.setCompletionDelay(enable);
-    ctx.performSyncToPreviousCommandList();
+    ctx.finishReorderAndPerformSync();
   }
 #endif
 VULKAN_END_CONTEXT_COMMAND

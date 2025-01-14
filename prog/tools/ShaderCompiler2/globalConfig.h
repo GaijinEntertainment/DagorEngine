@@ -26,7 +26,7 @@ namespace shc
 struct CompilerConfig
 {
   // See https://gaijinentertainment.github.io/DagorEngine/dagor-tools/shader-compiler/contributing_to_compiler.html#versioning
-  const char *version = "2.72";
+  const char *version = "2.73"; // logging only
 
   const char *singleCompilationShName = nullptr;
   const char *intermediateDir = nullptr;
@@ -60,6 +60,7 @@ struct CompilerConfig
 
   String hlslDefines;
   SimpleString shaderSrcRoot;
+  SimpleString engineRootDir;
   ShHardwareOptions singleOptions{4.0_sm};
 
   std::string shadervarsCodeTemplateFilename;
@@ -83,6 +84,7 @@ struct CompilerConfig
   DebugLevel hlslDebugLevel = DebugLevel::NONE;
   ShadervarGeneratorMode shadervarGeneratorMode = ShadervarGeneratorMode::None;
   StcodeTargetArch cppStcodeArch = StcodeTargetArch::DEFAULT;
+  StcodeTargetPlatform cppStcodePlatform = StcodeTargetPlatform::DEFAULT;
 
 #if USE_BINDLESS_FOR_STATIC_TEX
   bool enableBindless : 1 = true;
@@ -127,6 +129,7 @@ struct CompilerConfig
   bool useThreadpool : 1 = true;
   bool compileCppStcode : 1 = false;
   bool cppStcodeUnityBuild : 1 = false;
+  bool cppStcodeDeleteDebugInfo : 1 = true;
   bool disallowHlslHardcodedRegs : 1 = false;
 
 #if _CROSS_TARGET_DX12
@@ -134,6 +137,7 @@ struct CompilerConfig
 #elif _CROSS_TARGET_SPIRV
   bool compilerHlslCc : 1 = false;
   bool compilerDXC : 1 = false;
+  bool usePcToken : 1 = true;
 #elif _CROSS_TARGET_METAL
   bool useIosToken : 1 = false;
   bool useBinaryMsl : 1 = false;

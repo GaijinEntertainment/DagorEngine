@@ -130,6 +130,7 @@ ShaderCode *ShaderSemCode::generateShaderCode(const ShaderVariant::VariantTableS
       case SHVT_REAL: sz = sizeof(real); break;
       case SHVT_COLOR4: sz = sizeof(Color4); break;
       case SHVT_TEXTURE: sz = sizeof(shaders_internal::Tex); break;
+      case SHVT_SAMPLER: sz = sizeof(d3d::SamplerHandle); break;
       default: G_ASSERT(0); sz = 0;
     }
     cvar[i] = ofs;
@@ -278,6 +279,15 @@ void ShaderSemCode::convert_stcode(dag::Span<int> cod, Tab<int> &cvar, StcodeReg
         G_ASSERT(vi >= 0);
         cod[i] = shaderopcode::patchOp2p2(cod[i], cvar[vi]); // replace var id with var offset
         static_regs.patch(vi, cvar[vi]);
+      }
+      break;
+
+      case SHCOD_SAMPLER:
+      {
+        int vi = var_map[shaderopcode::getOpStageSlot_Reg(cod[i])];
+        static_regs.patch(vi, cvar[vi]);
+        cod[i] = shaderopcode::makeOpStageSlot(op, shaderopcode::getOpStageSlot_Stage(cod[i]),
+          shaderopcode::getOpStageSlot_Slot(cod[i]), cvar[vi]);
       }
       break;
 

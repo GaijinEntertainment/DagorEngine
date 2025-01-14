@@ -3,9 +3,9 @@ require UnitTest
 [export]
 def test
     var tab : table<EntityId; string>
-    tab[EntityId(1)] = "hello"
-    tab[EntityId(2)] = "world"
-    tab[EntityId(3)] = "!"
+    tab |> insert(EntityId(1), "hello")
+    tab |> insert(EntityId(2), "world")
+    tab |> insert(EntityId(3), "!")
     assert(length(tab) == 3)
     tab |> erase(EntityId(3))
     assert(length(tab) == 2)

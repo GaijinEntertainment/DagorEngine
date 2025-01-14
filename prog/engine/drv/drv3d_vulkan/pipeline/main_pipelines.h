@@ -183,7 +183,7 @@ public:
   const char *resTypeString() { return "ComputePipeline"; }
 
   ComputePipeline(VulkanDevice &dev, ProgramID prog, VulkanPipelineCacheHandle cache, LayoutType *l, const CreationInfo &info);
-  void bind(VulkanDevice &vk_dev, VulkanCommandBufferHandle cmd_buffer);
+  VulkanPipelineHandle getHandleForUse();
 
   void compile();
   bool pendingCompilation();
@@ -328,7 +328,7 @@ public:
   };
 
   GraphicsPipeline(VulkanDevice &dev, VulkanPipelineCacheHandle cache, LayoutType *l, const CreationInfo &info);
-  void bind(VulkanDevice &vk_dev, VulkanCommandBufferHandle cmd_buffer) const;
+  void bind() const;
 
   const GraphicsPipelineDynamicStateMask &getDynamicStateMask() { return dynStateMask; }
 

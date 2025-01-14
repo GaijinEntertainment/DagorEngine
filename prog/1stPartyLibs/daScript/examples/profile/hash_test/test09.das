@@ -19,7 +19,7 @@ def test ( hmap : auto(HashMapType); randomNumbers )
     static_if !typeinfo(is_table type<HashMapType>)
         hashMap <- HashMapType()
     for num in randomNumbers
-        hashMap[num] = -num
+        unsafe(hashMap[num]) = -num
     for i in range(10)
         var adder : Adder
         for num in randomNumbers

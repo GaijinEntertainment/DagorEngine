@@ -42,19 +42,6 @@ public:
     EnableDistantFog,
   };
 
-  class VolfogMediaInjectionGuard
-  {
-  public:
-    VolfogMediaInjectionGuard(const VolfogMediaInjectionGuard &other) = delete;
-    VolfogMediaInjectionGuard &operator=(const VolfogMediaInjectionGuard &other) = delete;
-
-    explicit VolfogMediaInjectionGuard(BaseTexture *tex);
-    ~VolfogMediaInjectionGuard();
-
-  private:
-    BaseTexture *tex;
-  };
-
   static bool IS_SUPPORTED;
 
   VolumeLight();
@@ -62,16 +49,9 @@ public:
   void close();
   void init();
   void setResolution(int resW, int resH, int resD, int screenW, int screenH);
-  void getResolution(int &resW, int &resH, int &resD)
-  {
-    resW = froxelResolution[0];
-    resH = froxelResolution[1];
-    resD = froxelResolution[2];
-  }
   void setRange(float range);
   void setCurrentView(int view);
-  bool perform(const TMatrix4 &view_tm, const TMatrix4 &proj_tm, const TMatrix4_vec4 &glob_tm, const Point3 &camera_pos); // true if on
-  void performIntegration();
+
   void switchOff();
   void switchOn();
   void closeShaders();
@@ -79,11 +59,28 @@ public:
   void afterReset();
   void invalidate();
 
+  bool performStartFrame(const TMatrix4 &view_tm, const TMatrix4 &proj_tm, const TMatrix4_vec4 &glob_tm,
+    const Point3 &camera_pos); // true if on
+  void performFroxelFogOcclusion();
+  void performFroxelFogFillMedia();
+  void performVolfogShadow();
+  void performDistantFogRaymarch();
+  void performFroxelFogPropagate();
+  void performDistantFogReconstruct();
+
   bool updateShaders(const String &shader_name, const DataBlock &shader_blk, String &out_errors);
   void initShaders(const DataBlock &shader_blk);
   void enableOptionalShader(const String &shader_name, bool enable);
 
-  VolfogMediaInjectionGuard StartVolfogMediaInjection();
+  template <class F>
+  void renderIntoVolfogMedia(uint32_t shader_stage, F &&render_injection_callback)
+  {
+    if (!isReady)
+      return;
+    volfogMediaInjectionStart(shader_stage);
+    render_injection_callback(froxelResolution);
+    volfogMediaInjectionEnd(shader_stage);
+  }
 
   void onSettingsChange(VolfogQuality volfog_quality, VolfogShadowCasting shadow_casting, DistantFogQuality df_quality);
 
@@ -114,6 +111,9 @@ protected:
 
   bool hasDistantFog() const;
   bool hasVolfogShadows() const;
+
+  void volfogMediaInjectionStart(uint32_t shader_stage);
+  void volfogMediaInjectionEnd(uint32_t shader_stage);
 
   eastl::array<UniqueTex, FRAME_HISTORY> initialInscatter;
   eastl::array<UniqueTex, FRAME_HISTORY> initialExtinction;
@@ -167,6 +167,10 @@ protected:
   IPoint2 reconstructionFrameRes = IPoint2::ZERO;
   float currentRange = 128; // arbitrary, setRange should be called to not rely on it
   Point3 prevCameraPos = IPoint3::ZERO;
+
+  Point4 froxelFogViewVecLT, froxelFogViewVecRT, froxelFogViewVecLB, froxelFogViewVecRB;
+  bool useNodeBasedInput = false;
+  Point3 distantFogOcclusionPosDiff = Point3::ZERO;
 
   ViewDependentResource<TMatrix4_vec4, 2, 1> prevGlobTm = ViewDependentResource<TMatrix4_vec4, 2, 1>(TMatrix4_vec4::ZERO);
   int frameId = 0;

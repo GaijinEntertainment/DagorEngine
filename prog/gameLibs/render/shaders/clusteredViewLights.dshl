@@ -56,13 +56,13 @@ macro USE_CLUSTERED_VIEW_LIGHTS(code)
           float dither = interleavedGradientNoiseFramed(screenpos, shadow_frame);//if we have temporal aa
           #define OMNI_CONTACT_SHADOWS_CALC \
             BRANCH\
-            if (color_and_specular.w > 0 && max(omniLight.r, omniLight.g)>0.01)\
+            if (color_and_specular.w > 0 && max(omniLight.r, omniLight.g)/(max3(color_and_specular.r, color_and_specular.g, 1e-6))>0.001)\
             {\
               float2 hitUV;\
-              float contactShadow = contactShadowRayCast(downsampled_far_depth_tex, downsampled_far_depth_tex_samplerstate,
+              float contactShadow = contactShadowRayCast(downsampled_far_depth_tex, downsampled_far_depth_tex_samplerstate,\
                 contactStartCameraToPoint, normalize(pos_and_radius.xyz-worldPos.xyz),\
-                w*0.2, 8, dither-0.5, projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV, float2(3,2));\
-              omniLight *= contactShadow;\
+                clamp(w*0.2, 0.1, length(pos_and_radius.xyz-worldPos.xyz)), 8, dither-0.5, projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV);\
+              omniLight *= pow2(contactShadow);\
             }
           #else
             #define OMNI_CONTACT_SHADOWS_CALC
@@ -74,8 +74,8 @@ macro USE_CLUSTERED_VIEW_LIGHTS(code)
               {\
                 float2 hitUV;\
                 float contactShadow = contactShadowRayCast(downsampled_far_depth_tex, downsampled_far_depth_tex_samplerstate, contactStartCameraToPoint, normalize(lightPosRadius.xyz-worldPos.xyz),\
-                  w*0.2, 8, dither-0.5, projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV, float2(3,2));\
-                spotShadow *= contactShadow;\
+                  clamp(w*0.2, 0.1, length(lightPosRadius.xyz-worldPos.xyz)), 8, dither-0.5, projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV);\
+                spotShadow *= pow2(contactShadow);\
               }
           #else
             #define SPOT_CONTACT_SHADOWS_CALC
@@ -110,7 +110,7 @@ macro USE_CLUSTERED_VIEW_LIGHTS(code)
               mergedMask ^= ( 1U << bitIndex );
               uint omni_light_index = ((omniWordIndex<<5) + bitIndex);
               #if defined(CHECK_OMNI_LIGHT_MASK)
-              if ( !check_omni_light(omni_light_index))
+              if ( !check_omni_light(omni_light_index, CHECK_OMNI_LIGHT_MASK))
                 continue;
               #endif
               RenderOmniLight ol = omni_lights_cb[omni_light_index];
@@ -140,7 +140,7 @@ macro USE_CLUSTERED_VIEW_LIGHTS(code)
               mergedMask ^= ( 1U << bitIndex );
               uint spot_light_index = ((spotWordIndex<<5) + bitIndex);
               #if defined(CHECK_SPOT_LIGHT_MASK)
-              if ( !check_spot_light(spot_light_index))
+              if ( !check_spot_light(spot_light_index, CHECK_SPOT_LIGHT_MASK))
                 continue;
               #endif
 

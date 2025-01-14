@@ -156,7 +156,7 @@ void teardown()
 }
 
 void render(bvh::ContextId context_id, const Point3 &view_pos, const TMatrix4 &proj_tm, bool has_nuke, bool has_dynamic_lights,
-  Texture *csm_texture)
+  Texture *csm_texture, d3d::SamplerHandle csm_sampler)
 {
   G_ASSERT(trace);
   G_ASSERT(finalShadowMap);
@@ -190,6 +190,7 @@ void render(bvh::ContextId context_id, const Point3 &view_pos, const TMatrix4 &p
   params.shadowValue = shadowValueMap.getTex2D();
   params.shadowTranslucency = render_mode == RenderMode::DenoisedTranslucent ? shadowTranslucencyMap.getTex2D() : nullptr;
   params.csmTexture = csm_texture;
+  params.csmSampler = csm_sampler;
 
   denoiser::denoise_shadow(params);
 }

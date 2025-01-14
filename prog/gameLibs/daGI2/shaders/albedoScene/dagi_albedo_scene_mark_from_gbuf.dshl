@@ -39,7 +39,7 @@ macro ALBEDO_SCENE_MARK_FROM_GBUF(code)
         ProcessedGbuffer gbuf = loadProcessedGbuffer(tcI);
         if (get_project_update_from_point(worldPos, linearDepth, tc, tcI, gbuf) != POINT_OPAQUE)
           return;
-        dagi_albedo_scene_update_color(worldPos, cascade, gbuf.albedo);
+        dagi_albedo_scene_update_color(worldPos, cascade, saturate(gbuf.specularColor + gbuf.diffuseColor));
       }
     #else
 
@@ -93,13 +93,14 @@ macro ALBEDO_SCENE_MARK_FROM_GBUF(code)
             {
               float linearDepth = linearize_z(rawDepth, zn_zfar.zw);
               ProcessedGbuffer gbuf = loadProcessedGbuffer(tcI);
+              half3 albedo = saturate(gbuf.specularColor + gbuf.diffuseColor);
               //todo: WaveInterlockedAdd
               uint tp = get_project_update_from_point(worldPos, linearDepth, tc, tcI, gbuf);
               if (tp != POINT_DYNAMIC)
               {
                 InterlockedAdd(shared_albedo_opaque_count, tp == POINT_OPAQUE);
                 InterlockedAdd(shared_albedo_count, 1);
-                uint3 uintAlbedo = gbuf.albedo*255+0.5;
+                uint3 uintAlbedo = albedo*255+0.5;
                 InterlockedAdd(shared_albedo_all.x, uintAlbedo.x);
                 InterlockedAdd(shared_albedo_all.y, uintAlbedo.y);
                 InterlockedAdd(shared_albedo_all.z, uintAlbedo.z);

@@ -26,6 +26,7 @@ using PropPanel::TLeafHandle;
 class ILodController;
 class IObjEntity;
 enum CtrlType;
+enum class AnimStatesType;
 struct ParentLeafs;
 
 class AnimTreePlugin : public IGenEditorPlugin, public PropPanel::ControlEventHandler
@@ -67,6 +68,7 @@ protected:
   AnimTreeAnimationPlayer animPlayer;
   dag::Vector<AnimParamData> ctrlParams;
   dag::Vector<AnimParamData> animBnlParams;
+  dag::Vector<AnimParamData> stateParams;
 
   int curCtrlAndBlendNodeUniqueIdx = 0;
   TLeafHandle enumsRootLeaf = nullptr;
@@ -121,10 +123,16 @@ protected:
   void addIncludeLeaf(PropPanel::ContainerPropertyControl *panel, int main_pid, TLeafHandle main_parent, const String &parent_name);
 
   void addEnumToAnimStatesTree(PropPanel::ContainerPropertyControl *panel);
-  void addEnumItemToAnimStatesTree(PropPanel::ContainerPropertyControl *panel);
+  void addItemToAnimStatesTree(PropPanel::ContainerPropertyControl *panel);
   void removeNodeFromAnimStatesTree(PropPanel::ContainerPropertyControl *panel);
   void saveSettingsAnimStatesTree(PropPanel::ContainerPropertyControl *panel);
+  void saveStatesParamsSettings(PropPanel::ContainerPropertyControl *panel, DataBlock *settings, AnimStatesType type,
+    const DataBlock &props);
   void selectedChangedAnimStatesTree(PropPanel::ContainerPropertyControl *panel);
+  void changeStateDescType(PropPanel::ContainerPropertyControl *panel);
+  void addStateDescItem(PropPanel::ContainerPropertyControl *panel, AnimStatesType type, const char *name);
+  void addStateDescItem(PropPanel::ContainerPropertyControl *panel, DataBlock &props, String &full_path, TLeafHandle state_desc_leaf,
+    AnimStatesType type, const char *name);
 
   void addNodeToCtrlTree(PropPanel::ContainerPropertyControl *panel);
   void addIncludeToCtrlTree(PropPanel::ContainerPropertyControl *panel, int type_pid);

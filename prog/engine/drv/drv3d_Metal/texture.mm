@@ -119,7 +119,6 @@ namespace drv3d_metal
         {
           return MTLPixelFormatBGRA8Unorm;
         }
-      case TEXFMT_A8L8:       return MTLPixelFormatRG8Unorm;
       case TEXFMT_A16B16G16R16S:  return MTLPixelFormatRGBA16Snorm;
       case TEXFMT_A16B16G16R16UI: return MTLPixelFormatRGBA16Uint;
       case TEXFMT_A32B32G32R32UI: return MTLPixelFormatRGBA32Uint;
@@ -279,7 +278,6 @@ namespace drv3d_metal
     {
       case TEXFMT_R8G8:
       case TEXFMT_R8G8S:
-      case TEXFMT_A8L8:
       case TEXFMT_R16F:
       case TEXFMT_L16:
       case TEXFMT_R16UI:
@@ -881,6 +879,9 @@ namespace drv3d_metal
 
   void Texture::replaceTexResObject(BaseTexture *&other_tex)
   {
+    if (this == other_tex)
+      return;
+
     // swap important fields of TQL, can't delay this
     RCAutoLock texLock;
 
@@ -1602,7 +1603,6 @@ static const char* format2String(uint32_t fmt)
       case TEXFMT_A1R5G5B5:  return "A1R5G5B5";
       case TEXFMT_A4R4G4B4:     return "A4R4G4B4";
       case TEXFMT_R5G6B5:     return "R5G6B5";
-      case TEXFMT_A8L8:       return "A8L8";
       case TEXFMT_A16B16G16R16S:  return "A16B16G16R16S";
       case TEXFMT_A16B16G16R16UI: return "A16B16G16R16UI";
       case TEXFMT_A32B32G32R32UI: return "A32B32G32R32UI";

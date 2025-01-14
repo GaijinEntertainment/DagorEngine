@@ -41,9 +41,6 @@ macro GET_MEDIA_HARDCODED(code)
     #define distant_heightmap_tex_samplerstate tex_hmap_low_samplerstate
   }
 
-  (code) {
-    depth_above@smp2d = depth_around;
-  }
   INIT_BLURRED_DEPTH_ABOVE(code)
   USE_BLURRED_DEPTH_ABOVE(code)
 

@@ -102,7 +102,7 @@ class Occlusion;
 class OcclusionLandMeshManager;
 class GaussMipRenderer;
 struct VisibilityContext;
-struct LightShadowParams;
+union LightShadowParams;
 struct AimRenderingData;
 class DebugLightProbeShapeRenderer;
 class IndoorProbeScenes;
@@ -182,7 +182,7 @@ class WorldRenderer final : public IRenderWorld, public IShadowInfoProvider
   friend dabfg::NodeHandle makeTransparentParticlesLowresPrepareNode();
 
   friend dabfg::NodeHandle makeAfterWorldRenderNode();
-  friend dabfg::NodeHandle makeVolumetricLightsNode();
+  friend eastl::array<dabfg::NodeHandle, 6> makeVolumetricLightsNodes();
   friend dabfg::NodeHandle mk_panorama_prepare_mobile_node();
   friend dabfg::NodeHandle mk_panorama_apply_mobile_node();
   friend dabfg::NodeHandle mk_panorama_apply_forward_node();
@@ -206,12 +206,14 @@ class WorldRenderer final : public IRenderWorld, public IShadowInfoProvider
   FeatureRenderFlagMask defaultFeatureRenderFlags;
 
 public:
-  inline bool hasFeature(FeatureRenderFlags f) const { return featureRenderFlags.test(f); }
-  inline const FeatureRenderFlagMask &getFeatures() const { return featureRenderFlags; }
-  WorldRenderer();
-  ~WorldRenderer();
-  // IRenderWorld
+  bool hasFeature(FeatureRenderFlags f) const { return featureRenderFlags.test(f); }
+  const FeatureRenderFlagMask &getFeatures() const { return featureRenderFlags; }
 
+  WorldRenderer();
+  WorldRenderer(const WorldRenderer &) = delete;
+  ~WorldRenderer();
+
+  // IRenderWorld
   virtual void update(float dt, float real_dt, const TMatrix &itm); // can be called independent on draw
   void setUpView(const TMatrix &view_itm, const DPoint3 &view_pos, const Driver3dPerspective &persp);
   virtual void beforeRender(float scaled_dt,
@@ -317,24 +319,24 @@ public:
   bool isLightVisible(light_id id) const { return lights.isLightVisible(id); }
 
   bool addShadowToLight(light_id id,
-    bool only_static_casters,
+    ShadowCastersFlag casters,
     bool hint_dynamic,
     uint16_t quality,
     uint8_t priority,
     uint8_t shadow_size_srl,
     DynamicShadowRenderGPUObjects render_gpu_objects)
   {
-    return lights.addShadowToLight(id, only_static_casters, hint_dynamic, quality, priority, shadow_size_srl, render_gpu_objects);
+    return lights.addShadowToLight(id, casters, hint_dynamic, quality, priority, shadow_size_srl, render_gpu_objects);
   }
   bool getShadowProperties(uint32_t id,
-    bool &only_static_casters,
+    ShadowCastersFlag &casters,
     bool &hint_dynamic,
     uint16_t &quality,
     uint8_t &priority,
     uint8_t &shadow_size_srl,
     DynamicShadowRenderGPUObjects &render_gpu_objects) const
   {
-    return lights.getShadowProperties(id, only_static_casters, hint_dynamic, quality, priority, shadow_size_srl, render_gpu_objects);
+    return lights.getShadowProperties(id, casters, hint_dynamic, quality, priority, shadow_size_srl, render_gpu_objects);
   }
   void removeShadow(light_id id) { return lights.removeShadow(id); }
 
@@ -496,7 +498,10 @@ public:
   PartitionSphere getTransparentPartitionSphere() const { return transparentPartitionSphere; }
 
 protected:
-  void initGeneric();
+  void ctorCommon();
+  void ctorDeferred();
+  void ctorForward();
+
   void initResetable();
   void closeResetable();
   friend class RendererConsole;
@@ -567,6 +572,8 @@ protected:
     float parallelism_to_wind,
     float width_k,
     const Point4 &waves_dist,
+    float depth_min,
+    float depth_fade_interval,
     float gerstner_speed);
   void renderHeightmap(
     Texture *heightmapTex, float heightmap_size, const Point2 &center_pos, const BBox2 *box, Point4 &world_to_heightmap);
@@ -585,7 +592,7 @@ protected:
 
   // shadows
   void changeStateFOMShadows();
-  void prepareVolumeMedia();
+  void performVolfogMediaInjection();
   // shadows
 
   void initDisplacement();
@@ -666,21 +673,8 @@ protected:
     No,
     Yes
   };
-  void renderWater(Texture *color_target,
-    const TMatrix &itm,
-    Texture *depth,
-    DistantWater render_distant_water,
-    bool render_ssr,
-    bool dontwritedepth = false);
-  void renderWaterSSR(bool enabled,
-    Texture *downsampled_depth,
-    const TMatrix &itm,
-    const Driver3dPerspective &persp,
-    Texture *farDownsampledDepth,
-    const ManagedTex *waterSSRColor,
-    const ManagedTex *waterSSRColorPrev,
-    const ManagedTex *waterSSRStrenght,
-    const ManagedTex *waterSSRStrenghtPrev);
+  void renderWater(const TMatrix &itm, DistantWater render_distant_water, bool render_ssr);
+  void renderWaterSSR(const TMatrix &itm, const Driver3dPerspective &persp);
 
   void generatePaintingTexture();
   void prefetchPartsOfPaintingTexture();
@@ -772,7 +766,7 @@ public:
   void renderDebug();
 
 protected:
-  light_probe::Cube *enviProbe;
+  light_probe::Cube *enviProbe = nullptr;
   Point3 enviProbePos = {0, 0, 0};
   eastl::unique_ptr<DebugLightProbeSpheres> debugLightProbeSpheres;
   eastl::unique_ptr<DebugLightProbeSpheres> debugLightProbeMirrorSphere;
@@ -812,21 +806,21 @@ protected:
 
   TEXTUREID landMicrodetailsId = BAD_TEXTUREID, characterMicrodetailsId = BAD_TEXTUREID;
 
-  BaseStreamingSceneHolder *binScene = 0; // owned by corresponding entity
+  BaseStreamingSceneHolder *binScene = nullptr; // owned by corresponding entity
   BBox3 binSceneBbox;
   dabfg::NodeHandle binSceneTransparencyNode;
 
-  TEXTUREID lightmapTexId;
+  TEXTUREID lightmapTexId = BAD_TEXTUREID;
   LandMeshCullingState cullingStateMain;
   LandMeshCullingData cullingDataMain;
   LandMeshCullingState cullingStateReflection;
   LandMeshCullingData cullingDataReflection;
-  LandMeshManager *lmeshMgr; // not owned!
-  LandMeshRenderer *lmeshRenderer;
-  int displacementSubDiv = 0;
+  LandMeshManager *lmeshMgr = nullptr; // not owned!
+  LandMeshRenderer *lmeshRenderer = nullptr;
+  int displacementSubDiv = 2;
   int subdivSettings = 0;
   void initSubDivSettings();
-  float cameraHeight;
+  float cameraHeight = 0.f;
   float lodDistanceScaleBase = 1.3f;
 
   // queried in every frame in before draw
@@ -857,11 +851,11 @@ protected:
 
   PartitionSphere transparentPartitionSphere;
 
-  carray<RiGenVisibility *, ShadowsManager::CSM_MAX_CASCADES> rendinst_shadows_visibility;
+  carray<RiGenVisibility *, ShadowsManager::CSM_MAX_CASCADES> rendinst_shadows_visibility = {};
   RiGenVisibility *rendinst_dynamic_shadow_visibility = nullptr;
 
 
-  RiGenVisibility *rendinst_main_visibility, *rendinst_cube_visibility;
+  RiGenVisibility *rendinst_main_visibility = nullptr, *rendinst_cube_visibility = nullptr;
 
   DataBlock originalLevelBlk;
   void resetVolumeLights();
@@ -885,8 +879,7 @@ protected:
   };
   Afr afr;
 
-  int waterSSRFrame;
-  int water_ssr_id;
+  int water_ssr_id = -1;
 
   eastl::unique_ptr<DynamicQuality> dynamicQuality;
   void resetDynamicQuality();
@@ -970,7 +963,6 @@ protected:
   // forward rendering
   void setResolutionForward();
   void initResetableForward();
-  void initForward();
   void createNodesForward();
 
   void setSettingsSSR();
@@ -983,13 +975,12 @@ protected:
   };
   AoQuality aoQuality = AoQuality::MEDIUM;
   void resetSSAOImpl();
-  FFTWater *water;
+  FFTWater *water = nullptr;
 
-  bool clearWaterSSRHistory = false;
   int fftWaterQualitySetting = 0;
   PostFxRenderer waterDistant[2];
-  SkiesData *main_pov_data;
-  SkiesData *cube_pov_data;
+  SkiesData *main_pov_data = nullptr;
+  SkiesData *cube_pov_data = nullptr;
 
   SkiesData *refl_pov_data = nullptr;
   eastl::unique_ptr<GaussMipRenderer> planarReflectionMipRenderer;
@@ -1002,7 +993,8 @@ protected:
 
   void initWaterPlanarReflection();
   void closeWaterPlanarReflection();
-  bool isWaterPlanarReflectionEnabled() const;
+  void initWaterPlanarReflectionTerrainNode();
+  bool isWaterPlanarReflectionTerrainEnabled() const;
   void calcWaterPlanarReflectionMatrix();
   void renderLmeshReflection();
 
@@ -1023,7 +1015,7 @@ private:
   UniqueTex screenshotSuperFrame;
   PostFxRenderer underWater;
   float cameraSpeed = 0;
-  Clipmap *clipmap;
+  Clipmap *clipmap = nullptr;
 
   eastl::unique_ptr<MultiFramePGF> preIntegratedGF;
 
@@ -1062,13 +1054,13 @@ private:
   eastl::unique_ptr<TreesAboveDepth> treesAbove;
   rendinst::RIOcclusionData *riOcclusionData = nullptr;
 
-  DebugTexOverlay *debug_tex_overlay;
+  DebugTexOverlay *debug_tex_overlay = nullptr;
   void createDebugTexOverlay(const int w, const int h);
   eastl::unique_ptr<DebugTonemapOverlay> debug_tonemap_overlay;
-  float waterLevel;
+  float waterLevel = 0;
 
-  bool applySettingsAfterResetDevice;
-  bool initClipmapAfterResetDevice;
+  bool applySettingsAfterResetDevice = false;
+  bool initClipmapAfterResetDevice = false;
 
   bool ignoreStaticShadowsForGI = false;
 
@@ -1251,7 +1243,7 @@ private:
   dabfg::NodeHandle downsampledDepthWithWaterNode;
   eastl::fixed_vector<dabfg::NodeHandle, 3> environmentFGNodes;
   eastl::array<dabfg::NodeHandle, 2> shadowPassFGNodes;
-  dabfg::NodeHandle volumetricLightsFGNode;
+  eastl::array<dabfg::NodeHandle, 6> volumetricLightsFGNodes;
   eastl::fixed_vector<dabfg::NodeHandle, 5> ssrFGNodes;
   dabfg::NodeHandle aoFGNode;
   dabfg::NodeHandle giRenderFGNode;

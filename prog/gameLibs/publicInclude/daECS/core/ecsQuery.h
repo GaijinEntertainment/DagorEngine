@@ -86,44 +86,59 @@ struct QueryView
 
   void *__restrict getUserData() const { return userData; }
 
-  template <class T>
-  typename PtrComponentType<T>::ref_type getComponentRW(uint16_t compId, uint32_t idInChunk) const
+  template <class T, typename U = T>
+  auto &getComponentRW(uint16_t compId, uint32_t idInChunk) const
   {
-    auto p = getComponentRawRW<T>(compId);
+    auto p = getComponentUntypedData(compId);
     QUERY_FAST_ASSERT(p);
-    return PtrComponentType<T>::ref(p + idInChunk);
+    return ref<T, U>(p, idInChunk);
   }
-  template <class T>
-  typename PtrComponentType<T>::cref_type getComponentRO(uint16_t compId, uint32_t idInChunk) const
+  template <class T, typename U = T>
+  auto &getComponentRO(uint16_t compId, uint32_t idInChunk) const
   {
-    auto p = getComponentRawRO<T>(compId);
+    auto p = getComponentUntypedData(compId);
     QUERY_FAST_ASSERT(p);
-    return PtrComponentType<T>::cref(p + idInChunk);
+    return ref<T, U, /*bConst*/ true>(p, idInChunk);
   }
 
-  template <class T>
-  typename PtrComponentType<T>::cref_type getComponentRODef(uint16_t compId, uint32_t idInChunk, const T &__restrict def) const
+  template <class T, typename U = T>
+  auto &getComponentRODef(uint16_t compId, uint32_t idInChunk, const T &__restrict def) const
   {
-    auto p = getComponentRawRO<T>(compId);
-    return p ? PtrComponentType<T>::cref(p + idInChunk) : def;
+    auto p = getComponentUntypedData(compId);
+    return p ? ref<T, U, /*bConst*/ true>(p, idInChunk) : def;
   }
-  template <class T>
-  DECL_RESTRICT const T *__restrict getComponentROOpt(uint16_t compId, uint32_t idInChunk) const
+  template <class T, typename U = T>
+  DECL_RESTRICT const U *__restrict getComponentROOpt(uint16_t compId, uint32_t idInChunk) const
   {
-    auto p = getComponentRawRO<T>(compId);
-    return p ? &PtrComponentType<T>::cref(p + idInChunk) : nullptr;
+    auto p = getComponentUntypedData(compId);
+    return p ? &ref<T, U, /*bConst*/ true>(p, idInChunk) : nullptr;
   }
-  template <class T>
-  DECL_RESTRICT T *__restrict getComponentRWOpt(uint16_t compId, uint32_t idInChunk) const
+  template <class T, typename U = T>
+  DECL_RESTRICT U *__restrict getComponentRWOpt(uint16_t compId, uint32_t idInChunk) const
   {
-    auto p = getComponentRawRW<T>(compId);
-    return p ? &PtrComponentType<T>::ref(p + idInChunk) : nullptr;
+    auto p = getComponentUntypedData(compId);
+    return p ? &ref<T, U>(p, idInChunk) : nullptr;
   }
   uint32_t getWorkerId() const { return workerId; }
   EntityManager &__restrict manager() const { return *mgr; }
   QueryId getQueryId() const { return id; }
 
 protected:
+  template <typename T, typename U = T, bool bConst = false>
+  static eastl::conditional_t<bConst, const U &__restrict, U &__restrict> ref(ComponentsData p, uint32_t idInChunk)
+  {
+    if constexpr (eastl::is_same_v<T, eastl::remove_const_t<U>>)
+      return PtrComponentType<T>::ref((typename PtrComponentType<T>::ptr_type)p + idInChunk);
+    else
+    {
+      static_assert(sizeof(T) == sizeof(U), "Not binary compatible types");
+      static_assert(!PtrComponentType<T>::is_boxed, "Only value (i.e non boxed) types are allowed to be aliased");
+      constexpr size_t max_algn = (eastl::max)(ecs::ComponentTypeInfo<T>::ref_alignment, alignof(U));
+      auto ptr = (U *__restrict)p + idInChunk;
+      return *(U *__restrict)ASSUME_ALIGNED(ptr, max_algn);
+    }
+  }
+
   friend class EntityManager;
   friend struct Query;
   friend class ESJob;

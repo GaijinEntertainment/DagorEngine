@@ -7,6 +7,7 @@ return {
   get_circuit_conf = function() {return DataBlock()}
   get_session_id = @() 12345678
   get_game_name = @() get_arg_value_by_name("game")
+  get_current_scene = @() ""
   get_circuit = @() "moon"
   get_build_number = @() "-1"
   get_exe_version = @() "0.0.0.0"

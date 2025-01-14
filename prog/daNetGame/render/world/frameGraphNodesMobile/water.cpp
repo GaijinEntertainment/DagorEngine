@@ -30,17 +30,19 @@ dabfg::NodeHandle mk_water_mobile_node()
       .texture()
       .atStage(dabfg::Stage::PS)
       .useAs(dabfg::Usage::COLOR_ATTACHMENT);
-    auto depthHndl = registry.read("depth_after_opaque").texture().atStage(dabfg::Stage::PS).useAs(dabfg::Usage::UNKNOWN).handle();
+    registry.read("depth_after_opaque").texture().atStage(dabfg::Stage::PS).useAs(dabfg::Usage::UNKNOWN);
 
-    auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
+    auto cameraHndl = registry.readBlob<CameraParams>("current_camera")
+                        .bindAsView<&CameraParams::viewTm>()
+                        .bindAsProj<&CameraParams::jitterProjTm>()
+                        .handle();
     registry.requestState().setFrameBlock("global_frame");
-    return [cameraHndl, depthHndl] {
+    return [cameraHndl] {
       auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
 
       const auto &camera = cameraHndl.ref();
 
-      wr.renderWaterSSR(false, nullptr, camera.viewItm, camera.jitterPersp, nullptr, nullptr, nullptr, nullptr, nullptr);
-      wr.renderWater(nullptr, camera.viewItm, depthHndl.view().getTex2D(), WorldRenderer::DistantWater::No, false);
+      wr.renderWater(camera.viewItm, WorldRenderer::DistantWater::No, false);
     };
   });
 }

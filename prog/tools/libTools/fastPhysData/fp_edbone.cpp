@@ -228,7 +228,9 @@ void FpdBoneControllerAction::save(DataBlock &blk, const GeomNodeTree &tree)
 bool FpdBoneControllerAction::load(const DataBlock &blk, IFpdLoad &loader)
 {
   auto &tree = loader.getGeomTree();
-  node = tree.findINodeIndex(blk.getStr("node", NULL));
+  const char *nodeName = blk.getStr("node", NULL);
+  if (nodeName && nodeName[0])
+    node = tree.findINodeIndex(nodeName);
   nodeWtm = get_node_wtm_rel_ptr(tree, node);
   nodeTm = get_node_tm_ptr(tree, node);
   localBoneAxis = blk.getPoint3("localBoneAxis", localBoneAxis);

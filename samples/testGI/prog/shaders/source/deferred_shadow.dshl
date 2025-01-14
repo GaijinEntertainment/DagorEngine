@@ -42,7 +42,7 @@ macro COMMON_RESOLVE()
     world_view_pos@f3 = world_view_pos;
 
     to_sun_direction@f3 = (-from_sun_direction.x, -from_sun_direction.y, -from_sun_direction.z, 0.0)
-    sun_color_0__shadow_intens@f4 = (sun_color_0.r, sun_color_0.g, sun_color_0.b, cloud_shadow_intensity);
+    sun_color_0@f4 = sun_color_0;
   }
   USE_SUN()
   //INIT_HDR_STCODE()
@@ -62,10 +62,6 @@ macro COMMON_RESOLVE()
 endmacro
 
 macro USE_SUN()
-hlsl(ps) {
-  #define cloud_shadow_intensity_const (sun_color_0__shadow_intens.w)
-  #define sun_color_0 (sun_color_0__shadow_intens.rgb)
-}
 endmacro
 
 texture screen_ambient;
@@ -201,7 +197,7 @@ shader deferred_shadow_to_buffer
     half4 deferred_shadow_per_sample(VsOutput input, float2 screenpos, float2 stereoParams, float w, ProcessedGbuffer gbuffer, float csmShadow)
     {
       //SUN
-      half3 lightColor = sun_color_0.rgb;
+      half3 lightColor = half3(sun_color_0.rgb);
       ##if deferred_lighting_mode != result
         gbuffer.diffuseColor = 1;
         ##if deferred_lighting_mode != light
@@ -272,29 +268,10 @@ shader deferred_shadow_to_buffer
         result = standardBRDF( NoV, NoL, gbuffer.diffuseColor, alpha, gbuffer.linearRoughness, specularColor, gbuffer.extracted_albedo_ao, lightDir, view, gbuffer.normal)*(shadow)*lightColor;
       }
       ##if (dynamic_lights_count != lights_off)
-      /*BRANCH
-      if (all( abs(lights_box_center_count.xyz-worldPos.xyz) < lights_box_extent))
-      {
-        half3 dynamicLighting = 0;
-        UNROLL
-        for (int light_index = 0; light_index < int(lights_box_center_count.w); light_index+=2)
-        //for (int light_index = 0; light_index < 16; light_index+=2)
-        {
-          float4 pos_and_radius = lights_cb[light_index];
-          float4 color_and_specular = lights_cb[light_index+1];
-          dynamicLighting += perform_point_light(worldPos.xyz, view, NoV, gbuffer, gbuffer.specularColor, pos_and_radius, color_and_specular);//use gbuffer.specularColor for equality with point_lights.dshl
-        }
-        half pointLightsFinalAO = (gbuffer.ao*0.5+0.5);//we don't use ssao, since we don't want to use it in point_lights.dshl (works much faster)
-        result += dynamicLighting*pointLightsFinalAO;
-      }*/
       ##endif
 
       BRANCH
       if (subSurface && ((gbuffer.material == SHADING_FOLIAGE) || (shadow > 0)))
-      //##else
-      //BRANCH
-      //if (gbuffer.material == SHADING_SUBSURFACE && shadow > 0)
-      //##endif
       {
         half EdotL = saturate(dot(view, -lightDir));
         half PowEdotL = pow4(EdotL);
@@ -321,30 +298,10 @@ shader deferred_shadow_to_buffer
       float roughMip = ComputeReflectionCaptureMipFromRoughness(gbuffer.linearRoughness);
       half2 AB = getEnviBRDF_AB_LinearRoughness(gbuffer.linearRoughness, NoV).xy;
       half3 enviBRDF = gbuffer.specularColor * AB.x + saturate( INV_MIN_IOR * gbuffer.specularColor.g ) * AB.y;
-
-      /*FLATTEN
-      if (gbuffer.material == SHADING_FOLIAGE)
-      {
-        enviBRDF *= float3(0.3,0.5,0.3);
-      }
-        enviBRDF = 1;
-        roughMip = 0;
-        roughR = reflectionVec;*/
-      //half3 environmentAmbientReflection = gamma_to_linear(texCUBElod(envi_probe_specular, float4(reflectionVec, 0)).rgb);
-      //half3 environmentAmbientReflection = gamma_to_linear(texCUBElod(envi_probe_specular, float4(roughR, roughMip)).rgb)*enviBRDF;
-      //half3 environmentAmbientReflection = geometryFactor*gamma_to_linear(texCUBElod(envi_probe_specular, float4(roughR, roughMip)).rgb)*enviBRDF;
       half3 giSpecular, giAmbient;
       decode_gi_colors(screen_ambient[int2(screenpos)], screen_specular[int2(screenpos)], giAmbient, giSpecular);
-      //return half4(giAmbient,1);
-      //environmentAmbientReflection *= 0.8 + 0.2*shadow;
-      //return environmentAmbientReflection.rgbr;
-      //return distToIntersect > 0 ? environmentAmbientReflection.rgbr : 0;
-
-      //half4 ssrReflections = tex2Dlod(ssr_target, float4(input.texcoord,0,0));
-      //half3 environmentAmbientUnoccludedLighting = GetSkySHDiffuse(gbuffer.normal);
 ##if ssao_tex != NULL
       half3 localIndirect = MultiBounce(ssao, gbuffer.diffuseColor);
-      //enviAmbientAO = gbuffer.ao;//uncomment this line to stop _squaring_ gtao!
 ##else
       half localIndirect = 1;
 ##endif
@@ -516,7 +473,7 @@ shader deferred_simple
       half3 specularColor = 0;
       //SUN
       float3 lightDir = to_sun_direction;
-      half3 lightColor = sun_color_0;
+      half3 lightColor = half3(sun_color_0.rgb);
 
       FLATTEN
       if (gbuffer.material == SHADING_FOLIAGE)

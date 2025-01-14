@@ -76,13 +76,13 @@ private:
 
   bool placeInBox(int count, int ri_idx, int buf_offset, const TMatrix &transform, const Point2 &scale_range,
     const Point4 &up_vector_threshold, const Point2 &distance_based_scale, float min_scale_radius, bool on_geometry,
-    float min_triangle_size, int on_rendinst_geometry_count, int on_terrain_geometry_count, float density,
-    riex_handles &surface_riex_handles, bool need_geometry_gather = true);
-  bool gatherGeometryInBox(const TMatrix &transform, float min_triangle_size, const Point4 &up_vector_threshold, float density,
-    riex_handles &surface_riex_handles);
+    float min_triangle_size, float triangle_length_ratio_cutoff, int on_rendinst_geometry_count, int on_terrain_geometry_count,
+    float density, riex_handles &surface_riex_handles, bool need_geometry_gather = true);
+  bool gatherGeometryInBox(const TMatrix &transform, float min_triangle_size, float triangle_length_ratio_cutoff,
+    const Point4 &up_vector_threshold, float density, riex_handles &surface_riex_handles);
   int calculateObjectCount(ecs::EntityId eid, float density, const TMatrix &transform, bool on_geometry, float min_triangle_size,
-    const Point4 &up_vector_threshold, int object_max_count, int &on_rendinst_geometry_count, int &on_terrain_geometry_count,
-    riex_handles &surface_riex_handles);
+    float triangle_length_ratio_cutoff, const Point4 &up_vector_threshold, int object_max_count, int &on_rendinst_geometry_count,
+    int &on_terrain_geometry_count, riex_handles &surface_riex_handles);
   int getMaxTerrainObjectsCount(const TMatrix &transform, float density) const;
   Point2 getBboxYMinMax(const TMatrix &transform) const;
 
@@ -124,8 +124,8 @@ public:
     bool gpu_object_placer__use_distance_emitter, bool gpu_object_placer__distance_affect_decals,
     bool gpu_object_placer__distance_out_of_range);
 
-  void drawDebugGeometry(const TMatrix &transform, float min_triangle_size, const Point4 &up_vector_threshold, float density,
-    riex_handles &surface_riex_handles);
+  void drawDebugGeometry(const TMatrix &transform, float min_triangle_size, float triangle_length_ratio_cutoff,
+    const Point4 &up_vector_threshold, float density, riex_handles &surface_riex_handles);
 };
 
 VolumePlacer *get_volume_placer_mgr();

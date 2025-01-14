@@ -128,6 +128,7 @@ public:
   float getMaxShadowDistance() const;
   const Frustum &getWholeCoveredFrustum() const;
   BaseTexture *getShadowsCascade() const;
+  d3d::SamplerHandle getShadowsCascadeSampler() const;
   const TextureInfo &getShadowCascadeTexInfo() const;
   const Point2 &getZnZf(int cascade_no) const;
 

@@ -318,6 +318,12 @@ public:
 
   bool wireframeOverlayEnabled() const { return wireframeOverlay; }
 
+  /// Set secondary menu event handler of viewport.
+  virtual void setMenuEventHandler(IMenuEventHandler *meh);
+
+  /// Retrieves the custom context menu of the viewport if it's active/open.
+  virtual PropPanel::IMenu *getContextMenu() { return selectionMenu; }
+
   /// Render viewport gui
   virtual void paint(int w, int h);
 
@@ -373,7 +379,6 @@ protected:
   bool isMoveRotateAllowed;
   bool isXLocked;
   bool isYLocked;
-  bool skipNextAlt;
   bool orthogonalProjection;
   real projectionFov;
   real projectionFarPlane;
@@ -383,6 +388,7 @@ protected:
   bool updatePluginCamera;
   ICustomCameras *customCameras;
   PropPanel::IMenu *popupMenu;
+  PropPanel::IMenu *selectionMenu;
   bool wireframeOverlay;
   bool showViewportAxis;
   ViewportAxisId highlightedViewportAxisId;
@@ -393,7 +399,7 @@ protected:
   float cameraTransitionElapsedTime;
   bool cameraTransitioning = false;
 
-  bool hidePopupMenu;
+  bool allowPopupMenu;
 
   struct
   {
@@ -403,6 +409,7 @@ protected:
   } rectSelect;
 
   IGenEventHandler *curEH;
+  IMenuEventHandler *curMEH;
   RenderViewport *viewport;
   int vpId;
   SimpleString viewText;

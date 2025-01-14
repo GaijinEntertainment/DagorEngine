@@ -239,6 +239,7 @@ void FrameInfo::wait()
 
   pendingTimestamps->fillDataFromPool();
   finishShaderModules();
+  execTracker.verify();
 }
 
 void FrameInfo::cleanup() {}

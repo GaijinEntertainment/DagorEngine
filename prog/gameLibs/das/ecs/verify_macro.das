@@ -45,7 +45,7 @@ def get_ecs_verify_fn(st : StructurePtr; name : string; map : table<string; uint
 [structure_macro(name="req_template")]
 class ReqTemplateAnnotation : AstStructureAnnotation
 
-  [unused_argument(group, args)] def override patch(var st : StructurePtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string; var astChanged : bool &) : bool
+  [unused_argument(group)] def override patch(var st : StructurePtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string; var astChanged : bool &) : bool
     if length(st.fields) == 0 || is_in_aot() || !is_entity_mgr_exists()
       st.fields |> clear()
       return true
@@ -66,7 +66,7 @@ class ReqTemplateAnnotation : AstStructureAnnotation
       if !foundCppType || typeHash == 0u
         errors := "unable to resolve ecs type for {describe(field._type)}"
         return false
-      map[string(field.name)] = typeHash
+      insert(map, string(field.name), typeHash)
 
     st.fields |> clear()
 

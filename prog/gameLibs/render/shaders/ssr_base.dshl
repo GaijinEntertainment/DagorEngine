@@ -67,6 +67,7 @@ macro INIT_TEXTURES(code)
   } else {
     (code) { normal_gbuf_read@tex2d = normal_gbuf; }
     INIT_READ_DEPTH_GBUFFER_BASE(code)
+    INIT_READ_GBUFFER_MATERIAL(code)
     hlsl(code) {
       #define src_depth_tex depth_gbuf_read
       #define src_depth_tex_samplerstate depth_gbuf_read_samplerstate
@@ -160,7 +161,7 @@ macro SSR_COMMON(code)
   (code) {
     prev_frame_tex@smp2d = prev_frame_tex;
 
-    //prev_zn_zfar@f4 = (prev_zn_zfar.x, prev_zn_zfar.y, prev_zn_zfar.x/(prev_zn_zfar.x * prev_zn_zfar.y), (prev_zn_zfar.y-prev_zn_zfar.x)/(prev_zn_zfar.x * prev_zn_zfar.y));
+    //prev_zn_zfar@f4 = (prev_zn_zfar.x, prev_zn_zfar.y, 1/prev_zn_zfar.y, (prev_zn_zfar.y-prev_zn_zfar.x)/(prev_zn_zfar.x * prev_zn_zfar.y));
     globtm_no_ofs_psf@f44 = { globtm_no_ofs_psf_0, globtm_no_ofs_psf_1, globtm_no_ofs_psf_2, globtm_no_ofs_psf_3 };
 
     water_level@f1 = water_level;

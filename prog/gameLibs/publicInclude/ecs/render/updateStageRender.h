@@ -73,8 +73,10 @@ struct UpdateStageInfoRender : public ecs::Event, public TransformHolder
     RENDER_COLOR = 1,
     RENDER_DEPTH = 2,
     RENDER_SHADOW = 4,
-    RENDER_MAIN = 8,         // for main camera (i.e. RENDER_SHADOW|RENDER_MAIN - csm shadows, use main camera lods)
-    RENDER_MOTION_VECS = 16, // for main camera (i.e. RENDER_SHADOW|RENDER_MAIN - csm shadows, use main camera lods)
+    RENDER_MAIN = 8,              // for main camera (i.e. RENDER_SHADOW|RENDER_MAIN - csm shadows, use main camera lods)
+    RENDER_MOTION_VECS = 16,      // for main camera (i.e. RENDER_SHADOW|RENDER_MAIN - csm shadows, use main camera lods)
+    FORCE_NODE_COLLAPSER_ON = 32, // dirty hack because we have a frame delay in shadow rendering from dynamic lights // TODO: fix it
+                                  // properly
   };
   uint8_t hints = 0;
   int renderPass = RENDER_UNKNOWN;

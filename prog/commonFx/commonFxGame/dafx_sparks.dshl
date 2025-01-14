@@ -41,6 +41,8 @@ shader sparks_ps, sparks_thermal
     #include "dafxSparks_decl.hlsl"
     #include "fx_thermals.hlsl"
     #include "dafx_globals.hlsli"
+    #include "dafx_hlsl_funcs.hlsli"
+    #include "dafx_packers.hlsli"
   }
 
   if (shader == sparks_ps)
@@ -212,7 +214,7 @@ shader sparks_ps, sparks_thermal
 
       VsOutput output = (VsOutput)0;
       output.pos = projPos;
-      output.color = p.color;
+      output.color = unpack_uint_to_n4f(p.color);
       // Use ySize for x dimension to make an arrowed shape
       output.tc_size = float4(vPos + float2(0.5, 0.5), lerp(xSize, ySize, ps.arrowShape), ySize);
       output.psize_dista_hdr_blend = float4(pixBorderSize, distAlpha, p.hdrScale, ps.blending);

@@ -205,8 +205,6 @@ public:
 
   INLINE const double &operator[](int i) const { return (&x)[i]; }
   INLINE double &operator[](int i) { return (&x)[i]; }
-  INLINE operator const double *() const { return &x; }
-  INLINE operator double *() { return &x; }
   INLINE DPoint2 operator-() const { return DPoint2(-x, -y); }
   INLINE DPoint2 operator+() const { return *this; }
 

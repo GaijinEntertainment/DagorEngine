@@ -43,9 +43,9 @@ macro USE_SPARKFX_SYSTEM_COMMON()
       out_vel = vel;
       min_dist = 1000000.0;
 
-      float4 ndc = mul(float4(pos, 1), gparams.globtm_prev);
+      float4 ndc = mul(float4(pos, 1), gparams.globtm_sim);
       ndc.xyz /= ndc.w;
-      float4 ndcNew = mul(float4(pos + vel * dt, 1), gparams.globtm_prev);
+      float4 ndcNew = mul(float4(pos + vel * dt, 1), gparams.globtm_sim);
       ndcNew.xyz /= ndcNew.w;
       float2 stc = ndc.xy * float2(0.5, -0.5) + float2(0.5, 0.5);
       float2 stcNew = ndcNew.xy * float2(0.5, -0.5) + float2(0.5, 0.5);

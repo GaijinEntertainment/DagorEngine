@@ -50,12 +50,12 @@ const char *NamedConstBlock::nameSpaceToStr(NamedConstSpace name_space)
   }
 }
 
-static int remap_register(int r, NamedConstSpace ns)
+static int remap_register(int r, int cnt, NamedConstSpace ns)
 {
   if (ns == NamedConstSpace::uav)
   {
     // reversed order of slots to avoid overlap with RTV
-    r = 7 - r;
+    r = 7 - r - cnt + 1;
   }
   else if (ns == NamedConstSpace::ps_buf || ns == NamedConstSpace::vs_buf || ns == NamedConstSpace::cs_buf)
     r += 16;
@@ -183,7 +183,7 @@ int NamedConstBlock::arrangeRegIndices(int base_reg, NamedConstSpace name_space,
       int r = start_r;
       for (; r < start_r + size; r++)
       {
-        if (hardcoded_regs[translate_namespace(name_space)].count(remap_register(r, name_space)))
+        if (hardcoded_regs[translate_namespace(name_space)].count(remap_register(r, 1, name_space)))
           break;
       }
       if (r == start_r + size)
@@ -211,7 +211,7 @@ int NamedConstBlock::arrangeRegIndices(int base_reg, NamedConstSpace name_space,
 
           if (nc.regIndex == -1)
           {
-            nc.regIndex = remap_register(base_reg, nc.nameSpace);
+            nc.regIndex = remap_register(base_reg, nc.size, nc.nameSpace);
             base_reg += nc.size;
           }
         }
@@ -229,7 +229,7 @@ int NamedConstBlock::arrangeRegIndices(int base_reg, NamedConstSpace name_space,
 
           if (nc.regIndex == -1)
           {
-            nc.regIndex = remap_register(base_reg, nc.nameSpace);
+            nc.regIndex = remap_register(base_reg, nc.size, nc.nameSpace);
             base_reg += nc.size;
           }
         }
@@ -258,7 +258,7 @@ int NamedConstBlock::arrangeRegIndices(int base_reg, NamedConstSpace name_space,
 
             if (nc.regIndex == -1)
             {
-              nc.regIndex = remap_register(base_reg, nc.nameSpace);
+              nc.regIndex = remap_register(base_reg, nc.size, nc.nameSpace);
               base_reg += nc.size;
             }
 
@@ -1437,12 +1437,13 @@ void NamedConstBlock::patchStcodeIndices(dag::Span<int> stcode, StcodeRoutine &c
           dest += 0x800;
 
         // @NOTE: for matrices and arrays we want to patch only the base call
-        if (base == 0)
+        if (base == 0 || !(op == SHCOD_VPR_CONST || op == SHCOD_FSH_CONST || op == SHCOD_CS_CONST))
           cpp_stcode.patchConstLocation(isVs ? STAGE_VS : STAGE_PS, id, destWithoutVprOffset);
         stcode[i] = shaderopcode::makeOp2(op, dest, shaderopcode::getOp3p3(stcode[i]));
       }
       break;
       case SHCOD_GLOB_SAMPLER:
+      case SHCOD_SAMPLER:
       {
         id = shaderopcode::getOpStageSlot_Slot(stcode[i]);
         uint32_t stage = shaderopcode::getOpStageSlot_Stage(stcode[i]);

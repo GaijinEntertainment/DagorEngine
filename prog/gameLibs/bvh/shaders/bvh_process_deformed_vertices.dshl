@@ -23,6 +23,9 @@ interval bvh_process_deformed_vertices_texcoord_size: zero < 1, four < 8, eight;
 interval bvh_process_deformed_vertices_normal_offset: no < 1, yes;
 interval bvh_process_deformed_vertices_color_offset : no < 1, yes;
 
+int bvh_process_deformed_vertices_source_const_no = 6;
+int bvh_process_deformed_vertices_output_uav_no = 0;
+
 shader bvh_process_deformed_vertices
 {
   if (compatibility_mode == compatibility_mode_on)
@@ -45,15 +48,14 @@ shader bvh_process_deformed_vertices
     wtm@f44 = bvh_process_deformed_vertices_wtm;
     itm@f44 = bvh_process_deformed_vertices_itm;
     bvh_process_deformed_vertices_params@i4 = bvh_process_deformed_vertices_params;
+    source@buf : register(bvh_process_deformed_vertices_source_const_no) hlsl { ByteAddressBuffer source@buf; };
+    output@uav : register(bvh_process_deformed_vertices_output_uav_no) hlsl { RWByteAddressBuffer output@uav; };
   }
 
   ENABLE_ASSERT(cs)
   USE_DYNAMIC_DEFORM_COMMON(cs)
   hlsl(cs) {
     #pragma wave32
-
-    ByteAddressBuffer source : register(t6);
-    RWByteAddressBuffer output : register(u0);
 
     [numthreads( 32, 1, 1 )]
     void bvh_process_deformed_vertices(uint3 dtId : SV_DispatchThreadID)

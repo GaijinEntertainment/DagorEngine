@@ -7,7 +7,6 @@
 #include "util/tracked_state.h"
 #include "compute_state.h"
 #include "graphics_state2.h"
-#include "raytrace_state.h"
 #include "state_field_execution_context.h"
 
 namespace drv3d_vulkan

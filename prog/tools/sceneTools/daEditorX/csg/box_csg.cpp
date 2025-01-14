@@ -214,7 +214,7 @@ bool BoxCSG::isSelectedByPointClick(IGenViewportWnd *vp, int x, int y) const
 
 bool BoxCSG::getWorldBox(BBox3 &box) const
 {
-  box = getWtm() * (box ? normBox : normQuad);
+  box = getWtm() * normBox;
   return true;
 }
 

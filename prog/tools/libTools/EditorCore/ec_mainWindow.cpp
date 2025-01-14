@@ -29,7 +29,6 @@ bool init(const char *drv_name, const DataBlock *blkTexStreaming);
 
 namespace workcycle_internal
 {
-extern bool application_active;
 extern bool enable_idle_priority;
 void set_priority(bool foreground);
 } // namespace workcycle_internal
@@ -599,10 +598,9 @@ intptr_t EditorMainWindow::windowProc(void *h_wnd, unsigned msg, void *w_param, 
       using namespace workcycle_internal;
 
       const int fActive = IsIconic((HWND)h_wnd) ? WA_INACTIVE : LOWORD(w_param); // activation flag
-      if (!application_active && (fActive == WA_ACTIVE || fActive == WA_CLICKACTIVE))
+      if (!::dgs_app_active && (fActive == WA_ACTIVE || fActive == WA_CLICKACTIVE))
       {
         set_priority(true);
-        application_active = true;
         dgs_app_active = true;
         _fpreset();
       }
@@ -614,18 +612,16 @@ intptr_t EditorMainWindow::windowProc(void *h_wnd, unsigned msg, void *w_param, 
       using namespace workcycle_internal;
 
       const bool n_app_active = w_param != 0;
-      if (n_app_active && !application_active)
+      if (n_app_active && !::dgs_app_active)
       {
         set_priority(true);
-        application_active = true;
         dgs_app_active = true;
         _fpreset();
       }
-      else if (!n_app_active && application_active)
+      else if (!n_app_active && ::dgs_app_active)
       {
         if (interlocked_relaxed_load(enable_idle_priority))
           set_priority(false);
-        application_active = false;
         dgs_app_active = false;
       }
     }
@@ -660,7 +656,7 @@ intptr_t EditorMainWindow::windowProc(void *h_wnd, unsigned msg, void *w_param, 
     case WM_CHAR:
       if (ImGui::GetCurrentContext())
       {
-        ImGui::GetIO().AddInputCharacter((unsigned int)w_param);
+        ImGui::GetIO().AddInputCharacter((unsigned)(uintptr_t)w_param);
         if (ImGui::GetIO().WantCaptureKeyboard)
           return 0;
       }

@@ -260,7 +260,7 @@ static TexLoadRes load_ddsx_faces_3d(BaseTexture *tex, const ddsx::Header &hdr, 
 bool isDiffuseTextureSuitableForMipColorization(const char *name);
 
 static TexLoadRes load_ddsx_tex_contents(BaseTexture *tex, TEXTUREID tid, TEXTUREID paired_tid, const ddsx::Header &hdr, IGenLoad &crd,
-  int q_id, int start_lev, unsigned tex_ld_lev, on_tex_slice_loaded_cb_t on_tex_slice_loaded_cb)
+  int q_id, int start_lev, unsigned tex_ld_lev, on_tex_slice_loaded_cb_t on_tex_slice_loaded_cb, bool tex_props_inited)
 {
   TextureInfo ti;
   tex->getinfo(ti, 0);
@@ -285,7 +285,11 @@ static TexLoadRes load_ddsx_tex_contents(BaseTexture *tex, TEXTUREID tid, TEXTUR
 
   UnifiedTexGenLoad ucrd(crd, hdr);
   tex->allocateTex();
-  if (tex->isSamplerEnabled())
+  // NOTE: tex_props_inited is used to only read & set header data once when
+  // loading a texture gradually (e.g. TQ/BQ first, then HQ/UHQ after some frames)
+  // because we do "live patching" of a texture that is already being used for rendering
+  // and calling texaddru or other modifying stuff on it would be a data race.
+  if (!tex_props_inited && tex->isSamplerEnabled())
   {
     tex->texaddru(hdr.getAddrU());
     tex->texaddrv(hdr.getAddrV());

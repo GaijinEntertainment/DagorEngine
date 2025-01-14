@@ -188,8 +188,8 @@ void dump_buffers(Tab<ResourceDumpInfo> &dump_info)
     {
       const GenericBuffer *buff = g_buffers[bufferNo].obj;
 
-      dump_info.emplace_back(resource_dump_types::ResourceType::Buffer, buff->getResName(), buff->ressize(),
-        buff->systemCopy ? buff->ressize() : -1, buff->getFlags(), -1, -1, -1, -1, -1, -1, -1);
+      dump_info.emplace_back(ResourceDumpBuffer({(uint64_t)-1, (uint64_t)-1, (uint64_t)-1, (uint64_t)-1, (uint64_t)-1, buff->ressize(),
+        buff->systemCopy ? buff->ressize() : -1, buff->getFlags(), -1, -1, -1, -1, buff->getResName(), ""}));
     }
   ITERATE_OVER_OBJECT_POOL_RESTORE(g_buffers);
 }
@@ -758,6 +758,8 @@ bool d3d::dispatch(uint32_t thread_group_x, uint32_t thread_group_y, uint32_t th
 
   {
     ContextAutoLock contextLock;
+    VALIDATE_GENERIC_RENDER_PASS_CONDITION(!rs.isGenericRenderPassActive || async,
+      "DX11: Dispatch indirect inside a generic render pass");
     dx_context->Dispatch(thread_group_x, thread_group_y, thread_group_z);
   }
 
@@ -788,6 +790,8 @@ bool d3d::dispatch_indirect(Sbuffer *args, uint32_t offset, GpuPipeline gpu_pipe
 
   {
     ContextAutoLock contextLock;
+    VALIDATE_GENERIC_RENDER_PASS_CONDITION(!rs.isGenericRenderPassActive || async,
+      "DX11: Dispatch indirect inside a generic render pass");
     dx_context->DispatchIndirect(vb->buffer, offset);
   }
 

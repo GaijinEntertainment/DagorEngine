@@ -28,6 +28,7 @@ public:
 
 private:
   void editSelectedNode();
+  void editInParentSelectedNode();
 
   static const int DEFAULT_MINIMUM_WIDTH = 250;
   static const int DEFAULT_MINIMUM_HEIGHT = 450;

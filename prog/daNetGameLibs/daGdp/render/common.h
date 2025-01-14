@@ -8,6 +8,7 @@
 #include <ecs/core/entitySystem.h>
 #include <render/world/cameraParams.h>
 #include <render/daBfg/nodeHandle.h>
+#include "../shaders/dagdp_constants.hlsli"
 
 // Common daGDP terminology:
 //
@@ -28,6 +29,8 @@
 
 namespace dagdp
 {
+
+#define DAGDP_DEBUG DAGOR_DBGLEVEL != 0
 
 using PlaceableId = uint32_t;
 using RenderableId = uint32_t;
@@ -87,13 +90,16 @@ struct ObjectGroupInfo
 struct RulesBuilder
 {
   NameMap objectGroupNameMap;
+  NameMap placerNameMap;
   dag::RelocatableFixedVector<ecs::EntityId, 32> objectGroupsWithNames;
   dag::VectorMap<ecs::EntityId, ObjectGroupInfo> objectGroups;
   dag::VectorMap<ecs::EntityId, PlacerInfo> placers;
   RenderableId nextRenderableId = 0;
   uint32_t maxObjects = 0; // 0 means no limit.
+  bool useHeightmapDynamicObjects = false;
 };
 
+// Supposed to be immutable after building phase.
 struct ViewBuilder
 {
   dag::RelocatableFixedVector<uint32_t, 64> renderablesMaxInstances;
@@ -145,8 +151,7 @@ struct Viewport
 
 struct ViewPerFrameData
 {
-  static constexpr size_t MAX_VIEWPORTS = 6;
-  dag::RelocatableFixedVector<Viewport, MAX_VIEWPORTS, false> viewports;
+  dag::RelocatableFixedVector<Viewport, DAGDP_MAX_VIEWPORTS, false> viewports;
 };
 
 bool set_common_params(const ecs::Object &object, ecs::EntityId eid, PlaceableParams &result);

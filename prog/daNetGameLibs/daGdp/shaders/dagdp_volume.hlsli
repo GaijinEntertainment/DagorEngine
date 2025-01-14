@@ -3,25 +3,44 @@
 
 #define DAGDP_PREFIX_SUM_GROUP_SIZE 256
 
+struct VolumeVariantGpuData
+{
+  float density;
+  float minTriangleArea2;
+  uint _padding[2];
+};
+
+#define VOLUME_TYPE_BOX 0
+#define VOLUME_TYPE_CYLINDER 1
+#define VOLUME_TYPE_ELLIPSOID 2
+#define VOLUME_TYPE_COUNT 3
+
+struct VolumeGpuData
+{
+  float4 itmRow0;
+  float4 itmRow1;
+  float4 itmRow2;
+
+  uint volumeType;
+  uint variantIndex;
+  uint _padding[2];
+};
+
 // Reference: gpu_objects_const.hlsli
 struct MeshIntersection
 {
-  float4 bboxItmRow0;
-  float4 bboxItmRow1;
-  float4 bboxItmRow2;
-
   int startIndex;
   int numFaces;
   int baseVertex;
   int stride;
 
-  float4 tmRow0;
-  float4 tmRow1;
-  float4 tmRow2;
+  float4 meshTmRow0;
+  float4 meshTmRow1;
+  float4 meshTmRow2;
 
   uint areasIndex;
   uint vbIndex;
-  uint variantIndex;
+  uint volumeIndex;
   uint uniqueId;
 };
 

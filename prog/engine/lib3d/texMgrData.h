@@ -1,12 +1,18 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <EASTL/fixed_vector.h>
 #include <3d/dag_texMgr.h>
 #include <3d/dag_texMgrTags.h>
 #include <drv/3d/dag_tex3d.h>
 #include <util/dag_simpleString.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <osApiWrappers/dag_atomic.h>
+#include <osApiWrappers/dag_miscApi.h>
+#include <osApiWrappers/dag_spinlock.h>
+#include <generic/dag_fixedMoveOnlyFunction.h>
+#include <util/dag_delayedAction.h>
+#include <memory/dag_framemem.h>
 #include <generic/dag_smallTab.h>
 #include <generic/dag_carray.h>
 #include <util/dag_fastStrMap.h>
@@ -399,6 +405,7 @@ public:
   // texture loads management
   static bool scheduleReading(int idx, TextureFactory *f);
   static TexLoadRes readDdsxTex(TEXTUREID tid, const ddsx::Header &hdr, IGenLoad &crd, int quality_id,
+    dag::FixedMoveOnlyFunction<sizeof(void *), void(int) const> completion_cb,
     on_tex_slice_loaded_cb_t on_tex_slice_loaded_cb = nullptr);
   static void finishReading(int idx);
   static void cancelReading(int idx);
@@ -465,6 +472,54 @@ public:
   static uint16_t getTexImportance(int idx) { return interlocked_relaxed_load(texImportance[idx]); }
 
   using D3dResManagerData::updateResReqLev;
+
+  void completeTextureUpdate(BaseTexture *target, BaseTexture *replacement, int minlevel, int maxlevel)
+  {
+    if (target != replacement)
+      target->replaceTexResObject(replacement);
+    target->texmiplevel(minlevel, maxlevel);
+  }
+
+  // NOTE: replacement CAN be equal to target, which means "simply update min/max mip levels"
+  void completeTextureUpdateAsync(unsigned target_idx, BaseTexture *target, BaseTexture *replacement, int minlevel, int maxlevel,
+    dag::FixedMoveOnlyFunction<sizeof(void *), void(int) const> completion_cb)
+  {
+    if (is_main_thread())
+    {
+      completeTextureUpdate(target, replacement, minlevel, maxlevel);
+      completion_cb(target_idx);
+      return;
+    }
+
+    // replaceTexResObject & texmiplevel cannot safely be done concurrently with main thread
+    // reading texture contents while rendering, so deferring to main thread is required.
+    // Also forcibly keep texture alive while it is referenced by the callback, just in case.
+    if (incRefCount(target_idx) == 1)
+      decReadyForDiscardTex(target_idx);
+
+    OSSpinlockScopedLock lock{textureReplacementOpsLock};
+    textureReplacementOps.push_back(
+      TextureReplacementOp{target_idx, target, replacement, minlevel, maxlevel, eastl::move(completion_cb)});
+  }
+
+  void performAsyncTextureReplacementCompletions()
+  {
+    dag::Vector<TextureReplacementOp, framemem_allocator> replacements;
+
+    {
+      OSSpinlockScopedLock lock{textureReplacementOpsLock};
+      eastl::move(textureReplacementOps.begin(), textureReplacementOps.end(), eastl::back_inserter(replacements));
+      textureReplacementOps.clear();
+    }
+
+    for (auto &[targetIdx, target, replacement, minlevel, maxlevel, cb] : replacements)
+    {
+      completeTextureUpdate(target, replacement, minlevel, maxlevel);
+      cb(targetIdx);
+      if (decRefCount(targetIdx) == 0)
+        incReadyForDiscardTex(targetIdx);
+    }
+  }
 
   // current GPU mem usage counters management
   void incReadyForDiscardTex(int idx)
@@ -630,6 +685,17 @@ protected:
   // entry allocation/deallocation overflow handlers
   int onEntryOverflow(int idx);
   void onFreeListOverflow(unsigned idx);
+
+  struct TextureReplacementOp
+  {
+    unsigned idx;
+    BaseTexture *target, *replacement;
+    int minlevel, maxlevel;
+    dag::FixedMoveOnlyFunction<sizeof(void *), void(int) const> completionCb;
+  };
+
+  OSSpinlock textureReplacementOpsLock;
+  eastl::fixed_vector<TextureReplacementOp, 8> textureReplacementOps DAG_TS_GUARDED_BY(textureReplacementOpsLock);
 
 public:
   static unsigned *__restrict tagMask;

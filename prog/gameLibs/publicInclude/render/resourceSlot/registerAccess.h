@@ -63,9 +63,8 @@ template <class F>
   const char *source_location, resource_slot::detail::ActionList &&action_list, F &&declaration_callback)
 {
   return resource_slot::detail::register_access(ns, name, eastl::move(action_list),
-    [ns, declCb = eastl::forward<F>(declaration_callback), name, source_location](resource_slot::State s) mutable {
-      return ns.registerNode(name, source_location,
-        [declCb2 = eastl::forward<F>(declCb), s](dabfg::Registry r) { return declCb2(eastl::move(s), r); });
+    [ns, declCb = eastl::forward<F>(declaration_callback), name, source_location](resource_slot::State s) {
+      return ns.registerNode(name, source_location, [&declCb, s](dabfg::Registry r) { return declCb(s, r); });
     });
 }
 

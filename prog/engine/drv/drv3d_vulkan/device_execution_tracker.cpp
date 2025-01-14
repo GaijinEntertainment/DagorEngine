@@ -10,6 +10,7 @@
 #include "backend.h"
 #include "execution_state.h"
 #include "execution_context.h"
+#include "wrapped_command_buffer.h"
 
 using namespace drv3d_vulkan;
 
@@ -64,7 +65,7 @@ void DeviceExecutionTracker::dumpFaultData(FaultReportDump &dump) const
   }
 }
 
-void DeviceExecutionTracker::addMarker(VulkanCommandBufferHandle cmd_buf, const void *data, size_t data_sz)
+void DeviceExecutionTracker::addMarker(const void *data, size_t data_sz)
 {
   if (Globals::cfg.bits.enableDeviceExecutionTracker == 0)
     return;
@@ -109,9 +110,9 @@ void DeviceExecutionTracker::addMarker(VulkanCommandBufferHandle cmd_buf, const 
 
   // FMB-COPY-FMB pattern, should force GPU to make this operation "isolated" from async stuff on timeline
   // which is what is required, otherwise it will not represent our serial-like
-  Globals::VK::dev.vkCmdPipelineBarrier(cmd_buf, syncStages, syncStages, 0, 1, &syncMem, 0, nullptr, 0, nullptr);
-  Globals::VK::dev.vkCmdCopyBuffer(cmd_buf, hostMarkers->getHandle(), deviceMarkers->getHandle(), 1, &markerCopy);
-  Globals::VK::dev.vkCmdPipelineBarrier(cmd_buf, syncStages, syncStages, 0, 1, &syncMem, 0, nullptr, 0, nullptr);
+  Backend::cb.wCmdPipelineBarrier(syncStages, syncStages, 0, 1, &syncMem, 0, nullptr, 0, nullptr);
+  Backend::cb.wCmdCopyBuffer(hostMarkers->getHandle(), deviceMarkers->getHandle(), 1, &markerCopy);
+  Backend::cb.wCmdPipelineBarrier(syncStages, syncStages, 0, 1, &syncMem, 0, nullptr, 0, nullptr);
 
   ++markerCount;
 }
@@ -134,4 +135,34 @@ void DeviceExecutionTracker::restart(size_t job_id)
     deviceMarkers->markNonCoherentRangeLoc(0, msz * maxMarkerCount, true);
     hostMarkers->markNonCoherentRangeLoc(0, msz * maxMarkerCount, true);
   }
+}
+
+void DeviceExecutionTracker::verify()
+{
+  if (Globals::cfg.bits.enableDeviceExecutionTracker == 0 || markerCount == 0)
+    return;
+
+  deviceMarkers->markNonCoherentRangeLoc(0, (markerCount - 1) * sizeof(Marker), false);
+
+  uint64_t firstFailedHash = 0;
+  uint64_t firstFailedCaller = 0;
+
+  for (int i = markerCount - 1; i > 0; --i)
+  {
+    Marker &dmarker = *(Marker *)deviceMarkers->ptrOffsetLoc(i * sizeof(Marker));
+    Marker &hmarker = *(Marker *)hostMarkers->ptrOffsetLoc(i * sizeof(Marker));
+    if (dmarker.hash != hmarker.hash)
+    {
+      firstFailedHash = hmarker.hash;
+#if DAGOR_DBGLEVEL > 0
+      firstFailedCaller = hmarker.caller;
+#endif
+    }
+    else
+      break;
+  }
+  if (firstFailedHash != 0)
+    D3D_ERROR(
+      "vulkan: GPU execution tracker verify failed. First hash %016llX (caller %016llX) not reached on GPU, frame hash %016llX",
+      firstFailedHash, firstFailedCaller, currentMarker.hash);
 }

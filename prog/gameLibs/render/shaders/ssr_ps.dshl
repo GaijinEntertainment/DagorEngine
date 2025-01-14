@@ -24,7 +24,7 @@ shader ssr
 
       // Early out
       BRANCH
-      if (linear_roughness < CALC_SSR_ROUGHNESS_THRESHOLD)
+      if (linear_roughness > CALC_SSR_ROUGHNESS_THRESHOLD)
         return 0;
 
       float rawDepth = texelFetch(src_depth_tex, pixelPos, 0).r;

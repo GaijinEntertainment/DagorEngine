@@ -470,8 +470,7 @@ DXGI_FORMAT dxgi_format_from_flags(uint32_t cflg)
     case TEXFMT_L16: return DXGI_FORMAT_R16_UNORM;
     case TEXFMT_A8: return DXGI_FORMAT_A8_UNORM;
     case TEXFMT_R8: return DXGI_FORMAT_R8_UNORM;
-    case TEXFMT_R8G8:
-    case TEXFMT_A8L8: return DXGI_FORMAT_R8G8_UNORM;
+    case TEXFMT_R8G8: return DXGI_FORMAT_R8G8_UNORM;
     case TEXFMT_R8G8S: return DXGI_FORMAT_R8G8_SNORM;
     case TEXFMT_A1R5G5B5: return DXGI_FORMAT_B5G5R5A1_UNORM;
     case TEXFMT_A4R4G4B4: return DXGI_FORMAT_B8G8R8A8_UNORM;
@@ -1150,6 +1149,8 @@ void clear_texture(BaseTex *tex)
     box.back = 1;
     ContextAutoLock contextLock;
     disable_conditional_render_unsafe();
+    VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
+      "DX11: clear_texture uses CopySubresourceRegion inside a generic render pass");
     if (tex->type == RES3D_CUBETEX || tex->cube_array)
       d *= 6;
     for (int level = 0; level < mip_levels; level++)
@@ -1866,13 +1867,14 @@ void drv3d_dx11::dump_resources(Tab<ResourceDumpInfo> &dump_info)
         case RES3D_CUBEARRTEX: type = resource_dump_types::TextureTypes::CUBEARRTEX; break;
       }
 
-      dump_info.emplace_back(resource_dump_types::ResourceType::Texture, tex->getResName(), tex->ressize(), type, tex->width,
-        tex->height,
+      dump_info.emplace_back(ResourceDumpTexture({(uint64_t)-1, (uint64_t)-1, (uint64_t)-1, tex->width, tex->height,
+        tex->level_count(),
         (type == resource_dump_types::TextureTypes::VOLTEX || type == resource_dump_types::TextureTypes::CUBEARRTEX) ? tex->depth : -1,
         !(type == resource_dump_types::TextureTypes::ARRTEX)
           ? ((type == resource_dump_types::TextureTypes::CUBETEX || type == resource_dump_types::TextureTypes::CUBEARRTEX) ? 6 : -1)
           : tex->depth,
-        tex->level_count(), tex->base_format, !is_depth_format_flg(tex->base_format), tex->cflg, -1);
+        tex->ressize(), tex->cflg, (uint32_t)tex->base_format, type, !is_depth_format_flg((uint32_t)tex->base_format),
+        tex->getResName(), ""}));
     }
   ITERATE_OVER_OBJECT_POOL_RESTORE(g_textures);
 

@@ -40,6 +40,7 @@
   VAR(skies_froxels_prev_dist, false)                    \
   VAR(skies_frustum_scattering_frame, false)             \
   VAR(skies_froxels_resolution, false)                   \
+  VAR(skies_froxels_dist, false)                         \
   VAR(skies_frustum_scattering_last_tz, true)            \
   VAR(skies_continue_temporal, false)                    \
   VAR(skies_min_max_horizon_mu, false)                   \
@@ -253,7 +254,8 @@ void use_prepared_skies(PreparedSkies *skies, PreparedSkies *panorama_skies)
   {
     TextureInfo info;
     skies->scatteringVolume[0]->getinfo(info, 0);
-    ShaderGlobal::set_color4(skies_froxels_resolutionVarId, info.w, info.h, info.d, skies->froxelsMaxDist);
+    ShaderGlobal::set_int4(skies_froxels_resolutionVarId, info.w, info.h, info.d, 0);
+    ShaderGlobal::set_real(skies_froxels_distVarId, skies->froxelsMaxDist);
   }
   ShaderGlobal::set_float4x4(skies_globtmVarId, skies->prevGlobTm);
   ShaderGlobal::set_color4(prepare_originVarId, P3D(skies->preparedScatteringOrigin), 0);
@@ -392,7 +394,8 @@ void DaScattering::prepareFrustumScattering(PreparedSkies &skies, PreparedSkies 
       // static const float froxels_dist_mul = info.d/(info.d-0.5);//so we have zfar at center of latest texel
       maxDist = max(skies.minRange, maxFarDist * info.d / (info.d - 0.5f) * skies.rangeScale);
     }
-    ShaderGlobal::set_color4(skies_froxels_resolutionVarId, info.w, info.h, info.d, maxDist);
+    ShaderGlobal::set_int4(skies_froxels_resolutionVarId, info.w, info.h, info.d, 0);
+    ShaderGlobal::set_real(skies_froxels_distVarId, maxDist);
     ShaderGlobal::set_real(skies_froxels_prev_distVarId, skies.froxelsMaxDist);
     skies.froxelsMaxDist = maxDist;
 

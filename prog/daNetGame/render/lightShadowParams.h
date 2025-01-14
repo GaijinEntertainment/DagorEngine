@@ -5,33 +5,58 @@
 
 class LightfxShadowParams;
 
-struct LightShadowParams
+union LightShadowParams
 {
-  uint32_t isEnabled : 1;
-  uint32_t isDynamic : 1;
-  uint32_t supportsDynamicObjects : 1;
-  uint32_t supportsGpuObjects : 1;
-  uint32_t quality : 10;
-  uint32_t shadowShrink : 10;
-  uint32_t priority : 8;
-
+  struct
+  {
+    uint32_t isEnabled : 1;
+    uint32_t isDynamic : 1;
+    uint32_t supportsDynamicObjects : 1;
+    uint32_t approximateStatic : 1;
+    uint32_t supportsGpuObjects : 1;
+    uint32_t quality : 10;
+    uint32_t shadowShrink : 8;
+    uint32_t priority : 8;
+  };
+  uint32_t u = 0;
+  enum class DynamicLight
+  {
+    Off = 0,
+    On = 1
+  };
+  enum class DynamicCasters
+  {
+    Off = 0,
+    On = 1
+  };
+  enum class GpuObjects
+  {
+    Off = 0,
+    On = 1
+  };
+  enum class ApproximateStatic
+  {
+    Off = 0,
+    On = 1
+  };
   LightShadowParams(bool is_enabled,
-    bool is_dynamic,
-    bool supports_dynamic_objects,
-    bool supports_gpu_objects,
-    unsigned int shadow_quality,
-    unsigned int shadow_shrink,
-    unsigned int light_priority) :
+    DynamicLight is_dynamic,
+    DynamicCasters supports_dynamic_objects,
+    GpuObjects supports_gpu_objects,
+    ApproximateStatic approx,
+    uint16_t shadow_quality,
+    uint8_t shadow_shrink,
+    uint8_t light_priority) :
     isEnabled(is_enabled),
-    isDynamic(is_dynamic),
-    supportsDynamicObjects(supports_dynamic_objects),
-    supportsGpuObjects(supports_gpu_objects),
+    isDynamic(bool(is_dynamic)),
+    supportsDynamicObjects(bool(supports_dynamic_objects)),
+    supportsGpuObjects(bool(supports_gpu_objects)),
+    approximateStatic(bool(approx)),
     quality(shadow_quality),
     shadowShrink(shadow_shrink),
     priority(light_priority)
   {}
-
-  LightShadowParams() : LightShadowParams(false, false, false, false, 0, 0, 0) {}
+  LightShadowParams() = default;
 
   LightShadowParams(const LightfxShadowParams &shadowParams);
 };

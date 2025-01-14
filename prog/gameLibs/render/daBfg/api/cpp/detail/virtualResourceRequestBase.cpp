@@ -72,11 +72,11 @@ void VirtualResourceRequestBase::buffer(const BufferCreateInfo &info)
   res.type = ResourceType::Buffer;
 }
 
-void VirtualResourceRequestBase::blob(BlobDescription &&desc)
+void VirtualResourceRequestBase::blob(const BlobDescription &desc)
 {
   auto &res = registry->resources.get(resUid.resId);
 
-  res.creationInfo = eastl::move(desc);
+  res.creationInfo = desc;
   res.type = ResourceType::Blob;
 
   markWithTag(desc.typeTag);

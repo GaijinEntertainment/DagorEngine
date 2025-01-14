@@ -6,13 +6,14 @@ static constexpr ecs::ComponentDesc gpu_object_placer_draw_debug_geometry_es_com
 {
 //start of 1 rw components at [0]
   {ECS_HASH("gpu_object_placer__surface_riex_handles"), ecs::ComponentTypeInfo<gpu_objects::riex_handles>()},
-//start of 5 ro components at [1]
+//start of 6 ro components at [1]
   {ECS_HASH("gpu_object_placer__min_gathered_triangle_size"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("gpu_object_placer__triangle_edge_length_ratio_cutoff"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("gpu_object_placer__object_up_vector_threshold"), ecs::ComponentTypeInfo<Point4>()},
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("gpu_object_placer__object_density"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("gpu_object_placer__show_geometry"), ecs::ComponentTypeInfo<bool>()},
-//start of 1 rq components at [6]
+//start of 1 rq components at [7]
   {ECS_HASH("box_zone"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static void gpu_object_placer_draw_debug_geometry_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
@@ -24,6 +25,7 @@ static void gpu_object_placer_draw_debug_geometry_es_all(const ecs::UpdateStageI
       continue;
     gpu_object_placer_draw_debug_geometry_es(*info.cast<ecs::UpdateStageInfoRenderDebug>()
     , ECS_RO_COMP(gpu_object_placer_draw_debug_geometry_es_comps, "gpu_object_placer__min_gathered_triangle_size", float)
+    , ECS_RO_COMP(gpu_object_placer_draw_debug_geometry_es_comps, "gpu_object_placer__triangle_edge_length_ratio_cutoff", float)
     , ECS_RO_COMP(gpu_object_placer_draw_debug_geometry_es_comps, "gpu_object_placer__object_up_vector_threshold", Point4)
     , ECS_RO_COMP(gpu_object_placer_draw_debug_geometry_es_comps, "transform", TMatrix)
     , ECS_RO_COMP(gpu_object_placer_draw_debug_geometry_es_comps, "gpu_object_placer__object_density", float)
@@ -38,8 +40,8 @@ static ecs::EntitySystemDesc gpu_object_placer_draw_debug_geometry_es_es_desc
   "prog/gameLibs/gpuObjects/volumePlacerES.cpp.inl",
   ecs::EntitySystemOps(gpu_object_placer_draw_debug_geometry_es_all),
   make_span(gpu_object_placer_draw_debug_geometry_es_comps+0, 1)/*rw*/,
-  make_span(gpu_object_placer_draw_debug_geometry_es_comps+1, 5)/*ro*/,
-  make_span(gpu_object_placer_draw_debug_geometry_es_comps+6, 1)/*rq*/,
+  make_span(gpu_object_placer_draw_debug_geometry_es_comps+1, 6)/*ro*/,
+  make_span(gpu_object_placer_draw_debug_geometry_es_comps+7, 1)/*rq*/,
   empty_span(),
   ecs::EventSetBuilder<>::build(),
   (1<<ecs::UpdateStageInfoRenderDebug::STAGE)
@@ -279,12 +281,13 @@ static constexpr ecs::ComponentDesc gpu_object_placer_fill_ecs_query_comps[] =
   {ECS_HASH("gpu_object_placer__on_terrain_geometry_count"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("gpu_object_placer__distance_emitter_is_dirty"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("gpu_object_placer__surface_riex_handles"), ecs::ComponentTypeInfo<gpu_objects::riex_handles>()},
-//start of 25 ro components at [10]
+//start of 26 ro components at [10]
   {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("gpu_object_placer__ri_asset_idx"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("gpu_object_placer__visible_distance_squared"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("gpu_object_placer__place_on_geometry"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("gpu_object_placer__min_gathered_triangle_size"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("gpu_object_placer__triangle_edge_length_ratio_cutoff"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("gpu_object_placer__object_density"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("gpu_object_placer__object_max_count"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("gpu_object_placer__object_scale_range"), ecs::ComponentTypeInfo<Point2>()},
@@ -305,15 +308,15 @@ static constexpr ecs::ComponentDesc gpu_object_placer_fill_ecs_query_comps[] =
   {ECS_HASH("gpu_object_placer__boxBorderX"), ecs::ComponentTypeInfo<Point2>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("gpu_object_placer__boxBorderY"), ecs::ComponentTypeInfo<Point2>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("gpu_object_placer__boxBorderZ"), ecs::ComponentTypeInfo<Point2>(), ecs::CDF_OPTIONAL},
-//start of 1 rq components at [35]
+//start of 1 rq components at [36]
   {ECS_HASH("box_zone"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static ecs::CompileTimeQueryDesc gpu_object_placer_fill_ecs_query_desc
 (
   "gpu_objects::gpu_object_placer_fill_ecs_query",
   make_span(gpu_object_placer_fill_ecs_query_comps+0, 10)/*rw*/,
-  make_span(gpu_object_placer_fill_ecs_query_comps+10, 25)/*ro*/,
-  make_span(gpu_object_placer_fill_ecs_query_comps+35, 1)/*rq*/,
+  make_span(gpu_object_placer_fill_ecs_query_comps+10, 26)/*ro*/,
+  make_span(gpu_object_placer_fill_ecs_query_comps+36, 1)/*rq*/,
   empty_span());
 template<typename Callable>
 inline void gpu_objects::gpu_object_placer_fill_ecs_query(Callable function)
@@ -329,6 +332,7 @@ inline void gpu_objects::gpu_object_placer_fill_ecs_query(Callable function)
             , ECS_RO_COMP(gpu_object_placer_fill_ecs_query_comps, "gpu_object_placer__visible_distance_squared", float)
             , ECS_RO_COMP(gpu_object_placer_fill_ecs_query_comps, "gpu_object_placer__place_on_geometry", bool)
             , ECS_RO_COMP(gpu_object_placer_fill_ecs_query_comps, "gpu_object_placer__min_gathered_triangle_size", float)
+            , ECS_RO_COMP(gpu_object_placer_fill_ecs_query_comps, "gpu_object_placer__triangle_edge_length_ratio_cutoff", float)
             , ECS_RW_COMP(gpu_object_placer_fill_ecs_query_comps, "gpu_object_placer__current_distance_squared", float)
             , ECS_RW_COMP(gpu_object_placer_fill_ecs_query_comps, "gpu_object_placer__filled", bool)
             , ECS_RW_COMP(gpu_object_placer_fill_ecs_query_comps, "gpu_object_placer__buffer_offset", int)

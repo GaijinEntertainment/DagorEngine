@@ -99,7 +99,7 @@ public:
   bool showAlpha;
 
   DemonPostFx(const DataBlock &main_blk, const DataBlock &adaptation_blk, int target_w, int target_h, unsigned rtarget_flags,
-    bool initPostfxGlow = true, bool initSunVolfog = true);
+    bool initPostfxGlow = true, bool initSunVolfog = true, bool initUIBlur = true);
   ~DemonPostFx();
 
   //! updates settings that don't require recreate, or return false to indicated need of recreate

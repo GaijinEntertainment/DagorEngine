@@ -59,11 +59,16 @@ ModfxDeclShapeStaticAlignedInit ModfxDeclShapeStaticAlignedInit_load( BufferData
 
 ModfxDeclExternalOmnilight ModfxDeclExternalOmnilight_load( BufferData_cref buf, uint ofs )
 {
+#ifdef __cplusplus
+  return *(ModfxDeclExternalOmnilight*)( buf + ofs );
+#else
   ModfxDeclExternalOmnilight pp;
   pp.pos = dafx_load_3f( buf, ofs );
-  pp.radius = dafx_load_1f( buf, ofs );
-  pp.color = dafx_load_3f( buf, ofs );
+  float4 col_and_rad = dafx_load_4f( buf, ofs );
+  pp.color = col_and_rad.xyz;
+  pp.radius = col_and_rad.w;
   return pp;
+#endif
 }
 
 ModfxDeclLighting ModfxDeclLighting_load( BufferData_cref buf, uint ofs )

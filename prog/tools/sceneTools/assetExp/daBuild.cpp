@@ -1597,7 +1597,7 @@ void dabuild_finish_out_blk(DataBlock &dest, DagorAssetMgr &mgr, const DataBlock
                 if (DagorAsset *a = mgr.findAsset(blk.getBlock(j)->getBlockName(), i))
                   blk.getBlock(j)->setInt("__pack", pack_fn.addNameId(a->getDestPackName()));
               for (int j = 0; j < pack_fn.nameCount(); j++)
-                blk.addStr("__pack", String::mk_str_cat(packFnamePrefix, pack_fn.getName(j)));
+                blk.addStr("__pack", String::mk_str_cat(packFnamePrefix, pack_fn.getName(j)).toLower());
             }
 
             if (blk.blockCount())

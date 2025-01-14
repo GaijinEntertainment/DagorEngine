@@ -2,13 +2,14 @@
 #pragma once
 
 // See https://gaijinentertainment.github.io/DagorEngine/dagor-tools/shader-compiler/contributing_to_compiler.html#versioning
-// this is basically version of _COMPILER_ itself (usually dll)
+// this is basically version of _COMPILER_ itself (usually dll),
+// increase it if hlsl may produce a bytecode different from the previous version
 #if _CROSS_TARGET_C1
 
 #elif _CROSS_TARGET_C2
 
 #elif _CROSS_TARGET_METAL
-static const uint32_t sha1_cache_version = 27;
+static const uint32_t sha1_cache_version = 28;
 #elif _CROSS_TARGET_SPIRV
 static const uint32_t sha1_cache_version = 31;
 #elif _CROSS_TARGET_EMPTY

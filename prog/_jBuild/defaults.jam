@@ -91,6 +91,7 @@ if ! $(__DEFAULTS_INCLUDED) {
   ZstdVer       ?= 1.4.5 ;
   DbgDigest     ?= once ;  # once, min, max, stop
   AgilitySdkVer ?= 1.614.1 ;
+  AgsSdkVer     ?= 6.2.0 ;
   DefFreeTypeVer = 2.8 ;
   FreeTypeVer   ?= $(DefFreeTypeVer) ;
 
@@ -253,7 +254,7 @@ if ! $(__DEFAULTS_INCLUDED) {
   }
 
   # returns filepath suffix only if it is know executable extension
-  rule GetKnownExecutableSuffix fpath { if $(fpath:S) in .exe .dll .so .dylib .apk .self .prx .dlu { return $(fpath:S) ; } }
+  rule GetKnownExecutableSuffix fpath { if $(fpath:S) in .exe .dll .so .dylib .apk .self .prx .dlu .nrs { return $(fpath:S) ; } }
 
   # mangle target name (based on Config and Platform);
   #   params: ( target )
@@ -308,6 +309,7 @@ if ! $(__DEFAULTS_INCLUDED) {
         if $(1:D) { return $(1:D)/lib$(1:D=:S=.dylib) ; } else { return lib$(1:D=:S=.dylib) ; }
       }
       if $(Platform) in linux { if $(1:D) { return $(1:D)/lib$(1:D=:S=.so) ; } else { return lib$(1:D=:S=.so) ; } }
+      if $(Platform) in nswitch { return $(1).nrs ; }
     }
     return $(1) ;
   }

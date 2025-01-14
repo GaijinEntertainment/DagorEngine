@@ -2939,8 +2939,8 @@ SIM_NODE_AT_VECTOR(Float, float)
         virtual SimNode * visit ( SimVisitor & vis ) override;
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
+            char * pr = r->evalPtr(context);                // right, then left
             char  ** pl = (char **) l->evalPtr(context);
-            char * pr = r->evalPtr(context);
             *pl = pr;
             return v_zero();
         }
@@ -2955,8 +2955,9 @@ SIM_NODE_AT_VECTOR(Float, float)
         virtual SimNode * visit ( SimVisitor & vis ) override;
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
+            auto R = EvalTT<TT>::eval(context, r);  // right, then left
             TT * pl = (TT *) l->evalPtr(context);
-            *pl = EvalTT<TT>::eval(context, r);
+            *pl = R;
             return v_zero();
         }
         SimNode * l, * r;
@@ -2979,8 +2980,8 @@ SIM_NODE_AT_VECTOR(Float, float)
         virtual SimNode * visit ( SimVisitor & vis ) override;
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
+            TT * pr = (TT *) r->evalPtr(context);   // right, then left
             TT * pl = (TT *) l->evalPtr(context);
-            TT * pr = (TT *) r->evalPtr(context);
             *pl = *pr;
             return v_zero();
         }

@@ -33,7 +33,7 @@ class BreakpointsHookAgent : DapiDebugAgent
 
   def override onBreakpointsReset(file : string; breakpointsNum : int) : void
     if file |> ends_with(".das")
-      queue[clone_string(file)] = breakpointsNum > 0
+      queue.insert(clone_string(file), breakpointsNum > 0)
 
   def override onTick()
     for file, addDebugger in keys(queue), values(queue)

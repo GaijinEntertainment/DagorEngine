@@ -2,6 +2,7 @@
 
 #include <assets/assetUtils.h>
 #include <assets/asset.h>
+#include <assets/assetFolder.h>
 #include <osApiWrappers/dag_shellExecute.h>
 #include <osApiWrappers/dag_unicode.h>
 #include <osApiWrappers/dag_direct.h>
@@ -19,6 +20,15 @@ void dag_reveal_in_explorer(const DagorAsset *asset)
 
   String fpath(asset->isVirtual() ? asset->getTargetFilePath() : asset->getSrcFilePath());
   dag_reveal_in_explorer(fpath);
+}
+
+void dag_reveal_in_explorer(const DagorAssetFolder *folder)
+{
+  if (!folder)
+    return;
+
+  String path(folder->folderPath);
+  os_shell_execute("open", path, nullptr, nullptr);
 }
 
 void dag_reveal_in_explorer(String file_path)

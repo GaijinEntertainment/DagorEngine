@@ -19,6 +19,7 @@
 #include "backend.h"
 #include "execution_context.h"
 #include "device_context.h"
+#include "wrapped_command_buffer.h"
 
 using namespace drv3d_vulkan;
 
@@ -218,8 +219,8 @@ void BindlessManagerBackend::init(const VulkanDevice &device, BindlessSetLimits 
   for (int i = 0; i < spirv::bindless::MAX_SETS; ++i)
   {
     uint32_t setCount = bindlessSetConfigs[i].buffered ? BUFFERED_SET_COUNT : 1;
-    bindlessPoolSizes[i] = VkDescriptorPoolSize{bindlessSetConfigs[i].type, limits[i].req * setCount};
-    setLimits[i] = limits[i].req;
+    bindlessPoolSizes[i] = VkDescriptorPoolSize{bindlessSetConfigs[i].type, limits[i].slots * setCount};
+    setLimits[i] = limits[i].slots;
     maxSets += setCount;
   }
 
@@ -232,7 +233,7 @@ void BindlessManagerBackend::init(const VulkanDevice &device, BindlessSetLimits 
 
   for (int i = 0; i < spirv::bindless::MAX_SETS; ++i)
   {
-    createBindlessLayout(device, bindlessSetConfigs[i].type, limits[i].req, layouts[i]);
+    createBindlessLayout(device, bindlessSetConfigs[i].type, limits[i].slots, layouts[i]);
     for (uint32_t j = 0; j < BUFFERED_SET_COUNT; j++)
     {
       if (!bindlessSetConfigs[i].buffered && j > 0)
@@ -240,7 +241,7 @@ void BindlessManagerBackend::init(const VulkanDevice &device, BindlessSetLimits 
         bufferedSets[j][i].set = bufferedSets[0][i].set;
         continue;
       }
-      allocateBindlessSet(device, limits[i].req, layouts[i], bufferedSets[j][i].set);
+      allocateBindlessSet(device, limits[i].slots, layouts[i], bufferedSets[j][i].set);
     }
   }
 
@@ -469,8 +470,7 @@ void BindlessManagerBackend::copyBindlessDescriptors(uint32_t resource_type, uin
   markDirtyRange(setIdx, dst, count);
 }
 
-void BindlessManagerBackend::bindSets(ExecutionContext &target, VkPipelineBindPoint bindPoint,
-  VulkanPipelineLayoutHandle pipelineLayout)
+void BindlessManagerBackend::bindSets(VkPipelineBindPoint bindPoint, VulkanPipelineLayoutHandle pipelineLayout)
 {
   if (!enabled)
     return;
@@ -479,7 +479,7 @@ void BindlessManagerBackend::bindSets(ExecutionContext &target, VkPipelineBindPo
   for (int i = 0; i < spirv::bindless::MAX_SETS; ++i)
     sets[i] = bufferedSets[actualSetId][i].set;
 
-  target.vkDev.vkCmdBindDescriptorSets(target.frameCore, bindPoint, pipelineLayout, spirv::bindless::FIRST_DESCRIPTOR_SET_ACTUAL_INDEX,
+  Backend::cb.wCmdBindDescriptorSets(bindPoint, pipelineLayout, spirv::bindless::FIRST_DESCRIPTOR_SET_ACTUAL_INDEX,
     spirv::bindless::MAX_SETS, ary(sets), 0, nullptr);
 }
 

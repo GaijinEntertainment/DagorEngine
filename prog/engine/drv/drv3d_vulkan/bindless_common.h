@@ -12,9 +12,12 @@ namespace drv3d_vulkan
 
 struct BindlessSetLimit
 {
-  uint32_t req;
+  uint32_t maxReq;
+  uint32_t minReq;
+  uint32_t slots;
   uint32_t max;
-  const char *configPath;
+  const char *configPathMin;
+  const char *configPathMax;
   const char *limitName;
   bool fits;
 };

@@ -4,6 +4,7 @@ HaveRenderer ?= yes ;
 Module = package_physobj ;
 Root    ?= ../../.. ;
 Location = prog/daNetGameLibs/$(Module) ;
+local DasModule = daNetGameLibs_package_physobj_DAS_pull_AOT ;
 
 AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
@@ -20,12 +21,16 @@ UseProgLibs =
 
 local AllSrcFolder_CPP = . dasModules ;
 local AllSrcFolder_ES = . ;
+local AllSrcFolder_DAS = ;
 
 AddPullVars += turretControl ;
 
 if $(HaveRenderer) = yes {
   AllSrcFolder_CPP += render ;
   AllSrcFolder_ES += render ;
+}
+if $(HaveSound) = yes {
+  AllSrcFolder_DAS += sound ;
 }
 
 include $(Root)/prog/daNetGameLibs/build_module.jam ;

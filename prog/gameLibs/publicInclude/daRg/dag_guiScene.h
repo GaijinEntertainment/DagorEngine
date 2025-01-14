@@ -158,6 +158,7 @@ public:
   virtual void setVrStickScroll(int hand, const Point2 &scroll) = 0;
 
   virtual void queueScriptHandler(BaseScriptHandler *h) = 0;
+  virtual void callScriptHandlers(bool is_shutdown = false) = 0;
 
   virtual void setKbFocus(Element *elem) = 0;
 

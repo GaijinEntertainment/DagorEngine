@@ -8,11 +8,11 @@
 
 
 #elif _TARGET_XBOX
-namespace xbox
+namespace gdk
 {
 extern bool is_broadcasting();
 }
-#define IS_STREAMING() xbox::is_broadcasting()
+#define IS_STREAMING() gdk::is_broadcasting()
 #else
 #define IS_STREAMING() (false)
 #endif

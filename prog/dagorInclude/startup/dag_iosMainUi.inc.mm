@@ -972,10 +972,11 @@ static void dagor_ios_before_main_init(int argc, char *argv[])
   dgs_report_fatal_error = messagebox_report_fatal_error;
   apply_hinstance(NULL, NULL);
 
+  set_debug_console_handle((intptr_t)stdout);
 #if DAGOR_DBGLEVEL != 0
-  out_debug_str_fmt("BUILD TIMESTAMP:   %s %s\n\n", dagor_exe_build_date, dagor_exe_build_time);
+  debug("BUILD TIMESTAMP:   %s %s\n\n", dagor_exe_build_date, dagor_exe_build_time);
 #endif
-  out_debug_str_fmt("app: <%s>", ios_global_log_fname);
+  debug("app: <%s>", ios_global_log_fname);
 
   DagorHwException::setHandler("main");
 }

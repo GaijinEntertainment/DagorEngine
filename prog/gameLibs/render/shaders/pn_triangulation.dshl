@@ -63,6 +63,8 @@ hlsl {
   #ifndef GET_DRAW_CALL_ID_TRIANGULATION
     #define GET_DRAW_CALL_ID_TRIANGULATION(src) GET_DRAW_CALL_ID
   #endif
+
+  #define get_absolute_control_point_position(controlPoints, tid) ((tid == 0 ? 0 : controlPoints[tid].pos1) + controlPoints[0].pos1)
 }
 endmacro
 
@@ -81,18 +83,20 @@ macro INIT_AND_USE_EDGE_LENGTH_BASED_TESS_FACTORS(max_tessellation_factor, tesse
         return max_tessellation_factor / length(world_view_pos - (pos1 + pos2) * 0.5);
       }
 
-      float calc_tess_factor(inout HsPatchData patch, OutputPatch<HsControlPoint, 3> controlPoints, uint tid)
+      float calc_tess_factor(const HsPatchData patch, const OutputPatch<HsControlPoint, 3> controlPoints, uint tid)
       {
         int next = (1U << tid) & 3; // (tid + 1) % 3
         next = (1U << next) & 3;
-
-        return max(1, min(edgeLod(controlPoints[tid].pos1, controlPoints[next].pos1),max_tessellation_factor));
+        return max(1, min(edgeLod(
+          get_absolute_control_point_position(controlPoints, tid),
+          get_absolute_control_point_position(controlPoints, next)),
+          max_tessellation_factor));
       }
     #endif
   }
 endmacro
 
-macro USE_PN_TRIANGULATION(world_pos_offset_param, min_tessellation_distance, max_tessellation_distance, tessellation_transition_distance)
+macro USE_PN_TRIANGULATION(world_pos_offset_param, min_tessellation_distance, max_tessellation_distance, tessellation_transition_distance, is_current_pass_shadow, use_tessellation_for_shadows)
 hlsl(hs) {
   //patch constant data
   HsPatchData HullShaderPatchConstant(OutputPatch<HsControlPoint, 3> controlPoints)
@@ -108,10 +112,21 @@ hlsl(hs) {
       (controlPoints[2].pos2 + controlPoints[2].pos3) * 0.5 - controlPoints[2].pos1;
     patch.center = center;
 
+    ##if is_current_pass_shadow
+      if (!(use_tessellation_for_shadows))
+      {
+        patch.edges[0] = 1.0;
+        patch.edges[1] = 1.0;
+        patch.edges[2] = 1.0;
+        patch.inside = 0.0;
+        return patch;
+      }
+    ##endif
+
     #if !defined(USING_OLD_TESSELLATION_FACTORS) && defined(USING_EDGE_LENGTH_TESS_FACTOR)
-      float3 pos1 = controlPoints[0].pos1;
-      float3 pos2 = controlPoints[1].pos1 + pos1;
-      float3 pos3 = controlPoints[2].pos1 + pos1;
+      float3 pos1 = get_absolute_control_point_position(controlPoints, 0);
+      float3 pos2 = get_absolute_control_point_position(controlPoints, 1);
+      float3 pos3 = get_absolute_control_point_position(controlPoints, 2);
       float3 distances = max(sqrt(float3(
         lengthSq((pos1 + pos3) * 0.5 - world_view_pos),
         lengthSq((pos2 + pos1) * 0.5 - world_view_pos),
@@ -240,7 +255,7 @@ hlsl(ds) {
 compile("ds_5_0", "pn_triangulation_ds");
 endmacro
 
-macro USE_PN_TRIANGULATION_WITH_EDGE_LENGTH_BASED_TESS_FACTORS(world_pos_offset_param, max_tessellation_factor, tessellation_max_edge_length, min_tessellation_distance, max_tessellation_distance, tessellation_transition_distance)
+macro USE_PN_TRIANGULATION_WITH_EDGE_LENGTH_BASED_TESS_FACTORS(world_pos_offset_param, max_tessellation_factor, tessellation_max_edge_length, min_tessellation_distance, max_tessellation_distance, tessellation_transition_distance, is_current_pass_shadow, use_tessellation_for_shadows)
   INIT_AND_USE_EDGE_LENGTH_BASED_TESS_FACTORS(max_tessellation_factor, tessellation_max_edge_length)
-  USE_PN_TRIANGULATION(world_pos_offset_param, min_tessellation_distance, max_tessellation_distance, tessellation_transition_distance)
+  USE_PN_TRIANGULATION(world_pos_offset_param, min_tessellation_distance, max_tessellation_distance, tessellation_transition_distance, is_current_pass_shadow, use_tessellation_for_shadows)
 endmacro

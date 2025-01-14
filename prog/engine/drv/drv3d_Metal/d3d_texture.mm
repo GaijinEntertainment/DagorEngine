@@ -168,6 +168,8 @@ ArrayTexture *d3d::create_array_tex(int w, int h, int d, int flg, int levels, co
 
 static bool set_tex(unsigned shader_stage, unsigned slot, BaseTexture *tex, bool use_sampler, uint32_t face, uint32_t mip_level, bool is_rw, bool as_uint)
 {
+  G_ASSERT(face == 0 && "setting face is not supported by metal yet");
+
   int slot_offset = 0;
 
   if (is_rw)

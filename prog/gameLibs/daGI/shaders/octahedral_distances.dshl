@@ -11,6 +11,7 @@ float4 ambient_voxels_move_ofs;
 
 int dead_probes_no = 8;
 int octahedral_distances_no = 7;
+int dagi_accelerationStructure_const_no = 23;
 
 shader octahedral_distances_cs
 {
@@ -27,13 +28,14 @@ shader octahedral_distances_cs
     octahedral_distances@uav : register(octahedral_distances_no) hlsl {
       RWTexture2DArray<float>  octahedral_distances@uav;
     }
+    accelerationStructure@tlas : register(dagi_accelerationStructure_const_no) hlsl {
+      RaytracingAccelerationStructure accelerationStructure@tlas;
+    };
   }
   hlsl(cs) {
     #include "octahedral_tile_side_length.hlsli"
     #include "octahedral.hlsl"
     #include "dagi_volmap_cb.hlsli"
-
-    RaytracingAccelerationStructure accelerationStructure : register(t23);
 
     groupshared int i = 0, j = 0, k = 0;
     [numthreads(OCTAHEDRAL_TILE_SIDE_LENGTH, OCTAHEDRAL_TILE_SIDE_LENGTH, 1)]

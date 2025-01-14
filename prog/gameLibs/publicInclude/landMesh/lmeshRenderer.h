@@ -125,7 +125,8 @@ public:
 public:
   PhysMap *physMap = nullptr;
   LandMeshRenderer(LandMeshManager &provider, dag::ConstSpan<LandClassDetailTextures> land_classes, TEXTUREID vert_tex_id,
-    TEXTUREID vert_tex_nm_id, TEXTUREID vert_det_tex_id, TEXTUREID tile_tex, real tile_x, real tile_y);
+    d3d::SamplerHandle vert_tex_smp, TEXTUREID vert_tex_nm_id, d3d::SamplerHandle vert_nm_tex_smp, TEXTUREID vert_det_tex_id,
+    d3d::SamplerHandle vert_det_tex_smp, TEXTUREID tile_tex, d3d::SamplerHandle tile_smp, real tile_x, real tile_y);
   ~LandMeshRenderer();
 
   bool checkVerLabel() { return verLabel == VER_LABEL; }
@@ -196,6 +197,7 @@ public:
   void setMicrodetailScaleIfTrivial(float val) { detailedLCMicroDetail = val; }
   void evictSplattingData();
   TEXTUREID getDetailTileTex() { return tileTexId; }
+  d3d::SamplerHandle getDetailTileSmp() const { return tileTexSmp; }
   bool reloadGrassMaskTex(int land_class_id, TEXTUREID newGrassMaskTexId);
   const char *getTextureName(TEXTUREID tex_id);
 
@@ -218,6 +220,7 @@ protected:
 
   int verLabel;
   TEXTUREID tileTexId;
+  d3d::SamplerHandle tileTexSmp;
   real tileXSize, tileYSize;
   IPoint2 centerCell;
   Point2 centerCellFract;       // centerPos-centerCellFract*cellSize
@@ -299,7 +302,6 @@ protected:
   float mirrorShrinkZNeg;
   CellRegionCallback *regionCallback;
   bool has_detailed_land_classes;
-  Point2 tileScale;
   float detailedLCMicroDetail;   // scale microdetail IF land clasess are detailed, but landquality 0
   float undetailedLCMicroDetail; // scale microdetail otherwise (for compatibility tank mode we'd better have more tiled)
   Point4 worldMulPos[9][2];      // worldMulPos for all mirroring

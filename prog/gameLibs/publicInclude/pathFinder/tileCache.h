@@ -58,6 +58,7 @@ struct TileCacheMeshProcess : public dtTileCacheMeshProcess
 
   void process(struct dtNavMeshCreateParams *params, unsigned char *polyAreas, unsigned short *polyFlags,
     dtCompressedTileRef ref) override;
+  void remove(int tx, int ty, int tlayer) override;
 
 private:
   dtNavMesh *mesh = nullptr;

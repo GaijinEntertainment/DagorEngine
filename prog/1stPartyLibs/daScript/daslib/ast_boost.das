@@ -202,7 +202,7 @@ def private apply_tag_annotation(tag:string; var ann:FunctionAnnotationPtr)
             var inscope tagAnn := ann
             add_function_annotation(func, tagAnn)
 
-def setup_tag_annotation(name,tag:string; classPtr)
+def setup_tag_annotation(name,tag:string; var classPtr)
     var inscope ann <- make_function_annotation(name, classPtr)
     apply_tag_annotation(tag, ann)
     this_module() |> add_function_annotation(ann)

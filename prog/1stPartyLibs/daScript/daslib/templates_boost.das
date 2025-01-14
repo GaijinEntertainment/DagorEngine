@@ -28,15 +28,15 @@ struct Template
 def kaboomVarField ( var self:Template; name,prefix,suffix:string )
     //! Adds a rule to to the template to replace a variable field access with a prefix and suffix.
     //! I.e. foo.bar into prefix + bar + suffix
-    self.kaboomVar[name] = [[auto prefix,suffix]]
+    self.kaboomVar |> emplace(name, [[auto prefix,suffix]])
 
 def replaceVariable ( var self:Template; name:string; var expr : smart_ptr<ast::Expression> )
     //! Adds a rule to the template to replace a variable with an expression.
-    move(self.var2expr[name], expr)
+    self.var2expr |> emplace(name, expr)
 
 def replaceVarTag ( var self:Template; name:string; var expr : smart_ptr<ast::Expression> )
     //! Adds a rule to the template to replace a variable tag with an expression.
-    move(self.tag2expr[name], expr)
+    self.tag2expr |> emplace(name, expr)
 
 def replaceArgumentWithList ( var self:Template; name:string; blka:array<VariablePtr> )
     //! Adds a rule to the template to replace a block argument with a list of variables.
@@ -55,43 +55,43 @@ def replaceVariableWithList ( var self:Template; name:string; expr : dasvector`s
 
 def renameVariable ( var self:Template; name, newName:string )
     //! Adds a rule to the template to rename a variable.
-    self.var2name[name] = newName
+    self.var2name |> insert(name, newName)
 
 def renameVariable ( var self:Template; name:string; newName:das_string )
     //! Adds a rule to the template to rename a variable.
-    self.var2name[name] = string(newName)
+    self.var2name |> insert(name, string(newName))
 
 def renameField ( var self:Template; name, newName:string )
     //! Adds a rule to the template to rename any field lookup (., ?., as, is, etc)
-    self.field2name[name] = newName
+    self.field2name |> insert(name, newName)
 
 def renameField ( var self:Template; name:string; newName:das_string )
     //! Adds a rule to the template to rename any field lookup (., ?., as, is, etc)
-    self.field2name[name] = string(newName)
+    self.field2name |> insert(name, string(newName))
 
 def replaceType ( var self:Template; name,newName:string )
     //! Adds a rule to the template to replace a type alias with another type alias, specified by name.
-    self.type2type[name] = newName
+    self.type2type |> insert(name, newName)
 
 def replaceTypeWithTypeDecl ( var self:Template; name:string; var expr : TypeDeclPtr )
     //! Adds a rule to the template to replace a type alias with another type alias, specified by type declaration.
-    move(self.type2etype[name], expr)
+    self.type2etype |> emplace(name, expr)
 
 def replaceAnnotationArgument ( var self:Template; name:string; var cb:lambda<(var ann: AnnotationDeclaration):void> )
     //! Adds a rule to the template to replace an annotation argument with the result of a callback.
-    self.annArg[name] <- cb
+    self.annArg |> emplace(name, cb)
 
 def replaceBlockArgument ( var self:Template; name,newName:string )
     //! Adds a rule to the template to rename a block argument.
-    self.blockArgName[name] = newName
+    self.blockArgName |> insert(name, newName)
 
 def renameCall ( var self:Template; name, newName:string )
     //! Adds a rule to the template to rename a call.
-    self.call2name[name] = newName
+    self.call2name |> insert(name, newName)
 
 def renameCall ( var self:Template; name:string; newName:das_string )
     //! Adds a rule to the template to rename a call.
-    self.call2name[name] = string(newName)
+    self.call2name |> insert(name, string(newName))
 
 class private TemplateVisitor : AstVisitor
     [[do_not_delete]] rules : Template?
@@ -102,38 +102,38 @@ class private TemplateVisitor : AstVisitor
             if expr.subexpr is ExprVar
                 let tn = string((expr.subexpr as ExprVar).name)
                 if key_exists(rules.tag2expr, tn)
-                    var inscope rexpr <- clone_expression(rules.tag2expr[tn])
+                    var inscope rexpr <- clone_expression(unsafe(rules.tag2expr[tn]))
                     rexpr.at = expr.at
                     return <- rexpr
         return <- expr
     def override preVisitExprMakeStructField(expr:smart_ptr<ExprMakeStruct>;index:int;var decl:MakeFieldDeclPtr;last:bool) : void
         let fname = string(decl.name)
         if rules.field2name |> key_exists(fname)
-            decl.name := rules.field2name[fname]
+            decl.name := rules.field2name |> get_value(fname)
     def override visitExprIsVariant(var expr:smart_ptr<ExprIsVariant>) : ExpressionPtr
         let fname = string(expr.name)
         if rules.field2name |> key_exists(fname)
-            expr.name := rules.field2name[fname]
+            expr.name := rules.field2name |> get_value(fname)
         return <- expr
     def override visitExprAsVariant(var expr:smart_ptr<ExprAsVariant>) : ExpressionPtr
         let fname = string(expr.name)
         if rules.field2name |> key_exists(fname)
-            expr.name := rules.field2name[fname]
+            expr.name := rules.field2name |> get_value(fname)
         return <- expr
     def override visitExprSafeAsVariant(var expr:smart_ptr<ExprSafeAsVariant>) : ExpressionPtr
         let fname = string(expr.name)
         if rules.field2name |> key_exists(fname)
-            expr.name := rules.field2name[fname]
+            expr.name := rules.field2name |> get_value(fname)
         return <- expr
     def override visitExprSafeField(var expr:smart_ptr<ExprSafeField>) : ExpressionPtr
         let fname = string(expr.name)
         if rules.field2name |> key_exists(fname)
-            expr.name := rules.field2name[fname]
+            expr.name := rules.field2name |> get_value(fname)
         return <- expr
     def override visitExprField(var expr:smart_ptr<ExprField>) : ExpressionPtr
         let fname = string(expr.name)
         if rules.field2name |> key_exists(fname)
-            expr.name := rules.field2name[fname]
+            expr.name := rules.field2name |> get_value(fname)
         var ev = expr.value ?as ExprVar
         if ev == null
             ev = (expr.value ?as ExprRef2Value) ?as ExprVar
@@ -146,20 +146,20 @@ class private TemplateVisitor : AstVisitor
     def override visitExprAddr( var expr:smart_ptr<ExprAddr> ) : ExpressionPtr
         let vn = string(expr.target)
         if key_exists(rules.var2name,vn)
-            expr.target := rules.var2name[vn]
+            expr.target := rules.var2name |> get_value(vn)
         return <- expr
     def override visitExprLet( var expr:smart_ptr<ExprLet> ) : ExpressionPtr
         for v in expr.variables
             let vn = string(v.name)
             if key_exists(rules.var2name,vn)
-                v.name := rules.var2name[vn]
+                v.name := rules.var2name |> get_value(vn)
         return <- expr
     def override visitExprVar(var expr:smart_ptr<ExprVar>) : ExpressionPtr
         let vn = string(expr.name)
         if key_exists(rules.var2name,vn)
-            expr.name := rules.var2name[vn]
+            expr.name := rules.var2name |> get_value(vn)
         if key_exists(rules.var2expr,vn)
-            var inscope rexpr <- clone_expression(rules.var2expr[vn])
+            var inscope rexpr <- clone_expression(unsafe(rules.var2expr[vn]))
             rexpr.at = expr.at
             return <- rexpr
         return <- expr
@@ -167,9 +167,9 @@ class private TemplateVisitor : AstVisitor
         if typ.baseType==Type alias
             let ta = string(typ.alias)
             if key_exists(rules.type2etype, ta)
-                move_new(typ) <| clone_type(rules.type2etype[ta])
+                move_new(typ) <| clone_type(unsafe(rules.type2etype[ta]))
             elif key_exists(rules.type2type, ta)
-                typ.alias := rules.type2type[ta]
+                typ.alias := rules.type2type |> get_value(ta)
         if typ.firstType != null
             self->replaceAlias(typ.firstType)
         if typ.secondType != null
@@ -184,14 +184,14 @@ class private TemplateVisitor : AstVisitor
         for it in expr.iterators
             let itn = string(it)
             if key_exists(rules.var2name,itn)
-                it := rules.var2name[itn]
+                it := rules.var2name |> get_value(itn)
     def override preVisitExprBlock(var blk:smart_ptr<ExprBlock>)
         if !blk.blockFlags.isClosure
             return
         for arg in blk.arguments
             let vn = "{arg.name}"
             if key_exists(rules.blockArgName, vn)
-                arg.name := rules.blockArgName[vn]
+                arg.name := rules.blockArgName |> get_value(vn)
         for ann in blk.annotations
             rules.annArg |> get("{ann.annotation.name}") <| $(cb)
                 cb |> invoke(*ann)
@@ -214,7 +214,7 @@ class private TemplateVisitor : AstVisitor
                 for na in new_args
                     blk.arguments |> emplace(na, rai)
             elif key_exists(rules.var2name, vname)
-                arg.name := rules.var2name[vname]
+                arg.name := rules.var2name |> get_value(vname)
     def preVisitAnythingCall(var arguments:dasvector`smart_ptr`Expression) : void
         if length(rules.var2exprList)==0
             return
@@ -237,17 +237,17 @@ class private TemplateVisitor : AstVisitor
     def override preVisitExprLooksLikeCall(var expr:smart_ptr<ExprLooksLikeCall>): void
         let cname = string(expr.name)
         if rules.call2name |> key_exists(cname)
-            expr.name := rules.call2name[cname]
+            expr.name := rules.call2name |> get_value(cname)
         preVisitAnythingCall(expr.arguments)
     def override preVisitExprCall(var expr:smart_ptr<ExprCall>): void
         let cname = string(expr.name)
         if rules.call2name |> key_exists(cname)
-            expr.name := rules.call2name[cname]
+            expr.name := rules.call2name |> get_value(cname)
         preVisitAnythingCall(expr.arguments)
     def override preVisitExprAddr(var expr:smart_ptr<ExprAddr>): void
         let cname = string(expr.target)
         if rules.call2name |> key_exists(cname)
-            expr.target := rules.call2name[cname]
+            expr.target := rules.call2name |> get_value(cname)
     def override preVisitExprMakeArray(var expr:smart_ptr<ExprMakeArray>): void
         preVisitAnythingCall(expr.values)
 

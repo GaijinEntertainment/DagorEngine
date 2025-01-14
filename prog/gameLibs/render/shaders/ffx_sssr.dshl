@@ -1,0 +1,53 @@
+
+int ffxMinTraversalOccupancy = 4;
+
+macro FFX_RAYMARCH_INIT(code)
+  (code) {
+    ffxMinTraversalOccupancy@i1 = ffxMinTraversalOccupancy;
+  }
+endmacro
+
+macro FFX_RAYMARCH_USE(code)
+  hlsl (code) {
+    #define FFX_GPU
+    #if WAVE_INTRINSICS
+      #define FFX_WAVE
+    #endif
+    #define FFX_HLSL
+    #define FFX_HLSL_SM 61
+    #define FFX_SSSR_OPTION_INVERTED_DEPTH 1
+    #include "../../../3rdPartyLibs/ffx/ffx_common_types.h"
+    #include "../../../3rdPartyLibs/ffx/ffx_core_hlsl.h"
+
+    FfxFloat32 FFX_SSSR_LoadDepth(FfxInt32x2 pixel_coordinate, FfxInt32 mip) {
+      return texelFetch(downsampled_close_depth_tex, pixel_coordinate, mip).r;
+    }
+
+    FfxBoolean IsMirrorReflection(FfxFloat32 roughness) {
+      return roughness < 0.0001;
+    }
+
+    bool FFX_BiasedComparisonOfRawDepth(float position_z, float surface_z)
+    {
+      #if HAS_linear_biased_comparison_of_rawdepth
+        return linear_biased_comparison_of_rawdepth(position_z, surface_z);
+      #endif
+      //return (linearize_z(position_z, zn_zfar.zw) > linearize_z(surface_z, zn_zfar.zw) * 1.01);
+      //this is still faster by two rcp then direct code
+      return (zn_zfar.z + zn_zfar.w * surface_z) > 1.01*(zn_zfar.z + zn_zfar.w * position_z);
+    }
+
+    #include "../../../3rdPartyLibs/ffx/ffx_sssr_intersect.h"
+
+    FFX_RaymarchResult FFX_Raymarch(FfxFloat32x3 origin, FfxFloat32x3 direction, FfxBoolean is_mirror, FfxFloat32x2 screen_size, FfxInt32 most_detailed_mip, FfxUInt32 max_traversal_intersections)
+    {
+      FFX_RaymarchResult hit = FFX_SSSR_HierarchicalRaymarch(origin, direction, is_mirror, screen_size, most_detailed_mip, ffxMinTraversalOccupancy, max_traversal_intersections);
+      return hit;
+    }
+  }
+endmacro
+
+macro FFX_RAYMARCH(code)
+  FFX_RAYMARCH_INIT(code)
+  FFX_RAYMARCH_USE(code)
+endmacro

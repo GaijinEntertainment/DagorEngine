@@ -3,7 +3,6 @@ require outer_space.events_outer_space
 require app
 require ecs
 require DagorSystem
-require danetlibs.frame_graph_renderer.frame_graph_renderer_init
 require ECSGlobalTags
 
 [init]
@@ -16,6 +15,5 @@ def load
       && ecs_has_tag("render") && !has_value(get_command_line_arguments(), "--das-no-debugger"))
     ok = load_das_debugger("%danetlibs/dascript_base/debugger_debug.das") && ok
 
-  ok = load_frame_graph_renderer("%danetlibs/frame_graph_renderer") && ok
   if app::get_game_name() == "aot"
     assert(ok)

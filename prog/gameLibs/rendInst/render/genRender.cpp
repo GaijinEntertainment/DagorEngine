@@ -552,7 +552,7 @@ void RendInstGenData::initRenderGlobals(bool use_color_padding, bool should_init
   ShaderGlobal::get_int_by_name("ri_vertex_data_no", rendinst::render::ri_vertex_data_no);
 
   drawOrderVarId = get_shader_glob_var_id("draw_order", true);
-  rendinst::render::rendinstShadowTexVarId = ::get_shader_glob_var_id("rendinst_shadow_tex");
+  rendinst::render::rendinstShadowTexVarId = ::get_shader_glob_var_id("rendinst_shadow_tex", true);
   rendinst::render::rendinstRenderPassVarId = ::get_shader_glob_var_id("rendinst_render_pass");
   rendinst::render::gpuObjectDecalVarId = ::get_shader_glob_var_id("gpu_object_decal", true);
   rendinst::render::disable_rendinst_alpha_for_normal_pass_with_zprepassVarId =

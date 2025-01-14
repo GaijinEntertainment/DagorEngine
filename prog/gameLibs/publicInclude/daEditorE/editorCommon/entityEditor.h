@@ -55,7 +55,7 @@ public:
   void setupNewScene(const char *fpath);
   const char *getSceneFilePath() { return sceneFilePath; }
 
-  typedef eastl::vector<eastl::pair<eastl::string, eastl::string>> SaveOrderRules;
+  typedef eastl::vector<eastl::string> SaveOrderRules;
   void setSaveOrderRules(const SaveOrderRules &rules) { saveOrderRules = rules; }
   int saveObjectsInternal(const char *fpath);
   void saveObjectsCopy(const char *fpath, const char *reason);

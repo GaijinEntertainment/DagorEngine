@@ -14,6 +14,7 @@
 
 #include "sampler.h"
 #include "driver.h"
+#include "clear.h"
 #if HAS_NVAPI
 #include <nvapi.h>
 #endif
@@ -34,6 +35,7 @@ static RenderState &g_frameState = g_render_state; // ok for strict aliasing?
 #include <drv/3d/dag_bindless.h>
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_variableRateShading.h>
+#include <drv/3d/dag_shader.h>
 // #undef g_frameState
 
 
@@ -841,6 +843,41 @@ void TextureFetchState::flush_cs(bool force, bool async)
     }
   }
 }
+
+void MiniRenderStateUnsafe::store()
+{
+  RenderState &rs = g_render_state;
+  tex0 = rs.texFetchState.resources[STAGE_PS].resources.size() > 0 ? rs.texFetchState.resources[STAGE_PS].resources[0].texture : NULL;
+  d3d::get_render_target(rt);
+  nextRasterizerState = rs.nextRasterizerState;
+  stencilRef = rs.stencilRef;
+  memcpy(blendFactor, rs.blendFactor, sizeof(blendFactor));
+  renderState = current_render_state;
+  d3d::getview(l, t, w, h, zn, zf);
+}
+
+void MiniRenderStateUnsafe::restore()
+{
+  RenderState &rs = g_render_state;
+
+  rs.nextRasterizerState = nextRasterizerState;
+  rs.stencilRef = stencilRef;
+  memcpy(rs.blendFactor, blendFactor, sizeof(blendFactor));
+  d3d::set_render_state(renderState);
+  rs.modified = true;
+  rs.rasterizerModified = true;
+  rs.alphaBlendModified = true;
+  rs.depthStencilModified = true;
+
+  d3d::set_tex(STAGE_PS, 0, tex0);
+  d3d::set_program(BAD_PROGRAM);
+  if (memcmp(&rt, &g_render_state.nextRtState, sizeof(rt)) != 0)
+  {
+    d3d::set_render_target(rt);
+    d3d::setview(l, t, w, h, zn, zf);
+  }
+}
+
 } // namespace drv3d_dx11
 
 bool d3d::setview(int x, int y, int w, int h, float minz, float maxz)
@@ -1256,6 +1293,8 @@ bool d3d::clear_rwbufi(Sbuffer *buffer, const unsigned val[4])
   if (vb)
   {
     ContextAutoLock contextLock;
+    VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
+      "DX11: clear_rwbufi uses CopyResource inside a generic render pass");
     dx_context->ClearUnorderedAccessViewUint(vb->uav, val);
   }
   return true;
@@ -1274,6 +1313,8 @@ bool d3d::clear_rwbuff(Sbuffer *buffer, const float val[4])
   if (vb)
   {
     ContextAutoLock contextLock;
+    VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
+      "DX11: clear_rwbuff uses CopyResource inside a generic render pass");
     dx_context->ClearUnorderedAccessViewFloat(vb->uav, val);
   }
   return true;
@@ -1294,10 +1335,25 @@ bool d3d::clear_rt(const RenderTarget &rt, const ResourceClearValue &clear_val)
   }
   else
   {
-    float cv[4];
-    resource_clear_value_to_float4(base->cflg, clear_val, cv);
-    ContextAutoLock contextLock;
-    dx_context->ClearRenderTargetView((ID3D11RenderTargetView *)view, clear_val.asFloat);
+    // To preserve int bit pattern need to clear with shader
+    // https://learn.microsoft.com/en-us/windows/win32/api/d3d11/nf-d3d11-id3d11devicecontext-clearrendertargetview#remarks
+    if (base->isSampledAsFloat())
+    {
+      ContextAutoLock contextLock;
+      dx_context->ClearRenderTargetView((ID3D11RenderTargetView *)view, clear_val.asFloat);
+    }
+    else
+    {
+      ResAutoLock resLock;
+      MiniRenderStateUnsafe savedRs;
+      savedRs.store();
+
+      d3d::set_render_target(base, rt.mip_level);
+      d3d::setview(0, 0, base->width, base->height, 0, 1);
+      clear_slow(CLEAR_TARGET, clear_val.asFloat, 0.0f, 0u);
+
+      savedRs.restore();
+    }
   }
 
   return true;

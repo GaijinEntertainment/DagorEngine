@@ -79,7 +79,7 @@ namespace bind_dascript
 inline int dm_read_overrided_preset(dm::effect::PresetList &presets, const DataBlock &blk, const char *preset_param_name,
   int default_preset_id, const dm::DamageModelData &dm_data)
 {
-  dm::DataBlockRWHelper dataBlockRWHelper(dm::get_damage_types());
+  dm::DataBlockRWHelper dataBlockRWHelper(dm::get_damage_types(), dm::get_part_names_maps());
   return dm::effect::read_overrided_preset_ex(presets, blk, preset_param_name, default_preset_id, &dm_data, nullptr,
     dataBlockRWHelper);
 }
@@ -91,9 +91,14 @@ inline uint16_t get_rel_hp_fixed(const dm::DamageModelData &dm_data, int part_id
 
 inline const char *get_meta_part_prop_name(const dm::MetaPartProp &prop) { return prop.name.c_str(); }
 
+inline dm::PartId find_part_id(const dm::DamageModelData &dm_data, const char *part_name)
+{
+  return find_part_id(dm_data, dm::get_part_names_maps().partNames, part_name);
+}
+
 inline int find_part_id_by_name(const dm::DamageModel &damage_model, const char *part_name)
 {
-  return find_part_id(damage_model.dmData, part_name).id;
+  return find_part_id(damage_model.dmData, dm::get_part_names_maps().partNames, part_name).id;
 }
 
 inline int get_damage_part_id(const dm::DamagePart &dm_part) { return dm_part.partId.id; }
@@ -149,7 +154,7 @@ inline dm::splash::Params calc_splash_params(const dm::ExplosiveProperties &expl
   if (explosive_props.mass > 0.f && splash_properties.type != dm::splash::Properties::Type::PREDEFINED)
     dm::splash::calc_explosive_params(explosive_props, 1.f, params.explosiveParams);
   dm::splash::calc_params(splash_properties, underwater ? dm::PhysEnvironment::WATER : dm::PhysEnvironment::AIR,
-    dm::get_explosive_mass_to_splash_params(), params);
+    dm::get_explosive_settings().massToSplash, params);
   return params;
 }
 
@@ -169,7 +174,10 @@ inline float get_part_hp_prop_value(const dm::DamageModelData &dm_data, const dm
   return props ? props->hp : 0.f;
 }
 
-inline const char *das_get_part_name(const dm::DamagePartProps &props) { return dm::get_part_name(props); }
+inline const char *das_get_part_name(const dm::DamagePartProps &props)
+{
+  return dm::get_part_names_maps().partNames.getName(props.partNameId);
+}
 
 inline bool das_is_coll_node_traceable(const dm::DamageModelData &dm_data, int coll_node_id, bool reverse)
 {
@@ -179,13 +187,13 @@ inline bool das_is_coll_node_traceable(const dm::DamageModelData &dm_data, int c
 inline void das_load_dm_part_props(dm::DamagePartProps &props, const char *blk_name)
 {
   DataBlock blk(blk_name);
-  dm::DataBlockRWHelper dataBlockRWHelper(dm::get_damage_types());
+  dm::DataBlockRWHelper dataBlockRWHelper(dm::get_damage_types(), dm::get_part_names_maps());
   props.load(blk, dataBlockRWHelper, true);
 }
 
 inline void splash_props_load(dm::splash::Properties &props, const DataBlock &blk)
 {
-  dm::DataBlockRWHelper dataBlockRWHelper(dm::get_damage_types());
+  dm::DataBlockRWHelper dataBlockRWHelper(dm::get_damage_types(), dm::get_part_names_maps());
   props.load(blk, dataBlockRWHelper);
 }
 

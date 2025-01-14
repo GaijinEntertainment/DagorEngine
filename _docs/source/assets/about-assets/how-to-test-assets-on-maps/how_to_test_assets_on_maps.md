@@ -44,7 +44,7 @@ build the corresponding components:
 
    <br>
 
-2. **Export the map** via **Project ▸ Export to game (PC format)**.
+2. **Export the map** via **Project > Export to game (PC format)**.
 
    <img src="_images/how_to_test_assets_on_maps_06.jpg" width="40%" align="center" class="bg-primary">
 

@@ -703,7 +703,7 @@ void ColorCurveControl::updateImgui()
     }
 
     if (!tooltipText.empty() && !ImGui::IsMouseDown(ImGuiMouseButton_Left))
-      ImGui::SetItemTooltip(tooltipText);
+      ImGui::SetItemTooltip("%s", tooltipText.c_str());
 
     if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
       onLButtonDClick(mousePosInCanvas.x, mousePosInCanvas.y);

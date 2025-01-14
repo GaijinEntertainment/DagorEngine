@@ -84,12 +84,15 @@ static ecs::EntitySystemDesc bvh_free_visibility_es_es_desc
 ,"render");
 static constexpr ecs::ComponentDesc init_bvh_scene_es_comps[] =
 {
-//start of 6 rw components at [0]
+//start of 9 rw components at [0]
   {ECS_HASH("bvh__update_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
   {ECS_HASH("denoiser_prepare_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
   {ECS_HASH("rtsm_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
   {ECS_HASH("rtr_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
   {ECS_HASH("rtao_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
+  {ECS_HASH("water_rt_early_before_envi_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
+  {ECS_HASH("water_rt_early_after_envi_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
+  {ECS_HASH("water_rt_late_node"), ecs::ComponentTypeInfo<dabfg::NodeHandle>()},
   {ECS_HASH("bvh__rendinst_visibility"), ecs::ComponentTypeInfo<RiGenVisibilityECS>()}
 };
 static void init_bvh_scene_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -101,6 +104,9 @@ static void init_bvh_scene_es_all_events(const ecs::Event &__restrict evt, const
     , ECS_RW_COMP(init_bvh_scene_es_comps, "rtsm_node", dabfg::NodeHandle)
     , ECS_RW_COMP(init_bvh_scene_es_comps, "rtr_node", dabfg::NodeHandle)
     , ECS_RW_COMP(init_bvh_scene_es_comps, "rtao_node", dabfg::NodeHandle)
+    , ECS_RW_COMP(init_bvh_scene_es_comps, "water_rt_early_before_envi_node", dabfg::NodeHandle)
+    , ECS_RW_COMP(init_bvh_scene_es_comps, "water_rt_early_after_envi_node", dabfg::NodeHandle)
+    , ECS_RW_COMP(init_bvh_scene_es_comps, "water_rt_late_node", dabfg::NodeHandle)
     , ECS_RW_COMP(init_bvh_scene_es_comps, "bvh__rendinst_visibility", RiGenVisibilityECS)
     );
   while (++comp != compE);
@@ -110,7 +116,7 @@ static ecs::EntitySystemDesc init_bvh_scene_es_es_desc
   "init_bvh_scene_es",
   "prog/daNetGame/render/world/bvhES.cpp.inl",
   ecs::EntitySystemOps(nullptr, init_bvh_scene_es_all_events),
-  make_span(init_bvh_scene_es_comps+0, 6)/*rw*/,
+  make_span(init_bvh_scene_es_comps+0, 9)/*rw*/,
   empty_span(),
   empty_span(),
   empty_span(),

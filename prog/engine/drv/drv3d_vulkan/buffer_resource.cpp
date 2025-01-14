@@ -20,6 +20,13 @@ static constexpr VkBufferUsageFlags default_buffer_usage =
 static constexpr uint8_t buffer_tail_filler = 0xA7;
 #endif
 
+DeviceMemoryClass BufferDescription::getDeviceReadDynamicBuffersMemoryClass()
+{
+  return Globals::Mem::pool.getMemoryConfiguration() == DeviceMemoryConfiguration::DEDICATED_DEVICE_MEMORY
+           ? DeviceMemoryClass::DEVICE_RESIDENT_BUFFER
+           : DeviceMemoryClass::DEVICE_RESIDENT_HOST_WRITE_ONLY_BUFFER;
+}
+
 VkBufferUsageFlags Buffer::getUsage(VulkanDevice &device, DeviceMemoryClass memClass)
 {
   G_UNUSED(device); // make it as used here, makes preprocessor stuff simpler

@@ -1571,6 +1571,7 @@ bool LandMeshManager::loadDump(IGenLoad &loadCb, IMemAlloc *rayTracerAllocator, 
       {
         vertTexId = ::get_managed_texture_id_pp(vertTexName);
         ::acquire_managed_tex(vertTexId);
+        vertTexSmp = d3d::request_sampler({});
       }
 
       vertNmTexId = BAD_TEXTUREID;
@@ -1581,22 +1582,29 @@ bool LandMeshManager::loadDump(IGenLoad &loadCb, IMemAlloc *rayTracerAllocator, 
         BaseTexture *tex = ::acquire_managed_tex(vertNmTexId);
         if (tex)
         {
-          tex->texaddr(TEXADDR_WRAP);
-          tex->setAnisotropy(0);
           add_anisotropy_exception(vertNmTexId);
+          d3d::SamplerInfo smpInfo;
+          smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Wrap;
+          smpInfo.anisotropic_max = 1;
+          vertNmTexSmp = d3d::request_sampler(smpInfo);
         }
 
         vertDetTexId = ::get_managed_texture_id_pp(vertDetTexName);
         tex = ::acquire_managed_tex(vertDetTexId);
         if (tex)
-          tex->texaddr(TEXADDR_WRAP);
+        {
+          d3d::SamplerInfo smpInfo;
+          smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Wrap;
+          vertDetTexSmp = d3d::request_sampler(smpInfo);
+        }
       }
       else if (getRenderDataNeeded() & LC_SWAP_VERTICAL_DETAIL)
       {
         vertTexId = ::get_managed_texture_id_pp(vertDetTexName);
         BaseTexture *tex = ::acquire_managed_tex(vertTexId);
-        if (tex)
-          tex->texaddr(TEXADDR_WRAP);
+        d3d::SamplerInfo smpInfo;
+        smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Wrap;
+        vertTexSmp = d3d::request_sampler(smpInfo);
       }
 
       dagor_set_sm_tex_load_ctx_name(NULL);
@@ -1695,8 +1703,8 @@ bool LandMeshManager::loadDump(const char *fname, int start_offset, bool load_re
 
 LandMeshRenderer *LandMeshManager::createRenderer()
 {
-  LandMeshRenderer *renderer =
-    new LandMeshRenderer(*this, landClasses, vertTexId, vertNmTexId, vertDetTexId, tileTexId, tileXSize, tileYSize);
+  LandMeshRenderer *renderer = new LandMeshRenderer(*this, landClasses, vertTexId, vertTexSmp, vertNmTexId, vertNmTexSmp, vertDetTexId,
+    vertDetTexSmp, tileTexId, get_texture_separate_sampler(tileTexId), tileXSize, tileYSize);
 
   return renderer;
 }

@@ -3,7 +3,6 @@
 #include <osApiWrappers/dag_critSec.h>
 #include <EASTL/fixed_string.h>
 #include <EASTL/vector.h>
-#include "sound/dngSound.h"
 #include <memory/dag_framemem.h>
 #include <startup/dag_globalSettings.h>
 #include <ioSys/dag_dataBlock.h>
@@ -31,6 +30,8 @@
 #include "camera/sceneCam.h"
 #include "main/app.h"
 #include <atomic>
+
+#include "sound/dngSound.h"
 
 #define SNDCTRL_IS_MAIN_THREAD G_ASSERT(is_main_thread())
 
@@ -113,6 +114,7 @@ static constexpr sndsys::banks::ProhibitedBankDesc all_prohibited_bank_descs[] =
   {"ww2_weapon_mgun_mounted.assets", 14466112ll, 7692226828054102393ull, "mod v6"},
 };
 
+
 void init()
 {
   SNDCTRL_IS_MAIN_THREAD;
@@ -146,13 +148,13 @@ void init()
 
   if (haveSound)
   {
-    const DataBlock &vcaBlk = *soundBlk->getBlockByNameEx("vca");
+    const DataBlock &vcaBlk = *blk.getBlockByNameEx("vca");
     g_vca_names.reserve(vcaBlk.blockCount());
     for (int i = 0; i < vcaBlk.blockCount(); ++i)
       g_vca_names.push_back(vcaBlk.getBlock(i)->getBlockName());
 
     g_muteable_vca_index = -1;
-    const char *muteableVca = soundBlk->getStr("muteableVca", "MASTER");
+    const char *muteableVca = blk.getStr("muteableVca", "MASTER");
     if (muteableVca && *muteableVca)
     {
       const auto muteableVcaIt = eastl::find(g_vca_names.begin(), g_vca_names.end(), muteableVca);
@@ -316,6 +318,7 @@ void update(float dt)
     sound::sqapi::on_output_devices_list_changed();
   }
 }
+
 } // namespace dngsound
 
 using namespace dngsound;

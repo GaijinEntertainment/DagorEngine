@@ -107,6 +107,7 @@ struct dtTileCacheMeshProcess
 
 	virtual void process(struct dtNavMeshCreateParams* params,
 						 unsigned char* polyAreas, unsigned short* polyFlags, dtCompressedTileRef ref) = 0;
+	virtual void remove(int tx, int ty, int tlayer) = 0;
 };
 
 

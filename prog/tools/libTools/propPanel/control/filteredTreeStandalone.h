@@ -54,15 +54,19 @@ public:
     return addItemInternal(name, icon, parent, user_data, true);
   }
 
-  void clear() { tree.clear(); }
+  void clear()
+  {
+    tree.clear();
+    clear_all_ptr_items(rootNode.nodes);
+  }
 
   bool removeItem(TLeafHandle item)
   {
-    TTreeNode *node = getItemNode(item);
+    TTreeNode *node = leafHandleAsNode(item);
     if (!node)
       return false;
 
-    tree.removeLeaf(item);
+    tree.removeLeaf(node->item);
 
     TTreeNode *parent = node->parent ? node->parent : &rootNode;
     auto it = eastl::find(parent->nodes.begin(), parent->nodes.end(), node);
@@ -73,99 +77,132 @@ public:
     return true;
   }
 
-  bool swapLeaf(TLeafHandle id, bool after) { return tree.swapLeaf(id, after); }
+  bool swapLeaf(TLeafHandle id, bool after) { return tree.swapLeaf(getViewLeafFromHandle(id), after); }
 
-  void setTitle(TLeafHandle leaf, const char value[]) { tree.setTitle(leaf, value); }
+  void setTitle(TLeafHandle leaf, const char value[])
+  {
+    if (TTreeNode *node = leafHandleAsNode(leaf))
+    {
+      node->name = value;
+      tree.setTitle(node->item, value);
+    }
+  }
 
-  void setButtonPictures(TLeafHandle leaf, const char *fname = NULL) { tree.setButtonPictures(leaf, fname); }
+  void setButtonPictures(TLeafHandle leaf, const char *fname = NULL) { tree.setButtonPictures(getViewLeafFromHandle(leaf), fname); }
 
-  void setColor(TLeafHandle leaf, E3DCOLOR value) { tree.setColor(leaf, value); }
+  void setColor(TLeafHandle leaf, E3DCOLOR value) { tree.setColor(getViewLeafFromHandle(leaf), value); }
 
-  bool isExpanded(TLeafHandle leaf) const { return tree.isExpanded(leaf); }
+  bool isExpanded(TLeafHandle leaf) const { return tree.isExpanded(getViewLeafFromHandle(leaf)); }
 
-  void setExpanded(TLeafHandle leaf, bool open = true) { tree.setExpanded(leaf, open); }
+  void setExpanded(TLeafHandle leaf, bool open = true) { tree.setExpanded(getViewLeafFromHandle(leaf), open); }
 
-  void setExpandedRecursive(TLeafHandle leaf, bool open = true) { tree.setExpandedRecursive(leaf, open); }
+  void setExpandedRecursive(TLeafHandle leaf, bool open = true) { tree.setExpandedRecursive(getViewLeafFromHandle(leaf), open); }
 
-  void setExpandedTillRoot(TLeafHandle leaf, bool open = true) { tree.setExpandedTillRoot(leaf, open); }
+  void setExpandedTillRoot(TLeafHandle leaf, bool open = true) { tree.setExpandedTillRoot(getViewLeafFromHandle(leaf), open); }
 
   void setUserData(TLeafHandle leaf, void *value)
   {
-    TTreeNode *node = getItemNode(leaf);
+    TTreeNode *node = leafHandleAsNode(leaf);
     if (!node)
       return;
 
     node->userData = value;
   }
 
-  void setCheckboxState(TLeafHandle leaf, TreeControlStandalone::CheckboxState state) { tree.setCheckboxState(leaf, state); }
+  void setCheckboxState(TLeafHandle leaf, TreeControlStandalone::CheckboxState state)
+  {
+    tree.setCheckboxState(getViewLeafFromHandle(leaf), state);
+  }
 
-  void setIcon(TLeafHandle leaf, TEXTUREID icon) { tree.setIcon(leaf, icon); }
+  void setIcon(TLeafHandle leaf, TEXTUREID icon)
+  {
+    if (TTreeNode *node = leafHandleAsNode(leaf))
+    {
+      node->icon = icon;
+      tree.setIcon(node->item, icon);
+    }
+  }
 
-  void setStateIcon(TLeafHandle leaf, TEXTUREID icon) { tree.setStateIcon(leaf, icon); }
+  void setStateIcon(TLeafHandle leaf, TEXTUREID icon) { tree.setStateIcon(getViewLeafFromHandle(leaf), icon); }
 
-  int getChildCount(TLeafHandle leaf) const { return tree.getChildCount(leaf); }
+  int getChildCount(TLeafHandle leaf) const { return tree.getChildCount(getViewLeafFromHandle(leaf)); }
 
   TEXTUREID getTexture(const char *name) { return tree.getTexture(name); }
 
-  TLeafHandle getChildLeaf(TLeafHandle leaf, unsigned idx) const { return tree.getChildLeaf(leaf, idx); }
+  TLeafHandle getChildLeaf(TLeafHandle leaf, unsigned idx) const
+  {
+    return static_cast<TLeafHandle>(tree.getUserData(tree.getChildLeaf(getViewLeafFromHandle(leaf), idx)));
+  }
 
-  TLeafHandle getParentLeaf(TLeafHandle leaf) const { return tree.getParentLeaf(leaf); }
+  TLeafHandle getParentLeaf(TLeafHandle leaf) const
+  {
+    TTreeNode *parentNode = leaf ? leafHandleAsNode(leaf)->parent : nullptr;
+    return parentNode == &rootNode ? nullptr : nodeAsLeafHandle(parentNode);
+  }
 
-  TLeafHandle getNextLeaf(TLeafHandle leaf) const { return tree.getNextLeaf(leaf); }
+  TLeafHandle getNextLeaf(TLeafHandle leaf) const
+  {
+    return static_cast<TLeafHandle>(tree.getUserData(tree.getNextLeaf(getViewLeafFromHandle(leaf))));
+  }
 
-  TLeafHandle getPrevLeaf(TLeafHandle leaf) const { return tree.getPrevLeaf(leaf); }
+  TLeafHandle getPrevLeaf(TLeafHandle leaf) const
+  {
+    return static_cast<TLeafHandle>(tree.getUserData(tree.getPrevLeaf(getViewLeafFromHandle(leaf))));
+  }
 
   TLeafHandle getNextNode(TLeafHandle item, bool forward) const { return forward ? getNextLeaf(item) : getPrevLeaf(item); }
 
-  TLeafHandle getRootLeaf() const { return tree.getRootLeaf(); }
+  TLeafHandle getRootLeaf() const { return nodeAsLeafHandle(rootNode.getFirstChild()); }
 
-  const String *getItemTitle(TLeafHandle leaf) const { return tree.getItemTitle(leaf); }
+  const String *getItemTitle(TLeafHandle leaf) const { return leaf ? &leafHandleAsNode(leaf)->name : nullptr; }
 
-  TTreeNode *getItemNode(TLeafHandle p)
-  {
-    void *userData = tree.getUserData(p);
-    return static_cast<TTreeNode *>(userData);
-  }
+  TTreeNode *getItemNode(TLeafHandle p) { return leafHandleAsNode(p); }
 
-  const TTreeNode *getItemNode(TLeafHandle p) const
-  {
-    void *userData = tree.getUserData(p);
-    return static_cast<const TTreeNode *>(userData);
-  }
+  const TTreeNode *getItemNode(TLeafHandle p) const { return leafHandleAsNode(p); }
 
   void *getItemData(TLeafHandle item) const
   {
-    const TTreeNode *node = getItemNode(item);
+    const TTreeNode *node = leafHandleAsNode(item);
     return node ? node->userData : nullptr;
   }
 
-  TreeControlStandalone::CheckboxState getCheckboxState(TLeafHandle leaf) const { return tree.getCheckboxState(leaf); }
+  TreeControlStandalone::CheckboxState getCheckboxState(TLeafHandle leaf) const
+  {
+    return tree.getCheckboxState(getViewLeafFromHandle(leaf));
+  }
 
-  bool isLeafSelected(TLeafHandle leaf) const { return tree.isLeafSelected(leaf); }
+  bool isLeafSelected(TLeafHandle leaf) const { return tree.isLeafSelected(getViewLeafFromHandle(leaf)); }
 
-  void setSelectedLeaf(TLeafHandle leaf, bool keep_selected = false) { tree.setSelectedLeaf(leaf, keep_selected); }
+  void setSelectedLeaf(TLeafHandle leaf, bool keep_selected = false)
+  {
+    tree.setSelectedLeaf(getViewLeafFromHandle(leaf), keep_selected);
+  }
 
-  TLeafHandle getSelectedLeaf() const { return tree.getSelectedLeaf(); }
+  TLeafHandle getSelectedLeaf() const { return static_cast<TLeafHandle>(tree.getUserData(tree.getSelectedLeaf())); }
 
-  bool isItemMultiSelected(TLeafHandle leaf) const { return tree.isItemMultiSelected(leaf); }
+  bool isItemMultiSelected(TLeafHandle leaf) const { return tree.isItemMultiSelected(getViewLeafFromHandle(leaf)); }
 
-  void getSelectedLeafs(dag::Vector<TLeafHandle> &leafs) const { tree.getSelectedLeafs(leafs); }
+  void getSelectedLeafs(dag::Vector<TLeafHandle> &leafs) const
+  {
+    tree.getSelectedLeafs(leafs);
+    for (TLeafHandle &leaf : leafs)
+      leaf = static_cast<TLeafHandle>(tree.getUserData(leaf));
+  }
 
-  void ensureVisible(TLeafHandle leaf) { tree.ensureVisible(leaf); }
+  void ensureVisible(TLeafHandle leaf) { tree.ensureVisible(getViewLeafFromHandle(leaf)); }
 
   void addChildName(const char *name, TLeafHandle parent)
   {
-    TTreeNode *node = getItemNode(parent);
+    TTreeNode *node = leafHandleAsNode(parent);
     if (!node)
       return;
 
     node->childNames.emplace_back(name);
   }
 
-  Tab<String> getChildNames(TLeafHandle item)
+  Tab<String> getChildNames(TLeafHandle item) const
   {
-    TTreeNode *treeNode = getItemNode(item);
+    const TTreeNode *treeNode = leafHandleAsNode(item);
     if (treeNode)
       return treeNode->childNames;
 
@@ -238,28 +275,38 @@ public:
   void updateImgui(float control_height = 0.0f) { tree.updateImgui(control_height); }
 
 private:
+  static TTreeNode *leafHandleAsNode(TLeafHandle handle) { return reinterpret_cast<TTreeNode *>(handle); }
+
+  static TLeafHandle nodeAsLeafHandle(TTreeNode *node) { return reinterpret_cast<TLeafHandle>(node); }
+
+  static TLeafHandle getViewLeafFromHandle(TLeafHandle handle) { return handle ? leafHandleAsNode(handle)->item : nullptr; }
+
   TLeafHandle addItemInternal(const char *name, TEXTUREID icon, TLeafHandle parent, void *user_data, bool as_first)
   {
     TTreeNode *parentNode = nullptr;
+    TLeafHandle item = nullptr;
     if (parent)
     {
-      parentNode = getItemNode(parent);
+      parentNode = leafHandleAsNode(parent);
       G_ASSERT(parentNode);
+      item = parentNode->item;
     }
 
     TTreeNode *newNode = new TTreeNode(name, icon, user_data, parentNode);
     if (parent)
       parentNode->nodes.push_back(newNode); //-V522 (Possible null pointer dereference.)
     else
+    {
       rootNode.nodes.push_back(newNode);
+      newNode->parent = &rootNode;
+    }
 
-    TLeafHandle item;
     if (as_first)
-      newNode->item = tree.createTreeLeafAsFirst(parent, name, icon, newNode);
+      newNode->item = tree.createTreeLeafAsFirst(item, name, icon, newNode);
     else
-      newNode->item = tree.createTreeLeaf(parent, name, icon, newNode);
+      newNode->item = tree.createTreeLeaf(item, name, icon, newNode);
 
-    return newNode->item;
+    return nodeAsLeafHandle(newNode);
   }
 
   bool filterRoutine(TTreeNode *node, TLeafHandle parent, void *param, TTreeNodeFilterFunc filter_func, TTreeNode *select_node)

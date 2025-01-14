@@ -2896,28 +2896,48 @@ static bool aotEsRunBlock(das::TextWriter &ss, EsQueryDesc *desc, const bind_das
     if (isImmutableString && hasDefValue)
       typeName = "const char *";
     das::string cppTypeName =
-      das::describeCppType(arg->type, das::CpptSubstitureRef::no, das::CpptSkipRef::yes, das::CpptSkipConst::no);
+      das::describeCppType(arg->type, das::CpptSubstitureRef::no, das::CpptSkipRef::yes, das::CpptSkipConst::yes);
     make_string_outer_ns(cppTypeName);
     const bool isSharedComponent = arg->annotation.getBoolOption(SHARED_COMP_ARG);
+    const char *endParen = "))";
     if (!hasDefValue)
-      body << "\t\t\tEcsToDas<" << cppTypeName << (isPointer ? "" : "&") << ", "
-           << (isSharedComponent ? " ::ecs::SharedComponent< " : "") << typeName << (isSharedComponent ? ">" : "")
-           << (isPointer ? (isRO ? " * const " : " * ") : "") << ">::get(";
-
-    if (hasDefValue)
+    {
+      if (isImmutableString || isSharedComponent)
+      {
+        body << "\t\t\tEcsToDas<" << ((isRO && !isPointer && !isImmutableString) ? "const " : "") << cppTypeName
+             << (isPointer ? "" : "&") << ", " << (isSharedComponent ? " ::ecs::SharedComponent<" : "") << typeName
+             << (isSharedComponent ? ">" : "") << (isPointer ? (isRO ? " const * " : " * ") : "") << ">::get(";
+      }
+      else
+      {
+        body << "\t\t\t";
+        endParen = ")";
+      }
+    }
+    else
     {
       G_ASSERT(isRO);
       body << "\t\t\t__get_or" << index << "(";
     }
+
     body << "qv.getComponent" << (isRO ? "RO" : "RW") << ((isPointer || (isImmutableString && hasDefValue)) ? "Opt" : "")
          << ((hasDefValue && !isImmutableString) ? "Opt" : "");
 
+    auto ptrTypeName = [](const das::string &ts) {
+      size_t firstNonSpaceCharPos = (size_t)(ts[0] == ' '); // Faster then `ts.find_first_not_of(' ')`
+      return ts.substr(0, ts.find(' ', firstNonSpaceCharPos));
+    };
+
     if (isSharedComponent)
       body << "< ::ecs::SharedComponent<" << typeName << "> >";
-    else if (!isImmutableString)
-      body << "<" << typeName << ">";
-    else
+    else if (isImmutableString)
       body << "< ::ecs::string >";
+    else if (typeName == cppTypeName || (isPointer && typeName == ptrTypeName(cppTypeName)))
+      body << "<" << typeName << ">";
+    else if (!isPointer)
+      body << "<" << typeName << ", " << cppTypeName << ">";
+    else
+      body << "<" << typeName << ", eastl::remove_pointer_t<" << cppTypeName << ">>";
 
     body << "(" << index << ", i";
 
@@ -2931,18 +2951,20 @@ static bool aotEsRunBlock(das::TextWriter &ss, EsQueryDesc *desc, const bind_das
         if (isImmutableString)
           ss << " ::ecs::string* ";
         else
-          ss << typeName << (isPointer ? (isRO ? " * const " : " * ") : "") << " *";
+          ss << cppTypeName << (isPointer ? (isRO ? " * const " : " * ") : "") << " *";
         ss << " value, ";
-        ss << (isImmutableString ? " const " : "") << cppTypeName << ((isPointer || isImmutableString) ? "" : "&")
+        ss << "const " << cppTypeName << ((isPointer || isImmutableString) ? "" : "&")
            << " default_value) DAS_AOT_INLINE_LAMBDA"
            //<< "-> " << cppTypeName << ((isPointer || isImmutableString) ? "" : "&") // doesn't work with gcc 9.1
            // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=90333
-           << "\n\t{\n\t\tif (value != nullptr)\n\t\t\treturn"
-           << " EcsToDas<" << cppTypeName << ((isPointer || isImmutableString) ? "" : "&") << ", " << typeName
-           << (isPointer ? (isRO ? " * const " : " * ") : "") << ">::get("
-           << (isImmutableString ? "get_immutable_string(*value)" : "*value") << ");\n\t\treturn ";
+           << "\n\t{\n\t\tif (value != nullptr)\n\t\t\treturn ";
         if (isImmutableString)
-          ss << "(" << cppTypeName << ((isPointer) ? "" : "&") << ")";
+          ss << "(char *)get_immutable_string(*value);"; // FIXME: const correctness for strings
+        else
+          ss << "*value;";
+        ss << "\n\t\treturn ";
+        if (isImmutableString)
+          ss << "(" << cppTypeName << ")";
         ss << " default_value;\n"
            << "\t};\n";
         body << "__def_comp" << index;
@@ -2952,11 +2974,11 @@ static bool aotEsRunBlock(das::TextWriter &ss, EsQueryDesc *desc, const bind_das
       body << ")";
     }
     else
-      body << "))";
+      body << endParen;
     if (&arg != &block->arguments.back())
       body << ", // " << arg->name << "\n";
     else
-      body << "// " << arg->name;
+      body << "  // " << arg->name;
   }
 
   auto body_sz = body.tellp();
@@ -3340,12 +3362,17 @@ void bind_dascript::free_serializer_buffer(bool success)
   if (needWriteSerData)
   {
     const auto &filename = bind_dascript::deserializationFileName;
-    dd_erase(filename.c_str());
-    dd_rename(newFileName.c_str(), filename.c_str());
+    const bool erased = dd_erase(filename.c_str());
+    const bool renamed = dd_rename(newFileName.c_str(), filename.c_str());
+    if (!renamed)
+      logwarn("das: serialize: failed to save '%s' (erased? %@)", filename.c_str(), erased);
+    else
+      debug("das: serialize: save to '%s'", filename.c_str());
   }
   else
   {
     dd_erase(newFileName.c_str());
+    debug("das: serialize: dropped '%s' (no changes)", newFileName.c_str());
   }
 }
 

@@ -1,0 +1,213 @@
+include "dagdp_common_heightmap.dshl"
+include "dagdp_volume_utils.dshl"
+
+int dagdp_volume__num_dispatches;
+buffer dagdp_volume__dispatch_args;
+buffer dagdp_volume__counts;
+buffer dagdp_volume__tiles;
+buffer dagdp_volume__volumes;
+
+buffer dagdp__instance_data;
+buffer dagdp__dyn_allocs;
+buffer dagdp__dyn_counters;
+
+int dagdp_volume__num_renderables;
+int dagdp_volume__num_placeables;
+int dagdp_volume__tile_start_index;
+float dagdp_volume__max_placeable_bounding_radius;
+float dagdp_volume__debug_frustum_culling_bias;
+
+float dagdp_volume__viewport_max_distance;
+float4 dagdp_volume__viewport_pos;
+int dagdp_volume__viewport_index;
+
+int dagdp_volume__prng_seed_placeable;
+int dagdp_volume__prng_seed_slope;
+int dagdp_volume__prng_seed_scale;
+int dagdp_volume__prng_seed_yaw;
+int dagdp_volume__prng_seed_pitch;
+int dagdp_volume__prng_seed_roll;
+int dagdp_volume__prng_seed_jitter_x;
+int dagdp_volume__prng_seed_jitter_z;
+
+buffer dagdp_volume__draw_ranges;
+buffer dagdp_volume__placeables;
+buffer dagdp_volume__placeable_weights;
+buffer dagdp_volume__renderable_indices;
+buffer dagdp_volume__variants;
+
+shader dagdp_volume_terrain_set_args
+{
+  ENABLE_ASSERT(cs)
+
+  (cs) {
+    dispatch_args@uav = dagdp_volume__dispatch_args hlsl {
+      RWByteAddressBuffer dispatch_args@uav;
+    }
+
+    num_dispatches@i1 = dagdp_volume__num_dispatches;
+
+    counts@cbuf = dagdp_volume__counts hlsl {
+      cbuffer counts@cbuf {
+        #include "dagdp_constants.hlsli"
+        uint4 counts[DAGDP_MAX_VIEWPORTS]; // only .x is used
+      }
+    }
+
+    tiles@buf = dagdp_volume__tiles hlsl {
+      #include "dagdp_volume_terrain.hlsli"
+      StructuredBuffer<VolumeTerrainTile> tiles@buf;
+    }
+  }
+
+  hlsl(cs) {
+    #define GROUP_SIZE DAGDP_MAX_VIEWPORTS
+
+    [numthreads(GROUP_SIZE, 1, 1)]
+    void main(uint dtId : SV_DispatchThreadID)
+    {
+      BRANCH
+      if (dtId >= num_dispatches)
+        return;
+
+      const uint argsByteOffset = dtId * 12; // 3 * sizeof(uint)
+
+      storeBuffer(dispatch_args, argsByteOffset, counts[dtId].x);
+      storeBuffer(dispatch_args, argsByteOffset + 4, 1);
+      storeBuffer(dispatch_args, argsByteOffset + 8, 1);
+    }
+  }
+  compile("target_cs", "main");
+}
+
+shader dagdp_volume_terrain_place_stage0, dagdp_volume_terrain_place_stage1
+{
+  ENABLE_ASSERT(cs)
+
+  (cs) {
+    tiles@buf = dagdp_volume__tiles hlsl {
+      #include <dagdp_volume_terrain.hlsli>
+      StructuredBuffer<VolumeTerrainTile> tiles@buf;
+    }
+
+    volumes@buf = dagdp_volume__volumes hlsl {
+      #include <dagdp_volume.hlsli>
+      StructuredBuffer<VolumeGpuData> volumes@buf;
+    }
+
+    instance_data@uav = dagdp__instance_data hlsl {
+      RWBuffer<float4> instance_data@uav;
+    }
+
+    dyn_counters@uav = dagdp__dyn_counters hlsl {
+      RWStructuredBuffer<uint> dyn_counters@uav;
+    }
+
+    dyn_allocs@buf = dagdp__dyn_allocs hlsl {
+      #include "dagdp_common.hlsli"
+      StructuredBuffer<DynAlloc> dyn_allocs@buf;
+    }
+
+    draw_ranges@buf = dagdp_volume__draw_ranges hlsl {
+      StructuredBuffer<float> draw_ranges@buf;
+    }
+
+    placeables@buf = dagdp_volume__placeables hlsl {
+      #include "dagdp_common.hlsli"
+      StructuredBuffer<PlaceableGpuData> placeables@buf;
+    }
+
+    placeable_weights@buf = dagdp_volume__placeable_weights hlsl {
+      StructuredBuffer<float> placeable_weights@buf;
+    }
+
+    renderable_indices@buf = dagdp_volume__renderable_indices hlsl {
+      StructuredBuffer<uint> renderable_indices@buf;
+    }
+
+    variants@buf = dagdp_volume__variants hlsl {
+      #include "dagdp_common_placer.hlsli"
+      StructuredBuffer<VariantGpuData> variants@buf;
+    }
+
+    num_renderables@i1 = dagdp_volume__num_renderables;
+    num_placeables@i1 = dagdp_volume__num_placeables;
+    tile_start_index@i1 = dagdp_volume__tile_start_index;
+    max_placeable_bounding_radius@f1 = dagdp_volume__max_placeable_bounding_radius;
+    viewport_pos@f3 = dagdp_volume__viewport_pos;
+    viewport_max_distance@f1 = dagdp_volume__viewport_max_distance;
+    viewport_index@i1 = dagdp_volume__viewport_index;
+    debug_frustum_culling_bias@f1 = dagdp_volume__debug_frustum_culling_bias;
+    water_level@f1 = water_level;
+
+    prng_seed_jitter_x@i1 = dagdp_volume__prng_seed_jitter_x;
+    prng_seed_jitter_z@i1 = dagdp_volume__prng_seed_jitter_z;
+    prng_seed_placeable@i1 = dagdp_volume__prng_seed_placeable;
+    prng_seed_slope@i1 = dagdp_volume__prng_seed_slope;
+    prng_seed_scale@i1 = dagdp_volume__prng_seed_scale;
+    prng_seed_yaw@i1 = dagdp_volume__prng_seed_yaw;
+    prng_seed_pitch@i1 = dagdp_volume__prng_seed_pitch;
+    prng_seed_roll@i1 = dagdp_volume__prng_seed_roll;
+  }
+
+  hlsl(cs) {
+    #define lower_level 0
+  }
+
+  USE_DAGDP_COMMON_HEIGHTMAP(true, shader == dagdp_volume_terrain_place_stage1)
+  USE_DAGDP_VOLUME_UTILS()
+
+  hlsl(cs) {
+    [numthreads(1, TILE_INSTANCE_COUNT, 1)]
+    void main(uint3 dtId : SV_DispatchThreadID, uint3 tId : SV_GroupThreadID)
+    {
+      ##if shader == dagdp_volume_terrain_place_stage1
+        const bool isEarlyExit = structuredBufferAt(dyn_counters, DYN_COUNTERS_INDEX_SKIP_PESSIMISTIC_PLACEMENT) != 0;
+        ##if hardware.dx11
+          // Work around compiler assuming varying flow control.
+          BRANCH
+          if (threadGroupAnyTrue(isEarlyExit, tId.y))
+            return;
+        ##else
+          BRANCH
+          if (isEarlyExit)
+            return;
+        ##endif
+      ##endif
+
+      // XZ position inside the tile.
+      const uint2 instanceIntPos = uint2(dtId.y / TILE_INSTANCE_COUNT_1D, dtId.y % TILE_INSTANCE_COUNT_1D);
+
+      const VolumeTerrainTile tile = structuredBufferAt(tiles, tile_start_index + dtId.x);
+      const VolumeGpuData volume = structuredBufferAt(volumes, tile.volumeIndex);
+      const VariantGpuData variant = structuredBufferAt(variants, volume.variantIndex);
+
+      const int2 stablePos = tile.intPosXZ * TILE_INSTANCE_COUNT_1D + int2(instanceIntPos);
+      const float2 randPosJitter = float2(stableRand(stablePos, prng_seed_jitter_x), stableRand(stablePos, prng_seed_jitter_z));
+      float2 instancePosXZ = tile.instancePosDelta * (stablePos + randPosJitter);
+
+      PlacementDetails pd;
+      initPlacementDetails(instancePosXZ, pd);
+
+      uint placeableIndex = getPlaceableIndex(variant, stableRand(stablePos, prng_seed_placeable));
+
+      PlaceableGpuData placeable;
+      FLATTEN
+      if (placeableIndex != ~0u)
+        placeable = structuredBufferAt(placeables, placeableIndex);
+
+      adjustPlacement(placeableIndex, placeable, stablePos, pd);
+
+      FLATTEN
+      if (!isInsideVolume(volume.volumeType, pd.position, volume))
+        placeableIndex = ~0u;
+
+      BRANCH
+      if (!threadGroupAnyTrue(placeableIndex != ~0u, tId.y)) // Whole tile is culled, can safely exit.
+        return;
+
+      finishPlacement(tId.y, stablePos, pd, placeableIndex, placeable, variant);
+    }
+  }
+  compile("target_cs", "main");
+}

@@ -142,7 +142,7 @@ void BurningDecals::createDecal(const Point2 &pos, const Point2 &dir, const Poin
       if (_decal.lifetime < 0 || _decal.clipmapDecalsCreated)
         continue;
 
-      Point2 dist = pos - _decal.pos;
+      Point2 dist = max(abs(pos - _decal.pos), Point2(FLT_EPSILON, FLT_EPSILON));
       if (dist.lengthF() > 0.75 * min(_decal.localX.lengthF(), _decal.localY.lengthF()) ||
           min(size.x, size.y) > 1.5 * min(_decal.localX.lengthF(), _decal.localY.lengthF()))
         continue;

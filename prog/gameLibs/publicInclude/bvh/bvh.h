@@ -408,6 +408,7 @@ struct MeshInfo
   bool hasInstanceColor = false;
   bool isCamo = false;
   bool isHeliRotor = false;
+  bool isEmissive = false;
 
   bool painted = false;
   Point4 paintData;

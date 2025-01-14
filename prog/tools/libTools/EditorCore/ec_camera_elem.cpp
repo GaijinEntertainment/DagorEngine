@@ -12,6 +12,7 @@
 #include <debug/dag_debug3d.h>
 #include <debug/dag_debug.h>
 #include <winGuiWrapper/wgw_input.h>
+#include <imgui/imgui_internal.h>
 
 
 IGenViewportWnd *CCameraElem::vpw = NULL;
@@ -134,62 +135,52 @@ void CCameraElem::stop()
 void CCameraElem::render() {}
 
 
-void CCameraElem::handleKeyPress(int vk)
+void CCameraElem::handleKeyboardInput(unsigned viewport_id)
 {
-  switch (vk)
+  // Shift is the speed accelerator key, it is allowed.
+  const bool modOk = (ImGui::GetIO().KeyMods & (ImGuiMod_Ctrl | ImGuiMod_Alt)) == 0;
+
+  if (modOk && (ImGui::IsKeyDown(ImGuiKey_UpArrow, viewport_id) || ImGui::IsKeyDown(ImGuiKey_W, viewport_id)))
+    forwardZFuture = 1;
+  else if (modOk && (ImGui::IsKeyDown(ImGuiKey_DownArrow, viewport_id) || ImGui::IsKeyDown(ImGuiKey_S, viewport_id) ||
+                      ImGui::IsKeyDown(ImGuiKey_X, viewport_id)))
+    forwardZFuture = -1;
+  else
+    forwardZFuture = 0;
+
+  if (modOk && (ImGui::IsKeyDown(ImGuiKey_Keypad9, viewport_id) || ImGui::IsKeyDown(ImGuiKey_E, viewport_id)))
   {
-    case VK_SPACE: setAboveSurfFuture = true; break;
-    case VK_UP:
-    case 'W': forwardZFuture = 1; break;
-    case VK_DOWN:
-    case 'S':
-    case 'X': forwardZFuture = -1; break;
-    case VK_NUMPAD9:
-    case 'E': upYFuture = 1; break;
-    case VK_NUMPAD3:
-    case 'C':
+    upYFuture = 1;
+  }
+  else if (modOk && (ImGui::IsKeyDown(ImGuiKey_Keypad3, viewport_id) || ImGui::IsKeyDown(ImGuiKey_C, viewport_id)))
+  {
+    if (upYFuture != -1) // Do not change setAboveSurfFuture multiple times.
+    {
+      upYFuture = -1;
       bow = true;
       setAboveSurfFuture = true;
-      upYFuture = -1;
-      break;
-    case VK_NUMPAD7:
-    case 'Q': strifeYFuture = 1; break;
-    case VK_NUMPAD1:
-    case 'Z': strifeYFuture = -1; break;
-    case VK_LEFT:
-    case 'A': strifeXFuture = 1; break;
-    case VK_RIGHT:
-    case 'D': strifeXFuture = -1; break;
+    }
   }
-}
-
-
-void CCameraElem::handleKeyRelease(int vk)
-{
-  switch (vk)
+  else if (upYFuture != 0) // Do not change setAboveSurfFuture multiple times.
   {
-    case VK_UP:
-    case 'W':
-    case VK_DOWN:
-    case 'S':
-    case 'X': forwardZFuture = 0; break;
-    case VK_NUMPAD9:
-    case 'E':
-    case VK_NUMPAD3:
-    case 'C':
-      bow = false;
-      setAboveSurfFuture = true;
-      upYFuture = 0;
-      break;
-    case VK_NUMPAD7:
-    case 'Q':
-    case VK_NUMPAD1:
-    case 'Z': strifeYFuture = 0; break;
-    case VK_LEFT:
-    case 'A':
-    case VK_RIGHT:
-    case 'D': strifeXFuture = 0; break;
+    upYFuture = 0;
+    bow = false;
+    setAboveSurfFuture = true;
   }
+
+  if (modOk && (ImGui::IsKeyDown(ImGuiKey_Keypad7, viewport_id) || ImGui::IsKeyDown(ImGuiKey_Q, viewport_id)))
+    strifeYFuture = 1;
+  else if (modOk && (ImGui::IsKeyDown(ImGuiKey_Keypad1, viewport_id) || ImGui::IsKeyDown(ImGuiKey_Z, viewport_id)))
+    strifeYFuture = -1;
+  else
+    strifeYFuture = 0;
+
+  if (modOk && (ImGui::IsKeyDown(ImGuiKey_LeftArrow, viewport_id) || ImGui::IsKeyDown(ImGuiKey_A, viewport_id)))
+    strifeXFuture = 1;
+  else if (modOk && (ImGui::IsKeyDown(ImGuiKey_RightArrow, viewport_id) || ImGui::IsKeyDown(ImGuiKey_D, viewport_id)))
+    strifeXFuture = -1;
+  else
+    strifeXFuture = 0;
 }
 
 
@@ -463,7 +454,11 @@ void CCameraElem::switchCamera(bool ctrl_pressed, bool shift_pressed)
   }
 }
 
-void CCameraElem::setAboveSurface(bool above_surface) { aboveSurface = above_surface; }
+void CCameraElem::setAboveSurface(bool above_surface)
+{
+  aboveSurface = above_surface;
+  setAboveSurfFuture = above_surface;
+}
 
 //=====================================================================================
 //
@@ -580,26 +575,16 @@ void FpsCameraElem::clear()
 
 
 //=====================================================================================
-void FpsCameraElem::handleKeyPress(int vk) { return CCameraElem::handleKeyPress(vk); }
-
-
-//=====================================================================================
-void FpsCameraElem::handleKeyRelease(int vk)
+void FpsCameraElem::handleKeyboardInput(unsigned viewport_id)
 {
-  switch (vk)
-  {
-    case VK_TAB:
-      if (mayJump)
-      {
-        FpsCameraConfig *fpsConf = (FpsCameraConfig *)config;
-        if (!fpsConf)
-          return;
-        speed.y += fpsConf->jumpSpeed;
-      }
-      break;
-  }
+  CCameraElem::handleKeyboardInput(viewport_id);
 
-  return CCameraElem::handleKeyRelease(vk);
+  if (ImGui::IsKeyReleased(ImGuiKey_Tab, viewport_id) && mayJump)
+  {
+    FpsCameraConfig *fpsConf = (FpsCameraConfig *)config;
+    if (fpsConf)
+      speed.y += fpsConf->jumpSpeed;
+  }
 }
 
 
@@ -849,25 +834,16 @@ void TpsCameraElem::clear()
 
 
 //=====================================================================================
-void TpsCameraElem::handleKeyPress(int vk) { return CCameraElem::handleKeyPress(vk); }
-
-
-//=====================================================================================
-void TpsCameraElem::handleKeyRelease(int vk)
+void TpsCameraElem::handleKeyboardInput(unsigned viewport_id)
 {
-  switch (vk)
+  CCameraElem::handleKeyboardInput(viewport_id);
+
+  if (ImGui::IsKeyReleased(ImGuiKey_Tab, viewport_id) && target.mayJump)
   {
-    case VK_TAB:
-      if (target.mayJump)
-      {
-        TpsCameraConfig *tpsConf = (TpsCameraConfig *)config;
-        if (!tpsConf)
-          return;
-        target.vel.y += tpsConf->jumpSpeed;
-      }
-      break;
+    TpsCameraConfig *tpsConf = (TpsCameraConfig *)config;
+    if (tpsConf)
+      target.vel.y += tpsConf->jumpSpeed;
   }
-  return CCameraElem::handleKeyRelease(vk);
 }
 
 
@@ -947,19 +923,6 @@ void TpsCameraElem::strife(real dx, real dy, bool multiply_sensitive, bool confi
   Point3 dpos = -camera.getcol(0) * dx + camera.getcol(1) * dy;
   dpos.y = 0;
   moveOn(dpos);
-}
-
-
-//=====================================================================================
-void MaxCameraElem::handleKeyPress(int vk)
-{
-  if (wingw::is_special_pressed())
-    return;
-
-  switch (vk)
-  {
-    case 'Z': EDITORCORE->zoomAndCenter(); break;
-  }
 }
 
 InitOnDemand<FreeCameraElem> ec_camera_elem::freeCameraElem;

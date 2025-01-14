@@ -1784,7 +1784,7 @@ public:
       else
       {
         auto dump = owner->getDump();
-        auto pixelShaderInDumpIndex = dump->vprId.size() + ps_index;
+        auto pixelShaderInDumpIndex = dump->vprCount + ps_index;
         auto &map = dump->shGroupsMapping[pixelShaderInDumpIndex];
         auto &hash = dump->shaderHashes[pixelShaderInDumpIndex];
         auto id = pixelShaderCount++;
@@ -1810,7 +1810,7 @@ public:
       auto id = ProgramID::asComputeProgram(group, target->computeProgramIndexToDumpShaderIndex[group].size());
       target->pixelShaderComputeProgramIDMap[group][shader_index] = id;
       auto dump = owner->getDump();
-      auto &map = dump->shGroupsMapping[dump->vprId.size() + shader_index];
+      auto &map = dump->shGroupsMapping[dump->vprCount + shader_index];
       ShaderCompressionIndex compressionIndex;
       compressionIndex.compressionGroup = map.groupId;
       compressionIndex.compressionIndex = map.indexInGroup;
@@ -2902,6 +2902,9 @@ struct NullResourceTable
     SRV_TEX_CUBE,
     SRV_TEX_CUBE_ARRAY,
     SRV_TEX3D,
+#ifdef D3D_HAS_RAY_TRACING
+    SRV_TLAS,
+#endif
     COUNT,
     INVALID = COUNT
   };
@@ -2987,10 +2990,12 @@ struct NullResourceTable
     {
       DAG_FATAL("Use of invalid resource type D3D_SIT_UAV_APPEND_STRUCTURED");
     }
+#ifdef D3D_HAS_RAY_TRACING
     else if (D3D_SIT_RTACCELERATIONSTRUCTURE == type)
     {
-      DAG_FATAL("ray trace acceleration structure was not set!");
+      return table[SRV_TLAS];
     }
+#endif
     return {0};
   }
 };
@@ -3155,6 +3160,73 @@ struct PipelineStageStateBase
   uint32_t cauclateTRegisterDescriptorCount(uint32_t t_register_mask) const { return __popcount(t_register_mask); }
   uint32_t cauclateURegisterDescriptorCount(uint32_t u_register_mask) const { return __popcount(u_register_mask); }
 };
+
+// regroup this to avoid branching in loop:
+// constBuffers[constBufferCount]
+// readViews[readBufferCount + readTextureCount + readTlasCount]
+// writeViews[writeBufferCount + writeTextureCount]
+// readBuffers[readBufferCount]
+// readTextures[readTextureCount]
+// writeBuffers[writeBufferCount]
+// writeTextures[writeTextureCount]
+// readTlas[readTlasCount]
+// samplers[SamplerCount]
+struct ResourceBindingTable
+{
+  struct ReadResourceInfo
+  {
+    BufferResourceReference bufferRef;
+    Image *image = nullptr;
+    ImageViewState imageView;
+    bool isConstDepthRead = false;
+#if D3D_HAS_RAY_TRACING
+    RaytraceAccelerationStructure *tlas = nullptr;
+#endif
+  };
+  struct WriteResourceInfo
+  {
+    BufferResourceReference bufferRef;
+    Image *image = nullptr;
+    ImageViewState imageView;
+  };
+  BufferResourceReferenceAndAddressRange constBuffers[8];
+  ReadResourceInfo readResources[32];
+  D3D12_CPU_DESCRIPTOR_HANDLE readResourceViews[32]{};
+  D3D12_CPU_DESCRIPTOR_HANDLE samplers[32]{};
+  D3D12_CPU_DESCRIPTOR_HANDLE writeResourceViews[8]{};
+  WriteResourceInfo writeResources[8];
+  uint32_t contBufferCount = 0;
+  uint32_t readCount = 0;
+  uint32_t writeCount = 0;
+  uint32_t samplerCount = 0;
+};
+#if D3D_HAS_RAY_TRACING
+struct RayDispatchBasicParameters
+{
+  const RaytracePipelineSignature *rootSignature = nullptr;
+  ID3D12StateObject *pipeline = nullptr;
+};
+struct RayDispatchParameters
+{
+  BufferResourceReferenceAndAddressRange rayGenTable;
+  BufferResourceReferenceAndAddressRange missTable;
+  BufferResourceReferenceAndAddressRange hitTable;
+  BufferResourceReferenceAndAddressRange callableTable;
+  uint32_t missStride = 0;
+  uint32_t hitStride = 0;
+  uint32_t callableStride = 0;
+  uint32_t width = 0;
+  uint32_t height = 0;
+  uint32_t depth = 0;
+};
+struct RayDispatchIndirectParameters
+{
+  BufferResourceReferenceAndOffset argumentBuffer;
+  BufferResourceReferenceAndOffset countBuffer; // optional
+  uint32_t argumentStrideInBytes = 0;
+  uint32_t maxCount = 0;
+};
+#endif
 } // namespace drv3d_dx12
 
 template <>

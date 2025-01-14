@@ -33,7 +33,7 @@ struct UpdateBlurredUI : public ecs::Event
 };
 struct OnLevelLoaded : public ecs::Event
 {
-  DataBlock level_blk;
+  const DataBlock &level_blk;
   ECS_BROADCAST_EVENT_DECL(OnLevelLoaded)
   OnLevelLoaded(const DataBlock &lev_blk) : ECS_EVENT_CONSTRUCTOR(OnLevelLoaded), level_blk(lev_blk) {}
 };
@@ -292,12 +292,10 @@ struct UpdateStageInfoRenderDistortion : public ecs::Event, public TransformHold
 
 struct QueryHeroWtmAndBoxForRender : public ecs::Event, public HeroWtmAndBox
 {
-  // parameters
-  bool onlyWeapons = false;
-
   ECS_UNICAST_EVENT_DECL(QueryHeroWtmAndBoxForRender)
-  QueryHeroWtmAndBoxForRender(bool weap_only = false) : ECS_EVENT_CONSTRUCTOR(QueryHeroWtmAndBoxForRender), onlyWeapons(weap_only) {}
+  QueryHeroWtmAndBoxForRender(bool weap_only = false) : ECS_EVENT_CONSTRUCTOR(QueryHeroWtmAndBoxForRender) { onlyWeapons = weap_only; }
 };
+static_assert(alignof(QueryHeroWtmAndBoxForRender) < sizeof(vec4f)); // Cause das-aot can't provide vector alignment
 
 
 #define DEF_RENDER_EVENTS                                                                                                            \

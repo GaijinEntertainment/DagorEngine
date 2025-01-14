@@ -2,6 +2,7 @@
 #pragma once
 
 #include "shsyn.h"
+#include "shSemCode.h"
 #include <generic/dag_tab.h>
 #include <drv/3d/dag_sampler.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
@@ -30,6 +31,9 @@ public:
 
   Sampler &operator=(const Sampler &) = default;
   Sampler(const Sampler &) = default;
+
+  friend void add_dynamic_sampler_for_stcode(ShaderSemCode &, ShaderClass &, ShaderTerminal::sampler_decl &,
+    ShaderTerminal::ShaderSyntaxParser &);
 };
 
 class SamplerTable
@@ -48,3 +52,6 @@ public:
 };
 
 extern SamplerTable g_sampler_table;
+
+void add_dynamic_sampler_for_stcode(ShaderSemCode &sh_sem_code, ShaderClass &sclass, ShaderTerminal::sampler_decl &smp_decl,
+  ShaderTerminal::ShaderSyntaxParser &parser);

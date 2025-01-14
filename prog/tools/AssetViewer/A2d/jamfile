@@ -8,6 +8,7 @@ AddIncludes =
   $(Root)/prog/tools/sceneTools/daEditorX/include
   $(Root)/prog/tools/sharedInclude
   $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/3rdPartyLibs/acl/includes
 ;
 
 Sources =

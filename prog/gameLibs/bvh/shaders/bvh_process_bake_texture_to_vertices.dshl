@@ -22,6 +22,9 @@ interval bvh_process_bake_texture_to_vertices_normal_offset: no < 1, yes;
 interval bvh_process_bake_texture_to_vertices_color_offset: no < 1, yes;
 interval bvh_process_bake_texture_to_vertices_texcoord_offset: no < 1, yes;
 
+int bvh_process_bake_texture_to_vertices_source_const_no = 6;
+int bvh_process_bake_texture_to_vertices_output_uav_no = 0;
+
 shader bvh_process_bake_texture_to_vertices
 {
   if (compatibility_mode == compatibility_mode_on)
@@ -50,10 +53,12 @@ shader bvh_process_bake_texture_to_vertices
 
   USE_BVH_ATTRIBUTE_FUNCTIONS(cs)
 
-  hlsl(cs) {
-    ByteAddressBuffer source : register(t6);
-    RWByteAddressBuffer output : register(u0);
+  (cs) {
+    source@buf : register(bvh_process_bake_texture_to_vertices_source_const_no) hlsl { ByteAddressBuffer source@buf; };
+    output@uav : register(bvh_process_bake_texture_to_vertices_output_uav_no) hlsl { RWByteAddressBuffer output@uav; };
+  }
 
+  hlsl(cs) {
     [numthreads( 64, 1, 1 )]
     void bvh_process_bake_texture_to_vertices(uint3 dtId : SV_DispatchThreadID)
     {
@@ -101,13 +106,21 @@ shader bvh_process_bake_texture_to_vertices
 
       BRANCH
       if (texture_to_vertices_position_size == 4)
+      {
         storeBuffer(output, target_offset + vertexId * processed_vertex_stride, position.x);
+      }
       else if (texture_to_vertices_position_size == 8)
+      {
         storeBuffer2(output, target_offset + vertexId * processed_vertex_stride, position.xy);
+      }
       else if (texture_to_vertices_position_size == 12)
+      {
         storeBuffer3(output, target_offset + vertexId * processed_vertex_stride, position.xyz);
+      }
       else
+      {
         storeBuffer4(output, target_offset + vertexId * processed_vertex_stride, position);
+      }
 
       storeBuffer(output, target_offset + vertexId * processed_vertex_stride + offset, packedColor);
       offset += 4;
@@ -115,9 +128,13 @@ shader bvh_process_bake_texture_to_vertices
       ##if bvh_process_bake_texture_to_vertices_texcoord_offset == yes
         BRANCH
         if (texture_to_vertices_texcoord_size == 4)
+        {
           storeBuffer(output, target_offset + vertexId * processed_vertex_stride + offset, loadBuffer(source, vertexStart + texcoord_offset));
+        }
         else
+        {
           storeBuffer2(output, target_offset + vertexId * processed_vertex_stride + offset, loadBuffer2(source, vertexStart + texcoord_offset));
+        }
         offset += texture_to_vertices_texcoord_size;
       ##endif
 

@@ -104,6 +104,14 @@ macro MASK_LAYERED_PS()
       detailColor2.rgb = lerp(detailColor2.rgb, detailColor2.rgb * paint_details_col, details.y);
     #endif
 
+      half4 packedNormalMap = SAMPLE_TEX(get_basenormal(), input.uv12.xy);
+      half3 normalMap = unpack_ag_normal(packedNormalMap);
+      half3 worldNormal = perturb_normal_precise( normalMap, normalize(input.normal.xyz), input.pointToEye.xyz, input.uv12.xy );
+
+    #if USE_TOP_PROJECTION
+      apply_top_projection(worldNormal, detailColor1, detailColor2, weights.x, weights.y, baseColor.rgb);
+    #endif
+
       half4 detailColor = detailColor1*weights.x + detailColor2*weights.y;
       half3 diffuseColor = baseColor.rgb * detailColor.rgb * 4.59479341998814;
 
@@ -114,14 +122,6 @@ macro MASK_LAYERED_PS()
       init_gbuffer(gbuffer);
 
       //modulate detail2 color (fade modulation according to detail2.a)
-
-      half4 packedNormalMap = SAMPLE_TEX(get_basenormal(), input.uv12.xy);
-      half3 normalMap = unpack_ag_normal(packedNormalMap);
-      half3 worldNormal = perturb_normal_precise( normalMap, normalize(input.normal.xyz), input.pointToEye.xyz, input.uv12.xy );
-
-#if USE_TOP_PROJECTION_TEXTURE
-      apply_top_projection(worldNormal, detailColor1, detailColor2, weight, weight2, baseColor.rgb);
-#endif
 
       half4 detailNormal1 = SAMPLE_TEX(get_tile1normal(), detail_uv);
       half4 detailNormal2 = SAMPLE_TEX(get_tile2normal(), detail_uv);

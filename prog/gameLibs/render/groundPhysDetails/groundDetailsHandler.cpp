@@ -61,6 +61,12 @@ void GroundDisplacementCPU::init(int tex_size, float heightmap_texel_size, float
   groundPhysDetailsTex.set(
     d3d::create_tex(NULL, 4 * bufferSize, 4 * bufferSize, TEXCF_RTARGET | TEXFMT_DEPTH16, 1, "ground_microdetails_tex"),
     "ground_microdetails_tex");
+  groundPhysDetailsTex.getTex2D()->disableSampler();
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.filter_mode = d3d::FilterMode::Point;
+    ShaderGlobal::set_sampler(::get_shader_glob_var_id("ground_physdetails_tex_samplerstate"), d3d::request_sampler(smpInfo));
+  }
 
   // texture for gpu physics simulations
   GPUgroundPhysDetailsTex.set(
@@ -170,8 +176,7 @@ void GroundDisplacementCPU::update(const Point3 &center_pos, ToroidalHeightmap *
     origin = Point2(texelSize * floorf(center_pos.x / texelSize), texelSize * floorf(center_pos.z / texelSize));
     SCOPE_RENDER_TARGET;
 
-    groundPhysDetailsTex.getTex()->texfilter(TEXFILTER_POINT);
-    hmap->setTexFilter(TEXFILTER_POINT);
+    hmap->setTexFilter(d3d::FilterMode::Point);
     hmap->setHeightmapTex();
 
     static int groundDetails_to_worldVarId = get_shader_variable_id("groundDetails_to_world", true);
@@ -185,7 +190,7 @@ void GroundDisplacementCPU::update(const Point3 &center_pos, ToroidalHeightmap *
     renderHeightAndDisplacement.render();
 
     // restore filtering
-    hmap->setTexFilter(TEXFILTER_LINEAR);
+    hmap->setTexFilter(d3d::FilterMode::Linear);
 
     d3d::set_render_target(GPUgroundPhysDetailsTex.getTex2D(), 0);
     renderGPUHeightAndDisplacement.render();
@@ -248,6 +253,8 @@ float GroundDisplacementCPU::getDisplacementHeight(const Point3 &world_pos)
 }
 
 CONSOLE_BOOL_VAL("suspension", testRandom, false);
+
+bool is_testing_suspension() { return testRandom; }
 
 #define LIMIT_DISPLACEMENT_UP   0.8f // large limit in case of penetrations
 #define LIMIT_DISPLACEMENT_DOWN -0.2f

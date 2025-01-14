@@ -269,6 +269,13 @@ void DialogWindow::setDialogButtonText(int id, const char *text)
     buttonsPanel->setText(id, text);
 }
 
+bool DialogWindow::removeDialogButton(int id)
+{
+  if (buttonsPanel)
+    return buttonsPanel->removeById(id);
+  return false;
+}
+
 void DialogWindow::beforeUpdateImguiDialog(bool &use_auto_size_for_the_current_frame)
 {
   const ImVec2 minSize(initialWidth, initialHeight);
@@ -326,7 +333,7 @@ void DialogWindow::updateImguiDialog()
     const float propertiesPanelHeight = max(regionAvailYStart - buttonPanelHeight - ImGui::GetStyle().ItemSpacing.y, 0.0f);
 
     // "c" stands for child. It could be anything.
-    if (ImGui::BeginChild("c", ImVec2(0.0f, propertiesPanelHeight), ImGuiChildFlags_None, windowFlags))
+    if (ImGui::BeginChild("c", ImVec2(0.0f, propertiesPanelHeight), ImGuiChildFlags_NavFlattened, windowFlags))
     {
       const ImGuiWindow *childWindow = ImGui::GetCurrentWindowRead();
 
@@ -372,7 +379,7 @@ void DialogWindow::updateImguiDialog()
     buttonsPanel->updateImgui();
   }
 
-  if (ImGui::IsWindowFocused())
+  if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows))
   {
     if (preventNavigationWithTheTabKey)
       ImGui::SetKeyOwner(ImGuiKey_Tab, ImGui::GetCurrentWindowRead()->ID);

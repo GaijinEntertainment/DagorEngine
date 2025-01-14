@@ -130,9 +130,10 @@ bool GIWalls::calc()
     return true;
   }
   TIME_D3D_PROFILE(walls_clustered_grid_cs);
-  d3d::set_rwbuffer(STAGE_CS, 0, currentWallsGridSB.getBuf());
+  static int grid_uav_no = ShaderGlobal::get_slot_by_name("fill_walls_grid_range_cs_grid_uav_no");
+  d3d::set_rwbuffer(STAGE_CS, grid_uav_no, currentWallsGridSB.getBuf());
   fill_walls_grid_range->dispatchThreads(res.x, res.y, res.z);
-  d3d::set_rwbuffer(STAGE_CS, 0, NULL);
+  d3d::set_rwbuffer(STAGE_CS, grid_uav_no, NULL);
   d3d::resource_barrier({currentWallsGridSB.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE});
   /*const int subDivX = 2, subDivZ = 2;
   const float cellSize = dist/(WALLS_GRID_XZ/2);

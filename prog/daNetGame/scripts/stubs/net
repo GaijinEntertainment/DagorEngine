@@ -20,6 +20,7 @@ return {
   DC_KICK_ANTICHEAT = "DC_KICK_ANTICHEAT",
   DC_KICK_FRIENDLY_FIRE = "DC_KICK_FRIENDLY_FIRE",
   DC_KICK_VOTE = "DC_KICK_VOTE"
+  DC_COMPLAINTS = "DC_COMPLAINTS"
   EventOnNetworkDestroyed = class {name = "EventOnNetworkDestroyed"}
   EventOnConnectedToServer = class {name = "EventOnConnectedToServer"}
   EventOnDisconnectedFromServer = class {name = "EventOnDisconnectedFromServer"}

@@ -58,7 +58,7 @@ public:
   virtual void advance(int max_usec) = 0;
 
   //! returns current frame in YUV format (supported by: Ogg Theora player, PAM player)
-  virtual bool getFrame(TEXTUREID &idY, TEXTUREID &idU, TEXTUREID &idV) = 0;
+  virtual bool getFrame(TEXTUREID &idY, TEXTUREID &idU, TEXTUREID &idV, d3d::SamplerHandle &smp) = 0;
 
   //! should be called by client after frame textures are dispatched to d3d (to prevent texture overwrite-whe-n-used)
   virtual void onCurrentFrameDispatched() = 0;

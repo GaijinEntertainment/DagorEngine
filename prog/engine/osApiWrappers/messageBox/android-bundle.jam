@@ -1,8 +1,5 @@
 # to be included with osApiWrappers
 
 if $(Platform) in android {
-   BundleCopy +=
-      @$(Root)/prog/engine/osApiWrappers/messageBox/MessageBoxWrapper.java      src/com/gaijinent/MessageBox/MessageBoxWrapper.java
-   ;
    UseAndroidNativeMessageBox = yes ;
 }

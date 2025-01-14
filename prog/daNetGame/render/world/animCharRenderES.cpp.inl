@@ -408,10 +408,8 @@ inline void gather_animchar_async_ecs_query(T b);
 
 ECS_TAG(render)
 ECS_NO_ORDER
-static void animchar_render_opaque_async_es(const AnimcharRenderAsyncEvent &stg_)
+static void animchar_render_opaque_async_es(const AnimcharRenderAsyncEvent &stg)
 {
-  // todo: change codegen, so it passes non const events, if events are not const
-  AnimcharRenderAsyncEvent &stg = const_cast<AnimcharRenderAsyncEvent &>(stg_);
   DynModelRenderingState &state = stg.state;
 
   const uint8_t add_vis_bits = stg.add_vis_bits;
@@ -622,7 +620,7 @@ static void animchar_render_opaque_es(const UpdateStageInfoRender &stg)
       const uint32_t pathFilterSize = animchar_render__nodeVisibleStgFilters ? animchar_render__nodeVisibleStgFilters->size() : 0;
       G_ASSERT(!animchar_render__nodeVisibleStgFilters || pathFilterSize == scene->getNodeCount());
       state.process_animchar(0, ShaderMesh::STG_imm_decal, scene, additionalData, additionalDataSize, needPreviousMatrices, nullptr,
-        filter, pathFilterSize, stg.hints & (stg.RENDER_SHADOW | stg.RENDER_MAIN), needImmediateConstPS,
+        filter, pathFilterSize, stg.hints & (stg.RENDER_SHADOW | stg.RENDER_MAIN | stg.FORCE_NODE_COLLAPSER_ON), needImmediateConstPS,
         animchar__renderPriority ? dynmodel_renderer::RenderPriority::HIGH : dynmodel_renderer::RenderPriority::DEFAULT, nullptr,
         stg.texCtx);
     });

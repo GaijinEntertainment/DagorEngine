@@ -65,10 +65,9 @@ macro INIT_SIMPLE_GLASS()
   (ps) {
     tint_color@f4 = (tint_color);
     opaque_coeff@f1 = (opaque_coeff);
-    glass_specular_color@f3 = (
-      pow(glass_specular_color.r, 2.2) * sun_color_0.r / max(max(sun_color_0.r, sun_color_0.g), max(sun_color_0.b, 1.0)),
-      pow(glass_specular_color.g, 2.2) * sun_color_0.g / max(max(sun_color_0.r, sun_color_0.g), max(sun_color_0.b, 1.0)),
-      pow(glass_specular_color.b, 2.2) * sun_color_0.b / max(max(sun_color_0.r, sun_color_0.g), max(sun_color_0.b, 1.0)));
+    glass_specular_color@f3 = (pow(glass_specular_color.r, 2.2),
+                               pow(glass_specular_color.g, 2.2),
+                               pow(glass_specular_color.b, 2.2));
     glass_specular_power@f1 = specular_power;
   }
 
@@ -161,12 +160,12 @@ hlsl(ps)
       #endif
 
       #if isSimpleGlass
+        // fixme? - suspicious change of the diffuse term - tint always makes it lighter
         float4 tintColor = get_tint_color();
         float opaqueCoef = get_opaque_coeff();
         diffuseTerm += tintColor.xyz*tintColor.w;
         half dstAmount = saturate(surfaceOpaqueness + opaqueCoef);
         specularTerm *= glass_specular_color * get_glass_specular_power();
-        diffuseTerm *= dstAmount;
       #else
         half dstAmount = surfaceOpaqueness;
       #endif
@@ -210,12 +209,17 @@ hlsl(ps)
       litColor += get_dynamic_lighting(processedGbuffer, worldPos, view, input.clipPos.w, input.clipPos.xy, NoV, diffuseColor.rgb, screenUV, 1);
     #endif
 
+    float blendW = dstAmount;
+    #if isSimpleGlass // maybe we should use this for refraction glass too
+      blendW = blendW * (1 - fresnel) + fresnel;
+    #endif
+
     ##if in_editor_assume == no
     #if APPLY_BRUNETON_FOG
       get_volfog_with_precalculated_scattering(screenUV, screenUV, view, dist, input.clipPos.w, input.fogMul, input.fogAdd);
     #endif
     ##endif
-    litColor = litColor * input.fogMul + input.fogAdd * dstAmount;
+    litColor = litColor * input.fogMul + input.fogAdd * blendW;
   #if HAS_NIGHT_EMISSION
       FLATTEN
     #if OVERRIDE_NIGHT_SUN_COS
@@ -239,7 +243,7 @@ hlsl(ps)
         return half4(icon_silhouette_color.xyz, dstAmount);
     #endif
     #if isSimpleGlass
-      return half4(litColor, dstAmount * (1 - fresnel) + fresnel);
+      return half4(litColor, blendW);
     #else
       return half4(litColor, dstAmount);
     #endif

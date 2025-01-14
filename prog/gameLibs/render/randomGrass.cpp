@@ -761,6 +761,7 @@ void RandomGrass::resetLayersVB()
     }
   }
 
+  int forcedAnisotropy = ::dgs_get_settings()->getBlockByNameEx("graphics")->getInt("forceAlphatestAnisotropy", 0);
   for (unsigned int layerIdx = 0; layerIdx < layers.size(); ++layerIdx)
   {
     GrassLayer &layer = *layers[layerIdx];
@@ -787,7 +788,11 @@ void RandomGrass::resetLayersVB()
       lod.diffuseTexId = texList[0];
 
       lod.alphaTex = acquire_managed_tex(lod.alphaTexId);
+      if (lod.alphaTex && forcedAnisotropy)
+        lod.alphaTex->setAnisotropy(forcedAnisotropy);
       lod.diffuseTex = acquire_managed_tex(lod.diffuseTexId);
+      if (lod.diffuseTex && forcedAnisotropy)
+        lod.diffuseTex->setAnisotropy(forcedAnisotropy);
 
       fillLayerLod(layer, lodIdx, lodRndSeed);
     }
@@ -1174,32 +1179,24 @@ void RandomGrass::generateGPUGrass(const LandMask &land_mask, const Frustum &fru
     Point4 lodLayerNo = Point4(0, lodIdx + 0.5, 0, 0);
     d3d::set_cs_const(47, &lodLayerNo.x, 1);
 
-    d3d::set_rwbuffer(STAGE_CS, 6, combinedLods[lodIdx].grassIndirectParams.getBuf());
-    d3d::set_rwbuffer(STAGE_CS, 5, combinedLods[lodIdx].grassInstancesIndirect.getBuf());
-    d3d::set_rwbuffer(STAGE_CS, 4, combinedLods[lodIdx].grassGenerateIndirect.getBuf());
-    d3d::set_rwbuffer(STAGE_CS, 3, combinedLods[lodIdx].grassDispatchCount.getBuf());
-    d3d::set_rwbuffer(STAGE_CS, 2, combinedLods[lodIdx].grassInstancesStride.getBuf());
+    static ShaderVariableInfo grassInstancesVarId = ShaderVariableInfo("grass_instances");
+    static ShaderVariableInfo grassInstancedBufferVarId = ShaderVariableInfo("grass_instanced_buffer");
+    static ShaderVariableInfo grassIndirectParamsVarId = ShaderVariableInfo("grass_indirect_params");
+    static ShaderVariableInfo grassGenerateIndirectBufferVarId = ShaderVariableInfo("grass_generate_indirect_buffer");
+    static ShaderVariableInfo grassDispatchCountBufferVarId = ShaderVariableInfo("grass_dispatch_count_buffer");
+    static ShaderVariableInfo grassStrideBufferVarId = ShaderVariableInfo("grass_stride_buffer");
+    static ShaderVariableInfo grassLayerParamsVarId = ShaderVariableInfo("grass_layer_params");
 
-    d3d::set_buffer(STAGE_CS, 9, combinedLods[lodIdx].grassLayersData.getBuf());
+    ShaderGlobal::set_buffer(grassIndirectParamsVarId, combinedLods[lodIdx].grassIndirectParams.getBufId());
+    ShaderGlobal::set_buffer(grassInstancedBufferVarId, combinedLods[lodIdx].grassInstancesIndirect.getBufId());
+    ShaderGlobal::set_buffer(grassGenerateIndirectBufferVarId, combinedLods[lodIdx].grassGenerateIndirect.getBufId());
+    ShaderGlobal::set_buffer(grassDispatchCountBufferVarId, combinedLods[lodIdx].grassDispatchCount.getBufId());
+    ShaderGlobal::set_buffer(grassStrideBufferVarId, combinedLods[lodIdx].grassInstancesStride.getBufId());
+    ShaderGlobal::set_buffer(grassLayerParamsVarId, combinedLods[lodIdx].grassLayersData.getBufId());
 
     randomGrassIndirect->dispatch(1, 1, 1); // clear and generate buffers
 
-    d3d::resource_barrier({combinedLods[lodIdx].grassIndirectParams.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE});
-    d3d::resource_barrier(
-      {combinedLods[lodIdx].grassInstancesIndirect.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
-    d3d::resource_barrier({combinedLods[lodIdx].grassGenerateIndirect.getBuf(), RB_RO_INDIRECT_BUFFER});
-    d3d::resource_barrier({combinedLods[lodIdx].grassDispatchCount.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE});
-    d3d::resource_barrier({combinedLods[lodIdx].grassInstancesStride.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE});
-
-    d3d::set_rwbuffer(STAGE_CS, 4, 0);
-    d3d::set_rwbuffer(STAGE_CS, 3, 0);
-    d3d::set_rwbuffer(STAGE_CS, 2, 0);
-
-    d3d::set_buffer(STAGE_CS, 9, combinedLods[lodIdx].grassDispatchCount.getBuf());
-    d3d::set_buffer(STAGE_CS, 10, combinedLods[lodIdx].grassInstancesStride.getBuf());
-    d3d::set_buffer(STAGE_CS, 11, combinedLods[lodIdx].grassIndirectParams.getBuf());
-
-    d3d::set_rwbuffer(STAGE_CS, 6, combinedLods[lodIdx].grassInstances.getBuf());
+    ShaderGlobal::set_buffer(grassInstancesVarId, combinedLods[lodIdx].grassInstances.getBufId());
 
     if (useBvhConnection && bvhConnection->getInstanceCounter() && bvhConnection->getMappingsBuffer())
     {
@@ -1209,15 +1206,7 @@ void RandomGrass::generateGPUGrass(const LandMask &land_mask, const Frustum &fru
     }
 
     randomGrassGenerator->dispatch_indirect(combinedLods[lodIdx].grassGenerateIndirect.getBuf(), 0);
-
-    d3d::resource_barrier({combinedLods[lodIdx].grassInstancesIndirect.getBuf(), RB_RO_INDIRECT_BUFFER});
-    d3d::resource_barrier({combinedLods[lodIdx].grassInstancesStride.getBuf(), RB_RO_SRV | RB_STAGE_VERTEX});
-    d3d::resource_barrier({combinedLods[lodIdx].grassInstances.getBuf(), RB_RO_SRV | RB_STAGE_VERTEX});
   }
-
-  d3d::set_const_buffer(STAGE_CS, 1, 0);
-  d3d::set_rwbuffer(STAGE_CS, 5, 0);
-  d3d::set_rwbuffer(STAGE_CS, 6, 0);
 
   grassBufferGenerated = true;
 
@@ -1227,6 +1216,9 @@ void RandomGrass::generateGPUGrass(const LandMask &land_mask, const Frustum &fru
 
 void RandomGrass::draw(const LandMask &land_mask, bool opaque, int startLod, int lodCount)
 {
+  static ShaderVariableInfo grassInstancesVarId = ShaderVariableInfo("grass_instances");
+  static ShaderVariableInfo grassStrideBufferVarId = ShaderVariableInfo("grass_stride_buffer");
+
   G_UNUSED(land_mask);
   ShaderGlobal::set_real(shaderVars[SHV_GRASS_RANGE], curMaxRadius);
 
@@ -1255,8 +1247,8 @@ void RandomGrass::draw(const LandMask &land_mask, bool opaque, int startLod, int
       d3d::setind(combinedLods[lodIdx].lodIb.getBuf());
       d3d::setvsrc_ex(0, combinedLods[lodIdx].lodVb.getBuf(), 0, sizeof(CellVertex));
 
-      d3d::set_buffer(STAGE_VS, 8, combinedLods[lodIdx].grassInstances.getBuf());
-      d3d::set_buffer(STAGE_VS, 7, combinedLods[lodIdx].grassInstancesStride.getBuf());
+      ShaderGlobal::set_buffer(grassInstancesVarId, combinedLods[lodIdx].grassInstances.getBufId());
+      ShaderGlobal::set_buffer(grassStrideBufferVarId, combinedLods[lodIdx].grassInstancesStride.getBufId());
 
       if (!randomGrassShader.shader->setStates(0, true))
         continue;

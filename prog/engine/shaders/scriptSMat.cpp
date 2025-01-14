@@ -223,6 +223,8 @@ ScriptedShaderMaterial::ScriptedShaderMaterial(const ShaderMaterialProperties &p
     for (int i = 0; i < props.stvar.size(); i++)
       if (props.sclass->localVars.v[i].type == SHVT_TEXTURE)
         props.stvar[i].texId = BAD_TEXTUREID;
+      else if (props.sclass->localVars.v[i].type == SHVT_SAMPLER)
+        props.stvar[i].samplerHnd = d3d::INVALID_SAMPLER_HANDLE;
       else if (props.sclass->localVars.v[i].type == SHVT_REAL && check_nan(props.stvar[i].r))
         props.stvar[i].r = 0;
   }
@@ -304,18 +306,18 @@ void ScriptedShaderMaterial::updateStVar(int prop_stvar_id)
     varElem->update_stvar(*this, prop_stvar_id);
 }
 
-#define SET_VARIABLE(var_type, param)                            \
-  if (uint32_t(variable_id) >= uint32_t(MAX_BINDUMP_SHADERVARS)) \
-    return false;                                                \
-  int vid = props.shBinDumpOwner().varIndexMap[variable_id];     \
-  if (vid >= SHADERVAR_IDX_ABSENT)                               \
-    return false;                                                \
-  int id = props.sclass->localVars.findVar(vid);                 \
-  if (id < 0)                                                    \
-    return false;                                                \
-  if (props.sclass->localVars.v[id].type != var_type)            \
-    return false;                                                \
-  props.stvar[id].param = v;                                     \
+#define SET_VARIABLE(var_type, param)                                              \
+  if (uint32_t(variable_id) >= uint32_t(props.shBinDumpOwner().maxShadervarCnt())) \
+    return false;                                                                  \
+  int vid = props.shBinDumpOwner().varIndexMap[variable_id];                       \
+  if (vid >= SHADERVAR_IDX_ABSENT)                                                 \
+    return false;                                                                  \
+  int id = props.sclass->localVars.findVar(vid);                                   \
+  if (id < 0)                                                                      \
+    return false;                                                                  \
+  if (props.sclass->localVars.v[id].type != var_type)                              \
+    return false;                                                                  \
+  props.stvar[id].param = v;                                                       \
   updateStVar(id);
 
 bool ScriptedShaderMaterial::set_int_param(const int variable_id, const int v)
@@ -346,23 +348,29 @@ bool ScriptedShaderMaterial::set_texture_param(const int variable_id, const TEXT
   return true;
 }
 
+bool ScriptedShaderMaterial::set_sampler_param(const int variable_id, d3d::SamplerHandle v)
+{
+  SET_VARIABLE(SHVT_SAMPLER, samplerHnd);
+  return true;
+}
+
 #undef SET_VARIABLE
 
-#define GET_VARIABLE(GET_FUNC)                                   \
-  if (uint32_t(variable_id) >= uint32_t(MAX_BINDUMP_SHADERVARS)) \
-    return false;                                                \
-  int vid = props.shBinDumpOwner().varIndexMap[variable_id];     \
-  if (vid >= SHADERVAR_IDX_ABSENT)                               \
-    return false;                                                \
-  int id = props.sclass->localVars.findVar(vid);                 \
-  if (id < 0)                                                    \
-    return false;                                                \
-  value = GET_FUNC(id);                                          \
+#define GET_VARIABLE(GET_FUNC)                                                     \
+  if (uint32_t(variable_id) >= uint32_t(props.shBinDumpOwner().maxShadervarCnt())) \
+    return false;                                                                  \
+  int vid = props.shBinDumpOwner().varIndexMap[variable_id];                       \
+  if (vid >= SHADERVAR_IDX_ABSENT)                                                 \
+    return false;                                                                  \
+  int id = props.sclass->localVars.findVar(vid);                                   \
+  if (id < 0)                                                                      \
+    return false;                                                                  \
+  value = GET_FUNC(id);                                                            \
   return true;
 
 bool ScriptedShaderMaterial::hasVariable(const int variable_id) const
 {
-  if (variable_id < 0 || variable_id >= MAX_BINDUMP_SHADERVARS)
+  if (variable_id < 0 || variable_id >= props.shBinDumpOwner().maxShadervarCnt())
     return false;
   int vid = props.shBinDumpOwner().varIndexMap[variable_id];
   return (vid < SHADERVAR_IDX_ABSENT) ? props.sclass->localVars.findVar(vid) >= 0 : false;
@@ -375,6 +383,11 @@ bool ScriptedShaderMaterial::getRealVariable(const int variable_id, real &value)
 bool ScriptedShaderMaterial::getIntVariable(const int variable_id, int &value) const { GET_VARIABLE(get_int_stvar); }
 
 bool ScriptedShaderMaterial::getTextureVariable(const int variable_id, TEXTUREID &value) const { GET_VARIABLE(get_tex_stvar); }
+
+bool ScriptedShaderMaterial::getSamplerVariable(const int variable_id, d3d::SamplerHandle &value) const
+{
+  GET_VARIABLE(get_sampler_stvar);
+}
 
 #undef GET_VARIABLE
 
@@ -597,6 +610,13 @@ TEXTUREID ScriptedShaderMaterial::get_tex_stvar(int i) const
   return props.stvar[i].texId;
 }
 
+d3d::SamplerHandle ScriptedShaderMaterial::get_sampler_stvar(int i) const
+{
+  G_ASSERT(i >= 0 && i < props.sclass->localVars.v.size());
+  CHECK_TYPE(SHVT_SAMPLER);
+  return props.stvar[i].samplerHnd;
+}
+
 void ScriptedShaderMaterial::getMatData(ShaderMatData &dest) const
 {
   memset(&dest, 0, sizeof(dest));
@@ -708,6 +728,7 @@ ShaderMaterialProperties::ShaderMaterialProperties(const shaderbindump::ShaderCl
       case SHVT_INT: stvar[i].i = c.getint(varName, sclass->localVars.get<int>(i)); break;
       case SHVT_REAL: stvar[i].r = c.getreal(varName, sclass->localVars.get<real>(i)); break;
       case SHVT_TEXTURE: stvar[i].texId = sclass->localVars.getTex(i).texId; break;
+      case SHVT_SAMPLER: stvar[i].samplerHnd = sclass->localVars.get<d3d::SamplerHandle>(i); break;
       default: G_ASSERT(0);
     }
   }
@@ -809,6 +830,7 @@ const String ShaderMaterialProperties::getInfo() const
       case SHVT_INT: info.aprintf(128, "(%d) ", stvar[j].i); break;
       case SHVT_REAL: info.aprintf(128, "(%.4f) ", stvar[j].r); break;
       case SHVT_TEXTURE: info.aprintf(128, "(0x%x) ", stvar[j].texId); break;
+      case SHVT_SAMPLER: info.aprintf(128, "(0x%llx) ", (uint64_t)stvar[j].samplerHnd); break;
       case SHVT_COLOR4: info.aprintf(128, "(%~c4) ", stvar[j].c4()); break;
     }
   }

@@ -26,8 +26,8 @@
 #endif
 
 #if _TARGET_XBOX
-#include <osApiWrappers/xbox/network.h>
-#include <xbox/xbox.h>
+#include <osApiWrappers/gdk/network.h>
+#include <gdk/main.h>
 #endif
 
 #if _TARGET_PC_WIN
@@ -118,7 +118,7 @@ static void logerr_http_in_retail(const eastl::string &url)
     0x70747468, // http
     0x2f2f3a73, // s://
   };
-  if (url.length() >= 8 && xbox::is_retail_environment())
+  if (url.length() >= 8 && gdk::is_retail_environment())
   {
     eastl::string lUrl = url.substr(0, 8);
     lUrl.make_lower();
@@ -537,7 +537,7 @@ static void move_queue_to_active_requests_nolock()
 #endif
 
 #if _TARGET_XBOX
-  if (!xbox::has_network_access())
+  if (!gdk::has_network_access())
     return;
 #endif
 

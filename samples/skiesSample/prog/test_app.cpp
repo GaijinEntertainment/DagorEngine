@@ -531,6 +531,7 @@ public:
 
   virtual void actScene()
   {
+    cpujobs::release_done_jobs();
     samplebenchmark::quitIfBenchmarkHasEnded();
     webui::update();
 
@@ -2548,11 +2549,7 @@ wind_dep0(S[0].windDependency), wind_dep1(S[1].windDependency), wind_dep2(S[2].w
           UniqueTexHolder &tex;
           TexPtr ht;
           InitHeightmap(UniqueTexHolder &_tex, TexPtr &&_ht) : ht(eastl::move(_ht)), tex(_tex) {}
-          virtual void performAction()
-          {
-            tex = UniqueTexHolder(eastl::move(ht), "heightmap");
-            cpujobs::release_done_jobs();
-          }
+          void performAction() override { tex = UniqueTexHolder(eastl::move(ht), "heightmap"); }
         };
         add_delayed_action(new InitHeightmap(s.heightmap, eastl::move(tex)));
       };
@@ -2643,11 +2640,7 @@ wind_dep0(S[0].windDependency), wind_dep1(S[1].windDependency), wind_dep2(S[2].w
           UpdatePtr(eastl::unique_ptr<DynamicRenderableSceneInstance> &_dest, DynamicRenderableSceneInstance *_val) :
             dest(_dest), val(_val)
           {}
-          virtual void performAction()
-          {
-            dest.reset(val);
-            cpujobs::release_done_jobs();
-          }
+          void performAction() override { dest.reset(val); }
         };
         add_delayed_action(new UpdatePtr(dm, val));
       }

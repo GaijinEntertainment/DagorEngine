@@ -35,6 +35,9 @@ interval bvh_process_tree_vertices_texcoord_size: four < 8, eight;
 interval bvh_process_tree_vertices_is_pivoted : no < 1, yes;
 interval bvh_process_tree_vertices_is_pos_inst : no < 1, yes;
 
+int bvh_process_tree_vertices_source_const_no = 6;
+int bvh_process_tree_vertices_output_uav_no = 0;
+
 shader bvh_process_tree_vertices
 {
   if (compatibility_mode == compatibility_mode_on)
@@ -82,6 +85,9 @@ shader bvh_process_tree_vertices
 
     pp_pos_tex@smp2d = pp_position;
     pp_dir_tex@smp2d = pp_direction;
+
+    source@buf : register(bvh_process_tree_vertices_source_const_no) hlsl { ByteAddressBuffer source@buf; };
+    output@uav : register(bvh_process_tree_vertices_output_uav_no) hlsl { RWByteAddressBuffer output@uav; };
   }
 
   hlsl(cs) {
@@ -94,9 +100,6 @@ shader bvh_process_tree_vertices
 
   hlsl(cs) {
     #pragma wave32
-
-    ByteAddressBuffer source : register(t6);
-    RWByteAddressBuffer output : register(u0);
 
     [numthreads( 32, 1, 1 )]
     void bvh_process_tree_vertices(uint3 dtId : SV_DispatchThreadID)

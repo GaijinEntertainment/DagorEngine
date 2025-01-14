@@ -71,7 +71,10 @@ dabfg::NodeHandle makePrepareGbufferNode(
                       registry.modify("gbuf_3_done").texture().optional()});
 
       // PS4 uses uncompressed color targets so no clear is required (it takes 220us)
-      if (d3d::get_driver_code().is(!d3d::ps4))
+      // vulkan on immediate render GPUs will do clear write then rendering write,
+      // instead of simply rendering write when clear is off, effectively wasting VRAM bandwith
+      // any TBDR device always benefit from clear as there will be load from VRAM
+      if (!d3d::get_driver_code().is(d3d::ps4 || d3d::vulkan) || d3d::get_driver_desc().caps.hasTileBasedArchitecture)
       {
         // TODO: clear motion vecs with INF here instead of through a shader.
         // This requires fixing generic RP implementation to support 32-bit clears.

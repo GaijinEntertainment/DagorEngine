@@ -424,11 +424,11 @@ float HumanInput::Xbox360GamepadClassDriver::getStickDeadZoneAbs(int stick_idx, 
 
 #if _TARGET_XBOX
 
-#include <osApiWrappers/xbox/gameinput.h>
+#include <osApiWrappers/gdk/gameinput.h>
 
-static constexpr size_t GAMEPADS_MAX = xbox::gameinput::MAX_DEVICES_PER_TYPE;
+static constexpr size_t GAMEPADS_MAX = gdk::gameinput::MAX_DEVICES_PER_TYPE;
 static DagorXboxOneGamepadState g_st[GAMEPADS_MAX] = {0};
-static xbox::gameinput::DevicesList devices;
+static gdk::gameinput::DevicesList devices;
 
 void refresh_xbox_gamepads_list() {}
 
@@ -454,7 +454,7 @@ int XInputSetState(int idx, DagorXboxOneGamepadVibro *xiv)
 
 void HumanInput::Xbox360GamepadClassDriver::updateXboxGamepads()
 {
-  xbox::gameinput::get_devices(GameInputKindGamepad, devices);
+  gdk::gameinput::get_devices(GameInputKindGamepad, devices);
 
 #define REMAP_BTN(X, B)                    \
   if (state.buttons & GameInputGamepad##X) \
@@ -465,7 +465,7 @@ void HumanInput::Xbox360GamepadClassDriver::updateXboxGamepads()
   {
     if (devices[i])
     {
-      xbox::gameinput::Reading reading = xbox::gameinput::get_current_reading(GameInputKindGamepad, devices[i]);
+      gdk::gameinput::Reading reading = gdk::gameinput::get_current_reading(GameInputKindGamepad, devices[i]);
       if (reading)
       {
         GameInputGamepadState state;

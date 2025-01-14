@@ -4,14 +4,19 @@
 //
 #pragma once
 
-#include <syncVroms/hashUtils.h>
+#include <hashUtils/hashUtils.h>
+#include <vromfsHash/vromfsHash.h>
 
 struct VromHasher : GenericHasher<SHA_DIGEST_LENGTH>
 {
-  using HasherBuffer = eastl::array<uint8_t, eastl::max(sizeof(SHA1Hasher), sizeof(Blake3Hasher<Length>))>;
+  using SHA1VromHashCalculator = VromfsHashCalculator<SHA1Hasher>;
+  using Blake3ShortVromHashCalculator = VromfsHashCalculator<Blake3Hasher<Length>>;
+
+  using HasherBuffer = eastl::array<uint8_t, eastl::max(sizeof(SHA1VromHashCalculator), sizeof(Blake3ShortVromHashCalculator))>;
   alignas(16) HasherBuffer buffer;
 
   VromHasher();
+  ~VromHasher();
   void update(const uint8_t *data, size_t size);
   Value finalize();
 };

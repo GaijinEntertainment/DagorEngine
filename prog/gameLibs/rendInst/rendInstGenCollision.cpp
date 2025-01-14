@@ -463,6 +463,73 @@ struct RayTransparencyStrat
   }
 };
 
+struct RaySoundOcclusionStrat
+{
+  const PhysMat::MatID rayMatId;
+  float accumulatedOcclusion = 0.f;
+  float maxOcclusion = 0.f;
+
+  RaySoundOcclusionStrat(PhysMat::MatID ray_mat) : rayMatId(ray_mat) {}
+
+  bool isCheckBBoxAll() { return accumulatedOcclusion < 1.f; }
+
+  bool executeForMesh(CollisionResource *coll_res, mat44f_cref tm, const Point3 &pos, const Point3 &dir, float &out_t, //-V669
+    Point3 & /*out_norm*/, rendinst::RendInstDesc * /*ri_desc*/, bool &have_collision, int layer_idx, int /*idx*/, int pool,
+    int /*offs*/, int &out_mat_id, int cell_idx)
+  {
+    const RendInstGenData *rgl = rendinst::getRgLayer(cell_idx == -1 ? rendinst::riExtra[pool].riPoolRefLayer : layer_idx);
+    const int poolRef = cell_idx == -1 ? rendinst::riExtra[pool].riPoolRef : pool;
+    if (!rgl || poolRef < 0)
+      return false;
+
+    const auto &riProperties = rgl->rtData->riProperties[poolRef];
+    if (riProperties.soundOcclusion <= 0.f)
+      return false;
+
+    constexpr auto behaviorFlag = CollisionNode::PHYS_COLLIDABLE;
+    if (coll_res->rayHit(tm, pos, dir, out_t, rayMatId, out_mat_id, behaviorFlag))
+    {
+      accumulatedOcclusion += riProperties.soundOcclusion;
+      maxOcclusion = max(maxOcclusion, riProperties.soundOcclusion);
+      have_collision = true;
+    }
+    return accumulatedOcclusion >= 1.f;
+  }
+
+  bool executeForPos(CollisionResource *coll_res, mat44f_cref tm, const BBox3 &, const Point3 &pos, const Point3 &dir, //-V669
+    float &out_t,                                                                                                      //-V669
+    Point3 & /*out_norm*/, rendinst::RendInstDesc * /*ri_desc*/, bool &have_collision, int layer_idx, int /*idx*/, int pool,
+    int /*offs*/, int &out_mat_id, int cell_idx, const BBox3 & /*bbox_all*/)
+  {
+    const RendInstGenData *rgl = rendinst::getRgLayer(cell_idx == -1 ? rendinst::riExtra[pool].riPoolRefLayer : layer_idx);
+    const int poolRef = cell_idx == -1 ? rendinst::riExtra[pool].riPoolRef : pool;
+    if (!rgl || poolRef < 0)
+      return false;
+
+    const auto &riProperties = rgl->rtData->riProperties[poolRef];
+    if (riProperties.soundOcclusion <= 0.f)
+      return false;
+
+    constexpr auto behaviorFlag = CollisionNode::PHYS_COLLIDABLE;
+    if (coll_res->rayHit(tm, pos, dir, out_t, rayMatId, out_mat_id, behaviorFlag))
+    {
+      accumulatedOcclusion += riProperties.soundOcclusion;
+      maxOcclusion = max(maxOcclusion, riProperties.soundOcclusion);
+      have_collision = true;
+    }
+    return accumulatedOcclusion >= 1.f;
+  }
+
+  bool executeForCell(bool /*cell_result*/) { return accumulatedOcclusion >= 1.f; }
+
+  bool shouldIgnoreRendinst(bool /*is_pos*/, bool /* is_immortal */, PhysMat::MatID mat_id) const
+  {
+    if (rayMatId != PHYSMAT_INVALID && !PhysMat::isMaterialsCollide(rayMatId, mat_id))
+      return true;
+    return false;
+  }
+};
+
 template <typename Strategy>
 static bool traverseRayCell(RendInstGenData::Cell &cell, bbox3f_cref rayBox, dag::Span<Trace> traces, bool /*trace_meshes*/,
   int layer_idx, rendinst::RendInstDesc *ri_desc, Strategy &strategy, int cell_idx)
@@ -988,6 +1055,25 @@ void initTraceTransparencyParameters(float tree_trunk_opacity, float tree_canopy
 {
   treeTrunkOpacity = tree_trunk_opacity;
   treeCanopyOpacity = tree_canopy_opacity;
+}
+
+bool traceSoundOcclusionRayRIGenNormalized(const Point3 &p, const Point3 &dir, float t, int ray_mat_id, float &accumulated_occlusion,
+  float &max_occlusion)
+{
+  RaySoundOcclusionStrat strategy(ray_mat_id);
+
+  Trace traceData(p, dir, t, nullptr);
+  bbox3f rayBox;
+  init_raybox_from_trace(rayBox, traceData);
+
+  bool haveCollision = false;
+  rayTraverseRiExtra(rayBox, dag::Span<Trace>(&traceData, 1), nullptr, strategy, haveCollision, rendinst::RIEX_HANDLE_NULL);
+  FOR_EACH_PRIMARY_RG_LAYER_DO (rgl)
+    rayTraverseRendinst(rayBox, dag::Span<Trace>(&traceData, 1), true /*trace_meshes*/, _layer, nullptr, strategy, haveCollision);
+
+  accumulated_occlusion = strategy.accumulatedOcclusion;
+  max_occlusion = strategy.maxOcclusion;
+  return haveCollision;
 }
 
 bool checkCachedRiData(const TraceMeshFaces *ri_cache)
@@ -1606,7 +1692,7 @@ void computeRiIntersectedSolids(RendInstsSolidIntersectionsList &intersected, co
   intersected.erase(it, intersected.end());
 }
 
-static bool testObjToRIGenIntersection1(int layer_idx, CollisionResource *obj_res, const CollisionNodeFilter &filter,
+static bool testObjToRIGenIntersectionVel(int layer_idx, CollisionResource *obj_res, const CollisionNodeFilter &filter,
   const TMatrix &obj_tm, const Point3 &obj_vel, Point3 *intersected_obj_pos, bool *tree_sphere_intersected, Point3 *collisionPoint)
 {
   mat44f vObjTm;
@@ -1652,11 +1738,12 @@ static bool testObjToRIGenIntersection1(int layer_idx, CollisionResource *obj_re
       float cell_h0 = v_extract_y(crt.cellOrigin), cell_dh = crt.cellHeight;
       float cell_x0 = v_extract_x(crt.cellOrigin), cell_z0 = v_extract_z(crt.cellOrigin);
 
-      int x0 = max((int)floorf((obj_tm[3][0] - testRad - cell_x0) * invsubcellSz), 0),
-          x1 = min((int)floorf((obj_tm[3][0] + testRad - cell_x0) * invsubcellSz), SUBCELL_DIV - 1);
-      int z0 = max((int)floorf((obj_tm[3][2] - testRad - cell_z0) * invsubcellSz), 0),
-          z1 = min((int)floorf((obj_tm[3][2] + testRad - cell_z0) * invsubcellSz), SUBCELL_DIV - 1);
-
+      vec4i cellsRange = v_cvt_floori(v_mul(
+        v_sub(v_add(v_perm_xxzz(vObjTm.col3), v_make_vec4f(-testRad, +testRad, -testRad, +testRad)), v_perm_xxzz(crt.cellOrigin)),
+        v_splats(invsubcellSz)));
+      cellsRange = v_clampi(cellsRange, v_zeroi(), v_splatsi(SUBCELL_DIV - 1));
+      int x0 = v_extract_xi(cellsRange), x1 = v_extract_yi(cellsRange);
+      int z0 = v_extract_zi(cellsRange), z1 = v_extract_wi(cellsRange);
       for (; z0 <= z1; z0++)
         for (int x2 = x0; x2 <= x1; x2++)
         {
@@ -1811,7 +1898,7 @@ bool testObjToRIGenIntersection(CollisionResource *obj_res, const CollisionNodeF
 {
   bool ret = false;
   FOR_EACH_PRIMARY_RG_LAYER_DO (rgl)
-    if (testObjToRIGenIntersection1(_layer, obj_res, filter, obj_tm, obj_vel, intersected_obj_pos, tree_sphere_intersected,
+    if (testObjToRIGenIntersectionVel(_layer, obj_res, filter, obj_tm, obj_vel, intersected_obj_pos, tree_sphere_intersected,
           collisionPoint))
       ret = true;
   return ret;

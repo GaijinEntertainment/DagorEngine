@@ -20,7 +20,7 @@ def %SlotMap
 def emplace ( var self : %SlotMap explicit; val : int )
     with self
         let r = id
-        hashMap[id] = val
+        unsafe(hashMap[id]) = val
         id ++
         return r
 %%

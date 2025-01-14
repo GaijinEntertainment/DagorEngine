@@ -276,9 +276,6 @@ endmacro
 macro INIT_SUN_STCODE()
 endmacro
 macro USE_SUN()
-  hlsl(ps) {
-    #define sun_color_0 (sun_color_0__shadow_intens.xyz)
-  }
 endmacro
 
 macro FOG_PS_STCODE()

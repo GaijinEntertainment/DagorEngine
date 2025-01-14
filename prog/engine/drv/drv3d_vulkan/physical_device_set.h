@@ -114,6 +114,12 @@ struct PhysicalDeviceSet
     {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES, nullptr, false};
 #endif
 
+#if VK_KHR_global_priority
+  VkPhysicalDeviceGlobalPriorityQueryFeaturesKHR globalPriorityFeatures = //
+    {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GLOBAL_PRIORITY_QUERY_FEATURES_KHR, nullptr, false};
+  eastl::vector<VkQueueFamilyGlobalPriorityPropertiesKHR> queuesGlobalPriorityProperties;
+#endif
+
   bool hasDevProps2 = false;
 
   bool hasConditionalRender = false;
@@ -136,6 +142,7 @@ struct PhysicalDeviceSet
   bool hasPipelineCreationCacheControl = false;
   bool hasSixteenBitStorage = false;
   bool hasSynchronization2 = false;
+  bool hasGlobalPriority = false;
   uint32_t maxBindlessTextures = 0;
   uint32_t maxBindlessSamplers = 0;
   uint32_t maxBindlessBuffers = 0;
@@ -371,6 +378,13 @@ struct PhysicalDeviceSet
     if (hasExtension<Synchronization2KHR>())
     {
       chain_structs(target, synchronization2Features);
+    }
+#endif
+
+#if VK_KHR_global_priority
+    if (hasExtension<GlobalPriorityKHR>())
+    {
+      chain_structs(target, globalPriorityFeatures);
     }
 #endif
   }
@@ -616,6 +630,16 @@ struct PhysicalDeviceSet
     else
       hasSynchronization2 = false;
 #endif
+
+#if VK_KHR_global_priority
+    if (hasExtension<GlobalPriorityKHR>())
+    {
+      hasGlobalPriority = globalPriorityFeatures.globalPriorityQuery;
+      globalPriorityFeatures.pNext = nullptr;
+    }
+    else
+      hasGlobalPriority = false;
+#endif
   }
 
   template <class TargetExt, class DepExt>
@@ -731,10 +755,28 @@ struct PhysicalDeviceSet
       VULKAN_LOG_CALL(instance.vkGetPhysicalDeviceQueueFamilyProperties2KHR(device, &qfpc, nullptr));
       eastl::vector<VkQueueFamilyProperties2KHR> qf;
       qf.resize(qfpc);
+#if VK_KHR_global_priority
+      if (hasExtension<GlobalPriorityKHR>())
+      {
+        queuesGlobalPriorityProperties.resize(qfpc);
+        for (auto &&info : queuesGlobalPriorityProperties)
+        {
+          info.sType = VK_STRUCTURE_TYPE_QUEUE_FAMILY_GLOBAL_PRIORITY_PROPERTIES_KHR;
+          info.pNext = nullptr;
+        }
+      }
+#endif
       for (auto &&info : qf)
       {
         info.sType = VK_STRUCTURE_TYPE_QUEUE_FAMILY_PROPERTIES_2_KHR;
+#if VK_KHR_global_priority
+        if (hasExtension<GlobalPriorityKHR>())
+          chain_structs(info, queuesGlobalPriorityProperties[&info - qf.begin()]);
+        else
+          info.pNext = nullptr;
+#else
         info.pNext = nullptr;
+#endif
       }
       VULKAN_LOG_CALL(instance.vkGetPhysicalDeviceQueueFamilyProperties2KHR(device, &qfpc, qf.data()));
       qf.resize(qfpc);
@@ -1035,6 +1077,38 @@ struct PhysicalDeviceSet
     print(prop.limits, out);
     print(prop.sparseProperties, out);
   }
+
+#if VK_KHR_global_priority
+  static inline void print(const eastl::vector<VkQueueFamilyGlobalPriorityPropertiesKHR> &prop, String &out)
+  {
+    String prios;
+    String dump("Queue priorities: [");
+    for (auto &&q : prop)
+    {
+      prios.clear();
+      for (uint32_t i = 0; i < q.priorityCount; ++i)
+      {
+        switch (q.priorities[i])
+        {
+          case VK_QUEUE_GLOBAL_PRIORITY_LOW_KHR: prios += "LOW|"; break;
+          case VK_QUEUE_GLOBAL_PRIORITY_MEDIUM_KHR: prios += "MED|"; break;
+          case VK_QUEUE_GLOBAL_PRIORITY_HIGH_KHR: prios += "HI|"; break;
+          case VK_QUEUE_GLOBAL_PRIORITY_REALTIME_KHR: prios += "REALTIME|"; break;
+          default: prios += "UNK|"; break;
+        }
+      }
+      if (!prios.empty())
+        prios.chop(1);
+      else
+        prios = "None";
+      dump.aprintf(32, "%u:%s", &q - prop.data(), prios);
+      dump += ",";
+    }
+    dump.pop_back();
+    dump += "]";
+    apdnf(dump);
+  }
+#endif
 
   static inline void print(const eastl::vector<VkQueueFamilyProperties> &qs, String &out)
   {
@@ -1536,7 +1610,7 @@ struct PhysicalDeviceSet
       boolToStr(hasShaderFloat16), boolToStr(hasMemoryPriority), boolToStr(hasPageableDeviceLocalMemory));
     apd("hasPipelineCreationCacheControl: %s", boolToStr(hasPipelineCreationCacheControl));
     apd("hasSixteenBitStorage: %s", boolToStr(hasSixteenBitStorage));
-    apd("hasSynchronization2: %s", boolToStr(hasSynchronization2));
+    apd("hasSynchronization2: %s, hasGlobalPriority: %s", boolToStr(hasSynchronization2), boolToStr(hasGlobalPriority));
   }
 
   inline void print(uint32_t device_index)
@@ -1551,6 +1625,10 @@ struct PhysicalDeviceSet
     print(memoryProperties, out);
     print(features, out);
     print(queueFamilyProperties, out);
+#if VK_KHR_global_priority
+    if (hasGlobalPriority)
+      print(queuesGlobalPriorityProperties, out);
+#endif
     print(formatProperties, out);
     printExt(out);
     printDisplays(out);

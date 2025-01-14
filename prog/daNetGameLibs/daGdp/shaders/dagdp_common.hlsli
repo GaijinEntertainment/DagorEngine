@@ -21,6 +21,8 @@
 // maps the density mask channel bits to -1 (invalid), 0 (red), 1 (green), 2 (blue), 3 (alpha)
 #define GET_DENSITY_MASK_CHANNEL(flags) (((int) (((flags) & DENSITY_MASK_CHANNEL_ALL_BITS) >> 6)) - 1)
 
+#define WATER_PLACEMENT_BIT      (1 << 9) // If set, object will be placed on water heightmap instead of terrain or clipmap RI (heightmap imitators).
+
 struct PlaceableGpuData
 {
   float yawRadiansMin;

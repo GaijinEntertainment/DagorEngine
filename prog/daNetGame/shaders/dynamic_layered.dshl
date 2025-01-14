@@ -122,8 +122,6 @@ shader dynamic_layered
         worldDu,
         worldDv);
 
-      float3 worldPos = eyeToPoint+world_view_pos;
-      float4 unpackedOutputPos = output.pos;
       float opacity = 1;
       ##if in_editor_assume == no
         uint offset_id = get_immediate_dword_0();
@@ -170,9 +168,7 @@ shader dynamic_layered
 
         ##if (dyn_model_render_pass == render_pass_normal)
           #if COLOR_NEEDED
-            float4 hashval;
-            get_per_instance_data(hashval, 1);
-            output.colorMul = getColorMul(asuint(hashval.x));
+            output.colorMul = getColorMul(get_per_instance_hashval());
           #endif
         ##endif
       ##endif

@@ -131,7 +131,6 @@ static void update_tag_changes_es(const ParallelUpdateFrameDelayed &,
   MotionMatchingController &motion_matching__controller,
   AnimV20::AnimcharBaseComponent &animchar,
   int &motion_matching__presetIdx,
-  float &motion_matching__animationBlendTime,
   float &motion_matching__presetBlendTimeLeft,
   float &mm_trajectory__linearVelocityViscosity,
   float &mm_trajectory__angularVelocityViscosity,
@@ -178,7 +177,7 @@ static void update_tag_changes_es(const ParallelUpdateFrameDelayed &,
     mm_trajectory__linearVelocityViscosity = preset.linearVelocityViscosity;
     mm_trajectory__angularVelocityViscosity = preset.angularVelocityViscosity;
     motion_matching__presetBlendTimeLeft = max(preset.presetBlendTime, prevPreset.presetBlendTime);
-    motion_matching__animationBlendTime = max(motion_matching__presetBlendTimeLeft, preset.animationBlendTime);
+    motion_matching__controller.transitionBlendTime = max(motion_matching__presetBlendTimeLeft, preset.animationBlendTime);
   }
 }
 
@@ -218,9 +217,9 @@ public:
 
     motion_matching_ecs_query(
       [this, &processedMotionMatchingCount](MotionMatchingController &motion_matching__controller,
-        float &motion_matching__updateProgress, float &motion_matching__metricaTolerance, float &motion_matching__animationBlendTime,
-        float &motion_matching__presetBlendTimeLeft, float motion_matching__blendTimeToAnimtree, float motion_matching__distanceFactor,
-        FrameFeatures &motion_matching__goalFeature, int motion_matching__presetIdx, bool motion_matching__enabled) {
+        float &motion_matching__updateProgress, float &motion_matching__metricaTolerance, float &motion_matching__presetBlendTimeLeft,
+        float motion_matching__blendTimeToAnimtree, float motion_matching__distanceFactor, FrameFeatures &motion_matching__goalFeature,
+        int motion_matching__presetIdx, bool motion_matching__enabled) {
         G_ASSERT_RETURN(!motion_matching__enabled || motion_matching__controller.dataBase, ); // don't enable until database is loaded
         update_node_weights(motion_matching__controller, motion_matching__enabled, motion_matching__blendTimeToAnimtree, dt);
         if (!motion_matching__enabled && motion_matching__controller.motionMatchingWeight <= 0.f)
@@ -229,8 +228,7 @@ public:
           motion_matching__controller.currentClipInfo = {};
           return;
         }
-        const bool animFinished = motion_matching__controller.updateAnimationProgress(dt);
-        motion_matching__controller.lastTransitionTime += dt;
+        bool animFinished = motion_matching__controller.willCurrentAnimationEnd(dt);
 
         const AnimationDataBase &dataBase = *motion_matching__controller.dataBase;
         const TagPreset &currentPreset = dataBase.tagsPresets[motion_matching__presetIdx];
@@ -238,7 +236,7 @@ public:
         {
           motion_matching__presetBlendTimeLeft -= dt;
           if (motion_matching__presetBlendTimeLeft <= 0)
-            motion_matching__animationBlendTime = currentPreset.animationBlendTime;
+            motion_matching__controller.transitionBlendTime = currentPreset.animationBlendTime;
         }
 
         const auto &clips = dataBase.clips;
@@ -310,40 +308,12 @@ public:
             {
               bool needTransition = motion_matching__controller.hasActiveAnimation();
               motion_matching__metricaTolerance = currentPreset.metricaToleranceMax;
-              motion_matching__controller.playAnimation(bestIndex.clip, bestIndex.frame);
-
-              if (needTransition)
-              {
-                motion_matching__controller.lastTransitionTime = 0.f;
-                // reuse memory for nextAnimation, resultAnimation is not needed here and will be recalculated farther anyway
-                BoneInertialInfo &nextAnimation = motion_matching__controller.resultAnimation;
-                float timeInSeconds = motion_matching__controller.getFrameTimeInSeconds(bestIndex.clip, bestIndex.frame, 0.f);
-                // sample new animation in nextAnimation
-                extract_frame_info(timeInSeconds, clips[bestIndex.clip], nextAnimation);
-
-                apply_root_motion_correction(timeInSeconds, clips[bestIndex.clip], dataBase.rootNode, nextAnimation);
-
-                // caclulate offset between currentAnimation and nextAnimation
-                // we will decay offset for smooth transition
-                inertialize_pose_transition(motion_matching__controller.offset, motion_matching__controller.currentAnimation,
-                  nextAnimation, motion_matching__controller.perNodeWeights);
-              }
+              motion_matching__controller.playAnimation(bestIndex.clip, bestIndex.frame, needTransition);
             }
           }
         }
-        if (motion_matching__controller.hasActiveAnimation())
-        {
-          const MotionMatchingController::CurrentClipInfo &param = motion_matching__controller.currentClipInfo;
-          float timeInSeconds = motion_matching__controller.getFrameTimeInSeconds(param.clip, param.frame, param.linearBlendProgress);
-          // update currentAnimation
-          extract_frame_info(timeInSeconds, clips[param.clip], motion_matching__controller.currentAnimation);
-          apply_root_motion_correction(timeInSeconds, clips[param.clip], dataBase.rootNode,
-            motion_matching__controller.currentAnimation);
-          // decay offset here. Result animation it is offset + currentAnimation
-          inertialize_pose_update(motion_matching__controller.resultAnimation, motion_matching__controller.offset,
-            motion_matching__controller.currentAnimation, motion_matching__controller.perNodeWeights,
-            motion_matching__animationBlendTime * 0.5f, dt);
-        }
+        // Call update after MM search to finish transition faster
+        motion_matching__controller.updateAnimationProgress(dt);
       });
   }
 } motion_matching_job;

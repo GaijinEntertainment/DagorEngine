@@ -148,10 +148,10 @@ static void dumpVariantTable(const shaderbindump::VariantTable &vt, int indent, 
 static inline bool shader_pass_used(const shaderbindump::ShaderCode::Pass &p)
 {
   static constexpr int BAD = shaderbindump::ShaderCode::INVALID_FSH_VPR_ID;
+  auto &shOwner = shBinDumpOwner();
 
   if (p.rpass)
-    if ((p.rpass->vprId == BAD || shBinDump().vprId[p.rpass->vprId] >= 0) &&
-        (p.rpass->fshId == BAD || shBinDump().fshId[p.rpass->fshId] >= 0))
+    if ((p.rpass->vprId == BAD || shOwner.vprId[p.rpass->vprId] >= 0) && (p.rpass->fshId == BAD || shOwner.fshId[p.rpass->fshId] >= 0))
       return true;
   return false;
 }
@@ -159,11 +159,13 @@ static inline bool shader_pass_used(const shaderbindump::ShaderCode::Pass &p)
 static uint32_t shader_pass_size(const shaderbindump::ShaderCode::Pass &p)
 {
   static constexpr int BAD = shaderbindump::ShaderCode::INVALID_FSH_VPR_ID;
+  auto &shOwner = shBinDumpOwner();
+
   uint32_t sz = 0;
   ShaderBytecode tmpbuf(framemem_ptr());
-  if (p.rpass->vprId != BAD && shBinDump().vprId[p.rpass->vprId] >= 0)
+  if (p.rpass->vprId != BAD && shOwner.vprId[p.rpass->vprId] >= 0)
     sz += shBinDumpOwner().getCode(p.rpass->vprId, ShaderCodeType::VERTEX, tmpbuf).size();
-  if (p.rpass->fshId != BAD && shBinDump().fshId[p.rpass->fshId] >= 0)
+  if (p.rpass->fshId != BAD && shOwner.fshId[p.rpass->fshId] >= 0)
     sz += shBinDumpOwner().getCode(p.rpass->fshId, ShaderCodeType::PIXEL, tmpbuf).size();
   return sz;
 }
@@ -181,12 +183,13 @@ static inline bool shader_code_used(const shaderbindump::ShaderCode &code)
 static inline bool shader_pass_allused(const shaderbindump::ShaderCode::Pass &p)
 {
   static constexpr int BAD = shaderbindump::ShaderCode::INVALID_FSH_VPR_ID;
+  auto &shOwner = shBinDumpOwner();
 
   if (p.rpass)
   {
-    if (p.rpass->vprId != BAD && shBinDump().vprId[p.rpass->vprId] < 0)
+    if (p.rpass->vprId != BAD && shOwner.vprId[p.rpass->vprId] < 0)
       return false;
-    else if (p.rpass->fshId != BAD && shBinDump().fshId[p.rpass->fshId] < 0)
+    else if (p.rpass->fshId != BAD && shOwner.fshId[p.rpass->fshId] < 0)
       return false;
   }
   return true;
@@ -206,19 +209,20 @@ static void gather_shader_ids(const shaderbindump::ShaderCode::Pass &p, FastIntL
   FastIntList &unused_vpr)
 {
   static constexpr int BAD = shaderbindump::ShaderCode::INVALID_FSH_VPR_ID;
+  auto &shOwner = shBinDumpOwner();
 
   if (p.rpass)
   {
     if (p.rpass->vprId != BAD)
     {
       vpr.addInt(p.rpass->vprId);
-      if (shBinDump().vprId[p.rpass->vprId] < 0)
+      if (shOwner.vprId[p.rpass->vprId] < 0)
         unused_vpr.addInt(p.rpass->vprId);
     }
     if (p.rpass->fshId != BAD)
     {
       fsh.addInt(p.rpass->fshId);
-      if (shBinDump().fshId[p.rpass->fshId] < 0)
+      if (shOwner.fshId[p.rpass->fshId] < 0)
         unused_fsh.addInt(p.rpass->fshId);
     }
   }

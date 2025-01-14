@@ -51,10 +51,11 @@ void dump_and_clear_components_profiler_stats()
     int i = 0;
     for (auto &it : list)
     {
-      debug("  #%2d component %s, was replicated %.2f%%(%d)", ++i, g_entity_mgr->getDataComponents().getComponentNameById(it.first),
-        it.second * toPercentMult, it.second);
       curSum += it.second;
-      if (curSum >= totalThreshold)
+      debug("  #%2d component %s, was replicated %.2f%%/%.2f%%(%d)", ++i,
+        g_entity_mgr->getDataComponents().getComponentNameById(it.first), it.second * toPercentMult, curSum * toPercentMult,
+        it.second);
+      if (curSum >= totalThreshold && i >= 10)
         break;
     }
   };

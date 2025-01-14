@@ -228,7 +228,7 @@ namespace das {
         auto ft = make_smart<TypeDecl>(Type::tBitfield);
         ft->alias = "VariableAccessFlags";
         ft->argNames = { "access_extern", "access_get", "access_ref",
-            "access_init", "access_pass" };
+            "access_init", "access_pass", "access_fold" };
         return ft;
     }
 

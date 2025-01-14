@@ -4,6 +4,7 @@
 
 #include "util/dag_baseDef.h"
 
+// Increase this number if changes in the compiler invalidate .obj for SPIR-V
 extern const int VER_OBJ_SPIRV_VAL = _MAKE4C('13.0');
 
 #if _CROSS_TARGET_SPIRV

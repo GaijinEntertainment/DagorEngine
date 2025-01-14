@@ -867,6 +867,8 @@ public:
   void render_rectangle_aa(Point2 lt, Point2 rb, float line_width, E3DCOLOR color, E3DCOLOR mid_color, E3DCOLOR fill_color);
   void render_smooth_round_rect(Point2 lt, Point2 rb, float corner_inner_radius, float corner_outer_radius, E3DCOLOR color);
 
+  void render_line_gradient_out(Point2 from, Point2 to, E3DCOLOR center_col, float center_width, float outer_width,
+    E3DCOLOR outer_col = E3DCOLOR(0, 0, 0, 0));
 
   // ************************************************************************
   // * text stuff

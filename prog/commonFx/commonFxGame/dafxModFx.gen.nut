@@ -112,7 +112,7 @@ declare_struct("FxInitGpuPlacement", 2,
   { name="use_depth_above", type="bool", defVal=0 },
   { name="use_water", type="bool", defVal=0 },
   { name="use_water_flowmap", type="bool", defVal=0 },
-  { name="use_normal", type="bool", defVal=0 },
+  { name="use_normal", type="bool", defVal=0 }, // unused?
 ]);
 
 declare_struct("FxPos", 6,
@@ -345,15 +345,13 @@ declare_struct("FxVelocity", 14,
   { name="gravity_zone", type="list", list=["default", "disabled", "per_emitter", "per_particle"] },
 ]);
 
-declare_struct("FxPlacement", 2,
+declare_struct("FxPlacement", 3,
 [
   { name="enabled", type="bool", defVal=0 },
   { name="placement_threshold", type="real", defVal=-1 },
   { name="use_hmap", type="bool", defVal=0 },
   { name="use_depth_above", type="bool", defVal=1 },
-  // TODO: implement these too:
-  // { name="use_water", type="bool", defVal=0 },
-  // { name="use_normal", type="bool", defVal=0 },
+  { name="use_water", type="bool", defVal=1 },
   { name="align_normals_offset", type="real", defVal=-1 },
 ]);
 

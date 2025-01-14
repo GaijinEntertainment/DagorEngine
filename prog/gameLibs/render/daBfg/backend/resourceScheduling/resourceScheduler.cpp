@@ -544,7 +544,7 @@ ResourceScheduler::DestroyedHeapSet ResourceScheduler::allocateCpuHeaps(int prev
         if (potential_deactivation_set[resIdx].index() == 3)
         {
           auto [f, x] = eastl::get<3>(potential_deactivation_set[resIdx]);
-          (*f)(x);
+          f(x);
         }
 
       result.push_back(heapIdx);
@@ -705,7 +705,7 @@ ResourceScheduler::PotentialDeactivationSet ResourceScheduler::gatherPotentialDe
         case ResourceType::Texture: result[idx] = getTexture(prev_frame, idx).getBaseTex(); break;
         case ResourceType::Buffer: result[idx] = getBuffer(prev_frame, idx).getBuf(); break;
         case ResourceType::Blob:
-          result[idx] = BlobDeactivationRequest{&(res.asScheduled().getCpuDescription().deactivate), getBlob(prev_frame, idx).data};
+          result[idx] = BlobDeactivationRequest{res.asScheduled().getCpuDescription().deactivate, getBlob(prev_frame, idx).data};
           break;
         default: G_ASSERT(false); break;
       }
@@ -937,15 +937,14 @@ bool ResourceScheduler::isResourcePreserved(int frame, intermediate::ResourceInd
   return preservedResources[frame][res_idx];
 }
 
-void ResourceScheduler::emergencyDeactivateBlobs(int frame, eastl::span<ResNameId> resources)
+void ResourceScheduler::emergencyWipeBlobs(int frame, dag::VectorSet<ResNameId, eastl::less<ResNameId>, framemem_allocator> resources)
 {
-  dag::VectorSet<ResNameId, eastl::less<ResNameId>, framemem_allocator> resourcesSet(resources.begin(), resources.end());
-
   for (auto [resIdx, res] : cachedIntermediateResources.enumerate())
-    if (res.isScheduled() && res.asScheduled().isCpuResource() && resourcesSet.count(res.frontendResources.front()))
+    if (res.isScheduled() && res.asScheduled().isCpuResource() && resources.count(res.frontendResources.front()))
     {
       auto &desc = res.asScheduled().getCpuDescription();
-      desc.deactivate(getBlob(frame, resIdx).data);
+      if (res.asScheduled().history != History::No)
+        desc.deactivate(getBlob(frame, resIdx).data);
 
       // After deactivation, we have to trick the system into not trying to
       // deactivate/preserve it on next recompilation.
@@ -953,6 +952,7 @@ void ResourceScheduler::emergencyDeactivateBlobs(int frame, eastl::span<ResNameI
       // - prevent it being marked as a potential deactivation
       // - prevent it from being considered for history preservation
       res.asScheduled().history = History::No;
+      res.asScheduled().description = BlobDescription{};
 
       debug("daBfg: Wiped resource %s", cachedIntermediateResourceNames[resIdx]);
     }

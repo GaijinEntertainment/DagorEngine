@@ -50,7 +50,7 @@ macro USE_PHOTOMETRY_TEXTURES(code)
       half2 tc = octahedral_mapping(half3(dot(side, dir), dot(lightDir, dir), dot(forward, dir)), zoom, rotate);
 #else
       // --- spherical mapping ---
-      half phi = atan2(dot(forward, dir), dot(side, dir));
+      half phi = atan2Fast4(dot(forward, dir), dot(side, dir));
       half2 tc = half2(phi/(2*M_PI), acosFast4(dot(lightDir, dir))/M_PI * zoom);
 #endif
       return tc;
@@ -93,7 +93,7 @@ endmacro
 macro INIT_CLUSTERED_LIGHTS(code)
   (code) {
     light_count_params@i4 = (omniLightsCount, omniLightsWordCount, spotLightsCount, spotLightsWordCount);
-    depth_slice_params__shadow_atlas_texel@f4 = (depthSliceScale, depthSliceBias, shadowAtlasTexel.x, shadowAtlasTexel.y);
+    depth_slice_params__shadow_atlas_texel@f4 = (depthSliceScale, depthSliceBias, shadowAtlasTexel.x, shadowAtlasTexel.y/max(1, shadowAtlasTexel.y));
     shadow_scale_bias_params@f4 = (shadowDistScale, shadowDistBias, shadowZBias, shadowSlopeZBias);
   }
 endmacro
@@ -194,28 +194,6 @@ macro USE_LIGHT_SHADOWS(code)
       return half(dynamic_light_shadows.SampleCmpLevelZero(dynamic_light_shadows_cmpSampler, tc.xy, z));
     }
 
-    half dynamic_shadow_sample_fxaa(float2 pos, float z, float2 texel_size)
-    {
-      float2 fxaaConsoleRcpFrameOpt = 0.5*texel_size;
-      float4 fxaaConsolePosPos = float4(pos - fxaaConsoleRcpFrameOpt, pos + fxaaConsoleRcpFrameOpt);
-      float4 luma = float4(
-               dynamic_shadow_sample(fxaaConsolePosPos.xy, z),
-               dynamic_shadow_sample(fxaaConsolePosPos.xw, z),
-               dynamic_shadow_sample(fxaaConsolePosPos.zy, z),
-               dynamic_shadow_sample(fxaaConsolePosPos.zw, z));
-       float4 dir = float4(
-         dot(luma, float4(-1,1,-1,1)),
-         dot(luma, float4(1,1,-1,-1)),
-         0,0
-       );
-       float2 dir2 = dir.xy * texel_size;
-       half3 grad = half3(
-         dynamic_shadow_sample(pos.xy, z),
-         dynamic_shadow_sample(pos.xy - dir2, z),
-         dynamic_shadow_sample(pos.xy + dir2, z)
-       );
-       return saturate(dot(grad, half3(0.2h, 0.4h, 0.4h) ));
-    }
     #include <interleavedGradientNoise.hlsl>
     half dynamic_shadow_sample_8tap(float2 screenpos, float2 pos, float z, half radius, float frame)
     {
@@ -287,6 +265,7 @@ macro USE_LIGHT_SHADOWS(code)
       for (int i = 0; i < NUM_SAMPLES; ++i)
       {
         half2 sampleOffset = mul(offsets[i], rotationMatrix);
+        sampleOffset.y *= shadowAtlasTexel.y;
         //sampleOffset = rotationMatrix[0]*((i+frame/8.0+1)/NUM_SAMPLES);
         shadow += min(centerShadowSample, dynamic_shadow_sample(pos.xy+sampleOffset, z));
       }

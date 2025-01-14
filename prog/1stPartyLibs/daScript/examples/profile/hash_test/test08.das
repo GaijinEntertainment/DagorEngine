@@ -13,7 +13,7 @@ def test ( hmap : auto(HashMapType); randomNumbers )
         static_if !typeinfo(is_table type<HashMapType>)
             hashMap <- HashMapType()
         for num in randomNumbers
-            hashMap[num] = -num
+            unsafe(hashMap[num]) = -num
         var any = false
         for num in randomNumbers
             any ^^= hashMap |> key_exists(num)      // we need `any` to prevent the compiler from optimizing the loop away

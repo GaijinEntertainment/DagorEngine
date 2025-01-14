@@ -142,6 +142,12 @@ namespace das
         string  importName;
     };
 
+    struct RequireRecord {
+        string              name;
+        vector<FileInfo *>  chain;
+    };
+
+    typedef smart_ptr<class FileAccess> FileAccessPtr;
     class FileAccess : public ptr_ref_count {
     public:
         virtual ~FileAccess() {}
@@ -162,12 +168,20 @@ namespace das
         virtual bool isSameFileName ( const string & f1, const string & f2 ) const;
         virtual bool isOptionAllowed ( const string & /*opt*/, const string & /*from*/ ) const { return true; }
         virtual bool isAnnotationAllowed ( const string & /*ann*/, const string & /*from*/ ) const { return true; }
+        // must stop at word boundary
+        virtual bool parseCustomRequire(const char *& /*src*/, const char * /*srcEnd*/,
+                                        FileInfo *& /*info*/,
+                                        const FileAccessPtr & /*access*/,
+                                        vector<RequireRecord> & /*req*/,
+                                        vector<FileInfo *> & /*chain*/ ) const {
+            return false;
+        }
+
     protected:
         virtual FileInfo * getNewFileInfo ( const string & ) { return nullptr; }
     protected:
         das_hash_map<string, FileInfoPtr>    files;
     };
-    typedef smart_ptr<FileAccess> FileAccessPtr;
     template <> struct isCloneable<FileAccess> : false_type {};
 
     struct SimFunction;
@@ -450,4 +464,3 @@ namespace das
     string debug_type ( const TypeInfo * info );
     string getTypeInfoMangledName ( TypeInfo * info );
 }
-

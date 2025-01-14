@@ -73,7 +73,7 @@ def validate_template(name : string; comps : table<string; uint>; cb : block<(su
 
 def find_template(comps : table<string; uint>; cb : block<(name : string#; tmpl : ecs::Template#) : bool>) : bool
   var res = false
-  getTemplateDB() |> find_templateDB() <| $ [unused_argument(name)] (tmplName; tmpl)
+  getTemplateDB() |> find_templateDB() <| $(tmplName; tmpl)
     let compTypes & = getComponentTypes()
     let dataComps & = getDataComponents()
 
@@ -148,7 +148,7 @@ struct ReqSystemFilter
 
 def find_event_handler(filter : ReqSystemFilter; cb : block<(name : string#; system : EntitySystemDesc#) : bool>)
   var res = false
-  find_systemDB() <| $ [unused_argument(system)] (name; system)
+  find_systemDB() <| $(name; system)
 
     var match = true
     if length(filter.allEvents) > 0

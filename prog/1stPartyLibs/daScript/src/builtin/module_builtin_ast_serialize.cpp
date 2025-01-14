@@ -1433,7 +1433,7 @@ namespace das {
 
     void ExprConst::serialize ( AstSerializer & ser ) {
         Expression::serialize(ser);
-        ser << baseType << value;
+        ser << baseType << value << foldedNonConst;
     }
 
     void ExprConstPtr::serialize( AstSerializer & ser ) {
@@ -2063,7 +2063,10 @@ namespace das {
               << value.aot_module
               << value.completion
               << value.export_all
+              << value.keep_alive
+              << value.very_safe_context
               << value.always_report_candidates_threshold
+              << value.max_infer_passes
               << value.stack
               << value.intern_strings
               << value.persistent_heap
@@ -2074,6 +2077,11 @@ namespace das {
               << value.macro_context_persistent_heap
               << value.macro_context_collect
               << value.rtti
+              << value.unsafe_table_lookup
+              << value.relaxed_pointer_const
+              << value.version_2_syntax
+              << value.gen2_make_syntax
+              << value.relaxed_assign
               << value.no_unsafe
               << value.local_ref_is_unsafe
               << value.no_global_variables
@@ -2092,9 +2100,12 @@ namespace das {
               << value.no_deprecated
               << value.no_aliasing
               << value.strict_smart_pointers
-              << value.relaxed_pointer_const
               << value.no_init
               << value.strict_unsafe_delete
+              << value.no_members_functions_in_struct
+              << value.no_local_class_members
+              << value.no_unsafe_uninitialized_structures
+              << value.strict_properties
               << value.no_optimizations
               << value.fail_on_no_aot
               << value.fail_on_lack_of_aot_export
@@ -2104,7 +2115,6 @@ namespace das {
               << value.profiler
               << value.profile_module
               << value.jit
-              << value.keep_alive
               << value.threadlock_context;
         return *this;
     }
@@ -2196,7 +2206,7 @@ namespace das {
     }
 
     uint32_t AstSerializer::getVersion () {
-        static constexpr uint32_t currentVersion = 54;
+        static constexpr uint32_t currentVersion = 61;
         return currentVersion;
     }
 

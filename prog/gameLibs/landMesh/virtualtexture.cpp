@@ -497,7 +497,8 @@ public:
 
   void prepareRender(ClipmapRenderer &render, bool turn_off_decals_on_fallback = false);
   void prepareFeedback(const Point3 &viewer_pos, const TMatrix &view_itm, const TMatrix4 &globtm, float height, float maxDist0 = 0.f,
-    float maxDist1 = 0.f, float approx_ht = 0.f, bool force_update = false, bool low_tpool_prio = true);
+    float maxDist1 = 0.f, float approx_ht = 0.f, bool force_update = false,
+    UpdateFeedbackThreadPolicy thread_policy = UpdateFeedbackThreadPolicy::PRIO_LOW);
   void renderFallbackFeedback(ClipmapRenderer &renderer, const TMatrix4 &globtm);
   void finalizeFeedback();
 
@@ -741,9 +742,9 @@ void Clipmap::prepareRender(ClipmapRenderer &render, bool turn_off_decals_on_fal
   clipmapImpl->prepareRender(render, turn_off_decals_on_fallback);
 }
 void Clipmap::prepareFeedback(const Point3 &viewer_pos, const TMatrix &view_itm, const TMatrix4 &globtm, float height, float maxDist0,
-  float maxDist1, float approx_ht, bool force_update, bool low_tpool_prio)
+  float maxDist1, float approx_ht, bool force_update, UpdateFeedbackThreadPolicy thread_policy)
 {
-  clipmapImpl->prepareFeedback(viewer_pos, view_itm, globtm, height, maxDist0, maxDist1, approx_ht, force_update, low_tpool_prio);
+  clipmapImpl->prepareFeedback(viewer_pos, view_itm, globtm, height, maxDist0, maxDist1, approx_ht, force_update, thread_policy);
 }
 void Clipmap::renderFallbackFeedback(ClipmapRenderer &render, const TMatrix4 &globtm)
 {
@@ -3828,7 +3829,8 @@ void ClipmapImpl::setDDScale()
 }
 
 void ClipmapImpl::prepareFeedback(const Point3 &center, const TMatrix &view_itm, const TMatrix4 &globtm, float zoom_height,
-  float maxClipMoveDist0, float maxClipMoveDist1, float approx_height_above_land, bool force_update, bool low_tpool_prio)
+  float maxClipMoveDist0, float maxClipMoveDist1, float approx_height_above_land, bool force_update,
+  UpdateFeedbackThreadPolicy thread_policy)
 {
   TIME_PROFILE(prepareFeedback);
 
@@ -4047,7 +4049,11 @@ void ClipmapImpl::prepareFeedback(const Point3 &center, const TMatrix &view_itm,
     if (currentContext->lockedCaptureMetadata.isValid())
     {
       feedbackJob.initFromHWFeedback(currentContext->lockedCaptureMetadata, globtm, *this, force_update);
-      threadpool::add(&feedbackJob, low_tpool_prio ? threadpool::PRIO_LOW : threadpool::PRIO_NORMAL);
+      if (thread_policy == UpdateFeedbackThreadPolicy::SAME_THREAD)
+        feedbackJob.doJob();
+      else
+        threadpool::add(&feedbackJob,
+          (thread_policy == UpdateFeedbackThreadPolicy::PRIO_LOW) ? threadpool::PRIO_LOW : threadpool::PRIO_NORMAL);
     }
   }
 

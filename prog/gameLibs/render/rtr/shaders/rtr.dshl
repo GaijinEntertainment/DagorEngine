@@ -60,7 +60,7 @@ endmacro
 
 shader rt_reflection_classify
 {
-  if (compatibility_mode == compatibility_mode_on) { dont_render; }
+  if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing) { dont_render; }
   supports global_const_block;
 
   ENABLE_ASSERT(cs)
@@ -91,7 +91,7 @@ shader rt_reflection_classify
 
   USE_LOAD_DEPTH_GBUFFER_BASE(cs)
   USE_LOAD_BVH_FLAGS_BASE(cs)
-  USE_LOAD_GBUFFER_BASE(cs, 1)
+  USE_LOAD_GBUFFER_BASE(cs, true)
 
   USE_CALC_GEOMETRY_NORMAL(cs)
 
@@ -198,7 +198,7 @@ shader rt_reflection_classify
 
 shader rt_reflection_sample
 {
-  if (compatibility_mode == compatibility_mode_on) { dont_render; }
+  if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing) { dont_render; }
   supports global_const_block;
 
   ENABLE_ASSERT(cs)
@@ -237,7 +237,7 @@ shader rt_reflection_sample
 
   USE_LOAD_DEPTH_GBUFFER_BASE(cs)
   USE_EMISSION_DECODE_COLOR_MAP(cs)
-  USE_LOAD_GBUFFER_BASE(cs, 1)
+  USE_LOAD_GBUFFER_BASE(cs, true)
 
   USE_CALC_GEOMETRY_NORMAL(cs)
 
@@ -352,7 +352,7 @@ shader rt_reflection_sample
 
 shader rt_reflection
 {
-  if (compatibility_mode == compatibility_mode_on) { dont_render; }
+  if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing) { dont_render; }
   supports global_const_block;
 
   ENABLE_ASSERT(cs)
@@ -592,7 +592,7 @@ shader rt_reflection
 
 shader rt_glass_reflection
 {
-  if (compatibility_mode == compatibility_mode_on) { dont_render; }
+  if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing) { dont_render; }
   supports global_const_block;
 
   ENABLE_ASSERT(cs)
@@ -690,7 +690,7 @@ shader rt_reflection_decode
 {
   ENABLE_ASSERT(cs)
 
-  if (compatibility_mode == compatibility_mode_on) { dont_render; }
+  if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing) { dont_render; }
   (cs) {
     input@tex2d = rtr_reflection_decode_src;
     output@uav = rtr_reflection_decode_dst hlsl { RWTexture2D<float4> output@uav; };

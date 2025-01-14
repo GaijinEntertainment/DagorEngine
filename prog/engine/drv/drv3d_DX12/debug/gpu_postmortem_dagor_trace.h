@@ -94,12 +94,18 @@ public:
     const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
     const BufferResourceReferenceAndOffset &args, const BufferResourceReferenceAndOffset &count, uint32_t max_count);
   void blit(const call_stack::CommandData &, D3DGraphicsCommandList *);
+#if D3D_HAS_RAY_TRACING
+  void dispatchRays(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+    const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchParameters &rdp);
+  void dispatchRaysIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+    const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchIndirectParameters &rdip);
+#endif
   void onDeviceRemoved(D3DDevice *device, HRESULT reason, call_stack::Reporter &reporter);
   bool sendGPUCrashDump(const char *, const void *, uintptr_t);
   void onDeviceShutdown();
   bool onDeviceSetup(ID3D12Device *, const Configuration &, const Direct3D12Enviroment &);
 
-  bool tryCreateDevice(IUnknown *, D3D_FEATURE_LEVEL, void **) { return false; }
+  constexpr bool tryCreateDevice(DXGIAdapter *, UUID, D3D_FEATURE_LEVEL, void **) { return false; }
 
   template <typename T>
   static bool load(const Configuration &config, const Direct3D12Enviroment &d3d_env, T &target)

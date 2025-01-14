@@ -14,7 +14,7 @@
 #include <unistd.h>
 #endif
 #if _TARGET_XBOX
-#include <osApiWrappers/xbox/storage.h>
+#include <osApiWrappers/gdk/storage.h>
 #endif
 
 #if _TARGET_APPLE
@@ -217,7 +217,7 @@ static void dagor_add_base_path_default()
 
 
 #elif _TARGET_XBOX
-  dd_add_base_path(xbox::get_pls_path(), true);
+  dd_add_base_path(gdk::get_pls_path(), true);
   dd_add_base_path("G:\\");
 
 #elif _TARGET_ANDROID

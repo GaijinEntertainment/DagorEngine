@@ -18,10 +18,10 @@ shader motion_vectors_resolve
   USE_READ_DEPTH_GBUFFER()
   INIT_ZNZFAR()
   USE_MOTION_VEC_ENCODE(ps)
-  USE_READ_GBUFFER_MATERIAL_DYNAMIC()
   INIT_REPROJECTED_MOTION_VECTORS(ps)
   USE_REPROJECTED_MOTION_VECTORS(ps)
-  INIT_READ_GBUFFER_MATERIAL_DYNAMIC_BASE(ps)
+  INIT_READ_AUTOGEN_MOTION_VECTOR(ps)
+  USE_READ_AUTOGEN_MOTION_VECTOR(ps)
 
   (ps) {
     // prev frame viewproj matrix with current frame jitter, so motion vectors themselves are not jittered!

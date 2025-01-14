@@ -328,6 +328,8 @@ void set_instance_status(ContextId cid, InstanceId iid, bool enabled);
 bool get_instance_status(ContextId cid, InstanceId iid);
 void set_instance_visibility(ContextId cid, InstanceId iid, uint32_t visibility);
 bool is_instance_renderable_active(ContextId cid, InstanceId iid);
+// returns is_instance_renderable_active results, underlying container is cleared on each call
+dag::ConstSpan<bool> query_instances_renderable_active(ContextId cid, dag::ConstSpan<InstanceId> iids);
 bool is_instance_renderable_visible(ContextId cid, InstanceId iid);
 bool get_instance_value(ContextId cid, InstanceId iid, int offset, void *out_data, int size);
 bool get_subinstances(ContextId cid, InstanceId iid, eastl::vector<InstanceId> &out);

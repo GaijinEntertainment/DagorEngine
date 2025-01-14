@@ -231,6 +231,33 @@ static bool get_panel_property_address(int pcb_id, int &out_lod, int &out_mat_id
   return true;
 }
 
+
+static String get_asset_dag_file_path(const DagorAsset &asset, int lod)
+{
+  const int lodNameId = asset.props.getNameId("lod");
+  int lodBlockIndex = 0;
+
+  for (int i = 0; const DataBlock *blk = asset.props.getBlock(i); ++i)
+  {
+    if (blk->getBlockNameId() != lodNameId)
+      continue;
+
+    if (lodBlockIndex == lod)
+    {
+      const int paramIndex = blk->findParam("fname");
+      const char *dagName = blk->getStr(paramIndex);
+      if (dagName && *dagName)
+        return String(0, "%s/%s", asset.getFolderPath(), dagName);
+
+      break;
+    }
+
+    ++lodBlockIndex;
+  }
+
+  return String(0, "%s/%s.lod%02d.dag", asset.getFolderPath(), asset.getName(), lod);
+}
+
 int EntityMaterialEditor::getMaterialIndexByName(const DagMatFileResourcesHandler &file_res, const char *name)
 {
   const int count = file_res.getMaterialCount();
@@ -340,7 +367,7 @@ void EntityMaterialEditor::begin(DagorAsset *asset, IObjEntity *asset_entity)
   int lodCount = 0;
   for (int lod = 0;; ++lod)
   {
-    String dagFileName(0, "%s/%s.lod%02d.dag", assetSrcFolderPath.c_str(), assetName.c_str(), lod);
+    const String dagFileName = get_asset_dag_file_path(*asset, lod);
     if (!dd_file_exists(dagFileName.c_str()))
     {
       lodCount = lod;
@@ -623,7 +650,7 @@ void EntityMaterialEditor::refillMatPropPanel(int lod, int mat_id, PropPanel::Co
     fillMatPropPanel(lod, mat_id, *grpMat);
 }
 
-void EntityMaterialEditor::updateAssetShaderMaterial(int lod, int mat_id)
+void EntityMaterialEditor::updateAssetShaderMaterialInternal(int lod, int mat_id)
 {
   const EntityMatProperties &matProps = matDataPerLod[lod].matProperties[mat_id];
   ShaderMaterial *&curMatShader = matDataPerLod[lod].matShaders[mat_id];
@@ -705,6 +732,22 @@ void EntityMaterialEditor::updateAssetShaderMaterial(int lod, int mat_id)
     res->updateShaderElems();
     rendinst::render::reinitOnShadersReload();
   }
+}
+
+void EntityMaterialEditor::updateAssetShaderMaterial(int lod, int mat_id)
+{
+  // Keep the original materials to prevent duplicateMat from releasing them, they might be used in the
+  // "if (textureChanged)" block in updateAssetShaderMaterialInternal.
+  Tab<ShaderMaterial *> usedMaterials;
+  PERFORM_FOR_ENTITY_LOD_SCENE(entity, gatherUsedMat(usedMaterials), lod, CHECK);
+
+  for (ShaderMaterial *material : usedMaterials)
+    material->addRef();
+
+  updateAssetShaderMaterialInternal(lod, mat_id);
+
+  for (ShaderMaterial *material : usedMaterials)
+    material->delRef();
 }
 
 void EntityMaterialEditor::performAddOrRemoveScriptVars(int lod, int mat_id, bool is_to_add)

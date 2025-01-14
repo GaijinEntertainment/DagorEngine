@@ -6,7 +6,7 @@ struct GlobalData
   float dt; float dt_rcp;
   float water_level; uint un00;
   float4x4 globtm;
-  float4x4 globtm_prev;
+  float4x4 globtm_sim;
   float3 world_view_pos; uint gravity_zone_count;
   float3 view_dir_x; uint un03;
   float3 view_dir_y; uint un04;
@@ -38,10 +38,10 @@ struct GlobalData
     o.globtm[2] = asfloat( dafx_global_data[3] );
     o.globtm[3] = asfloat( dafx_global_data[4] );
 
-    o.globtm_prev[0] = asfloat( dafx_global_data[5] );
-    o.globtm_prev[1] = asfloat( dafx_global_data[6] );
-    o.globtm_prev[2] = asfloat( dafx_global_data[7] );
-    o.globtm_prev[3] = asfloat( dafx_global_data[8] );
+    o.globtm_sim[0] = asfloat( dafx_global_data[5] );
+    o.globtm_sim[1] = asfloat( dafx_global_data[6] );
+    o.globtm_sim[2] = asfloat( dafx_global_data[7] );
+    o.globtm_sim[3] = asfloat( dafx_global_data[8] );
 
     o.world_view_pos = asfloat( dafx_global_data[9].xyz );
     o.gravity_zone_count = dafx_global_data[9].w;

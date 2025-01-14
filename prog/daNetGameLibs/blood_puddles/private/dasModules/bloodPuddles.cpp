@@ -69,10 +69,6 @@ public:
     das::addExtern<DAS_BIND_FUN(get_blood_puddles_mgr)>(*this, lib, "get_blood_puddles_mgr", das::SideEffects::accessExternal,
       "::get_blood_puddles_mgr");
 
-    using method_initBiomeDependantData = DAS_CALL_MEMBER(BloodPuddles::initBiomeDependantData);
-    das::addExtern<DAS_CALL_METHOD(method_initBiomeDependantData)>(*this, lib, "initBiomeDependantData",
-      das::SideEffects::modifyArgument, DAS_CALL_MEMBER_CPP(BloodPuddles::initBiomeDependantData));
-
     using method_erasePuddles = das::das_call_member<void (BloodPuddles::*)(), &BloodPuddles::erasePuddles>;
     das::addExtern<DAS_CALL_METHOD(method_erasePuddles)>(*this, lib, "erasePuddles", das::SideEffects::accessExternal,
       "das::das_call_member< void(BloodPuddles::*)(), &BloodPuddles::erasePuddles >::invoke");

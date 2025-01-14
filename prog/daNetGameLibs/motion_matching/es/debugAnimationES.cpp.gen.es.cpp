@@ -82,16 +82,18 @@ static ecs::EntitySystemDesc debug_motion_matching_es_es_desc
 ,"dev,render",nullptr,"*");
 static constexpr ecs::ComponentDesc imgui_visualization_skeleton_ecs_query_comps[] =
 {
-//start of 3 ro components at [0]
+//start of 5 ro components at [0]
   {ECS_HASH("mm_visualization_show_skeleton"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("mm_visualization_show_skeleton_original"), ecs::ComponentTypeInfo<bool>()},
-  {ECS_HASH("mm_visualization_show_skeleton_node_labels"), ecs::ComponentTypeInfo<bool>()}
+  {ECS_HASH("mm_visualization_show_skeleton_node_labels"), ecs::ComponentTypeInfo<bool>()},
+  {ECS_HASH("mm_visualization__selectedClipIdx"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("mm_visualization__selectedFrameIdx"), ecs::ComponentTypeInfo<int>()}
 };
 static ecs::CompileTimeQueryDesc imgui_visualization_skeleton_ecs_query_desc
 (
   "imgui_visualization_skeleton_ecs_query",
   empty_span(),
-  make_span(imgui_visualization_skeleton_ecs_query_comps+0, 3)/*ro*/,
+  make_span(imgui_visualization_skeleton_ecs_query_comps+0, 5)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
@@ -106,6 +108,8 @@ inline void imgui_visualization_skeleton_ecs_query(Callable function)
               ECS_RO_COMP(imgui_visualization_skeleton_ecs_query_comps, "mm_visualization_show_skeleton", bool)
             , ECS_RO_COMP(imgui_visualization_skeleton_ecs_query_comps, "mm_visualization_show_skeleton_original", bool)
             , ECS_RO_COMP(imgui_visualization_skeleton_ecs_query_comps, "mm_visualization_show_skeleton_node_labels", bool)
+            , ECS_RO_COMP(imgui_visualization_skeleton_ecs_query_comps, "mm_visualization__selectedClipIdx", int)
+            , ECS_RO_COMP(imgui_visualization_skeleton_ecs_query_comps, "mm_visualization__selectedFrameIdx", int)
             );
 
         }while (++comp != compE);
@@ -144,17 +148,16 @@ inline void imgui_visualization_debug_features_ecs_query(Callable function)
 }
 static constexpr ecs::ComponentDesc get_clip_for_debug_trajectory_ecs_query_comps[] =
 {
-//start of 2 rw components at [0]
-  {ECS_HASH("mm_visualization__trajectoryClipIdx"), ecs::ComponentTypeInfo<int>()},
-  {ECS_HASH("mm_visualization__trajectoryFrameIdx"), ecs::ComponentTypeInfo<int>()},
-//start of 1 ro components at [2]
-  {ECS_HASH("mm_imguiAnimcharEid"), ecs::ComponentTypeInfo<ecs::EntityId>()}
+//start of 3 ro components at [0]
+  {ECS_HASH("mm_imguiAnimcharEid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
+  {ECS_HASH("mm_visualization__selectedClipIdx"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("mm_visualization__selectedFrameIdx"), ecs::ComponentTypeInfo<int>()}
 };
 static ecs::CompileTimeQueryDesc get_clip_for_debug_trajectory_ecs_query_desc
 (
   "get_clip_for_debug_trajectory_ecs_query",
-  make_span(get_clip_for_debug_trajectory_ecs_query_comps+0, 2)/*rw*/,
-  make_span(get_clip_for_debug_trajectory_ecs_query_comps+2, 1)/*ro*/,
+  empty_span(),
+  make_span(get_clip_for_debug_trajectory_ecs_query_comps+0, 3)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
@@ -167,8 +170,8 @@ inline void get_clip_for_debug_trajectory_ecs_query(Callable function)
         {
           function(
               ECS_RO_COMP(get_clip_for_debug_trajectory_ecs_query_comps, "mm_imguiAnimcharEid", ecs::EntityId)
-            , ECS_RW_COMP(get_clip_for_debug_trajectory_ecs_query_comps, "mm_visualization__trajectoryClipIdx", int)
-            , ECS_RW_COMP(get_clip_for_debug_trajectory_ecs_query_comps, "mm_visualization__trajectoryFrameIdx", int)
+            , ECS_RO_COMP(get_clip_for_debug_trajectory_ecs_query_comps, "mm_visualization__selectedClipIdx", int)
+            , ECS_RO_COMP(get_clip_for_debug_trajectory_ecs_query_comps, "mm_visualization__selectedFrameIdx", int)
             );
 
         }while (++comp != compE);
@@ -302,8 +305,8 @@ inline void process_current_character_ecs_query(ecs::EntityId eid, Callable func
 static constexpr ecs::ComponentDesc update_clip_for_debug_trajectory_ecs_query_comps[] =
 {
 //start of 2 rw components at [0]
-  {ECS_HASH("mm_visualization__trajectoryClipIdx"), ecs::ComponentTypeInfo<int>()},
-  {ECS_HASH("mm_visualization__trajectoryFrameIdx"), ecs::ComponentTypeInfo<int>()}
+  {ECS_HASH("mm_visualization__selectedClipIdx"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("mm_visualization__selectedFrameIdx"), ecs::ComponentTypeInfo<int>()}
 };
 static ecs::CompileTimeQueryDesc update_clip_for_debug_trajectory_ecs_query_desc
 (
@@ -321,8 +324,8 @@ inline void update_clip_for_debug_trajectory_ecs_query(Callable function)
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
         {
           function(
-              ECS_RW_COMP(update_clip_for_debug_trajectory_ecs_query_comps, "mm_visualization__trajectoryClipIdx", int)
-            , ECS_RW_COMP(update_clip_for_debug_trajectory_ecs_query_comps, "mm_visualization__trajectoryFrameIdx", int)
+              ECS_RW_COMP(update_clip_for_debug_trajectory_ecs_query_comps, "mm_visualization__selectedClipIdx", int)
+            , ECS_RW_COMP(update_clip_for_debug_trajectory_ecs_query_comps, "mm_visualization__selectedFrameIdx", int)
             );
 
         }while (++comp != compE);

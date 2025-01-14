@@ -120,6 +120,13 @@ SQGETTHREAD sq_set_thread_id_function(HSQUIRRELVM v, SQGETTHREAD func)
     return res;
 }
 
+SQSQCALLHOOK sq_set_sq_call_hook(HSQUIRRELVM v, SQSQCALLHOOK hook)
+{
+    SQSQCALLHOOK res = v->_sq_call_hook;
+    v->_sq_call_hook = hook;
+    return res;
+}
+
 void sq_forbidglobalconstrewrite(HSQUIRRELVM v, SQBool on)
 {
     if (on)
@@ -1240,7 +1247,7 @@ const SQChar *sq_getlocal(HSQUIRRELVM v,SQUnsignedInteger level,SQUnsignedIntege
             return _stringval(func->_outervalues[idx]._name);
         }
         idx -= func->_noutervalues;
-        return func->GetLocal(v,stackbase,idx,(SQInteger)(ci._ip-func->_instructions)-1);
+        return func->GetLocal(v,stackbase,idx,(SQInteger)(ci._ip-func->_instructions));
     }
     return NULL;
 }
@@ -1319,6 +1326,8 @@ SQRESULT sq_resume(HSQUIRRELVM v,SQBool retval,SQBool invoke_err_handler)
 SQRESULT sq_call(HSQUIRRELVM v,SQInteger params,SQBool retval,SQBool invoke_err_handler)
 {
     v->ValidateThreadAccess();
+    if (v->_sq_call_hook)
+        v->_sq_call_hook(v);
 
     SQObjectPtr res;
     if(!v->Call(v->GetUp(-(params+1)),params,v->_top-params,res,invoke_err_handler?true:false)){
@@ -1722,14 +1731,14 @@ void sq_dumpast(HSQUIRRELVM v, SQCompilation::SqASTData *astData, OutputStream *
     rv.render(astData->root);
 }
 
-void sq_dumpbytecode(HSQUIRRELVM v, HSQOBJECT obj, OutputStream *s)
+void sq_dumpbytecode(HSQUIRRELVM v, HSQOBJECT obj, OutputStream *s, int instruction_index)
 {
     if (sq_isfunction(obj)) {
-        Dump(s, _funcproto(obj), true);
+        Dump(s, _funcproto(obj), true, instruction_index);
     }
     else if (sq_isclosure(obj)) {
         SQFunctionProto *proto = _closure(obj)->_function;
-        Dump(s, proto, true);
+        Dump(s, proto, true, instruction_index);
     }
     else {
         s->writeString("Object is not a FunctionProto");

@@ -11,11 +11,8 @@
 #endif
 
 #include <supp/dag_cpuControl.h>
-#include <atomic>
-#include <osApiWrappers/dag_spinlock.h>
 
-static std::atomic<bool> g_should_throw_float_exceptions = {false};
-static OSSpinlock float_exceptions_lock;
+static bool g_should_throw_float_exceptions = false;
 
 #if _TARGET_PC_LINUX
 static int feenablefpexcept(int excepts)
@@ -36,10 +33,10 @@ static int feenablefpexcept(int excepts)
 }
 #endif
 
-void do_update_float_exceptions_unsafe()
+void update_float_exceptions_this_thread(bool enable)
 {
 #if _TARGET_PC_WIN && !_TARGET_64BIT
-  if (g_should_throw_float_exceptions)
+  if (enable)
   {
     _clear87();
     unsigned dummy;
@@ -51,27 +48,24 @@ void do_update_float_exceptions_unsafe()
     _control87(_MCW_EM, _MCW_EM);
   }
 #elif _TARGET_PC_LINUX && !defined(__e2k__)
-  if (g_should_throw_float_exceptions)
+  if (enable)
   {
     fesetenv(FE_DFL_ENV);
     feenablefpexcept(FE_ALL_EXCEPT & ~(__FE_DENORM | FE_UNDERFLOW | FE_INEXACT));
   }
   else
     fedisableexcept(FE_ALL_EXCEPT);
+#else
+  (void)enable;
 #endif
 }
 
-void update_float_exceptions()
-{
-  OSSpinlockScopedLock lock(float_exceptions_lock);
-  do_update_float_exceptions_unsafe();
-}
+void update_float_exceptions() { update_float_exceptions_this_thread(g_should_throw_float_exceptions); }
 
 void enable_float_exceptions(bool enable)
 {
-  OSSpinlockScopedLock lock(float_exceptions_lock);
   g_should_throw_float_exceptions = enable;
-  do_update_float_exceptions_unsafe();
+  update_float_exceptions_this_thread(enable);
 }
 
 bool is_float_exceptions_enabled() { return g_should_throw_float_exceptions; }

@@ -100,12 +100,12 @@ bool unregisterRIGenExtraInvalidateHandleCb(invalidate_handle_cb cb);
 void onRIGenExtraInvalidateHandle(riex_handle_t id);
 bool removeRIGenExtraFromGrid(riex_handle_t id);
 
-using ri_destruction_cb = void (*)(riex_handle_t handle, bool is_dynamic, int32_t user_data, const Point3 &impulse,
-  const Point3 &impulse_pos);
+using ri_destruction_cb = void (*)(riex_handle_t handle, bool is_dynamic, bool create_destr_effects, int32_t user_data,
+  const Point3 &impulse, const Point3 &impulse_pos);
 void registerRiExtraDestructionCb(ri_destruction_cb cb);
 bool unregisterRiExtraDestructionCb(ri_destruction_cb cb);
-void onRiExtraDestruction(riex_handle_t id, bool is_dynamic, int32_t user_data = -1, const Point3 &impulse = Point3::ZERO,
-  const Point3 &impulse_pos = Point3::ZERO);
+void onRiExtraDestruction(riex_handle_t id, bool is_dynamic, bool create_destr_effects, int32_t user_data = -1,
+  const Point3 &impulse = Point3::ZERO, const Point3 &impulse_pos = Point3::ZERO);
 
 using ri_impulse_cb = void (*)(riex_handle_t handle, float impulse, const Point3 &impulse_dir, const Point3 &impulse_pos,
   const Point3 &collision_normal, int32_t user_data);
@@ -127,8 +127,13 @@ bool applyDamageRIGenExtra(const RendInstDesc &desc, float dmg_pts, float *absor
 bool damageRIGenExtra(riex_handle_t id, float dmg_pts, mat44f *out_destr_tm, riex_handle_t &out_destroyed_riex_handle,
   int *out_destroyed_riex_offset = nullptr, DestrOptionFlags destroy_flags = DestrOptionFlag::AddDestroyedRi);
 
+struct RiExtraPerInstanceItem
+{
+  uint32_t data[4];
+};
+
 uint32_t getRiExtraPerInstanceRenderDataOffset(riex_handle_t id);
-void setRiExtraPerInstanceRenderData(riex_handle_t id, const Point4 *data, uint32_t cnt);
+void setRiExtraPerInstanceRenderData(riex_handle_t id, const RiExtraPerInstanceItem *data, uint32_t cnt);
 void resetPerInstanceRenderDataAfterFrame();
 
 void before_render();

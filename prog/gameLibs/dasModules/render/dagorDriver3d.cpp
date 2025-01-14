@@ -7,6 +7,9 @@
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_renderTarget.h>
 
+DAS_BIND_ENUM_CAST_98(ShaderStage);
+DAS_BASE_BIND_ENUM_98(ShaderStage, ShaderStage, STAGE_CS, STAGE_PS, STAGE_VS, STAGE_MAX, STAGE_CS_ASYNC_STATE, STAGE_MAX_EXT);
+
 DAS_BIND_ENUM_CAST(DepthAccess);
 DAS_BASE_BIND_ENUM(DepthAccess, DepthAccess, RW, SampledRO);
 
@@ -170,7 +173,6 @@ public:
     BIND_WRAP_FUNC(d3d_resource_barrier_tex, "d3d_resource_barrier", modifyExternal);
     BIND_WRAP_FUNC(d3d_resource_barrier_buf, "d3d_resource_barrier", modifyExternal);
     BIND_WRAP_FUNC(d3d_get_vsync_refresh_rate, "d3d_get_vsync_refresh_rate", accessExternal);
-
 
     CLASS_MEMBER(PostFxRenderer::render, "render", das::SideEffects::modifyExternal)
     CLASS_MEMBER(ComputeShader::dispatchThreads, "dispatchThreads", das::SideEffects::modifyExternal)

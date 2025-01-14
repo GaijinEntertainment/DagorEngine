@@ -10,6 +10,7 @@
 #include "device_context.h"
 #include "backend.h"
 #include "execution_context.h"
+#include "wrapped_command_buffer.h"
 
 namespace drv3d_vulkan
 {
@@ -64,9 +65,9 @@ void StateFieldComputeProgram::dumpLog(const FrontComputeStateStorage &) const
 }
 
 template <>
-void StateFieldComputePipeline::applyTo(BackComputeStateStorage &, ExecutionContext &target) const
+void StateFieldComputePipeline::applyTo(BackComputeStateStorage &, ExecutionContext &) const
 {
-  ptr->bind(target.vkDev, target.frameCore);
+  VULKAN_LOG_CALL(Backend::cb.wCmdBindPipeline(VK_PIPELINE_BIND_POINT_COMPUTE, ptr->getHandleForUse()));
 }
 
 template <>
@@ -80,9 +81,9 @@ void StateFieldComputePipeline::dumpLog(const BackComputeStateStorage &) const
 }
 
 template <>
-void StateFieldComputeLayout::applyTo(BackComputeStateStorage &, ExecutionContext &target) const
+void StateFieldComputeLayout::applyTo(BackComputeStateStorage &, ExecutionContext &) const
 {
-  Backend::bindless.bindSets(target, VK_PIPELINE_BIND_POINT_COMPUTE, ptr->handle);
+  Backend::bindless.bindSets(VK_PIPELINE_BIND_POINT_COMPUTE, ptr->handle);
   Backend::State::exec.getResBinds(STAGE_CS).invalidateState();
 }
 
@@ -103,9 +104,9 @@ void StateFieldComputeFlush::applyTo(BackComputeStateStorage &state, ExecutionCo
 
   Backend::State::exec.getResBinds(STAGE_CS).apply(target.vkDev, Globals::dummyResources.getTable(), Backend::gpuJob->index, regRef,
     ExtendedShaderStage::CS,
-    [&target, layoutHandle](VulkanDescriptorSetHandle set, const uint32_t *offsets, uint32_t offset_count) //
+    [layoutHandle](VulkanDescriptorSetHandle set, const uint32_t *offsets, uint32_t offset_count) //
     {
-      VULKAN_LOG_CALL(target.vkDev.vkCmdBindDescriptorSets(target.frameCore, VK_PIPELINE_BIND_POINT_COMPUTE, layoutHandle,
+      VULKAN_LOG_CALL(Backend::cb.wCmdBindDescriptorSets(VK_PIPELINE_BIND_POINT_COMPUTE, layoutHandle,
         ShaderStageTraits<VK_SHADER_STAGE_COMPUTE_BIT>::register_index + PipelineBindlessConfig::bindlessSetCount, 1, ary(&set),
         offset_count, offsets));
     });
@@ -113,7 +114,7 @@ void StateFieldComputeFlush::applyTo(BackComputeStateStorage &state, ExecutionCo
   if (Globals::cfg.debugLevel > 0)
     ptr->setNameForDescriptorSet(regRef.getSetForNaming(), spirv::compute::REGISTERS_SET_INDEX);
 
-  Backend::sync.completeNeeded(target.frameCore, target.vkDev);
+  Backend::sync.completeNeeded();
 }
 
 template <>

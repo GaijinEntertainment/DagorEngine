@@ -35,10 +35,12 @@ CompilerAction should_recompile(const ShVariantName &variant_name);
 bool should_recompile_sh(const ShVariantName &variant_name, const String &sourceFileName);
 
 // compile shader files & generate variants to disk. return false, if error occurs
-void compileShader(const ShVariantName &variant_name, bool no_save, bool should_rebuild, CompilerAction compiler_action);
+void compileShader(const ShVariantName &variant_name, eastl::optional<StcodeInterface> &stcode_interface, bool no_save,
+  bool should_rebuild, CompilerAction compiler_action);
 
 // build shader binary dump from compiled shaders (*.cached files)
-bool buildShaderBinDump(const char *bindump_fn, const char *sh_fn, bool forceRebuild, bool minidump, BindumpPackingFlags pack_flags);
+bool buildShaderBinDump(const char *bindump_fn, const char *sh_fn, bool forceRebuild, bool minidump, BindumpPackingFlags pack_flags,
+  StcodeInterface *stcode_interface);
 
 bool try_enter_shutdown();
 bool try_lock_shutdown();

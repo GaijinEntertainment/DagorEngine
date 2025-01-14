@@ -20,7 +20,7 @@ endmacro
 
 shader rt_ao
 {
-  if (compatibility_mode == compatibility_mode_on)
+  if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing)
   {
     dont_render;
   }
@@ -50,7 +50,7 @@ shader rt_ao
   USE_EMISSION_DECODE_COLOR_MAP(cs)
   INIT_LOAD_GBUFFER_BASE(cs)
   INIT_LOAD_BVH_FLAGS_BASE(cs)
-  USE_LOAD_GBUFFER_BASE(cs, 1)
+  USE_LOAD_GBUFFER_BASE(cs, true)
   INIT_BVH(cs, 0, true)
   USE_BVH_FOR_AO(cs)
 

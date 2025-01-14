@@ -455,7 +455,7 @@ def document_function_arguments(doc_file:file;argNames:array<string>;argTypes:ar
     if length(tab)!=1
         fwrite(doc_file,make_table(tab,true))
 
-def document_class_method(doc_file:file;mod:Module?;value;fld)
+def document_class_method(doc_file:file;mod:Module?;value;var fld)
     let argNames <- [{for arg in fld._type.argNames; string(arg)}]
     let argTypes <- [{for arg in fld._type.argTypes; get_ptr(arg)}]
     document_function_declaration(doc_file,"das:function","{value.name}.{fld.name}",
@@ -777,7 +777,7 @@ def function_name ( name : string )
             return "operator {name}"
     return name
 
-def document_function(doc_file:file;mod:Module?;func:FunctionPtr|Function?)
+def document_function(doc_file:file;mod:Module?;var func:FunctionPtr|Function?)
     let argNames <- [{for arg in func.arguments; string(arg.name)}]
     let argTypes <- [{for arg in func.arguments; get_ptr(arg._type)}]
     fwrite(doc_file,make_label(function_label_name(func)))
@@ -792,13 +792,13 @@ def document_function(doc_file:file;mod:Module?;func:FunctionPtr|Function?)
     document_function_arguments(doc_file,argNames,argTypes)
     document_topic(doc_file,topic("function",mod,"{function_file_name(func)}"))
 
-def document_functions(doc_file:file;mod:Module?;groups:array<DocGroup>)
+def document_functions(doc_file:file;mod:Module?;var groups:array<DocGroup>)
     var tab : table<Function?;bool>
     for grp in groups
         if length(grp.func) != 0
             if !show_hidden_groups && grp.hidden
                 for func in grp.func
-                    tab[func] = true
+                    tab |> insert(func, true)
             else
                 fwrite(doc_file,make_group(grp.name))
                 if grp.hidden
@@ -810,18 +810,18 @@ def document_functions(doc_file:file;mod:Module?;groups:array<DocGroup>)
                         fwrite(doc_file,"  * {make_ref(labn,descr)}\n")
                 fwrite(doc_file,"\n")
                 for func in grp.func
-                    if tab[func]
+                    if tab |> get_value(func)
                         continue
-                    tab[func] = true
+                    tab |> insert(func, true)
                     document_function(doc_file,mod,func)
     var first_function = true
     for_each_function(mod, "") <| $(func)
         if !function_needs_documenting(func)
             return
         var pfunc = get_ptr(func)
-        if tab[pfunc]
+        if tab |> get_value(pfunc)
             return
-        tab[pfunc] = true
+        tab |> insert(pfunc, true)
         if first_function
             fwrite(doc_file,make_group("Uncategorized"))
             first_function = false
@@ -830,9 +830,9 @@ def document_functions(doc_file:file;mod:Module?;groups:array<DocGroup>)
         if !function_needs_documenting(func)
             return
         var pfunc = get_ptr(func)
-        if tab[pfunc]
+        if tab |> get_value(pfunc)
             return
-        tab[pfunc] = true
+        tab |> insert(pfunc, true)
         if first_function
             fwrite(doc_file,make_group("Uncategorized"))
             first_function = false
@@ -873,8 +873,8 @@ def public hide_group(var group:DocGroup)
     return <- group
 
 def private generate_topic_stub(var tab:table<string;bool>;doc_file:file;topic:string implicit)
-    if !tab[topic]
-        tab[topic] = true
+    if !tab |> get_value(topic)
+        tab |> insert(topic, true)
         fwrite(doc_file,".. {topic} replace:: to be documented in {topic}.rst\n\n" )
 
 def private generate_substitute_stub(mod:Module?;substname:string)
@@ -932,7 +932,7 @@ def private getDetailIncludePath ( fname, substname : string )
         var ipath = join ( [[ for i in range(index,length(snp)); snp[i] ]], "/" )
         return ipath
 
-def public document(name:string;mod:Module?;fname,substname:string;groups:array<DocGroup>)
+def public document(name:string;mod:Module?;fname,substname:string;var groups:array<DocGroup>)
     //! Document single module given list of `DocGropus`.
     //! This will generate RST file with documentation for the module.
     //! Functions which do not match any `DocGroup` will be placed in the `Uncategorized` group.

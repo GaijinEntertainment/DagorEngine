@@ -316,9 +316,9 @@ texinfo_documents = [
      'Miscellaneous'),
 ]
 
-def setup(app):
-    app.srcdir = 'source'
-    app.add_css_file('custom.css')
+#def setup(app):
+#    app.srcdir = pathlib.Path('source')
+#    app.add_css_file('custom.css')
 
 # Documents to append as an appendix to all manuals.
 #texinfo_appendices = []

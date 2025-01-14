@@ -34,6 +34,7 @@
 #include <drv/3d/dag_sampler.h>
 #include <EASTL/unordered_map.h>
 #include <dag/dag_vector.h>
+#include <shaders/stcodeHash.h>
 
 #include <util/dag_threadPool.h>
 
@@ -272,6 +273,7 @@ struct Variables
         case SHVT_FLOAT4X4: memset(&vl.v[i].valPtr.get(), 0, 16 * sizeof(float)); break;
         case SHVT_TEXTURE: *(TEXTUREID *)&vl.v[i].valPtr.get() = BAD_TEXTUREID; break;
         case SHVT_BUFFER: *(D3DRESID *)&vl.v[i].valPtr.get() = BAD_D3DRESID; break;
+        case SHVT_SAMPLER: *(d3d::SamplerHandle *)&vl.v[i].valPtr.get() = d3d::INVALID_SAMPLER_HANDLE; break;
         case SHVT_TLAS: *(RaytraceTopAccelerationStructure **)&vl.v[i].valPtr.get() = nullptr; break;
       }
     }
@@ -920,7 +922,7 @@ using namespace semicooked;
 // shaders binary dump builder
 //
 bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filename, bool strip_shaders_and_stcode,
-  BindumpPackingFlags packing_flags)
+  BindumpPackingFlags packing_flags, StcodeInterface *stcode_interface)
 {
   using loadedshaders::fsh;
   using loadedshaders::render_state;
@@ -983,11 +985,7 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   processShaderBlocks(blocks, blkPartSign);
   globalSuppBlkSign.clear();
 
-  // @TEMP: when compiling the cpp stcode, I use the stcode remapping obtained when linking shaders, and start
-  //        the compilation proc right after that. If then stcode is sorted again here, the remapping will be messed
-  //        up (runtime will be fetching wrong routines). However, if we move to cpp stcode completely, the sorting
-  //        won't make sense at all, so I do not think it is wise to accomodate this in the cpp stcode implementation.
-  bindumphlp::sortShaders(blocks, !shc::config().compileCppStcode);
+  bindumphlp::sortShaders(blocks, stcode_interface);
 
   dag::Vector<int> stcode_type(stCode.size()); // 1 - blk, 2 - shclass blk, 3 -- shclass
   for (int i = 0; i < blocks.size(); i++)
@@ -1085,7 +1083,7 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   vars.addGlobVars(remapTable);
 
   // Generate the cpp stcode file for them
-  if (!strip_shaders_and_stcode)
+  if (!strip_shaders_and_stcode && stcode_interface)
   {
     StcodeGlobalVars stcodeGlobvars(StcodeGlobalVars::Type::MAIN_COLLECTION);
     for (int i = 0; i < vars.varLists.back().v.size(); ++i)
@@ -1206,6 +1204,10 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
     else
       stcode_bytes2 += data_size(st);
   }
+
+  // Generate stcode main file w/ the final stcode hash
+  if (!strip_shaders_and_stcode && stcode_interface)
+    save_stcode_dll_main(eastl::move(*stcode_interface), calc_stcode_hash(shaders_dump.stcode));
 
   auto &iValStorage = vt.iValStorage.getVecHolder();
 
@@ -1517,14 +1519,9 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   if (dict)
     zstd_destroy_cdict(dict);
 
-  // write storage for vprId/fshId
-  shaders_dump.vprId.resize(vpr.size());
-  if (!vpr.empty())
-    eastl::fill_n(&shaders_dump.vprId[0], shaders_dump.vprId.size(), BAD_VPROG);
-
-  shaders_dump.fshId.resize(fsh.size());
-  if (!fsh.empty())
-    eastl::fill_n(&shaders_dump.fshId[0], shaders_dump.fshId.size(), BAD_FSHADER);
+  // write storage sizes for vprId/fshId
+  shaders_dump.vprCount = vpr.size();
+  shaders_dump.fshCount = fsh.size();
 
   // write global vars data
   shaders_dump.gvMap = make_span(gvmap);

@@ -30,6 +30,7 @@ static ShaderVariableInfo variants("dagdp_heightmap__variants");
 static ShaderVariableInfo indirect_args("dagdp_heightmap__indirect_args");
 
 static ShaderVariableInfo density_mask("dagdp_heightmap__density_mask");
+static ShaderVariableInfo density_mask_scale_offset("dagdp_heightmap__density_mask_scale_offset");
 
 static ShaderVariableInfo num_renderables("dagdp_heightmap__num_renderables");
 static ShaderVariableInfo num_placeables("dagdp_heightmap__num_placeables");
@@ -95,10 +96,30 @@ struct HeightmapPersistentData
   UniqueBuf tilePositionsBuffer;
   UniqueBuf biomesBuffer;
   SharedTex densityMask;
+  Point4 densityMaskScaleOffset;
 
   HeightmapConstants constants{};
 };
 
+static dabfg::NodeHandle create_indirect_args_node(const dabfg::NameSpace &ns,
+  const eastl::shared_ptr<HeightmapPersistentData> &persistentData)
+{
+  return ns.registerNode("indirect_args", DABFG_PP_NODE_SRC, [persistentData](dabfg::Registry registry) {
+    const auto &constants = persistentData->constants;
+    view_multiplex(registry, constants.viewInfo.kind);
+
+    const auto indirectArgsHandle = registry.create("indirect_args", dabfg::History::No)
+                                      .indirectBufferUa(d3d::buffers::Indirect::Dispatch, DAGDP_MAX_VIEWPORTS)
+                                      .atStage(dabfg::Stage::UNKNOWN) // TODO: d3d::clear_rwbufi semantics is not defined.
+                                      .useAs(dabfg::Usage::UNKNOWN)
+                                      .handle();
+
+    return [indirectArgsHandle] {
+      const uint32_t val[4] = {0, 0, 0, 0};
+      d3d::clear_rwbufi(indirectArgsHandle.get(), val);
+    };
+  });
+}
 static dabfg::NodeHandle create_cull_tiles_node(const dabfg::NameSpace &ns,
   const eastl::shared_ptr<HeightmapPersistentData> &persistentData)
 {
@@ -109,21 +130,14 @@ static dabfg::NodeHandle create_cull_tiles_node(const dabfg::NameSpace &ns,
     const eastl::fixed_string<char, 32> viewResourceName({}, "view@%s", constants.viewInfo.uniqueName.c_str());
     const auto viewHandle = registry.readBlob<ViewPerFrameData>(viewResourceName.c_str()).handle();
 
-    const eastl::fixed_string<char, 64> indirectBufferName({}, "dagdp_heightmap_indirect_dispatch_%s", viewResourceName.c_str());
-    const auto indirectArgsHandle = registry.create(indirectBufferName.c_str(), dabfg::History::No)
-                                      .indirectBufferUa(d3d::buffers::Indirect::Dispatch, ViewPerFrameData::MAX_VIEWPORTS)
-                                      .atStage(dabfg::Stage::COMPUTE)
-                                      .bindToShaderVar("dagdp_heightmap__indirect_args")
-                                      .handle();
+    registry.modify("indirect_args").buffer().atStage(dabfg::Stage::COMPUTE).bindToShaderVar("dagdp_heightmap__indirect_args");
 
-    const eastl::fixed_string<char, 64> visibleTilePosBufferName({}, "dagdp_heightmap_visible_tile_positions_%s",
-      viewResourceName.c_str());
-    registry.create(visibleTilePosBufferName.c_str(), dabfg::History::No)
+    registry.create("visible_tile_positions", dabfg::History::No)
       .byteAddressBufferUaSr(constants.numTiles * 2) // int2
       .atStage(dabfg::Stage::COMPUTE)
       .bindToShaderVar("dagdp_heightmap__visible_tile_positions");
 
-    return [persistentData, viewHandle, indirectArgsHandle, shader = ComputeShader("dagdp_heightmap_cull_tiles")] {
+    return [persistentData, viewHandle, shader = ComputeShader("dagdp_heightmap_cull_tiles")] {
       const auto &constants = persistentData->constants;
       const auto &view = viewHandle.ref();
 
@@ -132,9 +146,6 @@ static dabfg::NodeHandle create_cull_tiles_node(const dabfg::NameSpace &ns,
       ShaderGlobal::set_real(var::max_placeable_bounding_radius, constants.maxPlaceableBoundingRadius);
 
       ShaderGlobal::set_buffer(var::tile_positions, persistentData->tilePositionsBuffer.getBufId());
-
-      const uint32_t val[4] = {1, 1, 1, 1};
-      d3d::clear_rwbufi(indirectArgsHandle.get(), val);
 
       for (uint32_t viewportIndex = 0; viewportIndex < view.viewports.size(); ++viewportIndex)
       {
@@ -146,7 +157,9 @@ static dabfg::NodeHandle create_cull_tiles_node(const dabfg::NameSpace &ns,
         baseTileIntPos.y = static_cast<int>(floorf(viewport.worldPos.z / constants.tileWorldSize));
 
         ShaderGlobal::set_color4(var::base_tile_pos_xz, point4(baseTileIntPos) * constants.tileWorldSize);
+        ShaderGlobal::set_color4(var::viewport_pos, viewport.worldPos);
         ShaderGlobal::set_int(var::viewport_index, viewportIndex);
+        ShaderGlobal::set_real(var::viewport_max_distance, min(viewport.maxDrawDistance, constants.viewInfo.maxDrawDistance));
 
         const bool res = shader.dispatchThreads(constants.numTiles, 1, 1);
         G_ASSERT(res);
@@ -158,10 +171,17 @@ static dabfg::NodeHandle create_cull_tiles_node(const dabfg::NameSpace &ns,
   });
 }
 
-static dabfg::NodeHandle create_place_node(const dabfg::NameSpace &ns,
-  const eastl::shared_ptr<HeightmapPersistentData> &persistentData)
+static dabfg::NodeHandle create_place_node(
+  const dabfg::NameSpace &ns, const eastl::shared_ptr<HeightmapPersistentData> &persistentData, HeightmapPlacementType type)
 {
-  return ns.registerNode("place", DABFG_PP_NODE_SRC, [persistentData](dabfg::Registry registry) {
+  eastl::fixed_string<char, 32> name("place");
+  if (type != HeightmapPlacementType::STATIC)
+    name.append_sprintf("_stage%d", eastl::to_underlying(type) - 1);
+  G_ASSERTF_RETURN(type == HeightmapPlacementType::STATIC || type == HeightmapPlacementType::DYNAMIC_OPTIMISTIC ||
+                     type == HeightmapPlacementType::DYNAMIC_PESSIMISTIC,
+    {}, "Unknown placement type %d", eastl::to_underlying(type));
+
+  return ns.registerNode(name.c_str(), DABFG_PP_NODE_SRC, [persistentData, type](dabfg::Registry registry) {
     const auto &constants = persistentData->constants;
     view_multiplex(registry, constants.viewInfo.kind);
 
@@ -171,30 +191,46 @@ static dabfg::NodeHandle create_place_node(const dabfg::NameSpace &ns,
       .atStage(dabfg::Stage::COMPUTE)
       .bindToShaderVar("dagdp__instance_data");
 
-    (registry.root() / "dagdp" / constants.viewInfo.uniqueName.c_str())
-      .modify("counters")
-      .buffer()
-      .atStage(dabfg::Stage::COMPUTE)
-      .bindToShaderVar("dagdp__counters");
+    ComputeShader placeShader;
+    if (type == HeightmapPlacementType::STATIC)
+    {
+      placeShader = ComputeShader("dagdp_heightmap_place");
+      (registry.root() / "dagdp" / constants.viewInfo.uniqueName.c_str())
+        .modify("counters")
+        .buffer()
+        .atStage(dabfg::Stage::COMPUTE)
+        .bindToShaderVar("dagdp__counters");
+    }
+    else
+    {
+      const bool is_optimistic = type == HeightmapPlacementType::DYNAMIC_OPTIMISTIC;
+      placeShader = ComputeShader(is_optimistic ? "dagdp_heightmap_place_stage0" : "dagdp_heightmap_place_stage1");
+      (registry.root() / "dagdp" / constants.viewInfo.uniqueName.c_str())
+        .read(is_optimistic ? "dyn_allocs_stage0" : "dyn_allocs_stage1")
+        .buffer()
+        .atStage(dabfg::Stage::COMPUTE)
+        .bindToShaderVar("dagdp__dyn_allocs");
+
+      (registry.root() / "dagdp" / constants.viewInfo.uniqueName.c_str())
+        .modify(is_optimistic ? "dyn_counters_stage0" : "dyn_counters_stage1")
+        .buffer()
+        .atStage(dabfg::Stage::COMPUTE)
+        .bindToShaderVar("dagdp__dyn_counters");
+    }
 
     eastl::fixed_string<char, 32> viewResourceName;
     viewResourceName.append_sprintf("view@%s", constants.viewInfo.uniqueName.c_str());
     const auto viewHandle = registry.readBlob<ViewPerFrameData>(viewResourceName.c_str()).handle();
 
-    eastl::fixed_string<char, 64> indirectBufferName({}, "dagdp_heightmap_indirect_dispatch_%s", viewResourceName.c_str());
-    const auto indirectArgsHandle = registry.read(indirectBufferName.c_str())
-                                      .buffer()
-                                      .atStage(dabfg::Stage::COMPUTE)
-                                      .useAs(dabfg::Usage::INDIRECTION_BUFFER)
-                                      .handle();
+    const auto indirectArgsHandle =
+      registry.read("indirect_args").buffer().atStage(dabfg::Stage::COMPUTE).useAs(dabfg::Usage::INDIRECTION_BUFFER).handle();
 
-    eastl::fixed_string<char, 64> visibleTilePosBufferName({}, "dagdp_heightmap_visible_tile_positions_%s", viewResourceName.c_str());
-    registry.read(visibleTilePosBufferName.c_str())
+    registry.read("visible_tile_positions")
       .buffer()
       .atStage(dabfg::Stage::COMPUTE)
       .bindToShaderVar("dagdp_heightmap__visible_tile_positions");
 
-    return [persistentData, viewHandle, indirectArgsHandle, shader = ComputeShader("dagdp_heightmap_place")] {
+    return [persistentData, viewHandle, indirectArgsHandle, shader = eastl::move(placeShader)] {
       const auto &constants = persistentData->constants;
       const auto &view = viewHandle.ref();
       G_ASSERT(view.viewports.size() <= constants.viewInfo.maxViewports);
@@ -209,6 +245,7 @@ static dabfg::NodeHandle create_place_node(const dabfg::NameSpace &ns,
       ShaderGlobal::set_buffer(var::variants, persistentData->commonBuffers.variantsBuffer.getBufId());
 
       ShaderGlobal::set_texture(var::density_mask, persistentData->densityMask);
+      ShaderGlobal::set_color4(var::density_mask_scale_offset, persistentData->densityMaskScaleOffset);
 
       ShaderGlobal::set_int(var::num_renderables, constants.numRenderables);
       ShaderGlobal::set_int(var::num_placeables, constants.numPlaceables);
@@ -272,7 +309,8 @@ static void create_grid_nodes(const ViewInfo &view_info,
   NodeInserter node_inserter,
   const HeightmapGrid &grid,
   size_t grid_index,
-  const SharedTex &density_mask)
+  const SharedTex &density_mask,
+  const Point4 &mask_scale_offset)
 {
   FRAMEMEM_REGION;
 
@@ -304,6 +342,7 @@ static void create_grid_nodes(const ViewInfo &view_info,
   const dabfg::NameSpace ns = dabfg::root() / "dagdp" / view_info.uniqueName.c_str() / nameSpaceName.c_str();
   auto persistentData = eastl::make_shared<HeightmapPersistentData>();
   persistentData->densityMask = density_mask;
+  persistentData->densityMaskScaleOffset = mask_scale_offset;
 
   HeightmapConstants &constants = persistentData->constants;
   constants.viewInfo = view_info;
@@ -387,8 +426,18 @@ static void create_grid_nodes(const ViewInfo &view_info,
     }
   }
 
+  node_inserter(create_indirect_args_node(ns, persistentData));
   node_inserter(create_cull_tiles_node(ns, persistentData));
-  node_inserter(create_place_node(ns, persistentData));
+
+  if (grid.useDynamicAllocation)
+  {
+    node_inserter(create_place_node(ns, persistentData, HeightmapPlacementType::DYNAMIC_OPTIMISTIC));
+    node_inserter(create_place_node(ns, persistentData, HeightmapPlacementType::DYNAMIC_PESSIMISTIC));
+  }
+  else
+  {
+    node_inserter(create_place_node(ns, persistentData, HeightmapPlacementType::STATIC));
+  }
 }
 
 void create_heightmap_nodes(
@@ -400,7 +449,8 @@ void create_heightmap_nodes(
   // TODO: merge these separate grid nodes into a single node/dispatch.
   // https://youtrack.gaijin.team/issue/RE-790/daGDP-merge-dispatches-of-heightmap-placers
   for (const auto [i, grid] : enumerate(heightmap_manager.currentBuilder.grids))
-    create_grid_nodes(view_info, view_builder, node_inserter, grid, i, heightmap_manager.currentBuilder.densityMask);
+    create_grid_nodes(view_info, view_builder, node_inserter, grid, i, heightmap_manager.currentBuilder.densityMask,
+      heightmap_manager.currentBuilder.maskScaleOffset);
 }
 
 } // namespace dagdp

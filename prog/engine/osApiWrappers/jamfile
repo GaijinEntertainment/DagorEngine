@@ -65,12 +65,12 @@ if $(Platform) in windows {
 
   if $(UseGDK) != no {
     Sources +=
-      xbox/app.cpp
-      xbox/network.cpp
-      xbox/queues.cpp
-      xbox/storage.cpp
-      xbox/handlesDebug.cpp
-      xbox/wer.cpp
+      gdk/app.cpp
+      gdk/network.cpp
+      gdk/queues.cpp
+      gdk/storage.cpp
+      gdk/handlesDebug.cpp
+      gdk/wer.cpp
     ;
   }
 
@@ -92,15 +92,15 @@ if $(Platform) in windows {
     winHwExceptUtils.cpp
     asyncRead.cpp
     dynLib.cpp
-    xbox/app.cpp
-    xbox/plm.cpp
-    xbox/window.cpp
-    xbox/network.cpp
-    xbox/queues.cpp
-    xbox/storage.cpp
-    xbox/gameinput.cpp
-    xbox/handlesDebug.cpp
-    xbox/wer.cpp
+    gdk/app.cpp
+    gdk/plm.cpp
+    gdk/window.cpp
+    gdk/network.cpp
+    gdk/queues.cpp
+    gdk/storage.cpp
+    gdk/gameinput.cpp
+    gdk/handlesDebug.cpp
+    gdk/wer.cpp
   ;
   UseProgLibs =
     engine/osApiWrappers/messageBox
@@ -194,7 +194,7 @@ if $(Platform) in windows {
     dbgStr.cpp
     stackHlpFill.cpp
     stackHlpGet.cpp
-    dynLib.cpp
+    nswitch/dynLib.cpp
   ;
   UseProgLibs += 3rdPartyLibs/posix ;
 } else if $(Platform) in linux android {

@@ -138,7 +138,7 @@ SimpleString blk_util::paramStrValue(const DataBlock &source, const int s_ind, c
 }
 
 
-SimpleString blk_util::blockStrValue(const DataBlock &source)
+SimpleString blk_util::blockStrValue(const DataBlock &source, const char *line_separator)
 {
   String result("{");
   for (int i = 0; i < source.paramCount(); ++i)
@@ -148,7 +148,7 @@ SimpleString blk_util::blockStrValue(const DataBlock &source)
 
   for (int i = 0; i < source.blockCount(); ++i)
   {
-    result = result + "\r\n" + blockStrValue(*source.getBlock(i));
+    result = result + line_separator + blockStrValue(*source.getBlock(i), line_separator);
   }
 
   return SimpleString((result + "}").str());

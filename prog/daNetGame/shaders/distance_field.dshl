@@ -477,3 +477,26 @@ shader build_river_mip
 
   compile("target_ps", "build_river_mip_ps");
 }
+
+shader water_copy_heightmap
+{
+  cull_mode = none;
+  z_test = false;
+  z_write = false;
+
+  POSTFX_VS_TEXCOORD(1, tc)
+
+  (ps) {
+    heightmap_tex@smp2d = heightmap_tex;
+  }
+
+  hlsl(ps) {
+    float4 copy_heightmap_ps(VsOutput input) : SV_Target0
+    {
+      float heightmap = tex2Dlod(heightmap_tex, float4(input.tc, 0, 0)).r;
+      return heightmap.rrrr;
+    }
+  }
+
+  compile("target_ps", "copy_heightmap_ps");
+}

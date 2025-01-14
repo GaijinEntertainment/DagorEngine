@@ -39,7 +39,10 @@ float4 hero_cockpit_camera_to_point = (0, 0, 0, 0);
 macro INIT_COMBINE_SHADOWS()
   supports global_const_block;
   (ps) {
-    shadow_params@f4 = (csm_distance, shadow_frame, contact_shadow_len, clouds_shadow_influence);
+    csm_distance@f1 = csm_distance;
+    shadow_frame@f1 = temporal_shadow_frame.x; //shadow_frame;
+    contact_shadow_len@f1 = contact_shadow_len;
+    clouds_shadow_influence@f1 = clouds_shadow_influence;
     temporal_shadow_frame@f1 = (temporal_shadow_frame);
     viewProjectionMatrixNoOfs@f44 = { globtm_no_ofs_psf_0, globtm_no_ofs_psf_1, globtm_no_ofs_psf_2, globtm_no_ofs_psf_3 };
     downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex;
@@ -74,10 +77,6 @@ macro USE_COMBINE_SHADOWS()
     #define CONTACT_HARDENING_STATIC_SHADOWS 0//will work only when more than one cascade is available
     #endif
     #define STATIC_SHADOW_DITHER_RADIUS 1.5
-    #define csm_distance shadow_params.x
-    #define shadow_frame temporal_shadow_frame.x //shadow_params.y
-    #define contact_shadow_len shadow_params.z
-    #define clouds_shadow_influence shadow_params.w
     #define STATIC_SHADOW_REFERENCE_FXAA_IMPL 1
     #define STATIC_SHADOW_CUSTOM_FXAA_DIR 0
   }
@@ -99,12 +98,6 @@ macro USE_COMBINE_SHADOWS()
       #define OFFSET_FOLIAGE_SHADOWS 1
     }
     USE_CSM_OFFSET_TO_CULLING_NEAR_PLANE(ps)
-  }
-  hlsl
-  {
-  ##if shadows_quality == high
-  //#define COMPARE_TOLERANCE_SCALE(a) saturate(0.2 + a*0.01)
-  ##endif
   }
   CONTACT_SHADOWS()
 
@@ -376,8 +369,7 @@ macro USE_COMBINE_SHADOWS()
                 #else
                   downsampled_far_depth_tex, downsampled_far_depth_tex_samplerstate,// we can't do otherwise, will result in shadow acne
                 #endif
-                cameraToPoint, -from_sun_direction, max(w * contact_shadow_len*0.5, min(0.1, w)), 12, dither-0.5, projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV,
-                  float2(3,2));
+                cameraToPoint, -from_sun_direction, max(w * contact_shadow_len*0.5, min(0.1, w)), 12, dither-0.5, projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV);
               contactShadow = lerp(1, contactShadow, shadow_strength);
             } else
               contactShadow = 1;

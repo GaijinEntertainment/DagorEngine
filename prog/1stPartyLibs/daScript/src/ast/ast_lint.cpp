@@ -774,6 +774,7 @@ namespace das {
         "report_invisible_functions",   Type::tBool,
         "report_private_functions",     Type::tBool,
         "strict_properties",            Type::tBool,
+        "very_safe_context",            Type::tBool,
     // memory
         "stack",                        Type::tInt,
         "intern_strings",               Type::tBool,
@@ -832,6 +833,7 @@ namespace das {
         "indenting",                    Type::tInt,
         "no_unsafe_uninitialized_structures", Type::tBool,
         "relaxed_pointer_const",        Type::tBool,
+        "unsafe_table_lookup",          Type::tBool,
     // debugger
         "debugger",                     Type::tBool,
     // profiler

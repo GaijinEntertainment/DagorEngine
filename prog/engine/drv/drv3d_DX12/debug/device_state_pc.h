@@ -5,6 +5,7 @@
 #include "event_marker_tracker.h"
 #include <dag/dag_vector.h>
 #include <driver.h>
+#include <pipeline.h>
 #include <EASTL/string_view.h>
 #include <supp/dag_comPtr.h>
 #include <util/dag_compilerDefs.h>
@@ -60,6 +61,12 @@ public:
     const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
     const BufferResourceReferenceAndOffset &args, const BufferResourceReferenceAndOffset &count, uint32_t max_count);
   void blit(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd);
+#if D3D_HAS_RAY_TRACING
+  void dispatchRays(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+    const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchParameters &rdp);
+  void dispatchRaysIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+    const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchIndirectParameters &rdip);
+#endif
   void onDeviceRemoved(D3DDevice *device, HRESULT remove_reason);
   void preRecovery();
   void recover(ID3D12Device *device, const Direct3D12Enviroment &d3d_env);

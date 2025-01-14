@@ -85,8 +85,7 @@ bool d3d::draw_up(int type, int numprim, const void *ptr, int stride_bytes)
   VkPrimitiveTopology topology = before_draw(type);
   uint32_t nverts = nprim_to_nverts(type, numprim);
 
-  CmdDrawUserData cmd{topology, nverts, (uint32_t)stride_bytes,
-    Globals::ctx.uploadToFrameMem(DeviceMemoryClass::DEVICE_RESIDENT_BUFFER, nverts * stride_bytes, ptr)};
+  CmdDrawUserData cmd{topology, nverts, (uint32_t)stride_bytes, Globals::ctx.uploadToDeviceFrameMem(nverts * stride_bytes, ptr)};
   Globals::ctx.dispatchPipeline(cmd, "draw_up");
 
   update_draw_stats(numprim, 1);
@@ -100,8 +99,8 @@ bool d3d::drawind_up(int type, int minvert, int numvert, int numprim, const uint
   uint32_t nverts = nprim_to_nverts(type, numprim);
 
   CmdDrawIndexedUserData cmd{topology, nverts, (uint32_t)stride_bytes,
-    Globals::ctx.uploadToFrameMem(DeviceMemoryClass::DEVICE_RESIDENT_BUFFER, numvert * stride_bytes, ptr),
-    Globals::ctx.uploadToFrameMem(DeviceMemoryClass::DEVICE_RESIDENT_BUFFER, nverts * sizeof(uint16_t), ind)};
+    Globals::ctx.uploadToDeviceFrameMem(numvert * stride_bytes, ptr),
+    Globals::ctx.uploadToDeviceFrameMem(nverts * sizeof(uint16_t), ind)};
   Globals::ctx.dispatchPipeline(cmd, "drawind_up");
 
   update_draw_stats(numprim, 1);

@@ -30,9 +30,6 @@ endmacro
 macro INIT_SUN_STCODE()
 endmacro
 macro USE_SUN()
-  hlsl(ps) {
-    #define sun_color_0 (sun_color_0__shadow_intens.xyz)
-  }
 endmacro
 
 macro FOG_PS_STCODE()
@@ -96,7 +93,7 @@ block(frame) water3d_block
   {
     to_sun_direction@f3 = (-from_sun_direction.x, -from_sun_direction.y, -from_sun_direction.z, 0.0)
     world_view_pos@f3 = world_view_pos;
-    sun_color_0__shadow_intens@f3 = (sun_color_0.r, sun_color_0.g, sun_color_0.b, cloud_shadow_intensity);
+    sun_color_0@f3 = sun_color_0;
     from_sun_dir__landSpecPower@f3 = from_sun_direction;
     sky_color@f3 = sky_color;
     foam_tiling@f3 = (foam_tiling/(height_tiling+1),water_depth_hardness*(2-height_tiling), (1-1/max(1, max_wave_height))*angle_to_roughness_scale,0);

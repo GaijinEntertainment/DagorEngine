@@ -596,6 +596,7 @@ ECS_TAG(render)
 ECS_ON_EVENT(OnRenderSettingsReady)
 ECS_TRACK(render_settings__effectsShadows, render_settings__effects__max_active_shadows, render_settings__shadowsQuality)
 ECS_REQUIRE(const ecs::string &render_settings__shadowsQuality)
+ECS_AFTER(init_shadows_es)
 static void effect_manager_settings_es(
   const ecs::Event &, bool render_settings__effectsShadows, int render_settings__effects__max_active_shadows)
 {

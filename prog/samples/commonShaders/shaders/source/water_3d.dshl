@@ -33,7 +33,6 @@ endmacro
 macro USE_SUN()
   hlsl(ps) {
     #define to_sun_direction (-(from_sun_direction.xyz))
-    #define sun_color_0 (sun_color_0__shadow_intens.xyz)
   }
 endmacro
 
@@ -98,7 +97,7 @@ block(frame) water3d_block
   (ps)
   {
     from_sun_direction@f3 = from_sun_direction;
-    sun_color_0__shadow_intens@f3 = (sun_color_0.r, sun_color_0.g, sun_color_0.b, cloud_shadow_intensity);
+    sun_color_0@f3 = sun_color_0;
     sky_color@f3 = sky_color;
     world_view_pos@f3 = world_view_pos;
     foam_tiling@f3 = (foam_tiling/(height_tiling+1),water_depth_hardness*(2-height_tiling), (1-1/max(1, max_wave_height))*angle_to_roughness_scale,0);

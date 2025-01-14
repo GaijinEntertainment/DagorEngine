@@ -355,7 +355,7 @@ shader deferred_immediate_resolve
       float dither = interleavedGradientNoise(screenpos.xy);//if we have temporal aa
       float contactShadow = contactShadowRayCastWithScale(icon_depth_gbuf, icon_depth_gbuf_samplerstate, worldPos.xyz,//+view*0.00005,
                             lightDir, w*0.2, 64, -0.98*dither, projectionMatrix, w, viewProjectionMatrix,
-                            hitUV, float2(100,99), view_scale_ofs);
+                            hitUV, view_scale_ofs);
       csmShadow = contactShadow;
 
       half shadow = min(gbuffer.shadow, csmShadow);

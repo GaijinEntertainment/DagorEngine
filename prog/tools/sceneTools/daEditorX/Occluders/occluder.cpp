@@ -212,7 +212,7 @@ bool occplugin::Occluder::isSelectedByPointClick(IGenViewportWnd *vp, int x, int
 
 bool occplugin::Occluder::getWorldBox(BBox3 &box) const
 {
-  box = getWtm() * (box ? normBox : normQuad);
+  box = getWtm() * normBox;
   return true;
 }
 

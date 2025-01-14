@@ -8,6 +8,7 @@
 #include <EASTL/string.h>
 #include <EASTL/algorithm.h>
 #include <util/dag_string.h>
+#include <util/dag_stlqsort.h>
 
 
 template <class... TArgs>
@@ -372,12 +373,18 @@ void StcodeRoutine::addShaderResource(ShaderStage stage, ResourceType type, cons
 {
   RET_IF_SHOULD_NOT_COMPILE();
 
-  G_ASSERTF(type == ResourceType::TEXTURE, "Invalid (or not yet implemented) type for shader resource: %d", (int)type);
+  const char *varTypeName = nullptr;
+  switch (type)
+  {
+    case ResourceType::TEXTURE: varTypeName = "uint"; break;
+    case ResourceType::SAMPLER: varTypeName = "void *"; break;
+    default: G_ASSERTF(0, "Invalid (or not yet implemented) type for shader resource: %d", (int)type);
+  }
 
   const eastl::string location(eastl::string::CtorSprintf{}, "%s_%s", name, stage_to_name_prefix(stage));
 
-  code.emplaceBackFmt("  %s(%s, LOC(%s), VAR(%s, uint));\n", resource_cb_name(type), stage_to_runtime_const_str(stage),
-    location.c_str(), var_name);
+  code.emplaceBackFmt("  %s(%s, LOC(%s), VAR(%s, %s));\n", resource_cb_name(type), stage_to_runtime_const_str(stage), location.c_str(),
+    var_name, varTypeName);
   regsForStage(stage).add(location.c_str(), id);
 }
 
@@ -484,20 +491,33 @@ void StcodeInterface::addRoutine(int global_routine_idx, int local_routine_idx, 
   if (routines.size() <= global_routine_idx)
     routines.resize(global_routine_idx + 1);
 
-  routines[global_routine_idx] = string_f("_%s::routine%u", filename.c_str(), local_routine_idx);
+  routines[global_routine_idx] = {string_f("_%s::routine%u", filename.c_str(), local_routine_idx), global_routine_idx};
+}
+
+void StcodeInterface::patchRoutineGlobalId(int prev_id, int new_id)
+{
+  RET_IF_SHOULD_NOT_COMPILE();
+
+  RoutineData &data = routines[prev_id];
+  G_ASSERT(data.id == prev_id);
+  data.id = new_id;
 }
 
 eastl::string StcodeInterface::releaseAssembledCode()
 {
   RET_IF_SHOULD_NOT_COMPILE({});
 
+  stlsort::sort(routines.begin(), routines.end(), [](const RoutineData &d1, const RoutineData &d2) {
+    return d1.id != ROUTINE_NOT_PRESENT && (d2.id == ROUTINE_NOT_PRESENT || d1.id < d2.id);
+  });
+
   StcodeBuilder pointerTableEntries;
-  for (const eastl::string &routine : routines)
+  for (const RoutineData &routine : routines)
   {
-    if (routine.empty())
+    if (routine.id == ROUTINE_NOT_PRESENT)
       pointerTableEntries.pushBack("nullptr,\n");
     else
-      pointerTableEntries.emplaceBackFmt("&%s,\n", routine.c_str());
+      pointerTableEntries.emplaceBackFmt("&%s,\n", routine.namespacedName.c_str());
   }
   routines.clear();
 

@@ -187,18 +187,12 @@ void PipelineStateStorage::makeDirty()
 {
   compute.makeDirty();
   graphics.makeDirty();
-#if D3D_HAS_RAY_TRACING
-  raytrace.makeDirty();
-#endif
 }
 
 void PipelineStateStorage::clearDirty()
 {
   compute.clearDirty();
   graphics.clearDirty();
-#if D3D_HAS_RAY_TRACING
-  raytrace.clearDirty();
-#endif
 }
 
 
@@ -244,9 +238,6 @@ void PipelineState::fillResBindFields()
   stageResources[STAGE_CS] = &get<StateFieldStageResourceBinds<STAGE_CS>, StateFieldResourceBinds, FrontComputeState>();
   stageResources[STAGE_PS] = &get<StateFieldStageResourceBinds<STAGE_PS>, StateFieldResourceBinds, FrontGraphicsState>();
   stageResources[STAGE_VS] = &get<StateFieldStageResourceBinds<STAGE_VS>, StateFieldResourceBinds, FrontGraphicsState>();
-#if D3D_HAS_RAY_TRACING
-  stageResources[STAGE_RAYTRACE] = &get<StateFieldStageResourceBinds<STAGE_RAYTRACE>, StateFieldResourceBinds, FrontRaytraceState>();
-#endif
 }
 
 PipelineState::PipelineState() { fillResBindFields(); }
@@ -260,9 +251,6 @@ void PipelineState::markResourceBindDirty(ShaderStage stage)
     case STAGE_CS: makeFieldDirty<StateFieldStageResourceBinds<STAGE_CS>, FrontComputeState>(); break;
     case STAGE_PS: makeFieldDirty<StateFieldStageResourceBinds<STAGE_PS>, FrontGraphicsState>(); break;
     case STAGE_VS: makeFieldDirty<StateFieldStageResourceBinds<STAGE_VS>, FrontGraphicsState>(); break;
-#if D3D_HAS_RAY_TRACING
-    case STAGE_RAYTRACE: makeFieldDirty<StateFieldStageResourceBinds<STAGE_RAYTRACE>, FrontRaytraceState>(); break;
-#endif
     default: G_ASSERTF(0, "vulkan: unknown stage %u to mark it dirty", stage); break;
   }
 }

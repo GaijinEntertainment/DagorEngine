@@ -13,6 +13,7 @@
 #include "internal/attributes.h"
 #include "internal/visualLabels.h"
 #include "internal/pathHash.h"
+#include "internal/occlusion.h"
 #include "internal/debug.h"
 
 static WinCritSec g_attributes_crit_set;
@@ -57,9 +58,20 @@ bool has_occlusion_impl(const FMOD::Studio::EventDescription &event_description)
 {
   TIME_PROFILE_DEV(has_occlusion_impl);
   FMOD_STUDIO_PARAMETER_DESCRIPTION paramDesc;
-  constexpr const char *occlusion_param_name = "occlusion";
-  return FMOD_OK == event_description.getParameterDescriptionByName(occlusion_param_name, &paramDesc) &&
+  const char *occlusion_param_name = occlusion::get_occlusion_param_name();
+  return occlusion::is_inited() && FMOD_OK == event_description.getParameterDescriptionByName(occlusion_param_name, &paramDesc) &&
          is_event_3d_impl(event_description);
+}
+
+bool is_delayable_impl(const FMOD::Studio::EventDescription &event_description)
+{
+  if (!is_event_3d_impl(event_description))
+    return false;
+  FMOD_STUDIO_USER_PROPERTY userProperty;
+  const FMOD_RESULT res = event_description.getUserProperty("dstdel", &userProperty);
+  if (res == FMOD_OK && userProperty.type == FMOD_STUDIO_USER_PROPERTY_TYPE_FLOAT)
+    return userProperty.floatvalue == 1.;
+  return false;
 }
 
 float get_event_max_distance_impl(const FMOD::Studio::EventDescription &event_description)
@@ -98,7 +110,7 @@ EventAttributes make_event_attributes(const FMOD::Studio::EventDescription &even
 #endif
   return EventAttributes(get_event_max_distance_impl(event_description), is_event_oneshot_impl(event_description),
     is_event_3d_impl(event_description), has_sustain_point_impl(event_description), has_occlusion_impl(event_description),
-    get_user_label_idx(event_description));
+    is_delayable_impl(event_description), get_user_label_idx(event_description));
 }
 
 EventAttributes find_event_attributes(const char *path, size_t path_len)

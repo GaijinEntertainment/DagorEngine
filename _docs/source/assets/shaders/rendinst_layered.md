@@ -404,9 +404,10 @@ To summarize in simpler terms:
 
 Here's how it looks in practice:
 
-<img src="_images/rendinst_layered_31.gif" width="80%" align="center" class="bg-primary">
-
-<br>
+```{eval-rst}
+.. video:: _images/rendinst_layered_31.webm
+   :width: 80%
+```
 
 Each movement triggers a reassembly of the global blending mask via multiplying
 the exclusion mask and the local blending mask, which results in the same object
@@ -514,9 +515,10 @@ require additional methods.
 Remember that these masks will be multiplied, and the final appearance will
 continue to evolve:
 
-<img src="_images/rendinst_layered_38.gif" width="80%" align="center" class="bg-primary">
-
-<br>
+```{eval-rst}
+.. video:: _images/rendinst_layered_38.webm
+   :width: 80%
+```
 
 ### Conclusion
 
@@ -643,9 +645,10 @@ For example, if the walls and exterior parts of the house are mapped to **cell
 
 The shader will automatically shift the mapping to **cell 9**:
 
-<img src="_images/rendinst_layered_43.gif" width="80%" align="center" class="bg-primary">
-
-<br>
+```{eval-rst}
+.. video:: _images/rendinst_layered_43.webm
+   :width: 80%
+```
 
 However, this automatic shifting requires specific parameters to be set. The
 universal overlay cells are as follows:
@@ -682,9 +685,10 @@ using the **Add** button and set their values as follows:
 
 If these parameters are not set, the overlay will not shift correctly:
 
-<img src="_images/rendinst_layered_45.gif" width="80%" align="center" class="bg-primary">
-
-<br>
+```{eval-rst}
+.. video:: _images/rendinst_layered_45.webm
+   :width: 80%
+```
 
 In some cases, you may want to limit the use of certain cells. For example,
 wooden walls may not look good with stucco cracks and stains.
@@ -696,9 +700,10 @@ wooden walls may not look good with stucco cracks and stains.
 In such cases, set `atlas_last_tile = 10` to limit the jump to **cells 8-10**,
 which are more neutral:
 
-<img src="_images/rendinst_layered_47.gif" width="80%" align="center" class="bg-primary">
-
-<br>
+```{eval-rst}
+.. video:: _images/rendinst_layered_47.webm
+   :width: 80%
+```
 
 #### Detail Tiling Settings
 
@@ -959,16 +964,18 @@ In the shader textures documentation, we mentioned that the blend mask offsets
 each time the object's position in space changes. Let's revisit how this looks
 with the overlay removed:
 
-<img src="_images/rendinst_layered_73.gif" width="80%" align="center" class="bg-primary">
-
-<br>
+```{eval-rst}
+.. video:: _images/rendinst_layered_73.webm
+   :width: 80%
+```
 
 These parameters increase the offset value, allowing for more varied blending of
 detail layers. Let's set these values to `0.5`.
 
-<img src="_images/rendinst_layered_74.gif" width="80%" align="center" class="bg-primary">
-
-<br>
+```{eval-rst}
+.. video:: _images/rendinst_layered_74.webm
+   :width: 80%
+```
 
 As you can see, the changes between blends became
 
@@ -1002,8 +1009,8 @@ operation. This required careful selection of colors to avoid over-saturation.
 The process was as follows:
 
 1. The parameter `detail2_colored` was set to `1`.
-2. In the *daEditor*, a color gradient was applied set in the **Properties**▸
-   **Textures**▸**Rendinst 2-nd detail color** section.
+2. In the *daEditor*, a color gradient was applied set in the **Properties >
+   Textures > Rendinst 2-nd detail color** section.
 
 <img src="_images/rendinst_layered_112.jpg" width="49%" class="bg-primary">
 <img src="_images/rendinst_layered_113.jpg" width="49%" class="bg-primary">
@@ -1043,9 +1050,10 @@ The function also takes into consideration the masks:
 This is a procedural function – rotate the object as you like, and the Detail2
 layer will cover it according to the specified rules, from the appropriate side.
 
-<img src="_images/rendinst_layered_75.gif" width="80%" align="center" class="bg-primary">
-
-<br>
+```{eval-rst}
+.. video:: _images/rendinst_layered_75.webm
+   :width: 80%
+```
 
 Let's examine how these parameters work.
 
@@ -1249,9 +1257,10 @@ object (from 0 to the last row in the texture). As the object moves across the
 map, each step will randomly shift the pixel within the selected coloring row.
 If multiple colors are specified, the object will be procedurally recolored.
 
-<img src="_images/rendinst_layered_87.gif" width="80%" align="center" class="bg-primary">
-
-<br>
+```{eval-rst}
+.. video:: _images/rendinst_layered_87.webm
+   :width: 80%
+```
 
 The coloring is applied based on the diffuse alpha (either the heightmap of the
 detail layer or simply a coloring mask for a unique texture).
@@ -1376,9 +1385,10 @@ As you can see, the logic of material blending on the roof is completely lost.
 The materials blend across the entire surface as if they were on walls, not a
 roof. Now, let's see how the overlay appears on the roof.
 
-<img src="_images/rendinst_layered_97.gif" width="80%" align="center" class="bg-primary">
-
-<br>
+```{eval-rst}
+.. video:: _images/rendinst_layered_97.webm
+   :width: 80%
+```
 
 The result is completely abstract decorations, which have nothing to do with the
 intended metal sheets of the roof. This is precisely why the roof cell was

@@ -39,21 +39,6 @@ inline void init_feature_weights(FeatureWeights &weights, int node_count, int tr
   weights.nodeVelocities.resize(node_count, 0.f);
 }
 
-inline void iterate_foot_ik_locker_states(const MotionMatchingController &controller,
-  const das::TBlock<void, bool, das::float3, das::float3> &block,
-  das::Context *context,
-  das::LineInfoArg *at)
-{
-  vec4f args[3];
-  for (const FootIKLockerControllerState::LegState &state : controller.footLockState.legs)
-  {
-    args[0] = das::cast<bool>::from(state.isLocked);
-    args[1] = state.lockedPosition;
-    args[2] = state.posOffset;
-    context->invoke(block, args, nullptr, at);
-  }
-}
-
 inline void commit_feature_weights(FeatureWeights &weights)
 {
   G_ASSERT(weights.nodePositions.size() == weights.nodeVelocities.size());
@@ -104,7 +89,7 @@ inline void anim_state_holder_get_foot_locker_legs(AnimV20::IAnimStateHolder *an
     static_cast<AnimV20::FootLockerIKCtrl::LegData *>(anim_state->getInlinePtr(data_base.footLockerParamId));
   das::Array arr;
   arr.data = (char *)legsData;
-  arr.size = uint32_t(FootIKLockerNodes::NUM_LEGS);
+  arr.size = data_base.footLockerNodes.size();
   arr.capacity = arr.size;
   arr.lock = 1;
   arr.flags = 0;
@@ -123,7 +108,7 @@ inline void anim_state_holder_iterate_foot_locker_legs_const(const AnimV20::IAni
   const AnimV20::FootLockerIKCtrl::LegData *legsData =
     static_cast<const AnimV20::FootLockerIKCtrl::LegData *>(anim_state->getInlinePtr(data_base.footLockerParamId));
   vec4f arg;
-  for (int i = 0; i < FootIKLockerNodes::NUM_LEGS; ++i)
+  for (int i = 0; i < data_base.footLockerNodes.size(); ++i)
   {
     arg = das::cast<const AnimV20::FootLockerIKCtrl::LegData &>::from(legsData[i]);
     context->invoke(block, &arg, nullptr, at);

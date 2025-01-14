@@ -464,7 +464,7 @@ public:
   // (if none changed wars was left and do_reset_changed_flag==true)
   int serialize(BitStream &bs, uint16_t flags_to_have = RVF_CHANGED, bool fth_all = true, uint16_t flags_to_ignore = 0,
     bool fti_all = false, bool do_reset_changed_flag = true);
-  bool deserialize(BitStream &bs);
+  virtual bool deserialize(BitStream &bs, int data_size);
 
   // called automatically before vars deserialization
   virtual void onBeforeVarsDeserialization() {}

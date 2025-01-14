@@ -1,0 +1,54 @@
+float rtsm_sun_angle_multiplier = 0.5;
+float4 sun_dir_for_shadows = (0, 1, 0, 0);
+
+macro RTSM_SUN_DIR()
+  (cs)
+  {
+    sun_dir_for_shadows@f3 = sun_dir_for_shadows;
+    sun_angle_multiplier@f1 = rtsm_sun_angle_multiplier;
+  }
+  hlsl(cs)
+  {
+    static const float solViewRadialAngle    = 0.0093f / 2;
+    static const float solViewTanRadialAngle = tan( solViewRadialAngle );
+
+    float3 GetRay( float2 rnd )
+    {
+      float phi = rnd.x * 2 * PI;
+
+      float cosTheta = sqrt( saturate( rnd.y ) );
+      float sinTheta = sqrt( saturate( 1.0 - cosTheta * cosTheta ) );
+
+      float3 ray;
+      ray.x = sinTheta * cos( phi );
+      ray.y = sinTheta * sin( phi );
+      ray.z = cosTheta;
+
+      return ray;
+    }
+
+    float3x3 GetBasis( float3 N )
+    {
+      float sz = sign( N.z );
+      float a  = 1.0 / ( sz + N.z );
+      float ya = N.y * a;
+      float b  = N.x * ya;
+      float c  = N.x * sz;
+
+      float3 T = float3( c * N.x * a - 1.0, sz * b, c );
+      float3 B = float3( b, N.y * ya - sz, N.y );
+
+      return float3x3( T, B, N );
+    }
+    float3 get_sun_direction(float2 rnd)
+    {
+      float solRadialAngle = solViewTanRadialAngle * sun_angle_multiplier;
+      rnd  = GetRay( rnd ).xy;
+      rnd *= solRadialAngle;
+
+      float3x3 sunBasis = GetBasis( -sun_dir_for_shadows );
+      float3 direction = normalize( sunBasis[ 0 ] * rnd.x + sunBasis[ 1 ] * rnd.y + sunBasis[ 2 ] );
+      return direction;
+    }
+  }
+endmacro

@@ -8,6 +8,7 @@ include "skies_special_vision.dshl"
 include "skies_shadows.dshl"
 include "skies_rainmap.dshl"
 include "use_custom_fog_sky.dshl"
+include "nuke_scattering_inc.dshl"
 
 
 float4 prepare_resolution = (1, 1, 1, 1);
@@ -30,9 +31,12 @@ macro TRACE_SKY(code, use_origin, use_sun_light_dir_x, use_sun_light_dir_y, use_
   (code) {  skies_ms_texture@smp2d = skies_ms_texture; }
   SKY_CLOUDS_SHADOWS(code, use_origin, use_sun_light_dir_x, use_sun_light_dir_y, use_sun_light_dir_z)
   ATMO(code)
+  INIT_NUKE_FOG_LIGHT(code)
+  USE_NUKE_FOG_LIGHT_RAYMARCH(code)
   hlsl(code) {
-    half3 traceSky(float3 origin, float3 viewVect, float3 sunDir, float shadowOffset, float2 raymarch_steps, out half3 transmittance, out half3 noMie, out half3 mie)
+    half3 traceSky(float3 origin, float3 viewVect, float3 sunDir, float shadowOffset, float2 raymarch_steps, out half3 transmittance, out half3 noMie, out half3 mie, out half3 add_light)
     {
+      add_light = 0;
       float3 view_direction = viewVect.xzy;
       float3 sun_direction = sunDir.xzy;
       float3 camera = float3(0,0,max(origin.y*0.001, 0.1) + theAtmosphere.bottom_radius);
@@ -53,6 +57,11 @@ macro TRACE_SKY(code, use_origin, use_sun_light_dir_x, use_sun_light_dir_y, use_
       transmittance = ss.Transmittance;
       noMie = (ss.ms + ss.ray*RayleighPhaseFunction(nu))*colorMul;
       mie = ss.mie*colorMul;
+
+      ##if nuke_in_atmosphere == on
+        add_light = get_nuke_fog_raymarch(raymarch_steps.y, r, viewVect, origin);
+      ##endif
+
       //return (ss.ms + (ss.ray+ss.mie*MiePhaseFunctionDivideByRayleighOptimized(theAtmosphere.mie_phase_consts, nu))*RayleighPhaseFunction(nu))*colorMul;
       return (ss.L)*colorMul;
     }
@@ -126,19 +135,20 @@ macro SKIES_VIEW_LUT_TEX_PREPARE(code)
       half3 transmittance;
       uint frameOver = 4;
       float randomOfs = ((uint(skies_frustum_scattering_frame)%frameOver + uint(screenpos.x)*2789 + uint(screenpos.y)*2791)%frameOver)/float(frameOver);
-      half3 noMieInscatter, skyMieInscatter;
-      traceSky(shadow_origin, view, skies_primary_sun_light_dir.xzy, randomOfs, canReproject ? 2*float2(16,32) : 3*float2(16,32), transmittance, noMieInscatter, skyMieInscatter);
+      half3 noMieInscatter, skyMieInscatter, addLight;
+      traceSky(shadow_origin, view, skies_primary_sun_light_dir.xzy, randomOfs, canReproject ? 2*float2(16,32) : 3*float2(16,32), transmittance, noMieInscatter, skyMieInscatter, addLight);
       noMieInscatter *= skies_primary_sun_color.rgb;
       skyMieInscatter *= skies_primary_sun_color.rgb;
       //skyMieInscatter = 0; skyInscatter *= skies_primary_sun_color.rgb;
       half4 skyInscatter = half4(noMieInscatter, dot(transmittance, 1./3));
+      skyInscatter.rgb += addLight;
       BRANCH
       if (skies_secondary_sun_color.w > 0)
       {
         half3 transmittance2;
         half3 noMieInscatter2, mieInscatter2;
         //todo: remove shadows from moon, use only statistical shadows. it is not correct anyway
-        skyInscatter.rgb += traceSky(shadow_origin, view, skies_secondary_sun_light_dir.xzy, randomOfs, canReproject ? float2(12,24) : float2(16,32), transmittance2, noMieInscatter2, mieInscatter2)*skies_secondary_sun_color.rgb;
+        skyInscatter.rgb += traceSky(shadow_origin, view, skies_secondary_sun_light_dir.xzy, randomOfs, canReproject ? float2(12,24) : float2(16,32), transmittance2, noMieInscatter2, mieInscatter2, addLight)*skies_secondary_sun_color.rgb;
       }
 
       if (canReproject)
@@ -401,11 +411,11 @@ shader skies_render_screen
       float2 scatteringLutTC = screenTC;
       #if REFERENCE_SKIES
         half3 transmittance;
-        half3 noMieInscatter, skyMieInscatter;
+        half3 noMieInscatter, skyMieInscatter, addLight;
         half4 skyInscatter;
-        skyInscatter.rgb = traceSky(skies_world_view_pos, view, skies_primary_sun_light_dir.xzy, 0, 8*float2(16,32), transmittance, noMieInscatter, skyMieInscatter)*skies_primary_sun_color.rgb;
+        skyInscatter.rgb = traceSky(skies_world_view_pos, view, skies_primary_sun_light_dir.xzy, 0, 8*float2(16,32), transmittance, noMieInscatter, skyMieInscatter, addLight)*skies_primary_sun_color.rgb;
         skyInscatter.a = dot(transmittance, 1./3);
-        skyInscatter.rgb += traceSky(skies_world_view_pos, view, skies_secondary_sun_light_dir.xzy, 0, 8*float2(16,32), transmittance, noMieInscatter, skyMieInscatter)*skies_secondary_sun_color.rgb;
+        skyInscatter.rgb += traceSky(skies_world_view_pos, view, skies_secondary_sun_light_dir.xzy, 0, 8*float2(16,32), transmittance, noMieInscatter, skyMieInscatter, addLight)*skies_secondary_sun_color.rgb;
       #else
         float2 skiesLutTC = get_skies_lut_tc(screenTC, view);
         if (skies_panoramic_scattering)
@@ -429,11 +439,11 @@ shader skies_render_screen
       float2 scatteringLutTC = screenTC;
       #if REFERENCE_SKIES
         half3 transmittance;
-        half3 noMieInscatter, skyMieInscatter;
+        half3 noMieInscatter, skyMieInscatter, addLight;
         half4 skyInscatter;
-        skyInscatter.rgb = traceSky(skies_world_view_pos, view, skies_primary_sun_light_dir.xzy, 0, 8*float2(16,32), transmittance, noMieInscatter, skyMieInscatter)*skies_primary_sun_color.rgb;
+        skyInscatter.rgb = traceSky(skies_world_view_pos, view, skies_primary_sun_light_dir.xzy, 0, 8*float2(16,32), transmittance, noMieInscatter, skyMieInscatter, addLight)*skies_primary_sun_color.rgb;
         skyInscatter.a = dot(transmittance, 1./3);
-        skyInscatter.rgb += traceSky(skies_world_view_pos, view, skies_secondary_sun_light_dir.xzy, 0, 8*float2(16,32), transmittance, noMieInscatter, skyMieInscatter)*skies_secondary_sun_color.rgb;
+        skyInscatter.rgb += traceSky(skies_world_view_pos, view, skies_secondary_sun_light_dir.xzy, 0, 8*float2(16,32), transmittance, noMieInscatter, skyMieInscatter, addLight)*skies_secondary_sun_color.rgb;
       #else
         float2 skiesLutTC = get_skies_lut_tc(screenTC, view);
         if (skies_panoramic_scattering)
@@ -555,14 +565,14 @@ shader skyPanorama
       float3 view = normalize(viewVect);
       half3 transmittance;
       //todo: add random ofs from panoram
-      half3 noMie, mie;
-      half3 skyInscatter = traceSky(shadow_origin, view, skies_primary_sun_light_dir.xzy, 0, 2*float2(16,32), transmittance, noMie, mie)*skies_primary_sun_color.rgb;
+      half3 noMie, mie, addLight;
+      half3 skyInscatter = traceSky(shadow_origin, view, skies_primary_sun_light_dir.xzy, 0, 2*float2(16,32), transmittance, noMie, mie, addLight)*skies_primary_sun_color.rgb;
       BRANCH
       if (skies_secondary_sun_color.w > 0)
       {
         half3 transmittance2;
         //todo: remove shadows from moon, use only statistical shadows. it is not correct anyway
-        skyInscatter += traceSky(shadow_origin, view, skies_secondary_sun_light_dir.xzy, 0, float2(12,24), transmittance2,noMie, mie)*skies_secondary_sun_color.rgb;
+        skyInscatter += traceSky(shadow_origin, view, skies_secondary_sun_light_dir.xzy, 0, float2(12,24), transmittance2,noMie, mie, addLight)*skies_secondary_sun_color.rgb;
       }
       float3 res = skyInscatter;
       float distToEarth;

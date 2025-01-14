@@ -147,6 +147,8 @@ namespace drv3d_metal
         tex_binding[i] = *((int*)ptr);
         ptr += 4;
 
+        texture_mask |= 1ull << tex_binding[i];
+
         tex_remap[i] = *((int*)ptr);
         ptr += 4;
 
@@ -161,6 +163,8 @@ namespace drv3d_metal
       {
         sampler_binding[i] = *((int*)ptr);
         ptr += 4;
+
+        sampler_mask |= 1ull << sampler_binding[i];
 
         sampler_remap[i] = *((int*)ptr);
         ptr += 4;
@@ -188,6 +192,7 @@ namespace drv3d_metal
       {
         buffers[num_buffers].slot = bufRemap[i];
         buffers[num_buffers].remapped_slot = i;
+        buffer_mask |= 1ull << i;
         num_buffers++;
       }
     }

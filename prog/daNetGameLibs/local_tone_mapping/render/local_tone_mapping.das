@@ -124,15 +124,15 @@ def register_downsample_nodes(var local_tone_mapping__downsample_nodes : NodeHan
         set_int(apply_per_tile_blurVarId, lastNode ? 1 : 0)
         set_int(skip_each_odd_texelVarId, highQuality ? 0 : 1)
         for i in 0u..mipsCnt
-          d3d_set_rwtex(0u, i, exposureHndl |> view |> get_tex2d(), 0u, i, false)
-          d3d_set_rwtex(0u, 4u + i, weightHndl |> view |> get_tex2d(), 0u, i, false)
+          d3d_set_rwtex(STAGE_CS, i, exposureHndl |> view |> get_tex2d(), 0u, i, false)
+          d3d_set_rwtex(STAGE_CS, 4u + i, weightHndl |> view |> get_tex2d(), 0u, i, false)
         ecs::query() <| $ [es] (local_tone_mapping_downsample : ComputeShader)
           local_tone_mapping_downsample |> dispatchThreads(
             max((postfxResolution |> get()).x >> (resolutionDivider + index * MIPS_FOR_ONE_PASS), 1),
             max((postfxResolution |> get()).y >> (resolutionDivider + index * MIPS_FOR_ONE_PASS), 1),
             1)
         for i in 0u..8u
-          d3d_set_rwtex(0u, i, null, 0u, 0u, false)
+          d3d_set_rwtex(STAGE_CS, i, null, 0u, 0u, false)
 
 [bfg_ecs_node(on_event=RegisterLocalToneMappingNodes)]
 def register_upsample_nodes(var local_tone_mapping__upsample_nodes : NodeHandleVector&;
@@ -190,14 +190,14 @@ def register_upsample_nodes(var local_tone_mapping__upsample_nodes : NodeHandleV
         set_int(upsample_modeVarId, upsampleMode)
         set_int(mips_cntVarId, mipsCnt)
         set_int(base_mipVarId, displayMip)
-        d3d_set_rwtex(0u, 0u, exposureHndl |> view |> get_tex2d(), 0u, 0u, false)
+        d3d_set_rwtex(STAGE_CS, 0u, exposureHndl |> view |> get_tex2d(), 0u, 0u, false)
         let divider = 1 << (srcIndex * MIPS_FOR_ONE_PASS + displayMip + resolutionDivider)
         ecs::query() <| $ [es] (local_tone_mapping_upsample : ComputeShader)
           local_tone_mapping_upsample |> dispatchThreads(
             ((postfxResolution |> get()).x + divider - 1) / divider,
             ((postfxResolution |> get()).y + divider - 1) / divider,
             1)
-        d3d_set_rwtex(0u, 0u, null, 0u, 0u, false)
+        d3d_set_rwtex(STAGE_CS, 0u, null, 0u, 0u, false)
 
 [bfg_ecs_node(on_event=RegisterLocalToneMappingNodes)]
 def register_filter_node(var local_tone_mapping__filter_node : NodeHandle&;

@@ -265,26 +265,23 @@ extern int das2_yydebug;
     FLOAT = 415,                   /* "floating point constant"  */
     DOUBLE = 416,                  /* "double constant"  */
     NAME = 417,                    /* "name"  */
-    BEGIN_STRING = 418,            /* "start of the string"  */
-    STRING_CHARACTER = 419,        /* STRING_CHARACTER  */
-    STRING_CHARACTER_ESC = 420,    /* STRING_CHARACTER_ESC  */
-    END_STRING = 421,              /* "end of the string"  */
-    BEGIN_STRING_EXPR = 422,       /* "{"  */
-    END_STRING_EXPR = 423,         /* "}"  */
-    END_OF_READ = 424,             /* "end of failed eader macro"  */
-    SEMICOLON_CUR_CUR = 425,       /* ";}}"  */
-    SEMICOLON_CUR_SQR = 426,       /* ";}]"  */
-    SEMICOLON_SQR_SQR = 427,       /* ";]]"  */
-    COMMA_SQR_SQR = 428,           /* ",]]"  */
-    COMMA_CUR_SQR = 429,           /* ",}]"  */
-    UNARY_MINUS = 430,             /* UNARY_MINUS  */
-    UNARY_PLUS = 431,              /* UNARY_PLUS  */
-    PRE_INC = 432,                 /* PRE_INC  */
-    PRE_DEC = 433,                 /* PRE_DEC  */
-    LLPIPE = 434,                  /* LLPIPE  */
-    POST_INC = 435,                /* POST_INC  */
-    POST_DEC = 436,                /* POST_DEC  */
-    DEREF = 437                    /* DEREF  */
+    DAS_EMIT_COMMA = 418,          /* "new line, comma"  */
+    DAS_EMIT_SEMICOLON = 419,      /* "new line, semicolon"  */
+    BEGIN_STRING = 420,            /* "start of the string"  */
+    STRING_CHARACTER = 421,        /* STRING_CHARACTER  */
+    STRING_CHARACTER_ESC = 422,    /* STRING_CHARACTER_ESC  */
+    END_STRING = 423,              /* "end of the string"  */
+    BEGIN_STRING_EXPR = 424,       /* "{"  */
+    END_STRING_EXPR = 425,         /* "}"  */
+    END_OF_READ = 426,             /* "end of failed eader macro"  */
+    UNARY_MINUS = 427,             /* UNARY_MINUS  */
+    UNARY_PLUS = 428,              /* UNARY_PLUS  */
+    PRE_INC = 429,                 /* PRE_INC  */
+    PRE_DEC = 430,                 /* PRE_DEC  */
+    LLPIPE = 431,                  /* LLPIPE  */
+    POST_INC = 432,                /* POST_INC  */
+    POST_DEC = 433,                /* POST_DEC  */
+    DEREF = 434                    /* DEREF  */
   };
   typedef enum das2_yytokentype das2_yytoken_kind_t;
 #endif

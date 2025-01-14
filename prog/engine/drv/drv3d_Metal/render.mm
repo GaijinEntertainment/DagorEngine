@@ -31,6 +31,89 @@ static String getShaderName(const char *shader)
 
 namespace drv3d_metal
 {
+  namespace
+  {
+    MTLPrimitiveType convertPrimitiveType(int prim_type)
+    {
+      switch(prim_type)
+      {
+      case PRIM_POINTLIST:
+        return MTLPrimitiveTypePoint;
+      case PRIM_LINELIST:
+        return MTLPrimitiveTypeLine;
+      case PRIM_LINESTRIP:
+        return MTLPrimitiveTypeLineStrip;
+      case PRIM_TRILIST:
+        return MTLPrimitiveTypeTriangle;
+      case PRIM_TRISTRIP:
+        return MTLPrimitiveTypeTriangleStrip;
+      case PRIM_TRIFAN:
+      case PRIM_4_CONTROL_POINTS:
+      case PRIM_COUNT:
+          G_ASSERT(0 && "Unsupported primitive type");
+      }
+      return MTLPrimitiveTypePoint;
+    }
+
+    MTLCullMode convertCullMode(int cull)
+    {
+      switch (cull)
+      {
+        case CULL_NONE:
+          return MTLCullModeNone;
+        case CULL_CCW:
+          return MTLCullModeBack;
+        case CULL_CW:
+          return MTLCullModeFront;
+      }
+      G_ASSERTF(0, "Unknown cull mode %d", cull);
+      return MTLCullModeNone;
+    }
+
+    MTLBlendOperation convertBlendOp(int op)
+    {
+      switch (op)
+      {
+        case BLENDOP_ADD:
+          return MTLBlendOperationAdd;
+        case BLENDOP_SUBTRACT:
+          return MTLBlendOperationSubtract;
+        case BLENDOP_REVSUBTRACT:
+          return MTLBlendOperationReverseSubtract;
+        case BLENDOP_MIN:
+          return MTLBlendOperationMin;
+        case BLENDOP_MAX:
+          return MTLBlendOperationMax;
+      }
+      G_ASSERT(0 && "Unknown blend op");
+      return MTLBlendOperationAdd;
+    }
+
+    MTLCompareFunction convertCompareFunction(int func)
+    {
+      switch (func)
+      {
+        case CMPF_NEVER:
+          return MTLCompareFunctionNever;
+        case CMPF_LESS:
+          return MTLCompareFunctionLess;
+        case CMPF_EQUAL:
+          return MTLCompareFunctionEqual;
+        case CMPF_LESSEQUAL:
+          return MTLCompareFunctionLessEqual;
+        case CMPF_GREATER:
+          return MTLCompareFunctionGreater;
+        case CMPF_NOTEQUAL:
+          return MTLCompareFunctionNotEqual;
+        case CMPF_GREATEREQUAL:
+          return MTLCompareFunctionGreaterEqual;
+        case CMPF_ALWAYS:
+          return MTLCompareFunctionAlways;
+      }
+      G_ASSERT(0 && "Unknown compare function");
+      return MTLCompareFunctionAlways;
+    }
+  }
   Render render;
 
   MTLDepthStencilDescriptor* Render::depthStateDesc = NULL;
@@ -128,9 +211,11 @@ namespace drv3d_metal
       render.rt.colors[i] = {};
 
     render.rt.depth = {};
-    render.rt.vp.used = false;
     render.need_change_rt = 1;
+    render.cached_viewport.originX = -FLT_MAX;
     render.checkNoRenderPass();
+
+    render.dirty_state &= ~DirtyFlags::Viewport;
   }
 
   static void setConstants(Render::StageBinding& stage, float consts[4])
@@ -146,11 +231,15 @@ namespace drv3d_metal
   struct StateSaver
   {
     Program::RenderState old_rstate;
-    Render::StageBinding old_vs_stage;
-    Render::StageBinding old_ps_stage;
     Render::DepthState old_depthstate;
     Render::RenderTargetConfig old_rt;
-    int old_cull;
+
+    Render::StageBinding::TextureSlot old_texture;
+
+    Buffer *old_buffers_0 = nullptr;
+    int old_buffers_offset_0 = 0;
+
+    MTLCullMode old_cull;
     bool save_tex, save_rt;
 
     bool scissor_on = false;
@@ -161,26 +250,36 @@ namespace drv3d_metal
 
     float vs_cbuffer[4];
     float ps_cbuffer[4];
+    int vs_cbuffer_num_stored = 0;
+    int ps_cbuffer_num_stored = 0;
 
     StateSaver(Render& render, bool save_tex, bool save_rt, bool color_write, bool depth_write)
       : save_tex(save_tex)
       , save_rt(save_rt)
     {
       old_rstate = render.cur_rstate;
-      old_vs_stage = render.stages[STAGE_VS];
-      old_ps_stage = render.stages[STAGE_PS];
       old_depthstate = render.cur_depthstate;
       old_rt = render.rt;
       old_cull = render.cur_cull;
 
+      Render::StageBinding &old_vs_stage = render.stages[STAGE_VS];
+      Render::StageBinding &old_ps_stage = render.stages[STAGE_PS];
+
+      if (save_tex)
+        old_texture = old_ps_stage.textures[0];
+      old_buffers_0 = old_vs_stage.buffers[0];
+      old_buffers_offset_0 = old_vs_stage.buffers_offset[0];
+
       memcpy(vs_cbuffer, old_vs_stage.cbuffer.cbuffer, 16);
       memcpy(ps_cbuffer, old_ps_stage.cbuffer.cbuffer, 16);
+      vs_cbuffer_num_stored = old_vs_stage.cbuffer.num_stored;
+      ps_cbuffer_num_stored = old_ps_stage.cbuffer.num_stored;
 
       render.cur_depthstate.zenable = 0;
       render.cur_depthstate.depth_write_on = depth_write ? 1 : 0;
-      render.need_prepare_depth_state = true;
+      render.dirty_state |= DirtyFlags::DepthState;
 
-      render.setCull(0);
+      render.setCull(MTLCullModeNone);
 
       for (int i = 0; i < shaders::RenderState::NumIndependentBlendParameters; ++i)
         render.cur_rstate.raster_state.blend[i].ablend = false;
@@ -202,7 +301,7 @@ namespace drv3d_metal
     {
       render.cur_depthstate.zenable = old_depthstate.zenable;
       render.cur_depthstate.depth_write_on = old_depthstate.depth_write_on;
-      render.need_prepare_depth_state = true;
+      render.dirty_state |= DirtyFlags::DepthState;
 
       for (int i = 0; i < shaders::RenderState::NumIndependentBlendParameters; ++i)
         render.cur_rstate.raster_state.blend[i].ablend = old_rstate.raster_state.blend[i].ablend;
@@ -210,21 +309,24 @@ namespace drv3d_metal
       render.cur_rstate.raster_state.a2c = 0;
       render.cur_rstate.raster_state.pad[0] = render.cur_rstate.raster_state.pad[1] = 0 ;
 
-      render.stages[STAGE_VS].setBuf(0, old_vs_stage.buffers[0], old_vs_stage.buffers_offset[0]);
+      render.stages[STAGE_VS].setBuf(0, old_buffers_0, old_buffers_offset_0);
       render.setCull(old_cull);
 
       if (save_rt)
       {
         render.rt = old_rt;
         render.need_change_rt = 1;
+        render.cached_viewport.originX = -FLT_MAX;
         render.checkNoRenderPass();
       }
 
       if (save_tex)
-        render.stages[STAGE_PS].setTex(0, old_ps_stage.textures[0], old_ps_stage.textures_read_stencil[0], old_ps_stage.textures_mip_level[0], false);
+        render.stages[STAGE_PS].setTex(0, old_texture.texture, old_texture.read_stencil, old_texture.mip_level, old_texture.as_uint);
 
-      memcpy(old_vs_stage.cbuffer.cbuffer, vs_cbuffer, 16);
-      memcpy(old_ps_stage.cbuffer.cbuffer, ps_cbuffer, 16);
+      memcpy(render.stages[STAGE_VS].cbuffer.cbuffer, vs_cbuffer, 16);
+      memcpy(render.stages[STAGE_PS].cbuffer.cbuffer, ps_cbuffer, 16);
+      render.stages[STAGE_VS].cbuffer.num_stored = vs_cbuffer_num_stored;
+      render.stages[STAGE_PS].cbuffer.num_stored = ps_cbuffer_num_stored;
 
       render.scissor_on = scissor_on;
       render.sci_x = sci_x;
@@ -348,7 +450,7 @@ namespace drv3d_metal
     device_buffer_offset = 0;
     is_binded = nil;
     is_binded_offset = -1;
-    num_strored = 0;
+    num_stored = 0;
   }
 
   void Render::ConstBuffer::applyCmd(void* data, int reg_base, int num_regs)
@@ -356,7 +458,7 @@ namespace drv3d_metal
     G_ASSERT(reg_base + num_regs <= MAX_CBUFFER_SIZE);
 
     memcpy(&cbuffer[reg_base], data, num_regs);
-    num_strored = max(num_strored, reg_base + num_regs);
+    num_stored = max(num_stored, reg_base + num_regs);
   }
 
   template <int stage>
@@ -412,9 +514,9 @@ namespace drv3d_metal
       return;
     }
 
-    if (num_strored > num_reg)
+    if (num_stored > num_reg)
     {
-      num_reg = num_strored;
+      num_reg = num_stored;
     }
 
     if (num_last_bound >= num_reg && memcmp(cbuffer, cbuffer_cache, num_reg) == 0)
@@ -425,7 +527,7 @@ namespace drv3d_metal
 
     id<MTLBuffer> buf = render.AllocateConstants(num_reg, device_buffer_offset);
     uint8_t* ptr = (uint8_t*)buf.contents + device_buffer_offset;
-    G_ASSERT(device_buffer_offset + num_reg <= RingBufferItem::max_size);
+    G_ASSERT(device_buffer_offset + num_reg <= RingBufferItem::max_constant_size);
 
     memcpy(ptr, cbuffer, num_reg);
     memcpy(cbuffer_cache, cbuffer, num_reg);
@@ -433,7 +535,7 @@ namespace drv3d_metal
 
     bindMetalBuffer<stage>(buf, is_binded, is_binded_offset, BIND_POINT, device_buffer_offset);
 
-    num_strored = 0;
+    num_stored = 0;
   }
 
   void Render::StageBinding::bindVertexStream(uint32_t stream, uint32_t offset)
@@ -449,24 +551,39 @@ namespace drv3d_metal
                     buffers_offset[stream] + dynamic_offset + offset);
   }
 
-  template <int stage>
-  void Render::StageBinding::apply(Shader* shader)
+  template <int shaderType>
+  static __forceinline void apply_immediate_constants(Shader* shader, Render::StageBinding& stage)
   {
-    if (stage == STAGE_VS)
-      for (int i = 0; i < GEOM_BUFFER_COUNT; ++i)
-        bindVertexStream(i, 0);
+    G_ASSERTF(stage.immediate_dword_count > 0, "Shader name and variant: %s", getShaderName(shader->src == nil ? "" : [shader->src cStringUsingEncoding:[NSString defaultCStringEncoding]]).c_str());
 
-    if (shader->immediate_slot >= 0)
-    {
-      G_ASSERTF(immediate_dword_count > 0, "Shader name and variant: %s", getShaderName(shader->src == nil ? "" : [shader->src cStringUsingEncoding:[NSString defaultCStringEncoding]]).c_str());
+    if (shader->immediate_slot == stage.immediate_slot_metal && stage.immediate_dword_count <= stage.immediate_dword_count_metal
+        && memcmp(stage.immediate_dwords, stage.immediate_dwords_metal, stage.immediate_dword_count*sizeof(uint32_t)) == 0)
+      return;
 
-      int buf_imm_offset = 0;
-      id<MTLBuffer> buf_imm = render.AllocateConstants(immediate_dword_count*sizeof(uint32_t), buf_imm_offset);
-      memcpy((uint8_t *)buf_imm.contents + buf_imm_offset, immediate_dwords, immediate_dword_count*sizeof(uint32_t));
+    int buf_imm_offset = 0;
+    id<MTLBuffer> buf_imm = render.AllocateConstants(stage.immediate_dword_count*sizeof(uint32_t), buf_imm_offset);
+    memcpy((uint8_t *)buf_imm.contents + buf_imm_offset, stage.immediate_dwords, stage.immediate_dword_count*sizeof(uint32_t));
+    memcpy(stage.immediate_dwords_metal, stage.immediate_dwords, stage.immediate_dword_count*sizeof(uint32_t));
 
-      int target = shader->immediate_slot;
-      bindMetalBuffer<stage>(buf_imm, buffers_metal[target], buffers_metal_offset[target], target, buf_imm_offset);
-    }
+    stage.immediate_dword_count_metal = stage.immediate_dword_count;
+    stage.immediate_slot_metal = shader->immediate_slot;
+
+    int target = shader->immediate_slot;
+    bindMetalBuffer<shaderType>(buf_imm, stage.buffers_metal[target], stage.buffers_metal_offset[target], target, buf_imm_offset);
+  }
+
+  template <int stage>
+  void Render::StageBinding::apply_vertex_streams()
+  {
+    G_ASSERT(stage == STAGE_VS);
+    for (int i = 0; i < GEOM_BUFFER_COUNT; ++i)
+      bindVertexStream(i, 0);
+  }
+
+  template <int stage>
+  void Render::StageBinding::apply_buffers(Shader* shader)
+  {
+    G_ASSERT(shader);
     for (int i = 0; i < shader->num_buffers; ++i)
     {
       int index = shader->buffers[i].remapped_slot;
@@ -488,7 +605,12 @@ namespace drv3d_metal
       int target = shader->buffers[i].slot;
       bindMetalBuffer<stage>(buffer, buffers_metal[target], buffers_metal_offset[target], target, offset + dynamic_offset);
     }
+  }
 
+  template <int stage>
+  void Render::StageBinding::apply_textures(Shader* shader)
+  {
+    G_ASSERT(shader);
     for (int i = 0; i < shader->num_tex; i++)
     {
       int slot = shader->tex_binding[i];
@@ -499,13 +621,15 @@ namespace drv3d_metal
 
       bool is_uav = slot >= MAX_SHADER_TEXTURES;
 
+      const auto &cache = textures[slot];
       if (type == MetalImageType::TexBuffer)
       {
-        if (buffers[slot] && buffers[slot]->getTexture())
-          buffers[slot]->getTexture()->apply(texture, false, false, false, textures_as_uint[slot]);
+        auto buf_tex = buffers[slot] ? buffers[slot]->getTexture() : nullptr;
+        if (buf_tex)
+          buf_tex->apply(texture, false, false, false, false);
       }
-      else if (textures[slot])
-        textures[slot]->apply(texture, textures_read_stencil[slot], textures_mip_level[slot], is_uav, textures_as_uint[slot]);
+      else if (cache.texture)
+        cache.texture->apply(texture, cache.read_stencil, cache.mip_level, is_uav, cache.as_uint);
 
       if (texture == nil)
       {
@@ -530,6 +654,12 @@ namespace drv3d_metal
         textures_metal[tslot] = texture;
       }
     }
+  }
+
+  template <int stage>
+  void Render::StageBinding::apply_samplers(Shader* shader)
+  {
+    G_ASSERT(shader);
     for (int i = 0; i < shader->num_samplers; i++)
     {
       int slot = shader->sampler_binding[i];
@@ -538,10 +668,8 @@ namespace drv3d_metal
       id<MTLSamplerState> sampler = nil;
 
       G_ASSERT(slot < 16);
-      if (samplers[slot] && samplerSource[slot] == SamplerSource::Sampler)
+      if (samplers[slot])
         sampler = samplers[slot];
-      else if (textures[slot] && samplerSource[slot] == SamplerSource::Texture)
-        textures[slot]->applySampler(sampler);
       else
         render.blank_tex[0]->applySampler(sampler);
 
@@ -556,6 +684,12 @@ namespace drv3d_metal
         samplers_metal[tslot] = sampler;
       }
     }
+  }
+
+  template <int stage>
+  void Render::StageBinding::apply_acceleration_structs(Shader* shader)
+  {
+    G_ASSERT(shader);
 
     for (int i = 0; i < shader->accelerationStructureCount; i++)
     {
@@ -568,11 +702,36 @@ namespace drv3d_metal
                                           atBufferIndex : inShaderSlot];
       }
     }
+  }
 
-    if (shader)
-    {
-      cbuffer.applyBuffer<stage>(shader->num_reg);
-    }
+  template <int stage>
+  void Render::StageBinding::apply(Shader* shader)
+  {
+    G_ASSERT(shader);
+
+    // early out if nothing was bound since last time
+    if (stage == STAGE_VS && (buffer_dirty_mask & GEOM_BUFFER_MASK))
+      apply_vertex_streams<stage>();
+    if (buffer_dirty_mask & shader->buffer_mask)
+      apply_buffers<stage>(shader);
+
+    buffer_dirty_mask &= ~(shader->buffer_mask | GEOM_BUFFER_MASK);
+
+    if (shader->immediate_slot >= 0)
+      apply_immediate_constants<stage>(shader, *this);
+
+    if (texture_dirty_mask & shader->texture_mask)
+      apply_textures<stage>(shader);
+    texture_dirty_mask &= ~shader->texture_mask;
+
+    if (sampler_dirty_mask & shader->sampler_mask)
+      apply_samplers<stage>(shader);
+    sampler_dirty_mask &= ~shader->sampler_mask;
+
+    if (stage == STAGE_CS)
+      apply_acceleration_structs<stage>(shader);
+
+    cbuffer.applyBuffer<stage>(shader->num_reg);
   }
 
   void Render::StageBinding::resetBuffer(int buf)
@@ -587,22 +746,28 @@ namespace drv3d_metal
         resetBuffer(i);
       cbuffer.is_binded = nil;
       cbuffer.num_last_bound = 0;
-      immediate_slot = -1;
+      immediate_slot_metal = -1;
+      buffer_dirty_mask = ~0ull;
   }
 
   void Render::StageBinding::reset(bool full)
   {
-    for (int i = 0; i < MAX_SHADER_TEXTURES*2; i++)
+    for (int i = 0; i < MAX_STAGE_TEXTURES; i++)
     {
       textures_metal[i] = nil;
       samplers_metal[i] = nil;
       if (full)
-        textures[i] = nullptr;
+        textures[i] = {};
     }
+    sampler_dirty_mask = ~0ull;
+    texture_dirty_mask = ~0ull;
+
     for (int i = 0; i < BUFFER_POINT_COUNT; i++)
     {
       if (full)
       {
+        if (buffers[i])
+          buffers[i]->bound_slots = 0;
         buffers[i] = nil;
       }
     }
@@ -612,7 +777,9 @@ namespace drv3d_metal
 
   void Render::StageBinding::removeBuf(Buffer* buf)
   {
-    for (int i = 0; i < 32; i++)
+    G_ASSERT(buf);
+    buf->bound_slots = 0;
+    for (int i = 0; i < BUFFER_POINT_COUNT; i++)
     {
       if (buffers[i] == buf)
       {
@@ -623,11 +790,11 @@ namespace drv3d_metal
 
   void Render::StageBinding::removeTex(Texture* tex)
   {
-    for (int i = 0; i < MAX_SHADER_TEXTURES*2; i++)
+    for (int i = 0; i < MAX_STAGE_TEXTURES; i++)
     {
-      if (textures[i] == tex)
+      if (textures[i].texture == tex)
       {
-        textures[i] = nullptr;
+        textures[i] = {};
       }
     }
   }
@@ -656,11 +823,11 @@ namespace drv3d_metal
     cur_depthstate.zfunc = MTLCompareFunctionGreaterEqual;
     cur_depthstate.depth_write_on = 1;
 
-    need_prepare_depth_state = true;
+    render.dirty_state |= DirtyFlags::DepthState;
 
     need_change_rt = 0;
 
-    depth_clip = true;
+    depth_clip = MTLDepthClipModeClip;
 
     main_thread = 0;
 
@@ -681,7 +848,9 @@ namespace drv3d_metal
     vshader->tex_type[0].value = 0;
     vshader->tex_binding[0] = 0;
     vshader->tex_remap[0] = 0;
+    vshader->texture_mask = num_tex ? 1 : 0;
     vshader->num_samplers = num_tex;
+    vshader->sampler_mask = num_tex ? 1 : 0;
     vshader->sampler_binding[0] = 0;
     vshader->sampler_remap[0] = 0;
   }
@@ -733,12 +902,12 @@ namespace drv3d_metal
 
     for (int i = 0; i < QUERIES_MAX; i++)
     {
-        queries[i].offset = i * 8;
+        queries[i].offset = i * sizeof(uint64_t);
     }
 
     cur_query_offset = -1;
 
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < STAGE_MAX; i++)
     {
       StageBinding& stg = stages[i];
       stg.cbuffer.init();
@@ -749,12 +918,9 @@ namespace drv3d_metal
         stg.buffers_offset[j] = 0;
         stg.buffers_metal[j] = nil;
       }
-      for (int j = 0; j < MAX_SHADER_TEXTURES*2; j++)
+      for (int j = 0; j < StageBinding::MAX_STAGE_TEXTURES; j++)
       {
-        stg.textures[j] = NULL;
-        stg.textures_read_stencil[j] = false;
-        stg.textures_as_uint[j] = false;
-        stg.textures_mip_level[j] = 0;
+        stg.textures[j] = {};
         stg.textures_metal[j] = nil;
         stg.samplers_metal[j] = nil;
       }
@@ -844,13 +1010,9 @@ namespace drv3d_metal
     cur_rstate.depthFormat = mainview.depthPixelFormat;
     cur_rstate.stencilFormat = mainview.stencilPixelFormat;
 
-    depth_clip = 1;
+    depth_clip = MTLDepthClipModeClip;
     depth_bias = 0.0f;
     depth_slopebias = 0.0f;
-    bias_changed = 0;
-    stencil_ref_changed = false;
-
-    need_set_query = 0;
 
     cur_state = NULL;
 
@@ -1041,20 +1203,35 @@ namespace drv3d_metal
       TIME_PROFILE(free_resources);
       auto & resources2free = resources2delete_frames[local_frame];
       {
-        std::lock_guard<std::mutex> scopedLock(constant_buffer_lock);
-        if (constant_buffers_free.size() > 1)
+        constexpr uint32_t max_const_buffers = 2;
+        constexpr uint32_t max_dynamic_buffers = 2;
+        std::lock_guard<std::mutex> scopedLock(dynamic_buffer_lock);
+        if (constant_buffers_free.size() > max_const_buffers)
         {
-          for (int i = 1; i<constant_buffers_free.size(); i++)
+          for (int i = max_const_buffers; i<constant_buffers_free.size(); i++)
           {
             auto& buf = constant_buffers_free[i];
             [buf.buf release];
             buf.buf = nil;
           }
-          constant_buffers_free.resize(1);
+          constant_buffers_free.resize(max_const_buffers);
+        }
+        if (dynamic_buffers_free.size() > max_dynamic_buffers)
+        {
+          for (int i = max_dynamic_buffers; i<dynamic_buffers_free.size(); i++)
+          {
+            auto& buf = dynamic_buffers_free[i];
+            [buf.buf release];
+            buf.buf = nil;
+          }
+          dynamic_buffers_free.resize(max_dynamic_buffers);
         }
         for (auto & buf : resources2free.constant_buffers)
           constant_buffers_free.push_back(buf);
         resources2free.constant_buffers.clear();
+        for (auto & buf : resources2free.dynamic_buffers)
+          dynamic_buffers_free.push_back(buf);
+        resources2free.dynamic_buffers.clear();
       }
       progs.lock();
       for (auto index : resources2free.programs)
@@ -1507,11 +1684,15 @@ namespace drv3d_metal
     }
   }
 
+  static bool viewportChanged(const MTLViewport& viewport, const Render::Viewport& vp)
+  {
+    return viewport.originX != vp.x || viewport.originY != vp.y || viewport.width != vp.w
+      || viewport.height != vp.h || viewport.znear != vp.minz || viewport.zfar != vp.maxz;
+  }
+
   void Render::setViewport(int x, int y, int w, int h, float minz, float maxz)
   {
     checkRenderAcquired();
-
-    rt.vp.used = true;
 
     rt.vp.x = x;
     rt.vp.y = y;
@@ -1519,6 +1700,9 @@ namespace drv3d_metal
     rt.vp.h = h;
     rt.vp.minz = minz;
     rt.vp.maxz = maxz;
+
+    if (viewportChanged(cached_viewport, rt.vp))
+      dirty_state |= DirtyFlags::Viewport;
   }
 
   void Render::setScissor(int x, int y, int w, int h)
@@ -1531,7 +1715,7 @@ namespace drv3d_metal
     sci_h = h;
 
     if (scissor_on)
-      need_set_scissor = true;
+      dirty_state |= DirtyFlags::Scissor;
   }
 
   void Render::setBuff(unsigned rstage, BufferType bf_type, int slot, Buffer *buffer, int offset, int stride)
@@ -1677,18 +1861,18 @@ namespace drv3d_metal
       return false;
 
     if (applyStates() == false)
-      return using_async_pso_compilation;
+      return true;
 
     G_ASSERT(renderEncoder);
     G_ASSERT(caps.drawIndxWithBaseVertes || start_instance == 0);
     if (caps.drawIndxWithBaseVertes)
-        [renderEncoder drawPrimitives : (MTLPrimitiveType)(prim_type-1)
+        [renderEncoder drawPrimitives : convertPrimitiveType(prim_type)
                           vertexStart : start_vertex
                           vertexCount : vertex_count
                         instanceCount : num_instances
                          baseInstance : start_instance];
       else
-        [renderEncoder drawPrimitives : (MTLPrimitiveType)(prim_type-1)
+        [renderEncoder drawPrimitives : convertPrimitiveType(prim_type)
                           vertexStart : start_vertex
                           vertexCount : vertex_count
                         instanceCount : num_instances];
@@ -1709,7 +1893,7 @@ namespace drv3d_metal
       return false;
 
     if (applyStates() == false)
-      return using_async_pso_compilation;
+      return true;
 
     int offset = ibuffertype == MTLIndexTypeUInt32 ? start_index * 4 : start_index * 2;
     base_vertex = max(0, base_vertex);
@@ -1718,9 +1902,9 @@ namespace drv3d_metal
     G_ASSERT(ibuffer);
     if (caps.drawIndxWithBaseVertes)
     {
-      [renderEncoder drawIndexedPrimitives : (MTLPrimitiveType)(prim_type-1)
+      [renderEncoder drawIndexedPrimitives : convertPrimitiveType(prim_type)
                                 indexCount : index_count
-                                 indexType : (MTLIndexType)ibuffertype
+                                 indexType : ibuffertype
                                indexBuffer : ibuffer->getBuffer()
                          indexBufferOffset : offset + ibuffer->getDynamicOffset()
                              instanceCount : num_instances
@@ -1733,18 +1917,20 @@ namespace drv3d_metal
       {
         Render::StageBinding &vs_stage = stages[STAGE_VS];
         auto vd = vdecl ? vdecl : cur_prog->vdecl;
+        G_ASSERT(vd->num_streams <= GEOM_BUFFER_COUNT);
         for (int streamIdx = 0; streamIdx < vd->num_streams; ++streamIdx)
         {
           const bool isStreamPerVertex = (vd->instanced_mask & (1 << streamIdx)) == 0;
           const unsigned streamOffsetBase = isStreamPerVertex ? base_vertex : start_instance;
           const uint32_t streamOffset = cur_rstate.vbuffer_stride[streamIdx] * streamOffsetBase;
           vs_stage.bindVertexStream(streamIdx, streamOffset);
+          vs_stage.buffer_dirty_mask |= 1ull << streamIdx;
         }
       }
 
-      [renderEncoder drawIndexedPrimitives : (MTLPrimitiveType)(prim_type-1)
+      [renderEncoder drawIndexedPrimitives : convertPrimitiveType(prim_type)
                                 indexCount : index_count
-                                 indexType : (MTLIndexType)ibuffertype
+                                 indexType : ibuffertype
                                indexBuffer : ibuffer->getBuffer()
                          indexBufferOffset : offset + ibuffer->getDynamicOffset()
                              instanceCount : num_instances];
@@ -1769,12 +1955,12 @@ namespace drv3d_metal
       return true;
 
     if (applyStates() == false)
-      return using_async_pso_compilation;
+      return true;
 
     G_ASSERT(renderEncoder);
     G_ASSERT(buffer);
     Buffer *buf = (Buffer *)buffer;
-    [renderEncoder drawPrimitives : (MTLPrimitiveType)(prim_type-1)
+    [renderEncoder drawPrimitives : convertPrimitiveType(prim_type)
                    indirectBuffer : buf->getBuffer()
              indirectBufferOffset : offset + buf->getDynamicOffset()];
 
@@ -1797,14 +1983,14 @@ namespace drv3d_metal
       return true;
 
     if (applyStates() == false)
-      return using_async_pso_compilation;
+      return true;
 
     G_ASSERT(renderEncoder);
     G_ASSERT(ibuffer);
     G_ASSERT(buffer);
     Buffer *buf = (Buffer *)buffer;
-    [renderEncoder drawIndexedPrimitives : (MTLPrimitiveType)(prim_type-1)
-                               indexType : (MTLIndexType)ibuffertype
+    [renderEncoder drawIndexedPrimitives : convertPrimitiveType(prim_type)
+                               indexType : ibuffertype
                              indexBuffer : ibuffer->getBuffer()
                        indexBufferOffset : ibuffer->getDynamicOffset()
                           indirectBuffer : buf->getBuffer()
@@ -1978,9 +2164,26 @@ namespace drv3d_metal
         bool vs_new = !cur_prog || !cur_prog->vshader || cur_prog->vshader->shader_hash != new_prog->vshader->shader_hash;
         bool ps_new = ps_hash_old != ps_hash_new;
         if (vs_new)
+        {
           vdecl = NULL;
+          stages[STAGE_VS].buffer_dirty_mask |= new_prog->vshader->buffer_mask;
+          stages[STAGE_VS].sampler_dirty_mask |= new_prog->vshader->sampler_mask;
+          stages[STAGE_VS].texture_dirty_mask |= new_prog->vshader->texture_mask;
+        }
+        if (ps_new && new_prog->pshader)
+        {
+          stages[STAGE_PS].buffer_dirty_mask |= new_prog->pshader->buffer_mask;
+          stages[STAGE_PS].sampler_dirty_mask |= new_prog->pshader->sampler_mask;
+          stages[STAGE_PS].texture_dirty_mask |= new_prog->pshader->texture_mask;
+        }
         if (vs_new || ps_new)
           cur_state = NULL;
+      }
+      else
+      {
+        stages[STAGE_CS].buffer_dirty_mask |= new_prog->cshader->buffer_mask;
+        stages[STAGE_CS].sampler_dirty_mask |= new_prog->cshader->sampler_mask;
+        stages[STAGE_CS].texture_dirty_mask |= new_prog->cshader->texture_mask;
       }
     }
     cur_prog = new_prog;
@@ -2179,7 +2382,7 @@ namespace drv3d_metal
       for (int i = 0; i < Program::MAX_SIMRT; i++)
         rt.colors[i] = {};
       rt.depth = {};
-      rt.vp.used = false;
+      dirty_state &= ~DirtyFlags::Viewport;
       need_change_rt = 1;
 
       auto &attach = is_depth_format(src->cflg) ? rt.depth : rt.colors[0];
@@ -2277,8 +2480,9 @@ namespace drv3d_metal
     rt.colors[index] = attach;
 
     need_change_rt = 1;
+    cached_viewport.originX = -FLT_MAX;
 
-    rt.vp.used = false;
+    dirty_state &= ~DirtyFlags::Viewport;
 
     if (attach.texture)
     {
@@ -2299,8 +2503,9 @@ namespace drv3d_metal
     rt.depth = attach;
 
     need_change_rt = 1;
+    cached_viewport.originX = -FLT_MAX;
 
-    rt.vp.used = false;
+    dirty_state &= ~DirtyFlags::Viewport;
 
     if (attach.texture)
     {
@@ -2448,108 +2653,10 @@ namespace drv3d_metal
                       instanceCount : 1];
   }
 
-  static bool viewportChanged(const MTLViewport& viewport, const Render::Viewport& vp)
+  bool Render::updateProgram()
   {
-    return viewport.originX != vp.x || viewport.originY != vp.y || viewport.width != vp.w
-      || viewport.height != vp.h || viewport.znear != vp.minz || viewport.zfar != vp.maxz;
-  }
-
-  bool Render::applyStates()
-  {
-    if (need_change_rt)
-      updateEncoder();
-
-    TIME_PROFILE(applyStates);
-
-    G_ASSERT(renderEncoder);
-
-    if (need_prepare_depth_state)
-    {
-      int prev_zenable = cur_depthstate.zenable;
-      int prev_depth_write_on = cur_depthstate.depth_write_on;
-      int prev_stencil = cur_depthstate.stencil_enable;
-
-      if (!rt.depth.texture)
-      {
-        cur_depthstate.zenable = 0;
-        cur_depthstate.depth_write_on = 0;
-        cur_depthstate.stencil_enable = false;
-      }
-
-      updateDepthState();
-
-      if (!rt.depth.texture)
-      {
-        cur_depthstate.zenable = prev_zenable;
-        cur_depthstate.depth_write_on = prev_depth_write_on;
-        cur_depthstate.stencil_enable = prev_stencil;
-      }
-
-      [renderEncoder setDepthStencilState : cur_depthstate.depthState];
-      need_prepare_depth_state = false;
-    }
-
-    if (stencil_ref_changed)
-    {
-      [renderEncoder setStencilReferenceValue:stencil_ref];
-      stencil_ref_changed = false;
-    }
-
-    if (bias_changed)
-    {
-      #define MINIMUM_REPRESENTABLE_D16   2e-5
-      float db = depth_bias / MINIMUM_REPRESENTABLE_D16;
-      [renderEncoder setDepthBias : db slopeScale : depth_slopebias clamp : 0.f];
-      bias_changed = 0;
-    }
-
-    if (rt.vp.used && viewportChanged(cached_viewport, rt.vp))
-    {
-      MTLViewport viewport;
-      viewport.originX = rt.vp.x;
-      viewport.originY = rt.vp.y;
-
-      viewport.width = rt.vp.w;
-      viewport.height = rt.vp.h;
-
-      viewport.znear = rt.vp.minz;
-      viewport.zfar = rt.vp.maxz;
-
-      [renderEncoder setViewport : viewport];
-
-      cached_viewport = viewport;
-    }
-    rt.vp.used = false;
-
-    if (need_set_scissor)
-    {
-      MTLScissorRect scissor;
-
-      if (scissor_on)
-      {
-        scissor.x = sci_x;
-        scissor.y = sci_y;
-
-        scissor.width = sci_w;
-        scissor.height = sci_h;
-      }
-      else
-      {
-        scissor.x = 0;
-        scissor.y = 0;
-
-        scissor.width = cur_wd;
-        scissor.height = cur_ht;
-      }
-
-      [renderEncoder setScissorRect : scissor];
-      need_set_scissor = false;
-    }
-
     if (!cur_prog)
-    {
       return false;
-    }
 
     if (cur_state == NULL || (cur_state && !(last_rstate == cur_rstate)))
     {
@@ -2573,34 +2680,113 @@ namespace drv3d_metal
         [renderEncoder setRenderPipelineState : cur_state];
         put_encoder_label([cur_state.label UTF8String]);
     }
+    return true;
+  }
+
+  void Render::updateStates()
+  {
+    if (dirty_state & DirtyFlags::DepthState)
+    {
+      int prev_zenable = cur_depthstate.zenable;
+      int prev_depth_write_on = cur_depthstate.depth_write_on;
+      int prev_stencil = cur_depthstate.stencil_enable;
+
+      if (!rt.depth.texture)
+      {
+        cur_depthstate.zenable = 0;
+        cur_depthstate.depth_write_on = 0;
+        cur_depthstate.stencil_enable = false;
+      }
+
+      updateDepthState();
+
+      if (!rt.depth.texture)
+      {
+        cur_depthstate.zenable = prev_zenable;
+        cur_depthstate.depth_write_on = prev_depth_write_on;
+        cur_depthstate.stencil_enable = prev_stencil;
+      }
+
+      [renderEncoder setDepthStencilState : cur_depthstate.depthState];
+    }
+
+    if (dirty_state & DirtyFlags::StencilRef)
+      [renderEncoder setStencilReferenceValue:stencil_ref];
+
+    constexpr float MINIMUM_REPRESENTABLE_D16 = 2e-5f;
+    if (dirty_state & DirtyFlags::DepthBias)
+      [renderEncoder setDepthBias : depth_bias / MINIMUM_REPRESENTABLE_D16
+                       slopeScale : depth_slopebias
+                            clamp : 0.f];
+
+    if (dirty_state & DirtyFlags::Viewport)
+    {
+      MTLViewport viewport;
+      viewport.originX = rt.vp.x;
+      viewport.originY = rt.vp.y;
+
+      viewport.width = rt.vp.w;
+      viewport.height = rt.vp.h;
+
+      viewport.znear = rt.vp.minz;
+      viewport.zfar = rt.vp.maxz;
+
+      [renderEncoder setViewport : viewport];
+      cached_viewport = viewport;
+    }
+
+    if (dirty_state & DirtyFlags::Scissor)
+    {
+      MTLScissorRect scissor;
+
+      if (scissor_on)
+      {
+        scissor.x = sci_x;
+        scissor.y = sci_y;
+
+        scissor.width = sci_w;
+        scissor.height = sci_h;
+      }
+      else
+      {
+        scissor.x = 0;
+        scissor.y = 0;
+
+        scissor.width = cur_wd;
+        scissor.height = cur_ht;
+      }
+
+      [renderEncoder setScissorRect : scissor];
+    }
+
+    if (dirty_state & DirtyFlags::Cull)
+      [renderEncoder setCullMode : cur_cull];
+
+    if (dirty_state & DirtyFlags::Query)
+      [renderEncoder setVisibilityResultMode : cur_query_offset != -1 ? MTLVisibilityResultModeCounting : MTLVisibilityResultModeDisabled
+                                      offset : cur_query_offset != -1 ? cur_query_offset : 0];
+
+    dirty_state = 0;
+  }
+
+  bool Render::applyStates()
+  {
+    if (need_change_rt)
+      updateEncoder();
+
+    if (updateProgram() == false)
+      return false;
+
+    if (dirty_state)
+      updateStates();
+
+    TIME_PROFILE(applyStates);
+
+    G_ASSERT(renderEncoder);
 
     stages[STAGE_VS].apply<STAGE_VS>(cur_prog->vshader);
     if (cur_prog->pshader)
       stages[STAGE_PS].apply<STAGE_PS>(cur_prog->pshader);
-    if (need_set_cull)
-    {
-      int cull = cur_cull;
-
-      [renderEncoder setCullMode : (MTLCullMode)cull];
-
-      need_set_cull = 0;
-    }
-
-    if (need_set_query)
-    {
-      if (cur_query_offset != -1)
-      {
-        [renderEncoder setVisibilityResultMode : MTLVisibilityResultModeCounting
-                                        offset : cur_query_offset];
-      }
-      else
-      {
-        [renderEncoder setVisibilityResultMode : MTLVisibilityResultModeDisabled
-                                        offset : 0];
-      }
-
-      need_set_query = 0;
-    }
 
     return true;
   }
@@ -2640,6 +2826,24 @@ namespace drv3d_metal
     }
     G_ASSERT(layers == -1 || layer == layers);
     layers = layer;
+  }
+
+  bool Render::RenderTargetConfig::isFullscreenViewport() const
+  {
+    bool vp_used = render.dirty_state & DirtyFlags::Viewport;
+    for (int i = 0; i < Program::MAX_SIMRT; ++i)
+      if (colors[i].texture)
+      {
+        if (vp.x == 0 && vp.y == 0 && vp.w == colors[i].texture->width && vp.h == colors[i].texture->height)
+        {
+          vp_used = false;
+          break;
+        }
+      }
+    if (depth.texture && vp.x == 0 && vp.y == 0 && vp.w == depth.texture->width && vp.h == depth.texture->height)
+      vp_used = false;
+
+    return vp_used == false;
   }
 
   void Render::updateEncoder(unsigned mask, float* color, float z, uint8_t stencil)
@@ -2742,7 +2946,7 @@ namespace drv3d_metal
     }
     else if (!has_color)
     {
-      G_ASSERT(rt.vp.used);
+      G_ASSERT(dirty_state & DirtyFlags::Viewport);
       G_ASSERT(rt.vp.w > 0);
       G_ASSERT(rt.vp.h > 0);
 
@@ -2777,20 +2981,20 @@ namespace drv3d_metal
     stages[STAGE_VS].reset();
     stages[STAGE_PS].reset();
 
-    need_prepare_depth_state = true;
+    render.dirty_state |= DirtyFlags::DepthState;
 
     cur_state = NULL;
 
-    [renderEncoder setDepthClipMode : (MTLDepthClipMode)(1 - depth_clip)];
+    [renderEncoder setDepthClipMode : depth_clip];
 
-    bias_changed = (fabs(depth_bias) > 0.00000001f && fabs(depth_slopebias) > 0.00000001f) ? 1 : 0;
-    need_set_cull = cur_cull ? 1 : 0;
-    need_set_query = (cur_query_offset != -1) ? 1 : 0;
-
+    if ((fabs(depth_bias) > 0.00000001f && fabs(depth_slopebias) > 0.00000001f))
+      dirty_state |= DirtyFlags::DepthBias;
+    if (cur_cull != MTLCullModeNone)
+      dirty_state |= DirtyFlags::Cull;
+    if (cur_query_offset != -1)
+      dirty_state |= DirtyFlags::Query;
     if (scissor_on)
-    {
-      need_set_scissor = true;
-    }
+      dirty_state |= DirtyFlags::Scissor;
 
     need_change_rt = 0;
 
@@ -2943,6 +3147,7 @@ namespace drv3d_metal
   {
     checkRenderAcquired();
 
+    G_ASSERT(query);
     if (query)
     {
       Render::Query *local_query = query;
@@ -2957,7 +3162,7 @@ namespace drv3d_metal
       cur_query_offset = -1;
     }
 
-    need_set_query = 1;
+    dirty_state |= DirtyFlags::Query;
     query->status = 1;
   }
 
@@ -3092,7 +3297,7 @@ namespace drv3d_metal
 
     [commandQueue release];
 
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < STAGE_MAX; i++)
     {
       StageBinding& stg = stages[i];
       stg.cbuffer.destroy();
@@ -3214,10 +3419,10 @@ namespace drv3d_metal
     id<MTLTexture> mtlTex = tex->apiTex ? tex->apiTex->texture : nil;
     for (uint32_t i = 0; i < STAGE_MAX; ++i)
     {
-      for (uint32_t j = 0; j < MAX_SHADER_TEXTURES*2; ++j)
+      for (uint32_t j = 0; j < StageBinding::MAX_STAGE_TEXTURES; ++j)
       {
-        if (stages[i].textures[j] == tex)
-          stages[i].textures[j] = nullptr;
+        if (stages[i].textures[j].texture == tex)
+          stages[i].textures[j] = {};
         if (stages[i].textures_metal[j] == mtlTex)
           stages[i].textures_metal[j] = nil;
       }
@@ -3260,7 +3465,7 @@ namespace drv3d_metal
     rstate.depth_state.stencil_enable = state.stencil.func > 0;
     if (state.stencil.func > 0)
     {
-      rstate.depth_state.stencil_func = state.stencil.func-1;
+      rstate.depth_state.stencil_func = convertCompareFunction(state.stencil.func);
       rstate.depth_state.stencil_read_mask = state.stencil.readMask;
       rstate.depth_state.stencil_write_mask = state.stencil.writeMask;
       rstate.depth_state.sfail = state.stencil.fail;
@@ -3269,14 +3474,14 @@ namespace drv3d_metal
     }
     rstate.depth_state.zenable = state.ztest;
     rstate.depth_state.depth_write_on = state.zwrite;
-    rstate.depth_state.zfunc = state.zFunc-1;
+    rstate.depth_state.zfunc = convertCompareFunction(state.zFunc);
 
     rstate.depth_bias = state.zBias;
     rstate.depth_slopebias = state.slopeZBias;
 
-    rstate.depth_clip = state.zClip;
+    rstate.depth_clip = state.zClip ? MTLDepthClipModeClip : MTLDepthClipModeClamp;
     rstate.stencil_ref = state.stencilRef;
-    rstate.cull = state.cull-1;
+    rstate.cull = convertCullMode(state.cull);
     rstate.forcedSampleCount = state.forcedSampleCount;
 
     rstate.raster_state.a2c = state.alphaToCoverage;
@@ -3286,11 +3491,11 @@ namespace drv3d_metal
       rstate.raster_state.blend[i].ablend = state.blendParams[i].ablend;
       rstate.raster_state.blend[i].ablendScr = convBlendArg(state.blendParams[i].sepablendFactors.src);
       rstate.raster_state.blend[i].ablendDst = convBlendArg(state.blendParams[i].sepablendFactors.dst);
-      rstate.raster_state.blend[i].ablendOp = state.blendParams[i].sepablendOp-1;
+      rstate.raster_state.blend[i].ablendOp = convertBlendOp(state.blendParams[i].sepablendOp);
       rstate.raster_state.blend[i].sepblend = state.blendParams[i].sepablend;
       rstate.raster_state.blend[i].rgbblendScr = convBlendArg(state.blendParams[i].ablendFactors.src);
       rstate.raster_state.blend[i].rgbblendDst = convBlendArg(state.blendParams[i].ablendFactors.dst);
-      rstate.raster_state.blend[i].rgbblendOp = state.blendParams[i].blendOp-1;
+      rstate.raster_state.blend[i].rgbblendOp = convertBlendOp(state.blendParams[i].blendOp);
     }
 
 
@@ -3305,28 +3510,28 @@ namespace drv3d_metal
     if (scissor_on != state.scissor_on)
     {
       scissor_on = state.scissor_on;
-      need_set_scissor = true;
+      dirty_state |= DirtyFlags::Scissor;
     }
     if (cur_depthstate.depth_state != state.depth_state.depth_state)
     {
       cur_depthstate = state.depth_state;
-      need_prepare_depth_state = true;
+      render.dirty_state |= DirtyFlags::DepthState;
     }
     if (fabs(depth_bias - state.depth_bias) > 0.00000001f || fabs(depth_slopebias - state.depth_slopebias) > 0.00000001f)
     {
       depth_bias = state.depth_bias;
       depth_slopebias = state.depth_slopebias;
-      bias_changed = 1;
+      dirty_state |= DirtyFlags::DepthBias;
     }
     if (depth_clip != state.depth_clip)
     {
       depth_clip = state.depth_clip;
-      [renderEncoder setDepthClipMode : (MTLDepthClipMode)(1 - depth_clip)];
+      [renderEncoder setDepthClipMode : depth_clip];
     }
     if (stencil_ref != state.stencil_ref)
     {
       stencil_ref = state.stencil_ref;
-      stencil_ref_changed = true;
+      dirty_state |= DirtyFlags::StencilRef;
     }
     if (cur_cull != state.cull)
       setCull(state.cull);
@@ -3343,7 +3548,7 @@ namespace drv3d_metal
     if (stencil_ref != ref)
     {
       stencil_ref = ref;
-      stencil_ref_changed = true;
+      dirty_state |= DirtyFlags::StencilRef;
     }
 
     return true;
@@ -3685,5 +3890,21 @@ namespace drv3d_metal
       render.stages[STAGE_VS].setBuf(slot, bindlessSamplerIdBuffer, 0);
       render.stages[STAGE_CS].setBuf(slot, bindlessSamplerIdBuffer, 0);
     }
+  }
+
+  void Render::pushAsyncPsoCompilation(bool enable)
+  {
+    checkRenderAcquired();
+
+    async_pso_compilation = enable;
+    async_pso_compilation_stack.push_back(enable);
+  }
+
+  void Render::popAsyncPsoCompilation()
+  {
+    checkRenderAcquired();
+
+    async_pso_compilation_stack.pop_back();
+    async_pso_compilation = async_pso_compilation_stack.size() ? async_pso_compilation_stack.back() : false;
   }
 }

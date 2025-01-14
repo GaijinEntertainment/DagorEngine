@@ -14,18 +14,25 @@ def motion_matching_imgui_es()
   if IsWindowCollapsed()
     return
 
+  if getSingletonEntity("motion_matching_imgui_state") == INVALID_ENTITY_ID
+    createEntity("motion_matching_imgui_state")
+
+  query() <| $ [es] (eid : EntityId; mm_imguiAnimcharEid : EntityId)
+    if mm_imguiAnimcharEid != INVALID_ENTITY_ID
+      motion_matching_imgui(mm_imguiAnimcharEid, eid)
+    else
+      imgui::Text("Select any entity with MM component")
+
+[es(tag=dev)]
+def mm_choose_imgui_selected_entity(act : ParallelUpdateFrameDelayed;
+                                    var mm_imguiAnimcharEid : EntityId&)
   var mmEntity = INVALID_ENTITY_ID
   query() <| $ [es(REQUIRE=(watchedByPlr, motion_matching__controller))] (eid : EntityId)
     mmEntity = eid
-
   //higher priority
   query() <| $ [es(REQUIRE=(daeditor__selected, motion_matching__controller))] (eid : EntityId)
     mmEntity = eid
-
-  if mmEntity != INVALID_ENTITY_ID
-    motion_matching_imgui(mmEntity)
-  else
-    imgui::Text("Select any entity")
+  mm_imguiAnimcharEid = mmEntity
 
 [es(tag=dev, before=motion_matching_job_es)]
 def mm_enable_for_animation_player(act : ParallelUpdateFrameDelayed;

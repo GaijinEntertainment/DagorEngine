@@ -25,7 +25,8 @@ float4 preparedScatteringDistToTc = float4((110/128.)*(110/128.)/80000.,0,
 texture preparedLoss;
 int skies_panoramic_scattering = 0;
 
-float4 skies_froxels_resolution;
+int4 skies_froxels_resolution = (1, 1, 1, 1);
+float skies_froxels_dist = 1;
 texture skies_frustum_scattering;
 float skies_frustum_scattering_last_tz = 1;
 float4x4 skies_globtm;
@@ -42,10 +43,10 @@ macro INIT_BRUNETON_FOG(stage)
     //skies_froxels_resolution@f4 = skies_froxels_resolution;
     skies_panoramic_scattering__inv_distance@f4 = (
       skies_panoramic_scattering,
-      skies_frustum_scattering_last_tz/skies_froxels_resolution.w,
+      skies_frustum_scattering_last_tz/skies_froxels_dist,
       2*skies_froxels_resolution.z,//we use clamp addressing, so our zero slice is always in center (0.5) of slice. And so it is never no scattering, even in 0.01 meters from camera
       //to fight that we make SW border 'addressing', based on z-texcoord (for now!), or, alternatively based on distance.
-      //4*skies_froxels_resolution.z*skies_froxels_resolution.z/skies_froxels_resolution.w,//we use clamp addressing, so our zero slice is always in center (0.5) of slice. And so it is never no scattering, even in 0.01 meters from camera
+      //4*skies_froxels_resolution.z*skies_froxels_resolution.z/skies_froxels_dist,//we use clamp addressing, so our zero slice is always in center (0.5) of slice. And so it is never no scattering, even in 0.01 meters from camera
       skies_frustum_scattering_last_tz);//can be combined with preparedScatteringDistToTc
     skies_globtm@f44 = skies_globtm;
     preparedScatteringDistToTc@f4 = preparedScatteringDistToTc;

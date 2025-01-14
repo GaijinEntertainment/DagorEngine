@@ -139,18 +139,29 @@ struct ComputePipelineSignature
   // range
   template <typename C>
   void updateCBVRange(C cmd, D3D12_GPU_VIRTUAL_ADDRESS *cbvs, D3D12_GPU_DESCRIPTOR_HANDLE offset,
-    Bitset<dxil::MAX_B_REGISTERS> dirty_mask, bool descriptor_range_dirty)
+    Bitset<dxil::MAX_B_REGISTERS> dirty_mask, bool descriptor_range_dirty, bool compacted_buffer_array) const
   {
     uint32_t index = def.csLayout.getConstBufferDescriptorIndex();
     if (def.csLayout.usesConstBufferRootDescriptors())
     {
-      for (auto i : LsbVisitor{def.registers.bRegisterUseMask & ~(1u << ROOT_CONSTANT_BUFFER_INDEX)})
+      if (!compacted_buffer_array)
       {
-        if (dirty_mask.test(i))
+        for (auto i : LsbVisitor{def.registers.bRegisterUseMask & ~(1u << ROOT_CONSTANT_BUFFER_INDEX)})
         {
-          cmd.setComputeRootConstantBufferView(index, cbvs[i]);
+          if (dirty_mask.test(i))
+          {
+            cmd.setComputeRootConstantBufferView(index, cbvs[i]);
+          }
+          ++index;
         }
-        ++index;
+      }
+      else
+      {
+        const uint32_t constCount = __popcount(def.registers.bRegisterUseMask & ~(1u << ROOT_CONSTANT_BUFFER_INDEX));
+        for (uint32_t i = 0; i < constCount; ++i)
+        {
+          cmd.setComputeRootConstantBufferView(index + i, cbvs[i]);
+        }
       }
     }
     else if (descriptor_range_dirty)
@@ -159,7 +170,7 @@ struct ComputePipelineSignature
     }
   }
   template <typename C>
-  void updateSRVRange(C cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset)
+  void updateSRVRange(C cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset) const
   {
     if (def.registers.tRegisterUseMask)
     {
@@ -167,7 +178,7 @@ struct ComputePipelineSignature
     }
   }
   template <typename C>
-  void updateUAVRange(C cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset)
+  void updateUAVRange(C cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset) const
   {
     if (def.registers.uRegisterUseMask)
     {
@@ -175,7 +186,7 @@ struct ComputePipelineSignature
     }
   }
   template <typename C>
-  void updateSamplerRange(C cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset)
+  void updateSamplerRange(C cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset) const
   {
     if (def.registers.sRegisterUseMask)
     {
@@ -183,7 +194,7 @@ struct ComputePipelineSignature
     }
   }
   template <typename C>
-  void updateUnboundedSRVRanges(C cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset)
+  void updateUnboundedSRVRanges(C cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset) const
   {
     if (def.registers.bindlessUsageMask & dxil::BINDLESS_RESOURCES_SPACE_BITS_MASK)
     {
@@ -191,7 +202,7 @@ struct ComputePipelineSignature
     }
   }
   template <typename C>
-  void updateBindlessSamplerRange(C cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset)
+  void updateBindlessSamplerRange(C cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset) const
   {
     if (def.registers.bindlessUsageMask & dxil::BINDLESS_SAMPLERS_SPACE_BITS_MASK)
     {
@@ -199,7 +210,7 @@ struct ComputePipelineSignature
     }
   }
   template <typename C>
-  void updateRootConstants(C cmd, uint32_t values[MAX_ROOT_CONSTANTS], Bitset<MAX_ROOT_CONSTANTS> dirty_bits)
+  void updateRootConstants(C cmd, uint32_t values[MAX_ROOT_CONSTANTS], Bitset<MAX_ROOT_CONSTANTS> dirty_bits) const
   {
     if (def.registers.rootConstantDwords)
     {
@@ -517,9 +528,7 @@ struct GraphicsPipelineSignature
 
 #if D3D_HAS_RAY_TRACING
 struct RaytracePipelineSignature : ComputePipelineSignature
-{
-  // basically the same thing
-};
+{};
 #endif
 
 struct GraphicsPipelineBaseCacheIdTag

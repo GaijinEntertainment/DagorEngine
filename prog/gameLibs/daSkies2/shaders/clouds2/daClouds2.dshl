@@ -295,10 +295,10 @@ macro RAYCAST_CLOUDS(code)
       #endif
     }
   }
-  local float infMul = (((1 - 0.5/skies_froxels_resolution.z) - skies_frustum_scattering_last_tz) / max(1, 245000-skies_froxels_resolution.w));
+  local float infMul = (((1 - 0.5/skies_froxels_resolution.z) - skies_frustum_scattering_last_tz) / max(1, 245000-skies_froxels_dist));
   (code) {
     //returns skies_frustum_scattering_last_tz at skies_froxels_resolution.w, and 1 - 0.5/skies_froxels_resolution.z at 280km/
-    infinite_skies_madd@f3 = (infMul, skies_frustum_scattering_last_tz - skies_froxels_resolution.w*infMul, 1 - 0.5/skies_froxels_resolution.z,0);
+    infinite_skies_madd@f3 = (infMul, skies_frustum_scattering_last_tz - skies_froxels_dist*infMul, 1 - 0.5/skies_froxels_resolution.z,0);
     nuke_light_color@f4 = nuke_light_color;
     nuke_light_pos@f3 = (nuke_light_pos.x + clouds_origin_offset.x, nuke_light_pos.y, nuke_light_pos.z+clouds_origin_offset.y, 0);
     shadow_steps_for_nuke__trace_steps@f4 = (1 + clouds_steps_per_sequence, 1.0 / (1 + clouds_steps_per_sequence), clouds_trace_steps.x, clouds_trace_steps.y);
@@ -337,7 +337,7 @@ macro RAYCAST_CLOUDS(code)
       if (nuke_light_color.w > 0)
       {
         float lightDist = length(cp.pos - nuke_light_pos.xyz);
-        float radFade = saturate((nuke_light_color.w-lightDist)/nuke_light_color.w);
+        float radFade = pow2(saturate((nuke_light_color.w-lightDist)/nuke_light_color.w));
 
         if (radFade > 0)
         {
@@ -840,9 +840,9 @@ macro RAYCAST_CLOUDS(code)
               half3 extinction, inscatter;\
               GET_FOG(scatteringTc, view, seqAvgDist, extinction, inscatter);\
               decodedScatteringColor.rgb = extinction*decodedScatteringColor.rgb + inscatter*(1-integratedScatteringTransmittance2.z); \
+              additionalLighting.rgb += extinction * integratedTransmittance*additionalLighting2;\
             }\
             integratedScatteringColor.rgb += integratedTransmittance*decodedScatteringColor.rgb;\
-            additionalLighting.rgb += integratedTransmittance*additionalLighting2;\
             integratedTransmittance *= integratedScatteringTransmittance2.z;\
             weightedDist += weightedSequenceDist; totalWeight += totalSequenceWeight;\
           }
@@ -880,9 +880,9 @@ macro RAYCAST_CLOUDS(code)
               half3 extinction, inscatter;\
               GET_FOG(scatteringTc, view, seqAvgDist, extinction, inscatter);\
               decodedScatteringColor.rgb = extinction*decodedScatteringColor.rgb + inscatter*(1-integratedScatteringTransmittance2.z); \
+              additionalLighting.rgb += extinction * integratedTransmittance*additionalLighting2;\
             }\
             integratedScatteringColor.rgb += integratedTransmittance*decodedScatteringColor.rgb;\
-            additionalLighting.rgb += integratedTransmittance*additionalLighting2;\
             integratedTransmittance *= integratedScatteringTransmittance2.z;\
             weightedDist += weightedSequenceDist; totalWeight += totalSequenceWeight;\
             stepSize=stepSize*mulS;
@@ -1091,7 +1091,7 @@ shader clouds2_temporal_ps, clouds2_close_temporal_ps, clouds2_direct
   compile("target_ps", "clouds_ps");
 }
 
-float4 clouds2_resolution;
+int4 clouds2_resolution;
 float4 clouds2_dispatch_groups;
 
 shader clouds2_temporal_cs, clouds2_close_temporal_cs//, clouds2_direct_cs
@@ -1102,10 +1102,18 @@ shader clouds2_temporal_cs, clouds2_close_temporal_cs//, clouds2_direct_cs
 
   if (shader == clouds2_close_temporal_cs)
   {
-    (cs) { invres@f4 = (1./clouds2_resolution.z, 1./clouds2_resolution.w, 0.5/clouds2_resolution.z, 0.5/clouds2_resolution.w); }
+    (cs)
+    {
+      invres@f4 = (1./clouds2_resolution.z, 1./clouds2_resolution.w, 0.5/clouds2_resolution.z, 0.5/clouds2_resolution.w);
+      res@u2 = clouds2_resolution.zw;
+    }
   } else
   {
-    (cs) { invres@f4 = (1./clouds2_resolution.x, 1./clouds2_resolution.y, 0.5/clouds2_resolution.x, 0.5/clouds2_resolution.y); }
+    (cs)
+    {
+      invres@f4 = (1./clouds2_resolution.x, 1./clouds2_resolution.y, 0.5/clouds2_resolution.x, 0.5/clouds2_resolution.y);
+      res@u2 = clouds2_resolution.xy;
+    }
   }
 
   hlsl(cs) {
@@ -1114,10 +1122,12 @@ shader clouds2_temporal_cs, clouds2_close_temporal_cs//, clouds2_direct_cs
     //#include <L2_cache_friendly_dispatch.hlsl>
 
     [numthreads(CLOUD_TRACE_WARP_X, CLOUD_TRACE_WARP_Y, 1)]
-    //void cs_main(uint2 dtid : SV_DispatchThreadID)
-    void cs_main(uint2 dtid_ : SV_DispatchThreadID, uint2 gid_ : SV_GroupID, uint3 tid_ : SV_GroupThreadID)
+    // void cs_main(uint2 dtid_ : SV_DispatchThreadID, uint2 gid_ : SV_GroupID, uint3 tid_ : SV_GroupThreadID)
+    void cs_main(uint2 dtid : SV_DispatchThreadID)
     {
-      uint2 dtid = dtid_;
+      if (any(dtid >= res))
+        return;
+
       //texture2DAt(target0, dtid) = flattenedGroupIdOrigin/float(dispatchGridDim.x*dispatchGridDim.y);
       float2 texcoord = dtid*invres.xy + invres.zw;
       float3 viewVect = getViewVecOptimized(texcoord);
@@ -1152,7 +1162,7 @@ shader clouds_panorama, clouds_alpha_panorama
     (ps) { skies_transmittance_texture@smp2d = skies_transmittance_texture; }
     (ps) {
       sky_panorama_tex@smp2d = sky_panorama_tex;
-      skies_froxels_resolution@f4 = skies_froxels_resolution;
+      skies_froxels_resolutionInv@f3 = (1./skies_froxels_resolution.x, 1./skies_froxels_resolution.y, 1./skies_froxels_resolution.z);
     }
   }
 
@@ -1265,7 +1275,7 @@ shader clouds_panorama, clouds_alpha_panorama
         #if !MOBILE_DEVICE
           float radius = (((uint(current_frame_info.x)%(PANORAMA_TEMPORAL_SAMPLES+1))>>2)+0.5)/((PANORAMA_TEMPORAL_SAMPLES)>>2);
           //blur scattering a bit
-          scatteringTc += radius*float2(((uint(current_frame_info.x)&1)-0.5), (((uint(current_frame_info.x)>>1)&1)-0.5))/skies_froxels_resolution.xy;
+          scatteringTc += radius*float2(((uint(current_frame_info.x)&1)-0.5), (((uint(current_frame_info.x)>>1)&1)-0.5))*skies_froxels_resolutionInv.xy;
         #endif
       ##else
         float2 scatteringTc = 0;

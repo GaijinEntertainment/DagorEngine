@@ -19,6 +19,10 @@ enum
   COPY_FOLDER_PATH,
   COPY_RESOLVED_FOLDER_PATH,
   REVEAL_IN_EXPLORER,
+  ADD,
+  ADD_STATE,
+  ADD_CHAN,
+  ADD_STATE_ALIAS,
 };
 }
 
@@ -35,7 +39,9 @@ bool AnimStatesTreeEventHandler::onTreeContextMenu(PropPanel::ContainerPropertyC
     statesTree = &tree;
     const AnimStatesData *data = find_data_by_handle(states, selLeaf);
     if (data != states.end() &&
-        (data->type == AnimStatesType::ENUM || data->type == AnimStatesType::ENUM_ITEM || data->type == AnimStatesType::INCLUDE_ROOT))
+        (data->type == AnimStatesType::ENUM || data->type == AnimStatesType::ENUM_ITEM || data->type == AnimStatesType::INCLUDE_ROOT ||
+          data->type == AnimStatesType::STATE || data->type == AnimStatesType::CHAN || data->type == AnimStatesType::STATE_ALIAS ||
+          data->type == AnimStatesType::STATE_DESC))
     {
       PropPanel::IMenu &menu = tree_interface.createContextMenu();
       if (data->type == AnimStatesType::ENUM)
@@ -49,6 +55,15 @@ bool AnimStatesTreeEventHandler::onTreeContextMenu(PropPanel::ContainerPropertyC
         menu.addItem(PropPanel::ROOT_MENU_ITEM, ContextMenu::COPY_RESOLVED_FOLDER_PATH, "Copy resolved folder path");
         menu.addItem(PropPanel::ROOT_MENU_ITEM, ContextMenu::COPY_NODE_NAME, "Copy include name");
         menu.addItem(PropPanel::ROOT_MENU_ITEM, ContextMenu::REVEAL_IN_EXPLORER, "Reveal in Explorer");
+      }
+      else // case when select state or chan or state_alias or state_desc leaf
+      {
+        G_ASSERT(data->type == AnimStatesType::STATE || data->type == AnimStatesType::CHAN ||
+                 data->type == AnimStatesType::STATE_ALIAS || data->type == AnimStatesType::STATE_DESC);
+        menu.addSubMenu(PropPanel::ROOT_MENU_ITEM, ContextMenu::ADD, "Add");
+        menu.addItem(ContextMenu::ADD, ContextMenu::ADD_STATE, "State");
+        menu.addItem(ContextMenu::ADD, ContextMenu::ADD_CHAN, "Channel");
+        menu.addItem(ContextMenu::ADD, ContextMenu::ADD_STATE_ALIAS, "State alias");
       }
       menu.setEventHandler(this);
       return true;
@@ -71,8 +86,18 @@ int AnimStatesTreeEventHandler::onMenuItemClick(unsigned id)
       clipboard::set_clipboard_ansi_text(find_resolved_folder_path(paths, *asset, statesTree, selLeaf));
       break;
     case ContextMenu::REVEAL_IN_EXPLORER: dag_reveal_in_explorer(find_full_path(paths, *asset, statesTree, selLeaf)); break;
+    case ContextMenu::ADD_CHAN: pluginEventHandler->onClick(PID_ANIM_STATES_ADD_CHAN, pluginPanel); break;
+    case ContextMenu::ADD_STATE: pluginEventHandler->onClick(PID_ANIM_STATES_ADD_STATE, pluginPanel); break;
+    case ContextMenu::ADD_STATE_ALIAS: pluginEventHandler->onClick(PID_ANIM_STATES_ADD_STATE_ALIAS, pluginPanel); break;
   }
   return 0;
 }
 
 void AnimStatesTreeEventHandler::setAsset(DagorAsset *cur_asset) { asset = cur_asset; }
+
+void AnimStatesTreeEventHandler::setPluginEventHandler(PropPanel::ContainerPropertyControl *panel,
+  PropPanel::ControlEventHandler *event_handler)
+{
+  pluginPanel = panel;
+  pluginEventHandler = event_handler;
+}

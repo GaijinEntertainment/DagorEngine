@@ -205,8 +205,7 @@ void query_pair_collision_data(ecs::EntityId eid, PairCollisionData &data)
 }
 
 ECS_NO_ORDER
-static __forceinline void deny_collision_by_ignore_list_es_event_handler(const QueryPhysActorsNotCollidable &evt,
-  const ecs::EidList &collidable_ignore_list)
+static inline void deny_collision_by_ignore_list_es(QueryPhysActorsNotCollidable &evt, const ecs::EidList &collidable_ignore_list)
 {
   if (evt.shouldCollide)
     if (eastl::find(collidable_ignore_list.begin(), collidable_ignore_list.end(), evt.otherEid) != collidable_ignore_list.end())
@@ -217,8 +216,7 @@ static __forceinline void deny_collision_by_ignore_list_es_event_handler(const Q
 }
 
 ECS_NO_ORDER
-static __forceinline void deny_collision_for_disabled_paircoll_es_event_handler(const QueryPhysActorsNotCollidable &evt,
-  bool havePairCollision)
+static inline void deny_collision_for_disabled_paircoll_es(QueryPhysActorsNotCollidable &evt, bool havePairCollision)
 {
   if (!havePairCollision)
     evt.shouldCollide = false;

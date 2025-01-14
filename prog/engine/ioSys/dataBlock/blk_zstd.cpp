@@ -135,6 +135,14 @@ static void blk_ddict_on_vromfs_unmounted(VirtualRomFsData *fs)
       return;
     }
 }
+
+dag::ConstSpan<char> dblk::get_vromfs_dict_hash(dag::ConstSpan<char> shared_nm_data)
+{
+  if (!shared_nm_data.data() || shared_nm_data.size() < SNM_RAW_HDR_SZ)
+    return make_span_const((const char *)nullptr, 0);
+  return make_span_const(shared_nm_data.data() + SNM_HSZ, DICT_HSZ);
+}
+
 ZSTD_DDict_s *dblk::get_vromfs_blk_ddict(const VirtualRomFsData *fs)
 {
   dag::ConstSpan<char> nm_data_in_vrom = get_name_map_vrom_data(fs);

@@ -10,6 +10,7 @@ Sources = a2dExp.cpp a2dOptimizer.cpp exp_skeleton_tools.cpp exp_tools.cpp ;
 
 AddIncludes =
   $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/3rdPartyLibs/acl/includes
 ;
 
 UseProgLibs =

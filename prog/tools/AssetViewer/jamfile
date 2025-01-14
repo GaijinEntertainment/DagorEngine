@@ -48,6 +48,7 @@ Sources =
   av_version.cpp
   av_appwnd.cpp
   av_engine.cpp
+  av_mainAssetSelector.cpp
   av_tree.cpp
   av_srvEngine.cpp
   av_dagored2stub.cpp
@@ -77,6 +78,9 @@ UseProgLibs =
   engine/image
   engine/guiBase
 
+  engine/drv/hid_dinput
+  engine/drv/hid_gamepad_xinput
+  engine/drv/hid_joystick
   engine/drv/hid_mouse
   engine/drv/hid_keyboard
   engine/drv/drv3d_pc_multi
@@ -141,7 +145,6 @@ UseProgLibs =
   tools/sceneTools/daEditorX/services/ecsMgr
   tools/sceneTools/daEditorX/services/webui
   tools/sceneTools/daEditorX/services/ecsInput
-  tools/sceneTools/daEditorX/services/imguiMgr
   tools/sceneTools/daEditorX/services/dasMgr
   tools/sceneTools/daEditorX/services/visibilityFinderSrv
 
@@ -168,6 +171,7 @@ UseProgLibs =
   gameLibs/nodeBasedShaderManager/stub
   gameLibs/ecs/rendInst/stub
   gameLibs/ecs/delayedAct
+  gameLibs/ecs/input
 
   gameLibs/quirrel/bindQuirrelEx
   commonFx/commonFxGame

@@ -353,7 +353,12 @@ void NodeExecutor::processEvents(BarrierScheduler::NodeEventsRef events) const
 void NodeExecutor::applyState(const sd::NodeStateDelta &state, int frame, int prev_frame) const
 {
   if (state.asyncPipelines)
-    d3d::driver_command(Drv3dCommand::SET_PIPELINE_COMPILATION_TIME_BUDGET, *state.asyncPipelines ? nullptr : (void *)-1, (void *)-1);
+  {
+    if (*state.asyncPipelines)
+      d3d::driver_command(Drv3dCommand::ASYNC_PIPELINE_COMPILE_RANGE_BEGIN, nullptr, (void *)-1);
+    else
+      d3d::driver_command(Drv3dCommand::ASYNC_PIPELINE_COMPILE_RANGE_END);
+  }
 
   if (externalState.wireframeModeEnabled && state.wire)
     d3d::setwire(*state.wire);

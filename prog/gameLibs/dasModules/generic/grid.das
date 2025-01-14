@@ -136,22 +136,22 @@ def find_entity_in_grid(grid_name_hashes : uint[]; transform : float3x4; bbox : 
 
 [generic]
 def is_entity_found_in_grid(grid_name_hash : uint; bounding : BBox3 | BSphere3; check_type : GridEntCheck) : bool
-  return INVALID_ENTITY_ID != find_entity_in_grid(grid_name_hash, bounding, check_type) <| $ [unused_argument(eid), unused_argument(pos)] (eid : EntityId; pos : float3)
+  return INVALID_ENTITY_ID != find_entity_in_grid(grid_name_hash, bounding, check_type) <| $ [unused_argument(eid, pos)] (eid : EntityId; pos : float3)
     return true
 
 [generic]
 def is_entity_found_in_grid(grid_name_hashes : uint[]; bounding : BBox3 | BSphere3; check_type : GridEntCheck) : bool
-  return INVALID_ENTITY_ID != find_entity_in_grid(grid_name_hashes, bounding, check_type) <| $ [unused_argument(eid), unused_argument(pos)] (eid : EntityId; pos : float3)
+  return INVALID_ENTITY_ID != find_entity_in_grid(grid_name_hashes, bounding, check_type) <| $ [unused_argument(eid, pos)] (eid : EntityId; pos : float3)
     return true
 
 [generic]
 def is_entity_found_in_grid(grid_name_hashes : uint[]; from, dir : float3; len, radius : float; check_type : GridEntCheck) : bool
-  return INVALID_ENTITY_ID != find_entity_in_grid(grid_name_hashes, from, dir, len, radius, check_type) <| $ [unused_argument(eid), unused_argument(pos)] (eid : EntityId; pos : float3)
+  return INVALID_ENTITY_ID != find_entity_in_grid(grid_name_hashes, from, dir, len, radius, check_type) <| $ [unused_argument(eid, pos)] (eid : EntityId; pos : float3)
     return true
 
 [generic]
 def is_entity_found_in_grid(grid_name_hash : uint; transform : float3x4; bbox : BBox3; check_type : GridEntCheck) : bool
-  return INVALID_ENTITY_ID != find_entity_in_grid(grid_name_hash, transform, bbox, check_type) <| $ [unused_argument(eid), unused_argument(pos)] (eid : EntityId; pos : float3)
+  return INVALID_ENTITY_ID != find_entity_in_grid(grid_name_hash, transform, bbox, check_type) <| $ [unused_argument(eid, pos)] (eid : EntityId; pos : float3)
     return true
 
 

@@ -147,9 +147,11 @@ BINDUMP_BEGIN_LAYOUT(VariantTable)
   template <typename T>
   inline void appendToHashContext(ShaderHashValue::CalculateContext & context, T hash_interval_id) const
   {
-    // we encode the map size, and which variant indices into NULL codes,
+    // we encode the map size, and which variant indices into NULL and NOTFOUND (i. e. invalid) codes,
     // so the hash will change when new null mappings are added or removed
-    uint32_t nullCount = 0;
+    // NULL and NOTFOUND separately, because NULL originates from assumes, which are part of shader code,
+    // and NOTFOUND are produced by invalid{} blocks in blk
+    uint32_t nullCount = 0, invalidCount = 0;
     if (MAPTYPE_EQUAL != mapType)
     {
       context(mapData.size());
@@ -157,8 +159,13 @@ BINDUMP_BEGIN_LAYOUT(VariantTable)
         ++nullCount;
         context(code);
       });
+      enumerateCodesForVariant(FIND_NOTFOUND, [&context, &invalidCount](uint32_t code) {
+        ++invalidCount;
+        context(code);
+      });
     }
     context(nullCount);
+    context(invalidCount);
     for (auto &c : codePieces)
     {
       // caller can customize how intervals are hashed, some may use the id others may want to use the name
@@ -350,7 +357,7 @@ BINDUMP_BEGIN_LAYOUT(ScriptedShadersBinDump)
   BINDUMP_USING_EXTENSION()
   VecHolder<shaders::RenderState> renderStates;
   List<VecHolder<int>> stcode;
-  List<int> vprId, fshId;
+  int vprCount = 0, fshCount = 0;
 
   // storages
   VecHolder<real> iValStorage;
@@ -392,13 +399,6 @@ BINDUMP_BEGIN_LAYOUT(ScriptedShadersBinDump)
   VecHolder<ShGroupsMapping> shGroupsMapping;
   VecHolder<Compressed<Field<ShGroup>>> shGroups;
   VecHolder<char> dictionary;
-
-  // @TODO: remove from layout (this is pure runtime stuff)
-  enum
-  {
-    MAX_VARS_DEPRECATED_ = 3584,
-  };
-  uint16_t varIdx_deprecated_[MAX_VARS_DEPRECATED_] = {}, globvarIdx_deprecated_[MAX_VARS_DEPRECATED_] = {};
 
   const Field<ShaderClass> *findShaderClass(const char *name) const;
 BINDUMP_END_LAYOUT()

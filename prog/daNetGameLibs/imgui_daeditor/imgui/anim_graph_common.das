@@ -537,20 +537,20 @@ def render_AnimPostBlendCtrl(var nod : IAnimBlendNode?; var graph : AnimationGra
 def render_anim_graph2(animchar : AnimcharBaseComponent; var graph : AnimationGraph; var state : IAnimStateHolder; var reset_state : bool&; var params_filter : ImGuiTextFilter&)
 
   var renderers : table<uint; BlendNodeRenderer>
-  renderers[AnimBlendNodeNullCID] = @@render_AnimBlendNodeNull
-  renderers[AnimBlendNodeContinuousLeafCID] = @@render_AnimBlendNodeContinuousLeaf
-  renderers[AnimBlendNodeParametricLeafCID] = @@render_AnimBlendNodeParametricLeaf
-  renderers[AnimBlendNodeSingleLeafCID] = @@render_AnimBlendNodeSingleLeaf
-  renderers[AnimBlendCtrl_1axisCID] = @@render_AnimBlendCtrl_1axis
-  renderers[AnimBlendCtrl_Fifo3CID] = @@render_AnimBlendCtrl_Fifo3
-  renderers[AnimBlendCtrl_RandomSwitcherCID] = @@render_AnimBlendCtrl_RandomSwitcher
-  renderers[AnimBlendCtrl_HubCID] = @@render_AnimBlendCtrl_Hub
-  renderers[AnimBlendCtrl_BinaryIndirectSwitchCID] = @@render_AnimBlendCtrl_BinaryIndirectSwitch
-  renderers[AnimBlendCtrl_ParametricSwitcherCID] = @@render_AnimBlendCtrl_ParametricSwitcher
-  renderers[AnimBlendCtrl_LinearPolyCID] = @@render_AnimBlendCtrl_LinearPoly
-  // renderers[AnimBlendNodeLeafCID] = @@render_AnimBlendNodeLeaf
-  renderers[AnimPostBlendCtrlCID] = @@render_AnimPostBlendCtrl
-  renderers[AnimBlendNodeStillLeafCID] = @@render_AnimBlendNodeStillLeaf
+  insert(renderers, AnimBlendNodeNullCID, @@render_AnimBlendNodeNull)
+  insert(renderers, AnimBlendNodeContinuousLeafCID, @@render_AnimBlendNodeContinuousLeaf)
+  insert(renderers, AnimBlendNodeParametricLeafCID, @@render_AnimBlendNodeParametricLeaf)
+  insert(renderers, AnimBlendNodeSingleLeafCID, @@render_AnimBlendNodeSingleLeaf)
+  insert(renderers, AnimBlendCtrl_1axisCID, @@render_AnimBlendCtrl_1axis)
+  insert(renderers, AnimBlendCtrl_Fifo3CID, @@render_AnimBlendCtrl_Fifo3)
+  insert(renderers, AnimBlendCtrl_RandomSwitcherCID, @@render_AnimBlendCtrl_RandomSwitcher)
+  insert(renderers, AnimBlendCtrl_HubCID, @@render_AnimBlendCtrl_Hub)
+  insert(renderers, AnimBlendCtrl_BinaryIndirectSwitchCID, @@render_AnimBlendCtrl_BinaryIndirectSwitch)
+  insert(renderers, AnimBlendCtrl_ParametricSwitcherCID, @@render_AnimBlendCtrl_ParametricSwitcher)
+  insert(renderers, AnimBlendCtrl_LinearPolyCID, @@render_AnimBlendCtrl_LinearPoly)
+  // insert(renderers, AnimBlendNodeLeafCID, @@render_AnimBlendNodeLeaf)
+  insert(renderers, AnimPostBlendCtrlCID, @@render_AnimPostBlendCtrl)
+  insert(renderers, AnimBlendNodeStillLeafCID, @@render_AnimBlendNodeStillLeaf)
 
   var ctx : AnimgraphContext
 
@@ -815,7 +815,7 @@ def render_anim_graph2(animchar : AnimcharBaseComponent; var graph : AnimationGr
       children |> push(rootNodeId)
       var allNodes : table<int; bool>
       for i in range(graph.animNodeCount)
-        allNodes[i] = has_children(ctx.links, i)
+        allNodes.insert(i, has_children(ctx.links, i))
 
       let HGAP = 200f
       let VGAP = 50f

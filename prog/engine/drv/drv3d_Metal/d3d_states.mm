@@ -392,10 +392,15 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, void *par3
       }
       break;
     }
-    case Drv3dCommand::SET_PIPELINE_COMPILATION_TIME_BUDGET:
+    case Drv3dCommand::ASYNC_PIPELINE_COMPILE_RANGE_BEGIN:
     {
-      render.async_pso_compilation = par1 == nullptr;
-      break;
+      render.pushAsyncPsoCompilation(par1 == nullptr);
+      return 1;
+    }
+    case Drv3dCommand::ASYNC_PIPELINE_COMPILE_RANGE_END:
+    {
+      render.popAsyncPsoCompilation();
+      return 1;
     }
     case Drv3dCommand::GET_PIPELINE_COMPILATION_QUEUE_LENGTH:
     {

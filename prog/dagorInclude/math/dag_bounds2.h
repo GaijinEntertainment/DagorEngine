@@ -53,8 +53,6 @@ public:
 
   INLINE const Point2 &operator[](int i) const { return lim[i]; }
   INLINE Point2 &operator[](int i) { return lim[i]; }
-  INLINE operator const Point2 *() const { return lim; }
-  INLINE operator Point2 *() { return lim; }
 
   INLINE float float_is_empty() const { return fsel(lim[1].x - lim[0].x, 0.0f, 1.0f) + fsel(lim[1].y - lim[0].y, 0.0f, 1.0f); }
   INLINE BBox2 &operator+=(const Point2 &p)

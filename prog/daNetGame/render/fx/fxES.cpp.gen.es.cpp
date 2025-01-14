@@ -28,6 +28,26 @@ static ecs::EntitySystemDesc create_gravity_zone_buffer_es_es_desc
                        ecs::EventComponentsAppear>::build(),
   0
 ,"render");
+//static constexpr ecs::ComponentDesc start_effect_pos_norm_es_comps[] ={};
+static void start_effect_pos_norm_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_UNUSED(components);
+  G_FAST_ASSERT(evt.is<acesfx::StartEffectPosNormEvent>());
+  start_effect_pos_norm_es(static_cast<const acesfx::StartEffectPosNormEvent&>(evt)
+        );
+}
+static ecs::EntitySystemDesc start_effect_pos_norm_es_es_desc
+(
+  "start_effect_pos_norm_es",
+  "prog/daNetGame/render/fx/fxES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, start_effect_pos_norm_es_all_events),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<acesfx::StartEffectPosNormEvent>::build(),
+  0
+,"render");
 static constexpr ecs::ComponentDesc update_gravity_zone_buffer_ecs_query_comps[] =
 {
 //start of 1 rw components at [0]

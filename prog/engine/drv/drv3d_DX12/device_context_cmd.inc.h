@@ -21,11 +21,11 @@ DX12_BEGIN_CONTEXT_COMMAND(true, DrawIndexed)
 #endif
 DX12_END_CONTEXT_COMMAND
 
-DX12_BEGIN_CONTEXT_COMMAND(false, SetVertexRootConstant)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, offset)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, value)
+DX12_BEGIN_CONTEXT_COMMAND(false, SetRootConstants)
+  DX12_CONTEXT_COMMAND_PARAM(unsigned, stage)
+  DX12_CONTEXT_COMMAND_PARAM(RootConstatInfo, values)
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  ctx.setVertexRootConstant(offset, value);
+  ctx.setRootConstants(stage, values);
 #endif
 DX12_END_CONTEXT_COMMAND
 
@@ -99,14 +99,6 @@ DX12_BEGIN_CONTEXT_COMMAND(false, TextureBarrier)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
   ctx.textureBarrier(image, subResRange, texFlags, barrier, queue, forceBarrier);
-#endif
-DX12_END_CONTEXT_COMMAND
-
-DX12_BEGIN_CONTEXT_COMMAND(false, SetPixelRootConstant)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, offset)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, value)
-#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  ctx.setPixelRootConstant(offset, value);
 #endif
 DX12_END_CONTEXT_COMMAND
 
@@ -499,16 +491,6 @@ DX12_BEGIN_CONTEXT_COMMAND(true, RegisterStaticRenderState)
 #endif
 DX12_END_CONTEXT_COMMAND
 
-#if D3D_HAS_RAY_TRACING
-DX12_BEGIN_CONTEXT_COMMAND(false, SetRaytraceProgram)
-  DX12_CONTEXT_COMMAND_PARAM(ProgramID, program)
-
-#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  ctx.setRaytracePipeline(program);
-#endif
-DX12_END_CONTEXT_COMMAND
-#endif
-
 DX12_BEGIN_CONTEXT_COMMAND(true, ClearDepthStencilTexture)
   DX12_CONTEXT_COMMAND_PARAM(Image *, image)
   DX12_CONTEXT_COMMAND_PARAM(ImageViewState, viewState)
@@ -813,24 +795,6 @@ DX12_BEGIN_CONTEXT_COMMAND_EXT_1(true, PlaceAftermathMarker, char, string)
 DX12_END_CONTEXT_COMMAND
 
 #if D3D_HAS_RAY_TRACING
-DX12_BEGIN_CONTEXT_COMMAND(true, TraceRays)
-  DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndRange, rayGenTable)
-  DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndRange, missTable)
-  DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndRange, hitTable)
-  DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndRange, callableTable)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, missStride)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, hitStride)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, callableStride)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, width)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, height)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, depth)
-
-#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdTraceRays);
-  ctx.traceRays(rayGenTable, missTable, hitTable, callableTable, missStride, hitStride, callableStride, width, height, depth);
-#endif
-DX12_END_CONTEXT_COMMAND
-
 DX12_BEGIN_CONTEXT_COMMAND(false, SetRaytraceAccelerationStructure)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, stage)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, unit)
@@ -855,33 +819,6 @@ DX12_BEGIN_CONTEXT_COMMAND_EXT_2(true, RaytraceBuildBottomAccelerationStructure,
   TIME_PROFILE_DEV(CmdRaytraceBuildBottomAccelerationStructure);
   ctx.buildBottomAccelerationStructure(batchSize, batchIndex, geometryDescriptions, resourceReferences,
     toAccelerationStructureBuildFlags(flags), update, as, nullptr, scratchBuffer, compactedSize);
-#endif
-DX12_END_CONTEXT_COMMAND
-
-DX12_BEGIN_CONTEXT_COMMAND(true, AddRaytraceProgram)
-  DX12_CONTEXT_COMMAND_PARAM(ProgramID, program)
-  DX12_CONTEXT_COMMAND_PARAM(const ShaderID *, shaders)
-  DX12_CONTEXT_COMMAND_PARAM(const RaytraceShaderGroup *, shaderGroups)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, shaderCount)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, groupCount)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, maxRecursion)
-
-#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdAddRaytraceProgram);
-  ctx.addRaytracePipeline(program, maxRecursion, shaderCount, shaders, groupCount, shaderGroups);
-#endif
-DX12_END_CONTEXT_COMMAND
-
-DX12_BEGIN_CONTEXT_COMMAND(true, CopyRaytraceShaderGroupHandlesToMemory)
-  DX12_CONTEXT_COMMAND_PARAM(ProgramID, program)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, firstGroup)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, groupCount)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, size)
-  DX12_CONTEXT_COMMAND_PARAM(void *, ptr)
-
-#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdCopyRaytraceShaderGroupHandlesToMemory);
-  ctx.copyRaytraceShaderGroupHandlesToMemory(program, firstGroup, groupCount, size, ptr);
 #endif
 DX12_END_CONTEXT_COMMAND
 
@@ -910,24 +847,6 @@ DX12_BEGIN_CONTEXT_COMMAND_EXT_1(false, UpdatePixelShaderName, char, name)
   ctx.updatePixelShaderName(shader, name);
 #endif
 DX12_END_CONTEXT_COMMAND
-
-DX12_BEGIN_CONTEXT_COMMAND(false, SetComputeRootConstant)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, offset)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, value)
-#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  ctx.setComputeRootConstant(offset, value);
-#endif
-DX12_END_CONTEXT_COMMAND
-
-#if D3D_HAS_RAY_TRACING
-DX12_BEGIN_CONTEXT_COMMAND(false, SetRaytraceRootConstant)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, offset)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, value)
-#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  ctx.setRaytraceRootConstant(offset, value);
-#endif
-DX12_END_CONTEXT_COMMAND
-#endif
 
 DX12_BEGIN_CONTEXT_COMMAND(true, BeginVisibilityQuery)
   DX12_CONTEXT_COMMAND_PARAM(Query *, query)
@@ -1530,3 +1449,25 @@ DX12_BEGIN_CONTEXT_COMMAND(true, CompilePipelineSet2)
     DynamicArray<cacheBlk::GraphicsVariantGroup>::fromSpan(graphicsWithNullOverridePipelines), nullPixelShader);
 #endif
 DX12_END_CONTEXT_COMMAND
+
+#if D3D_HAS_RAY_TRACING
+DX12_BEGIN_CONTEXT_COMMAND_EXT_1(true, DispatchRays, uint32_t, rootConstants)
+  DX12_CONTEXT_COMMAND_PARAM(RayDispatchBasicParameters, dispatchParameters)
+  DX12_CONTEXT_COMMAND_PARAM(RayDispatchParameters, params)
+  DX12_CONTEXT_COMMAND_PARAM(ResourceBindingTable, resourceBindingTable)
+
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.dispatchRays(dispatchParameters, resourceBindingTable, rootConstants, params);
+#endif
+DX12_END_CONTEXT_COMMAND
+
+DX12_BEGIN_CONTEXT_COMMAND_EXT_1(true, DispatchRaysIndirect, uint32_t, rootConstants)
+  DX12_CONTEXT_COMMAND_PARAM(RayDispatchBasicParameters, dispatchParameters)
+  DX12_CONTEXT_COMMAND_PARAM(RayDispatchIndirectParameters, dispatchIndirectParameters)
+  DX12_CONTEXT_COMMAND_PARAM(ResourceBindingTable, resourceBindingTable)
+
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.dispatchRaysIndirect(dispatchParameters, resourceBindingTable, rootConstants, dispatchIndirectParameters);
+#endif
+DX12_END_CONTEXT_COMMAND
+#endif

@@ -23,6 +23,7 @@
 
 #include "driver.h"
 #include "texture.h"
+#include "clear.h"
 #if HAS_NVAPI
 #include <nvapi.h>
 #endif
@@ -171,17 +172,25 @@ void flush_rendertargets(RenderState &rs)
           last_uav = i;
         }
 
-      if (first_uav >= 0)
+      const bool haveUav = first_uav >= 0;
+      if (haveUav)
       {
-        G_ASSERTF(maxTarget < first_uav && last_uav < 8, "maxUsedTarget=%d first_uav=%d last_uav=%d", maxTarget, first_uav, last_uav);
+        G_ASSERTF(last_uav < 8, "last_uav=%d", last_uav);
         rs.maxUsedTarget = max(maxTarget, last_uav);
+
+        // On conflict, RTs are prioritized over UAVs. So, the actual UAV slots that we will set should not intersect with RT slots.
+        // This is expected to be a normal situation because of UAVs set from stcode, so no logs.
+        // See https://youtrack.gaijin.team/issue/RE-2419
+        first_uav = max(first_uav, maxTarget + 1);
+        last_uav = max(last_uav, maxTarget + 1);
       }
       else
         rs.maxUsedTarget = maxTarget;
+
       static UINT initialCounts[MAX_UAV] = {0}; // should be -1 or 0, however, we don't use counters at all
-      dx_context->OMSetRenderTargetsAndUnorderedAccessViews(maxTarget + 1, color, depth, first_uav > 0 ? first_uav : 0,
-        first_uav > 0 ? last_uav - first_uav + 1 : 0, first_uav > 0 ? &rs.texFetchState.uavState[STAGE_PS].uavs[first_uav] : NULL,
-        first_uav > 0 ? initialCounts : NULL);
+      dx_context->OMSetRenderTargetsAndUnorderedAccessViews(maxTarget + 1, color, depth, haveUav ? first_uav : 0,
+        haveUav ? last_uav - first_uav + 1 : 0, haveUav ? &rs.texFetchState.uavState[STAGE_PS].uavs[first_uav] : NULL,
+        haveUav ? initialCounts : NULL);
     }
 
     Stat3D::updateRenderTarget();
@@ -295,55 +304,6 @@ namespace drv3d_dx11
 extern shaders::DriverRenderStateId current_render_state;
 extern shaders::DriverRenderStateId stretch_prepare_render_state;
 extern eastl::vector_map<int, shaders::DriverRenderStateId> clear_view_states;
-
-struct StretchRectMiniRenderStateUnsafe
-{
-  BaseTexture *tex0; // Must be protected with resources CS while stored.
-
-  Driver3dRenderTarget rt;
-  shaders::DriverRenderStateId renderState;
-
-  RasterizerState nextRasterizerState;
-  uint8_t stencilRef;
-  float blendFactor[BLEND_FACTORS_COUNT];
-  int l, t, w, h;
-  float zn, zf;
-
-  void store()
-  {
-    RenderState &rs = g_render_state;
-    tex0 =
-      rs.texFetchState.resources[STAGE_PS].resources.size() > 0 ? rs.texFetchState.resources[STAGE_PS].resources[0].texture : NULL;
-    d3d::get_render_target(rt);
-    nextRasterizerState = rs.nextRasterizerState;
-    stencilRef = rs.stencilRef;
-    memcpy(blendFactor, rs.blendFactor, sizeof(blendFactor));
-    renderState = current_render_state;
-    d3d::getview(l, t, w, h, zn, zf);
-  }
-
-  void restore()
-  {
-    RenderState &rs = g_render_state;
-
-    rs.nextRasterizerState = nextRasterizerState;
-    rs.stencilRef = stencilRef;
-    memcpy(rs.blendFactor, blendFactor, sizeof(blendFactor));
-    d3d::set_render_state(renderState);
-    rs.modified = true;
-    rs.rasterizerModified = true;
-    rs.alphaBlendModified = true;
-    rs.depthStencilModified = true;
-
-    d3d::set_tex(STAGE_PS, 0, tex0);
-    d3d::set_program(BAD_PROGRAM);
-    if (memcmp(&rt, &g_render_state.nextRtState, sizeof(rt)) != 0)
-    {
-      d3d::set_render_target(rt);
-      d3d::setview(l, t, w, h, zn, zf);
-    }
-  }
-};
 
 }; // namespace drv3d_dx11
 
@@ -560,54 +520,6 @@ bool d3d::get_render_target_size(int &w, int &h, BaseTexture *rt_tex, uint8_t le
   return true;
 }
 
-static void clear_slow(int write_mask, float (&color_value)[4], float z_value, uint32_t stencil_value)
-{
-  d3d::set_pixel_shader(g_default_clear_ps);
-  d3d::set_vertex_shader(g_default_clear_vs);
-  d3d::setvdecl(g_default_clear_vdecl);
-
-  if (auto ins = clear_view_states.insert(write_mask); ins.second)
-  {
-    shaders::RenderState state;
-    state.independentBlendEnabled = 0;
-    for (auto &blendParam : state.blendParams)
-    {
-      blendParam.ablend = 0;
-      blendParam.sepablend = 0;
-    }
-    state.ztest = static_cast<bool>(write_mask & CLEAR_ZBUFFER);
-    state.zwrite = static_cast<bool>(write_mask & CLEAR_ZBUFFER);
-    state.zFunc = D3D11_COMPARISON_ALWAYS;
-    state.zBias = 0.0f;
-    state.slopeZBias = 0.0f;
-    state.colorWr = (write_mask & CLEAR_TARGET) ? WRITEMASK_ALL : 0;
-    state.cull = CULL_NONE;
-    if (write_mask & CLEAR_STENCIL)
-    {
-      state.stencil.func = CMPF_ALWAYS;
-      state.stencil.readMask = state.stencil.writeMask = 0xFF;
-      state.stencilRef = stencil_value;
-      state.stencil.fail = state.stencil.pass = state.stencil.zFail = STNCLOP_REPLACE;
-    }
-    ins.first->second = d3d::create_render_state(state);
-  }
-  d3d::setstencil(stencil_value);
-  d3d::set_render_state(clear_view_states[write_mask]);
-
-  struct ClearVertex
-  {
-    Point3 pos;
-    Point4 color;
-  } tri[3];
-
-  tri[0].pos = Point3(-1.f, 1.f, z_value);
-  tri[1].pos = Point3(-1.f, -3.f, z_value);
-  tri[2].pos = Point3(3.f, 1.f, z_value);
-  tri[0].color = tri[1].color = tri[2].color = Point4(color_value, Point4::CtorPtrMark{});
-
-  d3d::draw_up(PRIM_TRISTRIP, 1, tri, sizeof(ClearVertex));
-}
-
 bool d3d::clearview(int write_mask, E3DCOLOR c, float z_value, uint32_t stencil_value)
 {
   CHECK_MAIN_THREAD();
@@ -619,6 +531,9 @@ bool d3d::clearview(int write_mask, E3DCOLOR c, float z_value, uint32_t stencil_
   bool depthStencilModified = rs.depthStencilModified;
   rs.rasterizerModified = rs.depthStencilModified = false;
   flush_all(false);
+  rs.rasterizerModified = rasterizerModified;
+  rs.depthStencilModified = depthStencilModified;
+  rs.modified = rasterizerModified || depthStencilModified;
 
   int targetW = 1, targetH = 1;
 
@@ -667,16 +582,13 @@ bool d3d::clearview(int write_mask, E3DCOLOR c, float z_value, uint32_t stencil_
     };
 
     ResAutoLock resLock;
-    StretchRectMiniRenderStateUnsafe savedRs;
+    MiniRenderStateUnsafe savedRs;
     savedRs.store();
 
     clear_slow(write_mask, color, z_value, stencil_value);
 
     savedRs.restore();
   }
-
-  rs.rasterizerModified = rasterizerModified;
-  rs.depthStencilModified = depthStencilModified;
 
   return true;
 }
@@ -688,7 +600,7 @@ void d3d::clear_render_pass(const RenderPassTarget &target, const RenderPassArea
   TextureInfo info;
   target.resource.tex->getinfo(info, target.resource.mip_level);
 
-  float colorClearValue[4];
+  float colorClearValue[4]{};
   if (bind.slot != RenderPassExtraIndexes::RP_SLOT_DEPTH_STENCIL)
   {
     resource_clear_value_to_float4(info.cflg, target.clearValue, colorClearValue);
@@ -717,7 +629,7 @@ void d3d::clear_render_pass(const RenderPassTarget &target, const RenderPassArea
   else
   {
     ResAutoLock resLock;
-    StretchRectMiniRenderStateUnsafe savedRs;
+    MiniRenderStateUnsafe savedRs;
     savedRs.store();
 
     int writeMask;
@@ -790,6 +702,8 @@ static bool try_copy_tex(BaseTexture *from, BaseTexture *to, RectInt *from_rect,
     ((BaseTex *)to)->wasUsed = 1;
 #endif
     disable_conditional_render_unsafe();
+    VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
+      "DX11: try_copy_tex uses CopyResource inside a generic render pass");
     dx_context->CopyResource(((BaseTex *)to)->tex.texRes, ((BaseTex *)from)->tex.texRes);
     return true;
   }
@@ -826,6 +740,8 @@ static bool try_copy_tex(BaseTexture *from, BaseTexture *to, RectInt *from_rect,
       ((BaseTex *)to)->wasUsed = 1;
 #endif
       disable_conditional_render_unsafe();
+      VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
+        "DX11: try_copy_tex uses CopySubresourceRegion inside a generic render pass");
       dx_context->CopySubresourceRegion(((BaseTex *)to)->tex.texRes, 0, dl, dt, 0, ((BaseTex *)from)->tex.texRes, 0, &srcBox);
       return true;
     }
@@ -848,7 +764,7 @@ bool d3d::stretch_rect(BaseTexture *from, BaseTexture *to, RectInt *from_rect, R
   }
 
   ResAutoLock resLock;
-  StretchRectMiniRenderStateUnsafe rs;
+  MiniRenderStateUnsafe rs;
   rs.store();
 
   if (!from) // Get current backbuffer texture.

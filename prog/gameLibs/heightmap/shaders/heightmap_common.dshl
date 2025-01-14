@@ -1,12 +1,6 @@
 include "edge_tesselation.dshl"
 
-hlsl {
-  ##if in_editor == yes
-  #define has_high_texture 1
-  ##else
-  #define has_high_texture 0
-  ##endif
-}
+bool has_high_texture = in_editor == yes;
 
 float4 world_to_hmap_high = (10e+3, 10e+3, 10e+10, 10e+10);
 float4 world_to_hmap_low = (10e+3, 10e+3, 10e+10, 10e+10);
@@ -80,13 +74,16 @@ macro USE_HEIGHTMAP_COMMON_VS()
       float2 tc_texels = tc_low * tex_hmap_low_size.xy - 0.5;
       float2 tc_frac = frac(tc_texels);
       float2 centerTc = (floor(tc_texels) + 1.0) * tex_hmap_low_size.zw;
+      ##if hardware.fsh_4_0
+      float4 hmap4 = tex_hmap_low.Gather(tex_hmap_low_samplerstate, centerTc);
+      ##else
       float4 hmap4 = tex_hmap_low.GatherRed(tex_hmap_low_samplerstate, centerTc);
-
+      ##endif
       float4 bilW = float4(1-tc_frac, tc_frac);
       bilW = bilW.xzzx*bilW.wwyy;
 
       float height = dot(hmap4, bilW);
-      #if has_high_texture
+      ##if has_high_texture
       float2 tc_high = worldPosXZ*world_to_hmap_high.xy + world_to_hmap_high.zw;
       float2 tc_high_sat = saturate(tc_high);
       if (tc_high.x == tc_high_sat.x && tc_high.y == tc_high_sat.y)
@@ -94,7 +91,7 @@ macro USE_HEIGHTMAP_COMMON_VS()
         tc_high += 0.5*tex_hmap_inv_sizes.zw;
         height = tex2Dlod(hmap_hdetail, float4(tc_high,0,0)).x;
       }
-      #endif
+      ##endif
       float decodedHeight = decode_height(height);
       return decodedHeight;
     }
@@ -168,7 +165,7 @@ macro USE_HEIGHTMAP_COMMON_BASE(code)
     {
       return tex2Dlod(tex_hmap_low, float4(pos.xy, 0, lod)).r;
     }
-    #if has_high_texture
+    ##if has_high_texture
     float getHeightHigh(float2 pos)
     {
 #if !NO_GRADIENTS_IN_SHADER
@@ -177,8 +174,12 @@ macro USE_HEIGHTMAP_COMMON_BASE(code)
       return tex2Dlod(tex_hmap_high, float4(pos.xy, 0, 0)).r;
 #endif
     }
-    #endif
+    ##endif
 
+    float2 hmapTcToWorldXZ(float2 tc)
+    {
+      return (tc - world_to_hmap_low.zw)/world_to_hmap_low.xy;
+    }
     float2 calcTcLow(float2 worldPosXZ)
     {
       return worldPosXZ*world_to_hmap_low.xy + world_to_hmap_low.zw;
@@ -192,7 +193,7 @@ macro USE_HEIGHTMAP_COMMON_BASE(code)
     {
       float height;
       float2 tc_low = worldPosXZ*world_to_hmap_low.xy + world_to_hmap_low.zw;
-      #if has_high_texture
+      ##if has_high_texture
       float2 tc_high = worldPosXZ*world_to_hmap_high.xy + world_to_hmap_high.zw;
       float2 tc_high_sat = saturate(tc_high);
       if (tc_high.x == tc_high_sat.x && tc_high.y == tc_high_sat.y)
@@ -200,7 +201,7 @@ macro USE_HEIGHTMAP_COMMON_BASE(code)
         tc_high += 0.5*tex_hmap_inv_sizes.zw;
         height = getHeightHigh(tc_high);
       } else
-      #endif
+      ##endif
         height = getHeightLow(tc_low);
       return decode_height(height);
     }
@@ -233,7 +234,7 @@ macro USE_HEIGHTMAP_COMMON_BASE(code)
       return normalize(half3(W-E, sizeInMeters, N-S));
       #endif
     }
-    #if has_high_texture
+    ##if has_high_texture
     half3 getNormalHigh(float2 pos)
     {
       #if NO_GRADIENTS_IN_SHADER
@@ -248,13 +249,13 @@ macro USE_HEIGHTMAP_COMMON_BASE(code)
       return normalize(half3(W-E, sizeInMeters, N-S));
       #endif
     }
-    #endif
+    ##endif
     half3 getWorldNormal(float3 worldPos)
     {
       half3 normal;
       float2 worldPosXZ = worldPos.xz;
       float2 tc_low = worldPosXZ*world_to_hmap_low.xy + world_to_hmap_low.zw;
-      #if has_high_texture
+      ##if has_high_texture
       float2 tc_high = worldPosXZ*world_to_hmap_high.xy + world_to_hmap_high.zw;
       float2 tc_high_sat = saturate(tc_high);
       if (tc_high.x == tc_high_sat.x && tc_high.y == tc_high_sat.y)
@@ -262,7 +263,7 @@ macro USE_HEIGHTMAP_COMMON_BASE(code)
         tc_high += 0.5*tex_hmap_inv_sizes.zw;
         normal = getNormalHigh(tc_high);
       } else
-      #endif
+      ##endif
         normal = getNormalLow(tc_low);
       return normal;
     }

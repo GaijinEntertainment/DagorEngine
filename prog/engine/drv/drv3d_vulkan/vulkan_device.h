@@ -483,6 +483,18 @@ VULKAN_END_EXTENSION_FUCTION_PACK(SixteenBitStorageKHR);
 VULKAN_DECLARE_EXTENSION(SixteenBitStorageKHR, KHR_16BIT_STORAGE);
 #endif
 
+#if VK_KHR_global_priority
+VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
+VULKAN_END_EXTENSION_FUCTION_PACK(GlobalPriorityKHR);
+VULKAN_DECLARE_EXTENSION(GlobalPriorityKHR, KHR_GLOBAL_PRIORITY);
+#endif
+
+#if VK_EXT_full_screen_exclusive
+VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
+VULKAN_END_EXTENSION_FUCTION_PACK(FullScreenExclusiveEXT);
+VULKAN_DECLARE_EXTENSION(FullScreenExclusiveEXT, EXT_FULL_SCREEN_EXCLUSIVE);
+#endif
+
 template <typename... Extensions>
 class VulkanDeviceCore : public Extensions...
 {
@@ -818,6 +830,14 @@ class VulkanDevice : public VulkanDeviceCore<SwapchainKHR
 #if VK_KHR_synchronization2
                        ,
                        Synchronization2KHR
+#endif
+#if VK_KHR_global_priority
+                       ,
+                       GlobalPriorityKHR
+#endif
+#if VK_EXT_full_screen_exclusive
+                       ,
+                       FullScreenExclusiveEXT
 #endif
                        >
 {

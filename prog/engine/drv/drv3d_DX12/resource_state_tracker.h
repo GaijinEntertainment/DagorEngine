@@ -3966,10 +3966,6 @@ public:
           barrier = barrier | RB_STAGE_VERTEX;
           what = UsageEntryType::CBV_VS;
           break;
-        case STAGE_RAYTRACE:
-          barrier = barrier | RB_STAGE_RAYTRACE;
-          what = UsageEntryType::CBV_RT;
-          break;
         default: DAG_FATAL("DX12: Invalid shader stage %u", stage); break;
       }
       recordBuffer(buffer, barrier, what);
@@ -3997,10 +3993,6 @@ public:
           barrier = barrier | RB_STAGE_VERTEX;
           what = UsageEntryType::SRV_VS;
           break;
-        case STAGE_RAYTRACE:
-          barrier = barrier | RB_STAGE_RAYTRACE;
-          what = UsageEntryType::SRV_RT;
-          break;
         default: DAG_FATAL("DX12: Invalid shader stage %u", stage); break;
       }
       recordBuffer(buffer, barrier, what);
@@ -4027,10 +4019,6 @@ public:
         case STAGE_VS:
           barrier = barrier | RB_STAGE_VERTEX;
           what = UsageEntryType::UAV_VS;
-          break;
-        case STAGE_RAYTRACE:
-          barrier = barrier | RB_STAGE_RAYTRACE;
-          what = UsageEntryType::UAV_RT;
           break;
         case STAGE_ANY:
           barrier = barrier | RB_STAGE_COMPUTE | RB_STAGE_PIXEL | RB_STAGE_VERTEX;
@@ -4164,10 +4152,6 @@ public:
           barrier = barrier | RB_STAGE_VERTEX;
           what = UsageEntryType::SRV_VS;
           break;
-        case STAGE_RAYTRACE:
-          barrier = barrier | RB_STAGE_RAYTRACE;
-          what = UsageEntryType::SRV_RT;
-          break;
         default: DAG_FATAL("DX12: Invalid shader stage %u", stage); break;
       }
       view.iterateSubresources(texture->getType(), texture->getMipLevelRange(), [=](auto sub_res) {
@@ -4201,10 +4185,6 @@ public:
         case STAGE_VS:
           barrier = barrier | RB_STAGE_VERTEX;
           what = UsageEntryType::UAV_VS;
-          break;
-        case STAGE_RAYTRACE:
-          barrier = barrier | RB_STAGE_RAYTRACE;
-          what = UsageEntryType::UAV_RT;
           break;
         case STAGE_ANY:
           barrier = barrier | RB_STAGE_COMPUTE | RB_STAGE_PIXEL | RB_STAGE_VERTEX;
@@ -4252,10 +4232,6 @@ public:
         case STAGE_VS:
           barrier = barrier | RB_STAGE_VERTEX;
           what = UsageEntryType::UAV_VS;
-          break;
-        case STAGE_RAYTRACE:
-          barrier = barrier | RB_STAGE_RAYTRACE;
-          what = UsageEntryType::UAV_RT;
           break;
         case STAGE_ANY:
           barrier = barrier | RB_STAGE_COMPUTE | RB_STAGE_PIXEL | RB_STAGE_VERTEX;

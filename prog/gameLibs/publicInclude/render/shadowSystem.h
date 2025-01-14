@@ -19,6 +19,9 @@
 #include <math/integer/dag_IPoint2.h>
 #include <render/dynamicShadowRender.h>
 #include <render/dynamicShadowRenderExtensions.h>
+#include <render/shadowCastersFlags.h>
+
+struct TraceLightInfo;
 
 class ShadowSystem
 {
@@ -38,7 +41,7 @@ public:
   //  shadow_size_srl - maximum size degradation (shft right bits count for max shadow. If shadow is 256 maximum, and srl is 2, than
   //  maximum size will be 64)
   // render_gpu_objects - Whether or not the volume should render GPU objects
-  int allocateVolume(bool only_static_casters, bool hint_dynamic, uint16_t quality, uint8_t priority, uint8_t shadow_size_srl,
+  int allocateVolume(ShadowCastersFlag casters, bool hint_dynamic, uint16_t quality, uint8_t priority, uint8_t shadow_size_srl,
     DynamicShadowRenderGPUObjects render_gpu_objects);
   // if obb is not full world, it is additional limitation to shadow size. Typically, it is OBB from light
   // if invalidate is on, previous content of shadow volume will be declared invalid. Note, that most of the times, even wrong content
@@ -51,7 +54,7 @@ public:
   void setShadowVolumeDynamicContentChanged(uint32_t id);           // dynamic content changed, everything else is same
   void invalidateVolumeShadow(uint32_t id);                         // if something has changed in scene for a light
   void destroyVolume(uint32_t id);
-  bool getShadowProperties(uint32_t id, bool &only_static_casters, bool &hint_dynamic, uint16_t &quality, uint8_t &priority,
+  bool getShadowProperties(uint32_t id, ShadowCastersFlag &casters, bool &hint_dynamic, uint16_t &quality, uint8_t &priority,
     uint8_t &shadow_size_srl, DynamicShadowRenderGPUObjects &render_gpu_objects) const;
   Point2 getShadowUvSize(uint32_t id) const;
   Point4 getShadowUvMinMax(uint32_t id) const;
@@ -104,7 +107,7 @@ public:
   void validateConsistency(); // in dev build only
   void invalidateAllVolumes();
   int getAtlasWidth() const { return atlasWidth; }
-  int getAtlasHeight() const { return atlasWidth; }
+  int getAtlasHeight() const { return atlasHeight; }
   void debugValidate();
   bool getVolumeInfo(uint32_t id, float &wk, float &zn, float &zf) const
   {
@@ -115,7 +118,7 @@ public:
     zf = volumes[id].zf;
     return true;
   }
-  Texture *getTempShadowTexture() const { return tempShadow.getTex2D(); }
+  Texture *getTempShadowTexture() const { return tempCopy.getTex2D(); }
   void afterReset();
 
   // dynamic objects only need to be rendered inside this volume
@@ -134,15 +137,16 @@ protected:
   PostFxRenderer octahedralPacker;
   // temp Copy is used for static scene shadow caching. When we have static scene
   // should not be used on PS4/Vulkan, where we can alias
+  // it is also used to store shadow map with static geometry only to find maximum range of light
   UniqueTex tempCopy;
-  // temp Shadow is used to store shadow map with static geometry only to find maximum range of light
-  UniqueTex tempShadow;
   PostFxRenderer *copyDepth = 0;
-  shaders::UniqueOverrideStateId cmpfAlwaysStateId;
+  PostFxRenderer trace_shadow_depth_region;
+  shaders::UniqueOverrideStateId cmpfAlwaysStateId, cmpfAlwaysNoBiasStateId;
   void copyAtlasRegion(int src_x, int src_y, int dst_x, int dst_y, int w, int h);
 
   struct AtlasRect : public rbp::Rect
   {
+    AtlasRect(const rbp::Rect &r) : rbp::Rect(r) {}
     AtlasRect &operator=(const rbp::Rect &r)
     {
       (rbp::Rect &)*this = r;
@@ -159,7 +163,15 @@ protected:
     int16_t quality = 0;
     uint8_t sizeShift = 0;
     uint8_t priority = 0;
-    bool hintDynamic = true, onlyStaticCasters = false, valid = false, octahedral = false;
+    enum
+    {
+      DYNAMIC_LIGHT = 1 << 0,
+      ONLY_STATIC = 1 << 1,
+      OCTAHEDRAL = 1 << 2,
+      APPROXIMATE_STATIC = 1 << 3,
+    };
+    uint8_t flags = DYNAMIC_LIGHT;
+    bool valid = false;
     AtlasRect shadow;
     AtlasRect dynamicShadow; // this is only not empty for static lights
     uint32_t lastFrameHasDynamicContent = 1;
@@ -172,12 +184,13 @@ protected:
     void buildProj(mat44f &proj) const;
     void buildView(mat44f &view, mat44f &invVIew, uint32_t view_id) const;
     void buildViewProj(mat44f &viewproj, uint32_t view_id) const;
-    bool isOctahedral() const { return octahedral; }
+    bool isOctahedral() const { return flags & OCTAHEDRAL; }
 
     // hasOnlyStaticCasters() should be in practical ways behave equal as isDynamic() (except no dynamic data should be rendered to)
-    bool hasOnlyStaticCasters() const { return onlyStaticCasters; }
-    bool isDynamic() const { return hintDynamic; }
+    bool hasOnlyStaticCasters() const { return flags & ONLY_STATIC; }
+    bool isDynamic() const { return flags & DYNAMIC_LIGHT; }
     bool isDynamicOrOnlyStaticCasters() const { return isDynamic() || hasOnlyStaticCasters(); }
+    bool isApproximatelyTracedStaticCasters() const { return flags & APPROXIMATE_STATIC; }
 
     bool isDestroyed() const { return lastFrameUsed == 0; }
     bool isValidContent() const { return !shadow.isEmpty() && lastFrameChanged < lastFrameUpdated; }
@@ -217,7 +230,7 @@ protected:
   eastl::vector_set<uint16_t> volumesToUpdate;
   bbox3f activeShadowVolume;
 
-  uint16_t atlasWidth = 0;
+  uint16_t atlasWidth = 0, atlasHeight = 0;
   bool uses32bitShadow = false;
 
   uint32_t currentFrame = 2;
@@ -243,9 +256,60 @@ protected:
   // return true if success. will try to free least recent used, if no space
   bool insertToAtlas(uint16_t id, uint16_t targetShadowSize);
   void packOctahedral(uint16_t id, bool dynamic_content);
+  TraceLightInfo prepareApproximateStaticCasters(const Volume &volume, uint16_t atlas_w, uint16_t atlas_h);
 
   // return rect if there is one 100% fit. otherwise just free unused rects. call with big number to just free unused
   AtlasRect replaceUnused(uint16_t targetShadowSize); //
+  bool atlasIsAllocated(AtlasRect r)
+  {
+    if (!r.width)
+      return false;
+    r.x /= minShadow;
+    r.y /= minShadow;
+    r.width /= minShadow;
+    r.height /= minShadow;
+    return atlas.isAllocated(r);
+  }
+  void atlasFree(AtlasRect r)
+  {
+    if (r.width == 0)
+      return;
+    G_ASSERT((r.x % minShadow) == 0 && (r.y % minShadow) == 0 && (r.width % minShadow) == 0 && r.width == r.height);
+    r.x /= minShadow;
+    r.y /= minShadow;
+    r.width /= minShadow;
+    r.height /= minShadow;
+    atlas.freeUsedRect(r);
+  }
+  AtlasRect atlasInsert(uint32_t w)
+  {
+    AtlasRect r = atlas.insert(w / minShadow);
+    G_ASSERT(r.x < (atlasWidth / minShadow) && r.y < (atlasHeight / minShadow));
+    r.x *= minShadow;
+    r.y *= minShadow;
+    r.width *= minShadow;
+    r.height *= minShadow;
+    return r;
+  }
+  bool atlasIntersectsWithFree(rbp::Rect r, rbp::Rect &w) const
+  {
+    G_ASSERT(r.x % minShadow == 0 && r.y % minShadow == 0 && r.width % minShadow == 0 && r.width == r.height);
+    r.x /= minShadow;
+    r.y /= minShadow;
+    r.width /= minShadow;
+    r.height /= minShadow;
+    w.x /= minShadow;
+    w.y /= minShadow;
+    w.width /= minShadow;
+    w.height /= minShadow;
+    bool ret = atlas.intersectsWithFree(r, w);
+    w.x *= minShadow;
+    w.y *= minShadow;
+    w.width *= minShadow;
+    w.height *= minShadow;
+    return ret;
+  }
+  float atlasOccupancy() const { return atlas.occupancy((atlasWidth / minShadow) * (atlasHeight / minShadow)); }
 
   IPoint2 getOctahedralTempShadowExtent(const Volume &volume) const;
 

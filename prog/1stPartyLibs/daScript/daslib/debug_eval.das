@@ -201,7 +201,7 @@ def expr_value ( var st : TokenStream ) : Result
             elif name=="false"
                 return <- Result(false)
             if st.names |> key_exists(name)
-                return st.names[name]
+                return st.names |> get_value(name)
             return st |> error("unknown variable {name}")
         if [[Token punkt='(']]                                  // '(' expr ')
             var res = expr(st)

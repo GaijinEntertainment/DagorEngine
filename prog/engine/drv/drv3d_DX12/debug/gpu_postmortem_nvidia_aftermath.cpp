@@ -771,6 +771,16 @@ void Aftermath::dispatchMeshIndirect(const call_stack::CommandData &, D3DGraphic
 
 void Aftermath::blit(const call_stack::CommandData &, D3DGraphicsCommandList *) {}
 
+#if D3D_HAS_RAY_TRACING
+void Aftermath::dispatchRays(const call_stack::CommandData &, D3DGraphicsCommandList *, const RayDispatchBasicParameters &,
+  const ResourceBindingTable &, const RayDispatchParameters &)
+{}
+
+void Aftermath::dispatchRaysIndirect(const call_stack::CommandData &, D3DGraphicsCommandList *, const RayDispatchBasicParameters &,
+  const ResourceBindingTable &, const RayDispatchIndirectParameters &)
+{}
+#endif
+
 void Aftermath::onDeviceRemoved(D3DDevice *, HRESULT reason, call_stack::Reporter &)
 {
   if (DXGI_ERROR_INVALID_CALL == reason)

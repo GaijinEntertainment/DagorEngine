@@ -340,9 +340,14 @@ public:
     TreeNode *parent = node->parent;
     G_ASSERT(parent);
     if (parent == &rootNode)
-      return nodeAsLeafHandle(getLastSubNode(leafHandleAsNode(getRootLeaf())));
+    {
+      TreeNode *result = getLastSubNode(parent);
+      return result == parent ? 0 : nodeAsLeafHandle(result);
+    }
     else
+    {
       return nodeAsLeafHandle(parent);
+    }
   }
 
   TLeafHandle getRootLeaf() const { return nodeAsLeafHandle(rootNode.getFirstChild()); }

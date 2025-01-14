@@ -32,12 +32,14 @@ public:
   bool set_real_param(const int variable_id, const real v);
   bool set_color4_param(const int variable_id, const struct Color4 &);
   bool set_texture_param(const int variable_id, const TEXTUREID v);
+  bool set_sampler_param(const int variable_id, d3d::SamplerHandle v);
 
   bool hasVariable(const int variable_id) const;
   bool getColor4Variable(const int variable_id, Color4 &value) const;
   bool getRealVariable(const int variable_id, real &value) const;
   bool getIntVariable(const int variable_id, int &value) const;
   bool getTextureVariable(const int variable_id, TEXTUREID &value) const;
+  bool getSamplerVariable(const int variable_id, d3d::SamplerHandle &value) const;
 
   // dispatch compute threads
   eastl::array<uint16_t, 3> getThreadGroupSizes() const;

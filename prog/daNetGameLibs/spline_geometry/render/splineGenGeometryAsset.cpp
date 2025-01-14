@@ -101,7 +101,8 @@ void SplineGenGeometryAsset::attachObjects(int instance_count, int attachment_ma
   invalidatePrevData = false;
 
   ShaderGlobal::set_int(spline_gen_attachment_batch_sizeVarId, batchSize);
-  STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, spline_gen_attachment_data_const_no, VALUE), dataBuffer[currentDataIndex].getBuf());
+  static int spline_gen_attachment_data_uav_no = ShaderGlobal::get_slot_by_name("spline_gen_attachment_data_uav_no");
+  STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, spline_gen_attachment_data_uav_no, VALUE), dataBuffer[currentDataIndex].getBuf());
 
   attacherCs->dispatchThreads(attachment_max_no, instance_count, 1);
 }

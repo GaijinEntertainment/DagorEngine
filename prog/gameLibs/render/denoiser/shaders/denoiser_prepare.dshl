@@ -56,7 +56,7 @@ shader denoiser_prepare
   INIT_LOAD_GBUFFER_BASE(cs)
   INIT_LOAD_BVH_FLAGS_BASE(cs)
   USE_LOAD_BVH_FLAGS_BASE(cs)
-  USE_LOAD_GBUFFER_BASE(cs, 1)
+  USE_LOAD_GBUFFER_BASE(cs, true)
 
   hlsl(cs) {
     #define INF 1e6

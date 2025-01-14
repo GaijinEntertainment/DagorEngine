@@ -9,6 +9,7 @@
 #include <EASTL/sort.h>
 #include "device_context.h"
 #include "timeline_latency.h"
+#include "wrapped_command_buffer.h"
 
 using namespace drv3d_vulkan;
 
@@ -30,7 +31,9 @@ uint64_t TimestampQueryManager::getResult(TimestampQueryId query_id)
   G_ASSERTF(!qb.data.empty(), "vulkan: timestamp query block is empty when it should be filled");
 
   // we should be MT safe here due to completion requirements
-  return qb.data[qb.dataIndexes[qIdx]];
+  TimestampQueryIndex dataIdx = qb.dataIndexes[qIdx];
+  // some data may be missing due to filters on non graphics queue, so just pretend it is comleted
+  return dataIdx < qb.data.size() ? qb.data[dataIdx] : 1;
 }
 
 void TimestampQueryManager::onFrontFlush()
@@ -55,14 +58,14 @@ void TimestampQueryManager::onFrontFlush()
   nextRbb.count = 0;
 }
 
-void TimestampQueryBlock::ensureSizesAndResetStatus(VulkanCommandBufferHandle cmd_b)
+void TimestampQueryBlock::ensureSizesAndResetStatus()
 {
   VulkanDevice &vkDev = Globals::VK::dev;
   if (allocatedCount >= count)
   {
     if (allocatedCount)
     {
-      VULKAN_LOG_CALL(vkDev.vkCmdResetQueryPool(cmd_b, pool, 0, allocatedCount));
+      VULKAN_LOG_CALL(Backend::cb.wCmdResetQueryPool(pool, 0, allocatedCount));
       data.clear();
       dataIndexes.clear();
     }
@@ -80,7 +83,7 @@ void TimestampQueryBlock::ensureSizesAndResetStatus(VulkanCommandBufferHandle cm
   const VkQueryPoolCreateInfo qpci = //
     {VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO, nullptr, 0, VK_QUERY_TYPE_TIMESTAMP, allocatedCount, 0};
   VULKAN_EXIT_ON_FAIL(vkDev.vkCreateQueryPool(vkDev.get(), &qpci, nullptr, ptr(pool)));
-  VULKAN_LOG_CALL(vkDev.vkCmdResetQueryPool(cmd_b, pool, 0, allocatedCount));
+  VULKAN_LOG_CALL(Backend::cb.wCmdResetQueryPool(pool, 0, allocatedCount));
 }
 
 void TimestampQueryBlock::cleanup()

@@ -28,7 +28,9 @@
   VAR(ssao_poisson_all_sample_count_f) \
   VAR(ssao_mode)                       \
   VAR(ssao_prev_tex)                   \
-  VAR(ssao_tex)
+  VAR(ssao_tex)                        \
+  VAR(ssao_prev_tex_samplerstate)      \
+  VAR(ssao_tex_samplerstate)
 
 #define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
 GLOBAL_VARS_LIST
@@ -53,10 +55,14 @@ SSAORenderer::SSAORenderer(int w, int h, int num_views, uint32_t flags, bool use
       {
         String name(128, "%sssao_tex_%d_%d", tag, view_ix, i);
         view.ssaoTex[i] = dag::create_tex(nullptr, aoWidth, aoHeight, format | TEXCF_RTARGET, 1, name.c_str());
-        view.ssaoTex[i].getTex2D()->texbordercolor(0xFFFFFFFF);
-        view.ssaoTex[i].getTex2D()->texaddr(TEXADDR_CLAMP);
+        view.ssaoTex[i]->disableSampler();
       }
     });
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
+    smpInfo.border_color = d3d::BorderColor::Color::OpaqueWhite;
+    ssao_prev_tex_samplerstateVarId.set_sampler(d3d::request_sampler(smpInfo));
+    ssao_tex_samplerstateVarId.set_sampler(d3d::request_sampler(smpInfo));
   }
   ssaoBlurTexelOffsetVarId = get_shader_variable_id("texelOffset");
 

@@ -46,6 +46,8 @@ CONSOLE_BOOL_VAL("clipmap", invalidate_under_camera_at_every_frame, false);
 ECS_AUTO_REGISTER_COMPONENT(mat44f, "close_geometry_prev_to_curr_frame_transform", nullptr, 0);
 ECS_AUTO_REGISTER_COMPONENT(mat44f, "close_geometry_prev_transform", nullptr, 0);
 
+extern const char *const EMPTY_LEVEL_NAME;
+
 static __forceinline WorldRenderer *get_renderer() { return ((WorldRenderer *)get_world_renderer()); }
 
 template <typename Callable>
@@ -107,7 +109,7 @@ struct VolfogShaderPreload
     // hence add manual pre-load job that executes before level load job
     const ecs::string &levelBlkPath = res_cb.get<ecs::string>(ECS_HASH("level__blk"));
     DataBlock levelBlk;
-    if (!dblk::load(levelBlk, levelBlkPath.c_str(), dblk::ReadFlag::ROBUST)) // Note: fail expected on fake scenes (e.g. "__empty__")
+    if (levelBlkPath == EMPTY_LEVEL_NAME || !dblk::load(levelBlk, levelBlkPath.c_str(), dblk::ReadFlag::ROBUST_IN_REL))
       return;
     if (levelBlk.getBool("disableVolfogPreload", false))
       return;

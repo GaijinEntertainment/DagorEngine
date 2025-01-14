@@ -3,11 +3,8 @@
 
 // defines full draw/dispatch ready state that can be applied to execution state
 
-#include <drv/3d/rayTrace/dag_drvRayTrace.h> // for D3D_HAS_RAY_TRACING
-
 #include "util/tracked_state.h"
 #include "compute_state.h"
-#include "raytrace_state.h"
 #include "graphics_state2.h"
 
 namespace drv3d_vulkan
@@ -17,21 +14,13 @@ struct PipelineStateStorage
 {
   FrontComputeState compute;
   FrontGraphicsState graphics;
-#if D3D_HAS_RAY_TRACING
-  FrontRaytraceState raytrace;
-#endif
 
   void reset() {}
   void dumpLog() const { debug("PipelineStateStorage end"); }
 
   VULKAN_TRACKED_STATE_STORAGE_CB_DEFENITIONS();
 };
-class PipelineState : public TrackedState<PipelineStateStorage, FrontComputeState, FrontGraphicsState
-#if D3D_HAS_RAY_TRACING
-                        ,
-                        FrontRaytraceState
-#endif
-                        >
+class PipelineState : public TrackedState<PipelineStateStorage, FrontComputeState, FrontGraphicsState>
 {
   StateFieldResourceBinds *stageResources[STAGE_MAX_ACTIVE];
 

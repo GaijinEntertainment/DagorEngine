@@ -65,16 +65,16 @@ bool shaders_internal::reload_shaders_materials(ScriptedShadersBinDumpOwner &pre
 
   DEBUG_CP();
   // destroy shaders
-  for (int i = 0; i < prev_sh.vprId.size(); i++)
-    if (prev_sh.vprId[i] != BAD_VPROG)
-      d3d::delete_vertex_shader(prev_sh.vprId[i]);
-  for (int i = 0; i < prev_sh.fshId.size(); i++)
-    if (prev_sh.fshId[i] != BAD_FSHADER)
+  for (int i = 0; i < prev_sh_owner.vprId.size(); i++)
+    if (prev_sh_owner.vprId[i] != BAD_VPROG)
+      d3d::delete_vertex_shader(prev_sh_owner.vprId[i]);
+  for (int i = 0; i < prev_sh_owner.fshId.size(); i++)
+    if (prev_sh_owner.fshId[i] != BAD_FSHADER)
     {
-      if (prev_sh.fshId[i] & 0x10000000)
-        d3d::delete_program(prev_sh.fshId[i] & 0x0FFFFFFF);
+      if (prev_sh_owner.fshId[i] & 0x10000000)
+        d3d::delete_program(prev_sh_owner.fshId[i] & 0x0FFFFFFF);
       else
-        d3d::delete_pixel_shader(prev_sh.fshId[i]);
+        d3d::delete_pixel_shader(prev_sh_owner.fshId[i]);
     }
 
   // copy global variables
@@ -178,14 +178,12 @@ bool shaders_internal::reload_shaders_materials_on_driver_reset()
 {
   BlockAutoLock block;
   rebuild_shaders_stateblocks();
-  ScriptedShadersBinDump &sh = shBinDumpRW();
+  auto &shOwner = shBinDumpOwner();
 
   DEBUG_CP();
   // destroy shaders
-  for (int i = 0; i < sh.vprId.size(); i++)
-    sh.vprId[i] = BAD_VPROG;
-  for (int i = 0; i < sh.fshId.size(); i++)
-    sh.fshId[i] = BAD_FSHADER;
+  eastl::fill(shOwner.vprId.begin(), shOwner.vprId.end(), BAD_VPROG);
+  eastl::fill(shOwner.fshId.begin(), shOwner.fshId.end(), BAD_FSHADER);
 
   auto elems = shader_mat_elems;
   for (auto e : elems)

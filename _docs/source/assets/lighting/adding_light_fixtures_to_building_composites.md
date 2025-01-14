@@ -68,9 +68,9 @@ composite’s pivot points and avoids the need for manual edits in a text editor
 ### Exporting the Map
 
 If everything looks correct, export the map from *daEditor* by navigating to
-**Project** ▸ **Export to Game (PC Format)**. In the following windows, click
-**OK** without changing any settings. When prompted, overwrite the existing map
-by clicking **OK** in the dialog box.
+**Project > Export to Game (PC Format)**. In the following windows, click **OK**
+without changing any settings. When prompted, overwrite the existing map by
+clicking **OK** in the dialog box.
 
    ![Exporting the Map](./_images/adding_light_fixtures_07.jpg)
 

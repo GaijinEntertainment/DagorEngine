@@ -134,6 +134,32 @@ static ecs::EntitySystemDesc custom_cube_texture_before_render_es_es_desc
   ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
   0
 ,"render",nullptr,nullptr,"animchar_before_render_es");
+static constexpr ecs::ComponentDesc custom_envi_probe_after_reset_es_comps[] =
+{
+//start of 1 rw components at [0]
+  {ECS_HASH("custom_envi_probe__needs_render"), ecs::ComponentTypeInfo<bool>()}
+};
+static void custom_envi_probe_after_reset_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_FAST_ASSERT(evt.is<AfterDeviceReset>());
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    custom_envi_probe_after_reset_es(static_cast<const AfterDeviceReset&>(evt)
+        , ECS_RW_COMP(custom_envi_probe_after_reset_es_comps, "custom_envi_probe__needs_render", bool)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc custom_envi_probe_after_reset_es_es_desc
+(
+  "custom_envi_probe_after_reset_es",
+  "prog/daNetGameLibs/custom_envi_probe/render/customEnviProbeES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, custom_envi_probe_after_reset_es_all_events),
+  make_span(custom_envi_probe_after_reset_es_comps+0, 1)/*rw*/,
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<AfterDeviceReset>::build(),
+  0
+);
 static constexpr ecs::ComponentDesc custom_envi_probe_render_es_event_handler_comps[] =
 {
 //start of 7 ro components at [0]
@@ -179,11 +205,11 @@ static constexpr ecs::ComponentDesc custom_envi_probe_get_spherical_harmonics_es
   {ECS_HASH("custom_envi_probe__spherical_harmonics_inside"), ecs::ComponentTypeInfo<ecs::Point4List>()},
   {ECS_HASH("custom_envi_probe__is_inside"), ecs::ComponentTypeInfo<bool>()}
 };
-static void custom_envi_probe_get_spherical_harmonics_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+static void custom_envi_probe_get_spherical_harmonics_es_event_handler_all_events(ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   G_FAST_ASSERT(evt.is<CustomEnviProbeGetSphericalHarmonics>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
-    custom_envi_probe_get_spherical_harmonics_es_event_handler(static_cast<const CustomEnviProbeGetSphericalHarmonics&>(evt)
+    custom_envi_probe_get_spherical_harmonics_es_event_handler(static_cast<CustomEnviProbeGetSphericalHarmonics&>(evt)
         , ECS_RO_COMP(custom_envi_probe_get_spherical_harmonics_es_event_handler_comps, "custom_envi_probe__spherical_harmonics_outside", ecs::Point4List)
     , ECS_RO_COMP(custom_envi_probe_get_spherical_harmonics_es_event_handler_comps, "custom_envi_probe__spherical_harmonics_inside", ecs::Point4List)
     , ECS_RO_COMP(custom_envi_probe_get_spherical_harmonics_es_event_handler_comps, "custom_envi_probe__is_inside", bool)

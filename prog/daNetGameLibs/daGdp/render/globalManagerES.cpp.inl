@@ -89,7 +89,10 @@ static inline void level_settings_ecs_query(Callable);
 void GlobalManager::queryLevelSettings(RulesBuilder &rules_builder)
 {
   level_settings_ecs_query(
-    [&](ECS_REQUIRE(ecs::Tag dagdp_level_settings) int dagdp__max_objects) { rules_builder.maxObjects = dagdp__max_objects; });
+    [&](ECS_REQUIRE(ecs::Tag dagdp_level_settings) int dagdp__max_objects, bool dagdp__use_heightmap_dynamic_objects) {
+      rules_builder.maxObjects = dagdp__max_objects;
+      rules_builder.useHeightmapDynamicObjects = dagdp__use_heightmap_dynamic_objects;
+    });
 }
 
 template <typename Callable>
@@ -128,9 +131,25 @@ static inline void placers_ecs_query(Callable);
 
 void GlobalManager::accumulatePlacers(RulesBuilder &rules_builder)
 {
-  placers_ecs_query([&](ECS_REQUIRE(ecs::Tag dagdp_placer) ecs::EntityId eid, const ecs::StringList &dagdp__object_groups) {
+  placers_ecs_query([&](ECS_REQUIRE(ecs::Tag dagdp_placer) ecs::EntityId eid, const ecs::StringList &dagdp__object_groups,
+                      const ecs::string &dagdp__name) {
     bool ignoreMissingObjectGroups = false;
     PlacerInfo placerInfo;
+
+    if (dagdp__name.empty())
+    {
+      logerr("daGdp: placer with EID %u has no name. Skipping it.", static_cast<unsigned int>(eid));
+      return;
+    }
+
+    const uint32_t placerNameHash = NameMap::string_hash(dagdp__name.data(), dagdp__name.size());
+    if (rules_builder.placerNameMap.getNameId(dagdp__name.data(), dagdp__name.size(), placerNameHash) >= 0)
+    {
+      logerr("daGdp: duplicate placer name '%s'. Skipping it.", dagdp__name.c_str());
+      return;
+    }
+
+    rules_builder.placerNameMap.addNameId(dagdp__name.data(), dagdp__name.size(), placerNameHash);
 
     for (const auto &name : dagdp__object_groups)
     {
@@ -142,7 +161,7 @@ void GlobalManager::accumulatePlacers(RulesBuilder &rules_builder)
         if (is_editor_activated())
         {
           // If not in the in-game editor, we don't know if the entity has not been created yet, so we can't show an error.
-          logerr("daGdp: placer with EID %u has unknown object group name %s.", static_cast<unsigned int>(eid), name.c_str());
+          logerr("daGdp: %s has unknown object group name %s.", dagdp__name, name.c_str());
         }
         else
           ignoreMissingObjectGroups = true;
@@ -156,7 +175,7 @@ void GlobalManager::accumulatePlacers(RulesBuilder &rules_builder)
 
     if (!ignoreMissingObjectGroups && placerInfo.objectGroupEids.empty())
     {
-      logerr("daGdp: placer with EID %u has no object groups. Skipping it.", static_cast<unsigned int>(eid));
+      logerr("daGdp: %s has no object groups. Skipping it.", dagdp__name);
       return;
     }
 
@@ -181,7 +200,8 @@ ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
 ECS_ON_EVENT(on_disappear)
 ECS_TRACK(dagdp__max_objects)
-ECS_REQUIRE(ecs::Tag dagdp_level_settings, int dagdp__max_objects)
+ECS_TRACK(dagdp__use_heightmap_dynamic_objects)
+ECS_REQUIRE(ecs::Tag dagdp_level_settings, int dagdp__max_objects, bool dagdp__use_heightmap_dynamic_objects)
 static void dagdp_level_settings_changed_es(const ecs::Event &)
 {
   manager_ecs_query([](dagdp::GlobalManager &dagdp__global_manager) { dagdp__global_manager.invalidateRules(); });

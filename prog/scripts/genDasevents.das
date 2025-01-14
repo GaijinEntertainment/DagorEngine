@@ -40,7 +40,7 @@ def join_path(a, b : string)
     let starts = starts_with_separator(b)
     if ends && starts
       builder |> write(slice(b, 1))
-    elif ! ends && !starts
+    elif !ends && !starts
       builder |> write("/")
       builder |> write(b)
     else
@@ -465,14 +465,17 @@ def gen_for_module(path : string; verbose : bool; common_paths : array<string>; 
         unsafe(fio::exit(1))
         return
 
-      var progs <- [{rtti::Program ? get_ptr(program)}]
+      var progs : array<tuple<name : string; prog : smart_ptr<Program>>> = [(path, program)]
 
       find_loaded_das() <| $ [unused_argument(fname, ctx)] (fname, ctx, prog)
-        progs |> push(get_ptr(prog))
+        if fname.ends_with("_events.das") || fname.ends_with("_quirrel.das")
+          progs |> emplace((fname, prog))
         return false
 
-      for prog in progs
-        unsafe(reinterpret<smart_ptr<Program>> (prog)) |> program_for_each_module <| $(mod)
+      for it in progs
+        assume prog = it.prog
+        print("> process {it.name}")
+        prog |> program_for_each_module <| $(mod)
           let modName = "{mod.name}"
           if modName == "ecs" || modName == "$" // skip builtin modules
             return
@@ -489,14 +492,14 @@ def gen_for_module(path : string; verbose : bool; common_paths : array<string>; 
             if has_annotation(st.annotations, "event")
               if verbose
                 print(" + {st.name}")
-              sqStubsList[longName] = get_sq_stub(st, /*native_ctor*/false)
+              sqStubsList.insert(longName, get_sq_stub(st, /*native_ctor*/false))
             else
               let ann <- st.annotations |> get_annotation("cpp_event")
               if ann != null
                 if ann.arguments |> get_bool_argument("with_scheme")
                   if ann.arguments |> get_bool_argument("cpp_gen", true)
-                    (isCommon ? commonCppEvents : cppEvents)[longName] <- [[EventData mod="{mod.name}", st := st]]
-                  sqStubsList[longName] = get_sq_stub(st, /*native_ctor*/true)
+                    emplace((isCommon ? commonCppEvents : cppEvents), longName, [[EventData mod="{mod.name}", st := st]])
+                  sqStubsList.insert(longName, get_sq_stub(st, /*native_ctor*/true))
 
           mod |> for_each_enumeration <| $(enm)
             if enm.annotations |> has_annotation("export_enum")
@@ -546,7 +549,8 @@ def bind_quirrel(dir : string; verbose : bool; var quirrelBindings : table<strin
             let bindName = nameArg is nothing ? string(fn.name) : nameArg as tString
             if verbose
               print(" @ {bindName} -> {fn.name}")
-            quirrelBindings[moduleNameArg ?as tString ?? "dasbind"]["{fileNameParts |> back()}::{bindName}"] = get_func_stub(bindName, fn)
+            unsafe
+              quirrelBindings[moduleNameArg ?as tString ?? "dasbind"]["{fileNameParts |> back()}::{bindName}"] = get_func_stub(bindName, fn)
 
     access := null
     unsafe

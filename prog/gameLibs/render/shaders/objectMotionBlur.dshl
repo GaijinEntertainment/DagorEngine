@@ -1,11 +1,10 @@
 include "shader_global.dshl"
 include "gbuffer.dshl"
 include "viewVecVS.dshl"
-include "hero_matrix_inc.dshl"
+include "motion_vector_access.dshl"
 
 texture object_motion_blur_in_tex;
 texture object_motion_blur_out_tex;
-texture resolved_motion_vectors;
 texture translucent_gbuffer_depth;
 texture object_motion_blur_flattened_vel_tex;
 
@@ -34,7 +33,6 @@ shader object_motion_blur_tile_max
 
   (cs)
   {
-    resolved_motion_vectors@smp2d = resolved_motion_vectors;
     velocityMul@f2 = get_dimensions(object_motion_blur_flattened_vel_tex, 0).xy * 0.5 * object_motion_blur_velocity_mul * object_motion_blur_frame_rate_mul;
     velocityRes@f4 = (get_dimensions(object_motion_blur_flattened_vel_tex, 0).xy, 1.0 / get_dimensions(object_motion_blur_flattened_vel_tex, 0).xy);
     object_motion_blur_max_vel_px@f1 = object_motion_blur_max_vel_px;
@@ -49,8 +47,8 @@ shader object_motion_blur_tile_max
 
   VIEW_VEC_OPTIMIZED(cs)
   INIT_ZNZFAR_STAGE(cs)
-  INIT_HERO_MATRIX(cs)
-  USE_HERO_MATRIX(cs)
+  INIT_FETCH_MOTION_VECTOR(cs, resolved)
+  USE_FETCH_MOTION_VECTOR(cs, resolved)
   INIT_READ_DEPTH_GBUFFER_BASE(cs)
   USE_READ_DEPTH_GBUFFER_BASE(cs)
   ENABLE_ASSERT(cs)
@@ -114,27 +112,6 @@ shader object_motion_blur_tile_max
       return vignette * vignette;
     }
 
-    half2 applyHeroCockpitVelocity(float2 tc, float rawDepth, half2 vel)
-    {
-      bool isHeroCockpit = false;
-
-      #ifdef GBUFFER_HAS_HERO_COCKPIT_BIT
-        isHeroCockpit = isGbufferHeroCockpit(tc);
-      #endif
-
-      float linearDepth = linearize_z(rawDepth, zn_zfar.zw);
-      float3 viewVec = getViewVecOptimized(tc);
-      float3 cameraToPoint = viewVec * linearDepth;
-      // May be improved by check gbuf isdynamic flag
-      if (is_inside_hero_bbox(cameraToPoint) || isHeroCockpit)
-      {
-        // We just cancel any motion blur for hero cockpit,
-        // Little bit rough assumtion, but should be ok for motionblur
-        vel = 0;
-      }
-      return vel;
-    }
-
     [numthreads(TILE_SIZE, TILE_SIZE, 1)]
     void object_motion_blur_tile_max(uint2 groupId : SV_GroupID, uint2 groupThreadId : SV_GroupThreadID, uint groupIndex : SV_GroupIndex)
     {
@@ -142,12 +119,7 @@ shader object_motion_blur_tile_max
       float2 tc = ((float2)samplePos + 0.5) * velocityRes.zw;
       float sampleRawDepth = readGbufferDepth(tc);
 
-      ##if resolved_motion_vectors != NULL
-        half2 vel = tex2Dlod(resolved_motion_vectors, float4(tc, 0, 0)).xy;
-      ##else
-        half2 vel = getCameraMotion(tc, sampleRawDepth);
-        vel = applyHeroCockpitVelocity(tc, sampleRawDepth, vel);
-      ##endif
+      half2 vel = fetch_motion_vector(tc, sampleRawDepth).xy;
       if(vel.x > 10.0)   // invalid motion vector (x=y=65k means invalid, but we want linear filtering. values are in uv space)
         vel = half2(0,0);
 
@@ -354,11 +326,12 @@ shader object_motion_blur
         return normalizeSafe(lerp(a, b, saturate(p))).xy;
     }
 
-    void loadFlattenedVelocityAndDepth(float2 uv, out float2 outVel, out float outVelLength, out float outDepth)
+    void loadFlattenedVelocityAndDepth(float2 uv, out float2 outVel, out float outVelLength, out float outDepth, out bool is_sky)
     {
       float3 vel_depth = tex2Dlod(flattened_vel_tex, float4(uv, 0, 0)).rgb;
       outVelLength = vel_depth.x;
       float rawDepth = vel_depth.z;
+      is_sky = rawDepth <= 0.0f;
       outDepth = linearize_z(rawDepth, zn_zfar.zw);
 
       // from [0, 1] to [-PI, PI]
@@ -367,12 +340,13 @@ shader object_motion_blur
     }
 
     // Sample weighting function
-    float getWeightForSample(float2 vel, float centerVelLength, float centerDepth, float T, float2 sampleUV, float velocityWeight, float centerGlassDepth)
+    float getWeightForSample(float2 vel, float centerVelLength, float centerDepth, float T, float2 sampleUV, float velocityWeight, float centerGlassDepth, bool center_is_sky)
     {
         float2 sampleVel;
         float sampleDepth;
         float sampleVelLen;
-        loadFlattenedVelocityAndDepth(sampleUV, sampleVel, sampleVelLen, sampleDepth);
+        bool sampleIsSky;
+        loadFlattenedVelocityAndDepth(sampleUV, sampleVel, sampleVelLen, sampleDepth, sampleIsSky);
 
         float glassWeight = 1.0;
 
@@ -401,6 +375,12 @@ shader object_motion_blur
         weight = max(weight, sampleIsBackground * cone(T, centerVelLength) * velocityWeight);
         weight = max(weight, cylinder(T, min(sampleVelLen, centerVelLength)) * max(velocityWeight, foregroundWeight));
         weight *= glassWeight;
+
+        // Don't blend geometry pixels with sky, because sky is much brighter
+        // Blending produces brighter areas on tree leaves while motion
+        if (!center_is_sky && sampleIsSky)
+          weight = 0.0;
+
         return weight;
     }
 
@@ -428,7 +408,8 @@ shader object_motion_blur
       float2 centerVel;
       float centerDepth;
       float centerVelLength;
-      loadFlattenedVelocityAndDepth(centerUV, centerVel, centerVelLength, centerDepth);
+      bool centerIsSky;
+      loadFlattenedVelocityAndDepth(centerUV, centerVel, centerVelLength, centerDepth, centerIsSky);
       float2 centerVelNorm = normalizeSafe(centerVel, centerVelLength);
       centerVelLength = max(centerVelLength, minVel);
 
@@ -509,7 +490,7 @@ shader object_motion_blur
           // Odd-numbered sample: sample along center velocity.
           float2 sampleUv = sampleUVs[j];
           float weight = getWeightForSample(centerVelNorm, centerVelLength, centerDepth,
-            jitteredStepIndex.x * stepIndexToPixel, sampleUv, sampleAlongCenterVel, linearTranslucentDepth);
+            jitteredStepIndex.x * stepIndexToPixel, sampleUv, sampleAlongCenterVel, linearTranslucentDepth, centerIsSky);
 
           result += tex2Dlod(input_tex, float4(sampleUv, 0, 0)).rgb * weight;
           totalWeight += weight;
@@ -539,7 +520,7 @@ shader object_motion_blur
         {
           float2 sampleUv = sampleUVs[j];
           float weight = getWeightForSample(maxNeighborVel_Norm_Len.xy, centerVelLength, centerDepth,
-            jitteredStepIndex.x * stepIndexToPixel, sampleUv, sampleAlongDominantVel, linearTranslucentDepth);
+            jitteredStepIndex.x * stepIndexToPixel, sampleUv, sampleAlongDominantVel, linearTranslucentDepth, centerIsSky);
 
           result += tex2Dlod(input_tex, float4(sampleUv, 0, 0)).rgb * weight;
           totalWeight += weight;

@@ -1,0 +1,22 @@
+
+return {
+  initAndRequestData = @(_) null
+  startPurchaseAsync = @(_) null
+  getItemPrice = @(_) ""
+  getItemPriceCurrency = @(_) ""
+  getItemDigitPrice = @(_) 0.0
+  confirmPurchase = @(_) null
+  checkPurchases = @() null
+  manageSubscription = @(_) null
+  HMS_ORDER_STATE_SUCCESS = 0
+  HMS_ORDER_STATE_FAILED = -1
+  HMS_ORDER_STATE_DEFAULT_CODE = 1
+  HMS_ORDER_STATE_CANCEL = 60000
+  HMS_ORDER_STATE_PRODUCT_INVALID = 60003
+  HMS_ORDER_STATE_CALLS_FREQUENT = 60004
+  HMS_ORDER_STATE_NET_ERROR = 60005
+  HMS_ORDER_STATE_PRODUCT_COUNTRY_NOT_SUPPORTED = 60007
+  HMS_ORDER_HWID_NOT_LOGIN = 60050
+  HMS_ORDER_PRODUCT_OWNED = 60051
+  HMS_ORDER_ACCOUNT_AREA_NOT_SUPPORTED = 60054
+}

@@ -13,10 +13,11 @@ using namespace drv3d_vulkan;
 void ExecutionSyncCapture::addSyncStep()
 {
   currentLocalSyncStepOpIdx = 0;
-  DeviceQueueType syncStepQueue = Backend::State::exec.getExecutionContext().frameCoreQueue;
+  ExecutionContext &ctx = Backend::State::exec.getExecutionContext();
+  DeviceQueueType syncStepQueue = ctx.frameCoreQueue;
   steps.push_back({currentVisNode++, currentVisPin++, currentVisPin++, Backend::sync.getCaller(),
-    Backend::gpuJob->commandBuffers[syncStepQueue].pendingCommandBuffers.size(), (uint32_t)syncStepQueue, currentSyncStep, 0,
-    currentVisPin++, currentVisPin++, currentVisPin++, 0, 0, 0});
+    (uint32_t)ctx.lastBufferIdxOnQueue[(int)syncStepQueue], (uint32_t)syncStepQueue, currentSyncStep, 0, currentVisPin++,
+    currentVisPin++, currentVisPin++, 0, 0, 0});
   currentSyncStep++;
 }
 void ExecutionSyncCapture::addOp(ExecutionSyncTracker::OpUid uid, LogicAddress laddr, Resource *res,
@@ -39,6 +40,7 @@ void ExecutionSyncCapture::reset()
   ops.clear();
   steps.clear();
   links.clear();
+  bufferLinks.clear();
   currentLocalSyncStepOpIdx = 0;
   currentSyncStep = 0;
   currentVisNode = 1;

@@ -3,7 +3,7 @@ hlsl {
   #include "noise/uint_noise1D.hlsl"
 }
 
-macro INIT_DAGDP_COMMON()
+macro USE_DAGDP_COMMON()
   hlsl(cs) {
     float stableRand(int2 pos, int seed)
     {

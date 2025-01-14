@@ -24,9 +24,14 @@ public:
   static bool getShowHierarchyInFavorites() { return showHierarchyInFavorites; }
   static void setShowHierarchyInFavorites(bool show) { showHierarchyInFavorites = show; }
 
+  static int getFavoritesGenerationId() { return favoritesGenerationId; }
+  static int getRecentlyUsedGenerationId() { return recentlyUsedGenerationId; }
+
 private:
   static dag::Vector<String> favorites;
   static dag::Vector<String> recentlyUsed;
+  static int favoritesGenerationId;
+  static int recentlyUsedGenerationId;
   static bool showHierarchyInFavorites;
 
   static const int MAXIMUM_RECENT_COUNT = 50;

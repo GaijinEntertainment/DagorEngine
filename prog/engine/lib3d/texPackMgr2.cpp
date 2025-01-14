@@ -48,10 +48,14 @@
 #include <sys/resource.h>
 #endif
 
+#include "texMgrData.h"
+
 // #define RMGR_TRACE debug  // trace resource manager's DDSx loads
 #ifndef RMGR_TRACE
 #define RMGR_TRACE(...) ((void)0)
 #endif
+
+#include "ddsxDec.h"
 
 struct DDSxLoadQueueRec
 {
@@ -95,10 +99,7 @@ static struct TexPacksAreAllowedToLoad
 static void process_arr_tex_load_queue();
 static void term_arr_tex_load_queue();
 
-#include "texMgrData.h"
 using texmgr_internal::RMGR;
-
-#include "ddsxDec.h"
 
 struct DDSxArrayTextureFactory;
 class DDSxTexturePack2;
@@ -200,7 +201,7 @@ static int get_texq(TEXTUREID id, int tex_quality)
   if (forcedMqTexList.size() + forcedLqTexList.size() == 0)
     return tex_quality;
   OSSpinlockScopedLock autolock(forceQTexListSL);
-  int q = tex_quality;
+  int q;
   if (tex_quality >= 2) // low
     q = tex_quality;
   else if (tex_quality == 1) // medium
@@ -209,6 +210,8 @@ static int get_texq(TEXTUREID id, int tex_quality)
     q = 2;
   else if (forcedMqTexList.has(id))
     q = 1;
+  else
+    q = tex_quality;
   return q;
 }
 
@@ -234,8 +237,8 @@ class DDSxTexturePack2
     }
     ~Factory() { onTexFactoryDeleted(this); }
 
-    virtual BaseTexture *createTexture(TEXTUREID id);
-    virtual void releaseTexture(BaseTexture *texture, TEXTUREID id);
+    BaseTexture *createTexture(TEXTUREID id) override;
+    void releaseTexture(BaseTexture *texture, TEXTUREID id) override;
     bool isPersistentTexName(const char *nm) override
     {
       if (intptr_t(nm) > intptr_t(&pack) && intptr_t(nm) < intptr_t(this))
@@ -594,7 +597,7 @@ public:
       if (!RMGR.isValidID(tid, nullptr))
         continue;
       int idx = tid.index();
-      if (RMGR.resQS[idx].isReading())
+      if (idx >= 0 && RMGR.resQS[idx].isReading())
         RMGR.cancelReading(idx);
       if (idx >= 0 && RMGR.getFactory(idx) == file)
         evict_managed_tex_id(tid);
@@ -819,7 +822,8 @@ public:
 
   bool updateTexRec(int i, int pack_idx, TEXTUREID tid, TexQL tql, bool can_override_tex)
   {
-    G_ASSERT_RETURN(tql != TQL_base && tql < TQL__COUNT, false);
+    G_ASSERT_RETURN(tql != TQL_stub && tql != TQL_base && tql < TQL__COUNT, false);
+
     int idx = RMGR.toIndex(tid);
     if (idx < 0 || RMGR.texDesc[idx].packRecIdx[TQL_base].pack < 0)
     {
@@ -866,6 +870,8 @@ public:
       return true;
     }
 
+    G_ASSERT_RETURN(tql >= TQL_high, false);
+
     // set HQ records
     auto &bq_ref = tex_desc.packRecIdx[TQL_base];
     auto *base_pack = ::tex_packs[bq_ref.pack].pack;
@@ -877,7 +883,7 @@ public:
     if (dq_ref.pack >= 0)
     {
       auto *dq_pack = ::tex_packs[dq_ref.pack].pack;
-      if (can_override_tex && tql >= TQL_high) //-V560
+      if (can_override_tex)
       {
         // restore base texHdr to apply HQ once again
         auto &dq_hdr = dq_pack->texHdr[dq_ref.rec];
@@ -912,7 +918,7 @@ public:
         dq_ref.rec = 0xFFFFu;
         // debug("patch: tex <%s> route to %s", texNames.map[i].get(), file->name);
       }
-      else if (!can_override_tex)
+      else
         logerr("tex name[%d] conflict: '%s' (%s and %s:%d)", i, texNames.map[i].get(), file->name, dq_pack->file->name, dq_ref.rec);
     }
     if (texHdr[i].levels == 0)
@@ -939,8 +945,7 @@ public:
     texHdr[i].uQmip = base_hdr.uQmip + texHdr[i].levels;
     base_hdr.hqPartLevels = 0;
 
-    if (tql >= TQL_high)
-      file->texProps[i].ldPrio = ddsx::hq_tex_priority;
+    file->texProps[i].ldPrio = ddsx::hq_tex_priority;
     texRec[i].texId = tid; // mark hqTex with the same texId as baseTex to apply get_texq() properly
 
     RMGR.setLevDesc(idx, tql, dq_lev);
@@ -1232,8 +1237,9 @@ void DDSxTexturePack2::Factory::reloadActiveTextures(int prio, int pack_idx)
         continue;
       int idx = tid.index();
 
+      bool asyncReplacementQueued = false;
       // update QLev (depends on dgs_tex_quality)
-      if (RMGR.texDesc[idx].packRecIdx[TQL_base].pack == pack_idx && RMGR.texDesc[idx].packRecIdx[TQL_base].rec == i)
+      if (RMGR.texDesc[idx].packRecIdx[TQL_base].pack == pack_idx && RMGR.texDesc[idx].packRecIdx[TQL_base].rec == i) //-V1051
       {
         ddsx::Header hdr = pack.texHdr[i];
         if (hdr.hqPartLevels) // this means than BQ texture is scanned but HQ is missing (not scanned)
@@ -1261,13 +1267,17 @@ void DDSxTexturePack2::Factory::reloadActiveTextures(int prio, int pack_idx)
             TextureInfo ti;
             new_t->getinfo(ti, 0);
 
-            t->replaceTexResObject(new_t);
+            RMGR.completeTextureUpdateAsync(idx, t, new_t, 0, ti.mipLevels - 1,
+              [](int idx) { RMGR.scheduleReading(idx, RMGR.getFactory(idx)); });
+            asyncReplacementQueued = true;
             debug("%*srecreate stub-less tex %dx%dx%d,L%d  %s", 9, "", ti.w, ti.h, ti.d, ti.mipLevels, pack.texNames.map[i]);
           }
       }
 
-      if (!RMGR.scheduleReading(idx, RMGR.getFactory(idx)))
-        continue;
+      if (!asyncReplacementQueued)
+        if (!RMGR.scheduleReading(idx, RMGR.getFactory(idx)))
+          continue;
+
       if (!has_tex)
       {
         has_tex = true;
@@ -1557,18 +1567,23 @@ bool DDSxTexturePack2::Factory::performDelayedLoad(int prio)
 
 #endif
       //== check here for cancelled reading
-      TexLoadRes ldRet = RMGR.readDdsxTex(p.texId, pack.texHdr[rec_id], *fastSeqCrd, tex_q, on_tex_slice_loaded_cb);
+
+      auto onCompleted = [](int idx) {
+        {
+          texmgr_internal::TexMgrAutoLock tlock;
+          RMGR.markUpdatedAfterLoad(idx);
+        }
+        if (!is_managed_textures_streaming_load_on_demand())
+          RMGR.scheduleReading(idx, RMGR.getFactory(idx));
+      };
+
+      TexLoadRes ldRet = RMGR.readDdsxTex(p.texId, pack.texHdr[rec_id], *fastSeqCrd, tex_q, onCompleted, on_tex_slice_loaded_cb);
       if (ldRet == TexLoadRes::ERR)
         if (!d3d::is_in_device_reset_now())
           logerr("failed loading tex %s", pack.texNames.map[rec_id].get());
 
-      {
-        texmgr_internal::TexMgrAutoLock tlock;
-        RMGR.markUpdatedAfterLoad(p.texId.index());
-      }
-      G_ASSERT(RMGR.isValidID(p.texId));
-      if (!is_managed_textures_streaming_load_on_demand())
-        RMGR.scheduleReading(p.texId.index(), RMGR.getFactory(p.texId.index()));
+      if (ldRet != TexLoadRes::OK)
+        onCompleted(p.texId.index());
     }
     data_sz += p.packedDataSize;
     mem_data_sz += pack.texHdr[rec_id].memSz;
@@ -1781,6 +1796,12 @@ bool ddsx::tex_pack2_perform_delayed_data_loading(int prio)
   {
     for (int i = 0; i < tex_packs.size() && interlocked_acquire_load(processingTexData[prio]); i++)
       done |= tex_packs[i].pack->file->performDelayedLoad(full_prio);
+    if (!is_managed_textures_streaming_load_on_demand())
+      run_action_on_main_thread_and_wait([]() {
+        d3d::GpuAutoLock lock;
+        RMGR.performAsyncTextureReplacementCompletions();
+      });
+
     if (!interlocked_acquire_load(pendingTexCount[prio]) || !interlocked_acquire_load(processingTexData[prio]))
       break;
 #if DAGOR_DBGLEVEL > 0
@@ -1932,6 +1953,10 @@ void shutdown_tex_pack2_data()
     texmgr_internal::stop_bkg_tex_loading(1);
   while (ddsx_factory_delayed_load_entered_global)
     sleep_msec(10);
+
+  d3d::driver_command(Drv3dCommand::ACQUIRE_OWNERSHIP);
+  RMGR.performAsyncTextureReplacementCompletions();
+  d3d::driver_command(Drv3dCommand::RELEASE_OWNERSHIP);
 
   for (int i = 0; i < tex_packs.size(); i++)
     tex_packs[i].pack->termTex();
@@ -2245,10 +2270,29 @@ struct DDSxArrayTextureFactory final : public TextureFactory
     Tab<SliceRec> slice;
     ddsx::Header hdr = {0};
   };
-  class ArrayTexRecList : public dag::Vector<ArrayTexRec>
+  class ArrayTexRecList : private dag::Vector<ArrayTexRec>
   {
   public:
+    using dag::Vector<ArrayTexRec>::value_type;
+    using dag::Vector<ArrayTexRec>::reserve;
+    using dag::Vector<ArrayTexRec>::data;
     int size() const { return interlocked_acquire_load(*(volatile int *)&mCount); }
+    ArrayTexRec &operator[](int n)
+    {
+#if EASTL_ASSERT_ENABLED
+      if (const size_t sz = interlocked_relaxed_load(*(volatile int *)&mCount); DAGOR_UNLIKELY(n >= sz))
+        DAG_ASSERTF(0, "ArrayTexRec::at n=%d num=%d, sizeof(T)=%d", n, sz, sizeof(ArrayTexRec));
+#endif
+      return data()[n];
+    }
+    const ArrayTexRec &operator[](int n) const
+    {
+#if EASTL_ASSERT_ENABLED
+      if (const size_t sz = interlocked_relaxed_load(*(volatile int *)&mCount); DAGOR_UNLIKELY(n >= sz))
+        DAG_ASSERTF(0, "ArrayTexRec::at n=%d num=%d, sizeof(T)=%d", n, sz, sizeof(ArrayTexRec));
+#endif
+      return data()[n];
+    }
     int appendOne()
     {
       int i = interlocked_increment(*(volatile int *)&mCount) - 1;
@@ -2329,7 +2373,7 @@ struct DDSxArrayTextureFactory final : public TextureFactory
         r.gen++;
         ArrayTexRec lr = r; // local copy
         r.spinlock.unlock();
-        bool loaded = loadArrTexData(i, bt, lr);
+        bool loaded = loadArrTexData(i, bt, lr, true);
         r.spinlock.lock();
         if (loaded)
           return bt;
@@ -2363,12 +2407,12 @@ struct DDSxArrayTextureFactory final : public TextureFactory
     return loadArrTexData(rec_idx, bt, lr);
   }
 
-  bool loadArrTexData(int rec_idx, BaseTexture *bt, const ArrayTexRec &r)
+  bool loadArrTexData(int rec_idx, BaseTexture *bt, const ArrayTexRec &r, bool bt_is_mutable = is_main_thread())
   {
     G_ASSERT(r.quality >= 0); // shall be already set by createTexture
     const char *texname = get_managed_texture_name(r.tid);
     G_UNUSED(texname);
-    ArrayTexture *dest_tex = (ArrayTexture *)bt, *t = dest_tex;
+    ArrayTexture *dest_tex = (ArrayTexture *)bt;
     Tab<char> zeroes;
 
     // load BQ data
@@ -2376,9 +2420,18 @@ struct DDSxArrayTextureFactory final : public TextureFactory
     G_UNUSED(rec_idx);
     auto &resQS = RMGR.resQS[r.tid.index()];
     auto &texDesc = RMGR.texDesc[r.tid.index()];
-    RMGR.startReading(r.tid.index(), RMGR.getLevDesc(r.tid.index(), TQL_base));
-    unsigned target_lev = resQS.getMaxLev(), base_lev = RMGR.getLevDesc(r.tid.index(), TQL_base);
-    int start_lev = target_lev > base_lev ? target_lev - base_lev : 0;
+
+
+    const unsigned target_lev = resQS.getMaxLev();
+    const unsigned base_lev = RMGR.getLevDesc(r.tid.index(), TQL_base);
+    const int start_lev = target_lev > base_lev ? target_lev - base_lev : 0;
+    bool hasHq = false;
+
+    for (int s = 0; s < r.slice.size(); s++)
+      if (r.slice[s].hqPack && target_lev > base_lev)
+        hasHq = true;
+
+    RMGR.startReading(r.tid.index(), RMGR.getLevDesc(r.tid.index(), hasHq ? TQL_high : TQL_base));
 
     // keep trying for ~25s to match watchdog timeout, this way if we have deadlock, we trigger watchdog+logerr
     // otherwise if application stalled for some time but in non related code (i.e. not deadlock in tex mgr),
@@ -2386,6 +2439,7 @@ struct DDSxArrayTextureFactory final : public TextureFactory
     // which happens if estimated trying time is less than watchdog timeout
     constexpr unsigned tries = 256u;
 
+    ArrayTexture *t;
     {
       unsigned skip = (texDesc.dim.maxLev - target_lev);
       unsigned w = max(texDesc.dim.w >> skip, 1), h = max(texDesc.dim.h >> skip, 1);
@@ -2514,16 +2568,17 @@ struct DDSxArrayTextureFactory final : public TextureFactory
           return false;
         }
       }
-    t->texmiplevel(start_lev, t->level_count() - 1);
-    dest_tex->replaceTexResObject(t);
-    RMGR.finishReading(r.tid.index());
-    t = dest_tex;
+
+    // TODO: break into 2 async steps:
+    // 1) load BQ
+    // 1.2) apply it on main
+    // 2) load HQ and apply it asynchonously
+    // 2.2) apply it on main
 
     // load HQ data
     for (int s = 0; s < r.slice.size(); s++)
       if (r.slice[s].hqPack && target_lev > base_lev)
       {
-        RMGR.startReading(r.tid.index(), RMGR.getLevDesc(r.tid.index(), TQL_high));
         TRACE_ARRTEX("arrTex: %s %p.load[%d]: HQ %s, ofs=0x%X", texname, t, s, r.slice[s].hqPack->file->packName,
           r.slice[s].hqPack->texRec[r.slice[s].hqIdx].ofs);
         FullFileLoadCB crd(r.slice[s].hqPack->file->packName);
@@ -2601,10 +2656,18 @@ struct DDSxArrayTextureFactory final : public TextureFactory
         }
       }
 
-    if (resQS.isReading())
+    const auto minMip = hasHq ? 0 : start_lev;
+
+    if (bt_is_mutable)
     {
-      t->texmiplevel(0, t->level_count() - 1);
+      dest_tex->replaceTexResObject(t);
+      dest_tex->texmiplevel(minMip, dest_tex->level_count() - 1);
       RMGR.finishReading(r.tid.index());
+    }
+    else
+    {
+      RMGR.completeTextureUpdateAsync(r.tid.index(), dest_tex, t, 0, t->level_count() - 1,
+        [](int index) { RMGR.finishReading(index); });
     }
 
     return true;
@@ -2914,13 +2977,26 @@ struct DDSxArrayTextureFactory final : public TextureFactory
       OSSpinlockScopedLock autolock(rec[lqr.recIdx].spinlock);
       if (lqr.gen != rec[lqr.recIdx].gen)
         return true;
-      debug("arrTex: process_one_queue_item tid=0x%x lqr.gen=%d rec[%d].gen=%d slices.count=%d d3dRes=%p rc=%d", lqr.tid, lqr.gen,
-        lqr.recIdx, rec[lqr.recIdx].gen, rec[lqr.recIdx].slice.size(), RMGR.getD3dRes(tex_idx), RMGR.getRefCount(tex_idx));
+      debug("arrTex: process_one_queue_item tid=0x%x lqr.gen=%d rec[%d].gen=%d slices.count=%d d3dRes=%p rc=%d ldLev=%d rdLev=%d",
+        lqr.tid, lqr.gen, lqr.recIdx, rec[lqr.recIdx].gen, rec[lqr.recIdx].slice.size(), RMGR.getD3dRes(tex_idx),
+        RMGR.getRefCount(tex_idx), RMGR.resQS[tex_idx].getLdLev(), RMGR.resQS[tex_idx].getRdLev());
       G_ASSERT(lqr.tid == rec[lqr.recIdx].tid);
     }
 
-    while (!RMGR.getD3dRes(tex_idx) && RMGR.getRefCount(tex_idx)) // createTexture() call not finished yet
-      sleep_msec(0);
+    // delay processing until createTexture() (with completitions) is finished
+    auto not_finished = [&]() { return (!RMGR.getD3dRes(tex_idx) && RMGR.getRefCount(tex_idx)) || RMGR.resQS[tex_idx].isReading(); };
+    if (not_finished())
+    {
+      auto reft = ref_time_ticks();
+      while (not_finished() && get_time_usec(reft) < 100000)
+        sleep_msec(1);
+      if (not_finished())
+      {
+        debug("arrTex: delay due to loading-in-progress lqr.tid=0x%x", lqr.tid);
+        addLoadQueueRec(lqr.tid, lqr.recIdx);
+        return false;
+      }
+    }
 
     if (!RMGR.getD3dRes(tex_idx) && !RMGR.getRefCount(tex_idx)) // already destroyed
     {
@@ -2974,7 +3050,7 @@ unsigned reload_managed_array_textures_for_changed_slice(const char *slice_tex_n
   unsigned changed_arrtex = 0;
 
   slice_tex_name = TextureMetaData::decodeFileName(slice_tex_name, &tmp_stor1);
-  for (auto &texRec : arr_tex_factory.rec)
+  for (auto &texRec : make_span(arr_tex_factory.rec))
   {
     int tex_slice_idx = -1;
     slicesNames.clear();
@@ -3004,7 +3080,7 @@ unsigned reload_managed_array_textures_for_changed_slice(const char *slice_tex_n
 static void reload_active_array_textures()
 {
   int i = 0;
-  for (auto &r : arr_tex_factory.rec)
+  for (auto &r : make_span_const(arr_tex_factory.rec))
   {
     if (r.tid == BAD_TEXTUREID || get_managed_texture_refcount(r.tid) <= 0)
     {
@@ -3098,17 +3174,26 @@ void ddsx::process_ddsx_load_queue()
       continue;
     }
 
+    auto completeLoading = [](int index) {
+      RMGR.resQS[index].setCurQL(TQL_base);
+      if (RMGR.resQS[index].isReading())
+        RMGR.markUpdatedAfterLoad(index);
+    };
+
     FullFileLoadCB crd(rec.fn, DF_READ | DF_IGNORE_MISSING);
     if (crd.fileHandle)
     {
       ddsx::Header hdr;
       crd.read(&hdr, sizeof(hdr));
-      if (RMGR.texDesc[rec.tid.index()].dim.stubIdx >= 0)
+      const bool isStreamable = RMGR.texDesc[rec.tid.index()].dim.stubIdx >= 0;
+      if (isStreamable)
       {
-        TexLoadRes ldRet = RMGR.readDdsxTex(rec.tid, hdr, crd, 0);
+        TexLoadRes ldRet = RMGR.readDdsxTex(rec.tid, hdr, crd, 0, completeLoading);
         if (ldRet == TexLoadRes::ERR)
           if (!d3d::is_in_device_reset_now())
             logerr("failed to load DDSx contents: %s", rec.fn);
+        if (ldRet != TexLoadRes::OK)
+          completeLoading(RMGR.toIndex(rec.tid));
       }
       else
       {
@@ -3116,12 +3201,8 @@ void ddsx::process_ddsx_load_queue()
         if (ldRet == TexLoadRes::ERR)
           if (!d3d::is_in_device_reset_now())
             logerr("failed to load DDSx contents: %s", rec.fn);
+        completeLoading(RMGR.toIndex(rec.tid));
       }
-
-      int idx = RMGR.toIndex(rec.tid);
-      RMGR.resQS[idx].setCurQL(TQL_base);
-      if (RMGR.resQS[idx].isReading())
-        RMGR.markUpdatedAfterLoad(rec.tid.index());
     }
 
     if (rec.btId != BAD_TEXTUREID && RMGR.pairedBaseTexId[rec.tid.index()] == BAD_TEXTUREID) // non-streamable texture case

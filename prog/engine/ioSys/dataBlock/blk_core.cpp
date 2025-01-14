@@ -555,7 +555,8 @@ DataBlock *DataBlock::addNewBlock(const char *name)
   convertToBlocksOwned();
   const uint32_t bCnt = blockCount();
   constexpr auto maxBlocksCount = eastl::numeric_limits<decltype(blocksCount)>::max();
-  G_ASSERTF_RETURN(bCnt < maxBlocksCount, getBlock(bCnt - 1), "blockCount=%d reaches limit of %d max blocks", bCnt, maxBlocksCount);
+  G_ASSERTF_RETURN(bCnt < maxBlocksCount, getBlock(bCnt - 1),
+    "DataBlock::addNewBlock(%s) blockCount=%d reaches limit of %d max blocks", name, bCnt, maxBlocksCount);
   auto nb = new (shared->allocateBlock(), _NEW_INPLACE) DataBlock(shared, name);
   insertAt(data->data.size(), sizeof(block_id_t), (const char *)&nb);
   blocksCount++;

@@ -397,11 +397,10 @@ void process_cpu_culling(Context &ctx, int start, int count)
     G_UNUSED(cpuValidationFlags);
     G_FAST_ASSERT((flags & cpuValidationFlags) == cpuValidationFlags);
 
+    bool validBox = pull_culling_data(cpuData, cullId, flags, stream.get<INST_BBOX>(sid),
+      stream.getOpt<INST_RENDERABLE_TRIS, uint>(sid), !(flags & SYS_SKIP_SIMULATION_ON_THIS_FRAME));
     flags &= ~SYS_BBOX_VALID;
-    flags |= pull_culling_data(cpuData, cullId, flags, stream.get<INST_BBOX>(sid), stream.getOpt<INST_RENDERABLE_TRIS, uint>(sid),
-               !(flags & SYS_SKIP_SIMULATION_ON_THIS_FRAME))
-               ? SYS_BBOX_VALID
-               : 0;
+    flags |= validBox ? SYS_BBOX_VALID : 0;
   }
 }
 
@@ -441,11 +440,15 @@ void process_gpu_culling(Context &ctx)
     if ((flags & gpuValidationFlags) != gpuValidationFlags)
       continue; // it can be already dead, because we have 1..5 frames lag
 
+    bool validBox = pull_culling_data(gpuData, cullId, flags, stream.get<INST_BBOX>(sid),
+      stream.getOpt<INST_RENDERABLE_TRIS, uint>(sid), !(historyFlags & SYS_SKIP_SIMULATION_ON_THIS_FRAME));
+    if (validBox)
+    {
+      alignas(vec4f) Point4 emitterPos = stream.get<INST_POSITION>(sid);
+      v_bbox3_add_pt(stream.get<INST_BBOX>(sid), bitwise_cast<vec4f>(emitterPos)); // compensates for feedback latency.
+    }
     flags &= ~SYS_BBOX_VALID;
-    flags |= pull_culling_data(gpuData, cullId, flags, stream.get<INST_BBOX>(sid), stream.getOpt<INST_RENDERABLE_TRIS, uint>(sid),
-               !(historyFlags & SYS_SKIP_SIMULATION_ON_THIS_FRAME))
-               ? SYS_BBOX_VALID
-               : 0;
+    flags |= validBox ? SYS_BBOX_VALID : 0;
   }
 
   gpuBuf->unlock();

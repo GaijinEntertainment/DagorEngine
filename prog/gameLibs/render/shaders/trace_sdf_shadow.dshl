@@ -1,0 +1,128 @@
+include "shader_global.dshl"
+include "postfx_inc.dshl"
+include "world_sdf.dshl"
+
+shader trace_shadow_depth_region
+{
+  supports none;
+  cull_mode = none;
+  z_test = true;
+  z_write = true;
+  no_ablend;
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      noperspective float3 viewVec: TEXCOORD0;
+      nointerpolation float4 lightPosIsOmni: TEXCOORD1;
+      nointerpolation float4 zn_zfar: TEXCOORD2;
+    };
+  }
+
+  hlsl(vs) {
+    struct TraceLightInfo {
+      float4 xy_zn_zf;
+      float4 posType, extentOrView0, hor, ver;
+    };
+
+    TraceLightInfo lights[50] : register(c0);
+    VsOutput trace_shadow_depth_region_vs(uint vertexId : SV_VertexID)
+    {
+      uint inst = vertexId/6;
+      uint subvertexId = vertexId%6;
+      TraceLightInfo info = lights[inst];
+      VsOutput output;
+      output.lightPosIsOmni.xyz = info.posType.xyz;
+      output.lightPosIsOmni.w = info.posType.w;
+      uint xy = asuint(info.xy_zn_zf.x), wh = asuint(info.xy_zn_zf.y);
+      uint x = xy&65535, y = xy>>16;
+      uint w = wh&65535, h = wh>>16;
+
+      float2 texcoord = int2(subvertexId % 2, subvertexId > 1 && subvertexId < 5);
+      output.pos.xy = float2(x + texcoord.x*w, y + texcoord.y*h)*float2(info.hor.w, info.ver.w);
+      output.pos.xy = output.pos.xy*float2(2, -2) + float2(-1, +1);
+      output.pos.zw = float2(0,1);
+
+      if (!info.posType.w)
+        output.viewVec.xyz = info.extentOrView0.xyz + texcoord.x*info.hor.xyz + texcoord.y*info.ver.xyz;
+      else
+      {
+        float2 extent = info.extentOrView0.xy;
+        float2 relMargin = info.extentOrView0.zw; // predevided by extent
+        float2 octahedralTc = (texcoord - relMargin) / (1 - 2*relMargin);
+        output.viewVec.xyz = float3(octahedralTc, 0);
+      }
+      float2 zn_zf = info.xy_zn_zf.zw;
+      output.zn_zfar = float4(zn_zf, 1.0 / zn_zf.y, (zn_zf.y - zn_zf.x)/(zn_zf.x * zn_zf.y));
+
+      return output;
+    }
+  }
+
+  READ_WORLD_SDF_MATH(ps)
+  READ_WORLD_SDF_INIT(ps)
+  READ_WORLD_SDF_USE(ps)
+
+  hlsl (ps)
+  {
+    #if (_HARDWARE_XBOX && !_HARDWARE_SCARLETT) || _HARDWARE_PS4
+      #define SDF_FAST_TRACE 1
+      // ~4 times faster on prevgen
+    #endif
+
+    float world_sdf_trace_dithered(
+      float4 zn_zfar,
+      float3 rayStart,
+      float3 rayDir, float voxel_ofs)
+    {
+      float distance = zn_zfar.y;
+      uint i = world_sdf_find_clip(rayStart);//to reduce divirgence between threads
+      if (i < MAX_WORLD_SDF_CLIPS)
+      {
+        float t = zn_zfar.y, ofs = min(zn_zfar.y, voxel_ofs*sample_world_sdf_lt(i).w);
+        uint clip = 0;
+        #if SDF_FAST_TRACE
+        //gradient base tracing is 4 times slower, although produces much less acne
+        //with decreased 'thickness', acne is also smaller (yet bigger), but we can miss some surfaces
+        if (world_sdf_trace_start(i, rayStart + ofs*rayDir, rayDir, zn_zfar.y, t, clip, 1, 0, false, 0.75))
+        #else
+        if (world_sdf_trace_start_gradient_bias(i, rayStart + ofs*rayDir, rayDir, zn_zfar.y, t, clip, 1))
+        #endif
+          return min(zn_zfar.y, t + ofs + sample_world_sdf_lt(clip).w);
+      }
+      return zn_zfar.y;
+    }
+    #include <octahedral.hlsl>
+    #include <interleavedGradientNoise.hlsl>
+    float trace_shadow_depth_region(VsOutput input HW_USE_SCREEN_POS) : SV_Depth
+    {
+      //float4 screenpos = GET_SCREEN_POS(input.pos);
+      float3 dir;
+      float mulDist = 1;
+      if (!input.lightPosIsOmni.w)
+      {
+        mulDist = rcp(length(input.viewVec));
+        dir = input.viewVec*mulDist;
+      } else
+      {
+        float2 octahedralTc = input.viewVec.xy;
+
+        if (octahedralTc.x < 0)
+          octahedralTc = float2(-octahedralTc.x, 1-octahedralTc.y);
+        else if (octahedralTc.x > 1)
+          octahedralTc = float2(2-octahedralTc.x, 1-octahedralTc.y);
+        if (octahedralTc.y < 0)
+          octahedralTc = float2(1-octahedralTc.x, -octahedralTc.y);
+        else if (octahedralTc.y > 1)
+          octahedralTc = float2(1-octahedralTc.x, 2-octahedralTc.y);
+
+        dir = octDecode(octahedralTc * 2 - 1).xzy;
+      }
+      float voxel_ofs = 0.25;// to avoid immediateshadow;//we can also use 0.25*interleavedGradientNoise(screenpos.xy); or somthing
+      return inv_linearize_distance(world_sdf_trace_dithered(input.zn_zfar, input.lightPosIsOmni.xyz, dir, voxel_ofs)*mulDist, input.zn_zfar);
+    }
+  }
+  compile("target_ps", "trace_shadow_depth_region");
+  compile("target_vs", "trace_shadow_depth_region_vs");
+}

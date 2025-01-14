@@ -8,6 +8,9 @@ int bvh_process_leaves_vertices_count;
 float4x4 bvh_process_leaves_vertices_wtm;
 float4x4 bvh_process_leaves_vertices_itm;
 
+int bvh_process_leaves_vertices_source_const_no = 6;
+int bvh_process_leaves_vertices_output_uav_no = 0;
+
 shader bvh_process_leaves_vertices
 {
   if (compatibility_mode == compatibility_mode_on)
@@ -30,12 +33,11 @@ shader bvh_process_leaves_vertices
                         windMatrix4X, windMatrix4Y, windMatrix4Z };
     wtm@f44 = bvh_process_leaves_vertices_wtm;
     itm@f44 = bvh_process_leaves_vertices_itm;
+    source@buf : register(bvh_process_leaves_vertices_source_const_no) hlsl { ByteAddressBuffer source@buf; };
+    output@uav : register(bvh_process_leaves_vertices_output_uav_no) hlsl { RWByteAddressBuffer output@uav; };
   }
 
   hlsl(cs) {
-    ByteAddressBuffer source : register(t6);
-    RWByteAddressBuffer output : register(u0);
-
     [numthreads( 64, 1, 1 )]
     void bvh_process_impostor_vertices(uint3 dtId : SV_DispatchThreadID)
     {

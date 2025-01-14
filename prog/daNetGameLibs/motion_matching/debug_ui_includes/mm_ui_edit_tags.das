@@ -53,7 +53,7 @@ def table_with_tags(dataBase : AnimationDataBase; var controller : MotionMatchin
       imgui::PopStyleColor()
     imgui::EndTable()
 
-[unused_argument(eid, dataBase, controller)]
+[unused_argument(eid)]
 def edit_tags(eid : EntityId; dataBase : AnimationDataBase; var controller : MotionMatchingController&)
   if imgui::BeginTabItem("tags")
     table_with_tags(dataBase, controller)

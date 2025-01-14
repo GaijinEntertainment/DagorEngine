@@ -66,6 +66,7 @@ dag::ConstSpan<int> transcode_stcode(dag::ConstSpan<int> stcode)
       case SHCOD_VPR_CONST:
       case SHCOD_CS_CONST:
       case SHCOD_GLOB_SAMPLER:
+      case SHCOD_SAMPLER:
       case SHCOD_TEXTURE:
       case SHCOD_TEXTURE_VS:
       case SHCOD_REG_BINDLESS:

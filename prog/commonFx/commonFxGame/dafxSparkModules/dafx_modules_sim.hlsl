@@ -260,7 +260,7 @@ void sim_module_color(SIM_MODULE_CONTEXT)
   float ageEnd = saturate((md.ageNorm - (1 - COLOR_END_DURATION)) / COLOR_END_DURATION);
   float impulseEnd = make_impulse_curve(sp.age, lerp(0.25, 1.0, ageEnd), sp.fPhase.x, 0.7 * ageEnd);
   float4 finalColor = lerp(colorStart, colorEnd, ageEnd * impulseEnd);
-  rp.color = finalColor;
+  rp.color = pack_n4f_to_uint(finalColor);
 
   float hdrBias = saturate(1.0 - sparams.hdrBias);
   rp.hdrScale = lerp(sparams.hdrScale1, rparams.hdrScale, calc_biased_random(sp.fPhase.y, hdrBias));

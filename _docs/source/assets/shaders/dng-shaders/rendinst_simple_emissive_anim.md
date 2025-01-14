@@ -118,16 +118,18 @@ texture (`tex4:t="emis_anim_shader_shift.tif`), are painted according to the UV
 shell of the lamps. This causes visible artifacts at the seams. It is better to
 paint the area as with the red/blue lamps.
 
-<img src="_images/rendinst_simple_emissive_anim_04.gif" width="50%" align="center" class="bg-primary">
-
-<br>
+```{eval-rst}
+.. video:: _images/rendinst_simple_emissive_anim_04.webm
+   :width: 60%
+```
 
 **Example:** For scrolling text, you'll need a `.dag` file for the banner and
 three textures.
 
-<img src="_images/rendinst_simple_emissive_anim_05.gif" width="50%" align="center" class="bg-primary">
-
-<br>
+```{eval-rst}
+.. video:: _images/rendinst_simple_emissive_anim_05.webm
+   :width: 60%
+```
 
 <table style="text-align:center; width:98%"><tr>
   <th style="text-align:center; width:32%"><p>tex0:t="text_anim_tex_d"</p></th>
@@ -150,8 +152,10 @@ Failing to meet these conditions will result in poor animation quality. For
 example, using a *Photoshop* gradient with a gamma of `2.2` will produce subpar
 results:
 
-<img src="_images/rendinst_simple_emissive_anim_10.gif" width="50%" align="center" class="bg-primary">
+```{eval-rst}
+.. video:: _images/rendinst_simple_emissive_anim_10.webm
+   :width: 60%
+```
 
-<br>
 
 

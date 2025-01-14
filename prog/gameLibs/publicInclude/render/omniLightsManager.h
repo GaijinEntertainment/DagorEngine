@@ -52,6 +52,7 @@ public:
   enum
   {
     GI_LIGHT_MASK = 0x1, // TODO: maybe rename it
+    MASK_LENS_FLARE = 0x2,
     MASK_ALL = 0xFF
   };
 

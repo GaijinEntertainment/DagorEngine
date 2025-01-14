@@ -20,6 +20,9 @@ namespace das {
         bool                    failedToCMRES = false;
         bool                    isEverything = false;
     protected:
+        virtual bool canVisitStructureFieldInit ( Structure * ) override { return false; }
+        virtual bool canVisitArgumentInit ( Function * , const VariablePtr &, Expression * ) override { return false; }
+        virtual bool canVisitQuoteSubexpression ( ExprQuote * ) override { return false; }
         virtual bool canVisitGlobalVariable ( Variable * var ) override { return isEverything || var->used; }
         virtual bool canVisitFunction ( Function * fun ) override { return isEverything || fun->used; }
     // function
@@ -110,6 +113,9 @@ namespace das {
         bool                    isPermanent = false;
         bool                    isEverything = false;
     protected:
+        virtual bool canVisitStructureFieldInit ( Structure * ) override { return false; }
+        virtual bool canVisitArgumentInit ( Function * , const VariablePtr &, Expression * ) override { return false; }
+        virtual bool canVisitQuoteSubexpression ( ExprQuote * ) override { return false; }
         virtual bool canVisitGlobalVariable ( Variable * var ) override {
             if ( var->stackResolved ) return false;
             if ( !var->used && !isEverything ) return false;
@@ -176,9 +182,6 @@ namespace das {
             return Visitor::visitGlobalLet(var);
         }
     // function
-        virtual bool canVisitArgumentInit ( Function *, const VariablePtr &, Expression * ) override {
-            return false;
-        }
         virtual void preVisit ( Function * f ) override {
             Visitor::preVisit(f);
             func = f;
@@ -634,6 +637,9 @@ namespace das {
         uint32_t bytesTotal = 0;
         das_hash_set<string>    uniStr;
     public:
+        virtual bool canVisitStructureFieldInit ( Structure * ) override { return false; }
+        virtual bool canVisitArgumentInit ( Function * , const VariablePtr &, Expression * ) override { return false; }
+        virtual bool canVisitQuoteSubexpression ( ExprQuote * ) override { return false; }
         virtual bool canVisitGlobalVariable ( Variable * var ) override { return var->used; }
         virtual bool canVisitFunction ( Function * fun ) override { return fun->used; }
         void allocateString ( const string & message ) {

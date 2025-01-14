@@ -290,6 +290,7 @@ struct MeshMeta
   static constexpr uint32_t bvhMaterialCamo = 1 << 21;
   static constexpr uint32_t bvhMaterialLayered = 1 << 22;
   static constexpr uint32_t bvhMaterialGrass = 1 << 23;
+  static constexpr uint32_t bvhMaterialEmissive = 1 << 24;
 
   Point4 materialData1;
   Point4 materialData2;
@@ -660,8 +661,9 @@ struct Context
   void freeMetaRegion(MeshMetaAllocator::AllocId &id);
 
   Texture *holdTexture(TEXTUREID id, uint32_t &texture_and_sampler_bindless_index,
-    d3d::SamplerHandle sampler = d3d::INVALID_SAMPLER_HANDLE);
+    d3d::SamplerHandle sampler = d3d::INVALID_SAMPLER_HANDLE, bool forceRefreshSrvsWhenLoaded = false);
   bool releaseTexure(TEXTUREID id);
+  void markChangedTextures();
 
   void holdBuffer(Sbuffer *buffer, uint32_t &bindless_index);
   bool releaseBuffer(Sbuffer *buffer);
@@ -702,6 +704,7 @@ struct Context
   bool tlasTerrainValid = false;
   bool tlasParticlesValid = false;
 
+  eastl::unordered_set<TEXTUREID, TextureIdHash> texturesWaitingForLoad;
   eastl::unordered_map<TEXTUREID, BindlessTexture, TextureIdHash> usedTextures;
   eastl::unordered_map<Sbuffer *, BindlessBuffer> usedBuffers;
 

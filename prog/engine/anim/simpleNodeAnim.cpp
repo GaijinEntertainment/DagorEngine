@@ -24,7 +24,7 @@ bool SimpleNodeAnim::setTargetNode(const char *node_name)
 
 void SimpleNodeAnim::calcTimeMinMax(int &t_min, int &t_max)
 {
-  if (!prs.posId || !prs.rotId || !prs.sclId)
+  if (!prs.trackId)
   {
     t_min = INT_MAX;
     t_max = INT_MIN;
@@ -41,7 +41,7 @@ void SimpleNodeAnim::calcAnimTm(TMatrix &tm, int t)
   quat4f r;
 
   AnimV20Math::PrsAnimNodeSampler<AnimV20Math::OneShotConfig> sampler(prs, t);
-  sampler.sampleTransform(p, r, s);
+  sampler.sampleTransform(&p, &r, &s);
 
   tm = AnimV20Math::makeTM((Point3 &)p, (Quat &)r, (Point3 &)s);
 }

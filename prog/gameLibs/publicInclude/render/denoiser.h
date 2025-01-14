@@ -55,6 +55,7 @@ struct ShadowDenoiser
   Texture *shadowValue = nullptr;
   Texture *shadowTranslucency = nullptr;
   Texture *csmTexture = nullptr;
+  d3d::SamplerHandle csmSampler = d3d::INVALID_SAMPLER_HANDLE;
 };
 
 struct AODenoiser

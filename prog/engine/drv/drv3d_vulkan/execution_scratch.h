@@ -63,6 +63,13 @@ struct ExecutionScratch
     uint8_t waitedOnQueuesMask;
   };
   eastl::vector<UserQueueSignal> userQueueSignals;
+
+  struct DebugEvent
+  {
+    uint32_t color;
+    const char *name;
+  };
+  eastl::vector<DebugEvent> debugEventStack;
 };
 
 } // namespace drv3d_vulkan

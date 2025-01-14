@@ -174,6 +174,7 @@
 #include <render/priorityManagedShadervar.h>
 #include <render/psoCacheLoader/psoCacheLoader.h>
 #include <fftWater/fftWater.h>
+#include <gpuMemoryDumper/gpuMemoryDumper.h>
 
 #if _TARGET_ANDROID || _TARGET_IOS
 #include <crashlytics/firebase_crashlytics.h>
@@ -264,6 +265,8 @@ CONSOLE_INT_VAL_TIP("render", show_hero_bbox, 0, 0, 2, "1 - weapons only, 2 - we
 CONSOLE_INT_VAL("render", show_shadow_occlusion_bboxes, -1, -1, 1);
 
 CONSOLE_FLOAT_VAL_MINMAX("render", subdivCellSize, 0.16, 0.02, 1);
+
+CONSOLE_FLOAT_VAL_MINMAX("shadow", node_collapser_shadow_camera_dist_threshold, 0.3f, 0.0f, 1.0f);
 
 CONSOLE_BOOL_VAL("render", vrs_dof, true);
 enum
@@ -579,8 +582,11 @@ void WorldRenderer::setMaxWaterTessellation(int value)
   fft_water::set_grid_lod0_additional_tesselation(water, water_quality > 0 ? maxWaterTessellation : 0);
 }
 
+bool WorldRenderer::isWaterPlanarReflectionTerrainEnabled() const { return water_quality == 2; }
+
 void WorldRenderer::setupWaterQuality()
 {
+  waterPlanarReflectionTerrainNode = {};
   if (!water)
     return;
 
@@ -592,6 +598,8 @@ void WorldRenderer::setupWaterQuality()
   fft_water::set_grid_lod0_additional_tesselation(water, water_quality > 0 ? maxWaterTessellation : 0);
   fft_water::force_actual_waves(water, water_quality > 0);
   isForcingWaterWaves = water_quality > 0;
+  if (isWaterPlanarReflectionTerrainEnabled())
+    initWaterPlanarReflectionTerrainNode();
 }
 
 template <typename Collection>
@@ -687,7 +695,6 @@ void WorldRenderer::updateLevelGraphicsSettings(const DataBlock &level_blk)
 {
   levelSettings.reset(new DataBlock(*(level_blk.getBlockByNameEx("graphics"))));
   update_settings_entity(levelSettings.get());
-  shadowsManager.initShadows();
   initIndoorProbesIfNecessary();
 }
 
@@ -1129,6 +1136,8 @@ void WorldRenderer::resetDynamicQuality()
 
 void WorldRenderer::onSettingsChanged(const FastNameMap &changed_fields, bool apply_after_reset)
 {
+  dabfg::invalidate_history();
+
   d3d::GpuAutoLock gpu_al;
 
   cachedStaticResolutionScale =
@@ -1163,13 +1172,6 @@ void WorldRenderer::onSettingsChanged(const FastNameMap &changed_fields, bool ap
   }
 
   bool shouldApplySettingsChanged = false;
-
-  if (changed_fields.getNameId("graphics/shadowsQuality") >= 0)
-  {
-    shadowsManager.initShadows();
-    // Static shadows is re-created, so world size has to be passed to it (it's only passed on level load otherwise)
-    shadowsManager.staticShadowsSetWorldSize();
-  }
 
   if (changed_fields.getNameId("graphics/effectsShadows") >= 0)
   {
@@ -1902,7 +1904,6 @@ void WorldRenderer::setResolution()
   if (isWaterSSREnabled())
     ShaderGlobal::set_color4(get_shader_variable_id("water_reflection_size", true), reflW, reflH, 1.0f / reflW, 1.0f / reflH);
   // initCloseDepth();
-  waterSSRFrame = 0;
 
   // water-
 
@@ -2344,9 +2345,24 @@ static void free_gpu_hang_resources()
   gpu_hang_cs.reset();
 }
 
-void WorldRenderer::initGeneric()
+void WorldRenderer::ctorCommon()
 {
   d3dhang::register_gpu_hanger(hang_gpu);
+
+  if (d3d::get_driver_code().is(d3d::dx12))
+    d3d::driver_command(Drv3dCommand::SET_DRIVER_NETWORD_MANAGER, new DriverNetworkManager(get_game_name(), get_exe_version_str()));
+
+#if DA_PROFILER_ENABLED
+  char dapMarkerName[32] = "prepare_render_csm_0";
+  for (int i = 0; i < animchar_csm_desc.size(); ++i)
+  {
+    dapMarkerName[sizeof("prepare_render_csm_0") - 2] = '0' + i; // Faster then snprintf
+    animchar_csm_desc[i] = DA_PROFILE_ADD_LOCAL_DESCRIPTION(0, dapMarkerName);
+  }
+#endif
+
+  set_add_lod_bias_cb(reset_bindless_samplers);
+  ShaderGlobal::set_int(ShaderVariableInfo{"can_use_halves", true}, d3d::get_driver_desc().caps.hasShaderFloat16Support ? 1 : 0);
 
   featureRenderFlags = getPresetFeatures();
   defaultFeatureRenderFlags = featureRenderFlags;
@@ -2374,7 +2390,8 @@ void WorldRenderer::initGeneric()
   auto satelliteParamsGetterCb = [this]() -> SatelliteRenderer::CallbackParams {
     SatelliteRenderer::CallbackParams satelliteCb;
     satelliteCb.renderWater = [this](Texture *color_target, const TMatrix &itm, Texture *depth) -> void {
-      renderWater(color_target, itm, depth, WorldRenderer::DistantWater::No, false, true);
+      d3d::set_render_target({depth, 0}, DepthAccess::SampledRO, {{color_target, 0}});
+      renderWater(itm, WorldRenderer::DistantWater::No, false);
     };
     satelliteCb.renderLandmesh = [this](mat44f_cref globtm, const Frustum &frustum, const Point3 &view_pos) -> void {
       if (lmeshRenderer && clipmap)
@@ -2394,16 +2411,8 @@ void WorldRenderer::initGeneric()
   satelliteRenderer.initParamsGetter(satelliteParamsGetterCb);
 }
 
-void WorldRenderer::init()
+void WorldRenderer::ctorDeferred()
 {
-  initGeneric();
-
-  if (isForwardRender())
-  {
-    initForward();
-    return;
-  }
-
   initBVH();
 
   const DataBlock *graphicsBlk = ::dgs_get_settings()->getBlockByNameEx("graphics");
@@ -2531,7 +2540,7 @@ void WorldRenderer::init()
     }
     else
     {
-      ShaderGlobal::set_color4(get_shader_variable_id("skies_froxels_resolution", true), 1, 1, 1, 1);
+      ShaderGlobal::set_int4(get_shader_variable_id("skies_froxels_resolution", true), 1, 1, 1, 1);
       ShaderGlobal::set_real(get_shader_variable_id("clouds_thickness2", true), 1);
     }
   }
@@ -2566,6 +2575,10 @@ void WorldRenderer::init()
   setSharpeningFromSettings();
   setChromaticAberrationFromSettings();
   setFilmGrainFromSettings();
+
+#if DAGOR_DBGLEVEL > 0
+  gpu_mem_dumper::init();
+#endif
 }
 
 void WorldRenderer::setChromaticAberrationFromSettings()
@@ -2828,6 +2841,13 @@ void WorldRenderer::createNodes()
         ShaderGlobal::set_variant(
           {ShaderGlobal::interval<"has_uav_in_vs_capability"_h>, ShaderGlobal::Subinterval(hasUavInVSCapability ? "yes"_h : "no"_h)});
 
+      const Point3 camPos = currentFrameCamera.viewItm.getcol(3);
+
+      Point3 panoramaDirToSun = dir_to_sun.curr;
+      auto skies = get_daskies();
+      if (skies != nullptr)
+        panoramaDirToSun = skies->calcPanoramaSunDir(camPos);
+
       handles->subSuperPixelsHndl.ref() = IPoint2(superPixels, subPixels);
       handles->occlusionHndl.ref() = current_occlusion;
       handles->riVisibilityHndl.ref() = rendinst_main_visibility;
@@ -2836,10 +2856,9 @@ void WorldRenderer::createNodes()
       handles->frameDtHndl.ref() = realDeltaTime;
       handles->isUnderwaterHndl.ref() = is_underwater();
       handles->antiAliasingModeHndl.ref() = currentAntiAliasingMode;
-      handles->sunParamsHndl.ref() = {dir_to_sun.curr, sun};
+      handles->sunParamsHndl.ref() = {dir_to_sun.curr, sun, panoramaDirToSun};
 
       {
-        const Point3 camPos = currentFrameCamera.viewItm.getcol(3);
         const float water_level = water ? fft_water::get_level(water) : HeightmapHeightCulling::NO_WATER_ON_LEVEL;
         const bool belowClouds = get_daskies() ? max(camPos.y, water_level) < get_daskies()->getCloudsStartAlt() - 10.0f : true;
         handles->waterLevelHndl.ref() = water_level;
@@ -3042,21 +3061,20 @@ void WorldRenderer::createNodes()
 
       if (heroData.resReady)
       {
-        heroData.resWtm.col3 =
-          v_add(heroData.resWtm.col3, v_make_vec4f(v_extract_x(heroData.resWofs) - worldPos.x,
-                                        v_extract_y(heroData.resWofs) - worldPos.y, v_extract_z(heroData.resWofs) - worldPos.z, 0));
+        heroData.resWtm.col[3] += Point3(DPoint3(heroData.resWofs) - worldPos);
 
         const mat44f oldHeroGunOrVehicleNoReprojectedWposTm = oldHeroGunOrVehicleTm;
         oldHeroGunOrVehicleTm.col3 = v_add(oldHeroGunOrVehicleTm.col3,
           v_make_vec4f(oldWorldPos.x - worldPos.x, oldWorldPos.y - worldPos.y, oldWorldPos.z - worldPos.z, 0));
 
-        vec3f lbc = v_bbox3_center(heroData.resLbox);
-        vec3f lbsize = v_sub(heroData.resLbox.bmax, lbc);
+        vec3f lbc = v_bbox3_center(v_ldu_bbox3(heroData.resLbox));
+        vec3f lbsize = v_sub(v_ldu_p3(&heroData.resLbox.lim[1].x), lbc);
         ShaderGlobal::set_real(gi_hero_cockpit_distanceVarId, v_extract_x(v_length3_x(lbsize)));
         lbsize = v_sel(lbsize, v_add(lbsize, lbsize), (vec4f)V_CI_MASK1000); // increase size in one direction, to catch hands
 
-        mat44f invHeroGun;
-        v_mat44_inverse43(invHeroGun, heroData.resWtm);
+        mat44f resWtm, invHeroGun;
+        v_mat44_make_from_43cu(resWtm, heroData.resWtm.m[0]);
+        v_mat44_inverse43(invHeroGun, resWtm);
 
         mat44f boxMatrix, heroMatrix;
         boxMatrix.col0 = v_and(v_div(V_C_UNIT_1000, lbsize), (vec4f)V_CI_MASK1110);
@@ -3107,7 +3125,7 @@ void WorldRenderer::createNodes()
         ShaderGlobal::set_color4(hero_bbox_reprojectionYVarId, Color4((float *)&wtmPrevNoReprojectedWpos.row1));
         ShaderGlobal::set_color4(hero_bbox_reprojectionZVarId, Color4((float *)&wtmPrevNoReprojectedWpos.row2));
 
-        v_mat_43cu_from_mat44(heroGunOrVehicleTmHndl.ref().array, heroData.resWtm);
+        heroGunOrVehicleTmHndl.ref() = heroData.resWtm;
       }
       else
       {
@@ -3141,8 +3159,6 @@ void WorldRenderer::createNodes()
         prevCameraHndl.ref().jitterOffsetUv, heroMatrixParamsHndl.ref());
     };
   }));
-
-  dabfg::invalidate_history();
 }
 
 bool WorldRenderer::isFsrEnabled() const
@@ -3427,10 +3443,10 @@ void WorldRenderer::createVolumetricLightsNode()
   if (isForwardRender())
     return;
 
-  volumetricLightsFGNode = dabfg::NodeHandle();
+  volumetricLightsFGNodes = {};
 
   if (volumeLight && volfog_enabled.get())
-    volumetricLightsFGNode = makeVolumetricLightsNode();
+    volumetricLightsFGNodes = makeVolumetricLightsNodes();
 }
 
 WaterRenderMode WorldRenderer::determineWaterRenderMode(bool underWater, bool belowClouds)
@@ -3459,44 +3475,15 @@ void WorldRenderer::createDownsampleDepthWithWaterNode()
   downsampledDepthWithWaterNode = makeDownsampleDepthWithWaterNode();
 }
 
-WorldRenderer::WorldRenderer() :
-  waterLevel(0),
-  water(NULL),
-  main_pov_data(nullptr),
-  cube_pov_data(NULL),
-  refl_pov_data(NULL),
-  lmeshMgr(NULL),
-  lmeshRenderer(NULL),
-  clipmap(0),
-  lightmapTexId(BAD_TEXTUREID),
-  binScene(NULL),
-  enviProbe(NULL),
-  debug_tex_overlay(0),
-  debug_tonemap_overlay(nullptr),
-  rendinst_main_visibility(0),
-  rendinst_cube_visibility(0),
-  displacementSubDiv(2),
-  applySettingsAfterResetDevice(false),
-  initClipmapAfterResetDevice(false),
-  cameraHeight(0.f),
-  waterSSRFrame(0),
-  water_ssr_id(-1),
-  debugLightProbeSpheres(nullptr)
+// Note: unfortunately can't be put in header due to dtor req of incomplete types (e.g. unique_ptr) for exception handlers
+WorldRenderer::WorldRenderer()
 {
-  if (d3d::get_driver_code().is(d3d::dx12))
-    d3d::driver_command(Drv3dCommand::SET_DRIVER_NETWORD_MANAGER, new DriverNetworkManager(get_game_name(), get_exe_version_str()));
-  mem_set_0(rendinst_shadows_visibility);
-#if DA_PROFILER_ENABLED
-  char dapMarkerName[32] = "prepare_render_csm_0";
-  for (int i = 0; i < animchar_csm_desc.size(); ++i)
-  {
-    dapMarkerName[sizeof("prepare_render_csm_0") - 2] = '0' + i; // Faster then snprintf
-    animchar_csm_desc[i] = DA_PROFILE_ADD_LOCAL_DESCRIPTION(0, dapMarkerName);
-  }
-#endif
-  init();
-  set_add_lod_bias_cb(reset_bindless_samplers);
-  ShaderGlobal::set_int(ShaderVariableInfo{"can_use_halves", true}, d3d::get_driver_desc().caps.hasShaderFloat16Support ? 1 : 0);
+  // Note: do not put anything here, use one of the methods below
+  ctorCommon();
+  if (!isForwardRender())
+    ctorDeferred();
+  else
+    ctorForward();
 }
 
 WorldRenderer::~WorldRenderer()
@@ -3603,17 +3590,19 @@ void WorldRenderer::closeOverrideStates() { shaders::overrides::destroy(depthCli
 void WorldRenderer::updateLightShadow(light_id light, const LightShadowParams &shadow_params)
 {
   bool need_shadows = shadow_params.isEnabled;
-  bool old_only_static_casters, old_hint_dynamic;
+  ShadowCastersFlag old_casters;
+  bool old_hint_dynamic;
   uint8_t old_priority, old_shadow_size_srl;
   uint16_t old_quality;
   DynamicShadowRenderGPUObjects render_gpu_objects, old_render_gpu_objects;
   render_gpu_objects = shadow_params.supportsGpuObjects ? DynamicShadowRenderGPUObjects::YES : DynamicShadowRenderGPUObjects::NO;
-  bool had_shadows = getShadowProperties(light, old_only_static_casters, old_hint_dynamic, old_quality, old_priority,
-    old_shadow_size_srl, old_render_gpu_objects);
+  bool had_shadows =
+    getShadowProperties(light, old_casters, old_hint_dynamic, old_quality, old_priority, old_shadow_size_srl, old_render_gpu_objects);
   bool shadows_changed = (had_shadows != need_shadows);
+  ShadowCastersFlag casters = ShadowCastersFlag(uint32_t(shadow_params.supportsDynamicObjects ? DYNAMIC_CASTERS : 0) |
+                                                (shadow_params.approximateStatic ? APPROXIMATE_STATIC_CASTERS : 0));
   if (!shadows_changed && had_shadows)
-    shadows_changed = (!shadow_params.supportsDynamicObjects != old_only_static_casters) ||
-                      old_hint_dynamic != shadow_params.isDynamic || old_quality != shadow_params.quality ||
+    shadows_changed = casters != old_casters || old_hint_dynamic != shadow_params.isDynamic || old_quality != shadow_params.quality ||
                       old_priority != shadow_params.priority || old_shadow_size_srl != shadow_params.shadowShrink ||
                       old_render_gpu_objects != render_gpu_objects;
 
@@ -3622,9 +3611,10 @@ void WorldRenderer::updateLightShadow(light_id light, const LightShadowParams &s
     if (had_shadows)
       removeShadow(light);
     if (need_shadows)
-      addShadowToLight(light, !shadow_params.supportsDynamicObjects, shadow_params.isDynamic,
-        static_cast<uint16_t>(shadow_params.quality), static_cast<uint8_t>(shadow_params.priority),
-        static_cast<uint16_t>(shadow_params.shadowShrink), render_gpu_objects);
+    {
+      addShadowToLight(light, casters, shadow_params.isDynamic, static_cast<uint16_t>(shadow_params.quality),
+        static_cast<uint8_t>(shadow_params.priority), static_cast<uint16_t>(shadow_params.shadowShrink), render_gpu_objects);
+    }
   }
 }
 
@@ -4118,7 +4108,6 @@ static void set_mip_bias(float bias_value)
 void WorldRenderer::draw(float realDt)
 {
   auto callBeforePUFD = []() { // `PUFD` is abbr ParallelUpdateFrameDelayed
-    screencap::start_pending_request();
     rendinst::applyTiledScenesUpdateForRIGenExtra(2000, 1000);
   };
   callBeforePUFD(); // Must be called before additional job (aka PUFD) to avoid data races & lock order inversions
@@ -4611,6 +4600,7 @@ void WorldRenderer::draw(float realDt)
   bool tpLateWakeUp = !tpEarlyWakeUp;
   if (hasFeature(FeatureRenderFlags::STATIC_SHADOWS))
   {
+    FRAME_LAYER_GUARD(globalFrameBlockId);
     bool canUseLastCascadeOptimization = !isCameraInsideCustomGiZone; // more explicit check, because it's not only GI related
     bool updateOnlyLastCascade = !requiresGroundDetails && !is_free_camera_enabled() && canUseLastCascadeOptimization;
     tpLateWakeUp |= shadowsManager.updateStaticShadowAround(itm.getcol(3), updateOnlyLastCascade);
@@ -5662,6 +5652,16 @@ void WorldRenderer::renderDynamicOpaque(
     };
   }
 
+  if (cascade == RENDER_DYNAMIC_SHADOW)
+  {
+    // TODO: remove this disgusting hack
+    Point3 currentFrameCameraPos = currentFrameCamera.cameraWorldPos;
+    Point3 shadowCameraPos = view_itm.getcol(3);
+    if ((shadowCameraPos - currentFrameCameraPos).lengthSq() <
+        node_collapser_shadow_camera_dist_threshold * node_collapser_shadow_camera_dist_threshold)
+      hints |= UpdateStageInfoRender::FORCE_NODE_COLLAPSER_ON;
+  }
+
   Occlusion *occl = cascade == RENDER_MAIN ? current_occlusion : nullptr;
   const dynmodel_renderer::DynModelRenderingState *pState = NULL;
   char tmps[] = "csm#000";
@@ -5850,6 +5850,9 @@ void WorldRenderer::reinitCubeIfInvalid()
     float checkRadius = length(worldBox.width()) * 0.5f;
     needeReinitCube &= shadowsManager.fullyUpdatedStaticShadows(worldBox.center(), checkRadius);
   }
+  // Do not reinit envi probe until skies are not ready, otherwise we will have wrong sky color and missed clouds
+  if (auto *skies = get_daskies())
+    needeReinitCube &= skies->isCloudsReady();
   if (needeReinitCube)
   {
     reinitCube();
@@ -6101,81 +6104,22 @@ void WorldRenderer::updateHeroData()
   heroData = heroDataQuery;
 }
 
-void WorldRenderer::renderWaterSSR(bool enabled,
-  Texture *downsampled_depth,
-  const TMatrix &itm,
-  const Driver3dPerspective &persp,
-  Texture *farDownsampledDepth,
-  const ManagedTex *waterSSRColor,
-  const ManagedTex *waterSSRColorPrev,
-  const ManagedTex *waterSSRStrenght,
-  const ManagedTex *waterSSRStrenghtPrev)
+void WorldRenderer::renderWaterSSR(const TMatrix &itm, const Driver3dPerspective &persp)
 {
   if (!water)
     return;
 
-  if (enabled)
-  {
-    G_ASSERT_RETURN(farDownsampledDepth && waterSSRColor && waterSSRStrenght && waterSSRColorPrev && waterSSRStrenghtPrev, );
-    TIME_D3D_PROFILE(reflection)
-    SCOPE_RENDER_TARGET;
-
-    if (clearWaterSSRHistory)
-    {
-      ShaderGlobal::set_int(force_ignore_historyVarId, 1);
-      clearWaterSSRHistory = false;
-    }
-
-    {
-      d3d::SamplerInfo smpInfo;
-      smpInfo.filter_mode = d3d::FilterMode::Point;
-      smpInfo.anisotropic_max = 1;
-      smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Border;
-      smpInfo.border_color = d3d::BorderColor::Color::TransparentBlack;
-      water_reflection_tex_samplerstateVarId.set_sampler(d3d::request_sampler(smpInfo));
-    }
-    ShaderGlobal::set_texture(water_reflection_texVarId, waterSSRColorPrev->getTexId());
-    ShaderGlobal::set_texture(water_reflection_strenght_texVarId, waterSSRStrenghtPrev->getTexId());
-
-    d3d::setpersp(persp);
-    waterSSRFrame++;
-    d3d::set_render_target({downsampled_depth, 0}, DepthAccess::RW,
-      {{waterSSRColor->getTex2D(), 0}, {waterSSRStrenght->getTex2D(), 0}});
-    d3d::clearview(CLEAR_TARGET, 0, 0, 0);
-    if (is_underwater())
-      shaders::overrides::set(flipCullStateId);
-    fft_water::render(water, itm.getcol(3), shoreDistanceField.getTexId(), currentFrameCamera.noJitterFrustum, persp,
-      fft_water::GEOM_HIGH, water_ssr_id, nullptr, fft_water::RenderMode::WATER_SSR_SHADER);
-    if (is_underwater())
-      shaders::overrides::reset();
-    TIME_D3D_PROFILE(mips)
-    d3d::resource_barrier({waterSSRColor->getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 1});
-    waterSSRColor->getTex2D()->generateMips();
-    {
-      d3d::SamplerInfo smpInfo;
-      smpInfo.filter_mode = d3d::FilterMode::Best;
-      smpInfo.anisotropic_max = 2;
-      smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Border;
-      smpInfo.border_color = d3d::BorderColor::Color::TransparentBlack;
-      water_reflection_tex_samplerstateVarId.set_sampler(d3d::request_sampler(smpInfo));
-    }
-    ShaderGlobal::set_texture(water_reflection_texVarId, waterSSRColor->getTexId());
-    d3d::resource_barrier({waterSSRStrenght->getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 1});
-    waterSSRStrenght->getTex2D()->generateMips();
-    ShaderGlobal::set_texture(water_reflection_strenght_texVarId, waterSSRStrenght->getTexId());
-
-    ShaderGlobal::set_int(force_ignore_historyVarId, subPixels > 1 || superPixels > 1);
-  }
-  else
-  {
-    ShaderGlobal::set_texture(water_reflection_texVarId, BAD_TEXTUREID);
-    ShaderGlobal::set_texture(water_reflection_strenght_texVarId, BAD_TEXTUREID);
-    clearWaterSSRHistory = true;
-  }
+  TIME_D3D_PROFILE(reflection)
+  d3d::clearview(CLEAR_TARGET, 0, 0, 0);
+  if (is_underwater())
+    shaders::overrides::set(flipCullStateId);
+  fft_water::render(water, itm.getcol(3), shoreDistanceField.getTexId(), currentFrameCamera.noJitterFrustum, persp,
+    fft_water::GEOM_HIGH, water_ssr_id, nullptr, fft_water::RenderMode::WATER_SSR_SHADER);
+  if (is_underwater())
+    shaders::overrides::reset();
 }
 
-void WorldRenderer::renderWater(
-  Texture *color_target, const TMatrix &itm, Texture *depth, DistantWater render_distant_water, bool render_ssr, bool dontwritedepth)
+void WorldRenderer::renderWater(const TMatrix &itm, DistantWater render_distant_water, bool render_ssr)
 {
   if (!water || is_water_hidden())
     return;
@@ -6184,16 +6128,6 @@ void WorldRenderer::renderWater(
     skies->useFog({}, main_pov_data, {}, {}, false);
 
   TIME_D3D_PROFILE(water);
-  // todo isUnderWater
-
-  if (::grs_draw_wire)
-    d3d::setwire(true);
-
-  if (!isMobileDeferred())
-  {
-    d3d::set_render_target(color_target, 0);
-    d3d::set_depth(depth, dontwritedepth ? DepthAccess::SampledRO : DepthAccess::RW); // we read downsampled depth, so we can write
-  }
   if (render_ssr)
     d3d::begin_conditional_render(water_ssr_id);
   if (is_underwater())
@@ -6204,9 +6138,6 @@ void WorldRenderer::renderWater(
     shaders::overrides::reset();
   if (render_ssr)
     d3d::end_conditional_render(water_ssr_id);
-
-  if (::grs_draw_wire)
-    d3d::setwire(false);
 
   if (render_distant_water == DistantWater::Yes)
   {
@@ -6370,13 +6301,10 @@ void WorldRenderer::renderDebug()
     if (hero_data.resReady)
     {
       begin_draw_cached_debug_lines(false, false);
-      hero_data.resWtm.col3 = v_add(hero_data.resWtm.col3, hero_data.resWofs);
-      TMatrix wtm;
-      v_mat_43cu_from_mat44(wtm.array, hero_data.resWtm);
+      TMatrix wtm = hero_data.resWtm;
+      wtm.col[3] += hero_data.resWofs;
       set_cached_debug_lines_wtm(wtm);
-      BBox3 resBox;
-      v_stu_bbox3(resBox, hero_data.resLbox);
-      draw_cached_debug_box(resBox, E3DCOLOR(255, 0, 0));
+      draw_cached_debug_box(hero_data.resLbox, E3DCOLOR(255, 0, 0));
 
       end_draw_cached_debug_lines();
       set_cached_debug_lines_wtm(TMatrix::IDENT);
@@ -6593,13 +6521,17 @@ void WorldRenderer::setupShoreSurf(float wave_height_to_amplitude,
   float parallelism_to_wind,
   float width_k,
   const Point4 &waves_dist,
+  float depth_min,
+  float depth_fade_interval,
   float gerstner_speed)
 {
   ShaderGlobal::set_real(shore_wave_height_to_amplitudeVarId, wave_height_to_amplitude);
   ShaderGlobal::set_real(shore_amplitude_to_lengthVarId, amplitude_to_length);
   ShaderGlobal::set_real(shore_parallelism_to_windVarId, parallelism_to_wind);
   ShaderGlobal::set_real(shore_width_kVarId, width_k);
-  ShaderGlobal::set_color4(shore_waves_distVarId, Color4::xyzw(waves_dist));
+  ShaderGlobal::set_color4(shore__waves_distVarId, Color4::xyzw(waves_dist));
+  ShaderGlobal::set_real(shore__waves_depth_minVarId, depth_min);
+  ShaderGlobal::set_real(shore__waves_depth_fade_intervalVarId, depth_fade_interval);
   ShaderGlobal::set_real(shore_gerstner_speedVarId, gerstner_speed);
 }
 
@@ -7203,6 +7135,8 @@ void WorldRenderer::changeFeatures(const FeatureRenderFlagMask &f)
   if (changedFeatures.none())
     return;
 
+  dabfg::invalidate_history();
+
   debug("Changing featureRenderFlags: enable: %s disable: %s", render_features_to_string((changedFeatures & newFeatures)),
     render_features_to_string((changedFeatures & ~newFeatures)));
 
@@ -7362,7 +7296,7 @@ void WorldRenderer::revokeDepthAboveRenderTransparent()
 
 int WorldRenderer::getDynamicResolutionTargetFps() const { return dynamicResolution ? dynamicResolution->getTargetFrameRate() : 0; }
 
-static InitOnDemand<WorldRenderer, false> world_renderer;
+static InitOnDemand<WorldRenderer, false, volatile bool> world_renderer;
 
 bool get_sun_sph0_color(float height, Color3 &sun, Color3 &sph0)
 {
@@ -7454,25 +7388,16 @@ void prerun_fx()
   }
 }
 
-volatile unsigned char world_renderer_created = 0;
+IRenderWorld *create_world_renderer() { return world_renderer.demandInit(); }
 
-IRenderWorld *create_world_renderer()
-{
-  world_renderer.demandInit();
-  interlocked_release_store(world_renderer_created, 1);
-  return world_renderer.get();
-}
-void destroy_world_renderer()
-{
-  interlocked_release_store(world_renderer_created, 0);
-  world_renderer.demandDestroy();
-}
+void destroy_world_renderer() { world_renderer.demandDestroy(); }
 
-IRenderWorld *get_world_renderer()
+IRenderWorld *get_world_renderer() { return world_renderer.get(); }
+
+IRenderWorld *get_world_renderer_unsafe()
 {
-  if (world_renderer)
-    return world_renderer.get();
-  return nullptr;
+  G_FAST_ASSERT((bool)world_renderer);
+  return &*world_renderer;
 }
 
 void init_renderer_console();

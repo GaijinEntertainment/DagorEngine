@@ -16,6 +16,6 @@ include "../../../../prog/gameLibs/render/rtr/shaders/build.blk"
 
 "@override:Compile" {
   "@override:assume_vars" {
-    "@delete:rtsm_denoised_tex":i=0
+    "@delete:water_rt_enabled":i=0
   }
 }

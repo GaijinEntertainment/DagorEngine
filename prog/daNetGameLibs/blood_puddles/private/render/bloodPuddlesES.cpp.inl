@@ -1,5 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include "fgNodes.h"
+
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
 #include <drv/3d/dag_resetDevice.h>
@@ -33,9 +35,6 @@
 #include <ecs/render/shaderVar.h>
 #include <ecs/render/updateStageRender.h>
 #include "blood_puddles/public/render/bloodPuddles.h"
-
-#include <render/world/defaultVrsSettings.h>
-#include <render/world/frameGraphHelpers.h>
 
 static const uint32_t MAX_PUDDLES = 4096;
 static const uint32_t REMOVE_PUDDLES_THRESHOLD = MAX_PUDDLES / 4 * 3;
@@ -93,17 +92,15 @@ BloodPuddles::BloodPuddles() :
   index_buffer::init_box();
 
   const char *bloodQuality = dgs_get_settings()->getBlockByName("graphics")->getStr("bloodQuality", "high");
-  const bool hasPrepass = !strcmp(bloodQuality, "high");
+  const bool isDeferredBlood = !strcmp(bloodQuality, "high");
 
   const DataBlock paramsBlk(BLOOD_PARAMS_DATA_BLOCK_NAME);
   initResources(paramsBlk);
-  useAccumulationPrepass(hasPrepass);
+  useDeferredMode(isDeferredBlood);
   initNodes();
   initTextureParams(paramsBlk);
   initShadingParams(paramsBlk);
   initGroupDists(paramsBlk);
-
-  dryingEnabled = paramsBlk.getBool("dryingEnabled", true);
 
   splashFxTemplName = paramsBlk.getStr("splashEffectTemplateName", nullptr);
   if (splashFxTemplName.empty())
@@ -164,93 +161,19 @@ void BloodPuddles::closeResources()
 
 void BloodPuddles::initNodes()
 {
-  auto ns = dabfg::root() / "opaque" / "statics";
-  if (hasAccumulationPrepass)
+  if (isDeferredMode)
   {
-    prepassNode = ns.registerNode("blood_decals_accumulation", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
-      auto bldBuf0Hndl = registry.createTexture2d("blood_acc_buf0", dabfg::History::No,
-        {TEXCF_RTARGET | TEXFMT_R8G8B8A8, registry.getResolution<2>("main_view", 1.0)});
-      auto bloodNormalsHndl = registry.createTexture2d("blood_acc_normals", dabfg::History::No,
-        {TEXCF_RTARGET | TEXFMT_R8G8, registry.getResolution<2>("main_view", 1.0)});
-
-      auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
-
-      auto pass = registry.requestRenderPass()
-                    .clear(bldBuf0Hndl, make_clear_value(1.0f, 1.0f, 1.0f, 1.0f))
-                    .clear(bloodNormalsHndl, make_clear_value(0, 0, 0, 0))
-                    .depthRoAndBindToShaderVars("gbuf_depth", {"depth_gbuf"})
-                    .color({bldBuf0Hndl, bloodNormalsHndl});
-
-      auto state = registry.requestState().setFrameBlock("global_frame");
-
-      use_default_vrs(pass, state);
-
-      DynamicShaderHelper shHolder;
-      shHolder.init("blood_puddles_accumulation", nullptr, 0, "blood_puddles_accumulation", true);
-
-      return [cameraHndl, shHolder = std::move(shHolder)] {
-        BloodPuddles *mgr = get_blood_puddles_mgr();
-        if (mgr)
-          mgr->renderShElem(cameraHndl.get()->viewTm, cameraHndl.get()->jitterProjTm, shHolder.shader);
-      };
-    });
-
-    resolveNode = ns.registerNode("blood_puddles_resolve", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
-      auto pass = render_to_gbuffer_but_sample_depth(registry);
-
-      registry.readTexture("blood_acc_buf0").atStage(dabfg::Stage::PS).bindToShaderVar("blood_acc_buf0");
-      registry.readTexture("blood_acc_normals").atStage(dabfg::Stage::PS).bindToShaderVar("blood_acc_normal");
-
-      auto state = registry.requestState().setFrameBlock("global_frame");
-
-      use_default_vrs(pass, state);
-
-      PostFxRenderer shHolder("blood_puddles_resolve");
-
-      return [shHolder = std::move(shHolder)] { shHolder.render(); };
-    });
+    prepassNode = make_blood_accumulation_prepass_node();
+    resolveNode = make_blood_resolve_node();
   }
   else
-  {
-    resolveNode = ns.registerNode("blood_puddles_decals", DABFG_PP_NODE_SRC, [](dabfg::Registry registry) {
-      auto pass = render_to_gbuffer_but_sample_depth(registry);
-
-      auto state = registry.requestState().setFrameBlock("global_frame").allowWireframe();
-
-      use_default_vrs(pass, state);
-
-      auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
-
-      DynamicShaderHelper shHolder;
-      shHolder.init("blood_puddles", nullptr, 0, "blood_puddles", true);
-
-      return [cameraHndl, shHolder = std::move(shHolder)] {
-        BloodPuddles *mgr = get_blood_puddles_mgr();
-        if (mgr)
-          mgr->renderShElem(cameraHndl.get()->viewTm, cameraHndl.get()->jitterProjTm, shHolder.shader);
-      };
-    });
-  }
+    resolveNode = make_blood_forward_node();
 }
 
 void BloodPuddles::closeNodes()
 {
   prepassNode = {};
   resolveNode = {};
-}
-
-void BloodPuddles::initBiomeDependantData()
-{
-  const DataBlock paramsBlk(BLOOD_PARAMS_DATA_BLOCK_NAME);
-  biomesWithoutDry.clear();
-  int paramId = paramsBlk.getNameId("biome_without_dry");
-  for (int i = 0; i < paramsBlk.paramCount(); ++i)
-    if (paramId == paramsBlk.getParamNameId(i))
-    {
-      int biomeGroupId = biome_query::get_biome_group_id(paramsBlk.getStr(i));
-      if (biomeGroupId >= 0)
-        biomesWithoutDry.set(biomeGroupId, true);
-    }
 }
 
 void BloodPuddles::reinitShadingParams()
@@ -309,7 +232,7 @@ void BloodPuddles::initShadingParams(const DataBlock &blk)
 
   struct UnpackedPerGroupParams
   {
-    float lifeTime, stayFreshTime, dryingTime;
+    float lifeTime, stayFreshTime;
   };
   eastl::array<UnpackedPerGroupParams, BLOOD_DECAL_GROUPS_COUNT> unpackedParams;
 
@@ -317,15 +240,11 @@ void BloodPuddles::initShadingParams(const DataBlock &blk)
   {
     unpackedParams[i].lifeTime = blk.getReal(String(0, "%sAppearTime", groupNames[i]), 10);
     unpackedParams[i].stayFreshTime = blk.getReal(String(0, "%sStayFreshTime", groupNames[i]), 1);
-    unpackedParams[i].dryingTime = blk.getReal(String(0, "%sDryingTime", groupNames[i]), 40);
   }
 
   splashFxLifeTime = unpackedParams[BLOOD_DECAL_GROUP_SPLASH].lifeTime;
 
-  puddleFreshnessTime = unpackedParams[BLOOD_DECAL_GROUP_PUDDLE].lifeTime + unpackedParams[BLOOD_DECAL_GROUP_PUDDLE].stayFreshTime +
-                        unpackedParams[BLOOD_DECAL_GROUP_PUDDLE].dryingTime;
-
-  footprintEmitterDryingTime = blk.getReal("footprintEmitterDryingTime", 10);
+  puddleFreshnessTime = unpackedParams[BLOOD_DECAL_GROUP_PUDDLE].lifeTime + unpackedParams[BLOOD_DECAL_GROUP_PUDDLE].stayFreshTime;
 
   const DataBlock *distBlk = blk.getBlockByNameEx("groupBloodNormalDominanceTerm");
   const DataBlock *edgeBlk = blk.getBlockByNameEx("groupEdgeWidthScale");
@@ -333,8 +252,6 @@ void BloodPuddles::initShadingParams(const DataBlock &blk)
   for (int i = 0; i < BLOOD_DECAL_GROUPS_COUNT; ++i)
   {
     perGroupPackedParams[i].invLifetime = 1.0f / unpackedParams[i].lifeTime;
-    perGroupPackedParams[i].dryingDelay = -(unpackedParams[i].lifeTime + unpackedParams[i].stayFreshTime);
-    perGroupPackedParams[i].invDryingTime = 1.0f / unpackedParams[i].dryingTime;
 
     float bloodNormalDominanceTerm = clamp(distBlk->getReal(groupNames[i], 0.0f), 0.0f, 1.0f);
     float edgeWidthScale = clamp(edgeBlk->getReal(groupNames[i], 0.5f), 0.0f, 1.0f);
@@ -470,7 +387,6 @@ void BloodPuddles::addDecal(const int group,
   const uint32_t packedNormalZ = float_to_half(normal.z);
   const uint32_t packedFadeTime = 0;
 
-  const uint32_t disabledDryingBit = dryingEnabled ? 0 : 1;
   const uint32_t landscapeBit = is_landscape ? 1 : 0;
 
   const uint32_t packedFrameInfo = (uint32_t)((abs(variant) << 1) | (variant < 0));
@@ -483,21 +399,13 @@ void BloodPuddles::addDecal(const int group,
   puddle.starttime__strength = (packedStartTime << 8u) | packedStrength;
   puddle.normal_fadetime.x = (packedNormalX << 16u) | packedNormalY;
   puddle.normal_fadetime.y = (packedNormalZ << 16u) | packedFadeTime;
-  puddle.matrix_frame_incident_type =
-    (disabledDryingBit << NO_DRYING_SHIFT) | (landscapeBit << LANDSCAPE_SHIFT) | ((matrix_id & MATRIX_MASK) << 16u) |
-    (packedFrameInfo << (BITS_FOR_TYPE + BITS_FOR_INCIDENT_ANGLE)) | (incident << BITS_FOR_TYPE) | group;
+  puddle.matrix_frame_incident_type = (landscapeBit << LANDSCAPE_SHIFT) | ((matrix_id & MATRIX_MASK) << 16u) |
+                                      (packedFrameInfo << (BITS_FOR_TYPE + BITS_FOR_INCIDENT_ANGLE)) | (incident << BITS_FOR_TYPE) |
+                                      group;
   puddle.rotate_size = (packedRotate << 16u) | packedSize;
 
-  uint32_t idx = puddles.size();
   puddles.emplace_back(eastl::move(puddle));
   updateLength++;
-
-  if (is_landscape)
-  {
-    int queryIdx = biome_query::query(pos, 0.1f);
-    if (queryIdx >= 0)
-      biomeQueries.emplace_back(idx, queryIdx);
-  }
 }
 
 void BloodPuddles::putDecal(int group,
@@ -546,37 +454,6 @@ void BloodPuddles::update()
   splashesThisFrame = 0;
   const float current_time = get_shader_global_time_phase(0, 0);
 
-  for (int queryIdx = biomeQueries.size() - 1; queryIdx >= 0; --queryIdx)
-  {
-    BiomeQueryResult biomeQueryResult;
-    GpuReadbackResultState biomeQueryResultState = biome_query::get_query_result(biomeQueries[queryIdx].queryId, biomeQueryResult);
-    if (::is_gpu_readback_query_successful(biomeQueryResultState))
-    {
-      // Check snow biome
-      if (biomesWithoutDry.test(biomeQueryResult.mostFrequentBiomeGroupIndex, false))
-      {
-        puddles[biomeQueries[queryIdx].decalId].matrix_frame_incident_type |= (1u << NO_DRYING_SHIFT);
-        if (updateLength == 0)
-        {
-          updateLength = 1;
-          updateOffset = biomeQueries[queryIdx].decalId;
-        }
-        else
-        {
-          int begin = updateOffset;
-          int end = updateOffset + updateLength;
-          begin = min(begin, biomeQueries[queryIdx].decalId);
-          end = max(end, biomeQueries[queryIdx].decalId + 1);
-          updateOffset = begin;
-          updateLength = end - begin;
-        }
-      }
-      biomeQueries.erase(biomeQueries.begin() + queryIdx);
-    }
-    else if (::is_gpu_readback_query_failed(biomeQueryResultState))
-      biomeQueries.erase(biomeQueries.begin() + queryIdx);
-  }
-
   if (matrixManager.numRemovedMatrices())
   {
     erasePuddles([this](const PuddleInfo &info) { return matrixManager.isMatrixRemoved(get_puddle_mat_id(info)); });
@@ -585,11 +462,6 @@ void BloodPuddles::update()
 
   if (puddlesToRemoveCount && current_time - FADE_TIME_TICK * static_cast<uint16_t>(puddles[0].normal_fadetime.y) > SECONDS_TO_FADE)
   {
-    for (int i = biomeQueries.size() - 1; i >= 0; --i)
-      if (biomeQueries[i].decalId == 0)
-        biomeQueries.erase(biomeQueries.begin() + i);
-      else
-        biomeQueries[i].decalId--;
     puddles.erase(puddles.begin());
     --puddlesToRemoveCount;
     updateOffset = 0;
@@ -648,8 +520,7 @@ float BloodPuddles::getBloodFreshness(const Point3 &pos) const
       continue;
     const bool posInPuddle = lengthSq(puddle.pos - pos) < sqr(half_to_float(puddle.rotate_size));
     if (posInPuddle)
-      return (1 - saturate((currentTime - half_to_float(puddle.starttime__strength >> 8)) / puddleFreshnessTime)) *
-             footprintEmitterDryingTime;
+      return (1 - saturate((currentTime - half_to_float(puddle.starttime__strength >> 8)) / puddleFreshnessTime));
   }
   return 0;
 }
@@ -805,7 +676,7 @@ static bool blood_puddle_console_handler(const char *argv[], int argc)
     BloodPuddles *mgr = get_blood_puddles_mgr();
     if (mgr && is_blood_enabled())
     {
-      mgr->useAccumulationPrepass(console::to_bool(argv[1]));
+      mgr->useDeferredMode(console::to_bool(argv[1]));
       mgr->reset();
     }
   }

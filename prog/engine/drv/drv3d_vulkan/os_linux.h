@@ -51,7 +51,6 @@ struct WindowState
 
     XVisualInfo vInfoTemplate = {};
     vInfoTemplate.screen = x11.rootScreenIndex;
-    vInfoTemplate.depth = 24;
     long visualMask = VisualScreenMask | VisualDepthMask;
 
     // this bugs out vulkan render on some compositors/WMs (namely xfce, cinammon)
@@ -59,7 +58,12 @@ struct WindowState
     // visualMask |= VisualClassMask;
 
     int numberOfVisuals;
-    XVisualInfo *vi = XGetVisualInfo(x11.rootDisplay, visualMask, &vInfoTemplate, &numberOfVisuals);
+    XVisualInfo *vi = nullptr;
+    for (int i = 0; i < 2 && !vi; ++i)
+    {
+      vInfoTemplate.depth = i ? 32 : 24;
+      vi = XGetVisualInfo(x11.rootDisplay, visualMask, &vInfoTemplate, &numberOfVisuals);
+    }
     if (!vi)
       DAG_FATAL("x11: can't get usefull VisualInfo from xlib");
 

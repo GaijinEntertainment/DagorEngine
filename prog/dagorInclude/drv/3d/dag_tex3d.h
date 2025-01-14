@@ -231,7 +231,7 @@ public:
   virtual void setTID(TEXTUREID /*tid*/) {}
   virtual TEXTUREID getTID() const { return BAD_TEXTUREID; }
   const char *getTexName() const { return getResName(); }
-  virtual void setResApiName(const char * /*name*/) const {}
+  void setResApiName(const char * /*name*/) const override {}
 
   // lock image data - no conversion is performed
   // render target image is read-only by default
@@ -283,13 +283,12 @@ public:
   //
   // Returns true on success, may return false on fail. Only fail case can be the failure to allocate the
   // replacement texture.
-  virtual bool downSize(int width, int height, int depth, int mips, unsigned start_src_level, unsigned level_offset)
+  [[nodiscard]] virtual BaseTexture *downSize(int width, int height, int depth, int mips, unsigned start_src_level,
+    unsigned level_offset)
   {
     auto rep = makeTmpTexResCopy(width, height, depth, mips, false);
     if (!rep)
-    {
-      return false;
-    }
+      return nullptr;
 
     TextureInfo selfInfo;
     getinfo(selfInfo);
@@ -306,9 +305,7 @@ public:
           calcSubResIdx(sourceLevel - level_offset, s, mips), 0, 0, 0);
       }
     }
-
-    replaceTexResObject(rep);
-    return true;
+    return rep;
   }
   // Replaces the texture with a larger one defined by info, overlapping mip levels are automatically
   // migrated to the new texture. This does not need TEXCF_UPDATE_DESTINATION to work, even if the default
@@ -317,13 +314,12 @@ public:
   //
   // Returns true on success, may return false on fail. Only fail case can be the failure to allocate the
   // replacement texture.
-  virtual bool upSize(int width, int height, int depth, int mips, unsigned start_src_level, unsigned level_offset)
+  [[nodiscard]] virtual BaseTexture *upSize(int width, int height, int depth, int mips, unsigned start_src_level,
+    unsigned level_offset)
   {
     auto rep = makeTmpTexResCopy(width, height, depth, mips, false);
     if (!rep)
-    {
-      return false;
-    }
+      return nullptr;
 
     TextureInfo selfInfo;
     getinfo(selfInfo);
@@ -341,8 +337,7 @@ public:
       }
     }
 
-    replaceTexResObject(rep);
-    return true;
+    return rep;
   }
 
   BaseTexture() = default;
@@ -429,11 +424,13 @@ uint32_t float_to_channel_bits(float value, ChannelDType type, const TextureChan
 /// load texture content from DDSx stream using DDSx header for previously allocated texture
 typedef void (*on_tex_slice_loaded_cb_t)();
 extern TexLoadRes (*d3d_load_ddsx_tex_contents_impl)(BaseTexture *tex, TEXTUREID tid, TEXTUREID paired_tid, const ddsx::Header &hdr,
-  IGenLoad &crd, int q_id, int start_lev, unsigned tex_ld_lev, on_tex_slice_loaded_cb_t);
+  IGenLoad &crd, int q_id, int start_lev, unsigned tex_ld_lev, on_tex_slice_loaded_cb_t, bool);
 inline TexLoadRes d3d_load_ddsx_tex_contents(BaseTexture *tex, TEXTUREID tid, TEXTUREID paired_tid, const ddsx::Header &hdr,
-  IGenLoad &crd, int q_id, int start_lev = 0, unsigned tex_ld_lev = 0, on_tex_slice_loaded_cb_t on_tex_slice_loaded_cb = nullptr)
+  IGenLoad &crd, int q_id, int start_lev = 0, unsigned tex_ld_lev = 0, on_tex_slice_loaded_cb_t on_tex_slice_loaded_cb = nullptr,
+  bool tex_props_inited = false)
 {
-  return d3d_load_ddsx_tex_contents_impl(tex, tid, paired_tid, hdr, crd, q_id, start_lev, tex_ld_lev, on_tex_slice_loaded_cb);
+  return d3d_load_ddsx_tex_contents_impl(tex, tid, paired_tid, hdr, crd, q_id, start_lev, tex_ld_lev, on_tex_slice_loaded_cb,
+    tex_props_inited);
 }
 /// load texture content from DDSx stream using DDSx header to specified slice of previously allocated array texture
 extern TexLoadRes (*d3d_load_ddsx_to_slice)(BaseTexture *tex, int slice, const ddsx::Header &hdr, IGenLoad &crd, int q_id,

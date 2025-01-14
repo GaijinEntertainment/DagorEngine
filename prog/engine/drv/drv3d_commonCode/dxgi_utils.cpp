@@ -25,14 +25,14 @@ String get_monitor_name_from_output(IDXGIOutput *pOutput)
   return String(outputName);
 }
 
-ComPtr<IDXGIOutput> get_output_monitor_by_name(IDXGIFactory *pFactory, const char *monitorName)
+ComPtr<IDXGIOutput> get_output_monitor_by_name(IDXGIFactory1 *factory, const char *monitorName)
 {
   G_ASSERT(monitorName);
 
-  ComPtr<IDXGIAdapter> adapter;
   for (uint32_t adapterIndex = 0;; adapterIndex++)
   {
-    if (FAILED(pFactory->EnumAdapters(adapterIndex, &adapter)))
+    ComPtr<IDXGIAdapter1> adapter;
+    if (FAILED(factory->EnumAdapters1(adapterIndex, &adapter)))
       break;
 
     for (uint32_t outputIndex = 0;; outputIndex++)
@@ -57,14 +57,14 @@ ComPtr<IDXGIOutput> get_output_monitor_by_name(IDXGIFactory *pFactory, const cha
 namespace
 {
 template <bool DefaultOnly>
-ComPtr<IDXGIOutput> get_output_monitor_by_name_or_default_(IDXGIFactory *pFactory, const char *monitorName)
+ComPtr<IDXGIOutput> get_output_monitor_by_name_or_default_(IDXGIFactory1 *factory, const char *monitorName)
 {
   ComPtr<IDXGIOutput> defaultOutput;
   ComPtr<IDXGIOutput> firstFoundOutput;
-  ComPtr<IDXGIAdapter> adapter;
   for (uint32_t adapterIndex = 0;; adapterIndex++)
   {
-    if (FAILED(pFactory->EnumAdapters(adapterIndex, &adapter)))
+    ComPtr<IDXGIAdapter1> adapter;
+    if (FAILED(factory->EnumAdapters1(adapterIndex, &adapter)))
       break;
 
     for (uint32_t outputIndex = 0;; outputIndex++)
@@ -106,14 +106,14 @@ ComPtr<IDXGIOutput> get_output_monitor_by_name_or_default_(IDXGIFactory *pFactor
 
 } // namespace
 
-ComPtr<IDXGIOutput> get_output_monitor_by_name_or_default(IDXGIFactory *pFactory, const char *monitorName)
+ComPtr<IDXGIOutput> get_output_monitor_by_name_or_default(IDXGIFactory1 *factory, const char *monitorName)
 {
-  return get_output_monitor_by_name_or_default_<false>(pFactory, monitorName);
+  return get_output_monitor_by_name_or_default_<false>(factory, monitorName);
 }
 
-ComPtr<IDXGIOutput> get_default_monitor(IDXGIFactory *pFactory)
+ComPtr<IDXGIOutput> get_default_monitor(IDXGIFactory1 *factory)
 {
-  return get_output_monitor_by_name_or_default_<true>(pFactory, nullptr);
+  return get_output_monitor_by_name_or_default_<true>(factory, nullptr);
 }
 
 bool resolutions_have_same_ratio(eastl::pair<uint32_t, uint32_t> l_res, eastl::pair<uint32_t, uint32_t> r_res)

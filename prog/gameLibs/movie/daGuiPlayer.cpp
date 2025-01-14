@@ -116,9 +116,9 @@ public:
   }
 
   //! returns current frame in YUV format (supported by: Ogg Theora player, PAM player)
-  virtual bool getFrame(TEXTUREID &idY, TEXTUREID &idU, TEXTUREID &idV)
+  virtual bool getFrame(TEXTUREID &idY, TEXTUREID &idU, TEXTUREID &idV, d3d::SamplerHandle &smp)
   {
-    (void)idY, (void)idU, (void)idV;
+    (void)idY, (void)idU, (void)idV, (void)smp;
     return false;
   }
 

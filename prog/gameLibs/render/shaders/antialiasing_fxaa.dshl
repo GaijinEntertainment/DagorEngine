@@ -1362,7 +1362,7 @@ shader antialiasing
             sharpenValue = adaptive_sharpen(pos);
             //return tex2Dlod(tex, float4(pos,0,0)) * fxaa_color_mul;
         ##endif
-        return fxaa_color_mul * lerp(FxaaPixelShader(
+        float4 result = fxaa_color_mul * lerp(FxaaPixelShader(
             //
             // Use noperspective interpolation here (turn off perspective interpolation).
             // {xy} = center of pixel
@@ -1520,6 +1520,7 @@ shader antialiasing
             // {xyzw} = float4(1.0, -1.0, 0.25, -0.25)
             0
         ), sharpenValue, cockpitToolsWeight);
+        return max(result, 0);
       }
     }
   }

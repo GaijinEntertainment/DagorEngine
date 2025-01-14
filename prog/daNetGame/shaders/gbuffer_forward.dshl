@@ -7,6 +7,22 @@ include "dagi_rad_grid_common.dshl"
 include "night_light.dshl"
 include "brunetonSky.dshl"
 include "use_tiled_lights.dshl"
+include "clouds_shadow.dshl"
+include "sky_shader_global.dshl"
+include "apply_shadow_modifications.dshl"
+
+macro INIT_AND_USE_CLOUD_SHADOW_FORWARD()
+  hlsl
+  {
+    #define USE_CLOUD_SHADOW_SAMPLE 1
+  }
+  INIT_CLOUDS_SHADOW(to_sun_direction.y)
+  USE_CLOUDS_SHADOW()
+  (ps)
+  {
+    clouds_shadow_influence@f1 = (clouds_shadow_influence);
+  }
+endmacro
 
 macro INIT_AND_USE_GI_FORWARD()
   if (gi_quality == only_ao)
@@ -76,6 +92,7 @@ macro WRITE_GBUFFER_FORWARD()
   }
 
   USE_STATIC_SHADOW()
+  USE_SHADOW_MODIFICATIONS(ps)
   USE_ROUGH_TO_MIP()
 
   if (compatibility_mode == compatibility_mode_off)
@@ -98,10 +115,17 @@ macro WRITE_GBUFFER_FORWARD()
       float4 color : SV_Target0;
     };
 
+#ifndef DISABLE_FAKE_SIMPLE_TONEMAPPING
+  #define DISABLE_FAKE_SIMPLE_TONEMAPPING 0
+#endif
+
     float3 apply_simple_tonemapping(float3 color)
     {
-      // Simple tone mapping: ambient + sun is in 0..2 range, transforming it back to 0..1
-      return color * 0.5;
+      #if !DISABLE_FAKE_SIMPLE_TONEMAPPING
+        // Simple tone mapping: ambient + sun is in 0..2 range, transforming it back to 0..1
+        color *= 0.5;
+      #endif
+      return color;
     }
 
     half4 get_exp_fog(float distSq, half3 air_color)
@@ -139,6 +163,23 @@ macro WRITE_GBUFFER_FORWARD()
       return ret;
     }
 
+    float getCombinedShadows(ProcessedGbuffer gbuffer, float3 worldPos, float NoL)
+    {
+      float shadow = gbuffer.shadow;
+
+      #if !FORWARD_NO_STATIC_SHADOW
+        shadow *= getStaticShadow(worldPos);
+      #endif
+
+      #if USE_CLOUD_SHADOW_SAMPLE
+        shadow *= saturate(pow(clouds_shadow(worldPos), clouds_shadow_influence));
+      #endif
+
+      shadow = apply_shadow_modifications(shadow, NoL);
+
+      return shadow;
+    }
+
 #if PBR_FORWARD_SHADING
     GBUFFER_OUTPUT encode_gbuffer_exposure_pbr(UnpackedGbuffer gbuf, float3 pointToEye, float4 screenPos, float exposure, float3 sunLightDir,
       float3 sunLightColor, float4 sph0, float4 sph1, float4 sph2, float enviSpecularBrightness)
@@ -147,18 +188,14 @@ macro WRITE_GBUFFER_FORWARD()
       GBUFFER_OUTPUT ret = (GBUFFER_OUTPUT)0;
 
       float3 worldPos = -pointToEye + world_view_pos;
+      float NoL = dot(gbuffer.normal, -sunLightDir.xyz);
 
       //process shadow ahead of followup code, to probably hide sampling latency
-      #if FORWARD_NO_STATIC_SHADOW
-        float  shadow   = gbuffer.shadow;
-      #else
-        float  shadow   = gbuffer.shadow * getStaticShadow(worldPos);
-      #endif
+      float shadow = getCombinedShadows(gbuffer, worldPos, NoL);
 
       half3  environmentAmbientReflection = 0;
       half3  sunLight = 0;
       half   enviAO = gbuffer.ao;//we still modulate by albedo color, so we dont need micro AO
-      float  NoL = dot(gbuffer.normal, -sunLightDir.xyz);
 
       float distSq = dot(pointToEye, pointToEye);
       float invRsqrt = rsqrt(distSq);
@@ -280,14 +317,10 @@ macro WRITE_GBUFFER_FORWARD()
       GBUFFER_OUTPUT ret = (GBUFFER_OUTPUT)0;
 
       float3 worldPos = -pointToEye + world_view_pos;
-      #if FORWARD_NO_STATIC_SHADOW
-        float  shadow   = gbuffer.shadow;
-      #else
-        float  shadow   = gbuffer.shadow * getStaticShadow(worldPos);
-      #endif
+      float NoL = dot(gbuffer.normal, -sunLightDir.xyz);
+      float shadow = getCombinedShadows(gbuffer, worldPos, NoL);
       float3 view = normalize(world_view_pos - worldPos);
       float NdotV = dot(gbuffer.normal, view);
-      float  NoL      = dot(gbuffer.normal, -sunLightDir.xyz);
       float3 sunLight = diffuseLambert(gbuffer.diffuseColor) * sunLightColor.rgb * saturate(NoL*shadow);
       float distSq = dot(pointToEye, pointToEye);
       float dist = sqrt(distSq);

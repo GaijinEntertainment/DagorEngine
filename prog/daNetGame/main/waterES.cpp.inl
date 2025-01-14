@@ -81,6 +81,7 @@ static void set_water_on_level_loaded_es(const ecs::Event &, FFTWater &water)
 }
 
 ECS_ON_EVENT(on_appear)
+ECS_AFTER(set_water_on_level_loaded_es)
 ECS_TRACK(water__level)
 static void water_level_es_event_handler(const ecs::Event &, FFTWater &water, float water__level)
 {
@@ -236,6 +237,8 @@ ECS_TRACK(shore__wave_height_to_amplitude,
   shore__parallelism_to_wind,
   shore__width_k,
   shore__waves_dist,
+  shore__waves_depth_min,
+  shore__waves_depth_fade_interval,
   shore__wave_gspeed)
 static void water_shore_surf_setup_es_event_handler(const ecs::Event &,
   float shore__wave_height_to_amplitude,
@@ -243,11 +246,13 @@ static void water_shore_surf_setup_es_event_handler(const ecs::Event &,
   float shore__parallelism_to_wind,
   float shore__width_k,
   const Point4 &shore__waves_dist,
+  float shore__waves_depth_min,
+  float shore__waves_depth_fade_interval,
   float shore__wave_gspeed)
 {
   if (IRenderWorld *wr = get_world_renderer())
     wr->setupShoreSurf(shore__wave_height_to_amplitude, shore__amplitude_to_length, shore__parallelism_to_wind, shore__width_k,
-      shore__waves_dist, shore__wave_gspeed);
+      shore__waves_dist, shore__waves_depth_min, shore__waves_depth_fade_interval, shore__wave_gspeed);
 }
 
 ECS_ON_EVENT(on_appear, EventLevelLoaded)

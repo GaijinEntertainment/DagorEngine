@@ -23,6 +23,9 @@ interval bvh_process_skinned_vertices_texcoord_size: zero < 1, four < 8, eight;
 interval bvh_process_skinned_vertices_normal_offset: no < 1, yes;
 interval bvh_process_skinned_vertices_color_offset: no < 1, yes;
 
+int bvh_process_skinned_vertices_source_const_no = 6;
+int bvh_process_skinned_vertices_output_uav_no = 0;
+
 shader bvh_process_skinned_vertices
 {
   if (compatibility_mode == compatibility_mode_on)
@@ -47,6 +50,8 @@ shader bvh_process_skinned_vertices
 
     per_chunk_render_data@buf = instance_data_buffer hlsl { Buffer<float4> per_chunk_render_data@buf; }
     inv_wtm@f44 = bvh_process_skinned_vertices_inv_wtm;
+    source@buf : register(bvh_process_skinned_vertices_source_const_no) hlsl { ByteAddressBuffer source@buf; };
+    output@uav : register(bvh_process_skinned_vertices_output_uav_no) hlsl { RWByteAddressBuffer output@uav; };
   }
 
   hlsl(cs) {
@@ -66,9 +71,6 @@ shader bvh_process_skinned_vertices
   ENABLE_ASSERT(cs)
   hlsl(cs) {
     #pragma wave32
-
-    ByteAddressBuffer source : register(t6);
-    RWByteAddressBuffer output : register(u0);
 
     float3 mul_bone(float3 p3, bone_t m)
     {

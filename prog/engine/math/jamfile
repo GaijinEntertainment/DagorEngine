@@ -31,6 +31,7 @@ Sources =
   capsuleTriangle.cpp
   wooray2d.cpp
   wooray3d.cpp
+  checkNanTest.cpp
 ;
 
 UseProgLibs =

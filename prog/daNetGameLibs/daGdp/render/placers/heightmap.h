@@ -46,6 +46,7 @@ struct HeightmapGrid
   int prngSeed = 0;
   float gridJitter = 0.0f;
   bool lowerLevel = false;
+  bool useDynamicAllocation = false;
   dag::VectorSet<HeightmapTileCoord> tiles;
   dag::RelocatableFixedVector<uint32_t, 64> placeablesTileLimits;
 };
@@ -59,6 +60,7 @@ struct HeightmapBuilder
 {
   dag::Vector<HeightmapGrid> grids;
   SharedTex densityMask;
+  Point4 maskScaleOffset = Point4(1.0f, 1.0f, 0.0f, 0.0f);
 };
 
 #if DAGOR_DBGLEVEL != 0
@@ -76,6 +78,16 @@ struct HeightmapManager
 #if DAGOR_DBGLEVEL != 0
   HeightmapDebug debug;
 #endif
+};
+
+// Used to control memory strategy for heightmap placement.
+// Dynamic allocation contains two phases: optimistic and pessimistic.
+// If optimistic phase fails, the pessimistic phase is used after rearrangement.
+enum class HeightmapPlacementType
+{
+  STATIC,
+  DYNAMIC_OPTIMISTIC,
+  DYNAMIC_PESSIMISTIC,
 };
 
 void create_heightmap_nodes(

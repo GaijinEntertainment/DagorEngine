@@ -341,12 +341,12 @@ ViewportWindow::ViewportWindow(TEcHandle parent, int left, int top, int w, int h
   calcStat3d = true;
   opaqueStat3d = false;
   curEH = NULL;
+  curMEH = nullptr;
   prevMousePositionX = 0;
   prevMousePositionY = 0;
   isMoveRotateAllowed = false;
   isXLocked = false;
   isYLocked = false;
-  skipNextAlt = false;
   orthogonalProjection = false;
   projectionFov = def_viewport_fov;
   projectionFarPlane = def_viewport_zf;
@@ -359,7 +359,8 @@ ViewportWindow::ViewportWindow(TEcHandle parent, int left, int top, int w, int h
   updatePluginCamera = false;
   customCameras = NULL;
   popupMenu = nullptr;
-  hidePopupMenu = false;
+  selectionMenu = nullptr;
+  allowPopupMenu = false;
   mIsCursorVisible = true;
   showCameraStats = true;
   showCameraPos = true;
@@ -394,6 +395,7 @@ ViewportWindow::~ViewportWindow()
   clear_all_ptr_items(delayedMouseEvents);
 
   del_it(popupMenu);
+  del_it(selectionMenu);
   del_it(statSettingsDialog);
   del_it(gridSettingsDialog);
   if (ec_cached_viewports)
@@ -533,6 +535,9 @@ void ViewportWindow::fillPopupMenu(PropPanel::IMenu &menu)
 }
 
 
+void ViewportWindow::setMenuEventHandler(IMenuEventHandler *meh) { curMEH = meh; }
+
+
 void ViewportWindow::processCameraEvents(CCameraElem *camera_elem, unsigned msg, TEcWParam w_param, TEcLParam l_param)
 {
   G_ASSERT(camera_elem && "ViewportWindow::processCameraEvents camera_elem is NULL!!!");
@@ -543,8 +548,6 @@ void ViewportWindow::processCameraEvents(CCameraElem *camera_elem, unsigned msg,
   {
     switch (msg)
     {
-      case WM_KEYDOWN: camera_elem->handleKeyPress((int)(uintptr_t)w_param); break;
-      case WM_KEYUP: camera_elem->handleKeyRelease((int)(uintptr_t)w_param); break;
       case WM_MOUSEMOVE:
       {
         real deltaX, deltaY;
@@ -657,21 +660,23 @@ int ViewportWindow::windowProc(TEcHandle h_wnd, unsigned msg, TEcWParam w_param,
       mouseButtonDown[ImGuiMouseButton_Right] = false;
       input.rmbPressed = false;
 
-      if (CCameraElem::getCamera() == CCameraElem::MAX_CAMERA)
+      if (CCameraElem::getCamera() == CCameraElem::MAX_CAMERA && allowPopupMenu)
       {
         int x = GET_X_LPARAM(l_param);
         int y = GET_Y_LPARAM(l_param);
 
         bool in_menu_area = pointInMenuArea(this, x, y);
-        if (in_menu_area && !popupMenu)
-        {
-          popupMenu = PropPanel::create_context_menu();
-          fillPopupMenu(*popupMenu);
-        }
-
-        // if (!hidePopupMenu || in_menu_area)
         if (in_menu_area)
+        {
+          if (!popupMenu)
+          {
+            popupMenu = PropPanel::create_context_menu();
+            fillPopupMenu(*popupMenu);
+            allowPopupMenu = false; // Prevent opening the selection context menu.
+          }
+
           SendMessage(GetParent((HWND)h_wnd), msg, (WPARAM)w_param, (LPARAM)l_param);
+        }
       }
       break;
 
@@ -691,6 +696,7 @@ int ViewportWindow::windowProc(TEcHandle h_wnd, unsigned msg, TEcWParam w_param,
     case WM_RBUTTONDOWN:
       mouseButtonDown[ImGuiMouseButton_Right] = true;
       input.rmbPressed = true;
+      allowPopupMenu = false;
       break;
 
     case WM_MBUTTONDOWN: mouseButtonDown[ImGuiMouseButton_Middle] = true; break;
@@ -725,19 +731,7 @@ int ViewportWindow::windowProc(TEcHandle h_wnd, unsigned msg, TEcWParam w_param,
           // CtlWindow::activate(false);
           break;
 
-        case WM_MBUTTONUP:
-          isMoveRotateAllowed = false;
-
-          if (wingw::is_key_pressed(VK_MENU))
-            skipNextAlt = true;
-          else
-            skipNextAlt = false;
-          break;
-
-        case WM_KEYDOWN:
-          if (maxCameraElem)
-            maxCameraElem->handleKeyPress((int)(uintptr_t)w_param);
-          break;
+        case WM_MBUTTONUP: isMoveRotateAllowed = false; break;
       }
 
       processCameraControl(h_wnd, msg, w_param, l_param);
@@ -758,10 +752,12 @@ int ViewportWindow::windowProc(TEcHandle h_wnd, unsigned msg, TEcWParam w_param,
         curEH->handleMouseLBPress(this, pt.x, pt.y, true, (int)(uintptr_t)w_param, _modif);
         break;
       case WM_RBUTTONDOWN:
+        allowPopupMenu = canStartInteractionWithViewport();
         if (!pointInMenuArea(this, pt.x, pt.y))
         {
           captureMouse();
-          hidePopupMenu = curEH->handleMouseRBPress(this, pt.x, pt.y, true, (int)(uintptr_t)w_param, _modif);
+          if (curEH->handleMouseRBPress(this, pt.x, pt.y, true, (int)(uintptr_t)w_param, _modif))
+            allowPopupMenu = false;
         }
         break;
 
@@ -783,6 +779,12 @@ int ViewportWindow::windowProc(TEcHandle h_wnd, unsigned msg, TEcWParam w_param,
       break;
 
       case WM_RBUTTONUP:
+        if (!selectionMenu && allowPopupMenu)
+        {
+          selectionMenu = PropPanel::create_context_menu();
+          selectionMenu->setEventHandler(this);
+        }
+
         releaseMouse();
         curEH->handleMouseRBRelease(this, pt.x, pt.y, true, (int)(uintptr_t)w_param, _modif);
         break;
@@ -955,6 +957,10 @@ int ViewportWindow::onMenuItemClick(unsigned id)
 
       break;
     }
+    default:
+      if (curMEH)
+        return curMEH->onMenuItemClick(id);
+      break;
   }
 
   return 1;
@@ -1013,15 +1019,9 @@ int ViewportWindow::handleCommand(int p1, int p2, int p3)
         case CCameraElem::CAR_CAMERA:
         {
           if (CCameraElem::getCamera() == CCameraElem::FPS_CAMERA)
-          {
             fpsCameraElem->setAboveSurface(true);
-            fpsCameraElem->handleKeyPress(VK_SPACE);
-          }
           if (CCameraElem::getCamera() == CCameraElem::TPS_CAMERA)
-          {
             tpsCameraElem->setAboveSurface(true);
-            tpsCameraElem->handleKeyPress(VK_SPACE);
-          }
           if (CCameraElem::getCamera() == CCameraElem::CAR_CAMERA)
           {
             carCameraElem->setAboveSurface(true);
@@ -1030,7 +1030,6 @@ int ViewportWindow::handleCommand(int p1, int p2, int p3)
               this->handleCommand(CM_CAMERAS_FREE, p2, p3);
               return 0;
             }
-            carCameraElem->handleKeyPress(VK_SPACE);
           }
 
           capture_cursor(getMainHwnd());
@@ -2622,7 +2621,18 @@ void ViewportWindow::updateImgui(const Point2 &size, float item_spacing, bool vr
       // Prevent the hidden mouse from interacting with other controls while in fly mode.
       const bool flyModeActive = isFlyMode();
       if (flyModeActive)
+      {
         ImGui::SetActiveID(canvasId, currentWindow);
+
+        G_STATIC_ASSERT(sizeof(canvasId) == sizeof(unsigned));
+        switch (CCameraElem::getCamera())
+        {
+          case CCameraElem::FREE_CAMERA: ec_camera_elem::freeCameraElem->handleKeyboardInput(canvasId); break;
+          case CCameraElem::FPS_CAMERA: ec_camera_elem::fpsCameraElem->handleKeyboardInput(canvasId); break;
+          case CCameraElem::TPS_CAMERA: ec_camera_elem::tpsCameraElem->handleKeyboardInput(canvasId); break;
+          case CCameraElem::CAR_CAMERA: ec_camera_elem::carCameraElem->handleKeyboardInput(canvasId); break;
+        }
+      }
 
       if (itemHovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
         windowProc(nullptr, WM_LBUTTONDBLCLK, get_mouse_buttons_for_window_messages(), (TEcLParam)POINTTOPOINTS(pt));
@@ -2703,6 +2713,16 @@ void ViewportWindow::updateImgui(const Point2 &size, float item_spacing, bool vr
     const bool open = PropPanel::render_context_menu(*popupMenu);
     if (!open)
       del_it(popupMenu);
+  }
+
+  if (selectionMenu)
+  {
+    const bool open = selectionMenu->getItemCount(ROOT_MENU_ITEM) > 0 && PropPanel::render_context_menu(*selectionMenu);
+    if (!open)
+    {
+      setMenuEventHandler(nullptr);
+      del_it(selectionMenu);
+    }
   }
 
   ImGui::PopID();

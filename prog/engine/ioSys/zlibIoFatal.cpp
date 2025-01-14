@@ -5,3 +5,4 @@
 
 void ZlibLoadCB::issueFatal() { G_ASSERT(0 && "restricted by design"); }
 void ZlibSaveCB::issueFatal() { G_ASSERT(0 && "restricted by design"); }
+void ZlibDecompressSaveCB::issueFatal() { G_ASSERT(0 && "restricted by design"); }

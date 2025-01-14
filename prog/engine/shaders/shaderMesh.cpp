@@ -404,7 +404,12 @@ void ShaderMesh::patchData(void *base, ShaderMatVdata &smvd)
   for (RElem &re : elems)
   {
     int mat_idx = (int)(intptr_t)re.mat.get();
-
+    if (mat_idx >= smvd.getMaterialCount())
+    {
+      logerr("#%d material in RElem, %d material(s) in ShaderMatVdata - mismatched versions of *.grp and *desc.bin", mat_idx,
+        smvd.getMaterialCount());
+      mat_idx = 0;
+    }
     re.mat.init(smvd.getMaterial(mat_idx));
     re.e = re.mat->make_elem(false, NULL);
     re.vertexData = smvd.getGlobVData((int)(intptr_t)re.vertexData);
