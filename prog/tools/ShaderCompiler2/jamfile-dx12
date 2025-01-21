@@ -47,4 +47,20 @@ for l in $(scarlett_dlls) {
 }
 }
 
+if $(Platform) = windows {
+  local dxc_dir = $(_DEVTOOL)/DXC-$(DXC_VERSION)/lib/$(LegacyPlatformSuffix) ;
+  local dst_dir = $(OutDir)/dxc-dx12/pc ;
+  if ! [ GLOB $(dxc_dir) : * ] { exit FATAL\: \"$(dxc_dir)\" not found! Please, update DEVTOOLS ; }
+  for library in dxcompiler.dll dxil.dll {
+    if ! [ GLOB $(dst_dir) : $(library) ] {
+      local src = $(dxc_dir)/$(library) ;
+      local dst = $(dst_dir)/$(library) ;
+      MakeDirectory $(dst) : $(dst:D) ;
+      Depends $(dst) : $(src) ;
+      copy_file $(dst) : $(src) ;
+      Depends all : $(dst) ;
+    }
+  }
+}
+
 include $(Root)/prog/_jBuild/build.jam ;
