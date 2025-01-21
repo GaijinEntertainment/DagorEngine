@@ -514,9 +514,10 @@ else:
       zip_file.extractall(dest_dir+'/.packages/DirectXShaderCompiler-1.7.2207/_win')
 
       pathlib.Path(dxc_dest_folder+'/include').mkdir(parents=True, exist_ok=True)
-      pathlib.Path(dxc_dest_folder+'/lib/win64').mkdir(parents=True, exist_ok=True)
+      pathlib.Path(dxc_dest_folder+'/lib').mkdir(parents=True, exist_ok=True)
       make_directory_symlink(dest_dir+'/.packages/DirectXShaderCompiler-1.7.2207/include/dxc', dxc_dest_folder+'/include/dxc')
-      shutil.copyfile(dest_dir+'/.packages/DirectXShaderCompiler-1.7.2207/_win/bin/x64/dxcompiler.dll', dxc_dest_folder+'/lib/win64/dxcompiler.dll')
+      make_directory_symlink(dest_dir+'/.packages/DirectXShaderCompiler-1.7.2207/_win/bin/x64', dxc_dest_folder+'/lib/win64')
+      make_directory_symlink(dest_dir+'/.packages/DirectXShaderCompiler-1.7.2207/_win/bin/arm64', dxc_dest_folder+'/lib/win-arm64')
       shutil.copyfile(dest_dir+'/.packages/DirectXShaderCompiler-1.7.2207/LICENSE.TXT', dxc_dest_folder+'/LICENSE.TXT')
       print('+++ DXC Jul 2022 installed at {0}'.format(dxc_dest_folder))
 
