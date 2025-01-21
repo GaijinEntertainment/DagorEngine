@@ -5,6 +5,7 @@ jam -sPlatformArch=arm64 -sPlatformSpec=vc17 -s Root=../.. -f sceneTools/daEdito
   if errorlevel 1 goto error
 jam -sPlatformArch=arm64 -sPlatformSpec=vc17 -s Root=../.. -f sceneTools/daEditorX/jamfile
   if errorlevel 1 goto error
+  
 
 rem dabuild
 jam -sPlatformArch=arm64 -sPlatformSpec=vc17 -s Root=../.. -f sceneTools/assetExp/jamfile
@@ -119,6 +120,7 @@ goto EOF
 
 echo.
 echo An error occured
+pause
 exit /b 1
 
 :EOF
