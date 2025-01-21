@@ -26,7 +26,7 @@ jobs:
         run: |
           python3 _docs/build_all_docs.py
           cd _docs
-          sphinx-build . _build
+          sphinx-build -c . -b html source _build
       - name: Deploy documentation
         uses: peaceiris/actions-gh-pages@v3
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
