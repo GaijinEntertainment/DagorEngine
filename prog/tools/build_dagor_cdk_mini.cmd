@@ -84,7 +84,7 @@ jam -s Root=../.. -f sceneTools/resUpdate/jamfile
 jam -s Root=../.. -f sceneTools/resClean/jamfile
   if errorlevel 1 goto error
 
-jam -s Root=../.. -sConfig=dev -sPlatformArch=x86_64 -f consoleSq/jamfile
+jam -s Root=../.. -sConfig=dev -f consoleSq/jamfile
   if errorlevel 1 goto error
 
 rem jam -s Root=../.. -f miscUtils/fastdep-0.16/jamfile

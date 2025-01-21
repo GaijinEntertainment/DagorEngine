@@ -302,7 +302,7 @@ static inline bool optimize_4cache(unsigned char *verts, int vertSize, int numv,
   return true;
 }
 
-#if _TARGET_PC && _TARGET_SIMD_SSE
+#if _TARGET_PC
 template <class VertIndex, class FaceIndex>
 bool BaseLandRayTracer<VertIndex, FaceIndex>::build(uint32_t cellsX, uint32_t cellsY, float cellSz, const Point3 &ofs,
   const BBox3 &box, dag::ConstSpan<Mesh *> meshes, dag::ConstSpan<Mesh *> combined_meshes, uint32_t min_grid, uint32_t max_grid,
