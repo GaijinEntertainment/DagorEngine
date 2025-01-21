@@ -84,7 +84,8 @@ jam -sPlatformSpec=vc17 -s Root=../.. -f sceneTools/resUpdate/jamfile
 jam -sPlatformSpec=vc17 -s Root=../.. -f sceneTools/resClean/jamfile
   if errorlevel 1 goto error
 
-jam -sPlatformSpec=vc17 -s Root=../.. -sConfig=dev -sPlatformArch=x86_64 -f consoleSq/jamfile
+
+jam -s Root=../.. -sConfig=dev -f consoleSq/jamfile
   if errorlevel 1 goto error
 
 rem jam -sPlatformSpec=vc17 -s Root=../.. -f miscUtils/fastdep-0.16/jamfile

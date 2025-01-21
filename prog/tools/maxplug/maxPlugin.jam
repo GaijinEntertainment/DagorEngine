@@ -1,4 +1,5 @@
 if ! $(MaxVer) { Exit MaxVer not set! ; }
+if $(PlatformArch) = arm64 { Exit $(JAMFILESRC): PlatformArch=$(PlatformArch) not supported now! ; }
 SSEVersion = 2 ;
 Platform = windows ;
 PlatformArch ?= x86 ;
