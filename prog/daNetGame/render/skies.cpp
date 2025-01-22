@@ -355,6 +355,15 @@ void set_daskies_latitude(float latitude)
   skies_panel.latitude = latitude;
   debug("set latitude %f", latitude);
 }
+
+//20250123: Add a longtitude function
+void set_daskies_longtitude(float longtitude)
+{
+  skies_panel.longtitude = longtitude;
+  debug("set longtitude %f", longtitude);
+}
+
+
 void move_cumulus_clouds(const Point2 &amount)
 {
   if (!daSkies || !cloudMovementEnabled)
@@ -409,6 +418,8 @@ static bool skies_console_handler(const char *argv[], int argc)
     console::print_d("clouds hole: %f %f", hole.x, hole.y);
   }
   CONSOLE_CHECK_NAME("skies", "setLatitude", 2, 2) { set_daskies_latitude(to_real(argv[1])); }
+  //20250123: add a setlongtitude function
+  CONSOLE_CHECK_NAME("skies", "setLongtitude", 2, 2) { set_daskies_longtitude(to_real(argv[1])); }
   CONSOLE_CHECK_NAME("skies", "moveClouds", 3, 3) { move_skies(Point2(to_real(argv[1]), to_real(argv[2]))); }
   CONSOLE_CHECK_NAME("skies", "setCloudsOrigin", 3, 3)
   {
