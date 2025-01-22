@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
         with:
-          python-version: 3.9
+          python-version: 3.11
       - name: Install dependencies
         run: |
           sudo apt install -y doxygen
@@ -26,7 +26,7 @@ jobs:
         run: |
           python3 _docs/build_all_docs.py
           cd _docs
-          sphinx-build . _build
+          sphinx-build -c . -b html source _build
       - name: Deploy documentation
         uses: peaceiris/actions-gh-pages@v3
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
