@@ -7,7 +7,7 @@ Add-ons for 3ds Max
    :caption: Contents:
 
    dagor-max-tools/index.rst
+   dagor-maxscript-toolbox/index.rst
    dagormat/index.rst
-   dagor2-3ds-max-tools/index.rst
 
 
