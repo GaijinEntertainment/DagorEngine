@@ -1,0 +1,630 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>spline.blk &mdash; Dagor Documentation  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=93b9aae3" />
+
+  
+    <link rel="shortcut icon" href="../../_static/gaijin.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/hoverxref.js"></script>
+      <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../_static/js/micromodal.min.js"></script>
+      <script src="../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Animations" href="../animations/index.html" />
+    <link rel="prev" title=".skeleton.blk" href="skeleton_blk.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/gaijin_round_blur.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Assets and Assets Management</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../about-assets/index.html">Assets</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">All about .blk</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="application_blk.html">application.blk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="composit_blk.html">.composit.blk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="config_and_settings_blk.html">.config.blk and .settings.blk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="folder_blk.html">.folder.blk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_blk.html">.skeleton.blk</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">spline.blk</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#loft-block">loft{} Block</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#node-flags-block">node_flags{} Block</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#shape-block">shape{} Block</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#colliders-block">colliders{} Block</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#obj-generate-block">obj_generate{} Block</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#object-block">object{} Block</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#shape-to-loft-hda">Shape to Loft HDA</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../animations/index.html">Animations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lighting/index.html">Lighting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../materials/index.html">Materials</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../shaders/index.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../samples/index.html">Samples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api-references/index.html">API References and Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../danetgame-framework/index.html">DaNetGame Framework</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Assets and Assets Management</a></li>
+          <li class="breadcrumb-item"><a href="index.html">All about .blk</a></li>
+      <li class="breadcrumb-item active">spline.blk</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/assets/all-about-blk/spline_blk.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="spline-blk">
+<h1>spline.blk<a class="headerlink" href="#spline-blk" title="Link to this heading"></a></h1>
+<section id="loft-block">
+<h2>loft{} Block<a class="headerlink" href="#loft-block" title="Link to this heading"></a></h2>
+<p>Procedural transparency independent of spline control points.</p>
+<ul class="simple">
+<li><p><strong>randomOpacityMulAcross:p2=1,0.2</strong> – Random transparency variation across the
+spline.</p></li>
+<li><p><strong>randomOpacityMulAlong:p2=1,0.2</strong> – Random transparency variation along the
+spline.</p>
+<ul>
+<li><p>The first number indicates the overall reduction in the heightmap of the
+spline texture.</p></li>
+<li><p>The second number indicates the delta change in the heightmap of the spline
+texture.</p></li>
+</ul>
+</li>
+</ul>
+<a class="bg-primary reference internal image-reference" href="../../_images/spline_blk_01.jpg"><img alt="../../_images/spline_blk_01.jpg" class="bg-primary align-center" src="../../_images/spline_blk_01.jpg" style="width: 80%;" />
+</a>
+<hr class="docutils" />
+<a class="bg-primary reference internal image-reference" href="../../_images/spline_blk_02.jpg"><img alt="../../_images/spline_blk_02.jpg" class="bg-primary align-center" src="../../_images/spline_blk_02.jpg" style="width: 80%;" />
+</a>
+<hr class="docutils" />
+<p>This feature allows for adding variation to roads and sidewalks. For instance,
+sand may randomly appear, blending with the tile pattern.</p>
+<ul>
+<li><p><strong>name:t=“afg_road_c”</strong> – The name of the spline.</p></li>
+<li><p><strong>matName:t=“afg_road_c”</strong> – The material reference for the spline.</p></li>
+<li><p><strong>loftLayerOrder:i=0</strong> – Rendering layer order. The spline with the highest
+<code class="docutils literal notranslate"><span class="pre">i</span></code> value is rendered last.</p></li>
+<li><p><strong>subdivCount:i=0</strong> – Linear subdivision between spline points (higher values
+create smoother transitions).</p></li>
+<li><p><strong>shapeSubdivCount:i=0</strong> – Linear subdivision of the loft geometry relative to
+the spline’s width, for example:</p>
+<table style="text-align:center; width:98%"><thead><tr>
+  <th style="text-align:center; width:49%"><p>shapeSubdivCount:i=8</p></th>
+  <th style="text-align:center; width:49%"><p>shapeSubdivCount:i=0 (or 1)</p></th></tr></thead>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/spline_blk_03.jpg"><img alt="../../_images/spline_blk_03.jpg" class="bg-primary" src="../../_images/spline_blk_03.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/spline_blk_04.jpg"><img alt="../../_images/spline_blk_04.jpg" class="bg-primary" src="../../_images/spline_blk_04.jpg" style="width: 49%;" />
+</a>
+</li>
+</ul>
+<hr class="docutils" />
+<ul>
+<li><p><strong>flipUV:b=0</strong> – Swaps the <code class="docutils literal notranslate"><span class="pre">u</span></code> and <code class="docutils literal notranslate"><span class="pre">v</span></code> channels in the UVW mapping.</p></li>
+<li><p><strong>vTile:r=1.0</strong> – Texture scaling along the spline width, for example:</p>
+<table style="text-align:center; width:98%"><thead><tr>
+  <th style="text-align:center; width:32%"><p>vTile:r=1.0</p></th>
+  <th style="text-align:center; width:32%"><p>vTile:r=2.0</p></th>
+  <th style="text-align:center; width:32%"><p>vTile:r=0.5</p></th></tr></thead>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/spline_blk_05.jpg"><img alt="../../_images/spline_blk_05.jpg" class="bg-primary" src="../../_images/spline_blk_05.jpg" style="width: 32%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/spline_blk_06.jpg"><img alt="../../_images/spline_blk_06.jpg" class="bg-primary" src="../../_images/spline_blk_06.jpg" style="width: 32%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/spline_blk_07.jpg"><img alt="../../_images/spline_blk_07.jpg" class="bg-primary" src="../../_images/spline_blk_07.jpg" style="width: 32%;" />
+</a>
+</li>
+</ul>
+<hr class="docutils" />
+<ul>
+<li><p><strong>uSize:r=10.0</strong> – Texture scaling along the spline length.</p>
+<p>The ratio of <code class="docutils literal notranslate"><span class="pre">uSize</span></code> to <code class="docutils literal notranslate"><span class="pre">vTile</span></code> is directly influenced by the parameters in
+the <strong>shape</strong> block (see below).</p>
+</li>
+<li><p><strong>extrude:b=0</strong> – When set to <code class="docutils literal notranslate"><span class="pre">1</span></code>, the loft geometry is extruded (gains
+thickness)</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This parameter currently has no effect.</p>
+</div>
+</li>
+<li><p><strong>cullcw:b=0</strong> – Inverts the spline normals.</p></li>
+<li><p><strong>offset:p2=0, 0</strong> – Offsets the loft geometry relative to the spline:</p>
+<ul class="simple">
+<li><p>The first value offsets the loft relative to the spline width.</p></li>
+<li><p>The second value offsets the loft vertically relative to the spline:</p></li>
+</ul>
+<table style="text-align:center; width:98%"><thead><tr>
+  <th style="text-align:center; width:32%"><p>offset:p2 = 0, 0</p></th>
+  <th style="text-align:center; width:32%"><p>offset:p2 = 5.5, 0</p></th>
+  <th style="text-align:center; width:32%"><p>offset:p2 = -5.5, 0</p></th></tr></thead>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/spline_blk_08.jpg"><img alt="../../_images/spline_blk_08.jpg" class="bg-primary" src="../../_images/spline_blk_08.jpg" style="width: 32%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/spline_blk_09.jpg"><img alt="../../_images/spline_blk_09.jpg" class="bg-primary" src="../../_images/spline_blk_09.jpg" style="width: 32%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/spline_blk_10.jpg"><img alt="../../_images/spline_blk_10.jpg" class="bg-primary" src="../../_images/spline_blk_10.jpg" style="width: 32%;" />
+</a>
+<hr class="docutils" />
+<table style="text-align:center; width:98%"><thead><tr>
+  <th style="text-align:center; width:98%"><p>offset:p2 = 0, -5</p></th></tr></thead>
+</table>
+<a class="bg-primary reference internal image-reference" href="../../_images/spline_blk_11.jpg"><img alt="../../_images/spline_blk_11.jpg" class="bg-primary align-center" src="../../_images/spline_blk_11.jpg" style="width: 80%;" />
+</a>
+</li>
+<hr class="docutils" />
+<li><p><strong>placeAboveHt:r=100</strong> – Distance from the heightmap to the spline where the
+spline projection occurs.</p></li>
+</ul>
+<p>The following parameters apply only to lofts. If the spline only projects a
+texture and is not baked, this section can be omitted. If this block is enabled,
+a check will always be performed, potentially causing long load times (up to
+several minutes) in the
+<a class="reference internal" href="../../dagor-tools/daeditor/daeditor/daeditor.html"><span class="std std-doc"><em>daEditor</em></span></a>.</p>
+<ul>
+<li><p><strong>roadBehavior:b=0</strong> – Enables the road behavior block. If disabled, the loft
+is placed directly onto the landscape mesh. This setting is rarely needed (95%
+of cases).</p></li>
+<li><p><strong>htTestStep:r=100</strong> – Number of points between spline control points where
+conditions for <code class="docutils literal notranslate"><span class="pre">followHills</span></code> and <code class="docutils literal notranslate"><span class="pre">followHollows</span></code> will be checked. Cannot be
+zero (could crash the <em>daEditor</em>).</p></li>
+<li><p><strong>followHills:b=0</strong> – Ensures the loft is not drawn beneath hills (lifts the
+loft to match hill height when enabled).</p></li>
+<li><p><strong>followHollows:b=0</strong> – Ensures the loft is not drawn over depressions (lowers
+the loft to match the depth when enabled).</p></li>
+<li><p><strong>maxHerr:r=1.5</strong> – (Needs clarification)</p></li>
+<li><p><strong>roadTestWidth:r=4.0</strong> – Distance from the center of the spline where
+conditions of this block are tested.</p></li>
+<li><p><strong>curvatureStrength:r=0</strong> – Controls the influence of spline curvature on loft geometry subdivision.</p></li>
+<li><p><strong>minStep:r=1</strong> – Minimum distance between subdivisions, in meters.</p></li>
+<li><p><strong>maxStep:r=1000</strong> – Maximum subdivision distance, in meters (see screenshots).</p>
+<p><strong>Examples:</strong></p>
+<ul class="simple">
+<li><p><strong>curvatureStrength:r=1, minStep:r=1, maxStep:r=100</strong> – Subdivides the loft where needed based on spline curvature, reducing unnecessary triangles:</p></li>
+</ul>
+<a class="bg-primary reference internal image-reference" href="../../_images/spline_blk_12.jpg"><img alt="../../_images/spline_blk_12.jpg" class="bg-primary align-center" src="../../_images/spline_blk_12.jpg" style="width: 80%;" />
+</a>
+<hr class="docutils" />
+<ul class="simple">
+<li><p><strong>curvatureStrength:r=0, minStep:r=1, maxStep:r=4</strong> – Evenly spaced loft subdivisions, independent of spline curvature.</p></li>
+</ul>
+<a class="bg-primary reference internal image-reference" href="../../_images/spline_blk_13.jpg"><img alt="../../_images/spline_blk_13.jpg" class="bg-primary align-center" src="../../_images/spline_blk_13.jpg" style="width: 80%;" />
+</a>
+<hr class="docutils" />
+<ul class="simple">
+<li><p><strong>curvatureStrength:r=0, minStep:r=1, maxStep:r=1000</strong> – Optimized for splines with two points and linear interpolation.</p></li>
+</ul>
+<a class="bg-primary reference internal image-reference" href="../../_images/spline_blk_14.jpg"><img alt="../../_images/spline_blk_14.jpg" class="bg-primary align-center" src="../../_images/spline_blk_14.jpg" style="width: 80%;" />
+</a>
+</li>
+<hr class="docutils" />
+<li><p><strong>integral_mapping_length:b=0</strong> – When set to <code class="docutils literal notranslate"><span class="pre">1</span></code>, calculates arc length using
+integration (see <a class="reference external" href="https://en.wikipedia.org/wiki/Arc_length">Arc length</a>).</p></li>
+<li><p><strong>sweepWidth:r=200</strong> – Removes render instances generated by <strong>LandClasses</strong>
+(e.g., trees or houses intersecting with roads or riverbanks).</p></li>
+<li><p><strong>addFuzzySweepHalfWidth:r=50</strong> – Creates a “rough” mask or scatter effect
+(should not exceed the value of <code class="docutils literal notranslate"><span class="pre">sweepWidth</span></code>).</p></li>
+<li><p><strong>sweep2Width:r=50</strong> – Removes render instances even generated by this spline
+in the <strong>objGen{}</strong> block (useful for intersections of roads, e.g., an asphalt
+road with a tree-lined avenue intersecting a dirt road).</p></li>
+</ul>
+</section>
+<section id="node-flags-block">
+<h2>node_flags{} Block<a class="headerlink" href="#node-flags-block" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>renderable:b=1</strong> – Enables rendering of the loft.</p></li>
+<li><p><strong>collidable:b=1</strong> – Enables collision for the loft.</p></li>
+</ul>
+</section>
+<section id="shape-block">
+<h2>shape{} Block<a class="headerlink" href="#shape-block" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>closed:b=0</strong> – Closes the loft’s cross-section.</p></li>
+</ul>
+<p>The <strong>shape{}</strong> block manages the positions of the loft profile points. A
+minimum of two points is required.</p>
+<p><strong>Example:</strong></p>
+<p><strong>pt:p4= -5.0, 0.0, 1.0, 0.0</strong> where:</p>
+<ul class="simple">
+<li><p><strong>-5.0</strong> – Offset of the point along the spline’s width, 5 meters from the
+center.</p></li>
+<li><p><strong>0.0</strong> – Vertical offset of the point, relative to the spline (no vertical
+offset).</p></li>
+<li><p><strong>1.0</strong> – UV coordinate shift along the spline’s length (this parameter has no
+effect).</p></li>
+<li><p><strong>0.0</strong> – UV coordinate shift along the spline’s width.</p></li>
+</ul>
+<p><strong>Example:</strong></p>
+<ul>
+<li><p><strong>pt:p4= 5.0, 0.0, 1.0, 0.0</strong> – This point is offset 5 meters in the opposite
+direction, with the same vertical and UV settings.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/spline_blk_15.jpg"><img alt="../../_images/spline_blk_15.jpg" class="bg-primary" src="../../_images/spline_blk_15.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/spline_blk_16.jpg"><img alt="../../_images/spline_blk_16.jpg" class="bg-primary" src="../../_images/spline_blk_16.jpg" style="width: 49%;" />
+</a>
+</li>
+</ul>
+<p>The final loft will have a width of 10 meters and be vertically aligned with the
+spline’s control points (see screenshot). The ratio of <strong>vTile</strong> to <strong>uSize</strong> is
+1:10 (as described above).</p>
+<p><strong>Example of a more complex curved profile:</strong></p>
+<ul>
+<li><p><strong>pt:p4= -7.5, 0.0, 0.0, 0.0</strong></p></li>
+<li><p><strong>pt:p4= -5.0, 1.0, 0.0, 0.2</strong></p></li>
+<li><p><strong>pt:p4=  5.0, 1.0, 0.0, 0.8</strong></p></li>
+<li><p><strong>pt:p4= 7.5, 0.0, 0.0, 1.0</strong></p>
+<a class="bg-primary reference internal image-reference" href="../../_images/spline_blk_17.jpg"><img alt="../../_images/spline_blk_17.jpg" class="bg-primary" src="../../_images/spline_blk_17.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/spline_blk_18.jpg"><img alt="../../_images/spline_blk_18.jpg" class="bg-primary" src="../../_images/spline_blk_18.jpg" style="width: 49%;" />
+</a>
+</li>
+</ul>
+<p>The final loft will have a width of 15 meters (ranging from -7.5 to 7.5 meters)
+and will be vertically aligned with the spline control points. The middle
+section, 10 meters wide, will be raised 1 meter above the spline.</p>
+<p>In the example above, the triangles of the loft behave uniformly. To
+differentiate the behavior of points in the loft, the <strong>group{}</strong> block is used.</p>
+<p><strong>Example:</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">group</span><span class="p">{</span>
+  <span class="n">pt</span><span class="p">:</span><span class="n">p4</span><span class="o">=</span> <span class="o">-</span><span class="mf">7.5</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span>
+<span class="p">}</span>
+
+<span class="n">group</span><span class="p">{</span>
+  <span class="n">pt</span><span class="p">:</span><span class="n">p4</span><span class="o">=</span> <span class="o">-</span><span class="mf">5.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">,</span> <span class="mf">0.25</span>
+  <span class="n">pt</span><span class="p">:</span><span class="n">p4</span><span class="o">=</span> <span class="mf">5.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">,</span> <span class="mf">0.75</span>
+<span class="p">}</span>
+
+<span class="n">group</span><span class="p">{</span>
+  <span class="n">pt</span><span class="p">:</span><span class="n">p4</span><span class="o">=</span> <span class="mf">7.5</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Grouping loft points defines their varying behavior.</p>
+<p><strong>Example:</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">group</span><span class="p">{</span>
+  <span class="nb">type</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;rel_to_collision&quot;</span>
+  <span class="n">pt</span><span class="p">:</span><span class="n">p4</span><span class="o">=</span> <span class="o">-</span><span class="mf">7.5</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span>
+<span class="p">}</span>
+
+<span class="n">group</span><span class="p">{</span>
+  <span class="nb">type</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;move_to_min&quot;</span>
+  <span class="n">pt</span><span class="p">:</span><span class="n">p4</span><span class="o">=</span> <span class="o">-</span><span class="mf">5.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">,</span> <span class="mf">0.25</span>
+  <span class="n">pt</span><span class="p">:</span><span class="n">p4</span><span class="o">=</span> <span class="mf">5.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">,</span> <span class="mf">0.75</span>
+<span class="p">}</span>
+
+<span class="n">group</span><span class="p">{</span>
+  <span class="nb">type</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;rel_to_collision&quot;</span>
+  <span class="n">pt</span><span class="p">:</span><span class="n">p4</span><span class="o">=</span> <span class="mf">7.5</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<a class="bg-primary reference internal image-reference" href="../../_images/spline_blk_19.jpg"><img alt="../../_images/spline_blk_19.jpg" class="bg-primary" src="../../_images/spline_blk_19.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/spline_blk_20.jpg"><img alt="../../_images/spline_blk_20.jpg" class="bg-primary" src="../../_images/spline_blk_20.jpg" style="width: 49%;" />
+</a>
+<p>The resulting loft consists of three groups. The vertical positions of the
+middle group’s points match the lowest vertical coordinate of the spline’s
+control points (<code class="docutils literal notranslate"><span class="pre">type:t=&quot;move_to_min&quot;</span></code>). The two outer groups are “dropped” onto
+the collision object (in this case, the heightmap is used as the collision).</p>
+</section>
+<section id="colliders-block">
+<h2>colliders{} Block<a class="headerlink" href="#colliders-block" title="Link to this heading"></a></h2>
+<p>The <strong>colliders{}</strong> block defines the objects with which the spline collides.</p>
+<ul class="simple">
+<li><p><strong>use:t=“HeightMap”</strong> – Collides with the heightmap.</p></li>
+<li><p><strong>use:t=“(srv) Prefab entities”</strong> – Collides with prefab entities.</p></li>
+<li><p><strong>use:t=“(filter) Generated by spline”</strong> – Collides with objects generated by
+the spline itself.</p></li>
+<li><p><strong>use:t=“SGeometry”</strong> – Collides with scene geometry.</p></li>
+</ul>
+</section>
+<section id="obj-generate-block">
+<h2>obj_generate{} Block<a class="headerlink" href="#obj-generate-block" title="Link to this heading"></a></h2>
+<p>The <strong>obj_generate{}</strong> block is responsible for placing objects along the
+spline.</p>
+<ul>
+<li><p><strong>rseed:i = 111</strong> – Random seed for generating random values. It is essential
+to use unique seeds for different <strong>obj_generate{}</strong> blocks; otherwise, it
+will cause a syntax error.</p></li>
+<li><p><strong>setSeedToEntities:b=yes</strong> – Enables randomization for composite objects.
+Without this, the same random element will be generated repeatedly, instead of
+different ones each time.</p></li>
+<li><p><strong>placeAtPoint:b=true</strong> – Places objects at the spline points, which is useful
+for precise placements, such as poles in a city. The step value (discussed
+below) will also apply.</p></li>
+<li><p><strong>step:p2 = 10, 0</strong> – The first value is the distance (step) between objects,
+while the second value defines a range for random variation. For example:</p>
+<ul class="simple">
+<li><p><strong>step:p2 = 10, 0</strong> – Objects are placed exactly 10 meters apart.</p></li>
+<li><p><strong>step:p2 = 10, 2</strong> – A random value between 0 and 2 meters is added (or
+subtracted) to the 10-meter step, creating varied distances between objects.</p></li>
+</ul>
+<a class="bg-primary reference internal image-reference" href="../../_images/spline_blk_21.jpg"><img alt="../../_images/spline_blk_21.jpg" class="bg-primary" src="../../_images/spline_blk_21.jpg" style="width: 49%;" />
+</a>
+<a class="bg-primary reference internal image-reference" href="../../_images/spline_blk_22.jpg"><img alt="../../_images/spline_blk_22.jpg" class="bg-primary" src="../../_images/spline_blk_22.jpg" style="width: 49%;" />
+</a>
+</li>
+</ul>
+<p>When using the <strong>genTag</strong> system, the step must be larger than the widest
+object’s width. Otherwise, the distance between objects will be determined by
+the <strong>step</strong>, not the object’s <strong>width</strong>.</p>
+<ul>
+<li><p><strong>offset:p2 = 0.0, 0.0</strong> – The first value shifts the object’s position along
+the spline, and the second defines the range for random variation.</p></li>
+<li><p><strong>placeAboveHt:r=100</strong> – Objects are projected onto the ground within a
+100-meter distance.</p></li>
+<li><p><strong>startPadding:r=3.5; endPadding:r=3.5</strong> – These parameters define the
+exclusion zones at the start and end of the spline, where no objects will be
+generated.</p></li>
+<li><p><strong>orientation:t=“normal”</strong> – Controls the orientation of the objects during
+placement. Possible values include:</p>
+<ul class="simple">
+<li><p><strong>orientation:t=“normal”</strong> – Objects are not aligned; their tilt depends on
+the surface’s normal beneath them.</p></li>
+</ul>
+<a class="bg-primary reference internal image-reference" href="../../_images/spline_blk_23.jpg"><img alt="../../_images/spline_blk_23.jpg" class="bg-primary align-center" src="../../_images/spline_blk_23.jpg" style="width: 80%;" />
+</a>
+<hr class="docutils" />
+<ul class="simple">
+<li><p><strong>orientation:t=“fence”</strong> – Objects are aligned along the spline, with no
+tilt.</p></li>
+</ul>
+<a class="bg-primary reference internal image-reference" href="../../_images/spline_blk_24.jpg"><img alt="../../_images/spline_blk_24.jpg" class="bg-primary align-center" src="../../_images/spline_blk_24.jpg" style="width: 80%;" />
+</a>
+<hr class="docutils" />
+<ul class="simple">
+<li><p><strong>orientation:t=“fence_normal”</strong> – Objects are aligned along the spline, and
+their tilt depends on the surface’s normal.</p></li>
+</ul>
+<a class="bg-primary reference internal image-reference" href="../../_images/spline_blk_25.jpg"><img alt="../../_images/spline_blk_25.jpg" class="bg-primary align-center" src="../../_images/spline_blk_25.jpg" style="width: 80%;" />
+</a>
+</li>
+<hr class="docutils" />
+<li><p><strong>tightFenceOrient:b=yes</strong> – Aligns objects along chords. As the name
+suggests, this is useful for fences. Instead of placing objects on the spline
+itself, they are positioned on a chord defined by the object’s width. Chords
+are generated along the spline until they fit within its length. If the last
+chord is shorter than the object’s <strong>width</strong>, the object will not be
+generated, leaving a gap. To avoid gaps, you can use “filler” objects by
+setting <strong>integral_end_entity:b=yes</strong>.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/spline_blk_26.jpg"><img alt="../../_images/spline_blk_26.jpg" class="bg-primary align-center" src="../../_images/spline_blk_26.jpg" style="width: 80%;" />
+</a>
+</li>
+<hr class="docutils" />
+<li><p><strong>tightFenceIntegral:t=“spline”</strong> – Makes chords ignore spline nodes.</p></li>
+<li><p><strong>tightFenceIntegral:t=“segment”</strong> – Treats each segment of the spline as a
+separate spline. Useful for generating fences along irregular contours.</p></li>
+<li><p><strong>tightFenceIntegral:t=“corner”</strong> – Filler objects are placed only at corners.</p></li>
+<li><p><strong>placeAtVeryStart:b=yes</strong> and <strong>placeAtVeryEnd:b=yes</strong> – Ensures objects are
+placed at the very start or end of the spline, regardless of their frequency
+or padding.</p></li>
+</ul>
+<p>To add unique objects at the start or end of the spline (without repetition
+along the middle), use a zero step: <strong>step:p2 = 0, 0</strong>.</p>
+<section id="object-block">
+<h3>object{} Block<a class="headerlink" href="#object-block" title="Link to this heading"></a></h3>
+<p>These parameters relate to the objects themselves, as defined in the
+<strong>object{}</strong> block.</p>
+<p><strong>Example:</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nb">object</span><span class="p">{</span>
+  <span class="n">genTag</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;a&quot;</span>
+  <span class="n">width</span><span class="p">:</span><span class="n">r</span><span class="o">=</span><span class="mi">17</span>
+  <span class="n">name</span><span class="p">:</span><span class="n">t</span><span class="o">=</span><span class="s2">&quot;modern_siding_suburb_building_a&quot;</span>
+  <span class="n">weight</span><span class="p">:</span><span class="n">r</span><span class="o">=</span><span class="mi">1</span>
+
+  <span class="n">rot_x</span><span class="p">:</span><span class="n">p2</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+  <span class="n">rot_y</span><span class="p">:</span><span class="n">p2</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+  <span class="n">rot_z</span><span class="p">:</span><span class="n">p2</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+
+  <span class="n">offset_x</span><span class="p">:</span><span class="n">p2</span><span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+  <span class="n">offset_y</span><span class="p">:</span><span class="n">p2</span><span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+  <span class="n">offset_z</span><span class="p">:</span><span class="n">p2</span><span class="o">=</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">0</span>
+
+  <span class="n">scale</span><span class="p">:</span><span class="n">p2</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span>
+  <span class="n">yScale</span><span class="p">:</span><span class="n">p2</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="mi">0</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Where:</p>
+<ul>
+<li><p><strong>genTagSeq:t=“a”</strong> – The sequence (pattern) of objects used for placement.</p>
+<ul class="simple">
+<li><p><strong>genTagSeq:t=“a”</strong> – Only objects with <strong>genTag:t=“a”</strong> will be placed. If
+there are multiple objects with the same tag, they will be randomly selected,
+and their selection frequency is controlled by <strong>weight</strong>. If the sequence
+contains multiple identical tags (e.g., <strong>genTagSeq:t=“aaaaaaa”</strong> or
+<strong>genTagSeq:t=“a”</strong>), the result is the same.</p></li>
+<li><p><strong>genTagSeq:t=“ab”</strong> – Alternates between objects with <strong>genTag:t=“a”</strong> and
+<strong>genTag:t=“b”</strong>.</p></li>
+<li><p><strong>genTagSeq:t=“abbccaccabcca”</strong> – Alternates between objects with four
+different <strong>genTags</strong>.</p></li>
+</ul>
+<p><strong>Examples:</strong></p>
+<ul>
+<li><p><strong>genTagSeq:t=“a”</strong></p>
+<a class="bg-primary reference internal image-reference" href="../../_images/spline_blk_27.jpg"><img alt="../../_images/spline_blk_27.jpg" class="bg-primary align-center" src="../../_images/spline_blk_27.jpg" style="width: 80%;" />
+</a>
+</li>
+<hr class="docutils" />
+<li><p><strong>genTagSeq:t=“ab”</strong></p>
+<a class="bg-primary reference internal image-reference" href="../../_images/spline_blk_28.jpg"><img alt="../../_images/spline_blk_28.jpg" class="bg-primary align-center" src="../../_images/spline_blk_28.jpg" style="width: 80%;" />
+</a>
+</li>
+<hr class="docutils" />
+<li><p><strong>genTagSeq:t=“abc”</strong></p>
+<a class="bg-primary reference internal image-reference" href="../../_images/spline_blk_29.jpg"><img alt="../../_images/spline_blk_29.jpg" class="bg-primary align-center" src="../../_images/spline_blk_29.jpg" style="width: 80%;" />
+</a>
+</li>
+</ul>
+</li>
+<hr class="docutils" />
+<li><p><strong>width:r=17</strong> – Distance between consecutive objects of the current type (17
+meters in this case).</p></li>
+<li><p><strong>name:t=“modern_siding_suburb_building_a”</strong> – Reference to the object.</p></li>
+<li><p><strong>weight:r=1</strong> – The probability (frequency) of selecting this object when
+randomly chosen from a group of objects with the same <strong>genTag</strong>.</p></li>
+<li><p><strong>rot_x, rot_y, rot_z</strong> – Rotation of the object in three planes with a random
+value.</p></li>
+<li><p><strong>offset_x, offset_y, offset_z</strong> – Random offsets along the three axes.</p></li>
+<li><p><strong>scale:p2</strong> – Uniform scale with a random value.</p></li>
+<li><p><strong>yScale:p2</strong> – Vertical scale with a random value.</p></li>
+<li><p><strong>integral_end_entity:b=yes</strong> – Marks the object as a “filler” when using
+<strong>tightFenceOrient</strong>. This object will be scaled or stretched to fit the
+remaining spline length. This parameter only affects the last object in a
+sequence.</p></li>
+</ul>
+<p>Objects marked with <strong>integral_end_entity</strong> may not be generated (if their
+<strong>genTag</strong> is not used in <strong>genTagSeq</strong>) but will still be used as fillers at
+the end of the spline.</p>
+<p>For correct operation and to avoid excessive distortion, it is recommended to
+create multiple filler objects. Typically, in addition to the main object, you
+should have three-quarter, half, and quarter-length versions. To allow scaling,
+specify values in the <strong>xzScale:p2</strong> parameter.</p>
+<a class="bg-primary reference internal image-reference" href="../../_images/spline_blk_30.jpg"><img alt="../../_images/spline_blk_30.jpg" class="bg-primary align-center" src="../../_images/spline_blk_30.jpg" style="width: 80%;" />
+</a>
+</section>
+</section>
+<hr class="docutils" />
+<section id="shape-to-loft-hda">
+<h2>Shape to Loft HDA<a class="headerlink" href="#shape-to-loft-hda" title="Link to this heading"></a></h2>
+<p>This script converts a polygonal shape into the coordinates of loft points,
+allowing these values to be substituted into a spline class:
+<a class="reference download internal" download="" href="../../_downloads/bd1a87f860907a225ffe52eff6c87bcc/dgr_shape_to_loft.hda"><span class="xref download myst"><strong>dgr_shape_to_loft.hda</strong></span></a>.</p>
+<p>The tool is designed to facilitate the translation of polygonal geometry into a
+usable format for lofting, enabling smoother integration of custom shapes into
+spline-based workflows.</p>
+<hr class="docutils" />
+<p>To visually display the loft geometry in the editor and adjust the parameters:</p>
+<ol class="arabic simple">
+<li><p>Open the <code class="docutils literal notranslate"><span class="pre">*.mat.blk</span></code> file and set <strong>render_landmesh_combined=0</strong> to
+<strong>render_landmesh_combined=1</strong>.</p></li>
+<li><p>Open the <code class="docutils literal notranslate"><span class="pre">*.spline.blk</span></code> file and press Ctrl+S to apply the changes made to
+<code class="docutils literal notranslate"><span class="pre">*.mat.blk</span></code>.</p></li>
+</ol>
+<p>The wireframe of the loft geometry will then be visible by pressing <code class="docutils literal notranslate"><span class="pre">F3</span></code>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="skeleton_blk.html" class="btn btn-neutral float-left" title=".skeleton.blk" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../animations/index.html" class="btn btn-neutral float-right" title="Animations" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2025.
+      <span class="lastupdated">Last updated on Apr 09, 2025.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+ <script type="text/javascript">
+    $(document).ready(function() {
+        $(".toggle > *").hide();
+        $(".toggle .header").show();
+        $(".toggle .header").click(function() {
+            $(this).parent().children().not(".header").toggle(400);
+            $(this).parent().children(".header").toggleClass("open");
+        })
+    });
+</script>
+
+
+</body>
+</html>

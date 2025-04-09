@@ -1,0 +1,113 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classd3d_1_1shadermodel_1_1matcher_1_1_map" kind="class" language="C++" prot="public">
+    <compoundname>d3d::shadermodel::matcher::Map</compoundname>
+    <basecompoundref refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map" prot="protected" virt="non-virtual">d3d::shadermodel::matcher::BasicMap&lt; V, T, AnyVersion &gt;</basecompoundref>
+    <includes refid="dag__shader_model_version_8h" local="no">dag_shaderModelVersion.h</includes>
+    <templateparamlist>
+      <param>
+        <type>typename T</type>
+      </param>
+      <param>
+        <type>typename V</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="private-type">
+      <memberdef kind="typedef" id="classd3d_1_1shadermodel_1_1matcher_1_1_map_1ad13f1a3fd504016cce45cff692eeb727" prot="private" static="no">
+        <type><ref refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map" kindref="compound">BasicMap</ref>&lt; V, T, <ref refid="structd3d_1_1shadermodel_1_1_any_version" kindref="compound">AnyVersion</ref> &gt;</type>
+        <definition>using d3d::shadermodel::matcher::Map&lt; T, V &gt;::BaseType =  BasicMap&lt;V, T, AnyVersion&gt;</definition>
+        <argsstring></argsstring>
+        <name>BaseType</name>
+        <qualifiedname>d3d::shadermodel::matcher::Map::BaseType</qualifiedname>
+        <briefdescription>
+<para>Type shorthand to reduce typing. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="251" column="3" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="251" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para><ref refid="classd3d_1_1shadermodel_1_1matcher_1_1_map" kindref="compound">Map</ref> type that exactly matches values versions. <parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>T</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Type of the stored value. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>V</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Type of the value that is matched with the input matchers on each matching attempt. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>d3d::shadermodel::matcher::BasicMap&lt; V, T, AnyVersion &gt;</label>
+        <link refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map"/>
+        <childnode refid="3" relation="protected-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>d3d::shadermodel::matcher::EqualCompare&lt; T &gt;</label>
+        <link refid="structd3d_1_1shadermodel_1_1matcher_1_1_equal_compare"/>
+      </node>
+      <node id="1">
+        <label>d3d::shadermodel::matcher::Map&lt; T, V &gt;</label>
+        <link refid="classd3d_1_1shadermodel_1_1matcher_1_1_map"/>
+        <childnode refid="2" relation="protected-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>d3d::shadermodel::matcher::BasicMap&lt; V, T, AnyVersion &gt;</label>
+        <link refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map"/>
+        <childnode refid="3" relation="protected-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>d3d::shadermodel::matcher::EqualCompare&lt; T &gt;</label>
+        <link refid="structd3d_1_1shadermodel_1_1matcher_1_1_equal_compare"/>
+      </node>
+      <node id="1">
+        <label>d3d::shadermodel::matcher::Map&lt; T, V &gt;</label>
+        <link refid="classd3d_1_1shadermodel_1_1matcher_1_1_map"/>
+        <childnode refid="2" relation="protected-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" line="248" column="1" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_shaderModelVersion.h" bodystart="249" bodyend="256"/>
+    <listofallmembers>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_map_1ad13f1a3fd504016cce45cff692eeb727" prot="private" virt="non-virtual"><scope>d3d::shadermodel::matcher::Map</scope><name>BaseType</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1ab42764e25257bb37854a0c19016cf719" prot="protected" virt="non-virtual"><scope>d3d::shadermodel::matcher::Map</scope><name>BasicMap</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a27f93ff706e9de570afcea49823cc365" prot="protected" virt="non-virtual"><scope>d3d::shadermodel::matcher::Map</scope><name>BasicMap</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1af39bd3e4fd1285f3d0b605f061d69876" prot="protected" virt="non-virtual"><scope>d3d::shadermodel::matcher::Map</scope><name>BasicMap</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a695c688d1028b856ccf319a642ba613a" prot="protected" virt="non-virtual"><scope>d3d::shadermodel::matcher::Map</scope><name>BasicMap</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1affcfd76e036e5c4f36baf8359fb71923" prot="protected" virt="non-virtual"><scope>d3d::shadermodel::matcher::Map</scope><name>BasicMap</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1ae063849510082b955f476dfe1e91743e" prot="protected" virt="non-virtual"><scope>d3d::shadermodel::matcher::Map</scope><name>BasicMap</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a36961fbec341cbeb3791f8b5af19ddc2" prot="protected" virt="non-virtual"><scope>d3d::shadermodel::matcher::Map</scope><name>BasicMap</name></member>
+      <member refid="structd3d_1_1shadermodel_1_1matcher_1_1_equal_compare_1ab2fc6902a2991e84a40babd7bd33885a" prot="protected" virt="non-virtual"><scope>d3d::shadermodel::matcher::Map</scope><name>compare</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a37f4959e559afb6b0545e919d94daedc" prot="protected" virt="non-virtual"><scope>d3d::shadermodel::matcher::Map</scope><name>get</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a072b44eac309c5073c48f0b9f3a9c8b9" prot="protected" virt="non-virtual"><scope>d3d::shadermodel::matcher::Map</scope><name>get</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a9d6ace8552c10e143ad60de13bdc77f6" prot="protected" virt="non-virtual"><scope>d3d::shadermodel::matcher::Map</scope><name>map</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a3c78b2827d9500e1363fbbabf4a66422" prot="protected" virt="non-virtual"><scope>d3d::shadermodel::matcher::Map</scope><name>map</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a41c41f8d7714028d7e1584ad0c48bf1f" prot="protected" virt="non-virtual"><scope>d3d::shadermodel::matcher::Map</scope><name>map</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1af2e667daaaf83dd08b33f0dc57184b43" prot="protected" virt="non-virtual"><scope>d3d::shadermodel::matcher::Map</scope><name>map</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1ab56d931d44d920f9762b3a54bad1e597" prot="protected" virt="non-virtual"><scope>d3d::shadermodel::matcher::Map</scope><name>map</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1ac76200fea8b52345b2e1c09c96b0eeef" prot="protected" virt="non-virtual"><scope>d3d::shadermodel::matcher::Map</scope><name>map</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a0b12f6978f4f0778377a86cece7d7648" prot="protected" virt="non-virtual"><scope>d3d::shadermodel::matcher::Map</scope><name>operator=</name></member>
+      <member refid="classd3d_1_1shadermodel_1_1matcher_1_1_basic_map_1a57dc6d51f2d441520482472a9be1bc1c" prot="protected" virt="non-virtual"><scope>d3d::shadermodel::matcher::Map</scope><name>operator=</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>
