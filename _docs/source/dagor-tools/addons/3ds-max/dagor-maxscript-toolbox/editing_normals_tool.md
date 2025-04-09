@@ -1,4 +1,4 @@
-# Dagor 2 Editing Normals Tool
+# Dagor Editing Normals Tool
 
 ## Installation
 

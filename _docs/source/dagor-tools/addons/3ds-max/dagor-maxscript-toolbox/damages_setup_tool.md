@@ -1,4 +1,4 @@
-# Dagor 2 Damages Setup Tool
+# Dagor Damages Setup Tool
 
 ## Installation
 
@@ -11,7 +11,7 @@ This script requires 3ds Max 2013 or newer version to run.
 ## Accessing the Damage Setup Tool
 
 1. Navigate to **Gaijin Tools** {bdg-dark-line}`1` **> Damage Objects Setup...**
-   {bdg-dark-line}`2`. This will open the main window of the Dagor 2 Damages
+   {bdg-dark-line}`2`. This will open the main window of the Dagor Damages
    Setup {bdg-dark-line}`3`.
 
 2. To verify the version of the script, go to **Gaijin Tools**

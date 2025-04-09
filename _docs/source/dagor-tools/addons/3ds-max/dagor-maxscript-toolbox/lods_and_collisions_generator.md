@@ -1,4 +1,4 @@
-# Dagor 2 LODs and Collisions Generator
+# Dagor LODs and Collisions Generator
 
 ## Installation
 
@@ -39,7 +39,7 @@ number of triangles.
 ## Accessing the LODs and Collisions Generator
 
 1. Navigate to **Gaijin Tools** {bdg-dark-line}`1` **> LOD Generator...**
-   {bdg-dark-line}`2`. This will open the main window of the Dagor 2 LOD
+   {bdg-dark-line}`2`. This will open the main window of the Dagor LOD
    Generator.
 
 2. To verify the version {bdg-dark-line}`3` of the script, go to **Gaijin

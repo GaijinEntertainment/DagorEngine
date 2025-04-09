@@ -1,4 +1,4 @@
-# Dagor 2 Fixing Illegal Characters Tool
+# Dagor Fixing Illegal Characters Tool
 
 ## Installation
 
@@ -11,7 +11,7 @@ This script requires 3ds Max 2013 or newer version to run.
 ## Accessing the Fixing Illegal Characters Tool
 
 1. Navigate to **Gaijin Tools** {bdg-dark-line}`1` **> Fix Illegal
-   Characters...**. This will open the main window of the Dagor 2 Fix Illegal
+   Characters...**. This will open the main window of the Dagor Fix Illegal
    Characters script.
 
 2. To verify the version {bdg-dark-line}`3` of the script, go to **Gaijin
@@ -90,7 +90,7 @@ Illegal Characters...** menu. The following window will appear:
   `.dag` format export window after all checks are complete.
 
   ```{note}
-  Ensure you are familiar with how Dagor 2 plugins work before enabling this
+  Ensure you are familiar with how Dagor plugins work before enabling this
   option.
   ```
 

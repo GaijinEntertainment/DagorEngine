@@ -1,4 +1,4 @@
-# Dagor 2 Simple CMP Editor
+# Dagor Simple CMP Editor
 
 ```{caution}
 This tool is currently under development.
@@ -12,25 +12,25 @@ This tool is currently under development.
 - This script requires 3ds Max 2021 or newer version to run.
 - Make sure that the plugin version is at least `1.8`.
 - This Simple CMP Editor requires the
-  [Dagor 2 Fast Editor User Properties](fast_editor_user_properties.md), which
+  [Dagor Fast Editor User Properties](fast_editor_user_properties.md), which
   is part of the toolbox.
 ```
 ## Accessing the Simple CMP Editor
 
 To get started, ensure that your toolbox is up to date. Then, drag and drop
-`dagor2_CMP_GeneratorSimple.ms` into the **Viewport**.
+`dagor_CMP_GeneratorSimple.ms` into the **Viewport**.
 
 - Press `Ctrl`+`Shift` to open the floating panel:
 
   <img src="_images/fast_properties_01.png" alt="Fast Editor User Properties" align="center">
 
 - Closing the panel by pressing **X** disables this editor completely. To return
-  the toggle behavior, reopen the editor from the **Gaijin Tools > Dagor 2 Fast
+  the toggle behavior, reopen the editor from the **Gaijin Tools > Dagor Fast
   Properties...**
 
   <img src="_images/fast_properties_02.png" alt="Fast Editor User Properties" align="center">
 
-- To open the main window of the Dagor2 CMP Exporter, navigate to **Gaijin
+- To open the main window of the Dagor CMP Exporter, navigate to **Gaijin
   Tools > Dagor CMP Exporter...** {bdg-dark-line}`1`.
 
 - To verify the version {bdg-dark-line}`2` of the script, go to **Gaijin Tools >

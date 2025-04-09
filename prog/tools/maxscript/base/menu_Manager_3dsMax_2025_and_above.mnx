@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MaxMenuTransformations>
+    <DeleteItem Id="f8ffb827-741c-4a81-8c89-bbf856dcf56d"/>
+    <CreateMenu ParentId="b4779ebb-a6f0-4815-9777-57c01c0b584c" MenuId="d93afc6f-be34-4483-85ff-0a75468f76b5" Title="Gaijin Tools"/>
+    <CreateMenu ParentId="d93afc6f-be34-4483-85ff-0a75468f76b5" MenuId="e3ae0728-d989-4d00-aeef-c27034a02db8" Title="Damage Objects Setup..."/>
+    <DeleteItem Id="e3ae0728-d989-4d00-aeef-c27034a02db8"/>
+    <CreateMenuSeparator MenuId="d93afc6f-be34-4483-85ff-0a75468f76b5" Id="c8aefb2a-80c8-4848-b14e-049246c5c136"/>
+    <CreateMenu ParentId="d93afc6f-be34-4483-85ff-0a75468f76b5" MenuId="2d5bbb87-1f57-4c48-9573-35050bbfe4ff" Title="Damage Objects Setup..." BeforeId="c8aefb2a-80c8-4848-b14e-049246c5c136"/>
+    <DeleteItem Id="2d5bbb87-1f57-4c48-9573-35050bbfe4ff"/>
+    <CreateMenuAction MenuId="d93afc6f-be34-4483-85ff-0a75468f76b5" Id="317e1fd4-8e10-435e-ab13-c429fdb7be6b" ActionId="647394-GJ_AO_Baker`GJ_Tools" BeforeId="c8aefb2a-80c8-4848-b14e-049246c5c136"/>
+    <DeleteItem Id="c8aefb2a-80c8-4848-b14e-049246c5c136"/>
+    <CreateMenuAction MenuId="d93afc6f-be34-4483-85ff-0a75468f76b5" Id="63455621-d0ef-47d3-b748-073652a66dc5" ActionId="647394-GJ_CMP_Gen`GJ_Tools" BeforeId="317e1fd4-8e10-435e-ab13-c429fdb7be6b"/>
+    <CreateMenuAction MenuId="d93afc6f-be34-4483-85ff-0a75468f76b5" Id="4cb59f83-8f58-4970-b867-ac6338eef9fa" ActionId="647394-GJ_Dagorppainter`GJ_Tools" BeforeId="63455621-d0ef-47d3-b748-073652a66dc5"/>
+    <CreateMenuAction MenuId="d93afc6f-be34-4483-85ff-0a75468f76b5" Id="68fa1279-974d-44ca-a682-c21426334337" ActionId="647394-GJ_DegenerateTrisCheck`GJ_Tools" BeforeId="4cb59f83-8f58-4970-b867-ac6338eef9fa"/>
+    <CreateMenuAction MenuId="d93afc6f-be34-4483-85ff-0a75468f76b5" Id="4be722d9-ca7c-456c-9974-f07fc2bb7927" ActionId="647394-GJ_Floater`GJ_Tools" BeforeId="68fa1279-974d-44ca-a682-c21426334337"/>
+    <CreateMenuAction MenuId="d93afc6f-be34-4483-85ff-0a75468f76b5" Id="0cb3797b-2e0c-4ff0-9952-cd47c6e61854" ActionId="647394-GJ_IO`GJ_Tools" BeforeId="4be722d9-ca7c-456c-9974-f07fc2bb7927"/>
+    <CreateMenuAction MenuId="d93afc6f-be34-4483-85ff-0a75468f76b5" Id="252dff17-2831-4e87-a254-eef35679301d" ActionId="647394-GJ_LODGenerator`GJ_Tools" BeforeId="0cb3797b-2e0c-4ff0-9952-cd47c6e61854"/>
+    <CreateMenuAction MenuId="d93afc6f-be34-4483-85ff-0a75468f76b5" Id="ab821a2f-f475-4497-bf4c-9c8f8f2b4d83" ActionId="647394-GJ_VColorPosTransfer`GJ_Tools" BeforeId="252dff17-2831-4e87-a254-eef35679301d"/>
+    <CreateMenuAction MenuId="d93afc6f-be34-4483-85ff-0a75468f76b5" Id="e2593cb5-0b32-408f-a44a-d80b88c695ae" ActionId="647394-GJDamagesSetup`GJ_Tools" BeforeId="ab821a2f-f475-4497-bf4c-9c8f8f2b4d83"/>
+    <CreateMenuAction MenuId="d93afc6f-be34-4483-85ff-0a75468f76b5" Id="0a30339a-8c91-4942-80b1-6f39caa9022d" ActionId="647394-GJFixNormal`GJ_Tools" BeforeId="e2593cb5-0b32-408f-a44a-d80b88c695ae"/>
+    <CreateMenuAction MenuId="d93afc6f-be34-4483-85ff-0a75468f76b5" Id="7e67e38e-3f73-4a8c-8cd5-2b283d00d4ca" ActionId="647394-GJRemoveUnusedBones`GJ_Tools" BeforeId="0a30339a-8c91-4942-80b1-6f39caa9022d"/>
+    <CreateMenuAction MenuId="d93afc6f-be34-4483-85ff-0a75468f76b5" Id="dd4c5ee8-4379-4946-ab11-9e12551d9f22" ActionId="647394-About_GJ`GJ_Tools" BeforeId="ab821a2f-f475-4497-bf4c-9c8f8f2b4d83"/>
+    <MoveItem DestinationId="d93afc6f-be34-4483-85ff-0a75468f76b5" ItemId="dd4c5ee8-4379-4946-ab11-9e12551d9f22" BeforeId="68fa1279-974d-44ca-a682-c21426334337"/>
+    <MoveItem DestinationId="d93afc6f-be34-4483-85ff-0a75468f76b5" ItemId="dd4c5ee8-4379-4946-ab11-9e12551d9f22"/>
+    <CreateMenuAction MenuId="d93afc6f-be34-4483-85ff-0a75468f76b5" Id="fde39d50-616d-4e37-aea3-fa1f2e682868" ActionId="647394-GJ_Floater_UD`GJ_Tools" BeforeId="7e67e38e-3f73-4a8c-8cd5-2b283d00d4ca"/>
+    <SetItemTitle Id="fde39d50-616d-4e37-aea3-fa1f2e682868" Title="Fast Properties..." ResIdTitle="d44a1357-a9f9-46da-a04d-296471174082"/>
+    <CreateMenuAction MenuId="d93afc6f-be34-4483-85ff-0a75468f76b5" Id="1a9fb45a-71bd-4ef8-b05f-3f8640665fe9" ActionId="647394-GJ_IO`GJ_Tools" BeforeId="fde39d50-616d-4e37-aea3-fa1f2e682868"/>
+    <DeleteItem Id="1a9fb45a-71bd-4ef8-b05f-3f8640665fe9"/>
+    <CreateMenuAction MenuId="d93afc6f-be34-4483-85ff-0a75468f76b5" Id="9518b017-df86-437c-bcff-19dabe4e9613" ActionId="647394-GJ_NPuff`GJ_Tools" BeforeId="fde39d50-616d-4e37-aea3-fa1f2e682868"/>
+    <CreateMenuAction MenuId="d93afc6f-be34-4483-85ff-0a75468f76b5" Id="8779768d-ae76-4bad-8666-42ed82c4ab4d" ActionId="647394-GJFiGliff`GJ_Tools" BeforeId="9518b017-df86-437c-bcff-19dabe4e9613"/>
+    <CreateMenuAction MenuId="d93afc6f-be34-4483-85ff-0a75468f76b5" Id="643ca3ec-cb3b-4bf8-a392-ddd55dee4374" ActionId="647394-GJ_CMP_Gen`GJ_Tools" BeforeId="8779768d-ae76-4bad-8666-42ed82c4ab4d"/>
+    <MoveItem DestinationId="d93afc6f-be34-4483-85ff-0a75468f76b5" ItemId="643ca3ec-cb3b-4bf8-a392-ddd55dee4374" BeforeId="ab821a2f-f475-4497-bf4c-9c8f8f2b4d83"/>
+</MaxMenuTransformations>

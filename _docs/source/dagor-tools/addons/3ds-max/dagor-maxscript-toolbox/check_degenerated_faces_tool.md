@@ -1,4 +1,4 @@
-# Dagor 2 Check Degenerated Faces Tool
+# Dagor Check Degenerated Faces Tool
 
 ## Installation
 

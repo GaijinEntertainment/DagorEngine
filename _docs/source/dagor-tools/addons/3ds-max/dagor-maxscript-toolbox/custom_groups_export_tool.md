@@ -1,15 +1,14 @@
-# Dagor 2 Custom Groups Export Tool
+# Dagor Custom Groups Export Tool
 
 ## Installation
 
-The Dagor 2 Custom Groups Export Tool is a specialized script designed to
-prepare scenes for export, automating the process of saving multiple groups of
-objects with predefined properties into the `.dag` format. This script is not
-included in the Dagor Tool set, as it is tailored for a specific mode of object
-export.
+The Dagor Custom Groups Export Tool is a specialized script designed to prepare
+scenes for export, automating the process of saving multiple groups of objects
+with predefined properties into the `.dag` format. This script is not included
+in the Dagor Tool set, as it is tailored for a specific mode of object export.
 
-To install the script, simply drag and drop the `dagor2_export_custom_groups.ms`
-file located at `.../dagor2_toolbox/base` {bdg-dark-line}`0` into the active
+To install the script, simply drag and drop the `dagor_export_custom_groups.ms`
+file located at `.../dagor_toolbox/base` {bdg-dark-line}`0` into the active
 Viewport of 3ds Max {bdg-dark-line}`1` (green marks on the picture below). This
 action will open the Dagor Custom Batch Exporter script window.
 

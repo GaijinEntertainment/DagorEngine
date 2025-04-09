@@ -1,4 +1,4 @@
-# Dagor 2 Fix Normal Orientation Tool
+# Dagor Fix Normal Orientation Tool
 
 ## Installation
 
@@ -12,7 +12,7 @@ This script requires 3ds Max 2013 or newer version to run.
 
 1. Navigate to **Gaijin Tools** {bdg-dark-line}`1` **> Fix Normal
    Orientation...** {bdg-dark-line}`2`. This will open the main window of the
-   Dagor 2 Fix Normals Orientation script {bdg-dark-line}`3`.
+   Dagor Fix Normals Orientation script {bdg-dark-line}`3`.
 
 2. To verify the version of the script, go to **Gaijin Tools**
    {bdg-dark-line}`1` **> About** {bdg-dark-line}`4`. The **About** window will
@@ -20,7 +20,6 @@ This script requires 3ds Max 2013 or newer version to run.
    your script is up to date.
 
    <img src="_images/fix_normal_orient_01.png" alt="Fix Normal Orientation Tool" align="center">
-
 
 ```{note}
 Make sure that the plugin version is at least `1.4`.

@@ -1,4 +1,4 @@
-# Dagor 2 Ambient Occlusion Baker
+# Dagor Ambient Occlusion Baker
 
 ## Installation
 
@@ -11,7 +11,7 @@ This script requires 3ds Max 2018 or newer version to run.
 ## Accessing the Ambient Occlusion Baker
 
 1. Navigate to **Gaijin Tools > Ambient Occlusion Baker**. This will open the
-   main window of the **Dagor 2 AO Baker**.
+   main window of the **Dagor AO Baker**.
 
 2. To verify the version {bdg-dark-line}`3` of the script, go to **Gaijin
    Tools** {bdg-dark-line}`1` **> About** {bdg-dark-line}`2`. The **About**

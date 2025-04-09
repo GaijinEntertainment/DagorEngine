@@ -1,4 +1,4 @@
-# Dagor 2 Fast Editor User Properties
+# Dagor Fast Editor User Properties
 
 ## Installation
 
@@ -15,7 +15,7 @@ This script requires 3ds Max 2012 or newer version to run.
   <img src="_images/fast_properties_01.png" alt="Fast Editor User Properties" align="center">
 
 - Closing the panel by pressing **X** disables this editor completely. To return
-  the toggle behavior, reopen the editor from the **Gaijin Tools >  Dagor 2 Fast
+  the toggle behavior, reopen the editor from the **Gaijin Tools >  Dagor Fast
   Properties...**
 
   <img src="_images/fast_properties_02.png" alt="Fast Editor User Properties" align="center">

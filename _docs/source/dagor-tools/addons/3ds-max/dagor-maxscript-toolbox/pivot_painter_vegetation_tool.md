@@ -1,4 +1,4 @@
-# Dagor 2 Pivot Painter Vegetation Tool
+# Dagor Pivot Painter Vegetation Tool
 
 ## Installation
 
@@ -11,7 +11,7 @@ This script requires 3ds Max 2015 or newer version to run.
 ## Accessing the Pivot Painter Vegetation Tool
 
 1. Navigate to **Gaijin Tools > Pivot Painter Vegetation Tool**. This will open
-   the main window of the Dagor 2 Pivot Painter Tool.
+   the main window of the Dagor Pivot Painter Tool.
 
 2. To verify the version {bdg-dark-line}`3` of the script, go to **Gaijin
    Tools** {bdg-dark-line}`1` **> About** {bdg-dark-line}`2`. The **About**

@@ -1,4 +1,4 @@
-# Dagor 2 Transfer Vertex Position to Vertex Color Tool
+# Dagor Transfer Vertex Position to Vertex Color Tool
 
 ## Installation
 
@@ -19,7 +19,7 @@ Below is an example of the tool's output:
 
 <img src="_images/transfer_vertex_01.gif" alt="Transfer Vertex Position to Vertex Color Tool" align="center" width="50em">
 
-## Accessing Transfer Vertex Position to Vertex Color Tool
+## Accessing the Transfer Vertex Position to Vertex Color Tool
 
 1. Navigate to **Gaijin Tools** {bdg-dark-line}`1` **> Dagor Vertex Pos to
    VColor...**. This will open the main window of the Dagor Vertex Position to
@@ -36,7 +36,7 @@ Below is an example of the tool's output:
 Make sure that the plugin version is at least `1.6`.
 ```
 
-## Using Transfer Vertex Position to Vertex Color Tool
+## Using the Transfer Vertex Position to Vertex Color Tool
 
 To begin, open the tool panel by navigating to **Gaijin Tools > Dagor Vertex Pos
 to VColor**.

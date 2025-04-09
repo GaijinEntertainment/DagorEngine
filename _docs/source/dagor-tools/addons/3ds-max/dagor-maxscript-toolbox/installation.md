@@ -1,7 +1,7 @@
 # Installation
 
 ```{important}
-If you have already installed any of the Dagor 2 3ds Max Tools, you should
+If you have already installed any of the Dagor 3ds Max Tools, you should
 uninstall the previous version.
 
 If you are installing the tools for the first time, skip the
@@ -39,7 +39,7 @@ For a clean installation, follow these steps:
 2. Go to **User and System** tab.
 3. Select the **Additional Startup Scripts** line and click the **Modify...**
    button.
-4. Specify path to `...\dagor2_toolbox\base`
+4. Specify path to `.../maxscript/base`
 5. Confirm the changes by clicking **OK**.
 
    <img src="_images/installation_02.png" alt="Clean Installation" align="center">
