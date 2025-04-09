@@ -9,6 +9,9 @@ on:
 permissions:
   contents: write
 
+env:
+  DOXYGEN_VERSION: '1.9.7'
+
 jobs:
   docs:
     runs-on: ubuntu-22.04
@@ -19,7 +22,10 @@ jobs:
           python-version: 3.11
       - name: Install dependencies
         run: |
-          sudo apt install -y doxygen
+          wget -q https://www.doxygen.nl/files/doxygen-${DOXYGEN_VERSION}.linux.bin.tar.gz
+          tar -zxvf doxygen-${DOXYGEN_VERSION}.linux.bin.tar.gz doxygen-${DOXYGEN_VERSION}/bin/doxygen
+          mv doxygen-${DOXYGEN_VERSION}/bin/doxygen /usr/local/bin/
+          rm -rf doxygen-${DOXYGEN_VERSION} doxygen-${DOXYGEN_VERSION}.linux.bin.tar.gz
           python3 -m pip install --upgrade pip
           python3 -m pip install -r _docs/requirements.txt
       - name: Build documentation
