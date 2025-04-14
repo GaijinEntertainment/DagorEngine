@@ -2,11 +2,12 @@ import bpy, bmesh
 from   bpy.types    import Operator, Panel
 from   bpy.props    import BoolProperty, FloatProperty
 
-from ..helpers.basename     import basename
-from ..helpers.popup        import show_popup
-from ..helpers.texts        import log
-from  .bmesh_functions      import *
-from  .mesh_tools_functions import *
+from ..helpers.basename         import basename
+from ..helpers.popup            import show_popup
+from ..helpers.texts            import log
+from ..helpers.get_preferences  import get_preferences
+from  .bmesh_functions          import *
+from  .mesh_tools_functions     import *
 
 
 classes = []
@@ -15,7 +16,7 @@ def draw_vert_cleanup(context, layout):
     box = layout.box()
     header = box.row(align = True)
     addon_name = basename(__package__)
-    pref = bpy.context.preferences.addons[addon_name].preferences
+    pref = get_preferences()
     props = bpy.data.scenes[0].dag4blend.tools
     header.prop(pref, 'vert_cleanup_maximized', text = "",
         icon = 'DOWNARROW_HLT'if pref.vert_cleanup_maximized else 'RIGHTARROW_THIN', emboss = False)
@@ -39,7 +40,7 @@ def draw_degenerate_removal(context, layout):
     box = layout.box()
     header = box.row(align = True)
     addon_name = basename(__package__)
-    pref = bpy.context.preferences.addons[addon_name].preferences
+    pref = get_preferences()
     props = bpy.data.scenes[0].dag4blend.tools
     header.prop(pref, 'tris_cleanup_maximized', text = "",
         icon = 'DOWNARROW_HLT'if pref.tris_cleanup_maximized else 'RIGHTARROW_THIN', emboss = False)

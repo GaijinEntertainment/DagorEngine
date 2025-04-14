@@ -8,6 +8,7 @@ from math                       import pi
 from ..helpers.basename         import basename
 from ..helpers.popup            import show_popup
 from ..helpers.texts            import log
+from ..helpers.get_preferences  import *
 from ..helpers.version          import get_blender_version
 from ..tools.tools_functions    import *
 from ..tools.tools_panel        import apply_modifiers
@@ -458,14 +459,16 @@ class DAGOR_OT_bbox_to_gameobj(Operator):
 
     @classmethod
     def poll(self, context):
-        P = bpy.data.scenes[0].dag4blend.cmp
-        return P.node is not None
+        props = get_local_props()
+        cmp_tools_props = props.cmp.tools
+        return cmp_tools_props.node is not None
 
     def execute(self, context):
-        P = bpy.data.scenes[0].dag4blend.cmp.tools
+        props = get_local_props()
+        cmp_tools_props = props.cmp.tools
         err = None
         nodes = [obj for obj in context.selected_objects if obj.type=='MESH']
-        if P.node is None:
+        if cmp_tools_props.node is None:
             err = 'no gameobj selected!'
         elif nodes.__len__()==0:
             err = 'No mesh objects selected!'
@@ -474,7 +477,7 @@ class DAGOR_OT_bbox_to_gameobj(Operator):
             show_popup(err)
             return{'CANCELLED'}
         for obj in nodes:
-            bbox_to_gameobj(obj, P.node)
+            bbox_to_gameobj(obj, cmp_tools_props.node)
         return {'FINISHED'}
 classes.append(DAGOR_OT_bbox_to_gameobj)
 
@@ -522,8 +525,7 @@ class DAGOR_PT_composits(Panel):
     bl_options = {'DEFAULT_CLOSED'}
     @classmethod
     def poll(self, context):
-        addon_name = basename(__package__)
-        pref = bpy.context.preferences.addons[addon_name].preferences
+        pref = get_preferences()
         return pref.use_cmp_editor
 
 #Entity editor
@@ -531,8 +533,7 @@ class DAGOR_PT_composits(Panel):
         node = context.object
         ent_editor = layout.box()
         name = ent_editor.row()
-        addon_name = basename(__package__)
-        pref = bpy.context.preferences.addons[addon_name].preferences
+        pref = get_preferences()
         
         name.prop(pref, 'cmp_entities_maximized', icon = 'DOWNARROW_HLT' if pref.cmp_entities_maximized else 'RIGHTARROW_THIN',
             emboss=False,text='Entities',expand=True)
@@ -581,9 +582,9 @@ class DAGOR_PT_composits(Panel):
         return
 #Node explode n stuff
     def draw_node_converter(self,context,layout):
-        P = bpy.data.scenes[0].dag4blend.cmp.tools
-        addon_name = basename(__package__)
-        pref = bpy.context.preferences.addons[addon_name].preferences
+        pref = get_preferences()
+        props = get_local_props()
+        cmp_tools_props = props.cmp.tools
         box = layout.box()
         header = box.row()
         header.prop(pref, 'cmp_converter_maximized',icon = 'DOWNARROW_HLT'if pref.cmp_converter_maximized else 'RIGHTARROW_THIN',
@@ -607,15 +608,14 @@ class DAGOR_PT_composits(Panel):
 
             elif node.type == 'MESH':
                 box.label(text = 'node:')
-                box.prop(P, 'node', text = '')
+                box.prop(cmp_tools_props, 'node', text = '')
                 box.operator('dt.bbox_to_gameobj', text = 'BBOX to node', icon = 'CUBE')
-                if P.node is None:
+                if cmp_tools_props.node is None:
                     box.label(text = 'Choose node collection!', icon = 'ERROR')
         return
 
     def draw_init(self,context,layout):
-        addon_name = basename(__package__)
-        pref = bpy.context.preferences.addons[addon_name].preferences
+        pref = get_preferences()
         box = layout.box()
         header = box.row()
         first_time = True
@@ -635,9 +635,7 @@ class DAGOR_PT_composits(Panel):
         node = context.object
         if node is None or node.type!="EMPTY":
             return
-
-        addon_name = basename(__package__)
-        pref = bpy.context.preferences.addons[addon_name].preferences
+        pref = get_preferences()
         box = layout.box()
         header = box.row()
         header.prop(pref, 'cmp_node_prop_maximized',icon = 'DOWNARROW_HLT'if pref.cmp_node_prop_maximized else 'RIGHTARROW_THIN',
@@ -655,9 +653,10 @@ class DAGOR_PT_composits(Panel):
         return
 
     def draw(self,context):
-        addon_name = basename(__package__)
-        pref = bpy.context.preferences.addons[addon_name].preferences
-        P = bpy.data.scenes[0].dag4blend.cmp
+        pref = get_preferences()
+        props = get_local_props()
+        cmp_import_props = props.cmp.importer
+        cmp_export_props = props.cmp.exporter
 
         l = self.layout
         importer = l.box()
@@ -667,21 +666,21 @@ class DAGOR_PT_composits(Panel):
         header.label(text='', icon='IMPORT')
         if pref.cmp_imp_maximized:
             importer.label(text = 'import path:')
-            importer.prop(P.importer,'filepath',text='')
+            importer.prop(cmp_import_props,'filepath',text='')
             toggles = importer.column(align = True)
             row = toggles.row()
-            row.prop(P.importer,'refresh_cache', toggle = True,
-                icon = 'CHECKBOX_HLT' if P.importer.refresh_cache else 'CHECKBOX_DEHLT')
+            row.prop(cmp_import_props,'refresh_cache', toggle = True,
+                icon = 'CHECKBOX_HLT' if cmp_import_props.refresh_cache else 'CHECKBOX_DEHLT')
             row = toggles.row()
-            row.prop(P.importer,'with_sub_cmp', toggle = True,
-                icon = 'CHECKBOX_HLT' if P.importer.with_sub_cmp else 'CHECKBOX_DEHLT')
+            row.prop(cmp_import_props,'with_sub_cmp', toggle = True,
+                icon = 'CHECKBOX_HLT' if cmp_import_props.with_sub_cmp else 'CHECKBOX_DEHLT')
             row = toggles.row()
-            row.prop(P.importer,'with_dags', toggle = True,
-                icon = 'CHECKBOX_HLT' if P.importer.with_dags else 'CHECKBOX_DEHLT')
-            if P.importer.with_dags:
+            row.prop(cmp_import_props,'with_dags', toggle = True,
+                icon = 'CHECKBOX_HLT' if cmp_import_props.with_dags else 'CHECKBOX_DEHLT')
+            if cmp_import_props.with_dags:
                 row = toggles.row()
-                row.prop(P.importer,'with_lods', toggle = True,
-                icon = 'CHECKBOX_HLT' if P.importer.with_lods else 'CHECKBOX_DEHLT')
+                row.prop(cmp_import_props,'with_lods', toggle = True,
+                icon = 'CHECKBOX_HLT' if cmp_import_props.with_lods else 'CHECKBOX_DEHLT')
             button = importer.row()
             button.scale_y = 2
             button.operator('dt.cmp_import', icon = 'IMPORT')
@@ -693,8 +692,8 @@ class DAGOR_PT_composits(Panel):
         header.label(text='', icon='EXPORT')
         if pref.cmp_exp_maximized:
             exporter.label(text = 'export path:')
-            exporter.prop(P.exporter, 'dirpath',text = '')
-            exporter.prop(P.exporter, 'collection')
+            exporter.prop(cmp_export_props, 'dirpath',text = '')
+            exporter.prop(cmp_export_props, 'collection')
             button = exporter.row()
             button.scale_y = 2
             button.operator('dt.cmp_export', icon = 'EXPORT')

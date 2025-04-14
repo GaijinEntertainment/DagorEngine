@@ -1,10 +1,11 @@
 import bpy
 from ..helpers.basename import basename
 from ..helpers.version  import get_blender_version
+from ..helpers.get_preferences  import get_preferences
 
 def get_shader_names():
     shader_names = ["default", "default_uv"]
-    preferences = bpy.context.preferences.addons[basename(__package__)].preferences
+    preferences = get_preferences()
     for category in preferences['shader_categories']:
         for shader in category['shaders']:
             shader_names.append(shader['name'])

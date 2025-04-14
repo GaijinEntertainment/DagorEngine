@@ -7,6 +7,7 @@ from bpy.props          import IntProperty
 
 from ..helpers.basename         import basename
 from ..helpers.version          import get_blender_version
+from ..helpers.get_preferences  import get_preferences
 from .mesh_calc_smooth_groups   import *
 
 dic={}
@@ -107,7 +108,7 @@ class DAGOR_OT_SmoothGroupSet(bpy.types.Operator):
         i=self.index
         pressed=self.pressed
         addon_name = basename(__package__)
-        pref=context.preferences.addons[addon_name].preferences
+        pref = get_preferences()
         obj=context.edit_object
         bm = dic.setdefault(obj.name, bmesh.from_edit_mesh(obj.data))
         SG = bm.faces.layers.int.get("SG")
@@ -164,7 +165,7 @@ class DAGOR_PT_SmoothGroupPanel(bpy.types.Panel):
 
     def draw(self, context):
         addon_name = basename(__package__)
-        pref=context.preferences.addons[addon_name].preferences
+        pref = get_preferences()
         obj = context.object
         mesh = obj.data
         bm = dic.setdefault(obj.name, bmesh.from_edit_mesh(mesh))

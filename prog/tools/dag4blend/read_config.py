@@ -1,15 +1,17 @@
 import configparser
 import os
 import bpy
-from  .helpers.basename import basename
 from shutil import copyfile
+
+from  .helpers.basename         import basename
+from  .helpers.get_preferences  import get_preferences
 
 #modifying of original file to make it readable by python configparser
 #TODO: make custom parser instead of fixing unreadable comments in copy
 def cfg_upd():
     blend_cfg=os.path.join(os.path.dirname(__file__), 'fixed_dagorShaders.cfg')
     addon_name = basename(__package__)
-    pref = bpy.context.preferences.addons[addon_name].preferences
+    pref = get_preferences()
     max_cfg = pref.cfg_path
     copyfile (max_cfg,blend_cfg)
     cfg=open(blend_cfg,'r')

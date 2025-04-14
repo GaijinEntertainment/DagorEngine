@@ -15,7 +15,7 @@ def compare_dagormats(mat1,mat2):
         return False
     if DM1.is_proxy and DM2.is_proxy:
         #both just imported
-        if DM1.shader_class==basename(mat2.name)+':proxy' or DM2.shader_class==basename(mat1.name)+':proxy':
+        if DM1.shader_class==basename(mat2.name)+':proxymat' or DM2.shader_class==basename(mat1.name)+':proxymat':
             return True
         #one of mats was rebuilt for viewport from blk
         if basename(mat1.name)==DM2.shader_class[0:DM2.shader_class.find(':')] or basename(mat2.name)==DM1.shader_class[0:DM1.shader_class.find(':')]:

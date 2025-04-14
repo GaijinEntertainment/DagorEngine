@@ -1,9 +1,11 @@
 import bpy, os, re
-from time               import time
-from bpy.types          import Operator, Panel
-from bpy.props          import StringProperty, BoolProperty, PointerProperty, EnumProperty
-from ..helpers.popup    import show_popup
-from ..helpers.texts    import log
+from time                       import time
+from bpy.types                  import Operator, Panel
+from bpy.props                  import StringProperty, BoolProperty, PointerProperty, EnumProperty
+from ..helpers.basename         import basename
+from ..helpers.popup            import show_popup
+from ..helpers.texts            import log
+from ..helpers.get_preferences  import *
 
 #helpers
 def string_to_re(mask):
@@ -33,59 +35,75 @@ class DAGOR_PT_Import(Panel):
     bl_category = 'Dagor'
     bl_options = {'DEFAULT_CLOSED'}
     def draw(self,context):
-        P = bpy.data.scenes[0].dag4blend.importer
+        props = get_local_props()
+        props_import = props.importer
         layout = self.layout
         toggles = layout.column(align = True)
 
         row = toggles.row()
-        row.prop(P, 'with_subfolders', toggle = True,
-            icon = 'CHECKBOX_HLT' if P.with_subfolders else 'CHECKBOX_DEHLT')
+        row.prop(props_import, 'with_subfolders', toggle = True,
+            icon = 'CHECKBOX_HLT' if props_import.with_subfolders else 'CHECKBOX_DEHLT')
 
         row = toggles.row()
-        row.prop(P, 'mopt', toggle = True,
-            icon = 'CHECKBOX_HLT' if P.mopt else 'CHECKBOX_DEHLT')
+        row.prop(props_import, 'mopt', toggle = True,
+            icon = 'CHECKBOX_HLT' if props_import.mopt else 'CHECKBOX_DEHLT')
 
         row = toggles.row()
-        row.prop(P, 'preserve_sg', toggle = True,
-            icon = 'CHECKBOX_HLT' if P.preserve_sg else 'CHECKBOX_DEHLT')
+        row.prop(props_import, 'preserve_sg', toggle = True,
+            icon = 'CHECKBOX_HLT' if props_import.preserve_sg else 'CHECKBOX_DEHLT')
 
         row = toggles.row()
-        row.prop(P, 'replace_existing', toggle = True,
-            icon = 'CHECKBOX_HLT' if P.replace_existing else 'CHECKBOX_DEHLT')
+        row.prop(props_import, 'replace_existing', toggle = True,
+            icon = 'CHECKBOX_HLT' if props_import.replace_existing else 'CHECKBOX_DEHLT')
 
         row = toggles.row()
-        row.prop(P, 'preserve_path', toggle = True,
-            icon = 'CHECKBOX_HLT' if P.preserve_path else 'CHECKBOX_DEHLT')
+        row.prop(props_import, 'preserve_path', toggle = True,
+            icon = 'CHECKBOX_HLT' if props_import.preserve_path else 'CHECKBOX_DEHLT')
 
-        layout.prop(P, 'masks')
-        layout.prop(P, 'excludes')
-        layout.prop(P, 'dirpath')
-        if os.path.exists(P.dirpath):
+        layout.prop(props_import, 'masks')
+        layout.prop(props_import, 'excludes')
+        layout.prop(props_import, 'dirpath')
+        if os.path.exists(props_import.dirpath):
             row = layout.row()
             row.scale_y = 2
             row.operator('dt.batch_import', text='IMPORT', icon = 'IMPORT')
-            layout.operator('wm.path_open', icon = 'FILE_FOLDER', text='open import folder').filepath = P.dirpath
+            layout.operator('wm.path_open', icon = 'FILE_FOLDER', text='open import folder').filepath = props_import.dirpath
 
 class DAGOR_OT_BatchImport(Operator):
     bl_idname = "dt.batch_import"
     bl_label = "Batch import"
-    bl_description = "Import dags from folder by mask"
     bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(self, context):
+        pref = get_preferences()
+        if pref.projects.__len__() == 0:
+            return False
+        return True
+
+    @classmethod
+    def description(cls, context, properties):
+        pref = get_preferences()
+        if pref.projects.__len__() == 0:
+            return "No active project found. Please, configure at least one project"
+        return "Import dags from folder by mask"
+
     def execute(self, context):
-        P = bpy.data.scenes[0].dag4blend.importer
+        props = get_local_props()
+        props_import = props.importer
         start=time()
         context.view_layer.objects.active = None
-        dirpath=P.dirpath
+        dirpath=props_import.dirpath
         dir = os.listdir(dirpath)
-        masks    = P.masks.lower()
+        masks    = props_import.masks.lower()
         masks    = masks.replace(' ','')
         masks    = masks.split(';')
-        excludes = P.excludes.lower()
+        excludes = props_import.excludes.lower()
         excludes = excludes.replace(' ','')
         excludes = excludes.split(';')
 #collecting correct .dags
         dags=[]
-        if P.with_subfolders:
+        if props_import.with_subfolders:
             for subdir,dirs,files in os.walk(dirpath):
                 for file in files:
                     name=file.lower()
@@ -111,10 +129,10 @@ class DAGOR_OT_BatchImport(Operator):
             for dag in dags:
                 try:
                     bpy.ops.import_scene.dag(filepath = dag,
-                                            preserve_sg = P.preserve_sg,
-                                            replace_existing = P.replace_existing,
-                                            mopt = P.mopt,
-                                            preserve_path = P.preserve_path)
+                                            preserve_sg = props_import.preserve_sg,
+                                            replace_existing = props_import.replace_existing,
+                                            mopt = props_import.mopt,
+                                            preserve_path = props_import.preserve_path)
                 except:
                     msg =f"\nCan not import {dag}\n"
                     log(msg, type = 'ERROR')

@@ -12,6 +12,8 @@ from ..helpers.texts    import get_text_clear, get_text, log
 from ..helpers.basename import basename
 from ..helpers.popup    import show_popup
 
+from ..helpers.get_preferences  import get_local_props
+
 
 TAB = "  "
 EXISTING_NODE_TYPES = [
@@ -164,7 +166,8 @@ def write_node(cmp,node,tabs):
 
 def cmp_export(col,path):
     cmp = get_text_clear('cmp')
-    P = bpy.data.scenes[0].dag4blend.cmp.exporter
+    props = get_local_props()
+    cmp_export_props = props.cmp.exporter
     cmp.write('className:t="composit"\n\n')
     if col.objects.__len__()==0:
         #nothing to export
@@ -177,11 +180,11 @@ def cmp_export(col,path):
         for node in nodes:
            write_node(cmp,node,0)
 #saving bpy.data.texts['cmp'] into an actual file
-    if not os.path.exists(P.dirpath):
-        os.makedirs(P.dirpath)
-        msg = f'directory successfully created: {P.dirpath}\n'
+    if not os.path.exists(cmp_export_props.dirpath):
+        os.makedirs(cmp_export_props.dirpath)
+        msg = f'directory successfully created: {cmp_export_props.dirpath}\n'
         log(msg)
-    path=os.path.join(P.dirpath,P.collection.name+'.composit.blk')
+    path=os.path.join(cmp_export_props.dirpath, cmp_export_props.collection.name + '.composit.blk')
     with open((path), 'w') as outfile:#TODO: remove that blend text thing, work directly with .blk
         outfile.write(cmp.as_string())
         outfile.close()
@@ -197,12 +200,13 @@ class DAGOR_OP_CmpExport(Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        P = bpy.data.scenes[0].dag4blend.cmp.exporter
-        if P.collection is None:
+        props = get_local_props()
+        cmp_export_props = props.cmp.exporter
+        if cmp_export_props.collection is None:
             show_popup(message='Select cmp collection!', title = 'ERROR', icon = 'ERROR')
             return {'CANCELLED'}
         start=time()
-        cmp_export(P.collection,P.dirpath)
+        cmp_export(cmp_export_props.collection, cmp_export_props.dirpath)
         show_popup(f'finished in {round(time()-start,4)} sec')
         return{'FINISHED'}
 

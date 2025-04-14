@@ -1,7 +1,8 @@
 import bpy,os,pickle
-from time               import time
-from ..helpers.basename import basename
-from ..helpers.texts    import log
+from time                       import time
+from ..helpers.basename         import basename
+from ..helpers.texts            import log
+from ..helpers.get_preferences  import get_preferences
 
 def skip(filename):
     skip = True
@@ -36,7 +37,7 @@ def build_cache():
     entities = {}
     start = time()
     addon_name = basename(__package__)
-    pref = bpy.context.preferences.addons[addon_name].preferences
+    pref = get_preferences()
     index = int(pref.project_active)
     lib_path = pref.projects[index]['path']
     for subdir,dirs,files in os.walk(lib_path):
@@ -75,7 +76,7 @@ def build_cache():
 
 def read_cache():
     addon_name = basename(__package__)
-    pref = bpy.context.preferences.addons[addon_name].preferences
+    pref = get_preferences()
     index = int(pref.project_active)
     project_name = pref.projects[index]['name']
     cache_path = bpy.utils.user_resource('SCRIPTS',path = f'\\addons\\{addon_name}\\{project_name}.bin')

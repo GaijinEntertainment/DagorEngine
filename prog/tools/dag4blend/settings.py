@@ -15,14 +15,17 @@ from bpy.utils          import user_resource
 from os                 import listdir
 from os.path            import exists, splitext, isfile, join
 
-from .read_config       import read_config
-from .helpers.popup     import show_popup
+from .read_config                       import read_config
+from .helpers.popup                     import show_popup
+from .helpers.get_preferences           import get_preferences
+from .projects.draw_project_manager     import draw_project_settings
+from .ui.draw_elements                  import draw_custom_header
 
 classes = []
 
 #projects interaction#####################################################
 def get_projects(self, context):
-    pref=context.preferences.addons[__package__].preferences
+    pref = get_preferences()
     items = []
     i=0
     for proj in pref.projects:
@@ -37,7 +40,7 @@ def upd_palettes(self, context):
     palette_node = bpy.data.node_groups.get('.painting')
     if palette_node is None:
         return
-    pref = context.preferences.addons[__package__].preferences
+    pref = get_preferences()
     index = int(pref.project_active)
     palette_global = pref.projects[index].palette_global
     palette_local  = pref.projects[index].palette_local
@@ -73,10 +76,10 @@ def upd_project(self,context):
     upd_palettes(self,context)
     global_settings = bpy.data.node_groups.get('global_settings')
     if global_settings is not None:
-        pref = context.preferences.addons[__package__].preferences
+        pref = get_preferences()
         index = int(pref.project_active)
         project = pref.projects[index]
-        global_settings.nodes['Group Output'].inputs['WT|Enl'].default_value = int(project.mode)
+        global_settings.nodes['Group Output'].inputs['WT|Enl'].default_value = int(project.mode == 'DNG')
     return
 
 def upd_cmp_i_path(self,context):
@@ -128,12 +131,13 @@ def get_resolutions(self, context):
 class DAG_OT_RemoveProject(Operator):
     bl_idname = "dt.remove_project"
     bl_label = "Remove"
+    bl_description = "Remove current project from projects list"
     index: IntProperty(default = -1)
     def execute(self, context):
         index = self.index
         if index <0:
             return{'CANCELLED'}
-        pref=context.preferences.addons[__package__].preferences
+        pref = get_preferences()
         if len(pref.projects) > index:
             pref.projects.remove(index)
         return {'FINISHED'}
@@ -142,30 +146,40 @@ classes.append(DAG_OT_RemoveProject)
 
 class DagProject(PropertyGroup):
     name:               StringProperty()
-    path:               StringProperty(subtype = 'DIR_PATH')
+    path:               StringProperty(subtype = 'DIR_PATH',
+        description = "Where assets stored. Used to search for textures, proxymats, nodes for composites")
     #Shading relatet parameters
-    palette_global:     StringProperty(subtype = 'FILE_PATH', update = upd_palettes)
-    palette_local:      StringProperty(subtype = 'FILE_PATH', update = upd_palettes)
-    mode:               BoolProperty(default = False)
+    palette_global:     StringProperty(subtype = 'FILE_PATH', name = "Global palette",
+                            description = "Used everywhere, unless it's overriden by local palette",
+                            update = upd_palettes)
+    palette_local:      StringProperty(subtype = 'FILE_PATH', name = "Local palette",
+                            description = "Optional extra palette for specific level",
+                            update = upd_palettes)
+    unlock:             BoolProperty(default = True, name = "Lock/Unlock",
+        description = "Lock/unlock ability to edit parameters of project")
+    mode:               EnumProperty(
+        items = [('WT','War Thunder-like','Mimic War Thunder specific shaders'),
+                ('DNG','daNetGame-like','Mimic daNetGame specific shaders'),
+                 ],
+        default = 'WT')
     #UI parameters
-    maximized:          BoolProperty(default = False)
-    palettes_maximized: BoolProperty(default = False)
+    maximized:          BoolProperty(default = True)
+    palettes_maximized: BoolProperty(default = True)
 classes.append(DagProject)
 
 
 
 class DAG_OT_AddProject(Operator):
     '''
-    Create new project with entered name and path
+    Create a new project
     '''
     bl_idname = "dt.add_project"
     bl_label = "Add"
+
     def execute(self, context):
-        pref=context.preferences.addons[__package__].preferences
+        pref = get_preferences()
         new = pref.projects.add()
-        new.name = pref.new_project_name
-        new.path = pref.new_project_path
-        show_popup(message=f'Project added: {new.name}')
+        show_popup(message=f'New project added. Please, configure it')
         return {'FINISHED'}
 classes.append(DAG_OT_AddProject)
 
@@ -191,7 +205,7 @@ classes.append(DagShaderClass)
 
 
 def get_obj_prop_presets(self, context):
-    pref=bpy.context.preferences.addons[__package__].preferences
+    pref = get_preferences()
     path = pref.props_presets_path
     items = []
     files = [f for f in listdir(path) if isfile(join(path,f))]
@@ -381,7 +395,7 @@ class DagSettings(AddonPreferences):
 #Addon features
     projects_maximized:     BoolProperty(default=False,description='Projects')
     experimental_maximized: BoolProperty(default=False,description='Experimental features')
-    use_cmp_editor:         BoolProperty(default=False,description='Composit editor')
+    use_cmp_editor:         BoolProperty(default=False,name = "Composite Editor", description='Composit editor')
     guess_dag_type:         BoolProperty(default=False,description='Guess what asset tipe .dag should be, based on name and shader types. Would be used to check shader types on import and export')
     type_maximized:         BoolProperty(default=False,description='')
 #UI/smoothing groups
@@ -426,6 +440,8 @@ class DagSettings(AddonPreferences):
     meshbox_maximized:      BoolProperty(default = True)
     scenebox_maximized:     BoolProperty(default = True)
     destrbox_maximized:     BoolProperty(default = True)
+    destrsetup_maximized:   BoolProperty(default = True)
+    destrdeform_maximized:  BoolProperty(default = True)
 
 #UI/View3D_mesh_tools
     cleanup_maximized:      BoolProperty(default = True)
@@ -451,52 +467,17 @@ class DagSettings(AddonPreferences):
         paths.prop(self, 'props_presets_path', text = "ObjProps presets")
         paths.prop(self, 'cfg_path', text = "dagorShaders.cfg")
         projects = l.box()
-        header = projects.row()
-        header.prop(self, 'projects_maximized', text = 'Projects',
-                icon = 'DOWNARROW_HLT'if self.projects_maximized else 'RIGHTARROW_THIN',
-                emboss=False, expand=True)
+        draw_custom_header(projects, "Projects", self, 'projects_maximized', control_value = self.projects_maximized)
         if self.projects_maximized:
-            box = projects.box()
-            new=box.row()
-            new.prop (self,'new_project_name',text='Name')
-            new.prop (self,'new_project_path',text='Path')
-            can_create = True
-            if self.new_project_path == "":
-                can_create = False
-            if not exists(self.new_project_path):
-                can_create = False
-            if self.new_project_name.__len__() == 0:
-                can_create = False
-            if can_create:
-                button = box.row()
-                button.scale_y = 2
-                button.operator('dt.add_project',icon='ADD',text='ADD Project')
-            else:
-                box.label(icon = 'ERROR', text = "Please enter the correct name and path!")
+            if self.projects.__len__()>0:
+                projects.prop(self, 'project_active', text = "Active")
             index=0
             for project in self.projects:
-                box = projects.box()
-                header = box.row()
-                header.prop(project, 'maximized', text = project['name'],
-                    icon = 'DOWNARROW_HLT'if project.maximized else 'RIGHTARROW_THIN',
-                    emboss=False,expand=True)
-                header.operator('dt.remove_project',icon='TRASH',text='').index = index
-                if project.maximized:
-                    box.prop(project, 'path')
-                    mode = box.row()
-                    mode.label(text = 'Shading mode:')
-                    mode.prop(project, 'mode', text = 'daNetGame-like' if project.mode else 'War Thunder-like',
-                        emboss = False, expand=True)
-                    palettes = box.box()
-                    subheader = palettes.row()
-                    subheader.prop(project, 'palettes_maximized', text = 'Palettes',
-                        icon = 'DOWNARROW_HLT'if project.palettes_maximized else 'RIGHTARROW_THIN',
-                        emboss=False,expand=True)
-                    subheader.label(text = '', icon = 'IMAGE')
-                    if project.palettes_maximized:
-                        palettes.prop(project, 'palette_global', icon = 'IMAGE', text = '')
-                        palettes.prop(project, 'palette_local',  icon = 'IMAGE', text = '')
+                draw_project_settings(projects, project, index)
                 index+=1
+            add_button = projects.row()
+            add_button.scale_y = 2
+            add_button.operator('dt.add_project',icon='ADD',text='ADD Project')
         exp=l.box()
         exp.prop(self,'experimental_maximized',text='Experimental Features',
                 icon = 'DOWNARROW_HLT'if self.experimental_maximized else 'RIGHTARROW_THIN',
@@ -507,65 +488,28 @@ class DagSettings(AddonPreferences):
             wrow.label(text = '', icon = 'ERROR')
             wrow.label(text='Might be unstable. Use it on your own risk')
             wrow.label(text = '', icon = 'ERROR')
-            exp.prop(self,'use_cmp_editor',text='Use composit editor')
+            exp.prop(self, 'use_cmp_editor', toggle = True,
+            icon = 'CHECKBOX_HLT' if self.use_cmp_editor else 'CHECKBOX_DEHLT')
 classes.append(DagSettings)
 
 
-class DAG_OT_SetSearchFolder(Operator):
-    bl_idname = "dt.set_search_path"
-    bl_label = "Set search folder"
-    bl_description = "Use whole project folder for search"
-    def execute(self, context):
-        pref=context.preferences.addons[__package__].preferences
-        i=int(pref.project_active)
-        bpy.data.scenes[0].dag4blend.importer.dirpath=pref.projects[i].path
-        bpy.data.scenes[0].dag4blend.importer.with_subfolders=True
-        show_popup(message='Import without full name of an asset as mask will be extremely slow!',
-            title='WARNING!', icon='INFO')
-        return {'FINISHED'}
-classes.append(DAG_OT_SetSearchFolder)
-
-
-class DAG_PT_project(Panel):
-    bl_space_type = "PROPERTIES"
-    bl_region_type = "WINDOW"
-    bl_context = "scene"
-    bl_label = "Project (dagor)"
-
-    def draw(self,context):
-        layout = self.layout
-        pref=context.preferences.addons[__package__].preferences
-        layout.prop(pref,'project_active',text='')
-        index = int(pref.project_active)
-        box = layout.box()
-        header = box.row()
-        header.prop(pref, 'palettes_maximized', icon = 'DOWNARROW_HLT'if pref.palettes_maximized else 'RIGHTARROW_THIN',
-            text = 'Palettes', emboss=False,expand=True)
-        header.label(icon = 'IMAGE')
-        if pref.palettes_maximized:
-            box.prop(pref.projects[index], 'palette_global', text='', icon = 'IMAGE')
-            box.prop(pref.projects[index], 'palette_local',  text='', icon = 'IMAGE')
-        if exists(bpy.utils.user_resource('SCRIPTS',path=f'addons\\{__package__}\\importer')):
-            layout.operator('dt.set_search_path',text='Apply as search path',icon='ERROR')
-        return
-classes.append(DAG_PT_project)
-
-
 def init_shader_categories():
-    shader_categories=bpy.context.preferences.addons[__package__].preferences.shader_categories
-    dagorShaders=read_config()
+    pref = get_preferences()
+    shader_categories = pref.shader_categories
+    dagorShaders = read_config()
     shader_categories.clear()
     for shader_class in dagorShaders:
-        new_shader_class=shader_categories.add()
-        new_shader_class.name=shader_class[0].replace('-','')
+        new_shader_class = shader_categories.add()
+        new_shader_class.name = shader_class[0].replace('-','')
         for shader in shader_class[1]:
-            new_shader=new_shader_class.shaders.add()
-            new_shader.name=shader[0]
+            new_shader = new_shader_class.shaders.add()
+            new_shader.name = shader[0]
             for prop in shader[1]:
-                new_prop=new_shader.props.add()
-                new_prop.name=prop[0]
-                new_prop.type=prop[1]
+                new_prop = new_shader.props.add()
+                new_prop.name = prop[0]
+                new_prop.type = prop[1]
     return
+
 
 def register():
     for cl in classes:
