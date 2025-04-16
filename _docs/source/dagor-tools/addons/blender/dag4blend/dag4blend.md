@@ -1,15 +1,21 @@
+# dag4blend
+
 ## Installation
 
 1. Go to **Edit > Preferences > Add-ons** in Blender.
 
-2. Click **Install...** and navigate to the `.zip` file of the add-on.
+2. Click small dropdown on the top right corner and choose **Install from Disk...**
 
-3. After installation, check the box next to the add-on in the list.
+<img src="_images/inst_location.png" alt="Installation" align="center">
 
-Before starting, you need to perform some initial configuration, so do not close
+3. Navigate to the `.zip` file of the add-on.
+
+4. After installation, check the box next to the add-on in the list.
+
+To use add-on properly you need to perform some initial configuration, so do not close
 the **Preferences** window yet:
 
-<img src="_images/inst_preferences.png" alt="Preferences" align="center">
+<img src="_images/preferences.png" alt="Preferences" align="center">
 
 The path for **ObjProps presets:** and shader list **dagorShaders.cfg:** can now
 be set manually. This feature ensures that updating the add-on does not
@@ -20,51 +26,63 @@ Until the path to an existing directory is specified, the preset menu will not
 be displayed. For each project you  work on, you need to specify the path to the
 `assets/` directory.
 
-Set the name (it can be any name as long as it is clear to the user), specify
-the path, and click **+ ADD Project** to add the project to the list of
-available projects.
-
 ```{note}
 Many interface elements have tooltips that appear when you hover the cursor
 over them.
 ```
+### Configuring Projects
 
-Starting from version `dag4blend2.0`, projects have additional parameters
-available. These parameters can be found in the **Projects** panel:
+Some operators of dag4blend need additional info about current game to work properly.
+To create new set of properties press **+ ADD Project**.
 
 <img src="_images/inst_projects.png" alt="Projects" align="center">
 
-- **path:** you can edit the path after adding a project – for example, if you
-  move resources to a different drive. You no longer need to delete and re-add
-  the project with the new path.
+Every non-configured parameter of new project is marked by **ERROR** icon.
+
+- **name:** how this project will be displayed in "Active Project" dropdown.
+
+- **path:** where all game assets stored. DAGs, textures, composites, proxymats, etc.
 
 - **Shading mode:** shaders behave slightly different between projects. The
   add-on is designed to adapt to two main shader groups: daNetGame-like and War
   Thunder-like shaders.
 
-- **Palettes**: there are default global and local palettes.
+- **Palettes**: 
+    - global palette is used everywhere dy default, unless it's overriden.
+    - local palette can be configured per-level and can be used instead of global
+      on specific assets.
 
-- **Experimental Features**: new tools that are functional but have some
-  limitations. Currently, these include a [Composite Editor](#composite-editor)
-  and [Texture Baker](#bake) tools:
+```{note}
+By default, the global and local palettes will be simple red and green fills,
+until you specify a path to existing texture.
+```
 
-<img src="_images/inst_exp_features.png" alt="Experimental Features" align="center">
+Configured project should have no error icons. When parameters are set,
+use lock button to make it non-editable.
+It prevents changing properties or project removal by accident.
 
-The active project is set through the menu in the scene properties. You can also
-change palettes here without needing to go into **User Preferences** each time:
+<img src="_images/inst_projects_configured.png" alt="Project Configured" align="center">
+
+You don't have to always use **Preferences** window to change the active project
+or edit its parameters.
+Same exact project configurator can be found in the **Scene Properties**:
 
 <img src="_images/inst_scene.png" alt="Scene" align="center">
 
 ```{note}
-The add-on applies settings when these parameters are changed, but only if there
-is an appropriate target. Therefore, to fix the **Shading mode**, you need to
-re-select the project after creating at least one dagormat in the scene. For
-**Palettes**, re-select the project after creating a painted dagormat.
-
-By default, the global and local palettes will be simple red and green fills,
-and the shaders will be in War Thunder-like mode. To correct this, re-select
-the project from the dropdown after the first asset import or creation.
+Project parameters are stored in Add-on preferences,
+but sometimes they are not being saved on exit automatically.
+To ensure that new parameters won't be lost, you can use **Save Preferences** button,
+available right in project configurator. Remember, that it's a **global** operator,
+which saves all the preferences, not just dag4blend ones.
 ```
+
+### Experimental Features
+
+This block contains toggles for new tools that are functional but have some
+limitations. Currently, it includes only a [Composite Editor](#composite-editor):
+
+<img src="_images/inst_exp_features.png" alt="Experimental Features" align="center">
 
 ## Log and Text Editors
 
@@ -72,7 +90,7 @@ Text objects play an important role in this toolset, so it is recommended to add
 a text field to your layout or add a new window with just a text field if you
 are working with multiple monitors.
 
-<img src="_images/log_text_field.png" alt="Text field" align="center" width="70em">
+<img src="_images/log_text_field.png" alt="Text field" align="center">
 
 The import/export functions (and future ones) write execution information to a
 text **log** field.
@@ -105,7 +123,7 @@ contains several subtabs that can be collapsed when not needed:
 Here you can choose whether the material is two-sided, and if so, how it
 behaves:
 
-<img src="_images/mat_dagormat_main.png" alt="Dagormat - Main" align="center" width="45em">
+<img src="_images/mat_dagormat_main.png" alt="Dagormat - Main" align="center">
 
 - **single_sided**: enables backface culling for triangles with this material.
 
@@ -126,7 +144,7 @@ This tab also allows you to select a shader from the available options or
 manually enter a value. It is useful if new shaders have been added to the game
 but the toolset has not been updated yet.
 
-<img src="_images/mat_dagormat_shader.png" alt="Dagormat - Shader" align="center" width="50em">
+<img src="_images/mat_dagormat_shader.png" alt="Dagormat - Shader" align="center">
 
 The list of shaders and their possible parameters are taken from
 `dagorShaders.cfg`, which by default is located at:
@@ -172,6 +190,10 @@ working on a daNetGame asset, specify **daNetGame**.
   alter the material path.
 
 - **Rebuild materials**: rebuilds the materials for the viewport.
+  Re-uses existing shader nodegroups to save time and filesize.
+
+- **FORCE REBUILD**: same, but also removes all the shader nodegroups from blend file
+  and loads new ones from library, to help with updating old scene to the newer add-on version.
 
 - **Update texture paths**: finds non-existent paths and replaces them with
   current ones. Should be used after texture search.
@@ -235,6 +257,10 @@ Since presets are simple text files, you might want to edit them in a text
 editor. The **open presets folder** button opens the directory containing all
 presets in `.txt` format, where you can add, delete, or edit them. Changes are
 applied immediately.
+
+If presets folder is not found, this block is replaced by path parameter.
+When existing path is entered, you still can return to editing it
+by pressing **gears** button near the **open presets folder**.
 
 ### Tools
 
@@ -307,7 +333,7 @@ objects with the same name.
 
    <img src="_images/batch_exp_visible.png" alt="Limit by - Visible" align="center">
 
-   **Example output:** `C:\tmp\asset.dag` contains all scene objects with
+   **Example output:** `C:\tmp\Filename.dag` contains all scene objects with
    custom normals.
 
 2. **Limit by:** Sel.Joined
@@ -318,7 +344,7 @@ objects with the same name.
 
    <img src="_images/batch_exp_sel_joined.png" alt="Limit by - Sel.Joined" align="center">
 
-   **Example output:** `C:\tmp\asset.dag` contains only selected scene objects.
+   **Example output:** `C:\tmp\Filename.dag` contains only selected scene objects.
 
 3. **Limit by:** Sel.Separated
 
@@ -497,12 +523,11 @@ path os invalid or only the texture name is provided, it will be replaced with a
 UV checker texture. If a texture is used in multiple materials, updating the
 path in one will update it across all materials.
 
-Texture slots are still used as in
-[rendinst_simple](../../../../assets/shaders/dng-shaders/rendinst_simple.md),
-regardless of the chosen shader. Nodes do not overlap but are arranged
-meaningfully. Images from all slots are now added to the *Shader Editor*, so
-with **Node Wrangler** enabled, they can be viewed by pressing
-`Shift`+`Ctrl`+`LMB`.
+Most common used shaders have a dedicated nodegroups, that roughly mimic the in-game look.
+All of this nodegroups are stored in `dag4blend\extras\library.blend` and being linked automatically.
+Shaders without their own nodegroup are displayed as [rendinst_simple](../../../../assets/shaders/dng-shaders/rendinst_simple.md) without parameters.
+Textures can be previewed from node-based *Shader Editor*, if **Node Wrangler** enabled.
+Clicking `Shift`+`Ctrl`+`LMB` on texture shows it as simple unlit shader.
 
 ### File > Import
 
@@ -526,15 +551,15 @@ with **Node Wrangler** enabled, they can be viewed by pressing
 
 ### Batch Import
 
-For bulk imports, it's smart to use batch import. This panel allows importing
-`.dag` files from a specified directory.
+For importing several assets at once it's better to use **Batch Import** panel.
+This panel allows importing `.dag` files from a specified directory.
 
 <img src="_images/batch_imp.png" alt="Batch Import" align="center">
 
 **Options:**
 
 - **Search in subfolders**: checks all subdirectories for files. Use cautiously,
-  as it can hang Blender if too many matches are found.
+  as it can freeze Blender if too many matches are found.
 
 - **Optimize material slots**: same as in regular import.
 
@@ -542,13 +567,17 @@ For bulk imports, it's smart to use batch import. This panel allows importing
   ensure they don't change during export. Not recommended if you plan to modify
   the geometry after import.
 
+- **Reimport existing**: when checked, if corresponding collection for .dag found,
+  importer replaces its content by newly imported data. When unchecked,
+  it will import to the new collection with first unused index `.001+` available.
+
 - **Preserve paths**: saves the full path to the `.dag` file (including the file
   name) in **Collection Property**. Useful when importing file from multiple
   directories and needing to export them back to original locations.
 
-- **Masks**: specifies masks for import, using `*` instead of `.*` for multiple
-  characters, and `.` instead of `\.`. Separate masks with `;`. Spaces are
-  ignored.
+- **Masks**: [regex-based](https://en.wikipedia.org/wiki/Regular_expression) masks for files.
+  But for any symbols `*` is used instead of `.*`, and `;` is used to separate masks.
+  Spaces are ignored.
 
 - **Excludes**: same syntax as masks, but for excluding files from import.
 
@@ -653,9 +682,7 @@ The BBoxes may still need to be adjusted and scaled to better fit the
 silhouette. In some cases, they may also need to be duplicated. However, this
 process still saves time in the overall setup.
 
-## Experimental Features
-
-### Bake
+## Texture Baker
 
 Allows baking textures from complex shaders to
 [rendinst_simple](../../../../assets/shaders/dng-shaders/rendinst_simple.md).
@@ -665,8 +692,9 @@ Commonly used for final LODs or porting assets to mobile projects.
 For more information, see
 [Texture Baker](../dag4blend-texture-baker/dag4blend_texture_baker.md) tool.
 ```
-
 <img src="_images/bake.png" alt="Bake" align="center">
+
+## Experimental Features
 
 ### Composite Editor
 

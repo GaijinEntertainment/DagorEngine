@@ -150,6 +150,34 @@ def is_matrix_ok(matrix):
         return msg
     return True
 
+#shows the preview of deformatins that stored in VCol
+def preview_vcol_deformation(object):
+    srgb_deform = object.data.color_attributes[0]
+    domain = srgb_deform.domain
+    vector_deform = object.data.attributes.get("vector_deform")
+    if vector_deform is not None:
+        object.data.attributes.remove(vector_deform)
+    vector_deform = object.data.attributes.new("vector_deform", 'FLOAT_VECTOR', domain)
+    for index in range(0, srgb_deform.data.__len__()):
+        vector_deform.data[index].vector = srgb_deform.data[index].color_srgb[:-1]
+    gn_node = get_preview_node()
+    try:
+        for key in object.data.shape_keys.key_blocks:
+            key.value = 0
+    except:
+        pass
+    modifier = object.modifiers.new("GN_dynamic_deformed_preview", 'NODES')
+    modifier.node_group = get_preview_node()
+    modifier['Socket_2_use_attribute'] = True
+    modifier['Socket_2_attribute_name'] = 'vector_deform'
+    max_height = 1.0
+    try:
+        max_height = object.data.materials[0].dagormat.optional['max_height']
+    except:
+        pass
+    modifier["Socket_3"] = max_height
+    return
+
 # stores vert offsets of first shape key into color attribute named "DEFORM"
 # writes multiplier value to the shader
 def shapekey_to_color_attribute(object, configure_shaders = False, preview_deformation = False):
@@ -181,13 +209,13 @@ def shapekey_to_color_attribute(object, configure_shaders = False, preview_defor
 
     if mesh.attributes.get("DEFORM") is not None:
         mesh.attributes.remove(mesh.attributes["DEFORM"])
-    raw_color = mesh.attributes.new("DEFORM", 'FLOAT_COLOR', 'POINT')
+    color = mesh.attributes.new("DEFORM", 'FLOAT_COLOR', 'POINT')
     for i in range(mesh.vertices.__len__()):
-        raw_color.data[i].color[0] = map_range(coords_offset[i][0],  -max_dist,max_dist,  0.0,1.0)
-        raw_color.data[i].color[1] = map_range(coords_offset[i][1],  -max_dist,max_dist,  0.0,1.0)
-        raw_color.data[i].color[2] = map_range(coords_offset[i][2],  -max_dist,max_dist,  0.0,1.0)
+        color.data[i].color_srgb[0] = map_range(coords_offset[i][0],  -max_dist,max_dist,  0.0,1.0)
+        color.data[i].color_srgb[1] = map_range(coords_offset[i][1],  -max_dist,max_dist,  0.0,1.0)
+        color.data[i].color_srgb[2] = map_range(coords_offset[i][2],  -max_dist,max_dist,  0.0,1.0)
 
-    mesh.color_attributes.active_color = mesh.color_attributes[0]
+    mesh.color_attributes.active_color = mesh.color_attributes["DEFORM"]
 
     message = f'\n\tObject "{object.name}" processed. "max_height" is {max_dist*2}\n'
     log(message, type = "INFO")
@@ -211,12 +239,7 @@ def shapekey_to_color_attribute(object, configure_shaders = False, preview_defor
         if new_mat.users == 0:
             bpy.data.materials.remove(new_mat)
     if preview_deformation:
-        shape_key.value = 0.0
-        modifier = object.modifiers.new("GN_dynamic_deformed_preview", 'NODES')
-        modifier.node_group = get_preview_node()
-        modifier['Socket_2_use_attribute'] = True
-        modifier['Socket_2_attribute_name'] = 'DEFORM'
-        modifier["Socket_3"] = max_dist * 2
+        preview_vcol_deformation(object)
     return
 
 def get_preview_node():

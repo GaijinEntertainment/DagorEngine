@@ -1,11 +1,14 @@
 import bpy, os
-from   bpy.props            import StringProperty, PointerProperty, FloatProperty
-from   bpy.utils            import register_class, unregister_class
-from   bpy.types            import Operator, Panel, PropertyGroup
-from ..helpers.texts        import *
-from ..helpers.popup        import show_popup
-from ..helpers.basename     import basename
-from ..helpers.props        import fix_type
+
+from   bpy.props    import StringProperty, PointerProperty, FloatProperty
+from   bpy.utils    import register_class, unregister_class
+from   bpy.types    import Operator, Panel, PropertyGroup
+
+from ..helpers.texts            import *
+from ..helpers.popup            import show_popup
+from ..helpers.basename         import basename
+from ..helpers.props            import fix_type
+from ..helpers.get_preferences  import get_preferences
 
 #functions
 def clear_props(obj):
@@ -32,12 +35,12 @@ def text_to_props(obj):
                 broken+=line+';'
             elif prop[0].endswith(':b') and prop[1] not in ['yes','no']:
                 broken+=line+';'
-            elif prop[0]=='broken_properties':
+            elif prop[0]=='broken_properties:t':
                 broken+=line[1:-1]+';'
             else:
                 DP[prop[0]]=fix_type(prop[1])
     if broken.__len__()>0:
-        DP['broken_properties']=f'"{broken}"'
+        DP['broken_properties:t']=f'"{broken}"'
 
 def props_to_text(obj):
     txt=get_text_clear('props_temp')
@@ -54,7 +57,7 @@ def props_to_text(obj):
 
 def get_presets_list():
     addon_name = basename(__package__)
-    pref = bpy.context.preferences.addons[addon_name].preferences
+    pref = get_preferences()
     path = pref.props_presets_path
     files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path,f))]
     return files
@@ -106,7 +109,7 @@ class DAGOR_OT_apply_op_preset(Operator):
             return {'CANCELLED'}
         temp=get_text_clear('props_temp')
         addon_name = basename(__package__)
-        pref=bpy.context.preferences.addons[addon_name].preferences
+        pref = get_preferences()
         preset = pref.prop_preset
         path = pref.props_presets_path + f"\\{preset}.txt"
         if os.path.exists(path):
@@ -131,7 +134,7 @@ class DAGOR_OT_save_op_preset(Operator):
             return {'CANCELLED'}
         props_to_text(obj)
         addon_name = basename(__package__)
-        pref=bpy.context.preferences.addons[addon_name].preferences
+        pref = get_preferences()
         name = pref.prop_preset_name
         if name == '':
             name = 'unnamed'
@@ -159,7 +162,7 @@ class DAGOR_OT_remove_op_preset(Operator):
 
     def execute(self, context):
         addon_name = basename(__package__)
-        pref=bpy.context.preferences.addons[addon_name].preferences
+        pref = get_preferences()
         name = pref.prop_preset
         path = pref.props_presets_path + f"\\{name}.txt"
         os.remove(path)
@@ -208,7 +211,7 @@ class DAGOR_OT_add_prop(Operator):
         if obj is None:
             show_popup(message='No active object found',title='Error',icon='ERROR')
             return {'CANCELLED'}
-        pref=bpy.context.preferences.addons[basename(__package__)].preferences
+        pref = get_preferences()
         if pref.prop_name.replace(' ','')=='':
             show_popup(message='Enter prop name',title='Error',icon='ERROR')
             return {'CANCELLED'}
@@ -248,9 +251,6 @@ class DAGOR_PT_Properties(Panel):
     bl_category = 'Dagor'
     bl_options = {'DEFAULT_CLOSED'}
 
-    def __init__(self):
-        pass
-
     def draw(self, context):
         C=context
         l = self.layout
@@ -259,7 +259,7 @@ class DAGOR_PT_Properties(Panel):
             info = l.box()
             info.label(text = "No active object!", icon = 'ERROR')
             return
-        pref=bpy.context.preferences.addons[basename(__package__)].preferences
+        pref = get_preferences()
         DP = bpy.context.active_object.dagorprops
         props=l.box()
         header=props.row()

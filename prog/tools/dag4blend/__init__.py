@@ -1,6 +1,7 @@
 import bpy
 
 from .                  import settings
+from .projects          import project_manager_panel
 from .exporter          import exporter
 from .exporter          import export_panel
 from .tools             import tools_panel, bake_panel, mesh_tools_panel
@@ -14,6 +15,7 @@ from .cmp               import cmp_panels,cmp_import,cmp_export
 from .smooth_groups     import smooth_groups
 
 modules=[settings,
+        project_manager_panel,
         smooth_groups,
         exporter,
         object_properties,
@@ -32,21 +34,21 @@ modules=[settings,
 bl_info = {"name": "dag4blend",
            "description": "Tools for editing dag files",
            "author": "Gaijin Entertainment",
-           "version": (2, 5, 0),#2024.10.10
-           "blender": (4, 1, 0),
+           "version": (2, 6, 1),#2025.04.14
+           "blender": (4, 4, 0),
            "location": "File > Export",
            "wiki_url": "",
            "tracker_url": "",
            "category": "Import-Export"}
 
 def register():
-    for c in modules:
-        c.register()
+    for module in modules:
+        module.register()
     return
 
 def unregister():
-    for c in modules[::-1]:
-        c.unregister()
+    for module in modules[::-1]:
+        module.unregister()
     return
 
 

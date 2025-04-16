@@ -1,3 +1,5 @@
+# dag4blend Composite Editor
+
 ## How to Enable
 
 The Composite Editor is currently under development and is considered an

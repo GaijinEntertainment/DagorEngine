@@ -1,9 +1,10 @@
 import bpy
-from bpy.types          import Operator, Panel
-from bpy.utils          import register_class, unregister_class
-from bpy.props          import IntProperty, StringProperty
-from ..helpers.basename import basename
-from ..helpers.popup    import show_popup
+from bpy.types                  import Operator, Panel
+from bpy.utils                  import register_class, unregister_class
+from bpy.props                  import IntProperty, StringProperty
+from ..helpers.basename         import basename
+from ..helpers.popup            import show_popup
+from ..helpers.get_preferences  import get_preferences
 
 #FUNCTIONS
 def get_lod_collections():
@@ -99,7 +100,7 @@ class DAGOR_PT_CollectionProperties(Panel):
         C=bpy.context
         l=self.layout
         column = l.column(align = True)
-        pref = bpy.context.preferences.addons[basename(__package__)].preferences
+        pref = get_preferences()
         col = C.collection
         if col is not None:
             colprops = column.box()

@@ -137,7 +137,8 @@ class DagExporter(Operator, ExportHelper):
         options={'HIDDEN'},
         default = 'Visible')
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.writer = writer.DagWriter()
         self.last_index = 0
         self.nodes = list()
@@ -474,17 +475,17 @@ class DagExporter(Operator, ExportHelper):
             for tri in me.polygons:
                 d = color_attributes.data[tri.loop_indices[0]]
                 if d is not None:
-                    meshExp.color_attributes_poly.append(meshExp.addVertexColor(d.color))
+                    meshExp.color_attributes_poly.append(meshExp.addVertexColor(d.color_srgb))
                 else:
                     meshExp.color_attributes_poly.append(meshExp.addVertexColor([1.0, 1.0, 1.0]))
                 d = color_attributes.data[tri.loop_indices[2]]
                 if d is not None:
-                    meshExp.color_attributes_poly.append(meshExp.addVertexColor(d.color))
+                    meshExp.color_attributes_poly.append(meshExp.addVertexColor(d.color_srgb))
                 else:
                     meshExp.color_attributes_poly.append(meshExp.addVertexColor([1.0, 1.0, 1.0]))
                 d = color_attributes.data[tri.loop_indices[1]]
                 if d is not None:
-                    meshExp.color_attributes_poly.append(meshExp.addVertexColor(d.color))
+                    meshExp.color_attributes_poly.append(meshExp.addVertexColor(d.color_srgb))
                 else:
                     meshExp.color_attributes_poly.append(meshExp.addVertexColor([1.0, 1.0, 1.0]))
         node.mesh = meshExp

@@ -1,4 +1,6 @@
 import bpy,os
+
+from os.path            import exists
 from bpy.utils          import register_class, unregister_class
 from bpy.types          import Operator
 
@@ -13,6 +15,7 @@ from ..helpers.texts    import get_text, log
 from ..helpers.basename import basename
 from ..helpers.popup    import show_popup
 from ..helpers.props    import fix_type
+from ..helpers.get_preferences  import *
 
 #TODO: find better solution than global variable?
 
@@ -271,7 +274,7 @@ def apply_matrix(node,node_object):
     return{'FINISHED'}
 
 def read_cmp(path_import,with_sub_cmp,with_dags,with_lods,assets):
-    pref = bpy.context.preferences.addons[basename(__package__)].preferences
+    pref = get_preferences()
     i = int(pref.project_active)
     search_path = pref.projects[i].path
     if path_import.replace(' ','')=='':
@@ -368,15 +371,42 @@ def read_cmp(path_import,with_sub_cmp,with_dags,with_lods,assets):
 class DAGOR_OP_CmpImport(Operator):
     bl_idname = "dt.cmp_import"
     bl_label = "Import CMP"
-    bl_description = "Import composit"
     bl_options = {'REGISTER', 'UNDO'}
 
+    @classmethod
+    def poll(self, context):
+        pref = get_preferences()
+        if pref.projects.__len__() == 0:
+            return False
+        project = pref.projects[int(pref.project_active)]
+        if not exists(project.path):
+            return False
+        return True
+
+    @classmethod
+    def description(cls, context, properties):
+        pref = get_preferences()
+        if pref.projects.__len__() == 0:
+            return "No active project found!"
+        project = pref.projects[int(pref.project_active)]
+        if not exists(project.path):
+            return f'Path of project "{project.name}" does not exist!'
+        return "Import Composite"
+
     def execute(self, context):
-        P = bpy.data.scenes[0].dag4blend.cmp.importer
-        #try:
+        pref = get_preferences()
+        index = pref.project_active
+        project = pref.projects[int(index)]
+        if not exists(project.path):
+            msg = f'Pafth of project "{project.name}" does not exist, can not search for resources'
+            log(msg, type = 'ERROR')
+            show_popup(msg)
+            return {'CANCELLED'}
+        props = get_local_props()
+        cmp_import_props = props.cmp.importer
         start=time()
         bpy.ops.dt.init_blend()
-        if P.refresh_cache:
+        if cmp_import_props.refresh_cache:
             assets = build_cache()
         else:
             try:
@@ -387,7 +417,11 @@ class DAGOR_OP_CmpImport(Operator):
         dags_to_import.clear()
         cmp_to_import.clear()
 
-        read_cmp(P.filepath, P.with_sub_cmp, P.with_dags, P.with_lods,assets)
+        read_cmp(cmp_import_props.filepath,
+                cmp_import_props.with_sub_cmp,
+                cmp_import_props.with_dags,
+                cmp_import_props.with_lods,
+                assets)
         context.window.scene = bpy.data.scenes['COMPOSITS']
         show_popup(f'finished in {round(time()-start,4)} sec')
         return{'FINISHED'}

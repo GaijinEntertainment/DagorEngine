@@ -2,6 +2,7 @@ import bpy
 import os
 import re
 import glob
+from os.path import exists
 from math                           import pi
 from mathutils                      import Vector
 from bpy.types                      import Operator
@@ -26,7 +27,8 @@ from ..helpers.texts                import log
 from ..helpers.basename             import basename
 from ..helpers.popup                import show_popup
 from ..helpers.version              import get_blender_version
-from ..smooth_groups.smooth_groups  import uint_to_int,int_to_uint,sg_to_sharp_edges
+from ..helpers.get_preferences      import get_preferences
+from ..smooth_groups.smooth_groups  import uint_to_int, int_to_uint, sg_to_sharp_edges
 from ..tools.tools_panel            import fix_mat_slots, optimize_mat_slots
 
 FACENO = 0
@@ -38,7 +40,7 @@ BEENTHERE = 2
 
 #returns possible asset type based on name
 def guess_dag_type(name):
-    pref = bpy.context.preferences.addons[basename(__package__)].preferences
+    pref = get_preferences()
     if name.endswith('_destr.lod00'):
         return 'dynmodel'
     if name[:-2].endswith('.lod'):
@@ -224,6 +226,23 @@ class DagImporter(Operator, ImportHelper):
     textures = []
     materials = []
 
+    @classmethod
+    def poll(self, context):
+        pref = get_preferences()
+        if pref.projects.__len__() == 0:
+            return False
+        project = pref.projects[int(pref.project_active)]
+        if not exists(project.path):
+            return False
+        return True
+
+    @classmethod
+    def description(cls, context, properties):
+        pref = get_preferences()
+        if pref.projects.__len__() == 0:
+            return "No active project found. Please, configure at least one project"
+        return "Import DAG file(s)"
+
     @staticmethod
     def findNeighbors(faces):
         for i, f in enumerate(faces):
@@ -350,7 +369,7 @@ class DagImporter(Operator, ImportHelper):
             for index in poly:
                 col.extend(node.mesh.color_attributes[index])
                 col.append(1.0)
-            vcol_lay.data.foreach_set("color", tuple(col))
+            vcol_lay.data.foreach_set("color_srgb", tuple(col))
 
         me.validate()
         me.update()
@@ -391,7 +410,7 @@ class DagImporter(Operator, ImportHelper):
         o.matrix_world = tm
 
         self.buildObjProperties(o, node.objProps)
-        if o.dagorprops.get('broken_properties') is not None:
+        if o.dagorprops.get('broken_properties:t') is not None:
             msg =f'{o.name} has incorrect object properties\n'
             log(msg,type = 'WARNING', show = True)
         tm.transpose()
@@ -458,7 +477,7 @@ class DagImporter(Operator, ImportHelper):
                 else:
                     dagorprops[prop[0]]=fix_type(prop[1])
         if broken.__len__()>0:
-            dagorprops['broken_properties']=broken
+            dagorprops['broken_properties:t']=broken
         return
 
     def DM_set_params(_self, script):
@@ -985,11 +1004,6 @@ class DagImporter(Operator, ImportHelper):
         bpy.ops.dt.init_blend()
         filepath = '{:s}'.format(self.filepath)
         msg = f'IMPORTING {filepath}\n'
-        pref = context.preferences.addons[basename(__package__)].preferences
-        if not pref.project_active:
-            show_popup(message='Please configure at least one project in addon preferences',
-                title='ERROR!', icon='ERROR')
-            return {'CANCELLED'}
         log(msg)#isn't necessary in the info panel
         if self.with_dmgs is False and self.with_dps is False and self.with_lods is False:
             self.load(filepath)

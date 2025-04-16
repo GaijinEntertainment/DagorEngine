@@ -21,3 +21,6 @@ dynamic_simple_painted:rendinst_simple_painted
 
 rendinst_layered_hmap_blend:rendinst_layered
 rendinst_layered_hmap_blend_uv:rendinst_layered_uv
+
+dynamic_single_layer_overlay:rendinst_single_layer_overlay
+dynamic_single_layer_overlay_uv:rendinst_single_layer_overlay_uv

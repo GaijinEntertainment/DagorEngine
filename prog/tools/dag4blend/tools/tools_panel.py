@@ -547,6 +547,29 @@ class DAGOR_OT_SetupDestruction(Operator):
 classes.append(DAGOR_OT_SetupDestruction)
 
 
+class DAGOR_OT_Preview_VCol_Deformation(Operator):
+    bl_idname = 'dt.vcol_deform_preview'
+    bl_label = 'Preview Deformation'
+    bl_description = 'Applies Geometry Nodes modifier to preview deformation'
+    bl_options = {'UNDO'}
+
+    @classmethod
+    def poll(self, context):
+        selection = [o for o in context.selected_objects
+            if o.type == 'MESH'
+            and o.data.color_attributes.__len__() > 0]
+        len = selection.__len__()
+        return len > 0
+
+    def execute(self, context):
+        selection = [o for o in context.selected_objects
+            if o.type == 'MESH'
+            and o.data.color_attributes.__len__() > 0]
+        for object in selection:
+            preview_vcol_deformation(object)
+        return{'FINISHED'}
+classes.append(DAGOR_OT_Preview_VCol_Deformation)
+
 class DAGOR_OT_Shapekey_to_Color_Attribute(Operator):
     bl_idname = 'dt.shape_to_vcol'
     bl_label = "Shapekey to vcol"
@@ -686,33 +709,47 @@ class DAGOR_PT_Tools(Panel):
         destrbox=toolbox.box()
         header = destrbox.row()
         header.prop(pref, 'destrbox_maximized',icon = 'DOWNARROW_HLT'if pref.destrbox_maximized else 'RIGHTARROW_THIN',
-            emboss=False,text='DestrSetup')
+            emboss=False,text='Destruction')
         header.prop(pref, 'destrbox_maximized',text="", icon = 'MOD_PHYSICS', emboss = False)
         if pref.destrbox_maximized:
-            destrbox = destrbox.column(align = True)
-            button = destrbox.row()
-            button.scale_y = 2.0
-            destr = button.operator('dt.setup_destr', icon = 'MOD_PHYSICS')
-            destr.materialName = pref_local.tools.destr_materialName
-            destr.density = pref_local.tools.destr_density
-            mat = destrbox.row()
-            mat.prop(pref_local.tools,'destr_materialName', text='material')
-            dens=destrbox.row()
-            dens.prop(pref_local.tools, 'destr_density', text='density')
-            destrbox.separator()
+            box = destrbox.box()
+            header = box.row()
+            header.prop(pref, 'destrsetup_maximized',icon = 'DOWNARROW_HLT'if pref.destrsetup_maximized else 'RIGHTARROW_THIN',
+                emboss=False,text='Basic Destr')
+            header.prop(pref, 'destrsetup_maximized',text="", icon = 'MOD_PHYSICS', emboss = False)
+            if pref.destrsetup_maximized:
+                box = box.column(align = True)
+                button = box.row()
+                button.scale_y = 2.0
+                destr = button.operator('dt.setup_destr', icon = 'MOD_PHYSICS')
+                destr.materialName = pref_local.tools.destr_materialName
+                destr.density = pref_local.tools.destr_density
+                mat = box.row()
+                mat.prop(pref_local.tools,'destr_materialName', text='material')
+                dens=box.row()
+                dens.prop(pref_local.tools, 'destr_density', text='density')
+                box.separator()
 
-            vcol = destrbox.row()
-            vcol.scale_y = 2.0
-            preview = vcol.operator('dt.shape_to_vcol', icon = 'GROUP_VCOL')
-            preview.configure_shaders = pref_local.tools.configure_shaders
-            preview.preview_deformation = pref_local.tools.preview_deformation
-            prop = destrbox.row()
-            prop.prop(pref_local.tools, 'configure_shaders', toggle = True,
-            icon = 'CHECKBOX_HLT' if pref_local.tools.configure_shaders else 'CHECKBOX_DEHLT')
-            prop = destrbox.row()
-            prop.prop(pref_local.tools, 'preview_deformation', toggle = True,
-            icon = 'CHECKBOX_HLT' if pref_local.tools.preview_deformation else 'CHECKBOX_DEHLT')
-
+            box = destrbox.box()
+            header = box.row()
+            header.prop(pref, 'destrdeform_maximized',icon = 'DOWNARROW_HLT'if pref.destrdeform_maximized else 'RIGHTARROW_THIN',
+                emboss=False,text='Shapekey Deform')
+            header.prop(pref, 'destrdeform_maximized',text="", icon = 'SHAPEKEY_DATA', emboss = False)
+            if pref.destrdeform_maximized:
+                column = box.column(align = True)
+                vcol = column.row()
+                vcol.scale_y = 2.0
+                preview = vcol.operator('dt.shape_to_vcol', icon = 'GROUP_VCOL')
+                preview.configure_shaders = pref_local.tools.configure_shaders
+                preview.preview_deformation = pref_local.tools.preview_deformation
+                prop = column.row()
+                prop.prop(pref_local.tools, 'configure_shaders', toggle = True,
+                icon = 'CHECKBOX_HLT' if pref_local.tools.configure_shaders else 'CHECKBOX_DEHLT')
+                prop = column.row()
+                prop.prop(pref_local.tools, 'preview_deformation', toggle = True,
+                icon = 'CHECKBOX_HLT' if pref_local.tools.preview_deformation else 'CHECKBOX_DEHLT')
+                column.separator()
+                column.operator('dt.vcol_deform_preview', icon = 'HIDE_OFF')
         return
 classes.append(DAGOR_PT_Tools)
 

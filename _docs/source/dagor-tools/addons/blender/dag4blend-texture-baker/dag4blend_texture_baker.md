@@ -1,3 +1,5 @@
+# dag4blend Texture Baker
+
 ## Overview
 
 This tool is designed to convert "heavy" materials into a single low-resolution

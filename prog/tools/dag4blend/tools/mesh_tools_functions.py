@@ -94,7 +94,7 @@ def calc_ratio(tri, matrix_world = None):
 
 def is_degenerated_legacy(tri, matrix_world = None):
     area = calc_area(tri, matrix_world)
-    return (area/4) ** 2/2 < DEGENERATIVE_TRI_AREA_THRESHOLD_SQ  # dabuild checks like that
+    return ((area/4) ** 2)/2 < DEGENERATIVE_TRI_AREA_THRESHOLD_SQ  # dabuild checks like that
 
 
 def is_degenerated(tri, area_threshold, ratio_treshold, matrix_world = None):

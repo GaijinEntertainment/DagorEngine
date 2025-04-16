@@ -7,6 +7,7 @@ from bpy.props import (BoolProperty,
                         PointerProperty,
                         EnumProperty,
                         )
+from os.path    import exists, join
 from bpy.types import Operator, PropertyGroup, Panel
 from  time import time
 
@@ -17,6 +18,7 @@ from ..helpers.basename         import basename
 from .rw_dagormat_text          import dagormat_from_text, dagormat_to_text
 from ..helpers.props            import fix_type
 from ..helpers.popup            import show_popup
+from ..helpers.get_preferences  import get_preferences
 
 classes = []
 
@@ -45,7 +47,7 @@ def get_missing_tex(materials):
         for tex in T.keys():
             if T[tex]!='':
                 if basename(tex) not in missing_tex:
-                    if not os.path.exists(bpy.data.images[basename(T[tex])].filepath):
+                    if not exists(bpy.data.images[basename(T[tex])].filepath):
                         if basename(T[tex]) not in missing_tex:
                             missing_tex.append(basename(T[tex]))
     return missing_tex
@@ -56,7 +58,7 @@ def find_textures(materials):
     if missing_tex.__len__()==0:
         print('nothing to search')
         return
-    pref = bpy.context.preferences.addons[basename(__package__)].preferences
+    pref = get_preferences()
     i=int(pref.project_active)
     search_path = pref.projects[i].path
 
@@ -71,14 +73,14 @@ def find_textures(materials):
     return
 
 def find_proxymats(materials):
-    pref = bpy.context.preferences.addons[basename(__package__)].preferences
+    pref = get_preferences()
     i=int(pref.project_active)
     search_path = pref.projects[i].path
     proxymats=[]
     for material in materials:
         DM = material.dagormat
         if DM.is_proxy:
-            if not os.path.exists(os.path.join(DM.proxy_path,(material.name+'.proxymat.blk'))):
+            if not exists(join(DM.proxy_path,(material.name+'.proxymat.blk'))):
                 if material.name not in proxymats:
                     proxymats.append(material.name)
     if proxymats.__len__()>0:
@@ -92,7 +94,7 @@ def find_proxymats(materials):
 
 #functions/getters
 def get_shader_categories(self,context):
-    pref = bpy.context.preferences.addons[basename(__package__)].preferences
+    pref = get_preferences()
     items = []
     for shader_class in pref.shader_categories:
         name = shader_class.name
@@ -101,7 +103,7 @@ def get_shader_categories(self,context):
     return items
 
 def get_shaders(self,context):
-    pref=context.preferences.addons[basename(__package__)].preferences
+    pref = get_preferences()
     items = []
     for cl in pref.shader_categories:
         if cl.name==self.shader_category_active:
@@ -121,7 +123,7 @@ def get_props(self,context):
     exclude = list(DM.optional.keys())
     exclude.append('real_two_sided')#already exists in ui
     items = []
-    pref = context.preferences.addons[basename(__package__)].preferences
+    pref = get_preferences()
     found = False
     for shader_class in pref.shader_categories:
         for shader in shader_class['shaders']:
@@ -142,7 +144,7 @@ def get_props(self,context):
     return items
 
 def upd_prop_active(self, context):
-    pref = context.preferences.addons[basename(__package__)].preferences
+    pref = get_preferences()
     self.prop_name = self.prop_active
     self.prop_value = '???'
     found = False
@@ -197,12 +199,12 @@ def update_tex_paths(material):
         tex_name=basename(T[tex])#no extention needed
         if T[tex]=='':
             continue
-        elif os.path.exists(T[tex]):
+        elif exists(T[tex]):
             continue
         img=bpy.data.images.get(tex_name)
         if img is None:
             continue
-        if os.path.exists(img.filepath):
+        if exists(img.filepath):
             T[tex]=img.filepath
     return
 
@@ -229,7 +231,7 @@ def upd_shader_selector(self, context):
 def upd_shader_category(self,context):
     if self.shader_class == self.shader_class_active:
         return
-    pref = bpy.context.preferences.addons[basename(__package__)].preferences
+    pref = get_preferences()
     for shader in pref.shader_categories[self.shader_category_active]['shaders']:
         if self.shader_class == shader['name']:
             self.shader_class_active = self.shader_class
@@ -272,7 +274,7 @@ def update_proxy_path(self,context):
 def read_proxy_blk(material):
     proxymat = get_text_clear('dagormat_temp')
     DM = material.dagormat
-    file = open(os.path.join(DM.proxy_path,material.name+'.proxymat.blk'),'r')
+    file = open(join(DM.proxy_path,material.name+'.proxymat.blk'),'r')
     lines=file.readlines()
     for line in lines:
         proxymat.write(line.replace(' ',''))
@@ -288,7 +290,7 @@ def write_proxy_blk(mat, custom_dirpath = ""):
     dirpath = DM.proxy_path if custom_dirpath == "" else custom_dirpath
     filename = mat.name + ".proxymat.blk"
     if DM.is_proxy:
-        file = open(os.path.join(dirpath, filename),'w')
+        file = open(join(dirpath, filename),'w')
         for line in text.lines:
             if line.body.__len__() > 0:
                 file.write(line.body+'\n')
@@ -358,8 +360,8 @@ class DAGOR_OT_read_proxy(Operator):
         if DM.is_proxy==False:
             show_popup(message = "Material is'n proxy!", title = 'Error!', icon = 'ERROR')
             return{'CANCELLED'}
-        proxy_file = os.path.join(DM.proxy_path, material.name+'.proxymat.blk')
-        if not os.path.exists(proxy_file):
+        proxy_file = join(DM.proxy_path, material.name+'.proxymat.blk')
+        if not exists(proxy_file):
             show_popup(message="Can not find " + proxy_file, title='Error!', icon='ERROR')
             return{'CANCELLED'}
         read_proxy_blk(material)
@@ -387,7 +389,7 @@ class DAGOR_OT_write_proxy(Operator):
         if DM.is_proxy==False:
             show_popup(message = "not a proxy material!", title = 'Error!', icon = 'ERROR')
             return{'CANCELLED'}
-        if not os.path.exists(DM.proxy_path):
+        if not exists(DM.proxy_path):
             show_popup(message = "Can not find " + DM.proxy_path, title = 'Error!', icon = 'ERROR')
             return{'CANCELLED'}
         write_proxy_blk(material)
@@ -404,6 +406,26 @@ class DAGOR_OT_FindProxymats(Operator):
 
     all_materials: BoolProperty(default = True)
 
+    @classmethod
+    def poll(self, context):
+        pref = get_preferences()
+        if pref.projects.__len__() == 0:
+            return False
+        index = int(pref.project_active)
+        if not exists(pref.projects[index].path):
+            return False
+        return True
+
+    @classmethod
+    def description(cls, context, properties):
+        pref = get_preferences()
+        if pref.projects.__len__() == 0:
+            return "Please, configure at least one project!"
+        index = int(pref.project_active)
+        if not exists(pref.projects[index].path):
+            return "Can't search in non-existing directory! Please, specify project path"
+        return "Search for missing proxymats in the current project directory"
+
     def execute(self,context):
         if self.all_materials:
             materials = [m for m in bpy.data.materials if not m.is_grease_pencil and m.dagormat.shader_class != ""]
@@ -419,10 +441,29 @@ classes.append(DAGOR_OT_FindProxymats)
 class DAGOR_OT_FindTextures(Operator):
     bl_idname = "dt.find_textures"
     bl_label = "find textures"
-    bl_description = "search for dagMat textures"
     bl_options = {'UNDO'}
 
     all_materials: BoolProperty(default = True)
+
+    @classmethod
+    def poll(self, context):
+        pref = get_preferences()
+        if pref.projects.__len__() == 0:
+            return False
+        index = int(pref.project_active)
+        if not exists(pref.projects[index].path):
+            return False
+        return True
+
+    @classmethod
+    def description(cls, context, properties):
+        pref = get_preferences()
+        if pref.projects.__len__() == 0:
+            return "Please, configure at least one project!"
+        index = int(pref.project_active)
+        if not exists(pref.projects[index].path):
+            return "Can't search in non-existing directory! Please, specify project path"
+        return "Search for missing textures in the current project directory"
 
     def execute(self,context):
         if self.all_materials:
@@ -648,7 +689,7 @@ class DAGOR_PT_dagormat(Panel):
         sides = DM.sides
         box = layout.box()
         col = box.column(align = True)
-        pref = bpy.context.preferences.addons[basename(__package__)].preferences
+        pref = get_preferences()
         bool = pref.backfacing_maximized
         labels = ['single_sided', 'two_sided', 'real_two_sided']
         row = col.row(align = True)
@@ -678,7 +719,7 @@ class DAGOR_PT_dagormat(Panel):
 
     def draw(self,context):
         layout = self.layout
-        pref=bpy.context.preferences.addons[basename(__package__)].preferences
+        pref = get_preferences()
         if bpy.context.object:
             if bpy.context.object.active_material:
                 material_active = bpy.context.object.active_material
@@ -829,7 +870,7 @@ classes.append(DAGOR_PT_dagormat)
 def register():
     for cl in classes:
         bpy.utils.register_class(cl)
-    bpy.types.Material.dagormat=PointerProperty(type=dagormat)
+    bpy.types.Material.dagormat = PointerProperty(type = dagormat)
     return
 
 
