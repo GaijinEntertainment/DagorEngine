@@ -1,0 +1,548 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__driver_8h" kind="file" language="C++">
+    <compoundname>dag_driver.h</compoundname>
+    <includes refid="dag__decl_8h" local="no">drv/3d/dag_decl.h</includes>
+    <includes refid="dag__barrier_8h" local="no">drv/3d/dag_barrier.h</includes>
+    <includes refid="dag__consts_8h" local="no">drv/3d/dag_consts.h</includes>
+    <includes refid="dag__resource_8h" local="no">drv/3d/dag_resource.h</includes>
+    <includes refid="dag__tex3d_8h" local="no">drv/3d/dag_tex3d.h</includes>
+    <includes local="no">util/dag_globDef.h</includes>
+    <includes local="no">vecmath/dag_vecMathDecl.h</includes>
+    <includes local="no">EASTL/initializer_list.h</includes>
+    <includes refid="dag__hang_handler_8h" local="no">drv/3d/dag_hangHandler.h</includes>
+    <includes local="yes">rayTrace/dag_drvRayTrace.h</includes>
+    <includes local="yes">rayTrace/rayTracedrv3d.inl.h</includes>
+    <includedby refid="dag__async__pipeline_8h" local="no">/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_async_pipeline.h</includedby>
+    <includedby refid="dag__drv3d__multi_8h" local="no">/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_drv3d_multi.h</includedby>
+    <includedby refid="dag__lock_8h" local="no">/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_lock.h</includedby>
+    <includedby refid="dag__platform__pc_8h" local="no">/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_pc.h</includedby>
+    <includedby refid="dag__platform__ps_8h" local="no">/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_ps.h</includedby>
+    <incdepgraph>
+      <node id="8">
+        <label>drv/3d/dag_barrier.h</label>
+        <link refid="dag__barrier_8h_source"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>drv/3d/dag_consts.h</label>
+        <link refid="dag__consts_8h_source"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>drv/3d/dag_consts_base.h</label>
+        <link refid="dag__consts__base_8h_source"/>
+      </node>
+      <node id="21">
+        <label>drv/3d/dag_d3dResource.h</label>
+        <link refid="dag__d3d_resource_8h_source"/>
+        <childnode refid="22" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>drv/3d/dag_decl.h</label>
+        <link refid="dag__decl_8h_source"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driver.h</label>
+        <link refid="dag__driver_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>drv/3d/dag_driverCode.h</label>
+        <link refid="dag__driver_code_8h_source"/>
+      </node>
+      <node id="29">
+        <label>drv/3d/dag_hangHandler.h</label>
+        <link refid="dag__hang_handler_8h_source"/>
+      </node>
+      <node id="23">
+        <label>drv/3d/dag_resId.h</label>
+        <link refid="dag__res_id_8h_source"/>
+      </node>
+      <node id="15">
+        <label>drv/3d/dag_resource.h</label>
+        <link refid="dag__resource_8h_source"/>
+      </node>
+      <node id="17">
+        <label>drv/3d/dag_sampler.h</label>
+        <link refid="dag__sampler_8h_source"/>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+      </node>
+      <node id="18">
+        <label>drv/3d/dag_samplerHandle.h</label>
+        <link refid="dag__sampler_handle_8h_source"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>drv/3d/dag_shaderModelVersion.h</label>
+        <link refid="dag__shader_model_version_8h_source"/>
+      </node>
+      <node id="16">
+        <label>drv/3d/dag_tex3d.h</label>
+        <link refid="dag__tex3d_8h_source"/>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="24">
+        <label>drv/3d/dag_texFlags.h</label>
+        <link refid="dag__tex_flags_8h_source"/>
+        <childnode refid="25" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>EASTL/initializer_list.h</label>
+      </node>
+      <node id="10">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="5">
+        <label>math/dag_TMatrix.h</label>
+      </node>
+      <node id="6">
+        <label>math/dag_TMatrix4.h</label>
+      </node>
+      <node id="25">
+        <label>math/dag_adjpow2.h</label>
+      </node>
+      <node id="20">
+        <label>math/dag_color.h</label>
+      </node>
+      <node id="7">
+        <label>math/dag_lsbVisitor.h</label>
+      </node>
+      <node id="26">
+        <label>memory/dag_mem.h</label>
+      </node>
+      <node id="30">
+        <label>rayTrace/dag_drvRayTrace.h</label>
+      </node>
+      <node id="31">
+        <label>rayTrace/rayTracedrv3d.inl.h</label>
+      </node>
+      <node id="27">
+        <label>string.h</label>
+      </node>
+      <node id="3">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="4">
+        <label>util/dag_preprocessor.h</label>
+      </node>
+      <node id="19">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="22">
+        <label>util/dag_string.h</label>
+      </node>
+      <node id="28">
+        <label>vecmath/dag_vecMathDecl.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_async_pipeline.h</label>
+        <link refid="dag__async__pipeline_8h_source"/>
+      </node>
+      <node id="1">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driver.h</label>
+        <link refid="dag__driver_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_drv3d_multi.h</label>
+        <link refid="dag__drv3d__multi_8h_source"/>
+      </node>
+      <node id="4">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_lock.h</label>
+        <link refid="dag__lock_8h_source"/>
+      </node>
+      <node id="5">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_pc.h</label>
+        <link refid="dag__platform__pc_8h_source"/>
+      </node>
+      <node id="6">
+        <label>/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_platform_ps.h</label>
+        <link refid="dag__platform__ps_8h_source"/>
+      </node>
+    </invincdepgraph>
+    <innernamespace refid="namespaced3d">d3d</innernamespace>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="dag__driver_8h_1a89af2eb526af69b085f485ff2b45560b" prot="public" static="no">
+        <name>D3D_HAS_QUADS</name>
+        <initializer>0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driver.h" line="208" column="10" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driver.h" bodystart="208" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__driver_8h_1a93b1408ae2e66d0018e1b7672b89276e" prot="public" static="no">
+        <name>d3derr</name>
+        <param><defname>c</defname></param>
+        <param><defname>m</defname></param>
+        <initializer>  do                                                                   \
+  {                                                                    \
+    bool res = (c);                                                    \
+    G_ANALYSIS_ASSUME(res);                                            \
+    if (!res)                                                          \
+    {                                                                  \
+      bool canReset;                                                   \
+      if (dagor_d3d_force_driver_reset || d3d::device_lost(&amp;canReset)) \
+        d3derr_in_device_reset(m);                                     \
+      else                                                             \
+        DAG_FATAL(&quot;%s:\n%s&quot;, m, d3d::get_last_error());                \
+    }                                                                  \
+  } while (0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driver.h" line="220" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driver.h" bodystart="220" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__driver_8h_1a1f48baed0a8a72030dcebb5b5101e434" prot="public" static="no">
+        <name>d3d_err</name>
+        <param><defname>c</defname></param>
+        <initializer>d3derr((c), &quot;Driver3d error&quot;)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driver.h" line="235" column="9" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driver.h" bodystart="235" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="dag__driver_8h_1a9dc9a17a6115655f4a06d72858317417" prot="public" static="no">
+        <type>intptr_t</type>
+        <definition>typedef intptr_t main_wnd_f(void *, unsigned, uintptr_t, intptr_t)</definition>
+        <argsstring>(void *, unsigned, uintptr_t, intptr_t)</argsstring>
+        <name>main_wnd_f</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driver.h" line="27" column="18" bodyfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driver.h" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="dag__driver_8h_1a46b6ad6cc2bb500f23b945cb678aa8ff" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool dagor_d3d_force_driver_reset</definition>
+        <argsstring></argsstring>
+        <name>dagor_d3d_force_driver_reset</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driver.h" line="218" column="13" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driver.h" declline="218" declcolumn="13"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__driver_8h_1a52956b67c6f2fe35377236ded568dfc4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void d3derr_in_device_reset</definition>
+        <argsstring>(const char *msg)</argsstring>
+        <name>d3derr_in_device_reset</name>
+        <param>
+          <type>const char *</type>
+          <declname>msg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driver.h" line="217" column="5" declfile="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driver.h" declline="217" declcolumn="5"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_decl.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_barrier.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_consts.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_resource.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_tex3d.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_globDef.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;vecmath/dag_vecMathDecl.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/initializer_list.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_hangHandler.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="comment">//<sp/>forward<sp/>declarations<sp/>for<sp/>external<sp/>classes</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="struct_d3d_interface_table" kindref="compound">D3dInterfaceTable</ref>;</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="class_driver3d_init_callback" kindref="compound">Driver3dInitCallback</ref>;</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="class_sbuffer" kindref="compound">Sbuffer</ref>;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/>Drv3dCommand;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="comment">//---<sp/>Driver3dDesc<sp/>&amp;<sp/>initialization<sp/>-------</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;rayTrace/dag_drvRayTrace.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="comment">//<sp/>main<sp/>window<sp/>proc</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/>intptr_t<sp/>main_wnd_f(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*,<sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal">,<sp/>uintptr_t,<sp/>intptr_t);</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">d3d</highlight></codeline>
+<codeline lineno="30"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="32"><highlight class="keyword">class<sp/></highlight><highlight class="normal">ResUpdateBuffer;</highlight></codeline>
+<codeline lineno="33"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="comment">//---<sp/>3d<sp/>driver<sp/>interface<sp/>-------</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">d3d</highlight></codeline>
+<codeline lineno="37"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/>USAGE_TEXTURE<sp/>=<sp/>0x01,</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/>USAGE_DEPTH<sp/>=<sp/>0x02,</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/>USAGE_RTARGET<sp/>=<sp/>0x04,</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/>USAGE_AUTOGENMIPS<sp/>=<sp/>0x08,</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/>USAGE_FILTER<sp/>=<sp/>0x10,</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/>USAGE_BLEND<sp/>=<sp/>0x20,</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/>USAGE_VERTEXTEXTURE<sp/>=<sp/>0x40,</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/>USAGE_SRGBREAD<sp/>=<sp/>0x80,</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/>USAGE_SRGBWRITE<sp/>=<sp/>0x100,</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>USAGE_SAMPLECMP<sp/>=<sp/>0x200,</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/>USAGE_PIXREADWRITE<sp/>=<sp/>0x400,</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/>USAGE_TILED<sp/>=<sp/>0x800,</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/>USAGE_UNORDERED<sp/>=<sp/>0x1000,</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/>USAGE_UNORDERED_LOAD<sp/>=<sp/>0x2000</highlight></codeline>
+<codeline lineno="55"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/>CAPFMT_X8R8G8B8,</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/>CAPFMT_R8G8B8,</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/>CAPFMT_R5G6B5,</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/>CAPFMT_X1R5G5B5,</highlight></codeline>
+<codeline lineno="63"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>update_window_mode();</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>RENDER_TO_WHOLE_ARRAY<sp/>=<sp/>1023;</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>!_TARGET_D3D_MULTI</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Driver<sp/>initialization<sp/>API</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>init_driver();</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_inited();</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight></codeline>
+<codeline lineno="81"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>init_video(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*hinst,<sp/>main_wnd_f<sp/>*,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*wcname,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ncmdshow,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*&amp;mainwnd,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*renderwnd,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*hicon,</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*title,<sp/><ref refid="class_driver3d_init_callback" kindref="compound">Driver3dInitCallback</ref><sp/>*cb);</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight></codeline>
+<codeline lineno="85"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>release_driver();</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight></codeline>
+<codeline lineno="88"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>fill_interface_table(<ref refid="struct_d3d_interface_table" kindref="compound">D3dInterfaceTable</ref><sp/>&amp;d3dit);</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight></codeline>
+<codeline lineno="91"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>prepare_for_destroy();</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>window_destroyed(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*hwnd);</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight></codeline>
+<codeline lineno="96"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">BeforeWindowDestroyedCookie;</highlight></codeline>
+<codeline lineno="97"><highlight class="normal">BeforeWindowDestroyedCookie<sp/>*register_before_window_destroyed_callback(eastl::function&lt;</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">()&gt;<sp/>callback);</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>unregister_before_window_destroyed_callback(BeforeWindowDestroyedCookie<sp/>*cookie);</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"></highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Device<sp/>management</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight></codeline>
+<codeline lineno="104"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>device_lost(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>*can_reset_now);</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>reset_device();</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"></highlight></codeline>
+<codeline lineno="109"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Rendering</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="110"><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>update_screen(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>app_active<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"></highlight></codeline>
+<codeline lineno="121"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>wait_for_async_present(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>force<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"></highlight></codeline>
+<codeline lineno="127"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>gpu_latency_wait();</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"></highlight></codeline>
+<codeline lineno="129"><highlight class="normal">GPUFENCEHANDLE<sp/>insert_fence(GpuPipeline<sp/>gpu_pipeline);</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>insert_wait_on_fence(GPUFENCEHANDLE<sp/>&amp;fence,<sp/>GpuPipeline<sp/>gpu_pipeline);</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"></highlight><highlight class="comment">//<sp/>additional<sp/>L2<sp/>cache<sp/>flush<sp/>calls<sp/>would<sp/>need<sp/>to<sp/>be<sp/>added<sp/>to<sp/>support<sp/>CPU<sp/>&lt;-&gt;<sp/>Compute<sp/>Context<sp/>data<sp/>communication</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="132"><highlight class="normal"></highlight><highlight class="comment">//<sp/>(at<sp/>least<sp/>on<sp/>Xbox<sp/>One,<sp/>see<sp/>XDK<sp/>docs,<sp/>article<sp/>&quot;Optimizing<sp/>Monolithic<sp/>Driver<sp/>Performance&quot;,<sp/>part<sp/>&quot;Manual<sp/>Cache<sp/>and<sp/>Pipeline<sp/>Flushing&quot;)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="133"><highlight class="normal"></highlight></codeline>
+<codeline lineno="134"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Miscellaneous</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="135"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>set_srgb_backbuffer_write(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal">);<sp/></highlight><highlight class="comment">//<sp/>returns<sp/>previous<sp/>result.<sp/>switch<sp/>on/off<sp/>srgb<sp/>write<sp/>to<sp/>backbuffer<sp/>(default<sp/>is<sp/>off)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="136"><highlight class="normal"></highlight></codeline>
+<codeline lineno="137"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>setgamma(</highlight><highlight class="keywordtype">float</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"></highlight></codeline>
+<codeline lineno="139"><highlight class="normal"></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>get_screen_aspect_ratio();</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>change_screen_aspect_ratio(</highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>ar);</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight></codeline>
+<codeline lineno="142"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Screen<sp/>capture</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="143"><highlight class="normal"></highlight></codeline>
+<codeline lineno="146"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*fast_capture_screen(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;w,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;h,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;stride_bytes,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;format);</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>end_fast_capture_screen();</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"></highlight></codeline>
+<codeline lineno="152"><highlight class="normal">TexPixel32<sp/>*capture_screen(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;w,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;h,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;stride_bytes);</highlight></codeline>
+<codeline lineno="154"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>release_capture_buffer();</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"></highlight></codeline>
+<codeline lineno="163"><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>create_predicate();<sp/></highlight><highlight class="comment">//<sp/>-1<sp/>if<sp/>not<sp/>supported<sp/>or<sp/>something<sp/>goes<sp/>wrong</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="164"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>free_predicate(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"></highlight></codeline>
+<codeline lineno="166"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>begin_survey(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);<sp/></highlight><highlight class="comment">//<sp/>false<sp/>if<sp/>not<sp/>supported<sp/>or<sp/>bad<sp/>id</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="167"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>end_survey(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"></highlight></codeline>
+<codeline lineno="169"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>begin_conditional_render(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>end_conditional_render(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"></highlight></codeline>
+<codeline lineno="172"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>beginEvent(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*);<sp/></highlight><highlight class="comment">//<sp/>for<sp/>debugging</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="173"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>endEvent();<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>for<sp/>debugging</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="174"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>get_vrr_supported();</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>get_vsync_enabled();</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>enable_vsync(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>enable);</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"></highlight></codeline>
+<codeline lineno="178"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;rayTrace/rayTracedrv3d.inl.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="179"><highlight class="normal"></highlight></codeline>
+<codeline lineno="180"><highlight class="normal"></highlight><highlight class="comment">//<sp/>See<sp/>ResourceBarrierDesc<sp/>and<sp/>https://info.gaijin.lan/display/DE4/Resource+and+Execution+Barriers</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="181"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>resource_barrier(<ref refid="class_resource_barrier_desc" kindref="compound">ResourceBarrierDesc</ref><sp/>desc,<sp/>GpuPipeline<sp/>gpu_pipeline<sp/>=<sp/>GpuPipeline::GRAPHICS);</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"></highlight></codeline>
+<codeline lineno="183"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="184"><highlight class="normal"></highlight></codeline>
+<codeline lineno="185"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_XBOX<sp/>||<sp/>_TARGET_C1<sp/>||<sp/>_TARGET_C2</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="186"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>resummarize_htile(<ref refid="class_base_texture" kindref="compound">BaseTexture</ref><sp/>*tex);</highlight></codeline>
+<codeline lineno="187"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="188"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>resummarize_htile(<ref refid="class_base_texture" kindref="compound">BaseTexture</ref><sp/>*)<sp/>{}</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="190"><highlight class="normal"></highlight></codeline>
+<codeline lineno="191"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_XBOX</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="192"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set_esram_layout(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">wchar_t</highlight><highlight class="normal"><sp/>*);</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>unset_esram_layout();</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>reset_esram_layout();</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>prefetch_movable_textures();</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>writeback_movable_textures();</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="198"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set_esram_layout(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">wchar_t</highlight><highlight class="normal"><sp/>*)<sp/>{}</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>unset_esram_layout()<sp/>{}</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>reset_esram_layout()<sp/>{}</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>prefetch_movable_textures()<sp/>{}</highlight></codeline>
+<codeline lineno="202"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>writeback_movable_textures()<sp/>{}</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="204"><highlight class="normal"></highlight></codeline>
+<codeline lineno="205"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_C1<sp/>||<sp/>_TARGET_XBOX</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="206"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>D3D_HAS_QUADS<sp/>1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="207"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="208"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>D3D_HAS_QUADS<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="209"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="210"><highlight class="normal">};<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="211"><highlight class="normal"></highlight></codeline>
+<codeline lineno="212"><highlight class="normal"></highlight></codeline>
+<codeline lineno="213"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="214"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_MSC_VER<sp/>&gt;=<sp/>1300</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/>__declspec(noinline)</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="217"><highlight class="normal"><sp/><sp/><sp/><sp/>d3derr_in_device_reset(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*msg);</highlight></codeline>
+<codeline lineno="218"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>dagor_d3d_force_driver_reset;</highlight></codeline>
+<codeline lineno="219"><highlight class="normal"></highlight></codeline>
+<codeline lineno="220"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>d3derr(c,<sp/>m)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="221"><highlight class="preprocessor"><sp/><sp/>do<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="222"><highlight class="preprocessor"><sp/><sp/>{<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="223"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>bool<sp/>res<sp/>=<sp/>(c);<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="224"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>G_ANALYSIS_ASSUME(res);<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="225"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>if<sp/>(!res)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="226"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>{<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="227"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/>bool<sp/>canReset;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="228"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/>if<sp/>(dagor_d3d_force_driver_reset<sp/>||<sp/>d3d::device_lost(&amp;canReset))<sp/>\</highlight></codeline>
+<codeline lineno="229"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>d3derr_in_device_reset(m);<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="230"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/>else<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="231"><highlight class="preprocessor"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>DAG_FATAL(&quot;%s:\n%s&quot;</highlight><highlight class="normal">,<sp/>m,<sp/>d3d::get_last_error());<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="232"><highlight class="normal"><sp/><sp/><sp/><sp/>}<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="233"><highlight class="normal"><sp/><sp/>}<sp/>while<sp/>(0)</highlight></codeline>
+<codeline lineno="234"><highlight class="normal"></highlight></codeline>
+<codeline lineno="235"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>d3d_err(c)<sp/>d3derr((c),<sp/>&quot;Driver3d<sp/>error&quot;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="236"><highlight class="normal"></highlight></codeline>
+<codeline lineno="237"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_D3D_MULTI</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="238"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_drv3d_multi.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="239"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="/home/runner/work/DagorEngine/DagorEngine/prog/dagorInclude/drv/3d/dag_driver.h"/>
+  </compounddef>
+</doxygen>
