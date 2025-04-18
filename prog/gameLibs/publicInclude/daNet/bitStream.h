@@ -75,11 +75,14 @@ using supports_read_type = decltype(supports_read_type_test(eastl::declval<T>())
 class BitStream
 {
 public:
-  BitStream(IMemAlloc *a = defaultmem)
-  {
-    memset(this, 0, offsetof(BitStream, allocator)); // !!!
-    allocator = a;
-  }
+  BitStream(IMemAlloc *a = defaultmem) :
+    bitsUsed(0),
+    dataOwner(0),
+    bitsAllocated(0),
+    readOffset(0),
+    data(nullptr),
+    allocator(a)
+  {}
   BitStream(const uint8_t *_data, size_t lenInBytes, bool copy, IMemAlloc *a = defaultmem) :
     bitsUsed((uint32_t)bytes2bits(lenInBytes)), dataOwner((uint32_t)copy ? 1 : 0), readOffset(0), allocator(a)
   {
